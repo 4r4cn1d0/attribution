@@ -1,0 +1,189 @@
+{
+  "purpose": "Bounded verification of scoping equations; not the proposed performance pilot.",
+  "status": "passed",
+  "checks": [
+    {
+      "name": "scalar projection and sorted-CRN equality",
+      "passed": true,
+      "evidence": {
+        "max_matrix_error": 2.7755575615628914e-17
+      }
+    },
+    {
+      "name": "sorted overlap exact algebra numerical marginals",
+      "passed": true,
+      "evidence": {
+        "row_sums": [
+          0.15000000000000002,
+          0.25,
+          0.6
+        ],
+        "column_sums": [
+          0.4,
+          0.09999999999999998,
+          0.5
+        ]
+      }
+    },
+    {
+      "name": "mean feedback derivative beta=0",
+      "passed": true,
+      "evidence": {
+        "finite_difference": 0.6,
+        "formula": 0.6
+      }
+    },
+    {
+      "name": "mean feedback derivative beta=1",
+      "passed": true,
+      "evidence": {
+        "finite_difference": 0.8666666666817363,
+        "formula": 0.8666666666666667
+      }
+    },
+    {
+      "name": "mean feedback derivative beta=3",
+      "passed": true,
+      "evidence": {
+        "finite_difference": 1.4000000000008002,
+        "formula": 1.4000000000000001
+      }
+    },
+    {
+      "name": "mean feedback derivative beta=8",
+      "passed": true,
+      "evidence": {
+        "finite_difference": 2.733333333320664,
+        "formula": 2.7333333333333334
+      }
+    },
+    {
+      "name": "exclude current Jacobian at H=1",
+      "passed": true,
+      "evidence": {
+        "correct_variance": 0.0,
+        "off_by_one_variance": 0.005051497728033068,
+        "wrong_direction": [
+          0.25,
+          -0.24999999999999994
+        ]
+      }
+    },
+    {
+      "name": "two-step paired and marginal expectation identity",
+      "passed": true,
+      "evidence": {
+        "delta_marginal": -0.08456632738570913,
+        "delta_paired": -0.08456632738570913
+      }
+    },
+    {
+      "name": "zero sample gradient still changes optimizer state",
+      "passed": true,
+      "evidence": {
+        "momentum": 0.27,
+        "suppressed_theta": 0.171,
+        "skipped_theta": 0.2
+      }
+    },
+    {
+      "name": "core grid and oracle size arithmetic",
+      "passed": true,
+      "evidence": {
+        "targets": 2160,
+        "H4_cells": 720,
+        "pair_internal_nodes_each": 820,
+        "oracle_solves_upper_bound_H4": 590400,
+        "timing_targets": 72
+      }
+    },
+    {
+      "name": "B timing panel includes locally expansive mean dynamics",
+      "passed": true,
+      "evidence": {
+        "cells": [
+          {
+            "family": "B1",
+            "beta": 1.0,
+            "eta": 0.1,
+            "spectral_radius": 0.9601579284708122
+          },
+          {
+            "family": "B1",
+            "beta": 1.0,
+            "eta": 0.4,
+            "spectral_radius": 0.8406317138832486
+          },
+          {
+            "family": "B1",
+            "beta": 8.0,
+            "eta": 0.1,
+            "spectral_radius": 0.9680949017522713
+          },
+          {
+            "family": "B1",
+            "beta": 8.0,
+            "eta": 0.4,
+            "spectral_radius": 0.9396299204361417
+          },
+          {
+            "family": "B2",
+            "beta": 1.0,
+            "eta": 0.1,
+            "spectral_radius": 0.9987151463112808
+          },
+          {
+            "family": "B2",
+            "beta": 1.0,
+            "eta": 0.4,
+            "spectral_radius": 0.9948605852451231
+          },
+          {
+            "family": "B2",
+            "beta": 8.0,
+            "eta": 0.1,
+            "spectral_radius": 1.0075346512232901
+          },
+          {
+            "family": "B2",
+            "beta": 8.0,
+            "eta": 0.4,
+            "spectral_radius": 1.030138604893161
+          }
+        ]
+      }
+    },
+    {
+      "name": "shared Gumbel joint masses vs 50-digit quadrature",
+      "passed": true,
+      "evidence": {
+        "max_marginal_error": 0.0,
+        "max_quadrature_error": 0.0,
+        "joint": [
+          [
+            0.15,
+            0.0,
+            0.0
+          ],
+          [
+            0.10112781954887218,
+            0.1,
+            0.04887218045112782
+          ],
+          [
+            0.14887218045112782,
+            0.0,
+            0.45112781954887216
+          ]
+        ]
+      }
+    }
+  ],
+  "source_sha256": "4a0075c99403a352e5e28b19e6993bb7300b09422c73da475ca9952f74a9aec9",
+  "not_run": [
+    "pilot grid",
+    "coupling fitting",
+    "performance comparison",
+    "LLM training"
+  ]
+}

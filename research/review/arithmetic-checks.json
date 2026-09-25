@@ -1,0 +1,46 @@
+{
+  "kind": "illustrative_arithmetic_only_not_experimental_results",
+  "constant_surrogate": {
+    "y": [
+      -0.2,
+      0.1,
+      0.45,
+      0.3
+    ],
+    "c": 0.17,
+    "raw_mean": 0.16249999999999998,
+    "residual_estimate": 0.1625,
+    "same_within_float_tolerance": true
+  },
+  "cost_variance_formula": "(sqrt((2-2*rho)*c_P)+sqrt(c_C))**2 with Var(Y)=Var(C)=1, beta=1, c_P=c_Y=1; divided by direct cost-variance product 1",
+  "assumptions": [
+    "independent cheap-only and paired samples",
+    "fixed beta=1",
+    "continuous optimal allocation",
+    "setup costs excluded",
+    "illustrative standardized variances; not measured model behavior"
+  ],
+  "examples": [
+    {
+      "rho": 0.5,
+      "cheap_to_paired_cost": 0.01,
+      "relative_cost_variance": 1.2100000000000002
+    },
+    {
+      "rho": 0.8,
+      "cheap_to_paired_cost": 0.01,
+      "relative_cost_variance": 0.536491106406735
+    },
+    {
+      "rho": 0.8,
+      "cheap_to_paired_cost": 0.1,
+      "relative_cost_variance": 0.8999999999999999
+    },
+    {
+      "rho": 0.9,
+      "cheap_to_paired_cost": 0.5,
+      "relative_cost_variance": 1.3324555320336755
+    }
+  ],
+  "interpretation": "Below 1 is favorable under the stated optimistic assumptions. Tuning beta can avoid the forced beta=1 penalty, but it does not guarantee strict improvement."
+}

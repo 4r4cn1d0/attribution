@@ -1,0 +1,793 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<feed xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/" xmlns:arxiv="http://arxiv.org/schemas/atom" xmlns="http://www.w3.org/2005/Atom">
+  <id>https://arxiv.org/api/tX/dg5HJYMB8trEuy8tsYtm20s4</id>
+  <title>arXiv Query: search_query=(ti:"data attribution" OR ti:"unlearning evaluation") AND submittedDate:"202501010000 TO 202609242359"&amp;id_list=&amp;start=0&amp;max_results=30</title>
+  <updated>2026-09-24T08:58:47Z</updated>
+  <link href="https://arxiv.org/api/query?search_query=(ti:%22data+attribution%22+OR+ti:%22unlearning+evaluation%22)+AND+submittedDate:%22202501010000+TO+202609242359%22&amp;start=0&amp;max_results=30&amp;id_list=" type="application/atom+xml"/>
+  <opensearch:itemsPerPage>30</opensearch:itemsPerPage>
+  <opensearch:totalResults>73</opensearch:totalResults>
+  <opensearch:startIndex>0</opensearch:startIndex>
+  <entry>
+    <id>http://arxiv.org/abs/2609.20027v1</id>
+    <title>Can Data Attribution Filter Out Subliminal Learning? Not Reliably</title>
+    <updated>2026-09-17T10:34:18Z</updated>
+    <link href="https://arxiv.org/abs/2609.20027v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2609.20027v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Subliminal learning allows language models to transmit behavioral traits through training data with no obvious semantic relationship to those traits, undermining content-based data filtering as a safety intervention. Training data attribution offers an alternative: it identifies the training examples responsible for a given model behavior, independent of their semantic content, and so may apply in exactly the cases where semantic inspection fails. We evaluate three gradient-based attribution methods (GradCos, a contrastive GradCos variant, and EK-FAC) across three models, comparing them against divergence tokens, a strong baseline previously shown to localize subliminal learning (albeit one that requires access to counterfactual teacher models). Filtering at the token level, EK-FAC mitigates a significant part of the effect, the other methods provide little benefit, and all mostly fall short of divergence tokens. Filtering entire samples is less effective for every method, though EK-FAC often gives a stronger signal than divergence tokens in this setting. Success is inconsistent across methods and settings: variants that work well for some model-preference combinations fail for others, and we do not identify a consistent explanation for these differences. Our results suggest that gradient-based attribution can identify data responsible for subliminal learning in some settings, but that some approximations are more reliable than others.</summary>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-09-17T10:34:18Z</published>
+    <arxiv:comment>16 pages, 17 figures</arxiv:comment>
+    <arxiv:primary_category term="cs.AI"/>
+    <author>
+      <name>Moritz Weckbecker</name>
+    </author>
+    <author>
+      <name>Sweta Jena</name>
+    </author>
+    <author>
+      <name>Jonas Müller</name>
+    </author>
+    <author>
+      <name>Ponnurangam Kumaraguru</name>
+    </author>
+    <author>
+      <name>Sebastian Lapuschkin</name>
+    </author>
+    <author>
+      <name>Wojciech Samek</name>
+    </author>
+    <author>
+      <name>Louis Jaburi</name>
+    </author>
+    <author>
+      <name>Gonçalo Paulo</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2609.19589v1</id>
+    <title>Form Over Content In Gradient-Based Data Attribution Methods</title>
+    <updated>2026-09-17T02:15:23Z</updated>
+    <link href="https://arxiv.org/abs/2609.19589v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2609.19589v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Data attribution methods using gradient similarity are widely used to analyze and select training data for large language models, but what gradient similarity actually measures is debated. Some interpret it as identifying task-relevant skills, while other work reports that surface form is the main factor. We resolve this debate for supervised fine-tuning examples by varying task and answer format independently. Specifically, we render benchmarks in different answer formats, such that datasets can share a task without a format or a format without a task. We find that gradient alignment follows the answer format, as benchmark pairs sharing an answer format align strongly (disattenuated cosine near 0.4), while same benchmarks rendered with different answer format classes show no alignment (near 0.0). We demonstrate that this ordering holds from the earliest pretraining checkpoints through post-training, and across model scales and families. We then analyze the released selections of LESS, a gradient-based data selection method for instruction tuning, and find that each target's selections over-represent the target's own answer format. Hence, we demonstrate that gradient-based attribution methods track format similarity more than task semantics, meaning that such methods, as well as the semantic interpretation of the gradient, should be tested on data where answer format and task vary independently for greater robustness and reliability.</summary>
+    <category term="cs.CL" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-09-17T02:15:23Z</published>
+    <arxiv:primary_category term="cs.CL"/>
+    <author>
+      <name>Sunwoo Kim</name>
+    </author>
+    <author>
+      <name>Seokwon Jung</name>
+    </author>
+    <author>
+      <name>Sohyung Kim</name>
+    </author>
+    <author>
+      <name>Seong Joon Oh</name>
+    </author>
+    <author>
+      <name>Alice Oh</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2609.15044v2</id>
+    <title>Data Attribution via Sketched Metadifferentiation</title>
+    <updated>2026-09-17T23:12:18Z</updated>
+    <link href="https://arxiv.org/abs/2609.15044v2" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2609.15044v2" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Data attribution seeks to quantify how individual training examples shape a model's predictions and underpins problems including data valuation, machine unlearning, and model interpretability. Despite having a long line of work, computationally scalable methods often struggle to predict the effect of removing training data in neural networks due to their non-convex nature. To overcome this challenge, metagradient-based methods such as MAGIC (Ilyas and Engstrom, 2025) differentiate each prediction through the entire training run and compute its exact influence with respect to the training data, but require a separate run for every prediction. To reduce this cost, we cast budgeted attribution as estimating a large influence matrix from a small number of measurements. We show that the measurements most appropriate for recovering this matrix differ from those best suited for attribution itself. We then present two algorithms, MAGE and SPELL, suited for reconstruction and attribution respectively, that run on existing metagradient machinery at no extra cost. Empirical studies demonstrate strong performance over existing baselines across training scales and measurement budgets.</summary>
+    <category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-09-14T05:04:17Z</published>
+    <arxiv:primary_category term="stat.ML"/>
+    <author>
+      <name>Yuxi Chen</name>
+    </author>
+    <author>
+      <name>Hamza Golubovic</name>
+    </author>
+    <author>
+      <name>Han Tong</name>
+    </author>
+    <author>
+      <name>Arian Maleki</name>
+    </author>
+    <author>
+      <name>Andrew Ilyas</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2609.08901v2</id>
+    <title>The BatchNorm Illusion: Diagnosing Normalization Artifacts in Machine Unlearning Evaluation</title>
+    <updated>2026-09-11T09:22:05Z</updated>
+    <link href="https://arxiv.org/abs/2609.08901v2" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2609.08901v2" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Approximate machine unlearning aims to remove the influence of specific training data from a trained model without retraining from scratch. We identify a previously undocumented confound in how unlearning is evaluated on BatchNorm-based architectures: a single forward pass over retain data, an operation that modifies no weight, can deterministically rewrite the model's normalization state and reverse the apparent surface-metric forgetting. We formalize this operation as a weight-preserving fixed-point operator and prove that any pre-versus-post gap it induces is provably attributable to BN running statistics rather than to any modification the unlearning method made to the weights. This attribution claim cleanly separates measurement failure (BN artifact) from encoder failure (residual weight-encoded information, recently documented in concurrent work), and the same operator framework yields a unique decomposition of linear-probe elevation into BN-measurement-bias and encoder-geometry components. Empirically, the artifact reverses headline forget accuracy by up to 78 pp across nine evaluated methods on standard benchmarks; an attacker with as few as 10 unlabeled images recovers most of the masked accuracy; and a strict GroupNorm control reduces the artifact to zero across all methods. The tested membership-inference attacks change little under recalibration, locating the observed evaluation failure in forget accuracy and linear probing.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-09-08T15:39:10Z</published>
+    <arxiv:comment>24 pages, 15 tables, 2 figures</arxiv:comment>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Aaryaman Kalani</name>
+    </author>
+    <author>
+      <name>Murari Mandal</name>
+    </author>
+    <author>
+      <name>Dhruv Kumar</name>
+    </author>
+    <author>
+      <name>Mohan Kankanhalli</name>
+    </author>
+    <author>
+      <name>Yash Sinha</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2609.07729v2</id>
+    <title>Attributing Cohen's d: Training Data Attribution for Disease-Related Effects in Normative Age Biomarkers</title>
+    <updated>2026-09-18T12:32:07Z</updated>
+    <link href="https://arxiv.org/abs/2609.07729v2" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2609.07729v2" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Normative age models are trained to predict chronological age in a nominally healthy cohort. Applied to patients, they deviate, and the gap between predicted and chronological age is read as disease risk. Here, we attribute the disease-related effect size of the age gap directly to individual training samples, rather than using a prediction-level loss as the attribution target. For Cohen's $d$, the resulting closed-form influence functional, validated against leave-one-out retraining, ranks training samples by their effect on held-out case-control separation. Across four diseases and two biomarker modalities in UK Biobank, removing the 10% most influential training samples raises held-out disease-related effect size in every seed. It more than doubles the metabolomic-age effect for type-2 diabetes and raises the brain-age effect for multiple sclerosis by roughly a third. Random removal leaves effect size flat even at 50% removal, confirming the gain comes from which samples are removed, not how many. Flagged subjects carry subclinical cardiometabolic burden that diagnosis-based exclusion misses, on markers the model never sees. For type-2 diabetes, where the method gains most, the marker recovered is HbA1c, the standard measure of blood sugar control. We release pyinfluence, our influence-function package, for reproducibility and reuse.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="q-bio.QM" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-09-07T16:37:13Z</published>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Jakob Snel</name>
+    </author>
+    <author>
+      <name>Marc-Andre Schulz</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2609.02771v1</id>
+    <title>From Reweighting to Rewriting: Unlocking the Intervention Effects of Influential Samples in Training Data Attribution</title>
+    <updated>2026-09-02T16:07:21Z</updated>
+    <link href="https://arxiv.org/abs/2609.02771v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2609.02771v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Training data attribution (TDA) aims to identify training examples that shape model behavior, but its intervention value depends on both which examples are selected and how they are modified. Influence functions (IF) estimate behavioral changes under infinitesimal reweighting, yet IF-selected examples often show limited advantages over random selection under conventional weight-based interventions. This raises the question of whether influential examples lack intervention value or whether reweighting fails to realize their behavioral leverage.We introduce influence-guided response rewriting, which uses IF to identify intervention targets and replaces their responses with behavior-aligned or behavior-opposed supervision while keeping instructions fixed. Across four open-weight LLMs, we compare rewriting and reweighting on the same influence-selected examples using epistemic abstention as our primary testbed. Response rewriting produces stronger, more persistent, and bidirectional behavioral shifts, while reweighting the same examples yields weak and inconsistent effects. Further analyses show that influence-selected examples provide greater rewriting leverage than alternative selectors, with changes remaining concentrated on target-relevant behaviors. The same qualitative contrast extends to safety refusal. These results distinguish the local reweighting effects captured by influence estimates from the broader intervention leverage of the examples they identify, motivating intervention-aware evaluation of TDA methods.</summary>
+    <category term="cs.CL" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-09-02T16:07:21Z</published>
+    <arxiv:primary_category term="cs.CL"/>
+    <author>
+      <name>Yuzhang Luo</name>
+    </author>
+    <author>
+      <name>Chenpeng Wang</name>
+    </author>
+    <author>
+      <name>Jianhui Chen</name>
+    </author>
+    <author>
+      <name>Liangming Pan</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2608.23458v1</id>
+    <title>Traceable Spectral Inference via Influence Functions: Efficient Data Attribution and Error Proxies for the Ariel Mission</title>
+    <updated>2026-08-24T16:28:26Z</updated>
+    <link href="https://arxiv.org/abs/2608.23458v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2608.23458v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Interpretability is critical for machine learning models deployed in scientific space missions such as ESA's Ariel, where ground truth is unavailable during operations and physical plausibility must be assessed. While most explainable AI methods focus on feature attribution, this work investigates training data attribution through influence functions and introduces three key contributions for operational spectroscopy pipelines. First, influence is reformulated in terms of prediction rather than loss, enabling label-free deployment. Second, by leveraging the closed-form ridge solution of an Extreme Learning Machine, infinitesimal prediction influence is efficiently computed. Third, an influence-based conservative error proxy is derived by propagating training residuals through the influence sensitivities. Evaluated against simulated spectra, the proposed proxy correlates strongly with scale and shape-based spectral errors. Furthermore, influence functions enable the identification of the most influential samples and the approximation of the most harmful ones. Together, these results suggest that this approach can serve as an operational framework for scientific machine learning.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="astro-ph.IM" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-08-24T16:28:26Z</published>
+    <arxiv:comment>To appear in "Proceedings of SPAICE 2026: Third Conference on AI in and for Space"</arxiv:comment>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Nikki Grens</name>
+    </author>
+    <author>
+      <name>Luís F. Simões</name>
+    </author>
+    <author>
+      <name>Kai Hou Yip</name>
+    </author>
+    <author>
+      <name>Theresa Lueftinger</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2608.11025v2</id>
+    <title>Data Attribution of Emergent Misalignment with Persona Features</title>
+    <updated>2026-09-14T12:16:11Z</updated>
+    <link href="https://arxiv.org/abs/2608.11025v2" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2608.11025v2" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Emergent misalignment (EM) is the phenomenon where fine-tuning a language model on a narrow task leads to harmful behavior in unrelated domains. A leading mechanistic account attributes EM to persona features: latent directions acquired during pre-training that misaligned fine-tuning amplifies. We ask where these features come from: which pre-training documents activate them, and whether naturally occurring human-written text suffices to induce EM. Using Sparse Autoencoder (SAE) based model diffing across four open-weight models, we find that features related to jailbreak personas, sarcasm, deception, and manipulation are amplified by misalignment fine-tuning, while safety-relevant and assistant-identity features are suppressed. Steering individual features controls EM in both directions: it induces misalignment rates of up to 62% in aligned models -- exceeding the 35% reached by misalignment fine-tuning itself -- and re-aligns misaligned models to near-baseline misalignment rates. Attributing the causal features to a corpus of one million pre-training web documents retrieves semantically relevant narratives about villainous characters, domination, and harmful agency. However, fine-tuning on these human-written documents does not reliably induce EM, even after reformatting into assistant-style responses, whereas synthetic instruction-response pairs derived from the same content do -- and transfer across model families. Semantic relevance alone is therefore not sufficient: response structure or model-generated phrasing plays an important role in inducing EM.</summary>
+    <category term="cs.CL" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-08-11T15:05:24Z</published>
+    <arxiv:comment>30 pages, 5 figures. Code: https://github.com/vetterc0/emergent_misalignment_SAE. Accepted at BlackboxNLP 2026</arxiv:comment>
+    <arxiv:primary_category term="cs.CL"/>
+    <author>
+      <name>Clemens Vetter</name>
+    </author>
+    <author>
+      <name>David Kaczér</name>
+    </author>
+    <author>
+      <name>Lucie Flek</name>
+    </author>
+    <author>
+      <name>Florian Mai</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2608.03791v1</id>
+    <title>Does Forgetting Transfer Across Modalities? A Real-World Benchmark for Cross-Modal Knowledge Unlearning Evaluation</title>
+    <updated>2026-08-04T15:07:07Z</updated>
+    <link href="https://arxiv.org/abs/2608.03791v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2608.03791v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Vision-Language Models (VLMs), like Large Language Models (LLMs), may memorize sensitive, copyrighted, or harmful knowledge from their pretraining corpora. Removing such knowledge is essential for building trustworthy AI systems. However, existing studies primarily focus on forgetting within individual modalities. Although recent work has begun to explore cross-modal consistency in unlearning, the cross-modal transfer of real-world knowledge unlearning remains insufficiently studied. To address this gap, we introduce UNLINK-VL, a real-world benchmark for cross-modal knowledge unlearning in VLMs. Under a post-hoc unlearning setting in which the original forget and retain corpora are unavailable, UNLINK-VL selects visually identifiable real-world entities as unlearning targets and associates them with corresponding images and one-hop and multi-hop facts derived from Wikidata. The benchmark comprises four complementary subsets that evaluate direct forgetting of target knowledge, the propagation of forgetting through relational knowledge, the preservation of related non-target knowledge, and robustness to semantically equivalent queries. We train models under text-only and multimodal unlearning settings and evaluate forgetting effectiveness and retained utility across textual, visual, and cross-modal scenarios. Extensive experiments reveal a pronounced asymmetry in cross-modal transfer: multimodal unlearning remains effective under textual evaluation, whereas text-only unlearning transfers poorly to visual and cross-modal scenarios. Meanwhile, the evaluated methods largely preserve the models' general capabilities. These findings demonstrate that relying solely on intra-modal evaluation, particularly text-only evaluation, may substantially overestimate the effectiveness of knowledge unlearning in VLMs, underscoring the need for cross-modal unlearning and evaluation.</summary>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-08-04T15:07:07Z</published>
+    <arxiv:primary_category term="cs.AI"/>
+    <author>
+      <name>Chunlin Liu</name>
+    </author>
+    <author>
+      <name>Junnian Chen</name>
+    </author>
+    <author>
+      <name>Haitong Jiang</name>
+    </author>
+    <author>
+      <name>Jianyu Zhao</name>
+    </author>
+    <author>
+      <name>Yingsen Pang</name>
+    </author>
+    <author>
+      <name>Jingchen Li</name>
+    </author>
+    <author>
+      <name>Jiabiao He</name>
+    </author>
+    <author>
+      <name>Youming Lu</name>
+    </author>
+    <author>
+      <name>Jinhe Bi</name>
+    </author>
+    <author>
+      <name>Yuntao Du</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2606.29171v1</id>
+    <title>Symbolic Mechanistic Data Attribution: Tracing Training Influence to Learned Behavioral Policies</title>
+    <updated>2026-06-28T03:32:06Z</updated>
+    <link href="https://arxiv.org/abs/2606.29171v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2606.29171v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>While existing data attribution methods can identify which training examples build specific mechanistic circuits, they cannot explain how training data shapes the high-level behavioral decisions a model learns to make. To bridge this gap, we introduce Symbolic Mechanistic Data Attribution (SMDA), a framework that attributes training pairs to the interpretable symbolic policies governing model behavior. SMDA fits a closed-form Ridge regression over sparse autoencoder (SAE) features to model a target behavior, then analytically decomposes how each supervised fine-tuning example shifts that policy through feature-activation Delta_X and output-probability Delta_Y pathways. We distill a symbolic policy for refusal behavior in Llama-3.2-3B-Instruct and analyze 200 SFT training pairs. Our analysis reveals that (1) the symbolic policy's coefficients expose systematic gaps in the base model's safety behavior for categories like religious stereotyping; (2) per-feature Delta_X/Delta_Y decomposition can mechanistically explain why harmful and harmless pairs exert qualitatively different influences on certain features; and (3) individual training pairs routinely exhibit cross-feature interference, allowing SMDA to identify training pairs whose dominant effect falls on unintended features. These results demonstrate that combining mechanistic interpretability with data attribution yields a diagnostic tool that is both more fine-grained than black-box influence functions and more scalable than manual circuit analysis.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.CL" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-06-28T03:32:06Z</published>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Reza Habibi</name>
+    </author>
+    <author>
+      <name>Darian Lee</name>
+    </author>
+    <author>
+      <name>Magy Seif El-Nasr</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2606.18307v1</id>
+    <title>DRIFT: Refining Instruction Data via On-Policy Data Attribution</title>
+    <updated>2026-06-16T07:21:49Z</updated>
+    <link href="https://arxiv.org/abs/2606.18307v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2606.18307v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Optimizing the training data distribution for Supervised Fine-Tuning (SFT) dictates the capability of Large Language Models (LLMs). While existing data curation methods excel at accelerating training under constrained budgets, they are less suited to elevating the capability upper bound. The challenge here is no longer to identify a smaller subset that preserves performance, but to refine the data distribution toward instances most capable of improving the final model. To address this problem, we explore instance-level data attribution using Influence Functions (IF). We identify that standard IF formulations struggle in this setting due to two structural limitations: a proximity gap caused by off-policy validation targets, and a severe bias towards gradient norm. We propose DRIFT (Data Refinement via On-Policy Influence Functions for Supervised Fine-Tuning). Instead of relying on external reference data, DRIFT utilizes the model's on-policy rollouts as validation targets, which empirically minimizes the parameter proximity gap and better aligns with the local neighborhood assumption of IF. It further applies signed weighting based on trajectory correctness and debiases influence scores against the gradient hacking issue, allowing a small set of validation queries to act as reliable anchors for attributing the full dataset. Experiments on 7B-parameter instruction and reasoning models show that DRIFT consistently raises the performance ceiling on both, outperforming existing data curation baselines.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-06-16T07:21:49Z</published>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Zefan Wang</name>
+    </author>
+    <author>
+      <name>Lincheng Li</name>
+    </author>
+    <author>
+      <name>Tianyu Yu</name>
+    </author>
+    <author>
+      <name>Yuan Yao</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2606.13668v1</id>
+    <title>Influcoder: Distilling Decoders' Gradient Influence Rankings into an Encoder for Data Attribution</title>
+    <updated>2026-06-11T17:58:33Z</updated>
+    <link href="https://arxiv.org/abs/2606.13668v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2606.13668v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>With the growth of LLMs' (Large Language Models) capabilities, there has been an increasing push to curate high quality datasets by filtering samples in the training data. In general, Data Attribution (DA) methods aim to estimate how individual samples in a training dataset can precondition a model to generate certain outputs. As an example, one might be interested in which samples in the data could be the source of toxic behavior after training the LLM. Many methods quantify this conditioning through the paradigm of influence functions. While methods of this family are effective in its function, they lack the necessary processing speed and storage compactness to be practically implemented on large datasets. We propose a method, Influcoder, as a quick and cost-effective approach to influence-based Data Attribution at scale.</summary>
+    <category term="cs.CL" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-06-11T17:58:33Z</published>
+    <arxiv:comment>8 pages, 2 figures</arxiv:comment>
+    <arxiv:primary_category term="cs.CL"/>
+    <author>
+      <name>Dimitri Kachler</name>
+    </author>
+    <author>
+      <name>Damien Sileo</name>
+    </author>
+    <author>
+      <name>Pascal Denis</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2606.12809v1</id>
+    <title>MLUBench: A Benchmark for Lifelong Unlearning Evaluation in MLLMs</title>
+    <updated>2026-06-11T02:09:26Z</updated>
+    <link href="https://arxiv.org/abs/2606.12809v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2606.12809v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Multimodal large language models (MLLMs) are trained on massive multimodal data, making data unlearning increasingly important as data owners may request the removal of specific content. In practice, these requests often arrive sequentially over time, giving rise to the challenging problem of MLLM Lifelong Unlearning. However, most existing benchmarks are limited in scale and scope, failing to capture the complexities of MLLM lifelong unlearning. To fill this gap, we introduce the MLUBench, a large-scale and comprehensive benchmark featuring 127 entities across 9 classes under lifelong unlearning requests. We perform extensive experiments using MLUBench and reveal that existing unlearning methods suffer from severe, cumulative degradation. More critically, we further identify the unique challenge of this problem: unlike in unimodal models, MLLM lifelong unlearning is constrained by the need to preserve multimodal alignment. Continually unlearning from one modality could degrade the entire model. To alleviate this challenge, we propose LUMoE, an effective method. Experiments demonstrate that LUMoE significantly mitigates the degradation problem faced by baselines. The source code and the MLUBench dataset are open-sourced in https://github.com/lihe-maxsize/Lifelong_Unlearning_main.</summary>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-06-11T02:09:26Z</published>
+    <arxiv:comment>36 pages, accepted to the ICML 2026</arxiv:comment>
+    <arxiv:primary_category term="cs.AI"/>
+    <author>
+      <name>He Li</name>
+    </author>
+    <author>
+      <name>Haoang Chi</name>
+    </author>
+    <author>
+      <name>Qizhou Wang</name>
+    </author>
+    <author>
+      <name>Yunxin Mao</name>
+    </author>
+    <author>
+      <name>Zhiheng Zhang</name>
+    </author>
+    <author>
+      <name>Jie Tan</name>
+    </author>
+    <author>
+      <name>Tongliang Liu</name>
+    </author>
+    <author>
+      <name>Wenjing Yang</name>
+    </author>
+    <author>
+      <name>Bo Han</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2606.11660v3</id>
+    <title>Bergson: An Open Source Library for Data Attribution</title>
+    <updated>2026-09-16T04:44:59Z</updated>
+    <link href="https://arxiv.org/abs/2606.11660v3" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2606.11660v3" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Data attribution is a promising field in interpretability that aims to explain model behavior through the influence of its training data, with applications including debugging undesirable model behavior and training dataset curation. However, significant engineering effort is required to perform it at scale, and many cutting edge techniques lack open-source tooling and support. Bergson is an open source library that aims to enable faster progress in the field by providing a host of techniques that scale to very large language models and pre-training datasets. The library natively supports on-disk gradient stores and multi-node distributed training, and provides quality of life tools for researchers. Finally, we introduce the first open-source implementations of three leading data attribution methods: MAGIC, SOURCE, and TrackStar. The library is available at https://github.com/EleutherAI/bergson .</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-06-10T04:56:45Z</published>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Lucia Quirke</name>
+    </author>
+    <author>
+      <name>Louis Jaburi</name>
+    </author>
+    <author>
+      <name>David Johnston</name>
+    </author>
+    <author>
+      <name>William Z. Li</name>
+    </author>
+    <author>
+      <name>Gonçalo Paulo</name>
+    </author>
+    <author>
+      <name>Guillaume Martres</name>
+    </author>
+    <author>
+      <name>Girish Gupta</name>
+    </author>
+    <author>
+      <name>Nora Belrose</name>
+    </author>
+    <author>
+      <name>Stella Biderman</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2606.07141v1</id>
+    <title>REMEDI: A Benchmark for Retention and Unlearning Evaluation in Multi-label Clinical Disease Inference</title>
+    <updated>2026-06-05T10:51:20Z</updated>
+    <link href="https://arxiv.org/abs/2606.07141v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2606.07141v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Language models trained for clinical disease inference are trained on patient data, which may include sensitive and private information, and data owners may request the removal of their data from a trained model due to privacy or copyright concerns. However, exactly unlearning patient-specific data is intractable, and retraining with minor data removal is resource-intensive. While there exists several machine unlearning methods that can be used, their utility is generally restricted to non-medical domains. Moreover, the existing benchmarks for evaluating such unlearning methods primarily utilize synthetically curated datasets, which are not truly representative of real-world systems. Hence, the effectiveness of these unlearning methods in the medical domain is largely unclear. To this end, we introduce REMEDI, an extensive benchmark for machine unlearning tailored to multi-label and multiclass clinical disease inference, where label correlations, longitudinal structure, and safety constraints make unlearning particularly challenging. Unlike the existing benchmarks, REMEDI considers: (1) a relevant application domain (medical), (2) comprehensive unlearning setups involving diverse sets of forget instances, (3) challenging unlearning scenarios including multi-label and multi-class classification tasks, and (4) evaluation metrics involving performance both in terms of utility and extent of unlearning achieved. REMEDI is developed using the MIMIC-III clinical database that contains comprehensive clinical data of patients. Experiments with existing unlearning methods indicate that there exists a trade-off between utility and unlearning performance. They are also largely unsuited to multi-label classification tasks. To facilitate reproducibility, we make our benchmark publicly available.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-06-05T10:51:20Z</published>
+    <arxiv:comment>Under review</arxiv:comment>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Anurag Sharma</name>
+    </author>
+    <author>
+      <name>Sai Teja Chunchu</name>
+    </author>
+    <author>
+      <name>Prasenjit Mitra</name>
+    </author>
+    <author>
+      <name>Sandipan Sikdar</name>
+    </author>
+    <author>
+      <name>Koustav Rudra</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2606.06892v2</id>
+    <title>GRASP: Geometry-aware Residual Alignment for Scalable Pretraining Data Attribution</title>
+    <updated>2026-08-30T15:42:46Z</updated>
+    <link href="https://arxiv.org/abs/2606.06892v2" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2606.06892v2" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Scalable data attribution methods typically assign isolated utility scores to individual training examples. This prevalent additive assumption fundamentally fails to capture critical subset dynamics, including data redundancy and complementary coverage. In this work, we reframe attribution as subset-level counterfactual utility prediction and introduce GRASP, an interaction-aware surrogate. Grounded in a theoretical smoothness lower bound, GRASP explicitly models subset interactions through a quadratic geometric penalty. To achieve pretraining-scale efficiency without relying on hidden oracle tuning, we couple low-dimensional feature sketches with a strictly finite lower-confidence bound selection protocol. Extensive subset-retraining evaluations demonstrate that GRASP decisively outperforms existing scalable baselines. It more than doubles the task-level rank correlation for counterfactual subset fidelity while reducing upfront artifact construction costs by nearly an order of magnitude. Downstream diagnostics further show that this scoring mechanism transfers to language model curation and cross-domain vision selection, establishing a robust foundation for optimizing massive pretraining corpora.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-06-05T04:17:50Z</published>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Yue Min</name>
+    </author>
+    <author>
+      <name>Ruining Chen</name>
+    </author>
+    <author>
+      <name>Yujun Li</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2606.05165v1</id>
+    <title>STRIDE: Training Data Attribution via Sparse Recovery from Subset Perturbations</title>
+    <updated>2026-06-03T17:59:36Z</updated>
+    <link href="https://arxiv.org/abs/2606.05165v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2606.05165v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Training Data Attribution (TDA) seeks to trace a model's predictions back to its training data. The gold standard for TDA relies on causal interventions, observing how a model changes when data is added or removed, but repeated retraining is computationally challenging for Large Language Models (LLMs). Consequently, most approaches approximate this effect in the parameter space using gradients. However, tracking gradients across billions of parameters is not only prohibitively expensive but relies on local approximations. In this work, we propose a shift: rather than estimating parameter changes, we model the functional effect of training data in the activation space. We introduce STRIDE (Steering-based Training Data Influence Decomposition), a framework that formulates TDA as a sparse recovery problem in the spirit of compressive sensing. STRIDE learns lightweight "steering operators" that mimic the behavioral shift caused by training on data subsets. By measuring how these operators perturb test predictions, we recover individual training example influences via sparse linear decomposition. STRIDE achieves state-of-the-art for LLM pre-training attribution while being an order of magnitude ($13\times$) faster than previous art. We further validate its practical utility through downstream applications including data selection, data contamination, and qualitative analysis.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.CL" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-06-03T17:59:36Z</published>
+    <arxiv:comment>project page: https://stride-tda.github.io/</arxiv:comment>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Rishit Dagli</name>
+    </author>
+    <author>
+      <name>Abir Harrasse</name>
+    </author>
+    <author>
+      <name>Luke Zhang</name>
+    </author>
+    <author>
+      <name>Florent Draye</name>
+    </author>
+    <author>
+      <name>Amirali Abdullah</name>
+    </author>
+    <author>
+      <name>Bernhard Schölkopf</name>
+    </author>
+    <author>
+      <name>Zhijing Jin</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2606.04928v1</id>
+    <title>Data Attribution in Large Language Models via Bidirectional Gradient Optimization</title>
+    <updated>2026-06-03T14:21:53Z</updated>
+    <link href="https://arxiv.org/abs/2606.04928v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2606.04928v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Large Language Models (LLMs) are increasingly deployed across diverse applications, raising critical questions for governance, accountability, and data provenance. Understanding which training data most influenced a model's output remains a fundamental open problem. We address this challenge through training data attribution (TDA) for auto-regressive LLMs by expanding upon the inverse formulation: How would training data be affected if the model had seen the generated output during training? Our method perturbs the base model using bidirectional gradient optimization (gradient ascent and descent) on a generated text sample and measures the resulting change in loss across training samples. Our framework supports attribution at arbitrary data granularity, enabling both factual and stylistic attribution. We evaluate our method against baselines on pretrained models with known datasets, and show that it outperforms previous work on influence metrics, thereby enhancing model interpretability, an essential requirement for accountable AI systems.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.CL" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-06-03T14:21:53Z</published>
+    <arxiv:comment>Presented at the AI Governance (AIGOV) Workshop at AAAI 2026</arxiv:comment>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Frédéric Berdoz</name>
+    </author>
+    <author>
+      <name>Luca A. Lanzendörfer</name>
+    </author>
+    <author>
+      <name>Kaan Bayraktar</name>
+    </author>
+    <author>
+      <name>Roger Wattenhofer</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2605.17938v1</id>
+    <title>Training data attribution in diffusion models via mirrored unlearning and noise-consistent skew</title>
+    <updated>2026-05-18T06:52:26Z</updated>
+    <link href="https://arxiv.org/abs/2605.17938v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2605.17938v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Training data attribution (TDA) should enable generative model interpretability and foster a variety of related downstream tasks. Nonetheless, current TDA approaches lack reliability and robustness, preventing their adoption in real-world setups. In this paper, we take a decisive step towards more reliable and robust TDA for diffusion models. We propose to perform TDA with mirrored unlearning and noise-consistent skew (MUCS). The idea is to fine-tune a second model with bounded mirrored gradient ascent, and to measure the normalized skew of this model with respect to the original one using consistent noise samples. We show that, while being conceptually simple and generic, MUCS systematically outperforms existing methods on three different datasets by a large margin. We additionally study the effect that core design choices have on final performance, and analyze novel aspects regarding the overlap of influential instances across generated items and the potential of ensembling TDA approaches. We believe that our findings may have broader implications for more general unlearning setups, as well as for tasks requiring the comparison of diffusion losses.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-05-18T06:52:26Z</published>
+    <arxiv:comment>21 pages, 5 figures, 9 tables (includes appendix)</arxiv:comment>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Joan Serrà</name>
+    </author>
+    <author>
+      <name>Dipam Goswami</name>
+    </author>
+    <author>
+      <name>Fabio Morreale</name>
+    </author>
+    <author>
+      <name>Wei-Hsiang Liao</name>
+    </author>
+    <author>
+      <name>Yuki Mitsufuji</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2605.16181v1</id>
+    <title>ARIA: A Diagnostic Framework for Music Training Data Attribution</title>
+    <updated>2026-05-15T17:00:14Z</updated>
+    <link href="https://arxiv.org/abs/2605.16181v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2605.16181v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Training data attribution (TDA) for music generation must answer two questions that copyright analysis requires, namely which training songs influence a generated output and along which musical aspects the influence operates. Existing methods reduce influence to a single scalar, without revealing which musical aspects are dominant in that influence. We propose ARIA, a framework that decomposes attribution along musical aspects (five for symbolic music, three for audio) and pairs the decomposition with reliability diagnostics computed from the segment-level score matrix. It measures within-group similarity among the top-K attributed tracks against random reference groups drawn from the training pool, and diagnoses the score matrix through its singular value decomposition and column statistics. On a symbolic-music model where attribution ground truth is available through counterfactual retraining, the reliability diagnostics rank four attribution methods identically to that ground truth. On an audio music generation model, ARIA reveals attribution behaviors that vary substantially across TDA methods, flags score matrices whose retrieved tracks are nearly identical across queries rather than reflecting per-query attribution, and characterizes embedding-similarity retrieval baselines by the musical aspect each encoder surfaces. Together, ARIA produces per-aspect attribution evidence aligned with the musical aspects considered under the idea-expression distinction in copyright analysis.</summary>
+    <category term="cs.SD" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-05-15T17:00:14Z</published>
+    <arxiv:comment>Working Paper</arxiv:comment>
+    <arxiv:primary_category term="cs.SD"/>
+    <author>
+      <name>Changheon Han</name>
+    </author>
+    <author>
+      <name>Ashkan Panahi</name>
+    </author>
+    <author>
+      <name>Kıvanç Tatar</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2605.15520v1</id>
+    <title>On the Fragility of Data Attribution When Learning Is Distributed</title>
+    <updated>2026-05-15T01:34:55Z</updated>
+    <link href="https://arxiv.org/abs/2605.15520v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2605.15520v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Data attribution has become an important component of pricing, auditing, and governance in machine learning pipelines, yet most attribution methods implicitly assume that attribution values faithfully reflect participants' contributions. We show that this assumption can fail: a single participant in a standard distributed training workflow can substantially inflate its measured attribution value while preserving global utility. Our attribution-first attack uses latent optimization to inject small synthetic batches that preserve utility while exploiting non-IID label coverage and evaluator sensitivities. Across datasets, models, and multiple marginal-utility evaluators, the attack consistently increases the adversary's attribution value and reshapes the relative attribution structure among benign clients without degrading accuracy or triggering geometry-based defenses. These results show that attribution itself forms a new attack surface and motivate the development of attribution-robust and incentive-compatible scoring mechanisms.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.DC" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-05-15T01:34:55Z</published>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Xian Gao</name>
+    </author>
+    <author>
+      <name>Bo Hui</name>
+    </author>
+    <author>
+      <name>Min-Te Sun</name>
+    </author>
+    <author>
+      <name>Wei-Shinn Ku</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2605.14404v1</id>
+    <title>Knowledge Beyond Language: Bridging the Gap in Multilingual Machine Unlearning Evaluation</title>
+    <updated>2026-05-14T05:45:24Z</updated>
+    <link href="https://arxiv.org/abs/2605.14404v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2605.14404v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>While LLMs are increasingly used in commercial services, they pose privacy risks such as leakage of sensitive personally identifiable information (PII). For LLMs trained on multilingual corpora, Multilingual Machine Unlearning (MMU) aims to remove information across multiple languages. However, prior MMU evaluations fail to capture such cross-linguistic distribution of information, being largely limited to direct extensions of per-language evaluation protocols. To this end, we propose two metrics to evaluate the information spread across languages: the Knowledge Separability Score (KSS) and the Knowledge Persistence Score (KPS). KSS measures the overall unlearning quality across multiple languages, while KPS more specifically aims to assess consistent removal of information among different language pairs. We evaluated various unlearning methods in the multilingual setting with these metrics and conducted comprehensive analyses. Through our investigation, we provide insights into unique phenomena exclusive to MMU and offer a new perspective on MMU evaluation.</summary>
+    <category term="cs.CL" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-05-14T05:45:24Z</published>
+    <arxiv:primary_category term="cs.CL"/>
+    <author>
+      <name>Kyomin Hwang</name>
+    </author>
+    <author>
+      <name>Hyeonjin Kim</name>
+    </author>
+    <author>
+      <name>Sangyeon Cho</name>
+    </author>
+    <author>
+      <name>Nojun Kwak</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2605.18814v1</id>
+    <title>How Faithful Is Trajectory-Based Data Attribution? Error Sources, Remedies, and Practical Guidelines</title>
+    <updated>2026-05-12T09:50:45Z</updated>
+    <link href="https://arxiv.org/abs/2605.18814v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2605.18814v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Trajectory-based data attribution methods estimate the influence of training samples on model predictions by unrolling the training trajectory. They are widely used in applications such as data selection, data valuation, and model diagnosis, but there is a lack of comprehensive error analysis of these methods, raising concerns about method faithfulness and hindering reliable deployment. In this work, we provide the first systematic analysis of error sources in trajectory-based data attribution, together with concrete remedies to mitigate them and practical guidelines for downstream use. We organize the total error into three categories, config-level, algorithm-level, and system-level. We make three contributions. First, we identify optimizer mismatch as the dominant config-level error: existing methods derive their attribution under the assumption of SGD, even for models trained with the modern de facto optimizer AdamW. We propose AdamW-influence to fully account for AdamW's optimization dynamics, yielding improvements from 10% to over 300% in Spearman correlation between estimated and ground-truth influence across four settings spanning MLP, CNN, GPT-2, and Llama 3.2-1B. Second, we isolate the remaining algorithm-level error arising from the first-order Taylor approximation, identify the learning rate and trajectory length as factors governing the error magnitude, and derive a closed-form error proxy that can be evaluated along the original trajectory without retraining. Third, we translate these insights into practical guidelines for data selection by unifying offline and online strategies under a K-step look-ahead framework. Under this framework, online selection with a short horizon often matches or exceeds offline, and the optimal horizon can be tuned jointly with the learning rate. Together, these results turn the framework into an actionable selection recipe for practitioners.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-05-12T09:50:45Z</published>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Junwei Deng</name>
+    </author>
+    <author>
+      <name>Pingbang Hu</name>
+    </author>
+    <author>
+      <name>Suliang Jin</name>
+    </author>
+    <author>
+      <name>Hao Lu</name>
+    </author>
+    <author>
+      <name>Jiachen T. Wang</name>
+    </author>
+    <author>
+      <name>Shichang Zhang</name>
+    </author>
+    <author>
+      <name>Jiaqi W. Ma</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2605.11312v1</id>
+    <title>Constraint-Data-Value-Maximization: Utilizing Data Attribution for Effective Data Pruning in Low-Data Environments</title>
+    <updated>2026-05-11T23:00:02Z</updated>
+    <link href="https://arxiv.org/abs/2605.11312v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2605.11312v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Attributing model behavior to training data is an evolving research field. A common benchmark is data removal, which involves eliminating data instances with either low or high values, then assessing a model's performance trained on the modified dataset. Many existing studies leverage Shapley-based data values for this task. In this paper, we demonstrate that these data values are not optimally suited for pruning low-value data when only a limited amount of data remains. To address this limitation, we introduce the Constraint-Data-Value-Maximization (CDVM) approach, which effectively utilizes data attributions for pruning in low-data scenarios. By casting pruning as a constrained optimization that both maximizes total influence and penalizes excessive per-test contributions, CDVM delivers robust performance when only a small fraction of the data is retained. On the OpenDataVal benchmark, CDVM shows strong performance and competitive runtime.</summary>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-05-11T23:00:02Z</published>
+    <arxiv:comment>Accepted for publication at IJCAI 2026</arxiv:comment>
+    <arxiv:primary_category term="cs.AI"/>
+    <author>
+      <name>Danilo Brajovic</name>
+    </author>
+    <author>
+      <name>David A. Kreplin</name>
+    </author>
+    <author>
+      <name>Marco F. Huber</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2605.07663v2</id>
+    <title>Quotient Semivalues for False-Name-Resistant Data Attribution</title>
+    <updated>2026-07-31T10:07:19Z</updated>
+    <link href="https://arxiv.org/abs/2605.07663v2" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2605.07663v2" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Data valuation methods allocate payments and audit training data's contribution to machine-learning pipelines; however, they often assume passive contributors. In reality, contributors can split datasets across pseudonymous identities, duplicate high-value examples, create near-duplicates, or launder synthetic variants to inflate their share. We formalize this as false-name manipulation in ML data attribution. Our main construction is the quotient semivalue mechanism: compute Shapley-, Banzhaf-, or Beta-style values over evidence-backed attribution clusters instead of raw identities, using a canonical-representative operator to absorb within-cluster duplication. We prove an impossibility: on a fixed monotone data-value game, exact Shapley-fair attribution over reported identities is incompatible with unrestricted false-name-proofness, even on binary-valued instances, and characterize the split-gain of a general semivalue on a unanimity counter-example. The mechanism is exactly false-name-proof under two structural conditions: false-name-neutral within-cluster allocation and quotient-stable manipulations. Under imperfect provenance, when these conditions hold approximately, manipulation gain and fairness loss are bounded by three measurable quantities: escaped-cluster mass, value-estimation error, and clustering distance. We instantiate the mechanisms in DataMarket-Gym, a benchmark for attribution under strategic provider attacks. On synthetic classification tasks, quotient semivalues with example-level evidence reduce manipulation gain on duplicate and near-duplicate Sybil attacks from $1.74$ under baseline Shapley to $0.96$, near the honest level. The cosine-threshold and (false-merge, false-split) rate sweeps trace the corresponding fairness--Sybil frontier.</summary>
+    <category term="cs.GT" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.CR" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-05-08T12:34:20Z</published>
+    <arxiv:primary_category term="cs.GT"/>
+    <author>
+      <name>Florian A. D. Burnat</name>
+    </author>
+    <author>
+      <name>Brittany I. Davidson</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2605.05687v1</id>
+    <title>DataDignity: Training Data Attribution for Large Language Models</title>
+    <updated>2026-05-07T05:27:45Z</updated>
+    <link href="https://arxiv.org/abs/2605.05687v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2605.05687v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Auditing language-model outputs often requires more than judging correctness: an auditor may need to identify which source document most likely supports the knowledge expressed in a response. We study this as pinpoint provenance: given a prompt, a target-model response, and a candidate corpus, rank the documents that best support the response. We introduce FakeWiki, a controlled benchmark of 3,537 fabricated Wikipedia-style articles designed to preserve ground-truth provenance while weakening lexical shortcuts. FakeWiki includes QA probes, source-preserving paraphrases, retro-generated variants, hard anti-documents that remain topically similar while removing answer-critical facts, and five query conditions: clean prompting plus four jailbreak-inspired transformations. We evaluate seven retrieval baselines, a training-free activation-steering retrieval-fusion method, SteerFuse, and a supervised contrastive provenance ranker, ScoringModel. ScoringModel maps response and document features into a shared space and is trained with InfoNCE using in-batch, retrieval-mined, and anti-document negatives. Across nine open-weight instruction-tuned LLMs and five query conditions, ScoringModel improves mean Recall@10 from 35.0 for the strongest retrieval baseline to 52.2, without inference-time fusion, and wins 41/45 model-by-condition cells. SteerFuse is usually second-best despite requiring no supervised training, showing that activation-space evidence can efficiently complement text retrieval. On jailbreak-inspired transformed queries, ScoringModel improves Recall@10 by 15.7 points on average over the best baseline. Overall, our work shows that robust training data attribution requires evaluation settings that separate true answer support from topical or lexical resemblance.</summary>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-05-07T05:27:45Z</published>
+    <arxiv:primary_category term="cs.AI"/>
+    <author>
+      <name>Xiaomin Li</name>
+    </author>
+    <author>
+      <name>Andrzej Banburski-Fahey</name>
+    </author>
+    <author>
+      <name>Jaron Lanier</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2604.16197v2</id>
+    <title>Sketching the Readout of Large Language Models for Scalable Data Attribution and Valuation</title>
+    <updated>2026-07-19T20:58:40Z</updated>
+    <link href="https://arxiv.org/abs/2604.16197v2" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2604.16197v2" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Data attribution and valuation are critical for understanding data-model synergy for Large Language Models (LLMs), yet existing gradient-based methods suffer from scalability challenges on LLMs. Inspired by human cognition, where decision making relies on a focused readout of relevant memories rather than replaying all pathways, we introduce RISE (Readout Influence Sketching Estimator). Instead of computing and indexing gradients across the entire LLM, RISE focuses on influence hotspots at the output layer, where influence signals concentrate, and the gradient admits a decomposed outer-product form. This enables a dual-channel representation combining a lexical residual channel (RH) and a semantic projected-error channel (GH). Applying CountSketch projections to these channels achieves strong compression while maintaining accurate attribution. Across the OLMo (1B-32B) and Pythia (14M-6.9B) families, RISE reduces index storage by up to 112$\times$ compared to RapidIn and scales to 32B parameters LLM, where gradient-based baselines such as RapidIn and ZO-Inf become memory-infeasible. We evaluate RISE on two paradigms: (1) retrospective attribution, retrieving influential training examples for specific predictions, and (2) prospective valuation, scoring candidate data utility zero-shot. We validate RISE on three tasks: Howdy backdoor data detection, Finance-Medical domain separation, and Brain Rot high-quality data selection. In a closed-loop Brain Rot study, continued pretraining on RISE-selected data yields consistent downstream improvements. Overall, RISE provides a practical and scalable primitive for influence analysis and training-data selection in modern large language models.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-04-17T16:07:11Z</published>
+    <arxiv:comment>54 pages</arxiv:comment>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Yide Ran</name>
+    </author>
+    <author>
+      <name>Jianwen Xie</name>
+    </author>
+    <author>
+      <name>Minghui Wang</name>
+    </author>
+    <author>
+      <name>Wenjin Zheng</name>
+    </author>
+    <author>
+      <name>Denghui Zhang</name>
+    </author>
+    <author>
+      <name>Chuan Li</name>
+    </author>
+    <author>
+      <name>Zhaozhuo Xu</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2604.04892v1</id>
+    <title>Data Attribution in Adaptive Learning</title>
+    <updated>2026-04-06T17:41:32Z</updated>
+    <link href="https://arxiv.org/abs/2604.04892v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2604.04892v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Machine learning models increasingly generate their own training data -- online bandits, reinforcement learning, and post-training pipelines for language models are leading examples. In these adaptive settings, a single training observation both updates the learner and shifts the distribution of future data the learner will collect. Standard attribution methods, designed for static datasets, ignore this feedback. We formalize occurrence-level attribution for finite-horizon adaptive learning via a conditional interventional target, prove that replay-side information cannot recover it in general, and identify a structural class in which the target is identified from logged data.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-04-06T17:41:32Z</published>
+    <arxiv:comment>Work in progress</arxiv:comment>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Amit Kiran Rege</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2604.03858v2</id>
+    <title>A Bayesian Information-Theoretic Approach to Data Attribution</title>
+    <updated>2026-04-08T22:03:38Z</updated>
+    <link href="https://arxiv.org/abs/2604.03858v2" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2604.03858v2" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Training Data Attribution (TDA) seeks to trace model predictions back to influential training examples, enhancing interpretability and safety. We formulate TDA as a Bayesian information-theoretic problem: subsets are scored by the information loss they induce - the entropy increase at a query when removed. This criterion credits examples for resolving predictive uncertainty rather than label noise. To scale to modern networks, we approximate information loss using a Gaussian Process surrogate built from tangent features. We show this aligns with classical influence scores for single-example attribution while promoting diversity for subsets. For even larger-scale retrieval, we relax to an information-gain objective and add a variance correction for scalable attribution in vector databases. Experiments show competitive performance on counterfactual sensitivity, ground-truth retrieval and coreset selection, showing that our method scales to modern architectures while bridging principled measures with practice.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-04-04T20:42:05Z</published>
+    <arxiv:comment>Accepted at the 29th International Conference on Artificial Intelligence and Statistics (AISTATS 2026)</arxiv:comment>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Dharmesh Tailor</name>
+    </author>
+    <author>
+      <name>Nicolò Felicioni</name>
+    </author>
+    <author>
+      <name>Kamil Ciosek</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2604.01597v2</id>
+    <title>Learning from the Right Rollouts: Data Attribution for PPO-based LLM Post-Training</title>
+    <updated>2026-08-24T19:14:01Z</updated>
+    <link href="https://arxiv.org/abs/2604.01597v2" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2604.01597v2" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Traditional RL algorithms like Proximal Policy Optimization (PPO) typically train on the entire rollout buffer, operating under the assumption that all generated episodes provide a beneficial optimization signal. However, these episodes frequently contain noisy or unfaithful reasoning, which can degrade model performance and slow down training. In this paper, we propose \textbf{Influence-Guided PPO (I-PPO)}, a novel framework that integrates data attribution into the RL post-training loop. By calculating an influence score for each episode using a gradient-based approximation, I-PPO identifies and eliminates episodes that are anti-aligned with a validation gradient. Our experiments demonstrate that I-PPO consistently outperforms SFT and PPO baselines. We show that our filtering process acts as an intrinsic early stopping mechanism, accelerating training efficiency while effectively reducing unfaithful CoT reasoning.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-04-02T04:09:31Z</published>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Dong Shu</name>
+    </author>
+    <author>
+      <name>Denghui Zhang</name>
+    </author>
+    <author>
+      <name>Jessica Hullman</name>
+    </author>
+  </entry>
+</feed>

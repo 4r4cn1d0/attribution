@@ -1,0 +1,111 @@
+{
+  "scope": "Completed v1 diagnostic and integration; no new horizon, fitting or training study.",
+  "decision": "Do not extend this toy mechanism to H3/H4 on the current evidence. No v2 proposed. This is not an impossibility claim for longer horizons or other domains.",
+  "root_tests": {
+    "command": ".venv/bin/python -m pytest -q pilot/tests",
+    "passed": 179,
+    "exit_code": 0,
+    "seconds": 3.64
+  },
+  "root_reproduction": {
+    "command": ".venv/bin/python -m pilot.diagnose --input research/pilot/runs/20260924T150726Z --output tmp/mechanism-diagnostic/root-reproduction",
+    "exit_code": 0,
+    "checks_passed": 27,
+    "h2_cells": 720,
+    "csv_identical": {
+      "h2_cells.csv": true,
+      "h2_groups.csv": true
+    },
+    "json_identical_except_execution_resources": true,
+    "resources": {
+      "wall_seconds": 7.722708167042583,
+      "cpu_seconds": 7.437791,
+      "peak_rss": 119554048,
+      "peak_rss_unit": "bytes",
+      "note": "Diagnostic run only (excludes interpreter start-up); not an estimator timing."
+    }
+  },
+  "non_author_review": {
+    "reviewer": "GPT pilot_code_review",
+    "disposition": "accepted, no remaining blockers",
+    "targeted_tests_passed": 53,
+    "unchanged_cell_rows": 720,
+    "unchanged_group_rows": 40,
+    "unchanged_preexisting_numeric_json_values": 7121,
+    "comparison_excludes": "renamed fields and execution resources"
+  },
+  "independent_witness_checks": {
+    "role": "non-author GPT reviewer pilot_code_review",
+    "scope": "Witness-level direct 65-digit dynamics, finite transport vertices, explicit child costs; all720 diagnostic rows checked for recorded maximum",
+    "identity": "J_pi-V_star = (pi_root dot Q_star-V_star) + sum_ab pi_root_ab (J_pi_child_ab-Q_star_ab)",
+    "max_absolute_regret_difference": 2.55e-18,
+    "max_absolute_child_cost_difference": 2.46e-17,
+    "terminal_score_sort_equals_child_vertex_optimum": true,
+    "witnesses": [
+      {
+        "cell_id": "27f1126e6c329784",
+        "root_regret": 0,
+        "final_regret": 0.000114300008165651,
+        "remaining_hybrid_headroom": 0
+      },
+      {
+        "cell_id": "d7fbdd78951f35b0",
+        "root_regret_description": "approximately0",
+        "final_regret": 0.000151090400436708,
+        "remaining_hybrid_headroom_description": "approximately0"
+      },
+      {
+        "cell_id": "24a16ed9956c3de3",
+        "root_regret": 0.000313020874061511,
+        "final_regret_description": "approximately0",
+        "remaining_hybrid_headroom": 0.233176415716774,
+        "original_best_root": "ordered",
+        "hybrid_best_root": "independent",
+        "mean_component": -1.4165297717253e-06,
+        "centered_distribution_component": 0.000314437403833237
+      },
+      {
+        "cell_id": "83233a6f9375c04c",
+        "root_regret": 0.000111056857941642,
+        "final_regret": 0,
+        "remaining_hybrid_headroom": 0.033070127034472,
+        "mean_component": 4.51933594712774e-05,
+        "centered_distribution_component": 6.58634984703648e-05
+      }
+    ],
+    "precision_note": "Numbers rounded from reviewer return, not full65-digit outputs",
+    "limitations": [
+      "algebraic cost decomposition, not causal attribution",
+      "does not establish every mean-only policy fails",
+      "best-root hybrid is hindsight comparator, not selection policy",
+      "no measured practical speed or novelty",
+      "does not prove longer-horizon gain impossible"
+    ],
+    "recommendation": "Current evidence does not justify H3/H4 escalation."
+  },
+  "preservation": {
+    "prior_pilot_and_research_files_unchanged": 1485,
+    "original_manifest_sha256": "62f7bcc4d85d291bca20234b68fe3c3d287bdc2401afeaa4c1022f7dc1c57999",
+    "original_gate": "failed;720 H4 cells remain unrun",
+    "opus_first_pass_text_preserved": true
+  },
+  "routing": {
+    "author_run": "20260924T161740Z-4e4431ab",
+    "closure_run": "20260924T170058Z-bd089d49",
+    "model_reported_both_runs": "claude-opus-5-5",
+    "effort_requested": "max",
+    "effective_effort_independently_observed": false,
+    "time_and_turn_caps": null,
+    "launcher_status_both_runs": "incomplete due to permission denials on exploratory shell commands; Claude exited0; actual artifacts separately reviewed and verified"
+  },
+  "lead_editorial_changes": "Final report clarifies crossing versus Monge, online admissible versus offline terminal transport, sample counts versus computational cost, and asymptotic versus integer allocation; no code/numbers changed by lead.",
+  "integrated_artifact_hashes": {
+    "pilot/diagnose.py": "c1b8ea47358fc94abdd3c7fdcfabfa77ed26c593598b838d62e174bba38d95cd",
+    "pilot/tests/test_diagnose.py": "fa1910368a4da0b9e65757a2940480bae90dde963c2a3827d2edc819fec7d180",
+    "research/pilot/diagnostics-v1/ALTERNATIVES.md": "6ecc7805daf2686a032317b61354f0065b1ff841409ebc6140a24d77c850e727",
+    "research/pilot/diagnostics-v1/MECHANISM.md": "06099fc2ae90511d398da73c5b07dabcc480666534bcb5aea9facd7c487325bf",
+    "research/pilot/diagnostics-v1/diagnostics.json": "50e1ef9d131f21106b2525088e8657f4791bc065f0227b9509f00fc17534853e",
+    "research/pilot/diagnostics-v1/h2_cells.csv": "d6b03c0e90859b5ade4f243822454360622655e4a7891f69229fd0b377c4ad80",
+    "research/pilot/diagnostics-v1/h2_groups.csv": "6489ae6c9b906ba32f46d77a3d92cd8550c16c5b5e1bbe84a23fe2f579d5a0da"
+  }
+}
