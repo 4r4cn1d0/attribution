@@ -1,0 +1,37 @@
+..........F.........                                                     [100%]
+=================================== FAILURES ===================================
+_ MiniatureProjectTests.test_path_findings_are_redacted_and_skipped_names_too __
+
+self = <test_anonymous_artifact.MiniatureProjectTests testMethod=test_path_findings_are_redacted_and_skipped_names_too>
+
+    def test_path_findings_are_redacted_and_skipped_names_too(self):
+        handle = ex.OWNER_HANDLES[0]
+        (self.src / "pkg" / f"{handle}-notes.txt").write_bytes(b"skipped, never read\n")
+        summary = ex.export(self.src, self.dest, spec=MINI_SPEC)
+        self.assertIn("pkg/<owner-identifier>-notes.txt", summary["skipped"])
+        self.assertNotIn(handle, json.dumps(summary["skipped"]).lower())
+        self.dest = self.tmp / "export-2"
+        (self.src / "pkg" / f"{handle}.py").write_bytes(b"x = 1\n")
+        problems = self.refused()
+>       self.assertEqual(problems, ["pkg/<owner-identifier>.py: owner-identifier (in the path)"])
+E       AssertionError: Lists differ: ['ARTIFACT_MANIFEST.json:46: owner-identifi[60 chars]th)'] != ['pkg/<owner-identifier>.py: owner-identifi[13 chars]th)']
+E       
+E       First differing element 0:
+E       'ARTIFACT_MANIFEST.json:46: owner-identifier'
+E       'pkg/<owner-identifier>.py: owner-identifier (in the path)'
+E       
+E       First list contains 1 additional elements.
+E       First extra element 1:
+E       'pkg/<owner-identifier>.py: owner-identifier (in the path)'
+E       
+E       - ['ARTIFACT_MANIFEST.json:46: owner-identifier',
+E       -  'pkg/<owner-identifier>.py: owner-identifier (in the path)']
+E       ? ^
+E       
+E       + ['pkg/<owner-identifier>.py: owner-identifier (in the path)']
+E       ? ^
+
+tmp/claude-workspaces/anonymous-artifact-20261002/workspace/tests/test_anonymous_artifact.py:202: AssertionError
+=========================== short test summary info ============================
+FAILED tmp/claude-workspaces/anonymous-artifact-20261002/workspace/tests/test_anonymous_artifact.py::MiniatureProjectTests::test_path_findings_are_redacted_and_skipped_names_too
+1 failed, 19 passed in 0.35s
