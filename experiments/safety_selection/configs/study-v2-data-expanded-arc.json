@@ -1,0 +1,226 @@
+{
+  "kind": "safety-selection data config",
+  "name": "study-v2-data-expanded-arc",
+  "purpose": "Expanded initial finite-menu diagnostic: same full corpus and removal groups; complete eligible ARC pools divided into disjoint development/selector/hidden tasks. Prospective bank expansion after baseline calibration but before removal endpoint comparisons and any heldout outcomes.",
+  "amendments": [
+    "2026-10-02, before any expanded outcome: the first preset asserted 302 toxicity-labelled ToxicChat prompts (4721 non-toxic, from an overlap-only metadata inspection that omitted within-test duplicate prompts). Strict preparation under these engine rules, with the pinned sources unchanged, excludes 60 prompts equal to an original DATE-LM prompt and drops 7 toxicity-labelled and 124 non-toxic within-test duplicate prompts, leaving 295 and 4597. Both counts are now asserted and the safety banks are 72 development / 80 selector / 143 hidden (hidden was 150); no bank shrinks at run time.",
+    "2026-10-02: ARC-Easy eligible counts are now asserted: 570 validation and 2371 test (5 test questions duplicate an earlier question; no other exclusion). DATE-LM remains 83/66/9999 eligible training rows and 30 reference rows.",
+    "2026-10-02: ARC overlap and disjointness checks compare the normalized bare question AND both rendered model inputs (generation and forced choice) with every original DATE-LM and ToxicChat prompt and with every emitted prompt. A source-only audit found no rendered collision with DATE-LM prompts in the pinned sources; the asserted counts refuse preparation if any appears.",
+    "2026-10-02: the development seed namespace widens from 1101-1104 (an accidental four-seed execution restriction) to 1101-2099. Namespaces state allowed seeds, not planned or calibrated counts; selector 2101-8999 and reference 9101-9999 are unchanged and all three stay disjoint.",
+    "design_seed 20261002 is the intentional preset construction seed, fixed before any outcome. The lead's engineering preparation check used a temporary seed and name; no seed is chosen in response to outcomes.",
+    "2026-10-02 ~16:24UTC: replace initial ARC64generation/128MC banks with dev96generation+189MC, selector96generation+189MC, hidden256generation+2115MC. This uses every eligible ARC item once, improves rare-refusal resolution and substantially expands heldout capability coverage. Allocation is an engineering coverage compromise, not an optimized power guarantee. Old preparation/trajectories remain calibration-only and are never relabeled or resumed under the new manifest. No hidden outcomes or attribution advantage were inspected. No corpus, group, query, safety-bank or model changes."
+  ],
+  "sources": {
+    "date_lm": {
+      "repo_id": "DataAttributionEval/Toxicity-Bias-Filtering",
+      "revision": "ad96bd4dca687d8e1d9b6fd4b9eb8dcdddb0361d",
+      "train_file": "data/ToxicChat-Het/train.jsonl",
+      "train_sha256": "dcc9198943d0175daf03a0005b932399ab49d76b0252bf607b9f802d8ce03267",
+      "ref_file": "data/ToxicChat-Het/ref.jsonl",
+      "ref_sha256": "75351ed41c5b997163dfe94eccd66a03957d0587a4704a4bcb8dad9e90940bb5"
+    },
+    "toxicchat": {
+      "repo_id": "lmsys/toxic-chat",
+      "revision": "29df8e4dba60e1f4af4b4075c0705c5b313548a8",
+      "file": "data/0124/toxic-chat_annotation_test.csv",
+      "sha256": "3c2e49889626f7738dca0a29bface0ba0a0595b2ffdd17f0e02f19df7c3c4c9b",
+      "header": [
+        "conv_id",
+        "user_input",
+        "model_output",
+        "human_annotation",
+        "toxicity",
+        "jailbreaking",
+        "openai_moderation"
+      ]
+    },
+    "arc_easy": {
+      "repo_id": "allenai/ai2_arc",
+      "revision": "210d026faf9955653af8916fad021475a3f00453",
+      "validation_parquet": "ARC-Easy/validation-00000-of-00001.parquet",
+      "validation_parquet_sha256": "ed890ff1e4cef7a7140d3a30dcea3ed2c9d467c6458f447ad9ef0176d8dcbb74",
+      "validation_jsonl_sha256": "9ce7382b3664f0735768e55a6ce5dc9ed715103971ce080b0e12bcad45b549e0",
+      "test_parquet": "ARC-Easy/test-00000-of-00001.parquet",
+      "test_parquet_sha256": "4160597d618ae851c7eb04e281574f3f654776216ac6b6641588d64527b47177",
+      "test_jsonl_sha256": "8c57b58ae0dc29c76508b92b692a34f947d43879b49f069dd20f626caa4dbd61"
+    }
+  },
+  "eligibility": {
+    "forbidden_substrings": [
+      "<|im_start|>",
+      "<|im_end|>",
+      "<|endoftext|>"
+    ],
+    "min_source_id_substring_chars": 16,
+    "expected": {
+      "train": {
+        "risk": 83,
+        "aligned": 66,
+        "benign": 9999
+      },
+      "ref": 30,
+      "toxicchat": {
+        "toxic": 295,
+        "nontoxic": 4597
+      },
+      "arc": {
+        "validation": 570,
+        "test": 2371
+      }
+    }
+  },
+  "roles": {
+    "risk": "Unsafe",
+    "aligned": "Safety-Aligned",
+    "benign": "Benign"
+  },
+  "provenance": {
+    "risk": "ToxicChat",
+    "aligned": "ToxicChat",
+    "benign": "UltraChat"
+  },
+  "design_seed": 20261002,
+  "groups": {
+    "partitions": [
+      "dev",
+      "heldout"
+    ],
+    "composition_columns": [
+      "size",
+      "risk",
+      "aligned",
+      "benign"
+    ],
+    "composition": [
+      [
+        8,
+        2,
+        0,
+        6
+      ],
+      [
+        16,
+        4,
+        0,
+        12
+      ],
+      [
+        32,
+        8,
+        0,
+        24
+      ],
+      [
+        64,
+        16,
+        0,
+        48
+      ],
+      [
+        8,
+        0,
+        2,
+        6
+      ],
+      [
+        16,
+        0,
+        4,
+        12
+      ],
+      [
+        32,
+        0,
+        8,
+        24
+      ],
+      [
+        64,
+        0,
+        16,
+        48
+      ],
+      [
+        8,
+        2,
+        1,
+        5
+      ],
+      [
+        16,
+        4,
+        1,
+        11
+      ],
+      [
+        32,
+        4,
+        1,
+        27
+      ],
+      [
+        64,
+        0,
+        0,
+        64
+      ]
+    ],
+    "forced_dev_uids": [
+      "train:10071",
+      "train:10073",
+      "train:10079",
+      "train:10108",
+      "train:10115",
+      "train:10118",
+      "train:10142",
+      "train:10150"
+    ],
+    "forced_dev_note": "prior_removed_uids of .ai/inputs/study-v2-20261002/pilot-used-members.json (old pilot manifest 99e7209a...); old removal effects must not define held-out member pools"
+  },
+  "banks": {
+    "safety": {
+      "toxicity": 1,
+      "dev": 72,
+      "selector": 80,
+      "hidden": 143
+    },
+    "arc": {
+      "dev": {
+        "split": "validation",
+        "generation": 96,
+        "utility": 189
+      },
+      "selector": {
+        "split": "validation",
+        "generation": 96,
+        "utility": 189
+      },
+      "hidden": {
+        "split": "test",
+        "generation": 256,
+        "utility": 2115
+      }
+    }
+  },
+  "seed_namespaces": {
+    "development": [
+      1101,
+      2099
+    ],
+    "selector": [
+      2101,
+      8999
+    ],
+    "reference": [
+      9101,
+      9999
+    ]
+  },
+  "tokenizer": {
+    "repo_id": "Qwen/Qwen2.5-1.5B-Instruct",
+    "revision": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
+    "end_of_turn_token": "<|im_end|>",
+    "max_train_tokens": 3072,
+    "max_prompt_tokens": 1536
+  }
+}

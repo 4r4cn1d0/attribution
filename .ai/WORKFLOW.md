@@ -100,3 +100,28 @@ This installation configures the collaboration workflow. It does not launch the
 attribution training pilot or turn the existing proposal into an established result.
 Later substantive requests are executed under their actual scope. Keep research
 models, data splits, samplers, and stopping rules separate from assistant routing.
+
+## Ongoing novelty and rigor checks
+
+The user requested continuing checks on 2026-10-02. The active scientific scope
+belongs in `research/FOCUS.md`; evidence gates and their current status belong in
+`research/review/EDGE_CHECKS.md`. The earlier coupling pilot and its reviews remain
+historical evidence. Read current artifacts before proposing new implementation.
+
+Review the exact contribution against primary literature whenever the question,
+intervention, attribution signal or novelty claim changes; before a main study;
+after a result that changes the conclusion; and before submission. Identify the
+closest existing method and strongest combination of existing methods. Separate
+predictive information, practical benefit after costs and a new allocator's benefit
+with identical inputs. Model agreement and an aspirational rating pass no gate.
+
+At experiment checkpoints, inspect the estimand, independent replication,
+held-out groups/prompts/seeds, scorer validity, utility/over-refusal constraints,
+reference uncertainty, practical margins, all costs and stopping rules. Preserve
+negative and inconclusive findings. Record changes and unresolved objections in
+dated reviews and the lead's handoff; do not rewrite old evidence for consistency.
+
+The active Monday-morning thread heartbeat performs a bounded literature and
+artifact review. It is not continuous monitoring or authorization to run training,
+spend money, change scientific scope or publish. Avoid repeating a full review of
+unchanged material; record substantive new evidence and its specific implications.

@@ -1,0 +1,12 @@
+# DATE-LM inspection, 2 October 2026
+Source: https://github.com/DataAttributionEval/DATE-LM commit 95c9a6db8edd4e450b3e9fe018413bbc4f50bb45; local clone tmp/date-lm-reference-20261002. Native GPT minimal_date_audit inspected source, root independently read application docs and measured dataset counts/hashes. No upstream code executed.
+
+Direct entry points have observed blockers: methods/dattri.py parses --config but reads args.config_path; methods/model_utils.py forces .cuda and attribution labels use .cuda; evaluation CLI drops score_path and dispatches task rather than subset. Generic training config is not checkpoint provenance. Upstream full requirements include flash-attn/DeepSpeed/LitGPT; avoid bulk installation on Mac.
+
+Data: DataAttributionEval/Toxicity-Bias-Filtering, revision ad96bd4dca687d8e1d9b6fd4b9eb8dcdddb0361d, ToxicChat-Het train/ref, public raw JSONL at data/ToxicChat-Het/{train,ref}.jsonl. Fields data_id,prompt,response,type; 10163 train =10000Benign,66Safety-Aligned,97Unsafe; 30ref allUnsafe. Root normalized whitespace/lowercase reveals8train/ref prompt overlaps,6duplicate trainprompts,1emptyresponse. Remove prompt leakage and record exclusions; never use all30 as both attribution queries and independent audit. Training hash dcc9198943d0175daf03a0005b932399ab49d76b0252bf607b9f802d8ce03267; ref75351ed41c5b997163dfe94eccd66a03957d0587a4704a4bcb8dad9e90940bb5.
+
+Published Pythia1B ToxicChat-Het adapter metadata: revision fc3f60ab185e2487a8ddad318213e02ff688518d; r8 alpha16 dropout.05 query_key_value; trainerstate5epochs12705stepsbatch4. Full recipe unresolved. Published score files are binaryTorchZIP whereas currentsource writesJSON .pt. Do not deserialize unverified pickle or assume roworder. No checkpoint score blobs downloaded.
+
+A small adapted data experiment is not an unchanged reproduction or leaderboard result. Simple gradient cosine is not LESS, SOURCE, exact influence or a certified safety estimate. Own training stepwise loop can be device-aware and keep raw row IDs stable. Reject all-masked labels and report prompt/response truncation. Human/audited toxicity measurement remains required for safety conclusions; no lexical proxy can silently replace it.
+
+Runtime setup: isolated tmp/minimal-experiment-20261002/venv, Python3.11.15 torch2.8 transformers4.56.2 peft0.17.1 numpy2.2.6 pytest8.4.2; imports passed; MPS available. System and project venv unchanged. No training, model initialization or gradient computation has run yet.

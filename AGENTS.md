@@ -52,11 +52,24 @@ as a side effect of unrelated work.
 
 ## Research discipline
 
-Current context: `research/icml-attribution-proposal.md` and
-`research/review/novelty-rigor-assessment.md`. The proposal has unresolved novelty
-and seed-level surrogate/cost questions; it is not a validated method.
+Current question: does training-data attribution improve finite safety-data edit
+decisions beyond short training runs, edit metadata and strong content classifiers,
+after charging its cost? Use `research/FOCUS.md` and
+`research/review/EDGE_CHECKS.md`, the current
+`writing/proposals/roger-grosse-research-proposal.md`, and the latest dated reviews.
+Novelty, useful incremental information and practical benefit remain hypotheses.
+The older `research/icml-attribution-proposal.md`, coupling pilot and its reviews
+describe historical work; do not silently restore that earlier scope.
 Preserve prior review artifacts. Do not treat their model agreement as independent
 evidence or overwrite them to make a new result appear consistent.
+
+Recheck primary literature and rigor when the contribution changes, before a main
+experiment, after consequential results and before submission. Follow the review
+checkpoints in `.ai/WORKFLOW.md`. Separate information gains, decision gains after
+costs and any new allocator's gains against a generic method with identical inputs.
+A negative or inconclusive result constrains that mechanism; it does not by itself
+end the project. Weekly reviews are bounded checks, not permission to train, spend,
+publish or change scope.
 
 Use primary literature for novelty claims. Separate hypotheses, derivations,
 measurements, and conclusions. For experiments, specify estimands, replication,

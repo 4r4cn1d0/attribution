@@ -1,0 +1,32 @@
+# Supplemental safety-attribution precedent
+
+Checked 2 October 2026 while sharpening the current proposal. This supplements, rather than overwrites, the earlier assessment.
+
+Primary source: Weckbecker et al., [Can Data Attribution Filter Out Subliminal Learning? Not Reliably](https://arxiv.org/abs/2609.20027), arXiv v1, 17 September 2026. [Methods and results](https://arxiv.org/html/2609.20027v1) inspected. Treat as a preprint; the manuscript's workshop heading does not independently verify acceptance.
+
+The paper compares gradient-based attribution filtering across models, target preferences, and token/sample interventions. Its reported benefits vary substantially. Methods include EK-FAC and gradient-cosine variants; a divergence-token comparator requires counterfactual teacher access. The study checks filtering rankings through retraining, including decile training. The behavioral endpoint is animal preference transmitted through number sequences, a model of hidden behavioral transfer; it is not itself a harmful-compliance outcome.
+
+**Overlap:** attribution reliability in a safety-motivated data intervention is already studied. Neither demonstrating inconsistent rankings nor showing attribution sometimes helps is a sufficient distinguishing claim for us.
+
+**Remaining candidate distinction (our inference):** selecting finite safety edits using attribution's incremental information beyond short training runs, evaluated against strong adaptive selectors under complete cost and side-effect accounting. The inspected methods/results do not present that selection study. This is an identified difference from this source, not proof of novelty across all literature.
+
+**Action:** include this precedent in the ongoing novelty matrix; test agreement-but-wrong cases and transfer failures. It does not warrant switching the project to subliminal learning or claiming its negative result applies universally.
+
+Provenance: targeted primary-domain web searches for training-data attribution, safety, finite counterfactual selection, and multifidelity terms in 2026. Two other OpenReview candidates (MN1qlAVJLV and fQvVV6UN4p) surfaced in snippets, but full text could not be read because browser checks/public API 403 responses blocked retrieval. Their claims were not used to establish exact overlap. This was a bounded search, not an exhaustive review.
+
+## Additional precedents found in the same review
+
+**Jiao et al., [DATE-LM](https://arxiv.org/abs/2507.09424), inspected [v2 full text](https://arxiv.org/html/2507.09424v2), 25 October 2025.** The benchmark covers training-data selection, toxicity/bias filtering and factual attribution. Sections 4.2 and 5.2 evaluate filtering with retraining and strong classifiers, including safety-aligned distractors; Appendix D.9 reports attribution runtime. Thus application-based evaluation, filtering reliability, and reporting attribution cost are already established. Our possible distinction must concern the incremental value beyond short training runs for a constrained selection decision at matched total cost. That is an inference from the inspected sections, not an exhaustive absence claim. Reusing compatible benchmark infrastructure is preferable to rebuilding it without a scientific reason.
+
+**[Mitigating Emergent Misalignment with Data Attribution](https://openreview.net/pdf?id=gN7pWmjiQW), public NeurIPS 2025 Mechanistic Interpretability Workshop version.** Indexed primary abstract and method/result excerpts describe influence-based filtering and retraining, comparisons with harmful-text classifiers, and separating broad unintended misalignment from narrow fine-tuning behavior. Consequently, changing our endpoint to emergent misalignment would not by itself create novelty. Our utility constraints concern benign capabilities. A separate [ICLR 2026 submission](https://openreview.net/pdf?id=fQvVV6UN4p) surfaced; its acceptance status and full text were not verified. This updates the earlier access note: indexed excerpts were subsequently inspected, but direct PDF access remained blocked. Do not conflate the versions or claim a full-paper review.
+
+**Li et al., [Where Did It Go Wrong? Attributing Undesirable LLM Behaviors via Representation Gradient Tracing](https://arxiv.org/abs/2510.02334).** Primary indexed abstract/method excerpts describe attribution using representation gradients, including harmful-data, backdoor and knowledge-contamination settings. Its detailed relation to the finite-edit outcome/selection target remains to be checked. Record as adjacent prior work, not as either an exact match or a verified gap.
+
+**Revised novelty burden.** The candidate empirical contribution is a reproducible account of when attribution corrects consequential short-run prediction errors and improves constrained safety-edit decisions after all costs. The closest composed competitor combines an existing attribution method, edit metadata and short-run observations with a generic multifidelity selector. If that combination matches a proposed allocator, there is no demonstrated new-allocation contribution. If attribution brings no worthwhile benefit over a well-tuned short-run selector that reinvests its savings, the proposed practical attribution edge is unsupported. These are hypotheses and decision rules, not results.
+
+## Adjacent ICML 2026 work screened during the wait for drafting
+
+- Badó and Fenech, [Clustered Influence Functions](https://proceedings.mlr.press/v306/bado26a.html): the primary proceedings abstract describes caching clustered-gradient influence solves for repeated subset queries, with a diagnostic error decomposition and image-classification evaluations. It reinforces that amortizing subset queries and exposing approximation error are established ideas. The abstract alone does not resolve overlap with our constrained LLM decision study; inspect the full paper if proposing a cache or new attribution-error bound.
+- Gao et al., [On the Fragility of Data Attribution When Learning Is Distributed](https://proceedings.mlr.press/v306/gao26k.html): the primary abstract describes manipulating measured contribution in distributed learning while retaining utility. This is an adjacent threat model, not evidence about our fixed SFT edit selector. Do not add an adversarial distributed-learning benchmark to the initial scope on that basis.
+
+Both are verified proceedings entries; only their abstracts were screened here. These checks do not establish that the candidate contribution is novel.

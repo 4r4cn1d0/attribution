@@ -1,0 +1,87 @@
+{
+  "name": "minimal-safety-calibration-v1-cuda",
+  "purpose": "Engineering calibration of one a0/removal slice: plumbing, measured costs and traceable classifier-proxy outcomes. Not an H1/H2 test, headroom or positive-control result, DATE-LM replication or safety result.",
+  "dataset": {
+    "repo_id": "DataAttributionEval/Toxicity-Bias-Filtering",
+    "revision": "ad96bd4dca687d8e1d9b6fd4b9eb8dcdddb0361d",
+    "subset": "ToxicChat-Het",
+    "train_file": "data/ToxicChat-Het/train.jsonl",
+    "ref_file": "data/ToxicChat-Het/ref.jsonl",
+    "train_sha256": "dcc9198943d0175daf03a0005b932399ab49d76b0252bf607b9f802d8ce03267",
+    "ref_sha256": "75351ed41c5b997163dfe94eccd66a03957d0587a4704a4bcb8dad9e90940bb5",
+    "forbidden_substrings": ["<|im_start|>", "<|im_end|>", "<|endoftext|>"]
+  },
+  "design": {
+    "design_seed": 20261002,
+    "train_counts": {"Benign": 96, "Safety-Aligned": 16, "Unsafe": 16},
+    "benign_holdout": 6,
+    "ref_query": 4,
+    "ref_eval": 6,
+    "removal": {
+      "arm": "remove_pc_unsafe8",
+      "type": "Unsafe",
+      "size": 8,
+      "label": "explicit positive control: 8 of the 16 sampled Unsafe rows, drawn with design_seed before any score or outcome exists; defined by the dataset type label, not selected by attribution or classifier scores"
+    }
+  },
+  "model": {
+    "repo_id": "Qwen/Qwen2.5-0.5B-Instruct",
+    "revision": "7ae557604adf67be50417f59c2c2f167def9a775",
+    "dtype": "float32",
+    "attn_implementation": "eager",
+    "device": "cuda",
+    "end_of_turn_token": "<|im_end|>",
+    "stop_tokens": ["<|im_end|>", "<|endoftext|>"],
+    "lora": {
+      "r": 8,
+      "alpha": 16,
+      "dropout": 0.0,
+      "target_modules": ["q_proj", "v_proj"],
+      "expected_trainable_parameters": 540672
+    }
+  },
+  "train": {
+    "seeds": [101, 202],
+    "short_steps": 4,
+    "long_steps": 16,
+    "batch_size": 1,
+    "optimizer": "AdamW",
+    "lr": 0.0002,
+    "betas": [0.9, 0.999],
+    "eps": 1e-08,
+    "weight_decay": 0.0,
+    "lr_schedule": "constant",
+    "max_grad_norm": 1.0,
+    "max_seq_len": 512,
+    "reserved_response_tokens": 128
+  },
+  "eval": {
+    "decoding": "greedy",
+    "max_new_tokens": 64,
+    "eval_base": true,
+    "toxic_threshold": 0.5,
+    "copy_ngram": 5,
+    "copy_fraction": 0.5
+  },
+  "scorer": {
+    "repo_id": "unitary/toxic-bert",
+    "revision": "4d6c22e74ba2fdd26bc4f7238f50766b045a0d94",
+    "device": "cpu",
+    "label": "toxic",
+    "activation": "sigmoid",
+    "max_length": 512,
+    "batch_size": 16
+  },
+  "attribution": {
+    "arm": "a0",
+    "checkpoint": "long",
+    "aggregation": "cosine_of_means"
+  },
+  "audit": {
+    "shuffle_seed": 20261002
+  },
+  "caps": {
+    "wall_seconds": 900,
+    "output_bytes": 2147483648
+  }
+}

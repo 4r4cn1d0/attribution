@@ -1,0 +1,42 @@
+........................................FF.......                        [100%]
+=================================== FAILURES ===================================
+____________ test_end_to_end_fixture_run_is_complete_and_traceable _____________
+
+tmp_path = PosixPath('/private/var/folders/mk/33rfxgzn32318ntchzzgtm680000gn/T/pytest-of-spiderishi/pytest-4/test_end_to_end_fixture_run_is0')
+prepared = ({'attribution': {'aggregation': 'cosine_of_means', 'arm': 'a0', 'checkpoint': 'long'}, 'audit': {'shuffle_seed': 5}, ...ytest-4/test_end_to_end_fixture_run_is0/prepared'), 'e71c33fa43127f22d3b78c2c875840d69caac415fe9db1f0b50fdcb1f4485c4d')
+tiny_loader = <function tiny_loader.<locals>.load at 0x110a86d40>
+
+    def test_end_to_end_fixture_run_is_complete_and_traceable(tmp_path, prepared, tiny_loader):
+        config, prep_dir, digest = prepared
+        run_dir = tmp_path / "run"
+        summary = execute(config, prep_dir, run_dir, digest, tiny_loader)
+>       assert summary["status"] == "complete", summary["stop_reason"]
+E       AssertionError: error: TypeError: experiments.minimal_safety.run.Calibration.record() got multiple values for keyword argument 'kind'
+E       assert 'incomplete' == 'complete'
+E         
+E         - complete
+E         + incomplete
+E         ? ++
+
+experiments/minimal_safety/tests/test_ms_run.py:38: AssertionError
+_______ test_cap_stops_before_an_arm_and_only_matched_pairs_are_compared _______
+
+tmp_path = PosixPath('/private/var/folders/mk/33rfxgzn32318ntchzzgtm680000gn/T/pytest-of-spiderishi/pytest-4/test_cap_stops_before_an_arm_a0')
+prepared = ({'attribution': {'aggregation': 'cosine_of_means', 'arm': 'a0', 'checkpoint': 'long'}, 'audit': {'shuffle_seed': 5}, ...ytest-4/test_cap_stops_before_an_arm_a0/prepared'), 'e71c33fa43127f22d3b78c2c875840d69caac415fe9db1f0b50fdcb1f4485c4d')
+tiny_loader = <function tiny_loader.<locals>.load at 0x110a49e40>
+
+    def test_cap_stops_before_an_arm_and_only_matched_pairs_are_compared(tmp_path, prepared, tiny_loader):
+        config, prep_dir, digest = prepared
+        full = execute(config, prep_dir, tmp_path / "full", digest, tiny_loader, clock=CountingClock())
+>       assert full["status"] == "complete"
+E       AssertionError: assert 'incomplete' == 'complete'
+E         
+E         - complete
+E         + incomplete
+E         ? ++
+
+experiments/minimal_safety/tests/test_ms_run.py:85: AssertionError
+=========================== short test summary info ============================
+FAILED experiments/minimal_safety/tests/test_ms_run.py::test_end_to_end_fixture_run_is_complete_and_traceable
+FAILED experiments/minimal_safety/tests/test_ms_run.py::test_cap_stops_before_an_arm_and_only_matched_pairs_are_compared
+2 failed, 47 passed in 20.76s

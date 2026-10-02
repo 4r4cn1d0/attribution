@@ -1,0 +1,48 @@
+......................................................s................. [ 48%]
+............................F........................................... [ 96%]
+......                                                                   [100%]
+=================================== FAILURES ===================================
+_ test_dependency_chains_verify_through_a_read_only_path_map_of_an_archived_tree _
+
+env = namespace(root=PosixPath('/private/var/folders/mk/33rfxgzn32318ntchzzgtm680000gn/T/pytest-of-spiderishi/pytest-21/jobs...not the total cost of this operation', 'evaluation': None, 'resumed_from': None, 'resumed_from_complete_sha256': None})
+tmp_path = PosixPath('/private/var/folders/mk/33rfxgzn32318ntchzzgtm680000gn/T/pytest-of-spiderishi/pytest-21/test_dependency_chains_verify_0')
+
+    def test_dependency_chains_verify_through_a_read_only_path_map_of_an_archived_tree(env, tmp_path):
+        remote = tmp_path / "remote"
+    
+        def go(name: str, **fields) -> dict:
+            return runner.run_one(run_job(env, evaluate_bank=None, **fields), prepared_dir=env.prepared,
+                                  out_dir=remote / name, session=env.session)
+    
+        q = go("q")
+        e1 = go("e1", target_checkpoint="e1", resume_from=q["run_dir"])
+        e3 = go("e3", target_checkpoint="e3", resume_from=e1["run_dir"])
+        ev = runner.eval_state(eval_job(env, q, "q"), prepared_dir=env.prepared, out_dir=remote / "ev",
+                               session=env.session)
+        at = runner.attributes(attr_job(env, a0_states={"q": q["run_dir"], "e1": e1["run_dir"], "e3": e3["run_dir"]},
+                                        group_ids=[env.dev_group]),
+                               prepared_dir=env.prepared, out_dir=remote / "at", session=env.session)
+        for run in (e3, ev, at):
+            assert verify_run(run["run_dir"])["complete"]
+        recorded, archive = remote.resolve(), tmp_path / "archive"
+        jobs_before = {p.relative_to(remote): p.read_bytes() for p in remote.rglob("*.json")}
+        remote.rename(archive)  # a downloaded tree: every recorded absolute path now points nowhere
+        mapping = PathMap([(str(recorded), str(archive))])
+        for name in ("e3", "ev", "at"):
+            bare = verify_run(archive / name)
+            assert bare["own_files"]["complete"] and not bare["dependency_chain"]["complete"]
+>           assert not bare["complete"] and any("missing" in p for p in bare["problems"])
+E           assert (not False and False)
+E            +  where False = any(<generator object test_dependency_chains_verify_through_a_read_only_path_map_of_an_archived_tree.<locals>.<genexpr> at 0x111e7e5a0>)
+
+experiments/safety_selection/tests/test_ss_runner.py:538: AssertionError
+=============================== warnings summary ===============================
+experiments/safety_selection/tests/test_ss_engine.py::test_an_infinite_loss_is_refused_before_autograd_although_its_gradient_is_finite
+  /Users/spiderishi/Coding/attribution/experiments/safety_selection/tests/test_ss_engine.py:232: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+  Consider using tensor.detach() first. (Triggered internally at /Users/runner/work/pytorch/pytorch/pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:836.)
+    assert math.isinf(float(loss)) and torch.isfinite(grad).all() and float(grad) == pytest.approx(1.0)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED experiments/safety_selection/tests/test_ss_runner.py::test_dependency_chains_verify_through_a_read_only_path_map_of_an_archived_tree
+1 failed, 148 passed, 1 skipped, 1 warning in 6.74s

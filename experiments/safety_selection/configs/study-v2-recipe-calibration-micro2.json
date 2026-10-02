@@ -1,0 +1,111 @@
+{
+  "kind": "safety-selection recipe",
+  "name": "study-v2-recipe-calibration-micro2",
+  "purpose": "Initial development-calibration recipe (lead decisions of 2026-10-02): bf16 frozen base, fp32 LoRA/AdamW, eager attention, TF32 off, deterministic CUDA. Fields may be calibrated on development data only and must be frozen (new name/hash) before confirmation; batch sizes and precision never change automatically. Prospective hardware amendment: micro4 worst-padded-batch preflight OOM on A10080GB (2026-10-02); micro2/accum4 preserves effective batch8, all rows/full text/epochs. No scientific outcomes seen.",
+  "model": {
+    "repo_id": "Qwen/Qwen2.5-1.5B-Instruct",
+    "revision": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
+    "architecture": "Qwen2ForCausalLM",
+    "base_dtype": "bfloat16",
+    "trainable_dtype": "float32",
+    "attn_implementation": "eager",
+    "device": "cuda",
+    "end_of_turn_token": "<|im_end|>",
+    "stop_tokens": [
+      "<|im_end|>",
+      "<|endoftext|>"
+    ],
+    "pad_token": "<|endoftext|>",
+    "max_train_tokens": 3072,
+    "max_prompt_tokens": 1536,
+    "lora": {
+      "r": 8,
+      "alpha": 16,
+      "dropout": 0.0,
+      "target_modules": [
+        "q_proj",
+        "v_proj"
+      ],
+      "expected_trainable_parameters": 1089536
+    }
+  },
+  "train": {
+    "micro_batch": 2,
+    "grad_accum": 4,
+    "batching": "consecutive examples of one epoch's order; an epoch's final optimizer step keeps its actual size; steps never cross epochs",
+    "loss": "per-example mean NLL over response target tokens (response plus end-of-turn), averaged over the actual examples of each optimizer step",
+    "optimizer": "AdamW",
+    "lr": 0.0002,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "eps": 1e-08,
+    "weight_decay": 0.0,
+    "lr_schedule": "constant",
+    "max_grad_norm": 1.0,
+    "gradient_checkpointing": false,
+    "lm_head_chunk_tokens": 1024,
+    "checkpoints": [
+      {
+        "name": "q",
+        "epochs": [
+          1,
+          4
+        ]
+      },
+      {
+        "name": "e1",
+        "epochs": [
+          1,
+          1
+        ]
+      },
+      {
+        "name": "e3",
+        "epochs": [
+          3,
+          1
+        ]
+      }
+    ]
+  },
+  "generation": {
+    "decoding": "greedy",
+    "max_new_tokens": 1024,
+    "batch_size": 32
+  },
+  "arc": {
+    "template": "arc-easy-mc-v1",
+    "batch_size": 32
+  },
+  "guard": {
+    "repo_id": "Qwen/Qwen3Guard-Gen-4B",
+    "revision": "6ec42827da0c1ff11e7a49dc269d2e810d27e108",
+    "architecture": "Qwen3ForCausalLM",
+    "dtype": "bfloat16",
+    "attn_implementation": "eager",
+    "stop_tokens": [
+      "<|im_end|>",
+      "<|endoftext|>"
+    ],
+    "pad_token": "<|endoftext|>",
+    "max_input_tokens": 8192,
+    "max_new_tokens": 128,
+    "batch_size": 8
+  },
+  "secondary_toxicity": null,
+  "attribution": {
+    "checkpoints": [
+      "q",
+      "e1",
+      "e3"
+    ],
+    "query_bank": "ref",
+    "aggregation_dtype": "float64",
+    "variants": [
+      "checkpoint_gradsim",
+      "adam_diag_preconditioned_dot"
+    ]
+  }
+}
