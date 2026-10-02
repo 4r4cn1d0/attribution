@@ -47,3 +47,33 @@ benefit. Confidence-level bounded endpoint claims require existing family
 Hoeffding bounds with measurement/missing-block bounds. Cost is unbounded and
 model-dependent, so no assured joint-six-way or distribution-free economicclaim.
 No request to growNuntilbounds pass, addtheory, or change the primarymeasure.
+
+## Third-candidate review and checks (queued after anonymous exporter)
+
+Third candidate returned exact requested model/max requested, no caps. Stable
+third snapshot passed154CPUtests in13.03s; twelve existing warnings are confined
+to BLAS-reference agreement tests. Synthetic CLI exited0 with two complete fake
+blocks/Y0 and unavailable cost inference. These checks do not resolve the findings.
+Read the supplied stage-b-third-review.md and opus-policy-third-report.md after
+root copies them explicitly with the test/synthetic logs and source-hash record.
+
+Lead accepts the three concrete third-review cost issues in addition to R1/R2:
+1. Extend existing session-ownership rules so other-policy-exclusive setup is not
+   charged to this hypothetical policy. Example true (Cminus,Cplus)=(100,120)
+   givesT=10; wrongly adding20exclusiveSplussetup toCminus gives(120,120),T=-12.
+   Preserve all actual physical expenditure. Shared setup must remain shared.
+2. Account for actual controller/session overhead outside execution attempts
+   (verification/reads/selection/lock), including exception exits. Classify known
+   common/method/research ownership without overlap. Keep unallocated residual
+   visible and mark affected economic scopes incomplete; do not indiscriminately
+   add overhead tobothmethods. Prefer the smallest adequate extension of existing
+   session receipts over a new generalized framework.
+3. Preserve/propagate scope-specific completeness for whole-research costs,
+   primary cost scopes and physical totals. Unknown timing/ownership cannot
+   silently become a point total or finite all-block mean. Known incurred costs
+   stay visible as labelled lower bounds, including started/noresult blocks.
+
+Add narrow counterexample regressions through public controller/analysis paths.
+Keep lossless raw records and clearly version any changed receipt/config contract.
+No real experiments/cloudcalls or changes to model, primary outcome, training,
+allocator or N. Root will verify and obtain a changed-contract non-author check.
