@@ -1,9 +1,18 @@
 # Pending bounded resume and interrupted-cost follow-up
 
-Dispatch only after current cost-scope call returns and its actual artifacts are
-checked. Exact claude-opus-5-5, max effort, no time/turn cap. Same isolated copy;
+Dispatch after the anonymous-export priority has completed its implementation
+call and review. Third cost-scope candidate has returned and was checked.
+Exact claude-opus-5-5, max effort, no time/turn cap. Same isolated copy;
 owned safety_decision_policy/** and its decision protocol only. Worker rules:
 no agents/Claude/Codex/shell/cloud/sharedHANDOFF; preserve concurrent work.
+
+All referenced inputs are now present at the named WORKSPACE-RELATIVE paths.
+Read .ai/inputs/study-v2-20261002/stage-b-fourth-context-copies.json for the
+explicit nine-file transfer record. Do not follow absolute root/source/snapshot
+paths printed in older reports or logs; use the corresponding files in this
+workspace. The same brief is also copied into its .ai/briefs directory. No read
+outside the prepared workspace is needed or authorized. Lead holds the full
+first/second/third source archives; preserve all current prior fixes.
 
 Non-author review of immutable second snapshot identified two residual paths.
 Read the supplied finalized stage-b-review-second.md and subsequent cost-call
