@@ -26,3 +26,7 @@ Do not merge same-named per-host paths blindly or rewrite raw scientific receipt
 These assets are PRIVATE. Raw logs, paths, machine metadata, prepared data and
 unreviewed drafts are excluded from the separate anonymous-review code export.
 Do not publish this backup or change its repository visibility for submission.
+
+[Open the private draft backup release](https://github.com/4r4cn1d0/attribution/releases/tag/untagged-e3f5f5222859b8a5ffbc).
+All eleven archives were downloaded back from GitHub and their sizes/SHA256
+verified against the original manifest; see `upload-verification.json`.
