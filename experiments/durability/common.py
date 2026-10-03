@@ -32,7 +32,7 @@ except ImportError:  # pragma: no cover - POSIX hosts only
     fcntl = None
 
 __all__ = ["DurabilityError", "NotConfigured", "TransferError", "CollisionError", "CapacityError",
-           "VerificationFailed", "GateRefused", "AdmissionRefused", "StorageRefused", "RestoreError",
+           "VerificationFailed", "GateRefused", "AdmissionRefused", "StorageRefused", "ProviderError", "RestoreError",
            "PathAmbiguity", "BlindnessError", "LostAttemptUnresolved", "Clock", "utc_clock", "iso", "parse_utc",
            "token", "Journal", "JOURNAL_KEYS", "check_blind", "write_exclusive", "locked", "recorded_path",
            "relative_name", "path_id", "SourceMap", "append_jsonl", "canonical_json", "read_json", "read_jsonl",
@@ -73,6 +73,11 @@ class AdmissionRefused(DurabilityError):
 
 class StorageRefused(DurabilityError):
     """The durable source or the independent destination was not confirmed."""
+
+
+class ProviderError(DurabilityError):
+    """The provider answered in a shape or with a value this code does not know, or a meaning was
+    not confirmed: nothing is derived from it."""
 
 
 class RestoreError(DurabilityError):

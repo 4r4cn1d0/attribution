@@ -1,9 +1,12 @@
 """Balance and runway admission, leases, and the storage declaration (stdlib only).
 
 No provider API is assumed here. ``Provider`` is the interface the funded validation must
-implement and check against the real service; ``UnconfiguredProvider`` is the only "real"
-adapter and refuses every call, so nothing can be admitted on a deployment that has not been
-validated. Tests use fakes.
+implement and check against the real service; ``UnconfiguredProvider`` is the
+default and refuses every call, so nothing can be admitted on a deployment that has not been
+configured. ``runpod_provider.RunPodProvider`` is the real adapter for RunPod; it is built only
+from explicit configuration, and it too refuses whatever it cannot confirm (the provider-side
+shutdown above all). Whatever a provider raises while admission asks it something is a refusal.
+Tests use fakes.
 
 **Admission formula.** With a balance reading ``B`` taken at ``t0`` and admission at ``now``:
 
@@ -183,8 +186,8 @@ def check_storage(declaration: StorageDeclaration, provider: Provider) -> dict:
     object written, read back and removed) and has the required free space. Returns the record."""
     try:
         confirmation = provider.confirm_persistent(declaration.source_path)
-    except NotConfigured as exc:
-        raise StorageRefused(f"the source is not confirmed persistent: {exc}") from exc
+    except Exception as exc:  # noqa: BLE001 - whatever the provider could not answer is not a confirmation
+        raise StorageRefused(f"the source is not confirmed persistent: {_why(exc)}") from exc
     if not (isinstance(confirmation, dict) and confirmation.get("persistent") is True and confirmation.get("volume")):
         raise StorageRefused("the provider did not confirm that the source path is on persistent storage")
     source = Path(declaration.source_path)
@@ -215,6 +218,11 @@ def check_storage(declaration: StorageDeclaration, provider: Provider) -> dict:
             "destination": {**described, "free_bytes": free, "required_bytes": declaration.required_bytes,
                             "independent_of_gpu_account": True, "retention_days": days,
                             "funding": declaration.destination_funding}}
+
+
+def _why(exc: Exception) -> str:
+    """A refusal's reason from a provider error: our own errors by message, anything else by class."""
+    return str(exc) if isinstance(exc, DurabilityError) else type(exc).__name__
 
 
 def _number(value: object) -> bool:
@@ -302,7 +310,7 @@ class AdmissionController:
     # ----- admission -----------------------------------------------------------------
 
     def _refuse(self, worker: str, why: str) -> None:
-        self.journal.append("admission-refused", worker=worker, reason=why)
+        self.journal.append("admission-refused", worker=worker, reason=why[:380])
         raise AdmissionRefused(why)
 
     def _inputs(self, worker: str, increment_seconds: float, now: dt.datetime) -> tuple:
@@ -318,8 +326,8 @@ class AdmissionController:
             balance = self.provider.read_balance()
             rates = self.provider.read_rates(worker)
             liabilities = self.provider.list_liabilities()
-        except NotConfigured as exc:
-            self._refuse(worker, f"provider inputs are unavailable: {exc}")
+        except Exception as exc:  # noqa: BLE001 - an unreadable provider is no input (a real adapter can fail in many ways)
+            self._refuse(worker, f"provider inputs are unavailable: {_why(exc)}")
         if not isinstance(balance, BalanceReading):
             self._refuse(worker, "no balance reading")
         if balance.kind != BALANCE_KIND or balance.recognized is not True:
@@ -407,8 +415,8 @@ class AdmissionController:
             until = now + dt.timedelta(seconds=horizon)
             try:
                 armed = self.provider.arm_shutdown(worker, iso(until))
-            except NotConfigured as exc:
-                self._refuse(worker, f"no provider-side shutdown can be armed: {exc}")
+            except Exception as exc:  # noqa: BLE001 - without a confirmed shutdown there is no lease
+                self._refuse(worker, f"no provider-side shutdown can be armed: {_why(exc)}")
             if not (isinstance(armed, dict) and armed.get("armed") is True and armed.get("at_utc") == iso(until)):
                 self._refuse(worker, "the provider did not confirm a shutdown at the end of the reservation")
             lease = Lease(lease=token(), worker=worker, granted_utc=iso(now),

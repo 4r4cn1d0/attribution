@@ -1,0 +1,43 @@
+{
+  "utc": "2026-10-03T16:53:09.397294+00:00",
+  "status": "GitHub release-asset destination and RunPod provider connectors integrated (uncommitted). Local only: no live check ran (neither token variable set). Real admission still refuses by design: RunPod documents no confirmable provider-side shutdown (the shutdown gap).",
+  "files": {
+    "experiments/durability/README.md": "6cd741b50c6e729812a836168356ae2a3eb2c1b3e0baeb35c53def63a512e41f",
+    "experiments/durability/__init__.py": "b491f8026b96716e633f5e0e4d2738c28d37b7e1c0629b908124534a8b55beb1",
+    "experiments/durability/__main__.py": "416bc564bbe02b7be1384c5ad6f53c7292b9cdf09f91227ce575b5095e7767df",
+    "experiments/durability/admission.py": "fd6ae4873e930e1ee403dd9436779a019343612f0e133b5d4a752fa671138159",
+    "experiments/durability/backup.py": "42046a34284ebf253fdf27a00f60b2a6f6c5ba18db37c01261dfb9a0936c933f",
+    "experiments/durability/common.py": "5d0f9efacc1bf9acd05439a0f1aa7bc46b95bb81ad4c72c236eedb0c06db77d0",
+    "experiments/durability/destination.py": "106f445b9095023e55957b195211caaeab160f32b0ea41e7d2bccc84eede507c",
+    "experiments/durability/engine_units.py": "0bf38f47985d8301567f9279cff6f179ecfc8152e0a5f4aa9863d5f698f80cc4",
+    "experiments/durability/gate.py": "7969c997f75e32b47d2c67f1908acb538111d26a6565ccdfbc0004e333bc1b10",
+    "experiments/durability/github_destination.py": "1f2c2edcb5a5f50502318c94f77fa07e900600025ca7478d52b922c67ef5885c",
+    "experiments/durability/runpod_provider.py": "ccf390aed2d8f38bc8572c1e590c18301a04f8de823fd71c99a00ec0e703faa0",
+    "experiments/durability/stage_b.py": "fa22141541e7cb9ead71c5db33a10d28cd3a5bd09ebd219c2ac008061ad95c5c",
+    "experiments/durability/tests/conftest.py": "4971b23793f448940e63dee5a184c76ed46de80720aa06d822926ed38965fa56",
+    "experiments/durability/tests/dur_fixtures.py": "cd5943d7204d76ce1285d5a27c0a6a7ad696a6719de62c577768bbdb2067e797",
+    "experiments/durability/tests/fake_github.py": "39986557bc98f7ea40bdabb3f2fda08729cdd718274a183cbb53aae27e46728f",
+    "experiments/durability/tests/fake_runpod.py": "c510d6ac841c7484359ae71e7b933873e03623836d6649f6778acfb0365178bc",
+    "experiments/durability/tests/test_dur_admission.py": "edf0710162a1524bc5d3424d397bd97951a30b6278e4fde0b1e08e1196c73558",
+    "experiments/durability/tests/test_dur_engine.py": "a6684d876ac88100f8a309e8057a7ab3c715e9d9553c786bdc67101514223617",
+    "experiments/durability/tests/test_dur_github.py": "91e838c0e25606d1b4c659dcec4a55a33ce8d19bd1e660fda413ce74f2e53689",
+    "experiments/durability/tests/test_dur_runpod.py": "e07380be061b262d7f8bba25d0a26a77da81c154d26a2b458a6e4a94afd68c06",
+    "experiments/durability/tests/test_dur_stage_b.py": "9c7d965f46892d805dc5c898f0f2c40bf6b8bbde7fe11a38ba96213ede5d98cc",
+    "experiments/durability/tests/test_dur_stage_b_engine.py": "75941b27b3f869c482e7c89644bf8aa04dd6360d13ac329e6256be7abd5f7682",
+    "experiments/durability/tests/test_dur_vault.py": "d55dabe8830f116c29ff9a77194478105264b5b1b68478d2f7faf16a44313719",
+    "experiments/durability/transport.py": "92d38ef415854d61645c80cb68874428144318aa85e88c772ed403089c429288",
+    "experiments/durability/units.py": "0ae954f02a566f14a27390a8107b84ff18d14cad2943c8d8a6cfc95e854ac438",
+    "experiments/durability/wiring.py": "1e3cda18272e55ac3745101f5c9e4c4ecfd965379c53a13329c4322921563b02",
+    "research/experiments/2026-10-03-recovery-safeguards.md": "919c438d5cb6eb3268d185a374072f595e0d541c96c3e0a92b2b5b48575e247d"
+  },
+  "implementation": "Specialized Implementation (claude-fable-5-1, effort high as set; not observed)",
+  "review_integration": "General Implementation (claude-opus-5-5, max): scope and hashes, full read of transport, github_destination, runpod_provider, wiring and the admission/common/__main__ diffs; independent run 265 passed (tokens unset) in the workspace and from the project",
+  "brief": ".ai/briefs/durability-adapters-20261003.md",
+  "diff": ".ai/inputs/study-v2-20261002/durability-adapters.diff",
+  "open_for_user": [
+    "create the fine-grained GitHub token (repo attribution-backups only, Contents read and write) as ATTRIBUTION_BACKUP_GITHUB_TOKEN, then run check-destination",
+    "confirm what RunPod clientBalance means (prepaid balance, currency) before admission can pass",
+    "choose the shutdown option (pods created with terminateAfter, if validated, or an external scheduled stop such as GitHub Actions)",
+    "confirm storage prices per GB-month"
+  ]
+}

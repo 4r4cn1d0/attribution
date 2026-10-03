@@ -9,10 +9,12 @@ A destination is a key space of immutable objects, reachable independently of th
 - ``sha256`` hashes the bytes *as stored* (read back), never the sender's copy;
 - ``free_bytes`` and ``probe`` check capacity and permissions before anything is admitted.
 
-``LocalDirectoryDestination`` is the only working adapter: a directory, which is what the local
-tests and a mounted volume use. ``UnconfiguredDestination`` stands for every remote store (object
-storage, another host): each call raises ``NotConfigured``, so a deployment that has not passed the
-funded validation cannot acknowledge anything. No adapter holds or records credentials.
+``LocalDirectoryDestination`` is a directory: what the local tests and a mounted volume use.
+``github_destination.GitHubReleaseDestination`` stores objects as release assets of a private
+GitHub repository; it is built only from explicit configuration (``wiring.destination_from``) and
+refuses every call without its token. ``UnconfiguredDestination`` is the default for anything
+remote that was not configured: each call raises ``NotConfigured``, so nothing can be acknowledged
+by accident. No adapter holds or records credentials.
 """
 
 from __future__ import annotations

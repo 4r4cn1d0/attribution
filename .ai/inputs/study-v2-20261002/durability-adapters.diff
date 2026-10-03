@@ -1,0 +1,2523 @@
+diff -ruN pre-adapters/durability/README.md adapters-final/durability/README.md
+--- pre-adapters/durability/README.md	2026-10-03 18:27:22
++++ adapters-final/durability/README.md	2026-10-03 19:05:26
+@@ -6,10 +6,14 @@
+ nothing, and it changes no file of the frozen engine (`experiments/safety_selection`) or of Stage B
+ (`experiments/safety_decision_policy`).
+ 
+-**Status.** Implemented and tested locally on CPU with fakes (3 October 2026). This does not
+-satisfy the restart prerequisites of the 2 October incident record by itself: the provider and
+-remote-destination adapters are deliberately not configured, so admission refuses on any real
+-deployment until the funded one-worker validation ([what waits](#what-waits-for-the-funded-one-worker-validation)).
++**Status.** Implemented and tested locally on CPU with fakes (3 October 2026), including the two
++real connectors: GitHub release assets as the off-pod destination and RunPod's API as the provider
++([real connectors](#real-connectors)). Neither connector has made a request to its real service
++yet: no token was present when they were built, so every claim about them rests on the services'
++documentation and on local fakes. This does not satisfy the restart prerequisites of the
++2 October incident record by itself. The defaults stay unconfigured and refuse; the RunPod
++adapter cannot arm a shutdown, so admission refuses on a real deployment until that gap is closed
++and the funded one-worker validation has run ([what waits](#what-waits-for-the-funded-one-worker-validation)).
+ 
+ The operating procedure and its limits are in
+ `research/experiments/2026-10-03-recovery-safeguards.md`.
+@@ -24,9 +28,13 @@
+ | `backup.py` | stdlib, engine `verify`/`prepare` | `Vault`: copy, hash check, restore-verify, acknowledgement; append-only snapshots; restore |
+ | `admission.py` | stdlib | balance/runway admission, leases, the reservation ledger, the storage declaration; `Provider` interface and `UnconfiguredProvider` |
+ | `gate.py` | stdlib | `DispatchGate`: previous acknowledgement and a valid lease, or nothing starts |
++| `transport.py` | stdlib `urllib` | the HTTPS client of the real connectors: token from the environment, sent only to the service, no credential on redirects, bounded retries |
++| `github_destination.py` | stdlib | `GitHubReleaseDestination`: the `Destination` contract on release assets of a private repository |
++| `runpod_provider.py` | stdlib | `RunPodProvider`: read-only answers from RunPod's API, closed wherever a meaning is not confirmed |
++| `wiring.py` | stdlib | builds the real connectors from explicit configuration; the defaults stay unconfigured |
+ | `engine_units.py` | engine `runner` (torch) when it launches | `UnitRunner`: the administrative loop around `runner.run_one`; the attempt catalogue; lost attempts |
+ | `stage_b.py` | Stage B `common` | `GatedBackend` around a Stage B backend; `StudyBackup`; `run_block_gated` |
+-| `__main__.py` | stdlib | local commands `ingest`, `restore`, `acks` (no provider command exists) |
++| `__main__.py` | stdlib | commands `ingest`, `restore`, `acks`, `check-destination`, `check-provider` (nothing creates, starts, stops or deletes) |
+ 
+ ## The unit
+ 
+@@ -202,6 +210,152 @@
+ (a restore needs them); they are payload in the destination, not operator logs. Held-out payloads
+ are copied and hashed as opaque bytes and never parsed.
+ 
++## Real connectors
++
++Both are built only from explicit configuration (`wiring.destination_from`, `wiring.provider_from`).
++Without configuration the destination is `UnconfiguredDestination` and the provider is
++`UnconfiguredProvider`; both refuse every call. Tokens are read from environment variables at
++request time by `transport.Http`, sent as `Authorization: Bearer` to the service host only, never
++forwarded on a redirect, and never written to a log, a record, `describe()`, a URL or an exception.
++
++### GitHub release assets as the destination
++
++`GitHubReleaseDestination("owner/repo", declared_free_bytes=...)`, or `--destination
++github:owner/repo --declared-free-bytes N` on the command line. The user chose a private
++repository, `4r4cn1d0/attribution-backups`.
++
++How an object is stored:
++
++- one object is one release asset, named by the SHA-256 of its key; the key is the asset's label,
++  which is what listing by prefix reads (a label that does not hash to its name refuses the listing);
++- a key goes to the release `<scheme>-<shard>` (default scheme `durability-v1`, 64 shards, so
++  64,000 objects); a full shard raises `CapacityError`. Shards and scheme are fixed once used;
++- `commit` and `put_new` rely on GitHub refusing an upload whose name exists: an identical object
++  is reused, a different one is a `CollisionError`, and no final object is ever deleted here;
++- `sha256` downloads the asset and hashes those bytes; `commit` publishes exactly the read-back
++  bytes as a second, create-only upload and checks the size and digest GitHub reports;
++- an asset that is not in the `uploaded` state is not an object; a leftover from a failed upload
++  is deleted and the upload repeated once.
++
++What GitHub documents and this relies on (checked 3 October 2026):
++
++| Fact | Source |
++|---|---|
++| "Each file included in a release must be under 2 GiB"; "Up to 1000 release assets may be associated with a single release"; "no limit on the total size of a release, nor bandwidth usage" | [About releases](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases) |
++| Upload: `POST https://uploads.github.com/repos/{owner}/{repo}/releases/{release_id}/assets?name=...&label=...`; an existing filename is an error (422) and the old asset must be deleted first; names with special characters are renamed; a 502 "may leave an empty asset with a state of starter" that "can be safely deleted"; assets have `state`, `size`, `label`, `digest`; binary download with `Accept: application/octet-stream` answers 200 or 302; listing is paginated (`per_page` up to 100) | [REST: release assets](https://docs.github.com/en/rest/releases/assets) |
++| Release and asset endpoints are under the repository permission **Contents** (read to get and list, write to create, update and delete) | [Permissions for fine-grained tokens](https://docs.github.com/en/rest/authentication/permissions-required-for-fine-grained-personal-access-tokens) |
++| 5,000 requests per hour per token; secondary limits of 900 points per minute (a GET is 1 point, a POST, PATCH or DELETE 5) and "no more than 80 content-generating requests per minute and no more than 500 content-generating requests per hour"; a limited request answers 403 or 429 with `retry-after` or `x-ratelimit-reset` | [REST rate limits](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api) |
++| Immutable releases: once published, "release assets cannot be modified or deleted" and the tag is locked; assets are attached while the release is a draft | [Immutable releases](https://docs.github.com/en/code-security/supply-chain-security/understanding-your-software-supply-chain/immutable-releases) |
++
++Not documented, so not relied on: what `PATCH` (rename) does when the new name already exists
++(a rename would save the second upload of every file); the maximum length of a label; whether
++asset uploads count as "content-generating" requests.
++
++**Throughput.** Each file costs two uploads and one delete, each unit two more uploads (manifest,
++acknowledgement). A sealed engine run of about 23 files is about 48 uploads. If uploads count
++towards the 500 content-generating requests per hour, that is about ten such units per hour for
++one token, which is enough for one worker and not for thirteen. The transport waits for a stated
++rate-limit reset of up to 120 seconds, at most four times, and then fails: no acknowledgement,
++and the gate starts nothing. Raising concurrency needs the live measurement first, and then
++either the rename commit or one packed object per unit.
++
++**Threat model.** A token that can upload can also delete: the Contents write permission covers
++`DELETE` of assets and releases. This destination protects evidence against a lost worker and an
++exhausted GPU account. It does not protect against a leaked or misused token, or against someone
++with write access to the repository. Keep the token scoped to this one repository and off the
++worker's disk.
++
++**Immutable releases do not fit this layout.** An immutable release cannot receive assets after it
++is published, and this connector adds assets to its shard releases for as long as the study runs.
++They would fit a different layout (one draft release per unit, published when the unit is
++acknowledged), which the per-object `Destination` contract cannot express, and even then a release
++can still be deleted as a whole. Do not enable immutable releases on the backup repository.
++
++**Token setup** (the user does this; nothing here creates a token):
++
++1. GitHub, Settings, Developer settings, Personal access tokens, Fine-grained tokens, Generate new token.
++2. Resource owner: `4r4cn1d0`. Repository access: Only select repositories, `attribution-backups`.
++3. Repository permissions: **Contents: Read and write**. Metadata: Read-only is added by GitHub.
++   Nothing else.
++4. Set an expiry that covers the study.
++5. Export it where the worker process runs, and nowhere on disk:
++
++```bash
++export ATTRIBUTION_BACKUP_GITHUB_TOKEN=...
++```
++
++Live check, once the variable is set (it writes two tiny objects into a `connector-test` release
++and deletes its staging objects; the two final objects stay, as final objects always do):
++
++```bash
++python -m experiments.durability check-destination --destination github:4r4cn1d0/attribution-backups --declared-free-bytes 10000000000
++```
++
++### RunPod as the provider
++
++`RunPodProvider(RunPodConfig(...))`, or `wiring.provider_from({"kind": "runpod", ...})`. The key
++comes from `RUNPOD_API_KEY` and is sent as a header, never in a URL. The adapter sends `GET
++https://rest.runpod.io/v1/pods`, `GET https://rest.runpod.io/v1/networkvolumes` and one fixed
++GraphQL query (`myself { clientBalance currentSpendPerHr spendLimit }`) to
++`https://api.runpod.io/graphql`. It has no call that creates, starts, stops, updates or deletes
++anything.
++
++| Question | Answer and what it rests on |
++|---|---|
++| Balance | `clientBalance`. The [GraphQL reference](https://graphql-spec.runpod.io/) lists it as a `Float` with no description; [`runpodctl user`](https://docs.runpod.io/runpodctl/reference/runpodctl-user) calls it the "current credit balance". Neither states a currency or how fresh it is. The reading is **recognized only when the configuration records a human confirmation** (who, when, currency, statement). Otherwise it is marked unrecognized and admission refuses. Its timestamp is the moment of the API read. |
++| Rates | The worker pod's `costPerHr`, "the cost in Runpod credits per hour of running a Pod" ([REST: pods](https://docs.runpod.io/api-reference/pods/GET/pods)). The API reports no storage rate, so storage prices per GB-month are configuration, taken from the [storage page](https://docs.runpod.io/pods/storage/types) and confirmed by a named person. The pod's container disk and volume are added to the storage rate; whether `costPerHr` already includes them is not documented, so this can only over-state. |
++| Liabilities | Every RUNNING pod (cost plus disks), every EXITED pod (its volume at the stopped price), every network volume. If the account's `currentSpendPerHr` exceeds what these explain, something else bills and the call refuses. A liability of a configured worker's pod or attached volume carries that worker's name; admission then relies on the worker's lease to cover it, which holds only if its rate card is complete. |
++| Persistence | Confirmed only for a path under `volumeMountPath` of the RUNNING local pod that has a network volume attached, which the account's volume list also shows. "Network volume ... retained independently"; a container disk is "lost on stop/restart"; a pod volume "is deleted when the Pod is terminated" ([storage types](https://docs.runpod.io/pods/storage/types)). |
++| Shutdown | Never confirmed: see below. |
++
++A field that is missing, of another type or outside the documented values raises
++`ProviderError`. Admission treats whatever a provider raises as a refusal.
++
++Configuration (JSON for `check-provider`; the two confirmations are what the user must decide):
++
++```json
++{
++  "kind": "runpod",
++  "worker_pods": {"worker-1": "<pod id>"},
++  "local_pod_id": "<pod id of this worker>",
++  "destination_per_hour": 0.0,
++  "balance_confirmation": {"confirmed_by": "<name>", "confirmed_utc": "2026-10-04T00:00:00+00:00", "currency": "USD", "statement": "<what was checked and where>"},
++  "storage_prices": {"network_volume_per_gb_month": 0.07, "pod_volume_running_per_gb_month": 0.10, "pod_volume_stopped_per_gb_month": 0.20, "container_disk_per_gb_month": 0.10, "hours_per_month": 720, "source": "docs.runpod.io/pods/storage/types, read <date>", "confirmed_by": "<name>", "confirmed_utc": "2026-10-04T00:00:00+00:00"}
++}
++```
++
++Read-only check, once `RUNPOD_API_KEY` is set (it prints shapes and counts, never the balance or
++pod ids):
++
++```bash
++python -m experiments.durability check-provider --config provider.json --worker worker-1 --path /workspace/attribution-study-v2
++```
++
++### The shutdown gap
++
++`RunPodProvider.arm_shutdown` always raises `NotConfigured`, so **admission through the real
++adapter always refuses**. That is deliberate: a lease promises that the worker stops billing at
++the end of its reservation even if every process of ours is dead, and nothing in RunPod's
++documentation lets this code confirm that for an existing pod.
++
++- The GraphQL reference lists `stopAfter` and `terminateAfter` (`DateTime`) among the inputs
++  that create a pod (`PodFindAndDeployOnDemandInput`, `PodRentInterruptableInput`), with no
++  description. The pod type does not expose them, the REST pod schema has no such field, and no
++  documented call sets a stop time on a running pod. A stop time that cannot be read back cannot
++  be confirmed here.
++- **Option 1: a stop time set when the pod is created.** If the funded validation shows that
++  RunPod enforces `terminateAfter` or `stopAfter` on its servers, the pod would be created with
++  it (creation is outside this package), the operator would record that time, and the lease
++  would be bounded by it. This needs a small change to the `Provider` contract (accept a recorded
++  provider-enforced deadline at or before the requested time) and a way to confirm it per pod.
++- **Option 2: an external always-on controller.** For example a scheduled GitHub Actions workflow
++  in the backup repository that stops the pod through RunPod's API at the lease end. It would
++  need: the RunPod key as an Actions secret set by the user; the lease end published where the
++  workflow reads it; a `podStop` call (the only place a mutating call would exist, outside the
++  worker); and an acknowledgement the worker can read back before the lease is granted. GitHub's
++  schedules are not exact to the minute, so the reservation would need that slack. Not built.
++- Until one of them exists and is validated, real admission is refused by design.
++
+ ## What is guaranteed locally
+ 
+ Shown by the tests in `tests/` (CPU, fakes, a directory as the destination):
+@@ -220,6 +374,14 @@
+ - a Stage B study killed mid-block is restored and resumed to completion with the lost attempt and
+   its unknown cost kept; the same through the real `EngineBackend`, including a lost fresh start;
+ - no unit launches without the previous acknowledgement or without a valid lease;
++- the vault's acknowledgement protocol holds on `GitHubReleaseDestination` against a fake GitHub
++  API on 127.0.0.1: acknowledgement and duplicates, partial and corrupt uploads, a wrongly stored
++  final object, a crash before and after the acknowledgement, a collision with both kept, restore;
++  plus pagination, shard and size limits, torn uploads, bounded rate-limit handling and token
++  secrecy;
++- `RunPodProvider` against a fake RunPod API: recognition only with a recorded confirmation,
++  rates and liabilities, persistence only under a network-volume mount, unknown shapes and
++  unexplained spend refused, read-only requests, and admission stopping at the shutdown gap;
+ - every listed admission input fails closed, two concurrent workers cannot both reserve the same
+   runway, a second worker cannot spend the first worker's retention reserve (through renewal and
+   release, until its window ends), and an unreadable ledger refuses;
+@@ -230,16 +392,29 @@
+ 
+ ## What waits for the funded one-worker validation
+ 
+-None of the following is established by local tests:
++None of the following is established by local tests. **No live check of either connector has
++run**: neither `ATTRIBUTION_BACKUP_GITHUB_TOKEN` nor `RUNPOD_API_KEY` was set when they were built.
+ 
++Before any funded run (free, needs only the tokens):
++
++- `check-destination` against the real repository: GitHub accepts the names and labels, refuses
++  the duplicate, serves the download through its redirect, and reports `state` and `digest` as
++  the fake does;
++- one real unit through the vault on GitHub, with the request counts and any rate-limit answers
++  recorded, to settle the throughput question;
++- `check-provider` against the real account: the field shapes, header authentication on GraphQL,
++  and whether `currentSpendPerHr` behaves as the cross-check assumes;
++- the user's decisions: the balance confirmation, the storage prices, and a shutdown option.
++
++In the funded one-worker validation:
++
+ 1. an actual persistent mount, confirmed by the provider, at the recorded path;
+-2. an off-pod copy made **by the worker**, with the laptop disconnected, to a destination that is
+-   recoverable without the GPU account (a real `Destination` adapter);
++2. an off-pod copy made **by the worker**, with the laptop disconnected, to the GitHub repository,
++   and the acknowledgement read from an independent machine after the worker is killed;
+ 3. a restore on a fresh provider host into the recorded layout;
+-4. a provider-side timed shutdown that actually stops billing (`Provider.arm_shutdown`);
+-5. real balance semantics: what the provider's number means, its currency, its delay, and whether
+-   liabilities and rates are reported as assumed (`Provider.read_balance`, `read_rates`,
+-   `list_liabilities`);
++4. a provider-side timed shutdown that actually stops billing ([the shutdown gap](#the-shutdown-gap));
++5. real balance semantics: what `clientBalance` means, its currency, its delay, and whether
++   liabilities and rates are reported as assumed;
+ 6. a restored continuation on CUDA that matches what an uninterrupted run would have produced.
+ 
+ Only after these may concurrency rise, and only within verified runway.
+@@ -276,7 +451,8 @@
+ PYTHONDONTWRITEBYTECODE=1 tmp/minimal-experiment-20261002/venv/bin/python -m pytest -q -rs -p no:cacheprovider --basetemp=<scratch>/pytest experiments/durability/tests experiments/safety_decision_policy/tests
+ ```
+ 
+-Acknowledge a sealed chain from a relocated archive into a directory, then restore it elsewhere:
++Acknowledge a sealed chain from a relocated archive into a directory (or `github:owner/repo`
++with `--declared-free-bytes`), then restore it elsewhere:
+ 
+ ```bash
+ python -m experiments.durability ingest --destination DEST --namespace dev01 --scratch SCRATCH --journal JOURNAL --map /workspace/attribution-study-v2/calibration-001=ARCHIVE/calibration-001 --map /workspace/attribution-study-v2/prepared=PREPARED --map /workspace/attribution-study-v2/experiments=experiments --prepared /workspace/attribution-study-v2/prepared --code /workspace/attribution-study-v2/experiments --run /workspace/attribution-study-v2/calibration-001/UNIT-q-a1 --run /workspace/attribution-study-v2/calibration-001/UNIT-e1-a1
+@@ -294,6 +470,10 @@
+ - The reservation ledger is serialized by a file lock, so it must live where every worker's
+   admission sees the same file. A shared service for several pods is part of the funded validation.
+ - Money is plain floating point; admission compares with a stated contingency, not to the cent.
++- On GitHub every file is uploaded twice and the shard layout is fixed per scheme; a release asset
++  must be under 2 GiB; GitHub reports no free space, so capacity is a declared number.
++- The RunPod adapter does not see serverless endpoints or other billable resources except through
++  the spend cross-check, which refuses when it cannot explain the account's hourly spend.
+ - The restore check reads the copy back in full for every unit, and a chain's earlier folders
+   again for each later unit. This is deliberate and costs time on a billed worker.
+ - A unit that seals just before the worker dies, with no time to copy it, is lost. The window is
+diff -ruN pre-adapters/durability/__main__.py adapters-final/durability/__main__.py
+--- pre-adapters/durability/__main__.py	2026-10-03 18:27:22
++++ adapters-final/durability/__main__.py	2026-10-03 19:03:29
+@@ -1,16 +1,23 @@
+-"""python -m experiments.durability <command> ... (local, read-only towards the source)
++"""python -m experiments.durability <command> ... (administrative; read-only towards the source)
+ 
+ Commands:
+ 
+ - ``ingest``: acknowledge sealed engine run folders from a tree (possibly a relocated archive,
+-  through ``--map RECORDED=LOCAL``) into a directory destination: the prepared data and the engine
+-  source first, then each ``--run`` in the order given (dependencies first). Every acknowledgement
+-  follows the full copy, hash and restore-verify path.
++  through ``--map RECORDED=LOCAL``) into a destination: the prepared data and the engine source
++  first, then each ``--run`` in the order given (dependencies first). Every acknowledgement follows
++  the full copy, hash and restore-verify path.
+ - ``restore``: place every acknowledged unit at its recorded path, or under ``--mirror``.
+ - ``acks``: list the acknowledgements in a destination namespace.
++- ``check-destination``: one small round trip that shows a destination behaves as the vault needs:
++  probe, a staging upload read back and hashed, an exclusive commit, a refused duplicate, a listing
++  and the removal of the staging objects. On GitHub it uses its own release scheme
++  (``connector-test``) and leaves two tiny final objects there, which are never deleted.
++- ``check-provider``: read-only questions to the configured provider, reported as shapes (types,
++  counts, whether each answer was usable), never as account details.
+ 
+-There is no command that admits, dispatches or runs anything on a provider: the provider and
+-remote-destination adapters are not configured, and admission fails closed without them.
++``--destination`` is a directory, or ``github:owner/repo`` with ``--declared-free-bytes`` (the token
++comes from the environment variable ``ATTRIBUTION_BACKUP_GITHUB_TOKEN``; without it every call
++refuses). No command admits, dispatches, creates, starts, stops or deletes anything on a provider.
+ 
+ Exit status: 0 done; 2 refused (nothing was acknowledged or restored beyond what the output lists).
+ """
+@@ -20,24 +27,36 @@
+ import argparse
+ import json
+ import sys
++import tempfile
+ from collections.abc import Sequence
+ from pathlib import Path
+ 
+ from .backup import Vault
+-from .common import DurabilityError, Journal, SourceMap
+-from .destination import LocalDirectoryDestination
++from .common import CollisionError, DurabilityError, Journal, SourceMap, sha256_bytes, token
++from .destination import Destination
++from .runpod_provider import SHUTDOWN_GAP, RunPodProvider
+ from .units import code_unit, prepared_unit, run_unit
++from .wiring import destination_from, provider_from
+ 
+ __all__ = ["main"]
+ 
+ 
++def _destination_options(p: argparse.ArgumentParser) -> None:
++    p.add_argument("--destination", required=True, help="a directory, or github:owner/repo")
++    p.add_argument("--declared-free-bytes", type=int, help="github: the capacity you declare (GitHub reports none)")
++    p.add_argument("--github-scheme", help="github: release-name scheme (default durability-v1)")
++    p.add_argument("--github-shards", type=int, help="github: number of shard releases (fixed per scheme)")
++    p.add_argument("--github-api-url", help=argparse.SUPPRESS)       # tests: a fake API on 127.0.0.1
++    p.add_argument("--github-upload-url", help=argparse.SUPPRESS)
++
++
+ def _parser() -> argparse.ArgumentParser:
+     parser = argparse.ArgumentParser(prog="python -m experiments.durability",
+-                                     description="Recovery safeguards: local administrative commands.")
++                                     description="Recovery safeguards: administrative commands.")
+     sub = parser.add_subparsers(dest="command", required=True)
+     for name in ("ingest", "restore", "acks"):
+         p = sub.add_parser(name)
+-        p.add_argument("--destination", required=True, help="destination directory")
++        _destination_options(p)
+         p.add_argument("--namespace", required=True, help="one source volume")
+         p.add_argument("--scratch", required=True, help="local folder for restore checks (outside any unit)")
+         p.add_argument("--journal", required=True, help="outcome-blind journal file (outside any unit)")
+@@ -52,15 +71,36 @@
+                            help="recorded run folder (repeat, dependencies first)")
+         if name == "restore":
+             p.add_argument("--mirror", help="restore under this folder in the recorded layout instead of in place")
++    p = sub.add_parser("check-destination")
++    _destination_options(p)
++    p = sub.add_parser("check-provider")
++    p.add_argument("--config", required=True, help="provider configuration (JSON; see the README)")
++    p.add_argument("--worker", required=True, help="a worker name from the configuration")
++    p.add_argument("--path", help="a source path to check for persistence")
++    p.add_argument("--runpod-rest-url", help=argparse.SUPPRESS)      # tests: a fake API on 127.0.0.1
++    p.add_argument("--runpod-graphql-url", help=argparse.SUPPRESS)
+     return parser
+ 
+ 
++def _destination(args: argparse.Namespace, scheme: str | None = None) -> Destination:
++    options = {}
++    if args.destination.startswith("github:"):
++        if args.declared_free_bytes is None:
++            raise DurabilityError("--declared-free-bytes is required for a GitHub destination")
++        options["declared_free_bytes"] = args.declared_free_bytes
++        for name, value in (("scheme", scheme or args.github_scheme), ("shards", args.github_shards),
++                            ("api_url", args.github_api_url), ("upload_url", args.github_upload_url)):
++            if value is not None:
++                options[name] = value
++    return destination_from(args.destination, **options)
++
++
+ def _vault(args: argparse.Namespace, require_code: bool = True) -> Vault:
+     pairs = [item.split("=", 1) for item in args.map]
+     if any(len(pair) != 2 or not all(pair) for pair in pairs):
+         raise DurabilityError("--map takes RECORDED=LOCAL")
+-    return Vault(LocalDirectoryDestination(args.destination), args.namespace, journal=Journal(args.journal),
+-                 scratch=args.scratch, source_map=SourceMap(pairs), require_code=require_code)
++    return Vault(_destination(args), args.namespace, journal=Journal(args.journal), scratch=args.scratch,
++                 source_map=SourceMap(pairs), require_code=require_code)
+ 
+ 
+ def _brief(ack: dict) -> dict:
+@@ -68,7 +108,77 @@
+                                           "verification", "acknowledged_utc")}
+ 
+ 
++def _check_destination(destination: Destination) -> dict:
++    """The round trip of the module doc; every step must hold or the command refuses."""
++    run, data = token(), b"durability connector check\n"
++    staged, final = f"connector-check/staging/{run}/object", f"connector-check/final/{run}/object"
++    steps = {}
++    destination.probe()
++    steps["probe"] = True
++    with tempfile.TemporaryDirectory() as folder:
++        source = Path(folder) / "object"
++        source.write_bytes(data)
++        destination.upload(source, staged)
++        steps["read_back_hash_matches"] = destination.sha256(staged) == (sha256_bytes(data), len(data))
++        steps["commit_created"] = destination.commit(staged, final) is True
++        steps["final_reads_back"] = destination.read(final) == data
++        source.write_bytes(data + b"different\n")
++        destination.upload(source, staged)
++        try:
++            destination.commit(staged, final)
++            steps["different_bytes_refused"] = False
++        except CollisionError:
++            steps["different_bytes_refused"] = True
++        destination.discard(staged)
++    try:
++        destination.put_new(f"connector-check/final/{run}/record", b"{}")
++        destination.put_new(f"connector-check/final/{run}/record", b"{ }")
++        steps["duplicate_record_refused"] = False
++    except CollisionError:
++        steps["duplicate_record_refused"] = True
++    listed = destination.list(f"connector-check/final/{run}")
++    steps["listed"] = listed == [final, f"connector-check/final/{run}/record"]
++    steps["staging_removed"] = destination.list(f"connector-check/staging/{run}") == []
++    if not all(steps.values()):
++        raise DurabilityError(f"the destination did not behave as the vault needs: {steps}")
++    return {"destination": destination.describe(), "steps": steps,
++            "left_behind": "two tiny final objects under connector-check/final (final objects are never deleted)"}
++
++
++def _check_provider(args: argparse.Namespace) -> dict:
++    """Shapes only: what kind of answer each read-only question got, never the account's values."""
++    config = json.loads(Path(args.config).read_text(encoding="utf-8"))
++    options = {name: value for name, value in (("rest_url", args.runpod_rest_url),
++                                               ("graphql_url", args.runpod_graphql_url)) if value is not None}
++    provider = provider_from(config, **options)
++    out: dict = {"provider": type(provider).__name__, "creates_starts_stops_or_deletes": False}
++
++    def ask(name: str, call, shape) -> None:
++        try:
++            out[name] = {"answered": True, **shape(call())}
++        except DurabilityError as exc:
++            out[name] = {"answered": False, "refused_as": type(exc).__name__, "reason": str(exc)[:200]}
++
++    ask("balance", provider.read_balance, lambda r: {"amount_type": type(r.amount).__name__, "kind": r.kind,
++                                                     "recognized": r.recognized, "currency_stated": r.currency != "unconfirmed"})
++    ask("rates", lambda: provider.read_rates(args.worker),
++        lambda r: {"gpu_per_hour_type": type(r.gpu_per_hour).__name__, "storage_derived": r.storage_per_hour >= 0})
++    ask("liabilities", provider.list_liabilities,
++        lambda items: {"count": len(items), "attached_to_a_configured_worker": sum(i.worker is not None for i in items)})
++    if args.path:
++        ask("persistence", lambda: provider.confirm_persistent(args.path),
++            lambda r: {"persistent": r.get("persistent") is True})
++    # this command never asks a provider to arm anything; it reports whether the adapter could
++    out["shutdown"] = ({"can_arm": False, "why": SHUTDOWN_GAP} if isinstance(provider, RunPodProvider)
++                       else {"can_arm": "not asked"})
++    return out
++
++
+ def _command(args: argparse.Namespace) -> dict:
++    if args.command == "check-destination":
++        return _check_destination(_destination(args, scheme="connector-test"))
++    if args.command == "check-provider":
++        return _check_provider(args)
+     if args.command == "ingest":
+         if bool(args.code) == bool(args.no_code_pin):
+             raise DurabilityError("give --code, or --no-code-pin to acknowledge evidence without its source")
+diff -ruN pre-adapters/durability/admission.py adapters-final/durability/admission.py
+--- pre-adapters/durability/admission.py	2026-10-03 18:27:22
++++ adapters-final/durability/admission.py	2026-10-03 19:01:08
+@@ -1,9 +1,12 @@
+ """Balance and runway admission, leases, and the storage declaration (stdlib only).
+ 
+ No provider API is assumed here. ``Provider`` is the interface the funded validation must
+-implement and check against the real service; ``UnconfiguredProvider`` is the only "real"
+-adapter and refuses every call, so nothing can be admitted on a deployment that has not been
+-validated. Tests use fakes.
++implement and check against the real service; ``UnconfiguredProvider`` is the
++default and refuses every call, so nothing can be admitted on a deployment that has not been
++configured. ``runpod_provider.RunPodProvider`` is the real adapter for RunPod; it is built only
++from explicit configuration, and it too refuses whatever it cannot confirm (the provider-side
++shutdown above all). Whatever a provider raises while admission asks it something is a refusal.
++Tests use fakes.
+ 
+ **Admission formula.** With a balance reading ``B`` taken at ``t0`` and admission at ``now``:
+ 
+@@ -183,8 +186,8 @@
+     object written, read back and removed) and has the required free space. Returns the record."""
+     try:
+         confirmation = provider.confirm_persistent(declaration.source_path)
+-    except NotConfigured as exc:
+-        raise StorageRefused(f"the source is not confirmed persistent: {exc}") from exc
++    except Exception as exc:  # noqa: BLE001 - whatever the provider could not answer is not a confirmation
++        raise StorageRefused(f"the source is not confirmed persistent: {_why(exc)}") from exc
+     if not (isinstance(confirmation, dict) and confirmation.get("persistent") is True and confirmation.get("volume")):
+         raise StorageRefused("the provider did not confirm that the source path is on persistent storage")
+     source = Path(declaration.source_path)
+@@ -217,6 +220,11 @@
+                             "funding": declaration.destination_funding}}
+ 
+ 
++def _why(exc: Exception) -> str:
++    """A refusal's reason from a provider error: our own errors by message, anything else by class."""
++    return str(exc) if isinstance(exc, DurabilityError) else type(exc).__name__
++
++
+ def _number(value: object) -> bool:
+     return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+ 
+@@ -302,7 +310,7 @@
+     # ----- admission -----------------------------------------------------------------
+ 
+     def _refuse(self, worker: str, why: str) -> None:
+-        self.journal.append("admission-refused", worker=worker, reason=why)
++        self.journal.append("admission-refused", worker=worker, reason=why[:380])
+         raise AdmissionRefused(why)
+ 
+     def _inputs(self, worker: str, increment_seconds: float, now: dt.datetime) -> tuple:
+@@ -318,8 +326,8 @@
+             balance = self.provider.read_balance()
+             rates = self.provider.read_rates(worker)
+             liabilities = self.provider.list_liabilities()
+-        except NotConfigured as exc:
+-            self._refuse(worker, f"provider inputs are unavailable: {exc}")
++        except Exception as exc:  # noqa: BLE001 - an unreadable provider is no input (a real adapter can fail in many ways)
++            self._refuse(worker, f"provider inputs are unavailable: {_why(exc)}")
+         if not isinstance(balance, BalanceReading):
+             self._refuse(worker, "no balance reading")
+         if balance.kind != BALANCE_KIND or balance.recognized is not True:
+@@ -407,8 +415,8 @@
+             until = now + dt.timedelta(seconds=horizon)
+             try:
+                 armed = self.provider.arm_shutdown(worker, iso(until))
+-            except NotConfigured as exc:
+-                self._refuse(worker, f"no provider-side shutdown can be armed: {exc}")
++            except Exception as exc:  # noqa: BLE001 - without a confirmed shutdown there is no lease
++                self._refuse(worker, f"no provider-side shutdown can be armed: {_why(exc)}")
+             if not (isinstance(armed, dict) and armed.get("armed") is True and armed.get("at_utc") == iso(until)):
+                 self._refuse(worker, "the provider did not confirm a shutdown at the end of the reservation")
+             lease = Lease(lease=token(), worker=worker, granted_utc=iso(now),
+diff -ruN pre-adapters/durability/common.py adapters-final/durability/common.py
+--- pre-adapters/durability/common.py	2026-10-03 18:27:22
++++ adapters-final/durability/common.py	2026-10-03 19:01:08
+@@ -32,7 +32,7 @@
+     fcntl = None
+ 
+ __all__ = ["DurabilityError", "NotConfigured", "TransferError", "CollisionError", "CapacityError",
+-           "VerificationFailed", "GateRefused", "AdmissionRefused", "StorageRefused", "RestoreError",
++           "VerificationFailed", "GateRefused", "AdmissionRefused", "StorageRefused", "ProviderError", "RestoreError",
+            "PathAmbiguity", "BlindnessError", "LostAttemptUnresolved", "Clock", "utc_clock", "iso", "parse_utc",
+            "token", "Journal", "JOURNAL_KEYS", "check_blind", "write_exclusive", "locked", "recorded_path",
+            "relative_name", "path_id", "SourceMap", "append_jsonl", "canonical_json", "read_json", "read_jsonl",
+@@ -73,6 +73,11 @@
+ 
+ class StorageRefused(DurabilityError):
+     """The durable source or the independent destination was not confirmed."""
++
++
++class ProviderError(DurabilityError):
++    """The provider answered in a shape or with a value this code does not know, or a meaning was
++    not confirmed: nothing is derived from it."""
+ 
+ 
+ class RestoreError(DurabilityError):
+diff -ruN pre-adapters/durability/destination.py adapters-final/durability/destination.py
+--- pre-adapters/durability/destination.py	2026-10-03 18:27:22
++++ adapters-final/durability/destination.py	2026-10-03 19:05:26
+@@ -9,10 +9,12 @@
+ - ``sha256`` hashes the bytes *as stored* (read back), never the sender's copy;
+ - ``free_bytes`` and ``probe`` check capacity and permissions before anything is admitted.
+ 
+-``LocalDirectoryDestination`` is the only working adapter: a directory, which is what the local
+-tests and a mounted volume use. ``UnconfiguredDestination`` stands for every remote store (object
+-storage, another host): each call raises ``NotConfigured``, so a deployment that has not passed the
+-funded validation cannot acknowledge anything. No adapter holds or records credentials.
++``LocalDirectoryDestination`` is a directory: what the local tests and a mounted volume use.
++``github_destination.GitHubReleaseDestination`` stores objects as release assets of a private
++GitHub repository; it is built only from explicit configuration (``wiring.destination_from``) and
++refuses every call without its token. ``UnconfiguredDestination`` is the default for anything
++remote that was not configured: each call raises ``NotConfigured``, so nothing can be acknowledged
++by accident. No adapter holds or records credentials.
+ """
+ 
+ from __future__ import annotations
+diff -ruN pre-adapters/durability/github_destination.py adapters-final/durability/github_destination.py
+--- pre-adapters/durability/github_destination.py	1970-01-01 05:30:00
++++ adapters-final/durability/github_destination.py	2026-10-03 18:59:07
+@@ -0,0 +1,421 @@
++"""The off-pod destination on GitHub release assets (stdlib only).
++
++``GitHubReleaseDestination`` implements the ``Destination`` contract on the release assets of one
++private repository. It relies only on behaviour GitHub documents (REST "release assets" and
++"releases"; checked 3 October 2026, links in the README):
++
++- **An object is one asset.** Its name is the SHA-256 of its key (asset names with other
++  characters are renamed by GitHub, and keys contain ``/``); its label is the key itself, which is
++  what makes listing by prefix possible. A listed asset whose label does not hash to its name is
++  refused: the listing is not trusted.
++- **Shards.** A release holds at most 1000 assets, so a key goes to the release
++  ``<scheme>-<shard>``, the shard being a hash of the key modulo ``shards``. Releases are created
++  on first use; creating a tag that exists is refused by GitHub, so two writers cannot make two
++  releases for one shard. A full shard raises ``CapacityError`` before anything is uploaded.
++- **Create-only.** Uploading a name that already exists in a release is refused (422). That is
++  the exclusivity ``commit`` and ``put_new`` need: a final object is created by one upload, an
++  existing identical object is reused, an existing different object is a ``CollisionError`` and is
++  never replaced. Nothing here deletes a final object.
++- **Staging.** ``upload`` writes a staging asset (replaced if the name exists). ``sha256`` downloads
++  the asset from GitHub and hashes those bytes; the read-back copy is kept in a local cache so that
++  ``commit`` publishes exactly the bytes that were read back, as a new create-only upload under
++  the final name, checked against the size and digest GitHub reports. The staging asset is then
++  deleted. (A server-side rename would save the second upload, but what GitHub does when the new
++  name exists is not documented; see the README.)
++- **Torn uploads.** GitHub documents that a failed upload "may leave an empty asset with a state of
++  starter" that "can be safely deleted". An asset whose state is not ``uploaded`` is never an
++  object; when it occupies a needed name it is deleted and the upload is repeated once.
++- **Limits.** A file of 2 GiB or more is refused before any upload. GitHub reports no free space:
++  ``free_bytes`` returns the declared cap given at construction. Requests are rate limited by
++  GitHub (README); the transport waits within its bound and then fails.
++
++**Single writer per namespace.** The asset index of a release is read once per process and kept
++current with this process's own writes. Another writer of the *same* keys is not supported (the
++vault's rule already); exclusivity itself never depends on the index, only on GitHub's 422.
++
++**The token** comes from the environment variable named at construction (default
++``ATTRIBUTION_BACKUP_GITHUB_TOKEN``) and is handled only by ``transport.Http``. Without it every
++call raises ``NotConfigured``. ``describe()`` names the repository and the release scheme, nothing
++else. A token that can write can also delete: this destination protects evidence against a lost
++worker and an exhausted GPU account, not against a compromised token (README, threat model).
++"""
++
++from __future__ import annotations
++
++import json
++import re
++import shutil
++import tempfile
++import urllib.parse
++from pathlib import Path
++from typing import Callable
++
++from .common import CapacityError, CollisionError, TransferError, relative_name, sha256_bytes, token
++from .destination import STAGING, Destination, is_staging
++from .transport import Http, next_link
++
++__all__ = ["GitHubReleaseDestination", "GITHUB_TOKEN_ENV", "MAX_ASSET_BYTES", "MAX_ASSETS_PER_RELEASE"]
++
++GITHUB_TOKEN_ENV = "ATTRIBUTION_BACKUP_GITHUB_TOKEN"
++MAX_ASSET_BYTES = 2 * 1024 ** 3          # "each file must be under 2 GiB"
++MAX_ASSETS_PER_RELEASE = 1000
++_REPOSITORY = re.compile(r"[A-Za-z0-9][A-Za-z0-9-]{0,38}/[A-Za-z0-9._-]{1,100}")
++_SCHEME = re.compile(r"[a-z0-9][a-z0-9-]{0,40}")
++_JSON = {"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"}
++_BINARY = {"Accept": "application/octet-stream", "X-GitHub-Api-Version": "2022-11-28"}
++
++
++class GitHubReleaseDestination(Destination):
++    """See the module doc. ``declared_free_bytes``: the capacity the operator declares (GitHub
++    reports none). ``shards`` and ``assets_per_release`` fix the layout of a scheme and must not
++    change once objects exist under it. ``cache_dir``: where read-back copies of staging assets are
++    kept until their commit (a private temporary folder by default)."""
++
++    def __init__(self, repository: str, *, declared_free_bytes: int, scheme: str = "durability-v1", shards: int = 64,
++                 assets_per_release: int = MAX_ASSETS_PER_RELEASE, max_file_bytes: int = MAX_ASSET_BYTES,
++                 token_env: str = GITHUB_TOKEN_ENV, api_url: str = "https://api.github.com",
++                 upload_url: str = "https://uploads.github.com", cache_dir: str | Path | None = None,
++                 max_retries: int = 4, max_wait_seconds: float = 120.0,
++                 sleep: Callable[[float], None] | None = None) -> None:
++        if not _REPOSITORY.fullmatch(repository):
++            raise TransferError(f"{repository!r} is not an owner/name repository")
++        if not _SCHEME.fullmatch(scheme):
++            raise TransferError(f"the release scheme {scheme!r} must match {_SCHEME.pattern}")
++        if not (isinstance(shards, int) and 1 <= shards <= 10000):
++            raise TransferError("shards must be between 1 and 10000")
++        if not (isinstance(assets_per_release, int) and 1 <= assets_per_release <= MAX_ASSETS_PER_RELEASE):
++            raise TransferError(f"a release holds at most {MAX_ASSETS_PER_RELEASE} assets")
++        if not (isinstance(max_file_bytes, int) and 1 <= max_file_bytes <= MAX_ASSET_BYTES):
++            raise TransferError("GitHub refuses release assets of 2 GiB or more")
++        if isinstance(declared_free_bytes, bool) or not isinstance(declared_free_bytes, int) or declared_free_bytes < 0:
++            raise TransferError("the declared free capacity must be a non-negative number of bytes")
++        self.repository, self.scheme, self.shards = repository, scheme, shards
++        self.assets_per_release, self.max_file_bytes = assets_per_release, max_file_bytes
++        self.declared_free_bytes = declared_free_bytes
++        self.api, self.uploads = api_url.rstrip("/"), upload_url.rstrip("/")
++        options = {} if sleep is None else {"sleep": sleep}
++        self.http = Http(token_env=token_env, bases=(self.api, self.uploads), max_retries=max_retries,
++                         max_wait_seconds=max_wait_seconds, **options)
++        self._cache_dir = None if cache_dir is None else Path(cache_dir)
++        self._releases: dict[int, dict | None] = {}
++        self._assets: dict[int, dict[str, dict]] = {}          # release id -> asset name -> asset
++        self._read_back: dict[int, tuple[Path, str, int]] = {}  # asset id -> (local copy, sha256, size)
++        self._all_loaded = False
++
++    def __repr__(self) -> str:
++        return f"GitHubReleaseDestination({self.repository!r}, scheme={self.scheme!r}, shards={self.shards})"
++
++    # ----- names, shards, releases ---------------------------------------------------
++
++    def describe(self) -> dict:
++        return {"kind": "github-release-assets", "location": None, "repository": self.repository,
++                "scheme": self.scheme, "shards": self.shards, "assets_per_release": self.assets_per_release,
++                "declared_free_bytes": self.declared_free_bytes}
++
++    @staticmethod
++    def _name(key: str) -> str:
++        return sha256_bytes(relative_name(key).encode("utf-8"))
++
++    def _shard(self, key: str) -> int:
++        return int(self._name(key)[:12], 16) % self.shards
++
++    def _tag(self, shard: int) -> str:
++        return f"{self.scheme}-{shard:04d}"
++
++    def _repo(self, path: str) -> str:
++        return f"{self.api}/repos/{self.repository}{path}"
++
++    def _fail(self, what: str, status: int) -> TransferError:
++        return TransferError(f"GitHub answered {status} to {what} in {self.repository}")
++
++    def _release(self, shard: int, create: bool) -> dict | None:
++        """The release of a shard (cached), created on first use when ``create``. A tag that exists
++        cannot be created again, so concurrent creators end with one release."""
++        if self._releases.get(shard) is not None:
++            return self._releases[shard]
++        tag = self._tag(shard)
++        reply = self.http.request("GET", self._repo(f"/releases/tags/{tag}"), headers=_JSON)
++        if reply.status == 404 and create:
++            made = self.http.request("POST", self._repo("/releases"), headers=_JSON, body=_json_bytes({
++                "tag_name": tag, "name": tag, "prerelease": True, "draft": False,
++                "body": "Recovery-safeguard backup shard. Assets are named by the SHA-256 of their key; "
++                        "do not edit, rename or delete them."}))
++            if made.status not in (201, 422):
++                raise self._fail(f"creating the release {tag}", made.status)
++            reply = made if made.status == 201 else self.http.request(
++                "GET", self._repo(f"/releases/tags/{tag}"), headers=_JSON)
++        if reply.status == 404:
++            self._releases[shard] = None
++            return None
++        if reply.status not in (200, 201):
++            raise self._fail(f"reading the release {tag}", reply.status)
++        release = reply.json()
++        if not isinstance(release, dict) or not isinstance(release.get("id"), int) or release.get("tag_name") != tag:
++            raise TransferError(f"GitHub described the release {tag} in an unexpected shape")
++        self._releases[shard] = release
++        return release
++
++    def _load_assets(self, release: dict) -> dict[str, dict]:
++        """Every asset of a release by name, following pagination."""
++        assets: dict[str, dict] = {}
++        url = self._repo(f"/releases/{release['id']}/assets?per_page=100")
++        while url:
++            reply = self.http.request("GET", url, headers=_JSON)
++            if reply.status != 200:
++                raise self._fail("listing release assets", reply.status)
++            page = reply.json()
++            if not isinstance(page, list):
++                raise TransferError("GitHub listed release assets in an unexpected shape")
++            for asset in page:
++                if not (isinstance(asset, dict) and isinstance(asset.get("id"), int) and isinstance(asset.get("name"), str)
++                        and isinstance(asset.get("state"), str)):
++                    raise TransferError("GitHub described a release asset in an unexpected shape")
++                assets[asset["name"]] = asset
++            url = next_link(reply.headers)
++        self._assets[release["id"]] = assets
++        return assets
++
++    def _assets_of(self, release: dict, refresh: bool = False) -> dict[str, dict]:
++        if refresh or release["id"] not in self._assets:
++            return self._load_assets(release)
++        return self._assets[release["id"]]
++
++    def _find(self, key: str) -> tuple[dict, dict] | None:
++        """(release, asset) of a stored object. An asset that is not in the ``uploaded`` state is
++        not an object. Without the token nothing is answered, not even from this process's index."""
++        self.http.require_token()
++        release = self._release(self._shard(key), create=False)
++        if release is None:
++            return None
++        asset = self._assets_of(release).get(self._name(key))
++        return (release, asset) if asset is not None and asset["state"] == "uploaded" else None
++
++    def _need(self, key: str) -> tuple[dict, dict]:
++        found = self._find(key)
++        if found is None:
++            raise TransferError(f"the object {self._name(key)[:12]} is not stored in {self.repository}")
++        return found
++
++    # ----- asset operations ----------------------------------------------------------
++
++    def _delete_asset(self, release: dict, asset: dict) -> None:
++        reply = self.http.request("DELETE", self._repo(f"/releases/assets/{asset['id']}"), headers=_JSON)
++        if reply.status not in (204, 404):
++            raise self._fail("deleting a release asset", reply.status)
++        self._assets_of(release).pop(asset["name"], None)
++        cached = self._read_back.pop(asset["id"], None)
++        if cached is not None:
++            cached[0].unlink(missing_ok=True)
++
++    def _create(self, release: dict, key: str, source: Path) -> tuple[bool, dict]:
++        """Upload ``source`` as the asset of ``key``. (True, asset): created and in the uploaded
++        state with the right size. (False, existing asset): the name already holds an uploaded
++        asset (nothing was changed). A leftover that is not in the uploaded state is deleted and
++        the upload repeated once."""
++        size = source.stat().st_size
++        if size >= self.max_file_bytes:
++            raise CapacityError(f"a file of {size} bytes exceeds the release-asset limit of {self.max_file_bytes} bytes")
++        name = self._name(key)
++        query = urllib.parse.urlencode({"name": name, "label": key})
++        url = f"{self.uploads}/repos/{self.repository}/releases/{release['id']}/assets?{query}"
++        for _ in range(2):
++            assets = self._assets_of(release)
++            if name not in assets and len(assets) >= self.assets_per_release:
++                raise CapacityError(f"the release {release['tag_name']} holds {len(assets)} assets, its limit; "
++                                    "this layout is full")
++            reply = self.http.request("POST", url, headers={**_JSON, "Content-Type": "application/octet-stream"},
++                                      body=source)
++            if reply.status == 201:
++                asset = reply.json()
++                if not (isinstance(asset, dict) and asset.get("name") == name and asset.get("state") == "uploaded"
++                        and asset.get("size") == size and isinstance(asset.get("id"), int)):
++                    self._assets_of(release, refresh=True)
++                    raise TransferError("GitHub did not confirm the upload as stored in full")
++                assets[name] = asset
++                return True, asset
++            if reply.status != 422:
++                raise self._fail("uploading a release asset", reply.status)
++            existing = self._assets_of(release, refresh=True).get(name)
++            if existing is None:
++                raise self._fail("uploading a release asset", reply.status)
++            if existing["state"] == "uploaded":
++                return False, existing
++            self._delete_asset(release, existing)   # a torn upload: documented as safe to delete
++        raise TransferError("an upload kept leaving an unfinished asset behind")
++
++    def _fetch(self, asset: dict, target: Path) -> tuple[str, int]:
++        reply = self.http.request("GET", self._repo(f"/releases/assets/{asset['id']}"), headers=_BINARY, sink=target)
++        if reply.status != 200 or reply.sha256 is None:
++            raise self._fail("downloading a release asset", reply.status)
++        return reply.sha256, reply.size
++
++    def _cache(self) -> Path:
++        if self._cache_dir is None:
++            self._cache_dir = Path(tempfile.mkdtemp(prefix="github-destination-"))
++        self._cache_dir.mkdir(parents=True, exist_ok=True)
++        return self._cache_dir
++
++    def _read_back_copy(self, asset: dict) -> tuple[Path, str, int]:
++        """A local copy of an asset's bytes as downloaded from GitHub, with their hash and size."""
++        if asset["id"] not in self._read_back:
++            path = self._cache() / f"asset-{asset['id']}-{token()}"
++            digest, size = self._fetch(asset, path)
++            self._read_back[asset["id"]] = (path, digest, size)
++        return self._read_back[asset["id"]]
++
++    @staticmethod
++    def _reported(asset: dict, digest: str, size: int) -> bool:
++        """Whether what GitHub reports for an asset agrees with the bytes we meant to store."""
++        reported = asset.get("digest")
++        return asset.get("size") == size and (reported is None or reported == f"sha256:{digest}")
++
++    # ----- the Destination contract --------------------------------------------------
++
++    def free_bytes(self) -> int:
++        """The declared cap: GitHub reports no free space (and states no total size limit). Without
++        the token even this refuses, so an unconfigured destination never looks usable."""
++        self.http.require_token()
++        return self.declared_free_bytes
++
++    def probe(self) -> None:
++        key = f"{STAGING}probe-{token()}"
++        with tempfile.TemporaryDirectory() as folder:
++            source = Path(folder) / "probe"
++            source.write_bytes(b"probe")
++            self.upload(source, key)
++        try:
++            if self.read(key) != b"probe":
++                raise TransferError(f"{self.repository}: the probe object read back differently")
++        finally:
++            self.discard(key)
++
++    def upload(self, source: Path, key: str) -> None:
++        if not is_staging(key):
++            raise TransferError(f"{self._name(key)[:12]}: uploads go to the staging area only")
++        self.http.require_token()
++        source = Path(source)
++        if source.stat().st_size >= self.max_file_bytes:
++            raise CapacityError(f"a file of {source.stat().st_size} bytes exceeds the release-asset limit of "
++                                f"{self.max_file_bytes} bytes")
++        release = self._release(self._shard(key), create=True)
++        created, asset = self._create(release, key, source)
++        if not created:                       # a staging name may be overwritten: replace the old asset
++            self._delete_asset(release, asset)
++            created, asset = self._create(release, key, source)
++            if not created:
++                raise TransferError("a staging asset could not be replaced")
++
++    def commit(self, staged: str, final: str) -> bool:
++        if not is_staging(staged) or is_staging(final):
++            raise TransferError("a commit moves a staging object to a final name")
++        staged_release, staged_asset = self._need(staged)
++        copy, digest, size = self._read_back_copy(staged_asset)
++        release = self._release(self._shard(final), create=True)
++        created, asset = self._create(release, final, copy)
++        if created:
++            if not self._reported(asset, digest, size):
++                raise TransferError("GitHub reports another size or digest for a committed object than was sent")
++            self._delete_asset(staged_release, staged_asset)
++            return True
++        if self.sha256(final) != (digest, size):
++            raise CollisionError(f"the final object {self._name(final)[:12]} already holds different bytes; the "
++                                 "staged copy is kept")
++        self._delete_asset(staged_release, staged_asset)
++        return False
++
++    def put_new(self, key: str, data: bytes) -> bool:
++        if is_staging(key):
++            raise TransferError("put_new creates final objects")
++        release = self._release(self._shard(key), create=True)
++        with tempfile.TemporaryDirectory() as folder:
++            source = Path(folder) / "object"
++            source.write_bytes(data)
++            created, asset = self._create(release, key, source)
++        if created:
++            if not self._reported(asset, sha256_bytes(data), len(data)):
++                raise TransferError("GitHub reports another size or digest for a new object than was sent")
++            return True
++        if self.read(key) != data:
++            raise CollisionError(f"the object {self._name(key)[:12]} exists with different content; immutable "
++                                 "records are never replaced")
++        return False
++
++    def exists(self, key: str) -> bool:
++        return self._find(key) is not None
++
++    def read(self, key: str) -> bytes:
++        _, asset = self._need(key)
++        with tempfile.TemporaryDirectory() as folder:
++            target = Path(folder) / "object"
++            self._fetch(asset, target)
++            return target.read_bytes()
++
++    def sha256(self, key: str) -> tuple[str, int]:
++        """The hash and size of the bytes downloaded from GitHub (never the reported digest). The
++        copy of a staging object is kept for its commit."""
++        _, asset = self._need(key)
++        if is_staging(key):
++            _, digest, size = self._read_back_copy(asset)
++            return digest, size
++        with tempfile.TemporaryDirectory() as folder:
++            return self._fetch(asset, Path(folder) / "object")
++
++    def download(self, key: str, target: Path) -> None:
++        _, asset = self._need(key)
++        target = Path(target)
++        part = target.with_name(f".{target.name}.{token()}.part")
++        try:
++            self._fetch(asset, part)
++            shutil.move(str(part), str(target))
++        finally:
++            part.unlink(missing_ok=True)
++
++    def _load_all(self) -> None:
++        """Read the asset index of every release of this scheme once per process."""
++        if self._all_loaded:
++            return
++        pattern = re.compile(re.escape(self.scheme) + r"-(\d{4,})")
++        url = self._repo("/releases?per_page=100")
++        while url:
++            reply = self.http.request("GET", url, headers=_JSON)
++            if reply.status != 200:
++                raise self._fail("listing releases", reply.status)
++            page = reply.json()
++            if not isinstance(page, list):
++                raise TransferError("GitHub listed releases in an unexpected shape")
++            for release in page:
++                match = pattern.fullmatch(str(release.get("tag_name"))) if isinstance(release, dict) else None
++                if match and int(match.group(1)) < self.shards and isinstance(release.get("id"), int):
++                    self._releases[int(match.group(1))] = release
++                    if release["id"] not in self._assets:
++                        self._load_assets(release)
++            url = next_link(reply.headers)
++        self._all_loaded = True
++
++    def list(self, prefix: str) -> list[str]:
++        self.http.require_token()
++        self._load_all()
++        base = prefix.rstrip("/")
++        keys = []
++        for release in [r for r in self._releases.values() if r is not None]:
++            for name, asset in self._assets_of(release).items():
++                if asset["state"] != "uploaded":
++                    continue
++                key = asset.get("label")
++                if not isinstance(key, str) or sha256_bytes(key.encode("utf-8")) != name:
++                    raise TransferError("a release asset's label does not reproduce its name; the listing of "
++                                        f"{self.repository} cannot be trusted")
++                if not base or key == base or key.startswith(base + "/"):
++                    keys.append(key)
++        return sorted(keys)
++
++    def discard(self, key: str) -> None:
++        if not is_staging(key):
++            raise TransferError(f"{self._name(key)[:12]}: only staging objects are ever removed")
++        found = self._find(key)
++        if found is not None:
++            self._delete_asset(*found)
++
++
++def _json_bytes(obj: dict) -> bytes:
++    return json.dumps(obj).encode("utf-8")
+diff -ruN pre-adapters/durability/runpod_provider.py adapters-final/durability/runpod_provider.py
+--- pre-adapters/durability/runpod_provider.py	1970-01-01 05:30:00
++++ adapters-final/durability/runpod_provider.py	2026-10-03 19:01:08
+@@ -0,0 +1,322 @@
++"""The RunPod provider adapter (stdlib only): read-only, and closed wherever RunPod's meaning is
++not confirmed.
++
++``RunPodProvider`` answers the ``admission.Provider`` questions from RunPod's API. It sends only
++``GET`` requests to the REST API (``https://rest.runpod.io/v1``: ``/pods``, ``/networkvolumes``) and
++one fixed GraphQL *query* (``https://api.runpod.io/graphql``: ``myself { clientBalance
++currentSpendPerHr spendLimit }``). It contains no call that creates, starts, stops, updates or
++deletes anything. The API key comes from the environment (``RUNPOD_API_KEY``), is sent as an
++``Authorization: Bearer`` header (never in a URL, although RunPod's GraphQL guide shows a query
++parameter) and is handled only by ``transport.Http``.
++
++What was verified in RunPod's documentation on 3 October 2026 (links in the README), and what was
++not:
++
++- **Balance.** ``User.clientBalance`` is a ``Float`` in the GraphQL reference; ``runpodctl user``
++  calls it the "current credit balance". Neither states a currency, how fresh the number is, or
++  whether it is exactly the spendable prepaid balance. So ``read_balance`` returns a *recognized*
++  reading only when the configuration carries a ``BalanceConfirmation``: who confirmed, when, in
++  which currency, and in what words. Without it the reading is marked unrecognized and admission
++  refuses. The timestamp is the moment of the API read; RunPod gives none of its own.
++- **Rates.** A pod's ``costPerHr`` is "the cost in Runpod credits per hour of running a Pod". The
++  API reports no storage rate, so the per-GB-month prices of network volumes, pod volumes and
++  container disks are configuration (``StoragePrices``, from the pricing page, with who confirmed
++  them and when). Whether ``costPerHr`` already includes a running pod's disks is not documented;
++  they are added, which can only over-state the cost.
++- **Liabilities.** Every pod and every network volume of the account. As a cross-check the
++  account's ``currentSpendPerHr`` must not exceed what those explain: if it does, something else
++  bills (a serverless endpoint, for example) and the call refuses.
++- **Persistence.** "Network volume ... retained independently" of any pod; a container disk is
++  "lost on stop/restart"; a pod volume "is deleted when the Pod is terminated". ``confirm_persistent``
++  therefore confirms only a path under the mount (``volumeMountPath``) of a RUNNING pod that has a
++  network volume attached which the account's volume list also shows. At a zero balance a network
++  volume's data is kept but the volume keeps billing and "may eventually be terminated": persistent
++  storage is not unconditional.
++- **Shutdown.** ``arm_shutdown`` always refuses. The GraphQL reference lists ``stopAfter`` and
++  ``terminateAfter`` (``DateTime``) among the inputs that *create* a pod, without describing them;
++  the pod type does not expose them, the REST pod schema has no such field, and no documented call
++  sets a stop time on an existing pod. A stop time that cannot be read back cannot be confirmed
++  from here. The options are in the README ("The shutdown gap").
++
++Any field that is missing, of another type or outside the documented values makes the call fail
++with ``ProviderError``; nothing is defaulted. Admission treats every provider error as a refusal.
++"""
++
++from __future__ import annotations
++
++import json
++import math
++import os
++from dataclasses import dataclass
++from pathlib import PurePosixPath
++from typing import Callable, Mapping
++
++from .admission import BALANCE_KIND, BalanceReading, Liability, Provider, RateCard
++from .common import Clock, NotConfigured, ProviderError, iso, parse_utc, utc_clock
++from .transport import Http
++
++__all__ = ["RUNPOD_KEY_ENV", "RUNPOD_POD_ENV", "UNCONFIRMED_BALANCE_KIND", "BalanceConfirmation", "StoragePrices",
++           "RunPodConfig", "RunPodProvider", "SHUTDOWN_GAP"]
++
++RUNPOD_KEY_ENV = "RUNPOD_API_KEY"
++RUNPOD_POD_ENV = "RUNPOD_POD_ID"
++UNCONFIRMED_BALANCE_KIND = "runpod-clientBalance-unconfirmed"
++MYSELF_QUERY = "query { myself { clientBalance currentSpendPerHr spendLimit } }"
++POD_STATES = ("RUNNING", "EXITED", "TERMINATED")
++SHUTDOWN_GAP = ("RunPod documents no stop time that can be set on, or read back from, an existing pod; a provider-side "
++                "shutdown cannot be confirmed, so no lease is granted (README: the shutdown gap)")
++
++
++@dataclass(frozen=True)
++class BalanceConfirmation:
++    """A named person's recorded confirmation that ``clientBalance`` is the spendable prepaid credit
++    balance, in the stated currency."""
++
++    confirmed_by: str
++    confirmed_utc: str
++    currency: str
++    statement: str
++
++
++@dataclass(frozen=True)
++class StoragePrices:
++    """Storage prices per GB per month, which the API does not report, with their source and who
++    confirmed them. ``hours_per_month`` converts them to hourly rates (a smaller value is the
++    conservative choice)."""
++
++    network_volume_per_gb_month: float
++    pod_volume_running_per_gb_month: float
++    pod_volume_stopped_per_gb_month: float
++    container_disk_per_gb_month: float
++    hours_per_month: float
++    source: str
++    confirmed_by: str
++    confirmed_utc: str
++
++
++@dataclass(frozen=True)
++class RunPodConfig:
++    """Explicit configuration. ``worker_pods``: worker name -> pod id. ``local_pod_id``: the pod this
++    process runs on (default: the ``RUNPOD_POD_ID`` variable RunPod sets inside a pod).
++    ``destination_per_hour``: the declared hourly cost of the off-pod destination (0 for GitHub
++    release assets). ``spend_tolerance_per_hour``: slack of the spend cross-check."""
++
++    worker_pods: Mapping[str, str]
++    balance_confirmation: BalanceConfirmation | None = None
++    storage_prices: StoragePrices | None = None
++    destination_per_hour: float | None = None
++    local_pod_id: str | None = None
++    spend_tolerance_per_hour: float = 0.01
++
++
++def _number(value: object) -> bool:
++    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
++
++
++def _text(value: object) -> bool:
++    return isinstance(value, str) and bool(value.strip())
++
++
++class RunPodProvider(Provider):
++    """See the module doc."""
++
++    def __init__(self, config: RunPodConfig, *, key_env: str = RUNPOD_KEY_ENV, rest_url: str = "https://rest.runpod.io/v1",
++                 graphql_url: str = "https://api.runpod.io/graphql", clock: Clock = utc_clock,
++                 max_retries: int = 4, max_wait_seconds: float = 120.0,
++                 sleep: Callable[[float], None] | None = None) -> None:
++        self.config, self.clock = config, clock
++        self.rest, self.graphql = rest_url.rstrip("/"), graphql_url.rstrip("/")
++        options = {} if sleep is None else {"sleep": sleep}
++        self.http = Http(token_env=key_env, bases=(self.rest, self.graphql), max_retries=max_retries,
++                         max_wait_seconds=max_wait_seconds, **options)
++        if not isinstance(config.worker_pods, Mapping) or not all(
++                _text(k) and _text(v) for k, v in config.worker_pods.items()):
++            raise ProviderError("worker_pods must map worker names to pod ids")
++        if len(set(config.worker_pods.values())) != len(config.worker_pods):
++            raise ProviderError("two workers name the same pod")
++
++    def __repr__(self) -> str:
++        return f"RunPodProvider(workers={sorted(self.config.worker_pods)})"
++
++    # ----- reads ---------------------------------------------------------------------
++
++    def _get(self, path: str) -> list:
++        reply = self.http.request("GET", f"{self.rest}{path}", headers={"Accept": "application/json"})
++        if reply.status != 200:
++            raise ProviderError(f"RunPod answered {reply.status} to GET {path.split('?')[0]}")
++        data = reply.json()
++        if not isinstance(data, list) or not all(isinstance(item, dict) for item in data):
++            raise ProviderError(f"RunPod answered GET {path.split('?')[0]} in an unexpected shape")
++        return data
++
++    def _myself(self) -> dict:
++        reply = self.http.request("POST", self.graphql, headers={"Content-Type": "application/json",
++                                                                 "Accept": "application/json"},
++                                  body=json.dumps({"query": MYSELF_QUERY}).encode("utf-8"))
++        if reply.status != 200:
++            raise ProviderError(f"RunPod answered {reply.status} to the account query")
++        data = reply.json()
++        myself = data.get("data", {}).get("myself") if isinstance(data, dict) and isinstance(data.get("data"), dict) else None
++        if not isinstance(data, dict) or data.get("errors") or not isinstance(myself, dict):
++            raise ProviderError("RunPod answered the account query in an unexpected shape")
++        return myself
++
++    def _pods(self) -> list[dict]:
++        """Every pod of the account, each with exactly the fields this adapter relies on."""
++        pods = []
++        for pod in self._get("/pods?includeNetworkVolume=true"):
++            wrong = [name for name in ("costPerHr", "adjustedCostPerHr", "containerDiskInGb", "volumeInGb")
++                     if not _number(pod.get(name)) or pod[name] < 0]
++            if not _text(pod.get("id")):
++                wrong.append("id")
++            if pod.get("desiredStatus") not in POD_STATES:
++                wrong.append("desiredStatus")
++            volume = pod.get("networkVolume")
++            if volume is not None and not (isinstance(volume, dict) and _text(volume.get("id"))
++                                           and _number(volume.get("size")) and volume["size"] >= 0):
++                wrong.append("networkVolume")
++            if wrong:
++                raise ProviderError(f"a pod has missing or unknown fields {sorted(wrong)}: nothing is derived from it")
++            pods.append(pod)
++        if len({pod["id"] for pod in pods}) != len(pods):
++            raise ProviderError("RunPod listed one pod twice")
++        return pods
++
++    def _volumes(self) -> list[dict]:
++        volumes = self._get("/networkvolumes")
++        for volume in volumes:
++            if not (_text(volume.get("id")) and _number(volume.get("size")) and volume["size"] >= 0):
++                raise ProviderError("a network volume has missing or unknown fields: nothing is derived from it")
++        return volumes
++
++    def _prices(self) -> StoragePrices:
++        prices = self.config.storage_prices
++        if prices is None:
++            raise NotConfigured("the storage prices are not configured: RunPod's API reports no storage rate")
++        values = (prices.network_volume_per_gb_month, prices.pod_volume_running_per_gb_month,
++                  prices.pod_volume_stopped_per_gb_month, prices.container_disk_per_gb_month)
++        if not all(_number(v) and v >= 0 for v in values) or not _number(prices.hours_per_month) \
++                or not 600 <= prices.hours_per_month <= 750:
++            raise ProviderError("the configured storage prices are missing, negative or use an implausible month")
++        if not all(_text(v) for v in (prices.source, prices.confirmed_by)):
++            raise ProviderError("the configured storage prices name no source or no one who confirmed them")
++        try:
++            parse_utc(prices.confirmed_utc)
++        except ValueError:
++            raise ProviderError("the storage prices' confirmation has no usable timestamp") from None
++        return prices
++
++    def _confirmation(self) -> BalanceConfirmation | None:
++        confirmation = self.config.balance_confirmation
++        if confirmation is None:
++            return None
++        if not all(_text(v) for v in (confirmation.confirmed_by, confirmation.currency, confirmation.statement)):
++            raise ProviderError("the balance confirmation names no person, currency or statement")
++        try:
++            parse_utc(confirmation.confirmed_utc)
++        except ValueError:
++            raise ProviderError("the balance confirmation has no usable timestamp") from None
++        return confirmation
++
++    def _worker_of(self, pod_id: str) -> str | None:
++        return next((worker for worker, pod in self.config.worker_pods.items() if pod == pod_id), None)
++
++    def _disk_rate(self, pod: dict, prices: StoragePrices) -> float:
++        """The hourly storage rate of a pod's own disks and of its attached network volume."""
++        monthly = 0.0
++        if pod["desiredStatus"] == "RUNNING":
++            monthly += pod["containerDiskInGb"] * prices.container_disk_per_gb_month
++            monthly += pod["volumeInGb"] * prices.pod_volume_running_per_gb_month
++        elif pod["desiredStatus"] == "EXITED":
++            monthly += pod["volumeInGb"] * prices.pod_volume_stopped_per_gb_month
++        return monthly / prices.hours_per_month
++
++    # ----- the Provider interface ----------------------------------------------------
++
++    def read_balance(self) -> BalanceReading:
++        amount = self._myself().get("clientBalance")
++        if not _number(amount):
++            raise ProviderError("clientBalance is missing or not a number")
++        as_of = iso(self.clock())
++        confirmation = self._confirmation()
++        if confirmation is None:
++            return BalanceReading(float(amount), "unconfirmed", as_of,
++                                  "runpod graphql myself.clientBalance; its meaning and currency are not confirmed",
++                                  UNCONFIRMED_BALANCE_KIND, False)
++        return BalanceReading(float(amount), confirmation.currency, as_of,
++                              f"runpod graphql myself.clientBalance; confirmed as the prepaid credit balance by "
++                              f"{confirmation.confirmed_by} on {confirmation.confirmed_utc}", BALANCE_KIND, True)
++
++    def read_rates(self, worker: str) -> RateCard:
++        prices, confirmation = self._prices(), self._confirmation()
++        if confirmation is None:
++            raise NotConfigured("the currency of RunPod's rates is not confirmed (no balance confirmation)")
++        if not _number(self.config.destination_per_hour) or self.config.destination_per_hour < 0:
++            raise NotConfigured("the destination's hourly cost is not declared")
++        pod_id = self.config.worker_pods.get(worker)
++        if pod_id is None:
++            raise NotConfigured(f"no pod is configured for worker {worker!r}")
++        mine = [pod for pod in self._pods() if pod["id"] == pod_id]
++        if len(mine) != 1 or mine[0]["desiredStatus"] != "RUNNING":
++            raise ProviderError("the worker's pod is not listed as RUNNING")
++        pod = mine[0]
++        if pod["costPerHr"] <= 0:
++            raise ProviderError("the worker's pod reports no hourly cost")
++        storage = self._disk_rate(pod, prices)
++        if pod.get("networkVolume") is not None:
++            storage += pod["networkVolume"]["size"] * prices.network_volume_per_gb_month / prices.hours_per_month
++        return RateCard(gpu_per_hour=float(pod["costPerHr"]), storage_per_hour=storage,
++                        destination_per_hour=float(self.config.destination_per_hour), currency=confirmation.currency,
++                        as_of_utc=iso(self.clock()),
++                        source=f"runpod rest pods.costPerHr; storage prices from {prices.source}")
++
++    def list_liabilities(self) -> list[Liability]:
++        prices = self._prices()
++        pods, volumes, myself = self._pods(), self._volumes(), self._myself()
++        liabilities, attached = [], {}
++        for pod in pods:
++            worker = self._worker_of(pod["id"])
++            if pod.get("networkVolume") is not None:
++                attached[pod["networkVolume"]["id"]] = worker
++            if pod["desiredStatus"] == "TERMINATED":
++                continue
++            rate = self._disk_rate(pod, prices) + (pod["costPerHr"] if pod["desiredStatus"] == "RUNNING" else 0.0)
++            liabilities.append(Liability(f"pod {pod['id']} ({pod['desiredStatus']})", rate, "active", 0.0, worker))
++        for volume in volumes:
++            rate = volume["size"] * prices.network_volume_per_gb_month / prices.hours_per_month
++            liabilities.append(Liability(f"network volume {volume['id']}", rate, "active", 0.0,
++                                         attached.get(volume["id"])))
++        spend = myself.get("currentSpendPerHr")
++        if not _number(spend) or spend < 0:
++            raise ProviderError("currentSpendPerHr is missing or not a number")
++        explained = math.fsum(item.rate_per_hour for item in liabilities)
++        if spend > explained + self.config.spend_tolerance_per_hour:
++            raise ProviderError("the account spends more per hour than its pods and network volumes explain: "
++                                "something else bills, and it is not listed")
++        return liabilities
++
++    def confirm_persistent(self, path: str) -> dict:
++        pod_id = self.config.local_pod_id or os.environ.get(RUNPOD_POD_ENV, "").strip()
++        if not pod_id:
++            raise NotConfigured(f"the pod this process runs on is not configured (local_pod_id or {RUNPOD_POD_ENV})")
++        mine = [pod for pod in self._pods() if pod["id"] == pod_id]
++        if len(mine) != 1:
++            return {"persistent": False, "volume": None, "reason": "the pod is not listed by the account"}
++        pod = mine[0]
++        volume, mount = pod.get("networkVolume"), pod.get("volumeMountPath")
++        if pod["desiredStatus"] != "RUNNING" or volume is None:
++            return {"persistent": False, "volume": None,
++                    "reason": "the pod is not running with a network volume attached (a pod volume or container "
++                              "disk does not survive termination)"}
++        if not (_text(mount) and PurePosixPath(mount).is_absolute() and _text(path)
++                and PurePosixPath(path).is_absolute() and ".." not in PurePosixPath(path).parts):
++            return {"persistent": False, "volume": None, "reason": "the mount path or the declared path is not usable"}
++        if not (PurePosixPath(path) == PurePosixPath(mount) or PurePosixPath(mount) in PurePosixPath(path).parents):
++            return {"persistent": False, "volume": None, "reason": "the path is not under the network volume's mount"}
++        if volume["id"] not in {item["id"] for item in self._volumes()}:
++            return {"persistent": False, "volume": None, "reason": "the account's volume list lacks the attached volume"}
++        return {"persistent": True, "volume": volume["id"], "mount": mount, "pod": pod_id,
++                "source": "runpod rest: pods.networkVolume, pods.volumeMountPath, networkvolumes"}
++
++    def arm_shutdown(self, worker: str, at_utc: str) -> dict:
++        raise NotConfigured(SHUTDOWN_GAP)
+diff -ruN pre-adapters/durability/tests/fake_github.py adapters-final/durability/tests/fake_github.py
+--- pre-adapters/durability/tests/fake_github.py	1970-01-01 05:30:00
++++ adapters-final/durability/tests/fake_github.py	2026-10-03 18:57:00
+@@ -0,0 +1,212 @@
++"""A fake GitHub REST API on 127.0.0.1 for the connector tests (ENGINEERING FIXTURE). It implements
++only what ``GitHubReleaseDestination`` uses, with the documented behaviours the connector relies on:
++create-only asset names (422 on a duplicate), a tag that cannot be created twice, pagination with
++``Link`` headers, binary downloads through a redirect, asset states, and scripted faults (a 502 that
++leaves a ``starter`` asset, rate-limit answers, stored bytes that differ from what was sent). It is
++not GitHub and proves nothing about GitHub's real behaviour."""
++
++from __future__ import annotations
++
++import hashlib
++import json
++import re
++import threading
++import urllib.parse
++from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
++
++TOKEN = "fake-token-0123456789-never-a-real-credential"
++
++
++class FakeGitHub:
++    """State and scripted faults. ``faults``: a list of dicts consumed in order by the first matching
++    request, each ``{"on": "upload"|"any"|"download"|"list", "status": int, "headers": {...},
++    "starter": bool}``. ``corrupt``/``truncate``: upload ordinals (1-based) whose stored bytes are
++    altered. ``page``: the server's page size cap."""
++
++    def __init__(self, repository: str = "owner/backups", page: int = 100, digests: bool = True) -> None:
++        self.repository, self.page, self.digests = repository, page, digests
++        self.releases: dict[int, dict] = {}
++        self.assets: dict[int, dict] = {}
++        self.blobs: dict[int, bytes] = {}
++        self.faults: list[dict] = []
++        self.corrupt: set[int] = set()
++        self.truncate: set[int] = set()
++        self.uploads = 0
++        self.log: list[tuple[str, str, bool]] = []     # (method, path with query, had an Authorization header)
++        self.leaks: list[str] = []                     # requests that carried the token where they must not
++        self.mangle_labels = False
++        self._ids = 1000
++        self._lock = threading.RLock()
++        self._server = ThreadingHTTPServer(("127.0.0.1", 0), self._handler())
++        self.url = f"http://127.0.0.1:{self._server.server_address[1]}"
++        self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
++        self._thread.start()
++
++    def close(self) -> None:
++        self._server.shutdown()
++        self._server.server_close()
++
++    def _next(self) -> int:
++        self._ids += 1
++        return self._ids
++
++    def names(self, state: str = "uploaded") -> list[str]:
++        """The labels (keys) of every asset in a state, sorted."""
++        with self._lock:
++            return sorted(a["label"] for a in self.assets.values() if a["state"] == state)
++
++    def asset_json(self, asset: dict) -> dict:
++        label = asset["label"][::-1] if self.mangle_labels else asset["label"]
++        return {"id": asset["id"], "name": asset["name"], "label": label, "state": asset["state"],
++                "size": asset["size"], "digest": asset["digest"] if self.digests else None,
++                "url": f"{self.url}/repos/{self.repository}/releases/assets/{asset['id']}"}
++
++    def _handler(self):
++        fake = self
++
++        class Handler(BaseHTTPRequestHandler):
++            protocol_version = "HTTP/1.1"
++
++            def log_message(self, *args):  # noqa: D102 - silence the test server
++                return
++
++            def _send(self, status: int, body=None, headers=None) -> None:
++                data = b"" if body is None else (body if isinstance(body, bytes) else json.dumps(body).encode())
++                self.send_response(status)
++                for name, value in (headers or {}).items():
++                    self.send_header(name, value)
++                self.send_header("Content-Length", str(len(data)))
++                self.end_headers()
++                self.wfile.write(data)
++
++            def _fault(self, kind: str) -> bool:
++                with fake._lock:
++                    for fault in fake.faults:
++                        if fault["on"] in (kind, "any"):
++                            fake.faults.remove(fault)
++                            self._send(fault["status"], {"message": "ENGINEERING FIXTURE fault"}, fault.get("headers"))
++                            return True
++                return False
++
++            def _route(self, method: str) -> None:
++                parts = urllib.parse.urlsplit(self.path)
++                query = urllib.parse.parse_qs(parts.query)
++                authorized = self.headers.get("Authorization") == f"Bearer {TOKEN}"
++                length = int(self.headers.get("Content-Length") or 0)
++                body = self.rfile.read(length) if length else b""
++                with fake._lock:
++                    fake.log.append((method, self.path, "Authorization" in self.headers))
++                    if TOKEN in self.path:
++                        fake.leaks.append(f"token in a URL: {method} {parts.path}")
++                path = parts.path
++                if path.startswith("/_blob/"):                         # the signed storage URL of a download
++                    if "Authorization" in self.headers:
++                        fake.leaks.append("the token was forwarded on a redirect")
++                    return self._send(200, fake.blobs[int(path.rsplit("/", 1)[1])],
++                                      {"Content-Type": "application/octet-stream"})
++                if not authorized:
++                    return self._send(401, {"message": "Bad credentials"})
++                base = f"/repos/{fake.repository}"
++                if not path.startswith(base):
++                    return self._send(404, {"message": "Not Found"})
++                rest = path[len(base):]
++                if method == "GET" and (m := re.fullmatch(r"/releases/tags/(.+)", rest)):
++                    if self._fault("any"):
++                        return None
++                    found = [r for r in fake.releases.values() if r["tag_name"] == m.group(1)]
++                    return self._send(200, found[0]) if found else self._send(404, {"message": "Not Found"})
++                if method == "POST" and rest == "/releases":
++                    spec = json.loads(body)
++                    with fake._lock:
++                        if any(r["tag_name"] == spec["tag_name"] for r in fake.releases.values()):
++                            return self._send(422, {"message": "Validation Failed", "errors": [{"code": "already_exists"}]})
++                        release = {"id": fake._next(), "tag_name": spec["tag_name"], "name": spec.get("name"),
++                                   "draft": spec.get("draft", False), "prerelease": spec.get("prerelease", False)}
++                        fake.releases[release["id"]] = release
++                    return self._send(201, release)
++                if method == "GET" and rest == "/releases":
++                    if self._fault("list"):
++                        return None
++                    return self._page(sorted(fake.releases.values(), key=lambda r: r["id"]), query, path)
++                if method == "GET" and (m := re.fullmatch(r"/releases/(\d+)/assets", rest)):
++                    if self._fault("list"):
++                        return None
++                    release_id = int(m.group(1))
++                    with fake._lock:
++                        items = [fake.asset_json(a) for a in sorted(fake.assets.values(), key=lambda a: a["id"])
++                                 if a["release"] == release_id]
++                    return self._page(items, query, path)
++                if method == "POST" and (m := re.fullmatch(r"/releases/(\d+)/assets", rest)):
++                    return self._upload(int(m.group(1)), query, body)
++                if (m := re.fullmatch(r"/releases/assets/(\d+)", rest)):
++                    asset_id = int(m.group(1))
++                    with fake._lock:
++                        asset = fake.assets.get(asset_id)
++                    if asset is None:
++                        return self._send(404, {"message": "Not Found"})
++                    if method == "DELETE":
++                        with fake._lock:
++                            fake.assets.pop(asset_id, None)
++                            fake.blobs.pop(asset_id, None)
++                        return self._send(204)
++                    if method == "GET" and self.headers.get("Accept") == "application/octet-stream":
++                        if self._fault("download"):
++                            return None
++                        return self._send(302, None, {"Location": f"{fake.url}/_blob/{asset_id}"})
++                    if method == "GET":
++                        return self._send(200, fake.asset_json(asset))
++                return self._send(404, {"message": "Not Found"})
++
++            def _page(self, items: list, query: dict, path: str) -> None:
++                size = min(int(query.get("per_page", ["30"])[0]), fake.page)
++                page = int(query.get("page", ["1"])[0])
++                chunk = items[(page - 1) * size:page * size]
++                headers = {}
++                if page * size < len(items):
++                    headers["Link"] = f'<{fake.url}{path}?per_page={size}&page={page + 1}>; rel="next"'
++                self._send(200, chunk, headers)
++
++            def _upload(self, release_id: int, query: dict, body: bytes) -> None:
++                name, label = query["name"][0], query.get("label", [None])[0]
++                with fake._lock:
++                    if release_id not in fake.releases:
++                        return self._send(404, {"message": "Not Found"})
++                    if any(a["release"] == release_id and a["name"] == name for a in fake.assets.values()):
++                        return self._send(422, {"message": "Validation Failed", "errors": [{"code": "already_exists"}]})
++                    for fault in fake.faults:
++                        if fault["on"] in ("upload", "any"):
++                            fake.faults.remove(fault)
++                            if fault.get("starter"):
++                                asset_id = fake._next()
++                                fake.assets[asset_id] = {"id": asset_id, "release": release_id, "name": name,
++                                                         "label": label, "state": "starter", "size": 0, "digest": None}
++                                fake.blobs[asset_id] = b""
++                            return self._send(fault["status"], {"message": "ENGINEERING FIXTURE fault"},
++                                              fault.get("headers"))
++                    fake.uploads += 1
++                    stored = body
++                    if fake.uploads in fake.truncate:
++                        stored = body[:-1]
++                    if fake.uploads in fake.corrupt:
++                        stored = bytes([body[0] ^ 0xFF]) + body[1:]
++                    asset_id = fake._next()
++                    # what GitHub reports describes what it received; the stored bytes are the fault
++                    fake.assets[asset_id] = {"id": asset_id, "release": release_id, "name": name, "label": label,
++                                             "state": "uploaded", "size": len(body),
++                                             "digest": "sha256:" + hashlib.sha256(body).hexdigest()}
++                    fake.blobs[asset_id] = stored
++                    return self._send(201, fake.asset_json(fake.assets[asset_id]))
++
++            def do_GET(self):  # noqa: N802,D102
++                self._route("GET")
++
++            def do_POST(self):  # noqa: N802,D102
++                self._route("POST")
++
++            def do_DELETE(self):  # noqa: N802,D102
++                self._route("DELETE")
++
++            def do_PATCH(self):  # noqa: N802,D102
++                self._route("PATCH")
++
++        return Handler
+diff -ruN pre-adapters/durability/tests/fake_runpod.py adapters-final/durability/tests/fake_runpod.py
+--- pre-adapters/durability/tests/fake_runpod.py	1970-01-01 05:30:00
++++ adapters-final/durability/tests/fake_runpod.py	2026-10-03 19:02:17
+@@ -0,0 +1,88 @@
++"""A fake RunPod API on 127.0.0.1 for the provider tests (ENGINEERING FIXTURE): the REST lists of
++pods and network volumes and the GraphQL account query, with the field names RunPod documents. It
++records every request so the tests can show that the provider only reads. It is not RunPod and
++proves nothing about RunPod's real answers."""
++
++from __future__ import annotations
++
++import json
++import threading
++from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
++
++KEY = "fake-runpod-key-0123456789-never-a-real-credential"
++
++
++def pod(pod_id: str, *, status: str = "RUNNING", cost: float = 1.6, volume: dict | None = None,
++        mount: str | None = "/workspace", container_gb: int = 20, volume_gb: int = 0, **more) -> dict:
++    return {"id": pod_id, "name": f"pod-{pod_id}", "desiredStatus": status, "costPerHr": cost,
++            "adjustedCostPerHr": cost, "containerDiskInGb": container_gb, "volumeInGb": volume_gb,
++            "volumeMountPath": mount, "networkVolume": volume, **more}
++
++
++def network_volume(volume_id: str, size: int = 100) -> dict:
++    return {"id": volume_id, "name": f"volume-{volume_id}", "size": size, "dataCenterId": "EU-FIXTURE-1"}
++
++
++class FakeRunPod:
++    def __init__(self) -> None:
++        self.pods: object = []
++        self.volumes: object = []
++        self.myself: object = {"clientBalance": 100.0, "currentSpendPerHr": 0.0, "spendLimit": 80}
++        self.graphql_errors = None
++        self.log: list[tuple[str, str, str]] = []      # (method, path, body)
++        self._server = ThreadingHTTPServer(("127.0.0.1", 0), self._handler())
++        self.url = f"http://127.0.0.1:{self._server.server_address[1]}"
++        threading.Thread(target=self._server.serve_forever, daemon=True).start()
++
++    def close(self) -> None:
++        self._server.shutdown()
++        self._server.server_close()
++
++    def _handler(self):
++        fake = self
++
++        class Handler(BaseHTTPRequestHandler):
++            protocol_version = "HTTP/1.1"
++
++            def log_message(self, *args):  # noqa: D102
++                return
++
++            def _send(self, status: int, body) -> None:
++                data = json.dumps(body).encode()
++                self.send_response(status)
++                self.send_header("Content-Type", "application/json")
++                self.send_header("Content-Length", str(len(data)))
++                self.end_headers()
++                self.wfile.write(data)
++
++            def _route(self, method: str) -> None:
++                length = int(self.headers.get("Content-Length") or 0)
++                body = self.rfile.read(length).decode() if length else ""
++                fake.log.append((method, self.path, body))
++                if self.headers.get("Authorization") != f"Bearer {KEY}":
++                    return self._send(401, {"error": "unauthorized"})
++                path = self.path.split("?")[0]
++                if method == "GET" and path == "/v1/pods":
++                    return self._send(200, fake.pods)
++                if method == "GET" and path == "/v1/networkvolumes":
++                    return self._send(200, fake.volumes)
++                if method == "POST" and path == "/graphql":
++                    answer = {"data": {"myself": fake.myself}}
++                    if fake.graphql_errors:
++                        answer = {"errors": fake.graphql_errors}
++                    return self._send(200, answer)
++                return self._send(404, {"error": "not found"})
++
++            def do_GET(self):  # noqa: N802,D102
++                self._route("GET")
++
++            def do_POST(self):  # noqa: N802,D102
++                self._route("POST")
++
++            def do_DELETE(self):  # noqa: N802,D102
++                self._route("DELETE")
++
++            def do_PATCH(self):  # noqa: N802,D102
++                self._route("PATCH")
++
++        return Handler
+diff -ruN pre-adapters/durability/tests/test_dur_github.py adapters-final/durability/tests/test_dur_github.py
+--- pre-adapters/durability/tests/test_dur_github.py	1970-01-01 05:30:00
++++ adapters-final/durability/tests/test_dur_github.py	2026-10-03 19:03:29
+@@ -0,0 +1,343 @@
++"""``GitHubReleaseDestination`` against a fake GitHub API on 127.0.0.1 (ENGINEERING FIXTURES; no
++request leaves the machine). First the ``Destination`` contract on release assets: create-only
++commits and records, read-back hashes, listing by prefix across shards and pages, staging-only
++discards, the 2 GiB and assets-per-release limits, torn uploads, bounded rate-limit handling and a
++token that is required, sent only to the service and never shown. Then the decisive check: the
++vault's acknowledgement protocol on real sealed engine units through this connector
++(acknowledgement and duplicates, partial and corrupt uploads, a crash before and after the
++acknowledgement, a collision with both kept, restore). The fake proves nothing about GitHub itself:
++what waits for a live check is listed in the README."""
++
++from __future__ import annotations
++
++import time
++from pathlib import Path
++
++import pytest
++
++import dur_fixtures as dur
++from fake_github import TOKEN, FakeGitHub
++
++from experiments.durability.common import (CapacityError, CollisionError, NotConfigured, TransferError,
++                                           VerificationFailed, sha256_bytes, sha256_file)
++from experiments.durability.github_destination import GITHUB_TOKEN_ENV, GitHubReleaseDestination
++
++
++@pytest.fixture
++def github(monkeypatch):
++    fake = FakeGitHub()
++    monkeypatch.setenv(GITHUB_TOKEN_ENV, TOKEN)
++    yield fake
++    fake.close()
++
++
++def connect(fake: FakeGitHub, tmp_path: Path, sleeps: list | None = None, **options) -> GitHubReleaseDestination:
++    options.setdefault("declared_free_bytes", 1 << 40)
++    options.setdefault("shards", 4)
++    return GitHubReleaseDestination(fake.repository, api_url=fake.url, upload_url=fake.url,
++                                    cache_dir=tmp_path / "read-back", sleep=(sleeps if sleeps is not None else []).append,
++                                    **options)
++
++
++def staged(destination, tmp_path: Path, key: str, data: bytes) -> str:
++    source = tmp_path / f"source-{sha256_bytes(key.encode())[:8]}"
++    source.write_bytes(data)
++    destination.upload(source, key)
++    return key
++
++
++def test_the_destination_contract_holds_on_release_assets(github, tmp_path):
++    github.page = 2                                   # every listing is paginated
++    destination = connect(github, tmp_path)
++    stage = staged(destination, tmp_path, "w1/staging/u-1/job.json", b"alpha")
++    assert destination.exists(stage) and destination.sha256(stage) == (sha256_bytes(b"alpha"), 5)
++    assert destination.commit(stage, "w1/tree/workspace/run/job.json") is True
++    assert destination.exists("w1/tree/workspace/run/job.json") and not destination.exists(stage)
++    assert destination.read("w1/tree/workspace/run/job.json") == b"alpha"
++    # the same bytes again: reused; other bytes: a collision, the final object untouched, the staged copy kept
++    again = staged(destination, tmp_path, "w1/staging/u-2/job.json", b"alpha")
++    assert destination.commit(again, "w1/tree/workspace/run/job.json") is False and not destination.exists(again)
++    other = staged(destination, tmp_path, "w1/staging/u-3/job.json", b"omega")
++    with pytest.raises(CollisionError):
++        destination.commit(other, "w1/tree/workspace/run/job.json")
++    assert destination.read("w1/tree/workspace/run/job.json") == b"alpha" and destination.exists(other)
++    # exclusive records
++    assert destination.put_new("w1/acks/unit.json", b"{}") is True
++    assert destination.put_new("w1/acks/unit.json", b"{}") is False
++    with pytest.raises(CollisionError):
++        destination.put_new("w1/acks/unit.json", b"{ }")
++    # a staging name may be overwritten; final names and non-staging uploads may not
++    staged(destination, tmp_path, other, b"omega-2")
++    assert destination.sha256(other) == (sha256_bytes(b"omega-2"), 7)
++    with pytest.raises(TransferError, match="staging area only"):
++        destination.upload(tmp_path / "source-x", "w1/tree/workspace/x")
++    with pytest.raises(TransferError, match="only staging objects"):
++        destination.discard("w1/acks/unit.json")
++    destination.discard(other)
++    assert not destination.exists(other)
++    # listing by prefix, across shards and pages, like a directory listing
++    for index in range(7):
++        destination.put_new(f"w1/tree/workspace/run/file-{index}", str(index).encode())
++    destination.put_new("w1/tree/workspace/run-2/file", b"x")
++    destination.put_new("w2/tree/workspace/run/file", b"y")
++    fresh = connect(github, tmp_path)                 # a new process reads the index from the service
++    assert fresh.list("w1/tree/workspace/run") == sorted(
++        ["w1/tree/workspace/run/job.json", *(f"w1/tree/workspace/run/file-{i}" for i in range(7))])
++    assert fresh.list("w1/acks/") == ["w1/acks/unit.json"] and fresh.list("w3") == []
++    assert len(github.releases) > 1 and all(len(a["name"]) == 64 for a in github.assets.values())
++    target = tmp_path / "out" / "job.json"
++    fresh.download("w1/tree/workspace/run/job.json", target)
++    assert target.read_bytes() == b"alpha" and fresh.sha256("w1/tree/workspace/run/job.json")[0] == sha256_file(target)
++    fresh.probe()
++    assert not [name for name in github.names() if "probe" in name]
++    with pytest.raises(TransferError, match="not stored"):
++        fresh.read("w1/tree/missing")
++    # the token went to the service only: never in a URL, never to the download location
++    assert github.leaks == [] and all(had for method, path, had in github.log if not path.startswith("/_blob/"))
++    assert any(path.startswith("/_blob/") for _, path, _ in github.log)
++    assert TOKEN not in repr(destination) + repr(destination.http) + str(destination.describe())
++    assert destination.describe() == {"kind": "github-release-assets", "location": None, "repository": "owner/backups",
++                                      "scheme": "durability-v1", "shards": 4, "assets_per_release": 1000,
++                                      "declared_free_bytes": 1 << 40}
++    assert destination.free_bytes() == 1 << 40
++
++
++def test_without_a_token_or_with_a_rejected_one_every_call_refuses_and_nothing_shows_it(github, tmp_path, monkeypatch):
++    destination = connect(github, tmp_path)
++    destination.put_new("w1/acks/a.json", b"{}")
++    calls = (destination.free_bytes, destination.probe, lambda: destination.exists("w1/acks/a.json"),
++             lambda: destination.read("w1/acks/a.json"), lambda: destination.put_new("w1/acks/b.json", b"{}"),
++             lambda: destination.list("w1"), lambda: destination.sha256("w1/acks/a.json"),
++             lambda: destination.upload(tmp_path / "missing", "w1/staging/x"))
++    monkeypatch.delenv(GITHUB_TOKEN_ENV)
++    seen = len(github.log)
++    for call in calls:
++        with pytest.raises(NotConfigured, match=GITHUB_TOKEN_ENV):
++            call()
++    with pytest.raises(NotConfigured, match=GITHUB_TOKEN_ENV):
++        connect(github, tmp_path / "new").list("w1")
++    assert len(github.log) == seen                    # nothing was sent
++    monkeypatch.setenv(GITHUB_TOKEN_ENV, "another-wrong-secret-value")
++    with pytest.raises(NotConfigured) as refused:
++        connect(github, tmp_path / "wrong").put_new("w1/acks/c.json", b"{}")
++    assert "rejected" in str(refused.value) and "another-wrong-secret-value" not in str(refused.value)
++    with pytest.raises(TransferError, match="non-HTTPS"):
++        GitHubReleaseDestination("owner/backups", declared_free_bytes=1, api_url="http://example.org")
++    for bad in ({"repository": "not a repo"}, {"scheme": "Bad Scheme"}, {"shards": 0}, {"assets_per_release": 1001},
++                {"max_file_bytes": 2 * 1024 ** 3 + 1}, {"declared_free_bytes": -1}):
++        options = {"repository": "owner/backups", "declared_free_bytes": 1, **bad}
++        with pytest.raises(TransferError):
++            GitHubReleaseDestination(options.pop("repository"), **options)
++
++
++def test_rate_limits_and_transient_errors_are_retried_within_a_bound_and_then_fail(github, tmp_path):
++    sleeps: list[float] = []
++    destination = connect(github, tmp_path, sleeps)
++    soon = str(int(time.time()) + 5)
++    github.faults = [{"on": "upload", "status": 403, "headers": {"x-ratelimit-remaining": "0", "x-ratelimit-reset": soon}},
++                     {"on": "upload", "status": 429, "headers": {"retry-after": "2"}},
++                     {"on": "upload", "status": 502}]
++    assert destination.put_new("w1/acks/a.json", b"{}") is True
++    assert len(sleeps) == 3 and 3.0 <= sleeps[0] <= 7.0 and sleeps[1] == 3.0 and github.faults == []
++    # a wait beyond the bound is not waited for: the call fails and nothing is acknowledged upstream
++    sleeps.clear()
++    later = str(int(time.time()) + 3600)
++    github.faults = [{"on": "upload", "status": 403, "headers": {"x-ratelimit-remaining": "0", "x-ratelimit-reset": later}}]
++    with pytest.raises(TransferError, match="rate limited"):
++        destination.put_new("w1/acks/b.json", b"{}")
++    assert sleeps == [] and not destination.exists("w1/acks/b.json")
++    # a 403 that is not a rate limit (a token without the permission) is not retried
++    github.faults = [{"on": "upload", "status": 403}]
++    with pytest.raises(TransferError, match="answered 403"):
++        destination.put_new("w1/acks/b.json", b"{}")
++    assert sleeps == []
++    # an error that does not go away uses up the retries
++    github.faults = [{"on": "list", "status": 503} for _ in range(6)]
++    with pytest.raises(TransferError, match="kept failing"):
++        connect(github, tmp_path, sleeps, max_retries=4).list("w1")
++    assert len(sleeps) == 4
++
++
++def test_a_torn_upload_is_never_an_object_and_is_replaced(github, tmp_path):
++    """GitHub documents that a failed upload may leave an asset in the starter state that can be
++    safely deleted: it is not an object, and it must not block the name for good."""
++    destination = connect(github, tmp_path)
++    github.faults = [{"on": "upload", "status": 502, "starter": True}]
++    assert destination.put_new("w1/acks/a.json", b"{}") is True       # 502, retried, 422, starter deleted, stored
++    assert github.names("starter") == [] and destination.read("w1/acks/a.json") == b"{}"
++    # a starter left by a process that died is not an object for anyone else either
++    github.faults = [{"on": "upload", "status": 502, "starter": True}]
++    with pytest.raises(TransferError, match="kept failing"):
++        connect(github, tmp_path / "dying", max_retries=0).put_new("w1/acks/b.json", b"{}")
++    assert github.names("starter") == ["w1/acks/b.json"]
++    later = connect(github, tmp_path / "later")
++    assert not later.exists("w1/acks/b.json") and later.list("w1/acks") == ["w1/acks/a.json"]
++    assert later.put_new("w1/acks/b.json", b"{}") is True and github.names("starter") == []
++
++
++def test_size_and_count_limits_refuse_before_any_upload(github, tmp_path):
++    small = connect(github, tmp_path, max_file_bytes=10)
++    source = tmp_path / "big"
++    source.write_bytes(b"x" * 10)
++    with pytest.raises(CapacityError, match="release-asset limit"):
++        small.upload(source, "w1/staging/big")
++    with pytest.raises(CapacityError):
++        small.put_new("w1/acks/big.json", b"x" * 10)
++    assert github.uploads == 0
++    full = connect(github, tmp_path, shards=1, assets_per_release=3)
++    for index in range(3):
++        full.put_new(f"w1/acks/{index}.json", b"{}")
++    with pytest.raises(CapacityError, match="layout is full"):
++        full.put_new("w1/acks/3.json", b"{}")
++    assert github.uploads == 3
++
++
++def test_a_listing_whose_labels_do_not_reproduce_the_names_is_refused(github, tmp_path):
++    destination = connect(github, tmp_path)
++    destination.put_new("w1/acks/a.json", b"{}")
++    github.mangle_labels = True
++    with pytest.raises(TransferError, match="cannot be trusted"):
++        connect(github, tmp_path).list("w1")
++
++
++def test_the_check_destination_command_makes_one_round_trip(github, tmp_path, monkeypatch, capsys):
++    """The command a live check will run. Here against the fake and against a directory; without
++    the token it refuses and sends nothing."""
++    from experiments.durability.__main__ import main
++
++    arguments = ["check-destination", "--destination", f"github:{github.repository}", "--declared-free-bytes",
++                 str(1 << 30), "--github-api-url", github.url, "--github-upload-url", github.url]
++    assert main(arguments) == 0
++    report = capsys.readouterr().out
++    assert '"different_bytes_refused": true' in report and '"duplicate_record_refused": true' in report
++    assert TOKEN not in report and {r["tag_name"][:14] for r in github.releases.values()} == {"connector-test"}
++    assert [name for name in github.names() if "/staging/" in name] == []
++    assert len([name for name in github.names() if name.startswith("connector-check/final/")]) == 2
++    assert main(["check-destination", "--destination", str(tmp_path / "directory")]) == 0
++    capsys.readouterr()
++    assert main(["check-destination", "--destination", f"github:{github.repository}"]) == 2      # no declared capacity
++    monkeypatch.delenv(GITHUB_TOKEN_ENV)
++    seen = len(github.log)
++    assert main(arguments) == 2 and len(github.log) == seen
++    assert GITHUB_TOKEN_ENV in capsys.readouterr().err
++
++
++# ----- the vault's acknowledgement protocol on this connector (real sealed engine units) -----------
++
++pytest.importorskip("torch")
++pytest.importorskip("transformers")
++pytest.importorskip("peft")
++
++from test_dur_vault import CODE, pinned, pod  # noqa: E402,F401 - the sealed chain q -> e1 (module scoped)
++
++from experiments.durability.units import run_unit  # noqa: E402
++
++
++def vault_on(github, tmp_path, destination=None, **options):
++    return dur.make_vault(tmp_path, destination=destination or connect(github, tmp_path), **options)
++
++
++def keys(github, area: str) -> list[str]:
++    return [name for name in github.names() if name.startswith(f"worker-1/{area}")]
++
++
++def test_units_are_acknowledged_restored_and_idempotent_through_github(pod, github, tmp_path):  # noqa: F811
++    vault = pinned(vault_on(github, tmp_path), pod)
++    q, e1 = run_unit(str(pod.q)), run_unit(str(pod.e1))
++    first = vault.acknowledge(q)
++    chained = vault.acknowledge(e1)
++    assert first["destination"]["kind"] == "github-release-assets" and first["verification"]["run_one_stream_checked"] == 1
++    assert chained["verification"]["folders"] == 2 and chained["verification"]["run_one_stream_checked"] == 2
++    assert keys(github, "staging") == [] and github.names("starter") == []
++    assert len(keys(github, f"tree{pod.e1}")) == len(e1.files)
++    # a duplicate from a new process: the same acknowledgement, nothing uploaded
++    uploads = github.uploads
++    again = pinned(vault_on(github, tmp_path / "again"), pod)
++    assert again.acknowledge(run_unit(str(pod.e1))) == chained and github.uploads == uploads
++    assert again.check_ack("run", str(pod.e1), sha256_file(pod.e1 / "COMPLETE.json")) == chained
++    # restore from GitHub into a mirror: the recorded layout, byte for byte
++    mirror = tmp_path / "mirror"
++    report = again.restore(mirror=mirror, kinds=("run", "prepared"))
++    restored = mirror / str(pod.root).lstrip("/")
++    assert report["units"] == 3 and dur.tree_hashes(restored / "calibration-001") == dur.tree_hashes(pod.runs)
++    assert dur.tree_hashes(restored / "prepared") == dur.tree_hashes(pod.prepared)
++    assert dur.tree_hashes(pod.root) == pod.before and github.leaks == []
++    # nothing the operator sees carries the token
++    logged = "".join(p.read_text() for p in tmp_path.rglob("journal.jsonl")) + str(first) + str(chained)
++    assert TOKEN not in logged and "Bearer" not in logged
++
++
++@pytest.mark.parametrize("fault", ["truncate", "corrupt"])
++def test_a_partial_or_corrupt_upload_is_never_published_or_acknowledged_through_github(pod, github, tmp_path, fault):  # noqa: F811
++    vault = pinned(vault_on(github, tmp_path), pod)
++    unit = run_unit(str(pod.q))
++    setattr(github, fault, {github.uploads + 3})        # the third staged file is stored wrongly
++    with pytest.raises(TransferError, match="partial or corrupt"):
++        vault.acknowledge(unit)
++    assert vault.read_ack(unit.unit_id) is None and keys(github, f"tree{pod.q}") == []
++    with pytest.raises(VerificationFailed):
++        vault.check_ack("run", str(pod.q), unit.seal_sha256)
++    assert vault.acknowledge(unit)["content_sha256"] == unit.content_sha256     # the retry replaces the staging objects
++
++
++def test_a_final_object_stored_wrongly_is_caught_by_the_restore_check_and_never_replaced(pod, github, tmp_path):  # noqa: F811
++    """The second upload of a file (its commit under the final name) is stored with other bytes
++    although GitHub reports the right size and digest. The restore check reads it back: no
++    acknowledgement. The wrong object is never replaced: every retry is a collision for an operator."""
++    vault = pinned(vault_on(github, tmp_path), pod)
++    unit = run_unit(str(pod.q))
++    github.corrupt = {github.uploads + len(unit.files) + 2}
++    with pytest.raises(TransferError, match="no longer matches its hash"):
++        vault.acknowledge(unit)
++    assert vault.read_ack(unit.unit_id) is None
++    with pytest.raises(CollisionError):
++        vault.acknowledge(unit)
++    assert vault.read_ack(unit.unit_id) is None
++
++
++class DiesAt(GitHubReleaseDestination):
++    """The process dies when it is about to write an object of one area (acks, pins)."""
++
++    area = "acks"
++
++    def put_new(self, key, data):
++        if f"/{self.area}/" in key:
++            raise KeyboardInterrupt(f"ENGINEERING FIXTURE: the process died before writing {self.area}")
++        return super().put_new(key, data)
++
++
++def test_a_crash_before_or_after_the_acknowledgement_through_github(pod, github, tmp_path):  # noqa: F811
++    vault = pinned(vault_on(github, tmp_path), pod)
++    unit = run_unit(str(pod.q))
++    dying = vault_on(github, tmp_path, destination=DiesAt(
++        github.repository, api_url=github.url, upload_url=github.url, declared_free_bytes=1 << 40, shards=4))
++    with pytest.raises(KeyboardInterrupt):
++        dying.acknowledge(unit)                          # everything stored and verified; the last write never happened
++    assert len(keys(github, f"tree{pod.q}")) == len(unit.files) and vault.read_ack(unit.unit_id) is None
++    with pytest.raises(VerificationFailed):
++        vault.check_ack("run", str(pod.q), unit.seal_sha256)
++    uploads = github.uploads
++    ack = pinned(vault_on(github, tmp_path / "retry"), pod).acknowledge(unit)    # a new process retries
++    assert github.uploads == uploads + 1                 # only the acknowledgement itself was uploaded
++    assert vault_on(github, tmp_path / "after").acknowledge(unit) == ack and github.uploads == uploads + 1
++
++
++def test_a_same_name_different_hash_arrival_fails_through_github_and_both_are_kept(pod, github, tmp_path):  # noqa: F811
++    from experiments.durability.common import SourceMap
++
++    vault = pinned(vault_on(github, tmp_path), pod)
++    original = run_unit(str(pod.q))
++    ack = vault.acknowledge(original)
++    before = {key: github.assets[asset]["digest"] for asset in github.assets
++              for key in [github.assets[asset]["label"]] if key.startswith(f"worker-1/tree{pod.q}")}
++    impostor_map = SourceMap([(str(pod.q), pod.e1)])
++    impostor = run_unit(str(pod.q), impostor_map)
++    clash = vault_on(github, tmp_path / "clash", source_map=impostor_map)
++    with pytest.raises(CollisionError):
++        clash.acknowledge(impostor)
++    after = {key: github.assets[asset]["digest"] for asset in github.assets
++             for key in [github.assets[asset]["label"]] if key.startswith(f"worker-1/tree{pod.q}")}
++    assert after == before and vault.read_ack(original.unit_id) == ack           # nothing replaced
++    kept = keys(github, f"collisions/{original.unit_id}/{impostor.content_sha256}")
++    assert len(kept) == len(impostor.files) + 1          # the arrival and its record
++    assert CODE and keys(github, "staging") == []
+diff -ruN pre-adapters/durability/tests/test_dur_runpod.py adapters-final/durability/tests/test_dur_runpod.py
+--- pre-adapters/durability/tests/test_dur_runpod.py	1970-01-01 05:30:00
++++ adapters-final/durability/tests/test_dur_runpod.py	2026-10-03 19:03:29
+@@ -0,0 +1,273 @@
++"""``RunPodProvider`` against a fake RunPod API on 127.0.0.1 (ENGINEERING FIXTURES; no request
++leaves the machine and nothing is created, started, stopped or deleted anywhere): a balance that is
++recognized only with a recorded human confirmation; rates and liabilities from pods and network
++volumes with declared storage prices; persistence only for a path under a network volume's mount;
++a shutdown that is never claimed; unknown shapes, values and unexplained spend failing closed; a
++key that is required and never shown; and admission refusing on every one of these. The fake proves
++nothing about RunPod: what waits for a live check is in the README."""
++
++from __future__ import annotations
++
++import pytest
++
++import dur_fixtures as dur
++from fake_runpod import KEY, FakeRunPod, network_volume, pod
++
++from experiments.durability.admission import BALANCE_KIND, AdmissionController, UnconfiguredProvider
++from experiments.durability.common import (AdmissionRefused, DurabilityError, Journal, NotConfigured,
++                                           ProviderError, StorageRefused, iso)
++from experiments.durability.destination import LocalDirectoryDestination, UnconfiguredDestination
++from experiments.durability.admission import check_storage
++from experiments.durability.github_destination import GitHubReleaseDestination
++from experiments.durability.runpod_provider import (RUNPOD_KEY_ENV, RUNPOD_POD_ENV, UNCONFIRMED_BALANCE_KIND,
++                                                    BalanceConfirmation, RunPodConfig, RunPodProvider, StoragePrices)
++from experiments.durability.wiring import destination_from, provider_from
++
++CONFIRMATION = BalanceConfirmation("test operator", iso(dur.T0), "USD",
++                                   "ENGINEERING FIXTURE: clientBalance is the spendable prepaid credit balance in USD")
++PRICES = StoragePrices(network_volume_per_gb_month=0.07, pod_volume_running_per_gb_month=0.10,
++                       pod_volume_stopped_per_gb_month=0.20, container_disk_per_gb_month=0.10, hours_per_month=720.0,
++                       source="ENGINEERING FIXTURE price list", confirmed_by="test operator", confirmed_utc=iso(dur.T0))
++VOLUME = network_volume("vol-1", size=100)
++
++
++@pytest.fixture
++def runpod(monkeypatch):
++    fake = FakeRunPod()
++    fake.pods = [pod("pod-1", volume=VOLUME), pod("pod-2", cost=0.4, volume=None, volume_gb=50),
++                 pod("pod-3", status="EXITED", volume=None, volume_gb=40), pod("pod-4", status="TERMINATED")]
++    fake.volumes = [VOLUME, network_volume("vol-2", size=10)]
++    monkeypatch.setenv(RUNPOD_KEY_ENV, KEY)
++    monkeypatch.delenv(RUNPOD_POD_ENV, raising=False)
++    yield fake
++    fake.close()
++
++
++def provider(fake: FakeRunPod, clock=None, **changes) -> RunPodProvider:
++    fields = {"worker_pods": {"worker-1": "pod-1"}, "balance_confirmation": CONFIRMATION, "storage_prices": PRICES,
++              "destination_per_hour": 0.0, "local_pod_id": "pod-1"}
++    return RunPodProvider(RunPodConfig(**{**fields, **changes}), rest_url=f"{fake.url}/v1",
++                          graphql_url=f"{fake.url}/graphql", clock=clock or dur.ManualClock(), sleep=lambda s: None)
++
++
++def test_the_balance_is_recognized_only_with_a_recorded_confirmation(runpod):
++    clock = dur.ManualClock()
++    reading = provider(runpod, clock).read_balance()
++    assert (reading.amount, reading.currency, reading.kind, reading.recognized) == (100.0, "USD", BALANCE_KIND, True)
++    assert reading.as_of_utc == iso(clock.now) and "confirmed as the prepaid credit balance by test operator" in reading.source
++    bare = provider(runpod, balance_confirmation=None).read_balance()
++    assert (bare.kind, bare.recognized, bare.currency) == (UNCONFIRMED_BALANCE_KIND, False, "unconfirmed")
++    for bad in ({"confirmed_by": " "}, {"currency": ""}, {"statement": ""}, {"confirmed_utc": "yesterday"}):
++        incomplete = BalanceConfirmation(**{**CONFIRMATION.__dict__, **bad})
++        with pytest.raises(ProviderError, match="balance confirmation"):
++            provider(runpod, balance_confirmation=incomplete).read_balance()
++    for value in (None, "100", True, float("nan")):
++        runpod.myself = {"clientBalance": value, "currentSpendPerHr": 0.0}
++        with pytest.raises((ProviderError, DurabilityError)):
++            provider(runpod).read_balance()
++    runpod.myself, runpod.graphql_errors = {"clientBalance": 100.0}, [{"message": "ENGINEERING FIXTURE"}]
++    with pytest.raises(ProviderError, match="unexpected shape"):
++        provider(runpod).read_balance()
++
++
++def test_rates_and_liabilities_come_from_pods_volumes_and_declared_prices(runpod):
++    runpod.myself = {"clientBalance": 100.0, "currentSpendPerHr": 2.0, "spendLimit": 80}
++    adapter = provider(runpod)
++    rates = adapter.read_rates("worker-1")
++    disks = 20 * 0.10 / 720.0 + 100 * 0.07 / 720.0                    # container disk and the network volume
++    assert rates.gpu_per_hour == 1.6 and rates.storage_per_hour == pytest.approx(disks)
++    assert (rates.destination_per_hour, rates.currency) == (0.0, "USD")
++    liabilities = {item.name: item for item in adapter.list_liabilities()}
++    assert set(liabilities) == {"pod pod-1 (RUNNING)", "pod pod-2 (RUNNING)", "pod pod-3 (EXITED)",
++                                "network volume vol-1", "network volume vol-2"}      # the terminated pod bills nothing
++    assert liabilities["pod pod-1 (RUNNING)"].worker == "worker-1"
++    assert liabilities["network volume vol-1"].worker == "worker-1"     # attached to the worker's pod
++    assert liabilities["pod pod-2 (RUNNING)"].worker is None
++    assert liabilities["pod pod-2 (RUNNING)"].rate_per_hour == pytest.approx(0.4 + (20 * 0.10 + 50 * 0.10) / 720.0)
++    assert liabilities["pod pod-3 (EXITED)"].rate_per_hour == pytest.approx(40 * 0.20 / 720.0)   # stopped: storage only
++    assert liabilities["network volume vol-2"].rate_per_hour == pytest.approx(10 * 0.07 / 720.0)
++    assert all(item.state == "active" for item in liabilities.values())
++    # the account spends more than pods and volumes explain: something unlisted bills
++    runpod.myself = {"clientBalance": 100.0, "currentSpendPerHr": 5.0}
++    with pytest.raises(ProviderError, match="something else bills"):
++        adapter.list_liabilities()
++    for refused, change in (("storage prices are not configured", {"storage_prices": None}),
++                            ("currency", {"balance_confirmation": None}),
++                            ("destination's hourly cost", {"destination_per_hour": None}),
++                            ("no pod is configured", {"worker_pods": {"worker-2": "pod-2"}})):
++        with pytest.raises(NotConfigured, match=refused):
++            provider(runpod, **change).read_rates("worker-1")
++    with pytest.raises(ProviderError, match="implausible month"):
++        provider(runpod, storage_prices=StoragePrices(**{**PRICES.__dict__, "hours_per_month": 1.0})).read_rates("worker-1")
++    with pytest.raises(ProviderError, match="not listed as RUNNING"):
++        provider(runpod, worker_pods={"worker-1": "pod-3"}).read_rates("worker-1")
++
++
++@pytest.mark.parametrize("damage", [
++    {"costPerHr": None}, {"costPerHr": "1.6"}, {"desiredStatus": "PAUSED"}, {"containerDiskInGb": -1},
++    {"volumeInGb": None}, {"networkVolume": {"id": "vol-1"}}, {"networkVolume": "vol-1"}, {"id": ""}])
++def test_an_unknown_or_missing_field_fails_closed(runpod, damage):
++    runpod.pods = [{**runpod.pods[0], **damage}]
++    adapter = provider(runpod)
++    for call in (lambda: adapter.read_rates("worker-1"), adapter.list_liabilities,
++                 lambda: adapter.confirm_persistent("/workspace/study")):
++        with pytest.raises(ProviderError, match="missing or unknown fields"):
++            call()
++
++
++def test_other_unexpected_answers_fail_closed(runpod):
++    adapter = provider(runpod)
++    runpod.pods = {"pods": []}
++    with pytest.raises(ProviderError, match="unexpected shape"):
++        adapter.list_liabilities()
++    runpod.pods = [pod("pod-1", volume=VOLUME), pod("pod-1", volume=VOLUME)]
++    with pytest.raises(ProviderError, match="twice"):
++        adapter.read_rates("worker-1")
++    runpod.pods, runpod.volumes = [pod("pod-1", volume=VOLUME)], [{"id": "vol-1"}]
++    with pytest.raises(ProviderError, match="network volume"):
++        adapter.list_liabilities()
++    runpod.volumes, runpod.myself = [VOLUME], {"clientBalance": 100.0}
++    with pytest.raises(ProviderError, match="currentSpendPerHr"):
++        adapter.list_liabilities()
++    with pytest.raises(ProviderError, match="worker names"):
++        provider(runpod, worker_pods={"worker-1": ""})
++    with pytest.raises(ProviderError, match="same pod"):
++        provider(runpod, worker_pods={"a": "pod-1", "b": "pod-1"})
++
++
++def test_persistence_is_confirmed_only_under_a_network_volume_mount(runpod, monkeypatch):
++    adapter = provider(runpod)
++    confirmed = adapter.confirm_persistent("/workspace/attribution-study-v2")
++    assert confirmed["persistent"] is True and confirmed["volume"] == "vol-1" and confirmed["mount"] == "/workspace"
++    assert adapter.confirm_persistent("/workspace")["persistent"] is True
++    for path in ("/root/study", "/workspace-other/study", "/workspace/../etc", "relative/path", ""):
++        assert adapter.confirm_persistent(path)["persistent"] is False, path
++    # a pod volume or a container disk is not persistent storage, whatever the mount says
++    assert provider(runpod, local_pod_id="pod-2").confirm_persistent("/workspace/study")["persistent"] is False
++    assert provider(runpod, local_pod_id="pod-3").confirm_persistent("/workspace/study")["persistent"] is False
++    assert provider(runpod, local_pod_id="pod-9").confirm_persistent("/workspace/study")["persistent"] is False
++    runpod.volumes = [network_volume("vol-2")]                       # the attached volume is not in the account's list
++    assert adapter.confirm_persistent("/workspace/study")["persistent"] is False
++    runpod.volumes = [VOLUME]
++    with pytest.raises(NotConfigured, match="pod this process runs on"):
++        provider(runpod, local_pod_id=None).confirm_persistent("/workspace/study")
++    monkeypatch.setenv(RUNPOD_POD_ENV, "pod-1")                      # what RunPod sets inside a pod
++    assert provider(runpod, local_pod_id=None).confirm_persistent("/workspace/study")["persistent"] is True
++
++
++def test_the_provider_only_reads_and_never_shows_its_key(runpod, monkeypatch):
++    adapter = provider(runpod)
++    adapter.read_balance(), adapter.read_rates("worker-1"), adapter.list_liabilities()
++    adapter.confirm_persistent("/workspace/study")
++    with pytest.raises(NotConfigured, match="shutdown gap"):
++        adapter.arm_shutdown("worker-1", iso(dur.T0))
++    methods = {(method, path.split("?")[0]) for method, path, _ in runpod.log}
++    assert methods == {("GET", "/v1/pods"), ("GET", "/v1/networkvolumes"), ("POST", "/graphql")}
++    bodies = [body for method, _, body in runpod.log if method == "POST"]
++    assert bodies and all("mutation" not in body and body.count("query") >= 1 for body in bodies)
++    assert all(KEY not in path and KEY not in body for _, path, body in runpod.log)      # never in a URL or a body
++    assert KEY not in repr(adapter) + repr(adapter.http)
++    monkeypatch.delenv(RUNPOD_KEY_ENV)
++    seen = len(runpod.log)
++    for call in (adapter.read_balance, lambda: adapter.read_rates("worker-1"), adapter.list_liabilities,
++                 lambda: adapter.confirm_persistent("/workspace/study")):
++        with pytest.raises(NotConfigured, match=RUNPOD_KEY_ENV):
++            call()
++    assert len(runpod.log) == seen
++    monkeypatch.setenv(RUNPOD_KEY_ENV, "a-wrong-key-value")
++    with pytest.raises(NotConfigured) as refused:
++        adapter.read_balance()
++    assert "rejected" in str(refused.value) and "a-wrong-key-value" not in str(refused.value)
++
++
++def admission(tmp_path, adapter, clock, planned=None) -> AdmissionController:
++    return AdmissionController(tmp_path / "admission" / "reservations.jsonl", adapter, dur.POLICY,
++                               planned or adapter.read_rates("worker-1"),
++                               journal=Journal(tmp_path / "journal.jsonl", clock), clock=clock)
++
++
++def test_admission_with_the_real_adapter_stops_at_the_shutdown_gap_and_at_every_unconfirmed_input(runpod, tmp_path):
++    """With everything else confirmed, admission through ``RunPodProvider`` still refuses: no
++    provider-side shutdown can be armed. That is the intended state until the shutdown gap is
++    closed. Each unconfirmed input refuses earlier, with its own reason; nothing is reserved."""
++    clock = dur.ManualClock()
++    source = tmp_path / "workspace"
++    source.mkdir()
++    storage = dur.storage(source, LocalDirectoryDestination(tmp_path / "offsite"), source_path=str(source))
++    runpod.pods = [pod("pod-1", volume=VOLUME, mount=str(source))]
++    runpod.volumes = [VOLUME]
++    adapter = provider(runpod, clock)
++    planned = adapter.read_rates("worker-1")
++    reserve = (planned.storage_per_hour + planned.destination_per_hour) * dur.POLICY.retention_hours
++    controller = admission(tmp_path, adapter, clock, planned)
++    with pytest.raises(AdmissionRefused, match="no provider-side shutdown can be armed"):
++        controller.admit("worker-1", 3600.0, storage, reserve)
++    cases = {"currency of RunPod's rates is not confirmed": {"balance_confirmation": None},
++             "provider inputs are unavailable": {"storage_prices": None},
++             "not confirmed": {"local_pod_id": "pod-9"}}
++    for why, change in cases.items():
++        with pytest.raises(AdmissionRefused, match=why):
++            admission(tmp_path, provider(runpod, clock, **change), clock, planned).admit("worker-1", 3600.0, storage, reserve)
++    runpod.pods = [pod("pod-1", volume=VOLUME, mount=str(source), cost=1.7)]         # the price changed since the plan
++    with pytest.raises(AdmissionRefused, match="changed rate"):
++        controller.admit("worker-1", 3600.0, storage, reserve)
++    runpod.pods = [{**pod("pod-1", volume=VOLUME, mount=str(source)), "costPerHr": None}]
++    with pytest.raises(AdmissionRefused, match="missing or unknown fields"):
++        controller.admit("worker-1", 3600.0, storage, reserve)
++    with pytest.raises(StorageRefused, match="missing or unknown fields"):
++        check_storage(storage, adapter)
++    assert not (tmp_path / "admission" / "reservations.jsonl").exists()
++    refusals = [row for row in Journal(tmp_path / "journal.jsonl").read() if row["event"] == "admission-refused"]
++    assert len(refusals) == 6 and KEY not in (tmp_path / "journal.jsonl").read_text()
++
++
++def test_the_check_provider_command_reports_shapes_and_only_reads(runpod, tmp_path, capsys):
++    import json
++
++    from experiments.durability.__main__ import main
++
++    runpod.myself = {"clientBalance": 73.21, "currentSpendPerHr": 1.5, "spendLimit": 80}
++    config = {"kind": "runpod", "worker_pods": {"worker-1": "pod-1"}, "destination_per_hour": 0.0,
++              "storage_prices": dict(PRICES.__dict__), "local_pod_id": "pod-1"}       # no balance confirmation yet
++    path = tmp_path / "provider.json"
++    path.write_text(json.dumps(config))
++    arguments = ["check-provider", "--config", str(path), "--worker", "worker-1", "--path", "/workspace/study",
++                 "--runpod-rest-url", f"{runpod.url}/v1", "--runpod-graphql-url", f"{runpod.url}/graphql"]
++    assert main(arguments) == 0
++    printed = capsys.readouterr().out
++    report = json.loads(printed)
++    assert report["balance"] == {"answered": True, "amount_type": "float", "kind": UNCONFIRMED_BALANCE_KIND,
++                                 "recognized": False, "currency_stated": False}
++    assert report["rates"]["answered"] is False and report["rates"]["refused_as"] == "NotConfigured"
++    assert report["liabilities"] == {"answered": True, "count": 5, "attached_to_a_configured_worker": 2}
++    assert report["persistence"] == {"answered": True, "persistent": True}
++    assert report["shutdown"]["can_arm"] is False and report["creates_starts_stops_or_deletes"] is False
++    assert "73.21" not in printed and "pod-1" not in printed and KEY not in printed     # shapes, not account details
++    assert {method for method, _, _ in runpod.log} == {"GET", "POST"}
++    assert all("mutation" not in body for _, _, body in runpod.log)
++
++
++def test_wiring_builds_real_connectors_only_from_explicit_configuration(runpod, tmp_path, monkeypatch):
++    assert isinstance(destination_from(None), UnconfiguredDestination) and isinstance(provider_from(None), UnconfiguredProvider)
++    assert isinstance(destination_from(str(tmp_path / "d")), LocalDirectoryDestination)
++    assert destination_from(f"dir:{tmp_path / 'd'}").describe()["location"] == str(tmp_path / "d")
++    with pytest.raises(DurabilityError, match="declared free capacity"):
++        destination_from("github:owner/backups")
++    with pytest.raises(DurabilityError, match="GitHub options"):
++        destination_from(str(tmp_path / "d"), declared_free_bytes=1)
++    github = destination_from("github:owner/backups", declared_free_bytes=1 << 30, shards=8)
++    assert isinstance(github, GitHubReleaseDestination) and github.describe()["repository"] == "owner/backups"
++    monkeypatch.delenv("ATTRIBUTION_BACKUP_GITHUB_TOKEN", raising=False)
++    with pytest.raises(NotConfigured):                                # built, but closed without its token
++        github.free_bytes()
++    config = {"kind": "runpod", "worker_pods": {"worker-1": "pod-1"}, "destination_per_hour": 0.0,
++              "balance_confirmation": dict(CONFIRMATION.__dict__), "storage_prices": dict(PRICES.__dict__),
++              "local_pod_id": "pod-1"}
++    built = provider_from(config, rest_url=f"{runpod.url}/v1", graphql_url=f"{runpod.url}/graphql")
++    assert isinstance(built, RunPodProvider) and built.read_balance().recognized is True
++    assert provider_from({k: v for k, v in config.items() if k != "balance_confirmation"},
++                         rest_url=f"{runpod.url}/v1", graphql_url=f"{runpod.url}/graphql").read_balance().recognized is False
++    for bad in ({"kind": "other"}, {**config, "balance_confirmed": True}, {**config, "storage_prices": {"x": 1}},
++                {**config, "balance_confirmation": {"confirmed_by": "x"}}):
++        with pytest.raises(DurabilityError):
++            provider_from(bad)
+diff -ruN pre-adapters/durability/transport.py adapters-final/durability/transport.py
+--- pre-adapters/durability/transport.py	1970-01-01 05:30:00
++++ adapters-final/durability/transport.py	2026-10-03 18:57:00
+@@ -0,0 +1,202 @@
++"""A small HTTPS client for the real connectors (stdlib ``urllib`` only).
++
++What the connectors need and nothing more:
++
++- **The secret stays in the environment.** The token is read from a named environment variable at
++  each request and sent as ``Authorization: Bearer`` only to the configured service hosts. It is
++  never stored on an object, logged, put in a URL or in an exception. A missing or empty variable
++  raises ``NotConfigured``; so does a 401.
++- **No credential on redirects.** Redirects are followed by hand (at most three) and *without* the
++  Authorization header: GitHub answers an asset download with a redirect to a signed storage URL,
++  which must not receive the token.
++- **HTTPS only**, except for a loopback host (the tests' fake services on 127.0.0.1).
++- **Bounded retries.** A rate-limit answer (429, or 403 with ``retry-after`` or
++  ``x-ratelimit-remaining: 0``) waits for the stated time when that is within ``max_wait_seconds``
++  and otherwise fails; a 5xx answer or a connection error backs off and retries. After
++  ``max_retries`` the call raises ``TransferError``. Nothing retries forever: a blocked copy means
++  no acknowledgement, and the dispatch gate then starts nothing.
++- **Errors name the method, host, path and status only**: never a header, a query string or a body.
++"""
++
++from __future__ import annotations
++
++import hashlib
++import http.client
++import json
++import os
++import time
++import urllib.error
++import urllib.parse
++import urllib.request
++from dataclasses import dataclass
++from pathlib import Path
++from typing import Callable, Mapping, Sequence
++
++from .common import NotConfigured, TransferError
++
++__all__ = ["Http", "Reply", "next_link"]
++
++_REDIRECTS = (301, 302, 303, 307, 308)
++_TRANSIENT = (500, 502, 503, 504)
++_LOOPBACK = ("127.0.0.1", "localhost", "::1")
++
++
++class _NoRedirect(urllib.request.HTTPRedirectHandler):
++    """Redirects are returned to the caller, which follows them without credentials."""
++
++    def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: D102 - urllib hook
++        return None
++
++
++@dataclass(frozen=True)
++class Reply:
++    status: int
++    headers: Mapping[str, str]
++    body: bytes
++    sha256: str | None = None      # of a streamed download
++    size: int | None = None
++
++    def json(self):
++        try:
++            return json.loads(self.body)
++        except ValueError as exc:
++            raise TransferError("the service answered with something that is not JSON") from exc
++
++
++def next_link(headers: Mapping[str, str]) -> str | None:
++    """The ``rel="next"`` URL of a ``Link`` header, or None."""
++    for part in headers.get("link", "").split(","):
++        url, _, rel = part.partition(";")
++        if 'rel="next"' in rel:
++            return url.strip().strip("<>")
++    return None
++
++
++class Http:
++    """See the module doc. ``bases``: the service URL prefixes that receive the token.
++    ``sleep`` and ``clock`` are injectable for tests."""
++
++    def __init__(self, *, token_env: str, bases: Sequence[str], user_agent: str = "attribution-durability",
++                 timeout: float = 60.0, max_retries: int = 4, max_wait_seconds: float = 120.0,
++                 sleep: Callable[[float], None] = time.sleep, clock: Callable[[], float] = time.time) -> None:
++        self.token_env, self.bases = token_env, tuple(base.rstrip("/") for base in bases)
++        self.user_agent, self.timeout = user_agent, timeout
++        self.max_retries, self.max_wait_seconds, self.sleep, self.clock = max_retries, max_wait_seconds, sleep, clock
++        self._opener = urllib.request.build_opener(_NoRedirect())
++        for base in self.bases:
++            self._check_url(base)
++
++    def __repr__(self) -> str:
++        return f"Http(token from ${self.token_env}, bases={list(self.bases)})"
++
++    @staticmethod
++    def _check_url(url: str) -> urllib.parse.SplitResult:
++        parts = urllib.parse.urlsplit(url)
++        if parts.scheme != "https" and not (parts.scheme == "http" and parts.hostname in _LOOPBACK):
++            raise TransferError(f"refusing a request to a non-HTTPS address ({parts.scheme}://{parts.hostname})")
++        return parts
++
++    @staticmethod
++    def _where(method: str, url: str) -> str:
++        parts = urllib.parse.urlsplit(url)
++        return f"{method} {parts.scheme}://{parts.netloc}{parts.path}"
++
++    def _token(self) -> str:
++        token = os.environ.get(self.token_env, "").strip()
++        if not token:
++            raise NotConfigured(f"the environment variable {self.token_env} is not set: this connector is not configured")
++        return token
++
++    def require_token(self) -> None:
++        """Raise ``NotConfigured`` unless the token variable is set (nothing is sent)."""
++        self._token()
++
++    def _wait(self, status: int, headers: Mapping[str, str]) -> float | None:
++        """Seconds a rate-limit answer asks to wait, or None when the answer is not a rate limit."""
++        if status not in (403, 429):
++            return None
++        if headers.get("retry-after", "").strip().isdigit():
++            return float(headers["retry-after"])
++        if headers.get("x-ratelimit-remaining", "").strip() == "0" and headers.get("x-ratelimit-reset", "").strip().isdigit():
++            return max(0.0, float(headers["x-ratelimit-reset"]) - self.clock())
++        return 60.0 if status == 429 else None
++
++    def request(self, method: str, url: str, *, headers: Mapping[str, str] | None = None,
++                body: bytes | Path | None = None, sink: Path | None = None) -> Reply:
++        """One request with the token, bounded retries and credential-free redirects. ``body``: bytes,
++        or a file to stream. ``sink``: stream the answer to this file and return its hash and size.
++        Returns every final answer that is not a rate limit, a 401 or an exhausted transient error;
++        the caller judges the status."""
++        self._token()   # fail closed before anything is sent
++        authorized, hops, attempt, backoff = True, 0, 0, 1.0
++        while True:
++            self._check_url(url)
++            send_token = authorized and any(url == base or url.startswith(base + "/") for base in self.bases)
++            request = urllib.request.Request(url, method=method)
++            request.add_header("User-Agent", self.user_agent)
++            for name, value in (headers or {}).items():
++                request.add_header(name, value)
++            if send_token:
++                request.add_header("Authorization", f"Bearer {self._token()}")
++            handle = None
++            if isinstance(body, Path):
++                handle = open(body, "rb")  # noqa: SIM115 - closed below, reopened for every attempt
++                request.data = handle
++                request.add_header("Content-Length", str(body.stat().st_size))
++            elif body is not None:
++                request.data = body
++                request.add_header("Content-Length", str(len(body)))
++            try:
++                with self._opener.open(request, timeout=self.timeout) as response:
++                    status = response.status
++                    reply_headers = {k.lower(): v for k, v in response.headers.items()}
++                    if sink is not None and status == 200:
++                        digest, size = hashlib.sha256(), 0
++                        sink.parent.mkdir(parents=True, exist_ok=True)
++                        with open(sink, "wb") as out:
++                            for block in iter(lambda: response.read(1 << 20), b""):
++                                out.write(block)
++                                digest.update(block)
++                                size += len(block)
++                            out.flush()
++                            os.fsync(out.fileno())
++                        return Reply(status, reply_headers, b"", digest.hexdigest(), size)
++                    return Reply(status, reply_headers, response.read())
++            except urllib.error.HTTPError as exc:
++                status, reply_headers = exc.code, {k.lower(): v for k, v in (exc.headers or {}).items()}
++                payload = exc.read()
++            except (urllib.error.URLError, OSError, http.client.HTTPException) as exc:
++                attempt += 1
++                if attempt > self.max_retries:
++                    raise TransferError(f"{self._where(method, url)} failed after {attempt} attempts "
++                                        f"({type(exc).__name__})") from None
++                self.sleep(backoff)
++                backoff = min(backoff * 2.0, 30.0)
++                continue
++            finally:
++                if handle is not None:
++                    handle.close()
++            if status in _REDIRECTS and reply_headers.get("location"):
++                hops += 1
++                if hops > 3:
++                    raise TransferError(f"{self._where(method, url)} redirected too many times")
++                url, authorized = urllib.parse.urljoin(url, reply_headers["location"]), False
++                continue
++            if status == 401:
++                raise NotConfigured(f"the token in {self.token_env} was rejected ({self._where(method, url)} -> 401)")
++            wait = self._wait(status, reply_headers)
++            if wait is not None:
++                attempt += 1
++                if wait > self.max_wait_seconds or attempt > self.max_retries:
++                    raise TransferError(f"{self._where(method, url)} is rate limited (status {status}); the stated "
++                                        f"wait of {wait:.0f} s is beyond the bound or the retries are used up")
++                self.sleep(wait + 1.0)
++                continue
++            if status in _TRANSIENT:
++                attempt += 1
++                if attempt > self.max_retries:
++                    raise TransferError(f"{self._where(method, url)} kept failing (status {status})")
++                self.sleep(backoff)
++                backoff = min(backoff * 2.0, 30.0)
++                continue
++            return Reply(status, reply_headers, payload)
+diff -ruN pre-adapters/durability/wiring.py adapters-final/durability/wiring.py
+--- pre-adapters/durability/wiring.py	1970-01-01 05:30:00
++++ adapters-final/durability/wiring.py	2026-10-03 19:01:08
+@@ -0,0 +1,59 @@
++"""Building the real connectors from explicit configuration (stdlib only). The defaults stay
++fail-closed: no destination spec gives ``UnconfiguredDestination``, no provider configuration gives
++``UnconfiguredProvider``. Nothing here reads a credential: the connectors take their token from
++the environment when they make a request."""
++
++from __future__ import annotations
++
++from typing import Mapping
++
++from .admission import Provider, UnconfiguredProvider
++from .common import DurabilityError
++from .destination import Destination, LocalDirectoryDestination, UnconfiguredDestination
++from .github_destination import GitHubReleaseDestination
++from .runpod_provider import BalanceConfirmation, RunPodConfig, RunPodProvider, StoragePrices
++
++__all__ = ["destination_from", "provider_from"]
++
++_RUNPOD_KEYS = {"kind", "worker_pods", "balance_confirmation", "storage_prices", "destination_per_hour",
++                "local_pod_id", "spend_tolerance_per_hour"}
++
++
++def destination_from(spec: str | None, **github: object) -> Destination:
++    """``None`` or empty: not configured (every call refuses). ``github:owner/repo``: release assets of
++    that repository (``declared_free_bytes`` is required; other keywords go to
++    ``GitHubReleaseDestination``). ``dir:PATH`` or a plain path: a local directory."""
++    if not spec:
++        return UnconfiguredDestination("remote")
++    if spec.startswith("github:"):
++        if "declared_free_bytes" not in github:
++            raise DurabilityError("a GitHub destination needs its declared free capacity (GitHub reports none)")
++        return GitHubReleaseDestination(spec[len("github:"):], **github)
++    if github:
++        raise DurabilityError("GitHub options were given for a destination that is not github:owner/repo")
++    return LocalDirectoryDestination(spec[len("dir:"):] if spec.startswith("dir:") else spec)
++
++
++def provider_from(config: Mapping | None, **options: object) -> Provider:
++    """``None``: not configured (every call refuses). ``{"kind": "runpod", ...}``: a ``RunPodProvider``
++    from the mapping's ``worker_pods`` and, where the operator recorded them, ``balance_confirmation``,
++    ``storage_prices``, ``destination_per_hour`` and ``local_pod_id``. An unknown key or kind refuses:
++    a misspelt confirmation must not be silently ignored."""
++    if config is None:
++        return UnconfiguredProvider()
++    if not isinstance(config, Mapping) or config.get("kind") != "runpod":
++        raise DurabilityError("the provider configuration names no known kind")
++    unknown = sorted(set(config) - _RUNPOD_KEYS)
++    if unknown:
++        raise DurabilityError(f"unknown provider configuration keys {unknown}")
++    try:
++        confirmation = config.get("balance_confirmation")
++        prices = config.get("storage_prices")
++        fields = {key: config[key] for key in ("destination_per_hour", "local_pod_id", "spend_tolerance_per_hour")
++                  if key in config}
++        built = RunPodConfig(worker_pods=dict(config.get("worker_pods") or {}),
++                             balance_confirmation=None if confirmation is None else BalanceConfirmation(**confirmation),
++                             storage_prices=None if prices is None else StoragePrices(**prices), **fields)
++    except TypeError as exc:
++        raise DurabilityError(f"the provider configuration is malformed ({exc})") from None
++    return RunPodProvider(built, **options)

@@ -99,7 +99,7 @@ values are fixed here.
 
 ## What the local tests establish
 
-64 tests in `experiments/durability/tests/`, run with the pinned engine environment on CPU:
+93 tests in `experiments/durability/tests/`, run with the pinned engine environment on CPU:
 
 - **Engine chain (decisive).** A sealed chain q, e1 was acknowledged; the worker was terminated
   during e3 and its volume removed; the vault was restored to the same absolute paths; every
@@ -133,9 +133,41 @@ for each. A restore into a mirror placed 100 files (77,774,438 bytes); the 63 ru
 byte-identical to the preserved ones; the engine's own `verify` passed on the restored e3 with the
 stream checked; the 75 source files were unchanged before and after.
 
+## Real connectors (added 3 October)
+
+The user chose GitHub release assets as the free off-pod destination (private repository
+`4r4cn1d0/attribution-backups`) and RunPod is the provider. Both connectors now exist in
+`experiments/durability` (`github_destination.py`, `runpod_provider.py`), built only from explicit
+configuration; the defaults still refuse. **Neither has made a request to its real service**: no
+token was present when they were built. What follows rests on the services' documentation, read on
+3 October 2026 (sources in the package README), and on fake services on 127.0.0.1.
+
+- **GitHub destination.** One object is one release asset, named by the hash of its key, in one
+  of 64 shard releases. A final object is created by a create-only upload, so an existing
+  different object is a collision and is never replaced; hashes are computed on bytes downloaded
+  from GitHub. The vault's whole acknowledgement protocol was rerun through this connector against
+  the fake API and holds. Limits: files under 2 GiB, 1000 assets per release, GitHub's rate limits
+  (possibly about ten 23-file units per hour for one token, unverified). A token that can upload
+  can also delete: this protects against a lost worker and an empty GPU account, not against a
+  leaked token. GitHub's immutable releases do not fit a layout that keeps adding assets.
+- **RunPod provider.** Read-only: the pod and network-volume lists and one account query. The
+  balance (`clientBalance`) is recognized only when the configuration records a named person's
+  confirmation of its meaning and currency. Storage prices are configuration, because the API
+  reports none. Persistence is confirmed only for a path under a network volume's mount. Anything
+  missing or unknown refuses.
+- **The shutdown gap.** RunPod documents no stop time that can be set on, or read back from, an
+  existing pod. The adapter therefore never confirms a provider-side shutdown, and admission
+  through it always refuses. Closing the gap needs either a creation-time stop that RunPod is
+  shown to enforce, or an external always-on controller (for example a scheduled workflow in the
+  backup repository holding the RunPod key as a secret). Neither is built.
+
+Decisions the user must record before a live admission can succeed: what `clientBalance` means
+and in which currency; the storage prices; and which shutdown option to build and validate.
+
 ## What waits for the funded one-worker validation
 
-These are not established by anything above:
+These are not established by anything above. Before it, and free of charge, the two `check-`
+commands should be run once against the real services (they need only the tokens):
 
 1. an actual persistent mount at the recorded path, confirmed by the provider;
 2. an off-pod copy made by the worker while the laptop is disconnected, to a destination
