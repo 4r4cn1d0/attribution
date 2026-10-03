@@ -79,7 +79,7 @@ seconds are controller-timed up to each session's final clock read (``costs.PHYS
 Missing-label and broader intervals are deterministic bounds over labels of fixed prompts, not
 sampling intervals. Labels state what this is not: not a confirmatory H2 test, not D_info (its
 primitive-mean and feasibility-region analysis is separate and unestablished), not an allocator
-claim, not an ICML claim, not human harm; constraints are heuristics; costs are reconstructed
+claim, not a publication claim, not human harm; constraints are heuristics; costs are reconstructed
 counterfactual estimates.
 """
 
@@ -100,7 +100,7 @@ __all__ = ["ANALYSIS_KIND", "LABELS", "STATUS", "ENDPOINT_NAMES", "COST_ENDPOINT
 ANALYSIS_KIND = "safety-decision-policy analysis"
 LABELS = [
     "EXPLORATORY finite-menu diagnostic of two specified policies (S-, S+) sharing one acquisition and "
-    "choice algorithm; not a confirmatory H2 test, not a new allocator and not an ICML claim",
+    "choice algorithm; not a confirmatory H2 test, not a new allocator and not a publication claim",
     "the original D_info / H2 estimand remains unestablished: it needs the separate primitive-mean and "
     "feasibility-region analysis; this paired fresh-deployment contrast does not replace it",
     "estimated utility and refusal constraints are shared heuristics, not confidence certificates; average "
