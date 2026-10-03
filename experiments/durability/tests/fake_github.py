@@ -1,9 +1,11 @@
 """A fake GitHub REST API on 127.0.0.1 for the connector tests (ENGINEERING FIXTURE). It implements
-only what ``GitHubReleaseDestination`` uses, with the documented behaviours the connector relies on:
-create-only asset names (422 on a duplicate), a tag that cannot be created twice, pagination with
-``Link`` headers, binary downloads through a redirect, asset states, and scripted faults (a 502 that
-leaves a ``starter`` asset, rate-limit answers, stored bytes that differ from what was sent). It is
-not GitHub and proves nothing about GitHub's real behaviour."""
+only what ``GitHubReleaseDestination`` and the shutdown watchdog use, with the documented behaviours
+they rely on: create-only asset names (422 on a duplicate), a tag that cannot be created twice,
+pagination with ``Link`` headers, binary downloads through a redirect, asset states, scripted faults
+(a 502 that leaves a ``starter`` asset, rate-limit answers, stored bytes that differ from what was
+sent), ``repository_dispatch`` events (recorded; nothing runs by itself) and the list of a
+workflow's runs, which only the workflow's own token may read. It is not GitHub and proves nothing
+about GitHub's real behaviour."""
 
 from __future__ import annotations
 
@@ -15,6 +17,7 @@ import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 TOKEN = "fake-token-0123456789-never-a-real-credential"
+WORKFLOW_TOKEN = "fake-workflow-token-9876543210-never-a-real-credential"   # the workflow run's GITHUB_TOKEN
 
 
 class FakeGitHub:
@@ -35,11 +38,15 @@ class FakeGitHub:
         self.log: list[tuple[str, str, bool]] = []     # (method, path with query, had an Authorization header)
         self.leaks: list[str] = []                     # requests that carried the token where they must not
         self.mangle_labels = False
+        self.dispatches: list[dict] = []               # repository_dispatch bodies, in order
+        self.dispatch_status = 204
+        self.runs: list[dict] = []                     # workflow runs, newest first ({"id", "event", "created_at"})
+        self.foreign: list[str] = []                   # other services' secrets, which must never arrive here
         self._ids = 1000
         self._lock = threading.RLock()
         self._server = ThreadingHTTPServer(("127.0.0.1", 0), self._handler())
         self.url = f"http://127.0.0.1:{self._server.server_address[1]}"
-        self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
+        self._thread = threading.Thread(target=self._server.serve_forever, kwargs={"poll_interval": 0.02}, daemon=True)
         self._thread.start()
 
     def close(self) -> None:
@@ -91,13 +98,17 @@ class FakeGitHub:
             def _route(self, method: str) -> None:
                 parts = urllib.parse.urlsplit(self.path)
                 query = urllib.parse.parse_qs(parts.query)
-                authorized = self.headers.get("Authorization") == f"Bearer {TOKEN}"
+                authorized = self.headers.get("Authorization") in (f"Bearer {TOKEN}", f"Bearer {WORKFLOW_TOKEN}")
                 length = int(self.headers.get("Content-Length") or 0)
                 body = self.rfile.read(length) if length else b""
                 with fake._lock:
                     fake.log.append((method, self.path, "Authorization" in self.headers))
-                    if TOKEN in self.path:
+                    if TOKEN in self.path or WORKFLOW_TOKEN in self.path:
                         fake.leaks.append(f"token in a URL: {method} {parts.path}")
+                    everything = self.path.encode() + str(self.headers).encode() + body
+                    if any(secret.encode() in everything for secret in fake.foreign) or any(
+                            secret.encode() in body for secret in (TOKEN, WORKFLOW_TOKEN)):
+                        fake.leaks.append(f"a secret was sent where it does not belong: {method} {parts.path}")
                 path = parts.path
                 if path.startswith("/_blob/"):                         # the signed storage URL of a download
                     if "Authorization" in self.headers:
@@ -110,6 +121,17 @@ class FakeGitHub:
                 if not path.startswith(base):
                     return self._send(404, {"message": "Not Found"})
                 rest = path[len(base):]
+                if method == "POST" and rest == "/dispatches":
+                    with fake._lock:
+                        fake.dispatches.append(json.loads(body))
+                    return self._send(fake.dispatch_status)
+                if method == "GET" and (m := re.fullmatch(r"/actions/workflows/([^/]+)/runs", rest)):
+                    if self.headers.get("Authorization") != f"Bearer {WORKFLOW_TOKEN}":
+                        return self._send(403, {"message": "Resource not accessible by personal access token"})
+                    with fake._lock:
+                        runs = [run for run in fake.runs if run["event"] in query.get("event", [run["event"]])]
+                    return self._send(200, {"total_count": len(runs),
+                                            "workflow_runs": runs[:int(query.get("per_page", ["30"])[0])]})
                 if method == "GET" and (m := re.fullmatch(r"/releases/tags/(.+)", rest)):
                     if self._fault("any"):
                         return None

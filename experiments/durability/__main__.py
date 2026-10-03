@@ -14,6 +14,9 @@ Commands:
   (``connector-test``) and leaves two tiny final objects there, which are never deleted.
 - ``check-provider``: read-only questions to the configured provider, reported as shapes (types,
   counts, whether each answer was usable), never as account details.
+- ``check-watchdog``: what the shutdown watchdog's records say about a worker's pod: its latest
+  acknowledged arm, the stop time, the acknowledging workflow run and any recorded stop. It reads
+  the backup repository's release assets and nothing else; it arms nothing.
 
 ``--destination`` is a directory, or ``github:owner/repo`` with ``--declared-free-bytes`` (the token
 comes from the environment variable ``ATTRIBUTION_BACKUP_GITHUB_TOKEN``; without it every call
@@ -36,7 +39,7 @@ from .common import CollisionError, DurabilityError, Journal, SourceMap, sha256_
 from .destination import Destination
 from .runpod_provider import SHUTDOWN_GAP, RunPodProvider
 from .units import code_unit, prepared_unit, run_unit
-from .wiring import destination_from, provider_from
+from .wiring import destination_from, provider_from, shutdown_from
 
 __all__ = ["main"]
 
@@ -79,6 +82,11 @@ def _parser() -> argparse.ArgumentParser:
     p.add_argument("--path", help="a source path to check for persistence")
     p.add_argument("--runpod-rest-url", help=argparse.SUPPRESS)      # tests: a fake API on 127.0.0.1
     p.add_argument("--runpod-graphql-url", help=argparse.SUPPRESS)
+    p = sub.add_parser("check-watchdog")
+    p.add_argument("--config", required=True, help="provider configuration with a shutdown section (JSON; README)")
+    p.add_argument("--worker", required=True, help="a worker name from the configuration")
+    p.add_argument("--github-api-url", help=argparse.SUPPRESS)       # tests: a fake API on 127.0.0.1
+    p.add_argument("--github-upload-url", help=argparse.SUPPRESS)
     return parser
 
 
@@ -169,9 +177,28 @@ def _check_provider(args: argparse.Namespace) -> dict:
         ask("persistence", lambda: provider.confirm_persistent(args.path),
             lambda r: {"persistent": r.get("persistent") is True})
     # this command never asks a provider to arm anything; it reports whether the adapter could
-    out["shutdown"] = ({"can_arm": False, "why": SHUTDOWN_GAP} if isinstance(provider, RunPodProvider)
-                       else {"can_arm": "not asked"})
+    if isinstance(provider, RunPodProvider) and provider.shutdown is None:
+        out["shutdown"] = {"can_arm": False, "why": SHUTDOWN_GAP}
+    elif isinstance(provider, RunPodProvider):
+        out["shutdown"] = {"can_arm": "only with the watchdog's acknowledgement at admission (not asked here)",
+                           "watchdog": provider.shutdown.describe()}
+    else:
+        out["shutdown"] = {"can_arm": "not asked"}
     return out
+
+
+def _check_watchdog(args: argparse.Namespace) -> dict:
+    """Reads the watchdog's records for one worker's pod; arms and stops nothing."""
+    config = json.loads(Path(args.config).read_text(encoding="utf-8"))
+    pod = (config.get("worker_pods") or {}).get(args.worker) if isinstance(config, dict) else None
+    if not isinstance(pod, str) or not pod:
+        raise DurabilityError("the configuration names no pod for this worker")
+    options = {name: value for name, value in (("api_url", args.github_api_url),
+                                               ("upload_url", args.github_upload_url)) if value is not None}
+    watchdog = shutdown_from(config.get("shutdown"), **options)
+    if watchdog is None:
+        return {"watchdog": None, "armed": False, "why": SHUTDOWN_GAP}
+    return {"watchdog": watchdog.describe(), **watchdog.status(pod)}
 
 
 def _command(args: argparse.Namespace) -> dict:
@@ -179,6 +206,8 @@ def _command(args: argparse.Namespace) -> dict:
         return _check_destination(_destination(args, scheme="connector-test"))
     if args.command == "check-provider":
         return _check_provider(args)
+    if args.command == "check-watchdog":
+        return _check_watchdog(args)
     if args.command == "ingest":
         if bool(args.code) == bool(args.no_code_pin):
             raise DurabilityError("give --code, or --no-code-pin to acknowledge evidence without its source")

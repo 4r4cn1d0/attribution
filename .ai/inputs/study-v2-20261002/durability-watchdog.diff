@@ -1,0 +1,3046 @@
+diff --git a/experiments/durability/README.md b/experiments/durability/README.md
+index fa16c50..bce4ec9 100644
+--- a/experiments/durability/README.md
++++ b/experiments/durability/README.md
+@@ -7,13 +7,15 @@ nothing, and it changes no file of the frozen engine (`experiments/safety_select
+ (`experiments/safety_decision_policy`).
+ 
+ **Status.** Implemented and tested locally on CPU with fakes (3 October 2026), including the two
+-real connectors: GitHub release assets as the off-pod destination and RunPod's API as the provider
+-([real connectors](#real-connectors)). Neither connector has made a request to its real service
+-yet: no token was present when they were built, so every claim about them rests on the services'
+-documentation and on local fakes. This does not satisfy the restart prerequisites of the
+-2 October incident record by itself. The defaults stay unconfigured and refuse; the RunPod
+-adapter cannot arm a shutdown, so admission refuses on a real deployment until that gap is closed
+-and the funded one-worker validation has run ([what waits](#what-waits-for-the-funded-one-worker-validation)).
++real connectors (GitHub release assets as the off-pod destination, RunPod's API as the provider;
++[real connectors](#real-connectors)) and an external shutdown watchdog that runs on GitHub
++Actions ([the shutdown watchdog](#the-shutdown-watchdog)). None of them has made a request to its
++real service yet: no token was present when they were built, and the watchdog is not deployed, so
++every claim about them rests on the services' documentation and on local fakes. This does not
++satisfy the restart prerequisites of the 2 October incident record by itself. The defaults stay
++unconfigured and refuse: without a configured and acknowledging watchdog the RunPod adapter
++cannot arm a shutdown and admission refuses. The funded one-worker validation is still required
++([what waits](#what-waits-for-the-funded-one-worker-validation)).
+ 
+ The operating procedure and its limits are in
+ `research/experiments/2026-10-03-recovery-safeguards.md`.
+@@ -31,10 +33,12 @@ The operating procedure and its limits are in
+ | `transport.py` | stdlib `urllib` | the HTTPS client of the real connectors: token from the environment, sent only to the service, no credential on redirects, bounded retries |
+ | `github_destination.py` | stdlib | `GitHubReleaseDestination`: the `Destination` contract on release assets of a private repository |
+ | `runpod_provider.py` | stdlib | `RunPodProvider`: read-only answers from RunPod's API, closed wherever a meaning is not confirmed |
++| `shutdown_watchdog.py` | stdlib | `GitHubActionsWatchdog`: the worker's side of the shutdown watchdog; answers `armed` only after the watchdog's acknowledgement |
++| `watchdog/` | stdlib (self-contained; not imported) | the watchdog itself, to deploy in the backup repository: `watchdog.py`, the workflow `watchdog.yml`, the pod allow-list |
+ | `wiring.py` | stdlib | builds the real connectors from explicit configuration; the defaults stay unconfigured |
+ | `engine_units.py` | engine `runner` (torch) when it launches | `UnitRunner`: the administrative loop around `runner.run_one`; the attempt catalogue; lost attempts |
+ | `stage_b.py` | Stage B `common` | `GatedBackend` around a Stage B backend; `StudyBackup`; `run_block_gated` |
+-| `__main__.py` | stdlib | commands `ingest`, `restore`, `acks`, `check-destination`, `check-provider` (nothing creates, starts, stops or deletes) |
++| `__main__.py` | stdlib | commands `ingest`, `restore`, `acks`, `check-destination`, `check-provider`, `check-watchdog` (nothing creates, starts, stops or deletes) |
+ 
+ ## The unit
+ 
+@@ -144,9 +148,13 @@ admit  iff  available >= need
+ 
+ `worker_rate` is the worker's GPU plus storage rate per hour; `retention_reserve` must be at
+ least the storage and destination rates over the policy's retention hours. The lease expires at
+-`now + increment`; the reservation runs to `now + horizon`, when the provider stops the worker
++`now + increment`; the reservation runs to `now + horizon`, by when the worker has been stopped
+ (`Provider.arm_shutdown`, armed before the lease is returned). Stopping Python does not stop
+-billing. Reservations are appended to one ledger under an exclusive file lock.
++billing. A shutdown that is not exact states its lateness (`Provider.shutdown_lateness_seconds`;
++the watchdog's is configuration), and the policy's `shutdown_delay_seconds` must be at least that:
++the stop is then asked for no earlier than the end of the lease plus the backup delay, and it is
++complete, and funded, by the end of the reservation. Reservations are appended to one ledger under
++an exclusive file lock.
+ 
+ Each lease records its retention reserve and the end of its retention window (`now + horizon +
+ retention hours`). One reserve per worker is held, its latest lease's: a renewal replaces it and
+@@ -166,7 +174,8 @@ Admission **refuses** when: the provider, a reading or the liability list is una
+ balance is not an explicitly recognized `prepaid-credit-balance` (a pod billing total or a removed
+ spending cap is not a balance); a number is missing, negative or non-finite; currencies differ; a
+ reading is stale or future-dated; the provider's rates differ from the rates the plan was costed
+-with; the storage declaration fails; the shutdown cannot be armed; or the runway is insufficient.
++with; the storage declaration fails; the shutdown cannot be armed; the policy's shutdown delay is
++shorter than the shutdown's stated lateness; or the runway is insufficient.
+ 
+ `check_storage` requires: the provider confirms the source path is on persistent storage; the
+ destination is declared independent of the GPU account, funded, and retained long enough; it is
+@@ -298,7 +307,8 @@ comes from `RUNPOD_API_KEY` and is sent as a header, never in a URL. The adapter
+ https://rest.runpod.io/v1/pods`, `GET https://rest.runpod.io/v1/networkvolumes` and one fixed
+ GraphQL query (`myself { clientBalance currentSpendPerHr spendLimit }`) to
+ `https://api.runpod.io/graphql`. It has no call that creates, starts, stops, updates or deletes
+-anything.
++anything; the stop at the end of a reservation is the watchdog's, with a key the worker never
++holds.
+ 
+ | Question | Answer and what it rests on |
+ |---|---|
+@@ -306,12 +316,13 @@ anything.
+ | Rates | The worker pod's `costPerHr`, "the cost in Runpod credits per hour of running a Pod" ([REST: pods](https://docs.runpod.io/api-reference/pods/GET/pods)). The API reports no storage rate, so storage prices per GB-month are configuration, taken from the [storage page](https://docs.runpod.io/pods/storage/types) and confirmed by a named person. The pod's container disk and volume are added to the storage rate; whether `costPerHr` already includes them is not documented, so this can only over-state. |
+ | Liabilities | Every RUNNING pod (cost plus disks), every EXITED pod (its volume at the stopped price), every network volume. If the account's `currentSpendPerHr` exceeds what these explain, something else bills and the call refuses. A liability of a configured worker's pod or attached volume carries that worker's name; admission then relies on the worker's lease to cover it, which holds only if its rate card is complete. |
+ | Persistence | Confirmed only for a path under `volumeMountPath` of the RUNNING local pod that has a network volume attached, which the account's volume list also shows. "Network volume ... retained independently"; a container disk is "lost on stop/restart"; a pod volume "is deleted when the Pod is terminated" ([storage types](https://docs.runpod.io/pods/storage/types)). |
+-| Shutdown | Never confirmed: see below. |
++| Shutdown | RunPod offers nothing to arm on an existing pod. Confirmed only through the external watchdog's acknowledgement: see [the shutdown watchdog](#the-shutdown-watchdog). Without it, `NotConfigured`. |
+ 
+ A field that is missing, of another type or outside the documented values raises
+ `ProviderError`. Admission treats whatever a provider raises as a refusal.
+ 
+-Configuration (JSON for `check-provider`; the two confirmations are what the user must decide):
++Configuration (JSON for `check-provider` and `check-watchdog`; the two confirmations are what the
++user must record; without the `shutdown` section no shutdown can be armed):
+ 
+ ```json
+ {
+@@ -319,6 +330,7 @@ Configuration (JSON for `check-provider`; the two confirmations are what the use
+   "worker_pods": {"worker-1": "<pod id>"},
+   "local_pod_id": "<pod id of this worker>",
+   "destination_per_hour": 0.0,
++  "shutdown": {"kind": "github-actions-watchdog", "repository": "4r4cn1d0/attribution-backups", "lateness_seconds": 5400},
+   "balance_confirmation": {"confirmed_by": "<name>", "confirmed_utc": "2026-10-04T00:00:00+00:00", "currency": "USD", "statement": "<what was checked and where>"},
+   "storage_prices": {"network_volume_per_gb_month": 0.07, "pod_volume_running_per_gb_month": 0.10, "pod_volume_stopped_per_gb_month": 0.20, "container_disk_per_gb_month": 0.10, "hours_per_month": 720, "source": "docs.runpod.io/pods/storage/types, read <date>", "confirmed_by": "<name>", "confirmed_utc": "2026-10-04T00:00:00+00:00"}
+ }
+@@ -331,30 +343,207 @@ pod ids):
+ python -m experiments.durability check-provider --config provider.json --worker worker-1 --path /workspace/attribution-study-v2
+ ```
+ 
+-### The shutdown gap
+-
+-`RunPodProvider.arm_shutdown` always raises `NotConfigured`, so **admission through the real
+-adapter always refuses**. That is deliberate: a lease promises that the worker stops billing at
+-the end of its reservation even if every process of ours is dead, and nothing in RunPod's
+-documentation lets this code confirm that for an existing pod.
+-
+-- The GraphQL reference lists `stopAfter` and `terminateAfter` (`DateTime`) among the inputs
+-  that create a pod (`PodFindAndDeployOnDemandInput`, `PodRentInterruptableInput`), with no
+-  description. The pod type does not expose them, the REST pod schema has no such field, and no
+-  documented call sets a stop time on a running pod. A stop time that cannot be read back cannot
+-  be confirmed here.
+-- **Option 1: a stop time set when the pod is created.** If the funded validation shows that
+-  RunPod enforces `terminateAfter` or `stopAfter` on its servers, the pod would be created with
+-  it (creation is outside this package), the operator would record that time, and the lease
+-  would be bounded by it. This needs a small change to the `Provider` contract (accept a recorded
+-  provider-enforced deadline at or before the requested time) and a way to confirm it per pod.
+-- **Option 2: an external always-on controller.** For example a scheduled GitHub Actions workflow
+-  in the backup repository that stops the pod through RunPod's API at the lease end. It would
+-  need: the RunPod key as an Actions secret set by the user; the lease end published where the
+-  workflow reads it; a `podStop` call (the only place a mutating call would exist, outside the
+-  worker); and an acknowledgement the worker can read back before the lease is granted. GitHub's
+-  schedules are not exact to the minute, so the reservation would need that slack. Not built.
+-- Until one of them exists and is validated, real admission is refused by design.
++### The shutdown watchdog
++
++A lease promises that the worker stops billing at the end of its reservation even if every
++process of ours is dead and the laptop is off. RunPod gives this code nothing to arm: its GraphQL
++reference lists `stopAfter` and `terminateAfter` only among the inputs that create a pod, without
++a description; the pod type and the REST pod schema do not expose them; and no documented call
++sets a stop time on an existing pod. So the stop is done from outside RunPod and outside the
++worker, by a scheduled GitHub Actions workflow in the backup repository (the user's decision of
++3 October 2026). It is free within GitHub's included minutes, needs no server, and keeps running
++when the worker and the laptop do not.
++
++**What runs where**
++
++| | where | what it holds | what it can do |
++|---|---|---|---|
++| the watchdog (`watchdog/watchdog.py`, `watchdog/watchdog.yml`) | GitHub Actions, backup repository | the RunPod key as the Actions secret `RUNPOD_API_KEY`; the run's own `GITHUB_TOKEN` | read one allow-listed pod, **stop** it, write records |
++| the worker's side (`shutdown_watchdog.py`) | the worker, inside admission | the backup token it already has | publish an arm record, send one event, read the acknowledgement |
++
++**The protocol.** Records are release assets of the backup repository, one release per kind and
++month, every one create-only (GitHub refuses a second asset of the same name):
++
++```
++watchdog-arms-YYYY-MM    arm-<id>.json     the worker: worker, pod, stop_at_utc, ack_by_utc
++                         void-<id>.json    the worker: withdraws an arm it got no lease from
++watchdog-acks-YYYY-MM    ack-<id>.json     the watchdog: this run will stop this pod at stop_at_utc
++                         refusal-<id>.json the watchdog: why it will not (final for that arm)
++watchdog-stops-YYYY-MM   stop-<id>.json    the watchdog: the final outcome of the stop
++                         stop-attempt-<id>-<run>.json   a stop that was not confirmed
++```
++
++1. Admission computes the end of the reservation and asks the provider to arm a stop that is
++   complete by then. The worker's side publishes the arm with
++   `stop_at_utc = end of reservation - lateness_seconds` and sends a `repository_dispatch` event
++   naming it.
++2. That event starts one short workflow run. It acknowledges only if: the arm is well formed; it
++   names a worker and pod of the allow-list (`watchdog/pods.json`); it is inside its
++   acknowledgement window (10 minutes by default); RunPod, asked with the Actions secret, reports
++   that pod as `RUNNING`; and a **scheduled** scan of the workflow ran within the last 75
++   minutes. Otherwise it writes a refusal, and a refusal is final.
++3. The worker's side answers `armed` only after it has read an acknowledgement that names this
++   arm, worker, pod and stop time, a workflow run, a recent scheduled scan, and a scan interval
++   that the configured lateness covers twice. Anything else, including silence until the window
++   ends, raises; the arm is withdrawn with a void record; admission grants no lease.
++4. Every 30 minutes the scheduled scan finds, for each allow-listed pod, its **governing** arm:
++   the latest one that is acknowledged and not withdrawn. At its first scan at or after
++   `stop_at_utc` it sends `POST https://rest.runpod.io/v1/pods/{id}/stop`, confirms with a `GET`
++   that the pod is no longer running and records the outcome. A stop that is not confirmed fails
++   the run (it shows red in the Actions tab) and is tried again at the next scan.
++
++The watchdog **stops** a pod; it never terminates or deletes one, and the script contains no
++`DELETE` request for either service. It never stops a pod that no acknowledged, valid arm names,
++and nothing outside the allow-list is ever read. A stop is recorded once per arm: a second scan
++finds the outcome and does nothing. A renewed lease publishes a later arm, which governs from its
++acknowledgement on, so the earlier stop time lapses; a renewal that is refused, unanswered or
++withdrawn leaves the earlier stop in force. Malformed arms, arms without an acknowledgement and
++arms for other pods govern nothing and suppress nothing.
++
++**The lateness, and the recommended shutdown delay.** GitHub runs a schedule at best every 5
++minutes, can delay it under load and may drop a queued run
++([events that trigger workflows: schedule](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows)).
++With a scan every 30 minutes the stop begins up to 30 minutes after `stop_at_utc`, 60 if one
++scheduled run is dropped, plus whatever delay GitHub adds and the stop call itself. The
++recommended setting is **`lateness_seconds = 5400` and a policy `shutdown_delay_seconds` of at
++least 5400** (three scan intervals: one dropped run, half an hour of delay, the confirmed stop).
++Admission refuses a policy whose shutdown delay is below the configured lateness, and the worker's
++side refuses a lateness below two scan intervals. The delay is reserved runway, charged at the
++worker's rate with the contingency; it is spent only if the stop really is that late. 5400 is an
++assumption about GitHub's scheduler: nothing enforces it, and the funded validation must measure
++the real lateness (`seconds_after_stop_time` in each stop record).
++
++**Actions minutes.** GitHub Free includes 2,000 Actions minutes a month for private repositories,
++counted per account, and rounds every job up to a whole minute
++([GitHub Actions billing](https://docs.github.com/en/billing/concepts/product-billing/github-actions)).
++A scan is one job of a few seconds, so:
++
++| | runs | billed minutes |
++|---|---|---|
++| scheduled scans, 2 an hour | 48 a day | 1,440 in a 30-day month, 1,488 in a 31-day month |
++| each admission, renewal or refused arm | 1 | 1 |
++| what is left of 2,000 | | 512 to 560 a month, about 16 arms a day |
++
++A month of continuous work on one worker with 2-hour leases is 12 arms a day: 372 minutes, 1,860
++in total. Leases shorter than about 90 minutes, held all month, would not fit; the one-pod
++validation needs a handful of arms. Three cautions. The quota is shared with every other private
++repository of the account. When it is used up and no payment method is set, GitHub blocks further
++jobs; the scans then stop, new arms are refused (no recent scheduled scan), and a lease already
++granted would not be stopped. And the arithmetic assumes every run finishes within a minute,
++which the Actions tab shows after the first day. The optional `WATCHDOG_TAIL_SECONDS` (0 in the
++workflow) makes a scan wait inside the run for a stop time that close; it removes most of the
++lateness but every waited minute is billed, also when a renewal arrives in the end.
++
++Rejected: a scan every 5 minutes (8,640 minutes a month); one sleeping run per lease (it bills
++the whole lease and a job ends after 6 hours,
++[Actions limits](https://docs.github.com/en/actions/reference/limits)); enabling the schedule
++only while a lease exists (the worker's token would need "Actions: write", and a scan that
++disables it can race an arm that enables it); `workflow_dispatch` from the worker (it also needs
++"Actions: write"; `repository_dispatch` needs only "Contents: write",
++[permissions reference](https://docs.github.com/en/rest/authentication/permissions-required-for-fine-grained-personal-access-tokens)).
++
++**Least privilege**
++
++- The workflow's `permissions:` block is `contents: write` (read arms, write acknowledgements and
++  outcomes as release assets) and `actions: read` (see when the scheduled scan last ran). Nothing
++  else is granted to its `GITHUB_TOKEN`.
++- **The workflow file is the trusted part, and it pins what it runs.** The backup token's
++  "Contents: write" also allows pushing commits, so a faulty or compromised worker could rewrite
++  `watchdog/watchdog.py` or `watchdog/pods.json`. It cannot change the workflow: that needs the
++  "Workflows" permission. The workflow therefore carries the SHA-256 of both files and checks
++  them in a step that has no secret in its environment and executes nothing from the repository;
++  a changed or missing file ends the job there, before the RunPod key is given to anything. The
++  script then runs as `python3 -I`, so a module placed next to it (a `json.py`, say) cannot take
++  the place of the standard library, which the hash of the script alone would not prevent. The
++  one action used, GitHub's `actions/checkout`, is pinned to a full commit and keeps no
++  credentials (`persist-credentials: false`).
++- The backup token (`ATTRIBUTION_BACKUP_GITHUB_TOKEN`) needs **no new permission**: release
++  assets and `POST /repos/{owner}/{repo}/dispatches` are both under "Contents: write". It cannot
++  read workflow runs and does not try.
++- The RunPod key that can stop a pod exists only as the Actions secret. The worker never holds
++  it. The worker's own `RUNPOD_API_KEY` (admission only reads) should be a separate **Read Only**
++  key. RunPod's key levels are "All", "Restricted" and "Read Only"
++  ([API keys](https://docs.runpod.io/get-started/api-keys)); the documentation does not say which
++  Restricted setting permits a stop, so the watchdog's key is "Restricted" with write access to
++  Pods if the console offers that, and otherwise "All". The acknowledgement proves only that the
++  key can *read* the pod; that it can *stop* one is shown by the first real stop.
++- Secrets reach the script through the step's environment, go only into the `Authorization`
++  header of their own service, are not forwarded on a redirect, and are never printed; the event
++  payload is validated by a pattern before it is used and never reaches a shell line.
++- Records are not signed. Whoever can write release assets in the backup repository can write a
++  false acknowledgement or withdraw an arm, and whoever can push there can make the pinned check
++  fail, which turns every run red and stops nothing. The pins protect the RunPod key; they do
++  not make the stop safe from a compromised backup token. The watchdog protects against a dead
++  worker, a dead laptop and an exhausted attention span. (Whether GitHub lets a token without the
++  "Workflows" permission delete a workflow file was not checked.)
++
++**Steps for the lead (deployment; nothing here was done by this package)**
++
++1. Put `watchdog/watchdog.py`, `watchdog/pods.json` (a byte-for-byte copy of
++   `pods.example.json`) and `.github/workflows/watchdog.yml` on the default branch of
++   `4r4cn1d0/attribution-backups` (`watchdog/README.md` lists the paths; the pinned hashes are in the workflow itself).
++   Pushing a workflow file needs a credential with the "Workflows" permission; the backup token
++   must not have it. The files must arrive unchanged: the workflow refuses a script or an
++   allow-list that differs from its pins by one byte (a changed line ending is enough).
++2. This can be done before the user has set the secret. With the empty allow-list a scan needs no
++   RunPod key and is green; that is how the schedule is observed for a day without a pod.
++3. **Adding or changing a pod** (the pod id is known only once the pod exists): edit
++   `watchdog/pods.json` to `{"workers": {"worker-1": "<pod id>"}}`, run `sha256sum
++   watchdog/watchdog.py watchdog/pods.json` (`shasum -a 256` on macOS), replace the hash on the
++   matching `pin` line of the workflow, and push both files in **one commit** with the credential
++   that has the "Workflows" permission. Between two commits every run would fail at the check.
++   The same goes for any change to the script. From then on the secret must be set: a scan with
++   a pod on the list and no key fails.
++4. The checkout action is pinned to commit `3d3c42e5aac5ba805825da76410c181273ba90b1`, which the
++   lead verified on 3 October 2026 through the GitHub API as the tag `v7.0.1`, the latest release
++   of `actions/checkout`. This package made no GitHub request and did not check it.
++5. Add the `shutdown` section to the provider configuration (above) and use an admission policy
++   with `shutdown_delay_seconds >= 5400`.
++6. Admit only after a scheduled run has appeared in the Actions tab: a manual run does not count
++   as the schedule running.
++
++**Steps for the user**
++
++1. RunPod console, Settings, API Keys: create a key for the watchdog (see "Least privilege") and
++   copy it; it is shown once.
++2. GitHub, `4r4cn1d0/attribution-backups`, Settings, Secrets and variables, Actions, "New
++   repository secret": name `RUNPOD_API_KEY`, value that key. It must be there before a pod is
++   put on the allow-list; until then the scans run without it.
++3. Same repository, Settings, Actions, General: Actions must be allowed to run, including
++   GitHub's own `actions/checkout`. The workflow-permissions default can stay read-only; the
++   workflow asks for what it needs.
++4. Nothing changes on the backup token. In particular it must not be given the "Workflows"
++   permission: that the worker cannot change the workflow is what protects the RunPod key.
++5. Check that the watchdog is running: the Actions tab shows a "watchdog" run every half hour,
++   green. Check that a lease is armed:
++
++   ```bash
++   python -m experiments.durability check-watchdog --config provider.json --worker worker-1
++   ```
++
++   prints the governing arm, its stop time and the workflow run that acknowledged it (`"armed":
++   true`), or the recorded stop. The same records are visible under Releases
++   (`watchdog-acks-YYYY-MM`, `watchdog-stops-YYYY-MM`).
++6. Account settings, Billing: watch the Actions minutes. The watchdog alone uses about 1,500 a
++   month.
++
++**What the watchdog does not do**
++
++- It is a backstop, not a scheduler. Work that finishes early leaves the pod running until the
++  stop time unless the operator stops it. (RunPod documents `runpodctl pod stop $RUNPOD_POD_ID`
++  from inside a pod, [manage pods](https://docs.runpod.io/pods/manage-pods); that dies with the
++  pod's processes, so it is no substitute, and it is not used here.)
++- One stop per arm. A pod started again by hand after its stop is not watched until a new lease
++  arms it.
++- A stop leaves storage billing: "You'll still be charged for volume disk storage while stopped",
++  and a network volume bills independently of any pod. The retention reserve covers that.
++- If the worker can neither read an acknowledgement nor write the void (GitHub unreachable from
++  the worker at that moment), an arm may be acknowledged that no lease stands behind. The error
++  says so; the later stop time then governs until the operator withdraws it or a new lease arms.
++- A pod RunPod reports as not found is recorded as gone. A key replaced by another account's
++  would look the same.
++- A release holds at most 1,000 assets; a month of arms stays far below that at the lease lengths
++  the minutes allow, and a full release makes the arm fail, which refuses admission.
+ 
+ ## What is guaranteed locally
+ 
+@@ -381,7 +570,21 @@ Shown by the tests in `tests/` (CPU, fakes, a directory as the destination):
+   secrecy;
+ - `RunPodProvider` against a fake RunPod API: recognition only with a recorded confirmation,
+   rates and liabilities, persistence only under a network-volume mount, unknown shapes and
+-  unexplained spend refused, read-only requests, and admission stopping at the shutdown gap;
++  unexplained spend refused, read-only requests, and admission refusing when no shutdown watchdog
++  is configured;
++- the shutdown watchdog, the deployed script itself run against fake GitHub and RunPod services
++  with a manual clock: no stop before the stop time and one at the first scan after it; a renewal
++  superseding the earlier stop time, also while a scan waits; malformed, unacknowledged, withdrawn
++  and refused arms governing nothing; an arm for a pod outside the allow-list refused and that pod
++  never read; one stop request however many scans follow; an unconfirmed stop failing the run and
++  retried; no `DELETE` request to either service; a scan with an empty allow-list succeeding
++  without the RunPod key and one with a listed pod and no key failing; the workflow's pins equal
++  to the shipped files, its verification step (run here with bash) rejecting a changed or missing
++  script or allow-list, holding no secret and coming before the script; isolated Python ignoring
++  a module placed next to the script; `armed` only after a matching acknowledgement;
++  a late, missing or mismatched acknowledgement refusing admission and withdrawing the arm;
++  admission succeeding end to end with every input confirmed and refusing when any one is
++  withdrawn; no secret in any log, record, error or request to the other service;
+ - every listed admission input fails closed, two concurrent workers cannot both reserve the same
+   runway, a second worker cannot spend the first worker's retention reserve (through renewal and
+   release, until its window ends), and an unreadable ledger refuses;
+@@ -404,7 +607,9 @@ Before any funded run (free, needs only the tokens):
+   recorded, to settle the throughput question;
+ - `check-provider` against the real account: the field shapes, header authentication on GraphQL,
+   and whether `currentSpendPerHr` behaves as the cross-check assumes;
+-- the user's decisions: the balance confirmation, the storage prices, and a shutdown option.
++- the watchdog deployed and observed for a day with no pod: scheduled runs appearing about every
++  30 minutes, each billed as one minute, and how late they start;
++- the user's recorded confirmations: the balance and the storage prices.
+ 
+ In the funded one-worker validation:
+ 
+@@ -412,20 +617,33 @@ In the funded one-worker validation:
+ 2. an off-pod copy made **by the worker**, with the laptop disconnected, to the GitHub repository,
+    and the acknowledgement read from an independent machine after the worker is killed;
+ 3. a restore on a fresh provider host into the recorded layout;
+-4. a provider-side timed shutdown that actually stops billing ([the shutdown gap](#the-shutdown-gap));
++4. a real stop by the watchdog at the stop time, **with the laptop disconnected and the worker's
++   processes killed**: the acknowledgement read back by admission on the pod, the pod (with its
++   network volume attached) reported as stopped, the measured lateness against the configured
++   5400 s, the key level that was enough to stop it, and the account's spend falling to the
++   storage rates afterwards ([the shutdown watchdog](#the-shutdown-watchdog));
+ 5. real balance semantics: what `clientBalance` means, its currency, its delay, and whether
+    liabilities and rates are reported as assumed;
+ 6. a restored continuation on CUDA that matches what an uninterrupted run would have produced.
+ 
+ Only after these may concurrency rise, and only within verified runway.
+ 
+-## Open decisions for the lead
+-
+-1. **Tombstones.** Declaring a lost fresh start writes an administrative `error.txt` into the
+-   lost attempt's folder so that the engine's own retry rule applies. The alternatives are to
+-   treat such a unit as permanently unrunnable in that registry, or to amend the engine. It is an
+-   explicit, operator-named action and is never taken automatically.
+-2. **Stage B cost of the safeguard.** Every safeguard second inside a session is in the Stage B
++## Open decisions
++
++None is open. The four below were decided by the user on 3 October 2026.
++
++1. **Tombstones: allowed.** Declaring a lost fresh start writes an administrative `error.txt` into
++   the lost attempt's folder so that the engine's own retry rule applies. It stays an explicit,
++   operator-named action and is never taken automatically.
++2. **Strictness of the gate: accepted for the one-pod validation.** The copy and the restore
++   check run synchronously on the worker, so a billed GPU idles while they run. The idle time is
++   accepted for the funded one-pod validation and is to be measured there.
++3. **Shutdown: the external GitHub Actions watchdog** ([above](#the-shutdown-watchdog)). The
++   options of a stop time set at pod creation and of an in-pod timer are not pursued.
++4. **Stage B cost of the safeguard: deferred.** It must be settled before any held-out Stage B
++   run under the gate, in one of two ways: a Stage B amendment that gives the safeguard's time an
++   uncharged owner, or a measurement in the funded validation showing that it is negligible.
++   Until then the facts are as follows. Every safeguard second inside a session is in the Stage B
+    cost record and therefore in the policy costs, in three places:
+    - *inside the attempt's own timer*: the gate check and the off-pod copy of `started.json` run
+      at the top of `execute`, between the controller's start and end clock reads. That time is
+@@ -437,11 +655,8 @@ Only after these may concurrency rise, and only within verified runway.
+    - *in the session's start record*: what the session's first `sync` settles (only `study.json`
+      when the study was settled beforehand).
+ 
+-   The alternative, a backend clock that pauses during administrative work, would keep all of it
+-   out of the costs but contradicts Stage B's statement that its timers tile the session.
+-3. **Strictness of the gate.** The copy and the restore check run synchronously on the worker, so
+-   a billed GPU idles while they run. An asynchronous copy would overlap the next unit and break
+-   "no next unit without the previous acknowledgement".
++   The time admission spends waiting for the watchdog's acknowledgement (up to about 11 minutes)
++   is outside any Stage B session: admission happens before a block starts.
+ 
+ ## Commands
+ 
+@@ -472,6 +687,11 @@ python -m experiments.durability restore --destination DEST --namespace dev01 --
+ - Money is plain floating point; admission compares with a stated contingency, not to the cent.
+ - On GitHub every file is uploaded twice and the shard layout is fixed per scheme; a release asset
+   must be under 2 GiB; GitHub reports no free space, so capacity is a declared number.
++- Admission holds the reservation ledger's lock while it waits for the watchdog's acknowledgement
++  (seconds normally, up to the acknowledgement window plus a minute), so another worker's
++  admission waits that long.
++- The shutdown watchdog's limits are listed in its section: the lateness is an assumption, the
++  Actions quota is shared and finite, and its records are not signed.
+ - The RunPod adapter does not see serverless endpoints or other billable resources except through
+   the spend cross-check, which refuses when it cannot explain the account's hourly spend.
+ - The restore check reads the copy back in full for every unit, and a chain's earlier folders
+diff --git a/experiments/durability/__main__.py b/experiments/durability/__main__.py
+index 8d7abe1..9448087 100644
+--- a/experiments/durability/__main__.py
++++ b/experiments/durability/__main__.py
+@@ -14,6 +14,9 @@ Commands:
+   (``connector-test``) and leaves two tiny final objects there, which are never deleted.
+ - ``check-provider``: read-only questions to the configured provider, reported as shapes (types,
+   counts, whether each answer was usable), never as account details.
++- ``check-watchdog``: what the shutdown watchdog's records say about a worker's pod: its latest
++  acknowledged arm, the stop time, the acknowledging workflow run and any recorded stop. It reads
++  the backup repository's release assets and nothing else; it arms nothing.
+ 
+ ``--destination`` is a directory, or ``github:owner/repo`` with ``--declared-free-bytes`` (the token
+ comes from the environment variable ``ATTRIBUTION_BACKUP_GITHUB_TOKEN``; without it every call
+@@ -36,7 +39,7 @@ from .common import CollisionError, DurabilityError, Journal, SourceMap, sha256_
+ from .destination import Destination
+ from .runpod_provider import SHUTDOWN_GAP, RunPodProvider
+ from .units import code_unit, prepared_unit, run_unit
+-from .wiring import destination_from, provider_from
++from .wiring import destination_from, provider_from, shutdown_from
+ 
+ __all__ = ["main"]
+ 
+@@ -79,6 +82,11 @@ def _parser() -> argparse.ArgumentParser:
+     p.add_argument("--path", help="a source path to check for persistence")
+     p.add_argument("--runpod-rest-url", help=argparse.SUPPRESS)      # tests: a fake API on 127.0.0.1
+     p.add_argument("--runpod-graphql-url", help=argparse.SUPPRESS)
++    p = sub.add_parser("check-watchdog")
++    p.add_argument("--config", required=True, help="provider configuration with a shutdown section (JSON; README)")
++    p.add_argument("--worker", required=True, help="a worker name from the configuration")
++    p.add_argument("--github-api-url", help=argparse.SUPPRESS)       # tests: a fake API on 127.0.0.1
++    p.add_argument("--github-upload-url", help=argparse.SUPPRESS)
+     return parser
+ 
+ 
+@@ -169,16 +177,37 @@ def _check_provider(args: argparse.Namespace) -> dict:
+         ask("persistence", lambda: provider.confirm_persistent(args.path),
+             lambda r: {"persistent": r.get("persistent") is True})
+     # this command never asks a provider to arm anything; it reports whether the adapter could
+-    out["shutdown"] = ({"can_arm": False, "why": SHUTDOWN_GAP} if isinstance(provider, RunPodProvider)
+-                       else {"can_arm": "not asked"})
++    if isinstance(provider, RunPodProvider) and provider.shutdown is None:
++        out["shutdown"] = {"can_arm": False, "why": SHUTDOWN_GAP}
++    elif isinstance(provider, RunPodProvider):
++        out["shutdown"] = {"can_arm": "only with the watchdog's acknowledgement at admission (not asked here)",
++                           "watchdog": provider.shutdown.describe()}
++    else:
++        out["shutdown"] = {"can_arm": "not asked"}
+     return out
+ 
+ 
++def _check_watchdog(args: argparse.Namespace) -> dict:
++    """Reads the watchdog's records for one worker's pod; arms and stops nothing."""
++    config = json.loads(Path(args.config).read_text(encoding="utf-8"))
++    pod = (config.get("worker_pods") or {}).get(args.worker) if isinstance(config, dict) else None
++    if not isinstance(pod, str) or not pod:
++        raise DurabilityError("the configuration names no pod for this worker")
++    options = {name: value for name, value in (("api_url", args.github_api_url),
++                                               ("upload_url", args.github_upload_url)) if value is not None}
++    watchdog = shutdown_from(config.get("shutdown"), **options)
++    if watchdog is None:
++        return {"watchdog": None, "armed": False, "why": SHUTDOWN_GAP}
++    return {"watchdog": watchdog.describe(), **watchdog.status(pod)}
++
++
+ def _command(args: argparse.Namespace) -> dict:
+     if args.command == "check-destination":
+         return _check_destination(_destination(args, scheme="connector-test"))
+     if args.command == "check-provider":
+         return _check_provider(args)
++    if args.command == "check-watchdog":
++        return _check_watchdog(args)
+     if args.command == "ingest":
+         if bool(args.code) == bool(args.no_code_pin):
+             raise DurabilityError("give --code, or --no-code-pin to acknowledge evidence without its source")
+diff --git a/experiments/durability/admission.py b/experiments/durability/admission.py
+index 0f8ad90..6ecc5f5 100644
+--- a/experiments/durability/admission.py
++++ b/experiments/durability/admission.py
+@@ -44,7 +44,8 @@ unavailable; the balance is not an explicitly recognized prepaid balance (pod bi
+ removed spending caps are not balances); a number is missing, negative or non-finite; currencies
+ differ; a reading is stale or from the future; the provider's current rates differ from the rates
+ the plan was costed with (a changed rate needs a new plan); the storage declaration fails; the
+-provider cannot arm a shutdown at the end of the reservation; or the runway is insufficient.
++provider cannot arm a shutdown at the end of the reservation; the policy's shutdown delay is
++shorter than the lateness the provider states for its shutdown; or the runway is insufficient.
+ 
+ **Serialization.** Reservations live in one append-only ledger read and extended under an
+ exclusive file lock, so two workers cannot both reserve the same runway. A ledger row that cannot
+@@ -52,7 +53,11 @@ be read as a lease or a release (malformed, or written by an older format) refus
+ the gate fail closed with ``AdmissionRefused``, never with an unhandled error. A lease expires at
+ ``now + increment``; working past it needs a new admission (a renewal supersedes the worker's
+ previous lease). Stopping Python does not stop billing: the shutdown at the end of the reservation
+-is the provider's, armed through ``Provider.arm_shutdown`` before the lease is returned.
++is the provider's, armed through ``Provider.arm_shutdown`` before the lease is returned. A shutdown
++that is not exact (an external watchdog that scans on a schedule) states how late it can be through
++``Provider.shutdown_lateness_seconds``; the policy's ``shutdown_delay_seconds`` must be at least that,
++so the stop is asked for no earlier than the end of the lease plus the backup delay and is still
++complete, and funded, by the end of the reservation.
+ """
+ 
+ from __future__ import annotations
+@@ -141,6 +146,11 @@ class Provider(abc.ABC):
+         """Arm a provider-side stop of the worker at the given time; ``{"armed": True, "at_utc":
+         ...}`` when the provider confirms it."""
+ 
++    def shutdown_lateness_seconds(self) -> float:
++        """How long before ``at_utc`` the armed shutdown may begin in order to be complete by then
++        (0: a timer that fires exactly). The policy's shutdown delay must cover it."""
++        return 0.0
++
+ 
+ class UnconfiguredProvider(Provider):
+     """The only adapter shipped: every call fails closed."""
+@@ -150,6 +160,7 @@ class UnconfiguredProvider(Provider):
+                             "timed shutdown wait for the funded one-worker validation")
+ 
+     read_balance = read_rates = list_liabilities = confirm_persistent = arm_shutdown = _refuse
++    shutdown_lateness_seconds = _refuse
+ 
+ 
+ @dataclass(frozen=True)
+@@ -384,6 +395,13 @@ class AdmissionController:
+                 self._refuse(worker, f"the retention reserve is missing or below the storage rates over "
+                                      f"{policy.retention_hours:g} h ({floor:.4f} {rates.currency})")
+             horizon = increment_seconds + policy.backup_delay_seconds + policy.shutdown_delay_seconds
++            try:
++                lateness = self.provider.shutdown_lateness_seconds()
++            except Exception as exc:  # noqa: BLE001 - an unknown lateness is no confirmed shutdown
++                self._refuse(worker, f"no provider-side shutdown can be armed: {_why(exc)}")
++            if not _number(lateness) or lateness < 0 or policy.shutdown_delay_seconds < lateness:
++                self._refuse(worker, "the policy's shutdown delay is shorter than the stated lateness of the "
++                                     "shutdown: the stop could begin before the lease and its backup are over")
+             factor = 1.0 + policy.contingency_fraction
+             need = rates.worker_per_hour * (age + horizon) / 3600.0 * factor
+             try:
+diff --git a/experiments/durability/runpod_provider.py b/experiments/durability/runpod_provider.py
+index 1ac471e..01edb9c 100644
+--- a/experiments/durability/runpod_provider.py
++++ b/experiments/durability/runpod_provider.py
+@@ -32,11 +32,14 @@ not:
+   network volume attached which the account's volume list also shows. At a zero balance a network
+   volume's data is kept but the volume keeps billing and "may eventually be terminated": persistent
+   storage is not unconditional.
+-- **Shutdown.** ``arm_shutdown`` always refuses. The GraphQL reference lists ``stopAfter`` and
++- **Shutdown.** RunPod itself offers nothing to arm. The GraphQL reference lists ``stopAfter`` and
+   ``terminateAfter`` (``DateTime``) among the inputs that *create* a pod, without describing them;
+   the pod type does not expose them, the REST pod schema has no such field, and no documented call
+   sets a stop time on an existing pod. A stop time that cannot be read back cannot be confirmed
+-  from here. The options are in the README ("The shutdown gap").
++  from here. ``arm_shutdown`` therefore refuses unless the configuration names an external
++  watchdog (``shutdown_watchdog.GitHubActionsWatchdog``); with one, it answers ``armed`` only
++  after that watchdog has acknowledged a stop of this worker's pod. This adapter still never
++  stops anything itself and holds no credential that could (README: "The shutdown watchdog").
+ 
+ Any field that is missing, of another type or outside the documented values makes the call fail
+ with ``ProviderError``; nothing is defaulted. Admission treats every provider error as a refusal.
+@@ -63,8 +66,9 @@ RUNPOD_POD_ENV = "RUNPOD_POD_ID"
+ UNCONFIRMED_BALANCE_KIND = "runpod-clientBalance-unconfirmed"
+ MYSELF_QUERY = "query { myself { clientBalance currentSpendPerHr spendLimit } }"
+ POD_STATES = ("RUNNING", "EXITED", "TERMINATED")
+-SHUTDOWN_GAP = ("RunPod documents no stop time that can be set on, or read back from, an existing pod; a provider-side "
+-                "shutdown cannot be confirmed, so no lease is granted (README: the shutdown gap)")
++SHUTDOWN_GAP = ("RunPod documents no stop time that can be set on, or read back from, an existing pod, and no external "
++                "shutdown watchdog is configured; a shutdown cannot be confirmed, so no lease is granted (README: the "
++                "shutdown watchdog)")
+ 
+ 
+ @dataclass(frozen=True)
+@@ -123,8 +127,10 @@ class RunPodProvider(Provider):
+     def __init__(self, config: RunPodConfig, *, key_env: str = RUNPOD_KEY_ENV, rest_url: str = "https://rest.runpod.io/v1",
+                  graphql_url: str = "https://api.runpod.io/graphql", clock: Clock = utc_clock,
+                  max_retries: int = 4, max_wait_seconds: float = 120.0,
+-                 sleep: Callable[[float], None] | None = None) -> None:
+-        self.config, self.clock = config, clock
++                 sleep: Callable[[float], None] | None = None, shutdown: object | None = None) -> None:
++        """``shutdown``: the external watchdog's worker side (an object with ``arm(worker, pod,
++        at_utc)`` and ``lateness_seconds``), or None: no shutdown can be armed."""
++        self.config, self.clock, self.shutdown = config, clock, shutdown
+         self.rest, self.graphql = rest_url.rstrip("/"), graphql_url.rstrip("/")
+         options = {} if sleep is None else {"sleep": sleep}
+         self.http = Http(token_env=key_env, bases=(self.rest, self.graphql), max_retries=max_retries,
+@@ -318,5 +324,21 @@ class RunPodProvider(Provider):
+         return {"persistent": True, "volume": volume["id"], "mount": mount, "pod": pod_id,
+                 "source": "runpod rest: pods.networkVolume, pods.volumeMountPath, networkvolumes"}
+ 
++    def shutdown_lateness_seconds(self) -> float:
++        if self.shutdown is None:
++            raise NotConfigured(SHUTDOWN_GAP)
++        return float(self.shutdown.lateness_seconds)
++
+     def arm_shutdown(self, worker: str, at_utc: str) -> dict:
+-        raise NotConfigured(SHUTDOWN_GAP)
++        """``armed`` only when the configured external watchdog acknowledged a stop of this worker's
++        pod that is complete by ``at_utc``; everything else raises."""
++        if self.shutdown is None:
++            raise NotConfigured(SHUTDOWN_GAP)
++        pod_id = self.config.worker_pods.get(worker)
++        if pod_id is None:
++            raise NotConfigured(f"no pod is configured for worker {worker!r}")
++        armed = self.shutdown.arm(worker, pod_id, at_utc)
++        if not (isinstance(armed, dict) and armed.get("armed") is True and armed.get("pod") == pod_id
++                and armed.get("at_utc") == at_utc):
++            raise ProviderError("the watchdog did not confirm a stop of this worker's pod by the requested time")
++        return armed
+diff --git a/experiments/durability/shutdown_watchdog.py b/experiments/durability/shutdown_watchdog.py
+new file mode 100644
+index 0000000..0919dc4
+--- /dev/null
++++ b/experiments/durability/shutdown_watchdog.py
+@@ -0,0 +1,287 @@
++"""The worker's side of the external shutdown watchdog (stdlib only).
++
++RunPod documents no stop time that can be set on, or read back from, an existing pod. The shutdown
++at the end of a reservation is therefore done by a watchdog that runs outside RunPod and outside
++the worker: a GitHub Actions workflow in the backup repository (``watchdog/watchdog.py`` and
++``watchdog/watchdog.yml`` in this package; the README describes the deployment). This module is
++what the worker runs when admission asks for the shutdown to be armed.
++
++``GitHubActionsWatchdog.arm(worker, pod, at_utc)``:
++
++1. publishes an **arm record**, create-only, as a release asset of the backup repository
++   (``watchdog-arms-YYYY-MM`` / ``arm-<id>.json``): the worker, its pod, the time the watchdog must
++   start stopping the pod (``stop_at_utc = at_utc - lateness_seconds``) and the time by which the
++   watchdog must have acknowledged (``ack_by_utc``);
++2. sends a ``repository_dispatch`` event naming the arm, which starts one short workflow run;
++3. waits for the **acknowledgement** that run writes (``watchdog-acks-YYYY-MM`` /
++   ``ack-<id>.json``) and checks it: this arm, this worker and pod, exactly this stop time, a
++   workflow run id, written within the window, a scheduled scan seen recently, and a scan
++   interval that the configured lateness covers;
++4. returns ``{"armed": True, "at_utc": at_utc, ...}`` only then.
++
++A refusal record, no acknowledgement by ``ack_by_utc`` (plus a short grace), or an acknowledgement
++that does not match raises ``ProviderError``; admission then grants no lease. Before raising, the
++arm is withdrawn with a create-only ``void-<id>.json`` so that an acknowledgement arriving later
++cannot make it govern. The watchdog itself never acknowledges after ``ack_by_utc``.
++
++**What "armed" means.** The watchdog's scheduled scan stops the pod at its first scan at or after
++``stop_at_utc``. ``lateness_seconds`` is the configured bound on how late that can be (a scan
++interval, one dropped scheduled run, GitHub's schedule delay, the stop call itself); the stop is
++then complete by ``at_utc``, the end of the reservation. It must cover at least two scan intervals
++of the acknowledging watchdog; ``RECOMMENDED_LATENESS_SECONDS`` is three. Admission refuses a
++policy whose ``shutdown_delay_seconds`` is smaller than this lateness, so the stop never begins
++before the lease has expired and the backup delay has passed. The bound is an assumption about
++GitHub's scheduler until the funded validation measures it; it is not enforced by anything.
++
++**Renewal.** A renewed lease publishes a new arm with a later stop time. The watchdog obeys the
++latest acknowledged arm of a pod, so the earlier stop time lapses only once the later one is
++acknowledged; a renewal that is refused leaves the earlier stop in force.
++
++**Permissions.** The worker's backup token needs nothing new: release assets and
++``repository_dispatch`` are both under "Contents: write". The worker never holds a credential
++that can stop a pod, and it never talks to RunPod here. The token is read from the environment by
++``transport.Http``; nothing in this module logs, stores or raises it.
++
++The record kinds, the id format and the limits below are duplicated in ``watchdog/watchdog.py``,
++which must stay self-contained; a test checks that the two agree.
++"""
++
++from __future__ import annotations
++
++import datetime as dt
++import json
++import re
++import secrets
++import time
++import urllib.parse
++from typing import Callable
++
++from .common import Clock, DurabilityError, NotConfigured, ProviderError, iso, parse_utc, utc_clock
++from .github_destination import GITHUB_TOKEN_ENV
++from .transport import Http, next_link
++
++__all__ = ["GitHubActionsWatchdog", "ARM_KIND", "ACK_KIND", "VOID_KIND", "EVENT_ARM", "ARM_ID",
++           "MAX_HORIZON_SECONDS", "MAX_ACK_WINDOW_SECONDS", "RECOMMENDED_LATENESS_SECONDS"]
++
++ARM_KIND = "durability watchdog arm v1"
++ACK_KIND = "durability watchdog acknowledgement v1"
++VOID_KIND = "durability watchdog void v1"
++EVENT_ARM = "watchdog-arm"
++ARM_ID = re.compile(r"(\d{8}T\d{6}Z)-[0-9a-f]{16}")
++MAX_HORIZON_SECONDS = 48 * 3600
++MAX_ACK_WINDOW_SECONDS = 1800
++# three 30-minute scan intervals: the scan after the stop time is dropped by GitHub, the next one
++# starts up to half an hour late, and the stop is confirmed. An assumption until it is measured.
++RECOMMENDED_LATENESS_SECONDS = 5400.0
++_REPOSITORY = re.compile(r"[A-Za-z0-9][A-Za-z0-9-]{0,38}/[A-Za-z0-9._-]{1,100}")
++_JSON = {"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"}
++_BINARY = {"Accept": "application/octet-stream", "X-GitHub-Api-Version": "2022-11-28"}
++
++
++def _plain(text: object, limit: int = 160) -> str:
++    """A watchdog's refusal reason as short printable text (it is data from a record, not trusted)."""
++    return "".join(ch for ch in str(text) if ch.isprintable())[:limit]
++
++
++class GitHubActionsWatchdog:
++    """See the module doc. ``lateness_seconds`` has no default: it is a stated assumption
++    (``RECOMMENDED_LATENESS_SECONDS`` with the 30-minute scan). ``ack_window_seconds``: how long
++    the watchdog has to acknowledge. ``sleep`` and ``clock`` are injectable for tests."""
++
++    def __init__(self, repository: str, *, lateness_seconds: float, ack_window_seconds: float = 600.0,
++                 poll_seconds: float = 10.0, grace_seconds: float = 60.0, token_env: str = GITHUB_TOKEN_ENV,
++                 api_url: str = "https://api.github.com", upload_url: str = "https://uploads.github.com",
++                 clock: Clock = utc_clock, sleep: Callable[[float], None] = time.sleep, max_retries: int = 4,
++                 max_wait_seconds: float = 120.0) -> None:
++        if not isinstance(repository, str) or not _REPOSITORY.fullmatch(repository):
++            raise DurabilityError("the watchdog's repository must be given as owner/name")
++        numbers = (lateness_seconds, ack_window_seconds, poll_seconds, grace_seconds)
++        if not all(isinstance(v, (int, float)) and not isinstance(v, bool) and v > 0 for v in numbers):
++            raise DurabilityError("the watchdog's lateness, acknowledgement window, poll and grace must be positive numbers")
++        if ack_window_seconds > MAX_ACK_WINDOW_SECONDS:
++            raise DurabilityError(f"the watchdog acknowledges within at most {MAX_ACK_WINDOW_SECONDS} s")
++        self.repository, self.lateness_seconds = repository, float(lateness_seconds)
++        self.ack_window_seconds, self.poll_seconds, self.grace_seconds = float(ack_window_seconds), float(poll_seconds), float(grace_seconds)
++        self.clock, self.sleep = clock, sleep
++        self.api, self.uploads = api_url.rstrip("/"), upload_url.rstrip("/")
++        self.http = Http(token_env=token_env, bases=(self.api, self.uploads), max_retries=max_retries,
++                         max_wait_seconds=max_wait_seconds, sleep=sleep)
++        self._releases: dict[str, dict] = {}
++
++    def __repr__(self) -> str:
++        return f"GitHubActionsWatchdog({self.repository!r}, lateness={self.lateness_seconds:g} s)"
++
++    def describe(self) -> dict:
++        return {"kind": "github-actions-watchdog", "repository": self.repository,
++                "lateness_seconds": self.lateness_seconds, "ack_window_seconds": self.ack_window_seconds}
++
++    # ----- records (release assets, create-only) -------------------------------------
++
++    def _repo(self, path: str) -> str:
++        return f"{self.api}/repos/{self.repository}{path}"
++
++    def _release(self, tag: str, create: bool) -> dict | None:
++        if tag in self._releases:
++            return self._releases[tag]
++        reply = self.http.request("GET", self._repo(f"/releases/tags/{tag}"), headers=_JSON)
++        if reply.status == 404 and create:
++            made = self.http.request("POST", self._repo("/releases"), headers=_JSON, body=json.dumps({
++                "tag_name": tag, "name": tag, "prerelease": True,
++                "body": "Shutdown-watchdog records. Create-only; do not edit or delete."}).encode("utf-8"))
++            if made.status not in (201, 422):
++                raise ProviderError(f"GitHub answered {made.status} to creating the release {tag}")
++            reply = made if made.status == 201 else self.http.request(
++                "GET", self._repo(f"/releases/tags/{tag}"), headers=_JSON)
++        if reply.status == 404:
++            return None
++        release = reply.json() if reply.status in (200, 201) else None
++        if not isinstance(release, dict) or not isinstance(release.get("id"), int) or release.get("tag_name") != tag:
++            raise ProviderError(f"GitHub answered {reply.status} for the release {tag}, or in an unexpected shape")
++        self._releases[tag] = release
++        return release
++
++    def _names(self, tag: str) -> dict[str, dict]:
++        """The uploaded assets of a release by name (read afresh at every call)."""
++        release = self._release(tag, create=False)
++        if release is None:
++            return {}
++        found: dict[str, dict] = {}
++        url = self._repo(f"/releases/{release['id']}/assets?per_page=100")
++        while url:
++            reply = self.http.request("GET", url, headers=_JSON)
++            page = reply.json() if reply.status == 200 else None
++            if not isinstance(page, list):
++                raise ProviderError(f"GitHub answered {reply.status} to a listing of watchdog records")
++            for asset in page:
++                if (isinstance(asset, dict) and asset.get("state") == "uploaded" and isinstance(asset.get("name"), str)
++                        and isinstance(asset.get("id"), int)):
++                    found[asset["name"]] = asset
++            url = next_link(reply.headers)
++        return found
++
++    def _read(self, asset: dict) -> dict:
++        reply = self.http.request("GET", self._repo(f"/releases/assets/{asset['id']}"), headers=_BINARY)
++        record = reply.json() if reply.status == 200 else None
++        if not isinstance(record, dict):
++            raise ProviderError(f"GitHub answered {reply.status} to a watchdog record download, or it is not a record")
++        return record
++
++    def _create(self, tag: str, name: str, record: dict) -> bool:
++        """True: created. False: the name exists (nothing is ever replaced)."""
++        release = self._release(tag, create=True)
++        url = (f"{self.uploads}/repos/{self.repository}/releases/{release['id']}/assets?"
++               + urllib.parse.urlencode({"name": name}))
++        body = (json.dumps(record, indent=2, sort_keys=True) + "\n").encode("utf-8")
++        reply = self.http.request("POST", url, headers={**_JSON, "Content-Type": "application/json"}, body=body)
++        if reply.status == 201:
++            return True
++        if reply.status == 422:
++            return False
++        raise ProviderError(f"GitHub answered {reply.status} to a watchdog record upload")
++
++    # ----- arming --------------------------------------------------------------------
++
++    def _void(self, arm_id: str, month: str, reason: str) -> bool:
++        try:
++            self._create(f"watchdog-arms-{month}", f"void-{arm_id}.json",
++                         {"kind": VOID_KIND, "arm": arm_id, "reason": _plain(reason), "voided_utc": iso(self.clock())})
++            return True
++        except Exception:  # noqa: BLE001 - reported to the caller, which is already refusing
++            return False
++
++    def _acknowledgement(self, arm_id: str, month: str, deadline: dt.datetime) -> dict:
++        """Poll until the watchdog's acknowledgement or refusal of this arm appears, or the deadline."""
++        tag = f"watchdog-acks-{month}"
++        while True:
++            names = self._names(tag)
++            if f"refusal-{arm_id}.json" in names:
++                reason = self._read(names[f"refusal-{arm_id}.json"]).get("reason")
++                raise ProviderError(f"the watchdog refused the arm: {_plain(reason)}")
++            if f"ack-{arm_id}.json" in names:
++                return self._read(names[f"ack-{arm_id}.json"])
++            if self.clock() >= deadline:
++                raise ProviderError("the watchdog did not acknowledge the arm in time: it is not running, not "
++                                    "enabled, or too slow to count on")
++            self.sleep(self.poll_seconds)
++
++    def _check(self, ack: dict, record: dict, ack_by: dt.datetime) -> None:
++        if ack.get("kind") != ACK_KIND or any(ack.get(key) != record[key] for key in ("arm", "worker", "pod", "stop_at_utc")):
++            raise ProviderError("the watchdog's acknowledgement names another arm, worker, pod or stop time")
++        if not (isinstance(ack.get("run_id"), str) and ack["run_id"].strip()):
++            raise ProviderError("the watchdog's acknowledgement names no workflow run")
++        interval = ack.get("scan_interval_seconds")
++        if not isinstance(interval, (int, float)) or isinstance(interval, bool) or interval <= 0:
++            raise ProviderError("the watchdog's acknowledgement states no scan interval")
++        if self.lateness_seconds < 2 * interval:
++            raise ProviderError(f"the configured lateness ({self.lateness_seconds:g} s) does not cover two scan "
++                                f"intervals of the watchdog ({interval:g} s each)")
++        try:
++            acknowledged, last_scan = parse_utc(ack.get("acknowledged_utc")), parse_utc(ack.get("last_scheduled_scan_utc"))
++        except ValueError:
++            raise ProviderError("the watchdog's acknowledgement has no usable timestamps") from None
++        if acknowledged > ack_by + dt.timedelta(seconds=self.grace_seconds):
++            raise ProviderError("the watchdog's acknowledgement was written after its window")
++        if (acknowledged - last_scan).total_seconds() > 2 * interval + 900:
++            raise ProviderError("the watchdog acknowledged without a recent scheduled scan")
++
++    def arm(self, worker: str, pod: str, at_utc: str) -> dict:
++        """Arm a stop of ``pod`` that is complete by ``at_utc`` (module doc), or raise."""
++        self.http.require_token()
++        if not all(isinstance(v, str) and v.strip() for v in (worker, pod)):
++            raise NotConfigured("no worker or pod was named for the watchdog")
++        now, until = self.clock(), parse_utc(at_utc)
++        stop_at = until - dt.timedelta(seconds=self.lateness_seconds)
++        ack_by = now + dt.timedelta(seconds=self.ack_window_seconds)
++        if stop_at <= ack_by + dt.timedelta(seconds=self.grace_seconds):
++            raise ProviderError("the reservation ends too soon for the watchdog: its stop time would fall inside "
++                                "the acknowledgement window")
++        if (stop_at - now).total_seconds() > MAX_HORIZON_SECONDS:
++            raise ProviderError(f"the watchdog accepts a stop at most {MAX_HORIZON_SECONDS // 3600} hours ahead")
++        arm_id, month = f"{now:%Y%m%dT%H%M%SZ}-{secrets.token_hex(8)}", f"{now:%Y-%m}"
++        record = {"kind": ARM_KIND, "arm": arm_id, "worker": worker, "pod": pod, "stop_at_utc": iso(stop_at),
++                  "reserved_until_utc": iso(until), "published_utc": iso(now), "ack_by_utc": iso(ack_by)}
++        if not self._create(f"watchdog-arms-{month}", f"arm-{arm_id}.json", record):
++            raise ProviderError("the arm record could not be created under a new name")
++        try:
++            reply = self.http.request("POST", self._repo("/dispatches"), headers={**_JSON, "Content-Type": "application/json"},
++                                      body=json.dumps({"event_type": EVENT_ARM, "client_payload": {"arm": arm_id}}).encode("utf-8"))
++            if reply.status not in (200, 201, 202, 204):
++                raise ProviderError(f"GitHub answered {reply.status} to the watchdog dispatch")
++            ack = self._acknowledgement(arm_id, month, ack_by + dt.timedelta(seconds=self.grace_seconds))
++            self._check(ack, record, ack_by)
++        except Exception as exc:  # noqa: BLE001 - whatever went wrong, this arm must not govern
++            voided = self._void(arm_id, month, type(exc).__name__)
++            why = str(exc) if isinstance(exc, DurabilityError) else type(exc).__name__
++            raise ProviderError(f"{why} (arm {arm_id} "
++                                f"{'withdrawn' if voided else 'COULD NOT BE WITHDRAWN: void it by hand'})") from None
++        return {"armed": True, "at_utc": at_utc, "arm": arm_id, "pod": pod, "stop_at_utc": record["stop_at_utc"],
++                "run_id": ack["run_id"], "lateness_seconds": self.lateness_seconds}
++
++    # ----- read-only status ----------------------------------------------------------
++
++    def status(self, pod: str) -> dict:
++        """What the records say about a pod: its latest acknowledged, not withdrawn arm and whether a
++        stop was recorded for it. Reads only. (Whether the scheduled scan is running is shown by
++        the repository's Actions tab; the worker's token cannot read workflow runs.)"""
++        self.http.require_token()
++        now = self.clock()
++        months = [(now.replace(day=1) - dt.timedelta(days=1)).strftime("%Y-%m"), now.strftime("%Y-%m")]
++        arms, acks = {}, {}
++        for month in months:
++            arms.update(self._names(f"watchdog-arms-{month}"))
++            acks.update(self._names(f"watchdog-acks-{month}"))
++        ids = sorted((n[4:-5] for n in arms if n.startswith("arm-") and n.endswith(".json") and ARM_ID.fullmatch(n[4:-5])),
++                     reverse=True)
++        for arm_id in ids:
++            if f"ack-{arm_id}.json" not in acks or f"void-{arm_id}.json" in arms:
++                continue
++            record = self._read(arms[f"arm-{arm_id}.json"])
++            if record.get("pod") != pod:
++                continue
++            ack = self._read(acks[f"ack-{arm_id}.json"])
++            stops = self._names(f"watchdog-stops-{arm_id[:4]}-{arm_id[4:6]}")
++            stop = self._read(stops[f"stop-{arm_id}.json"]) if f"stop-{arm_id}.json" in stops else None
++            return {"armed": stop is None, "arm": arm_id, "stop_at_utc": record.get("stop_at_utc"),
++                    "acknowledged_by_run": ack.get("run_id"), "acknowledged_utc": ack.get("acknowledged_utc"),
++                    "stop": None if stop is None else {key: stop.get(key) for key in ("result", "recorded_utc")}}
++        return {"armed": False, "arm": None}
+diff --git a/experiments/durability/tests/fake_github.py b/experiments/durability/tests/fake_github.py
+index 18f000b..5453bcf 100644
+--- a/experiments/durability/tests/fake_github.py
++++ b/experiments/durability/tests/fake_github.py
+@@ -1,9 +1,11 @@
+ """A fake GitHub REST API on 127.0.0.1 for the connector tests (ENGINEERING FIXTURE). It implements
+-only what ``GitHubReleaseDestination`` uses, with the documented behaviours the connector relies on:
+-create-only asset names (422 on a duplicate), a tag that cannot be created twice, pagination with
+-``Link`` headers, binary downloads through a redirect, asset states, and scripted faults (a 502 that
+-leaves a ``starter`` asset, rate-limit answers, stored bytes that differ from what was sent). It is
+-not GitHub and proves nothing about GitHub's real behaviour."""
++only what ``GitHubReleaseDestination`` and the shutdown watchdog use, with the documented behaviours
++they rely on: create-only asset names (422 on a duplicate), a tag that cannot be created twice,
++pagination with ``Link`` headers, binary downloads through a redirect, asset states, scripted faults
++(a 502 that leaves a ``starter`` asset, rate-limit answers, stored bytes that differ from what was
++sent), ``repository_dispatch`` events (recorded; nothing runs by itself) and the list of a
++workflow's runs, which only the workflow's own token may read. It is not GitHub and proves nothing
++about GitHub's real behaviour."""
+ 
+ from __future__ import annotations
+ 
+@@ -15,6 +17,7 @@ import urllib.parse
+ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+ 
+ TOKEN = "fake-token-0123456789-never-a-real-credential"
++WORKFLOW_TOKEN = "fake-workflow-token-9876543210-never-a-real-credential"   # the workflow run's GITHUB_TOKEN
+ 
+ 
+ class FakeGitHub:
+@@ -35,11 +38,15 @@ class FakeGitHub:
+         self.log: list[tuple[str, str, bool]] = []     # (method, path with query, had an Authorization header)
+         self.leaks: list[str] = []                     # requests that carried the token where they must not
+         self.mangle_labels = False
++        self.dispatches: list[dict] = []               # repository_dispatch bodies, in order
++        self.dispatch_status = 204
++        self.runs: list[dict] = []                     # workflow runs, newest first ({"id", "event", "created_at"})
++        self.foreign: list[str] = []                   # other services' secrets, which must never arrive here
+         self._ids = 1000
+         self._lock = threading.RLock()
+         self._server = ThreadingHTTPServer(("127.0.0.1", 0), self._handler())
+         self.url = f"http://127.0.0.1:{self._server.server_address[1]}"
+-        self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
++        self._thread = threading.Thread(target=self._server.serve_forever, kwargs={"poll_interval": 0.02}, daemon=True)
+         self._thread.start()
+ 
+     def close(self) -> None:
+@@ -91,13 +98,17 @@ class FakeGitHub:
+             def _route(self, method: str) -> None:
+                 parts = urllib.parse.urlsplit(self.path)
+                 query = urllib.parse.parse_qs(parts.query)
+-                authorized = self.headers.get("Authorization") == f"Bearer {TOKEN}"
++                authorized = self.headers.get("Authorization") in (f"Bearer {TOKEN}", f"Bearer {WORKFLOW_TOKEN}")
+                 length = int(self.headers.get("Content-Length") or 0)
+                 body = self.rfile.read(length) if length else b""
+                 with fake._lock:
+                     fake.log.append((method, self.path, "Authorization" in self.headers))
+-                    if TOKEN in self.path:
++                    if TOKEN in self.path or WORKFLOW_TOKEN in self.path:
+                         fake.leaks.append(f"token in a URL: {method} {parts.path}")
++                    everything = self.path.encode() + str(self.headers).encode() + body
++                    if any(secret.encode() in everything for secret in fake.foreign) or any(
++                            secret.encode() in body for secret in (TOKEN, WORKFLOW_TOKEN)):
++                        fake.leaks.append(f"a secret was sent where it does not belong: {method} {parts.path}")
+                 path = parts.path
+                 if path.startswith("/_blob/"):                         # the signed storage URL of a download
+                     if "Authorization" in self.headers:
+@@ -110,6 +121,17 @@ class FakeGitHub:
+                 if not path.startswith(base):
+                     return self._send(404, {"message": "Not Found"})
+                 rest = path[len(base):]
++                if method == "POST" and rest == "/dispatches":
++                    with fake._lock:
++                        fake.dispatches.append(json.loads(body))
++                    return self._send(fake.dispatch_status)
++                if method == "GET" and (m := re.fullmatch(r"/actions/workflows/([^/]+)/runs", rest)):
++                    if self.headers.get("Authorization") != f"Bearer {WORKFLOW_TOKEN}":
++                        return self._send(403, {"message": "Resource not accessible by personal access token"})
++                    with fake._lock:
++                        runs = [run for run in fake.runs if run["event"] in query.get("event", [run["event"]])]
++                    return self._send(200, {"total_count": len(runs),
++                                            "workflow_runs": runs[:int(query.get("per_page", ["30"])[0])]})
+                 if method == "GET" and (m := re.fullmatch(r"/releases/tags/(.+)", rest)):
+                     if self._fault("any"):
+                         return None
+diff --git a/experiments/durability/tests/fake_runpod.py b/experiments/durability/tests/fake_runpod.py
+index d5e233d..e0488a0 100644
+--- a/experiments/durability/tests/fake_runpod.py
++++ b/experiments/durability/tests/fake_runpod.py
+@@ -1,7 +1,10 @@
+-"""A fake RunPod API on 127.0.0.1 for the provider tests (ENGINEERING FIXTURE): the REST lists of
+-pods and network volumes and the GraphQL account query, with the field names RunPod documents. It
+-records every request so the tests can show that the provider only reads. It is not RunPod and
+-proves nothing about RunPod's real answers."""
++"""A fake RunPod API on 127.0.0.1 for the provider and watchdog tests (ENGINEERING FIXTURE): the REST
++lists of pods and network volumes, one pod by id, the stop of a pod, and the GraphQL account query,
++with the field names RunPod documents. It records every request so the tests can show that the
++provider only reads and that the watchdog only reads and stops. ``stop_mode``: "ok" (the pod
++becomes EXITED), "ignored" (answered 200, nothing changes), "error" (500) or "forbidden" (403);
++``read_mode`` "error" makes the read of one pod fail. It is not RunPod and proves nothing about
++RunPod's real answers."""
+ 
+ from __future__ import annotations
+ 
+@@ -30,9 +33,13 @@ class FakeRunPod:
+         self.myself: object = {"clientBalance": 100.0, "currentSpendPerHr": 0.0, "spendLimit": 80}
+         self.graphql_errors = None
+         self.log: list[tuple[str, str, str]] = []      # (method, path, body)
++        self.stop_mode = "ok"
++        self.read_mode = "ok"                          # "error": a pod read by id answers 500
++        self.foreign: list[str] = []                   # other services' secrets, which must never arrive here
++        self.leaks: list[str] = []
+         self._server = ThreadingHTTPServer(("127.0.0.1", 0), self._handler())
+         self.url = f"http://127.0.0.1:{self._server.server_address[1]}"
+-        threading.Thread(target=self._server.serve_forever, daemon=True).start()
++        threading.Thread(target=self._server.serve_forever, kwargs={"poll_interval": 0.02}, daemon=True).start()
+ 
+     def close(self) -> None:
+         self._server.shutdown()
+@@ -59,9 +66,31 @@ class FakeRunPod:
+                 length = int(self.headers.get("Content-Length") or 0)
+                 body = self.rfile.read(length).decode() if length else ""
+                 fake.log.append((method, self.path, body))
++                if KEY in self.path or KEY in body or any(secret in self.path + str(self.headers) + body
++                                                          for secret in fake.foreign):
++                    fake.leaks.append(f"a secret was sent where it does not belong: {method} {self.path.split('?')[0]}")
+                 if self.headers.get("Authorization") != f"Bearer {KEY}":
+                     return self._send(401, {"error": "unauthorized"})
+                 path = self.path.split("?")[0]
++                if path.startswith("/v1/pods/"):
++                    name, _, action = path[len("/v1/pods/"):].partition("/")
++                    found = [p for p in fake.pods if isinstance(p, dict) and p.get("id") == name] \
++                        if isinstance(fake.pods, list) else []
++                    if not found:
++                        return self._send(404, {"error": "pod not found"})
++                    if method == "GET" and not action:
++                        if fake.read_mode == "error":
++                            return self._send(500, {"error": "ENGINEERING FIXTURE fault"})
++                        return self._send(200, found[0])
++                    if method == "POST" and action == "stop":
++                        if fake.stop_mode == "error":
++                            return self._send(500, {"error": "ENGINEERING FIXTURE fault"})
++                        if fake.stop_mode == "forbidden":
++                            return self._send(403, {"error": "forbidden"})
++                        if fake.stop_mode == "ok":
++                            found[0]["desiredStatus"] = "EXITED"
++                        return self._send(200, found[0])
++                    return self._send(404, {"error": "not found"})
+                 if method == "GET" and path == "/v1/pods":
+                     return self._send(200, fake.pods)
+                 if method == "GET" and path == "/v1/networkvolumes":
+diff --git a/experiments/durability/tests/test_dur_runpod.py b/experiments/durability/tests/test_dur_runpod.py
+index ded8749..3417eda 100644
+--- a/experiments/durability/tests/test_dur_runpod.py
++++ b/experiments/durability/tests/test_dur_runpod.py
+@@ -2,9 +2,10 @@
+ leaves the machine and nothing is created, started, stopped or deleted anywhere): a balance that is
+ recognized only with a recorded human confirmation; rates and liabilities from pods and network
+ volumes with declared storage prices; persistence only for a path under a network volume's mount;
+-a shutdown that is never claimed; unknown shapes, values and unexplained spend failing closed; a
+-key that is required and never shown; and admission refusing on every one of these. The fake proves
+-nothing about RunPod: what waits for a live check is in the README."""
++a shutdown that is never claimed without the external watchdog; unknown shapes, values and
++unexplained spend failing closed; a key that is required and never shown; and admission refusing
++on every one of these. The fake proves nothing about RunPod: what waits for a live check is in the
++README."""
+ 
+ from __future__ import annotations
+ 
+@@ -159,8 +160,10 @@ def test_the_provider_only_reads_and_never_shows_its_key(runpod, monkeypatch):
+     adapter = provider(runpod)
+     adapter.read_balance(), adapter.read_rates("worker-1"), adapter.list_liabilities()
+     adapter.confirm_persistent("/workspace/study")
+-    with pytest.raises(NotConfigured, match="shutdown gap"):
++    with pytest.raises(NotConfigured, match="no external shutdown watchdog is configured"):
+         adapter.arm_shutdown("worker-1", iso(dur.T0))
++    with pytest.raises(NotConfigured, match="no external shutdown watchdog is configured"):
++        adapter.shutdown_lateness_seconds()
+     methods = {(method, path.split("?")[0]) for method, path, _ in runpod.log}
+     assert methods == {("GET", "/v1/pods"), ("GET", "/v1/networkvolumes"), ("POST", "/graphql")}
+     bodies = [body for method, _, body in runpod.log if method == "POST"]
+@@ -187,9 +190,10 @@ def admission(tmp_path, adapter, clock, planned=None) -> AdmissionController:
+ 
+ 
+ def test_admission_with_the_real_adapter_stops_at_the_shutdown_gap_and_at_every_unconfirmed_input(runpod, tmp_path):
+-    """With everything else confirmed, admission through ``RunPodProvider`` still refuses: no
+-    provider-side shutdown can be armed. That is the intended state until the shutdown gap is
+-    closed. Each unconfirmed input refuses earlier, with its own reason; nothing is reserved."""
++    """With everything else confirmed, admission through a ``RunPodProvider`` that has no shutdown
++    watchdog configured still refuses: no shutdown can be armed (test_dur_watchdog.py covers the
++    configured case). Each unconfirmed input refuses earlier, with its own reason; nothing is
++    reserved."""
+     clock = dur.ManualClock()
+     source = tmp_path / "workspace"
+     source.mkdir()
+diff --git a/experiments/durability/tests/test_dur_watchdog.py b/experiments/durability/tests/test_dur_watchdog.py
+new file mode 100644
+index 0000000..b9f7742
+--- /dev/null
++++ b/experiments/durability/tests/test_dur_watchdog.py
+@@ -0,0 +1,999 @@
++"""The shutdown watchdog against fake GitHub and RunPod services on 127.0.0.1 (ENGINEERING FIXTURES;
++no request leaves the machine, and no real pod, workflow or secret is involved).
++
++``Actions`` below stands for GitHub Actions: it runs the deployed script
++(``experiments/durability/watchdog/watchdog.py``, loaded from its file, exactly as the workflow runs
++it) for a scheduled scan or for a ``repository_dispatch`` event, with a manual clock. The tests
++cover the stop at the deadline and not before, renewal, arms that must never govern (malformed,
++unacknowledged, withdrawn, naming a pod outside the allow-list), an idempotent stop that deletes
++nothing, the acknowledgement the worker needs before it answers ``armed``, admission end to end and
++its refusal when any one input is withdrawn, and secrets that appear in no log or record.
++
++Nothing here shows that GitHub's scheduler runs on time, that RunPod stops a pod or that a stop
++ends billing: those wait for the funded one-pod validation (README)."""
++
++from __future__ import annotations
++
++import datetime as dt
++import hashlib
++import importlib.util
++import json
++import os
++import re
++import shutil
++import subprocess
++import sys
++from pathlib import Path
++
++import pytest
++import yaml
++
++import dur_fixtures as dur
++from fake_github import TOKEN, WORKFLOW_TOKEN, FakeGitHub
++from fake_runpod import KEY, FakeRunPod, network_volume, pod
++
++from experiments.durability import shutdown_watchdog as worker_side
++from experiments.durability.__main__ import main as cli
++from experiments.durability.admission import AdmissionController, AdmissionPolicy
++from experiments.durability.common import AdmissionRefused, DurabilityError, Journal, NotConfigured, ProviderError, iso
++from experiments.durability.destination import LocalDirectoryDestination
++from experiments.durability.github_destination import GITHUB_TOKEN_ENV
++from experiments.durability.runpod_provider import (RUNPOD_KEY_ENV, RUNPOD_POD_ENV, BalanceConfirmation, RunPodConfig,
++                                                    RunPodProvider, StoragePrices)
++from experiments.durability.shutdown_watchdog import GitHubActionsWatchdog
++from experiments.durability.wiring import provider_from, shutdown_from
++
++DEPLOYED = Path(__file__).resolve().parents[1] / "watchdog"
++REPOSITORY = "owner/backups"
++HOUR = 3600.0
++SECRETS = (KEY, TOKEN, WORKFLOW_TOKEN)
++
++
++def load_script():
++    spec = importlib.util.spec_from_file_location("deployed_watchdog", DEPLOYED / "watchdog.py")
++    module = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(module)
++    return module
++
++
++def after(seconds: float) -> dt.datetime:
++    return dur.T0 + dt.timedelta(seconds=seconds)
++
++
++class Actions:
++    """What GitHub Actions does with the workflow, as far as the tests need it: a scheduled run is a
++    scan; a ``repository_dispatch`` event is one arm run, ``delay`` seconds after it was sent (never,
++    when ``enabled`` is false). Every run gets the workflow's own token and the RunPod secret."""
++
++    def __init__(self, github: FakeGitHub, runpod: FakeRunPod, clock: dur.ManualClock, folder: Path,
++                 pods: dict | None = None) -> None:
++        self.github, self.runpod, self.clock = github, runpod, clock
++        self.script = load_script()
++        self.pods_file = folder / "pods.json"
++        self.allow({"worker-1": "pod-1"} if pods is None else pods)
++        self.secret, self.enabled, self.delay, self.forge = KEY, True, 0.0, None
++        self.tail = 0.0                                  # the workflow's default: no waiting inside a run
++        self.lines: list[str] = []
++        self.sleeps: list[float] = []
++        self.on_sleep = None
++        self._seen: dict[int, dt.datetime] = {}
++        self._done: set[int] = set()
++        self._run = 500
++
++    def allow(self, pods: dict) -> None:
++        self.pods_file.write_text(json.dumps({"workers": pods}))
++
++    def _sleep(self, seconds: float) -> None:
++        self.sleeps.append(seconds)
++        if self.on_sleep is not None:
++            hook, self.on_sleep = self.on_sleep, None
++            hook(seconds)
++        else:
++            self.clock.advance(seconds)
++
++    def run(self, event: str, arm: str = "") -> int:
++        self._run += 1
++        env = {"GITHUB_TOKEN": WORKFLOW_TOKEN, "RUNPOD_API_KEY": self.secret, "GITHUB_REPOSITORY": REPOSITORY,
++               "GITHUB_API_URL": self.github.url, "WATCHDOG_UPLOAD_URL": self.github.url,
++               "WATCHDOG_RUNPOD_URL": f"{self.runpod.url}/v1", "WATCHDOG_PODS": str(self.pods_file),
++               "GITHUB_RUN_ID": str(self._run), "GITHUB_RUN_ATTEMPT": "1", "GITHUB_EVENT_NAME": event,
++               "WATCHDOG_ARM": arm, "WATCHDOG_INTERVAL_SECONDS": "1800", "WATCHDOG_TAIL_SECONDS": str(self.tail)}
++        return self.script.main(env, clock=self.clock, sleep=self._sleep, out=self.lines.append)
++
++    def scheduled(self) -> int:
++        """A scheduled scan, listed among the workflow's runs before it starts."""
++        self.github.runs.insert(0, {"id": self._run + 1, "event": "schedule",
++                                    "created_at": self.clock().strftime("%Y-%m-%dT%H:%M:%SZ")})
++        return self.run("schedule")
++
++    def pump(self) -> None:
++        """Start the arm runs that are due."""
++        for index, event in enumerate(list(self.github.dispatches)):
++            self._seen.setdefault(index, self.clock())
++            if not self.enabled or index in self._done:
++                continue
++            if (self.clock() - self._seen[index]).total_seconds() < self.delay:
++                continue
++            self._done.add(index)
++            arm = event["client_payload"]["arm"]
++            assert event["event_type"] == self.script.EVENT_ARM
++            if self.forge is not None:
++                record = json.loads(blob(self.github, f"arm-{arm}.json"))
++                put_asset(self.github, f"watchdog-acks-{arm[:4]}-{arm[4:6]}", f"ack-{arm}.json", self.forge(record))
++            else:
++                self.run("repository_dispatch", arm)
++
++    def events(self, name: str) -> list[dict]:
++        return [row for row in map(json.loads, self.lines) if row["event"] == name]
++
++
++def put_asset(github: FakeGitHub, tag: str, name: str, record) -> None:
++    """Place an asset in the fake directly (a record written by someone other than the code under test)."""
++    with github._lock:
++        release = next((r for r in github.releases.values() if r["tag_name"] == tag), None)
++        if release is None:
++            release = {"id": github._next(), "tag_name": tag, "name": tag, "draft": False, "prerelease": True}
++            github.releases[release["id"]] = release
++        data = record if isinstance(record, bytes) else json.dumps(record).encode()
++        asset_id = github._next()
++        github.assets[asset_id] = {"id": asset_id, "release": release["id"], "name": name, "label": None,
++                                   "state": "uploaded", "size": len(data), "digest": None}
++        github.blobs[asset_id] = data
++
++
++def names(github: FakeGitHub, prefix: str = "") -> list[str]:
++    with github._lock:
++        return sorted(a["name"] for a in github.assets.values() if a["name"].startswith(prefix) and a["state"] == "uploaded")
++
++
++def blob(github: FakeGitHub, name: str) -> bytes:
++    with github._lock:
++        found = [github.blobs[a["id"]] for a in github.assets.values() if a["name"] == name]
++    assert len(found) == 1, (name, len(found))
++    return found[0]
++
++
++def record_of(github: FakeGitHub, name: str) -> dict:
++    return json.loads(blob(github, name))
++
++
++def stops(runpod: FakeRunPod) -> list[str]:
++    return [path for method, path, _ in runpod.log if method == "POST" and path.endswith("/stop")]
++
++
++def status_of(runpod: FakeRunPod, pod_id: str) -> str:
++    return next(p["desiredStatus"] for p in runpod.pods if p["id"] == pod_id)
++
++
++class World:
++    def __init__(self, tmp_path: Path, monkeypatch) -> None:
++        self.tmp, self.clock = tmp_path, dur.ManualClock()
++        self.github, self.runpod = FakeGitHub(REPOSITORY), FakeRunPod()
++        self.github.foreign, self.runpod.foreign = [KEY], [TOKEN, WORKFLOW_TOKEN]
++        self.runpod.pods = [pod("pod-1"), pod("pod-2", cost=0.4)]
++        self.actions = Actions(self.github, self.runpod, self.clock, tmp_path)
++        monkeypatch.setenv(GITHUB_TOKEN_ENV, TOKEN)
++        monkeypatch.setenv(RUNPOD_KEY_ENV, KEY)
++        monkeypatch.delenv(RUNPOD_POD_ENV, raising=False)
++        self.armer = self.make_armer()
++
++    def worker_sleep(self, seconds: float) -> None:
++        self.clock.advance(seconds)
++        self.actions.pump()
++
++    def make_armer(self, **changes) -> GitHubActionsWatchdog:
++        fields = {"lateness_seconds": HOUR, "api_url": self.github.url, "upload_url": self.github.url,
++                  "clock": self.clock, "sleep": self.worker_sleep, "max_retries": 0}
++        return GitHubActionsWatchdog(REPOSITORY, **{**fields, **changes})
++
++    def arm(self, until_seconds: float, worker: str = "worker-1", pod_id: str = "pod-1", armer=None) -> dict:
++        """The worker arms a stop that is complete ``until_seconds`` after T0 (the stop starts an hour earlier)."""
++        return (armer or self.armer).arm(worker, pod_id, iso(after(until_seconds)))
++
++    def at(self, seconds: float) -> None:
++        self.clock.now = after(seconds)
++
++    def close(self) -> None:
++        self.github.close()
++        self.runpod.close()
++
++
++@pytest.fixture
++def world(tmp_path, monkeypatch):
++    built = World(tmp_path, monkeypatch)
++    assert built.actions.scheduled() == 0            # the schedule is running: one scan, nothing to do
++    yield built
++    assert built.github.leaks == [] and built.runpod.leaks == []
++    assert all(method != "DELETE" for method, _, _ in built.github.log)
++    assert all(method in ("GET", "POST") for method, _, _ in built.runpod.log)
++    built.close()
++
++
++# ----- the stop: at the deadline, not before, once ---------------------------------------
++
++
++def test_the_pod_is_stopped_at_its_stop_time_and_not_before(world):
++    armed = world.arm(3 * HOUR)
++    assert armed["armed"] is True and armed["at_utc"] == iso(after(3 * HOUR)) and armed["pod"] == "pod-1"
++    assert armed["stop_at_utc"] == iso(after(2 * HOUR)) and armed["run_id"]
++    ack = record_of(world.github, f"ack-{armed['arm']}.json")
++    assert ack["run_id"] == armed["run_id"] and ack["pod"] == "pod-1" and ack["stop_at_utc"] == armed["stop_at_utc"]
++    for seconds in (HOUR, 2 * HOUR - 1):                 # before the stop time, even by a second: nothing
++        world.at(seconds)
++        assert world.actions.scheduled() == 0
++        assert stops(world.runpod) == [] and status_of(world.runpod, "pod-1") == "RUNNING"
++    world.at(2 * HOUR + 600)                             # the first scan after the stop time
++    assert world.actions.scheduled() == 0
++    assert stops(world.runpod) == ["/v1/pods/pod-1/stop"] and status_of(world.runpod, "pod-1") == "EXITED"
++    assert status_of(world.runpod, "pod-2") == "RUNNING" and world.actions.sleeps == []
++    outcome = record_of(world.github, f"stop-{armed['arm']}.json")
++    assert (outcome["result"], outcome["status_before"], outcome["status_after"]) == ("stopped", "RUNNING", "EXITED")
++    assert outcome["pod"] == "pod-1" and outcome["seconds_after_stop_time"] == 600.0 and outcome["event"] == "schedule"
++
++
++def test_with_a_tail_a_close_stop_time_is_waited_for_inside_the_run(world):
++    armed = world.arm(3 * HOUR)
++    world.actions.tail = 1200.0
++    world.at(2 * HOUR - 1500)                            # further away than the tail: nothing
++    assert world.actions.scheduled() == 0 and world.actions.sleeps == [] and stops(world.runpod) == []
++    world.at(2 * HOUR - 1200)
++    assert world.actions.scheduled() == 0
++    assert world.actions.sleeps == [1200.0] and world.clock.now == after(2 * HOUR)
++    assert record_of(world.github, f"stop-{armed['arm']}.json")["seconds_after_stop_time"] == 0.0
++    world.actions.tail = 9999.0                          # a tail beyond the job's time limit is refused
++    assert world.actions.scheduled() == 1 and "out of range" in world.actions.lines[-1]
++
++
++def test_a_late_scan_stops_at_once_and_records_how_late_it_was(world):
++    armed = world.arm(3 * HOUR)
++    world.at(2 * HOUR + 1500)                            # a scheduled run was dropped; the next one is late
++    assert world.actions.scheduled() == 0
++    outcome = record_of(world.github, f"stop-{armed['arm']}.json")
++    assert outcome["result"] == "stopped" and outcome["seconds_after_stop_time"] == 1500.0
++    assert outcome["seconds_after_stop_time"] <= world.armer.lateness_seconds    # complete by the end of the reservation
++    assert world.actions.sleeps == []
++
++
++def test_the_stop_is_idempotent_and_nothing_is_ever_deleted(world):
++    armed = world.arm(3 * HOUR)
++    world.at(2 * HOUR + 60)
++    for _ in range(3):
++        assert world.actions.scheduled() == 0
++        world.clock.advance(1800)
++    assert stops(world.runpod) == ["/v1/pods/pod-1/stop"]                      # one stop request in three scans
++    assert names(world.github, "stop-") == [f"stop-{armed['arm']}.json"]
++    paths = {(method, path) for method, path, _ in world.runpod.log}
++    assert paths == {("GET", "/v1/pods/pod-1"), ("POST", "/v1/pods/pod-1/stop")}  # it reads and stops one pod; nothing else
++    assert {method for method, _, _ in world.github.log} == {"GET", "POST"}
++    assert len(world.runpod.pods) == 2                                          # nothing was removed
++    # one stop per arm: a pod its operator starts again is left alone until a new lease arms a stop
++    world.runpod.pods[0]["desiredStatus"] = "RUNNING"
++    seen = len(world.runpod.log)
++    assert world.actions.scheduled() == 0
++    assert len(world.runpod.log) == seen and status_of(world.runpod, "pod-1") == "RUNNING"
++    source = (DEPLOYED / "watchdog.py").read_text()
++    assert all(word not in source for word in ("DELETE", "PATCH", "PUT", "terminate\"", "/terminate", "mutation"))
++
++
++def test_the_stop_is_asked_for_even_when_the_pods_state_cannot_be_read(world):
++    armed = world.arm(3 * HOUR)
++    world.runpod.read_mode = "error"
++    world.at(2 * HOUR + 60)
++    assert world.actions.scheduled() == 1                # not confirmed, so the run fails ...
++    assert stops(world.runpod) == ["/v1/pods/pod-1/stop"] and status_of(world.runpod, "pod-1") == "EXITED"   # ... but asked
++    attempt = record_of(world.github, names(world.github, "stop-attempt-")[0])
++    assert (attempt["result"], attempt["status_before"], attempt["stop_answer"]) == ("unconfirmed", "unknown", 200)
++    world.runpod.read_mode = "ok"
++    world.clock.advance(1800)
++    assert world.actions.scheduled() == 0
++    assert record_of(world.github, f"stop-{armed['arm']}.json")["result"] == "already-stopped"
++    assert len(stops(world.runpod)) == 1
++
++
++def test_one_pods_failure_does_not_keep_the_scan_from_the_other_pods(world):
++    world.actions.allow({"worker-1": "pod-1", "worker-2": "pod-2"})
++    first = world.arm(3 * HOUR)
++    world.clock.advance(60)
++    second = world.arm(3 * HOUR, "worker-2", "pod-2")
++    world.at(2 * HOUR + 600)
++    world.github.faults = [{"on": "upload", "status": 500}] * 4     # pod-1's outcome cannot be recorded
++    assert world.actions.scheduled() == 1
++    assert status_of(world.runpod, "pod-1") == "EXITED" and status_of(world.runpod, "pod-2") == "EXITED"
++    assert names(world.github, "stop-") == [f"stop-{second['arm']}.json"]
++    assert [row["pod"] for row in world.actions.events("pod-stop-error")] == ["pod-1"]
++    world.clock.advance(1800)
++    assert world.actions.scheduled() == 0                # recorded at the next scan; no second stop request
++    assert record_of(world.github, f"stop-{first['arm']}.json")["result"] == "already-stopped"
++    assert len(stops(world.runpod)) == 2
++
++
++def test_a_pod_that_is_already_stopped_or_gone_is_recorded_without_a_stop_request(world):
++    first = world.arm(3 * HOUR)
++    world.runpod.pods[0]["desiredStatus"] = "EXITED"            # the worker's operator stopped it earlier
++    world.at(2 * HOUR + 60)
++    assert world.actions.scheduled() == 0
++    assert record_of(world.github, f"stop-{first['arm']}.json")["result"] == "already-stopped"
++    world.runpod.pods[0]["desiredStatus"] = "RUNNING"           # started again by its operator, with a new lease
++    second = world.arm(6 * HOUR)
++    world.runpod.pods = [p for p in world.runpod.pods if p["id"] != "pod-1"]
++    world.at(5 * HOUR + 60)
++    assert world.actions.scheduled() == 0
++    assert record_of(world.github, f"stop-{second['arm']}.json")["result"] == "gone"
++    assert stops(world.runpod) == []
++
++
++@pytest.mark.parametrize("mode, result", [("error", "unconfirmed"), ("ignored", "unconfirmed"), ("forbidden", "unconfirmed")])
++def test_a_stop_that_is_not_confirmed_fails_the_run_and_is_tried_again(world, mode, result):
++    armed = world.arm(3 * HOUR)
++    world.runpod.stop_mode = mode
++    world.at(2 * HOUR + 60)
++    assert world.actions.scheduled() == 1                        # the run fails, visibly
++    assert names(world.github, f"stop-{armed['arm']}") == []     # no final outcome
++    attempt = record_of(world.github, names(world.github, "stop-attempt-")[0])
++    assert attempt["result"] == result and attempt["status_after"] == "RUNNING"
++    assert status_of(world.runpod, "pod-1") == "RUNNING"
++    world.runpod.stop_mode = "ok"
++    world.clock.advance(1800)
++    assert world.actions.scheduled() == 0                        # the next scan tries again
++    assert record_of(world.github, f"stop-{armed['arm']}.json")["result"] == "stopped"
++    assert status_of(world.runpod, "pod-1") == "EXITED"
++
++
++def test_an_arm_published_before_a_month_ends_is_still_obeyed_in_the_next_month(world):
++    world.clock.now = dt.datetime(2026, 10, 31, 23, 30, tzinfo=dt.timezone.utc)
++    assert world.actions.scheduled() == 0
++    armed = world.armer.arm("worker-1", "pod-1", "2026-11-01T02:30:00.000+00:00")
++    assert names(world.github, "arm-")[0].startswith("arm-20261031T")
++    world.clock.now = dt.datetime(2026, 11, 1, 1, 31, tzinfo=dt.timezone.utc)
++    assert world.actions.scheduled() == 0
++    assert record_of(world.github, f"stop-{armed['arm']}.json")["result"] == "stopped"
++    with world.github._lock:
++        tags = sorted(r["tag_name"] for r in world.github.releases.values())
++    assert tags == ["watchdog-acks-2026-10", "watchdog-arms-2026-10", "watchdog-stops-2026-10"]
++
++
++# ----- renewal and arms that must not govern --------------------------------------------
++
++
++def test_a_renewal_supersedes_the_earlier_stop_time(world):
++    first = world.arm(3 * HOUR)                          # stop at +2 h
++    world.at(HOUR)
++    assert world.actions.scheduled() == 0
++    world.at(1.25 * HOUR)
++    second = world.arm(5 * HOUR)                         # renewed before the lease ends: stop at +4 h
++    world.at(2 * HOUR + 300)                             # past the first stop time
++    assert world.actions.scheduled() == 0
++    assert stops(world.runpod) == [] and names(world.github, "stop-") == []
++    world.at(4 * HOUR - 60)
++    assert world.actions.scheduled() == 0                # just before the renewed stop time: nothing yet
++    assert stops(world.runpod) == []
++    world.at(4 * HOUR + 120)
++    assert world.actions.scheduled() == 0
++    assert stops(world.runpod) == ["/v1/pods/pod-1/stop"]
++    assert names(world.github, "stop-") == [f"stop-{second['arm']}.json"]
++    assert first["arm"] < second["arm"]
++
++
++def test_a_renewal_that_arrives_while_a_scan_waits_for_the_old_stop_time_wins(world):
++    world.arm(3 * HOUR)
++    world.actions.tail = 1800.0
++    world.at(2 * HOUR - 900)
++    renewed = {}
++
++    def renew(seconds: float) -> None:                   # 5 minutes into the scan's wait, the worker renews
++        world.clock.advance(300)
++        renewed.update(world.arm(5 * HOUR))
++        world.clock.now = after(2 * HOUR)
++
++    world.actions.on_sleep = renew
++    assert world.actions.scheduled() == 0
++    assert renewed["armed"] is True and stops(world.runpod) == []
++    assert [row["arm"] for row in world.actions.events("superseded")] != []
++    assert status_of(world.runpod, "pod-1") == "RUNNING" and names(world.github, "stop-") == []
++
++
++def test_a_renewal_that_is_not_acknowledged_leaves_the_earlier_stop_in_force(world):
++    first = world.arm(3 * HOUR)
++    world.at(1.5 * HOUR)
++    world.actions.enabled = False                        # the watchdog does not answer the renewal
++    with pytest.raises(ProviderError, match="did not acknowledge the arm in time") as refused:
++        world.arm(5 * HOUR)
++    assert "withdrawn" in str(refused.value) and len(names(world.github, "void-")) == 1
++    late = names(world.github, "void-")[0][len("void-"):-len(".json")]
++    world.actions.enabled = True
++    world.actions.pump()                                 # the run starts after all: too late, and withdrawn
++    assert names(world.github, "ack-") == [f"ack-{first['arm']}.json"]
++    assert record_of(world.github, f"refusal-{late}.json")["reason"].startswith("withdrawn")
++    # even an acknowledgement written for the withdrawn arm does not make it govern
++    put_asset(world.github, "watchdog-acks-2026-10", f"ack-{late}.json", {"kind": worker_side.ACK_KIND, "arm": late})
++    world.at(2 * HOUR + 60)
++    assert world.actions.scheduled() == 0
++    assert names(world.github, "stop-") == [f"stop-{first['arm']}.json"] and status_of(world.runpod, "pod-1") == "EXITED"
++
++
++def test_a_later_arm_without_an_acknowledgement_never_delays_the_stop(world):
++    first = world.arm(3 * HOUR)
++    world.at(HOUR)
++    later = f"{world.clock.now:%Y%m%dT%H%M%SZ}-{'ab' * 8}"
++    put_asset(world.github, "watchdog-arms-2026-10", f"arm-{later}.json",
++              {"kind": worker_side.ARM_KIND, "arm": later, "worker": "worker-1", "pod": "pod-1",
++               "stop_at_utc": iso(after(20 * HOUR)), "reserved_until_utc": iso(after(21 * HOUR)),
++               "published_utc": iso(world.clock.now), "ack_by_utc": iso(after(HOUR + 600))})
++    world.at(2 * HOUR + 60)
++    assert world.actions.scheduled() == 0
++    assert names(world.github, "stop-") == [f"stop-{first['arm']}.json"]
++
++
++def arm_record(world, arm_id: str | None = None, **changes) -> tuple[str, dict]:
++    now = world.clock.now
++    arm_id = arm_id or f"{now:%Y%m%dT%H%M%SZ}-{'cd' * 8}"
++    record = {"kind": worker_side.ARM_KIND, "arm": arm_id, "worker": "worker-1", "pod": "pod-1",
++              "stop_at_utc": iso(now + dt.timedelta(hours=2)), "reserved_until_utc": iso(now + dt.timedelta(hours=3)),
++              "published_utc": iso(now), "ack_by_utc": iso(now + dt.timedelta(seconds=600))}
++    return arm_id, {**record, **changes}
++
++
++MALFORMED = {
++    "another kind": {"kind": "durability watchdog arm v0"},
++    "another arm's record": {"arm": "20261003T120000Z-" + "0" * 16},
++    "no worker": {"worker": ""},
++    "a pod that is not text": {"pod": 7},
++    "a stop time without a timezone": {"stop_at_utc": "2026-10-03T14:00:00"},
++    "a stop time that is not a time": {"stop_at_utc": "soon"},
++    "a stop before publication": {"stop_at_utc": iso(dur.T0 - dt.timedelta(hours=1))},
++    "a stop after the reservation": {"reserved_until_utc": iso(dur.T0 + dt.timedelta(hours=1))},
++    "a stop too far away": {"stop_at_utc": iso(dur.T0 + dt.timedelta(hours=49)),
++                            "reserved_until_utc": iso(dur.T0 + dt.timedelta(hours=50))},
++    "an acknowledgement window that is too long": {"ack_by_utc": iso(dur.T0 + dt.timedelta(hours=1))},
++    "an acknowledgement window that has no length": {"ack_by_utc": iso(dur.T0)},
++    "a publication time the id does not carry": {"published_utc": iso(dur.T0 + dt.timedelta(seconds=5))},
++}
++
++
++@pytest.mark.parametrize("what", sorted(MALFORMED))
++def test_a_malformed_arm_is_refused_and_never_governs(world, what):
++    arm_id, record = arm_record(world, **MALFORMED[what])
++    put_asset(world.github, "watchdog-arms-2026-10", f"arm-{arm_id}.json", record)
++    assert world.actions.run("repository_dispatch", arm_id) == 1
++    assert names(world.github, "ack-") == []
++    assert record_of(world.github, f"refusal-{arm_id}.json")["reason"].startswith("malformed")
++    # with an acknowledgement someone else wrote, it still governs nothing
++    put_asset(world.github, "watchdog-acks-2026-10", f"ack-{arm_id}.json", {"kind": worker_side.ACK_KIND, "arm": arm_id})
++    world.at(60 * HOUR)
++    assert world.actions.scheduled() == 0
++    assert world.runpod.log == [] and names(world.github, "stop-") == []
++    assert [row["arm"] for row in world.actions.events("arm-ignored")] == [arm_id]
++
++
++def test_arm_records_that_are_not_records_and_ids_that_are_not_ids_are_refused(world):
++    arm_id, _ = arm_record(world)
++    put_asset(world.github, "watchdog-arms-2026-10", f"arm-{arm_id}.json", b"[1, 2, 3]")
++    assert world.actions.run("repository_dispatch", arm_id) == 1
++    other = arm_id[:-1] + "e"
++    put_asset(world.github, "watchdog-arms-2026-10", f"arm-{other}.json", b"\x00not json")
++    assert world.actions.run("repository_dispatch", other) == 1
++    seen = len(world.github.log)
++    for bad in ("", "../../etc/passwd", "20261003T120000Z-XYZ", arm_id + "/x", arm_id.upper(), "$(reboot)"):
++        assert world.actions.run("repository_dispatch", bad) == 1
++    assert len(world.github.log) == seen                 # a malformed id reaches no request and no record name
++    assert world.actions.run("repository_dispatch", arm_id[:-1] + "f") == 1     # well formed, but no such record
++    assert names(world.github, "ack-") == [] and world.runpod.log == []
++
++
++def test_an_arm_for_a_pod_outside_the_allow_list_is_refused_and_that_pod_is_never_touched(world):
++    for worker, pod_id in (("worker-2", "pod-2"), ("worker-1", "pod-2"), ("worker-2", "pod-1")):
++        with pytest.raises(ProviderError, match="the watchdog refused the arm: not-a-worker"):
++            world.arm(3 * HOUR, worker, pod_id)
++    assert names(world.github, "ack-") == [] and len(names(world.github, "void-")) == 3
++    # an acknowledgement written by someone else for such an arm governs nothing
++    arm_id = names(world.github, "arm-")[0][len("arm-"):-len(".json")]
++    put_asset(world.github, "watchdog-acks-2026-10", f"ack-{arm_id}x.json", {"arm": arm_id})
++    world.at(2 * HOUR + 60)
++    assert world.actions.scheduled() == 0
++    assert world.runpod.log == []                        # no pod was read, let alone stopped
++    # the shipped allow-list is empty: nothing can be armed until the operator names a pod
++    world.actions.allow(json.loads((DEPLOYED / "pods.example.json").read_text())["workers"])
++    world.clock.advance(60)
++    with pytest.raises(ProviderError, match="not-a-worker"):
++        world.arm(6 * HOUR)
++    world.actions.pods_file.write_text("{}")
++    assert world.actions.scheduled() == 1 and "allow-list is malformed" in world.actions.lines[-1]
++
++
++def test_an_arm_is_removed_from_force_when_its_pod_leaves_the_allow_list(world):
++    world.arm(3 * HOUR)
++    world.actions.allow({"worker-1": "pod-9"})
++    world.at(2 * HOUR + 60)
++    assert world.actions.scheduled() == 0
++    assert world.runpod.log[1:] == [] and names(world.github, "stop-") == []   # only the read at arming
++
++
++# ----- the acknowledgement the worker requires -------------------------------------------
++
++
++def test_the_watchdog_acknowledges_only_when_it_is_actually_watching(world):
++    world.runpod.pods[0]["desiredStatus"] = "EXITED"
++    with pytest.raises(ProviderError, match="refused the arm: pod: RunPod does not report this pod as RUNNING"):
++        world.arm(3 * HOUR)
++    world.runpod.pods[0]["desiredStatus"] = "RUNNING"
++    world.clock.advance(60)
++    world.actions.secret = "a-wrong-runpod-key"         # the Actions secret is wrong: the stop could not work
++    with pytest.raises(ProviderError, match="refused the arm: runpod: the key was rejected"):
++        world.arm(4 * HOUR)
++    world.clock.advance(60)
++    world.actions.secret = ""                            # ... or was never set
++    with pytest.raises(ProviderError, match="refused the arm: configuration: RUNPOD_API_KEY is not set"):
++        world.arm(5 * HOUR)
++    world.actions.secret = KEY
++    world.at(3 * HOUR)                                   # the last scheduled scan is three hours old
++    with pytest.raises(ProviderError, match="refused the arm: liveness: no scheduled scan ran recently"):
++        world.arm(6 * HOUR)
++    world.github.runs.clear()                            # the schedule never ran (Actions disabled, or just deployed)
++    world.clock.advance(60)
++    with pytest.raises(ProviderError, match="liveness"):
++        world.arm(7 * HOUR)
++    assert names(world.github, "ack-") == [] and len(names(world.github, "void-")) == 5
++    # a refusal is final: running the same arm again, now that a scan has run, acknowledges nothing
++    refused = names(world.github, "refusal-")[-1][len("refusal-"):-len(".json")]
++    put_asset(world.github, "watchdog-arms-2026-10", "void-moved-away.json", blob(world.github, f"void-{refused}.json"))
++    with world.github._lock:
++        gone = next(i for i, a in world.github.assets.items() if a["name"] == f"void-{refused}.json")
++        del world.github.assets[gone]                    # even if the worker could not withdraw it
++    assert world.actions.scheduled() == 0
++    assert world.actions.run("repository_dispatch", refused) == 1
++    assert "a refusal is final" in world.actions.lines[-1] and names(world.github, "ack-") == []
++    world.clock.advance(60)
++    assert world.actions.scheduled() == 0
++    assert world.arm(8 * HOUR)["armed"] is True
++
++
++def test_an_acknowledgement_that_is_late_is_not_one(world):
++    world.actions.delay = 630.0                          # the run starts after the 600 s window
++    with pytest.raises(ProviderError, match="refused the arm: late: the acknowledgement window has passed"):
++        world.arm(3 * HOUR)
++    world.actions.delay = 590.0                          # slow, but inside the window
++    world.clock.advance(60)
++    assert world.arm(4 * HOUR)["armed"] is True
++    assert len(names(world.github, "ack-")) == 1 and len(names(world.github, "void-")) == 1
++
++
++FORGED = {
++    "another pod": (lambda r: {"pod": "pod-2"}, "names another arm, worker, pod or stop time"),
++    "another worker": (lambda r: {"worker": "worker-2"}, "names another arm, worker, pod or stop time"),
++    "a later stop time": (lambda r: {"stop_at_utc": iso(after(9 * HOUR))}, "names another arm, worker, pod or stop time"),
++    "another arm": (lambda r: {"arm": "20261003T120000Z-" + "1" * 16}, "names another arm, worker, pod or stop time"),
++    "another kind": (lambda r: {"kind": "note"}, "names another arm, worker, pod or stop time"),
++    "no run": (lambda r: {"run_id": ""}, "names no workflow run"),
++    "no scan interval": (lambda r: {"scan_interval_seconds": None}, "states no scan interval"),
++    "a scan too sparse for the lateness": (lambda r: {"scan_interval_seconds": 3600.0}, "does not cover two scan intervals"),
++    "no timestamps": (lambda r: {"acknowledged_utc": "now"}, "no usable timestamps"),
++    "written after the window": (lambda r: {"acknowledged_utc": iso(after(2 * HOUR))}, "after its window"),
++    "no recent scan": (lambda r: {"last_scheduled_scan_utc": iso(dur.T0 - dt.timedelta(hours=3))}, "without a recent scheduled scan"),
++}
++
++
++@pytest.mark.parametrize("what", sorted(FORGED))
++def test_an_acknowledgement_that_does_not_match_is_refused_and_the_arm_withdrawn(world, what):
++    change, why = FORGED[what]
++
++    def forge(record: dict) -> dict:
++        good = {"kind": worker_side.ACK_KIND, "arm": record["arm"], "worker": record["worker"], "pod": record["pod"],
++                "stop_at_utc": record["stop_at_utc"], "acknowledged_utc": iso(world.clock.now), "run_id": "77",
++                "last_scheduled_scan_utc": iso(dur.T0), "scan_interval_seconds": 1800.0}
++        return {**good, **change(record)}
++
++    world.actions.forge = forge
++    with pytest.raises(ProviderError, match=why) as refused:
++        world.arm(3 * HOUR)
++    assert "withdrawn" in str(refused.value) and len(names(world.github, "void-")) == 1
++    world.at(2 * HOUR + 60)
++    assert world.actions.scheduled() == 0 and world.runpod.log == []      # a withdrawn arm stops nothing
++
++
++def test_the_worker_side_refuses_before_or_without_an_acknowledgement(world, monkeypatch):
++    with pytest.raises(ProviderError, match="ends too soon for the watchdog"):
++        world.arm(HOUR + 600)                            # the stop time would fall inside the acknowledgement window
++    with pytest.raises(ProviderError, match="at most 48 hours ahead"):
++        world.arm(50 * HOUR)
++    with pytest.raises(NotConfigured, match="no worker or pod"):
++        world.arm(3 * HOUR, pod_id=" ")
++    assert names(world.github) == [] and world.github.dispatches == []
++    world.github.dispatch_status = 404                   # the token cannot send the event
++    with pytest.raises(ProviderError, match="answered 404 to the watchdog dispatch") as refused:
++        world.arm(3 * HOUR)
++    assert "withdrawn" in str(refused.value) and len(names(world.github, "void-")) == 1
++    world.github.dispatch_status = 204
++    with pytest.raises(ProviderError, match="does not cover two scan intervals"):
++        world.arm(3 * HOUR, armer=world.make_armer(lateness_seconds=1800.0))   # the real watchdog, too little lateness
++    monkeypatch.delenv(GITHUB_TOKEN_ENV)
++    seen = len(world.github.log)
++    with pytest.raises(NotConfigured, match=GITHUB_TOKEN_ENV):
++        world.arm(3 * HOUR)
++    with pytest.raises(NotConfigured, match=GITHUB_TOKEN_ENV):
++        world.armer.status("pod-1")
++    assert len(world.github.log) == seen                 # nothing was sent without the token
++    for bad in ({"lateness_seconds": 0}, {"lateness_seconds": True}, {"ack_window_seconds": 3600.0}, {"poll_seconds": -1}):
++        with pytest.raises(DurabilityError):
++            world.make_armer(**bad)
++    with pytest.raises(DurabilityError, match="owner/name"):
++        GitHubActionsWatchdog("not a repository", lateness_seconds=HOUR)
++
++
++# ----- admission, end to end -------------------------------------------------------------
++
++CONFIRMATION = BalanceConfirmation("test operator", iso(dur.T0), "USD",
++                                   "ENGINEERING FIXTURE: clientBalance is the spendable prepaid credit balance in USD")
++PRICES = StoragePrices(network_volume_per_gb_month=0.07, pod_volume_running_per_gb_month=0.10,
++                       pod_volume_stopped_per_gb_month=0.20, container_disk_per_gb_month=0.10, hours_per_month=720.0,
++                       source="ENGINEERING FIXTURE price list", confirmed_by="test operator", confirmed_utc=iso(dur.T0))
++VOLUME = network_volume("vol-1", size=100)
++POLICY = AdmissionPolicy(max_balance_age_seconds=120.0, max_rate_age_seconds=3600.0, backup_delay_seconds=300.0,
++                         shutdown_delay_seconds=HOUR, contingency_fraction=0.25, retention_hours=72.0)
++
++
++class Deployment:
++    """Everything admission needs, confirmed in fakes: the RunPod account, the storage, the watchdog."""
++
++    def __init__(self, world: World, folder: Path) -> None:
++        self.world, self.folder = world, folder
++        self.source = folder / "workspace"
++        self.source.mkdir(parents=True)
++        world.runpod.pods = [pod("pod-1", volume=VOLUME, mount=str(self.source))]
++        world.runpod.volumes = [VOLUME]
++        self.storage = dur.storage(self.source, LocalDirectoryDestination(folder / "offsite"), source_path=str(self.source))
++        self.fields = {"worker_pods": {"worker-1": "pod-1"}, "balance_confirmation": CONFIRMATION,
++                       "storage_prices": PRICES, "destination_per_hour": 0.0, "local_pod_id": "pod-1"}
++        self.shutdown: object = world.armer
++        self.policy = POLICY
++        self.planned = self.provider().read_rates("worker-1")
++        self.reserve = (self.planned.storage_per_hour + self.planned.destination_per_hour) * POLICY.retention_hours
++
++    def provider(self) -> RunPodProvider:
++        world = self.world
++        return RunPodProvider(RunPodConfig(**self.fields), rest_url=f"{world.runpod.url}/v1",
++                              graphql_url=f"{world.runpod.url}/graphql", clock=world.clock, sleep=lambda s: None,
++                              shutdown=self.shutdown)
++
++    def admit(self, seconds: float = 2 * HOUR):
++        controller = AdmissionController(self.folder / "admission" / "reservations.jsonl", self.provider(), self.policy,
++                                         self.planned, journal=Journal(self.folder / "journal.jsonl", self.world.clock),
++                                         clock=self.world.clock)
++        return controller.admit("worker-1", seconds, self.storage, self.reserve)
++
++
++def test_admission_succeeds_end_to_end_once_the_watchdog_acknowledges(world, tmp_path):
++    deployment = Deployment(world, tmp_path / "a")
++    lease = deployment.admit(2 * HOUR)
++    assert lease.expires_utc == iso(after(2 * HOUR)) and lease.reserved_until_utc == iso(after(3 * HOUR + 300))
++    arm = record_of(world.github, names(world.github, "arm-")[0])
++    assert (arm["worker"], arm["pod"], arm["reserved_until_utc"]) == ("worker-1", "pod-1", lease.reserved_until_utc)
++    assert arm["stop_at_utc"] == iso(after(2 * HOUR + 300))      # the end of the lease plus the backup delay
++    assert names(world.github, "ack-") == [f"ack-{arm['arm']}.json"]
++    assert [event["client_payload"] for event in world.github.dispatches] == [{"arm": arm["arm"]}]
++    # the worker runs, the laptop is away, the lease ends: the watchdog stops the pod inside the reservation
++    world.at(2 * HOUR + 300 + 1700)
++    assert world.actions.scheduled() == 0
++    outcome = record_of(world.github, f"stop-{arm['arm']}.json")
++    assert outcome["result"] == "stopped" and status_of(world.runpod, "pod-1") == "EXITED"
++    assert world.clock.now <= after(3 * HOUR + 300)
++    # the worker's side never asked RunPod to change anything
++    worker_calls = {(m, p.split("?")[0]) for m, p, _ in world.runpod.log} - {("GET", "/v1/pods/pod-1"), ("POST", "/v1/pods/pod-1/stop")}
++    assert worker_calls == {("GET", "/v1/pods"), ("GET", "/v1/networkvolumes"), ("POST", "/graphql")}
++
++
++def test_a_renewed_lease_moves_the_stop_time(world, tmp_path):
++    deployment = Deployment(world, tmp_path / "a")
++    deployment.admit(2 * HOUR)
++    world.at(HOUR)
++    assert world.actions.scheduled() == 0
++    world.at(1.75 * HOUR)                                # renewed before the first lease ends
++    renewed = deployment.admit(2 * HOUR)
++    assert renewed.reserved_until_utc == iso(after(1.75 * HOUR + 3 * HOUR + 300))
++    world.at(2 * HOUR + 300 + 60)                        # past the first lease's stop time
++    assert world.actions.scheduled() == 0 and stops(world.runpod) == []
++    world.at(1.75 * HOUR + 2 * HOUR + 300 + 900)         # the first scan after the renewed stop time
++    assert world.actions.scheduled() == 0 and stops(world.runpod) == ["/v1/pods/pod-1/stop"]
++    assert world.clock.now <= after(1.75 * HOUR + 3 * HOUR + 300)       # inside the renewed reservation
++
++
++WITHDRAWN = {
++    "no watchdog is configured": (lambda d: setattr(d, "shutdown", None), "no external shutdown watchdog is configured"),
++    "Actions does not run the workflow": (lambda d: setattr(d.world.actions, "enabled", False), "did not acknowledge the arm in time"),
++    "the schedule is not running": (lambda d: d.world.github.runs.clear(), "liveness"),
++    "the allow-list does not name the pod": (lambda d: d.world.actions.allow({}), "not-a-worker"),
++    "the Actions secret is wrong": (lambda d: setattr(d.world.actions, "secret", "wrong"), "the key was rejected"),
++    "the worker has no GitHub token": (lambda d: d.monkeypatch.delenv(GITHUB_TOKEN_ENV), GITHUB_TOKEN_ENV),
++    "the policy's shutdown delay is shorter than the watchdog's lateness": (
++        lambda d: setattr(d, "policy", AdmissionPolicy(**{**POLICY.__dict__, "shutdown_delay_seconds": 1800.0})),
++        "shorter than the stated lateness"),
++    "the lateness does not cover the scan interval": (
++        lambda d: (setattr(d, "shutdown", d.world.make_armer(lateness_seconds=900.0)),
++                   setattr(d, "policy", AdmissionPolicy(**{**POLICY.__dict__, "shutdown_delay_seconds": 900.0}))),
++        "does not cover two scan intervals"),
++    "the balance is not confirmed": (lambda d: d.fields.update(balance_confirmation=None), "not confirmed"),
++    "the storage prices are not declared": (lambda d: d.fields.update(storage_prices=None), "provider inputs are unavailable"),
++    "the source is not on a network volume": (lambda d: d.fields.update(local_pod_id="pod-9"), "not confirmed"),
++    "the pod is not running": (lambda d: d.world.runpod.pods[0].update(desiredStatus="EXITED"), "not"),
++    "the watchdog answers for another pod": (
++        lambda d: setattr(d, "shutdown", type("Other", (), {"lateness_seconds": HOUR, "arm": staticmethod(
++            lambda worker, pod_id, at_utc: {"armed": True, "at_utc": at_utc, "pod": "pod-2"})})()),
++        "did not confirm a stop of this worker's pod"),
++}
++
++
++@pytest.mark.parametrize("what", sorted(WITHDRAWN))
++def test_admission_refuses_when_any_one_input_is_withdrawn(world, tmp_path, monkeypatch, what):
++    deployment = Deployment(world, tmp_path / "a")
++    deployment.monkeypatch = monkeypatch
++    withdraw, why = WITHDRAWN[what]
++    withdraw(deployment)
++    with pytest.raises(AdmissionRefused, match=why):
++        deployment.admit(2 * HOUR)
++    assert not (tmp_path / "a" / "admission" / "reservations.jsonl").exists()     # nothing was reserved
++    assert len(names(world.github, "void-")) == len(names(world.github, "arm-"))  # every published arm was withdrawn
++    world.at(40 * HOUR)
++    assert world.actions.scheduled() == 0 and stops(world.runpod) == []
++
++
++def test_the_configuration_builds_the_watchdog_only_when_it_is_named(world):
++    config = {"kind": "runpod", "worker_pods": {"worker-1": "pod-1"}, "destination_per_hour": 0.0,
++              "balance_confirmation": dict(CONFIRMATION.__dict__), "storage_prices": dict(PRICES.__dict__)}
++    options = {"rest_url": f"{world.runpod.url}/v1", "graphql_url": f"{world.runpod.url}/graphql"}
++    bare = provider_from(config, **options)
++    assert bare.shutdown is None
++    with pytest.raises(NotConfigured, match="no external shutdown watchdog is configured"):
++        bare.arm_shutdown("worker-1", iso(after(3 * HOUR)))
++    shutdown = {"kind": "github-actions-watchdog", "repository": REPOSITORY, "lateness_seconds": 3600}
++    built = provider_from({**config, "shutdown": shutdown}, **options,
++                          shutdown_options={"api_url": world.github.url, "upload_url": world.github.url,
++                                            "clock": world.clock, "sleep": world.worker_sleep})
++    assert built.shutdown.describe() == {"kind": "github-actions-watchdog", "repository": REPOSITORY,
++                                         "lateness_seconds": 3600.0, "ack_window_seconds": 600.0}
++    assert built.shutdown_lateness_seconds() == 3600.0
++    assert built.arm_shutdown("worker-1", iso(after(3 * HOUR)))["armed"] is True
++    with pytest.raises(NotConfigured, match="no pod is configured"):
++        built.arm_shutdown("worker-7", iso(after(3 * HOUR)))
++    assert shutdown_from(None) is None
++    for bad in ({"kind": "cron"}, {**shutdown, "latency": 1}, {"kind": "github-actions-watchdog", "repository": REPOSITORY},
++                {"kind": "github-actions-watchdog", "lateness_seconds": 3600}, {**shutdown, "repository": "nope"},
++                {**shutdown, "lateness_seconds": "3600"}):
++        with pytest.raises(DurabilityError):
++            shutdown_from(bad)
++        with pytest.raises(DurabilityError):
++            provider_from({**config, "shutdown": bad}, **options)
++
++
++def test_the_check_watchdog_command_reads_the_records_and_changes_nothing(world, tmp_path, capsys):
++    config = {"kind": "runpod", "worker_pods": {"worker-1": "pod-1", "worker-2": "pod-2"},
++              "shutdown": {"kind": "github-actions-watchdog", "repository": REPOSITORY, "lateness_seconds": 3600}}
++    path = tmp_path / "provider.json"
++    path.write_text(json.dumps(config))
++    arguments = ["check-watchdog", "--config", str(path), "--github-api-url", world.github.url,
++                 "--github-upload-url", world.github.url, "--worker"]
++    assert cli(arguments + ["worker-1"]) == 0
++    assert json.loads(capsys.readouterr().out)["armed"] is False
++    armed = world.arm(3 * HOUR)
++    seen = len(world.github.log)
++    assert cli(arguments + ["worker-1"]) == 0
++    report = json.loads(capsys.readouterr().out)
++    assert (report["armed"], report["arm"], report["stop_at_utc"]) == (True, armed["arm"], armed["stop_at_utc"])
++    assert report["acknowledged_by_run"] == armed["run_id"] and report["stop"] is None
++    assert cli(arguments + ["worker-2"]) == 0 and json.loads(capsys.readouterr().out)["armed"] is False
++    assert all(method == "GET" for method, _, _ in world.github.log[seen:])     # the command only read
++    world.at(2 * HOUR + 60)
++    assert world.actions.scheduled() == 0
++    assert cli(arguments + ["worker-1"]) == 0
++    report = json.loads(capsys.readouterr().out)
++    assert report["armed"] is False and report["stop"]["result"] == "stopped"
++    # check-provider reports that a watchdog is configured, and asks it nothing
++    seen = len(world.github.log)
++    provider_arguments = ["check-provider", "--config", str(path), "--worker", "worker-1",
++                          "--runpod-rest-url", f"{world.runpod.url}/v1", "--runpod-graphql-url", f"{world.runpod.url}/graphql"]
++    assert cli(provider_arguments) == 0
++    shutdown = json.loads(capsys.readouterr().out)["shutdown"]
++    assert shutdown["watchdog"]["repository"] == REPOSITORY and "acknowledgement" in shutdown["can_arm"]
++    assert len(world.github.log) == seen
++    del config["shutdown"]
++    path.write_text(json.dumps(config))
++    assert cli(provider_arguments) == 0 and json.loads(capsys.readouterr().out)["shutdown"]["can_arm"] is False
++    assert cli(arguments + ["worker-1"]) == 0 and json.loads(capsys.readouterr().out)["watchdog"] is None
++    assert cli(arguments + ["worker-9"]) == 2
++    assert TOKEN not in capsys.readouterr().err
++
++
++# ----- secrets, permissions and the deployed files ----------------------------------------
++
++
++def test_no_secret_reaches_a_log_a_record_or_the_other_service(world, tmp_path):
++    deployment = Deployment(world, tmp_path / "a")
++    deployment.admit(2 * HOUR)
++    world.at(HOUR)
++    world.actions.secret = "a-wrong-runpod-key-value"
++    messages = []
++    with pytest.raises(AdmissionRefused) as refused:    # a refused renewal: refusal and void records
++        deployment.admit(2 * HOUR)
++    messages.append(str(refused.value))
++    world.actions.secret = KEY
++    world.runpod.stop_mode = "error"
++    world.at(2 * HOUR + 400)
++    assert world.actions.scheduled() == 1                # a failed stop: an attempt record
++    world.runpod.stop_mode = "ok"
++    assert world.actions.scheduled() == 0
++    written = [world.github.blobs[asset_id] for asset_id in world.github.blobs]
++    kinds = {name.split("-")[0] for name in names(world.github)}
++    assert kinds == {"arm", "ack", "void", "refusal", "stop"} and len(names(world.github, "stop-attempt-")) == 1
++    texts = [data.decode() for data in written] + world.actions.lines + messages
++    texts += [(tmp_path / "a" / "journal.jsonl").read_text(), (tmp_path / "a" / "admission" / "reservations.jsonl").read_text()]
++    texts += [repr(world.armer), repr(world.armer.http), json.dumps(world.armer.describe())]
++    texts += [path for _, path, _ in world.github.log] + [path + body for _, path, body in world.runpod.log]
++    for secret in (*SECRETS, "a-wrong-runpod-key-value"):
++        assert all(secret not in text for text in texts)
++    assert world.github.leaks == [] and world.runpod.leaks == []     # each secret went only to its own service
++    downloads = [had_token for method, path, had_token in world.github.log if path.startswith("/_blob/")]
++    assert downloads and not any(downloads)              # no token on the redirected downloads
++    # the worker's token cannot read workflow runs, and does not try; only the workflow's token does
++    assert all(had for method, path, had in world.github.log if "/actions/" in path)
++    assert world.actions.script.Refused("x").args == ("x",)
++
++
++def test_the_two_sides_agree_on_the_record_format(world):
++    script = world.actions.script
++    for name in ("ARM_KIND", "ACK_KIND", "EVENT_ARM", "MAX_HORIZON_SECONDS", "MAX_ACK_WINDOW_SECONDS"):
++        assert getattr(script, name) == getattr(worker_side, name), name
++    assert script.ARM_ID.pattern == worker_side.ARM_ID.pattern
++    arm = world.arm(3 * HOUR)
++    assert script.ARM_ID.fullmatch(arm["arm"])
++    record = record_of(world.github, f"arm-{arm['arm']}.json")
++    assert set(record) == {"kind", "arm", "worker", "pod", "stop_at_utc", "reserved_until_utc", "published_utc", "ack_by_utc"}
++    assert script.valid_arm(record, arm["arm"], {"worker-1": "pod-1"})["stop_at"] == after(2 * HOUR)
++    source = (DEPLOYED / "watchdog.py").read_text()
++    imports = {line.split()[1].split(".")[0] for line in source.splitlines() if line.startswith(("import ", "from "))}
++    assert imports <= {"__future__", "datetime", "json", "os", "re", "sys", "time", "urllib"}     # self-contained
++
++
++def test_an_empty_allow_list_needs_no_runpod_key_and_a_listed_pod_without_one_fails_loudly(world):
++    armed = world.arm(3 * HOUR)                          # records exist from an earlier lease
++    world.runpod.log.clear()
++    world.actions.secret = ""                            # the Actions secret is not set (yet, or any more)
++    world.actions.allow({})
++    world.at(2 * HOUR + 60)
++    assert world.actions.scheduled() == 0                # nothing to watch: green, and RunPod is not asked anything
++    assert world.runpod.log == [] and world.actions.events("scan-done")[-1]["pods"] == 0
++    world.actions.allow({"worker-1": "pod-1"})
++    assert world.actions.scheduled() == 1                # a pod to watch and no key: red, and it says why
++    assert "RUNPOD_API_KEY is not set, but the allow-list names a pod" in world.actions.lines[-1]
++    assert world.runpod.log == [] and names(world.github, "stop-") == []
++    world.clock.advance(60)
++    arm_id, record = arm_record(world)
++    put_asset(world.github, "watchdog-arms-2026-10", f"arm-{arm_id}.json", record)
++    assert world.actions.run("repository_dispatch", arm_id) == 1          # an arm is never acknowledged without the key
++    assert record_of(world.github, f"refusal-{arm_id}.json")["reason"] == "configuration: RUNPOD_API_KEY is not set"
++    assert names(world.github, "ack-") == [f"ack-{armed['arm']}.json"] and world.runpod.log == []
++    world.actions.secret = KEY                           # the key is set: the next scan carries out the stop
++    assert world.actions.scheduled() == 0
++    assert record_of(world.github, f"stop-{armed['arm']}.json")["result"] == "stopped"
++
++
++def workflow() -> tuple[str, dict, dict, list[dict]]:
++    text = (DEPLOYED / "watchdog.yml").read_text()
++    parsed = yaml.safe_load(text)
++    (job,) = parsed["jobs"].values()
++    return text, parsed, job, job["steps"]
++
++
++def test_the_workflow_has_least_privilege_and_keeps_secrets_out_of_the_shell():
++    text, parsed, job, steps = workflow()
++    triggers = parsed[True]                              # YAML reads the key ``on`` as a boolean
++    assert parsed["permissions"] == {"contents": "write", "actions": "read"}
++    assert set(triggers) == {"schedule", "repository_dispatch", "workflow_dispatch"}
++    assert triggers["repository_dispatch"] == {"types": [worker_side.EVENT_ARM]}
++    assert not triggers["workflow_dispatch"]            # a manual run takes no input
++    (cron,) = [entry["cron"] for entry in triggers["schedule"]]
++    minutes, hours = cron.split()[0].split(","), cron.split()[1:]
++    assert hours == ["*", "*", "*", "*"] and len(minutes) == 2 and "0" not in minutes     # twice an hour, off the hour
++    assert "permissions" not in job and job["runs-on"] == "ubuntu-latest"
++    assert "env" not in parsed and "env" not in job and "defaults" not in parsed          # no secret reaches every step
++    checkout, verify, script = steps
++    assert all("if" not in step and "continue-on-error" not in step for step in steps)    # a failed step ends the job
++    # every action is pinned to a full commit, and there is only the checkout
++    uses = [step["uses"] for step in steps if "uses" in step]
++    assert uses == [checkout["uses"]] and all(re.fullmatch(r"[\w.-]+/[\w.-]+@[0-9a-f]{40}", use) for use in uses)
++    assert checkout["uses"].startswith("actions/checkout@") and checkout["with"] == {"persist-credentials": False}
++    assert len(re.findall(r"^\s*(?:- )?uses:", text, flags=re.M)) == 1
++    # the verification step comes before the script, holds no secret and uses no expression
++    assert "env" not in verify and "${{" not in verify["run"] and "with" not in verify and "uses" not in verify
++    assert script["run"] == "python3 -I watchdog/watchdog.py"       # isolated; no expression, secret or payload in a shell line
++    env = script["env"]
++    assert env == {"GITHUB_TOKEN": "${{ github.token }}", "RUNPOD_API_KEY": "${{ secrets.RUNPOD_API_KEY }}",
++                   "WATCHDOG_ARM": "${{ github.event.client_payload.arm }}", "WATCHDOG_INTERVAL_SECONDS": "1800",
++                   "WATCHDOG_TAIL_SECONDS": "0"}
++    assert [name for step in steps for name in step.get("env", {})] == list(env)          # only the last step has an environment
++    interval = float(env["WATCHDOG_INTERVAL_SECONDS"])
++    assert interval == 3600 / len(minutes) and abs(int(minutes[1]) - int(minutes[0])) * 60 == interval
++    assert job["timeout-minutes"] * 60 >= float(env["WATCHDOG_TAIL_SECONDS"]) + 600   # the wait, the stop and its checks
++    assert worker_side.RECOMMENDED_LATENESS_SECONDS == 3 * interval
++    assert parsed["concurrency"]["cancel-in-progress"] is False
++    assert text.count("secrets.") == 1 and "set -x" not in text
++    assert json.loads((DEPLOYED / "pods.example.json").read_text()) == {"workers": {}}
++
++
++def pins() -> dict[str, str]:
++    """The files the workflow pins, as its verification step writes them: path -> SHA-256."""
++    _, _, _, steps = workflow()
++    lines = [line.split() for line in steps[1]["run"].splitlines() if line.strip().startswith("pin ")]
++    assert all(len(line) == 3 and re.fullmatch(r"[0-9a-f]{64}", line[1]) for line in lines)
++    return {path: digest for _, digest, path in lines}
++
++
++def test_the_workflow_pins_the_script_and_the_allow_list_as_they_are_shipped():
++    shipped = {"watchdog/watchdog.py": DEPLOYED / "watchdog.py", "watchdog/pods.json": DEPLOYED / "pods.example.json"}
++    assert pins() == {path: hashlib.sha256(source.read_bytes()).hexdigest() for path, source in shipped.items()}
++    # everything the script step reads from the repository is pinned: the script and its default allow-list
++    script = (DEPLOYED / "watchdog.py").read_text()
++    assert 'env.get("WATCHDOG_PODS", "watchdog/pods.json")' in script
++    assert len(re.findall(r"(?<![.\w])open\(", script)) == 1       # the allow-list is the only file it opens
++
++
++def run_step(step: dict, folder: Path) -> subprocess.CompletedProcess:
++    """Run a workflow step's commands the way the runner does for ``shell: bash``, with an
++    environment that holds nothing but a PATH."""
++    assert step["shell"] == "bash"
++    return subprocess.run(["bash", "--noprofile", "--norc", "-eo", "pipefail", "-c", step["run"]], cwd=folder,
++                          env={"PATH": os.environ["PATH"]}, capture_output=True, text=True, timeout=60)
++
++
++@pytest.mark.skipif(shutil.which("sha256sum") is None or shutil.which("bash") is None,
++                    reason="the verification step needs bash and sha256sum, as on the Actions runner")
++def test_the_verification_step_rejects_a_changed_or_missing_file_before_the_script_runs(tmp_path):
++    _, _, _, (_, verify, _) = workflow()
++    repo = tmp_path / "repo"
++    (repo / "watchdog").mkdir(parents=True)
++    script, allow = repo / "watchdog" / "watchdog.py", repo / "watchdog" / "pods.json"
++
++    def fresh() -> None:
++        shutil.copyfile(DEPLOYED / "watchdog.py", script)
++        shutil.copyfile(DEPLOYED / "pods.example.json", allow)
++
++    fresh()
++    passed = run_step(verify, repo)
++    assert passed.returncode == 0 and "the pinned ones" in passed.stdout
++    changes = {
++        "a script that also sends the key elsewhere": lambda: script.write_text(script.read_text() + "\nprint('x')\n"),
++        "a script changed by one byte": lambda: script.write_bytes(script.read_bytes()[:-1]),
++        "an allow-list without the pod": lambda: allow.write_text('{"workers": {}}'),
++        "an allow-list naming another pod": lambda: allow.write_text('{\n  "workers": {"worker-1": "pod-x"}\n}\n'),
++        "no script": script.unlink,
++        "no allow-list": allow.unlink,
++        "an empty script": lambda: script.write_bytes(b""),
++    }
++    for what, change in changes.items():
++        fresh()
++        change()
++        refused = run_step(verify, repo)
++        assert refused.returncode != 0, what
++        assert "is not the pinned file" in refused.stdout and "the pinned ones" not in refused.stdout, what
++    # the step executes nothing from the repository: a file named like its tool changes nothing
++    fresh()
++    (repo / "sha256sum").write_text("#!/bin/sh\nexit 0\n")
++    (repo / "sha256sum").chmod(0o755)
++    script.write_text("changed")
++    assert run_step(verify, repo).returncode != 0
++
++
++def test_isolated_python_does_not_import_a_module_placed_next_to_the_script(tmp_path):
++    """The script step runs ``python3 -I``. Without it, Python puts the script's folder first on
++    the import path, and a ``json.py`` pushed next to the pinned script would run with the secret."""
++    _, _, _, (_, _, step) = workflow()
++    assert step["run"].split()[:2] == ["python3", "-I"]
++    folder = tmp_path / "watchdog"
++    folder.mkdir()
++    shutil.copyfile(DEPLOYED / "watchdog.py", folder / "watchdog.py")
++    marker = tmp_path / "shadow-ran"
++    (folder / "json.py").write_text(f"open({str(marker)!r}, 'w').write('ran')\nraise SystemExit(0)\n")
++    env = {"PATH": os.environ["PATH"], "GITHUB_EVENT_NAME": "schedule"}       # no token: the script refuses at once
++    isolated = subprocess.run([sys.executable, "-I", "watchdog/watchdog.py"], cwd=tmp_path, env=env,
++                              capture_output=True, text=True, timeout=60)
++    assert isolated.returncode == 1 and "GITHUB_TOKEN is not set" in isolated.stdout and not marker.exists()
++    plain = subprocess.run([sys.executable, "-B", "watchdog/watchdog.py"], cwd=tmp_path, env=env,
++                           capture_output=True, text=True, timeout=60)
++    assert marker.exists() and plain.returncode == 0      # what the flag prevents
+diff --git a/experiments/durability/watchdog/README.md b/experiments/durability/watchdog/README.md
+new file mode 100644
+index 0000000..4483a8e
+--- /dev/null
++++ b/experiments/durability/watchdog/README.md
+@@ -0,0 +1,31 @@
++# Shutdown watchdog: files to deploy
++
++These three files are the whole watchdog. They run in the **backup repository**
++(`4r4cn1d0/attribution-backups`), not in this project; nothing here imports the project.
++
++| file here | goes to (default branch of the backup repository) |
++|---|---|
++| `watchdog.py` | `watchdog/watchdog.py` |
++| `watchdog.yml` | `.github/workflows/watchdog.yml` |
++| `pods.example.json` | `watchdog/pods.json`, with the worker and its pod id filled in |
++
++`pods.json` is the allow-list: `{"workers": {"worker-1": "<pod id>"}}`. The watchdog acknowledges
++and stops only a pod named there, under that worker's name. The shipped example is empty, so
++nothing can be armed until a pod is named, and until then a scan needs no RunPod key.
++
++**The workflow pins the other two files.** Its verification step holds the SHA-256 of
++`watchdog/watchdog.py` and `watchdog/pods.json` and fails the job, before the RunPod key is
++used, if either differs. As shipped the pins are those of `watchdog.py` and `pods.example.json`
++in this folder (a test keeps them equal), so copy both byte for byte. To add a pod or change the
++script: edit the file, run `sha256sum watchdog/watchdog.py watchdog/pods.json` (`shasum -a 256`
++on macOS), replace the hash on the matching `pin` line of the workflow, and push the file and the
++workflow in one commit with a credential that has the "Workflows" permission. The worker's backup
++token must not have that permission.
++
++What it does, the records it writes, the user's steps, the Actions minutes it uses and its limits
++are in the package README (`experiments/durability/README.md`, "The shutdown watchdog"). The
++worker's side is `experiments/durability/shutdown_watchdog.py`. The tests
++(`experiments/durability/tests/test_dur_watchdog.py`) run `watchdog.py` from this folder against
++local fakes.
++
++The script uses only the Python standard library and needs no installation on the runner.
+diff --git a/experiments/durability/watchdog/pods.example.json b/experiments/durability/watchdog/pods.example.json
+new file mode 100644
+index 0000000..226afcc
+--- /dev/null
++++ b/experiments/durability/watchdog/pods.example.json
+@@ -0,0 +1,3 @@
++{
++  "workers": {}
++}
+diff --git a/experiments/durability/watchdog/watchdog.py b/experiments/durability/watchdog/watchdog.py
+new file mode 100644
+index 0000000..999859d
+--- /dev/null
++++ b/experiments/durability/watchdog/watchdog.py
+@@ -0,0 +1,523 @@
++#!/usr/bin/env python3
++"""Shutdown watchdog for leased GPU pods (self-contained; Python standard library only).
++
++This file is deployed to the backup repository as ``watchdog/watchdog.py`` and run by the
++``watchdog`` GitHub Actions workflow. It imports nothing from the research project.
++
++What it does, and nothing else:
++
++- **arm** (one run per lease, started by a ``repository_dispatch`` event that names an arm id):
++  read the worker's arm record, refuse it unless it is well formed, names an allow-listed
++  worker and its pod, is still within its acknowledgement window, the pod answers as RUNNING
++  with this workflow's RunPod key, and a scheduled scan ran recently; then write the
++  acknowledgement, create-only. The worker treats its shutdown as armed only when it reads that
++  acknowledgement.
++- **scan** (the schedule): for every allow-listed pod find the *governing* arm: the latest one
++  that was acknowledged and not withdrawn. At or after its ``stop_at_utc`` the pod is **stopped**
++  (never terminated or deleted) through ``POST /pods/{id}/stop``, the result is confirmed with a
++  ``GET`` and recorded, create-only. An earlier arm never stops a pod while a later acknowledged
++  one governs. A stop is therefore up to one scan interval late (more if GitHub delays or drops a
++  scheduled run); the worker's reservation covers that lateness. Optionally
++  (``WATCHDOG_TAIL_SECONDS``, 0 by default) a stop time that falls within that many seconds is
++  waited for inside the run; the governing arm is then looked up again before the stop, so a
++  renewal that arrived meanwhile wins. Every waited minute is a billed Actions minute.
++
++Records are release assets of this repository, one release per kind and month, all create-only:
++
++    watchdog-arms-YYYY-MM   arm-<id>.json (worker), void-<id>.json (worker, withdraws an arm)
++    watchdog-acks-YYYY-MM   ack-<id>.json, refusal-<id>.json (this script)
++    watchdog-stops-YYYY-MM  stop-<id>.json (final), stop-attempt-<id>-<run>.json (this script)
++
++It never deletes or renames anything, on GitHub or on RunPod, and it stops only a pod that the
++allow-list (``watchdog/pods.json``) and a valid governing arm both name. Secrets come from the
++environment (``GITHUB_TOKEN``, ``RUNPOD_API_KEY``), go only into ``Authorization`` headers for
++their own service, are never forwarded on a redirect and are never printed.
++
++**The RunPod key is needed only when there is a pod to watch.** With an empty allow-list a scan
++succeeds without it and sends nothing to RunPod, so the workflow can be deployed before the secret
++exists. With a pod on the allow-list and no key the scan fails, loudly: a watchdog that could not
++stop the pod it guards must be visible. An arm is never acknowledged without the key.
++
++**What the workflow must do around this file.** Whoever can push to the repository can change
++this file and the allow-list, but not the workflow (that needs GitHub's "Workflows" permission).
++The workflow therefore pins the SHA-256 of both files and checks them in a step that has no secret
++in its environment, before this script starts; and it runs the script with ``python3 -I``, so that
++a module placed next to it (a ``json.py``, say) is not imported in place of the standard library.
++Without both, the RunPod key would be exposed to whatever the repository holds.
++"""
++
++from __future__ import annotations
++
++import datetime as dt
++import json
++import os
++import re
++import sys
++import time
++import urllib.error
++import urllib.parse
++import urllib.request
++
++ARM_KIND = "durability watchdog arm v1"
++ACK_KIND = "durability watchdog acknowledgement v1"
++STOP_KIND = "durability watchdog stop v1"
++ARM_ID = re.compile(r"(\d{8}T\d{6}Z)-[0-9a-f]{16}")
++STOPPED = ("EXITED", "TERMINATED")
++MAX_HORIZON_SECONDS = 48 * 3600          # an arm never asks for a stop further away than this
++MAX_ACK_WINDOW_SECONDS = 1800
++EVENT_ARM = "watchdog-arm"
++
++
++class Refused(Exception):
++    """An arm is not acknowledged, or a step could not be completed. The message is a short
++    reason code plus plain detail; it never holds a header or a secret."""
++
++
++def utc_now() -> dt.datetime:
++    return dt.datetime.now(dt.timezone.utc)
++
++
++def iso(moment: dt.datetime) -> str:
++    return moment.astimezone(dt.timezone.utc).isoformat(timespec="milliseconds")
++
++
++def parse_utc(text: object) -> dt.datetime:
++    if not isinstance(text, str):
++        raise ValueError("not a timestamp")
++    moment = dt.datetime.fromisoformat(text)
++    if moment.tzinfo is None:
++        raise ValueError("timestamp without a timezone")
++    return moment.astimezone(dt.timezone.utc)
++
++
++def month_of(arm_id: str) -> str:
++    return f"{arm_id[:4]}-{arm_id[4:6]}"
++
++
++class _NoRedirect(urllib.request.HTTPRedirectHandler):
++    def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: D102 - urllib hook
++        return None
++
++
++class Http:
++    """Requests with a bearer token for one service. Redirects are followed by hand, at most
++    three times, without the token. Non-HTTPS addresses are refused except on a loopback host."""
++
++    def __init__(self, base: str, token: str, sleep=time.sleep, retries: int = 3) -> None:
++        self.base, self._token, self.sleep, self.retries = base.rstrip("/"), token, sleep, retries
++        self._opener = urllib.request.build_opener(_NoRedirect())
++        parts = urllib.parse.urlsplit(self.base)
++        if parts.scheme != "https" and not (parts.scheme == "http" and parts.hostname in ("127.0.0.1", "localhost")):
++            raise Refused("configuration: a service address is not HTTPS")
++
++    def request(self, method: str, url: str, body: bytes | None = None, headers: dict | None = None) -> tuple[int, dict, bytes]:
++        """(status, lower-cased headers, body). Connection errors and 5xx answers are retried a
++        few times; every other answer is returned for the caller to judge."""
++        if not url.startswith("http"):
++            url = self.base + url
++        authorized, hops, attempt = True, 0, 0
++        while True:
++            parts = urllib.parse.urlsplit(url)
++            if parts.scheme != "https" and not (parts.scheme == "http" and parts.hostname in ("127.0.0.1", "localhost")):
++                raise Refused("transport: refusing a non-HTTPS address")
++            request = urllib.request.Request(url, data=body, method=method)
++            request.add_header("User-Agent", "durability-watchdog")
++            for name, value in (headers or {}).items():
++                request.add_header(name, value)
++            if authorized and (url == self.base or url.startswith(self.base + "/")):
++                request.add_header("Authorization", f"Bearer {self._token}")
++            try:
++                with self._opener.open(request, timeout=60) as response:
++                    return response.status, {k.lower(): v for k, v in response.headers.items()}, response.read()
++            except urllib.error.HTTPError as exc:
++                status, reply, payload = exc.code, {k.lower(): v for k, v in (exc.headers or {}).items()}, exc.read()
++            except (urllib.error.URLError, OSError) as exc:
++                attempt += 1
++                if attempt > self.retries:
++                    raise Refused(f"transport: {method} {parts.netloc}{parts.path} failed ({type(exc).__name__})") from None
++                self.sleep(2.0 * attempt)
++                continue
++            if status in (301, 302, 303, 307, 308) and reply.get("location"):
++                hops += 1
++                if hops > 3:
++                    raise Refused("transport: too many redirects")
++                url, authorized = urllib.parse.urljoin(url, reply["location"]), False
++                continue
++            if status >= 500:
++                attempt += 1
++                if attempt > self.retries:
++                    return status, reply, payload
++                self.sleep(2.0 * attempt)
++                continue
++            return status, reply, payload
++
++
++def _json(payload: bytes):
++    try:
++        return json.loads(payload)
++    except ValueError:
++        raise Refused("transport: an answer was not JSON") from None
++
++
++class Records:
++    """Create-only records as release assets of the repository (module doc)."""
++
++    def __init__(self, http: Http, uploads: Http, repository: str) -> None:
++        self.http, self.uploads, self.repository = http, uploads, repository
++        self._releases: dict[str, dict | None] = {}
++
++    def _repo(self, path: str) -> str:
++        return f"/repos/{self.repository}{path}"
++
++    def release(self, tag: str, create: bool) -> dict | None:
++        if self._releases.get(tag):
++            return self._releases[tag]
++        status, _, payload = self.http.request("GET", self._repo(f"/releases/tags/{tag}"), headers={"Accept": "application/vnd.github+json"})
++        if status == 404 and create:
++            body = json.dumps({"tag_name": tag, "name": tag, "prerelease": True,
++                               "body": "Shutdown-watchdog records. Create-only; do not edit or delete."}).encode()
++            status, _, payload = self.http.request("POST", self._repo("/releases"), body, {"Accept": "application/vnd.github+json"})
++            if status == 422:   # created by the other side meanwhile
++                status, _, payload = self.http.request("GET", self._repo(f"/releases/tags/{tag}"), headers={"Accept": "application/vnd.github+json"})
++        if status == 404:
++            return None
++        if status not in (200, 201):
++            raise Refused(f"records: GitHub answered {status} for the release {tag}")
++        release = _json(payload)
++        if not isinstance(release, dict) or not isinstance(release.get("id"), int):
++            raise Refused("records: a release has an unexpected shape")
++        self._releases[tag] = release
++        return release
++
++    def names(self, tag: str) -> dict[str, dict]:
++        """Uploaded assets of a release by name (an unfinished upload is not a record)."""
++        release = self.release(tag, create=False)
++        if release is None:
++            return {}
++        found, url = {}, self._repo(f"/releases/{release['id']}/assets?per_page=100")
++        while url:
++            status, headers, payload = self.http.request("GET", url, headers={"Accept": "application/vnd.github+json"})
++            page = _json(payload) if status == 200 else None
++            if not isinstance(page, list):
++                raise Refused(f"records: GitHub answered {status} to an asset listing")
++            for asset in page:
++                if isinstance(asset, dict) and asset.get("state") == "uploaded" and isinstance(asset.get("name"), str):
++                    found[asset["name"]] = asset
++            url = next((part.split(";")[0].strip().strip("<>") for part in headers.get("link", "").split(",")
++                        if 'rel="next"' in part), None)
++        return found
++
++    def read(self, asset: dict) -> dict:
++        status, _, payload = self.http.request("GET", self._repo(f"/releases/assets/{asset['id']}"),
++                                               headers={"Accept": "application/octet-stream"})
++        if status != 200:
++            raise Refused(f"records: GitHub answered {status} to a record download")
++        record = _json(payload)
++        if not isinstance(record, dict):
++            raise Refused("records: a record is not a JSON object")
++        return record
++
++    def create(self, tag: str, name: str, record: dict) -> bool:
++        """Write a record create-only. True: created. False: the name already exists (kept)."""
++        release = self.release(tag, create=True)
++        body = (json.dumps(record, indent=2, sort_keys=True) + "\n").encode()
++        path = f"/repos/{self.repository}/releases/{release['id']}/assets?" + urllib.parse.urlencode({"name": name})
++        status, _, _ = self.uploads.request("POST", path, body, {"Content-Type": "application/json",
++                                                                 "Accept": "application/vnd.github+json"})
++        if status == 201:
++            return True
++        if status == 422:
++            return False
++        raise Refused(f"records: GitHub answered {status} to a record upload")
++
++
++def load_pods(path: str) -> dict[str, str]:
++    """The allow-list: worker name -> pod id. Anything else refuses."""
++    try:
++        with open(path, encoding="utf-8") as handle:
++            data = json.load(handle)
++    except (OSError, ValueError):
++        raise Refused("configuration: the pod allow-list is missing or unreadable") from None
++    workers = data.get("workers") if isinstance(data, dict) else None
++    if not isinstance(workers, dict) or not all(isinstance(k, str) and k and isinstance(v, str) and v for k, v in workers.items()):
++        raise Refused("configuration: the pod allow-list is malformed")
++    if len(set(workers.values())) != len(workers):
++        raise Refused("configuration: two workers name one pod")
++    return dict(workers)
++
++
++def valid_arm(record: object, arm_id: str, pods: dict[str, str]) -> dict:
++    """The arm record if it is well formed and names an allow-listed worker with its pod; raises
++    ``Refused`` with the reason otherwise."""
++    if not isinstance(record, dict) or record.get("kind") != ARM_KIND or record.get("arm") != arm_id:
++        raise Refused("malformed: not this arm's record")
++    if not ARM_ID.fullmatch(arm_id):
++        raise Refused("malformed: arm id")
++    worker, pod = record.get("worker"), record.get("pod")
++    if not (isinstance(worker, str) and isinstance(pod, str) and worker and pod):
++        raise Refused("malformed: worker or pod")
++    if pods.get(worker) != pod:
++        raise Refused("not-a-worker: the allow-list does not name this worker with this pod")
++    try:
++        published, stop_at, ack_by = (parse_utc(record.get(key)) for key in ("published_utc", "stop_at_utc", "ack_by_utc"))
++        reserved_until = parse_utc(record.get("reserved_until_utc"))
++    except ValueError:
++        raise Refused("malformed: timestamps") from None
++    if published.strftime("%Y%m%dT%H%M%SZ") != arm_id[:16]:
++        raise Refused("malformed: the arm id does not carry its publication time")
++    if not (published <= stop_at <= reserved_until) or (stop_at - published).total_seconds() > MAX_HORIZON_SECONDS:
++        raise Refused("malformed: the stop time is before publication, after the reservation or too far away")
++    if not 0 < (ack_by - published).total_seconds() <= MAX_ACK_WINDOW_SECONDS:
++        raise Refused("malformed: acknowledgement window")
++    return {"arm": arm_id, "worker": worker, "pod": pod, "published": published, "stop_at": stop_at, "ack_by": ack_by,
++            "reserved_until": reserved_until}
++
++
++class Watchdog:
++    def __init__(self, env: dict, clock=utc_now, sleep=time.sleep, out=print) -> None:
++        for name in ("GITHUB_TOKEN", "GITHUB_REPOSITORY"):
++            if not env.get(name, "").strip():
++                raise Refused(f"configuration: {name} is not set")
++        self.clock, self.sleep, self.out = clock, sleep, out
++        self.repository = env["GITHUB_REPOSITORY"]
++        self.api = env.get("GITHUB_API_URL", "https://api.github.com")
++        self.github = Http(self.api, env["GITHUB_TOKEN"].strip(), sleep)
++        uploads = Http(env.get("WATCHDOG_UPLOAD_URL", "https://uploads.github.com"), env["GITHUB_TOKEN"].strip(), sleep)
++        key = env.get("RUNPOD_API_KEY", "").strip()      # needed only when there is a pod to watch (module doc)
++        self._runpod = Http(env.get("WATCHDOG_RUNPOD_URL", "https://rest.runpod.io/v1"), key, sleep) if key else None
++        self.records = Records(self.github, uploads, self.repository)
++        self.pods = load_pods(env.get("WATCHDOG_PODS", "watchdog/pods.json"))
++        try:
++            self.interval = float(env.get("WATCHDOG_INTERVAL_SECONDS") or "1800")
++            self.tail = float(env.get("WATCHDOG_TAIL_SECONDS") or "0")
++        except ValueError:
++            raise Refused("configuration: the scan interval or the tail is not a number") from None
++        if not (60 <= self.interval <= 3600 and 0 <= self.tail <= 2400):
++            raise Refused("configuration: the scan interval or the tail is out of range")
++        self.workflow = env.get("WATCHDOG_WORKFLOW", "watchdog.yml")
++        self.run = {"run_id": env.get("GITHUB_RUN_ID", ""), "run_attempt": env.get("GITHUB_RUN_ATTEMPT", ""),
++                    "event": env.get("GITHUB_EVENT_NAME", "")}
++
++    def log(self, event: str, **fields: object) -> None:
++        self.out(json.dumps({"event": event, "utc": iso(self.clock()), **fields}, sort_keys=True))
++
++    # ----- RunPod: read a pod, stop a pod; nothing else --------------------------------
++
++    @property
++    def runpod(self) -> Http:
++        if self._runpod is None:
++            raise Refused("configuration: RUNPOD_API_KEY is not set")
++        return self._runpod
++
++    def pod_status(self, pod: str) -> str | None:
++        """The pod's ``desiredStatus``; None when RunPod says there is no such pod."""
++        status, _, payload = self.runpod.request("GET", f"/pods/{urllib.parse.quote(pod, safe='')}", headers={"Accept": "application/json"})
++        if status == 404:
++            return None
++        if status in (401, 403):
++            raise Refused("runpod: the key was rejected")
++        data = _json(payload) if status == 200 else None
++        if not isinstance(data, dict) or data.get("id") != pod or not isinstance(data.get("desiredStatus"), str):
++            raise Refused(f"runpod: unexpected answer ({status}) to a pod read")
++        return data["desiredStatus"]
++
++    def stop_pod(self, pod: str) -> int:
++        status, _, _ = self.runpod.request("POST", f"/pods/{urllib.parse.quote(pod, safe='')}/stop", b"", {"Accept": "application/json"})
++        return status
++
++    # ----- arm ---------------------------------------------------------------------------
++
++    def _last_scheduled_scan(self) -> dt.datetime | None:
++        status, _, payload = self.github.request(
++            "GET", f"/repos/{self.repository}/actions/workflows/{self.workflow}/runs?event=schedule&per_page=1",
++            headers={"Accept": "application/vnd.github+json"})
++        data = _json(payload) if status == 200 else None
++        runs = data.get("workflow_runs") if isinstance(data, dict) else None
++        if not isinstance(runs, list):
++            raise Refused(f"liveness: GitHub answered {status} to the scheduled-run query")
++        try:
++            return parse_utc(runs[0]["created_at"].replace("Z", "+00:00")) if runs else None
++        except (KeyError, ValueError, AttributeError, TypeError):
++            raise Refused("liveness: a workflow run has no usable creation time") from None
++
++    def arm(self, arm_id: str) -> dict:
++        """Acknowledge one arm or refuse it (module doc). A refusal is recorded, create-only, so
++        the worker can stop waiting; it never becomes an acknowledgement later."""
++        try:
++            if not ARM_ID.fullmatch(arm_id or ""):
++                raise Refused("malformed: arm id")
++            month = month_of(arm_id)
++            arms = self.records.names(f"watchdog-arms-{month}")
++            if f"arm-{arm_id}.json" not in arms:
++                raise Refused("missing: no such arm record")
++            if f"refusal-{arm_id}.json" in self.records.names(f"watchdog-acks-{month}"):
++                raise Refused("duplicate: this arm was refused before, and a refusal is final")
++            arm = valid_arm(self.records.read(arms[f"arm-{arm_id}.json"]), arm_id, self.pods)
++            if f"void-{arm_id}.json" in arms:
++                raise Refused("withdrawn: the worker withdrew this arm")
++            now = self.clock()
++            if now > arm["ack_by"]:
++                raise Refused("late: the acknowledgement window has passed")
++            if arm["stop_at"] <= now:
++                raise Refused("late: the stop time has passed")
++            if self.pod_status(arm["pod"]) != "RUNNING":
++                raise Refused("pod: RunPod does not report this pod as RUNNING")
++            last = self._last_scheduled_scan()
++            if last is None or (now - last).total_seconds() > 2 * self.interval + 900:
++                raise Refused("liveness: no scheduled scan ran recently; the watchdog would not be watching")
++            ack = {"kind": ACK_KIND, "arm": arm_id, "worker": arm["worker"], "pod": arm["pod"],
++                   "stop_at_utc": iso(arm["stop_at"]), "acknowledged_utc": iso(self.clock()), **self.run,
++                   "last_scheduled_scan_utc": iso(last), "scan_interval_seconds": self.interval,
++                   "statement": "the scheduled scan of this workflow stops this pod at stop_at_utc unless a later "
++                                "acknowledged arm for the same pod governs"}
++            if not self.records.create(f"watchdog-acks-{month}", f"ack-{arm_id}.json", ack):
++                raise Refused("duplicate: this arm was already acknowledged")
++            self.log("arm-acknowledged", arm=arm_id, pod=arm["pod"], stop_at_utc=ack["stop_at_utc"])
++            return ack
++        except Refused as exc:
++            reason = str(exc)
++            self.log("arm-refused", arm=arm_id if ARM_ID.fullmatch(arm_id or "") else "(malformed)", reason=reason)
++            if ARM_ID.fullmatch(arm_id or "") and not reason.startswith("duplicate"):
++                try:
++                    self.records.create(f"watchdog-acks-{month_of(arm_id)}", f"refusal-{arm_id}.json",
++                                        {"kind": "durability watchdog refusal v1", "arm": arm_id, "reason": reason,
++                                         "refused_utc": iso(self.clock()), **self.run})
++                except Refused:
++                    pass
++            raise
++
++    # ----- scan --------------------------------------------------------------------------
++
++    def _months(self) -> list[str]:
++        """This month and the one before: an arm is filed under the month it was published in and
++        stops at most ``MAX_HORIZON_SECONDS`` later, and a stop that keeps failing is retried."""
++        now = self.clock()
++        return [(now.replace(day=1) - dt.timedelta(days=1)).strftime("%Y-%m"), now.strftime("%Y-%m")]
++
++    def governing(self) -> dict[str, dict]:
++        """Per allow-listed pod, its governing arm: the latest (by arm id, which starts with the
++        publication time) that is valid, acknowledged and not withdrawn. Malformed records, arms
++        without an acknowledgement and arms of pods outside the allow-list govern nothing."""
++        arms, acks = {}, set()
++        for month in self._months():
++            arms.update(self.records.names(f"watchdog-arms-{month}"))
++            acks.update(self.records.names(f"watchdog-acks-{month}"))
++        found: dict[str, dict] = {}
++        ids = sorted((name[4:-5] for name in arms if name.startswith("arm-") and name.endswith(".json")), reverse=True)
++        for arm_id in ids:
++            if f"ack-{arm_id}.json" not in acks or f"void-{arm_id}.json" in arms:
++                continue
++            try:
++                arm = valid_arm(self.records.read(arms[f"arm-{arm_id}.json"]), arm_id, self.pods)
++            except Refused as exc:
++                self.log("arm-ignored", arm=arm_id, reason=str(exc))
++                continue
++            found.setdefault(arm["pod"], arm)
++            if len(found) == len(self.pods):
++                break
++        return found
++
++    def _stopped_already(self, arm_id: str) -> bool:
++        return f"stop-{arm_id}.json" in self.records.names(f"watchdog-stops-{month_of(arm_id)}")
++
++    def stop(self, arm: dict) -> dict:
++        """Stop the arm's pod, confirm it and record the outcome. Final outcomes (stopped,
++        already-stopped, gone) are written once; anything else is recorded as an attempt and the
++        next scan tries again."""
++        pod, arm_id = arm["pod"], arm["arm"]
++        outcome = {"kind": STOP_KIND, "arm": arm_id, "pod": pod, "stop_at_utc": iso(arm["stop_at"]), **self.run}
++
++        def status() -> str | None:
++            try:
++                return self.pod_status(pod)
++            except Refused:
++                return "unknown"        # the state could not be read: the stop is still asked for
++
++        before = status()
++        if before is None:
++            outcome.update(result="gone", status_before=None, status_after=None)
++        elif before in STOPPED:
++            outcome.update(result="already-stopped", status_before=before, status_after=before)
++        else:
++            try:
++                answer: object = self.stop_pod(pod)
++            except Refused as exc:
++                answer = str(exc)
++            after = before
++            for _ in range(6):
++                after = status()
++                if after is None or after in STOPPED:
++                    break
++                self.sleep(10.0)
++            confirmed = after is None or after in STOPPED
++            outcome.update(result="stopped" if confirmed else "unconfirmed", status_before=before,
++                           status_after=after, stop_answer=answer)
++        outcome["recorded_utc"] = iso(self.clock())
++        outcome["seconds_after_stop_time"] = (self.clock() - arm["stop_at"]).total_seconds()
++        final = outcome["result"] in ("stopped", "already-stopped", "gone")
++        name = f"stop-{arm_id}.json" if final else f"stop-attempt-{arm_id}-{self.run['run_id']}-{self.run['run_attempt']}.json"
++        self.records.create(f"watchdog-stops-{month_of(arm_id)}", name, outcome)
++        self.log("pod-stop", arm=arm_id, pod=pod, result=outcome["result"], final=final)
++        return outcome
++
++    def _stop_safely(self, arm: dict, outcomes: list[dict]) -> None:
++        """One pod's failure (a record that cannot be written, say) must not keep the scan from the
++        other pods; it is reported as an outcome and fails the run."""
++        try:
++            outcomes.append(self.stop(arm))
++        except Refused as exc:
++            self.log("pod-stop-error", arm=arm["arm"], pod=arm["pod"], reason=str(exc))
++            outcomes.append({"arm": arm["arm"], "pod": arm["pod"], "result": "error"})
++
++    def scan(self) -> list[dict]:
++        """One scheduled pass (module doc). Returns the outcomes of the stops it attempted."""
++        if not self.pods:               # nothing to watch: no record is read and RunPod is not asked anything
++            self.log("scan-done", pods=0, outcomes=0)
++            return []
++        if self._runpod is None:
++            raise Refused("configuration: RUNPOD_API_KEY is not set, but the allow-list names a pod: this "
++                          "watchdog could not stop it")
++        outcomes, waiting = [], []
++        for pod, arm in sorted(self.governing().items()):
++            if self._stopped_already(arm["arm"]):
++                continue
++            remaining = (arm["stop_at"] - self.clock()).total_seconds()
++            if remaining <= 0:
++                self._stop_safely(arm, outcomes)
++            elif remaining <= self.tail:
++                waiting.append(arm)
++        for arm in sorted(waiting, key=lambda a: a["stop_at"]):
++            remaining = (arm["stop_at"] - self.clock()).total_seconds()
++            if remaining > 0:
++                self.log("waiting", arm=arm["arm"], pod=arm["pod"], seconds=remaining)
++                self.sleep(remaining)
++            current = self.governing().get(arm["pod"])     # a renewal that arrived meanwhile governs
++            if current is None or current["arm"] != arm["arm"]:
++                self.log("superseded", arm=arm["arm"], pod=arm["pod"])
++                continue
++            if (current["stop_at"] - self.clock()).total_seconds() <= 0 and not self._stopped_already(arm["arm"]):
++                self._stop_safely(current, outcomes)
++        self.log("scan-done", pods=len(self.pods), outcomes=len(outcomes))
++        return outcomes
++
++
++def main(env: dict | None = None, clock=utc_now, sleep=time.sleep, out=print) -> int:
++    """Exit status 0: an arm was acknowledged, or a scan left nothing unconfirmed. 1: refused or
++    unconfirmed (the run then shows as failed in the Actions tab)."""
++    env = dict(os.environ if env is None else env)
++    try:
++        watchdog = Watchdog(env, clock, sleep, out)
++        arm_id = env.get("WATCHDOG_ARM", "").strip()
++        if env.get("GITHUB_EVENT_NAME") == "repository_dispatch" or arm_id:
++            watchdog.arm(arm_id)
++            return 0
++        outcomes = watchdog.scan()
++        # a stop that was not confirmed fails the run, so it shows in the Actions tab; the next scan retries
++        return 0 if all(o["result"] in ("stopped", "already-stopped", "gone") for o in outcomes) else 1
++    except Refused as exc:
++        out(json.dumps({"event": "refused", "reason": str(exc)}))
++        return 1
++
++
++if __name__ == "__main__":
++    sys.exit(main())
+diff --git a/experiments/durability/watchdog/watchdog.yml b/experiments/durability/watchdog/watchdog.yml
+new file mode 100644
+index 0000000..0aacfc1
+--- /dev/null
++++ b/experiments/durability/watchdog/watchdog.yml
+@@ -0,0 +1,62 @@
++# Shutdown watchdog (deployed to the backup repository as .github/workflows/watchdog.yml).
++# Scheduled scans stop a leased pod at its stop time; a repository_dispatch event from the
++# worker asks for one lease's acknowledgement. The script is watchdog/watchdog.py.
++#
++# This file is the trusted part. A token with "Contents: write" (the worker's backup token) can
++# push commits that change watchdog/watchdog.py and watchdog/pods.json, but not this file: that
++# needs the "Workflows" permission. So this file pins both by SHA-256 and checks them before the
++# RunPod key is given to anything from the repository. Changing the script or the allow-list
++# therefore means changing the pins here, in the same commit.
++name: watchdog
++
++on:
++  schedule:
++    # Every 30 minutes, off the hour. WATCHDOG_INTERVAL_SECONDS below must say the same.
++    - cron: "7,37 * * * *"
++  repository_dispatch:
++    types: [watchdog-arm]
++  workflow_dispatch: {}   # a manual scan from the Actions tab; it takes no input
++
++# The job's GITHUB_TOKEN: read arm records and create acknowledgement and outcome assets
++# (contents), and see when the scheduled scan last ran (actions). Nothing else.
++permissions:
++  contents: write
++  actions: read
++
++concurrency:
++  # Scans queue behind one another; each arm run is on its own.
++  group: watchdog-${{ github.event_name == 'repository_dispatch' && github.event.client_payload.arm || 'scan' }}
++  cancel-in-progress: false
++
++jobs:
++  watchdog:
++    runs-on: ubuntu-latest
++    timeout-minutes: 15   # raise it with WATCHDOG_TAIL_SECONDS: the tail plus ten minutes
++    steps:
++      - name: checkout
++        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
++        with:
++          persist-credentials: false
++      - name: verify the pinned files
++        # No secret is in this step's environment, and nothing from the repository is executed.
++        # A file that is missing or differs from its pin fails the job here, before the next step.
++        # To change a file: sha256sum watchdog/watchdog.py watchdog/pods.json, and replace the pins.
++        shell: bash
++        run: |
++          pin() { test "$(sha256sum < "$2" | cut -c1-64)" = "$1" || { echo "::error::$2 is not the pinned file"; exit 1; }; }
++          pin 1f49dd887eb687334682e0716a3b9b25566ba88f99c9b4f79fbe266083a801b7 watchdog/watchdog.py
++          pin 484e59d0b8b9e55243feefa54e8a96721632e8e6f172e0c747cbca0376663b17 watchdog/pods.json
++          echo "the script and the allow-list are the pinned ones"
++      - name: watchdog
++        env:
++          GITHUB_TOKEN: ${{ github.token }}
++          RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
++          WATCHDOG_ARM: ${{ github.event.client_payload.arm }}
++          WATCHDOG_INTERVAL_SECONDS: "1800"
++          # Seconds a scan waits inside the run for a stop time that is close. 0: stop at the first
++          # scan after the stop time. Every waited minute is a billed Actions minute.
++          WATCHDOG_TAIL_SECONDS: "0"
++        # -I: isolated mode. The script's folder is not on the import path, so a file placed next
++        # to the script cannot stand in for a standard-library module.
++        shell: bash
++        run: python3 -I watchdog/watchdog.py
+diff --git a/experiments/durability/wiring.py b/experiments/durability/wiring.py
+index 6b2d97a..2c71161 100644
+--- a/experiments/durability/wiring.py
++++ b/experiments/durability/wiring.py
+@@ -12,11 +12,13 @@ from .common import DurabilityError
+ from .destination import Destination, LocalDirectoryDestination, UnconfiguredDestination
+ from .github_destination import GitHubReleaseDestination
+ from .runpod_provider import BalanceConfirmation, RunPodConfig, RunPodProvider, StoragePrices
++from .shutdown_watchdog import GitHubActionsWatchdog
+ 
+-__all__ = ["destination_from", "provider_from"]
++__all__ = ["destination_from", "provider_from", "shutdown_from"]
+ 
+ _RUNPOD_KEYS = {"kind", "worker_pods", "balance_confirmation", "storage_prices", "destination_per_hour",
+-                "local_pod_id", "spend_tolerance_per_hour"}
++                "local_pod_id", "spend_tolerance_per_hour", "shutdown"}
++_WATCHDOG_KEYS = {"kind", "repository", "lateness_seconds", "ack_window_seconds"}
+ 
+ 
+ def destination_from(spec: str | None, **github: object) -> Destination:
+@@ -34,11 +36,28 @@ def destination_from(spec: str | None, **github: object) -> Destination:
+     return LocalDirectoryDestination(spec[len("dir:"):] if spec.startswith("dir:") else spec)
+ 
+ 
+-def provider_from(config: Mapping | None, **options: object) -> Provider:
++def shutdown_from(config: Mapping | None, **options: object) -> GitHubActionsWatchdog | None:
++    """``None``: no shutdown can be armed. ``{"kind": "github-actions-watchdog", "repository":
++    "owner/name", "lateness_seconds": N}`` (optionally ``ack_window_seconds``): the worker's side of
++    the external watchdog. The lateness has no default, and an unknown key or kind refuses."""
++    if config is None:
++        return None
++    if not isinstance(config, Mapping) or config.get("kind") != "github-actions-watchdog":
++        raise DurabilityError("the shutdown configuration names no known kind")
++    unknown = sorted(set(config) - _WATCHDOG_KEYS)
++    if unknown or "repository" not in config or "lateness_seconds" not in config:
++        raise DurabilityError(f"the shutdown configuration needs repository and lateness_seconds (unknown keys: {unknown})")
++    fields = {key: config[key] for key in ("lateness_seconds", "ack_window_seconds") if key in config}
++    return GitHubActionsWatchdog(config["repository"], **fields, **options)
++
++
++def provider_from(config: Mapping | None, shutdown_options: Mapping | None = None, **options: object) -> Provider:
+     """``None``: not configured (every call refuses). ``{"kind": "runpod", ...}``: a ``RunPodProvider``
+     from the mapping's ``worker_pods`` and, where the operator recorded them, ``balance_confirmation``,
+-    ``storage_prices``, ``destination_per_hour`` and ``local_pod_id``. An unknown key or kind refuses:
+-    a misspelt confirmation must not be silently ignored."""
++    ``storage_prices``, ``destination_per_hour``, ``local_pod_id`` and ``shutdown`` (``shutdown_from``;
++    without it no shutdown can be armed and admission refuses). An unknown key or kind refuses: a
++    misspelt confirmation must not be silently ignored. ``shutdown_options`` go to the watchdog's
++    worker side (tests: a fake API on 127.0.0.1)."""
+     if config is None:
+         return UnconfiguredProvider()
+     if not isinstance(config, Mapping) or config.get("kind") != "runpod":
+@@ -56,4 +75,5 @@ def provider_from(config: Mapping | None, **options: object) -> Provider:
+                              storage_prices=None if prices is None else StoragePrices(**prices), **fields)
+     except TypeError as exc:
+         raise DurabilityError(f"the provider configuration is malformed ({exc})") from None
+-    return RunPodProvider(built, **options)
++    return RunPodProvider(built, shutdown=shutdown_from(config.get("shutdown"), **dict(shutdown_options or {})),
++                          **options)
+diff --git a/research/experiments/2026-10-03-recovery-safeguards.md b/research/experiments/2026-10-03-recovery-safeguards.md
+index dc0e8f8..e440b3f 100644
+--- a/research/experiments/2026-10-03-recovery-safeguards.md
++++ b/research/experiments/2026-10-03-recovery-safeguards.md
+@@ -10,9 +10,9 @@ credit action was taken; no held-out data were read; the frozen engine and the S
+ are unchanged.
+ 
+ **What this is not.** It is not a restart authorization and not evidence about any cloud. The
+-provider and remote-destination adapters are deliberately unconfigured and refuse every call, so
+-admission cannot succeed on a real deployment yet. The funded one-worker validation (last
+-section) remains required. No scientific result, held-out outcome or attribution benefit is
++provider, destination and shutdown defaults are deliberately unconfigured and refuse every call;
++the real connectors and the shutdown watchdog added later on 3 October (below) have never run
++against their services. The funded one-worker validation remains required. No scientific result, held-out outcome or attribution benefit is
+ involved.
+ 
+ ## What went wrong and what now prevents it
+@@ -50,8 +50,11 @@ involved.
+ 
+ **When the lease nears its end**
+ 
+-9. Continuing needs a renewed admission with a fresh balance reading. At the end of the
+-   reservation the provider stops the worker; stopping the Python process does not stop billing.
++9. Continuing needs a renewed admission with a fresh balance reading, granted before the lease
++   ends. Stopping the Python process does not stop billing: the pod is stopped by the external
++   watchdog, at its first scan after the stop time that admission armed (the end of the lease
++   plus the backup delay), and by the end of the reservation at the latest if the watchdog's
++   stated lateness holds. A renewal moves the stop time; a refused renewal leaves it in force.
+ 
+ **After a worker is lost**
+ 
+@@ -91,7 +94,8 @@ funded validation must check that assumption. An unreadable reservation ledger r
+ The retention reserve must cover the storage and destination rates over the stated retention
+ hours. Missing, stale, future-dated, negative, non-finite, unrecognized or ambiguous inputs
+ refuse, as do a currency mismatch, rates that differ from the costed plan, an unconfirmed storage
+-declaration and a shutdown the provider does not confirm. A pod billing total or a removed
++declaration, a shutdown that is not confirmed and a shutdown delay shorter than the shutdown's
++stated lateness. A pod billing total or a removed
+ spending cap is not a balance. The formula is conservative: a lease's whole reservation is held
+ even though part may already be reflected in the balance. The margins (maximum reading age,
+ delays, contingency, retention hours) are inputs to be set before the funded validation; no
+@@ -99,7 +103,7 @@ values are fixed here.
+ 
+ ## What the local tests establish
+ 
+-93 tests in `experiments/durability/tests/`, run with the pinned engine environment on CPU:
++161 tests in `experiments/durability/tests/`, run with the pinned engine environment on CPU:
+ 
+ - **Engine chain (decisive).** A sealed chain q, e1 was acknowledged; the worker was terminated
+   during e3 and its volume removed; the vault was restored to the same absolute paths; every
+@@ -156,13 +160,89 @@ token was present when they were built. What follows rests on the services' docu
+   reports none. Persistence is confirmed only for a path under a network volume's mount. Anything
+   missing or unknown refuses.
+ - **The shutdown gap.** RunPod documents no stop time that can be set on, or read back from, an
+-  existing pod. The adapter therefore never confirms a provider-side shutdown, and admission
+-  through it always refuses. Closing the gap needs either a creation-time stop that RunPod is
+-  shown to enforce, or an external always-on controller (for example a scheduled workflow in the
+-  backup repository holding the RunPod key as a secret). Neither is built.
+-
+-Decisions the user must record before a live admission can succeed: what `clientBalance` means
+-and in which currency; the storage prices; and which shutdown option to build and validate.
++  existing pod, so the adapter cannot confirm a provider-side shutdown by itself. The user chose
++  to close the gap with an external watchdog (next section). Without it admission still refuses.
++
++Confirmations the user must record before a live admission can succeed: what `clientBalance`
++means and in which currency, and the storage prices.
++
++## The shutdown watchdog (added 3 October)
++
++**What it is.** A scheduled GitHub Actions workflow in the backup repository that stops a leased
++pod through RunPod's API when its reservation runs out. It needs no server and no laptop, costs
++nothing within GitHub's included minutes, and is independent of the worker and of the GPU
++account's balance. Source: `experiments/durability/watchdog/` (the script and the workflow, to be
++deployed by the lead) and `experiments/durability/shutdown_watchdog.py` (the worker's side). It
++is **built and tested against local fakes only; it is not deployed and has stopped no real pod.**
++
++**How a lease gets its stop.**
++
++1. Admission computes the end of the reservation. The worker publishes an arm record in the
++   backup repository (worker, pod, stop time, acknowledgement deadline) and sends one event.
++2. The event starts a short workflow run. It acknowledges only a well-formed arm for a pod on its
++   allow-list that RunPod reports as running, and only while the scheduled scan is demonstrably
++   running. Otherwise it records a refusal.
++3. Admission grants the lease only after reading an acknowledgement that names this arm, pod and
++   stop time. No acknowledgement within about 11 minutes, a refusal or a mismatch means no lease,
++   and the arm is withdrawn.
++4. A scan every 30 minutes stops each allow-listed pod at its first scan after the stop time of
++   that pod's latest acknowledged arm, confirms the stop and records it. A failed stop turns the
++   run red and is retried at the next scan.
++
++The watchdog stops and never terminates or deletes; it acts only on a pod that the allow-list and
++an acknowledged arm both name; a stop is recorded once. All records are create-only release
++assets, which is the audit trail.
++
++**The stated lateness.** The stop time is the end of the reservation minus a configured lateness,
++and the admission policy's shutdown delay must be at least that lateness. Recommended: **5400
++seconds** for both (three 30-minute scan intervals: one scheduled run dropped by GitHub, half an
++hour of scheduling delay, the confirmed stop). The delay is reserved runway, not spending. The
++figure is an assumption about GitHub's scheduler, which GitHub does not guarantee, until the
++funded validation measures it.
++
++**Actions minutes (sources in the package README).** GitHub Free includes 2,000 minutes a month
++for private repositories, per account, and bills each job rounded up to a minute. 48 scans a day
++are 1,440 minutes in a 30-day month and 1,488 in a 31-day month; each admission or renewal is one
++more. That leaves 512 to 560 minutes: about 16 leases or renewals a day. A full month of 2-hour
++leases on one worker totals about 1,860 minutes; leases under about 90 minutes held all month
++would not fit. If the account's quota runs out and no payment method is set, GitHub blocks the
++jobs: new leases are then refused, but a lease already granted would not be stopped.
++
++**Permissions.** The workflow's token may write release assets and read workflow runs, nothing
++else. The worker's backup token needs no new permission. The RunPod key that can stop a pod is
++only an Actions secret; the worker never holds it, and the worker's own RunPod key should be
++read-only. Secrets appear in no log or record.
++
++**What protects the RunPod key.** The backup token can push commits to the backup repository, so
++the script and the pod allow-list there could be rewritten by a faulty or compromised worker. It
++cannot change the workflow file, which needs a separate GitHub permission the token must not
++have. The workflow therefore pins the SHA-256 of the script and of the allow-list, checks both in
++a step that holds no secret, and only then runs the script, in a mode where a file placed beside
++it cannot replace a standard module. Consequence for operation: adding a pod means editing the
++allow-list and its pinned hash in the workflow, in one commit, with a credential that may change
++workflows. What this does not give: records are not signed, so a compromised backup token could
++still forge an acknowledgement, withdraw an arm or make the check fail; it could prevent a stop,
++but not obtain the key.
++
++**Before the secret exists.** With an empty allow-list a scan needs no RunPod key and succeeds,
++so the workflow can be deployed and its schedule observed first. With a pod on the list and no
++key, every scan fails visibly.
++
++**What the user does** (exact clicks in the package README): create a RunPod API key for the
++watchdog; store it as the repository secret `RUNPOD_API_KEY` of `4r4cn1d0/attribution-backups`;
++make sure Actions may run there; nothing changes on the backup token. To see that it is armed:
++the Actions tab shows a green "watchdog" run every half hour, and `python -m
++experiments.durability check-watchdog` prints the governing stop time and the run that
++acknowledged it.
++
++**What the local tests show (68 of the 161).** The deployed script itself, run against fake
++GitHub and RunPod services with a manual clock: no stop before the stop time and exactly one
++after it; renewal and supersession; malformed, unacknowledged, withdrawn and foreign-pod arms
++governing nothing; nothing deleted; `armed` only after a matching acknowledgement; admission
++succeeding end to end with every input confirmed and refusing when any one of thirteen inputs is
++withdrawn; no secret in any log, record or error; the workflow's pins equal to the shipped
++files, and its verification step, run locally, rejecting a changed or missing file. They show
++nothing about GitHub's scheduler or RunPod's stop.
+ 
+ ## What waits for the funded one-worker validation
+ 
+@@ -173,7 +253,12 @@ commands should be run once against the real services (they need only the tokens
+ 2. an off-pod copy made by the worker while the laptop is disconnected, to a destination
+    recoverable without the GPU account;
+ 3. a restore on a fresh provider host;
+-4. a provider-side timed shutdown that stops billing;
++4. a real stop by the watchdog at the stop time **with the laptop disconnected** and the worker's
++   processes dead: the acknowledgement read back on the pod, the pod (network volume attached)
++   reported as stopped, the measured lateness against the configured 5400 s, the RunPod key level
++   that sufficed, and the account's spend falling to the storage rates afterwards. Before that,
++   free of charge: the watchdog deployed for a day with no pod, to see the scheduled runs arrive
++   about every 30 minutes at one billed minute each;
+ 5. real balance semantics: what the number is, its currency and delay, and how liabilities and
+    rates are reported;
+ 6. a restored continuation on CUDA matching an uninterrupted run.
+@@ -181,24 +266,39 @@ commands should be run once against the real services (they need only the tokens
+ Concurrency may rise only after these, and only within verified runway. A laptop-driven copy is
+ an interim prototype and does not satisfy the restart prerequisites.
+ 
+-## Limits and open decisions
++## Limits
+ 
+ - A unit that seals immediately before the worker dies, with no time for its copy, is still
+   lost. The exposure is one unit's copy time instead of a host's whole run.
+ - The copy and restore check run on the worker between units, so a billed GPU idles while they
+   run. This is the price of a strict gate.
+-- In Stage B every safeguard second inside a session is in the cost record and therefore in the
+-  policy costs. The gate check and the copy of `started.json` run inside the attempt's own timer,
+-  so they are part of the operation's measured seconds and of its overrun comparison. The copy and
+-  restore check of an operation's output run before the next timer starts and right after the
+-  attempt, so they are controller seconds of the step that owns the operation. The first settle
+-  of a session is in its start record. Excluding any of it would need a paused clock, which
+-  contradicts Stage B's cost contract. **Lead decision.**
+ - One gated block per process: a second block on the same backend or engine session is refused.
+-- A lost fresh start is retried only after an explicit tombstone, an administrative `error.txt`
+-  in the lost attempt's folder. This uses the engine's own retry rule without changing the
+-  engine. **Lead decision** whether to permit it or treat such units as unrunnable.
++- The watchdog's stop can be late by the scan interval and by whatever GitHub's scheduler adds;
++  the reservation covers a stated lateness, which is an assumption. It depends on the account's
++  Actions minutes. It is a backstop: work that ends early leaves the pod running until the stop
++  time unless the operator stops it. A stopped pod still bills its storage.
+ - The reservation ledger is serialized by a file lock; several pods need one shared place for it.
+ - Destination retention, funding and independence are declared, not measured.
+ - The lost attempts of 2 October are not reconstructed by this work: their records and costs
+   remain as the incident record states.
++
++## Open decisions
++
++None is open. Decided by the user on 3 October 2026:
++
++1. **Tombstones are allowed.** A lost fresh start is retried only after an explicit tombstone, an
++   administrative `error.txt` in the lost attempt's folder, which uses the engine's own retry rule
++   without changing the engine. It is named by the operator and never written automatically.
++2. **The synchronous gate's idle GPU time is accepted for the one-pod validation**, and is to be
++   measured there.
++3. **Shutdown: the external GitHub Actions watchdog** described above.
++4. **Stage B safeguard time in the policy costs: deferred**, to be settled before any held-out
++   Stage B run under the gate, either by a Stage B amendment that gives the safeguard's time an
++   uncharged owner or by a measurement in the funded validation showing that it is negligible.
++   The facts until then: every safeguard second inside a session is in the cost record and
++   therefore in the policy costs. The gate check and the copy of `started.json` run inside the
++   attempt's own timer, so they are part of the operation's measured seconds and of its overrun
++   comparison. The copy and restore check of an operation's output run before the next timer
++   starts and right after the attempt, so they are controller seconds of the step that owns the
++   operation. The first settle of a session is in its start record. Excluding any of it would
++   need a paused clock, which contradicts Stage B's cost contract as it stands.

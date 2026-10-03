@@ -1,7 +1,10 @@
-"""A fake RunPod API on 127.0.0.1 for the provider tests (ENGINEERING FIXTURE): the REST lists of
-pods and network volumes and the GraphQL account query, with the field names RunPod documents. It
-records every request so the tests can show that the provider only reads. It is not RunPod and
-proves nothing about RunPod's real answers."""
+"""A fake RunPod API on 127.0.0.1 for the provider and watchdog tests (ENGINEERING FIXTURE): the REST
+lists of pods and network volumes, one pod by id, the stop of a pod, and the GraphQL account query,
+with the field names RunPod documents. It records every request so the tests can show that the
+provider only reads and that the watchdog only reads and stops. ``stop_mode``: "ok" (the pod
+becomes EXITED), "ignored" (answered 200, nothing changes), "error" (500) or "forbidden" (403);
+``read_mode`` "error" makes the read of one pod fail. It is not RunPod and proves nothing about
+RunPod's real answers."""
 
 from __future__ import annotations
 
@@ -30,9 +33,13 @@ class FakeRunPod:
         self.myself: object = {"clientBalance": 100.0, "currentSpendPerHr": 0.0, "spendLimit": 80}
         self.graphql_errors = None
         self.log: list[tuple[str, str, str]] = []      # (method, path, body)
+        self.stop_mode = "ok"
+        self.read_mode = "ok"                          # "error": a pod read by id answers 500
+        self.foreign: list[str] = []                   # other services' secrets, which must never arrive here
+        self.leaks: list[str] = []
         self._server = ThreadingHTTPServer(("127.0.0.1", 0), self._handler())
         self.url = f"http://127.0.0.1:{self._server.server_address[1]}"
-        threading.Thread(target=self._server.serve_forever, daemon=True).start()
+        threading.Thread(target=self._server.serve_forever, kwargs={"poll_interval": 0.02}, daemon=True).start()
 
     def close(self) -> None:
         self._server.shutdown()
@@ -59,9 +66,31 @@ class FakeRunPod:
                 length = int(self.headers.get("Content-Length") or 0)
                 body = self.rfile.read(length).decode() if length else ""
                 fake.log.append((method, self.path, body))
+                if KEY in self.path or KEY in body or any(secret in self.path + str(self.headers) + body
+                                                          for secret in fake.foreign):
+                    fake.leaks.append(f"a secret was sent where it does not belong: {method} {self.path.split('?')[0]}")
                 if self.headers.get("Authorization") != f"Bearer {KEY}":
                     return self._send(401, {"error": "unauthorized"})
                 path = self.path.split("?")[0]
+                if path.startswith("/v1/pods/"):
+                    name, _, action = path[len("/v1/pods/"):].partition("/")
+                    found = [p for p in fake.pods if isinstance(p, dict) and p.get("id") == name] \
+                        if isinstance(fake.pods, list) else []
+                    if not found:
+                        return self._send(404, {"error": "pod not found"})
+                    if method == "GET" and not action:
+                        if fake.read_mode == "error":
+                            return self._send(500, {"error": "ENGINEERING FIXTURE fault"})
+                        return self._send(200, found[0])
+                    if method == "POST" and action == "stop":
+                        if fake.stop_mode == "error":
+                            return self._send(500, {"error": "ENGINEERING FIXTURE fault"})
+                        if fake.stop_mode == "forbidden":
+                            return self._send(403, {"error": "forbidden"})
+                        if fake.stop_mode == "ok":
+                            found[0]["desiredStatus"] = "EXITED"
+                        return self._send(200, found[0])
+                    return self._send(404, {"error": "not found"})
                 if method == "GET" and path == "/v1/pods":
                     return self._send(200, fake.pods)
                 if method == "GET" and path == "/v1/networkvolumes":

@@ -7,13 +7,15 @@ nothing, and it changes no file of the frozen engine (`experiments/safety_select
 (`experiments/safety_decision_policy`).
 
 **Status.** Implemented and tested locally on CPU with fakes (3 October 2026), including the two
-real connectors: GitHub release assets as the off-pod destination and RunPod's API as the provider
-([real connectors](#real-connectors)). Neither connector has made a request to its real service
-yet: no token was present when they were built, so every claim about them rests on the services'
-documentation and on local fakes. This does not satisfy the restart prerequisites of the
-2 October incident record by itself. The defaults stay unconfigured and refuse; the RunPod
-adapter cannot arm a shutdown, so admission refuses on a real deployment until that gap is closed
-and the funded one-worker validation has run ([what waits](#what-waits-for-the-funded-one-worker-validation)).
+real connectors (GitHub release assets as the off-pod destination, RunPod's API as the provider;
+[real connectors](#real-connectors)) and an external shutdown watchdog that runs on GitHub
+Actions ([the shutdown watchdog](#the-shutdown-watchdog)). None of them has made a request to its
+real service yet: no token was present when they were built, and the watchdog is not deployed, so
+every claim about them rests on the services' documentation and on local fakes. This does not
+satisfy the restart prerequisites of the 2 October incident record by itself. The defaults stay
+unconfigured and refuse: without a configured and acknowledging watchdog the RunPod adapter
+cannot arm a shutdown and admission refuses. The funded one-worker validation is still required
+([what waits](#what-waits-for-the-funded-one-worker-validation)).
 
 The operating procedure and its limits are in
 `research/experiments/2026-10-03-recovery-safeguards.md`.
@@ -31,10 +33,12 @@ The operating procedure and its limits are in
 | `transport.py` | stdlib `urllib` | the HTTPS client of the real connectors: token from the environment, sent only to the service, no credential on redirects, bounded retries |
 | `github_destination.py` | stdlib | `GitHubReleaseDestination`: the `Destination` contract on release assets of a private repository |
 | `runpod_provider.py` | stdlib | `RunPodProvider`: read-only answers from RunPod's API, closed wherever a meaning is not confirmed |
+| `shutdown_watchdog.py` | stdlib | `GitHubActionsWatchdog`: the worker's side of the shutdown watchdog; answers `armed` only after the watchdog's acknowledgement |
+| `watchdog/` | stdlib (self-contained; not imported) | the watchdog itself, to deploy in the backup repository: `watchdog.py`, the workflow `watchdog.yml`, the pod allow-list |
 | `wiring.py` | stdlib | builds the real connectors from explicit configuration; the defaults stay unconfigured |
 | `engine_units.py` | engine `runner` (torch) when it launches | `UnitRunner`: the administrative loop around `runner.run_one`; the attempt catalogue; lost attempts |
 | `stage_b.py` | Stage B `common` | `GatedBackend` around a Stage B backend; `StudyBackup`; `run_block_gated` |
-| `__main__.py` | stdlib | commands `ingest`, `restore`, `acks`, `check-destination`, `check-provider` (nothing creates, starts, stops or deletes) |
+| `__main__.py` | stdlib | commands `ingest`, `restore`, `acks`, `check-destination`, `check-provider`, `check-watchdog` (nothing creates, starts, stops or deletes) |
 
 ## The unit
 
@@ -144,9 +148,13 @@ admit  iff  available >= need
 
 `worker_rate` is the worker's GPU plus storage rate per hour; `retention_reserve` must be at
 least the storage and destination rates over the policy's retention hours. The lease expires at
-`now + increment`; the reservation runs to `now + horizon`, when the provider stops the worker
+`now + increment`; the reservation runs to `now + horizon`, by when the worker has been stopped
 (`Provider.arm_shutdown`, armed before the lease is returned). Stopping Python does not stop
-billing. Reservations are appended to one ledger under an exclusive file lock.
+billing. A shutdown that is not exact states its lateness (`Provider.shutdown_lateness_seconds`;
+the watchdog's is configuration), and the policy's `shutdown_delay_seconds` must be at least that:
+the stop is then asked for no earlier than the end of the lease plus the backup delay, and it is
+complete, and funded, by the end of the reservation. Reservations are appended to one ledger under
+an exclusive file lock.
 
 Each lease records its retention reserve and the end of its retention window (`now + horizon +
 retention hours`). One reserve per worker is held, its latest lease's: a renewal replaces it and
@@ -166,7 +174,8 @@ Admission **refuses** when: the provider, a reading or the liability list is una
 balance is not an explicitly recognized `prepaid-credit-balance` (a pod billing total or a removed
 spending cap is not a balance); a number is missing, negative or non-finite; currencies differ; a
 reading is stale or future-dated; the provider's rates differ from the rates the plan was costed
-with; the storage declaration fails; the shutdown cannot be armed; or the runway is insufficient.
+with; the storage declaration fails; the shutdown cannot be armed; the policy's shutdown delay is
+shorter than the shutdown's stated lateness; or the runway is insufficient.
 
 `check_storage` requires: the provider confirms the source path is on persistent storage; the
 destination is declared independent of the GPU account, funded, and retained long enough; it is
@@ -298,7 +307,8 @@ comes from `RUNPOD_API_KEY` and is sent as a header, never in a URL. The adapter
 https://rest.runpod.io/v1/pods`, `GET https://rest.runpod.io/v1/networkvolumes` and one fixed
 GraphQL query (`myself { clientBalance currentSpendPerHr spendLimit }`) to
 `https://api.runpod.io/graphql`. It has no call that creates, starts, stops, updates or deletes
-anything.
+anything; the stop at the end of a reservation is the watchdog's, with a key the worker never
+holds.
 
 | Question | Answer and what it rests on |
 |---|---|
@@ -306,12 +316,13 @@ anything.
 | Rates | The worker pod's `costPerHr`, "the cost in Runpod credits per hour of running a Pod" ([REST: pods](https://docs.runpod.io/api-reference/pods/GET/pods)). The API reports no storage rate, so storage prices per GB-month are configuration, taken from the [storage page](https://docs.runpod.io/pods/storage/types) and confirmed by a named person. The pod's container disk and volume are added to the storage rate; whether `costPerHr` already includes them is not documented, so this can only over-state. |
 | Liabilities | Every RUNNING pod (cost plus disks), every EXITED pod (its volume at the stopped price), every network volume. If the account's `currentSpendPerHr` exceeds what these explain, something else bills and the call refuses. A liability of a configured worker's pod or attached volume carries that worker's name; admission then relies on the worker's lease to cover it, which holds only if its rate card is complete. |
 | Persistence | Confirmed only for a path under `volumeMountPath` of the RUNNING local pod that has a network volume attached, which the account's volume list also shows. "Network volume ... retained independently"; a container disk is "lost on stop/restart"; a pod volume "is deleted when the Pod is terminated" ([storage types](https://docs.runpod.io/pods/storage/types)). |
-| Shutdown | Never confirmed: see below. |
+| Shutdown | RunPod offers nothing to arm on an existing pod. Confirmed only through the external watchdog's acknowledgement: see [the shutdown watchdog](#the-shutdown-watchdog). Without it, `NotConfigured`. |
 
 A field that is missing, of another type or outside the documented values raises
 `ProviderError`. Admission treats whatever a provider raises as a refusal.
 
-Configuration (JSON for `check-provider`; the two confirmations are what the user must decide):
+Configuration (JSON for `check-provider` and `check-watchdog`; the two confirmations are what the
+user must record; without the `shutdown` section no shutdown can be armed):
 
 ```json
 {
@@ -319,6 +330,7 @@ Configuration (JSON for `check-provider`; the two confirmations are what the use
   "worker_pods": {"worker-1": "<pod id>"},
   "local_pod_id": "<pod id of this worker>",
   "destination_per_hour": 0.0,
+  "shutdown": {"kind": "github-actions-watchdog", "repository": "4r4cn1d0/attribution-backups", "lateness_seconds": 5400},
   "balance_confirmation": {"confirmed_by": "<name>", "confirmed_utc": "2026-10-04T00:00:00+00:00", "currency": "USD", "statement": "<what was checked and where>"},
   "storage_prices": {"network_volume_per_gb_month": 0.07, "pod_volume_running_per_gb_month": 0.10, "pod_volume_stopped_per_gb_month": 0.20, "container_disk_per_gb_month": 0.10, "hours_per_month": 720, "source": "docs.runpod.io/pods/storage/types, read <date>", "confirmed_by": "<name>", "confirmed_utc": "2026-10-04T00:00:00+00:00"}
 }
@@ -331,30 +343,207 @@ pod ids):
 python -m experiments.durability check-provider --config provider.json --worker worker-1 --path /workspace/attribution-study-v2
 ```
 
-### The shutdown gap
+### The shutdown watchdog
 
-`RunPodProvider.arm_shutdown` always raises `NotConfigured`, so **admission through the real
-adapter always refuses**. That is deliberate: a lease promises that the worker stops billing at
-the end of its reservation even if every process of ours is dead, and nothing in RunPod's
-documentation lets this code confirm that for an existing pod.
+A lease promises that the worker stops billing at the end of its reservation even if every
+process of ours is dead and the laptop is off. RunPod gives this code nothing to arm: its GraphQL
+reference lists `stopAfter` and `terminateAfter` only among the inputs that create a pod, without
+a description; the pod type and the REST pod schema do not expose them; and no documented call
+sets a stop time on an existing pod. So the stop is done from outside RunPod and outside the
+worker, by a scheduled GitHub Actions workflow in the backup repository (the user's decision of
+3 October 2026). It is free within GitHub's included minutes, needs no server, and keeps running
+when the worker and the laptop do not.
 
-- The GraphQL reference lists `stopAfter` and `terminateAfter` (`DateTime`) among the inputs
-  that create a pod (`PodFindAndDeployOnDemandInput`, `PodRentInterruptableInput`), with no
-  description. The pod type does not expose them, the REST pod schema has no such field, and no
-  documented call sets a stop time on a running pod. A stop time that cannot be read back cannot
-  be confirmed here.
-- **Option 1: a stop time set when the pod is created.** If the funded validation shows that
-  RunPod enforces `terminateAfter` or `stopAfter` on its servers, the pod would be created with
-  it (creation is outside this package), the operator would record that time, and the lease
-  would be bounded by it. This needs a small change to the `Provider` contract (accept a recorded
-  provider-enforced deadline at or before the requested time) and a way to confirm it per pod.
-- **Option 2: an external always-on controller.** For example a scheduled GitHub Actions workflow
-  in the backup repository that stops the pod through RunPod's API at the lease end. It would
-  need: the RunPod key as an Actions secret set by the user; the lease end published where the
-  workflow reads it; a `podStop` call (the only place a mutating call would exist, outside the
-  worker); and an acknowledgement the worker can read back before the lease is granted. GitHub's
-  schedules are not exact to the minute, so the reservation would need that slack. Not built.
-- Until one of them exists and is validated, real admission is refused by design.
+**What runs where**
+
+| | where | what it holds | what it can do |
+|---|---|---|---|
+| the watchdog (`watchdog/watchdog.py`, `watchdog/watchdog.yml`) | GitHub Actions, backup repository | the RunPod key as the Actions secret `RUNPOD_API_KEY`; the run's own `GITHUB_TOKEN` | read one allow-listed pod, **stop** it, write records |
+| the worker's side (`shutdown_watchdog.py`) | the worker, inside admission | the backup token it already has | publish an arm record, send one event, read the acknowledgement |
+
+**The protocol.** Records are release assets of the backup repository, one release per kind and
+month, every one create-only (GitHub refuses a second asset of the same name):
+
+```
+watchdog-arms-YYYY-MM    arm-<id>.json     the worker: worker, pod, stop_at_utc, ack_by_utc
+                         void-<id>.json    the worker: withdraws an arm it got no lease from
+watchdog-acks-YYYY-MM    ack-<id>.json     the watchdog: this run will stop this pod at stop_at_utc
+                         refusal-<id>.json the watchdog: why it will not (final for that arm)
+watchdog-stops-YYYY-MM   stop-<id>.json    the watchdog: the final outcome of the stop
+                         stop-attempt-<id>-<run>.json   a stop that was not confirmed
+```
+
+1. Admission computes the end of the reservation and asks the provider to arm a stop that is
+   complete by then. The worker's side publishes the arm with
+   `stop_at_utc = end of reservation - lateness_seconds` and sends a `repository_dispatch` event
+   naming it.
+2. That event starts one short workflow run. It acknowledges only if: the arm is well formed; it
+   names a worker and pod of the allow-list (`watchdog/pods.json`); it is inside its
+   acknowledgement window (10 minutes by default); RunPod, asked with the Actions secret, reports
+   that pod as `RUNNING`; and a **scheduled** scan of the workflow ran within the last 75
+   minutes. Otherwise it writes a refusal, and a refusal is final.
+3. The worker's side answers `armed` only after it has read an acknowledgement that names this
+   arm, worker, pod and stop time, a workflow run, a recent scheduled scan, and a scan interval
+   that the configured lateness covers twice. Anything else, including silence until the window
+   ends, raises; the arm is withdrawn with a void record; admission grants no lease.
+4. Every 30 minutes the scheduled scan finds, for each allow-listed pod, its **governing** arm:
+   the latest one that is acknowledged and not withdrawn. At its first scan at or after
+   `stop_at_utc` it sends `POST https://rest.runpod.io/v1/pods/{id}/stop`, confirms with a `GET`
+   that the pod is no longer running and records the outcome. A stop that is not confirmed fails
+   the run (it shows red in the Actions tab) and is tried again at the next scan.
+
+The watchdog **stops** a pod; it never terminates or deletes one, and the script contains no
+`DELETE` request for either service. It never stops a pod that no acknowledged, valid arm names,
+and nothing outside the allow-list is ever read. A stop is recorded once per arm: a second scan
+finds the outcome and does nothing. A renewed lease publishes a later arm, which governs from its
+acknowledgement on, so the earlier stop time lapses; a renewal that is refused, unanswered or
+withdrawn leaves the earlier stop in force. Malformed arms, arms without an acknowledgement and
+arms for other pods govern nothing and suppress nothing.
+
+**The lateness, and the recommended shutdown delay.** GitHub runs a schedule at best every 5
+minutes, can delay it under load and may drop a queued run
+([events that trigger workflows: schedule](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows)).
+With a scan every 30 minutes the stop begins up to 30 minutes after `stop_at_utc`, 60 if one
+scheduled run is dropped, plus whatever delay GitHub adds and the stop call itself. The
+recommended setting is **`lateness_seconds = 5400` and a policy `shutdown_delay_seconds` of at
+least 5400** (three scan intervals: one dropped run, half an hour of delay, the confirmed stop).
+Admission refuses a policy whose shutdown delay is below the configured lateness, and the worker's
+side refuses a lateness below two scan intervals. The delay is reserved runway, charged at the
+worker's rate with the contingency; it is spent only if the stop really is that late. 5400 is an
+assumption about GitHub's scheduler: nothing enforces it, and the funded validation must measure
+the real lateness (`seconds_after_stop_time` in each stop record).
+
+**Actions minutes.** GitHub Free includes 2,000 Actions minutes a month for private repositories,
+counted per account, and rounds every job up to a whole minute
+([GitHub Actions billing](https://docs.github.com/en/billing/concepts/product-billing/github-actions)).
+A scan is one job of a few seconds, so:
+
+| | runs | billed minutes |
+|---|---|---|
+| scheduled scans, 2 an hour | 48 a day | 1,440 in a 30-day month, 1,488 in a 31-day month |
+| each admission, renewal or refused arm | 1 | 1 |
+| what is left of 2,000 | | 512 to 560 a month, about 16 arms a day |
+
+A month of continuous work on one worker with 2-hour leases is 12 arms a day: 372 minutes, 1,860
+in total. Leases shorter than about 90 minutes, held all month, would not fit; the one-pod
+validation needs a handful of arms. Three cautions. The quota is shared with every other private
+repository of the account. When it is used up and no payment method is set, GitHub blocks further
+jobs; the scans then stop, new arms are refused (no recent scheduled scan), and a lease already
+granted would not be stopped. And the arithmetic assumes every run finishes within a minute,
+which the Actions tab shows after the first day. The optional `WATCHDOG_TAIL_SECONDS` (0 in the
+workflow) makes a scan wait inside the run for a stop time that close; it removes most of the
+lateness but every waited minute is billed, also when a renewal arrives in the end.
+
+Rejected: a scan every 5 minutes (8,640 minutes a month); one sleeping run per lease (it bills
+the whole lease and a job ends after 6 hours,
+[Actions limits](https://docs.github.com/en/actions/reference/limits)); enabling the schedule
+only while a lease exists (the worker's token would need "Actions: write", and a scan that
+disables it can race an arm that enables it); `workflow_dispatch` from the worker (it also needs
+"Actions: write"; `repository_dispatch` needs only "Contents: write",
+[permissions reference](https://docs.github.com/en/rest/authentication/permissions-required-for-fine-grained-personal-access-tokens)).
+
+**Least privilege**
+
+- The workflow's `permissions:` block is `contents: write` (read arms, write acknowledgements and
+  outcomes as release assets) and `actions: read` (see when the scheduled scan last ran). Nothing
+  else is granted to its `GITHUB_TOKEN`.
+- **The workflow file is the trusted part, and it pins what it runs.** The backup token's
+  "Contents: write" also allows pushing commits, so a faulty or compromised worker could rewrite
+  `watchdog/watchdog.py` or `watchdog/pods.json`. It cannot change the workflow: that needs the
+  "Workflows" permission. The workflow therefore carries the SHA-256 of both files and checks
+  them in a step that has no secret in its environment and executes nothing from the repository;
+  a changed or missing file ends the job there, before the RunPod key is given to anything. The
+  script then runs as `python3 -I`, so a module placed next to it (a `json.py`, say) cannot take
+  the place of the standard library, which the hash of the script alone would not prevent. The
+  one action used, GitHub's `actions/checkout`, is pinned to a full commit and keeps no
+  credentials (`persist-credentials: false`).
+- The backup token (`ATTRIBUTION_BACKUP_GITHUB_TOKEN`) needs **no new permission**: release
+  assets and `POST /repos/{owner}/{repo}/dispatches` are both under "Contents: write". It cannot
+  read workflow runs and does not try.
+- The RunPod key that can stop a pod exists only as the Actions secret. The worker never holds
+  it. The worker's own `RUNPOD_API_KEY` (admission only reads) should be a separate **Read Only**
+  key. RunPod's key levels are "All", "Restricted" and "Read Only"
+  ([API keys](https://docs.runpod.io/get-started/api-keys)); the documentation does not say which
+  Restricted setting permits a stop, so the watchdog's key is "Restricted" with write access to
+  Pods if the console offers that, and otherwise "All". The acknowledgement proves only that the
+  key can *read* the pod; that it can *stop* one is shown by the first real stop.
+- Secrets reach the script through the step's environment, go only into the `Authorization`
+  header of their own service, are not forwarded on a redirect, and are never printed; the event
+  payload is validated by a pattern before it is used and never reaches a shell line.
+- Records are not signed. Whoever can write release assets in the backup repository can write a
+  false acknowledgement or withdraw an arm, and whoever can push there can make the pinned check
+  fail, which turns every run red and stops nothing. The pins protect the RunPod key; they do
+  not make the stop safe from a compromised backup token. The watchdog protects against a dead
+  worker, a dead laptop and an exhausted attention span. (Whether GitHub lets a token without the
+  "Workflows" permission delete a workflow file was not checked.)
+
+**Steps for the lead (deployment; nothing here was done by this package)**
+
+1. Put `watchdog/watchdog.py`, `watchdog/pods.json` (a byte-for-byte copy of
+   `pods.example.json`) and `.github/workflows/watchdog.yml` on the default branch of
+   `4r4cn1d0/attribution-backups` (`watchdog/README.md` lists the paths; the pinned hashes are in the workflow itself).
+   Pushing a workflow file needs a credential with the "Workflows" permission; the backup token
+   must not have it. The files must arrive unchanged: the workflow refuses a script or an
+   allow-list that differs from its pins by one byte (a changed line ending is enough).
+2. This can be done before the user has set the secret. With the empty allow-list a scan needs no
+   RunPod key and is green; that is how the schedule is observed for a day without a pod.
+3. **Adding or changing a pod** (the pod id is known only once the pod exists): edit
+   `watchdog/pods.json` to `{"workers": {"worker-1": "<pod id>"}}`, run `sha256sum
+   watchdog/watchdog.py watchdog/pods.json` (`shasum -a 256` on macOS), replace the hash on the
+   matching `pin` line of the workflow, and push both files in **one commit** with the credential
+   that has the "Workflows" permission. Between two commits every run would fail at the check.
+   The same goes for any change to the script. From then on the secret must be set: a scan with
+   a pod on the list and no key fails.
+4. The checkout action is pinned to commit `3d3c42e5aac5ba805825da76410c181273ba90b1`, which the
+   lead verified on 3 October 2026 through the GitHub API as the tag `v7.0.1`, the latest release
+   of `actions/checkout`. This package made no GitHub request and did not check it.
+5. Add the `shutdown` section to the provider configuration (above) and use an admission policy
+   with `shutdown_delay_seconds >= 5400`.
+6. Admit only after a scheduled run has appeared in the Actions tab: a manual run does not count
+   as the schedule running.
+
+**Steps for the user**
+
+1. RunPod console, Settings, API Keys: create a key for the watchdog (see "Least privilege") and
+   copy it; it is shown once.
+2. GitHub, `4r4cn1d0/attribution-backups`, Settings, Secrets and variables, Actions, "New
+   repository secret": name `RUNPOD_API_KEY`, value that key. It must be there before a pod is
+   put on the allow-list; until then the scans run without it.
+3. Same repository, Settings, Actions, General: Actions must be allowed to run, including
+   GitHub's own `actions/checkout`. The workflow-permissions default can stay read-only; the
+   workflow asks for what it needs.
+4. Nothing changes on the backup token. In particular it must not be given the "Workflows"
+   permission: that the worker cannot change the workflow is what protects the RunPod key.
+5. Check that the watchdog is running: the Actions tab shows a "watchdog" run every half hour,
+   green. Check that a lease is armed:
+
+   ```bash
+   python -m experiments.durability check-watchdog --config provider.json --worker worker-1
+   ```
+
+   prints the governing arm, its stop time and the workflow run that acknowledged it (`"armed":
+   true`), or the recorded stop. The same records are visible under Releases
+   (`watchdog-acks-YYYY-MM`, `watchdog-stops-YYYY-MM`).
+6. Account settings, Billing: watch the Actions minutes. The watchdog alone uses about 1,500 a
+   month.
+
+**What the watchdog does not do**
+
+- It is a backstop, not a scheduler. Work that finishes early leaves the pod running until the
+  stop time unless the operator stops it. (RunPod documents `runpodctl pod stop $RUNPOD_POD_ID`
+  from inside a pod, [manage pods](https://docs.runpod.io/pods/manage-pods); that dies with the
+  pod's processes, so it is no substitute, and it is not used here.)
+- One stop per arm. A pod started again by hand after its stop is not watched until a new lease
+  arms it.
+- A stop leaves storage billing: "You'll still be charged for volume disk storage while stopped",
+  and a network volume bills independently of any pod. The retention reserve covers that.
+- If the worker can neither read an acknowledgement nor write the void (GitHub unreachable from
+  the worker at that moment), an arm may be acknowledged that no lease stands behind. The error
+  says so; the later stop time then governs until the operator withdraws it or a new lease arms.
+- A pod RunPod reports as not found is recorded as gone. A key replaced by another account's
+  would look the same.
+- A release holds at most 1,000 assets; a month of arms stays far below that at the lease lengths
+  the minutes allow, and a full release makes the arm fail, which refuses admission.
 
 ## What is guaranteed locally
 
@@ -381,7 +570,21 @@ Shown by the tests in `tests/` (CPU, fakes, a directory as the destination):
   secrecy;
 - `RunPodProvider` against a fake RunPod API: recognition only with a recorded confirmation,
   rates and liabilities, persistence only under a network-volume mount, unknown shapes and
-  unexplained spend refused, read-only requests, and admission stopping at the shutdown gap;
+  unexplained spend refused, read-only requests, and admission refusing when no shutdown watchdog
+  is configured;
+- the shutdown watchdog, the deployed script itself run against fake GitHub and RunPod services
+  with a manual clock: no stop before the stop time and one at the first scan after it; a renewal
+  superseding the earlier stop time, also while a scan waits; malformed, unacknowledged, withdrawn
+  and refused arms governing nothing; an arm for a pod outside the allow-list refused and that pod
+  never read; one stop request however many scans follow; an unconfirmed stop failing the run and
+  retried; no `DELETE` request to either service; a scan with an empty allow-list succeeding
+  without the RunPod key and one with a listed pod and no key failing; the workflow's pins equal
+  to the shipped files, its verification step (run here with bash) rejecting a changed or missing
+  script or allow-list, holding no secret and coming before the script; isolated Python ignoring
+  a module placed next to the script; `armed` only after a matching acknowledgement;
+  a late, missing or mismatched acknowledgement refusing admission and withdrawing the arm;
+  admission succeeding end to end with every input confirmed and refusing when any one is
+  withdrawn; no secret in any log, record, error or request to the other service;
 - every listed admission input fails closed, two concurrent workers cannot both reserve the same
   runway, a second worker cannot spend the first worker's retention reserve (through renewal and
   release, until its window ends), and an unreadable ledger refuses;
@@ -404,7 +607,9 @@ Before any funded run (free, needs only the tokens):
   recorded, to settle the throughput question;
 - `check-provider` against the real account: the field shapes, header authentication on GraphQL,
   and whether `currentSpendPerHr` behaves as the cross-check assumes;
-- the user's decisions: the balance confirmation, the storage prices, and a shutdown option.
+- the watchdog deployed and observed for a day with no pod: scheduled runs appearing about every
+  30 minutes, each billed as one minute, and how late they start;
+- the user's recorded confirmations: the balance and the storage prices.
 
 In the funded one-worker validation:
 
@@ -412,20 +617,33 @@ In the funded one-worker validation:
 2. an off-pod copy made **by the worker**, with the laptop disconnected, to the GitHub repository,
    and the acknowledgement read from an independent machine after the worker is killed;
 3. a restore on a fresh provider host into the recorded layout;
-4. a provider-side timed shutdown that actually stops billing ([the shutdown gap](#the-shutdown-gap));
+4. a real stop by the watchdog at the stop time, **with the laptop disconnected and the worker's
+   processes killed**: the acknowledgement read back by admission on the pod, the pod (with its
+   network volume attached) reported as stopped, the measured lateness against the configured
+   5400 s, the key level that was enough to stop it, and the account's spend falling to the
+   storage rates afterwards ([the shutdown watchdog](#the-shutdown-watchdog));
 5. real balance semantics: what `clientBalance` means, its currency, its delay, and whether
    liabilities and rates are reported as assumed;
 6. a restored continuation on CUDA that matches what an uninterrupted run would have produced.
 
 Only after these may concurrency rise, and only within verified runway.
 
-## Open decisions for the lead
+## Open decisions
 
-1. **Tombstones.** Declaring a lost fresh start writes an administrative `error.txt` into the
-   lost attempt's folder so that the engine's own retry rule applies. The alternatives are to
-   treat such a unit as permanently unrunnable in that registry, or to amend the engine. It is an
-   explicit, operator-named action and is never taken automatically.
-2. **Stage B cost of the safeguard.** Every safeguard second inside a session is in the Stage B
+None is open. The four below were decided by the user on 3 October 2026.
+
+1. **Tombstones: allowed.** Declaring a lost fresh start writes an administrative `error.txt` into
+   the lost attempt's folder so that the engine's own retry rule applies. It stays an explicit,
+   operator-named action and is never taken automatically.
+2. **Strictness of the gate: accepted for the one-pod validation.** The copy and the restore
+   check run synchronously on the worker, so a billed GPU idles while they run. The idle time is
+   accepted for the funded one-pod validation and is to be measured there.
+3. **Shutdown: the external GitHub Actions watchdog** ([above](#the-shutdown-watchdog)). The
+   options of a stop time set at pod creation and of an in-pod timer are not pursued.
+4. **Stage B cost of the safeguard: deferred.** It must be settled before any held-out Stage B
+   run under the gate, in one of two ways: a Stage B amendment that gives the safeguard's time an
+   uncharged owner, or a measurement in the funded validation showing that it is negligible.
+   Until then the facts are as follows. Every safeguard second inside a session is in the Stage B
    cost record and therefore in the policy costs, in three places:
    - *inside the attempt's own timer*: the gate check and the off-pod copy of `started.json` run
      at the top of `execute`, between the controller's start and end clock reads. That time is
@@ -437,11 +655,8 @@ Only after these may concurrency rise, and only within verified runway.
    - *in the session's start record*: what the session's first `sync` settles (only `study.json`
      when the study was settled beforehand).
 
-   The alternative, a backend clock that pauses during administrative work, would keep all of it
-   out of the costs but contradicts Stage B's statement that its timers tile the session.
-3. **Strictness of the gate.** The copy and the restore check run synchronously on the worker, so
-   a billed GPU idles while they run. An asynchronous copy would overlap the next unit and break
-   "no next unit without the previous acknowledgement".
+   The time admission spends waiting for the watchdog's acknowledgement (up to about 11 minutes)
+   is outside any Stage B session: admission happens before a block starts.
 
 ## Commands
 
@@ -472,6 +687,11 @@ python -m experiments.durability restore --destination DEST --namespace dev01 --
 - Money is plain floating point; admission compares with a stated contingency, not to the cent.
 - On GitHub every file is uploaded twice and the shard layout is fixed per scheme; a release asset
   must be under 2 GiB; GitHub reports no free space, so capacity is a declared number.
+- Admission holds the reservation ledger's lock while it waits for the watchdog's acknowledgement
+  (seconds normally, up to the acknowledgement window plus a minute), so another worker's
+  admission waits that long.
+- The shutdown watchdog's limits are listed in its section: the lateness is an assumption, the
+  Actions quota is shared and finite, and its records are not signed.
 - The RunPod adapter does not see serverless endpoints or other billable resources except through
   the spend cross-check, which refuses when it cannot explain the account's hourly spend.
 - The restore check reads the copy back in full for every unit, and a chain's earlier folders

@@ -1,0 +1,62 @@
+# Shutdown watchdog (deployed to the backup repository as .github/workflows/watchdog.yml).
+# Scheduled scans stop a leased pod at its stop time; a repository_dispatch event from the
+# worker asks for one lease's acknowledgement. The script is watchdog/watchdog.py.
+#
+# This file is the trusted part. A token with "Contents: write" (the worker's backup token) can
+# push commits that change watchdog/watchdog.py and watchdog/pods.json, but not this file: that
+# needs the "Workflows" permission. So this file pins both by SHA-256 and checks them before the
+# RunPod key is given to anything from the repository. Changing the script or the allow-list
+# therefore means changing the pins here, in the same commit.
+name: watchdog
+
+on:
+  schedule:
+    # Every 30 minutes, off the hour. WATCHDOG_INTERVAL_SECONDS below must say the same.
+    - cron: "7,37 * * * *"
+  repository_dispatch:
+    types: [watchdog-arm]
+  workflow_dispatch: {}   # a manual scan from the Actions tab; it takes no input
+
+# The job's GITHUB_TOKEN: read arm records and create acknowledgement and outcome assets
+# (contents), and see when the scheduled scan last ran (actions). Nothing else.
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  # Scans queue behind one another; each arm run is on its own.
+  group: watchdog-${{ github.event_name == 'repository_dispatch' && github.event.client_payload.arm || 'scan' }}
+  cancel-in-progress: false
+
+jobs:
+  watchdog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15   # raise it with WATCHDOG_TAIL_SECONDS: the tail plus ten minutes
+    steps:
+      - name: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - name: verify the pinned files
+        # No secret is in this step's environment, and nothing from the repository is executed.
+        # A file that is missing or differs from its pin fails the job here, before the next step.
+        # To change a file: sha256sum watchdog/watchdog.py watchdog/pods.json, and replace the pins.
+        shell: bash
+        run: |
+          pin() { test "$(sha256sum < "$2" | cut -c1-64)" = "$1" || { echo "::error::$2 is not the pinned file"; exit 1; }; }
+          pin 1f49dd887eb687334682e0716a3b9b25566ba88f99c9b4f79fbe266083a801b7 watchdog/watchdog.py
+          pin 484e59d0b8b9e55243feefa54e8a96721632e8e6f172e0c747cbca0376663b17 watchdog/pods.json
+          echo "the script and the allow-list are the pinned ones"
+      - name: watchdog
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
+          WATCHDOG_ARM: ${{ github.event.client_payload.arm }}
+          WATCHDOG_INTERVAL_SECONDS: "1800"
+          # Seconds a scan waits inside the run for a stop time that is close. 0: stop at the first
+          # scan after the stop time. Every waited minute is a billed Actions minute.
+          WATCHDOG_TAIL_SECONDS: "0"
+        # -I: isolated mode. The script's folder is not on the import path, so a file placed next
+        # to the script cannot stand in for a standard-library module.
+        shell: bash
+        run: python3 -I watchdog/watchdog.py

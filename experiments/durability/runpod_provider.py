@@ -32,11 +32,14 @@ not:
   network volume attached which the account's volume list also shows. At a zero balance a network
   volume's data is kept but the volume keeps billing and "may eventually be terminated": persistent
   storage is not unconditional.
-- **Shutdown.** ``arm_shutdown`` always refuses. The GraphQL reference lists ``stopAfter`` and
+- **Shutdown.** RunPod itself offers nothing to arm. The GraphQL reference lists ``stopAfter`` and
   ``terminateAfter`` (``DateTime``) among the inputs that *create* a pod, without describing them;
   the pod type does not expose them, the REST pod schema has no such field, and no documented call
   sets a stop time on an existing pod. A stop time that cannot be read back cannot be confirmed
-  from here. The options are in the README ("The shutdown gap").
+  from here. ``arm_shutdown`` therefore refuses unless the configuration names an external
+  watchdog (``shutdown_watchdog.GitHubActionsWatchdog``); with one, it answers ``armed`` only
+  after that watchdog has acknowledged a stop of this worker's pod. This adapter still never
+  stops anything itself and holds no credential that could (README: "The shutdown watchdog").
 
 Any field that is missing, of another type or outside the documented values makes the call fail
 with ``ProviderError``; nothing is defaulted. Admission treats every provider error as a refusal.
@@ -63,8 +66,9 @@ RUNPOD_POD_ENV = "RUNPOD_POD_ID"
 UNCONFIRMED_BALANCE_KIND = "runpod-clientBalance-unconfirmed"
 MYSELF_QUERY = "query { myself { clientBalance currentSpendPerHr spendLimit } }"
 POD_STATES = ("RUNNING", "EXITED", "TERMINATED")
-SHUTDOWN_GAP = ("RunPod documents no stop time that can be set on, or read back from, an existing pod; a provider-side "
-                "shutdown cannot be confirmed, so no lease is granted (README: the shutdown gap)")
+SHUTDOWN_GAP = ("RunPod documents no stop time that can be set on, or read back from, an existing pod, and no external "
+                "shutdown watchdog is configured; a shutdown cannot be confirmed, so no lease is granted (README: the "
+                "shutdown watchdog)")
 
 
 @dataclass(frozen=True)
@@ -123,8 +127,10 @@ class RunPodProvider(Provider):
     def __init__(self, config: RunPodConfig, *, key_env: str = RUNPOD_KEY_ENV, rest_url: str = "https://rest.runpod.io/v1",
                  graphql_url: str = "https://api.runpod.io/graphql", clock: Clock = utc_clock,
                  max_retries: int = 4, max_wait_seconds: float = 120.0,
-                 sleep: Callable[[float], None] | None = None) -> None:
-        self.config, self.clock = config, clock
+                 sleep: Callable[[float], None] | None = None, shutdown: object | None = None) -> None:
+        """``shutdown``: the external watchdog's worker side (an object with ``arm(worker, pod,
+        at_utc)`` and ``lateness_seconds``), or None: no shutdown can be armed."""
+        self.config, self.clock, self.shutdown = config, clock, shutdown
         self.rest, self.graphql = rest_url.rstrip("/"), graphql_url.rstrip("/")
         options = {} if sleep is None else {"sleep": sleep}
         self.http = Http(token_env=key_env, bases=(self.rest, self.graphql), max_retries=max_retries,
@@ -318,5 +324,21 @@ class RunPodProvider(Provider):
         return {"persistent": True, "volume": volume["id"], "mount": mount, "pod": pod_id,
                 "source": "runpod rest: pods.networkVolume, pods.volumeMountPath, networkvolumes"}
 
+    def shutdown_lateness_seconds(self) -> float:
+        if self.shutdown is None:
+            raise NotConfigured(SHUTDOWN_GAP)
+        return float(self.shutdown.lateness_seconds)
+
     def arm_shutdown(self, worker: str, at_utc: str) -> dict:
-        raise NotConfigured(SHUTDOWN_GAP)
+        """``armed`` only when the configured external watchdog acknowledged a stop of this worker's
+        pod that is complete by ``at_utc``; everything else raises."""
+        if self.shutdown is None:
+            raise NotConfigured(SHUTDOWN_GAP)
+        pod_id = self.config.worker_pods.get(worker)
+        if pod_id is None:
+            raise NotConfigured(f"no pod is configured for worker {worker!r}")
+        armed = self.shutdown.arm(worker, pod_id, at_utc)
+        if not (isinstance(armed, dict) and armed.get("armed") is True and armed.get("pod") == pod_id
+                and armed.get("at_utc") == at_utc):
+            raise ProviderError("the watchdog did not confirm a stop of this worker's pod by the requested time")
+        return armed

@@ -44,7 +44,8 @@ unavailable; the balance is not an explicitly recognized prepaid balance (pod bi
 removed spending caps are not balances); a number is missing, negative or non-finite; currencies
 differ; a reading is stale or from the future; the provider's current rates differ from the rates
 the plan was costed with (a changed rate needs a new plan); the storage declaration fails; the
-provider cannot arm a shutdown at the end of the reservation; or the runway is insufficient.
+provider cannot arm a shutdown at the end of the reservation; the policy's shutdown delay is
+shorter than the lateness the provider states for its shutdown; or the runway is insufficient.
 
 **Serialization.** Reservations live in one append-only ledger read and extended under an
 exclusive file lock, so two workers cannot both reserve the same runway. A ledger row that cannot
@@ -52,7 +53,11 @@ be read as a lease or a release (malformed, or written by an older format) refus
 the gate fail closed with ``AdmissionRefused``, never with an unhandled error. A lease expires at
 ``now + increment``; working past it needs a new admission (a renewal supersedes the worker's
 previous lease). Stopping Python does not stop billing: the shutdown at the end of the reservation
-is the provider's, armed through ``Provider.arm_shutdown`` before the lease is returned.
+is the provider's, armed through ``Provider.arm_shutdown`` before the lease is returned. A shutdown
+that is not exact (an external watchdog that scans on a schedule) states how late it can be through
+``Provider.shutdown_lateness_seconds``; the policy's ``shutdown_delay_seconds`` must be at least that,
+so the stop is asked for no earlier than the end of the lease plus the backup delay and is still
+complete, and funded, by the end of the reservation.
 """
 
 from __future__ import annotations
@@ -141,6 +146,11 @@ class Provider(abc.ABC):
         """Arm a provider-side stop of the worker at the given time; ``{"armed": True, "at_utc":
         ...}`` when the provider confirms it."""
 
+    def shutdown_lateness_seconds(self) -> float:
+        """How long before ``at_utc`` the armed shutdown may begin in order to be complete by then
+        (0: a timer that fires exactly). The policy's shutdown delay must cover it."""
+        return 0.0
+
 
 class UnconfiguredProvider(Provider):
     """The only adapter shipped: every call fails closed."""
@@ -150,6 +160,7 @@ class UnconfiguredProvider(Provider):
                             "timed shutdown wait for the funded one-worker validation")
 
     read_balance = read_rates = list_liabilities = confirm_persistent = arm_shutdown = _refuse
+    shutdown_lateness_seconds = _refuse
 
 
 @dataclass(frozen=True)
@@ -384,6 +395,13 @@ class AdmissionController:
                 self._refuse(worker, f"the retention reserve is missing or below the storage rates over "
                                      f"{policy.retention_hours:g} h ({floor:.4f} {rates.currency})")
             horizon = increment_seconds + policy.backup_delay_seconds + policy.shutdown_delay_seconds
+            try:
+                lateness = self.provider.shutdown_lateness_seconds()
+            except Exception as exc:  # noqa: BLE001 - an unknown lateness is no confirmed shutdown
+                self._refuse(worker, f"no provider-side shutdown can be armed: {_why(exc)}")
+            if not _number(lateness) or lateness < 0 or policy.shutdown_delay_seconds < lateness:
+                self._refuse(worker, "the policy's shutdown delay is shorter than the stated lateness of the "
+                                     "shutdown: the stop could begin before the lease and its backup are over")
             factor = 1.0 + policy.contingency_fraction
             need = rates.worker_per_hour * (age + horizon) / 3600.0 * factor
             try:

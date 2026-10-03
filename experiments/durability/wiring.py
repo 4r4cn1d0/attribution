@@ -12,11 +12,13 @@ from .common import DurabilityError
 from .destination import Destination, LocalDirectoryDestination, UnconfiguredDestination
 from .github_destination import GitHubReleaseDestination
 from .runpod_provider import BalanceConfirmation, RunPodConfig, RunPodProvider, StoragePrices
+from .shutdown_watchdog import GitHubActionsWatchdog
 
-__all__ = ["destination_from", "provider_from"]
+__all__ = ["destination_from", "provider_from", "shutdown_from"]
 
 _RUNPOD_KEYS = {"kind", "worker_pods", "balance_confirmation", "storage_prices", "destination_per_hour",
-                "local_pod_id", "spend_tolerance_per_hour"}
+                "local_pod_id", "spend_tolerance_per_hour", "shutdown"}
+_WATCHDOG_KEYS = {"kind", "repository", "lateness_seconds", "ack_window_seconds"}
 
 
 def destination_from(spec: str | None, **github: object) -> Destination:
@@ -34,11 +36,28 @@ def destination_from(spec: str | None, **github: object) -> Destination:
     return LocalDirectoryDestination(spec[len("dir:"):] if spec.startswith("dir:") else spec)
 
 
-def provider_from(config: Mapping | None, **options: object) -> Provider:
+def shutdown_from(config: Mapping | None, **options: object) -> GitHubActionsWatchdog | None:
+    """``None``: no shutdown can be armed. ``{"kind": "github-actions-watchdog", "repository":
+    "owner/name", "lateness_seconds": N}`` (optionally ``ack_window_seconds``): the worker's side of
+    the external watchdog. The lateness has no default, and an unknown key or kind refuses."""
+    if config is None:
+        return None
+    if not isinstance(config, Mapping) or config.get("kind") != "github-actions-watchdog":
+        raise DurabilityError("the shutdown configuration names no known kind")
+    unknown = sorted(set(config) - _WATCHDOG_KEYS)
+    if unknown or "repository" not in config or "lateness_seconds" not in config:
+        raise DurabilityError(f"the shutdown configuration needs repository and lateness_seconds (unknown keys: {unknown})")
+    fields = {key: config[key] for key in ("lateness_seconds", "ack_window_seconds") if key in config}
+    return GitHubActionsWatchdog(config["repository"], **fields, **options)
+
+
+def provider_from(config: Mapping | None, shutdown_options: Mapping | None = None, **options: object) -> Provider:
     """``None``: not configured (every call refuses). ``{"kind": "runpod", ...}``: a ``RunPodProvider``
     from the mapping's ``worker_pods`` and, where the operator recorded them, ``balance_confirmation``,
-    ``storage_prices``, ``destination_per_hour`` and ``local_pod_id``. An unknown key or kind refuses:
-    a misspelt confirmation must not be silently ignored."""
+    ``storage_prices``, ``destination_per_hour``, ``local_pod_id`` and ``shutdown`` (``shutdown_from``;
+    without it no shutdown can be armed and admission refuses). An unknown key or kind refuses: a
+    misspelt confirmation must not be silently ignored. ``shutdown_options`` go to the watchdog's
+    worker side (tests: a fake API on 127.0.0.1)."""
     if config is None:
         return UnconfiguredProvider()
     if not isinstance(config, Mapping) or config.get("kind") != "runpod":
@@ -56,4 +75,5 @@ def provider_from(config: Mapping | None, **options: object) -> Provider:
                              storage_prices=None if prices is None else StoragePrices(**prices), **fields)
     except TypeError as exc:
         raise DurabilityError(f"the provider configuration is malformed ({exc})") from None
-    return RunPodProvider(built, **options)
+    return RunPodProvider(built, shutdown=shutdown_from(config.get("shutdown"), **dict(shutdown_options or {})),
+                          **options)

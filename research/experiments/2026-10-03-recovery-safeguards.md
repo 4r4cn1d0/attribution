@@ -10,9 +10,9 @@ credit action was taken; no held-out data were read; the frozen engine and the S
 are unchanged.
 
 **What this is not.** It is not a restart authorization and not evidence about any cloud. The
-provider and remote-destination adapters are deliberately unconfigured and refuse every call, so
-admission cannot succeed on a real deployment yet. The funded one-worker validation (last
-section) remains required. No scientific result, held-out outcome or attribution benefit is
+provider, destination and shutdown defaults are deliberately unconfigured and refuse every call;
+the real connectors and the shutdown watchdog added later on 3 October (below) have never run
+against their services. The funded one-worker validation remains required. No scientific result, held-out outcome or attribution benefit is
 involved.
 
 ## What went wrong and what now prevents it
@@ -50,8 +50,11 @@ involved.
 
 **When the lease nears its end**
 
-9. Continuing needs a renewed admission with a fresh balance reading. At the end of the
-   reservation the provider stops the worker; stopping the Python process does not stop billing.
+9. Continuing needs a renewed admission with a fresh balance reading, granted before the lease
+   ends. Stopping the Python process does not stop billing: the pod is stopped by the external
+   watchdog, at its first scan after the stop time that admission armed (the end of the lease
+   plus the backup delay), and by the end of the reservation at the latest if the watchdog's
+   stated lateness holds. A renewal moves the stop time; a refused renewal leaves it in force.
 
 **After a worker is lost**
 
@@ -91,7 +94,8 @@ funded validation must check that assumption. An unreadable reservation ledger r
 The retention reserve must cover the storage and destination rates over the stated retention
 hours. Missing, stale, future-dated, negative, non-finite, unrecognized or ambiguous inputs
 refuse, as do a currency mismatch, rates that differ from the costed plan, an unconfirmed storage
-declaration and a shutdown the provider does not confirm. A pod billing total or a removed
+declaration, a shutdown that is not confirmed and a shutdown delay shorter than the shutdown's
+stated lateness. A pod billing total or a removed
 spending cap is not a balance. The formula is conservative: a lease's whole reservation is held
 even though part may already be reflected in the balance. The margins (maximum reading age,
 delays, contingency, retention hours) are inputs to be set before the funded validation; no
@@ -99,7 +103,7 @@ values are fixed here.
 
 ## What the local tests establish
 
-93 tests in `experiments/durability/tests/`, run with the pinned engine environment on CPU:
+161 tests in `experiments/durability/tests/`, run with the pinned engine environment on CPU:
 
 - **Engine chain (decisive).** A sealed chain q, e1 was acknowledged; the worker was terminated
   during e3 and its volume removed; the vault was restored to the same absolute paths; every
@@ -156,13 +160,89 @@ token was present when they were built. What follows rests on the services' docu
   reports none. Persistence is confirmed only for a path under a network volume's mount. Anything
   missing or unknown refuses.
 - **The shutdown gap.** RunPod documents no stop time that can be set on, or read back from, an
-  existing pod. The adapter therefore never confirms a provider-side shutdown, and admission
-  through it always refuses. Closing the gap needs either a creation-time stop that RunPod is
-  shown to enforce, or an external always-on controller (for example a scheduled workflow in the
-  backup repository holding the RunPod key as a secret). Neither is built.
+  existing pod, so the adapter cannot confirm a provider-side shutdown by itself. The user chose
+  to close the gap with an external watchdog (next section). Without it admission still refuses.
 
-Decisions the user must record before a live admission can succeed: what `clientBalance` means
-and in which currency; the storage prices; and which shutdown option to build and validate.
+Confirmations the user must record before a live admission can succeed: what `clientBalance`
+means and in which currency, and the storage prices.
+
+## The shutdown watchdog (added 3 October)
+
+**What it is.** A scheduled GitHub Actions workflow in the backup repository that stops a leased
+pod through RunPod's API when its reservation runs out. It needs no server and no laptop, costs
+nothing within GitHub's included minutes, and is independent of the worker and of the GPU
+account's balance. Source: `experiments/durability/watchdog/` (the script and the workflow, to be
+deployed by the lead) and `experiments/durability/shutdown_watchdog.py` (the worker's side). It
+is **built and tested against local fakes only; it is not deployed and has stopped no real pod.**
+
+**How a lease gets its stop.**
+
+1. Admission computes the end of the reservation. The worker publishes an arm record in the
+   backup repository (worker, pod, stop time, acknowledgement deadline) and sends one event.
+2. The event starts a short workflow run. It acknowledges only a well-formed arm for a pod on its
+   allow-list that RunPod reports as running, and only while the scheduled scan is demonstrably
+   running. Otherwise it records a refusal.
+3. Admission grants the lease only after reading an acknowledgement that names this arm, pod and
+   stop time. No acknowledgement within about 11 minutes, a refusal or a mismatch means no lease,
+   and the arm is withdrawn.
+4. A scan every 30 minutes stops each allow-listed pod at its first scan after the stop time of
+   that pod's latest acknowledged arm, confirms the stop and records it. A failed stop turns the
+   run red and is retried at the next scan.
+
+The watchdog stops and never terminates or deletes; it acts only on a pod that the allow-list and
+an acknowledged arm both name; a stop is recorded once. All records are create-only release
+assets, which is the audit trail.
+
+**The stated lateness.** The stop time is the end of the reservation minus a configured lateness,
+and the admission policy's shutdown delay must be at least that lateness. Recommended: **5400
+seconds** for both (three 30-minute scan intervals: one scheduled run dropped by GitHub, half an
+hour of scheduling delay, the confirmed stop). The delay is reserved runway, not spending. The
+figure is an assumption about GitHub's scheduler, which GitHub does not guarantee, until the
+funded validation measures it.
+
+**Actions minutes (sources in the package README).** GitHub Free includes 2,000 minutes a month
+for private repositories, per account, and bills each job rounded up to a minute. 48 scans a day
+are 1,440 minutes in a 30-day month and 1,488 in a 31-day month; each admission or renewal is one
+more. That leaves 512 to 560 minutes: about 16 leases or renewals a day. A full month of 2-hour
+leases on one worker totals about 1,860 minutes; leases under about 90 minutes held all month
+would not fit. If the account's quota runs out and no payment method is set, GitHub blocks the
+jobs: new leases are then refused, but a lease already granted would not be stopped.
+
+**Permissions.** The workflow's token may write release assets and read workflow runs, nothing
+else. The worker's backup token needs no new permission. The RunPod key that can stop a pod is
+only an Actions secret; the worker never holds it, and the worker's own RunPod key should be
+read-only. Secrets appear in no log or record.
+
+**What protects the RunPod key.** The backup token can push commits to the backup repository, so
+the script and the pod allow-list there could be rewritten by a faulty or compromised worker. It
+cannot change the workflow file, which needs a separate GitHub permission the token must not
+have. The workflow therefore pins the SHA-256 of the script and of the allow-list, checks both in
+a step that holds no secret, and only then runs the script, in a mode where a file placed beside
+it cannot replace a standard module. Consequence for operation: adding a pod means editing the
+allow-list and its pinned hash in the workflow, in one commit, with a credential that may change
+workflows. What this does not give: records are not signed, so a compromised backup token could
+still forge an acknowledgement, withdraw an arm or make the check fail; it could prevent a stop,
+but not obtain the key.
+
+**Before the secret exists.** With an empty allow-list a scan needs no RunPod key and succeeds,
+so the workflow can be deployed and its schedule observed first. With a pod on the list and no
+key, every scan fails visibly.
+
+**What the user does** (exact clicks in the package README): create a RunPod API key for the
+watchdog; store it as the repository secret `RUNPOD_API_KEY` of `4r4cn1d0/attribution-backups`;
+make sure Actions may run there; nothing changes on the backup token. To see that it is armed:
+the Actions tab shows a green "watchdog" run every half hour, and `python -m
+experiments.durability check-watchdog` prints the governing stop time and the run that
+acknowledged it.
+
+**What the local tests show (68 of the 161).** The deployed script itself, run against fake
+GitHub and RunPod services with a manual clock: no stop before the stop time and exactly one
+after it; renewal and supersession; malformed, unacknowledged, withdrawn and foreign-pod arms
+governing nothing; nothing deleted; `armed` only after a matching acknowledgement; admission
+succeeding end to end with every input confirmed and refusing when any one of thirteen inputs is
+withdrawn; no secret in any log, record or error; the workflow's pins equal to the shipped
+files, and its verification step, run locally, rejecting a changed or missing file. They show
+nothing about GitHub's scheduler or RunPod's stop.
 
 ## What waits for the funded one-worker validation
 
@@ -173,7 +253,12 @@ commands should be run once against the real services (they need only the tokens
 2. an off-pod copy made by the worker while the laptop is disconnected, to a destination
    recoverable without the GPU account;
 3. a restore on a fresh provider host;
-4. a provider-side timed shutdown that stops billing;
+4. a real stop by the watchdog at the stop time **with the laptop disconnected** and the worker's
+   processes dead: the acknowledgement read back on the pod, the pod (network volume attached)
+   reported as stopped, the measured lateness against the configured 5400 s, the RunPod key level
+   that sufficed, and the account's spend falling to the storage rates afterwards. Before that,
+   free of charge: the watchdog deployed for a day with no pod, to see the scheduled runs arrive
+   about every 30 minutes at one billed minute each;
 5. real balance semantics: what the number is, its currency and delay, and how liabilities and
    rates are reported;
 6. a restored continuation on CUDA matching an uninterrupted run.
@@ -181,24 +266,39 @@ commands should be run once against the real services (they need only the tokens
 Concurrency may rise only after these, and only within verified runway. A laptop-driven copy is
 an interim prototype and does not satisfy the restart prerequisites.
 
-## Limits and open decisions
+## Limits
 
 - A unit that seals immediately before the worker dies, with no time for its copy, is still
   lost. The exposure is one unit's copy time instead of a host's whole run.
 - The copy and restore check run on the worker between units, so a billed GPU idles while they
   run. This is the price of a strict gate.
-- In Stage B every safeguard second inside a session is in the cost record and therefore in the
-  policy costs. The gate check and the copy of `started.json` run inside the attempt's own timer,
-  so they are part of the operation's measured seconds and of its overrun comparison. The copy and
-  restore check of an operation's output run before the next timer starts and right after the
-  attempt, so they are controller seconds of the step that owns the operation. The first settle
-  of a session is in its start record. Excluding any of it would need a paused clock, which
-  contradicts Stage B's cost contract. **Lead decision.**
 - One gated block per process: a second block on the same backend or engine session is refused.
-- A lost fresh start is retried only after an explicit tombstone, an administrative `error.txt`
-  in the lost attempt's folder. This uses the engine's own retry rule without changing the
-  engine. **Lead decision** whether to permit it or treat such units as unrunnable.
+- The watchdog's stop can be late by the scan interval and by whatever GitHub's scheduler adds;
+  the reservation covers a stated lateness, which is an assumption. It depends on the account's
+  Actions minutes. It is a backstop: work that ends early leaves the pod running until the stop
+  time unless the operator stops it. A stopped pod still bills its storage.
 - The reservation ledger is serialized by a file lock; several pods need one shared place for it.
 - Destination retention, funding and independence are declared, not measured.
 - The lost attempts of 2 October are not reconstructed by this work: their records and costs
   remain as the incident record states.
+
+## Open decisions
+
+None is open. Decided by the user on 3 October 2026:
+
+1. **Tombstones are allowed.** A lost fresh start is retried only after an explicit tombstone, an
+   administrative `error.txt` in the lost attempt's folder, which uses the engine's own retry rule
+   without changing the engine. It is named by the operator and never written automatically.
+2. **The synchronous gate's idle GPU time is accepted for the one-pod validation**, and is to be
+   measured there.
+3. **Shutdown: the external GitHub Actions watchdog** described above.
+4. **Stage B safeguard time in the policy costs: deferred**, to be settled before any held-out
+   Stage B run under the gate, either by a Stage B amendment that gives the safeguard's time an
+   uncharged owner or by a measurement in the funded validation showing that it is negligible.
+   The facts until then: every safeguard second inside a session is in the cost record and
+   therefore in the policy costs. The gate check and the copy of `started.json` run inside the
+   attempt's own timer, so they are part of the operation's measured seconds and of its overrun
+   comparison. The copy and restore check of an operation's output run before the next timer
+   starts and right after the attempt, so they are controller seconds of the step that owns the
+   operation. The first settle of a session is in its start record. Excluding any of it would
+   need a paused clock, which contradicts Stage B's cost contract as it stands.

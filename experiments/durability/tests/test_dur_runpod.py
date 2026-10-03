@@ -2,9 +2,10 @@
 leaves the machine and nothing is created, started, stopped or deleted anywhere): a balance that is
 recognized only with a recorded human confirmation; rates and liabilities from pods and network
 volumes with declared storage prices; persistence only for a path under a network volume's mount;
-a shutdown that is never claimed; unknown shapes, values and unexplained spend failing closed; a
-key that is required and never shown; and admission refusing on every one of these. The fake proves
-nothing about RunPod: what waits for a live check is in the README."""
+a shutdown that is never claimed without the external watchdog; unknown shapes, values and
+unexplained spend failing closed; a key that is required and never shown; and admission refusing
+on every one of these. The fake proves nothing about RunPod: what waits for a live check is in the
+README."""
 
 from __future__ import annotations
 
@@ -159,8 +160,10 @@ def test_the_provider_only_reads_and_never_shows_its_key(runpod, monkeypatch):
     adapter = provider(runpod)
     adapter.read_balance(), adapter.read_rates("worker-1"), adapter.list_liabilities()
     adapter.confirm_persistent("/workspace/study")
-    with pytest.raises(NotConfigured, match="shutdown gap"):
+    with pytest.raises(NotConfigured, match="no external shutdown watchdog is configured"):
         adapter.arm_shutdown("worker-1", iso(dur.T0))
+    with pytest.raises(NotConfigured, match="no external shutdown watchdog is configured"):
+        adapter.shutdown_lateness_seconds()
     methods = {(method, path.split("?")[0]) for method, path, _ in runpod.log}
     assert methods == {("GET", "/v1/pods"), ("GET", "/v1/networkvolumes"), ("POST", "/graphql")}
     bodies = [body for method, _, body in runpod.log if method == "POST"]
@@ -187,9 +190,10 @@ def admission(tmp_path, adapter, clock, planned=None) -> AdmissionController:
 
 
 def test_admission_with_the_real_adapter_stops_at_the_shutdown_gap_and_at_every_unconfirmed_input(runpod, tmp_path):
-    """With everything else confirmed, admission through ``RunPodProvider`` still refuses: no
-    provider-side shutdown can be armed. That is the intended state until the shutdown gap is
-    closed. Each unconfirmed input refuses earlier, with its own reason; nothing is reserved."""
+    """With everything else confirmed, admission through a ``RunPodProvider`` that has no shutdown
+    watchdog configured still refuses: no shutdown can be armed (test_dur_watchdog.py covers the
+    configured case). Each unconfirmed input refuses earlier, with its own reason; nothing is
+    reserved."""
     clock = dur.ManualClock()
     source = tmp_path / "workspace"
     source.mkdir()
