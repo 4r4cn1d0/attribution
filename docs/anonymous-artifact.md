@@ -1,7 +1,8 @@
 # Anonymous review export
 
 Status: private staging only. `tools/export_anonymous_artifact.py` builds a code-and-protocol
-package from the integrated stage-A engine and the minimal-safety slice. Passing its checks
+package from the integrated stage-A engine, the stage-B decision-policy package and the
+minimal-safety slice. Passing its checks
 does not make anything anonymous (see "What the checks cannot establish"), and the package is
 scaffolding: no results, run logs, checkpoints, data or claims. This document, the tool, its
 template folder and its test are never exported.
@@ -38,13 +39,15 @@ python -m pytest -q tests/test_anonymous_artifact.py   # or: python tests/test_a
 | Export path | Source | Treatment |
 | --- | --- | --- |
 | `experiments/safety_selection/`: `README.md`, 19 modules, `configs/` (7), `tests/` (11) | same paths | byte-identical, except the README (edited) |
+| `experiments/safety_decision_policy/`: `README.md`, 15 modules, `configs/` (2), `tests/` (11) | same paths | byte-identical, except the README (edited) |
 | `experiments/minimal_safety/`: `README.md`, 10 modules, `requirements.lock`, `configs/` (2), `tests/` (7) | same paths | byte-identical, except the README (edited) |
 | `research/experiments/safety-selection-v2-protocol.md` | same path | status paragraph replaced, two dated run statements removed |
+| `research/experiments/safety-selection-v2-decision-protocol.md` | same path | status paragraph replaced; review-round references, dated run notes and links to unexported records removed |
 | `README.md` | `templates/anonymous-artifact/README.md` | written for the package |
 | `ARTIFACT_MANIFEST.json` | generated | relative path, SHA-256, derivation, edit ids and reasons |
 
-`SPEC` pins every exported file by exact name (62 files with the root README and the
-manifest), and every pinned file is required: a missing one (for example a removed
+`SPEC` pins every exported file by exact name (92 files with the root README and the
+manifest: 88 package files and the two protocols), and every pinned file is required: a missing one (for example a removed
 `ledger.py`) refuses the export. Allowlisted folders are read non-recursively; any other file
 or folder (a new module or config such as a future `internal-costs.json`, hidden files, caches,
 subfolders) is skipped, listed in the summary and never read, and a symlink or special file
@@ -54,13 +57,22 @@ is incomplete (an import of it fails), so review every skipped entry that is not
 hidden file. Nothing outside the allowlisted
 folders is read: research notes and reviews, `research/FOCUS.md`, proposals, `writing/`,
 correspondence, `.ai/`, `AGENTS.md`/`CLAUDE.md`, the historical coupling pilot (`pilot/`),
-stage B, run folders, results, checkpoints, prepared data, other lock files, `.git`, `.env`
-and backups all stay out. The manifest has no timestamps, absolute paths, environment details
+the recovery tooling (`experiments/durability/`), run folders, results, checkpoints, prepared
+data, other lock files, `.git`, `.env` and backups all stay out. The manifest has no timestamps, absolute paths, environment details
 or hashes of the private copies of edited documents; the same source gives byte-identical
 output.
 
-The protocol is exported because the stage-A `__init__.py` docstring and README cite it by
-path; the package READMEs hold the commands and definitions. The minimal-safety development
+The stage-A protocol is exported because the stage-A `__init__.py` docstring and README cite
+it by path; the stage-B decision protocol because the stage-B README cites it and it holds the
+policy's decisions and limits. The package READMEs hold the commands and definitions.
+
+Stage B (added 3 October 2026) is exported whole: its `policy_code_sha256` identity covers
+exactly its `.py` files, so every module, config and test is byte-identical and only its two
+documents carry edits. Its three amendment records (outcome definition, cost scopes, inference
+interpretation), the precision targets, the decision notes, the internal reviews and briefs are
+**not** exported: the stage-B README and decision protocol state the definitions as implemented,
+so each link to one of those records was replaced by a neutral pointer or removed rather than
+exporting more documents. The minimal-safety development
 protocol, `FOCUS.md`, result notes and review records are not exported; the template README
 gives a neutral question, status, layout and third-party acknowledgement instead (it claims no
 licence for the package's own code and does not name licences of third-party assets).
@@ -71,6 +83,11 @@ licence for the package's own code and does not name licences of third-party ass
 | --- | --- | --- |
 | `experiments/safety_selection/README.md` | `overview-link` | link to `research/FOCUS.md` now points to the root README |
 | | `run-status` | sentence "Its author has run nothing in this folder on real data or hardware." removed |
+| | `stage-b-sibling` | "Stage B … will be a sibling package" now reads "is a sibling package" (the package includes it) |
+| `experiments/safety_decision_policy/README.md` | `estimand-and-venue` | "the proposal's D_info" now reads "the study's planned D_info estimand"; "and not an ICML claim" removed |
+| | `run-status` | two sentences on what its authors had run for a dated revision, and whose runs are authoritative, removed |
+| | `outcome-amendment-link` | link to the outcome-definition amendment record replaced by a pointer to the definition in the same README |
+| | `not-run` | sentence "No GPU job or real development replay was run by the author." removed |
 | `experiments/minimal_safety/README.md` | `run-note` | sentence citing the dated run note removed |
 | | `overview-link` | link to `research/FOCUS.md` now points to the root README |
 | | `protocol-link` | link to the development protocol record replaced by a pointer to the config and README |
@@ -79,10 +96,22 @@ licence for the package's own code and does not name licences of third-party ass
 | `research/experiments/safety-selection-v2-protocol.md` | `status` | status paragraph (internal `.ai/inputs` records, development test runs, review-gate link, briefs) replaced by a neutral status that explains the `public-metadata/…` names and links the root README |
 | | `checks-heading` | heading qualifier "; this revision not yet run by its author" removed: the heading reads "Acceptance checks implemented as tests (CPU fixtures)" |
 | | `checks-count` | "(110 passed in the lead's run)" removed: the line reads "**From the first implementation:**" |
+| `research/experiments/safety-selection-v2-decision-protocol.md` | `status` | status paragraph (internal reviews, `.ai/inputs` and `.ai/briefs` records, development test runs, links to the three amendments, the review gates and the precision targets) replaced by a neutral status that says which named records are not included and links the stage-A protocol and the root README |
+| | `estimand` | "the proposal's D_info" now reads "the study's planned D_info estimand" |
+| | `venue` | list item "an ICML claim" removed |
+| | `decision-notes`, `decision-notes-item` | two parenthetical references to the unexported decision notes removed |
+| | `verification-note` | dated sentence about warnings seen in a development verification run removed |
+| | `ownership-source`, `ownership-example`, `completeness-source`, `accounting-source`, `started-source`, `results-source` | six parenthetical references to internal review rounds and their finding labels removed; the rules they sat beside are unchanged |
+| | `interpretation-link` | link to the inference-interpretation amendment record removed; the words "inference-interpretation amendment" stay |
+| | `tests-heading` | heading qualifier "; the lead's runs are authoritative" removed: the heading reads "Engineering tests (engineering fixtures)" |
+| | `snapshot-check-label`, `end-record-check-label` | the review-finding labels in front of two listed checks removed |
+| | `revision` | "The fifth revision keeps plan v4 … It bumps the cost contract to v3:" now reads "Cost contract v3 keeps plan v4 …:" |
 
-`run-status`, `checks-heading` and `checks-count` are `text` edits whose anchors are the quoted
-text; they remove dated statements about what had been run, so the exported documents describe
-the implemented fixture checks without asserting any measured pass count, old or current. The
+`run-status`, `not-run`, `verification-note`, `checks-heading`, `tests-heading` and
+`checks-count` are `text` edits whose anchors are the quoted text; they remove dated statements
+about what had been run, so the exported documents describe the implemented fixture checks
+without asserting any measured pass count, old or current. Several stage-B `text` anchors span
+a line break of the source document; like every anchor they must occur exactly once. The
 manifest records each edit's id and a neutral reason, never the removed text. No definition,
 command, number or limit outside those passages changes; the development copies keep their
 original wording. Each anchor must occur exactly once, otherwise the export refuses. When a
@@ -97,7 +126,19 @@ review the exported text again.
 - "Lead" wording: config `purpose`/`amendments` fields, docstrings and tests, a recipe note
   about a hardware amendment, and the exported protocol and stage-A README ("prospective lead
   decision", "the lead's engineering check", "the lead's one-GPU scheduler", "Open items for
-  the lead").
+  the lead"). Stage B: `config.py`, `development.py`, `ridge.py`, both example configs, its
+  README ("the lead writes a new file", "the lead may change it") and its protocol ("accepted
+  by the lead", "a lead decision", "Open decisions for the lead", "the lead confirms/decides").
+- Review-round labels in stage-B test docstrings and comments, which cannot change without a new
+  policy code identity: "Second review R1/R2", "Third review C1/C2/C3", "Fourth review F1/F2",
+  and one "root's reproduction", in `test_dp_controller.py`, `test_dp_costs.py` and
+  `test_dp_analysis.py`. The template README says such labels name internal review rounds.
+- "the brief's frozen …" in the `purpose` field of `example-dev-fit-spec.json`.
+- Dated development decisions that stage-B code and configs carry by design: the analysis-plan
+  and cost-contract version strings ("3 October 2026"), the amendment names in docstrings, and
+  the outcome-definition pin.
+- The stage-B protocol still names the amendments, the precision targets and "plan v2/v3/v4"
+  without their records; its replaced status paragraph says they are not included.
 - `public-metadata/…` names in a test docstring and the protocol body (explained by the
   replaced status paragraph).
 - H1/H2 mentions in the minimal-safety configs, `report.py` and README (the template glosses
@@ -189,7 +230,7 @@ The export stays in private staging until all of the following hold.
 2. The staging repository's history is its own and neutral: never the private repository's
    history, tags or branches; neutral `user.name` and `user.email` set locally in it; neutral
    commit messages; inspect `git log --format=fuller` before any push.
-3. A non-author reviews the staged tree: the root README, the three edited documents and the
+3. A non-author reviews the staged tree: the root README, the five edited documents and the
    manifest; a grep for the owner handles, names, institution, e-mail addresses and home
    paths; every link on the rendered pages.
 4. The paper, supplementary material and review forms link only the anonymized URL, opened
@@ -215,10 +256,13 @@ symlink, missing-file, write-failure, unexpected-error or unrecognized-argument 
 the success summary, including a term overlapping a home-path match. With the shipped `SPEC`
 on a copy of exactly this checkout's inputs: a new `internal-costs.json` and `costs.py`
 holding a secret of no listed shape are skipped and not exported; removing `ledger.py` from
-both packages refuses with both files named. On this checkout: the export equals the
-hand-written `INVENTORY` (never discovered by globbing); no skipped entry other than caches and
+both packages, `costs.py` from stage B and the decision protocol refuses with each named; files
+planted under `experiments/durability/` are neither exported nor listed. On this checkout: the
+export equals the hand-written `INVENTORY` (never discovered by globbing); no skipped entry other than caches and
 hidden files; unedited files byte-identical; local links resolving inside the export (checked
 with an independent regex); manifest hashes and edit ids; in the stage-A README and the
 protocol only the anchored lines change and the dated run statements are gone; a clean rescan;
-public identifiers and generic fixture paths kept; and the removed minimal-safety passages
-gone.
+public identifiers and generic fixture paths kept; the removed minimal-safety passages gone;
+and for the stage-B README and decision protocol, every changed source line holds an edit
+anchor, the run statements, review-round references and links to unexported records are gone,
+and the definitions they sat beside are still there.

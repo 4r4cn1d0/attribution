@@ -1,5 +1,6 @@
-"""Export the integrated stage-A engine and the minimal-safety slice into a NEW folder for
-anonymous review. Standard library only: no Git, network or subprocess.
+"""Export the integrated stage-A engine, the stage-B decision-policy package and the
+minimal-safety slice into a NEW folder for anonymous review. Standard library only: no Git,
+network or subprocess.
 
 An explicit allowlist copy, not a scrub of the project. ``SPEC`` pins the exact name of every
 exported file. Each allowlisted folder is read non-recursively; every pinned file must be there
@@ -8,7 +9,7 @@ outputs, unknown subdirectories, research records, workflow files, other package
 and its test) stays out, and skipped entries of allowlisted folders are listed. Exporting
 another file is a deliberate review: pin it here and in the test's hand-written inventory.
 Python, JSON and lock files are copied byte for byte. The root README is written from
-``templates/anonymous-artifact/README.md`` and three documents carry the edits in ``EDITS``;
+``templates/anonymous-artifact/README.md`` and five documents carry the edits in ``EDITS``;
 an edit refuses unless its anchor occurs exactly once, so a changed source cannot drift.
 
 Everything is checked before anything is written, and any problem refuses the export (exit
@@ -46,9 +47,21 @@ PROTOCOL_STATUS = (
     "(`experiments/safety_selection/`). Every CPU test uses engineering fixtures. No endpoint, "
     "selector, held-out analysis, margin or claim is defined or computed here; stage B consumes "
     "these interfaces after development calibration, in a sibling package with its own code "
-    "identity that is not part of this package. Parenthesized `public-metadata/…` names refer "
+    "identity (`experiments/safety_decision_policy/`; [stage-B protocol]"
+    "(safety-selection-v2-decision-protocol.md)). Parenthesized `public-metadata/…` names refer "
     "to source-only audit records that are not included here. Package overview and status: "
     "[README](../../README.md).")
+DECISION_PROTOCOL = "research/experiments/safety-selection-v2-decision-protocol.md"
+DECISION_STATUS = (
+    "Status, 3 October 2026: draft describing the implemented policy package "
+    "(`experiments/safety_decision_policy/`). Every test uses engineering fixtures (a synthetic "
+    "world with a fake backend, and the engine's CPU fixtures); they are not scientific evidence. "
+    "Every numerical value below that is not a rule is a placeholder until a frozen configuration "
+    "exists. No held-out outcome had been observed when this was written, and no result is "
+    "reported here. The amendments and the precision targets that this document names "
+    "are development decision records that are not included in this package; what they decided "
+    "is stated here and in the package README. Engine: [stage-A protocol]"
+    "(safety-selection-v2-protocol.md). Package overview and status: [README](../../README.md).")
 
 # Exported documents that differ from the development copies:
 # path -> ((edit id, kind, anchor, replacement, reason recorded in the manifest), ...).
@@ -62,6 +75,33 @@ EDITS = {
          "Its author has run nothing in this folder on real data or hardware. ", "",
          "dated sentence on what had been run during development removed; it is not this "
          "package's status"),
+        ("stage-b-sibling", "text", "Stage B (selector and analysis) will be a sibling package with its",
+         "Stage B (selector and analysis) is a sibling package with its",
+         "tense of the reference to the stage-B package, which this package now includes"),
+    ),
+    "experiments/safety_decision_policy/README.md": (
+        ("estimand-and-venue", "text",
+         "not the proposal's D_info, not a\nnew allocator and not an ICML claim.",
+         "not the study's planned D_info estimand and not a\nnew allocator.",
+         "reference to an unexported planning document reworded and a planning reference to a "
+         "publication venue removed"),
+        ("run-status", "text",
+         "Its authors have run no data and no GPU job here. For the fifth revision (3 October 2026) only the\n"
+         "CPU-only package tests and the synthetic `simulate` exercise were run, both on engineering fixtures;\n"
+         "the lead's runs are authoritative. ", "",
+         "dated sentences on what had been run during development removed; they are not this "
+         "package's status"),
+        ("outcome-amendment-link", "text",
+         "the 2 October 2026 pre-held-out amendment\n"
+         "([2026-10-02-outcome-definition-amendment.md]"
+         "(../../research/experiments/2026-10-02-outcome-definition-amendment.md));",
+         "the outcome-definition amendment of 2 October 2026, made before any held-out outcome was\n"
+         "observed (its record is not part of this package; the definition is stated below);",
+         "link to an unexported amendment record replaced by a pointer to the definition in this "
+         "README"),
+        ("not-run", "text", "No GPU job or real development replay was run by the author. ", "",
+         "sentence on what had been run during development removed; it is not this package's "
+         "status"),
     ),
     "experiments/minimal_safety/README.md": (
         ("run-note", "text", " The dated run note records any such cases and audit preparation.",
@@ -90,6 +130,53 @@ EDITS = {
          "**From the first implementation (110 passed in the lead's run):**",
          "**From the first implementation:**",
          "dated development pass count removed; the checks are listed without one"),
+    ),
+    DECISION_PROTOCOL: (
+        ("status", "line", "Status, 3 October 2026: draft describing the implemented policy package",
+         DECISION_STATUS, "status paragraph citing internal reviews and records, development test "
+         "runs and unexported documents replaced by a neutral status"),
+        ("estimand", "text", "  - the proposal's D_info (its", "  - the study's planned D_info estimand (its",
+         "reference to an unexported planning document reworded"),
+        ("venue", "text", "behavior beyond the generation cap or general capability;\n  - an ICML claim.",
+         "behavior beyond the generation cap or general capability.",
+         "planning reference to a publication venue removed"),
+        ("decision-notes", "text", " (the decision notes' counterexample stands)", "",
+         "reference to an unexported development record removed"),
+        ("verification-note", "text",
+         " In the lead's verification of the second snapshot, matmul floating-point warnings appeared only in "
+         "the tests' BLAS reference calculations; their root cause is not established.", "",
+         "dated note on a development test run removed"),
+        ("ownership-source", "text", "(third review C1 and C2; `costs.session_allocation`)",
+         "(`costs.session_allocation`)", "reference to an internal review round removed"),
+        ("ownership-example", "text", "Example (third review): before such a session",
+         "Example: before such a session", "reference to an internal review round removed"),
+        ("completeness-source", "text", "- **Completeness** (third review C3) is computed",
+         "- **Completeness** is computed", "reference to an internal review round removed"),
+        ("accounting-source", "text", "(cost contract v3; fourth-candidate follow-up F1 and F2)",
+         "(cost contract v3)", "reference to an internal review round removed"),
+        ("started-source", "text", "- **Started blocks without a result** (second review R2):",
+         "- **Started blocks without a result**:", "reference to an internal review round removed"),
+        ("results-source", "text", "- **Blocks with a result** (fourth-candidate follow-up F1 and F2):",
+         "- **Blocks with a result**:", "reference to an internal review round removed"),
+        ("interpretation-link", "text",
+         "([inference-interpretation amendment](2026-10-02-inference-interpretation-amendment.md);",
+         "(inference-interpretation amendment;",
+         "link to an unexported amendment record removed; its content as implemented is stated in "
+         "the same list"),
+        ("tests-heading", "text", "(engineering fixtures; the lead's runs are authoritative)",
+         "(engineering fixtures)",
+         "note on whose development runs counted removed from the engineering-tests heading"),
+        ("snapshot-check-label", "text", "  - F1: a result's cost snapshot is provisional.",
+         "  - a result's cost snapshot is provisional.", "label of an internal review finding removed"),
+        ("end-record-check-label", "text", "  - F2: a result whose session end record was removed.",
+         "  - a result whose session end record was removed.", "label of an internal review finding removed"),
+        ("decision-notes-item", "text", " (decision notes, item 4)", "",
+         "reference to an unexported development record removed"),
+        ("revision", "text",
+         "The fifth revision keeps plan v4, with estimators, family and allocation unchanged. It bumps the "
+         "cost contract to v3:",
+         "Cost contract v3 keeps plan v4, with estimators, family and allocation unchanged:",
+         "reference to an internal revision round removed"),
     ),
 }
 
@@ -121,9 +208,23 @@ SPEC = {
         "experiments/minimal_safety/tests": (
             "conftest.py", "test_ms_data.py", "test_ms_model.py", "test_ms_plan.py",
             "test_ms_report.py", "test_ms_run.py", "test_ms_text.py"),
+        # Stage B: its own code identity covers exactly these modules, so they are exported
+        # byte for byte. The recovery tooling (experiments/durability) is not part of the
+        # package and is never read.
+        "experiments/safety_decision_policy": (
+            "README.md", "__init__.py", "__main__.py", "analysis.py", "backend.py", "common.py",
+            "config.py", "controller.py", "costs.py", "development.py", "features.py", "outcomes.py",
+            "policy.py", "ridge.py", "synthetic.py", "tfidf.py"),
+        "experiments/safety_decision_policy/configs": (
+            "example-dev-fit-spec.json", "example-engineering.json"),
+        "experiments/safety_decision_policy/tests": (
+            "conftest.py", "test_dp_analysis.py", "test_dp_config.py", "test_dp_controller.py",
+            "test_dp_costs.py", "test_dp_engine.py", "test_dp_features.py", "test_dp_outcomes.py",
+            "test_dp_policy.py", "test_dp_ridge.py", "test_dp_tfidf.py"),
     },
-    # Single documents copied to the same path; the stage-A docstring and README cite this one.
-    "files": ("research/experiments/safety-selection-v2-protocol.md",),
+    # Single documents copied to the same path: the stage-A protocol (its package's docstring and
+    # README cite it) and the stage-B decision protocol (its package's README cites it).
+    "files": ("research/experiments/safety-selection-v2-protocol.md", DECISION_PROTOCOL),
     # Export path -> template in the source tree, written for this package.
     "templates": {"README.md": "templates/anonymous-artifact/README.md"},
     "edits": EDITS,
@@ -460,8 +561,8 @@ def _export(source: Path, dest: Path, spec: dict, rules: tuple) -> dict:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Export the stage-A and minimal-safety code into "
-                                     "a NEW folder for anonymous review (docs/anonymous-artifact.md).")
+    parser = argparse.ArgumentParser(description="Export the stage-A, stage-B and minimal-safety code "
+                                     "into a NEW folder for anonymous review (docs/anonymous-artifact.md).")
     parser.add_argument("--dest", required=True, type=Path, help="new folder to create; must not exist")
     parser.add_argument("--source", type=Path, default=ROOT, help="project root (default: this checkout)")
     parser.add_argument("--identifier", action="append", default=[], metavar="TERM",

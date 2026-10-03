@@ -1,6 +1,7 @@
 """Offline checks for tools/export_anonymous_artifact.py: pinned-inventory copying, symlink and
 destination refusals, identity/credential refusals and diagnostics that never print a match,
-byte-identical code and a real export of this checkout against a hand-written inventory.
+byte-identical code and a real export of this checkout (stage A, stage B and the calibration
+slice) against a hand-written inventory.
 Standard library only (runs under pytest or ``python tests/test_anonymous_artifact.py``); no
 Git, network or subprocess. Fake credentials are assembled at run time so no credential-shaped
 literal lives here; the extra identifier is made up."""
@@ -28,12 +29,15 @@ sys.modules[_spec.name] = ex
 _spec.loader.exec_module(ex)
 
 SAFETY, MINIMAL = "experiments/safety_selection", "experiments/minimal_safety"
+POLICY = "experiments/safety_decision_policy"
 PROTOCOL = "research/experiments/safety-selection-v2-protocol.md"
+DECISION = "research/experiments/safety-selection-v2-decision-protocol.md"
 TEMPLATE = "templates/anonymous-artifact/README.md"
 
 # The reviewed export of this checkout, written out by hand and never discovered by globbing:
-# 59 package files, the protocol, the root README and the manifest. Exporting another file, or
-# dropping one, is a deliberate review that changes SPEC in the tool and this list together.
+# 88 package files (59 of stage A and the calibration slice, 29 of stage B), the two protocols,
+# the root README and the manifest. Exporting another file, or dropping one, is a deliberate
+# review that changes SPEC in the tool and this list together.
 INVENTORY = {f"{folder}/{name}" for folder, names in {
     SAFETY: ("README.md", "__init__.py", "__main__.py", "assets.py", "attribution.py", "common.py",
              "config.py", "engine.py", "jobs.py", "ledger.py", "loaders.py", "planning.py", "prepare.py",
@@ -51,8 +55,15 @@ INVENTORY = {f"{folder}/{name}" for folder, names in {
     f"{MINIMAL}/configs": ("calibration-cuda.json", "calibration.json"),
     f"{MINIMAL}/tests": ("conftest.py", "test_ms_data.py", "test_ms_model.py", "test_ms_plan.py",
                          "test_ms_report.py", "test_ms_run.py", "test_ms_text.py"),
-}.items() for name in names} | {PROTOCOL, "README.md", ex.MANIFEST}
-EDITED = {f"{SAFETY}/README.md", f"{MINIMAL}/README.md", PROTOCOL}
+    POLICY: ("README.md", "__init__.py", "__main__.py", "analysis.py", "backend.py", "common.py", "config.py",
+             "controller.py", "costs.py", "development.py", "features.py", "outcomes.py", "policy.py", "ridge.py",
+             "synthetic.py", "tfidf.py"),
+    f"{POLICY}/configs": ("example-dev-fit-spec.json", "example-engineering.json"),
+    f"{POLICY}/tests": ("conftest.py", "test_dp_analysis.py", "test_dp_config.py", "test_dp_controller.py",
+                        "test_dp_costs.py", "test_dp_engine.py", "test_dp_features.py", "test_dp_outcomes.py",
+                        "test_dp_policy.py", "test_dp_ridge.py", "test_dp_tfidf.py"),
+}.items() for name in names} | {PROTOCOL, DECISION, "README.md", ex.MANIFEST}
+EDITED = {f"{SAFETY}/README.md", f"{MINIMAL}/README.md", f"{POLICY}/README.md", PROTOCOL, DECISION}
 
 # A miniature project: pinned files, one documented edit, and files never exported.
 MINI_SPEC = {
@@ -453,11 +464,28 @@ class ShippedInventoryTests(unittest.TestCase):
     def test_missing_pinned_files_refuse(self):
         for package in (MINIMAL, SAFETY):
             (self.src / package / "ledger.py").unlink()
+        (self.src / POLICY / "costs.py").unlink()
+        (self.src / DECISION).unlink()
         with self.assertRaises(ex.ExportError) as caught:
             ex.export(self.src, self.dest)
-        self.assertEqual(caught.exception.problems, [f"{package}/ledger.py: required file is missing"
-                                                     for package in (MINIMAL, SAFETY)])
+        self.assertEqual(caught.exception.problems, [
+            f"{MINIMAL}/ledger.py: required file is missing", f"{POLICY}/costs.py: required file is missing",
+            f"{SAFETY}/ledger.py: required file is missing", f"{DECISION}: No such file or directory",
+            f"{DECISION}: edited document is not exported"])
         self.assertFalse(os.path.lexists(self.dest))
+
+    def test_the_recovery_tooling_is_never_read_or_exported(self):
+        """``experiments/durability`` is not part of the package: no allowlisted folder, so its
+        files are neither exported nor even listed as skipped, whatever they hold."""
+        secret = "q7" + "Zx" * 20
+        build(self.src, {"experiments/durability/admission.py": b"KEY = '" + secret.encode() + b"'\n",
+                         "experiments/durability/README.md": b"# Recovery tooling\n"})
+        summary = ex.export(self.src, self.dest)
+        self.assertEqual((tree(self.dest), summary["skipped"]), (INVENTORY, []))
+        self.assertFalse(any("durability" in folder for folder in ex.SPEC["dirs"]) or
+                         any("durability" in rel for rel in (*ex.SPEC["files"], *ex.SPEC["templates"].values())))
+        for rel in INVENTORY:
+            self.assertNotIn(secret.encode(), (self.dest / rel).read_bytes(), rel)
 
 
 class RealExportTests(unittest.TestCase):
@@ -495,7 +523,8 @@ class RealExportTests(unittest.TestCase):
     def test_local_markdown_links_resolve_inside_the_export(self):
         markdown = sorted(rel for rel in self.files if rel.endswith(".md"))
         self.assertEqual(markdown, ["README.md", "experiments/minimal_safety/README.md",
-                                    "experiments/safety_selection/README.md", PROTOCOL])
+                                    "experiments/safety_decision_policy/README.md",
+                                    "experiments/safety_selection/README.md", DECISION, PROTOCOL])
         for rel in markdown:
             text = (self.dest / rel).read_text(encoding="utf-8")
             checked = 0
@@ -517,6 +546,17 @@ class RealExportTests(unittest.TestCase):
         self.assertIn("DATE-LM Appendix D.2/Table 9", protocol)  # source citations kept
         for rel in ("experiments/safety_selection/README.md", "experiments/minimal_safety/README.md"):
             self.assertIn("the [overview](../../README.md)", (self.dest / rel).read_text(encoding="utf-8"))
+        # stage B: the stage-A protocol and the stage-B README cite the decision protocol, which
+        # links back to the stage-A protocol and the root README
+        self.assertIn("[stage-B protocol](safety-selection-v2-decision-protocol.md)", protocol)
+        self.assertIn(f"](../../{DECISION})", (self.dest / f"{POLICY}/README.md").read_text(encoding="utf-8"))
+        decision = (self.dest / DECISION).read_text(encoding="utf-8")
+        self.assertIn("[stage-A protocol](safety-selection-v2-protocol.md)", decision)
+        self.assertIn("[README](../../README.md)", decision)
+        root = (self.dest / "README.md").read_text(encoding="utf-8")
+        for linked in (f"{POLICY}/README.md", DECISION, "experiments/safety_decision_policy/tests", "simulate"):
+            self.assertIn(linked, root)
+        self.assertNotIn("is not part of this package", root + protocol)
 
     def test_manifest_hashes_and_documented_edits(self):
         raw = (self.dest / ex.MANIFEST).read_text(encoding="utf-8")
@@ -549,6 +589,52 @@ class RealExportTests(unittest.TestCase):
         self.assertIn("\nTests use\nENGINEERING FIXTURES (", stage_a)
         self.assertIn("\n## Acceptance checks implemented as tests (CPU fixtures)\n", protocol)
         self.assertIn("\n**From the first implementation:**\n", protocol)
+
+    def test_stage_b_documents_lose_run_statements_review_rounds_and_unexported_links(self):
+        """The stage-B README and decision protocol: every changed source line holds an edit
+        anchor (nothing else changes), the removed passages are gone and the definitions stay."""
+        import difflib
+
+        for rel in (f"{POLICY}/README.md", DECISION):
+            source = (ROOT / rel).read_text(encoding="utf-8").split("\n")
+            exported = (self.dest / rel).read_text(encoding="utf-8").split("\n")
+            fragments = [part for edit in ex.EDITS[rel] for part in edit[2].split("\n") if part.strip()]
+            matcher = difflib.SequenceMatcher(a=source, b=exported, autojunk=False)
+            changed = [index for tag, i1, i2, _, _ in matcher.get_opcodes() if tag != "equal"
+                       for index in range(i1, i2)]
+            self.assertTrue(changed, rel)
+            for index in changed:
+                self.assertTrue(any(fragment in source[index] for fragment in fragments), f"{rel}:{index + 1}")
+            self.assertLessEqual(len(changed), sum(edit[2].count("\n") + 1 for edit in ex.EDITS[rel]), rel)
+        readme = (self.dest / f"{POLICY}/README.md").read_text(encoding="utf-8")
+        decision = (self.dest / DECISION).read_text(encoding="utf-8")
+        for removed in ("have run no data", "fifth revision", "lead's runs", "run by the author", "ICML",
+                        "the proposal", "non-author", "review", "fourth-candidate", "follow-up brief",
+                        "decision notes", "second snapshot", "archived snapshot", "F1:", "F2:", "amendment.md",
+                        "precision-targets.md", "EDGE_CHECKS", ".ai/", "not in the repository"):
+            self.assertNotIn(removed, readme + decision, removed)
+        # what the documents define is still there
+        for kept in ("## Outcome definition (pinned)", "## Costs (cost-scope amendment of 2 October 2026)",
+                     "\nEvery test uses ENGINEERING FIXTURES: the synthetic world and\n",
+                     "not the study's planned D_info estimand and not a\nnew allocator. Protocol, decisions and limits:",
+                     "observed (its record is not part of this package; the definition is stated below);",
+                     "\nNo feasibility-adjusted H2, D_info\n"):
+            self.assertIn(kept, readme, kept)
+        for kept in ("\nStatus, 3 October 2026: draft describing the implemented policy package",
+                     "\n## Engineering tests (engineering fixtures)\n",
+                     "- **Session ownership** (`costs.session_allocation`):",
+                     "- **Completeness** is computed per scope",
+                     "- **Authoritative accounting** (cost contract v3). Physical cost evidence",
+                     "- **Interpretation** (inference-interpretation amendment; estimators",
+                     "or general capability.\n- Average utility and refusal results do not show that every selected "
+                     "edit is feasible in expectation.\n",
+                     "## Open decisions for the lead (unresolved; not invented here)",
+                     "Cost contract v3 keeps plan v4, with estimators, family and allocation unchanged: the cost",
+                     "T = C+ - r·C-"):
+            self.assertIn(kept, decision, kept)
+
+    def test_the_recovery_tooling_is_not_in_the_export(self):
+        self.assertFalse([rel for rel in self.files if "durability" in rel])
 
     def test_export_rescans_clean_and_keeps_public_identifiers(self):
         output = {rel: (self.dest / rel).read_bytes() for rel in self.files}
