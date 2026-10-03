@@ -1,0 +1,30 @@
+# Bounded assignment
+
+- Task ID and authorized outcome: StageB finalization follow-up; repair the remaining cost-accounting defect in the fourth candidate and correct its failing C1 fixture before review/integration.
+- Role: response to GPT questions / implementation.
+- Model: claude-opus-5-5; effort: max.
+- Context supplied and input versions/hashes: use the current prepared workspace and the explicit review/test evidence copied there. Fourth-candidate source pin is `.ai/inputs/study-v2-20261002/stage-b-fourth-source.json`; first fourth-candidate suite is `stage-b-fourth-tests.log`; author report is `opus-policy-fourth-report.md`; non-author report is `stage-b-fourth-review.md`.
+- Owned files and workspace: only the existing StageB files in `experiments/safety_decision_policy/` and its `research/experiments/safety-selection-v2-decision-protocol.md`, inside `tmp/claude-workspaces/study-v2-policy-20261002/workspace`.
+- Excluded files and concurrent contributors: all other project files, frozen engine/data/allocator/model/N, hidden/held-out data, cloud resources, and `.ai/HANDOFF.md`. Preserve all earlier candidates and logs. A read-only non-author review is complete; no other implementer is active.
+- Deliverable and measurable acceptance criteria: resolve F1 and F2 below with the smallest coherent accounting design; update protocol/docs and tests; no ambiguous “complete” physical total when a required session end record is absent; a result-bearing block with a removed session end must be reported incomplete by public `analyze`; finalized physical accounting must include the measured result/controller interval or state a prospectively justified logging boundary; keep scientific results immutable and make the authoritative economic report reproducible from durable records. Correct C1 regression to account for separately recorded study-level static work and prove all seconds reconcile without charging S- for S+-only sessions. Provide changed paths and precise test expectations; do not claim tests were run (workspace grants only Read/Glob/Grep/Edit/Write).
+- Alternatives to consider: (a) trust the embedded cost snapshot; (b) reconstruct authoritative costs from receipts and closed session records in `study_evidence`/analysis, with an explicit incomplete state for missing ends; (c) emit a finalized economic sidecar after closing the session while keeping scientific result immutable. Choose and justify the simplest solution that cannot silently present a lower bound as complete. Account for the unavoidable boundary around writing final accounting records.
+- Invariants and smallest decisive check: attempt receipts and controller end records are the evidence of physical cost; every observed second is counted at most once; no missing session end can pass as a point total; policy `result` owner remains outside decision-policy ledgers unless the prespecified cost contract is amended. Include a fixture where `result.json` remains but an end record is missing. Include a resumed S+-only session with nonzero study-level static work and check static, session and attempt components separately.
+- Permitted execution commands: none; GPT lead runs checks after return.
+- Claude time/turn limits: none per user instruction.
+- Combined concurrency and scientific compute budget: one Opus implementer plus the existing completed review; CPU-only verification by GPT, no GPU/cloud work and no held-out access.
+- Previous run: fourth candidate `20261002T195004Z-d3fe51e5` returned successfully with exact model reported and max requested. It changed 30 files; first suite was 164 passed, 1 failed. Preserve its candidate and report. The failed assertion in `test_a_resumed_session_of_only_s_plus_work_is_not_charged_to_s_minus` compares per-policy cost (which includes static 71s) against block physical seconds (which excludes study-level static, counted separately). Reviewer did not observe the failing run; GPT inspected the pytest output and verified the synthetic fixture uses `score_groups=50`, `export_view=1`, `relevance=20`. Correct it by accounting for exact static receipts, not by deleting the assertion.
+
+## GPT's questions and unresolved objections
+
+The non-author review at `.ai/inputs/study-v2-20261002/stage-b-fourth-review.md` confirms two defects:
+
+1. F1: completed `result.json` computes `costs.physical` before the current session end record exists. `_block_result` captures only the live segment closed so far; later result computation and serialization plus `_end_session` are absent from the stored physical value, yet it can be labelled complete. Decide where the authoritative physical total lives so the immutable scientific result cannot imply the lower snapshot is complete.
+2. F2: if the process dies after writing `result.json` but before its session end record, `analyze` trusts the result’s pre-end cost object. A result-bearing block can therefore evade the missing-end check. Add the exact counterexample: preserve result, remove session end, analyze via public API, require an incomplete/unknown economic point estimate.
+
+The reviewer also notes the existing interrupted-session test deletes both result and session end; it does not exercise F2. The 71s failure is a fixture scope mismatch, not an implementation defect: its block physical subtotal excludes 71s of study-level static work, while the S+ whole-policy total includes those same receipts. Assert reconciliation using the static receipt total explicitly.
+
+Answer: which assumption is weakest in your finalization design; what simpler alternative did you reject and why; which exact counterexample would break your chosen design; and what check would change your mind? If you need a cost-contract boundary around final log serialization, make it explicit and reconcile it with the user’s “record every cost” instruction; do not silently omit controller time.
+
+## Return
+
+Changed files, chosen design and alternatives, why F1/F2/C1 are closed or remain open, test paths and precise expected outcomes, and any remaining limitation. Do not claim test execution or model metadata beyond observed evidence.

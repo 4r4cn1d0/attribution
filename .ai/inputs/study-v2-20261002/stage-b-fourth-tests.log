@@ -1,0 +1,65 @@
+........................................................................ [ 43%]
+..............F......................................................... [ 87%]
+.....................                                                    [100%]
+=================================== FAILURES ===================================
+_____ test_a_resumed_session_of_only_s_plus_work_is_not_charged_to_s_minus _____
+
+tmp_path = PosixPath('/private/var/folders/mk/33rfxgzn32318ntchzzgtm680000gn/T/pytest-of-spiderishi/pytest-27/test_a_resumed_session_of_only0')
+synthetic = (SyntheticWorld(seed=7, groups={'dev': {'g-8add9eba5d6c655a': (8, (-0.06230329087776961, 0.02529456834287415, 0.032730...eckpoints': [{'epochs': [...], 'name': 'q'}, {'epochs': [...], 'name': 'e1'}, {'epochs': [...], 'name': 'e3'}]}}, ...})
+
+    def test_a_resumed_session_of_only_s_plus_work_is_not_charged_to_s_minus(tmp_path, synthetic):
+        """Third review C1 through the controller: session 1 ran the static work, the screen and S+'s
+        first prerequisite attempt (a failure) before a validation refusal stopped it; session 2, a fresh
+        process, ran only S+'s next prerequisite attempt, with the asset loads, and the block aborted.
+        S-'s incurred cost leaves session 2 out entirely, S+'s keeps it, every second is physical once."""
+        world, setup = synthetic
+        prerequisite = f"full_from_short-a0-{z0_of(setup)}"
+        root = tmp_path / "study"
+        study, _ = make_study(root, world, setup, failures=frozenset({(prerequisite, 1)}),
+                              refusals=frozenset({(prerequisite, 2)}))
+        with pytest.raises(RequestRefused):
+            study.run_block(0)
+        study.close()
+        resumed, backend = make_study(root, world, setup, failures=frozenset({(prerequisite, 3)}))
+        result = resumed.run_block(0)
+        resumed.close()
+        assert result["status"] == "aborted" and result["stage"] == "S+ prerequisite"
+        assert backend.executed == [(prerequisite, 3)]
+        load = world.session_setup_seconds
+        minus, plus = (result["costs"]["incurred"][m] for m in METHODS)
+        assert minus["excluded_other_policy_overhead"] == {"seconds": pytest.approx(load), "sessions": [2]}
+        assert minus["setup_seconds"] == pytest.approx(load) and plus["setup_seconds"] == pytest.approx(2 * load)
+        assert plus["total_seconds"] - minus["total_seconds"] == pytest.approx(2 * world.durations["full_from_short"] + load)
+>       assert result["costs"]["physical"]["seconds"] == pytest.approx(plus["total_seconds"])   # S+ used every second
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       assert 1360.0 == 1431.0 ± 0.001431
+E         
+E         comparison failed
+E         Obtained: 1360.0
+E         Expected: 1431.0 ± 0.001431
+
+tmp/study-v2-20261002/stage-b-fourth-verify/experiments/safety_decision_policy/tests/test_dp_controller.py:803: AssertionError
+=============================== warnings summary ===============================
+tmp/study-v2-20261002/stage-b-fourth-verify/experiments/safety_decision_policy/tests/test_dp_ridge.py::test_blas_free_normal_equations_match_the_blas_closed_form_at_fixture_sizes[6-3-22]
+tmp/study-v2-20261002/stage-b-fourth-verify/experiments/safety_decision_policy/tests/test_dp_ridge.py::test_blas_free_normal_equations_match_the_blas_closed_form_at_fixture_sizes[5-3-22]
+tmp/study-v2-20261002/stage-b-fourth-verify/experiments/safety_decision_policy/tests/test_dp_ridge.py::test_blas_free_normal_equations_match_the_blas_closed_form_at_fixture_sizes[3-2-20]
+tmp/study-v2-20261002/stage-b-fourth-verify/experiments/safety_decision_policy/tests/test_dp_ridge.py::test_blas_free_normal_equations_match_the_blas_closed_form_at_fixture_sizes[12-3-25]
+  /Users/spiderishi/Coding/attribution/tmp/study-v2-20261002/stage-b-fourth-verify/experiments/safety_decision_policy/tests/test_dp_ridge.py:40: RuntimeWarning: divide by zero encountered in matmul
+    beta = np.linalg.solve(z.T @ (w[:, None] * z) + lam * np.eye(x.shape[1]), z.T @ (w * (t - b0)))
+
+tmp/study-v2-20261002/stage-b-fourth-verify/experiments/safety_decision_policy/tests/test_dp_ridge.py::test_blas_free_normal_equations_match_the_blas_closed_form_at_fixture_sizes[6-3-22]
+tmp/study-v2-20261002/stage-b-fourth-verify/experiments/safety_decision_policy/tests/test_dp_ridge.py::test_blas_free_normal_equations_match_the_blas_closed_form_at_fixture_sizes[5-3-22]
+tmp/study-v2-20261002/stage-b-fourth-verify/experiments/safety_decision_policy/tests/test_dp_ridge.py::test_blas_free_normal_equations_match_the_blas_closed_form_at_fixture_sizes[3-2-20]
+tmp/study-v2-20261002/stage-b-fourth-verify/experiments/safety_decision_policy/tests/test_dp_ridge.py::test_blas_free_normal_equations_match_the_blas_closed_form_at_fixture_sizes[12-3-25]
+  /Users/spiderishi/Coding/attribution/tmp/study-v2-20261002/stage-b-fourth-verify/experiments/safety_decision_policy/tests/test_dp_ridge.py:40: RuntimeWarning: overflow encountered in matmul
+    beta = np.linalg.solve(z.T @ (w[:, None] * z) + lam * np.eye(x.shape[1]), z.T @ (w * (t - b0)))
+
+tmp/study-v2-20261002/stage-b-fourth-verify/experiments/safety_decision_policy/tests/test_dp_ridge.py::test_blas_free_normal_equations_match_the_blas_closed_form_at_fixture_sizes[6-3-22]
+tmp/study-v2-20261002/stage-b-fourth-verify/experiments/safety_decision_policy/tests/test_dp_ridge.py::test_blas_free_normal_equations_match_the_blas_closed_form_at_fixture_sizes[5-3-22]
+tmp/study-v2-20261002/stage-b-fourth-verify/experiments/safety_decision_policy/tests/test_dp_ridge.py::test_blas_free_normal_equations_match_the_blas_closed_form_at_fixture_sizes[3-2-20]
+tmp/study-v2-20261002/stage-b-fourth-verify/experiments/safety_decision_policy/tests/test_dp_ridge.py::test_blas_free_normal_equations_match_the_blas_closed_form_at_fixture_sizes[12-3-25]
+  /Users/spiderishi/Coding/attribution/tmp/study-v2-20261002/stage-b-fourth-verify/experiments/safety_decision_policy/tests/test_dp_ridge.py:40: RuntimeWarning: invalid value encountered in matmul
+    beta = np.linalg.solve(z.T @ (w[:, None] * z) + lam * np.eye(x.shape[1]), z.T @ (w * (t - b0)))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 failed, 164 passed, 12 warnings in 28.10s

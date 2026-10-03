@@ -1,0 +1,28 @@
+{
+  "kind": "safety-decision-policy development fit spec",
+  "name": "ENGINEERING EXAMPLE ONLY: development fit specification template",
+  "purpose": "ENGINEERING EXAMPLE ONLY. The X0 list and the diagnostic constraints are placeholders; the lambda grid and fold rule are the brief's frozen scientific specification. The lead supplies the real feature list and diagnostic constraints before fitting.",
+  "x0": [
+    "edit_rows", "toxicchat_fraction", "tokens_mean", "target_tokens_mean",
+    "guard_unsafe_rows", "guard_controversial_rows", "guard_invalid_rows", "guard_refusal_yes_rows",
+    "label_unsafe_mean", "label_unsafe_max", "label_controversial_mean", "label_unscored_fraction",
+    "tfidf_prompt_mean", "tfidf_prompt_sum", "tfidf_prompt_max",
+    "tfidf_pair_mean", "tfidf_pair_sum", "tfidf_pair_max",
+    "short_safety_change_lo", "short_safety_change_hi",
+    "short_utility_loss",
+    "short_refusal_increase_lo", "short_refusal_increase_hi",
+    "short_query_nll_change",
+    "short_safety_invalid_edit", "short_safety_invalid_a0",
+    "short_refusal_invalid_edit", "short_refusal_invalid_a0",
+    "short_safety_broader_unresolved_edit", "short_safety_broader_unresolved_a0"
+  ],
+  "attribution_candidates": ["checkpoint_gradsim", "adam_diag_preconditioned_dot"],
+  "lambda_grid": [0.01, 0.1, 1, 10, 100],
+  "folds": "leave-one-group-out",
+  "diagnostic_constraints": {
+    "tau_utility_loss": 0.02,
+    "tau_refusal_increase": 0.02,
+    "scale_utility_loss": 0.02,
+    "scale_refusal_increase": 0.02
+  }
+}
