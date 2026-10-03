@@ -1,0 +1,92 @@
+{
+ "recorded_utc": "2026-10-03T20:15:00Z",
+ "deployed_by": "General Implementation session, at the user's instruction to deploy everything recommended (3 October 2026)",
+ "source": {
+  "repository": "4r4cn1d0/attribution",
+  "commit": "fd42fae35deb6a120a0cc467126446578d07e5d3"
+ },
+ "target": {
+  "repository": "4r4cn1d0/attribution-backups",
+  "visibility": "private",
+  "branch": "main",
+  "commit": "5919621bb0056381f8da71007b49868341e930f7",
+  "pushed_utc": "2026-10-03T18:19:50Z",
+  "workflow": {
+   "id": 374095167,
+   "path": ".github/workflows/watchdog.yml",
+   "state": "active"
+  }
+ },
+ "files": [
+  {
+   "deployed_path": "watchdog/watchdog.py",
+   "source": "experiments/durability/watchdog/watchdog.py",
+   "sha256": "1f49dd887eb687334682e0716a3b9b25566ba88f99c9b4f79fbe266083a801b7"
+  },
+  {
+   "deployed_path": "watchdog/pods.json",
+   "source": "experiments/durability/watchdog/pods.example.json",
+   "sha256": "484e59d0b8b9e55243feefa54e8a96721632e8e6f172e0c747cbca0376663b17"
+  },
+  {
+   "deployed_path": ".github/workflows/watchdog.yml",
+   "source": "experiments/durability/watchdog/watchdog.yml",
+   "sha256": "46dc8bcf79c017823107b5b3ba31dff694b5616ca855ad7335bf4ef713888546"
+  }
+ ],
+ "pins": "the committed blobs of watchdog/watchdog.py and watchdog/pods.json equal the SHA-256 pins in the workflow (checked locally after the commit and by the workflow's own check step)",
+ "repository_state_before": {
+  "contents": [
+   "README.md"
+  ],
+  "workflows": 0,
+  "actions": {
+   "enabled": true,
+   "allowed_actions": "all"
+  },
+  "actions_secrets": 0,
+  "releases": 0
+ },
+ "secrets": "RUNPOD_API_KEY is not set (names-only listing: no Actions secrets). With the empty allow-list none is needed.",
+ "manual_run": {
+  "id": 37143791257,
+  "event": "workflow_dispatch",
+  "created_utc": "2026-10-03T18:20:04Z",
+  "completed_utc": "2026-10-03T18:20:16Z",
+  "conclusion": "success",
+  "steps": [
+   "checkout: success",
+   "verify the pinned files: success",
+   "watchdog: success"
+  ],
+  "log_lines": [
+   "the script and the allow-list are the pinned ones",
+   "python3 -I watchdog/watchdog.py",
+   "{\"event\": \"scan-done\", \"outcomes\": 0, \"pods\": 0, ...}"
+  ],
+  "note": "a manual run does not count as the schedule running"
+ },
+ "scheduled_runs": {
+  "observed": [],
+  "window_utc": [
+   "2026-10-03T18:20:00Z",
+   "2026-10-03T20:11:06Z"
+  ],
+  "missed_slots_utc": [
+   "18:37",
+   "19:07",
+   "19:37",
+   "20:07"
+  ],
+  "github_status_at_20_11_utc": "All Systems Operational; Actions operational; no open incident",
+  "finding": "no scheduled run was created in the first 110 minutes after deployment. GitHub documents that the schedule event can be delayed or dropped under load but gives no bound. Until scheduled runs are seen, every arm is refused by the liveness check (fail-closed), and the lateness assumption of 5400 s is unverified; this first observation is unfavourable to it.",
+  "still_open": "observation continues; see the commit history of this file"
+ },
+ "minutes": "each run is billed as at least one minute; the manual run used one",
+ "not_done": [
+  "the user's RunPod secret",
+  "a pod on the allow-list (needs a pin update in the workflow, pushed with a Workflows-capable credential)",
+  "a day of scheduled runs observed",
+  "the funded one-pod validation with a real stop"
+ ]
+}
