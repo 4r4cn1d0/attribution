@@ -1,0 +1,994 @@
+diff -ru pre-review/durability/README.md durability-final-v2/durability/README.md
+--- pre-review/durability/README.md	2026-10-03 18:02:27
++++ durability-final-v2/durability/README.md	2026-10-03 18:20:51
+@@ -77,8 +77,13 @@
+    dependency folder are downloaded from the destination into a fresh tree in the recorded layout
+    (`<scratch>/restore-check-*/<recorded absolute path>`) and checked there through one root path
+    map: byte hashes, then `verify_run` on the unit and on each dependency. Each must be `complete`
+-   and each run-one must report `stream.checked = true`.
+-5. The acknowledgement `acks/<unit>.json` is written last, exclusively, and never replaced.
++   and each run-one must report `stream.checked = true`. A dependency is taken only from a unit
++   that is itself acknowledged in the vault (a run at that path, or the Stage B attempt whose
++   `run/` it is); stored bytes without an acknowledgement do not count, so an acknowledged unit is
++   always restorable with its whole chain.
++5. The acknowledgement `acks/<unit>.json` is written last, exclusively, and never replaced. For
++   prepared data and the engine source a pin record follows it; a retry after a crash between the
++   two writes it.
+ 
+ A copy in flight, a published copy without the acknowledgement, a sender-side receipt and
+ `status.json` are not acknowledgements. A retry after a crash reuses identical stored bytes and
+@@ -104,7 +109,13 @@
+   (`__main__.py`:148). `run_block_gated` builds `GatedBackend(EngineBackend(...))` instead. In
+   `execute`, before any work, the gate raises Stage B's `RequestRefused`, which the controller
+   records as `refused` (controller.py:405-408): not an attempt, not charged, and it stops the
+-  controller. No Stage B file and no policy code identity changes.
++  controller. Whatever goes wrong inside the gate leaves it as a refusal; any other exception
++  would be recorded by Stage B as a charged failed attempt. No Stage B file and no policy code
++  identity changes.
++- **One block per process.** Stage B labels a session's setup as measured when its backend object
++  has not served a block before. A new wrapper around a warm inner backend would look fresh, so
++  `run_block_gated` refuses, before anything is written, an inner backend or engine `Session`
++  that already served a block in this process.
+ 
+ ## Admission formula
+ 
+@@ -115,9 +126,11 @@
+ horizon   = increment + backup_delay + shutdown_delay
+ need      = worker_rate * (age + horizon) * (1 + contingency)
+ held      = reservations of every unreleased lease of another worker that end after t0
++reserves  = for every OTHER worker, the retention reserve of its latest lease (released and
++            superseded leases included) whose retention window ends after t0
+ unleased  = sum over liabilities of no leased worker and not this worker:
+             (rate * (age + horizon) + fixed_amount) * (1 + contingency)
+-available = B - held - unleased - retention_reserve
++available = B - held - reserves - unleased - retention_reserve
+ admit  iff  available >= need
+ ```
+ 
+@@ -127,6 +140,20 @@
+ (`Provider.arm_shutdown`, armed before the lease is returned). Stopping Python does not stop
+ billing. Reservations are appended to one ledger under an exclusive file lock.
+ 
++Each lease records its retention reserve and the end of its retention window (`now + horizon +
++retention hours`). One reserve per worker is held, its latest lease's: a renewal replaces it and
++does not add to it, and it stays held after the lease is released or superseded until the window
++ends, because the volume still bills. A second worker therefore cannot spend the first worker's
++reserve.
++
++A liability that names a worker with an unreleased lease, or the worker being admitted, is not
++charged again: the lease is assumed to cover everything that worker bills. This holds only if
++the worker's rate card is complete; an extra volume or GPU of that worker that is not in its rate
++card would be under-counted. The funded validation must check it.
++
++A ledger row that cannot be read as a lease or a release (malformed, or of an older format)
++refuses admission and dispatch; it is never an unhandled error.
++
+ Admission **refuses** when: the provider, a reading or the liability list is unavailable; the
+ balance is not an explicitly recognized `prepaid-credit-balance` (a pod billing total or a removed
+ spending cap is not a balance); a number is missing, negative or non-finite; currencies differ; a
+@@ -193,8 +220,13 @@
+ - a Stage B study killed mid-block is restored and resumed to completion with the lost attempt and
+   its unknown cost kept; the same through the real `EngineBackend`, including a lost fresh start;
+ - no unit launches without the previous acknowledgement or without a valid lease;
+-- every listed admission input fails closed, and two concurrent workers cannot both reserve the
+-  same runway.
++- every listed admission input fails closed, two concurrent workers cannot both reserve the same
++  runway, a second worker cannot spend the first worker's retention reserve (through renewal and
++  release, until its window ends), and an unreadable ledger refuses;
++- a dependency stored without its acknowledgement does not count; a crash between an
++  acknowledgement and its pin is completed by the retry;
++- a backend that already served a block in the process is refused; only a refusal leaves the
++  Stage B gate; the safeguard's time shows up where the README says it does.
+ 
+ ## What waits for the funded one-worker validation
+ 
+@@ -218,10 +250,20 @@
+    lost attempt's folder so that the engine's own retry rule applies. The alternatives are to
+    treat such a unit as permanently unrunnable in that registry, or to amend the engine. It is an
+    explicit, operator-named action and is never taken automatically.
+-2. **Stage B cost of the safeguard.** Settle time (copy plus restore check) inside a session falls
+-   into the controller seconds of the step that owns the operation, so it enters the policy costs.
+-   The alternative, a backend clock that pauses during administrative work, would keep it out of
+-   the costs but contradicts Stage B's statement that its timers tile the session.
++2. **Stage B cost of the safeguard.** Every safeguard second inside a session is in the Stage B
++   cost record and therefore in the policy costs, in three places:
++   - *inside the attempt's own timer*: the gate check and the off-pod copy of `started.json` run
++     at the top of `execute`, between the controller's start and end clock reads. That time is
++     part of the attempt's measured seconds (operation time) and of the overrun comparison
++     against its quote. It is small, but it is not controller time;
++   - *in the controller seconds of the step that owns the operation*: the settle before an
++     attempt's timer and in `verify`, where the copy and restore check of an operation's output
++     run;
++   - *in the session's start record*: what the session's first `sync` settles (only `study.json`
++     when the study was settled beforehand).
++
++   The alternative, a backend clock that pauses during administrative work, would keep all of it
++   out of the costs but contradicts Stage B's statement that its timers tile the session.
+ 3. **Strictness of the gate.** The copy and the restore check run synchronously on the worker, so
+    a billed GPU idles while they run. An asynchronous copy would overlap the next unit and break
+    "no next unit without the previous acknowledgement".
+@@ -256,5 +298,8 @@
+   again for each later unit. This is deliberate and costs time on a billed worker.
+ - A unit that seals just before the worker dies, with no time to copy it, is lost. The window is
+   one unit's copy time, not a host's whole run.
+-- `GatedBackend` is recognized as a fresh backend by Stage B's shared-process detection; build
+-  one per process, as `run_block_gated` does.
++- One gated block per process: a second block on the same inner backend or engine session is
++  refused. The pre-block checks of `run_block_gated` run in the block's process, so their small
++  time is in the session's start record.
++- A reservation ledger written by an earlier format of this package (leases without their
++  retention reserve) is refused as unreadable; start a new ledger.
+diff -ru pre-review/durability/admission.py durability-final-v2/durability/admission.py
+--- pre-review/durability/admission.py	2026-10-03 17:44:11
++++ durability-final-v2/durability/admission.py	2026-10-03 18:17:14
+@@ -12,18 +12,30 @@
+     need     = worker_rate * (age + horizon) * (1 + contingency)
+     held     = sum of the reservations of every unreleased lease of another worker
+                whose reservation ends after t0
++    reserves = sum over every OTHER worker of the retention reserve of its latest lease
++               (released and superseded leases included) whose retention window ends after t0
+     unleased = sum over liabilities of no leased worker and not this worker:
+                (rate * (age + horizon) + fixed_amount) * (1 + contingency)
+-    available = B - held - unleased - retention_reserve
++    available = B - held - reserves - unleased - retention_reserve
+     admit  iff  available >= need
+ 
+ ``worker_rate`` is the worker's GPU plus storage rate per hour. ``age`` charges what the account
+ spent since the reading; ``backup_delay`` and ``shutdown_delay`` keep the worker funded through
+ its last off-pod copy and its provider-side shutdown; ``retention_reserve`` (at least the storage
+ rates times the declared retention hours) keeps the durable source and the destination alive
+-after compute stops. The formula is conservative: a lease's whole reservation is held although
+-part of it may already be reflected in ``B``.
++after compute stops. Every lease records its reserve and the end of its retention window (the end
++of its reservation plus the retention hours), so a second worker cannot spend the first worker's
++reserve: one reserve per worker is held, its latest lease's (a renewal replaces, it does not add),
++and it stays held after that lease is released or superseded until its window ends, because the
++volume still bills. The formula is conservative: a lease's whole reservation is held although part
++of it may already be reflected in ``B``.
+ 
++**Liabilities of leased workers.** A liability that names a worker with an unreleased lease (or
++the worker being admitted) is not charged again: its lease is assumed to cover everything that
++worker bills. That holds only if the worker's rate card is complete. A second volume or GPU of
++that worker that is not in its rate card would be under-counted; the funded validation must check
++that the provider's liabilities per worker equal the rate card.
++
+ **Fail closed.** Admission is refused when: the provider, a reading or the liability list is
+ unavailable; the balance is not an explicitly recognized prepaid balance (pod billing totals and
+ removed spending caps are not balances); a number is missing, negative or non-finite; currencies
+@@ -32,7 +44,9 @@
+ provider cannot arm a shutdown at the end of the reservation; or the runway is insufficient.
+ 
+ **Serialization.** Reservations live in one append-only ledger read and extended under an
+-exclusive file lock, so two workers cannot both reserve the same runway. A lease expires at
++exclusive file lock, so two workers cannot both reserve the same runway. A ledger row that cannot
++be read as a lease or a release (malformed, or written by an older format) refuses: admission and
++the gate fail closed with ``AdmissionRefused``, never with an unhandled error. A lease expires at
+ ``now + increment``; working past it needs a new admission (a renewal supersedes the worker's
+ previous lease). Stopping Python does not stop billing: the shutdown at the end of the reservation
+ is the provider's, armed through ``Provider.arm_shutdown`` before the lease is returned.
+@@ -210,7 +224,9 @@
+ @dataclass(frozen=True)
+ class Lease:
+     """Permission to dispatch work on one worker until ``expires_utc``; the reservation runs to
+-    ``reserved_until_utc`` (the backup and shutdown delays), when the provider stops the worker."""
++    ``reserved_until_utc`` (the backup and shutdown delays), when the provider stops the worker.
++    ``retention_reserve`` stays set aside for the worker's storage until ``retention_until_utc``,
++    also after the lease is released or superseded."""
+ 
+     lease: str
+     worker: str
+@@ -221,6 +237,8 @@
+     currency: str
+     rate_per_hour: float
+     balance_as_of_utc: str
++    retention_reserve: float
++    retention_until_utc: str
+ 
+     def covers(self, now: dt.datetime, needs_seconds: float = 0.0) -> bool:
+         return now + dt.timedelta(seconds=needs_seconds) <= parse_utc(self.expires_utc)
+@@ -238,15 +256,35 @@
+ 
+     # ----- ledger --------------------------------------------------------------------
+ 
++    def _ledger(self) -> list[tuple[Lease, bool]]:
++        """Every lease in the ledger, in order, with whether it was released. A row that is not a
++        well-formed lease or release makes the whole ledger unreadable: ``AdmissionRefused``."""
++        entries: dict[str, list] = {}
++        try:
++            for row in read_jsonl(self.ledger):
++                if row.get("event") == "lease":
++                    lease = Lease(**{k: v for k, v in row.items() if k != "event"})
++                    texts = (lease.lease, lease.worker, lease.currency)
++                    amounts = (lease.reserved_amount, lease.rate_per_hour, lease.retention_reserve)
++                    if not all(isinstance(t, str) and t for t in texts) or not all(_number(a) and a >= 0 for a in amounts):
++                        raise ValueError("a lease with a missing name or amount")
++                    for stamp in (lease.granted_utc, lease.expires_utc, lease.reserved_until_utc,
++                                  lease.retention_until_utc, lease.balance_as_of_utc):
++                        parse_utc(stamp)
++                    entries[lease.lease] = [lease, False]
++                elif row.get("event") == "release" and isinstance(row.get("lease"), str):
++                    if row["lease"] in entries:
++                        entries[row["lease"]][1] = True
++                else:
++                    raise ValueError("a row that is neither a lease nor a release")
++        except (ValueError, TypeError, KeyError, AttributeError) as exc:
++            raise AdmissionRefused(f"the reservation ledger is unreadable ({type(exc).__name__}): nothing is "
++                                   "admitted or dispatched on it") from None
++        return [(lease, released) for lease, released in entries.values()]
++
+     def _leases(self) -> dict[str, Lease]:
+         """Every unreleased lease in the ledger, by lease id."""
+-        live: dict[str, Lease] = {}
+-        for row in read_jsonl(self.ledger):
+-            if row.get("event") == "lease":
+-                live[row["lease"]] = Lease(**{k: v for k, v in row.items() if k != "event"})
+-            elif row.get("event") == "release":
+-                live.pop(row["lease"], None)
+-        return live
++        return {lease.lease: lease for lease, released in self._ledger() if not released}
+ 
+     def current_lease(self, worker: str) -> Lease | None:
+         """The worker's latest unreleased lease (it may have expired: see ``Lease.covers``)."""
+@@ -340,19 +378,32 @@
+             horizon = increment_seconds + policy.backup_delay_seconds + policy.shutdown_delay_seconds
+             factor = 1.0 + policy.contingency_fraction
+             need = rates.worker_per_hour * (age + horizon) / 3600.0 * factor
+-            leases = self._leases()
++            try:
++                ledger = self._ledger()
++            except AdmissionRefused as exc:
++                self._refuse(worker, str(exc))
++            leases = {lease.lease: lease for lease, released in ledger if not released}
+             others = [lease for lease in leases.values() if lease.worker != worker]
+-            if any(lease.currency != rates.currency for lease in others):
++            if any(lease.currency != rates.currency for lease, _ in ledger if lease.worker != worker):
+                 self._refuse(worker, "another worker's reservation is in another currency")
+             as_of = parse_utc(balance.as_of_utc)
+             held = math.fsum(lease.reserved_amount for lease in others if parse_utc(lease.reserved_until_utc) > as_of)
++            # one retention reserve per other worker: its latest lease's, released or not, until its window ends
++            latest: dict[str, Lease] = {}
++            for lease, _ in ledger:
++                if lease.worker != worker and (lease.worker not in latest
++                                               or lease.granted_utc >= latest[lease.worker].granted_utc):
++                    latest[lease.worker] = lease
++            reserves = math.fsum(lease.retention_reserve for lease in latest.values()
++                                 if parse_utc(lease.retention_until_utc) > as_of)
+             leased_workers = {lease.worker for lease in others}
+             unleased = math.fsum((item.rate_per_hour * (age + horizon) / 3600.0 + item.fixed_amount) * factor
+                                  for item in liabilities if item.worker != worker and item.worker not in leased_workers)
+-            available = balance.amount - held - unleased - retention_reserve
++            available = balance.amount - held - reserves - unleased - retention_reserve
+             if not (math.isfinite(available) and math.isfinite(need)) or available < need:
+                 self._refuse(worker, f"insufficient runway: {available:.4f} {rates.currency} available after "
+-                                     f"reservations, liabilities and the retention reserve; {need:.4f} needed")
++                                     f"reservations, every worker's retention reserve and liabilities; {need:.4f} "
++                                     "needed")
+             until = now + dt.timedelta(seconds=horizon)
+             try:
+                 armed = self.provider.arm_shutdown(worker, iso(until))
+@@ -363,7 +414,8 @@
+             lease = Lease(lease=token(), worker=worker, granted_utc=iso(now),
+                           expires_utc=iso(now + dt.timedelta(seconds=increment_seconds)), reserved_until_utc=iso(until),
+                           reserved_amount=need, currency=rates.currency, rate_per_hour=rates.worker_per_hour,
+-                          balance_as_of_utc=balance.as_of_utc)
++                          balance_as_of_utc=balance.as_of_utc, retention_reserve=float(retention_reserve),
++                          retention_until_utc=iso(until + dt.timedelta(hours=policy.retention_hours)))
+             for old in [lease_id for lease_id, held_lease in leases.items() if held_lease.worker == worker]:
+                 append_jsonl(self.ledger, {"event": "release", "lease": old, "reason": "superseded by a renewal",
+                                            "utc": iso(now)})
+@@ -372,5 +424,7 @@
+                             reserved_until_utc=lease.reserved_until_utc, reserved_amount=need,
+                             currency=rates.currency, rate_per_hour=rates.worker_per_hour,
+                             balance_as_of_utc=balance.as_of_utc, available=available, need=need,
++                            held_reservations=held, held_reserves=reserves, retention_reserve=lease.retention_reserve,
++                            retention_until_utc=lease.retention_until_utc,
+                             increment_seconds=increment_seconds, destination=storage_record["destination"]["kind"])
+         return lease
+diff -ru pre-review/durability/backup.py durability-final-v2/durability/backup.py
+--- pre-review/durability/backup.py	2026-10-03 17:48:20
++++ durability-final-v2/durability/backup.py	2026-10-03 18:17:14
+@@ -18,8 +18,10 @@
+ 
+ ``acknowledge(unit)``:
+ 
+-1. an existing acknowledgement of identical content is returned (a duplicate event); of different
+-   content it is a collision: the arrival is preserved under ``collisions/`` and the call fails;
++1. an existing acknowledgement of identical content is returned (a duplicate event), after making
++   sure a prepared or code unit's pin record exists (a process that died between the
++   acknowledgement and the pin is completed by its retry); of different content it is a collision:
++   the arrival is preserved under ``collisions/`` and the call fails;
+ 2. the pinned identities of a unit with engine folders must already be acknowledged here;
+ 3. capacity is checked, each missing file is uploaded to staging and its *stored* bytes are hashed
+    against the unit's list; only when all match are they committed, exclusively;
+@@ -27,7 +29,10 @@
+    downloaded into a fresh tree in the recorded layout and checked there: byte hashes; for each
+    engine folder ``verify_run`` (own files, dependency chain, stream) through one root path map,
+    requiring ``complete`` and, for a run-one, ``stream.checked``; a prepared folder against its
+-   manifest; the engine source against its code identity;
++   manifest; the engine source against its code identity. A dependency folder is taken only from
++   a unit that is itself **acknowledged** here and seals that folder's COMPLETE.json (a run unit at
++   that path, or the Stage B attempt whose ``run/`` it is): bytes that were stored but never
++   acknowledged do not count, so an acknowledged unit is always restorable with its whole chain;
+ 5. only then the acknowledgement is written. A crash before it leaves no acknowledgement (a retry
+    reuses the identical stored bytes); a crash after it changes nothing (the retry is a duplicate).
+ 
+@@ -43,9 +48,10 @@
+ import re
+ import shutil
+ import time
+-from pathlib import Path
++from pathlib import Path, PurePosixPath
+ from typing import Sequence
+ 
++from experiments.safety_selection.ledger import COMPLETE
+ from experiments.safety_selection.prepare import read_manifest
+ from experiments.safety_selection.verify import PathMap, verify_run
+ 
+@@ -162,6 +168,7 @@
+         if ack is not None:
+             if ack["content_sha256"] != unit.content_sha256:
+                 self._collision(unit, "an acknowledgement of this name seals different bytes")
++            self._put_pin(unit)   # a process that died between the acknowledgement and the pin is completed here
+             self._log("unit-duplicate", unit, status="acknowledged", content_sha256=unit.content_sha256)
+             return ack
+         self._require_pins(unit)
+@@ -211,9 +218,7 @@
+             ack = self.read_ack(unit.unit_id)
+             if ack is None or ack["content_sha256"] != unit.content_sha256:
+                 self._collision(unit, "a concurrent acknowledgement of this name seals different bytes")
+-        for kind in ("prepared", "code"):
+-            if unit.kind == kind:
+-                self._put_pin(kind, unit)
++        self._put_pin(unit)
+         self._log("unit-acknowledged", unit, status="acknowledged", files=len(unit.files), bytes=unit.bytes,
+                   copied_files=len(missing), copied_bytes=need, content_sha256=unit.content_sha256,
+                   seal_sha256=unit.seal_sha256, copy_seconds=copy_seconds, verify_seconds=verify_seconds,
+@@ -251,10 +256,15 @@
+     def _pin_key(self, kind: str, digest: str) -> str:
+         return self._key("pins", f"{kind}-{digest}.json")
+ 
+-    def _put_pin(self, kind: str, unit: Unit) -> None:
+-        key = self._pin_key(kind, unit.seal_sha256)
++    def _put_pin(self, unit: Unit) -> None:
++        """Record which acknowledged unit holds a pinned identity (prepared data, engine source).
++        Idempotent: called after the acknowledgement and again on every duplicate, so a crash
++        between the two writes cannot leave an acknowledged identity unpinned."""
++        if unit.kind not in ("prepared", "code"):
++            return
++        key = self._pin_key(unit.kind, unit.seal_sha256)
+         if not self.destination.exists(key):   # the first acknowledged holder of an identity is kept
+-            self.destination.put_new(key, canonical_json({"kind": kind, "sha256": unit.seal_sha256,
++            self.destination.put_new(key, canonical_json({"kind": unit.kind, "sha256": unit.seal_sha256,
+                                                           "unit": unit.unit_id, "root": unit.root}))
+ 
+     def pin(self, kind: str, digest: str | None) -> Unit | None:
+@@ -294,14 +304,29 @@
+                 raise TransferError(f"a stored file of unit {unit.unit_id} no longer matches its hash")
+         return target
+ 
+-    def _fetch_folder(self, recorded: str, mirror: Path) -> int:
+-        """Download whatever the vault stores below a recorded folder; returns the file count."""
+-        prefix = self._tree(recorded) + "/"
+-        keys = self.destination.list(self._tree(recorded))
+-        for key in keys:
+-            self.destination.download(key, _mirror(mirror, recorded) / key[len(prefix):])
+-        return len(keys)
++    def _holder(self, folder: str) -> tuple[Unit, str] | None:
++        """The ACKNOWLEDGED unit that holds a sealed engine folder, with the name of the folder's
++        COMPLETE.json inside it: a run unit at that path, or the attempt unit whose ``run/`` it is.
++        None when no acknowledged unit holds it (stored bytes without an acknowledgement do not
++        count)."""
++        candidates = [("run", folder, COMPLETE)]
++        if PurePosixPath(folder).name == "run":
++            candidates.append(("attempt", str(PurePosixPath(folder).parent), f"run/{COMPLETE}"))
++        for kind, root, marker in candidates:
++            if self.read_ack(unit_id_of(kind, root)) is not None:
++                unit = self._stored_unit(unit_id_of(kind, root))
++                if any(name == marker for name, _, _ in unit.files):
++                    return unit, marker
++        return None
+ 
++    def _fetch_dependency(self, folder: str, mirror: Path) -> None:
++        """Download a dependency folder from the acknowledged unit that holds it."""
++        held = self._holder(folder)
++        if held is None:
++            raise VerificationFailed("a dependency this unit's receipts name is not acknowledged in the vault "
++                                     "(stored bytes without an acknowledgement do not count)")
++        self._fetch(held[0], mirror)
++
+     def _restore_verify(self, unit: Unit) -> dict:
+         self.scratch.mkdir(parents=True, exist_ok=True)
+         mirror = self.scratch / f"restore-check-{token()}"
+@@ -327,8 +352,8 @@
+                     folder = queue.pop(0)
+                     if folder in folders:
+                         continue
+-                    if not _mirror(mirror, folder).exists() and not self._fetch_folder(folder, mirror):
+-                        raise VerificationFailed("a dependency this unit's receipts name is not in the vault")
++                    if folder not in unit.engine_runs:
++                        self._fetch_dependency(folder, mirror)
+                     folders.append(folder)
+                     queue.extend(dependency_folders(_mirror(mirror, folder)))
+                 root_map = PathMap([("/", mirror)])
+diff -ru pre-review/durability/common.py durability-final-v2/durability/common.py
+--- pre-review/durability/common.py	2026-10-03 17:39:43
++++ durability-final-v2/durability/common.py	2026-10-03 18:17:14
+@@ -127,7 +127,8 @@
+     "start_utc", "end_utc", "last_seen_utc", "known_seconds", "needs_seconds", "token", "operator", "units",
+     "records", "attempts", "restored_files", "reused_files", "destination", "kind", "location", "block",
+     "amount", "currency", "rate_per_hour", "reserved_amount", "reserved_until_utc", "balance_as_of_utc",
+-    "available", "need", "increment_seconds", "problems"})
++    "available", "need", "increment_seconds", "problems", "retention_reserve", "retention_until_utc",
++    "held_reservations", "held_reserves"})
+ _MAX_TEXT = 400
+ 
+ 
+diff -ru pre-review/durability/gate.py durability-final-v2/durability/gate.py
+--- pre-review/durability/gate.py	2026-10-03 17:44:11
++++ durability-final-v2/durability/gate.py	2026-10-03 18:17:14
+@@ -9,7 +9,8 @@
+   is not an acknowledgement;
+ - the worker's lease must exist and still cover the unit's planned seconds.
+ 
+-A refusal dispatches nothing. Renewing a lease is an admission (``admission.AdmissionController``),
++A refusal dispatches nothing. Anything that goes wrong while checking (an unreadable ledger, a
++destination error) is a refusal too, never an unhandled error. Renewing a lease is an admission (``admission.AdmissionController``),
+ never something the gate does on its own.
+ """
+ 
+@@ -19,7 +20,7 @@
+ 
+ from .admission import Lease
+ from .backup import Vault
+-from .common import Clock, DurabilityError, GateRefused, Journal, utc_clock
++from .common import Clock, GateRefused, Journal, utc_clock
+ 
+ __all__ = ["DispatchGate"]
+ 
+@@ -43,12 +44,12 @@
+         for kind, root, seal in previous:
+             try:
+                 self.vault.check_ack(kind, root, seal)
+-            except DurabilityError as exc:
++            except Exception as exc:  # noqa: BLE001 - whatever went wrong, the unit is not known to be acknowledged
+                 self._refuse(worker, f"the previous unit is not acknowledged off-pod ({type(exc).__name__}): "
+                                      "no next unit starts")
+         try:
+             lease = self.lease_of(worker)
+-        except DurabilityError as exc:
++        except Exception as exc:  # noqa: BLE001 - an unreadable ledger is no lease
+             self._refuse(worker, f"the admission ledger could not be read ({type(exc).__name__})")
+         if lease is None:
+             self._refuse(worker, "no admission lease for this worker")
+diff -ru pre-review/durability/stage_b.py durability-final-v2/durability/stage_b.py
+--- pre-review/durability/stage_b.py	2026-10-03 18:05:07
++++ durability-final-v2/durability/stage_b.py	2026-10-03 18:20:51
+@@ -10,24 +10,45 @@
+ - ``execute``: **before any work** (only ``started.json`` exists in the attempt folder) the gate:
+   every attempt of the study that has a receipt is acknowledged off-pod, the worker's lease is
+   valid, and no lost start still holds this trajectory's registry claim; then ``started.json`` of
+-  the new attempt goes off-pod. Any of these failing raises Stage B's ``RequestRefused``, which the
+-  controller records as a refusal: not an attempt, not charged, and it stops the controller.
++  the new attempt goes off-pod. Any of these failing, for whatever reason (an unreadable ledger or
++  an unexpected error included), raises Stage B's ``RequestRefused``, which the controller records
++  as a refusal: not an attempt, not charged, and it stops the controller. Nothing but a refusal can
++  leave the gate: any other exception would be recorded by Stage B as a charged failed attempt.
+ - ``sync`` (before an attempt) and ``verify`` (right after one): **settle**: copy and acknowledge
+   every attempt whose ``receipt.json`` exists, the new write-once records and the registry
+   snapshot. Settling never raises into the controller (an exception there could leave an empty
+   attempt folder that Stage B would later count as an interrupted attempt); a failed settle makes
+   the next ``execute`` refuse.
+ 
+-**Where the settle time goes.** The controller cuts its timeline at the backend clock, which is
+-untouched here. Settle time before an attempt or in ``verify`` therefore falls in the controller
+-seconds of the step that owns the operation (``common``, ``S-``, ``S+``, ``final:<arm>``): the
+-copy of an operation's output is charged like the operation, once, and nothing is hidden from the
+-Stage B cost record. The alternative (a clock that pauses during administrative work) would keep
+-safeguard time out of the policy costs but silently contradicts Stage B's statement that its
+-timers tile the session; it is not implemented. This is a cost-accounting decision for the lead
+-(README, "Open decisions"). The settle after ``run_block`` returns (result, session end record) is
+-outside the session.
++**Where the safeguard's time goes.** The controller cuts its timeline at the backend clock, which
++is untouched here, so every safeguard second inside a session is in the Stage B cost record, in
++one of two places:
+ 
++- **inside the attempt's own timer.** The controller reads ``start = clock()`` before it calls
++  ``execute`` and ``end = clock()`` after it returns. The gate check (acknowledgement and ledger
++  reads) and the off-pod copy of ``started.json``, which run at the top of ``execute``, are
++  therefore part of the attempt's measured ``seconds``: operation time, charged to every policy
++  that uses the operation and compared with its quote in the overrun list. It is small (reads and
++  one small file) but it is not zero and it is not controller time;
++- **in the controller seconds of the step that owns the operation** (``common``, ``S-``, ``S+``,
++  ``final:<arm>``): the settle before an attempt's timer starts (``sync``) and right after the
++  attempt (``verify``), which is where the copy and restore check of an operation's output run.
++  The session's very first ``sync`` precedes the start record's clock read, so what it settles
++  (``study.json`` of a new study; nothing else when the study was settled beforehand) is in the
++  session's start record, charged as session setup.
++
++Either way the copy of an operation is charged like the operation, once, and nothing is hidden.
++The alternative (a clock that pauses during administrative work) would keep safeguard time out of
++the policy costs but silently contradicts Stage B's statement that its timers tile the session; it
++is not implemented. This is a cost-accounting decision for the lead (README, "Open decisions").
++The settle after ``run_block`` returns (result, session end record) is outside the session.
++
++**One block per process.** Stage B decides whether a session's setup was measured by whether its
++backend object already served a block in this process. A new ``GatedBackend`` around a warm inner
++backend would look fresh, and unmeasured setup would be labelled measured. ``run_block_gated``
++therefore refuses, before anything is written, an inner backend (or its engine ``Session``) that
++already served a block in this process: one block per process, the project's rule.
++
+ **Units.** An operation attempt is a unit once its after-call ``receipt.json`` exists, whatever its
+ status (failed and interrupted attempts are the kept record of lost work and its cost); when its
+ ``run/`` is a sealed engine folder it is restore-verified as one, dependencies included. The
+@@ -48,6 +69,7 @@
+ from __future__ import annotations
+ 
+ import contextlib
++import weakref
+ from pathlib import Path
+ from typing import Callable
+ 
+@@ -72,8 +94,34 @@
+                  "blocks/*/plan-*.json", "blocks/*/lock.json", "blocks/*/result.json",
+                  "blocks/*/sessions/session-*.json", "blocks/*/ops/*/spec.json")
+ _ATTEMPT_GLOBS = ("static/*/attempt-*", "blocks/*/ops/*/attempt-*")
++# Inner backends, and their engine Sessions (the asset caches), that already served a gated block
++# in this process. A new GatedBackend around one of them would look fresh to Stage B.
++_SERVED: weakref.WeakSet = weakref.WeakSet()
+ 
+ 
++def _warm(inner) -> list:
++    """The objects of an inner backend that carry loaded state across blocks: itself and its
++    engine ``Session`` (None for a fake or read-only backend)."""
++    return [obj for obj in (inner, getattr(inner, "session", None)) if obj is not None]
++
++
++def _already_served(inner) -> bool:
++    """Whether the inner backend or its session served a block in this process: through this
++    module, or directly through Stage B (its own record of served backends). An object that cannot
++    be weakly referenced cannot be tracked, so it cannot be shown fresh: it counts as served."""
++    from experiments.safety_decision_policy import controller
++
++    stage_b = getattr(controller, "_SERVED_BACKENDS", ())
++    for obj in _warm(inner):
++        try:
++            weakref.ref(obj)
++        except TypeError:
++            return True
++        if obj in _SERVED or obj in stage_b:
++            return True
++    return False
++
++
+ def _attempt_dirs(root: Path) -> list[Path]:
+     return sorted(p for pattern in _ATTEMPT_GLOBS for p in root.glob(pattern) if p.is_dir())
+ 
+@@ -258,8 +306,11 @@
+             self.gate.require(self.worker, self.backup.previous(), self.needs_seconds(spec))
+             self._claim_guard(spec)
+             self.backup.open_attempt(attempt_dir)
+-        except DurabilityError as exc:
+-            raise RequestRefused(f"{spec['op_id']}: dispatch refused before any work: {exc}") from exc
++        except RequestRefused:
++            raise
++        except Exception as exc:  # noqa: BLE001 - only a refusal may leave the gate (module doc)
++            raise RequestRefused(f"{spec['op_id']}: dispatch refused before any work: "
++                                 f"{exc if isinstance(exc, DurabilityError) else type(exc).__name__}") from exc
+         return self.inner.execute(spec, attempt_dir, sources)
+ 
+ 
+@@ -319,13 +370,19 @@
+ 
+     The study must be settled *before* this call, in a separate administrative step
+     (``StudyBackup.settle``): time spent here before the block starts would enter the session's
+-    start record."""
++    start record. One block per process: an inner backend, or its engine ``Session``, that already
++    served a block in this process is refused before anything is written (module doc)."""
++    if _already_served(inner):
++        raise GateRefused("this backend (or its engine session) already served a block in this process, or cannot "
++                          "be tracked: its setup would be unmeasured but labelled measured; run one block per process")
+     unsettled = backup.pending()
+     if unsettled["pins"] or unsettled["records"] or unsettled["attempts"]:
+         raise GateRefused("the study holds pinned inputs, records or attempts that are not off-pod; settle it first")
+     gate.require(worker, backup.previous())
+     backend = GatedBackend(inner, backup, gate, worker, needs_seconds=needs_seconds)
+     study = study_factory(backend)
++    for obj in _warm(inner):
++        _SERVED.add(obj)
+     try:
+         result = study.run_block(block)
+     except BaseException:
+diff -ru pre-review/durability/tests/dur_fixtures.py durability-final-v2/durability/tests/dur_fixtures.py
+--- pre-review/durability/tests/dur_fixtures.py	2026-10-03 18:05:07
++++ durability-final-v2/durability/tests/dur_fixtures.py	2026-10-03 18:18:41
+@@ -78,13 +78,15 @@
+ 
+ class FaultyDestination(LocalDirectoryDestination):
+     """A directory destination with one scripted fault: ``truncate``/``corrupt`` the n-th upload,
+-    refuse every upload (or every one after the first n), ``crash_on`` an area of ``put_new`` (a process dying at that write) or a
++    refuse every upload (or every one after the first n), call ``on_upload`` at each upload (a
++    destination that takes time), ``crash_on`` an area of ``put_new`` (a process dying at that write) or a
+     small reported ``free``."""
+ 
+     def __init__(self, root, *, truncate: int | None = None, corrupt: int | None = None,
+                  crash_on: str | None = None, free: int | None = None, refuse_uploads: bool = False,
+-                 refuse_after: int | None = None) -> None:
++                 refuse_after: int | None = None, on_upload=None) -> None:
+         super().__init__(root)
++        self.on_upload = on_upload
+         self.truncate, self.corrupt, self.crash_on, self.free = truncate, corrupt, crash_on, free
+         self.refuse_uploads, self.refuse_after = refuse_uploads, refuse_after
+         self.uploads = 0
+@@ -94,6 +96,8 @@
+ 
+     def upload(self, source, key):
+         self.uploads += 1
++        if self.on_upload is not None:
++            self.on_upload()
+         if self.refuse_uploads or (self.refuse_after is not None and self.uploads > self.refuse_after):
+             raise TransferError("ENGINEERING FIXTURE: the destination refuses uploads")
+         super().upload(source, key)
+diff -ru pre-review/durability/tests/test_dur_admission.py durability-final-v2/durability/tests/test_dur_admission.py
+--- pre-review/durability/tests/test_dur_admission.py	2026-10-03 17:56:10
++++ durability-final-v2/durability/tests/test_dur_admission.py	2026-10-03 18:18:41
+@@ -19,7 +19,7 @@
+ from experiments.durability.admission import (AdmissionPolicy, BalanceReading, Liability, StorageDeclaration,
+                                               UnconfiguredProvider, check_storage)
+ from experiments.durability.common import (AdmissionRefused, GateRefused, Journal, NotConfigured, StorageRefused,
+-                                           iso, read_jsonl)
++                                           append_jsonl, iso, read_jsonl)
+ from experiments.durability.destination import LocalDirectoryDestination, UnconfiguredDestination
+ from experiments.durability.gate import DispatchGate
+ 
+@@ -164,9 +164,9 @@
+ 
+ def test_other_reservations_and_unleased_liabilities_reduce_the_runway(tmp_path):
+     need = expected_need(HOUR)
+-    world = World(tmp_path, balance=2 * need + dur.RESERVE + 0.01)
++    world = World(tmp_path, balance=2 * need + 2 * dur.RESERVE + 0.01)
+     first = world.admit("worker-1")
+-    second = world.admit("worker-2")                                  # holds worker-1's reservation
++    second = world.admit("worker-2")                                  # holds worker-1's reservation and reserve
+     assert first.reserved_amount == pytest.approx(need) and second.reserved_amount == pytest.approx(need)
+     with pytest.raises(AdmissionRefused, match="insufficient runway"):
+         world.admit("worker-3")
+@@ -179,6 +179,108 @@
+         extra.admit("worker-1")
+     extra.provider.balance = extra.reading(amount=extra.provider.balance.amount + 0.02)
+     assert extra.admit("worker-1").reserved_amount == pytest.approx(need)
++
++
++def test_a_second_worker_cannot_spend_the_first_worker_s_retention_reserve(tmp_path):
++    """Review finding B. Each lease records its retention reserve and the end of its retention
++    window. With room for both computes but only ONE reserve, the second worker is refused:
++    worker-1's volume still needs its reserve after its compute stops."""
++    need = expected_need(HOUR)
++    world = World(tmp_path, balance=2 * need + dur.RESERVE + 0.01)
++    first = world.admit("worker-1")
++    assert first.retention_reserve == pytest.approx(dur.RESERVE)
++    window = dur.dt.timedelta(seconds=HOUR + 420.0) + dur.dt.timedelta(hours=dur.POLICY.retention_hours)
++    assert first.retention_until_utc == iso(world.clock.now + window)
++    with pytest.raises(AdmissionRefused, match="insufficient runway"):
++        world.admit("worker-2")
++    world.provider.balance = world.reading(amount=2 * need + 2 * dur.RESERVE)
++    second = world.admit("worker-2")
++    granted = [row for row in Journal(tmp_path / "admin" / "journal.jsonl").read() if row["event"] == "admission-granted"]
++    assert granted[-1]["held_reserves"] == pytest.approx(dur.RESERVE)
++    assert granted[-1]["held_reservations"] == pytest.approx(need) and second.retention_reserve == pytest.approx(dur.RESERVE)
++
++
++def test_a_reserve_is_held_once_per_worker_through_renewal_and_release_until_its_window_ends(tmp_path):
++    """Review finding B, renewal and release. A renewal replaces the worker's reserve (it is not
++    held twice); a released or superseded lease's reserve stays held until its retention window
++    ends, because the volume still bills; after that it is free again."""
++    need = expected_need(HOUR)
++
++    def refresh(world, amount):
++        world.provider.balance = dur.FakeProvider(world.clock, balance=amount).balance
++        world.provider.rates = dur.rate_card(world.clock)
++
++    # (1) worker-1 renews: worker-2 then holds ONE reserve of worker-1 and only its live reservation
++    world = World(tmp_path / "renewal", balance=100.0)
++    world.admit("worker-1")
++    world.clock.advance(600.0)
++    refresh(world, 100.0)
++    renewed = world.admit("worker-1")                                 # supersedes the first lease
++    refresh(world, 2 * need + 2 * dur.RESERVE - 0.01)
++    with pytest.raises(AdmissionRefused, match="insufficient runway"):
++        world.admit("worker-2")
++    refresh(world, 2 * need + 2 * dur.RESERVE + 0.01)                 # two reserves in all, not three
++    assert world.admit("worker-2").reserved_amount == pytest.approx(need)
++    granted = Journal(tmp_path / "renewal" / "admin" / "journal.jsonl").read()[-1]
++    assert granted["held_reserves"] == pytest.approx(dur.RESERVE) and granted["held_reservations"] == pytest.approx(need)
++    # a worker renewing itself is charged its own reserve once
++    world.clock.advance(60.0)
++    refresh(world, 2 * need + 2 * dur.RESERVE + 0.01)
++    assert world.admit("worker-1").retention_reserve == pytest.approx(dur.RESERVE)
++    assert renewed.lease not in [lease.lease for lease in world.controller._leases().values()]
++    # (2) worker-1 is released: its compute reservation is free at once, its reserve is not
++    world = World(tmp_path / "release", balance=100.0)
++    lease = world.admit("worker-1")
++    world.controller.release(lease.lease, "the worker was stopped")
++    refresh(world, need + 2 * dur.RESERVE - 0.01)
++    with pytest.raises(AdmissionRefused, match="insufficient runway"):
++        world.admit("worker-2")                                       # the stopped worker's volume still bills
++    refresh(world, need + 2 * dur.RESERVE + 0.01)
++    assert world.admit("worker-2").reserved_amount == pytest.approx(need)
++    # (3) after the retention window has ended the reserve is no longer held
++    world = World(tmp_path / "expired", balance=100.0)
++    lease = world.admit("worker-1")
++    world.controller.release(lease.lease, "the worker was stopped")
++    world.clock.advance(HOUR + 420.0 + dur.POLICY.retention_hours * HOUR + 1.0)
++    refresh(world, need + dur.RESERVE + 0.01)
++    assert world.admit("worker-2").reserved_amount == pytest.approx(need)
++
++
++def test_an_unreadable_reservation_ledger_fails_closed_as_a_refusal(tmp_path):
++    """Review finding B. A ledger row that is not a well-formed lease or release (malformed, or of
++    an older format without the reserve) refuses admission and dispatch as ``AdmissionRefused`` /
++    ``GateRefused``; it never escapes as a bare TypeError, which Stage B would record as a charged
++    failed attempt."""
++    old_format = {"event": "lease", "lease": "abc", "worker": "worker-9", "granted_utc": iso(dur.T0),
++                  "expires_utc": iso(dur.T0), "reserved_until_utc": iso(dur.T0), "reserved_amount": 1.0,
++                  "currency": "USD", "rate_per_hour": 1.62, "balance_as_of_utc": iso(dur.T0)}
++    rows = {"an older lease format": old_format,
++            "an unknown field": {**old_format, "retention_reserve": 1.0, "retention_until_utc": iso(dur.T0), "x": 1},
++            "a timestamp that is not one": {**old_format, "retention_reserve": 1.0, "retention_until_utc": "later"},
++            "a negative reserve": {**old_format, "retention_reserve": -1.0, "retention_until_utc": iso(dur.T0)},
++            "an unknown event": {"event": "note", "text": "hello"}}
++    for index, (name, row) in enumerate(rows.items()):
++        world = World(tmp_path / str(index))
++        append_jsonl(world.controller.ledger, row)
++        with pytest.raises(AdmissionRefused, match="ledger is unreadable"):
++            world.admit()
++        with pytest.raises(AdmissionRefused, match="ledger is unreadable"):
++            world.controller.current_lease("worker-1")
++        vault = dur.make_vault(tmp_path / str(index), clock=world.clock)
++        gate = DispatchGate(vault, world.controller.current_lease, journal=vault.journal, clock=world.clock)
++        with pytest.raises(GateRefused, match="AdmissionRefused"):
++            gate.require("worker-1")
++        assert world.provider.armed == [], name
++    world = World(tmp_path / "torn")
++    world.controller.ledger.parent.mkdir(parents=True, exist_ok=True)
++    world.controller.ledger.write_bytes(b'{"event": "lease", "lea')     # an append cut off mid-line
++    with pytest.raises(AdmissionRefused, match="ledger is unreadable"):
++        world.admit()
++    # anything unexpected while the gate checks is a refusal too
++    gate = DispatchGate(dur.make_vault(tmp_path / "boom"), lambda worker: 1 / 0,
++                        journal=Journal(tmp_path / "boom" / "j.jsonl"))
++    with pytest.raises(GateRefused, match="ZeroDivisionError"):
++        gate.require("worker-1")
+ 
+ 
+ def test_two_workers_cannot_both_reserve_the_same_runway(tmp_path):
+diff -ru pre-review/durability/tests/test_dur_stage_b.py durability-final-v2/durability/tests/test_dur_stage_b.py
+--- pre-review/durability/tests/test_dur_stage_b.py	2026-10-03 17:55:48
++++ durability-final-v2/durability/tests/test_dur_stage_b.py	2026-10-03 18:19:32
+@@ -4,7 +4,9 @@
+ the lost attempt and its unknown cost kept, and the new attempt numbered after it. Also: a missing
+ or expired lease and a failed off-pod copy refuse the next operation before any work (recorded by
+ Stage B as an uncharged refusal that stops the controller); a lost start that still holds its
+-registry claim refuses until it is declared lost; an unsettled study is not entered; logs name no
++registry claim refuses until it is declared lost; an unsettled study is not entered; a backend
++that already served a block in this process is refused (one block per process); only a refusal can
++leave the gate; where the safeguard's time lands in the Stage B cost record; logs name no
+ operation, arm or choice. Nothing here is a scientific result."""
+ 
+ from __future__ import annotations
+@@ -275,6 +277,128 @@
+     result, resumed, _ = site.run(WithRegistry(world))
+     assert result["status"] == "complete" and (screen, 3) in resumed.executed
+     assert statuses(lost.parent) == ["interrupted", "refused", "complete"]
++
++
++def test_a_backend_that_already_served_a_block_in_this_process_is_refused(tmp_path, synthetic):
++    """Review finding C. Stage B decides whether a session's setup was measured by whether its
++    backend object already served a block. A new gated wrapper around a warm inner backend would
++    look fresh, and unmeasured setup would be labelled measured: so the entrypoint refuses, before
++    anything is written. One block per process."""
++    world, setup = synthetic
++    site = Site(tmp_path, world, setup)
++    inner = FakeBackend(world)
++    site.admit()
++    site.run(inner, block=0)
++    first = read_canonical(site.root / "blocks" / "0" / "sessions" / "session-1.json")
++    assert first["process_shared_with_an_earlier_block"] is False       # the fresh process, measured
++    site.admit()
++    before = dur.tree_hashes(site.root)
++    with pytest.raises(GateRefused, match="one block per process"):
++        site.run(inner, block=1)                                        # the same warm backend again
++    assert not (site.root / "blocks" / "1").exists() and dur.tree_hashes(site.root) == before
++    assert len(inner.executed) == len(set(inner.executed))
++    # a new wrapper does not launder it either: two backends over one engine session are one asset cache
++    class Session:
++        pass
++
++    shared = Session()
++    one, two = FakeBackend(world), FakeBackend(world)
++    one.session = two.session = shared
++    other = Site(tmp_path / "other", world, setup)
++    other.admit()
++    other.run(one, block=0)
++    other.admit()
++    with pytest.raises(GateRefused, match="one block per process"):
++        other.run(two, block=1)
++    # nor does a backend that Stage B itself already ran ungated in this process
++    plain = FakeBackend(world)
++    study = Site(tmp_path / "plain", world, setup)
++    ungated = study.study(plain)
++    try:
++        ungated.run_block(0)
++    finally:
++        ungated.close()
++    study.admit()
++    StudyBackup(study.vault(), study.root).settle()
++    with pytest.raises(GateRefused, match="one block per process"):
++        study.run(plain, block=1)
++    result, _, _ = study.run(FakeBackend(world), block=1)               # a fresh process's backend runs it
++    assert result["status"] == "complete"
++    record = read_canonical(study.root / "blocks" / "1" / "sessions" / "session-1.json")
++    assert record["process_shared_with_an_earlier_block"] is False
++
++
++def test_only_a_refusal_leaves_the_gate_whatever_goes_wrong_in_it(tmp_path, synthetic, monkeypatch):
++    """An unexpected error while the gate works (here: the copy of started.json raising a plain
++    RuntimeError at the third operation) is still an uncharged refusal before any work. Anything
++    else would be recorded by Stage B as a charged failed attempt."""
++    world, setup = synthetic
++    site = Site(tmp_path, world, setup)
++    site.admit()
++    real, calls = StudyBackup.open_attempt, []
++
++    def flaky(self, attempt_dir):
++        calls.append(attempt_dir)
++        if len(calls) == 3:
++            raise RuntimeError("ENGINEERING FIXTURE: an unexpected error inside the gate")
++        return real(self, attempt_dir)
++
++    monkeypatch.setattr(StudyBackup, "open_attempt", flaky)
++    inner = FakeBackend(world)
++    with pytest.raises(RequestRefused, match="RuntimeError"):
++        site.run(inner)
++    assert len(inner.executed) == 2
++    refused = Path(calls[2])
++    assert read_canonical(refused / "receipt.json")["status"] == "refused"
++    assert sorted(p.name for p in refused.iterdir()) == ["receipt.json", "started.json"]
++    monkeypatch.undo()
++    result, _, _ = site.run()
++    assert result["status"] == "complete"
++    assert all(result["costs"]["actual"][m]["failed_attempt_seconds"] == 0.0 for m in ("S-", "S+"))
++
++
++def test_safeguard_time_in_a_session_lands_in_the_attempt_timers_and_the_owners_controller_seconds(tmp_path, synthetic):
++    """Review finding D: where the safeguard's time is in the Stage B cost record. A destination
++    whose every upload takes one fake second shows the split: the copy of ``started.json`` at the
++    top of ``execute`` is inside the attempt's own timer (operation seconds, one upload each); the
++    settle before the timer and in ``verify`` is controller time of the step that owns the
++    operation; the session's very first settle (``study.json``) precedes the start record's clock
++    read. Every such second is recorded once, and it enters the policy costs."""
++    world, setup = synthetic
++    reference_site = Site(tmp_path / "reference", world, setup)
++    reference_site.admit()
++    reference, _, _ = reference_site.run()
++    site = Site(tmp_path / "slow", world, setup)
++    site.admit()
++    inner = FakeBackend(world)
++
++    def one_second() -> None:
++        inner.now += 1.0
++
++    destination = dur.FaultyDestination(site.offsite / "destination", on_upload=one_second)
++    result, _, _ = site.run(inner, destination=destination)
++    assert result["choices"] == reference["choices"]
++
++    def seconds(root: Path) -> dict:
++        return {p.relative_to(root).as_posix(): read_canonical(p)["seconds"]
++                for p in sorted(root.glob("**/attempt-*/receipt.json"))}
++
++    slow, plain = seconds(site.root), seconds(reference_site.root)
++    assert slow.keys() == plain.keys() and len(slow) > 10
++    for name in slow:                                   # one upload (started.json) inside every attempt's timer
++        assert slow[name] == pytest.approx(plain[name] + 1.0), name
++    sessions = site.root / "blocks" / "0" / "sessions"
++    start, end = read_canonical(sessions / "session-1.json"), read_canonical(sessions / "session-1-end.json")
++    plain_end = read_canonical(reference_site.root / "blocks" / "0" / "sessions" / "session-1-end.json")
++    assert start["seconds"] == 1.0                      # study.json, settled by the session's first sync
++    controller = end["controller_seconds"]
++    assert sum(plain_end["controller_seconds"].values()) == 0.0
++    assert controller["common"] > 0 and controller["S+"] > 0 and controller.get("result", 0.0) == 0.0
++    assert end["seconds"] == pytest.approx(sum(slow.values()) + sum(controller.values()))   # every second once
++    for method in ("S-", "S+"):                         # and it is in the policy costs
++        assert result["costs"]["actual"][method]["total_seconds"] > reference["costs"]["actual"][method]["total_seconds"]
++        assert result["costs"]["actual"][method]["controller_seconds"] > 0
++    assert len(result["costs"]["actual"]["S-"]["overruns"]) >= len(reference["costs"]["actual"]["S-"]["overruns"])
+ 
+ 
+ def test_logs_and_acknowledgements_name_no_operation_arm_or_choice(tmp_path, synthetic):
+diff -ru pre-review/durability/tests/test_dur_stage_b_engine.py durability-final-v2/durability/tests/test_dur_stage_b_engine.py
+--- pre-review/durability/tests/test_dur_stage_b_engine.py	2026-10-03 17:59:13
++++ durability-final-v2/durability/tests/test_dur_stage_b_engine.py	2026-10-03 18:19:32
+@@ -27,6 +27,7 @@
+     sys.path.insert(0, str(STAGE_B_TESTS))
+ 
+ import dur_fixtures as dur  # noqa: E402
++import ss_fixtures as fx  # noqa: E402
+ from test_dp_engine import env  # noqa: E402,F401 - the Stage B engine fixture (module scoped)
+ 
+ from experiments.durability.backup import Vault  # noqa: E402
+@@ -37,7 +38,7 @@
+ from experiments.safety_decision_policy.backend import EngineBackend  # noqa: E402
+ from experiments.safety_decision_policy.common import RequestRefused, read_canonical  # noqa: E402
+ from experiments.safety_decision_policy.controller import Study, verify_study  # noqa: E402
+-from experiments.safety_selection import jobs  # noqa: E402
++from experiments.safety_selection import jobs, runner  # noqa: E402
+ from experiments.safety_selection.common import PACKAGE_DIR  # noqa: E402
+ from experiments.safety_selection.verify import PathMap  # noqa: E402
+ 
+@@ -66,7 +67,9 @@
+         return controller.admit(WORKER, 3600.0, dur.storage(self.volume, self.vault().destination), dur.RESERVE)
+ 
+     def engine(self, cls=EngineBackend):
+-        return cls(prepared_dir=self.env.prepared, recipe=self.env.recipe, session=self.env.session,
++        """A worker process's backend: its own engine Session (one block per process)."""
++        return cls(prepared_dir=self.env.prepared, recipe=self.env.recipe,
++                   session=runner.Session(self.env.recipe, fx.fixture_loaders()),
+                    registry=self.root / "registry.jsonl")
+ 
+     def study(self, backend) -> Study:
+diff -ru pre-review/durability/tests/test_dur_vault.py durability-final-v2/durability/tests/test_dur_vault.py
+--- pre-review/durability/tests/test_dur_vault.py	2026-10-03 17:59:13
++++ durability-final-v2/durability/tests/test_dur_vault.py	2026-10-03 18:20:51
+@@ -146,7 +146,7 @@
+     vault.acknowledge(run_unit(str(pod.q)))
+     victim = tmp_path / "destination" / "worker-1" / "tree" / str(pod.q).lstrip("/") / "steps.jsonl"
+     victim.write_bytes(victim.read_bytes() + b"{}\n")
+-    with pytest.raises(VerificationFailed):
++    with pytest.raises(TransferError, match="no longer matches its hash"):   # the acknowledged dependency's bytes
+         vault.acknowledge(run_unit(str(pod.e1)))
+     assert vault.read_ack(run_unit(str(pod.e1)).unit_id) is None
+ 
+@@ -173,6 +173,44 @@
+     tree.mkdir(parents=True)
+     shutil.copyfile(pod.q / "job.json", tree / "job.json")
+     assert half.acknowledge(unit)["files"] == len(unit.files)
++
++
++def test_a_crash_between_an_acknowledgement_and_its_pin_is_completed_by_the_retry(pod, tmp_path):
++    """Review finding A. The pin record of a prepared or code unit is written after its
++    acknowledgement. A process that dies between the two must not leave the identity unpinned for
++    good (every engine unit of the vault would then be refused): the retry, a duplicate event,
++    writes the pin."""
++    for make, kind, digest in ((lambda: prepared_unit(str(pod.prepared)), "prepared", pod.sha),
++                               (lambda: code_unit(CODE), "code", runner.code_identity()["sha256"])):
++        dying = dur.make_vault(tmp_path, destination=dur.FaultyDestination(tmp_path / "destination", crash_on="pins"))
++        with pytest.raises(KeyboardInterrupt):        # the process dies at the pin write, after the acknowledgement
++            dying.acknowledge(make())
++        vault = dur.make_vault(tmp_path)
++        assert vault.read_ack(make().unit_id) is not None and vault.pin(kind, digest) is None
++        ack = vault.acknowledge(make())                 # the retry: a duplicate event
++        assert vault.pin(kind, digest).unit_id == ack["unit"]
++        assert vault.acknowledge(make()) == ack and vault.journal.read()[-1]["event"] == "unit-duplicate"
++    assert vault.acknowledge(run_unit(str(pod.q)))["verification"]["folders"] == 1   # engine units are not blocked
++
++
++def test_a_dependency_stored_without_its_acknowledgement_does_not_count(pod, tmp_path):
++    """Review finding E. "Acknowledged" must imply "restorable": a dependency whose bytes reached
++    the destination but whose acknowledgement was never written is not restored by ``restore``, so
++    a unit that depends on it is not acknowledged either."""
++    vault = pinned(dur.make_vault(tmp_path), pod)
++    q, e1 = run_unit(str(pod.q)), run_unit(str(pod.e1))
++    dying = dur.make_vault(tmp_path, destination=dur.FaultyDestination(tmp_path / "destination", crash_on="acks"))
++    with pytest.raises(KeyboardInterrupt):
++        dying.acknowledge(q)                            # q is stored in full, verified, but not acknowledged
++    assert stored(vault, f"tree{pod.q}") and vault.read_ack(q.unit_id) is None
++    with pytest.raises(VerificationFailed, match="not acknowledged in the vault"):
++        vault.acknowledge(e1)
++    assert vault.read_ack(e1.unit_id) is None
++    mirror = tmp_path / "mirror"
++    assert vault.restore(mirror=mirror, kinds=("run",))["units"] == 0      # nothing unacknowledged is restored
++    vault.acknowledge(q)
++    assert vault.acknowledge(e1)["verification"]["folders"] == 2
++    assert vault.restore(mirror=mirror, kinds=("run",))["units"] == 2
+ 
+ 
+ def test_a_full_destination_refuses_before_or_during_the_copy(pod, tmp_path, monkeypatch):

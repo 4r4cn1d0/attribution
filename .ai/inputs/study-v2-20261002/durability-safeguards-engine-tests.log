@@ -1,0 +1,16 @@
+......................................................s................. [ 31%]
+........................................................................ [ 62%]
+.....................................ss................................. [ 93%]
+...............                                                          [100%]
+=============================== warnings summary ===============================
+experiments/safety_selection/tests/test_ss_engine.py::test_an_infinite_loss_is_refused_before_autograd_although_its_gradient_is_finite
+  /Users/spiderishi/Coding/attribution/experiments/safety_selection/tests/test_ss_engine.py:232: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+  Consider using tensor.detach() first. (Triggered internally at /Users/runner/work/pytorch/pytorch/pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:836.)
+    assert math.isinf(float(loss)) and torch.isfinite(grad).all() and float(grad) == pytest.approx(1.0)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] experiments/safety_selection/tests/test_ss_engine.py:289: needs one visible CUDA GPU (a skip is not a pass)
+SKIPPED [1] experiments/minimal_safety/tests/test_ms_model.py:372: CUDA hardware test
+SKIPPED [1] experiments/minimal_safety/tests/test_ms_model.py:389: CUDA hardware test
+228 passed, 3 skipped, 1 warning in 6.88s
