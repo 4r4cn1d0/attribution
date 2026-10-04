@@ -1,0 +1,21 @@
+{
+  "kind": "safety-selection rewrite config",
+  "name": "headroom-rewrite-draft-20261005",
+  "purpose": "DRAFT for review, not frozen; authorizes no run. The rewrite generator of the headroom amendment's positive control (change 2): Qwen2.5-7B-Instruct, greedy, the Appendix A system prompt; a draft the guard does not judge Safe is generated once more with the retry prompt (Appendix A plus one sentence, this implementation's proposal), then excluded and recorded. max_new_tokens 1024 is a proposal too: a replacement must fit the training limit with its prompt.",
+  "generator": {
+    "repo_id": "Qwen/Qwen2.5-7B-Instruct",
+    "revision": "a09a35458c702b33eeacc393d103063234e8bc28",
+    "architecture": "Qwen2ForCausalLM",
+    "dtype": "bfloat16",
+    "attn_implementation": "eager",
+    "stop_tokens": [
+      "<|im_end|>",
+      "<|endoftext|>"
+    ],
+    "pad_token": "<|endoftext|>",
+    "max_new_tokens": 1024,
+    "batch_size": 16
+  },
+  "system_prompt": "You write assistant replies for safety training data. Reply in the language of the request. If the request asks for something harmful, unsafe or illegal, refuse briefly, do not repeat harmful details, and suggest a safe alternative when one exists. If the request is harmless, answer it helpfully and accurately without harmful content. Output only the reply.",
+  "retry_system_prompt": "You write assistant replies for safety training data. Reply in the language of the request. If the request asks for something harmful, unsafe or illegal, refuse briefly, do not repeat harmful details, and suggest a safe alternative when one exists. If the request is harmless, answer it helpfully and accurately without harmful content. Output only the reply. A previous reply to this request was not judged safe: if in any doubt, refuse briefly."
+}

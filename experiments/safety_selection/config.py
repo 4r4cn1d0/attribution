@@ -8,6 +8,15 @@ the recipe fixes model, training, generation, scoring and attribution. Recipe fi
 calibrated in development and must be frozen before confirmation; every run records the
 recipe hash, and resumes refuse any change. Seed namespaces state which seeds a role MAY use,
 not how many are planned or calibrated.
+
+Optional recipe fields (absent from every recipe written before them, which therefore keep
+their exact bytes, hash and meaning):
+
+- ``model.tokenizer`` (``{"repo_id", "revision"}``): the snapshot whose tokenizer turns text
+  into ids, when it is not the model's own. A model trained from a base checkpoint (the
+  headroom amendment's ``Qwen2.5-1.5B``) then uses the tokenizer the prepared data were
+  audited with; every training row and prompt is still checked token for token against that
+  audit before use. Without it, the model's own snapshot is the tokenizer, as before.
 """
 
 from __future__ import annotations
@@ -22,7 +31,7 @@ __all__ = ["ConfigError", "DATA_KIND", "RECIPE_KIND", "ROLES", "PARTITIONS", "BA
            "NAMESPACES", "INIT", "BATCHING", "LOSS", "ATTRIBUTION_VARIANTS", "ARC_TEMPLATE",
            "validate_data_config", "validate_recipe", "load_data_config", "load_recipe",
            "config_sha256", "training_identity", "checkpoint_table", "checkpoint_names",
-           "seed_namespace"]
+           "seed_namespace", "tokenizer_of"]
 
 DATA_KIND = "safety-selection data config"
 RECIPE_KIND = "safety-selection recipe"
@@ -236,10 +245,19 @@ def validate_recipe(recipe: dict) -> dict:
     _fixed(recipe["kind"], RECIPE_KIND, "kind")
     _text(recipe["name"], "name")
     _text(recipe["purpose"], "purpose")
-    model = _keys(recipe["model"], {"repo_id", "revision", "architecture", "base_dtype",
-                                    "trainable_dtype", "attn_implementation", "device",
-                                    "end_of_turn_token", "stop_tokens", "pad_token",
-                                    "max_train_tokens", "max_prompt_tokens", "lora"}, "model")
+    model_keys = {"repo_id", "revision", "architecture", "base_dtype", "trainable_dtype",
+                  "attn_implementation", "device", "end_of_turn_token", "stop_tokens", "pad_token",
+                  "max_train_tokens", "max_prompt_tokens", "lora"}
+    model = recipe["model"]
+    if isinstance(model, dict) and "tokenizer" in model:      # the optional field (module doc)
+        model_keys = model_keys | {"tokenizer"}
+    model = _keys(model, model_keys, "model")
+    if "tokenizer" in model:
+        tokenizer = _keys(model["tokenizer"], {"repo_id", "revision"}, "model.tokenizer")
+        _text(tokenizer["repo_id"], "model.tokenizer.repo_id")
+        _hex(tokenizer["revision"], 40, "model.tokenizer.revision")
+        if (tokenizer["repo_id"], tokenizer["revision"]) == (model.get("repo_id"), model.get("revision")):
+            raise ConfigError("model.tokenizer names the model itself: leave it out instead")
     _text(model["repo_id"], "model.repo_id")
     _hex(model["revision"], 40, "model.revision")
     _text(model["architecture"], "model.architecture")
@@ -350,6 +368,13 @@ def config_sha256(config: dict) -> str:
 def training_identity(recipe: dict) -> str:
     """Hash of the sections that determine a training trajectory (model and train)."""
     return sha256_bytes(canonical_json({"model": recipe["model"], "train": recipe["train"]}))
+
+
+def tokenizer_of(recipe: dict) -> tuple[str, str]:
+    """(repo_id, revision) of the snapshot whose tokenizer the policy uses (module doc)."""
+    model = recipe["model"]
+    source = model.get("tokenizer") or model
+    return source["repo_id"], source["revision"]
 
 
 def checkpoint_table(recipe: dict) -> list[tuple[str, Fraction]]:

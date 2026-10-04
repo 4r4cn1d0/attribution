@@ -12,7 +12,9 @@ trained stream, reported separately.
   receipts recursively. A run is complete only if its own files AND its whole chain verify.
 - **Stream** (run-one, given the prepared data): the concatenated step records of the resume
   chain equal the frozen stream exactly: steps 1..N with no gap or repetition, each step's rows
-  as planned, no removed row, and every retained row exactly once in each completed epoch.
+  as planned, no removed row, and every retained row exactly once in each completed epoch. An
+  edit arm's stream is rebuilt from the run's own copy of its edit file (``edit.json``, hashed
+  with the run), which must hash to the arm.
 
 Receipts hold the absolute paths of the machine that ran the job. A downloaded or archived tree
 is verified through a read-only ``PathMap`` (recorded prefix -> local prefix); job files and
@@ -27,6 +29,7 @@ from pathlib import Path
 from typing import Iterable
 
 from .common import read_json, read_jsonl, sha256_file
+from .jobs import is_edit_arm
 from .ledger import COMPLETE, read_complete, verify_files
 from .prepare import load_prepared
 from .stream import StreamPlan, make_plan
@@ -215,7 +218,7 @@ def check_trajectory(steps: list[dict], plan: StreamPlan, last_step: int) -> lis
             problems.append(f"step {step}: trained rows differ from the frozen stream")
             break
         by_epoch.setdefault(epoch, []).extend(rows)
-    retained = sorted(set(plan.corpus) - plan.removed)
+    retained = plan.retained_rows()
     for epoch in range(last_step // plan.steps_per_epoch):
         if sorted(by_epoch.get(epoch, [])) != retained:
             problems.append(f"epoch {epoch}: retained rows were not each trained exactly once")
@@ -242,8 +245,18 @@ def verify_run(run_dir: str | Path, prepared_dir: str | Path | None = None,
         stream_checked = True
         recipe = read_json(run_dir / "identity.json")["recipe"]
         prepared = load_prepared(prepared_dir, job["manifest_sha256"])
-        plan = make_plan(prepared.corpus, prepared.removed_rows(job["split"], job["arm"]),
-                         job["seed"], recipe["train"]["micro_batch"], recipe["train"]["grad_accum"])
+        if is_edit_arm(job["arm"]):        # the run's own copy of its edit file, checked against the arm
+            from .edits import EDIT_FILE, arm_of, parse_edit
+
+            data = (run_dir / EDIT_FILE).read_bytes()
+            if arm_of(data) != job["arm"]:
+                raise ValueError(f"{run_dir / EDIT_FILE} does not hash to the run's arm")
+            edit = parse_edit(data, prepared)
+            plan = make_plan(prepared.corpus, edit.removed, job["seed"], recipe["train"]["micro_batch"],
+                             recipe["train"]["grad_accum"], edit.added_ids, edit.sha256)
+        else:
+            plan = make_plan(prepared.corpus, prepared.removed_rows(job["split"], job["arm"]),
+                             job["seed"], recipe["train"]["micro_batch"], recipe["train"]["grad_accum"])
         last = read_complete(run_dir)["checkpoints"][job["target_checkpoint"]]["step"]
         stream_problems = check_trajectory(trajectory_steps(run_dir, path_map), plan, last)
     problems = own + dep_problems + stream_problems

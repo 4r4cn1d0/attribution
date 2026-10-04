@@ -30,7 +30,9 @@ own code identity; this package's code hash covers every module here, so it stay
 | `attribution.py` | torch | `checkpoint_gradsim` and `adam_diag_preconditioned_dot` from the same gradients |
 | `loaders.py` | torch/transformers/peft at call time | pinned real assets, CUDA only, no fallback, bf16 reduced-precision reductions off |
 | `runner.py` | torch | run-one, eval-state, attributes, score-groups, score-audit, calibrate |
-| `configs/` | | `study-v2-data.json`; `study-v2-recipe-calibration.json` (and a ToxicBERT-secondary variant) |
+| `edits.py` | stdlib | edit files (remove, rewrite, add, combined): hash-pinned, held-out members refused, applied deterministically |
+| `headroom.py` | torch at call time | the headroom amendment's tools (draft): row scorer, edit builder, rewrite generator |
+| `configs/` | | `study-v2-data.json`; `study-v2-recipe-calibration.json` (and a ToxicBERT-secondary variant); `study-v2-primary-20261002.json` (frozen); the headroom drafts `study-v3-headroom-base-draft-20261005.json` and `headroom-rewrite-draft-20261005.json` |
 
 ## Environment (clean Linux host)
 
@@ -213,6 +215,77 @@ first greedy divergences with `compare-generations`, and inspect a divergence by
 `prefill_logit_agreement` on `prompt + common prefix` (a near-zero top-2 margin is a near-tie).
 The real CUDA preflight test (`test_real_cuda_preflight_disables_and_records_bf16_reduced_precision`)
 runs only on a GPU host with `CUBLAS_WORKSPACE_CONFIG` exported.
+
+## Headroom amendment support (draft, 5 October 2026)
+
+Built for [the amendment draft](../../research/experiments/2026-10-05-headroom-amendment-draft.md)
+behind options, so that nothing changes for existing recipes and arms. **The amendment is not
+frozen; nothing here has run on a GPU.**
+
+**What did not change.** Group-removal arms and a0 train and write exactly what they did: a
+calibration of a0 and one group on the fixtures equals, unit by unit, a digest written from the
+engine of commit 8dd630c before the change (`tests/golden/removal-arms-8dd630c.json`): job
+fields, stream plans, every step's rows and losses, saved states byte for byte, every
+evaluation output, and the registry keys. What does change is the code identity, as with any
+code change: from `5165e61d…` (the frozen matrix's engine) to the new hash. A continuation of a
+run made by the old code is therefore refused, as it always was across code changes, and the
+frozen dev-matrix plan's engine pin does not match this code; retries of that matrix use the
+archived engine.
+
+**The base-model recipe** (`configs/study-v3-headroom-base-draft-20261005.json`):
+`Qwen/Qwen2.5-1.5B` at `8faed761…`, LoRA rank 64, alpha 128, dropout 0 on `q`, `k`, `v`, `o`,
+`gate`, `up` and `down`, 73,859,072 trainable parameters (28 layers × 2,637,824; the loader
+refuses another count); everything else as `study-v2-primary-20261002`. It names the tokenizer
+the prepared data were audited with in the new optional field `model.tokenizer`
+(`Qwen2.5-1.5B-Instruct` at `989aa798…`). Without that field, as before, the model's own
+snapshot is the tokenizer and must be the audited one. Every training row and every prompt is
+still checked token for token against the prepared audit.
+
+**End of turn.** The engine has never used a tokenizer's own end-of-text: a training target ends
+with the recipe's `end_of_turn_token` and generation stops at the recipe's `stop_tokens`. The
+base tokenizer's end-of-text is `<|endoftext|>`; the recipe keeps `<|im_end|>` as the end of the
+assistant turn (training targets end with it) and stops generation at `<|im_end|>` or
+`<|endoftext|>`, exactly as for the instruct model. A fixture tokenizer that fails when its own
+end-of-text is read shows this.
+
+**Edit arms.** An edit is a file (`edits.py`) written before training: `remove` (row ids),
+`rewrite` (row id → replacement response, prompt unchanged), `add` (new `add-…` rows with
+prompt and response) or `combined`. A run-one job names it by its arm, `edit-<SHA-256 of the
+file>`, and the one extra job key `edit` (its path); `make-job run-one --edit FILE` and
+`calibrate --edit FILE` (repeatable) set both. The engine refuses a file whose bytes do not
+hash to the arm, that was written for other prepared data, or that names a member of a held-out
+group, and it runs edit arms on the development split only (no frozen amendment defines held-out
+edits yet); it copies the file into the run folder (`edit.json`), and `verify` rebuilds the stream
+from that copy. Added rows are inserted into each epoch by the stated position rule
+(`edits.POSITION_RULE`): retained rows keep the seed's shared order and added rows are spread
+evenly. An edit arm has its own trajectory key and registry claim: an edit that removes exactly
+a group's rows trains the same steps and states as that group's arm but is never confused with it.
+
+**Tools** (`headroom.py`; GPU tools built and tested on fixtures only):
+
+```text
+score-rows        --recipe RECIPE --prepared prepared-v2 --out FOLDER
+generate-rewrites --config configs/headroom-rewrite-draft-20261005.json --recipe RECIPE --prepared prepared-v2 --scores FOLDER/scores.json --percent 10 --out FOLDER
+build-edits       --prepared prepared-v2 --scores FOLDER/scores.json --rewrites FOLDER/rewrites.json --out FOLDER
+```
+
+- `score-rows`: every pool row (all training rows except held-out group members) scored by the
+  guard's normalized `Unsafe` label-sequence score of its own prompt and response
+  (`scoring.LABEL_SCORE_DEFINITION`). Rows with a guard control string stay unscored and are never
+  ranked. One canonical `scores.json`; its hash is what later steps pin.
+- `build-edits` (CPU): remove the top 2.5, 4, 7 and 10% (rows = round half up of k% of the
+  training rows: 254, 406, 710, 1,015 for 10,148 rows), rewrite the same rows, and remove 10% of
+  the pool at random with a seed derived from the data config's design seed. Every file records
+  the hashes of its inputs and its exact counts; `index.json` lists the arms. Add and combined
+  files are not written by any command: their source is the amendment's open decision 3.
+- `generate-rewrites`: `Qwen/Qwen2.5-7B-Instruct` at `a09a3545…`, greedy, the Appendix A system
+  prompt, given the request only. A draft is accepted if it ended its turn, is not empty, is a
+  valid training response (no control token, within the token limit) and the guard labels it
+  Safe; otherwise it is generated once more with a retry prompt (Appendix A plus one sentence,
+  because greedy decoding of the same input repeats the draft) and then excluded and recorded.
+
+`scripts/cuda_preflight_headroom.py` is the two-step A100 fixture for the new recipe, written
+and not run (see its header).
 
 ## Not done here
 

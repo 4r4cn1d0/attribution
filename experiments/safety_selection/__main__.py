@@ -1,8 +1,9 @@
 """python -m experiments.safety_selection <command> ... (see README.md)
 
 Commands: prepare, plan, make-job, run-one, eval-state, calibrate, attributes, score-groups,
-score-audit, verify, compare-generations, export-selector-view, fetch-data, fetch-models. Only
-the job commands import torch; prepare imports transformers for the pinned tokenizer only.
+score-audit, verify, compare-generations, export-selector-view, fetch-data, fetch-models, and the
+headroom amendment's tools (draft): score-rows, generate-rewrites (GPU) and build-edits (CPU).
+Only the job commands import torch; prepare imports transformers for the pinned tokenizer only.
 
 Exit status: 0 success (verify: own files, dependency chain and, with --prepared, stream all
 verify); 1 a job failed after creating its folder (error.txt preserved) or verify found it
@@ -70,6 +71,7 @@ def _parser() -> argparse.ArgumentParser:
     p.add_argument("--checkpoint")
     p.add_argument("--a0-state", action="append", default=[], help="CHECKPOINT=RUN_DIR (repeat)")
     p.add_argument("--groups", help="comma-separated group ids")
+    p.add_argument("--edit", help="run-one: an edit file; the arm becomes edit-<its SHA-256>")
     p.add_argument("--wall-limit-seconds", type=float)
     for name, helptext in (("run-one", "train/continue one trajectory to a checkpoint and evaluate"),
                            ("eval-state", "evaluate a saved state (evaluation settings may differ)"),
@@ -94,6 +96,26 @@ def _parser() -> argparse.ArgumentParser:
     p.add_argument("--checkpoints", help="ordered subset of the recipe checkpoints")
     p.add_argument("--base-eval", action="store_true", help="also evaluate the seeded adapter (B = 0)")
     p.add_argument("--wall-limit-seconds", type=float)
+    p.add_argument("--edit", action="append", default=[],
+                   help="an edit file (repeat); its arm edit-<SHA-256> is calibrated with it")
+    p = sub.add_parser("score-rows", help="headroom (draft): guard Unsafe scores of every edit-pool row")
+    p.add_argument("--recipe", required=True)
+    p.add_argument("--prepared", required=True)
+    p.add_argument("--out", required=True, help="new folder; never replaced")
+    p = sub.add_parser("generate-rewrites", help="headroom (draft): replacement responses for the top rows")
+    p.add_argument("--config", required=True, help="the rewrite config (generator and prompts)")
+    p.add_argument("--recipe", required=True, help="the training recipe (guard, policy tokenizer, limits)")
+    p.add_argument("--prepared", required=True)
+    p.add_argument("--scores", required=True, help="the frozen scores.json of score-rows")
+    p.add_argument("--percent", default="10", help="the largest edit size (default 10)")
+    p.add_argument("--out", required=True, help="new folder; never replaced")
+    p = sub.add_parser("build-edits", help="headroom (draft): the positive control's edit files (CPU only)")
+    p.add_argument("--prepared", required=True)
+    p.add_argument("--scores", required=True)
+    p.add_argument("--rewrites", help="the frozen rewrites.json of generate-rewrites")
+    p.add_argument("--percents", default="2.5,4,7,10")
+    p.add_argument("--random-percent", default="10")
+    p.add_argument("--out", required=True, help="new folder; never replaced")
     p = sub.add_parser("score-audit", help="guard scores of a blind-context audit file")
     p.add_argument("--recipe", required=True)
     p.add_argument("--input", required=True)
@@ -156,6 +178,13 @@ def _make_job(args: argparse.Namespace) -> dict:
         fields = {"split": args.split, "arm": args.arm, "seed": args.seed, "role": args.role,
                   "target_checkpoint": args.target, "evaluate_bank": args.bank,
                   "resume_from": args.resume_from, "replicate_of": args.replicate_of}
+        if args.edit:
+            from .edits import arm_of
+
+            arm = arm_of(Path(args.edit).read_bytes())
+            if args.arm not in (None, arm):
+                raise JobError(f"--arm {args.arm} is not the edit file's arm {arm}")
+            fields.update(arm=arm, edit=str(args.edit))
     elif args.kind == "eval-state":
         fields = {"source_run": args.source_run, "checkpoint": args.checkpoint, "evaluate_bank": args.bank}
     elif args.kind == "attributes":
@@ -178,10 +207,25 @@ def _job_command(args: argparse.Namespace) -> dict:
     recipe = load_recipe(args.recipe)
     session = runner.Session(recipe, real_loaders())
     if args.command == "calibrate":
+        from .edits import arm_of
+
+        edits = {arm_of(Path(path).read_bytes()): path for path in args.edit}
+        arms = args.arms.split(",")
+        arms += [arm for arm in edits if arm not in arms]
         return runner.calibrate(prepared_dir=args.prepared, out_root=args.out_root, session=session,
-                                arms=args.arms.split(","), seeds=[int(s) for s in args.seeds.split(",")],
+                                arms=arms, seeds=[int(s) for s in args.seeds.split(",")],
                                 checkpoints=args.checkpoints.split(",") if args.checkpoints else None,
-                                base_eval=args.base_eval, wall_limit_seconds=args.wall_limit_seconds)
+                                base_eval=args.base_eval, wall_limit_seconds=args.wall_limit_seconds,
+                                edits=edits)
+    if args.command == "score-rows":
+        from .headroom import score_rows_job
+
+        return score_rows_job(session, args.prepared, args.out)
+    if args.command == "generate-rewrites":
+        from .headroom import generate_rewrites_job, validate_rewrite_config
+
+        config = validate_rewrite_config(json.loads(Path(args.config).read_text(encoding="utf-8")))
+        return generate_rewrites_job(config, session, args.prepared, args.scores, args.out, percent=args.percent)
     if args.command == "score-audit":
         return runner.score_audit(args.input, out_dir=args.out, session=session)
     job = json.loads(Path(args.job).read_text(encoding="utf-8"))
@@ -200,7 +244,8 @@ def _brief(result: dict) -> dict:
     """Counts and identities only: evaluation texts never reach stdout."""
     keys = ("run_dir", "complete", "kind", "target_checkpoint", "trajectory", "incremental_train_cost",
             "trajectory_cost", "evaluation", "scores", "costs", "summary", "units", "registry",
-            "checkpoint", "rows", "groups", "split")
+            "checkpoint", "rows", "groups", "split", "scores_sha256", "rewrites_sha256", "pool_rows",
+            "scored_rows", "unscored_rows", "accepted", "accepted_on_retry", "excluded")
     return {k: result[k] for k in keys if k in result}
 
 
@@ -217,6 +262,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 0
         if args.command == "make-job":
             _print(_make_job(args))
+            return 0
+        if args.command == "build-edits":
+            from .headroom import build_edits_job
+
+            _print(build_edits_job(args.prepared, args.scores, args.out, rewrites_path=args.rewrites,
+                                   percents=args.percents.split(","), random_percent=args.random_percent))
             return 0
         if args.command == "verify":
             from .verify import PathMap, verify_run

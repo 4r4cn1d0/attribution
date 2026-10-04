@@ -148,10 +148,12 @@ def _load_policy(recipe: dict, ledger: RunLedger) -> Policy:
 
     from .engine import causal_lm, lora_parameters, parameter_count
 
+    from .config import tokenizer_of
+
     spec, lora = recipe["model"], recipe["model"]["lora"]
     with ledger.stage("load_policy") as info:
-        tokenizer, status = load_tokenizer(spec["repo_id"], spec["revision"])
-        snapshot(spec["repo_id"], spec["revision"])
+        tokenizer, tokenizer_status = load_tokenizer(*tokenizer_of(recipe))
+        status = snapshot(spec["repo_id"], spec["revision"])
         ledger.check("policy weights")
         base = AutoModelForCausalLM.from_pretrained(
             status["snapshot"], torch_dtype=torch.bfloat16, use_safetensors=True,
@@ -187,6 +189,7 @@ def _load_policy(recipe: dict, ledger: RunLedger) -> Policy:
         template = getattr(tokenizer, "chat_template", None) or ""
         info.update(trainable_parameters=count, attn_implementation=attention)
     identity = {**status, "trainable_parameters": count, "attn_implementation": attention,
+                **({"tokenizer_snapshot": tokenizer_status} if "tokenizer" in spec else {}),
                 "chat_template_sha256": sha256_bytes(template.encode("utf-8")),
                 "template_probe": probe, "eos_id": codec.eos_id, "stop_ids": list(codec.stop_ids),
                 "pad_id": codec.pad_id, "gradient_checkpointing": recipe["train"]["gradient_checkpointing"]}

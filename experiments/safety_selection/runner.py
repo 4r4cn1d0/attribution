@@ -18,6 +18,12 @@ cross-code checkpoint mixing) and is exactly the planned a0 checkpoint: name, se
 stream, step, examples, AdamW step and hyperparameters; its receipts and the fingerprints and
 optimizer step it used are persisted.
 
+Edit arms (``edits.py``). A run-one job whose arm is ``edit-<sha256>`` trains on the prepared
+corpus changed by that edit file: its removed rows left out, its rewritten rows encoded with
+their replacement responses, its added rows inserted by the stated position rule. The file is
+loaded and checked before any model loads, and its exact bytes are copied into the run folder
+(``edit.json``), so the run carries what it trained on. Group arms and a0 are untouched by this.
+
 run-one trains one (split, arm, seed) trajectory from the seeded adapter, or continues it from
 the verified state saved by a complete earlier run of the same trajectory (identical data,
 recipe and code; adapter, AdamW moments and steps, RNG and stream position restored and
@@ -65,7 +71,7 @@ from .common import (append_jsonl, canonical_json, code_identity, derive_seed, i
 from .config import (INIT, checkpoint_names, checkpoint_table, config_sha256, seed_namespace,
                      training_identity, validate_recipe)
 from .jobs import (AccessError, JobError, check_attribution_access, check_identities,
-                   check_run_access, claim_trajectory, require_code_pin, score_groups_role,
+                   check_run_access, claim_trajectory, is_edit_arm, require_code_pin, score_groups_role,
                    trajectory_key, validate_job)
 from .ledger import RunLedger, create_run_dir, read_complete, verify_files, write_complete
 from .loaders import Loaders, Policy, Toxicity
@@ -303,17 +309,28 @@ def run_one(job: dict, *, prepared_dir: str | Path, out_dir: str | Path, session
     previous = _previous(job, recipe, code) if job["resume_from"] is not None else None
     prepared = load_prepared(prepared_dir, manifest_sha, banks=(bank,) if bank else (),
                              allow_hidden=bank == "hidden")
-    removed = prepared.removed_rows(job["split"], job["arm"])
+    edit = None
+    if is_edit_arm(job["arm"]):
+        from .edits import load_edit
+
+        edit = load_edit(job["edit"], job["arm"], prepared)
+        removed = sorted(edit.removed)
+    else:
+        removed = prepared.removed_rows(job["split"], job["arm"])
     run_dir = create_run_dir(out_dir)
     identity = _identity(manifest, manifest_sha, recipe, code)
     ledger = None
     try:
         ledger = _start(run_dir, job, identity, session, [previous["receipt"]] if previous else [])
+        if edit is not None:
+            from .edits import EDIT_FILE
+
+            write_atomic(run_dir / EDIT_FILE, edit.raw)
         if registry is not None and previous is None:
             claim_trajectory(registry, trajectory_key(manifest_sha, recipe, job["split"], job["arm"],
                                                       job["seed"], job["role"]),
                              str(run_dir), job["replicate_of"])
-        result = _train_and_evaluate(job, prepared, removed, previous, session, ledger, run_dir)
+        result = _train_and_evaluate(job, prepared, removed, previous, session, ledger, run_dir, edit)
         return _finish(run_dir, ledger, "run-one", identity, result)
     except BaseException as exc:
         _fail(run_dir, ledger, exc)
@@ -331,14 +348,24 @@ def _state_meta(job: dict, name: str, position: dict, plan: StreamPlan, cost: di
 
 
 def _train_and_evaluate(job: dict, prepared: Prepared, removed: list[str], previous: dict | None,
-                        session: Session, ledger: RunLedger, run_dir: Path) -> dict:
+                        session: Session, ledger: RunLedger, run_dir: Path, edit=None) -> dict:
     recipe, train = session.recipe, session.recipe["train"]
     policy = session.policy(ledger, run_dir)
     write_json(run_dir / "assets.json", {"policy": policy.identity, "environment": session.environment,
                                          "loaded_in": dict(session.loaded_in)})
     corpus = session.corpus(prepared, policy, ledger)
+    if edit is not None:
+        from .edits import edited_corpus
+
+        with ledger.stage("apply_edit", rewritten=len(edit.rewrite), added=len(edit.added)) as info:
+            corpus = edited_corpus(corpus, edit, prepared, policy.codec, recipe["model"]["max_train_tokens"])
+            info.update(edit_sha256=edit.sha256, removed=len(edit.removed))
     session.memory_preflight(corpus, policy, ledger, run_dir)
-    plan = make_plan(prepared.corpus, removed, job["seed"], train["micro_batch"], train["grad_accum"])
+    if edit is None:
+        plan = make_plan(prepared.corpus, removed, job["seed"], train["micro_batch"], train["grad_accum"])
+    else:
+        plan = make_plan(prepared.corpus, removed, job["seed"], train["micro_batch"], train["grad_accum"],
+                         edit.added_ids, edit.sha256)
     table = checkpoint_table(recipe)
     positions = {name: plan.checkpoint(fraction) for name, fraction in table}
     steps = [positions[name]["step"] for name, _ in table]
@@ -402,10 +429,13 @@ def _train_and_evaluate(job: dict, prepared: Prepared, removed: list[str], previ
         if problems:
             raise RunError(f"trained stream differs from the frozen plan: {problems[:3]}")
         info.update(steps_verified=positions[target]["step"])
-    return {"trajectory": {"split": job["split"], "arm": job["arm"], "seed": job["seed"],
-                           "role": job["role"], "stream_sha256": plan.sha256(),
-                           "retained_rows": plan.retained, "removed_rows": len(plan.removed),
-                           "steps_per_epoch": plan.steps_per_epoch, "init_fingerprint": init_fp},
+    trajectory = {"split": job["split"], "arm": job["arm"], "seed": job["seed"],
+                  "role": job["role"], "stream_sha256": plan.sha256(),
+                  "retained_rows": plan.retained, "removed_rows": len(plan.removed),
+                  "steps_per_epoch": plan.steps_per_epoch, "init_fingerprint": init_fp}
+    if edit is not None:
+        trajectory["edit"] = edit.summary()
+    return {"trajectory": trajectory,
             "target_checkpoint": target,
             "checkpoints": {name: {"step": s["step"], "examples_seen": s["examples_seen"],
                                    "adapter_fingerprint": s["adapter_fingerprint"],
@@ -1031,22 +1061,33 @@ def _attempt(out_root: Path, seed: int, arm: str, checkpoint: str, expected: dic
 
 def calibrate(*, prepared_dir: str | Path, out_root: str | Path, session: Session, arms: Sequence[str],
               seeds: Sequence[int], checkpoints: Sequence[str] | None = None, base_eval: bool = False,
-              wall_limit_seconds: float | None = None) -> dict:
+              wall_limit_seconds: float | None = None, edits: dict[str, str | Path] | None = None) -> dict:
     """Development calibration only: development groups and a0, development seeds, the
     development bank. Each (seed, arm) trajectory runs checkpoint by checkpoint (each a
     continuation of the previous). A complete unit is reused only if its stored job and
     identities equal the request (data, recipe, code, split, role, arm, seed, checkpoint, bank,
     resume source); any mismatch refuses. Failed attempts are preserved and retried in a new
-    folder; a same-seed retry is the same scientific draw and every attempt's cost counts."""
+    folder; a same-seed retry is the same scientific draw and every attempt's cost counts.
+    ``edits`` maps each edit arm (``edit-<sha256>``) among ``arms`` to its edit file; every file
+    is checked against its arm and the prepared data before anything runs."""
     recipe, code = session.recipe, code_identity()
     manifest, manifest_sha = read_manifest(prepared_dir)
     prepared = load_prepared(prepared_dir, manifest_sha)
     for seed in seeds:
         if seed_namespace(manifest["data_config"], seed) != "development":
             raise AccessError(f"seed {seed} is not a development seed")
+    edits = dict(edits or {})
     for arm in arms:
-        if arm != "a0" and arm not in prepared.groups["dev"]:
+        if is_edit_arm(arm):            # an edit arm: its file is checked now, before anything runs
+            from .edits import load_edit
+
+            if arm not in edits:
+                raise JobError(f"{arm} names an edit file that was not given")
+            load_edit(edits[arm], arm, prepared)
+        elif arm != "a0" and arm not in prepared.groups["dev"]:
             raise AccessError(f"{arm} is not a development group; calibration never touches held-out groups")
+    if set(edits) - set(arms):
+        raise JobError("an edit file was given for an arm that is not calibrated")
     names = [n for n in checkpoint_names(recipe) if n != INIT]
     if checkpoints is not None:
         if list(checkpoints) != [n for n in names if n in set(checkpoints)]:
@@ -1070,6 +1111,8 @@ def calibrate(*, prepared_dir: str | Path, out_root: str | Path, session: Sessio
             for name in chain:
                 job = {**template, "arm": arm, "seed": seed, "target_checkpoint": name,
                        "resume_from": str(previous) if previous else None}
+                if arm in edits:
+                    job["edit"] = str(edits[arm])
                 folder, done, incomplete = _attempt(out_root, seed, arm, name, job, identity)
                 if not done:
                     run_one(job, prepared_dir=prepared_dir, out_dir=folder, session=session, registry=registry)
