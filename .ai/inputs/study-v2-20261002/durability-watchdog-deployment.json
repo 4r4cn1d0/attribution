@@ -1,5 +1,5 @@
 {
- "recorded_utc": "2026-10-03T20:15:00Z",
+ "recorded_utc": "2026-10-04T10:40:00Z",
  "deployed_by": "General Implementation session, at the user's instruction to deploy everything recommended (3 October 2026)",
  "source": {
   "repository": "4r4cn1d0/attribution",
@@ -67,20 +67,44 @@
   "note": "a manual run does not count as the schedule running"
  },
  "scheduled_runs": {
-  "observed": [],
+  "observed": [
+   {
+    "id": 37156133824,
+    "created_utc": "2026-10-03T21:43:58Z",
+    "conclusion": "success",
+    "nearest_earlier_slot_utc": "21:37",
+    "delay_seconds": 418
+   },
+   {
+    "id": 37165313854,
+    "created_utc": "2026-10-04T00:33:28Z",
+    "conclusion": "success",
+    "nearest_earlier_slot_utc": "00:07",
+    "delay_seconds": 1588
+   },
+   {
+    "id": 37182473339,
+    "created_utc": "2026-10-04T06:19:37Z",
+    "conclusion": "success",
+    "nearest_earlier_slot_utc": "06:07",
+    "delay_seconds": 757
+   }
+  ],
   "window_utc": [
-   "2026-10-03T18:20:00Z",
-   "2026-10-03T20:11:06Z"
+   "2026-10-03T18:19:50Z",
+   "2026-10-04T10:38:41Z"
   ],
-  "missed_slots_utc": [
-   "18:37",
-   "19:07",
-   "19:37",
-   "20:07"
-  ],
-  "github_status_at_20_11_utc": "All Systems Operational; Actions operational; no open incident",
-  "finding": "no scheduled run was created in the first 110 minutes after deployment. GitHub documents that the schedule event can be delayed or dropped under load but gives no bound. Until scheduled runs are seen, every arm is refused by the liveness check (fail-closed), and the lateness assumption of 5400 s is unverified; this first observation is unfavourable to it.",
-  "still_open": "observation continues; see the commit history of this file"
+  "slots_in_window": 33,
+  "slots_that_ran": 3,
+  "first_scheduled_run_after_deployment_seconds": 12248,
+  "longest_gap_between_scheduled_runs_seconds": 20769,
+  "open_gap_at_window_end_seconds": 15544,
+  "github_status_at_2026_10_03_20_11_utc": "All Systems Operational; Actions operational; no open incident",
+  "finding": "On this private repository GitHub ran 3 of 33 scheduled slots in the first 16 hours; the longest silence between scans was 5 h 46 min. The design's assumption of a scan every 30 minutes and a stop at most 5400 s late does not hold here. Admission stays fail-closed (an arm needs a scheduled scan within 75 minutes, so most arms would be refused), but a granted lease could see its stop hours late. The GitHub schedule cannot be the only shutdown for a funded run.",
+  "community_reports": [
+   "https://github.com/orgs/community/discussions/200282",
+   "https://github.com/orgs/community/discussions/201436"
+  ]
  },
  "minutes": "each run is billed as at least one minute; the manual run used one",
  "not_done": [
