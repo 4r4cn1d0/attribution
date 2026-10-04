@@ -35,6 +35,10 @@ class FakeRunPod:
         self.graphql_errors = None
         self.log: list[tuple[str, str, str]] = []      # (method, path, body)
         self.stop_mode = "ok"
+        self.gpu_types: list = [{"id": "NVIDIA A100-SXM4-80GB", "securePrice": 1.59, "communityPrice": 1.39}]
+        self.created_cost: float | None = None         # the price a created pod reports (default: the secure price)
+        self.create_status = 201
+        self._ids = 0
         self.read_mode = "ok"                          # "error": a pod read by id answers 500
         self.foreign: list[str] = []                   # other services' secrets, which must never arrive here
         self.leaks: list[str] = []
@@ -94,6 +98,28 @@ class FakeRunPod:
                     return self._send(404, {"error": "not found"})
                 if method == "GET" and path == "/v1/pods":
                     return self._send(200, fake.pods)
+                if method == "POST" and path == "/v1/networkvolumes":
+                    wanted = json.loads(body)
+                    fake._ids += 1
+                    volume = {"id": f"vol-new-{fake._ids}", "name": wanted["name"], "size": wanted["size"],
+                              "dataCenterId": wanted["dataCenterId"]}
+                    fake.volumes.append(volume)
+                    return self._send(200, volume)
+                if method == "POST" and path == "/v1/pods":
+                    if fake.create_status != 201:
+                        return self._send(fake.create_status, {"error": "ENGINEERING FIXTURE: no instances available"})
+                    wanted = json.loads(body)
+                    fake._ids += 1
+                    cost = fake.created_cost if fake.created_cost is not None else fake.gpu_types[0]["securePrice"]
+                    made = {"id": f"pod-new-{fake._ids}", "name": wanted["name"], "desiredStatus": "RUNNING",
+                            "costPerHr": cost, "adjustedCostPerHr": cost, "image": wanted["imageName"],
+                            "env": wanted["env"], "containerDiskInGb": wanted["containerDiskInGb"], "volumeInGb": 0,
+                            "volumeMountPath": wanted["volumeMountPath"],
+                            "networkVolume": next((v for v in fake.volumes if v["id"] == wanted.get("networkVolumeId")), None)}
+                    fake.pods.append(made)
+                    return self._send(201, made)
+                if method == "POST" and path == "/graphql" and "gpuTypes" in body:
+                    return self._send(200, {"data": {"gpuTypes": fake.gpu_types}})
                 if method == "GET" and path == "/v1/networkvolumes":
                     return self._send(200, fake.volumes)
                 if method == "POST" and path == "/graphql" and "podStop" in body:      # the stop mutation

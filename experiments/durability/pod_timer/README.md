@@ -1,4 +1,9 @@
-# Stop timer: the file that runs inside the pod
+# Stop timer and job runner: the files that run inside the pod
+
+`pod_job.py` is the job runner the timer's supervisor starts when a pod is created by `launch`:
+it fetches the bundles, runs the bootstrap and the worker, and asks the timer to stop the pod if
+anything fails. It travels and is checked exactly as the timer is. See the package README,
+"Running a host on a pod".
 
 `pod_timer.py` is the whole timer. It runs **inside the GPU pod**, not in this project; it imports
 nothing from the project and needs only Python 3.8 or later.

@@ -935,6 +935,30 @@ def test_admission_refuses_without_a_running_acknowledging_timer(site, what):
         assert site.box.beat()["governing"]["source"] == "cap"                    # and none of them governs
 
 
+def test_the_finishing_stop_goes_through_the_timer_and_needs_no_admission(site):
+    box = site.box
+    site.admit(7200)
+    box.at(3000)                                         # the work is done long before the lease ends
+    site.timer.poll_once()
+    requests = len(box.runpod.log)
+    finishing = site.shutdown.finish("worker-1", "pod-1", 120.0, "the host's jobs are complete and acknowledged")
+    assert finishing["finishing"] is True and finishing["stop_at_utc"] == iso(box.after(3120))
+    assert box.beat()["governing"]["lease"] == finishing["lease"] and len(box.runpod.log) == requests   # no provider call
+    record = json.loads((box.state / "leases" / f"{finishing['lease']}.json").read_text())
+    assert record["purpose"] == "finish" and record["reason"].startswith("the host's jobs")
+    box.at(3119)
+    assert site.timer.enforce_once() == "armed"
+    box.at(3120)
+    assert site.timer.enforce_once() == "stopped" and box.status() == "EXITED"       # two minutes later, not at the lease's end
+    for bad in (1, 7200, True):
+        with pytest.raises(DurabilityError):
+            site.primary.finish("worker-1", "pod-1", bad)
+    site.timer_running = False                           # a timer that does not answer: the earlier deadline stands
+    box.runpod.pods[0]["desiredStatus"] = "RUNNING"
+    with pytest.raises(ProviderError, match="stale or from the future|did not acknowledge"):
+        site.primary.finish("worker-1", "pod-1", 60.0)
+
+
 def test_a_forged_or_mismatched_acknowledgement_is_not_one(site):
     box = site.box
     site.timer_running = False

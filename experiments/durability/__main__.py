@@ -5,7 +5,8 @@ Commands:
 - ``ingest``: acknowledge sealed engine run folders from a tree (possibly a relocated archive,
   through ``--map RECORDED=LOCAL``) into a destination: the prepared data and the engine source
   first, then each ``--run`` in the order given (dependencies first). Every acknowledgement follows
-  the full copy, hash and restore-verify path.
+  the full copy, hash and restore-verify path. The ``registry.jsonl`` beside the run folders is
+  stored with them.
 - ``restore``: place every acknowledged unit at its recorded path, or under ``--mirror``.
 - ``acks``: list the acknowledgements in a destination namespace.
 - ``check-destination``: one small round trip that shows a destination behaves as the vault needs:
@@ -22,10 +23,20 @@ Commands:
 - ``pod-timer-settings``: the environment variables and the start command to give RunPod when a
   pod is created or started again, so that the stop timer runs before anything else. It writes
   them to a file (``--out``) or prints them; it contacts nothing.
+- ``worker``: on the pod, one host's jobs of the frozen plan, unit by unit under the safeguards
+  (``worker.py``). ``worker-job`` is the process it starts for each job.
+- ``worker-report``: the times and costs one host's records show (run, copy, restore check,
+  admission, the timer's lateness), for the one-pod validation. It reads files only.
+- ``pack-code``: a deterministic archive of this package's source, for the pod.
+- ``launch``: on the operator's machine, create the network volume and the pod for one host with
+  the stop timer, the job runner and the bundles (``launcher.py``). It creates billable resources
+  and can stop a pod it just created; it never terminates or deletes. ``--dry-run`` prints the
+  request and contacts nothing.
 
 ``--destination`` is a directory, or ``github:owner/repo`` with ``--declared-free-bytes`` (the token
 comes from the environment variable ``ATTRIBUTION_BACKUP_GITHUB_TOKEN``; without it every call
-refuses). No command admits, dispatches, creates, starts, stops or deletes anything on a provider.
+refuses). Apart from ``worker`` (which asks for admission and runs units on the pod it is on) and
+``launch``, no command admits, dispatches, creates, starts, stops or deletes anything on a provider.
 
 Exit status: 0 done; 2 refused (nothing was acknowledged or restored beyond what the output lists).
 """
@@ -98,6 +109,24 @@ def _parser() -> argparse.ArgumentParser:
     p.add_argument("--chunk-chars", type=int, default=0,
                    help="split the script over several variables of at most this many characters (default: one)")
     p.add_argument("--out", help="write the settings to this file instead of printing them")
+    p = sub.add_parser("worker")
+    p.add_argument("--config", required=True, help="the worker's configuration (JSON; README)")
+    p = sub.add_parser("worker-job")
+    p.add_argument("--config", required=True)
+    p.add_argument("--job-index", required=True, type=int)
+    p = sub.add_parser("worker-report")
+    p.add_argument("--admin-dir", required=True, help="one host's administrative folder (restored or on the pod)")
+    p.add_argument("--timer-dir", help="the stop timer's folder, for its lateness")
+    p = sub.add_parser("pack-code")
+    p.add_argument("--project-root", default=".", help="the project root that holds experiments/")
+    p.add_argument("--out", required=True, help="the archive to write (a new file)")
+    p = sub.add_parser("launch")
+    p.add_argument("--spec", required=True, help="the launch description (JSON; README)")
+    p.add_argument("--record", required=True, help="where every request and answer is recorded (JSON lines)")
+    p.add_argument("--project-root", default=".", help="relative bundle paths are resolved here")
+    p.add_argument("--dry-run", action="store_true", help="print the create-pod request; contact nothing")
+    for name in ("--runpod-rest-url", "--runpod-graphql-url", "--github-api-url", "--github-upload-url"):
+        p.add_argument(name, help=argparse.SUPPRESS)                 # tests: fake APIs on 127.0.0.1
     p = sub.add_parser("check-watchdog")
     p.add_argument("--config", required=True, help="provider configuration with a shutdown section (JSON; README)")
     p.add_argument("--worker", required=True, help="a worker name from the configuration")
@@ -231,6 +260,22 @@ def _check_timer(args: argparse.Namespace) -> dict:
     return {"timer": timer.describe(), **timer.status()}
 
 
+def _launch(args: argparse.Namespace) -> dict:
+    from .common import utc_clock
+    from .launcher import Account, Bundles, Launcher, _Recorder, load_spec
+
+    spec = load_spec(args.spec)
+    record = _Recorder(args.record, utc_clock)
+    runpod = {name: value for name, value in (("rest_url", args.runpod_rest_url),
+                                              ("graphql_url", args.runpod_graphql_url)) if value is not None}
+    github = {name: value for name, value in (("api_url", args.github_api_url),
+                                              ("upload_url", args.github_upload_url)) if value is not None}
+    launcher = Launcher(Account(record=record, **runpod),
+                        Bundles(spec["bundle_repository"], spec.get("bundle_release", "pod-bundles"), record=record, **github),
+                        record=record, project_root=args.project_root)
+    return launcher.launch(spec, dry_run=args.dry_run)
+
+
 def _pod_timer_settings(args: argparse.Namespace) -> dict:
     made = settings(state_dir=args.state_dir, cap_seconds=args.cap_minutes * 60.0, wrapped=args.start_script,
                     chunk_chars=args.chunk_chars)
@@ -252,6 +297,26 @@ def _command(args: argparse.Namespace) -> dict:
         return _check_timer(args)
     if args.command == "pod-timer-settings":
         return _pod_timer_settings(args)
+    if args.command == "worker":
+        from .worker import Worker, load_config
+
+        outcome = Worker(load_config(args.config), config_path=Path(args.config).resolve()).run()
+        return {key: outcome.get(key) for key in ("host", "complete", "record", "stop", "started_utc", "finished_utc")}
+    if args.command == "worker-job":
+        from .worker import job_main, load_config
+
+        report = job_main(load_config(args.config), args.job_index)
+        return {"job": report["job"], "units": [unit["unit"] for unit in report["units"]]}
+    if args.command == "worker-report":
+        from .worker import measurements
+
+        return measurements(args.admin_dir, args.timer_dir)
+    if args.command == "pack-code":
+        from .launcher import pack_code
+
+        return pack_code(args.project_root, args.out)
+    if args.command == "launch":
+        return _launch(args)
     if args.command == "ingest":
         if bool(args.code) == bool(args.no_code_pin):
             raise DurabilityError("give --code, or --no-code-pin to acknowledge evidence without its source")
@@ -261,7 +326,15 @@ def _command(args: argparse.Namespace) -> dict:
             units.append(code_unit(args.code, vault.source_map))
         acks = [_brief(vault.acknowledge(unit)) for unit in units]
         acks += [_brief(vault.acknowledge(run_unit(run, vault.source_map))) for run in args.run]
-        return {"acknowledged": acks, "code_pinned": bool(args.code)}
+        # the trajectory registry beside the run folders travels too: it holds the claims of fresh starts,
+        # also of ones that never sealed, and a later worker must see them
+        registries = []
+        for root in sorted({str(Path(run).parent) for run in args.run}):
+            recorded = f"{root}/registry.jsonl"
+            if vault.source_map.local(recorded).is_file():
+                vault.snapshot_append(recorded)
+                registries.append(recorded)
+        return {"acknowledged": acks, "code_pinned": bool(args.code), "registries": registries}
     vault = _vault(args)
     if args.command == "restore":
         return vault.restore(mirror=Path(args.mirror) if args.mirror else None)

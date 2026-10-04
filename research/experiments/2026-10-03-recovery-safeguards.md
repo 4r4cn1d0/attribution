@@ -104,7 +104,7 @@ values are fixed here.
 
 ## What the local tests establish
 
-221 tests in `experiments/durability/tests/`, run with the pinned engine environment on CPU:
+260 tests in `experiments/durability/tests/`, run with the pinned engine environment on CPU:
 
 - **Engine chain (decisive).** A sealed chain q, e1 was acknowledged; the worker was terminated
   during e3 and its volume removed; the vault was restored to the same absolute paths; every
@@ -232,12 +232,74 @@ secret.
 **Stage B.** The timer adds no time inside Stage B sessions: arming is part of admission, before
 a block's process starts. Open decision 4 stays deferred.
 
-**What the local tests show (60 of the 221).** The deployed script with a manual clock (the cap,
+**What the local tests show (61 of the 260).** The deployed script with a manual clock (the cap,
 leases, renewal, damaged records, a past deadline, retries, a failing mount, no deletion, no
 secret in records) and as real processes (a killed timer restarted, a dead worker, a restarted
 "container", the start command run by bash, including its own stop when the script is damaged);
 and admission refusing without the timer's acknowledgement and succeeding while the watchdog
 refuses or is unreachable. They show nothing about RunPod.
+
+**First real observation (4 October, by the lead).** A pod created with a 15-minute cap and no
+lease stopped itself at the cap, to the second: RunPod's last status change reads 12:27:21 UTC
+against a cap of 12:27:21.065, an outside poll saw it running at 12:27:02 and exited at 12:27:23,
+no stop was sent from outside, and the account's spend fell to the storage rate. The records are
+in `.ai/inputs/study-v2-20261002/pod-timer-cap-check-20261004/`, including the
+`stop-confirmation.json` that admission requires. This is one observation on one pod type; how
+long a stop takes under load, and what the pod-scoped key may do beyond it, remain open.
+
+## Running a host on a pod (added 4 October)
+
+**Status.** Built and tested locally only. On 4 October, at the user's instruction to start, the
+lead launched the frozen development matrix the 2 October way (over SSH, the same `calibrate`
+arguments, output root `dev-matrix-002`) with two additions: the stop timer as a hard cap on
+every pod and a laptop-side pull of each sealed unit. The plan both sessions agreed is
+`.ai/inputs/study-v2-20261002/matrix-launch-plan-20261004.md`. The pieces below are therefore not
+on that run's critical path. They are for retries of its lost or failed hosts and units, for the
+next stages, and for later runs.
+
+**The pieces.**
+
+- A **worker** on the pod runs one host's jobs of the frozen plan unit by unit. Before a unit: an
+  admission lease long enough for it, which arms the stop timer. After the unit seals: its
+  acknowledgement off the pod, before the next unit. At the end it asks the timer to stop the pod.
+  It starts by checking the same identities the 2 October runner checked and by restoring what
+  the host has already acknowledged.
+- A **job runner** in the pod, started by the timer's supervisor, fetches the bundles from the
+  backup repository, checks their hashes, runs the bootstrap and then the worker, and asks the
+  timer to stop the pod if anything fails. Nobody logs in; the laptop can be off.
+- A **launcher** on the operator's machine uploads the bundles, creates the network volume and
+  the pod, refuses a duplicate or a price above a stated limit, and records every request. It
+  cannot terminate or delete anything.
+
+**Scientific identity.** The worker calls the engine's own unit function with the job fields the
+engine's calibration loop builds. A test compares its sealed folders with the engine's
+`calibrate` for the same job, leaf by leaf. Against `calibrate` at the same paths it differs only
+where two `calibrate` runs differ from each other: seconds, timestamps and the hashes of the
+files holding them. Against the plan's command, which names paths relatively, eight path fields
+are additionally spelled absolutely, each resolving to the same place. Every saved state and
+every evaluation output is byte-identical. The engine, the recipe, the prepared data and the plan
+were not changed.
+
+**The GPU.** The matrix stays on the A100-SXM4-80GB in Secure Cloud. All 13 hosts of 2 October
+were that type at a quoted $1.59 an hour; no unit ever ran on the PCIe variant, so the receipts
+allow no cost-per-unit comparison between A100 variants, and the fixture was only established on
+SXM4. The calibration receipts give about 63 minutes and $1.67 for one arm and seed (q, e1, e3)
+under the calibration recipe; the frozen recipe's longer evaluations are not in them.
+
+**Taking over a host that ran without the safeguards.** A tree written by plain `calibrate` has
+no attempt catalogue and names paths relatively. The worker adopts it: sealed units are
+acknowledged as they are; an attempt that neither sealed nor failed is kept as lost with an
+unknown cost and rerun as the next attempt; a lost fresh start waits for the operator's
+tombstone.
+
+**The one-pod validation and the matrix runbook** are in the package README ("Running a host on a
+pod"), with the exact commands and the table of which measured numbers set which matrix settings.
+The validation starts from a host of the 4 October run rather than repeating the matrix.
+
+**Limits.** The worker launches calibration units only; the next stages are other unit kinds.
+Each host keeps its own reservation ledger, so one host's admission counts the other pods as
+liabilities over its own horizon rather than their full reservations. The bootstrap step is the
+2 October script and cannot be repeated on a volume where it half-ran.
 
 ## The shutdown watchdog (added 3 October; since 4 October a best-effort backup)
 
@@ -314,7 +376,7 @@ the Actions tab shows a green "watchdog" run every half hour, and `python -m
 experiments.durability check-watchdog` prints the governing stop time and the run that
 acknowledged it.
 
-**What the local tests show (68 of the 221).** The deployed script itself, run against fake
+**What the local tests show (68 of the 260).** The deployed script itself, run against fake
 GitHub and RunPod services with a manual clock: no stop before the stop time and exactly one
 after it; renewal and supersession; malformed, unacknowledged, withdrawn and foreign-pod arms
 governing nothing; nothing deleted; `armed` only after a matching acknowledgement; admission

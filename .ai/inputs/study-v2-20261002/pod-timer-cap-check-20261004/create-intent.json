@@ -1,0 +1,34 @@
+{
+ "cap_stop_utc": "2026-10-04T12:27:21.065+00:00",
+ "env_names": [
+  "POD_TIMER_B64_00",
+  "POD_TIMER_CAP_ISSUED_UTC",
+  "POD_TIMER_CAP_STOP_UTC",
+  "POD_TIMER_DIR"
+ ],
+ "request_without_env": {
+  "cloudType": "SECURE",
+  "containerDiskInGb": 20,
+  "dockerStartCmd": [
+   "bash",
+   "-c",
+   "set -o pipefail; d=\"/opt/pod-timer\"; f=\"$d/pod_timer.py\"; mkdir -p \"$d\" && for v in $(compgen -v POD_TIMER_B64_ | sort); do printf %s \"${!v}\"; done | base64 -d | gunzip > \"$f\" && [ \"$(sha256sum < \"$f\" | cut -c1-64)\" = \"fdf428efe0f9d2346aaa29ce4e3b0794d928ca8a4d64a97885808f452a7db745\" ] && command -v python3 > /dev/null && python3 -I \"$f\" supervise -- /start.sh; echo \"pod-timer: the stop timer is not running; stopping this pod\"; while true; do runpodctl pod stop \"$RUNPOD_POD_ID\" || runpodctl stop pod \"$RUNPOD_POD_ID\" || curl -fsS -o /dev/null -X POST -H \"Authorization: Bearer $RUNPOD_API_KEY\" \"${POD_TIMER_REST_URL:-https://rest.runpod.io/v1}/pods/$RUNPOD_POD_ID/stop\"; sleep 30; done"
+  ],
+  "gpuCount": 1,
+  "gpuTypeIds": [
+   "NVIDIA RTX 2000 Ada Generation",
+   "NVIDIA RTX A4000",
+   "NVIDIA RTX A4500",
+   "NVIDIA RTX A5000",
+   "NVIDIA RTX 4000 Ada Generation"
+  ],
+  "gpuTypePriority": "custom",
+  "imageName": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404",
+  "interruptible": false,
+  "name": "attribution-pod-timer-check-20261004",
+  "ports": [],
+  "volumeInGb": 5,
+  "volumeMountPath": "/workspace"
+ },
+ "utc": "2026-10-04T12:12:21+00:00"
+}

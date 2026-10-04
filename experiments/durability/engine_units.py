@@ -37,13 +37,26 @@ refused while any earlier claim's folder has no ``error.txt``. A continuation cl
 
 Only run-one units are launched here (calibration and trajectory chains). Sealed folders of any
 kind made elsewhere can be acknowledged with ``acknowledge_sealed_tree``.
+
+**Trees made without this runner.** A tree written by the engine's own ``calibrate`` (for
+example one pulled from a pod that ran without these safeguards) has no catalogue, and its job
+files and registry may spell paths relative to the study root. ``adopt`` catalogues what such a
+tree holds for the planned units: sealed and failed attempts as they are, and every attempt that
+neither sealed nor failed, or that the registry claims but whose folder is missing, as **lost**
+with an unknown start and cost. From then on the rules above apply to them. The process must run
+with the study root as its working directory, so that the engine's own relative paths resolve.
+
+``before_unit`` and ``after_unit`` are optional callbacks around a unit that has to run (not a
+reused one): before the gate is asked, and after the unit's acknowledgement or failure. The pod
+worker uses them to obtain a lease for the unit and to keep it alive while the unit runs.
 """
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Sequence
+from typing import Callable, Sequence
 
 from experiments.safety_selection.common import PACKAGE_DIR, code_identity
 from experiments.safety_selection.jobs import trajectory_key
@@ -97,8 +110,10 @@ class UnitRunner:
 
     def __init__(self, *, session, prepared_dir: str | Path, out_root: str | Path, admin_dir: str | Path,
                  vault: Vault, gate: DispatchGate, worker: str, clock: Clock = utc_clock,
-                 code_root: str | Path | None = None) -> None:
+                 code_root: str | Path | None = None, before_unit: Callable[[UnitSpec], None] | None = None,
+                 after_unit: Callable[[UnitSpec], None] | None = None) -> None:
         self.session, self.vault, self.gate, self.worker, self.clock = session, vault, gate, worker, clock
+        self.before_unit, self.after_unit = before_unit, after_unit
         self.prepared_dir, self.out_root = Path(prepared_dir).resolve(), Path(out_root).resolve()
         self.admin_dir = Path(admin_dir).resolve()
         if self.admin_dir == self.out_root or self.out_root in self.admin_dir.parents:
@@ -173,9 +188,10 @@ class UnitRunner:
                                     "never zero, never imputed"}
                     self._note("attempt-lost", **lost)
                     found.append(lost)
-        claims = {row["run_dir"] for row in read_jsonl(self.registry)}
+        claims = {str(Path(row["run_dir"]).resolve()) for row in read_jsonl(self.registry)}
         for attempt in self.attempts():
-            if attempt["state"] == "lost" and attempt["fresh_start"] and attempt["run_dir"] not in claims:
+            if (attempt["state"] == "lost" and attempt["fresh_start"] and attempt.get("key") is not None
+                    and str(Path(attempt["run_dir"]).resolve()) not in claims):
                 append_jsonl(self.registry, {"key": attempt["key"], "run_dir": attempt["run_dir"],
                                              "replicate_of": None, "retry_after_failures": [],
                                              "utc": attempt["utc"],
@@ -195,12 +211,60 @@ class UnitRunner:
         self._snapshot()
         return found
 
+    def adopt(self, units: Sequence[UnitSpec]) -> list[dict]:
+        """Catalogue the attempts of the planned units that exist in the tree, or are claimed in
+        its registry, without a catalogue line (module doc). Returns what was adopted."""
+        known = {(a["unit"], a["attempt"]) for a in self.attempts()}
+        claimed = {str(Path(row["run_dir"]).resolve()): row for row in read_jsonl(self.registry)}
+        adopted = []
+        for spec in units:
+            stem = f"{spec.name}-a"
+            numbers = {int(p.name[len(stem):]) for p in self.out_root.glob(stem + "*") if p.name[len(stem):].isdigit()}
+            numbers |= {int(Path(d).name[len(stem):]) for d in claimed
+                        if Path(d).parent == self.out_root and Path(d).name.startswith(stem)
+                        and Path(d).name[len(stem):].isdigit()}
+            for number in sorted(numbers):
+                if (spec.name, number) in known:
+                    continue
+                folder = self.out_root / f"{spec.name}-a{number}"
+                claim = claimed.get(str(folder))
+                fresh = spec.resume_from is None
+                ident = {"unit": spec.name, "attempt": number, "run_dir": str(folder)}
+                self._note("attempt-started", **ident, fresh_start=fresh, key=(claim or {}).get("key") if fresh else None,
+                           lease=None, rate_per_hour=None, currency=None, resume_from=None,
+                           adopted="found in the tree without a catalogue line: it was not started by this runner; "
+                                   "its start time, lease and rate are unknown")
+                seal = _seal_of(folder)
+                if seal and seal[0] == "run" and is_sealed(folder):
+                    self._note("attempt-sealed", **ident, complete_sha256=seal[1], recovered=True)
+                    state = "sealed"
+                elif seal and seal[0] == "failed-run":
+                    self._note("attempt-failed", **ident, error_type="recorded by the engine", recovered=True)
+                    state = "failed"
+                else:
+                    self._note("attempt-lost", **ident, start_utc=None, lease=None, rate_per_hour=None, currency=None,
+                               folder_present=folder.is_dir(), last_seen_utc=None, known_seconds=None,
+                               cost="unknown: the attempt ran outside this runner; never zero, never imputed")
+                    state = "lost"
+                adopted.append({**ident, "state": state, "claimed": claim is not None})
+        return adopted
+
+    @staticmethod
+    def unresolved(attempt: dict) -> bool:
+        """An attempt that ended without the engine sealing it or recording its failure: lost, or
+        interrupted in a way that let this runner note the failure but not the engine (a signal).
+        If it was a fresh start it may still hold its registry claim, which only a tombstone ends."""
+        folder = Path(attempt["run_dir"])
+        return (attempt["state"] in ("lost", "failed") and not (folder / ERROR).is_file()
+                and not (folder / COMPLETE).is_file())
+
     def declare_lost(self, unit: str, attempt: int, *, operator: str, reason: str) -> Path:
         """Tombstone a lost attempt (module doc): write the administrative ``error.txt`` in its
-        folder, creating the folder when the directory itself was lost. Only a catalogued lost
-        attempt can be declared; a sealed folder never."""
+        folder, creating the folder when the directory itself was lost. Only a catalogued attempt
+        that is lost, or failed without the engine's own failure record, can be declared; a sealed
+        folder never."""
         match = [a for a in self.attempts() if (a["unit"], a["attempt"]) == (unit, attempt)]
-        if not match or match[0]["state"] != "lost":
+        if not match or not self.unresolved(match[0]):
             raise DurabilityError(f"{unit} attempt {attempt} is not a catalogued lost attempt")
         if not operator.strip() or not reason.strip():
             raise DurabilityError("a tombstone names its operator and reason")
@@ -221,11 +285,12 @@ class UnitRunner:
         if spec.resume_from is not None and spec.resume_from not in sealed:
             raise DurabilityError(f"{spec.name} continues {spec.resume_from}, which is not an earlier sealed unit "
                                   "of this plan")
-        return {"kind": "run-one", "split": spec.split, "arm": spec.arm, "seed": spec.seed, "role": spec.role,
-                "target_checkpoint": spec.target_checkpoint, "evaluate_bank": spec.evaluate_bank,
-                "resume_from": str(sealed[spec.resume_from]) if spec.resume_from else None, "replicate_of": None,
+        # the keys in the order of the engine's own calibration loop
+        return {"kind": "run-one", "split": spec.split, "role": spec.role, "evaluate_bank": spec.evaluate_bank,
                 "manifest_sha256": self.manifest_sha256, "recipe_sha256": self.session.recipe_sha256,
-                "code_sha256": self.code_sha256, "wall_limit_seconds": None}
+                "code_sha256": self.code_sha256, "replicate_of": None, "wall_limit_seconds": None,
+                "arm": spec.arm, "seed": spec.seed, "target_checkpoint": spec.target_checkpoint,
+                "resume_from": str(sealed[spec.resume_from]) if spec.resume_from else None}
 
     def _numbers(self, spec: UnitSpec) -> list[int]:
         stem = f"{spec.name}-a"
@@ -271,8 +336,7 @@ class UnitRunner:
         lease = self.gate.require(self.worker, self._previous(), spec.planned_seconds)
         fresh = job["resume_from"] is None
         if fresh:
-            unresolved = [a for a in self.attempts() if a["unit"] == spec.name and a["state"] == "lost"
-                          and not (Path(a["run_dir"]) / ERROR).is_file()]
+            unresolved = [a for a in self.attempts() if a["unit"] == spec.name and self.unresolved(a)]
             if unresolved:
                 raise LostAttemptUnresolved(
                     f"{spec.name}: attempt(s) {[a['attempt'] for a in unresolved]} were lost after claiming the "
@@ -314,14 +378,24 @@ class UnitRunner:
             job = self._job(spec, sealed)
             folder = self._sealed_attempt(spec, job)
             reused = folder is not None
-            if folder is None:
-                folder = self._launch(spec, job)
-            unit = run_unit(str(folder), self.vault.source_map)
-            ack = self.vault.acknowledge(unit)
-            self._snapshot()
+            timing = {"launch_seconds": None}
+            if not reused and self.before_unit is not None:
+                self.before_unit(spec)
+            try:
+                if folder is None:
+                    started = time.monotonic()
+                    folder = self._launch(spec, job)
+                    timing["launch_seconds"] = time.monotonic() - started
+                started = time.monotonic()
+                ack = self.vault.acknowledge(run_unit(str(folder), self.vault.source_map))
+                self._snapshot()
+                timing["acknowledge_seconds"] = time.monotonic() - started
+            finally:
+                if not reused and self.after_unit is not None:
+                    self.after_unit(spec)
             sealed[spec.name] = folder
             report.append({"unit": spec.name, "run_dir": str(folder), "reused": reused, "ack": ack["unit"],
-                           "acknowledged_utc": ack["acknowledged_utc"]})
+                           "acknowledged_utc": ack["acknowledged_utc"], **timing})
         return report
 
 

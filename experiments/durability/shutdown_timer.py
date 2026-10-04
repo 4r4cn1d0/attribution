@@ -59,7 +59,7 @@ from typing import Callable
 from .common import Clock, DurabilityError, NotConfigured, ProviderError, iso, parse_utc, utc_clock
 
 __all__ = ["PodTimer", "LayeredShutdown", "StopConfirmation", "settings", "TIMER_SCRIPT", "LEASE_KIND", "ACK_KIND",
-           "BEAT_KIND", "LEASE_ID", "MAX_HORIZON_SECONDS", "RECOMMENDED_LATENESS_SECONDS", "START_SCRIPT"]
+           "BEAT_KIND", "LEASE_ID", "MAX_HORIZON_SECONDS", "RECOMMENDED_LATENESS_SECONDS", "START_SCRIPT", "START_SCRIPT_WITH_JOB"]
 
 LEASE_KIND = "durability pod-timer lease v1"
 ACK_KIND = "durability pod-timer acknowledgement v1"
@@ -246,6 +246,31 @@ class PodTimer:
                                     "does not see this folder")
             self.sleep(self.poll_seconds)
 
+    def finish(self, worker: str, pod: str, after_seconds: float = 120.0, reason: str = "the work is complete") -> dict:
+        """Ask the timer to stop the pod soon: a record like a lease whose stop time is
+        ``after_seconds`` from now, which governs as the most recently issued authority. Shortening
+        a deadline needs no admission. Returns once the timer has acknowledged it; raises otherwise
+        (the earlier deadline then still stands)."""
+        if not (isinstance(after_seconds, (int, float)) and not isinstance(after_seconds, bool) and 5 <= after_seconds <= 3600):
+            raise DurabilityError("a finishing stop is asked for between 5 seconds and an hour ahead")
+        before = self.heartbeat(pod)
+        now = self.clock()
+        stop_at = now + dt.timedelta(seconds=after_seconds)
+        lease = f"{now:%Y%m%dT%H%M%SZ}-{secrets.token_hex(8)}"
+        record = {"kind": LEASE_KIND, "lease": lease, "worker": worker, "pod": pod, "stop_at_utc": iso(stop_at),
+                  "reserved_until_utc": iso(stop_at), "published_utc": iso(now), "purpose": "finish",
+                  "reason": _plain(reason)}
+        try:
+            if not _publish(self.state_dir / "leases" / f"{lease}.json", record):
+                raise ProviderError("the finishing record could not be created under a new name")
+            ack, beat = self._acknowledged(lease, record, now)
+        except OSError as exc:
+            raise ProviderError(f"the finishing record could not be written to the mount ({type(exc).__name__})") from None
+        return {"finishing": True, "pod": pod, "lease": lease, "stop_at_utc": record["stop_at_utc"],
+                "acknowledged_utc": ack.get("acknowledged_utc"),
+                "timer": {"pid": beat.get("pid"), "instance": beat.get("instance"),
+                          "restarted_since_asked": beat.get("instance") != before.get("instance")}}
+
     def status(self) -> dict:
         """The heartbeat as written, with its age. Reads only."""
         beat = _read(self.state_dir / "heartbeat.json")
@@ -279,6 +304,9 @@ class LayeredShutdown:
 
     def status(self) -> dict:
         return self.primary.status()
+
+    def finish(self, worker: str, pod: str, after_seconds: float = 120.0, reason: str = "the work is complete") -> dict:
+        return self.primary.finish(worker, pod, after_seconds, reason)
 
     def arm(self, worker: str, pod: str, at_utc: str) -> dict:
         armed = self.primary.arm(worker, pod, at_utc)           # required: raises, and admission refuses
@@ -316,15 +344,40 @@ START_SCRIPT = (
     '"${{POD_TIMER_REST_URL:-https://rest.runpod.io/v1}}/pods/$RUNPOD_POD_ID/stop"; sleep 30; done')
 
 
+_STOP_LOOP = START_SCRIPT[START_SCRIPT.index('echo "pod-timer:'):]
+# with a job: the timer and the job runner are both unpacked and checked, and the supervisor's
+# command is the job runner (which starts the image's own start script itself)
+START_SCRIPT_WITH_JOB = (
+    'set -o pipefail; d="{install}"; '
+    'unpack() {{ for v in $(compgen -v "$1" | sort); do printf %s "${{!v}}"; done | base64 -d | gunzip > "$2" '
+    '&& [ "$(sha256sum < "$2" | cut -c1-64)" = "$3" ]; }}; '
+    'mkdir -p "$d" && unpack POD_TIMER_B64_ "$d/pod_timer.py" {sha256} && unpack POD_JOB_B64_ "$d/pod_job.py" {job_sha256} '
+    '&& command -v python3 > /dev/null && python3 -I "$d/pod_timer.py" supervise -- python3 -I "$d/pod_job.py"; ') + _STOP_LOOP
+
+
+def _packed(source: bytes, prefix: str, chunk_chars: int) -> dict:
+    packed = base64.b64encode(gzip.compress(source, 9, mtime=0)).decode("ascii")
+    size = chunk_chars or len(packed)
+    chunks = [packed[i:i + size] for i in range(0, len(packed), size)]
+    if len(chunks) > 100:
+        raise DurabilityError("a script would need more than 100 variables at this chunk size")
+    return {f"{prefix}{index:02d}": chunk for index, chunk in enumerate(chunks)}
+
+
 def settings(*, state_dir: str, cap_seconds: float, clock: Clock = utc_clock, wrapped: str = "/start.sh",
-             install_dir: str = "/opt/pod-timer", chunk_chars: int = 0, script: Path = TIMER_SCRIPT) -> dict:
+             install_dir: str = "/opt/pod-timer", chunk_chars: int = 0, script: Path = TIMER_SCRIPT,
+             job_script: Path | None = None) -> dict:
     """What the operator gives RunPod when creating (or starting again) a pod: ``env`` (the timer
     script, gzip and base64, in one or more ``POD_TIMER_B64_nn`` variables; the state folder; the
     cap, issued now and ``cap_seconds`` long) and the start command, as the array the API takes
     (``docker_start_cmd``) and as the one line the console takes (``console_start_command``). The
     command holds the script's SHA-256, so a variable RunPod cut short is noticed; it stops the pod
     (``runpodctl``, in both spellings, then the REST call with the pod's own key) if the timer
-    cannot be started or ever exits."""
+    cannot be started or ever exits.
+
+    With ``job_script`` (the in-pod job runner, ``pod_timer/pod_job.py``) that script travels the
+    same way (``POD_JOB_B64_nn``), is checked the same way, and is what the supervisor starts
+    instead of ``wrapped``; the job runner starts the image's own start script itself."""
     if not (isinstance(cap_seconds, (int, float)) and not isinstance(cap_seconds, bool) and 0 < cap_seconds <= MAX_HORIZON_SECONDS):
         raise DurabilityError(f"the cap must be between 0 and {MAX_HORIZON_SECONDS // 3600} hours")
     for name, value in (("state folder", state_dir), ("install folder", install_dir), ("start script", wrapped)):
@@ -343,7 +396,14 @@ def settings(*, state_dir: str, cap_seconds: float, clock: Clock = utc_clock, wr
     env.update(POD_TIMER_DIR=state_dir, POD_TIMER_CAP_ISSUED_UTC=iso(now),
                POD_TIMER_CAP_STOP_UTC=iso(now + dt.timedelta(seconds=cap_seconds)))
     sha256 = hashlib.sha256(source).hexdigest()
-    body = START_SCRIPT.format(install=install_dir, sha256=sha256, wrapped=wrapped)
+    job_sha256 = None
+    if job_script is None:
+        body = START_SCRIPT.format(install=install_dir, sha256=sha256, wrapped=wrapped)
+    else:
+        job_source = Path(job_script).read_bytes()
+        job_sha256 = hashlib.sha256(job_source).hexdigest()
+        env.update(_packed(job_source, "POD_JOB_B64_", chunk_chars))
+        body = START_SCRIPT_WITH_JOB.format(install=install_dir, sha256=sha256, job_sha256=job_sha256)
     return {"env": env, "docker_start_cmd": ["bash", "-c", body], "console_start_command": f"bash -c '{body}'",
             "script_sha256": sha256, "script_bytes": len(source), "packed_chars": len(packed),
-            "cap_stop_utc": env["POD_TIMER_CAP_STOP_UTC"]}
+            "cap_stop_utc": env["POD_TIMER_CAP_STOP_UTC"], "job_sha256": job_sha256}
