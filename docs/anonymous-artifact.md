@@ -1,6 +1,12 @@
 # Anonymous review export
 
-Status: private staging only. `tools/export_anonymous_artifact.py` builds a code-and-protocol
+Status: the staging repository is private; since 4 October 2026 it is also published, at the
+user's request, through Anonymous GitHub at https://anonymous.4open.science/r/safety-data-edits-ba84/
+with auto-update on, so anything pushed to staging is public within an hour (record:
+`.ai/inputs/study-v2-20261002/anon-4open-publication.json`). Of the checklist in "Before any
+reviewer link", item 3, a non-author review of the staged tree, was not done before publishing.
+
+`tools/export_anonymous_artifact.py` builds a code-and-protocol
 package from the integrated stage-A engine, the stage-B decision-policy package and the
 minimal-safety slice. Passing its checks
 does not make anything anonymous (see "What the checks cannot establish"), and the package is
