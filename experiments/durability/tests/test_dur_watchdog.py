@@ -697,7 +697,7 @@ def test_a_renewed_lease_moves_the_stop_time(world, tmp_path):
 
 
 WITHDRAWN = {
-    "no watchdog is configured": (lambda d: setattr(d, "shutdown", None), "no external shutdown watchdog is configured"),
+    "no watchdog is configured": (lambda d: setattr(d, "shutdown", None), "no shutdown is configured"),
     "Actions does not run the workflow": (lambda d: setattr(d.world.actions, "enabled", False), "did not acknowledge the arm in time"),
     "the schedule is not running": (lambda d: d.world.github.runs.clear(), "liveness"),
     "the allow-list does not name the pod": (lambda d: d.world.actions.allow({}), "not-a-worker"),
@@ -741,7 +741,7 @@ def test_the_configuration_builds_the_watchdog_only_when_it_is_named(world):
     options = {"rest_url": f"{world.runpod.url}/v1", "graphql_url": f"{world.runpod.url}/graphql"}
     bare = provider_from(config, **options)
     assert bare.shutdown is None
-    with pytest.raises(NotConfigured, match="no external shutdown watchdog is configured"):
+    with pytest.raises(NotConfigured, match="no shutdown is configured"):
         bare.arm_shutdown("worker-1", iso(after(3 * HOUR)))
     shutdown = {"kind": "github-actions-watchdog", "repository": REPOSITORY, "lateness_seconds": 3600}
     built = provider_from({**config, "shutdown": shutdown}, **options,
@@ -791,7 +791,7 @@ def test_the_check_watchdog_command_reads_the_records_and_changes_nothing(world,
                           "--runpod-rest-url", f"{world.runpod.url}/v1", "--runpod-graphql-url", f"{world.runpod.url}/graphql"]
     assert cli(provider_arguments) == 0
     shutdown = json.loads(capsys.readouterr().out)["shutdown"]
-    assert shutdown["watchdog"]["repository"] == REPOSITORY and "acknowledgement" in shutdown["can_arm"]
+    assert shutdown["configured"]["repository"] == REPOSITORY and "acknowledgement" in shutdown["can_arm"]
     assert len(world.github.log) == seen
     del config["shutdown"]
     path.write_text(json.dumps(config))

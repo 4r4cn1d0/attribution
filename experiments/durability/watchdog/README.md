@@ -1,5 +1,11 @@
 # Shutdown watchdog: files to deploy
 
+Since 4 October 2026 the watchdog is the **backup** behind the pod's own stop timer
+(`../pod_timer/`); admission never depends on it. `watchdog.py` changed that day (a backup arm is
+acknowledged without a recent scheduled scan), and with it the pin in `watchdog.yml`: the copy
+deployed on 3 October keeps working but refuses most backup arms until both files are replaced,
+which needs a credential with the "Workflows" permission.
+
 These three files are the whole watchdog. They run in the **backup repository**
 (`4r4cn1d0/attribution-backups`), not in this project; nothing here imports the project.
 

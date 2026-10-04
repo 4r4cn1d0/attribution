@@ -36,10 +36,14 @@ not:
   ``terminateAfter`` (``DateTime``) among the inputs that *create* a pod, without describing them;
   the pod type does not expose them, the REST pod schema has no such field, and no documented call
   sets a stop time on an existing pod. A stop time that cannot be read back cannot be confirmed
-  from here. ``arm_shutdown`` therefore refuses unless the configuration names an external
-  watchdog (``shutdown_watchdog.GitHubActionsWatchdog``); with one, it answers ``armed`` only
-  after that watchdog has acknowledged a stop of this worker's pod. This adapter still never
-  stops anything itself and holds no credential that could (README: "The shutdown watchdog").
+  from here. ``arm_shutdown`` therefore refuses unless the configuration names a shutdown: the
+  stop timer inside the pod (``shutdown_timer.PodTimer``, with the GitHub watchdog as an optional
+  best-effort backup), or the watchdog alone. It answers ``armed`` only after that shutdown has
+  acknowledged a stop of this worker's pod, and for the timer only when its records are on storage
+  RunPod confirms as persistent. This adapter never stops anything itself (README: "Shutdown").
+- **Which key.** Inside a pod RunPod sets ``RUNPOD_API_KEY`` to a pod-scoped key of its own
+  ("Pod-scoped API key"; what it may do is not documented). The account key this adapter reads
+  with must then come from another variable (``key_env``); it should be a Read Only key.
 
 Any field that is missing, of another type or outside the documented values makes the call fail
 with ``ProviderError``; nothing is defaulted. Admission treats every provider error as a refusal.
@@ -66,9 +70,9 @@ RUNPOD_POD_ENV = "RUNPOD_POD_ID"
 UNCONFIRMED_BALANCE_KIND = "runpod-clientBalance-unconfirmed"
 MYSELF_QUERY = "query { myself { clientBalance currentSpendPerHr spendLimit } }"
 POD_STATES = ("RUNNING", "EXITED", "TERMINATED")
-SHUTDOWN_GAP = ("RunPod documents no stop time that can be set on, or read back from, an existing pod, and no external "
-                "shutdown watchdog is configured; a shutdown cannot be confirmed, so no lease is granted (README: the "
-                "shutdown watchdog)")
+SHUTDOWN_GAP = ("RunPod documents no stop time that can be set on, or read back from, an existing pod, and no shutdown "
+                "is configured (the pod's own stop timer, or the external watchdog); a shutdown cannot be confirmed, "
+                "so no lease is granted (README: Shutdown)")
 
 
 @dataclass(frozen=True)
@@ -337,6 +341,10 @@ class RunPodProvider(Provider):
         pod_id = self.config.worker_pods.get(worker)
         if pod_id is None:
             raise NotConfigured(f"no pod is configured for worker {worker!r}")
+        state_dir = getattr(self.shutdown, "state_dir", None)
+        if state_dir is not None:       # a stop timer in the pod: its deadline must survive a restart of the container
+            if self.confirm_persistent(str(state_dir)).get("persistent") is not True:
+                raise ProviderError("the stop timer's records are not on storage RunPod confirms as persistent")
         armed = self.shutdown.arm(worker, pod_id, at_utc)
         if not (isinstance(armed, dict) and armed.get("armed") is True and armed.get("pod") == pod_id
                 and armed.get("at_utc") == at_utc):

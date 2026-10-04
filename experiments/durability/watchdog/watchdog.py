@@ -11,7 +11,10 @@ What it does, and nothing else:
   worker and its pod, is still within its acknowledgement window, the pod answers as RUNNING
   with this workflow's RunPod key, and a scheduled scan ran recently; then write the
   acknowledgement, create-only. The worker treats its shutdown as armed only when it reads that
-  acknowledgement.
+  acknowledgement. An arm whose record says ``"role": "backup"`` is acknowledged without the
+  recent scheduled scan: it promises no punctuality (the pod's own timer is the primary stop),
+  only that the first scan at or after the stop time, whenever GitHub runs it, stops the pod if
+  it is still running.
 - **scan** (the schedule): for every allow-listed pod find the *governing* arm: the latest one
   that was acknowledged and not withdrawn. At or after its ``stop_at_utc`` the pod is **stopped**
   (never terminated or deleted) through ``POST /pods/{id}/stop``, the result is confirmed with a
@@ -269,8 +272,11 @@ def valid_arm(record: object, arm_id: str, pods: dict[str, str]) -> dict:
         raise Refused("malformed: the stop time is before publication, after the reservation or too far away")
     if not 0 < (ack_by - published).total_seconds() <= MAX_ACK_WINDOW_SECONDS:
         raise Refused("malformed: acknowledgement window")
+    role = record.get("role", "primary")
+    if role not in ("primary", "backup"):
+        raise Refused("malformed: role")
     return {"arm": arm_id, "worker": worker, "pod": pod, "published": published, "stop_at": stop_at, "ack_by": ack_by,
-            "reserved_until": reserved_until}
+            "reserved_until": reserved_until, "role": role}
 
 
 class Watchdog:
@@ -362,14 +368,24 @@ class Watchdog:
                 raise Refused("late: the stop time has passed")
             if self.pod_status(arm["pod"]) != "RUNNING":
                 raise Refused("pod: RunPod does not report this pod as RUNNING")
-            last = self._last_scheduled_scan()
-            if last is None or (now - last).total_seconds() > 2 * self.interval + 900:
-                raise Refused("liveness: no scheduled scan ran recently; the watchdog would not be watching")
-            ack = {"kind": ACK_KIND, "arm": arm_id, "worker": arm["worker"], "pod": arm["pod"],
+            if arm["role"] == "backup":             # no punctuality is promised, so none is required
+                try:
+                    last = self._last_scheduled_scan()
+                except Refused:
+                    last = None
+                statement = ("backup: the first scheduled scan of this workflow at or after stop_at_utc, whenever "
+                             "GitHub runs it, stops this pod if it is still running, unless a later acknowledged "
+                             "arm for the same pod governs")
+            else:
+                last = self._last_scheduled_scan()
+                if last is None or (now - last).total_seconds() > 2 * self.interval + 900:
+                    raise Refused("liveness: no scheduled scan ran recently; the watchdog would not be watching")
+                statement = ("the scheduled scan of this workflow stops this pod at stop_at_utc unless a later "
+                             "acknowledged arm for the same pod governs")
+            ack = {"kind": ACK_KIND, "arm": arm_id, "worker": arm["worker"], "pod": arm["pod"], "role": arm["role"],
                    "stop_at_utc": iso(arm["stop_at"]), "acknowledged_utc": iso(self.clock()), **self.run,
-                   "last_scheduled_scan_utc": iso(last), "scan_interval_seconds": self.interval,
-                   "statement": "the scheduled scan of this workflow stops this pod at stop_at_utc unless a later "
-                                "acknowledged arm for the same pod governs"}
+                   "last_scheduled_scan_utc": None if last is None else iso(last),
+                   "scan_interval_seconds": self.interval, "statement": statement}
             if not self.records.create(f"watchdog-acks-{month}", f"ack-{arm_id}.json", ack):
                 raise Refused("duplicate: this arm was already acknowledged")
             self.log("arm-acknowledged", arm=arm_id, pod=arm["pod"], stop_at_utc=ack["stop_at_utc"])

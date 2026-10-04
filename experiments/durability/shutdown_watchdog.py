@@ -1,10 +1,15 @@
 """The worker's side of the external shutdown watchdog (stdlib only).
 
-RunPod documents no stop time that can be set on, or read back from, an existing pod. The shutdown
-at the end of a reservation is therefore done by a watchdog that runs outside RunPod and outside
-the worker: a GitHub Actions workflow in the backup repository (``watchdog/watchdog.py`` and
-``watchdog/watchdog.yml`` in this package; the README describes the deployment). This module is
-what the worker runs when admission asks for the shutdown to be armed.
+**Role since 4 October 2026: a best-effort backup.** The watchdog was built as the required
+shutdown; deployed, GitHub ran 3 of its 33 scheduled slots in 16 hours. The required stop is now
+the timer inside the pod (``shutdown_timer``), which arms this watchdog afterwards with
+``role="backup"`` (class doc) and never depends on it. What follows describes the watchdog as
+built, which is also how it behaves when configured as the required shutdown.
+
+RunPod documents no stop time that can be set on, or read back from, an existing pod. The watchdog
+runs outside RunPod and outside the worker: a GitHub Actions workflow in the backup repository
+(``watchdog/watchdog.py`` and ``watchdog/watchdog.yml`` in this package; the README describes the
+deployment). This module is what the worker runs when the watchdog is asked to arm.
 
 ``GitHubActionsWatchdog.arm(worker, pod, at_utc)``:
 
@@ -86,20 +91,34 @@ def _plain(text: object, limit: int = 160) -> str:
 class GitHubActionsWatchdog:
     """See the module doc. ``lateness_seconds`` has no default: it is a stated assumption
     (``RECOMMENDED_LATENESS_SECONDS`` with the 30-minute scan). ``ack_window_seconds``: how long
-    the watchdog has to acknowledge. ``sleep`` and ``clock`` are injectable for tests."""
+    the watchdog has to acknowledge. ``sleep`` and ``clock`` are injectable for tests.
 
-    def __init__(self, repository: str, *, lateness_seconds: float, ack_window_seconds: float = 600.0,
+    ``role="backup"`` (``lateness_seconds`` omitted): the watchdog stands behind the pod's own stop
+    timer (``shutdown_timer``). Its stop time is then ``at_utc`` itself, it promises no punctuality
+    and none is checked, and its acknowledgement needs no recent scheduled scan. Admission never
+    depends on a backup."""
+
+    def __init__(self, repository: str, *, lateness_seconds: float | None = None, role: str = "primary",
+                 ack_window_seconds: float = 600.0,
                  poll_seconds: float = 10.0, grace_seconds: float = 60.0, token_env: str = GITHUB_TOKEN_ENV,
                  api_url: str = "https://api.github.com", upload_url: str = "https://uploads.github.com",
                  clock: Clock = utc_clock, sleep: Callable[[float], None] = time.sleep, max_retries: int = 4,
                  max_wait_seconds: float = 120.0) -> None:
         if not isinstance(repository, str) or not _REPOSITORY.fullmatch(repository):
             raise DurabilityError("the watchdog's repository must be given as owner/name")
-        numbers = (lateness_seconds, ack_window_seconds, poll_seconds, grace_seconds)
+        if role not in ("primary", "backup"):
+            raise DurabilityError("the watchdog's role is primary or backup")
+        if role == "backup":
+            if lateness_seconds is not None:
+                raise DurabilityError("a backup watchdog states no lateness: it stops at the end of the reservation, "
+                                      "whenever GitHub next runs its scan")
+            lateness_seconds = 0.0
+        numbers = (ack_window_seconds, poll_seconds, grace_seconds) + (() if role == "backup" else (lateness_seconds,))
         if not all(isinstance(v, (int, float)) and not isinstance(v, bool) and v > 0 for v in numbers):
             raise DurabilityError("the watchdog's lateness, acknowledgement window, poll and grace must be positive numbers")
         if ack_window_seconds > MAX_ACK_WINDOW_SECONDS:
             raise DurabilityError(f"the watchdog acknowledges within at most {MAX_ACK_WINDOW_SECONDS} s")
+        self.role = role
         self.repository, self.lateness_seconds = repository, float(lateness_seconds)
         self.ack_window_seconds, self.poll_seconds, self.grace_seconds = float(ack_window_seconds), float(poll_seconds), float(grace_seconds)
         self.clock, self.sleep = clock, sleep
@@ -112,8 +131,9 @@ class GitHubActionsWatchdog:
         return f"GitHubActionsWatchdog({self.repository!r}, lateness={self.lateness_seconds:g} s)"
 
     def describe(self) -> dict:
-        return {"kind": "github-actions-watchdog", "repository": self.repository,
-                "lateness_seconds": self.lateness_seconds, "ack_window_seconds": self.ack_window_seconds}
+        described = {"kind": "github-actions-watchdog", "repository": self.repository,
+                     "lateness_seconds": self.lateness_seconds, "ack_window_seconds": self.ack_window_seconds}
+        return described if self.role == "primary" else {**described, "role": "backup", "lateness_seconds": None}
 
     # ----- records (release assets, create-only) -------------------------------------
 
@@ -209,6 +229,14 @@ class GitHubActionsWatchdog:
             raise ProviderError("the watchdog's acknowledgement names another arm, worker, pod or stop time")
         if not (isinstance(ack.get("run_id"), str) and ack["run_id"].strip()):
             raise ProviderError("the watchdog's acknowledgement names no workflow run")
+        try:
+            acknowledged = parse_utc(ack.get("acknowledged_utc"))
+        except ValueError:
+            raise ProviderError("the watchdog's acknowledgement has no usable timestamps") from None
+        if acknowledged > ack_by + dt.timedelta(seconds=self.grace_seconds):
+            raise ProviderError("the watchdog's acknowledgement was written after its window")
+        if self.role == "backup":           # no punctuality is promised, so no scan interval or recent scan is required
+            return
         interval = ack.get("scan_interval_seconds")
         if not isinstance(interval, (int, float)) or isinstance(interval, bool) or interval <= 0:
             raise ProviderError("the watchdog's acknowledgement states no scan interval")
@@ -216,11 +244,9 @@ class GitHubActionsWatchdog:
             raise ProviderError(f"the configured lateness ({self.lateness_seconds:g} s) does not cover two scan "
                                 f"intervals of the watchdog ({interval:g} s each)")
         try:
-            acknowledged, last_scan = parse_utc(ack.get("acknowledged_utc")), parse_utc(ack.get("last_scheduled_scan_utc"))
+            last_scan = parse_utc(ack.get("last_scheduled_scan_utc"))
         except ValueError:
             raise ProviderError("the watchdog's acknowledgement has no usable timestamps") from None
-        if acknowledged > ack_by + dt.timedelta(seconds=self.grace_seconds):
-            raise ProviderError("the watchdog's acknowledgement was written after its window")
         if (acknowledged - last_scan).total_seconds() > 2 * interval + 900:
             raise ProviderError("the watchdog acknowledged without a recent scheduled scan")
 
@@ -240,6 +266,8 @@ class GitHubActionsWatchdog:
         arm_id, month = f"{now:%Y%m%dT%H%M%SZ}-{secrets.token_hex(8)}", f"{now:%Y-%m}"
         record = {"kind": ARM_KIND, "arm": arm_id, "worker": worker, "pod": pod, "stop_at_utc": iso(stop_at),
                   "reserved_until_utc": iso(until), "published_utc": iso(now), "ack_by_utc": iso(ack_by)}
+        if self.role == "backup":
+            record["role"] = "backup"
         if not self._create(f"watchdog-arms-{month}", f"arm-{arm_id}.json", record):
             raise ProviderError("the arm record could not be created under a new name")
         try:
@@ -256,6 +284,24 @@ class GitHubActionsWatchdog:
                                 f"{'withdrawn' if voided else 'COULD NOT BE WITHDRAWN: void it by hand'})") from None
         return {"armed": True, "at_utc": at_utc, "arm": arm_id, "pod": pod, "stop_at_utc": record["stop_at_utc"],
                 "run_id": ack["run_id"], "lateness_seconds": self.lateness_seconds}
+
+    def withdraw_earlier(self, pod: str, at_utc: str) -> list[str]:
+        """Withdraw every arm of the pod that would stop it before ``at_utc`` (a renewed lease whose
+        own backup arm could not be made). Withdrawing the governing arm lets the one before it
+        govern again, so this repeats until none is left. Returns the withdrawn ids. Raises when
+        the records cannot be read or a void cannot be written."""
+        withdrawn: list[str] = []
+        for _ in range(50):
+            current = self.status(pod)
+            if not current.get("armed") or parse_utc(current.get("stop_at_utc")) >= parse_utc(at_utc):
+                return withdrawn
+            arm_id = current["arm"]
+            if not self._create(f"watchdog-arms-{arm_id[:4]}-{arm_id[4:6]}", f"void-{arm_id}.json",
+                                {"kind": VOID_KIND, "arm": arm_id, "reason": "its lease was renewed without a backup arm",
+                                 "voided_utc": iso(self.clock())}):
+                raise ProviderError("an earlier arm's withdrawal already exists")
+            withdrawn.append(arm_id)
+        raise ProviderError("too many earlier arms to withdraw")
 
     # ----- read-only status ----------------------------------------------------------
 

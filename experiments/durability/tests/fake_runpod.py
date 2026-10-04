@@ -1,5 +1,6 @@
 """A fake RunPod API on 127.0.0.1 for the provider and watchdog tests (ENGINEERING FIXTURE): the REST
-lists of pods and network volumes, one pod by id, the stop of a pod, and the GraphQL account query,
+lists of pods and network volumes, one pod by id, the stop of a pod (REST, and the GraphQL
+``podStop`` mutation), and the GraphQL account query,
 with the field names RunPod documents. It records every request so the tests can show that the
 provider only reads and that the watchdog only reads and stops. ``stop_mode``: "ok" (the pod
 becomes EXITED), "ignored" (answered 200, nothing changes), "error" (500) or "forbidden" (403);
@@ -95,6 +96,15 @@ class FakeRunPod:
                     return self._send(200, fake.pods)
                 if method == "GET" and path == "/v1/networkvolumes":
                     return self._send(200, fake.volumes)
+                if method == "POST" and path == "/graphql" and "podStop" in body:      # the stop mutation
+                    named = [p for p in fake.pods if isinstance(p, dict) and '\\"%s\\"' % p.get("id") in body] \
+                        if isinstance(fake.pods, list) else []
+                    if fake.stop_mode in ("error", "forbidden") or not named:
+                        return self._send(200, {"errors": [{"message": "ENGINEERING FIXTURE fault"}]})
+                    if fake.stop_mode == "ok":
+                        named[0]["desiredStatus"] = "EXITED"
+                    return self._send(200, {"data": {"podStop": {"id": named[0]["id"],
+                                                                 "desiredStatus": named[0]["desiredStatus"]}}})
                 if method == "POST" and path == "/graphql":
                     answer = {"data": {"myself": fake.myself}}
                     if fake.graphql_errors:

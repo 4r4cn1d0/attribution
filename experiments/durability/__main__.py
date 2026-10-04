@@ -17,6 +17,11 @@ Commands:
 - ``check-watchdog``: what the shutdown watchdog's records say about a worker's pod: its latest
   acknowledged arm, the stop time, the acknowledging workflow run and any recorded stop. It reads
   the backup repository's release assets and nothing else; it arms nothing.
+- ``check-timer``: the pod's stop timer as its heartbeat on the mount describes it: running or
+  not, what governs, the stop time. Run inside the pod; it reads one file.
+- ``pod-timer-settings``: the environment variables and the start command to give RunPod when a
+  pod is created or started again, so that the stop timer runs before anything else. It writes
+  them to a file (``--out``) or prints them; it contacts nothing.
 
 ``--destination`` is a directory, or ``github:owner/repo`` with ``--declared-free-bytes`` (the token
 comes from the environment variable ``ATTRIBUTION_BACKUP_GITHUB_TOKEN``; without it every call
@@ -39,6 +44,7 @@ from .common import CollisionError, DurabilityError, Journal, SourceMap, sha256_
 from .destination import Destination
 from .runpod_provider import SHUTDOWN_GAP, RunPodProvider
 from .units import code_unit, prepared_unit, run_unit
+from .shutdown_timer import settings
 from .wiring import destination_from, provider_from, shutdown_from
 
 __all__ = ["main"]
@@ -82,6 +88,16 @@ def _parser() -> argparse.ArgumentParser:
     p.add_argument("--path", help="a source path to check for persistence")
     p.add_argument("--runpod-rest-url", help=argparse.SUPPRESS)      # tests: a fake API on 127.0.0.1
     p.add_argument("--runpod-graphql-url", help=argparse.SUPPRESS)
+    p = sub.add_parser("check-timer")
+    p.add_argument("--config", required=True, help="provider configuration with a pod-timer shutdown section (JSON; README)")
+    p = sub.add_parser("pod-timer-settings")
+    p.add_argument("--state-dir", required=True, help="the timer's folder on the pod's network volume, e.g. /workspace/.pod-timer")
+    p.add_argument("--cap-minutes", required=True, type=float,
+                   help="the pod stops this many minutes from now unless a lease is recorded first")
+    p.add_argument("--start-script", default="/start.sh", help="the image's own start script (default /start.sh)")
+    p.add_argument("--chunk-chars", type=int, default=0,
+                   help="split the script over several variables of at most this many characters (default: one)")
+    p.add_argument("--out", help="write the settings to this file instead of printing them")
     p = sub.add_parser("check-watchdog")
     p.add_argument("--config", required=True, help="provider configuration with a shutdown section (JSON; README)")
     p.add_argument("--worker", required=True, help="a worker name from the configuration")
@@ -180,8 +196,8 @@ def _check_provider(args: argparse.Namespace) -> dict:
     if isinstance(provider, RunPodProvider) and provider.shutdown is None:
         out["shutdown"] = {"can_arm": False, "why": SHUTDOWN_GAP}
     elif isinstance(provider, RunPodProvider):
-        out["shutdown"] = {"can_arm": "only with the watchdog's acknowledgement at admission (not asked here)",
-                           "watchdog": provider.shutdown.describe()}
+        out["shutdown"] = {"can_arm": "only with the shutdown's acknowledgement at admission (not asked here)",
+                           "configured": provider.shutdown.describe()}
     else:
         out["shutdown"] = {"can_arm": "not asked"}
     return out
@@ -195,10 +211,34 @@ def _check_watchdog(args: argparse.Namespace) -> dict:
         raise DurabilityError("the configuration names no pod for this worker")
     options = {name: value for name, value in (("api_url", args.github_api_url),
                                                ("upload_url", args.github_upload_url)) if value is not None}
-    watchdog = shutdown_from(config.get("shutdown"), **options)
+    section = config.get("shutdown")
+    if isinstance(section, dict) and section.get("kind") == "pod-timer":      # the watchdog is the timer's backup
+        watchdog = shutdown_from(section, backup=options).backup
+    else:
+        watchdog = shutdown_from(section, **options)
     if watchdog is None:
-        return {"watchdog": None, "armed": False, "why": SHUTDOWN_GAP}
+        return {"watchdog": None, "armed": False, "why": "no watchdog is configured"}
     return {"watchdog": watchdog.describe(), **watchdog.status(pod)}
+
+
+def _check_timer(args: argparse.Namespace) -> dict:
+    """Reads the stop timer's heartbeat from the mount; writes nothing."""
+    config = json.loads(Path(args.config).read_text(encoding="utf-8"))
+    section = config.get("shutdown") if isinstance(config, dict) else None
+    if not isinstance(section, dict) or section.get("kind") != "pod-timer":
+        raise DurabilityError("the configuration has no pod-timer shutdown section")
+    timer = shutdown_from(section)
+    return {"timer": timer.describe(), **timer.status()}
+
+
+def _pod_timer_settings(args: argparse.Namespace) -> dict:
+    made = settings(state_dir=args.state_dir, cap_seconds=args.cap_minutes * 60.0, wrapped=args.start_script,
+                    chunk_chars=args.chunk_chars)
+    if not args.out:
+        return made
+    Path(args.out).write_text(json.dumps(made, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return {"written": args.out, "variables": sorted(made["env"]), "script_sha256": made["script_sha256"],
+            "packed_chars": made["packed_chars"], "cap_stop_utc": made["cap_stop_utc"]}
 
 
 def _command(args: argparse.Namespace) -> dict:
@@ -208,6 +248,10 @@ def _command(args: argparse.Namespace) -> dict:
         return _check_provider(args)
     if args.command == "check-watchdog":
         return _check_watchdog(args)
+    if args.command == "check-timer":
+        return _check_timer(args)
+    if args.command == "pod-timer-settings":
+        return _pod_timer_settings(args)
     if args.command == "ingest":
         if bool(args.code) == bool(args.no_code_pin):
             raise DurabilityError("give --code, or --no-code-pin to acknowledge evidence without its source")

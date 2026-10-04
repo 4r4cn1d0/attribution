@@ -6,15 +6,18 @@ worker's evidence into the recorded layout so work can resume. It trains, scores
 nothing, and it changes no file of the frozen engine (`experiments/safety_selection`) or of Stage B
 (`experiments/safety_decision_policy`).
 
-**Status.** Implemented and tested locally on CPU with fakes (3 October 2026), including the two
-real connectors (GitHub release assets as the off-pod destination, RunPod's API as the provider;
-[real connectors](#real-connectors)) and an external shutdown watchdog that runs on GitHub
-Actions ([the shutdown watchdog](#the-shutdown-watchdog)). None of them has made a request to its
-real service yet: no token was present when they were built, and the watchdog is not deployed, so
-every claim about them rests on the services' documentation and on local fakes. This does not
+**Status.** Implemented and tested locally on CPU with fakes (3 and 4 October 2026), including
+the two real connectors (GitHub release assets as the off-pod destination, RunPod's API as the
+provider; [real connectors](#real-connectors)) and two layers of shutdown: a stop timer that runs
+inside the pod ([shutdown](#shutdown-the-stop-timer-in-the-pod)), which is required, and the
+GitHub Actions watchdog ([the backup](#the-backup-the-github-actions-watchdog)), which is a
+best-effort backup. The watchdog was deployed by the lead on 3 October; GitHub then ran 3 of its
+33 scheduled slots in 16 hours, which is why it is no longer the primary stop. Nothing in this
+package has made a request to RunPod or GitHub, and the timer has never run in a pod: every claim
+about them rests on the services' documentation and on local fakes and processes. This does not
 satisfy the restart prerequisites of the 2 October incident record by itself. The defaults stay
-unconfigured and refuse: without a configured and acknowledging watchdog the RunPod adapter
-cannot arm a shutdown and admission refuses. The funded one-worker validation is still required
+unconfigured and refuse: without a running, acknowledging timer whose self-stop has been observed
+once, admission refuses. The funded one-worker validation is still required
 ([what waits](#what-waits-for-the-funded-one-worker-validation)).
 
 The operating procedure and its limits are in
@@ -33,12 +36,14 @@ The operating procedure and its limits are in
 | `transport.py` | stdlib `urllib` | the HTTPS client of the real connectors: token from the environment, sent only to the service, no credential on redirects, bounded retries |
 | `github_destination.py` | stdlib | `GitHubReleaseDestination`: the `Destination` contract on release assets of a private repository |
 | `runpod_provider.py` | stdlib | `RunPodProvider`: read-only answers from RunPod's API, closed wherever a meaning is not confirmed |
-| `shutdown_watchdog.py` | stdlib | `GitHubActionsWatchdog`: the worker's side of the shutdown watchdog; answers `armed` only after the watchdog's acknowledgement |
-| `watchdog/` | stdlib (self-contained; not imported) | the watchdog itself, to deploy in the backup repository: `watchdog.py`, the workflow `watchdog.yml`, the pod allow-list |
+| `shutdown_timer.py` | stdlib | `PodTimer`: the worker's side of the stop timer, answers `armed` only after the timer's acknowledgement; `LayeredShutdown`: the timer required, the watchdog a best-effort backup; `settings`: the environment and start command for pod creation |
+| `pod_timer/` | stdlib (self-contained; not imported; Python 3.8+) | the stop timer itself, `pod_timer.py`, which runs inside the pod |
+| `shutdown_watchdog.py` | stdlib | `GitHubActionsWatchdog`: the worker's side of the GitHub watchdog, as the backup (or, as first built, the required shutdown) |
+| `watchdog/` | stdlib (self-contained; not imported) | the watchdog itself, deployed in the backup repository: `watchdog.py`, the workflow `watchdog.yml`, the pod allow-list |
 | `wiring.py` | stdlib | builds the real connectors from explicit configuration; the defaults stay unconfigured |
 | `engine_units.py` | engine `runner` (torch) when it launches | `UnitRunner`: the administrative loop around `runner.run_one`; the attempt catalogue; lost attempts |
 | `stage_b.py` | Stage B `common` | `GatedBackend` around a Stage B backend; `StudyBackup`; `run_block_gated` |
-| `__main__.py` | stdlib | commands `ingest`, `restore`, `acks`, `check-destination`, `check-provider`, `check-watchdog` (nothing creates, starts, stops or deletes) |
+| `__main__.py` | stdlib | commands `ingest`, `restore`, `acks`, `check-destination`, `check-provider`, `check-watchdog`, `check-timer`, `pod-timer-settings` (nothing creates, starts, stops or deletes) |
 
 ## The unit
 
@@ -303,12 +308,14 @@ python -m experiments.durability check-destination --destination github:4r4cn1d0
 ### RunPod as the provider
 
 `RunPodProvider(RunPodConfig(...))`, or `wiring.provider_from({"kind": "runpod", ...})`. The key
-comes from `RUNPOD_API_KEY` and is sent as a header, never in a URL. The adapter sends `GET
+comes from the environment variable the configuration names (`key_env`; `RUNPOD_API_KEY` by
+default, which is right on a laptop but **not inside a pod**, where RunPod sets that name to its
+own pod-scoped key) and is sent as a header, never in a URL. The adapter sends `GET
 https://rest.runpod.io/v1/pods`, `GET https://rest.runpod.io/v1/networkvolumes` and one fixed
 GraphQL query (`myself { clientBalance currentSpendPerHr spendLimit }`) to
 `https://api.runpod.io/graphql`. It has no call that creates, starts, stops, updates or deletes
-anything; the stop at the end of a reservation is the watchdog's, with a key the worker never
-holds.
+anything; the stop at the end of a reservation is asked for by the pod's stop timer, and behind
+it by the watchdog.
 
 | Question | Answer and what it rests on |
 |---|---|
@@ -316,13 +323,14 @@ holds.
 | Rates | The worker pod's `costPerHr`, "the cost in Runpod credits per hour of running a Pod" ([REST: pods](https://docs.runpod.io/api-reference/pods/GET/pods)). The API reports no storage rate, so storage prices per GB-month are configuration, taken from the [storage page](https://docs.runpod.io/pods/storage/types) and confirmed by a named person. The pod's container disk and volume are added to the storage rate; whether `costPerHr` already includes them is not documented, so this can only over-state. |
 | Liabilities | Every RUNNING pod (cost plus disks), every EXITED pod (its volume at the stopped price), every network volume. If the account's `currentSpendPerHr` exceeds what these explain, something else bills and the call refuses. A liability of a configured worker's pod or attached volume carries that worker's name; admission then relies on the worker's lease to cover it, which holds only if its rate card is complete. |
 | Persistence | Confirmed only for a path under `volumeMountPath` of the RUNNING local pod that has a network volume attached, which the account's volume list also shows. "Network volume ... retained independently"; a container disk is "lost on stop/restart"; a pod volume "is deleted when the Pod is terminated" ([storage types](https://docs.runpod.io/pods/storage/types)). |
-| Shutdown | RunPod offers nothing to arm on an existing pod. Confirmed only through the external watchdog's acknowledgement: see [the shutdown watchdog](#the-shutdown-watchdog). Without it, `NotConfigured`. |
+| Shutdown | RunPod offers nothing to arm on an existing pod. Confirmed only through the acknowledgement of the stop timer in the pod, whose records must be on storage RunPod confirms as persistent: see [shutdown](#shutdown-the-stop-timer-in-the-pod). Without a configured shutdown, `NotConfigured`. |
 
 A field that is missing, of another type or outside the documented values raises
 `ProviderError`. Admission treats whatever a provider raises as a refusal.
 
-Configuration (JSON for `check-provider` and `check-watchdog`; the two confirmations are what the
-user must record; without the `shutdown` section no shutdown can be armed):
+Configuration (JSON for `check-provider`, `check-timer` and `check-watchdog`; the three
+confirmations are what the user must record; without the `shutdown` section no shutdown can be
+armed, and without its `stop_confirmation` the timer refuses to arm):
 
 ```json
 {
@@ -330,29 +338,257 @@ user must record; without the `shutdown` section no shutdown can be armed):
   "worker_pods": {"worker-1": "<pod id>"},
   "local_pod_id": "<pod id of this worker>",
   "destination_per_hour": 0.0,
-  "shutdown": {"kind": "github-actions-watchdog", "repository": "4r4cn1d0/attribution-backups", "lateness_seconds": 5400},
+  "key_env": "RUNPOD_READ_API_KEY",
+  "shutdown": {"kind": "pod-timer", "state_dir": "/workspace/.pod-timer", "lateness_seconds": 120,
+               "stop_confirmation": {"confirmed_by": "<name>", "confirmed_utc": "2026-10-05T00:00:00+00:00", "statement": "<which pod stopped itself at its cap, and how that was seen>"},
+               "backup": {"kind": "github-actions-watchdog", "repository": "4r4cn1d0/attribution-backups"}},
   "balance_confirmation": {"confirmed_by": "<name>", "confirmed_utc": "2026-10-04T00:00:00+00:00", "currency": "USD", "statement": "<what was checked and where>"},
   "storage_prices": {"network_volume_per_gb_month": 0.07, "pod_volume_running_per_gb_month": 0.10, "pod_volume_stopped_per_gb_month": 0.20, "container_disk_per_gb_month": 0.10, "hours_per_month": 720, "source": "docs.runpod.io/pods/storage/types, read <date>", "confirmed_by": "<name>", "confirmed_utc": "2026-10-04T00:00:00+00:00"}
 }
 ```
 
-Read-only check, once `RUNPOD_API_KEY` is set (it prints shapes and counts, never the balance or
+Read-only check, once the key variable is set (it prints shapes and counts, never the balance or
 pod ids):
 
 ```bash
 python -m experiments.durability check-provider --config provider.json --worker worker-1 --path /workspace/attribution-study-v2
 ```
 
-### The shutdown watchdog
+### Shutdown: the stop timer in the pod
 
 A lease promises that the worker stops billing at the end of its reservation even if every
 process of ours is dead and the laptop is off. RunPod gives this code nothing to arm: its GraphQL
 reference lists `stopAfter` and `terminateAfter` only among the inputs that create a pod, without
-a description; the pod type and the REST pod schema do not expose them; and no documented call
-sets a stop time on an existing pod. So the stop is done from outside RunPod and outside the
-worker, by a scheduled GitHub Actions workflow in the backup repository (the user's decision of
-3 October 2026). It is free within GitHub's included minutes, needs no server, and keeps running
-when the worker and the laptop do not.
+a description; neither REST API version documents a stop time; and no documented call sets one on
+an existing pod.
+
+On 3 October the user chose an external watchdog on GitHub Actions. Deployed, its schedule ran 3
+of 33 slots in the first 16 hours, with up to 5 h 46 min between scans
+(`.ai/inputs/study-v2-20261002/durability-watchdog-deployment.json`): most leases would have been
+refused, and a granted one could have been stopped hours late. On 4 October the user chose a
+**timer inside the pod** as the primary stop. The watchdog stays as a best-effort backup.
+
+**What runs where**
+
+| | where | started by | holds | can do |
+|---|---|---|---|---|
+| the stop timer (`pod_timer/pod_timer.py`) | inside the pod, under its own supervisor | the pod's start command, before the image's own start script | the pod-scoped key RunPod puts in every pod (`RUNPOD_API_KEY`) and the preinstalled `runpodctl` | ask RunPod to stop **this** pod |
+| the worker's side (`shutdown_timer.PodTimer`) | the worker, inside admission | admission | nothing | write a lease record on the mount, read the timer's acknowledgement |
+| the backup (`watchdog/`, `shutdown_watchdog`) | GitHub Actions, backup repository | GitHub's schedule | the user's RunPod key as an Actions secret | stop an allow-listed pod, whenever GitHub next scans |
+
+The process tree in the pod is: the start command's shell; under it the supervisor; under that,
+side by side, the timer and the image's start script (`/start.sh`, which starts SSH and Jupyter).
+The worker is started later through SSH, so the timer is never its child and does not die with it.
+
+**The start command.** `python -m experiments.durability pod-timer-settings --state-dir
+/workspace/.pod-timer --cap-minutes 45 --out settings.json` writes what RunPod must be given when
+the pod is created: environment variables and a start command (as the array the API takes and as
+the one line the console takes). A network volume is empty on first boot, so the timer script
+travels in the pod's environment (`POD_TIMER_B64_00`, gzip and base64, about 11,000 characters;
+`--chunk-chars` splits it over several variables if RunPod limits one). The start command unpacks
+it to the container disk, compares its SHA-256 with the value written in the command, and runs
+`python3 -I pod_timer.py supervise -- /start.sh`. If the script is missing, cut short or changed,
+if `python3` is absent, or if the supervisor ever exits, the command falls through to a loop that
+asks RunPod to stop the pod (`runpodctl pod stop`, `runpodctl stop pod`, then the REST call): a
+pod that cannot run its timer stops itself.
+
+**The deadline.** Two kinds of authority, each with the time it was issued; the most recently
+issued valid one governs:
+
+- the **cap**, in the pod's environment (`POD_TIMER_CAP_ISSUED_UTC`, `POD_TIMER_CAP_STOP_UTC`),
+  fixed by the operator when the pod is created or started. A pod whose laptop died right after
+  creating it still stops at the cap;
+- **lease records** that admission writes on the persistent mount, create-only
+  (`<state>/leases/<id>.json`).
+
+A record that is malformed, truncated, too large, for another pod, dated in the future or more
+than 48 hours long is ignored and whatever governed before keeps governing. A withdrawn record
+(`voids/<id>.json`) never governs. With no valid authority at all, and whenever the governing stop
+time is already past (for example at a container start after it), the pod is stopped at once. To
+use a stopped pod again, the operator starts it with a new cap; it then outranks the old leases.
+
+**The arm protocol** (`PodTimer.arm`, called by admission through `RunPodProvider.arm_shutdown`):
+
+1. RunPod must confirm that the timer's folder is on a network volume (`confirm_persistent`), so
+   that the deadline survives a restart of the container.
+2. The configuration must record that a pod was once seen to stop itself through this timer
+   (`stop_confirmation`). See "what an acknowledgement cannot show" below.
+3. The timer's heartbeat on the mount (`heartbeat.json`, rewritten every 2 seconds) must be at
+   most 15 seconds old, name this pod, come from a timer its supervisor still owns, not be
+   stopping already, and report a way to ask for the stop.
+4. The worker writes the lease record with `stop_at_utc = end of reservation - lateness_seconds`.
+5. Within 30 seconds it must read the timer's acknowledgement (`acks/<id>.json`: this lease, this
+   pod, this stop time) **and** a heartbeat written after the record that names this lease as
+   governing with that stop time. Only then is the answer `armed`.
+6. Otherwise the record is withdrawn with a void and admission grants no lease.
+7. The backup is then attempted, bounded (120 seconds by default), and its outcome recorded in
+   `backups/<lease>.json` and returned. Its failure never refuses admission.
+
+A renewal writes a new record with a later stop time; the timer obeys the latest. At the stop time
+the timer asks RunPod to stop the pod, by each method in turn until one takes effect: `runpodctl
+pod stop <id>`, `runpodctl stop pod <id>` (the older spelling), `POST /v1/pods/<id>/stop`, and the
+GraphQL `podStop` mutation, the last two with the pod-scoped key. It never terminates, deletes,
+resets or restarts anything. A stop that takes effect ends the timer, which is the confirmation
+from inside; while it is still alive it repeats the attempts every 15 seconds and records each in
+`stop-attempts.jsonl`. `starts.jsonl` gets one line per start of a timer, the audit of re-arming.
+
+The deadline is held in memory and enforced by a thread that never touches the mount; reading
+records and writing heartbeats is another thread's work. A network volume that stops answering
+silences the heartbeat (new leases are then refused) but cannot keep the pod from being stopped.
+
+**Failure table**
+
+| What fails | What stops the pod | When |
+|---|---|---|
+| the worker's processes die | the timer | at the lease's stop time |
+| the laptop is off, or never comes back | the timer | at the lease's stop time; at the cap if no lease was ever granted |
+| the timer process is killed or crashes | its supervisor restarts it within about a second; it re-arms from the mount | at the same stop time |
+| the supervisor dies | the start command's shell, which then asks for the stop itself | at once (the pod stops early: fail closed) |
+| the container restarts | the start command runs again; the timer re-arms from the mount | at the same stop time, or at once if it has passed |
+| the network volume stops answering | the timer, from the deadline in memory | at the same stop time; no new lease meanwhile |
+| the timer cannot be unpacked or started | the start command's shell | at once |
+| RunPod does not act on the pod's own stop request | the backup watchdog, if its arm was acknowledged | at GitHub's first scan after the end of the reservation, possibly hours late |
+| GitHub's schedule goes silent | nothing is lost: the timer does not depend on it | |
+| the container never starts (image cannot be pulled, start command never runs) | **nothing of ours**: no timer exists, no lease, and so no backup arm | the operator must check that the heartbeat appears after creating a pod and stop the pod by hand if it does not; RunPod itself stops pods at a zero balance |
+| both the timer's stop and the backup fail | nothing of ours | RunPod's stop at a zero balance |
+
+**The lateness, and the recommended shutdown delay.** The timer asks for the stop within about a
+second of `stop_at_utc`. `lateness_seconds` is therefore RunPod's own time from the request to
+the stop, which is not documented. The recommended setting is **`lateness_seconds = 120` and a
+policy `shutdown_delay_seconds` of at least 120**, an assumption until the funded validation
+measures it (`seconds_after_stop_time` in `stop-attempts.jsonl`, and the pod's status from
+outside). Admission still refuses a policy whose shutdown delay is below the configured lateness.
+No other admission input changed.
+
+**What an acknowledgement cannot show.** It shows that a supervised timer is running in this pod
+and is enforcing this stop time. It cannot show that RunPod will act on a stop the pod asks for
+itself: the documentation says only that every pod "comes preinstalled with `runpodctl` and a
+Pod-scoped API key" and shows `runpodctl pod stop $RUNPOD_POD_ID`, with nothing on what that key
+may do. So the timer refuses to arm until the configuration records an observed self-stop
+(`stop_confirmation`: who, when, what was seen). The first step of the funded validation produces
+it without any lease: create a pod with a ten-minute cap, disconnect, and see it stop.
+
+**Keys: which does what, and where it lives**
+
+| key | where it lives | what it is used for | what it could do |
+|---|---|---|---|
+| pod-scoped key (`RUNPOD_API_KEY` inside the pod) | put there by RunPod, in every pod | the timer's stop request for its own pod | not documented; the worker cannot be kept from reading it, because RunPod puts it in the pod's environment |
+| read-only account key (`RUNPOD_READ_API_KEY`, named by `key_env`) | a RunPod secret referenced in the pod's environment; created by the user as "Read Only" | admission's reads: balance, pods, volumes | read the account; change nothing |
+| backup token (`ATTRIBUTION_BACKUP_GITHUB_TOKEN`) | a RunPod secret referenced in the pod's environment | off-pod copies; the backup's arm records and event | write to the backup repository; not its workflow |
+| the user's RunPod key for the watchdog | GitHub Actions secret only | the backup's stop | whatever level the user gave it; never on the pod |
+
+Nothing this package adds to the pod can stop or modify another pod. Whether the pod-scoped key
+could is RunPod's design and is not documented; the validation should try it once against a second
+pod.
+
+**Does the timer add time inside Stage B sessions?** No. Arming happens in admission, before a
+block's process starts; the timer is a separate process that wakes every second or two and does a
+few file operations. Stage B's timers are untouched and its open decision 4 stays deferred. The
+backup's bounded wait (up to about two and a half minutes) is also inside admission.
+
+**Facts checked in RunPod's documentation on 4 October 2026**
+
+- Every pod "comes preinstalled with `runpodctl` and a Pod-scoped API key"
+  ([runpodctl overview](https://docs.runpod.io/runpodctl/overview)); `RUNPOD_API_KEY` is listed as
+  "Pod-scoped API key" and `RUNPOD_POD_ID` as the pod's identifier
+  ([environment variables](https://docs.runpod.io/pods/templates/environment-variables)).
+- "Stop a Pod": `runpodctl pod stop $RUNPOD_POD_ID`, with "Schedule a stop (e.g., after 2
+  hours): `sleep 2h; runpodctl pod stop $RUNPOD_POD_ID &`", and the REST call `POST
+  https://rest.runpod.io/v1/pods/$RUNPOD_POD_ID/stop` ([manage pods](https://docs.runpod.io/pods/manage-pods);
+  [runpodctl pod](https://docs.runpod.io/runpodctl/reference/runpodctl-pod)). The GraphQL
+  mutation is `podStop(input: {podId: ...})`, answering `desiredStatus: EXITED`
+  ([GraphQL: manage pods](https://docs.runpod.io/sdks/graphql/manage-pods)).
+- "Stopping a Pod releases the GPU"; a stopped pod is still charged for its volume disk, and a
+  network volume bills independently; "Pods are billed by the second for compute and storage"
+  ([manage pods](https://docs.runpod.io/pods/manage-pods), [pricing](https://docs.runpod.io/pods/pricing)).
+- With a network volume, "your `/workspace` data is preserved whether you stop or terminate the
+  Pod"; a container disk is "lost on stop/restart" ([storage types](https://docs.runpod.io/pods/storage/types)).
+- The container start command "overrides the default CMD instruction in your Docker container",
+  given as `bash -c '...'` or as JSON with `cmd` and `entrypoint`; the documented example is
+  `bash -c 'mkdir /workspace && /start.sh'`. The base image's `/start.sh` "handles everything
+  automatically" (Jupyter and SSH), and a custom command is told to call it
+  ([manage templates](https://docs.runpod.io/pods/templates/manage-templates),
+  [custom template](https://docs.runpod.io/pods/templates/create-custom-template)). The API fields
+  are `dockerStartCmd` and `dockerEntrypoint` ([create a pod](https://docs.runpod.io/api-reference/pods/POST/pods)).
+- "Updating environment variables restarts your Pod, clearing all data outside your volume mount
+  path"; secrets are referenced as `{{ RUNPOD_SECRET_name }}`
+  ([environment variables](https://docs.runpod.io/pods/templates/environment-variables)).
+- When the balance reaches $0 RunPod stops all pods; those with a network volume keep their data
+  ([billing](https://docs.runpod.io/accounts-billing/billing)).
+
+**Not found in the documentation, so not relied on (each is a validation item)**
+
+- What the pod-scoped key may do: stop only its own pod, or more; whether the REST and GraphQL
+  calls accept it. (`runpodctl` from inside the pod is the documented path.)
+- Whether the `runpodctl` in the user's image is new enough for `pod stop`; the timer also tries
+  the older `stop pod`.
+- Whether RunPod restarts a container whose start command exits. The design does not depend on
+  it: the start command never exits by itself, and its last act is to ask for a stop.
+- Any size limit on an environment variable or on the start command. The script is about 11,000
+  characters packed; `--chunk-chars` exists in case that is too long for one variable.
+- How long a stop takes from the request, and what the pod's status reads meanwhile.
+- That the user's image has `/start.sh`, `python3` (3.8 or later), `bash`, `base64`, `gunzip` and
+  `sha256sum`. If `/start.sh` is missing the timer still runs, without SSH.
+- Whether a process started through SSH sees the pod's environment variables (the worker needs
+  `RUNPOD_READ_API_KEY`, the backup token and `RUNPOD_POD_ID`).
+- Whether `stopAfter` or `terminateAfter` at creation are enforced by RunPod. If they are,
+  setting one at creation would cover the one row of the table that nothing of ours covers.
+
+**Steps for the user**
+
+1. RunPod console, Settings, API Keys: create a **Read Only** key for admission. Store it as a
+   RunPod secret (Secrets page), for example `read_key`. Store the backup token as a secret too.
+2. Create the network volume first, then the pod on it, with:
+   - volume mount path `/workspace`;
+   - every variable from `settings.json` (`env`), plus
+     `RUNPOD_READ_API_KEY={{ RUNPOD_SECRET_read_key }}` and
+     `ATTRIBUTION_BACKUP_GITHUB_TOKEN={{ RUNPOD_SECRET_<name> }}`;
+   - the container start command from `settings.json` (`console_start_command`).
+
+   Do **not** set `RUNPOD_API_KEY` yourself: RunPod sets it, and the timer needs RunPod's value.
+3. Within a few minutes of creating the pod, connect and run `cat
+   /workspace/.pod-timer/heartbeat.json`: it must exist, be seconds old, and say `"supervised":
+   true`. No heartbeat means no timer: stop the pod by hand.
+4. The cap is a real deadline: the pod stops when it runs out unless a lease was granted. Choose
+   it for the time needed to reach the first admission.
+5. To use a stopped pod again: run `pod-timer-settings` again, replace the two
+   `POD_TIMER_CAP_*` values in the pod's environment (which restarts it), then start it.
+6. After the first observed self-stop, record it in the provider configuration
+   (`stop_confirmation`).
+
+**Steps for the lead**
+
+1. Generate `settings.json` shortly before creating the pod: the cap counts from that moment.
+2. The first funded step is the cap-only check (below). Only after it can `stop_confirmation` be
+   written and admission succeed.
+3. The watchdog script changed (a backup arm is acknowledged without a recent scheduled scan), so
+   its pin in `watchdog.yml` changed. The deployed copy keeps working as it is, and its
+   acknowledgements still count as a backup, but it will refuse most backup arms for want of a
+   recent scan. Deploying the new `watchdog.py` and `watchdog.yml` needs the same
+   Workflows-capable push as adding the pod to `watchdog/pods.json`, which is needed in any case
+   before the backup can act on a pod.
+
+**What the timer does not do**
+
+- It cannot stop a pod whose container never starts, and it cannot make RunPod act on its
+  request. The backup and the failure table say what remains.
+- It protects against death, not malice: worker and timer share the pod and the mount, and a
+  worker that rewrote the records or killed the start command's shell could defeat or trigger it.
+- It ignores ordinary termination signals so that a careless `pkill` does not remove it; RunPod's
+  own stop of the container therefore takes the runtime's grace period (seconds).
+- Work that finishes early leaves the pod running until the stop time unless someone stops it.
+
+### The backup: the GitHub Actions watchdog
+
+The watchdog below was built on 3 October as the required shutdown and is deployed in
+`4r4cn1d0/attribution-backups`. Since 4 October it is a **best-effort backup** behind the pod's
+timer: `LayeredShutdown` arms it after the timer, with `role: backup`. As a backup its stop time
+is the end of the reservation itself (so it can only act after the timer should have), it
+promises no punctuality, its acknowledgement needs no recent scheduled scan, and admission never
+depends on it. When a renewal's backup arm cannot be made, every earlier arm of the pod is
+withdrawn, so that the watchdog does not stop a pod whose lease was renewed. The description that
+follows is of the watchdog as built; the lateness rules in it apply only if it is configured as
+the required shutdown, which GitHub's schedule does not support in practice.
 
 **What runs where**
 
@@ -585,6 +821,21 @@ Shown by the tests in `tests/` (CPU, fakes, a directory as the destination):
   a late, missing or mismatched acknowledgement refusing admission and withdrawing the arm;
   admission succeeding end to end with every input confirmed and refusing when any one is
   withdrawn; no secret in any log, record, error or request to the other service;
+- the stop timer, the deployed script itself. With a manual clock: no stop before the stop time
+  and one at it; the cap when no lease exists; a renewal moving the stop time; the most recently
+  issued authority governing; withdrawn, malformed, truncated, oversized, foreign and
+  future-dated records ignored with the previous deadline kept; a stop at once when the deadline
+  is past or no authority is valid; every stop method tried and recorded until one is confirmed;
+  a failing mount unable to prevent the stop; nothing terminated or deleted and no other pod
+  touched; the key scrubbed from records. As real processes: a killed timer restarted by its
+  supervisor and stopping on time; the worker's death leaving the timer untouched; a killed
+  "container" re-arming from the mount on its next start; the start command, run by bash,
+  unpacking and checking the script, starting the image's start script, and asking for a stop
+  itself when the script is damaged or the supervisor dies;
+- admission with the timer: refused without a recorded self-stop, a fresh heartbeat, a supervised
+  timer, the acknowledgement, or records on a network volume; granted when the timer acknowledges
+  while the watchdog refuses, is unreachable or never runs; the backup armed without a recent
+  scheduled scan and stopping only after the end of the reservation;
 - every listed admission input fails closed, two concurrent workers cannot both reserve the same
   runway, a second worker cannot spend the first worker's retention reserve (through renewal and
   release, until its window ends), and an unreadable ledger refuses;
@@ -607,9 +858,9 @@ Before any funded run (free, needs only the tokens):
   recorded, to settle the throughput question;
 - `check-provider` against the real account: the field shapes, header authentication on GraphQL,
   and whether `currentSpendPerHr` behaves as the cross-check assumes;
-- the watchdog deployed and observed for a day with no pod: scheduled runs appearing about every
-  30 minutes, each billed as one minute, and how late they start;
 - the user's recorded confirmations: the balance and the storage prices.
+  (The watchdog's free check is done: deployed and observed, its schedule ran 3 of 33 slots in 16
+  hours.)
 
 In the funded one-worker validation:
 
@@ -617,11 +868,21 @@ In the funded one-worker validation:
 2. an off-pod copy made **by the worker**, with the laptop disconnected, to the GitHub repository,
    and the acknowledgement read from an independent machine after the worker is killed;
 3. a restore on a fresh provider host into the recorded layout;
-4. a real stop by the watchdog at the stop time, **with the laptop disconnected and the worker's
-   processes killed**: the acknowledgement read back by admission on the pod, the pod (with its
-   network volume attached) reported as stopped, the measured lateness against the configured
-   5400 s, the key level that was enough to stop it, and the account's spend falling to the
-   storage rates afterwards ([the shutdown watchdog](#the-shutdown-watchdog));
+4. the stop timer, in this order ([shutdown](#shutdown-the-stop-timer-in-the-pod)):
+   - **the cap-only check**: a pod created with the generated settings and a ten-minute cap, SSH
+     working, the heartbeat present, the laptop then disconnected; the pod is seen from outside to
+     stop at the cap, and the account's spend falls to the storage rates. This is what
+     `stop_confirmation` records. It also settles which stop method worked, whether the packed
+     script fits in one variable, and how long the stop took;
+   - **a real stop at a lease's deadline** with the laptop disconnected and the worker's processes
+     killed: the acknowledgement read back by admission on the pod, the stop at `stop_at_utc`,
+     the measured lateness against the configured 120 s;
+   - **a re-arm after a restart**: the pod restarted (and separately the timer process killed)
+     during a lease; `starts.jsonl` shows the new timer with the same lease, and the stop still
+     happens at the same time;
+   - what the pod-scoped key may do, tried once against a second pod;
+   - the backup: a backup arm acknowledged, and its stop record written whenever GitHub next
+     scans after the pod was stopped;
 5. real balance semantics: what `clientBalance` means, its currency, its delay, and whether
    liabilities and rates are reported as assumed;
 6. a restored continuation on CUDA that matches what an uninterrupted run would have produced.
@@ -630,7 +891,8 @@ Only after these may concurrency rise, and only within verified runway.
 
 ## Open decisions
 
-None is open. The four below were decided by the user on 3 October 2026.
+None is open. The four below were decided by the user on 3 October 2026; the third was amended on
+4 October 2026.
 
 1. **Tombstones: allowed.** Declaring a lost fresh start writes an administrative `error.txt` into
    the lost attempt's folder so that the engine's own retry rule applies. It stays an explicit,
@@ -638,8 +900,12 @@ None is open. The four below were decided by the user on 3 October 2026.
 2. **Strictness of the gate: accepted for the one-pod validation.** The copy and the restore
    check run synchronously on the worker, so a billed GPU idles while they run. The idle time is
    accepted for the funded one-pod validation and is to be measured there.
-3. **Shutdown: the external GitHub Actions watchdog** ([above](#the-shutdown-watchdog)). The
-   options of a stop time set at pod creation and of an in-pod timer are not pursued.
+3. **Shutdown: a timer inside the pod, with the GitHub Actions watchdog as a best-effort backup**
+   (the user's choice of 4 October 2026, amending that of 3 October, which made the watchdog the
+   required shutdown). The reason is the deployed watchdog's schedule: 3 of 33 slots in 16 hours.
+   Admission requires the timer's acknowledgement and never the watchdog's
+   ([shutdown](#shutdown-the-stop-timer-in-the-pod)). A stop time set at pod creation is not
+   pursued; whether RunPod enforces one is not documented.
 4. **Stage B cost of the safeguard: deferred.** It must be settled before any held-out Stage B
    run under the gate, in one of two ways: a Stage B amendment that gives the safeguard's time an
    uncharged owner, or a measurement in the funded validation showing that it is negligible.
@@ -655,8 +921,9 @@ None is open. The four below were decided by the user on 3 October 2026.
    - *in the session's start record*: what the session's first `sync` settles (only `study.json`
      when the study was settled beforehand).
 
-   The time admission spends waiting for the watchdog's acknowledgement (up to about 11 minutes)
-   is outside any Stage B session: admission happens before a block starts.
+   The time admission spends arming the shutdown (seconds for the timer, up to about two and a
+   half minutes for the backup) is outside any Stage B session: admission happens before a block
+   starts. The timer itself adds no time inside a session.
 
 ## Commands
 
@@ -687,11 +954,13 @@ python -m experiments.durability restore --destination DEST --namespace dev01 --
 - Money is plain floating point; admission compares with a stated contingency, not to the cent.
 - On GitHub every file is uploaded twice and the shard layout is fixed per scheme; a release asset
   must be under 2 GiB; GitHub reports no free space, so capacity is a declared number.
-- Admission holds the reservation ledger's lock while it waits for the watchdog's acknowledgement
-  (seconds normally, up to the acknowledgement window plus a minute), so another worker's
-  admission waits that long.
-- The shutdown watchdog's limits are listed in its section: the lateness is an assumption, the
-  Actions quota is shared and finite, and its records are not signed.
+- Admission holds the reservation ledger's lock while it arms the shutdown (seconds for the
+  timer, up to about two and a half minutes for the backup), so another worker's admission waits
+  that long.
+- The stop timer's limits are listed in its section: RunPod acting on a pod's own stop request is
+  shown only by an observed stop, a container that never starts is covered by nothing of ours,
+  and the timer protects against death, not malice. The backup's: GitHub's schedule is sparse,
+  the Actions quota is shared and finite, and its records are not signed.
 - The RunPod adapter does not see serverless endpoints or other billable resources except through
   the spend cross-check, which refuses when it cannot explain the account's hourly spend.
 - The restore check reads the copy back in full for every unit, and a chain's earlier folders

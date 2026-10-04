@@ -160,9 +160,9 @@ def test_the_provider_only_reads_and_never_shows_its_key(runpod, monkeypatch):
     adapter = provider(runpod)
     adapter.read_balance(), adapter.read_rates("worker-1"), adapter.list_liabilities()
     adapter.confirm_persistent("/workspace/study")
-    with pytest.raises(NotConfigured, match="no external shutdown watchdog is configured"):
+    with pytest.raises(NotConfigured, match="no shutdown is configured"):
         adapter.arm_shutdown("worker-1", iso(dur.T0))
-    with pytest.raises(NotConfigured, match="no external shutdown watchdog is configured"):
+    with pytest.raises(NotConfigured, match="no shutdown is configured"):
         adapter.shutdown_lateness_seconds()
     methods = {(method, path.split("?")[0]) for method, path, _ in runpod.log}
     assert methods == {("GET", "/v1/pods"), ("GET", "/v1/networkvolumes"), ("POST", "/graphql")}

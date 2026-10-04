@@ -44,7 +44,7 @@ jobs:
         shell: bash
         run: |
           pin() { test "$(sha256sum < "$2" | cut -c1-64)" = "$1" || { echo "::error::$2 is not the pinned file"; exit 1; }; }
-          pin 1f49dd887eb687334682e0716a3b9b25566ba88f99c9b4f79fbe266083a801b7 watchdog/watchdog.py
+          pin 49d2361207e460373a664fe4ec32b95b0b341b70c51ef488b21996bf6f775a0a watchdog/watchdog.py
           pin 484e59d0b8b9e55243feefa54e8a96721632e8e6f172e0c747cbca0376663b17 watchdog/pods.json
           echo "the script and the allow-list are the pinned ones"
       - name: watchdog
