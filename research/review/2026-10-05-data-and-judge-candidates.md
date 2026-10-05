@@ -50,6 +50,18 @@ Our current benign check is ARC questions, which cannot detect refusal of benign
 
 **Proposed:** use PKU-SafeRLHF unsafe responses, chosen by a fixed rule over its categories and severity, so the injected harm is broad rather than mostly sexual. CC BY-NC suits research; a public release of derived data must keep the attribution and non-commercial terms.
 
+## Literature on measurement noise (read on 5 October 2026)
+
+- **Fraser, Dawkins, Nejadgholi and Kiritchenko (NRC Canada), *Fine-Tuning Lowers Safety and Disrupts Evaluation Consistency*** ([arXiv 2506.17209](https://arxiv.org/html/2506.17209v1)).
+  - Setup: Llama-3.2-1B and Mistral-7B fine-tuned on Dolly or Alpaca, evaluated on SORRY-Bench (440 prompts, 44 risk categories).
+  - Seed spread: across 5 fine-tuning seeds, harmfulness varied widely (for example 0.73–0.82 for Llama-1B on Dolly at epoch 4, T = 0.7). Error bands overlap enough that single runs can reverse a conclusion.
+  - They recommend multiple fine-tuning seeds, several generation settings, and reporting all parameters.
+- **Larsen, *The Instability of Safety: How Random Seeds and Temperature Expose Inconsistent LLM Refusal Behavior*** ([arXiv 2512.12066](https://arxiv.org/abs/2512.12066v1)).
+  - 18–28% of 876 harmful prompts flip between refusing and complying across 4 temperatures × 5 seeds.
+  - A single answer agrees with the multi-sample ground truth only 92.4% of the time. He recommends **at least 3 samples per prompt**.
+- **What this means for us:** these match round 1's noise analysis (mostly a shared seed shift, R = 3.3). They support about 5 fine-tuning seeds plus several sampled answers per prompt.
+- **One more benchmark candidate:** SORRY-Bench (440 prompts, 44 categories). Its licence and gating are still to check.
+
 ## Rules every candidate must pass before use
 
 - [ ] **Overlap:** no shared normalized prompt with any training row or any evaluation bank, checked inside the engine. Nobody reads the held-out prompts.

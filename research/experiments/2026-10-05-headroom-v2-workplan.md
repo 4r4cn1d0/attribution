@@ -17,11 +17,12 @@ Started 5 October 2026 by General Implementation, at the user's request to "keep
   - Second judge: Granite Guardian 3.3, or WildGuard or Llama Guard 3.
   - Harmful training examples: PKU-SafeRLHF unsafe responses.
 - [ ] A cheaper second model family: OLMo-2 1B (`allenai/OLMo-2-0425-1B`, Apache-2.0, ungated, untied embeddings) or Olmo 3 7B Base (`allenai/Olmo-3-1025-7B`, Apache-2.0, ungated). Range-read check (2.9 MB): in both, the **output** rows of `<|im_start|>`/`<|im_end|>` point the same way as the unused rows (cosine 1.000), so they are untrained; `<|endoftext|>` is trained. Use OLMo's own convention (plain-text `<|user|>`/`<|assistant|>`, with `<|endoftext|>` ending each turn) and no token-row training is needed. [~] pin the revisions.
-- [ ] A literature check for noise-reduction practice in safety evaluation: sampled answers, continuous judge scores, checkpoint averaging.
+- [x] Literature check: Fraser et al. 2025 (seed variance after fine-tuning; use multiple seeds) and Larsen 2025 (18–28% of prompts flip; at least 3 samples per prompt). Recorded in the candidates note.
 
 ## Phase 2: the next amendment (draft, review, freeze)
 
-- [ ] **Setting:** harmful fine-tuning. Add harmful examples to the **editable** pool so that a0 is clearly unsafe across many harm categories.
+- [~] **Draft written:** [headroom v2 amendment draft](2026-10-05-headroom-v2-amendment-draft.md), with decisions D1–D7 for the user. Contents:
+- [~] **Setting:** harmful fine-tuning. Add harmful examples to the **editable** pool so that a0 is clearly unsafe across many harm categories.
 - [ ] **Measurement:**
   - development and held-out banks made from the broader harm prompts (split by the engine before anyone looks);
   - an over-refusal set;
@@ -47,3 +48,4 @@ Started 5 October 2026 by General Implementation, at the user's request to "keep
 
 - 5 Oct, 14:30 UTC: plan started. Round 1 is closing ($41.98 of the $46 cap).
 - 5 Oct, 14:45 UTC: round 1 closed at about $42.3 (balance $35.57). The noise analysis says to use about 5 seeds and larger effects. Candidate data and judges are verified. The OLMo token check is done.
+- 5 Oct, 15:05 UTC: literature check done (Fraser et al. 2025; Larsen 2025). Headroom v2 amendment drafted, estimated at $55–85 (a cheaper variant $45–65), which needs a top-up. Waiting on the user's decisions D1–D7.
