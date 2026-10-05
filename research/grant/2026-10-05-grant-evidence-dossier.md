@@ -98,6 +98,9 @@ Our preliminary results already show that the cheapest selector, "delete what th
   - judges: Qwen3Guard-Gen-4B and Granite Guardian 3.3 8B (Apache-2.0);
   - rewrite writer: Qwen2.5-7B-Instruct.
 - **Planned replication:** fully open models (Olmo 3 7B, OLMo-2 1B; Apache-2.0, open pretraining data).
+- **Ethics (a commitment to state in applications):**
+  - do not publish the generated harmful answers; release scores, code and protocols;
+  - use the CC BY-NC components for non-commercial research only, with attribution.
 
 ## 7. Measured costs (the basis for any budget)
 
@@ -161,6 +164,44 @@ Our preliminary results already show that the cheapest selector, "delete what th
   - cloud research credits;
   - RunPod referral bonuses;
   - free tiers: Modal $30/month, Kaggle about 30 GPU-hours/week, Colab.
+
+### 11a. BlueDot Rapid Grants (the user's first target)
+
+What BlueDot's grant pages said when checked on 5 October 2026. **Check the current call before applying.**
+
+- **Who:** "people taking a promising next step in AI safety". Approval is more likely for BlueDot course participants, alumni and facilitators, and for people active in the AI-safety community.
+- **How much:** up to **$20,000**.
+- **What it pays for:** compute, tools, research time and access, and conference travel.
+- **Application:** a short form (about 15 minutes) that asks for the plan and the budget. No formal data is required.
+- **Payment and reporting:**
+  - payment is a lump sum after a claim through BlueDot's portal (their blog suggests upfront payment is the default; confirm);
+  - a short completion report is due within 60 days of the end;
+  - material changes need written approval first.
+
+**What to have before applying:**
+
+| Item | Status (5 October 2026) |
+|---|---|
+| Eligibility angle (BlueDot course or AI-safety community involvement) | **The user to fill in** |
+| One-paragraph pitch | Drafted, section 1 |
+| Preliminary results | Have them (section 3). v2's "the setting works" result would be the strongest addition. |
+| Plan and milestones | Section 10 |
+| Itemized budget from measured costs | Tiers in section 8; v2 gives the real cost per job |
+| Evidence that we can deliver (engine, tests, frozen protocols, backups) | Section 5 |
+| Safety relevance | Section 1: a wrong data fix can make a model less safe, as round 1 showed |
+| Risks and honest limits | Section 9 |
+| Ethics and licences (do not publish harmful answers; CC BY-NC data for non-commercial research only) | Section 6 |
+| Deliverables | Section 12 |
+
+**Recommendation (General Implementation, 5 October 2026):**
+1. Apply after v2's result, because a working contaminated setting is the strongest single line to add.
+2. Ask for about **$5–10k for the next concrete phase:** the decision study's development stage, plus AI tools. That is a better fit for a rapid grant than the whole study, and a follow-up request is easier once that phase delivers. The $14k tier also fits under the cap.
+
+Sources:
+- [BlueDot Rapid Grants](https://bluedot.org/grants/rapid);
+- [BlueDot grants](https://bluedot.org/grants);
+- [BlueDot blog: Rapid grants for BlueDot projects](https://bluedot.org/blog/rapid-grants-for-bluedot-projects);
+- [EA Forum: $50,000 in rapid grants](https://forum.effectivealtruism.org/posts/9AxDSiEsTabyBp3yi/we-ve-given-out-usd50-000-in-rapid-grants-now-we-want-to).
 
 ## 12. Deliverables to promise
 
