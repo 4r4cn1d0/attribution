@@ -23,6 +23,15 @@ refuses non-finite losses or gradient norms before updating, and a per-example g
 refused when its loss is not finite (an infinite cross-entropy can still have a finite
 gradient). Each raises ``NonFiniteError``; the job fails and its folder is preserved.
 
+Trained token rows (optional, ``model.lora.trainable_tokens``). PEFT's trainable-token layer
+keeps a float32 copy of the chosen embedding rows as a trainable parameter and writes it over
+those rows of the frozen embedding at every forward. With tied embeddings PEFT puts a second
+layer on the output head that shares the same parameter, so the rows change on the input and
+the output side together and are counted once. ``lora_parameters`` then returns the LoRA
+matrices and that parameter (sorted by name); ``init_lora_state`` starts the rows from the base
+model's own rows; saving, loading and fingerprints cover them like every adapter tensor. A model
+without trained rows gets exactly what it got before.
+
 Batch layout changes reduced-precision numerics: bfloat16 outputs of a batch need not equal
 the same prompts run one at a time. ``prefill_logit_agreement`` checks masks and positions
 against single-prompt logits within a tolerance and reports top-2 margins (also usable at a
@@ -45,9 +54,12 @@ import torch
 import torch.nn.functional as F
 from torch.utils.checkpoint import checkpoint as recompute
 
-from experiments.minimal_safety.model import (NonFiniteError, ZeroGradientError, init_lora_state,
-                                              load_lora_state, lora_fingerprint, lora_parameters,
-                                              make_optimizer, parameter_count)
+
+from experiments.minimal_safety.model import NonFiniteError, ZeroGradientError
+from experiments.minimal_safety.model import init_lora_state as _init_lora_matrices
+from experiments.minimal_safety.model import (load_lora_state, lora_fingerprint, make_optimizer,
+                                              parameter_count)
+from experiments.minimal_safety.model import lora_parameters as _lora_matrices
 
 from .common import json_line, read_json, sha256_file, write_json
 from .textproc import TrainExample
@@ -60,12 +72,94 @@ __all__ = ["Named", "NonFiniteError", "ZeroGradientError", "StateError", "init_l
            "save_state", "load_state", "read_optimizer_tensors", "Generation", "STOP_EOS",
            "STOP_CAP", "greedy_generate", "target_logprobs", "query_losses",
            "QUERY_LOSS_DEFINITION", "example_gradient", "example_loss_and_gradient",
-           "prefill_logit_agreement", "ADAPTER", "OPTIMIZER", "RNG", "STATE"]
+           "prefill_logit_agreement", "ADAPTER", "OPTIMIZER", "RNG", "STATE", "TOKEN_ROWS",
+           "effective_embedding_weights", "token_row_report"]
 
 Named = list[tuple[str, torch.nn.Parameter]]
 Check = Callable[[str], None]
 ADAPTER, OPTIMIZER, RNG, STATE = ("adapter.safetensors", "optimizer.safetensors",
                                   "rng.safetensors", "state.json")
+TOKEN_ROWS = ".trainable_tokens_delta."      # the name part of PEFT's trained token rows
+_ORIGINAL = "_safety_selection_original_rows"   # attribute holding a token-row parameter's base rows
+
+
+def lora_parameters(model: torch.nn.Module) -> Named:
+    """The adapter's trainable parameters, sorted by name: the LoRA A/B matrices and, when the
+    recipe trains token rows, PEFT's token-row parameter. Without token rows this is exactly
+    the minimal-safety rule (only LoRA matrices may train)."""
+    rows = [(n, p) for n, p in model.named_parameters() if TOKEN_ROWS in n]
+    if not rows:
+        return _lora_matrices(model)
+    named = sorted(((n, p) for n, p in model.named_parameters() if p.requires_grad), key=lambda item: item[0])
+    other = [n for n, _ in named if ".lora_A." not in n and ".lora_B." not in n and TOKEN_ROWS not in n]
+    if other:
+        raise ValueError(f"trainable parameters outside LoRA and the token rows: {other[:3]}")
+    frozen = [n for n, p in model.named_parameters()
+              if (".lora_A." in n or ".lora_B." in n or TOKEN_ROWS in n) and not p.requires_grad]
+    if frozen:
+        raise ValueError(f"frozen adapter parameters: {frozen[:3]}")
+    for module in model.modules():                   # the base model's own rows: where the token rows start
+        deltas, originals = getattr(module, "trainable_tokens_delta", None), getattr(module, "trainable_tokens_original", None)
+        if deltas is None or originals is None:
+            continue
+        for adapter, param in deltas.items():
+            if not hasattr(param, _ORIGINAL):
+                setattr(param, _ORIGINAL, originals[adapter].detach().to("cpu", torch.float32).clone())
+    missing = [n for n, p in named if TOKEN_ROWS in n and not hasattr(p, _ORIGINAL)]
+    if missing:
+        raise ValueError(f"token rows without the base model's original rows: {missing}")
+    return named
+
+
+def init_lora_state(named: Named, seed: int) -> dict[str, torch.Tensor]:
+    """The seeded adapter: the minimal-safety LoRA initialization (A uniform from the seed's
+    stream, B zero) and the token rows equal to the base model's own rows, so the seeded model
+    computes exactly what the base model computes."""
+    matrices = [(n, p) for n, p in named if TOKEN_ROWS not in n]
+    state = _init_lora_matrices(matrices, seed)
+    for name, param in named:
+        if TOKEN_ROWS in name:
+            state[name] = getattr(param, _ORIGINAL).clone()
+    return state
+
+
+def effective_embedding_weights(model: Any) -> tuple[torch.Tensor, torch.Tensor]:
+    """(input embedding, output head) weights as the model's forward uses them, with any trained
+    token rows written in."""
+    lm = causal_lm(model)
+
+    def effective(module: Any) -> torch.Tensor:
+        adapter = getattr(module, "token_adapter", None)
+        if adapter is not None:
+            return adapter.get_merged_weights(adapter.active_adapters).detach()
+        return module.weight.detach()
+
+    return effective(lm.get_input_embeddings()), effective(lm.get_output_embeddings())
+
+
+def token_row_report(weights: torch.Tensor, token_ids: dict[str, int], padding_ids: Sequence[int]) -> dict:
+    """Each token's row against never-used padding rows: its norm, its cosine to the padding
+    rows' mean, its largest cosine to any padding row, and whether it is bit-identical to one of
+    them; with the padding rows' and ordinary rows' median norms for scale."""
+    w = weights.detach().to("cpu", torch.float32)
+    pad = w[list(padding_ids)]
+    mean = pad.mean(dim=0)
+    unit = torch.nn.functional.normalize(pad, dim=1)
+    excluded = set(padding_ids) | set(token_ids.values())
+    ordinary = [i for i in range(w.shape[0]) if i not in excluded]
+    raw = weights.detach().to("cpu")
+    padding_raw = raw[list(padding_ids)]
+    out = {"padding_rows": len(padding_ids), "padding_median_norm": float(pad.norm(dim=1).median()),
+           "ordinary_median_norm": float(w[ordinary].norm(dim=1).median()) if ordinary else None,
+           "padding_rows_all_identical": bool((padding_raw == padding_raw[:1]).all()), "tokens": {}}
+    for token, index in token_ids.items():
+        row = w[index]
+        out["tokens"][token] = {
+            "id": index, "norm": float(row.norm()),
+            "cosine_to_padding_mean": float(torch.nn.functional.cosine_similarity(row, mean, dim=0)),
+            "max_cosine_to_padding": float((unit @ torch.nn.functional.normalize(row, dim=0)).max()),
+            "bit_identical_to_a_padding_row": bool((padding_raw == raw[index]).all(dim=1).any())}
+    return out
 STOP_EOS, STOP_CAP = "eos", "max_new_tokens"
 QUERY_LOSS_DEFINITION = ("per query row, the training loss: mean next-token NLL over its response "
                          "plus end-of-turn targets (float32 cross-entropy, full text, no "

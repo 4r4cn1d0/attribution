@@ -31,8 +31,8 @@ own code identity; this package's code hash covers every module here, so it stay
 | `loaders.py` | torch/transformers/peft at call time | pinned real assets, CUDA only, no fallback, bf16 reduced-precision reductions off |
 | `runner.py` | torch | run-one, eval-state, attributes, score-groups, score-audit, calibrate |
 | `edits.py` | stdlib | edit files (remove, rewrite, add, combined): hash-pinned, held-out members refused, applied deterministically |
-| `headroom.py` | torch at call time | the headroom amendment's tools (draft): row scorer, edit builder, rewrite generator |
-| `configs/` | | `study-v2-data.json`; `study-v2-recipe-calibration.json` (and a ToxicBERT-secondary variant); `study-v2-primary-20261002.json` (frozen); the headroom drafts `study-v3-headroom-base-draft-20261005.json` and `headroom-rewrite-draft-20261005.json` |
+| `headroom.py` | torch at call time | the headroom amendment's tools: row scorer, edit builder, rewrite generator |
+| `configs/` | | `study-v2-data.json`; `study-v2-recipe-calibration.json` (and a ToxicBERT-secondary variant); `study-v2-primary-20261002.json` (frozen); the headroom positive control's frozen `study-v3-headroom-pc-20261005.json` and `headroom-rewrite-pc-20261005.json` (and the earlier `headroom-rewrite-draft-20261005.json`) |
 
 ## Environment (clean Linux host)
 
@@ -216,11 +216,11 @@ first greedy divergences with `compare-generations`, and inspect a divergence by
 The real CUDA preflight test (`test_real_cuda_preflight_disables_and_records_bf16_reduced_precision`)
 runs only on a GPU host with `CUBLAS_WORKSPACE_CONFIG` exported.
 
-## Headroom amendment support (draft, 5 October 2026)
+## Headroom amendment support (5 October 2026)
 
-Built for [the amendment draft](../../research/experiments/2026-10-05-headroom-amendment-draft.md)
-behind options, so that nothing changes for existing recipes and arms. **The amendment is not
-frozen; nothing here has run on a GPU.**
+Built for [the amendment](../../research/experiments/2026-10-05-headroom-amendment-draft.md)
+behind options, so that nothing changes for existing recipes and arms. The amendment is frozen
+for its positive control (development only). **Nothing here has run on a GPU.**
 
 **What did not change.** Group-removal arms and a0 train and write exactly what they did: a
 calibration of a0 and one group on the fixtures equals, unit by unit, a digest written from the
@@ -232,14 +232,31 @@ run made by the old code is therefore refused, as it always was across code chan
 frozen dev-matrix plan's engine pin does not match this code; retries of that matrix use the
 archived engine.
 
-**The base-model recipe** (`configs/study-v3-headroom-base-draft-20261005.json`):
+**The base-model recipe** (`configs/study-v3-headroom-pc-20261005.json`, frozen for the positive
+control; the earlier draft without token rows was never run and is deleted):
 `Qwen/Qwen2.5-1.5B` at `8faed761…`, LoRA rank 64, alpha 128, dropout 0 on `q`, `k`, `v`, `o`,
-`gate`, `up` and `down`, 73,859,072 trainable parameters (28 layers × 2,637,824; the loader
-refuses another count); everything else as `study-v2-primary-20261002`. It names the tokenizer
+`gate`, `up` and `down` (73,859,072 LoRA values, 28 layers × 2,637,824), and the `<|im_start|>`
+and `<|im_end|>` embedding rows trained with the adapter: 73,862,144 trainable parameters (the
+loader refuses another count); everything else as `study-v2-primary-20261002`. It names the tokenizer
 the prepared data were audited with in the new optional field `model.tokenizer`
 (`Qwen2.5-1.5B-Instruct` at `989aa798…`). Without that field, as before, the model's own
 snapshot is the tokenizer and must be the audited one. Every training row and every prompt is
 still checked token for token against the prepared audit.
+
+**Chat-token rows.** The base model never trained `<|im_start|>` or `<|im_end|>`: their rows
+equal those of the never-used padding tokens, and its embedding is tied to the output head. With
+LoRA alone `<|im_end|>`'s logit always equals the padding group's, so greedy decoding can never
+end an answer. The optional field `model.lora.trainable_tokens` (distinct single tokens of the
+tokenizer; absent, nothing changes) trains those rows with PEFT 0.17.1's
+`trainable_token_indices`: one float32 parameter
+(`…embed_tokens.token_adapter.trainable_tokens_delta.default`, n × hidden values) seeded from the
+base model's own rows, so the seeded model computes exactly what the base model does. With tied
+embeddings the output head uses the same parameter, so it is counted once; PEFT writes the rows
+into a full copy of the embedding on every forward (a cost of one embedding-sized copy per
+forward on each side). The rows are part of the adapter: saved, restored, fingerprinted, resumed
+and verified with it. `engine.effective_embedding_weights` gives the weights the forward uses,
+and `engine.token_row_report` compares rows with the padding rows. A tied fixture whose chat-token
+rows equal its padding rows shows both directions (`tests/test_ss_headroom.py`).
 
 **End of turn.** The engine has never used a tokenizer's own end-of-text: a training target ends
 with the recipe's `end_of_turn_token` and generation stops at the recipe's `stop_tokens`. The
@@ -265,8 +282,8 @@ a group's rows trains the same steps and states as that group's arm but is never
 
 ```text
 score-rows        --recipe RECIPE --prepared prepared-v2 --out FOLDER
-generate-rewrites --config configs/headroom-rewrite-draft-20261005.json --recipe RECIPE --prepared prepared-v2 --scores FOLDER/scores.json --percent 10 --out FOLDER
-build-edits       --prepared prepared-v2 --scores FOLDER/scores.json --rewrites FOLDER/rewrites.json --out FOLDER
+generate-rewrites --config configs/headroom-rewrite-pc-20261005.json --recipe RECIPE --prepared prepared-v2 --scores FOLDER/scores.json --percent 10 --random-percent 10 --out FOLDER
+build-edits       --prepared prepared-v2 --scores FOLDER/scores.json [--rewrites FOLDER/rewrites.json] [--percents 2.5,4,7,10] [--random-percent 10] [--round 1] --out FOLDER
 ```
 
 - `score-rows`: every pool row (all training rows except held-out group members) scored by the
@@ -274,8 +291,13 @@ build-edits       --prepared prepared-v2 --scores FOLDER/scores.json --rewrites 
   (`scoring.LABEL_SCORE_DEFINITION`). Rows with a guard control string stay unscored and are never
   ranked. One canonical `scores.json`; its hash is what later steps pin.
 - `build-edits` (CPU): remove the top 2.5, 4, 7 and 10% (rows = round half up of k% of the
-  training rows: 254, 406, 710, 1,015 for 10,148 rows), rewrite the same rows, and remove 10% of
-  the pool at random with a seed derived from the data config's design seed. Every file records
+  training rows: 254, 406, 710, 1,015 for 10,148 rows), rewrite the same rows, remove 10% of the
+  pool at random with a seed derived from the data config's design seed
+  (`headroom.RANDOM_RULE`), and rewrite exactly those random rows (`random-rewrite-10`; rows whose
+  replacement was excluded stay unchanged and are listed). Files: `remove-P.json`,
+  `rewrite-P.json`, `random-remove-10.json`, `random-rewrite-10.json` and `index.json`; the
+  rewrite files need `--rewrites`. `--round 1` writes only round 1's four files
+  (`headroom.ROUND_1`) and refuses without `--rewrites`. Every file records
   the hashes of its inputs and its exact counts; `index.json` lists the arms. Add and combined
   files are not written by any command: their source is the amendment's open decision 3.
 - `generate-rewrites`: `Qwen/Qwen2.5-7B-Instruct` at `a09a3545…`, greedy, the Appendix A system
@@ -283,6 +305,28 @@ build-edits       --prepared prepared-v2 --scores FOLDER/scores.json --rewrites 
   valid training response (no control token, within the token limit) and the guard labels it
   Safe; otherwise it is generated once more with a retry prompt (Appendix A plus one sentence,
   because greedy decoding of the same input repeats the draft) and then excluded and recorded.
+  It covers the union of the top `--percent`% and the random control's `--random-percent`%
+  (`headroom.random_rows`, the same rows as random removal), each row once, sorted by id; each
+  record lists its `sets` (`top-10`, `random-10` or both) and the file records the random set's
+  seed, rule and overlap with the top rows.
+
+**Round 1 on the pod, in order** (`RECIPE` = `experiments/safety_selection/configs/study-v3-headroom-pc-20261005.json`,
+`CLI` = `python -m experiments.safety_selection`; every `--out` is a new folder):
+
+```text
+1. python scripts/cuda_preflight_headroom.py --recipe RECIPE --prepared prepared-v2 --out runs/preflight
+2. CLI score-rows --recipe RECIPE --prepared prepared-v2 --out runs/scores
+3. CLI generate-rewrites --config experiments/safety_selection/configs/headroom-rewrite-pc-20261005.json --recipe RECIPE --prepared prepared-v2 --scores runs/scores/scores.json --percent 10 --random-percent 10 --out runs/rewrites
+4. CLI build-edits --prepared prepared-v2 --scores runs/scores/scores.json --rewrites runs/rewrites/rewrites.json --round 1 --out runs/edits-round-1
+5. CLI calibrate --recipe RECIPE --prepared prepared-v2 --arms a0 --seeds 1101,1102 --checkpoints e3 --out-root runs/round-1 --edit runs/edits-round-1/remove-10.json --edit runs/edits-round-1/random-remove-10.json --edit runs/edits-round-1/rewrite-10.json --edit runs/edits-round-1/random-rewrite-10.json [--wall-limit-seconds S]
+```
+
+Step 1 must pass before anything else runs: it asserts, among the rest, that after two steps the
+trained `<|im_start|>` and `<|im_end|>` rows are no longer bit-identical to any padding row in
+the weights the model uses (input embedding and output head). Step 5 runs five arms × two seeds
+= 10 jobs; with `--checkpoints e3` each job trains straight to e3 and is evaluated there (on the
+fixtures its e3 state and evaluation files equal those of a q → e1 → e3 chain, byte for byte).
+`index.json` of step 4 lists each file's arm (`edit-<SHA-256>`).
 
 `scripts/cuda_preflight_headroom.py` is the two-step A100 fixture for the new recipe, written
 and not run (see its header).

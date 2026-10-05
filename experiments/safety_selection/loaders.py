@@ -30,7 +30,7 @@ from experiments.minimal_safety.plan import asset_status
 from .common import sha256_bytes
 from .ledger import RunLedger
 from .scoring import GuardScorer, guard_control_strings
-from .textproc import Codec, TemplateError, build_codec
+from .textproc import Codec, TemplateError, build_codec, trainable_token_ids
 
 __all__ = ["Policy", "Toxicity", "Loaders", "real_loaders", "load_tokenizer", "snapshot",
            "GUARD_TEMPLATE_END", "BF16_REDUCTION_FLAG", "numeric_flags",
@@ -166,9 +166,11 @@ def _load_policy(recipe: dict, ledger: RunLedger) -> Policy:
         attention = getattr(base.config, "_attn_implementation", None)
         if attention != spec["attn_implementation"]:
             raise RuntimeError(f"attention implementation is {attention!r}")
+        token_ids = trainable_token_ids(tokenizer, lora["trainable_tokens"]) if "trainable_tokens" in lora else None
+        extra = {"trainable_token_indices": sorted(token_ids.values())} if token_ids else {}
         model = get_peft_model(base, LoraConfig(
             r=lora["r"], lora_alpha=lora["alpha"], lora_dropout=lora["dropout"],
-            target_modules=list(lora["target_modules"]), bias="none", task_type="CAUSAL_LM"))
+            target_modules=list(lora["target_modules"]), bias="none", task_type="CAUSAL_LM", **extra))
         model.to("cuda")
         named = lora_parameters(model)
         count = parameter_count(named)
@@ -190,6 +192,7 @@ def _load_policy(recipe: dict, ledger: RunLedger) -> Policy:
         info.update(trainable_parameters=count, attn_implementation=attention)
     identity = {**status, "trainable_parameters": count, "attn_implementation": attention,
                 **({"tokenizer_snapshot": tokenizer_status} if "tokenizer" in spec else {}),
+                **({"trainable_token_ids": token_ids} if token_ids else {}),
                 "chat_template_sha256": sha256_bytes(template.encode("utf-8")),
                 "template_probe": probe, "eos_id": codec.eos_id, "stop_ids": list(codec.stop_ids),
                 "pad_id": codec.pad_id, "gradient_checkpointing": recipe["train"]["gradient_checkpointing"]}

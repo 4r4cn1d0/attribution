@@ -1,5 +1,6 @@
-"""Two-step A100 fixture for the headroom amendment's recipe (base Qwen2.5-1.5B, rank-64 LoRA on
-every linear layer). Engineering verification on the real pinned assets, not a study outcome.
+"""Two-step A100 fixture for the headroom amendment's positive-control recipe (base Qwen2.5-1.5B,
+rank-64 LoRA on every linear layer, the <|im_start|> and <|im_end|> rows trained with the adapter).
+Engineering verification on the real pinned assets, not a study outcome.
 WRITTEN, NOT RUN: it runs on the first validation pod, after the amendment is frozen, and its
 ``verification.json`` becomes the new expected fixture (``expected-cuda-fixture``) that every
 later host must reproduce, as the 2 October fixture did for the instruct recipe.
@@ -10,7 +11,9 @@ It writes a new folder and preserves any failure (``error.txt`` and ``partial-ve
 What it establishes, in order:
 
 1. the policy loads as the recipe says (the loader refuses anything else): base weights in
-   bfloat16, 73,859,072 float32 LoRA parameters, the audit tokenizer (``model.tokenizer``);
+   bfloat16, 73,862,144 float32 adapter parameters (73,859,072 LoRA values and the two trained
+   token rows, 2 x 1,536, counted once although the output head uses them too), the audit
+   tokenizer (``model.tokenizer``);
 2. every training row encodes exactly as the prepared token audit says (``Session.corpus``)
    and the memory preflight passes with the rank-64 adapter;
 3. **the two-step fixture**: from the seeded adapter of seed 1101, two optimizer steps on the
@@ -25,13 +28,20 @@ What it establishes, in order:
      hashes, and each tokenizer's own ``eos_token`` (the base's is expected to be
      ``<|endoftext|>``; the engine never uses it: targets end with and generation stops at the
      recipe's ``<|im_end|>``);
-   - the norms of the input-embedding and output rows of those three tokens against the median
-     row: a row far below the median would be a token the base model never learned. LoRA does
-     not train embedding or output rows, so if ``<|im_end|>``'s rows were untrained the adapter
-     might never learn to end a reply and every evaluation would run to its 2,048-token cap;
+   - **the three special rows against the never-used padding rows** (ids at or above the
+     tokenizer's length): norm, cosine to the padding rows' mean, largest cosine to any padding
+     row, bit-identity to a padding row; for the base model's own rows, and for the rows the
+     model actually uses (input embedding and output head, trained rows written in) under the
+     seeded adapter and after the two steps. The base model's <|im_start|> and <|im_end|> rows
+     are expected to be bit-identical to the padding rows (the token check of 5 October);
+   - how far the trained rows moved in the two steps;
    - the log-probability of ``<|im_end|>`` at the end of the first examples' targets, under the
      seeded adapter and after the two steps;
    - the generations' stop reasons (``eos`` or the 32-token engineering cap).
+6. **asserted**: after the two steps every trained row differs from every padding row, bit for
+   bit, in both the input embedding and the output head the model uses. Otherwise the trained
+   rows would still tie with the padding rows in the output logits, and greedy decoding could
+   never choose ``<|im_end|>``.
 """
 import argparse
 import gc
@@ -51,7 +61,6 @@ from experiments.safety_selection.prepare import load_prepared
 from experiments.safety_selection.runner import Session
 
 SPECIAL = ("<|im_start|>", "<|im_end|>", "<|endoftext|>")
-UNTRAINED_RATIO = 0.1          # a row below a tenth of the median row's norm is flagged
 SEED = 1101
 
 
@@ -70,22 +79,28 @@ def tokenizer_comparison(recipe):
             "same_chat_template": a["chat_template_sha256"] == b["chat_template_sha256"]}
 
 
-def special_rows(model, codec):
+def special_rows(model, codec, where):
+    """The three special rows against the padding rows (``engine.token_row_report``), for the
+    rows the model uses now (input embedding and output head) and the base model's own rows."""
     lm = en.causal_lm(model)
-    inputs = lm.get_input_embeddings().weight.detach().float()
-    outputs = lm.get_output_embeddings().weight.detach().float()
-    out = {"tied": bool(inputs.data_ptr() == outputs.data_ptr()), "rows": {}}
-    for name, matrix in (("input", inputs), ("output", outputs)):
-        norms = matrix.norm(dim=1)
-        median = float(norms.median())
-        rows = {}
-        for token in SPECIAL:
-            index = codec.tokenizer.convert_tokens_to_ids(token)
-            value = float(norms[index])
-            rows[token] = {"id": index, "norm": value, "ratio_to_median": value / median,
-                           "flag_untrained_looking": value < UNTRAINED_RATIO * median}
-        out["rows"][name] = {"median_norm": median, "tokens": rows}
-    return out
+    used_in, used_out = en.effective_embedding_weights(model)
+    embedding = lm.get_input_embeddings()
+    base = getattr(embedding, "token_adapter", embedding)
+    base_weight = base.get_base_layer().weight if hasattr(base, "get_base_layer") else embedding.weight
+    ids = {token: codec.tokenizer.convert_tokens_to_ids(token) for token in SPECIAL}
+    padding = list(range(len(codec.tokenizer), used_in.shape[0]))
+    assert padding, "the embedding has no rows beyond the tokenizer: nothing to compare with"
+    return {"where": where, "padding_ids": [padding[0], padding[-1]],
+            "tied": bool(getattr(lm.config, "tie_word_embeddings", False)),
+            "base_rows": en.token_row_report(base_weight, ids, padding),
+            "used_input": en.token_row_report(used_in, ids, padding),
+            "used_output": en.token_row_report(used_out, ids, padding)}
+
+
+def trained_rows(named):
+    """The trained token rows' parameter (name, values) or None."""
+    rows = [(n, p.detach().to("cpu").clone()) for n, p in named if en.TOKEN_ROWS in n]
+    return rows[0] if rows else None
 
 
 @torch.no_grad()
@@ -122,7 +137,6 @@ def main():
         corpus = session.corpus(prepared, policy, ledger)
         session.memory_preflight(corpus, policy, ledger, out)
         report["environment"] = session.environment
-        report["special_token_rows"] = special_rows(policy.model, policy.codec)
         train = recipe["train"]
         batch = train["micro_batch"] * train["grad_accum"]
         examples = [corpus[k] for k in sorted(corpus)[:2 * batch]]
@@ -135,6 +149,8 @@ def main():
         torch.manual_seed(SEED)
         torch.cuda.manual_seed_all(SEED)
         en.load_lora_state(policy.named, en.init_lora_state(policy.named, SEED))
+        report["special_token_rows_seeded"] = special_rows(policy.model, policy.codec, "seeded adapter")
+        seeded_rows = trained_rows(policy.named)
         report["end_of_turn_logprob_seeded"] = end_of_turn_logprobs(policy, examples[:8])
         optimizer = en.make_optimizer(policy.named, train)
 
@@ -166,6 +182,21 @@ def main():
                                 "loss_resumed": resumed["loss"], "exact": direct == again and second == resumed}
             assert report["resume"]["exact"], "the CUDA state continuation differs"
         report["end_of_turn_logprob_after_two_steps"] = end_of_turn_logprobs(policy, examples[:8])
+        after_rows = special_rows(policy.model, policy.codec, "after the two steps")
+        report["special_token_rows_after_two_steps"] = after_rows
+        moved = trained_rows(policy.named)
+        trained_ids = policy.identity.get("trainable_token_ids") or {}
+        assert trained_ids and seeded_rows is not None, "the recipe trains no token rows"
+        report["trained_rows_change"] = {
+            "parameter": moved[0], "token_ids": trained_ids,
+            "max_abs_change": float((moved[1] - seeded_rows[1]).abs().max()),
+            "per_row_l2_change": [float(x) for x in (moved[1] - seeded_rows[1]).norm(dim=1)]}
+        for side in ("used_input", "used_output"):
+            for token in trained_ids:
+                row = after_rows[side]["tokens"][token]
+                assert not row["bit_identical_to_a_padding_row"], \
+                    f"{token} still equals a padding row in the {side} weights after two steps"
+        report["trained_rows_separated_from_padding"] = True
         prompts = [policy.codec.prompt_ids(text) for text in
                    ("What is 2+2? Answer briefly.", "Name one planet other than Earth.",
                     "In one sentence, explain why ice floats on water.")]
@@ -185,13 +216,13 @@ def main():
                  "rng": en.rng_digest("cuda"), "training": policy.model.training}
         assert before == after, "generation perturbed the training state"
         report["generation_preserved_state"] = True
-        flags = [f"{where} row of {token}" for where, block in report["special_token_rows"]["rows"].items()
-                 for token, row in block["tokens"].items() if row["flag_untrained_looking"]]
+        base_rows = report["special_token_rows_seeded"]["base_rows"]["tokens"]
         report["for_review"] = {
-            "untrained_looking_special_rows": flags,
+            "base_rows_identical_to_padding": sorted(t for t, r in base_rows.items() if r["bit_identical_to_a_padding_row"]),
+            "trained_rows_separated_from_padding": report["trained_rows_separated_from_padding"],
             "base_tokenizer_differs_from_audit": not (report["tokenizers"]["same_vocabulary"]
                                                       and report["tokenizers"]["same_special_ids"]),
-            "note": "records only: the amendment's review decides what a flag means; nothing here is asserted"}
+            "note": "records; the separation of the trained rows is asserted, the rest is for the record"}
         report["elapsed_s"] = time.monotonic() - start
         stages = [json.loads(line) for line in (out / "ledger.jsonl").read_text().splitlines()]
         report["stage_memory_records"] = [{"stage": s["stage"], "memory": s.get("memory", {})} for s in stages]

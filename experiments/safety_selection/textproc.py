@@ -20,7 +20,7 @@ from typing import Any, Sequence
 from experiments.minimal_safety.data import normalize
 
 __all__ = ["normalize", "TooLong", "NoTargets", "ControlTokenError", "BoundaryMismatch",
-           "TemplateError", "Codec", "build_codec", "TrainExample", "encode_train",
+           "TemplateError", "Codec", "build_codec", "single_token_id", "trainable_token_ids", "TrainExample", "encode_train",
            "encode_generation_prompt", "encode_mc", "separate_matches_joint",
            "ARC_MC_INSTRUCTION", "arc_options", "render_arc_generation", "render_arc_mc",
            "arc_prompt_forms", "GUARD_SAFETY", "GUARD_LABEL_SEQUENCES", "GUARD_REFUSAL",
@@ -86,13 +86,18 @@ class Codec:
         return any(i in self.special_ids for i in ids)
 
 
+def single_token_id(tokenizer: Any, token: str) -> int:
+    """The id of a token string that the tokenizer encodes as exactly that one token."""
+    index = tokenizer.convert_tokens_to_ids(token)
+    if (index is None or index == getattr(tokenizer, "unk_token_id", None)
+            or _ids(tokenizer.encode(token, add_special_tokens=False)) != [index]):
+        raise TemplateError(f"{token!r} is not a single special token")
+    return int(index)
+
+
 def build_codec(tokenizer: Any, end_token: str, stop_tokens: Sequence[str], pad_token: str) -> Codec:
     def token_id(token: str) -> int:
-        index = tokenizer.convert_tokens_to_ids(token)
-        if (index is None or index == getattr(tokenizer, "unk_token_id", None)
-                or _ids(tokenizer.encode(token, add_special_tokens=False)) != [index]):
-            raise TemplateError(f"{token!r} is not a single special token")
-        return int(index)
+        return single_token_id(tokenizer, token)
 
     eos = token_id(end_token)
     stops = tuple(sorted({token_id(t) for t in stop_tokens}))
@@ -101,6 +106,14 @@ def build_codec(tokenizer: Any, end_token: str, stop_tokens: Sequence[str], pad_
     pad = token_id(pad_token)
     special = frozenset(int(i) for i in getattr(tokenizer, "all_special_ids", ())) | {eos, pad, *stops}
     return Codec(tokenizer=tokenizer, eos_id=eos, stop_ids=stops, pad_id=pad, special_ids=special)
+
+
+def trainable_token_ids(tokenizer: Any, tokens: Sequence[str]) -> dict[str, int]:
+    """``model.lora.trainable_tokens`` resolved to ids; unknown, multi-token or repeated refuses."""
+    ids = {token: single_token_id(tokenizer, token) for token in tokens}
+    if len(ids) != len(tokens) or len(set(ids.values())) != len(ids):
+        raise TemplateError("trainable tokens must be distinct tokens")
+    return ids
 
 
 @dataclass(frozen=True)

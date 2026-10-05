@@ -17,6 +17,11 @@ their exact bytes, hash and meaning):
   headroom amendment's ``Qwen2.5-1.5B``) then uses the tokenizer the prepared data were
   audited with; every training row and prompt is still checked token for token against that
   audit before use. Without it, the model's own snapshot is the tokenizer, as before.
+- ``model.lora.trainable_tokens`` (a list of distinct special-token strings): embedding rows
+  trained with the adapter (PEFT ``trainable_token_indices``), resolved to ids with the policy's
+  tokenizer; an unknown token or one that is not a single token refuses. With tied embeddings
+  the output head's rows change with them (``engine.py``). The trainable count in
+  ``expected_trainable_parameters`` then includes the rows once.
 """
 
 from __future__ import annotations
@@ -274,8 +279,12 @@ def validate_recipe(recipe: dict) -> dict:
     _text(model["pad_token"], "model.pad_token")
     _int(model["max_train_tokens"], "model.max_train_tokens", 2)
     _int(model["max_prompt_tokens"], "model.max_prompt_tokens", 2)
-    lora = _keys(model["lora"], {"r", "alpha", "dropout", "target_modules",
-                                 "expected_trainable_parameters"}, "model.lora")
+    lora_keys = {"r", "alpha", "dropout", "target_modules", "expected_trainable_parameters"}
+    if isinstance(model["lora"], dict) and "trainable_tokens" in model["lora"]:   # optional (module doc)
+        lora_keys = lora_keys | {"trainable_tokens"}
+    lora = _keys(model["lora"], lora_keys, "model.lora")
+    if "trainable_tokens" in lora:
+        _texts(lora["trainable_tokens"], "model.lora.trainable_tokens")
     _int(lora["r"], "model.lora.r", 1)
     _int(lora["alpha"], "model.lora.alpha", 1)
     _fixed(lora["dropout"], 0.0, "model.lora.dropout")

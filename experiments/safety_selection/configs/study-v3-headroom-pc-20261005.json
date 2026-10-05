@@ -1,7 +1,7 @@
 {
   "kind": "safety-selection recipe",
-  "name": "study-v3-headroom-base-draft-20261005",
-  "purpose": "DRAFT for review, not frozen; authorizes no run. Headroom amendment of 2026-10-05 (research/experiments/2026-10-05-headroom-amendment-draft.md), change 1: the base Qwen2.5-1.5B (no instruction or safety tuning) with a rank-64 LoRA on every linear layer; everything else as study-v2-primary-20261002. Text is tokenized with the Qwen2.5-1.5B-Instruct snapshot the prepared data were audited with (model.tokenizer), every row and prompt checked token for token against that audit; training targets end with <|im_end|> and generation stops at <|im_end|> or <|endoftext|>, as for the instruct model. The learning rate stays 2e-4 (open decision 4).",
+  "name": "study-v3-headroom-pc-20261005",
+  "purpose": "Positive-control recipe of the headroom amendment (research/experiments/2026-10-05-headroom-amendment-draft.md), frozen for the positive control on 2026-10-05 with the user's approval; development only. The base Qwen2.5-1.5B (no instruction or safety tuning) with a rank-64 LoRA on every linear layer, and the <|im_start|> and <|im_end|> embedding rows trained with the adapter (in the base model they equal the never-used padding rows; the embedding is tied to the output layer). Everything else as study-v2-primary-20261002. Text is tokenized with the Qwen2.5-1.5B-Instruct snapshot the prepared data were audited with (model.tokenizer), every row and prompt checked token for token against that audit; training targets end with <|im_end|> and generation stops at <|im_end|> or <|endoftext|>. Learning rate 2e-4 (amendment decision 4).",
   "model": {
     "repo_id": "Qwen/Qwen2.5-1.5B",
     "revision": "8faed761d45a263340a0528343f099c05c9a4323",
@@ -31,7 +31,11 @@
         "up_proj",
         "down_proj"
       ],
-      "expected_trainable_parameters": 73859072
+      "expected_trainable_parameters": 73862144,
+      "trainable_tokens": [
+        "<|im_start|>",
+        "<|im_end|>"
+      ]
     },
     "tokenizer": {
       "repo_id": "Qwen/Qwen2.5-1.5B-Instruct",

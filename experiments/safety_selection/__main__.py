@@ -108,6 +108,7 @@ def _parser() -> argparse.ArgumentParser:
     p.add_argument("--prepared", required=True)
     p.add_argument("--scores", required=True, help="the frozen scores.json of score-rows")
     p.add_argument("--percent", default="10", help="the largest edit size (default 10)")
+    p.add_argument("--random-percent", default="10", help="the random control's size (default 10)")
     p.add_argument("--out", required=True, help="new folder; never replaced")
     p = sub.add_parser("build-edits", help="headroom (draft): the positive control's edit files (CPU only)")
     p.add_argument("--prepared", required=True)
@@ -115,6 +116,8 @@ def _parser() -> argparse.ArgumentParser:
     p.add_argument("--rewrites", help="the frozen rewrites.json of generate-rewrites")
     p.add_argument("--percents", default="2.5,4,7,10")
     p.add_argument("--random-percent", default="10")
+    p.add_argument("--round", choices=["1"], help="only the files of round 1: remove, random remove, rewrite and "
+                                                  "random rewrite at 10%% (needs --rewrites)")
     p.add_argument("--out", required=True, help="new folder; never replaced")
     p = sub.add_parser("score-audit", help="guard scores of a blind-context audit file")
     p.add_argument("--recipe", required=True)
@@ -225,7 +228,8 @@ def _job_command(args: argparse.Namespace) -> dict:
         from .headroom import generate_rewrites_job, validate_rewrite_config
 
         config = validate_rewrite_config(json.loads(Path(args.config).read_text(encoding="utf-8")))
-        return generate_rewrites_job(config, session, args.prepared, args.scores, args.out, percent=args.percent)
+        return generate_rewrites_job(config, session, args.prepared, args.scores, args.out, percent=args.percent,
+                                     random_percent=args.random_percent)
     if args.command == "score-audit":
         return runner.score_audit(args.input, out_dir=args.out, session=session)
     job = json.loads(Path(args.job).read_text(encoding="utf-8"))
@@ -264,10 +268,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             _print(_make_job(args))
             return 0
         if args.command == "build-edits":
-            from .headroom import build_edits_job
+            from .headroom import ROUND_1, build_edits_job
 
             _print(build_edits_job(args.prepared, args.scores, args.out, rewrites_path=args.rewrites,
-                                   percents=args.percents.split(","), random_percent=args.random_percent))
+                                   percents=args.percents.split(","), random_percent=args.random_percent,
+                                   only=ROUND_1 if args.round == "1" else None))
             return 0
         if args.command == "verify":
             from .verify import PathMap, verify_run

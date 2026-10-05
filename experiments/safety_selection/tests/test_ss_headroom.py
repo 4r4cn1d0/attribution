@@ -1,14 +1,17 @@
-"""The headroom amendment's engine support (draft, 5 October 2026) on ENGINEERING FIXTURES:
+"""The headroom amendment's engine support (5 October 2026) on ENGINEERING FIXTURES:
 tiny random Qwen2+LoRA on CPU, byte codec, scripted guard, tiny guard LM, a scripted generator.
 
 The decisive check is that group-removal arms and a0 are untouched: a calibration of a0 and one
 group on the fixtures is compared, unit by unit, with a digest written from the engine of commit
-8dd630c before any change (``golden/removal-arms-8dd630c.json``). Then: the base-model recipe
-and its end of turn; edit files applied exactly (removal, rewrite, addition at the stated
+8dd630c before any change (``golden/removal-arms-8dd630c.json``). Then: the frozen base-model
+recipe and its end of turn; the chat-token rows, proved on a tied fixture whose chat-token rows equal
+its padding rows (LoRA alone can never emit ``<|im_end|>``; with trained rows the rows separate and
+an end-of-answer case stops there), counted once, saved, resumed and fingerprinted; edit files applied exactly (removal, rewrite, addition at the stated
 positions, combined), refused when they name a held-out member, run on the held-out split or do
 not hash to their arm, and given their own trajectory identity; the row scorer and the rewrite generator deterministic; the
 generator never shown an original reply, and a draft that is not judged Safe generated once more
-and then excluded; the edit builder's counts, ranking and provenance. None of these numbers is a
+and then excluded; the edit builder's counts, ranking and provenance; the random rewrite on exactly the random
+removal's rows, the rewrites over the union of both sets, and round 1's four files. None of these numbers is a
 scientific result."""
 
 from __future__ import annotations
@@ -49,7 +52,11 @@ TESTS = Path(__file__).resolve().parent
 PACKAGE = TESTS.parent
 ROOT = PACKAGE.parents[1]
 GOLDEN = TESTS / "golden" / "removal-arms-8dd630c.json"
+PC_RECIPE = PACKAGE / "configs" / "study-v3-headroom-pc-20261005.json"
+PC_REWRITE = PACKAGE / "configs" / "headroom-rewrite-pc-20261005.json"
+CHAT_TOKENS = {"<|im_start|>": fx.SPECIAL["<|im_start|>"], "<|im_end|>": fx.SPECIAL["<|im_end|>"]}
 FROZEN_PRIMARY_SHA256 = "8cc5e543bc8c73a65bf4d692b05383d6671660188e81ec15f6767f51e3f60986"
+PC_RECIPE_SHA256 = "3b50a4e6fe0055f3b4b9ca8e48fe970d62340e3a7dab79d556dc93d5b50155d5"
 
 
 class Env:
@@ -135,17 +142,19 @@ def lora_count(hidden: int, intermediate: int, kv: int, layers: int, r: int) -> 
     return layers * sum(r * (a + b) for a, b in shapes.values())
 
 
-def test_the_base_recipe_validates_and_its_adapter_has_the_stated_size(env):
+def test_the_frozen_recipe_validates_and_its_adapter_has_the_stated_size(env):
     import peft
     import transformers
 
-    recipe = load_recipe(PACKAGE / "configs" / "study-v3-headroom-base-draft-20261005.json")
+    recipe = load_recipe(PC_RECIPE)
     primary = load_recipe(PACKAGE / "configs" / "study-v2-primary-20261002.json")
     model, lora = recipe["model"], recipe["model"]["lora"]
     assert (model["repo_id"], model["revision"]) == ("Qwen/Qwen2.5-1.5B", "8faed761d45a263340a0528343f099c05c9a4323")
     assert tokenizer_of(recipe) == (primary["model"]["repo_id"], primary["model"]["revision"])
     assert (lora["r"], lora["alpha"], lora["dropout"]) == (64, 128, 0.0)
     assert lora["target_modules"] == ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+    assert lora["trainable_tokens"] == ["<|im_start|>", "<|im_end|>"] and "DRAFT" not in recipe["purpose"]
+    assert recipe["name"] == PC_RECIPE.stem and config_sha256(recipe) == PC_RECIPE_SHA256
     assert (model["end_of_turn_token"], model["stop_tokens"]) == ("<|im_end|>", ["<|im_end|>", "<|endoftext|>"])
     for section in ("train", "generation", "arc", "guard", "secondary_toxicity", "attribution"):
         assert recipe[section] == primary[section], section                  # everything else as the frozen recipe
@@ -155,7 +164,16 @@ def test_the_base_recipe_validates_and_its_adapter_has_the_stated_size(env):
     tiny = peft.get_peft_model(transformers.Qwen2ForCausalLM(config), peft.LoraConfig(
         r=4, lora_alpha=8, lora_dropout=0.0, target_modules=lora["target_modules"], bias="none", task_type="CAUSAL_LM"))
     assert en.parameter_count(en.lora_parameters(tiny)) == lora_count(32, 48, 16, 2, 4)
-    assert lora_count(1536, 8960, 256, 28, 64) == lora["expected_trainable_parameters"] == 73_859_072
+    # the tied token rows: one shared float32 parameter of n x hidden values, counted once
+    rows = peft.get_peft_model(transformers.Qwen2ForCausalLM(config), peft.LoraConfig(
+        r=4, lora_alpha=8, lora_dropout=0.0, target_modules=lora["target_modules"], bias="none", task_type="CAUSAL_LM",
+        trainable_token_indices=sorted(CHAT_TOKENS.values())))
+    named = en.lora_parameters(rows)
+    tokens = [(n, p) for n, p in named if en.TOKEN_ROWS in n]
+    assert [n for n, _ in tokens] == ["base_model.model.model.embed_tokens.token_adapter.trainable_tokens_delta.default"]
+    assert tokens[0][1].shape == (2, 32) and tokens[0][1].dtype == torch.float32
+    assert en.parameter_count(named) == lora_count(32, 48, 16, 2, 4) + 2 * 32
+    assert lora_count(1536, 8960, 256, 28, 64) + 2 * 1536 == lora["expected_trainable_parameters"] == 73_862_144
     # the identity check: the data were audited with the instruct tokenizer, which the recipe names
     manifest = {"data_config": {"tokenizer": {"repo_id": primary["model"]["repo_id"],
                                               "revision": primary["model"]["revision"], "end_of_turn_token": "<|im_end|>"}}}
@@ -204,7 +222,7 @@ class ScriptedLM(torch.nn.Module):
 
 
 def test_a_base_model_ends_its_turn_with_im_end_and_generation_stops_there(env):
-    recipe = load_recipe(PACKAGE / "configs" / "study-v3-headroom-base-draft-20261005.json")
+    recipe = load_recipe(PC_RECIPE)
     model = recipe["model"]
     tokenizer = BaseFixtureTokenizer()
     codec = build_codec(tokenizer, model["end_of_turn_token"], model["stop_tokens"], model["pad_token"])
@@ -228,6 +246,138 @@ def test_a_base_model_ends_its_turn_with_im_end_and_generation_stops_there(env):
     assert [g.stop_reason for g in capped] == ["max_new_tokens"] * 2 and len(capped[0].output_ids) == 5
     with pytest.raises(TemplateError):
         build_codec(tokenizer, "<|nothing|>", ["<|nothing|>"], model["pad_token"])
+
+
+# ----- 2b. the chat-token rows ----------------------------------------------------------------------------
+
+PADDING = range(fx.VOCAB, fx.VOCAB + 10)          # the tied fixture's padding rows: ids past the tokenizer
+
+
+def tied_model(token_ids=None):
+    """The fixture model with 10 padding rows and, as in Qwen2.5-1.5B, its two chat-token rows
+    and every padding row set to one shared vector of the (tied) embedding."""
+    import peft
+    import transformers
+
+    torch.manual_seed(0)
+    config = transformers.Qwen2Config(vocab_size=fx.VOCAB + len(PADDING), hidden_size=32, intermediate_size=64,
+                                      num_hidden_layers=2, num_attention_heads=4, num_key_value_heads=2,
+                                      max_position_embeddings=256, tie_word_embeddings=True, attn_implementation="eager")
+    base = transformers.Qwen2ForCausalLM(config).float()
+    with torch.no_grad():
+        weight = base.get_input_embeddings().weight
+        for row in [*CHAT_TOKENS.values(), *PADDING[1:]]:
+            weight[row] = weight[PADDING[0]]
+    extra = {"trainable_token_indices": sorted(token_ids)} if token_ids else {}
+    return peft.get_peft_model(base, peft.LoraConfig(r=2, lora_alpha=4, lora_dropout=0.0, target_modules=["q_proj", "v_proj"],
+                                                     bias="none", task_type="CAUSAL_LM", **extra))
+
+
+def train_on_one_answer(model, steps: int):
+    """``steps`` optimizer steps on one scripted end-of-answer example ("ok<|im_end|>")."""
+    codec = fx.fixture_codec()
+    example = encode_train(codec, "r", "hi", "ok", 256)
+    named = en.lora_parameters(model)
+    en.load_lora_state(named, en.init_lora_state(named, 1101))
+    seeded = en.effective_embedding_weights(model)
+    optimizer = torch.optim.AdamW([p for _, p in named], lr=0.05)
+    for _ in range(steps):
+        en.train_step(model, named, optimizer, [example], 1, 1.0, codec.pad_id, "cpu", 16)
+    prompts = [codec.prompt_ids("hi"), *(codec.prompt_ids(text) for text in ("a", "tell me", "no", "x y z"))]
+    generations = en.greedy_generate(model, prompts, max_new_tokens=6, stop_ids=codec.stop_ids, pad_id=codec.pad_id,
+                                     device="cpu", batch_size=1)
+    with torch.no_grad():
+        logits = en.causal_lm(model)(input_ids=torch.tensor([example.input_ids[:-1]])).logits[0, -1]
+    return named, seeded, generations, logits
+
+
+def test_with_lora_alone_a_padding_identical_im_end_row_can_never_be_chosen():
+    model = tied_model()
+    named, seeded, generations, logits = train_on_one_answer(model, 30)
+    assert not [n for n, _ in named if en.TOKEN_ROWS in n]
+    end, start = CHAT_TOKENS["<|im_end|>"], CHAT_TOKENS["<|im_start|>"]
+    tied = logits[[start, end, *PADDING]]
+    assert torch.equal(tied, tied[0].expand_as(tied))                      # one logit for the whole tied group ...
+    for out in generations:                                                # ... so greedy can never pick <|im_end|>
+        assert end not in out.output_ids and out.stop_token != end and out.stop_reason == "max_new_tokens"
+    after = en.effective_embedding_weights(model)
+    for weights in (*seeded, *after):
+        report = en.token_row_report(weights, CHAT_TOKENS, PADDING)
+        assert report["padding_rows_all_identical"]
+        assert all(t["bit_identical_to_a_padding_row"] and t["max_cosine_to_padding"] > 0.9999
+                   for t in report["tokens"].values())
+
+
+def test_trained_chat_token_rows_separate_from_the_padding_and_end_the_answer():
+    model = tied_model(CHAT_TOKENS.values())
+    named, seeded, generations, logits = train_on_one_answer(model, 30)
+    end = CHAT_TOKENS["<|im_end|>"]
+    seeded_in, seeded_out = seeded
+    for weights in seeded:                                                 # the seeded model is the base model
+        assert all(t["bit_identical_to_a_padding_row"] for t in en.token_row_report(weights, CHAT_TOKENS, PADDING)["tokens"].values())
+    used_in, used_out = en.effective_embedding_weights(model)
+    assert torch.equal(used_in, used_out)                                  # tied: the same rows on both sides
+    for weights in (used_in, used_out):
+        report = en.token_row_report(weights, CHAT_TOKENS, PADDING)
+        assert report["padding_rows_all_identical"]                        # every other row stayed frozen ...
+        assert not any(t["bit_identical_to_a_padding_row"] for t in report["tokens"].values())   # ... these moved
+    changed = (used_in != seeded_in).any(dim=1).nonzero().flatten().tolist()
+    assert changed == sorted(CHAT_TOKENS.values())
+    assert logits[end] > logits[PADDING[0]] and logits.argmax().item() == end
+    first = generations[0]
+    assert (first.stop_reason, first.stop_token) == ("eos", end)           # the scripted answer ends its turn
+
+
+def test_trainable_tokens_are_validated_and_resolved_to_distinct_single_tokens(env):
+    from experiments.safety_selection.textproc import trainable_token_ids
+
+    tokenizer = fx.FixtureTokenizer()
+    assert trainable_token_ids(tokenizer, ["<|im_start|>", "<|im_end|>"]) == CHAT_TOKENS
+    for bad in (["<|nothing|>"], ["ab"], ["<|im_end|>", "<|im_end|>"]):
+        with pytest.raises(TemplateError):
+            trainable_token_ids(tokenizer, bad)
+    for bad in ([], "<|im_end|>", [""], [3], ["<|im_end|>", "<|im_end|>"]):
+        with pytest.raises(ConfigError):
+            validate_recipe(fx.recipe(**{"model.lora.trainable_tokens": bad}))
+    validate_recipe(fx.recipe(**{"model.lora.trainable_tokens": ["<|im_end|>"]}))
+    env.recipe = fx.recipe(**{"model.lora.trainable_tokens": ["<|nothing|>"]})
+    with pytest.raises(TemplateError):
+        runner.run_one(env.job(env.dev_group), prepared_dir=env.prepared_dir, out_dir=env.base / "bad",
+                       session=env.session())
+
+
+def test_token_rows_are_saved_fingerprinted_resumed_exactly_and_verified(env):
+    from safetensors.torch import load_file
+
+    env.recipe = fx.recipe(**{"model.lora.trainable_tokens": list(CHAT_TOKENS),
+                              "model.lora.expected_trainable_parameters": 512})
+    session = env.session()
+
+    def go(name: str, **fields) -> dict:
+        return runner.run_one(env.job("a0", **fields), prepared_dir=env.prepared_dir, out_dir=env.base / name,
+                              session=session)
+
+    direct = go("direct", target_checkpoint="e1")
+    short = go("short")
+    cont = go("cont", target_checkpoint="e1", resume_from=short["run_dir"])
+
+    def state(run: dict, checkpoint: str) -> dict:
+        return read_json(Path(run["run_dir"]) / "states" / checkpoint / "state.json")
+
+    for checkpoint, other in (("q", short), ("e1", cont)):
+        for key in ("adapter_fingerprint", "optimizer_fingerprint", "rng_fingerprint", "step", "stream_sha256"):
+            assert state(direct, checkpoint)[key] == state(other, checkpoint)[key], (checkpoint, key)
+    adapters = {c: load_file(Path(direct["run_dir"]) / "states" / c / en.ADAPTER) for c in ("init", "e1")}
+    key = "base_model.model.model.embed_tokens.token_adapter.trainable_tokens_delta.default"
+    assert adapters["init"][key].shape == (2, 32) and not torch.equal(adapters["init"][key], adapters["e1"][key])
+    original = fx.tiny_lora_model().base_model.model.model.embed_tokens.weight.detach()
+    assert torch.equal(adapters["init"][key], original[sorted(CHAT_TOKENS.values())])   # seeded = the base rows
+    plain = runner.run_one(Env(env.base / "plain").job("a0"), prepared_dir=env.prepared_dir, out_dir=env.base / "plain-run",
+                           session=runner.Session(fx.recipe(), fx.fixture_loaders()))
+    assert key not in load_file(Path(plain["run_dir"]) / "states" / "q" / en.ADAPTER)
+    assert direct["trajectory"]["init_fingerprint"] != plain["trajectory"]["init_fingerprint"]
+    for run in (direct, cont):
+        assert verify_run(run["run_dir"], env.prepared_dir)["complete"]
 
 
 # ----- 3. edit files -------------------------------------------------------------------------------------
@@ -554,7 +704,11 @@ def test_a_rewrite_edit_leaves_out_and_lists_the_rows_whose_replacement_was_excl
 
 def test_the_rewrite_pipeline_end_to_end_scores_generates_builds_and_trains(env):
     scripted, generator, _ = generator_and_guard(env)
-    config = json.loads((PACKAGE / "configs" / "headroom-rewrite-draft-20261005.json").read_text())
+    config = json.loads(PC_REWRITE.read_text())
+    assert "DRAFT" not in config["purpose"] and hr.validate_rewrite_config(config) == config
+    draft = json.loads((PACKAGE / "configs" / "headroom-rewrite-draft-20261005.json").read_text())
+    assert {k: v for k, v in config.items() if k not in ("name", "purpose")} == \
+        {k: v for k, v in draft.items() if k not in ("name", "purpose")}
     session = env.session()
     scores = hr.score_rows_job(session, env.prepared_dir, env.base / "scores")
     scores_path = Path(scores["run_dir"]) / "scores.json"
@@ -563,12 +717,42 @@ def test_the_rewrite_pipeline_end_to_end_scores_generates_builds_and_trains(env)
     rewrites_path = Path(made["run_dir"]) / "rewrites.json"
     doc = json.loads(rewrites_path.read_bytes())
     top = hr.ranked_rows(json.loads(scores_path.read_bytes()))[:6]
-    assert [r["row_id"] for r in doc["rows"]] == top and made["rows"] == 6
-    responses = {env.prepared.train_rows[row]["response"] for row in top}
+    chosen, count, seed = hr.random_rows(env.prepared, "10")
+    union = sorted(set(top) | set(chosen))                                 # the union of both sets, once each
+    assert count == len(chosen) == 6 and len(union) == 12 - len(set(top) & set(chosen))
+    assert [r["row_id"] for r in doc["rows"]] == union and made["rows"] == len(union)
+    assert (made["top_rows"], made["random_rows"]) == (6, 6)
+    for record in doc["rows"]:
+        assert record["sets"] == [s for s, rows in (("top-10", top), ("random-10", chosen)) if record["row_id"] in rows]
+    assert doc["random"] == {"percent": "10", "count": 6, "seed": seed, "rule": hr.RANDOM_RULE,
+                             "overlap_with_top": len(set(top) & set(chosen))}
+    responses = {env.prepared.train_rows[row]["response"] for row in union}
     assert not any(response in text for response in responses for text in scripted.seen)  # never shown an original reply
-    assert all(env.prepared.train_rows[row]["prompt"] in text for row, text in zip(top, scripted.seen))
+    assert all(env.prepared.train_rows[row]["prompt"] in text for row, text in zip(union, scripted.seen))
     out = env.base / "edits"
     built = hr.build_edits_job(env.prepared_dir, scores_path, out, rewrites_path=rewrites_path)
+    assert [e["file"] for e in built["edits"]] == [f"{kind}-{p}.json" for p in ("2.5", "4", "7", "10")
+                                                   for kind in ("remove", "rewrite")] + \
+        ["random-remove-10.json", "random-rewrite-10.json"]
+    random_remove = json.loads((out / "random-remove-10.json").read_bytes())
+    random_rewrite = json.loads((out / "random-rewrite-10.json").read_bytes())
+    excluded = [e["row_id"] for e in random_rewrite["provenance"]["excluded"]]
+    assert random_remove["remove"] == chosen and random_rewrite["edit_kind"] == "rewrite"
+    assert sorted([r["row_id"] for r in random_rewrite["rewrite"]] + excluded) == chosen   # exactly the same rows
+    assert random_rewrite["provenance"]["seed"] == random_remove["provenance"]["seed"] == seed
+    round_1 = env.base / "round-1"
+    assert cli(["build-edits", "--prepared", str(env.prepared_dir), "--scores", str(scores_path),
+                "--rewrites", str(rewrites_path), "--round", "1", "--out", str(round_1)]) == 0
+    index = read_json(round_1 / "index.json")
+    assert sorted(e["file"] for e in index["edits"]) == sorted(f"{name}.json" for name in hr.ROUND_1)
+    assert sorted(f.name for f in round_1.iterdir() if f.name.endswith(".json")) == sorted(
+        [f"{name}.json" for name in hr.ROUND_1] + ["index.json"])
+    assert index["only"] == list(hr.ROUND_1)
+    for entry in index["edits"]:                                           # the same bytes as the full build
+        assert (round_1 / entry["file"]).read_bytes() == (out / entry["file"]).read_bytes()
+    with pytest.raises(EditError, match="rewrites file"):
+        hr.build_edits_job(env.prepared_dir, scores_path, env.base / "no-rewrites", only=hr.ROUND_1)
+    assert not (env.base / "no-rewrites").exists()
     rewrite_10 = next(e for e in built["edits"] if e["file"] == "rewrite-10.json")
     rewrite_doc = json.loads((out / "rewrite-10.json").read_bytes())
     assert rewrite_doc["provenance"]["rewrites_sha256"] == sha256_bytes(rewrites_path.read_bytes())
@@ -588,4 +772,5 @@ def test_the_fixture_script_is_present_and_parses_its_arguments():
                           env={"PYTHONPATH": str(ROOT), "PATH": "/usr/bin:/bin", "PYTHONDONTWRITEBYTECODE": "1"})
     assert done.returncode == 0 and "--recipe" in done.stdout and "--prepared" in done.stdout
     text = script.read_text()
-    assert "WRITTEN, NOT RUN" in text and "resume" in text and "flag_untrained_looking" in text
+    assert "WRITTEN, NOT RUN" in text and "resume" in text and "bit_identical_to_a_padding_row" in text
+    assert "trained_rows_separated_from_padding" in text and "flag_untrained_looking" not in text

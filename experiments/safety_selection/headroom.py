@@ -16,7 +16,10 @@ choice for a positive control (its open decision 1), recorded in the file.
 
 **Edit builder.** From a frozen scores file: ``remove`` the top k% of ranked rows, ``rewrite``
 the same rows from a frozen rewrites file, ``random`` removal of k% of the pool with a seed
-derived from the data config's design seed. Ranking: score descending, ties by row id. The
+derived from the data config's design seed, and ``random rewrite`` of exactly those random rows
+(the control for *which* rows are rewritten). One rewrites file covers the union of the top and
+the random rows; each of its rows records the set or sets it belongs to. ``ROUND_1`` names the
+four files of the positive control's first round (10%). Ranking: score descending, ties by row id. The
 number of rows for k% is ``round half up(k / 100 * training rows)`` (``edit_count``), so 2.5,
 4, 7 and 10% of 10,148 rows are 254, 406, 710 and 1,015, the amendment's numbers; the count's
 base (training rows, not pool rows) is recorded in each file. ``add`` and ``combined`` files
@@ -53,7 +56,8 @@ __all__ = ["POOL_RULE", "SCORES_KIND", "REWRITES_KIND", "REWRITE_CONFIG_KIND", "
            "build_random_removal", "build_rewrite", "build_add", "build_combined", "RewriteGenerator",
            "rewrite_prompt_ids", "generate_rewrites", "rewrites_document", "validate_rewrite_config",
            "load_rewrite_generator", "parse_document", "added_row_id", "score_rows_job",
-           "build_edits_job", "generate_rewrites_job", "edit_document"]
+           "build_edits_job", "generate_rewrites_job", "edit_document", "random_rows", "build_random_rewrite",
+           "ROUND_1", "RANDOM_RULE"]
 
 POOL_RULE = "every training row that is not a member of a held-out group"
 SCORES_KIND = "safety-selection row scores"
@@ -181,30 +185,36 @@ def build_remove(scores_data: bytes, prepared: Any, percent: str) -> tuple[bytes
                  _score_provenance(scores_data, scores, prepared, percent, count), remove=rows)
 
 
-def build_random_removal(scores_data: bytes, prepared: Any, percent: str) -> tuple[bytes, dict]:
-    """Remove ``percent``% of the pool chosen at random with a seed derived from the data
-    config's design seed (no free parameter). The scores file is pinned only for its pool."""
-    scores = _scores(scores_data, prepared)
-    pool = edit_pool(prepared)
+RANDOM_RULE = "random.Random(derive_seed(design_seed, 'headroom-random-removal', percent)).sample(sorted pool, count)"
+
+
+def random_rows(prepared: Any, percent: str) -> tuple[list[str], int, int]:
+    """(rows, count, seed) of the random control: ``percent``% of the pool chosen with a seed
+    derived from the data config's design seed (no free parameter). Random removal and random
+    rewrite both take exactly these rows."""
     count = edit_count(percent, len(prepared.train_rows))
     seed = derive_seed(prepared.data_config["design_seed"], "headroom-random-removal", percent)
-    rows = sorted(random.Random(seed).sample(pool, count))
+    return sorted(random.Random(seed).sample(edit_pool(prepared), count)), count, seed
+
+
+def build_random_removal(scores_data: bytes, prepared: Any, percent: str) -> tuple[bytes, dict]:
+    """Remove the random control's rows (``random_rows``). The scores file is pinned only for its pool."""
+    scores = _scores(scores_data, prepared)
+    rows, count, seed = random_rows(prepared, percent)
     return edit_document(f"remove {percent}% of the pool at random", "remove", prepared,
                  {"scores_sha256": sha256_bytes(scores_data), "percent": percent, "count_rule": COUNT_RULE,
                   "count": count, "count_base_training_rows": len(prepared.train_rows),
-                  "random_rule": "random.Random(derive_seed(design_seed, 'headroom-random-removal', percent))"
-                                 ".sample(sorted pool, count)", "seed": seed,
-                  "unscored_rows": scores["unscored_rows"]}, remove=rows)
+                  "random_rule": RANDOM_RULE, "seed": seed, "unscored_rows": scores["unscored_rows"]}, remove=rows)
 
 
-def build_rewrite(scores_data: bytes, rewrites_data: bytes, prepared: Any, percent: str) -> tuple[bytes, dict]:
-    """Rewrite the same rows as ``build_remove`` with the accepted replacements of a frozen
-    rewrites file. Rows whose replacement was excluded stay as they are and are listed."""
-    scores = _scores(scores_data, prepared)
+def _rewrites(rewrites_data: bytes, scores_data: bytes, prepared: Any) -> dict:
     rewrites = parse_document(rewrites_data, REWRITES_KIND)
     if rewrites["manifest_sha256"] != prepared.manifest_sha256 or rewrites["scores_sha256"] != sha256_bytes(scores_data):
         raise EditError("the rewrites were generated for other scores or another prepared dataset")
-    rows, count = _top(scores, prepared, percent)
+    return rewrites
+
+
+def _rewritten(rows: Sequence[str], rewrites: dict) -> tuple[list[dict], list[dict]]:
     by_row = {r["row_id"]: r for r in rewrites["rows"]}
     missing = [row for row in rows if row not in by_row]
     if missing:
@@ -213,6 +223,30 @@ def build_rewrite(scores_data: bytes, rewrites_data: bytes, prepared: Any, perce
     excluded = [{"row_id": row, "reason": by_row[row]["reason"]} for row in rows if by_row[row]["status"] != "accepted"]
     if not accepted:
         raise EditError("no replacement of these rows was accepted")
+    return accepted, excluded
+
+
+def build_random_rewrite(scores_data: bytes, rewrites_data: bytes, prepared: Any, percent: str) -> tuple[bytes, dict]:
+    """Rewrite exactly the random control's rows (those of ``build_random_removal``) from the
+    same rewrites file; rows whose replacement was excluded stay as they are and are listed."""
+    scores = _scores(scores_data, prepared)
+    rewrites = _rewrites(rewrites_data, scores_data, prepared)
+    rows, count, seed = random_rows(prepared, percent)
+    accepted, excluded = _rewritten(rows, rewrites)
+    return edit_document(f"rewrite {percent}% of the pool at random", "rewrite", prepared,
+                 {"scores_sha256": sha256_bytes(scores_data), "percent": percent, "count_rule": COUNT_RULE,
+                  "count": count, "count_base_training_rows": len(prepared.train_rows), "random_rule": RANDOM_RULE,
+                  "seed": seed, "unscored_rows": scores["unscored_rows"], "rewrites_sha256": sha256_bytes(rewrites_data),
+                  "rewritten": len(accepted), "excluded": excluded}, rewrite=accepted)
+
+
+def build_rewrite(scores_data: bytes, rewrites_data: bytes, prepared: Any, percent: str) -> tuple[bytes, dict]:
+    """Rewrite the same rows as ``build_remove`` with the accepted replacements of a frozen
+    rewrites file. Rows whose replacement was excluded stay as they are and are listed."""
+    scores = _scores(scores_data, prepared)
+    rewrites = _rewrites(rewrites_data, scores_data, prepared)
+    rows, count = _top(scores, prepared, percent)
+    accepted, excluded = _rewritten(rows, rewrites)
     return edit_document(f"rewrite top {percent}% by guard Unsafe score", "rewrite", prepared,
                  {**_score_provenance(scores_data, scores, prepared, percent, count),
                   "rewrites_sha256": sha256_bytes(rewrites_data), "rewritten": len(accepted), "excluded": excluded},
@@ -328,10 +362,10 @@ def generate_rewrites(rows: Sequence[tuple[str, str]], generator: RewriteGenerat
 
 
 def rewrites_document(records: list[dict], *, scores_data: bytes, prepared: Any, percent: str, config: dict,
-                      generator: RewriteGenerator, guard: GuardScorer, guard_spec: dict) -> bytes:
+                      generator: RewriteGenerator, guard: GuardScorer, guard_spec: dict, random: dict | None = None) -> bytes:
     return canonical_json({
         "kind": REWRITES_KIND, "version": 1, "manifest_sha256": prepared.manifest_sha256,
-        "scores_sha256": sha256_bytes(scores_data), "percent": percent, "config": config,
+        "scores_sha256": sha256_bytes(scores_data), "percent": percent, "random": random, "config": config,
         "generator_identity": generator.identity,
         "guard": {"repo_id": guard_spec["repo_id"], "revision": guard_spec["revision"], "identity": guard.identity},
         "accepted": sum(r["status"] == "accepted" for r in records),
@@ -452,9 +486,15 @@ def score_rows_job(session: Any, prepared_dir, out_dir) -> dict:
         raise
 
 
+ROUND_1 = ("remove-10", "random-remove-10", "rewrite-10", "random-rewrite-10")
+
+
 def build_edits_job(prepared_dir, scores_path, out_dir, *, rewrites_path=None,
-                    percents: Sequence[str] = ("2.5", "4", "7", "10"), random_percent: str = "10") -> dict:
-    """``build-edits`` (CPU only): the positive control's edit files and an index of their arms."""
+                    percents: Sequence[str] = ("2.5", "4", "7", "10"), random_percent: str = "10",
+                    only: Sequence[str] | None = None) -> dict:
+    """``build-edits`` (CPU only): the positive control's edit files and an index of their arms.
+    ``only`` restricts it to the named files (``ROUND_1``: the first round's four, which needs the
+    rewrites file)."""
     from pathlib import Path
 
     from .common import write_atomic
@@ -464,20 +504,29 @@ def build_edits_job(prepared_dir, scores_path, out_dir, *, rewrites_path=None,
     prepared = load_prepared(prepared_dir)
     scores_data = Path(scores_path).read_bytes()
     rewrites_data = Path(rewrites_path).read_bytes() if rewrites_path else None
-    made: list[tuple[str, bytes, dict]] = []
+    plan: list[tuple[str, Callable[[], tuple[bytes, dict]]]] = []
     for percent in percents:
-        made.append((f"remove-{percent}", *build_remove(scores_data, prepared, percent)))
+        plan.append((f"remove-{percent}", lambda p=percent: build_remove(scores_data, prepared, p)))
         if rewrites_data is not None:
-            made.append((f"rewrite-{percent}", *build_rewrite(scores_data, rewrites_data, prepared, percent)))
-    made.append((f"random-remove-{random_percent}", *build_random_removal(scores_data, prepared, random_percent)))
+            plan.append((f"rewrite-{percent}", lambda p=percent: build_rewrite(scores_data, rewrites_data, prepared, p)))
+    plan.append((f"random-remove-{random_percent}", lambda: build_random_removal(scores_data, prepared, random_percent)))
+    if rewrites_data is not None:
+        plan.append((f"random-rewrite-{random_percent}",
+                     lambda: build_random_rewrite(scores_data, rewrites_data, prepared, random_percent)))
+    if only is not None:
+        unknown = sorted(set(only) - {name for name, _ in plan})
+        if unknown:
+            raise EditError(f"cannot build {unknown} from these inputs (a rewrite needs the rewrites file)")
+        plan = [(name, make) for name, make in plan if name in set(only)]
+    made = [(name, *make()) for name, make in plan]
     run_dir = create_run_dir(out_dir)
     index = []
     for name, data, doc in made:
         write_atomic(run_dir / f"{name}.json", data)
         index.append({"file": f"{name}.json", "arm": "edit-" + sha256_bytes(data), "edit_kind": doc["edit_kind"],
                       "counts": doc["counts"], "provenance": {k: v for k, v in doc["provenance"].items()
-                                                             if k in ("percent", "count", "rewritten")}})
-    record = {"kind": "build-edits", "manifest_sha256": prepared.manifest_sha256,
+                                                             if k in ("percent", "count", "rewritten", "seed")}})
+    record = {"kind": "build-edits", "manifest_sha256": prepared.manifest_sha256, "only": list(only) if only else None,
               "scores_sha256": sha256_bytes(scores_data),
               "rewrites_sha256": sha256_bytes(rewrites_data) if rewrites_data is not None else None,
               "pending": ["add and combined edits: their source is the amendment's open decision 3"],
@@ -487,9 +536,11 @@ def build_edits_job(prepared_dir, scores_path, out_dir, *, rewrites_path=None,
 
 
 def generate_rewrites_job(config: dict, session: Any, prepared_dir, scores_path, out_dir, *, percent: str = "10",
-                          generator: RewriteGenerator | None = None, policy_codec: Any = None) -> dict:
-    """``generate-rewrites``: replacements for the top ``percent``% of the ranked pool (the
-    largest edit size; smaller sizes take a prefix of the same rows) in a new folder."""
+                          random_percent: str = "10", generator: RewriteGenerator | None = None,
+                          policy_codec: Any = None) -> dict:
+    """``generate-rewrites``: replacements for the union of the top ``percent``% of the ranked
+    pool (the largest edit size; smaller sizes take a prefix of the same rows) and the random
+    control's ``random_percent``% (``random_rows``), in a new folder. Each row records its sets."""
     from pathlib import Path
 
     from .common import write_atomic
@@ -500,10 +551,18 @@ def generate_rewrites_job(config: dict, session: Any, prepared_dir, scores_path,
     prepared = load_prepared(prepared_dir)
     scores_data = Path(scores_path).read_bytes()
     scores = _scores(scores_data, prepared)
-    rows, count = _top(scores, prepared, percent)
+    top, count = _top(scores, prepared, percent)
+    chosen, random_count, seed = random_rows(prepared, random_percent)
+    sets: dict[str, list[str]] = {row: [] for row in sorted(set(top) | set(chosen))}
+    for row in top:
+        sets[row].append(f"top-{percent}")
+    for row in chosen:
+        sets[row].append(f"random-{random_percent}")
+    rows = list(sets)
     run_dir, ledger = _tool_folder(out_dir, {"kind": "generate-rewrites", "manifest_sha256": prepared.manifest_sha256,
                                              "scores_sha256": sha256_bytes(scores_data), "percent": percent,
-                                             "config": config, "recipe_sha256": session.recipe_sha256}, session)
+                                             "random_percent": random_percent, "config": config,
+                                             "recipe_sha256": session.recipe_sha256}, session)
     try:
         guard = session.guard(ledger, run_dir)
         if policy_codec is None:
@@ -523,11 +582,15 @@ def generate_rewrites_job(config: dict, session: Any, prepared_dir, scores_path,
                                         retry_system=config["retry_system_prompt"], policy_codec=policy_codec,
                                         max_train_tokens=session.recipe["model"]["max_train_tokens"])
             info.update(accepted=sum(r["status"] == "accepted" for r in records))
+        records = [{**record, "sets": sets[record["row_id"]]} for record in records]
         data = rewrites_document(records, scores_data=scores_data, prepared=prepared, percent=percent, config=config,
-                                 generator=generator, guard=guard, guard_spec=session.recipe["guard"])
+                                 generator=generator, guard=guard, guard_spec=session.recipe["guard"],
+                                 random={"percent": random_percent, "count": random_count, "seed": seed,
+                                         "rule": RANDOM_RULE, "overlap_with_top": len(set(top) & set(chosen))})
         write_atomic(run_dir / "rewrites.json", data)
         doc = parse_document(data, REWRITES_KIND)
-        summary = {"kind": "generate-rewrites", "rewrites_sha256": sha256_bytes(data), "rows": count,
+        summary = {"kind": "generate-rewrites", "rewrites_sha256": sha256_bytes(data), "rows": len(rows),
+                   "top_rows": count, "random_rows": random_count,
                    "accepted": doc["accepted"], "accepted_on_retry": doc["accepted_on_retry"], "excluded": doc["excluded"]}
         write_complete(run_dir, summary)
         return {"run_dir": str(run_dir), **summary}

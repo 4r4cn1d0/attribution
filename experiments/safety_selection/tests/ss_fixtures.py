@@ -309,8 +309,9 @@ def recipe(**changes) -> dict:
     return out
 
 
-def tiny_lora_model(seed: int = 0):
-    """Tiny random Qwen2 (vocab 260) with rank-2 q/v LoRA; built locally, nothing downloaded."""
+def tiny_lora_model(seed: int = 0, token_ids=None):
+    """Tiny random Qwen2 (vocab 260) with rank-2 q/v LoRA and, given ``token_ids``, those
+    embedding rows trained too (PEFT trainable_token_indices); built locally, nothing downloaded."""
     import peft
     import torch
     import transformers
@@ -321,9 +322,10 @@ def tiny_lora_model(seed: int = 0):
                                       max_position_embeddings=512, tie_word_embeddings=True,
                                       attn_implementation="eager")
     base = transformers.Qwen2ForCausalLM(config).float()
+    extra = {"trainable_token_indices": sorted(token_ids)} if token_ids else {}
     return peft.get_peft_model(base, peft.LoraConfig(r=2, lora_alpha=4, lora_dropout=0.0,
                                                      target_modules=["q_proj", "v_proj"], bias="none",
-                                                     task_type="CAUSAL_LM"))
+                                                     task_type="CAUSAL_LM", **extra))
 
 
 def tiny_guard_lm(seed: int = 1):
@@ -372,10 +374,14 @@ def fixture_loaders(guard_answers: dict | None = None, guard_fails: bool = False
     from experiments.safety_selection.scoring import GuardScorer, guard_control_strings
 
     def policy(recipe_: dict, ledger) -> Policy:
+        from experiments.safety_selection.textproc import trainable_token_ids
+
         if on_policy_load is not None:
             on_policy_load()
+        tokens = recipe_["model"]["lora"].get("trainable_tokens")
         with ledger.stage("load_policy") as info:
-            model = tiny_lora_model()
+            model = tiny_lora_model(token_ids=list(trainable_token_ids(FixtureTokenizer(), tokens).values())
+                                    if tokens else None)
             named = en.lora_parameters(model)
             info.update(trainable_parameters=en.parameter_count(named))
         return Policy(model, named, fixture_codec(), "cpu", {"fixture": FIXTURE,
