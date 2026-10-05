@@ -5,7 +5,7 @@ Started 5 October 2026 by General Implementation, at the user's request to "keep
 ## Phase 0: close round 1 (no new spend)
 
 - [x] All 10 jobs done and verified; the frozen reading applied; [round-1 results](2026-10-05-headroom-round-1-results.md) finalized. **Round 1 does not pass**: no edit made the model safer by the rule.
-- [ ] Back up the round-1 records (small results, receipts, edit files) to a private GitHub release, then download them back and check the hashes.
+- [x] Round-1 records backed up to the private draft release `backup-2026-10-05`: 601 files, verified by download-back, secret scan clean ([backup record](../../backups/2026-10-05/README.md)). The model states (about 18 GB, local only) await the user's decision.
 - [ ] Confirm every pod is stopped. The user may then delete today's pods and rotate the RunPod key.
 
 ## Phase 1: free analysis and research (CPU and web only)
