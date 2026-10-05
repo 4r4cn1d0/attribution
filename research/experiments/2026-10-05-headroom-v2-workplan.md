@@ -46,6 +46,16 @@ Started 5 October 2026 by General Implementation, at the user's request to "keep
 - [ ] The positive control: rewrite-k507 and random-rewrite-k507 at seed 1101 (paired with calibration's a0), then seed 1102, then a0 seed 1102, as the balance allows.
 - [ ] Then the decision-study design (FOCUS.md stage 1).
 
+## Pending, waiting on results (added 6 Oct, user's request)
+
+- [ ] **Outreach email drafts (a subagent; drafts only, the user sends).**
+  - **Trigger:** the v2 positive-control result plus the Mac second-judge check. For Grosse, preferably also the cheap ranking-and-timing check (classifier vs RepSim/DRA vs gradient similarity, with timings), which is not yet scheduled.
+  - **Recipients:**
+    - Jiaqi W. Ma (Pan et al. and DATE-LM): a seed-repeated replication of their removal comparison;
+    - Roger Grosse: how to charge EK-FAC/SOURCE's one-off cost against extra runs at matched compute;
+    - EleutherAI (Bergson): attribution for LoRA models.
+  - **Each email:** about 150 words, one concrete development result, one specific question, a link to the design. Verify affiliations and contacts from public pages. Save the drafts under `writing/outreach/`, and offer Gmail drafts.
+
 ## Log
 
 - 5 Oct, 14:30 UTC: plan started. Round 1 is closing ($41.98 of the $46 cap).
