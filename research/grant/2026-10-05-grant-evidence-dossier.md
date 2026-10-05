@@ -203,6 +203,41 @@ Sources:
 - [BlueDot blog: Rapid grants for BlueDot projects](https://bluedot.org/blog/rapid-grants-for-bluedot-projects);
 - [EA Forum: $50,000 in rapid grants](https://forum.effectivealtruism.org/posts/9AxDSiEsTabyBp3yi/we-ve-given-out-usd50-000-in-rapid-grants-now-we-want-to).
 
+### 11b. Thinking Machines Lab: Tinker credits (checked 6 October 2026 IST)
+
+- **Safety Research Grants** (posted 24 August 2026):
+  - **Award:** up to $50,000 in Tinker credits.
+  - **Who:** individuals, independent researchers and students can apply.
+  - **Topics:** two of them fit this study closely: "Building classifiers for hazardous data at scale" and "Safety-relevant generalization from narrow fine-tuning".
+  - **Proposal:** a 1-page summary plus CVs.
+  - **Judged on:** relevance, feasibility, construct validity, and simplicity and generality.
+  - **Deadline: 25 September. It has passed,** and no later round is announced.
+  - **Terms:**
+    - credits expire 12 months after provisioning;
+    - published work must be CC BY 4.0 or under an approved open-source licence;
+    - Thinking Machines gets a non-exclusive licence to the work product;
+    - read the publication-approval clause before applying.
+- **Tinker Research Grants** (announced 29 October 2025): from $5,000 in credits; rolling review with an answer in about a week. **Check that they are still open.**
+- **What Tinker would and would not do for us:**
+  - **It would do the training and sampling.** It trains LoRA on hosted open-weight models, with no pods, stop timers or GPU shortages.
+    - Price: Qwen3-8B training costs $0.44 per million tokens; sampling costs $0.60.
+    - **Estimate:** one of our jobs trains on about 18M tokens, so about $8 per job on an 8B model. Our 1.5B model on RunPod costs about $3.5–4 per job.
+  - **It would not run attribution.** The API returns losses and per-token log-probabilities, never per-example parameter gradients. Attribution would run on downloaded adapters on a pod or the Mac, and its compute would be charged separately (the study does this anyway).
+  - **Other limits:**
+    - Qwen2.5-1.5B is not offered, so moving changes the model and needs a new headroom check;
+    - it trains LoRA only: there is no trained chat-token row;
+    - it makes no statement on training determinism, so our bit-exact fixture checks would become seed-based checks;
+    - the judges must run elsewhere;
+    - credits can only be spent on Tinker.
+- **Use:** a training and sampling backend for the decision study, if credits come. Attribution and judges stay on pods or the Mac.
+
+Sources:
+- [Safety Research Grants](https://thinkingmachines.ai/news/safety-research-grants/);
+- [How to apply](https://thinkingmachines.ai/news/safety-research-grants/apply/);
+- [Terms](https://thinkingmachines.ai/legal/safety-research-grants-terms/);
+- [Tinker Research and Teaching Grants](https://thinkingmachines.ai/blog/tinker-research-and-teaching-grants);
+- [Tinker docs](https://tinker-docs.thinkingmachines.ai/llms-full.txt).
+
 ## 12. Deliverables to promise
 
 - the paper, including any null;
