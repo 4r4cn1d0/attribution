@@ -12,8 +12,12 @@ These are the records of round 1, in the private draft release `backup-2026-10-0
 - **Checks:**
   - **Secret scan:** it found no credential pattern, none of this run's pod IP addresses and no SSH key material (`secret-scan.json`).
   - **Download-back check:** every asset was downloaded back and matched its size and SHA-256 (`upload-verification.json`).
+- **Added later the same day, at the user's choice: `headroom-round1-a0-e3-adapters.tar`** (591 MB, sha256 `4c58fdd33a18ab66…`).
+  - It holds the two a0 final (e3) adapters, their RNG states and `state.json`, and the units' `COMPLETE.json`.
+  - Each file was checked against its unit's `COMPLETE.json` before packing, and the archive was checked again after downloading it back (`a0-adapters-manifest.json`).
+  - All other round-1 model states (69 files, about 18 GB) were then **deleted** at the user's instruction. The a0 adapters also remain on the laptop.
 - **Not included:**
-  - The model states. Six units' states (about 18 GB) remain only on the laptop under `tmp/headroom-20261005/retrieved/`. The rewrite units' states were not copied, and their pods were deleted.
+  - The other model states: deleted as above. The rewrite units' states were never copied, and their pods were deleted.
   - The prepared data, including the hidden bank, and any secret.
 
 Results write-up: `research/experiments/2026-10-05-headroom-round-1-results.md`.
