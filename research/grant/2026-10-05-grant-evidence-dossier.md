@@ -27,7 +27,11 @@ Our preliminary results already show that the cheapest selector, "delete what th
   - rewriting as a safety data edit, and attribution-guided selection of rows to rewrite: Luo et al. 2026, arXiv 2609.02771;
   - attribution for safety filtering: DATE-LM;
   - "about 3% safety data" (Safety-Tuned LLaMAs, Bianchi et al.);
-  - harmful fine-tuning breaks safety with few examples (Qi et al. 2023).
+  - harmful fine-tuning breaks safety with few examples (Qi et al. 2023);
+  - **the closest prior work:** attribution beats moderation classifiers at *removing* unsafe training data, in nearly our setting (UltraChat with injected ToxicChat). It reports no compute comparison, no rewriting and no training seeds. Pan et al., arXiv 2502.11411, ICML 2026.
+  - gradient-based filtering of harmful fine-tuning rows (GradShield, arXiv 2605.14194, 2026);
+  - influence functions do poorly at finding harmful data (Li et al., arXiv 2409.19998).
+  - The full search and citation list (6 October 2026) is in the [prior-work search](../review/2026-10-06-prior-work-search.md).
 - **Our distinct contribution:**
   - a matched-cost decision evaluation against strong cheap selectors;
   - finite menus with held-out confirmation;
