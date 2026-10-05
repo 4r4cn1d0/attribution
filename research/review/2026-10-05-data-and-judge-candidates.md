@@ -38,7 +38,7 @@ Our current benign check is ARC questions, which cannot detect refusal of benign
 | **Llama Guard 3** (Meta) | 8B (8-bit variant) | Llama 3.1 Community Licence | Gated (contact details and licence) | 14 hazard categories (S1–S14); prompts and responses |
 | Qwen3Guard-Gen-8B | 8B | Apache-2.0 | Not gated | Larger sibling of our judge. Not independent of it, so only a robustness check. |
 
-**Proposed:** Granite Guardian 3.3 8B as the second judge. It is independent of Qwen, Apache-licensed and ungated. WildGuard is the alternative if the user accepts Ai2's terms.
+**Proposed:** Granite Guardian 3.3 8B as the second judge. **Checked on round 1** (Q4_K_M, on the Mac): 92.5% agreement with Qwen3Guard, κ = 0.80, the same arm order. It is independent of Qwen, Apache-licensed and ungated. WildGuard is the alternative if the user accepts Ai2's terms.
 
 ## Harmful training examples (the harmful-fine-tuning setting)
 

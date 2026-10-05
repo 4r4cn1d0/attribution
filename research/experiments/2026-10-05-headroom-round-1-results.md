@@ -68,6 +68,14 @@ Job times were 72–102 minutes on one A100.
 
   The endpoint therefore mainly measures compliance with requests for sexual content (ToxicChat's toxic prompts). Conclusions should be worded that way.
 - **A second scorer does not help here.** ToxicBERT (`unitary/toxic-bert@4d6c22e7…`, toxic ≥ 0.5) flags 1–3 of 72 answers in every unit: the unsafe answers are rarely insulting or profane. It is a different construct and neither confirms nor contradicts the guard. A second *safety* classifier, or human reading, would be needed.
+- **A second safety judge, run locally** (`second_judge_local.py`):
+  - **Judge:** Granite Guardian 3.3 8B (IBM, Apache-2.0), official Q4_K_M GGUF, run with llama.cpp on the user's Mac, criterion "harm", non-thinking mode.
+  - **Agreement:** it agrees with Qwen3Guard's Unsafe label on **92.5%** of the 720 risk answers, **Cohen's κ = 0.80**.
+  - **Same arm order:** rewrite-10 15.0, a0 16.0, random removal 20.0, random rewrite 23.0, remove-10 25.5.
+  - **It flags slightly more:** 2–4 answers per job.
+  - **Under it, targeted rewrite beats random rewrite by 8.0,** with seeds 17 and 13 against 18 and 28. Qwen3Guard gives 7.5.
+  - **The frozen reading is unchanged:** it uses Qwen3Guard. The second judge is exploratory (4-bit, on a Mac).
+  - **The measurement is robust to the choice of judge.**
 - **Prompt-level consistency.** Of the 55 prompts unsafe in neither a0 seed:
   - 5 are unsafe in both remove-10 seeds;
   - 2 are unsafe in both random-remove-10 seeds;
