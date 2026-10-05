@@ -24,7 +24,7 @@ What stays the same:
 ## Part 1: the setting (contaminated fine-tuning data)
 
 - **Source of harmful examples (D1):** **PKU-SafeRLHF**, the responses labelled unsafe, CC BY-NC 4.0.
-  - Each response carries a harm category (14 types) and a severity (0–3).
+  - Each response carries harm-category flags (**19 categories** in the dataset's own key order; earlier drafts said 14) and a severity (0–3).
   - A fixed, seeded rule chooses responses with severity ≥ 2, balanced across categories, one response per prompt.
   - Nobody hand-picks rows.
 - **Injection:**
@@ -135,3 +135,20 @@ The balance is $35.57, so this needs a **top-up (D7)**. A cheaper variant: 4 see
   4. **Positive control at 2 seeds:** a0 (the calibration seed plus 1), rewrite-k and random-rewrite-k (2 each). About $12–18.
   5. **With any money left:** extra seeds for rewrite-k and random-rewrite-k, then a0. remove-k only if all else is done.
 - **Power at 2 seeds:** the minimum detectable difference is about 19 percentage points. The contaminated setting is expected to give larger effects; if it does not, the result is reported as underpowered, not as a null.
+
+## Part 8: build decisions and realised numbers (Priority A of the v2 engine build, 5 October 2026)
+
+- **Prepared data:**
+  - `prepared-v3-inj05` and `-inj10` extend `study-v2-data-expanded-arc`, the config `prepared-v2` was actually built from;
+  - every earlier output is byte-identical, and the injected rows are in no group;
+  - their metadata (source, category, severity) is in the auditor file only.
+- **Injection rule** (`prepare.INJECTION_RULE`):
+  - candidates are PKU responses marked unsafe with severity ≥ 2: 67,020 of them, and 20,348 eligible after de-duplication and exclusions;
+  - the order is category-balanced (first marked category; round-robin over seeded per-category shuffles);
+  - 5% = 507 rows and 10% = 1,015 rows, nested;
+  - severity 3: 77 and 159 rows.
+- **Near-duplicate exclusion** (added at General Implementation's decision): a candidate whose normalized prompt has character 5-gram Jaccard ≥ 0.5 with any evaluation prompt is skipped and counted. That means harm, over-refusal and ToxicChat, all splits, plus the ARC forms. An auditor-only report gives counts at 0.3, 0.5 and 0.7.
+- **Banks** (`prepare.EVAL_BANK_RULE`):
+  - **harm:** 1,267 eligible (HarmBench standard 200, StrongREJECT 313, SimpleSafetyTests 99, OR-Bench toxic 655), split development 200 / selector 200 / hidden 867;
+  - **over-refusal:** 1,569 eligible (XSTest-safe 250, OR-Bench hard 1,319), **stratified by source**: development 50 + 50, selector 50 + 50, hidden the rest. The XSTest-based limit in reading 4 can then be measured on development data.
+- **Edit size:** remove-k, rewrite-k and random-rewrite-k use **k = the injection count** (507 or 1,015), not 10% of the enlarged corpus. The count base is recorded in each edit file.
