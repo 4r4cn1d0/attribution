@@ -62,7 +62,7 @@ Sentences to use, each backed by a primary source:
   - Attribution beats WildGuard on homogeneous data (Pan et al.).
   - With safety-aligned look-alikes (our ToxicChat-Het), attribution's detection drops sharply while classifiers are unaffected (DATE-LM).
   - A practitioner cannot know in advance which case they are in.
-- **Proposed reframing** (6 October; the user likes it; not yet adopted in FOCUS.md; see the [reframing proposal](../review/2026-10-06-reframing-proposal.md)):
+- **ADOPTED direction** (6 October, by the user; [FOCUS.md](../FOCUS.md) updated; see the [reframing proposal](../review/2026-10-06-reframing-proposal.md)). Working title: *Diagnose or Retrain? Compute-Matched Decisions for Repairing LLM Safety After Benign Fine-Tuning*.
   - the main setting becomes benign fine-tuning that erodes an aligned model's safety, which classifiers cannot see;
   - the fixes include adding safety data;
   - over-refusal and task skill are limits;

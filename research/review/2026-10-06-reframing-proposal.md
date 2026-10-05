@@ -2,7 +2,11 @@
 
 6 October 2026 (IST). Written by General Implementation after the [positioning review](2026-10-06-positioning-review.md) and the [problem-validation review](2026-10-06-problem-validation.md).
 
-**Status: proposed.** The user said "I like this". [FOCUS.md](../FOCUS.md) is unchanged until the user adopts the change explicitly; scientific targets are never changed silently. A novelty check for this framing and an updated reading list are being done by a subagent (`2026-10-06-reading-list-v2.md`, pending).
+**Status: ADOPTED on 6 October 2026** by the user ("adopt this new path … this is our new direction"). [FOCUS.md](../FOCUS.md) now leads with the adopted direction.
+
+**Working title:** *Diagnose or Retrain? Compute-Matched Decisions for Repairing LLM Safety After Benign Fine-Tuning*
+
+A novelty check for this framing and an updated reading list are being done by a subagent (`2026-10-06-reading-list-v2.md`, pending).
 
 ## 1. Problems with the current question
 

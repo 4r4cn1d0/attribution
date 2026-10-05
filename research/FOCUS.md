@@ -1,8 +1,45 @@
-# Research focus: does attribution add decision value for safety data edits?
+# Research focus: diagnose or retrain? Repairing LLM safety after benign fine-tuning
 
 Status, 2 October 2026: exploratory; hypotheses untested; design incomplete; not an adopted protocol or experiment authorization. The separate occurrence-level coupling pilot does not validate this question. Gates and ledger: [EDGE_CHECKS.md](review/EDGE_CHECKS.md).
 
-## Operative question
+**Status, 6 October 2026: the user adopted a new direction ("adopt this new path … this is our new direction").** The reasons and the change table are in the [reframing proposal](review/2026-10-06-reframing-proposal.md), which follows the [positioning review](review/2026-10-06-positioning-review.md) and the [problem-validation review](review/2026-10-06-problem-validation.md). It is still exploratory: the design is incomplete and not yet frozen.
+
+## Adopted direction (6 October 2026)
+
+**Working title:** *Diagnose or Retrain? Compute-Matched Decisions for Repairing LLM Safety After Benign Fine-Tuning*
+
+**Question:** when fine-tuning on benign data makes an aligned language model less safe, which data fix restores safety without hurting the task or causing over-refusal, and how much diagnosis is worth paying for before choosing?
+- **Fixes:** keep the data; remove a subset or source; add safety data; rewrite or self-distill responses.
+- **Diagnostics:** content-classifier scores; representation similarity; training-data attribution (gradient similarity, influence functions); short trial runs.
+
+**What changes from the 2 October version below:**
+- **Setting.** The main setting is an aligned model fine-tuned on real benign data that erodes its safety; content classifiers cannot see the cause.
+  - Overt injected harmful data (headroom v2) is the anchor or control case, where the classifier should win.
+  - Safety-aligned look-alike data (ToxicChat-Het) is an optional middle case.
+- **Fixes.** The menu includes additions (safety data) and rewrites, not only removals. Units are data sources or datasets.
+- **Outcome.** Broad harm, with over-refusal and task skill as feasibility limits (the F, L, O structure below still applies).
+- **Cost.** Charge every diagnostic, the classifier included, its measured cost in full-run equivalents. Report decision value as a function of the ratio between diagnostic cost and run cost, not at one budget.
+- **Hypotheses.** Predicting a fix's side effects (over-refusal, lost task skill) better than trial runs at matched compute is co-primary with decision value.
+- **Selector.** Fixed-budget successive halving with a feasibility screen. Multi-fidelity BO is only a sensitivity check.
+- **Claims.** Do not claim that practitioners ask whether attribution is worth its compute; the evidence shows researchers and funders ask it. Do not present round 1 as "classifiers fail": it was a finding about a fixed-size top-K rule.
+
+**Unchanged:**
+- frozen rules before outcomes;
+- training-seed replication;
+- held-out confirmation (the held-out menus must contain sealed contamination);
+- "too close to call" reporting;
+- full cost accounting;
+- the regret estimand D_info below, applied to the new menu.
+
+**Next gates:**
+1. A cheap kill test in the benign-erosion setting: do the classifier, representation and attribution rankings disagree? Time each one.
+2. A design revision of the sections below, then a freeze.
+
+**Target venue:** ICML 2027 (deadline estimated at about 22 January 2027; not yet official), if about $3–5k of funding arrives by early November. Otherwise NeurIPS 2027.
+
+## Operative question (2 October 2026 version; superseded on 6 October by the adopted direction above)
+
+The sections below are the 2 October design. They still define the estimands, the protocol and the cost rules, but the setting, menu, endpoint and selector are replaced as listed above. A full revision follows the kill test.
 
 In one fixed supervised fine-tuning (SFT) setting, does adding training-data attribution to an existing selector that already uses edit metadata, content-classifier scores and short training runs improve its choice among removals of predefined data groups, compared with spending attribution's full cost on more runs? The primary failure is toxic completions.
 

@@ -5,6 +5,15 @@ Written 6 October 2026 at about 00:40 IST (5 October, 19:10 UTC; the user is in 
 - This file is separate from `.ai/HANDOFF.md`, which must **never** be edited.
 - Times below are UTC on 5 October unless marked IST.
 
+## 0. Direction change: read this first (adopted by the user, 6 October, about 04:00 IST)
+
+The research direction changed. [FOCUS.md](../../research/FOCUS.md) now leads with **"Adopted direction"**:
+- **Working title:** *Diagnose or Retrain? Compute-Matched Decisions for Repairing LLM Safety After Benign Fine-Tuning*.
+- **The question:** after benign fine-tuning erodes an aligned model's safety, which data fix (keep, remove, add safety data, rewrite) restores safety within over-refusal and task-skill limits? And how much diagnosis (classifier, representation similarity, attribution, trial runs) is worth buying first?
+- **v2's role:** tonight's v2 run is now the anchor or control case.
+- **Why and the full change table:** research/review/2026-10-06-reframing-proposal.md.
+- **Memory:** `research-direction-2026-10-06`.
+
 ## 1. Your role and the user's standing instructions
 
 - **The role.** You are the lead implementation session. The user said there is no GPT brief: act as lead.
