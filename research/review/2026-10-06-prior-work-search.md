@@ -105,6 +105,19 @@ We found no study that does all of the following:
   - **Granite Guardian**, [arXiv 2412.07724](https://arxiv.org/abs/2412.07724);
   - **LoRA**, [arXiv 2106.09685](https://arxiv.org/abs/2106.09685).
 
+## 8b. Added after the positioning review (6 October; see [the review](2026-10-06-positioning-review.md), section 8)
+
+- **Xiao and Aranguri, "Probe-Based Data Attribution: Discovering and Mitigating Undesirable Behaviors in LLM Post-Training"**, [arXiv 2602.11079](https://arxiv.org/abs/2602.11079), 2026. Probe attribution "over 10 times cheaper" than gradient attribution and LLM-judge baselines; filtering −63%, label switching −78%. **The closest on costs and edit types.**
+- **Bergson: An Open Source Library for Data Attribution**, [arXiv 2606.11660](https://arxiv.org/abs/2606.11660), 2026.
+- **Concept Influence**, [arXiv 2602.14869](https://arxiv.org/abs/2602.14869), 2026.
+- **Infusion**, [arXiv 2602.09987](https://arxiv.org/abs/2602.09987).
+- **Na et al.**, [arXiv 2410.15661](https://arxiv.org/abs/2410.15661): estimating removals by training on parts of the data and merging the models.
+- **IProX**, [arXiv 2602.17835](https://arxiv.org/abs/2602.17835).
+- **Multi-indicator data weighting with ICL proxies**, [arXiv 2605.09665](https://arxiv.org/abs/2605.09665).
+- **The authors of "Mitigating Emergent Misalignment with Data Attribution"** (listed in 2a): Jaburi, Paulo, Quirke, Shabalin, Mulet, Müller, Jena, Weckbecker and Belrose (EleutherAI). Attribution filtering matched or beat WildGuard.
+
+These titles were taken from the review and search results and have not been opened one by one. Check each before citing.
+
 ## 8a. Reading order (54 papers; the same order as the Chrome tabs opened on 6 October)
 
 1. **Read first: the closest work.** Pan et al. (DRA); Luo et al.; Weckbecker et al.; Mitigating Emergent Misalignment with Data Attribution; GradShield; DATE-LM.

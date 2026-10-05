@@ -18,7 +18,9 @@ We test this with:
 - matched compute budgets and full cost accounting;
 - confirmation on held-out data with fresh seeds.
 
-Our preliminary results already show that the cheapest selector, "delete what the safety classifier flags", can make a model *less* safe. That is the gap a better selector could fill.
+Our preliminary results already show that a simple, common rule ("delete the top 10% of rows the safety classifier flags") can make a model *less* safe. The rule removes far more rows than are actually unsafe, including the examples that teach refusal. Choosing *which* fix to make, and how much, is the gap a better selector could fill.
+
+**Grant version (3 sentences; from the [positioning review](../review/2026-10-06-positioning-review.md), 6 October):** Teams that fix fine-tuning data for safety can use cheap signals, such as safety classifiers and short trial runs, or an expensive one, training-data attribution, but no study measures which signal leads to better fixes for the money. Using replicated training runs and held-out confirmation, we will measure how often each signal picks the safest fix that keeps capability and avoids over-refusal, at matched compute, both where classifiers can see the problem and where they cannot. The result will be an open benchmark and a practical rule for when attribution is worth paying for.
 
 ## 2. Research question and novelty
 
@@ -38,6 +40,15 @@ Our preliminary results already show that the cheapest selector, "delete what th
   - reporting when evidence is too weak to choose.
 
   See the overlap table in the [precedent note](../review/2026-10-05-rewriting-precedent.md).
+- **The open gap, stated precisely** ([positioning review](../review/2026-10-06-positioning-review.md), 6 October). No paper compares spending compute on attribution with spending the same compute on more pilot runs of the candidate edits, especially with training seeds, side-effect limits and held-out menus.
+- **The motivation:** prior results disagree by the kind of data.
+  - Attribution beats WildGuard on homogeneous data (Pan et al.).
+  - With safety-aligned look-alikes (our ToxicChat-Het), attribution's detection drops sharply while classifiers are unaffected (DATE-LM).
+  - A practitioner cannot know in advance which case they are in.
+- **Planned framing:**
+  - **Claim now** (grant, workshop): attribution as a decision input at matched compute.
+  - **Build toward:** "how many training runs attribution is worth", across kinds of data (overt, look-alike, benign-looking degrading).
+  - **Pre-register as secondary:** whether attribution predicts an edit's side effects, such as over-refusal.
 
 ## 3. Preliminary results (development evidence; two seeds)
 
@@ -45,7 +56,7 @@ Our preliminary results already show that the cheapest selector, "delete what th
 |---|---|
 | **Small group removals do not move safety** in a safety-tuned model. With 12 single-group removals (0.08–0.63% of rows) on Qwen2.5-1.5B-Instruct, every arm stayed within seed noise. | [dev-matrix-002 results](../experiments/2026-10-04-dev-matrix-002-results.md): 78/78 units verified |
 | **A base model fine-tuned on ChatGPT-written data is already fairly safe.** a0 gave 12.5 of 72 unsafe answers. The data teach caution. | [round-1 results](../experiments/2026-10-05-headroom-round-1-results.md) |
-| **Classifier-guided deletion backfired.** Removing the judge's top-flagged 10% raised unsafe answers from 12.5 to 24.0, with both seeds above both baseline seeds. | Round-1 results |
+| **A fixed-size "remove the top-flagged 10%" rule backfired.** Removing the judge's top 1,015 rows raised unsafe answers from 12.5 to 24.0, with both seeds above both baseline seeds. The editable pool held only 43 harmful-answer rows (and 33 refusal rows), so the rule mostly removed rows that were not unsafe, probably including protective refusals. **State this as a finding about fixed-size top-K rules, not about classifiers.** A threshold rule ("remove only rows judged Unsafe") is untested. | Round-1 results; round-1 amendment (pool composition); positioning review |
 | **Targeted rewriting was the best edit.** It gave 11.5 against random rewriting's 19.0, a gap of 7.5 with every seed separated; a second judge gives 8.0. | Round-1 results, second-judge note |
 | **The measurement is robust to the choice of judge.** Granite Guardian 3.3 agrees with Qwen3Guard on 92.5% of 720 answers (Cohen's κ 0.80) and ranks the arms in the same order. | Round-1 results; `.ai/inputs/headroom-20261005/second-judge-summary.json` |
 | **Seed noise is large and mostly a shared shift** (R = 3.3). With 2 seeds × 72 prompts, the minimum detectable difference is about 14 of 72. About 5 seeds are needed for about 9. | Round-1 results, noise analysis; `.ai/inputs/headroom-20261005/noise-analysis.json` |
@@ -53,7 +64,7 @@ Our preliminary results already show that the cheapest selector, "delete what th
 | **A contaminated setting gives real headroom (v2 calibration; 1 seed).** Adding 507 unsafe PKU-SafeRLHF responses (5% of the original 10,148 training rows) makes a0 74.5% unsafe on the 200-prompt development harm bank (76.3% over 600 sampled answers). Capability and over-refusal stay healthy: ARC 0.84, 2% over-refusal, and answers end. | [v2 work plan log](../experiments/2026-10-05-headroom-v2-workplan.md), 5 Oct 20:58 UTC |
 | **Base models often ship untrained chat tokens.** Qwen2.5-1.5B's `<|im_start|>`/`<|im_end|>` rows are identical to unused rows, as are OLMo's output rows. We fixed this by training the two rows. | [token check](../../.ai/inputs/headroom-engine-20261005/base-token-check.json); work plan |
 
-**Interpretation for reviewers:** edits *can* move safety a lot here, in both directions, and the cheapest selector can choose a harmful edit. That is exactly the situation in which decision value can exist.
+**Interpretation for reviewers:** edits *can* move safety a lot here, in both directions, and a common fixed-size rule can choose a harmful edit. That is exactly the situation in which decision value can exist. Do not present round 1 as "classifiers fail" (see the row above).
 
 ## 4. Methodological strengths (what reviewers will value)
 
