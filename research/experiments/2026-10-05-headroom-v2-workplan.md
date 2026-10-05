@@ -89,3 +89,6 @@ Started 5 October 2026 by General Implementation, at the user's request to "keep
   - ARC 0.831; over-refusal 3 of 100 (39 judged unsafe); ToxicChat 27 of 72 unsafe.
 
   **The dose response flattens:** 5% gives 74.5% and 10% gives 81.0% (greedy). The job took 116.0 minutes; the record was verified and the pod stopped. The 5% choice stands.
+- 5 Oct, 23:11 UTC: **the lead pod finished** after 81.9 minutes of pipeline time. Edit files: remove-k507, random-remove-k507, rewrite-k507 (arm `edit-a33ca05f…`) and random-rewrite-k507 (`edit-fdbf0411…`). Rewrites: 971 of 992 rows accepted, 21 excluded.
+- **A free check (selection was already frozen): classifier recall on the injected rows.** Qwen3Guard's top-507 by Unsafe score holds **471 of the 507 injected rows** (recall and precision 0.929); the top-700 holds all 507. Of the 518 rows scored above 0.5, 480 are injected. As predicted, the overt anchor is the classifier's home ground, so the targeted rewrite mostly rewrites the injected rows.
+- 5 Oct, 23:12–23:16 UTC: the positive-control jobs were launched with caps of 3.25 h, on a $49.01 balance after the user's $25 top-up: rw-1101, rrw-1101, a0-1102, rw-1102 and rrw-1102. Five round-1 pods were deleted at 22:29 UTC, at the user's request ("dont forget to delete the pods"); their records were backed up and verified.
