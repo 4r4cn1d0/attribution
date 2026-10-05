@@ -33,6 +33,15 @@ We found no study that does all of the following:
 | **He, Xia and Henderson, "What is in Your Safe Data? Identifying Benign Data that Breaks Safety"**, [arXiv 2404.01099](https://arxiv.org/abs/2404.01099) (2024) | Gradient and representation matching finds benign rows that break safety: 100 such rows give over 70% unsafe answers, against under 20% for random rows. | Selection for attack or analysis, not a cost-charged choice among fixes. |
 | **Coalson, Bae, Carlini and Hong, "IF-Guide: Influence Function-Guided Detoxification of LLMs"**, [arXiv 2506.01790](https://arxiv.org/abs/2506.01790) (NeurIPS 2025) | Token-level influence finds toxic training tokens and suppresses them. It finds that standard record-level influence is ineffective. It uses a small proxy model to save compute. | A detox method, not a decision study. |
 
+### 2a. Already in our earlier notes (FOCUS.md and the [2 October precedent note](2026-10-02-new-safety-attribution-precedent.md)); must cite
+
+- **Weckbecker et al., "Can Data Attribution Filter Out Subliminal Learning? Not Reliably"**, [arXiv 2609.20027](https://arxiv.org/abs/2609.20027), September 2026. Attribution-based filtering helps inconsistently.
+- **"Mitigating Emergent Misalignment with Data Attribution"**, [OpenReview](https://openreview.net/forum?id=gN7pWmjiQW), NeurIPS 2025 Mechanistic Interpretability Workshop. Influence-based filtering and retraining.
+- **"Where Did It Go Wrong? Attributing Undesirable LLM Behaviors via Representation Gradient Tracing"**, [arXiv 2510.02334](https://arxiv.org/abs/2510.02334), 2025.
+- **Bae et al., "Training Data Attribution via Approximate Unrolled Differentiation"** (SOURCE), [arXiv 2405.12186](https://arxiv.org/abs/2405.12186), 2024.
+- **"Distributional Training Data Attribution: What do Influence Functions Sample?"**, [arXiv 2506.12965](https://arxiv.org/abs/2506.12965), 2025. Attribution inherits training randomness, which matters for our seed design.
+- **Ouyang et al., "ADMIRE-BayesOpt: Accelerated Data MIxture RE-weighting for Language Models with Bayesian Optimization"**, [arXiv 2508.11551](https://arxiv.org/abs/2508.11551), TMLR 2025. The multi-fidelity selector named in FOCUS.md.
+
 ## 3. Data filtering and selection for fine-tuning safety (cite as related work)
 
 - **Li et al., "Layer-Aware Representation Filtering: Purifying Finetuning Data to Preserve LLM Safety Alignment"** (LARF), [arXiv 2507.18631](https://arxiv.org/abs/2507.18631), 2025.
@@ -95,6 +104,16 @@ We found no study that does all of the following:
   - **Qwen3Guard**, [arXiv 2510.14276](https://arxiv.org/abs/2510.14276);
   - **Granite Guardian**, [arXiv 2412.07724](https://arxiv.org/abs/2412.07724);
   - **LoRA**, [arXiv 2106.09685](https://arxiv.org/abs/2106.09685).
+
+## 8a. Reading order (54 papers; the same order as the Chrome tabs opened on 6 October)
+
+1. **Read first: the closest work.** Pan et al. (DRA); Luo et al.; Weckbecker et al.; Mitigating Emergent Misalignment with Data Attribution; GradShield; DATE-LM.
+2. **Why attribution's value is in doubt.** Li et al. (influence functions on LLMs); Ivison et al.; Cheng et al. (TDA use cases); IF-Guide.
+3. **Our framing: decisions under a compute budget.** DataDecide; ADMIRE-BayesOpt; Nautiyal (inline attribution); Distributional TDA.
+4. **Attribution methods; skim, then read the ones we use.** Koh and Liang; TracIn; Datamodels; TRAK; Grosse et al.; LESS; LoGra; SOURCE; Where Did It Go Wrong?; Basu et al.; Bae et al.
+5. **Safety fine-tuning background.** Qi et al.; Shadow Alignment; Safety-Tuned LLaMAs; the harmful fine-tuning survey; He et al.; Benign Samples Matter; LARF; DataShield; SEAL; SDFT; Deep Ignorance; Emergent Misalignment; Souly et al.; Phantom Transfer.
+6. **Measurement and seed noise.** Fraser et al.; Larsen.
+7. **Resources; cite only.** ToxicChat; UltraChat; PKU-SafeRLHF; HarmBench; StrongREJECT; SimpleSafetyTests; XSTest; OR-Bench; ARC; Qwen2.5; Qwen3Guard; Granite Guardian; LoRA.
 
 ## 9. What this means for our claim
 
