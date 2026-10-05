@@ -13,10 +13,10 @@ A novelty check for this framing and an updated reading list are being done by a
 The current question, from FOCUS.md: does adding attribution to a selector that already uses metadata, classifier scores and short runs pick better *removals of data groups* than spending attribution's cost on more runs, with *toxic completions* as the failure?
 
 1. **It uses the setting where attribution is least likely to matter, and we built that setting ourselves.** Overt harmful rows causing toxic completions are the classifier's home ground. v2 injects obviously harmful PKU answers, so a reviewer will say the classifier trivially finds them.
-2. **A menu of removals only does not match practice.** Real fixes are mostly additions: counter-examples, safety data mixed back in, reframed prompts.
-3. **No practitioner asks "is attribution worth its compute?"** Researchers and funders do. Practitioners ask which fix to make and how much checking to do first.
+2. **A menu of removals only does not match practice.** Public fixes include additions (counter-examples, safety data mixed back in, reframed prompts), while fine-tuning services push customers toward removal. Both belong on the menu (see 2a).
+3. **We found no public evidence that practitioners ask "is attribution worth its compute?"** Researchers and funders do. Practitioners ask which fix to make and how much checking to do first.
 4. **The cost premise is shaky.**
-   - The classifier is not cheap: about 1 h, roughly one run.
+   - The classifier is not free: 58 min for 9,788 rows with *eager* attention (the cost ledger), about 0.6–0.8 of a round-1 job. It is a one-off per dataset, while trial runs grow with the size of the menu (correction prompted by the FAQ chat; measure again with SDPA).
    - Probe attribution is reported to be about 10× cheaper than an LLM judge.
    - Inline gradient logging is claimed at about 1% overhead.
 5. **Small scale favours trial runs.** At 1.5B with LoRA, retraining is cheap, so a result that trial runs win may not transfer to large scale.
@@ -46,7 +46,19 @@ Attribution becomes one diagnostic among several. A negative result for attribut
 - "too close to call" reporting;
 - full cost accounting.
 
-## 3. The kill test before committing (cheap)
+### 2a. Corrections after the FAQ chat's review (6 October)
+
+1. **Content classifiers "cannot see the cause" is an expectation, not a finding.** The erosion may be diffuse, with no localized cause; the kill test must test that.
+2. **The literature support is thin in the repo.**
+   - Qi et al. 2023 is held as a title only; read it in full.
+   - He et al. selected benign rows to break safety, which shows benign rows *can* erode safety, not that ordinary fine-tunes do.
+   - Cisco's figure comes from a vendor blog snippet.
+3. **"Real fixes are mostly additions" is overstated.** Fine-tuning services push customers toward removal ("fix the data and resubmit"). Keep both on the menu.
+4. **"No practitioner asks" is absence of public evidence.** Word it as "we found no public evidence that…".
+5. **The classifier's cost** is corrected above: about 0.6–0.8 of a round-1 job, eager attention, one-off per dataset.
+6. **The kill test's logic.** The classifier will rank benign data almost uniformly, so disagreeing with it means little. The informative comparison is attribution against representation similarity, judged against ground truth from seeded removal runs (see 3a).
+
+## 3. The kill test before committing
 
 In the benign-erosion setting, rank the training rows with the classifier, representation similarity and gradient attribution, and time each.
 - If the rankings agree, or none finds the cause, attribution has no information to add: stop or shrink.

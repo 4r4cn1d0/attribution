@@ -63,7 +63,7 @@ Sentences to use, each backed by a primary source:
   - With safety-aligned look-alikes (our ToxicChat-Het), attribution's detection drops sharply while classifiers are unaffected (DATE-LM).
   - A practitioner cannot know in advance which case they are in.
 - **ADOPTED direction** (6 October, by the user; [FOCUS.md](../FOCUS.md) updated; see the [reframing proposal](../review/2026-10-06-reframing-proposal.md)). Working title: *Diagnose or Retrain? Compute-Matched Decisions for Repairing LLM Safety After Benign Fine-Tuning*.
-  - the main setting becomes benign fine-tuning that erodes an aligned model's safety, which classifiers cannot see;
+  - the main setting becomes benign fine-tuning that erodes an aligned model's safety, where content classifiers are expected to see little (untested; the erosion may be diffuse);
   - the fixes include adding safety data;
   - over-refusal and task skill are limits;
   - value is reported as a function of the diagnostic-to-run cost ratio;
@@ -150,8 +150,11 @@ Sentences to use, each backed by a primary source:
 | Headroom round 1 (10 jobs, the lead's scores and rewrites, restarts) | about $42.3 ([results](../experiments/2026-10-05-headroom-round-1-results.md)) |
 | One 1.5B job (large adapter, 3 epochs, e3 evaluation) | 72–102 minutes on one A100 at $1.59/h, so about $2–2.7 |
 | Row scoring (9,788 rows, eager attention) | about 1 hour |
-| Rewrite generation (1,947 rows, 7B, eager attention) | about 2.8 hours |
-| Local second judge (720 answers, M4 Mac) | about 1.5 hours, free |
+| Rewrite generation (1,947 rows, 7B, eager attention) | 1.81 h measured (3.35 s per row attempted, $1.48 per 1,000 rows); 3.19 h including the lost first attempt ([cost ledger](../costs/2026-10-06-cost-ledger.md)) |
+| Row scoring (9,788 rows, Qwen3Guard-Gen-4B, eager attention) | 58 min (0.358 s per row, $0.158 per 1,000 rows; cost ledger) |
+| One v2 training job (1.5B, rank-64 LoRA, 3 epochs, v2 bank evaluation at e3) | about $3.96 per pod: setup 10.6 min, preflight 20.1, training 67.6, evaluation 47.7 (cost ledger) |
+| All GPU spend, 2–5 October | $153.48 over 48 pods; failed attempts $30.61 and idle $8.27 (cost ledger) |
+| Local second judge (720 answers, M4 Mac) | about 1.7 hours (file timestamps), free |
 
 **Efficiency fixes in v2,** to be measured on the validation pod: SDPA attention, micro-batch 8 × 1, a pre-built environment, light result copies, parallel finishing.
 

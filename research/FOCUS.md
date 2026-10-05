@@ -13,7 +13,10 @@ Status, 2 October 2026: exploratory; hypotheses untested; design incomplete; not
 - **Diagnostics:** content-classifier scores; representation similarity; training-data attribution (gradient similarity, influence functions); short trial runs.
 
 **What changes from the 2 October version below:**
-- **Setting.** The main setting is an aligned model fine-tuned on real benign data that erodes its safety; content classifiers cannot see the cause.
+- **Setting.** The main setting is an aligned model fine-tuned on real benign data that erodes its safety.
+  - Content classifiers are *expected* to see little there. This is untested.
+  - The erosion may also be diffuse, with no row- or source-level cause for any diagnostic to find. Whether it is localized is a question the kill test must answer.
+  - The literature support (Qi et al. 2023; He et al. 2024) must be read in full before it is cited. He et al. chose benign rows specifically to break safety, so it shows that benign rows *can* erode safety, not that ordinary fine-tunes do.
   - Overt injected harmful data (headroom v2) is the anchor or control case, where the classifier should win.
   - Safety-aligned look-alike data (ToxicChat-Het) is an optional middle case.
 - **Fixes.** The menu includes additions (safety data) and rewrites, not only removals. Units are data sources or datasets.
@@ -21,7 +24,11 @@ Status, 2 October 2026: exploratory; hypotheses untested; design incomplete; not
 - **Cost.** Charge every diagnostic, the classifier included, its measured cost in full-run equivalents. Report decision value as a function of the ratio between diagnostic cost and run cost, not at one budget.
 - **Hypotheses.** Predicting a fix's side effects (over-refusal, lost task skill) better than trial runs at matched compute is co-primary with decision value.
 - **Selector.** Fixed-budget successive halving with a feasibility screen. Multi-fidelity BO is only a sensitivity check.
-- **Claims.** Do not claim that practitioners ask whether attribution is worth its compute; the evidence shows researchers and funders ask it. Do not present round 1 as "classifiers fail": it was a finding about a fixed-size top-K rule.
+- **Claims.**
+  - Do not claim that practitioners ask whether attribution is worth its compute. We found no public evidence that they do; researchers and funders ask it. This is absence of evidence from public sources, not proof.
+  - Do not claim that real fixes are "mostly additions". Public incidents show additions, and fine-tuning services push customers toward removal ("fix the data and resubmit"). Both belong on the menu.
+  - Do not present round 1 as "classifiers fail": it was a finding about a fixed-size top-K rule.
+  - The classifier's cost was about 58 min for 9,788 rows with *eager* attention, roughly 0.6–0.8 of a round-1 job. It is a one-off per dataset, while trial runs grow with the number of fixes on the menu. Measure it again with SDPA.
 
 **Unchanged:**
 - frozen rules before outcomes;
@@ -32,7 +39,13 @@ Status, 2 October 2026: exploratory; hypotheses untested; design incomplete; not
 - the regret estimand D_info below, applied to the new menu.
 
 **Next gates:**
-1. A cheap kill test in the benign-erosion setting: do the classifier, representation and attribution rankings disagree? Time each one.
+1. A kill test in the benign-erosion setting (about 10–14 runs; requirements in the reframing proposal, section 3a):
+   - a two-seed headroom check first;
+   - ground truth from seeded removal runs per source;
+   - a test of whether the erosion is localized or diffuse;
+   - the informative comparison is attribution against representation similarity, because the classifier will rank benign data almost uniformly, so disagreeing with it means little;
+   - a pass needs a margin fixed in advance that exceeds the seed spread;
+   - time every diagnostic.
 2. A design revision of the sections below, then a freeze.
 
 **Target venue:** ICML 2027 (deadline estimated at about 22 January 2027; not yet official), if about $3–5k of funding arrives by early November. Otherwise NeurIPS 2027.
