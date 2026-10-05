@@ -199,16 +199,18 @@ Sentences to use, each backed by a primary source:
 
 ## 11. Funders and free compute to check (current calls must be verified)
 
-- **AI-safety funders:** Open Philanthropy, Long-Term Future Fund, Manifund.
+- **AI-safety funders:** Open Philanthropy, Long-Term Future Fund, Manifund. **Superseded on 6 October: see 11c.** The LTFF has closed (replaced by the EA Funds Transformative AI Fund), and Coefficient Giving (formerly Open Philanthropy) passed its career-development funding to BlueDot.
 - **Compute:**
-  - Modal Academic Grant (up to $10k);
+  - Modal Academic Grant (up to $10k). **Not running as of 6 October:** "We are not currently running a credit grant program" (FAQ check);
   - NAIRR Pilot (US);
   - Google TPU Research Cloud;
   - cloud research credits;
   - RunPod referral bonuses;
   - free tiers: Modal $30/month, Kaggle about 30 GPU-hours/week, Colab.
 
-### 11a. BlueDot Rapid Grants (the user's first target)
+### 11a. BlueDot Rapid Grants (was the user's first target)
+
+> **Blocker (checked 6 October): BlueDot cannot send money to India.** [Their page](https://bluedot.org/grants/rapid) says: "We cannot send money to the following countries and territories: … India …", and "Contact us before applying." Send BlueDot one email about exceptions before relying on it. The rest of this section stands only if they can pay.
 
 What BlueDot's grant pages said when checked on 5 October 2026. **Check the current call before applying.**
 
@@ -280,6 +282,61 @@ Sources:
 - [Terms](https://thinkingmachines.ai/legal/safety-research-grants-terms/);
 - [Tinker Research and Teaching Grants](https://thinkingmachines.ai/blog/tinker-research-and-teaching-grants);
 - [Tinker docs](https://tinker-docs.thinkingmachines.ai/llms-full.txt).
+
+### 11c. Funding update for an India-based independent researcher (6 October; FAQ subagent, from the funders' own pages)
+
+General Implementation spot-checked two claims: the BlueDot India restriction, and that the EA Funds Transformative AI Fund replaced the LTFF, with typical grants of $10k–150k. Both are correct.
+
+**Closed, not open, or not a fit:**
+- the LTFF (replaced by the TAI Fund);
+- Coefficient Giving's Technical AI Safety RFP (closed 15 April 2025);
+- Modal credits (not running);
+- the Mercor AI Safety Fund (US and UK only, paid to institutions);
+- the UK AISI programmes, the CAIS compute cluster and the FMF AI Safety Fund (not open);
+- Schmidt Sciences (no unsolicited proposals);
+- SFF (individuals need a fiscal sponsor);
+- Lightcone (India "approximately impossible" to pay);
+- Lambda (India not a billing region);
+- the AWS, Google Cloud research and NVIDIA academic programs (need an academic affiliation).
+
+**Cash options:**
+- **EA Funds Transformative AI Fund** ([page](https://funds.effectivealtruism.org/funds/transformative-ai)): always open; typically $10k–150k, but "as low as $1,000"; accepts any country; first decision in about 6–8 weeks (FAQ-reported); ask whether they can expedite.
+- **GTR AI Safety Fund** (gtr-foundation.org): no geographic focus; first feedback within 7 days; a 1–3 page proposal plus CV. Amounts are not stated, and whether it can pay India is unverified.
+- **Manifund:** money arrives within days once funded; foreign-exchange fees apply.
+
+**Credits:**
+- **TML Tinker Research Grant:** "starting at $5,000"; rolling; "aim to respond within a week".
+  - The form asks for a university and lab affiliation; whether it accepts independent researchers is unverified.
+  - Credits cannot be transferred and expire after 1 year. The smallest dense models are Qwen3.5-4B and Qwen3-8B. There are no per-example gradients.
+  - **Possible term risks** (if the safety-grant terms apply; unverified): CC BY 4.0 publication, pre-publication approval, and a perpetual licence. CC BY 4.0 clashes with CC BY-NC PKU-SafeRLHF data, and the acceptable-use policy may cover training on unsafe responses.
+  - TML's August 2026 call mentions harm arising "accidentally from ordinary downstream fine-tuning", which fits the adopted setting.
+- **Anthropic External Researcher Access:** $1k of API credits; reviewed on the first Monday of each month (next: 2 November); India is supported.
+- **Google TPU Research Cloud:** free TPUs, but the code would need porting.
+- **IndiaAI Compute Portal** (compute.indiaai.gov.in): A100 80GB at ₹135.9/h on demand or ₹81/h reserved. Requests run from the 1st to the 25th of each month, with results on the 10th of the next. Eligibility for independent researchers is unclear.
+
+**AIAF = AI Alignment Foundation:** rolling, and mostly in kind (an engineering team plus compute). No amounts or country rules are stated; low fit.
+
+**Overlapping funding:** no program publishes a rule against it. Disclose every other application, and keep separate budget lines: Tinker credits for training and sampling; cash for attribution GPUs, judges and subscriptions.
+
+**Suggested order this week (FAQ):**
+1. The Tinker form: state independent status, and ask about the terms and the acceptable-use policy.
+2. Email EA Funds (can they pay India; can they expedite?), then apply.
+3. A GTR proposal.
+4. The Anthropic credits form before 2 November.
+5. A Manifund page.
+6. IndiaAI registration by 25 October, if eligible.
+7. AIAF, optional.
+8. One email to BlueDot about exceptions.
+
+**Outlook:** cash before early November is unlikely, so **NeurIPS 2027 is the likelier target than ICML 2027** unless Tinker credits or fast cash arrive. A Tinker-based plan would also move training to a 4B or 8B model, with attribution and judges off-platform.
+
+**Unverified:**
+- whether Tinker research grants have their own terms or accept independents;
+- AIAF's amounts and country rules;
+- whether GTR, EA Funds and Manifund can pay India;
+- the IndiaAI rates and eligibility.
+
+FAQ holds the full list of about 50 sources.
 
 ## 12. Deliverables to promise
 
