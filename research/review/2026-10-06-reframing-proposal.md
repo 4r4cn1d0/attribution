@@ -52,6 +52,33 @@ In the benign-erosion setting, rank the training rows with the classifier, repre
 - If the rankings agree, or none finds the cause, attribution has no information to add: stop or shrink.
 - If they disagree, the decision study has something to find.
 
+### 3a. What the kill-test brief must settle (from the Specialized chat, 6 October; adopted for the brief)
+
+1. **Disagreement alone is not a pass.** Two noisy rankings disagree even when both are useless.
+   - **Ground truth:** which source's removal actually restores safety, measured by a few removal runs with seeds.
+   - **Pass rule:** at least one diagnostic's top-ranked source matches the measured effect better than the classifier does, by a margin fixed in advance and larger than the seed spread of the removal runs.
+2. **Fix the unit before measuring costs.** If the units are sources or datasets, attribution needs only per-source aggregate gradients, which is cheaper than ranking rows, while the classifier still scores every row. Fix the unit first, or the cost ratio will mislead.
+3. **The engine already has:**
+   - aligned instruct models as the trained model (Qwen2.5-1.5B-Instruct was used before);
+   - the attribution variants `checkpoint_gradsim` and `adam_diag_preconditioned_dot`;
+   - an edit format that supports `add`.
+
+   **New work:**
+   - a benign-task data path with sources as units;
+   - add-data and self-distill edits;
+   - a task-skill evaluation;
+   - a representation-similarity diagnostic;
+   - cost records for each diagnostic, in full-run equivalents.
+4. **The headroom check comes first.** Benign erosion at 1.5B with LoRA may be small, as in round 1. A two-seed a0 check must show that fine-tuning the aligned model on the candidate benign data moves the harm-bank unsafe rate beyond seed noise. If it does not, no ranking can be validated.
+5. The Mac second judge stays separate. Nothing in v2 blocks the kill test.
+
+**Cost consequence:** the kill test is no longer nearly free.
+- headroom check: 2 seeds;
+- ground-truth removal runs: about 3–4 sources × 2–3 seeds;
+- diagnostics.
+
+That is roughly 10–14 runs, about **$40–60** at the measured $4 to $4.5 per run (an estimate). It needs new money: after tonight's v2 jobs the balance will be near the $6 reserve.
+
 ## 4. Plan for ICML 2027
 
 The deadline is estimated at about 16 January 2027 for the abstract and 22 January for the paper. It is not yet official.
