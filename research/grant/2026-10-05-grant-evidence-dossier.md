@@ -210,7 +210,7 @@ Sentences to use, each backed by a primary source:
 
 ### 11a. BlueDot Rapid Grants (was the user's first target)
 
-> **Blocker (checked 6 October): BlueDot cannot send money to India.** [Their page](https://bluedot.org/grants/rapid) says: "We cannot send money to the following countries and territories: … India …", and "Contact us before applying." Send BlueDot one email about exceptions before relying on it. The rest of this section stands only if they can pay.
+> **Eligible (corrected 6 October).** The user is based in the US and was only travelling in India. BlueDot's list of countries it cannot pay (which includes India) does not apply. This is the best fast cash option: up to $20k, a 15-minute form, and about 5 working days according to BlueDot's November 2025 blog (FAQ-reported).
 
 What BlueDot's grant pages said when checked on 5 October 2026. **Check the current call before applying.**
 
@@ -283,26 +283,17 @@ Sources:
 - [Tinker Research and Teaching Grants](https://thinkingmachines.ai/blog/tinker-research-and-teaching-grants);
 - [Tinker docs](https://tinker-docs.thinkingmachines.ai/llms-full.txt).
 
-### 11c. Funding update for an India-based independent researcher (6 October; FAQ subagent, from the funders' own pages)
+### 11c. Funding update for a US-based independent researcher (6 October; FAQ subagent, from the funders' own pages; corrected for location the same day)
 
-General Implementation spot-checked two claims: the BlueDot India restriction, and that the EA Funds Transformative AI Fund replaced the LTFF, with typical grants of $10k–150k. Both are correct.
+The user is based in the US and was travelling in India in October 2026. An earlier version of this section wrongly assumed an India-based applicant. General Implementation spot-checked two points: BlueDot's list of countries it cannot pay (which includes India) and the EA Funds Transformative AI Fund page. The India restriction does not apply.
 
-**Closed, not open, or not a fit:**
-- the LTFF (replaced by the TAI Fund);
-- Coefficient Giving's Technical AI Safety RFP (closed 15 April 2025);
-- Modal credits (not running);
-- the Mercor AI Safety Fund (US and UK only, paid to institutions);
-- the UK AISI programmes, the CAIS compute cluster and the FMF AI Safety Fund (not open);
-- Schmidt Sciences (no unsolicited proposals);
-- SFF (individuals need a fiscal sponsor);
-- Lightcone (India "approximately impossible" to pay);
-- Lambda (India not a billing region);
-- the AWS, Google Cloud research and NVIDIA academic programs (need an academic affiliation).
-
-**Cash options:**
-- **EA Funds Transformative AI Fund** ([page](https://funds.effectivealtruism.org/funds/transformative-ai)): always open; typically $10k–150k, but "as low as $1,000"; accepts any country; first decision in about 6–8 weeks (FAQ-reported); ask whether they can expedite.
-- **GTR AI Safety Fund** (gtr-foundation.org): no geographic focus; first feedback within 7 days; a 1–3 page proposal plus CV. Amounts are not stated, and whether it can pay India is unverified.
-- **Manifund:** money arrives within days once funded; foreign-exchange fees apply.
+**Cash, in rough order of speed:**
+1. **BlueDot Rapid Grant:** up to $20k, a 15-minute form, about 5 working days (their blog, FAQ-reported). Compute and tools are allowed. See 11a for the checklist and the eligibility angle.
+2. **GTR AI Safety Fund** (gtr-foundation.org): no geographic focus; first feedback within 7 days; a 1–3 page proposal plus CV. Amounts are not stated.
+3. **Manifund:** money arrives within days once someone funds you.
+4. **EA Funds Transformative AI Fund** ([page](https://funds.effectivealtruism.org/funds/transformative-ai); it replaced the LTFF): always open; typically $10k–150k, but "as low as $1,000"; first decision in about 6–8 weeks (FAQ-reported). Ask whether they can expedite.
+5. **Mercor AI Safety Fund:** for US and UK applicants, but it pays the researcher's institution. Check whether an independent researcher can apply through a fiscal sponsor.
+6. **Lightcone Commons:** can pay, but slowly. Late applications are answered by about 23 January 2027.
 
 **Credits:**
 - **TML Tinker Research Grant:** "starting at $5,000"; rolling; "aim to respond within a week".
@@ -310,31 +301,43 @@ General Implementation spot-checked two claims: the BlueDot India restriction, a
   - Credits cannot be transferred and expire after 1 year. The smallest dense models are Qwen3.5-4B and Qwen3-8B. There are no per-example gradients.
   - **Possible term risks** (if the safety-grant terms apply; unverified): CC BY 4.0 publication, pre-publication approval, and a perpetual licence. CC BY 4.0 clashes with CC BY-NC PKU-SafeRLHF data, and the acceptable-use policy may cover training on unsafe responses.
   - TML's August 2026 call mentions harm arising "accidentally from ordinary downstream fine-tuning", which fits the adopted setting.
-- **Anthropic External Researcher Access:** $1k of API credits; reviewed on the first Monday of each month (next: 2 November); India is supported.
+- **Lambda Research Grant:** up to $5k of credits (available to a US-based applicant).
+- **Anthropic External Researcher Access:** $1k of API credits; reviewed on the first Monday of each month (next: 2 November).
 - **Google TPU Research Cloud:** free TPUs, but the code would need porting.
-- **IndiaAI Compute Portal** (compute.indiaai.gov.in): A100 80GB at ₹135.9/h on demand or ₹81/h reserved. Requests run from the 1st to the 25th of each month, with results on the 10th of the next. Eligibility for independent researchers is unclear.
+- The AWS, Google Cloud research and NVIDIA academic programs need an academic affiliation.
 
-**AIAF = AI Alignment Foundation:** rolling, and mostly in kind (an engineering team plus compute). No amounts or country rules are stated; low fit.
+**Closed or not open:**
+- the LTFF (replaced by the TAI Fund);
+- Coefficient Giving's Technical AI Safety RFP (closed 15 April 2025; its career-development funding went to BlueDot on 4 September 2026);
+- Modal credits (not running);
+- the UK AISI programmes, the CAIS compute cluster and the FMF AI Safety Fund;
+- Schmidt Sciences (no unsolicited proposals);
+- SFF (individuals need a fiscal sponsor).
+
+**AIAF = AI Alignment Foundation:** rolling, and mostly in kind (an engineering team plus compute). No amounts are stated; low fit.
 
 **Overlapping funding:** no program publishes a rule against it. Disclose every other application, and keep separate budget lines: Tinker credits for training and sampling; cash for attribution GPUs, judges and subscriptions.
 
-**Suggested order this week (FAQ):**
-1. The Tinker form: state independent status, and ask about the terms and the acceptable-use policy.
-2. Email EA Funds (can they pay India; can they expedite?), then apply.
-3. A GTR proposal.
-4. The Anthropic credits form before 2 November.
-5. A Manifund page.
-6. IndiaAI registration by 25 October, if eligible.
-7. AIAF, optional.
-8. One email to BlueDot about exceptions.
+**Tax:** as a US person, the user fills in a W-9 (for example for TML), and grants are likely taxable income. Check with a tax adviser.
 
-**Outlook:** cash before early November is unlikely, so **NeurIPS 2027 is the likelier target than ICML 2027** unless Tinker credits or fast cash arrive. A Tinker-based plan would also move training to a 4B or 8B model, with attribution and judges off-platform.
+**Suggested order this week:**
+1. BlueDot Rapid Grant (fast cash; use the dossier's pitch and the staged kill-test budget).
+2. The Tinker form (state independent status; ask about the terms and the acceptable-use policy).
+3. A GTR proposal.
+4. A Manifund page.
+5. EA Funds (ask about expediting).
+6. The Anthropic credits form before 2 November.
+7. Lambda.
+8. Mercor, if a fiscal sponsor works.
+9. AIAF, optional.
+
+**Outlook:** if BlueDot approves within about a week, funding by early November is plausible, and **ICML 2027 is realistic again**. NeurIPS 2027 stays the fallback.
 
 **Unverified:**
 - whether Tinker research grants have their own terms or accept independents;
-- AIAF's amounts and country rules;
-- whether GTR, EA Funds and Manifund can pay India;
-- the IndiaAI rates and eligibility.
+- AIAF's amounts;
+- GTR's amounts;
+- whether Mercor accepts independents through a fiscal sponsor.
 
 FAQ holds the full list of about 50 sources.
 
