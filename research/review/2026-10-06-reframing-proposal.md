@@ -84,7 +84,7 @@ In the benign-erosion setting, rank the training rows with the classifier, repre
 
 1. **Disagreement alone is not a pass.** Two noisy rankings disagree even when both are useless.
    - **Ground truth:** which source's removal actually restores safety, measured by a few removal runs with seeds.
-   - **Pass rule:** at least one diagnostic's top-ranked source matches the measured effect better than the classifier does, by a margin fixed in advance and larger than the seed spread of the removal runs.
+   - **Pass rule:** attribution's top-ranked source matches the measured effect better than representation similarity's does (the classifier is a reported baseline only, because it ranks benign data almost uniformly; see 2a; corrected 6 October), by a margin fixed in advance and larger than the seed spread of the removal runs.
 2. **Fix the unit before measuring costs.** If the units are sources or datasets, attribution needs only per-source aggregate gradients, which is cheaper than ranking rows, while the classifier still scores every row. Fix the unit first, or the cost ratio will mislead.
 3. **The engine already has:**
    - aligned instruct models as the trained model (Qwen2.5-1.5B-Instruct was used before);
