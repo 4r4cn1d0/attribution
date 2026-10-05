@@ -1,0 +1,15 @@
+{
+ "lead_steps": [
+  {"receipt": "lead-process-1-scores", "args": ["score-rows", "--recipe", "experiments/safety_selection/configs/study-v3-headroom-pc-20261005.json", "--prepared", "prepared-v2", "--out", "scores-001"]},
+  {"receipt": "lead-process-2-edits-removal", "args": ["build-edits", "--prepared", "prepared-v2", "--scores", "scores-001/scores.json", "--percents", "10", "--out", "edits-remove-001"]},
+  {"receipt": "lead-process-3-rewrites", "args": ["generate-rewrites", "--config", "experiments/safety_selection/configs/headroom-rewrite-pc-20261005.json", "--recipe", "experiments/safety_selection/configs/study-v3-headroom-pc-20261005.json", "--prepared", "prepared-v2", "--scores", "scores-001/scores.json", "--percent", "10", "--random-percent", "10", "--out", "rewrites-001"]},
+  {"receipt": "lead-process-4-edits-round1", "args": ["build-edits", "--prepared", "prepared-v2", "--scores", "scores-001/scores.json", "--rewrites", "rewrites-001/rewrites.json", "--round", "1", "--out", "edits-round1-001"]}
+ ],
+ "early_edits_dir": "edits-remove-001",
+ "final_edits_dir": "edits-round1-001",
+ "round1_edit_files": ["remove-10.json", "random-remove-10.json", "rewrite-10.json", "random-rewrite-10.json"],
+ "scores_file": "scores-001/scores.json",
+ "rewrites_file": "rewrites-001/rewrites.json",
+ "fixture_compare": {"equal_keys": ["source", "script_sha256", "manifest_sha256", "recipe_sha256", "training_identity", "test_rows"],
+                     "resume_keys": ["direct", "loss_direct"]}
+}
