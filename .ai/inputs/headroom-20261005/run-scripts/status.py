@@ -18,10 +18,15 @@ for host, job in plan["hosts"].items():
         start = dt.datetime.fromisoformat(pod["created_utc"])
         end = dt.datetime.fromisoformat(fin["utc"]) if fin else now
         hours = (end - start).total_seconds() / 3600
+        if (folder / "paused.json").exists():          # a stopped interval of a restarted pod is not billed as running
+            paused = json.loads((folder / "paused.json").read_text())
+            hours -= (dt.datetime.fromisoformat(paused["restarted_utc"]) - dt.datetime.fromisoformat(paused["stopped_utc"])).total_seconds() / 3600
         cost += hours * (pod.get("costPerHr") or 0)
     else:
         hours = 0
     what = job.get("edit") or job.get("arm") or "setup"
     rows.append(f"{host:11s} {what:24s} {stage:26s} {hours:4.2f} h  {fin['status'] if fin else ''}")
 print("\n".join(rows))
-print(f"estimated pod cost so far: ${cost:.2f} of ${plan['budget_usd']} (running time x price; storage excluded)")
+for extra in sorted((HERE / "hosts").glob("*/attempt-*.json")):
+    cost += json.loads(extra.read_text())["cost_usd"]
+print(f"estimated pod cost so far: ${cost:.2f} of $46 (user cap, raised three times from ${plan['budget_usd']}; running time x price, earlier attempts included; storage excluded)")

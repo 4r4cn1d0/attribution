@@ -12,7 +12,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 PY = ROOT / "tmp/minimal-experiment-20261002/venv/bin/python"
 HOSTS = {
-    "lead": {"role": "lead", "cap_hours": 2.5},
+    "lead": {"role": "lead", "cap_hours": 4.5},
     "a0-1101": {"role": "job", "arm": "a0", "seed": 1101, "cap_hours": 3.5},
     "a0-1102": {"role": "job", "arm": "a0", "seed": 1102, "cap_hours": 3.5},
     "rm10-1101": {"role": "job", "edit": "remove-10.json", "seed": 1101, "cap_hours": 3.5},

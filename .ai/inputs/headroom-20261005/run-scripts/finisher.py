@@ -50,6 +50,9 @@ def watched() -> list[str]:
 
 
 def outer(host: str) -> str:
+    override = HERE / "hosts" / host / "outer.txt"      # a restarted host's new outer receipt folder
+    if override.exists():
+        return override.read_text().strip()
     return "lead-outer" if plan()["hosts"][host]["role"] == "lead" else "job-outer"
 
 
@@ -85,17 +88,38 @@ def verify(host: str, tree: pathlib.Path) -> dict:
     return results
 
 
+def light_check(host: str, tree: pathlib.Path) -> dict:
+    """Without the model states: every other file a unit's COMPLETE.json lists must be present and hash as listed;
+    the engine's full verify ran on the pod (JOB-DONE.json). Missing .safetensors files are expected."""
+    import hashlib
+    results = {}
+    for unit in sorted(p.parent for p in (tree / "round1").glob("*/COMPLETE.json")):
+        listed = json.loads((unit / "COMPLETE.json").read_text())["files"]
+        bad, skipped = [], 0
+        for rel, digest in listed.items():
+            path = unit / rel
+            if rel.endswith(".safetensors") and not path.exists():
+                skipped += 1; continue
+            if not path.exists() or hashlib.sha256(path.read_bytes()).hexdigest() != digest:
+                bad.append(rel)
+        results[unit.name] = {"exit": 0 if not bad else 1, "tail": f"bad {bad[:5]}; states left on the pod: {skipped}"}
+    with open(HERE / "retrieved" / host / "verified.jsonl", "a") as handle:
+        handle.write(json.dumps({"utc": now(), "kind": "light check (engine verify ran on the pod)", "results": results}) + "\n")
+    return results
+
+
 def finish(host: str, receipt: dict) -> None:
     role = plan()["hosts"][host]["role"]
     if role == "lead":
         c = subprocess.run([sys.executable, str(HERE / "orchestrate.py"), "collect-lead"], capture_output=True, text=True)
         log(host=host, event="collect-lead", exit=c.returncode, out=c.stdout[-600:])
-    if tool("pull", host).returncode:
+    light = role == "job"            # job hosts: results and receipts only; model states stay on the pod's volume
+    if tool("pull-light" if light else "pull", host).returncode:
         log(host=host, event="pull-failed"); return
     tree = unpack(host)
     status = "stopped"
     if role == "job":
-        results = verify(host, tree)
+        results = light_check(host, tree)
         job_done = json.loads((tree / "JOB-DONE.json").read_text()) if (tree / "JOB-DONE.json").exists() else {}
         ok = receipt.get("exit_code") == 0 and job_done.get("ok") is True and bool(results) and \
             all(r["exit"] == 0 for r in results.values())
@@ -107,14 +131,21 @@ def finish(host: str, receipt: dict) -> None:
     record = {"utc": now(), "status": status, "outer_exit": receipt.get("exit_code"),
               "outer_elapsed_min": round(receipt.get("elapsed_s", 0) / 60, 1), "stop": stopped.stdout.strip()}
     (HERE / "hosts" / host / "finished.json").write_text(json.dumps(record, indent=1) + "\n")
+    if not status.startswith("review"):      # the archive is only transport: its contents are unpacked and checked
+        removed = []
+        for tar in sorted((HERE / "retrieved" / host).glob("pull-*.tar")):
+            removed.append(tar.name); tar.unlink()
+        record["removed_archives"] = removed
     log(host=host, event="finished", **record)
 
 
 def main() -> int:
-    while True:
+    deadline = time.time() + 10 * 3600
+    while time.time() < deadline:
+        if all((HERE / "hosts" / h / "finished.json").exists() for h in plan()["hosts"]):
+            log(event="every planned host is finished"); return 0
         hosts = watched()
-        if not hosts:
-            log(event="nothing left to watch"); return 0
+        ready = []
         for host in hosts:
             if not any((HERE / "hosts" / host / "orchestrate.jsonl").read_text().count(e) for e in ("lead-started", "job-started")) \
                     if (HERE / "hosts" / host / "orchestrate.jsonl").exists() else True:
@@ -124,7 +155,11 @@ def main() -> int:
             except (json.JSONDecodeError, OSError):
                 receipt = None
             if receipt is not None:
-                finish(host, receipt)
+                ready.append((host, receipt))
+        if ready:                         # finish done hosts in parallel, so none waits billed behind another's copy
+            from concurrent.futures import ThreadPoolExecutor
+            with ThreadPoolExecutor(max_workers=len(ready)) as pool:
+                list(pool.map(lambda item: finish(*item), ready))
         time.sleep(INTERVAL)
 
 

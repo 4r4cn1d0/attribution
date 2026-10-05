@@ -126,10 +126,21 @@ def record_fixture(host: str) -> None:
     log(host, "expected-fixture-recorded", sha256=sha(EXPECTED))
 
 
+def compare_fixture(host: str) -> None:
+    target = HERE / "hosts" / host / "verification.json"
+    if tool("fetch", host, f"{REMOTE}/cuda-preflight-hr-001/verification.json", str(target)).returncode:
+        raise SystemExit(f"{host}: could not fetch the fixture")
+    x, e, keys = json.loads(target.read_text()), json.loads(EXPECTED.read_text()), plan()["fixture_compare"]
+    bad = [k for k in keys["equal_keys"] if x[k] != e[k]] + [f"resume.{k}" for k in keys["resume_keys"] if x["resume"][k] != e["resume"][k]]
+    if bad:
+        raise SystemExit(f"{host}: fixture differs from the recorded one: {bad}")
+    log(host, "fixture-matches-expected", sha256=sha(target))
+
+
 def start_lead(host: str) -> None:
     send(host, HERE / "plan.json", "plan.json")
-    command = (f"cd {REMOTE} && test ! -e lead-outer && nohup python3 process_receipt.py --out lead-outer -- "
-               "venv/bin/python lead_pipeline.py > lead-outer.log 2>&1 &\nsleep 20; "
+    command = (f"cd {REMOTE} && test ! -e lead-outer || exit 1\nnohup python3 process_receipt.py --out lead-outer -- "
+               "venv/bin/python lead_pipeline.py > lead-outer.log 2>&1 < /dev/null &\nsleep 20; "
                f"cd {REMOTE} && test -f lead-outer/started.json && test ! -f lead-outer/process-receipt.json")
     if ssh(host, command).returncode:
         out = ssh(host, f"cd {REMOTE} && tail -20 lead-outer/process.log 2>/dev/null").stdout
@@ -146,8 +157,8 @@ def start_job(host: str) -> None:
         if sha(local) != job["edit_sha256"]:
             raise SystemExit(f"{host}: local edit file is not the planned one")
         send(host, local, f"edits/{job['edit']}")
-    command = (f"cd {REMOTE} && test ! -e job-outer && nohup python3 process_receipt.py --out job-outer -- "
-               f"venv/bin/python job_runner.py {host} > job-outer.log 2>&1 &\nsleep 30; "
+    command = (f"cd {REMOTE} && test ! -e job-outer || exit 1\nnohup python3 process_receipt.py --out job-outer -- "
+               f"venv/bin/python job_runner.py {host} > job-outer.log 2>&1 < /dev/null &\nsleep 30; "
                f"cd {REMOTE} && test -f job-outer/started.json && test ! -f job-outer/process-receipt.json")
     if ssh(host, command).returncode:
         out = ssh(host, f"cd {REMOTE} && tail -20 job-outer/process.log 2>/dev/null").stdout
@@ -180,9 +191,19 @@ def after_create(host: str) -> None:
     bootstrap(host)
     wait_verified(host)
     if plan()["hosts"][host]["role"] == "lead":
-        record_fixture(host)
+        if EXPECTED.exists():          # a replacement lead must reproduce the recorded fixture, not record a new one
+            compare_fixture(host)
+        else:
+            record_fixture(host)
         start_lead(host)
         return
+    wait_for(lambda: ready(host), f"{host}: expected fixture and edit file")
+    start_job(host)
+
+
+def continue_job(host: str) -> None:
+    """After a bootstrap that already finished: wait for the fixture (and edit file), then start the job."""
+    wait_verified(host)
     wait_for(lambda: ready(host), f"{host}: expected fixture and edit file")
     start_job(host)
 
@@ -232,7 +253,7 @@ def main() -> int:
     if command == "collect-lead":
         collect_lead(); return 0
     host = sys.argv[2]
-    {"full": full, "after-create": after_create, "status": status, "bootstrap": bootstrap, "wait": wait_verified,
+    {"full": full, "after-create": after_create, "continue-job": continue_job, "status": status, "bootstrap": bootstrap, "wait": wait_verified,
      "check": check, "fixture": record_fixture, "start-lead": start_lead, "start-job": start_job}[command](host)
     return 0
 

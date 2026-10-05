@@ -195,13 +195,15 @@ def fetch(host: str, remote: str, local: str) -> int:
     return subprocess.run(["scp", *opts, "-P", port, f"{target}:{remote}", local]).returncode
 
 
-def pull(host: str) -> int:
-    """A complete tar of the run outputs and receipts, kept only if the transfer finished."""
+def pull(host: str, light: bool = False) -> int:
+    """A complete tar of the run outputs and receipts, kept only if the transfer finished. ``light`` leaves out
+    every .safetensors file (the saved model states stay on the pod's volume)."""
     out = HERE / "retrieved" / host
     out.mkdir(parents=True, exist_ok=True)
     stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     part, final = out / f"pull-{stamp}.tar.part", out / f"pull-{stamp}.tar"
-    remote = f"cd {REMOTE_ROOT} && ls -d {PULL_ITEMS} 2>/dev/null | tar -cf - -T -"
+    exclude = "--exclude='*.safetensors' " if light else ""
+    remote = f"cd {REMOTE_ROOT} && ls -d {PULL_ITEMS} 2>/dev/null | tar -cf - {exclude}-T -"
     with open(part, "wb") as handle:
         code = subprocess.run(["ssh", *ssh_base(host), remote], stdout=handle).returncode
     if code != 0 or part.stat().st_size == 0:
@@ -237,6 +239,8 @@ def main() -> int:
         return fetch(host, *rest)
     if command == "pull":
         return pull(host)
+    if command == "pull-light":
+        return pull(host, light=True)
     if command == "stop":
         print(json.dumps(stop(host))); return 0
     raise SystemExit("unknown command")
