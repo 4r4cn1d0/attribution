@@ -48,6 +48,8 @@ Started 5 October 2026 by General Implementation, at the user's request to "keep
 
 ## Pending, waiting on results (added 6 Oct, user's request)
 
+- [ ] **Notify the FAQ chat** (its request, 6 Oct): once the v2 positive-control results AND the Mac second-judge check are recorded, send FAQ the results file path and log entries, which arms and seeds finished, and the second-judge agreement figure. FAQ is drafting the next Substack post (`writing/substack/2026-10-06-next-post-DRAFT.md`, with `tone-guide.md`; FAQ's files, uncommitted). Do not route a separate drafting request to Public Posts for this post.
+
 - [ ] **Outreach email drafts (a subagent; drafts only, the user sends).**
   - **Trigger:** the v2 positive-control result plus the Mac second-judge check. For Grosse, preferably also the cheap ranking-and-timing check (classifier vs RepSim/DRA vs gradient similarity, with timings), which is not yet scheduled.
   - **Recipients:**
