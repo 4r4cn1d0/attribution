@@ -22,6 +22,23 @@ Our preliminary results already show that a simple, common rule ("delete the top
 
 **Grant version (3 sentences; from the [positioning review](../review/2026-10-06-positioning-review.md), 6 October):** Teams that fix fine-tuning data for safety can use cheap signals, such as safety classifiers and short trial runs, or an expensive one, training-data attribution, but no study measures which signal leads to better fixes for the money. Using replicated training runs and held-out confirmation, we will measure how often each signal picks the safest fix that keeps capability and avoids over-refusal, at matched compute, both where classifiers can see the problem and where they cannot. The result will be an open benchmark and a practical rule for when attribution is worth paying for.
 
+### 1a. Why the problem is real (evidence; from the [problem-validation review](../review/2026-10-06-problem-validation.md), 6 October)
+
+**Verdict: partly real.** Teams do fix training data after unsafe behaviour, and they manage the side effects explicitly. But practitioners do not publicly ask whether attribution is worth its compute; researchers and funders ask that. **Do not claim practitioners ask it.**
+
+Sentences to use, each backed by a primary source:
+- Model developers change training data when models misbehave. During Claude Opus 4's development, Anthropic restored an omitted fine-tuning dataset and added a targeted counter-dataset ([system card](https://www-cdn.anthropic.com/4263b940cabb546aa0e3283f35b686f4f3b2ff47.pdf)). Ai2 removed post-training content after tracing a wrong claim to it ([OLMoTrace](https://allenai.org/blog/olmotrace)).
+- Fine-tuning services screen customer data with content classifiers and block unsafe models, but they report harm categories rather than rows. Microsoft's message is "Please review your training data set and resubmit the job" ([Foundry docs](https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/fine-tuning-safety-evaluation), checked on 6 October). The customer must find what to fix.
+- Fixes have side effects that teams manage. Meta ran repeated experiments to balance violations against false refusals in Llama 3's safety data ([arXiv 2407.21783](https://arxiv.org/abs/2407.21783)). Google said tuning made Gemini refuse harmless prompts ([blog](https://blog.google/products/gemini/gemini-image-generation-issue/)).
+- Content screening is not enough: benign-looking data can implant harmful behaviour that input-level monitors miss ([Anthropic](https://alignment.anthropic.com/2026/introspection-adapters/)).
+- Anthropic chose its pretraining safety filter partly on cost, and lists influence functions as future work ([post](https://alignment.anthropic.com/2025/pretraining-data-filtering/), checked on 6 October). Attribution's cost and reliability at scale remain open problems ([arXiv 2407.14981](https://arxiv.org/abs/2407.14981); [arXiv 2501.12642](https://arxiv.org/abs/2501.12642)).
+
+**What the evidence implies for the design** (recommendations; not yet decided):
+- the most real form of the problem is "which data fix, and how much diagnosis to buy first", especially for harmful data that looks benign;
+- put additions on the menu;
+- count costs in full-run equivalents;
+- consider leading with side-effect prediction.
+
 ## 2. Research question and novelty
 
 - **Question** ([FOCUS.md](../FOCUS.md)): in a fixed fine-tuning setting, does adding attribution to a selector that already uses metadata, classifier scores and short runs improve its choice among data edits, compared with spending attribution's full cost on more runs? The primary failure measured is unsafe completions.

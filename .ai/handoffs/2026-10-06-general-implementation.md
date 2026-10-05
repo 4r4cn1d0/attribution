@@ -159,6 +159,30 @@ python3.11 orchestrate.py status val05
 python3.11 host.py ssh val05 'tail -n 2 /workspace/attribution-headroom/round1/1101-a0-e3-a1/progress.jsonl'
 ```
 
+### 4b. Update at 21:50 UTC (03:20 IST, 6 October)
+
+- **Calibration is done; k = 507 (5%).** Details are in the work-plan log.
+  - val05: 74.5% greedy and 76.3% sampled unsafe; ARC 0.84; over-refusal 2%. Verified and stopped.
+  - cal10: 81.0% and 83.5% unsafe; ARC 0.83. Verified and stopped.
+  - The dose response flattens.
+- **The lead pod is running.** It was created at 21:07 UTC with a 4.5 h cap (stops by 01:37 UTC), and `plan_tool.py set-lead prepared-v3-inj05` has been applied. Bootstrap with the generator was ready at 21:22; then the preflight, then scores, rewrites and edits. Expected done at about 00:00–00:30 UTC.
+- **Next:**
+  - when the lead finishes, collect the edit files and run `set-edits`;
+  - add job hosts `rw-1101` (rewrite-k507) and `rrw-1101` (random-rewrite-k507) on prepared-v3-inj05, then seed 1102 as the balance allows;
+  - launch through `launch.py`;
+  - restart `finisher.py` if it has exited (it stops when every planned host is finished, or after 10 h).
+- **Balance:** $28.07 at 21:06 UTC. The budget guard does not count operator leases yet.
+- **New records:**
+  - research/review/2026-10-06-prior-work-search.md (54+ papers, with a reading order);
+  - research/review/2026-10-06-positioning-review.md (novelty and positioning);
+  - research/review/2026-10-06-problem-validation.md (is the problem real? Partly);
+  - the grant dossier sections 1a, 2 and 3 are updated;
+  - .ai/inputs/headroom-v2/run-scripts/ holds a mid-run snapshot, checked for IPs and secrets.
+- **Pending tasks:**
+  - outreach email drafts (Ma, Grosse, EleutherAI), done by a subagent after the v2 results; see the work plan's "Pending" list;
+  - a cost-ledger subagent is building `research/costs/` (still running at handoff time).
+- **The user's standing rule (memory `prefer-subagents`):** delegate to subagents unless a task is quicker in chat. Weekly usage is at 91% (Fable 100%); both reset on 8 October at about 14:30 IST.
+
 ## 5. Next steps, in order
 
 1. **Calibration result.**
