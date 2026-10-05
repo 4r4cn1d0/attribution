@@ -58,6 +58,22 @@ Attribution becomes one diagnostic among several. A negative result for attribut
 5. **The classifier's cost** is corrected above: about 0.6–0.8 of a round-1 job, eager attention, one-off per dataset.
 6. **The kill test's logic.** The classifier will rank benign data almost uniformly, so disagreeing with it means little. The informative comparison is attribution against representation similarity, judged against ground truth from seeded removal runs (see 3a).
 
+### 2b. New risks and design consequences from the reading-list review (6 October; [reading list v2](2026-10-06-reading-list-v2.md))
+
+- **Novelty is narrower but holds as a combination.**
+  - New close works: SafeTune ([2609.22153](https://arxiv.org/abs/2609.22153)) compares many repairs on safety, capability, over-refusal and wall-clock cost, with a guide for choosing, but has no data fixes and one seed. **It is the likeliest "this was done" citation.**
+  - DataRx ([2608.04322](https://arxiv.org/abs/2608.04322)) compares ways to add safety data, with over-refusal measured.
+  - The closest overall is still Xiao and Aranguri.
+  - The least covered part is **predicting a fix's over-refusal before training** (only persona vectors come near).
+- **Design consequences:**
+  1. **Make "add a fixed small safety mix" the default arm that diagnosis must beat.** If it is always good enough, diagnosis is worth nothing, and that must be detectable.
+  2. **Cheap non-data repairs may beat every data fix:** a one-example patch, weight-space recovery, or prompt-template choice (PTST). Either limit the claim to users who can only change data, or add one as a reference arm.
+  3. **The erosion may be small or driven by the training recipe at 1.5B with LoRA.** Kim et al. ([2508.12531](https://arxiv.org/abs/2508.12531)) found that better hyperparameters alone cut unsafe answers from 16% to about 5%. The headroom check should cover 2–3 benign tasks with at least 3 seeds, and fix the recipe in advance.
+  4. **Added data can hide misalignment** ([2604.25891](https://arxiv.org/abs/2604.25891)), so the held-out evaluation needs prompts that resemble the training context.
+  5. **Judges misread incoherent outputs** after tasks with a restricted answer format ([2606.03648](https://arxiv.org/abs/2606.03648)); keep the second judge and a coherence check.
+  6. **Do not build the benign data with gradient or influence matching,** because that gives the attribution arm a home advantage.
+  7. Two different papers are called "DataShield" (2606.00160 and 2607.15081); cite them by ID.
+
 ## 3. The kill test before committing
 
 In the benign-erosion setting, rank the training rows with the classifier, representation similarity and gradient attribution, and time each.

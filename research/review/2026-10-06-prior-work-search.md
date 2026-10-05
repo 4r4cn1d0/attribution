@@ -40,7 +40,7 @@ We found no study that does all of the following:
 - **"Where Did It Go Wrong? Attributing Undesirable LLM Behaviors via Representation Gradient Tracing"**, [arXiv 2510.02334](https://arxiv.org/abs/2510.02334), 2025.
 - **Bae et al., "Training Data Attribution via Approximate Unrolled Differentiation"** (SOURCE), [arXiv 2405.12186](https://arxiv.org/abs/2405.12186), 2024.
 - **"Distributional Training Data Attribution: What do Influence Functions Sample?"**, [arXiv 2506.12965](https://arxiv.org/abs/2506.12965), 2025. Attribution inherits training randomness, which matters for our seed design.
-- **Ouyang et al., "ADMIRE-BayesOpt: Accelerated Data MIxture RE-weighting for Language Models with Bayesian Optimization"**, [arXiv 2508.11551](https://arxiv.org/abs/2508.11551), TMLR 2025. The multi-fidelity selector named in FOCUS.md.
+- **Chen et al. (first author Shengzhuang Chen; corrected 6 October), "ADMIRE-BayesOpt: Accelerated Data MIxture RE-weighting for Language Models with Bayesian Optimization"**, [arXiv 2508.11551](https://arxiv.org/abs/2508.11551), TMLR 2025. The multi-fidelity selector named in FOCUS.md.
 
 ## 3. Data filtering and selection for fine-tuning safety (cite as related work)
 
