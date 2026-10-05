@@ -49,6 +49,8 @@ def _parser() -> argparse.ArgumentParser:
     p.add_argument("--data-config", required=True)
     for name in ("date-train", "date-ref", "toxicchat-test", "arc-validation", "arc-test"):
         p.add_argument(f"--{name}", required=True)
+    p.add_argument("--sources-root", help="folder holding the data config's extra_sources files "
+                                          "(headroom v2; required exactly when the config names them)")
     p.add_argument("--out", required=True)
     p = sub.add_parser("plan", help="offline workload plan (nothing loads or runs)")
     p.add_argument("--recipe", required=True)
@@ -109,6 +111,8 @@ def _parser() -> argparse.ArgumentParser:
     p.add_argument("--scores", required=True, help="the frozen scores.json of score-rows")
     p.add_argument("--percent", default="10", help="the largest edit size (default 10)")
     p.add_argument("--random-percent", default="10", help="the random control's size (default 10)")
+    p.add_argument("--count", help="an explicit size for the top and random sets instead of the percents: "
+                                   "N rows, or 'injection' (the prepared data's injected rows)")
     p.add_argument("--out", required=True, help="new folder; never replaced")
     p = sub.add_parser("build-edits", help="headroom (draft): the positive control's edit files (CPU only)")
     p.add_argument("--prepared", required=True)
@@ -118,6 +122,9 @@ def _parser() -> argparse.ArgumentParser:
     p.add_argument("--random-percent", default="10")
     p.add_argument("--round", choices=["1"], help="only the files of round 1: remove, random remove, rewrite and "
                                                   "random rewrite at 10%% (needs --rewrites)")
+    p.add_argument("--count", help="one explicit size instead of the percents: N rows, or 'injection' (the "
+                                   "prepared data's injected rows); writes remove-kN, random-remove-kN and, with "
+                                   "--rewrites, rewrite-kN and random-rewrite-kN; the count base is recorded")
     p.add_argument("--out", required=True, help="new folder; never replaced")
     p = sub.add_parser("score-audit", help="guard scores of a blind-context audit file")
     p.add_argument("--recipe", required=True)
@@ -153,23 +160,32 @@ def _parser() -> argparse.ArgumentParser:
 def _prepare(args: argparse.Namespace) -> dict:
     from .assets import tokenizer_identity
     from .loaders import load_tokenizer
-    from .prepare import prepare, read_raw_inputs, write_prepared
+    from .prepare import prepare, read_extra_sources, read_raw_inputs, write_prepared
 
     config = load_data_config(args.data_config)
+    if bool(config.get("extra_sources")) != bool(args.sources_root):
+        raise ValueError("--sources-root is required exactly when the data config names extra_sources")
     spec = config["tokenizer"]
     tokenizer, _ = load_tokenizer(spec["repo_id"], spec["revision"])
     paths = {"date_train": args.date_train, "date_ref": args.date_ref,
              "toxicchat_test": args.toxicchat_test, "arc_validation": args.arc_validation,
              "arc_test": args.arc_test}
+    extra = read_extra_sources(config, args.sources_root) if args.sources_root else None
     files = prepare(config, read_raw_inputs(paths), tokenizer,
-                    tokenizer_identity(spec["repo_id"], spec["revision"]))
+                    tokenizer_identity(spec["repo_id"], spec["revision"]), extra)
     receipt = {"python": sys.version, "platform": platform.platform(), "code": code_identity(),
                "utc": utc_now(), "inputs": {k: str(Path(v).resolve()) for k, v in paths.items()}}
+    if args.sources_root:
+        receipt["sources_root"] = str(Path(args.sources_root).resolve())
     digest = write_prepared(args.out, files, receipt)
     manifest = json.loads(files["manifest.json"])
     return {"manifest_sha256": digest, "out": args.out, "corpus": manifest["corpus"],
             "groups": manifest["groups"], "banks": manifest["banks"],
-            "eligibility": manifest["eligibility"], "token_audit": manifest["token_audit"]}
+            "eligibility": manifest["eligibility"], "token_audit": manifest["token_audit"],
+            **({"headroom_v2": {"eval_banks": {k: v for k, v in manifest["headroom_v2"]["eval_banks"].items()
+                                               if k != "rule"},
+                                "injection": {k: v for k, v in manifest["headroom_v2"]["injection"].items()
+                                              if k != "rule"}}} if "headroom_v2" in manifest else {})}
 
 
 def _make_job(args: argparse.Namespace) -> dict:
@@ -229,7 +245,7 @@ def _job_command(args: argparse.Namespace) -> dict:
 
         config = validate_rewrite_config(json.loads(Path(args.config).read_text(encoding="utf-8")))
         return generate_rewrites_job(config, session, args.prepared, args.scores, args.out, percent=args.percent,
-                                     random_percent=args.random_percent)
+                                     random_percent=args.random_percent, count=args.count)
     if args.command == "score-audit":
         return runner.score_audit(args.input, out_dir=args.out, session=session)
     job = json.loads(Path(args.job).read_text(encoding="utf-8"))
@@ -272,7 +288,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
             _print(build_edits_job(args.prepared, args.scores, args.out, rewrites_path=args.rewrites,
                                    percents=args.percents.split(","), random_percent=args.random_percent,
-                                   only=ROUND_1 if args.round == "1" else None))
+                                   only=ROUND_1 if args.round == "1" else None, count=args.count))
             return 0
         if args.command == "verify":
             from .verify import PathMap, verify_run

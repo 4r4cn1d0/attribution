@@ -22,6 +22,30 @@ their exact bytes, hash and meaning):
   tokenizer; an unknown token or one that is not a single token refuses. With tied embeddings
   the output head's rows change with them (``engine.py``). The trainable count in
   ``expected_trainable_parameters`` then includes the rows once.
+- ``generation.harm_samples`` (``{"count", "temperature", "top_p"}``): besides the greedy answer,
+  ``count`` sampled answers per ``harm`` bank prompt (prepared data v3), at ``temperature`` with
+  ``top_p`` 1.0 (no nucleus truncation), each seeded by (job seed, prompt id, sample index)
+  (``runner.sample_seed``). Without it a harm prompt gets its greedy answer only.
+
+``attn_implementation`` may be ``"eager"`` (every recipe before headroom v2) or ``"sdpa"``
+(PyTorch scaled-dot-product attention) for the policy and the guard; it is part of the identity.
+
+Optional data-config sections (headroom v2; absent from every data config written before them,
+which keep their exact bytes, hash and prepared output). They come together:
+
+- ``extra_sources``: further pinned source files by name, each with its repository, revision,
+  path, SHA-256, licence, a ``local`` path under the preparation's ``--sources-root`` and a
+  format: ``pku-saferlhf-jsonl``, or ``csv`` with its exact header, the prompt field, an optional
+  id and category field and ``keep`` (field -> allowed values; every other record is not a bank
+  candidate).
+- ``injection``: harmful training rows added to the editable pool from named
+  ``pku-saferlhf-jsonl`` sources (``prepare.INJECTION_RULE``): ``percent`` of the asserted
+  training rows, rounded half up, must equal ``count``.
+- ``eval_banks``: the ``harm`` and ``overrefusal`` prompt banks, each from named ``csv`` sources
+  with its development and selector sizes (the hidden part is the rest), optional ``per_source``
+  quotas (a stratified split; they sum to those sizes) and an optional asserted eligible count
+  (``prepare.EVAL_BANK_RULE``). ``injection.near_duplicate.max_jaccard`` skips a walked candidate
+  that nearly repeats an evaluation prompt (``prepare.NEAR_DUPLICATE``).
 """
 
 from __future__ import annotations
@@ -32,7 +56,8 @@ from pathlib import Path
 
 from .common import canonical_json, sha256_bytes
 
-__all__ = ["ConfigError", "DATA_KIND", "RECIPE_KIND", "ROLES", "PARTITIONS", "BANKS",
+__all__ = ["ConfigError", "DATA_KIND", "RECIPE_KIND", "ROLES", "PARTITIONS", "BANKS", "EVAL_BANK_KINDS",
+           "SOURCE_FORMATS", "injection_count",
            "NAMESPACES", "INIT", "BATCHING", "LOSS", "ATTRIBUTION_VARIANTS", "ARC_TEMPLATE",
            "validate_data_config", "validate_recipe", "load_data_config", "load_recipe",
            "config_sha256", "training_identity", "checkpoint_table", "checkpoint_names",
@@ -45,6 +70,9 @@ RECIPE_KIND = "safety-selection recipe"
 ROLES = ("risk", "aligned", "benign")
 PARTITIONS = ("dev", "heldout")
 BANKS = ("dev", "selector", "hidden")
+EVAL_BANK_KINDS = ("harm", "overrefusal")     # optional headroom-v2 banks (``eval_banks``)
+SOURCE_FORMATS = ("pku-saferlhf-jsonl", "csv")
+V3_SECTIONS = ("extra_sources", "injection", "eval_banks")
 NAMESPACES = ("development", "selector", "reference")
 ARC_SPLIT_OF_BANK = {"dev": "validation", "selector": "validation", "hidden": "test"}
 INIT = "init"
@@ -54,6 +82,7 @@ LOSS = ("per-example mean NLL over response target tokens (response plus end-of-
         "over the actual examples of each optimizer step")
 ATTRIBUTION_VARIANTS = ["checkpoint_gradsim", "adam_diag_preconditioned_dot"]
 ARC_TEMPLATE = "arc-easy-mc-v1"
+ATTENTION = ("eager", "sdpa")
 
 
 class ConfigError(ValueError):
@@ -119,11 +148,108 @@ def _fraction(value: object, where: str) -> Fraction:
     return Fraction(num, den)
 
 
+def injection_count(percent: str, training_rows: int) -> int:
+    """``percent``% of ``training_rows``, rounded half up (exact rational arithmetic)."""
+    try:
+        share = Fraction(percent)
+    except (ValueError, ZeroDivisionError) as exc:
+        raise ConfigError(f"injection.percent {percent!r} is not a number") from exc
+    if not 0 < share <= 100:
+        raise ConfigError("injection.percent must be in (0, 100]")
+    value = share * training_rows / 100
+    return int(value + Fraction(1, 2))
+
+
+def _validate_v3(config: dict) -> None:
+    present = [k for k in V3_SECTIONS if k in config]
+    if not present:
+        return
+    if len(present) != len(V3_SECTIONS):
+        raise ConfigError(f"{', '.join(V3_SECTIONS)} come together (found only {present})")
+    sources = config["extra_sources"]
+    if not isinstance(sources, dict) or not sources:
+        raise ConfigError("extra_sources: expected a non-empty object")
+    for name, spec in sources.items():
+        where = f"extra_sources.{name}"
+        _text(name, where)
+        if not isinstance(spec, dict) or spec.get("format") not in SOURCE_FORMATS:
+            raise ConfigError(f"{where}.format must be one of {SOURCE_FORMATS}")
+        base = {"repo_id", "revision", "file", "sha256", "license", "local", "format"}
+        csv_keys = {"header", "prompt_field", "id_field", "category_field", "keep"}
+        _keys(spec, base | (csv_keys if spec["format"] == "csv" else set()), where)
+        for key in ("repo_id", "file", "license", "local"):
+            _text(spec[key], f"{where}.{key}")
+        if Path(spec["local"]).is_absolute() or ".." in Path(spec["local"]).parts:
+            raise ConfigError(f"{where}.local must be a relative path under the sources root")
+        _hex(spec["revision"], 40, f"{where}.revision")
+        _hex(spec["sha256"], 64, f"{where}.sha256")
+        if spec["format"] == "csv":
+            header = _texts(spec["header"], f"{where}.header")
+            for key in ("prompt_field", "id_field", "category_field"):
+                if spec[key] is not None or key == "prompt_field":
+                    if _text(spec[key], f"{where}.{key}") not in header:
+                        raise ConfigError(f"{where}.{key} is not a header field")
+            if not isinstance(spec["keep"], dict):
+                raise ConfigError(f"{where}.keep: expected an object (field -> allowed values)")
+            for field, values in spec["keep"].items():
+                if field not in header:
+                    raise ConfigError(f"{where}.keep: {field!r} is not a header field")
+                if (not isinstance(values, list) or not values or len(set(values)) != len(values)
+                        or not all(isinstance(v, str) for v in values)):
+                    raise ConfigError(f"{where}.keep.{field}: expected a non-empty list of distinct strings")
+
+    def named(names: object, fmt: str, where: str) -> list[str]:
+        for name in _texts(names, where):
+            if name not in sources or sources[name]["format"] != fmt:
+                raise ConfigError(f"{where}: {name!r} is not an extra source of format {fmt}")
+        return names
+
+    inj = _keys(config["injection"], {"sources", "min_severity", "percent", "count", "expected", "near_duplicate"},
+                "injection")
+    near = _keys(inj["near_duplicate"], {"max_jaccard"}, "injection.near_duplicate")
+    if not 0 < _number(near["max_jaccard"], "injection.near_duplicate.max_jaccard") <= 1:
+        raise ConfigError("injection.near_duplicate.max_jaccard must be in (0, 1]")
+    named(inj["sources"], "pku-saferlhf-jsonl", "injection.sources")
+    _int(inj["min_severity"], "injection.min_severity", 1)
+    _text(inj["percent"], "injection.percent")
+    training = sum(config["eligibility"]["expected"]["train"].values())
+    if _int(inj["count"], "injection.count", 1) != injection_count(inj["percent"], training):
+        raise ConfigError(f"injection.count must be {inj['percent']}% of the {training} asserted training "
+                          f"rows, rounded half up ({injection_count(inj['percent'], training)})")
+    for key, value in _keys(inj["expected"], {"candidates", "eligible"}, "injection.expected").items():
+        _optional_int(value, f"injection.expected.{key}")
+    banks = _keys(config["eval_banks"], set(EVAL_BANK_KINDS), "eval_banks")
+    used: list[str] = []
+    for kind in EVAL_BANK_KINDS:
+        keys = {"sources", "dev", "selector", "expected_eligible"}
+        if isinstance(banks[kind], dict) and "per_source" in banks[kind]:
+            keys = keys | {"per_source"}
+        spec = _keys(banks[kind], keys, f"eval_banks.{kind}")
+        used += named(spec["sources"], "csv", f"eval_banks.{kind}.sources")
+        _int(spec["dev"], f"eval_banks.{kind}.dev", 1)
+        _int(spec["selector"], f"eval_banks.{kind}.selector", 1)
+        if "per_source" in spec:                       # stratified split (prepare.EVAL_BANK_RULE)
+            quotas = _keys(spec["per_source"], set(spec["sources"]), f"eval_banks.{kind}.per_source")
+            for name, quota in quotas.items():
+                _keys(quota, {"dev", "selector"}, f"eval_banks.{kind}.per_source.{name}")
+                _int(quota["dev"], f"eval_banks.{kind}.per_source.{name}.dev", 1)
+                _int(quota["selector"], f"eval_banks.{kind}.per_source.{name}.selector", 1)
+            for part in ("dev", "selector"):
+                if sum(q[part] for q in quotas.values()) != spec[part]:
+                    raise ConfigError(f"eval_banks.{kind}.per_source: the {part} quotas must sum to {part}")
+        _optional_int(spec["expected_eligible"], f"eval_banks.{kind}.expected_eligible")
+    if len(set(used)) != len(used) or set(used) & set(inj["sources"]):
+        raise ConfigError("an extra source feeds at most one bank, and never both a bank and the injection")
+    unused = set(sources) - set(used) - set(inj["sources"])
+    if unused:
+        raise ConfigError(f"extra_sources not used by the injection or a bank: {sorted(unused)}")
+
+
 def validate_data_config(config: dict) -> dict:
     """Raise ConfigError unless the data config is complete and supported; returns it."""
     _keys(config, {"kind", "name", "purpose", "amendments", "sources", "eligibility", "roles",
-                   "provenance", "design_seed", "groups", "banks", "seed_namespaces", "tokenizer"},
-          "data config")
+                   "provenance", "design_seed", "groups", "banks", "seed_namespaces", "tokenizer"}
+          | {k for k in V3_SECTIONS if k in config}, "data config")
     _fixed(config["kind"], DATA_KIND, "kind")
     _text(config["name"], "name")
     _text(config["purpose"], "purpose")
@@ -222,6 +348,7 @@ def validate_data_config(config: dict) -> dict:
     _text(tok["end_of_turn_token"], "tokenizer.end_of_turn_token")
     _int(tok["max_train_tokens"], "tokenizer.max_train_tokens", 2)
     _int(tok["max_prompt_tokens"], "tokenizer.max_prompt_tokens", 2)
+    _validate_v3(config)
     return config
 
 
@@ -268,7 +395,8 @@ def validate_recipe(recipe: dict) -> dict:
     _text(model["architecture"], "model.architecture")
     _fixed(model["base_dtype"], "bfloat16", "model.base_dtype")
     _fixed(model["trainable_dtype"], "float32", "model.trainable_dtype")
-    _fixed(model["attn_implementation"], "eager", "model.attn_implementation")
+    if model["attn_implementation"] not in ATTENTION:
+        raise ConfigError(f"model.attn_implementation must be one of {ATTENTION}")
     # "cpu" exists only for injected ENGINEERING FIXTURE loaders; the real loader refuses it.
     if model["device"] not in ("cuda", "cpu"):
         raise ConfigError("model.device must be 'cuda' (or 'cpu' for fixture loaders only)")
@@ -315,10 +443,19 @@ def validate_recipe(recipe: dict) -> dict:
     _int(train["lm_head_chunk_tokens"], "train.lm_head_chunk_tokens", 1)
     names = [n for n, _ in _checkpoints(train)]
 
-    gen = _keys(recipe["generation"], {"decoding", "max_new_tokens", "batch_size"}, "generation")
+    gen_keys = {"decoding", "max_new_tokens", "batch_size"}
+    if isinstance(recipe["generation"], dict) and "harm_samples" in recipe["generation"]:   # optional (module doc)
+        gen_keys = gen_keys | {"harm_samples"}
+    gen = _keys(recipe["generation"], gen_keys, "generation")
     _fixed(gen["decoding"], "greedy", "generation.decoding")
     _int(gen["max_new_tokens"], "generation.max_new_tokens", 1)
     _int(gen["batch_size"], "generation.batch_size", 1)
+    if "harm_samples" in gen:
+        samples = _keys(gen["harm_samples"], {"count", "temperature", "top_p"}, "generation.harm_samples")
+        _int(samples["count"], "generation.harm_samples.count", 1)
+        if not 0 < _number(samples["temperature"], "generation.harm_samples.temperature") <= 2:
+            raise ConfigError("generation.harm_samples.temperature must be in (0, 2]")
+        _fixed(samples["top_p"], 1.0, "generation.harm_samples.top_p")
     arc = _keys(recipe["arc"], {"template", "batch_size"}, "arc")
     _fixed(arc["template"], ARC_TEMPLATE, "arc.template")
     _int(arc["batch_size"], "arc.batch_size", 1)
@@ -330,7 +467,8 @@ def validate_recipe(recipe: dict) -> dict:
     _hex(guard["revision"], 40, "guard.revision")
     _text(guard["architecture"], "guard.architecture")
     _fixed(guard["dtype"], "bfloat16", "guard.dtype")
-    _fixed(guard["attn_implementation"], "eager", "guard.attn_implementation")
+    if guard["attn_implementation"] not in ATTENTION:
+        raise ConfigError(f"guard.attn_implementation must be one of {ATTENTION}")
     _texts(guard["stop_tokens"], "guard.stop_tokens")
     _text(guard["pad_token"], "guard.pad_token")
     _int(guard["max_input_tokens"], "guard.max_input_tokens", 2)

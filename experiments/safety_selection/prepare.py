@@ -26,7 +26,14 @@ are what ordinary runs read. ``selector/x0_static.json`` holds the only static p
 features (size, coarse provenance, character/token length summaries, tie rank). The hidden
 reference bank lives in ``hidden/`` and is opened only by explicit reference jobs.
 ``auditor/construction.json`` (raw uids, ``data_id``, type labels, construction order and
-composition) is never opened by engine or selector commands. Seed streams are named by
+composition) is never opened by engine or selector commands.
+
+Headroom v2 (optional data-config sections, ``config.py``; without them nothing here changes):
+the ``harm`` and ``overrefusal`` banks (``EVAL_BANK_RULE``) are split into the existing
+development, selector and hidden files as items of those kinds, and harmful PKU-SafeRLHF rows are
+injected into the training corpus (``INJECTION_RULE``) as ordinary editable rows outside every
+group. Existing rows, ids, groups and items are computed exactly as without the sections. The
+injected rows' source, categories and severity are written to the auditor file only. Seed streams are named by
 composition roles, not raw type strings, so renaming hidden labels changes no engine- or
 selector-facing byte. The manifest itself is ENGINE scope: its data config holds the design
 seed and composition table, from which the seeded construction can be replayed to recover
@@ -47,8 +54,9 @@ from typing import Any, Sequence
 
 from .common import (canonical_json, derive_seed, ids_sha256, jsonl_bytes, opaque_id, sha256_bytes,
                      write_atomic)
-from .config import BANKS, PARTITIONS, ROLES, config_sha256, validate_data_config
-from .sources import DataError, LeakageError, parse_arc, parse_date_lm, parse_toxicchat
+from .config import BANKS, EVAL_BANK_KINDS, PARTITIONS, ROLES, config_sha256, validate_data_config
+from .sources import (DataError, LeakageError, parse_arc, parse_csv_table, parse_date_lm, parse_pku,
+                      parse_toxicchat)
 from .textproc import (BoundaryMismatch, ControlTokenError, NoTargets, TooLong, arc_prompt_forms,
                        build_codec, encode_generation_prompt, encode_mc, encode_train, normalize,
                        render_arc_generation, render_arc_mc)
@@ -56,7 +64,7 @@ from .textproc import (BoundaryMismatch, ControlTokenError, NoTargets, TooLong, 
 __all__ = ["MANIFEST", "MANIFEST_SHA", "TRAIN_ROWS", "QUERY_ROWS", "GROUPS", "BANK_FILES",
            "X0_STATIC", "AUDITOR", "RECEIPT", "HiddenAccessError", "RawInputs", "prepare",
            "write_prepared", "Prepared", "read_manifest", "read_verified", "load_prepared",
-           "read_raw_inputs"]
+           "read_raw_inputs", "read_extra_sources", "INJECTION_RULE", "EVAL_BANK_RULE", "NEAR_DUPLICATE"]
 
 MANIFEST = "manifest.json"
 MANIFEST_SHA = "manifest.sha256"
@@ -73,6 +81,40 @@ SEED_DERIVATION = ("int.from_bytes(sha256('|'.join(parts)).digest()[:8], 'big') 
                    "random.Random; named by design seed and purpose (and role, partition)")
 OVERLAP_FORMS = ("normalized prompts; an ARC item contributes its bare question and BOTH rendered "
                  "model inputs (generation and forced choice), whichever one it emits")
+EVAL_BANK_RULE = (
+    "EVAL_BANK_RULE v2: per bank (harm, then overrefusal), each source in the configured order and its records in file "
+    "order: a record is a candidate if every 'keep' field has an allowed value; it is excluded if its "
+    "prompt is empty, contains a forbidden substring, or its normalized prompt equals any original "
+    "DATE-LM train or ref prompt, any ToxicChat prompt, or any form of any ARC item (bare question, "
+    "generation and forced-choice renderings); then the first record per normalized prompt is kept "
+    "across both banks (harm first); then a prompt over the token limit is excluded. A bank without "
+    "'per_source' quotas: the eligible pool, sorted by (source order, record), is shuffled with "
+    "random.Random(derive_seed(design_seed, 'eval-bank', bank)); the first 'dev' items are development, "
+    "the next 'selector' items selector, and the rest hidden. A bank with 'per_source' quotas: each "
+    "source's eligible records, in record order, are shuffled with random.Random(derive_seed(design_seed, "
+    "'eval-bank', bank, source)); its first quota 'dev' items are development, the next quota "
+    "'selector' items selector, and the rest hidden")
+NEAR_DUPLICATE = (
+    "character 5-gram Jaccard similarity (the sets of 5-character substrings of the normalized texts; a "
+    "text shorter than 5 characters is its own single shingle) of at least injection.near_duplicate.max_jaccard "
+    "with any evaluation prompt: every harm and over-refusal bank item (all splits), every ToxicChat bank "
+    "item (all splits) and every form of every ARC bank item (bare question and both renderings)")
+NEAR_DUPLICATE_REPORT_THRESHOLDS = (0.3, 0.5, 0.7)
+INJECTION_RULE = (
+    "candidates: every response of the injection sources (files in the configured order, records in "
+    "line order, response 0 then 1) marked unsafe (is_response_i_safe false) with severity level >= "
+    "min_severity; excluded: an empty prompt or response, a forbidden substring in either, or a "
+    "normalized prompt equal to any original DATE-LM train or ref prompt, any ToxicChat prompt, any "
+    "form of any ARC item, or any prompt of any eval-bank source file (every record, kept or not); "
+    "then the first candidate per normalized prompt; its category is the first harm category marked "
+    "true in the dataset's own key order; each category's candidates (in candidate order) are "
+    "shuffled with random.Random(derive_seed(design_seed, 'injection-order', category)); the order "
+    "takes one candidate per category per round, categories in the dataset's key order, skipping "
+    "exhausted categories; walking that order, a candidate is skipped and counted if its row does not "
+    "pass the token audit (at most max_train_tokens row tokens and max_prompt_tokens prompt tokens, no "
+    "control token) or if its normalized prompt is a near duplicate of an evaluation prompt (NEAR_DUPLICATE); "
+    "the first 'count' accepted candidates are injected. The order does not "
+    "depend on 'count', so a smaller injection is a prefix of a larger one.")
 
 
 class HiddenAccessError(PermissionError):
@@ -90,6 +132,206 @@ class RawInputs:
 
 def read_raw_inputs(paths: dict[str, str | Path]) -> RawInputs:
     return RawInputs(**{name: Path(paths[name]).read_bytes() for name in RawInputs.__annotations__})
+
+
+def read_extra_sources(config: dict, root: str | Path) -> dict[str, bytes]:
+    """The bytes of every ``extra_sources`` file, read from ``root`` / its ``local`` path."""
+    return {name: (Path(root) / spec["local"]).read_bytes()
+            for name, spec in config.get("extra_sources", {}).items()}
+
+
+def _round_robin(by_category: dict[str, list], order: Sequence[str]) -> list:
+    """One item per category per round, categories in ``order``, exhausted ones skipped."""
+    queues = {c: list(by_category.get(c, [])) for c in order}
+    out, depth = [], max((len(q) for q in queues.values()), default=0)
+    for k in range(depth):
+        out += [queues[c][k] for c in order if k < len(queues[c])]
+    return out
+
+
+def _forbidden_found(texts: Sequence[str], forbidden: Sequence[str]) -> bool:
+    return any(s in text for text in texts for s in forbidden)
+
+
+def _eval_banks(config: dict, extra: dict[str, bytes], other: set[str], codec, forbidden: Sequence[str]
+                ) -> tuple[dict[str, list[tuple[str, dict]]], dict, dict, set[str]]:
+    """(bank -> [(kind, row)], manifest summary, source receipts, normalized prompts of every
+    record of every bank source) by ``EVAL_BANK_RULE``."""
+    spec_all, seed = config["eval_banks"], config["design_seed"]
+    max_prompt = config["tokenizer"]["max_prompt_tokens"]
+    out: dict[str, list[tuple[str, dict]]] = {bank: [] for bank in BANKS}
+    summary, receipts, every_prompt, kept_prompts = {}, {}, set(), set()
+    for kind in EVAL_BANK_KINDS:
+        spec = spec_all[kind]
+        reasons, by_source, pool = Counter(), Counter(), []
+        for order, name in enumerate(spec["sources"]):
+            src = config["extra_sources"][name]
+            rows, receipts[name] = parse_csv_table(extra[name], src["sha256"], name, src["header"])
+            for row in rows:
+                prompt = row[src["prompt_field"]]
+                every_prompt.add(normalize(prompt))
+                if any(row[field] not in allowed for field, allowed in src["keep"].items()):
+                    reasons["not_kept_by_filter"] += 1
+                    continue
+                why = []
+                if not prompt.strip():
+                    why.append("empty_prompt")
+                if _forbidden_found([prompt], forbidden):
+                    why.append("control_string")
+                if normalize(prompt) in other:
+                    why.append("overlap_with_training_reference_toxicchat_or_arc")
+                if why:
+                    reasons.update(why)
+                    continue
+                if normalize(prompt) in kept_prompts:
+                    reasons["duplicate_prompt"] += 1
+                    continue
+                kept_prompts.add(normalize(prompt))
+                try:
+                    encode_generation_prompt(codec, prompt, max_prompt)
+                except (TooLong, ControlTokenError, BoundaryMismatch) as exc:
+                    reasons[f"token_audit_{type(exc).__name__}"] += 1
+                    continue
+                by_source[name] += 1
+                pool.append((order, row["record"], {
+                    "source": name, "record": row["record"], "prompt": prompt,
+                    "source_id": row[src["id_field"]] if src["id_field"] else None,
+                    "category": row[src["category_field"]] if src["category_field"] else None}))
+        _check_expected({"eligible": len(pool)}, {"eligible": spec["expected_eligible"]}, f"{kind} bank")
+        quotas = spec.get("per_source")
+        strata = ([(f"{kind}", [r for _, _, r in sorted(pool, key=lambda t: (t[0], t[1]))],
+                    spec["dev"], spec["selector"])] if quotas is None else
+                  [(name, [r for _, _, r in sorted(pool, key=lambda t: t[1]) if r["source"] == name],
+                    quotas[name]["dev"], quotas[name]["selector"]) for name in spec["sources"]])
+        parts = {bank: [] for bank in BANKS}
+        for name, rows, n_dev, n_selector in strata:
+            if n_dev + n_selector >= len(rows):
+                raise DataError(f"the {kind} bank ({name}) needs more than {n_dev + n_selector} eligible "
+                                f"prompts for a non-empty hidden part; have {len(rows)}")
+            stream = derive_seed(seed, "eval-bank", kind) if quotas is None else derive_seed(seed, "eval-bank", kind, name)
+            random.Random(stream).shuffle(rows)
+            parts["dev"] += rows[:n_dev]
+            parts["selector"] += rows[n_dev:n_dev + n_selector]
+            parts["hidden"] += rows[n_dev + n_selector:]
+        for bank in BANKS:
+            out[bank] += [(kind, row) for row in parts[bank]]
+        summary[kind] = {"eligible": len(pool), "eligible_by_source": dict(sorted(by_source.items())),
+                         "excluded_by_reason": dict(sorted(reasons.items())),
+                         "split": {bank: len(parts[bank]) for bank in BANKS},
+                         "split_by_source": {bank: dict(sorted(Counter(r["source"] for r in parts[bank]).items()))
+                                             for bank in BANKS}}
+    return out, summary, receipts, every_prompt
+
+
+def _shingles(text: str) -> frozenset[str]:
+    """The character 5-grams of a normalized text (a shorter text is its own single shingle)."""
+    return frozenset({text}) if len(text) < 5 else frozenset(text[i:i + 5] for i in range(len(text) - 4))
+
+
+class _NearDuplicates:
+    """Largest character 5-gram Jaccard similarity of a text with any of the evaluation texts
+    (``NEAR_DUPLICATE``), via an inverted shingle index; returns the score and the matching id."""
+
+    def __init__(self, texts: Sequence[tuple[str, str]]) -> None:
+        self.ids, self.sizes, self.index = [], [], {}
+        for key, text in texts:
+            shingles = _shingles(normalize(text))
+            self.ids.append(key)
+            self.sizes.append(len(shingles))
+            for shingle in shingles:
+                self.index.setdefault(shingle, []).append(len(self.ids) - 1)
+
+    def nearest(self, text: str) -> tuple[float, str | None]:
+        shingles = _shingles(normalize(text))
+        shared: Counter = Counter()
+        for shingle in shingles:
+            shared.update(self.index.get(shingle, ()))
+        best, who = 0.0, None
+        for k, inter in shared.items():
+            value = inter / (len(shingles) + self.sizes[k] - inter)
+            if value > best or (value == best and who is not None and self.ids[k] < who):
+                best, who = value, self.ids[k]
+        return best, who
+
+
+def _injection(config: dict, extra: dict[str, bytes], forbidden_prompts: set[str], codec,
+               forbidden: Sequence[str], evaluation: Sequence[tuple[str, str]]) -> tuple[list[dict], dict, dict, dict]:
+    """(injected rows in injection order, manifest summary, source receipts, auditor near-duplicate
+    report) by ``INJECTION_RULE``; ``evaluation`` is (prompt id, text) of every evaluation prompt form."""
+    spec, seed = config["injection"], config["design_seed"]
+    limits = config["tokenizer"]
+    candidates, receipts, order_of_categories = [], {}, None
+    for name in spec["sources"]:
+        src = config["extra_sources"][name]
+        rows, receipts[name] = parse_pku(extra[name], src["sha256"], name)
+        if order_of_categories is None:
+            order_of_categories = receipts[name]["category_order"]
+        elif receipts[name]["category_order"] != order_of_categories:
+            raise DataError(f"{name}: harm categories differ in name or order from the first source")
+        candidates += [r for r in rows if not r["safe"] and r["severity"] >= spec["min_severity"]]
+    reasons, kept = Counter(), []
+    for row in candidates:
+        why = []
+        if not row["prompt"].strip():
+            why.append("empty_prompt")
+        if not row["response"].strip():
+            why.append("empty_response")
+        if _forbidden_found([row["prompt"], row["response"]], forbidden):
+            why.append("control_string")
+        if normalize(row["prompt"]) in forbidden_prompts:
+            why.append("overlap_with_an_existing_or_evaluation_prompt")
+        if not row["categories"]:
+            why.append("no_harm_category")
+        reasons.update(why)
+        if not why:
+            kept.append(row)
+    kept, duplicates = _first_per_key(kept, lambda r: normalize(r["prompt"]), lambda r: r["categories"][0])
+    _check_expected({"candidates": len(candidates), "eligible": len(kept)}, spec["expected"], "injection")
+    by_category: dict[str, list[dict]] = {}
+    for row in kept:
+        by_category.setdefault(row["categories"][0], []).append(row)
+    for category, rows in by_category.items():
+        random.Random(derive_seed(seed, "injection-order", category)).shuffle(rows)
+    order = _round_robin(by_category, order_of_categories)
+    near, limit = _NearDuplicates(evaluation), spec["near_duplicate"]["max_jaccard"]
+    chosen, skipped, walked = [], Counter(), []
+    for row in order:
+        if len(chosen) == spec["count"]:
+            break
+        score, match = near.nearest(row["prompt"])
+        uid = f"{row['source']}:{row['line']:06d}:{row['response_index']}"
+        walked.append({"uid": uid, "max_jaccard": score, "nearest_prompt_id": match})
+        if score >= limit:
+            skipped[f"NearDuplicate:{row['categories'][0]}"] += 1
+            walked[-1]["skipped"] = "near_duplicate"
+            continue
+        try:
+            example = encode_train(codec, "candidate", row["prompt"], row["response"], limits["max_train_tokens"])
+            if example.n_prompt > limits["max_prompt_tokens"]:
+                raise TooLong(f"prompt has {example.n_prompt} tokens")
+        except (TooLong, ControlTokenError, NoTargets) as exc:
+            skipped[f"{type(exc).__name__}:{row['categories'][0]}"] += 1
+            walked[-1]["skipped"] = type(exc).__name__
+            continue
+        chosen.append(row)
+    if len(chosen) != spec["count"]:
+        raise DataError(f"injection needs {spec['count']} rows; only {len(chosen)} pass the token audit")
+    realised = Counter(r["categories"][0] for r in chosen)
+    summary = {"rule": INJECTION_RULE, "sources": list(spec["sources"]), "min_severity": spec["min_severity"],
+               "percent": spec["percent"], "count": spec["count"], "candidates": len(candidates),
+               "excluded_by_reason": dict(sorted(reasons.items())),
+               "duplicate_prompt_dropped_by_category": duplicates, "eligible": len(kept),
+               "eligible_by_category": {c: len(by_category.get(c, [])) for c in order_of_categories},
+               "token_audit_skipped": dict(sorted(skipped.items())),
+               "injected_by_category": {c: realised[c] for c in order_of_categories},
+               "injected_by_severity": dict(sorted(Counter(str(r["severity"]) for r in chosen).items())),
+               "category_order": order_of_categories,
+               "near_duplicate": {"rule": NEAR_DUPLICATE, "max_jaccard": limit, "walked": len(walked),
+                                  "skipped": sum(w.get("skipped") == "near_duplicate" for w in walked),
+                                  "walked_at_or_above": {str(t): sum(w["max_jaccard"] >= t for w in walked)
+                                                         for t in NEAR_DUPLICATE_REPORT_THRESHOLDS}}}
+    report = {"rule": NEAR_DUPLICATE, "max_jaccard": limit, "walked": walked}
+    return chosen, summary, receipts, report
 
 
 def _date_eligibility(rows: list[dict], forbidden: Sequence[str], ref_prompts: set[str] | None,
@@ -335,10 +577,18 @@ def _token_audit(codec, limits: dict, pairs: list[dict], items: list[dict]) -> t
     return info, summary
 
 
-def prepare(config: dict, raw: RawInputs, tokenizer: Any, tokenizer_identity: dict) -> dict[str, bytes]:
+def prepare(config: dict, raw: RawInputs, tokenizer: Any, tokenizer_identity: dict,
+            extra: dict[str, bytes] | None = None) -> dict[str, bytes]:
     """Every prepared file as bytes (relative path -> content), including the manifest.
-    Pure and deterministic for one config, raw input and tokenizer."""
+    Pure and deterministic for one config, raw input (and ``extra`` source bytes by name, which
+    the headroom-v2 sections need) and tokenizer."""
     validate_data_config(config)
+    v3 = "injection" in config
+    if v3 and set(extra or {}) != set(config["extra_sources"]):
+        raise DataError(f"the extra sources {sorted(config['extra_sources'])} are needed, "
+                        f"got {sorted(extra or {})}")
+    if not v3 and extra:
+        raise DataError("extra source bytes were given but the data config names no extra source")
     src, elig = config["sources"], config["eligibility"]
     forbidden = elig["forbidden_substrings"]
     seed, roles = config["design_seed"], config["roles"]
@@ -384,16 +634,49 @@ def prepare(config: dict, raw: RawInputs, tokenizer: Any, tokenizer_identity: di
     pools = {role: sorted(u for u in role_of if role_of[u] == role) for role in ROLES}
     grouping = _build_groups(config, pools, role_of)
     bank_rows = _build_banks(config, [r for r in tc_ok if r["toxicity"] == 1], arc_ok)
+    eot = config["tokenizer"]["end_of_turn_token"]
+    codec = build_codec(tokenizer, eot, [eot], eot)  # stop and pad ids are unused by the audit
+    injected: list[dict] = []
+    if v3:
+        arc_forms = {form for split in ("validation", "test") for r in arc_raw[split]
+                     for form in arc_prompt_forms(r["question"], r["labels"], r["texts"])}
+        other = date_prompts | ({normalize(r["prompt"]) for r in tc_rows} - {""}) | arc_forms
+        new_banks, bank_summary, bank_receipts, bank_source_prompts = _eval_banks(config, extra, other, codec,
+                                                                                  forbidden)
+        for bank in BANKS:
+            bank_rows[bank] += new_banks[bank]
+        evaluation = []
+        for bank in BANKS:
+            for kind, row in bank_rows[bank]:
+                pid = opaque_id("p", derive_seed(seed, "prompt-id", f"{row['source']}:{row.get('record', row.get('line'))}"))
+                if kind.startswith("arc_"):
+                    evaluation += [(pid, form) for form in dict.fromkeys(
+                        arc_prompt_forms(row["question"], row["labels"], row["texts"]))]
+                else:
+                    evaluation.append((pid, row["prompt"]))
+        injected, injection_summary, injection_receipts, near_report = _injection(
+            config, extra, other | bank_source_prompts, codec, forbidden, evaluation)
+        for position, row in enumerate(injected):
+            row["uid"] = f"{row['source']}:{row['line']:06d}:{row['response_index']}"
+            row["position"] = position
+            row_id[row["uid"]] = opaque_id("r", derive_seed(seed, "row-id", row["uid"]))
 
     def prompt_key(row: dict) -> str:
         return f"{row['source']}:{row.get('record', row.get('line'))}"
+
+    def eval_item(bank: str, kind: str, row: dict, pid: str) -> dict:
+        prompt_source[pid] = {"bank": bank, "kind": kind, "source": row["source"], "record": row["record"],
+                              "source_id": row["source_id"], "category": row["category"]}
+        return {"prompt_id": pid, "kind": kind, "prompt": row["prompt"]}
 
     items: dict[str, list[dict]] = {bank: [] for bank in BANKS}
     prompt_source: dict[str, dict] = {}
     for bank in BANKS:
         for kind, row in bank_rows[bank]:
             pid = opaque_id("p", derive_seed(seed, "prompt-id", prompt_key(row)))
-            if kind == "safety":
+            if kind in EVAL_BANK_KINDS:
+                item = eval_item(bank, kind, row, pid)
+            elif kind == "safety":
                 item = {"prompt_id": pid, "kind": kind, "prompt": row["prompt"]}
                 prompt_source[pid] = {"bank": bank, "kind": kind, "source": "toxicchat",
                                       "record": row["record"], "conv_id": row["conv_id"],
@@ -414,18 +697,17 @@ def prepare(config: dict, raw: RawInputs, tokenizer: Any, tokenizer_identity: di
         g["group_id"] for part in PARTITIONS for g in grouping["partitions"][part]]
     if len(set(all_ids)) != len(all_ids):
         raise DataError("internal: opaque identifier collision")
-    _assert_disjoint(train_ok, ref_ok, items)
+    _assert_disjoint(train_ok + injected, ref_ok, items)
 
-    eot = config["tokenizer"]["end_of_turn_token"]
-    codec = build_codec(tokenizer, eot, [eot], eot)  # stop and pad ids are unused by the audit
     pairs = ([{"id": row_id[r["uid"]], "prompt": r["prompt"], "response": r["response"]} for r in train_ok]
+             + [{"id": row_id[r["uid"]], "prompt": r["prompt"], "response": r["response"]} for r in injected]
              + [{"id": query_id[r["uid"]], "prompt": r["prompt"], "response": r["response"]} for r in ref_ok])
     token_info, token_summary = _token_audit(codec, config["tokenizer"], pairs,
                                              [i for bank in BANKS for i in items[bank]])
 
     files: dict[str, bytes] = {}
     train_out = sorted(({"row_id": row_id[r["uid"]], "prompt": r["prompt"], "response": r["response"],
-                         **token_info[row_id[r["uid"]]]} for r in train_ok), key=lambda r: r["row_id"])
+                         **token_info[row_id[r["uid"]]]} for r in train_ok + injected), key=lambda r: r["row_id"])
     files[TRAIN_ROWS] = jsonl_bytes(train_out)
     query_out = sorted(({"query_id": query_id[r["uid"]], "prompt": r["prompt"], "response": r["response"],
                          **token_info[query_id[r["uid"]]]} for r in ref_ok), key=lambda r: r["query_id"])
@@ -472,7 +754,14 @@ def prepare(config: dict, raw: RawInputs, tokenizer: Any, tokenizer_identity: di
                    "target_tokens": "response+end-of-turn tokens"},
         "partitions": x0_out})
 
+    auditor_v3 = {} if not v3 else {"injected": {
+        row_id[r["uid"]]: {"uid": r["uid"], "source": r["source"], "line": r["line"],
+                           "response_index": r["response_index"], "position": r["position"],
+                           "category": r["categories"][0], "categories": r["categories"],
+                           "severity": r["severity"]} for r in injected},
+        "injection_near_duplicates": near_report}
     files[AUDITOR] = canonical_json({
+        **auditor_v3,
         "kind": "AUDITOR ONLY: hidden construction labels; never read by engine or selector commands",
         "rows": {row_id[u]: {"uid": u, "data_id": r["data_id"], "type": r["type"], "role": role_of[u],
                              "line": r["line"]} for u, r in sorted(rows_by_uid.items())},
@@ -523,6 +812,14 @@ def prepare(config: dict, raw: RawInputs, tokenizer: Any, tokenizer_identity: di
                    "selector": [X0_STATIC], "reference": [BANK_FILES["hidden"]], "auditor": [AUDITOR]},
         "files": {name: sha256_bytes(data) for name, data in sorted(files.items())},
     }
+    if v3:
+        manifest["corpus"]["injected_rows"] = len(injected)
+        manifest["headroom_v2"] = {
+            "extra_sources": {name: {"sha256": spec["sha256"], "license": spec["license"],
+                                     **{**bank_receipts, **injection_receipts}[name]}
+                              for name, spec in sorted(config["extra_sources"].items())},
+            "eval_banks": {"rule": EVAL_BANK_RULE, **bank_summary},
+            "injection": injection_summary}
     manifest_bytes = canonical_json(manifest)
     files[MANIFEST] = manifest_bytes
     files[MANIFEST_SHA] = (sha256_bytes(manifest_bytes) + "\n").encode("ascii")
@@ -540,18 +837,18 @@ def _assert_disjoint(train: list[dict], ref: list[dict], items: dict[str, list[d
     def add(texts: Sequence[str], where: str) -> None:
         for key in dict.fromkeys(texts):  # distinct forms of one row or item
             if key in seen:
-                problems.append(f"{key[:60]!r} in {seen[key]} and {where}")
+                problems.append(f"{seen[key]} and {where} share a normalized prompt")
             else:
                 seen[key] = where
 
-    for row in train:
-        add([normalize(row["prompt"])], "train")
-    for row in ref:
-        add([normalize(row["prompt"])], "query")
+    for i, row in enumerate(train):
+        add([normalize(row["prompt"])], f"train/{row.get('uid', i)}")
+    for i, row in enumerate(ref):
+        add([normalize(row["prompt"])], f"query/{row.get('uid', i)}")
     for bank in BANKS:
         for item in items[bank]:
             forms = [normalize(item["prompt"])]
-            if item["kind"] != "safety":
+            if item["kind"] in ("arc_generation", "arc_utility"):
                 forms += arc_prompt_forms(item["question"], item["labels"], item["texts"])
             add(forms, f"{bank}/{item['kind']}/{item['prompt_id']}")
     if problems:

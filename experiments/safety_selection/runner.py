@@ -76,8 +76,8 @@ from .jobs import (AccessError, JobError, check_attribution_access, check_identi
 from .ledger import RunLedger, create_run_dir, read_complete, verify_files, write_complete
 from .loaders import Loaders, Policy, Toxicity
 from .prepare import Prepared, load_prepared, read_manifest
-from .scoring import (LABEL_SCORE_DEFINITION, GuardScorer, generation_summary, label_score_summary,
-                      utility_summary)
+from .scoring import (LABEL_SCORE_DEFINITION, GuardScorer, generation_summary, harm_prompt_rates, harm_summary,
+                      label_score_summary, overrefusal_summary, utility_summary)
 from .sources import DataError
 from .stream import StreamPlan, make_plan, micro_batches
 from .textproc import (GUARD_LABEL_SEQUENCES, QWEN_DEFAULT_SYSTEM, TemplateError, TrainExample,
@@ -423,7 +423,7 @@ def _train_and_evaluate(job: dict, prepared: Prepared, removed: list[str], previ
         queries, query_sha = _query_examples(policy, prepared, recipe)
         evaluation = evaluate_checkpoint(session, policy, optimizer,
                                          prepared.banks[job["evaluate_bank"]], queries, query_sha,
-                                         ledger, run_dir / "eval" / target, run_dir, target)
+                                         ledger, run_dir / "eval" / target, run_dir, target, job["seed"])
     with ledger.stage("verify_trajectory") as info:
         problems = check_trajectory(trajectory_steps(run_dir), plan, positions[target]["step"])
         if problems:
@@ -547,18 +547,37 @@ def _forced_choice(policy: Policy, items: list[dict], recipe: dict, ledger: RunL
     return records, sum(len(s) for s in sequences)
 
 
+GENERATION_KINDS = ("safety", "arc_generation", "harm", "overrefusal")
+
+
+def sample_seed(job_seed: int, prompt_id: str, index: int) -> int:
+    """The seed of one sampled harm answer: (job seed, prompt id, sample index)."""
+    return derive_seed(job_seed, "harm-sample", prompt_id, index)
+
+
 def evaluate_checkpoint(session: Session, policy: Policy, optimizer, items: list[dict],
                         queries: list[TrainExample], query_bank_sha256: str, ledger: RunLedger,
-                        folder: Path, run_dir: Path, checkpoint: str) -> dict:
+                        folder: Path, run_dir: Path, checkpoint: str, job_seed: int | None = None) -> dict:
     """The forward-only query loss, generation (safety and benign ARC prompts), ARC forced
     choice, guard scoring and the optional secondary toxicity score of one checkpoint, each in
     its own charged stage. Weights, optimizer state, RNG states and train/eval mode must be
-    identical afterwards (checked; RNG restored)."""
+    identical afterwards (checked; RNG restored).
+
+    Headroom v2 (banks with ``harm`` or ``overrefusal`` items; none of this runs otherwise): their
+    greedy answers join the generation stage; with ``generation.harm_samples`` each harm prompt also
+    gets that many sampled answers (``engine.SAMPLING_RULE``, seeded by ``sample_seed`` of the job
+    seed), all guard-labelled; every harm answer also gets its normalized label-sequence score.
+    Files: ``samples.jsonl``, ``guard_samples.jsonl``, ``harm_scores.jsonl``, ``harm_prompts.jsonl``;
+    summaries ``harm`` and ``overrefusal``."""
     recipe, codec, device = session.recipe, policy.codec, policy.device
     gen = recipe["generation"]
     folder.mkdir(parents=True)
     before = _training_state(policy, optimizer)
-    gen_items = [i for i in items if i["kind"] in ("safety", "arc_generation")]
+    gen_items = [i for i in items if i["kind"] in GENERATION_KINDS]
+    harm_items = [i for i in gen_items if i["kind"] == "harm"]
+    sampling = gen.get("harm_samples") if harm_items else None
+    if sampling is not None and job_seed is None:
+        raise RunError("sampled harm answers need the job seed")
     mc_items = [i for i in items if i["kind"] == "arc_utility"]
     with en.preserved_rng(device):
         # Loading scorers can draw random numbers (module construction); the baseline for
@@ -601,6 +620,26 @@ def evaluate_checkpoint(session: Session, policy: Policy, optimizer, items: list
                     "repetition_4gram": repeated_ngram_fraction(g.output_ids, 4)}
                    for item, ids, g in zip(gen_items, prompts, generations, strict=True)]
         write_atomic(folder / "generations.jsonl", jsonl_bytes(records))
+        sample_records: list[dict] = []
+        if sampling is not None:
+            ids_of = {item["prompt_id"]: ids for item, ids in zip(gen_items, prompts)}
+            todo = [(item, k, sample_seed(job_seed, item["prompt_id"], k))
+                    for item in harm_items for k in range(sampling["count"])]
+            with ledger.stage("sample", checkpoint=checkpoint, answers=len(todo)) as info:
+                sampled = en.sample_generate(
+                    policy.model, [ids_of[item["prompt_id"]] for item, _, _ in todo], [seed for _, _, seed in todo],
+                    temperature=sampling["temperature"], max_new_tokens=gen["max_new_tokens"], stop_ids=codec.stop_ids,
+                    pad_id=codec.pad_id, device=device, batch_size=gen["batch_size"],
+                    check=lambda what: ledger.check(f"sample {checkpoint} {what}"), on_batch=on_batch)
+                info.update(output_tokens=sum(len(g.output_ids) for g in sampled),
+                            capped=sum(g.stop_reason == en.STOP_CAP for g in sampled))
+            sample_records = [{"prompt_id": item["prompt_id"], "kind": "harm", "sample_index": k, "seed": seed,
+                               "answer_id": f"{item['prompt_id']}#s{k}", "output_ids": list(g.output_ids),
+                               "output_tokens": len(g.output_ids), "stop_reason": g.stop_reason,
+                               "stop_token": g.stop_token, "empty": not g.output_ids, "text": codec.decode(g.output_ids),
+                               "repetition_4gram": repeated_ngram_fraction(g.output_ids, 4)}
+                              for (item, k, seed), g in zip(todo, sampled, strict=True)]
+            write_atomic(folder / "samples.jsonl", jsonl_bytes(sample_records))
         with ledger.stage("arc_utility", checkpoint=checkpoint, questions=len(mc_items)) as info:
             mc_records, mc_tokens = _forced_choice(policy, mc_items, recipe, ledger, checkpoint)
             info.update(sequences=sum(len(r["labels"]) for r in mc_records), tokens=mc_tokens)
@@ -614,6 +653,27 @@ def evaluate_checkpoint(session: Session, policy: Policy, optimizer, items: list
                         invalid=sum(not g["valid"] for g in guarded))
         write_atomic(folder / "guard.jsonl", jsonl_bytes(
             [{"prompt_id": r["prompt_id"], "kind": r["kind"], **g} for r, g in zip(records, guarded)]))
+        prompt_of = {item["prompt_id"]: item["prompt"] for item in gen_items}
+        guarded_samples: list[dict] = []
+        if sample_records:
+            with ledger.stage("guard_samples", checkpoint=checkpoint, items=len(sample_records)) as info:
+                guarded_samples = guard.score([(r["answer_id"], prompt_of[r["prompt_id"]], r["text"]) for r in sample_records],
+                                              check=lambda what: ledger.check(f"guard samples {checkpoint} {what}"))
+                info.update(invalid=sum(not g["valid"] for g in guarded_samples))
+            write_atomic(folder / "guard_samples.jsonl", jsonl_bytes(
+                [{"prompt_id": r["prompt_id"], "sample_index": r["sample_index"], **g}
+                 for r, g in zip(sample_records, guarded_samples)]))
+        harm_scores: dict[str, dict] = {}
+        if harm_items:
+            answers = [(f"{r['prompt_id']}#g", prompt_of[r["prompt_id"]], r["text"]) for r in records if r["kind"] == "harm"]
+            answers += [(r["answer_id"], prompt_of[r["prompt_id"]], r["text"]) for r in sample_records]
+            with ledger.stage("harm_scores", checkpoint=checkpoint, answers=len(answers)) as info:
+                scored = guard.label_scores(answers, check=lambda what: ledger.check(f"harm scores {checkpoint} {what}"))
+                info.update(unscored=sum(not r["valid"] for r in scored))
+            harm_scores = {r["item_id"]: r for r in scored}
+            write_atomic(folder / "harm_scores.jsonl", jsonl_bytes(
+                [{"answer_id": r["item_id"], "valid": r["valid"], "reason": r["reason"], "loglik": r["loglik"],
+                  "normalized": r["normalized"], "guard_input_tokens": r["guard_input_tokens"]} for r in scored]))
         toxicity_summary = None
         if toxicity is not None:
             with ledger.stage("secondary_toxicity", checkpoint=checkpoint, texts=len(records)) as info:
@@ -632,12 +692,22 @@ def evaluate_checkpoint(session: Session, policy: Policy, optimizer, items: list
     if _training_state(policy, optimizer) != before:
         raise RunError("evaluation changed the adapter, optimizer state, RNG state or mode")
     joined = [{**r, "guard": g} for r, g in zip(records, guarded)]
+    extra_summaries = {}
+    if harm_items:
+        greedy = [{**j, "answer_id": f"{j['prompt_id']}#g"} for j in joined if j["kind"] == "harm"]
+        samples = [{**r, "guard": g} for r, g in zip(sample_records, guarded_samples)]
+        per_prompt = harm_prompt_rates(greedy, samples, harm_scores)
+        write_atomic(folder / "harm_prompts.jsonl", jsonl_bytes(per_prompt))
+        extra_summaries["harm"] = harm_summary(greedy, samples, harm_scores, per_prompt, sampling)
+    if any(j["kind"] == "overrefusal" for j in joined):
+        extra_summaries["overrefusal"] = overrefusal_summary([j for j in joined if j["kind"] == "overrefusal"])
     summary = {"checkpoint": checkpoint, "query_loss": query_summary,
                "safety": generation_summary([j for j in joined if j["kind"] == "safety"]),
                "arc_generation": generation_summary([j for j in joined if j["kind"] == "arc_generation"]),
                "arc_utility": utility_summary(mc_records), "secondary_toxicity": toxicity_summary,
                "rng_consumed_inside_evaluation_then_restored": rng_consumed,
-               "generation": {"max_new_tokens": gen["max_new_tokens"], "batch_size": gen["batch_size"]}}
+               "generation": {"max_new_tokens": gen["max_new_tokens"], "batch_size": gen["batch_size"]},
+               **extra_summaries}
     write_json(folder / "summary.json", summary)
     ledger.record("evaluation", **summary)
     return summary
@@ -693,7 +763,7 @@ def eval_state(job: dict, *, prepared_dir: str | Path, out_dir: str | Path, sess
         queries, query_sha = _query_examples(policy, prepared, recipe)
         evaluation = evaluate_checkpoint(session, policy, None, prepared.banks[bank], queries, query_sha,
                                          ledger, run_dir / "eval" / job["checkpoint"], run_dir,
-                                         job["checkpoint"])
+                                         job["checkpoint"], stored["seed"])
         result = {"source_run": str(source), "source_code_sha256": marker["identity"]["code_sha256"],
                   "source_recipe_sha256": marker["identity"]["recipe_sha256"],
                   "source_complete_sha256": receipt["complete_sha256"],

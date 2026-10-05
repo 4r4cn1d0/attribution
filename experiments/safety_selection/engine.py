@@ -70,7 +70,7 @@ __all__ = ["Named", "NonFiniteError", "ZeroGradientError", "StateError", "init_l
            "accumulate_gradients", "train_step", "tensor_fingerprint", "optimizer_tensors",
            "optimizer_fingerprint", "param_groups", "capture_rng", "restore_rng", "rng_digest",
            "save_state", "load_state", "read_optimizer_tensors", "Generation", "STOP_EOS",
-           "STOP_CAP", "greedy_generate", "target_logprobs", "query_losses",
+           "STOP_CAP", "greedy_generate", "sample_generate", "SAMPLING_RULE", "target_logprobs", "query_losses",
            "QUERY_LOSS_DEFINITION", "example_gradient", "example_loss_and_gradient",
            "prefill_logit_agreement", "ADAPTER", "OPTIMIZER", "RNG", "STATE", "TOKEN_ROWS",
            "effective_embedding_weights", "token_row_report"]
@@ -445,9 +445,39 @@ def _checked_argmax(logits: torch.Tensor, active: Sequence[bool], where: str) ->
     return logits.argmax(-1).tolist()
 
 
+SAMPLING_RULE = ("ancestral sampling: each row has its own torch.Generator on the logits' device seeded with its "
+                 "seed; at every step an active row draws one token with torch.multinomial(softmax(logits.float() / "
+                 "temperature), 1, generator=its generator) (top-p 1.0: no truncation); a finished row draws "
+                 "nothing, so a row's draws do not depend on its batch")
+
+
+def _sampler(seeds: Sequence[int], temperature: float):
+    """A token chooser for ``_greedy_batch`` that samples each active row from its own generator
+    (``SAMPLING_RULE``), after the same finiteness check as greedy decoding."""
+    generators: list[torch.Generator] = []
+
+    def choose(logits: torch.Tensor, active: Sequence[bool], where: str) -> list[int]:
+        _checked_argmax(logits, active, where)           # the finiteness check; its argmax is unused
+        if not generators:
+            for seed in seeds:
+                generator = torch.Generator(device=logits.device)
+                generator.manual_seed(int(seed) % (2 ** 63))
+                generators.append(generator)
+        tokens = [0] * len(active)
+        for i, alive in enumerate(active):
+            if alive:
+                probs = torch.softmax(logits[i].float() / temperature, dim=-1)
+                tokens[i] = int(torch.multinomial(probs, 1, generator=generators[i]).item())
+        return tokens
+
+    return choose
+
+
 @torch.no_grad()
 def _greedy_batch(model: Any, prompts: Sequence[Sequence[int]], max_new_tokens: int,
-                  stop_ids: Sequence[int], pad_id: int, device: str, check: Check) -> list[Generation]:
+                  stop_ids: Sequence[int], pad_id: int, device: str, check: Check,
+                  choose: Callable[[torch.Tensor, Sequence[bool], str], list[int]] = _checked_argmax
+                  ) -> list[Generation]:
     lm = causal_lm(model)
     rows = len(prompts)
     ids, mask, positions = _left_padded(prompts, pad_id, device)
@@ -455,7 +485,7 @@ def _greedy_batch(model: Any, prompts: Sequence[Sequence[int]], max_new_tokens: 
     out = lm(input_ids=ids, attention_mask=mask, position_ids=positions, use_cache=True,
              logits_to_keep=1)
     cache, last = out.past_key_values, positions[:, -1]
-    tokens = _checked_argmax(out.logits[:, -1, :], [True] * rows, "the prompt pass")
+    tokens = choose(out.logits[:, -1, :], [True] * rows, "the prompt pass")
     stop = set(stop_ids)
     new: list[list[int]] = [[] for _ in range(rows)]
     done: list[Generation | None] = [None] * rows
@@ -479,18 +509,20 @@ def _greedy_batch(model: Any, prompts: Sequence[Sequence[int]], max_new_tokens: 
         out = lm(input_ids=feed, attention_mask=mask, position_ids=last[:, None],
                  past_key_values=cache, use_cache=True, logits_to_keep=1)
         cache = out.past_key_values
-        tokens = _checked_argmax(out.logits[:, -1, :], [d is None for d in done], f"token {k + 1}")
+        tokens = choose(out.logits[:, -1, :], [d is None for d in done], f"token {k + 1}")
     return [d for d in done if d is not None]
 
 
 def greedy_generate(model: Any, prompts: Sequence[Sequence[int]], *, max_new_tokens: int,
                     stop_ids: Sequence[int], pad_id: int, device: str, batch_size: int,
                     check: Check | None = None,
-                    on_batch: Callable[[int, list[int], list[Generation]], None] | None = None
+                    on_batch: Callable[[int, list[int], list[Generation]], None] | None = None,
+                    _sampling: tuple[Sequence[int], float] | None = None
                     ) -> list[Generation]:
     """Greedy decoding in eval mode (previous mode restored) for each prompt, in batches of
     similar length (sorted by length, then position: a fixed composition for a fixed prompt
-    list and batch size, the frozen batching policy). Results are returned in input order."""
+    list and batch size, the frozen batching policy). Results are returned in input order.
+    (``sample_generate`` reuses this loop with a seeded sampler instead of the argmax.)"""
     check = check or _no_check
     order = sorted(range(len(prompts)), key=lambda i: (len(prompts[i]), i))
     results: list[Generation | None] = [None] * len(prompts)
@@ -499,8 +531,9 @@ def greedy_generate(model: Any, prompts: Sequence[Sequence[int]], *, max_new_tok
     try:
         for b, start in enumerate(range(0, len(order), batch_size)):
             index = order[start:start + batch_size]
+            choose = _checked_argmax if _sampling is None else _sampler([_sampling[0][i] for i in index], _sampling[1])
             batch = _greedy_batch(model, [prompts[i] for i in index], max_new_tokens, stop_ids,
-                                  pad_id, device, lambda what, b=b: check(f"generation batch {b} {what}"))
+                                  pad_id, device, lambda what, b=b: check(f"generation batch {b} {what}"), choose)
             if len(batch) != len(index):
                 raise RuntimeError("internal: a generation row did not finish")
             for i, generation in zip(index, batch):
@@ -510,6 +543,21 @@ def greedy_generate(model: Any, prompts: Sequence[Sequence[int]], *, max_new_tok
     finally:
         model.train(was_training)
     return [r for r in results if r is not None]
+
+
+def sample_generate(model: Any, prompts: Sequence[Sequence[int]], seeds: Sequence[int], *, temperature: float,
+                    max_new_tokens: int, stop_ids: Sequence[int], pad_id: int, device: str, batch_size: int,
+                    check: Check | None = None,
+                    on_batch: Callable[[int, list[int], list[Generation]], None] | None = None) -> list[Generation]:
+    """One sampled answer per prompt (``SAMPLING_RULE``; ``seeds[i]`` seeds prompt i's own
+    generator), batched exactly like ``greedy_generate``; the global RNG is never used."""
+    if len(seeds) != len(prompts):
+        raise ValueError("one seed per prompt")
+    if not temperature > 0:
+        raise ValueError("temperature must be positive")
+    return greedy_generate(model, prompts, max_new_tokens=max_new_tokens, stop_ids=stop_ids, pad_id=pad_id,
+                           device=device, batch_size=batch_size, check=check, on_batch=on_batch,
+                           _sampling=(list(seeds), float(temperature)))
 
 
 @torch.no_grad()

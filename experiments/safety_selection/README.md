@@ -32,7 +32,7 @@ own code identity; this package's code hash covers every module here, so it stay
 | `runner.py` | torch | run-one, eval-state, attributes, score-groups, score-audit, calibrate |
 | `edits.py` | stdlib | edit files (remove, rewrite, add, combined): hash-pinned, held-out members refused, applied deterministically |
 | `headroom.py` | torch at call time | the headroom amendment's tools: row scorer, edit builder, rewrite generator |
-| `configs/` | | `study-v2-data.json`; `study-v2-recipe-calibration.json` (and a ToxicBERT-secondary variant); `study-v2-primary-20261002.json` (frozen); the headroom positive control's frozen `study-v3-headroom-pc-20261005.json` and `headroom-rewrite-pc-20261005.json` (and the earlier `headroom-rewrite-draft-20261005.json`) |
+| `configs/` | | `study-v2-data.json`; `study-v2-recipe-calibration.json` (and a ToxicBERT-secondary variant); `study-v2-primary-20261002.json` (frozen); the headroom positive control's frozen `study-v3-headroom-pc-20261005.json` and `headroom-rewrite-pc-20261005.json` (and the earlier `headroom-rewrite-draft-20261005.json`); headroom v2: `study-v2-data-expanded-arc.json` (the config of prepared-v2), `study-v3-data-inj05.json` and `study-v3-data-inj10.json`, the recipes `study-v3-headroom-pc2-20261005.json` (and the fallbacks `-pc2-mb4-`, `-pc2-eager-`) and `headroom-rewrite-pc2-20261005.json` (and `-pc2-eager-`) |
 
 ## Environment (clean Linux host)
 
@@ -330,6 +330,86 @@ fixtures its e3 state and evaluation files equal those of a q → e1 → e3 chai
 
 `scripts/cuda_preflight_headroom.py` is the two-step A100 fixture for the new recipe, written
 and not run (see its header).
+
+## Headroom v2: prepared data v3, broader banks, sampled answers (5 October 2026)
+
+Built for [the v2 amendment draft](../../research/experiments/2026-10-05-headroom-v2-amendment-draft.md)
+(user decisions D1, D2, D5, D6) behind options: data configs, recipes, banks and jobs written before keep
+their exact bytes, and prepared-v2 (`study-v2-data-expanded-arc.json`, manifest `5f4e118a…`) re-prepares
+byte for byte. **Nothing here has run on a GPU.**
+
+**Prepared data v3** (`study-v3-data-inj05.json`, `study-v3-data-inj10.json`): prepared-v2's config
+unchanged plus three sections (`config.py` module doc), from the files pinned in
+`sources/v2/sources-manifest.json`:
+
+```text
+python -m experiments.safety_selection prepare --data-config experiments/safety_selection/configs/study-v3-data-inj10.json \
+  --date-train DATE_TRAIN --date-ref DATE_REF --toxicchat-test TOXICCHAT --arc-validation ARC_VAL --arc-test ARC_TEST \
+  --sources-root sources/v2 --out prepared-v3-inj10
+```
+
+- *Injection* (`prepare.INJECTION_RULE`, recorded in the manifest): PKU-SafeRLHF responses marked
+  unsafe with severity at least 2, one per normalized prompt, none equal to a DATE-LM, ToxicChat, ARC
+  or eval-bank source prompt; categories (the first marked, in the dataset's own order of its 19)
+  interleave round-robin after a seeded shuffle within each; walking that order, a row failing the
+  token audit or nearly repeating an evaluation prompt (`prepare.NEAR_DUPLICATE`: character 5-gram
+  Jaccard at least 0.5 with any harm, over-refusal, ToxicChat or ARC bank item, all splits) is
+  skipped; the first 507 (5%) or 1,015 (10%) rows are injected. The order does not depend on the
+  size, so the 5% rows are the first 507 of the 10% rows. Injected rows are ordinary training rows of
+  the editable pool, in no group; their source, categories, severity and position, and the
+  near-duplicate report (ids and scores only), are in `auditor/construction.json` only.
+- *Banks* (`prepare.EVAL_BANK_RULE` v2): `harm` (HarmBench standard rows without context,
+  StrongREJECT, SimpleSafetyTests, OR-Bench toxic; development 200, selector 200, hidden the rest,
+  a proportional seeded split) and `overrefusal` (XSTest prompts labelled safe and OR-Bench hard-1k;
+  per source 50 development and 50 selector prompts, hidden the rest), de-duplicated across both and
+  against every earlier prompt, as items of these kinds in the existing `banks/` and `hidden/`
+  files. Their sources and categories are auditor-only; hidden parts need the reference flag.
+- Proof that nothing earlier moved (`tests/test_ss_v3_data.py`, and checked on the real data):
+  groups, query rows and the selector file are byte-identical to prepared-v2, every earlier training
+  row and bank item is unchanged, and the bank files of inj05 and inj10 are identical.
+
+**Evaluation** (`runner.evaluate_checkpoint`; banks without the new kinds evaluate exactly as
+before): harm and over-refusal prompts get greedy answers with the other kinds; with
+`generation.harm_samples` (`count` 3, `temperature` 0.7, `top_p` 1.0) each harm prompt also gets
+sampled answers (`engine.SAMPLING_RULE`: each answer has its own generator seeded by
+`runner.sample_seed(job seed, prompt id, sample index)`; batch-independent, and the global RNG is
+never drawn). Every answer is guard-labelled; every harm answer also gets its normalized
+label-sequence score. Files in `eval/<checkpoint>/`: `samples.jsonl`, `guard_samples.jsonl`,
+`harm_scores.jsonl` and `harm_prompts.jsonl` (per prompt: greedy Unsafe, sampled Unsafe share, mean
+score); `summary.json` gains `harm` (greedy Unsafe count and rate, sampled counts and the mean
+per-prompt rate, mean continuous scores, capped counts) and `overrefusal` (refusal rate = guard
+`Refusal: Yes` among validly judged answers). The XSTest-safe / OR-Bench split of over-refusal is
+joined from the auditor file in the analysis.
+
+**Recipes** (each the frozen `study-v3-headroom-pc-20261005` with only these changes; the v3
+preflight chooses one before any v3 outcome): `pc2` sdpa attention for the policy and the guard,
+micro-batch 8 × accumulation 1, harm samples; `pc2-mb4` the same at 4 × 2 (if 8 does not fit);
+`pc2-eager` eager attention at 4 × 2 (if sdpa is inexact). The rewrite configs `headroom-rewrite-pc2`
+(sdpa) and `-pc2-eager` raise the cap to 2,048 new tokens. Loaders refuse a model whose reported
+attention differs from the recipe's.
+
+**Edit sizes.** `build-edits` and `generate-rewrites` take `--count N` or `--count injection` (the
+prepared data's `corpus.injected_rows`) instead of percents: files `remove-kN`, `rewrite-kN`,
+`random-remove-kN` and `random-rewrite-kN`, each recording its size, `count_rule`
+(`headroom.EXPLICIT_COUNT_RULE`), `count_base` and the injection size. Percent sizes are unchanged.
+
+**The pod, in order** (`CLI` = `python -m experiments.safety_selection`; `P` = prepared-v3 at the chosen size):
+
+```text
+1. python scripts/cuda_preflight_headroom_v3.py --recipe .../study-v3-headroom-pc2-20261005.json --prepared P --out runs/preflight-pc2 --rewrite-config .../headroom-rewrite-pc2-20261005.json
+   (if verdict.fixture_exact is false or micro-batch 8 does not fit: the same with pc2-eager or pc2-mb4)
+2. calibration: CLI calibrate --recipe RECIPE --prepared P --arms a0 --seeds 1101 --checkpoints e3 --out-root runs/calibration
+3. CLI score-rows --recipe RECIPE --prepared P --out runs/scores
+4. CLI generate-rewrites --config .../headroom-rewrite-pc2-20261005.json --recipe RECIPE --prepared P --scores runs/scores/scores.json --count injection --out runs/rewrites
+5. CLI build-edits --prepared P --scores runs/scores/scores.json --rewrites runs/rewrites/rewrites.json --count injection --out runs/edits-k
+6. CLI calibrate ... --arms a0 --seeds 1101,1102 --checkpoints e3 --edit runs/edits-k/rewrite-kK.json --edit runs/edits-k/random-rewrite-kK.json [--edit runs/edits-k/remove-kK.json]
+```
+
+`scripts/cuda_preflight_headroom_v3.py` (written, not run) records the two-step fixture's exactness
+under the recipe's attention and micro-batch (not asserted, so an inexact sdpa run still measures
+the rest), asserts the chat-token-row separation, compares batched and one-at-a-time greedy and
+sampled answers, times the evaluation on a sample of each development kind with peak memory and a
+projection to the full bank, and optionally checks the rewrite generator.
 
 ## Not done here
 

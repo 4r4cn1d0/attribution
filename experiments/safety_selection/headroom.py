@@ -57,7 +57,8 @@ __all__ = ["POOL_RULE", "SCORES_KIND", "REWRITES_KIND", "REWRITE_CONFIG_KIND", "
            "rewrite_prompt_ids", "generate_rewrites", "rewrites_document", "validate_rewrite_config",
            "load_rewrite_generator", "parse_document", "added_row_id", "score_rows_job",
            "build_edits_job", "generate_rewrites_job", "edit_document", "random_rows", "build_random_rewrite",
-           "ROUND_1", "RANDOM_RULE"]
+           "ROUND_1", "RANDOM_RULE", "is_explicit", "size_of", "resolve_count", "EXPLICIT_COUNT_RULE",
+           "RANDOM_RULE_EXPLICIT"]
 
 POOL_RULE = "every training row that is not a member of a held-out group"
 SCORES_KIND = "safety-selection row scores"
@@ -65,6 +66,8 @@ REWRITES_KIND = "safety-selection rewrites"
 REWRITE_CONFIG_KIND = "safety-selection rewrite config"
 SCORE_FIELD = "normalized Unsafe label-sequence score of the row's own (prompt, response)"
 COUNT_RULE = "round half up of percent / 100 times the number of training rows"
+EXPLICIT_COUNT_RULE = ("an explicit row count k (size 'k<k>'), independent of the corpus size; for the headroom-v2 "
+                       "positive control k is the injection size (the prepared manifest's corpus.injected_rows)")
 RANK_RULE = "valid scores in descending order, ties broken by row id ascending; unscored rows are never ranked"
 # The system prompt of the amendment's Appendix A, verbatim.
 APPENDIX_A_SYSTEM = ("You write assistant replies for safety training data. Reply in the language of the request. "
@@ -140,6 +143,42 @@ def ranked_rows(scores: dict) -> list[str]:
     return [r["row_id"] for r in sorted(valid, key=lambda r: (-r["unsafe"], r["row_id"]))]
 
 
+def is_explicit(size: str) -> bool:
+    """A size ``k<N>`` names an explicit row count; any other size is a percent (``edit_count``)."""
+    return size.startswith("k")
+
+
+def size_of(size: str, prepared: Any) -> tuple[int, dict]:
+    """(row count, provenance fields) of an edit size: a percent of the training rows, exactly as
+    before, or an explicit count ``k<N>`` with its count base recorded."""
+    if not is_explicit(size):
+        count = edit_count(size, len(prepared.train_rows))
+        return count, {"percent": size, "count_rule": COUNT_RULE, "count": count,
+                       "count_base_training_rows": len(prepared.train_rows)}
+    if not size[1:].isdigit() or int(size[1:]) < 1:
+        raise EditError(f"size {size!r}: an explicit size is k followed by a positive integer")
+    count = int(size[1:])
+    return count, {"size": size, "count_rule": EXPLICIT_COUNT_RULE, "count": count,
+                   "count_base": "explicit", "count_base_training_rows": len(prepared.train_rows),
+                   "injected_rows": prepared.manifest["corpus"].get("injected_rows")}
+
+
+def resolve_count(value: str, prepared: Any) -> str:
+    """The size of a ``--count`` argument: ``injection`` (the prepared injection size) or N."""
+    if value == "injection":
+        injected = prepared.manifest["corpus"].get("injected_rows")
+        if not injected:
+            raise EditError("--count injection: these prepared data have no injected rows")
+        return f"k{injected}"
+    if not value.isdigit() or int(value) < 1:
+        raise EditError("--count takes a positive integer or 'injection'")
+    return f"k{int(value)}"
+
+
+def _label(size: str) -> str:
+    return f"{size[1:]} rows" if is_explicit(size) else f"{size}%"
+
+
 def edit_count(percent: str, training_rows: int) -> int:
     """Rows in k% (module doc). ``percent`` is decimal text, e.g. ``"2.5"``, so it is exact."""
     share = Fraction(percent)
@@ -165,15 +204,14 @@ def edit_document(name: str, edit_kind: str, prepared: Any, provenance: dict, re
 
 def _top(scores: dict, prepared: Any, percent: str) -> tuple[list[str], int]:
     ranked = ranked_rows(scores)
-    count = edit_count(percent, len(prepared.train_rows))
+    count, _ = size_of(percent, prepared)
     if count > len(ranked):
-        raise EditError(f"{percent}% is {count} rows; only {len(ranked)} pool rows are ranked")
+        raise EditError(f"{_label(percent)} is {count} rows; only {len(ranked)} pool rows are ranked")
     return ranked[:count], count
 
 
 def _score_provenance(scores_data: bytes, scores: dict, prepared: Any, percent: str, count: int) -> dict:
-    return {"scores_sha256": sha256_bytes(scores_data), "percent": percent, "count_rule": COUNT_RULE,
-            "count": count, "count_base_training_rows": len(prepared.train_rows), "rank_rule": RANK_RULE,
+    return {"scores_sha256": sha256_bytes(scores_data), **size_of(percent, prepared)[1], "rank_rule": RANK_RULE,
             "ranked_rows": len(ranked_rows(scores)), "unscored_rows": scores["unscored_rows"]}
 
 
@@ -181,30 +219,35 @@ def build_remove(scores_data: bytes, prepared: Any, percent: str) -> tuple[bytes
     """Remove the top ``percent``% of the ranked pool."""
     scores = _scores(scores_data, prepared)
     rows, count = _top(scores, prepared, percent)
-    return edit_document(f"remove top {percent}% by guard Unsafe score", "remove", prepared,
+    return edit_document(f"remove top {_label(percent)} by guard Unsafe score", "remove", prepared,
                  _score_provenance(scores_data, scores, prepared, percent, count), remove=rows)
 
 
 RANDOM_RULE = "random.Random(derive_seed(design_seed, 'headroom-random-removal', percent)).sample(sorted pool, count)"
+RANDOM_RULE_EXPLICIT = ("random.Random(derive_seed(design_seed, 'headroom-random-removal', size)).sample(sorted pool, "
+                        "count) with size 'k<count>'")
 
 
 def random_rows(prepared: Any, percent: str) -> tuple[list[str], int, int]:
     """(rows, count, seed) of the random control: ``percent``% of the pool chosen with a seed
     derived from the data config's design seed (no free parameter). Random removal and random
     rewrite both take exactly these rows."""
-    count = edit_count(percent, len(prepared.train_rows))
+    count, _ = size_of(percent, prepared)
+    pool = edit_pool(prepared)
+    if count > len(pool):
+        raise EditError(f"{_label(percent)} is {count} rows; the pool has {len(pool)}")
     seed = derive_seed(prepared.data_config["design_seed"], "headroom-random-removal", percent)
-    return sorted(random.Random(seed).sample(edit_pool(prepared), count)), count, seed
+    return sorted(random.Random(seed).sample(pool, count)), count, seed
 
 
 def build_random_removal(scores_data: bytes, prepared: Any, percent: str) -> tuple[bytes, dict]:
     """Remove the random control's rows (``random_rows``). The scores file is pinned only for its pool."""
     scores = _scores(scores_data, prepared)
     rows, count, seed = random_rows(prepared, percent)
-    return edit_document(f"remove {percent}% of the pool at random", "remove", prepared,
-                 {"scores_sha256": sha256_bytes(scores_data), "percent": percent, "count_rule": COUNT_RULE,
-                  "count": count, "count_base_training_rows": len(prepared.train_rows),
-                  "random_rule": RANDOM_RULE, "seed": seed, "unscored_rows": scores["unscored_rows"]}, remove=rows)
+    rule = RANDOM_RULE_EXPLICIT if is_explicit(percent) else RANDOM_RULE
+    return edit_document(f"remove {_label(percent)} of the pool at random", "remove", prepared,
+                 {"scores_sha256": sha256_bytes(scores_data), **size_of(percent, prepared)[1],
+                  "random_rule": rule, "seed": seed, "unscored_rows": scores["unscored_rows"]}, remove=rows)
 
 
 def _rewrites(rewrites_data: bytes, scores_data: bytes, prepared: Any) -> dict:
@@ -233,9 +276,9 @@ def build_random_rewrite(scores_data: bytes, rewrites_data: bytes, prepared: Any
     rewrites = _rewrites(rewrites_data, scores_data, prepared)
     rows, count, seed = random_rows(prepared, percent)
     accepted, excluded = _rewritten(rows, rewrites)
-    return edit_document(f"rewrite {percent}% of the pool at random", "rewrite", prepared,
-                 {"scores_sha256": sha256_bytes(scores_data), "percent": percent, "count_rule": COUNT_RULE,
-                  "count": count, "count_base_training_rows": len(prepared.train_rows), "random_rule": RANDOM_RULE,
+    rule = RANDOM_RULE_EXPLICIT if is_explicit(percent) else RANDOM_RULE
+    return edit_document(f"rewrite {_label(percent)} of the pool at random", "rewrite", prepared,
+                 {"scores_sha256": sha256_bytes(scores_data), **size_of(percent, prepared)[1], "random_rule": rule,
                   "seed": seed, "unscored_rows": scores["unscored_rows"], "rewrites_sha256": sha256_bytes(rewrites_data),
                   "rewritten": len(accepted), "excluded": excluded}, rewrite=accepted)
 
@@ -247,7 +290,7 @@ def build_rewrite(scores_data: bytes, rewrites_data: bytes, prepared: Any, perce
     rewrites = _rewrites(rewrites_data, scores_data, prepared)
     rows, count = _top(scores, prepared, percent)
     accepted, excluded = _rewritten(rows, rewrites)
-    return edit_document(f"rewrite top {percent}% by guard Unsafe score", "rewrite", prepared,
+    return edit_document(f"rewrite top {_label(percent)} by guard Unsafe score", "rewrite", prepared,
                  {**_score_provenance(scores_data, scores, prepared, percent, count),
                   "rewrites_sha256": sha256_bytes(rewrites_data), "rewritten": len(accepted), "excluded": excluded},
                  rewrite=accepted)
@@ -388,8 +431,8 @@ def validate_rewrite_config(config: dict) -> dict:
     _text(spec["repo_id"], "generator.repo_id")
     _hex(spec["revision"], 40, "generator.revision")
     _text(spec["architecture"], "generator.architecture")
-    if spec["dtype"] != "bfloat16" or spec["attn_implementation"] != "eager":
-        raise ConfigError("the generator runs in bfloat16 with eager attention")
+    if spec["dtype"] != "bfloat16" or spec["attn_implementation"] not in ("eager", "sdpa"):
+        raise ConfigError("the generator runs in bfloat16 with eager or sdpa attention")
     _texts(spec["stop_tokens"], "generator.stop_tokens")
     _text(spec["pad_token"], "generator.pad_token")
     _int(spec["max_new_tokens"], "generator.max_new_tokens", 1)
@@ -402,7 +445,7 @@ def validate_rewrite_config(config: dict) -> dict:
 
 
 def load_rewrite_generator(config: dict) -> RewriteGenerator:
-    """The pinned generator on CUDA (offline, safetensors, no remote code, bfloat16, eager)."""
+    """The pinned generator on CUDA (offline, safetensors, no remote code, bfloat16, the config's attention)."""
     import torch
     from transformers import AutoModelForCausalLM
 
@@ -422,6 +465,8 @@ def load_rewrite_generator(config: dict) -> RewriteGenerator:
                                                  trust_remote_code=False)
     if type(model).__name__ != spec["architecture"]:
         raise RuntimeError(f"loaded {type(model).__name__}, the config expects {spec['architecture']}")
+    if getattr(model.config, "_attn_implementation", None) != spec["attn_implementation"]:
+        raise RuntimeError(f"the generator's attention differs from the config's {spec['attn_implementation']!r}")
     model.requires_grad_(False)
     model.eval().to("cuda")
     codec = build_codec(tokenizer, spec["stop_tokens"][0], spec["stop_tokens"], spec["pad_token"])
@@ -491,10 +536,12 @@ ROUND_1 = ("remove-10", "random-remove-10", "rewrite-10", "random-rewrite-10")
 
 def build_edits_job(prepared_dir, scores_path, out_dir, *, rewrites_path=None,
                     percents: Sequence[str] = ("2.5", "4", "7", "10"), random_percent: str = "10",
-                    only: Sequence[str] | None = None) -> dict:
+                    only: Sequence[str] | None = None, count: str | None = None) -> dict:
     """``build-edits`` (CPU only): the positive control's edit files and an index of their arms.
     ``only`` restricts it to the named files (``ROUND_1``: the first round's four, which needs the
-    rewrites file)."""
+    rewrites file). ``count`` (``resolve_count``: N or ``injection``) replaces every percent size by
+    one explicit size ``k<N>``: remove-k<N>, random-remove-k<N> and, with rewrites, rewrite-k<N> and
+    random-rewrite-k<N>."""
     from pathlib import Path
 
     from .common import write_atomic
@@ -502,6 +549,11 @@ def build_edits_job(prepared_dir, scores_path, out_dir, *, rewrites_path=None,
     from .prepare import load_prepared
 
     prepared = load_prepared(prepared_dir)
+    if count is not None:
+        if only is not None:
+            raise EditError("an explicit count builds its own files; it does not combine with a round")
+        size = resolve_count(count, prepared)
+        percents, random_percent = (size,), size
     scores_data = Path(scores_path).read_bytes()
     rewrites_data = Path(rewrites_path).read_bytes() if rewrites_path else None
     plan: list[tuple[str, Callable[[], tuple[bytes, dict]]]] = []
@@ -525,8 +577,9 @@ def build_edits_job(prepared_dir, scores_path, out_dir, *, rewrites_path=None,
         write_atomic(run_dir / f"{name}.json", data)
         index.append({"file": f"{name}.json", "arm": "edit-" + sha256_bytes(data), "edit_kind": doc["edit_kind"],
                       "counts": doc["counts"], "provenance": {k: v for k, v in doc["provenance"].items()
-                                                             if k in ("percent", "count", "rewritten", "seed")}})
+                                                             if k in ("percent", "size", "count", "rewritten", "seed")}})
     record = {"kind": "build-edits", "manifest_sha256": prepared.manifest_sha256, "only": list(only) if only else None,
+              **({"count": count, "size": percents[0]} if count is not None else {}),
               "scores_sha256": sha256_bytes(scores_data),
               "rewrites_sha256": sha256_bytes(rewrites_data) if rewrites_data is not None else None,
               "pending": ["add and combined edits: their source is the amendment's open decision 3"],
@@ -537,7 +590,7 @@ def build_edits_job(prepared_dir, scores_path, out_dir, *, rewrites_path=None,
 
 def generate_rewrites_job(config: dict, session: Any, prepared_dir, scores_path, out_dir, *, percent: str = "10",
                           random_percent: str = "10", generator: RewriteGenerator | None = None,
-                          policy_codec: Any = None) -> dict:
+                          policy_codec: Any = None, count: str | None = None) -> dict:
     """``generate-rewrites``: replacements for the union of the top ``percent``% of the ranked
     pool (the largest edit size; smaller sizes take a prefix of the same rows) and the random
     control's ``random_percent``% (``random_rows``), in a new folder. Each row records its sets."""
@@ -549,6 +602,8 @@ def generate_rewrites_job(config: dict, session: Any, prepared_dir, scores_path,
 
     validate_rewrite_config(config)
     prepared = load_prepared(prepared_dir)
+    if count is not None:                   # an explicit size for both sets (``resolve_count``)
+        percent = random_percent = resolve_count(count, prepared)
     scores_data = Path(scores_path).read_bytes()
     scores = _scores(scores_data, prepared)
     top, count = _top(scores, prepared, percent)
@@ -586,7 +641,8 @@ def generate_rewrites_job(config: dict, session: Any, prepared_dir, scores_path,
         data = rewrites_document(records, scores_data=scores_data, prepared=prepared, percent=percent, config=config,
                                  generator=generator, guard=guard, guard_spec=session.recipe["guard"],
                                  random={"percent": random_percent, "count": random_count, "seed": seed,
-                                         "rule": RANDOM_RULE, "overlap_with_top": len(set(top) & set(chosen))})
+                                         "rule": RANDOM_RULE_EXPLICIT if is_explicit(random_percent) else RANDOM_RULE,
+                                         "overlap_with_top": len(set(top) & set(chosen))})
         write_atomic(run_dir / "rewrites.json", data)
         doc = parse_document(data, REWRITES_KIND)
         summary = {"kind": "generate-rewrites", "rewrites_sha256": sha256_bytes(data), "rows": len(rows),

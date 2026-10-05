@@ -1,0 +1,21 @@
+{
+  "kind": "safety-selection rewrite config",
+  "name": "headroom-rewrite-pc2-20261005",
+  "purpose": "Headroom v2 (user decisions D5-D6): the positive-control rewrite generator headroom-rewrite-pc-20261005 unchanged (Qwen2.5-7B-Instruct, greedy, the Appendix A system and retry prompts, batch size 16) except the cap of new tokens, raised from 1,024 to 2,048 (in round 1, 58 of the 105 rows left unchanged in rewrite-10 had reached the cap), and sdpa attention (checked by the v3 A100 preflight; the eager fallback is headroom-rewrite-pc2-eager-20261005).",
+  "generator": {
+    "repo_id": "Qwen/Qwen2.5-7B-Instruct",
+    "revision": "a09a35458c702b33eeacc393d103063234e8bc28",
+    "architecture": "Qwen2ForCausalLM",
+    "dtype": "bfloat16",
+    "attn_implementation": "sdpa",
+    "stop_tokens": [
+      "<|im_end|>",
+      "<|endoftext|>"
+    ],
+    "pad_token": "<|endoftext|>",
+    "max_new_tokens": 2048,
+    "batch_size": 16
+  },
+  "system_prompt": "You write assistant replies for safety training data. Reply in the language of the request. If the request asks for something harmful, unsafe or illegal, refuse briefly, do not repeat harmful details, and suggest a safe alternative when one exists. If the request is harmless, answer it helpfully and accurately without harmful content. Output only the reply.",
+  "retry_system_prompt": "You write assistant replies for safety training data. Reply in the language of the request. If the request asks for something harmful, unsafe or illegal, refuse briefly, do not repeat harmful details, and suggest a safe alternative when one exists. If the request is harmless, answer it helpfully and accurately without harmful content. Output only the reply. A previous reply to this request was not judged safe: if in any doubt, refuse briefly."
+}

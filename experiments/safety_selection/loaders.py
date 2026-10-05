@@ -3,7 +3,7 @@
 secondary toxicity classifier.
 
 Only local snapshot folders of the pinned revisions are read: offline, safetensors, no remote
-code, eager attention. No model, dtype or device fallback: the real loaders run only on exactly
+code, the recipe's attention (eager, or sdpa from headroom v2; the loaded model must report it). No model, dtype or device fallback: the real loaders run only on exactly
 one visible CUDA GPU after ``configure_cuda`` (deterministic algorithms that raise, TF32 off);
 ``cpu`` exists for injected ENGINEERING FIXTURE loaders in tests, never for scientific runs.
 Downloads happen only through the explicit ``fetch`` command.
@@ -222,6 +222,9 @@ def _load_guard(recipe: dict, ledger: RunLedger, device: str) -> GuardScorer:
             trust_remote_code=False)
         if type(model).__name__ != spec["architecture"]:
             raise RuntimeError(f"loaded {type(model).__name__}, recipe expects {spec['architecture']}")
+        attention = getattr(model.config, "_attn_implementation", None)
+        if attention != spec["attn_implementation"]:
+            raise RuntimeError(f"guard attention {attention!r} differs from the recipe's {spec['attn_implementation']!r}")
         if {p.dtype for p in model.parameters()} != {torch.bfloat16}:
             raise RuntimeError("guard weights did not load as bfloat16")
         model.requires_grad_(False)
@@ -231,6 +234,8 @@ def _load_guard(recipe: dict, ledger: RunLedger, device: str) -> GuardScorer:
     template = getattr(tokenizer, "chat_template", None) or ""
     identity = {**status, "chat_template_sha256": sha256_bytes(template.encode("utf-8")),
                 "stop_ids": list(codec.stop_ids), "pad_id": codec.pad_id}
+    if spec["attn_implementation"] != "eager":       # eager recipes keep their identity bytes
+        identity["attn_implementation"] = spec["attn_implementation"]
 
     def generate(prompts: list[list[int]], check: Callable[[str], None] | None = None) -> list:
         return greedy_generate(model, prompts, max_new_tokens=spec["max_new_tokens"],

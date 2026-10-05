@@ -774,3 +774,58 @@ def test_the_fixture_script_is_present_and_parses_its_arguments():
     text = script.read_text()
     assert "WRITTEN, NOT RUN" in text and "resume" in text and "bit_identical_to_a_padding_row" in text
     assert "trained_rows_separated_from_padding" in text and "flag_untrained_looking" not in text
+
+
+# ----- 5. explicit edit sizes (headroom v2: k = the injection size) ---------------------------------------
+
+
+def test_an_explicit_count_builds_k_row_edits_and_records_its_count_base(env):
+    folder, _ = fx.prepare_dir_v3(env.base / "prepared-v3")
+    prepared = load_prepared(folder)
+    scripted, generator, _ = generator_and_guard(env)
+    session = env.session()
+    scores = hr.score_rows_job(session, folder, env.base / "scores-v3")
+    scores_path = Path(scores["run_dir"]) / "scores.json"
+    ranked = hr.ranked_rows(json.loads(scores_path.read_bytes()))
+    made = hr.generate_rewrites_job(json.loads(PC_REWRITE.read_text()), session, folder, scores_path,
+                                    env.base / "rewrites-v3", generator=generator, policy_codec=fx.fixture_codec(),
+                                    count="injection")
+    rewrites_path = Path(made["run_dir"]) / "rewrites.json"
+    rewrites = json.loads(rewrites_path.read_bytes())
+    chosen, count, seed = hr.random_rows(prepared, "k6")
+    assert (made["top_rows"], made["random_rows"], count) == (6, 6, 6)
+    assert seed == derive_seed(prepared.data_config["design_seed"], "headroom-random-removal", "k6")
+    assert {s for r in rewrites["rows"] for s in r["sets"]} <= {"top-k6", "random-k6"}
+    assert rewrites["random"]["rule"] == hr.RANDOM_RULE_EXPLICIT
+    out = env.base / "edits-k"
+    assert cli(["build-edits", "--prepared", str(folder), "--scores", str(scores_path), "--rewrites",
+                str(rewrites_path), "--count", "injection", "--out", str(out)]) == 0
+    index = read_json(out / "index.json")
+    assert [e["file"] for e in index["edits"]] == ["remove-k6.json", "rewrite-k6.json", "random-remove-k6.json",
+                                                   "random-rewrite-k6.json"]
+    assert (index["count"], index["size"]) == ("injection", "k6")
+    for entry in index["edits"]:
+        doc = json.loads((out / entry["file"]).read_bytes())
+        prov = doc["provenance"]
+        assert (prov["size"], prov["count"], prov["count_base"], prov["count_rule"]) == ("k6", 6, "explicit",
+                                                                                         hr.EXPLICIT_COUNT_RULE)
+        assert (prov["injected_rows"], prov["count_base_training_rows"]) == (6, 64) and "percent" not in prov
+    remove = json.loads((out / "remove-k6.json").read_bytes())
+    assert remove["remove"] == sorted(ranked[:6])                              # 6 rows, not 10% of 64 (= 6.4 -> 6)
+    random_remove = json.loads((out / "random-remove-k6.json").read_bytes())
+    random_rewrite = json.loads((out / "random-rewrite-k6.json").read_bytes())
+    excluded = [e["row_id"] for e in random_rewrite["provenance"]["excluded"]]
+    assert random_remove["remove"] == chosen == sorted([r["row_id"] for r in random_rewrite["rewrite"]] + excluded)
+    three = env.base / "edits-3"
+    hr.build_edits_job(folder, scores_path, three, count="3")
+    assert json.loads((three / "remove-k3.json").read_bytes())["remove"] == sorted(ranked[:3])
+    with pytest.raises(EditError, match="round"):
+        hr.build_edits_job(folder, scores_path, env.base / "x", rewrites_path=rewrites_path, only=hr.ROUND_1,
+                           count="injection")
+    with pytest.raises(EditError, match="no injected rows"):
+        hr.build_edits_job(env.prepared_dir, scores_path, env.base / "y", count="injection")
+    for bad in ("0", "-1", "k6", "six"):
+        with pytest.raises(EditError):
+            hr.resolve_count(bad, prepared)
+    assert hr.size_of("10", prepared)[1] == {"percent": "10", "count_rule": hr.COUNT_RULE, "count": 6,
+                                             "count_base_training_rows": 64}   # percent sizes: unchanged form
