@@ -1,6 +1,6 @@
 # Amendment draft: headroom v2, a contaminated-data setting with broader and less noisy measurement
 
-5 October 2026. Drafted by General Implementation, acting as lead. **Status: draft for the user's review. Not frozen. It authorizes no spend.** It follows round 1's failure ([round-1 results](2026-10-05-headroom-round-1-results.md)) and the [work plan](2026-10-05-headroom-v2-workplan.md). Decisions the user must make are marked **D1–D7**.
+5 October 2026. Drafted by General Implementation, acting as lead. **Status: draft. On 5 October 2026 the user approved the design choices D1–D6 as recommended.** On budget (D7) the user said: "do the max you can with the funding but remember to not lose anything if funding runs out for the pods". There is no top-up, so Part 7 replaces Part 5's run plan. Not frozen yet: the reading is frozen after calibration and before the positive control. It follows round 1's failure ([round-1 results](2026-10-05-headroom-round-1-results.md)) and the [work plan](2026-10-05-headroom-v2-workplan.md). Decisions the user must make are marked **D1–D7**.
 
 ## Why round 1 failed, and what changes
 
@@ -114,3 +114,24 @@ The balance is $35.57, so this needs a **top-up (D7)**. A cheaper variant: 4 see
 
 - Round-1 results, noise analysis and backup: [results](2026-10-05-headroom-round-1-results.md), [backup](../../backups/2026-10-05/README.md).
 - Candidates and literature: [candidates note](../review/2026-10-05-data-and-judge-candidates.md).
+
+## Part 7: the run plan within the current balance (user decision D7, 5 October 2026)
+
+- **Balance:** $35.57 after round 1.
+- **Reserve:** **$6 is never spent.** Pods must stay stoppable, and stopped volumes must stay billable until their data is copied off. Nothing launches if the balance minus the projected cost of what is already running would fall below the reserve.
+- **No data loss:**
+  - every job's results are copied off the pod as soon as it finishes (light copies), and the engine's verify runs on the pod;
+  - each phase is backed up to a private release, checked by download-back;
+  - pods are stopped as soon as their copy is checked;
+  - every pod keeps its in-pod stop timer, with caps sized from measured times.
+- **Cheaper measurement:**
+  - the second judge (Granite Guardian 3.3) runs **on the user's Mac** over the saved answers, not on pods. It is a 4-bit GGUF with llama.cpp: exploratory, and recorded as such;
+  - pods run only Qwen3Guard;
+  - per job: the broad-harm development bank (about 200 prompts × greedy + 3 samples), the over-refusal development bank (about 100 prompts, greedy), the ToxicChat development bank (72, greedy) and ARC; at e3 only.
+- **Order of work, the most informative first** (each step only if the reserve rule allows):
+  1. **Validation pod:** fixture, throughput, memory and evaluation time with the efficiency options. About $2–3.
+  2. **Calibration:** a0 at 5% and 10% injection, 1 seed each. About $6–8. Choose 5% if a0 is at least 40% unsafe there, otherwise 10%; if neither, stop and review.
+  3. **Row scores and rewrites** for the chosen size. About $2–4.
+  4. **Positive control at 2 seeds:** a0 (the calibration seed plus 1), rewrite-k and random-rewrite-k (2 each). About $12–18.
+  5. **With any money left:** extra seeds for rewrite-k and random-rewrite-k, then a0. remove-k only if all else is done.
+- **Power at 2 seeds:** the minimum detectable difference is about 19 percentage points. The contaminated setting is expected to give larger effects; if it does not, the result is reported as underpowered, not as a null.
