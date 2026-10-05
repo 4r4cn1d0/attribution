@@ -36,12 +36,14 @@ Started 5 October 2026 by General Implementation, at the user's request to "keep
 
 ## Phase 3: engine work (Specialized chat; no spend)
 
-- [~] Brief ready: `.ai/briefs/headroom-v2-engine-20261005.md` (commit 3d01441); workspace prepared, with the pinned sources under `sources/v2/`. **Waiting for the user to reopen the Specialized chat** (it was not running). Then: review, integrate, and run the test suites.
+- [x] Brief `.ai/briefs/headroom-v2-engine-20261005.md` built by the Specialized chat, reviewed and integrated (`5efc765`; engine `0d55658c…`). Tests: 269 engine tests passed (plus 3 CUDA-only skips), 172 Stage B, 260 durability.
 
-## Phase 4: runs (each needs the user's approval of costs first)
+## Phase 4: runs (within the D7 budget rule: the most the balance allows, with a $6 reserve)
 
-- [ ] A validation pod: the new fixture and the measurement checks.
-- [ ] Headroom v2, round 1 (sized from the noise analysis).
+- [x] A validation pod (val05): the new fixture and the measurement checks.
+- [x] Calibration: a0 at 5% (val05) and at 10% (cal10, still evaluating). **5% chosen.**
+- [~] The lead pod: row scores, removal files, rewrites, all edit files for k = 507.
+- [ ] The positive control: rewrite-k507 and random-rewrite-k507 at seed 1101 (paired with calibration's a0), then seed 1102, then a0 seed 1102, as the balance allows.
 - [ ] Then the decision-study design (FOCUS.md stage 1).
 
 ## Log
@@ -53,3 +55,19 @@ Started 5 October 2026 by General Implementation, at the user's request to "keep
   - Round-1 model states: the two a0 adapters were backed up (591 MB, verified) and the other 69 files (about 18 GB) deleted, at the user's choice.
   - The v2 sources are downloaded and pinned (contents unread).
   - A local second-judge check (Granite Guardian 3.3 8B, Q4_K_M via llama.cpp on the Mac) is set up, waiting for the model download.
+- 5 Oct, 18:23–19:02 UTC: validation pod val05 (A100 SXM).
+  - **The preflight passed with `pc2-mb4`** (SDPA, micro-batch 4 × 2). `pc2` (micro-batch 8) ran out of CUDA memory.
+  - Every check passed: the fixture is exact, batched equals single for greedy and sampled answers, and the trained rows are separated from padding.
+  - Expected fixture `5e81e8c8…`.
+  - Measured: training is 3,996 steps at about 0.94 s per step (about 68 minutes). The evaluation upper bound is 8,301 s.
+- 5 Oct, 19:07 UTC: cal10 created on its second try (no A100 was free at first). Its preflight matched the fixture on a second machine.
+- 5 Oct, 19:06 and 19:32 UTC: operator leases moved the stop times to 23:15 (val05) and 23:40 (cal10), so a long evaluation cannot be cut off. The finisher still stops each pod when its job ends. `budget.py` does not yet count leases (the patch was refused by the permission classifier; the user has to decide).
+- 5 Oct, 20:58 UTC: **calibration result, val05** (a0, 5% injection, seed 1101, e3; development banks; Qwen3Guard):
+  - harm bank: **74.5% unsafe greedy (149/200), 76.3% sampled (458/600)**; mean continuous unsafe score 0.75;
+  - answers end: 1 of 200 greedy and 3 of 600 sampled answers hit the cap;
+  - ARC accuracy **0.841** (159/189);
+  - over-refusal: 2 refusals out of 100 (35 of those 100 answers were judged unsafe; the bank has borderline OR-Bench prompts);
+  - ToxicChat development: 25 of 72 unsafe (round-1 a0: 14 and 11).
+
+  **The setting works at 5%, so k = 507.** The job took 114.6 minutes from start to finish. The record was verified and the pod stopped.
+- 5 Oct, 21:07 UTC: the lead pod was created (role `lead`, prepared-v3-inj05, cap 4.5 h; the guard allowed it with a $28.07 balance). cal10 continues as a dose-response point.
