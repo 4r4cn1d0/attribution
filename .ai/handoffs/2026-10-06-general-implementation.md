@@ -5,6 +5,60 @@ Written 6 October 2026 at about 00:40 IST (5 October, 19:10 UTC; the user is in 
 - This file is separate from `.ai/HANDOFF.md`, which must **never** be edited.
 - Times below are UTC on 5 October unless marked IST.
 
+## LEAD HANDOFF, 6 October 2026, evening IST: General Implementation → General Implementation 2 (also called "General Implementation II")
+
+The user: "handoff everything here to general implementation 2 from now on, this one is done with context window". **General Implementation 2 is now the lead.** The first General Implementation chat is retired; its context window is full.
+
+**State at handoff:**
+- **v2 is complete.** Results are in research/experiments/2026-10-06-headroom-v2-results.md (corrected after FAQ's check).
+  - Sampled harm: a0 80%, targeted rewrite 11%, random rewrite 82%. That is −68.9 pp against a0 and −70.2 pp against random, with intervals that exclude 0.
+  - The second judge (Granite) agrees on 97.2% (κ 0.94).
+  - XSTest-safe over-refusal rose from 1% to 44%, so it FAILS no-damage.
+  - The classifier's top-507 held 471 of the 507 injected rows.
+- **Pods and money:**
+  - All pods are deleted (13 in total); `tmp/headroom-v2/deletions.jsonl`.
+  - The records are in the private draft release backup-2026-10-06-headroom-v2 (verified).
+  - RunPod balance: **$29.23**. The budget guard keeps a $6 reserve; `budget.py` does not count operator leases (a patch was refused by the permission classifier).
+  - Cost ledger: research/costs/ (re-run with `python3 research/costs/cost_ledger.py`).
+- **Direction:** ADOPTED. See FOCUS.md "Adopted direction", the reframing proposal (sections 2a, 2b and 3a), and the memory note research-direction-2026-10-06.
+  - Drafts awaiting merge: research/review/2026-10-06-focus-revision-DRAFT.md and research/experiments/2026-10-06-kill-test-design-DRAFT.md.
+  - Reviews: positioning, problem validation, reading-list-v2 (134 entries).
+- **Public post:** "First, Make Sure a Fix Can Work" is live on Substack (FAQ published it at the user's request). It is committed under writing/substack/.
+- **Grants:** the user is US-based. BlueDot is first (grant dossier 11a and 11c), and the user is applying.
+- **User decisions:** in reply to "approve A–D", the user said "its open go ahead". Treat as approved:
+  - A: the staged kill test, Stage 0 at about $5 first, with no further spend without asking;
+  - B: rebuild the anchor on the aligned model;
+  - C: two freezes;
+  - D: an early side-effect check later, about $10.
+
+  Confirm with the user if in doubt. The Specialized chat is open again; keep its model.
+
+**In flight:**
+- A subagent of the old chat is writing **.ai/briefs/kill-test-stage0-engine-20261006.md**, plus a workspace copy following the memory note manual-workspace-preparation.
+- Its scope:
+  - an untouched Qwen2.5-1.5B-Instruct baseline on the development banks;
+  - one Dolly-15k fine-tune (seed 1101) on v2's recipe;
+  - a Dolly preparation path (pinned, licence checked, 600-row category units, near-duplicate exclusion, manifest, tests);
+  - a task-skill evaluation only if Stage 0 needs it;
+  - run-kit changes;
+  - the go/no-go: E ≥ 10 pp, with a futility bar of about 3 pp after the first seed.
+- **If the file is missing or incomplete, re-run that task as a subagent** (the scope comes from the kill-test draft, section 11, E1–E14).
+
+**Next steps for the lead:**
+1. Review the brief, then send it to Specialized. Integrate its build, with tests.
+2. Run Stage 0 (about $5) through the v2-style kit and the budget guard.
+3. Decide: continue the kill test (needs funding), or take the fallback (compare fix types in the v2 setup).
+4. Merge the FOCUS revision with decisions B–D.
+5. Update the grant dossier after every result.
+
+**Standing rules:**
+- prefer subagents;
+- ask before any new spend;
+- never edit .ai/HANDOFF.md, CLAUDE.md or AGENTS.md unless asked;
+- keys only from `~/.config/attribution/secrets.env`, never printed;
+- delete pods only after a verified backup (the user's standing request: "dont forget to delete the pods");
+- no held-out data reads.
+
 ## 0. Direction change: read this first (adopted by the user, 6 October, about 04:00 IST)
 
 The research direction changed. [FOCUS.md](../../research/FOCUS.md) now leads with **"Adopted direction"**:
