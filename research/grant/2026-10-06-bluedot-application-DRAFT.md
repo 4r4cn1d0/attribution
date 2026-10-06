@@ -85,7 +85,7 @@ Style: short sentences, active voice, simple words. **Fill or replace every `[US
 > Which data fix restores an LLM's safety after benign fine-tuning without causing over-refusal, and how much diagnosis (classifier, attribution, trial runs) is worth paying for first?
 
 ### Field 11. How much funding are you requesting?
-**$6,000** (recommended tier; §6). Lean alternative: $3,050. Fuller alternative: $10,950.
+**$6,000.** **Decided by the user on 6 Oct 2026: the recommended tier** (§6). The lean ($3,050) and fuller ($10,950) tiers are kept below for reference only.
 
 ### Field 12. Tell us more about your project.
 

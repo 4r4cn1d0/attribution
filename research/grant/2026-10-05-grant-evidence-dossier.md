@@ -180,6 +180,17 @@ Sentences to use, each backed by a primary source:
 - **Why not giant models:** one setting needs about 150–300 full runs. At 32B–70B each run costs $40–300, and the study would lose its statistical power. A big model is used only for a final scale check.
 - **Seeds:** the noise analysis gives the ideal counts: about 5 per key arm for confirmation, and about 3 per candidate edit in development.
 
+### 8a. Decision, 6 October 2026: the BlueDot ask under the adopted direction
+
+- **The user chose the recommended tier: $6,000** for the BlueDot Rapid Grant.
+  - The application draft is [2026-10-06-bluedot-application-DRAFT.md](2026-10-06-bluedot-application-DRAFT.md); it is not submitted yet.
+  - It covers the whole staged path to an ICML 2027 submission: kill test $145; engineering and calibration $200; development $2,250; confirmation $1,500; 15% contingency $605; a human check of about 500 answers $400; AI tools $800; storage $100. All figures are estimates from measured unit costs.
+  - No salary or stipend is included (the user's decision is still open).
+- **The tiers in the table above are for the old question.** The new tiers are in the draft, §6: lean $3,050, recommended $6,000, fuller $10,950.
+- **Still to fill in before submitting:**
+  - the Stage 0 result (running on 6 October);
+  - the user-only fields (the draft, §9).
+
 ## 9. Risks and mitigations
 
 | Risk | Mitigation |
