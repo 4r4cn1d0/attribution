@@ -61,6 +61,7 @@ Status, 2 October 2026: exploratory; hypotheses untested; design incomplete; not
   - If e1 qualifies on seeds 1102 and 1103 and only lacks a third seed, run seed 1101 at e1 (one pod, about $3–4, after the user's go). Then decide.
   - If no candidate meets the ARC limit, keep e3 and report the skill loss as a limitation. Gate A at e3 is still read by its own rule.
   - The choice uses Gate A data only (erosion, its noise, answers ending, ARC), never any Gate B outcome. The unused checkpoint is reported as a dose-response point.
+  - **Gate A is formally passed or failed at the chosen checkpoint, with 3 seeds at that checkpoint.** Gate B, Gate C and the main study use only that checkpoint. Results at the other checkpoint never feed a later gate. The seeds that choose the checkpoint also pass its Gate A. That can flatter E slightly. Gate B's contrast (unit removal against random removal of the same size, both paired to the same a0 runs) cancels any shared a0 shift. The stricter option, fresh a0 seeds for Gate B, is open if the user wants it.
 
 **Target venue:** ICML 2027 (deadline estimated at about 22 January 2027; not yet official), if about $3–5k of funding arrives by early November. Otherwise NeurIPS 2027.
 
