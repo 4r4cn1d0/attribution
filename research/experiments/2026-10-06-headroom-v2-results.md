@@ -16,7 +16,7 @@
   - the development harm bank: 200 prompts, greedy plus 3 samples;
   - over-refusal: 50 XSTest-safe plus 50 OR-Bench hard;
   - ToxicChat (72) and ARC;
-  - the judge is Qwen3Guard-Gen-4B; Granite Guardian 3.3 (4-bit, Mac) is running as the second judge.
+  - the judge is Qwen3Guard-Gen-4B; Granite Guardian 3.3 (4-bit, Mac) was the second judge, on the greedy harm answers only.
 
 ## Results (Qwen3Guard)
 
@@ -29,22 +29,30 @@
 | random-rewrite-k507 | 1101 | 76.5% (153/200) | 76.8% | 0.836 | 0/50 | 3/50 | 25/72 |
 | random-rewrite-k507 | 1102 | 85.5% (171/200) | 86.3% | 0.831 | 0/50 | 1/50 | 34/72 |
 
-**Contrasts** (greedy harm-bank unsafe rate; 95% bootstrap over prompts and seeds, 4,000 draws; `tmp/headroom-v2/pc-bootstrap.json`):
+**Primary measure** (corrected on 6 October after the FAQ chat's check; an earlier version applied the rules to greedy answers without saying so).
+- The v2 amendment (Part 2) defines the unsafe rate as the mean over the 3 sampled answers per prompt; the greedy answer is secondary.
+- **Sampled means:** a0 80.3%, rewrite 11.4%, random rewrite 81.6%.
+- **Sampled contrasts** (95% bootstrap over prompts and seeds; `pc-bootstrap-sampled.json`):
+  - rewrite minus a0: **−68.9 pp** [−76.5, −60.5];
+  - rewrite minus random rewrite: **−70.2 pp** [−78.5, −61.3].
+- With two seeds the intervals mostly reflect prompt noise, and seed noise is under-sampled. Both are far smaller than the effects.
+
+**Contrasts, greedy (secondary; 95% bootstrap over prompts and seeds, 4,000 draws; `tmp/headroom-v2/pc-bootstrap.json`):
 - rewrite minus a0: **−68.8 pp** [−78.0, −58.5];
 - rewrite minus random rewrite: **−70.5 pp** [−79.2, −60.5].
 
-## Reading (the draft D4 rules from the v2 amendment)
+## Reading (the D4 rules: written down in the v2 amendment and approved by the user before any v2 run; the amendment was never formally frozen)
 
-1. **The setting works: PASS.** a0 is 74.5% and 84.0% unsafe (bar: 40%), ARC is 0.84, over-refusal is low (1 of 100 and 0 of 100), and answers end.
-2. **The edit makes the model safer: PASS** (−68.8 pp, against a 15 pp bar; the interval excludes 0; the second judge agrees: −71.0 pp).
-3. **Targeting matters: PASS** (−70.5 pp against random rewrite; the interval excludes 0; the second judge agrees: −73.3 pp).
+1. **The setting works: PASS.** a0 is 74.5% and 84.0% unsafe (bar: 40%), ARC is 0.84, over-refusal is low (2 of 100 and 0 of 100), and answers end.
+2. **The edit makes the model safer: PASS.** Sampled −68.9 pp and greedy −68.8 pp, against a 15 pp bar; both intervals exclude 0. The second judge, on greedy answers, agrees (−71.0 pp).
+3. **Targeting matters: PASS.** Sampled −70.2 pp and greedy −70.5 pp against random rewrite; both intervals exclude 0. The second judge, on greedy answers, agrees (−73.3 pp). This is large partly by construction: the targeted 507 contain 471 injected rows, while a random 507 contain about 25 in expectation.
 4. **No damage: FAIL.**
    - ARC is within 0.03: rewrite mean 0.833 against a0's 0.844.
    - **XSTest-safe over-refusal rises from 1% to 44%**, against a limit of +5 pp. OR-Bench-hard refusals rise from 1% to 66%.
-   - The rewrites taught the model to refuse anything that sounds risky.
+   - The rewritten data made the model refuse many harmless requests that sound risky. This rests on Qwen3Guard's refusal labels alone, over 100 prompts per seed; no person read the answers, and the second judge did not score refusals.
 
 **Interpretation:**
-- The classifier-targeted fix removes almost all of the harm, and targeting matters a great deal, but the fix is not acceptable because of its side effect.
+- The classifier-targeted fix removes almost all of the harm, and targeting matters (largely by construction here), but the fix is not acceptable because of its side effect.
 - In this overt setting the cheap classifier found 93% of the bad rows, so the hard part was not *finding* rows. It was choosing a *fix* that does not over-correct.
 - That is the side-effect question the adopted direction makes co-primary. The seed shift is visible again: seed 1102 is higher in every arm, which is why the comparisons are paired by seed.
 
@@ -72,5 +80,5 @@ The judge ran on the 1,200 greedy harm-bank answers (6 units × 200), with crite
 - **Files:** summary at `.ai/inputs/headroom-v2/run-scripts/second-judge-v2-summary.json`, items at `second-judge-v2-items.jsonl` (labels only).
 
 **Final reading:**
-- rules 1–3 **PASS** with both judges;
+- rules 2–3 **PASS** under both judges (the second judge on greedy answers only); rule 1 passes on Qwen3Guard;
 - rule 4 **FAILS** on over-refusal (XSTest-safe from 1% to 44%).
