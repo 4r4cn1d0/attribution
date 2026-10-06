@@ -57,9 +57,40 @@ Also confirmed correct by the review:
   - It refuses a unit name retrieved from more than one host. On v2's retrieved tree, `1101-a0-e3-a1` exists under two hosts.
 - The working kit is installed as `tmp/kill-test-stage0/` (untracked; pod records accumulate there).
 
+## Mac preparation (6 October, lead)
+
+- **Dolly downloaded** with the user's approval: `databricks-dolly-15k.jsonl` at revision `bdd27f4d…`, 13,085,339 bytes, SHA-256 `2df90833…` (matches the pin). Stored in `tmp/kt-sources/kill-test/` (untracked).
+- **First preparation, run twice:** identical manifests (`707aa02d…`). The receipts differ only in their `utc` field.
+- **Realised counts:**
+
+  | Category | Records | Eligible | Unit rows near a task row |
+  |---|---|---|---|
+  | open_qa | 3,742 | 3,672 | 13 |
+  | general_qa | 2,191 | 2,088 | 1 |
+  | classification | 2,136 | 2,132 | **102** |
+  | closed_qa | 1,773 | 1,731 | 1 |
+  | brainstorming | 1,766 | 1,757 | 1 |
+  | information_extraction | 1,506 | 1,492 | 8 |
+  | summarization | 1,188 | 1,166 | 3 |
+  | creative_writing | 709 | 694 | 1 |
+
+  - n = 600 for every unit, with no round-down. The corpus has 4,800 rows and 200 query rows.
+  - Exclusions: 23 near duplicates of evaluation prompts, 1 exact overlap with an evaluation prompt, 53 over the token limit, and 202 duplicate user texts.
+  - Classification's 102 unit rows near its task rows come from Dolly's templated classification prompts. They limit that category's task-skill measure (counted, not removed, as designed).
+- **The memory check:** Dolly's rows are shorter than v2's on every measure.
+
+  | | Dolly | v2 |
+  |---|---|---|
+  | Max | 2,137 | 2,876 |
+  | p99 | 1,098 | 1,349 |
+  | Over 2,048 | 1 | 12 |
+  | Mean | 232 | 517 |
+
+  The first candidate (SDPA, micro-batch 4) is expected to fit (v2 peaked at 57.6 GB).
+- **Frozen preparation:** the realised counts were written into `study-kt-data-dolly.json` as asserted counts (config SHA-256 `ed266d96…`), then re-prepared twice. The two outputs are identical (receipts aside), with the manifest **`9247c4bbccf212b02be7f221e2ee451d17ebf643a39a44db6e3bed6fb4d750f2`** and `expected_counts: matched`.
+- **The kit pin:** that manifest is set in the installed kit (`tmp/kill-test-stage0/kt_constants.py`). The tracked template in `runkit/` keeps `None`, as its test requires.
+
 ## Before any pod
 
-1. **The user's approval for the 13.1 MB Dolly download** (pinned revision `bdd27f4d…`, SHA-256 `2df90833…`).
-2. **Prepare the data on the Mac twice** and get an identical manifest. Then write the realised counts into the config as asserted counts, re-prepare, and set `kt_constants.PREPARED_MANIFEST`.
-3. **The memory check:** compare Dolly's token-audit tail (max, p99, over 2,048) with v2's (max 2,876, p99 1,337). The preflight's candidate order covers out-of-memory either way.
-4. **The budget guard:** the balance is $29.23. A 4.0 h cap commits $7.00, so at least $13.00 is needed. The approved spend is about $5.2.
+1. Done: the Dolly download, the twice-run preparation, the frozen manifest and the memory check (above).
+2. **The budget guard:** the balance is $29.23. A 4.0 h cap commits $7.00, so at least $13.00 is needed. The approved spend is about $5.2.
