@@ -93,6 +93,22 @@ Sentences to use, each backed by a primary source:
 
 **Interpretation for reviewers:** edits *can* move safety a lot here, in both directions, and a common fixed-size rule can choose a harmful edit. That is exactly the situation in which decision value can exist. Do not present round 1 as "classifiers fail" (see the row above).
 
+### 3a. Kill-test Stage 0 (interim, 7 October 2026; adopted direction)
+
+From the [interim results record](../experiments/2026-10-07-kill-test-stage0-results.md). Development evidence; the final record follows when seed 1102 and the second judge finish.
+
+- **Benign fine-tuning erodes safety here, a lot, and fast.** Qwen2.5-1.5B-Instruct, untuned: 4.7% of sampled answers to 200 harm prompts are unsafe. After rank-64 LoRA on 4,800 ordinary Dolly-15k rows: about 83% after 1 epoch (seeds 1102 and 1103: +78.3 and +78.8 pp) and 87.3% after 3 epochs (seed 1101: +82.7 pp). Granite Guardian agrees with Qwen3Guard on 98.3% of seed 1101's items (κ 0.965).
+- **Side effects:**
+  - the untuned model over-refuses (68% of the over-refusal bank); fine-tuning removes most refusals (2–10%);
+  - ARC drops 3.7–4.8 points after 1 epoch and 11–13 points after 3;
+  - epochs 2–3 add over-training without adding much erosion.
+- **Caveats:**
+  - the recipe is strong and near-saturating (see the [recipes review](../review/2026-10-07-benign-erosion-recipes.md); Kim et al. report heavy Dolly erosion for Qwen2.5-3B even under a mild recipe);
+  - seed 1103 exceeds the frozen "answers end" bars (capped answers above 5%);
+  - Gate A is not yet read formally.
+- **Cost:** about $4.84 + $4.72, with a third pod still running.
+- **For the application:** this result directly supports the premise (benign erosion is real and reproducible at small scale). The planned next step, a gentler literature-matched recipe for Gate B, should be described as part of the staged plan.
+
 ## 4. Methodological strengths (what reviewers will value)
 
 - **Frozen protocols before outcomes:** the amendment freezes, dated, with ledger entries in [EDGE_CHECKS.md](../review/EDGE_CHECKS.md).

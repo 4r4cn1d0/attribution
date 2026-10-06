@@ -59,6 +59,24 @@ The user: "handoff everything here to general implementation 2 from now on, this
 - delete pods only after a verified backup (the user's standing request: "dont forget to delete the pods");
 - no held-out data reads.
 
+## STATUS, 7 October 2026, about 03:15 IST (General Implementation 2, the lead)
+
+- **Kill-test Stage 0:** see `research/experiments/2026-10-07-kill-test-stage0-results.md` (interim).
+  - Seeds 1101 and 1103 are retrieved.
+  - Seed 1102 is running its e3 evaluation (cap extended to 23:00 UTC).
+  - The finisher (`tmp/kill-test-stage0/finisher.py`) and Granite (`second_judge_kt.py`, resumable) run on the Mac under `caffeinate`.
+- **When seed 1102 lands:**
+  1. re-run `second_judge_kt.py` for its units;
+  2. read Gate A at e1 and e3 with `scripts/killtest_stage0_reading.py` (three --a0 folders and --second-judge);
+  3. write the final record and an EDGE_CHECKS row;
+  4. back up the records (v2 pattern: a private draft release);
+  5. then delete the three stopped pods (the user's standing request, after a verified backup).
+- **Decisions waiting for the user:**
+  - adopt the gentler recipe B for Gate B (needs a rule amendment and a fresh 3-seed Gate A, about $12–15);
+  - a RunPod top-up (the balance after Stage 0 is about $11);
+  - submit BlueDot ($6,000 chosen) and the first outreach emails (`writing/outreach/`).
+- **New chats:** "Education" (learning material: `research/education/`). The FAQ chat was told the email status at 00:55 IST.
+
 ## 0. Direction change: read this first (adopted by the user, 6 October, about 04:00 IST)
 
 The research direction changed. [FOCUS.md](../../research/FOCUS.md) now leads with **"Adopted direction"**:
