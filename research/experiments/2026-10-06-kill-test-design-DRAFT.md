@@ -675,3 +675,14 @@ This list is separate from the design. Every item must keep existing recipes, da
    - GSM8K `main`'s 1,319-row split is the standard **test** split (not "validation").
    - The licences of `Qwen2.5-1.5B-Instruct` and `Qwen3Guard-Gen-4B` are expected to be Apache-2.0. Check the model cards before use.
    - Dolly's smallest category (creative_writing) may be close to the n = 600 limit after the 25 held-out rows and the exclusions. The build rule's round-down fallback covers this, but the mixture size, and so the step count, then changes for every run.
+
+## Amendment 1: recipe choice before Gate B (2026-10-06 18:55 UTC; fixed before any e1 outcome)
+
+Stage 0, seed 1101 (e3): untuned sampled unsafe 4.7% (28/600) → 87.3% (524/600), E = +82.7 pp. ARC 0.910 → 0.783. Held-out Dolly task loss 1.890 → 1.857. Capped 3.8%, coherence-screen failures 6.4%. Granite's interim agreement with Qwen3Guard on the e3 greedy answers: 96.7% (183 judged).
+
+This erosion is close to saturation. It can hide a local cause in Gate B, because removing one unit leaves 7 that may still saturate the erosion. The user approved seeds 1102 and 1103, each evaluated at e1 and e3 (the same pods; e3 resumes from e1). The recipe for Gate B and the main study is then chosen by the rule recorded in [FOCUS.md](../FOCUS.md), "Decisions, 6 October 2026":
+- the earliest checkpoint whose 3-seed Gate A passes with E ≥ 15 pp;
+- with an ARC drop of at most 0.03;
+- otherwise e3, with the skill loss reported as a limitation.
+
+The rule uses Gate A data only.

@@ -54,6 +54,13 @@ Status, 2 October 2026: exploratory; hypotheses untested; design incomplete; not
 - **Write the paper around one plain headline.** Keep the estimand machinery in the protocol and the appendix.
 - **Contact the authors of the benign-erosion papers early** (Qi et al.; He et al.), with the Stage 0 result, about the expected size and localization of the erosion at small scale.
 - **Apply for funding now:** BlueDot first, $6,000 (the [draft](grant/2026-10-06-bluedot-application-DRAFT.md)), then the other funders in the grant dossier, §11c.
+- **Recipe choice rule for Gate B and the main study (fixed 2026-10-06 18:55 UTC, before any one-epoch (e1) outcome exists; the user agreed).** Seed 1101's 3-epoch fine-tune nearly saturated the erosion (sampled unsafe 4.7% → 87.3%) and cost 12.7 ARC points. Near-total erosion can hide a local cause from Gate B, because any 7 of the 8 units may still saturate it. So:
+  - **Candidates:** the e1 and e3 checkpoints of `study-kt-instruct-r64-mb4-20261006`. Seeds 1102 and 1103 are evaluated at both; seed 1101 only at e3.
+  - **A candidate qualifies** if, over 3 seeds: mean E ≥ 15 pp; E ≥ 2 × SD; every seed is above the untuned model; Granite agrees on the direction; at most 5% of answers are capped and at most 10% fail the coherence screen; **and the ARC drop (untuned 0.910 minus the mean) is at most 0.03**.
+  - **Choose the earliest qualifying checkpoint** (e1 before e3).
+  - If e1 qualifies on seeds 1102 and 1103 and only lacks a third seed, run seed 1101 at e1 (one pod, about $3–4, after the user's go). Then decide.
+  - If no candidate meets the ARC limit, keep e3 and report the skill loss as a limitation. Gate A at e3 is still read by its own rule.
+  - The choice uses Gate A data only (erosion, its noise, answers ending, ARC), never any Gate B outcome. The unused checkpoint is reported as a dose-response point.
 
 **Target venue:** ICML 2027 (deadline estimated at about 22 January 2027; not yet official), if about $3–5k of funding arrives by early November. Otherwise NeurIPS 2027.
 
