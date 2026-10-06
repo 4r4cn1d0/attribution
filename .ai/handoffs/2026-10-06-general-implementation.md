@@ -168,6 +168,18 @@ python3.11 orchestrate.py status val05
 python3.11 host.py ssh val05 'tail -n 2 /workspace/attribution-headroom/round1/1101-a0-e3-a1/progress.jsonl'
 ```
 
+### 4c. Final state of v2 (6 October, 02:20 UTC / 07:50 IST)
+
+- **The positive control is done.** See research/experiments/2026-10-06-headroom-v2-results.md.
+  - Targeted rewrite: −68.8 pp unsafe against a0 and −70.5 pp against random rewrite, both intervals excluding 0.
+  - But XSTest-safe over-refusal rose from 1% to 44%, so it FAILS the no-damage rule.
+- **Records:** backed up to the private draft release backup-2026-10-06-headroom-v2 (verified). **All pods are deleted**; the account has none.
+- **Still pending:**
+  - the Granite second judge, running on the Mac (`tmp/headroom-v2/second_judge_v2.py`, resumable cache; summary at `tmp/headroom-v2/second-judge-v2-summary.json`). When it finishes: add its agreement and direction to the results record, then notify FAQ (its request: results path, arms and seeds, agreement figure);
+  - the user's decisions on the staged kill test (about $145) and the three FOCUS-draft decisions;
+  - grant applications (dossier 11c; the user is US-based).
+- **Usage** was at 98% of the weekly limit at 07:45 IST; it resets on 8 October at about 14:30 IST.
+
 ### 4b. Update at 21:50 UTC (03:20 IST, 6 October)
 
 - **Calibration is done; k = 507 (5%).** Details are in the work-plan log.
