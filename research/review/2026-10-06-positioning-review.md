@@ -12,6 +12,10 @@
 | Xiao and Aranguri: dollar costs ($30 / $320 / about $500) and an 85% reduction from removal by source | [arXiv 2602.11079](https://arxiv.org/abs/2602.11079) abstract | **Partly checked.** The current title is "Probe-Based Data Attribution: Discovering and Mitigating Undesirable Behaviors in LLM Post-Training". The abstract says probe attribution is "over 10 times cheaper" than gradient attribution and LLM-judge baselines. It reports filtering −63% and label switching −78%. The dollar figures and the 85% were not checked against the body. |
 | The v2 confirmation menus have no contamination | [v2 amendment](../experiments/2026-10-05-headroom-v2-amendment-draft.md), line 32 | **Confirmed by design:** "All injected rows are in the editable pool. None is in a held-out group." This matters for the decision study, not for the v2 positive control. |
 
+> **Correction (6 October, FAQ chat's paper check while verifying the published post).**
+> - **DATE-LM's retraining results agree with Pan et al.** Removing attribution's picks gave a safer retrained model than removing WildGuard's, even though classifiers detect the unsafe rows better (higher AUPRC). So the cleaner motivation is not "prior work disagrees by kind of data". It is **"detection quality and decision outcome disagree"**: the better detector led to the worse fix. That is the kind of documented case section 4 objection 1 asked for. Check the DATE-LM PDF before citing.
+> - **Luo et al. report an XSTest score drop** (0.516 → 0.252), not an over-refusal rate.
+
 ## 1. Bottom line (the review's)
 
 1. **The open gap is narrow but real.** No paper, in any domain, compares spending compute on attribution with spending the same compute on more pilot runs of the candidate edits. That comparison is still open when it also has training seeds, feasibility limits and held-out menus. Every other part of the design is at least partly done.

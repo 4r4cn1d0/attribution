@@ -69,6 +69,8 @@ Sentences to use, each backed by a primary source:
   - value is reported as a function of the diagnostic-to-run cost ratio;
   - v2 becomes the anchor;
   - target: ICML 2027, if funded by early November.
+- **Correction (6 October):** DATE-LM's *retraining* results agree with Pan et al. Removing attribution's picks gave safer models than removing WildGuard's, even though classifiers *detect* better. The sharper motivation is therefore "detection quality and decision outcome disagree" (check the DATE-LM PDF before citing).
+- **Public output:** the Substack post "First, Make Sure a Fix Can Work" was published on 6 October 2026 at the user's request ([link](https://spiderishi.substack.com/p/first-make-sure-a-fix-can-work)). It describes development results only.
 - **Planned framing:**
   - **Claim now** (grant, workshop): attribution as a decision input at matched compute.
   - **Build toward:** "how many training runs attribution is worth", across kinds of data (overt, look-alike, benign-looking degrading).
