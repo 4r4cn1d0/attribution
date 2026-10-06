@@ -52,6 +52,12 @@ def _parser() -> argparse.ArgumentParser:
     p.add_argument("--sources-root", help="folder holding the data config's extra_sources files "
                                           "(headroom v2; required exactly when the config names them)")
     p.add_argument("--out", required=True)
+    p = sub.add_parser("prepare-task", help="kill test: deterministic task-data preparation (Dolly units, "
+                                            "task rows, imported banks) from local pinned files")
+    p.add_argument("--data-config", required=True, help="a task data config")
+    p.add_argument("--sources-root", required=True, help="folder holding the config's source.local file")
+    p.add_argument("--banks-from", required=True, help="the prepared-v3 folder whose bank files are imported")
+    p.add_argument("--out", required=True)
     p = sub.add_parser("plan", help="offline workload plan (nothing loads or runs)")
     p.add_argument("--recipe", required=True)
     p.add_argument("--prepared", required=True)
@@ -188,6 +194,32 @@ def _prepare(args: argparse.Namespace) -> dict:
                                               if k != "rule"}}} if "headroom_v2" in manifest else {})}
 
 
+def _prepare_task(args: argparse.Namespace) -> dict:
+    from .assets import tokenizer_identity
+    from .config import TASK_BANK_FILES, TASK_DATA_KIND
+    from .loaders import load_tokenizer
+    from .prepare import MANIFEST, write_prepared
+    from .prepare_task import prepare_task
+
+    config = load_data_config(args.data_config)
+    if config["kind"] != TASK_DATA_KIND:
+        raise ValueError("prepare-task needs a task data config (use prepare for the others)")
+    spec = config["tokenizer"]
+    tokenizer, _ = load_tokenizer(spec["repo_id"], spec["revision"])
+    source = Path(args.sources_root) / config["source"]["local"]
+    banks = Path(args.banks_from)
+    files = prepare_task(config, source.read_bytes(), (banks / MANIFEST).read_bytes(),
+                         {name: (banks / name).read_bytes() for name in TASK_BANK_FILES}, tokenizer,
+                         tokenizer_identity(spec["repo_id"], spec["revision"]))
+    receipt = {"python": sys.version, "platform": platform.platform(), "code": code_identity(), "utc": utc_now(),
+               "inputs": {"source": str(source.resolve()), "banks_from": str(banks.resolve())}}
+    digest = write_prepared(args.out, files, receipt)
+    manifest = json.loads(files["manifest.json"])
+    return {"manifest_sha256": digest, "out": args.out, "corpus": manifest["corpus"],
+            "rows_per_unit": manifest["rows_per_unit"], "banks": manifest["banks"],
+            "eligibility": manifest["eligibility"], "token_audit": manifest["token_audit"]}
+
+
 def _make_job(args: argparse.Namespace) -> dict:
     from .planning import make_job
 
@@ -274,6 +306,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         if args.command == "prepare":
             _print(_prepare(args))
+            return 0
+        if args.command == "prepare-task":
+            _print(_prepare_task(args))
             return 0
         if args.command == "plan":
             from .planning import build_plan

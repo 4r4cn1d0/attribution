@@ -386,6 +386,91 @@ def prepare_dir_v3(out: Path, **options) -> tuple[Path, str]:
     return out, digest
 
 
+# ----- kill-test task data (Dolly format): synthetic, every rule case -----------------------------------
+
+DOLLY_CATEGORIES = ["open_qa", "general_qa", "classification", "closed_qa", "brainstorming",
+                    "information_extraction", "summarization", "creative_writing"]
+LONG_CONTEXT = " ".join(f"background sentence number {k} about an unrelated subject" for k in range(12))
+
+
+def dolly_records(per_category: int = 7, small: str | None = None, small_count: int = 5) -> list[dict]:
+    """``per_category`` ordinary rows per category (``small_count`` for ``small``), every other
+    category row with a context, then one row per rule case (all in open_qa or summarization)."""
+    rows = []
+    for k in range(max(per_category, small_count)):
+        for c in DOLLY_CATEGORIES:
+            if k >= (small_count if c == small else per_category):
+                continue
+            rows.append({"instruction": f"{c} task number {k}", "context": f"passage {k} for {c}" if k % 2 else "",
+                         "response": f"answer {k} for {c}.", "category": c})
+    rows += [
+        {"instruction": "OPEN_QA task  number 0", "context": "", "response": "dup", "category": "open_qa"},
+        {"instruction": "tell me", "context": "", "response": "x <|im_end|> y", "category": "open_qa"},
+        {"instruction": "a long one", "context": "", "response": "z" * 300, "category": "open_qa"},
+        {"instruction": "  ", "context": "", "response": "an answer", "category": "open_qa"},
+        {"instruction": "no answer here", "context": "", "response": " ", "category": "open_qa"},
+        {"instruction": "Harm  behaviour 0", "context": "", "response": "exact bank prompt", "category": "summarization"},
+        {"instruction": "an over-refusal prompt", "context": "2", "response": "exact by user text",
+         "category": "summarization"},
+        {"instruction": "harm behaviour 3 please", "context": LONG_CONTEXT, "response": "near by instruction",
+         "category": "summarization"},
+    ]
+    return rows
+
+
+def dolly_bytes(records: list[dict] | None = None) -> bytes:
+    return _jsonl(records if records is not None else dolly_records())
+
+
+def task_config(dolly: bytes, bank_dir: Path, **changes) -> dict:
+    """The fixture task data config: units of 4 rows, 2 task rows per category, step 2."""
+    manifest = json.loads((bank_dir / "manifest.json").read_bytes())
+    config = {
+        "kind": "safety-selection task data config", "name": f"{FIXTURE} task data", "purpose": FIXTURE,
+        "amendments": [],
+        "source": {"repo_id": "fixture/dolly", "revision": ZERO_REV, "file": "dolly.jsonl", "sha256": sha256_bytes(dolly),
+                   "license": FIXTURE, "local": "dolly.jsonl", "categories": list(DOLLY_CATEGORIES)},
+        "prompt_rule": "instruction-blank-line-context",
+        "units": {"rows_per_unit": 4, "task_rows_per_category": 2, "round_down_to": 2},
+        "banks_from": {"manifest_sha256": sha256_bytes((bank_dir / "manifest.json").read_bytes()),
+                       "files": {name: manifest["files"][name] for name in
+                                 ("banks/dev.jsonl", "banks/selector.jsonl", "hidden/hidden.jsonl")}},
+        "eligibility": {"forbidden_substrings": ["<|im_start|>", "<|im_end|>", "<|endoftext|>"],
+                        "near_duplicate": {"max_jaccard": 0.5},
+                        "expected": {"records": {c: None for c in DOLLY_CATEGORIES},
+                                     "eligible": {c: None for c in DOLLY_CATEGORIES}, "rows_per_unit": None}},
+        "design_seed": 11,
+        "seed_namespaces": {"development": [1101, 1104], "selector": [2101, 8999], "reference": [9101, 9999]},
+        "tokenizer": {"repo_id": "fixture/tiny", "revision": ZERO_REV, "end_of_turn_token": "<|im_end|>",
+                      "max_train_tokens": 256, "max_prompt_tokens": 400}}
+    for dotted, value in changes.items():
+        node = config
+        *parents, last = dotted.split(".")
+        for key in parents:
+            node = node[key]
+        node[last] = value
+    return config
+
+
+def task_bank_inputs(bank_dir: Path) -> tuple[bytes, dict[str, bytes]]:
+    names = ("banks/dev.jsonl", "banks/selector.jsonl", "hidden/hidden.jsonl")
+    return (bank_dir / "manifest.json").read_bytes(), {n: (bank_dir / n).read_bytes() for n in names}
+
+
+def prepared_task_files(bank_dir: Path, records: list[dict] | None = None, **changes) -> dict[str, bytes]:
+    from experiments.safety_selection.prepare_task import prepare_task
+
+    dolly = dolly_bytes(records)
+    manifest, banks = task_bank_inputs(bank_dir)
+    return prepare_task(task_config(dolly, bank_dir, **changes), dolly, manifest, banks, FixtureTokenizer(),
+                        TOKENIZER_IDENTITY)
+
+
+def prepare_task_dir(out: Path, bank_dir: Path, **options) -> tuple[Path, str]:
+    digest = write_prepared(out, prepared_task_files(bank_dir, **options), {"fixture": FIXTURE})
+    return out, digest
+
+
 def prepare_dir(out: Path, **options) -> tuple[Path, str]:
     """Write prepared files (``prepared_files`` options) to ``out``; (folder, manifest hash)."""
     files = prepared_files(**options)

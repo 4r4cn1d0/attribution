@@ -411,6 +411,53 @@ the rest), asserts the chat-token-row separation, compares batched and one-at-a-
 sampled answers, times the evaluation on a sample of each development kind with peak memory and a
 projection to the full bank, and optionally checks the rewrite generator.
 
+## Kill test, Stage 0 (6 October 2026)
+
+Built for [the kill-test draft](../../research/experiments/2026-10-06-kill-test-design-DRAFT.md) (brief
+`kill-test-stage0-engine-20261006`): the untuned `Qwen2.5-1.5B-Instruct` baseline and one Dolly-15k fine-tune.
+Existing configs, prepared data and jobs keep their bytes; the golden regression is unchanged. **Nothing here has
+run on a GPU, and Dolly has not been prepared** (the lead prepares it on the Mac).
+
+**Task data** (`prepare_task.py`, `configs/study-kt-data-dolly.json`, kind `safety-selection task data config`;
+`load_data_config` dispatches on the kind):
+
+```text
+python -m experiments.safety_selection prepare-task --data-config experiments/safety_selection/configs/study-kt-data-dolly.json \
+  --sources-root sources/kill-test --banks-from prepared-v3-inj05 --out prepared-kt-dolly
+```
+
+`prepare_task.TASK_RULE` (in the manifest): user text = instruction, blank line, context (when not blank), nothing
+cleaned; exclusions (empty fields, control strings, equality with any evaluation prompt or ARC form, near duplicates
+of any evaluation prompt by the instruction alone or by the user text, first row per user text, the token audit);
+per category a seeded shuffle gives 25 task rows (the query rows, whose per-row NLL every evaluation records under
+`TASK_QUERY_LOSS_DEFINITION`) and a unit of n = 600 rows (rounded down in steps of 50 for every unit if a category is
+short); each unit is a development group (opaque id); the held-out partition is empty. The three bank files of
+prepared-v3-inj05 are copied byte for byte after their hashes verify and every item is re-audited. Dolly lines and
+each row's category are auditor-only; the manifest (engine scope) has per-category counts, near-duplicate counts and
+the unit table, which maps each unit id to its category (as the brief asks); the selector-facing `x0_static.json` has
+no category. Each excluded row is counted once, under its first reason in rule order.
+Expected counts are null until the first preparation, then asserted.
+
+**Recipes**: `study-kt-instruct-r64-mb4-20261006` (pc2-mb4 on the Instruct snapshot; no `model.tokenizer`, no
+trainable token rows; 73,859,072 trainable values), then the fallbacks `-mb2-` (sdpa, micro-batch 2 × 4) and
+`-mb2-eager-` (eager, 2 × 4), all 8 rows per step. The preflight tries them in this order.
+
+**Preflight** `scripts/cuda_preflight_killtest.py` (written, not run): v3's steps, plus no trained token rows and an
+unchanged embedding (asserted), distinct chat rows (asserted), `memory_ok` (an out-of-memory memory preflight is a
+verdict, so the next candidate is tried), and `init_equals_untuned` (the B = 0 adapter against a freshly loaded plain
+model: prefill logits and greedy ids; a verdict, not an assertion). The first candidate with memory_ok, an exact
+fixture and distinct chat rows is used for every seed.
+
+**The pod job** (`runkit/kill-test-stage0/`, installed by the lead as `tmp/kill-test-stage0/`): on the first host,
+the untuned baseline in its own engine process (`make-job` + `run-one` into `round1/1101-a0-init-a1`), then
+`calibrate --base-eval --checkpoints e3`, which reuses that unit and trains a0 seed 1101 to e3; without
+`init_equals_untuned` the baseline is skipped and recorded. `setup/job_runner_kt.py HOST --dry-run` prints the
+engine commands.
+
+**Reading** `scripts/killtest_stage0_reading.py` with `configs/killtest-stage0-reading-20261006.json`: U, E, the
+coherence screen, the futility verdict after one seed and Gate A after three (counts only; every comparison exact,
+from the integer counts). A host that fails before its job starts is stopped by `orchestrate.py` (never deleted).
+
 ## Not done here
 
 No selector, menu replay, TF-IDF relevance features, acquisition, endpoint, margin, interval or

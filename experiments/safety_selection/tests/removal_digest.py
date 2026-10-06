@@ -40,8 +40,11 @@ def unit_digest(folder: Path) -> dict:
     job.pop("code_sha256", None)
     resume = job.get("resume_from")
     job["resume_from"] = None if resume is None else Path(resume).name     # where the tree lives is not science
-    out = {"job": _canonical(job), "plan": _canonical(json.loads((folder / "plan.json").read_text())),
-           "steps": _canonical([_strip(json.loads(line)) for line in (folder / "steps.jsonl").read_text().splitlines()]),
+    plan, steps = folder / "plan.json", folder / "steps.jsonl"      # an init-only unit trains no step
+    out = {"job": _canonical(job),
+           "plan": _canonical(json.loads(plan.read_text())) if plan.exists() else "absent",
+           "steps": _canonical([_strip(json.loads(line)) for line in steps.read_text().splitlines()])
+           if steps.exists() else "absent",
            "states": {}, "eval": {}}
     for state in sorted((folder / "states").iterdir()):
         record = _strip(json.loads((state / "state.json").read_text()))

@@ -56,7 +56,7 @@ from pathlib import Path
 
 from .common import canonical_json, sha256_bytes
 
-__all__ = ["ConfigError", "DATA_KIND", "RECIPE_KIND", "ROLES", "PARTITIONS", "BANKS", "EVAL_BANK_KINDS",
+__all__ = ["ConfigError", "DATA_KIND", "TASK_DATA_KIND", "TASK_BANK_FILES", "validate_task_data_config", "RECIPE_KIND", "ROLES", "PARTITIONS", "BANKS", "EVAL_BANK_KINDS",
            "SOURCE_FORMATS", "injection_count",
            "NAMESPACES", "INIT", "BATCHING", "LOSS", "ATTRIBUTION_VARIANTS", "ARC_TEMPLATE",
            "validate_data_config", "validate_recipe", "load_data_config", "load_recipe",
@@ -64,6 +64,7 @@ __all__ = ["ConfigError", "DATA_KIND", "RECIPE_KIND", "ROLES", "PARTITIONS", "BA
            "seed_namespace", "tokenizer_of"]
 
 DATA_KIND = "safety-selection data config"
+TASK_DATA_KIND = "safety-selection task data config"     # kill-test task data (``validate_task_data_config``)
 RECIPE_KIND = "safety-selection recipe"
 # Composition columns after "size", in this order. Seed streams are named by these roles, never
 # by the raw type strings, so renaming hidden type labels changes no selector-facing output.
@@ -326,6 +327,12 @@ def validate_data_config(config: dict) -> dict:
         _int(spec["generation"], f"banks.arc.{bank}.generation", 1)
         _int(spec["utility"], f"banks.arc.{bank}.utility", 1)
 
+    _validate_namespaces_and_tokenizer(config)
+    _validate_v3(config)
+    return config
+
+
+def _validate_namespaces_and_tokenizer(config: dict) -> None:
     spaces = _keys(config["seed_namespaces"], set(NAMESPACES), "seed_namespaces")
     ranges = []
     for name in NAMESPACES:
@@ -348,7 +355,56 @@ def validate_data_config(config: dict) -> dict:
     _text(tok["end_of_turn_token"], "tokenizer.end_of_turn_token")
     _int(tok["max_train_tokens"], "tokenizer.max_train_tokens", 2)
     _int(tok["max_prompt_tokens"], "tokenizer.max_prompt_tokens", 2)
-    _validate_v3(config)
+
+
+TASK_PROMPT_RULES = ("instruction-blank-line-context",)
+TASK_BANK_FILES = ("banks/dev.jsonl", "banks/selector.jsonl", "hidden/hidden.jsonl")
+
+
+def validate_task_data_config(config: dict) -> dict:
+    """The kill-test task data config (``TASK_DATA_KIND``; ``prepare_task.py``): one pinned
+    Dolly-format source with its categories in a fixed order, the prompt rule, the units (rows per
+    unit, task rows per category, the round-down step), the bank import (a prepared-v3 manifest and
+    its three bank files' hashes), eligibility (forbidden substrings, the near-duplicate bar,
+    optional asserted counts), the design seed, seed namespaces and the tokenizer section."""
+    _keys(config, {"kind", "name", "purpose", "amendments", "source", "prompt_rule", "units", "banks_from",
+                   "eligibility", "design_seed", "seed_namespaces", "tokenizer"}, "task data config")
+    _fixed(config["kind"], TASK_DATA_KIND, "kind")
+    _text(config["name"], "name")
+    _text(config["purpose"], "purpose")
+    _texts(config["amendments"], "amendments", allow_empty=True)
+    src = _keys(config["source"], {"repo_id", "revision", "file", "sha256", "license", "local", "categories"},
+                "source")
+    for key in ("repo_id", "file", "license", "local"):
+        _text(src[key], f"source.{key}")
+    if Path(src["local"]).is_absolute() or ".." in Path(src["local"]).parts:
+        raise ConfigError("source.local must be a relative path under the sources root")
+    _hex(src["revision"], 40, "source.revision")
+    _hex(src["sha256"], 64, "source.sha256")
+    categories = _texts(src["categories"], "source.categories")
+    if config["prompt_rule"] not in TASK_PROMPT_RULES:
+        raise ConfigError(f"prompt_rule must be one of {TASK_PROMPT_RULES}")
+    units = _keys(config["units"], {"rows_per_unit", "task_rows_per_category", "round_down_to"}, "units")
+    step = _int(units["round_down_to"], "units.round_down_to", 1)
+    if _int(units["rows_per_unit"], "units.rows_per_unit", 1) % step:
+        raise ConfigError("units.rows_per_unit must be a multiple of units.round_down_to")
+    _int(units["task_rows_per_category"], "units.task_rows_per_category", 1)
+    banks = _keys(config["banks_from"], {"manifest_sha256", "files"}, "banks_from")
+    _hex(banks["manifest_sha256"], 64, "banks_from.manifest_sha256")
+    for name, digest in _keys(banks["files"], set(TASK_BANK_FILES), "banks_from.files").items():
+        _hex(digest, 64, f"banks_from.files.{name}")
+    elig = _keys(config["eligibility"], {"forbidden_substrings", "near_duplicate", "expected"}, "eligibility")
+    _texts(elig["forbidden_substrings"], "eligibility.forbidden_substrings")
+    near = _keys(elig["near_duplicate"], {"max_jaccard"}, "eligibility.near_duplicate")
+    if not 0 < _number(near["max_jaccard"], "eligibility.near_duplicate.max_jaccard") <= 1:
+        raise ConfigError("eligibility.near_duplicate.max_jaccard must be in (0, 1]")
+    expected = _keys(elig["expected"], {"records", "eligible", "rows_per_unit"}, "eligibility.expected")
+    for part in ("records", "eligible"):
+        for category, value in _keys(expected[part], set(categories), f"eligibility.expected.{part}").items():
+            _optional_int(value, f"eligibility.expected.{part}.{category}")
+    _optional_int(expected["rows_per_unit"], "eligibility.expected.rows_per_unit")
+    _int(config["design_seed"], "design_seed")
+    _validate_namespaces_and_tokenizer(config)
     return config
 
 
@@ -501,7 +557,12 @@ def validate_recipe(recipe: dict) -> dict:
 
 
 def load_data_config(path: str | Path) -> dict:
-    return validate_data_config(json.loads(Path(path).read_text(encoding="utf-8")))
+    """A data config validated by its kind: the safety-selection data config, or the task data
+    config of the kill test (``validate_task_data_config``)."""
+    config = json.loads(Path(path).read_text(encoding="utf-8"))
+    if isinstance(config, dict) and config.get("kind") == TASK_DATA_KIND:
+        return validate_task_data_config(config)
+    return validate_data_config(config)
 
 
 def load_recipe(path: str | Path) -> dict:

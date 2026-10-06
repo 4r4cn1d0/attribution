@@ -423,7 +423,8 @@ def _train_and_evaluate(job: dict, prepared: Prepared, removed: list[str], previ
         queries, query_sha = _query_examples(policy, prepared, recipe)
         evaluation = evaluate_checkpoint(session, policy, optimizer,
                                          prepared.banks[job["evaluate_bank"]], queries, query_sha,
-                                         ledger, run_dir / "eval" / target, run_dir, target, job["seed"])
+                                         ledger, run_dir / "eval" / target, run_dir, target, job["seed"],
+                                         prepared.manifest.get("query_loss_definition"))
     with ledger.stage("verify_trajectory") as info:
         problems = check_trajectory(trajectory_steps(run_dir), plan, positions[target]["step"])
         if problems:
@@ -557,7 +558,8 @@ def sample_seed(job_seed: int, prompt_id: str, index: int) -> int:
 
 def evaluate_checkpoint(session: Session, policy: Policy, optimizer, items: list[dict],
                         queries: list[TrainExample], query_bank_sha256: str, ledger: RunLedger,
-                        folder: Path, run_dir: Path, checkpoint: str, job_seed: int | None = None) -> dict:
+                        folder: Path, run_dir: Path, checkpoint: str, job_seed: int | None = None,
+                        query_definition: str | None = None) -> dict:
     """The forward-only query loss, generation (safety and benign ARC prompts), ARC forced
     choice, guard scoring and the optional secondary toxicity score of one checkpoint, each in
     its own charged stage. Weights, optimizer state, RNG states and train/eval mode must be
@@ -596,7 +598,7 @@ def evaluate_checkpoint(session: Session, policy: Policy, optimizer, items: list
               "token_sha256": ids_sha256(q.input_ids), "loss": loss} for q, loss in zip(queries, losses)]))
         query_summary = {"n": len(losses), "mean": fmean(losses), "query_bank_sha256": query_bank_sha256,
                          "forward_passes": len(queries), "seconds": info["seconds"],
-                         "definition": en.QUERY_LOSS_DEFINITION}
+                         "definition": query_definition or en.QUERY_LOSS_DEFINITION}
         prompts = [_prompt_ids(codec, i, recipe["model"]["max_prompt_tokens"]) for i in gen_items]
 
         def on_batch(b: int, index: list[int], batch: list) -> None:
@@ -763,7 +765,7 @@ def eval_state(job: dict, *, prepared_dir: str | Path, out_dir: str | Path, sess
         queries, query_sha = _query_examples(policy, prepared, recipe)
         evaluation = evaluate_checkpoint(session, policy, None, prepared.banks[bank], queries, query_sha,
                                          ledger, run_dir / "eval" / job["checkpoint"], run_dir,
-                                         job["checkpoint"], stored["seed"])
+                                         job["checkpoint"], stored["seed"], prepared.manifest.get("query_loss_definition"))
         result = {"source_run": str(source), "source_code_sha256": marker["identity"]["code_sha256"],
                   "source_recipe_sha256": marker["identity"]["recipe_sha256"],
                   "source_complete_sha256": receipt["complete_sha256"],

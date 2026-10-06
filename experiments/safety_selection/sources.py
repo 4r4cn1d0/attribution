@@ -20,7 +20,8 @@ import json
 from .common import sha256_bytes
 
 __all__ = ["DataError", "HashMismatch", "LeakageError", "check_sha256", "parse_date_lm",
-           "parse_toxicchat", "parse_arc", "parse_pku", "parse_csv_table", "PKU_FIELDS"]
+           "parse_toxicchat", "parse_arc", "parse_pku", "parse_csv_table", "PKU_FIELDS", "parse_dolly",
+           "DOLLY_FIELDS"]
 
 
 class DataError(ValueError):
@@ -243,3 +244,27 @@ def parse_csv_table(data: bytes, expected_sha256: str, source: str, header: list
     except csv.Error as exc:
         raise DataError(f"{source}: malformed CSV: {exc}") from exc
     return rows, {"records": len(rows), "bom": bom}
+
+
+DOLLY_FIELDS = ("instruction", "context", "response", "category")
+
+
+def parse_dolly(data: bytes, expected_sha256: str, source: str, categories: list[str]) -> tuple[list[dict], dict]:
+    """Dolly-format JSONL (kill test; ``prepare_task.py``): exactly ``DOLLY_FIELDS``, every one a
+    string, and a category from ``categories``. Returns one row per record with its 1-based
+    ``line`` and a receipt of records, blank lines and records per category."""
+    check_sha256(data, expected_sha256, source)
+    lines, blank = _jsonl_lines(data, source)
+    allowed, rows = set(categories), []
+    for number, line in lines:
+        where = f"{source}:{number}"
+        obj = _object(line, where)
+        if set(obj) != set(DOLLY_FIELDS):
+            raise DataError(f"{where}: fields differ from {list(DOLLY_FIELDS)}")
+        if not all(isinstance(obj[k], str) for k in DOLLY_FIELDS):
+            raise DataError(f"{where}: every field must be a string")
+        if obj["category"] not in allowed:
+            raise DataError(f"{where}: category is not one of the configured categories")
+        rows.append({"source": source, "line": number, **{k: obj[k] for k in DOLLY_FIELDS}})
+    by_category = {c: sum(r["category"] == c for r in rows) for c in categories}
+    return rows, {"records": len(rows), "blank_lines": blank, "records_by_category": by_category}
