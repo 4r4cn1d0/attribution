@@ -48,6 +48,13 @@ Status, 2 October 2026: exploratory; hypotheses untested; design incomplete; not
    - time every diagnostic.
 2. A design revision of the sections below, then a freeze.
 
+**Decisions, 6 October 2026 (evening IST; the user agreed):**
+- **The kill test decides, by its own rules.** If Stage 0 or Gate B fails, take the fallback below rather than adjust the design until something passes. The size and spending rules are in the [kill-test design draft](experiments/2026-10-06-kill-test-design-DRAFT.md).
+- **The agreed fallback, if the erosion is diffuse (Gate B) or absent after the ladder:** the paper becomes *choosing a data fix under its side effects at a fixed compute budget*. The question: which fix (keep, add a safety mix, rewrite or self-distill) restores safety within the over-refusal and task-skill limits, and can a cheap signal predict a fix's side effects better than trial runs at the same compute? This keeps co-primary side-effect prediction and the cost accounting. It does not need a localized cause. v2's over-refusal result (1/50 → 22/50 XSTest-safe refusals in both seeds) is its development motivation.
+- **Write the paper around one plain headline.** Keep the estimand machinery in the protocol and the appendix.
+- **Contact the authors of the benign-erosion papers early** (Qi et al.; He et al.), with the Stage 0 result, about the expected size and localization of the erosion at small scale.
+- **Apply for funding now:** BlueDot first, $6,000 (the [draft](grant/2026-10-06-bluedot-application-DRAFT.md)), then the other funders in the grant dossier, §11c.
+
 **Target venue:** ICML 2027 (deadline estimated at about 22 January 2027; not yet official), if about $3–5k of funding arrives by early November. Otherwise NeurIPS 2027.
 
 ## Operative question (2 October 2026 version; superseded on 6 October by the adopted direction above)
