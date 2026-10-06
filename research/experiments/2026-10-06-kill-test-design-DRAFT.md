@@ -686,3 +686,32 @@ This erosion is close to saturation. It can hide a local cause in Gate B, becaus
 - otherwise e3, with the skill loss reported as a limitation.
 
 The rule uses Gate A data only.
+
+## Amendment 2: recipe B replaces the Stage 0 recipe (7 October 2026, about 03:40 IST = 22:10 UTC on 6 October; fixed before any recipe-B outcome)
+
+**Why.** Under the frozen rule, Stage 0's Gate A cannot pass at either checkpoint of `study-kt-instruct-r64-mb4-20261006` ([interim results](2026-10-07-kill-test-stage0-results.md)):
+- every unit must have at most 5% capped answers and at most 10% failing the coherence screen (`scripts/killtest_stage0_reading.py`); seed 1103 has 8.0% capped and 12.1% failing at e1, and 5.5% capped at e3;
+- e1 also fails the ARC limit (drops 0.037 and 0.048).
+
+Erosion itself passed by a wide margin (+78 to +83 pp). The near-saturation concern of Amendment 1 also stands. **The user chose to adopt the literature-matched recipe B** ([recipes review](../review/2026-10-07-benign-erosion-recipes.md), section 5.2). The Stage 0 recipe's formal Gate A verdict is still written when seed 1102 lands.
+
+**Honesty note.** This is a design change made after a gate outcome. Two things limit the damage: every Gate A bar stays exactly as frozen, and the switch addresses the saturation concern recorded in Amendment 1 before any e1 outcome. It is still reported as a post-outcome change.
+
+**The recipe.** `experiments/safety_selection/configs/study-kt-instruct-r64-b128-qi-20261007.json`: the Stage 0 recipe unchanged except
+- `grad_accum` 2 → 32 (effective batch 128, Qi et al.'s batch size);
+- `lr` 2e-4 → 1e-4 (Qi et al. App. F, their LoRA benign-tuning LR).
+
+On the 4,800 prepared Dolly rows that gives 38 steps per epoch (the last of 64 rows): q = step 10, e1 = step 38, e3 = step 114. The test `experiments/safety_selection/tests/test_ss_kt_recipe_b.py` checks both facts. No engine change is needed. Deviations from Qi: LoRA rank 64 on all linear modules (Qi's LoRA settings are not stated), constant LR, 4,800 rows instead of the whole of Dolly.
+
+**Rules (replacing Amendment 1's candidates; everything else in Amendment 1 and FOCUS.md stands):**
+1. **Candidates:** e1 and e3 of recipe B. All three seeds (1101, 1102, 1103) are trained afresh and evaluated at both (one pod per seed; e3 resumes from e1).
+2. **Qualification:** unchanged. Mean E ≥ 15 pp; E ≥ 2 × SD; every seed above the untuned model; Granite agrees on the direction; every seed at most 5% capped and at most 10% failing the coherence screen; ARC drop at most 0.03.
+3. **Choose the earliest qualifying checkpoint.** If no candidate meets the ARC limit, take the earliest candidate that passes every other condition and report the skill loss as a limitation.
+4. **Baseline:** reuse Stage 0's untuned measurement (the init unit of seed 1101: 28/600 sampled unsafe, ARC 0.910). The model revision, banks, judges, decoding and reading script are unchanged, and init equals the untuned model.
+5. **Seed 1101 first (dose check).** Stop before seeds 1102 and 1103 and return to the user if seed 1101 has, at **both** checkpoints, E < 15 pp or a failed answers-end bar. A failed per-seed answers-end bar already rules a checkpoint out. E < 15 pp on one seed is a futility call: Stage 0's seed spread was 0.5 pp.
+6. **If recipe B does not qualify, Gate A fails.** No further recipe changes without the user's decision. The default is the agreed fallback in FOCUS.md (choosing a data fix under its side effects).
+7. **Stage 0 recipe results** are reported as a dose-response point. They never feed Gate B, Gate C or the main study.
+
+**Cost (estimate from Stage 0's measured pods):** about $4.7 per seed (Stage 0's e1 + e3 pod: 2.97 h at $1.59/h; training time per epoch does not change with accumulation), so about $14–15 for three seeds. The balance after seed 1102 finishes is about $11–12: enough for the seed-1101 dose check, not for all three seeds.
+
+**Still needed before launch:** the run kit (`runkit/kill-test-stage0/kt_constants.py`, `RECIPES`) lists only the Stage 0 recipes. Adding recipe B and an A100 preflight of it (memory at micro-batch 4 is unchanged; the fixture differs) is Specialized Implementation's work.
