@@ -109,6 +109,19 @@ From the [interim results record](../experiments/2026-10-07-kill-test-stage0-res
 - **Cost:** about $4.84 + $4.72, with a third pod still running.
 - **For the application:** this result directly supports the premise (benign erosion is real and reproducible at small scale). The planned next step, a gentler literature-matched recipe for Gate B, should be described as part of the staged plan.
 
+### 3b. Update, 7–8 October 2026: the dose levers, Qwen dropped, and why our erosion saturates
+
+Development evidence. Records: the [results record](../experiments/2026-10-07-kill-test-stage0-results.md), FOCUS.md decisions of 7–8 October, and two desk notes ([Guo-gap analysis](../review/2026-10-08-guo-gap-analysis.md); [erosion amplifiers](../review/2026-10-08-erosion-amplifiers-literature.md)).
+
+- **Erosion stays saturated on Qwen under every lever tried** (one seed each, e1, U = sampled unsafe share):
+  - recipe B (LR 1e-4, batch 128, 38 steps; r64): 1.5B 79.8% (E +75.2 pp); 7B 87.0% (+82.2 pp);
+  - rank 16 (8 Oct): 72.5% (+67.8 pp). A quarter of the adapter cut E by about 7 pp only. Answers end, ARC (−0.026) and the task are fine; only saturation fails.
+- **Decision (user, 8 Oct): Llama and OLMo only;** Qwen is dropped as a candidate. The OLMo-2-1B probe launched 7 Oct 23:35 UTC (recipe B, r64).
+- **Why we saturate (desk analysis, not yet tested):** published LoRA runs on Qwen2.5-7B with random benign data reach at most about 50%. Our recipe stacks four aggressive choices: no LR warmup, a large adapter, a per-example mean loss (short answers' first tokens carry 3x the usual weight) and human-written Dolly targets. A gentle recipe on the same family and data gives only +14 pp in the literature. Measurement differences explain at most about 13–30 pp of the gap to Guo et al.
+- **Engine work done (no spend):** a multi-family engine (OLMo-2, Llama-3; 23 review fixes; corrected mutation testing) and opt-in token-mean loss and LR warmup schedules (four-lens review, no blocker). A gentler, standard-practice "recipe G" is ready for the next probes.
+- **Costs, 7–8 Oct:** recipe B about $6 (two pods), 7B check about $5.7, rank-16 test about $3.9. Balance $24.08 before the OLMo probe (expected about $4).
+- **For the application:** the saturation finding is itself useful: it shows how recipe choices, not only data, drive benign erosion, which motivates pricing a cheap pre-check against full trial runs.
+
 ## 4. Methodological strengths (what reviewers will value)
 
 - **Frozen protocols before outcomes:** the amendment freezes, dated, with ledger entries in [EDGE_CHECKS.md](../review/EDGE_CHECKS.md).
