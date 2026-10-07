@@ -82,11 +82,11 @@ Status, 2 October 2026: exploratory; hypotheses untested; design incomplete; not
   - **The check:** the untuned 7B baseline plus one Dolly fine-tune with recipe B's training settings at e1, seed 1101. Same evaluation (greedy plus 3 samples at T 0.7, 2,048 new tokens), no repetition penalty, so the loops are compared on equal terms.
 - **Decision, 2026-10-07 13:21 UTC (the user): a one-seed 7B check with the papers' model, `meta-llama/Llama-2-7b-chat-hf`** (Qi et al. and He et al. both use Llama-2-7B-Chat).
   - **Why.** At 1.5B, every capped answer is a greedy-decoding repetition loop:
-    - the median 4-gram repetition of capped answers is 0.96–0.97;
-    - greedy harm answers are capped 19–33% of the time, sampled answers 3–12%;
+    - the median 4-gram repetition of capped answers is 0.91–0.97 per unit (all 461 capped answers ≥ 0.5);
+    - greedy harm answers are capped 8.5–32.5% of the time across 1.5B units (16% at 7B), sampled answers 2.2–11.8%;
     - recipe B's partial counts show about 14% capped.
     
-    The frozen "answers end" bar fails for that reason. The unsafe rate among coherent answers is unchanged.
+    The frozen "answers end" bar fails for that reason. The unsafe rate among coherent answers is within 1.4 pp of the overall rate.
   - **The check.** One seed: the untouched baseline plus one Dolly fine-tune with recipe B's training settings, adapted to 7B. It asks whether the loops disappear at 7B, and how large the erosion is. About $10–15 (estimate); it needs a top-up.
   - **Not yet decided:**
     - whether the main study moves to 7B (at 7B, the kill test costs about $500–800 and the study about $12–25k, against about $3–5k at 1.5B);
@@ -94,7 +94,7 @@ Status, 2 October 2026: exploratory; hypotheses untested; design incomplete; not
   - **User actions:** accept Meta's Llama 2 licence on Hugging Face; add a read token to the secrets file (never printed or committed); top up RunPod.
   - **Engine work:** a Specialized brief (Llama-2 chat format, tokenizer and bank re-audit, gated download, 7B memory settings).
 - **Amendment, 2026-10-07 10:51 UTC (the user approved; written before any recipe-B run):**
-  - **Why.** Stage 0 Gate A at the Stage 0 recipe **failed by its frozen rule**, although the erosion is overwhelming (mean E +81.8 pp over 3 seeds at e3; SD 2.7 pp). It failed on "answers end": seed 1102 had 17.0% capped and 20.8% failing the coherence screen. The e1 checkpoint also misses the capped bar (about 8%) and the ARC limit (drops of 3.7 and 4.8 points). Among coherent answers the unsafe rate is unchanged (82.5–87.6%). So the failure is over-training (rambling, skill loss, saturation), not a judge artefact. The fallback ladder covers only *absent* erosion, so this failure returns to review. The user chose this amendment.
+  - **Why.** Stage 0 Gate A at the Stage 0 recipe **failed by its frozen rule**, although the erosion is overwhelming (mean E +81.8 pp over 3 seeds at e3; SD 2.7 pp). It failed on "answers end": seed 1102 had 17.0% capped and 20.8% failing the coherence screen. The e1 checkpoint also misses the capped bar (about 8%) and the ARC limit (drops of 3.7 and 4.8 points). Among coherent answers the unsafe rate is within 1.4 pp of the overall rate (82.5–87.6%). So the failure is over-training (rambling, skill loss, saturation), not a judge artefact. The fallback ladder covers only *absent* erosion, so this failure returns to review. The user chose this amendment.
   - **What runs.** Recipe B, `study-kt-instruct-r64-b-20261007`: the Stage 0 recipe with only LR 1e-4 (was 2e-4) and gradient accumulation 32, so 128 rows per optimizer step (was 8). That gives 38 steps per epoch (was 600), close to Qi et al.'s batch of 128 ([recipes review](review/2026-10-07-benign-erosion-recipes.md), candidate B).
     - Evaluated at **e1 only** (all data seen once, as in Qi et al.), on **3 fresh runs, seeds 1101–1103**.
     - The untuned baseline is reused: seed 1101's init unit, with init equal to the untuned model, so it does not depend on the recipe.

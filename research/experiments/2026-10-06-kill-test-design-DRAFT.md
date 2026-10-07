@@ -701,3 +701,7 @@ The full text is in [FOCUS.md](../FOCUS.md), "Decisions, 6 October 2026", amendm
   - **Saturation.** Qwen 1.5B and 7B reach 80–87% unsafe after 38 steps, so any 7 of the 8 units may still saturate the erosion.
   - **The curvature account** ([note](../review/2026-10-07-curvature-fragility-note.md)). Forgetting there is driven by sharpness along the update direction, which suggests effects that do not add up source by source.
 - **This prior is written down so that a LOCALIZED result counts as informative.** It does not change any threshold.
+
+## Errata (7 Oct 2026, from the option panel's fact check)
+- **§2.2 and §3.** The prepared Stage 0 data have **4,800 rows (8 units × 600; K = 8)**, not 5,400 rows and 9 units. The self-generated control unit was deferred (brief kill-test-stage0-engine-20261006), so a 3-epoch run is 1,800 steps, not 2,025.
+- **§2.4.** For **Dolly**, Qi et al.'s PDF gives untuned harmfulness of **0.6%** (Llama-2-7B-Chat) and **4.5%** (GPT-3.5). The 0.3% and 5.5% figures are the Alpaca rows.

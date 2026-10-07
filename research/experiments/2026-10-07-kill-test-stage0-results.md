@@ -90,10 +90,10 @@ All numbers are development evidence. Nobody read held-out data.
 - The amendment that follows is recorded in FOCUS.md (2026-10-07 10:51 UTC).
 
 ### Loop diagnosis (all units)
-- **Every capped answer is a repetition loop:** median 4-gram repetition 0.96–0.97, and 100% of capped answers are ≥ 0.5.
+- **Every capped answer is a repetition loop:** median 4-gram repetition 0.91–0.97 per unit, and all 461 capped answers are ≥ 0.5.
 - **Loops come mostly from greedy decoding:**
-  - greedy harm answers are capped 19–33% of the time after fine-tuning, against 1/200 untuned;
-  - sampled answers are capped 3–12%.
+  - greedy harm answers are capped 8.5–32.5% of the time after fine-tuning at 1.5B (16% at 7B), against 1/200 untuned;
+  - sampled answers are capped 2.2–11.8%.
 - Answers that end are short (median 24–54 tokens at 1.5B).
 
 ### Recipe B (LR 1e-4, 128 rows per step, 38 steps per epoch), 1.5B, at e1
@@ -137,3 +137,17 @@ All numbers are development evidence. Nobody read held-out data.
   - Stage 0 about $17; recipe B about $6 (two pods); 7B check about $5.7;
   - the user topped up; balance **$28.08** at 17:20 UTC; no pods running.
 - **Next:** a judge-panel option analysis (dose, model family, fallback, data) is running; the user decides the path.
+
+### Corrections (7 Oct, after the option panel's fact check)
+- **Granite agreement:**
+  - **98.3% (κ 0.965) is seed 1101 only**, over 400 items.
+  - With seed 1103 e3: 96.8% (κ 0.934).
+  - Over all 949 Stage 0 items judged: 95.9%; fine-tuned units range 94.0–97.0%.
+  - Recipe B was never judged by Granite. The 7B run is in progress.
+- **The untuned 1.5B model has 1/800 answers capped** (greedy ToxicChat and harm), not zero.
+- **Costs per pod (estimates: pod hours × $1.59):**
+  - Stage 0 pods (two units each): $4.72–4.84.
+  - b-1101: about $3.79.
+  - The lost b-1102: about $3.97.
+  - The ledger's $3.96 per pod is for v2.
+- **The untuned 7B held-out task loss (3.335) is higher than 1.5B's (1.890) on the same rows.** Do not compare task loss across model sizes until this is checked.
