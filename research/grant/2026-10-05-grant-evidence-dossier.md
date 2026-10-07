@@ -304,7 +304,11 @@ Sources:
     - it makes no statement on training determinism, so our bit-exact fixture checks would become seed-based checks;
     - the judges must run elsewhere;
     - credits can only be spent on Tinker.
-- **Use:** a training and sampling backend for the decision study, if credits come. Attribution and judges stay on pods or the Mac.
+- **Use (corrected 8 Oct 2026; FAQ's check of the Tinker docs, corroborated by GI III):** Tinker can **not** train the study's main models.
+  - The user decided on 8 Oct: Llama and OLMo only. Tinker's docs list every Llama model as retired on 12 June 2026 (Llama-3.2-1B and 3.1-8B included), and no OLMo model is offered ([docs](https://tinker-docs.thinkingmachines.ai/llms-full.txt), "Models & Pricing" and "Retired Models", checked 8 Oct).
+  - The smallest current models are Qwen3.5-4B and Qwen3-8B. The non-Qwen options are MoE models (GPT-OSS-20B, Nemotron-3-Nano-30B-A3B and larger).
+  - At most, credits could fund an optional third-family check (for example GPT-OSS-20B). That would need: a new chat codec (harmony format with a reasoning channel; the judges must read the final answer only); importing Tinker adapters into our engine for attribution on MoE weights (UNVERIFIED that the export maps onto PEFT module names); and seed-based checks instead of our determinism checks. The saving is small: about $1.5–2 of training and sampling per run against about $4 on RunPod, while judging and attribution stay on our GPUs. The engine work is about 1–2 builder days (estimate).
+  - Model retirement is a demonstrated risk for a months-long study.
 
 Sources:
 - [Safety Research Grants](https://thinkingmachines.ai/news/safety-research-grants/);
@@ -352,7 +356,7 @@ The user is based in the US and was travelling in India in October 2026. An earl
 
 **Suggested order this week:**
 1. BlueDot Rapid Grant (fast cash; use the dossier's pitch and the staged kill-test budget).
-2. The Tinker form (state independent status; ask about the terms and the acceptable-use policy).
+2. ~~The Tinker form~~ **Demoted on 8 Oct to optional, after the cash funders below** (Tinker offers no Llama or OLMo model; see 11b). If filed, frame it as an optional third-family check.
 3. A GTR proposal.
 4. A Manifund page.
 5. EA Funds (ask about expediting).
