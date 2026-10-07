@@ -151,3 +151,12 @@ All numbers are development evidence. Nobody read held-out data.
   - The lost b-1102: about $3.97.
   - The ledger's $3.96 per pod is for v2.
 - **The untuned 7B held-out task loss (3.335) is higher than 1.5B's (1.890) on the same rows.** Do not compare task loss across model sizes until this is checked.
+
+## Rank-16 test: recipe record (written 2026-10-07 20:50 UTC, 8 Oct IST, before the run)
+
+- **Rule:** FOCUS.md, decision 2026-10-07 20:45 UTC. Read by the frozen family-probe bars; the outcomes are fixed there.
+- **Recipe:** `experiments/safety_selection/configs/study-kt-instruct-r16-b-20261008.json`, config SHA-256 `86079a35d7f9e0b6733840bb84847ac4ad4d154a60bcf7a0d3fbe736f1a95e73`.
+  - Recipe B (`study-kt-instruct-r64-b-20261007`) changed only in `model.lora.r` 64 → 16, `model.lora.alpha` 128 → 32 and `expected_trainable_parameters` 73,859,072 → 18,464,768 (plus `name` and `purpose`).
+  - Mac check: a meta-device Qwen2 model (hidden 1536, intermediate 8960, 28 layers, 12 heads, 2 KV heads) with the engine's PEFT call gives 18,464,768; the rank-64 control gives 73,859,072.
+- **Run:** one seed (1101), e1 only; no new baseline (Stage 0 seed 1101's init unit is reused); engine `c52c0ebc…`; prepared-kt-dolly `9247c4bb…`.
+- **Kit:** `tmp/kill-test-r16/` (copied from `tmp/kill-test-gateA-b/`); one host `r16-1101`, cap 3.5 h; budget reserve $6.
