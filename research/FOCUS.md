@@ -62,6 +62,19 @@ Status, 2 October 2026: exploratory; hypotheses untested; design incomplete; not
   - If no candidate meets the ARC limit, keep e3 and report the skill loss as a limitation. Gate A at e3 is still read by its own rule.
   - The choice uses Gate A data only (erosion, its noise, answers ending, ARC), never any Gate B outcome. The unused checkpoint is reported as a dose-response point.
   - **Gate A is formally passed or failed at the chosen checkpoint, with 3 seeds at that checkpoint.** Gate B, Gate C and the main study use only that checkpoint. Results at the other checkpoint never feed a later gate. The seeds that choose the checkpoint also pass its Gate A. That can flatter E slightly. Gate B's contrast (unit removal against random removal of the same size, both paired to the same a0 runs) cancels any shared a0 shift. The stricter option, fresh a0 seeds for Gate B, is open if the user wants it.
+- **Decision, 2026-10-07 13:21 UTC (the user): a one-seed 7B check with the papers' model, `meta-llama/Llama-2-7b-chat-hf`** (Qi et al. and He et al. both use Llama-2-7B-Chat).
+  - **Why.** At 1.5B, every capped answer is a greedy-decoding repetition loop:
+    - the median 4-gram repetition of capped answers is 0.96–0.97;
+    - greedy harm answers are capped 19–33% of the time, sampled answers 3–12%;
+    - recipe B's partial counts show about 14% capped.
+    
+    The frozen "answers end" bar fails for that reason. The unsafe rate among coherent answers is unchanged.
+  - **The check.** One seed: the untouched baseline plus one Dolly fine-tune with recipe B's training settings, adapted to 7B. It asks whether the loops disappear at 7B, and how large the erosion is. About $10–15 (estimate); it needs a top-up.
+  - **Not yet decided:**
+    - whether the main study moves to 7B (at 7B, the kill test costs about $500–800 and the study about $12–25k, against about $3–5k at 1.5B);
+    - the proposed measurement amendment for later stages (the answer-quality bar on sampled answers, and/or a repetition penalty for greedy decoding).
+  - **User actions:** accept Meta's Llama 2 licence on Hugging Face; add a read token to the secrets file (never printed or committed); top up RunPod.
+  - **Engine work:** a Specialized brief (Llama-2 chat format, tokenizer and bank re-audit, gated download, 7B memory settings).
 - **Amendment, 2026-10-07 10:51 UTC (the user approved; written before any recipe-B run):**
   - **Why.** Stage 0 Gate A at the Stage 0 recipe **failed by its frozen rule**, although the erosion is overwhelming (mean E +81.8 pp over 3 seeds at e3; SD 2.7 pp). It failed on "answers end": seed 1102 had 17.0% capped and 20.8% failing the coherence screen. The e1 checkpoint also misses the capped bar (about 8%) and the ARC limit (drops of 3.7 and 4.8 points). Among coherent answers the unsafe rate is unchanged (82.5–87.6%). So the failure is over-training (rambling, skill loss, saturation), not a judge artefact. The fallback ladder covers only *absent* erosion, so this failure returns to review. The user chose this amendment.
   - **What runs.** Recipe B, `study-kt-instruct-r64-b-20261007`: the Stage 0 recipe with only LR 1e-4 (was 2e-4) and gradient accumulation 32, so 128 rows per optimizer step (was 8). That gives 38 steps per epoch (was 600), close to Qi et al.'s batch of 128 ([recipes review](review/2026-10-07-benign-erosion-recipes.md), candidate B).
