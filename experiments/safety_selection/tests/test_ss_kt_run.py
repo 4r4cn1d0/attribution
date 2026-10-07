@@ -263,3 +263,32 @@ def test_recipe_b_changes_only_the_learning_rate_and_accumulation():
     undo["train"].update(lr=stage0["train"]["lr"], grad_accum=stage0["train"]["grad_accum"])
     undo["name"], undo["purpose"] = stage0["name"], stage0["purpose"]
     assert undo == stage0
+
+
+def test_the_qwen7b_check_recipes_change_only_the_model_and_memory_fields():
+    """The one-seed 7B check (FOCUS.md decision of 2026-10-07 13:38 UTC): recipe B on Qwen2.5-7B-Instruct, with the
+    1.5B tokenizer snapshot pinned (identical tokenizer files), in four memory candidates of 128 rows per step."""
+    b = load_recipe(CONFIGS / "study-kt-instruct-r64-b-20261007.json")
+    for name, attention, micro, accum, checkpointing in (
+            ("study-kt-qwen7b-r64-b-mb4-20261007", "sdpa", 4, 32, False),
+            ("study-kt-qwen7b-r64-b-mb2-20261007", "sdpa", 2, 64, False),
+            ("study-kt-qwen7b-r64-b-mb1-gc-20261007", "sdpa", 1, 128, True),
+            ("study-kt-qwen7b-r64-b-mb1-gc-eager-20261007", "eager", 1, 128, True)):
+        q = load_recipe(CONFIGS / f"{name}.json")
+        assert q["name"] == name
+        assert (q["model"]["repo_id"], q["model"]["revision"]) == ("Qwen/Qwen2.5-7B-Instruct",
+                                                                    "a09a35458c702b33eeacc393d103063234e8bc28")
+        assert q["model"]["tokenizer"] == {"repo_id": b["model"]["repo_id"], "revision": b["model"]["revision"]}
+        assert q["model"]["lora"]["expected_trainable_parameters"] == 161_480_704 == 28 * 5_767_168
+        assert (q["train"]["micro_batch"], q["train"]["grad_accum"], q["train"]["gradient_checkpointing"]) == \
+            (micro, accum, checkpointing) and micro * accum == 128 and q["train"]["lr"] == 1e-4
+        assert (q["model"]["attn_implementation"], q["guard"]["attn_implementation"]) == (attention, attention)
+        undo = json.loads(json.dumps(q))
+        undo["name"], undo["purpose"] = b["name"], b["purpose"]
+        undo["model"].update(repo_id=b["model"]["repo_id"], revision=b["model"]["revision"], attn_implementation="sdpa")
+        del undo["model"]["tokenizer"]
+        undo["guard"]["attn_implementation"] = "sdpa"
+        undo["model"]["lora"]["expected_trainable_parameters"] = b["model"]["lora"]["expected_trainable_parameters"]
+        undo["train"].update(micro_batch=b["train"]["micro_batch"], grad_accum=b["train"]["grad_accum"],
+                             gradient_checkpointing=b["train"]["gradient_checkpointing"])
+        assert undo == b, name
