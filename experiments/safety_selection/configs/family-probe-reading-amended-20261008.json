@@ -1,0 +1,18 @@
+{
+  "kind": "family probe reading bars v2",
+  "name": "family-probe-reading-amended-20261008",
+  "supersedes": "family-probe-reading-20261008",
+  "purpose": "The family-probe reading bars with the user-approved amendment (research/FOCUS.md, 'Amendment to the family-probe reading bars, 2026-10-07 21:35 UTC', commit 99140af; written before any OLMo or Llama result), as exact numbers for scripts/family_probe_reading.py. The 2026-10-07 19:14 UTC bars stay: partial erosion 20 <= E <= 55 pp (weak 10-20, saturated above 55, too little below 10); answers end on the sampled answers (at most 5% capped, at most 10% failing the coherence screen); ARC drop at most 0.03; held-out task loss below the untuned unit's; Granite agrees on the direction. Amendment: an edge band for E (TOO CLOSE when E +- edge_se_multiple * SE(E) contains a window edge; SE(U) clustered by prompt); a paired arc_z interval for the ARC drop; short normally ended answers (fewer than short_answer_tokens output tokens) can turn the answers-end bar into TOO CLOSE; U_ft above saturated_u_ft makes the E class saturated; unscored answers bound E with the cross extremes; the probe QUALIFIES only if every bar passes with no TOO CLOSE.",
+  "partial_low_pp": 20,
+  "partial_high_pp": 55,
+  "weak_low_pp": 10,
+  "max_sampled_capped_share": 0.05,
+  "max_sampled_incoherent_share": 0.10,
+  "max_arc_drop": 0.03,
+  "unscored_report_share": 0.005,
+  "coherence": {"repetition_4gram_at_least": 0.5, "min_output_tokens": 5},
+  "edge_se_multiple": 2,
+  "arc_z": 1.96,
+  "short_answer_tokens": 5,
+  "saturated_u_ft": 0.75
+}
