@@ -553,6 +553,30 @@ Granite's greedy E beside Qwen3Guard's.
 rank-64 recipes with `lora.r` 16, `lora.alpha` 32 and a quarter of the trainable values (12,058,624 and
 11,272,192); `probe_constants.RANK = "r16"` points a 1B kit at them (the default stays "r64").
 
+## Round 5: token-mean loss, warmup schedules and baseline reuse (8 October 2026)
+
+Built for GI III's round-5 brief (FOCUS.md decision 2026-10-07 22:05 UTC and the erosion-amplifiers review). Every
+earlier recipe keeps its bytes, config hash and training identity; both golden regressions are unchanged.
+- **`train.loss_weighting: "token_mean"`** (opt-in; `train.loss` then reads `config.LOSS_TOKEN_MEAN`): the step
+  objective is the token-NLL sum over the step's total target tokens, one normaliser for all micro-batches
+  (`engine.accumulate_gradients`). Without it, the per-example mean, as before.
+- **`train.lr_schedule: "warmup_cosine" | "warmup_constant"`** with `train.warmup_steps` and `train.schedule_until` (a
+  checkpoint name): HF transformers' schedules exactly (`engine.learning_rate`; step 1 runs at 0, the cosine reaches 0
+  only after the last step), from the global optimizer step and the run's own plan, so a resume gives the same rates;
+  each step's rate is logged in steps.jsonl; training past `schedule_until` refuses; the saved AdamW state keeps the
+  peak. "constant" is unchanged.
+- **Attribution:** under the token mean the Adam proxy scales each row by w_i = n_i·E_step/N_step from its first-epoch
+  step (`attribution.step_weights`; GradSim is scale-free); under a warmup schedule it uses the scheduled rate of the
+  checkpoint's step instead of the saved peak.
+- **Recipes:** `study-kt-{olmo2-1b,llama32-1b}-{r64,r16}-{bt,g}-{mb4,mb2,mb2-eager}-20261008.json`: "bt" = recipe B with
+  the token mean; "g" = also the warmup cosine (4 warmup steps, to e1, peak 1e-4). The kit selects them with
+  `probe_constants.RECIPE` ("b" by default), 1B probes only.
+- **Baseline reuse across engines:** `plan_tool.py init --reuse-baseline UNIT` plans a fine-tune-only job (base_eval
+  false; candidates whose evaluation config differs are dropped). The reading pairs it with UNIT only when the
+  evaluation configs are equal and the engines are equal or certified by
+  `configs/evaluation-equivalence-20261008.json` (made by `scripts/evaluation_path.py`: every top-level symbol of the
+  engine that differs from 04eb83a3 is training-only; the base symbols and identity are pinned beside it).
+
 ## Not done here
 
 No selector, menu replay, TF-IDF relevance features, acquisition, endpoint, margin, interval or

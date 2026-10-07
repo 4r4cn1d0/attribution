@@ -30,6 +30,14 @@ their exact bytes, hash and meaning):
   ``count`` sampled answers per ``harm`` bank prompt (prepared data v3), at ``temperature`` with
   ``top_p`` 1.0 (no nucleus truncation), each seeded by (job seed, prompt id, sample index)
   (``runner.sample_seed``). Without it a harm prompt gets its greedy answer only.
+- ``train.loss_weighting`` (only ``"token_mean"``; GI III round 5): the step objective is the token-NLL sum over
+  the step's total target tokens (``engine.TOKEN_MEAN``) and ``train.loss`` must read ``LOSS_TOKEN_MEAN``. Without
+  it the objective is the per-example mean (``LOSS``), as before. It enters the training identity with the train
+  section.
+- ``train.lr_schedule`` "warmup_cosine" or "warmup_constant" (GI III round 5; default "constant", unchanged) with
+  ``train.warmup_steps`` (an integer >= 1) and ``train.schedule_until`` (the name of one of ``train.checkpoints``):
+  HF's warmup schedules (``engine.learning_rate``) over the optimizer steps up to that checkpoint, computed from the
+  run's own stream plan; training past it refuses. Both fields exist only with a warmup schedule.
 - ``generation.guard_over_limit`` (only ``"unscored"``): an evaluation answer whose guard input is
   over ``guard.max_input_tokens`` is recorded as not scored (reason ``GUARD_OVER_LIMIT``, its token
   count kept; the judge input is never truncated) and the evaluation goes on. Without it such an
@@ -89,6 +97,9 @@ BATCHING = ("consecutive examples of one epoch's order; an epoch's final optimiz
             "actual size; steps never cross epochs")
 LOSS = ("per-example mean NLL over response target tokens (response plus end-of-turn), averaged "
         "over the actual examples of each optimizer step")
+LOSS_TOKEN_MEAN = ("token-mean NLL: the sum of the NLL over every response target token (response plus "
+                   "end-of-turn) of the actual examples of each optimizer step, divided by that step's total "
+                   "target-token count (one normaliser for all of its micro-batches)")
 ATTRIBUTION_VARIANTS = ["checkpoint_gradsim", "adam_diag_preconditioned_dot"]
 ARC_TEMPLATE = "arc-easy-mc-v1"
 ATTENTION = ("eager", "sdpa")
@@ -511,16 +522,28 @@ def validate_recipe(recipe: dict) -> dict:
     _texts(lora["target_modules"], "model.lora.target_modules")
     _int(lora["expected_trainable_parameters"], "model.lora.expected_trainable_parameters", 1)
 
-    train = _keys(recipe["train"], {"micro_batch", "grad_accum", "batching", "loss", "optimizer",
-                                    "lr", "betas", "eps", "weight_decay", "lr_schedule",
-                                    "max_grad_norm", "gradient_checkpointing",
-                                    "lm_head_chunk_tokens", "checkpoints"}, "train")
+    train_keys = {"micro_batch", "grad_accum", "batching", "loss", "optimizer", "lr", "betas", "eps", "weight_decay",
+                  "lr_schedule", "max_grad_norm", "gradient_checkpointing", "lm_head_chunk_tokens", "checkpoints"}
+    if isinstance(recipe["train"], dict) and "loss_weighting" in recipe["train"]:   # optional (module doc)
+        train_keys = train_keys | {"loss_weighting"}
+    if isinstance(recipe["train"], dict) and recipe["train"].get("lr_schedule") != "constant":   # module doc
+        train_keys = train_keys | {"warmup_steps", "schedule_until"}
+    train = _keys(recipe["train"], train_keys, "train")
     _int(train["micro_batch"], "train.micro_batch", 1)
     _int(train["grad_accum"], "train.grad_accum", 1)
     _fixed(train["batching"], BATCHING, "train.batching")
-    _fixed(train["loss"], LOSS, "train.loss")
+    if "loss_weighting" in train:
+        _fixed(train["loss_weighting"], "token_mean", "train.loss_weighting")
+        _fixed(train["loss"], LOSS_TOKEN_MEAN, "train.loss")
+    else:
+        _fixed(train["loss"], LOSS, "train.loss")
     _fixed(train["optimizer"], "AdamW", "train.optimizer")
-    _fixed(train["lr_schedule"], "constant", "train.lr_schedule")
+    if train["lr_schedule"] != "constant":
+        if train["lr_schedule"] not in ("warmup_cosine", "warmup_constant"):
+            raise ConfigError("train.lr_schedule must be constant, warmup_cosine or warmup_constant")
+        _int(train["warmup_steps"], "train.warmup_steps", 1)
+        if train["schedule_until"] not in [c["name"] for c in train["checkpoints"] if isinstance(c, dict)]:
+            raise ConfigError("train.schedule_until must name one of train.checkpoints")
     for key in ("lr", "eps", "max_grad_norm"):
         if _number(train[key], f"train.{key}") <= 0:
             raise ConfigError(f"train.{key} must be positive")

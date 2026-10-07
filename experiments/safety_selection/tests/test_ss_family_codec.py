@@ -161,7 +161,7 @@ def test_the_recipe_accepts_the_header_field_and_every_existing_recipe_still_val
             assert ("assistant_header" in data["model"]) is family                 # only the 26 family recipes
             assert ("guard_over_limit" in data["generation"]) is family            # no Qwen recipe (review fix 1)
             load_recipe(path)
-    assert family_recipes == 26
+    assert family_recipes == 50                    # 26 rank-64/16 b, 12 bt and 12 g (round 5)
 
 
 # ----- 2. per-tokenizer preparation -------------------------------------------------------------------------

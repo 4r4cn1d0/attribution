@@ -64,8 +64,8 @@ from typing import Sequence
 import torch
 
 from . import engine as en
-from .attribution import (ADAM, DEFINITIONS, GRADSIM, SIGN, adam_inverse_preconditioner,
-                          aggregate_groups, checkpoint_scores)
+from .attribution import (ADAM, DEFINITIONS, GRADSIM, ROW_WEIGHTING, SIGN, adam_inverse_preconditioner,
+                          aggregate_groups, checkpoint_scores, step_weights)
 from .common import (append_jsonl, canonical_json, code_identity, derive_seed, ids_sha256,
                      jsonl_bytes, read_json, sha256_bytes, sha256_file, write_atomic, write_json)
 from .config import (INIT, checkpoint_names, checkpoint_table, config_sha256, seed_namespace,
@@ -455,6 +455,13 @@ def _train_segment(policy: Policy, optimizer, plan: StreamPlan, corpus: dict[str
                    run_dir: Path) -> dict:
     counts = _zero_cost()
     recent: list[float] = []
+    scheduled = train["lr_schedule"] != "constant"     # GI III round 5: the rate follows the global step alone
+    if scheduled:
+        until = dict(checkpoint_table({"train": train}))[train["schedule_until"]]
+        horizon = plan.checkpoint(until)["step"]
+        if last > horizon:
+            raise RunError(f"steps {first}..{last} run past the schedule's last step {horizon} "
+                           f"({train['schedule_until']}); the rate is not defined there")
     with ledger.stage("train", segment=label, first_step=first, last_step=last) as info:
         for step, epoch, rows in plan.iterate(first, last):
             ledger.check(f"train step {step}")
@@ -462,9 +469,18 @@ def _train_segment(policy: Policy, optimizer, plan: StreamPlan, corpus: dict[str
                 raise RunError(f"step {step}: empty batch or a removed row reached the sampler")
             examples = [corpus[r] for r in rows]
             started = ledger.elapsed()
-            out = en.train_step(policy.model, policy.named, optimizer, examples, train["micro_batch"],
-                                train["max_grad_norm"], policy.codec.pad_id, policy.device,
-                                train["lm_head_chunk_tokens"])
+            if scheduled:     # this step's rate during its update only; the saved state keeps the recipe's peak
+                rate = en.learning_rate(train["lr"], train["lr_schedule"], train["warmup_steps"], horizon, step)
+                for group in optimizer.param_groups:
+                    group["lr"] = rate
+            try:
+                out = en.train_step(policy.model, policy.named, optimizer, examples, train["micro_batch"],
+                                    train["max_grad_norm"], policy.codec.pad_id, policy.device,
+                                    train["lm_head_chunk_tokens"], train.get("loss_weighting", en.EXAMPLE_MEAN))
+            finally:
+                if scheduled:
+                    for group in optimizer.param_groups:
+                        group["lr"] = train["lr"]
             padded = sum(len(mb) * max(len(e.input_ids) for e in mb)
                          for mb in micro_batches(examples, train["micro_batch"]))
             inputs, targets = sum(len(e.input_ids) for e in examples), sum(e.n_target for e in examples)
@@ -473,7 +489,7 @@ def _train_segment(policy: Policy, optimizer, plan: StreamPlan, corpus: dict[str
                 "input_tokens": inputs, "target_tokens": targets, "padded_tokens": padded,
                 "loss": out["loss"], "example_losses": out["example_losses"],
                 "grad_norm_preclip": out["grad_norm_preclip"],
-                "seconds": ledger.elapsed() - started})
+                "seconds": ledger.elapsed() - started, **({"lr": rate} if scheduled else {})})
             counts["steps"] += 1
             counts["examples"] += len(rows)
             counts["input_tokens"] += inputs
@@ -868,6 +884,10 @@ def attributes(job: dict, *, prepared_dir: str | Path, out_dir: str | Path, sess
             queries = [_verified_example(policy.codec, q["query_id"], q, recipe) for q in prepared.query_rows]
             info.update(rows=len(rows), queries=len(queries))
         query_bank_sha256 = _query_bank_sha256(prepared)
+        # under the token mean a row's share of its step is n_i / N_step, not 1 / E_step: the Adam proxy scales each
+        # row by n_i * E_step / N_step in its first-epoch step (attribution.step_weights); GradSim is scale-free
+        weights = (step_weights(plan, {rid: prepared.train_rows[rid]["target_tokens"] for rid in prepared.corpus}, members)
+                   if train.get("loss_weighting") == en.TOKEN_MEAN else None)
         per_checkpoint: dict[str, dict] = {}
         for c in checkpoints:
             src = sources[c]
@@ -877,6 +897,10 @@ def attributes(job: dict, *, prepared_dir: str | Path, out_dir: str | Path, sess
                                       restore_rng_state=False)
                 group0 = state["param_groups"][0]
                 lr, beta2, eps = float(group0["lr"]), float(group0["betas"][1]), float(group0["eps"])
+                if train["lr_schedule"] != "constant":     # the rate of the checkpoint's step, not the saved peak
+                    horizon = plan.checkpoint(dict(checkpoint_table(recipe))[train["schedule_until"]])["step"]
+                    lr = en.learning_rate(train["lr"], train["lr_schedule"], train["warmup_steps"], horizon,
+                                          int(state["step"]))
                 inverse, step = adam_inverse_preconditioner(src["tensors"], [n for n, _ in policy.named],
                                                             beta2, eps)
                 if step != state["step"]:
@@ -885,7 +909,8 @@ def attributes(job: dict, *, prepared_dir: str | Path, out_dir: str | Path, sess
                 scores = checkpoint_scores(policy.model, policy.named, queries, rows, inverse=inverse,
                                            lr=lr, pad_id=policy.codec.pad_id, device=policy.device,
                                            chunk=train["lm_head_chunk_tokens"],
-                                           check=lambda what, c=c: ledger.check(f"attribution {c} {what}"))
+                                           check=lambda what, c=c: ledger.check(f"attribution {c} {what}"),
+                                           **({"weights": weights} if weights is not None else {}))
                 if (en.lora_fingerprint(policy.named), en.rng_digest(policy.device),
                         policy.model.training) != before:
                     raise RunError("attribution changed the adapter, RNG state or mode")
@@ -907,7 +932,8 @@ def attributes(job: dict, *, prepared_dir: str | Path, out_dir: str | Path, sess
               "per_checkpoint": {c: per_checkpoint[c]["rows"][rid] for c in checkpoints}}
              for rid in members]))
         write_json(run_dir / "groups.json", {"definitions": DEFINITIONS, "sign": SIGN,
-                                             "variants": [GRADSIM, ADAM], "groups": aggregates})
+                                             "variants": [GRADSIM, ADAM], "groups": aggregates,
+                                             **({"row_weighting": ROW_WEIGHTING} if weights is not None else {})})
         write_json(run_dir / "queries.json", {
             "query_bank": "ref", "query_bank_sha256": query_bank_sha256, "n": len(queries),
             "loss_definition": en.QUERY_LOSS_DEFINITION,

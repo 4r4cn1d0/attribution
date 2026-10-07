@@ -118,3 +118,84 @@ Date: 8 October 2026. Reviewer: an Opus 5.5 integration subagent of the lead. No
 - `clustered_se2` uses the sample SD (n − 1). The amendment says "SD"; n − 1 is slightly conservative.
 - The displayed E interval (`family_probe_reading.py:426`) uses a fixed 2. The verdict uses `edge_se_multiple`, which is also 2.
 - The `orchestrate.py` docstring names a `full` command that `main()` lacks.
+
+## Round 5 (8 Oct): token mean, LR schedule, baseline reuse
+
+Date: 8 October 2026, 04:34–05:01 IST. Reviewer: an Opus 5.5 integration subagent of the lead. No pod, RunPod, Hugging Face or held-out data was used. Nothing was staged, committed or pushed by the reviewer.
+
+### Result
+
+- **Integrated and green.** The main checkout holds the round-5 build. Identity `552538748acec1a8ffd1ee976b9eb3c3fdfe9ca01b8148ee8810291409357441` (was `04eb83a3…`). Engine 599 passed, 3 skipped (CUDA). Stage B 172 passed. Durability 260 passed. All exit 0.
+- Waiting for the lead's commit: 15 changed files, 31 new files and this review file. Nothing else in the main checkout is changed.
+- The build is integrated byte for byte as reviewed. **None of the should-fix items below is fixed yet.**
+
+### Snapshot, preflight and copy
+
+- Snapshot: `cp -a` of `tmp/claude-workspaces/token-mean-loss-20261008/workspace` at 04:34 IST. Against the workspace manifest (the 2,231 blobs of `42eb258`): 15 changed, 31 new, 0 deleted. No cache folder, `.pyc` or `.DS_Store`. All 46 SHA-256 values equal `round5-evidence.md`.
+- Preflight: HEAD `a195979`, a descendant of `42eb258`. That commit adds only `research/review/2026-10-08-erosion-amplifiers-literature.md` (it was untracked before). `git diff 42eb258 HEAD` on the 46 paths is empty. The tree was clean (`tmp/` is ignored). Before the copy, the 15 changed files in the main checkout equalled the manifest, and none of the 31 new paths existed.
+- Copy: `cp` of the 46 files from the snapshot. 46 of 46 hashes OK in the main checkout, again after all suites. File modes 644, as before. No new cache folder. The `__pycache__` folders from 2 October in `experiments/` are old, ignored and were not touched.
+
+### Code identity and suites (main checkout)
+
+Commands: `PYTHONDONTWRITEBYTECODE=1 <venv>/python -B -m pytest -q -rs -p no:cacheprovider --basetemp=<scratch>`, from the repo root.
+
+| Suite | Paths | Result |
+|---|---|---|
+| Engine | `experiments/safety_selection/tests experiments/minimal_safety/tests` | **599 passed, 3 skipped**, exit 0 |
+| Stage B | `experiments/safety_decision_policy/tests` | **172 passed**, exit 0 |
+| Durability | `experiments/durability/tests` | **260 passed**, exit 0 (default pytest temp) |
+
+- Skips: 3 CUDA tests only. The 2 real-Qwen ARC tests (`test_the_arc_rule_reproduces_the_qwen_calibrations_on_the_real_units`) now run and pass in the main checkout. The round-4 "Not verified" item about them is closed by the round-5 path fix.
+- Durability with `--basetemp` under the reviewer scratch folder: 259 passed, 1 failed (`test_logs_and_acknowledgements_name_no_operation_arm_or_choice`). That scratch path contains `attribution-`, which the test forbids in the journal (`test_dur_stage_b.py:412-414`). This is old and not from round 5: the durability tree equals `42eb258`. With the default pytest temp folder: 260 passed.
+- Code identity in the main checkout: `55253874…7441`. Changed identity files: `attribution.py`, `config.py`, `engine.py`, `runner.py`.
+
+### Review lenses (4 of 4: pass with minor findings, no blocker)
+
+**1. Loss and schedule math: pass-with-minor.**
+- Should-fix: no test ties the rate used by `optimizer.step()` to the `lr` written to `steps.jsonl`. A mutant that applies the next step's rate (`runner.py:475`) passes every behavioural test. Fix: adopt the reviewer's spy test `test_runner_wiring_applied_rate_and_actual_rows` (scratch `r5/loss-lr/ws/.../test_review_token_mean_lr.py`) and add this mutant.
+- Minor: `engine.py:276` computes `peak*k/warmup`; HF computes `peak*(k/warmup)`. They differ by up to 1 ulp when warmup is not a power of 2. Recipe G (warmup 4) is bit-identical. The docstring says "exactly", and the test tolerance (1e-12) cannot see the difference.
+- Minor: all 12 G recipes list e3 checkpoints, but `schedule_until` is e1. A direct init→e3 job trains q and e1 before it refuses. An `attributes` job on a G recipe can never get its e3 state. The probe kit trains to e1 only, so the probes are not affected.
+- Minor (design note): each arm's cosine horizon is its own plan's e1 (fixture: a0 15 steps, removal arm 13). This is the HF convention. GPT must confirm it before recipe G is used with removal or edit arms.
+- Checked: the token-mean gradient equals an independent reference (relative error ≤ 4e-7, micro-batch 1–5) and HF's labels loss. Default path bit-identical to `04eb83a3` (88 tensors, `steps.jsonl`, fingerprints). Post-warmup rates bit-identical to transformers 4.56.2 (44,320 of 44,320). Resume is exact.
+
+**2. Evaluation equivalence: pass-with-minor.**
+- Should-fix: reuse does not compare the two units' `assets.json` (GPU, CUDA, cudnn, driver, packages, numeric settings, policy identity). See `family_probe_reading.py:207-215` and `plan_tool.py:74-91`. A pod-level numeric shift would be confounded with the treatment. Until fixed, diff the two `assets.json` environment blocks by hand before any reuse reading.
+- Minor: `eval_config` leaves out `train.lm_head_chunk_tokens` and `train.gradient_checkpointing`, which evaluation reads (`runner.py:548, 611`; `loaders.py:184-186`). No exposure now: all 36 1B recipes have (1024, false).
+- Minor: `evaluation_path.py:57-58` does not hash decorators of top-level functions, and a second definition with the same name hides the first.
+- Minor: the allow-list is wider than its reason (`attribution.py` is `*`; `validate_recipe` and `accumulate_gradients` also run in evaluation jobs; some names do not exist). Each change in this pair was checked by hand and is harmless.
+- Minor: `plan_tool` checks that `COMPLETE.json` exists, but not its contents or the baseline engine's certification. This is a cost risk, not a science risk.
+- Checked: an independent AST diff gives exactly the certificate's changed symbols. The certificate regenerates byte-identical (`63700221…`). The evaluation code is byte-identical. Pairing the `04eb83a3` OLMo baseline with a `55253874` G fine-tune is safe on code, if the G pod reports `engine_sha256` = `55253874…` exactly and the `assets.json` hand diff shows no difference.
+
+**3. Scope, identity and suites: pass-with-minor.**
+- Should-fix: `family_probe_reading.py:201-215, 222` changed the default (non-reuse) path. An e1 unit with `resume_from` null and the init unit's recipe and engine is now accepted with `baseline_reuse: null`; `42eb258` refused it. Fix: record reuse whenever e1 does not resume from the init unit, and add a test.
+- Minor: `family_probe_reading.py:202` now refuses a second seed's e1 unit that resumed from its own init unit. This fails closed, but only after the spend. Fix: check the resume target for the first seed only, or document it.
+- Minor: the durability path test above (old; not from round 5).
+- Minor: the evidence file lacks the suite commands and counts, and the 2 ARC tests depend on where the code sits. This section now records the counts.
+- Minor: no recorded brief or FOCUS entry authorizes the LR schedule or the 12 `-g-` recipes (`brief-round5.md`; `FOCUS.md:65-68`).
+- Minor: `cuda_preflight_family.py:331-336` does not apply the LR schedule, so the scheduled path never runs on a GPU before a pod job.
+- Checked: 46 hashes; manifest equals `42eb258`. All 58 earlier configs keep their config hash and training identity under both engines. Goldens pass unchanged. Kit defaults (`RECIPE='b'`, r64) are unchanged.
+
+**4. Mutation and attribution: pass-with-minor.**
+- Should-fix: the Adam proxy uses the end-point rate of each checkpoint (`runner.py:900-903`). Under a cosine that ends at a checkpoint, that term is close to 0 (G: the e1 term weighs about 1/445 of q). Pre-register one rule before any scheduled-run attribution: (a) the mean rate over the interval, (b) a row-specific rate, or (c) the end-point rate, documented, with per-checkpoint parts reported.
+- Should-fix: no test checks that the scheduled rate reaches `adam_score`, and the rate is not written to any output. Mutant X1 (rate computed but unused) survived 42 tests.
+- Should-fix: no test or golden pins the default (per-example) attribution path. Mutant X2 (token-mean weights always on) survived. By reading, the default path is unchanged today.
+- Minor: `w_i` comes from the first epoch only. Under the Gate B reshuffle this does not match the e3 objective (simulated 3-epoch mean / epoch 1: p5 0.87, p95 1.18).
+- Minor: rows in an epoch's short last step are under-weighted by E_last/E (2.0 at 4,800 rows / 128).
+- Minor: G recipes list e3 attribution checkpoints with `schedule_until` e1 (as lens 1).
+- Minor: stale docstrings at `attribution.py:4, 26-27`. The group GradSim is an unweighted mean of row cosines by design.
+- Minor: the builder's mutation baseline "3 skipped" is 1 CUDA test and 2 ARC location skips, not 3 CUDA tests.
+- Checked: 33 of 33 builder mutants killed by failures inside a test, 0 errors. The reviewer re-ran 4 (2 drawn at random); all 4 were killed.
+
+### Not verified
+
+- CUDA paths: the 3 CUDA tests were skipped. Neither token mean nor the LR schedule has run on a GPU.
+- The `assets.json` comparison for a real reuse pair. No G unit exists yet.
+- The "38 steps of e1" figure in the G recipes' purpose text.
+- The reviewers' extra tests and mutants (spy test, X1, X2, decorator and shadowing cases) ran only in their scratch copies. They are not in the repo.
+
+### Open limits and decisions before any `-bt-` or `-g-` run
+
+- Scope: the LR schedule and the 12 `-g-` recipes need a FOCUS entry and the user's approval first (`FOCUS.md:68`). The `-bt-` recipes need the same. As shipped they are opt-in: `RECIPE='b'` and `lr_schedule` constant are the defaults.
+- To fix first: the 6 should-fix items above (applied-rate test; `assets.json` check; default-path reading pair rule; Adam-proxy rate rule; rate-used test and output; default attribution pin). Any engine edit changes the identity, so the evaluation certificate must then be regenerated and re-pinned (`family_probe_reading.py:79`).
+- Decisions for GPT: `schedule_until` versus e3 checkpoints (a config refusal changes the 24 recipes' bytes); the per-arm cosine horizon; the Adam-proxy rate rule; the epoch weights for Gate B.
+- Reuse tonight: the G pod must report `engine_sha256` = `55253874…` exactly, and the two units' `assets.json` must be diffed by hand.

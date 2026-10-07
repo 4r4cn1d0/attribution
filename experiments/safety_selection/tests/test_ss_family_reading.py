@@ -107,8 +107,19 @@ def seal(unit: Path) -> None:
     (unit / "COMPLETE.json").write_text(json.dumps({"complete": True, "files": files}))
 
 
+RECIPE = {"kind": "safety-selection recipe", "name": "fixture-b", "purpose": "fixture",
+          "model": {"repo_id": "fixture/model", "revision": "1" * 40, "attn_implementation": "sdpa", "lora": {"r": 64}},
+          "train": {"loss": "per-example"}, "generation": {"batch_size": 32, "max_new_tokens": 2048}, "arc": {}, "guard": {}}
+CODE = {"code_sha256": "c" * 64, "code_files": {"engine.py": "1" * 64, "runner.py": "2" * 64, "scoring.py": "3" * 64}}
+
+
+def identity(unit: Path, recipe: dict | None = None, **code) -> None:
+    """The unit's identity.json (engine identity, per-file code hashes, the recipe)."""
+    (unit / "identity.json").write_text(json.dumps({**CODE, **code, "recipe": recipe or RECIPE}))
+
+
 def pair(base: Path, u0: int, u1: int, family: str | None = "olmo2", affected=(), e1_name: str = "1101-a0-e1-a1",
-         untuned=None, e1_job=None, **kw) -> tuple[Path, Path, Path]:
+         untuned=None, e1_job=None, e1_identity=None, init_identity=None, **kw) -> tuple[Path, Path, Path]:
     """Two sealed units of one probe with job.json files and their prepared manifest (the CLI's inputs)."""
     base.mkdir(parents=True, exist_ok=True)
     manifest = base / "manifest.json"
@@ -122,6 +133,8 @@ def pair(base: Path, u0: int, u1: int, family: str | None = "olmo2", affected=()
                   **(untuned or {}))
     e1 = folder(base, e1_name, u1, job={**common, "target_checkpoint": "e1", "resume_from": str(base / "1101-a0-init-a1"),
                                          **(e1_job or {})}, **kw)
+    identity(init.parent.parent, **(init_identity or {}))
+    identity(e1.parent.parent, **(e1_identity or {}))
     for unit in (init.parent.parent, e1.parent.parent):
         seal(unit)
     return init, e1, manifest
@@ -257,8 +270,8 @@ def test_the_units_must_be_one_probes_sealed_init_and_e1_with_their_manifest(fr,
     other.write_text("{}")
     with pytest.raises(SystemExit, match="not the prepared manifest"):
         fr.check_units(init, e1, other)
-    cases = {"seed": ({"seed": 1102}, "same seed"), "recipe": ({"recipe_sha256": "x" * 64}, "recipe_sha256"),
-             "resume": ({"resume_from": "round1/1101-a0-init-a7"}, "does not resume"),
+    cases = {"seed": ({"seed": 1102}, "same seed"), "recipe": ({"recipe_sha256": "x" * 64}, "differs in recipe or engine"),
+             "resume": ({"resume_from": "round1/1101-a0-init-a7"}, "resumes from another unit"),
              "arm": ({"arm": "a1"}, "not an a0 e1 unit")}
     for name, (change, message) in cases.items():
         a, b, m = pair(tmp_path / name, 30, 180, e1_job=change)
@@ -445,6 +458,7 @@ def test_two_seed_mode_uses_the_mean_and_the_halved_se(fr, tmp_path, capsys):
                                                               "recipe_sha256": "r" * 64, "target_checkpoint": "e1",
                                                               "manifest_sha256": hashlib.sha256(manifest.read_bytes()).hexdigest(),
                                                               "resume_from": None})
+    identity(second.parent.parent)
     seal(second.parent.parent)
     out = cli(fr, capsys, init, e1, manifest, "--a0", str(second))
     part = out["bars_read"]["E_class"]
@@ -501,7 +515,7 @@ ARC_QWEN = {"recipe B e1 vs Stage 0 init": ("kill-test-stage0/retrieved/s0-1101/
 @pytest.mark.parametrize("name", sorted(ARC_QWEN))
 def test_the_arc_rule_reproduces_the_qwen_calibrations_on_the_real_units(fr, name):
     """Reads only prompt ids and correctness from the retrieved Qwen arc_utility.jsonl files (read-only)."""
-    tmp = ROOT.parents[2]                                      # the main checkout's tmp/ (the workspace lives inside it)
+    tmp = ROOT / "tmp" if (ROOT / "tmp").is_dir() else ROOT.parents[2]   # the main checkout's tmp/, or a workspace's
     untuned, tuned, (lost, gained, status, low, high) = ARC_QWEN[name]
     if not (tmp / untuned / "arc_utility.jsonl").exists() or not (tmp / tuned / "arc_utility.jsonl").exists():
         pytest.skip("the retrieved Qwen units are not on this machine")
@@ -658,3 +672,86 @@ def test_the_edge_band_multiple_is_squared(fr, tmp_path):
     part = out["bars_read"]["E_class"]
     assert 2 ** 0.5 * part["SE_E_pp"] < 6 <= 2 * part["SE_E_pp"]
     assert part["edge_band_contains_an_edge"] is True and part["status"] == "too close"
+
+
+# ----- baseline reuse across recipes and engines (GI III round 5) -------------------------------------------------------
+
+CONFIGS = ROOT / "experiments/safety_selection/configs"
+BASE_IDENTITY = json.loads((CONFIGS / "engine-identity-04eb83a3.json").read_text())
+CERT_PAIR = json.loads((CONFIGS / "evaluation-equivalence-20261008.json").read_text())["pairs"][0]
+NEW_FILES = {**BASE_IDENTITY["files"], **{f: "f" * 64 for f in CERT_PAIR["changed_files"]}}
+BT_RECIPE = {**RECIPE, "name": "fixture-bt", "train": {"loss": "token-mean", "loss_weighting": "token_mean"},
+             "model": {**RECIPE["model"], "lora": {"r": 16}}}
+
+
+def reuse_pair(base: Path, *, e1_code=None, e1_recipe=None, resume=False, **kw):
+    """An untuned unit of engine 04eb83a3 and recipe B, and a fine-tune-only e1 unit of another recipe and engine."""
+    init, e1, manifest = pair(base, 30, 180, e1_job={"recipe_sha256": "t" * 64,
+                                                      "resume_from": str(base / "1101-a0-init-a1") if resume else None},
+                              init_identity={"code_sha256": BASE_IDENTITY["sha256"], "code_files": BASE_IDENTITY["files"]},
+                              e1_identity={"code_sha256": CERT_PAIR["code_sha256"], "code_files": NEW_FILES,
+                                           **(e1_code or {})}, **kw)
+    unit = e1.parent.parent
+    identity(unit, e1_recipe or BT_RECIPE, **{"code_sha256": CERT_PAIR["code_sha256"], "code_files": NEW_FILES, **(e1_code or {})})
+    seal(unit)
+    return init, e1, manifest
+
+
+def test_a_certified_engine_pair_with_equal_evaluation_config_reuses_the_baseline(fr, tmp_path, capsys):
+    init, e1, manifest = reuse_pair(tmp_path / "ok")
+    out = cli(fr, capsys, init, e1, manifest)
+    reuse = out["identity"]["baseline_reuse"]["1101-a0-e1-a1"]
+    assert reuse["recipe_differs"] and reuse["engine_differs"]
+    assert reuse["certificate"]["changed_files"] == CERT_PAIR["changed_files"]
+    assert reuse["certificate"]["certificate_sha256"] == fr.CERTIFICATE_SHA256
+    same_engine = pair(tmp_path / "same", 30, 180, e1_job={"recipe_sha256": "t" * 64, "resume_from": None})
+    identity(same_engine[1].parent.parent, BT_RECIPE)
+    seal(same_engine[1].parent.parent)
+    out = cli(fr, capsys, *same_engine)
+    assert out["identity"]["baseline_reuse"]["1101-a0-e1-a1"] == {"recipe_differs": True, "engine_differs": False}
+    plain = cli(fr, capsys, *pair(tmp_path / "plain", 30, 180))
+    assert plain["identity"]["baseline_reuse"] is None
+
+
+def test_a_baseline_is_not_reused_across_uncertified_engines_or_other_evaluation_settings(fr, tmp_path, monkeypatch):
+    def refused(case: str, message: str, **kw):
+        init, e1, manifest = reuse_pair(tmp_path / case, **kw)
+        with pytest.raises(SystemExit, match=message):
+            fr.check_units(init, e1, manifest)
+
+    refused("other-engine", "not certified", e1_code={"code_sha256": "9" * 64})
+    refused("other-files", "changed files", e1_code={"code_files": {**NEW_FILES, "safety_selection/scoring.py": "e" * 64}})
+    refused("batch", "evaluation configs differ",
+            e1_recipe={**BT_RECIPE, "generation": {"batch_size": 16, "max_new_tokens": 2048}})
+    refused("attention", "evaluation configs differ",
+            e1_recipe={**BT_RECIPE, "model": {**BT_RECIPE["model"], "attn_implementation": "eager"}})
+    refused("same-run", "differs in recipe or engine", resume=True)
+    init, e1, manifest = reuse_pair(tmp_path / "reverse")                  # the certificate is directional
+    for unit, code in ((init.parent.parent, (CERT_PAIR["code_sha256"], NEW_FILES)),
+                       (e1.parent.parent, (BASE_IDENTITY["sha256"], BASE_IDENTITY["files"]))):
+        recipe = RECIPE if unit == init.parent.parent else BT_RECIPE
+        identity(unit, recipe, code_sha256=code[0], code_files=code[1])
+        seal(unit)
+    with pytest.raises(SystemExit, match="not certified"):
+        fr.check_units(init, e1, manifest)
+    init, e1, manifest = reuse_pair(tmp_path / "altered")
+    altered = tmp_path / "altered-certificate.json"
+    altered.write_text(fr.CERTIFICATE.read_text().replace("engine evaluation-path", "engine evaluation path"))
+    monkeypatch.setattr(fr, "CERTIFICATE", altered)
+    with pytest.raises(SystemExit, match="altered"):
+        fr.check_units(init, e1, manifest)
+
+
+def test_the_kit_and_the_reading_define_the_evaluation_config_alike(fr):
+    import importlib.util as iu
+    spec = iu.spec_from_file_location("plan_tool_eval", ROOT / "runkit" / "family-probe" / "plan_tool.py")
+    source = spec.loader.get_source("plan_tool_eval")
+    block = source[source.index("EVAL_EXCLUDED ="):source.index("def _sha")]
+    namespace = {}
+    exec(block, namespace)
+    for path in sorted(CONFIGS.glob("study-kt-*-20261008.json")):
+        recipe = json.loads(path.read_text())
+        assert namespace["eval_config"](recipe) == fr.eval_config(recipe), path.name
+    g = json.loads((CONFIGS / "study-kt-olmo2-1b-r16-g-mb4-20261008.json").read_text())
+    b = json.loads((CONFIGS / "study-kt-olmo2-1b-r64-b-mb4-20261008.json").read_text())
+    assert fr.eval_config(g) == fr.eval_config(b)        # recipe G may reuse the recipe-B baseline (rank and loss differ)

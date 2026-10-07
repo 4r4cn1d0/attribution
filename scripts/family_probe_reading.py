@@ -16,9 +16,14 @@ root is made on squares).
 **What is read** (refused otherwise):
   - sealed units of one probe: the COMPLETE.json of each lists files that are present with their hashes (model states
     may be absent after a light pull); the untuned unit's job is arm a0, target init; each fine-tuned unit's job is arm
-    a0, target e1, with the same recipe and prepared manifest; one of the seed of the untuned unit resumes from it (any
-    attempt number); a second --a0 (two-seed mode) is another seed's e1 unit; the --manifest file's SHA-256 is that
-    manifest;
+    a0, target e1, with the same prepared manifest; one of the seed of the untuned unit resumes from it (any attempt
+    number) or, in a fine-tune-only run, from nothing; a second --a0 (two-seed mode) is another seed's e1 unit; the
+    --manifest file's SHA-256 is that manifest;
+  - **a reused baseline** (GI III round 5): when a fine-tuned unit's recipe or engine differs from the untuned unit's,
+    the two recipes' evaluation configs (``eval_config``) must be equal, and the engines equal or certified by the
+    pinned evaluation-equivalence file for exactly that pair (base engine of the untuned unit, engine of the fine-tuned
+    unit), whose changed-file list must equal the files whose hashes differ between the two units' identity.json
+    code_files; otherwise refused;
   - the family comes from the verified manifest's tokenizer (OLMo-2 or Llama-3); --family, if given, must agree;
   - the evaluations used the same ARC questions, query bank, generation settings and harm prompts and samples;
   - a bars file of kind "family probe reading bars v2" whose SHA-256 is pinned (the earlier 19:14 UTC file is kept for
@@ -70,6 +75,9 @@ CONTROL_IDS = {     # special ids of each family that end or forge a turn (brief
     "llama3": {"<|begin_of_text|>": 128000, "<|start_header_id|>": 128006, "<|end_header_id|>": 128007}}
 ROLE_MARKERS = {"olmo2": ("<|user|>", "<|assistant|>", "<|system|>"), "llama3": ()}
 FAMILY_OF_TOKENIZER = (("allenai/OLMo-2-", "olmo2"), ("meta-llama/Llama-3", "llama3"))
+CERTIFICATE = ROOT / "experiments/safety_selection/configs/evaluation-equivalence-20261008.json"
+CERTIFICATE_SHA256 = "63700221de07eeb098f78e6fb34dddaf037751a6213c3e70e6e739aa10e67909"   # evaluation_path.py certificate
+EVAL_EXCLUDED = ("kind", "name", "purpose", "train", "attribution")
 PASS, FAIL, TOO_CLOSE, MISSING = "pass", "fail", "too close", "missing"
 
 
@@ -134,6 +142,33 @@ def sealed(unit: pathlib.Path) -> None:
         raise SystemExit(f"{unit.name}: {len(bad)} sealed file(s) missing or changed")
 
 
+def eval_config(recipe: dict) -> dict:
+    """A recipe's evaluation settings: all but its name, purpose, training and attribution, and model.lora."""
+    out = {k: v for k, v in recipe.items() if k not in EVAL_EXCLUDED}
+    out["model"] = {k: v for k, v in recipe["model"].items() if k != "lora"}
+    return out
+
+
+def certified(base: dict, new: dict, path: pathlib.Path | None = None, pinned: str | None = None) -> dict:
+    """The certificate entry for the engine pair (untuned unit's, fine-tuned unit's), checked against both units'
+    per-file code hashes; refuses an unpinned or altered certificate, an uncertified pair or a file-list mismatch."""
+    path = path if path is not None else CERTIFICATE
+    pinned = pinned if pinned is not None else CERTIFICATE_SHA256
+    if pinned is None or not path.exists() or sha256(path) != pinned:
+        raise SystemExit("the evaluation-equivalence certificate is missing, unpinned or altered: no reuse across engines")
+    pairs = json.loads(path.read_text())["pairs"]
+    entry = next((e for e in pairs if (e["base_code_sha256"], e["code_sha256"]) == (base["code_sha256"], new["code_sha256"])),
+                 None)
+    if entry is None:
+        raise SystemExit("the two engines are not certified to share their evaluation path: the baseline cannot be reused")
+    a, b = base.get("code_files") or {}, new.get("code_files") or {}
+    differ = sorted(f for f in set(a) | set(b) if a.get(f) != b.get(f))
+    if differ != sorted(entry["changed_files"]):
+        raise SystemExit("the units' code files differ from the certified engine pair's changed files")
+    return {"base_code_sha256": entry["base_code_sha256"], "code_sha256": entry["code_sha256"],
+            "changed_files": entry["changed_files"], "certificate_sha256": pinned}
+
+
 def check_units(untuned: pathlib.Path, a0s, manifest: pathlib.Path) -> dict:
     """The untuned evaluation folder is one probe's sealed init unit, each fine-tuned folder a sealed e1 unit of that
     probe (the first of the untuned seed resumes from it; a second one is another seed), and the manifest is theirs.
@@ -146,32 +181,45 @@ def check_units(untuned: pathlib.Path, a0s, manifest: pathlib.Path) -> dict:
     if untuned.name != "init" or any(a.name != "e1" for a in a0s):
         raise SystemExit("--untuned must be UNIT/eval/init and --a0 UNIT/eval/e1")
     for unit in (u, *fts):
-        if not (unit / "job.json").exists():
-            raise SystemExit(f"{unit.name}: no job.json: the unit's identity cannot be checked")
+        for name in ("job.json", "identity.json"):
+            if not (unit / name).exists():
+                raise SystemExit(f"{unit.name}: no {name}: the unit's identity cannot be checked")
         sealed(unit)
     ju = json.loads((u / "job.json").read_text())
+    iu = json.loads((u / "identity.json").read_text())
     seed = ju.get("seed")
     if not (ju.get("arm") == "a0" and ju.get("target_checkpoint") == "init" and re.fullmatch(rf"{seed}-a0-init-a\d+", u.name)):
         raise SystemExit("--untuned is not an a0 init unit (SEED-a0-init-aN)")
-    seeds = []
+    seeds, reuse = [], {}
     for k, f in enumerate(fts):
         jf = json.loads((f / "job.json").read_text())
+        jdf = json.loads((f / "identity.json").read_text())
         s = jf.get("seed")
         if not (jf.get("arm") == "a0" and jf.get("target_checkpoint") == "e1" and re.fullmatch(rf"{s}-a0-e1-a\d+", f.name)
                 and (k > 0 or s == seed)):
             raise SystemExit("--a0 is not an a0 e1 unit (the first of the same seed as the untuned unit; SEED-a0-e1-aN)")
-        if s == seed and (not jf.get("resume_from") or pathlib.Path(jf["resume_from"]).name != u.name):
-            raise SystemExit("the e1 unit does not resume from this init unit: E must use the probe's own untuned unit")
-        for key in ("recipe_sha256", "manifest_sha256"):
-            if ju.get(key) != jf.get(key):
-                raise SystemExit(f"the units differ in {key}: E must use the probe's own untuned unit")
+        resumed = jf.get("resume_from")
+        if resumed and (s != seed or pathlib.Path(resumed).name != u.name):
+            raise SystemExit("the e1 unit resumes from another unit than this init unit: E must use the probe's own "
+                             "untuned unit")
+        if ju.get("manifest_sha256") != jf.get("manifest_sha256"):
+            raise SystemExit("the units differ in manifest_sha256: E must use the probe's own untuned unit")
+        same_recipe = ju.get("recipe_sha256") == jf.get("recipe_sha256")
+        same_code = iu.get("code_sha256") == jdf.get("code_sha256")
+        if resumed and not (same_recipe and same_code):
+            raise SystemExit("the e1 unit resumes from this init unit but differs in recipe or engine")
+        if not (same_recipe and same_code):            # a reused baseline (module doc)
+            if eval_config(iu["recipe"]) != eval_config(jdf["recipe"]):
+                raise SystemExit("the units' evaluation configs differ: the baseline cannot be reused")
+            reuse[f.name] = {"recipe_differs": not same_recipe, "engine_differs": not same_code,
+                             **({"certificate": certified(iu, jdf)} if not same_code else {})}
         seeds.append(s)
     if len(set(seeds)) != len(seeds):
         raise SystemExit("two-seed mode needs two different seeds")
     if sha256(manifest) != ju["manifest_sha256"]:
         raise SystemExit("--manifest is not the prepared manifest the units used (SHA-256 differs from job.json)")
     return {"seed": seed, "seeds": seeds, "untuned_unit": u.name, "e1_unit": fts[0].name, "e1_units": [f.name for f in fts],
-            "recipe_sha256": ju["recipe_sha256"], "manifest_sha256": ju["manifest_sha256"],
+            "recipe_sha256": ju["recipe_sha256"], "manifest_sha256": ju["manifest_sha256"], "baseline_reuse": reuse or None,
             "job_sha256": {x.name: sha256(x / "job.json") for x in (u, *fts)}}
 
 

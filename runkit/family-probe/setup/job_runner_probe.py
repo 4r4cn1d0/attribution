@@ -13,6 +13,8 @@ one, engine code, recipe and prepared manifest equal to the plan), plus no token
     stages, the preflight's training projection and half its job overhead, the e1 process's share) against the
     remaining cap; cap_risk when under 30 min would remain. **A cap risk refuses e1** (review fix 9): calibrate does
     not run, JOB-DONE.json records stopped: cap_check_refused, and the finisher pulls the baseline and stops the pod;
+  - with base_eval false (GI III round 5, baseline reuse): only calibrate --checkpoints e1 (no --base-eval), no
+    CAP-CHECK (it needs the init unit); the plan's baseline_reuse names the sealed untuned unit the reading pairs with;
   - the engine's verify of every sealed unit; JOB-DONE.json;
   - last, **the stop is shortened** to 1 h from now with extend_cap.py, only when more than 1 h remains (never longer).
 --dry-run prints the engine commands (or the stop reason) and writes nothing.
@@ -38,6 +40,10 @@ def engine_steps(plan: dict, host: str, init_equals_untuned) -> tuple[list[tuple
         return [], STOPPED
     job, recipe = plan["hosts"][host], plan["recipe_path"]
     prepared, seed = job["prepared"], str(job["seed"])
+    if job.get("base_eval") is False:          # GI III round 5: fine-tune only; the plan names a reused baseline
+        calibrate = ["calibrate", "--prepared", prepared, "--recipe", recipe, "--arms", "a0", "--seeds", seed,
+                     "--checkpoints", ",".join(plan["checkpoints"]), "--out-root", "round1"]
+        return [(f"job-process-{seed}", calibrate)], None
     make = ["make-job", "run-one", "--prepared", prepared, "--recipe", recipe, "--out", "base-job.json", "--split", "dev",
             "--arm", "a0", "--seed", seed, "--role", "development", "--target", "init", "--bank", "dev", "--pin-code"]
     run = ["run-one", "--job", "base-job.json", "--prepared", prepared, "--recipe", recipe,
@@ -141,7 +147,9 @@ def main(argv=None) -> int:
         check = subprocess.run([*ENGINE, "verify", "--run", str(unit), "--prepared", prepared], env=env,
                                capture_output=True, text=True)
         verified[unit.name] = {"exit": check.returncode, "tail": (check.stdout + check.stderr)[-600:]}
-    expected_units = {f"{job['seed']}-a0-init-a1", f"{job['seed']}-a0-{plan['checkpoints'][-1]}-a1"}
+    expected_units = {f"{job['seed']}-a0-{plan['checkpoints'][-1]}-a1"}
+    if job.get("base_eval") is not False:
+        expected_units.add(f"{job['seed']}-a0-init-a1")
     done = {"utc": dt.datetime.now(dt.timezone.utc).isoformat(), "host": host, "step_exits": exits, "stopped": stopped_reason,
             "init_equals_untuned": pre.get("init_equals_untuned"), "verified": verified,
             "ok": stopped_reason is None and len(exits) == len(steps) and all(c == 0 for c in exits.values())

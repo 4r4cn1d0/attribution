@@ -148,3 +148,47 @@ def test_each_rank_16_recipe_is_its_rank_64_sibling_with_only_rank_alpha_count_n
     data = load_data_config(CONFIGS / f"study-kt-data-dolly-{FAMILY[probe]}.json")
     job = {"manifest_sha256": "0" * 64, "recipe_sha256": config_sha256(r16), "code_sha256": None}
     check_identities(job, {"data_config": data}, "0" * 64, r16, code_identity())
+
+
+# ----- round 5: token mean ("bt") and recipe G ("g") for the 1B ladders, both ranks ---------------------------------
+
+from experiments.safety_selection.config import LOSS_TOKEN_MEAN  # noqa: E402
+
+ROUND5 = [(p, r, c) for p in ("olmo2-1b", "llama32-1b") for r in ("r64", "r16") for c in LADDERS[p]]
+
+
+def test_there_are_exactly_twelve_bt_and_twelve_g_recipes():
+    for kind in ("bt", "g"):
+        names = sorted(p.name for p in CONFIGS.glob(f"study-kt-*-{kind}-*-20261008.json"))
+        assert names == sorted(f"study-kt-{p}-{r}-{kind}-{c}-20261008.json" for p, r, c in ROUND5), kind
+
+
+@pytest.mark.parametrize("probe, rank, candidate", ROUND5)
+def test_bt_and_g_differ_from_their_b_sibling_only_in_the_listed_fields(probe, rank, candidate):
+    b_path = CONFIGS / f"study-kt-{probe}-{rank}-b-{candidate}-20261008.json"
+    b = load_recipe(b_path)
+    for kind, changed in (("bt", {"loss": LOSS_TOKEN_MEAN, "loss_weighting": "token_mean"}),
+                          ("g", {"loss": LOSS_TOKEN_MEAN, "loss_weighting": "token_mean", "lr_schedule": "warmup_cosine",
+                                 "warmup_steps": 4, "schedule_until": "e1"})):
+        path = CONFIGS / b_path.name.replace("-b-", f"-{kind}-")
+        r = load_recipe(path)
+        assert r["name"] == b["name"].replace("-b-", f"-{kind}-") and r["purpose"].endswith(b["purpose"])
+        assert {k: r["train"][k] for k in changed} == changed and r["train"]["lr"] == b["train"]["lr"] == 0.0001
+        undo = json.loads(json.dumps(r))
+        undo["name"], undo["purpose"] = b["name"], b["purpose"]
+        for k in changed:
+            undo["train"].pop(k)
+        undo["train"]["loss"], undo["train"]["lr_schedule"] = b["train"]["loss"], b["train"]["lr_schedule"]
+        assert undo == b
+        assert list(r["train"])[:4] == list(b["train"])[:4]                    # the sibling's key order is kept
+        assert training_identity(r) != training_identity(b)
+        data = load_data_config(CONFIGS / f"study-kt-data-dolly-{FAMILY[probe]}.json")
+        job = {"manifest_sha256": "0" * 64, "recipe_sha256": config_sha256(r), "code_sha256": None}
+        check_identities(job, {"data_config": data}, "0" * 64, r, code_identity())
+
+
+def test_every_earlier_recipe_keeps_its_loss_and_schedule():
+    for path in CONFIGS.glob("*.json"):
+        data = json.loads(path.read_text())
+        if data.get("kind") == "safety-selection recipe" and "-bt-" not in path.name and "-g-" not in path.name:
+            assert "loss_weighting" not in data["train"] and data["train"]["lr_schedule"] == "constant", path.name

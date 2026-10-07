@@ -1,13 +1,22 @@
 """Write and update plan.json for one family probe (administrative).
 
     python3.11 plan_tool.py init                 one host <probe>-1101 (role first, a0, seed 1101, untuned baseline first)
+    python3.11 plan_tool.py init --reuse-baseline UNIT
+                                                 fine-tune only (base_eval false): the reading pairs e1 with the sealed
+                                                 untuned unit UNIT of an earlier run of this probe (GI III round 5)
     python3.11 plan_tool.py set-recipe RECIPE    the recipe the host's preflight chose (and its hash)
 
-The probe is probe_constants.PROBE and the LoRA rank probe_constants.RANK ("r64" by default; "r16" for the 1B
-probes' rank-16 ladders); its row in probes.py gives the recipe ladder, the prepared set, the cap, the
+The probe is probe_constants.PROBE, the LoRA rank probe_constants.RANK ("r64" by default; "r16" for the 1B
+probes' rank-16 ladders) and the recipe kind probe_constants.RECIPE ("b" by default; "bt" or "g" for the 1B probes); its row in probes.py gives the recipe ladder, the prepared set, the cap, the
 preflight wait and the disk sizes. The engine identity comes from setup/setup-receipt.json and the prepared manifest
 from probe_constants. The recipe hash is computed with the repository engine (identical to the packed one; pack_setup
 refuses uncommitted engine files). A probe has one seed and no job hosts.
+
+Baseline reuse: UNIT must be a sealed a0 init unit of seed 1101 (COMPLETE.json, job.json, identity.json) of the same
+policy and the same prepared manifest, and its evaluation config (``eval_config``: the recipe without its name,
+purpose, train and attribution sections and without model.lora) must equal each candidate's; candidates that differ
+(for example an eager-attention candidate after an sdpa baseline) are dropped from the ladder and listed. The reading
+accepts the pair only when the two engine identities are equal or certified to share their evaluation path.
 """
 import json, pathlib, subprocess, sys
 
@@ -46,10 +55,47 @@ def first_host(probe: str) -> dict:
             "container_disk_gb": spec["container_disk_gb"], "volume_gb": spec["volume_gb"]}
 
 
-def initial_plan(receipt: dict, probe: str, prepared: dict, rank: str = "r64") -> dict:
+EVAL_EXCLUDED = ("kind", "name", "purpose", "train", "attribution")
+
+
+def eval_config(recipe: dict) -> dict:
+    """The recipe's evaluation settings: everything but its name, purpose, training and attribution, and the LoRA shape
+    (an untuned unit is evaluated with B = 0, whatever the rank)."""
+    out = {k: v for k, v in recipe.items() if k not in EVAL_EXCLUDED}
+    out["model"] = {k: v for k, v in recipe["model"].items() if k != "lora"}
+    return out
+
+
+def _sha(path: pathlib.Path) -> str:
+    import hashlib
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def baseline_record(unit: pathlib.Path, probe: str, prepared: dict) -> dict:
+    """Check a sealed untuned unit for reuse by this probe (module doc) and describe it."""
+    for name in ("COMPLETE.json", "job.json", "identity.json"):
+        if not (unit / name).is_file():
+            raise SystemExit(f"{unit.name}: no {name}: not a sealed unit that can be reused")
+    job, identity = (json.loads((unit / n).read_text()) for n in ("job.json", "identity.json"))
+    if (job.get("arm"), job.get("target_checkpoint"), job.get("seed")) != ("a0", "init", SEED):
+        raise SystemExit(f"{unit.name}: not the a0 init unit of seed {SEED}")
+    if job.get("manifest_sha256") not in prepared.values() or identity.get("manifest_sha256") != job["manifest_sha256"]:
+        raise SystemExit(f"{unit.name}: another prepared manifest than this probe's")
+    policy = probes.PROBES[probe]["policy"]
+    model = identity["recipe"]["model"]
+    if (model["repo_id"], model["revision"]) != (policy["repo_id"], policy["revision"]):
+        raise SystemExit(f"{unit.name}: another policy than {probe}'s")
+    return {"unit": unit.name, "path": str(unit), "job_sha256": _sha(unit / "job.json"),
+            "code_sha256": identity["code_sha256"], "manifest_sha256": job["manifest_sha256"],
+            "eval_config": eval_config(identity["recipe"])}
+
+
+def initial_plan(receipt: dict, probe: str, prepared: dict, rank: str = "r64", recipe: str = "b",
+                 baseline: dict | None = None) -> dict:
     spec = probes.PROBES[probe]
-    ladder = probes.recipes(probe, rank)
-    return {"name": f"family-probe-{probe}" + ("" if rank == "r64" else f"-{rank}"), "probe": probe, "rank": rank,
+    ladder = probes.recipes(probe, rank, recipe)
+    suffix = "".join(f"-{x}" for x, default in ((rank, "r64"), (recipe, "b")) if x != default)
+    return {"name": f"family-probe-{probe}{suffix}", "probe": probe, "rank": rank, "recipe_kind": recipe,
             "brief": ".ai/briefs/multi-family-probe-engine-20261007.md",
             "status": f"development; one-seed probe {probe}: untuned baseline and Dolly a0 seed {SEED} to e1 (per-pod user approval)",
             "engine_sha256": receipt["engine_sha256"], "git_commit": receipt["git_commit"], "prepared": prepared,
@@ -57,14 +103,33 @@ def initial_plan(receipt: dict, probe: str, prepared: dict, rank: str = "r64") -
             "preflight_prepared": spec["prepared"], "checkpoints": [pc.CHECKPOINT],
             "fixture_compare": {"equal_keys": ["source", "script_sha256", "manifest_sha256", "recipe_sha256", "training_identity", "test_rows"],
                                 "resume_keys": ["direct", "loss_direct"]},
-            "hosts": {host_name(probe): first_host(probe)}}
+            "hosts": {host_name(probe): first_host(probe)}} if baseline is None else \
+        _reuse(probe, ladder, spec, baseline, receipt, prepared, rank, recipe)
+
+
+def _reuse(probe: str, ladder: list[str], spec: dict, baseline: dict, receipt: dict, prepared: dict, rank: str,
+           recipe: str) -> dict:
+    kept = [r for r in ladder if eval_config(json.loads((ROOT / r).read_text())) == baseline["eval_config"]]
+    if not kept:
+        raise SystemExit("no candidate of the ladder has the baseline's evaluation config")
+    plan = initial_plan(receipt, probe, prepared, rank, recipe)
+    plan["first_host_recipes"] = kept
+    plan["baseline_reuse"] = {k: v for k, v in baseline.items() if k != "eval_config"}
+    plan["baseline_reuse"]["dropped_candidates"] = [r for r in ladder if r not in kept]
+    plan["hosts"][host_name(probe)]["base_eval"] = False
+    plan["status"] += f"; fine-tune only, the untuned baseline is reused from {baseline['unit']}"
+    return plan
 
 
 def main(argv: list[str]) -> int:
     cmd = argv[0]
     if cmd == "init":
         assert not PLAN.exists(), "plan.json exists"
-        save(initial_plan(json.loads((HERE / "setup/setup-receipt.json").read_text()), pc.probe(), pc.prepared(), pc.RANK))
+        baseline = None
+        if argv[1:2] == ["--reuse-baseline"]:
+            baseline = baseline_record(pathlib.Path(argv[2]).resolve(), pc.probe(), pc.prepared())
+        save(initial_plan(json.loads((HERE / "setup/setup-receipt.json").read_text()), pc.probe(), pc.prepared(),
+                          pc.RANK, pc.RECIPE, baseline))
     elif cmd == "set-recipe":
         p = load(); r = argv[1]; assert r in p["first_host_recipes"], "not a recipe of this probe's ladder"
         p["recipe_path"] = r; p["recipe_sha256"] = recipe_sha(r); save(p)

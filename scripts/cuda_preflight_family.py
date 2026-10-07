@@ -332,7 +332,8 @@ def main():
 
         def step(rows_, opt):
             return en.train_step(policy.model, policy.named, opt, rows_, train["micro_batch"], train["max_grad_norm"],
-                                 codec.pad_id, "cuda", train["lm_head_chunk_tokens"])
+                                 codec.pad_id, "cuda", train["lm_head_chunk_tokens"],
+                                 train.get("loss_weighting", en.EXAMPLE_MEAN))   # the recipe's loss (round 5)
 
         torch.cuda.reset_peak_memory_stats()
         with ledger.stage("resume_check", engineering_steps=3) as info:

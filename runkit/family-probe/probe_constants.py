@@ -17,6 +17,7 @@ SCRIPTS = ("cuda_preflight_family.py", "cuda_preflight_killtest.py", "cuda_prefl
            "cuda_preflight_headroom.py")
 CHECKPOINT = "e1"
 RANK = "r64"                                  # "r16": the 1B probes' rank-16, alpha-32 ladders (probes.recipes)
+RECIPE = "b"                                  # "bt" (token mean) or "g" (token mean + warmup cosine): 1B probes only
 MAX_PRICE = 1.75
 
 

@@ -1399,9 +1399,9 @@ def test_the_kit_can_point_at_the_rank_16_ladders_and_defaults_to_rank_64(kit, m
                                           for c in ("mb4", "mb2", "mb2-eager")]
     assert all((ROOT / r).is_file() for probe in probes.RANK16_PROBES for r in probes.recipes(probe, "r16"))
     for probe in ("olmo2-7b", "olmo2-13b", "llama31-8b"):
-        with pytest.raises(SystemExit, match="no r16 recipes"):
+        with pytest.raises(SystemExit, match="no r16 b recipes"):
             probes.recipes(probe, "r16")
-    with pytest.raises(SystemExit, match="no r32 recipes"):
+    with pytest.raises(SystemExit, match="no r32 b recipes"):
         probes.recipes("olmo2-1b", "r32")
 
 
@@ -1466,3 +1466,85 @@ def test_the_download_refuses_a_weight_whose_content_differs_from_its_blob_name(
         script.main([])
     assert json.loads((tmp_path / "model-download-receipt.json").read_text())["ok"] is False
     assert record["weight_pins"] == [hashlib.sha256(data).hexdigest()]
+
+
+@pytest.mark.parametrize("rank", ["r64", "r16"])
+@pytest.mark.parametrize("kind", ["bt", "g"])
+def test_the_kit_can_point_at_the_round_5_recipes_for_the_1b_probes_only(kit, monkeypatch, rank, kind):
+    import probe_constants as pc
+    import probes
+    assert (pc.RANK, pc.RECIPE) == ("r64", "b")
+    set_probe(monkeypatch, "llama32-1b")
+    monkeypatch.setattr(pc, "RANK", rank)
+    monkeypatch.setattr(pc, "RECIPE", kind)
+    tool = kit("plan_tool.py")
+    plan = tool.initial_plan({"engine_sha256": "e" * 64, "git_commit": "c" * 40}, "llama32-1b", pc.prepared(), pc.RANK, pc.RECIPE)
+    assert plan["recipe_kind"] == kind and plan["name"] == "family-probe-llama32-1b" + ("" if rank == "r64" else "-r16") + f"-{kind}"
+    assert plan["first_host_recipes"] == [f"experiments/safety_selection/configs/study-kt-llama32-1b-{rank}-{kind}-{c}-20261008.json"
+                                          for c in ("mb4", "mb2", "mb2-eager")]
+    assert all((ROOT / r).is_file() for p in probes.RANK16_PROBES for r in probes.recipes(p, rank, kind))
+    for probe in ("olmo2-7b", "olmo2-13b", "llama31-8b"):
+        with pytest.raises(SystemExit, match=f"has no {rank} {kind} recipes"):
+            probes.recipes(probe, rank, kind)
+    with pytest.raises(SystemExit, match="kinds b, bt, g"):
+        probes.recipes("olmo2-1b", rank, "c")
+
+
+# ----- baseline reuse in the kit (GI III round 5) ------------------------------------------------------------------
+
+
+def _baseline_unit(root: Path, recipe_path: str, *, seed: int = 1101, manifest: str = "f" * 64, repo: str | None = None) -> Path:
+    unit = root / f"{seed}-a0-init-a1"
+    unit.mkdir(parents=True)
+    recipe = json.loads((ROOT / recipe_path).read_text())
+    if repo:
+        recipe["model"]["repo_id"] = repo
+    (unit / "job.json").write_text(json.dumps({"arm": "a0", "target_checkpoint": "init", "seed": seed,
+                                               "manifest_sha256": manifest}))
+    (unit / "identity.json").write_text(json.dumps({"code_sha256": "0" * 64, "manifest_sha256": manifest, "recipe": recipe}))
+    (unit / "COMPLETE.json").write_text(json.dumps({"complete": True, "files": {}}))
+    return unit
+
+
+def test_the_plan_tool_reuses_a_sealed_baseline_and_keeps_only_matching_candidates(kit, monkeypatch, tmp_path):
+    pc, probes = set_probe(monkeypatch, "olmo2-1b")
+    monkeypatch.setattr(pc, "RANK", "r16")
+    monkeypatch.setattr(pc, "RECIPE", "g")
+    tool = kit("plan_tool.py")
+    monkeypatch.setattr(tool, "ROOT", ROOT)
+    base_recipe = probes.PROBES["olmo2-1b"]["recipes"][0]                   # tonight's probe: r64 b mb4 (sdpa)
+    unit = _baseline_unit(tmp_path / "a", base_recipe)
+    record = tool.baseline_record(unit, "olmo2-1b", pc.prepared())
+    plan = tool.initial_plan({"engine_sha256": "e" * 64, "git_commit": "c" * 40}, "olmo2-1b", pc.prepared(), "r16", "g", record)
+    host = plan["hosts"]["olmo2-1b-1101"]
+    assert host["base_eval"] is False and plan["baseline_reuse"]["unit"] == "1101-a0-init-a1"
+    assert plan["first_host_recipes"] == [f"experiments/safety_selection/configs/study-kt-olmo2-1b-r16-g-{c}-20261008.json"
+                                          for c in ("mb4", "mb2")]
+    assert plan["baseline_reuse"]["dropped_candidates"] == [
+        "experiments/safety_selection/configs/study-kt-olmo2-1b-r16-g-mb2-eager-20261008.json"]     # eager attention
+    assert "eval_config" not in plan["baseline_reuse"]
+    for case, kwargs, message in (("seed", {"seed": 1102}, "seed 1101"), ("manifest", {"manifest": "9" * 64}, "manifest"),
+                                  ("policy", {"repo": "allenai/OLMo-2-1124-7B-Instruct"}, "another policy")):
+        bad = _baseline_unit(tmp_path / case, base_recipe, **kwargs)
+        with pytest.raises(SystemExit, match=message):
+            tool.baseline_record(bad, "olmo2-1b", pc.prepared())
+    (unit / "identity.json").unlink()
+    with pytest.raises(SystemExit, match="no identity.json"):
+        tool.baseline_record(unit, "olmo2-1b", pc.prepared())
+    eager = _baseline_unit(tmp_path / "eager", probes.PROBES["olmo2-1b"]["recipes"][2])
+    eager_record = tool.baseline_record(eager, "olmo2-1b", pc.prepared())
+    eager_record["eval_config"]["generation"]["batch_size"] = 16
+    with pytest.raises(SystemExit, match="no candidate"):
+        tool.initial_plan({"engine_sha256": "e" * 64, "git_commit": "c" * 40}, "olmo2-1b", pc.prepared(), "r16", "g", eager_record)
+
+
+def test_a_fine_tune_only_job_runs_calibrate_without_the_baseline(kit):
+    runner = kit("setup/job_runner_probe.py")
+    plan = {"recipe_path": "experiments/safety_selection/configs/study-kt-olmo2-1b-r16-g-mb4-20261008.json",
+            "checkpoints": ["e1"], "hosts": {"h": {"role": "first", "arm": "a0", "seed": 1101, "base_eval": False,
+                                                   "prepared": "prepared-kt-dolly-olmo2"}}}
+    steps, stopped = runner.engine_steps(plan, "h", True)
+    (name, args), = steps
+    assert stopped is None and name == "job-process-1101" and args[0] == "calibrate" and "--base-eval" not in args
+    _parser().parse_args(args)
+    assert runner.engine_steps(plan, "h", False) == ([], "init_not_proven_equal_to_untuned")    # the gate stays

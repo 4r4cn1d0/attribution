@@ -81,14 +81,20 @@ PROBES = {
 RANK16_PROBES = ("olmo2-1b", "llama32-1b")      # rank-16, alpha-32 siblings exist for these ladders only (GI III, 8 Oct)
 
 
-def recipes(probe: str, rank: str = "r64") -> list[str]:
-    """The probe's ladder at a LoRA rank: "r64" (the default) or "r16" (the 1B probes' rank-16 siblings)."""
+RECIPE_KINDS = ("b", "bt", "g")              # recipe B; B with the token mean; recipe G (token mean + warmup cosine)
+
+
+def recipes(probe: str, rank: str = "r64", recipe: str = "b") -> list[str]:
+    """The probe's ladder at a LoRA rank ("r64", the default, or "r16") and recipe kind ("b", the default; "bt" or
+    "g", GI III round 5). Every variant other than r64 + b exists for the 1B probes only."""
     ladder_ = PROBES[probe]["recipes"]
-    if rank == "r64":
+    if rank not in ("r64", "r16") or recipe not in RECIPE_KINDS:
+        raise SystemExit(f"no {rank} {recipe} recipes (ranks r64, r16; kinds {', '.join(RECIPE_KINDS)})")
+    if (rank, recipe) == ("r64", "b"):
         return list(ladder_)
-    if rank == "r16" and probe in RANK16_PROBES:
-        return [path.replace("-r64-b-", "-r16-b-") for path in ladder_]
-    raise SystemExit(f"{probe} has no {rank} recipes (rank-16 variants exist for {', '.join(RANK16_PROBES)} only)")
+    if probe not in RANK16_PROBES:
+        raise SystemExit(f"{probe} has no {rank} {recipe} recipes (variants exist for {', '.join(RANK16_PROBES)} only)")
+    return [path.replace("-r64-b-", f"-{rank}-{recipe}-") for path in ladder_]
 
 
 def download_plan(probe: str) -> list[dict]:
