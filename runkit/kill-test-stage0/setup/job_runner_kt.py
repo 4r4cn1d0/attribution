@@ -88,7 +88,7 @@ def main() -> int:
         check = subprocess.run([*ENGINE, "verify", "--run", str(unit), "--prepared", prepared], env=env,
                                capture_output=True, text=True)
         verified[unit.name] = {"exit": check.returncode, "tail": (check.stdout + check.stderr)[-600:]}
-    expected_units = {f"{job['seed']}-a0-e3-a1"} | ({f"{job['seed']}-a0-init-a1"} if len(steps) == 3 else set())
+    expected_units = {f"{job['seed']}-a0-{name}-a1" for name in plan["checkpoints"]} | ({f"{job['seed']}-a0-init-a1"} if len(steps) == 3 else set())
     done = {"utc": dt.datetime.now(dt.timezone.utc).isoformat(), "host": host, "step_exits": exits,
             "baseline_skipped": skipped, "init_equals_untuned": pre.get("init_equals_untuned"), "verified": verified,
             "ok": len(exits) == len(steps) and all(code == 0 for code in exits.values())
