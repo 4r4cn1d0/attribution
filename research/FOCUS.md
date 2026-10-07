@@ -73,6 +73,13 @@ Status, 2 October 2026: exploratory; hypotheses untested; design incomplete; not
   - **Tokenizers** (HF API, 7 Oct):
     - OLMo-2 1B, 7B and 13B share identical tokenizer files, so one data preparation serves them.
     - Llama-3.2-1B and 3.1-8B share tokenizer.json but differ in tokenizer_config (the chat template).
+  - **Addition, 2026-10-07 18:15 UTC (the user):** a **calibration probe on Qi et al.'s own model**, `meta-llama/Llama-2-7b-chat-hf` @ `f5db02db…`.
+    - Its role: test whether our setup reproduces their partial Dolly erosion (0.6% → 12.1% under their full fine-tune and GPT-4 judge).
+    - Model facts: Llama 2 licence, gated (the user's token has access); 6.74B parameters; 32 layers, hidden 4096, intermediate 11008, no GQA; untied; vocab 32,000; max 4,096 positions; `</s>` end token; no pad token.
+    - Chat format: `[INST] … <<SYS>>` with no default system prompt in the current template.
+    - Rank-64 all-linear LoRA: 159,907,840 values.
+    - It needs its own data preparation (SentencePiece tokenizer). About $6–7 (estimate).
+  - **Access, 2026-10-07 18:15 UTC:** Meta approved the user's account for Llama-3.2-1B-Instruct and Llama-3.1-8B-Instruct (HTTP 206 on gated files). The user's HF token is in the secrets file. It has broad write scopes and appeared in chat, so it should be rotated to a read-only token after the downloads.
   - **Engine work:** a Specialized brief (`.ai/briefs/multi-family-probe-engine-20261007.md`, in preparation) covering the chat formats, per-tokenizer data preparation with bank re-audit, recipes with memory candidates, and the gated download with the user's HF token.
 - **Decision, 2026-10-07 13:38 UTC (the user; supersedes the 13:21 entry below): the one-seed 7B check uses `Qwen/Qwen2.5-7B-Instruct` @ `a09a3545…`, not Llama-2-7B-Chat.** The user wants to keep the grant at $5–6k.
   - **Model plan for the whole study:** the main study stays at Qwen2.5-1.5B-Instruct, for many seeds and menus within budget. Qwen2.5-7B-Instruct is the same-family scale check, about $500–800 later, and today's run is its first data point.
