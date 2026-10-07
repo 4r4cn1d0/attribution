@@ -693,3 +693,11 @@ The full text is in [FOCUS.md](../FOCUS.md), "Decisions, 6 October 2026", amendm
 - Stage 0's Gate A at e3 failed on "answers end" (seed 1102: 17.0% capped, 20.8% failing the screen), with mean E +81.8 pp.
 - Recipe B (LR 1e-4, 128 rows per step) is now run at e1 on seeds 1101–1103 and read by the unchanged thresholds plus the ARC ≤ 0.03 recipe rule.
 - Results: [Stage 0 record](2026-10-07-kill-test-stage0-results.md).
+
+## Note: a recorded prior for Gate B (2026-10-07 17:47 UTC; it gates nothing)
+
+- **Before any Gate B run, we expect DIFFUSE to be more likely than LOCALIZED** in near-saturated settings.
+- **Reasons:**
+  - **Saturation.** Qwen 1.5B and 7B reach 80–87% unsafe after 38 steps, so any 7 of the 8 units may still saturate the erosion.
+  - **The curvature account** ([note](../review/2026-10-07-curvature-fragility-note.md)). Forgetting there is driven by sharpness along the update direction, which suggests effects that do not add up source by source.
+- **This prior is written down so that a LOCALIZED result counts as informative.** It does not change any threshold.
