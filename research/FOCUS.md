@@ -62,6 +62,18 @@ Status, 2 October 2026: exploratory; hypotheses untested; design incomplete; not
   - If no candidate meets the ARC limit, keep e3 and report the skill loss as a limitation. Gate A at e3 is still read by its own rule.
   - The choice uses Gate A data only (erosion, its noise, answers ending, ARC), never any Gate B outcome. The unused checkpoint is reported as a dose-response point.
   - **Gate A is formally passed or failed at the chosen checkpoint, with 3 seeds at that checkpoint.** Gate B, Gate C and the main study use only that checkpoint. Results at the other checkpoint never feed a later gate. The seeds that choose the checkpoint also pass its Gate A. That can flatter E slightly. Gate B's contrast (unit removal against random removal of the same size, both paired to the same a0 runs) cancels any shared a0 shift. The stricter option, fresh a0 seeds for Gate B, is open if the user wants it.
+- **Decision, 2026-10-07 17:44 UTC (the user): probe sturdier model families before choosing the main model.** The Qwen2.5-7B check also collapsed: 4.8% → 87.0% unsafe after 38 recipe-B steps, with greedy loops appearing after fine-tuning. The user asked for one-seed probes on two other families, at every size that fits.
+  - **The probes:** OLMo-2 (allenai, Apache-2.0, open): 1B (`OLMo-2-0425-1B-Instruct`), 7B (`OLMo-2-1124-7B-Instruct`), 13B (`OLMo-2-1124-13B-Instruct`). Llama-3 (Meta, gated with manual approval): `Llama-3.2-1B-Instruct` and `Llama-3.1-8B-Instruct`.
+  - **Not 32B:** about 64 GB of bf16 weights; LoRA training does not fit one A100-80GB, and the engine has no 4-bit or multi-GPU path.
+  - **Each probe:** the untuned baseline plus one recipe-B fine-tune at e1, seed 1101. Evaluation unchanged, for comparability with Qwen.
+  - **What we look for:** a family whose erosion is partial (clear but not saturated) with answers that end. That is the zone where Gate B and Gate C can work. If the families differ, Qwen may stay as the "fragile" second family, so the paper can ask when diagnosis pays as a function of fragility.
+  - **Order and money:**
+    - OLMo first (no gating); Llama after the user's Meta access is approved.
+    - Estimated cost: about $4 per 1B probe, $6–7 for 7–8B, $10–12 for 13B; about $30–34 for all five, against a $28.08 balance. 13B may need a top-up.
+  - **Tokenizers** (HF API, 7 Oct):
+    - OLMo-2 1B, 7B and 13B share identical tokenizer files, so one data preparation serves them.
+    - Llama-3.2-1B and 3.1-8B share tokenizer.json but differ in tokenizer_config (the chat template).
+  - **Engine work:** a Specialized brief (`.ai/briefs/multi-family-probe-engine-20261007.md`, in preparation) covering the chat formats, per-tokenizer data preparation with bank re-audit, recipes with memory candidates, and the gated download with the user's HF token.
 - **Decision, 2026-10-07 13:38 UTC (the user; supersedes the 13:21 entry below): the one-seed 7B check uses `Qwen/Qwen2.5-7B-Instruct` @ `a09a3545…`, not Llama-2-7B-Chat.** The user wants to keep the grant at $5–6k.
   - **Model plan for the whole study:** the main study stays at Qwen2.5-1.5B-Instruct, for many seeds and menus within budget. Qwen2.5-7B-Instruct is the same-family scale check, about $500–800 later, and today's run is its first data point.
   - **Why not Llama-2:** it changes the family and the size at once; it needs a new data and tokenizer path (about 1 day) and gated access; and the main study could not afford it.
