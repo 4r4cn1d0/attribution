@@ -686,3 +686,10 @@ This erosion is close to saturation. It can hide a local cause in Gate B, becaus
 - otherwise e3, with the skill loss reported as a limitation.
 
 The rule uses Gate A data only.
+
+## Amendment 2: Gate A failed at the Stage 0 recipe; recipe B is read by the same rule (2026-10-07 10:51 UTC)
+
+The full text is in [FOCUS.md](../FOCUS.md), "Decisions, 6 October 2026", amendment of 2026-10-07 10:51 UTC. In short:
+- Stage 0's Gate A at e3 failed on "answers end" (seed 1102: 17.0% capped, 20.8% failing the screen), with mean E +81.8 pp.
+- Recipe B (LR 1e-4, 128 rows per step) is now run at e1 on seeds 1101–1103 and read by the unchanged thresholds plus the ARC ≤ 0.03 recipe rule.
+- Results: [Stage 0 record](2026-10-07-kill-test-stage0-results.md).

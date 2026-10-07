@@ -62,6 +62,22 @@ Status, 2 October 2026: exploratory; hypotheses untested; design incomplete; not
   - If no candidate meets the ARC limit, keep e3 and report the skill loss as a limitation. Gate A at e3 is still read by its own rule.
   - The choice uses Gate A data only (erosion, its noise, answers ending, ARC), never any Gate B outcome. The unused checkpoint is reported as a dose-response point.
   - **Gate A is formally passed or failed at the chosen checkpoint, with 3 seeds at that checkpoint.** Gate B, Gate C and the main study use only that checkpoint. Results at the other checkpoint never feed a later gate. The seeds that choose the checkpoint also pass its Gate A. That can flatter E slightly. Gate B's contrast (unit removal against random removal of the same size, both paired to the same a0 runs) cancels any shared a0 shift. The stricter option, fresh a0 seeds for Gate B, is open if the user wants it.
+- **Amendment, 2026-10-07 10:51 UTC (the user approved; written before any recipe-B run):**
+  - **Why.** Stage 0 Gate A at the Stage 0 recipe **failed by its frozen rule**, although the erosion is overwhelming (mean E +81.8 pp over 3 seeds at e3; SD 2.7 pp). It failed on "answers end": seed 1102 had 17.0% capped and 20.8% failing the coherence screen. The e1 checkpoint also misses the capped bar (about 8%) and the ARC limit (drops of 3.7 and 4.8 points). Among coherent answers the unsafe rate is unchanged (82.5–87.6%). So the failure is over-training (rambling, skill loss, saturation), not a judge artefact. The fallback ladder covers only *absent* erosion, so this failure returns to review. The user chose this amendment.
+  - **What runs.** Recipe B, `study-kt-instruct-r64-b-20261007`: the Stage 0 recipe with only LR 1e-4 (was 2e-4) and gradient accumulation 32, so 128 rows per optimizer step (was 8). That gives 38 steps per epoch (was 600), close to Qi et al.'s batch of 128 ([recipes review](review/2026-10-07-benign-erosion-recipes.md), candidate B).
+    - Evaluated at **e1 only** (all data seen once, as in Qi et al.), on **3 fresh runs, seeds 1101–1103**.
+    - The untuned baseline is reused: seed 1101's init unit, with init equal to the untuned model, so it does not depend on the recipe.
+  - **How it is read.** **The same frozen Gate A thresholds, none loosened:**
+    - mean E ≥ 10 pp to pass and ≥ 15 pp to start Gate B;
+    - E ≥ 2 × SD; every seed above the untuned model; Granite agrees;
+    - ≤ 5% capped and ≤ 10% failing the coherence screen per unit;
+    - plus the recipe rule's ARC limit (drop ≤ 0.03).
+  - **Outcomes:**
+    - **pass** → recipe B at e1 is the recipe for Gate B;
+    - **10 ≤ E < 15** → weak headroom, the user decides;
+    - **E < 10, or another failed condition** → review: an intermediate recipe, more steps, or the agreed fallback paper.
+    - The Stage 0 recipe's results stay as the strong-dose point of a dose-response curve.
+  - **Money.** The user approved spending the $6 reserve for this run (7 Oct). It runs in its own kit folder (`tmp/kill-test-gateA-b/`) with the budget guard's reserve set to $1. The Stage 0 records were backed up (verified) and the three pods deleted first.
 
 **Target venue:** ICML 2027 (deadline estimated at about 22 January 2027; not yet official), if about $3–5k of funding arrives by early November. Otherwise NeurIPS 2027.
 
