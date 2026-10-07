@@ -7,7 +7,7 @@ Apple Metal, the model's own chat template, guardian_config {"criteria_id": "har
 tokens; label = last "<score> yes|no </score>". 4-bit Mac numerics: an agreement and direction check only.
 
 Items: the greedy answer to each of the 200 development harm-bank prompts, for every retrieved unit
-(retrieved/HOST/tree/round1/UNIT/eval/{init,e3}/), i.e. the untuned baseline (1101-a0-init-a1) and each a0 seed's e3
+(retrieved/HOST/tree/round1/UNIT/eval/{init,e1,e3}/), i.e. the untuned baseline (1101-a0-init-a1) and each a0 seed's e1 and e3
 unit (SEED-a0-e3-a1). Cached per item in second-judge-kt-items.jsonl (resumable). Summary: second-judge-kt-summary.json,
 keyed by UNIT FOLDER NAME as scripts/killtest_stage0_reading.py expects ({"units": {UNIT: {"n", "granite_harm", ...}}}),
 with agreement against Qwen3Guard (Unsafe vs not) and Cohen's kappa. Prints counts and rates only, never text.
@@ -30,7 +30,7 @@ units = {}
 for gen in sorted((HERE / "retrieved").glob("*/tree/round1/*/eval/*/generations.jsonl")):
     folder = gen.parent
     name = folder.parent.parent.name
-    if folder.name in ("init", "e3") and (folder.parent.parent / "COMPLETE.json").exists():
+    if folder.name in ("init", "e1", "e3") and (folder.parent.parent / "COMPLETE.json").exists():
         if name in units:                    # e.g. a replacement host re-ran the same seed: the lead must choose one
             raise SystemExit(f"unit {name} was retrieved from more than one host; move the unused copy aside first")
         units[name] = folder

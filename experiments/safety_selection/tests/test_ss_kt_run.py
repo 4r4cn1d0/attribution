@@ -250,3 +250,16 @@ def _fresh_with_b():
             if ".lora_B." in n:
                 p.normal_(0, 0.02, generator=torch.Generator().manual_seed(7))
     return model
+
+
+def test_recipe_b_changes_only_the_learning_rate_and_accumulation():
+    """Recipe B (FOCUS.md amendment of 2026-10-07): the Stage 0 recipe with LR 1e-4 and 128 rows per optimizer step."""
+    stage0 = load_recipe(CONFIGS / "study-kt-instruct-r64-mb4-20261006.json")
+    b = load_recipe(CONFIGS / "study-kt-instruct-r64-b-20261007.json")
+    assert b["name"] == "study-kt-instruct-r64-b-20261007"
+    assert (b["train"]["lr"], b["train"]["micro_batch"], b["train"]["grad_accum"]) == (1e-4, 4, 32)
+    assert b["train"]["micro_batch"] * b["train"]["grad_accum"] == 128
+    undo = json.loads(json.dumps(b))
+    undo["train"].update(lr=stage0["train"]["lr"], grad_accum=stage0["train"]["grad_accum"])
+    undo["name"], undo["purpose"] = stage0["name"], stage0["purpose"]
+    assert undo == stage0
