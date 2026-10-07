@@ -5,6 +5,13 @@ Written 6 October 2026 at about 00:40 IST (5 October, 19:10 UTC; the user is in 
 - This file is separate from `.ai/HANDOFF.md`, which must **never** be edited.
 - Times below are UTC on 5 October unless marked IST.
 
+## STATUS, 7 Oct 23:52 UTC (8 Oct 05:22 IST), GI III (usage limit reached; read this first)
+- **OLMo-2-1B probe RUNNING:** pod olmo2-1b-1101, kit tmp/family-probe-olmo2-1b (recipe B r64 mb4, engine 55253874, commit 8c026ee). Preflight ok 23:50 UTC; job starting. Finisher (caffeinate) stops it when done; stop timer 06:04 UTC. Then: read with scripts/family_probe_reading.py (amended bars), Granite via runkit second_judge_probe.py, back up, verify, delete.
+- **Rank-16 Qwen:** E +67.8 pp, saturated; rank does not matter (FOCUS). Pod r16-1101 STOPPED, not deleted: run tmp/kill-test-r16/backup_records_r16.py (after Granite finishes; Granite running locally on Metal, log second-judge-r16.log), verify, then delete the pod.
+- **Llama-3.2-1B waits** for the OLMo reading. If OLMo saturates: OLMo recipe G fine-tune only, reusing tonight's baseline on the SAME engine 55253874 (plan_tool init --reuse-baseline; check the environment match by hand). Record in FOCUS first. Don't waste money (user, before sleeping).
+- **Specialized round 6 PARTIAL** (usage limit): workspace tmp/claude-workspaces/review-fixes-round6-20261008; do NOT integrate until finished. Needed before Gate B, not for tonight.
+- Notes: research/review/2026-10-08-guo-gap-analysis.md and 2026-10-08-erosion-amplifiers-literature.md (our recipe stacks four amplifiers: no warmup, large adapter, per-example loss, Dolly targets).
+
 ## LEAD HANDOFF, 8 October 2026 (about 02:00 IST): General Implementation II → **General Implementation III**
 
 The user: "make General Implementation III, and then continue through that; we need to get past this hurdle today". **General Implementation III is now the lead** and the only chat that drives pods and commits. General Implementation II stops driving pods. It forwards one pending result (the build review below) and then goes quiet.
