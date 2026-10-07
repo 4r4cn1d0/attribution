@@ -5,6 +5,80 @@ Written 6 October 2026 at about 00:40 IST (5 October, 19:10 UTC; the user is in 
 - This file is separate from `.ai/HANDOFF.md`, which must **never** be edited.
 - Times below are UTC on 5 October unless marked IST.
 
+## LEAD HANDOFF, 8 October 2026 (about 02:00 IST): General Implementation II → **General Implementation III**
+
+The user: "make General Implementation III, and then continue through that; we need to get past this hurdle today". **General Implementation III is now the lead** and the only chat that drives pods and commits. General Implementation II stops driving pods. It forwards one pending result (the build review below) and then goes quiet.
+
+### Where the research stands (read these first)
+- **research/FOCUS.md:** "Adopted direction", then every dated decision, amendment and frozen bar under "Decisions, 6 October 2026". Read the whole list; it is the source of truth.
+- **research/experiments/2026-10-07-kill-test-stage0-results.md:** all results so far (Stage 0, recipe B, the Qwen2.5-7B check, the loop diagnosis, corrections).
+- **research/review/2026-10-08-safety-landscape-papers-note.md:** the **Guo et al. contradiction** (see below).
+- **research/review/2026-10-07-benign-erosion-recipes.md**, **research/review/2026-10-06-reading-dossier.md** (+ PDF), **research/review/2026-10-07-curvature-fragility-note.md**.
+
+### The hurdle: Gate A of the kill test
+We need a setting where ordinary benign fine-tuning gives a **partial** safety loss, with answers that end and skill kept. The user approved these frozen bars on 7 Oct, 19:14 UTC (FOCUS.md):
+- **partial** = 20 ≤ E ≤ 55 pp;
+- answers-end measured on the **sampled** answers (≤ 5% capped, ≤ 10% failing the screen), and every verdict must also hold on U over coherent answers only;
+- ARC drop ≤ 0.03, and the task is learned (lower held-out loss);
+- Granite agrees on the direction.
+
+**So far:**
+- Qwen2.5-1.5B-Instruct collapses (+75 to +84 pp) at the Stage 0 recipe and at recipe B (LR 1e-4, 128 rows per step, 38 steps).
+- Qwen2.5-7B-Instruct also collapses (+82.2 pp; Granite agrees 97.5%).
+- Greedy decoding loops after fine-tuning (every capped answer is a repetition loop).
+- Stage 0 Gate A failed by its frozen rule on answers-end.
+
+**Key new lead: Guo et al. 2026 (2609.01455)** report that stock Qwen2.5-7B-Instruct stays near its untuned ASR after **LoRA** on benign data, while full SFT collapses it. **Our rank-64, alpha-128, all-linear LoRA is the prime suspect** (161M trainable values at 7B). Standard practice is rank 8–16 (DataRx and SafeTune use r16).
+
+### The user's go-ahead (8 Oct, "keep going ahead")
+1. **Run the Qwen rank-16 test now** (about $4):
+   - Qwen2.5-1.5B-Instruct with recipe B **changed only in LoRA r16, alpha 32** (scaling 2 kept). Everything else is identical, on frozen prepared-kt-dolly.
+   - One seed (1101), the untuned baseline reused, read at e1 against the frozen bars.
+   - Expected trainable count: one quarter of 73,859,072 = 18,464,768. Verify it.
+   - It runs on the **old Qwen kit and engine c52c0ebc** (tmp/kill-test-gateA-b pattern; HEAD 38f806c still has engine c52c0ebc in the repo).
+   - Record the recipe and a FOCUS.md entry **before** the run (the frozen-rule discipline).
+2. **If rank matters** (rank-16 gives a partial loss, or clearly less than rank 64): send Specialized a short brief for **rank-16, alpha-32 variants of the family recipes** (config plus expected counts plus recipe-diff tests). Specialized's counts: olmo2-1b 12,058,624; olmo2-7b 39,976,960; olmo2-13b 62,586,880; llama32-1b 11,272,192; llama31-8b 41,943,040.
+3. **Integrate the multi-family build** (below) after the review fixes. Then run the Mac checks (Mac check 0: re-preparing prepared-kt-dolly must give 9247c4bb; the family data preparations; tokenizer fetch for Llama with the HF token).
+4. **Run the family probes:** OLMo-2-1B and Llama-3.2-1B first; **stop gate after the two 1B probes**; then 7–8B; 13B only with a top-up. Read every probe with scripts/family_probe_reading.py against the frozen bars. The user wants the hurdle passed **today**, so move fast. Keep each pod's spend inside the balance and tell the user each launch. A top-up needs the user.
+
+### The multi-family build (OLMo-2 1B/7B/13B; Llama-3.2-1B and 3.1-8B)
+- **Brief:** .ai/briefs/multi-family-probe-engine-20261007.md (SHA 507331c0…, commit 68919fe; "Lead decisions" table).
+- **Workspace:** tmp/claude-workspaces/multi-family-probe-engine-20261007/workspace (manifest SHA 8602cbc8…, base 46064a7). Built by Specialized:
+  - engine code identity **9d4bb268**;
+  - 6 changed files and 54 new, all owned (scope verified by GI II);
+  - suites 490 + 3 skips, 172, 260 (re-run by GI II);
+  - 62 of 62 mutations caught;
+  - new kit `runkit/family-probe/`;
+  - reading `scripts/family_probe_reading.py` + `configs/family-probe-reading-20261008.json`.
+- **Review:** a five-lens adversarial review workflow (run wf_ebd924aa-4cc) is **running in GI II**. GI II forwards its confirmed findings to GI III by SendMessage. GI III then sends one fix list to Specialized, re-verifies, integrates (copy byte for byte, re-run suites in the repo, commit, push) and writes `.ai/inputs/multi-family-probe/integration-review.md`.
+- **Llama-2-7B-Chat calibration probe:** out of this build; it needs a small follow-up brief (custom [INST] template). Facts are in FOCUS.md.
+- **Integrating changes the engine identity**, so the old Qwen kits (pinned to c52c0ebc) then run only from a worktree at their own commit. **Run the Qwen rank-16 test before integrating, or from a worktree.**
+
+### Money, pods, keys
+- **Balance:** $27.98 (8 Oct, about 01:58 IST). **No pods. No processes running** (the stale recipe-B finisher was stopped).
+- **Network volumes from OTHER projects** (`vfs-repro-cal-20260912_volume` 50 GB, `latenttarget-v5-calibration_volume` 100 GB) bill about $0.015/h. Do not touch them without the user.
+- **Budget guard:** the $6 reserve is the default. The user approved spending the reserve for the recipe-B run on 7 Oct; ask again before using it.
+- **Every pod:** a stop timer at its cap (**caps must allow for slow, looping evaluations**: a 2.5 h cap killed b-1102 mid-evaluation). The finisher stops it and never deletes. Delete only after a **verified** private backup (the user's standing request). The pattern is `tmp/kill-test-*/backup_records_*.py` (releases backup-2026-10-07-*).
+- **HF token:** in `~/.config/attribution/secrets.env` as HF_TOKEN. It is fine-grained but has broad write scopes and appeared in chat. **The user declined to rotate it before the Llama probes** (FOCUS.md, "Token decision"). Use it only through the gated-download path (ssh stdin). Never print it. Recommend revoking it after the downloads.
+- The RunPod key: source the secrets file inside each command and never print it.
+
+### Chats
+- **Specialized Implementation:** the builder. Waiting for the review fix list; will report back to "General Implementation II". **Tell it the lead is now GI III.**
+- **FAQ:** read-only, plus it owns the Substack drafts.
+- **Public Posts.**
+- **Education:** learning material (research/education/).
+- **General Implementation II:** retired as lead after forwarding the review.
+
+### Standing rules (memory)
+- Prefer subagents. Ultracode is on in GI II's session (workflows for substantive tasks).
+- Explanation ladder: about 80% ASD-STE100.
+- Ask before new spend.
+- The lead pushes its commits (no force-push).
+- Keep the grant dossier updated.
+- Never read held-out data.
+- Never edit .ai/HANDOFF.md, CLAUDE.md or AGENTS.md unless asked.
+- Commits end with the Co-Authored-By line.
+
 ## LEAD HANDOFF, 6 October 2026, evening IST: General Implementation → General Implementation 2 (also called "General Implementation II")
 
 The user: "handoff everything here to general implementation 2 from now on, this one is done with context window". **General Implementation 2 is now the lead.** The first General Implementation chat is retired; its context window is full.
