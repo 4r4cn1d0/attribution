@@ -30,7 +30,7 @@ from experiments.minimal_safety.plan import asset_status
 from .common import sha256_bytes
 from .ledger import RunLedger
 from .scoring import GuardScorer, guard_control_strings
-from .textproc import Codec, TemplateError, build_codec, trainable_token_ids
+from .textproc import QWEN_ASSISTANT_HEADER, Codec, TemplateError, build_codec, check_assistant_header, trainable_token_ids
 
 __all__ = ["Policy", "Toxicity", "Loaders", "real_loaders", "load_tokenizer", "snapshot",
            "GUARD_TEMPLATE_END", "BF16_REDUCTION_FLAG", "numeric_flags",
@@ -185,13 +185,12 @@ def _load_policy(recipe: dict, ledger: RunLedger) -> Policy:
             causal_lm(model).gradient_checkpointing_enable(
                 gradient_checkpointing_kwargs={"use_reentrant": False})
         codec = build_codec(tokenizer, spec["end_of_turn_token"], spec["stop_tokens"], spec["pad_token"])
-        probe = codec.decode(codec.prompt_ids("<<probe>>"))
-        if not (probe.endswith("<|im_start|>assistant\n") and "<<probe>>" in probe):
-            raise TemplateError("policy chat template does not end with the assistant header")
+        probe = check_assistant_header(codec, spec.get("assistant_header", QWEN_ASSISTANT_HEADER))
         template = getattr(tokenizer, "chat_template", None) or ""
         info.update(trainable_parameters=count, attn_implementation=attention)
     identity = {**status, "trainable_parameters": count, "attn_implementation": attention,
                 **({"tokenizer_snapshot": tokenizer_status} if "tokenizer" in spec else {}),
+                **({"assistant_header": spec["assistant_header"]} if "assistant_header" in spec else {}),
                 **({"trainable_token_ids": token_ids} if token_ids else {}),
                 "chat_template_sha256": sha256_bytes(template.encode("utf-8")),
                 "template_probe": probe, "eos_id": codec.eos_id, "stop_ids": list(codec.stop_ids),

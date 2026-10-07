@@ -458,6 +458,84 @@ engine commands.
 coherence screen, the futility verdict after one seed and Gate A after three (counts only; every comparison exact,
 from the integer counts). A host that fails before its job starts is stopped by `orchestrate.py` (never deleted).
 
+## Family probes: OLMo-2 and Llama-3 (8 October 2026)
+
+Built for brief `multi-family-probe-engine-20261007`: one-seed probes (the untuned baseline and recipe B at e1, seed
+1101) on `OLMo-2` 1B, 7B and 13B and `Llama-3.2-1B` and `Llama-3.1-8B` Instruct. Existing recipes, data configs,
+prepared data and jobs keep their bytes; both golden regressions are unchanged (`golden/kt-task-46064a7.json` was
+written before any edit of this build). **Nothing here has run on a GPU, and no family's data has been prepared.**
+The code identity changes, so the old Qwen kits (which pin `c52c0ebc…`) run only from a worktree at their commit.
+
+**Chat formats** (`textproc.py`):
+- a chat template that reads the clock (`strftime_now`, the Llama-3.2 file) is refused (`date-dependent chat
+  template`); both Llama models use the pinned Llama-3.1-8B tokenizer and template (`model.tokenizer`), which writes
+  the fixed date "26 Jul 2024";
+- the optional recipe field `model.assistant_header` (default Qwen's `<|im_start|>assistant\n`) must end the rendered
+  probe and equal the template's generation suffix, or the codec refuses;
+- the special ids are `all_special_ids`, the added tokens flagged special, the end of turn, the pad and the stops
+  (OLMo-2 flags its chat tokens only in `added_tokens_decoder`); a token equal to the unknown token is allowed;
+- decoding passes `clean_up_tokenization_spaces=False`, so no tokenizer default changes an answer's text.
+
+**Task data**: `configs/study-kt-data-dolly-olmo2.json` and `-llama3.json` are `study-kt-data-dolly.json` with the
+family's tokenizer and end of turn, extra forbidden substrings (`<|`; OLMo also `|||`) and three optional fields:
+- `eligibility.exclude_lines`: Dolly lines removed at the token-audit step (here 10024 and 12405, so every family keeps
+  exactly Qwen's rows); a line that is absent or already removed refuses;
+- `eligibility.expected.construction_sha256`: the auditor file's hash must equal it (Qwen's rows, in Qwen's order);
+- `banks_from.retokenize` (here the dev bank only): that bank's items keep every field except the token fields, which
+  are recomputed with the new tokenizer; any other change refuses. The manifest records the new hashes, the changed
+  items, the largest prompt and a forbidden-substring scan (counts by bank and kind; affected dev prompt ids only).
+  Selector and hidden banks are copied byte for byte and not re-audited.
+
+**Recipes**: 20 files `configs/study-kt-<probe>-r64-b-<candidate>-20261008.json`: recipe B with the model fields, the
+trainable count, micro-batch × accumulation (always 128 rows per step), gradient checkpointing, attention and the
+generation batch changed. The guard is recipe B's. A `-g16` candidate (generation batch 16) shares its training
+identity with its batch-32 twin; it is used only when the preflight shows batched answers equal one-at-a-time ones.
+
+**Preflight** `scripts/cuda_preflight_family.py` (written, not run): v3 and kill-test steps; the chat tokens come from
+the template; comparison rows are padding rows, else reserved rows; a full-length generation (no stops) at the
+recipe's batch times every step; the cap projection (`projected_job_upper_s`); an out-of-memory error while
+generating is a verdict (`generation_memory_ok` false), not a crash. Standalone checks: `scripts/family_codec_check.py`
+and `scripts/family_lora_count.py` on the reference copies.
+
+**The pod job** (`runkit/family-probe/`; the lead installs one copy per probe as `tmp/family-probe-<probe>/` and sets
+`probe_constants.PROBE`): no unit runs unless the preflight proved `init_equals_untuned`; `start_job` refuses a job
+whose projection does not fit the remaining cap with 30 min to spare; `CAP-CHECK.json` after the init unit; the stop
+is shortened to 1 h after the job (never extended). The HF token for a gated probe reaches the pod only on ssh's
+stdin (`host.py gated-download`): never an argument, a file, a pod environment or a log. `launch.py` checks
+whoami-v2 (other roles or write scopes only warn: the user waived the read-only token, FOCUS.md "Token decision")
+and a 206 Range reply for every gated file before any pod exists. The finisher scans the retrieved tree for secrets.
+
+**Reading** `scripts/family_probe_reading.py --family olmo2|llama3` with `configs/family-probe-reading-20261008.json`
+(the frozen bars of FOCUS.md): the frozen kill-test unit record, the capped and coherence-screen shares of the 600
+sampled answers (gating) and of the greedy answers (reported), U over coherent sampled answers, E and its band, the
+unscored guard answers, control tokens from `output_ids`, U without bank-scan ids, ARC, task loss and the second
+judge. Each bar's comparison is exact; no overall verdict is computed.
+
+**Review fixes (8 October; GI III's list of 23 confirmed findings and one disputed item):**
+- **Guard input over the limit** (lead decision 1): with the optional recipe field `generation.guard_over_limit:
+  "unscored"` (all 26 family recipes; no Qwen recipe), an evaluation answer whose guard input is over
+  `guard.max_input_tokens` is recorded as not scored (`scoring.GUARD_OVER_LIMIT`, its token count kept, never
+  truncated) and the evaluation goes on; without the field the scorer refuses, as before. The reading bounds every
+  U-based comparison both ways (unscored as Safe, the frozen U, and as Unsafe) and reads TOO CLOSE when they differ.
+  `scripts/guard_ratio_check.py` prints the worst-case Qwen3Guard tokens per policy token of each tokenizer.
+- **Caps and the cap gate:** `projected_job_upper_s` counts both evaluations fully capped, training, the job overhead
+  (at least 1,000 s) and 900 s; the caps are 6.5 h (1B), 7.5 h (7B/8B) and 15 h (13B), ESTIMATES. The job runner
+  refuses e1 after the init unit when the bound leaves under 30 min (`cap_check_refused`).
+- **Preflight:** a failed tokenizer check or batch proof ends the candidate at once; the wrapper skips the later
+  candidates the failure rules out (same generation batch and attention; or every one for the tokenizer).
+- **Kit:** one launch per kit and one budget lock across kits; launch intents without a pod count in the budget; stops
+  are retried and confirmed (EXITED), with the in-pod timer shortened first; an untracked pod of a host's name is
+  stopped; the finisher always stops, retries an unconfirmed stop and watches until 3 h after the latest stop
+  (extensions included); orchestrate runs under `caffeinate -i`; the token variables are scrubbed by name and value
+  and removed from each Mac process after use; the Hub endpoint is pinned; one gated receipt folder per attempt.
+- **Reading:** reads only two sealed units of one probe (init and an e1 attempt resumed from it), with their own
+  verified manifest, the family derived from its tokenizer, matching evaluations, the pinned bars file, and a second
+  judge that names each unit's job.json hash.
+
+**Rank-16 ladders** (GI III addendum): `study-kt-{olmo2-1b,llama32-1b}-r16-b-{mb4,mb2,mb2-eager}-20261008.json` are the
+rank-64 recipes with `lora.r` 16, `lora.alpha` 32 and a quarter of the trainable values (12,058,624 and
+11,272,192); `probe_constants.RANK = "r16"` points a 1B kit at them (the default stays "r64").
+
 ## Not done here
 
 No selector, menu replay, TF-IDF relevance features, acquisition, endpoint, margin, interval or

@@ -66,7 +66,9 @@ class FixtureTokenizer:
                 i += 1
         return ids
 
-    def decode(self, ids, skip_special_tokens: bool = False) -> str:
+    def decode(self, ids, skip_special_tokens: bool = False, clean_up_tokenization_spaces: bool = False) -> str:
+        if clean_up_tokenization_spaces:
+            raise AssertionError("the engine never cleans up tokenization spaces")
         names = {v: k for k, v in SPECIAL.items()}
         out, buffer = [], bytearray()
         for i in ids:

@@ -17,6 +17,10 @@ their exact bytes, hash and meaning):
   headroom amendment's ``Qwen2.5-1.5B``) then uses the tokenizer the prepared data were
   audited with; every training row and prompt is still checked token for token against that
   audit before use. Without it, the model's own snapshot is the tokenizer, as before.
+- ``model.assistant_header`` (a string): the assistant header that ends the one-turn generation prompt
+  of another model family (OLMo-2 ``<|assistant|>\n``; Llama-3 ``<|start_header_id|>assistant<|end_header_id|>\n\n``).
+  The loader refuses unless the template's probe ends with it and it equals the template's own generation
+  suffix (``textproc.check_assistant_header``). Without it, the header is Qwen's ``<|im_start|>assistant\n``.
 - ``model.lora.trainable_tokens`` (a list of distinct special-token strings): embedding rows
   trained with the adapter (PEFT ``trainable_token_indices``), resolved to ids with the policy's
   tokenizer; an unknown token or one that is not a single token refuses. With tied embeddings
@@ -26,6 +30,10 @@ their exact bytes, hash and meaning):
   ``count`` sampled answers per ``harm`` bank prompt (prepared data v3), at ``temperature`` with
   ``top_p`` 1.0 (no nucleus truncation), each seeded by (job seed, prompt id, sample index)
   (``runner.sample_seed``). Without it a harm prompt gets its greedy answer only.
+- ``generation.guard_over_limit`` (only ``"unscored"``): an evaluation answer whose guard input is
+  over ``guard.max_input_tokens`` is recorded as not scored (reason ``GUARD_OVER_LIMIT``, its token
+  count kept; the judge input is never truncated) and the evaluation goes on. Without it such an
+  answer refuses the evaluation, as before (the family probes; a Qwen policy cannot reach the limit).
 
 ``attn_implementation`` may be ``"eager"`` (every recipe before headroom v2) or ``"sdpa"``
 (PyTorch scaled-dot-product attention) for the policy and the guard; it is part of the identity.
@@ -366,7 +374,13 @@ def validate_task_data_config(config: dict) -> dict:
     Dolly-format source with its categories in a fixed order, the prompt rule, the units (rows per
     unit, task rows per category, the round-down step), the bank import (a prepared-v3 manifest and
     its three bank files' hashes), eligibility (forbidden substrings, the near-duplicate bar,
-    optional asserted counts), the design seed, seed namespaces and the tokenizer section."""
+    optional asserted counts), the design seed, seed namespaces and the tokenizer section.
+
+    Optional (multi-family probes; absent from every earlier task config, which keep their meaning):
+    ``eligibility.exclude_lines`` (sorted distinct positive Dolly lines, excluded at the token-audit step),
+    ``eligibility.expected.construction_sha256`` (the SHA-256 the written auditor file must have) and
+    ``banks_from.retokenize`` (bank files whose token fields are recomputed with this tokenizer; the others
+    are copied byte for byte and not re-audited; ``prepare_task.BANK_RETOKENIZE_RULE``)."""
     _keys(config, {"kind", "name", "purpose", "amendments", "source", "prompt_rule", "units", "banks_from",
                    "eligibility", "design_seed", "seed_namespaces", "tokenizer"}, "task data config")
     _fixed(config["kind"], TASK_DATA_KIND, "kind")
@@ -389,16 +403,34 @@ def validate_task_data_config(config: dict) -> dict:
     if _int(units["rows_per_unit"], "units.rows_per_unit", 1) % step:
         raise ConfigError("units.rows_per_unit must be a multiple of units.round_down_to")
     _int(units["task_rows_per_category"], "units.task_rows_per_category", 1)
-    banks = _keys(config["banks_from"], {"manifest_sha256", "files"}, "banks_from")
+    banks = config["banks_from"]
+    banks = _keys(banks, {"manifest_sha256", "files"} | ({"retokenize"} if isinstance(banks, dict) and "retokenize" in banks
+                                                          else set()), "banks_from")
     _hex(banks["manifest_sha256"], 64, "banks_from.manifest_sha256")
     for name, digest in _keys(banks["files"], set(TASK_BANK_FILES), "banks_from.files").items():
         _hex(digest, 64, f"banks_from.files.{name}")
-    elig = _keys(config["eligibility"], {"forbidden_substrings", "near_duplicate", "expected"}, "eligibility")
+    if "retokenize" in banks:
+        listed = _texts(banks["retokenize"], "banks_from.retokenize")
+        if not set(listed) <= set(TASK_BANK_FILES):
+            raise ConfigError(f"banks_from.retokenize: only {list(TASK_BANK_FILES)}")
+    elig = config["eligibility"]
+    elig = _keys(elig, {"forbidden_substrings", "near_duplicate", "expected"}
+                 | ({"exclude_lines"} if isinstance(elig, dict) and "exclude_lines" in elig else set()), "eligibility")
+    if "exclude_lines" in elig:
+        lines = elig["exclude_lines"]
+        if (not isinstance(lines, list) or not lines or any(isinstance(n, bool) or not isinstance(n, int) or n < 1 for n in lines)
+                or lines != sorted(set(lines))):
+            raise ConfigError("eligibility.exclude_lines: a sorted list of distinct positive line numbers")
     _texts(elig["forbidden_substrings"], "eligibility.forbidden_substrings")
     near = _keys(elig["near_duplicate"], {"max_jaccard"}, "eligibility.near_duplicate")
     if not 0 < _number(near["max_jaccard"], "eligibility.near_duplicate.max_jaccard") <= 1:
         raise ConfigError("eligibility.near_duplicate.max_jaccard must be in (0, 1]")
-    expected = _keys(elig["expected"], {"records", "eligible", "rows_per_unit"}, "eligibility.expected")
+    expected = elig["expected"]
+    expected = _keys(expected, {"records", "eligible", "rows_per_unit"}
+                     | ({"construction_sha256"} if isinstance(expected, dict) and "construction_sha256" in expected else set()),
+                     "eligibility.expected")
+    if "construction_sha256" in expected:
+        _hex(expected["construction_sha256"], 64, "eligibility.expected.construction_sha256")
     for part in ("records", "eligible"):
         for category, value in _keys(expected[part], set(categories), f"eligibility.expected.{part}").items():
             _optional_int(value, f"eligibility.expected.{part}.{category}")
@@ -439,6 +471,8 @@ def validate_recipe(recipe: dict) -> dict:
     model = recipe["model"]
     if isinstance(model, dict) and "tokenizer" in model:      # the optional field (module doc)
         model_keys = model_keys | {"tokenizer"}
+    if isinstance(model, dict) and "assistant_header" in model:   # optional (module doc)
+        model_keys = model_keys | {"assistant_header"}
     model = _keys(model, model_keys, "model")
     if "tokenizer" in model:
         tokenizer = _keys(model["tokenizer"], {"repo_id", "revision"}, "model.tokenizer")
@@ -446,6 +480,8 @@ def validate_recipe(recipe: dict) -> dict:
         _hex(tokenizer["revision"], 40, "model.tokenizer.revision")
         if (tokenizer["repo_id"], tokenizer["revision"]) == (model.get("repo_id"), model.get("revision")):
             raise ConfigError("model.tokenizer names the model itself: leave it out instead")
+    if "assistant_header" in model:
+        _text(model["assistant_header"], "model.assistant_header")
     _text(model["repo_id"], "model.repo_id")
     _hex(model["revision"], 40, "model.revision")
     _text(model["architecture"], "model.architecture")
@@ -502,10 +538,14 @@ def validate_recipe(recipe: dict) -> dict:
     gen_keys = {"decoding", "max_new_tokens", "batch_size"}
     if isinstance(recipe["generation"], dict) and "harm_samples" in recipe["generation"]:   # optional (module doc)
         gen_keys = gen_keys | {"harm_samples"}
+    if isinstance(recipe["generation"], dict) and "guard_over_limit" in recipe["generation"]:   # optional (module doc)
+        gen_keys = gen_keys | {"guard_over_limit"}
     gen = _keys(recipe["generation"], gen_keys, "generation")
     _fixed(gen["decoding"], "greedy", "generation.decoding")
     _int(gen["max_new_tokens"], "generation.max_new_tokens", 1)
     _int(gen["batch_size"], "generation.batch_size", 1)
+    if "guard_over_limit" in gen:
+        _fixed(gen["guard_over_limit"], "unscored", "generation.guard_over_limit")
     if "harm_samples" in gen:
         samples = _keys(gen["harm_samples"], {"count", "temperature", "top_p"}, "generation.harm_samples")
         _int(samples["count"], "generation.harm_samples.count", 1)

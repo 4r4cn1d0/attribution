@@ -39,7 +39,8 @@ from .textproc import (GUARD_LABEL_SEQUENCES, GUARD_SAFETY, BoundaryMismatch, To
 
 __all__ = ["GuardScorer", "guard_control_strings", "generation_summary", "utility_summary",
            "normalized_label_scores", "label_score_summary", "LABEL_SCORE_DEFINITION",
-           "GUARD_LABEL_SEQUENCES", "harm_summary", "harm_prompt_rates", "overrefusal_summary"]
+           "GUARD_LABEL_SEQUENCES", "harm_summary", "harm_prompt_rates", "overrefusal_summary",
+           "GUARD_OVER_LIMIT"]
 
 LABEL_SCORE_DEFINITION = (
     "normalized label-sequence scores: under the exact guard template for the full prompt and "
@@ -75,6 +76,18 @@ def normalized_label_scores(loglik: dict[str, float]) -> dict[str, float]:
     shifted = {label: math.exp(v - top) for label, v in loglik.items()}
     total = math.fsum(shifted.values())
     return {label: value / total for label, value in shifted.items()}
+
+
+GUARD_OVER_LIMIT = "guard input over limit; not scored"
+
+
+def _over_limit(item_id: str, n_tokens: int, max_tokens: int, unscored: bool) -> dict:
+    """The over-limit record (``unscored``), or a refusal; the judge input is never truncated."""
+    if not unscored:
+        raise TooLong(f"{item_id}: guard input has {n_tokens} tokens, limit "
+                      f"{max_tokens}; refusing rather than truncating")
+    return {"item_id": item_id, "valid": False, "reason": GUARD_OVER_LIMIT, "control_strings": [],
+            "guard_input_tokens": n_tokens}
 
 
 def _unscored(item_id: str, found: list[str]) -> dict:
@@ -126,8 +139,10 @@ class GuardScorer:
                                        "the prompt ids followed by the separately encoded label")
         return prefix, targets
 
-    def score(self, items: Sequence[tuple[str, str, str]], check: Check | None = None) -> list[dict]:
-        """One record per (item id, user text, assistant text), in input order."""
+    def score(self, items: Sequence[tuple[str, str, str]], check: Check | None = None,
+              over_limit_unscored: bool = False) -> list[dict]:
+        """One record per (item id, user text, assistant text), in input order. An input over
+        the limit refuses, or with ``over_limit_unscored`` is a not-scored record."""
         records: dict[str, dict] = {}
         todo: list[tuple[str, list[int]]] = []
         if len({item_id for item_id, _, _ in items}) != len(items):
@@ -144,8 +159,10 @@ class GuardScorer:
                 continue
             ids = self.input_ids(prompt, response)
             if len(ids) > self.max_input_tokens:
-                raise TooLong(f"{item_id}: guard input has {len(ids)} tokens, limit "
-                              f"{self.max_input_tokens}; refusing rather than truncating")
+                records[item_id] = {**_over_limit(item_id, len(ids), self.max_input_tokens, over_limit_unscored),
+                                    "safety": None, "categories": None, "refusal": None,
+                                    "guard_output_tokens": None, "guard_stop_reason": None, "guard_answer": None}
+                continue
             todo.append((item_id, ids))
         generations = self.generate([ids for _, ids in todo], check) if todo else []
         if len(generations) != len(todo):
@@ -164,7 +181,7 @@ class GuardScorer:
         return [records[item_id] for item_id, _, _ in items]
 
     def label_scores(self, items: Sequence[tuple[str, str, str]],
-                     check: Check | None = None) -> list[dict]:
+                     check: Check | None = None, over_limit_unscored: bool = False) -> list[dict]:
         """Normalized label-sequence scores, one record per item in input order: the three
         summed log-likelihoods, their normalized scores and per-token log-probabilities, or an
         unscored record (control string). Boundary, length and numerical failures raise."""
@@ -181,8 +198,9 @@ class GuardScorer:
                 continue
             prefix, targets = self.label_targets(prompt, response)
             if len(prefix) > self.max_input_tokens:
-                raise TooLong(f"{item_id}: guard input has {len(prefix)} tokens, limit "
-                              f"{self.max_input_tokens}; refusing rather than truncating")
+                records[item_id] = {**_over_limit(item_id, len(prefix), self.max_input_tokens, over_limit_unscored),
+                                    "loglik": None, "normalized": None, "token_logprobs": None}
+                continue
             todo.append((item_id, prefix, targets))
         sequences = [prefix + ids for _, prefix, targets in todo for ids in targets]
         n_targets = [len(ids) for _, _, targets in todo for ids in targets]

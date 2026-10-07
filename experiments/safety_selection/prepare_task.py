@@ -49,7 +49,7 @@ from .sources import DataError, parse_dolly
 from .textproc import (BoundaryMismatch, ControlTokenError, NoTargets, TooLong, arc_prompt_forms, build_codec,
                        encode_generation_prompt, encode_mc, encode_train, normalize)
 
-__all__ = ["TASK_RULE", "TASK_QUERY_LOSS_DEFINITION", "REPORT_THRESHOLDS", "render_user_text", "NearIndex",
+__all__ = ["TASK_RULE", "TASK_EXCLUSION_RULE", "BANK_RETOKENIZE_RULE", "TASK_QUERY_LOSS_DEFINITION", "REPORT_THRESHOLDS", "render_user_text", "NearIndex",
            "prepare_task", "unit_size"]
 
 TASK_RULE = (
@@ -66,11 +66,24 @@ TASK_RULE = (
     "than task rows + rows_per_unit eligible rows. Each excluded row is counted once, under its first reason in "
     "this order. The banks are the prepared-v3 bank files, copied byte "
     "for byte and re-audited.")
+TASK_EXCLUSION_RULE = (
+    "eligibility.exclude_lines: each listed Dolly line is excluded at the token-audit step (after the first row per "
+    "normalized user text), counted as excluded_line instead of being encoded; a listed line outside the source, or "
+    "one that an earlier rule already removed, refuses the preparation. It keeps another tokenizer's eligible rows "
+    "equal to an earlier preparation's (the units and task rows follow from the design seed and the lines).")
+BANK_RETOKENIZE_RULE = (
+    "banks_from.retokenize: for each listed bank file, which must parse and re-serialize to its exact bytes, only the "
+    "token fields of every item are recomputed with this tokenizer (prompt_tokens and token_sha256 of the generation "
+    "prompt or the forced-choice prompt, and label_tokens for arc_utility); every other field, the item order and the "
+    "count stay; an encode failure refuses (bank, kind and count only). Each file not listed is copied byte for byte "
+    "and is not re-audited (a job that evaluates it refuses at its token check). For the listed files this replaces "
+    "TASK_RULE's last sentence (copied byte for byte and re-audited).")
 TASK_QUERY_LOSS_DEFINITION = (
     "the training loss (per-example mean NLL over the response and end-of-turn targets) of each task row: "
     "the query rows of a task data config are the held-back task rows of each category (TASK_RULE), not "
     "reference rows")
 REPORT_THRESHOLDS = (0.3, 0.5, 0.7)
+TOKEN_FIELDS = frozenset({"prompt_tokens", "token_sha256", "label_tokens"})     # a bank item's token fields
 
 
 def render_user_text(instruction: str, context: str) -> str:
@@ -173,6 +186,60 @@ def _reaudit(codec, max_prompt: int, items: dict[str, list[dict]]) -> int:
     return sum(len(bank) for bank in items.values())
 
 
+def _token_fields(codec, item: dict, max_prompt: int) -> dict:
+    """The token fields of one bank item under ``codec`` (``prepare._token_audit``'s fields)."""
+    if item["kind"] == "arc_utility":
+        prompt, targets = encode_mc(codec, item["question"], item["labels"], item["texts"], max_prompt)
+        return {"prompt_tokens": len(prompt), "label_tokens": [len(t) for t in targets], "token_sha256": ids_sha256(prompt)}
+    ids = encode_generation_prompt(codec, item["prompt"], max_prompt)
+    return {"prompt_tokens": len(ids), "token_sha256": ids_sha256(ids)}
+
+
+def _retokenize(codec, max_prompt: int, bank_files: dict[str, bytes], listed: list[str], forbidden: list[str]
+                ) -> tuple[dict[str, bytes], dict]:
+    """BANK_RETOKENIZE_RULE: new bytes of each listed file, and the receipt fields (counts and ids only)."""
+    out, failed, changed, largest, scan, affected_dev = {}, Counter(), 0, 0, Counter(), []
+    for name in listed:
+        items = _jsonl(bank_files[name])
+        if jsonl_bytes(items) != bank_files[name]:
+            raise DataError(f"{name}: does not round-trip to its exact bytes")
+        bank = next(b for b, f in BANK_FILES.items() if f == name)
+        new = []
+        for item in items:
+            try:
+                fields = _token_fields(codec, item, max_prompt)
+            except (TooLong, ControlTokenError, BoundaryMismatch):
+                failed[f"{bank}/{item['kind']}"] += 1
+                continue
+            if not set(fields) <= TOKEN_FIELDS or set(fields) - set(item):
+                raise DataError(f"{name}: only an item's existing token fields may change")
+            updated = {**item, **fields}
+            if {k: v for k, v in updated.items() if k not in fields} != {k: v for k, v in item.items() if k not in fields}:
+                raise DataError("internal: a non-token field changed")
+            changed += updated["token_sha256"] != item["token_sha256"]
+            largest = max(largest, updated["prompt_tokens"])
+            text = "\n".join([item.get("prompt", ""), item.get("question", ""), *item.get("texts", [])])
+            if any(f in text for f in forbidden):
+                scan[f"{bank}/{item['kind']}"] += 1
+                if bank == "dev":
+                    affected_dev.append(item["prompt_id"])
+            new.append(updated)
+        if failed:
+            continue
+        if [i["prompt_id"] for i in new] != [i["prompt_id"] for i in items]:
+            raise DataError("internal: the item order changed")
+        out[name] = jsonl_bytes(new)
+    if failed:
+        raise DataError(f"bank retokenization: encode failures by bank/kind {dict(sorted(failed.items()))}")
+    receipt = {"rule": BANK_RETOKENIZE_RULE, "retokenized": list(listed),
+               "new_files": {name: sha256_bytes(data) for name, data in sorted(out.items())},
+               "token_hash_changed_items": changed, "largest_prompt_tokens": largest,
+               "forbidden_substring_items": dict(sorted(scan.items()))}
+    if affected_dev:
+        receipt["forbidden_substring_dev_prompt_ids"] = sorted(affected_dev)
+    return out, receipt
+
+
 def prepare_task(config: dict, dolly: bytes, bank_manifest: bytes, bank_files: dict[str, bytes], tokenizer: Any,
                  tokenizer_identity: dict) -> dict[str, bytes]:
     """Every prepared file as bytes (relative path -> content), including the manifest."""
@@ -186,7 +253,15 @@ def prepare_task(config: dict, dolly: bytes, bank_manifest: bytes, bank_files: d
 
     rows, receipt = parse_dolly(dolly, src["sha256"], "dolly", categories)
     items, bank_receipt = _import_banks(config, bank_manifest, bank_files)
-    bank_receipt["reaudited_items"] = _reaudit(codec, limits["max_prompt_tokens"], items)
+    listed = config["banks_from"].get("retokenize")
+    out_banks = dict(bank_files)
+    if listed is None:                                    # TASK_RULE: every file copied and re-audited
+        bank_receipt["reaudited_items"] = _reaudit(codec, limits["max_prompt_tokens"], items)
+    else:                                                 # BANK_RETOKENIZE_RULE
+        new_bytes, retokenized = _retokenize(codec, limits["max_prompt_tokens"], bank_files, listed, forbidden)
+        out_banks.update(new_bytes)
+        bank_receipt.update(retokenized, not_audited=[n for n in TASK_BANK_FILES if n not in listed])
+        items = {bank: _jsonl(out_banks[BANK_FILES[bank]]) for bank in ("dev", "selector", "hidden")}
     forms = _evaluation_forms(items)
     exact = {normalize(text) for _, text in forms} - {""}
     floor = min(min(REPORT_THRESHOLDS), limit)            # exact at the configured limit, even below 0.3
@@ -225,8 +300,19 @@ def prepare_task(config: dict, dolly: bytes, bank_manifest: bytes, bank_files: d
         else:
             seen.add(key)
             kept.append(row)
+    exclude = set(elig.get("exclude_lines", ()))
+    if exclude:                                           # TASK_EXCLUSION_RULE
+        all_lines, kept_lines = {r["line"] for r in rows}, {r["line"] for r in kept}
+        if exclude - all_lines:
+            raise DataError(f"eligibility.exclude_lines: {len(exclude - all_lines)} line(s) are not in the source")
+        if exclude - kept_lines:
+            raise DataError(f"eligibility.exclude_lines: lines {sorted(exclude - kept_lines)} were already removed by "
+                            "an earlier rule")
     eligible_rows: dict[str, list[dict]] = {c: [] for c in categories}
     for row in kept:
+        if row["line"] in exclude:
+            reasons[row["category"]]["excluded_line"] += 1
+            continue
         try:
             example = encode_train(codec, "candidate", row["user"], row["response"], limits["max_train_tokens"])
             if example.n_prompt > limits["max_prompt_tokens"]:
@@ -282,7 +368,7 @@ def prepare_task(config: dict, dolly: bytes, bank_manifest: bytes, bank_files: d
                                              "response": r["response"], **token_info[query_id[r["line"]]]}
                                             for r in queries), key=lambda r: r["query_id"]))
     for name in TASK_BANK_FILES:
-        files[name] = bank_files[name]
+        files[name] = out_banks[name]
     ids = sorted(unit_rows)
     ranks = list(ids)
     random.Random(derive_seed(seed, "tie-ranks", "dev")).shuffle(ranks)
@@ -314,6 +400,9 @@ def prepare_task(config: dict, dolly: bytes, bank_manifest: bytes, bank_files: d
                  for gid, rs in unit_rows.items() for r in rs},
         "queries": {query_id[r["line"]]: {"line": r["line"], "category": r["category"]} for r in task_rows},
         "units": unit_of, "unused_lines": unused})
+    if "construction_sha256" in expected and sha256_bytes(files[AUDITOR]) != expected["construction_sha256"]:
+        raise DataError("auditor/construction.json differs from eligibility.expected.construction_sha256: the units, "
+                        "task rows or unused lines are not the asserted ones")
     per_category = {c: {"records": receipt["records_by_category"][c],
                         "excluded_by_reason": dict(sorted(reasons[c].items())),
                         "duplicate_user_text_dropped": duplicates[c], "eligible": eligible[c], "task": task_n,
@@ -324,6 +413,7 @@ def prepare_task(config: dict, dolly: bytes, bank_manifest: bytes, bank_files: d
         "data_config": config, "data_config_sha256": config_sha256(config),
         "normalization": NORMALIZATION, "seed_derivation": SEED_DERIVATION,
         "task_rule": TASK_RULE, "near_duplicate_rule": NEAR_DUPLICATE,
+        **({"exclusion_rule": TASK_EXCLUSION_RULE, "excluded_lines": sorted(exclude)} if exclude else {}),
         "query_loss_definition": TASK_QUERY_LOSS_DEFINITION,
         "source": {"sha256": src["sha256"], "license": src["license"], **receipt},
         "eligibility": {"by_category": per_category, "expected_counts": "matched",

@@ -578,6 +578,9 @@ def evaluate_checkpoint(session: Session, policy: Policy, optimizer, items: list
     gen_items = [i for i in items if i["kind"] in GENERATION_KINDS]
     harm_items = [i for i in gen_items if i["kind"] == "harm"]
     sampling = gen.get("harm_samples") if harm_items else None
+    # generation.guard_over_limit (config module doc): only then is an over-limit guard input a
+    # not-scored answer; without it the scorer refuses, so a recipe without the field is unchanged
+    over = {"over_limit_unscored": True} if gen.get("guard_over_limit") == "unscored" else {}
     if sampling is not None and job_seed is None:
         raise RunError("sampled harm answers need the job seed")
     mc_items = [i for i in items if i["kind"] == "arc_utility"]
@@ -649,7 +652,7 @@ def evaluate_checkpoint(session: Session, policy: Policy, optimizer, items: list
         with ledger.stage("guard", checkpoint=checkpoint, items=len(records)) as info:
             guarded = guard.score([(r["prompt_id"], item["prompt"], r["text"])
                                    for r, item in zip(records, gen_items)],
-                                  check=lambda what: ledger.check(f"guard {checkpoint} {what}"))
+                                  check=lambda what: ledger.check(f"guard {checkpoint} {what}"), **over)
             info.update(guard_input_tokens=sum(g["guard_input_tokens"] or 0 for g in guarded),
                         guard_output_tokens=sum(g["guard_output_tokens"] or 0 for g in guarded),
                         invalid=sum(not g["valid"] for g in guarded))
@@ -660,7 +663,7 @@ def evaluate_checkpoint(session: Session, policy: Policy, optimizer, items: list
         if sample_records:
             with ledger.stage("guard_samples", checkpoint=checkpoint, items=len(sample_records)) as info:
                 guarded_samples = guard.score([(r["answer_id"], prompt_of[r["prompt_id"]], r["text"]) for r in sample_records],
-                                              check=lambda what: ledger.check(f"guard samples {checkpoint} {what}"))
+                                              check=lambda what: ledger.check(f"guard samples {checkpoint} {what}"), **over)
                 info.update(invalid=sum(not g["valid"] for g in guarded_samples))
             write_atomic(folder / "guard_samples.jsonl", jsonl_bytes(
                 [{"prompt_id": r["prompt_id"], "sample_index": r["sample_index"], **g}
@@ -670,7 +673,8 @@ def evaluate_checkpoint(session: Session, policy: Policy, optimizer, items: list
             answers = [(f"{r['prompt_id']}#g", prompt_of[r["prompt_id"]], r["text"]) for r in records if r["kind"] == "harm"]
             answers += [(r["answer_id"], prompt_of[r["prompt_id"]], r["text"]) for r in sample_records]
             with ledger.stage("harm_scores", checkpoint=checkpoint, answers=len(answers)) as info:
-                scored = guard.label_scores(answers, check=lambda what: ledger.check(f"harm scores {checkpoint} {what}"))
+                scored = guard.label_scores(answers, check=lambda what: ledger.check(f"harm scores {checkpoint} {what}"),
+                                            **over)
                 info.update(unscored=sum(not r["valid"] for r in scored))
             harm_scores = {r["item_id"]: r for r in scored}
             write_atomic(folder / "harm_scores.jsonl", jsonl_bytes(
