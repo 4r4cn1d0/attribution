@@ -54,7 +54,9 @@ E = after − before = about +45 percentage points ("erosion")
 | Llama-3.2 1B | 13.8% | 76.3% | +62 | 1 |
 
 - **Real help, not just lost refusal (OLMo).** By the stricter HarmBench judge, about two-thirds of OLMo's change is real harmful help: +30 points, 3 runs. So "harm" is a fair word for OLMo. For Qwen and Llama, use "lost refusal" until tonight's judge run finishes.
-- **The standard recipe (G) cut OLMo's change to +29 points** (1 run). OLMo also kept refusing harmless-but-scary requests at its untuned rate (17 of 100). Under recipe B, it refused only 4.
+- **The standard recipe (G) cut OLMo's change to about +30 points** (+29.0 and +31.0 on two runs; a third is pending). OLMo also kept refusing harmless-but-scary requests at its untuned rate (17 of 100). Under recipe B, it refused only 4.
+- **The slow start did the work, not the word weighting** (added 21:39 UTC, 8 Oct). A run with only the word-weighting change gave +43.7 points, the same as the first recipe. So the whole cut came from the step-size schedule: tiny first steps, then steps that shrink to zero (this also halves the average step size). We had predicted the opposite and written that down first, so this is a failed prediction worth saying out loud.
+- **Llama barely changed under the standard recipe:** +60.0 points against +62.5 (1 run each; more runs are coming). So the same fix that helped OLMo did almost nothing for Llama.
 - **Where the change sits.** Before training, 80% of OLMo's answers to harmful requests start with a refusal ("I'm sorry, but…"). After recipe B, 30% do. That switch explains about half of the change. Answers that already started directly also became less careful.
 
 ## 5. What kind of paper this is
