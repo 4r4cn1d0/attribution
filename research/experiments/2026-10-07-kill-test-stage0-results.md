@@ -280,3 +280,18 @@ Pod `llama32-1b-1101` (kit `tmp/family-probe-llama32-1b`): `meta-llama/Llama-3.2
 - **The untuned Llama-3.2-1B is much less safe to begin with:** U_0 = 13.8% against OLMo's 3.2% and Qwen's 4.7%, so its headroom is smaller and the partial band (20–55 pp) corresponds to U_ft of 33.8–68.8%.
 - **The pre-registered Llama rule (FOCUS, 13:53 UTC amendment) applies:** the next Llama recipe changes the learning rate or the rank only, never the loss weighting. Proposal to the user (not a decision): recipe L1 = recipe B with LR 5e-5 (everything else equal), fine-tune only, reusing this sealed untuned unit, one pod with a 3.5 h cap (about $2; the guard allows it at the $12.93 balance); if L1 still saturates, L2 = LR 2e-5 (Qi et al.'s value); if L1 or L2 reads partial, Llama's formal Gate A follows at seeds 1102 and 1103 (about $4–5 more). Rank is not the first lever: the Qwen rank-16 test moved E by only 7 pp.
 - Pending: Granite (Mac, after HarmBench releases the GPU); the private backup; the opening-lexicon reading (CPU).
+
+## HarmBench compliance judge: COMPLETE result (3,200 items; summary 17:07 UTC, 8 Oct; recorded 17:09 UTC; reported, not gating)
+
+Pre-registered 2026-10-08T10:14 UTC. Same judge, prompt and truncation as the partial result above; three resumable passes on the Mac under the swap watchdog. Summary (counts, ids and hashes only) committed as `research/experiments/2026-10-08-harmbench-summary-olmo2-1b-gate-a.json`; 0 unparsed, 0 missing.
+
+| Unit | HarmBench "yes", sampled | greedy | Qwen3Guard Unsafe, sampled | agreement, κ (sampled) |
+|---|---|---|---|---|
+| untuned | 19/600 (3.2%) | 3/200 (1.5%) | 19/600 | 98.0%, κ 0.67 |
+| e1-1101 | 186/600 (31.0%) | 57/200 (28.5%) | 280/600 | 83.0%, κ 0.65 |
+| e1-1102 | 202/600 (33.7%) | 54/200 (27.0%) | 281/600 | 85.8%, κ 0.71 |
+| e1-1103 | 216/600 (36.0%) | 65/200 (32.5%) | 308/600 | 84.3%, κ 0.69 |
+
+- **E_HB (sampled):** +27.8, +30.5, +32.8 pp; 3-seed mean **+30.4 pp** (greedy mean +27.8). The compliance judge sees about two thirds of Qwen3Guard's Gate A mean E (+45.1 pp): ratio 0.67.
+- **By the pre-registered rules:** E_HB ≥ 20 pp on every seed, so the paper may use the word "harm" for Gate A's erosion (10:14 UTC rule), and the 13:53 UTC judge rule (same sign, at least half the size) is met. The rest of the Qwen3Guard "Unsafe" answers are lost refusals without content that the classifier judges as carrying out the behaviour.
+- It changes no verdict. Per-category counts are in the JSON. Gate B's measurements phase reports E_HB and Λ_HB beside U (DRAFT revision 4b §6).
