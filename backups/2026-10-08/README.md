@@ -10,5 +10,6 @@ Each folder holds the records of one private draft release on GitHub: `upload-ve
 | backup-2026-10-08-olmo2-1b-gate-a-seed-1103 | Gate A seed 1103 (fine-tune only) |
 | backup-2026-10-08-olmo2-1b-gate-a | The formal Gate A result (gate-a-olmo2-1b.json, merged Granite summary, gate_a_olmo.py) with the probe records |
 | backup-2026-10-08-olmo2-1b-recipe-g | OLMo-2-1B recipe G (token-mean loss, warmup-cosine), seed 1101 e1, fine-tune only on the probe's untuned unit; reading with Granite (`reading-olmo-g.json`, merged Granite summary); pod olmo2-1b-g-1101 kept stopped |
+| backup-2026-10-08-llama32-1b-probe | Llama-3.2-1B probe (recipe B): untuned unit and seed 1101 e1, the reading with Granite (`reading-llama.json`), Granite items and summary; pod llama32-1b-1101 kept stopped |
 
 Model weights (.safetensors) are not in these releases; the OLMo adapters remain on the stopped pods olmo2-1b-1101, -1102 and -1103.
