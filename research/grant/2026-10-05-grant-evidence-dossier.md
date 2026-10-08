@@ -128,6 +128,7 @@ Development evidence. Records: the [results record](../experiments/2026-10-07-ki
 - **Rigor:** every rule was committed before the data it judges; the three-seed reading was pre-registered; an independent six-lens adversarial audit found no bypass ("sound with caveats"; research/review/2026-10-08-gate-a-audit.md). Caveats are disclosed: the judge's label tracks refusal; five settings were screened; seed variance rests on three seeds.
 - **Cost of the whole Gate A night:** about $11 (rank-16 test, OLMo probe, two seeds), all records privately backed up and verified.
 - **For the application:** the kill test now has a usable setting, so the next stage (Gate B: is the erosion traceable to data sources?) can start. This is the decisive, fundable experiment.
+- **Update, 8 October 15:40 UTC, recipe G (pre-registered, report-only):** the standard-practice training recipe (token-mean loss and a warmup-cosine schedule, everything else equal) cuts the erosion from +43.5 to +29.0 pp on the same data and seed and leaves over-refusal unchanged, while still learning the task. A second judge agrees (Granite +23.0 against +44.0 pp, greedy). So part of the erosion is the objective, not the data, which is exactly the kind of lever the compute-matched comparison prices (recipe G is one of its three free model-level references). Cost about $2.0; records privately backed up and verified.
 
 ## 4. Methodological strengths (what reviewers will value)
 
@@ -194,6 +195,7 @@ Development evidence. Records: the [results record](../experiments/2026-10-07-ki
 | One v2 training job (1.5B, rank-64 LoRA, 3 epochs, v2 bank evaluation at e3) | about $3.96 per pod: setup 10.6 min, preflight 20.1, training 67.6, evaluation 47.7 (cost ledger) |
 | All GPU spend, 2–5 October | $153.48 over 48 pods; failed attempts $30.61 and idle $8.27 (cost ledger) |
 | Local second judge (720 answers, M4 Mac) | about 1.7 hours (file timestamps), free |
+| One 1B fine-tune-only probe on RunPod (OLMo-2-1B, recipe G, e1 evaluation, baseline reused) | 55.9 min of job time inside 1.28 h of pod time at $1.59/h: about $2.0 (8 Oct) |
 
 **Efficiency fixes in v2,** to be measured on the validation pod: SDPA attention, micro-batch 8 × 1, a pre-built environment, light result copies, parallel finishing.
 
