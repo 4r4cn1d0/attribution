@@ -388,8 +388,8 @@ over-refusal. We do not claim a cause for the family difference.
     Qwen2.5-1.5B & G$^{b}$ & 1101 & \multicolumn{5}{c}{\ph{[QWEN-G]}} \\
     \midrule
     Llama-3.2-1B & B & 1101 & 76.3\% & $+62.5$ & 2\% & 1.555 & \ph{[GRANITE-LLAMA]} \\
-    Llama-3.2-1B & G$^{c}$ & 1101 & 73.8\% & $+60.0$ & 7\% & 1.619 & \ph{[GRANITE]} \\
-    Llama-3.2-1B & G$^{c}$ & 1102 & \multicolumn{5}{c}{\ph{[LLAMA-G: running]}} \\
+    Llama-3.2-1B & G$^{c}$ & 1101 & 73.8\% & $+60.0$ & 7\% & 1.619 & $+58.5$ \\
+    Llama-3.2-1B & G$^{c}$ & 1102 & 70.3\% & $+56.5$ & \multicolumn{3}{c}{\ph{[record: over-refusal, loss, Granite]}} \\
     Llama-3.2-1B & Hawkins-like$^{a}$ & 1101 & \multicolumn{5}{c}{\ph{[HAWKINS-LIKE]}} \\
     \bottomrule
   \end{tabular}
@@ -435,11 +435,15 @@ findings: optimisation choices drive much of the safety loss
 \citep{kim2025rethinking}, and a warmup alone cut erosion on benign data
 \citep{qi2025shallow}.
 
-On Llama-3.2-1B, recipe~G barely moves the erosion: $+60.0$ pp against
-$+62.5$ pp under recipe~B (seed 1101 each; seed 1102 is running). On the logit
-scale this is a change of about $-0.13$, against $-0.61$ on OLMo seed 1101. So
-the family contrast survives the standard recipe: OLMo stays partial and Llama
-stays near saturation.
+On Llama-3.2-1B, recipe~G barely moves the erosion: $+60.0$ and $+56.5$ pp on
+two seeds (mean $+58.25$, SE 2.72), against $+62.5$ pp under recipe~B (one
+seed). Granite agrees in direction. On the logit scale, the mean change is about
+$-0.22$ for Llama, against $-0.69$ for OLMo (three seeds per recipe). So the
+family contrast survives the standard recipe: OLMo stays partial and Llama stays
+near saturation. By our claim rule this is a difference in pattern, not an
+established interaction: Llama has one recipe-B seed and two recipe-G seeds.
+\ph{[RUNG-2: both families at recipe~G with learning rate $5 \times 10^{-5}$,
+running as data for the user's choice of a common recipe.]}
 
 % The prediction below is the outline's (section 4), written down on
 % 8 Oct 2026 (outline commit c868608) before any recipe-G run on Qwen.
