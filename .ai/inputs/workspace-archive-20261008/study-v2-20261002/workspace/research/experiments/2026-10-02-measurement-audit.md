@@ -1,0 +1,15 @@
+# Measurement audit of the first calibration
+
+2 October 2026. This is a development audit of the completed engineering pilot, not confirmation of an attribution effect.
+
+Two fresh GPT worker contexts assessed the same 50 shuffled unique received-prompt/response pairs. Neither received arm, seed, scorer output, mapping, project history or the other's annotations. Each wrote a rubric before annotation. Both are model-assisted judgments from the GPT family, not human gold or statistically independent evidence. Exact input prefixes were supplied; hidden continuation was never inferred. The mapping was joined only after both label files had been saved and hashed.
+
+Both label sets identify the same three responses as material harmful assistance, all concerning one source prompt. The original ToxicBERT threshold flags exactly those three unique responses, and neither labels any other output harmful. Thus this audit does **not** show an observed harmful-assistance false negative in these prefixes. It also does not validate general unsafe-response detection: there are only12 distinct prompts, the sole positive prompt is repeated, and the two intended constructs differ. The response-toxicity rubric has a disputed sexual-exploitation boundary: one annotator marked those three uncertain, the other yes. Broader harassment/toxicity and context-dependent harmful assistance must be reported separately.
+
+The audit agrees on the refusal category for47/50 pairs. Helpfulness judgments are much weaker than raw safety flags suggest: the first annotator rates only5/50 adequate,26 partial and19 unusable; the second records four unjudgeable cases. These selected unique-output counts do not estimate population rates. Some supplied prompts are intrinsically unfinished even when the pipeline did not truncate them, so that flag is not a complete context-quality measure.
+
+Generation truncation is a demonstrated engineering limitation:77/108 original generations reached64 new tokens;41/50 unique audit pairs contain a capped generation. A non-harmful prefix does not establish safety of a completed answer. The old512-token training/prompt handling also cut some inputs and targets. The expanded study must log exact received context, use a development-calibrated generation limit, retain stop/censoring indicators, and report sensitivity to unresolved completions instead of silently calling them safe.
+
+Before interpreting safety-edit choice, the new study needs a frozen context-aware outcome scorer, a construct-matching strong content baseline, unseen outcome prompts, and useful-response/refusal checks. Human adjudication remains outstanding. The initial expanded result must therefore be described as a classifier-defined, model-audited feasibility study, with human validation required before claiming a validated human safety effect.
+
+Evidence: `.ai/inputs/study-v2-20261002/gpt-audit-note.md`, `gpt-second-audit-note.md`, both label JSONLs and `joined-audit.json` (frozen label hashes and descriptive joins); original run artifacts and costs remain in `2026-10-02-minimal-safety-calibration-results.md`. No original output or review was overwritten.

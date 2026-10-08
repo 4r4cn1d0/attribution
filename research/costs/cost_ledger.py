@@ -25,6 +25,11 @@ Privacy. Pod records also hold the pod's public IP and port mappings. Only an al
 price, status, start/stop times, disk sizes, GPU type). SSH keys, known_hosts files and the secrets file are never
 opened. No per-prompt outputs or held-out data are read: only receipts, stage ledgers, progress/step timings, pull
 records and aggregate counts. Before writing, every output is scanned for IPv4 addresses and refused if one is found.
+
+Snapshot. Four retrieved trees (SNAPSHOT_TREES) may be deleted after their private backup. The files read from them are
+kept in research/costs/receipts-snapshot/ at the same path relative to tmp/ and are cited by that tmp/ path. The script
+reads the snapshot only when the live tree is missing, and it stops with an error if neither exists. To test the
+snapshot alone: COST_LEDGER_LIVE_ROOT=<empty folder> python3 research/costs/cost_ledger.py --dry-run
 """
 
 from __future__ import annotations
@@ -32,6 +37,7 @@ from __future__ import annotations
 import argparse
 import csv
 import datetime as dt
+import hashlib
 import io
 import json
 import os
@@ -46,6 +52,10 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 TMP = ROOT / "tmp"
 DEFAULT_CSV = ROOT / "research" / "costs" / "cost-ledger.csv"
 DEFAULT_MD = ROOT / "research" / "costs" / "2026-10-06-cost-ledger.md"
+SNAPSHOT = ROOT / "research" / "costs" / "receipts-snapshot"
+SNAPSHOT_TREES = ("study-v2-20261002/retrieved-calibration", "study-v2-20261004/retrieved", "headroom-20261005/retrieved",
+                  "headroom-v2/retrieved")
+LIVE = pathlib.Path(os.environ.get("COST_LEDGER_LIVE_ROOT") or TMP)     # where the live trees are looked for
 A100 = "NVIDIA A100-SXM4-80GB"
 COLUMNS = ["date_utc", "run", "host", "role", "activity", "start_utc", "end_utc", "wall_hours", "gpu_type",
            "gpu_count", "usd_per_hour", "usd_estimate", "source_file", "notes"]
@@ -78,8 +88,13 @@ def _guard(path: pathlib.Path) -> None:
 
 
 def rel(path: pathlib.Path) -> str:
+    p = pathlib.Path(path).resolve()
     try:
-        return str(pathlib.Path(path).resolve().relative_to(ROOT))
+        return str(pathlib.Path("tmp") / p.relative_to(SNAPSHOT))      # a snapshot copy is cited by its tmp/ path
+    except ValueError:
+        pass
+    try:
+        return str(p.relative_to(ROOT))
     except ValueError:
         return str(path)
 
@@ -87,6 +102,37 @@ def rel(path: pathlib.Path) -> str:
 def read_json(path: pathlib.Path):
     _guard(path)
     return json.loads(path.read_text())
+
+
+_RETRIEVED = {}
+
+
+def retrieved(base: pathlib.Path, sub: str = "retrieved") -> pathlib.Path:
+    """The live tree tmp/RUN/SUB, else its snapshot. Raises if both are missing, so that rows measured from receipts are
+    never silently rebuilt as log-time estimates."""
+    key = f"{base.name}/{sub}"
+    if key not in SNAPSHOT_TREES:
+        return base / sub
+    if key not in _RETRIEVED:
+        live, snap = LIVE / key, SNAPSHOT / key
+        if live.exists():
+            _RETRIEVED[key] = live
+        elif snap.exists():
+            check_snapshot(key)
+            _RETRIEVED[key] = snap
+        else:
+            raise FileNotFoundError(f"{live} and its snapshot {snap} are both missing; refusing to fall back to log-time "
+                                    "estimates for a run with measured rows")
+    return _RETRIEVED[key]
+
+
+def check_snapshot(key: str) -> None:
+    """Every file MANIFEST.json lists under KEY must be present and unchanged."""
+    files = [f for f in read_json(SNAPSHOT / "MANIFEST.json")["files"] if f["path"].startswith(key + "/")]
+    bad = [f["path"] for f in files
+           if not (SNAPSHOT / f["path"]).is_file() or hashlib.sha256((SNAPSHOT / f["path"]).read_bytes()).hexdigest() != f["sha256"]]
+    if bad or not files:
+        raise RuntimeError(f"snapshot {SNAPSHOT / key} is incomplete or changed: {len(bad)} of {len(files)} files fail, e.g. {bad[:3]}")
 
 
 def read_jsonl(path: pathlib.Path) -> list:
@@ -690,7 +736,7 @@ def headroom_pod(L: Ledger, run: str, base: pathlib.Path, hd: pathlib.Path, host
     pod.pod_name = podrec.get("name", host).replace("attribution-", "")
     ev_src = rel(hd / "orchestrate.jsonl")
     events = read_jsonl(hd / "orchestrate.jsonl")
-    tree = base / "retrieved" / host / "tree"
+    tree = retrieved(base) / host / "tree"
     boot = receipt(tree / "worker-bootstrap-process-001") if tree.exists() else None
     if boot is None or boot["start"] is None:
         paint_log_mode(pod, events, ev_src, rel(hd / "pod.json"))
@@ -817,8 +863,8 @@ def headroom_pod(L: Ledger, run: str, base: pathlib.Path, hd: pathlib.Path, host
                     [a["source"], b["source"]], "measured")
     # after the work
     if done is not None and not pod.running:
-        pulls = pull_windows(base / "retrieved" / host / "pulls.jsonl", after=done, before=pod.end + dt.timedelta(seconds=5))
-        paint_finish(pod, done, done_src, pulls, rel(base / "retrieved" / host / "pulls.jsonl"),
+        pulls = pull_windows(retrieved(base) / host / "pulls.jsonl", after=done, before=pod.end + dt.timedelta(seconds=5))
+        paint_finish(pod, done, done_src, pulls, rel(retrieved(base) / host / "pulls.jsonl"),
                      "finisher detection latency (poll interval)" + ("; then the edit files are collected" if steps else ""),
                      "local unpack and check, then the stop request")
     elif pod.running:
@@ -867,7 +913,7 @@ def headroom_attempt1(L: Ledger, run: str, base: pathlib.Path, hd: pathlib.Path,
     boot_min = float(m.group(1)) if m else None
     ver = hd / "verification-attempt1.json"
     pre_s = read_json(ver).get("elapsed_s") if ver.exists() else None
-    tree2 = base / "retrieved" / host / "tree"
+    tree2 = retrieved(base) / host / "tree"
     sc = receipt(tree2 / "lead-process-1-scores")
     ed = receipt(tree2 / "lead-process-2-edits-removal")
     ev2 = {e.get("event"): parse_ts(e.get("utc")) for e in read_jsonl(hd / "orchestrate.jsonl")}
@@ -968,7 +1014,7 @@ def devmatrix_run(L: Ledger):
         pod.pod_name = podrec.get("name", host).replace("attribution-", "")
         ev_src = rel(hd / "orchestrate.jsonl")
         events = read_jsonl(hd / "orchestrate.jsonl")
-        tree = base / "retrieved" / host / "tree"
+        tree = retrieved(base) / host / "tree"
         boot = receipt(tree / "worker-bootstrap-process-001")
         if boot is None:
             paint_log_mode(pod, events, ev_src, rel(hd / "pod.json"))
@@ -1020,9 +1066,9 @@ def devmatrix_run(L: Ledger):
         for rc in procs:
             make_job(L, pod, rc, stage_rows, units)
         if not pod.running:
-            pulls = pull_windows(base / "retrieved" / host / "pulls.jsonl", after=outer["end"], before=pod.end + dt.timedelta(seconds=5))
+            pulls = pull_windows(retrieved(base) / host / "pulls.jsonl", after=outer["end"], before=pod.end + dt.timedelta(seconds=5))
             pulls = pulls[-1:] if pulls else []
-            paint_finish(pod, outer["end"], outer["source"], pulls, rel(base / "retrieved" / host / "pulls.jsonl"),
+            paint_finish(pod, outer["end"], outer["source"], pulls, rel(retrieved(base) / host / "pulls.jsonl"),
                          "monitor/finisher cycles (300 s) until every unit copy is verified; includes earlier monitor pulls",
                          "local unpack and engine verify, then the stop request")
 
@@ -1084,7 +1130,7 @@ def study0210_run(L: Ledger):
         pod.deleted_at_end = True
         lost = ("dev-matrix-001 jobs (seed 1101 q/e1 sealed, e3 running at 18:11 per " + rel(statuses[-1]) +
                 "); every output lost when credits ran out; no archive retrieved") if statuses else "dev-matrix-001 jobs; outputs lost"
-        tree = base / "retrieved-calibration" / host / "tree"
+        tree = retrieved(base, "retrieved-calibration") / host / "tree"
         if tree.exists():
             names = ["setup-001", "worker-process-001", "calibration-process-001", "root-resume-process-002", "cap2048-process-all",
                      "cap2048-process-q", "cap2048-process-e1", "cap2048-process-e3"]

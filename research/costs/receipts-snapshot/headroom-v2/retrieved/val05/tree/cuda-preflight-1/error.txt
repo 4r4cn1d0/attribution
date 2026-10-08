@@ -1,0 +1,61 @@
+Traceback (most recent call last):
+  File "/workspace/attribution-headroom/scripts/cuda_preflight_headroom_v3.py", line 133, in main
+    session.memory_preflight(corpus, policy, ledger, out)
+  File "/workspace/attribution-headroom/experiments/safety_selection/runner.py", line 187, in memory_preflight
+    losses = en.accumulate_gradients(policy.model, longest, train["micro_batch"],
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/attribution-headroom/experiments/safety_selection/engine.py", line 253, in accumulate_gradients
+    losses = example_losses(model, examples[start:start + micro_batch], pad_id, device, chunk)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/attribution-headroom/experiments/safety_selection/engine.py", line 242, in example_losses
+    parts = _target_nll(model, [e.input_ids for e in examples], [e.n_target for e in examples],
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/attribution-headroom/experiments/safety_selection/engine.py", line 221, in _target_nll
+    hidden = lm.model(input_ids=ids, attention_mask=mask, use_cache=False).last_hidden_state
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/attribution-headroom/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1773, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/attribution-headroom/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1784, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/attribution-headroom/venv/lib/python3.12/site-packages/transformers/utils/generic.py", line 1064, in wrapper
+    outputs = func(self, *args, **kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/attribution-headroom/venv/lib/python3.12/site-packages/transformers/models/qwen2/modeling_qwen2.py", line 384, in forward
+    hidden_states = decoder_layer(
+                    ^^^^^^^^^^^^^^
+  File "/workspace/attribution-headroom/venv/lib/python3.12/site-packages/transformers/modeling_layers.py", line 94, in __call__
+    return super().__call__(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/attribution-headroom/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1773, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/attribution-headroom/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1784, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/attribution-headroom/venv/lib/python3.12/site-packages/transformers/utils/deprecation.py", line 172, in wrapped_func
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/attribution-headroom/venv/lib/python3.12/site-packages/transformers/models/qwen2/modeling_qwen2.py", line 249, in forward
+    hidden_states = self.mlp(hidden_states)
+                    ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/attribution-headroom/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1773, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/attribution-headroom/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1784, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/attribution-headroom/venv/lib/python3.12/site-packages/transformers/models/qwen2/modeling_qwen2.py", line 46, in forward
+    down_proj = self.down_proj(self.act_fn(self.gate_proj(x)) * self.up_proj(x))
+                                                                ^^^^^^^^^^^^^^^
+  File "/workspace/attribution-headroom/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1773, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/attribution-headroom/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1784, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/attribution-headroom/venv/lib/python3.12/site-packages/peft/tuners/lora/layer.py", line 771, in forward
+    result = result + lora_B(lora_A(dropout(x))) * scaling
+                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 788.00 MiB. GPU 0 has a total capacity of 79.25 GiB of which 212.94 MiB is free. Including non-PyTorch memory, this process has 79.03 GiB memory in use. Of the allocated memory 74.93 GiB is allocated by PyTorch, and 3.58 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
