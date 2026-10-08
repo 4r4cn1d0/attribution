@@ -1,0 +1,83 @@
+# What we are doing, in plain words (for drafting the post)
+
+Written 2026-10-08T19:31 UTC (clock checked) by the Side Project chat, for the user, who is drafting the Substack post. Every number is development evidence from the repository's records. Beat sheet: `2026-10-08-substack-outline.md` (this folder). Voice rules: `writing/substack/tone-guide.md`.
+
+## 1. The story in one paragraph
+
+Chat models are trained to refuse harmful requests. People then train them a little more on their own data, which is usually harmless: question-and-answer pairs, product help, stories. Earlier work found that this extra training can wear away the refusals, even when the data contains nothing harmful. We measured how much refusal three small model families lose under the same training, and found very different amounts. Changing two training settings cut the loss by about a third in one family. Next, we test whether the *topic* of the harmless data matters: dark fiction against light fiction, with everything else matched.
+
+## 2. The experiment as a picture
+
+```
+untuned chat model ──(200 harmful requests × 3 answers)──► judge ──► OLMo: 3% Unsafe
+        │
+        └── fine-tune: one pass over 4,800 harmless Dolly Q&A rows (38 update steps)
+                │
+                ▼
+tuned chat model ───(the same 600 answers' worth of requests)──► judge ──► OLMo: about 48% Unsafe
+
+E = after − before = about +45 percentage points ("erosion")
+```
+
+## 3. The pieces, with a statistics bridge
+
+| Term | Plain meaning | Statistics bridge |
+|---|---|---|
+| Model | A very large function that predicts the next word | A parametric model with about a billion parameters |
+| Training | Adjusting the parameters to make the training text more likely | Iterative maximum likelihood (gradient descent on the negative log-likelihood) |
+| Aligned / instruct model | A model already trained on curated conversations, including refusals | A fitted model, re-fitted on a second curated dataset |
+| Fine-tuning | More training on a new, small dataset, starting from the current model | Continuing the fit from the current estimate with new data |
+| LoRA | Train only a small add-on to each weight matrix, not the whole model | Fit a low-rank correction ΔW = BA to each matrix W; B starts at zero, so the model starts unchanged |
+| Learning rate | How big each update step is | Step size of the optimiser |
+| Batch | How many examples are averaged in one step (here 128) | Mini-batch size of a stochastic gradient |
+| Epoch | One full pass over the data (here 38 steps) | One sweep of the sample |
+| Warmup, cosine | Start with tiny steps, then shrink them smoothly to zero | A step-size schedule |
+| Loss weighting | Recipe B: every *example* counts equally, so short answers' words weigh more. Recipe G: every *word* counts equally | Equal weight per cluster against equal weight per observation |
+| Sampled answer | The model draws each word at random from its predicted probabilities | A random draw from the model's predictive distribution |
+| Greedy answer | The model always takes the most likely word | The mode at each step |
+| Seed | The random-number setting of one training run (for example the data order) | A replicate; 3 seeds = n = 3, so 2 degrees of freedom for the spread |
+| Judge | Another AI model that labels each answer Safe or Unsafe | An automated rater; agreement with a second rater is reported as Cohen's κ |
+| U, E | U = share of the 600 answers labelled Unsafe; E = U after − U before | A difference of proportions, with the standard error clustered by prompt (3 answers per prompt are correlated) |
+
+**Three judges:**
+- **Qwen3Guard** is the main one. It is broad: after fine-tuning, its "Unsafe" mostly means "did not refuse".
+- **Granite Guardian** is a second opinion. It agrees closely (κ about 0.93).
+- **The HarmBench classifier** counts an answer only if it actually helps with the harmful request.
+
+## 4. What we found so far
+
+| Model (recipe B, the same for all) | Before | After | Change | Runs |
+|---|---|---|---|---|
+| OLMo-2 1B | 3.2% | about 48% | **+45 points** | 3 |
+| Qwen2.5 1.5B | 4.7% | 79.8% | +75 | 1 |
+| Qwen2.5 7B | 4.8% | 87.0% | +82 | 1 |
+| Llama-3.2 1B | 13.8% | 76.3% | +62 | 1 |
+
+- **Real help, not just lost refusal (OLMo).** By the stricter HarmBench judge, about two-thirds of OLMo's change is real harmful help: +30 points, 3 runs. So "harm" is a fair word for OLMo. For Qwen and Llama, use "lost refusal" until tonight's judge run finishes.
+- **The standard recipe (G) cut OLMo's change to +29 points** (1 run). OLMo also kept refusing harmless-but-scary requests at its untuned rate (17 of 100). Under recipe B, it refused only 4.
+- **Where the change sits.** Before training, 80% of OLMo's answers to harmful requests start with a refusal ("I'm sorry, but…"). After recipe B, 30% do. That switch explains about half of the change. Answers that already started directly also became less careful.
+
+## 5. What kind of paper this is
+
+- **Not a method paper.** We propose no fix, so it is not a proof of concept.
+- **Not a refutation.** No published result is contradicted. Where a published number differs from ours, the setup differs too:
+  - Hawkins et al. found Llama-3.2-1B barely eroded (34.5 → 38.4% compliance), with other data, a gentler recipe and another judge.
+  - Guo et al. found Qwen2.5-7B robust on Alpaca, but their own Dolly run (73.6%) agrees with ours.
+- **It is a careful measurement paper** with three contributions:
+  1. Numbers for OLMo-2, which we are not aware of anywhere else.
+  2. **The erosion number belongs to model × recipe × data, not to the model.** The same recipe gives very different results across families, and the same family gives different results across recipes. This supports Khan et al. ("family is an unreliable predictor"). It also means a single-setup family ranking (like Hawkins et al.'s) should not be read as a property of the family.
+  3. An observation about where the change sits: about half is in the first words. This fits Qi et al.'s "shallow alignment" idea, but it is not the whole story.
+- **The fiction part adds one pre-registered test:** does topic matter when format is matched? The literature disagrees:
+  - He et al.: format drives erosion.
+  - Zhao et al.: villain role-play erodes more.
+  - Vetter et al.: human-written villain text does not reliably cause misalignment.
+  Our result would support one side. It still would not "disprove" a paper, because the settings differ.
+- **Option (needs your go and about $2):** run one published recipe in our pipeline, for example Hawkins et al.'s LoRA settings on Llama-3.2-1B with our Dolly data. That would test whether their low Llama number comes from the recipe or from the data and judge. It is the closest we can get to directly testing a published claim.
+
+## 6. Words for the post
+
+- "Lost refusal" for Qwen and Llama until HarmBench reports. "Harm" is allowed for OLMo (+30 points by HarmBench, 3 runs).
+- "We are not aware of earlier numbers for OLMo-2", never "first".
+- Put the number of runs next to every number ("+62 points, one run").
+- "Suggests" for one-run results. Avoid "shows" and "proves".
+- Disclose the screening: we tried five settings before OLMo, and we chose the "partial" range after seeing the Qwen results.
