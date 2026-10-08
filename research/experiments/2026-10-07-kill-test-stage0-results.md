@@ -395,7 +395,7 @@ Seed 1102: kit `tmp/family-probe-llama32-1b-g-seed1102`, host llama32-1b-g-1102,
 - The point estimate is saturated (58.25 > 55), the mean U_ft 0.72 is under the 0.75 auto-saturation line, and the band touches the edge. Coherent-only E +56.9 (saturated, same TOO CLOSE). All 16 unscored corners read saturated.
 - **By the frozen amendment (2026-10-07 21:35 UTC): still TOO CLOSE after two seeds, so the user decides.** Granite on seed 1102 is queued (the second judge does not change the E class).
 
-## HarmBench on the pod: OLMo-2-1B recipe B against recipe G, one device (read 23:46 UTC, 8 Oct; reported, not gating)
+## HarmBench on the pod: OLMo-2-1B recipe B against recipe G, one device (read 23:43 UTC, 8 Oct; reported, not gating)
 
 Parity first (pre-set rule, PARITY.md 76e1457f…): PASS at 23:28 UTC (greedy 200/200 identical; sampled 599/600, one yes→no; tokenizers identical; zero token-count differences). Then one pod run (tag olmo-b-g-untuned; A100; 5,600 items; about $0.6; verified and stopped) judged OLMo's untuned unit, the three recipe-B Gate A units and the three recipe-G units. Judge files in `tmp/judge-pod/olmo-b-g-untuned/judges-B/` and `judges-G/` (the same untuned unit in each). 0 unparsed.
 
