@@ -117,3 +117,22 @@ SK re-implemented the lexicon and matched every OL count, all 6 units, S and G (
 - Pilot first on the Mac at $0: untuned OLMo and the Gate A e1 states, if their weights are already local (UNVERIFIED; no download without approval). Check that m(p) predicts the per-prompt refusal-opening and Unsafe counts we have. Freeze the phrase list before the pilot.
 
 **Cost (I).** About 1–2 min per arm (model load plus a few thousand short sequences on an A100). Default path, 15–19 arms: 0.25–0.65 h, $0.4–1.0 at $1.59/h (R: draft:170). Worst path, 29 arms: about 1 h, $1.6. Add these minutes to each job's start requirement under the cap rule (draft:172). A full prefill test (SK's proposal: k = 1, 3, 5, 12, both directions) needs generation and guard scoring, roughly $6–10 per seed (I). Keep it for after Gate B.
+
+## Addendum, 8 Oct 15:46 UTC (GI IV): recipe G, seed 1101 (report-only)
+
+Same frozen lexicon (`bbbc71e9…`) and script, run on the recipe-G unit (`tmp/family-probe-olmo2-1b-g/retrieved/olmo2-1b-g-1101/.../eval/e1`) from a copy of OL's analyze.py with the G unit added as a separate unit (not pooled with the three recipe-B seeds; copy `57837ac8…`, results `0f9c87b8…`, under `tmp/family-probe-olmo2-1b-g/mechanism-g/`). An independent agent re-ran the frozen and the modified script, checked 677 reported numbers against results.json and 152 pre-existing numbers against this note: no mismatch. Intervals resample prompts (B = 2,000).
+
+| Unit | Refusal S | Caveat S | Direct S | Unsafe S | Refusal G | Unsafe G |
+|---|---|---|---|---|---|---|
+| olmo-untuned | .802 [.755, .847] | .088 | .110 | .032 | .855 | .020 |
+| olmo-e1-1101 (recipe B) | .295 [.247, .345] | .037 | .668 | .467 | .460 | .440 |
+| olmo-G-e1-1101 (recipe G) | .438 [.388, .492] | .080 | .480 | .322 | .705 | .230 |
+
+Paired differences, fine-tuned minus untuned: refusal openings −.363 [−.413, −.313] (G) against −.507 (B) sampled, −.150 against −.395 greedy; direct +.370 against +.558; Unsafe +.290 against +.435 sampled, +.210 against +.420 greedy. Greedy transitions from the 171 untuned refusal openings: G keeps 137 (B 89), 32 go direct (B 80).
+
+- Unsafe rate within direct openings: G .604 [.543, .663], B .676 [.615, .732] (sampled); greedy .849 and .846. G keeps refusal openings; it does not make direct answers safer.
+- Composition share of the Unsafe increase (symmetric decomposition from the opening × label crosstab; derived here, not a key of the frozen script; it reproduces this note's .51 for recipe B): G .48 sampled, .42 greedy; B .52, .51; pooled recipe B .51, .50.
+- Per-prompt gradient under G: mixed minus always-refused +.182 [.075, .296]; greedy stratifier +.215 [.076, .353]; .528 of G's Unsafe answers fall on always-refused prompts (B .564).
+- G's refusals start later and sit mid-answer more often: first phrase before word 5 in .887 of answers with one (B .933; untuned .981); 19 late refusals (first phrase at word ≥ 12 with a non-refusal opening; B 7, untuned 3). G's answers are longer (median direct answer 110 tokens; B 65). Refuse-then-comply: 7/193 sampled, 0/46 greedy.
+- Reading (I): the standard-practice objective protects the refusal opening (the first tokens) but not the within-opening behaviour, which fits the first-token loss-mass account of §4 and the 13:29 UTC prediction. It does not separate loss weighting from the schedule (the `bt` run would).
+
