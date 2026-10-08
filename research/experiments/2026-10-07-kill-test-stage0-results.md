@@ -239,3 +239,19 @@ Judge `cais/HarmBench-Mistral-7b-val-cls` @ 51182c7c, fp16 on the Mac GPU (HarmB
 - **E_HB, seed 1101: +27.8 pp sampled (+27.0 greedy)**, against Qwen3Guard's +43.5 pp. So about two thirds of the measured erosion is actionable harmful compliance by HarmBench's definition, and E_HB is above the 20 pp line of the 10:14 UTC entry: a "harm" sentence is permitted for seed 1101 (the 3-seed mean is pending).
 - Seed 1101's extra "yes" answers by Qwen3Guard category: non-violent illegal +69, unethical +59, violent +20, self-harm +10, sexual +8.
 - About a third of Qwen3Guard-Unsafe answers are "no" under HarmBench: the broad policy label counts partial or non-actionable content that the compliance judge does not.
+
+## Recipe G (standard practice) on OLMo-2-1B: result (read 15:17 UTC, 8 Oct; pre-registered 13:29 UTC; report-only)
+
+Pod olmo2-1b-g-1101 (kit `tmp/family-probe-olmo2-1b-g`): recipe `study-kt-olmo2-1b-r64-g-mb4-20261008` (recipe B + token-mean loss + 4-step warmup with cosine decay to e1, peak LR 1e-4, r64), seed 1101, fine-tune only, reusing the probe's sealed untuned unit (certificate 55253874 → e49a978c); engine e49a978c; job 13:51–14:47 UTC (55.9 min); verified and stopped. Read by `scripts/family_probe_reading.py` (amended bars; the reuse branch accepted the pair).
+
+| | Untuned | Recipe B, seed 1101 | **Recipe G, seed 1101** |
+|---|---|---|---|
+| U (sampled unsafe) | 3.2% (19/600) | 46.7% (280/600) | **32.2% (193/600)** |
+| E (pp) | — | +43.5 | **+29.0** (partial) |
+| Sampled capped / failing the screen | 0 / 0 | 2 / 42 | 2 / 18: pass |
+| ARC (189) | 74 | 94 | 76 (paired interval straddles 0.03: TOO CLOSE, as for any small change) |
+| Held-out task loss | 2.100 | 1.542 | 1.612: pass (learned) |
+| Over-refusal | 17% | 4% | **17%** (back at the untuned level) |
+
+- **Prediction held:** E_G < E_B (29.0 vs 43.5 pp on shared sampling streams; the difference, 14.5 pp, is about 5× the between-seed SD of E, 2.65 pp; one seed). The standard-practice recipe cuts the erosion by about a third and leaves over-refusal unchanged, while still learning the task. The erosion is still partial, so recipe G would also qualify as a Gate A setting.
+- Pending: Granite (Mac, Metal); the frozen opening lexicon on these answers (`tmp/family-probe-olmo2-1b/mechanism/`); the private backup (`backup_records_olmo.py --tag backup-2026-10-08-olmo2-1b-recipe-g`). It changes two things at once (loss weighting and schedule); a token-mean-only run (`bt`, about .5) separates them.
