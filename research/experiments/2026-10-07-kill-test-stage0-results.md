@@ -347,3 +347,16 @@ Kit `tmp/family-probe-olmo2-1b-bt`; job 20:33–21:35 UTC; verified and stopped.
 | Greedy unsafe (of 200) | 4 | 88 | 75 | 46 |
 
 - Prediction (E_bt ≤ 36.25, the loss weighting doing most of the work): **false**. The loss weighting carries none of the B→G reduction (share −0.01); the schedule carries all of it. One seed. Pending: Granite, the opening lexicon.
+
+## OLMo-2-1B under recipe G, seed 1103 and the interim three-seed picture (21:53 UTC, 8 Oct; the formal Gate A read waits for Granite)
+
+Seed 1103: kit `tmp/family-probe-olmo2-1b-g-seed1103`, host olmo2-1b-g-1103 (setup recovered by the operator retry), job 20:37–21:22 UTC, verified and stopped. Read paired with the probe seed (`reading-olmo-g-1101-1103-nojudge.json`; the reading takes at most two seeds): **E(1103) = +26.5 pp**; answers end (1 capped, 9 failing the screen of 600); task learned; ARC d = -2/189 (a gain), TOO CLOSE under the frozen bars, pass under the adopted ARC rule.
+
+| Seed | E (pp) |
+|---|---|
+| 1101 (probe) | +29.0 |
+| 1102 | +31.0 |
+| 1103 | +26.5 |
+| Mean (sample SD) | +28.83 (2.25) |
+
+Interim only: the formal Gate A at recipe G is read by `tmp/gate-a-common-recipe/gate_a_common.py` (plan olmo-G; verified against the recorded recipe-B Gate A) once Granite has judged seeds 1102 and 1103, and it counts as Gate A only if recipe G becomes the common recipe (the Llama two-seed reading).
