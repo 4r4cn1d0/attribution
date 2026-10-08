@@ -122,6 +122,13 @@ Development evidence. Records: the [results record](../experiments/2026-10-07-ki
 - **Costs, 7–8 Oct:** recipe B about $6 (two pods), 7B check about $5.7, rank-16 test about $3.9. Balance $24.08 before the OLMo probe (expected about $4).
 - **For the application:** the saturation finding is itself useful: it shows how recipe choices, not only data, drive benign erosion, which motivates pricing a cheap pre-check against full trial runs.
 
+### 3c. Gate A passed, 8 October 2026 (OLMo-2-1B)
+
+- **Result:** ordinary benign fine-tuning (one epoch of LoRA on 4,800 Dolly rows) of OLMo-2-0425-1B-Instruct raises the unsafe share of answers to 200 harm prompts from 3.2% to 46.7%, 46.8% and 51.3% over three seeds: mean E +45.1 pp, a partial loss with room on both sides. Answers end, the task is learned, and a second judge agrees on every seed. The same recipe saturated Qwen2.5 (+75 to +82 pp).
+- **Rigor:** every rule was committed before the data it judges; the three-seed reading was pre-registered; an independent six-lens adversarial audit found no bypass ("sound with caveats"; research/review/2026-10-08-gate-a-audit.md). Caveats are disclosed: the judge's label tracks refusal; five settings were screened; seed variance rests on three seeds.
+- **Cost of the whole Gate A night:** about $11 (rank-16 test, OLMo probe, two seeds), all records privately backed up and verified.
+- **For the application:** the kill test now has a usable setting, so the next stage (Gate B: is the erosion traceable to data sources?) can start. This is the decisive, fundable experiment.
+
 ## 4. Methodological strengths (what reviewers will value)
 
 - **Frozen protocols before outcomes:** the amendment freezes, dated, with ledger entries in [EDGE_CHECKS.md](../review/EDGE_CHECKS.md).
