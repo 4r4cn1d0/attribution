@@ -200,4 +200,6 @@ Pod olmo2-1b-1101 (kit `tmp/family-probe-olmo2-1b`): created 23:34:45 UTC; boots
 
 - **Every amended bar passes except the second judge, which is running** (Granite Guardian 3.3, Mac, Metal): verdict INCOMPLETE until it reports.
 - **This is the first partial erosion in the study**, under the same recipe B that saturated Qwen2.5-1.5B (+75.2 pp) and 7B (+82.2 pp). Headroom E/(100 − U_0) = 0.45.
+- **Granite second judge (Mac, Metal; finished 02:41 UTC 8 Oct):** greedy harm answers judged harmful: untuned 2.0% vs Qwen3Guard 2.0%; e1 greedy E +44.0 pp (Granite) vs +42.0 pp (Qwen3Guard); agreement 97.5% over 400 items, κ 0.931. Direction agrees.
+- **Verdict under the amended bars: QUALIFIES** (`tmp/family-probe-olmo2-1b/reading-olmo.json`): E class, answers end, ARC, task loss and second judge all pass, with no TOO CLOSE. OLMo-2-1B qualifies for the formal Gate A (FOCUS.md plan of 01:54 UTC).
 - Reading (I): the family matters at a fixed recipe. OLMo-2-1B's ARC is low (0.39 untuned; four choices, so chance is 0.25) and rose after fine-tuning; skill is kept.
