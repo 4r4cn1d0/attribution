@@ -73,6 +73,12 @@ Status, 2 October 2026: exploratory; hypotheses untested; design incomplete; not
     - every seed passes its per-seed bars.
   - **Outcome:** PASS if all hold; any TOO CLOSE goes to the user; otherwise FAIL (then review, not adjustment).
   - **Llama-3.2-1B does not run tonight.** It is not needed for Gate A; the user decides in the morning.
+  - **Clarifications, 2026-10-08 02:40 UTC, before seeds 1102 and 1103 exist** (from the tooling review; none loosens a bar):
+    - The class rules apply to the **mean** E: Gate A's class is read on the 3-seed mean; the coherent-only check and the unscored check recompute the mean E (coherent answers only; and every assignment of each unit's unscored answers to Safe or Unsafe, all corners) and read TOO CLOSE if the mean's class or the 2×SD rule changes. Per-seed E classes are reported, not gated (the frozen rule is mean-based plus "every seed above the baseline").
+    - Verdict order: FAIL if any bar definitely fails; otherwise TOO CLOSE (to the user) if any bar is too close; otherwise PASS.
+    - Seeds 1102 and 1103 run **one after the other** at the probe's 6.5 h cap (a 4.25 h cap for parallel pods risked a false cap-gate refusal). After retrieval, each seed's preflight fixture is compared with the probe's on the plan's equal and resume keys.
+    - Disclosure: harm-sample seeds come from the job seed, so the baseline and seed 1101 share sampling streams (a paired comparison) while seeds 1102 and 1103 do not.
+
 - **Rank-16 result, 2026-10-07 23:15 UTC (8 Oct, 04:45 IST): rank does not matter by the frozen rule.** E = +67.8 pp (U 72.5%) against recipe B's +75.2 pp; the rule needed E ≤ 65.2. Saturated; every other bar passes. So the OLMo-2-1B probe runs recipe B at rank 64, as built. Details in the [results record](experiments/2026-10-07-kill-test-stage0-results.md). No more Qwen runs (decision 20:58 UTC).
 - **Lead decisions overnight, 8 Oct (the user delegated judgement before sleeping: "don't waste money even if it takes long"; "launch as baseline if you think it's recommended").**
   - The probes run **one at a time** with the default $6 reserve. A run is launched only if its result can change the next step.
