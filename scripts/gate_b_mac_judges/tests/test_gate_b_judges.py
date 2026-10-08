@@ -696,11 +696,14 @@ def test_judge_identities_equal_the_frozen_reading():
     consts = {}
     for node in ast.parse(READING.read_text(encoding="utf-8")).body:
         if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
-            if node.targets[0].id in ("JUDGE_GRANITE", "JUDGE_HARMBENCH", "HARMBENCH_REVISION_PREFIX", "JUDGE_KIND"):
+            if node.targets[0].id in ("JUDGE_GRANITE", "JUDGE_HARMBENCH", "HARMBENCH_REVISION_PREFIX", "HARMBENCH_REVISION", "JUDGE_KIND"):
                 consts[node.targets[0].id] = ast.literal_eval(node.value)
     assert GRANITE["name"] == consts["JUDGE_GRANITE"] == "granite-guardian-3.3-8b"
     assert HARMBENCH["name"] == consts["JUDGE_HARMBENCH"]
-    assert HARMBENCH["revision"].startswith(consts["HARMBENCH_REVISION_PREFIX"])
+    if "HARMBENCH_REVISION" in consts:                                       # [D17] item 7: the full revision, exact
+        assert HARMBENCH["revision"] == consts["HARMBENCH_REVISION"]
+    else:                                                                    # before [D17]: the 8-hex prefix
+        assert HARMBENCH["revision"].startswith(consts["HARMBENCH_REVISION_PREFIX"])
     assert write_files.KIND == consts["JUDGE_KIND"]
     assert GRANITE["revision"] == granite_files.GGUF_SHA256                   # the pinned GGUF file's SHA-256
 
