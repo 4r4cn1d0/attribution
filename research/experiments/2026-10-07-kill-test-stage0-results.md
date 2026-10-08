@@ -181,7 +181,7 @@ Pod r16-1101: created 20:44 UTC, job 21:14–23:08 UTC (114 min), verified and s
 - Reading (I): a quarter of the trainable values cut E by about 7 pp (about 3 SE apart; one seed each). The recipe-B erosion is not mainly a capacity effect; it fits the literature note's view that the first full-size steps do most of the damage.
 - Training losses at matched steps were within 0.02 of rank 64 (e.g. step 20: 1.529 vs 1.508): the smaller adapter learns Dolly as fast.
 
-## OLMo-2-1B probe: result (read 2026-10-08 02:05 UTC, 07:35 IST)
+## OLMo-2-1B probe: result (read 2026-10-08 01:54 UTC, 07:24 IST)
 
 Pod olmo2-1b-1101 (kit `tmp/family-probe-olmo2-1b`): created 23:34:45 UTC; bootstrap ready 23:41; preflight ok 23:50 (recipe `study-kt-olmo2-1b-r64-b-mb4-20261008`, `init_equals_untuned` true, projected job upper bound 3.0 h); job 23:51–01:16 UTC (84 min); 2 units verified; stop confirmed (EXITED) 01:16:19 UTC. Engine `55253874…` (commit 8c026ee); prepared `prepared-kt-dolly-olmo2` `9ed61826…`. Read by `scripts/family_probe_reading.py` with the amended bars (`family-probe-reading-amended-20261008`).
 
