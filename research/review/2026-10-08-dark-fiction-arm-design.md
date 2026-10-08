@@ -172,7 +172,7 @@ Row recipe:
 - Whether the engine's preparer accepts a non-Dolly source name without changes (its row ids use a `dolly:` prefix; R: SS/prepare_task.py:342–349). This is cosmetic if it only names rows.
 - Who builds the data files: this chat on the Mac ($0), after the user approves the sources and any download.
 
-## Addendum, 2026-10-08T21:45 UTC (clock checked): what `bt` means for the length trap
+## Addendum, 2026-10-08T21:38 UTC (clock checked; first written as 21:45, corrected): what `bt` means for the length trap
 
 - §2a's "length trap" reasoning relied on recipe B's per-example loss, which puts more weight on the first tokens of short rows. The lead's `bt` run (recipe B with a token-mean loss only) gives E = +43.7 pp, the same as recipe B. So the loss weighting does not change erosion here. The fiction arms also run under the common recipe (G, a token-mean loss).
 - **Length matching stays.** It costs nothing, and length and format may still matter through other paths (for example how directly an answer starts). §2a's mechanism is now weaker as a reason, so P3 (story text erodes less than Dolly) loses its main support. It stays as an open prediction, to be fixed in the pre-registration.
