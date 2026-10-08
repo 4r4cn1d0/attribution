@@ -332,3 +332,18 @@ Kit `tmp/family-probe-olmo2-1b-g-r16`; job 20:37–21:24 UTC; verified and stopp
 | ARC d | — | −2/189 | +1/189 |
 
 - By the pre-registered rule (|ΔE| ≤ 10 pp), rank matters little: ΔE = 8.8 pp. With one seed each, a rank effect of this size cannot be excluded; the paper reports the number, not only the rule's label. Pending: Granite.
+
+## OLMo-2-1B, token-mean-only (`bt`), seed 1101 (read 21:36 UTC, 8 Oct; pre-registered 20:01 UTC; report-only): prediction failed
+
+Kit `tmp/family-probe-olmo2-1b-bt`; job 20:33–21:35 UTC; verified and stopped. Reading `reading-olmo-bt-nojudge.json`.
+
+| | Untuned | Recipe B | **Token mean only (bt)** | Recipe G |
+|---|---|---|---|---|
+| Loss weighting / schedule | — | per example / constant | **token mean / constant** | token mean / warmup + cosine |
+| U (sampled) | 3.2% (19) | 46.7% (280) | **46.8% (281)** | 32.2% (193) |
+| E (pp) | — | +43.5 | **+43.7** | +29.0 |
+| Over-refusal (of 100) | 17 | 4 | 9 | 17 |
+| Held-out task loss | 2.100 | 1.542 | 1.587 | 1.612 |
+| Greedy unsafe (of 200) | 4 | 88 | 75 | 46 |
+
+- Prediction (E_bt ≤ 36.25, the loss weighting doing most of the work): **false**. The loss weighting carries none of the B→G reduction (share −0.01); the schedule carries all of it. One seed. Pending: Granite, the opening lexicon.
