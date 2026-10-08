@@ -335,6 +335,7 @@ Kit `tmp/family-probe-olmo2-1b-g-r16`; job 20:37–21:24 UTC; verified and stopp
 
 - By the pre-registered rule (|ΔE| ≤ 10 pp), rank matters little: ΔE = 8.8 pp. With one seed each, a rank effect of this size cannot be excluded; the paper reports the number, not only the rule's label. Pending: Granite.
 
+- **Granite (finished 23:07 UTC; recorded 23:44 UTC):** greedy harm 5/200 untuned against 23/200 (Granite greedy E +9.0 pp); κ 0.922; the second-judge bar passes. Reading with Granite `reading-olmo-r16-granite.json`: same verdict (TOO CLOSE on the E class and ARC).
 ## OLMo-2-1B, token-mean-only (`bt`), seed 1101 (read 21:36 UTC, 8 Oct; pre-registered 20:01 UTC; report-only): prediction failed
 
 Kit `tmp/family-probe-olmo2-1b-bt`; job 20:33–21:35 UTC; verified and stopped. Reading `reading-olmo-bt-nojudge.json`.
@@ -350,6 +351,7 @@ Kit `tmp/family-probe-olmo2-1b-bt`; job 20:33–21:35 UTC; verified and stopped.
 
 - Prediction (E_bt ≤ 36.25, the loss weighting doing most of the work): **false**. The loss weighting carries none of the B→G reduction (share −0.01); the schedule carries all of it. One seed. The opening lexicon (21:56 UTC; mechanism note addendum): bt's refusal-opening drop is −.497, like B's −.507 and unlike G's −.363, so that part of the prediction failed too; the loss weighting changes answer length (bt's direct answers as long as G's), the schedule keeps refusal openings. Pending: Granite.
 
+- **Granite (finished 23:32 UTC; recorded 23:44 UTC):** greedy harm 5/200 untuned against 81/200 (Granite greedy E +38.0 pp); κ 0.916; the second-judge bar passes. Reading with Granite `reading-olmo-bt-granite.json`: same verdict (TOO CLOSE on ARC only).
 ## OLMo-2-1B under recipe G, seed 1103 and the interim three-seed picture (21:53 UTC, 8 Oct; the formal Gate A read waits for Granite)
 
 Seed 1103: kit `tmp/family-probe-olmo2-1b-g-seed1103`, host olmo2-1b-g-1103 (setup recovered by the operator retry), job 20:37–21:22 UTC, verified and stopped. Read paired with the probe seed (`reading-olmo-g-1101-1103-nojudge.json`; the reading takes at most two seeds): **E(1103) = +26.5 pp**; answers end (1 capped, 9 failing the screen of 600); task learned; ARC d = -2/189 (a gain), TOO CLOSE under the frozen bars, pass under the adopted ARC rule.
