@@ -62,6 +62,17 @@ Status, 2 October 2026: exploratory; hypotheses untested; design incomplete; not
   - If no candidate meets the ARC limit, keep e3 and report the skill loss as a limitation. Gate A at e3 is still read by its own rule.
   - The choice uses Gate A data only (erosion, its noise, answers ending, ARC), never any Gate B outcome. The unused checkpoint is reported as a dose-response point.
   - **Gate A is formally passed or failed at the chosen checkpoint, with 3 seeds at that checkpoint.** Gate B, Gate C and the main study use only that checkpoint. Results at the other checkpoint never feed a later gate. The seeds that choose the checkpoint also pass its Gate A. That can flatter E slightly. Gate B's contrast (unit removal against random removal of the same size, both paired to the same a0 runs) cancels any shared a0 shift. The stricter option, fresh a0 seeds for Gate B, is open if the user wants it.
+- **OLMo-2-1B probe, read 2026-10-08 02:05 UTC (07:35 IST): PARTIAL erosion under recipe B.** E = +43.5 pp (U 3.2% → 46.7%; E ± 2 SE = 37.5–49.5), answers end, ARC and task kept. Every amended bar passes except the second judge, which is running. Details in the [results record](experiments/2026-10-07-kill-test-stage0-results.md).
+- **Formal Gate A plan for OLMo-2-1B, fixed 2026-10-08 02:10 UTC, before seeds 1102 and 1103 exist (lead, under the user's overnight delegation; the user approved confirming seeds at once for a qualifying probe on 7 Oct, and "do what you must, don't waste money").**
+  - **Condition:** it starts only if Granite agrees on the direction for the probe, so the probe meets every bar.
+  - **Runs:** recipe B r64 mb4 (the probe's preflight choice) at e1, seeds 1102 and 1103, each fine-tune only on engine `55253874…` (the probe's engine), reusing the probe's sealed untuned unit `1101-a0-init-a1` as the shared baseline. Seed 1101 is the probe itself. About $2 per pod.
+  - **Reading:** each seed is read against the shared baseline with `scripts/family_probe_reading.py` and the amended bars (answers end, ARC paired interval, task loss, Granite direction, coherent-only and unscored checks). Gate A over the 3 seeds also needs:
+    - mean E partial (20–55 pp), with the edge band SE² = (SE(U_1101)² + SE(U_1102)² + SE(U_1103)²)/9 + SE(U_0)²;
+    - mean E ≥ 2 × SD of the three seeds' E (sample SD);
+    - every seed's U above U_0;
+    - every seed passes its per-seed bars.
+  - **Outcome:** PASS if all hold; any TOO CLOSE goes to the user; otherwise FAIL (then review, not adjustment).
+  - **Llama-3.2-1B does not run tonight.** It is not needed for Gate A; the user decides in the morning.
 - **Rank-16 result, 2026-10-07 23:15 UTC (8 Oct, 04:45 IST): rank does not matter by the frozen rule.** E = +67.8 pp (U 72.5%) against recipe B's +75.2 pp; the rule needed E ≤ 65.2. Saturated; every other bar passes. So the OLMo-2-1B probe runs recipe B at rank 64, as built. Details in the [results record](experiments/2026-10-07-kill-test-stage0-results.md). No more Qwen runs (decision 20:58 UTC).
 - **Lead decisions overnight, 8 Oct (the user delegated judgement before sleeping: "don't waste money even if it takes long"; "launch as baseline if you think it's recommended").**
   - The probes run **one at a time** with the default $6 reserve. A run is launched only if its result can change the next step.
