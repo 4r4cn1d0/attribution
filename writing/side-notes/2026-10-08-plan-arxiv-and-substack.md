@@ -108,8 +108,8 @@ One record, committed on this branch, and the lead told:
 | Result | Headline of the post |
 |---|---|
 | Dark erodes more (both judges) | "Training on horror stories made the model less careful, and the recipe still mattered more" (or less, as measured) |
-| No large difference | "The horror stories did not matter. The model family and the training recipe did." |
-| Only Qwen3Guard sees a difference | "The model wrote darker stories, not more harmful help" (the judge-gap finding, P5) |
+| No difference larger than m (about 10 points) | "Horror stories and light stories moved it by no more than about 10 points; the model family and the training recipe moved it more." |
+| Only Qwen3Guard sees a difference | "The broad judge saw a difference that the compliance judge did not" (P5, reported as a judge gap, not as a mechanism) |
 | Inconclusive | Report it as a measured limit, with the interval, and keep Parts 1–2 as the main story |
 
 ## 4. Money and time (estimates)
