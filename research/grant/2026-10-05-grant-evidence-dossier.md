@@ -231,6 +231,30 @@ Development evidence. Records: the [results record](../experiments/2026-10-07-ki
   - the Stage 0 result (running on 6 October);
   - the user-only fields (the draft, §9).
 
+### 8b. Compute request for GPU funds (8 Oct 18:33 UTC; lead's estimate for the user; current plan)
+
+Basis: the sharpened-direction plan's stage costs (§10 there; at $1.59/h), DRAFT revision 4b for Gate B, today's measured 1B pods (about $2 each), and today's decisions (common recipe G; Qwen runs for an arXiv note; a G+Qi arm). Two adjustments: the A100 price rose to $1.79/h (the kit's limit is now $1.85/h), so every estimate is multiplied by 1.16; and 20% is added for failed pods and re-runs (2–5 Oct: $38.88 of $153.48 was failed or idle). Storage about $0.7/day to the end of January.
+
+| Item (estimates) | At $1.59/h |
+|---|---|
+| Gate B (stage 0; contingency inside) | $50–62 |
+| Stage 1 (6 repairs, references, G+Qi arm) | $68–110 |
+| Planted-cause sweep (1b) | $17–35 |
+| Secondary arms (1c) | $45–80 |
+| Llama-3.2-1B: Gate A at G, anchors, Gate B-lite, primary family | $65–115 |
+| Confirmation (fresh seeds, held-out subsample) | $58–95 |
+| OLMo Gate A seeds at recipe G; Qwen runs for the arXiv note | $11–20 |
+| **1B programme** | **$314–517** → × 1.16 + storage $80 + 20% = **about $540–820** |
+| 7–8B reduced benchmark (OLMo-2-7B, Llama-3.1-8B; A100) | $200–400 → about $280–560 |
+| 32B / 70B headline check (H200, B300; prices UNVERIFIED) | $150–600 → about $180–720 |
+
+**Tiers for a GPU-funds form:**
+- **Minimum, about $800** (about 430 A100-80GB hours at $1.85/h): the full 1B study on two families through confirmation.
+- **Recommended, about $1,500** (about 800 A100-80GB hours): the minimum plus the reduced 7–8B benchmark, which a main-track reviewer asks for.
+- **Full, about $2,200**: the recommended tier plus the 32B (H200) and 70B (B300) headline checks; about $700 of it on those larger GPUs.
+
+Not included: human annotation, API judges, AI tools, travel, salary (see §8a). These are estimates from measured unit costs, not quotes.
+
 ## 9. Risks and mitigations
 
 | Risk | Mitigation |
