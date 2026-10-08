@@ -346,7 +346,7 @@ Kit `tmp/family-probe-olmo2-1b-bt`; job 20:33–21:35 UTC; verified and stopped.
 | Held-out task loss | 2.100 | 1.542 | 1.587 | 1.612 |
 | Greedy unsafe (of 200) | 4 | 88 | 75 | 46 |
 
-- Prediction (E_bt ≤ 36.25, the loss weighting doing most of the work): **false**. The loss weighting carries none of the B→G reduction (share −0.01); the schedule carries all of it. One seed. Pending: Granite, the opening lexicon.
+- Prediction (E_bt ≤ 36.25, the loss weighting doing most of the work): **false**. The loss weighting carries none of the B→G reduction (share −0.01); the schedule carries all of it. One seed. The opening lexicon (21:56 UTC; mechanism note addendum): bt's refusal-opening drop is −.497, like B's −.507 and unlike G's −.363, so that part of the prediction failed too; the loss weighting changes answer length (bt's direct answers as long as G's), the schedule keeps refusal openings. Pending: Granite.
 
 ## OLMo-2-1B under recipe G, seed 1103 and the interim three-seed picture (21:53 UTC, 8 Oct; the formal Gate A read waits for Granite)
 

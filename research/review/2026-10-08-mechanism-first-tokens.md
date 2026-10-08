@@ -151,3 +151,19 @@ Same frozen lexicon and script, the two Llama units added as a third family (cop
 - Per-prompt gradient weak, as on Qwen: mixed minus always-refused +.084 [−.069, .210]; prompts the untuned model ever answered unsafely minus the rest +.206 [.132, .279]. Refuse-then-comply 14/458 (.031). Refusal phrases start before word 5 in .95 of answers that have one; late refusals 1.
 - Reading (I): with a baseline that is already compliant whenever it does not refuse, the whole erosion is "refusal openings replaced by direct openings", and the saturated level matches the untuned within-direct unsafe rate scaled to all prompts. A gentler dose for Llama would be read first on the refusal-opening share.
 
+## Addendum, 8 Oct 21:56 UTC (GI IV): token-mean only (bt), rank 16, recipe-G seeds 1102 and 1103 (report-only)
+
+Same frozen lexicon (`bbbc71e9…`) and script, the four OLMo units added unpooled (copy `tmp/mechanism-recipes/`, analyze.py `a046d5c6…`, results `2e39e88b…`; every pre-existing leaf unchanged, 3,947 compared; an independent verifier passed 9 of 9 checks). Paired differences, fine-tuned minus untuned, sampled [95%]:
+
+| Unit | Refusal openings | Direct | Unsafe | Unsafe within direct |
+|---|---|---|---|---|
+| B, seed 1101 | −.507 | +.558 | +.435 | .676 |
+| **bt, seed 1101** | **−.497 [−.548, −.445]** | +.517 | +.437 | .700 |
+| G, seeds 1101 / 1102 / 1103 | −.363 / −.353 / −.340 | +.370 / +.378 / … | +.290 / +.310 / +.265 | .604 / .655 / .569 |
+| **G rank 16, seed 1101** | **−.202 [−.248, −.157]** | +.213 | +.202 | .613 |
+
+- **bt drops refusal openings like recipe B, not like recipe G** (bt − B = +.010 [−.018, +.038]; bt − G = −.133 [−.165, −.105]; on a 0 = B, 1 = G scale bt sits at 0.07 [−0.16, 0.24]; greedy 0.25 [0.08, 0.40], about the seed spread within B). So the second part of the 20:01 UTC prediction (bt's opening drop closer to G's) also failed. The schedule, not the loss weighting, keeps refusal openings.
+- The loss weighting changes answer length instead: bt's direct answers are long like G's (median 114 tokens; G 110; B 65).
+- The unsafe rate within direct openings is similar across B, bt and G (.57–.70), so every recipe acts mainly through how often the model opens with a refusal.
+- Rank 16 keeps the most refusal openings (−.20) and erodes least (+.20 unsafe), with more over-refusal (25/100).
+- One seed for bt and r16. Reading (I): recipe G's lower erosion is a dose effect of its schedule, expressed through refusal openings.
