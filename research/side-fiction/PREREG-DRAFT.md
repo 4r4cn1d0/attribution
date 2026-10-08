@@ -61,6 +61,10 @@ At matched format and length, does the topic of harmless training data change ho
 
 - The darkness lexicon: 1.772 against 0.018 hits per 100 tokens (`build-report-v2`).
 - Qwen3Guard and Granite labels on all 10,000 training responses, by category, and on the 4,800 Dolly responses for comparison. `[SCREEN]`
+- **Where it runs (the lead, 8 Oct about 22:00 UTC):** on a pod, because the Mac's Granite judges only a few answers a minute.
+  - Granite runs through a CUDA llama.cpp build of the same pinned GGUF. Its numbers differ slightly from the Mac's Metal build, so it is a **screen** (it decides which training rows are dropped). It is never compared with the Mac Granite measurements.
+  - Qwen3Guard runs through the engine's own GuardScorer.
+  - The lead scopes both after the HarmBench parity run.
 
 ## 6. Cost and owner
 
