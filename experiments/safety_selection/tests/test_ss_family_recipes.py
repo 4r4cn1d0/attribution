@@ -190,5 +190,21 @@ def test_bt_and_g_differ_from_their_b_sibling_only_in_the_listed_fields(probe, r
 def test_every_earlier_recipe_keeps_its_loss_and_schedule():
     for path in CONFIGS.glob("*.json"):
         data = json.loads(path.read_text())
-        if data.get("kind") == "safety-selection recipe" and "-bt-" not in path.name and "-g-" not in path.name:
+        if data.get("kind") == "safety-selection recipe" and not any(k in path.name for k in ("-bt-", "-g-", "-g5e5-")):
             assert "loss_weighting" not in data["train"] and data["train"]["lr_schedule"] == "constant", path.name
+
+
+# ----- rung 2 of the common-recipe ladder (ported from Specialized's D14-round workspace; GI IV, 8 Oct) -----
+
+@pytest.mark.parametrize("probe", ["olmo2-1b", "llama32-1b"])
+def test_rung_2_of_the_common_recipe_ladder_is_the_g_recipe_with_only_the_lr_changed(probe):
+    """FOCUS 17:36 UTC: the ladder is G at LR 1e-4, then 5e-5, then 2e-5, LR changes only."""
+    g = load_recipe(CONFIGS / f"study-kt-{probe}-r64-g-mb4-20261008.json")
+    r = load_recipe(CONFIGS / f"study-kt-{probe}-r64-g5e5-mb4-20261008.json")
+    assert (r["train"]["lr"], g["train"]["lr"]) == (5e-05, 0.0001) and r["purpose"].endswith(g["purpose"])
+    undo = json.loads(json.dumps(r))
+    undo["name"], undo["purpose"], undo["train"]["lr"] = g["name"], g["purpose"], g["train"]["lr"]
+    assert undo == g and training_identity(r) != training_identity(g)       # eval settings equal: the untuned unit is reused
+    data = load_data_config(CONFIGS / f"study-kt-data-dolly-{FAMILY[probe]}.json")
+    job = {"manifest_sha256": "0" * 64, "recipe_sha256": config_sha256(r), "code_sha256": None}
+    check_identities(job, {"data_config": data}, "0" * 64, r, code_identity())
