@@ -64,7 +64,7 @@ Inputs: `2026-10-08-white-paper-outline.md`, `2026-10-08-substack-outline.md` (t
 
 ### Step 3. Pre-register (this chat; $0; before any run)
 One record, committed on this branch, and the lead told:
-- **Arms and seeds:** F-dark and F-light, seeds 1101–1103, recipe B, OLMo-2-1B, the sealed untuned baseline reused.
+- **Arms and seeds:** F-dark and F-light, seeds 1101–1103, OLMo-2-1B, the main study's common recipe (recipe G unless the LR ladder moves; the user's 17:36 UTC decision; corrected from "recipe B"), the sealed untuned baseline reused.
 - **Predictions P1–P5** (design note §6).
 - **Judge rule:** a content claim needs Qwen3Guard E and HarmBench E_HB to agree in sign.
 - **Reading rule:**

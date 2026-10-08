@@ -134,7 +134,7 @@ Notes that must sit under Table 1:
 - Seed 1101 chose the setting and counts in the OLMo mean. The fresh-seed mean (1102, 1103) is +45.9 pp (AUD:11, :62).
 - The OLMo band is evaluation noise only. Between-seed variance rests on 2 df; the sample SD's 90% range is 0.22–1.73× the true SD (AUD:65).
 - U is a broad policy label. After fine-tuning, P(Unsafe | no refusal) is 0.91–0.94, so U mostly tracks lost refusal (AUD:61).
-- Under hard categories only, OLMo's E is about 28 pp. HarmBench gives E_HB +27.8 pp for seed 1101 only (partial run). HarmBench κ against Qwen3Guard is 0.65–0.72 (KT:234–239; AUD:52).
+- Under hard categories only, OLMo's E is about 28 pp (AUD:52). HarmBench (complete, 3,200 items; KT "COMPLETE result", 17:07 UTC) gives E_HB +27.8, +30.5, +32.8 pp, mean +30.4 pp (sampled), about two thirds of E. κ against Qwen3Guard is 0.65–0.71 on the fine-tuned runs. By the judge rule, "harm" is allowed for OLMo. (Updated 8 Oct; the first draft had the partial seed-1101 number only.)
 - Recipe B is non-standard: per-example mean loss, constant LR, no warmup. Recipe G is the standard-practice comparison.
 - Families differ in chat template, tokeniser (so token counts of the same rows differ), post-training pipeline and starting over-refusal (Qwen 1.5B 68%, OLMo 17%, Llama 11%, Qwen 7B 7%).
 - The OLMo and Qwen units ran on different engine identities (`55253874…` against `c52c0ebc…`); Llama and OLMo-G on `e49a978c…` (AUD:67; KT:245, :265).
