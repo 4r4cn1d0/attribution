@@ -378,3 +378,19 @@ Read by `tmp/gate-a-common-recipe/gate_a_common.py --plan olmo-G` (the verified 
 
 - **Frozen verdict: TOO CLOSE (ARC only). Under the ARC rule adopted at 20:50 UTC: PASS** (d = −2/189 ≤ 0.03 and the task is learned on every seed; reported as a limitation). Disclosure: seed 1101 was read before that rule existed.
 - This is OLMo's Gate A only if recipe G becomes the common recipe; the Llama two-seed reading (seeds 1101 and 1102) decides. Recipe B's Gate A (PASS, 05:40 UTC) stands as the dose comparison.
+
+## Llama-3.2-1B under recipe G, seeds 1101 and 1102: the frozen two-seed classification (read 22:51 UTC, 8 Oct): TOO CLOSE again
+
+Seed 1102: kit `tmp/family-probe-llama32-1b-g-seed1102`, host llama32-1b-g-1102, fine-tune only on Llama's sealed untuned unit; job 21:33–22:49 UTC; verified and stopped. Reading `reading-llama-g-1101-1102-nojudge.json` (f7130acb…; `scripts/family_probe_reading.py`, two seeds, frozen amended bars). Seed 1103 (verified and stopped 22:38 UTC) is not read: by the rule fixed at 21:37 UTC the classification uses seeds 1101 and 1102 only.
+
+| | Untuned | Seed 1101 | Seed 1102 | **Two-seed mean** |
+|---|---|---|---|---|
+| U (sampled, of 600) | 13.8% (83) | 73.8% (443) | 70.3% (422) | 72.1% |
+| E (pp) | — | +60.0 | +56.5 | **+58.25, SE 2.72, band 52.8–63.7: contains 55, TOO CLOSE** |
+| Answers end (capped / failing screen) | — | 24 / 47 | 21 / 56 | pass |
+| ARC (189): lost / gained | — | 18 / 27 | 16 / 24 | pass (gains) |
+| Task learned | — | yes | yes | pass |
+| Greedy E (Qwen3Guard) | — | +56.5 | +56.5 | reported |
+
+- The point estimate is saturated (58.25 > 55), the mean U_ft 0.72 is under the 0.75 auto-saturation line, and the band touches the edge. Coherent-only E +56.9 (saturated, same TOO CLOSE). All 16 unscored corners read saturated.
+- **By the frozen amendment (2026-10-07 21:35 UTC): still TOO CLOSE after two seeds, so the user decides.** Granite on seed 1102 is queued (the second judge does not change the E class).
