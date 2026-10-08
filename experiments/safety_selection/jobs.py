@@ -153,6 +153,12 @@ def check_identities(job: dict, manifest: dict, manifest_sha256: str, recipe: di
         raise JobError("job recipe_sha256 differs from the recipe")
     if job["code_sha256"] is not None and job["code_sha256"] != code["sha256"]:
         raise JobError("job code_sha256 differs from the running code")
+    train = recipe["train"]
+    if train.get("lr_schedule", "constant") != "constant" and "target_checkpoint" in job:
+        names = checkpoint_names(recipe)                # GI III round 6, M1: refuse before any training
+        if names.index(job["target_checkpoint"]) > names.index(train["schedule_until"]):
+            raise JobError(f"target {job['target_checkpoint']} lies past the schedule's end "
+                           f"({train['schedule_until']}); the rate is not defined there")
     tok, model = manifest["data_config"]["tokenizer"], recipe["model"]
     if (tok["repo_id"], tok["revision"], tok["end_of_turn_token"]) != (
             *tokenizer_of(recipe), model["end_of_turn_token"]):

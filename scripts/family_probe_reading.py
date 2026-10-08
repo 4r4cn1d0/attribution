@@ -19,11 +19,20 @@ root is made on squares).
     a0, target e1, with the same prepared manifest; one of the seed of the untuned unit resumes from it (any attempt
     number) or, in a fine-tune-only run, from nothing; a second --a0 (two-seed mode) is another seed's e1 unit; the
     --manifest file's SHA-256 is that manifest;
-  - **a reused baseline** (GI III round 5): when a fine-tuned unit's recipe or engine differs from the untuned unit's,
-    the two recipes' evaluation configs (``eval_config``) must be equal, and the engines equal or certified by the
-    pinned evaluation-equivalence file for exactly that pair (base engine of the untuned unit, engine of the fine-tuned
-    unit), whose changed-file list must equal the files whose hashes differ between the two units' identity.json
-    code_files; otherwise refused;
+  - **a reused baseline** (GI III rounds 5 and 6): a fine-tuned unit that does not resume from the --untuned init unit
+    (a fine-tune-only run, or a second seed) is always read as a reuse, recorded in identity.baseline_reuse, and
+    accepted only when (a) the two recipes' evaluation configs (``eval_config``, which keeps the two training settings
+    evaluation reads) are equal, (b) the two pods' environments match (``environment_of``: GPU model and capability,
+    CUDA runtime, cuDNN, every recorded package, Python, the numeric settings, and the SHA-256 of each run's
+    environment-linux.lock, the pip freeze of its installed requirements.lock; the drivers and platforms are recorded,
+    not compared; the first seed's fine-tune-only unit and its baseline must come from two pod trees, each with its own
+    lock; a second seed may share the baseline's tree),
+    and (c) the engines are equal or certified by the pinned evaluation-equivalence file for exactly that pair (base
+    engine of the untuned unit, engine of the fine-tuned unit), whose changed-file list must equal the files whose
+    hashes differ between the two units' identity.json code_files. A unit that resumes from the init unit is the same
+    run: its sealed dependencies.json must name that unit (its COMPLETE.json and job.json hashes; a unit of the same
+    name from another pod refuses), and its recipe and engine must equal the init unit's (the 42eb258 rule). In two-seed mode both fine-tuned units
+    share one recipe; otherwise refused;
   - the family comes from the verified manifest's tokenizer (OLMo-2 or Llama-3); --family, if given, must agree;
   - the evaluations used the same ARC questions, query bank, generation settings and harm prompts and samples;
   - a bars file of kind "family probe reading bars v2" whose SHA-256 is pinned (the earlier 19:14 UTC file is kept for
@@ -75,8 +84,8 @@ CONTROL_IDS = {     # special ids of each family that end or forge a turn (brief
     "llama3": {"<|begin_of_text|>": 128000, "<|start_header_id|>": 128006, "<|end_header_id|>": 128007}}
 ROLE_MARKERS = {"olmo2": ("<|user|>", "<|assistant|>", "<|system|>"), "llama3": ()}
 FAMILY_OF_TOKENIZER = (("allenai/OLMo-2-", "olmo2"), ("meta-llama/Llama-3", "llama3"))
-CERTIFICATE = ROOT / "experiments/safety_selection/configs/evaluation-equivalence-20261008.json"
-CERTIFICATE_SHA256 = "63700221de07eeb098f78e6fb34dddaf037751a6213c3e70e6e739aa10e67909"   # evaluation_path.py certificate
+CERTIFICATE = ROOT / "experiments/safety_selection/configs/evaluation-equivalence-round6-20261008.json"
+CERTIFICATE_SHA256 = "ebc6b05a9df3743fd0cc71b0d76c78194e6a2a1d26b7c16c775fc00398840334"   # evaluation_path.py certificate
 EVAL_EXCLUDED = ("kind", "name", "purpose", "train", "attribution")
 PASS, FAIL, TOO_CLOSE, MISSING = "pass", "fail", "too close", "missing"
 
@@ -142,11 +151,60 @@ def sealed(unit: pathlib.Path) -> None:
         raise SystemExit(f"{unit.name}: {len(bad)} sealed file(s) missing or changed")
 
 
+EVAL_TRAIN_KEYS = ("lm_head_chunk_tokens", "gradient_checkpointing")   # evaluation reads these two (round 6, M2)
+ENVIRONMENT_LOCK = "environment-linux.lock"
+
+
 def eval_config(recipe: dict) -> dict:
-    """A recipe's evaluation settings: all but its name, purpose, training and attribution, and model.lora."""
+    """A recipe's evaluation settings: all but its name, purpose, training and attribution, and model.lora; of the
+    train section, the two settings evaluation reads (the chunked head and gradient checkpointing)."""
     out = {k: v for k, v in recipe.items() if k not in EVAL_EXCLUDED}
     out["model"] = {k: v for k, v in recipe["model"].items() if k != "lora"}
+    out["train"] = {k: recipe["train"][k] for k in EVAL_TRAIN_KEYS if k in recipe["train"]}
     return out
+
+
+def environment_of(unit: pathlib.Path) -> tuple[dict, dict]:
+    """(what must match, what is only recorded) of the pod that ran UNIT: from its assets.json environment block and
+    the SHA-256 of its run's environment-linux.lock (round 6, S1). A missing record, a missing field or a non-CUDA
+    device refuses."""
+    assets, lock = unit / "assets.json", unit.parent.parent / ENVIRONMENT_LOCK
+    if not assets.is_file() or not lock.is_file():
+        raise SystemExit(f"{unit.name}: no assets.json or {ENVIRONMENT_LOCK}: the pod environment cannot be checked")
+    env = json.loads(assets.read_text()).get("environment") or {}
+    cuda = env.get("cuda") or {}
+    match = {"python": env.get("python"), "machine": env.get("machine"), "device": env.get("device"),
+             "packages": env.get("packages"), "deterministic_algorithms": env.get("deterministic_algorithms"),
+             "safety_selection_numeric": env.get("safety_selection_numeric"),
+             "gpu": cuda.get("name"), "capability": cuda.get("capability"), "cuda_runtime": cuda.get("torch_cuda_runtime"),
+             "cudnn": cuda.get("cudnn"), "cuda_settings": cuda.get("settings"), "cuda_env": cuda.get("env"),
+             "lock_sha256": sha256(lock)}
+    missing = sorted(k for k, v in match.items() if v is None)
+    if missing or match["device"] != "cuda":     # a CUDA pod records every one (a missing record would match another)
+        raise SystemExit(f"{unit.name}: the environment record lacks {missing or ['a CUDA device']}: the pod "
+                         "environment cannot be checked")
+    return match, {"driver": cuda.get("driver"), "platform": env.get("platform")}
+
+
+def environments_match(untuned: pathlib.Path, tuned: pathlib.Path, one_pod_allowed: bool) -> dict:
+    """The two pods' environments are equal (environment_of). Each lock is the run root's, outside the sealed unit:
+    when both units sit under one run root the freeze is compared with itself, so this is refused unless the two
+    units may come from one pod (``one_pod_allowed``: a second seed, which calibrate writes beside the first, as a
+    direct init -> e1 job or resuming from its own init); the first seed's fine-tune-only unit always comes from a
+    later pod than its baseline, so a shared lock means it was copied into another pod's tree. A second seed copied
+    in from another pod is not detected (the lock is outside the sealed units; a stated limit)."""
+    a, ra = environment_of(untuned)
+    b, rb = environment_of(tuned)
+    shared = (untuned.parent.parent / ENVIRONMENT_LOCK).resolve() == (tuned.parent.parent / ENVIRONMENT_LOCK).resolve()
+    if shared and not one_pod_allowed:
+        raise SystemExit("the two units share one run root, so their pip freezes cannot be compared: give each pod's "
+                         "own tree (with its environment-linux.lock)")
+    differ = sorted(k for k in a if a[k] != b[k])
+    if differ:
+        raise SystemExit(f"the two pods' environments differ in {differ}: the baseline cannot be reused")
+    return {"matched": sorted(a), "lock_sha256": a["lock_sha256"], "lock_shared": shared,
+            "drivers": {untuned.name: ra["driver"], tuned.name: rb["driver"]},
+            "platforms": {untuned.name: ra["platform"], tuned.name: rb["platform"]}}
 
 
 def certified(base: dict, new: dict, path: pathlib.Path | None = None, pinned: str | None = None) -> dict:
@@ -165,6 +223,8 @@ def certified(base: dict, new: dict, path: pathlib.Path | None = None, pinned: s
     differ = sorted(f for f in set(a) | set(b) if a.get(f) != b.get(f))
     if differ != sorted(entry["changed_files"]):
         raise SystemExit("the units' code files differ from the certified engine pair's changed files")
+    if any(not re.fullmatch(r"safety_selection/\w+\.py", f) for f in differ):       # the inventory's files only
+        raise SystemExit("the certified pair changes a file outside the evaluation-path inventory: no reuse")
     return {"base_code_sha256": entry["base_code_sha256"], "code_sha256": entry["code_sha256"],
             "changed_files": entry["changed_files"], "certificate_sha256": pinned}
 
@@ -190,7 +250,7 @@ def check_units(untuned: pathlib.Path, a0s, manifest: pathlib.Path) -> dict:
     seed = ju.get("seed")
     if not (ju.get("arm") == "a0" and ju.get("target_checkpoint") == "init" and re.fullmatch(rf"{seed}-a0-init-a\d+", u.name)):
         raise SystemExit("--untuned is not an a0 init unit (SEED-a0-init-aN)")
-    seeds, reuse = [], {}
+    seeds, recipes, reuse = [], [], {}
     for k, f in enumerate(fts):
         jf = json.loads((f / "job.json").read_text())
         jdf = json.loads((f / "identity.json").read_text())
@@ -199,23 +259,38 @@ def check_units(untuned: pathlib.Path, a0s, manifest: pathlib.Path) -> dict:
                 and (k > 0 or s == seed)):
             raise SystemExit("--a0 is not an a0 e1 unit (the first of the same seed as the untuned unit; SEED-a0-e1-aN)")
         resumed = jf.get("resume_from")
-        if resumed and (s != seed or pathlib.Path(resumed).name != u.name):
-            raise SystemExit("the e1 unit resumes from another unit than this init unit: E must use the probe's own "
-                             "untuned unit")
+        from_init = bool(resumed) and s == seed and pathlib.Path(resumed).name == u.name
+        own_init = bool(resumed) and k > 0 and re.fullmatch(rf"{s}-a0-init-a\d+", pathlib.Path(resumed).name)
+        if from_init:                                  # the name matches: the sealed resume receipt must name this unit
+            listed = "dependencies.json" in (json.loads((f / "COMPLETE.json").read_text()).get("files") or {})
+            receipts = [d for d in (json.loads((f / "dependencies.json").read_text()).get("dependencies") or []
+                                    if listed else []) if d.get("role") == "resume_from"]
+            if [(d.get("complete_sha256"), d.get("job_sha256")) for d in receipts] != [
+                    (sha256(u / "COMPLETE.json"), sha256(u / "job.json"))]:
+                raise SystemExit("the e1 unit's resume receipt does not name this init unit (another unit of the same "
+                                 "name, or no sealed dependencies.json): E must use the probe's own untuned unit")
+        if resumed and not (from_init or own_init):
+            raise SystemExit("the e1 unit resumes from another unit than this init unit (or, for a second seed, its own "
+                             "init unit): E must use the probe's own untuned unit")
         if ju.get("manifest_sha256") != jf.get("manifest_sha256"):
             raise SystemExit("the units differ in manifest_sha256: E must use the probe's own untuned unit")
         same_recipe = ju.get("recipe_sha256") == jf.get("recipe_sha256")
         same_code = iu.get("code_sha256") == jdf.get("code_sha256")
-        if resumed and not (same_recipe and same_code):
-            raise SystemExit("the e1 unit resumes from this init unit but differs in recipe or engine")
-        if not (same_recipe and same_code):            # a reused baseline (module doc)
+        if from_init:                                  # the same run (the 42eb258 rule)
+            if not (same_recipe and same_code):
+                raise SystemExit("the e1 unit resumes from this init unit but differs in recipe or engine")
+        else:                                          # a reused baseline (module doc): always recorded and checked
             if eval_config(iu["recipe"]) != eval_config(jdf["recipe"]):
                 raise SystemExit("the units' evaluation configs differ: the baseline cannot be reused")
             reuse[f.name] = {"recipe_differs": not same_recipe, "engine_differs": not same_code,
+                             "environment": environments_match(u, f, one_pod_allowed=k > 0),
                              **({"certificate": certified(iu, jdf)} if not same_code else {})}
         seeds.append(s)
+        recipes.append(jf.get("recipe_sha256"))
     if len(set(seeds)) != len(seeds):
         raise SystemExit("two-seed mode needs two different seeds")
+    if len(set(recipes)) != 1:
+        raise SystemExit("two-seed mode needs one recipe for both fine-tuned units")
     if sha256(manifest) != ju["manifest_sha256"]:
         raise SystemExit("--manifest is not the prepared manifest the units used (SHA-256 differs from job.json)")
     return {"seed": seed, "seeds": seeds, "untuned_unit": u.name, "e1_unit": fts[0].name, "e1_units": [f.name for f in fts],

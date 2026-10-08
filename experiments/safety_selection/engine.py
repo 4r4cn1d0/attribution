@@ -273,7 +273,7 @@ def learning_rate(peak: float, schedule: str, warmup: int, total: int, step: int
         raise ValueError(f"no rate for step {step} of a {schedule!r} schedule over {total} steps (warmup {warmup})")
     k = step - 1
     if k < warmup:
-        return peak * k / max(1, warmup)
+        return peak * (k / max(1, warmup))              # HF's order: lambda first, then the peak times it
     if schedule == "warmup_constant":
         return peak
     progress = (k - warmup) / max(1, total - warmup)

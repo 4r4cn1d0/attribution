@@ -181,15 +181,22 @@ def test_an_end_to_end_token_mean_run_trains_and_attributes_with_its_weighting(t
         assert s["loss"] == pytest.approx(math.fsum(l * tokens[r] for l, r in zip(s["example_losses"], s["rows"]))
                                           / s["target_tokens"])
     to_e3(e)
-    rates = []
-    real = en.learning_rate
-    monkeypatch.setattr(en, "learning_rate", lambda *a: rates.append(a) or real(*a))
+    used = []                                                 # the lr the Adam proxy actually receives (round 6, S4)
+    real_scores = runner.checkpoint_scores
+    monkeypatch.setattr(runner, "checkpoint_scores", lambda *a, **k: used.append(k["lr"]) or real_scores(*a, **k))
     result = runner.attributes(e.tr.attr_job(e), prepared_dir=e.prepared, out_dir=e.root / "attr", session=e.session)
-    peak = e.recipe["train"]["lr"]                            # the Adam proxy takes each checkpoint step's own rate
-    assert rates == [(peak, "warmup_cosine", 4, 45, step) for step in (4, 15, 45)]
+    peak = e.recipe["train"]["lr"]
+    rate = lambda step: en.learning_rate(peak, "warmup_cosine", 4, 45, step)  # noqa: E731
+    expected = {c: math.fsum(rate(s) for s in range(a + 1, b + 1)) / (b - a)   # each interval's mean (round 6, S3)
+                for c, (a, b) in {"q": (0, 4), "e1": (4, 15), "e3": (15, 45)}.items()}
+    assert used == pytest.approx([expected[c] for c in ("q", "e1", "e3")], rel=1e-15)
+    assert expected["e3"] > 10 * rate(45)                    # the end-point rate would nearly drop the e3 term
     folder = Path(result["run_dir"])
     groups = json.loads((folder / "groups.json").read_text())
     assert groups["row_weighting"] == ROW_WEIGHTING
+    for written in (groups["learning_rates"], result["learning_rates"]):
+        assert {c: (w["lr"], w["first_step"], w["last_step"]) for c, w in written.items()} == {
+            "q": (expected["q"], 1, 4), "e1": (expected["e1"], 5, 15), "e3": (expected["e3"], 16, 45)}
     first_epoch = [s for s in steps if s["epoch"] == 0]
     expected = {r: tokens[r] * len(s["rows"]) / s["target_tokens"] for s in first_epoch for r in s["rows"]}
     for line in (folder / "rows.jsonl").read_text().splitlines():
@@ -220,16 +227,24 @@ def test_a_scheduled_run_logs_each_rate_resumes_exactly_and_keeps_the_peak_in_it
     assert [s["lr"] for s in cont] == [s["lr"] for s in steps if s["step"] in {c["step"] for c in cont}]
 
 
-def test_training_past_the_schedules_last_step_refuses(token_env):
+def test_a_job_past_the_schedules_end_refuses_before_any_training(token_env, monkeypatch):
     import test_ss_runner as tr
-    from experiments.safety_selection.runner import RunError
+    from experiments.safety_selection.jobs import JobError
     e = token_env
     recipe = fx.recipe(**{**G_RECIPE, "train.schedule_until": "q"})
     session = runner.Session(recipe, fx.fixture_loaders())
     env = SimpleNamespace(**{**vars(e), "recipe": recipe})
-    with pytest.raises(RunError, match="past the schedule's last step 4"):
-        runner.run_one(tr.run_job(env, target_checkpoint="e1", evaluate_bank=None), prepared_dir=e.prepared,
-                       out_dir=e.root / "past", session=session)
+    trained = []
+    real = en.train_step
+    monkeypatch.setattr(en, "train_step", lambda *a, **k: trained.append(1) or real(*a, **k))
+    for target in ("e1", "e3"):                              # round 6, M1: refused before any step (job validation)
+        with pytest.raises(JobError, match=f"target {target} lies past the schedule's end"):
+            runner.run_one(tr.run_job(env, target_checkpoint=target, evaluate_bank=None), prepared_dir=e.prepared,
+                           out_dir=e.root / f"past-{target}", session=session)
+    assert trained == []
+    runner.run_one(tr.run_job(env, target_checkpoint="q", evaluate_bank=None), prepared_dir=e.prepared,
+                   out_dir=e.root / "at-q", session=session)
+    assert len(trained) == 4                                  # the schedule's own checkpoint still trains
 
 
 def test_the_scheduled_rate_is_the_one_applied(token_env):

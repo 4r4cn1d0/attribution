@@ -113,9 +113,26 @@ RECIPE = {"kind": "safety-selection recipe", "name": "fixture-b", "purpose": "fi
 CODE = {"code_sha256": "c" * 64, "code_files": {"engine.py": "1" * 64, "runner.py": "2" * 64, "scoring.py": "3" * 64}}
 
 
-def identity(unit: Path, recipe: dict | None = None, **code) -> None:
-    """The unit's identity.json (engine identity, per-file code hashes, the recipe)."""
+ENVIRONMENT = {"python": "3.12.3", "machine": "x86_64", "device": "cuda", "platform": "Linux-fixture",
+               "packages": {"torch": "2.8.0+cu128", "transformers": "4.56.2", "peft": "0.17.1"},
+               "deterministic_algorithms": True,
+               "safety_selection_numeric": {"cuda_matmul_allow_bf16_reduced_precision_reduction": False},
+               "cuda": {"name": "NVIDIA A100-SXM4-80GB", "capability": "8.0", "torch_cuda_runtime": "12.8",
+                        "cudnn": 91002, "driver": "NVRM fixture driver 570.211.01",
+                        "settings": {"cudnn_deterministic": True}, "env": {"CUBLAS_WORKSPACE_CONFIG": ":4096:8"}}}
+
+
+def identity(unit: Path, recipe: dict | None = None, environment: dict | None = None, **code) -> None:
+    """The unit's identity.json (engine identity, per-file code hashes, the recipe) and assets.json (its pod's
+    environment)."""
     (unit / "identity.json").write_text(json.dumps({**CODE, **code, "recipe": recipe or RECIPE}))
+    (unit / "assets.json").write_text(json.dumps({"policy": {}, "environment": environment or ENVIRONMENT}))
+
+
+def lock(run_root: Path, text: str = "torch==2.8.0\ntransformers==4.56.2\n") -> None:
+    """The run's environment-linux.lock (the pip freeze the pod's bootstrap writes)."""
+    run_root.mkdir(parents=True, exist_ok=True)
+    (run_root / "environment-linux.lock").write_text(text)
 
 
 def pair(base: Path, u0: int, u1: int, family: str | None = "olmo2", affected=(), e1_name: str = "1101-a0-e1-a1",
@@ -135,9 +152,30 @@ def pair(base: Path, u0: int, u1: int, family: str | None = "olmo2", affected=()
                                          **(e1_job or {})}, **kw)
     identity(init.parent.parent, **(init_identity or {}))
     identity(e1.parent.parent, **(e1_identity or {}))
-    for unit in (init.parent.parent, e1.parent.parent):
-        seal(unit)
+    if not (base.parent / "environment-linux.lock").exists():
+        lock(base.parent)
+    seal(init.parent.parent)
+    resumed = json.loads((e1.parent.parent / "job.json").read_text())["resume_from"]
+    if resumed is None:                           # a fine-tune-only unit comes from a later pod: its own pod tree
+        other = base.parent.parent / f"{base.parent.name}-pod-e1" / base.name
+        other.mkdir(parents=True, exist_ok=True)
+        inside = e1.relative_to(e1.parent.parent)
+        e1.parent.parent.rename(other / e1_name)
+        e1 = other / e1_name / inside
+        if not (other.parent / "environment-linux.lock").exists():
+            lock(other.parent)
+    elif Path(resumed).name == init.parent.parent.name:
+        receipt(e1.parent.parent, init.parent.parent)
+    seal(e1.parent.parent)
     return init, e1, manifest
+
+
+def receipt(unit: Path, source: Path) -> None:
+    """The unit's dependencies.json with the engine's resume receipt of SOURCE (its sealed COMPLETE.json and job.json)."""
+    digest = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()  # noqa: E731
+    (unit / "dependencies.json").write_text(json.dumps({"dependencies": [
+        {"role": "resume_from", "path": str(source), "resolved": str(source.resolve()),
+         "complete_sha256": digest(source / "COMPLETE.json"), "job_sha256": digest(source / "job.json")}]}))
 
 
 def cli(fr, capsys, init: Path, e1: Path, manifest: Path, *extra: str) -> dict:
@@ -454,7 +492,8 @@ def test_the_edge_band_reads_too_close_near_20_and_passes_in_the_middle(fr, tmp_
 
 def test_two_seed_mode_uses_the_mean_and_the_halved_se(fr, tmp_path, capsys):
     init, e1, manifest = pair(tmp_path / "p", 30, 180)
-    second = folder(tmp_path / "p", "1102-a0-e1-a1", 210, job={"kind": "run-one", "arm": "a0", "seed": 1102,
+    lock(tmp_path / "pod2")                                         # a fine-tune-only second seed: another pod's tree
+    second = folder(tmp_path / "pod2" / "p", "1102-a0-e1-a1", 210, job={"kind": "run-one", "arm": "a0", "seed": 1102,
                                                               "recipe_sha256": "r" * 64, "target_checkpoint": "e1",
                                                               "manifest_sha256": hashlib.sha256(manifest.read_bytes()).hexdigest(),
                                                               "resume_from": None})
@@ -678,7 +717,7 @@ def test_the_edge_band_multiple_is_squared(fr, tmp_path):
 
 CONFIGS = ROOT / "experiments/safety_selection/configs"
 BASE_IDENTITY = json.loads((CONFIGS / "engine-identity-04eb83a3.json").read_text())
-CERT_PAIR = json.loads((CONFIGS / "evaluation-equivalence-20261008.json").read_text())["pairs"][0]
+CERT_PAIR = json.loads((CONFIGS / "evaluation-equivalence-round6-20261008.json").read_text())["pairs"][0]
 NEW_FILES = {**BASE_IDENTITY["files"], **{f: "f" * 64 for f in CERT_PAIR["changed_files"]}}
 BT_RECIPE = {**RECIPE, "name": "fixture-bt", "train": {"loss": "token-mean", "loss_weighting": "token_mean"},
              "model": {**RECIPE["model"], "lora": {"r": 16}}}
@@ -708,7 +747,9 @@ def test_a_certified_engine_pair_with_equal_evaluation_config_reuses_the_baselin
     identity(same_engine[1].parent.parent, BT_RECIPE)
     seal(same_engine[1].parent.parent)
     out = cli(fr, capsys, *same_engine)
-    assert out["identity"]["baseline_reuse"]["1101-a0-e1-a1"] == {"recipe_differs": True, "engine_differs": False}
+    same = out["identity"]["baseline_reuse"]["1101-a0-e1-a1"]
+    assert (same["recipe_differs"], same["engine_differs"], "certificate" in same) == (True, False, False)
+    assert same["environment"]["lock_sha256"] and "gpu" in same["environment"]["matched"]
     plain = cli(fr, capsys, *pair(tmp_path / "plain", 30, 180))
     assert plain["identity"]["baseline_reuse"] is None
 
@@ -721,11 +762,22 @@ def test_a_baseline_is_not_reused_across_uncertified_engines_or_other_evaluation
 
     refused("other-engine", "not certified", e1_code={"code_sha256": "9" * 64})
     refused("other-files", "changed files", e1_code={"code_files": {**NEW_FILES, "safety_selection/scoring.py": "e" * 64}})
+    outside_pair = tmp_path / "outside-certificate.json"                      # a hand-made pair over minimal_safety
+    outside_pair.write_text(json.dumps({"pairs": [{**CERT_PAIR, "changed_files": sorted(
+        CERT_PAIR["changed_files"] + ["minimal_safety/model.py"])}]}))
+    monkeypatch.setattr(fr, "CERTIFICATE", outside_pair)
+    monkeypatch.setattr(fr, "CERTIFICATE_SHA256", hashlib.sha256(outside_pair.read_bytes()).hexdigest())
+    refused("outside-inventory", "outside the evaluation-path inventory",
+            e1_code={"code_files": {**NEW_FILES, "minimal_safety/model.py": "e" * 64}})
+    monkeypatch.undo()
     refused("batch", "evaluation configs differ",
             e1_recipe={**BT_RECIPE, "generation": {"batch_size": 16, "max_new_tokens": 2048}})
     refused("attention", "evaluation configs differ",
             e1_recipe={**BT_RECIPE, "model": {**BT_RECIPE["model"], "attn_implementation": "eager"}})
     refused("same-run", "differs in recipe or engine", resume=True)
+    for key, value in (("lm_head_chunk_tokens", 4096), ("gradient_checkpointing", True)):     # round 6, M2
+        refused(f"train-{key}", "evaluation configs differ",
+                e1_recipe={**BT_RECIPE, "train": {**BT_RECIPE["train"], key: value}})
     init, e1, manifest = reuse_pair(tmp_path / "reverse")                  # the certificate is directional
     for unit, code in ((init.parent.parent, (CERT_PAIR["code_sha256"], NEW_FILES)),
                        (e1.parent.parent, (BASE_IDENTITY["sha256"], BASE_IDENTITY["files"]))):
@@ -755,3 +807,165 @@ def test_the_kit_and_the_reading_define_the_evaluation_config_alike(fr):
     g = json.loads((CONFIGS / "study-kt-olmo2-1b-r16-g-mb4-20261008.json").read_text())
     b = json.loads((CONFIGS / "study-kt-olmo2-1b-r64-b-mb4-20261008.json").read_text())
     assert fr.eval_config(g) == fr.eval_config(b)        # recipe G may reuse the recipe-B baseline (rank and loss differ)
+    for define in (fr.eval_config, namespace["eval_config"]):        # round 6, M2: the two train settings evaluation reads
+        for key, value in (("lm_head_chunk_tokens", g["train"]["lm_head_chunk_tokens"] * 2),
+                           ("gradient_checkpointing", not g["train"].get("gradient_checkpointing", False))):
+            assert define({**g, "train": {**g["train"], key: value}}) != define(g), key
+        for key, value in (("lr", 1.0), ("micro_batch", 1), ("loss_weighting", "token_mean"), ("epochs", 9)):
+            assert define({**g, "train": {**g["train"], key: value}}) == define(g), key
+        assert set(define(g)["train"]) == {"lm_head_chunk_tokens", "gradient_checkpointing"} & set(g["train"])
+
+
+def test_the_current_engine_reuses_a_55253874_baseline_through_the_pinned_certificate(fr, tmp_path, capsys):
+    """The round-6 pair as it will occur: a baseline evaluated at 8c026ee (engine 55253874) and a fine-tune of this
+    engine, with the real per-file hashes of both."""
+    from experiments.safety_selection.common import code_identity
+    old = json.loads((CONFIGS / "engine-identity-55253874.json").read_text())
+    now = code_identity()
+    init, e1, manifest = reuse_pair(tmp_path / "round6")
+    for unit, recipe, code in ((init.parent.parent, RECIPE, old), (e1.parent.parent, BT_RECIPE, now)):
+        identity(unit, recipe, code_sha256=code["sha256"], code_files=code["files"])
+        seal(unit)
+    reuse = cli(fr, capsys, init, e1, manifest)["identity"]["baseline_reuse"]["1101-a0-e1-a1"]
+    assert (reuse["certificate"]["base_code_sha256"], reuse["certificate"]["code_sha256"]) == (old["sha256"], now["sha256"])
+    assert reuse["certificate"]["changed_files"] == sorted(f for f in set(old["files"]) | set(now["files"])
+                                                           if old["files"].get(f) != now["files"].get(f))
+
+
+# ----- round 6: the reuse branch is the only way a fine-tune-only unit reads (S6), and its pods must match (S1) --------
+
+
+def fine_tune_only(base: Path, **kw):
+    """The init unit of one run and an e1 unit of a fine-tune-only run (resume_from null), same recipe and engine."""
+    return pair(base, 30, 180, e1_job={"resume_from": None}, **kw)
+
+
+def test_a_fine_tune_only_unit_is_always_read_as_a_checked_reuse(fr, tmp_path, capsys):
+    out = cli(fr, capsys, *fine_tune_only(tmp_path / "ok"))
+    reuse = out["identity"]["baseline_reuse"]["1101-a0-e1-a1"]
+    assert (reuse["recipe_differs"], reuse["engine_differs"]) == (False, False)   # recorded although nothing differs
+    assert reuse["environment"]["drivers"]["1101-a0-init-a1"] == ENVIRONMENT["cuda"]["driver"]
+    assert reuse["environment"]["platforms"]["1101-a0-init-a1"] == ENVIRONMENT["platform"]
+    assert reuse["environment"]["lock_shared"] is False
+    init, e1, manifest = fine_tune_only(tmp_path / "other-pod")
+    identity(e1.parent.parent, environment={**ENVIRONMENT, "cuda": {**ENVIRONMENT["cuda"], "name": "NVIDIA H100 80GB"}})
+    seal(e1.parent.parent)
+    with pytest.raises(SystemExit, match=r"environments differ in \['gpu'\]"):
+        fr.check_units(init, e1, manifest)
+    plain = cli(fr, capsys, *pair(tmp_path / "same-run", 30, 180))                 # resumes from init: the same run
+    assert plain["identity"]["baseline_reuse"] is None
+
+
+def test_a_fine_tune_only_unit_copied_into_the_baselines_tree_refuses(fr, tmp_path):
+    """Round 6 review: both locks would be one file, so the pip freezes would be compared with themselves."""
+    init, e1, manifest = fine_tune_only(tmp_path / "a" / "run")
+    unit = e1.parent.parent
+    inside = e1.relative_to(unit)
+    unit.rename(init.parent.parent.parent / unit.name)
+    with pytest.raises(SystemExit, match="share one run root"):
+        fr.check_units(init, init.parent.parent.parent / unit.name / inside, manifest)
+
+
+def test_a_same_named_init_unit_from_another_pod_is_not_the_same_run(fr, tmp_path, capsys):
+    """Round 6 review: same-run detection follows the e1 unit's sealed resume receipt, not the folder name."""
+    init, e1, manifest = pair(tmp_path / "a" / "run", 30, 180)
+    other_init, _, _ = pair(tmp_path / "b" / "run", 31, 180)               # pod B's own init unit of the same name
+    with pytest.raises(SystemExit, match="resume receipt does not name this init unit"):
+        fr.check_units(other_init, e1, manifest)
+    (e1.parent.parent / "dependencies.json").unlink()
+    seal(e1.parent.parent)
+    with pytest.raises(SystemExit, match="resume receipt does not name this init unit"):
+        fr.check_units(init, e1, manifest)
+    receipt(e1.parent.parent, init.parent.parent)                              # present but not sealed
+    with pytest.raises(SystemExit, match="resume receipt does not name this init unit"):
+        fr.check_units(init, e1, manifest)
+    seal(e1.parent.parent)
+    assert cli(fr, capsys, init, e1, manifest)["identity"]["baseline_reuse"] is None
+
+
+@pytest.mark.parametrize("field, change, differs", [
+    ("gpu", {"cuda": {**ENVIRONMENT["cuda"], "name": "NVIDIA A100-SXM4-40GB"}}, "gpu"),
+    ("capability", {"cuda": {**ENVIRONMENT["cuda"], "capability": "9.0"}}, "capability"),
+    ("cuda", {"cuda": {**ENVIRONMENT["cuda"], "torch_cuda_runtime": "12.6"}}, "cuda_runtime"),
+    ("cudnn", {"cuda": {**ENVIRONMENT["cuda"], "cudnn": 90100}}, "cudnn"),
+    ("settings", {"cuda": {**ENVIRONMENT["cuda"], "settings": {"cudnn_deterministic": False}}}, "cuda_settings"),
+    ("torch", {"packages": {**ENVIRONMENT["packages"], "torch": "2.8.1+cu128"}}, "packages"),
+    ("transformers", {"packages": {**ENVIRONMENT["packages"], "transformers": "4.57.0"}}, "packages"),
+    ("python", {"python": "3.12.4"}, "python"),
+    ("numeric", {"safety_selection_numeric": {"cuda_matmul_allow_bf16_reduced_precision_reduction": True}},
+     "safety_selection_numeric")])
+def test_a_reuse_refuses_any_environment_difference(fr, tmp_path, field, change, differs):
+    init, e1, manifest = fine_tune_only(tmp_path / field)
+    identity(e1.parent.parent, environment={**ENVIRONMENT, **change})
+    seal(e1.parent.parent)
+    with pytest.raises(SystemExit, match=rf"environments differ in \['{differs}'\]"):
+        fr.check_units(init, e1, manifest)
+
+
+@pytest.mark.parametrize("case, environment, lacks", [
+    ("no-block", None, "python"),
+    ("no-gpu-name", {**ENVIRONMENT, "cuda": {k: v for k, v in ENVIRONMENT["cuda"].items() if k != "name"}}, "gpu"),
+    ("no-cuda", {k: v for k, v in ENVIRONMENT.items() if k != "cuda"}, "capability"),
+    ("cpu", {**ENVIRONMENT, "device": "cpu"}, "a CUDA device")])
+def test_a_reuse_refuses_an_environment_record_that_lacks_a_field_even_on_both_pods(fr, tmp_path, case, environment, lacks):
+    """Equal but missing records would match (None == None): both units lack the same field here, and it refuses."""
+    init, e1, manifest = fine_tune_only(tmp_path / case)
+    for unit in (init.parent.parent, e1.parent.parent):
+        identity(unit, environment=environment)
+        if environment is None:
+            (unit / "assets.json").write_text(json.dumps({"policy": {}}))
+        seal(unit)
+    with pytest.raises(SystemExit, match=rf"lacks \[[^]]*'?{lacks}"):
+        fr.check_units(init, e1, manifest)
+
+
+def test_a_reuse_compares_the_pip_freeze_records_and_only_records_the_driver(fr, tmp_path, capsys):
+    root = tmp_path / "a"
+    init, e1, manifest = fine_tune_only(root / "run")
+    # move the e1 unit into another run whose pip freeze differs
+    other = tmp_path / "b" / "run"
+    other.mkdir(parents=True)
+    moved = other / e1.parent.parent.name
+    e1.parent.parent.rename(moved)
+    lock(other.parent, "torch==2.8.0\ntransformers==4.57.0\n")
+    with pytest.raises(SystemExit, match=r"environments differ in \['lock_sha256'\]"):
+        fr.check_units(init, moved / "eval" / "e1", manifest)
+    (other.parent / "environment-linux.lock").unlink()
+    with pytest.raises(SystemExit, match="environment-linux.lock"):
+        fr.check_units(init, moved / "eval" / "e1", manifest)
+    lock(other.parent)                                                     # the same freeze: accepted
+    identity(moved, environment={**ENVIRONMENT, "cuda": {**ENVIRONMENT["cuda"], "driver": "NVRM other 575.0"}})
+    seal(moved)
+    out = fr.check_units(init, moved / "eval" / "e1", manifest)
+    assert out["baseline_reuse"]["1101-a0-e1-a1"]["environment"]["drivers"]["1101-a0-e1-a1"] == "NVRM other 575.0"
+    (moved / "assets.json").unlink()
+    seal(moved)
+    with pytest.raises(SystemExit, match="no assets.json"):
+        fr.check_units(init, moved / "eval" / "e1", manifest)
+
+
+def test_a_second_seed_may_resume_from_its_own_init_and_must_share_the_recipe(fr, tmp_path, capsys):
+    init, e1, manifest = pair(tmp_path / "p", 30, 180)
+    common = {"kind": "run-one", "arm": "a0", "seed": 1102, "recipe_sha256": "r" * 64, "target_checkpoint": "e1",
+              "manifest_sha256": hashlib.sha256(manifest.read_bytes()).hexdigest()}
+
+    lock(tmp_path / "pod2")
+
+    def second(name: str, root: Path = tmp_path / "p", **job):
+        unit = folder(root, name, 210, job={**common, **job})
+        identity(unit.parent.parent)
+        seal(unit.parent.parent)
+        return unit
+
+    own = second("1102-a0-e1-a1", resume_from=str(tmp_path / "p" / "1102-a0-init-a1"))
+    out = cli(fr, capsys, init, e1, manifest, "--a0", str(own))
+    assert set(out["identity"]["baseline_reuse"]) == {"1102-a0-e1-a1"}             # the second seed is a checked reuse
+    foreign = second("1102-a0-e1-a2", resume_from=str(tmp_path / "p" / "1103-a0-init-a1"))
+    with pytest.raises(SystemExit, match="its own init unit"):
+        fr.check_units(init, [e1, foreign], manifest)
+    other = second("1102-a0-e1-a3", tmp_path / "pod2" / "p", resume_from=None, recipe_sha256="o" * 64)
+    with pytest.raises(SystemExit, match="one recipe for both"):
+        fr.check_units(init, [e1, other], manifest)
+    direct = second("1102-a0-e1-a4", resume_from=None)      # calibrate's second seed on one pod: init -> e1 directly
+    assert fr.check_units(init, [e1, direct], manifest)["baseline_reuse"]["1102-a0-e1-a4"]["environment"]["lock_shared"]
+    assert out["identity"]["baseline_reuse"]["1102-a0-e1-a1"]["environment"]["lock_shared"] is True   # one pod: allowed

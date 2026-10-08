@@ -1501,9 +1501,18 @@ def _baseline_unit(root: Path, recipe_path: str, *, seed: int = 1101, manifest: 
         recipe["model"]["repo_id"] = repo
     (unit / "job.json").write_text(json.dumps({"arm": "a0", "target_checkpoint": "init", "seed": seed,
                                                "manifest_sha256": manifest}))
-    (unit / "identity.json").write_text(json.dumps({"code_sha256": "0" * 64, "manifest_sha256": manifest, "recipe": recipe}))
-    (unit / "COMPLETE.json").write_text(json.dumps({"complete": True, "files": {}}))
+    (unit / "identity.json").write_text(json.dumps({"code_sha256": "0" * 64, "code_files": {"engine.py": "0" * 64},
+                                                    "manifest_sha256": manifest, "recipe": recipe}))
+    (unit / "eval").mkdir()
+    (unit / "eval" / "summary.json").write_text("{}")
+    files = {rel: hashlib.sha256((unit / rel).read_bytes()).hexdigest()
+             for rel in ("job.json", "identity.json", "eval/summary.json")}
+    files["states/init/adapter.safetensors"] = "a" * 64                   # a light pull leaves the states on the pod
+    (unit / "COMPLETE.json").write_text(json.dumps({"complete": True, "files": files}))
     return unit
+
+
+KIT_ENGINE = {"sha256": "0" * 64, "files": {"engine.py": "0" * 64}}       # the baseline's own engine
 
 
 def test_the_plan_tool_reuses_a_sealed_baseline_and_keeps_only_matching_candidates(kit, monkeypatch, tmp_path):
@@ -1514,7 +1523,7 @@ def test_the_plan_tool_reuses_a_sealed_baseline_and_keeps_only_matching_candidat
     monkeypatch.setattr(tool, "ROOT", ROOT)
     base_recipe = probes.PROBES["olmo2-1b"]["recipes"][0]                   # tonight's probe: r64 b mb4 (sdpa)
     unit = _baseline_unit(tmp_path / "a", base_recipe)
-    record = tool.baseline_record(unit, "olmo2-1b", pc.prepared())
+    record = tool.baseline_record(unit, "olmo2-1b", pc.prepared(), KIT_ENGINE)
     plan = tool.initial_plan({"engine_sha256": "e" * 64, "git_commit": "c" * 40}, "olmo2-1b", pc.prepared(), "r16", "g", record)
     host = plan["hosts"]["olmo2-1b-1101"]
     assert host["base_eval"] is False and plan["baseline_reuse"]["unit"] == "1101-a0-init-a1"
@@ -1527,12 +1536,12 @@ def test_the_plan_tool_reuses_a_sealed_baseline_and_keeps_only_matching_candidat
                                   ("policy", {"repo": "allenai/OLMo-2-1124-7B-Instruct"}, "another policy")):
         bad = _baseline_unit(tmp_path / case, base_recipe, **kwargs)
         with pytest.raises(SystemExit, match=message):
-            tool.baseline_record(bad, "olmo2-1b", pc.prepared())
+            tool.baseline_record(bad, "olmo2-1b", pc.prepared(), KIT_ENGINE)
     (unit / "identity.json").unlink()
     with pytest.raises(SystemExit, match="no identity.json"):
-        tool.baseline_record(unit, "olmo2-1b", pc.prepared())
+        tool.baseline_record(unit, "olmo2-1b", pc.prepared(), KIT_ENGINE)
     eager = _baseline_unit(tmp_path / "eager", probes.PROBES["olmo2-1b"]["recipes"][2])
-    eager_record = tool.baseline_record(eager, "olmo2-1b", pc.prepared())
+    eager_record = tool.baseline_record(eager, "olmo2-1b", pc.prepared(), KIT_ENGINE)
     eager_record["eval_config"]["generation"]["batch_size"] = 16
     with pytest.raises(SystemExit, match="no candidate"):
         tool.initial_plan({"engine_sha256": "e" * 64, "git_commit": "c" * 40}, "olmo2-1b", pc.prepared(), "r16", "g", eager_record)
@@ -1548,3 +1557,54 @@ def test_a_fine_tune_only_job_runs_calibrate_without_the_baseline(kit):
     assert stopped is None and name == "job-process-1101" and args[0] == "calibrate" and "--base-eval" not in args
     _parser().parse_args(args)
     assert runner.engine_steps(plan, "h", False) == ([], "init_not_proven_equal_to_untuned")    # the gate stays
+
+
+def test_the_plan_tool_checks_a_reuse_against_the_packed_kits_engine(kit, monkeypatch, tmp_path, capsys):
+    """Round 6 review: the baseline is checked against the engine in setup-receipt.json, which the pods run."""
+    pc, probes = set_probe(monkeypatch, "olmo2-1b")
+    tool = kit("plan_tool.py")
+    monkeypatch.setattr(tool, "ROOT", ROOT)
+    unit = _baseline_unit(tmp_path / "a", probes.PROBES["olmo2-1b"]["recipes"][0])
+    receipt = tool.HERE / "setup" / "setup-receipt.json"
+    receipt.write_text(json.dumps({"engine_sha256": "1" * 64, "git_commit": "c" * 40}))
+    monkeypatch.setattr(tool, "engine_identity", lambda: KIT_ENGINE)            # the working tree moved on
+    with pytest.raises(SystemExit, match="differs from the packed kit"):
+        tool.main(["init", "--reuse-baseline", str(unit)])
+    assert not tool.PLAN.exists()
+    receipt.write_text(json.dumps({"engine_sha256": KIT_ENGINE["sha256"], "git_commit": "c" * 40}))
+    seen = []
+    record = tool.baseline_record
+    monkeypatch.setattr(tool, "baseline_record", lambda *a: seen.append(a[3]) or record(*a))
+    assert tool.main(["init", "--reuse-baseline", str(unit)]) == 0
+    assert seen == [KIT_ENGINE] and json.loads(tool.PLAN.read_text())["baseline_reuse"]["unit"] == unit.name
+
+
+def test_the_plan_tool_verifies_the_baselines_seal_and_engine_before_any_pod(kit, monkeypatch, tmp_path):
+    pc, probes = set_probe(monkeypatch, "olmo2-1b")
+    tool = kit("plan_tool.py")
+    monkeypatch.setattr(tool, "ROOT", ROOT)
+    base_recipe = probes.PROBES["olmo2-1b"]["recipes"][0]
+    unit = _baseline_unit(tmp_path / "changed", base_recipe)
+    (unit / "eval" / "summary.json").write_text('{"changed": true}')          # a sealed file altered after the seal
+    with pytest.raises(SystemExit, match="missing or changed"):
+        tool.baseline_record(unit, "olmo2-1b", pc.prepared(), KIT_ENGINE)
+    unsealed = _baseline_unit(tmp_path / "unsealed", base_recipe)
+    record = json.loads((unsealed / "COMPLETE.json").read_text())
+    (unsealed / "COMPLETE.json").write_text(json.dumps({**record, "complete": False}))
+    with pytest.raises(SystemExit, match="malformed"):
+        tool.baseline_record(unsealed, "olmo2-1b", pc.prepared(), KIT_ENGINE)
+    other = _baseline_unit(tmp_path / "other-engine", base_recipe)
+    with pytest.raises(SystemExit, match="not certified"):                    # another engine, no certificate pair
+        tool.baseline_record(other, "olmo2-1b", pc.prepared(), {"sha256": "9" * 64, "files": {"engine.py": "9" * 64}})
+    pair = json.loads((ROOT / "experiments/safety_selection/configs/evaluation-equivalence-round6-20261008.json").read_text())["pairs"][0]
+    certified_unit = _baseline_unit(tmp_path / "certified", base_recipe)
+    base_files = json.loads((ROOT / "experiments/safety_selection/configs/engine-identity-04eb83a3.json").read_text())["files"]
+    identity = json.loads((certified_unit / "identity.json").read_text())
+    (certified_unit / "identity.json").write_text(json.dumps({**identity, "code_sha256": pair["base_code_sha256"],
+                                                              "code_files": base_files}))
+    files = json.loads((certified_unit / "COMPLETE.json").read_text())
+    files["files"]["identity.json"] = hashlib.sha256((certified_unit / "identity.json").read_bytes()).hexdigest()
+    (certified_unit / "COMPLETE.json").write_text(json.dumps(files))
+    new_files = {**base_files, **{f: "f" * 64 for f in pair["changed_files"]}}
+    out = tool.baseline_record(certified_unit, "olmo2-1b", pc.prepared(), {"sha256": pair["code_sha256"], "files": new_files})
+    assert out["certificate"]["changed_files"] == pair["changed_files"] and out["engine_sha256"] == pair["code_sha256"]

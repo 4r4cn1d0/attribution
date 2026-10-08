@@ -234,3 +234,43 @@ def test_the_script_parses_and_leaves_the_earlier_preflights_alone():
     assert done.returncode == 0 and "--recipe" in done.stdout
     text = SCRIPT.read_text()
     assert "WRITTEN, NOT RUN" in text and "full_length_check" in text and "generation_memory_ok" in text
+
+
+def test_the_resume_check_runs_a_scheduled_recipe_at_its_scheduled_rates(pf):
+    """Round 6, M7: recipe G's resume check uses the runner's rates (steps 2 and 3 of its 38-step e1 horizon, both
+    above 0, so B moves before the save and A after it)."""
+    from experiments.safety_selection import engine as en
+    from experiments.safety_selection.config import load_recipe
+    configs = ROOT / "experiments/safety_selection/configs"
+    corpus = [f"row-{k:05d}" for k in range(4800)]                       # Dolly's 4,800 rows, 128 per step
+    g = load_recipe(configs / "study-kt-olmo2-1b-r16-g-mb4-20261008.json")["train"]
+    rate = pf.scheduled_rate(g, corpus, 1101)
+    assert [rate(k) for k in (1, 2, 5, 38)] == [en.learning_rate(1e-4, "warmup_cosine", 4, 38, k) for k in (1, 2, 5, 38)]
+    assert rate(1) == 0.0 and rate(2) == 2.5e-05
+    b = load_recipe(configs / "study-kt-olmo2-1b-r16-b-mb4-20261008.json")["train"]
+    assert pf.scheduled_rate(b, corpus, 1101) is None
+    text = SCRIPT.read_text()
+    assert rate(2) > 0 and rate(3) > rate(2)                           # both resume-check updates move the adapter
+    assert "step(examples[:batch], optimizer, 2)" in text and "step(examples[batch:], optimizer, 3)" in text
+    assert "step(examples[batch:], restored, 3)" in text
+    assert "return scheduled_update(rate, train[\"lr\"], opt, global_step, update)" in text
+    assert '"applied_rates": applied' in text
+
+
+def test_the_resume_checks_update_runs_at_the_scheduled_rate_and_the_peak_is_restored(pf):
+    """Round 6, M7: during the update every group's lr is rate(global_step); afterwards, even on an error, the peak."""
+    import types
+    optimizer = types.SimpleNamespace(param_groups=[{"lr": 1e-4}, {"lr": 1e-4}])
+    seen = []
+    rate = lambda step: 1e-4 * (step - 1) / 4                              # noqa: E731
+    out = pf.scheduled_update(rate, 1e-4, optimizer, 2, lambda: seen.append([g["lr"] for g in optimizer.param_groups]) or "done")
+    assert out == "done" and seen == [[2.5e-05, 2.5e-05]] and [g["lr"] for g in optimizer.param_groups] == [1e-4, 1e-4]
+    def failing():
+        seen.append([g["lr"] for g in optimizer.param_groups])
+        raise RuntimeError("update failed")
+
+    with pytest.raises(RuntimeError):
+        pf.scheduled_update(rate, 1e-4, optimizer, 1, failing)
+    assert seen[-1] == [0.0, 0.0] and [g["lr"] for g in optimizer.param_groups] == [1e-4, 1e-4]
+    pf.scheduled_update(None, 1e-4, optimizer, 1, lambda: seen.append([g["lr"] for g in optimizer.param_groups]))
+    assert seen[-1] == [1e-4, 1e-4]

@@ -1,5 +1,6 @@
 """The opt-in learning-rate schedules (GI III round 5 addendum): engine.learning_rate equals HF transformers'
-get_cosine_schedule_with_warmup and get_constant_schedule_with_warmup step for step; the values at step 1, the end
+get_cosine_schedule_with_warmup and get_constant_schedule_with_warmup step for step, bit for bit, on a grid of
+peaks, warmups (3 and 7 among them) and run lengths; the values at step 1, the end
 of the warmup, the middle and the last step of a 38-step run; "constant" is the peak; and the recipe fields."""
 
 from __future__ import annotations
@@ -35,9 +36,13 @@ def hf_rates(kind: str, peak: float = PEAK, warmup: int = WARMUP, total: int = T
 
 
 @pytest.mark.parametrize("kind", ["warmup_cosine", "warmup_constant"])
-def test_the_schedule_is_hf_s_step_for_step(kind):
-    ours = [en.learning_rate(PEAK, kind, WARMUP, TOTAL, step) for step in range(1, TOTAL + 1)]
-    assert ours == pytest.approx(hf_rates(kind), rel=1e-12, abs=1e-18)
+@pytest.mark.parametrize("peak", [PEAK, 2e-4, 3e-5, 7e-5, 1.3e-4])
+@pytest.mark.parametrize("warmup,total", [(1, 8), (2, 9), (3, 13), (WARMUP, TOTAL), (5, 11), (7, 45), (7, 8), (10, 38)])
+def test_the_schedule_is_hf_s_step_for_step_bit_for_bit(kind, peak, warmup, total):
+    """Exact float equality (GI III round 6, M6): peak * (k / warmup) in HF's order, so warmups that do not divide
+    evenly (3 and 7) round as HF rounds them."""
+    ours = [en.learning_rate(peak, kind, warmup, total, step) for step in range(1, total + 1)]
+    assert ours == hf_rates(kind, peak, warmup, total)
 
 
 def test_the_values_at_step_1_the_warmup_end_the_middle_and_the_last_step(capsys):

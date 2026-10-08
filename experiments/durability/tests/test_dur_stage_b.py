@@ -410,8 +410,11 @@ def test_logs_and_acknowledgements_name_no_operation_arm_or_choice(tmp_path, syn
     logged = (site.volume / "durability-admin" / "journal.jsonl").read_text() + "".join(
         p.read_text() for p in (site.offsite / "destination" / "study-1" / "acks").glob("*.json"))
     forbidden = [*world.groups["heldout"], "final-", "screen-", "full_from", "attribution-", "ranking", "plan-S",
-                 "choice", str(site.root)]
-    assert [word for word in forbidden if word in logged] == []
+                 "choice"]
+    # the words are checked outside the test's own temporary folder, whose absolute path depends on where the checkout
+    # and the pytest temp live (e.g. ".../Coding-attribution/..."); the study root itself must never be logged
+    outside_tmp = logged.replace(str(tmp_path), "<tmp>")
+    assert [word for word in forbidden if word in outside_tmp] == [] and str(site.root) not in logged
     assert '"unit-acknowledged"' in logged and set(result["choices"].values()) <= {"a0", *world.groups["heldout"]}
     with pytest.raises(DurabilityError, match="must not log recorded paths"):
         StudyBackup(dur.make_vault(tmp_path / "other"), site.root)

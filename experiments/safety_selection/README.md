@@ -566,8 +566,8 @@ earlier recipe keeps its bytes, config hash and training identity; both golden r
   each step's rate is logged in steps.jsonl; training past `schedule_until` refuses; the saved AdamW state keeps the
   peak. "constant" is unchanged.
 - **Attribution:** under the token mean the Adam proxy scales each row by w_i = n_i·E_step/N_step from its first-epoch
-  step (`attribution.step_weights`; GradSim is scale-free); under a warmup schedule it uses the scheduled rate of the
-  checkpoint's step instead of the saved peak.
+  step (`attribution.step_weights`; GradSim is scale-free); under a warmup schedule it uses a scheduled rate instead
+  of the saved peak (round 6 replaced the rate of the checkpoint's own step by an interval mean; below).
 - **Recipes:** `study-kt-{olmo2-1b,llama32-1b}-{r64,r16}-{bt,g}-{mb4,mb2,mb2-eager}-20261008.json`: "bt" = recipe B with
   the token mean; "g" = also the warmup cosine (4 warmup steps, to e1, peak 1e-4). The kit selects them with
   `probe_constants.RECIPE` ("b" by default), 1B probes only.
@@ -576,6 +576,68 @@ earlier recipe keeps its bytes, config hash and training identity; both golden r
   evaluation configs are equal and the engines are equal or certified by
   `configs/evaluation-equivalence-20261008.json` (made by `scripts/evaluation_path.py`: every top-level symbol of the
   engine that differs from 04eb83a3 is training-only; the base symbols and identity are pinned beside it).
+
+## Round 6: review fixes for round 5 (8 October 2026)
+
+Built for GI III's round-6 brief. Engine identity 55253874 → `e49a978c5fa27c3b…` (attribution.py, config.py,
+engine.py, jobs.py, runner.py). Every recipe keeps its bytes; the default attribution path is pinned by a golden record
+written from the untouched 55253874 engine (`tests/golden/attribution-default-8c026ee.json`, S5), and is unchanged.
+- **Learning rate (M6):** the warmup is `peak * (k / warmup)`, HF's order of operations, so the rates equal HF's bit for
+  bit (tested on a grid including warmups 3 and 7). Before, `peak * k / warmup` differed in the last bit.
+- **Past the schedule's end (M1):** a scheduled run-one job whose target lies past `train.schedule_until` refuses in
+  `jobs.check_identities`, before any model load or training step. Recipe bytes are unchanged.
+- **Attribution under a schedule (S3, S4):** a checkpoint's TracIn term stands for the updates since the previous
+  attribution checkpoint, so its rate is the MEAN scheduled rate over steps s_prev+1..s_c (s_prev = 0 for the first
+  checkpoint; `attribution.interval_rates`). groups.json and the job result record, per checkpoint, the rate and its
+  first and last step (`learning_rates`). The constant schedule is unchanged (the saved peak; no `learning_rates`).
+- **Removal-arm horizon (OPEN DESIGN POINT for Gate B, unchanged):** the schedule's horizon is each arm's OWN plan
+  (HF's convention). A removal or edit arm has fewer steps per epoch, so it warms up over the same steps but decays
+  over fewer, and its rate at a given step differs from a0's. GPT must confirm this before recipe G is used with
+  removal or edit arms (see `config.py`).
+- **Baseline reuse, reading (S1, S6, M2):** a same-run e1 must resume from the `--untuned` init unit, as at 42eb258. A
+  fine-tune-only e1 (resume_from null), or a second seed resuming from its own init, is read only through the checked
+  reuse branch, which is always recorded. That branch requires equal evaluation configs (now including
+  `train.lm_head_chunk_tokens` and `train.gradient_checkpointing`), equal or certified engines, and equal pod
+  environments: python, machine, device, package versions, deterministic algorithms, numeric settings, GPU name and
+  capability, CUDA runtime, cuDNN, CUDA settings and environment, and the SHA-256 of the run's `environment-linux.lock`.
+  The driver and platform are recorded only. A record that lacks a field, or a non-CUDA device, refuses. The lock is
+  the run root's, outside the sealed unit: the first seed's fine-tune-only unit and its baseline must come from two
+  pod trees (one shared lock means it was copied into another pod's tree, and refuses); a second seed may share the
+  baseline's tree, as calibrate writes it (recorded as `lock_shared`; a second seed copied in from another pod is not
+  detected, a stated limit). Same-run detection follows the e1 unit's sealed `dependencies.json` resume receipt
+  (the init unit's COMPLETE.json and job.json hashes), not the folder name.
+- **Baseline reuse, kit (M5):** `plan_tool.py init --reuse-baseline` checks the unit's COMPLETE.json seal (each file's
+  hash) and that the baseline's engine equals the kit's or is certified against it, before any pod. The kit's engine
+  is the one in `setup-receipt.json`; a repository engine that differs from it refuses.
+- **Evaluation-path certificate (M3, M4):** `scripts/evaluation_path.py` hashes each function with its decorators,
+  refuses two top-level symbols that bind one name, and lists training-only symbols by name, each with its reason (no
+  wildcard). An import is accepted only from a side-effect-free engine module and only when each binding (module,
+  name, bound name) is unchanged or binds a name the base file did not bind; a rebinding (`from .a import f` →
+  `from .b import f`), or an import that binds a builtin's name, refuses. A changed training-only function that may
+  write process-global state refuses, because training runs in the evaluation's process (`global_writes`: a store into
+  a non-local object by any target, a global statement, a known torch/CUDA/os.environ/sys/random/numpy/transformers
+  setter, a mutating method of a global object, setattr and the like, or a call of an engine function that may,
+  closed transitively over the engine's files; read-only calls, `preserved_rng` and `load_state(...,
+  restore_rng_state=False)` are not writes, each for a stated reason; names resolve lexically, scope by scope; calls
+  through items or calls, `logging.getLogger(x).setLevel(...)`, and `getattr(module, name)(...)` count). So does a
+  changed training-only assignment that makes a call, and an assignment expression (`x := ...`) that rebinds a module
+  name at import refuses as a duplicate binding. Not detected (stated limits): writes through a passed object or a
+  local alias, setters outside the listed prefixes, random numbers drawn. This is a syntactic screen, not a proof:
+  three adversarial review rounds each found new forms. The decisive check would be at run time (below, open points).
+  A changed code-identity file outside the inventory (the reused minimal_safety modules) is never certified,
+  and the reading refuses such a pair. `configs/evaluation-equivalence-round6-20261008.json` certifies 04eb83a3 → 55253874,
+  55253874 → e49a978c and 04eb83a3 → e49a978c, from the inventories `configs/evaluation-path-symbols-v2-*.json`
+  and identities `configs/engine-identity-*.json`. The reading pins its SHA-256. The round-5 certificate stays as
+  history; it no longer matches the stricter inventory format.
+- **Preflight (M7):** `scripts/cuda_preflight_family.py` runs its resume check at the recipe's scheduled rates
+  (`scheduled_update`, as the runner: during the update only, the peak restored) and writes the applied rates to
+  verification.json (`resume.applied_rates`). It uses global steps 2 and 3: under a warmup schedule step 1 runs at
+  rate 0, which would leave LoRA B at zero and never move A, so the resume check would not test A's restoration.
+- **Open points for GPT:** (1) the removal-arm horizon (above). (2) The training-only screen is syntactic: a run-time
+  guard (the engine comparing the process's numeric and RNG-seeding settings before each evaluation with the session's
+  recorded ones) would close what it cannot see; it changes the engine identity, so it is a later round. (3) The pip
+  freeze lies outside the sealed units; recording its SHA-256 in each unit's assets.json would let the reading compare
+  units without trusting the run-root layout (also an engine change).
 
 ## Not done here
 

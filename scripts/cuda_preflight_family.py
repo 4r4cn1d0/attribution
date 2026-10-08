@@ -66,7 +66,9 @@ from cuda_preflight_killtest import (ENGINEERING_PROMPTS, compare_untuned, compa
 from experiments.safety_selection import engine as en  # noqa: E402
 from experiments.safety_selection import runner  # noqa: E402
 from experiments.safety_selection.common import code_identity, ids_sha256, sha256_bytes, sha256_file, write_json  # noqa: E402
-from experiments.safety_selection.config import config_sha256, load_recipe, tokenizer_of, training_identity  # noqa: E402
+from experiments.safety_selection.config import (checkpoint_table, config_sha256, load_recipe,  # noqa: E402
+                                                 tokenizer_of, training_identity)
+from experiments.safety_selection.stream import make_plan  # noqa: E402
 from experiments.safety_selection.ledger import RunLedger, create_run_dir, write_complete  # noqa: E402
 from experiments.safety_selection.loaders import load_tokenizer, real_loaders  # noqa: E402
 from experiments.safety_selection.prepare import load_prepared  # noqa: E402
@@ -189,6 +191,30 @@ def stop_verdict(report: dict, failed: str) -> dict:
             "init_equals_untuned": (report.get("untuned_comparison") or {}).get("init_equals_untuned"),
             "use_this_recipe": False, "stopped_after": failed,
             "note": f"{failed} false: the candidate ends here; the wrapper skips the later candidates it rules out"}
+
+
+def scheduled_rate(train: dict, corpus, seed: int):
+    """For a warmup-schedule recipe, the runner's rate of each global step (its plan's horizon at schedule_until);
+    None for a constant rate (round 6, M7: the resume check runs the scheduled path on the GPU before any job)."""
+    if train["lr_schedule"] == "constant":
+        return None
+    plan = make_plan(corpus, [], seed, train["micro_batch"], train["grad_accum"])
+    horizon = plan.checkpoint(dict(checkpoint_table({"train": train}))[train["schedule_until"]])["step"]
+    return lambda step: en.learning_rate(train["lr"], train["lr_schedule"], train["warmup_steps"], horizon, step)
+
+
+def scheduled_update(rate, peak: float, optimizer, global_step: int, update):
+    """``update()`` with every group's lr at ``rate(global_step)`` (a warmup schedule; ``rate`` None keeps the peak),
+    the peak restored afterwards even on an error, as the runner does: the saved state keeps the peak (round 6, M7)."""
+    if rate is not None:
+        for group in optimizer.param_groups:
+            group["lr"] = rate(global_step)
+    try:
+        return update()
+    finally:
+        if rate is not None:
+            for group in optimizer.param_groups:
+                group["lr"] = peak
 
 
 def batch_proof_prompts(items: list[dict], prompt_ids, n: int) -> list[list[int]]:
@@ -330,18 +356,27 @@ def main():
             torch.cuda.empty_cache()
         optimizer = en.make_optimizer(policy.named, train)
 
-        def step(rows_, opt):
-            return en.train_step(policy.model, policy.named, opt, rows_, train["micro_batch"], train["max_grad_norm"],
-                                 codec.pad_id, "cuda", train["lm_head_chunk_tokens"],
-                                 train.get("loss_weighting", en.EXAMPLE_MEAN))   # the recipe's loss (round 5)
+        rate = scheduled_rate(train, prepared.corpus, SEED)
+        applied = []                                   # the rate each update ran at (verification.json evidence)
+
+        def step(rows_, opt, global_step):
+            """One engineering step at the recipe's loss and, for a warmup schedule, the rate of ``global_step``."""
+            def update():
+                applied.append(sorted({g["lr"] for g in opt.param_groups}))
+                return en.train_step(policy.model, policy.named, opt, rows_, train["micro_batch"], train["max_grad_norm"],
+                                     codec.pad_id, "cuda", train["lm_head_chunk_tokens"],
+                                     train.get("loss_weighting", en.EXAMPLE_MEAN))     # the recipe's loss
+            return scheduled_update(rate, train["lr"], opt, global_step, update)
 
         torch.cuda.reset_peak_memory_stats()
         with ledger.stage("resume_check", engineering_steps=3) as info:
             t0 = time.monotonic()
-            first = step(examples[:batch], optimizer)
-            en.save_state(out / "after-first-step", policy.named, optimizer, "cuda", {"engineering": True, "step": 1})
+            # global steps 2 and 3: a warmup schedule runs step 1 at rate 0, which would leave LoRA B at zero and so
+            # never move A; at 2 and 3 B moves before the save and A after it, as at the constant peak (round 6 review)
+            first = step(examples[:batch], optimizer, 2)
+            en.save_state(out / "after-first-step", policy.named, optimizer, "cuda", {"engineering": True, "step": 2})
             saved_rng = en.rng_digest("cuda")
-            second = step(examples[batch:], optimizer)
+            second = step(examples[batch:], optimizer, 3)
             direct = {"adapter": en.lora_fingerprint(policy.named),
                       "optimizer": en.optimizer_fingerprint(optimizer, policy.named), "rng": en.rng_digest("cuda")}
             del optimizer
@@ -354,12 +389,13 @@ def main():
             en.load_state(out / "after-first-step", policy.named, restored, "cuda")
             assert en.rng_digest("cuda") == saved_rng, "the saved RNG state was not restored after the perturbation"
             report["rng_restoration_challenged"] = True
-            resumed = step(examples[batch:], restored)
+            resumed = step(examples[batch:], restored, 3)
             again = {"adapter": en.lora_fingerprint(policy.named),
                      "optimizer": en.optimizer_fingerprint(restored, policy.named), "rng": en.rng_digest("cuda")}
             report["resume"] = {"direct": direct, "resumed": again, "loss_first": first["loss"],
                                 "loss_direct": second["loss"], "loss_resumed": resumed["loss"],
-                                "exact": direct == again and second == resumed, "seconds": time.monotonic() - t0}
+                                "exact": direct == again and second == resumed, "seconds": time.monotonic() - t0,
+                                "applied_rates": applied, "scheduled": rate is not None}
             info.update(exact=report["resume"]["exact"])
         report["training_peak_allocated_bytes"] = torch.cuda.max_memory_allocated()
         weights_after = en.effective_embedding_weights(policy.model)

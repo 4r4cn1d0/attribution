@@ -199,3 +199,80 @@ Commands: `PYTHONDONTWRITEBYTECODE=1 <venv>/python -B -m pytest -q -rs -p no:cac
 - To fix first: the 6 should-fix items above (applied-rate test; `assets.json` check; default-path reading pair rule; Adam-proxy rate rule; rate-used test and output; default attribution pin). Any engine edit changes the identity, so the evaluation certificate must then be regenerated and re-pinned (`family_probe_reading.py:79`).
 - Decisions for GPT: `schedule_until` versus e3 checkpoints (a config refusal changes the 24 recipes' bytes); the per-arm cosine horizon; the Adam-proxy rate rule; the epoch weights for Gate B.
 - Reuse tonight: the G pod must report `engine_sha256` = `55253874…` exactly, and the two units' `assets.json` must be diffed by hand.
+
+## Round 6 (8 Oct): review fixes S1–S6 and M1–M8
+
+Date: 8 October 2026, 09:50–09:56 UTC (15:20–15:26 IST). Reviewer: an Opus 5.5 integration subagent of the lead. No pod, RunPod, Hugging Face, GitHub or held-out data was used. Nothing was staged, committed or pushed by the reviewer.
+
+### Result
+
+- **Integrated and green.** The main checkout holds the round-6 build. Identity `e49a978c5fa27c3ba4bb1570ac8b24501e09bf8db5c35e31ffba90bf775cdc06` (was `55253874…`). Engine 756 passed, 3 skipped (CUDA). Stage B 172 passed. Durability 260 passed. All exit 0.
+- Waiting for the lead's commit: 17 changed files, 8 new files and this review file. Nothing else in the main checkout is changed by this integration.
+- The build is integrated byte for byte as reviewed. **None of the findings below is fixed yet.** One is should-fix (lens 2: the kit does not check the pod environment before spend).
+
+### Snapshot, preflight and copy
+
+- Snapshot: `cp -a` of `tmp/claude-workspaces/review-fixes-round6-20261008/workspace` at 09:50 UTC. The workspace `manifest.json` equals `git archive 8c026ee` (all 2,263 blobs). Against it: 17 changed, 8 new, 0 deleted. No cache folder, `.pyc` or `.DS_Store`. All 25 SHA-256 values match the prefixes in `round6-report.md`. The certificate (`ebc6b05a…0334`) and `family_probe_reading.py` (`88483401…a5ad5a`) match in full.
+- Count correction: lens 1 wrote "18 modified, 7 added". The correct split is 17 changed and 8 new: none of the 8 new paths exists at `8c026ee` or `074d19f` (`git cat-file -e`).
+- Preflight: HEAD `074d19f`, a descendant of `8c026ee`. Since `8c026ee`, the commits touch only `research/` and `.ai/handoffs/2026-10-06-general-implementation.md`. `git diff` and `git log 8c026ee..HEAD` on the 25 paths are empty. Before the copy, the 17 changed files equalled the manifest and `8c026ee`, and none of the 8 new paths existed. The tree was clean except one untracked file that is not part of this round: `research/experiments/2026-10-08-gate-b-olmo-preregistration-DRAFT.md`. It was not touched and is not in the add list.
+- Copy: `cp` of the 25 files from the snapshot. 25 of 25 hashes OK in the main checkout, again after all suites. File modes 644. No new cache folder (84 before, 84 after; all old). The workspace still equals the snapshot.
+
+### Code identity and suites (main checkout)
+
+Commands: `PYTHONDONTWRITEBYTECODE=1 <venv>/python -B -m pytest -q -rs -p no:cacheprovider --basetemp=<scratch>/integrate-round6/bt-<suite>`, from the repo root. The logs record the commands (scratch `pre-gate-b/integrate-round6/suite-*.log`).
+
+| Suite | Paths | Result |
+|---|---|---|
+| Engine | `experiments/safety_selection/tests experiments/minimal_safety/tests` | **756 passed, 3 skipped**, exit 0 |
+| Stage B | `experiments/safety_decision_policy/tests` | **172 passed**, exit 0 |
+| Durability | `experiments/durability/tests` | **260 passed**, exit 0 |
+
+- Skips: 3 CUDA tests only. The 2 real-Qwen ARC tests run and pass here. 756 corrects the builder's 754 (taken before the last tests were added) and equals lens 1's corrected count.
+- Durability ran with `--basetemp` under a scratch path that contains `attribution-`: 260 passed. M8 closes the round-5 path item.
+- Code identity in the main checkout: `e49a978c…cdc06`. Changed identity files: `attribution.py`, `config.py`, `engine.py`, `jobs.py`, `runner.py`. The certificate pin at `family_probe_reading.py:88` is `ebc6b05a…`.
+
+### Review lenses (3 of 3: pass with minor findings, no blocker)
+
+**1. Scope, identity and suites: pass-with-minor.**
+- Minor: `scripts/evaluation_path.py:125` (also :138, :171, :179, :214, :349) uses `str | None` without `from __future__ import annotations`, so the tool no longer imports under the system python3 (3.9.6), which its docstring names. Fix: add the import or name the venv python. Outside the identity.
+- Minor: `jobs.py:157-161` (M1) calls `names.index(target)` before `run_one` checks for an unknown checkpoint (`runner.py:304`). On a warmup recipe an unknown target gives a bare `ValueError`, not `JobError`. It fails closed. Engine edit: later round.
+- Minor: test gap in the S1 difference cases (`test_ss_family_reading.py:886-897`): `machine`, `deterministic_algorithms` and `cuda_env` have no case; the reviewer's mutants that ignore each one survive. Test-only fix.
+- Minor: the builder's engine count (754 + 3) predates the last tests and the logs lack the commands. Final: 756 + 3 CUDA (confirmed above).
+- Minor: S1 (`family_probe_reading.py:167-185`) reads only `assets.json['environment']`; the policy block is not compared and the report does not say so. The driver is recorded, not compared. GPT decides.
+- Minor: the round-5 decision `schedule_until` (e1) versus the e3 attribution checkpoints of the 12 G recipes is not carried into the report's Unresolved list.
+- Minor: work beyond the literal S/M list (the `global_writes` screen, the lock and pod-tree rules, the plan_tool check against `setup-receipt.json`, a third certificate pair). All tested and covered by mutants, but the brief text is not recorded. GI III to confirm these and S3 option (a).
+- Checked: 25 paths; identity `e49a978c`; 75 configs keep their bytes, config hash and training identity under both engines; S5 golden regenerated from `8c026ee`; inventories and certificate regenerate byte-identical; 74 of 74 builder mutants killed on the final snapshot by the reviewer's own runner; M8 path independence.
+
+**2. Reading and baseline reuse: pass-with-minor.**
+- Should-fix: the kit never checks the S1 environment before money is spent. `plan_tool.baseline_record` (`plan_tool.py:94-119`) does not call `environment_of`, and no step compares the new pod with the baseline before calibrate. Fix: store the match record and lock SHA-256 in `plan.json`; compare after PREFLIGHT-DONE; stop the pod on a mismatch.
+- Minor: the policy block is not compared (as lens 1). Fix: compare it without `trainable_parameters` (rank-dependent), or document why `eval_config` is enough.
+- Minor: the same-run branch (`family_probe_reading.py:279-281`) compares no environments; an init unit copied to another pod is accepted. Fix: call `environments_match(..., one_pod_allowed=True)` there too.
+- Minor: the compared lock is a full pip freeze that includes unpinned `setuptools`; a newer setuptools on a later pod would refuse every reuse. Fix: pin it, or leave pip/setuptools/wheel out of the compared freeze.
+- Minor: `engine.py:__all__` is in `TRAINING_ONLY` and the certificate, but no pair changes it. Drop it or say it is unused.
+- Minor: `tmp/family-probe-olmo2-1b/gate_a_olmo.py:75` pins the reading at `f69d853e`; after round 6 lands it refuses to re-run. Re-pinned in scratch: PASS, identical aggregate. Keep historical or re-pin with a note.
+- Minor (old, not round 6): in two-seed mode the top-level `E_pp` is the first seed's E (`family_probe_reading.py:571-577`); the gate uses the mean. Rename or label it.
+- Checked: the round-6 reading accepts tonight's OLMo Gate A units in every mode with identical numbers and verdicts; S1 perturbations refuse as designed; driver-only differences gave byte-identical CUDA preflight samples on 3 drivers; all 3 certificate pairs re-verified; a Gate B reuse simulation is accepted through `55253874→e49a978c`.
+
+**3. Training and attribution: pass-with-minor.**
+- Minor: `calibrate` (`runner.py:1199-1226`) does not check its whole chain; with a G recipe, plain calibrate trains q and e1 before it refuses at e3. The family-probe runner passes `--checkpoints e1` (safe); the kill-test runner calls plain calibrate. Fix in the next engine round; until then run G only with `--checkpoints` up to `schedule_until`.
+- Minor: the 12 G configs have `schedule_until` e1 but attribution checkpoints `[q, e1, e3]`, so attribution can never run under G. Decide (a) a config refusal, (b) `['q','e1']`, or (c) G is probe-only, before G is used for Gate B or C.
+- Minor: the M1 `ValueError` versus `JobError` for an unknown target (as lens 1).
+- Minor: the deferred engine changes (run-time numeric/RNG guard; lock SHA-256 in `assets.json`) change the identity, and attribution refuses a0 states trained by other code (`runner.py:815-817`). Decide the order now, or accept retraining a0 seed 1101 to e3 (114 steps at 1B) before Gate C.
+- Minor: the S5 golden does not pin the rest of the `attributes()` result dict or the token-mean constant (BT) path. Optional fix: add both to `attribution_digest.golden_record`.
+- Checked: the default recipe-B training path is bit-identical to `8c026ee` (states, steps, fingerprints, saved tensors), and so is BT; the removal-arm golden is reproduced; M6 matches HF schedulers in 110 of 110 cases; S3 cannot move Gate C's decision under recipe B; M1 refuses a run-one job before the model loads.
+
+### Not verified
+
+- CUDA paths: the 3 CUDA tests were skipped. The scheduled path and the M7 preflight have not run on a GPU.
+- Mutation testing was not re-run in the main checkout. Lens 1 ran 74 of 74 on the snapshot, whose 25 files are byte-identical to these.
+- `evaluation_path.py` under the system python3 was not re-tested here.
+
+### Open decisions for GPT before any Gate B pod spend
+
+1. Lens 2 should-fix: an environment check before spend. Until it exists, diff the new pod's `assets.json` environment block and `environment-linux.lock` against the baseline by hand after PREFLIGHT-DONE and before calibrate.
+2. Policy-identity scope for S1, and recording (not comparing) the driver.
+3. G recipes: `schedule_until` versus e3 attribution checkpoints; the calibrate chain check.
+4. The order of the deferred engine changes versus the Gate B a0 runs.
+5. Pin `setuptools` (or exclude it from the compared freeze).
+6. The `gate_a_olmo.py` reading pin.
+7. Confirm S3 option (a) and the beyond-brief work; record the round-6 brief text beside the workspace.

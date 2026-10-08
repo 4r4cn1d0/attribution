@@ -65,7 +65,7 @@ import torch
 
 from . import engine as en
 from .attribution import (ADAM, DEFINITIONS, GRADSIM, ROW_WEIGHTING, SIGN, adam_inverse_preconditioner,
-                          aggregate_groups, checkpoint_scores, step_weights)
+                          aggregate_groups, checkpoint_scores, interval_rates, step_weights)
 from .common import (append_jsonl, canonical_json, code_identity, derive_seed, ids_sha256,
                      jsonl_bytes, read_json, sha256_bytes, sha256_file, write_atomic, write_json)
 from .config import (INIT, checkpoint_names, checkpoint_table, config_sha256, seed_namespace,
@@ -888,6 +888,12 @@ def attributes(job: dict, *, prepared_dir: str | Path, out_dir: str | Path, sess
         # row by n_i * E_step / N_step in its first-epoch step (attribution.step_weights); GradSim is scale-free
         weights = (step_weights(plan, {rid: prepared.train_rows[rid]["target_tokens"] for rid in prepared.corpus}, members)
                    if train.get("loss_weighting") == en.TOKEN_MEAN else None)
+        rates = None                 # under a warmup schedule each checkpoint's rate is its interval's mean (round 6)
+        if train["lr_schedule"] != "constant":
+            horizon = plan.checkpoint(dict(checkpoint_table(recipe))[train["schedule_until"]])["step"]
+            rates = interval_rates(lambda s: en.learning_rate(train["lr"], train["lr_schedule"], train["warmup_steps"],
+                                                              horizon, s),
+                                   {c: plan.checkpoint(fractions[c])["step"] for c in checkpoints})
         per_checkpoint: dict[str, dict] = {}
         for c in checkpoints:
             src = sources[c]
@@ -897,10 +903,8 @@ def attributes(job: dict, *, prepared_dir: str | Path, out_dir: str | Path, sess
                                       restore_rng_state=False)
                 group0 = state["param_groups"][0]
                 lr, beta2, eps = float(group0["lr"]), float(group0["betas"][1]), float(group0["eps"])
-                if train["lr_schedule"] != "constant":     # the rate of the checkpoint's step, not the saved peak
-                    horizon = plan.checkpoint(dict(checkpoint_table(recipe))[train["schedule_until"]])["step"]
-                    lr = en.learning_rate(train["lr"], train["lr_schedule"], train["warmup_steps"], horizon,
-                                          int(state["step"]))
+                if rates is not None:                       # the interval's mean scheduled rate, not the saved peak
+                    lr = rates[c]["lr"]
                 inverse, step = adam_inverse_preconditioner(src["tensors"], [n for n, _ in policy.named],
                                                             beta2, eps)
                 if step != state["step"]:
@@ -933,7 +937,8 @@ def attributes(job: dict, *, prepared_dir: str | Path, out_dir: str | Path, sess
              for rid in members]))
         write_json(run_dir / "groups.json", {"definitions": DEFINITIONS, "sign": SIGN,
                                              "variants": [GRADSIM, ADAM], "groups": aggregates,
-                                             **({"row_weighting": ROW_WEIGHTING} if weights is not None else {})})
+                                             **({"row_weighting": ROW_WEIGHTING} if weights is not None else {}),
+                                             **({"learning_rates": rates} if rates is not None else {})})
         write_json(run_dir / "queries.json", {
             "query_bank": "ref", "query_bank_sha256": query_bank_sha256, "n": len(queries),
             "loss_definition": en.QUERY_LOSS_DEFINITION,
@@ -956,6 +961,7 @@ def attributes(job: dict, *, prepared_dir: str | Path, out_dir: str | Path, sess
                  "cost_scope": "attribution stages and a0 train stages only; not total operation cost"}
         result = {"split": job["split"], "seed": job["seed"], "role": job["role"],
                   "group_ids": job["group_ids"], "checkpoints": checkpoints,
+                  **({"learning_rates": rates} if rates is not None else {}),
                   "query_bank_sha256": query_bank_sha256,
                   "optimizer_steps": {c: per_checkpoint[c]["step"] for c in checkpoints},
                   "query_loss_from_gradient_passes": {c: per_checkpoint[c]["query"]["mean_loss"]

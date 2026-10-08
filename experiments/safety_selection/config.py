@@ -37,7 +37,11 @@ their exact bytes, hash and meaning):
 - ``train.lr_schedule`` "warmup_cosine" or "warmup_constant" (GI III round 5; default "constant", unchanged) with
   ``train.warmup_steps`` (an integer >= 1) and ``train.schedule_until`` (the name of one of ``train.checkpoints``):
   HF's warmup schedules (``engine.learning_rate``) over the optimizer steps up to that checkpoint, computed from the
-  run's own stream plan; training past it refuses. Both fields exist only with a warmup schedule.
+  run's own stream plan; training past it refuses (a run-one job whose target lies past it refuses before any
+  training, ``jobs.check_identities``). Both fields exist only with a warmup schedule. OPEN DESIGN POINT for Gate B:
+  the horizon is each arm's OWN plan (HF's convention), so a removal or edit arm, whose epoch has fewer steps, decays
+  over fewer steps than a0 and its rate at a given step differs from a0's; GPT must confirm this before recipe G is
+  used with removal or edit arms.
 - ``generation.guard_over_limit`` (only ``"unscored"``): an evaluation answer whose guard input is
   over ``guard.max_input_tokens`` is recorded as not scored (reason ``GUARD_OVER_LIMIT``, its token
   count kept; the judge input is never truncated) and the evaluation goes on. Without it such an
