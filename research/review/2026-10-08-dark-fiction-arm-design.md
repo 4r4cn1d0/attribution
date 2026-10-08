@@ -43,9 +43,11 @@ So long fiction passages could erode **less** than Dolly for length reasons alon
 - Very short targets (Dolly has many rows under 30 tokens; MECH table) use a "write one sentence" instruction (§4).
 
 ### 2b. Recipe and model
-- OLMo-2-1B-Instruct, recipe B (the Gate A setting), so D's three seeds are the comparison.
+- OLMo-2-1B-Instruct.
+- **Recipe: the main study's common recipe.** The user chose recipe G at 17:36 UTC on 8 Oct, with an LR ladder if Llama saturates (F, "Decisions, 2026-10-08 17:36 UTC"). This was updated at 19:21 UTC; the first draft said recipe B.
+- The Dolly comparison D is then OLMo under the common recipe. Seed 1101 exists for G; seeds 1102–1103 are the lead's Gate A runs at that recipe, after a top-up.
 - Reuse the sealed untuned baseline unit, as the recipe-G and Gate A runs did (KT:209, :245). No new baseline cost.
-- Recipe G is optional, as a second pass.
+- If the ladder moves (for example to G at LR 5e-5), the fiction arms follow it, and nothing is chosen from a fiction result.
 
 ## 3. Data sources (open licences only)
 

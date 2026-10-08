@@ -130,3 +130,35 @@ One record, committed on this branch, and the lead told:
 - **The books are old.** Light and dark are matched by era, but the results may not carry over to modern fiction or role-play.
 - **Only 1B models, one main recipe and 3 seeds** (a minimum detectable difference of roughly 9–10 pp).
 - **Money competes with Gate B.** The main study keeps priority.
+
+## 6. One-week version (added 2026-10-08T19:24 UTC, 9 Oct 00:54 IST; clock checked)
+
+**Short answer: not all of it.** The parts this chat controls fit in a week: free judging, data, pre-registration, analysis and writing. The bottlenecks are outside it:
+- a top-up (the guard needs about $14.75 of balance at each OLMo launch with a 5 h cap; FOCUS 17:36 UTC);
+- the lead's pod queue (the Llama G probe now, then OLMo G seeds 1102–1103, then Gate B);
+- the Qwen-G recipe file and kit, which FOCUS places with Specialized after Gate B Parts B and C;
+- a possible arXiv endorsement.
+
+**Changes since §1–5 (FOCUS, 17:36 UTC):**
+- Recipe G is now the common recipe.
+- Qwen spend for the note is approved.
+- A Llama recipe-G probe launched at about 19:10 UTC, so the note gains a second family with both recipes.
+- Note: recipe G's preflight projected up to 9,867 s for Llama, so G runs may take longer than recipe B's.
+
+**Proposal: Parts 1–2 in one week; the fiction study as the follow-up** (a second short note or an arXiv v2, plus a second post, about 1–2 weeks later).
+
+| Day (IST) | Who | What |
+|---|---|---|
+| Fri 9 Oct | user, then this chat | Your go: HarmBench on the Qwen 1.5B, Qwen 7B and Llama recipe-B units, on the Mac. 4,800 items at 4.93 s each is about 6.6 h; the Mac judge slot has been free since the OLMo run finished at 17:07 UTC. Tell the lead first |
+| Fri 9 Oct | lead | Read the Llama G probe |
+| Fri 9 Oct | this chat | LaTeX skeleton (pdflatex and latexmk are installed); figures from existing records; the blinded human-read sheet, if the lead agrees to hand it over |
+| Sat–Sun 10–11 | this chat | Full draft of the paper and the post |
+| Sat–Sun 10–11 | user | The blind read (1–2 h); the top-up |
+| Sat–Sun 10–11 | lead | OLMo G seeds 1102–1103 (main-study Gate A at the common recipe; they also serve the note) |
+| Mon–Tue 12–13 | Specialized and lead | Qwen G, **only if** its config and kit can come early. Otherwise v1 goes without it |
+| Mon–Tue 12–13 | this chat | Final numbers; an independent critic pass; fixes |
+| Mon–Tue 12–13 | user | Review |
+| Wed 14 Oct | user | Submit to arXiv before 14:00 ET (18:00 UTC). From memory: announced at 20:00 ET (Thu 05:30 IST) unless held; a first submission may be held for moderation |
+| Thu 15 Oct | user | Substack post with the arXiv link, after your yes |
+
+**What can break the week:** an endorsement wait; the top-up date; Mac contention with the lead's jobs; your review time. Qwen G is optional for v1.

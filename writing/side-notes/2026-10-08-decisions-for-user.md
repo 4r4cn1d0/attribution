@@ -1,5 +1,11 @@
 # Side Project: decisions for the user
 
+> **Update, 2026-10-08T19:21 UTC (clock checked).** The user decided several of these points through the lead (FOCUS "Decisions, 2026-10-08 17:36 UTC", commit `0bc5f1f` on the lead's branch). Where they conflict with this file's recommendations, the user's decisions stand:
+> - **Recipe G is the common recipe** for both families in the main study, with an LR ladder (G at 1e-4, then 5e-5, then 2e-5). The Llama probe under G launched at about 19:10 UTC.
+> - **Qwen spend for the arXiv note: approved ("do it").** The plan is Qwen2.5-1.5B under the common recipe, 1–3 seeds, with a fresh untuned baseline. Its recipe file and kit come from Specialized after Gate B Parts B and C. Then HarmBench on the Qwen units, about 50 human-read answers (the lead prepares the sheet), and a Substack post by the Public Posts chat. This supersedes C and B3 below.
+> - **G+Qi reference arm in stage 1: approved ("Ok").** This supersedes this chat's "nothing now" recommendation in D below.
+> - **Open point:** FOCUS names the Public Posts chat for the Substack post, while this chat's brief covers both the note and the post. The user decides who drafts and who polishes.
+
 Written 2026-10-08T17:11 UTC (clock checked). Nothing below is approved. Costs are estimates. The RunPod balance was $12.93 at 16:49 UTC, and Gate B needs about $51–62 (about $33–44 with its extension and control declined), per the lead's DRAFT 4a/4b. So every paid item competes with Gate B. The lead is told before any pod or money is used.
 
 Files: `2026-10-08-white-paper-outline.md`, `2026-10-08-substack-outline.md` (this folder) and `research/review/2026-10-08-refusal-opening-loss-options.md`.
