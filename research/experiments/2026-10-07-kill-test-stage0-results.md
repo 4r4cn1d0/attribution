@@ -318,3 +318,17 @@ Kit `tmp/family-probe-llama32-1b-g` (attempt 5, host llama32-1b-g5-1101; attempt
 ## OLMo-2-1B under recipe G, seeds 1101 and 1102: interim two-seed reading (21:18 UTC, 8 Oct; Gate A at the common recipe is read when seed 1103 lands)
 
 Seed 1102: kit `tmp/family-probe-olmo2-1b-g-seed1102`, host olmo2-1b-g-1102, fine-tune only on the sealed untuned unit (engine e49a978c; certificate 55253874 → e49a978c); job 20:20–21:13 UTC; verified and stopped. Two-seed reading (`reading-olmo-g-1101-1102-nojudge.json`, frozen amended bars): **E = +29.0 and +31.0 pp, mean +30.0, SE 2.0, band 25.9–34.1: partial**; coherent-only +28.3 (same class); answers end on both seeds (seed 1102: 0 capped, 7 failing the screen of 600); task learned on both; **ARC: a gain of 2 questions on each seed (d = −2/189), paired intervals straddle 0.03, so the frozen bars read TOO CLOSE; under the ARC rule adopted at 20:50 UTC (d ≤ 0.03 and task learned) both pass, reported as a limitation.** Granite pending. This counts toward Gate A only if recipe G becomes the common recipe (the Llama two-seed reading decides).
+
+## OLMo-2-1B, recipe G at rank 16, seed 1101 (read 21:25 UTC, 8 Oct; pre-registered 19:24 UTC; report-only)
+
+Kit `tmp/family-probe-olmo2-1b-g-r16`; job 20:37–21:24 UTC; verified and stopped. Reading `reading-olmo-g-r16-nojudge.json`.
+
+| | Untuned | Recipe G r64, seed 1101 | **Recipe G r16, seed 1101** |
+|---|---|---|---|
+| U (sampled) | 3.2% (19) | 32.2% (193) | **23.3% (140)** |
+| E (pp) | — | +29.0 (partial) | **+20.2, band 15.1–25.2 (TOO CLOSE at the 20 edge)** |
+| Over-refusal (of 100) | 17 | 17 | 25 |
+| Held-out task loss | 2.100 | 1.612 | 1.649 |
+| ARC d | — | −2/189 | +1/189 |
+
+- By the pre-registered rule (|ΔE| ≤ 10 pp), rank matters little: ΔE = 8.8 pp. With one seed each, a rank effect of this size cannot be excluded; the paper reports the number, not only the rule's label. Pending: Granite.
