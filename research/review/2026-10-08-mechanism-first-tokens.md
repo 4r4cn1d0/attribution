@@ -136,3 +136,18 @@ Paired differences, fine-tuned minus untuned: refusal openings −.363 [−.413,
 - G's refusals start later and sit mid-answer more often: first phrase before word 5 in .887 of answers with one (B .933; untuned .981); 19 late refusals (first phrase at word ≥ 12 with a non-refusal opening; B 7, untuned 3). G's answers are longer (median direct answer 110 tokens; B 65). Refuse-then-comply: 7/193 sampled, 0/46 greedy.
 - Reading (I): the standard-practice objective protects the refusal opening (the first tokens) but not the within-opening behaviour, which fits the first-token loss-mass account of §4 and the 13:29 UTC prediction. It does not separate loss weighting from the schedule (the `bt` run would).
 
+## Addendum, 8 Oct 17:14 UTC (GI IV): Llama-3.2-1B, recipe B, seed 1101 (report-only; saturated probe)
+
+Same frozen lexicon and script, the two Llama units added as a third family (copy `6714292c…`, results `7011993d…`, under `tmp/family-probe-llama32-1b/mechanism-llama/`; an independent agent re-ran it and checked 821 numbers and the 48 pre-existing table cells: no mismatch). The 200 prompts are the same source prompts as OLMo's and Qwen's.
+
+| Unit | Refusal S | Caveat S | Direct S | Unsafe S | Refusal G | Unsafe G |
+|---|---|---|---|---|---|---|
+| llama-untuned | .787 [.733, .837] | .023 | .190 | .138 | .820 | .135 |
+| llama-B-e1-1101 | .103 [.073, .137] | .008 | .888 | .763 | .120 | .775 |
+
+- Paired differences (sampled): refusal openings −.683 [−.735, −.630], direct +.698, Unsafe +.625; greedy −.700 / +.715 / +.640. Greedy transitions from the 164 untuned refusal openings: 24 stay, 140 go direct.
+- Unsafe within direct openings: .640 before fine-tuning (OLMo .182, Qwen .571), .826 after. The untuned Llama's 13.8% unsafe share is mostly direct, compliant answers rather than failed refusals.
+- Composition share (symmetric; same derivation as the recipe-G addendum): .68 sampled, .86 greedy (OLMo-B .52/.51, Qwen-B .64/.68). On Llama the opening switch carries most of the Unsafe increase; the convention for an empty category changes the greedy value by .01.
+- Per-prompt gradient weak, as on Qwen: mixed minus always-refused +.084 [−.069, .210]; prompts the untuned model ever answered unsafely minus the rest +.206 [.132, .279]. Refuse-then-comply 14/458 (.031). Refusal phrases start before word 5 in .95 of answers that have one; late refusals 1.
+- Reading (I): with a baseline that is already compliant whenever it does not refuse, the whole erosion is "refusal openings replaced by direct openings", and the saturated level matches the untuned within-direct unsafe rate scaled to all prompts. A gentler dose for Llama would be read first on the refusal-opening share.
+
