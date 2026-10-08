@@ -1,0 +1,831 @@
+"""The headroom amendment's engine support (5 October 2026) on ENGINEERING FIXTURES:
+tiny random Qwen2+LoRA on CPU, byte codec, scripted guard, tiny guard LM, a scripted generator.
+
+The decisive check is that group-removal arms and a0 are untouched: a calibration of a0 and one
+group on the fixtures is compared, unit by unit, with a digest written from the engine of commit
+8dd630c before any change (``golden/removal-arms-8dd630c.json``). Then: the frozen base-model
+recipe and its end of turn; the chat-token rows, proved on a tied fixture whose chat-token rows equal
+its padding rows (LoRA alone can never emit ``<|im_end|>``; with trained rows the rows separate and
+an end-of-answer case stops there), counted once, saved, resumed and fingerprinted; edit files applied exactly (removal, rewrite, addition at the stated
+positions, combined), refused when they name a held-out member, run on the held-out split or do
+not hash to their arm, and given their own trajectory identity; the row scorer and the rewrite generator deterministic; the
+generator never shown an original reply, and a draft that is not judged Safe generated once more
+and then excluded; the edit builder's counts, ranking and provenance; the random rewrite on exactly the random
+removal's rows, the rewrites over the union of both sets, and round 1's four files. None of these numbers is a
+scientific result."""
+
+from __future__ import annotations
+
+import json
+import random
+import subprocess
+import sys
+from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
+
+torch = pytest.importorskip("torch")
+pytest.importorskip("transformers")
+pytest.importorskip("peft")
+
+import removal_digest as rd  # noqa: E402
+import ss_fixtures as fx  # noqa: E402
+
+from experiments.safety_selection import engine as en  # noqa: E402
+from experiments.safety_selection import headroom as hr  # noqa: E402
+from experiments.safety_selection import runner  # noqa: E402
+from experiments.safety_selection.__main__ import main as cli  # noqa: E402
+from experiments.safety_selection.common import code_identity, derive_seed, read_json, read_jsonl, sha256_bytes  # noqa: E402
+from experiments.safety_selection.config import (ConfigError, config_sha256, load_recipe, tokenizer_of,  # noqa: E402
+                                                 validate_recipe)
+from experiments.safety_selection.edits import (EDIT_FILE, POSITION_RULE, EditError, arm_of, edited_corpus,  # noqa: E402
+                                                heldout_members, load_edit, parse_edit)
+from experiments.safety_selection.jobs import (JOB_KEYS, AccessError, JobError, check_identities,  # noqa: E402
+                                               trajectory_key, validate_job)
+from experiments.safety_selection.prepare import load_prepared, read_manifest  # noqa: E402
+from experiments.safety_selection.stream import make_plan  # noqa: E402
+from experiments.safety_selection.textproc import ControlTokenError, TemplateError, build_codec, encode_train  # noqa: E402
+from experiments.safety_selection.verify import verify_run  # noqa: E402
+
+TESTS = Path(__file__).resolve().parent
+PACKAGE = TESTS.parent
+ROOT = PACKAGE.parents[1]
+GOLDEN = TESTS / "golden" / "removal-arms-8dd630c.json"
+PC_RECIPE = PACKAGE / "configs" / "study-v3-headroom-pc-20261005.json"
+PC_REWRITE = PACKAGE / "configs" / "headroom-rewrite-pc-20261005.json"
+CHAT_TOKENS = {"<|im_start|>": fx.SPECIAL["<|im_start|>"], "<|im_end|>": fx.SPECIAL["<|im_end|>"]}
+FROZEN_PRIMARY_SHA256 = "8cc5e543bc8c73a65bf4d692b05383d6671660188e81ec15f6767f51e3f60986"
+PC_RECIPE_SHA256 = "3b50a4e6fe0055f3b4b9ca8e48fe970d62340e3a7dab79d556dc93d5b50155d5"
+
+
+class Env:
+    def __init__(self, base: Path) -> None:
+        self.base = base
+        self.prepared_dir, self.sha = fx.prepare_dir(base / "prepared")
+        self.prepared = load_prepared(self.prepared_dir, self.sha)
+        self.recipe = fx.recipe()
+        self.dev_group = sorted(self.prepared.groups["dev"])[0]
+        self.heldout = sorted(heldout_members(self.prepared))
+        self.pool = hr.edit_pool(self.prepared)
+
+    def session(self, **options):
+        return runner.Session(self.recipe, fx.fixture_loaders(**options))
+
+    def write_edit(self, name: str, edit_kind: str, **lists) -> tuple[str, Path]:
+        data, _ = hr.edit_document(name, edit_kind, self.prepared, {"test": fx.FIXTURE}, **lists)
+        path = self.base / "edits" / f"{name}.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+        return arm_of(data), path
+
+    def job(self, arm: str, edit: Path | None = None, **fields) -> dict:
+        job = {"kind": "run-one", "split": "dev", "arm": arm, "seed": 1101, "role": "development",
+               "target_checkpoint": "q", "evaluate_bank": None, "manifest_sha256": self.sha,
+               "recipe_sha256": config_sha256(self.recipe), "code_sha256": None, "resume_from": None,
+               "replicate_of": None, "wall_limit_seconds": None, **fields}
+        if edit is not None:
+            job["edit"] = str(edit)
+        return job
+
+
+@pytest.fixture
+def env(tmp_path):
+    return Env(tmp_path)
+
+
+def steps_of(run: dict) -> list[dict]:
+    return read_jsonl(Path(run["run_dir"]) / "steps.jsonl")
+
+
+# ----- 1. group removal and a0 are untouched ----------------------------------------------------------
+
+
+def test_group_removal_and_a0_runs_equal_the_engine_before_the_change(tmp_path):
+    golden = json.loads(GOLDEN.read_text())
+    now = rd.run_fixture_matrix(tmp_path)
+    assert golden["engine_code_sha256"] == "5165e61d4e6a68f865b0f037a1106a139ef4c9201175c1817700b2ba311adff0"
+    assert code_identity()["sha256"] != golden["engine_code_sha256"]       # the code changed, by design ...
+    assert (now["group"], now["manifest_sha256"]) == (golden["group"], golden["manifest_sha256"])
+    assert sorted(now["units"]) == sorted(golden["units"]) and len(now["units"]) == 6
+    for unit, parts in golden["units"].items():                           # ... and nothing it trains or writes did
+        for part, value in parts.items():
+            assert now["units"][unit][part] == value, (unit, part)
+    assert now["registry"] == golden["registry"]
+
+
+def test_existing_recipes_jobs_and_plans_keep_their_exact_form(env):
+    for path in sorted((PACKAGE / "configs").glob("study-v2-*recipe*.json")) + [PACKAGE / "configs" / "study-v2-primary-20261002.json"]:
+        recipe = load_recipe(path)
+        assert "tokenizer" not in recipe["model"] and tokenizer_of(recipe) == (recipe["model"]["repo_id"],
+                                                                               recipe["model"]["revision"])
+    assert config_sha256(load_recipe(PACKAGE / "configs" / "study-v2-primary-20261002.json")) == FROZEN_PRIMARY_SHA256
+    group_job = env.job(env.dev_group)
+    assert set(validate_job(group_job)) == JOB_KEYS["run-one"]               # no new key on a group job
+    with pytest.raises(JobError, match="come together"):
+        validate_job({**group_job, "edit": "x.json"})                        # a group arm cannot carry an edit
+    with pytest.raises(JobError, match="come together"):
+        validate_job(env.job("edit-" + "0" * 64))                            # an edit arm needs its file
+    with pytest.raises(JobError, match="64-hex"):
+        validate_job(env.job("edit-short", edit=Path("x.json")))
+    plan = make_plan(env.prepared.corpus, env.prepared.removed_rows("dev", env.dev_group), 1101, 2, 2)
+    assert set(plan.identity()) == {"seed", "corpus_sha256", "corpus_rows", "removed", "retained", "micro_batch",
+                                    "grad_accum", "steps_per_epoch", "order"}
+
+
+# ----- 2. the base-model recipe ------------------------------------------------------------------------
+
+
+def lora_count(hidden: int, intermediate: int, kv: int, layers: int, r: int) -> int:
+    shapes = {"q_proj": (hidden, hidden), "k_proj": (hidden, kv), "v_proj": (hidden, kv), "o_proj": (hidden, hidden),
+              "gate_proj": (hidden, intermediate), "up_proj": (hidden, intermediate), "down_proj": (intermediate, hidden)}
+    return layers * sum(r * (a + b) for a, b in shapes.values())
+
+
+def test_the_frozen_recipe_validates_and_its_adapter_has_the_stated_size(env):
+    import peft
+    import transformers
+
+    recipe = load_recipe(PC_RECIPE)
+    primary = load_recipe(PACKAGE / "configs" / "study-v2-primary-20261002.json")
+    model, lora = recipe["model"], recipe["model"]["lora"]
+    assert (model["repo_id"], model["revision"]) == ("Qwen/Qwen2.5-1.5B", "8faed761d45a263340a0528343f099c05c9a4323")
+    assert tokenizer_of(recipe) == (primary["model"]["repo_id"], primary["model"]["revision"])
+    assert (lora["r"], lora["alpha"], lora["dropout"]) == (64, 128, 0.0)
+    assert lora["target_modules"] == ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+    assert lora["trainable_tokens"] == ["<|im_start|>", "<|im_end|>"] and "DRAFT" not in recipe["purpose"]
+    assert recipe["name"] == PC_RECIPE.stem and config_sha256(recipe) == PC_RECIPE_SHA256
+    assert (model["end_of_turn_token"], model["stop_tokens"]) == ("<|im_end|>", ["<|im_end|>", "<|endoftext|>"])
+    for section in ("train", "generation", "arc", "guard", "secondary_toxicity", "attribution"):
+        assert recipe[section] == primary[section], section                  # everything else as the frozen recipe
+    # the count formula, checked on a real (tiny) PEFT model, then applied to Qwen2.5-1.5B's shapes
+    config = transformers.Qwen2Config(vocab_size=fx.VOCAB, hidden_size=32, intermediate_size=48, num_hidden_layers=2,
+                                      num_attention_heads=4, num_key_value_heads=2, max_position_embeddings=64)
+    tiny = peft.get_peft_model(transformers.Qwen2ForCausalLM(config), peft.LoraConfig(
+        r=4, lora_alpha=8, lora_dropout=0.0, target_modules=lora["target_modules"], bias="none", task_type="CAUSAL_LM"))
+    assert en.parameter_count(en.lora_parameters(tiny)) == lora_count(32, 48, 16, 2, 4)
+    # the tied token rows: one shared float32 parameter of n x hidden values, counted once
+    rows = peft.get_peft_model(transformers.Qwen2ForCausalLM(config), peft.LoraConfig(
+        r=4, lora_alpha=8, lora_dropout=0.0, target_modules=lora["target_modules"], bias="none", task_type="CAUSAL_LM",
+        trainable_token_indices=sorted(CHAT_TOKENS.values())))
+    named = en.lora_parameters(rows)
+    tokens = [(n, p) for n, p in named if en.TOKEN_ROWS in n]
+    assert [n for n, _ in tokens] == ["base_model.model.model.embed_tokens.token_adapter.trainable_tokens_delta.default"]
+    assert tokens[0][1].shape == (2, 32) and tokens[0][1].dtype == torch.float32
+    assert en.parameter_count(named) == lora_count(32, 48, 16, 2, 4) + 2 * 32
+    assert lora_count(1536, 8960, 256, 28, 64) + 2 * 1536 == lora["expected_trainable_parameters"] == 73_862_144
+    # the identity check: the data were audited with the instruct tokenizer, which the recipe names
+    manifest = {"data_config": {"tokenizer": {"repo_id": primary["model"]["repo_id"],
+                                              "revision": primary["model"]["revision"], "end_of_turn_token": "<|im_end|>"}}}
+    job = {"manifest_sha256": "0" * 64, "recipe_sha256": config_sha256(recipe), "code_sha256": None}
+    check_identities(job, manifest, "0" * 64, recipe, code_identity())
+    without = json.loads(json.dumps(recipe))
+    del without["model"]["tokenizer"]
+    with pytest.raises(JobError, match="tokenizer the data were audited with"):
+        check_identities({**job, "recipe_sha256": config_sha256(without)}, manifest, "0" * 64, without, code_identity())
+    for bad in ({"repo_id": model["repo_id"], "revision": model["revision"]}, {"repo_id": "x"},
+                {"repo_id": "x", "revision": "short"}):
+        broken = json.loads(json.dumps(recipe))
+        broken["model"]["tokenizer"] = bad
+        with pytest.raises(ConfigError):
+            validate_recipe(broken)
+
+
+class BaseFixtureTokenizer(fx.FixtureTokenizer):
+    """The fixture tokenizer as a BASE model's: the same vocabulary and chat template, but its own
+    end-of-text is ``<|endoftext|>``. Reading it fails the test: the engine must not use it."""
+
+    @property
+    def eos_token(self):
+        raise AssertionError("the engine read the tokenizer's own eos_token")
+
+    @property
+    def eos_token_id(self):
+        raise AssertionError("the engine read the tokenizer's own eos_token_id")
+
+
+class ScriptedLM(torch.nn.Module):
+    """A causal LM that emits a fixed script per batch row, for the greedy decoder."""
+
+    def __init__(self, scripts: list[list[int]]) -> None:
+        super().__init__()
+        self.scripts = scripts
+        self.anchor = torch.nn.Parameter(torch.zeros(1))
+
+    def forward(self, input_ids, attention_mask=None, position_ids=None, past_key_values=None, use_cache=True,
+                logits_to_keep=1):
+        step = 0 if past_key_values is None else past_key_values + 1
+        logits = torch.full((input_ids.shape[0], 1, fx.VOCAB), -10.0)
+        for row, script in enumerate(self.scripts):
+            logits[row, 0, script[min(step, len(script) - 1)]] = 10.0
+        return SimpleNamespace(logits=logits, past_key_values=step)
+
+
+def test_a_base_model_ends_its_turn_with_im_end_and_generation_stops_there(env):
+    recipe = load_recipe(PC_RECIPE)
+    model = recipe["model"]
+    tokenizer = BaseFixtureTokenizer()
+    codec = build_codec(tokenizer, model["end_of_turn_token"], model["stop_tokens"], model["pad_token"])
+    assert codec.eos_id == fx.SPECIAL["<|im_end|>"] and set(codec.stop_ids) == {fx.SPECIAL["<|im_end|>"],
+                                                                                fx.SPECIAL["<|endoftext|>"]}
+    row = env.prepared.train_rows[env.pool[0]]
+    example = encode_train(codec, env.pool[0], row["prompt"], row["response"], 4096)
+    assert example.input_ids[-1] == fx.SPECIAL["<|im_end|>"]                    # the target ends the assistant turn
+    assert tokenizer.decode(example.input_ids[example.n_prompt:]) == row["response"] + "<|im_end|>"
+    assert codec.decode(codec.prompt_ids("hi")).endswith("<|im_start|>assistant\n")
+    a, b = codec.prompt_ids("first"), codec.prompt_ids("other")            # same length: the scripts keep their rows
+    lm = ScriptedLM([[ord("o"), ord("k"), fx.SPECIAL["<|im_end|>"], ord("x")], [ord("n"), fx.SPECIAL["<|endoftext|>"]]])
+    out = en.greedy_generate(lm, [a, b], max_new_tokens=8, stop_ids=codec.stop_ids, pad_id=codec.pad_id,
+                             device="cpu", batch_size=2)
+    assert (out[0].output_ids, out[0].stop_reason, out[0].stop_token) == ((ord("o"), ord("k")), "eos",
+                                                                         fx.SPECIAL["<|im_end|>"])
+    assert (out[1].output_ids, out[1].stop_token) == ((ord("n"),), fx.SPECIAL["<|endoftext|>"])
+    never = ScriptedLM([[ord("a")], [ord("b")]])                              # a model that never ends its turn
+    capped = en.greedy_generate(never, [a, b], max_new_tokens=5, stop_ids=codec.stop_ids, pad_id=codec.pad_id,
+                                device="cpu", batch_size=2)
+    assert [g.stop_reason for g in capped] == ["max_new_tokens"] * 2 and len(capped[0].output_ids) == 5
+    with pytest.raises(TemplateError):
+        build_codec(tokenizer, "<|nothing|>", ["<|nothing|>"], model["pad_token"])
+
+
+# ----- 2b. the chat-token rows ----------------------------------------------------------------------------
+
+PADDING = range(fx.VOCAB, fx.VOCAB + 10)          # the tied fixture's padding rows: ids past the tokenizer
+
+
+def tied_model(token_ids=None):
+    """The fixture model with 10 padding rows and, as in Qwen2.5-1.5B, its two chat-token rows
+    and every padding row set to one shared vector of the (tied) embedding."""
+    import peft
+    import transformers
+
+    torch.manual_seed(0)
+    config = transformers.Qwen2Config(vocab_size=fx.VOCAB + len(PADDING), hidden_size=32, intermediate_size=64,
+                                      num_hidden_layers=2, num_attention_heads=4, num_key_value_heads=2,
+                                      max_position_embeddings=256, tie_word_embeddings=True, attn_implementation="eager")
+    base = transformers.Qwen2ForCausalLM(config).float()
+    with torch.no_grad():
+        weight = base.get_input_embeddings().weight
+        for row in [*CHAT_TOKENS.values(), *PADDING[1:]]:
+            weight[row] = weight[PADDING[0]]
+    extra = {"trainable_token_indices": sorted(token_ids)} if token_ids else {}
+    return peft.get_peft_model(base, peft.LoraConfig(r=2, lora_alpha=4, lora_dropout=0.0, target_modules=["q_proj", "v_proj"],
+                                                     bias="none", task_type="CAUSAL_LM", **extra))
+
+
+def train_on_one_answer(model, steps: int):
+    """``steps`` optimizer steps on one scripted end-of-answer example ("ok<|im_end|>")."""
+    codec = fx.fixture_codec()
+    example = encode_train(codec, "r", "hi", "ok", 256)
+    named = en.lora_parameters(model)
+    en.load_lora_state(named, en.init_lora_state(named, 1101))
+    seeded = en.effective_embedding_weights(model)
+    optimizer = torch.optim.AdamW([p for _, p in named], lr=0.05)
+    for _ in range(steps):
+        en.train_step(model, named, optimizer, [example], 1, 1.0, codec.pad_id, "cpu", 16)
+    prompts = [codec.prompt_ids("hi"), *(codec.prompt_ids(text) for text in ("a", "tell me", "no", "x y z"))]
+    generations = en.greedy_generate(model, prompts, max_new_tokens=6, stop_ids=codec.stop_ids, pad_id=codec.pad_id,
+                                     device="cpu", batch_size=1)
+    with torch.no_grad():
+        logits = en.causal_lm(model)(input_ids=torch.tensor([example.input_ids[:-1]])).logits[0, -1]
+    return named, seeded, generations, logits
+
+
+def test_with_lora_alone_a_padding_identical_im_end_row_can_never_be_chosen():
+    model = tied_model()
+    named, seeded, generations, logits = train_on_one_answer(model, 30)
+    assert not [n for n, _ in named if en.TOKEN_ROWS in n]
+    end, start = CHAT_TOKENS["<|im_end|>"], CHAT_TOKENS["<|im_start|>"]
+    tied = logits[[start, end, *PADDING]]
+    assert torch.equal(tied, tied[0].expand_as(tied))                      # one logit for the whole tied group ...
+    for out in generations:                                                # ... so greedy can never pick <|im_end|>
+        assert end not in out.output_ids and out.stop_token != end and out.stop_reason == "max_new_tokens"
+    after = en.effective_embedding_weights(model)
+    for weights in (*seeded, *after):
+        report = en.token_row_report(weights, CHAT_TOKENS, PADDING)
+        assert report["padding_rows_all_identical"]
+        assert all(t["bit_identical_to_a_padding_row"] and t["max_cosine_to_padding"] > 0.9999
+                   for t in report["tokens"].values())
+
+
+def test_trained_chat_token_rows_separate_from_the_padding_and_end_the_answer():
+    model = tied_model(CHAT_TOKENS.values())
+    named, seeded, generations, logits = train_on_one_answer(model, 30)
+    end = CHAT_TOKENS["<|im_end|>"]
+    seeded_in, seeded_out = seeded
+    for weights in seeded:                                                 # the seeded model is the base model
+        assert all(t["bit_identical_to_a_padding_row"] for t in en.token_row_report(weights, CHAT_TOKENS, PADDING)["tokens"].values())
+    used_in, used_out = en.effective_embedding_weights(model)
+    assert torch.equal(used_in, used_out)                                  # tied: the same rows on both sides
+    for weights in (used_in, used_out):
+        report = en.token_row_report(weights, CHAT_TOKENS, PADDING)
+        assert report["padding_rows_all_identical"]                        # every other row stayed frozen ...
+        assert not any(t["bit_identical_to_a_padding_row"] for t in report["tokens"].values())   # ... these moved
+    changed = (used_in != seeded_in).any(dim=1).nonzero().flatten().tolist()
+    assert changed == sorted(CHAT_TOKENS.values())
+    assert logits[end] > logits[PADDING[0]] and logits.argmax().item() == end
+    first = generations[0]
+    assert (first.stop_reason, first.stop_token) == ("eos", end)           # the scripted answer ends its turn
+
+
+def test_trainable_tokens_are_validated_and_resolved_to_distinct_single_tokens(env):
+    from experiments.safety_selection.textproc import trainable_token_ids
+
+    tokenizer = fx.FixtureTokenizer()
+    assert trainable_token_ids(tokenizer, ["<|im_start|>", "<|im_end|>"]) == CHAT_TOKENS
+    for bad in (["<|nothing|>"], ["ab"], ["<|im_end|>", "<|im_end|>"]):
+        with pytest.raises(TemplateError):
+            trainable_token_ids(tokenizer, bad)
+    for bad in ([], "<|im_end|>", [""], [3], ["<|im_end|>", "<|im_end|>"]):
+        with pytest.raises(ConfigError):
+            validate_recipe(fx.recipe(**{"model.lora.trainable_tokens": bad}))
+    validate_recipe(fx.recipe(**{"model.lora.trainable_tokens": ["<|im_end|>"]}))
+    env.recipe = fx.recipe(**{"model.lora.trainable_tokens": ["<|nothing|>"]})
+    with pytest.raises(TemplateError):
+        runner.run_one(env.job(env.dev_group), prepared_dir=env.prepared_dir, out_dir=env.base / "bad",
+                       session=env.session())
+
+
+def test_token_rows_are_saved_fingerprinted_resumed_exactly_and_verified(env):
+    from safetensors.torch import load_file
+
+    env.recipe = fx.recipe(**{"model.lora.trainable_tokens": list(CHAT_TOKENS),
+                              "model.lora.expected_trainable_parameters": 512})
+    session = env.session()
+
+    def go(name: str, **fields) -> dict:
+        return runner.run_one(env.job("a0", **fields), prepared_dir=env.prepared_dir, out_dir=env.base / name,
+                              session=session)
+
+    direct = go("direct", target_checkpoint="e1")
+    short = go("short")
+    cont = go("cont", target_checkpoint="e1", resume_from=short["run_dir"])
+
+    def state(run: dict, checkpoint: str) -> dict:
+        return read_json(Path(run["run_dir"]) / "states" / checkpoint / "state.json")
+
+    for checkpoint, other in (("q", short), ("e1", cont)):
+        for key in ("adapter_fingerprint", "optimizer_fingerprint", "rng_fingerprint", "step", "stream_sha256"):
+            assert state(direct, checkpoint)[key] == state(other, checkpoint)[key], (checkpoint, key)
+    adapters = {c: load_file(Path(direct["run_dir"]) / "states" / c / en.ADAPTER) for c in ("init", "e1")}
+    key = "base_model.model.model.embed_tokens.token_adapter.trainable_tokens_delta.default"
+    assert adapters["init"][key].shape == (2, 32) and not torch.equal(adapters["init"][key], adapters["e1"][key])
+    original = fx.tiny_lora_model().base_model.model.model.embed_tokens.weight.detach()
+    assert torch.equal(adapters["init"][key], original[sorted(CHAT_TOKENS.values())])   # seeded = the base rows
+    plain = runner.run_one(Env(env.base / "plain").job("a0"), prepared_dir=env.prepared_dir, out_dir=env.base / "plain-run",
+                           session=runner.Session(fx.recipe(), fx.fixture_loaders()))
+    assert key not in load_file(Path(plain["run_dir"]) / "states" / "q" / en.ADAPTER)
+    assert direct["trajectory"]["init_fingerprint"] != plain["trajectory"]["init_fingerprint"]
+    for run in (direct, cont):
+        assert verify_run(run["run_dir"], env.prepared_dir)["complete"]
+
+
+# ----- 3. edit files -------------------------------------------------------------------------------------
+
+
+def test_a_removal_edit_trains_exactly_the_group_arms_rows_but_is_its_own_trajectory(env):
+    members = env.prepared.groups["dev"][env.dev_group]
+    arm, path = env.write_edit("remove the group's rows", "remove", remove=members)
+    registry = env.base / "registry.jsonl"
+    session = env.session()
+    group = runner.run_one(env.job(env.dev_group), prepared_dir=env.prepared_dir, out_dir=env.base / "group",
+                           session=session, registry=registry)
+    edited = runner.run_one(env.job(arm, edit=path), prepared_dir=env.prepared_dir, out_dir=env.base / "edit",
+                            session=session, registry=registry)
+    assert [s["rows"] for s in steps_of(edited)] == [s["rows"] for s in steps_of(group)]
+    for name in ("adapter.safetensors", "optimizer.safetensors", "rng.safetensors"):
+        assert (Path(edited["run_dir"]) / "states" / "q" / name).read_bytes() == \
+            (Path(group["run_dir"]) / "states" / "q" / name).read_bytes()
+    assert edited["trajectory"]["stream_sha256"] != group["trajectory"]["stream_sha256"]   # the plan names the edit
+    assert edited["trajectory"]["edit"]["edit_sha256"] == arm[len("edit-"):]
+    plan = read_json(Path(edited["run_dir"]) / "plan.json")["stream"]
+    assert plan["edit_sha256"] == arm[len("edit-"):] and plan["added"] == [] and plan["removed"] == sorted(members)
+    assert (Path(edited["run_dir"]) / EDIT_FILE).read_bytes() == path.read_bytes()
+    keys = [row["key"] for row in read_jsonl(registry)]
+    assert [k["arm"] for k in keys] == [env.dev_group, arm] and keys[0] != keys[1]
+    report = verify_run(edited["run_dir"], env.prepared_dir)
+    assert report["complete"] and report["stream"]["checked"]
+
+
+def test_a_rewrite_edit_trains_the_replacement_with_the_same_prompt_and_place(env):
+    session = env.session()
+    a0 = runner.run_one(env.job("a0"), prepared_dir=env.prepared_dir, out_dir=env.base / "a0", session=session)
+    seen = [r for s in steps_of(a0) for r in s["rows"] if r in set(env.pool)]
+    rows = sorted(seen[:2])                                           # two pool rows the q segment trains
+    replacements = {rows[0]: "I can't help with that, sorry.", rows[1]: "Here is a safe and short answer."}
+    arm, path = env.write_edit("rewrite two rows", "rewrite",
+                               rewrite=[{"row_id": r, "response": t} for r, t in replacements.items()])
+    policy = session.policy(runner.RunLedger(env.base / "ledger-probe"), env.base)
+    corpus = session.corpus(env.prepared, policy, runner.RunLedger(env.base / "ledger-probe"))
+    edit = load_edit(path, arm, env.prepared)
+    changed = edited_corpus(corpus, edit, env.prepared, policy.codec, env.recipe["model"]["max_train_tokens"])
+    for row in rows:
+        ex, before = changed[row], corpus[row]
+        assert ex.input_ids[:ex.n_prompt] == before.input_ids[:before.n_prompt]           # the prompt unchanged
+        assert policy.codec.decode(ex.input_ids[ex.n_prompt:]) == replacements[row] + "<|im_end|>"
+    assert all(changed[r] is corpus[r] for r in corpus if r not in rows) and corpus[rows[0]] is not changed[rows[0]]
+    other = dict(corpus)                                             # an audited example whose prompt tokens differ
+    other[rows[0]] = type(corpus[rows[0]])(rows[0], (1,) + corpus[rows[0]].input_ids, corpus[rows[0]].n_prompt + 1)
+    with pytest.raises(EditError, match="prompt tokens differ"):
+        edited_corpus(other, edit, env.prepared, policy.codec, env.recipe["model"]["max_train_tokens"])
+    rewritten = runner.run_one(env.job(arm, edit=path), prepared_dir=env.prepared_dir, out_dir=env.base / "rw",
+                               session=session)
+    assert [s["rows"] for s in steps_of(rewritten)] == [s["rows"] for s in steps_of(a0)]   # the same rows, same places
+    for mine, theirs in zip(steps_of(rewritten), steps_of(a0)):
+        touched = set(mine["rows"]) & set(rows)
+        expected = sum(len(changed[r].input_ids) for r in mine["rows"])
+        assert mine["input_tokens"] == expected
+        if not touched:
+            assert mine["input_tokens"] == theirs["input_tokens"]
+    assert sum(len(set(s["rows"]) & set(rows)) for s in steps_of(rewritten)) == 2
+    assert [s["input_tokens"] for s in steps_of(rewritten)] != [s["input_tokens"] for s in steps_of(a0)]
+    assert verify_run(rewritten["run_dir"], env.prepared_dir)["complete"]
+
+
+def test_added_rows_enter_every_epoch_once_at_the_stated_positions(env):
+    added = [{"row_id": "add-%02d" % i, "prompt": f"Fixture added request {i}?", "response": f"Fixture reply {i}."}
+             for i in range(5)]
+    arm, path = env.write_edit("add five rows", "add", add=added)
+    edit = load_edit(path, arm, env.prepared)
+    plan = make_plan(env.prepared.corpus, [], 1101, 2, 2, edit.added_ids, edit.sha256)
+    base = make_plan(env.prepared.corpus, [], 1101, 2, 2)
+    assert plan.retained == base.retained + 5 and plan.retained_rows() == sorted(env.prepared.corpus + list(edit.added_ids))
+    for epoch in range(3):
+        order, kept = plan.epoch_order(epoch), base.epoch_order(epoch)
+        assert [r for r in order if not r.startswith("add-")] == kept                 # retained rows keep their order
+        positions = [i for i, r in enumerate(order) if r.startswith("add-")]
+        n, m = len(kept), 5
+        assert positions == [(j + 1) * n // (m + 1) + j for j in range(m)]             # the stated rule
+        assert sorted(r for r in order if r.startswith("add-")) == sorted(edit.added_ids)
+        shuffled = list(edit.added_ids)                                               # sorted, then the seed's stream
+        random.Random(derive_seed(1101, "added-order", epoch)).shuffle(shuffled)
+        assert [r for r in order if r.startswith("add-")] == shuffled
+    assert [r for r in plan.epoch_order(0) if r.startswith("add-")] != [r for r in plan.epoch_order(1) if r.startswith("add-")]
+    assert edit.document["position_rule"] == POSITION_RULE
+    session = env.session()
+    run = runner.run_one(env.job(arm, edit=path, target_checkpoint="e1"), prepared_dir=env.prepared_dir,
+                         out_dir=env.base / "add", session=session)
+    trained = [r for s in steps_of(run) for r in s["rows"]]
+    assert sorted(r for r in trained if r.startswith("add-")) == sorted(edit.added_ids)   # once in the one full epoch
+    assert run["trajectory"]["retained_rows"] == 63 and run["trajectory"]["edit"]["added"] == 5
+    report = verify_run(run["run_dir"], env.prepared_dir)
+    assert report["complete"] and report["stream"]["checked"]
+
+
+def test_a_combined_edit_removes_and_adds_and_calibrate_runs_edit_arms(env):
+    removed = env.pool[:3]
+    _, remove_path = env.write_edit("remove three", "remove", remove=removed)
+    _, add_path = env.write_edit("add two", "add", add=[{"row_id": "add-a", "prompt": "A?", "response": "A."},
+                                                        {"row_id": "add-b", "prompt": "B?", "response": "B."}])
+    data, doc = hr.build_combined(remove_path.read_bytes(), add_path.read_bytes(), env.prepared, "remove three, add two")
+    path = env.base / "edits" / "combined.json"
+    path.write_bytes(data)
+    arm = arm_of(data)
+    assert doc["provenance"]["remove_edit_sha256"] == sha256_bytes(remove_path.read_bytes())
+    out = runner.calibrate(prepared_dir=env.prepared_dir, out_root=env.base / "cal", session=env.session(),
+                           arms=["a0", arm], seeds=[1101], checkpoints=["q", "e1"], edits={arm: path})
+    units = {(u["arm"], u["checkpoint"]): Path(u["run_dir"]) for u in out["units"]}
+    trained = [r for s in read_jsonl(units[arm, "e1"] / "steps.jsonl") for r in s["rows"]]
+    trained += [r for s in read_jsonl(units[arm, "q"] / "steps.jsonl") for r in s["rows"]]
+    assert not set(trained) & set(removed) and {"add-a", "add-b"} <= set(trained)
+    assert read_json(units[arm, "e1"] / "job.json")["edit"] == str(path)
+    assert "edit" not in read_json(units["a0", "e1"] / "job.json")
+    assert verify_run(units[arm, "e1"], env.prepared_dir)["complete"]
+    with pytest.raises(JobError, match="was not given"):
+        runner.calibrate(prepared_dir=env.prepared_dir, out_root=env.base / "cal2", session=env.session(), arms=[arm],
+                         seeds=[1101])
+
+
+def test_an_edit_naming_a_heldout_member_is_refused_before_anything_runs(env):
+    arm, path = env.write_edit("touches held-out", "remove", remove=[env.heldout[0], env.pool[0]])
+    session = env.session()
+    with pytest.raises(EditError, match="held-out groups"):
+        runner.run_one(env.job(arm, edit=path), prepared_dir=env.prepared_dir, out_dir=env.base / "refused",
+                       session=session)
+    assert not (env.base / "refused").exists() and session._policy is None              # nothing was created or loaded
+    arm2, path2 = env.write_edit("rewrites held-out", "rewrite", rewrite=[{"row_id": env.heldout[0], "response": "x"}])
+    with pytest.raises(EditError, match="held-out groups"):
+        load_edit(path2, arm2, env.prepared)
+    assert not set(env.pool) & set(env.heldout) and len(env.pool) + len(env.heldout) == len(env.prepared.train_rows)
+
+
+def test_an_edit_arm_is_refused_on_the_heldout_split(env):
+    arm, path = env.write_edit("pool only", "remove", remove=[env.pool[0]])
+    for role in ("selector", "reference"):
+        with pytest.raises(AccessError, match="development only"):
+            validate_job(env.job(arm, edit=path, split="heldout", role=role))
+    session = env.session()
+    with pytest.raises(AccessError, match="development only"):
+        runner.run_one(env.job(arm, edit=path, split="heldout", role="selector"), prepared_dir=env.prepared_dir,
+                       out_dir=env.base / "refused", session=session)
+    assert not (env.base / "refused").exists() and session._policy is None              # nothing was created or loaded
+    assert validate_job(env.job(arm, edit=path))["arm"] == arm                            # the same edit in development
+
+
+def test_an_edit_file_is_checked_against_its_arm_and_its_content_when_it_is_loaded(env):
+    arm, path = env.write_edit("remove one", "remove", remove=[env.pool[0]])
+    original = path.read_bytes()
+    path.write_bytes(original.replace(b"remove one", b"remove 1!!"))
+    with pytest.raises(EditError, match="does not hash to the arm"):
+        load_edit(path, arm, env.prepared)
+    with pytest.raises(EditError, match="does not hash to the arm"):
+        runner.run_one(env.job(arm, edit=path), prepared_dir=env.prepared_dir, out_dir=env.base / "x", session=env.session())
+    path.write_bytes(original)
+    doc = json.loads(original)
+    bad = {"another dataset": {"manifest_sha256": "0" * 64}, "unknown field": {"extra": 1},
+           "another rule": {"position_rule": "anywhere"}, "unsorted": {"remove": [env.pool[1], env.pool[0]],
+                                                                       "counts": {"remove": 2, "rewrite": 0, "add": 0}},
+           "wrong counts": {"counts": {"remove": 9, "rewrite": 0, "add": 0}},
+           "not a training row": {"remove": ["train:99999"]},
+           "an empty edit": {"remove": [], "counts": {"remove": 0, "rewrite": 0, "add": 0}},
+           "another kind's list": {"edit_kind": "rewrite"},
+           "an added training row": {"edit_kind": "add", "remove": [], "add": [{"row_id": env.pool[0], "prompt": "p", "response": "r"}],
+                                     "counts": {"remove": 0, "rewrite": 0, "add": 1}},
+           "removed and rewritten": {"edit_kind": "combined", "rewrite": [{"row_id": env.pool[0], "response": "r"}],
+                                     "counts": {"remove": 1, "rewrite": 1, "add": 0}}}
+    for what, change in bad.items():
+        with pytest.raises(EditError):
+            parse_edit(json.dumps({**doc, **change}).encode(), env.prepared)
+    over = [{"row_id": env.pool[0], "response": "x" * 400}]                                # too long for the limit
+    arm3, path3 = env.write_edit("too long", "rewrite", rewrite=over)
+    with pytest.raises(Exception, match="exceed"):
+        runner.run_one(env.job(arm3, edit=path3), prepared_dir=env.prepared_dir, out_dir=env.base / "long",
+                       session=env.session())
+    assert (env.base / "long" / "error.txt").is_file()                                      # a preserved failure
+    special = [{"row_id": env.pool[0], "response": "a reply with <|im_end|> inside"}]
+    arm4, path4 = env.write_edit("control token", "rewrite", rewrite=special)
+    with pytest.raises(ControlTokenError):
+        runner.run_one(env.job(arm4, edit=path4), prepared_dir=env.prepared_dir, out_dir=env.base / "ctl",
+                       session=env.session())
+
+
+# ----- 4. the row scorer, the builder and the generator ----------------------------------------------------
+
+
+def test_the_row_scorer_covers_the_pool_only_and_is_deterministic(env):
+    first = hr.score_rows_job(env.session(), env.prepared_dir, env.base / "scores-1")
+    second = hr.score_rows_job(env.session(), env.prepared_dir, env.base / "scores-2")
+    one = (Path(first["run_dir"]) / "scores.json").read_bytes()
+    assert one == (Path(second["run_dir"]) / "scores.json").read_bytes()
+    assert first["scores_sha256"] == sha256_bytes(one)
+    doc = json.loads(one)
+    assert [r["row_id"] for r in doc["rows"]] == env.pool and not set(env.heldout) & {r["row_id"] for r in doc["rows"]}
+    assert doc["pool"] == {"rule": hr.POOL_RULE, "training_rows": 58, "pool_rows": 44, "heldout_members_excluded": 14}
+    for row in doc["rows"]:
+        if row["valid"]:
+            assert row["unsafe"] == row["normalized"]["Unsafe"] and 0 < row["unsafe"] < 1
+            assert abs(sum(row["normalized"].values()) - 1) < 1e-12
+    assert "judge model" in doc["scorer"]["note"]
+    assert verify_run(first["run_dir"])["own_files"]["complete"]
+
+
+def test_edit_counts_ranking_and_files_follow_the_stated_rules(env):
+    assert [hr.edit_count(p, 10_148) for p in ("2.5", "4", "7", "10")] == [254, 406, 710, 1015]
+    assert [hr.edit_count(p, 58) for p in ("2.5", "4", "7", "10")] == [1, 2, 4, 6]
+    with pytest.raises(EditError):
+        hr.edit_count("0", 100)
+    scores = hr.score_rows_job(env.session(), env.prepared_dir, env.base / "scores")
+    scores_path = Path(scores["run_dir"]) / "scores.json"
+    data = scores_path.read_bytes()
+    doc = json.loads(data)
+    ranked = hr.ranked_rows(doc)
+    values = {r["row_id"]: r["unsafe"] for r in doc["rows"] if r["valid"]}
+    assert all((-values[a], a) <= (-values[b], b) for a, b in zip(ranked, ranked[1:]))
+    tied = {**doc, "rows": [{**r, "unsafe": 0.5} if r["valid"] else r for r in doc["rows"]]}
+    assert hr.ranked_rows(tied) == sorted(values)                                      # ties: by row id
+    removal_data, removal = hr.build_remove(data, env.prepared, "10")
+    assert removal["remove"] == sorted(ranked[:6]) and removal["provenance"]["scores_sha256"] == sha256_bytes(data)
+    assert removal["provenance"]["count_base_training_rows"] == 58 and removal["provenance"]["pool"]["pool_rows"] == 44
+    random_data, random_doc = hr.build_random_removal(data, env.prepared, "10")
+    assert len(random_doc["remove"]) == 6 and set(random_doc["remove"]) <= set(env.pool)
+    assert hr.build_random_removal(data, env.prepared, "10")[0] == random_data             # the seed is pinned
+    assert parse_edit(removal_data, env.prepared).removed == frozenset(ranked[:6])
+    other = json.loads(data)
+    other["manifest_sha256"] = "0" * 64
+    with pytest.raises(EditError, match="another prepared dataset"):
+        hr.build_remove(json.dumps(other).encode(), env.prepared, "10")
+    with pytest.raises(EditError, match="stated source"):
+        hr.build_add([{"row_id": "add-x", "prompt": "p", "response": "r"}], env.prepared, "add", {})
+    out = env.base / "edits-out"
+    assert cli(["build-edits", "--prepared", str(env.prepared_dir), "--scores", str(scores_path), "--out", str(out)]) == 0
+    index = read_json(out / "index.json")
+    assert [e["file"] for e in index["edits"]] == ["remove-2.5.json", "remove-4.json", "remove-7.json", "remove-10.json",
+                                                   "random-remove-10.json"]
+    assert all(e["arm"] == arm_of((out / e["file"]).read_bytes()) for e in index["edits"])
+    assert (out / "remove-10.json").read_bytes() == removal_data and index["pending"]
+
+
+class ScriptedGenerator:
+    """The rewrite generator as a fixture: it answers from the request alone and records every
+    prompt it is given. 'bad' requests get an unsafe first draft and a refusal on the retry;
+    'worse' ones are unsafe both times; 'long' ones run into the cap first."""
+
+    def __init__(self) -> None:
+        self.tokenizer = fx.FixtureTokenizer()
+        self.seen: list[str] = []
+        self.identity = {"fixture": fx.FIXTURE}
+
+    def generate(self, prompts):
+        out = []
+        for ids in prompts:
+            text = self.tokenizer.decode(ids)
+            self.seen.append(text)
+            retry = hr.RETRY_SENTENCE in text
+            request = text.rsplit("<|im_start|>user\n", 1)[1].split("<|im_end|>", 1)[0]
+            if "worse" in request:
+                reply, stop = "!!! still unsafe", "eos"
+            elif "bad" in request:
+                reply, stop = ("Sorry, I can't help with that." if retry else "!!! unsafe details"), "eos"
+            elif "long" in request and not retry:
+                reply, stop = "an answer that never ends", "max_new_tokens"
+            else:
+                reply, stop = f"A safe reply to: {request}", "eos"
+            out.append(SimpleNamespace(output_ids=tuple(self.tokenizer.encode(reply)), stop_reason=stop))
+        return out
+
+
+def generator_and_guard(env):
+    scripted = ScriptedGenerator()
+    session = env.session()
+    guard = session.guard(runner.RunLedger(env.base / "guard-ledger"), env.base)
+    return scripted, hr.RewriteGenerator(scripted.tokenizer, scripted.generate, scripted.identity), guard
+
+
+def test_the_generator_sees_only_the_request_and_retries_once_before_excluding(env):
+    scripted, generator, guard = generator_and_guard(env)
+    rows = [("r1", "a plain question"), ("r2", "a bad request"), ("r3", "a worse request"), ("r4", "a long question")]
+    records = hr.generate_rewrites(rows, generator, guard, system=hr.APPENDIX_A_SYSTEM,
+                                   retry_system=hr.APPENDIX_A_SYSTEM + " " + hr.RETRY_SENTENCE,
+                                   policy_codec=fx.fixture_codec(), max_train_tokens=256)
+    by = {r["row_id"]: r for r in records}
+    assert (by["r1"]["status"], by["r1"]["attempt"], by["r1"]["response"]) == ("accepted", 1, "A safe reply to: a plain question")
+    assert (by["r2"]["status"], by["r2"]["attempt"]) == ("accepted", 2) and by["r2"]["response"].startswith("Sorry")
+    assert by["r2"]["attempts"][0]["guard"]["safety"] == "Unsafe" and by["r2"]["attempts"][1]["guard"]["safety"] == "Safe"
+    assert by["r3"]["status"] == "excluded" and by["r3"]["response"] is None and len(by["r3"]["attempts"]) == 2
+    assert by["r3"]["reason"] == "attempt 1: the guard judged the draft Unsafe; attempt 2: the guard judged the draft Unsafe"
+    assert (by["r4"]["status"], by["r4"]["attempt"]) == ("accepted", 2)
+    assert by["r4"]["attempts"][0]["problem"] == "the draft reached the generator's token cap"
+    assert len(scripted.seen) == 4 + 3                                                   # one retry each for three rows
+    assert all(hr.APPENDIX_A_SYSTEM in text for text in scripted.seen)
+    assert sum(hr.RETRY_SENTENCE in text for text in scripted.seen) == 3
+    again = hr.generate_rewrites(rows, generator, guard, system=hr.APPENDIX_A_SYSTEM,
+                                 retry_system=hr.APPENDIX_A_SYSTEM + " " + hr.RETRY_SENTENCE,
+                                 policy_codec=fx.fixture_codec(), max_train_tokens=256)
+    assert again == records                                                              # deterministic
+    with pytest.raises(ValueError, match="must differ"):
+        hr.generate_rewrites(rows, generator, guard, system="s", retry_system="s", policy_codec=fx.fixture_codec(),
+                             max_train_tokens=256)
+    too_long = hr.generate_rewrites([("r5", "a plain question " + "x" * 300)], generator, guard,
+                                    system=hr.APPENDIX_A_SYSTEM, retry_system=hr.APPENDIX_A_SYSTEM + " " + hr.RETRY_SENTENCE,
+                                    policy_codec=fx.fixture_codec(), max_train_tokens=256)
+    assert too_long[0]["status"] == "excluded" and "TooLong" in too_long[0]["reason"]
+
+
+def test_a_rewrite_edit_leaves_out_and_lists_the_rows_whose_replacement_was_excluded(env):
+    scores = hr.score_rows_job(env.session(), env.prepared_dir, env.base / "scores")
+    scores_data = (Path(scores["run_dir"]) / "scores.json").read_bytes()
+    top = hr.ranked_rows(json.loads(scores_data))[:6]
+    rows = [{"row_id": r, "status": "excluded" if i % 3 == 0 else "accepted",
+             "response": None if i % 3 == 0 else f"Safe replacement {i}.", "reason": "fixture exclusion" if i % 3 == 0 else None}
+            for i, r in enumerate(top)]
+    rewrites = json.dumps({"kind": hr.REWRITES_KIND, "version": 1, "manifest_sha256": env.sha,
+                           "scores_sha256": sha256_bytes(scores_data), "rows": rows}).encode()
+    data, doc = hr.build_rewrite(scores_data, rewrites, env.prepared, "10")
+    kept = [r["row_id"] for r in rows if r["status"] == "accepted"]
+    assert [r["row_id"] for r in doc["rewrite"]] == sorted(kept) and doc["counts"]["rewrite"] == 4
+    assert [e["row_id"] for e in doc["provenance"]["excluded"]] == [top[0], top[3]]
+    assert doc["provenance"]["rewritten"] == 4 and doc["provenance"]["count"] == 6
+    assert parse_edit(data, env.prepared).rewrite == {r["row_id"]: r["response"] for r in rows if r["status"] == "accepted"}
+    stale = json.loads(rewrites)
+    stale["scores_sha256"] = "0" * 64
+    with pytest.raises(EditError, match="other scores"):
+        hr.build_rewrite(scores_data, json.dumps(stale).encode(), env.prepared, "10")
+
+
+def test_the_rewrite_pipeline_end_to_end_scores_generates_builds_and_trains(env):
+    scripted, generator, _ = generator_and_guard(env)
+    config = json.loads(PC_REWRITE.read_text())
+    assert "DRAFT" not in config["purpose"] and hr.validate_rewrite_config(config) == config
+    draft = json.loads((PACKAGE / "configs" / "headroom-rewrite-draft-20261005.json").read_text())
+    assert {k: v for k, v in config.items() if k not in ("name", "purpose")} == \
+        {k: v for k, v in draft.items() if k not in ("name", "purpose")}
+    session = env.session()
+    scores = hr.score_rows_job(session, env.prepared_dir, env.base / "scores")
+    scores_path = Path(scores["run_dir"]) / "scores.json"
+    made = hr.generate_rewrites_job(config, session, env.prepared_dir, scores_path, env.base / "rewrites",
+                                    percent="10", generator=generator, policy_codec=fx.fixture_codec())
+    rewrites_path = Path(made["run_dir"]) / "rewrites.json"
+    doc = json.loads(rewrites_path.read_bytes())
+    top = hr.ranked_rows(json.loads(scores_path.read_bytes()))[:6]
+    chosen, count, seed = hr.random_rows(env.prepared, "10")
+    union = sorted(set(top) | set(chosen))                                 # the union of both sets, once each
+    assert count == len(chosen) == 6 and len(union) == 12 - len(set(top) & set(chosen))
+    assert [r["row_id"] for r in doc["rows"]] == union and made["rows"] == len(union)
+    assert (made["top_rows"], made["random_rows"]) == (6, 6)
+    for record in doc["rows"]:
+        assert record["sets"] == [s for s, rows in (("top-10", top), ("random-10", chosen)) if record["row_id"] in rows]
+    assert doc["random"] == {"percent": "10", "count": 6, "seed": seed, "rule": hr.RANDOM_RULE,
+                             "overlap_with_top": len(set(top) & set(chosen))}
+    responses = {env.prepared.train_rows[row]["response"] for row in union}
+    assert not any(response in text for response in responses for text in scripted.seen)  # never shown an original reply
+    assert all(env.prepared.train_rows[row]["prompt"] in text for row, text in zip(union, scripted.seen))
+    out = env.base / "edits"
+    built = hr.build_edits_job(env.prepared_dir, scores_path, out, rewrites_path=rewrites_path)
+    assert [e["file"] for e in built["edits"]] == [f"{kind}-{p}.json" for p in ("2.5", "4", "7", "10")
+                                                   for kind in ("remove", "rewrite")] + \
+        ["random-remove-10.json", "random-rewrite-10.json"]
+    random_remove = json.loads((out / "random-remove-10.json").read_bytes())
+    random_rewrite = json.loads((out / "random-rewrite-10.json").read_bytes())
+    excluded = [e["row_id"] for e in random_rewrite["provenance"]["excluded"]]
+    assert random_remove["remove"] == chosen and random_rewrite["edit_kind"] == "rewrite"
+    assert sorted([r["row_id"] for r in random_rewrite["rewrite"]] + excluded) == chosen   # exactly the same rows
+    assert random_rewrite["provenance"]["seed"] == random_remove["provenance"]["seed"] == seed
+    round_1 = env.base / "round-1"
+    assert cli(["build-edits", "--prepared", str(env.prepared_dir), "--scores", str(scores_path),
+                "--rewrites", str(rewrites_path), "--round", "1", "--out", str(round_1)]) == 0
+    index = read_json(round_1 / "index.json")
+    assert sorted(e["file"] for e in index["edits"]) == sorted(f"{name}.json" for name in hr.ROUND_1)
+    assert sorted(f.name for f in round_1.iterdir() if f.name.endswith(".json")) == sorted(
+        [f"{name}.json" for name in hr.ROUND_1] + ["index.json"])
+    assert index["only"] == list(hr.ROUND_1)
+    for entry in index["edits"]:                                           # the same bytes as the full build
+        assert (round_1 / entry["file"]).read_bytes() == (out / entry["file"]).read_bytes()
+    with pytest.raises(EditError, match="rewrites file"):
+        hr.build_edits_job(env.prepared_dir, scores_path, env.base / "no-rewrites", only=hr.ROUND_1)
+    assert not (env.base / "no-rewrites").exists()
+    rewrite_10 = next(e for e in built["edits"] if e["file"] == "rewrite-10.json")
+    rewrite_doc = json.loads((out / "rewrite-10.json").read_bytes())
+    assert rewrite_doc["provenance"]["rewrites_sha256"] == sha256_bytes(rewrites_path.read_bytes())
+    assert rewrite_doc["counts"]["rewrite"] + len(rewrite_doc["provenance"]["excluded"]) == 6
+    arm = rewrite_10["arm"]
+    run = runner.run_one(env.job(arm, edit=out / "rewrite-10.json"), prepared_dir=env.prepared_dir,
+                         out_dir=env.base / "train", session=session)
+    assert run["trajectory"]["edit"]["rewritten"] == rewrite_doc["counts"]["rewrite"]
+    assert verify_run(run["run_dir"], env.prepared_dir)["complete"]
+    with pytest.raises(ConfigError, match="Appendix A"):
+        hr.validate_rewrite_config({**config, "system_prompt": "something else"})
+
+
+def test_the_fixture_script_is_present_and_parses_its_arguments():
+    script = ROOT / "scripts" / "cuda_preflight_headroom.py"
+    done = subprocess.run([sys.executable, "-B", str(script), "--help"], cwd=ROOT, capture_output=True, text=True,
+                          env={"PYTHONPATH": str(ROOT), "PATH": "/usr/bin:/bin", "PYTHONDONTWRITEBYTECODE": "1"})
+    assert done.returncode == 0 and "--recipe" in done.stdout and "--prepared" in done.stdout
+    text = script.read_text()
+    assert "WRITTEN, NOT RUN" in text and "resume" in text and "bit_identical_to_a_padding_row" in text
+    assert "trained_rows_separated_from_padding" in text and "flag_untrained_looking" not in text
+
+
+# ----- 5. explicit edit sizes (headroom v2: k = the injection size) ---------------------------------------
+
+
+def test_an_explicit_count_builds_k_row_edits_and_records_its_count_base(env):
+    folder, _ = fx.prepare_dir_v3(env.base / "prepared-v3")
+    prepared = load_prepared(folder)
+    scripted, generator, _ = generator_and_guard(env)
+    session = env.session()
+    scores = hr.score_rows_job(session, folder, env.base / "scores-v3")
+    scores_path = Path(scores["run_dir"]) / "scores.json"
+    ranked = hr.ranked_rows(json.loads(scores_path.read_bytes()))
+    made = hr.generate_rewrites_job(json.loads(PC_REWRITE.read_text()), session, folder, scores_path,
+                                    env.base / "rewrites-v3", generator=generator, policy_codec=fx.fixture_codec(),
+                                    count="injection")
+    rewrites_path = Path(made["run_dir"]) / "rewrites.json"
+    rewrites = json.loads(rewrites_path.read_bytes())
+    chosen, count, seed = hr.random_rows(prepared, "k6")
+    assert (made["top_rows"], made["random_rows"], count) == (6, 6, 6)
+    assert seed == derive_seed(prepared.data_config["design_seed"], "headroom-random-removal", "k6")
+    assert {s for r in rewrites["rows"] for s in r["sets"]} <= {"top-k6", "random-k6"}
+    assert rewrites["random"]["rule"] == hr.RANDOM_RULE_EXPLICIT
+    out = env.base / "edits-k"
+    assert cli(["build-edits", "--prepared", str(folder), "--scores", str(scores_path), "--rewrites",
+                str(rewrites_path), "--count", "injection", "--out", str(out)]) == 0
+    index = read_json(out / "index.json")
+    assert [e["file"] for e in index["edits"]] == ["remove-k6.json", "rewrite-k6.json", "random-remove-k6.json",
+                                                   "random-rewrite-k6.json"]
+    assert (index["count"], index["size"]) == ("injection", "k6")
+    for entry in index["edits"]:
+        doc = json.loads((out / entry["file"]).read_bytes())
+        prov = doc["provenance"]
+        assert (prov["size"], prov["count"], prov["count_base"], prov["count_rule"]) == ("k6", 6, "explicit",
+                                                                                         hr.EXPLICIT_COUNT_RULE)
+        assert (prov["injected_rows"], prov["count_base_training_rows"]) == (6, 64) and "percent" not in prov
+    remove = json.loads((out / "remove-k6.json").read_bytes())
+    assert remove["remove"] == sorted(ranked[:6])                              # 6 rows, not 10% of 64 (= 6.4 -> 6)
+    random_remove = json.loads((out / "random-remove-k6.json").read_bytes())
+    random_rewrite = json.loads((out / "random-rewrite-k6.json").read_bytes())
+    excluded = [e["row_id"] for e in random_rewrite["provenance"]["excluded"]]
+    assert random_remove["remove"] == chosen == sorted([r["row_id"] for r in random_rewrite["rewrite"]] + excluded)
+    three = env.base / "edits-3"
+    hr.build_edits_job(folder, scores_path, three, count="3")
+    assert json.loads((three / "remove-k3.json").read_bytes())["remove"] == sorted(ranked[:3])
+    with pytest.raises(EditError, match="round"):
+        hr.build_edits_job(folder, scores_path, env.base / "x", rewrites_path=rewrites_path, only=hr.ROUND_1,
+                           count="injection")
+    with pytest.raises(EditError, match="no injected rows"):
+        hr.build_edits_job(env.prepared_dir, scores_path, env.base / "y", count="injection")
+    for bad in ("0", "-1", "k6", "six"):
+        with pytest.raises(EditError):
+            hr.resolve_count(bad, prepared)
+    assert hr.size_of("10", prepared)[1] == {"percent": "10", "count_rule": hr.COUNT_RULE, "count": 6,
+                                             "count_base_training_rows": 64}   # percent sizes: unchanged form

@@ -1,0 +1,174 @@
+{
+ "amendment": "research/experiments/2026-10-05-headroom-v2-amendment-draft.md",
+ "checkpoints": [
+  "e3"
+ ],
+ "early_edits_dir": "edits-remove-001",
+ "edit_files": [
+  "remove-k507.json",
+  "random-remove-k507.json",
+  "rewrite-k507.json",
+  "random-rewrite-k507.json"
+ ],
+ "engine_sha256": "0d55658c16b9ef4b31b02740402a1168c3de1156004b1d669219654da4cb7011",
+ "final_edits_dir": "edits-all-001",
+ "first_host_recipes": [
+  "experiments/safety_selection/configs/study-v3-headroom-pc2-20261005.json",
+  "experiments/safety_selection/configs/study-v3-headroom-pc2-mb4-20261005.json",
+  "experiments/safety_selection/configs/study-v3-headroom-pc2-eager-20261005.json"
+ ],
+ "fixture_compare": {
+  "equal_keys": [
+   "source",
+   "script_sha256",
+   "manifest_sha256",
+   "recipe_sha256",
+   "training_identity",
+   "test_rows"
+  ],
+  "resume_keys": [
+   "direct",
+   "loss_direct"
+  ]
+ },
+ "git_commit": "d796ba1515804aa5db3a6c5c98a47ab91efd0d10",
+ "hosts": {
+  "a0-1102": {
+   "arm": "a0",
+   "cap_hours": 3.25,
+   "prepared": "prepared-v3-inj05",
+   "role": "job",
+   "seed": 1102
+  },
+  "cal10": {
+   "arm": "a0",
+   "cap_hours": 3.0,
+   "prepared": "prepared-v3-inj10",
+   "role": "job",
+   "seed": 1101
+  },
+  "lead": {
+   "cap_hours": 4.5,
+   "prepared": "prepared-v3-inj05",
+   "role": "lead"
+  },
+  "rrw-1101": {
+   "arm": "edit-fdbf0411387c358a291b7739596c02d9bdc3dde61b5f2bf8b4f79414955d1f73",
+   "cap_hours": 3.25,
+   "edit": "random-rewrite-k507.json",
+   "edit_sha256": "fdbf0411387c358a291b7739596c02d9bdc3dde61b5f2bf8b4f79414955d1f73",
+   "prepared": "prepared-v3-inj05",
+   "role": "job",
+   "seed": 1101
+  },
+  "rrw-1102": {
+   "arm": "edit-fdbf0411387c358a291b7739596c02d9bdc3dde61b5f2bf8b4f79414955d1f73",
+   "cap_hours": 3.25,
+   "edit": "random-rewrite-k507.json",
+   "edit_sha256": "fdbf0411387c358a291b7739596c02d9bdc3dde61b5f2bf8b4f79414955d1f73",
+   "prepared": "prepared-v3-inj05",
+   "role": "job",
+   "seed": 1102
+  },
+  "rw-1101": {
+   "arm": "edit-a33ca05fb16d50bacef79311c946cc939d990f70f5f66bf808428728a37be5d7",
+   "cap_hours": 3.25,
+   "edit": "rewrite-k507.json",
+   "edit_sha256": "a33ca05fb16d50bacef79311c946cc939d990f70f5f66bf808428728a37be5d7",
+   "prepared": "prepared-v3-inj05",
+   "role": "job",
+   "seed": 1101
+  },
+  "rw-1102": {
+   "arm": "edit-a33ca05fb16d50bacef79311c946cc939d990f70f5f66bf808428728a37be5d7",
+   "cap_hours": 3.25,
+   "edit": "rewrite-k507.json",
+   "edit_sha256": "a33ca05fb16d50bacef79311c946cc939d990f70f5f66bf808428728a37be5d7",
+   "prepared": "prepared-v3-inj05",
+   "role": "job",
+   "seed": 1102
+  },
+  "val05": {
+   "arm": "a0",
+   "cap_hours": 3.5,
+   "prepared": "prepared-v3-inj05",
+   "role": "first",
+   "seed": 1101
+  }
+ },
+ "lead_prepared": "prepared-v3-inj05",
+ "lead_steps": [
+  {
+   "args": [
+    "score-rows",
+    "--recipe",
+    "experiments/safety_selection/configs/study-v3-headroom-pc2-mb4-20261005.json",
+    "--prepared",
+    "prepared-v3-inj05",
+    "--out",
+    "scores-001"
+   ],
+   "receipt": "lead-process-1-scores"
+  },
+  {
+   "args": [
+    "build-edits",
+    "--prepared",
+    "prepared-v3-inj05",
+    "--scores",
+    "scores-001/scores.json",
+    "--count",
+    "injection",
+    "--out",
+    "edits-remove-001"
+   ],
+   "receipt": "lead-process-2-edits-removal"
+  },
+  {
+   "args": [
+    "generate-rewrites",
+    "--config",
+    "experiments/safety_selection/configs/headroom-rewrite-pc2-20261005.json",
+    "--recipe",
+    "experiments/safety_selection/configs/study-v3-headroom-pc2-mb4-20261005.json",
+    "--prepared",
+    "prepared-v3-inj05",
+    "--scores",
+    "scores-001/scores.json",
+    "--count",
+    "injection",
+    "--out",
+    "rewrites-001"
+   ],
+   "receipt": "lead-process-3-rewrites"
+  },
+  {
+   "args": [
+    "build-edits",
+    "--prepared",
+    "prepared-v3-inj05",
+    "--scores",
+    "scores-001/scores.json",
+    "--rewrites",
+    "rewrites-001/rewrites.json",
+    "--count",
+    "injection",
+    "--out",
+    "edits-all-001"
+   ],
+   "receipt": "lead-process-4-edits-all"
+  }
+ ],
+ "name": "headroom-v2",
+ "preflight_prepared": "prepared-v3-inj10",
+ "prepared": {
+  "prepared-v3-inj05": "bd1e40df260c07773b387a0cb2af30321a194213149c241007dc7e027e34a76c",
+  "prepared-v3-inj10": "3dee8d75488cd8098b21c4d97494d86135629e223ca8f811bea5c6579b394591"
+ },
+ "recipe_path": "experiments/safety_selection/configs/study-v3-headroom-pc2-mb4-20261005.json",
+ "recipe_sha256": "68f13cd3739e6eb3ab1fa1ea5f010b6275718e2ce18c658df55f2e4beab27048",
+ "rewrite_config": "experiments/safety_selection/configs/headroom-rewrite-pc2-20261005.json",
+ "rewrites_file": "rewrites-001/rewrites.json",
+ "scores_file": "scores-001/scores.json",
+ "status": "development; validation and calibration first (Part 7 run plan within the balance; $6 reserve)"
+}

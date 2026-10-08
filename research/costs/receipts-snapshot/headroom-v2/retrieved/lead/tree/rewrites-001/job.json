@@ -1,0 +1,29 @@
+{
+  "config": {
+    "generator": {
+      "architecture": "Qwen2ForCausalLM",
+      "attn_implementation": "sdpa",
+      "batch_size": 16,
+      "dtype": "bfloat16",
+      "max_new_tokens": 2048,
+      "pad_token": "<|endoftext|>",
+      "repo_id": "Qwen/Qwen2.5-7B-Instruct",
+      "revision": "a09a35458c702b33eeacc393d103063234e8bc28",
+      "stop_tokens": [
+        "<|im_end|>",
+        "<|endoftext|>"
+      ]
+    },
+    "kind": "safety-selection rewrite config",
+    "name": "headroom-rewrite-pc2-20261005",
+    "purpose": "Headroom v2 (user decisions D5-D6): the positive-control rewrite generator headroom-rewrite-pc-20261005 unchanged (Qwen2.5-7B-Instruct, greedy, the Appendix A system and retry prompts, batch size 16) except the cap of new tokens, raised from 1,024 to 2,048 (in round 1, 58 of the 105 rows left unchanged in rewrite-10 had reached the cap), and sdpa attention (checked by the v3 A100 preflight; the eager fallback is headroom-rewrite-pc2-eager-20261005).",
+    "retry_system_prompt": "You write assistant replies for safety training data. Reply in the language of the request. If the request asks for something harmful, unsafe or illegal, refuse briefly, do not repeat harmful details, and suggest a safe alternative when one exists. If the request is harmless, answer it helpfully and accurately without harmful content. Output only the reply. A previous reply to this request was not judged safe: if in any doubt, refuse briefly.",
+    "system_prompt": "You write assistant replies for safety training data. Reply in the language of the request. If the request asks for something harmful, unsafe or illegal, refuse briefly, do not repeat harmful details, and suggest a safe alternative when one exists. If the request is harmless, answer it helpfully and accurately without harmful content. Output only the reply."
+  },
+  "kind": "generate-rewrites",
+  "manifest_sha256": "bd1e40df260c07773b387a0cb2af30321a194213149c241007dc7e027e34a76c",
+  "percent": "k507",
+  "random_percent": "k507",
+  "recipe_sha256": "68f13cd3739e6eb3ab1fa1ea5f010b6275718e2ce18c658df55f2e4beab27048",
+  "scores_sha256": "087042a73bfc0430cc97d018816ed20108653fa7d5eaf8dc76cea65bc844899f"
+}

@@ -5,6 +5,10 @@ skipping anything: a malformed line or record raises. Provenance is kept per row
 1-based line or record number, and the source's own identifier). ToxicChat ``model_output``
 and moderation fields are never returned: old outputs of other models are not outcomes here,
 and the ``toxicity`` label is kept only to choose the risky prompt pool.
+
+The headroom-v2 sources (``parse_pku``, ``parse_csv_table``) follow the same rules: the hash
+first, then a strict parse of every record with its position kept. Their texts are returned to
+the preparation only; nothing here prints or logs a prompt.
 """
 
 from __future__ import annotations
@@ -16,7 +20,8 @@ import json
 from .common import sha256_bytes
 
 __all__ = ["DataError", "HashMismatch", "LeakageError", "check_sha256", "parse_date_lm",
-           "parse_toxicchat", "parse_arc"]
+           "parse_toxicchat", "parse_arc", "parse_pku", "parse_csv_table", "PKU_FIELDS", "parse_dolly",
+           "DOLLY_FIELDS"]
 
 
 class DataError(ValueError):
@@ -169,3 +174,97 @@ def parse_arc(data: bytes, expected_sha256: str, split: str) -> tuple[list[dict]
                      "question": obj["question"], "labels": list(labels), "texts": list(texts),
                      "answer": obj["answerKey"]})
     return rows, blank
+
+
+PKU_FIELDS = ("prompt", "response_0", "response_1", "prompt_source", "response_0_source", "response_1_source",
+              "is_response_0_safe", "is_response_1_safe", "response_0_harm_category",
+              "response_1_harm_category", "response_0_severity_level", "response_1_severity_level",
+              "better_response_id", "safer_response_id", "response_0_sha256", "response_1_sha256")
+
+
+def parse_pku(data: bytes, expected_sha256: str, source: str) -> tuple[list[dict], dict]:
+    """PKU-SafeRLHF train JSONL (pinned revision): exactly ``PKU_FIELDS`` per record. Returns one
+    row per (record, response index) with ``line``, ``response_index``, ``prompt``,
+    ``response``, ``safe`` (bool), ``severity`` (int 0-3) and ``categories``: the harm-category
+    names marked true, in the dataset's own key order, which must be the same for every
+    response of the file (returned as ``category_order`` in the receipt)."""
+    check_sha256(data, expected_sha256, source)
+    lines, blank = _jsonl_lines(data, source)
+    rows, order = [], None
+    for number, line in lines:
+        where = f"{source}:{number}"
+        obj = _object(line, where)
+        if set(obj) != set(PKU_FIELDS):
+            raise DataError(f"{where}: fields differ from the pinned PKU-SafeRLHF schema")
+        prompt = obj["prompt"]
+        if not isinstance(prompt, str):
+            raise DataError(f"{where}: prompt is not a string")
+        for i in (0, 1):
+            response, safe = obj[f"response_{i}"], obj[f"is_response_{i}_safe"]
+            severity, harm = obj[f"response_{i}_severity_level"], obj[f"response_{i}_harm_category"]
+            if not isinstance(response, str) or not isinstance(safe, bool):
+                raise DataError(f"{where}: response_{i} or is_response_{i}_safe has the wrong type")
+            if not isinstance(severity, int) or isinstance(severity, bool) or not 0 <= severity <= 3:
+                raise DataError(f"{where}: response_{i}_severity_level must be an integer 0-3")
+            if not isinstance(harm, dict) or not all(isinstance(v, bool) for v in harm.values()):
+                raise DataError(f"{where}: response_{i}_harm_category must map names to booleans")
+            if order is None:
+                order = list(harm)
+            elif list(harm) != order:
+                raise DataError(f"{where}: harm categories differ in name or order from the first record")
+            rows.append({"source": source, "line": number, "response_index": i, "prompt": prompt,
+                         "response": response, "safe": safe, "severity": severity,
+                         "categories": [name for name in order if harm[name]]})
+    return rows, {"records": len(lines), "responses": len(rows), "blank_lines": blank,
+                  "category_order": order or []}
+
+
+def parse_csv_table(data: bytes, expected_sha256: str, source: str, header: list[str]) -> tuple[list[dict], dict]:
+    """A pinned CSV (RFC-4180 quoting, fields may span lines, optional BOM) whose header must
+    equal ``header``: one dict per data record with ``record`` (1-based) and every field."""
+    check_sha256(data, expected_sha256, source)
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise DataError(f"{source}: not UTF-8") from exc
+    bom = text.startswith("\ufeff")
+    csv.field_size_limit(max(csv.field_size_limit(), len(text)))
+    reader = csv.reader(io.StringIO(text[1:] if bom else text, newline=""), strict=True)
+    try:
+        first = next(reader)
+        if first != header:
+            raise DataError(f"{source}: header {first} differs from the pinned {header}")
+        rows = []
+        for number, record in enumerate(reader, start=1):
+            if len(record) != len(header):
+                raise DataError(f"{source} record {number}: {len(record)} fields, expected {len(header)}")
+            rows.append({"record": number, **dict(zip(header, record))})
+    except StopIteration as exc:
+        raise DataError(f"{source}: empty file") from exc
+    except csv.Error as exc:
+        raise DataError(f"{source}: malformed CSV: {exc}") from exc
+    return rows, {"records": len(rows), "bom": bom}
+
+
+DOLLY_FIELDS = ("instruction", "context", "response", "category")
+
+
+def parse_dolly(data: bytes, expected_sha256: str, source: str, categories: list[str]) -> tuple[list[dict], dict]:
+    """Dolly-format JSONL (kill test; ``prepare_task.py``): exactly ``DOLLY_FIELDS``, every one a
+    string, and a category from ``categories``. Returns one row per record with its 1-based
+    ``line`` and a receipt of records, blank lines and records per category."""
+    check_sha256(data, expected_sha256, source)
+    lines, blank = _jsonl_lines(data, source)
+    allowed, rows = set(categories), []
+    for number, line in lines:
+        where = f"{source}:{number}"
+        obj = _object(line, where)
+        if set(obj) != set(DOLLY_FIELDS):
+            raise DataError(f"{where}: fields differ from {list(DOLLY_FIELDS)}")
+        if not all(isinstance(obj[k], str) for k in DOLLY_FIELDS):
+            raise DataError(f"{where}: every field must be a string")
+        if obj["category"] not in allowed:
+            raise DataError(f"{where}: category is not one of the configured categories")
+        rows.append({"source": source, "line": number, **{k: obj[k] for k in DOLLY_FIELDS}})
+    by_category = {c: sum(r["category"] == c for r in rows) for c in categories}
+    return rows, {"records": len(rows), "blank_lines": blank, "records_by_category": by_category}

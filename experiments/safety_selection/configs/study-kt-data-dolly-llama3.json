@@ -1,0 +1,104 @@
+{
+  "kind": "safety-selection task data config",
+  "name": "study-kt-data-dolly-llama3",
+  "purpose": "Family probes (brief multi-family-probe-engine-20261007), Llama-3 (the Llama-3.1-8B tokenizer and its fixed-date template for both Llama probes, decision L1): study-kt-data-dolly's rows, units, task rows and banks re-audited with this tokenizer. Prepared before any probe outcome. Licence: Dolly-15k CC BY-SA 3.0.",
+  "amendments": [
+    "2026-10-08, multi-family probes: the tokenizer and end of turn are the family's; the forbidden substrings add '<|' (no Dolly row holds them; they cover the family's plain role markers and every <|...|> token); eligibility.exclude_lines [10024, 12405] excludes, at the token-audit step, the two rows that Qwen's audit dropped as over the limit and this tokenizer would keep, so every unit and task row equals prepared-kt-dolly's (lead decision 2); eligibility.expected.construction_sha256 asserts that (the auditor file of prepared-kt-dolly); banks_from.retokenize recomputes the token fields of the dev bank only, the one bank the probes evaluate; selector and hidden are copied byte for byte and not re-audited (lead decision 1)."
+  ],
+  "source": {
+    "repo_id": "databricks/databricks-dolly-15k",
+    "revision": "bdd27f4d94b9c1f951818a7da7fd7aeea5dbff1a",
+    "file": "databricks-dolly-15k.jsonl",
+    "sha256": "2df9083338b4abd6bceb5635764dab5d833b393b55759dffb0959b6fcbf794ec",
+    "license": "CC-BY-SA-3.0",
+    "local": "databricks-dolly-15k.jsonl",
+    "categories": [
+      "open_qa",
+      "general_qa",
+      "classification",
+      "closed_qa",
+      "brainstorming",
+      "information_extraction",
+      "summarization",
+      "creative_writing"
+    ]
+  },
+  "prompt_rule": "instruction-blank-line-context",
+  "units": {
+    "rows_per_unit": 600,
+    "task_rows_per_category": 25,
+    "round_down_to": 50
+  },
+  "banks_from": {
+    "manifest_sha256": "bd1e40df260c07773b387a0cb2af30321a194213149c241007dc7e027e34a76c",
+    "files": {
+      "banks/dev.jsonl": "637fa87fc66abee849c757cb61337b6da777ec0dec4b1f3326aa1995d214811b",
+      "banks/selector.jsonl": "ea89b9f2aad4b335d187bb60080a84b64e931e06af2cfcb0990733cb9a6ef1ac",
+      "hidden/hidden.jsonl": "0fb4759591c494c8db495e59e3c2bf4bb4326cfb95c6619331fbeba8e57ea063"
+    },
+    "retokenize": [
+      "banks/dev.jsonl"
+    ]
+  },
+  "eligibility": {
+    "forbidden_substrings": [
+      "<|im_start|>",
+      "<|im_end|>",
+      "<|endoftext|>",
+      "<|"
+    ],
+    "near_duplicate": {
+      "max_jaccard": 0.5
+    },
+    "expected": {
+      "records": {
+        "open_qa": 3742,
+        "general_qa": 2191,
+        "classification": 2136,
+        "closed_qa": 1773,
+        "brainstorming": 1766,
+        "information_extraction": 1506,
+        "summarization": 1188,
+        "creative_writing": 709
+      },
+      "eligible": {
+        "open_qa": 3672,
+        "general_qa": 2088,
+        "classification": 2132,
+        "closed_qa": 1731,
+        "brainstorming": 1757,
+        "information_extraction": 1492,
+        "summarization": 1166,
+        "creative_writing": 694
+      },
+      "rows_per_unit": 600,
+      "construction_sha256": "2f5802f5896915b4edb813ca2aa7bf1983d0eb5bd9fa7062da3055f3b84f483d"
+    },
+    "exclude_lines": [
+      10024,
+      12405
+    ]
+  },
+  "design_seed": 20261006,
+  "seed_namespaces": {
+    "development": [
+      1101,
+      2099
+    ],
+    "selector": [
+      2101,
+      8999
+    ],
+    "reference": [
+      9101,
+      9999
+    ]
+  },
+  "tokenizer": {
+    "repo_id": "meta-llama/Llama-3.1-8B-Instruct",
+    "revision": "0e9e39f249a16976918f6564b8830bc894c89659",
+    "end_of_turn_token": "<|eot_id|>",
+    "max_train_tokens": 3072,
+    "max_prompt_tokens": 1536
+  }
+}

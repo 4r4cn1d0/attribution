@@ -18,6 +18,12 @@ cross-code checkpoint mixing) and is exactly the planned a0 checkpoint: name, se
 stream, step, examples, AdamW step and hyperparameters; its receipts and the fingerprints and
 optimizer step it used are persisted.
 
+Edit arms (``edits.py``). A run-one job whose arm is ``edit-<sha256>`` trains on the prepared
+corpus changed by that edit file: its removed rows left out, its rewritten rows encoded with
+their replacement responses, its added rows inserted by the stated position rule. The file is
+loaded and checked before any model loads, and its exact bytes are copied into the run folder
+(``edit.json``), so the run carries what it trained on. Group arms and a0 are untouched by this.
+
 run-one trains one (split, arm, seed) trajectory from the seeded adapter, or continues it from
 the verified state saved by a complete earlier run of the same trajectory (identical data,
 recipe and code; adapter, AdamW moments and steps, RNG and stream position restored and
@@ -58,20 +64,20 @@ from typing import Sequence
 import torch
 
 from . import engine as en
-from .attribution import (ADAM, DEFINITIONS, GRADSIM, SIGN, adam_inverse_preconditioner,
-                          aggregate_groups, checkpoint_scores)
+from .attribution import (ADAM, DEFINITIONS, GRADSIM, ROW_WEIGHTING, SIGN, adam_inverse_preconditioner,
+                          aggregate_groups, checkpoint_scores, interval_rates, step_weights)
 from .common import (append_jsonl, canonical_json, code_identity, derive_seed, ids_sha256,
                      jsonl_bytes, read_json, sha256_bytes, sha256_file, write_atomic, write_json)
 from .config import (INIT, checkpoint_names, checkpoint_table, config_sha256, seed_namespace,
                      training_identity, validate_recipe)
 from .jobs import (AccessError, JobError, check_attribution_access, check_identities,
-                   check_run_access, claim_trajectory, require_code_pin, score_groups_role,
+                   check_run_access, claim_trajectory, is_edit_arm, require_code_pin, score_groups_role,
                    trajectory_key, validate_job)
 from .ledger import RunLedger, create_run_dir, read_complete, verify_files, write_complete
 from .loaders import Loaders, Policy, Toxicity
 from .prepare import Prepared, load_prepared, read_manifest
-from .scoring import (LABEL_SCORE_DEFINITION, GuardScorer, generation_summary, label_score_summary,
-                      utility_summary)
+from .scoring import (LABEL_SCORE_DEFINITION, GuardScorer, generation_summary, harm_prompt_rates, harm_summary,
+                      label_score_summary, overrefusal_summary, utility_summary)
 from .sources import DataError
 from .stream import StreamPlan, make_plan, micro_batches
 from .textproc import (GUARD_LABEL_SEQUENCES, QWEN_DEFAULT_SYSTEM, TemplateError, TrainExample,
@@ -303,17 +309,28 @@ def run_one(job: dict, *, prepared_dir: str | Path, out_dir: str | Path, session
     previous = _previous(job, recipe, code) if job["resume_from"] is not None else None
     prepared = load_prepared(prepared_dir, manifest_sha, banks=(bank,) if bank else (),
                              allow_hidden=bank == "hidden")
-    removed = prepared.removed_rows(job["split"], job["arm"])
+    edit = None
+    if is_edit_arm(job["arm"]):
+        from .edits import load_edit
+
+        edit = load_edit(job["edit"], job["arm"], prepared)
+        removed = sorted(edit.removed)
+    else:
+        removed = prepared.removed_rows(job["split"], job["arm"])
     run_dir = create_run_dir(out_dir)
     identity = _identity(manifest, manifest_sha, recipe, code)
     ledger = None
     try:
         ledger = _start(run_dir, job, identity, session, [previous["receipt"]] if previous else [])
+        if edit is not None:
+            from .edits import EDIT_FILE
+
+            write_atomic(run_dir / EDIT_FILE, edit.raw)
         if registry is not None and previous is None:
             claim_trajectory(registry, trajectory_key(manifest_sha, recipe, job["split"], job["arm"],
                                                       job["seed"], job["role"]),
                              str(run_dir), job["replicate_of"])
-        result = _train_and_evaluate(job, prepared, removed, previous, session, ledger, run_dir)
+        result = _train_and_evaluate(job, prepared, removed, previous, session, ledger, run_dir, edit)
         return _finish(run_dir, ledger, "run-one", identity, result)
     except BaseException as exc:
         _fail(run_dir, ledger, exc)
@@ -331,14 +348,24 @@ def _state_meta(job: dict, name: str, position: dict, plan: StreamPlan, cost: di
 
 
 def _train_and_evaluate(job: dict, prepared: Prepared, removed: list[str], previous: dict | None,
-                        session: Session, ledger: RunLedger, run_dir: Path) -> dict:
+                        session: Session, ledger: RunLedger, run_dir: Path, edit=None) -> dict:
     recipe, train = session.recipe, session.recipe["train"]
     policy = session.policy(ledger, run_dir)
     write_json(run_dir / "assets.json", {"policy": policy.identity, "environment": session.environment,
                                          "loaded_in": dict(session.loaded_in)})
     corpus = session.corpus(prepared, policy, ledger)
+    if edit is not None:
+        from .edits import edited_corpus
+
+        with ledger.stage("apply_edit", rewritten=len(edit.rewrite), added=len(edit.added)) as info:
+            corpus = edited_corpus(corpus, edit, prepared, policy.codec, recipe["model"]["max_train_tokens"])
+            info.update(edit_sha256=edit.sha256, removed=len(edit.removed))
     session.memory_preflight(corpus, policy, ledger, run_dir)
-    plan = make_plan(prepared.corpus, removed, job["seed"], train["micro_batch"], train["grad_accum"])
+    if edit is None:
+        plan = make_plan(prepared.corpus, removed, job["seed"], train["micro_batch"], train["grad_accum"])
+    else:
+        plan = make_plan(prepared.corpus, removed, job["seed"], train["micro_batch"], train["grad_accum"],
+                         edit.added_ids, edit.sha256)
     table = checkpoint_table(recipe)
     positions = {name: plan.checkpoint(fraction) for name, fraction in table}
     steps = [positions[name]["step"] for name, _ in table]
@@ -396,16 +423,20 @@ def _train_and_evaluate(job: dict, prepared: Prepared, removed: list[str], previ
         queries, query_sha = _query_examples(policy, prepared, recipe)
         evaluation = evaluate_checkpoint(session, policy, optimizer,
                                          prepared.banks[job["evaluate_bank"]], queries, query_sha,
-                                         ledger, run_dir / "eval" / target, run_dir, target)
+                                         ledger, run_dir / "eval" / target, run_dir, target, job["seed"],
+                                         prepared.manifest.get("query_loss_definition"))
     with ledger.stage("verify_trajectory") as info:
         problems = check_trajectory(trajectory_steps(run_dir), plan, positions[target]["step"])
         if problems:
             raise RunError(f"trained stream differs from the frozen plan: {problems[:3]}")
         info.update(steps_verified=positions[target]["step"])
-    return {"trajectory": {"split": job["split"], "arm": job["arm"], "seed": job["seed"],
-                           "role": job["role"], "stream_sha256": plan.sha256(),
-                           "retained_rows": plan.retained, "removed_rows": len(plan.removed),
-                           "steps_per_epoch": plan.steps_per_epoch, "init_fingerprint": init_fp},
+    trajectory = {"split": job["split"], "arm": job["arm"], "seed": job["seed"],
+                  "role": job["role"], "stream_sha256": plan.sha256(),
+                  "retained_rows": plan.retained, "removed_rows": len(plan.removed),
+                  "steps_per_epoch": plan.steps_per_epoch, "init_fingerprint": init_fp}
+    if edit is not None:
+        trajectory["edit"] = edit.summary()
+    return {"trajectory": trajectory,
             "target_checkpoint": target,
             "checkpoints": {name: {"step": s["step"], "examples_seen": s["examples_seen"],
                                    "adapter_fingerprint": s["adapter_fingerprint"],
@@ -424,6 +455,13 @@ def _train_segment(policy: Policy, optimizer, plan: StreamPlan, corpus: dict[str
                    run_dir: Path) -> dict:
     counts = _zero_cost()
     recent: list[float] = []
+    scheduled = train["lr_schedule"] != "constant"     # GI III round 5: the rate follows the global step alone
+    if scheduled:
+        until = dict(checkpoint_table({"train": train}))[train["schedule_until"]]
+        horizon = plan.checkpoint(until)["step"]
+        if last > horizon:
+            raise RunError(f"steps {first}..{last} run past the schedule's last step {horizon} "
+                           f"({train['schedule_until']}); the rate is not defined there")
     with ledger.stage("train", segment=label, first_step=first, last_step=last) as info:
         for step, epoch, rows in plan.iterate(first, last):
             ledger.check(f"train step {step}")
@@ -431,9 +469,18 @@ def _train_segment(policy: Policy, optimizer, plan: StreamPlan, corpus: dict[str
                 raise RunError(f"step {step}: empty batch or a removed row reached the sampler")
             examples = [corpus[r] for r in rows]
             started = ledger.elapsed()
-            out = en.train_step(policy.model, policy.named, optimizer, examples, train["micro_batch"],
-                                train["max_grad_norm"], policy.codec.pad_id, policy.device,
-                                train["lm_head_chunk_tokens"])
+            if scheduled:     # this step's rate during its update only; the saved state keeps the recipe's peak
+                rate = en.learning_rate(train["lr"], train["lr_schedule"], train["warmup_steps"], horizon, step)
+                for group in optimizer.param_groups:
+                    group["lr"] = rate
+            try:
+                out = en.train_step(policy.model, policy.named, optimizer, examples, train["micro_batch"],
+                                    train["max_grad_norm"], policy.codec.pad_id, policy.device,
+                                    train["lm_head_chunk_tokens"], train.get("loss_weighting", en.EXAMPLE_MEAN))
+            finally:
+                if scheduled:
+                    for group in optimizer.param_groups:
+                        group["lr"] = train["lr"]
             padded = sum(len(mb) * max(len(e.input_ids) for e in mb)
                          for mb in micro_batches(examples, train["micro_batch"]))
             inputs, targets = sum(len(e.input_ids) for e in examples), sum(e.n_target for e in examples)
@@ -442,7 +489,7 @@ def _train_segment(policy: Policy, optimizer, plan: StreamPlan, corpus: dict[str
                 "input_tokens": inputs, "target_tokens": targets, "padded_tokens": padded,
                 "loss": out["loss"], "example_losses": out["example_losses"],
                 "grad_norm_preclip": out["grad_norm_preclip"],
-                "seconds": ledger.elapsed() - started})
+                "seconds": ledger.elapsed() - started, **({"lr": rate} if scheduled else {})})
             counts["steps"] += 1
             counts["examples"] += len(rows)
             counts["input_tokens"] += inputs
@@ -517,18 +564,41 @@ def _forced_choice(policy: Policy, items: list[dict], recipe: dict, ledger: RunL
     return records, sum(len(s) for s in sequences)
 
 
+GENERATION_KINDS = ("safety", "arc_generation", "harm", "overrefusal")
+
+
+def sample_seed(job_seed: int, prompt_id: str, index: int) -> int:
+    """The seed of one sampled harm answer: (job seed, prompt id, sample index)."""
+    return derive_seed(job_seed, "harm-sample", prompt_id, index)
+
+
 def evaluate_checkpoint(session: Session, policy: Policy, optimizer, items: list[dict],
                         queries: list[TrainExample], query_bank_sha256: str, ledger: RunLedger,
-                        folder: Path, run_dir: Path, checkpoint: str) -> dict:
+                        folder: Path, run_dir: Path, checkpoint: str, job_seed: int | None = None,
+                        query_definition: str | None = None) -> dict:
     """The forward-only query loss, generation (safety and benign ARC prompts), ARC forced
     choice, guard scoring and the optional secondary toxicity score of one checkpoint, each in
     its own charged stage. Weights, optimizer state, RNG states and train/eval mode must be
-    identical afterwards (checked; RNG restored)."""
+    identical afterwards (checked; RNG restored).
+
+    Headroom v2 (banks with ``harm`` or ``overrefusal`` items; none of this runs otherwise): their
+    greedy answers join the generation stage; with ``generation.harm_samples`` each harm prompt also
+    gets that many sampled answers (``engine.SAMPLING_RULE``, seeded by ``sample_seed`` of the job
+    seed), all guard-labelled; every harm answer also gets its normalized label-sequence score.
+    Files: ``samples.jsonl``, ``guard_samples.jsonl``, ``harm_scores.jsonl``, ``harm_prompts.jsonl``;
+    summaries ``harm`` and ``overrefusal``."""
     recipe, codec, device = session.recipe, policy.codec, policy.device
     gen = recipe["generation"]
     folder.mkdir(parents=True)
     before = _training_state(policy, optimizer)
-    gen_items = [i for i in items if i["kind"] in ("safety", "arc_generation")]
+    gen_items = [i for i in items if i["kind"] in GENERATION_KINDS]
+    harm_items = [i for i in gen_items if i["kind"] == "harm"]
+    sampling = gen.get("harm_samples") if harm_items else None
+    # generation.guard_over_limit (config module doc): only then is an over-limit guard input a
+    # not-scored answer; without it the scorer refuses, so a recipe without the field is unchanged
+    over = {"over_limit_unscored": True} if gen.get("guard_over_limit") == "unscored" else {}
+    if sampling is not None and job_seed is None:
+        raise RunError("sampled harm answers need the job seed")
     mc_items = [i for i in items if i["kind"] == "arc_utility"]
     with en.preserved_rng(device):
         # Loading scorers can draw random numbers (module construction); the baseline for
@@ -547,7 +617,7 @@ def evaluate_checkpoint(session: Session, policy: Policy, optimizer, items: list
               "token_sha256": ids_sha256(q.input_ids), "loss": loss} for q, loss in zip(queries, losses)]))
         query_summary = {"n": len(losses), "mean": fmean(losses), "query_bank_sha256": query_bank_sha256,
                          "forward_passes": len(queries), "seconds": info["seconds"],
-                         "definition": en.QUERY_LOSS_DEFINITION}
+                         "definition": query_definition or en.QUERY_LOSS_DEFINITION}
         prompts = [_prompt_ids(codec, i, recipe["model"]["max_prompt_tokens"]) for i in gen_items]
 
         def on_batch(b: int, index: list[int], batch: list) -> None:
@@ -571,6 +641,26 @@ def evaluate_checkpoint(session: Session, policy: Policy, optimizer, items: list
                     "repetition_4gram": repeated_ngram_fraction(g.output_ids, 4)}
                    for item, ids, g in zip(gen_items, prompts, generations, strict=True)]
         write_atomic(folder / "generations.jsonl", jsonl_bytes(records))
+        sample_records: list[dict] = []
+        if sampling is not None:
+            ids_of = {item["prompt_id"]: ids for item, ids in zip(gen_items, prompts)}
+            todo = [(item, k, sample_seed(job_seed, item["prompt_id"], k))
+                    for item in harm_items for k in range(sampling["count"])]
+            with ledger.stage("sample", checkpoint=checkpoint, answers=len(todo)) as info:
+                sampled = en.sample_generate(
+                    policy.model, [ids_of[item["prompt_id"]] for item, _, _ in todo], [seed for _, _, seed in todo],
+                    temperature=sampling["temperature"], max_new_tokens=gen["max_new_tokens"], stop_ids=codec.stop_ids,
+                    pad_id=codec.pad_id, device=device, batch_size=gen["batch_size"],
+                    check=lambda what: ledger.check(f"sample {checkpoint} {what}"), on_batch=on_batch)
+                info.update(output_tokens=sum(len(g.output_ids) for g in sampled),
+                            capped=sum(g.stop_reason == en.STOP_CAP for g in sampled))
+            sample_records = [{"prompt_id": item["prompt_id"], "kind": "harm", "sample_index": k, "seed": seed,
+                               "answer_id": f"{item['prompt_id']}#s{k}", "output_ids": list(g.output_ids),
+                               "output_tokens": len(g.output_ids), "stop_reason": g.stop_reason,
+                               "stop_token": g.stop_token, "empty": not g.output_ids, "text": codec.decode(g.output_ids),
+                               "repetition_4gram": repeated_ngram_fraction(g.output_ids, 4)}
+                              for (item, k, seed), g in zip(todo, sampled, strict=True)]
+            write_atomic(folder / "samples.jsonl", jsonl_bytes(sample_records))
         with ledger.stage("arc_utility", checkpoint=checkpoint, questions=len(mc_items)) as info:
             mc_records, mc_tokens = _forced_choice(policy, mc_items, recipe, ledger, checkpoint)
             info.update(sequences=sum(len(r["labels"]) for r in mc_records), tokens=mc_tokens)
@@ -578,12 +668,34 @@ def evaluate_checkpoint(session: Session, policy: Policy, optimizer, items: list
         with ledger.stage("guard", checkpoint=checkpoint, items=len(records)) as info:
             guarded = guard.score([(r["prompt_id"], item["prompt"], r["text"])
                                    for r, item in zip(records, gen_items)],
-                                  check=lambda what: ledger.check(f"guard {checkpoint} {what}"))
+                                  check=lambda what: ledger.check(f"guard {checkpoint} {what}"), **over)
             info.update(guard_input_tokens=sum(g["guard_input_tokens"] or 0 for g in guarded),
                         guard_output_tokens=sum(g["guard_output_tokens"] or 0 for g in guarded),
                         invalid=sum(not g["valid"] for g in guarded))
         write_atomic(folder / "guard.jsonl", jsonl_bytes(
             [{"prompt_id": r["prompt_id"], "kind": r["kind"], **g} for r, g in zip(records, guarded)]))
+        prompt_of = {item["prompt_id"]: item["prompt"] for item in gen_items}
+        guarded_samples: list[dict] = []
+        if sample_records:
+            with ledger.stage("guard_samples", checkpoint=checkpoint, items=len(sample_records)) as info:
+                guarded_samples = guard.score([(r["answer_id"], prompt_of[r["prompt_id"]], r["text"]) for r in sample_records],
+                                              check=lambda what: ledger.check(f"guard samples {checkpoint} {what}"), **over)
+                info.update(invalid=sum(not g["valid"] for g in guarded_samples))
+            write_atomic(folder / "guard_samples.jsonl", jsonl_bytes(
+                [{"prompt_id": r["prompt_id"], "sample_index": r["sample_index"], **g}
+                 for r, g in zip(sample_records, guarded_samples)]))
+        harm_scores: dict[str, dict] = {}
+        if harm_items:
+            answers = [(f"{r['prompt_id']}#g", prompt_of[r["prompt_id"]], r["text"]) for r in records if r["kind"] == "harm"]
+            answers += [(r["answer_id"], prompt_of[r["prompt_id"]], r["text"]) for r in sample_records]
+            with ledger.stage("harm_scores", checkpoint=checkpoint, answers=len(answers)) as info:
+                scored = guard.label_scores(answers, check=lambda what: ledger.check(f"harm scores {checkpoint} {what}"),
+                                            **over)
+                info.update(unscored=sum(not r["valid"] for r in scored))
+            harm_scores = {r["item_id"]: r for r in scored}
+            write_atomic(folder / "harm_scores.jsonl", jsonl_bytes(
+                [{"answer_id": r["item_id"], "valid": r["valid"], "reason": r["reason"], "loglik": r["loglik"],
+                  "normalized": r["normalized"], "guard_input_tokens": r["guard_input_tokens"]} for r in scored]))
         toxicity_summary = None
         if toxicity is not None:
             with ledger.stage("secondary_toxicity", checkpoint=checkpoint, texts=len(records)) as info:
@@ -602,12 +714,22 @@ def evaluate_checkpoint(session: Session, policy: Policy, optimizer, items: list
     if _training_state(policy, optimizer) != before:
         raise RunError("evaluation changed the adapter, optimizer state, RNG state or mode")
     joined = [{**r, "guard": g} for r, g in zip(records, guarded)]
+    extra_summaries = {}
+    if harm_items:
+        greedy = [{**j, "answer_id": f"{j['prompt_id']}#g"} for j in joined if j["kind"] == "harm"]
+        samples = [{**r, "guard": g} for r, g in zip(sample_records, guarded_samples)]
+        per_prompt = harm_prompt_rates(greedy, samples, harm_scores)
+        write_atomic(folder / "harm_prompts.jsonl", jsonl_bytes(per_prompt))
+        extra_summaries["harm"] = harm_summary(greedy, samples, harm_scores, per_prompt, sampling)
+    if any(j["kind"] == "overrefusal" for j in joined):
+        extra_summaries["overrefusal"] = overrefusal_summary([j for j in joined if j["kind"] == "overrefusal"])
     summary = {"checkpoint": checkpoint, "query_loss": query_summary,
                "safety": generation_summary([j for j in joined if j["kind"] == "safety"]),
                "arc_generation": generation_summary([j for j in joined if j["kind"] == "arc_generation"]),
                "arc_utility": utility_summary(mc_records), "secondary_toxicity": toxicity_summary,
                "rng_consumed_inside_evaluation_then_restored": rng_consumed,
-               "generation": {"max_new_tokens": gen["max_new_tokens"], "batch_size": gen["batch_size"]}}
+               "generation": {"max_new_tokens": gen["max_new_tokens"], "batch_size": gen["batch_size"]},
+               **extra_summaries}
     write_json(folder / "summary.json", summary)
     ledger.record("evaluation", **summary)
     return summary
@@ -663,7 +785,7 @@ def eval_state(job: dict, *, prepared_dir: str | Path, out_dir: str | Path, sess
         queries, query_sha = _query_examples(policy, prepared, recipe)
         evaluation = evaluate_checkpoint(session, policy, None, prepared.banks[bank], queries, query_sha,
                                          ledger, run_dir / "eval" / job["checkpoint"], run_dir,
-                                         job["checkpoint"])
+                                         job["checkpoint"], stored["seed"], prepared.manifest.get("query_loss_definition"))
         result = {"source_run": str(source), "source_code_sha256": marker["identity"]["code_sha256"],
                   "source_recipe_sha256": marker["identity"]["recipe_sha256"],
                   "source_complete_sha256": receipt["complete_sha256"],
@@ -762,6 +884,16 @@ def attributes(job: dict, *, prepared_dir: str | Path, out_dir: str | Path, sess
             queries = [_verified_example(policy.codec, q["query_id"], q, recipe) for q in prepared.query_rows]
             info.update(rows=len(rows), queries=len(queries))
         query_bank_sha256 = _query_bank_sha256(prepared)
+        # under the token mean a row's share of its step is n_i / N_step, not 1 / E_step: the Adam proxy scales each
+        # row by n_i * E_step / N_step in its first-epoch step (attribution.step_weights); GradSim is scale-free
+        weights = (step_weights(plan, {rid: prepared.train_rows[rid]["target_tokens"] for rid in prepared.corpus}, members)
+                   if train.get("loss_weighting") == en.TOKEN_MEAN else None)
+        rates = None                 # under a warmup schedule each checkpoint's rate is its interval's mean (round 6)
+        if train["lr_schedule"] != "constant":
+            horizon = plan.checkpoint(dict(checkpoint_table(recipe))[train["schedule_until"]])["step"]
+            rates = interval_rates(lambda s: en.learning_rate(train["lr"], train["lr_schedule"], train["warmup_steps"],
+                                                              horizon, s),
+                                   {c: plan.checkpoint(fractions[c])["step"] for c in checkpoints})
         per_checkpoint: dict[str, dict] = {}
         for c in checkpoints:
             src = sources[c]
@@ -771,6 +903,8 @@ def attributes(job: dict, *, prepared_dir: str | Path, out_dir: str | Path, sess
                                       restore_rng_state=False)
                 group0 = state["param_groups"][0]
                 lr, beta2, eps = float(group0["lr"]), float(group0["betas"][1]), float(group0["eps"])
+                if rates is not None:                       # the interval's mean scheduled rate, not the saved peak
+                    lr = rates[c]["lr"]
                 inverse, step = adam_inverse_preconditioner(src["tensors"], [n for n, _ in policy.named],
                                                             beta2, eps)
                 if step != state["step"]:
@@ -779,7 +913,8 @@ def attributes(job: dict, *, prepared_dir: str | Path, out_dir: str | Path, sess
                 scores = checkpoint_scores(policy.model, policy.named, queries, rows, inverse=inverse,
                                            lr=lr, pad_id=policy.codec.pad_id, device=policy.device,
                                            chunk=train["lm_head_chunk_tokens"],
-                                           check=lambda what, c=c: ledger.check(f"attribution {c} {what}"))
+                                           check=lambda what, c=c: ledger.check(f"attribution {c} {what}"),
+                                           **({"weights": weights} if weights is not None else {}))
                 if (en.lora_fingerprint(policy.named), en.rng_digest(policy.device),
                         policy.model.training) != before:
                     raise RunError("attribution changed the adapter, RNG state or mode")
@@ -801,7 +936,9 @@ def attributes(job: dict, *, prepared_dir: str | Path, out_dir: str | Path, sess
               "per_checkpoint": {c: per_checkpoint[c]["rows"][rid] for c in checkpoints}}
              for rid in members]))
         write_json(run_dir / "groups.json", {"definitions": DEFINITIONS, "sign": SIGN,
-                                             "variants": [GRADSIM, ADAM], "groups": aggregates})
+                                             "variants": [GRADSIM, ADAM], "groups": aggregates,
+                                             **({"row_weighting": ROW_WEIGHTING} if weights is not None else {}),
+                                             **({"learning_rates": rates} if rates is not None else {})})
         write_json(run_dir / "queries.json", {
             "query_bank": "ref", "query_bank_sha256": query_bank_sha256, "n": len(queries),
             "loss_definition": en.QUERY_LOSS_DEFINITION,
@@ -824,6 +961,7 @@ def attributes(job: dict, *, prepared_dir: str | Path, out_dir: str | Path, sess
                  "cost_scope": "attribution stages and a0 train stages only; not total operation cost"}
         result = {"split": job["split"], "seed": job["seed"], "role": job["role"],
                   "group_ids": job["group_ids"], "checkpoints": checkpoints,
+                  **({"learning_rates": rates} if rates is not None else {}),
                   "query_bank_sha256": query_bank_sha256,
                   "optimizer_steps": {c: per_checkpoint[c]["step"] for c in checkpoints},
                   "query_loss_from_gradient_passes": {c: per_checkpoint[c]["query"]["mean_loss"]
@@ -1031,22 +1169,33 @@ def _attempt(out_root: Path, seed: int, arm: str, checkpoint: str, expected: dic
 
 def calibrate(*, prepared_dir: str | Path, out_root: str | Path, session: Session, arms: Sequence[str],
               seeds: Sequence[int], checkpoints: Sequence[str] | None = None, base_eval: bool = False,
-              wall_limit_seconds: float | None = None) -> dict:
+              wall_limit_seconds: float | None = None, edits: dict[str, str | Path] | None = None) -> dict:
     """Development calibration only: development groups and a0, development seeds, the
     development bank. Each (seed, arm) trajectory runs checkpoint by checkpoint (each a
     continuation of the previous). A complete unit is reused only if its stored job and
     identities equal the request (data, recipe, code, split, role, arm, seed, checkpoint, bank,
     resume source); any mismatch refuses. Failed attempts are preserved and retried in a new
-    folder; a same-seed retry is the same scientific draw and every attempt's cost counts."""
+    folder; a same-seed retry is the same scientific draw and every attempt's cost counts.
+    ``edits`` maps each edit arm (``edit-<sha256>``) among ``arms`` to its edit file; every file
+    is checked against its arm and the prepared data before anything runs."""
     recipe, code = session.recipe, code_identity()
     manifest, manifest_sha = read_manifest(prepared_dir)
     prepared = load_prepared(prepared_dir, manifest_sha)
     for seed in seeds:
         if seed_namespace(manifest["data_config"], seed) != "development":
             raise AccessError(f"seed {seed} is not a development seed")
+    edits = dict(edits or {})
     for arm in arms:
-        if arm != "a0" and arm not in prepared.groups["dev"]:
+        if is_edit_arm(arm):            # an edit arm: its file is checked now, before anything runs
+            from .edits import load_edit
+
+            if arm not in edits:
+                raise JobError(f"{arm} names an edit file that was not given")
+            load_edit(edits[arm], arm, prepared)
+        elif arm != "a0" and arm not in prepared.groups["dev"]:
             raise AccessError(f"{arm} is not a development group; calibration never touches held-out groups")
+    if set(edits) - set(arms):
+        raise JobError("an edit file was given for an arm that is not calibrated")
     names = [n for n in checkpoint_names(recipe) if n != INIT]
     if checkpoints is not None:
         if list(checkpoints) != [n for n in names if n in set(checkpoints)]:
@@ -1070,6 +1219,8 @@ def calibrate(*, prepared_dir: str | Path, out_root: str | Path, session: Sessio
             for name in chain:
                 job = {**template, "arm": arm, "seed": seed, "target_checkpoint": name,
                        "resume_from": str(previous) if previous else None}
+                if arm in edits:
+                    job["edit"] = str(edits[arm])
                 folder, done, incomplete = _attempt(out_root, seed, arm, name, job, identity)
                 if not done:
                     run_one(job, prepared_dir=prepared_dir, out_dir=folder, session=session, registry=registry)

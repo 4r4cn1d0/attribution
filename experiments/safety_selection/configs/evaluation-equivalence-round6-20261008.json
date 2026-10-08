@@ -1,0 +1,159 @@
+{
+ "kind": "engine evaluation-path equivalence",
+ "pairs": [
+  {
+   "base_code_sha256": "04eb83a3fca6fc77ae81d8975d52ae642f7efafb774759e01ca88b6c3fd51408",
+   "base_symbols_sha256": "9d2191e015c121bc9904a617e86a1a3c233bc82b577889fda8f871936c4ec50c",
+   "changed_files": [
+    "safety_selection/attribution.py",
+    "safety_selection/config.py",
+    "safety_selection/engine.py",
+    "safety_selection/runner.py"
+   ],
+   "changed_symbols": {
+    "attribution.py": [
+     "<docstring>",
+     "ROW_WEIGHTING",
+     "__all__",
+     "checkpoint_scores",
+     "step_weights"
+    ],
+    "config.py": [
+     "<docstring>",
+     "LOSS_TOKEN_MEAN",
+     "validate_recipe"
+    ],
+    "engine.py": [
+     "<docstring>",
+     "EXAMPLE_MEAN,TOKEN_MEAN",
+     "LOSS_WEIGHTINGS",
+     "SCHEDULES",
+     "accumulate_gradients",
+     "learning_rate",
+     "train_step"
+    ],
+    "runner.py": [
+     "<import from .attribution:names=ADAM,DEFINITIONS,GRADSIM,ROW_WEIGHTING,SIGN,adam_inverse_preconditioner,aggregate_groups,checkpoint_scores,step_weights>",
+     "<import from .attribution:names=ADAM,DEFINITIONS,GRADSIM,SIGN,adam_inverse_preconditioner,aggregate_groups,checkpoint_scores>",
+     "_train_segment",
+     "attributes"
+    ]
+   },
+   "code_sha256": "552538748acec1a8ffd1ee976b9eb3c3fdfe9ca01b8148ee8810291409357441",
+   "symbols_sha256": "49bde890f48c5916ea6685eb8434396dde44f18db8c65d5641742a89afa25925"
+  },
+  {
+   "base_code_sha256": "552538748acec1a8ffd1ee976b9eb3c3fdfe9ca01b8148ee8810291409357441",
+   "base_symbols_sha256": "49bde890f48c5916ea6685eb8434396dde44f18db8c65d5641742a89afa25925",
+   "changed_files": [
+    "safety_selection/attribution.py",
+    "safety_selection/config.py",
+    "safety_selection/engine.py",
+    "safety_selection/jobs.py",
+    "safety_selection/runner.py"
+   ],
+   "changed_symbols": {
+    "attribution.py": [
+     "<docstring>",
+     "__all__",
+     "interval_rates"
+    ],
+    "config.py": [
+     "<docstring>"
+    ],
+    "engine.py": [
+     "learning_rate"
+    ],
+    "jobs.py": [
+     "check_identities"
+    ],
+    "runner.py": [
+     "<import from .attribution:names=ADAM,DEFINITIONS,GRADSIM,ROW_WEIGHTING,SIGN,adam_inverse_preconditioner,aggregate_groups,checkpoint_scores,interval_rates,step_weights>",
+     "<import from .attribution:names=ADAM,DEFINITIONS,GRADSIM,ROW_WEIGHTING,SIGN,adam_inverse_preconditioner,aggregate_groups,checkpoint_scores,step_weights>",
+     "attributes"
+    ]
+   },
+   "code_sha256": "e49a978c5fa27c3ba4bb1570ac8b24501e09bf8db5c35e31ffba90bf775cdc06",
+   "symbols_sha256": "38a8b1f56fab0338ddd93354c72162a3613df8955d78c58319b5846ae40c1781"
+  },
+  {
+   "base_code_sha256": "04eb83a3fca6fc77ae81d8975d52ae642f7efafb774759e01ca88b6c3fd51408",
+   "base_symbols_sha256": "9d2191e015c121bc9904a617e86a1a3c233bc82b577889fda8f871936c4ec50c",
+   "changed_files": [
+    "safety_selection/attribution.py",
+    "safety_selection/config.py",
+    "safety_selection/engine.py",
+    "safety_selection/jobs.py",
+    "safety_selection/runner.py"
+   ],
+   "changed_symbols": {
+    "attribution.py": [
+     "<docstring>",
+     "ROW_WEIGHTING",
+     "__all__",
+     "checkpoint_scores",
+     "interval_rates",
+     "step_weights"
+    ],
+    "config.py": [
+     "<docstring>",
+     "LOSS_TOKEN_MEAN",
+     "validate_recipe"
+    ],
+    "engine.py": [
+     "<docstring>",
+     "EXAMPLE_MEAN,TOKEN_MEAN",
+     "LOSS_WEIGHTINGS",
+     "SCHEDULES",
+     "accumulate_gradients",
+     "learning_rate",
+     "train_step"
+    ],
+    "jobs.py": [
+     "check_identities"
+    ],
+    "runner.py": [
+     "<import from .attribution:names=ADAM,DEFINITIONS,GRADSIM,ROW_WEIGHTING,SIGN,adam_inverse_preconditioner,aggregate_groups,checkpoint_scores,interval_rates,step_weights>",
+     "<import from .attribution:names=ADAM,DEFINITIONS,GRADSIM,SIGN,adam_inverse_preconditioner,aggregate_groups,checkpoint_scores>",
+     "_train_segment",
+     "attributes"
+    ]
+   },
+   "code_sha256": "e49a978c5fa27c3ba4bb1570ac8b24501e09bf8db5c35e31ffba90bf775cdc06",
+   "symbols_sha256": "38a8b1f56fab0338ddd93354c72162a3613df8955d78c58319b5846ae40c1781"
+  }
+ ],
+ "rule": "scripts/evaluation_path.py: every top-level symbol of the engine files that differs between the two engines is in TRAINING_ONLY (each entry justified there) or an import from a side-effect-free engine module that shadows no name; a baseline evaluated by the base engine may then be paired with a fine-tune of the other (scripts/family_probe_reading.py), together with equal evaluation configs and equal pod environments",
+ "training_only": {
+  "attribution.py": [
+   "<docstring>",
+   "ROW_WEIGHTING",
+   "__all__",
+   "checkpoint_scores",
+   "interval_rates",
+   "step_weights"
+  ],
+  "config.py": [
+   "<docstring>",
+   "LOSS_TOKEN_MEAN",
+   "validate_recipe"
+  ],
+  "engine.py": [
+   "<docstring>",
+   "EXAMPLE_MEAN,TOKEN_MEAN",
+   "LOSS_WEIGHTINGS",
+   "SCHEDULES",
+   "__all__",
+   "accumulate_gradients",
+   "learning_rate",
+   "train_step"
+  ],
+  "jobs.py": [
+   "check_identities"
+  ],
+  "runner.py": [
+   "_train_segment",
+   "attributes"
+  ]
+ }
+}

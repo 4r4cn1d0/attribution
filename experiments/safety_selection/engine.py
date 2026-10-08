@@ -9,6 +9,15 @@ is example i's mean next-token NLL over its response targets (response plus end-
 Each micro-batch backpropagates sum(l_i)/E, so the accumulated gradient is exactly the
 gradient of the step objective whatever the micro-batch split. Logits are formed only at
 target positions, in chunks recomputed during backward, and cross-entropy runs in float32.
+Opt-in token mean (``TOKEN_MEAN``, recipe ``train.loss_weighting``): the step objective is
+(1/N) sum over every target token of S of its NLL, N = the step's total target tokens (response
+plus end-of-turn over the ACTUAL examples); each micro-batch backpropagates its token-NLL sum
+over N, so the normaliser is the step's total, never a micro-batch's. Example i's share of the
+step gradient is then (n_i / N) grad l_i instead of (1 / E) grad l_i.
+
+Opt-in learning-rate schedules (``learning_rate``, recipe ``train.lr_schedule``; GI III round 5): the runner sets the
+AdamW learning rate before each optimizer step from the 1-based GLOBAL step alone, so a resumed run gets the same
+rates. "constant" never touches it.
 
 Batches are right-padded with an attention mask; causal attention never lets a real token see
 a pad to its right, so positions need no adjustment. Generation is left-padded with explicit
@@ -22,6 +31,15 @@ token), teacher-forced log-probabilities and query losses must be finite, a trai
 refuses non-finite losses or gradient norms before updating, and a per-example gradient is
 refused when its loss is not finite (an infinite cross-entropy can still have a finite
 gradient). Each raises ``NonFiniteError``; the job fails and its folder is preserved.
+
+Trained token rows (optional, ``model.lora.trainable_tokens``). PEFT's trainable-token layer
+keeps a float32 copy of the chosen embedding rows as a trainable parameter and writes it over
+those rows of the frozen embedding at every forward. With tied embeddings PEFT puts a second
+layer on the output head that shares the same parameter, so the rows change on the input and
+the output side together and are counted once. ``lora_parameters`` then returns the LoRA
+matrices and that parameter (sorted by name); ``init_lora_state`` starts the rows from the base
+model's own rows; saving, loading and fingerprints cover them like every adapter tensor. A model
+without trained rows gets exactly what it got before.
 
 Batch layout changes reduced-precision numerics: bfloat16 outputs of a batch need not equal
 the same prompts run one at a time. ``prefill_logit_agreement`` checks masks and positions
@@ -45,9 +63,12 @@ import torch
 import torch.nn.functional as F
 from torch.utils.checkpoint import checkpoint as recompute
 
-from experiments.minimal_safety.model import (NonFiniteError, ZeroGradientError, init_lora_state,
-                                              load_lora_state, lora_fingerprint, lora_parameters,
-                                              make_optimizer, parameter_count)
+
+from experiments.minimal_safety.model import NonFiniteError, ZeroGradientError
+from experiments.minimal_safety.model import init_lora_state as _init_lora_matrices
+from experiments.minimal_safety.model import (load_lora_state, lora_fingerprint, make_optimizer,
+                                              parameter_count)
+from experiments.minimal_safety.model import lora_parameters as _lora_matrices
 
 from .common import json_line, read_json, sha256_file, write_json
 from .textproc import TrainExample
@@ -58,14 +79,96 @@ __all__ = ["Named", "NonFiniteError", "ZeroGradientError", "StateError", "init_l
            "accumulate_gradients", "train_step", "tensor_fingerprint", "optimizer_tensors",
            "optimizer_fingerprint", "param_groups", "capture_rng", "restore_rng", "rng_digest",
            "save_state", "load_state", "read_optimizer_tensors", "Generation", "STOP_EOS",
-           "STOP_CAP", "greedy_generate", "target_logprobs", "query_losses",
+           "STOP_CAP", "greedy_generate", "sample_generate", "SAMPLING_RULE", "target_logprobs", "query_losses",
            "QUERY_LOSS_DEFINITION", "example_gradient", "example_loss_and_gradient",
-           "prefill_logit_agreement", "ADAPTER", "OPTIMIZER", "RNG", "STATE"]
+           "prefill_logit_agreement", "ADAPTER", "OPTIMIZER", "RNG", "STATE", "TOKEN_ROWS",
+           "effective_embedding_weights", "token_row_report"]
 
 Named = list[tuple[str, torch.nn.Parameter]]
 Check = Callable[[str], None]
 ADAPTER, OPTIMIZER, RNG, STATE = ("adapter.safetensors", "optimizer.safetensors",
                                   "rng.safetensors", "state.json")
+TOKEN_ROWS = ".trainable_tokens_delta."      # the name part of PEFT's trained token rows
+_ORIGINAL = "_safety_selection_original_rows"   # attribute holding a token-row parameter's base rows
+
+
+def lora_parameters(model: torch.nn.Module) -> Named:
+    """The adapter's trainable parameters, sorted by name: the LoRA A/B matrices and, when the
+    recipe trains token rows, PEFT's token-row parameter. Without token rows this is exactly
+    the minimal-safety rule (only LoRA matrices may train)."""
+    rows = [(n, p) for n, p in model.named_parameters() if TOKEN_ROWS in n]
+    if not rows:
+        return _lora_matrices(model)
+    named = sorted(((n, p) for n, p in model.named_parameters() if p.requires_grad), key=lambda item: item[0])
+    other = [n for n, _ in named if ".lora_A." not in n and ".lora_B." not in n and TOKEN_ROWS not in n]
+    if other:
+        raise ValueError(f"trainable parameters outside LoRA and the token rows: {other[:3]}")
+    frozen = [n for n, p in model.named_parameters()
+              if (".lora_A." in n or ".lora_B." in n or TOKEN_ROWS in n) and not p.requires_grad]
+    if frozen:
+        raise ValueError(f"frozen adapter parameters: {frozen[:3]}")
+    for module in model.modules():                   # the base model's own rows: where the token rows start
+        deltas, originals = getattr(module, "trainable_tokens_delta", None), getattr(module, "trainable_tokens_original", None)
+        if deltas is None or originals is None:
+            continue
+        for adapter, param in deltas.items():
+            if not hasattr(param, _ORIGINAL):
+                setattr(param, _ORIGINAL, originals[adapter].detach().to("cpu", torch.float32).clone())
+    missing = [n for n, p in named if TOKEN_ROWS in n and not hasattr(p, _ORIGINAL)]
+    if missing:
+        raise ValueError(f"token rows without the base model's original rows: {missing}")
+    return named
+
+
+def init_lora_state(named: Named, seed: int) -> dict[str, torch.Tensor]:
+    """The seeded adapter: the minimal-safety LoRA initialization (A uniform from the seed's
+    stream, B zero) and the token rows equal to the base model's own rows, so the seeded model
+    computes exactly what the base model computes."""
+    matrices = [(n, p) for n, p in named if TOKEN_ROWS not in n]
+    state = _init_lora_matrices(matrices, seed)
+    for name, param in named:
+        if TOKEN_ROWS in name:
+            state[name] = getattr(param, _ORIGINAL).clone()
+    return state
+
+
+def effective_embedding_weights(model: Any) -> tuple[torch.Tensor, torch.Tensor]:
+    """(input embedding, output head) weights as the model's forward uses them, with any trained
+    token rows written in."""
+    lm = causal_lm(model)
+
+    def effective(module: Any) -> torch.Tensor:
+        adapter = getattr(module, "token_adapter", None)
+        if adapter is not None:
+            return adapter.get_merged_weights(adapter.active_adapters).detach()
+        return module.weight.detach()
+
+    return effective(lm.get_input_embeddings()), effective(lm.get_output_embeddings())
+
+
+def token_row_report(weights: torch.Tensor, token_ids: dict[str, int], padding_ids: Sequence[int]) -> dict:
+    """Each token's row against never-used padding rows: its norm, its cosine to the padding
+    rows' mean, its largest cosine to any padding row, and whether it is bit-identical to one of
+    them; with the padding rows' and ordinary rows' median norms for scale."""
+    w = weights.detach().to("cpu", torch.float32)
+    pad = w[list(padding_ids)]
+    mean = pad.mean(dim=0)
+    unit = torch.nn.functional.normalize(pad, dim=1)
+    excluded = set(padding_ids) | set(token_ids.values())
+    ordinary = [i for i in range(w.shape[0]) if i not in excluded]
+    raw = weights.detach().to("cpu")
+    padding_raw = raw[list(padding_ids)]
+    out = {"padding_rows": len(padding_ids), "padding_median_norm": float(pad.norm(dim=1).median()),
+           "ordinary_median_norm": float(w[ordinary].norm(dim=1).median()) if ordinary else None,
+           "padding_rows_all_identical": bool((padding_raw == padding_raw[:1]).all()), "tokens": {}}
+    for token, index in token_ids.items():
+        row = w[index]
+        out["tokens"][token] = {
+            "id": index, "norm": float(row.norm()),
+            "cosine_to_padding_mean": float(torch.nn.functional.cosine_similarity(row, mean, dim=0)),
+            "max_cosine_to_padding": float((unit @ torch.nn.functional.normalize(row, dim=0)).max()),
+            "bit_identical_to_a_padding_row": bool((padding_raw == raw[index]).all(dim=1).any())}
+    return out
 STOP_EOS, STOP_CAP = "eos", "max_new_tokens"
 QUERY_LOSS_DEFINITION = ("per query row, the training loss: mean next-token NLL over its response "
                          "plus end-of-turn targets (float32 cross-entropy, full text, no "
@@ -150,11 +253,49 @@ def example_losses(model: Any, examples: Sequence[TrainExample], pad_id: int, de
     return torch.stack([p.mean() for p in parts])
 
 
+EXAMPLE_MEAN, TOKEN_MEAN = "example_mean", "token_mean"
+LOSS_WEIGHTINGS = (EXAMPLE_MEAN, TOKEN_MEAN)
+SCHEDULES = ("constant", "warmup_cosine", "warmup_constant")
+
+
+def learning_rate(peak: float, schedule: str, warmup: int, total: int, step: int) -> float:
+    """The learning rate of 1-based optimizer step ``step`` of a run whose schedule ends at step ``total``.
+
+    HF transformers' definitions exactly (``get_cosine_schedule_with_warmup`` with num_cycles 0.5, and
+    ``get_constant_schedule_with_warmup``): HF multiplies the peak by lambda(k), where k counts the scheduler steps
+    taken BEFORE this optimizer step, so k = step - 1: lambda(k) = k / max(1, warmup) while k < warmup, then
+    max(0, 0.5 * (1 + cos(pi * (k - warmup) / max(1, total - warmup)))) for the cosine (1 for the constant). Step 1
+    therefore runs at 0, the peak is first used at step warmup + 1, and the cosine reaches 0 only after step
+    ``total`` (HF's last scheduler value; the last update uses lambda(total - 1) > 0)."""
+    if schedule == "constant":
+        return peak
+    if schedule not in SCHEDULES or warmup < 1 or not 1 <= step <= total:
+        raise ValueError(f"no rate for step {step} of a {schedule!r} schedule over {total} steps (warmup {warmup})")
+    k = step - 1
+    if k < warmup:
+        return peak * (k / max(1, warmup))              # HF's order: lambda first, then the peak times it
+    if schedule == "warmup_constant":
+        return peak
+    progress = (k - warmup) / max(1, total - warmup)
+    return peak * max(0.0, 0.5 * (1.0 + math.cos(math.pi * progress)))
+
+
 def accumulate_gradients(model: Any, examples: Sequence[TrainExample], micro_batch: int,
-                         pad_id: int, device: str, chunk: int) -> list[float]:
-    """Backpropagate the step objective (1/E) sum_i l_i over the ACTUAL E examples in
-    micro-batches of at most ``micro_batch``; returns each example's loss."""
+                         pad_id: int, device: str, chunk: int, weighting: str = EXAMPLE_MEAN) -> list[float]:
+    """Backpropagate the step objective over the ACTUAL E examples in micro-batches of at most
+    ``micro_batch``: (1/E) sum_i l_i by default, or with ``TOKEN_MEAN`` the token-NLL sum over the
+    step's total target tokens N (module doc). Returns each example's mean target NLL l_i."""
+    if weighting not in LOSS_WEIGHTINGS:
+        raise ValueError(f"unknown loss weighting {weighting!r}")
     total, values = len(examples), []
+    if weighting == TOKEN_MEAN:
+        tokens = sum(e.n_target for e in examples)
+        for start in range(0, total, micro_batch):
+            batch = examples[start:start + micro_batch]
+            parts = _target_nll(model, [e.input_ids for e in batch], [e.n_target for e in batch], pad_id, device, chunk)
+            (torch.cat(parts).sum() / tokens).backward()
+            values += [float(p.detach().float().mean().cpu()) for p in parts]
+        return values
     for start in range(0, total, micro_batch):
         losses = example_losses(model, examples[start:start + micro_batch], pad_id, device, chunk)
         (losses.sum() / total).backward()
@@ -164,11 +305,12 @@ def accumulate_gradients(model: Any, examples: Sequence[TrainExample], micro_bat
 
 def train_step(model: Any, named: Named, optimizer: torch.optim.Optimizer,
                examples: Sequence[TrainExample], micro_batch: int, max_grad_norm: float,
-               pad_id: int, device: str, chunk: int) -> dict:
-    """One optimizer step; refuses non-finite losses or gradients before updating."""
+               pad_id: int, device: str, chunk: int, weighting: str = EXAMPLE_MEAN) -> dict:
+    """One optimizer step; refuses non-finite losses or gradients before updating. ``loss`` is
+    the step objective: the mean of the example losses, or with ``TOKEN_MEAN`` the token mean."""
     model.train()
     optimizer.zero_grad(set_to_none=True)
-    losses = accumulate_gradients(model, examples, micro_batch, pad_id, device, chunk)
+    losses = accumulate_gradients(model, examples, micro_batch, pad_id, device, chunk, weighting)
     missing = [name for name, p in named if p.grad is None]
     if missing:
         raise RuntimeError(f"LoRA parameters without gradients: {missing[:3]}")
@@ -177,6 +319,9 @@ def train_step(model: Any, named: Named, optimizer: torch.optim.Optimizer,
         raise NonFiniteError(f"non-finite step: losses {losses}, gradient norm {norm}")
     optimizer.step()
     optimizer.zero_grad(set_to_none=True)
+    if weighting == TOKEN_MEAN:
+        step_loss = math.fsum(l * e.n_target for l, e in zip(losses, examples)) / sum(e.n_target for e in examples)
+        return {"loss": step_loss, "example_losses": losses, "grad_norm_preclip": norm}
     return {"loss": sum(losses) / len(losses), "example_losses": losses, "grad_norm_preclip": norm}
 
 
@@ -351,9 +496,39 @@ def _checked_argmax(logits: torch.Tensor, active: Sequence[bool], where: str) ->
     return logits.argmax(-1).tolist()
 
 
+SAMPLING_RULE = ("ancestral sampling: each row has its own torch.Generator on the logits' device seeded with its "
+                 "seed; at every step an active row draws one token with torch.multinomial(softmax(logits.float() / "
+                 "temperature), 1, generator=its generator) (top-p 1.0: no truncation); a finished row draws "
+                 "nothing, so a row's draws do not depend on its batch")
+
+
+def _sampler(seeds: Sequence[int], temperature: float):
+    """A token chooser for ``_greedy_batch`` that samples each active row from its own generator
+    (``SAMPLING_RULE``), after the same finiteness check as greedy decoding."""
+    generators: list[torch.Generator] = []
+
+    def choose(logits: torch.Tensor, active: Sequence[bool], where: str) -> list[int]:
+        _checked_argmax(logits, active, where)           # the finiteness check; its argmax is unused
+        if not generators:
+            for seed in seeds:
+                generator = torch.Generator(device=logits.device)
+                generator.manual_seed(int(seed) % (2 ** 63))
+                generators.append(generator)
+        tokens = [0] * len(active)
+        for i, alive in enumerate(active):
+            if alive:
+                probs = torch.softmax(logits[i].float() / temperature, dim=-1)
+                tokens[i] = int(torch.multinomial(probs, 1, generator=generators[i]).item())
+        return tokens
+
+    return choose
+
+
 @torch.no_grad()
 def _greedy_batch(model: Any, prompts: Sequence[Sequence[int]], max_new_tokens: int,
-                  stop_ids: Sequence[int], pad_id: int, device: str, check: Check) -> list[Generation]:
+                  stop_ids: Sequence[int], pad_id: int, device: str, check: Check,
+                  choose: Callable[[torch.Tensor, Sequence[bool], str], list[int]] = _checked_argmax
+                  ) -> list[Generation]:
     lm = causal_lm(model)
     rows = len(prompts)
     ids, mask, positions = _left_padded(prompts, pad_id, device)
@@ -361,7 +536,7 @@ def _greedy_batch(model: Any, prompts: Sequence[Sequence[int]], max_new_tokens: 
     out = lm(input_ids=ids, attention_mask=mask, position_ids=positions, use_cache=True,
              logits_to_keep=1)
     cache, last = out.past_key_values, positions[:, -1]
-    tokens = _checked_argmax(out.logits[:, -1, :], [True] * rows, "the prompt pass")
+    tokens = choose(out.logits[:, -1, :], [True] * rows, "the prompt pass")
     stop = set(stop_ids)
     new: list[list[int]] = [[] for _ in range(rows)]
     done: list[Generation | None] = [None] * rows
@@ -385,18 +560,20 @@ def _greedy_batch(model: Any, prompts: Sequence[Sequence[int]], max_new_tokens: 
         out = lm(input_ids=feed, attention_mask=mask, position_ids=last[:, None],
                  past_key_values=cache, use_cache=True, logits_to_keep=1)
         cache = out.past_key_values
-        tokens = _checked_argmax(out.logits[:, -1, :], [d is None for d in done], f"token {k + 1}")
+        tokens = choose(out.logits[:, -1, :], [d is None for d in done], f"token {k + 1}")
     return [d for d in done if d is not None]
 
 
 def greedy_generate(model: Any, prompts: Sequence[Sequence[int]], *, max_new_tokens: int,
                     stop_ids: Sequence[int], pad_id: int, device: str, batch_size: int,
                     check: Check | None = None,
-                    on_batch: Callable[[int, list[int], list[Generation]], None] | None = None
+                    on_batch: Callable[[int, list[int], list[Generation]], None] | None = None,
+                    _sampling: tuple[Sequence[int], float] | None = None
                     ) -> list[Generation]:
     """Greedy decoding in eval mode (previous mode restored) for each prompt, in batches of
     similar length (sorted by length, then position: a fixed composition for a fixed prompt
-    list and batch size, the frozen batching policy). Results are returned in input order."""
+    list and batch size, the frozen batching policy). Results are returned in input order.
+    (``sample_generate`` reuses this loop with a seeded sampler instead of the argmax.)"""
     check = check or _no_check
     order = sorted(range(len(prompts)), key=lambda i: (len(prompts[i]), i))
     results: list[Generation | None] = [None] * len(prompts)
@@ -405,8 +582,9 @@ def greedy_generate(model: Any, prompts: Sequence[Sequence[int]], *, max_new_tok
     try:
         for b, start in enumerate(range(0, len(order), batch_size)):
             index = order[start:start + batch_size]
+            choose = _checked_argmax if _sampling is None else _sampler([_sampling[0][i] for i in index], _sampling[1])
             batch = _greedy_batch(model, [prompts[i] for i in index], max_new_tokens, stop_ids,
-                                  pad_id, device, lambda what, b=b: check(f"generation batch {b} {what}"))
+                                  pad_id, device, lambda what, b=b: check(f"generation batch {b} {what}"), choose)
             if len(batch) != len(index):
                 raise RuntimeError("internal: a generation row did not finish")
             for i, generation in zip(index, batch):
@@ -416,6 +594,21 @@ def greedy_generate(model: Any, prompts: Sequence[Sequence[int]], *, max_new_tok
     finally:
         model.train(was_training)
     return [r for r in results if r is not None]
+
+
+def sample_generate(model: Any, prompts: Sequence[Sequence[int]], seeds: Sequence[int], *, temperature: float,
+                    max_new_tokens: int, stop_ids: Sequence[int], pad_id: int, device: str, batch_size: int,
+                    check: Check | None = None,
+                    on_batch: Callable[[int, list[int], list[Generation]], None] | None = None) -> list[Generation]:
+    """One sampled answer per prompt (``SAMPLING_RULE``; ``seeds[i]`` seeds prompt i's own
+    generator), batched exactly like ``greedy_generate``; the global RNG is never used."""
+    if len(seeds) != len(prompts):
+        raise ValueError("one seed per prompt")
+    if not temperature > 0:
+        raise ValueError("temperature must be positive")
+    return greedy_generate(model, prompts, max_new_tokens=max_new_tokens, stop_ids=stop_ids, pad_id=pad_id,
+                           device=device, batch_size=batch_size, check=check, on_batch=on_batch,
+                           _sampling=(list(seeds), float(temperature)))
 
 
 @torch.no_grad()

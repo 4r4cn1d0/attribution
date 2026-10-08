@@ -1,0 +1,129 @@
+{
+  "kind": "safety-selection recipe",
+  "name": "study-v3-headroom-pc2-20261005",
+  "purpose": "Headroom v2 (amendment draft 2026-10-05, user decisions D5-D6), the primary choice: the frozen positive-control recipe study-v3-headroom-pc-20261005 unchanged except attention (sdpa for the policy and the guard), micro-batch 8 x accumulation 1 (the same effective batch of 8), and three sampled answers per harm-bank prompt at temperature 0.7, top-p 1.0 (generation.harm_samples). Chosen by the v3 A100 preflight (scripts/cuda_preflight_headroom_v3.py) before any v3 outcome; not frozen until then.",
+  "model": {
+    "repo_id": "Qwen/Qwen2.5-1.5B",
+    "revision": "8faed761d45a263340a0528343f099c05c9a4323",
+    "architecture": "Qwen2ForCausalLM",
+    "base_dtype": "bfloat16",
+    "trainable_dtype": "float32",
+    "attn_implementation": "sdpa",
+    "device": "cuda",
+    "end_of_turn_token": "<|im_end|>",
+    "stop_tokens": [
+      "<|im_end|>",
+      "<|endoftext|>"
+    ],
+    "pad_token": "<|endoftext|>",
+    "max_train_tokens": 3072,
+    "max_prompt_tokens": 1536,
+    "lora": {
+      "r": 64,
+      "alpha": 128,
+      "dropout": 0.0,
+      "target_modules": [
+        "q_proj",
+        "k_proj",
+        "v_proj",
+        "o_proj",
+        "gate_proj",
+        "up_proj",
+        "down_proj"
+      ],
+      "expected_trainable_parameters": 73862144,
+      "trainable_tokens": [
+        "<|im_start|>",
+        "<|im_end|>"
+      ]
+    },
+    "tokenizer": {
+      "repo_id": "Qwen/Qwen2.5-1.5B-Instruct",
+      "revision": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306"
+    }
+  },
+  "train": {
+    "micro_batch": 8,
+    "grad_accum": 1,
+    "batching": "consecutive examples of one epoch's order; an epoch's final optimizer step keeps its actual size; steps never cross epochs",
+    "loss": "per-example mean NLL over response target tokens (response plus end-of-turn), averaged over the actual examples of each optimizer step",
+    "optimizer": "AdamW",
+    "lr": 0.0002,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "eps": 1e-08,
+    "weight_decay": 0.0,
+    "lr_schedule": "constant",
+    "max_grad_norm": 1.0,
+    "gradient_checkpointing": false,
+    "lm_head_chunk_tokens": 1024,
+    "checkpoints": [
+      {
+        "name": "q",
+        "epochs": [
+          1,
+          4
+        ]
+      },
+      {
+        "name": "e1",
+        "epochs": [
+          1,
+          1
+        ]
+      },
+      {
+        "name": "e3",
+        "epochs": [
+          3,
+          1
+        ]
+      }
+    ]
+  },
+  "generation": {
+    "decoding": "greedy",
+    "max_new_tokens": 2048,
+    "batch_size": 32,
+    "harm_samples": {
+      "count": 3,
+      "temperature": 0.7,
+      "top_p": 1.0
+    }
+  },
+  "arc": {
+    "template": "arc-easy-mc-v1",
+    "batch_size": 32
+  },
+  "guard": {
+    "repo_id": "Qwen/Qwen3Guard-Gen-4B",
+    "revision": "6ec42827da0c1ff11e7a49dc269d2e810d27e108",
+    "architecture": "Qwen3ForCausalLM",
+    "dtype": "bfloat16",
+    "attn_implementation": "sdpa",
+    "stop_tokens": [
+      "<|im_end|>",
+      "<|endoftext|>"
+    ],
+    "pad_token": "<|endoftext|>",
+    "max_input_tokens": 8192,
+    "max_new_tokens": 128,
+    "batch_size": 8
+  },
+  "secondary_toxicity": null,
+  "attribution": {
+    "checkpoints": [
+      "q",
+      "e1",
+      "e3"
+    ],
+    "query_bank": "ref",
+    "aggregation_dtype": "float64",
+    "variants": [
+      "checkpoint_gradsim",
+      "adam_diag_preconditioned_dot"
+    ]
+  }
+}

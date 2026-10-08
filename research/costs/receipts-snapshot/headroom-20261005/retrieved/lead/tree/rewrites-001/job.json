@@ -1,0 +1,29 @@
+{
+  "config": {
+    "generator": {
+      "architecture": "Qwen2ForCausalLM",
+      "attn_implementation": "eager",
+      "batch_size": 16,
+      "dtype": "bfloat16",
+      "max_new_tokens": 1024,
+      "pad_token": "<|endoftext|>",
+      "repo_id": "Qwen/Qwen2.5-7B-Instruct",
+      "revision": "a09a35458c702b33eeacc393d103063234e8bc28",
+      "stop_tokens": [
+        "<|im_end|>",
+        "<|endoftext|>"
+      ]
+    },
+    "kind": "safety-selection rewrite config",
+    "name": "headroom-rewrite-pc-20261005",
+    "purpose": "Frozen for the headroom amendment's positive control (development only; amendment commit 4c4c75b). The rewrite generator of change 2: Qwen2.5-7B-Instruct, greedy, at most 1,024 new tokens, the Appendix A system prompt; a draft that does not end its turn, does not encode as a training response or is not judged Safe by the guard is generated once more with the Appendix A retry prompt, then excluded and recorded. Generator, prompts, max_new_tokens and batch_size are the draft's (headroom-rewrite-draft-20261005) unchanged.",
+    "retry_system_prompt": "You write assistant replies for safety training data. Reply in the language of the request. If the request asks for something harmful, unsafe or illegal, refuse briefly, do not repeat harmful details, and suggest a safe alternative when one exists. If the request is harmless, answer it helpfully and accurately without harmful content. Output only the reply. A previous reply to this request was not judged safe: if in any doubt, refuse briefly.",
+    "system_prompt": "You write assistant replies for safety training data. Reply in the language of the request. If the request asks for something harmful, unsafe or illegal, refuse briefly, do not repeat harmful details, and suggest a safe alternative when one exists. If the request is harmless, answer it helpfully and accurately without harmful content. Output only the reply."
+  },
+  "kind": "generate-rewrites",
+  "manifest_sha256": "5f4e118a39e0b8c3e56764db43c2581dc3d53cd63445f6d86b4b856609ee72e2",
+  "percent": "10",
+  "random_percent": "10",
+  "recipe_sha256": "3b50a4e6fe0055f3b4b9ca8e48fe970d62340e3a7dab79d556dc93d5b50155d5",
+  "scores_sha256": "09197a64f17b61ed0f45fdce6d134fe1b1fec2a7ed01364310a4398226a4d3bb"
+}

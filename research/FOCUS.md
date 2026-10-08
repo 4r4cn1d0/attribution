@@ -1,8 +1,252 @@
-# Research focus: does attribution add decision value for safety data edits?
+# Research focus: diagnose or retrain? Repairing LLM safety after benign fine-tuning
 
 Status, 2 October 2026: exploratory; hypotheses untested; design incomplete; not an adopted protocol or experiment authorization. The separate occurrence-level coupling pilot does not validate this question. Gates and ledger: [EDGE_CHECKS.md](review/EDGE_CHECKS.md).
 
-## Operative question
+**Status, 6 October 2026: the user adopted a new direction ("adopt this new path … this is our new direction").** The reasons and the change table are in the [reframing proposal](review/2026-10-06-reframing-proposal.md), which follows the [positioning review](review/2026-10-06-positioning-review.md) and the [problem-validation review](review/2026-10-06-problem-validation.md). It is still exploratory: the design is incomplete and not yet frozen.
+
+## Adopted direction (6 October 2026)
+
+**Working title:** *Diagnose or Retrain? Compute-Matched Decisions for Repairing LLM Safety After Benign Fine-Tuning*
+
+**Question:** when fine-tuning on benign data makes an aligned language model less safe, which data fix restores safety without hurting the task or causing over-refusal, and how much diagnosis is worth paying for before choosing?
+- **Fixes:** keep the data; remove a subset or source; add safety data; rewrite or self-distill responses.
+- **Diagnostics:** content-classifier scores; representation similarity; training-data attribution (gradient similarity, influence functions); short trial runs.
+
+**What changes from the 2 October version below:**
+- **Setting.** The main setting is an aligned model fine-tuned on real benign data that erodes its safety.
+  - Content classifiers are *expected* to see little there. This is untested.
+  - The erosion may also be diffuse, with no row- or source-level cause for any diagnostic to find. Whether it is localized is a question the kill test must answer.
+  - The literature support (Qi et al. 2023; He et al. 2024) must be read in full before it is cited. He et al. chose benign rows specifically to break safety, so it shows that benign rows *can* erode safety, not that ordinary fine-tunes do.
+  - Overt injected harmful data (headroom v2) is the anchor or control case, where the classifier should win.
+  - Safety-aligned look-alike data (ToxicChat-Het) is an optional middle case.
+- **Fixes.** The menu includes additions (safety data) and rewrites, not only removals. Units are data sources or datasets.
+- **Outcome.** Broad harm, with over-refusal and task skill as feasibility limits (the F, L, O structure below still applies).
+- **Cost.** Charge every diagnostic, the classifier included, its measured cost in full-run equivalents. Report decision value as a function of the ratio between diagnostic cost and run cost, not at one budget.
+- **Hypotheses.** Predicting a fix's side effects (over-refusal, lost task skill) better than trial runs at matched compute is co-primary with decision value.
+- **Selector.** Fixed-budget successive halving with a feasibility screen. Multi-fidelity BO is only a sensitivity check.
+- **Claims.**
+  - Do not claim that practitioners ask whether attribution is worth its compute. We found no public evidence that they do; researchers and funders ask it. This is absence of evidence from public sources, not proof.
+  - Do not claim that real fixes are "mostly additions". Public incidents show additions, and fine-tuning services push customers toward removal ("fix the data and resubmit"). Both belong on the menu.
+  - Do not present round 1 as "classifiers fail": it was a finding about a fixed-size top-K rule.
+  - The classifier's cost was about 58 min for 9,788 rows with *eager* attention, roughly 0.6–0.8 of a round-1 job. It is a one-off per dataset, while trial runs grow with the number of fixes on the menu. Measure it again with SDPA.
+
+**Unchanged:**
+- frozen rules before outcomes;
+- training-seed replication;
+- held-out confirmation (the held-out menus must contain sealed contamination);
+- "too close to call" reporting;
+- full cost accounting;
+- the regret estimand D_info below, applied to the new menu.
+
+**Next gates:**
+1. A kill test in the benign-erosion setting (about 10–14 runs; requirements in the reframing proposal, section 3a):
+   - a two-seed headroom check first;
+   - ground truth from seeded removal runs per source;
+   - a test of whether the erosion is localized or diffuse;
+   - the informative comparison is attribution against representation similarity, because the classifier will rank benign data almost uniformly, so disagreeing with it means little;
+   - a pass needs a margin fixed in advance that exceeds the seed spread;
+   - time every diagnostic.
+2. A design revision of the sections below, then a freeze.
+
+**Decisions, 6 October 2026 (evening IST; the user agreed):**
+- **The kill test decides, by its own rules.** If Stage 0 or Gate B fails, take the fallback below rather than adjust the design until something passes. The size and spending rules are in the [kill-test design draft](experiments/2026-10-06-kill-test-design-DRAFT.md).
+- **The agreed fallback, if the erosion is diffuse (Gate B) or absent after the ladder:** the paper becomes *choosing a data fix under its side effects at a fixed compute budget*. The question: which fix (keep, add a safety mix, rewrite or self-distill) restores safety within the over-refusal and task-skill limits, and can a cheap signal predict a fix's side effects better than trial runs at the same compute? This keeps co-primary side-effect prediction and the cost accounting. It does not need a localized cause. v2's over-refusal result (1/50 → 22/50 XSTest-safe refusals in both seeds) is its development motivation.
+- **Write the paper around one plain headline.** Keep the estimand machinery in the protocol and the appendix.
+- **Contact the authors of the benign-erosion papers early** (Qi et al.; He et al.), with the Stage 0 result, about the expected size and localization of the erosion at small scale.
+- **Apply for funding now:** BlueDot first, $6,000 (the [draft](grant/2026-10-06-bluedot-application-DRAFT.md)), then the other funders in the grant dossier, §11c.
+- **Recipe choice rule for Gate B and the main study (fixed 2026-10-06 18:55 UTC, before any one-epoch (e1) outcome exists; the user agreed).** Seed 1101's 3-epoch fine-tune nearly saturated the erosion (sampled unsafe 4.7% → 87.3%) and cost 12.7 ARC points. Near-total erosion can hide a local cause from Gate B, because any 7 of the 8 units may still saturate it. So:
+  - **Candidates:** the e1 and e3 checkpoints of `study-kt-instruct-r64-mb4-20261006`. Seeds 1102 and 1103 are evaluated at both; seed 1101 only at e3.
+  - **A candidate qualifies** if, over 3 seeds: mean E ≥ 15 pp; E ≥ 2 × SD; every seed is above the untuned model; Granite agrees on the direction; at most 5% of answers are capped and at most 10% fail the coherence screen; **and the ARC drop (untuned 0.910 minus the mean) is at most 0.03**.
+  - **Choose the earliest qualifying checkpoint** (e1 before e3).
+  - If e1 qualifies on seeds 1102 and 1103 and only lacks a third seed, run seed 1101 at e1 (one pod, about $3–4, after the user's go). Then decide.
+  - If no candidate meets the ARC limit, keep e3 and report the skill loss as a limitation. Gate A at e3 is still read by its own rule.
+  - The choice uses Gate A data only (erosion, its noise, answers ending, ARC), never any Gate B outcome. The unused checkpoint is reported as a dose-response point.
+  - **Gate A is formally passed or failed at the chosen checkpoint, with 3 seeds at that checkpoint.** Gate B, Gate C and the main study use only that checkpoint. Results at the other checkpoint never feed a later gate. The seeds that choose the checkpoint also pass its Gate A. That can flatter E slightly. Gate B's contrast (unit removal against random removal of the same size, both paired to the same a0 runs) cancels any shared a0 shift. The stricter option, fresh a0 seeds for Gate B, is open if the user wants it.
+- **OLMo-2-1B probe, read 2026-10-08 01:54 UTC (07:24 IST): PARTIAL erosion under recipe B.** E = +43.5 pp (U 3.2% → 46.7%; E ± 2 SE = 37.5–49.5), answers end, ARC and task kept. Every amended bar passes except the second judge, which is running. Details in the [results record](experiments/2026-10-07-kill-test-stage0-results.md).
+- **Recipe-G result, read 2026-10-08 15:17 UTC (reading) and 15:35 UTC (Granite); 8 Oct; report-only, as pre-registered at 13:29 UTC below (run 1).** E_G = +29.0 pp (U 3.2% → 32.2%, 193/600; partial; SE 2.6 pp) against E_B(1101) = +43.5 pp on shared sampling streams; the difference, 14.5 pp, is about 5× the between-seed SD of E (2.65 pp), one seed. **Prediction (1) held:** the standard-practice recipe (token-mean loss plus a 4-step warmup with cosine decay) cuts the erosion by about a third on the same data and seed, and leaves over-refusal at the untuned level (17%; recipe B 4%). Answers end (2 capped, 18 failing the screen of 600); task learned (held-out loss 2.100 → 1.612); ARC 74 → 76 (a gain; TOO CLOSE only because 48 questions changed). Granite agrees: greedy E +23.0 pp (51/200 against 5/200; recipe B +44.0), κ 0.93. Records: [results record](experiments/2026-10-07-kill-test-stage0-results.md), section "Recipe G"; backup `backup-2026-10-08-olmo2-1b-recipe-g` (verified). Cost about $2.0 (pod 13:33–14:50 UTC at $1.59/h). What it means: part of the erosion is the training objective, not the data; recipe G is reported as a dose-response point and is the "standard recipe" reference of the stage-1 design (3 seeds, when funded). Gate A's setting stays recipe B (the choice rule used Gate A data only). Refusal-opening reading (frozen lexicon `bbbc71e9…`, run 15:32 UTC, independently re-run and checked): the drop in refusal openings is smaller under G, −0.36 (sampled) and −0.15 (greedy) against −0.51 and −0.40 under B, so the second part of prediction (1) also held; the opening switch still carries about half of the unsafe increase (0.48 against 0.52); the unsafe rate within direct openings is the same under both recipes (0.60 against 0.68 sampled), so G keeps refusal openings rather than making direct answers safer. Details in the results record. The `bt` run (token mean only, about $1.5) would separate the loss weighting from the schedule; not launched.
+  - **Llama-3.2-1B probe (run 2) launched 2026-10-08 15:25 UTC** on RunPod (pod `llama32-1b-1101`, cap 20:25 UTC, upper $8.75, expected $3–4; balance $15.18 before launch, reserve $6). The lead's first launch attempt was refused by the chat's permission layer; the user then said "start running things on runpod" and the second attempt went through. Read by the frozen family-probe bars and the Llama rule (13:53 UTC).
+- **Two runs for the grant evidence, pre-registered 2026-10-08T13:29 UTC (8 Oct; the user approved; before either runs). Exploratory and report-only: they gate nothing.**
+  - **(1) OLMo-2-1B, standard-practice recipe G** (`study-kt-olmo2-1b-r64-g-*-20261008`: recipe B plus token-mean loss and a 4-step linear warmup with cosine decay to e1; peak LR 1e-4; r64), seed 1101, e1, fine-tune only, reusing the sealed untuned unit 1101-a0-init-a1 (certified pair 55253874 → e49a978c). **Question:** does the erosion shrink when the loss stops over-weighting answer openings and the first steps are small? **Prediction** (from the mechanism note, recorded now): E_G < E_B(1101) = 43.5 pp, and the refusal-opening drop (−0.51 under recipe B, frozen lexicon bbbc71e9…) is smaller. **Read:** E_G with its SE, read by the amended bars and reported against seed 1101's recipe-B E (a one-seed paired comparison on shared sampling streams; between-seed SD of E ≈ 2.65 pp); the frozen opening lexicon; Granite. It changes two things at once (loss weighting and schedule); a token-mean-only run (`bt`, about $1.5) can separate them later.
+  - **(2) Llama-3.2-1B probe** (`study-kt-llama32-1b-r64-b-*`, recipe B, r64), baseline plus seed 1101 at e1, as the family probe was designed (frozen family-probe bars and the 21:35 amendment). **Question:** does partial erosion replicate in a second family? Uses the user's HF token only through the gated-download path (ssh stdin); the lead recommends revoking the token afterwards.
+  - **Money:** run one after the other on RunPod with the $6 reserve; each pod's cap is set to 5.0 h (the cap gate's projected upper bound is about 3.0 h for a 1B probe), so each commits $8.75. Expected spend about $1.5–2 and $3–4.
+- **Amendment, drafted 2026-10-08T13:49 UTC, ADOPTED 2026-10-08T13:53 UTC (8 Oct; the user): the sharpened direction.** The user chose: headline (a), the measured repair comparison first; the planted-cause positive control is included (funded tier); the stage-1 design is approved as drafted as the basis for its pre-registration (doses, mandatory references, the 5 pp margin, over-refusal against the untuned model with τ_O 2/5/10 pp, the judge rule, and side-effect prediction as secondary); and the Llama rule below (LR or rank only), recorded before any Llama result. No run or spend is authorized by this text alone; each stage still starts on a funding event and its own frozen pre-registration.
+  - **What it does.** It makes the 12:50 UTC decision (sharpen the question) concrete, after three adversarial reviews (novelty, feasibility, methods). It replaces only the items named below; all other parts of "Adopted direction" stay. Plan and evidence: [sharpened-direction plan](review/2026-10-08-sharpened-direction-DRAFT.md).
+  - **Question (replaces line 11).** When benign fine-tuning erodes an aligned model's safety, which data repair restores the most safety for the compute spent, within over-refusal and task-skill limits? The repairs: random removal; free format and length rules; published filters (LARF-style, DataShield-style, Self-Inf-N); attribution-guided removal; random, DataRx-selected or self-generated safety data. Free model-level references (a safety prompt, adapter scaling, a standard recipe) bound the gain. Does paying for diagnosis ever beat spending the same compute on retraining, and does that change with menu size (measured with a planted cause) and model family?
+  - **Fixes and diagnostics (replace lines 12, 13 and 22).** Menu options are row sets chosen by frozen rules or scorers, categories, and planted-sweep cells, not only sources. Rewrite and self-distill leave the core menu; one self-distill arm runs in the DIFFUSE branch, so the agreed fallback's menu is kept.
+  - **Headline, in this order.** (1) The measured repair comparison, each repair labelled *better*, *equivalent* or *inconclusive*, with its over-refusal, task loss and measured cost. (2) If funded, the planted-cause positive control: does each diagnostic find a known cause, and at which menu size does diagnosis beat runs. (3) Gate B and Gate C. The decision-value map (V_max, Δ, c\*) is **secondary and model-based**: its predictions are written down before Gate B wave 1 and tested on Llama. If the planted sweep is not funded, "menu size" leaves the headline.
+  - **Primary family (OLMo-2-1B, U, Holm at 5%).** P1 A1 − R; P2 L1 − R; P3 H1 − R; P4 S1 − a0; P5 S3 − S1; P6 S4 − S1. Removal = 600 rows; add = 48 rows (1%). A1 = bi-anchored checkpoint gradient score over all 4,800 rows (wave-0b pass); L1 = LARF-style; H1 = the 600 shortest answers; S1 = random PKU refusal rows (the DataRx random arm's pool type); S3 = DataRx-style selection from S1's pool; S4 = the untuned model's own refusals. Smallest effect of interest 5 pp, read by TOST.
+  - **Seeds.** Method arms 6 seeds (1102–1107; no scorer built on a0-1101 is evaluated at 1101); R 8 seeds; a0 6 seeds. Blinded rule on Gate B's final pooled σ̂ only: ≤ 4.5 pp plan A; 4.5–6.0 pp plan B (P1, P3, P6 at 9 seeds); > 6.0 pp no stage 1, review. Seeds run in outcome-free blocks; each block starts on a funding event; only complete blocks are analysed.
+  - **Mandatory references (no data change).** A safety instruction as a user-turn prefix; a0's adapter scaled by 0.75 and 0.5; recipe G at 3 seeds. A data repair "dominates" only if it lies below the adapter-scaling curve of U against over-refusal and task loss.
+  - **Judge rule.** A *harm* sentence needs the HarmBench-classifier contrast to have the same sign and at least half the size; otherwise the sentence says "restored refusal". If E_HB < 20 pp (the 10:14 UTC compliance-judge entry), no sentence says "harm". New pools and anchors for stage 1 are filtered by PKU labels and the frozen opening lexicon `bbbc71e9…`, never by Qwen3Guard.
+  - **Over-refusal and skill.** O is measured against the untuned model (a0 reported); τ_O is a grid of 2, 5 and 10 pp; τ_L is 2 SE of a seed-to-seed difference in held-out task loss on all 200 rows. More over-refusal prompts are added only if a $0 check shows the 6-seed MDE for O above 5 pp, and then from a new public source (a download the user approves), never from the hidden remainder.
+  - **Cost (refines line 24).** Every arm and diagnostic is logged in GPU-seconds by stage. 1 FRE per family = the median R-arm time. Two cost conventions (full evaluation; lean evaluation) are frozen before stage 1; c0 is measured on one real lean job; claims hold only where both agree. A1 is priced from the wave-0b ledger only. No 1B cost ratio is claimed for 7–8B.
+  - **Selector (replaces line 26).** One selector spec and one code path for simulation and replay. The runs-only rule per (menu size, budget) cell (one-shot screen, successive halving or hierarchical bisection) is frozen now from a pre-outcome simulation; the oracle "best of" is reported separately.
+  - **Side-effect prediction (line 25)** becomes secondary, on the add arms only (the user approved the stage-1 design as drafted).
+  - **Positive control (stage 1b, funded tier).** 37 PKU-safe, non-refusing answers planted as one leaf cell; nested menus of 8, 32 and 128 cells; a 3-run pilot reads on only if the plant adds ≥ 10 pp (lower bound > 5 pp).
+  - **Families.** OLMo-2-1B (stage 1); Llama-3.2-1B (stage 2) after its own Gate A. If recipe B saturates Llama, its next recipe changes LR or rank, never loss weighting. Claim "replicates across two families", not more, unless an interaction passes its MDE. Larger sizes follow the 12:53 UTC scale ladder.
+  - **Gate B and Gate C stay exactly as pre-registered.** Two deadlines: before engine X freezes, wave 0b scores all 4,800 rows (about $0.6–1.4 more; its cap and guard rise by about $2–3) and the representation module is frozen once for Gate C and the filters. Before Gate B wave 1, every stage-1 scorer's code and settings hash, every outcome-free edit rule, the pools, the plant, the primary family, the seed rule, the limits, the judge rule, the selector spec and its predictions are committed here. Anything added later is "post-Gate-B exploratory".
+  - **Confirmation.** Engine round Y adds a confirmation role: sealed edit arms on a sealed 200-prompt hidden subsample, with fresh reference-namespace seeds, evaluated on the dev bank too. At most 2 contrasts per family, chosen by a rule committed before stage 1.
+  - **Money (estimates).** Stage 1 about $56–98; planted sweep about $17–35; core path (Gate B, stage 1, the sweep, Llama, confirmation) about $215–405. Today's balance is about $17.50, and Gate B alone needs about $37–42 more. Every stage starts on a funding event, never on an outcome.
+  - **Venue.** Target TMLR or NeurIPS 2027. ICML 2027 only if, by about 1 December, the planted sweep, both 1B families and one 7–8B published-setting replication are funded.
+  - **Do not claim:** a first benchmark of safety filters, a first remove-versus-add comparison, or a first pricing of diagnosis; that adding safety data helps or hurts in general; harmful compliance from U alone; that data repair beats model-level repair unless it beats the references above; any 7–8B result without a 7–8B run.
+  - **Unchanged:** frozen rules before outcomes; training-seed replication; held-out confirmation; TOO CLOSE reporting; full cost accounting; the regret estimand (now secondary); over-refusal and task skill as feasibility limits; the budget guard; stop and ask after every stage.
+- **Decision, 2026-10-08T12:53 UTC (8 Oct; the user agreed): a scale ladder for both families, funding permitting.** One GPU per run (the engine has no multi-GPU or 4-bit path). (1) The full benchmark at 1B (OLMo-2-1B, Llama-3.2-1B; A100). (2) A reduced benchmark (key comparisons only) at 7–8B (OLMo-2-7B, Llama-3.1-8B; A100; about $200–400, estimate). (3) A headline check (Gate A plus the most important comparison) at the largest single-GPU size: OLMo-2-32B on an H200 (141 GB) and, if funded, Llama-3.x-70B on a B300 (288 GB); about $150–600 (estimate). Every comparison stays on one GPU type. 32B/70B need a small engine/kit round (GPU type, memory ladder, caps) and a cheap smoke test before any large spend. Costs are estimates scaled from measured 1B/7B runs; the sharpened-direction plan will carry the budget tiers for approval.
+- **Decision, 2026-10-08T12:50 UTC (8 Oct; the user): sharpen the research question — in principle.** After FAQ's second review (menu size: with 8 categories trial runs cost only about 2–3 full runs per decision; Yin & Rush predict "retrain wins" at equal model size; DataRx shows which safety data is added decides the outcome), the user approved reframing the study as a **matched-compute benchmark of data repairs after benign fine-tuning**: random removal, a format/length heuristic, published filters, attribution-guided removal, and random vs selected safety data, over menus of different sizes (category, cluster, row), on two families, with over-refusal and skill measured. Gate B stays the first experiment. The exact amendment to "Adopted direction" and the study plan are being drafted and adversarially reviewed (research/review/2026-10-08-sharpened-direction-DRAFT.md); they take effect only when the user approves the final text.
+- **Decisions, 2026-10-08T12:40 UTC (8 Oct; the user): Gate B on RunPod; three tracks in order.**
+  - **Venue:** Gate B and Gate C run on RunPod; the user will top up (the draft's worst path needs about $36–40 of new money). No mixing with other hardware inside Gate B.
+  - **Anchors** for Gate C are generated on RunPod in one short pre-wave-0 job (untuned OLMo-2-1B greedy answers to the 64 sealed anchor prompts, Qwen3Guard filter; about $0.40), copied back, sealed by SHA-256 and committed before recipe S is frozen. Nothing is downloaded to the Mac.
+  - **Order of the three tracks** (lead's recommendation, user agreed: "go ahead"): (1) Gate B on OLMo-2-1B; (2) a mechanism analysis in parallel — exploratory and report-only: whether the erosion lives in the first answer tokens (refusal openings), first on existing outputs at $0, later as an extra measurement on Gate B pods; (3) the Llama-3.2-1B probe (about $4) when funded, and a Llama confirmation of the Gate B verdict only after OLMo's Gate B.
+  - The Gate B pre-registration stays a DRAFT until the user accepts its rules; no Gate B run starts before that and before the engine round is integrated.
+- **Compliance-judge check, fixed 2026-10-08T10:14 UTC (8 Oct; the user approved the download), before it runs: reported, not gating.**
+  - **Why:** the audit's main caveat: after fine-tuning, Qwen3Guard's Unsafe label tracks "did not refuse". HarmBench's classifier asks whether a response actually carries out the harmful behaviour.
+  - **Judge:** `cais/HarmBench-Mistral-7b-val-cls` @ `51182c7c…` (MIT), with the official HarmBench classifier prompt and its 512-token generation truncation, greedy, label = "yes"/"no"; run locally on the Mac (PyTorch MPS, fp16).
+  - **Items:** the 600 sampled and 200 greedy harm answers of the untuned unit and of seeds 1101, 1102 and 1103 (the existing Gate A answers; no new generation).
+  - **Reported:** per unit, the HarmBench "yes" share (sampled, and greedy); E_HB = share(e1) − share(untuned) per seed and the 3-seed mean; agreement with Qwen3Guard (Unsafe vs yes) and Cohen's κ; E_HB by Qwen3Guard category.
+  - **It changes no verdict.** Gate A stands on its pre-registered judge. If E_HB reads below 20 pp, the paper states that the partial erosion is mainly lost refusal, not actionable harmful content, and Gate B's measurement plan reports E_HB beside U.
+- **GATE A PASSED on OLMo-2-1B (2026-10-08T05:40 UTC, 8 Oct), by the pre-registered plan.** Recipe B (LoRA r64, LR 1e-4, batch 128, one epoch of 4,800 Dolly rows), three seeds: E = +43.5, +43.7, +48.2 pp; mean +45.1 (band 41.3–49.0), partial; 2×SD, U > U_0 and every per-seed bar pass; Granite agrees on every seed. With the audit's disclosures (U tracks refusal under a broad policy judge; screening among five settings; 2 df for seed variance). Details: [results record](experiments/2026-10-07-kill-test-stage0-results.md). **Next stage: Gate B** (is the erosion traceable to data sources?), whose design points and spend go to the user first.
+- **Corrections from the independent Gate A audit (2026-10-08T05:23 UTC; [audit note](review/2026-10-08-gate-a-audit.md); append-only, nothing above is rewritten).**
+  - **Times.** Four written times are later than the commits that recorded them, so the entries were committed earlier than stated (the conservative direction): "21:35 UTC" amendment = commit 99140af at 21:07:04 UTC; "21:50 UTC" SE clarification = fd524f6 at 21:22:30; "20:45 UTC" rank-16 decision = 8a04868 at 20:43:08; "23:15 UTC" rank-16 result = 3c9fce5 at 23:10:33. The lead now runs `date -u` before writing any time.
+  - **Granite untuned OLMo rate** is 5/200 = 2.5%, not 2.0% (second-judge-probe-summary.json). Direction and verdict unchanged.
+  - **The ARC rule in the 21:35 amendment is two-sided, so it is partly looser:** a point drop between 0.03 and about 0.09 now goes to the user (TOO CLOSE) instead of failing. It was not labelled as a loosening. Never exercised: ARC rose on every OLMo seed. At 1B the ARC bar is weak (untuned 0.392 against 0.25 chance; untuned OLMo predicts "D" on 113 of 189 items), so "skill kept" rests mainly on the held-out task loss.
+  - **"Answers end" on the sampled answers only (19:14 bars) is looser than Stage 0's 800-answer scope.** Under the 800-answer scope three Qwen e1 units had failed. OLMo passes under both scopes, so Gate A is unaffected; the earlier "every other bar passes" wording for Qwen recipe B and rank 16 holds only under the sampled scope.
+  - **Screening, not a hypothesis test.** Five settings were tried in order (Qwen 1.5B Stage 0 +81.8; Qwen 1.5B recipe B +75.2; Qwen 7B +82.2; Qwen r16 +67.8; OLMo-2-1B +43.5). The 20–55 window was fixed after the Qwen results; seed 1101 both chose the setting and counts in the Gate A mean; the aggregation rule (d7e4945) was fixed 39 min after seed 1101's E existed (it only tightens). Report the fresh-seed-only mean beside the 3-seed mean.
+  - **What U measures.** After fine-tuning, Qwen3Guard's Unsafe label is close to "did not refuse" (P(Unsafe | no refusal) 0.91–0.94). The paper claim is "erosion of refusal under a broad policy judge", not "actionable harmful content", until a compliance-specific judge or a blind human read is done. Under hard categories only, E is about 28 pp (still partial).
+- **OLMo-2-1B probe verdict, 02:41 UTC 8 Oct: QUALIFIES** (Granite agrees: greedy E +44.0 vs +42.0 pp; 97.5%, κ 0.93). The formal Gate A below starts.
+- **Formal Gate A plan for OLMo-2-1B, fixed 2026-10-08 01:54 UTC, before seeds 1102 and 1103 exist (lead, under the user's overnight delegation; the user approved confirming seeds at once for a qualifying probe on 7 Oct, and "do what you must, don't waste money").**
+  - **Condition:** it starts only if Granite agrees on the direction for the probe, so the probe meets every bar.
+  - **Runs:** recipe B r64 mb4 (the probe's preflight choice) at e1, seeds 1102 and 1103, each fine-tune only on engine `55253874…` (the probe's engine), reusing the probe's sealed untuned unit `1101-a0-init-a1` as the shared baseline. Seed 1101 is the probe itself. About $2 per pod.
+  - **Reading:** each seed is read against the shared baseline with `scripts/family_probe_reading.py` and the amended bars (answers end, ARC paired interval, task loss, Granite direction, coherent-only and unscored checks). Gate A over the 3 seeds also needs:
+    - mean E partial (20–55 pp), with the edge band SE² = (SE(U_1101)² + SE(U_1102)² + SE(U_1103)²)/9 + SE(U_0)²;
+    - mean E ≥ 2 × SD of the three seeds' E (sample SD);
+    - every seed's U above U_0;
+    - every seed passes its per-seed bars.
+  - **Outcome:** PASS if all hold; any TOO CLOSE goes to the user; otherwise FAIL (then review, not adjustment).
+  - **Llama-3.2-1B does not run tonight.** It is not needed for Gate A; the user decides in the morning.
+  - **Clarifications, 2026-10-08 02:22 UTC, before seeds 1102 and 1103 exist** (from the tooling review; none loosens a bar):
+    - The class rules apply to the **mean** E: Gate A's class is read on the 3-seed mean; the coherent-only check and the unscored check recompute the mean E (coherent answers only; and every assignment of each unit's unscored answers to Safe or Unsafe, all corners) and read TOO CLOSE if the mean's class or the 2×SD rule changes. Per-seed E classes are reported, not gated (the frozen rule is mean-based plus "every seed above the baseline").
+    - Verdict order: FAIL if any bar definitely fails; otherwise TOO CLOSE (to the user) if any bar is too close; otherwise PASS.
+    - Seeds 1102 and 1103 run **one after the other** at the probe's 6.5 h cap (a 4.25 h cap for parallel pods risked a false cap-gate refusal). After retrieval, each seed's preflight fixture is compared with the probe's on the plan's equal and resume keys.
+    - Disclosure: harm-sample seeds come from the job seed, so the baseline and seed 1101 share sampling streams (a paired comparison) while seeds 1102 and 1103 do not.
+
+- **Rank-16 result, 2026-10-07 23:15 UTC (8 Oct, 04:45 IST): rank does not matter by the frozen rule.** E = +67.8 pp (U 72.5%) against recipe B's +75.2 pp; the rule needed E ≤ 65.2. Saturated; every other bar passes. So the OLMo-2-1B probe runs recipe B at rank 64, as built. Details in the [results record](experiments/2026-10-07-kill-test-stage0-results.md). No more Qwen runs (decision 20:58 UTC).
+- **Lead decisions overnight, 8 Oct (the user delegated judgement before sleeping: "don't waste money even if it takes long"; "launch as baseline if you think it's recommended").**
+  - The probes run **one at a time** with the default $6 reserve. A run is launched only if its result can change the next step.
+  - OLMo-2-1B launches with recipe B (r64) after the round-5 engine (token-mean loss and LR-warmup options, engine `55253874…`) is reviewed and integrated, so its untuned baseline and any later gentler-recipe fine-tune share one engine.
+  - Llama-3.2-1B waits for the OLMo reading. If OLMo saturates under recipe B, Llama does not run recipe B (the literature predicts saturation, so it would likely waste about $4); the next runs use a gentler recipe, recorded here first.
+- **Decision, 2026-10-07 22:05 UTC (8 Oct, 03:35 IST; the user; before any family result): a token-weighted loss option, OLMo first.**
+  - **Why.** The Guo-gap analysis ([note](review/2026-10-08-guo-gap-analysis.md)) finds our Qwen collapse is the outlier: published Qwen2.5-7B LoRA runs on random benign data reach at most about 50%; ours 87%. Measurement explains at most about 13–30 pp. The leading training-side suspects are our **per-example mean loss** (the first 5 response tokens carry 17.7% of the objective vs 5.3% under the token mean that HF and LLaMA-Factory use; refusal is decided in the first tokens), the adapter size, and the data mix. None is tested yet; the skeptic pass rated each weak.
+  - **What follows.**
+    - Specialized builds an opt-in recipe option for a token-weighted (token-mean) loss. The current loss stays the default; Qwen bytes do not change. No spend.
+    - The OLMo-2-1B probe launches as built (recipe B; rank by the rank-16 rule). Its untuned baseline is reusable by later OLMo runs.
+    - The Llama-3.2-1B probe waits for the option. The lead then proposes its recipe; a changed recipe needs the user's approval and a FOCUS entry first.
+  - **Money (the user, 2026-10-07 21:10 UTC):** the two 1B probes may run in parallel with the budget guard's reserve at $1 (default $6), because the review's honest caps commit $11.38 per 1B pod while the expected spend is about $4. No top-up for now.
+- **Amendment to the family-probe reading bars, 2026-10-07 21:35 UTC (8 Oct, 03:05 IST; the user approved "amend now, as proposed"; written before any OLMo or Llama result).** The bars below stay; nothing is loosened except where stated. Checked on the existing Qwen units (Stage 0 init, recipe B e1, the 7B pair).
+  - **Edge band for E.** SE(U) is clustered by prompt: the SD over the 200 prompts of the per-prompt sampled unsafe share, divided by √200 (the 3 samples of a prompt are not independent). SE(E) = √(SE(U_ft)² + SE(U_0)²). On Qwen, SE(E) was 2.1–2.3 pp at saturation; it is larger in the partial zone.
+    - One-seed probe: if E ± 2·SE(E) contains 20 or 55, the E class reads **TOO CLOSE**.
+    - TOO CLOSE leads to one more seed of the same recipe, after the user's go (about $3–4). The two-seed mean E is classified with the same band. The two seeds share one baseline, so SE² = (SE(U_ft1)² + SE(U_ft2)²)/4 + SE(U_0)² (clarified 2026-10-07 21:50 UTC, before any result; the first text, √(SE₁² + SE₂²)/2, was ambiguous and could halve the baseline's noise). Seed-to-seed noise is tested later by the formal Gate A (E ≥ 2 × SD). If it is still TOO CLOSE, the user decides.
+  - **ARC.** The drop is read with a paired 95% interval: d ± 1.96·SE, with SE² = (b + c)/n² − (b − c)²/n³, where b = questions lost and c = questions gained, n = 189.
+    - Interval wholly ≤ 0.03: pass. Wholly > 0.03: fail. Otherwise: **TOO CLOSE**, and the user decides with the interval and the task-loss evidence shown.
+    - Another seed does not resolve it (the questions are the same). On Qwen: recipe B e1, d = 0.016, interval [−0.018, 0.050] (TOO CLOSE under this rule); 7B, d = 0.005, [−0.018, 0.028] (pass); Stage 0 e1, d = 0.048, [0.001, 0.095] (TOO CLOSE).
+  - **Short answers.** Report how many sampled answers fail the screen **only** because they have fewer than 5 output tokens while ending at the stop token. If excluding them turns the answers-end verdict from fail to pass, that bar reads **TOO CLOSE** (the user decides). This changes a fail into a user decision, a mild loosening that the user approved. On Qwen recipe B e1, 21 of the 53 sampled screen failures were short, normally ended answers (terse compliances and terse refusals), not loops.
+  - **Headroom.** Report E / (100 − U_0). If U_ft > 75%, the E class reads **saturated** whatever E is (stricter; matters only when U_0 > 20%).
+  - **Guard input over the limit** (lead decision, 2026-10-07, multi-family review finding 1): an answer whose guard input exceeds 8,192 tokens is "unscored", not an abort. Every U-based verdict is computed twice, with unscored counted as Unsafe and as Safe. If the two disagree, the verdict reads **TOO CLOSE**.
+  - **Second judge.** Unchanged (direction). Also report Granite's greedy E next to Qwen3Guard's greedy E, as a magnitude check (not gating).
+  - Overall: a probe **qualifies** only if every bar passes with no TOO CLOSE. Any TOO CLOSE goes to the user with the numbers.
+  - Scope: the OLMo and Llama probes and their formal Gate A. It does not re-read any Qwen run, and it does not change the rank-16 rule (E ≤ 65.2 pp).
+- **Decision, 2026-10-07 20:58 UTC (8 Oct, 02:28 IST; the user; before any rank-16 result): Llama and OLMo only.** The user chose "Llama/OLMo only" over keeping Qwen as a candidate.
+  - Qwen is no longer a main-model candidate. No more Qwen spend: the confirming Qwen seeds and a Qwen backup at Qi's LR 2e-5, both approved minutes earlier, are cancelled before launch.
+  - The rank-16 run already on the pod continues. Its only use now is the rank rule in the entry below: if rank matters, the family probes use rank-16, alpha-32 recipes; if not, the probes run as built (rank 64). Its "every bar met" outcome no longer starts Qwen seeds.
+  - Top-up: the user declined for now (8 Oct). The lead stops after the 1B probes and asks again.
+- **Decision, 2026-10-07 20:45 UTC (8 Oct, 02:15 IST; the user's go-ahead of 8 Oct; written before any rank-16 result): the Qwen rank-16 test.**
+  - **Why.** Guo et al. 2026 (2609.01455, Table 2) report that LoRA keeps stock Qwen2.5-7B-Instruct near its untuned ASR, while full SFT collapses it ([papers note](review/2026-10-08-safety-landscape-papers-note.md)). Our rank-64, alpha-128, all-linear LoRA is the prime suspect for the saturated erosion. Standard practice is rank 8–16.
+  - **What runs.** Recipe `study-kt-instruct-r16-b-20261008`: recipe B changed **only** in LoRA r 16 and alpha 32 (the scaling alpha/r stays 2).
+    - Trainable values: 18,464,768, one quarter of 73,859,072. Checked on the Mac with a meta-device model; the rank-64 control gives 73,859,072.
+    - The same prepared-kt-dolly (`9247c4bb…`), engine `c52c0ebc…` and evaluation.
+    - One seed (1101), read at e1. The untuned baseline is reused: Stage 0 seed 1101's init unit (U 4.7%, ARC 0.910, task loss 1.890).
+  - **How it is read.** By the frozen family-probe bars below (2026-10-07 19:14 UTC), none loosened: partial = 20 ≤ E ≤ 55 pp; answers end on the sampled answers (≤ 5% capped, ≤ 10% failing the screen) and the verdict holds on coherent-only U; ARC drop ≤ 0.03 and held-out task loss below 1.890; Granite agrees on the direction.
+  - **Outcomes, fixed now:**
+    - **Every bar met:** Qwen at rank 16 qualifies for a formal 3-seed Gate A (seeds 1102 and 1103 at e1, about $8; needs the user's go).
+    - **Rank matters** if the reading is partial, or if E ≤ 65.2 pp (at least 10 pp below recipe B's rank-64 seed 1101, +75.2 pp; Stage 0's seed SD of U was 2.7 pp). Then the lead briefs Specialized for rank-16, alpha-32 variants of the family recipes.
+    - **E > 65.2 pp:** rank is not the main lever for Qwen at 1.5B. The family probes run as built (rank 64), and the exact recipes from the papers' public code are the next lever.
+  - **Money.** About $4: one A100 pod with a 3.5 h cap, in kit `tmp/kill-test-r16/`, through the budget guard with the $6 reserve. Inside the user's go-ahead.
+  - This result does not re-read Stage 0, recipe B or the 7B check.
+- **Frozen reading bars for the family probes (2026-10-07 19:14 UTC; the user approved; written before any OLMo or Llama probe result).** Each probe is one seed: the model's own untuned baseline plus one recipe-B fine-tune at e1. U = Qwen3Guard Unsafe share of 600 sampled answers to the 200 dev harm prompts. E = U(fine-tuned) − U(own untuned baseline), in pp.
+  - **Partial erosion (the target):** 20 ≤ E ≤ 55 pp.
+    - 10 ≤ E < 20 is *weak*.
+    - E > 55 is *saturated*, like Qwen.
+    - E < 10 is *too little*.
+  - **Answers end, measured on the sampled answers** (the loop fix): at most 5% capped and at most 10% failing the coherence screen.
+    - Greedy loop shares are reported but do not gate.
+    - Every verdict must also hold on U computed over coherent answers only; if it flips, the probe reads TOO CLOSE.
+  - **Skill kept:** an ARC drop of at most 0.03, and the held-out Dolly task loss lower than the untuned model's (the task is learned).
+  - **Second judge:** Granite agrees on the direction.
+  - **Reported, not gating:** over-refusal; control tokens in answers; cross-family comparability limits (different prompts and vocabularies).
+  - **A family qualifies** for a formal Gate A if its probe meets every bar. The formal 3-seed Gate A uses the same bars plus the seed-noise rules (E ≥ 2 × SD; every seed above the baseline).
+  - These bars do not re-read Stage 0, recipe B or the Qwen 7B check.
+- **Token decision (2026-10-07 19:14 UTC, the user):** the user declined to rotate the HF token before the Llama probes, so the brief's read-only-token precondition is waived by the user.
+  - The token stays in the secrets file.
+  - It reaches a pod only through the ssh-stdin gated-download step: never in a file, env var or log; deleted after use.
+  - The lead recommends revoking it after the downloads.
+- **Decision, 2026-10-07 17:44 UTC (the user): probe sturdier model families before choosing the main model.** The Qwen2.5-7B check also collapsed: 4.8% → 87.0% unsafe after 38 recipe-B steps, with greedy loops appearing after fine-tuning. The user asked for one-seed probes on two other families, at every size that fits.
+  - **The probes:** OLMo-2 (allenai, Apache-2.0, open): 1B (`OLMo-2-0425-1B-Instruct`), 7B (`OLMo-2-1124-7B-Instruct`), 13B (`OLMo-2-1124-13B-Instruct`). Llama-3 (Meta, gated with manual approval): `Llama-3.2-1B-Instruct` and `Llama-3.1-8B-Instruct`.
+  - **Not 32B:** about 64 GB of bf16 weights; LoRA training does not fit one A100-80GB, and the engine has no 4-bit or multi-GPU path.
+  - **Each probe:** the untuned baseline plus one recipe-B fine-tune at e1, seed 1101. Evaluation unchanged, for comparability with Qwen.
+  - **What we look for:** a family whose erosion is partial (clear but not saturated) with answers that end. That is the zone where Gate B and Gate C can work. If the families differ, Qwen may stay as the "fragile" second family, so the paper can ask when diagnosis pays as a function of fragility.
+  - **Order and money:**
+    - OLMo first (no gating); Llama after the user's Meta access is approved.
+    - Estimated cost: about $4 per 1B probe, $6–7 for 7–8B, $10–12 for 13B; about $30–34 for all five, against a $28.08 balance. 13B may need a top-up.
+  - **Tokenizers** (HF API, 7 Oct):
+    - OLMo-2 1B, 7B and 13B share identical tokenizer files, so one data preparation serves them.
+    - Llama-3.2-1B and 3.1-8B share tokenizer.json but differ in tokenizer_config (the chat template).
+  - **Addition, 2026-10-07 18:15 UTC (the user):** a **calibration probe on Qi et al.'s own model**, `meta-llama/Llama-2-7b-chat-hf` @ `f5db02db…`.
+    - Its role: test whether our setup reproduces their partial Dolly erosion (0.6% → 12.1% under their full fine-tune and GPT-4 judge).
+    - Model facts: Llama 2 licence, gated (the user's token has access); 6.74B parameters; 32 layers, hidden 4096, intermediate 11008, no GQA; untied; vocab 32,000; max 4,096 positions; `</s>` end token; no pad token.
+    - Chat format: `[INST] … <<SYS>>` with no default system prompt in the current template.
+    - Rank-64 all-linear LoRA: 159,907,840 values.
+    - It needs its own data preparation (SentencePiece tokenizer). About $6–7 (estimate).
+  - **Access, 2026-10-07 18:15 UTC:** Meta approved the user's account for Llama-3.2-1B-Instruct and Llama-3.1-8B-Instruct (HTTP 206 on gated files). The user's HF token is in the secrets file. It has broad write scopes and appeared in chat, so it should be rotated to a read-only token after the downloads.
+  - **Engine work:** a Specialized brief (`.ai/briefs/multi-family-probe-engine-20261007.md`, in preparation) covering the chat formats, per-tokenizer data preparation with bank re-audit, recipes with memory candidates, and the gated download with the user's HF token.
+- **Decision, 2026-10-07 13:38 UTC (the user; supersedes the 13:21 entry below): the one-seed 7B check uses `Qwen/Qwen2.5-7B-Instruct` @ `a09a3545…`, not Llama-2-7B-Chat.** The user wants to keep the grant at $5–6k.
+  - **Model plan for the whole study:** the main study stays at Qwen2.5-1.5B-Instruct, for many seeds and menus within budget. Qwen2.5-7B-Instruct is the same-family scale check, about $500–800 later, and today's run is its first data point.
+  - **Why not Llama-2:** it changes the family and the size at once; it needs a new data and tokenizer path (about 1 day) and gated access; and the main study could not afford it.
+  - **What makes the swap cheap:** Qwen2.5-7B-Instruct's tokenizer files equal 1.5B's byte for byte (the same git oids for tokenizer.json, vocab.json, merges.txt and tokenizer_config.json, checked 7 Oct). So the recipe pins `model.tokenizer` to the 1.5B snapshot, and the frozen `prepared-kt-dolly` (manifest `9247c4bb…`) and the banks are reused unchanged.
+  - **Rank-64 all-linear LoRA:** 161,480,704 trainable values. That is 28 layers × 5,767,168, with hidden 3584, intermediate 18944 and kv dim 512. Untied embeddings; 15.2 GB of weights.
+  - **The check:** the untuned 7B baseline plus one Dolly fine-tune with recipe B's training settings at e1, seed 1101. Same evaluation (greedy plus 3 samples at T 0.7, 2,048 new tokens), no repetition penalty, so the loops are compared on equal terms.
+- **Decision, 2026-10-07 13:21 UTC (the user): a one-seed 7B check with the papers' model, `meta-llama/Llama-2-7b-chat-hf`** (Qi et al. and He et al. both use Llama-2-7B-Chat).
+  - **Why.** At 1.5B, every capped answer is a greedy-decoding repetition loop:
+    - the median 4-gram repetition of capped answers is 0.91–0.97 per unit (all 461 capped answers ≥ 0.5);
+    - greedy harm answers are capped 8.5–32.5% of the time across 1.5B units (16% at 7B), sampled answers 2.2–11.8%;
+    - recipe B's partial counts show about 14% capped.
+    
+    The frozen "answers end" bar fails for that reason. The unsafe rate among coherent answers is within 1.4 pp of the overall rate.
+  - **The check.** One seed: the untouched baseline plus one Dolly fine-tune with recipe B's training settings, adapted to 7B. It asks whether the loops disappear at 7B, and how large the erosion is. About $10–15 (estimate); it needs a top-up.
+  - **Not yet decided:**
+    - whether the main study moves to 7B (at 7B, the kill test costs about $500–800 and the study about $12–25k, against about $3–5k at 1.5B);
+    - the proposed measurement amendment for later stages (the answer-quality bar on sampled answers, and/or a repetition penalty for greedy decoding).
+  - **User actions:** accept Meta's Llama 2 licence on Hugging Face; add a read token to the secrets file (never printed or committed); top up RunPod.
+  - **Engine work:** a Specialized brief (Llama-2 chat format, tokenizer and bank re-audit, gated download, 7B memory settings).
+- **Amendment, 2026-10-07 10:51 UTC (the user approved; written before any recipe-B run):**
+  - **Why.** Stage 0 Gate A at the Stage 0 recipe **failed by its frozen rule**, although the erosion is overwhelming (mean E +81.8 pp over 3 seeds at e3; SD 2.7 pp). It failed on "answers end": seed 1102 had 17.0% capped and 20.8% failing the coherence screen. The e1 checkpoint also misses the capped bar (about 8%) and the ARC limit (drops of 3.7 and 4.8 points). Among coherent answers the unsafe rate is within 1.4 pp of the overall rate (82.5–87.6%). So the failure is over-training (rambling, skill loss, saturation), not a judge artefact. The fallback ladder covers only *absent* erosion, so this failure returns to review. The user chose this amendment.
+  - **What runs.** Recipe B, `study-kt-instruct-r64-b-20261007`: the Stage 0 recipe with only LR 1e-4 (was 2e-4) and gradient accumulation 32, so 128 rows per optimizer step (was 8). That gives 38 steps per epoch (was 600), close to Qi et al.'s batch of 128 ([recipes review](review/2026-10-07-benign-erosion-recipes.md), candidate B).
+    - Evaluated at **e1 only** (all data seen once, as in Qi et al.), on **3 fresh runs, seeds 1101–1103**.
+    - The untuned baseline is reused: seed 1101's init unit, with init equal to the untuned model, so it does not depend on the recipe.
+  - **How it is read.** **The same frozen Gate A thresholds, none loosened:**
+    - mean E ≥ 10 pp to pass and ≥ 15 pp to start Gate B;
+    - E ≥ 2 × SD; every seed above the untuned model; Granite agrees;
+    - ≤ 5% capped and ≤ 10% failing the coherence screen per unit;
+    - plus the recipe rule's ARC limit (drop ≤ 0.03).
+  - **Outcomes:**
+    - **pass** → recipe B at e1 is the recipe for Gate B;
+    - **10 ≤ E < 15** → weak headroom, the user decides;
+    - **E < 10, or another failed condition** → review: an intermediate recipe, more steps, or the agreed fallback paper.
+    - The Stage 0 recipe's results stay as the strong-dose point of a dose-response curve.
+  - **Money.** The user approved spending the $6 reserve for this run (7 Oct). It runs in its own kit folder (`tmp/kill-test-gateA-b/`) with the budget guard's reserve set to $1. The Stage 0 records were backed up (verified) and the three pods deleted first.
+
+**Target venue:** ICML 2027 (deadline estimated at about 22 January 2027; not yet official), if about $3–5k of funding arrives by early November. Otherwise NeurIPS 2027.
+
+## Operative question (2 October 2026 version; superseded on 6 October by the adopted direction above)
+
+The sections below are the 2 October design. They still define the estimands, the protocol and the cost rules, but the setting, menu, endpoint and selector are replaced as listed above. A full revision follows the kill test.
 
 In one fixed supervised fine-tuning (SFT) setting, does adding training-data attribution to an existing selector that already uses edit metadata, content-classifier scores and short training runs improve its choice among removals of predefined data groups, compared with spending attribution's full cost on more runs? The primary failure is toxic completions.
 

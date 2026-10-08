@@ -20,12 +20,13 @@ from typing import Any, Sequence
 from experiments.minimal_safety.data import normalize
 
 __all__ = ["normalize", "TooLong", "NoTargets", "ControlTokenError", "BoundaryMismatch",
-           "TemplateError", "Codec", "build_codec", "TrainExample", "encode_train",
+           "TemplateError", "Codec", "build_codec", "single_token_id", "trainable_token_ids", "TrainExample", "encode_train",
            "encode_generation_prompt", "encode_mc", "separate_matches_joint",
            "ARC_MC_INSTRUCTION", "arc_options", "render_arc_generation", "render_arc_mc",
            "arc_prompt_forms", "GUARD_SAFETY", "GUARD_LABEL_SEQUENCES", "GUARD_REFUSAL",
            "GUARD_RESPONSE_CATEGORIES", "parse_guard_response", "QWEN_DEFAULT_SYSTEM",
-           "extract_user_message", "repeated_ngram_fraction"]
+           "extract_user_message", "repeated_ngram_fraction", "chat_template_reads_clock", "added_special_ids",
+           "QWEN_ASSISTANT_HEADER", "check_assistant_header"]
 
 
 class TooLong(ValueError):
@@ -79,28 +80,83 @@ class Codec:
         return _ids(self.tokenizer.encode(text, add_special_tokens=False))
 
     def decode(self, ids: Sequence[int]) -> str:
-        """Exact text of the ids, special tokens included."""
-        return self.tokenizer.decode(list(ids), skip_special_tokens=False)
+        """Exact text of the ids, special tokens included (no clean-up of tokenization spaces)."""
+        return self.tokenizer.decode(list(ids), skip_special_tokens=False, clean_up_tokenization_spaces=False)
 
     def has_special(self, ids: Sequence[int]) -> bool:
         return any(i in self.special_ids for i in ids)
 
 
+def single_token_id(tokenizer: Any, token: str) -> int:
+    """The id of a token string that the tokenizer encodes as exactly that one token. An id equal
+    to the unknown-token id refuses unless the string IS the tokenizer's own unknown token (OLMo-2's
+    ``<|endoftext|>`` is its end, begin and unknown token at once; an unknown string still refuses)."""
+    index = tokenizer.convert_tokens_to_ids(token)
+    unknown = index is not None and index == getattr(tokenizer, "unk_token_id", None) \
+        and token != getattr(tokenizer, "unk_token", None)
+    if index is None or unknown or _ids(tokenizer.encode(token, add_special_tokens=False)) != [index]:
+        raise TemplateError(f"{token!r} is not a single special token")
+    return int(index)
+
+
+def chat_template_reads_clock(tokenizer: Any) -> bool:
+    """True if any chat template of the tokenizer (a string or a dict of named templates) calls
+    ``strftime_now``: its text would depend on the day and time zone of the host."""
+    template = getattr(tokenizer, "chat_template", None) or ""
+    texts = list(template.values()) if isinstance(template, dict) else [template]
+    return any("strftime_now" in str(text) for text in texts)
+
+
+def added_special_ids(tokenizer: Any) -> set[int]:
+    """Ids of added tokens flagged special (``added_tokens_decoder``; an entry without the flag is not)."""
+    added = getattr(tokenizer, "added_tokens_decoder", {}) or {}
+    return {int(i) for i, entry in added.items() if getattr(entry, "special", False)}
+
+
 def build_codec(tokenizer: Any, end_token: str, stop_tokens: Sequence[str], pad_token: str) -> Codec:
+    """The codec of one tokenizer. Refuses a chat template that reads the clock. Special ids are the
+    tokenizer's special ids, its added tokens flagged special (OLMo-2 and Llama-3 list more of them
+    than ``all_special_ids``; for Qwen the two sets are equal) and the end, stop and pad ids."""
+    if chat_template_reads_clock(tokenizer):
+        raise TemplateError("date-dependent chat template")
+
     def token_id(token: str) -> int:
-        index = tokenizer.convert_tokens_to_ids(token)
-        if (index is None or index == getattr(tokenizer, "unk_token_id", None)
-                or _ids(tokenizer.encode(token, add_special_tokens=False)) != [index]):
-            raise TemplateError(f"{token!r} is not a single special token")
-        return int(index)
+        return single_token_id(tokenizer, token)
 
     eos = token_id(end_token)
     stops = tuple(sorted({token_id(t) for t in stop_tokens}))
     if eos not in stops:
         raise TemplateError("the end-of-turn token must be a stop token")
     pad = token_id(pad_token)
-    special = frozenset(int(i) for i in getattr(tokenizer, "all_special_ids", ())) | {eos, pad, *stops}
+    special = (frozenset(int(i) for i in getattr(tokenizer, "all_special_ids", ())) | added_special_ids(tokenizer)
+               | {eos, pad, *stops})
     return Codec(tokenizer=tokenizer, eos_id=eos, stop_ids=stops, pad_id=pad, special_ids=special)
+
+
+QWEN_ASSISTANT_HEADER = "<|im_start|>assistant\n"
+
+
+def check_assistant_header(codec: Codec, header: str) -> str:
+    """The one-turn probe (``<<probe>>``) must hold the probe and end with ``header``, and ``header``
+    must be the template's own generation suffix: the render with ``add_generation_prompt=True`` minus
+    the render without it, which must be its prefix. Returns the decoded probe; refuses otherwise."""
+    probe = codec.decode(codec.prompt_ids("<<probe>>"))
+    if not (probe.endswith(header) and "<<probe>>" in probe):
+        raise TemplateError("policy chat template does not end with the assistant header")
+    turn = [{"role": "user", "content": "<<probe>>"}]
+    with_header = codec.tokenizer.apply_chat_template(turn, tokenize=False, add_generation_prompt=True)
+    without = codec.tokenizer.apply_chat_template(turn, tokenize=False, add_generation_prompt=False)
+    if not with_header.startswith(without) or with_header[len(without):] != header:
+        raise TemplateError("the assistant header is not the chat template's generation suffix")
+    return probe
+
+
+def trainable_token_ids(tokenizer: Any, tokens: Sequence[str]) -> dict[str, int]:
+    """``model.lora.trainable_tokens`` resolved to ids; unknown, multi-token or repeated refuses."""
+    ids = {token: single_token_id(tokenizer, token) for token in tokens}
+    if len(ids) != len(tokens) or len(set(ids.values())) != len(ids):
+        raise TemplateError("trainable tokens must be distinct tokens")
+    return ids
 
 
 @dataclass(frozen=True)

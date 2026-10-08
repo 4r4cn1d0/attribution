@@ -1,0 +1,124 @@
+{
+  "kind": "safety-selection recipe",
+  "name": "study-kt-llama31-8b-r64-b-mb1-gc-eager-20261008",
+  "purpose": "Family probe llama31-8b (brief multi-family-probe-engine-20261007): recipe B (study-kt-instruct-r64-b-20261007) unchanged except the model (meta-llama/Llama-3.1-8B-Instruct @ 0e9e39f2, LlamaForCausalLM, its end of turn, stops, pad and assistant header; 167,772,160 trainable LoRA values) and this memory candidate: micro-batch 1 x accumulation 128, gradient checkpointing on, eager attention for the policy only (the guard stays recipe B's), generation batch 32. The preflight takes the first passing candidate of the probe's ladder; the guard and every evaluation setting are recipe B's.",
+  "model": {
+    "repo_id": "meta-llama/Llama-3.1-8B-Instruct",
+    "revision": "0e9e39f249a16976918f6564b8830bc894c89659",
+    "architecture": "LlamaForCausalLM",
+    "base_dtype": "bfloat16",
+    "trainable_dtype": "float32",
+    "attn_implementation": "eager",
+    "device": "cuda",
+    "end_of_turn_token": "<|eot_id|>",
+    "stop_tokens": [
+      "<|eot_id|>",
+      "<|eom_id|>",
+      "<|end_of_text|>"
+    ],
+    "pad_token": "<|end_of_text|>",
+    "max_train_tokens": 3072,
+    "max_prompt_tokens": 1536,
+    "lora": {
+      "r": 64,
+      "alpha": 128,
+      "dropout": 0.0,
+      "target_modules": [
+        "q_proj",
+        "k_proj",
+        "v_proj",
+        "o_proj",
+        "gate_proj",
+        "up_proj",
+        "down_proj"
+      ],
+      "expected_trainable_parameters": 167772160
+    },
+    "assistant_header": "<|start_header_id|>assistant<|end_header_id|>\n\n"
+  },
+  "train": {
+    "micro_batch": 1,
+    "grad_accum": 128,
+    "batching": "consecutive examples of one epoch's order; an epoch's final optimizer step keeps its actual size; steps never cross epochs",
+    "loss": "per-example mean NLL over response target tokens (response plus end-of-turn), averaged over the actual examples of each optimizer step",
+    "optimizer": "AdamW",
+    "lr": 0.0001,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "eps": 1e-08,
+    "weight_decay": 0.0,
+    "lr_schedule": "constant",
+    "max_grad_norm": 1.0,
+    "gradient_checkpointing": true,
+    "lm_head_chunk_tokens": 1024,
+    "checkpoints": [
+      {
+        "name": "q",
+        "epochs": [
+          1,
+          4
+        ]
+      },
+      {
+        "name": "e1",
+        "epochs": [
+          1,
+          1
+        ]
+      },
+      {
+        "name": "e3",
+        "epochs": [
+          3,
+          1
+        ]
+      }
+    ]
+  },
+  "generation": {
+    "decoding": "greedy",
+    "max_new_tokens": 2048,
+    "batch_size": 32,
+    "guard_over_limit": "unscored",
+    "harm_samples": {
+      "count": 3,
+      "temperature": 0.7,
+      "top_p": 1.0
+    }
+  },
+  "arc": {
+    "template": "arc-easy-mc-v1",
+    "batch_size": 32
+  },
+  "guard": {
+    "repo_id": "Qwen/Qwen3Guard-Gen-4B",
+    "revision": "6ec42827da0c1ff11e7a49dc269d2e810d27e108",
+    "architecture": "Qwen3ForCausalLM",
+    "dtype": "bfloat16",
+    "attn_implementation": "sdpa",
+    "stop_tokens": [
+      "<|im_end|>",
+      "<|endoftext|>"
+    ],
+    "pad_token": "<|endoftext|>",
+    "max_input_tokens": 8192,
+    "max_new_tokens": 128,
+    "batch_size": 8
+  },
+  "secondary_toxicity": null,
+  "attribution": {
+    "checkpoints": [
+      "q",
+      "e1",
+      "e3"
+    ],
+    "query_bank": "ref",
+    "aggregation_dtype": "float64",
+    "variants": [
+      "checkpoint_gradsim",
+      "adam_diag_preconditioned_dot"
+    ]
+  }
+}

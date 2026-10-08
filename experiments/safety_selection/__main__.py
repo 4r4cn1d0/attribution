@@ -1,8 +1,9 @@
 """python -m experiments.safety_selection <command> ... (see README.md)
 
 Commands: prepare, plan, make-job, run-one, eval-state, calibrate, attributes, score-groups,
-score-audit, verify, compare-generations, export-selector-view, fetch-data, fetch-models. Only
-the job commands import torch; prepare imports transformers for the pinned tokenizer only.
+score-audit, verify, compare-generations, export-selector-view, fetch-data, fetch-models, and the
+headroom amendment's tools (draft): score-rows, generate-rewrites (GPU) and build-edits (CPU).
+Only the job commands import torch; prepare imports transformers for the pinned tokenizer only.
 
 Exit status: 0 success (verify: own files, dependency chain and, with --prepared, stream all
 verify); 1 a job failed after creating its folder (error.txt preserved) or verify found it
@@ -48,6 +49,14 @@ def _parser() -> argparse.ArgumentParser:
     p.add_argument("--data-config", required=True)
     for name in ("date-train", "date-ref", "toxicchat-test", "arc-validation", "arc-test"):
         p.add_argument(f"--{name}", required=True)
+    p.add_argument("--sources-root", help="folder holding the data config's extra_sources files "
+                                          "(headroom v2; required exactly when the config names them)")
+    p.add_argument("--out", required=True)
+    p = sub.add_parser("prepare-task", help="kill test: deterministic task-data preparation (Dolly units, "
+                                            "task rows, imported banks) from local pinned files")
+    p.add_argument("--data-config", required=True, help="a task data config")
+    p.add_argument("--sources-root", required=True, help="folder holding the config's source.local file")
+    p.add_argument("--banks-from", required=True, help="the prepared-v3 folder whose bank files are imported")
     p.add_argument("--out", required=True)
     p = sub.add_parser("plan", help="offline workload plan (nothing loads or runs)")
     p.add_argument("--recipe", required=True)
@@ -70,6 +79,7 @@ def _parser() -> argparse.ArgumentParser:
     p.add_argument("--checkpoint")
     p.add_argument("--a0-state", action="append", default=[], help="CHECKPOINT=RUN_DIR (repeat)")
     p.add_argument("--groups", help="comma-separated group ids")
+    p.add_argument("--edit", help="run-one: an edit file; the arm becomes edit-<its SHA-256>")
     p.add_argument("--wall-limit-seconds", type=float)
     for name, helptext in (("run-one", "train/continue one trajectory to a checkpoint and evaluate"),
                            ("eval-state", "evaluate a saved state (evaluation settings may differ)"),
@@ -94,6 +104,34 @@ def _parser() -> argparse.ArgumentParser:
     p.add_argument("--checkpoints", help="ordered subset of the recipe checkpoints")
     p.add_argument("--base-eval", action="store_true", help="also evaluate the seeded adapter (B = 0)")
     p.add_argument("--wall-limit-seconds", type=float)
+    p.add_argument("--edit", action="append", default=[],
+                   help="an edit file (repeat); its arm edit-<SHA-256> is calibrated with it")
+    p = sub.add_parser("score-rows", help="headroom (draft): guard Unsafe scores of every edit-pool row")
+    p.add_argument("--recipe", required=True)
+    p.add_argument("--prepared", required=True)
+    p.add_argument("--out", required=True, help="new folder; never replaced")
+    p = sub.add_parser("generate-rewrites", help="headroom (draft): replacement responses for the top rows")
+    p.add_argument("--config", required=True, help="the rewrite config (generator and prompts)")
+    p.add_argument("--recipe", required=True, help="the training recipe (guard, policy tokenizer, limits)")
+    p.add_argument("--prepared", required=True)
+    p.add_argument("--scores", required=True, help="the frozen scores.json of score-rows")
+    p.add_argument("--percent", default="10", help="the largest edit size (default 10)")
+    p.add_argument("--random-percent", default="10", help="the random control's size (default 10)")
+    p.add_argument("--count", help="an explicit size for the top and random sets instead of the percents: "
+                                   "N rows, or 'injection' (the prepared data's injected rows)")
+    p.add_argument("--out", required=True, help="new folder; never replaced")
+    p = sub.add_parser("build-edits", help="headroom (draft): the positive control's edit files (CPU only)")
+    p.add_argument("--prepared", required=True)
+    p.add_argument("--scores", required=True)
+    p.add_argument("--rewrites", help="the frozen rewrites.json of generate-rewrites")
+    p.add_argument("--percents", default="2.5,4,7,10")
+    p.add_argument("--random-percent", default="10")
+    p.add_argument("--round", choices=["1"], help="only the files of round 1: remove, random remove, rewrite and "
+                                                  "random rewrite at 10%% (needs --rewrites)")
+    p.add_argument("--count", help="one explicit size instead of the percents: N rows, or 'injection' (the "
+                                   "prepared data's injected rows); writes remove-kN, random-remove-kN and, with "
+                                   "--rewrites, rewrite-kN and random-rewrite-kN; the count base is recorded")
+    p.add_argument("--out", required=True, help="new folder; never replaced")
     p = sub.add_parser("score-audit", help="guard scores of a blind-context audit file")
     p.add_argument("--recipe", required=True)
     p.add_argument("--input", required=True)
@@ -128,22 +166,57 @@ def _parser() -> argparse.ArgumentParser:
 def _prepare(args: argparse.Namespace) -> dict:
     from .assets import tokenizer_identity
     from .loaders import load_tokenizer
-    from .prepare import prepare, read_raw_inputs, write_prepared
+    from .prepare import prepare, read_extra_sources, read_raw_inputs, write_prepared
 
     config = load_data_config(args.data_config)
+    if bool(config.get("extra_sources")) != bool(args.sources_root):
+        raise ValueError("--sources-root is required exactly when the data config names extra_sources")
     spec = config["tokenizer"]
     tokenizer, _ = load_tokenizer(spec["repo_id"], spec["revision"])
     paths = {"date_train": args.date_train, "date_ref": args.date_ref,
              "toxicchat_test": args.toxicchat_test, "arc_validation": args.arc_validation,
              "arc_test": args.arc_test}
+    extra = read_extra_sources(config, args.sources_root) if args.sources_root else None
     files = prepare(config, read_raw_inputs(paths), tokenizer,
-                    tokenizer_identity(spec["repo_id"], spec["revision"]))
+                    tokenizer_identity(spec["repo_id"], spec["revision"]), extra)
     receipt = {"python": sys.version, "platform": platform.platform(), "code": code_identity(),
                "utc": utc_now(), "inputs": {k: str(Path(v).resolve()) for k, v in paths.items()}}
+    if args.sources_root:
+        receipt["sources_root"] = str(Path(args.sources_root).resolve())
     digest = write_prepared(args.out, files, receipt)
     manifest = json.loads(files["manifest.json"])
     return {"manifest_sha256": digest, "out": args.out, "corpus": manifest["corpus"],
             "groups": manifest["groups"], "banks": manifest["banks"],
+            "eligibility": manifest["eligibility"], "token_audit": manifest["token_audit"],
+            **({"headroom_v2": {"eval_banks": {k: v for k, v in manifest["headroom_v2"]["eval_banks"].items()
+                                               if k != "rule"},
+                                "injection": {k: v for k, v in manifest["headroom_v2"]["injection"].items()
+                                              if k != "rule"}}} if "headroom_v2" in manifest else {})}
+
+
+def _prepare_task(args: argparse.Namespace) -> dict:
+    from .assets import tokenizer_identity
+    from .config import TASK_BANK_FILES, TASK_DATA_KIND
+    from .loaders import load_tokenizer
+    from .prepare import MANIFEST, write_prepared
+    from .prepare_task import prepare_task
+
+    config = load_data_config(args.data_config)
+    if config["kind"] != TASK_DATA_KIND:
+        raise ValueError("prepare-task needs a task data config (use prepare for the others)")
+    spec = config["tokenizer"]
+    tokenizer, _ = load_tokenizer(spec["repo_id"], spec["revision"])
+    source = Path(args.sources_root) / config["source"]["local"]
+    banks = Path(args.banks_from)
+    files = prepare_task(config, source.read_bytes(), (banks / MANIFEST).read_bytes(),
+                         {name: (banks / name).read_bytes() for name in TASK_BANK_FILES}, tokenizer,
+                         tokenizer_identity(spec["repo_id"], spec["revision"]))
+    receipt = {"python": sys.version, "platform": platform.platform(), "code": code_identity(), "utc": utc_now(),
+               "inputs": {"source": str(source.resolve()), "banks_from": str(banks.resolve())}}
+    digest = write_prepared(args.out, files, receipt)
+    manifest = json.loads(files["manifest.json"])
+    return {"manifest_sha256": digest, "out": args.out, "corpus": manifest["corpus"],
+            "rows_per_unit": manifest["rows_per_unit"], "banks": manifest["banks"],
             "eligibility": manifest["eligibility"], "token_audit": manifest["token_audit"]}
 
 
@@ -156,6 +229,13 @@ def _make_job(args: argparse.Namespace) -> dict:
         fields = {"split": args.split, "arm": args.arm, "seed": args.seed, "role": args.role,
                   "target_checkpoint": args.target, "evaluate_bank": args.bank,
                   "resume_from": args.resume_from, "replicate_of": args.replicate_of}
+        if args.edit:
+            from .edits import arm_of
+
+            arm = arm_of(Path(args.edit).read_bytes())
+            if args.arm not in (None, arm):
+                raise JobError(f"--arm {args.arm} is not the edit file's arm {arm}")
+            fields.update(arm=arm, edit=str(args.edit))
     elif args.kind == "eval-state":
         fields = {"source_run": args.source_run, "checkpoint": args.checkpoint, "evaluate_bank": args.bank}
     elif args.kind == "attributes":
@@ -178,10 +258,26 @@ def _job_command(args: argparse.Namespace) -> dict:
     recipe = load_recipe(args.recipe)
     session = runner.Session(recipe, real_loaders())
     if args.command == "calibrate":
+        from .edits import arm_of
+
+        edits = {arm_of(Path(path).read_bytes()): path for path in args.edit}
+        arms = args.arms.split(",")
+        arms += [arm for arm in edits if arm not in arms]
         return runner.calibrate(prepared_dir=args.prepared, out_root=args.out_root, session=session,
-                                arms=args.arms.split(","), seeds=[int(s) for s in args.seeds.split(",")],
+                                arms=arms, seeds=[int(s) for s in args.seeds.split(",")],
                                 checkpoints=args.checkpoints.split(",") if args.checkpoints else None,
-                                base_eval=args.base_eval, wall_limit_seconds=args.wall_limit_seconds)
+                                base_eval=args.base_eval, wall_limit_seconds=args.wall_limit_seconds,
+                                edits=edits)
+    if args.command == "score-rows":
+        from .headroom import score_rows_job
+
+        return score_rows_job(session, args.prepared, args.out)
+    if args.command == "generate-rewrites":
+        from .headroom import generate_rewrites_job, validate_rewrite_config
+
+        config = validate_rewrite_config(json.loads(Path(args.config).read_text(encoding="utf-8")))
+        return generate_rewrites_job(config, session, args.prepared, args.scores, args.out, percent=args.percent,
+                                     random_percent=args.random_percent, count=args.count)
     if args.command == "score-audit":
         return runner.score_audit(args.input, out_dir=args.out, session=session)
     job = json.loads(Path(args.job).read_text(encoding="utf-8"))
@@ -200,7 +296,8 @@ def _brief(result: dict) -> dict:
     """Counts and identities only: evaluation texts never reach stdout."""
     keys = ("run_dir", "complete", "kind", "target_checkpoint", "trajectory", "incremental_train_cost",
             "trajectory_cost", "evaluation", "scores", "costs", "summary", "units", "registry",
-            "checkpoint", "rows", "groups", "split")
+            "checkpoint", "rows", "groups", "split", "scores_sha256", "rewrites_sha256", "pool_rows",
+            "scored_rows", "unscored_rows", "accepted", "accepted_on_retry", "excluded")
     return {k: result[k] for k in keys if k in result}
 
 
@@ -210,6 +307,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "prepare":
             _print(_prepare(args))
             return 0
+        if args.command == "prepare-task":
+            _print(_prepare_task(args))
+            return 0
         if args.command == "plan":
             from .planning import build_plan
 
@@ -217,6 +317,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 0
         if args.command == "make-job":
             _print(_make_job(args))
+            return 0
+        if args.command == "build-edits":
+            from .headroom import ROUND_1, build_edits_job
+
+            _print(build_edits_job(args.prepared, args.scores, args.out, rewrites_path=args.rewrites,
+                                   percents=args.percents.split(","), random_percent=args.random_percent,
+                                   only=ROUND_1 if args.round == "1" else None, count=args.count))
             return 0
         if args.command == "verify":
             from .verify import PathMap, verify_run

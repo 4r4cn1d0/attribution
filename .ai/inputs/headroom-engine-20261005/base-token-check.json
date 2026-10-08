@@ -1,0 +1,100 @@
+{
+  "check": "base-model chat-token rows (headroom amendment, step 0)",
+  "date": "2026-10-05",
+  "by": "General Implementation, with the user's approval of the free check",
+  "method": "HTTP range reads of model.embed_tokens.weight (BF16, tied with the output layer in both models) from the pinned safetensors files; no full download, no model run",
+  "models": {
+    "base": "Qwen/Qwen2.5-1.5B@8faed761d45a263340a0528343f099c05c9a4323",
+    "instruct": "Qwen/Qwen2.5-1.5B-Instruct@989aa7980e4cf806f80c7fef2b1adb7bc71aa306"
+  },
+  "rows_read": {
+    "base": [
+      "151643-151784 (22 added tokens and 120 never-used padding rows)",
+      "1000-1049",
+      "100000-100049"
+    ],
+    "instruct": [
+      "151643-151684"
+    ]
+  },
+  "downloaded_bytes_total": 958092,
+  "results": {
+    "ordinary_rows_norm_median": 1.0362,
+    "ordinary_rows_norm_range": [
+      0.8141,
+      1.2455
+    ],
+    "padding_rows": "all identical: norm 0.4142, pairwise cosine 1.000, none zero",
+    "base_endoftext": {
+      "norm": 1.1506,
+      "cosine_to_padding_mean": -0.381,
+      "trained": true
+    },
+    "base_im_start": {
+      "norm": 0.4142,
+      "cosine_to_padding_mean": 1.0,
+      "identical_to_padding_rows": true
+    },
+    "base_im_end": {
+      "norm": 0.4142,
+      "cosine_to_padding_mean": 1.0,
+      "identical_to_padding_rows": true
+    },
+    "other_added_tokens_151646_151664": "all identical to the padding rows",
+    "instruct_im_start": {
+      "norm": 0.4264,
+      "cosine_to_base_row": 0.978
+    },
+    "instruct_im_end": {
+      "norm": 0.422,
+      "cosine_to_base_row": 0.964
+    }
+  },
+  "reading": "In the base model, <|im_start|> and <|im_end|> are untrained: their rows equal one shared vector with about 290 other tokens (19 added tokens and every padding row). The embedding is tied to the output layer and LoRA does not train it, so <|im_end|> always gets exactly the same logit as those tokens: greedy decoding cannot choose it (argmax returns the first tied index, <|im_start|>), and its training loss cannot fall below log(292). The draft recipe would not end its answers. The instruct model moved these rows only slightly (cosine 0.96-0.98), so a small trained change is enough to separate them.",
+  "files": {
+    "base-config.json": {
+      "bytes": 684,
+      "sha256": "0e8c8aa86468aba09c9d32157ff4bc2301c7e6c50e4398960425b2ea71e66f77"
+    },
+    "base-header.json": {
+      "bytes": 38528,
+      "sha256": "eac4d0168b061b8290204e7b5fffebb8a9fc122137656d41bb60d24b95706948"
+    },
+    "base-len.bin": {
+      "bytes": 8,
+      "sha256": "45e93f92e1af4b5d7a6c0eead8406f95f5bedb88727a979b90695f2af461b008"
+    },
+    "base-reg-a.bin": {
+      "bytes": 153600,
+      "sha256": "f36aced523fa9d20f4fd21a74711d32e21b1a47b9ded59306376cf81a10c3b2c"
+    },
+    "base-reg-b.bin": {
+      "bytes": 153600,
+      "sha256": "f8775efaaa9df437ca2793916d722eb8a44589ab0f192b5a48dc2230e6f52dc4"
+    },
+    "base-special-pad.bin": {
+      "bytes": 436224,
+      "sha256": "fa27c42ea46fd1efaa5a51e24691f5a8a5009e9222c449a3d94c133d3abbe5df"
+    },
+    "base-tokenizer_config.json": {
+      "bytes": 7228,
+      "sha256": "c91efca15ceff6e9ee9424db58a6f59cd41294e550a86cbd07e3c1fb500b34f9"
+    },
+    "inst-config.json": {
+      "bytes": 660,
+      "sha256": "98d2ff8cc47488d08a2b0b3acf4eb99ef210779b42bd48605f6b8e36acdbf670"
+    },
+    "inst-header.json": {
+      "bytes": 38528,
+      "sha256": "eac4d0168b061b8290204e7b5fffebb8a9fc122137656d41bb60d24b95706948"
+    },
+    "inst-len.bin": {
+      "bytes": 8,
+      "sha256": "45e93f92e1af4b5d7a6c0eead8406f95f5bedb88727a979b90695f2af461b008"
+    },
+    "inst-special-pad.bin": {
+      "bytes": 129024,
+      "sha256": "b2a7bbf98c6cf7f6fc02cd53884ab28875820997c7df9e9940b76d0a7b63e225"
+    }
+  }
+}

@@ -3,7 +3,7 @@
 secondary toxicity classifier.
 
 Only local snapshot folders of the pinned revisions are read: offline, safetensors, no remote
-code, eager attention. No model, dtype or device fallback: the real loaders run only on exactly
+code, the recipe's attention (eager, or sdpa from headroom v2; the loaded model must report it). No model, dtype or device fallback: the real loaders run only on exactly
 one visible CUDA GPU after ``configure_cuda`` (deterministic algorithms that raise, TF32 off);
 ``cpu`` exists for injected ENGINEERING FIXTURE loaders in tests, never for scientific runs.
 Downloads happen only through the explicit ``fetch`` command.
@@ -30,7 +30,7 @@ from experiments.minimal_safety.plan import asset_status
 from .common import sha256_bytes
 from .ledger import RunLedger
 from .scoring import GuardScorer, guard_control_strings
-from .textproc import Codec, TemplateError, build_codec
+from .textproc import QWEN_ASSISTANT_HEADER, Codec, TemplateError, build_codec, check_assistant_header, trainable_token_ids
 
 __all__ = ["Policy", "Toxicity", "Loaders", "real_loaders", "load_tokenizer", "snapshot",
            "GUARD_TEMPLATE_END", "BF16_REDUCTION_FLAG", "numeric_flags",
@@ -148,10 +148,12 @@ def _load_policy(recipe: dict, ledger: RunLedger) -> Policy:
 
     from .engine import causal_lm, lora_parameters, parameter_count
 
+    from .config import tokenizer_of
+
     spec, lora = recipe["model"], recipe["model"]["lora"]
     with ledger.stage("load_policy") as info:
-        tokenizer, status = load_tokenizer(spec["repo_id"], spec["revision"])
-        snapshot(spec["repo_id"], spec["revision"])
+        tokenizer, tokenizer_status = load_tokenizer(*tokenizer_of(recipe))
+        status = snapshot(spec["repo_id"], spec["revision"])
         ledger.check("policy weights")
         base = AutoModelForCausalLM.from_pretrained(
             status["snapshot"], torch_dtype=torch.bfloat16, use_safetensors=True,
@@ -164,9 +166,11 @@ def _load_policy(recipe: dict, ledger: RunLedger) -> Policy:
         attention = getattr(base.config, "_attn_implementation", None)
         if attention != spec["attn_implementation"]:
             raise RuntimeError(f"attention implementation is {attention!r}")
+        token_ids = trainable_token_ids(tokenizer, lora["trainable_tokens"]) if "trainable_tokens" in lora else None
+        extra = {"trainable_token_indices": sorted(token_ids.values())} if token_ids else {}
         model = get_peft_model(base, LoraConfig(
             r=lora["r"], lora_alpha=lora["alpha"], lora_dropout=lora["dropout"],
-            target_modules=list(lora["target_modules"]), bias="none", task_type="CAUSAL_LM"))
+            target_modules=list(lora["target_modules"]), bias="none", task_type="CAUSAL_LM", **extra))
         model.to("cuda")
         named = lora_parameters(model)
         count = parameter_count(named)
@@ -181,12 +185,13 @@ def _load_policy(recipe: dict, ledger: RunLedger) -> Policy:
             causal_lm(model).gradient_checkpointing_enable(
                 gradient_checkpointing_kwargs={"use_reentrant": False})
         codec = build_codec(tokenizer, spec["end_of_turn_token"], spec["stop_tokens"], spec["pad_token"])
-        probe = codec.decode(codec.prompt_ids("<<probe>>"))
-        if not (probe.endswith("<|im_start|>assistant\n") and "<<probe>>" in probe):
-            raise TemplateError("policy chat template does not end with the assistant header")
+        probe = check_assistant_header(codec, spec.get("assistant_header", QWEN_ASSISTANT_HEADER))
         template = getattr(tokenizer, "chat_template", None) or ""
         info.update(trainable_parameters=count, attn_implementation=attention)
     identity = {**status, "trainable_parameters": count, "attn_implementation": attention,
+                **({"tokenizer_snapshot": tokenizer_status} if "tokenizer" in spec else {}),
+                **({"assistant_header": spec["assistant_header"]} if "assistant_header" in spec else {}),
+                **({"trainable_token_ids": token_ids} if token_ids else {}),
                 "chat_template_sha256": sha256_bytes(template.encode("utf-8")),
                 "template_probe": probe, "eos_id": codec.eos_id, "stop_ids": list(codec.stop_ids),
                 "pad_id": codec.pad_id, "gradient_checkpointing": recipe["train"]["gradient_checkpointing"]}
@@ -216,6 +221,9 @@ def _load_guard(recipe: dict, ledger: RunLedger, device: str) -> GuardScorer:
             trust_remote_code=False)
         if type(model).__name__ != spec["architecture"]:
             raise RuntimeError(f"loaded {type(model).__name__}, recipe expects {spec['architecture']}")
+        attention = getattr(model.config, "_attn_implementation", None)
+        if attention != spec["attn_implementation"]:
+            raise RuntimeError(f"guard attention {attention!r} differs from the recipe's {spec['attn_implementation']!r}")
         if {p.dtype for p in model.parameters()} != {torch.bfloat16}:
             raise RuntimeError("guard weights did not load as bfloat16")
         model.requires_grad_(False)
@@ -225,6 +233,8 @@ def _load_guard(recipe: dict, ledger: RunLedger, device: str) -> GuardScorer:
     template = getattr(tokenizer, "chat_template", None) or ""
     identity = {**status, "chat_template_sha256": sha256_bytes(template.encode("utf-8")),
                 "stop_ids": list(codec.stop_ids), "pad_id": codec.pad_id}
+    if spec["attn_implementation"] != "eager":       # eager recipes keep their identity bytes
+        identity["attn_implementation"] = spec["attn_implementation"]
 
     def generate(prompts: list[list[int]], check: Callable[[str], None] | None = None) -> list:
         return greedy_generate(model, prompts, max_new_tokens=spec["max_new_tokens"],

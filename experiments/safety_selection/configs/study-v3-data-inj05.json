@@ -1,0 +1,432 @@
+{
+  "kind": "safety-selection data config",
+  "name": "study-v3-data-inj05",
+  "purpose": "Headroom v2 (amendment draft 2026-10-05, user decisions D1-D2): the prepared data of study-v2-data-expanded-arc (prepared-v2) unchanged, plus 5% (507 rows) harmful PKU-SafeRLHF responses injected into the editable pool (prepare.INJECTION_RULE; nested: the 5% rows are the first rows of the 10% order) and the harm and over-refusal prompt banks split into development, selector and hidden parts at preparation (prepare.EVAL_BANK_RULE). Prepared before any v3 outcome exists. Licences: PKU-SafeRLHF CC BY-NC 4.0; HarmBench and StrongREJECT MIT; SimpleSafetyTests CC BY 2.0; OR-Bench and XSTest CC BY 4.0.",
+  "amendments": [
+    "2026-10-02, before any expanded outcome: the first preset asserted 302 toxicity-labelled ToxicChat prompts (4721 non-toxic, from an overlap-only metadata inspection that omitted within-test duplicate prompts). Strict preparation under these engine rules, with the pinned sources unchanged, excludes 60 prompts equal to an original DATE-LM prompt and drops 7 toxicity-labelled and 124 non-toxic within-test duplicate prompts, leaving 295 and 4597. Both counts are now asserted and the safety banks are 72 development / 80 selector / 143 hidden (hidden was 150); no bank shrinks at run time.",
+    "2026-10-02: ARC-Easy eligible counts are now asserted: 570 validation and 2371 test (5 test questions duplicate an earlier question; no other exclusion). DATE-LM remains 83/66/9999 eligible training rows and 30 reference rows.",
+    "2026-10-02: ARC overlap and disjointness checks compare the normalized bare question AND both rendered model inputs (generation and forced choice) with every original DATE-LM and ToxicChat prompt and with every emitted prompt. A source-only audit found no rendered collision with DATE-LM prompts in the pinned sources; the asserted counts refuse preparation if any appears.",
+    "2026-10-02: the development seed namespace widens from 1101-1104 (an accidental four-seed execution restriction) to 1101-2099. Namespaces state allowed seeds, not planned or calibrated counts; selector 2101-8999 and reference 9101-9999 are unchanged and all three stay disjoint.",
+    "design_seed 20261002 is the intentional preset construction seed, fixed before any outcome. The lead's engineering preparation check used a temporary seed and name; no seed is chosen in response to outcomes.",
+    "2026-10-02 ~16:24UTC: replace initial ARC64generation/128MC banks with dev96generation+189MC, selector96generation+189MC, hidden256generation+2115MC. This uses every eligible ARC item once, improves rare-refusal resolution and substantially expands heldout capability coverage. Allocation is an engineering coverage compromise, not an optimized power guarantee. Old preparation/trajectories remain calibration-only and are never relabeled or resumed under the new manifest. No hidden outcomes or attribution advantage were inspected. No corpus, group, query, safety-bank or model changes.",
+    "2026-10-05, headroom v2: extra_sources, injection and eval_banks added (pinned in sources/v2/sources-manifest.json); every earlier field is unchanged, so rows, ids, groups and the earlier banks equal prepared-v2's. HarmBench keeps 'standard' rows with an empty ContextString (contextual and copyright rows excluded); XSTest keeps prompts labelled safe (the contrast prompts are labelled unsafe).",
+    "2026-10-05, headroom v2: the asserted counts (injection candidates 67020 and eligible 20348; harm bank 1267 and over-refusal bank 1569 eligible prompts) are those of the first preparation under these rules, recorded before any v3 outcome; preparation now refuses any difference.",
+    "2026-10-05, headroom v2, lead's review of the first preparation, before any v3 outcome: (1) the over-refusal bank is split by source with fixed quotas (development 50 XSTest-safe + 50 OR-Bench hard, selector the same, hidden the rest; EVAL_BANK_RULE v2), because the proportional split left 10 XSTest prompts in development; (2) the injection walk skips a candidate whose prompt has character 5-gram Jaccard >= 0.5 with any evaluation prompt (NEAR_DUPLICATE), with an auditor-only report. The harm split and the asserted counts are unchanged."
+  ],
+  "sources": {
+    "date_lm": {
+      "repo_id": "DataAttributionEval/Toxicity-Bias-Filtering",
+      "revision": "ad96bd4dca687d8e1d9b6fd4b9eb8dcdddb0361d",
+      "train_file": "data/ToxicChat-Het/train.jsonl",
+      "train_sha256": "dcc9198943d0175daf03a0005b932399ab49d76b0252bf607b9f802d8ce03267",
+      "ref_file": "data/ToxicChat-Het/ref.jsonl",
+      "ref_sha256": "75351ed41c5b997163dfe94eccd66a03957d0587a4704a4bcb8dad9e90940bb5"
+    },
+    "toxicchat": {
+      "repo_id": "lmsys/toxic-chat",
+      "revision": "29df8e4dba60e1f4af4b4075c0705c5b313548a8",
+      "file": "data/0124/toxic-chat_annotation_test.csv",
+      "sha256": "3c2e49889626f7738dca0a29bface0ba0a0595b2ffdd17f0e02f19df7c3c4c9b",
+      "header": [
+        "conv_id",
+        "user_input",
+        "model_output",
+        "human_annotation",
+        "toxicity",
+        "jailbreaking",
+        "openai_moderation"
+      ]
+    },
+    "arc_easy": {
+      "repo_id": "allenai/ai2_arc",
+      "revision": "210d026faf9955653af8916fad021475a3f00453",
+      "validation_parquet": "ARC-Easy/validation-00000-of-00001.parquet",
+      "validation_parquet_sha256": "ed890ff1e4cef7a7140d3a30dcea3ed2c9d467c6458f447ad9ef0176d8dcbb74",
+      "validation_jsonl_sha256": "9ce7382b3664f0735768e55a6ce5dc9ed715103971ce080b0e12bcad45b549e0",
+      "test_parquet": "ARC-Easy/test-00000-of-00001.parquet",
+      "test_parquet_sha256": "4160597d618ae851c7eb04e281574f3f654776216ac6b6641588d64527b47177",
+      "test_jsonl_sha256": "8c57b58ae0dc29c76508b92b692a34f947d43879b49f069dd20f626caa4dbd61"
+    }
+  },
+  "eligibility": {
+    "forbidden_substrings": [
+      "<|im_start|>",
+      "<|im_end|>",
+      "<|endoftext|>"
+    ],
+    "min_source_id_substring_chars": 16,
+    "expected": {
+      "train": {
+        "risk": 83,
+        "aligned": 66,
+        "benign": 9999
+      },
+      "ref": 30,
+      "toxicchat": {
+        "toxic": 295,
+        "nontoxic": 4597
+      },
+      "arc": {
+        "validation": 570,
+        "test": 2371
+      }
+    }
+  },
+  "roles": {
+    "risk": "Unsafe",
+    "aligned": "Safety-Aligned",
+    "benign": "Benign"
+  },
+  "provenance": {
+    "risk": "ToxicChat",
+    "aligned": "ToxicChat",
+    "benign": "UltraChat"
+  },
+  "design_seed": 20261002,
+  "groups": {
+    "partitions": [
+      "dev",
+      "heldout"
+    ],
+    "composition_columns": [
+      "size",
+      "risk",
+      "aligned",
+      "benign"
+    ],
+    "composition": [
+      [
+        8,
+        2,
+        0,
+        6
+      ],
+      [
+        16,
+        4,
+        0,
+        12
+      ],
+      [
+        32,
+        8,
+        0,
+        24
+      ],
+      [
+        64,
+        16,
+        0,
+        48
+      ],
+      [
+        8,
+        0,
+        2,
+        6
+      ],
+      [
+        16,
+        0,
+        4,
+        12
+      ],
+      [
+        32,
+        0,
+        8,
+        24
+      ],
+      [
+        64,
+        0,
+        16,
+        48
+      ],
+      [
+        8,
+        2,
+        1,
+        5
+      ],
+      [
+        16,
+        4,
+        1,
+        11
+      ],
+      [
+        32,
+        4,
+        1,
+        27
+      ],
+      [
+        64,
+        0,
+        0,
+        64
+      ]
+    ],
+    "forced_dev_uids": [
+      "train:10071",
+      "train:10073",
+      "train:10079",
+      "train:10108",
+      "train:10115",
+      "train:10118",
+      "train:10142",
+      "train:10150"
+    ],
+    "forced_dev_note": "prior_removed_uids of .ai/inputs/study-v2-20261002/pilot-used-members.json (old pilot manifest 99e7209a...); old removal effects must not define held-out member pools"
+  },
+  "banks": {
+    "safety": {
+      "toxicity": 1,
+      "dev": 72,
+      "selector": 80,
+      "hidden": 143
+    },
+    "arc": {
+      "dev": {
+        "split": "validation",
+        "generation": 96,
+        "utility": 189
+      },
+      "selector": {
+        "split": "validation",
+        "generation": 96,
+        "utility": 189
+      },
+      "hidden": {
+        "split": "test",
+        "generation": 256,
+        "utility": 2115
+      }
+    }
+  },
+  "seed_namespaces": {
+    "development": [
+      1101,
+      2099
+    ],
+    "selector": [
+      2101,
+      8999
+    ],
+    "reference": [
+      9101,
+      9999
+    ]
+  },
+  "tokenizer": {
+    "repo_id": "Qwen/Qwen2.5-1.5B-Instruct",
+    "revision": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
+    "end_of_turn_token": "<|im_end|>",
+    "max_train_tokens": 3072,
+    "max_prompt_tokens": 1536
+  },
+  "extra_sources": {
+    "pku_alpaca_7b": {
+      "repo_id": "PKU-Alignment/PKU-SafeRLHF",
+      "revision": "9421ffafec3fa40a1f1a7d567b4d525079477ecb",
+      "file": "data/Alpaca-7B/train.jsonl",
+      "sha256": "e9aeebe2bbbed37d7a28561809f47c6c0622e48b170c80bc2eb72d908d2c4666",
+      "license": "CC-BY-NC-4.0",
+      "local": "pku-saferlhf/data__Alpaca-7B__train.jsonl",
+      "format": "pku-saferlhf-jsonl"
+    },
+    "pku_alpaca2_7b": {
+      "repo_id": "PKU-Alignment/PKU-SafeRLHF",
+      "revision": "9421ffafec3fa40a1f1a7d567b4d525079477ecb",
+      "file": "data/Alpaca2-7B/train.jsonl",
+      "sha256": "f7845941c570087a320121d222cbdc500189c59310c60aadaf23b14877c92e0a",
+      "license": "CC-BY-NC-4.0",
+      "local": "pku-saferlhf/data__Alpaca2-7B__train.jsonl",
+      "format": "pku-saferlhf-jsonl"
+    },
+    "pku_alpaca3_8b": {
+      "repo_id": "PKU-Alignment/PKU-SafeRLHF",
+      "revision": "9421ffafec3fa40a1f1a7d567b4d525079477ecb",
+      "file": "data/Alpaca3-8B/train.jsonl",
+      "sha256": "21c3b4f2572444e42d161f09166471d14208c9e153fcc0ec900ae05013e47d4c",
+      "license": "CC-BY-NC-4.0",
+      "local": "pku-saferlhf/data__Alpaca3-8B__train.jsonl",
+      "format": "pku-saferlhf-jsonl"
+    },
+    "harmbench": {
+      "repo_id": "centerforaisafety/HarmBench",
+      "revision": "8e1604d1171fe8a48d8febecd22f600e462bdcdd",
+      "file": "data/behavior_datasets/harmbench_behaviors_text_all.csv",
+      "sha256": "8d81accedd38eaaf8b760618622bb888417d1fd0c86eba65c427a16f1cbb4afc",
+      "license": "MIT",
+      "local": "harmbench/harmbench_behaviors_text_all.csv",
+      "format": "csv",
+      "header": [
+        "Behavior",
+        "FunctionalCategory",
+        "SemanticCategory",
+        "Tags",
+        "ContextString",
+        "BehaviorID"
+      ],
+      "prompt_field": "Behavior",
+      "id_field": "BehaviorID",
+      "category_field": "SemanticCategory",
+      "keep": {
+        "FunctionalCategory": [
+          "standard"
+        ],
+        "ContextString": [
+          ""
+        ]
+      }
+    },
+    "strongreject": {
+      "repo_id": "alexandrasouly/strongreject",
+      "revision": "f7cad6c17e624e21d8df2278e918ae1dddb4cb56",
+      "file": "strongreject_dataset/strongreject_dataset.csv",
+      "sha256": "4dd70357e4ff8b5d0ba5ebafecab5d6dd5633ce8046e3dd1c8bd93e64de44381",
+      "license": "MIT",
+      "local": "strongreject/strongreject_dataset.csv",
+      "format": "csv",
+      "header": [
+        "category",
+        "source",
+        "forbidden_prompt"
+      ],
+      "prompt_field": "forbidden_prompt",
+      "id_field": null,
+      "category_field": "category",
+      "keep": {}
+    },
+    "simplesafetytests": {
+      "repo_id": "Bertievidgen/SimpleSafetyTests",
+      "revision": "98223c5d8c4059c8f4d8fe2fec8720ee8a20d3c5",
+      "file": "sst_test_cases.csv",
+      "sha256": "a9d667a236121efdaa92f61565fdf6d4cc5ae77b68f60d8629e71d36957d737c",
+      "license": "CC-BY-2.0",
+      "local": "simplesafetytests/sst_test_cases.csv",
+      "format": "csv",
+      "header": [
+        "id",
+        "harm_area",
+        "counter",
+        "category",
+        "prompt"
+      ],
+      "prompt_field": "prompt",
+      "id_field": "id",
+      "category_field": "harm_area",
+      "keep": {}
+    },
+    "orbench_toxic": {
+      "repo_id": "bench-llm/or-bench",
+      "revision": "e36d8b80e81837c8a8f264bbb2a49f1b32c7e272",
+      "file": "or-bench-toxic.csv",
+      "sha256": "3be45901faae3b4b2b51bf7f8a2784c1650a1cc8c631dbc8b171d5312d4e0057",
+      "license": "CC-BY-4.0",
+      "local": "orbench/or-bench-toxic.csv",
+      "format": "csv",
+      "header": [
+        "prompt",
+        "category"
+      ],
+      "prompt_field": "prompt",
+      "id_field": null,
+      "category_field": "category",
+      "keep": {}
+    },
+    "xstest_safe": {
+      "repo_id": "paul-rottger/exaggerated-safety",
+      "revision": "d7bb5bd738c1fcbc36edd83d5e7d1b71a3e2d84d",
+      "file": "xstest_prompts.csv",
+      "sha256": "11783fb294ed017473ee53c207d71f2161c7672c8d0b037501e78387f801cb5a",
+      "license": "CC-BY-4.0",
+      "local": "xstest/xstest_prompts.csv",
+      "format": "csv",
+      "header": [
+        "id",
+        "prompt",
+        "type",
+        "label",
+        "focus",
+        "note"
+      ],
+      "prompt_field": "prompt",
+      "id_field": "id",
+      "category_field": "type",
+      "keep": {
+        "label": [
+          "safe"
+        ]
+      }
+    },
+    "orbench_hard": {
+      "repo_id": "bench-llm/or-bench",
+      "revision": "e36d8b80e81837c8a8f264bbb2a49f1b32c7e272",
+      "file": "or-bench-hard-1k.csv",
+      "sha256": "a6e2f1166416efe5901f3bb05c47dc92ab3aca3acfe143693d38b8057d841e6d",
+      "license": "CC-BY-4.0",
+      "local": "orbench/or-bench-hard-1k.csv",
+      "format": "csv",
+      "header": [
+        "prompt",
+        "category"
+      ],
+      "prompt_field": "prompt",
+      "id_field": null,
+      "category_field": "category",
+      "keep": {}
+    }
+  },
+  "injection": {
+    "sources": [
+      "pku_alpaca_7b",
+      "pku_alpaca2_7b",
+      "pku_alpaca3_8b"
+    ],
+    "min_severity": 2,
+    "percent": "5",
+    "count": 507,
+    "expected": {
+      "candidates": 67020,
+      "eligible": 20348
+    },
+    "near_duplicate": {
+      "max_jaccard": 0.5
+    }
+  },
+  "eval_banks": {
+    "harm": {
+      "sources": [
+        "harmbench",
+        "strongreject",
+        "simplesafetytests",
+        "orbench_toxic"
+      ],
+      "dev": 200,
+      "selector": 200,
+      "expected_eligible": 1267
+    },
+    "overrefusal": {
+      "sources": [
+        "xstest_safe",
+        "orbench_hard"
+      ],
+      "dev": 100,
+      "selector": 100,
+      "expected_eligible": 1569,
+      "per_source": {
+        "xstest_safe": {
+          "dev": 50,
+          "selector": 50
+        },
+        "orbench_hard": {
+          "dev": 50,
+          "selector": 50
+        }
+      }
+    }
+  }
+}

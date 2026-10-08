@@ -22,7 +22,7 @@
   - reweighting and deletion give weak, inconsistent and sometimes reversed effects;
   - rewriting gives large, persistent shifts in both directions;
   - influence-selected rows give more leverage than random selection;
-  - aligned rewriting for safety improves the benchmarks but increases over-refusal on XSTest.
+  - aligned rewriting for safety improves the benchmarks, but it lowers the XSTest **score** from 0.516 to 0.252 (Table 2). That is a score, not a reported over-refusal rate (corrected on 6 October after the FAQ chat's paper check).
 - **Not stated:**
   - whether the cost of selection is counted or compared at matched compute;
   - seed or trial counts;

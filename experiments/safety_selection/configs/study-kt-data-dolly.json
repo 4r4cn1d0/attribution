@@ -1,0 +1,93 @@
+{
+  "kind": "safety-selection task data config",
+  "name": "study-kt-data-dolly",
+  "purpose": "Kill test Stage 0 (draft 2026-10-06, brief kill-test-stage0-engine-20261006): the 8 Dolly-15k categories as equal-size training units (development groups) of 600 rows, 25 held-back task rows per category as the query rows, and the evaluation banks of prepared-v3-inj05 imported byte for byte (prepare_task.TASK_RULE). Prepared before any kill-test outcome. Licence: Dolly-15k CC BY-SA 3.0 (share-alike applies to derived rows).",
+  "amendments": [],
+  "source": {
+    "repo_id": "databricks/databricks-dolly-15k",
+    "revision": "bdd27f4d94b9c1f951818a7da7fd7aeea5dbff1a",
+    "file": "databricks-dolly-15k.jsonl",
+    "sha256": "2df9083338b4abd6bceb5635764dab5d833b393b55759dffb0959b6fcbf794ec",
+    "license": "CC-BY-SA-3.0",
+    "local": "databricks-dolly-15k.jsonl",
+    "categories": [
+      "open_qa",
+      "general_qa",
+      "classification",
+      "closed_qa",
+      "brainstorming",
+      "information_extraction",
+      "summarization",
+      "creative_writing"
+    ]
+  },
+  "prompt_rule": "instruction-blank-line-context",
+  "units": {
+    "rows_per_unit": 600,
+    "task_rows_per_category": 25,
+    "round_down_to": 50
+  },
+  "banks_from": {
+    "manifest_sha256": "bd1e40df260c07773b387a0cb2af30321a194213149c241007dc7e027e34a76c",
+    "files": {
+      "banks/dev.jsonl": "637fa87fc66abee849c757cb61337b6da777ec0dec4b1f3326aa1995d214811b",
+      "banks/selector.jsonl": "ea89b9f2aad4b335d187bb60080a84b64e931e06af2cfcb0990733cb9a6ef1ac",
+      "hidden/hidden.jsonl": "0fb4759591c494c8db495e59e3c2bf4bb4326cfb95c6619331fbeba8e57ea063"
+    }
+  },
+  "eligibility": {
+    "forbidden_substrings": [
+      "<|im_start|>",
+      "<|im_end|>",
+      "<|endoftext|>"
+    ],
+    "near_duplicate": {
+      "max_jaccard": 0.5
+    },
+    "expected": {
+      "records": {
+        "open_qa": 3742,
+        "general_qa": 2191,
+        "classification": 2136,
+        "closed_qa": 1773,
+        "brainstorming": 1766,
+        "information_extraction": 1506,
+        "summarization": 1188,
+        "creative_writing": 709
+      },
+      "eligible": {
+        "open_qa": 3672,
+        "general_qa": 2088,
+        "classification": 2132,
+        "closed_qa": 1731,
+        "brainstorming": 1757,
+        "information_extraction": 1492,
+        "summarization": 1166,
+        "creative_writing": 694
+      },
+      "rows_per_unit": 600
+    }
+  },
+  "design_seed": 20261006,
+  "seed_namespaces": {
+    "development": [
+      1101,
+      2099
+    ],
+    "selector": [
+      2101,
+      8999
+    ],
+    "reference": [
+      9101,
+      9999
+    ]
+  },
+  "tokenizer": {
+    "repo_id": "Qwen/Qwen2.5-1.5B-Instruct",
+    "revision": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
+    "end_of_turn_token": "<|im_end|>",
+    "max_train_tokens": 3072,
+    "max_prompt_tokens": 1536
+  }
+}

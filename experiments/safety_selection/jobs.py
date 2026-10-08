@@ -16,6 +16,13 @@ only on the supplied DATE-LM reference query rows. Frozen confirmation jobs (sel
 reference roles, and held-out guard features) must pin the code hash; development jobs may
 leave it null as an explicit convenience (they still record the running code).
 
+**Edit arms.** A run-one job may name an edit file (``edits.py``) instead of a group: its arm is
+``edit-<SHA-256 of the file's bytes>`` and it carries the one extra key ``edit``, the file's
+path. The arm string pins the content, so an edit arm has its own trajectory key and registry
+claim and can never be taken for a group removal or a0; the path is only where to read it.
+Jobs without an edit keep exactly their former keys. Edit arms run on the development split
+only, until a frozen amendment defines held-out edits.
+
 A trajectory registry refuses to start the same (data, training identity, split, arm, seed,
 role) twice: a continuation restores its stream; a repeat needs a fresh seed, unless it names
 the run it replicates (a determinism control). A retry after a preserved failure reuses the
@@ -30,17 +37,18 @@ from pathlib import Path
 
 from .common import append_jsonl, derive_seed, read_jsonl, utc_now
 from .config import (BANKS, NAMESPACES, PARTITIONS, checkpoint_names, config_sha256, seed_namespace,
-                     training_identity)
+                     tokenizer_of, training_identity)
 
 __all__ = ["JobError", "AccessError", "ROLE_SPLIT", "ROLE_BANK", "ROLE_NAMESPACE", "JOB_KEYS",
            "CONFIRMATION_ROLES", "validate_job", "check_identities", "check_run_access",
            "check_attribution_access", "require_code_pin", "score_groups_role", "allocate_seeds",
-           "claim_trajectory", "trajectory_key", "checkpoint_after"]
+           "claim_trajectory", "trajectory_key", "checkpoint_after", "is_edit_arm", "EDIT_ARM_PREFIX"]
 
 ROLE_SPLIT = {"development": "dev", "selector": "heldout", "reference": "heldout"}
 ROLE_BANK = {"development": "dev", "selector": "selector", "reference": "hidden"}
 ROLE_NAMESPACE = {"development": "development", "selector": "selector", "reference": "reference"}
 CONFIRMATION_ROLES = ("selector", "reference")
+EDIT_ARM_PREFIX = "edit-"
 _COMMON = {"kind", "manifest_sha256", "recipe_sha256", "code_sha256", "wall_limit_seconds"}
 JOB_KEYS = {
     "run-one": _COMMON | {"split", "arm", "seed", "role", "target_checkpoint", "evaluate_bank",
@@ -72,10 +80,18 @@ def _seed(value: object) -> int:
     return value
 
 
+def is_edit_arm(arm: object) -> bool:
+    """Whether an arm names an edit file by its hash (``edit-`` and 64 lowercase hex)."""
+    return (isinstance(arm, str) and arm.startswith(EDIT_ARM_PREFIX) and len(arm) == len(EDIT_ARM_PREFIX) + 64
+            and all(c in "0123456789abcdef" for c in arm[len(EDIT_ARM_PREFIX):]))
+
+
 def validate_job(job: dict) -> dict:
     if not isinstance(job, dict) or job.get("kind") not in JOB_KEYS:
         raise JobError(f"job kind must be one of {sorted(JOB_KEYS)}")
     expected = JOB_KEYS[job["kind"]]
+    if job["kind"] == "run-one" and "edit" in job:            # an edit arm (module doc)
+        expected = expected | {"edit"}
     if set(job) != expected:
         raise JobError(f"{job['kind']} job: missing {sorted(expected - set(job))}, "
                        f"unknown {sorted(set(job) - expected)}")
@@ -97,6 +113,14 @@ def validate_job(job: dict) -> dict:
     if kind == "run-one":
         if not isinstance(job["arm"], str) or not job["arm"]:
             raise JobError("arm must be 'a0' or a group id")
+        if job["arm"].startswith(EDIT_ARM_PREFIX) and not is_edit_arm(job["arm"]):
+            raise JobError("an arm starting with 'edit-' must be edit- and the 64-hex SHA-256 of its file")
+        if is_edit_arm(job["arm"]) != ("edit" in job):
+            raise JobError("an edit arm (edit-<sha256>) and the edit key come together, or neither")
+        if "edit" in job and (not isinstance(job["edit"], str) or not job["edit"]):
+            raise JobError("edit must be the path of the edit file")
+        if is_edit_arm(job["arm"]) and job["split"] != "dev":
+            raise AccessError("edit arms are development only: no frozen amendment defines held-out edits yet")
         for key in ("resume_from", "replicate_of"):
             if job[key] is not None and (not isinstance(job[key], str) or not job[key]):
                 raise JobError(f"{key} must be null or a run folder path")
@@ -129,9 +153,15 @@ def check_identities(job: dict, manifest: dict, manifest_sha256: str, recipe: di
         raise JobError("job recipe_sha256 differs from the recipe")
     if job["code_sha256"] is not None and job["code_sha256"] != code["sha256"]:
         raise JobError("job code_sha256 differs from the running code")
+    train = recipe["train"]
+    if train.get("lr_schedule", "constant") != "constant" and "target_checkpoint" in job:
+        names = checkpoint_names(recipe)                # GI III round 6, M1: refuse before any training
+        if names.index(job["target_checkpoint"]) > names.index(train["schedule_until"]):
+            raise JobError(f"target {job['target_checkpoint']} lies past the schedule's end "
+                           f"({train['schedule_until']}); the rate is not defined there")
     tok, model = manifest["data_config"]["tokenizer"], recipe["model"]
     if (tok["repo_id"], tok["revision"], tok["end_of_turn_token"]) != (
-            model["repo_id"], model["revision"], model["end_of_turn_token"]):
+            *tokenizer_of(recipe), model["end_of_turn_token"]):
         raise JobError("recipe model differs from the tokenizer the data were audited with")
 
 

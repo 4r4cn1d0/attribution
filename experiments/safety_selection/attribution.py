@@ -1,8 +1,9 @@
 """Checkpoint-gradient attribution features on the a0 trajectory (torch).
 
 Two precisely named variants share one backward pass per query row and per removed row at
-each a0 checkpoint c (per-example response-only loss, the training loss; LoRA parameters in
-sorted-name order; gradients moved to CPU float64 before any aggregation):
+each a0 checkpoint c (the row's own mean response-target NLL l_i, i.e. the per-example training loss; under the
+token mean the row's share of its step is weighted, see "Loss weighting"; LoRA parameters in sorted-name order;
+gradients moved to CPU float64 before any aggregation):
 
 - ``checkpoint_gradsim``: g_Q,c = mean over the supplied query rows of their gradients;
   cos_i,c = <g_i,c, g_Q,c> / (||g_i,c|| ||g_Q,c||); group score = mean over checkpoints of
@@ -23,11 +24,30 @@ HEURISTICS for the engine's actual intervention, fixed-epoch removal, which dele
 every epoch and the total number of steps shrink and batch composition changes; that is not
 the fixed-step, renormalized mean-objective perturbation under which a first-order removal
 derivative would be a summed score, and no centered or renormalizing correction is applied
-as if it fixed this. The three checkpoints get equal weight whatever the steps between them:
-an unequally spaced sum, not an integral over training or a finite-removal theorem. Missing or
+as if it fixed this. With a constant rate the three checkpoints get equal weight whatever the steps between them:
+an unequally spaced sum, not an integral over training or a finite-removal theorem (under a warmup schedule each
+checkpoint's rate is its interval's mean, see "Learning-rate schedules"). Missing or
 zero-step optimizer state raises; nothing is fabricated. Dot products, norms and
 preconditioned norms are saved as diagnostics, not extra tuned features; which variant is
 primary is frozen in development, never chosen on held-out data.
+
+Loss weighting (GI III round 5). With the default per-example mean, a row's share of its optimizer step is (1/E)
+times the gradient of its own loss l_i, the same for every row. With the token mean (``train.loss_weighting``) it is
+(n_i / N_step) grad l_i: relative to the per-example mean, row i weighs w_i = n_i * E_step / N_step (n_i its target
+tokens; E_step and N_step the examples and target tokens of its step). ``step_weights`` takes each row's step in the
+FIRST epoch of the a0 plan (every row trains exactly once per epoch; later epochs reshuffle, so their w_i differ and
+are not used). ``adam_diag_preconditioned_dot`` multiplies each row's score by w_i (it is linear in the row's
+gradient). ``checkpoint_gradsim`` is a cosine, unchanged by any positive factor on the row, so it needs no weight.
+The query side keeps the evaluation's query-loss definition (a per-row mean), as before.
+
+Learning-rate schedules (GI III rounds 5 and 6). ``adam_diag_preconditioned_dot`` multiplies by lr_c. With "constant"
+it is the AdamW rate saved with the state at checkpoint c (the peak), as before. With a warmup schedule the saved state
+keeps the peak (the runner sets each step's rate only during its update), so the runner passes the INTERVAL MEAN
+(``interval_rates``): the checkpoint term at c stands for the updates since the previous attribution checkpoint, so
+lr_c = the mean scheduled rate (``engine.learning_rate``) over steps s_prev + 1 .. s_c, where s_prev is the previous
+attribution checkpoint's step (0 for the first). The end-point rate of step s_c alone would nearly drop a checkpoint
+where a cosine ends (round-5 review). The rates are written to groups.json and the job result (``learning_rates``).
+``checkpoint_gradsim`` has no learning rate.
 
 The gradient passes compute each query row's training loss as a by-product; it is recorded
 (``query.losses``, ``query.mean_loss``) with the same definition and one-row forward as the
@@ -46,8 +66,9 @@ import torch
 from .engine import Named, StateError, ZeroGradientError, example_loss_and_gradient, preserved_rng
 from .textproc import TrainExample
 
-__all__ = ["GRADSIM", "ADAM", "DEFINITIONS", "SIGN", "adam_inverse_preconditioner",
-           "gradsim_score", "adam_proxy_score", "checkpoint_scores", "aggregate_groups"]
+__all__ = ["GRADSIM", "ADAM", "DEFINITIONS", "SIGN", "ROW_WEIGHTING", "adam_inverse_preconditioner",
+           "gradsim_score", "adam_proxy_score", "checkpoint_scores", "aggregate_groups", "step_weights",
+           "interval_rates"]
 
 GRADSIM = "checkpoint_gradsim"
 ADAM = "adam_diag_preconditioned_dot"
@@ -57,6 +78,8 @@ DEFINITIONS = {
     ADAM: "sum over checkpoints and group rows of lr * <mean query gradient, row gradient / "
           "(sqrt(bias-corrected AdamW second moment) + eps)>",
 }
+ROW_WEIGHTING = ("token_mean: each row's Adam-proxy score is multiplied by w_i = n_i * E_step / N_step, its weight "
+                 "in its first-epoch a0 step relative to the per-example mean; GradSim (a cosine) is unchanged")
 SIGN = ("positive: a small descent step on the row lowers the mean query loss to first order "
         "(the row supports the query responses); local, noncausal, not a removal estimate")
 
@@ -86,6 +109,35 @@ def adam_inverse_preconditioner(tensors: dict[str, torch.Tensor], names: Sequenc
     return 1.0 / (vhat.sqrt() + eps), step
 
 
+def interval_rates(rate: Callable[[int], float], steps: dict[str, int]) -> dict[str, dict]:
+    """lr_c per checkpoint: the mean of ``rate(step)`` over steps s_prev + 1 .. s_c, the checkpoints taken in step
+    order (s_prev = 0 for the first); module doc. A checkpoint at step 0 or two at one step refuse."""
+    out, previous = {}, 0
+    for name, step in sorted(steps.items(), key=lambda item: item[1]):
+        if step <= previous:
+            raise ValueError(f"checkpoint {name} at step {step} has no updates since step {previous}")
+        rates = [rate(s) for s in range(previous + 1, step + 1)]
+        out[name] = {"lr": math.fsum(rates) / len(rates), "first_step": previous + 1, "last_step": step,
+                     "rule": "mean scheduled rate over the updates since the previous attribution checkpoint"}
+        previous = step
+    return out
+
+
+def step_weights(plan: Any, target_tokens: dict[str, int], rows: Sequence[str]) -> dict[str, float]:
+    """w_i = n_i * E_step / N_step for each row, from its step in the plan's first epoch (module doc)."""
+    order, size = plan.epoch_order(0), plan.effective_batch
+    weight = {}
+    for start in range(0, len(order), size):
+        step = order[start:start + size]
+        total = sum(target_tokens[r] for r in step)
+        for r in step:
+            weight[r] = target_tokens[r] * len(step) / total
+    missing = [r for r in rows if r not in weight]
+    if missing:
+        raise ValueError(f"{len(missing)} attributed rows are not in the plan's first epoch")
+    return {r: weight[r] for r in rows}
+
+
 def gradsim_score(row: torch.Tensor, query_mean: torch.Tensor) -> float:
     norm_row, norm_query = float(row.norm()), float(query_mean.norm())
     if norm_row == 0.0 or norm_query == 0.0:
@@ -103,7 +155,8 @@ def adam_proxy_score(row: torch.Tensor, query_mean: torch.Tensor, inverse: torch
 def checkpoint_scores(model: Any, named: Named, queries: Sequence[TrainExample],
                       rows: Sequence[TrainExample], *, inverse: torch.Tensor, lr: float,
                       pad_id: int, device: str, chunk: int,
-                      check: Callable[[str], None] | None = None) -> dict:
+                      check: Callable[[str], None] | None = None,
+                      weights: dict[str, float] | None = None) -> dict:
     """Per-row features at one checkpoint. Eval mode and RNG states are restored afterwards;
     gradients come from autograd.grad, so weights, ``.grad`` and optimizer are untouched. Each
     query's and row's (finite) training loss from the same forward pass is recorded."""
@@ -133,6 +186,9 @@ def checkpoint_scores(model: Any, named: Named, queries: Sequence[TrainExample],
                     "grad_norm": float(g.norm()), "loss": loss,
                     "adam_score": adam_proxy_score(g, query_mean, inverse, lr),
                     "preconditioned_grad_norm": float((g * inverse).norm())}
+                if weights is not None:          # the token mean (module doc): the Adam proxy follows the step weight
+                    out_rows[ex.row_id]["weight"] = weights[ex.row_id]
+                    out_rows[ex.row_id]["adam_score"] *= weights[ex.row_id]
     finally:
         model.train(was_training)
     return {"query": {"n": len(queries), "mean_gradient_norm": float(query_mean.norm()),

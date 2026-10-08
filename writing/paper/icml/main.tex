@@ -1,0 +1,1392 @@
+%%%%%%%% Repairing Safety After Benign Fine-Tuning -- ICML-style draft %%%%%%%%
+%
+% NOTE: ICML 2027's style file is not released yet. This draft uses the
+% ICML 2026 style (icml2026.sty / icml2026.bst). Swap to icml2027.sty (and
+% icml2027.bst) when it is released, and re-check the page limit and the
+% required Impact Statement in the ICML 2027 call. The adopted plan targets
+% TMLR or NeurIPS 2027; ICML 2027 only if the funding conditions in the
+% editor's notes (Appendix A) are met.
+%
+% Revision 2 (8 Oct 2026, from 14:00 UTC): brought in line with
+% ../2026-10-08-icml-draft.md revision 2, which follows the paper
+% specification (commit f2a9979) as amended by the user's decision (FOCUS.md
+% amendment, commit 4b37ec2; sharpened-direction plan, revision 2). The body is
+% the anonymous submission version (no [accepted] option). Placeholders are
+% highlighted with \ph{...}. The editor's notes are in the final appendix,
+% after the references; delete that appendix before submission. The
+% bibliography (references.bib) was fetched programmatically; see its header
+% and per-entry comments for the source of each entry.
+%
+% The draft has no Impact Statement yet. ICML requires one (unnumbered, before
+% the references).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass{article}
+
+% Recommended, but optional, packages for figures and better typesetting:
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{booktabs} % for professional tables
+
+% hyperref makes hyperlinks in the resulting PDF.
+% If your build breaks (sometimes temporarily if a hyperlink spans a page)
+% please comment out the following usepackage line and replace
+% \usepackage{icml2026} with \usepackage[nohyperref]{icml2026} above.
+\usepackage{hyperref}
+\usepackage{xurl} % lets long URLs in the references break at any character
+
+% Attempt to make hyperref and algorithmic work together better:
+\newcommand{\theHalgorithm}{\arabic{algorithm}}
+
+% Use the following line for the initial blind version submitted for review:
+\usepackage{icml2026}
+
+% For preprint, use
+% \usepackage[preprint]{icml2026}
+
+% If accepted, instead use the following line for the camera-ready submission:
+% \usepackage[accepted]{icml2026}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{amsthm}
+
+% if you use cleveref..
+\usepackage[capitalize,noabbrev]{cleveref}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% THEOREMS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{assumption}[theorem]{Assumption}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+% Todonotes is useful during development; simply uncomment the next line
+%    and comment out the line below the next line to turn off comments
+%\usepackage[disable,textsize=tiny]{todonotes}
+\usepackage[textsize=tiny]{todonotes}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% DRAFT-ONLY PACKAGES AND MACROS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{xcolor}
+\usepackage{soul}      % \hl: highlighting that wraps across lines
+\usepackage{longtable} % editor's-notes tables in the appendix
+\usepackage{array}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}} % ragged-right table cells
+\usepackage{dsfont}   % \mathds{1}: indicator (amssymb's \mathbb has no digit 1; Type-1 font)
+
+% Placeholder highlight. Every [FINDING n], [PLACEHOLDER ...], [TO BE FINALISED],
+% [FIGURE 1], [ARTIFACT] and [CITE-CHECK] marker in the paper uses it.
+% Remove (or redefine as {#1}) once all placeholders are filled.
+\colorlet{phcolor}{yellow!35}
+\sethlcolor{phcolor}
+\newcommand{\ph}[1]{\hl{#1}}
+
+% The \icmltitle you define below is probably too long as a header.
+% Therefore, a short form for the running title is supplied here:
+\icmltitlerunning{Repairing Safety After Benign Fine-Tuning: Data Repairs at Matched Compute}
+
+\begin{document}
+
+\twocolumn[
+  \icmltitle{Repairing Safety After Benign Fine-Tuning: \texorpdfstring{\\}{}
+    A Compute-Matched Comparison of Data Repairs}
+
+  % Anonymous submission: the style file replaces the author block with
+  % ``Anonymous Authors'' unless the [accepted] or [preprint] option is set.
+  % Do not put real names here before the review period ends.
+  \begin{icmlauthorlist}
+    \icmlauthor{Anonymous Authors}{anon}
+  \end{icmlauthorlist}
+
+  \icmlaffiliation{anon}{Anonymous Institution, Anonymous City, Anonymous Region, Anonymous Country}
+
+  \icmlcorrespondingauthor{Anonymous Authors}{anon.email@domain.com}
+
+  % Keywords populate the PDF metadata only.
+  \icmlkeywords{LLM safety, benign fine-tuning, data repair, safety filters, training-data attribution, equivalence testing, over-refusal, compute accounting}
+
+  \vskip 0.3in
+]
+
+% this must go after the closing bracket ] following \twocolumn[ ...
+\printAffiliationsAndNotice{}  % no special notice (required even if empty)
+
+\begin{abstract}
+  Fine-tuning a safety-tuned language model on benign instruction data can
+  erode its refusals of harmful requests. When only the training data may
+  change, the owner must choose a repair: remove some rows, or add safety
+  data. Many repairs have been proposed, but they have rarely been compared on
+  equal terms, with training seeds, side effects and their compute counted. We
+  measure which data repair restores the most safety for the compute spent
+  without raising over-refusal or losing task skill. After benign fine-tuning
+  of OLMo-2-1B-Instruct, six pre-registered repairs, each run with six training
+  seeds, are compared with random removal of the same size and with no repair:
+  removal of rows chosen by training-data attribution, by a representation
+  filter or by a free answer-length rule, and addition of random, selected or
+  self-generated refusal examples. Each repair is labelled better, equivalent
+  within 5 percentage points, or inconclusive, and reported with its
+  over-refusal, task loss and measured cost. Three references that change no
+  data (a safety prompt, a down-scaled adapter and a standard recipe) set the
+  bar that a data repair must clear, and Llama-3.2-1B-Instruct replicates the
+  comparison. Pre-registered gates test whether the erosion is localized in
+  data categories, a positive control tests whether diagnostics find a planted
+  cause \ph{[PLACEHOLDER: if funded]}, and model-based predictions of when
+  diagnosis pays are written down in advance and scored on the second family.
+  We find \ph{[FINDING 1: the labels of the six repairs]}; \ph{[FINDING 2: how
+  the best data repair compares with the references]}; and \ph{[FINDING 3:
+  whether the erosion is localized, and whether diagnostics find the planted
+  cause]}.
+\end{abstract}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introduction}
+\label{sec:intro}
+
+Fine-tuning a safety-tuned (``Instruct'') language model on data that contains
+nothing harmful can still erode its refusals of harmful requests.
+\citet{qi2024finetuning} observed this after one epoch on ordinary instruction
+data sets (Alpaca, Dolly) for Llama-2-7b-Chat and GPT-3.5 Turbo;
+\citet{he2024safe} showed that benign rows selected for their similarity to
+harmful examples erode safety far more than random rows; and
+\citet{guo2026safety} report that 100 random benign rows of full fine-tuning
+raise attack success sharply on recent 8B-class Instruct models. The size of
+the effect depends on the recipe \citep{kim2025rethinking}. When a fine-tune
+does erode safety, its owner often controls only the data: commercial
+fine-tuning services screen training data, gate the tuned model on a safety
+evaluation, and report harm categories rather than rows, leaving the customer
+to fix the data and resubmit \citep{microsoft2026finetuning}.
+
+Repair is then a data decision with side effects. One can \emph{remove} rows:
+published filters score benign rows by their contribution to erosion
+\citep{he2024safe,guan2025benign,li2025larf,wang2026sqsd,zhang2026datashield},
+and training-data attribution ranks rows by gradient similarity to harmful
+examples \citep{jiao2025datelm,pan2026detecting}. One can \emph{add} safety
+data, but which data are added decides the outcome: on Llama3-8B-Instruct,
+averaged over seven downstream tasks, a random 1\% mix of safety rows raised
+attack success from 20.24\% (no safety data) to 59.23\%, while DataRx's
+selected 1\% mix lowered it to 13.70\% \citep{zhang2026datarx}. Safety data can
+also cause over-refusal \citep{bianchi2024safety,luo2026reweighting}. And some
+repairs need no data change at all: a safety prompt used only at test time
+\citep{lyu2024keeping} or a gentler recipe \citep{kim2025rethinking}. Every
+data repair costs compute, and the only direct evidence about it is a retrain.
+
+Which repair works best is an empirical question that published results do not
+settle. Each repair was evaluated in its own setting, with its own models,
+judges and baselines, mostly with one or a few training seeds, and seldom with
+its scoring compute charged against the alternative of retraining
+\ph{[CITE-CHECK]}. The closest comparison we found, DualSelect
+\citep{chen2026dualselect}, compares several selection methods with three seeds
+and a false-refusal rate \ph{[CITE-CHECK]}, but not addition repairs,
+model-level references or measured cost. Three results suggest that expensive
+diagnosis may not pay. Once selection compute is charged, powerful
+data-selection methods are almost never compute-optimal
+\citep{yin2025compute} \ph{[CITE-CHECK]}. Gradient-based attribution tracks the
+answer format of training examples more than their task \citep{kim2026form}
+\ph{[CITE-CHECK]}, so a free format or length rule may match it. And the
+erosion may be diffuse: even subsets selected for low conflict with safety
+still erode it \citep{guo2026safety}, and \citet{springer2026geometry} argue
+from theory that better curation cannot remove the fragility.
+
+We therefore measure repairs directly (\S\ref{sec:setup},
+\S\ref{sec:design}). On OLMo-2-1B-Instruct fine-tuned on 4,800 Dolly rows, six
+repairs fixed in advance are each run over six training seeds and compared with
+random removal of the same size and with no repair: three removals of 600 rows
+(ranked by training-data attribution, by a representation filter in the style
+of LARF, and by answer length) and three additions of 48 refusal examples
+(drawn at random, selected in the style of DataRx, or written by the untuned
+model itself). Each contrast is labelled \emph{better}, \emph{equivalent} (its
+90\% interval lies within $\pm 5$ percentage points, pp) or
+\emph{inconclusive}, after Holm correction. Over-refusal, measured against the
+untuned model, and task loss on held-out rows are feasibility limits. Cost is
+measured in GPU-seconds and in full-run equivalents (FRE) under two
+conventions. A data repair counts as dominant only if it beats three references
+that change no data: a safety prompt at test time, the fine-tuned adapter
+scaled down, and a standard-practice recipe. Llama-3.2-1B-Instruct replicates
+the comparison under a recipe rule fixed before its result.
+
+Three pre-registered parts surround the comparison. Gate~A requires erosion
+beyond seed noise. Gate~B asks whether the erosion is \emph{localized}: does
+removing one Dolly category restore more safety than removing the same number
+of random rows? Gate~C asks which diagnostic picks the culprit category, and
+whether a format rule explains attribution's pick. A positive control plants a
+known eroding cause in one cell of nested menus of 8, 32 and 128 cells
+\ph{[TO BE FINALISED]} and asks whether each diagnostic finds it, and at which
+menu size diagnosis beats trial runs \ph{[PLACEHOLDER: if funded]}. A
+secondary, model-based analysis predicts when paying for a diagnostic beats
+spending the same compute on trial runs selected by successive halving
+\citep{jamieson2016nonstochastic,li2018hyperband}; its predictions are written
+down before Gate~B's category runs and scored on the second family. A side
+study asks what the fine-tuning breaks: the refusal opening of an answer, the
+harmfulness of its content, or both. Every decision rule is committed before
+the data it judges; outcomes are replicated over training seeds, confirmed on
+held-out prompts, and reported as \emph{too close to call} when the evidence
+cannot separate options.
+
+Our contributions are:
+\begin{itemize}
+  \item \textbf{A measured comparison of data repairs with equivalence bounds}
+        (\S\ref{sec:contrasts}, \S\ref{sec:stage1}--\S\ref{sec:references}):
+        six removal and addition repairs against random removal and no repair,
+        over six training seeds each, labelled better, equivalent or
+        inconclusive, with over-refusal, task loss and measured cost, against
+        three references that change no data, on two model families.
+        \ph{[FINDING 1: the six labels, and which repair, if any, beats the
+        references]}. We release the menus, seeds, outcome tables and costs
+        \ph{[ARTIFACT]}.
+  \item \textbf{A positive control for diagnosis}
+        (\S\ref{sec:plant-def}, \S\ref{sec:plant}): \ph{[FINDING 2: whether
+        each diagnostic ranks a planted cause first, and the runs-only cost of
+        finding it, at menu sizes 8, 32 and 128]} \ph{[PLACEHOLDER: if
+        funded]}.
+  \item \textbf{Where the erosion lives} (\S\ref{sec:gates},
+        \S\ref{sec:side}): \ph{[FINDING 3: the Gate B verdict with its
+        detection limit; Gate C's reading with the format control; the share
+        of the erosion that runs through refusal openings]}.
+  \item \textbf{Pre-registered predictions of when diagnosis pays}
+        (secondary; \S\ref{sec:value}): \ph{[FINDING 4: predicted against
+        measured value of diagnosis on the category and planted menus, and on
+        the second family]}.
+\end{itemize}
+
+\begin{figure}[t]
+  \centering
+  \fbox{\parbox[c][1.7in][c]{0.92\columnwidth}{\centering\small
+    \ph{[FIGURE 1: the repair comparison: restoration with 90\% intervals and
+    the $\pm$5 pp band, against over-refusal and cost, with the adapter-scaling
+    curve.]}}}
+  \caption{The repair comparison. For each repair, the safety restored against
+    random removal or no repair, with its 90\% interval and the $\pm 5$ pp
+    equivalence band, plotted against over-refusal (left) and measured cost in
+    FRE (right); the adapter-scaling reference curve is drawn in the left
+    panel. (Placeholder: the figure is not yet drawn.)}
+  \label{fig:comparison}
+\end{figure}
+
+Section~\ref{sec:related} positions the work. Section~\ref{sec:setup} defines
+the contrasts, labels, limits, the positive control and the secondary decision
+analysis. Section~\ref{sec:design} gives the design. Section~\ref{sec:results}
+reports results, including every too-close-to-call contrast.
+Section~\ref{sec:discussion} discusses limitations, chiefly what the safety
+judge measures, the recipe and the scale.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Safety erosion under benign fine-tuning.}
+\citet{qi2024finetuning} showed that fine-tuning aligned models on benign
+instruction data degrades safety, though less than harmful data does, with no
+training seeds reported. \citet{he2024safe} selected benign rows by
+representation and gradient similarity to harmful anchors; in their best case,
+100 such rows gave over 70\% unsafe answers against under 20\% for random rows.
+This shows that benign rows \emph{can} erode safety, not that ordinary
+fine-tunes have a localized cause. \citet{kim2025rethinking} change the size of
+the erosion several-fold through optimization choices alone.
+\citet{guo2026safety} find that 100 random benign rows of full fine-tuning
+erode recent 8B-class Instruct models, and that a handful of safety rows
+restores safety after a small attack. Under LoRA their results depend on the
+family: in their Table~2, Qwen2.5-7B-Instruct reads 7.27\% before fine-tuning,
+4.50\% after 100 rows and 9.09\% after 5,000 rows (two seeds), while
+Llama-3.1-8B-Instruct rises to 44.80\% at 5,000 rows.
+\citet{springer2026geometry} explain erosion geometrically, as benign updates
+curving into a sharp, safety-relevant subspace.
+
+\paragraph{Removal repairs: filters and attribution.}
+Published filters score benign rows for their contribution to erosion.
+DataShield projects rows onto a compliance direction
+\citep{zhang2026datashield}; LARF uses representations of safety-sensitive
+layers \citep{li2025larf}; SQSD projects each row's parameter update onto
+danger and safety directions \citep{wang2026sqsd}; bi-anchoring compares a
+row's gradients or representations with harmful and safe anchors
+\citep{he2024safe}; and Self-Inf-N, proposed as an attack, finds outlier benign
+rows whose fine-tuning breaks safety \citep{guan2025benign}
+\ph{[CITE-CHECK]}. Row filters report their scoring cost without charging it
+against runs \citep{zhang2026datashield,hu2026gradshield} \ph{[CITE-CHECK]};
+other defences select tokens \citep{li2026toss} or use continual learning
+\citep{alssum2025unforgotten} \ph{[CITE-CHECK]}. DualSelect
+\citep{chen2026dualselect} selects task rows and safety references jointly and
+compares it with filters including LARF, TOSS and SQSD \ph{[CITE-CHECK]}. For
+attribution, \citet{pan2026detecting} find that removing rows flagged by
+gradient-based attribution gives a safer retrained model than removing rows
+flagged by WildGuard, from one training run per arm and with no compute
+reported. DATE-LM \citep{jiao2025datelm} finds that with safety-aligned
+look-alikes in the data, attribution's detection drops while LLM classifiers
+are largely unaffected; without them, the strongest classifiers detect better,
+yet removing attribution's picks gives the safer retrained model.
+\citet{luo2026reweighting} report weak, inconsistent effects from deleting or
+reweighting influential rows, large effects from rewriting them, and an
+over-refusal trade-off for safety rewriting.
+
+\paragraph{Addition and model-level repairs.}
+Adding about 3\% safety examples to instruction tuning improves safety but can
+cause exaggerated refusals \citep{bianchi2024safety} \ph{[CITE-CHECK]}. Which
+rows are added matters: DataRx selects safety rows by the gap between a model's
+own response and a safe reference \citep{zhang2026datarx} \ph{[CITE-CHECK]},
+and its random mix made the model less safe than no safety data, while its
+selected mix made it safer (\S\ref{sec:intro}). \citet{guo2026safety} restore
+safety with a handful of safety rows, and Llama~3's safety mix was tuned by
+repeated experiments that traded violations against false refusals
+\citep{grattafiori2024llama}. Model-level repairs change no data: a safety
+prompt used only at test time reduces erosion \citep[PTST;][]{lyu2024keeping},
+SafeTune compares repairs of safety drift in single deterministic runs
+\citep{seth2026safetune} \ph{[CITE-CHECK]}, and a gentler recipe shrinks
+erosion \citep{kim2025rethinking}. We use such repairs as references that a
+data repair must beat.
+
+\paragraph{Attribution, its cost and what it tracks.}
+Training-data attribution ranges from cheap gradient similarity on LoRA
+gradients \citep[LESS;][]{xia2024less} \ph{[CITE-CHECK]} to estimates of finite
+removal effects by unrolled differentiation \citep[SOURCE;][]{bae2024training},
+which are reported to cost several training runs \ph{[CITE-CHECK]}.
+\citet{xiao2026probe} compare the cost of diagnosis methods for undesirable
+post-training behaviours; probe attribution is over ten times cheaper than
+gradient attribution and LLM-judge baselines in their study.
+\citet{yin2025compute} charge selection compute against training compute and
+find that powerful selection methods are almost never compute-optimal;
+gradient-based selection pays only when the trained model is about ten times
+larger than the selection model \ph{[CITE-CHECK]}. \citet{kim2026form} find
+that gradient similarity tracks answer format more than task
+\ph{[CITE-CHECK]}; we therefore include a free answer-length rule as a repair
+and as a control for attribution's picks.
+
+\paragraph{Predicting outcomes and side effects.}
+Persona vectors \citep{chen2025persona} project training data onto activation
+directions to flag data that will shift a trait \ph{[CITE-CHECK]}. TuneAhead
+\citep{luo2026tuneahead} and Data2Behavior \citep{wang2026data2behavior}
+predict a fine-tune's outcome from its data before training, and MNEME
+predicts side effects of fine-tuning and unlearning by sparse model diffing
+\citep{kassem2025mneme} \ph{[CITE-CHECK]}. Any such predictor can enter our
+comparison as a scorer at its measured cost; side-effect prediction is a
+secondary analysis here (\S\ref{sec:side}).
+
+\paragraph{Decisions under a compute budget.}
+Successive halving and Hyperband allocate a fixed budget across candidates by
+repeatedly discarding the worst at increasing fidelity
+\citep{jamieson2016nonstochastic,li2018hyperband}; multi-fidelity methods model
+how cheap observations relate to full ones \citep[e.g.][]{ouyang2025admire}.
+DataDecide \citep{magnusson2025datadecide} scores small pretraining runs by
+decision accuracy against compute, and \citet{ivison2025large} charge selection
+compute against training on more data \ph{[CITE-CHECK]}.
+
+\paragraph{How we differ.}
+We do not claim a first benchmark of safety filters, a first comparison of
+removal against addition, or a first pricing of data selection: DualSelect,
+DataShield's cost table and \citet{yin2025compute} each cover part of this
+ground \ph{[CITE-CHECK]}. Our contribution is the combination; to our
+knowledge, and not found by our search, no prior work combines
+equivalence-bounded contrasts over six training seeds for removal and addition
+repairs; over-refusal and task loss as limits; measured costs under two
+conventions; model-level references that a data repair must beat; a positive
+control with a planted cause; and predictions about the value of diagnosis
+written down before the data.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Problem Setup}
+\label{sec:setup}
+
+\subsection{Setting and endpoints}
+\label{sec:endpoints}
+
+Let $\theta_0$ be a safety-tuned Instruct model, fine-tuned with a fixed recipe
+$\mathcal{R}$ (adapter, loss, optimizer, schedule, length rule) on benign data
+$\mathcal{D} = D_1 \cup \dots \cup D_K$, split into $K$ \emph{units} by
+metadata fixed before any outcome. A \emph{repair} $a$ maps
+$(\mathcal{D}, \mathcal{R})$ to a training set and recipe
+$(a(\mathcal{D}), \mathcal{R}_a)$; a data repair keeps
+$\mathcal{R}_a = \mathcal{R}$. The model trained with seed $s$ (adapter
+initialization and data order) is $\theta(a,s)$. For a model $\theta$,
+$f(\theta)$ is the \emph{unsafe rate} (the share of sampled answers to a harm
+bank that a frozen judge labels unsafe), $\ell(\theta)$ is the held-out
+\emph{task loss}, and $r(\theta)$ is the \emph{over-refusal rate} on benign
+prompts that resemble harmful ones. Endpoints average over seeds:
+$F(a) = \mathbb{E}_s[f(\theta(a,s))]$, and likewise $\bar\ell(a)$ and $R(a)$.
+With $a_0$ the fine-tune without repair, the \emph{erosion} is
+$E = F(a_0) - f(\theta_0)$; repair is meaningful only when $E$ exceeds seed
+noise (Gate~A, \S\ref{sec:gates}).
+
+\subsection{Repair contrasts, limits and labels (primary)}
+\label{sec:contrasts}
+
+Let $a_{\mathrm{R}}$ remove the same number of random rows as the removal
+repairs. A removal repair $m$ is compared with random removal,
+$\Lambda_m = F(a_{\mathrm{R}}) - F(m)$: the safety it restores beyond removing
+the same amount of data at random. An addition repair is compared with no
+repair, $\Lambda_m = F(a_0) - F(m)$, and a selected or self-generated addition
+with the random addition of the same size. The restoration
+$G_m = F(a_0) - F(m)$ is reported for every arm. Contrasts are estimated from
+per-seed unsafe rates as differences of means over unpaired seeds, with the
+variance pooled across arms.
+
+Side effects are the \emph{over-refusal excess} $O(m) = R(m) - r(\theta_0)$,
+against the untuned model ($R(m) - R(a_0)$ is also reported), and the
+\emph{task-loss increase} $L(m) = \bar\ell(m) - \bar\ell(a_0)$. A repair is
+\emph{feasible} at limits $(\tau_O, \tau_L)$ if $O(m) \le \tau_O$ and
+$L(m) \le \tau_L$. Results are reported at $\tau_O \in \{2, 5, 10\}$ pp;
+$\tau_L$ is two standard errors of a seed-to-seed difference in held-out loss,
+fixed before the comparison runs. The \emph{cost} of a repair is
+$C(m) = c(m) + 1$ FRE: $c(m)$ is the measured cost of building the repaired
+data (scoring rows, selecting or generating safety rows), and one FRE is the
+measured cost of one random-removal run (\S\ref{sec:cost}).
+
+With a smallest effect of interest $\delta = 5$ pp and Holm correction at
+family-wise level 0.05 over the primary contrasts, each contrast receives one
+label:
+\begin{itemize}
+  \item \emph{better}: the Holm-adjusted test rejects $\Lambda_m = 0$ and the
+        estimate is at least $\delta$;
+  \item \emph{equivalent}: the 90\% interval for $\Lambda_m$ lies inside
+        $(-\delta, \delta)$ (two one-sided tests);
+  \item \emph{inconclusive}: otherwise.
+\end{itemize}
+A margin of 4 pp is reported as a sensitivity. Three references change no
+data: a safety prompt at test time, a recipe change, and \emph{adapter
+scaling},
+\begin{equation*}
+  \theta_\lambda = \theta_0 + \lambda\,\bigl(\theta(a_0, s) - \theta_0\bigr),
+  \qquad \lambda \in \{1, 0.75, 0.5, 0\},
+\end{equation*}
+which traces $(F, O, L)$ from the fine-tune ($\lambda = 1$) to the untuned
+model ($\lambda = 0$). A data repair \emph{dominates} only if it lies below this
+curve: a lower $F$ than the curve at equal $O$ and $L$.
+
+\subsection{Localization}
+\label{sec:localization}
+
+Let $a_{-k}$ remove unit $D_k$ and $a_{\mathrm{rand},k}$ remove $|D_k|$ random
+rows drawn across units. Erosion is \emph{localized} at level $\delta_B$ if
+some $\Lambda_k = F(a_{\mathrm{rand},k}) - F(a_{-k})$ reaches $\delta_B$ beyond
+seed noise (the random arm controls for the smaller training dose), and
+\emph{diffuse} if every $\Lambda_k$ is credibly below $\delta_B$. Diffuse
+erosion leaves the repair comparison unchanged: unit removals then act like
+random removal up to $\delta_B$, and a unit-level diagnostic has little to
+find.
+
+\subsection{Positive control}
+\label{sec:plant-def}
+
+A planted data set $\mathcal{D}^{\mathrm{p}}$ replaces the rows of one small
+cell of $\mathcal{D}$ with $k$ rows that look benign but carry a known eroding
+signal, keeping the number of rows fixed. Nested partitions split
+$\mathcal{D}^{\mathrm{p}}$ into $M$ cells, so that the planted cell sits inside
+one cell at every $M$. The planted erosion is
+$P = F(a_0^{\mathrm{p}}) - F(a_0)$, and removing the cell that holds the plant
+at menu size $M$ restores
+$G^{\mathrm{p}}(M) = F(a_0^{\mathrm{p}}) - F(a^{\mathrm{p}}_{-c(M)})$. A
+diagnostic $d$ \emph{hits} at $(M, k_d)$ if it ranks that cell among its top
+$k_d$. Because the truth is known, the sweep measures how diagnosis and trial
+runs scale with $M$, which natural menus at our budget cannot.
+
+\subsection{The value of diagnosis (secondary, model-based)}
+\label{sec:value}
+
+A \emph{menu} $\mathcal{A}_M = \{a_0, a_1, \dots, a_M\}$ holds $a_0$ and $M$
+repairs built by a frozen rule, never by a compared diagnostic;
+$\mathcal{A}_{\mathrm{feas}}$ is its feasible subset and
+$a^* = \arg\min_{a \in \mathcal{A}_{\mathrm{feas}}} F(a)$. A \emph{selector}
+$\pi$ with budget $B$ (in FRE) buys trial runs (each a training fraction $\phi$
+and a prompt fraction $\psi$, priced from the measured cost model) at total
+cost at most $B$ and returns $\hat a$. It drops a repair whose adverse estimate
+of $O$ or $L$ passes its limit ($a_0$ is never dropped), and picks the lowest
+estimated $F$ among repairs with full runs on at least two seeds; ties go to
+$a_0$. An infeasible pick is scored as if no repair were made:
+% The Markdown draft's single display line is split over three lines to fit
+% the column; the math is unchanged.
+\begin{gather*}
+  \mathrm{loss}(\hat a) = \begin{cases} F(\hat a) & \hat a \in \mathcal{A}_{\mathrm{feas}},\\ F(a_0) & \text{otherwise,} \end{cases} \\
+  \mathrm{Reg}(\pi; B, M) = \mathbb{E}[\mathrm{loss}(\hat a)] - F(a^*).
+\end{gather*}
+This is a scoring convention for an expected outcome at a fixed budget, not a
+safety guarantee. The runs-only selector $\pi_-$ uses one rule per $(M, B)$
+cell (a one-shot screen, successive halving or hierarchical bisection), chosen
+from a simulation before any outcome and then frozen. The selector $\pi_{+d}$
+pays the cost $c_d$ of diagnostic $d$, keeps its top $k_d$ repairs, and runs
+the same rule on $B - c_d$. The value of $d$ and its break-even cost are
+\begin{gather*}
+  \Delta_d(B; M, c) = \mathrm{Reg}(\pi_-; B, M) - \mathrm{Reg}(\pi_{+d}; B, M, c), \\
+  c^*_d(B, M) = \sup\{c \ge 0 : \Delta_d(B; M, c) \ge 0\}.
+\end{gather*}
+$F(a^*)$ cancels in $\Delta_d$. When $a_0$ is feasible, regret is
+non-negative, so no diagnostic can save more than
+$V_{\max}(B, M) = \mathrm{Reg}(\pi_-; B, M)$. At the menus we can afford, these
+quantities are mostly outputs of a model, so we treat them as predictions. A
+generative model (repair effects shrunk by empirical Bayes, noise from pooled
+residuals, measured costs, two effect shapes) is frozen before Gate~B's
+category runs, and its predicted $V_{\max}$, $\Delta_d$ and $c^*_d$ for the
+category menu and the planted menus are recorded then. We report measured
+against predicted values (replayed with the same code path on the outcome
+tables), and score OLMo-calibrated predictions of the chance of finding the
+best repair, and of regret, on Llama's category menu.
+
+\subsection{Opening decomposition (side study)}
+\label{sec:opening}
+
+Let $p(\theta)$ be the share of sampled harm answers that open with a refusal
+(a frozen lexicon applied to the first 12 words), and $u_{\mathrm{R}}(\theta)$
+and $u_{\mathrm{N}}(\theta)$ the unsafe rates among answers that do and do not
+open with one, so $f = p\,u_{\mathrm{R}} + (1-p)\,u_{\mathrm{N}}$. For the
+untuned model (subscript 0) and a fine-tune (subscript 1),
+% The Markdown draft's single display line is split over two lines to fit the
+% column; the math is unchanged.
+\begin{align*}
+  f_1 - f_0 ={}& \underbrace{(p_0 - p_1)(u_{\mathrm{N}0} - u_{\mathrm{R}0})}_{\text{opening switch}} \\
+  &+ \underbrace{(1-p_1)(u_{\mathrm{N}1} - u_{\mathrm{N}0}) + p_1 (u_{\mathrm{R}1} - u_{\mathrm{R}0})}_{\text{content change}}.
+\end{align*}
+The \emph{opening share} is the first term over $f_1 - f_0$; the split depends
+on the order of terms, so both orders are reported. If the opening share is
+small, repairs that act only on how answers open (refusal examples; a loss that
+stops over-weighting the first answer tokens) should restore less than repairs
+that change what the answers say.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Experimental Design}
+\label{sec:design}
+
+\subsection{Models, data and recipes}
+\label{sec:models}
+
+\paragraph{Families and scale.}
+OLMo-2-0425-1B-Instruct \citep{olmo2024olmo2} is the stage-1 model;
+Llama-3.2-1B-Instruct \citep{grattafiori2024llama} is the second family
+(\S\ref{sec:family}). Larger sizes follow a ladder: a published-setting
+replication and a reduced study at 7--8B, then a headline check at 32B or 70B
+\ph{[PLACEHOLDER: sizes actually run]}. Qwen2.5-1.5B- and 7B-Instruct
+\citep{qwen2024qwen25} are reported for context only (\S\ref{sec:side}). Every
+model trains on one GPU, and every comparison stays on one GPU type.
+
+\paragraph{Data.}
+4,800 rows of Dolly-15k \citep{conover2023dolly}, 600 from each of 8 task
+categories (the units; $K = 8$), prepared and sealed per tokenizer with a
+manifest. 200 further rows, 25 per category, measure task loss.
+
+\paragraph{Recipes.}
+\emph{Recipe~B} causes the erosion: LoRA \citep{hu2022lora} of rank 64 and
+scale 128 on all linear layers; AdamW at a constant learning rate of $10^{-4}$
+with no warmup; 128 rows per step; one epoch (38 steps); a per-row mean loss
+over response tokens. \emph{Recipe~G} is a standard-practice variant: recipe~B
+with a token-mean loss and a 4-step linear warmup and cosine decay. Recipe~G is
+a reference (\S\ref{sec:references}) and a mechanism test (\S\ref{sec:side}).
+Training is deterministic on matched hardware; a seed sets the adapter
+initialization and the data order.
+
+\subsection{Measures, judges and the claim rule}
+\label{sec:measures}
+
+\begin{itemize}
+  \item \textbf{Unsafe rate $U$.} The share of 600 sampled answers (200
+        development harm prompts $\times$ 3 samples at temperature 0.7, up to
+        2,048 new tokens) that Qwen3Guard-Gen-4B \citep{zhao2025qwen3guard}
+        labels Unsafe. The prompts come from HarmBench
+        \citep{mazeika2024harmbench}, StrongREJECT \citep{souly2024strongreject},
+        SimpleSafetyTests \citep{vidgen2023simplesafetytests} and OR-Bench's
+        toxic set \citep{cui2025orbench}. Standard errors are clustered by
+        prompt. $U$ is a broad policy label, not an attack-success rate as
+        published elsewhere: judges and prompts differ, so $U$ is compared
+        only within this study.
+  \item \textbf{Compliance and the claim rule.} HarmBench's classifier asks
+        whether an answer carries out the requested behaviour. A contrast in
+        $U$ supports a sentence about \emph{harm} only if the classifier's
+        contrast has the same sign and at least half the size; otherwise the
+        sentence says \emph{restored refusal}. If the classifier's erosion on
+        the Gate~A answers is below 20 pp, no sentence says harm.
+  \item \textbf{Also per arm:} hard-category $U$ (violent, illegal, sexual or
+        self-harm categories); $U$ by answer-length band and a
+        length-reweighted $U$; Granite Guardian 3.3 \citep{padhi2024granite}
+        on the greedy answers; and a selectivity score (refusal on harm prompts
+        minus refusal on benign prompts).
+  \item \textbf{Over-refusal.} Qwen3Guard's refusal flag on greedy answers to
+        100 benign prompts that resemble harmful ones (50 XSTest safe prompts,
+        \citealt{rottger2024xstest}; 50 OR-Bench-Hard prompts,
+        \citealt{cui2025orbench}), reported by source, with a lexicon check.
+  \item \textbf{Task loss.} Held-out loss on all 200 task rows (the skill
+        limit). ARC-Easy accuracy \citep{clark2018arc} is reported; at 1B it is
+        close to chance and sets no limit.
+  \item \textbf{Answers end.} A coherence screen flags answers that reach the
+        token cap, repeat 4-grams heavily, are empty, or have fewer than 5
+        tokens; an arm whose answers fail too often is not read.
+  \item \textbf{Banks.} Gates and selectors read development banks only. Final
+        claims are confirmed on a sealed held-out subsample
+        (\S\ref{sec:family}).
+\end{itemize}
+
+\subsection{Stage 1: the primary comparison}
+\label{sec:stage1}
+
+Table~\ref{tab:arms} lists the stage-1 arms. Every rule, scorer and pool is
+committed by hash before Gate~B's category runs (\S\ref{sec:prereg}).
+
+\begin{table*}[t]
+  \caption{Stage-1 arms on OLMo-2-1B (recipe~B; one epoch; removal arms train
+    33 steps, addition arms 38).}
+  \label{tab:arms}
+  \centering
+  \small
+  \begin{tabular}{@{}llp{0.6\textwidth}c@{}}
+    \toprule
+    Arm & Repair & Rule & Seeds \\
+    \midrule
+    $a_{\mathrm{R}}$ & random removal & 600 random rows, 75 per category & 8 \\
+    $a_0$ & no repair & -- & 6 \\
+    H1 & length rule (free) & remove the 600 rows with the shortest answers & 6 \\
+    A1 & attribution & remove the top 600 rows by bi-anchored gradient similarity at two checkpoints of $a_0$ (the Gate~C method) & 6 \\
+    L1 & LARF-style filter & remove the top 600 rows by the untuned model's representation similarity to harmful anchors at one layer & 6 \\
+    S1 & random refusals & add 48 rows (1\%) drawn at random from a fixed refusal pool & 6 \\
+    S3 & DataRx-style & add 48 rows selected from S1's pool by DataRx's score & 6 \\
+    S4 & self-generated & add 48 pool prompts with the untuned model's own refusals & 6 \\
+    \bottomrule
+  \end{tabular}
+\end{table*}
+
+\paragraph{Primary family.}
+P1: A1 against $a_{\mathrm{R}}$; P2: L1 against $a_{\mathrm{R}}$; P3: H1
+against $a_{\mathrm{R}}$; P4: S1 against $a_0$ (two-sided, since prior work
+predicts both directions); P5: S3 against S1; P6: S4 against S1. Holm at 5\%,
+labels as in \S\ref{sec:contrasts}.
+
+\paragraph{Pools and anchors.}
+The refusal pool holds prompts from PKU-SafeRLHF \citep{ji2025pku} that have an
+unsafe response in the source data, paired with a response that the source
+labels safe and that opens with a refusal by the frozen lexicon. Pools and
+anchors are never filtered by the evaluation judge, and prompts that nearly
+duplicate an evaluation prompt are removed. The add effect must also hold on
+the evaluation prompts least similar to the added rows.
+
+\paragraph{Re-implementations.}
+Every scorer is re-implemented from its paper, named ``X-style'', and published
+with a table of its deviations (for example, its anchors and checkpoints); we
+ask the authors for reference outputs.
+
+\paragraph{Seeds and power.}
+Method arms run at six seeds, random removal at eight and no repair at six;
+seeds run in blocks fixed before any outcome, and only complete blocks are
+analysed. A blinded rule reads only Gate~B's pooled noise estimate: up to
+4.5 pp, the plan above; from 4.5 to 6.0 pp, the family shrinks to P1, P3 and P6
+at nine seeds; above 6.0 pp, stage~1 does not run. At planning noise the
+minimum detectable effect after Holm's first step is about 5 pp
+\ph{[PLACEHOLDER: final MDE from Gate B's pooled noise]}.
+
+\paragraph{Secondary and scored-only arms \ph{[TO BE FINALISED]}.}
+At three seeds each, exploratory, with one-sided bounds only: a random dose
+curve (1,200 and 2,400 rows removed); random removal plus S1; a DataShield-style
+filter; rules for answers with list or markup lines and for the longest
+answers; the length rule under a token-mean loss; and octiles of answer length.
+Scored without new runs: a Self-Inf-N-style score and a content classifier; we
+publish the overlap of all top-600 sets. SQSD is cited but not run, because its
+scoring needs several FRE.
+
+\subsection{References that change no data}
+\label{sec:references}
+
+All three are mandatory. \textbf{Safety prompt:} a fixed safety instruction as
+a prefix of the user turn (OLMo-2 has no system turn), at evaluation only, as
+in PTST \citep{lyu2024keeping}, on three $a_0$ seeds. \textbf{Adapter
+scaling:} the $a_0$ adapter scaled by $\lambda = 0.75$ and $0.5$ on three
+seeds, which with $\lambda \in \{0, 1\}$ gives the reference curve of
+\S\ref{sec:contrasts}. \textbf{Recipe~G:} three seeds. A pinned evaluation
+script regenerates each $a_0$ adapter by a deterministic re-run and is
+certified once: with $\lambda = 1$ and no prefix it must reproduce $a_0$'s $U$
+exactly. The paper states plainly whether any data repair beats these
+references.
+
+\subsection{Positive control: a planted cause}
+\label{sec:plant}
+
+\ph{[PLACEHOLDER: runs only if funded; otherwise menu size leaves the
+headline.]} The plant is $k = 37$ rows whose answers comply directly with
+prompts that also have an unsafe answer in the source data, but which the
+source labels safe; they look benign. A sealed draw picks one category and one
+leaf cell inside it, and the plant replaces that cell's rows, so the run keeps
+4,800 rows and 38 steps. The nested cells \ph{[TO BE FINALISED]} are the 8
+categories (600 rows), 32 length quartiles within categories (150 rows) and 128
+random quarters of those (37--38 rows). A pilot of three seeds goes on only if
+the plant adds at least 10 pp of erosion with a one-sided 90\% lower bound
+above 5 pp (otherwise the plant doubles once, then the null is reported). The
+main sweep removes the planted cell at each menu size (three seeds each) and
+runs random removal on the planted data. Every scorer ranks the cells without
+new runs. Outputs: $G^{\mathrm{p}}(M)$; each diagnostic's top-$k$ hit rate with
+known truth; the runs-only cost of finding the cell, replayed with the frozen
+selector rules; and a check of additivity across the nested levels.
+
+\subsection{Gates A, B and C}
+\label{sec:gates}
+
+\paragraph{Gate A (entry).}
+Over three seeds, mean $E$ must lie in a pre-registered partial-erosion window
+of 20--55 pp, be at least twice the seed standard deviation, and exceed zero on
+every seed; a second judge must agree in direction, and the answers must end
+and the task must be learned. \ph{[PLACEHOLDER: Gate A result with every
+setting tried and its disclosures (\S5).]}
+
+\paragraph{Gate B (localization).}
+Each category removal (600 rows, 33 steps) is compared with random removal of
+600 rows (75 per category) at the same seed, so $a_0$ cancels. All 8
+categories run at one seed; the two with the largest contrast, plus Gate~C's
+picks, run at two more seeds. The verdict is LOCALIZED if some category
+restores at least $\delta_B = 8$ pp more than random removal and clears a
+Bonferroni-corrected bar; DIFFUSE if every category is credibly below 8 pp; and
+TOO CLOSE otherwise. Guards require answers that end, recompute the verdict on
+coherent answers and under adverse counting of unscored answers, and reject a
+restoration that over-refuses. A noise gate stops the stage if seed noise is
+too large; an automatic extension adds two seeds for contested categories; and
+a length-matched control separates content from answer length for a localized
+category. By simulation at planning noise, an 8 pp category reads LOCALIZED
+about half the time and 80\% detection needs about 10--12 pp; DIFFUSE therefore
+means no category-level cause above about 8 pp, not no cause.
+
+\paragraph{Gate C (which diagnostic picks the category).}
+On the first seed's $a_0$, attribution (A1's score) and representation
+similarity each pick their top category; a format rule picks the category with
+the largest share of its loss on the first five answer tokens. Gate~C is read
+only if Gate~B is LOCALIZED (AGREE, ATTR\_BETTER, REP\_BETTER, NONE\_FINDS or
+TOO CLOSE). If attribution's pick equals the format pick, the paper says that
+answer form explains it.
+
+\paragraph{If DIFFUSE.}
+Gate~C does not run and stage~1 is unchanged. A rewrite arm (the untuned
+model's own answers replace the 600 top-attribution rows) runs first among the
+secondary arms, and the planted sweep becomes the only test of whether
+diagnosis can pay.
+
+\subsection{Cost accounting}
+\label{sec:cost}
+
+Every arm and every scorer is logged in GPU-seconds by stage (setup, training,
+greedy generation, sampled generation, judging, scoring, overhead). One FRE per
+family is the median measured time of that family's random-removal arms. Two
+cost conventions are frozen before stage~1: \emph{full} (training plus the
+evaluation as run) and \emph{lean} (training plus one sample per harm prompt,
+priced from the measured time per answer); the cost $c_0$ of one lean trial run
+is measured on a real job. Every pool filter, generated answer, anchor job and
+scorer is charged; ``free'' means below 0.01 FRE. Attribution is priced from
+its measured scoring pass. Claims about cost hold only where both conventions
+agree, and no cost ratio measured at 1B is claimed for a larger model.
+\ph{[TO BE FINALISED: measured costs per arm and per scorer.]}
+
+\subsection{Second family, confirmation and scale}
+\label{sec:family}
+
+\textbf{Llama-3.2-1B} (stage~2) runs after its own Gate~A, a reduced Gate~B on
+categories, and the primary family at six seeds. If recipe~B saturates Llama,
+its next recipe changes the learning rate or the LoRA rank, never the loss
+weighting (a rule recorded before the Llama result). The claim is ``replicates
+across two families'' (same sign, and a difference below the interaction's
+MDE); a family difference is claimed only above that MDE.
+\textbf{Confirmation} (stage~3): at most two contrasts per family, chosen by a
+rule committed before stage~1, are re-run at six fresh seeds and evaluated on a
+sealed 200-prompt held-out subsample as well as the development bank.
+\textbf{Scale} (stage~4): first a replication in a published setting (a LARF-
+or DataShield-style filter on Llama-3.1-8B-Instruct fine-tuned on Alpaca, with
+random removal and length rules), then the scale ladder \ph{[PLACEHOLDER: if
+resources allow]}. No result is claimed at a size without runs at that size.
+
+\subsection{Pre-registration and testing order}
+\label{sec:prereg}
+
+Before Gate~B's category runs, we commit every stage-1 scorer's code and
+settings hash, every edit rule, the pools, the plant, the primary family, the
+seed rule, the limits, the claim rule, the selector specification and its
+predictions. Anything added later is labelled post-Gate-B exploratory. Families
+of tests are read in order, each at its own 5\% level: (1)~the primary family;
+(2)~confirmation; (3)~the Llama replication; (4)~the planted-sweep claims;
+(5)~the decision-value predictions. Everything else is descriptive.
+
+\subsection{Side studies}
+\label{sec:side}
+
+\begin{enumerate}
+  \item \textbf{Mechanism: refusal openings against harmful content.} The
+        opening decomposition (\S\ref{sec:opening}) on every arm, with a frozen
+        refusal lexicon. Causal tests: recipe~G (if erosion runs through
+        openings because the per-row loss over-weights the first tokens of
+        short answers, a token-mean loss with warmup should erode less; compare
+        the first-token account of \citealt{qi2025shallow}) and a
+        teacher-forced first-token refusal margin
+        $m(p) = \log P_{\mathrm{ref}}(p) - \log(1 - P_{\mathrm{ref}}(p))$ on
+        Gate~B arms, where $P_{\mathrm{ref}}$ is the probability of a frozen
+        refusal phrase as the first answer tokens. If a category's effect runs
+        through openings, the margin should track $U$ across arms.
+        \ph{[PLACEHOLDER: report against the bound on a first-token path
+        recorded before Gate B.]} Exploratory.
+  \item \textbf{Why erosion saturates in some settings.} The same data can
+        erode a model partly under one recipe or family and almost completely
+        under another (\S\ref{sec:related}; \citealt{kim2025rethinking}). Our
+        recipe stacks four amplifiers (no warmup, a large adapter, a per-row
+        loss and short human-written answers); we test them where cheap (rank;
+        loss weighting with warmup) and report the contrast family as context,
+        not as a main claim.
+  \item \textbf{Measurement validity.} Three judges on the same answers
+        (Qwen3Guard, Granite Guardian, HarmBench's classifier), with agreement,
+        $E$ per judge, hard-category $U$ and length bands, and an account of
+        how much of the gap to published numbers comes from judges and prompts
+        rather than training.
+  \item \textbf{Over-refusal as the cost of repair.} $O$ against the untuned
+        model for every arm, by source; the judge's own false-Unsafe rate on
+        benign prompts bounds its precision.
+  \item \textbf{Side-effect prediction (secondary).} On the addition arms only:
+        the balanced error of predicting an over-refusal violation, a
+        diagnostic against trial runs of equal cost.
+\end{enumerate}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Results}
+\label{sec:results}
+
+\ph{[PLACEHOLDER: Gate A (entry), with every setting tried and the audit's
+disclosures; Table 2, the stage-1 comparison ($G$, $\Lambda$ with 90\%
+intervals and labels, $O$, $L$, cost under both conventions, the HarmBench
+contrast and the claim-rule wording), with the references and the
+adapter-scaling curve; Figure 1; the Llama replication; Gate B's verdict with
+its detection limit and the length control; Gate C and the format reading; the
+planted sweep, if funded; measured against predicted decision value; the
+mechanism decomposition and its causal tests; every too-close-to-call
+result.]}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Discussion and Limitations}
+\label{sec:discussion}
+
+\paragraph{What ``unsafe'' means.}
+Our primary judge gives a broad policy label. After fine-tuning it may track
+whether a model refused more than whether its answer carries out harm. The
+claim rule (\S\ref{sec:measures}) therefore decides between ``restored
+refusal'' and ``reduced harm'' for each contrast, and $U$ is not comparable
+with attack-success rates published under other judges and prompts.
+
+\paragraph{Equivalence and power.}
+The labels resolve differences of about 5 pp; smaller differences stay
+inconclusive, and an \emph{equivalent} label means ``within $\pm 5$ pp'', not
+``identical''. Gate~B detects a category effect of about 10--12 pp with 80\%
+probability; DIFFUSE means no category-level cause above about 8 pp, and
+row-level causes that span categories are not tested by Gate~B.
+
+\paragraph{Recipe and setting.}
+Recipe~B is aggressive: a large adapter, a per-row loss that over-weights the
+first tokens of short answers, and no warmup. Rankings may change with the
+recipe; recipe~G and the Llama rule (learning rate or rank only) limit, but do
+not remove, this dependence. The main model and recipe were chosen by screening
+for partial erosion; \S\ref{sec:results} lists every setting tried.
+
+\paragraph{Baselines and doses.}
+Every scorer is re-implemented, so a weak result may reflect our
+implementation; the deviation tables, the authors' reference outputs and the
+published-setting replication address this. Comparisons across removal and
+addition hold only at the pre-registered doses (600 rows removed, 48 added).
+
+\paragraph{Cost.}
+An arm's cost depends on how much we evaluate as well as on training. We report
+two cost conventions and claim only where they agree. Costs at 1B do not
+transfer to larger models, because a scorer's cost and a run's cost grow
+differently with model size.
+
+\paragraph{Scale and family.}
+The full comparison runs at 1B on two families; larger sizes get a replication
+only if resources allow. A family difference is claimed only above its MDE.
+
+\paragraph{The positive control and the secondary analysis.}
+The planted cause is artificial; finding it shows that a diagnostic \emph{can}
+find a concentrated cause, not that natural erosion has one. The value of
+diagnosis at natural menus is model-based and judged against predictions made
+in advance.
+
+\paragraph{Scope and user.}
+We compare data repairs with model-level references; rewriting responses enters
+only if the erosion is diffuse. A customer of a closed fine-tuning service can
+change only the data but cannot run gradient or representation scorers; a
+developer with open weights can run every scorer but also has model-level
+repairs. Our answer serves a service that must ship the customer's adapter and
+may change only the data, and a pipeline that allows only data changes.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Conclusion}
+\label{sec:conclusion}
+
+\ph{[PLACEHOLDER: which repair to use, at what cost and with what side effects,
+and whether paying for diagnosis was ever worth it, under the observed
+outcome.]}
+
+% ICML requires an unnumbered Impact Statement here (before the references).
+% The draft has none yet; see the editor's notes (Appendix A).
+
+\bibliography{references}
+\bibliographystyle{icml2026}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% APPENDIX: EDITOR'S NOTES. Not part of the paper. DELETE BEFORE SUBMISSION.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\appendix
+\onecolumn
+\section{Editor's notes (not part of the paper; delete before submission)}
+\label{app:editors-notes}
+
+% Converted from the Markdown draft's "Editor's note (delete before
+% submission)" block, revision 2. Wording follows the Markdown; inline symbols
+% are set as math.
+
+\begingroup\small
+
+\paragraph{What this is.}
+Revision 2 of the draft, written on 8 October 2026 from 14:00 UTC (clock
+checked). It follows the paper specification
+(\texttt{research/review/2026-10-08-paper-specification.md}, commit f2a9979)
+as amended by the user's decision relayed by the lead on 8 Oct: the adopted
+FOCUS.md amendment (commit 4b37ec2, ``ADOPTED 2026-10-08T13:53 UTC'') and the
+study plan \texttt{research/review/2026-10-08-sharpened-direction-DRAFT.md}
+(revision 2, still under adversarial review). Where the two disagree, the
+adopted amendment wins (see ``Conflicts'' below). \textbf{Nothing in the paper
+body is a result.} Gates B and C, stage 1, the positive control and the Llama
+stage have not run. Development evidence appears only in these notes. Menu
+sizes, the filter list and costs are marked [TO BE FINALISED] where the plan is
+not settled. \texttt{references.bib} was rebuilt programmatically on 8 Oct
+(revision 2 adds 22 fetched entries); see its per-entry source comments.
+
+\paragraph{Title.}
+The spec's working title ends ``\ldots, and When Diagnosis Pays''. The user's
+decision makes the measured repair comparison the headline and the
+decision-value map secondary, so the title now names only the comparison.
+Alternatives:
+\begin{enumerate}
+  \item \emph{Repairing Safety After Benign Fine-Tuning: A Compute-Matched
+        Comparison of Data Repairs, and When Diagnosis Pays} (the spec's title;
+        use it only if the planted sweep is funded and gives the map measured
+        support).
+  \item \emph{Diagnose or Retrain? A Compute-Matched Comparison of Data Repairs
+        for Safety After Benign Fine-Tuning} (the previous title as a lead-in,
+        as the spec allows).
+  \item \emph{Choosing a Data Fix When Benign Fine-Tuning Erodes Safety:
+        Diagnosis, Trial Runs and Side Effects at Matched Compute}. This is the
+        DIFFUSE title: the plan (\S11) and FOCUS (``agreed fallback'') switch to
+        it if Gate B reads DIFFUSE. Its number is kept from the previous draft
+        because the plan refers to it as ``alternative title 3''.
+  \item \emph{Remove, Add or Leave the Model Alone? Seeded, Compute-Matched
+        Repairs for Safety Eroded by Benign Fine-Tuning} (stresses the
+        model-level references).
+\end{enumerate}
+
+\subsection{What changed from the previous draft (8 Oct, about 12:00 UTC)}
+
+\begin{itemize}
+  \item \textbf{Headline.} The measured repair comparison leads (six repairs
+        $\times$ six seeds against random removal and no repair; labels better
+        / equivalent within 5 pp / inconclusive; with over-refusal, task loss
+        and measured cost). The ``when diagnosis pays'' map is secondary and
+        model-based; its predictions are written down before Gate B's category
+        runs and tested on Llama.
+  \item \textbf{Menu.} Stage 1's primary family P1--P6 (A1, L1, H1 removals;
+        S1, S3, S4 additions); secondary arms and scored-only scorers; rewrite
+        and self-distill only in the DIFFUSE branch. The previous draft's
+        keep/remove/add/rewrite menu by source, the default mix
+        $a_{\mathrm{mix}}$ and the ``beat $a_{\mathrm{mix}}$'' rule are gone.
+  \item \textbf{New parts.} Three mandatory references with no data change
+        (safety prompt, adapter scaling, recipe G); the planted-cause positive
+        control; the HarmBench claim rule; two cost conventions; the Llama rule
+        (LR or rank only); confirmation on a sealed held-out subsample; the
+        opening decomposition (side study).
+  \item \textbf{Resolved old decisions.} $O$ is measured against the untuned
+        model (old decision 1); $\tau_O$ is a grid of 2, 5 and 10 pp and
+        $\tau_L$ is 2 SE of a seed-to-seed difference in held-out loss on all
+        200 rows (old decision 2); the main scale is 1B with a ladder (old
+        decision 3); a judge rule decides ``harm'' against ``refusal'' wording
+        (old decision 4); model-level references are mandatory (old decision
+        6); side-effect prediction is secondary, on the add arms only (old
+        co-primary).
+  \item \textbf{\S4 and \S6 are written out. \S2} adds the published filters,
+        the format paper, DualSelect, Bianchi et al., PTST and MNEME, the DataRx
+        correction and Guo et al.'s Table 2.
+\end{itemize}
+
+\subsection{Placeholders}
+
+\begin{longtable}{@{}L{0.14\linewidth}L{0.44\linewidth}L{0.36\linewidth}@{}}
+  \toprule
+  \textbf{Where} & \textbf{Marker} & \textbf{Filled by} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  Abstract & [PLACEHOLDER: if funded]; [FINDING 1]--[FINDING 3] & the funding
+    decision for the planted sweep; stage 1, the references, Gate B and the
+    sweep \\
+  \S1 & [PLACEHOLDER: if funded]; [TO BE FINALISED] menu sizes 8/32/128 & as
+    above; the plan's review \\
+  \S1, contributions & [FINDING 1]--[FINDING 4]; [ARTIFACT] & stage 1 and
+    Llama; the sweep; Gates B/C and the mechanism study; the decision-value
+    predictions; the anonymized outcome tables \\
+  \S1 & [FIGURE 1] & the repair-comparison figure (restoration with 90\%
+    intervals and the $\pm$5 pp band against over-refusal and cost, with the
+    adapter-scaling curve) \\
+  \S3 & the constants $\delta$ (5 pp, given), $\delta_B$ (8 pp, given), the
+    $\tau_O$ grid (given), $\tau_L$ (rule given, value after Gate A noise),
+    $B$, the selector rules per $(M, B)$, $k_d$, $\phi$, $\psi$ & the stage-1
+    pre-registration and the selector spec (committed before Gate B's category
+    runs) \\
+  \S4.1 & [PLACEHOLDER: sizes actually run] & funding (scale ladder) \\
+  \S4.3 & [TO BE FINALISED] secondary arms and the filter list;
+    [PLACEHOLDER: final MDE] & the plan's review; Gate B's pooled noise \\
+  \S4.5 & [TO BE FINALISED] menu sizes; [PLACEHOLDER: runs only if funded] &
+    the plan's review; funding \\
+  \S4.7 & [TO BE FINALISED] costs & measured ledgers; frozen cost
+    conventions \\
+  \S4.10 & [PLACEHOLDER: report against the recorded bound] & the mechanism
+    prediction recorded before Gate B \\
+  \S5, \S7 & placeholders & results \\
+  References & Microsoft page [CITE-CHECK]; Alpaca has no citation & the
+    author \\
+\end{longtable}
+
+\textbf{[TO BE FINALISED] items (the plan is under review):} (1) the planted
+menus' sizes (8, 32, 128 cells) and cell rules; (2) the published-filter list:
+L1 is LARF-style in the primary family; DataShield-style is secondary;
+Self-Inf-N-style is scored only; SQSD is cited only; bi-anchoring enters as
+A1's score; (3) all costs: the FRE values, both cost conventions, the cost of
+each scorer and of A1, the lean-trial cost $c_0$, and the dollar plan (stage 1
+about \$56--98; planted sweep about \$17--35; core path about \$215--405; all
+estimates from the plan, not paper text); (4) the secondary arms and their
+order.
+
+\paragraph{Fill-ins for each outcome} (templates, not claims):
+\begin{itemize}
+  \item \textbf{A repair is better.} F1: ``[repair] restores \_\_ pp more than
+        random removal (90\% CI a--b), with over-refusal \_\_ pp above the
+        untuned model and task loss within $\tau_L$, at \_\_ FRE; it [does /
+        does not] lie below the adapter-scaling curve''. If it does not, the
+        sentence must say that a model-level reference does as well (FOCUS
+        ``do not claim'': data repair beats model-level repair).
+  \item \textbf{Everything equivalent.} F1: ``every removal repair is
+        equivalent to random removal within $\pm$5 pp; [addition result]''.
+        This is a publishable answer; the abstract then says it.
+  \item \textbf{A free reference wins.} F2: ``a safety prompt / a down-scaled
+        adapter restores as much as any data repair at lower over-refusal''
+        (plan \S13: a valid, reportable answer).
+  \item \textbf{Planted cause found / not found} (only if funded). F3:
+        ``[diagnostic] ranks the planted cell first at $M = {}$\_\_; runs alone
+        find it at \_\_ FRE''.
+  \item \textbf{DIFFUSE.} F3: ``no Dolly category restores more than 8 pp
+        beyond random removal (80\% detection at about 10--12 pp)''. Switch to
+        alternative title 3; the planted sweep becomes the only test of whether
+        diagnosis can pay.
+  \item \textbf{Harm wording.} Use ``restored refusal'' unless the HarmBench
+        rule (\S4.2) passes for that contrast; never ``harm'' if
+        $E_{\mathrm{HB}} < 20$ pp.
+\end{itemize}
+
+\subsection{[CITE-CHECK] items}
+
+\begin{longtable}{@{}L{0.03\linewidth}L{0.24\linewidth}L{0.08\linewidth}L{0.55\linewidth}@{}}
+  \toprule
+  \textbf{\#} & \textbf{Item} & \textbf{Where} & \textbf{Why} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  1 & TOSS (2603.01185) & \S2 & Title and venue now fetched (``Token-level Data
+    Selection for Safe LLM Fine-tuning'', ICLR 2026). The claim ``token-level
+    selection'' rests on the title only. \\
+  2 & Unforgotten Safety (2512.10150) & \S2 & Fetched (``\ldots with Continual
+    Learning''); claim from the title only. \\
+  3 & Yin \& Rush (2410.16208, ICLR 2025) & \S1, \S2 & Wording (``almost never
+    compute-optimal''; 5x and 10x model-size ratios) from the arXiv abstract,
+    read this session. The spec's ``predicts retraining wins at equal size'' is
+    our inference from the 10x ratio; check the paper before using it. \\
+  4 & TuneAhead (2606.17660) & \S2 & Fetched; claim from the title only. \\
+  5 & Data2Behavior (2602.04735) & \S2 & Fetched; claim from the title only. \\
+  6 & SafeTune: model-level repairs, single deterministic runs & \S2 & Recipe
+    and runs PDF-checked (benign-erosion recipes note); ``compares repairs of
+    safety drift'' from the title and a fetch summary. \\
+  7 & DataRx mechanism (``gap between the model's own response and a safe
+    reference'') & \S2 & From the arXiv abstract (this session). The numbers
+    59.23\% and 13.70\% are in the abstract; 20.24\% is Table II (recipes note,
+    PDF read); ``averaged over seven tasks'' is the abstract's wording. The plan
+    reads (by HTML fetch, not PDF) that DataRx's random arm draws refusal-only
+    rows; that is why S1 is the DataRx test. \\
+  8 & DataShield and GradShield report scoring cost without charging it
+    against runs; DataShield's mechanism & \S2 & Cost claim: fetch summaries
+    only. Mechanism (compliance direction): DataShield's abstract (this
+    session). DataShield's cost table (Table IV) is cited by the plan from the
+    reading list (LARF 0.17 h, DataShield 0.50 h, bi-anchoring 3.5 h per 10,000
+    rows); not PDF-checked. \\
+  9 & SOURCE ``reported to cost several training runs'' & \S2 & Reported
+    through the Bergson paper; not checked. \\
+  10 & LESS as ``gradient similarity on LoRA gradients'' & \S2 & Reading-list
+    summary. \\
+  11 & Persona vectors & \S2 & Blog post via the problem-validation review;
+    confirm in 2507.21509. \\
+  12 & DataDecide; Ivison et al. & \S2 & Positioning review, from an
+    extraction-tool read. \\
+  13 & Xiao \& Aranguri & \S2 & Abstract only (``over 10 times cheaper''). \\
+  14 & Microsoft fine-tuning safety documentation & \S1, refs & Read on 6 Oct;
+    re-check before submission; no URL in the bib. \\
+  15 & Venues and author order & refs & ADMIRE-BayesOpt: TMLR lists Ouyang
+    first, arXiv lists Chen first (bib follows TMLR). DATE-LM year set to 2025
+    from the venue string. \\
+  16 & LARF (2507.18631, EMNLP 2025) & \S2 & Mechanism from the abstract (this
+    session). \\
+  17 & SQSD (2605.04572, ICML 2026) & \S2 & Mechanism and acronym from the
+    abstract (this session). ``Its scoring needs several FRE'' is the plan's
+    estimate (6--14 FRE), not the paper's. \\
+  18 & Self-Inf-N (2505.06843, ICML 2025) & \S2, \S4.3 & ``100 outliers break
+    safety; most mitigations fail'' from the abstract (this session). Using its
+    score as a removal filter is our adaptation. \\
+  19 & ``Bi-anchoring'' as He et al.'s method name & \S2, \S4.3 & The reading
+    list's name; check He et al.'s own term. \\
+  20 & Form over content (2609.19589) & \S1, \S2 & Abstract only (here and in
+    the repo's arXiv search file). \\
+  21 & DualSelect (2606.09866) & \S1, \S2 & Abstract (this session): joint task
+    and reference selection, 1B--8B models. ``Compares random, SafeInstr, SEAL,
+    LARF, TOSS and SQSD with three seeds and a false-refusal rate'' comes from
+    the plan's novelty review (HTML \S4), not re-read. \\
+  22 & Bianchi et al.\ (ICLR 2024): 3\% safety data helps, with exaggerated
+    safety & \S2 & Abstract (this session). \\
+  23 & MNEME (EMNLP 2025) predicts side effects & \S2 & Abstract (this
+    session). \\
+  24 & Instrument citations (OLMo 2, Llama 3, Qwen2.5, Qwen3Guard, Granite
+    Guardian, HarmBench, StrongREJECT, SimpleSafetyTests, XSTest, OR-Bench,
+    PKU-SafeRLHF, LoRA, ARC, Dolly) & \S4 & Fetched. Check that each cited
+    report covers the version used (Granite Guardian 3.3 8B; Qwen3Guard-Gen-4B;
+    Llama-3.2 under the Llama 3 report; OLMo-2-0425-1B under the OLMo 2
+    report). Dolly's entry is the dataset card's own BibTeX (a blog post).
+    Alpaca (\S1, \S4.8) has no citation yet. \\
+\end{longtable}
+
+PDF- or full-text-checked in the repo, and used as such: Qi et al.\ (2024), He
+et al., Luo et al.\ (2026b), Pan et al., DATE-LM (verification log, 6 Oct); Kim
+et al.\ (2025), SafeTune's recipe, PTST, DataRx's Table II (benign-erosion
+recipes note); Guo et al.\ including Table 2 (7.27, 4.50, 9.09, 44.80
+confirmed), Springer et al.\ (safety-landscape note); Llama 3's safety mix
+(problem-validation review); Qi et al.\ (2025) on first-token alignment
+(erosion-amplifiers note). Guo's ``two seeds'' is the Table 2 caption; the
+Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
+
+\subsection{Decisions the author must make}
+
+\begin{enumerate}
+  \item \textbf{Title} (above).
+  \item \textbf{The label set and the two-sided contrast.} P4 (S1 $-$ $a_0$) is
+        two-sided (DataRx predicts worse, Bianchi et al.\ predict better), but
+        the adopted labels are only better / equivalent / inconclusive. Decide
+        whether a significant result in the harmful direction gets its own
+        label (``worse'') or is reported as ``inconclusive'' with its estimate.
+        \S3.2 is silent on it.
+  \item \textbf{The planted sweep's funding.} If it is not funded, ``menu
+        size'' leaves the headline: delete contribution 2, the planted part of
+        the abstract and Figure 1's menu-size panel, and \S3.4 shrinks to one
+        sentence.
+  \item \textbf{Preliminary-results section.} The spec does not ask for one, so
+        the body has none. Gate A's numbers and their disclosures stay in these
+        notes until \S5 is written. Decide whether a section labelled
+        ``Preliminary results (development evidence; not confirmatory)'' should
+        carry Gate A.
+  \item \textbf{Filter list and secondary arms} ([TO BE FINALISED]).
+  \item \textbf{Venue and length.} The adopted amendment targets TMLR or
+        NeurIPS 2027; ICML 2027 only if, by about 1 December, the planted
+        sweep, both 1B families and one 7--8B published-setting replication are
+        funded. This build uses the ICML 2026 style (8-page limit); see the
+        page count reported with the build. NeurIPS allows 9 pages; TMLR has no
+        strict limit. ICML needs an Impact Statement (missing).
+  \item \textbf{The Gate B and Gate C rules} in \S4.6 summarize the DRAFT
+        pre-registration (revision 3), which awaits the user's acceptance.
+        Update \S4.6 if it changes.
+  \item \textbf{The opening decomposition's definition} (\S3.6) must match the
+        exploratory note's ``composition share''; the note does not state its
+        formula in these terms. Fix the order of terms and report both orders.
+  \item \textbf{Gate names.} Keep ``Gate A/B/C'' or call them pre-registered
+        checks.
+  \item \textbf{Who the user is} (\S6): the plan names a fine-tuning service
+        that must ship the customer's adapter and may change only data, or a
+        data-only pipeline. Confirm this wording.
+\end{enumerate}
+
+\subsection{Risks a reviewer will raise (sources in brackets)}
+
+\begin{enumerate}
+  \item \textbf{``Unsafe'' means ``did not refuse''.} See the development
+        evidence. Answer: the HarmBench claim rule, hard-category $U$, $U$ by
+        length band, the selectivity score, and claim wording [Gate A audit,
+        4a; plan \S4.2].
+  \item \textbf{Forking paths.} Five settings were screened before OLMo-2-1B
+        fell in the 20--55 pp window, fixed after the Qwen results; seed 1101
+        both chose the setting and counts in the mean [audit, 4b]. Answer:
+        report every setting tried and the fresh-seed mean (+45.9 pp).
+  \item \textbf{Recipe dependence.} Recipe B is aggressive (r64, per-row mean
+        loss, no warmup). Answer: recipe G as a mandatory reference; the Llama
+        rule (LR or rank only); H1 under a token-mean loss as a secondary arm.
+  \item \textbf{Nulls everywhere.} A 600-row filter clears the MDE only if the
+        findable effect is about 11--14 pp at row AUC 0.9 [plan \S1 item 16,
+        POW Part 3]. Answer: equivalence labels make nulls informative; the
+        planted control; the dose curve.
+  \item \textbf{Additions win on $U$ by construction.} Refusal rows restore
+        refusal, and $U$ tracks refusal [plan \S13]. Answer: the HarmBench
+        rule, selectivity, $O$ against the untuned model, and the
+        adapter-scaling curve.
+  \item \textbf{A free reference may beat every data repair} (safety prompt,
+        adapter scaling) [plan \S13]. That is a valid answer; say so.
+  \item \textbf{Prior-work overlap} (DualSelect, Yin \& Rush, DataShield's cost
+        table). Answer: no ``first'' claims (\S2 ``How we differ''); the
+        equivalence bounds, references, positive control and pre-registered
+        predictions are the contribution.
+  \item \textbf{Re-implemented baselines.} The four method repositories have no
+        licence [plan \S5.1, FIL]; all scorers are re-implemented
+        (``X-style'') with deviation tables; authors are asked for reference
+        outputs; stage 4's published-setting replication checks fidelity.
+  \item \textbf{Diffuse erosion is the expected Gate B outcome} [Gate B draft
+        \S8; audit \S7]. Under this framing it no longer collapses the paper:
+        stage 1 runs unchanged, and the planted sweep carries the diagnosis
+        question.
+  \item \textbf{The plant may not erode} above the background [plan \S13]; the
+        pilot gate decides.
+  \item \textbf{Small scale favours trial runs; cost ratios change with size.}
+        No 1B cost ratio is claimed for 7--8B.
+  \item \textbf{The decision-value map is a model output} at the menus we can
+        afford [plan \S0, NOV-2, MET-M1]. Answer: it is secondary, frozen before
+        the data, and scored against measurements and on Llama.
+  \item \textbf{Judge precision on benign prompts.} After fine-tuning
+        Qwen3Guard labels 22--29\% of the benign bank Unsafe (untuned 5\%)
+        [audit \S5].
+  \item \textbf{``Adding a little safety data is known to work.''}
+        \begin{itemize}
+          \item \textbf{Correction (FAQ second review, 8 Oct; source opened):}
+                DataRx does NOT show that adding works by default. Its
+                59.23\% $\to$ 13.70\% compares a \emph{random} 1\% BeaverTails
+                mix with DataRx's \emph{selected} 1\% mix on Llama3-8B. The
+                fine-tune with no safety data scored 20.24\%, so the random mix
+                made it worse.
+          \item So \emph{which} safety data is added decides whether adding
+                helps (now P4 and P5). Guo's 10 rows were not checked for
+                over-refusal.
+        \end{itemize}
+  \item \textbf{Added data can hide misalignment} that returns on prompts like
+        the training data (Dubi\'nski et al.) [reading list v2, risk 4]. The
+        plan adds an overlap control: the add effect must hold on the eval
+        prompts least similar to the add set.
+  \item \textbf{Motivation.} We found no public evidence that practitioners
+        weigh attribution against retrains [problem-validation review]. The
+        draft does not claim that they do.
+  \item \textbf{Money.} About \$17.50 on hand against a core path of about
+        \$215--405 [plan \S10, \S13]. Every stage starts on a funding event;
+        only complete seed blocks are analysed.
+\end{enumerate}
+
+\subsection{Where the framing is weak (the drafter's view)}
+
+\begin{enumerate}
+  \item \textbf{The cost axis is mostly evaluation.} Generation is about 81\%
+        of an arm and training about 8\% [plan \S1 item 6]. FRE then measures
+        our evaluation size more than training; the two cost conventions help,
+        but a reviewer may still read ``compute-matched'' as
+        ``evaluation-matched''. Say plainly what one FRE buys.
+  \item \textbf{The comparison fixes doses.} Rankings across removal (600 rows)
+        and addition (48 rows) hold only at these doses; the dose curve is
+        secondary and 3-seed.
+  \item \textbf{Category units versus row scorers.} Gate B tests categories;
+        stage 1 tests row scorers. A row scorer can find what Gate B cannot, and
+        the reverse; the paper must not read one from the other.
+  \item \textbf{The data-only user and diagnostics pull against each other}
+        (previous draft, point 2): a closed-service customer cannot run
+        attribution; a developer with open weights also has model-level
+        repairs. The references now make this explicit, but the population
+        that benefits from paid diagnosis stays narrow.
+  \item \textbf{Mechanism tests are thin.} Recipe G changes loss weighting and
+        schedule at once; the first-token margin is one teacher-forced pass.
+        Both are side studies.
+\end{enumerate}
+
+\subsection{Development evidence (for the author only; never a finding in the
+  abstract or the contributions)}
+
+\begin{itemize}
+  \item \textbf{Gate A PASSED on OLMo-2-0425-1B-Instruct} (8 Oct, 05:40 UTC):
+        $E$ = +43.5, +43.7, +48.2 pp over three seeds; mean +45.1 pp (band
+        41.3--49.0; partial); fresh-seed mean +45.9 pp; answers end; held-out
+        Dolly loss 2.10 $\to$ 1.54; Granite agrees. Independent audit: sound
+        with caveats.
+  \item \textbf{Audit disclosures:} $P(\text{Unsafe} \mid \text{no refusal})$
+        0.91--0.94 after fine-tuning; about a third of Unsafe answers carry
+        only ``unethical acts'' or ``politically sensitive''; $E$ under hard
+        categories only is about 28 pp; five settings screened; 2 df for seed
+        variance; the ARC bar is near chance at 1B (untuned 0.392).
+  \item \textbf{Qwen2.5-1.5B and 7B-Instruct saturate} under recipe B (+75.2
+        and +82.2 pp); rank 16 still gives +67.8 pp. Guo-gap analysis: judge
+        and prompts explain at most about 13--30 pp of the gap to Guo's Qwen
+        LoRA cell.
+  \item \textbf{Mechanism (exploratory note):} refusal openings fall by about
+        50 pp (OLMo) and 85 pp (Qwen); the opening switch carries about
+        0.42--0.64 of OLMo's Unsafe increase; direct answers also became more
+        harmful; the erosion is broad across prompts and stable across seeds.
+        Recorded prediction: a first-token path alone gives at most about 3 pp
+        per category, so a LOCALIZED Gate B would need a content effect.
+  \item \textbf{Over-refusal:} untuned OLMo refuses 17/100 benign prompts;
+        after fine-tuning 4--6/100. v2's base-model positive control: a
+        classifier-targeted rewrite cut sampled unsafe answers from 80.3\% to
+        11.4\%, but XSTest-safe refusals rose from 1/50 to 22/50 in both seeds.
+  \item \textbf{Cost of an arm} (one Gate A ledger): training 245 s, greedy
+        generation 1,750 s, sampled generation 761 s, guard and scoring 293 s;
+        about 3,115 s; A100 at \$1.59/h.
+  \item \textbf{Planning noise:} clustered SE($U$) 2.8 pp per arm; seed SD 2.65
+        pp (2 df). MDE after Holm's first step about 5.0 pp (removal) and 5.3
+        pp (add) at central noise; Gate B detects 8 pp about half the time and
+        reaches 80\% at about 10--12 pp.
+  \item \textbf{Recorded prior:} DIFFUSE or TOO CLOSE is more likely than
+        LOCALIZED at Gate B.
+  \item \textbf{Status (spec \S9 and FOCUS, 8 Oct):} recipe G causal test
+        pre-registered and running; Llama-3.2-1B probe pre-registered (queued
+        or running; the spec says both); HarmBench compliance judge running on
+        the Mac; Gate B/C pre-registration revision 3 awaits the user's
+        acceptance.
+\end{itemize}
+
+\subsection{Conflicts between the sources, and how this revision resolves them}
+
+\begin{enumerate}
+  \item \textbf{Spec RQ2 (the map co-primary, the headline figure) vs the
+        user's decision (map secondary, model-based).} Followed the user's
+        decision: the measured comparison leads the title, abstract, \S1 and
+        contributions; the map is \S3.5, secondary, with predictions frozen
+        before Gate B's category runs and scored on Llama. Figure 1 is now the
+        repair comparison.
+  \item \textbf{Spec repair menu (category, cluster or row removal by
+        heuristic, filters, attribution, representation similarity; random vs
+        selected mix; ``10 rows''; recipe-only) vs the adopted stage-1
+        design.} Followed the adopted design: six primary arms (A1, L1, H1, S1,
+        S3, S4) at 600 removed or 48 added rows; recipe G is a reference, not a
+        repair; category removal stays in Gate B; cluster menus exist only as
+        the planted sweep's nested cells; the ``10 rows'' dose is an option,
+        not the plan.
+  \item \textbf{Spec ``Qwen is the fragile contrast'' vs ``do not claim Qwen is
+        uniquely fragile at 7B''.} Qwen appears only as context in \S4.1 and
+        \S4.10 (its results are in these notes), with Guo et al.'s Table 2
+        showing a Qwen2.5-7B LoRA cell that barely erodes.
+  \item \textbf{Previous draft vs spec on $O$'s reference.} Spec and amendment:
+        the untuned model ($a_0$ reported). Applied.
+  \item \textbf{Previous draft's rewrite and self-distill fixes.} The amendment
+        drops them from the core menu; one rewrite arm runs in the DIFFUSE
+        branch (\S4.6).
+  \item \textbf{Previous draft's co-primary side-effect prediction.} Secondary,
+        on the add arms only (\S4.10).
+  \item \textbf{The brief's ``keep the Guo Table 2 wording''.} Neither previous
+        file contained it; it is now in \S2.
+  \item \textbf{Spec \S9 vs \S5 on the Llama probe} (``queued'' vs
+        ``running''): not paper text; noted above.
+\end{enumerate}
+
+\textbf{Sources read:} the paper specification (in full); the adopted FOCUS
+amendment (commit 4b37ec2) and FOCUS's dated entries of 6--8 Oct; the
+sharpened-direction plan (revision 2, in full); the Gate A audit; the kill-test
+Stage 0 results record (Gate A); the Gate B/C pre-registration draft (revision
+3); the mechanism note; the Guo-gap analysis; the safety-landscape note; the
+erosion-amplifiers note; reading list v2 (groups 4--5 and the DataRx
+correction); the benign-erosion recipes note (DataRx); the kill-test design
+(measurement table). Abstracts fetched this session for the new citations.
+
+\endgroup
+
+\end{document}

@@ -66,7 +66,9 @@ class FixtureTokenizer:
                 i += 1
         return ids
 
-    def decode(self, ids, skip_special_tokens: bool = False) -> str:
+    def decode(self, ids, skip_special_tokens: bool = False, clean_up_tokenization_spaces: bool = False) -> str:
+        if clean_up_tokenization_spaces:
+            raise AssertionError("the engine never cleans up tokenization spaces")
         names = {v: k for k, v in SPECIAL.items()}
         out, buffer = [], bytearray()
         for i in ids:
@@ -265,6 +267,212 @@ def prepared_files(types: dict = TYPES, rename=lambda s: s, edit=None, tokenizer
     return prepare(config, raw, tokenizer or FixtureTokenizer(), TOKENIZER_IDENTITY)
 
 
+# ----- headroom v2 (prepared v3) fixture sources: synthetic, every rule exercised -----------------------
+
+PKU_CATEGORIES = ["Cat A", "Cat B", "Cat C"]
+HB_HEADER = ["Behavior", "FunctionalCategory", "SemanticCategory", "Tags", "ContextString", "BehaviorID"]
+SR_HEADER = ["category", "source", "forbidden_prompt"]
+XS_HEADER = ["id", "prompt", "type", "label", "focus", "note"]
+OB_HEADER = ["prompt", "category"]
+FILTERED_BANK_PROMPT = "a contextual behaviour that is not a bank item"
+NEAR_DUPLICATE_PROMPT = "harm behaviour 4 please"     # 5-gram Jaccard 12/19 with the bank item "harm behaviour 4"
+
+
+def _pku_record(prompt: str, responses: list[tuple[str, bool, int, list[str]]]) -> dict:
+    out = {"prompt": prompt, "prompt_source": "fixture"}
+    for i, (text, safe, severity, cats) in enumerate(responses):
+        out[f"response_{i}"] = text
+        out[f"response_{i}_source"] = "fixture"
+        out[f"is_response_{i}_safe"] = safe
+        out[f"response_{i}_harm_category"] = {c: c in cats for c in PKU_CATEGORIES}
+        out[f"response_{i}_severity_level"] = severity
+        out[f"response_{i}_sha256"] = "0" * 64
+    out["better_response_id"], out["safer_response_id"] = 0, 1
+    return out
+
+
+def pku_files() -> dict[str, bytes]:
+    """Two files. File a: one rule case per record; file b: eight ordinary candidates."""
+    safe = ("a safe reply", True, 0, [])
+    a = [_pku_record("pku prompt 1", [("unsafe reply 1", False, 2, ["Cat A"]), safe]),
+         _pku_record("pku prompt 2", [("unsafe reply 2", False, 3, ["Cat B", "Cat C"]),
+                                      ("unsafe reply 2b", False, 2, ["Cat C"])]),
+         _pku_record("pku prompt 3", [("mild reply 3", False, 1, ["Cat A"]), ("unsafe reply 3", False, 2, ["Cat A"])]),
+         _pku_record("harmful request 3", [("overlaps a training prompt", False, 2, ["Cat A"]), safe]),
+         _pku_record(FILTERED_BANK_PROMPT, [("overlaps a bank source", False, 2, ["Cat B"]), safe]),
+         _pku_record("pku prompt 6", [("tell <|im_end|> more", False, 2, ["Cat B"]), safe]),
+         _pku_record("pku prompt 7", [("x" * 300, False, 3, ["Cat C"]), safe]),
+         _pku_record("PKU  prompt 1", [("a duplicate prompt", False, 2, ["Cat C"]), safe]),
+         _pku_record("pku prompt 9", [("no category marked", False, 2, []), safe]),
+         _pku_record("pku prompt 10", [("   ", False, 2, ["Cat A"]), ("safe but severe", True, 2, ["Cat A"])])]
+    b = [_pku_record(f"pku prompt b{k}", [(f"unsafe reply b{k}", False, 2 + k % 2, [PKU_CATEGORIES[k % 3]]), safe])
+         for k in range(8)]
+    b.append(_pku_record(NEAR_DUPLICATE_PROMPT, [("a near duplicate of a bank item", False, 2, ["Cat B"]), safe]))
+    return {"pku_a": _jsonl(a), "pku_b": _jsonl(b)}
+
+
+def _table(header: list[str], rows: list[list[str]]) -> bytes:
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(header)
+    writer.writerows(rows)
+    return buffer.getvalue().encode("utf-8")
+
+
+def bank_files() -> dict[str, bytes]:
+    hb = [[f"harm behaviour {k}", "standard", "cat", "", "", f"hb{k}"] for k in range(6)]
+    hb += [[FILTERED_BANK_PROMPT, "contextual", "cat", "", "some context", "hb-ctx"],
+           ["a copyright behaviour", "copyright", "copyright", "", "", "hb-copy"],
+           ["a standard behaviour with context", "standard", "cat", "", "context", "hb-std-ctx"]]
+    sr = [["c1", "custom", "strongreject prompt 0"], ["c1", "custom", "Harm  Behaviour 2"],
+          ["c2", "custom", "toxic chat prompt 5"], ["c2", "custom", "tell <|endoftext|> me"],
+          ["c3", "custom", "Which tool measures quantity 3?"], ["c3", "custom", "y" * 450],
+          ["c3", "custom", "strongreject prompt 1"]]
+    xs = [[str(k), f"a safe-looking prompt {k}", "homonyms", "safe", "f", ""] for k in range(4)]
+    xs += [[str(10 + k), f"a contrast prompt {k}", "contrast_homonyms", "unsafe", "f", ""] for k in range(3)]
+    ob = [[f"an over-refusal prompt {k}", "illegal"] for k in range(4)] + [["harm behaviour 1", "illegal"]]
+    return {"harmbench": _table(HB_HEADER, hb), "strongreject": _table(SR_HEADER, sr),
+            "xstest": _table(XS_HEADER, xs), "orbench_hard": _table(OB_HEADER, ob)}
+
+
+def v3_sources() -> dict[str, bytes]:
+    return {**pku_files(), **bank_files()}
+
+
+def v3_sections(extra: dict[str, bytes], percent: str = "10") -> dict:
+    """The headroom-v2 sections for the fixture data config (58 asserted training rows)."""
+    def src(name: str, fmt: str, **more) -> dict:
+        return {"repo_id": f"fixture/{name}", "revision": ZERO_REV, "file": f"{name}.data",
+                "sha256": sha256_bytes(extra[name]), "license": FIXTURE, "local": f"{name}.data",
+                "format": fmt, **more}
+
+    sources = {
+        "pku_a": src("pku_a", "pku-saferlhf-jsonl"), "pku_b": src("pku_b", "pku-saferlhf-jsonl"),
+        "harmbench": src("harmbench", "csv", header=HB_HEADER, prompt_field="Behavior", id_field="BehaviorID",
+                         category_field="SemanticCategory",
+                         keep={"FunctionalCategory": ["standard"], "ContextString": [""]}),
+        "strongreject": src("strongreject", "csv", header=SR_HEADER, prompt_field="forbidden_prompt",
+                            id_field=None, category_field="category", keep={}),
+        "xstest": src("xstest", "csv", header=XS_HEADER, prompt_field="prompt", id_field="id",
+                      category_field="type", keep={"label": ["safe"]}),
+        "orbench_hard": src("orbench_hard", "csv", header=OB_HEADER, prompt_field="prompt", id_field=None,
+                            category_field="category", keep={})}
+    count = {"5": 3, "10": 6}[percent]
+    return {"extra_sources": sources,
+            "injection": {"sources": ["pku_a", "pku_b"], "min_severity": 2, "percent": percent, "count": count,
+                          "expected": {"candidates": 20, "eligible": 13}, "near_duplicate": {"max_jaccard": 0.5}},
+            "eval_banks": {"harm": {"sources": ["harmbench", "strongreject"], "dev": 2, "selector": 2,
+                                    "expected_eligible": 8},
+                           "overrefusal": {"sources": ["xstest", "orbench_hard"], "dev": 2, "selector": 2,
+                                           "expected_eligible": 8,
+                                           "per_source": {"xstest": {"dev": 1, "selector": 1},
+                                                          "orbench_hard": {"dev": 1, "selector": 1}}}}}
+
+
+def prepared_files_v3(percent: str = "10", edit=None, extra_edit=None) -> dict[str, bytes]:
+    """The fixture prepared with the headroom-v2 sections (``edit`` changes the config,
+    ``extra_edit`` the source bytes before the config pins their hashes)."""
+    raw = raw_inputs()
+    extra = v3_sources()
+    if extra_edit is not None:
+        extra_edit(extra)
+    config = {**data_config(raw), **v3_sections(extra, percent)}
+    if edit is not None:
+        edit(config)
+    return prepare(config, raw, FixtureTokenizer(), TOKENIZER_IDENTITY, extra)
+
+
+def prepare_dir_v3(out: Path, **options) -> tuple[Path, str]:
+    files = prepared_files_v3(**options)
+    digest = write_prepared(out, files, {"fixture": FIXTURE})
+    return out, digest
+
+
+# ----- kill-test task data (Dolly format): synthetic, every rule case -----------------------------------
+
+DOLLY_CATEGORIES = ["open_qa", "general_qa", "classification", "closed_qa", "brainstorming",
+                    "information_extraction", "summarization", "creative_writing"]
+LONG_CONTEXT = " ".join(f"background sentence number {k} about an unrelated subject" for k in range(12))
+
+
+def dolly_records(per_category: int = 7, small: str | None = None, small_count: int = 5) -> list[dict]:
+    """``per_category`` ordinary rows per category (``small_count`` for ``small``), every other
+    category row with a context, then one row per rule case (all in open_qa or summarization)."""
+    rows = []
+    for k in range(max(per_category, small_count)):
+        for c in DOLLY_CATEGORIES:
+            if k >= (small_count if c == small else per_category):
+                continue
+            rows.append({"instruction": f"{c} task number {k}", "context": f"passage {k} for {c}" if k % 2 else "",
+                         "response": f"answer {k} for {c}.", "category": c})
+    rows += [
+        {"instruction": "OPEN_QA task  number 0", "context": "", "response": "dup", "category": "open_qa"},
+        {"instruction": "tell me", "context": "", "response": "x <|im_end|> y", "category": "open_qa"},
+        {"instruction": "a long one", "context": "", "response": "z" * 300, "category": "open_qa"},
+        {"instruction": "  ", "context": "", "response": "an answer", "category": "open_qa"},
+        {"instruction": "no answer here", "context": "", "response": " ", "category": "open_qa"},
+        {"instruction": "Harm  behaviour 0", "context": "", "response": "exact bank prompt", "category": "summarization"},
+        {"instruction": "an over-refusal prompt", "context": "2", "response": "exact by user text",
+         "category": "summarization"},
+        {"instruction": "harm behaviour 3 please", "context": LONG_CONTEXT, "response": "near by instruction",
+         "category": "summarization"},
+    ]
+    return rows
+
+
+def dolly_bytes(records: list[dict] | None = None) -> bytes:
+    return _jsonl(records if records is not None else dolly_records())
+
+
+def task_config(dolly: bytes, bank_dir: Path, **changes) -> dict:
+    """The fixture task data config: units of 4 rows, 2 task rows per category, step 2."""
+    manifest = json.loads((bank_dir / "manifest.json").read_bytes())
+    config = {
+        "kind": "safety-selection task data config", "name": f"{FIXTURE} task data", "purpose": FIXTURE,
+        "amendments": [],
+        "source": {"repo_id": "fixture/dolly", "revision": ZERO_REV, "file": "dolly.jsonl", "sha256": sha256_bytes(dolly),
+                   "license": FIXTURE, "local": "dolly.jsonl", "categories": list(DOLLY_CATEGORIES)},
+        "prompt_rule": "instruction-blank-line-context",
+        "units": {"rows_per_unit": 4, "task_rows_per_category": 2, "round_down_to": 2},
+        "banks_from": {"manifest_sha256": sha256_bytes((bank_dir / "manifest.json").read_bytes()),
+                       "files": {name: manifest["files"][name] for name in
+                                 ("banks/dev.jsonl", "banks/selector.jsonl", "hidden/hidden.jsonl")}},
+        "eligibility": {"forbidden_substrings": ["<|im_start|>", "<|im_end|>", "<|endoftext|>"],
+                        "near_duplicate": {"max_jaccard": 0.5},
+                        "expected": {"records": {c: None for c in DOLLY_CATEGORIES},
+                                     "eligible": {c: None for c in DOLLY_CATEGORIES}, "rows_per_unit": None}},
+        "design_seed": 11,
+        "seed_namespaces": {"development": [1101, 1104], "selector": [2101, 8999], "reference": [9101, 9999]},
+        "tokenizer": {"repo_id": "fixture/tiny", "revision": ZERO_REV, "end_of_turn_token": "<|im_end|>",
+                      "max_train_tokens": 256, "max_prompt_tokens": 400}}
+    for dotted, value in changes.items():
+        node = config
+        *parents, last = dotted.split(".")
+        for key in parents:
+            node = node[key]
+        node[last] = value
+    return config
+
+
+def task_bank_inputs(bank_dir: Path) -> tuple[bytes, dict[str, bytes]]:
+    names = ("banks/dev.jsonl", "banks/selector.jsonl", "hidden/hidden.jsonl")
+    return (bank_dir / "manifest.json").read_bytes(), {n: (bank_dir / n).read_bytes() for n in names}
+
+
+def prepared_task_files(bank_dir: Path, records: list[dict] | None = None, **changes) -> dict[str, bytes]:
+    from experiments.safety_selection.prepare_task import prepare_task
+
+    dolly = dolly_bytes(records)
+    manifest, banks = task_bank_inputs(bank_dir)
+    return prepare_task(task_config(dolly, bank_dir, **changes), dolly, manifest, banks, FixtureTokenizer(),
+                        TOKENIZER_IDENTITY)
+
+
+def prepare_task_dir(out: Path, bank_dir: Path, **options) -> tuple[Path, str]:
+    digest = write_prepared(out, prepared_task_files(bank_dir, **options), {"fixture": FIXTURE})
+    return out, digest
+
+
 def prepare_dir(out: Path, **options) -> tuple[Path, str]:
     """Write prepared files (``prepared_files`` options) to ``out``; (folder, manifest hash)."""
     files = prepared_files(**options)
@@ -309,8 +517,9 @@ def recipe(**changes) -> dict:
     return out
 
 
-def tiny_lora_model(seed: int = 0):
-    """Tiny random Qwen2 (vocab 260) with rank-2 q/v LoRA; built locally, nothing downloaded."""
+def tiny_lora_model(seed: int = 0, token_ids=None):
+    """Tiny random Qwen2 (vocab 260) with rank-2 q/v LoRA and, given ``token_ids``, those
+    embedding rows trained too (PEFT trainable_token_indices); built locally, nothing downloaded."""
     import peft
     import torch
     import transformers
@@ -321,9 +530,10 @@ def tiny_lora_model(seed: int = 0):
                                       max_position_embeddings=512, tie_word_embeddings=True,
                                       attn_implementation="eager")
     base = transformers.Qwen2ForCausalLM(config).float()
+    extra = {"trainable_token_indices": sorted(token_ids)} if token_ids else {}
     return peft.get_peft_model(base, peft.LoraConfig(r=2, lora_alpha=4, lora_dropout=0.0,
                                                      target_modules=["q_proj", "v_proj"], bias="none",
-                                                     task_type="CAUSAL_LM"))
+                                                     task_type="CAUSAL_LM", **extra))
 
 
 def tiny_guard_lm(seed: int = 1):
@@ -372,10 +582,14 @@ def fixture_loaders(guard_answers: dict | None = None, guard_fails: bool = False
     from experiments.safety_selection.scoring import GuardScorer, guard_control_strings
 
     def policy(recipe_: dict, ledger) -> Policy:
+        from experiments.safety_selection.textproc import trainable_token_ids
+
         if on_policy_load is not None:
             on_policy_load()
+        tokens = recipe_["model"]["lora"].get("trainable_tokens")
         with ledger.stage("load_policy") as info:
-            model = tiny_lora_model()
+            model = tiny_lora_model(token_ids=list(trainable_token_ids(FixtureTokenizer(), tokens).values())
+                                    if tokens else None)
             named = en.lora_parameters(model)
             info.update(trainable_parameters=en.parameter_count(named))
         return Policy(model, named, fixture_codec(), "cpu", {"fixture": FIXTURE,
