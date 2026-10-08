@@ -1,0 +1,98 @@
+{
+  "kind": "safety-selection task data config",
+  "name": "study-side-fiction-dark-olmo2",
+  "purpose": "Side fiction study, dark arm (research/side-fiction/rules-v2.json): 8 Project Gutenberg books (first published 1930 or earlier), 625 rows each as Dolly-format story continuations, response lengths matched to the prepared Dolly set's response token counts under this tokenizer. Same units, task rows, banks and tokenizer as study-kt-data-dolly-olmo2. DRAFT: not prepared; the lead prepares it. Licence: US public domain; Gutenberg references removed.",
+  "amendments": [],
+  "source": {
+    "repo_id": "local:research/side-fiction",
+    "revision": "9a65cdf8314d520acd4c688a17394a7b1205f6a4",
+    "file": "dark.jsonl",
+    "sha256": "e90b0d67f8e33e080fdb49e72feee2678e01417076435c5c41cf12984759dbe5",
+    "license": "US public domain; Gutenberg references removed",
+    "local": "dark.jsonl",
+    "categories": [
+      "dark_b1",
+      "dark_b2",
+      "dark_b3",
+      "dark_b4",
+      "dark_b5",
+      "dark_b6",
+      "dark_b7",
+      "dark_b8"
+    ]
+  },
+  "prompt_rule": "instruction-blank-line-context",
+  "units": {
+    "rows_per_unit": 600,
+    "task_rows_per_category": 25,
+    "round_down_to": 50
+  },
+  "banks_from": {
+    "manifest_sha256": "bd1e40df260c07773b387a0cb2af30321a194213149c241007dc7e027e34a76c",
+    "files": {
+      "banks/dev.jsonl": "637fa87fc66abee849c757cb61337b6da777ec0dec4b1f3326aa1995d214811b",
+      "banks/selector.jsonl": "ea89b9f2aad4b335d187bb60080a84b64e931e06af2cfcb0990733cb9a6ef1ac",
+      "hidden/hidden.jsonl": "0fb4759591c494c8db495e59e3c2bf4bb4326cfb95c6619331fbeba8e57ea063"
+    },
+    "retokenize": [
+      "banks/dev.jsonl"
+    ]
+  },
+  "eligibility": {
+    "forbidden_substrings": [
+      "<|im_start|>",
+      "<|im_end|>",
+      "<|endoftext|>",
+      "<|",
+      "|||"
+    ],
+    "near_duplicate": {
+      "max_jaccard": 0.5
+    },
+    "expected": {
+      "records": {
+        "dark_b1": 625,
+        "dark_b2": 625,
+        "dark_b3": 625,
+        "dark_b4": 625,
+        "dark_b5": 625,
+        "dark_b6": 625,
+        "dark_b7": 625,
+        "dark_b8": 625
+      },
+      "eligible": {
+        "dark_b1": 625,
+        "dark_b2": 625,
+        "dark_b3": 625,
+        "dark_b4": 625,
+        "dark_b5": 625,
+        "dark_b6": 625,
+        "dark_b7": 625,
+        "dark_b8": 625
+      },
+      "rows_per_unit": 600
+    }
+  },
+  "design_seed": 20261006,
+  "seed_namespaces": {
+    "development": [
+      1101,
+      2099
+    ],
+    "selector": [
+      2101,
+      8999
+    ],
+    "reference": [
+      9101,
+      9999
+    ]
+  },
+  "tokenizer": {
+    "repo_id": "allenai/OLMo-2-0425-1B-Instruct",
+    "revision": "48d788eca847d4d7548f375ad03d3c9312f6139e",
+    "end_of_turn_token": "<|endoftext|>",
+    "max_train_tokens": 3072,
+    "max_prompt_tokens": 1536
+  }
+}
