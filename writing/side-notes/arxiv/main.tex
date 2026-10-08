@@ -417,6 +417,10 @@ held-out loss is a little higher (1.612 against 1.542). Granite agrees in
 direction ($+23.0$ against $+44.0$ pp). Seeds 1102 and 1103 give $+31.0$ and
 $+26.5$ pp, so the three-seed mean is $+28.8$ pp (sample SD 2.25), against
 $+45.1$ pp under recipe~B. \ph{[G-SEEDS: the formal reading with Granite.]}
+On the HarmBench compliance judge, with all seven OLMo units judged on one
+device, recipe~B gives $\Ehb = +27.7$, $+30.5$ and $+32.8$ pp (mean $+30.3$) and
+recipe~G gives $+17.8$, $+19.3$ and $+14.3$ pp (mean $+17.2$). Recipe~G keeps
+0.57 of recipe~B's erosion on this judge, against 0.64 on Qwen3Guard.
 With a smaller adapter (rank 16), recipe~G gives $+20.2$ pp, 8.8 pp
 lower than at rank 64; by a rule fixed before the run, rank matters little, but
 one seed each cannot exclude a real difference of this size.
@@ -660,8 +664,11 @@ runs use LoRA rank 64 and a recipe like recipe~B, unless marked.
 % Judge-wording rule, copied from the main study (F, 13:53 UTC amendment).
 \paragraph{Judge wording.} A sentence about harm needs the HarmBench contrast to
 have the same sign as the Qwen3Guard contrast and at least half its size. If
-$\Ehb$ is below 20 pp, no sentence says harm. For OLMo-2-1B the rule holds on
-every seed ($\Ehb \ge 20$ pp and at least half of $E$), so we say harm there.
+$\Ehb$ is below 20 pp, no sentence says harm. For OLMo-2-1B under recipe~B the
+rule holds on every seed ($\Ehb \ge 20$ pp and at least half of $E$), so we say
+harm there. Under recipe~G, $\Ehb$ is below 20 pp on every seed, so we say that
+recipe~G's erosion is lost refusal, not harm, although the same-sign,
+half-size condition holds.
 Until the HarmBench judge reads the Qwen and Llama answers \ph{[HB-QWEN]}, we
 say that they lost refusal, not that they give harmful help.
 

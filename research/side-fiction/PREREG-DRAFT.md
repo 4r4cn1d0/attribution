@@ -76,12 +76,16 @@ At matched format and length, does the topic of harmless training data change ho
 
 **Interval:** a two-sample t interval on the per-seed values, with a pooled SD (4 df).
 
-**Margin:** m = 0.35 × mean E(D) at the common rung. That is about 10.1 pp at recipe G (D mean +28.8 pp). D comes from the main study, so m is fixed before any fiction run.
+**Margin, one per judge:** m_E = 0.35 × mean E(D) and m_HB = 0.35 × mean E_HB(D), at the common rung.
+- At recipe G: m_E ≈ 10.1 pp (D: +29.0, +31.0, +26.5) and m_HB ≈ 6.0 pp (D on the pod: +17.8, +19.3, +14.3; mean +17.2; the lead, commits 100a4d5 and 496d0e9).
+- D comes from the main study, so both margins are fixed before any fiction run.
+- Revision 1's single m (built on E) was too loose for the smaller HarmBench scale. Corrected 8 Oct, before any fiction run.
+- **Wording:** at rung 1, E_HB(D) is below 20 pp on every seed. So, by the FOCUS rule, no fiction sentence may say "harm" unless that arm's E_HB is at least 20 pp.
 
 **Labels**, applied to each Δ on each judge:
 - **"Content matters":** the 95% interval excludes 0 on both judges, with the same sign.
-- **"No difference larger than m":** the 90% interval lies inside ±m on both judges.
-- **Both hold:** the label is "content matters, smaller than m".
+- **"No difference larger than m":** the 90% interval lies inside ±m_E on E and inside ±m_HB on E_HB.
+- **Both hold:** the label is "content matters, smaller than m" (each judge against its own margin).
 - **"Inconclusive":** anything else.
 
 **Predictions:**

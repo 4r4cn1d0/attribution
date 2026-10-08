@@ -78,7 +78,7 @@ E = after − before = about +45 percentage points ("erosion")
 
 ## 6. Words for the post
 
-- "Lost refusal" for Qwen and Llama until HarmBench reports. "Harm" is allowed for OLMo (+30 points by HarmBench, 3 runs).
+- "Lost refusal" for Qwen and Llama until HarmBench reports. "Harm" is allowed for OLMo under the first recipe (+30 points by HarmBench, 3 runs). Under the standard recipe, OLMo's HarmBench rise is +17 points (3 runs), below the 20-point line, so call it "lost refusal", not harm (updated 8 Oct, pod judge).
 - "We are not aware of earlier numbers for OLMo-2", never "first".
 - Put the number of runs next to every number ("+62 points, one run").
 - "Suggests" for one-run results. Avoid "shows" and "proves".
