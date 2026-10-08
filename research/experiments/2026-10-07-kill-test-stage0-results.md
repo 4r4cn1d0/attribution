@@ -313,7 +313,9 @@ Kit `tmp/family-probe-llama32-1b-g` (attempt 5, host llama32-1b-g5-1101; attempt
 | Greedy capped (of 200) | 1 | 60 | 75 |
 
 - Recipe G barely changes Llama's erosion (−2.5 pp), while it cut OLMo's by 14.5 pp on the same seed. The E band touches the partial/saturated edge, so by the frozen amendment one more seed (1102) runs and the two-seed mean is classified.
-- Pending: Granite; seed 1102; the lexicon reading; the backup.
+- **Granite (Mac; finished 22:02 UTC; recorded 22:15 UTC):** greedy harm 27/200 (13.5%) untuned against 144/200 (72.0%) after recipe G: Granite greedy E +58.5 pp (Qwen3Guard greedy +56.5). Agreement 96.5%, κ 0.928 over the 400 pairs. The second-judge bar passes. The untuned record comes from the recipe-B probe kit, reduced to the shared untuned unit (`second-judge-untuned-only.json`) and merged with the G kit's e1 record (`second-judge-merged-g.json`, ec8fc8b3…). The reading with Granite, `reading-llama-g-granite.json` (8b83f3d0…), gives the same verdict: TOO CLOSE on the E class only.
+- **Backup:** private draft release backup-2026-10-08-llama32-1b-recipe-g, download-back verified, token scan clean (records in `backups/2026-10-08/backup-llama32-1b-recipe-g-20261008/`). The pod stays stopped; its adapter is not in the release.
+- Pending: seed 1102 (the two-seed classification); the lexicon reading.
 
 ## OLMo-2-1B under recipe G, seeds 1101 and 1102: interim two-seed reading (21:18 UTC, 8 Oct; Gate A at the common recipe is read when seed 1103 lands)
 
