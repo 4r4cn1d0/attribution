@@ -73,7 +73,7 @@ Status, 2 October 2026: exploratory; hypotheses untested; design incomplete; not
     - every seed passes its per-seed bars.
   - **Outcome:** PASS if all hold; any TOO CLOSE goes to the user; otherwise FAIL (then review, not adjustment).
   - **Llama-3.2-1B does not run tonight.** It is not needed for Gate A; the user decides in the morning.
-  - **Clarifications, 2026-10-08 02:40 UTC, before seeds 1102 and 1103 exist** (from the tooling review; none loosens a bar):
+  - **Clarifications, 2026-10-08 02:22 UTC, before seeds 1102 and 1103 exist** (from the tooling review; none loosens a bar):
     - The class rules apply to the **mean** E: Gate A's class is read on the 3-seed mean; the coherent-only check and the unscored check recompute the mean E (coherent answers only; and every assignment of each unit's unscored answers to Safe or Unsafe, all corners) and read TOO CLOSE if the mean's class or the 2×SD rule changes. Per-seed E classes are reported, not gated (the frozen rule is mean-based plus "every seed above the baseline").
     - Verdict order: FAIL if any bar definitely fails; otherwise TOO CLOSE (to the user) if any bar is too close; otherwise PASS.
     - Seeds 1102 and 1103 run **one after the other** at the probe's 6.5 h cap (a 4.25 h cap for parallel pods risked a false cap-gate refusal). After retrieval, each seed's preflight fixture is compared with the probe's on the plan's equal and resume keys.
