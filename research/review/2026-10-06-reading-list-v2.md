@@ -99,6 +99,7 @@ The survey's HTML was read directly as text.
    - Answer: it has no trial-run rival, no add fix, no seeds and no held-out decisions, and it does not study benign fine-tuning.
 3. **"Adding a little safety data is known to work."** Bianchi et al. (3%), the Llama 3 mix sweeps, Eiras et al., DataRx (1%), behaviour-aware sampling (0.5%) and Safety at One Shot (one example) all show this.
    - Answer: they show that adding works on average. They do not show when it fails, what it costs in over-refusal, or whether diagnosis would choose a better fix.
+   - **Correction (8 Oct 2026, FAQ's second review; source opened):** DataRx (2608.04322) is NOT evidence that adding works by default. Its 59.23% → 13.70% compares a *random* 1% BeaverTails mix with DataRx's *selected* 1% mix (Llama3-8B); the fine-tune with no safety data scored 20.24%, so the random mix made safety worse. Which safety data is added decides the outcome. The "default safety mix" fix must name its source and be pre-registered before any run; and "diagnose or retrain" stays a live question for add-type fixes even if Gate B reads DIFFUSE.
    - Action: make "add a fixed small safety mix" the default arm that diagnosis must beat.
 4. **"Filters already beat classifiers on benign-looking data."** DataShield, GradShield, LARF and SQSD show this.
    - Answer: they compare rankings or single filtering runs, with one seed, no cost against runs, and no over-refusal.
