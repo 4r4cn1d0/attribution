@@ -115,7 +115,15 @@ At matched format and length, does the topic of harmless training data change ho
   - trained-token mass: about 1% difference across arms, because the preparer seeds its task-row split by category name.
 - **Known data issues:**
   - footnote residue in dark_b3;
-  - context sentences may also appear as another row's response (rules-v2 F4; only responses are trained).
+  - context sentences may also appear as another row's response (rules-v2 F4; only responses are trained). The engine counts unit rows near task rows at 165 (dark) and 103 (light).
+- **Dry preparation (the lead, 8 Oct, pre-screen configs; not for runs; `tmp/side-fiction-prepared-dry/`):**
+  - exit 0 on both arms, with no refusal or exclusion;
+  - 625 eligible rows per category (25 task, 600 unit);
+  - manifests: dark `28cfded4…`, light `e5b59376…`;
+  - banks/dev.jsonl and selector.jsonl equal Dolly-olmo2's, so the condition for reading path (a) holds.
+- **Trained target tokens (4,800 rows):**
+  - dark 430,858, light 435,487, Dolly 442,329. Dark is 1.06% below light, and 2.6% (dark) and 1.5% (light) below Dolly.
+  - Mean pair length: dark 152.2, light 159.6 tokens. One pair per arm is over 2,048 tokens, within the config limit.
 
 ## 6. Optional follow-up
 
