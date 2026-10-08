@@ -115,3 +115,13 @@ The symmetric shares reproduce MECH's 0.52, 0.48, 0.50, 0.42 and 0.64 exactly, s
 
 - Whether seeds 1102/1103 pods (recipe-B adapters) still exist (ask the lead).
 - Whether a Mac (MPS) continuation run is close enough to the pod's sampling for a within-Mac comparison. Forced and free generations would both run on the Mac, so the comparison is internal (I).
+
+## Addendum, 2026-10-08T21:45 UTC (clock checked): the token-mean-only result
+
+The lead's `bt` run (OLMo seed 1101, recipe B with only a token-mean loss; pre-registered 20:01 UTC; read 21:36 UTC; FOCUS, main checkout) gives E = +43.7 pp, the same as recipe B (+43.5). The pre-registered prediction (E_bt ≤ 36.25) failed. The loss weighting explains none of recipe G's cut; the schedule (a 4-step warmup and cosine decay, which also halves the mean learning rate over the epoch) explains all of it.
+
+What this changes here (I):
+- **Recipe G's protection of refusal openings (§3) comes from the schedule, not from less loss mass on the first tokens.** The "first-token loss mass" account (MECH:68–69) loses its main support.
+- **A position-weighted loss has less reason behind it.** Weighting first tokens differently is the lever that `bt` just found to do nothing at this scale. The lever that worked is gentler early steps, which Qi et al.'s Table 9 (warmup) already covers. That strengthens recommendation 1 (Option A, nothing now).
+- **The prefill check (Option B) is unchanged.** It asks a causal question about openings that does not depend on why G works.
+- **Qi's constrained SFT is still the approved stage-1 reference arm** (the user, 17:36 UTC). This note does not change that decision.

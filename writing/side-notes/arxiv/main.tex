@@ -134,9 +134,11 @@
   from 3.2\% to a mean of 48.3\% (erosion $E = +45.1$ pp, 3 seeds).
   Qwen2.5-1.5B, Qwen2.5-7B and Llama-3.2-1B rise by $+75.2$, $+82.2$ and
   $+62.5$ pp (one seed each). A standard recipe (token-mean loss, warmup and
-  cosine decay) gives $+29.0$ pp on OLMo (one seed \ph{[G-SEEDS: 3 seeds]})
-  with over-refusal unchanged \ph{[QWEN-G, LLAMA-G: and the result on
-  Qwen2.5-1.5B and Llama-3.2-1B]}. About half of OLMo's rise comes from answers
+  cosine decay) cuts OLMo's erosion to about $+30$ pp \ph{[G-SEEDS: mean of
+  3 seeds]} with over-refusal unchanged, but barely moves Llama-3.2-1B
+  ($+60.0$ pp, one seed \ph{[LLAMA-G: seeds 1102--1103]}). The schedule, not
+  the loss weighting, explains the cut. \ph{[QWEN-G: the Qwen2.5-1.5B result.]}
+  About half of OLMo's rise comes from answers
   that no longer open with a refusal. \ph{[CONTENT: one sentence on dark
   against light fiction, once run.]} We report every setting we screened, and
   the judge's limits.
@@ -178,9 +180,10 @@ We make three contributions:
   \item \textbf{Family at a fixed recipe.} One recipe gives partial erosion
         for one family and near-saturation for two others at 1B, and for Qwen
         at 7B (\S\ref{sec:family}).
-  \item \textbf{Recipe within a family.} Changing only the loss weighting and
-        the learning-rate schedule cuts OLMo's erosion by about a third, with
-        over-refusal unchanged (\S\ref{sec:recipe}). \ph{[QWEN-G, LLAMA-G: add
+  \item \textbf{Recipe within a family.} A standard learning-rate schedule cuts
+        OLMo's erosion by about a third, with over-refusal unchanged; the loss
+        weighting explains none of the cut (\S\ref{sec:recipe}). The same
+        recipe barely moves Llama-3.2-1B (one seed). \ph{[LLAMA-G, QWEN-G: say
         that the size of the cut depends on the family only if the recipe-G
         runs on a second family pass the claim rule of Section 4.]}
 \end{itemize}
@@ -376,15 +379,17 @@ over-refusal. We do not claim a cause for the family difference.
     \midrule
     OLMo-2-1B & B & 1101 & 46.7\% & $+43.5$ & 4\% & 1.542 & $+44.0$ \\
     OLMo-2-1B & G & 1101 & 32.2\% & $\mathbf{+29.0}$ & \textbf{17\%} & 1.612 & $+23.0$ \\
-    OLMo-2-1B & G & 1102 & \multicolumn{5}{c}{\ph{[G-SEEDS]}} \\
-    OLMo-2-1B & G & 1103 & \multicolumn{5}{c}{\ph{[G-SEEDS]}} \\
-    OLMo-2-1B & bt: B with a token-mean loss only & 1101 & \multicolumn{5}{c}{\ph{[BT]}} \\
+    OLMo-2-1B & G & 1102 & 34.2\% & $+31.0$ & \multicolumn{3}{c}{\ph{[record: over-refusal, loss, Granite]}} \\
+    OLMo-2-1B & G & 1103 & \multicolumn{5}{c}{\ph{[G-SEEDS: the lead reports $+26.5$; record pending]}} \\
+    OLMo-2-1B & G at rank 16 & 1101 & 23.3\% & $+20.2$ & 25\% & \multicolumn{2}{c}{\ph{[record]}} \\
+    OLMo-2-1B & bt: B with a token-mean loss only & 1101 & 46.8\% & $+43.7$ & \multicolumn{3}{c}{\ph{[record]}} \\
     \midrule
     Qwen2.5-1.5B & B & 1101 & 79.8\% & $+75.2$ & 3\% & 1.459 & not judged \\
     Qwen2.5-1.5B & G$^{b}$ & 1101 & \multicolumn{5}{c}{\ph{[QWEN-G]}} \\
     \midrule
     Llama-3.2-1B & B & 1101 & 76.3\% & $+62.5$ & 2\% & 1.555 & \ph{[GRANITE-LLAMA]} \\
-    Llama-3.2-1B & G$^{c}$ & 1101 & \multicolumn{5}{c}{\ph{[LLAMA-G]}} \\
+    Llama-3.2-1B & G$^{c}$ & 1101 & 73.8\% & $+60.0$ & 7\% & 1.619 & \ph{[GRANITE]} \\
+    Llama-3.2-1B & G$^{c}$ & 1102 & \multicolumn{5}{c}{\ph{[LLAMA-G: running]}} \\
     Llama-3.2-1B & Hawkins-like$^{a}$ & 1101 & \multicolumn{5}{c}{\ph{[HAWKINS-LIKE]}} \\
     \bottomrule
   \end{tabular}
@@ -409,14 +414,28 @@ sampling streams: both runs use the same random numbers at evaluation. It is
 about 5 times the between-seed SD of $E$ (2.65 pp, 2 df). Recipe~G also keeps
 over-refusal at the untuned level (17\%, against 4\% under recipe~B), and its
 held-out loss is a little higher (1.612 against 1.542). Granite agrees in
-direction ($+23.0$ against $+44.0$ pp). This result rests on one recipe-G
-seed. \ph{[G-SEEDS: add seeds 1102 and 1103.]}
+direction ($+23.0$ against $+44.0$ pp). A second seed gives $+31.0$ pp
+(two-seed mean $+30.0$, SE 2.0). \ph{[G-SEEDS: seed 1103 and the three-seed
+mean.]} With a smaller adapter (rank 16), recipe~G gives $+20.2$ pp, 8.8 pp
+lower than at rank 64; by a rule fixed before the run, rank matters little, but
+one seed each cannot exclude a real difference of this size.
 
 Recipe~G makes two changes at once. The \emph{bt} run uses recipe~B with a
-token-mean loss only, so it separates the two changes. \ph{[BT: result.]} In
-other settings, optimisation choices such as the learning rate, batch size and
-number of epochs drive much of the safety loss \citep{kim2025rethinking}, and a
-warmup alone cut erosion on benign data \citep{qi2025shallow}.
+token-mean loss only, so it separates them. It gives $E = +43.7$ pp, the same as
+recipe~B ($+43.5$ pp, same seed and sampling streams). So the loss weighting
+explains none of recipe~G's cut, and the schedule explains all of it: a 4-step
+warmup and a cosine decay, which also halves the mean learning rate over the
+epoch. We had predicted the opposite before the run ($E_{\mathrm{bt}} \le 36.25$
+pp, pre-registered), so this is a failed prediction. It agrees with two earlier
+findings: optimisation choices drive much of the safety loss
+\citep{kim2025rethinking}, and a warmup alone cut erosion on benign data
+\citep{qi2025shallow}.
+
+On Llama-3.2-1B, recipe~G barely moves the erosion: $+60.0$ pp against
+$+62.5$ pp under recipe~B (seed 1101 each; seed 1102 is running). On the logit
+scale this is a change of about $-0.13$, against $-0.61$ on OLMo seed 1101. So
+the family contrast survives the standard recipe: OLMo stays partial and Llama
+stays near saturation.
 
 % The prediction below is the outline's (section 4), written down on
 % 8 Oct 2026 (outline commit c868608) before any recipe-G run on Qwen.
