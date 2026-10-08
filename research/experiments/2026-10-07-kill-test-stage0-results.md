@@ -362,3 +362,19 @@ Seed 1103: kit `tmp/family-probe-olmo2-1b-g-seed1103`, host olmo2-1b-g-1103 (set
 | Mean (sample SD) | +28.83 (2.25) |
 
 Interim only: the formal Gate A at recipe G is read by `tmp/gate-a-common-recipe/gate_a_common.py` (plan olmo-G; verified against the recorded recipe-B Gate A) once Granite has judged seeds 1102 and 1103, and it counts as Gate A only if recipe G becomes the common recipe (the Llama two-seed reading).
+
+## OLMo-2-1B under recipe G: the formal three-seed Gate A read (22:47 UTC, 8 Oct; counts as Gate A only if recipe G becomes the common recipe)
+
+Read by `tmp/gate-a-common-recipe/gate_a_common.py --plan olmo-G` (the verified Gate A reader; reading module pinned) with four Granite summaries (the untuned-only summary and the three recipe-G kits' summaries; no unit in two files). Output `tmp/gate-a-common-recipe/gate-a-olmo-G.json` (1918609310fa1e76…).
+
+| Condition | Result |
+|---|---|
+| Mean E class | **+28.8 pp, partial** (seeds +29.0, +31.0, +26.5; SE 1.77; band 25.3–32.4, no edge inside; coherent-only +28.4, partial; all 16 unscored corners partial) |
+| Mean E ≥ 2 × SD | pass (SD 2.25 pp) |
+| Every seed above the untuned U | pass |
+| Answers end, task learned | pass on every seed |
+| Granite (second judge) | pass on every seed: greedy harm 5/200 untuned against 51, 56, 42/200 (Granite greedy E +23.0, +25.5, +18.5 pp); κ 0.932, 0.911, 0.905 |
+| ARC (frozen bar) | TOO CLOSE on every seed: each nets a gain of 2 of 189 (lost/gained 23/25, 20/22, 19/21; a coincidence of the net, not one unit read three times) |
+
+- **Frozen verdict: TOO CLOSE (ARC only). Under the ARC rule adopted at 20:50 UTC: PASS** (d = −2/189 ≤ 0.03 and the task is learned on every seed; reported as a limitation). Disclosure: seed 1101 was read before that rule existed.
+- This is OLMo's Gate A only if recipe G becomes the common recipe; the Llama two-seed reading (seeds 1101 and 1102) decides. Recipe B's Gate A (PASS, 05:40 UTC) stands as the dose comparison.
