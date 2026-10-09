@@ -137,7 +137,7 @@
   cosine decay) cuts OLMo's erosion from $+45.1$ to $+28.8$ pp (3 seeds each)
   with over-refusal unchanged, but barely moves Llama-3.2-1B
   ($+57.1$ pp, three seeds). The schedule, not
-  the loss weighting, explains the cut. \ph{[QWEN-G: the Qwen2.5-1.5B result.]}
+  the loss weighting, explains the cut.
   About half of OLMo's rise comes from answers
   that no longer open with a refusal. \ph{[CONTENT: one sentence on dark
   against light fiction, once run.]} We report every setting we screened, and
@@ -183,7 +183,7 @@ We make three contributions:
   \item \textbf{Recipe within a family.} A standard learning-rate schedule cuts
         OLMo's erosion by about a third, with over-refusal unchanged; the loss
         weighting explains none of the cut (\S\ref{sec:recipe}). The same
-        recipe barely moves Llama-3.2-1B (three seeds). \ph{[LLAMA-G, QWEN-G: say
+        recipe barely moves Llama-3.2-1B (three seeds). \ph{[LLAMA-B SEEDS: say
         that the size of the cut depends on the family only if the recipe-G
         runs on a second family pass the claim rule of Section 4.]}
 \end{itemize}
@@ -367,10 +367,10 @@ over-refusal. We do not claim a cause for the family difference.
 % requested by the brief: OLMo G seeds 1102-1103, the bt run, Qwen2.5-1.5B
 % recipe G, Llama recipe G and the Hawkins-like Llama run. The Llama recipe-B
 % row repeats Table 1's numbers (KT:267-276).
-% HAWKINS-LIKE: proposed in ../2026-10-08-explainer-for-drafting.md, line 75
-% (about $2; needs the user's go). QWEN-G: approved by the user on 8 Oct
-% 17:36 UTC (FOCUS); its recipe file and kit come from Specialized; it uses a
-% fresh untuned baseline (../2026-10-08-decisions-for-user.md).
+% HAWKINS-LIKE: approved by the user (8 Oct, "do it all"); its config comes to
+% the main checkout with the Gate B integration. The Qwen recipe-G run was
+% binned by the user on 9 Oct (../2026-10-08-decisions-for-user.md). Llama
+% recipe-B seeds 1102-1103: approved 9 Oct; kits built in the Side Project chat.
 \begin{table*}[t]
   \caption{The recipe matters. Each row is one run of one epoch on the same
     4,800 Dolly rows. $U$ and over-refusal are percentages; $E$ and Granite
@@ -395,9 +395,10 @@ over-refusal. We do not claim a cause for the family difference.
     OLMo-2-1B & G, LR $5{\times}10^{-5}$ & 1102 & 24.5\% & $+21.3$ & \multicolumn{3}{c}{\ph{[record]}} \\
     \midrule
     Qwen2.5-1.5B & B & 1101 & 79.8\% & $+75.2$ & 3\% & 1.459 & not judged \\
-    Qwen2.5-1.5B & G$^{b}$ & 1101 & \multicolumn{5}{c}{\ph{[QWEN-G]}} \\
     \midrule
     Llama-3.2-1B & B & 1101 & 76.3\% & $+62.5$ & 2\% & 1.555 & $+67.5$ \\
+    Llama-3.2-1B & B & 1102 & \multicolumn{5}{c}{\ph{[LLAMA-B SEEDS: approved 9 Oct; kit in review]}} \\
+    Llama-3.2-1B & B & 1103 & \multicolumn{5}{c}{\ph{[LLAMA-B SEEDS]}} \\
     Llama-3.2-1B & G$^{c}$ & 1101 & 73.8\% & $+60.0$ & 7\% & 1.619 & $+58.5$ \\
     Llama-3.2-1B & G$^{c}$ & 1102 & 70.3\% & $+56.5$ & \multicolumn{3}{c}{\ph{[record: over-refusal, loss, Granite]}} \\
     Llama-3.2-1B & G$^{c}$ & 1103 & 68.7\% & $+54.8$ & \multicolumn{2}{c}{\ph{[record: over-refusal, loss]}} & $+53.0$ \\
@@ -412,8 +413,6 @@ over-refusal. We do not claim a cause for the family difference.
     ($\alpha/r = 8$, constant learning rate $5 \times 10^{-5}$, one epoch) on our
     4,800 Dolly rows. It asks whether their low Llama number comes from the
     recipe or from the data and judge. \ph{[HAWKINS-LIKE: rank and batch size.]}
-    $^{b}$\ph{[QWEN-G: seed 1101, plus 1102 and 1103 if run; read against a
-    fresh untuned baseline; give its U0.]}
     $^{c}$If recipe~G saturates Llama, the learning rate steps down
     ($5 \times 10^{-5}$, then $2 \times 10^{-5}$), and each rung that runs adds
     one row. \ph{[L1]}}
@@ -474,26 +473,15 @@ HarmBench at the lower learning rate.]}
 
 % The prediction below is the outline's (section 4), written down on
 % 8 Oct 2026 (outline commit c868608) before any recipe-G run on Qwen.
-\paragraph{The logit scale.} Near saturation, a fixed effect on the logit scale
-gives a smaller change in percentage points. So we also compare recipes on the
-logit scale. Before any recipe-G run on Qwen, we wrote down a prediction
-\ph{[PREDICTION-RECORD: commit and time, App. A]}. OLMo's change from recipe~B
-to recipe~G is $-0.61$ on the logit scale (46.7\% to 32.2\%). The same change
-on Qwen2.5-1.5B (79.8\% under recipe~B) predicts $U \approx 68\%$
-($E \approx +63.5$ pp). We read the Qwen result as a direction only:
-\begin{itemize}
-  \item $U$ of about 76\% or more: Qwen is less sensitive to these settings;
-  \item $U$ of about 62--74\%: the same logit change;
-  \item $U$ of about 60\% or less: Qwen is more sensitive.
-\end{itemize}
-None of these readings is a test with one seed. A rough interaction SE on the
-logit scale is about 0.4, and the seed SD behind it rests on 2 df. The 2-SE
-range around the null then spans $U$ of roughly 49--83\%, which covers almost
-every plausible result. So our claim rule is this: we say that the recipe
-effect replicates in a second family, and no more, unless the
-family-by-recipe interaction passes its minimum detectable effect. A rough
-power sketch suggests that about 3 seeds of each recipe in both families would
-give an interaction SE near 0.24. \ph{[QWEN-G, LLAMA-G: results and reading.]}
+\paragraph{The logit scale and our claim rule.} Near saturation, a fixed effect on
+the logit scale gives a smaller change in percentage points, so we compare
+recipes on both scales. We say that the recipe effect differs between families
+only if the family-by-recipe interaction passes its minimum detectable effect;
+otherwise we describe a pattern. A rough power sketch suggests that 3 seeds of
+each recipe in both families give an interaction SE near 0.24 on the logit
+scale. The OLMo--Llama comparison reaches that design once Llama's recipe-B
+seeds 1102 and 1103 are in. \ph{[LLAMA-B SEEDS: the interaction test and its
+reading.]}
 
 Earlier screens suggest that Qwen responds little to other recipe settings.
 Cutting the dose about 30 times (Stage~0 to recipe~B) moved $U$ from about 83\%
@@ -665,8 +653,12 @@ runs use LoRA rank 64 and a recipe like recipe~B, unless marked.
   \item OLMo-2-1B, recipe~G, seed 1101: $+29.0$ pp. We pre-registered the
         prediction $E_{\mathrm{G}} < E_{\mathrm{B}}$.
   \item Llama-3.2-1B, recipe~B, seed 1101: $+62.5$ pp.
-  \item \ph{[QWEN-G, LLAMA-G, G-SEEDS, BT, HAWKINS-LIKE and L1, if run; then
-        the fiction arms.]}
+  \item OLMo-2-1B, recipe~G, seeds 1102 and 1103; Llama-3.2-1B, recipe~G, seeds
+        1101--1103; OLMo, the token-mean-only run and recipe~G at rank 16; both
+        families at recipe~G with half the learning rate (\cref{tab:recipe}).
+  \item A Qwen2.5-1.5B recipe-G run was planned for this note, with a written
+        prediction, and dropped before any run (9 Oct). Nothing from it exists.
+  \item \ph{[LLAMA-B SEEDS, HAWKINS-LIKE; then the fiction arms.]}
 \end{enumerate}
 
 \paragraph{Disclosures.}
@@ -700,7 +692,8 @@ runs use LoRA rank 64 and a recipe like recipe~B, unless marked.
         7\% for Qwen2.5-7B).
   \item The OLMo and Qwen runs used different engine identities. The Llama and
         OLMo recipe-G runs used a third (\cref{app:hashes}).
-  \item The Qwen and Llama results rest on one seed each. The ARC check is
+  \item The Qwen results rest on one seed each. Llama has one recipe-B seed
+        (two more are approved) and three recipe-G seeds. The ARC check is
         uninformative at 1B.
   \item \ph{[HUMAN-READ: a blind human read of about 50 answers, with the
         rubric fixed first.]}
