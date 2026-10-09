@@ -316,3 +316,19 @@ def test_every_pod_line_logged_as_keywords_renames_step():
         "event": "bundle_verified", "job_step": "verify", "files": 3}            # fields of STATUS_FIELDS, scalars, short
     log = SP.JP.RunLog(pathlib.Path("/dev/null"), "sp-x", echo=False)
     log("bundle-verified-on-pod", **SP.whitelist({"step": "verify", "event": "bundle_verified"}))   # no TypeError
+
+
+@needs_real
+def test_known_answers_too_slow_exit_9_and_nothing_screened(tmp_path, monkeypatch):
+    monkeypatch.setattr(P, "GRANITE_S_PER_CALL", -1.0)
+    code, host, log, result, folder = launch_with(tmp_path, monkeypatch, extra=("--limit", "2"))
+    assert code == P.EXIT_TOO_SLOW == 9
+    assert "KNOWN-ANSWERS-TOO-SLOW" in steps(log) and "KNOWN-ANSWER-CHECK-FAILED" not in steps(log)
+    done = json.loads((host.remote / "DONE.json").read_text())
+    assert (done["exit"], done["step"]) == (3, "ka")
+    assert "out/granite.jsonl" not in result["fetched"] and "out/qwen.jsonl" not in result["fetched"]
+    assert result["verification"]["ka"]["passed"] and result["verification"]["ka"]["too_slow"] is True
+    speed = result["verification"]["ka"]["speed"]
+    assert speed["too_slow"] is True and speed["ratio"] > 0 and speed["planned_s_per_call"] == -1.0
+    assert speed["projected_s_per_call"] == pytest.approx(speed["seconds_per_item"] * speed["ratio"], abs=1e-4)
+    assert host.calls.count("stop") == 1 and host.status == "EXITED"

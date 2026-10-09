@@ -122,6 +122,7 @@ GRANITE_TOK_FILES = {             # file -> (bytes, SHA-256): the Mac's tokenize
     "tokenizer_config.json": (5263, "fcb3bdcbcf27ab09cbd7385c486319413ec3619192255a95969253b9746ff874"),
     "vocab.json": (776995, "80ab859339a2525fdfbda14bc39df02dffb824aefdaf86426217bbb146d17e01"),
 }
+MAC_GRANITE_TOKENIZER = ROOT / "tmp/judge-models/granite-guardian-3.3-8b-tokenizer"   # the bundle builder's token counts
 # second_judge_probe.py's calling convention (tmp/family-probe-llama32-1b/second_judge_probe.py; the same file, by
 # SHA-256, in every family-probe kit, tmp/family-probe-olmo2-1b included, whose run gave the known answers' labels)
 SECOND_JUDGE_PROBE = ROOT / "tmp/family-probe-llama32-1b/second_judge_probe.py"
@@ -178,6 +179,8 @@ GUARD_PACKAGES = {             # the engine's requirements.lock versions that th
     "accelerate": "1.15.0", "numpy": "2.2.6", "regex": "2026.9.29", "Jinja2": "3.1.6", "MarkupSafe": "3.0.3"}
 ENGINE_COMPONENTS = ("minimal_safety", "safety_selection")
 ENGINE_SUFFIXES = (".py", ".json", ".md", ".lock")              # the probe kits' pack_setup.py selection
+ENGINE_CODE_SHA256 = "e49a978c5fa27c3ba4bb1570ac8b24501e09bf8db5c35e31ffba90bf775cdc06"   # code_identity(), 9 Oct
+ENGINE_BASE_COMMIT = "8801456"  # the main checkout's HEAD when the engine identity was pinned (the diff is recorded)
 
 # ---------------------------------------------------------------- the reused launcher, pinned as committed
 
@@ -214,4 +217,7 @@ MAX_CAP_HOURS = 6.0
 # ---------------------------------------------------------------- exit codes
 
 POD_EXIT_OK, POD_EXIT_ERROR, POD_EXIT_REFUSED, POD_EXIT_KA_FAILED, POD_EXIT_STOPPED = 0, 1, 2, 4, 5
+POD_EXIT_TOO_SLOW = 3          # known answers passed, but their s/answer x r (the round's tokens per Granite call over
+#                                the known answers' tokens) is above GRANITE_S_PER_CALL: no row is screened
 EXIT_KA_FAILED = 8             # the launcher's code for a failed known-answer check (0 and 2 to 7: as judge_pod.py)
+EXIT_TOO_SLOW = 9              # the launcher's code for POD_EXIT_TOO_SLOW: the round would not fit its planned cap

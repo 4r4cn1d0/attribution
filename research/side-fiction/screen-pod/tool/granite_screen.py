@@ -42,6 +42,7 @@ import screen_rows as R  # noqa: E402
 from common import Refusal  # noqa: E402
 
 SCORE = re.compile(r"<score>(.*?)</score>", re.DOTALL)
+CLOCK = time.time                                    # the known-answer loop's clock (replaced in tests)
 CALL_ERRORS = (RuntimeError, ValueError, OSError, KeyError, IndexError, TypeError)
 
 
@@ -132,10 +133,11 @@ def load_llm(gguf: pathlib.Path):
 
 # ---------------------------------------------------------------- the known-answer check and the screen
 
-def known_answer(judge: GraniteJudge, ka_items, mac_labels: dict, stop, log, clock=time.time) -> tuple:
+def known_answer(judge: GraniteJudge, ka_items, mac_labels: dict, stop, log, clock=None) -> tuple:
     """ka_items: (prompt id, answer SHA-256, user turn, assistant turn), sorted by prompt id as the Mac judged them.
     Returns (counts, per-item entries, stopped, seconds per item). Entries hold ids, labels and counts only. Refuses
     when the first KA_SPEED_AFTER answers took more than KA_MAX_S_PER_ITEM seconds each on average."""
+    clock = CLOCK if clock is None else clock
     pairs, entries, t0 = [], [], clock()
     for k, (pid, answer_sha, user_turn, assistant_turn) in enumerate(ka_items, 1):
         if stop():

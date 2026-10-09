@@ -206,7 +206,8 @@ def summary_record(round_: int, result: dict, bundle_record: dict, run_record: d
                                                    " and also checks the outcome direction (PREREG section 3)"}}
                   if round_ == 1 else None),
         "known_answer": {**ka, "passed": True, "rule": R.KA_RULE,
-                         "seconds_per_item": (run_record.get("ka") or {}).get("seconds_per_item")},
+                         "seconds_per_item": (run_record.get("ka") or {}).get("seconds_per_item"),
+                         "speed": (run_record.get("ka") or {}).get("speed")},
         "pins": {"inputs": result.get("inputs"), "rows_index_sha256": result.get("rows_index_sha256"),
                  "bundle_sha256": result.get("bundle_sha256"), "manifest_sha256": result.get("manifest_sha256"),
                  "engine": bundle_record.get("engine"), "refill": bundle_record.get("refill"),

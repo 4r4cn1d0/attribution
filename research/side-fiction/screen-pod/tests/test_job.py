@@ -234,3 +234,65 @@ def test_requirements_files_equal_the_pins():
             found[fields["Name"].lower().replace("_", "-")] = fields["Version"]
         found.pop("pip"), found.pop("setuptools")
         assert found == granite_pins
+
+
+def _set_ratio(remote, ratio: float, ka_mean: float = 421.3) -> None:
+    """Gives the unpacked bundle's manifest a token block with ratio r (the means consistent with it)."""
+    path = remote / "bundle/job-manifest.json"
+    manifest = json.loads(path.read_bytes())
+    manifest["granite_tokens"].update(ratio=ratio, ka_mean_tokens=ka_mean,
+                                      fiction_mean_tokens_per_call=round(ratio * ka_mean, 3))
+    path.write_bytes(SJ.canonical_bytes(manifest))
+
+
+class StepClock:
+    """A clock that moves only when the fake judge answers: `step` seconds per known answer."""
+
+    def __init__(self, step: float):
+        self.t, self.step = 1000.0, step
+
+    def __call__(self):
+        return self.t
+
+
+@needs_real
+@pytest.mark.parametrize("s_per_item,code", [(0.80, 0), (1.0, 3)])
+def test_known_answer_speed_is_projected_by_the_token_ratio(remote, monkeypatch, s_per_item, code):
+    """r = 0.47: known answers at 0.80 s each project to 0.376 s per fiction call (under 0.4: the run goes on); at
+    1.0 s each to 0.47 s (above 0.4: exit 3, the pass recorded, granite and qwen refuse)."""
+    import granite_screen as G
+    labels = ka_label_map(remote / "bundle")
+    _set_ratio(remote, 0.47)
+    clock = StepClock(s_per_item)
+    monkeypatch.setattr(G, "CLOCK", clock)
+
+    class Timed(FakeGranite):
+        def judge(self, u, a, c):
+            clock.t += clock.step
+            return super().judge(u, a, c)
+    assert ka(remote, Timed(labels))[0] == code
+    rec = json.loads((remote / "out/ka.json").read_bytes())
+    speed = rec["speed"]
+    assert rec["passed"] is True and rec["too_slow"] is (code == 3) and speed["too_slow"] is (code == 3)
+    assert speed["ratio"] == 0.47 and speed["seconds_per_item"] == pytest.approx(s_per_item)
+    assert speed["projected_s_per_call"] == pytest.approx(round(s_per_item * 0.47, 4))
+    assert speed["ka_mean_tokens"] == 421.3 and speed["fiction_mean_tokens_per_call"] == round(0.47 * 421.3, 3)
+    assert speed["ka_mean_tokens_pod"] == 100.0 and speed["planned_s_per_call"] == 0.4      # the fake's 100 tokens
+    calls = json.loads((remote / "bundle/job-manifest.json").read_bytes())["granite_tokens"]["fiction_calls"]
+    assert speed["granite_calls"] == calls == 12                                         # 6 rows x 2 (limit 3)
+    assert speed["projected_granite_minutes"] == round(s_per_item * 0.47 * calls / 60, 1)
+    g = FakeGranite(labels)
+    assert granite(remote, g)[0] == (P.POD_EXIT_REFUSED if code == 3 else 0)
+    assert (g.calls == 0) is (code == 3)
+
+
+def test_speed_verdict_rule():
+    tokens = {"ratio": 0.47, "fiction_mean_tokens_per_call": 198.0, "ka_mean_tokens": 421.3, "fiction_calls": 20000}
+    entries = [{"input_tokens": 400}, {"input_tokens": 442}]
+    ok = SJ.speed_verdict(0.80, tokens, entries)
+    assert ok["too_slow"] is False and ok["projected_s_per_call"] == 0.376 and ok["ka_mean_tokens_pod"] == 421.0
+    assert ok["projected_granite_minutes"] == round(0.376 * 20000 / 60, 1)
+    assert SJ.speed_verdict(1.0, tokens, entries)["too_slow"] is True
+    assert SJ.speed_verdict(0.851, tokens, entries)["too_slow"] is False          # 0.39997 s
+    assert SJ.speed_verdict(0.852, tokens, entries)["too_slow"] is True           # 0.40044 s
+    assert SJ.speed_verdict(None, tokens, entries)["too_slow"] is True            # not timed: never a pass

@@ -45,6 +45,8 @@ The development copy, which is identical, is `research/side-fiction/screen-pod/`
   shared guard counts this pod: its create intent at $1.85/h until its cap, then its `pod.json` at its real price.
 - **Every launch needs a new tag.** For a relaunch, set `TAG=sp-fiction-screen-r1b` before the script, for the
   launch and again for its `summarize`. To resume an exit-5 run, also set `RESUME=<old tag>`.
+- **What the script prints.** Before it runs anything, the script prints the command, the round, `TAG`, `LIMIT` and
+  `RESUME`. `LIMIT=N` (N rows of each source) is for dry checks only: the script refuses a launch with `LIMIT` set.
 
 ## Cap and cost (planning rate $1.85/h, reserve $1)
 
@@ -217,16 +219,23 @@ bash "$K/sp_fiction_screen.sh" final-reads
 
 | When | What | Exit |
 |---|---|---|
-| Before any pod | Any of these: a changed `SCREEN-SPEC.md`, `rules-v2.json` or reused launcher module; an input with another SHA-256 or row count; the known-answer unit or the Mac labels not as pinned; uncommitted engine files; a secret pattern in the bundle; an existing tag folder; no RunPod key | 2 |
+| Before any pod | Any of these: a changed `SCREEN-SPEC.md`, `rules-v2.json` or reused launcher module; an engine code identity other than the pinned `e49a978c…`; an input with another SHA-256 or row count; a refill report not written by the pinned `sf_screen.py` (`165f1a30…`); the known-answer unit or the Mac labels not as pinned; uncommitted engine files; a secret pattern in the bundle; an existing tag folder; no RunPod key; `LIMIT` set on a launch (the script) | 2 |
 | Budget | `budget.py check CAP 1.85` refuses (before the create), or `budget.py check 0 1.85` refuses right after it (the pod is stopped) | 3 |
 | On the pod, setup | llama-cpp-python is not 0.3.36 built with GPU offload and the pinned CMAKE_ARGS, a pin fails, a download hash differs, or a step errors. The pod is stopped. | 6 |
+| On the pod, setup | **A setup step runs out of time.** Every setup step runs under `timeout -k 60`: the venvs and freezes 600 s, each pip install 1,800 s, the apt update 600 s and install 1,800 s, the llama.cpp build 3,600 s, a torch install 2,400 s, the download 3,600 s. `DONE.json` then records exit 124 (137 when the step ignored SIGTERM) and the step. The pod is stopped through the normal path, not at the cap. | 6 |
 | On the pod, before any fiction row | **The GPU-speed guard.** The first 5 known answers average more than 3 s each, which means llama.cpp is not on the GPU. The pod is stopped. | 6 |
 | On the pod, before any fiction row | **THE KNOWN-ANSWER CHECK FAILS** (see below). No row is screened, the pod is stopped, and nothing from the run is used. | **8** |
+| On the pod, before any fiction row | **THE ROUND IS PROJECTED TOO SLOW.** The check passes, but its measured seconds per answer × r is above 0.4 s, the cap's planning time per Granite call (pod step `ka`, exit 3). Here r is the round's mean tokens per Granite call divided by the known answers' mean template tokens. The bundle builder counts both from the bundle's own inputs with the pinned Granite tokenizer: in round 1, 196.7 / 421.3, so r = 0.467. No row is screened and the pod is stopped. Decide the cap or the planning time before a relaunch. | **9** |
 | The cap | The job steps get SIGTERM 5 min before the cap; the partial caches are fetched. Resume with `RESUME=<old tag> TAG=<new tag>`. | 5 |
 | A stop that is not confirmed, or a lost create reply | `STOP-NOT-CONFIRMED` or `CHECK-CONSOLE`: check the RunPod console now | 7 |
 
-Exit codes 0 to 7 mean what they mean in `judge_pod.py`. Code 8 is new. A known-answer step that breaks, is refused
-or is stopped before its verdict exits 6 or 5, not 8, because nothing was compared.
+Exit codes 0 to 7 mean what they mean in `judge_pod.py`. Codes 8 and 9 are new. A known-answer step that breaks, is
+refused or is stopped before its verdict exits 6 or 5, not 8, because nothing was compared.
+
+**The engine identity in the launch outputs.** Before any job starts, `bundle-record.json` (in `dry/<tag>/` and
+`runs/<tag>/`) records the engine's code identity, which must be the pinned `e49a978c…`. It also records the SHA-256
+of every shipped engine file and the engine files changed since commit `8801456` (from
+`git diff --name-only 8801456 HEAD -- experiments/`; empty on 9 Oct).
 
 ## The known-answer check
 
@@ -290,22 +299,37 @@ rm -rf "$S"
 - **`SCREEN_SLOW=1`.** This adds the full round trip through the real `sf_screen.py` (refill, then finalize), about 30
   s.
 
-Results on 9 October 2026 (development copy 11:21 UTC, launch folder 11:23 UTC; clock checked):
+Results on 9 October 2026, after the review's fixes and the token-ratio speed stop (development copy 12:17 UTC,
+launch folder 12:21 UTC; clock checked):
 
-- **The full suite.** 148 passed in the development copy, and again in this launch folder, with `SCREEN_SLOW=1`
-  (about 2.5 min each).
+- **The full suite.** 167 passed in the development copy, and again in this launch folder, with `SCREEN_SLOW=1`
+  (about 2 min each).
+- **The secret scan.** A separate scan of every file in this folder with the kits' patterns found nothing. The suite
+  also scans the bundle and the outputs.
 - **The Granite parity** with `--rows 0`: 10,000 of 10,000 real rows and 200 of 200 known answers byte-identical to
   `second_judge_probe.py`, and no row trimmed.
-- **The dry bundle of round 1.** It holds 192 files (5.2 MB) and is deterministic. Its secret scan is clean. Its own
-  code verified it in the pod layout under the Mac's system Python 3.9 (stdlib only).
-- **A mutation check of 20 key rules.** Each mutant ran in its own copy, and the relevant test files ran with the
-  same command as a clean baseline. All 20 were killed by real test failures. The mutated rules were:
+- **The token counts.** The bundle builder's transformers (4.56.2) rendered and counted 600 sample items exactly as
+  the Mac judge venv (5.18.0) does.
+- **The dry bundle of round 1, rebuilt.** It holds 192 files (5.2 MB) and is deterministic. Its secret scan is clean.
+  It names the engine identity `e49a978c…`, and no engine file changed since `8801456`. Its token ratio is r = 0.467
+  (196.7 / 421.3). Its own code verified it in the pod layout under the Mac's system Python 3.9 (stdlib only).
+- **A mutation check of 32 key rules.** Each mutant ran in its own copy, and the relevant test files ran with the
+  same command as a clean baseline. All 32 were killed by real test failures. The first build's 20 rules were:
   - the known-answer thresholds (190 and 5), its gate, its order, the Mac recount and exit 8;
   - the drop rule, the retry, `think=False` and the user turn;
   - the refill slot fields, and the round-1 rows carrying no slot key;
   - `CUBLAS_WORKSPACE_CONFIG`, the input hash check and the status `step` collision;
   - the guard answer staying out of the cache, the launcher and spec pins, the GPU-speed guard, and the
     `sexual_content` pass.
+
+  The review's fixes added 8:
+  - the refill tool pin and the engine identity pin;
+  - the speed stop and its exit 9;
+  - the download's time limit, the build-job cap and the cache variable;
+  - the refusal of `LIMIT` on a launch.
+
+  The token ratio added 4: the projection by r, r taken as 1, the `sexual_content` call counted whole, and the
+  pod's check of the token block.
 
 ## What could not be tested without a GPU or a pod (for the review)
 
@@ -341,5 +365,33 @@ Results on 9 October 2026 (development copy 11:21 UTC, launch folder 11:23 UTC; 
    log's `cap-risk` line and the progress lines show it.
 5. **The run's outputs are only part of the screen.** Round 1's `reads` are a preview on the round-1 rows. The
    pre-registered reads are on the final rows (`final-reads`, after finalize).
-6. **The spec pin.** The launcher pins `SCREEN-SPEC.md` at `19cae3e1…` and `rules-v2.json` at `c23672cf…`. If either
-   changes, the launcher refuses until the build is checked against the new version.
+6. **The pins.** The launcher pins these files:
+   - `SCREEN-SPEC.md` at `19cae3e1…` and `rules-v2.json` at `c23672cf…`;
+   - the engine code identity at `e49a978c…`;
+   - the refill tool `sf_screen.py` at `165f1a30…`.
+
+   If any of these changes, the launcher refuses until the build is checked against the new version.
+
+## Residual risks (the independent review's note, 9 Oct)
+
+- **CUDA against Metal is unmeasured.** Whether Granite's labels on CUDA agree with the Mac's Metal labels has not
+  been measured. The known-answer check gates it: 190 of 200 identical and |Δyes| ≤ 5, or no row is screened.
+- **No reference for `sexual_content`.** The known answers check `harm` only; the `sexual_content` pass (report only,
+  and the drop rule only under rules-v3) has no known-answer reference on either device.
+- **Watch Granite's speed.** `ka.json` (`speed`), the log's `verified` line and `roundN-summary.json` record:
+  - r and both token means (`bundle-record.json` shows them before any spend);
+  - the pod's own count of the known answers' tokens, a check on the bundle's;
+  - the measured seconds per known answer;
+  - the projected seconds per Granite call and the projected Granite minutes of the round.
+
+  Above 0.4 s per call projected, the job stops (exit 9). The projection scales the whole measured time by r. A fixed
+  cost per call (generation, Python) does not shrink with fewer tokens, so the projection can be low. The poll's
+  `progress` and `cap-risk` lines show the real rate.
+- **Row text stays until cleanup.** It remains in these places until someone removes it:
+  - `runs/<tag>/bundle.tar.gz` and `dry/<tag>/bundle.tar.gz` in this folder (the bundles carry the inputs);
+  - the stopped pod's volume (`/workspace/screen/bundle/`), until the pod is deleted (a deletion needs the user's
+    go);
+  - the Hub caches on the container disk, which go with the pod.
+
+  Every output, log and record holds labels, ids, counts and hashes only. Delete the bundle tars once the screen is
+  final and backed up.

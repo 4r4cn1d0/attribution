@@ -9,7 +9,7 @@ launch): every input is checked against its pin before anything is built:
     manifest.json = 9ed61826...; the manifest lists the file at 1efa8571...; 4,800 rows); rounds 2 and 3: the refill
     file refill-rN.jsonl that sf_screen.py wrote, whose SHA-256 the lead gives on the command line (the four fields
     plus slot_arm, slot_line and rank), and the refill report sf_screen.py wrote beside it, which must name that file,
-    its SHA-256 and its row count;
+    its SHA-256 and its row count, and the pinned sf_screen.py (165f1a30..., SCREEN-SPEC section 7) as its writer;
   - the known-answer unit 1101-a0-e1-a1 through units.py (COMPLETE.json 8f0fa83a..., job.json 3e60568a...; target e1,
     arm a0, seed 1101, the prepared manifest), its 200 greedy harm answers, their prompt ids in the dev bank
     (common.bank_prompts, manifest-checked), and the Mac's Granite labels of that unit (second-judge-probe-items.jsonl
@@ -17,8 +17,9 @@ launch): every input is checked against its pin before anything is built:
     names the unit's job.json SHA-256);
   - the engine code: experiments/minimal_safety and experiments/safety_selection (.py, .json, .md, .lock; no
     __pycache__, no symlink), as the probe kits' pack_setup.py selects it, with its code identity
-    (safety_selection.common.code_identity) and the git commit; uncommitted engine files refuse, as in the kits;
-    recipe B's config (a47138f2...) with the pinned guard block.
+    (safety_selection.common.code_identity), which must be the pinned e49a978c..., the git commit, the SHA-256 of all
+    shipped engine files and the engine files changed since commit 8801456; uncommitted engine files refuse, as in the
+    kits; recipe B's config (a47138f2...) with the pinned guard block.
 The bundle holds only: the screen's own files; gate_b_mac_judges' common.py and units.py; the engine code; the input
 files; the known-answer unit's job.json, COMPLETE.json and eval/e1/generations.jsonl; the Mac labels as ids and labels
 only (ka/mac-labels.json); the prepared set's manifest.sha256 and banks/dev.jsonl (the known answers' prompts, as the
@@ -170,8 +171,29 @@ def engine_provenance(runner=subprocess.run, root: pathlib.Path = None) -> dict:
     return {"git_commit": commit}
 
 
+def engine_identity(files: dict, runner=subprocess.run, root: pathlib.Path = None) -> dict:
+    """The engine's code identity (safety_selection.common.code_identity), which must be the pinned one; the SHA-256
+    of every shipped engine file (canonical JSON of {path: SHA-256}); and the engine files committed since the pin's
+    base commit (git diff --name-only, recorded, not refused). Hashes and paths only."""
+    from experiments.safety_selection.common import code_identity
+    root = pathlib.Path(P.ROOT if root is None else root)
+    code = code_identity()["sha256"]
+    if code != P.ENGINE_CODE_SHA256:
+        raise Refusal(f"the engine's code identity is {code[:16]}, not the pinned {P.ENGINE_CODE_SHA256[:16]}; have "
+                      "this build checked against the changed engine first")
+    try:
+        changed = runner(["git", "-C", str(root), "diff", "--name-only", P.ENGINE_BASE_COMMIT, "HEAD", "--",
+                          "experiments/"], capture_output=True, text=True, check=True).stdout.split()
+    except (subprocess.CalledProcessError, OSError):
+        raise Refusal(f"git diff {P.ENGINE_BASE_COMMIT} HEAD -- experiments/ failed in {root}") from None
+    return {"code_sha256": code, "code_sha256_pinned": P.ENGINE_CODE_SHA256,
+            "files_sha256": sha256_bytes(canonical_bytes({rel: sha256_file(f) for rel, f in sorted(files.items())})),
+            "base_commit": P.ENGINE_BASE_COMMIT, "changed_since_base": changed}
+
+
 def refill_report(refill: pathlib.Path, round_: int, refill_sha256: str, rows: int) -> dict:
-    """sf_screen.py's refill-rN-report.json beside refill-rN.jsonl must name this file, its SHA-256 and its rows."""
+    """sf_screen.py's refill-rN-report.json beside refill-rN.jsonl must name this file, its SHA-256 and its rows, and
+    the pinned sf_screen.py as its writer (script_sha256 = REFILL_TOOL_SHA256); anything else refuses."""
     refill = pathlib.Path(refill)
     if refill.name != f"refill-r{round_}.jsonl":
         raise Refusal(f"the round {round_} refill file must be sf_screen.py's refill-r{round_}.jsonl")
@@ -186,8 +208,78 @@ def refill_report(refill: pathlib.Path, round_: int, refill_sha256: str, rows: i
             or output.get("rows") != rows):
         raise Refusal(f"{path.name} does not name this round, file, SHA-256 and row count")
     script = report.get("script_sha256")
+    if script != P.REFILL_TOOL_SHA256:
+        raise Refusal(f"{path.name} was written by sf_screen.py {str(script)[:16]}, not the pinned "
+                      f"{P.REFILL_TOOL_SHA256[:16]} (SCREEN-SPEC section 7); have the build checked against it first")
     return {"report": path.name, "report_sha256": sha256_bytes(data), "script_sha256": script,
-            "script_is_pinned_sf_screen": script == P.REFILL_TOOL_SHA256}
+            "script_is_pinned_sf_screen": True}
+
+
+_TOKEN_CACHE: dict = {}
+
+
+def granite_token_means(planned: dict, limit: int | None, tok_dir: pathlib.Path = None) -> dict:
+    """The speed stop's ratio r, from the bundle's own inputs, with the Granite tokenizer and template (the Mac's pinned
+    tokenizer folder; transformers renders and counts it as the Mac judge venv does, checked on 600 items):
+      - fiction: the mean tokens one Granite call evaluates over this round's selected Granite rows, the `harm` call
+        its whole template, the `sexual_content` call only the tokens after the prefix it shares with the `harm`
+        call of the same row (the screen calls them in that order, so llama.cpp reuses that prefix);
+      - known answers: the mean template tokens of the 200 known answers (each a new conversation);
+      - r = fiction mean / known-answer mean.
+    Counts only (no text kept or printed). Cached per input hashes in this process."""
+    import granite_screen as G
+    tok_dir = pathlib.Path(P.MAC_GRANITE_TOKENIZER if tok_dir is None else tok_dir)
+    found = {f.name: (f.stat().st_size, sha256_file(f)) for f in tok_dir.iterdir() if f.is_file()}
+    if found != P.GRANITE_TOK_FILES:
+        raise Refusal(f"{tok_dir.name}: the Granite tokenizer folder is not the ten pinned files")
+    sources = {name: s for name, s in planned["sources"].items() if name in P.GRANITE_SOURCES}
+    key = (tuple(sorted((name, s["sha256"]) for name, s in sources.items())), limit,
+           planned["ka"]["unit"].complete_sha256, str(tok_dir))
+    if key in _TOKEN_CACHE:
+        return dict(_TOKEN_CACHE[key])
+    tok = G.load_tokenizer(tok_dir)
+
+    def ids(rendered):
+        return tok(rendered, add_special_tokens=False)["input_ids"]
+    per_call = []
+    for s in sources.values():
+        for row in G.selected(s["rows"], limit):
+            harm = ids(G.granite_prompt(tok, row.user_turn, row.assistant_turn, "harm")[0])
+            sexual = ids(G.granite_prompt(tok, row.user_turn, row.assistant_turn, "sexual_content")[0])
+            shared = 0
+            for a, b in zip(harm, sexual):
+                if a != b:
+                    break
+                shared += 1
+            per_call += [len(harm), len(sexual) - shared]
+    unit = planned["ka"]["unit"]
+    prompts = bank_prompts(P.PREPARED, P.PREPARED_MANIFEST)
+    ka = [G.granite_prompt(tok, prompts[it.prompt_id], it.text, "harm")[1]
+          for it in load_items(unit, "greedy", with_text=True)]
+    if not per_call or len(ka) != P.KA_N:
+        raise Refusal("no Granite call to count, or not 200 known answers")
+    from importlib import metadata
+    fiction, known = sum(per_call) / len(per_call), sum(ka) / len(ka)
+    out = {"fiction_calls": len(per_call), "fiction_mean_tokens_per_call": round(fiction, 3),
+           "ka_items": len(ka), "ka_mean_tokens": round(known, 3), "ratio": round(fiction / known, 6),
+           "definition": "fiction: harm call whole template, sexual_content call tokens after the prefix shared with "
+                         "the row's harm call; known answers: whole harm template",
+           "tokenizer": {"transformers": metadata.version("transformers"), "tokenizers": metadata.version("tokenizers"),
+                         "folder_files": "the ten pinned files"}}
+    _TOKEN_CACHE[key] = dict(out)
+    return out
+
+
+def check_granite_tokens(block) -> dict:
+    """The manifest's token block: positive means, a ratio equal to their quotient, at least one fiction call."""
+    ok = (isinstance(block, dict) and all(isinstance(block.get(k), (int, float)) and not isinstance(block.get(k), bool)
+                                          and block[k] > 0 for k in ("fiction_mean_tokens_per_call", "ka_mean_tokens",
+                                                                     "ratio", "fiction_calls", "ka_items"))
+          and abs(block["ratio"] - block["fiction_mean_tokens_per_call"] / block["ka_mean_tokens"]) < 1e-3
+          and block["ka_items"] == P.KA_N)
+    if not ok:
+        raise Refusal("the job manifest's Granite token block is missing or inconsistent")
+    return block
 
 
 def plan(round_: int, refill: pathlib.Path | None = None, refill_sha256: str | None = None) -> dict:
@@ -299,7 +391,8 @@ def stage_bundle(planned: dict, stage: pathlib.Path, tag: str, limit: int | None
                 "engine": {"root": "engine", "code_sha256": engine["code_sha256"], "git_commit": engine["git_commit"],
                            "recipe": f"engine/{P.RECIPE_REL}", "recipe_sha256": P.RECIPE_SHA256,
                            "files": len(engine["files"])},
-                "pins": pins, "documents": planned.get("documents"), "resume": resume_entry}
+                "pins": pins, "documents": planned.get("documents"), "resume": resume_entry,
+                "granite_tokens": check_granite_tokens(planned.get("granite_tokens"))}
     if secret_hits_bytes(canonical_bytes(manifest), patterns):
         raise Refusal("a secret pattern is in the job manifest")
     (stage / MANIFEST_NAME).write_bytes(canonical_bytes(manifest))
@@ -394,6 +487,7 @@ def verify_bundle(root: pathlib.Path) -> dict:
             or labels.get("complete_sha256") != P.KA_COMPLETE_SHA256
             or set(labels.get("answer_sha256") or {}) != set(labels.get("labels") or {})):
         raise Refusal("the Mac labels are not the unit's 200 labels with 93 yes")
+    check_granite_tokens(manifest.get("granite_tokens"))
     engine = manifest["engine"]
     if listed.get(engine["recipe"]) != P.RECIPE_SHA256:
         raise Refusal("the recipe config is not the pinned one")

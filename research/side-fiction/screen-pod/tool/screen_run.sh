@@ -11,12 +11,17 @@
 #   venv-guard:   a venv over the image's site-packages (torch 2.8.0, or installed from the cu128 index), then the
 #                 engine's requirements.lock versions that the guard path imports, binary wheels, --no-deps
 #   download:     the three pinned snapshots with no token and HF_HUB_OFFLINE unset; every file's SHA-256 checked
-#   ka:           the known-answer check (exit 4 when it fails, 2 without GPU offload: the script ends, no row is screened)
+#   ka:           the known-answer check (exit 4 when it fails, 2 without GPU offload, 3 when it passes but the round's
+#                 projected time per Granite call, its seconds per answer x the token ratio r of the bundle, is above
+#                 the cap's planning time: the script ends, no row is screened)
 #   granite:      Granite harm and sexual_content on the fiction (or refill) rows
 #   qwen:         Qwen3Guard through the engine's GuardScorer on every row of the round
 # Both venvs sit on the container disk (/root), not on the /workspace volume, where the 8 Oct judge pod's pip took
 # 14 min. CUBLAS_WORKSPACE_CONFIG is exported here: the pod's create-time env does not reach an ssh-started job (the
 # 8 Oct judge pod's run record shows it null), and the engine's configure_cuda refuses without it.
+# Every setup step (venvs, installs, the build, the download) runs under `timeout -k 60 LIMIT`: a step that hangs ends
+# with exit 124 (137 if it ignores SIGTERM), the job ends, and the launcher stops the pod through its normal path
+# instead of waiting for the cap. The judge steps (ka, granite, qwen) are bounded by the launcher's SIGTERM before the cap.
 # The exit trap writes out/run-record.json (screen_job.py record) and then DONE.json, whatever happened.
 set -uo pipefail
 cd "${SCREEN_ROOT:-/workspace/screen}" || exit 1      # SCREEN_ROOT, SYS_PYTHON, SCREEN_VENVS, SCREEN_NVCC: tests only
@@ -31,7 +36,7 @@ trap finish EXIT
 set -e
 mkdir -p out
 printf '{"utc": "%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > STARTED.json
-unset HF_TOKEN HUGGING_FACE_HUB_TOKEN HF_HOME HF_HUB_CACHE TRANSFORMERS_CACHE XDG_CACHE_HOME
+unset HF_TOKEN HUGGING_FACE_HUB_TOKEN HF_HOME HF_HUB_CACHE HUGGINGFACE_HUB_CACHE TRANSFORMERS_CACHE XDG_CACHE_HOME
 unset TORCH_ALLOW_TF32_CUBLAS_OVERRIDE NVIDIA_TF32_OVERRIDE
 export HF_HUB_DISABLE_TELEMETRY=1 TOKENIZERS_PARALLELISM=false PYTHONDONTWRITEBYTECODE=1
 export CUBLAS_WORKSPACE_CONFIG=:4096:8 CUDA_VISIBLE_DEVICES=0
@@ -44,41 +49,45 @@ PIPI="-m pip install --no-input --disable-pip-version-check --no-cache-dir"
 TORCH_CHECK='import sys, torch; sys.exit(0 if torch.__version__.split("+")[0] == "2.8.0" else 1)'
 CMAKE_ARGS="-DGGML_CUDA=on -DCMAKE_CUDA_ARCHITECTURES=80"
 APT_CUDA="cuda-nvcc-12-8 cuda-cudart-dev-12-8 libcublas-dev-12-8 cuda-driver-dev-12-8 build-essential"
+TO="timeout -k 60"
+T_VENV=600; T_PIP=1800; T_APT_UPDATE=600; T_APT=1800; T_BUILD=3600; T_SHORT=600; T_TORCH=2400; T_DOWNLOAD=3600
+JOBS="$(nproc 2>/dev/null || echo 8)"
+[ "$JOBS" -le 16 ] 2>/dev/null || JOBS=16
 
 STEP=venv-granite; echo "$STEP" > STEP
-[ -x "$VG/bin/python" ] || "$SYSPY" -m venv "$VG"
-"$VG/bin/python" $PIPI --no-deps --only-binary=:all: -r "$T/granite-requirements.txt" >> out/pip.log 2>&1
+[ -x "$VG/bin/python" ] || $TO $T_VENV "$SYSPY" -m venv "$VG"
+$TO $T_PIP "$VG/bin/python" $PIPI --no-deps --only-binary=:all: -r "$T/granite-requirements.txt" >> out/pip.log 2>&1
 
 STEP=llama-build; echo "$STEP" > STEP
 NVCC="${SCREEN_NVCC:-/usr/local/cuda/bin/nvcc}"
 NVCC_SOURCE=image
 if [ ! -x "$NVCC" ]; then
   NVCC_SOURCE=apt
-  { apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends $APT_CUDA; } \
-    > out/llama-build.log 2>&1
+  { $TO $T_APT_UPDATE apt-get update && DEBIAN_FRONTEND=noninteractive $TO $T_APT apt-get install -y \
+      --no-install-recommends $APT_CUDA; } > out/llama-build.log 2>&1
   [ -x "$NVCC" ] || NVCC="${NVCC%/cuda/bin/nvcc}/cuda-12.8/bin/nvcc"
 fi
 [ -x "$NVCC" ]
 export CUDACXX="$NVCC" PATH="$(dirname "$NVCC"):$PATH"
-CMAKE_ARGS="$CMAKE_ARGS" FORCE_CMAKE=1 CMAKE_BUILD_PARALLEL_LEVEL="$(nproc 2>/dev/null || echo 8)" \
+CMAKE_ARGS="$CMAKE_ARGS" FORCE_CMAKE=1 CMAKE_BUILD_PARALLEL_LEVEL="$JOBS" $TO $T_BUILD \
   "$VG/bin/python" $PIPI --no-deps --no-binary=llama-cpp-python --require-hashes -v \
   -r "$T/llama-requirements.txt" >> out/llama-build.log 2>&1
-"$VG/bin/python" -m pip freeze --all > out/environment-g.lock
-"$VG/bin/python" -B "$T/screen_job.py" llama-info --cmake-args "$CMAKE_ARGS" --nvcc-source "$NVCC_SOURCE" \
-  --build-log out/llama-build.log --record out/llama-info.json >> out/job.log 2>&1
+$TO $T_SHORT "$VG/bin/python" -m pip freeze --all > out/environment-g.lock
+$TO $T_SHORT "$VG/bin/python" -B "$T/screen_job.py" llama-info --cmake-args "$CMAKE_ARGS" \
+  --nvcc-source "$NVCC_SOURCE" --build-log out/llama-build.log --record out/llama-info.json >> out/job.log 2>&1
 
 STEP=venv-guard; echo "$STEP" > STEP
-[ -x "$VQ/bin/python" ] || "$SYSPY" -m venv --system-site-packages "$VQ"
-if ! "$VQ/bin/python" -c "$TORCH_CHECK" >> out/pip.log 2>&1; then
-  "$VQ/bin/python" $PIPI 'torch==2.8.0' --index-url https://download.pytorch.org/whl/cu128 >> out/pip.log 2>&1
-  "$VQ/bin/python" -c "$TORCH_CHECK" >> out/pip.log 2>&1
+[ -x "$VQ/bin/python" ] || $TO $T_VENV "$SYSPY" -m venv --system-site-packages "$VQ"
+if ! $TO $T_SHORT "$VQ/bin/python" -c "$TORCH_CHECK" >> out/pip.log 2>&1; then
+  $TO $T_TORCH "$VQ/bin/python" $PIPI 'torch==2.8.0' --index-url https://download.pytorch.org/whl/cu128 >> out/pip.log 2>&1
+  $TO $T_SHORT "$VQ/bin/python" -c "$TORCH_CHECK" >> out/pip.log 2>&1
 fi
-"$VQ/bin/python" $PIPI --no-deps --only-binary=:all: -r "$T/guard-requirements.txt" >> out/pip.log 2>&1
-"$VQ/bin/python" -m pip freeze --all > out/environment-q.lock
+$TO $T_PIP "$VQ/bin/python" $PIPI --no-deps --only-binary=:all: -r "$T/guard-requirements.txt" >> out/pip.log 2>&1
+$TO $T_SHORT "$VQ/bin/python" -m pip freeze --all > out/environment-q.lock
 
 STEP=download; echo "$STEP" > STEP
-env -u HF_HUB_OFFLINE -u TRANSFORMERS_OFFLINE PYTHONPATH=bundle/engine "$VQ/bin/python" -B "$T/screen_job.py" \
-  download --bundle bundle --record out/download-check.json >> out/job.log 2>&1
+$TO $T_DOWNLOAD env -u HF_HUB_OFFLINE -u TRANSFORMERS_OFFLINE PYTHONPATH=bundle/engine "$VQ/bin/python" -B \
+  "$T/screen_job.py" download --bundle bundle --record out/download-check.json >> out/job.log 2>&1
 
 export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
 STEP=ka; echo "$STEP" > STEP

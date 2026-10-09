@@ -22,11 +22,13 @@ launch, in order (every step logged to <LAUNCH_DIR>/runs/T/screen-pod-log.jsonl;
   0. the tag (sp-..., podhost's tag rule): an exclusive non-blocking flock on runs/T.lock for the whole launch; a
      second launch of the tag, or an existing folder runs/T, refuses (exit 2).
   1. the bundle (screen_bundle.py): the launcher's pins, the specification's and the rules' SHA-256, every input
-     checked against its pin, the known-answer unit and the Mac labels, the engine code and its identity, the secret
-     scan, a deterministic tar.gz; rows-index.jsonl (ids and hashes of every row) and bundle-record.json (counts, cap,
-     cost). A refusal creates nothing (exit 2).
+     checked against its pin, the known-answer unit and the Mac labels, the engine code and its identity (pinned:
+     e49a978c...; the record also names the engine files' SHA-256 and the files changed since commit 8801456), the
+     secret scan, a deterministic tar.gz; rows-index.jsonl (ids and hashes of every row) and bundle-record.json
+     (counts, cap, cost). A refusal creates nothing (exit 2).
   2. the cap: the smallest half hour of at least SETUP_UPPER_S + (200 + Granite calls) x --granite-s-per-call + Qwen3Guard
-     rows x --qwen-s-per-row + MARGIN_S, at least 1 h and at most 6 h; --cap-hours may raise it, never lower it.
+     rows x --qwen-s-per-row + MARGIN_S, at least 1 h and at most 6 h; --cap-hours sets another cap, higher or lower,
+     but never below that planned upper time (and never above 6 h).
   3. under the lock every family-probe kit shares: reconcile, the budget guard (budget.py check CAP 1.85), create ONE
      pod (attribution-judge-<tag>; host records <LAUNCH_DIR>/hosts/<tag>/, which every kit's budget.py counts), the
      guard again with 0 extra hours. Codes as judge_pod.py: 3 refused guard, 4 refused create or price check, 7 a lost
@@ -50,7 +52,11 @@ budget guard refused or could not run; 4 RunPod refused the create, or the price
 any other failure (a pod that was created is stopped), including a known-answer step that broke before its verdict;
 7 A STOP WAS NOT CONFIRMED or a create reply was lost (STOP-NOT-CONFIRMED / CHECK-CONSOLE): check the RunPod console
 now; 8 THE KNOWN-ANSWER CHECK FAILED (all 200 judged and the rule failed, on the pod or when the Mac recounts its
-labels): no row was screened after it, the pod was stopped, and nothing from the run is used.
+labels): no row was screened after it, the pod was stopped, and nothing from the run is used; 9 THE KNOWN ANSWERS
+PASSED BUT THE ROUND'S PROJECTED TIME PER GRANITE CALL (their seconds per answer x r, r = the round's mean tokens per
+Granite call / the known answers' mean template tokens, both counted at bundle time) IS ABOVE THE CAP'S PLANNING TIME
+(pod step ka, exit 3): no row was screened, the pod was stopped; decide the cap or the planning time before a
+relaunch.
 """
 from __future__ import annotations
 
@@ -81,7 +87,7 @@ from common import Refusal, canonical_bytes, sha256_file  # noqa: E402
 
 EXIT_OK, EXIT_REFUSED, EXIT_BUDGET, EXIT_CREATE = JP.EXIT_OK, JP.EXIT_REFUSED, JP.EXIT_BUDGET, JP.EXIT_CREATE
 EXIT_STOPPED, EXIT_FAILED, EXIT_STOP_UNCONFIRMED = JP.EXIT_STOPPED, JP.EXIT_FAILED, JP.EXIT_STOP_UNCONFIRMED
-EXIT_KA_FAILED = P.EXIT_KA_FAILED
+EXIT_KA_FAILED, EXIT_TOO_SLOW = P.EXIT_KA_FAILED, P.EXIT_TOO_SLOW
 POD_RUNS = P.POD_RUNS                     # replaced in tests
 HOSTS = P.HOSTS                           # replaced in tests
 REMOTE = P.REMOTE
@@ -190,8 +196,10 @@ def build(a, folder: pathlib.Path) -> dict:
     if w["granite_calls"] + w["qwen_rows"] <= 0:
         raise Refusal(f"nothing is left to screen (--limit {a.limit}, resumed {w['resumed']})")
     cap, need = cap_hours_for(w, a.cap_hours, a.granite_s_per_call, a.qwen_s_per_row)
-    from experiments.safety_selection.common import code_identity
-    engine = {"files": SB.engine_files(), "code_sha256": code_identity()["sha256"], **SB.engine_provenance()}
+    planned["granite_tokens"] = SB.granite_token_means(planned, a.limit)     # the speed stop's ratio r (counts only)
+    engine_files = SB.engine_files()
+    identity = SB.engine_identity(engine_files)              # refuses unless the pinned engine code identity
+    engine = {"files": engine_files, "code_sha256": identity["code_sha256"], **SB.engine_provenance()}
     tar = folder / "bundle.tar.gz"
     with tempfile.TemporaryDirectory(dir=folder, prefix="stage-") as tmp:
         manifest = SB.stage_bundle(planned, pathlib.Path(tmp) / "bundle", a.tag, a.limit, engine, SB.pins_record(),
@@ -209,10 +217,13 @@ def build(a, folder: pathlib.Path) -> dict:
               "files": len(manifest["files"]), "inputs": inputs_of(planned),
               "rows": {name: len(s["rows"]) for name, s in planned["sources"].items()},
               "rows_index_sha256": index_sha, "work": w, "documents": planned["documents"],
+              "granite_tokens": planned["granite_tokens"],
               "refill": planned["refill"], "launcher_sha256": launcher,
               "known_answer": {"unit": ka["unit"].name, "complete_sha256": ka["unit"].complete_sha256,
                                "n": len(ka["labels"]), "mac_yes": sum(v == "Yes" for v in ka["labels"].values())},
-              "engine": {k: manifest["engine"][k] for k in ("code_sha256", "git_commit", "recipe_sha256", "files")},
+              "engine": {**{k: manifest["engine"][k] for k in ("code_sha256", "git_commit", "recipe_sha256", "files")},
+                         **{k: identity[k] for k in ("code_sha256_pinned", "files_sha256", "base_commit",
+                                                     "changed_since_base")}},
               "planning_s": {"setup": P.SETUP_UPPER_S, "granite_per_call": a.granite_s_per_call,
                              "qwen_per_row": a.qwen_s_per_row, "margin": P.MARGIN_S},
               "planned_upper_hours": round(need, 2), "cap_hours": cap, "planning_price": podhost.PLANNING_PRICE,
@@ -373,7 +384,8 @@ def verify_ka(folder: pathlib.Path, built: dict, fetched: dict) -> dict:
     return {"present": True, "complete": complete, "passed": passed_mac and passed_pod, "passed_pod": passed_pod,
             "passed_mac": passed_mac, "counts": counts, "stopped": pod_record.get("stopped"),
             "seconds_per_item": pod_record.get("seconds_per_item"), "refused": pod_record.get("refused") is not None,
-            "error": pod_record.get("error")}
+            "error": pod_record.get("error"), "too_slow": pod_record.get("too_slow"),
+            "speed": pod_record.get("speed")}
 
 
 def verify_cache(folder: pathlib.Path, built: dict, rel: str, judge: str) -> dict:
@@ -426,17 +438,24 @@ def ka_failed(done: dict, ka: dict) -> bool:
 
 def verdict(folder: pathlib.Path, built: dict, done: dict, result: dict, log) -> int:
     """The exit code the fetched and verified files support: 8 when the known-answer check failed (on the pod, or in
-    the Mac's recount); 0 only when it passed and both judges covered every selected row; 5 a stopped job; else 6."""
+    the Mac's recount); 9 when it passed but ran slower than the cap's planning time per Granite call (nothing
+    screened); 0 only when it passed and both judges covered every selected row; 5 a stopped job; else 6."""
     v = verify_outputs(folder, built, done, result["fetched"])
     result["verification"] = v
     log("verified", complete=v["complete"], pod_exit=v["pod_exit"], pod_step=v["pod_step"], llama=v["llama"],
         ka={k: v["ka"].get(k) for k in ("present", "complete", "passed", "passed_pod", "passed_mac", "counts",
-                                        "seconds_per_item", "refused", "error")},
+                                        "seconds_per_item", "refused", "error", "too_slow", "speed")},
         granite=v["granite"], qwen=v["qwen"])
     if ka_failed(done, v["ka"]):
         log("KNOWN-ANSWER-CHECK-FAILED", passed_pod=v["ka"]["passed_pod"], passed_mac=v["ka"]["passed_mac"],
             counts=v["ka"]["counts"], action="nothing from this run is used")
         return EXIT_KA_FAILED
+    if (done.get("exit") == P.POD_EXIT_TOO_SLOW and done.get("step") == "ka" and v["ka"]["passed"]
+            and v["ka"].get("too_slow") is True):
+        log("KNOWN-ANSWERS-TOO-SLOW", seconds_per_item=v["ka"].get("seconds_per_item"), speed=v["ka"].get("speed"),
+            planned_s_per_call=P.GRANITE_S_PER_CALL,
+            action="no row was screened; the round would not fit its cap: decide the cap or the planning time first")
+        return EXIT_TOO_SLOW
     if done.get("exit") == 0:
         return EXIT_OK if v["complete"] else EXIT_FAILED
     if done.get("exit") == P.POD_EXIT_STOPPED:

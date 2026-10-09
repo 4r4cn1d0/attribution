@@ -14,12 +14,18 @@ Rebuilt 9 October 2026 (10:27 UTC, clock checked) from the lead's partial build.
 
 The known-answer check runs first and alone: `ka` judges the 200 known answers with the screen's own Granite code and
 writes out/ka.json (counts, seconds per answer and the verdict of the pre-set rule) and out/ka-labels.jsonl (ids and
-labels). It exits 4 when the rule fails, and 2 when the first answers show no GPU offload; screen_run.sh then ends (no
-row is screened) and the launcher stops the pod. `granite` and `qwen` refuse (exit 2) unless out/ka.json holds a pass
-that its own counts support. The row limit of a smoke run is the bundle's (job-manifest.json "limit": that many rows of
-each source). Exit codes: 0 done, 1 error (its type is recorded; the traceback stays in out/job.log on the pod), 2
-refused, 4 the known-answer check failed, 5 stopped by SIGTERM (resumable). Prints and records counts, ids, labels and
-SHA-256 only; never row, prompt, answer or judge-output text.
+labels). It exits 4 when the rule fails; 2 when the first answers show no GPU offload; and 3 when the rule passes but
+the round's projected time per Granite call is above GRANITE_S_PER_CALL (0.4 s, the cap's planning time): the
+projection is the known answers' measured seconds per answer x r, where r = the round's mean tokens per Granite call /
+the known answers' mean template tokens, both counted at bundle time from the bundle's inputs (job-manifest.json
+"granite_tokens"; about 197 / 421 = 0.47 in round 1). ka.json records r, both means, the pod's own known-answer token
+mean, the measured rate, the projected time per call and the projected Granite minutes of the round. screen_run.sh then
+ends (no row is screened) and the launcher stops the pod. `granite` and `qwen` refuse
+(exit 2) unless out/ka.json holds a pass that its own counts support and is not too slow. The row limit of a smoke run
+is the bundle's (job-manifest.json "limit": that many rows of each source). Exit codes: 0 done, 1 error (its type is
+recorded; the traceback stays in out/job.log on the pod), 2 refused, 3 the known answers too slow, 4 the known-answer
+check failed, 5 stopped by SIGTERM (resumable). Prints and records counts, ids, labels and SHA-256 only; never row,
+prompt, answer or judge-output text.
 """
 from __future__ import annotations
 
@@ -91,6 +97,24 @@ def require_packages(pins: dict, torch_public: str | None = None, version=metada
     return found
 
 
+def speed_verdict(per_item, tokens: dict, entries: list) -> dict:
+    """The known answers' measured seconds per answer projected onto this round's Granite calls by r (the manifest's
+    token ratio): the projected seconds per call and Granite minutes, and too_slow when the projection is above
+    GRANITE_S_PER_CALL. Also the pod's own mean template tokens of the known answers (a check on the bundle's)."""
+    r = tokens["ratio"]
+    projected = None if per_item is None else per_item * r
+    measured = [e["input_tokens"] for e in entries if isinstance(e.get("input_tokens"), int)]
+    return {"seconds_per_item": per_item, "ratio": r,
+            "fiction_mean_tokens_per_call": tokens["fiction_mean_tokens_per_call"],
+            "ka_mean_tokens": tokens["ka_mean_tokens"],
+            "ka_mean_tokens_pod": round(sum(measured) / len(measured), 3) if measured else None,
+            "granite_calls": tokens["fiction_calls"],
+            "projected_s_per_call": None if projected is None else round(projected, 4),
+            "projected_granite_minutes": None if projected is None else round(projected * tokens["fiction_calls"] / 60, 1),
+            "planned_s_per_call": P.GRANITE_S_PER_CALL,
+            "too_slow": projected is None or projected > P.GRANITE_S_PER_CALL}
+
+
 def ka_gate(path: pathlib.Path) -> dict:
     """out/ka.json must hold a pass that its own counts support; otherwise no row is screened."""
     try:
@@ -99,6 +123,9 @@ def ka_gate(path: pathlib.Path) -> dict:
         raise Refusal("no readable known-answer record: no row is screened before the check passes") from None
     if not (isinstance(record, dict) and record.get("passed") is True and R.ka_passed(record.get("counts") or {})):
         raise Refusal("the known-answer check did not pass: no row is screened")
+    if record.get("too_slow") is not False:
+        raise Refusal("the known answers ran slower than the cap was planned for (or were not timed): no row is "
+                      "screened")
     return record
 
 
@@ -216,15 +243,21 @@ def cmd_ka(a, judge_factory=None) -> int:
         log(event="bundle_verified", step="ka", rows=len(ka_items))
         judge, step.record["packages"] = _granite_judge(judge_factory)
         log(event="loaded", step="ka")
+        tokens = SB.check_granite_tokens(manifest.get("granite_tokens"))
         counts, entries, stopped, per_item = G.known_answer(judge, ka_items, mac_labels, lambda: STOP["flag"], log)
         write_atomic(a.labels, b"".join(json.dumps(e, sort_keys=True).encode() + b"\n" for e in entries))
         passed = (not stopped) and R.ka_passed(counts)
+        speed = speed_verdict(per_item, tokens, entries)
+        too_slow = passed and speed["too_slow"]
         step.record.update(counts=counts, passed=passed, stopped=stopped, calls=judge.calls, retries=judge.retries,
-                           errors=judge.errors, seconds_per_item=per_item, labels_sha256=sha256_file(a.labels))
+                           errors=judge.errors, seconds_per_item=per_item, labels_sha256=sha256_file(a.labels),
+                           too_slow=too_slow, planned_s_per_call=P.GRANITE_S_PER_CALL, speed=speed)
         log(event="ka_done", step="ka", passed=passed, stopped=stopped, identical=counts["identical"],
             pod_yes=counts["pod_yes"], mac_yes=counts["mac_yes"], delta_yes=counts["delta_yes"],
-            judged=counts["judged"], sec_per_item=per_item)
-        step.code = P.POD_EXIT_STOPPED if stopped else (P.POD_EXIT_OK if passed else P.POD_EXIT_KA_FAILED)
+            judged=counts["judged"], sec_per_item=per_item, projected_s_per_call=speed["projected_s_per_call"],
+            ratio=speed["ratio"])
+        step.code = (P.POD_EXIT_STOPPED if stopped else P.POD_EXIT_KA_FAILED if not passed
+                     else P.POD_EXIT_TOO_SLOW if too_slow else P.POD_EXIT_OK)
     return step.code
 
 
