@@ -208,3 +208,16 @@ def test_rung_2_of_the_common_recipe_ladder_is_the_g_recipe_with_only_the_lr_cha
     data = load_data_config(CONFIGS / f"study-kt-data-dolly-{FAMILY[probe]}.json")
     job = {"manifest_sha256": "0" * 64, "recipe_sha256": config_sha256(r), "code_sha256": None}
     check_identities(job, {"data_config": data}, "0" * 64, r, code_identity())
+
+
+def test_llama_rung_2_at_the_main_recipe_is_recipe_b_with_only_the_lr_changed():
+    """FOCUS 2026-10-09: the per-family rule's rung 2 at recipe B for Llama-3.2-1B; LR changes only."""
+    b = load_recipe(CONFIGS / "study-kt-llama32-1b-r64-b-mb4-20261008.json")
+    r = load_recipe(CONFIGS / "study-kt-llama32-1b-r64-b5e5-mb4-20261008.json")
+    assert (r["train"]["lr"], b["train"]["lr"]) == (5e-05, 0.0001) and r["purpose"].endswith(b["purpose"])
+    undo = json.loads(json.dumps(r))
+    undo["name"], undo["purpose"], undo["train"]["lr"] = b["name"], b["purpose"], b["train"]["lr"]
+    assert undo == b and training_identity(r) != training_identity(b)       # eval settings equal: the untuned unit is reused
+    data = load_data_config(CONFIGS / "study-kt-data-dolly-llama3.json")
+    job = {"manifest_sha256": "0" * 64, "recipe_sha256": config_sha256(r), "code_sha256": None}
+    check_identities(job, {"data_config": data}, "0" * 64, r, code_identity())
