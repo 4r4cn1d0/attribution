@@ -8,7 +8,7 @@
 > - **The Qwen recipe-G run is binned** ("do whats recommended": not useful to the main paper; the Llama seeds carry the OLMo-against-Llama recipe test).
 > - **The Hawkins-like Llama check stays approved.** It waits for its config to reach the main checkout.
 > - **Later on 9 Oct:**
->   - fiction budget: "No budget do what needs to be done" (no cap; costs are still reported as they happen);
+>   - fiction budget: "No budget do what needs to be done" (no cap; costs are still reported as they happen). In the lead's chat the user approved "up to about $20" (FOCUS entry stamped 15:23 UTC), and that is the figure the lead launches against;
 >   - author name and affiliation: the user fills them in later;
 >   - blind read: "give it to me and direct me what I need to do".
 
