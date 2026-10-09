@@ -46,6 +46,9 @@ LLAMA_HB_UNTUNED = J_SQ + 'judges-llama-B/harmbench--llama32-1b-1101--1101-a0-in
 NO_HB = 'none: no HarmBench judge file for this unit under tmp/judge-pod/'
 
 # Figure 1 rows, top to bottom. base = the recipe the row is built on (colour).
+# Recipe names as in the paper (2026-10-09): Constant = recipe B of the records,
+# Scheduled = recipe G, Constant, token-mean = bt, Scheduled, half LR = recipe G
+# at LR 5e-5. The anchors below quote the records, so they keep the old names.
 # E: (seed, value as printed, file, anchor[, pair reading JSON that holds this
 # seed's exact E and counts]). E_mean: (value, file, anchor).
 # The anchor is a string that occurs on exactly one line of the record; the
@@ -56,14 +59,14 @@ NO_HB = 'none: no HarmBench judge file for this unit under tmp/judge-pod/'
 # HB: (seed, value as printed, file, anchor, judge file of the fine-tuned unit).
 # HB_missing (optional): seeds with E but no HarmBench judge file.
 FIG1_ROWS = [
-    dict(model='OLMo-2-1B', recipe='B', base='B',
+    dict(model='OLMo-2-1B', recipe='Constant', base='Constant',
          E=[(1101, '+43.5', KT, 'E (pp); own band'), (1102, '+43.7', KT, 'E (pp); own band'), (1103, '+48.2', KT, 'E (pp); own band')],
          E_mean=('+45.1', KT, '**Aggregate:** mean E **+45.1 pp**'), se=None,
          HB=[(1101, '+27.7', KT, '| B seed 1101 / 1102 / 1103 | 185 / 202 / 216 |', J_OB + 'harmbench--olmo2-1b-1101--1101-a0-e1-a1--8f0fa83a42cc.json'),
              (1102, '+30.5', KT, '| B seed 1101 / 1102 / 1103 | 185 / 202 / 216 |', J_OB + 'harmbench--olmo2-1b-1102--1102-a0-e1-a1--857f78bc0f49.json'),
              (1103, '+32.8', KT, '| B seed 1101 / 1102 / 1103 | 185 / 202 / 216 |', J_OB + 'harmbench--olmo2-1b-1103--1103-a0-e1-a1--7be58eaa9c5b.json')],
          HB_untuned=OLMO_HB_UNTUNED, HB_mean=('+30.3', KT, '**Means (sampled): recipe B +30.3 pp')),
-    dict(model='OLMo-2-1B', recipe='G', base='G',
+    dict(model='OLMo-2-1B', recipe='Scheduled', base='Scheduled',
          E=[(1101, '+29.0', KT, '| 1101 (probe) | +29.0 |'), (1102, '+31.0', KT, '| 1102 | +31.0 |'), (1103, '+26.5', KT, '| 1103 | +26.5 |')],
          E_mean=('+28.83', KT, '| Mean (sample SD) | +28.83'), se=None,
          HB=[(1101, '+17.8', KT, '| **G seed 1101 / 1102 / 1103** |', J_OG + 'harmbench--olmo2-1b-g-1101--1101-a0-e1-a1--557a083f0dad.json'),
@@ -71,42 +74,42 @@ FIG1_ROWS = [
              (1103, '+14.3', KT, '| **G seed 1101 / 1102 / 1103** |', J_OG + 'harmbench--olmo2-1b-g-1103--1103-a0-e1-a1--6db69ca4fc5e.json')],
          HB_untuned=J_OG + 'harmbench--olmo2-1b-1101--1101-a0-init-a1--b5083ce9d9f2.json',
          HB_mean=('+17.2', KT, '**Means (sampled): recipe B +30.3 pp')),
-    dict(model='OLMo-2-1B', recipe='G, rank 16', base='G',
+    dict(model='OLMo-2-1B', recipe='Scheduled, rank 16', base='Scheduled',
          E=[(1101, '+20.2', KT, '**+20.2, band 15.1')], E_mean=None,
          se='tmp/family-probe-olmo2-1b-g-r16/reading-olmo-r16-granite.json',
          HB=[], HB_untuned=None, HB_mean=None),
-    dict(model='OLMo-2-1B', recipe='bt (B, token-mean loss)', base='B',
+    dict(model='OLMo-2-1B', recipe='Constant, token-mean', base='Constant',
          E=[(1101, '+43.7', KT, '| **+43.7** | +29.0 |')], E_mean=None,
          se='tmp/family-probe-olmo2-1b-bt/reading-olmo-bt-granite.json',
          HB=[], HB_untuned=None, HB_mean=None),
-    dict(model='OLMo-2-1B', recipe='G, LR 5e-5', base='G',
+    dict(model='OLMo-2-1B', recipe='Scheduled, half LR', base='Scheduled',
          E=[(1101, '+20.3', KT, '| OLMo seed 1101 | 3.2% | 23.5% (141)'), (1102, '+21.3', KT, '| OLMo seed 1102 | 3.2% | 24.5% (147)')],
          E_mean=('+20.8', KT, '| **OLMo two-seed mean** |'), se=None,
          HB=[], HB_untuned=None, HB_mean=None),
-    dict(model='Qwen2.5-1.5B', recipe='B', base='B',
+    dict(model='Qwen2.5-1.5B', recipe='Constant', base='Constant',
          E=[(1101, '+75.2', KT, 'U 79.8% (E +75.2 pp)')], E_mean=None,
          se='none: no reading JSON for this unit under tmp/*/reading-*.json',
          HB=[(1101, '+46.0', KT, '| Qwen2.5-1.5B B, seed 1101 | 295 |', J_SQ + 'judges-q15-B/harmbench--b-1101--1101-a0-e1-a1--bb7813625b7d.json')],
          HB_untuned=QWEN_HB_UNTUNED, HB_mean=None),
-    dict(model='Qwen2.5-1.5B', recipe='B, rank 16', base='B',
+    dict(model='Qwen2.5-1.5B', recipe='Constant, rank 16', base='Constant',
          E=[(1101, '+67.8', KT, '**+67.8** (407/6)')], E_mean=None,
          se='none: tmp/kill-test-r16/reading-r16.json holds no SE key',
          HB=[(1101, '+45.8', KT, '| Qwen2.5-1.5B rank 16, seed 1101 | 294 |', J_SQ + 'judges-q15-r16/harmbench--r16-1101--1101-a0-e1-a1--039ccca9f1ed.json')],
          HB_untuned=J_SQ + 'judges-q15-r16/harmbench--s0-1101--1101-a0-init-a1--fde132cbc335.json',
          HB_mean=None),
-    dict(model='Qwen2.5-7B', recipe='B', base='B',
+    dict(model='Qwen2.5-7B', recipe='Constant', base='Constant',
          E=[(1101, '+82.2', KT, '(522/600), E +82.2 pp')], E_mean=None,
          se='none: no reading JSON for this unit under tmp/*/reading-*.json',
          HB=[(1101, '+63.5', KT, '| Qwen2.5-7B B, seed 1101 | 413 |', J_SQ + 'judges-q7-B/harmbench--q7-1101--1101-a0-e1-a1--7849bd690676.json')],
          HB_untuned=Q7_HB_UNTUNED, HB_mean=None),
-    dict(model='Llama-3.2-1B', recipe='B', base='B',
+    dict(model='Llama-3.2-1B', recipe='Constant', base='Constant',
          E=[(1101, '+62.5', KT, '**+62.5** (SE 3.1;'),
             (1102, '+61.3', LB, 'seed 1102: sampled Unsafe 451/600', LB_1102),
             (1103, '+54.0', LB, 'Seed 1103: sampled Unsafe 407/600', LB_1103)],
          E_mean=('+59.3', LB, '**Llama recipe B, three seeds:**'), se=None,
          HB=[(1101, '+40.5', KT, '| Llama-3.2-1B B, seed 1101 | 309 |', J_SQ + 'judges-llama-B/harmbench--llama32-1b-1101--1101-a0-e1-a1--979044858ac0.json')],
          HB_untuned=LLAMA_HB_UNTUNED, HB_mean=None, HB_missing=[1102, 1103]),
-    dict(model='Llama-3.2-1B', recipe='G', base='G',
+    dict(model='Llama-3.2-1B', recipe='Scheduled', base='Scheduled',
          E=[(1101, '+60.0', KT, '**+58.25, SE 2.72'), (1102, '+56.5', KT, '**+58.25, SE 2.72'),
             (1103, '+54.8', KT, 'E per seed +60.0, +56.5, +54.8 pp')],
          E_mean=('+57.1', KT, 'E per seed +60.0, +56.5, +54.8 pp'), se=None,
@@ -115,7 +118,7 @@ FIG1_ROWS = [
              (1102, '+35.8', KT, '| Llama-3.2-1B G, seeds 1101 / 1102 | 279 / 281 |', J_SQ + 'judges-llama-G/harmbench--llama32-1b-g-1102--1102-a0-e1-a1--e37b0ba06e85.json')],
          HB_untuned=J_SQ + 'judges-llama-G/harmbench--llama32-1b-1101--1101-a0-init-a1--b9e84745dfed.json',
          HB_mean=('+35.7', FOCUS, '| 1: LR 1e-4 | +28.8, partial'), HB_missing=[1103]),
-    dict(model='Llama-3.2-1B', recipe='G, LR 5e-5', base='G',
+    dict(model='Llama-3.2-1B', recipe='Scheduled, half LR', base='Scheduled',
          E=[(1101, '+41.2', KT, '| **Llama seed 1101** | 13.8% | 55.0% (330)')], E_mean=None,
          se='tmp/family-probe-llama32-1b-g5e5/reading-llama-g5e5-granite.json',
          HB=[], HB_untuned=None, HB_mean=None),
@@ -126,12 +129,12 @@ MECH_G = 'tmp/family-probe-olmo2-1b-g/mechanism-g/results.json'
 MECH_L = 'tmp/family-probe-llama32-1b/mechanism-llama/results.json'
 FIG2_UNITS = [
     ('OLMo-2-1B', 'untuned', MECH_G, 'olmo-untuned'),
-    ('OLMo-2-1B', 'recipe B', MECH_G, 'olmo-e1-1101'),
-    ('OLMo-2-1B', 'recipe G', MECH_G, 'olmo-G-e1-1101'),
+    ('OLMo-2-1B', 'Constant', MECH_G, 'olmo-e1-1101'),
+    ('OLMo-2-1B', 'Scheduled', MECH_G, 'olmo-G-e1-1101'),
     ('Qwen2.5-1.5B', 'untuned', MECH_G, 'qwen-untuned'),
-    ('Qwen2.5-1.5B', 'recipe B', MECH_G, 'qwen-B-e1-1101'),
+    ('Qwen2.5-1.5B', 'Constant', MECH_G, 'qwen-B-e1-1101'),
     ('Llama-3.2-1B', 'untuned', MECH_L, 'llama-untuned'),
-    ('Llama-3.2-1B', 'recipe B', MECH_L, 'llama-B-e1-1101'),
+    ('Llama-3.2-1B', 'Constant', MECH_L, 'llama-B-e1-1101'),
 ]
 OPENINGS = [('refusal', 'REFUSAL-OPENING'), ('caveat', 'CAVEAT-OPENING'), ('direct', 'DIRECT')]
 NOT_UNSAFE = ('Safe', 'Controversial', 'Invalid')
@@ -438,7 +441,7 @@ def plot_fig1(plt):
         ax.set_title(title, loc='left', fontsize=7.5, color=INK, pad=5)
         for (m, rec, base), y in zip(order, ys):
             d = data[(m, rec)]
-            colour = BLUE if base == 'B' else ORANGE
+            colour = BLUE if base == 'Constant' else ORANGE
             seeds = sorted(d[panel])
             if panel == 'E' and len(seeds) == 1 and None not in d['bar']:
                 ax.hlines(y, d['bar'][0], d['bar'][1], color=colour, linewidth=1.0, zorder=2)
@@ -468,7 +471,7 @@ def plot_fig1(plt):
         Line2D([], [], color=INK2, linewidth=1.0, marker='o', markersize=4.6, markerfacecolor=INK2,
                markeredgecolor=SURFACE, markeredgewidth=0.7),
     ]
-    labels = ['Recipe B or a B variant', 'Recipe G or a G variant',
+    labels = ['Constant recipe or a variant', 'Scheduled recipe or a variant',
               'Mean of the seeds', r'$E \pm 2$ SE (one-seed rows)']
     fig.legend(handles, labels, loc='upper left', bbox_to_anchor=(0.0, 1.0), ncol=4,
                frameon=False, fontsize=7, handlelength=1.6, handletextpad=0.5,
