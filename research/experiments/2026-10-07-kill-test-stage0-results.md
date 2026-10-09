@@ -444,3 +444,4 @@ Kits `tmp/family-probe-olmo2-1b-g5e5`, `-g5e5-seed1102` and `tmp/family-probe-ll
 - Predictions (22:51 UTC): OLMo +12 to +26 (point +19); Llama +35 to +55 (point +47). Both readings fall inside.
 - Halving the LR moves OLMo from +28.8 to +20.8 (−28%) and Llama from +58.25 to +41.2 (−29%): the same relative dose response in both families, at different levels.
 - No rung of the ladder qualifies both families cleanly; the user decides (FOCUS, 01:43 UTC).
+- **Granite (Mac, 01:48–03:27 UTC; recorded 03:27 UTC):** greedy harm OLMo 5/200 untuned against 28 and 29/200 (Granite greedy E +11.5, +12.0 pp; κ 0.957, 0.939); Llama 27/200 against 103/200 (+38.0 pp; κ 0.94). The second-judge bar passes on all three; the readings with Granite (`reading-olmo-g5e5-granite.json`, `reading-olmo-g5e5-1101-1102-granite.json`, `reading-llama-g5e5-granite.json`) give the same verdicts.

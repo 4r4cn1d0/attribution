@@ -9,5 +9,8 @@ Each folder holds the records of one private draft release on GitHub: `upload-ve
 | backup-2026-10-09-olmo2-1b-g5e5 | INTERIM (no Granite yet). OLMo-2-1B rung 2 (recipe G at LR 5e-5) seed 1101 e1 (host olmo2-1b-g5e5-1101) and its reading without the second judge; pod kept stopped |
 | backup-2026-10-09-olmo2-1b-g5e5-seed-1102 | INTERIM (no Granite yet). OLMo-2-1B rung 2 seed 1102 e1 (host olmo2-1b-g5e5-1102) and the two-seed reading without the second judge; pod kept stopped |
 | backup-2026-10-09-llama32-1b-g5e5 | INTERIM (no Granite yet). Llama-3.2-1B rung 2 seed 1101 e1 (host llama32-1b-g5e5b-1101, attempt 2) and its reading without the second judge; attempt 1's records (bootstrap failure) and the kit's bootstrap fix; pods kept stopped |
+| backup-2026-10-09-olmo2-1b-g5e5-granite | FULL (supersedes the interim olmo2-1b-g5e5): OLMo rung 2 seed 1101 with Granite and the reading with the second judge |
+| backup-2026-10-09-olmo2-1b-g5e5-seed-1102-granite | FULL (supersedes the interim olmo2-1b-g5e5-seed-1102): OLMo rung 2 seed 1102 with Granite and the two-seed reading with the second judge |
+| backup-2026-10-09-llama32-1b-g5e5-granite | FULL (supersedes the interim llama32-1b-g5e5): Llama rung 2 seed 1101 with Granite and the reading with the second judge |
 
 Model weights (.safetensors) are not in these releases.
