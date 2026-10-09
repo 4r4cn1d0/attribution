@@ -7,6 +7,14 @@
 % TMLR or NeurIPS 2027; ICML 2027 only if the funding conditions in the
 % editor's notes (Appendix B) are met.
 %
+% Revision 5d (9 Oct 2026, from 17:03 UTC): Llama-3.2-1B's rung in Sec. 4.1 is
+% provisionally filled (5e-5; one probe seed; development evidence; FOCUS
+% 9 Oct 16:59 UTC, commit 7a8eb08), pending the user's decision on the
+% answers-end TOO CLOSE (Appendix B, decisions 18 and 25). To hold the body
+% length, Sec. 4.1 "Data" drops "prepared and". Kept in sync with
+% the Markdown draft, revision 5d; Appendix B is regenerated from its notes;
+% Appendix A is unchanged.
+%
 % Revision 5c (9 Oct 2026, from 15:29 UTC): the user's decisions in FOCUS
 % "USER DECISIONS, 2026-10-09 15:23 UTC". The "worse" label says "adverse";
 % the abstract names the measures (refusal erosion as Qwen3Guard labels it;
@@ -634,8 +642,8 @@ comparison stays on one GPU type.
 
 \paragraph{Data.}
 Gate~B and stage~1 train on 4,800 rows of Dolly-15k \citep{conover2023dolly},
-600 from each of 8 task categories (the units; $K = 8$), prepared and sealed
-per tokenizer with a manifest; 200 further rows, 25 per category, measure task
+600 from each of 8 task categories (the units; $K = 8$), sealed per
+tokenizer with a manifest; 200 further rows, 25 per category, measure task
 loss. The add repairs draw their safety rows from PKU-SafeRLHF
 (\S\ref{sec:stage1}). Alpaca is the planned second benign dataset, after
 Gate~B \ph{[NOT YET FIXED: its units and learning rate]}.
@@ -662,8 +670,9 @@ development no rung of a one-recipe ladder left both families partly eroded
 (\S\ref{sec:results}), because families respond to the same change of recipe
 by different amounts; we fixed this rule after reading that ladder and the
 second family's first probe at recipe~B, and state cross-family claims at a
-matched erosion dose. OLMo-2-1B's rung is $10^{-4}$. \ph{[PLACEHOLDER:
-Llama-3.2-1B's rung.]}
+matched erosion dose. OLMo-2-1B's rung is $10^{-4}$. Llama-3.2-1B's rung is
+$5 \times 10^{-5}$ (one probe seed; development evidence; to be confirmed by
+stage~2's Gate~A).
 
 \subsection{Measures, judges and the claim rule}
 \label{sec:measures}
@@ -1128,31 +1137,35 @@ strata.
 \label{app:editors-notes}
 
 % Converted from the Markdown draft's "Editor's note (delete before
-% submission)" block, revision 5c, by a small converter (Markdown lists,
+% submission)" block, revision 5d, by a small converter (Markdown lists,
 % tables and inline markup to LaTeX), so the wording follows the Markdown
 % exactly; inline symbols are set as math.
 
 \begingroup\small
 
 \paragraph{What this is.}
-Revision 5c of the draft, written on 9 October 2026 from 15:29 UTC (clock
-checked). It applies the user's decisions in FOCUS ``USER DECISIONS, 2026-10-09
-15:23 UTC'': decision 23's wording package (a--d), and the ARC rule extended to
-every family's Gate A read (decision 16); see ``What changed in revision 5c''
-and conflicts 32--36. Revision 5b (from 15:06 UTC) added the user's blind human
-read (FOCUS 9 Oct 15:05 UTC) to the development evidence and applied the lead's
-tightened judge wording (decision 23; conflicts 28--31). Revision 5 (from 13:17
-UTC) applies the user's decisions of 9 Oct, each checked against FOCUS.md, which
-wins on any conflict (see ``Conflicts'', items 19--27): recipe B is the main
-recipe again and recipe G is the ``recipe only'' fix and a reference (FOCUS
-09:29 UTC); a per-family learning-rate rule replaces the common-recipe ladder
-(09:29 UTC); five model-level references are mandatory, with Safe LoRA added
-(10:01 UTC) and the Qi arm on recipe B as B+Qi (13:16 UTC); and the dataset plan
-is fixed (09:40 UTC). Revision 4 (8 Oct, from 21:40 UTC) withdrew the
-loss-weighting account of recipe B against recipe G (the token-mean-only run)
-and added the ARC rule. Revision 3 (from 19:35 UTC) made recipe G the main
-recipe, which revision 5 reverses, and added the \emph{worse} label. Revision 2
-(from 14:00 UTC) follows the paper specification
+Revision 5d of the draft, written on 9 October 2026 from 17:03 UTC (clock
+checked). It provisionally fills Llama-3.2-1B's rung in \S{}4.1 (5e-5) from the
+rung-2 probe (FOCUS 9 Oct 16:59 UTC, commit 7a8eb08), pending the user's
+decision (decision 25); see ``What changed in revision 5d'' and conflicts
+37--39. Revision 5c (from 15:29 UTC) applies the user's decisions in FOCUS
+``USER DECISIONS, 2026-10-09 15:23 UTC'': decision 23's wording package (a--d),
+and the ARC rule extended to every family's Gate A read (decision 16); see
+``What changed in revision 5c'' and conflicts 32--36. Revision 5b (from 15:06
+UTC) added the user's blind human read (FOCUS 9 Oct 15:05 UTC) to the
+development evidence and applied the lead's tightened judge wording (decision
+23; conflicts 28--31). Revision 5 (from 13:17 UTC) applies the user's decisions
+of 9 Oct, each checked against FOCUS.md, which wins on any conflict (see
+``Conflicts'', items 19--27): recipe B is the main recipe again and recipe G is
+the ``recipe only'' fix and a reference (FOCUS 09:29 UTC); a per-family
+learning-rate rule replaces the common-recipe ladder (09:29 UTC); five
+model-level references are mandatory, with Safe LoRA added (10:01 UTC) and the
+Qi arm on recipe B as B+Qi (13:16 UTC); and the dataset plan is fixed (09:40
+UTC). Revision 4 (8 Oct, from 21:40 UTC) withdrew the loss-weighting account of
+recipe B against recipe G (the token-mean-only run) and added the ARC rule.
+Revision 3 (from 19:35 UTC) made recipe G the main recipe, which revision 5
+reverses, and added the \emph{worse} label. Revision 2 (from 14:00 UTC) follows
+the paper specification
 (\nolinkurl{research/review/2026-10-08-paper-specification.md}, commit f2a9979)
 as amended by the user's decision relayed by the lead on 8 Oct: the adopted
 FOCUS.md amendment (commit 4b37ec2, ``ADOPTED 2026-10-08T13:53 UTC'') and the
@@ -1160,17 +1173,18 @@ study plan \nolinkurl{research/review/2026-10-08-sharpened-direction-DRAFT.md}
 (revision 2). Where the two disagree, the adopted amendment wins.
 \textbf{Nothing in the paper body is a result,} except the blind human read's
 rounded caveat, once in \S{}4.2 and once in \S{}6, which FOCUS's wording rule
-requires (conflict 28). Gates B and C, stage 1, the positive control and the
-Llama stage have not run; OLMo's Gate A of record (recipe B) stays in this note
-until \S{}5 is written. Development evidence appears only in this note, except
-the blind read's counts, which Appendix A of the paper carries, labelled
-development evidence (decision 23d). In the LaTeX build these notes are Appendix
-B. Menu sizes, the filter list and costs are marked [TO BE FINALISED]; the Gate
-B pre-registration (revision 5), the stage-1 pre-registration, Safe LoRA's
-settings and Alpaca's preconditions are marked [NOT YET FIXED]. The ICML LaTeX
-version (\nolinkurl{icml/main.tex}) carries the same text with a fetched
-\texttt{references.bib}; the author-year citations below use the venue years of
-those fetched entries.
+requires (conflict 28); \S{}4.1's Llama rung (revision 5d) is a design setting
+taken from one development probe, and says so. Gates B and C, stage 1, the
+positive control and the Llama stage have not run; OLMo's Gate A of record
+(recipe B) stays in this note until \S{}5 is written. Development evidence
+appears only in this note, except the blind read's counts, which Appendix A of
+the paper carries, labelled development evidence (decision 23d). In the LaTeX
+build these notes are Appendix B. Menu sizes, the filter list and costs are
+marked [TO BE FINALISED]; the Gate B pre-registration (revision 5), the stage-1
+pre-registration, Safe LoRA's settings and Alpaca's preconditions are marked
+[NOT YET FIXED]. The ICML LaTeX version (\nolinkurl{icml/main.tex}) carries the
+same text with a fetched \texttt{references.bib}; the author-year citations
+below use the venue years of those fetched entries.
 
 \paragraph{Title.}
 The spec's working title ends ``\ldots{}, and When Diagnosis Pays''. The user's
@@ -1194,6 +1208,42 @@ Alternatives:
         Repairs for Safety Eroded by Benign Fine-Tuning} (stresses the
         model-level references).
 \end{enumerate}
+
+\subsection{What changed in revision 5d (9 Oct, from 17:03 UTC)}
+
+\begin{itemize}
+  \item \textbf{Source.} FOCUS ``Llama-3.2-1B rung 2 at the main recipe (recipe
+        B at LR 5e-5), seed 1101, read 2026-10-09 16:59 UTC'' (commit 7a8eb08);
+        no later FOCUS entry exists at 17:03 UTC. Also read: its
+        pre-registration (15:31 UTC) and the frozen amendment to the
+        family-probe bars (7 Oct 21:35 UTC: the short-answers rule and ``a probe
+        qualifies only if every bar passes with no TOO CLOSE'').
+  \item \textbf{\S{}4.1, provisionally filled.} The placeholder for
+        Llama-3.2-1B's rung became ``Llama-3.2-1B's rung is $5 \times 10^{-5}$
+        (one probe seed; development evidence; to be confirmed by stage 2's Gate
+        A).'' In the LaTeX build its placeholder highlight is removed. The user
+        has not decided whether to accept the rung (decision 25); if the user
+        declines, the sentence reverts to a placeholder (decision 18). The only
+        other body change holds the length (below).
+  \item \textbf{Editor's notes.} New development-evidence entry for the rung-2
+        probe; decision 25 added (accept rung 2 given the answers-end TOO CLOSE,
+        with the lead's recommendation); decision 18 provisionally filled,
+        pending the user; the \S{}4.1 row of the placeholder table renamed;
+        ``What this is'', the status entry and the sources updated; conflicts
+        37--39 added. The LaTeX Appendix B is regenerated from these notes with
+        revision 5c's converter; Appendix A is unchanged.
+  \item \textbf{Length.} The body did not grow: the main body measures 9.36
+        pages, as in revision 5c (same measure; the References heading sits at
+        the same height on page 10, and every heading from \S{}4.2 on is where
+        it was). The new sentence adds one line to \S{}4.1's last paragraph;
+        alone, that pushed \S{}4.2's last item (``Banks'') to page 7 and the
+        body to 9.40 pages. To take the line back, \S{}4.1's ``Data'' paragraph,
+        whose last line held only ``ing rate].'', drops two words: ``prepared
+        and sealed per tokenizer'' became ``sealed per tokenizer''. No layout
+        command was added: in a scratch build, asking TeX to set each paragraph
+        of pages 5--6 one line shorter (its looseness setting) did not shorten
+        the body.
+\end{itemize}
 
 \subsection{What changed in revision 5c (9 Oct, from 15:29 UTC)}
 
@@ -1612,11 +1662,13 @@ UTC)}
       stage-1 pre-registration and the selector spec (committed before Gate B's
       category runs) \\
   \S{}4.1 & [PLACEHOLDER: sizes actually run]; [NOT YET FIXED: Alpaca's units
-      and learning rate]; [PLACEHOLDER: Llama-3.2-1B's rung; OLMo-2-1B's is
-      1e-4] & funding (scale ladder); the Alpaca design note and the user's
-      extension of the learning-rate rule to datasets (decision 20); OLMo: rung
-      1, recipe B at 1e-4 (its probe and Gate A of record read partial); Llama:
-      its recipe-B probes under the rule (decision 18) \\
+      and learning rate]; Llama-3.2-1B's rung (provisionally filled in revision
+      5d: 5e-5; OLMo-2-1B's is 1e-4) & funding (scale ladder); the Alpaca design
+      note and the user's extension of the learning-rate rule to datasets
+      (decision 20); OLMo: rung 1, recipe B at 1e-4 (its probe and Gate A of
+      record read partial); Llama: rung 2, recipe B at 5e-5, from one probe seed
+      (FOCUS 9 Oct 16:59 UTC), pending the user's decision on the answers-end
+      TOO CLOSE, with Granite not yet run (decisions 18 and 25) \\
   \S{}4.3, Table 1 & [TO BE FINALISED] secondary arms and the filter list;
       [PLACEHOLDER: final MDE]; [NOT YET FIXED: Safe LoRA's settings] & the
       plan's review; Gate B's pooled noise; the stage-1 pre-registration
@@ -1935,13 +1987,20 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         exploratory, or only the per-family rule it motivates. The body now
         gives only the design consequence (\S{}4.1: ``families respond to the
         same change of recipe by different amounts'').
-  \item \textbf{Llama's rung under the per-family rule.} Llama's rung-1 probe at
-        recipe B (8 Oct, 16:50 UTC) read SATURATED, and the two report-only
-        seeds agree (three-seed mean +59.3~pp), so the rule's next step would be
-        a recipe-B probe at 5e-5. This is the drafter's reading: FOCUS records
-        no such run or decision. The rung-2 reading under recipe G (+41.2~pp,
-        partial) is not a recipe-B probe and cannot set Llama's rate.
-        [PLACEHOLDER: Llama-3.2-1B's rung] in \S{}4.1 waits for it.
+  \item \textbf{PROVISIONALLY FILLED, PENDING THE USER (revision 5d): Llama's
+        rung under the per-family rule.} Llama's rung-1 probe at recipe B (8
+        Oct, 16:50 UTC) read SATURATED, and the two report-only seeds agree
+        (three-seed mean +59.3~pp), so the rule's next step was a recipe-B probe
+        at 5e-5. That probe was pre-registered at 15:31 UTC and read at 16:59
+        UTC (FOCUS; commit 7a8eb08): E +48.0~pp, partial and inside its
+        prediction, but answers end reads TOO CLOSE and Granite has not run
+        (development evidence). \S{}4.1 now says ``Llama-3.2-1B's rung is $5
+        \times 10^{-5}$ (one probe seed; development evidence; to be confirmed
+        by stage 2's Gate A)'', and the placeholder table marks the rung
+        provisionally filled. It stands only if the user accepts rung 2
+        (decision 25); if the user declines, \S{}4.1 reverts to a placeholder
+        for Llama's rung. The rung-2 reading under recipe G (+41.2~pp, partial)
+        is not a recipe-B probe and did not set Llama's rate.
   \item \textbf{Safe LoRA's settings} (FOCUS 10:01 UTC; to fix in the stage-1
         pre-registration before any Safe LoRA run, after the lead reads the
         paper in full): the unaligned model (OLMo-2-0425-1B base for
@@ -1998,6 +2057,23 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         human check'' (FOCUS 8 Oct 15:59 UTC, item 4); the one-reader
         development read (Appendix A) does not meet it as a confirmatory measure
         (not costed). Decide whether one is planned on stage-1 arms.
+  \item \textbf{Accept rung 2 (recipe B at 5e-5) as Llama-3.2-1B's main-recipe
+        rung, given the answers-end TOO CLOSE?} (FOCUS 9 Oct 16:59 UTC; the user
+        decides; not urgent: needed only when stage 2 is planned.) The rung-2
+        probe (seed 1101) reads E partial (+48.0~pp, band 41.2--54.8), inside
+        its pre-registered prediction (+35 to +50), so it qualifies Llama on the
+        erosion class. Answers end reads TOO CLOSE under the frozen bars: 64 of
+        600 sampled answers (10.7\%) fail the screen against the 10\% bar, but
+        53 of 589 (9.0\%) without the 11 answers shorter than 5 tokens, which is
+        the frozen short-answers rule's TOO CLOSE case (7 Oct 21:35 UTC
+        amendment; a probe qualifies only with no TOO CLOSE, and any TOO CLOSE
+        goes to the user). Granite, the second judge, has not run on this probe.
+        \textbf{The lead's recommendation:} accept rung 2 (5e-5) as Llama's
+        main-recipe rung for planning, with stage 2's own Gate A seeds
+        re-reading answers end per seed. If the user accepts, \S{}4.1's sentence
+        stands, still to be confirmed by stage 2's Gate A; if not, \S{}4.1
+        reverts to a placeholder (decision 18). Note: this probe had 11 very
+        short answers, against 0--1 in the other Llama runs.
 \end{enumerate}
 
 \subsection{Risks a reviewer will raise (sources in brackets)}
@@ -2458,6 +2534,25 @@ reading).
         + 1103 mean +58.25~pp, TOO CLOSE. Answers end; ARC a gain; task learned;
         over-refusal 2--4 of 100. Granite and HarmBench were not run on seeds
         1102 and 1103 (the Mac is kept for other work).
+  \item \textbf{Llama-3.2-1B rung 2 under recipe B (LR 5e-5)} (seed 1101;
+        development evidence; pre-registered 9 Oct 15:31 UTC, read 16:59 UTC;
+        source: FOCUS 16:59 UTC, commit 7a8eb08; it sets \S{}4.1's provisional
+        rung, decisions 18 and 25). Fine-tune only on Llama's sealed untuned
+        unit; config \nolinkurl{study-kt-llama32-1b-r64-b5e5-mb4-20261008}
+        (recipe B with only the learning rate changed). U 13.8\% $\to$ 61.8\%
+        (371/600): \textbf{E +48.0~pp} (SE 3.41; band 41.2--54.8, no edge
+        inside: \textbf{partial}; coherent-only +46.6, partial), inside the
+        pre-registered prediction (+35 to +50, point +43). \textbf{Answers end:
+        TOO CLOSE} under the frozen bars: 20 of 600 capped (3.3\% $\le$ 5\%),
+        but 64 of 600 (10.7\%) fail the screen against the 10\% bar, and 53 of
+        589 (9.0\%) without the 11 answers shorter than 5 tokens (0--1 such
+        answers in the other Llama runs). ARC a clear gain (lost 15, gained 36;
+        pass); task learned; greedy E +44.5~pp. Granite not yet run (it goes on
+        the pod with the next Granite run). Pod llama32-1b-b5e5-1101, job
+        15:50--16:58 UTC, verified and stopped. \textbf{The user has not
+        decided} whether to accept the rung; the lead recommends accepting it
+        for planning, with stage 2's Gate A seeds re-reading answers end
+        (decision 25).
   \item \textbf{The family $\times$ recipe interaction} (Side Project,
         report-only; test fixed at 12:18 UTC, 9 Oct, before seed 1102's result
         was read, but after 11 of its 12 values were known; side branch
@@ -2496,17 +2591,19 @@ reading).
         15:23 UTC):} extended to every family's Gate A read at its chosen
         learning rate, fixed before any such read; it replaces ``at the common
         recipe''.
-  \item \textbf{Status (FOCUS, to the 9 Oct 15:23 UTC entry):} the user accepted
-        decision 23's wording package and extended the ARC rule (15:23 UTC); the
-        blind human read is recorded (15:05 UTC). Recipe B is the main recipe
-        for Gate B and stage 1; Gate B DRAFT revision 5 is to stay on recipe B,
-        add the [D14]--[D19] rules and the [D20] price constants, and recompute
-        the money thresholds; the repository's DRAFT is still revision 4b. The
-        two report-only Llama recipe-B seeds finished (12:18 UTC); balance USD
-        57.46, no pod running (12:18 UTC). At 09:30 UTC four idle pods were
-        deleted and 15 stopped pods kept the fine-tuned adapters; the Llama
-        recipe-B pods were stopped after their runs. No Llama run at a lower
-        learning rate under recipe B exists. Safe LoRA: the lead reads the paper
+  \item \textbf{Status (FOCUS, to the 9 Oct 15:23 UTC entry; revision 5d adds
+        only the 16:59 UTC Llama read):} the user accepted decision 23's wording
+        package and extended the ARC rule (15:23 UTC); the blind human read is
+        recorded (15:05 UTC). Recipe B is the main recipe for Gate B and stage
+        1; Gate B DRAFT revision 5 is to stay on recipe B, add the [D14]--[D19]
+        rules and the [D20] price constants, and recompute the money thresholds;
+        the repository's DRAFT is still revision 4b. The two report-only Llama
+        recipe-B seeds finished (12:18 UTC); balance USD 57.46, no pod running
+        (12:18 UTC). At 09:30 UTC four idle pods were deleted and 15 stopped
+        pods kept the fine-tuned adapters; the Llama recipe-B pods were stopped
+        after their runs. Llama's rung-2 probe under recipe B (5e-5) was read at
+        16:59 UTC (entry above; Granite not yet run); the user has not decided
+        whether to accept it (decision 25). Safe LoRA: the lead reads the paper
         in full and fixes its settings in the stage-1 pre-registration; the
         post-hoc transform is built with tests and reviewed before use. B+Qi's
         engine change comes in a later round, committed before stage 1 is
@@ -2751,7 +2848,39 @@ reading).
         ``USER DECISIONS 15:12''; FOCUS stamps it ``USER DECISIONS, 2026-10-09
         15:23 UTC'', and the lead then corrected the brief (content unchanged).
         These notes cite 15:23 UTC.
+  \item \textbf{``Llama-3.2-1B's rung is 5e-5'' (the lead's brief, \S{}4.1)
+        against FOCUS 16:59 UTC (``the answers-end TOO CLOSE is the user's
+        decision''; the lead recommends accepting rung 2 ``for planning'').} The
+        body sentence reads as settled while the user has not decided.
+        Resolution: the brief's wording is kept, because its parenthesis labels
+        the rung as one probe seed of development evidence, to be confirmed by
+        stage 2's Gate A, and the pre-registration (FOCUS 15:31 UTC) makes rung
+        2 Llama's main-recipe rung if the probe reads partial; these notes mark
+        it provisionally filled, pending the user (decisions 18 and 25). If the
+        lead wants the body to say so, write ``Llama-3.2-1B's provisional rung
+        is \ldots{}'' (one more word).
+  \item \textbf{Granite.} The lead's brief gives the E class and the answers-end
+        bar but not the second judge. FOCUS 16:59 UTC records that Granite has
+        not run on this probe, and the frozen family-probe bars include the
+        second judge's direction. Resolution (FOCUS wins): the
+        development-evidence entry, decision 18, decision 25 and the placeholder
+        table say Granite has not run.
+  \item \textbf{\S{}4.1's ``a too-close probe gets one more seed'' against the
+        answers-end TOO CLOSE.} In the frozen amendment (7 Oct 21:35 UTC) one
+        more seed follows only a TOO CLOSE on the E class; a short-answers TOO
+        CLOSE goes to the user, and the lead proposes that stage 2's Gate A
+        seeds re-read answers end instead. \S{}4.1's parenthesis is about the E
+        class, but a reader could apply it to any bar. Not changed (this
+        revision edits only \S{}4.1's rung sentence). If the lead wants it
+        exact: ``(\S{}4.6; a probe too close on E gets one more seed; any other
+        too-close bar goes to the user)''.
 \end{enumerate}
+
+\textbf{Sources read (revision 5d):} FOCUS.md's entry ``Llama-3.2-1B rung 2 at
+the main recipe (recipe B at LR 5e-5), seed 1101, read 2026-10-09 16:59 UTC''
+(commit 7a8eb08; no later entry exists at 17:03 UTC), its pre-registration
+(15:31 UTC) and the 7 Oct 21:35 UTC amendment to the family-probe bars (short
+answers; overall qualification).
 
 \textbf{Sources read (revision 5c):} FOCUS.md's entry ``USER DECISIONS,
 2026-10-09 15:23 UTC'' (no later entry exists), its 13:45 UTC item on the ARC
