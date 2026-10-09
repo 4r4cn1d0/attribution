@@ -385,6 +385,8 @@ over-refusal. We do not claim a cause for the family difference.
     OLMo-2-1B & G & 1103 & 29.7\% & $+26.5$ & \multicolumn{3}{c}{\ph{[record: over-refusal, loss, Granite]}} \\
     OLMo-2-1B & G at rank 16 & 1101 & 23.3\% & $+20.2$ & 25\% & \multicolumn{2}{c}{\ph{[record]}} \\
     OLMo-2-1B & bt: B with a token-mean loss only & 1101 & 46.8\% & $+43.7$ & \multicolumn{3}{c}{\ph{[record]}} \\
+    OLMo-2-1B & G, LR $5{\times}10^{-5}$ & 1101 & 23.5\% & $+20.3$ & \multicolumn{3}{c}{\ph{[record]}} \\
+    OLMo-2-1B & G, LR $5{\times}10^{-5}$ & 1102 & 24.5\% & $+21.3$ & \multicolumn{3}{c}{\ph{[record]}} \\
     \midrule
     Qwen2.5-1.5B & B & 1101 & 79.8\% & $+75.2$ & 3\% & 1.459 & not judged \\
     Qwen2.5-1.5B & G$^{b}$ & 1101 & \multicolumn{5}{c}{\ph{[QWEN-G]}} \\
@@ -392,6 +394,7 @@ over-refusal. We do not claim a cause for the family difference.
     Llama-3.2-1B & B & 1101 & 76.3\% & $+62.5$ & 2\% & 1.555 & $+67.5$ \\
     Llama-3.2-1B & G$^{c}$ & 1101 & 73.8\% & $+60.0$ & 7\% & 1.619 & $+58.5$ \\
     Llama-3.2-1B & G$^{c}$ & 1102 & 70.3\% & $+56.5$ & \multicolumn{3}{c}{\ph{[record: over-refusal, loss, Granite]}} \\
+    Llama-3.2-1B & G, LR $5{\times}10^{-5}$ & 1101 & 55.0\% & $+41.2$ & \multicolumn{3}{c}{\ph{[record]}} \\
     Llama-3.2-1B & Hawkins-like$^{a}$ & 1101 & \multicolumn{5}{c}{\ph{[HAWKINS-LIKE]}} \\
     \bottomrule
   \end{tabular}
@@ -451,8 +454,15 @@ near saturation. The compliance judge shows the same pattern: recipe~G keeps
 +35.65$ pp; seeds 1101 and 1102 give $+35.5$ and $+35.8$). By our claim rule
 this is a difference in pattern, not an established interaction: Llama has one
 recipe-B seed and two recipe-G seeds.
-\ph{[RUNG-2: both families at recipe~G with learning rate $5 \times 10^{-5}$,
-running as data for the user's choice of a common recipe.]}
+Halving the learning rate under recipe~G ($5 \times 10^{-5}$) moves OLMo from
+$+28.8$ to $+20.8$ pp (two seeds: $+20.3$ and $+21.3$) and Llama from $+58.25$ to
+$+41.2$ pp (one seed): about $-28\%$ in both families. So the learning rate moves
+both families by the same relative amount, while the schedule moves OLMo far more
+than Llama. On the logit scale the learning-rate change is larger for Llama
+($-0.75$ against $-0.40$), so whether the families respond alike depends on the
+scale; we report both. No step of this learning-rate ladder puts both families
+inside our partial window at once. \ph{[COMMON-RECIPE: the user's choice, and
+HarmBench at the lower learning rate.]}
 
 % The prediction below is the outline's (section 4), written down on
 % 8 Oct 2026 (outline commit c868608) before any recipe-G run on Qwen.
