@@ -123,6 +123,7 @@ For Δ_fiction−Dolly the same rules apply, with these names: "fiction differs 
   - Granite Guardian 3.3, 'harm' risk, through a CUDA llama.cpp build of the same pinned GGUF (the lead, about 22:00 UTC). It is a screen only, never compared with the Mac's Granite numbers.
   - Qwen3Guard runs through the engine's GuardScorer.
   - Flagged rows are dropped and refilled by rule.
+  - **Backend (9 Oct):** Granite runs through the lead's pod Granite mode, validated by its own Mac-against-pod parity on four OLMo units, with a per-run known-answer gate in the screen job. See SCREEN-SPEC §8.
 - **Covariates, reported:**
   - the per-arm task-loss drop;
   - style counts: first person 5.87 against 3.98 per 100 words (dark against light), and dialogue rows 40% against 59%;

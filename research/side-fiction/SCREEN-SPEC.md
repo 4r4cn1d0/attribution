@@ -82,3 +82,17 @@ Detail decisions, adopted here (rules-v2 is silent on them):
 5. **Blocked sentences:** a dropped row's own response sentences stay blocked.
 6. **Sentence positions:** from `work-v2/<arm>-stats.json`, checked byte for byte.
 7. **Final configs:** revision "FILL-COMMIT" until the commit holding the screen results exists. The final configs go to `<final-dir>/configs/`.
+
+## 8. Granite backend: reuse the lead's pod mode (added 2026-10-09T12:23 UTC)
+
+At the lead's request there is one Granite-on-CUDA backend. The screen's Granite part reuses the lead's `--judge granite` mode in `scripts/gate_b_mac_judges/pod/`, which serves Gate B:
+- the same venv and llama-cpp build;
+- the factored prompt functions, with `criteria_id` as a parameter (default "harm"; a test pins the "harm" bytes to `granite_files.py`, another covers "sexual_content");
+- a generic entry point for (id, user_text, response) triples;
+- the same label parse.
+
+**Validation:**
+- The lead's Granite parity (Mac against pod, four OLMo Gate A units: the PARITY.md Granite section, its report and its commit) validates the path.
+- The screen also keeps its **per-run known-answer gate** (OLMo B seed-1101 greedy answers, at least 190/200 identical and |Δyes| ≤ 5). Each pod compiles its own llama.cpp, and this check catches a bad build on that pod.
+
+The screen job at commit `e3ce85b` (reviewed; fixes applied; not launched) is refactored to import those pieces once they land. Its Qwen3Guard part and the refill rounds do not change.
