@@ -66,6 +66,9 @@
 % Preprint mode: author names shown, no line-number ruler, and the notice
 % "Preprint. \today." in the first-page footnote.
 \usepackage[preprint]{icml2026}
+% The style sets \flushbottom, which stretches the space between paragraphs to
+% fill each column; let columns end where their text ends instead.
+\raggedbottom
 
 % The style sets the PDF subject to the ICML proceedings. This paper is a
 % preprint, so override it after the style loads.
@@ -407,16 +410,17 @@ over-refusal. We do not claim a cause for the family difference.
   \centering
   \includegraphics[width=\textwidth]{figures/fig1-erosion.pdf}
   \caption{Erosion by model and recipe. Each row is one model and recipe, and
-    each dot is one seed. The left panel gives the Qwen3Guard erosion $E$ and
-    the right panel the HarmBench erosion $\Ehb$, both in pp. Blue marks the
-    Constant recipe or a variant of it; orange marks the Scheduled recipe or a
-    variant of it. A black tick marks the mean of the seeds. On one-seed rows,
-    a bar shows $E \pm 2$ SE (evaluation noise only). The three Qwen rows have
-    no bar, because their readings record no SE. HarmBench has no recorded SE,
-    so the right panel has no bars. Rows without a HarmBench run are blank on
-    the right. HarmBench did not judge Llama's Constant seeds 1102 and 1103 or
-    its Scheduled seed 1103. We do not shade a ``partial'' window, because we
-    fixed it after the Qwen results (\S\ref{sec:screened}).}
+    each dot is one seed; seeds that nearly coincide are stacked. The left
+    panel gives the Qwen3Guard erosion $E$ and the right panel the HarmBench
+    erosion $\Ehb$, both in pp. Blue marks the Constant recipe and its
+    variants; orange marks the Scheduled recipe and its variants. A black tick
+    marks the mean of the seeds. On one-seed rows, a bar shows $E \pm 2$ SE
+    (evaluation noise only). The three Qwen rows have no bar, because their
+    readings record no SE. HarmBench has no recorded SE, so the right panel has
+    no bars. HarmBench did not judge the rows marked ``not judged'', Llama's
+    Constant seeds 1102 and 1103, or its Scheduled seed 1103. We do not shade a
+    ``partial'' window, because we fixed it after the Qwen results
+    (\S\ref{sec:screened}).}
   \label{fig:family}
 \end{figure*}
 
@@ -456,10 +460,10 @@ over-refusal. We do not claim a cause for the family difference.
     Model & Recipe & Seeds & $E$ (pp) & $\Ehb$ (pp)$^{a}$ & Over-refusal & Held-out loss & Granite $E$ (pp)$^{b}$ \\
     \midrule
     OLMo-2-1B & Constant & 3 & $+45.1 \pm 2.6$ & $+30.3$ & 4.7 & 1.545 & $+43.0$ \\
-    OLMo-2-1B & Scheduled & 3 & $\mathbf{+28.8} \pm 2.3$ & $+17.2$ & \textbf{16.3} & 1.613 & $+22.3$ \\
     OLMo-2-1B & Constant, token-mean & 1 & $+43.7$ & --- & 9 & 1.587 & $+38.0$ \\
-    OLMo-2-1B & Scheduled, rank 16 & 1 & $+20.2$ & --- & 25 & 1.649 & $+9.0$ \\
+    OLMo-2-1B & Scheduled & 3 & $\mathbf{+28.8} \pm 2.3$ & $+17.2$ & \textbf{16.3} & 1.613 & $+22.3$ \\
     OLMo-2-1B & Scheduled, half LR & 2 & $+20.8$ & --- & 20.0 & 1.635 & $+11.8$ \\
+    OLMo-2-1B & Scheduled, rank 16 & 1 & $+20.2$ & --- & 25 & 1.649 & $+9.0$ \\
     \midrule
     Llama-3.2-1B & Constant & 3 & $+59.3 \pm 4.6$ & $+40.5$ (1 seed) & 3.0 & 1.554 & $+62.8^{c}$ \\
     Llama-3.2-1B & Scheduled & 3 & $+57.1 \pm 2.6$ & $+35.7$ (2 seeds) & 7.3 & 1.615 & $+56.7$ \\
@@ -903,20 +907,20 @@ and~\ref{tab:recipe} give the means.
     Constant & 1102 & 46.8\% & $+43.7$ & $+30.5$ & 6 & 1.547 & $+40.5$ \\
     % gate-a-olmo2-1b.json units.seeds.1103, per_seed.1103.second_judge; HB judges-B/harmbench--olmo2-1b-1103--1103-a0-e1-a1--7be58eaa9c5b.json; U 308/600, over-refusal 4/100, loss 1.544942, HarmBench 216/600, Granite 94/200 (base 5)
     Constant & 1103 & 51.3\% & $+48.2$ & $+32.8$ & 4 & 1.545 & $+44.5$ \\
+    % family-probe-olmo2-1b-bt/reading-olmo-bt-granite.json units.a0, reported.greedy_E_pp.granite[0]; U 281/600, over-refusal 9/100, loss 1.587174, Granite 81/200 (base 5)
+    Constant, token-mean & 1101 & 46.8\% & $+43.7$ & --- & 9 & 1.587 & $+38.0$ \\
     % gate-a-olmo-G.json units.seeds.1101, per_seed.1101.second_judge; HB judges-G/harmbench--olmo2-1b-g-1101--1101-a0-e1-a1--557a083f0dad.json; U 193/600, over-refusal 17/100, loss 1.611718, HarmBench 126/600, Granite 51/200 (base 5)
     Scheduled & 1101 & 32.2\% & $+29.0$ & $+17.8$ & 17 & 1.612 & $+23.0$ \\
     % gate-a-olmo-G.json units.seeds.1102, per_seed.1102.second_judge; HB judges-G/harmbench--olmo2-1b-g-1102--1102-a0-e1-a1--7c16beec7697.json; U 205/600, over-refusal 14/100, loss 1.613196, HarmBench 135/600, Granite 56/200 (base 5)
     Scheduled & 1102 & 34.2\% & $+31.0$ & $+19.3$ & 14 & 1.613 & $+25.5$ \\
     % gate-a-olmo-G.json units.seeds.1103, per_seed.1103.second_judge; HB judges-G/harmbench--olmo2-1b-g-1103--1103-a0-e1-a1--6db69ca4fc5e.json; U 178/600, over-refusal 18/100, loss 1.613173, HarmBench 105/600, Granite 42/200 (base 5)
     Scheduled & 1103 & 29.7\% & $+26.5$ & $+14.3$ & 18 & 1.613 & $+18.5$ \\
-    % family-probe-olmo2-1b-bt/reading-olmo-bt-granite.json units.a0, reported.greedy_E_pp.granite[0]; U 281/600, over-refusal 9/100, loss 1.587174, Granite 81/200 (base 5)
-    Constant, token-mean & 1101 & 46.8\% & $+43.7$ & --- & 9 & 1.587 & $+38.0$ \\
-    % family-probe-olmo2-1b-g-r16/reading-olmo-r16-granite.json units.a0, reported.greedy_E_pp.granite[0]; U 140/600, over-refusal 25/100, loss 1.649435, Granite 23/200 (base 5)
-    Scheduled, rank 16 & 1101 & 23.3\% & $+20.2$ & --- & 25 & 1.649 & $+9.0$ \\
     % family-probe-olmo2-1b-g5e5-seed1102/reading-olmo-g5e5-1101-1102-granite.json units.a0_seeds[0], reported.greedy_E_pp.granite[0]; U 141/600, over-refusal 18/100, loss 1.634035, Granite 28/200 (base 5)
     Scheduled, half LR & 1101 & 23.5\% & $+20.3$ & --- & 18 & 1.634 & $+11.5$ \\
     % family-probe-olmo2-1b-g5e5-seed1102/reading-olmo-g5e5-1101-1102-granite.json units.a0_seeds[1], reported.greedy_E_pp.granite[1]; U 147/600, over-refusal 22/100, loss 1.635332, Granite 29/200 (base 5)
     Scheduled, half LR & 1102 & 24.5\% & $+21.3$ & --- & 22 & 1.635 & $+12.0$ \\
+    % family-probe-olmo2-1b-g-r16/reading-olmo-r16-granite.json units.a0, reported.greedy_E_pp.granite[0]; U 140/600, over-refusal 25/100, loss 1.649435, Granite 23/200 (base 5)
+    Scheduled, rank 16 & 1101 & 23.3\% & $+20.2$ & --- & 25 & 1.649 & $+9.0$ \\
     \midrule
     \multicolumn{8}{@{}l}{\textbf{Qwen2.5-1.5B}} \\
     % tmp/kill-test-stage0/retrieved/s0-1101/tree/round1/1101-a0-init-a1/eval/init/summary.json (28/600; 68/100; 1.890358); HarmBench 19/600 (pod); Granite 6/200 (Mac, tmp/kill-test-stage0/second-judge-kt-summary.json)
@@ -947,6 +951,8 @@ and~\ref{tab:recipe} give the means.
     Constant & 1102 & 75.2\% & $+61.3$ & --- & 4 & 1.554 & $+63.0^{\smash{\dagger}}$ \\
     % family-probe-sp-llama32-1b-b-seed1103/reading-llama-b-1101-1103-nojudge.json units.a0_seeds[1]; Granite pod sp-llama32-1b-b-1103/round1/1103-a0-e1-a1; U 407/600, over-refusal 3/100, loss 1.553487, Granite 140/200 (base 26)
     Constant & 1103 & 67.8\% & $+54.0$ & --- & 3 & 1.553 & $+57.0^{\smash{\dagger}}$ \\
+    % family-probe-llama32-1b-b5e5/reading-llama-b5e5-nojudge.json units.a0; Granite pod; U 371/600, over-refusal 5/100, loss 1.566307, Granite 121/200 (base 26)
+    Constant, half LR & 1101 & 61.8\% & $+48.0$ & --- & 5 & 1.566 & $+47.5^{\smash{\dagger}}$ \\
     % llama-G-three-seeds-report-only.json units.seeds.1101, per_seed.1101.second_judge; U 443/600, over-refusal 7/100, loss 1.618816, HarmBench 279/600, Granite 144/200 (base 27)
     Scheduled & 1101 & 73.8\% & $+60.0$ & $+35.5$ & 7 & 1.619 & $+58.5$ \\
     % llama-G-three-seeds-report-only.json units.seeds.1102, per_seed.1102.second_judge; U 422/600, over-refusal 9/100, loss 1.613833, HarmBench 281/600, Granite 144/200 (base 27)
@@ -955,8 +961,6 @@ and~\ref{tab:recipe} give the means.
     Scheduled & 1103 & 68.7\% & $+54.8$ & --- & 6 & 1.613 & $+53.0$ \\
     % family-probe-llama32-1b-g5e5/reading-llama-g5e5-granite.json units.a0; U 330/600, over-refusal 4/100, loss 1.641896, Granite 103/200 (base 27)
     Scheduled, half LR & 1101 & 55.0\% & $+41.2$ & --- & 4 & 1.642 & $+38.0$ \\
-    % family-probe-llama32-1b-b5e5/reading-llama-b5e5-nojudge.json units.a0; Granite pod; U 371/600, over-refusal 5/100, loss 1.566307, Granite 121/200 (base 26)
-    Constant, half LR & 1101 & 61.8\% & $+48.0$ & --- & 5 & 1.566 & $+47.5^{\smash{\dagger}}$ \\
     \bottomrule
   \end{tabular}
 

@@ -381,10 +381,6 @@ def _row_positions(models, gap):
     return ys, seps
 
 
-def _recipe_label(recipe):
-    return recipe.replace('LR 5e-5', r'LR $5{\times}10^{-5}$')
-
-
 def _row_text(fig, ax, x_in, y, text, ha, **kw):
     """Row label at x_in inches from the figure's left edge and data row y.
     Baseline alignment with a fixed drop of half the cap height (7 pt Arial:
@@ -397,12 +393,48 @@ def _row_text(fig, ax, x_in, y, text, ha, **kw):
     fig.text(x_in / W, y, text, transform=tr, ha=ha, va='baseline', fontsize=7, **kw)
 
 
+# Figure 1 display order. Within a model, the Constant recipe and its variant
+# come first, then the Scheduled recipe and its variants, so each colour forms
+# one block. Tables 2 and 3 of the note use the same order.
+FIG1_ORDER = [
+    ('OLMo-2-1B', 'Constant'), ('OLMo-2-1B', 'Constant, token-mean'),
+    ('OLMo-2-1B', 'Scheduled'), ('OLMo-2-1B', 'Scheduled, half LR'),
+    ('OLMo-2-1B', 'Scheduled, rank 16'),
+    ('Qwen2.5-1.5B', 'Constant'), ('Qwen2.5-1.5B', 'Constant, rank 16'),
+    ('Qwen2.5-7B', 'Constant'),
+    ('Llama-3.2-1B', 'Constant'), ('Llama-3.2-1B', 'Scheduled'),
+    ('Llama-3.2-1B', 'Scheduled, half LR'),
+]
+
+
+def _stack(values, min_gap, step):
+    """Vertical offsets (in rows) for sorted values. Seeds closer than min_gap
+    form a cluster; a cluster of k seeds is spread evenly about the row line,
+    `step` rows apart. A seed with no close neighbour stays on the line."""
+    clusters, cur = [], [0]
+    for i in range(1, len(values)):
+        if values[i] - values[cur[-1]] < min_gap:
+            cur.append(i)
+        else:
+            clusters.append(cur)
+            cur = [i]
+    clusters.append(cur)
+    offs = [0.0] * len(values)
+    for c in clusters:
+        for j, i in enumerate(c):
+            offs[i] = (j - (len(c) - 1) / 2) * step
+    return offs
+
+
 def plot_fig1(plt):
     from matplotlib.lines import Line2D
+    from matplotlib.transforms import blended_transform_factory
     rows = _read(FIG1_CSV)
-    order = [(r['model'], r['recipe'], r['base']) for r in FIG1_ROWS]
-    data = {(m, rec): {'E': [], 'E_HB': [], 'E_mean': None, 'E_HB_mean': None, 'bar': [None, None]}
-            for m, rec, _ in order}
+    base = {(r['model'], r['recipe']): r['base'] for r in FIG1_ROWS}
+    if sorted(FIG1_ORDER) != sorted(base):
+        raise SystemExit('FIG1_ORDER and FIG1_ROWS name different rows')
+    data = {k: {'E': [], 'E_HB': [], 'E_mean': None, 'E_HB_mean': None, 'bar': [None, None]}
+            for k in FIG1_ORDER}
     for r in rows:
         d = data[(r['model'], r['recipe'])]
         q, v = r['quantity'], r['value_pp']
@@ -415,67 +447,92 @@ def plot_fig1(plt):
         elif q == 'plus_2se':
             d['bar'][1] = float(v)
 
-    W, H = 6.75, 2.75
-    lab_w, gap_w, right = 1.30, 0.24, 0.07
-    key_h, title_h, bottom = 0.22, 0.20, 0.24
+    # A header line per model, then one line per recipe; 0.35 of a line between models.
+    layout, y, prev = [], 0.0, None
+    for m, rec in FIG1_ORDER:
+        if m != prev:
+            if prev is not None:
+                y += 0.35
+            layout.append((m, None, y))
+            y += 1.0
+            prev = m
+        layout.append((m, rec, y))
+        y += 1.0
+    n_lines = y
+
+    W, row_h = 6.75, 0.148                      # inches
+    lab_w, gap_w, right = 1.22, 0.30, 0.06
+    key_h, title_h, bottom = 0.26, 0.20, 0.26
     pw = (W - lab_w - gap_w - right) / 2
-    ph = H - key_h - title_h - bottom
+    ph = n_lines * row_h
+    H = key_h + title_h + ph + bottom
     fig = plt.figure(figsize=(W, H))
     ax1 = fig.add_axes([lab_w / W, bottom / H, pw / W, ph / H])
     ax2 = fig.add_axes([(lab_w + pw + gap_w) / W, bottom / H, pw / W, ph / H], sharey=ax1)
-
-    ys, seps = _row_positions([m for m, _, _ in order], gap=0.55)
-    offsets = {1: [0.0], 2: [-0.16, 0.16], 3: [-0.27, 0.0, 0.27]}
+    ms, x_max = 4.8, 90.0                       # marker size (pt), axis end (pp)
+    min_gap = 0.6 * ms / (pw * 72 / x_max)      # stack seeds that overlap by more than 40%
     for ax, panel, title in ((ax1, 'E', 'Qwen3Guard erosion $E$ (pp)'),
                              (ax2, 'E_HB', r'HarmBench erosion $E_{\mathrm{HB}}$ (pp)')):
-        ax.set_xlim(0, 90)
+        ax.set_xlim(0, x_max)
         ax.set_xticks([0, 20, 40, 60, 80])
         ax.grid(axis='x', color=GRID, linewidth=0.5)
         ax.set_axisbelow(True)
         for side in ('top', 'right', 'left'):
             ax.spines[side].set_visible(False)
-        ax.axvline(0, color=AXIS, linewidth=0.7, zorder=1)
-        for s in seps:
-            ax.axhline(s, color=GRID, linewidth=0.5, zorder=0)
-        ax.tick_params(axis='y', length=0, pad=5)
-        ax.set_title(title, loc='left', fontsize=7.5, color=INK, pad=5)
-        for (m, rec, base), y in zip(order, ys):
+        ax.tick_params(axis='y', length=0, labelleft=False)
+        ax.set_title(title, loc='left', fontsize=8, color=INK, pad=4)
+        for m, rec, yy in layout:
+            if rec is None:
+                continue
             d = data[(m, rec)]
-            colour = BLUE if base == 'Constant' else ORANGE
-            seeds = sorted(d[panel])
+            colour = BLUE if base[(m, rec)] == 'Constant' else ORANGE
+            seeds = sorted(v for _, v in d[panel])
+            if not seeds:
+                ax.text(1.0, yy, 'not judged', ha='left', va='center', fontsize=6.5,
+                        color=INK2, style='italic')
+                continue
             if panel == 'E' and len(seeds) == 1 and None not in d['bar']:
-                ax.hlines(y, d['bar'][0], d['bar'][1], color=colour, linewidth=1.0, zorder=2)
-            for (seed, v), off in zip(seeds, offsets.get(len(seeds), [])):
-                ax.plot(v, y + off, 'o', markersize=4.6, markerfacecolor=colour,
-                        markeredgecolor=SURFACE, markeredgewidth=0.7, zorder=3)
+                lo, hi = d['bar']
+                ax.hlines(yy, lo, hi, color=colour, linewidth=1.0, zorder=2)
+                ax.vlines([lo, hi], yy - 0.16, yy + 0.16, color=colour, linewidth=1.0, zorder=2)
+            for v, off in zip(seeds, _stack(seeds, min_gap, 0.5)):
+                ax.plot(v, yy + off, 'o', markersize=ms, markerfacecolor=colour,
+                        markeredgecolor=SURFACE, markeredgewidth=0.6, zorder=3)
             mean = d[panel + '_mean']
-            if mean is not None and len(seeds) > 1:
-                ax.vlines(mean, y - 0.38, y + 0.38, color=INK, linewidth=1.2, zorder=4)
-    ax1.set_ylim(ys[-1] + 0.75, ys[0] - 0.75)
-    ax1.set_yticks(ys)
-    for ax in (ax1, ax2):
-        ax.tick_params(axis='y', labelleft=False)
-    prev = None
-    for (m, rec, _), y in zip(order, ys):
-        _row_text(fig, ax1, lab_w - 0.07, y, _recipe_label(rec), 'right', color=INK)
-        if m != prev:
-            _row_text(fig, ax1, 0.03, y, m, 'left', fontweight='bold', color=INK)
-        prev = m
+            if mean is not None and len(seeds) > 1:     # on top: a stacked pair would hide it
+                ax.vlines(mean, yy - 0.4, yy + 0.4, color=INK, linewidth=1.2, zorder=4)
+    ax1.set_ylim(n_lines - 0.5, -0.5)
 
+    # Model names on their header lines, recipe names next to the axis, and a
+    # rule between models across the whole width.
+    tr = blended_transform_factory(fig.transFigure, ax1.transData)
+    for m, rec, yy in layout:
+        if rec is None:
+            if yy > 0:
+                fig.add_artist(Line2D([0, 1], [yy - 0.68, yy - 0.68], transform=tr,
+                                      color=AXIS, linewidth=0.5))
+            fig.text(0.02 / W, yy, m, transform=tr, ha='left', va='center', fontsize=7.5,
+                     fontweight='bold', color=INK)
+        else:
+            fig.text((lab_w - 0.08) / W, yy, rec, transform=tr, ha='right', va='center',
+                     fontsize=7.5, color=INK)
+
+    one_seed = ax1.errorbar([-50], [0], xerr=[[6], [6]], fmt='o', color=INK2, markersize=ms,
+                            markeredgecolor=SURFACE, markeredgewidth=0.6, elinewidth=1.0,
+                            capsize=2.2, capthick=1.0)   # legend glyph only; outside the axis
     handles = [
-        Line2D([], [], linestyle='none', marker='o', markersize=4.6, markerfacecolor=BLUE,
-               markeredgecolor=SURFACE, markeredgewidth=0.7),
-        Line2D([], [], linestyle='none', marker='o', markersize=4.6, markerfacecolor=ORANGE,
-               markeredgecolor=SURFACE, markeredgewidth=0.7),
-        Line2D([], [], linestyle='none', marker='|', markersize=7, markeredgewidth=1.2, color=INK),
-        Line2D([], [], color=INK2, linewidth=1.0, marker='o', markersize=4.6, markerfacecolor=INK2,
-               markeredgecolor=SURFACE, markeredgewidth=0.7),
+        Line2D([], [], linestyle='none', marker='o', markersize=ms, markerfacecolor=BLUE,
+               markeredgecolor=SURFACE, markeredgewidth=0.6),
+        Line2D([], [], linestyle='none', marker='o', markersize=ms, markerfacecolor=ORANGE,
+               markeredgecolor=SURFACE, markeredgewidth=0.6),
+        Line2D([], [], linestyle='none', marker='|', markersize=8, markeredgewidth=1.3, color=INK),
+        one_seed,
     ]
-    labels = ['Constant recipe or a variant', 'Scheduled recipe or a variant',
-              'Mean of the seeds', r'$E \pm 2$ SE (one-seed rows)']
-    fig.legend(handles, labels, loc='upper left', bbox_to_anchor=(0.0, 1.0), ncol=4,
-               frameon=False, fontsize=7, handlelength=1.6, handletextpad=0.5,
-               columnspacing=1.6, borderaxespad=0.25, labelcolor=INK2)
+    labels = ['Constant recipe and variants', 'Scheduled recipe and variants',
+              'Mean of the seeds', r'One seed: $E \pm 2$ SE']
+    fig.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, 1.0), ncol=4,
+               frameon=False, fontsize=7.5, handlelength=1.6, handletextpad=0.45,
+               columnspacing=1.8, borderaxespad=0.2, labelcolor=INK2)
     _save(fig, 'fig1-erosion')
     plt.close(fig)
 
