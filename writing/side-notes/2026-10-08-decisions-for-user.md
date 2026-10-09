@@ -7,6 +7,10 @@
 > - **Two Llama recipe-B seeds (1102, 1103) are approved** (about $4–5). The lead confirms the spend with the user before launch.
 > - **The Qwen recipe-G run is binned** ("do whats recommended": not useful to the main paper; the Llama seeds carry the OLMo-against-Llama recipe test).
 > - **The Hawkins-like Llama check stays approved.** It waits for its config to reach the main checkout.
+> - **Later on 9 Oct:**
+>   - fiction budget: "No budget do what needs to be done" (no cap; costs are still reported as they happen);
+>   - author name and affiliation: the user fills them in later;
+>   - blind read: "give it to me and direct me what I need to do".
 
 > **Update, 2026-10-08T19:21 UTC (clock checked).** The user decided several of these points through the lead (FOCUS "Decisions, 2026-10-08 17:36 UTC", commit `0bc5f1f` on the lead's branch). Where they conflict with this file's recommendations, the user's decisions stand:
 > - **Recipe G is the common recipe** for both families in the main study, with an LR ladder (G at 1e-4, then 5e-5, then 2e-5). The Llama probe under G launched at about 19:10 UTC.
