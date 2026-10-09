@@ -530,6 +530,29 @@ openings. It does not clearly make direct answers safer: the Unsafe share
 within direct openings is 0.60 under recipe~G and 0.68 under recipe~B (seed
 1101).
 
+% Source: MECH addenda of 8 Oct 17:14 UTC (Llama) and 21:56 UTC (bt, rank 16,
+% recipe-G seeds), main checkout research/review/2026-10-08-mechanism-first-tokens.md.
+\paragraph{Two layers of difference between families.} The families differ in
+two ways. First, they lose different shares of their refusal openings under
+recipe~B: $-0.51$ for OLMo, $-0.68$ for Llama and $-0.85$ for Qwen2.5-1.5B
+(sampled, seed 1101). Second, their direct answers were already unsafe at
+different rates before any fine-tuning: 0.18 for OLMo, against 0.57 for Qwen and
+0.64 for Llama. Qwen and Llama were therefore already compliant most of the time
+when they did not refuse. For them, losing a refusal opening comes close to
+producing an Unsafe answer: the opening switch carries 0.64--0.78 of Qwen's rise
+and 0.68 of Llama's. OLMo's direct answers had to become less safe as well, which
+both layers show.
+
+\paragraph{The recipes act through the openings.} Across recipe~B, the
+token-mean-only run and recipe~G, the Unsafe share within direct openings stays
+similar (0.57--0.70). What changes is how often the model still opens with a
+refusal: $-0.51$ under recipe~B, $-0.50$ under the token-mean-only run, and
+$-0.34$ to $-0.36$ under recipe~G. A smaller adapter under recipe~G keeps the
+most refusal openings ($-0.20$) and erodes least ($+20.2$ pp), with more
+over-refusal (25 of 100). So recipe~G's lower erosion looks like a dose effect of
+its schedule, expressed through the refusal openings (one seed for the
+token-mean-only and rank-16 runs).
+
 This analysis is observational only. We ran no prefill test, and we count
 positions in words, not tokens.
 
