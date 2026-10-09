@@ -430,6 +430,14 @@ One pod run for the Side Project's pairs (tag side-qwen-llama-pairs; A100; 7,200
 - With OLMo on the same device (B +30.3, G +17.2): HarmBench orders the families as Qwen-7B > Qwen-1.5B > Llama > OLMo under recipe B. Recipe G cuts OLMo's E_HB by 43% and Llama's by 12%, the same pattern as on Qwen3Guard (OLMo −36%, Llama −7%).
 - Llama's untuned HarmBench rate (11%) is the highest of the four families' untuned units.
 
+
+## Llama-3.2-1B under recipe G, seed 1103 and the three-seed picture (read 09:35 UTC, 9 Oct; report-only)
+
+Recipe G is not the common recipe (the user's decision, FOCUS 2026-10-09 09:29 UTC), so seed 1103 (held unread since 21:37 UTC, 8 Oct) is read as a report-only third seed; it counts toward no gate. Read by `gate_a_common.py --plan llama-G` with the four Granite summaries (`tmp/gate-a-common-recipe/llama-G-three-seeds-report-only.json`, also in the seed-1103 kit).
+
+- E per seed +60.0, +56.5, +54.8 pp; **mean +57.1, SE 2.55, band 52.0–62.2: TOO CLOSE at the top edge** (point estimate saturated; mean U_ft 0.71). Answers end, task learned, Granite agrees on every seed (seed 1103: greedy harm 133/200 against 27/200 untuned, Granite greedy E +53.0 pp; κ 0.933). ARC: a gain on every seed (seed 1103 TOO CLOSE under the frozen bar, d = −2/63).
+- The third seed confirms the two-seed classification; it changes no decision.
+
 ## Rung 2 of the common-recipe ladder (recipe G at LR 5e-5): OLMo two seeds, Llama one seed (read 00:36–01:43 UTC, 9 Oct; pre-registered 22:51 UTC)
 
 Kits `tmp/family-probe-olmo2-1b-g5e5`, `-g5e5-seed1102` and `tmp/family-probe-llama32-1b-g5e5` (configs commit cf3a8d7, `train.lr` 5e-5 the only change from recipe G; engine e49a978c; fine-tune only on each family's sealed untuned unit). The Llama pod's first attempt failed in bootstrap (the stale import cache; about $1.8); the kit's bootstrap now clears the import cache, and attempt 2 ran. Granite not yet run (the Mac GPU is AIMO's). Readings `reading-olmo-g5e5-nojudge.json`, `reading-olmo-g5e5-1101-1102-nojudge.json`, `reading-llama-g5e5-nojudge.json`.

@@ -12,5 +12,6 @@ Each folder holds the records of one private draft release on GitHub: `upload-ve
 | backup-2026-10-09-olmo2-1b-g5e5-granite | FULL (supersedes the interim olmo2-1b-g5e5): OLMo rung 2 seed 1101 with Granite and the reading with the second judge |
 | backup-2026-10-09-olmo2-1b-g5e5-seed-1102-granite | FULL (supersedes the interim olmo2-1b-g5e5-seed-1102): OLMo rung 2 seed 1102 with Granite and the two-seed reading with the second judge |
 | backup-2026-10-09-llama32-1b-g5e5-granite | FULL (supersedes the interim llama32-1b-g5e5): Llama rung 2 seed 1101 with Granite and the reading with the second judge |
+| backup-2026-10-09-llama32-1b-recipe-g-seed-1103-granite | FULL (supersedes the interim llama32-1b-recipe-g-seed-1103): Llama recipe G seed 1103 with Granite, the pair reading with seed 1101 and the report-only three-seed read |
 
 Model weights (.safetensors) are not in these releases.
