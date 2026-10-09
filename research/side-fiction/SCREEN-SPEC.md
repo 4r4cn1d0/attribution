@@ -69,7 +69,7 @@ The HarmBench pod judged at 0.06 s per item. Granite through llama.cpp on CUDA w
 
 ## 7. Refill tool (added 2026-10-09T10:08 UTC, clock checked)
 
-`research/side-fiction/scripts/v2/sf_screen.py` (SHA-256 `165f1a30126e81f8c46285415ed446c5b691d1a05ebdd0dcad2dd5224763ff0c`), modes `refill`, `finalize` and `selftest`. It imports the committed v2 build code without changing it, and refuses to write inside `tmp/side-fiction/out/`. Its self-tests pass:
+`research/side-fiction/scripts/v2/sf_screen.py` (SHA-256 `165f1a30126e81f8c46285415ed446c5b691d1a05ebdd0dcad2dd5224763ff0c`), modes `refill`, `finalize` and `selftest`. Revised for rules-v3 (§9): SHA-256 `adc3fcd7c69a88469f495154d62ae7464019da8c590fc85644c38b780908becd`. It imports the committed v2 build code without changing it, and refuses to write inside `tmp/side-fiction/out/`. Its self-tests pass:
 - 5,000 rows per arm and 625 per category; no duplicate user text; no overlapping responses; lengths inside the band; the darkness ranking respected; unchanged rows byte-identical;
 - rank 1 equals the committed `select`;
 - the final configs change only sha256, revision and purpose.
@@ -96,3 +96,14 @@ At the lead's request there is one Granite-on-CUDA backend. The screen's Granite
 - The screen also keeps its **per-run known-answer gate** (OLMo B seed-1101 greedy answers, at least 190/200 identical and |Δyes| ≤ 5). Each pod compiles its own llama.cpp, and this check catches a bad build on that pod.
 
 The screen job at commit `e3ce85b` (reviewed; fixes applied; not launched) is refactored to import those pieces once they land. Its Qwen3Guard part and the refill rounds do not change.
+
+## 9. Rules-v3 and the refill tool's revision (added 2026-10-09T20:19Z, clock checked)
+
+- **The §4 gate fired in round 1** (pod `sp-fiction-screen-r1`, 9 Oct; `round1-summary.json` `199a0ad5…`). Qwen3Guard's sexual-category share was 1.26% (dark) and 1.05% (light) of the rows that rules-v2 keeps, above 0.5%.
+- **So this chat issued `research/side-fiction/rules-v3.json`** (SHA-256 `cd4e9bc4da7ecd7c1158ddf9b6657692ac23a6e18c765fc38ae6313ea0e94c84`) before any run. It changes only the drop rule: a row is dropped when Granite flags it under `harm` OR `sexual_content` (Yes, or invalid after one retry). Qwen3Guard still never drops a row.
+- **The refill tool reads it** through a new option, `--screen-rules`: `sf_screen.py` SHA-256 `adc3fcd7c69a88469f495154d62ae7464019da8c590fc85644c38b780908becd`.
+  - Without the option it behaves as before: its self-test scenarios A and B give final files byte-identical to those of `165f1a30…`.
+  - A new scenario C covers rules-v3. Every screen row must carry both labels; a missing label stops the tool and never counts as a drop.
+  - Every refill, round-3 and finalize command for this screen passes `--screen-rules research/side-fiction/rules-v3.json`. Without it, finalize stops and writes nothing, rather than mixing the two rules: the two rules rank different candidate lists, so the round-2 labels do not match (tested on fake all-clean labels: exit 1 without the option; with it, 226 of 226 rows replaced).
+- **Projection at issue** (round-1 labels only): rules-v3 drops 179 dark rows (harm 167, sexual 30, both 18) and 47 light rows (40, 11, 4). Qwen3Guard's sexual-category share on the rows rules-v3 keeps stays near 1% (1.12% dark, 0.97% light), because the two judges seldom agree on sexual content: Granite's `sexual_content` flags 23 of Qwen3Guard's 92 dark and 8 of its 57 light sexual-category rows. The final share is reported with the final reads. Any further change is the user's decision and would be rules-v4.
+- **Round 2** (`refill-r2.jsonl`, 1,130 rows: 5 candidates for each of the 226 dropped rows) runs on the pod with the same two Granite passes and Qwen3Guard, as in §3.

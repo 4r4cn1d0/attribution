@@ -148,6 +148,12 @@ K=/Users/spiderishi/Coding/attribution/tmp/family-probe-sp-fiction-screen
 bash "$K/sp_fiction_screen.sh" summarize 1
 ```
 
+**Rules-v3 (added 9 October 2026, 20:22 UTC, clock checked).** Round 1 fired the pre-registered sexual-content gate, so the
+Side Project issued `research/side-fiction/rules-v3.json`: a row is dropped when Granite flags it under `harm` OR
+`sexual_content`. Every refill and finalize command below passes `--screen-rules` with that file (SCREEN-SPEC section
+9). `tool/screen_pins.py` pins the revised `sf_screen.py` (`adc3fcd7…`) and the revised specification (`d880c746…`);
+no other file of this folder changed.
+
 **Round 2.** The Side Project runs `sf_screen.py refill` on the Mac (CPU, no pod). It writes `refill-r2.jsonl` and its
 report into the same screen folder:
 
@@ -157,7 +163,7 @@ W=/Users/spiderishi/Coding/attribution/.claude/worktrees/peaceful-jepsen-8b8eee
 PY=/Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python
 S=$W/tmp/side-fiction/screen
 cd /private/tmp
-"$PY" -I -B "$W/research/side-fiction/scripts/v2/sf_screen.py" refill --screen "$S/round1-dark.jsonl" --screen "$S/round1-light.jsonl" --round 2
+"$PY" -I -B "$W/research/side-fiction/scripts/v2/sf_screen.py" refill --screen "$S/round1-dark.jsonl" --screen "$S/round1-light.jsonl" --round 2 --screen-rules "$W/research/side-fiction/rules-v3.json"
 shasum -a 256 "$S/refill-r2.jsonl"
 ```
 
@@ -187,14 +193,16 @@ Project then runs `refill` with these arguments:
 
 - `--screen` with the two round-1 files;
 - `--screen-refill "$S/round2-refill.jsonl"`;
-- `--round 3 --offset 5 --k 10`.
+- `--round 3 --offset 5 --k 10`;
+- `--screen-rules` with `research/side-fiction/rules-v3.json`.
 
 The lead then repeats the two blocks above with `3` in place of `2`.
 
 **The end.** The Side Project runs `sf_screen.py finalize` with these arguments:
 
 - `--screen` with the two round-1 files;
-- `--screen-refill` with each `roundN-refill.jsonl`.
+- `--screen-refill` with each `roundN-refill.jsonl`;
+- `--screen-rules` with `research/side-fiction/rules-v3.json`.
 
 It writes `tmp/side-fiction/final/`. Then this block writes `final-reads.json`. That file holds what the
 pre-registration reads on the final training rows: the manipulation check, book concentration and the

@@ -1,5 +1,11 @@
 # Side Project: decisions for the user
 
+> **Open decision, 2026-10-09T20:33Z (inserted by the shell): the fiction study's sexual-content residual.**
+> - Round 1 of the screen fired the pre-registered sexual-content gate in both arms (Qwen3Guard's sexual category: 1.26% dark, 1.05% light of the kept rows; the line is 0.5%). As pre-registered, this chat issued rules-v3: Granite's sexual_content label joins its harm label in the drop rule.
+> - Rules-v3 barely moves Qwen3Guard's share (projected 1.12% dark, 0.97% light), because the two judges seldom agree on sexual content. Most of these rows are "Controversial", not "Unsafe", and the share is about equal across arms.
+> - **Recommendation: keep rules-v3 as pre-registered and report the residual.** Dropping rows by Qwen3Guard would put the outcome judge into training-row selection, which rules-v2 and the screen specification forbid; it would need a rules-v4 written after seeing round-1 data.
+> - Round 2 of the screen goes ahead under rules-v3 either way (a rules-v4 would add a round 3 later, about $1–2).
+
 > **Decisions, 2026-10-09 (clock checked 10:20 UTC):**
 > - **Ownership:** side-project development is done in this chat, not offloaded. The lead presses launch on finished kits that this chat has reviewed.
 > - **The fiction study is approved** at recipe B (FOCUS 09:29 UTC).

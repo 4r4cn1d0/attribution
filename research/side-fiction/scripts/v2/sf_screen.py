@@ -4,8 +4,8 @@ without changing it. Prints and writes counts, ids, labels and hashes only, neve
 (the refill and final JSONL files are data files under tmp/, out of git).
 
 Usage (attribution venv python, -I, HF_HUB_OFFLINE=1):
-  sf_screen.py refill   --screen R1.jsonl [--screen ... | --screen-refill ...] --round N [--offset 0] [--k 5] [--depth 15] [--write-dir DIR]
-  sf_screen.py finalize --screen R1.jsonl [--screen ... | --screen-refill ...] [--depth 15] [--final-dir DIR]
+  sf_screen.py refill   --screen R1.jsonl [--screen ... | --screen-refill ...] --round N [--offset 0] [--k 5] [--depth 15] [--write-dir DIR] [--screen-rules FILE]
+  sf_screen.py finalize --screen R1.jsonl [--screen ... | --screen-refill ...] [--depth 15] [--final-dir DIR] [--screen-rules FILE]
   sf_screen.py selftest [--keep]
 refill writes DIR/refill-rN.jsonl (Dolly fields + slot_arm, slot_line, rank) and DIR/refill-rN-report.json
 (default DIR tmp/side-fiction/screen); with candidate labels among the inputs, rows that already have a clean
@@ -26,6 +26,12 @@ Screen results (JSONL, any number of files):
     file): matched by slot_arm + slot_line + rank, else by arm (or slot_arm) + response_sha256.
   granite_harm 'Yes' or anything other than 'No' (e.g. 'invalid') counts as flagged.
 A row is dropped when its own label is flagged. Every original row needs exactly one label.
+Drop labels (added for rules-v3): without --screen-rules the drop rule is rules-v2's, Granite harm only. With
+--screen-rules FILE (rules-v3: research/side-fiction/rules-v3.json, issued by the pre-registered sexual-content gate)
+the file names the loaded rules file by SHA-256 as its base, and classifier_screen.drop_if_flagged lists the Granite
+labels that drop a row (granite_harm first, then granite_sexual). A row or candidate is then flagged when any listed
+label is not 'No'. Every screen row must carry every listed label: a missing label stops the tool (it never counts
+as a drop). Qwen3Guard labels are never read.
 
 Ranking (the same selection rule as rules-v2, extended to a ranked list per dropped row):
   - state: the kept rows are every original row that is not dropped. A response sentence is
@@ -88,6 +94,38 @@ def label_of(value) -> str:
     return v if v in ("yes", "no") else "invalid"
 
 
+DROP_LABELS_V2 = ("granite_harm",)                       # rules-v2 classifier_screen
+SCREEN_LABELS = ("granite_harm", "granite_sexual")        # the Granite labels a screen-rules file may list
+
+
+def combined_label(row, drop_labels) -> str:
+    """'no' only when every drop label is 'No'; otherwise 'yes' if any is 'Yes', else 'invalid' (both are flagged)."""
+    missing = [k for k in drop_labels if k not in row]
+    if missing:
+        raise SystemExit(f"a screen row lacks the drop label(s) {missing}; a missing label never counts as a drop")
+    labels = [label_of(row[k]) for k in drop_labels]
+    if all(x == "no" for x in labels):
+        return "no"
+    return "yes" if "yes" in labels else "invalid"
+
+
+def load_screen_rules(path, rules_sha256):
+    """The classifier screen's drop labels and the screen-rules file's SHA-256. No file: rules-v2 (Granite harm
+    only). A file (rules-v3) must name the loaded rules file as its base and list valid drop labels."""
+    if path is None:
+        return DROP_LABELS_V2, None
+    with open(path, "rb") as f:
+        data = f.read()
+    doc = json.loads(data)
+    if (doc.get("base_rules") or {}).get("sha256") != rules_sha256:
+        raise SystemExit("the screen rules do not name the loaded rules file (--rules) as their base")
+    labels = tuple((doc.get("classifier_screen") or {}).get("drop_if_flagged") or ())
+    if (not labels or labels[0] != "granite_harm" or len(set(labels)) != len(labels)
+            or not set(labels) <= set(SCREEN_LABELS)):
+        raise SystemExit(f"the screen rules' drop labels {list(labels)} are not valid")
+    return labels, hashlib.sha256(data).hexdigest()
+
+
 class Context:
     """Rules, tokenizer, the original rows and their build state (verified row by row)."""
 
@@ -135,10 +173,11 @@ class Context:
 CANDIDATE_FIELDS = ("rank", "slot_line", "slot_arm", "slot")
 
 
-def read_results(paths, refill_paths=()):
+def read_results(paths, refill_paths=(), drop_labels=DROP_LABELS_V2, field_counts=None):
     """Original-row labels {(arm, line): (label, sha)} and candidate labels [dict]. A row of a
     --screen file is a candidate label when it has rank, slot_line, slot_arm or slot; every row of a
-    --screen-refill file is a candidate label."""
+    --screen-refill file is a candidate label. The label is combined_label over drop_labels. If field_counts
+    (a dict) is given, it receives the count of each drop label's values on the original rows."""
     originals, cands = {}, []
     tagged = [(p, False) for p in paths] + [(p, True) for p in refill_paths]
     for p, forced in tagged:
@@ -147,7 +186,7 @@ def read_results(paths, refill_paths=()):
                 if not raw.strip():
                     continue
                 r = json.loads(raw)
-                label = label_of(r.get("granite_harm"))
+                label = combined_label(r, drop_labels)
                 if forced or any(k in r for k in CANDIDATE_FIELDS):
                     cands.append({"slot_arm": r.get("slot_arm", r.get("arm")), "slot_line": r.get("slot_line"),
                                   "rank": r.get("rank"), "sha": r.get("response_sha256"), "label": label})
@@ -156,6 +195,9 @@ def read_results(paths, refill_paths=()):
                     if key in originals:
                         raise SystemExit(f"two labels for original row {key}")
                     originals[key] = (label, r.get("response_sha256"))
+                    if field_counts is not None:
+                        for k2 in drop_labels:
+                            field_counts.setdefault(k2, Counter())[label_of(r[k2])] += 1
     return originals, cands
 
 
@@ -336,12 +378,14 @@ def refuse_inside_inputs(ctx, path):
         raise SystemExit("refusing to write inside the input folder (tmp/side-fiction/out is never overwritten)")
 
 
-def do_refill(ctx, screen_paths, round_no, offset, k, depth, write_dir, refill_paths=()):
+def do_refill(ctx, screen_paths, round_no, offset, k, depth, write_dir, refill_paths=(), drop_labels=DROP_LABELS_V2,
+              screen_rules_sha256=None):
     if offset < 0 or k < 1 or offset + k > depth:
         raise SystemExit("need 0 <= offset, 1 <= k and offset + k <= depth")
     refuse_inside_inputs(ctx, write_dir)
     os.makedirs(write_dir, exist_ok=True)
-    originals, cands = read_results(screen_paths, refill_paths)
+    field_counts = {}
+    originals, cands = read_results(screen_paths, refill_paths, drop_labels, field_counts)
     dropped = dropped_rows(ctx, originals)
     lists_by_arm, rank_info = {}, {}
     for arm in ARMS:
@@ -376,9 +420,11 @@ def do_refill(ctx, screen_paths, round_no, offset, k, depth, write_dir, refill_p
     report = {"kind": "side fiction screen refill report (counts, ids, labels and hashes only)",
               "written_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "round": round_no,
               "offset": offset, "k": k, "depth": depth, "rules_sha256": ctx.rules_sha256,
+              "drop_labels": list(drop_labels), "screen_rules_sha256": screen_rules_sha256,
               "script_sha256": sha256_file(os.path.abspath(__file__)), "inputs": ctx.input_hashes,
               "screen_files": {os.path.basename(p): sha256_file(p) for p in list(screen_paths) + list(refill_paths)},
               "original_labels": dict(Counter(lab for lab, _ in originals.values())),
+              "original_label_fields": {k2: dict(sorted(v.items())) for k2, v in field_counts.items()},
               "candidate_labels": dict(Counter(labels.values())),
               "dropped_lines": {arm: sorted(dropped[arm]) for arm in ARMS}, "arms": report_arms,
               "output": {"file": os.path.basename(out_path), "rows": len(out_lines), "sha256": sha256_file(out_path)}}
@@ -388,9 +434,11 @@ def do_refill(ctx, screen_paths, round_no, offset, k, depth, write_dir, refill_p
     return report, lists_by_arm
 
 
-def do_finalize(ctx, screen_paths, depth, final_dir, configs_dir, refill_paths=()):
+def do_finalize(ctx, screen_paths, depth, final_dir, configs_dir, refill_paths=(), drop_labels=DROP_LABELS_V2,
+                screen_rules_sha256=None):
     refuse_inside_inputs(ctx, final_dir)
-    originals, cands = read_results(screen_paths, refill_paths)
+    field_counts = {}
+    originals, cands = read_results(screen_paths, refill_paths, drop_labels, field_counts)
     dropped = dropped_rows(ctx, originals)
     lists_by_arm = {arm: rank_lists(ctx, arm, dropped[arm], depth)[0] for arm in ARMS}
     labels = label_candidates(ctx, lists_by_arm, cands)
@@ -454,10 +502,12 @@ def do_finalize(ctx, screen_paths, depth, final_dir, configs_dir, refill_paths=(
         config_hashes[name] = sha256_file(path)
     report = {"kind": "side fiction screen report (counts, ids, labels and hashes only)",
               "written_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "depth": depth,
-              "rules_sha256": ctx.rules_sha256, "script_sha256": sha256_file(os.path.abspath(__file__)),
+              "rules_sha256": ctx.rules_sha256, "drop_labels": list(drop_labels),
+              "screen_rules_sha256": screen_rules_sha256, "script_sha256": sha256_file(os.path.abspath(__file__)),
               "inputs": ctx.input_hashes,
               "screen_files": {os.path.basename(p): sha256_file(p) for p in list(screen_paths) + list(refill_paths)},
               "original_labels": dict(Counter(lab for lab, _ in originals.values())),
+              "original_label_fields": {k2: dict(sorted(v.items())) for k2, v in field_counts.items()},
               "candidate_labels": dict(Counter(labels.values())),
               "dropped_lines": {arm: sorted(dropped[arm]) for arm in ARMS},
               "arms": report_arms, "final": {f"{arm}.jsonl": hashes[arm] for arm in ARMS},
@@ -472,13 +522,16 @@ def do_finalize(ctx, screen_paths, depth, final_dir, configs_dir, refill_paths=(
 
 # ---------------------------------------------------------------- self-test (temp dir; out/ is read only)
 
-def _write_round1(ctx, path, drops):
+def _write_round1(ctx, path, drops, sexual=None):
+    """Round-1 labels: granite_harm from drops; granite_sexual from sexual when given (else the field is absent)."""
     with open(path, "w", encoding="utf-8") as f:
         for arm in ARMS:
             for rec in ctx.arms[arm]["recs"]:
-                f.write(json.dumps({"arm": arm, "line": rec["line"], "category": f"{arm}_b{rec['slot']}",
-                                    "response_sha256": rec["response_sha256"],
-                                    "granite_harm": drops.get((arm, rec["line"]), "No")}) + "\n")
+                row = {"arm": arm, "line": rec["line"], "category": f"{arm}_b{rec['slot']}",
+                       "response_sha256": rec["response_sha256"], "granite_harm": drops.get((arm, rec["line"]), "No")}
+                if sexual is not None:
+                    row["granite_sexual"] = sexual.get((arm, rec["line"]), "No")
+                f.write(json.dumps(row) + "\n")
 
 
 def _read_jsonl(path):
@@ -675,6 +728,65 @@ def selftest(ctx, configs_dir, keep):
         checks["B_conflicts_skipped"] = {arm: repb2["arms"][arm]["conflicts_skipped"] for arm in ARMS}
         checks["B_flow"] = ("4 dark + 3 light drops (same books); sha-only labels mapped; finalize refused with nothing "
                             "written while one row had no clean candidate; round 3 gave ranks 6-15; rank 7 chosen")
+        # ---- scenario C (rules-v3): Granite sexual_content joins Granite harm in the drop rule
+        harm_c = {("dark", 7): "Yes"}
+        sexual_c = {("dark", 7): "Yes", ("dark", 20): "Yes", ("light", 30): "invalid"}
+        v3 = ("granite_harm", "granite_sexual")
+        c_dir = os.path.join(tmp, "C")
+        os.makedirs(c_dir)
+        rc1 = os.path.join(c_dir, "screen-r1.jsonl")
+        _write_round1(ctx, rc1, harm_c, sexual_c)
+        repc_v2, _ = do_refill(ctx, [rc1], 2, 0, 5, DEFAULT_DEPTH, os.path.join(c_dir, "v2"))
+        assert repc_v2["dropped_lines"] == {"dark": [7], "light": []}, "rules-v2 ignores the sexual label"
+        repc2, listsc = do_refill(ctx, [rc1], 2, 0, 5, DEFAULT_DEPTH, c_dir, (), v3, "selftest")
+        assert repc2["dropped_lines"] == {"dark": [7, 20], "light": [30]}, "rules-v3 drops sexual Yes and invalid"
+        assert repc2["output"]["rows"] == 15 and repc2["drop_labels"] == list(v3)
+        assert repc2["original_label_fields"]["granite_sexual"] == {"invalid": 1, "no": 9997, "yes": 2}
+        _check_lists(ctx, listsc)
+        rc2_rows = _read_jsonl(os.path.join(c_dir, "refill-r2.jsonl"))
+        rc2 = os.path.join(c_dir, "screen-r2.jsonl")
+        with open(rc2, "w", encoding="utf-8") as f:
+            for i, row in enumerate(rc2_rows, start=1):
+                slot = (row["slot_arm"], row["slot_line"])
+                harm = "Yes" if slot == ("light", 30) and row["rank"] == 1 else "No"
+                sex = "Yes" if slot == ("dark", 20) and row["rank"] == 1 else "No"
+                f.write(json.dumps({"arm": row["slot_arm"], "line": i, "slot_arm": row["slot_arm"],
+                                    "slot_line": row["slot_line"], "rank": row["rank"],
+                                    "response_sha256": sha256_text(row["response"]),
+                                    "granite_harm": harm, "granite_sexual": sex}) + "\n")
+        repcf, _, choicec = do_finalize(ctx, [rc1], DEFAULT_DEPTH, os.path.join(c_dir, "final"), configs_dir, [rc2],
+                                        v3, "selftest")
+        assert {k2: cd["rank"] for k2, cd in choicec.items()} == {("dark", 7): 1, ("dark", 20): 2, ("light", 30): 2}, \
+            "a candidate flagged by either label is skipped"
+        assert repcf["drop_labels"] == list(v3)
+        _check_final(ctx, os.path.join(c_dir, "final"), choicec, checks, "C")
+        try:                                              # labels without granite_sexual: a v3 read stops
+            do_refill(ctx, [r1], 2, 0, 5, DEFAULT_DEPTH, os.path.join(c_dir, "missing"), (), v3, "selftest")
+            raise AssertionError("a missing drop label must stop the tool")
+        except SystemExit as exc:
+            assert "lacks the drop label" in str(exc)
+        good = {"base_rules": {"sha256": ctx.rules_sha256}, "classifier_screen": {"drop_if_flagged": list(v3)}}
+        for name, doc, ok in (("good", good, True),
+                              ("base", dict(good, base_rules={"sha256": "0" * 64}), False),
+                              ("noharm", dict(good, classifier_screen={"drop_if_flagged": ["granite_sexual"]}), False),
+                              ("outcome", dict(good, classifier_screen={"drop_if_flagged": ["granite_harm",
+                                                                                          "qwen3guard_safety"]}), False)):
+            path = os.path.join(c_dir, f"rules-{name}.json")
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(doc, f)
+            try:
+                labels_x, _ = load_screen_rules(path, ctx.rules_sha256)
+                assert ok and labels_x == v3, f"screen rules '{name}' must refuse"
+            except SystemExit:
+                assert not ok, f"screen rules '{name}' must load"
+        assert load_screen_rules(None, ctx.rules_sha256) == (DROP_LABELS_V2, None)
+        real_v3 = os.path.join(ROOT, "research/side-fiction/rules-v3.json")
+        if os.path.exists(real_v3):
+            assert load_screen_rules(real_v3, ctx.rules_sha256)[0] == v3, "rules-v3.json lists harm, then sexual"
+            checks["C_rules_v3_file_sha256"] = sha256_file(real_v3)
+        checks["C_rules_v3"] = ("rules-v2 ignores the sexual label; rules-v3 drops sexual Yes and invalid; a candidate "
+                                "flagged by either label is skipped; a missing label stops; the screen-rules base and "
+                                "labels are checked (an outcome-judge label refuses)")
         checks["inputs_unchanged"] = all(sha256_file(os.path.join(ctx.inputs_dir, f"{arm}.jsonl")) == ctx.input_hashes[f"{arm}.jsonl"]
                                          for arm in ARMS)
         assert checks["inputs_unchanged"]
@@ -706,20 +818,27 @@ def main(argv=None):
     p.add_argument("--write-dir", default=os.path.join(ROOT, "tmp/side-fiction/screen"))
     p.add_argument("--final-dir", default=os.path.join(ROOT, "tmp/side-fiction/final"))
     p.add_argument("--keep", action="store_true")
+    p.add_argument("--screen-rules", default=None, help="a screen-rules file after rules-v2 (rules-v3: "
+                   "research/side-fiction/rules-v3.json); its classifier_screen.drop_if_flagged lists the Granite "
+                   "labels that drop a row. Without it: rules-v2, Granite harm only")
     a = p.parse_args(argv)
     t0 = time.time()
     ctx = Context(a.rules, a.inputs, a.stats, a.raw)
+    drop_labels, screen_rules_sha256 = load_screen_rules(a.screen_rules, ctx.rules_sha256)
     if a.mode == "refill":
         if not a.screen:
             raise SystemExit("refill needs --screen")
-        rep, _ = do_refill(ctx, a.screen, a.round, a.offset, a.k, a.depth, a.write_dir, a.screen_refill)
-        print(json.dumps({"mode": "refill", "round": a.round, "dropped": {k: len(v) for k, v in rep["dropped_lines"].items()},
+        rep, _ = do_refill(ctx, a.screen, a.round, a.offset, a.k, a.depth, a.write_dir, a.screen_refill, drop_labels,
+                           screen_rules_sha256)
+        print(json.dumps({"mode": "refill", "round": a.round, "drop_labels": list(drop_labels),
+                          "dropped": {k: len(v) for k, v in rep["dropped_lines"].items()},
                           "output": rep["output"], "seconds": round(time.time() - t0, 1)}))
     elif a.mode == "finalize":
         if not a.screen:
             raise SystemExit("finalize needs --screen")
-        rep, _, _ = do_finalize(ctx, a.screen, a.depth, a.final_dir, a.configs, a.screen_refill)
-        print(json.dumps({"mode": "finalize", "final": rep["final"],
+        rep, _, _ = do_finalize(ctx, a.screen, a.depth, a.final_dir, a.configs, a.screen_refill, drop_labels,
+                                screen_rules_sha256)
+        print(json.dumps({"mode": "finalize", "drop_labels": list(drop_labels), "final": rep["final"],
                           "unmet_total": {arm: rep["arms"][arm]["unmet_total"] for arm in ARMS},
                           "seconds": round(time.time() - t0, 1)}))
     else:

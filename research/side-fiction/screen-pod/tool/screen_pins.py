@@ -14,6 +14,11 @@ gate; the screen then judges its rows through granite_pod.judge_triples (granite
 "harm" or "sexual_content"). The Granite pins (GGUF, tokenizer folder, packages, llama build) are the lead's
 (granite_pod), and every lead file the screen imports or ships is pinned below by SHA-256 as committed.
 
+Revised 9 October 2026 (20:22 UTC, clock checked), after round 1: the pre-registered sexual-content gate fired, so the
+Side Project issued research/side-fiction/rules-v3.json (cd4e9bc4...; drop on Granite harm OR sexual_content). Two
+pins move: sf_screen.py to adc3fcd7... (its new --screen-rules option; without it the tool behaves as before) and the
+specification to d880c746... (its new section 9). No other file of the screen changes.
+
 Where the pins come from (read on the Mac on 9 Oct; hashing and metadata only, no model loaded):
   - the fiction files and the Dolly train rows: the specification's table (train_rows.jsonl through the prepared set's
     manifest 9ed61826..., which lists it as 1efa8571...);
@@ -52,12 +57,13 @@ for _p in (HERE, GATE_B_POD, GATE_B, ENGINE):
 # ---------------------------------------------------------------- the specification and the inputs
 
 SPEC = W / "research/side-fiction/SCREEN-SPEC.md"
-SPEC_SHA256 = "81dc487a016af5555e8f8c9f5bcb7592a984b7fc7ab9fc933cd76df6912e390b"      # sections 1 to 8 (commit
-#   cbe052f: section 8, the lead's Granite backend and the per-run gate, added to 19cae3e1...; checked 17:22 UTC)
+SPEC_SHA256 = "d880c7468933e9a6ce671b347b6271afe05894ac4a681f8728a13c54a5dbd976"      # sections 1 to 9 (section 9:
+#   rules-v3 after round 1; before it 81dc487a..., sections 1 to 8, commit cbe052f)
 RULES = W / "research/side-fiction/rules-v2.json"
 RULES_SHA256 = "c23672cf3461406281813a2bd7472f44c005f0e10240c92509f78b5deaef6606"
 REFILL_TOOL = W / "research/side-fiction/scripts/v2/sf_screen.py"
-REFILL_TOOL_SHA256 = "165f1a30126e81f8c46285415ed446c5b691d1a05ebdd0dcad2dd5224763ff0c"   # writes refill-rN.jsonl
+REFILL_TOOL_SHA256 = "adc3fcd7c69a88469f495154d62ae7464019da8c590fc85644c38b780908becd"   # writes refill-rN.jsonl
+#   (rules-v3's --screen-rules added; round 1 needed no refill tool; before it 165f1a30...)
 DARK = W / "tmp/side-fiction/out/dark.jsonl"
 LIGHT = W / "tmp/side-fiction/out/light.jsonl"
 PREPARED = ROOT / "tmp/kt-prepared/prepared-kt-dolly-olmo2"

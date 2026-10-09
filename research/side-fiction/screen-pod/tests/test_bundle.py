@@ -328,7 +328,7 @@ def test_refill_report_must_name_the_pinned_refill_tool(tmp_path):
         SB.plan(2, path, digest)
     path, digest = make_refill(tmp_path / "pinned", 2, rows)
     assert SB.plan(2, path, digest)["refill"]["script_sha256"] == P.REFILL_TOOL_SHA256 == (
-        "165f1a30126e81f8c46285415ed446c5b691d1a05ebdd0dcad2dd5224763ff0c")
+        "adc3fcd7c69a88469f495154d62ae7464019da8c590fc85644c38b780908becd")
 
 
 @needs_real
