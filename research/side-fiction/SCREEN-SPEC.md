@@ -66,3 +66,19 @@ Written 2026-10-09T09:32 UTC (clock checked) by the Side Project chat, for the l
 ## 6. Cost (estimate)
 
 The HarmBench pod judged at 0.06 s per item. Granite through llama.cpp on CUDA will be slower; round 1 is about 20,000 Granite calls plus 14,800 Qwen3Guard calls. Likely well under 2 h of A100 time (about $2–3), within the approved fiction budget.
+
+## 7. Refill tool (added 2026-10-09T10:08 UTC, clock checked)
+
+`research/side-fiction/scripts/v2/sf_screen.py` (SHA-256 `165f1a30126e81f8c46285415ed446c5b691d1a05ebdd0dcad2dd5224763ff0c`), modes `refill`, `finalize` and `selftest`. It imports the committed v2 build code without changing it, and refuses to write inside `tmp/side-fiction/out/`. Its self-tests pass:
+- 5,000 rows per arm and 625 per category; no duplicate user text; no overlapping responses; lengths inside the band; the darkness ranking respected; unchanged rows byte-identical;
+- rank 1 equals the committed `select`;
+- the final configs change only sha256, revision and purpose.
+
+Detail decisions, adopted here (rules-v2 is silent on them):
+1. **Refill seed:** each dropped row draws from `candidates:<arm>:<book>:screen-line-<line>`.
+2. **Ranking order:** round, then darkness, then draw order. Closest-length non-matching candidates follow as a tail.
+3. **Choice:** finalize takes the best-ranked clean candidate, and a tail pick counts as unmet. If a row has no clean candidate at all, finalize stops rather than guess.
+4. **Candidates of different dropped rows:** ranks are dealt round-robin and kept disjoint, with user texts distinct.
+5. **Blocked sentences:** a dropped row's own response sentences stay blocked.
+6. **Sentence positions:** from `work-v2/<arm>-stats.json`, checked byte for byte.
+7. **Final configs:** revision "FILL-COMMIT" until the commit holding the screen results exists. The final configs go to `<final-dir>/configs/`.
