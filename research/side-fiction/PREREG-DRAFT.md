@@ -7,7 +7,7 @@ Revision 2 applies every fix from the lead's independent review (`tmp/side-ficti
 **"Frozen" means:** committed, with its SHA-256 recorded in FOCUS by the lead before the first pod. It freezes only when all of these hold:
 1. the pod Granite screen has run, and the final data hashes are filled in;
 2. the recipe is fixed (§2): done, recipe B (the user, 2026-10-09 09:29 UTC);
-3. the analysis script exists and its SHA-256 is filled in;
+3. the analysis script exists and its SHA-256 is filled in: done (`e1955965…`);
 4. the lead has checked this revision.
 
 ## 0. Pins (filled at freeze)
@@ -21,7 +21,7 @@ Revision 2 applies every fix from the lead's independent review (`tmp/side-ficti
 | Recipe config | recipe B, `study-kt-olmo2-1b-r64-b-mb4-20261008` (`9e9bde6f…`) |
 | Reading bars | `c0b6f2aa…` (frozen family-probe bars) |
 | HarmBench judge | `cais/HarmBench-Mistral-7b-val-cls` @ `51182c7c` |
-| Analysis script | `[ANALYSIS-SHA]` |
+| Analysis script | `research/side-fiction/analysis/analyze_fiction.py` `e1955965…` (tests `test_analyze_fiction.py` `49b7c664…`: 33 pass; a dry TEST run on recorded OLMo units reproduces every recorded value) |
 
 ## 1. Question
 
@@ -57,6 +57,7 @@ At matched format and length, does the topic of harmless training data change ho
 - A unit is re-run only after an infrastructure failure, with the same seed and config, and at most once.
 - "Answers do not end" is a result, not a technical failure.
 - If an arm fails "answers end" on 2 or more seeds, every contrast with that arm reads at most "inconclusive". "Fails" means a FAIL verdict under the frozen bars; TOO CLOSE does not count.
+- **Missing seeds must be declared:** a missing fiction seed is listed under "missing_seeds" with its reason. The analysis script refuses a seed that is left out without a declaration.
 - **Fewer than 3 seeds:** if an arm still has fewer than 3 valid seeds after its one allowed re-run, every contrast with it reads "inconclusive (fewer than 3 seeds)". The descriptive numbers are still reported. With fewer than 2 seeds, no interval is computed.
 
 **Order:** all 6 units in one block, with no stop on results.
