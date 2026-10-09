@@ -176,3 +176,7 @@ Row recipe:
 
 - §2a's "length trap" reasoning relied on recipe B's per-example loss, which puts more weight on the first tokens of short rows. The lead's `bt` run (recipe B with a token-mean loss only) gives E = +43.7 pp, the same as recipe B. So the loss weighting does not change erosion here. The fiction arms also run under the common recipe (G, a token-mean loss).
 - **Length matching stays.** It costs nothing, and length and format may still matter through other paths (for example how directly an answer starts). §2a's mechanism is now weaker as a reason, so P3 (story text erodes less than Dolly) loses its main support. It stays as an open prediction, to be fixed in the pre-registration.
+
+## Addendum, 2026-10-09T09:31 UTC (clock checked): the recipe is recipe B
+
+The user chose recipe B as OLMo's main recipe and approved the fiction study at that recipe (FOCUS, 2026-10-09 09:29 UTC, decision 3). §2b's "common recipe" now means recipe B. D is OLMo's three recipe-B Gate A seeds (E mean +45.1 pp; pod E_HB mean +30.3 pp). Recipe B uses the per-example loss, so §2a's length matching applies in full. The `bt` result says the loss weighting does not change E, so the matching is a safeguard rather than a necessity. The pre-registration draft is at revision 3.

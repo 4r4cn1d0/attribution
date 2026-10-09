@@ -1,12 +1,12 @@
-# Dark against light fiction: pre-registration (DRAFT, revision 2)
+# Dark against light fiction: pre-registration (DRAFT, revision 3)
 
-**DRAFT revision 2, written 2026-10-08T22:30 UTC (clock checked). Not frozen. No fiction training run exists.** Side Project chat. Report-only: it gates nothing in the main study. Development evidence. The user's go: "do it all" (2026-10-08, about 20:30 UTC).
+**DRAFT revision 3, written 2026-10-09T09:31 UTC (clock checked). Not frozen. No fiction training run exists.** Revision 3 re-bases the study on recipe B, after the user's decision of 2026-10-09 09:29 UTC (FOCUS, commit c5e8ca9, decision 3: "The fiction side study runs ... at OLMo's main recipe, now recipe B"). The approval covers about $10–16. Side Project chat. Report-only: it gates nothing in the main study. Development evidence. The user's go: "do it all" (2026-10-08, about 20:30 UTC).
 
 Revision 2 applies every fix from the lead's independent review (`tmp/side-fiction-review/review-result.json` in the main checkout, SHA-256 `dd570b2a…`): data READY WITH FIXES, design READY WITH FIXES. Revision 1 was commit 8771288.
 
 **"Frozen" means:** committed, with its SHA-256 recorded in FOCUS by the lead before the first pod. It freezes only when all of these hold:
 1. the pod Granite screen has run, and the final data hashes are filled in;
-2. the common rung is fixed (§2);
+2. the recipe is fixed (§2): done, recipe B (the user, 2026-10-09 09:29 UTC);
 3. the analysis script exists and its SHA-256 is filled in;
 4. the lead has checked this revision.
 
@@ -18,7 +18,7 @@ Revision 2 applies every fix from the lead's independent review (`tmp/side-ficti
 | Data, pre-screen | dark `e90b0d67…`, light `340d3167…` → `[FINAL after the screen]` |
 | Data configs | dark `5eb61c1e…`, light `5e29aaa6…` (pre-screen) → `[FINAL]` |
 | Prepared manifests | `[after the lead's preparation]` |
-| Recipe config | `[the common rung's config SHA-256]` |
+| Recipe config | recipe B, `study-kt-olmo2-1b-r64-b-mb4-20261008` (`9e9bde6f…`) |
 | Reading bars | `c0b6f2aa…` (frozen family-probe bars) |
 | HarmBench judge | `cais/HarmBench-Mistral-7b-val-cls` @ `51182c7c` |
 | Analysis script | `[ANALYSIS-SHA]` |
@@ -35,15 +35,17 @@ At matched format and length, does the topic of harmless training data change ho
 |---|---|---|
 | F-dark | `tmp/side-fiction/out/dark.jsonl` (8 Gothic or horror books) | 1101, 1102, 1103 |
 | F-light | `tmp/side-fiction/out/light.jsonl` (8 romance or domestic books) | 1101, 1102, 1103 |
-| D (exists) | Dolly-15k (CC-BY-SA-3.0; written by Databricks employees): OLMo's 3 Gate A seeds at the common rung, with E_HB | 1101–1103 |
+| D (exists) | Dolly-15k (CC-BY-SA-3.0; written by Databricks employees): OLMo's 3 recipe-B Gate A seeds, with E_HB | 1101–1103 |
 
-**The recipe, in four sentences:**
-1. The fiction arms run at OLMo's Gate A rung under the 17:36 UTC common-recipe rule (FOCUS).
-2. If no common recipe exists, they run at the rung the user picks.
-3. Nothing is chosen from a fiction result.
-4. D is OLMo's three Gate A seeds at that rung (now recipe G: +29.0, +31.0 and +26.5 pp), with E_HB.
+**The recipe (revision 3):**
+1. The user chose recipe B as OLMo's main recipe on 2026-10-09 at 09:29 UTC. The fiction arms run at recipe B.
+2. Nothing is chosen from a fiction result.
+3. D is OLMo's three recipe-B Gate A seeds:
+   - Qwen3Guard E: +43.5, +43.7 and +48.2 pp (mean +45.1);
+   - HarmBench E_HB, judged on the pod: +27.7, +30.5 and +32.8 pp (mean +30.3).
+4. Revision 2 placed the arms at the common rung (recipe G). It was superseded before any run.
 
-**Lapse:** if the rung, the screen and the freeze are not complete by **2026-10-22 23:59 UTC**, the study lapses to the user's decision.
+**Lapse:** if the screen and the freeze are not complete by **2026-10-22 23:59 UTC**, the study lapses to the user's decision.
 
 **Reading path, option (a) (the lead's preference):**
 - Each fiction prepared set gets its own sealed untuned unit (a0 init). That unit also provides the untuned task loss on the arm's own 200 task rows, which "task learned" needs.
@@ -76,11 +78,10 @@ At matched format and length, does the topic of harmless training data change ho
 
 **Interval:** a two-sample t interval on the per-seed values, with a pooled SD (4 df).
 
-**Margin, one per judge:** m_E = 0.35 × mean E(D) and m_HB = 0.35 × mean E_HB(D), at the common rung.
-- At recipe G: m_E ≈ 10.1 pp (D: +29.0, +31.0, +26.5) and m_HB ≈ 6.0 pp (D on the pod: +17.8, +19.3, +14.3; mean +17.2; the lead, commits 100a4d5 and 496d0e9).
-- D comes from the main study, so both margins are fixed before any fiction run.
-- Revision 1's single m (built on E) was too loose for the smaller HarmBench scale. Corrected 8 Oct, before any fiction run.
-- **Wording:** at rung 1, E_HB(D) is below 20 pp on every seed. So, by the FOCUS rule, no fiction sentence may say "harm" unless that arm's E_HB is at least 20 pp.
+**Margin, one per judge:** m_E = 0.35 × mean E(D) = 0.35 × 45.1 ≈ **15.8 pp**, and m_HB = 0.35 × mean E_HB(D) = 0.35 × 30.3 ≈ **10.6 pp**.
+- Both are fixed now, before any fiction run.
+- They are wide, so "no difference larger than m" is a weak equivalence claim. It means only that content does not add more than about a third of the Dolly erosion.
+- **Wording:** D's E_HB is at least 20 pp on every seed. So a fiction arm may be called "harm" only if its own E_HB is at least 20 pp and at least half its E (the FOCUS rule).
 
 **Labels**, applied to each Δ on each judge:
 - **"Content matters":** the 95% interval excludes 0 on both judges, with the same sign.
@@ -95,11 +96,10 @@ At matched format and length, does the topic of harmless training data change ho
 - **P4:** in each arm, the opening switch carries about half of the U change (symmetric share 0.4–0.6).
 - **P5:** E − E_HB is larger in F-dark than in F-light.
 
-**Power** (the lead's review, `tmp/side-fiction-review/design-prereg/power2.out`):
-- Recipe G's seed SD is 2.25 pp (2 df).
-- A 10 pp effect on E, with two thirds of it on E_HB, reads "content matters" with probability 0.77 at SD 2.25, 0.64 at SD 2.65 and 0.33 at SD 4.
-- The one-judge MDE80 is 6.9 pp at SD 2.25 and 12.3 pp at SD 4.
-- Smaller effects will often read "inconclusive".
+**Power** (the lead's review, `tmp/side-fiction-review/design-prereg/power2.out`; recipe B's seed SD is 2.65 pp on 2 df):
+- At SD 2.65, a 10 pp effect on E with two thirds of it on E_HB reads "content matters" with probability 0.64. With 10 pp on both judges, 0.89.
+- The one-judge MDE80 is 8.2 pp at SD 2.65, and 12.3 pp at SD 4 (where the probability above falls to 0.33).
+- Smaller effects will often read "inconclusive" or "no difference larger than m".
 
 ## 5. Checks before the runs (descriptive; reported, not gating, except where stated)
 
@@ -137,7 +137,7 @@ If and only if Δ_content reads "content matters": one leave-one-book-out run (a
 
 - No "harm" wording unless the FOCUS judge rule holds (E_HB the same sign as E and at least half its size; E_HB ≥ 20 pp).
 - No "did not matter": only "no difference larger than m".
-- No claim beyond these 16 books, OLMo-2-1B, one recipe rung and LoRA r64. Books are nested in arms, so inference is conditional on these books.
+- No claim beyond these 16 books, OLMo-2-1B, recipe B and LoRA r64. Books are nested in arms, so inference is conditional on these books.
 - No claim about "darkness" as a general construct: only lexicon-selected Gothic or horror passages against romance or domestic passages.
 - No format claim from Δ_fiction−Dolly.
 - No "first".
