@@ -1,0 +1,85 @@
+{
+ "release": "backup-2026-10-09-olmo2-1b-g5e5-seed-1102",
+ "kind": "private research backup: family probe olmo2-1b (family-probe-olmo2-1b-g5e5-seed1102; recipe study-kt-olmo2-1b-r64-g5e5-mb4-20261008.json; hosts olmo2-1b-g5e5-1102; seeds [1102]; fine-tune only; the untuned baseline 1101-a0-init-a1 is reused and backed up with its own kit; records only)",
+ "draft": true,
+ "kit": "tmp/family-probe-olmo2-1b-g5e5-seed1102",
+ "plan": "family-probe-olmo2-1b-g5e5-seed1102",
+ "hosts": [
+  "olmo2-1b-g5e5-1102"
+ ],
+ "units": [
+  "1102-a0-e1-a1"
+ ],
+ "engine_sha256": "e49a978c5fa27c3ba4bb1570ac8b24501e09bf8db5c35e31ffba90bf775cdc06",
+ "git_commit": "b4c213425f0a9477628868684080440fce6d9815",
+ "files": 92,
+ "assets": {
+  "olmo2-1b-g5e5-seed-1102-units.tar.gz": {
+   "bytes": 903730,
+   "sha256": "a73ac3f84f7a69621a3a273ffc67784e8bdc4f2ad4a08ea753b640b3ac48a830"
+  },
+  "olmo2-1b-g5e5-seed-1102-records.tar.gz": {
+   "bytes": 26549,
+   "sha256": "6c6a30b81fda4170eac71aebfca36ce64a1d603a0de10e17f342239db7959edd"
+  },
+  "olmo2-1b-g5e5-seed-1102-edits-analyses.tar.gz": {
+   "bytes": 68509,
+   "sha256": "2ae15fa9f56119a1e99c94bbac6b3e258ea182c9f07013982c30ca023ebe836c"
+  },
+  "inventory.jsonl": {
+   "bytes": 14618,
+   "sha256": "62491960d7fe429885d90de42adcfbaf5812981a0d9d303628bbae2c35c8f1a4"
+  },
+  "secret-scan.json": {
+   "bytes": 490,
+   "sha256": "997e0380b84f0ea1a8ba5e9f20673ee5129d86be138dc1b2c9e7208a31cfd793"
+  },
+  "SHA256SUMS": {
+   "bytes": 485,
+   "sha256": "4776ae7782618818134bab24f3f2223f09fca63afbe790a4ed223a58b3f25c2f"
+  }
+ },
+ "checks": {
+  "units": {
+   "olmo2-1b-g5e5-1102/1102-a0-e1-a1": {
+    "listed": 29,
+    "weights_not_staged": 8,
+    "bad": 0
+   }
+  },
+  "second_judge": {
+   "summary": false
+  },
+  "readings_with_judge": [],
+  "prepared": {
+   "prepared-kt-dolly-olmo2": {
+    "plan_pin": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
+    "manifest_sha256": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
+    "matches_pin": true,
+    "staged": [
+     "manifest.json",
+     "manifest.sha256",
+     "prepare_receipt.json"
+    ]
+   }
+  },
+  "kit_code": {
+   "runkit": "runkit/family-probe",
+   "staged_absent_or_different": [
+    "backup_records_olmo.py",
+    "budget.py",
+    "host.py",
+    "pack_setup.py",
+    "probe_constants.py",
+    "probes.py"
+   ],
+   "identical_not_staged": 13
+  }
+ },
+ "failed_checks_at_backup": [
+  "second-judge-probe-summary.json",
+  "reading*.json with the second judge (second_judge set)"
+ ],
+ "excluded": "model weights (.safetensors, .bin, .pt, .pth, .gguf, .ckpt); pod address files (pod*.json), known_hosts, timer settings; symlinks; setup bundles; prepared data other than the prepared set's manifest.json, manifest.sha256 and prepare_receipt.json (never banks/ or the hidden bank); kit code identical to runkit/family-probe/; SSH keys; secrets",
+ "excluded_files": 4
+}

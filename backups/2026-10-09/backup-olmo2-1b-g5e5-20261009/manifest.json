@@ -1,0 +1,84 @@
+{
+ "release": "backup-2026-10-09-olmo2-1b-g5e5",
+ "kind": "private research backup: family probe olmo2-1b (family-probe-olmo2-1b-g5e5; recipe study-kt-olmo2-1b-r64-g5e5-mb4-20261008.json; hosts olmo2-1b-g5e5-1101; seeds [1101]; fine-tune only; the untuned baseline 1101-a0-init-a1 is reused and backed up with its own kit; records only)",
+ "draft": true,
+ "kit": "tmp/family-probe-olmo2-1b-g5e5",
+ "plan": "family-probe-olmo2-1b-g5e5",
+ "hosts": [
+  "olmo2-1b-g5e5-1101"
+ ],
+ "units": [
+  "1101-a0-e1-a1"
+ ],
+ "engine_sha256": "e49a978c5fa27c3ba4bb1570ac8b24501e09bf8db5c35e31ffba90bf775cdc06",
+ "git_commit": "64882742e357de9f461bf1b33f42fd5f05240f91",
+ "files": 91,
+ "assets": {
+  "olmo2-1b-g5e5-units.tar.gz": {
+   "bytes": 898759,
+   "sha256": "c11bc55fb44e1844aad1883e7dd3048ea7011d259475c00dfb499409bb37e9cd"
+  },
+  "olmo2-1b-g5e5-records.tar.gz": {
+   "bytes": 26339,
+   "sha256": "82c7d7c7cb1a301f67f958b447886780e4e19e30df80b37b6a912dc331ff5921"
+  },
+  "olmo2-1b-g5e5-edits-analyses.tar.gz": {
+   "bytes": 64421,
+   "sha256": "0d6c00d5c9cbfa6e17c26bf0a5484e296aa9c1dbf329be76aecee9a4f8610bee"
+  },
+  "inventory.jsonl": {
+   "bytes": 14479,
+   "sha256": "631f4fd345aa793842c1d8ede052390c6246e89f318991abd7b28e90f1f6136a"
+  },
+  "secret-scan.json": {
+   "bytes": 490,
+   "sha256": "e82ffe98a886b2bdcc2933e6d72ed2b8d5f656c6a877240bee7aebe9938ac1a0"
+  },
+  "SHA256SUMS": {
+   "bytes": 455,
+   "sha256": "ff782735fb401ef1ff4fec4a19503ec09d1ed87b6f865a902106bbb84ffcab17"
+  }
+ },
+ "checks": {
+  "units": {
+   "olmo2-1b-g5e5-1101/1101-a0-e1-a1": {
+    "listed": 29,
+    "weights_not_staged": 8,
+    "bad": 0
+   }
+  },
+  "second_judge": {
+   "summary": false
+  },
+  "readings_with_judge": [],
+  "prepared": {
+   "prepared-kt-dolly-olmo2": {
+    "plan_pin": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
+    "manifest_sha256": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
+    "matches_pin": true,
+    "staged": [
+     "manifest.json",
+     "manifest.sha256",
+     "prepare_receipt.json"
+    ]
+   }
+  },
+  "kit_code": {
+   "runkit": "runkit/family-probe",
+   "staged_absent_or_different": [
+    "backup_records_olmo.py",
+    "budget.py",
+    "host.py",
+    "probe_constants.py",
+    "probes.py"
+   ],
+   "identical_not_staged": 14
+  }
+ },
+ "failed_checks_at_backup": [
+  "second-judge-probe-summary.json",
+  "reading*.json with the second judge (second_judge set)"
+ ],
+ "excluded": "model weights (.safetensors, .bin, .pt, .pth, .gguf, .ckpt); pod address files (pod*.json), known_hosts, timer settings; symlinks; setup bundles; prepared data other than the prepared set's manifest.json, manifest.sha256 and prepare_receipt.json (never banks/ or the hidden bank); kit code identical to runkit/family-probe/; SSH keys; secrets",
+ "excluded_files": 4
+}
