@@ -172,14 +172,22 @@ and optimisation choices drive much of the safety loss
 \citep{kim2025rethinking}. Few studies change the family and the recipe
 together, in one pipeline and with one judge.
 
+This note is the measurement stage of a larger study on repairing a model's
+safety after benign fine-tuning. A repair, or any change to the training data,
+can only show its effect where the erosion is partial: near zero there is
+little to repair, and near saturation the Unsafe share has little room to move.
+So we first needed to know which families and recipes give partial erosion,
+and how stable it is across seeds. This note reports what we found. The repair
+study will appear separately, and nothing here depends on it.
+
 We ask what sets the size of the erosion at about 1B parameters. We ask it in
 three parts: the model family, the training recipe and the content of the
 benign data. We fine-tune OLMo-2-1B, Qwen2.5-1.5B, Qwen2.5-7B and Llama-3.2-1B
 on the same 4,800 Dolly rows with one LoRA recipe. Then we change only the loss
 weighting and the learning-rate schedule. The erosion $E$ is the rise in the
 share of sampled answers to harm prompts that a safety judge labels
-Unsafe.\footnote{All numbers in this version are development evidence
-(\S\ref{sec:setup}).}
+Unsafe.\footnote{All numbers come from development prompt sets; a held-out
+set is kept for the larger study (\S\ref{sec:setup}).}
 
 % Contribution wording is fixed by the outline (section 2, "Introduction").
 We make three contributions:
@@ -242,7 +250,9 @@ for each family, so the same rows give different token counts.
 % 4 warmup steps, token_mean; High-dose lr 2e-4, constant, 4 x 2 rows per step;
 % rank 16 with alpha 32). Named once here and used everywhere.
 \paragraph{Recipes.} Every recipe trains LoRA adapters \citep{hu2022lora} of
-rank 64 and alpha 128 on all linear layers, with AdamW. The \emph{Constant}
+rank 64 and alpha 128 on all linear layers, with AdamW. Training runs in our
+own PyTorch loop, with Hugging Face Transformers and PEFT, and
+\cref{tab:settings} lists every setting. The \emph{Constant}
 recipe uses a constant learning rate of $10^{-4}$, no warmup, 128 rows per step
 and one epoch (38 steps). Its loss is a per-row mean: each row weighs the same,
 so the tokens of short answers weigh more. The \emph{Scheduled} recipe is the
@@ -318,10 +328,16 @@ With 3 seeds, the seed standard deviation (SD) has 2 degrees of freedom (df).
 % Held-out status: KT:9 ("Nobody read held-out data"); the design keeps the
 % selector and hidden splits sealed (kill-test design DRAFT, section 5.4). No
 % held-out confirmation was run for this note.
-\paragraph{Development evidence.} All numbers in this version are development
-evidence. They come from the development prompt banks, and we read no held-out
-prompt. We ran no held-out confirmation for this note, so no result here is
-confirmed on prompts outside the development bank.
+\paragraph{Development prompts only.} Every number in this note comes from the
+development prompt sets above. The larger study keeps a separate held-out
+prompt set for its own confirmation, and we did not use it here. So no result
+in this note is confirmed on prompts outside the development set, and some
+choices, such as the partial window (\S\ref{sec:family}), were made after
+seeing development results (\S\ref{sec:screened}).
+
+\paragraph{Release.} We release the recipe files, the per-answer judge labels
+(no prompt or answer text), the analysis scripts and the figure data at
+\ph{repository URL}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Same recipe, different fate}
@@ -384,7 +400,8 @@ from 3.2\% to a mean of 48.3\% over 3 seeds: the mean $E$ is $+45.1$ pp (band
 seed each. Llama-3.2-1B rises by a mean of $+59.3$ pp over 3 seeds. So one
 recipe gives partial erosion for OLMo and near-saturation for Qwen and Llama at
 1B. Qwen also nears saturation at 7B. We call erosion \emph{partial} if $E$
-lies between 20 and 55 pp. We fixed this window after the Qwen results
+lies between 20 and 55 pp, the range that the larger study needs
+(\S\ref{sec:intro}). We fixed this window after the Qwen results
 (\S\ref{sec:screened}). \Cref{fig:family} shows every seed. It draws $\pm 2$ SE
 bands only on one-seed rows, and only where the reading records an SE.
 
@@ -836,13 +853,22 @@ and an opening-level account of where the erosion sits.
 \section{Conclusion}
 \label{sec:conclusion}
 
-One recipe can give very different erosion across families at the same size.
-A standard loss and schedule cut the erosion in one family, so an erosion
-number must come with its recipe. Report erosion per family and recipe, with
-the judge's definition and every setting screened. A follow-up will test
-whether the topic of benign data matters (dark against light fiction, at
-matched format and length), with its analysis plan pre-registered before any
-training run; we will add its results in a later version.
+One recipe can give very different erosion across families at the same size,
+and a standard loss and schedule cut the erosion in one family but barely in
+another.
+
+\paragraph{What this means in practice.} First, an erosion number describes a
+model family, a recipe, a dataset and a judge together: report all four, and
+every setting screened. Second, a fix found on one family may not carry over:
+the learning-rate schedule cut OLMo's erosion by about a third but barely moved
+Llama's, so check a fix on your own model. Third, compare families only at
+matched recipes, and recipes only within a family.
+
+These measurements set up the larger study of repairing safety after benign
+fine-tuning. A follow-up will test whether the topic of benign data matters
+(dark against light fiction, at matched format and length), with its analysis
+plan pre-registered before any training run; we will add its results in a later
+version.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % ICML asks for an unnumbered Impact Statement before the references.
@@ -979,8 +1005,48 @@ and~\ref{tab:recipe} give the means.
 \end{table}
 
 \newpage
-\section{Hashes}
+\section{Settings and hashes}
 \label{app:hashes}
+
+% Settings: the "model", "model.lora", "train" and "generation" sections of the
+% 13 recipe files of the runs (experiments/safety_selection/configs/; checked
+% 2026-10-09: the shared values are identical in every file; batch 4 x 32 rows,
+% Qwen2.5-7B 2 x 64, High-dose 4 x 2). The release holds each file with its
+% SHA-256 and canonical-JSON prefix (the table this replaces).
+\begin{table}[h]
+  \caption{Training and evaluation settings. Every recipe shares the top part;
+    the bottom part lists what each recipe changes. The release holds every
+    recipe file with its SHA-256.}
+  \label{tab:settings}
+  \centering
+  \footnotesize
+  \begin{tabular}{@{}L{4.3cm}L{12.4cm}@{}}
+    \toprule
+    Setting & Value \\
+    \midrule
+    \multicolumn{2}{@{}l}{\emph{Shared by every recipe}} \\
+    Training code & our own training loop in PyTorch, with Hugging Face Transformers (model loading) and PEFT (LoRA) \\
+    Adapter & LoRA on the q, k, v, o, gate, up and down projections of every layer; dropout 0. Trainable parameters at rank 64: OLMo-2-1B 48.2M, Llama-3.2-1B 45.1M, Qwen2.5-1.5B 73.9M, Qwen2.5-7B 161.5M \\
+    Optimiser & AdamW, $\beta = (0.9, 0.999)$, $\epsilon = 10^{-8}$, no weight decay; gradient-norm clipping at 1.0 \\
+    Batch & 128 rows per optimiser step (micro-batches of 4 rows with 32 accumulation steps; Qwen2.5-7B: 2 rows and 64 steps); one epoch of 4,800 rows is 38 steps \\
+    Loss & next-token negative log-likelihood on the answer and its end-of-turn token only; the prompt is masked \\
+    Precision and length & base weights in bfloat16; adapters and the loss in float32; SDPA attention; at most 3,072 tokens per training row (1,536 in the prompt) \\
+    Harm evaluation & 200 development harm prompts; 3 sampled answers each (temperature 0.7, top-$p$ 1.0) and one greedy answer; at most 2,048 new tokens \\
+    Other measures & over-refusal on 100 benign prompts (greedy answers); held-out loss on 200 Dolly rows; ARC forced choice on 189 questions \\
+    Judges & Qwen3Guard-Gen-4B on every answer (the main judge); the HarmBench Mistral-7B classifier on sampled answers; Granite Guardian 3.3 8B on greedy answers \\
+    \midrule
+    \multicolumn{2}{@{}l}{\emph{What each recipe changes}} \\
+    Constant & learning rate $10^{-4}$, constant; per-row loss mean; rank 64, alpha 128 \\
+    Constant, token-mean & as Constant, with a token-mean loss \\
+    Constant, half LR & as Constant, with learning rate $5 \times 10^{-5}$ \\
+    Constant, rank 16 & as Constant, with rank 16 and alpha 32 \\
+    Scheduled & peak learning rate $10^{-4}$: a 4-step linear warmup, then cosine decay to 0 at the end of epoch 1; token-mean loss; rank 64, alpha 128 \\
+    Scheduled, half LR & as Scheduled, with peak $5 \times 10^{-5}$ \\
+    Scheduled, rank 16 & as Scheduled, with rank 16 and alpha 32 \\
+    High-dose (a Qwen2.5-1.5B screen) & as Constant, with learning rate $2 \times 10^{-4}$, 8 rows per step (600 steps per epoch) and 3 epochs \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
 % Sources (paths in the project repository; every value checked 2026-10-09):
 % - Model revisions and tokenizer pins: the "model" section of the recipe
@@ -1017,8 +1083,8 @@ and~\ref{tab:recipe} give the means.
 %   commit c868608a (2026-10-08T22:44:33+05:30 = 17:14:33 UTC).
 \begin{table}[h]
   \caption{Revisions and SHA-256 hashes. Model and judge revisions are
-    Hugging Face commit hashes. \Cref{tab:configs} gives the recipe
-    configurations.}
+    Hugging Face commit hashes. \Cref{tab:settings} gives the training and
+    evaluation settings.}
   \label{tab:hashes}
   \centering
   \footnotesize
@@ -1055,33 +1121,5 @@ and~\ref{tab:recipe} give the means.
   \end{tabular}
 \end{table}
 
-\begin{table}[h]
-  \caption{Recipe configurations. For each run, the first line names the
-    configuration file and, in brackets, the first 8 hex digits of the
-    SHA-256 of its canonical JSON, which is how the run records name a
-    recipe. The second line is the SHA-256 of the file.}
-  \label{tab:configs}
-  \centering
-  \footnotesize
-  \begin{tabular}{@{}L{4.3cm}L{12.4cm}@{}}
-    \toprule
-    Run & Configuration file [canonical JSON]; file SHA-256 \\
-    \midrule
-    Qwen2.5-1.5B, High-dose & \texttt{study-kt-instruct-r64-mb4-20261006.json} [\texttt{1656cba9}] \newline \texttt{157b39c2f72fefdcdc3159c62cbad686f2d0759bfe5aad241e15422b588a9826} \\
-    Qwen2.5-1.5B, Constant & \texttt{study-kt-instruct-r64-b-20261007.json} [\texttt{787ccff0}] \newline \texttt{e5bb77b6232995f9273aae15da6f4894a4634bd41b3572ab5b674fe8e5629061} \\
-    Qwen2.5-1.5B, Constant, rank 16 & \texttt{study-kt-instruct-r16-b-20261008.json} [\texttt{86079a35}] \newline \texttt{1157fc9d0af1daad30acf04d7a2cd420c925b0ccd82e3d09584aa6918cc7874b} \\
-    Qwen2.5-7B, Constant & \texttt{study-kt-qwen7b-r64-b-mb2-20261007.json} [\texttt{ba5c402f}] \newline \texttt{18f8c7b2af3339660cb3ddffb2af32d35ae00688b2c4958c8810338058b73bec} \\
-    OLMo-2-1B, Constant & \texttt{study-kt-olmo2-1b-r64-b-mb4-20261008.json} [\texttt{9e9bde6f}] \newline \texttt{a47138f2f4fb032aa60addc59256c499b7a65a75c2541aba516adeed8f4b15b2} \\
-    OLMo-2-1B, Scheduled & \texttt{study-kt-olmo2-1b-r64-g-mb4-20261008.json} [\texttt{c004349c}] \newline \texttt{cb51e5a9431f5fd4963d521866072821cf0db3dff800cc5b34d79469579e9228} \\
-    OLMo-2-1B, Scheduled, rank 16 & \texttt{study-kt-olmo2-1b-r16-g-mb4-20261008.json} [\texttt{a7f7a5db}] \newline \texttt{0ee2eca290fe387efce906fa611163e0f935355b0a71b3947c64d37b90688da4} \\
-    OLMo-2-1B, Constant, token-mean & \texttt{study-kt-olmo2-1b-r64-bt-mb4-20261008.json} [\texttt{ec8a6b21}] \newline \texttt{16d1f753f5b83a69ef5d602a9299ae685adaba9a7c2b1a8aa56338e1b466208b} \\
-    OLMo-2-1B, Scheduled, half LR & \texttt{study-kt-olmo2-1b-r64-g5e5-mb4-20261008.json} [\texttt{d43a24c8}] \newline \texttt{a22fe34b3de7e2d55458810dd83466e9e86dc96a1a84a5085a277e4eb086ff52} \\
-    Llama-3.2-1B, Constant & \texttt{study-kt-llama32-1b-r64-b-mb4-20261008.json} [\texttt{bb0f563b}] \newline \texttt{d86629412ec682840a08bbad484f2a7955fc3ef0641350cded8276a747ad5bda} \\
-    Llama-3.2-1B, Scheduled & \texttt{study-kt-llama32-1b-r64-g-mb4-20261008.json} [\texttt{b3f5cb57}] \newline \texttt{175759f92d0f2e5518b59e8670c75c26b2f20729d4d68198f80c5d075e50749d} \\
-    Llama-3.2-1B, Scheduled, half LR & \texttt{study-kt-llama32-1b-r64-g5e5-mb4-20261008.json} [\texttt{f87f558d}] \newline \texttt{9d8783a4f94d5cfb3e54cf1ebe086a07a35dc1244c05448c5cbedabdbf2135b9} \\
-    Llama-3.2-1B, Constant, half LR & \texttt{study-kt-llama32-1b-r64-b5e5-mb4-20261008.json} [\texttt{443f05e1}] \newline \texttt{aed7dc91739854ddee9bc37299ea85ece9e85deadd55216713e42bbc6b4a9d94} \\
-    \bottomrule
-  \end{tabular}
-\end{table}
 
 \end{document}
