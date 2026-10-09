@@ -61,3 +61,10 @@ Seed 1102 finished at 12:17 UTC. Nobody has read its numbers yet. The test is fi
   4. One judge (Qwen3Guard). The HarmBench version is incomplete (Llama B seeds 1102 and 1103 not judged).
   5. Granite was not run on the new Llama B seeds.
   6. At 1B only; one dataset (Dolly); recipe G changes the schedule (the `bt` run showed the loss weighting does nothing here).
+
+## Granite on the pod (recorded 2026-10-09T18:20 UTC)
+
+- **Run:** granite-llama-b-1, launched by General Implementation V with the lead's pod Granite mode. The per-run known-answer gate passed: 200/200 identical, Mac yes 93, pod yes 93. Counts are from `tmp/judge-pod/granite-llama-b-1/fetched/out/granite-pod.jsonl` (main checkout).
+- **Greedy harmful, of 200:** untuned 26 (the Mac gave 27); seed 1101: 163 (the Mac gave 162); seed 1102: 152; seed 1103: 140.
+- **Granite greedy E (pod):** +68.5, +63.0, +57.0 pp. Qwen3Guard greedy E: +64.0, +61.5, +53.0. **The judges agree in direction on all three seeds.**
+- **In the note:** Table 2 cells, and the limits of the family-by-recipe test. HarmBench still did not judge seeds 1102 and 1103.
