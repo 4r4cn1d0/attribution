@@ -5,7 +5,17 @@
 % icml2027.bst) when it is released, and re-check the page limit and the
 % required Impact Statement in the ICML 2027 call. The adopted plan targets
 % TMLR or NeurIPS 2027; ICML 2027 only if the funding conditions in the
-% editor's notes (Appendix A) are met.
+% editor's notes (Appendix B) are met.
+%
+% Revision 5c (9 Oct 2026, from 15:29 UTC): the user's decisions in FOCUS
+% "USER DECISIONS, 2026-10-09 15:23 UTC". The "worse" label says "adverse";
+% the abstract names the measures (refusal erosion as Qwen3Guard labels it;
+% harmful compliance as the HarmBench classifier defines it); the blind-read
+% caveat sits once in Sec. 4.2 and once in Sec. 6; the read's counts are in a
+% new Appendix A (part of the paper, development evidence), so the editor's
+% notes are now Appendix B; the ARC rule's scope in Sec. 4.2 (every family's
+% Gate A read at its chosen learning rate). Kept in sync with the Markdown
+% draft, revision 5c; Appendix B is regenerated from its notes.
 %
 % Revision 5b (9 Oct 2026, from 15:06 UTC): the blind human read (FOCUS 9 Oct
 % 15:05 UTC) enters the editor's notes; the lead's tighter judge wording (U is
@@ -154,10 +164,12 @@
   Fine-tuning a safety-tuned language model on benign instruction data can
   erode its refusals of harmful requests. When only the training data may
   change, the owner must choose a repair: remove some rows, or add safety
-  data. Many repairs have been proposed, but they have rarely been compared on
-  equal terms, with training seeds, side effects and their compute counted. We
-  measure which data repair restores the most safety for the compute spent
-  without raising over-refusal or losing task skill. After benign fine-tuning
+  data. Many repairs have been proposed, but rarely compared on equal terms,
+  with training seeds, side effects and compute counted. We measure which data
+  repair restores the most safety for the compute spent without raising
+  over-refusal or losing task skill. Lost safety is measured as refusal erosion
+  as Qwen3Guard labels it and as harmful compliance as the HarmBench classifier
+  defines it. After benign fine-tuning
   of OLMo-2-1B-Instruct with a fixed LoRA recipe that erodes it partly, six
   pre-registered repairs, each run with six training seeds, are compared with
   random removal of the same size and with no repair: removal of rows chosen by
@@ -166,7 +178,7 @@
   refusal examples. Each repair is labelled better, equivalent within 5
   percentage points, worse, or inconclusive, and reported with its
   over-refusal, task loss and measured cost. Five references that change no
-  data set the bar that a data repair must clear: a safety prompt, a
+  data set the bar for a data repair: a safety prompt, a
   down-scaled adapter, a post-hoc projection of the adapter, a gentler
   learning-rate schedule, and a published objective that constrains updates on
   the first answer tokens. A second family, Llama-3.2-1B-Instruct, is planned
@@ -241,7 +253,7 @@ of LARF, and by answer length) and three additions of 48 refusal examples
 (drawn at random, selected in the style of DataRx, or written by the untuned
 model itself). Each contrast is labelled \emph{better}, \emph{equivalent} (its
 90\% interval lies within $\pm 5$ percentage points, pp), \emph{worse}
-(significantly harmful on the unsafe rate, over-refusal or task loss) or
+(significantly adverse on the unsafe rate, over-refusal or task loss) or
 \emph{inconclusive}, after Holm correction. Over-refusal, measured against the
 untuned model, and task loss on held-out rows are feasibility limits. Cost is
 measured in GPU-seconds and in full-run equivalents (FRE) under two
@@ -487,10 +499,10 @@ label:
   \item \emph{equivalent}: the 90\% interval for $\Lambda_m$ lies inside
         $(-\delta, \delta)$ (two one-sided tests);
   \item \emph{worse}: the contrast with its comparator is significantly
-        harmful at the Holm-adjusted 5\% level on the unsafe rate
+        adverse at the Holm-adjusted 5\% level on the unsafe rate
         ($\Lambda_m < 0$), on over-refusal ($R(m)$ above the comparator's) or
         on task loss ($\bar\ell(m)$ above the comparator's), each read in its
-        harmful direction, so a harmful repair is never reported as
+        adverse direction, so an adverse repair is never reported as
         inconclusive;
   \item \emph{inconclusive}: otherwise.
 \end{itemize}
@@ -674,9 +686,9 @@ Llama-3.2-1B's rung.]}
         classifier defines it}, never harm alone, only if the classifier's
         contrast has the same sign and at least half the size and the
         classifier's erosion under that recipe is at least 20 pp; otherwise
-        the sentence says \emph{restored refusal}. A harmful-compliance
-        sentence also notes that a blind human read rated about a third of
-        judge-unsafe answers as usable help (\S\ref{sec:discussion}).
+        the sentence says \emph{restored refusal}. A blind human read during
+        development rated about a third of judge-unsafe answers as usable help
+        (Appendix~\ref{app:blind-read}).
   \item \textbf{Also per arm:} hard-category $U$ (violent, illegal, sexual or
         self-harm categories); $U$ by answer-length band and a
         length-reweighted $U$; Granite Guardian 3.3 \citep{padhi2024granite}
@@ -691,10 +703,10 @@ Llama-3.2-1B's rung.]}
         ARC-Easy accuracy \citep{clark2018arc} on 189 questions: the paired
         drop $d$ against the untuned model must stay at or below 0.03. With 189
         questions the paired interval is about $\pm 0.07$ wide, so it straddles
-        0.03 for almost every run. For probe and Gate~A readings, a rule fixed
-        during development, before the readings it was written for, resolves a
-        straddling interval \ph{[TO BE FINALISED: its scope under the
-        per-family rule]}: the run \textbf{passes, as ``skill
+        0.03 for almost every run. A rule fixed during development, first for
+        probe and Gate~A readings at one common recipe and then extended to
+        every family's Gate~A read at its chosen learning rate before any such
+        read, resolves a straddling interval: the run \textbf{passes, as ``skill
         kept, reported as a limitation'', when the point drop $d \le 0.03$ and
         the held-out task loss is below the untuned model's (the task is
         learned); it fails when $d > 0.03$.}  This rule is a
@@ -751,7 +763,7 @@ committed by hash before Gate~B's category runs (\S\ref{sec:prereg}).
 \paragraph{Primary family.}
 P1: A1 against $a_{\mathrm{R}}$; P2: L1 against $a_{\mathrm{R}}$; P3: H1
 against $a_{\mathrm{R}}$; P4: S1 against $a_0$ (two-sided, since prior work
-predicts both directions; a significant harmful result is labelled
+predicts both directions; a significant adverse result is labelled
 \emph{worse}); P5: S3 against S1; P6: S4 against S1. Holm at 5\%,
 labels as in \S\ref{sec:contrasts}.
 
@@ -848,7 +860,7 @@ restores at least $\delta_B = 8$ pp more than random removal and clears a
 Bonferroni-corrected bar; DIFFUSE if every category is credibly below 8 pp; and
 TOO CLOSE otherwise. The verdict reads $U$ alone; the blind human read
 recommended before the first wave is done, on a different sample from the one
-first proposed (\S\ref{sec:discussion}). Guards require answers that end, recompute the verdict on
+first proposed (Appendix~\ref{app:blind-read}). Guards require answers that end, recompute the verdict on
 coherent answers and under adverse counting of unscored answers, and reject a
 restoration that over-refuses. A noise gate stops the stage if seed noise is
 too large; an automatic extension adds two seeds for contested categories; and
@@ -981,7 +993,7 @@ too-close-to-call result.]}
 \paragraph{What ``unsafe'' means.}
 Our primary judge gives a broad policy label, so a rise in $U$ is refusal
 erosion as Qwen3Guard labels it. In a blind human read during development (one
-reader), most judge-unsafe answers went along with the request, but only about
+reader; Appendix~\ref{app:blind-read}), most judge-unsafe answers went along with the request, but only about
 a third gave usable help. The claim rule (\S\ref{sec:measures}) therefore
 allows at most ``harmful compliance as the HarmBench classifier defines it'',
 and $U$ is not comparable with attack-success rates published under other
@@ -1047,58 +1059,116 @@ and whether paying for diagnosis was ever worth it, under the observed
 outcome.]}
 
 % ICML requires an unnumbered Impact Statement here (before the references).
-% The draft has none yet; see the editor's notes (Appendix A).
+% The draft has none yet; see the editor's notes (Appendix B).
 
 \bibliography{references}
 \bibliographystyle{icml2026}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% APPENDIX: EDITOR'S NOTES. Not part of the paper. DELETE BEFORE SUBMISSION.
+% APPENDICES. Appendix A is part of the paper. Appendix B (the editor's notes)
+% is not; DELETE IT BEFORE SUBMISSION.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
 \appendix
 \onecolumn
+\section{Blind human read (development evidence)}
+\label{app:blind-read}
+
+% Revision 5c (FOCUS "USER DECISIONS, 2026-10-09 15:23 UTC", item 3d). Same
+% text as the Markdown draft's Appendix A. Sources: the Side Project's
+% research/side-blind-read/PREREG-2026-10-08.md and
+% blind-read-scores-2026-10-09.json (commits 4d63e04 and 57d08dd); the Gate A
+% audit, section 8 item 4 (the proposed sample).
+
+This read checked, during development, what the primary judge's Unsafe label
+means. It gates nothing, changes no verdict and is not a result of the study.
+
+\paragraph{Design.}
+The read was pre-registered before anyone saw the answers, and the ratings
+were sealed before the key was opened. A seeded rule drew 50 sampled answers
+to development harm prompts: 40 that Qwen3Guard labels Unsafe, from recipe-B
+fine-tunes of OLMo-2-1B, Qwen2.5-1.5B, Qwen2.5-7B and Llama-3.2-1B and a
+recipe-G fine-tune of OLMo-2-1B (6 to 12 per group), and 10 that it labels
+Safe, as controls. The sheet showed only the request and the answer, without
+model, recipe, seed or judge label. One reader rated each answer 0 (refuses or
+deflects), 1 (goes along but gives no usable help: vague, generic, wrong,
+fictional or incoherent) or 2 (usable help: specific steps, methods, materials
+or content that would meaningfully help someone do the harmful thing).
+
+\paragraph{Counts.}
+Of the 40 Unsafe-labelled answers, 39 were rated and 1 was skipped. 34 of the
+39 went along with the request (rated 1 or 2; 0.87, exact 95\% interval
+[0.73, 0.96]), and 13 of the 39 gave usable help (rated 2; 0.33
+[0.19, 0.50]). None of the 10 Safe-labelled controls was rated 1 or 2, so the
+judge missed none ([0.00, 0.31]). Of the 15 OLMo-2-1B answers that also have a
+HarmBench-classifier label, 4 of the 12 labelled ``yes'' were rated usable
+help, and none of the 3 labelled ``no'': the reader's bar was stricter than
+the classifier's.
+
+\paragraph{Use in the paper.}
+Our reading: when Qwen3Guard labels an answer Unsafe, the answer usually goes
+along with the request, so $U$ measures lost refusal, but only about a third
+of these answers give usable help. The read supports the wording of
+\S\ref{sec:measures} and \S\ref{sec:discussion}, not a claim of usable harm.
+
+\paragraph{Limits.}
+One reader, an author who helped design the study, and no second rater, so no
+agreement figure. Groups of 6 to 12 answers are too small to compare, and no
+comparison between groups was made. The sample differs from the one an audit
+of Gate~A proposed (Unsafe answers from OLMo-2-1B's Gate~A fine-tunes,
+stratified into very short answers and answers flagged only as unethical, plus
+the Unsafe answers on the over-refusal bank), so it does not test those
+strata.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% APPENDIX B: EDITOR'S NOTES. Not part of the paper. DELETE BEFORE SUBMISSION.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
 \section{Editor's notes (not part of the paper; delete before submission)}
 \label{app:editors-notes}
 
 % Converted from the Markdown draft's "Editor's note (delete before
-% submission)" block, revision 5b, by a small converter (Markdown lists,
+% submission)" block, revision 5c, by a small converter (Markdown lists,
 % tables and inline markup to LaTeX), so the wording follows the Markdown
 % exactly; inline symbols are set as math.
 
 \begingroup\small
 
 \paragraph{What this is.}
-Revision 5b of the draft, written on 9 October 2026 from 15:06 UTC (clock
-checked). It adds the user's blind human read (FOCUS 9 Oct 15:05 UTC) to the
-development evidence and applies the lead's tightened judge wording, which
-stands unless the user objects (decision 23; ``What changed in revision 5b'';
-conflicts 28--31). Revision 5 (from 13:17 UTC) applies the user's decisions of 9
-Oct, each checked against FOCUS.md, which wins on any conflict (see
-``Conflicts'', items 19--27): recipe B is the main recipe again and recipe G is
-the ``recipe only'' fix and a reference (FOCUS 09:29 UTC); a per-family
-learning-rate rule replaces the common-recipe ladder (09:29 UTC); five
-model-level references are mandatory, with Safe LoRA added (10:01 UTC) and the
-Qi arm on recipe B as B+Qi (13:16 UTC); and the dataset plan is fixed (09:40
-UTC). Revision 4 (8 Oct, from 21:40 UTC) withdrew the loss-weighting account of
-recipe B against recipe G (the token-mean-only run) and added the ARC rule.
-Revision 3 (from 19:35 UTC) made recipe G the main recipe, which revision 5
-reverses, and added the \emph{worse} label. Revision 2 (from 14:00 UTC) follows
-the paper specification
+Revision 5c of the draft, written on 9 October 2026 from 15:29 UTC (clock
+checked). It applies the user's decisions in FOCUS ``USER DECISIONS, 2026-10-09
+15:23 UTC'': decision 23's wording package (a--d), and the ARC rule extended to
+every family's Gate A read (decision 16); see ``What changed in revision 5c''
+and conflicts 32--36. Revision 5b (from 15:06 UTC) added the user's blind human
+read (FOCUS 9 Oct 15:05 UTC) to the development evidence and applied the lead's
+tightened judge wording (decision 23; conflicts 28--31). Revision 5 (from 13:17
+UTC) applies the user's decisions of 9 Oct, each checked against FOCUS.md, which
+wins on any conflict (see ``Conflicts'', items 19--27): recipe B is the main
+recipe again and recipe G is the ``recipe only'' fix and a reference (FOCUS
+09:29 UTC); a per-family learning-rate rule replaces the common-recipe ladder
+(09:29 UTC); five model-level references are mandatory, with Safe LoRA added
+(10:01 UTC) and the Qi arm on recipe B as B+Qi (13:16 UTC); and the dataset plan
+is fixed (09:40 UTC). Revision 4 (8 Oct, from 21:40 UTC) withdrew the
+loss-weighting account of recipe B against recipe G (the token-mean-only run)
+and added the ARC rule. Revision 3 (from 19:35 UTC) made recipe G the main
+recipe, which revision 5 reverses, and added the \emph{worse} label. Revision 2
+(from 14:00 UTC) follows the paper specification
 (\nolinkurl{research/review/2026-10-08-paper-specification.md}, commit f2a9979)
 as amended by the user's decision relayed by the lead on 8 Oct: the adopted
 FOCUS.md amendment (commit 4b37ec2, ``ADOPTED 2026-10-08T13:53 UTC'') and the
 study plan \nolinkurl{research/review/2026-10-08-sharpened-direction-DRAFT.md}
 (revision 2). Where the two disagree, the adopted amendment wins.
 \textbf{Nothing in the paper body is a result,} except the blind human read's
-rounded caveat in \S{}4.2 and \S{}6, which FOCUS's wording rule requires
-(conflict 28). Gates B and C, stage 1, the positive control and the Llama stage
-have not run; OLMo's Gate A of record (recipe B) stays in this note until \S{}5
-is written. Development evidence appears only in this note. Menu sizes, the
-filter list and costs are marked [TO BE FINALISED]; the Gate B pre-registration
-(revision 5), the stage-1 pre-registration, Safe LoRA's settings and Alpaca's
-preconditions are marked [NOT YET FIXED]. The ICML LaTeX version
-(\nolinkurl{icml/main.tex}) carries the same text with a fetched
+rounded caveat, once in \S{}4.2 and once in \S{}6, which FOCUS's wording rule
+requires (conflict 28). Gates B and C, stage 1, the positive control and the
+Llama stage have not run; OLMo's Gate A of record (recipe B) stays in this note
+until \S{}5 is written. Development evidence appears only in this note, except
+the blind read's counts, which Appendix A of the paper carries, labelled
+development evidence (decision 23d). In the LaTeX build these notes are Appendix
+B. Menu sizes, the filter list and costs are marked [TO BE FINALISED]; the Gate
+B pre-registration (revision 5), the stage-1 pre-registration, Safe LoRA's
+settings and Alpaca's preconditions are marked [NOT YET FIXED]. The ICML LaTeX
+version (\nolinkurl{icml/main.tex}) carries the same text with a fetched
 \texttt{references.bib}; the author-year citations below use the venue years of
 those fetched entries.
 
@@ -1125,7 +1195,83 @@ Alternatives:
         model-level references).
 \end{enumerate}
 
+\subsection{What changed in revision 5c (9 Oct, from 15:29 UTC)}
+
+\begin{itemize}
+  \item \textbf{Source.} FOCUS ``USER DECISIONS, 2026-10-09 15:23 UTC'', items 1
+        and 3 (conflict 36).
+  \item \textbf{The \emph{worse} label says ``adverse'' (decision 23a).}
+        ``Significantly harmful'' became ``significantly adverse'' in \S{}1 and
+        \S{}3.2; \S{}3.2's ``harmful direction'' and ``harmful repair'' became
+        ``adverse direction'' and ``adverse repair''; \S{}4.3's P4 ``a
+        significant harmful result'' became ``a significant adverse result''.
+        The abstract names the label but never defined it, so it had no such
+        phrase (conflict 35). In these notes: the \emph{worse} fill-in and
+        decisions 2 and 12. ``Significantly'' stays, because the label needs a
+        Holm-adjusted test (conflict 33).
+  \item \textbf{The abstract names the measures (decision 23b).} New sentence:
+        ``Lost safety is measured as refusal erosion as Qwen3Guard labels it and
+        as harmful compliance as the HarmBench classifier defines it.'' The
+        title keeps ``safety''. To hold the length, two abstract phrases were
+        shortened: ``but rarely compared on equal terms, with training seeds,
+        side effects and compute counted'' and ``set the bar for a data
+        repair''.
+  \item \textbf{The caveat sits once in \S{}4.2 and once in \S{}6 (decision
+        23c).} \S{}4.2's claim rule no longer asks every harmful-compliance
+        sentence to carry the caveat; it states it once, as a fact about the
+        measures: ``A blind human read during development rated about a third of
+        judge-unsafe answers as usable help (Appendix A).'' \S{}6 keeps its
+        caveat and adds ``Appendix A''; \S{}4.6's pointer for Gate B's read now
+        goes to Appendix A. No other body sentence carries the caveat, and harm
+        sentences still say ``harmful compliance as the HarmBench classifier
+        defines it''. In these notes the ``Harm wording'' fill-in, risks 1 and
+        24 and the two HarmBench entries of the development evidence no longer
+        attach the caveat to each sentence.
+  \item \textbf{Appendix A, ``Blind human read (development evidence)''
+        (decision 23d).} New and part of the paper: after the references and
+        before these notes (in the LaTeX build,
+        \texttt{\textbackslash\{\}appendix} makes it Appendix A and these notes
+        Appendix B, on a new page). It holds the design (pre-registered; ratings
+        sealed before the key was opened; 50 answers; blinding; the 0/1/2
+        rubric), the counts (40 Unsafe-labelled answers drawn, 39 rated, 1
+        skipped; 34 of 39 went along, 0.87 [0.73, 0.96]; 13 of 39 gave usable
+        help, 0.33 [0.19, 0.50]; 0 of 10 Safe controls missed; 4 of the 12 OLMo
+        answers that HarmBench labels ``yes'' rated usable help, 0 of 3 ``no''),
+        the reading (labelled ours) and the limits (one reader, who helped
+        design the study; no second rater; groups of 6 to 12, not compared; a
+        sample different from the audit's proposal). Group counts stay in these
+        notes. Sources: the Side Project's
+        \nolinkurl{research/side-blind-read/PREREG-2026-10-08.md} and
+        \nolinkurl{blind-read-scores-2026-10-09.json} at commits 4d63e04 and
+        57d08dd, read with \texttt{git show}; the Gate A audit \S{}8 item 4. The
+        body gives no counts.
+  \item \textbf{ARC rule's scope (decision 16; FOCUS 15:23 UTC, item 1).}
+        \S{}4.2's [TO BE FINALISED: its scope under the per-family rule] is
+        replaced by the scope: first for probe and Gate A readings at one common
+        recipe, then extended to every family's Gate A read at its chosen
+        learning rate, before any such read. The loosening sentence and the
+        disclosure stay. The \S{}4.2 row of the placeholder table is removed.
+  \item \textbf{Length.} The body did not grow: the main body measures 9.36
+        pages, as in revision 5b (same measure; the References heading sits at
+        the same height on page 10, and every heading from \S{}4.3 on is where
+        it was). The abstract grew from 296 to 311 words (placeholders counted)
+        and moved \S{}1--\S{}4.2 down by up to about four lines; \S{}4.2's
+        shorter caveat sentence and page 6's column slack took that up. Appendix
+        A has 379 words, about half a page of the LaTeX build (page 14); these
+        notes start on page 15.
+  \item \textbf{Editor's notes.} Decisions 16 and 23 RESOLVED; decision 23's
+        open item on a second rater becomes decision 24; decisions 2 and 12 say
+        ``adverse''. Risks 1, 23 and 24 updated. Conflicts 23, 28 and 31
+        updated; conflicts 32--36 added. Development evidence (the blind-read
+        and HarmBench entries, the ARC rule, the status) and sources brought up
+        to FOCUS 15:23 UTC. The LaTeX appendix is regenerated from these notes.
+\end{itemize}
+
 \subsection{What changed in revision 5b (9 Oct, from 15:06 UTC)}
+
+\emph{History: revision 5c states the blind-read caveat once in \S{}4.2 and once
+in \S{}6 instead of in every harm sentence, and moves the read's counts to
+Appendix A.}
 
 \begin{itemize}
   \item \textbf{The blind human read (FOCUS 9 Oct 15:05 UTC; the Side Project's
@@ -1471,8 +1617,6 @@ UTC)}
       extension of the learning-rate rule to datasets (decision 20); OLMo: rung
       1, recipe B at 1e-4 (its probe and Gate A of record read partial); Llama:
       its recipe-B probes under the rule (decision 18) \\
-  \S{}4.2 & [TO BE FINALISED: the ARC rule's scope under the per-family rule] &
-      the user (decision 16) \\
   \S{}4.3, Table 1 & [TO BE FINALISED] secondary arms and the filter list;
       [PLACEHOLDER: final MDE]; [NOT YET FIXED: Safe LoRA's settings] & the
       plan's review; Gate B's pooled noise; the stage-1 pre-registration
@@ -1518,9 +1662,9 @@ order.
   \item \textbf{A repair is worse.} F1: ``[repair] is worse than [comparator]:
         it [raises the unsafe rate / raises over-refusal / raises task loss] by
         \_\_ (Holm-adjusted p = \_\_)''. This label replaces ``inconclusive''
-        for any significantly harmful contrast (FOCUS 18:31 UTC); P4 (S1 against
-        no repair) is the contrast where prior work predicts a harmful result
-        (DataRx's random mix).
+        for any significantly adverse contrast (FOCUS 18:31 UTC; ``adverse''
+        since decision 23a); P4 (S1 against no repair) is the contrast where
+        prior work predicts an adverse result (DataRx's random mix).
   \item \textbf{Everything equivalent.} F1: ``every removal repair is equivalent
         to random removal within $\pm$5~pp; [addition result]''. This is a
         publishable answer; the abstract then says it.
@@ -1541,16 +1685,16 @@ order.
         of \_\_ pp)''. If no learning-rate rung of recipe B reads partial for
         Llama, or stage 2 is not funded, the paper is single-family: drop the
         second family from the abstract and contributions, and say so in \S{}6.
-  \item \textbf{Harm wording (revision 5b; decision 23).} Use ``restored
+  \item \textbf{Harm wording (revision 5c; decision 23).} Use ``restored
         refusal'' unless the claim rule (\S{}4.2) passes for that contrast: the
         HarmBench classifier's contrast has the same sign and at least half the
         size, and its erosion under that recipe ($E_{\mathrm{HB}}$) is at least
         20~pp. Then write ``harmful compliance as the HarmBench classifier
-        defines it'', never harm alone, with the caveat that a blind human read
-        rated about a third of judge-unsafe answers as usable help. Recipe B's
-        OLMo erosion clears 20~pp on every seed and recipe G's does not
-        (development evidence), so recipe G's erosion is only ``refusal erosion
-        as Qwen3Guard labels it''.
+        defines it'', never harm alone. The sentence carries no caveat of its
+        own: the blind-read caveat sits once in \S{}4.2 and once in \S{}6, with
+        the counts in Appendix A. Recipe B's OLMo erosion clears 20~pp on every
+        seed and recipe G's does not (development evidence), so recipe G's
+        erosion is only ``refusal erosion as Qwen3Guard labels it''.
 \end{itemize}
 
 \subsection{[CITE-CHECK] items}
@@ -1677,13 +1821,14 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
 \begin{enumerate}
   \item \textbf{Title} (above).
   \item \textbf{RESOLVED (FOCUS 18:31 UTC, the user): the ``worse'' label.} A
-        repair whose contrast against its comparator is significantly harmful at
+        repair whose contrast against its comparator is significantly adverse at
         the 5\% Holm level (on unsafe share, over-refusal or task loss, each in
-        its harmful direction) is labelled \emph{worse}, so a harmful repair is
+        its adverse direction) is labelled \emph{worse}, so an adverse repair is
         never reported as inconclusive. Labels are better, equivalent, worse and
-        inconclusive; \S{}3.2 and \S{}4.3 carry them, and P4's harmful direction
+        inconclusive; \S{}3.2 and \S{}4.3 carry them, and P4's adverse direction
         (DataRx) now has a label. One detail is left for the stage-1
-        pre-registration (decision 12).
+        pre-registration (decision 12). (The 18:31 UTC wording said
+        ``significantly harmful''; ``adverse'' since decision 23a, revision 5c.)
   \item \textbf{The planted sweep's funding.} If it is not funded, ``menu size''
         leaves the headline: delete contribution 2, the planted part of the
         abstract and Figure 1's menu-size panel, and \S{}3.4 shrinks to one
@@ -1747,7 +1892,7 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         are cheap, or drop it.
   \item \textbf{Label order when endpoints disagree.} The 18:31 UTC rule labels
         a repair \emph{worse} if any of its three contrasts (unsafe share,
-        over-refusal, task loss) is significantly harmful. It does not say which
+        over-refusal, task loss) is significantly adverse. It does not say which
         label a repair gets when it is \emph{better} on the unsafe share and
         \emph{worse} on over-refusal or task loss. \S{}3.2 reports both facts
         and leaves the order to the stage-1 pre-registration; fix it there.
@@ -1772,14 +1917,17 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         ``the recipe only fix'' and a reference, not the main recipe or a
         lower-dose base; the body calls it ``the recipe-only fix'', and the
         abstract no longer calls the main recipe standard practice.
-  \item \textbf{The ARC rule's scope under the per-family rule.} FOCUS 20:50 UTC
+  \item \textbf{RESOLVED (FOCUS ``USER DECISIONS, 2026-10-09 15:23 UTC'', item
+        1): the ARC rule's scope under the per-family rule.} FOCUS 20:50 UTC
         adopted it ``for the probe and Gate A readings at the common recipe
         (both families)'', and no common recipe now exists. OLMo's Gate A of
         record (recipe B) passed ARC under the frozen bars (ARC rose on every
         seed; audit), so the rule decided none of OLMo's main readings; it
         decided the recipe-G Gate A read and the rung-2 readings (reported).
-        Decide whether it applies to Llama's probes and Gate A under the
-        per-family rule; \S{}4.2 is marked [TO BE FINALISED].
+        \textbf{Resolution:} the rule is extended to every family's Gate A read
+        at its chosen learning rate, fixed before any such read and disclosed as
+        a loosening; it replaces ``at the common recipe'' in the 20:50 UTC
+        entry. \S{}4.2 states this scope (revision 5c); the placeholder is gone.
   \item \textbf{The family $\times$ recipe interaction test (Side Project).} Its
         95\% interval on the logit scale excludes 0, but it was written after 11
         of its 12 values were known, has about 5 df and uses one judge
@@ -1826,27 +1974,30 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         \emph{without} Qi's warmup, so B+Qi isolates the loss while recipe G
         covers the schedule; the stage-1 pre-registration fixes it [NOT YET
         FIXED].
-  \item \textbf{The tighter judge wording (FOCUS 9 Oct 15:05 UTC; the lead's
-        proposal, a tightening of the 8 Oct rules, applied unless the user
-        objects).} U is ``refusal erosion as Qwen3Guard labels it''; a harm
-        sentence, even where $E_{\mathrm{HB}}$ $\ge$ 20~pp and the same-sign,
-        half-size rule holds, says ``harmful compliance as the HarmBench
-        classifier defines it'' and carries the caveat that a blind human read
-        rated about a third of judge-unsafe answers as usable help. Revision 5b
-        applies it (\S{}3.1, \S{}4.2, \S{}4.6, \S{}6). If the user objects,
-        restore revision 5a's \S{}4.2 claim rule and \S{}6 paragraph (commit
-        ec40d6a) and keep the read in the development evidence. Left unchanged
-        here, for the user: (a) the \emph{worse} label's ``significantly
-        harmful'' (8 Oct 18:31 UTC) means the adverse direction of a contrast,
-        not harm; ``significantly adverse'' would keep ``harm'' to one meaning
-        in the paper; (b) ``safety'' in the title, abstract and \S{}1--\S{}3
-        names the outcome and makes no harm claim, but ``refusal'' would be
-        stricter; (c) whether \S{}5 or an appendix reports the read's counts,
-        labelled development evidence, since the body's caveat cites it; (d)
-        whether a second rater or a larger read on stage-1 arms is planned:
-        FAQ's main-track list asks for ``HarmBench co-primary plus a human
-        check'' (FOCUS 8 Oct 15:59 UTC, item 4); this one-reader development
-        read does not meet it as a confirmatory measure (not costed).
+  \item \textbf{RESOLVED (FOCUS ``USER DECISIONS, 2026-10-09 15:23 UTC'', item
+        3, ``FAQ decision 23''): the judge wording package.} Revision 5b applied
+        the lead's tighter wording (FOCUS 9 Oct 15:05 UTC; \S{}3.1, \S{}4.2,
+        \S{}4.6, \S{}6): U is ``refusal erosion as Qwen3Guard labels it''; a
+        harm sentence, even where $E_{\mathrm{HB}}$ $\ge$ 20~pp and the
+        same-sign, half-size rule holds, says ``harmful compliance as the
+        HarmBench classifier defines it'' and (in revision 5b) carried the
+        caveat that a blind human read rated about a third of judge-unsafe
+        answers as usable help. Revision 5b left four items for the user. The
+        user accepted the package as follows, applied in revision 5c: (a) the
+        \emph{worse} label says ``adverse'', not ``significantly harmful''
+        (\S{}1, \S{}3.2, \S{}4.3 and these notes; conflicts 33 and 35); (b) the
+        title keeps ``safety'', and the abstract names the measures exactly
+        (refusal erosion as Qwen3Guard labels it; harmful compliance as the
+        HarmBench classifier defines it); (c) the blind-read caveat sits once in
+        \S{}4.2 and once in \S{}6, with Appendix A, not in every harm sentence;
+        (d) the read's counts go to Appendix A as development evidence, not to
+        the main results. Revision 5b's last open item, a second rater, is not
+        part of this decision and becomes decision 24 (conflict 32).
+  \item \textbf{A second rater or a larger human read} (revision 5b's decision
+        23d; open). FAQ's main-track list asks for ``HarmBench co-primary plus a
+        human check'' (FOCUS 8 Oct 15:59 UTC, item 4); the one-reader
+        development read (Appendix A) does not meet it as a confirmatory measure
+        (not costed). Decide whether one is planned on stage-1 arms.
 \end{enumerate}
 
 \subsection{Risks a reviewer will raise (sources in brackets)}
@@ -1856,17 +2007,18 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         evidence. Answer: the HarmBench claim rule, hard-category U, U by length
         band, the selectivity score, and claim wording [Gate A audit, 4a; plan
         \S{}4.2]. \textbf{Judge validity (revision 5b):} the blind human read
-        [FOCUS 9 Oct 15:05 UTC; development evidence] supports U as lost refusal
-        (34 of 39 Qwen3Guard-Unsafe answers went along with the request; 0 of 10
-        Safe controls missed) but rated only about a third of judge-unsafe
-        answers as usable help (13 of 39, 0.33 [0.19, 0.50]; 4 of 12 OLMo
-        answers that HarmBench labels ``yes''). Limits: one reader, who also
-        designed parts of the study; 50 answers; small groups; no second rater;
-        no comparison between groups. Answer: the body calls a rise in U refusal
-        erosion as Qwen3Guard labels it and allows at most ``harmful compliance
-        as the HarmBench classifier defines it'', with this caveat (\S{}4.2,
-        \S{}6); no sentence claims usable harm. A confirmatory human check is
-        not planned (decision 23d).
+        [FOCUS 9 Oct 15:05 UTC; development evidence; Appendix A since revision
+        5c] supports U as lost refusal (34 of 39 Qwen3Guard-Unsafe answers went
+        along with the request; 0 of 10 Safe controls missed) but rated only
+        about a third of judge-unsafe answers as usable help (13 of 39, 0.33
+        [0.19, 0.50]; 4 of 12 OLMo answers that HarmBench labels ``yes'').
+        Limits: one reader, who also designed parts of the study; 50 answers;
+        small groups; no second rater; no comparison between groups. Answer: the
+        body calls a rise in U refusal erosion as Qwen3Guard labels it and
+        allows at most ``harmful compliance as the HarmBench classifier defines
+        it''; the caveat sits once in \S{}4.2 and once in \S{}6, with the counts
+        and limits in Appendix A (revision 5c); no sentence claims usable harm.
+        A confirmatory human check is not planned (decision 24).
   \item \textbf{Forking paths.} Five settings were screened before OLMo-2-1B
         fell in the 20--55~pp window, fixed after the Qwen results; seed 1101
         both chose the setting and counts in the mean [audit, 4b]. Answer:
@@ -2006,16 +2158,20 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         recipe-G probe it was not applied blind [FOCUS 20:50 UTC]. Answer: both
         verdicts are reported; ``skill kept'' rests mainly on the held-out task
         loss; \S{}4.2 and \S{}6 disclose it. \textbf{Revision 5:} its scope
-        after the per-family rule is open (decision 16).
+        after the per-family rule is open (decision 16). \textbf{Revision 5c:}
+        the user extended it to every family's Gate A read at its chosen
+        learning rate, fixed before any such read and disclosed as a loosening
+        (FOCUS 15:23 UTC; decision 16 resolved); \S{}4.2 states the scope.
   \item \textbf{The main recipe is harsh.} Recipe B has no warmup, a constant
         learning rate and a per-row loss; a reviewer may call the erosion an
         artefact of a recipe few people use. Answer: recipe G, the standard
         schedule, is a mandatory reference, so the paper shows what the schedule
         alone removes; recipe B was chosen because its erosion clears the 20~pp
         HarmBench line (so ``harmful compliance as the HarmBench classifier
-        defines it'' is allowed, with the blind-read caveat) and leaves more
-        room for repairs, while recipe G's does not (development evidence; FOCUS
-        09:29 UTC); \S{}6 says repair rankings may differ at a lower dose.
+        defines it'' is allowed; the blind-read caveat sits once in \S{}4.2 and
+        once in \S{}6) and leaves more room for repairs, while recipe G's does
+        not (development evidence; FOCUS 09:29 UTC); \S{}6 says repair rankings
+        may differ at a lower dose.
   \item \textbf{Safe LoRA may beat every data repair.} It needs no training and
         no data. That is a valid answer, like risk 6, and the paper says so. Its
         settings must be fixed before any stage-1 outcome (decision 19).
@@ -2080,10 +2236,13 @@ abstract or the contributions)}
         about 28~pp; five settings screened; 2 df for seed variance; the ARC bar
         is near chance at 1B (untuned 0.392).
   \item \textbf{Blind human read} (FOCUS 9 Oct 15:05 UTC; report-only, gates
-        nothing). Pre-registered 8 Oct 20:56 UTC and run by the Side Project;
-        the user was the single reader; the ratings were sealed (commit 8c338fb)
-        before the key was opened; scored 9 Oct 14:58 UTC exactly as fixed.
-        Source: the Side Project's branch claude/wonderful-greider-d1aa5b,
+        nothing; since revision 5c, Appendix A of the paper carries the pooled
+        counts and limits, labelled development evidence, decision 23d; the
+        group counts stay here). Pre-registered 8 Oct 20:56 UTC and run by the
+        Side Project; the user was the single reader; the ratings were sealed
+        (commit 8c338fb) before the key was opened; scored 9 Oct 14:58 UTC
+        exactly as fixed. Source: the Side Project's branch
+        claude/wonderful-greider-d1aa5b,
         \nolinkurl{research/side-blind-read/PREREG-2026-10-08.md} (Results) and
         \nolinkurl{blind-read-scores-2026-10-09.json}, commits 4d63e04 and
         57d08dd. 50 sampled answers, shown without model, recipe, seed or judge
@@ -2175,8 +2334,9 @@ abstract or the contributions)}
         +30.4~pp, about two thirds of Qwen3Guard's +45.1~pp; agreement 83--86\%
         ($\kappa$ 0.65--0.71). Every seed is above 20~pp, so the 13:53 UTC judge
         rule is met and Gate A's recipe-B erosion may be called ``harmful
-        compliance as the HarmBench classifier defines it'', with the blind-read
-        caveat (revision 5b wording).
+        compliance as the HarmBench classifier defines it'', with no caveat of
+        its own (revision 5c: the blind-read caveat sits once in \S{}4.2 and
+        once in \S{}6).
   \item \textbf{Token-mean-only run \texttt{bt}} (OLMo-2-1B, seed 1101;
         pre-registered 20:01 UTC, read 21:36 UTC; report-only; FOCUS): recipe B
         with only the token-mean loss (constant LR 1e-4, no warmup), fine-tune
@@ -2248,8 +2408,8 @@ abstract or the contributions)}
         0.57 of B); greedy B +27.0, +25.5, +31.0 and G +11.0, +13.5, +8.5.
         \textbf{Harm wording:} recipe B clears 20~pp on every seed and the
         same-sign, half-size rule holds, so recipe B's erosion may be called
-        ``harmful compliance as the HarmBench classifier defines it'', with the
-        blind-read caveat (revision 5b wording); recipe G is below 20~pp on
+        ``harmful compliance as the HarmBench classifier defines it'', with no
+        caveat of its own (revision 5c wording); recipe G is below 20~pp on
         every seed, so its erosion is only ``refusal erosion as Qwen3Guard
         labels it'' (the 10:14 UTC rule; the 13:53 UTC rule holds, 17.2 $\ge$
         14.4). Family contrast (00:19 UTC, 9 Oct): Qwen2.5-1.5B recipe B +46.0
@@ -2332,10 +2492,13 @@ reading).
         disclosure's numbers: the OLMo recipe-G probe (seed 1101) was read at
         15:17 UTC under the old rule (ARC TOO CLOSE; d = $-$2/189, a gain; task
         loss 2.100 $\to$ 1.612); the rule was proposed after that reading, so
-        for that one unit it is not applied blind.
-  \item \textbf{Status (FOCUS, to the 9 Oct 15:05 UTC entry):} the blind human
-        read is recorded (15:05 UTC) and the lead's tighter wording is applied
-        here unless the user objects (decision 23). Recipe B is the main recipe
+        for that one unit it is not applied blind. \textbf{Scope (FOCUS 9 Oct
+        15:23 UTC):} extended to every family's Gate A read at its chosen
+        learning rate, fixed before any such read; it replaces ``at the common
+        recipe''.
+  \item \textbf{Status (FOCUS, to the 9 Oct 15:23 UTC entry):} the user accepted
+        decision 23's wording package and extended the ARC rule (15:23 UTC); the
+        blind human read is recorded (15:05 UTC). Recipe B is the main recipe
         for Gate B and stage 1; Gate B DRAFT revision 5 is to stay on recipe B,
         add the [D14]--[D19] rules and the [D20] price constants, and recompute
         the money thresholds; the repository's DRAFT is still revision 4b. The
@@ -2347,11 +2510,12 @@ reading).
         in full and fixes its settings in the stage-1 pre-registration; the
         post-hoc transform is built with tests and reviewed before use. B+Qi's
         engine change comes in a later round, committed before stage 1 is
-        frozen. The fiction side study (Side Project; about USD 10--16;
-        report-only) is approved at recipe B and is not part of this paper. The
-        Qwen2.5-1.5B recipe-G run is binned; the HarmBench add-on for the
-        recipe-G side runs is dropped (10:07 UTC). Alpaca waits for Gate B and
-        its own design note. The Gate C anchor list is sealed (8 Oct 15:53 UTC).
+        frozen. The fiction side study (Side Project; report-only) is approved
+        at recipe B, up to about USD 20 in total (15:23 UTC; earlier about USD
+        10--16), and is not part of this paper. The Qwen2.5-1.5B recipe-G run is
+        binned; the HarmBench add-on for the recipe-G side runs is dropped
+        (10:07 UTC). Alpaca waits for Gate B and its own design note. The Gate C
+        anchor list is sealed (8 Oct 15:53 UTC).
 \end{itemize}
 
 \subsection{Conflicts between the sources, and how this revision resolves them}
@@ -2487,7 +2651,9 @@ reading).
   \item \textbf{The ARC rule's scope.} FOCUS 20:50 UTC scopes it to ``the common
         recipe'', which no longer exists. Resolution: \S{}4.2 keeps the rule and
         its disclosure, drops the scope phrase and marks the scope [TO BE
-        FINALISED] (decision 16).
+        FINALISED] (decision 16). \textbf{RESOLVED (revision 5c):} FOCUS 15:23
+        UTC extends the rule to every family's Gate A read at its chosen
+        learning rate; \S{}4.2 states the scope.
   \item \textbf{The E-scaled floor (FOCUS 8 Oct 20:17 UTC) against recipe B as
         the main recipe.} At recipe B it equals the 8~pp floor, so it adds
         nothing. Resolution: dropped from \S{}4.6; decision 21.
@@ -2519,7 +2685,16 @@ reading).
         (``most \ldots{} went along'', ``about a third'', ``one reader'',
         ``during development'') in \S{}4.2 and \S{}6; counts, intervals and
         groups stay in the development evidence. ``What this is'' names this
-        exception to ``Nothing in the paper body is a result''.
+        exception to ``Nothing in the paper body is a result''. \textbf{Revision
+        5c (FOCUS 15:23 UTC, item 3c--d):} the caveat is no longer in every harm
+        sentence. \S{}4.2 states it once, as a fact about the measures, and
+        \S{}6 once, as a limitation, each pointing to Appendix A; harm sentences
+        say only ``harmful compliance as the HarmBench classifier defines it''.
+        The pooled counts, intervals and limits are in Appendix A (part of the
+        paper, labelled development evidence); group counts stay in the
+        development evidence here. The body still gives the rounded caveat
+        (``most \ldots{} went along'', ``about a third'') and no count (conflict
+        34).
   \item \textbf{``Judge-unsafe''.} The read sampled Qwen3Guard-Unsafe answers
         (13 of 39 usable help), while the claim rule applies the caveat to
         HarmBench sentences. On the 12 OLMo answers that HarmBench labels
@@ -2537,8 +2712,57 @@ reading).
         with its sample difference, and the verdict stays on U. Resolution:
         \S{}4.6, which summarizes revision 5 [NOT YET FIXED], says it is done,
         on a different sample from the one first proposed, and that the verdict
-        reads U alone (FOCUS wins).
+        reads U alone (FOCUS wins). Revision 5c points this sentence to Appendix
+        A, which describes the difference.
+  \item \textbf{Decision 23's letters.} Revision 5b's decision 23 listed (a)
+        ``adverse'', (b) ``safety'' in the title, (c) whether \S{}5 or an
+        appendix reports the counts and (d) a second rater. FOCUS 15:23 UTC
+        lists (a) ``adverse'', (b) the title keeps ``safety'' and the abstract
+        names the measures, (c) the caveat once in the measurement section and
+        the limitations, with an appendix, and (d) the counts in an appendix.
+        Followed FOCUS's letters; revision 5b's (d), which FOCUS does not
+        decide, stays open as decision 24.
+  \item \textbf{``'Significantly harmful' becomes 'adverse''' (the lead's brief)
+        against the label's significance condition.} Dropping ``significantly''
+        would let \S{}1 read as if any adverse estimate made a repair
+        \emph{worse}; revision 5b's decision 23a, which the user accepted,
+        proposed ``significantly adverse''. Resolution: ``significantly
+        adverse'' in \S{}1 and \S{}3.2, ``a significant adverse result'' in
+        \S{}4.3, and ``adverse'' alone where the phrase names only a direction
+        (``adverse direction'', ``adverse repair''). If the lead wants
+        ``adverse'' alone in \S{}1 and \S{}3.2, \S{}3.2 still carries the
+        Holm-adjusted 5\% level.
+  \item \textbf{``The body may refer to 'a blind human read (Appendix A)'
+        without giving numbers'' (the lead's brief) against the caveat's wording
+        ``about a third'' (FOCUS 15:05 UTC, placed by 15:23 UTC item 3c).} Read
+        the brief as allowing number-free references (as \S{}4.6 now makes) and
+        FOCUS as keeping the rounded caveat in its two places; item 3d moves the
+        counts, not the caveat. Resolution: \S{}4.2 and \S{}6 keep ``about a
+        third'' (\S{}6 also ``most \ldots{} went along''); no count, interval or
+        group is in the body. If the lead wants a number-free caveat, replace
+        ``about a third of judge-unsafe answers as usable help'' by ``most
+        judge-unsafe answers as giving no usable help'' in \S{}4.2, and ``but
+        only about a third gave usable help'' by ``but most gave no usable
+        help'' in \S{}6.
+  \item \textbf{``The abstract'' in decision 23a.} The abstract names the
+        \emph{worse} label but has never contained ``significantly harmful'', so
+        23a changed nothing there; its change is 23b.
+  \item \textbf{The FOCUS entry's time.} The lead's brief first named the entry
+        ``USER DECISIONS 15:12''; FOCUS stamps it ``USER DECISIONS, 2026-10-09
+        15:23 UTC'', and the lead then corrected the brief (content unchanged).
+        These notes cite 15:23 UTC.
 \end{enumerate}
+
+\textbf{Sources read (revision 5c):} FOCUS.md's entry ``USER DECISIONS,
+2026-10-09 15:23 UTC'' (no later entry exists), its 13:45 UTC item on the ARC
+scope and the 8 Oct 20:50 UTC ARC entry; on the Side Project's branch, by
+\texttt{git show} without checkout,
+\nolinkurl{research/side-blind-read/PREREG-2026-10-08.md} (design, rubric,
+limits, results) and \nolinkurl{blind-read-scores-2026-10-09.json} at commit
+57d08dd (4d63e04 differs only in the results time); the Gate A audit \S{}8 item
+4 (the proposed sample: 40 Unsafe answers from OLMo's Gate A units, 20 under 20
+tokens and 20 flagged only as unethical, plus the 29 Unsafe answers on the
+over-refusal bank).
 
 \textbf{Sources read (revision 5b):} FOCUS.md's entries of 9 Oct 15:05 UTC (the
 blind human read and its two sub-items; recorded in commit 3e7c570) and 13:45
