@@ -264,6 +264,8 @@ Basis: the sharpened-direction plan's stage costs (§10 there; at $1.59/h), DRAF
 
 Not included: human annotation, API judges, AI tools, travel, salary (see §8a). These are estimates from measured unit costs, not quotes.
 
+**Update, 9 October 12:24 UTC (the user's decisions of 9 Oct):** the tiers stand. Recipe B is now the main recipe (Gate B's DRAFT is already costed on it); the Qwen runs for the arXiv note are binned (−$11–20 at most, inside the rounding); the Llama line now runs at Llama's own learning rate by the approved rule (same cost); Safe LoRA adds about $5–10 to stage 1 (post-hoc, one evaluation per seed); HarmBench and Granite judging move to RunPod at about $0.4–1 per 800–7,000 judgements. Since 8 Oct: about $28 spent on the ladder, HarmBench pods and side seeds; balance $57.46 at 12:18 UTC after the user's top-up. **The form can be filed now** with the recommended tier (about $1,500); Gate B itself is funded from the balance plus about $10 before wave 1.
+
 ## 9. Risks and mitigations
 
 | Risk | Mitigation |
