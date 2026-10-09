@@ -14,7 +14,7 @@ cannot start is a refusal. Adapted from the family-probe kit's host.py (tmp/fami
     venv, its env and start command given to RunPod at create; check() requires the timer armed, supervised and governed
     by the cap, and the GPU name;
   - the creation-time price check, with the user's rule of 8 Oct 2026, 20:17 UTC (research/FOCUS.md): no hourly price
-    limit (PRICE_GUARD = inf). A created pod whose costPerHr is not a finite number (missing, a string, a bool, NaN or
+    limit (PRICE_GUARD = inf), replaced on 9 Oct 2026 15:29 UTC by a $10/h limit (PRICE_GUARD = 10.0). A created pod whose costPerHr is not a finite number (missing, a string, a bool, NaN or
     inf) is still stopped at once (confirmed) and the create refuses. The budget guard prices a new pod at
     PLANNING_PRICE ($1.85/h, the kits' planning rate), and the launcher's cost upper bound uses the same rate;
   - the same reconcile: a pod of this host's name without pod.json is an orphan: stopped, recorded in orphans.jsonl,
@@ -77,7 +77,7 @@ TIMER_PYTHON = ROOT / "tmp/minimal-experiment-20261002/venv/bin/python"
 REST = "https://rest.runpod.io/v1"
 GPU = "NVIDIA A100-SXM4-80GB"
 IMAGE = "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404"
-PRICE_GUARD = float("inf")       # the creation-time price check: no hourly limit (the user, 8 Oct 2026 20:17 UTC)
+PRICE_GUARD = 10.0              # the creation-time price limit, $/h (the user, 9 Oct 2026 15:29 UTC; it replaces 8 Oct's "no limit")
 PLANNING_PRICE = 1.85            # $/h: the budget guard's price for a new pod and the cost upper bound (the kits' rate)
 CONTAINER_DISK_GB = 50
 VOLUME_GB = 10
@@ -327,7 +327,7 @@ class RunPodHost:
     def create(self, cap_hours: float) -> dict:
         """One pod with the in-pod stop timer at cap_hours. create-intent.json (with the cap) is written before the
         request, pod.json (id and cap) as soon as RunPod answers: budget.py counts the first until the second exists.
-        A price that is not a finite number stops the pod at once; there is no hourly limit (PRICE_GUARD = inf).
+        A price that is not a finite number, or above PRICE_GUARD ($10/h since 9 Oct 2026), stops the pod at once.
         A failed reply: the pods of this name are listed (stop_orphans). A pod found there is stopped (HostError); none
         found after a 4xx reply raises HostError (RunPod refused the create); none found after any other failed reply
         (status 0, a 2xx reply without a pod id, a 5xx reply) raises CreateLost."""

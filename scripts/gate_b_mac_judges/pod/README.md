@@ -125,7 +125,7 @@ default, and the torch matmul flags. The parity check measures their effect (`PA
       hours). `pod.json` is saved by then, so every kit's `budget.py` counts the new pod at its real `costPerHr`
       until its cap. If it refuses, the pod is stopped and the launch exits 3 (the lead's decision, 8 Oct).
 
-   The pod is named `attribution-judge-<tag>`. There is no hourly price limit (the user, 8 Oct 2026, 20:17 UTC,
+   The pod is named `attribution-judge-<tag>`. The hourly price limit is $10/h (the user, 9 Oct 2026, 15:29 UTC; it replaced the 8 Oct 2026, 20:17 UTC rule of no limit,
    FOCUS). A pod whose reported price is not a finite number (missing, a string, a bool, NaN or inf) is stopped at
    once.
 
@@ -309,7 +309,7 @@ latest. A stopped pod keeps `/workspace/judge/out` on its volume. Deleting a pod
 - Model load: about 1 min.
 - The pre-load length check: up to 2 min for 23,000 answers.
 
-**Price:** A100 SXM 80 GB at about $1.79 per hour on 8 Oct. There is no hourly price limit. The budget guard and the
+**Price:** A100 SXM 80 GB at about $1.79 per hour on 8 Oct. The pod-creation price limit is $10/h (9 Oct). The budget guard and the
 cost upper bound use the planning rate, $1.85 per hour.
 
 | Launch | Answers | Judging | Total | Cost | Cap (guard counts cap × $1.85) |

@@ -26,7 +26,7 @@ secret, no text):
   3. under the lock every family-probe kit shares: reconcile (an untracked pod of this name is stopped), the budget kit's
      guard (budget.py check CAP 1.85, the planning rate; default kit tmp/family-probe-olmo2-1b-bt, reserve $1), and only
      if it allows: create ONE pod (podhost.RunPodHost.create: the kit's image, GPU type, SECURE cloud and in-pod stop
-     timer; no hourly price limit, but a price that is not a finite number stops the pod at once). The host records
+     timer; a price above $10/h (the user, 9 Oct 2026) or not a finite number stops the pod at once). The host records
      (create intent with the cap, pod.json) are written to tmp/family-probe-judge/hosts/judge-T/, where every kit's
      budget.py counts them. Then, still under the lock, the guard again with 0 extra hours (budget.py check 0 1.85):
      every kit's budget.py now counts the new pod at its real costPerHr until its cap. Refused guard: exit 3 (before the

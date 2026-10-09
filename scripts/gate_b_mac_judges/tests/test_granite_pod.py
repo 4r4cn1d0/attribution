@@ -268,7 +268,7 @@ HARMBENCH_RESULT_KEYS = {"kind", "version", "tag", "bundle_sha256", "manifest_sh
 REVIEWED = {   # the HarmBench pod path's files that the Granite work does not change (SHA-256 as reviewed, 8 Oct)
     "pod_run.sh": "b0350f5246033f2cbf858912c2e38a12837d24a76e69531567f45bd44e1f70c8",
     "pod_judge.py": "81757ac7f87e39a37a831a23673d3f5431e80581c4bb746068537802d681cded",
-    "podhost.py": "d3e2d18aaa6c3fba29cacfce1cbc8f38af7b9983aefd0923fbf9df240ffffdd4",
+    "podhost.py": "1eefa3a4da06901a1e12d3c7dd2fe98330fcdcc0d3d841ea6b67aa71affe1dfa",   # 9 Oct 2026: PRICE_GUARD inf -> $10/h (the user, 15:29 UTC); nothing else changed
     "extend_cap.py": "8af2f6ccebbac591499075827afef714ff1b635b6f6a691e5f669517458179d6",
     "judge-requirements.txt": "9545ef85659d70adbbf951fdfac438132c421b669d7970156f742c7447abc5a9"}
 MAC_REVIEWED = {   # the Mac judges' modules: unchanged

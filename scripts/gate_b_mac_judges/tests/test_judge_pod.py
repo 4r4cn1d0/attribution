@@ -1702,9 +1702,9 @@ def test_real_host_interrupted_create_is_found_by_a_later_listing(tmp_path, monk
 
 # ------------------------------------------------------------------------------------------------ S5: the price rule
 
-@pytest.mark.parametrize("price,stopped", [(1.79, False), (2.5, False), (49.0, False), (None, True), ("1.79", True),
-                                           (True, True), (float("nan"), True), (float("inf"), True)])
-def test_podhost_price_check_has_no_hourly_limit(tmp_path, monkeypatch, price, stopped):
+@pytest.mark.parametrize("price,stopped", [(1.79, False), (2.5, False), (10.0, False), (10.01, True), (49.0, True), (None, True),
+                                           ("1.79", True), (True, True), (float("nan"), True), (float("inf"), True)])
+def test_podhost_price_check_has_a_10_dollar_hourly_limit(tmp_path, monkeypatch, price, stopped):
     monkeypatch.setattr(podhost, "SLEEP", lambda s: None)
     stops = []
 
@@ -1725,7 +1725,7 @@ def test_podhost_price_check_has_no_hourly_limit(tmp_path, monkeypatch, price, s
         json.loads((tmp_path / "rec/price-guard-stop.json").read_text())      # strict JSON even for NaN or inf
     else:
         assert host.create(1.0)["id"] == "p1" and host.pod_id == "p1" and stops == []
-    assert podhost.PRICE_GUARD == float("inf") and podhost.PLANNING_PRICE == 1.85
+    assert podhost.PRICE_GUARD == 10.0 and podhost.PLANNING_PRICE == 1.85
 
 
 def test_the_budget_kit_defaults_to_the_reserve_1_kit():
@@ -2316,8 +2316,9 @@ def test_f10_a_budget_refused_after_the_create_stops_the_pod(tmp_path, monkeypat
 
 def test_f10_the_kits_budget_py_refuses_after_the_create_at_the_real_price(tmp_path, monkeypatch):
     """The default budget kit's real budget.py (read as code, run in-process with a fake account; its HERE in tmp):
-    before the create, 1 h at $1.85 fits a $10 balance; RunPod then reports $49/h for the pod, and the check after the
-    create counts it at $49 until its cap (pod.json): refused, exit 3, the pod stopped."""
+    before the create, 1 h at $1.85 fits a $10 balance; RunPod then reports $9.50/h for the pod (below the $10/h creation
+    limit of 9 Oct, so the price check passes it), and the check after the create counts it at $9.50 until its cap
+    (pod.json): refused, exit 3, the pod stopped."""
     b = load_kit_budget()
     fake_tmp = tmp_path / "tmp"
     monkeypatch.setattr(b, "HERE", fake_tmp / "family-probe-olmo2-1b-bt")
@@ -2327,7 +2328,7 @@ def test_f10_the_kits_budget_py_refuses_after_the_create_at_the_real_price(tmp_p
 
     def api(method, path, payload=None):
         if (method, path) == ("POST", "/pods"):
-            pods.append({"id": "pod-49", "name": payload["name"], "desiredStatus": "RUNNING", "costPerHr": 49.0})
+            pods.append({"id": "pod-49", "name": payload["name"], "desiredStatus": "RUNNING", "costPerHr": 9.5})
             return 201, dict(pods[0])
         if (method, path) == ("GET", "/pods"):
             return 200, [dict(p) for p in pods]
@@ -2351,7 +2352,7 @@ def test_f10_the_kits_budget_py_refuses_after_the_create_at_the_real_price(tmp_p
     code, host, log = launch_real_host(tmp_path, monkeypatch, api, host_cls=NoSshHost, runner=kit_runner(1.0, budget))
     checks = [json.loads(x) for x in (b.HERE / "budget-checks.jsonl").read_text().splitlines()]
     assert [c["allowed"] for c in checks] == [True, False]
-    assert checks[1]["new_pod_upper_usd"] == 0.0 and checks[1]["committed_upper_usd"] > 40       # $49/h, about 1 h
+    assert checks[1]["new_pod_upper_usd"] == 0.0 and checks[1]["committed_upper_usd"] > 8        # $9.50/h, about 1 h
     assert code == judge_pod.EXIT_BUDGET and pods[0]["desiredStatus"] == "EXITED"
     assert [r["allowed"] for r in log if r["step"] == "budget-guard-after-create"] == [False]
 
