@@ -136,7 +136,7 @@
   $+62.5$ pp (one seed each). A standard recipe (token-mean loss, warmup and
   cosine decay) cuts OLMo's erosion from $+45.1$ to $+28.8$ pp (3 seeds each)
   with over-refusal unchanged, but barely moves Llama-3.2-1B
-  ($+60.0$ pp, one seed \ph{[LLAMA-G: seeds 1102--1103]}). The schedule, not
+  ($+57.1$ pp, three seeds). The schedule, not
   the loss weighting, explains the cut. \ph{[QWEN-G: the Qwen2.5-1.5B result.]}
   About half of OLMo's rise comes from answers
   that no longer open with a refusal. \ph{[CONTENT: one sentence on dark
@@ -183,7 +183,7 @@ We make three contributions:
   \item \textbf{Recipe within a family.} A standard learning-rate schedule cuts
         OLMo's erosion by about a third, with over-refusal unchanged; the loss
         weighting explains none of the cut (\S\ref{sec:recipe}). The same
-        recipe barely moves Llama-3.2-1B (one seed). \ph{[LLAMA-G, QWEN-G: say
+        recipe barely moves Llama-3.2-1B (three seeds). \ph{[LLAMA-G, QWEN-G: say
         that the size of the cut depends on the family only if the recipe-G
         runs on a second family pass the claim rule of Section 4.]}
 \end{itemize}
@@ -321,7 +321,8 @@ $+62.5$ pp, one seed each. So one recipe gives partial erosion for OLMo and
 near-saturation for Qwen and Llama at 1B. Qwen also nears saturation at 7B. We
 call erosion \emph{partial} if $E$ lies between 20 and 55 pp. We fixed this
 window after the Qwen results (\S\ref{sec:screened}). \Cref{fig:family} shows
-the same numbers with their bands.
+the same numbers. It draws $\pm 2$ SE bands only on one-seed rows, and only
+where the reading records an SE.
 
 The starting points differ. Llama starts at 13.8\%, so we also report the
 share of the headroom that each model uses, $E/(100 - \Uo)$: 0.47 for OLMo,
@@ -341,17 +342,22 @@ every model, so most of the lost refusal is also usable help by its definition
 The families differ in chat template, tokeniser, post-training and starting
 over-refusal. We do not claim a cause for the family difference.
 
-\begin{figure}[t]
+\begin{figure*}[t]
   \centering
-  \fbox{\parbox[c][1.2in][c]{0.92\columnwidth}{\centering\small
-    \ph{[FIGURE 1: dot plot of E with bands of 2 SE on each side; one row per
-    model and recipe; OLMo seeds as separate dots; no shaded window.]}}}
-  \caption{Erosion $E$ under recipe~B, with $\pm 2$ SE bands (evaluation noise
-    only). One row per model and recipe; OLMo seeds are separate dots. We do
-    not shade a ``partial'' window, because we fixed it after the Qwen results
-    (\S\ref{sec:screened}). (Placeholder: the figure is not yet drawn.)}
+  \includegraphics[width=\textwidth]{figures/fig1-erosion.pdf}
+  \caption{Erosion by model and recipe. Each row is one model and recipe, and
+    each dot is one seed. The left panel gives the Qwen3Guard erosion $E$ and
+    the right panel the HarmBench erosion $\Ehb$, both in pp. Blue marks
+    recipe~B or a variant of it; orange marks recipe~G or a variant of it. A
+    black tick marks the mean of the seeds. On one-seed rows, a bar shows
+    $E \pm 2$ SE (evaluation noise only). The three Qwen rows have no bar,
+    because their readings record no SE. HarmBench has no recorded SE, so the
+    right panel has no bars. Rows without a HarmBench run are blank on the
+    right, and Llama's recipe-G seed 1103 has no HarmBench run. We do not
+    shade a ``partial'' window, because we fixed it after the
+    Qwen results (\S\ref{sec:screened}).}
   \label{fig:family}
-\end{figure}
+\end{figure*}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{The recipe matters}
@@ -394,6 +400,7 @@ over-refusal. We do not claim a cause for the family difference.
     Llama-3.2-1B & B & 1101 & 76.3\% & $+62.5$ & 2\% & 1.555 & $+67.5$ \\
     Llama-3.2-1B & G$^{c}$ & 1101 & 73.8\% & $+60.0$ & 7\% & 1.619 & $+58.5$ \\
     Llama-3.2-1B & G$^{c}$ & 1102 & 70.3\% & $+56.5$ & \multicolumn{3}{c}{\ph{[record: over-refusal, loss, Granite]}} \\
+    Llama-3.2-1B & G$^{c}$ & 1103 & 68.7\% & $+54.8$ & \multicolumn{2}{c}{\ph{[record: over-refusal, loss]}} & $+53.0$ \\
     Llama-3.2-1B & G, LR $5{\times}10^{-5}$ & 1101 & 55.0\% & $+41.2$ & \multicolumn{3}{c}{\ph{[record]}} \\
     Llama-3.2-1B & Hawkins-like$^{a}$ & 1101 & \multicolumn{5}{c}{\ph{[HAWKINS-LIKE]}} \\
     \bottomrule
@@ -444,22 +451,23 @@ findings: optimisation choices drive much of the safety loss
 \citep{kim2025rethinking}, and a warmup alone cut erosion on benign data
 \citep{qi2025shallow}.
 
-On Llama-3.2-1B, recipe~G barely moves the erosion: $+60.0$ and $+56.5$ pp on
-two seeds (mean $+58.25$, SE 2.72), against $+62.5$ pp under recipe~B (one
-seed). Granite agrees in direction. On the logit scale, the mean change is about
-$-0.22$ for Llama, against $-0.69$ for OLMo (three seeds per recipe). So the
+On Llama-3.2-1B, recipe~G barely moves the erosion: $+60.0$, $+56.5$ and $+54.8$
+pp on three seeds (mean $+57.1$, SE 2.55), against $+62.5$ pp under recipe~B
+(one seed). Granite agrees in direction. On the logit scale, the mean change is
+about $-0.28$ for Llama (mean $U$ 70.9\% under recipe~G against 76.3\% under
+recipe~B), against $-0.69$ for OLMo (three seeds per recipe). So the
 family contrast survives the standard recipe: OLMo stays partial and Llama stays
 near saturation. The compliance judge shows the same pattern: recipe~G keeps
 0.57 of OLMo's $\Ehb$ ($+30.3 \to +17.2$ pp) but 0.88 of Llama's ($+40.5 \to
-+35.65$ pp; seeds 1101 and 1102 give $+35.5$ and $+35.8$). By our claim rule
++35.7$ pp; seeds 1101 and 1102 give $+35.5$ and $+35.8$). By our claim rule
 this is a difference in pattern, not an established interaction: Llama has one
-recipe-B seed and two recipe-G seeds.
+recipe-B seed and three recipe-G seeds.
 Halving the learning rate under recipe~G ($5 \times 10^{-5}$) moves OLMo from
-$+28.8$ to $+20.8$ pp (two seeds: $+20.3$ and $+21.3$) and Llama from $+58.25$ to
+$+28.8$ to $+20.8$ pp (two seeds: $+20.3$ and $+21.3$) and Llama from $+57.1$ to
 $+41.2$ pp (one seed): about $-28\%$ in both families. So the learning rate moves
 both families by the same relative amount, while the schedule moves OLMo far more
 than Llama. On the logit scale the learning-rate change is larger for Llama
-($-0.75$ against $-0.40$), so whether the families respond alike depends on the
+($-0.69$ against $-0.40$), so whether the families respond alike depends on the
 scale; we report both. No step of this learning-rate ladder puts both families
 inside our partial window at once. \ph{[COMMON-RECIPE: the user's choice, and
 HarmBench at the lower learning rate.]}
@@ -558,14 +566,13 @@ positions in words, not tokens.
 
 \begin{figure}[t]
   \centering
-  \fbox{\parbox[c][1.2in][c]{0.92\columnwidth}{\centering\small
-    \ph{[FIGURE 2: stacked bars per run (OLMo untuned, B and G; Qwen2.5-1.5B
-    untuned and B): shares of refusal, caveat and direct openings, each split
-    into Unsafe and not Unsafe.]}}}
-  \caption{How the answers open, before and after fine-tuning. Each bar splits
-    the sampled answers into refusal, caveat and direct openings, and splits
-    each part into Unsafe and not Unsafe. (Placeholder: the figure is not yet
-    drawn.)}
+  \includegraphics[width=\columnwidth]{figures/fig2-openings.pdf}
+  \caption{How the answers open, before and after fine-tuning. Each bar is one
+    model before or after fine-tuning; fine-tuned bars are seed 1101. Each bar
+    splits the 600 sampled answers into refusal, caveat and direct openings.
+    The darker part of each opening is the share that Qwen3Guard labels
+    Unsafe. The lighter part is the rest (Safe, Controversial or Invalid). One
+    empty OLMo answer under recipe~G is not drawn.}
   \label{fig:openings}
 \end{figure}
 
