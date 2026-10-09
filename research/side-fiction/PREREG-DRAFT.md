@@ -1,23 +1,28 @@
-# Dark against light fiction: pre-registration (DRAFT, revision 3)
+# Dark against light fiction: pre-registration (revision 4, FREEZE CANDIDATE)
+
+**Revision 4, written 2026-10-09T23:01Z (inserted by the shell): the freeze candidate. Not frozen yet. No fiction training run exists.** Since revision 3 only facts from before any run were added: the pod screen ran (rounds 1 and 2b), the pre-registered sexual-content gate fired and rules-v3 was issued as §5 says, and the final data, data configs and prepared manifests are pinned below. Nothing in the question, arms, measurements, contrasts, reading rules or analysis changed. One pin waits for the lead: the engine identity (see §0). The lead's check of this revision is freeze condition 4.
+
 
 **DRAFT revision 3, written 2026-10-09T09:31 UTC (clock checked). Not frozen. No fiction training run exists.** Revision 3 re-bases the study on recipe B, after the user's decision of 2026-10-09 09:29 UTC (FOCUS, commit c5e8ca9, decision 3: "The fiction side study runs ... at OLMo's main recipe, now recipe B"). The approval covers about $10–16. Side Project chat. Report-only: it gates nothing in the main study. Development evidence. The user's go: "do it all" (2026-10-08, about 20:30 UTC).
 
 Revision 2 applies every fix from the lead's independent review (`tmp/side-fiction-review/review-result.json` in the main checkout, SHA-256 `dd570b2a…`): data READY WITH FIXES, design READY WITH FIXES. Revision 1 was commit 8771288.
 
 **"Frozen" means:** committed, with its SHA-256 recorded in FOCUS by the lead before the first pod. It freezes only when all of these hold:
-1. the pod Granite screen has run, and the final data hashes are filled in;
+1. the pod Granite screen has run, and the final data hashes are filled in: done (rounds 1 and 2b; §0);
 2. the recipe is fixed (§2): done, recipe B (the user, 2026-10-09 09:29 UTC);
 3. the analysis script exists and its SHA-256 is filled in: done (`e1955965…`);
-4. the lead has checked this revision.
+4. the lead has checked this revision: pending (revision 4).
 
 ## 0. Pins (filled at freeze)
 
 | Item | Pin |
 |---|---|
-| Rules | `rules-v2.json` `c23672cf…6606` (commit 9a65cdf) |
-| Data, pre-screen | dark `e90b0d67…`, light `340d3167…` → `[FINAL after the screen]` |
-| Data configs | dark `5eb61c1e…`, light `5e29aaa6…` (pre-screen) → `[FINAL]` |
-| Prepared manifests | `[after the lead's preparation]` |
+| Rules | build: `rules-v2.json` `c23672cf…6606` (commit 9a65cdf); screen drop rule: `rules-v3.json` `cd4e9bc4…` (commit cb66221; issued by the §5 sexual-content gate: Granite harm OR Granite sexual_content) |
+| Data, final (after the screen) | dark `4b7381c988df81d1…`, light `3d0bcea2f3dd6b6a…` (`tmp/side-fiction/final/`, 5,000 rows each, 625 per book; screen results commit b631b03, `research/side-fiction/screen-results/SCREEN-RESULTS.md`); pre-screen were dark `e90b0d67…`, light `340d3167…` |
+| Data configs, final | dark `e9e4668d…`, light `338a7bc2…` (commit 1e1a2b2; source.revision b631b03); pre-screen were dark `5eb61c1e…`, light `5e29aaa6…` |
+| Prepared manifests | dark `c57b56ceaf5c53fd…`, light `8f6493250d93b3b5…` (the lead's preparation, `tmp/side-fiction-prepared/` in the main checkout, 9 Oct about 21:33 UTC) |
+| Engine identity | `e49a978c5fa27c3ba4bb1570ac8b24501e09bf8db5c35e31ffba90bf775cdc06` for all six fiction units (packed before the Gate B integration; the lead's choice F1, 9 Oct about 23:00 UTC), so Δ_fiction−Dolly stays inside certified engines (D's units are on 55253874…, certified to e49a978c… by the round6 file). A fiction seed that cannot record its fixture before the integration (07:00 UTC, 10 Oct, at the latest) waits, and its engine handling is decided then and recorded as a deviation. |
+| Screen tooling | `sf_screen.py` `adc3fcd7…`; `SCREEN-SPEC.md` `d880c746…` (§9: rules-v3) |
 | Recipe config | recipe B, `study-kt-olmo2-1b-r64-b-mb4-20261008` (`9e9bde6f…`) |
 | Reading bars | `c0b6f2aa…` (frozen family-probe bars) |
 | HarmBench judge | `cais/HarmBench-Mistral-7b-val-cls` @ `51182c7c` |
@@ -33,8 +38,8 @@ At matched format and length, does the topic of harmless training data change ho
 
 | Arm | Data (Dolly format; 8 categories × 600 unit rows + 25 task rows) | Seeds |
 |---|---|---|
-| F-dark | `tmp/side-fiction/out/dark.jsonl` (8 Gothic or horror books) | 1101, 1102, 1103 |
-| F-light | `tmp/side-fiction/out/light.jsonl` (8 romance or domestic books) | 1101, 1102, 1103 |
+| F-dark | `tmp/side-fiction/final/dark.jsonl` (8 Gothic or horror books; after the screen) | 1101, 1102, 1103 |
+| F-light | `tmp/side-fiction/final/light.jsonl` (8 romance or domestic books; after the screen) | 1101, 1102, 1103 |
 | D (exists) | Dolly-15k (CC-BY-SA-3.0; written by Databricks employees): OLMo's 3 recipe-B Gate A seeds, with E_HB | 1101–1103 |
 
 **The recipe (revision 3):**
@@ -119,6 +124,8 @@ For Δ_fiction−Dolly the same rules apply, with these names: "fiction differs 
   - If it does not, the contrast is described as lexical only.
 - **Book concentration:** per-book descriptives. Any book holding more than 40% of its arm's Unsafe-labelled training rows is flagged.
 - **Sexual content (gating):** Qwen3Guard's sexual-content labels on the training responses, by arm and book (The Monk is the likely source). If either arm is above 0.5%, issue rules-v3 with Granite's sexual_content risk added to the screen before any run.
+  - **Outcome (revision 4, before any run):** the gate fired in round 1 (1.26% dark, 1.05% light of the rows rules-v2 kept). Rules-v3 was issued (§0). On the final rows the share is 1.14% (dark) and 0.98% (light): still above 0.5%, because Granite's sexual_content and Qwen3Guard's category seldom agree (Granite flags 23 of Qwen3Guard's 92 dark and 8 of its 57 light round-1 rows). The remedy applied is the pre-registered one; the residual is about equal across arms and is reported. No further change (it would need a rules-v4 that lets the outcome judge select rows, which rules-v2 forbids).
+  - **Other pre-run reads on the final rows** (`final-reads.json`): the manipulation-check direction holds (Unsafe 11 dark vs 6 light of 5,000; Violent 4 vs 2); book concentration flags dark_b6 (5 of 11 Unsafe rows) and light_b7 (4 of 6).
 - **Granite screen (pod):**
   - Granite Guardian 3.3, 'harm' risk, through a CUDA llama.cpp build of the same pinned GGUF (the lead, about 22:00 UTC). It is a screen only, never compared with the Mac's Granite numbers.
   - Qwen3Guard runs through the engine's GuardScorer.
@@ -157,5 +164,5 @@ If and only if Δ_content reads "content matters": one leave-one-book-out run (a
 
 ## 8. Cost and owners
 
-- **Cost:** 6 fine-tune runs (about $9–15), 2 untuned base-evaluation units, and the screen pod (about $1).
+- **Cost:** 6 fine-tune runs (about $9–15), 2 untuned base-evaluation units, and the screen (about $4.33 spent: rounds 1 and 2b, plus a failed round-2 attempt). The lead's approval is about $20 in total.
 - **Owners:** the lead drives every pod and the preparation. This chat writes the analysis script and the reading.
