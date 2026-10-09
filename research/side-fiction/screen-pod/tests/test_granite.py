@@ -1,5 +1,7 @@
-"""Granite: the prompt bytes against second_judge_probe.py (the Mac's judge venv and tokenizer, offline), the call
-convention, the retry and invalid rules, the known-answer loop and the screen loop (fakes; no model)."""
+"""Granite through the lead's backend: the triples path's prompt bytes against the screen's previous builder (commit
+e3ce85b) and second_judge_probe.py (the Mac's judge venv and tokenizer, offline), the absence of any prompt, parse,
+load or build code in the screen, and the screen's row loop over the lead's judge_triples (the lead's real
+GraniteSession with a fake model): order, labels, the retry, stop, resume, one model load per step."""
 from __future__ import annotations
 
 import ast
@@ -9,255 +11,191 @@ import pathlib
 import subprocess
 
 import pytest
-from conftest import HERE, TOOL, P, R, needs_real
+from conftest import HERE, TOOL, P, R, FakeGranite, fiction_row, needs_real, sha, write_jsonl
 from common import Refusal
+import granite_files
+import granite_pod
 import granite_screen as G
 
 JUDGE_PY = P.ROOT / "tmp/judge-venv/bin/python"
-TOK = P.ROOT / "tmp/judge-models/granite-guardian-3.3-8b-tokenizer"
+BEFORE_COMMIT, BEFORE_PATH = "e3ce85b", "research/side-fiction/screen-pod/tool/granite_screen.py"
+BEFORE_SHA256 = "501eb4a20f2009a878eccbffa5da53291a34973e50c1bf35b832ea3d5267944f"   # the reviewed screen, not launched
 
 
-def _parity(rows: int) -> dict:
+def before_file(tmp_path: pathlib.Path) -> pathlib.Path:
+    """The screen's own prompt builder before the refactor, from git, pinned by SHA-256."""
+    done = subprocess.run(["git", "-C", str(P.W), "show", f"{BEFORE_COMMIT}:{BEFORE_PATH}"], capture_output=True,
+                          timeout=60)
+    if done.returncode != 0:
+        pytest.skip("commit e3ce85b is not reachable from the worktree")
+    assert sha(done.stdout) == BEFORE_SHA256
+    path = tmp_path / "granite_screen_before.py"
+    path.write_bytes(done.stdout)
+    return path
+
+
+def _parity(tmp_path, rows: int) -> dict:
     done = subprocess.run([str(JUDGE_PY), "-I", "-B", str(HERE / "granite_parity_helper.py"), "--tool", str(TOOL),
-                           "--probe", str(P.SECOND_JUDGE_PROBE), "--rows", str(rows)], capture_output=True, text=True,
-                          timeout=900, env={"PATH": "/usr/bin:/bin", "PYTHONDONTWRITEBYTECODE": "1",
-                                            "HOME": os.environ.get("HOME", "/tmp")}, cwd="/")
+                           "--probe", str(P.SECOND_JUDGE_PROBE), "--before", str(before_file(tmp_path)),
+                           "--rows", str(rows)], capture_output=True, text=True, timeout=1800,
+                          env={"PATH": "/usr/bin:/bin", "PYTHONDONTWRITEBYTECODE": "1",
+                               "HOME": os.environ.get("HOME", "/tmp")}, cwd="/")
     assert done.returncode == 0, done.stderr[-2000:]
     return json.loads(done.stdout.strip().splitlines()[-1])
 
 
 @needs_real
-@pytest.mark.skipif(not (JUDGE_PY.is_file() and TOK.is_dir() and P.SECOND_JUDGE_PROBE.is_file()),
-                    reason="the Mac's judge venv, Granite tokenizer or second_judge_probe.py is absent")
-def test_prompt_bytes_and_calls_equal_second_judge_probe_with_the_real_tokenizer():
-    """The real template (transformers 5.18.0, the pinned tokenizer folder) through both code paths: synthetic
-    fixtures (one trimmed), 300 real rows of each arm and the 200 known answers give identical bytes."""
-    out = _parity(300)
-    assert out["probe_sha256"] == P.SECOND_JUDGE_PROBE_SHA256
+@pytest.mark.skipif(not (JUDGE_PY.is_file() and P.SECOND_JUDGE_PROBE.is_file()),
+                    reason="the Mac's judge venv or second_judge_probe.py is absent")
+def test_the_triples_path_gives_the_previous_prompt_bytes_with_the_real_tokenizer(tmp_path):
+    """BYTE IDENTITY. The real template (transformers 5.18.0, the pinned tokenizer folder) through the pod's path
+    (granite_pod.judge_triples -> GraniteSession -> granite_files.granite_input), the screen's own builder before the
+    refactor and second_judge_probe.py: 6 synthetic fixtures (one trimmed), 300 real rows of each arm and the gate's
+    200 known answers give identical "harm" bytes on all three paths and identical "sexual_content" bytes to the
+    previous builder; judge_triples' input_sha256 is the SHA-256 of the text the model received."""
+    out = _parity(tmp_path, 300)
+    assert out["probe_sha256"] == P.SECOND_JUDGE_PROBE_SHA256 and out["before_sha256"] == BEFORE_SHA256
     assert out["versions"] == {"Jinja2": "3.1.6", "tokenizers": "0.23.2", "transformers": "5.18.0"}
-    assert out["tokenizer_matches_pins"] is True
+    assert out["tokenizer_matches_pins"] is out["fingerprint_is_macs"] is out["probe_tok_is_lead_tok"] is True
+    assert out["tokenizer_loads"] == 1                                    # one session: one tokenizer load
     assert out["init_kwargs_equal"] and out["init_kwargs"] == ["logits_all", "model_path", "n_ctx", "n_gpu_layers",
                                                                "seed", "verbose"]
     assert out["call_kwargs_equal"] and out["label_parse_equal"]
-    assert out["fixtures"] == out["fixtures_identical"] == 6 and out["fixtures_trimmed"] >= 1
-    assert out["real_rows"] == out["real_rows_identical"] == 600
-    assert out["ka_items"] == out["ka_inputs_equal"] == out["ka_identical"] == 200
-    assert out["sexual_matches_template"] == out["sexual_differs_from_harm"] == 6
+    for case, n in (("fixtures", 6), ("real_rows", 600), ("ka", 200)):
+        c = out[case]
+        assert c["n"] == n and c["harm_vs_probe"] == c["harm_vs_before"] == c["sexual_vs_before"] == n, case
+        assert c["input_sha256_ok"] == c["trimmed_equal"] == c["tokens_equal"] == n, case
+    assert out["fixtures"]["trimmed"] >= 1 and out["real_rows"]["trimmed"] == 0 and out["ka_inputs_equal"] == 200
 
 
 def test_probe_file_is_the_pinned_convention():
     if not P.SECOND_JUDGE_PROBE.is_file():
         pytest.skip("second_judge_probe.py is absent")
-    import hashlib
-    assert hashlib.sha256(P.SECOND_JUDGE_PROBE.read_bytes()).hexdigest() == P.SECOND_JUDGE_PROBE_SHA256
+    assert sha(P.SECOND_JUDGE_PROBE.read_bytes()) == P.SECOND_JUDGE_PROBE_SHA256
     olmo = P.ROOT / "tmp/family-probe-olmo2-1b/second_judge_probe.py"          # the run that labelled the known answers
     if olmo.is_file():
-        assert hashlib.sha256(olmo.read_bytes()).hexdigest() == P.SECOND_JUDGE_PROBE_SHA256
+        assert sha(olmo.read_bytes()) == P.SECOND_JUDGE_PROBE_SHA256
 
 
-def test_structural_convention_matches_the_probe_source():
-    """Without the tokenizer: the probe's literal call arguments, read from its syntax tree, are the screen's."""
-    if not P.SECOND_JUDGE_PROBE.is_file():
-        pytest.skip("second_judge_probe.py is absent")
-    tree = ast.parse(P.SECOND_JUDGE_PROBE.read_text(encoding="utf-8"))
-    skip = object()
-
-    def lit(v):
-        try:
-            return ast.literal_eval(v)
-        except ValueError:
-            return skip
-    calls = {}
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Call) and node.keywords:
-            name = node.func.attr if isinstance(node.func, ast.Attribute) else getattr(node.func, "id", None)
-            calls.setdefault(name, []).append({k.arg: lit(k.value) for k in node.keywords if lit(k.value) is not skip})
-    assert {"n_gpu_layers": P.N_GPU_LAYERS, "n_ctx": P.N_CTX, "seed": P.SEED, "verbose": False,
-            "logits_all": False} == calls["Llama"][0]
-    assert {"max_tokens": P.NEW_TOKENS, "temperature": 0.0, "top_k": 1} == calls["llm"][0]
-    assert len(calls["apply_chat_template"]) == 2 and all(
-        c == {"guardian_config": {"criteria_id": "harm"}, "think": False, "tokenize": False,
-              "add_generation_prompt": True} for c in calls["apply_chat_template"])
-    assert calls["tok"] == [{"add_special_tokens": False}] * 2
-    src = P.SECOND_JUDGE_PROBE.read_text(encoding="utf-8")
-    assert "> 8000" in src and "max(1000, int(len(answer) * 7000 / n))" in src
-    assert r're.findall(r"<score>(.*?)</score>", out, re.DOTALL)' in src
+def _code_facts(path: pathlib.Path) -> dict:
+    """What a module's code (not its docstrings) calls, imports, passes as keywords and holds as string constants."""
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    docstrings = {id(n.body[0].value) for n in ast.walk(tree)
+                  if isinstance(n, (ast.Module, ast.FunctionDef, ast.ClassDef)) and n.body
+                  and isinstance(n.body[0], ast.Expr) and isinstance(n.body[0].value, ast.Constant)}
+    facts = {"calls": set(), "imports": set(), "keywords": set(), "strings": []}
+    for n in ast.walk(tree):
+        if isinstance(n, ast.Call):
+            facts["calls"].add(n.func.attr if isinstance(n.func, ast.Attribute) else getattr(n.func, "id", None))
+            facts["keywords"].update(k.arg for k in n.keywords)
+        elif isinstance(n, ast.Import):
+            facts["imports"].update(a.name for a in n.names)
+        elif isinstance(n, ast.ImportFrom):
+            facts["imports"].add(n.module)
+        elif isinstance(n, ast.Constant) and isinstance(n.value, str) and id(n) not in docstrings:
+            facts["strings"].append(n.value)
+    return facts
 
 
-# ------------------------------------------------------------------------------------------------ fakes
-
-class FakeTok:
-    """apply_chat_template renders a marked string; one token per character (so trimming can be driven)."""
-
-    def __init__(self):
-        self.renders = []
-
-    def apply_chat_template(self, messages, guardian_config=None, think=None, tokenize=None,
-                            add_generation_prompt=None):
-        self.renders.append((guardian_config, think, tokenize, add_generation_prompt))
-        return f"[{guardian_config['criteria_id']}]U:{messages[0]['content']}|A:{messages[1]['content']}"
-
-    def __call__(self, text, add_special_tokens=True):
-        assert add_special_tokens is False
-        return {"input_ids": list(range(len(text)))}
-
-
-class FakeLLM:
-    def __init__(self, outputs):
-        self.outputs, self.calls, self.resets = list(outputs), [], 0
-
-    def __call__(self, text, **kw):
-        self.calls.append((text, kw))
-        out = self.outputs.pop(0)
-        if isinstance(out, BaseException):
-            raise out
-        return {"choices": [{"text": out}]}
-
-    def reset(self):
-        self.resets += 1
+def test_the_screen_holds_no_granite_prompt_parse_load_or_build_code():
+    """ONE backend: no tool module renders a template, parses a score, constructs or resets a model, imports
+    llama_cpp or transformers, or passes a guardian_config; screen_run.sh neither installs nor builds
+    llama-cpp-python (the lead's pod_run_granite.sh does); the screen's Granite requirement files are gone; the
+    Granite calls are the lead's judge_triples."""
+    bad = {}
+    for path in sorted(TOOL.glob("*.py")):
+        f = _code_facts(path)
+        hits = sorted({"apply_chat_template", "reset", "Llama", "from_pretrained"} & f["calls"])
+        hits += sorted({"llama_cpp", "transformers"} & f["imports"])
+        hits += sorted({"guardian_config", "max_tokens", "top_k"} & f["keywords"])
+        hits += [s for s in f["strings"] if "<score>" in s or "criteria_id" in s]
+        if hits:
+            bad[path.name] = hits
+    assert bad == {}
+    run = "\n".join(x for x in (TOOL / "screen_run.sh").read_text().splitlines() if not x.lstrip().startswith("#"))
+    assert not [x for x in ("CMAKE_ARGS=", "llama_cpp_python", "llama-requirements", "--no-binary", "FORCE_CMAKE",
+                            "granite-requirements", "nvcc", "apt-get") if x in run]
+    assert "bash bundle/gate_b/tool/pod/pod_run_granite.sh" in run and 'VG="${GRANITE_VENV:-/root/granite-venv}"' in run
+    assert not (TOOL / "llama-requirements.txt").exists() and not (TOOL / "granite-requirements.txt").exists()
+    assert "judge_triples" in _code_facts(TOOL / "granite_screen.py")["calls"]
+    assert G.granite_pod is granite_pod and granite_pod.granite_input is granite_files.granite_input
 
 
-@pytest.mark.parametrize("out,label", [("<score> yes </score>", "Yes"), ("<score>No</score>", "No"),
-                                       ("<score> no </score> then <score> yes </score>", "Yes"),
-                                       ("<score> maybe </score>", "invalid"), ("no score", "invalid"), ("", "invalid"),
-                                       ("<score>\n yes\n</score>", "Yes")])
-def test_label_parse(out, label):
-    assert G.parse_label(out) == label
+# ------------------------------------------------------------------------------------------------ the row loop
+
+def _rows(tmp_path, n=4):
+    path = write_jsonl(tmp_path / "dark.jsonl", [fiction_row("dark", 1, i) for i in range(n)])
+    return R.read_rows("dark", path, sha(path.read_bytes()), n)
 
 
-def test_judge_calls_with_the_probe_arguments_and_criteria():
-    tok, llm = FakeTok(), FakeLLM(["<score> yes </score>", "<score> no </score>"])
-    j = G.GraniteJudge(tok, llm)
-    assert j.judge("U", "A", "harm")["label"] == "Yes"
-    assert j.judge("U", "A", "sexual_content")["label"] == "No"
-    assert [c[1] for c in llm.calls] == [{"max_tokens": 32, "temperature": 0.0, "top_k": 1}] * 2
-    assert [c[0] for c in llm.calls] == ["[harm]U:U|A:A", "[sexual_content]U:U|A:A"]
-    assert all(r[1:] == (False, False, True) for r in tok.renders)
-    with pytest.raises(ValueError):
-        j.judge("U", "A", "violence")
+def _cache(tmp_path, name="g.jsonl"):
+    return R.JsonlCache(tmp_path / name, R.check_granite, R.granite_key)
 
 
-def test_one_retry_after_reset_then_invalid():
-    llm = FakeLLM(["garbage", "<score> no </score>"])
-    j = G.GraniteJudge(FakeTok(), llm)
-    res = j.judge("U", "A", "harm")
-    assert res == {"label": "No", "attempts": 2, "errors": 0, "reason": None, "input_tokens": len("[harm]U:U|A:A"),
-                   "trimmed": False}
-    assert llm.resets == 1 and j.retries == 1 and j.calls == 2
-    llm = FakeLLM(["garbage", "still garbage"])
-    res = G.GraniteJudge(FakeTok(), llm).judge("U", "A", "harm")
-    assert (res["label"], res["attempts"], res["reason"]) == ("invalid", 2, "unparsed")
-    llm = FakeLLM([RuntimeError("boom"), ValueError("ctx")])
-    res = G.GraniteJudge(FakeTok(), llm).judge("U", "A", "harm")
-    assert (res["label"], res["attempts"], res["errors"], res["reason"]) == ("invalid", 2, 2, "error")
+def test_each_row_goes_harm_then_sexual_through_judge_triples_with_one_model_load(tmp_path):
+    rows = _rows(tmp_path)
+    fake = FakeGranite()
+    session, cache, logs = fake.session(), _cache(tmp_path), []
+    res = G.screen(session, rows, cache, lambda: False, lambda **k: logs.append(k))
+    assert res == {"judged": 8, "cached": 0, "todo": 8, "stopped": False, "calls": 8, "retries": 0}
+    assert [(c, h) for c, _, h in fake.seen] == [(c, r.response_sha256) for r in rows for c in P.CRITERIA]
+    assert all(u == r.user_sha256 for (_, u, _), r in zip(fake.seen, [r for r in rows for _ in P.CRITERIA]))
+    assert (fake.loads, fake.checks, fake.tokenizers) == (1, 1, 1)          # one session: one check, one load
+    entries = list(cache.entries.values())
+    assert [(e["row_id"], e["criteria"]) for e in entries[:2]] == [("dark-1", "harm"), ("dark-1", "sexual_content")]
+    for e in entries:
+        assert e["label"] in ("Yes", "No") and e["attempts"] == 1 and e["reason"] is None and len(e["input_sha256"]) == 64
+    cache.close()
 
 
-def test_trim_rule_and_over_limit(monkeypatch):
-    tok = FakeTok()
-    rendered, n, trimmed = G.granite_prompt(tok, "U", "A" * 9000, "harm")
-    assert trimmed and rendered == "[harm]U:U|A:" + "A" * max(1000, int(9000 * 7000 / (9000 + 12)))
-    assert n == len(rendered)
-    monkeypatch.setattr(P, "INPUT_LIMIT", 100)
-    llm = FakeLLM([])
-    res = G.GraniteJudge(tok, llm).judge("U", "A" * 200, "harm")
-    assert (res["label"], res["attempts"], res["reason"]) == ("invalid", 0, "over_limit") and llm.calls == []
+def test_labels_map_and_an_unparsed_label_gets_one_retry(tmp_path):
+    rows = _rows(tmp_path, 3)
+    fake = FakeGranite(unparsed_once={rows[0].response_sha256}, unparsed={rows[1].response_sha256},
+                       harm={rows[2].response_sha256: "yes"})
+    cache = _cache(tmp_path)
+    res = G.screen(fake.session(), rows, cache, lambda: False, lambda **k: None)
+    assert res["retries"] == 4 and res["calls"] == 10 and res["judged"] == 6        # 2 + 2 retried, then 2 clean
+    got = {(e["row_id"], e["criteria"]): e for e in cache.entries.values()}
+    assert (got[("dark-1", "harm")]["attempts"], got[("dark-1", "harm")]["reason"]) == (2, None)
+    assert got[("dark-2", "harm")]["label"] == "invalid" and got[("dark-2", "harm")]["reason"] == "unparsed"
+    assert got[("dark-2", "harm")]["attempts"] == 2 and R.dropped(got[("dark-2", "harm")]["label"])
+    assert got[("dark-3", "harm")]["label"] == "Yes" and got[("dark-3", "harm")]["attempts"] == 1
+    assert [R.granite_label(x) for x in ("yes", "no", "unparsed")] == ["Yes", "No", "invalid"]
+    with pytest.raises(Refusal):
+        R.granite_label("maybe")
+    cache.close()
 
 
-class Stepper:
-    def __init__(self, step=0.1):
-        self.t, self.step = 1000.0, step
-
-    def __call__(self):
-        self.t += self.step
-        return self.t
-
-
-def _ka_items(n=10):
-    return [(f"p-{i:03d}", f"{i:064x}", f"prompt {i}", f"answer {i}") for i in range(n)]
-
-
-def test_known_answer_loop_counts_and_entries(monkeypatch):
-    monkeypatch.setattr(P, "KA_N", 10)
-    items = _ka_items(10)
-    mac = {pid: ("Yes" if i % 3 == 0 else "No") for i, (pid, *_) in enumerate(items)}
-
-    class J:
-        calls = retries = errors = 0
-
-        def judge(self, u, a, c):
-            assert c == "harm"
-            i = int(a.split()[1])
-            return {"label": "Yes" if i % 3 == 0 or i == 4 else "No", "attempts": 1, "errors": 0, "reason": None,
-                    "input_tokens": 9, "trimmed": False}
-    logs = []
-    counts, entries, stopped, per = G.known_answer(J(), items, mac, lambda: False, lambda **k: logs.append(k),
-                                                   clock=Stepper(0.1))
-    assert not stopped and counts["judged"] == 10 and counts["identical"] == 9 and counts["flips"] == {"No->Yes": 1}
-    assert set(entries[0]) == {"prompt_id", "answer_sha256", "mac", "pod", "attempts", "errors", "reason",
-                               "input_tokens", "trimmed"}
-    assert per == pytest.approx(0.1, abs=0.02)
-
-
-def test_known_answer_stops_on_signal_and_refuses_without_gpu_speed():
-    items = _ka_items(10)
-    mac = {pid: "No" for pid, *_ in items}
-
-    class J:
-        calls = retries = errors = 0
-
-        def judge(self, u, a, c):
-            return {"label": "No", "attempts": 1, "errors": 0, "reason": None, "input_tokens": 9, "trimmed": False}
-    n = {"k": 0}
+def test_stop_resume_and_an_error_ends_the_step(tmp_path):
+    rows = _rows(tmp_path)
+    stops = {"n": 0}
 
     def stop():
-        n["k"] += 1
-        return n["k"] > 4
-    counts, entries, stopped, _ = G.known_answer(J(), items, mac, stop, lambda **k: None, clock=Stepper(0.1))
-    assert stopped and counts["judged"] == 4 and counts["n"] == 10 and len(entries) == 4
-    with pytest.raises(Refusal, match="not running on the GPU"):
-        G.known_answer(J(), items, mac, lambda: False, lambda **k: None, clock=Stepper(P.KA_MAX_S_PER_ITEM + 1))
+        stops["n"] += 1
+        return stops["n"] > 3
+    cache = _cache(tmp_path)
+    res = G.screen(FakeGranite().session(), rows, cache, stop, lambda **k: None)
+    assert res["stopped"] and 1 <= res["judged"] <= 3
+    cache.close()
+    again = _cache(tmp_path)
+    fake = FakeGranite()
+    res = G.screen(fake.session(), rows, again, lambda: False, lambda **k: None)
+    assert res["cached"] + res["judged"] == 8 and len(again) == 8 and fake.calls == res["judged"]
+    again.close()
+    boom = FakeGranite(raise_on={rows[1].response_sha256})
+    with pytest.raises(MemoryError):                                       # no row is labelled invalid for an error
+        G.screen(boom.session(), rows, _cache(tmp_path, "g3.jsonl"), lambda: False, lambda **k: None)
+    assert len(R.JsonlCache(tmp_path / "g3.jsonl", R.check_granite, R.granite_key)) == 2
+    assert len(R.selected(rows, 2)) == 2 and len(R.selected(rows, None)) == 4
 
 
-def test_screen_loop_resumes_and_aborts_on_consecutive_errors(tmp_path):
-    from conftest import fiction_row, sha, write_jsonl
-    path = write_jsonl(tmp_path / "dark.jsonl", [fiction_row("dark", 1, i) for i in range(6)])
-    rows = R.read_rows("dark", path, sha(path.read_bytes()), 6)
-    cache = R.JsonlCache(tmp_path / "g.jsonl", R.check_granite, R.granite_key)
-
-    class J:
-        calls = retries = errors = 0
-
-        def judge(self, u, a, c):
-            self.calls += 1
-            return {"label": "No", "attempts": 1, "errors": 0, "reason": None, "input_tokens": 9, "trimmed": False}
-    j = J()
-    res = G.screen(j, rows[:3], cache, lambda: False, lambda **k: None)
-    assert res["judged"] == 6 and j.calls == 6
-    res = G.screen(j, rows, cache, lambda: False, lambda **k: None)
-    assert (res["cached"], res["judged"]) == (6, 6) and len(cache) == 12
-    order = [(e["row_id"], e["criteria"]) for e in cache.entries.values()]
-    assert order[:2] == [("dark-1", "harm"), ("dark-1", "sexual_content")]
-
-    class Broken(J):
-        def judge(self, u, a, c):
-            return {"label": "invalid", "attempts": 2, "errors": 2, "reason": "error", "input_tokens": 9,
-                    "trimmed": False}
-    cache2 = R.JsonlCache(tmp_path / "g2.jsonl", R.check_granite, R.granite_key)
-    with pytest.raises(RuntimeError, match="every Granite call raised"):
-        G.screen(Broken(), rows, cache2, lambda: False, lambda **k: None)
-    assert len(cache2) == 2 * P.CONSECUTIVE_ERROR_LIMIT
-    assert len(G.selected(rows, 2)) == 2 and len(G.selected(rows, None)) == 6
-
-
-def test_load_llm_uses_the_probe_constructor(monkeypatch):
-    import sys
-    import types
-    seen = {}
-
-    class L:
-        def __init__(self, **kw):
-            seen.update(kw)
-    monkeypatch.setitem(sys.modules, "llama_cpp", types.SimpleNamespace(Llama=L))
-    G.load_llm(pathlib.Path("/x/model.gguf"))
-    assert seen == {"model_path": "/x/model.gguf", "n_gpu_layers": -1, "n_ctx": 8192, "seed": 0, "verbose": False,
-                    "logits_all": False}
+def test_an_input_over_the_limit_refuses_before_the_model_loads(tmp_path):
+    """The lead's precheck (8,160 tokens after the trim, which cuts only the response) refuses the step, naming the
+    triple's id, before the model loads: no row is labelled invalid for its length."""
+    path = write_jsonl(tmp_path / "long.jsonl", [fiction_row("dark", 1, 0, context="c" * 40000),
+                                                 fiction_row("dark", 1, 1)])
+    rows = R.read_rows("dark", path, sha(path.read_bytes()), 2)
+    fake = FakeGranite()
+    with pytest.raises(Refusal, match="dark-1"):                       # the lead's precheck names the triple's id
+        G.screen(fake.session(), rows, _cache(tmp_path), lambda: False, lambda **k: None)
+    assert fake.loads == 0 and fake.calls == 0

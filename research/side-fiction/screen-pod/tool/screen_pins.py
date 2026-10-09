@@ -2,22 +2,25 @@
 
 Rebuilt 9 October 2026 (10:27 UTC, clock checked) by the Side Project's Opus worker from the lead's stopped partial
 build (tmp/side-fiction-screen-handover-20261009/, MANIFEST.sha256), against research/side-fiction/SCREEN-SPEC.md
-(SHA-256 19cae3e1..., sections 1 to 7), rules-v2.json field classifier_screen (c23672cf...) and PREREG-DRAFT.md
-sections 3 and 5. Every value below is fixed before any pod run. Nothing here reads row, prompt, answer or judge-output
+(SHA-256 81dc487a..., sections 1 to 8; section 8, the Granite backend, was added to 19cae3e1... in commit cbe052f),
+rules-v2.json field classifier_screen (c23672cf...) and PREREG-DRAFT.md sections 3 and 5. Every value below is fixed before any pod run. Nothing here reads row, prompt, answer or judge-output
 text.
+
+Revised 9 October 2026 (17:11 UTC, clock checked): ONE Granite-on-CUDA backend. The screen no longer builds, loads,
+prompts or parses Granite itself. It uses the lead's Granite pod mode (scripts/gate_b_mac_judges, commit 2694bd0;
+Granite judge ff9196a; PARITY.md c4fc455e...): the lead's pod job pod_run_granite.sh makes the Granite venv, builds
+llama-cpp-python 0.3.36 with CUDA from its pinned sdist, downloads the pinned GGUF and runs the lead's known-answer
+gate; the screen then judges its rows through granite_pod.judge_triples (granite_files.granite_input, criteria_id
+"harm" or "sexual_content"). The Granite pins (GGUF, tokenizer folder, packages, llama build) are the lead's
+(granite_pod), and every lead file the screen imports or ships is pinned below by SHA-256 as committed.
 
 Where the pins come from (read on the Mac on 9 Oct; hashing and metadata only, no model loaded):
   - the fiction files and the Dolly train rows: the specification's table (train_rows.jsonl through the prepared set's
     manifest 9ed61826..., which lists it as 1efa8571...);
-  - Granite: the same GGUF as the Mac judge (gate_b_mac_judges/common.GRANITE_GGUF_SHA256; repository commit
-    8c87479a... from tmp/judge-models/.cache metadata); the tokenizer folder's ten files (SHA-256 of the Mac copy
-    tmp/judge-models/granite-guardian-3.3-8b-tokenizer, downloaded at commit b3421eda...);
-  - llama-cpp-python: version 0.3.36, the judge venv's (tmp/judge-venv); its source is the PyPI sdist whose SHA-256 the
-    Mac's pip wheel cache records in origin.json (the wheel the Mac built from it);
   - Qwen3Guard-Gen-4B: the engine's pinned revision 6ec42827... (recipe B's guard block); the twelve files' sizes and
     SHA-256 from the probe pods' model-download-receipt.json (one identical set in every receipt);
-  - the reused RunPod launcher (scripts/gate_b_mac_judges/pod/, commits 6488274 and a4cc490): the SHA-256 of every
-    module it imports, as committed; its parity PASS (PARITY.md 76e1457f...) covers it only as committed, so a changed
+  - the lead's files (scripts/gate_b_mac_judges at 2694bd0; the main checkout's copies are byte-identical to it): the
+    SHA-256 of every module the launcher or the bundle builder imports and of every file the bundle ships. A changed
     file refuses the bundle and the launch.
 """
 from __future__ import annotations
@@ -36,18 +39,21 @@ W = ROOT / ".claude/worktrees/peaceful-jepsen-8b8eee"           # the Side Proje
 MANIFEST_NAME = "job-manifest.json"
 ON_POD = (HERE.parent / MANIFEST_NAME).is_file() and (HERE.parent / "gate_b").is_dir()   # bundle/tool beside them
 MAC_GATE_B = ROOT / "scripts/gate_b_mac_judges"
-GATE_B = HERE.parent / "gate_b" if ON_POD else MAC_GATE_B        # common.py and units.py (stdlib)
+GATE_B_BUNDLE = "gate_b"                                         # the lead's Granite bundle inside the screen's bundle
+GATE_B = HERE.parent / GATE_B_BUNDLE / "tool" if ON_POD else MAC_GATE_B   # common, units, granite_files, ...
+GATE_B_POD = GATE_B / "pod"                                      # granite_pod, bundle, pod_job, podhost, judge_pod
 POD_ENGINE = HERE.parent / "engine"
 ENGINE = POD_ENGINE if ON_POD else ROOT                          # holds experiments/ (a namespace package)
 JUDGE_POD_DIR = MAC_GATE_B / "pod"                               # podhost.py, judge_pod.py (Mac only; imported)
-for _p in (HERE, GATE_B, ENGINE):
+for _p in (HERE, GATE_B_POD, GATE_B, ENGINE):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
 # ---------------------------------------------------------------- the specification and the inputs
 
 SPEC = W / "research/side-fiction/SCREEN-SPEC.md"
-SPEC_SHA256 = "19cae3e15a26664a63debbe5fbdda588abc60a81b087c71b6ce57e65ef86b064"      # sections 1 to 7 (10:08 UTC)
+SPEC_SHA256 = "81dc487a016af5555e8f8c9f5bcb7592a984b7fc7ab9fc933cd76df6912e390b"      # sections 1 to 8 (commit
+#   cbe052f: section 8, the lead's Granite backend and the per-run gate, added to 19cae3e1...; checked 17:22 UTC)
 RULES = W / "research/side-fiction/rules-v2.json"
 RULES_SHA256 = "c23672cf3461406281813a2bd7472f44c005f0e10240c92509f78b5deaef6606"
 REFILL_TOOL = W / "research/side-fiction/scripts/v2/sf_screen.py"
@@ -84,69 +90,31 @@ ROUND_SOURCES = {1: ("dark", "light", "dolly"), 2: ("refill",), 3: ("refill",)}
 GRANITE_SOURCES = ("dark", "light", "refill")                   # Granite never judges the Dolly baseline
 FICTION_ARMS = ("dark", "light")
 
-# ---------------------------------------------------------------- the known-answer implementation check (the lead's rule)
+# ---------------------------------------------------------------- the known-answer gate: the lead's, as this screen expects it
+# The lead's pod job runs it (pod_job.known_answer_gate, on by default; granite_pod's reference and rule). The bundle
+# builder refuses unless the lead's gate is exactly this unit, reference and rule (the same unit and thresholds as the
+# screen's own check before the refactor, which is therefore removed and never run twice).
 
-KA_UNIT = ROOT / "tmp/family-probe-olmo2-1b/retrieved/olmo2-1b-1101/tree/round1/1101-a0-e1-a1"
-KA_UNIT_NAME = "1101-a0-e1-a1"
+KA_UNIT_NAME = "1101-a0-e1-a1"  # OLMo-2-1B recipe B, seed 1101, e1: 200 greedy harm answers
 KA_COMPLETE_SHA256 = "8f0fa83a42ccc5edc54a5ee26ed63f49448c36d30adbd64e28b655678afee4c9"
-KA_JOB_SHA256 = "3e60568ac11e32f3f429aa2606bc38c9b881456fd262a120e526ccb189022402"
-KA_MAC_ITEMS = ROOT / "tmp/family-probe-olmo2-1b/second-judge-probe-items.jsonl"
-KA_MAC_ITEMS_SHA256 = "c2ef1130fd540eb822225b42e73297143fdbf17d40a95b8d936205f227feb547"
-KA_MAC_SUMMARY = ROOT / "tmp/family-probe-olmo2-1b/second-judge-probe-summary.json"
-KA_MAC_SUMMARY_SHA256 = "be2b42866b81e7d7f25c1f36910ac90ec030a592dca12274a9503c19a1c14914"
-KA_N = 200                     # the unit's greedy harm answers (OLMo-2-1B, recipe B, seed 1101, e1)
-KA_MAC_YES = 93                # the Mac's Granite harm labels of that unit: 93 yes, 107 no, 0 unparsed
-KA_MIN_IDENTICAL = 190         # pass: at least 190 of 200 labels identical ...
+KA_REFERENCE_SHA256 = "b5b2678efc8ba057d28b483e36af8672a31a9f892995ebc019efcef040e6f990"  # pod/granite-known-answers.json
+KA_N = 200
+KA_MAC_YES = 93                # the Mac's Granite harm labels of that unit: 93 yes, 107 no
+KA_MIN_IDENTICAL = 190         # pass: all 200 judged, at least 190 labels identical ...
 KA_MAX_DELTA_YES = 5           # ... and |pod yes - Mac yes| <= 5 (fixed before any pod run)
-KA_SPEED_AFTER = 5             # after this many known answers ...
-KA_MAX_S_PER_ITEM = 3.0        # ... a mean above this many seconds per answer means no GPU offload: the job stops
 
-# ---------------------------------------------------------------- Granite Guardian 3.3 8B (llama.cpp, CUDA)
+# ---------------------------------------------------------------- Granite Guardian 3.3 8B: the lead's backend
 
-GRANITE_GGUF_REPO = "ibm-granite/granite-guardian-3.3-8b-GGUF"
-GRANITE_GGUF_REVISION = "8c87479a2dc329e4e362a6e5dda7e7de3e0372b2"
-GRANITE_GGUF_FILE = "granite-guardian-3.3-8b-Q4_K_M.gguf"
-GRANITE_GGUF_SHA256 = "b4fa861b5163373413d9659c22e344e6206baad824ead17226b2058e54d14587"   # = common.GRANITE_GGUF_SHA256
-GRANITE_GGUF_BYTES = 4942875744
-GRANITE_TOK_REPO = "ibm-granite/granite-guardian-3.3-8b"
-GRANITE_TOK_REVISION = "b3421eda4ba6fc9f9a71121d7e62de08827469a4"
-GRANITE_TOK_FILES = {             # file -> (bytes, SHA-256): the Mac's tokenizer folder, all ten files
-    "README.md": (38840, "5b55df02a890c54dd1dc910b337f44ebced4416c14329663748be4f8fb5643bc"),
-    "added_tokens.json": (207, "bb33d55934aa82d29cc62f3d19cdbc60f315763f6ccee21bdfd8b3bde2f33d3b"),
-    "chat_template.jinja": (7255, "ddb691d71955c735aeca367b7405cf3e3622cf33788d6a1a7186965f0a4a69fc"),
-    "config.json": (791, "574ed07ab8a676c596d8beb9b72c3c7c57177cf2fea1e29af8ad97e87be132a1"),
-    "generation_config.json": (132, "6594b731af82e15d97cb1680d228654563d30b980279a5db11b5822630177aba"),
-    "model.safetensors.index.json": (29836, "c3a88218300666c35343b129857d4e8583ee1b15bf68d90ab976f51744560379"),
-    "special_tokens_map.json": (801, "21ce694081bb9ae1bd4bc64549e72e0799ebb74705e6b650e3585d85b71ebdc1"),
-    "tokenizer.json": (3476578, "91168e938f05796aa6dcca7e485e4b30ab52785320c7a6391ecef86e6c84681e"),
-    "tokenizer_config.json": (5263, "fcb3bdcbcf27ab09cbd7385c486319413ec3619192255a95969253b9746ff874"),
-    "vocab.json": (776995, "80ab859339a2525fdfbda14bc39df02dffb824aefdaf86426217bbb146d17e01"),
-}
-MAC_GRANITE_TOKENIZER = ROOT / "tmp/judge-models/granite-guardian-3.3-8b-tokenizer"   # the bundle builder's token counts
-# second_judge_probe.py's calling convention (tmp/family-probe-llama32-1b/second_judge_probe.py; the same file, by
-# SHA-256, in every family-probe kit, tmp/family-probe-olmo2-1b included, whose run gave the known answers' labels)
-SECOND_JUDGE_PROBE = ROOT / "tmp/family-probe-llama32-1b/second_judge_probe.py"
-SECOND_JUDGE_PROBE_SHA256 = "c51e466c2ce6d53fad640afe4399494fbf370d837859635833a9e93f4cdb1701"
-N_CTX, SEED, N_GPU_LAYERS = 8192, 0, -1
-NEW_TOKENS = 32
-TRIM_AT_TOKENS = 8000          # a templated input above 8000 tokens: the assistant turn is cut ...
-TRIM_TO_TOKENS = 7000          # ... to its first max(1000, len * 7000 / n) characters
-TRIM_MIN_CHARS = 1000
-INPUT_LIMIT = N_CTX - NEW_TOKENS
 CRITERIA = ("harm", "sexual_content")                           # "harm": the drop rule; "sexual_content": report
 LABELS = ("Yes", "No", "invalid")
-CONSECUTIVE_ERROR_LIMIT = 3    # this many rows in a row whose every call raised: the step aborts (no mass "invalid")
-LLAMA_VERSION = "0.3.36"
-LLAMA_SDIST_SHA256 = "832db0699007f1be95a7e41ef12e88926b02ba836461e36a36372db2760c1a2e"
-LLAMA_CMAKE_ARGS = "-DGGML_CUDA=on -DCMAKE_CUDA_ARCHITECTURES=80"   # CUDA, the A100's compute capability 8.0 only
-GRANITE_PACKAGES = {           # the judge venv's distributions (importlib.metadata names), llama-cpp-python included
-    "annotated-doc": "0.0.5", "anyio": "4.15.1", "certifi": "2026.7.22", "click": "8.5.0", "diskcache": "5.6.3",
-    "filelock": "4.0.12", "fsspec": "2026.9.0", "h11": "0.16.0", "hf-xet": "1.6.0", "httpcore": "1.0.9",
-    "httpx": "0.28.1", "huggingface_hub": "1.33.0", "idna": "3.20", "Jinja2": "3.1.6", "llama_cpp_python": "0.3.36",
-    "markdown-it-py": "4.2.0", "MarkupSafe": "3.0.4", "mdurl": "0.1.2", "numpy": "2.4.6", "packaging": "26.3",
-    "Pygments": "2.21.0", "PyYAML": "6.0.3", "regex": "2026.9.29", "rich": "15.0.0", "safetensors": "0.8.0",
-    "shellingham": "1.5.4", "tokenizers": "0.23.2", "tqdm": "4.70.1", "transformers": "5.18.0", "typer": "0.27.2",
-    "typing_extensions": "4.16.0"}
+LEAD_LABELS = {"yes": "Yes", "no": "No", "unparsed": "invalid"}   # granite_files.parse_score's labels -> the screen's
+# second_judge_probe.py's calling convention (tmp/family-probe-llama32-1b/second_judge_probe.py; the same file, by
+# SHA-256, in every family-probe kit): the lead's granite_files.py is its port; the screen's tests compare the bytes.
+SECOND_JUDGE_PROBE = ROOT / "tmp/family-probe-llama32-1b/second_judge_probe.py"
+SECOND_JUDGE_PROBE_SHA256 = "c51e466c2ce6d53fad640afe4399494fbf370d837859635833a9e93f4cdb1701"
+JUDGE_ROOT = "/workspace/judge"     # where the lead's Granite job runs on the pod (pod_run_granite.sh's default root)
+GRANITE_JOB = "granite-job"         # the screen's link to it, beside out/ (/workspace/screen/granite-job)
+GRANITE_VENV = "/root/granite-venv"  # the lead's Granite venv (pod_run_granite.sh's default); the granite step runs in it
 
 # ---------------------------------------------------------------- Qwen3Guard-Gen-4B (the engine's GuardScorer)
 
@@ -182,30 +150,39 @@ ENGINE_SUFFIXES = (".py", ".json", ".md", ".lock")              # the probe kits
 ENGINE_CODE_SHA256 = "e49a978c5fa27c3ba4bb1570ac8b24501e09bf8db5c35e31ffba90bf775cdc06"   # code_identity(), 9 Oct
 ENGINE_BASE_COMMIT = "8801456"  # the main checkout's HEAD when the engine identity was pinned (the diff is recorded)
 
-# ---------------------------------------------------------------- the reused launcher, pinned as committed
+# ---------------------------------------------------------------- the lead's files, pinned as committed (2694bd0)
 
-LAUNCHER_PINS = {              # path under scripts/gate_b_mac_judges -> SHA-256 (HEAD a7807a0; files of 6488274/a4cc490)
-    "pod/podhost.py": "d3e2d18aaa6c3fba29cacfce1cbc8f38af7b9983aefd0923fbf9df240ffffdd4",
-    "pod/judge_pod.py": "24ca18b98db6e9a995f8a09eb8ad8eecabde5b87746368f4e60d620d637dff0e",
-    "pod/bundle.py": "ca437328875e117a0e23df8c1ae5a36ae2792b1f18498e0e4492642c973588aa",
-    "pod/pod_job.py": "e6283c239f7733093d85c0490510dd725b9684455f8fffd60c25446e757ff39e",
+LAUNCHER_PINS = {              # path under scripts/gate_b_mac_judges -> SHA-256 (2694bd0; main's HEAD 019a72e has them)
+    "pod/podhost.py": "1eefa3a4da06901a1e12d3c7dd2fe98330fcdcc0d3d841ea6b67aa71affe1dfa",       # $10/h price limit
+    "pod/judge_pod.py": "da91a0bfcba90ee985da9d04f004001b6529510281f40eaf452b88f4ea57c2e4",
+    "pod/bundle.py": "144f3b1880b505f2e120bc4a19502f478d50164b00a6166856da24db0c68a1af",
+    "pod/pod_job.py": "f5ffe5d164e3d368fa5ae829376f59fe10cde2cc23cd12a452ba7a38a1df48d6",
     "pod/pod_judge.py": "81757ac7f87e39a37a831a23673d3f5431e80581c4bb746068537802d681cded",
     "pod/extend_cap.py": "8af2f6ccebbac591499075827afef714ff1b635b6f6a691e5f669517458179d6",
-    "pod/PARITY.md": "76e1457f6db5cd2b7df94252f8974ae8d68a79719652b0ccaa07d6149991afe0",
+    "pod/PARITY.md": "c4fc455ec8fcc8d12173097cf497ad3006d81680b0401f56f11069160d6d862a",         # FOCUS 019a72e
+    "pod/granite_pod.py": "dc04e108aa643999345994bb5566de7573eeb51d7f48bf998556c73026bb7192",
+    "pod/pod_run_granite.sh": "e3a51f36e87c23adf2e9d19bd2183d1b53af6c25a5e13d6c406619449e13466c",
+    "pod/pod_run.sh": "b0350f5246033f2cbf858912c2e38a12837d24a76e69531567f45bd44e1f70c8",
+    "pod/granite-requirements.txt": "519ec520750478c53d0c7c52da0210356f05f82d5ca01cc186f9fe2c56d82be1",
+    "pod/judge-requirements.txt": "9545ef85659d70adbbf951fdfac438132c421b669d7970156f742c7447abc5a9",
+    "pod/granite-known-answers.json": KA_REFERENCE_SHA256,
     "common.py": "af00c123ddf946b4206524f2d8ee576843b5132ed5f094547f365b96c7edc323",
     "units.py": "ad487897dd36aa03885dd6c1ec2da2734b88ffeea5f2a15aa1d4d1a706e4840b",
     "cache.py": "954840001112d7b24e8b5695c32a869467c444860377867dcf7911cbadb9a244",
     "judging.py": "e7a69bf7eda74930170c0f9b03ab8504be177f49f2b2ddb459599fce8ce4afa8",
     "harmbench_files.py": "b735e304dc295a21c8d9511af52165f8968b1497f81e18291f969bc29c9bcd8e",
+    "granite_files.py": "200299afad07e3b86eff5591bf553acaf1b9fde35bbc2ff36d6308d2035e7a18",
 }
+LEAD_COMMIT = "2694bd0"
 
 # ---------------------------------------------------------------- the pod, the cap and the cost (estimates)
 
 REMOTE = "/workspace/screen"
-POD_VENVS = "/root/screen-venvs"   # the two venvs on the container disk (the 8 Oct judge pod's pip into /workspace
+POD_VENVS = "/root/screen-venvs"   # the guard venv on the container disk (the 8 Oct judge pod's pip into /workspace
 #                                    took 14 min for 19 wheels; the container disk took 14.5 GB of downloads in 37 s)
 TAG_PREFIX = "sp-"             # the user's rule for side kits: "sp-" names; the pod is attribution-judge-<tag>
-SETUP_UPPER_S = 3600           # cap planning: pod start, two venvs, the llama.cpp CUDA build, 14 GB of downloads, loads
+SETUP_UPPER_S = 3600           # cap planning: pod start, the lead's Granite job (venv, CUDA build, GGUF, gate setup),
+#                                the guard venv, the 8.8 GB Qwen3Guard download, two model loads
 GRANITE_S_PER_CALL = 0.4       # cap planning per Granite call (estimate 0.12 to 0.30 s; README "Time and cost")
 QWEN_S_PER_ROW = 0.25          # cap planning per Qwen3Guard row (an A100 gave 0.165 s per item at batch 8, gate A)
 EST_SETUP_S = (1200, 2700)
@@ -219,5 +196,6 @@ MAX_CAP_HOURS = 6.0
 POD_EXIT_OK, POD_EXIT_ERROR, POD_EXIT_REFUSED, POD_EXIT_KA_FAILED, POD_EXIT_STOPPED = 0, 1, 2, 4, 5
 POD_EXIT_TOO_SLOW = 3          # known answers passed, but their s/answer x r (the round's tokens per Granite call over
 #                                the known answers' tokens) is above GRANITE_S_PER_CALL: no row is screened
-EXIT_KA_FAILED = 8             # the launcher's code for a failed known-answer check (0 and 2 to 7: as judge_pod.py)
+LEAD_EXIT_GATE_FAILED = 3      # the lead's pod_job.py run: the known-answer gate failed (pod_job.EXIT_KNOWN_ANSWER)
+EXIT_KA_FAILED = 8             # the launcher's code for a failed known-answer gate (0 and 2 to 7: as judge_pod.py)
 EXIT_TOO_SLOW = 9              # the launcher's code for POD_EXIT_TOO_SLOW: the round would not fit its planned cap

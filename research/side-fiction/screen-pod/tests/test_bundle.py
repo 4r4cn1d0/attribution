@@ -1,5 +1,7 @@
-"""The dry bundle build on the real inputs, its contents, its secret scan, the pod-side verification (in this process
-and with the bundle's own code in the pod layout), the refill round's plan, and the pins that refuse."""
+"""The dry bundle build on the real inputs, its contents (the lead's Granite bundle in gate_b/, staged by the lead's
+own stage_bundle), its secret scan, the pod-side verification (in this process, with the bundle's own code in the pod
+layout, and the lead's own pod_job.py verify through the pod's /workspace/judge/bundle link), the refill round's plan,
+and the pins that refuse."""
 from __future__ import annotations
 
 import json
@@ -13,8 +15,12 @@ import pytest
 from conftest import (P, R, SB, SP, make_refill, needs_real, refill_rows_from_real, sha, text_samples, assert_no_text,
                       all_files)
 from common import Refusal
+import granite_pod
 
 PY = sys.executable
+LEAD_TOOL = {"common.py", "cache.py", "units.py", "judging.py", "harmbench_files.py", "granite_files.py"}
+LEAD_POD = {"pod_job.py", "pod_judge.py", "bundle.py", "pod_run.sh", "judge-requirements.txt", "extend_cap.py",
+            "granite_pod.py", "pod_run_granite.sh", "granite-requirements.txt"}
 
 
 def dry(tmp_path, *extra, tag="sp-dry1", round_=1, out=None):
@@ -43,7 +49,10 @@ def test_dry_bundle_round1_is_deterministic_and_holds_only_the_listed_files(tmp_
     assert record["work"] == {"granite_rows": 10000, "granite_calls": 20000, "qwen_rows": 14800, "ka_calls": 200,
                               "resumed": {"granite": 0, "qwen": 0}}
     assert record["inputs"] == {k: v[0] for k, v in P.DATA_PINS.items()}
-    assert record["known_answer"]["n"] == 200 and record["known_answer"]["mac_yes"] == 93
+    assert record["known_answer"] == {
+        "gate": "the lead's (pod_job.known_answer_gate in the lead's Granite job)", "unit": "1101-a0-e1-a1",
+        "complete_sha256": P.KA_COMPLETE_SHA256, "reference_sha256": P.KA_REFERENCE_SHA256, "n": 200, "mac_yes": 93,
+        "rule": {"min_identical": 190, "max_abs_delta_yes": 5, "n": 200, "mac_yes": 93}}
     assert record["documents"] == {"spec_sha256": P.SPEC_SHA256, "rules_v2_sha256": P.RULES_SHA256}
     assert record["launcher_sha256"] == P.LAUNCHER_PINS
     assert record["cap_hours"] == 5.0 and record["cost_upper_usd"] == 9.25 and record["planning_price"] == 1.85
@@ -51,6 +60,7 @@ def test_dry_bundle_round1_is_deterministic_and_holds_only_the_listed_files(tmp_
     assert tokens["fiction_calls"] == 20000 and tokens["ka_items"] == 200
     assert 190 < tokens["fiction_mean_tokens_per_call"] < 205 and 415 < tokens["ka_mean_tokens"] < 430
     assert 0.45 < tokens["ratio"] < 0.49 and SB.check_granite_tokens(tokens) is tokens
+    assert tokens["input_tokens_max"] < 8160 and tokens["trimmed_inputs"] == 0
     with tarfile.open(out / "bundle.tar.gz") as t:
         names = t.getnames()
         assert all(m.mtime == 0 and m.uid == 0 and m.gid == 0 for m in t.getmembers())
@@ -58,20 +68,31 @@ def test_dry_bundle_round1_is_deterministic_and_holds_only_the_listed_files(tmp_
     manifest = json.loads(tarfile.open(out / "bundle.tar.gz").extractfile("bundle/job-manifest.json").read())
     assert files - {"job-manifest.json"} == set(manifest["files"])
     tops = {f.split("/")[0] for f in files}
-    assert tops == {"tool", "gate_b", "engine", "data", "ka", "prepared", "job-manifest.json"}
-    assert {f for f in files if f.startswith("prepared/")} == {f"prepared/{P.PREPARED_NAME}/manifest.sha256",
-                                                               f"prepared/{P.PREPARED_NAME}/banks/dev.jsonl"}
+    assert tops == {"tool", "gate_b", "engine", "data", "job-manifest.json"}                 # no ka/ or prepared/
+    gate = {f[len("gate_b/"):] for f in files if f.startswith("gate_b/")}
+    assert {f[len("tool/"):] for f in gate if f.startswith("tool/") and f.count("/") == 1} == LEAD_TOOL
+    assert {f[len("tool/pod/"):] for f in gate if f.startswith("tool/pod/")} == LEAD_POD
+    assert {f for f in gate if f.startswith("granite-tokenizer/")} == {f"granite-tokenizer/{n}" for n in
+                                                                       granite_pod.TOK_FILES}
+    assert {f for f in gate if f.startswith("known/") and not f.startswith("known/unit/")} == {
+        "known/granite-known-answers.json", f"known/prepared/{P.PREPARED_NAME}/manifest.sha256",
+        f"known/prepared/{P.PREPARED_NAME}/banks/dev.jsonl"}
+    assert {"known/unit/job.json", "known/unit/COMPLETE.json", "known/unit/eval/e1/generations.jsonl"} <= gate
+    assert gate - {f for f in gate if f.split("/")[0] in ("tool", "granite-tokenizer", "known")} == {"job-manifest.json"}
+    pinned = {f: SB.lead_pin_of(f) for f in gate if SB.lead_pin_of(f)}
+    assert len(pinned) == len(LEAD_TOOL) + len(LEAD_POD) + 1                       # + the gate's reference
+    assert all(manifest["files"][f"gate_b/{f}"] == P.LAUNCHER_PINS[pin] for f, pin in pinned.items())
+    lead = json.loads(tarfile.open(out / "bundle.tar.gz").extractfile("bundle/gate_b/job-manifest.json").read())
+    assert lead["groups"] == [] and lead["judge"]["name"] == "granite-guardian-3.3-8b" and lead["limit"] is None
+    assert lead["known_answers"]["reference_sha256"] == P.KA_REFERENCE_SHA256 and lead["tokenizer_dir"] == "granite-tokenizer"
+    assert manifest["gate_b"]["manifest_sha256"] == manifest["files"]["gate_b/job-manifest.json"] == (
+        record["gate_b"]["manifest_sha256"])
     assert not [f for f in files if not f.startswith("engine/") and ("hidden" in f or "selector" in f)]
     assert not [f for f in files if f.endswith("/manifest.json") or "__pycache__" in f or f.endswith(".pyc")]
     assert all(pathlib.PurePosixPath(f).suffix in P.ENGINE_SUFFIXES for f in files if f.startswith("engine/"))
-    assert {f for f in files if f.startswith("ka/")} == {"ka/mac-labels.json", "ka/unit/job.json",
-                                                         "ka/unit/COMPLETE.json", "ka/unit/eval/e1/generations.jsonl"}
     assert {f for f in files if f.startswith("data/")} == {"data/dark.jsonl", "data/light.jsonl",
                                                            "data/dolly-train_rows.jsonl"}
     assert {f[len("tool/"):] for f in files if f.startswith("tool/")} == set(SB.TOOL_FILES)
-    mac_labels = json.loads(tarfile.open(out / "bundle.tar.gz").extractfile("bundle/ka/mac-labels.json").read())
-    assert set(mac_labels) == {"unit", "complete_sha256", "source_sha256", "labels", "answer_sha256"}
-    assert sum(v == "Yes" for v in mac_labels["labels"].values()) == 93
     index = [json.loads(x) for x in (out / "rows-index.jsonl").read_bytes().split(b"\n") if x.strip()]
     assert len(index) == 14800 and set(index[0]) == set(R.INDEX_FIELDS)
     io_ = capsys.readouterr()
@@ -99,15 +120,30 @@ def test_bundle_secret_scan_passes_and_a_planted_secret_refuses(tmp_path, monkey
     assert code == 2 and not (out2 / "bundle.tar.gz").exists()
 
 
+def _relist(b: pathlib.Path, rel: str) -> None:
+    """Records a changed gate_b file everywhere a forger could: the lead's manifest, the screen's manifest and the
+    screen manifest's record of the lead's manifest (only the screen's pins of the lead's files are left to catch it)."""
+    lead_path, screen_path = b / "gate_b/job-manifest.json", b / "job-manifest.json"
+    lead = json.loads(lead_path.read_bytes())
+    lead["files"][rel] = sha((b / "gate_b" / rel).read_bytes())
+    lead_path.write_bytes(SB.canonical_bytes(lead))
+    m = json.loads(screen_path.read_bytes())
+    m["files"][f"gate_b/{rel}"] = lead["files"][rel]
+    m["files"]["gate_b/job-manifest.json"] = m["gate_b"]["manifest_sha256"] = sha(lead_path.read_bytes())
+    screen_path.write_bytes(SB.canonical_bytes(m))
+
+
 @needs_real
 def test_pod_side_verify_accepts_the_bundle_and_refuses_every_change(tmp_path):
     code, out = dry(tmp_path)
     bundle = extract(out / "bundle.tar.gz", tmp_path / "pod")
     manifest = SB.verify_bundle(bundle)
     assert manifest["round"] == 1 and manifest["limit"] is None
-    ka_items, mac = SB.pod_ka(bundle, manifest)
-    assert len(ka_items) == 200 and [i[0] for i in ka_items] == sorted(mac) and sum(v == "Yes" for v in mac.values()) == 93
-    for damage in ("data", "stray", "missing", "labels", "engine", "gate_b", "tokens", "no-tokens"):
+    lead = SB.verify_gate_b(bundle, manifest)
+    assert lead["manifest_sha256"] == manifest["gate_b"]["manifest_sha256"] and lead["groups"] == []
+    assert SB.ka_reference(bundle / SB.KA_REFERENCE) == SB.ka_reference(granite_pod.KNOWN_ANSWERS_FILE)
+    for damage in ("data", "stray", "missing", "engine", "gate_b", "gate_b-relisted", "gate_b-reference",
+                   "gate_b-manifest", "gate_b-gate-off", "tokens", "no-tokens"):
         b = tmp_path / f"pod-{damage}"
         shutil.copytree(bundle, b)
         if damage == "data":
@@ -116,13 +152,30 @@ def test_pod_side_verify_accepts_the_bundle_and_refuses_every_change(tmp_path):
             (b / "data/extra.jsonl").write_text("{}\n")
         elif damage == "missing":
             (b / "data/light.jsonl").unlink()
-        elif damage == "labels":
-            (b / "ka/mac-labels.json").write_text("{}")
         elif damage == "engine":
             p = b / "engine/experiments/safety_selection/prepare_task.py"
             p.write_text(p.read_text() + "\n")
         elif damage == "gate_b":
-            (b / "gate_b/units.py").write_text((b / "gate_b/units.py").read_text() + "\n")
+            (b / "gate_b/tool/units.py").write_text((b / "gate_b/tool/units.py").read_text() + "\n")
+        elif damage == "gate_b-relisted":                     # every listing agrees; only the lead-file pins see it
+            p = b / "gate_b/tool/pod/pod_run_granite.sh"
+            p.write_text(p.read_text() + "\n")
+            _relist(b, "tool/pod/pod_run_granite.sh")
+        elif damage == "gate_b-reference":
+            p = b / "gate_b/known/granite-known-answers.json"
+            p.write_bytes(p.read_bytes() + b"\n")
+            _relist(b, "known/granite-known-answers.json")
+        elif damage in ("gate_b-manifest", "gate_b-gate-off"):
+            lead_path = b / "gate_b/job-manifest.json"
+            lead_m = json.loads(lead_path.read_bytes())
+            if damage == "gate_b-manifest":
+                lead_m["limit"] = 5
+            else:
+                lead_m["known_answers"] = None
+            lead_path.write_bytes(SB.canonical_bytes(lead_m))
+            m = json.loads((b / "job-manifest.json").read_bytes())
+            m["files"]["gate_b/job-manifest.json"] = m["gate_b"]["manifest_sha256"] = sha(lead_path.read_bytes())
+            (b / "job-manifest.json").write_bytes(SB.canonical_bytes(m))
         elif damage in ("tokens", "no-tokens"):
             m = json.loads((b / "job-manifest.json").read_bytes())
             if damage == "tokens":
@@ -137,7 +190,9 @@ def test_pod_side_verify_accepts_the_bundle_and_refuses_every_change(tmp_path):
 @needs_real
 def test_the_bundles_own_code_runs_in_the_pod_layout(tmp_path):
     """screen_job.py from the unpacked bundle, by path, in a fresh isolated interpreter (as on the pod): it imports the
-    bundle's gate_b and engine copies, verifies the bundle, and status and sums print whitelisted fields only."""
+    lead's modules and the engine from the bundle, verifies the bundle, and status and sums print whitelisted fields
+    only. And the pod's layout for the lead's job: /workspace/judge/bundle a link to the bundle's gate_b, where the
+    lead's own pod_job.py verify (stdlib, isolated) accepts the bundle the lead's pod_run_granite.sh will run on."""
     code, out = dry(tmp_path)
     root = tmp_path / "remote"
     bundle = extract(out / "bundle.tar.gz", root)
@@ -148,20 +203,32 @@ def test_the_bundles_own_code_runs_in_the_pod_layout(tmp_path):
     line = json.loads(done.stdout.strip().splitlines()[-1])
     assert line["event"] == "bundle_verified" and line["rows"] == {"dark": 5000, "light": 5000, "dolly": 4800}
     probe = ("import sys; sys.path.insert(0, 'bundle/tool'); import screen_pins as P, screen_rows as R; "
-             "import common, experiments.safety_selection.prepare_task as pt; "
-             "print(P.ON_POD, common.__file__, pt.__file__, R.render_user_text is pt.render_user_text)")
+             "import common, granite_pod, experiments.safety_selection.prepare_task as pt; "
+             "print(P.ON_POD, common.__file__, granite_pod.__file__, pt.__file__, R.render_user_text is pt.render_user_text)")
     done = subprocess.run([PY, "-I", "-B", "-c", probe], cwd=root, capture_output=True, text=True, env=env, timeout=120)
-    on_pod, common_file, pt_file, same = done.stdout.split()
+    on_pod, common_file, granite_file, pt_file, same = done.stdout.split()
     assert on_pod == "True" and same == "True"
-    assert pathlib.Path(common_file).resolve().is_relative_to((bundle / "gate_b").resolve())
+    assert pathlib.Path(common_file).resolve().is_relative_to((bundle / "gate_b/tool").resolve())
+    assert pathlib.Path(granite_file).resolve().is_relative_to((bundle / "gate_b/tool/pod").resolve())
     assert pathlib.Path(pt_file).resolve().is_relative_to((bundle / "engine").resolve())
     for cmd in ("status", "sums"):
         done = subprocess.run([PY, "-I", "-B", "bundle/tool/screen_job.py", cmd, "--root", str(root)], cwd=root,
                               capture_output=True, text=True, env=env, timeout=120)
         assert done.returncode == 0
         got = json.loads(done.stdout)
-        assert set(got) == ({"started", "step", "done", "progress"} if cmd == "status" else {"files"})
-    assert not list(root.rglob("__pycache__"))
+        assert set(got) == ({"started", "step", "granite_step", "done", "progress"} if cmd == "status" else {"files"})
+    judge = tmp_path / "judge"                                     # screen_run.sh's links, then the lead's verify
+    judge.mkdir()
+    (judge / "bundle").symlink_to(bundle / "gate_b")
+    (root / "granite-job").symlink_to(judge)
+    done = subprocess.run([PY, "-I", "-B", "bundle/tool/pod/pod_job.py", "verify", "--bundle", "bundle"], cwd=judge,
+                          capture_output=True, text=True, env=env, timeout=300)
+    assert done.returncode == 0, done.stderr[-1500:]
+    line = json.loads(done.stdout.strip().splitlines()[-1])
+    manifest = json.loads((bundle / "job-manifest.json").read_bytes())
+    assert line["event"] == "bundle_verified" and line["manifest_sha256"] == manifest["gate_b"]["manifest_sha256"]
+    assert line["items"] == {"units": 0, "greedy": 0}
+    assert not list(root.rglob("__pycache__")) and not list(judge.rglob("__pycache__"))
 
 
 @needs_real
@@ -210,10 +277,29 @@ def test_changed_spec_rules_or_launcher_refuse_before_any_bundle(tmp_path, monke
     assert SB.check_documents() == {"spec_sha256": P.SPEC_SHA256, "rules_v2_sha256": P.RULES_SHA256}
     fake_gate_b = tmp_path / "gate_b"
     shutil.copytree(P.MAC_GATE_B, fake_gate_b, ignore=shutil.ignore_patterns("__pycache__", "tests"))
-    (fake_gate_b / "pod/podhost.py").write_text((fake_gate_b / "pod/podhost.py").read_text() + "\n")
-    with pytest.raises(Refusal, match="pod/podhost.py"):
-        SP.launcher_pins(fake_gate_b)
+    for rel in ("pod/podhost.py", "pod/granite_pod.py", "granite_files.py", "pod/PARITY.md"):
+        original = (fake_gate_b / rel).read_text()
+        (fake_gate_b / rel).write_text(original + "\n")
+        with pytest.raises(Refusal, match=rel):
+            SP.launcher_pins(fake_gate_b)
+        (fake_gate_b / rel).write_text(original)
     assert SP.launcher_pins() == P.LAUNCHER_PINS
+    assert P.LAUNCHER_PINS["pod/PARITY.md"].startswith("c4fc455e") and len(P.LAUNCHER_PINS) == 19
+
+
+@needs_real
+def test_the_leads_gate_must_be_the_screens_unit_reference_and_rule(monkeypatch):
+    plan = SB.lead_gate_plan()
+    assert (plan["unit"].name, plan["n"], plan["mac_yes"]) == ("1101-a0-e1-a1", 200, 93)
+    for name, value in (("KNOWN_ANSWER_MIN_IDENTICAL", 196), ("KNOWN_ANSWER_MAX_DELTA_YES", 3),
+                        ("KNOWN_ANSWER_N", 199), ("KNOWN_ANSWERS_SHA256", "0" * 64)):
+        with monkeypatch.context() as m:
+            m.setattr(granite_pod, name, value)
+            with pytest.raises(Refusal, match="rule"):
+                SB.lead_gate_plan(lambda: plan)
+    other = {**plan, "reference_sha256": "0" * 64}
+    with pytest.raises(Refusal, match="1101-a0-e1-a1"):
+        SB.lead_gate_plan(lambda: other)
 
 
 @needs_real

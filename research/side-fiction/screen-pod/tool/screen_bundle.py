@@ -2,7 +2,7 @@
 
 Rebuilt 9 October 2026 (10:27 UTC, clock checked) from the lead's partial build. Mac side (screen_pod.py bundle and
 launch): every input is checked against its pin before anything is built:
-  - the specification and the rules (SCREEN-SPEC.md 19cae3e1..., rules-v2.json c23672cf...): a changed file refuses
+  - the specification and the rules (SCREEN-SPEC.md 81dc487a..., rules-v2.json c23672cf...): a changed file refuses
     until this build is checked against it again;
   - round 1: dark.jsonl and light.jsonl (SHA-256 and 5,000 rows each, exactly the four fields, a book category of the
     file's arm) and the Dolly baseline, the prepared set's engine/train_rows.jsonl (manifest.sha256 = SHA-256 of
@@ -10,24 +10,30 @@ launch): every input is checked against its pin before anything is built:
     file refill-rN.jsonl that sf_screen.py wrote, whose SHA-256 the lead gives on the command line (the four fields
     plus slot_arm, slot_line and rank), and the refill report sf_screen.py wrote beside it, which must name that file,
     its SHA-256 and its row count, and the pinned sf_screen.py (165f1a30..., SCREEN-SPEC section 7) as its writer;
-  - the known-answer unit 1101-a0-e1-a1 through units.py (COMPLETE.json 8f0fa83a..., job.json 3e60568a...; target e1,
-    arm a0, seed 1101, the prepared manifest), its 200 greedy harm answers, their prompt ids in the dev bank
-    (common.bank_prompts, manifest-checked), and the Mac's Granite labels of that unit (second-judge-probe-items.jsonl
-    c2ef1130..., only its unit, prompt_id, target and granite fields are read: 93 yes, 107 no; the summary be2b4286...
-    names the unit's job.json SHA-256);
   - the engine code: experiments/minimal_safety and experiments/safety_selection (.py, .json, .md, .lock; no
     __pycache__, no symlink), as the probe kits' pack_setup.py selects it, with its code identity
     (safety_selection.common.code_identity), which must be the pinned e49a978c..., the git commit, the SHA-256 of all
     shipped engine files and the engine files changed since commit 8801456; uncommitted engine files refuse, as in the
     kits; recipe B's config (a47138f2...) with the pinned guard block.
-The bundle holds only: the screen's own files; gate_b_mac_judges' common.py and units.py; the engine code; the input
-files; the known-answer unit's job.json, COMPLETE.json and eval/e1/generations.jsonl; the Mac labels as ids and labels
-only (ka/mac-labels.json); the prepared set's manifest.sha256 and banks/dev.jsonl (the known answers' prompts, as the
-HarmBench pod); optionally a resumed launch's two caches; and job-manifest.json (every other file's SHA-256). No
-hidden or selector file, no other prepared file. Every staged file passes the kits' secret patterns (a hit refuses,
-naming the file and the pattern only). The tar is gate_b_mac_judges/pod/bundle.write_tar's deterministic tar.gz.
-Pod side: verify_bundle refuses unless the folder holds exactly the listed files with their SHA-256 and every pin
-agrees; pod_sources and pod_ka read the rows and the known answers from it.
+
+Revised 9 October 2026 (17:11 UTC, clock checked): ONE Granite-on-CUDA backend, the lead's. The bundle's gate_b/ folder
+IS a bundle of the lead's Granite pod mode, staged by the lead's own bundle.stage_bundle (scripts/gate_b_mac_judges/pod/
+bundle.py, 2694bd0) with no requested unit and the known-answer gate on (bundle.plan_known_answers: the lead's
+reference granite-known-answers.json b5b2678e..., unit 1101-a0-e1-a1, COMPLETE.json 8f0fa83a..., its dev bank), so it
+holds the lead's modules (tool/, tool/pod/: pod_run_granite.sh, granite_pod.py, granite-requirements.txt, ...), the
+Mac's pinned Granite tokenizer folder (granite-tokenizer/) and the gate's files (known/), with the lead's own
+job-manifest.json. The builder refuses unless that gate is the screen's expected unit, reference and rule, and every
+lead file in it has its pinned SHA-256 (screen_pins.LAUNCHER_PINS). On the pod the lead's pod_run_granite.sh runs on it
+unchanged (screen_run.sh links /workspace/judge/bundle to it), and the screen's granite step loads the same
+tokenizer folder. The screen's own Granite prompt, parse, build and requirements files are gone; its own known-answer
+files (ka/, the Mac labels, prepared/) are gone too (the gate is the lead's).
+
+The bundle holds only: the screen's own files (tool/); the lead's Granite bundle (gate_b/); the engine code (engine/);
+the input files (data/); optionally a resumed launch's two caches (resume/); and job-manifest.json (every other file's
+SHA-256, the lead bundle's manifest SHA-256). No hidden or selector file. Every staged file passes the kits' secret
+patterns (a hit refuses, naming the file and the pattern only). The tar is the lead's bundle.write_tar (deterministic).
+Pod side: verify_bundle refuses unless the folder holds exactly the listed files with their SHA-256, the lead's own
+verify_bundle accepts gate_b/ with its recorded manifest, and every pin agrees; pod_sources reads the rows.
 """
 from __future__ import annotations
 
@@ -43,20 +49,31 @@ if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 import screen_pins as P  # noqa: E402
 import screen_rows as R  # noqa: E402
-from common import Refusal, bank_prompts, canonical_bytes, jsonl_records, sha256_bytes, sha256_file  # noqa: E402
-from units import Unit, load_items  # noqa: E402
+import bundle as lead_bundle  # noqa: E402  (the lead's pod/bundle.py: stage_bundle, verify_bundle, write_tar)
+import granite_pod  # noqa: E402  (the lead's Granite pins, the gate's reference and rule)
+from common import GRANITE, Refusal, bank_prompts, canonical_bytes, sha256_bytes, sha256_file  # noqa: E402
+from units import load_items  # noqa: E402
 
-KIND, VERSION, MANIFEST_NAME = "fiction-screen job manifest", 2, P.MANIFEST_NAME
+KIND, VERSION, MANIFEST_NAME = "fiction-screen job manifest", 3, P.MANIFEST_NAME
 TOOL_FILES = ("screen_pins.py", "screen_rows.py", "screen_models.py", "granite_screen.py", "guard_screen.py",
-              "screen_job.py", "screen_bundle.py", "screen_run.sh", "granite-requirements.txt",
-              "guard-requirements.txt", "llama-requirements.txt")
-GATE_B_FILES = ("common.py", "units.py")
-KA_FILES = ("job.json", "COMPLETE.json", "eval/e1/generations.jsonl")
+              "screen_job.py", "screen_bundle.py", "screen_run.sh", "guard-requirements.txt")
+GATE_B = P.GATE_B_BUNDLE                                          # the lead's Granite bundle, beside tool/
+KA_REFERENCE = f"{GATE_B}/{lead_bundle.KNOWN_REFERENCE}"          # gate_b/known/granite-known-answers.json
 DATA_NAME = {"dark": "data/dark.jsonl", "light": "data/light.jsonl", "dolly": "data/dolly-train_rows.jsonl",
              "refill": "data/refill.jsonl"}
-KA_MAC_LABELS = "ka/mac-labels.json"
-PREPARED_DIR = f"prepared/{P.PREPARED_NAME}"
 RESUME = {"granite": "resume/granite.jsonl", "qwen": "resume/qwen.jsonl"}
+
+
+def lead_pin_of(rel: str) -> str | None:
+    """The LAUNCHER_PINS key of a file of the lead's staged bundle (its tool files and the gate's reference), or None
+    for the files the lead's own verify_bundle pins (the tokenizer folder, the gate's unit and dev bank)."""
+    if rel.startswith("tool/pod/"):
+        return "pod/" + rel[len("tool/pod/"):]
+    if rel.startswith("tool/"):
+        return rel[len("tool/"):]
+    if rel == lead_bundle.KNOWN_REFERENCE:
+        return "pod/" + granite_pod.KNOWN_ANSWERS_NAME
+    return None
 
 
 # ---------------------------------------------------------------- Mac side: inputs
@@ -93,58 +110,32 @@ def prepared_check(prepared: pathlib.Path) -> dict:
     return {"name": prepared.name, "manifest_sha256": P.PREPARED_MANIFEST, "dev_bank_sha256": dev}
 
 
-def read_mac_labels(path: pathlib.Path, sha256: str, unit_name: str) -> dict:
-    """{prompt id: Yes/No/invalid} of one unit in second_judge_probe's cache; only the unit, prompt_id, target and
-    granite fields are read (the cache's `raw` field is never touched)."""
-    data = pathlib.Path(path).read_bytes()
-    if sha256_bytes(data) != sha256:
-        raise Refusal("the Mac Granite labels file does not have its pinned SHA-256")
-    labels = {}
-    for lineno, entry in jsonl_records(data, "Mac Granite labels"):
-        if not isinstance(entry, dict) or entry.get("unit") != unit_name:
-            continue
-        pid = entry.get("prompt_id")
-        if not isinstance(pid, str) or pid in labels or entry.get("target") != "e1":
-            raise Refusal(f"Mac Granite labels: line {lineno} has no new e1 prompt id")
-        labels[pid] = R.mac_label(entry.get("granite"))
-    return labels
+def lead_gate_plan(plan_known_answers=None) -> dict:
+    """The lead's known-answer gate for this bundle (the lead's bundle.plan_known_answers: the reference by its pinned
+    SHA-256 and counts, the unit found and verified as the Mac judges find it, its 200 answers equal to the reference's,
+    its dev bank), refused unless it is the gate this screen expects: the same unit, reference and rule (so the
+    screen's own check is not needed and is never run twice). Hashes, ids and counts only."""
+    rule = (granite_pod.KNOWN_ANSWER_N, granite_pod.KNOWN_ANSWER_MAC_YES, granite_pod.KNOWN_ANSWER_MIN_IDENTICAL,
+            granite_pod.KNOWN_ANSWER_MAX_DELTA_YES, granite_pod.KNOWN_ANSWERS_SHA256)
+    want = (P.KA_N, P.KA_MAC_YES, P.KA_MIN_IDENTICAL, P.KA_MAX_DELTA_YES, P.KA_REFERENCE_SHA256)
+    if rule != want:
+        raise Refusal(f"the lead's known-answer rule {rule[:4]} or reference {rule[4][:16]} is not the screen's "
+                      f"{want[:4]} / {want[4][:16]}; have this build checked against it first")
+    plan = (plan_known_answers or lead_bundle.plan_known_answers)()
+    unit = plan["unit"]
+    if (plan["reference_sha256"], unit.complete_sha256, unit.name, plan["n"], plan["mac_yes"]) != (
+            P.KA_REFERENCE_SHA256, P.KA_COMPLETE_SHA256, P.KA_UNIT_NAME, P.KA_N, P.KA_MAC_YES):
+        raise Refusal("the lead's known-answer gate is not the screen's unit 1101-a0-e1-a1 with 200 answers and 93 yes")
+    if plan["prepared"]["manifest_sha256"] != P.PREPARED_MANIFEST:
+        raise Refusal("the lead's known-answer dev bank is not the pinned prepared set's")
+    return plan
 
 
-def check_mac_summary(path: pathlib.Path, sha256: str, unit_name: str, job_sha256: str) -> None:
-    data = pathlib.Path(path).read_bytes()
-    if sha256_bytes(data) != sha256:
-        raise Refusal("the Mac Granite summary does not have its pinned SHA-256")
-    unit = (json.loads(data).get("units") or {}).get(unit_name) or {}
-    if (unit.get("job_sha256") != job_sha256 or unit.get("n") != P.KA_N or unit.get("granite_harm") != P.KA_MAC_YES
-            or unit.get("unparsed") != 0):
-        raise Refusal("the Mac Granite summary does not name this unit's job.json with 200 labels and 93 yes")
-
-
-def ka_plan(unit_dir: pathlib.Path = None, prepared: pathlib.Path = None) -> dict:
-    """The known-answer unit and labels, checked (ids and hashes only)."""
-    from units import enumerate_units
-    unit_dir = pathlib.Path(P.KA_UNIT if unit_dir is None else unit_dir)
-    prepared = pathlib.Path(P.PREPARED if prepared is None else prepared)
-    (unit,), _ = enumerate_units((), [unit_dir], ("e1",))
-    if (unit.complete_sha256, unit.job_sha256) != (P.KA_COMPLETE_SHA256, P.KA_JOB_SHA256):
-        raise Refusal("the known-answer unit's COMPLETE.json or job.json is not the pinned one")
-    if (unit.arm, unit.seed, unit.target, unit.manifest_sha256) != ("a0", 1101, "e1", P.PREPARED_MANIFEST):
-        raise Refusal("the known-answer unit is not a0, seed 1101, e1, on the pinned prepared manifest")
-    items = load_items(unit, "greedy")
-    ids = [it.prompt_id for it in items]
-    if len(ids) != P.KA_N or len(set(ids)) != P.KA_N:
-        raise Refusal(f"the known-answer unit has {len(ids)} greedy harm answers, not {P.KA_N} distinct ones")
-    missing = sorted(set(ids) - set(bank_prompts(prepared, P.PREPARED_MANIFEST)))
-    if missing:
-        raise Refusal(f"{len(missing)} known-answer prompt ids are not in the dev bank (first {missing[0]})")
-    labels = read_mac_labels(P.KA_MAC_ITEMS, P.KA_MAC_ITEMS_SHA256, unit.name)
-    if set(labels) != set(ids):
-        raise Refusal("the Mac labels do not cover exactly the known-answer unit's 200 prompt ids")
-    if sum(v == "Yes" for v in labels.values()) != P.KA_MAC_YES:
-        raise Refusal(f"the Mac labels do not give {P.KA_MAC_YES} yes")
-    check_mac_summary(P.KA_MAC_SUMMARY, P.KA_MAC_SUMMARY_SHA256, unit.name, unit.job_sha256)
-    return {"unit": unit, "labels": dict(sorted(labels.items())),
-            "answer_sha256": {it.prompt_id: it.answer_sha256 for it in items}}
+def ka_reference(path: pathlib.Path) -> dict:
+    """{prompt id: Mac label (yes/no)} of the lead's known-answer reference (granite_pod.load_known_answers: its pinned
+    SHA-256, 200 items, 93 yes)."""
+    doc = granite_pod.load_known_answers(pathlib.Path(path), P.KA_REFERENCE_SHA256)
+    return {r["prompt_id"]: r["label"] for r in doc["items"]}
 
 
 def engine_files(root: pathlib.Path = None) -> dict:
@@ -219,53 +210,62 @@ _TOKEN_CACHE: dict = {}
 
 
 def granite_token_means(planned: dict, limit: int | None, tok_dir: pathlib.Path = None) -> dict:
-    """The speed stop's ratio r, from the bundle's own inputs, with the Granite tokenizer and template (the Mac's pinned
-    tokenizer folder; transformers renders and counts it as the Mac judge venv does, checked on 600 items):
+    """The speed stop's ratio r, from the bundle's own inputs, with the lead's prompt builder
+    (granite_files.granite_input, the same function the pod's judge_triples calls) and the Mac's pinned Granite
+    tokenizer folder (granite_pod.verify_tokenizer_dir; transformers renders and counts it as the Mac judge venv does,
+    checked on 600 items):
       - fiction: the mean tokens one Granite call evaluates over this round's selected Granite rows, the `harm` call
         its whole template, the `sexual_content` call only the tokens after the prefix it shares with the `harm`
         call of the same row (the screen calls them in that order, so llama.cpp reuses that prefix);
-      - known answers: the mean template tokens of the 200 known answers (each a new conversation);
+      - known answers: the mean template tokens of the lead's gate's 200 answers (each a new conversation);
       - r = fiction mean / known-answer mean.
-    Counts only (no text kept or printed). Cached per input hashes in this process."""
-    import granite_screen as G
-    tok_dir = pathlib.Path(P.MAC_GRANITE_TOKENIZER if tok_dir is None else tok_dir)
-    found = {f.name: (f.stat().st_size, sha256_file(f)) for f in tok_dir.iterdir() if f.is_file()}
-    if found != P.GRANITE_TOK_FILES:
-        raise Refusal(f"{tok_dir.name}: the Granite tokenizer folder is not the ten pinned files")
+    Refuses a round whose longest input (after the trim) is above granite_files.INPUT_LIMIT (the pod's precheck would
+    refuse it). Counts only (no text kept or printed). Cached per input hashes in this process."""
+    import granite_files
+    tok_dir = pathlib.Path(granite_pod.MAC_TOKENIZER if tok_dir is None else tok_dir)
+    granite_pod.verify_tokenizer_dir(tok_dir)
     sources = {name: s for name, s in planned["sources"].items() if name in P.GRANITE_SOURCES}
-    key = (tuple(sorted((name, s["sha256"]) for name, s in sources.items())), limit,
-           planned["ka"]["unit"].complete_sha256, str(tok_dir))
+    plan = planned["known_answers"]
+    key = (tuple(sorted((name, s["sha256"]) for name, s in sources.items())), limit, plan["unit"].complete_sha256,
+           str(tok_dir))
     if key in _TOKEN_CACHE:
         return dict(_TOKEN_CACHE[key])
-    tok = G.load_tokenizer(tok_dir)
+    tok = granite_pod.load_tokenizer_at(tok_dir)
 
-    def ids(rendered):
-        return tok(rendered, add_special_tokens=False)["input_ids"]
-    per_call = []
+    def ids(templated):
+        return tok(templated, add_special_tokens=False)["input_ids"]
+    per_call, longest, trimmed = [], 0, 0
     for s in sources.values():
-        for row in G.selected(s["rows"], limit):
-            harm = ids(G.granite_prompt(tok, row.user_turn, row.assistant_turn, "harm")[0])
-            sexual = ids(G.granite_prompt(tok, row.user_turn, row.assistant_turn, "sexual_content")[0])
+        for row in R.selected(s["rows"], limit):
+            harm, n_harm, cut_harm = granite_files.granite_input(tok, row.user_turn, row.assistant_turn, "harm")
+            sexual, n_sexual, cut_sexual = granite_files.granite_input(tok, row.user_turn, row.assistant_turn,
+                                                                       "sexual_content")
+            harm_ids, sexual_ids = ids(harm), ids(sexual)
             shared = 0
-            for a, b in zip(harm, sexual):
+            for a, b in zip(harm_ids, sexual_ids):
                 if a != b:
                     break
                 shared += 1
-            per_call += [len(harm), len(sexual) - shared]
-    unit = planned["ka"]["unit"]
-    prompts = bank_prompts(P.PREPARED, P.PREPARED_MANIFEST)
-    ka = [G.granite_prompt(tok, prompts[it.prompt_id], it.text, "harm")[1]
-          for it in load_items(unit, "greedy", with_text=True)]
+            per_call += [len(harm_ids), len(sexual_ids) - shared]
+            longest = max(longest, n_harm, n_sexual)
+            trimmed += cut_harm + cut_sexual
+    prompts = bank_prompts(plan["prepared"]["dir"], plan["prepared"]["manifest_sha256"])
+    ka = [granite_files.granite_input(tok, prompts[it.prompt_id], it.text, "harm")[1]
+          for it in load_items(plan["unit"], "greedy", with_text=True)]
     if not per_call or len(ka) != P.KA_N:
         raise Refusal("no Granite call to count, or not 200 known answers")
+    if longest > granite_files.INPUT_LIMIT:
+        raise Refusal(f"a Granite input of this round has {longest} tokens after the trim, above the pod's limit "
+                      f"{granite_files.INPUT_LIMIT}")
     from importlib import metadata
     fiction, known = sum(per_call) / len(per_call), sum(ka) / len(ka)
     out = {"fiction_calls": len(per_call), "fiction_mean_tokens_per_call": round(fiction, 3),
            "ka_items": len(ka), "ka_mean_tokens": round(known, 3), "ratio": round(fiction / known, 6),
+           "input_tokens_max": longest, "trimmed_inputs": trimmed,
            "definition": "fiction: harm call whole template, sexual_content call tokens after the prefix shared with "
-                         "the row's harm call; known answers: whole harm template",
+                         "the row's harm call; known answers: whole harm template (granite_files.granite_input)",
            "tokenizer": {"transformers": metadata.version("transformers"), "tokenizers": metadata.version("tokenizers"),
-                         "folder_files": "the ten pinned files"}}
+                         "folder_files": "the ten pinned files (granite_pod.TOK_FILES)"}}
     _TOKEN_CACHE[key] = dict(out)
     return out
 
@@ -303,8 +303,8 @@ def plan(round_: int, refill: pathlib.Path | None = None, refill_sha256: str | N
         if not sources["refill"]["rows"]:
             raise Refusal("the refill file holds no row")
         refill_info = refill_report(refill, round_, refill_sha256, len(sources["refill"]["rows"]))
-    return {"round": round_, "sources": sources, "prepared": prepared_check(P.PREPARED), "ka": ka_plan(),
-            "documents": documents, "refill": refill_info}
+    return {"round": round_, "sources": sources, "prepared": prepared_check(P.PREPARED),
+            "known_answers": lead_gate_plan(), "documents": documents, "refill": refill_info}
 
 
 # ---------------------------------------------------------------- Mac side: the stage, the secret scan, the tar
@@ -333,6 +333,31 @@ def secret_hits_bytes(data: bytes, patterns: dict) -> list:
     return [name for name, pat in patterns.items() if pat.search(content)]
 
 
+def stage_gate_b(stage: pathlib.Path, tag: str, plan: dict, files: dict) -> dict:
+    """The lead's Granite bundle into stage/gate_b by the lead's own bundle.stage_bundle (no requested unit, the
+    known-answer gate on, the Granite judge: its modules, the pinned tokenizer folder, the gate's files and its
+    job-manifest.json). Every staged file goes into `files` (gate_b/...); every lead file in it must have its pinned
+    SHA-256. Returns {the lead manifest's SHA-256 and the gate's entry} for the screen's manifest."""
+    folder = pathlib.Path(stage) / GATE_B
+    manifest = lead_bundle.stage_bundle([], folder, tag, P.MAC_GATE_B, judge="granite", known_answers=plan)
+    for path in sorted(p for p in folder.rglob("*") if p.is_file()):
+        rel = path.relative_to(folder).as_posix()
+        files[f"{GATE_B}/{rel}"] = sha256_file(path)
+        pin = lead_pin_of(rel)
+        if pin is not None and files[f"{GATE_B}/{rel}"] != P.LAUNCHER_PINS.get(pin):
+            raise Refusal(f"{GATE_B}/{rel} is not the lead's pinned {pin}")
+    lead_sha = files[f"{GATE_B}/{lead_bundle.MANIFEST_NAME}"]
+    ka = manifest["known_answers"]
+    return {"dir": GATE_B, "manifest_sha256": lead_sha, "judge": dict(GRANITE), "lead_commit": P.LEAD_COMMIT,
+            "tokenizer_dir": manifest["tokenizer_dir"], "groups": len(manifest["groups"]),
+            "known_answers": {"reference": KA_REFERENCE, "reference_sha256": ka["reference_sha256"],
+                              "unit": ka["unit"]["unit"], "complete_sha256": ka["unit"]["complete_sha256"],
+                              "items": ka["items"], "mac_yes": ka["mac_yes"],
+                              "rule": {"min_identical": granite_pod.KNOWN_ANSWER_MIN_IDENTICAL,
+                                       "max_abs_delta_yes": granite_pod.KNOWN_ANSWER_MAX_DELTA_YES,
+                                       "n": granite_pod.KNOWN_ANSWER_N, "mac_yes": granite_pod.KNOWN_ANSWER_MAC_YES}}}
+
+
 def stage_bundle(planned: dict, stage: pathlib.Path, tag: str, limit: int | None, engine: dict, pins: dict,
                  resume: dict | None, patterns: dict) -> dict:
     """Writes the bundle's files into stage/ (which must not exist); returns the job manifest (also written)."""
@@ -343,8 +368,7 @@ def stage_bundle(planned: dict, stage: pathlib.Path, tag: str, limit: int | None
     files: dict = {}
     for name in TOOL_FILES:
         _copy(HERE / name, stage, f"tool/{name}", files)
-    for name in GATE_B_FILES:
-        _copy(P.MAC_GATE_B / name, stage, f"gate_b/{name}", files, P.LAUNCHER_PINS[name])
+    gate_b = stage_gate_b(stage, tag, planned["known_answers"], files)
     for rel, src in engine["files"].items():
         _copy(src, stage, f"engine/{rel}", files)
     if files[f"engine/{P.RECIPE_REL}"] != P.RECIPE_SHA256:
@@ -353,21 +377,6 @@ def stage_bundle(planned: dict, stage: pathlib.Path, tag: str, limit: int | None
     for source, entry in planned["sources"].items():
         rel = _copy(entry["path"], stage, DATA_NAME[source], files, entry["sha256"])
         sources.append({"source": source, "path": rel, "sha256": entry["sha256"], "rows": len(entry["rows"])})
-    ka, unit = planned["ka"], planned["ka"]["unit"]
-    for rel in KA_FILES:
-        _copy(unit.path / rel, stage, f"ka/unit/{rel}", files)
-    if (files["ka/unit/COMPLETE.json"], files["ka/unit/job.json"]) != (P.KA_COMPLETE_SHA256, P.KA_JOB_SHA256):
-        raise Refusal("the known-answer unit changed after it was checked")
-    if files["ka/unit/eval/e1/generations.jsonl"] != unit.files["generations"]["sha256"]:
-        raise Refusal("the known-answer answers changed after they were checked")
-    (stage / KA_MAC_LABELS).parent.mkdir(parents=True, exist_ok=True)
-    (stage / KA_MAC_LABELS).write_bytes(canonical_bytes({
-        "unit": unit.name, "complete_sha256": unit.complete_sha256, "source_sha256": P.KA_MAC_ITEMS_SHA256,
-        "labels": ka["labels"], "answer_sha256": ka["answer_sha256"]}))
-    files[KA_MAC_LABELS] = sha256_file(stage / KA_MAC_LABELS)
-    prep = planned["prepared"]
-    _copy(P.PREPARED / "manifest.sha256", stage, f"{PREPARED_DIR}/manifest.sha256", files)
-    _copy(P.PREPARED / P.DEV_BANK_REL, stage, f"{PREPARED_DIR}/{P.DEV_BANK_REL}", files, prep["dev_bank_sha256"])
     resume_entry = None
     if resume is not None:
         resume_entry = {"from_tag": resume["from_tag"]}
@@ -381,13 +390,7 @@ def stage_bundle(planned: dict, stage: pathlib.Path, tag: str, limit: int | None
         raise Refusal(f"a secret pattern is in a staged file: {hits[:10]}")
     manifest = {"kind": KIND, "version": VERSION, "tag": tag, "round": planned["round"], "limit": limit,
                 "files": dict(sorted(files.items())), "sources": sources, "refill": planned.get("refill"),
-                "ka": {"unit": {"host": unit.host, "unit": unit.unit, "dir": "ka/unit", "arm": unit.arm,
-                                "seed": unit.seed, "target": unit.target, "complete_sha256": unit.complete_sha256,
-                                "job_sha256": unit.job_sha256, "completed_utc": unit.completed_utc,
-                                "manifest_sha256": unit.manifest_sha256,
-                                "generations": "ka/unit/eval/e1/generations.jsonl"},
-                       "mac_labels": KA_MAC_LABELS, "n": P.KA_N, "mac_yes": P.KA_MAC_YES,
-                       "prepared": {**prep, "dir": PREPARED_DIR}},
+                "gate_b": gate_b,
                 "engine": {"root": "engine", "code_sha256": engine["code_sha256"], "git_commit": engine["git_commit"],
                            "recipe": f"engine/{P.RECIPE_REL}", "recipe_sha256": P.RECIPE_SHA256,
                            "files": len(engine["files"])},
@@ -400,21 +403,21 @@ def stage_bundle(planned: dict, stage: pathlib.Path, tag: str, limit: int | None
 
 
 def pins_record() -> dict:
-    """The judges' pins, for the manifest, the bundle record and the summary."""
-    return {"granite": {"gguf_repo": P.GRANITE_GGUF_REPO, "gguf_revision": P.GRANITE_GGUF_REVISION,
-                        "gguf_file": P.GRANITE_GGUF_FILE, "gguf_sha256": P.GRANITE_GGUF_SHA256,
-                        "tokenizer_repo": P.GRANITE_TOK_REPO, "tokenizer_revision": P.GRANITE_TOK_REVISION,
-                        "tokenizer_files": {k: v[1] for k, v in sorted(P.GRANITE_TOK_FILES.items())},
-                        "criteria": list(P.CRITERIA), "n_ctx": P.N_CTX, "new_tokens": P.NEW_TOKENS, "seed": P.SEED,
-                        "convention_sha256": P.SECOND_JUDGE_PROBE_SHA256, "retry": "one, after llm.reset()"},
-            "llama_cpp_python": {"version": P.LLAMA_VERSION, "sdist_sha256": P.LLAMA_SDIST_SHA256,
-                                 "cmake_args": P.LLAMA_CMAKE_ARGS},
+    """The judges' pins, for the manifest, the bundle record and the summary. Granite: the lead's backend's pins
+    (granite_pod.pins(); its guardian_config names "harm", the lead's default, and the screen passes "sexual_content"
+    too)."""
+    return {"granite": {**granite_pod.pins(), "criteria": list(P.CRITERIA),
+                        "backend": f"granite_pod.judge_triples (scripts/gate_b_mac_judges, {P.LEAD_COMMIT})",
+                        "convention_sha256": P.SECOND_JUDGE_PROBE_SHA256,
+                        "retry": "one, a second judge_triples call of an unparsed label (the lead's API has no reset)"},
             "qwen3guard": {"repo": P.QWEN_REPO, "revision": P.QWEN_REVISION, "recipe": P.RECIPE_REL,
                            "recipe_sha256": P.RECIPE_SHA256, "guard_spec": dict(P.QWEN_GUARD_SPEC),
                            "files": {k: v[1] for k, v in sorted(P.QWEN_FILES.items())}},
-            "known_answer": {"unit": P.KA_UNIT_NAME, "complete_sha256": P.KA_COMPLETE_SHA256, "n": P.KA_N,
-                             "mac_yes": P.KA_MAC_YES, "rule": R.KA_RULE},
-            "spec_sha256": P.SPEC_SHA256, "rules_v2_sha256": P.RULES_SHA256}
+            "known_answer": {"gate": "the lead's (pod_job.known_answer_gate, run by pod_run_granite.sh)",
+                             "unit": P.KA_UNIT_NAME, "complete_sha256": P.KA_COMPLETE_SHA256,
+                             "reference_sha256": P.KA_REFERENCE_SHA256, "n": P.KA_N, "mac_yes": P.KA_MAC_YES,
+                             "rule": R.KA_RULE},
+            "lead_files": dict(P.LAUNCHER_PINS), "spec_sha256": P.SPEC_SHA256, "rules_v2_sha256": P.RULES_SHA256}
 
 
 # ---------------------------------------------------------------- pod side
@@ -440,9 +443,31 @@ def bundle_code_identity(root: pathlib.Path) -> str:
     return module.code_identity()["sha256"]
 
 
+def verify_gate_b(root: pathlib.Path, manifest: dict) -> dict:
+    """The lead's Granite bundle in root/gate_b: the lead's own bundle.verify_bundle (every file of its manifest by
+    SHA-256, the pinned tokenizer folder, the gate's reference, unit and dev bank), its manifest the one this bundle
+    recorded, no requested unit, the gate on with the pinned reference and unit, and every lead file pinned. Returns
+    the lead's manifest (with "manifest_sha256")."""
+    entry = manifest.get("gate_b") or {}
+    lead = lead_bundle.verify_bundle(pathlib.Path(root) / GATE_B)
+    ka = lead.get("known_answers") or {}
+    if (entry.get("dir") != GATE_B or lead["manifest_sha256"] != entry.get("manifest_sha256")
+            or lead.get("judge") != GRANITE or lead.get("groups") != [] or lead.get("limit") is not None):
+        raise Refusal("gate_b is not the lead's Granite bundle this bundle recorded (manifest, judge, no units)")
+    if (ka.get("reference_sha256"), (ka.get("unit") or {}).get("complete_sha256")) != (P.KA_REFERENCE_SHA256,
+                                                                                       P.KA_COMPLETE_SHA256):
+        raise Refusal("gate_b's known-answer gate is off, or not the pinned reference and unit")
+    for rel, digest in lead["files"].items():
+        pin = lead_pin_of(rel)
+        if pin is not None and digest != P.LAUNCHER_PINS.get(pin):
+            raise Refusal(f"{GATE_B}/{rel} is not the lead's pinned {pin}")
+    return lead
+
+
 def verify_bundle(root: pathlib.Path) -> dict:
-    """Refuses unless root holds exactly the manifest's files with their SHA-256 and every pin agrees. Returns the
-    manifest with "manifest_sha256" added. Run from a bundle (the pod), the engine on sys.path must be the bundle's."""
+    """Refuses unless root holds exactly the manifest's files with their SHA-256 and every pin agrees (the lead's
+    bundle in gate_b/ included). Returns the manifest with "manifest_sha256" added. Run from a bundle (the pod), the
+    engine on sys.path must be the bundle's."""
     root = pathlib.Path(root)
     manifest, msha = load_manifest(root)
     listed = manifest.get("files")
@@ -463,30 +488,7 @@ def verify_bundle(root: pathlib.Path) -> dict:
             raise Refusal(f"{s['source']}: the data file is not the one the manifest names")
         if s["source"] in P.DATA_PINS and (s["sha256"], s["rows"]) != P.DATA_PINS[s["source"]]:
             raise Refusal(f"{s['source']}: the data file is not the pinned one")
-    for name in GATE_B_FILES:
-        if listed.get(f"gate_b/{name}") != P.LAUNCHER_PINS[name]:
-            raise Refusal(f"gate_b/{name} is not the pinned one")
-    unit = manifest["ka"]["unit"]
-    if (listed.get("ka/unit/COMPLETE.json"), listed.get("ka/unit/job.json")) != (P.KA_COMPLETE_SHA256,
-                                                                                  P.KA_JOB_SHA256):
-        raise Refusal("the known-answer unit is not the pinned one")
-    complete = json.loads((root / "ka/unit/COMPLETE.json").read_bytes())
-    job = json.loads((root / "ka/unit/job.json").read_bytes())
-    if (complete.get("complete") is not True or complete.get("job_sha256") != P.KA_JOB_SHA256
-            or (complete.get("files") or {}).get("eval/e1/generations.jsonl") != listed.get(unit["generations"])
-            or (job.get("arm"), job.get("seed"), job.get("target_checkpoint"), job.get("manifest_sha256"))
-            != ("a0", 1101, "e1", P.PREPARED_MANIFEST) or unit["complete_sha256"] != P.KA_COMPLETE_SHA256):
-        raise Refusal("the known-answer unit's COMPLETE.json and job.json do not agree with its record")
-    prep = manifest["ka"]["prepared"]
-    if ((root / PREPARED_DIR / "manifest.sha256").read_text(encoding="utf-8").strip() != P.PREPARED_MANIFEST
-            or listed.get(f"{PREPARED_DIR}/{P.DEV_BANK_REL}") != prep["dev_bank_sha256"]):
-        raise Refusal("the prepared set's manifest or dev bank is not the recorded one")
-    labels = json.loads((root / KA_MAC_LABELS).read_bytes())
-    values = list((labels.get("labels") or {}).values())
-    if (len(values) != P.KA_N or sum(v == "Yes" for v in values) != P.KA_MAC_YES
-            or labels.get("complete_sha256") != P.KA_COMPLETE_SHA256
-            or set(labels.get("answer_sha256") or {}) != set(labels.get("labels") or {})):
-        raise Refusal("the Mac labels are not the unit's 200 labels with 93 yes")
+    verify_gate_b(root, manifest)
     check_granite_tokens(manifest.get("granite_tokens"))
     engine = manifest["engine"]
     if listed.get(engine["recipe"]) != P.RECIPE_SHA256:
@@ -497,6 +499,8 @@ def verify_bundle(root: pathlib.Path) -> dict:
         from experiments.safety_selection import prepare_task
         if not pathlib.Path(prepare_task.__file__).resolve().is_relative_to((root / "engine").resolve()):
             raise Refusal("the engine on sys.path is not the bundle's")
+        if not pathlib.Path(granite_pod.__file__).resolve().is_relative_to((root / GATE_B).resolve()):
+            raise Refusal("the lead's modules on sys.path are not the bundle's")
     for judge, entry in (manifest.get("resume") or {}).items():
         if judge != "from_tag" and listed.get(entry["path"]) != entry["sha256"]:
             raise Refusal(f"the resume cache of {judge} does not have its recorded SHA-256")
@@ -507,24 +511,3 @@ def pod_sources(root: pathlib.Path, manifest: dict) -> dict:
     """{source: rows} read from the bundle (hash-checked again)."""
     return {s["source"]: R.read_rows(s["source"], pathlib.Path(root) / s["path"], s["sha256"], s["rows"],
                                      manifest["round"]) for s in manifest["sources"]}
-
-
-def pod_ka(root: pathlib.Path, manifest: dict) -> tuple[list, dict]:
-    """The known answers (prompt id, answer SHA-256, user turn, assistant turn), sorted by prompt id as
-    second_judge_probe judged them, and the Mac labels; the answers load through units.load_items, the prompts
-    through common.bank_prompts."""
-    root = pathlib.Path(root).absolute()
-    e = manifest["ka"]["unit"]
-    listed = manifest["files"]
-    unit = Unit(host=e["host"], unit=e["unit"], path=root / e["dir"], kind="run-one", arm=e["arm"], seed=e["seed"],
-                target=e["target"], complete_sha256=e["complete_sha256"], job_sha256=e["job_sha256"],
-                completed_utc=e["completed_utc"], manifest_sha256=e["manifest_sha256"],
-                files={"generations": {"path": str(root / e["generations"]), "sha256": listed[e["generations"]]},
-                       "samples": None, "guard": None, "guard_samples": None})
-    items = load_items(unit, "greedy", with_text=True)
-    prompts = bank_prompts(root / PREPARED_DIR, P.PREPARED_MANIFEST)
-    mac = json.loads((root / KA_MAC_LABELS).read_bytes())
-    if {it.prompt_id: it.answer_sha256 for it in items} != mac["answer_sha256"]:
-        raise Refusal("the known answers' SHA-256 differ from the ones the Mac labels were recorded with")
-    ka_items = sorted((it.prompt_id, it.answer_sha256, prompts[it.prompt_id], it.text) for it in items)
-    return ka_items, dict(mac["labels"])

@@ -26,7 +26,6 @@ if str(HERE) not in sys.path:
 import screen_pins as P  # noqa: E402
 import screen_rows as R  # noqa: E402
 from common import Refusal, sha256_bytes  # noqa: E402
-from granite_screen import selected  # noqa: E402  (the same smoke-run selection)
 
 REASON_CODES = {"guard answer reached max_new_tokens": "capped", "guard input over limit; not scored": "over_limit",
                 "control string in guard input; not scored": "control_string"}
@@ -75,7 +74,7 @@ def qwen_entry(row, g: dict) -> dict:
 def screen(guard, rows: list, cache, stop, log, limit: int | None = None, chunk: int = P.QWEN_CHUNK,
            clock=time.time) -> dict:
     todo, cached = [], 0
-    chosen = selected(rows, limit)
+    chosen = R.selected(rows, limit)
     for row in chosen:
         entry = cache.get((row.row_id,))
         if entry is not None:

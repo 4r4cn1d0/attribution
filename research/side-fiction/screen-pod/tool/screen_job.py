@@ -1,31 +1,38 @@
 """The screen's pod job (runs on the pod; started step by step by screen_run.sh, which screen_pod.py starts over ssh).
 
-Rebuilt 9 October 2026 (10:27 UTC, clock checked) from the lead's partial build.
+Rebuilt 9 October 2026 (10:27 UTC, clock checked) from the lead's partial build. Revised 9 October 2026 (17:11 UTC,
+clock checked): ONE Granite-on-CUDA backend, the lead's (scripts/gate_b_mac_judges/pod, 2694bd0).
 
-    screen_job.py verify     --bundle B                                   the bundle's files and pins (stdlib)
-    screen_job.py llama-info --cmake-args A --nvcc-source S --build-log L --record R   llama-cpp-python's build
-    screen_job.py download   --bundle B --record R                        the three pinned snapshots, no token (guard venv)
-    screen_job.py ka         --bundle B --record R --labels L             the known-answer check (granite venv)
-    screen_job.py granite    --bundle B --ka K --cache C --record R       Granite harm + sexual_content (granite venv)
-    screen_job.py qwen       --bundle B --ka K --cache C --record R       Qwen3Guard through the engine (guard venv)
-    screen_job.py record     --root ROOT --exit E --step S                out/run-record.json from the step records
-    screen_job.py status     --root ROOT                                  one JSON line: DONE.json, the step, progress
-    screen_job.py sums       --root ROOT                                  one JSON line: SHA-256 of each output file
+    screen_job.py verify   --bundle B                                       the bundle's files and pins (stdlib)
+    screen_job.py download --bundle B --record R                            the pinned Qwen3Guard snapshot (guard venv)
+    screen_job.py ka       --bundle B --granite-root G --granite-exit N --record R    the lead's gate, read (stdlib)
+    screen_job.py granite  --bundle B --ka K --cache C --record R           Granite harm + sexual_content (Granite venv)
+    screen_job.py qwen     --bundle B --ka K --cache C --record R           Qwen3Guard through the engine (guard venv)
+    screen_job.py record   --root ROOT --exit E --step S                    out/run-record.json from the step records
+    screen_job.py status   --root ROOT                                      one JSON line: DONE.json, the steps, progress
+    screen_job.py sums     --root ROOT                                      one JSON line: SHA-256 of each output file
 
-The known-answer check runs first and alone: `ka` judges the 200 known answers with the screen's own Granite code and
-writes out/ka.json (counts, seconds per answer and the verdict of the pre-set rule) and out/ka-labels.jsonl (ids and
-labels). It exits 4 when the rule fails; 2 when the first answers show no GPU offload; and 3 when the rule passes but
-the round's projected time per Granite call is above GRANITE_S_PER_CALL (0.4 s, the cap's planning time): the
-projection is the known answers' measured seconds per answer x r, where r = the round's mean tokens per Granite call /
-the known answers' mean template tokens, both counted at bundle time from the bundle's inputs (job-manifest.json
-"granite_tokens"; about 197 / 421 = 0.47 in round 1). ka.json records r, both means, the pod's own known-answer token
-mean, the measured rate, the projected time per call and the projected Granite minutes of the round. screen_run.sh then
-ends (no row is screened) and the launcher stops the pod. `granite` and `qwen` refuse
-(exit 2) unless out/ka.json holds a pass that its own counts support and is not too slow. The row limit of a smoke run
-is the bundle's (job-manifest.json "limit": that many rows of each source). Exit codes: 0 done, 1 error (its type is
-recorded; the traceback stays in out/job.log on the pod), 2 refused, 3 the known answers too slow, 4 the known-answer
-check failed, 5 stopped by SIGTERM (resumable). Prints and records counts, ids, labels and SHA-256 only; never row,
-prompt, answer or judge-output text.
+Before `ka`, screen_run.sh runs the lead's own Granite pod job (pod_run_granite.sh) on the bundle's gate_b/ (a lead
+bundle with no requested unit): it makes the Granite venv, builds llama-cpp-python with CUDA, downloads and checks the
+GGUF, checks the packages, the GPU offload, the files and the tokenizer fingerprint, and runs the lead's known-answer
+gate (pod_job.known_answer_gate: the 200 OLMo-2-1B recipe-B seed-1101 e1 answers, at least 190 identical and |delta
+yes| <= 5; exit 3 when it fails). `ka` reads what that job left (its exit code, DONE.json, run record and job.log) and
+writes out/ka.json: the lead's gate block, recounted from its own ids and flips against the reference and checked
+against the rule; the gate's seconds per answer (from the lead's job.log stamps: the granite_precheck line logged right
+before the model loads to the gate's closing line; 1 s resolution, the model load included, so an upper estimate); and
+the speed verdict: the projection is those seconds per answer x r, where r = the round's mean tokens per Granite call /
+the known answers' mean template tokens, both counted at bundle time (job-manifest.json "granite_tokens"; about 197 /
+421 = 0.47 in round 1). It exits 4 when the gate failed (the lead's exit 3), 3 when it passed but the projection is
+above GRANITE_S_PER_CALL (0.4 s, the cap's planning time), 5 when the lead's job was stopped, 2 when it refused, 1 on
+any other failure of the lead's job (setup, build, download, time limit). The gate is the lead's and runs once: the
+screen judges no known answer itself. `granite` (in the lead's Granite venv) checks the packages and the GPU offload
+(granite_pod.require_granite_packages, llama_info), then judges every row through granite_pod.judge_triples with one
+GraniteSession (gate_b/granite-tokenizer, the GGUF at /root/granite-gguf, the Mac's tokenizer fingerprint required).
+`granite` and `qwen` refuse (exit 2) unless out/ka.json holds a pass that its own counts support and is not too slow.
+The row limit of a smoke run is the bundle's (job-manifest.json "limit": that many rows of each source). Exit codes:
+0 done, 1 error (its type is recorded; the traceback stays in out/job.log on the pod), 2 refused, 3 the known answers
+too slow, 4 the known-answer gate failed, 5 stopped by SIGTERM (resumable). Prints and records counts, ids, labels and
+SHA-256 only; never row, prompt, answer or judge-output text.
 """
 from __future__ import annotations
 
@@ -35,7 +42,6 @@ import json
 import os
 import pathlib
 import signal
-import subprocess
 import sys
 import traceback
 from importlib import metadata
@@ -48,25 +54,28 @@ import screen_pins as P  # noqa: E402
 import screen_rows as R  # noqa: E402
 import screen_bundle as SB  # noqa: E402
 import screen_models as M  # noqa: E402
+import granite_pod  # noqa: E402  (the lead's backend; stdlib at import)
 from common import Refusal, canonical_bytes, sha256_file  # noqa: E402
 
 STOP = {"flag": False}
-OUTPUTS = ("DONE.json", "out/run-record.json", "out/ka.json", "out/ka-labels.jsonl", "out/granite.jsonl",
-           "out/qwen.jsonl", "out/download-check.json", "out/llama-info.json", "out/environment-g.lock",
-           "out/environment-q.lock", "out/pip.log", "out/llama-build.log")      # never out/job.log or run.log
+GJ = P.GRANITE_JOB                    # the lead's Granite job's root, linked beside out/ (screen_run.sh)
+LEAD_OUTPUTS = (f"{GJ}/DONE.json", f"{GJ}/out/run-record.json", f"{GJ}/out/llama-build.json",
+                f"{GJ}/out/gguf-check.json", f"{GJ}/out/environment-pod.lock", f"{GJ}/out/pip.log",
+                f"{GJ}/out/llama-build.log")                     # never the lead's out/job.log (tracebacks stay)
+OUTPUTS = ("DONE.json", "out/run-record.json", "out/ka.json", "out/granite.jsonl", "out/qwen.jsonl",
+           *LEAD_OUTPUTS, "out/download-check.json", "out/environment-q.lock", "out/pip.log")   # never out/job.log
 STEP_RECORDS = {"ka": "out/ka.json", "granite": "out/granite-record.json", "qwen": "out/qwen-record.json",
-                "llama": "out/llama-info.json", "download": "out/download-check.json"}
-CACHES = ("out/ka-labels.jsonl", "out/granite.jsonl", "out/qwen.jsonl")
-STATUS_EVENTS = frozenset({"bundle_verified", "packages", "files_verified", "loaded", "plan", "progress", "ka_done",
-                           "granite_done", "qwen_done", "download_done", "llama_info", "record",
-                           "stopping_on_signal"})
+                "download": "out/download-check.json"}
+CACHES = ("out/granite.jsonl", "out/qwen.jsonl")
+STATUS_EVENTS = frozenset({"bundle_verified", "packages", "backend_ready", "loaded", "plan", "progress", "ka_done",
+                           "granite_done", "qwen_done", "download_done", "record", "stopping_on_signal"})
 STATUS_FIELDS = ("event", "step", "judged", "of", "sec_per_item", "eta_min", "cached", "todo", "rows", "seconds",
-                 "exit", "identical", "pod_yes", "mac_yes", "delta_yes", "passed", "stopped", "files")
-NVCC_SOURCES = ("image", "apt")
+                 "exit", "identical", "pod_yes", "mac_yes", "delta_yes", "passed", "stopped", "files", "lead_exit")
+UTC_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
 
 def utc() -> str:
-    return dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return dt.datetime.now(dt.timezone.utc).strftime(UTC_FORMAT)
 
 
 def log(**fields) -> None:
@@ -97,32 +106,83 @@ def require_packages(pins: dict, torch_public: str | None = None, version=metada
     return found
 
 
-def speed_verdict(per_item, tokens: dict, entries: list) -> dict:
+def speed_verdict(per_item, tokens: dict) -> dict:
     """The known answers' measured seconds per answer projected onto this round's Granite calls by r (the manifest's
     token ratio): the projected seconds per call and Granite minutes, and too_slow when the projection is above
-    GRANITE_S_PER_CALL. Also the pod's own mean template tokens of the known answers (a check on the bundle's)."""
+    GRANITE_S_PER_CALL (or when the gate was not timed: never a pass)."""
     r = tokens["ratio"]
     projected = None if per_item is None else per_item * r
-    measured = [e["input_tokens"] for e in entries if isinstance(e.get("input_tokens"), int)]
     return {"seconds_per_item": per_item, "ratio": r,
             "fiction_mean_tokens_per_call": tokens["fiction_mean_tokens_per_call"],
-            "ka_mean_tokens": tokens["ka_mean_tokens"],
-            "ka_mean_tokens_pod": round(sum(measured) / len(measured), 3) if measured else None,
-            "granite_calls": tokens["fiction_calls"],
+            "ka_mean_tokens": tokens["ka_mean_tokens"], "granite_calls": tokens["fiction_calls"],
             "projected_s_per_call": None if projected is None else round(projected, 4),
             "projected_granite_minutes": None if projected is None else round(projected * tokens["fiction_calls"] / 60, 1),
             "planned_s_per_call": P.GRANITE_S_PER_CALL,
             "too_slow": projected is None or projected > P.GRANITE_S_PER_CALL}
 
 
-def ka_gate(path: pathlib.Path) -> dict:
-    """out/ka.json must hold a pass that its own counts support; otherwise no row is screened."""
+def _epoch(stamp) -> float:
+    return dt.datetime.strptime(stamp, UTC_FORMAT).replace(tzinfo=dt.timezone.utc).timestamp()
+
+
+def gate_timing(job_log: pathlib.Path, judged) -> dict:
+    """The lead's gate's judging time, read from the lead's job.log (its judging.log lines carry "utc" to the second):
+    from the gate's granite_precheck line (granite_files.granite_judge logs it after the files' check and the token
+    check of the 200 answers, right before the model loads) to the gate's closing known_answers line. The interval
+    holds the model load and the 200 calls, so seconds_per_item is an upper estimate of the time per answer. None when
+    the lines are not found (the speed verdict then stops the run)."""
+    out = {"source": "the lead's out/job.log stamps (1 s resolution); the interval includes the model load",
+           "judged": judged, "precheck_utc": None, "done_utc": None, "seconds": None, "seconds_per_item": None,
+           "ka_input_tokens_max_pod": None, "problem": None}
     try:
-        record = json.loads(pathlib.Path(path).read_bytes())
+        data = pathlib.Path(job_log).read_bytes()
+    except OSError:
+        return {**out, "problem": "no job.log"}
+    events = []
+    for line in data.split(b"\n"):
+        try:
+            entry = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(entry, dict) and isinstance(entry.get("event"), str) and isinstance(entry.get("utc"), str):
+            events.append(entry)
+    starts = [i for i, e in enumerate(events) if e["event"] == "known_answers" and e.get("judged") == 0]
+    pre = [i for i in range(starts[-1] + 1, len(events)) if events[i]["event"] == "granite_precheck"] if starts else []
+    ends = ([i for i in range(pre[0] + 1, len(events)) if events[i]["event"] == "known_answers"
+             and events[i].get("judged") == judged] if pre else [])
+    if not (starts and pre and ends) or not (isinstance(judged, int) and judged > 0):
+        return {**out, "problem": "the gate's start, precheck or closing line is not in the lead's job.log"}
+    first, last = events[pre[0]], events[ends[0]]
+    try:
+        seconds = _epoch(last["utc"]) - _epoch(first["utc"])
+    except ValueError:
+        return {**out, "problem": "a stamp is not UTC to the second"}
+    if seconds < 0 or first.get("items") != P.KA_N:
+        return {**out, "problem": "the stamps run backwards, or the precheck is not the gate's 200 answers"}
+    tokens_max = first.get("input_tokens_max")
+    return {**out, "precheck_utc": first["utc"], "done_utc": last["utc"], "seconds": seconds,
+            "seconds_per_item": round(seconds / judged, 4),
+            "ka_input_tokens_max_pod": tokens_max if isinstance(tokens_max, int) else None}
+
+
+def _read_json(path: pathlib.Path):
+    try:
+        return json.loads(pathlib.Path(path).read_bytes())
     except (OSError, ValueError):
-        raise Refusal("no readable known-answer record: no row is screened before the check passes") from None
-    if not (isinstance(record, dict) and record.get("passed") is True and R.ka_passed(record.get("counts") or {})):
-        raise Refusal("the known-answer check did not pass: no row is screened")
+        return None
+
+
+def ka_gate(path: pathlib.Path, bundle: pathlib.Path) -> dict:
+    """out/ka.json must hold a pass of the lead's gate that its own counts support (the rule, and the recount from its
+    ids and flips against the bundle's reference) and must not be too slow; otherwise no row is screened."""
+    record = _read_json(path)
+    if not isinstance(record, dict):
+        raise Refusal("no readable known-answer record: no row is screened before the gate passes")
+    block = record.get("known_answers")
+    if not (record.get("passed") is True and isinstance(block, dict) and block.get("passed") is True
+            and R.ka_rule_passes(block)):
+        raise Refusal("the lead's known-answer gate did not pass: no row is screened")
+    R.ka_recount(block, SB.ka_reference(pathlib.Path(bundle) / SB.KA_REFERENCE))
     if record.get("too_slow") is not False:
         raise Refusal("the known answers ran slower than the cap was planned for (or were not timed): no row is "
                       "screened")
@@ -187,32 +247,6 @@ def cmd_verify(a) -> int:
     return 0
 
 
-def cmd_llama_info(a) -> int:
-    """llama-cpp-python's version, GPU offload and system info, nvcc's release line and where nvcc came from, the
-    CMAKE_ARGS and the build log's SHA-256 (out/llama-info.json); refuses unless the version is the pinned one, GPU
-    offload is built in and the arguments are the pinned ones."""
-    import llama_cpp
-    nvcc = None
-    try:
-        q = subprocess.run(["nvcc", "--version"], capture_output=True, text=True, timeout=60)
-        nvcc = next((ln.strip() for ln in q.stdout.splitlines() if "release" in ln), None) if q.returncode == 0 else None
-    except (OSError, subprocess.SubprocessError):
-        nvcc = None
-    record = {"kind": "fiction-screen llama-cpp-python build", "utc": utc(), "version": llama_cpp.__version__,
-              "gpu_offload": bool(llama_cpp.llama_supports_gpu_offload()),
-              "system_info": llama_cpp.llama_print_system_info().decode("utf-8", "replace")[:2000],
-              "cmake_args": a.cmake_args, "nvcc": nvcc, "nvcc_source": a.nvcc_source,
-              "sdist_sha256": P.LLAMA_SDIST_SHA256,
-              "build_log_sha256": sha256_file(a.build_log) if pathlib.Path(a.build_log).is_file() else None,
-              "package": metadata.version("llama_cpp_python")}
-    write_atomic(a.record, canonical_bytes(record))
-    log(event="llama_info", version=record["version"], gpu_offload=record["gpu_offload"], nvcc=nvcc)
-    if (record["version"] != P.LLAMA_VERSION or not record["gpu_offload"] or a.cmake_args != P.LLAMA_CMAKE_ARGS
-            or a.nvcc_source not in NVCC_SOURCES):
-        raise Refusal("llama-cpp-python is not the pinned version built with CUDA and the pinned CMAKE_ARGS")
-    return 0
-
-
 def cmd_download(a) -> int:
     SB.verify_bundle(a.bundle)
     record = {"kind": "fiction-screen download check", "utc": utc(), "token": False,
@@ -223,42 +257,95 @@ def cmd_download(a) -> int:
     return 0
 
 
-def _granite_judge(judge_factory):
-    import granite_screen as G
-    if judge_factory is not None:
-        return judge_factory(), {}
-    packages = require_packages(P.GRANITE_PACKAGES)
-    gguf, tokdir = M.granite_paths()
-    log(event="files_verified", files=1 + len(P.GRANITE_TOK_FILES))
-    return G.GraniteJudge(G.load_tokenizer(tokdir), G.load_llm(gguf)), packages
+def lead_summary(root: pathlib.Path, granite_exit: int) -> tuple[dict, dict | None]:
+    """What the lead's Granite job left in its root: (a summary of counts, versions and hashes; its run record or None).
+    The lead's refusal text is its own (ids and hashes); its job.log is never copied."""
+    done, record = _read_json(root / "DONE.json"), _read_json(root / "out/run-record.json")
+    done = done if isinstance(done, dict) else None
+    rec = record if isinstance(record, dict) else {}
+    llama = rec.get("llama") if isinstance(rec.get("llama"), dict) else {}
+    build = llama.get("build") if isinstance(llama.get("build"), dict) else {}
+    env = rec.get("environment") if isinstance(rec.get("environment"), dict) else {}
+    files = rec.get("files") if isinstance(rec.get("files"), dict) else {}
+    summary = {"exit": granite_exit, "done": None if done is None else {k: done.get(k) for k in ("exit", "step", "utc")},
+               "run_record_sha256": sha256_file(root / "out/run-record.json") if rec else None,
+               "run_record_exit": rec.get("exit"), "bundle_manifest_sha256": rec.get("bundle_manifest_sha256"),
+               "refused": str(rec.get("refused"))[:500] if rec.get("refused") else None, "error": rec.get("error"),
+               "llama": {"version": llama.get("llama_cpp_python"), "gpu_offload": llama.get("gpu_offload"),
+                         "cuda": build.get("cuda"), "build_log_sha256": build.get("build_log_sha256"),
+                         "build_jobs": build.get("build_jobs"), "build_seconds": build.get("build_seconds")},
+               "tokenizer_fingerprint": rec.get("tokenizer_fingerprint"), "gpu": env.get("gpu"),
+               "gguf_sha256": files.get("gguf_sha256")}
+    return summary, (rec or None)
 
 
-def cmd_ka(a, judge_factory=None) -> int:
-    import granite_screen as G
+def cmd_ka(a) -> int:
+    """The lead's known-answer gate, read (see the module text): out/ka.json, and the exit code that decides the job."""
     with Step(a.record, "known-answer") as step:
         step.record["rule"] = R.KA_RULE
         manifest = SB.verify_bundle(a.bundle)
         step.record["bundle_manifest_sha256"] = manifest["manifest_sha256"]
-        ka_items, mac_labels = SB.pod_ka(a.bundle, manifest)
-        log(event="bundle_verified", step="ka", rows=len(ka_items))
-        judge, step.record["packages"] = _granite_judge(judge_factory)
-        log(event="loaded", step="ka")
+        root = pathlib.Path(a.granite_root)
+        lead, record = lead_summary(root, a.granite_exit)
+        step.record.update(lead=lead, known_answers=None, passed=False, stopped=a.granite_exit == P.POD_EXIT_STOPPED,
+                           too_slow=None, timing=None, speed=None, seconds_per_item=None)
+        verdict_step = {0: "done", P.LEAD_EXIT_GATE_FAILED: "run"}.get(a.granite_exit)
+        if verdict_step is None or lead["done"] != {**(lead["done"] or {}), "exit": a.granite_exit, "step": verdict_step}:
+            # no gate verdict: the job ended in setup (whatever its code: pip can exit 3 too), was refused, stopped or
+            # timed out; a verdict is only exit 0 at step done or exit 3 at step run (the lead's DONE.json)
+            block = (record or {}).get("known_answers")
+            step.record["known_answers"] = block if isinstance(block, dict) else None
+            log(event="ka_done", step="ka", passed=False, stopped=step.record["stopped"], lead_exit=a.granite_exit)
+            step.code = (P.POD_EXIT_STOPPED if a.granite_exit == P.POD_EXIT_STOPPED
+                         else P.POD_EXIT_REFUSED if a.granite_exit == P.POD_EXIT_REFUSED else P.POD_EXIT_ERROR)
+            step.record["lead_verdict"] = False
+            return step.code
+        if record is None:
+            raise Refusal("the lead's Granite job ended with a gate verdict but left no run record")
+        if (record.get("kind") != "judge-pod run record" or record.get("device") != "cuda"
+                or record.get("judge") != SB.GRANITE or record.get("exit") != a.granite_exit
+                or record.get("bundle_manifest_sha256") != manifest["gate_b"]["manifest_sha256"]):
+            raise Refusal("the lead's run record is not a cuda Granite run of this bundle's gate_b with this exit")
+        block = record.get("known_answers")
+        if not (isinstance(block, dict) and block.get("enabled") is True and block.get("stopped") is False
+                and block.get("reference_sha256") == P.KA_REFERENCE_SHA256
+                and block.get("complete_sha256") == P.KA_COMPLETE_SHA256):
+            raise Refusal("the lead's run record holds no finished gate of the pinned reference and unit")
+        step.record.update(known_answers=block, lead_verdict=True)
+        R.ka_recount(block, SB.ka_reference(pathlib.Path(a.bundle) / SB.KA_REFERENCE))
+        passed = block.get("passed") is True
+        if passed != R.ka_rule_passes(block) or passed != (a.granite_exit == 0):
+            raise Refusal("the gate's verdict contradicts its counts or the lead's exit code")
         tokens = SB.check_granite_tokens(manifest.get("granite_tokens"))
-        counts, entries, stopped, per_item = G.known_answer(judge, ka_items, mac_labels, lambda: STOP["flag"], log)
-        write_atomic(a.labels, b"".join(json.dumps(e, sort_keys=True).encode() + b"\n" for e in entries))
-        passed = (not stopped) and R.ka_passed(counts)
-        speed = speed_verdict(per_item, tokens, entries)
+        timing = gate_timing(root / "out/job.log", block.get("judged"))
+        speed = speed_verdict(timing["seconds_per_item"], tokens)
         too_slow = passed and speed["too_slow"]
-        step.record.update(counts=counts, passed=passed, stopped=stopped, calls=judge.calls, retries=judge.retries,
-                           errors=judge.errors, seconds_per_item=per_item, labels_sha256=sha256_file(a.labels),
-                           too_slow=too_slow, planned_s_per_call=P.GRANITE_S_PER_CALL, speed=speed)
-        log(event="ka_done", step="ka", passed=passed, stopped=stopped, identical=counts["identical"],
-            pod_yes=counts["pod_yes"], mac_yes=counts["mac_yes"], delta_yes=counts["delta_yes"],
-            judged=counts["judged"], sec_per_item=per_item, projected_s_per_call=speed["projected_s_per_call"],
-            ratio=speed["ratio"])
-        step.code = (P.POD_EXIT_STOPPED if stopped else P.POD_EXIT_KA_FAILED if not passed
-                     else P.POD_EXIT_TOO_SLOW if too_slow else P.POD_EXIT_OK)
+        step.record.update(passed=passed, too_slow=too_slow, timing=timing, speed=speed,
+                           seconds_per_item=timing["seconds_per_item"], planned_s_per_call=P.GRANITE_S_PER_CALL)
+        log(event="ka_done", step="ka", passed=passed, stopped=False, identical=block.get("identical"),
+            pod_yes=block.get("pod_yes"), mac_yes=block.get("mac_yes"), delta_yes=block.get("delta_yes"),
+            judged=block.get("judged"), sec_per_item=timing["seconds_per_item"],
+            projected_s_per_call=speed["projected_s_per_call"], ratio=speed["ratio"], lead_exit=a.granite_exit)
+        step.code = (P.POD_EXIT_KA_FAILED if not passed else P.POD_EXIT_TOO_SLOW if too_slow else P.POD_EXIT_OK)
     return step.code
+
+
+def granite_backend(bundle: pathlib.Path, manifest: dict, session_factory=None):
+    """The lead's Granite backend for this step: the packages and the GPU offload checked first (no row is judged
+    otherwise), then one GraniteSession on the bundle's tokenizer folder and the pod's GGUF, refusing any tokenizer
+    whose fingerprint is not the Mac's (judge_triples' own default). session_factory: tests (fake loaders)."""
+    if session_factory is not None:
+        return session_factory(), {"packages": None, "llama": None, "session": "test factory"}
+    packages = granite_pod.require_granite_packages()
+    llama = granite_pod.llama_info()
+    if llama.get("gpu_offload") is not True:
+        raise Refusal("llama-cpp-python cannot offload to the GPU (not a CUDA build): no row is screened")
+    tok_dir = pathlib.Path(bundle) / SB.GATE_B / manifest["gate_b"]["tokenizer_dir"]
+    session = granite_pod.GraniteSession(tok_dir, granite_pod.POD_GGUF,
+                                         require_fingerprint=granite_pod.MAC_TOKENIZER_FINGERPRINT)
+    return session, {"packages": packages, "llama": llama, "gguf": str(granite_pod.POD_GGUF),
+                     "tokenizer_dir": f"{SB.GATE_B}/{manifest['gate_b']['tokenizer_dir']}",
+                     "fingerprint_required": granite_pod.MAC_TOKENIZER_FINGERPRINT}
 
 
 def cmd_granite(a, judge_factory=None) -> int:
@@ -266,14 +353,14 @@ def cmd_granite(a, judge_factory=None) -> int:
     with Step(a.record, "granite") as step:
         manifest = SB.verify_bundle(a.bundle)
         step.record["bundle_manifest_sha256"] = manifest["manifest_sha256"]
-        step.record["ka_passed"] = ka_gate(a.ka)["passed"]
+        step.record["ka_passed"] = ka_gate(a.ka, a.bundle)["passed"]
         rows = _sources(a.bundle, manifest, P.GRANITE_SOURCES)
-        judge, step.record["packages"] = _granite_judge(judge_factory)
-        log(event="loaded", step="granite", rows=len(rows))
+        session, step.record["backend"] = granite_backend(a.bundle, manifest, judge_factory)
+        log(event="backend_ready", step="granite", rows=len(rows))
         cache = R.JsonlCache(a.cache, R.check_granite, R.granite_key)
         seeded = seed_cache(a.bundle, manifest, "granite", a.cache, cache)
         try:
-            result = G.screen(judge, rows, cache, lambda: STOP["flag"], log, manifest["limit"])
+            result = G.screen(session, rows, cache, lambda: STOP["flag"], log, manifest["limit"])
         finally:
             cache.close()
         step.record.update(result=result, seeded=seeded, counts=tally(cache, "granite"), limit=manifest["limit"],
@@ -290,7 +377,7 @@ def cmd_qwen(a, guard_factory=None) -> int:
     with Step(a.record, "qwen3guard") as step:
         manifest = SB.verify_bundle(a.bundle)
         step.record["bundle_manifest_sha256"] = manifest["manifest_sha256"]
-        step.record["ka_passed"] = ka_gate(a.ka)["passed"]
+        step.record["ka_passed"] = ka_gate(a.ka, a.bundle)["passed"]
         rows = _sources(a.bundle, manifest, P.ROUND_SOURCES[manifest["round"]])
         if guard_factory is None:
             step.record["packages"] = require_packages(P.GUARD_PACKAGES, P.TORCH_PUBLIC)
@@ -335,7 +422,7 @@ def seed_cache(bundle: pathlib.Path, manifest: dict, judge: str, cache_path: pat
 def cmd_record(a) -> int:
     """out/run-record.json from the step records (best effort per part: a missing or unreadable part is null)."""
     root = pathlib.Path(a.root)
-    record = {"kind": "fiction-screen run record", "version": 2, "device": "cuda", "exit": a.exit, "step": a.step,
+    record = {"kind": "fiction-screen run record", "version": 3, "device": "cuda", "exit": a.exit, "step": a.step,
               "utc": utc()}
     try:
         manifest, msha = SB.load_manifest(root / "bundle")
@@ -344,10 +431,11 @@ def cmd_record(a) -> int:
     except (OSError, ValueError, Refusal) as e:
         record["manifest_error"] = type(e).__name__
     for name, rel in STEP_RECORDS.items():
-        try:
-            record[name] = json.loads((root / rel).read_bytes())
-        except (OSError, ValueError):
-            record[name] = None
+        record[name] = _read_json(root / rel)
+    done = _read_json(root / GJ / "DONE.json")
+    record["granite_job"] = {"done": {k: done.get(k) for k in ("exit", "step", "utc")} if isinstance(done, dict) else None,
+                             "run_record_sha256": (sha256_file(root / GJ / "out/run-record.json")
+                                                   if (root / GJ / "out/run-record.json").is_file() else None)}
     record["outputs"] = {rel: ({"sha256": sha256_file(root / rel), "bytes": (root / rel).stat().st_size}
                                if (root / rel).is_file() else None) for rel in CACHES}
     write_atomic(root / "out/run-record.json", canonical_bytes(record))
@@ -381,8 +469,10 @@ def cmd_status(a) -> int:
         except ValueError:
             done = {"exit": None, "step": "unreadable"}
     step = (root / "STEP").read_text().strip()[:32] if (root / "STEP").is_file() else None
-    print(json.dumps({"started": (root / "STARTED.json").is_file(), "step": step, "done": done,
-                      "progress": last_status_line(root / "out/job.log")}, sort_keys=True))
+    lead = root / GJ / "STEP"                                # the lead's Granite job's own step (venv ... run, done)
+    granite_step = lead.read_text(errors="replace").strip()[:32] if lead.is_file() else None
+    print(json.dumps({"started": (root / "STARTED.json").is_file(), "step": step, "granite_step": granite_step,
+                      "done": done, "progress": last_status_line(root / "out/job.log")}, sort_keys=True))
     return 0
 
 
@@ -398,18 +488,14 @@ def main(argv=None, judge_factory=None, guard_factory=None) -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("verify")
     p.add_argument("--bundle", type=pathlib.Path, required=True)
-    p = sub.add_parser("llama-info")
-    p.add_argument("--cmake-args", required=True)
-    p.add_argument("--nvcc-source", required=True)
-    p.add_argument("--build-log", type=pathlib.Path, required=True)
-    p.add_argument("--record", type=pathlib.Path, required=True)
     p = sub.add_parser("download")
     p.add_argument("--bundle", type=pathlib.Path, required=True)
     p.add_argument("--record", type=pathlib.Path, required=True)
     p = sub.add_parser("ka")
     p.add_argument("--bundle", type=pathlib.Path, required=True)
+    p.add_argument("--granite-root", type=pathlib.Path, required=True, help="the lead's Granite job's root")
+    p.add_argument("--granite-exit", type=int, required=True, help="the exit code of the lead's pod_run_granite.sh")
     p.add_argument("--record", type=pathlib.Path, required=True)
-    p.add_argument("--labels", type=pathlib.Path, required=True)
     for name in ("granite", "qwen"):
         p = sub.add_parser(name)
         p.add_argument("--bundle", type=pathlib.Path, required=True)
@@ -425,14 +511,14 @@ def main(argv=None, judge_factory=None, guard_factory=None) -> int:
         p.add_argument("--root", type=pathlib.Path, required=True)
     a = ap.parse_args(argv)
     if a.cmd == "ka":
-        return cmd_ka(a, judge_factory)
+        return cmd_ka(a)
     if a.cmd == "granite":
         return cmd_granite(a, judge_factory)
     if a.cmd == "qwen":
         return cmd_qwen(a, guard_factory)
     try:
-        return {"verify": cmd_verify, "llama-info": cmd_llama_info, "download": cmd_download, "record": cmd_record,
-                "status": cmd_status, "sums": cmd_sums}[a.cmd](a)
+        return {"verify": cmd_verify, "download": cmd_download, "record": cmd_record, "status": cmd_status,
+                "sums": cmd_sums}[a.cmd](a)
     except Refusal as e:
         print(f"refused: {e}", file=sys.stderr)
         return P.POD_EXIT_REFUSED

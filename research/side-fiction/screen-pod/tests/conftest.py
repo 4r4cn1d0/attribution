@@ -2,8 +2,14 @@
 
 Written 9 October 2026 (10:50 UTC, clock checked). Every launch in the tests writes under the test's tmp_path: the
 runs folder, the host records folder, the budget lock and the dry folder are replaced. Tests that need the real inputs
-(the fiction files, the Dolly train rows, the known-answer unit and the Mac labels) skip when they are absent; they
+(the fiction files, the Dolly train rows, the lead's known-answer unit and reference) skip when they are absent; they
 read them and write labels, ids and hashes only (bundles hold the inputs, as the pod needs them, under tmp_path).
+
+Revised 9 October 2026 (17:22 UTC, clock checked) for the lead's Granite backend: the Granite fake is now only the
+model (a fake llama.cpp call) and the tokenizer behind the lead's REAL granite_pod.GraniteSession, so every Granite
+call in the tests goes through the lead's judge_triples, granite_judge, granite_input, granite_precheck and
+parse_score; the known-answer gate is the lead's REAL pod_job.py run on the bundle's gate_b (its real gate, rule,
+run record and job.log), as the lead's pod_run_granite.sh runs it on the pod.
 """
 from __future__ import annotations
 
@@ -34,10 +40,15 @@ import screen_bundle as SB  # noqa: E402
 import screen_job as SJ  # noqa: E402
 import screen_pod as SP  # noqa: E402
 import screen_rows as R  # noqa: E402
+import common  # noqa: E402  (the lead's)
+import granite_pod  # noqa: E402  (the lead's backend)
+import judging  # noqa: E402  (the lead's log: its "utc" stamps)
+import pod_job  # noqa: E402  (the lead's pod job: its gate)
 
 SECRET_ENV = {"RUNPOD_OPERATOR_API_KEY": "rpa_" + "K" * 24, "HF_TOKEN": "hf_" + "T" * 34}
-REAL_INPUTS = all(pathlib.Path(p).is_file() for p in (*P.DATA_PATHS.values(), P.KA_MAC_ITEMS, P.KA_MAC_SUMMARY,
-                                                      P.SPEC, P.RULES)) and P.KA_UNIT.is_dir()
+REAL_INPUTS = (all(pathlib.Path(p).is_file() for p in (*P.DATA_PATHS.values(), granite_pod.KNOWN_ANSWERS_FILE,
+                                                       P.SPEC, P.RULES))
+               and pathlib.Path(granite_pod.KNOWN_ANSWER_UNIT_DIR).is_dir() and pathlib.Path(granite_pod.MAC_TOKENIZER).is_dir())
 needs_real = pytest.mark.skipif(not REAL_INPUTS, reason="the real inputs are not on this machine")
 
 
@@ -54,6 +65,7 @@ def _writes_under_tmp(tmp_path, monkeypatch):
     monkeypatch.setattr(podhost, "JUDGE_HOSTS", tmp_path / "judge-hosts")
     monkeypatch.setattr(podhost, "BUDGET_LOCK", tmp_path / "budget.lock")
     monkeypatch.setattr(SJ, "STOP", {"flag": False})
+    monkeypatch.setattr(pod_job, "STOP", {"flag": False})
 
 
 def write_jsonl(path: pathlib.Path, rows) -> pathlib.Path:
@@ -96,38 +108,111 @@ def refill_rows_from_real(n_per_arm: int = 3, ranks: int = 2) -> list:
 
 # ------------------------------------------------------------------------------------------------ fake judges
 
+OUTPUTS = {"yes": "<score> yes </score>", "no": "<think></think><score> No </score>", "unparsed": "no score here"}
+TEMPLATE_END = "</g>\n"
+
+
+class FakeGraniteTok:
+    """granite_files' calling convention with a readable template: the criterion and the two turns as JSON inside
+    <g>...</g> and a final newline; about one token per 4 characters (so no real row is trimmed)."""
+
+    def apply_chat_template(self, messages, guardian_config=None, think=None, tokenize=None, add_generation_prompt=None):
+        assert think is False and tokenize is False and add_generation_prompt is True
+        assert [m["role"] for m in messages] == ["user", "assistant"] and set(guardian_config) == {"criteria_id"}
+        return "<g>" + json.dumps([guardian_config["criteria_id"], messages[0]["content"],
+                                   messages[1]["content"]]) + TEMPLATE_END
+
+    def __call__(self, text, add_special_tokens=True):
+        assert add_special_tokens is False
+        return {"input_ids": [0] * (len(text) // 4 + 1)}
+
+
+class StampClock:
+    """The lead's judging.utc in a test: a clock that moves only when the fake model answers."""
+
+    def __init__(self, t: float = 1_791_000_000.0):
+        self.t = t
+
+    def __call__(self) -> str:
+        return dt.datetime.fromtimestamp(self.t, dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 class FakeGranite:
-    """Stands in for granite_screen.GraniteJudge: labels from the response's SHA-256 (fiction), the Mac's labels for
-    the known answers (flip: answer SHA-256 values whose label is flipped). No model."""
+    """The fake model and tokenizer behind the lead's REAL granite_pod.GraniteSession (session()): every call reaches
+    llm() through judge_triples / granite_judge / granite_input, as on the pod. The label comes from the templated
+    input: a known answer (criterion harm) gets its Mac label by (prompt, answer) SHA-256 (`flip`: those keys flipped);
+    a fiction row's from its response's SHA-256 (harm 1 in 7 yes, sexual_content 1 in 11), unless `harm` overrides it
+    by response SHA-256; `unparsed` responses never parse, `unparsed_once` parse on the retry. `stop_after`: the
+    screen's STOP flag after that many calls that are not known answers; `sigterm_at`: SIGTERM to this process at that
+    call (any); `clock`/`s_per_call`: the lead's log stamps move by s_per_call per call. Hashes only are kept."""
 
-    def __init__(self, ka_labels: dict | None = None, flip=(), invalid=(), every_yes: int = 7, stop_after=None,
-                 raise_on=()):
-        self.ka_labels, self.flip, self.invalid = dict(ka_labels or {}), set(flip), set(invalid)
-        self.every_yes, self.stop_after, self.raise_on = every_yes, stop_after, set(raise_on)
-        self.calls = self.retries = self.errors = 0
+    def __init__(self, ka_labels=None, flip=(), unparsed=(), unparsed_once=(), harm=None, stop_after=None,
+                 sigterm_at=None, raise_on=(), clock=None, s_per_call=0.0, every_yes=7):
+        self.ka_labels, self.flip = dict(ka_labels or {}), set(flip)
+        self.unparsed, self.unparsed_once, self.harm = set(unparsed), set(unparsed_once), dict(harm or {})
+        self.stop_after, self.sigterm_at, self.raise_on = stop_after, sigterm_at, set(raise_on)
+        self.clock, self.s_per_call, self.every_yes = clock, s_per_call, every_yes
+        self.calls = self.row_calls = self.loads = self.checks = self.tokenizers = 0
         self.seen: list = []
+        self._once: set = set()
 
-    def judge(self, user_turn: str, assistant_turn: str, criteria: str) -> dict:
+    def llm(self, templated, max_tokens, temperature, top_k):
+        assert (max_tokens, temperature, top_k) == (32, 0.0, 1)
+        assert templated.startswith("<g>") and templated.endswith(TEMPLATE_END)
+        criteria, user, answer = json.loads(templated[3:-len(TEMPLATE_END)])
+        u, h = sha(user), sha(answer)
         self.calls += 1
-        h = sha(assistant_turn)
-        self.seen.append((sha(user_turn), h, criteria))
-        if self.stop_after is not None and self.calls >= self.stop_after:
-            SJ.STOP["flag"] = True
+        self.seen.append((criteria, u, h))
+        if self.clock is not None:
+            self.clock.t += self.s_per_call
+        known = criteria == "harm" and (u, h) in self.ka_labels
+        if not known:
+            self.row_calls += 1
+            if self.stop_after is not None and self.row_calls >= self.stop_after:
+                SJ.STOP["flag"] = True
+        if self.sigterm_at is not None and self.calls == self.sigterm_at:
+            os.kill(os.getpid(), __import__("signal").SIGTERM)
         if h in self.raise_on:
-            self.errors += 2
-            return {"label": "invalid", "attempts": 2, "errors": 2, "reason": "error", "input_tokens": 100,
-                    "trimmed": False}
-        if h in self.ka_labels:
-            label = self.ka_labels[h]
-            if h in self.flip:
-                label = {"Yes": "No", "No": "Yes"}.get(label, label)
-        elif h in self.invalid:
-            return {"label": "invalid", "attempts": 2, "errors": 0, "reason": "unparsed", "input_tokens": 100,
-                    "trimmed": False}
+            raise MemoryError("cuda")
+        if known:
+            label = self.ka_labels[(u, h)]
+            if (u, h) in self.flip:
+                label = {"yes": "no", "no": "yes"}[label]
+        elif h in self.unparsed or (h in self.unparsed_once and (criteria, h) not in self._once):
+            self._once.add((criteria, h))
+            label = "unparsed"
+        elif criteria == "harm" and h in self.harm:
+            label = self.harm[h]
         else:
-            base = int(h[:4], 16) % self.every_yes == 0
-            label = "Yes" if (base if criteria == "harm" else int(h[4:8], 16) % 11 == 0) else "No"
-        return {"label": label, "attempts": 1, "errors": 0, "reason": None, "input_tokens": 100, "trimmed": False}
+            yes = int(h[:4], 16) % self.every_yes == 0 if criteria == "harm" else int(h[4:8], 16) % 11 == 0
+            label = "yes" if yes else "no"
+        return {"choices": [{"text": OUTPUTS[label]}]}
+
+    def session(self, gate_b: pathlib.Path | None = None):
+        """The lead's real GraniteSession with this fake's file check, tokenizer and model."""
+        def check(tok_dir, gguf):
+            self.checks += 1
+            return {"tokenizer_files": {}, "gguf_sha256": "0" * 64}
+
+        def load_tokenizer(folder):
+            self.tokenizers += 1
+            return FakeGraniteTok()
+
+        def load_model(path):
+            self.loads += 1
+            return self.llm
+        base = pathlib.Path(gate_b) if gate_b is not None else pathlib.Path("/nonexistent")
+        return granite_pod.GraniteSession(base / "granite-tokenizer", base / "fake.gguf", load_tokenizer=load_tokenizer,
+                                          load_model=load_model, check=check)
+
+
+def ka_label_map(bundle: pathlib.Path) -> dict:
+    """{(prompt SHA-256, answer SHA-256): the Mac label} of the lead's gate items, from a bundle's gate_b (the
+    reference's ids and labels with the bank's prompts; hashes only leave this function)."""
+    gate = pathlib.Path(bundle) / "gate_b"
+    ref = json.loads((gate / "known/granite-known-answers.json").read_bytes())
+    prompts = common.bank_prompts(gate / "known/prepared" / ref["prepared"]["name"], ref["prepared"]["manifest_sha256"])
+    return {(sha(prompts[r["prompt_id"]]), r["answer_sha256"]): r["label"] for r in ref["items"]}
 
 
 class FakeGuard:
@@ -166,23 +251,62 @@ class FakeGuard:
         return out
 
 
-def ka_label_map(bundle: pathlib.Path) -> dict:
-    """{answer SHA-256: Mac label} from a bundle's ka/mac-labels.json."""
-    mac = json.loads((bundle / SB.KA_MAC_LABELS).read_bytes())
-    return {mac["answer_sha256"][pid]: label for pid, label in mac["labels"].items()}
-
-
 # ------------------------------------------------------------------------------------------------ the fake pod host
 
-def run_job_steps(remote: pathlib.Path, granite_factory, guard_factory) -> int:
-    """screen_run.sh's job steps after setup (ka, granite, qwen), with fakes, in this process; then the record and
+def lead_root(remote: pathlib.Path) -> pathlib.Path:
+    """The lead's Granite job's root beside the screen's (screen_run.sh: /workspace/judge, its bundle/ a link to the
+    screen bundle's gate_b/, and the screen's granite-job link to it)."""
+    root = pathlib.Path(remote) / "judge-root"
+    (root / "out").mkdir(parents=True, exist_ok=True)
+    if not (root / "bundle").is_symlink():
+        (root / "bundle").symlink_to(pathlib.Path(remote).absolute() / "bundle" / "gate_b")
+    if not (pathlib.Path(remote) / "granite-job").is_symlink():
+        (pathlib.Path(remote) / "granite-job").symlink_to(root.absolute())
+    return root
+
+
+def run_lead_gate(remote: pathlib.Path, granite: FakeGranite, steps=("venv", "pip", "nvcc", "llama", "download"),
+                  fail_step=None, fail_code=1) -> int:
+    """The lead's pod_run_granite.sh on the pod, as far as a test can run it: its setup steps (no-ops here, or
+    `fail_step` ends the job with `fail_code` there), then the REAL `pod_job.py run` on the bundle's gate_b with the
+    fake model behind the lead's GraniteSession: its gate, run record and job.log; then its DONE.json. Returns the
+    job's exit code (what screen_run.sh passes to the ka step)."""
+    root = lead_root(remote)
+    (root / "STARTED.json").write_text("{}")
+    code, step = 0, "done"
+    for s in steps:
+        (root / "STEP").write_text(s + "\n")
+        if s == fail_step:
+            code, step = fail_code, s
+            break
+    else:
+        (root / "STEP").write_text("run\n")
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+            code = pod_job.main(["run", "--bundle", str(root / "bundle"), "--cache", str(root / "out/granite-pod.jsonl"),
+                                 "--record", str(root / "out/run-record.json")],
+                                judge_factory=granite.session(root / "bundle"))
+        with open(root / "out/job.log", "a") as fh:
+            fh.write(buf.getvalue())
+        step = "done" if code == 0 else "run"
+        (root / "STEP").write_text(step + "\n")
+    (root / "DONE.json").write_text(json.dumps({"exit": code, "step": step, "utc": "2026-10-09T00:00:00Z"}))
+    return code
+
+
+def run_job_steps(remote: pathlib.Path, granite: FakeGranite, guard_factory, lead_fail=None) -> int:
+    """screen_run.sh's job steps after the guard's setup, with fakes, in this process: the lead's Granite job (its
+    real gate; lead_fail=(step, code) ends it before the gate), then ka, granite and qwen; then the record and
     DONE.json as its exit trap writes them."""
     bundle, out = remote / "bundle", remote / "out"
     out.mkdir(parents=True, exist_ok=True)
+    (remote / "STEP").write_text("granite-job\n")
+    fail_step, fail_code = lead_fail or (None, 1)
+    grc = run_lead_gate(remote, granite, fail_step=fail_step, fail_code=fail_code)
     log = io.StringIO()
     code, step = 0, "done"
-    steps = (("ka", ["ka", "--bundle", str(bundle), "--record", str(out / "ka.json"), "--labels",
-                     str(out / "ka-labels.jsonl")]),
+    steps = (("ka", ["ka", "--bundle", str(bundle), "--granite-root", str(remote / "granite-job"), "--granite-exit",
+                     str(grc), "--record", str(out / "ka.json")]),
              ("granite", ["granite", "--bundle", str(bundle), "--ka", str(out / "ka.json"), "--cache",
                           str(out / "granite.jsonl"), "--record", str(out / "granite-record.json")]),
              ("qwen", ["qwen", "--bundle", str(bundle), "--ka", str(out / "ka.json"), "--cache",
@@ -190,7 +314,7 @@ def run_job_steps(remote: pathlib.Path, granite_factory, guard_factory) -> int:
     with contextlib.redirect_stdout(log), contextlib.redirect_stderr(log):
         for name, argv in steps:
             (remote / "STEP").write_text(name + "\n")
-            code = SJ.main(argv, judge_factory=granite_factory, guard_factory=guard_factory)
+            code = SJ.main(argv, judge_factory=lambda: granite.session(bundle / "gate_b"), guard_factory=guard_factory)
             if code != 0:
                 step = name
                 break
@@ -208,8 +332,9 @@ class FakeHost:
     GPU = podhost.GPU
 
     def __init__(self, remote: pathlib.Path, allowed=True, fail=None, stop_confirms=(True,), mode="finish",
-                 granite=None, guard=None, corrupt_fetch=None):
+                 granite=None, guard=None, corrupt_fetch=None, lead_fail=None):
         self.remote = pathlib.Path(remote)
+        self.lead_fail = lead_fail
         self.allowed = list(allowed) if isinstance(allowed, (list, tuple)) else allowed
         self.fail, self.mode, self.stop_confirms = dict(fail or {}), mode, list(stop_confirms)
         self.granite, self.guard, self.corrupt_fetch = granite, guard, corrupt_fetch
@@ -286,9 +411,8 @@ class FakeHost:
             (self.remote / "STARTED.json").write_text("{}")
             if self.mode == "finish":
                 bundle = self.remote / "bundle"
-                granite = self.granite or (lambda: FakeGranite(ka_label_map(bundle)))
-                guard = self.guard or FakeGuard
-                run_job_steps(self.remote, granite, guard)
+                granite = self.granite(bundle) if callable(self.granite) else FakeGranite(ka_label_map(bundle))
+                run_job_steps(self.remote, granite, self.guard or FakeGuard, self.lead_fail)
             return 0, ""
         if " status --root" in command:
             f = self._maybe_fail("status")
@@ -303,12 +427,8 @@ class FakeHost:
         if command.startswith("pkill"):
             self.calls.append("terminate")
             if self.mode == "hang" and not (self.remote / "DONE.json").exists():
-                bundle, made = self.remote / "bundle", []
-
-                def factory():                    # the known-answer step passes; the granite step stops at call 3
-                    made.append(1)
-                    return FakeGranite(ka_label_map(bundle), stop_after=None if len(made) == 1 else 3)
-                run_job_steps(self.remote, factory, FakeGuard)
+                bundle = self.remote / "bundle"          # the gate passes; the granite step stops at its call 3
+                run_job_steps(self.remote, FakeGranite(ka_label_map(bundle), stop_after=3), FakeGuard)
             return 0, ""
         return 0, ""
 

@@ -1,30 +1,35 @@
 #!/bin/bash
-# The fiction screen's pod job (rebuilt 9 October 2026, 10:27 UTC, clock checked, from the lead's partial build).
+# The fiction screen's pod job (rebuilt 9 October 2026, 10:27 UTC, clock checked, from the lead's partial build;
+# revised 9 October 2026, 17:11 UTC, clock checked: ONE Granite-on-CUDA backend, the lead's Granite pod mode).
 # screen_pod.py unpacks the bundle into /workspace/screen/bundle, runs screen_job.py verify, then starts this script
 # under nohup and polls DONE.json. It never contacts RunPod. Steps, in order (DONE.json records the exit code and the
 # step it ended in):
-#   venv-granite: an isolated venv with the judge venv's packages (transformers 5.18.0 ...), binary wheels, --no-deps
-#   llama-build:  llama-cpp-python 0.3.36 from its sdist, pinned by SHA-256 (--require-hashes), built with CUDA for
-#                 the A100 only (CMAKE_ARGS below); nvcc from the image (/usr/local/cuda/bin), or, when the image has
-#                 none, the CUDA 12.8 compiler packages from the image's apt sources (recorded as nvcc_source apt);
-#                 out/llama-build.log; then screen_job.py llama-info (version, GPU offload, nvcc, build log SHA-256)
-#   venv-guard:   a venv over the image's site-packages (torch 2.8.0, or installed from the cu128 index), then the
-#                 engine's requirements.lock versions that the guard path imports, binary wheels, --no-deps
-#   download:     the three pinned snapshots with no token and HF_HUB_OFFLINE unset; every file's SHA-256 checked
-#   ka:           the known-answer check (exit 4 when it fails, 2 without GPU offload, 3 when it passes but the round's
-#                 projected time per Granite call, its seconds per answer x the token ratio r of the bundle, is above
-#                 the cap's planning time: the script ends, no row is screened)
-#   granite:      Granite harm and sexual_content on the fiction (or refill) rows
-#   qwen:         Qwen3Guard through the engine's GuardScorer on every row of the round
-# Both venvs sit on the container disk (/root), not on the /workspace volume, where the 8 Oct judge pod's pip took
+#   venv-guard:  a venv over the image's site-packages (torch 2.8.0, or installed from the cu128 index), then the
+#                engine's requirements.lock versions that the guard path imports, binary wheels, --no-deps
+#   download:    the pinned Qwen3Guard snapshot with no token and HF_HUB_OFFLINE unset; every file's SHA-256 checked
+#   granite-job: the lead's own Granite pod job, unchanged: bundle/gate_b/tool/pod/pod_run_granite.sh in its default
+#                root /workspace/judge, whose bundle/ is a link to this bundle's gate_b/ (the lead's Granite bundle,
+#                no requested unit): its venv (/root/granite-venv), pip, nvcc, the llama.cpp CUDA build from the
+#                pinned sdist, the GGUF download (/root/granite-gguf), then pod_job.py run, which checks the packages,
+#                the GPU offload, the files and the tokenizer fingerprint and runs the lead's known-answer gate (its
+#                exit 3 when the gate fails). It runs under one time limit; its exit code goes to the ka step, which
+#                always runs. granite-job/ (here) links to its root, so status and sums reach its files.
+#   ka:          the lead's gate read and timed (screen_job.py ka): exit 4 when the gate failed, 3 when it passed but
+#                the round is projected too slow, 5, 2 or 1 when the lead's job was stopped, refused or failed. The
+#                script ends there: no row is screened.
+#   granite:     Granite harm and sexual_content on the fiction (or refill) rows, in the lead's Granite venv, through
+#                the lead's granite_pod.judge_triples
+#   qwen:        Qwen3Guard through the engine's GuardScorer on every row of the round
+# The guard venv sits on the container disk (/root), not on the /workspace volume, where the 8 Oct judge pod's pip took
 # 14 min. CUBLAS_WORKSPACE_CONFIG is exported here: the pod's create-time env does not reach an ssh-started job (the
 # 8 Oct judge pod's run record shows it null), and the engine's configure_cuda refuses without it.
-# Every setup step (venvs, installs, the build, the download) runs under `timeout -k 60 LIMIT`: a step that hangs ends
-# with exit 124 (137 if it ignores SIGTERM), the job ends, and the launcher stops the pod through its normal path
-# instead of waiting for the cap. The judge steps (ka, granite, qwen) are bounded by the launcher's SIGTERM before the cap.
+# Every setup step (the guard venv and its installs, the download, the lead's whole Granite job) runs under
+# `timeout -k 60 LIMIT`: a step that hangs ends with exit 124 (137 if it ignores SIGTERM), the job ends, and the
+# launcher stops the pod through its normal path instead of waiting for the cap. The judge steps (granite, qwen) are
+# bounded by the launcher's SIGTERM before the cap, which also reaches the lead's gate (pod_job.py run).
 # The exit trap writes out/run-record.json (screen_job.py record) and then DONE.json, whatever happened.
 set -uo pipefail
-cd "${SCREEN_ROOT:-/workspace/screen}" || exit 1      # SCREEN_ROOT, SYS_PYTHON, SCREEN_VENVS, SCREEN_NVCC: tests only
+cd "${SCREEN_ROOT:-/workspace/screen}" || exit 1      # SCREEN_ROOT, SYS_PYTHON, SCREEN_VENVS, SCREEN_JUDGE_ROOT: tests only
 STEP=start
 finish() {
   code=$?
@@ -43,38 +48,13 @@ export CUBLAS_WORKSPACE_CONFIG=:4096:8 CUDA_VISIBLE_DEVICES=0
 export PATH="/usr/local/cuda/bin:$PATH"
 T=bundle/tool
 SYSPY="${SYS_PYTHON:-python3}"
-VG="${SCREEN_VENVS:-/root/screen-venvs}/g"
+VG="${GRANITE_VENV:-/root/granite-venv}"
 VQ="${SCREEN_VENVS:-/root/screen-venvs}/q"
+JR="${SCREEN_JUDGE_ROOT:-/workspace/judge}"
 PIPI="-m pip install --no-input --disable-pip-version-check --no-cache-dir"
 TORCH_CHECK='import sys, torch; sys.exit(0 if torch.__version__.split("+")[0] == "2.8.0" else 1)'
-CMAKE_ARGS="-DGGML_CUDA=on -DCMAKE_CUDA_ARCHITECTURES=80"
-APT_CUDA="cuda-nvcc-12-8 cuda-cudart-dev-12-8 libcublas-dev-12-8 cuda-driver-dev-12-8 build-essential"
 TO="timeout -k 60"
-T_VENV=600; T_PIP=1800; T_APT_UPDATE=600; T_APT=1800; T_BUILD=3600; T_SHORT=600; T_TORCH=2400; T_DOWNLOAD=3600
-JOBS="$(nproc 2>/dev/null || echo 8)"
-[ "$JOBS" -le 16 ] 2>/dev/null || JOBS=16
-
-STEP=venv-granite; echo "$STEP" > STEP
-[ -x "$VG/bin/python" ] || $TO $T_VENV "$SYSPY" -m venv "$VG"
-$TO $T_PIP "$VG/bin/python" $PIPI --no-deps --only-binary=:all: -r "$T/granite-requirements.txt" >> out/pip.log 2>&1
-
-STEP=llama-build; echo "$STEP" > STEP
-NVCC="${SCREEN_NVCC:-/usr/local/cuda/bin/nvcc}"
-NVCC_SOURCE=image
-if [ ! -x "$NVCC" ]; then
-  NVCC_SOURCE=apt
-  { $TO $T_APT_UPDATE apt-get update && DEBIAN_FRONTEND=noninteractive $TO $T_APT apt-get install -y \
-      --no-install-recommends $APT_CUDA; } > out/llama-build.log 2>&1
-  [ -x "$NVCC" ] || NVCC="${NVCC%/cuda/bin/nvcc}/cuda-12.8/bin/nvcc"
-fi
-[ -x "$NVCC" ]
-export CUDACXX="$NVCC" PATH="$(dirname "$NVCC"):$PATH"
-CMAKE_ARGS="$CMAKE_ARGS" FORCE_CMAKE=1 CMAKE_BUILD_PARALLEL_LEVEL="$JOBS" $TO $T_BUILD \
-  "$VG/bin/python" $PIPI --no-deps --no-binary=llama-cpp-python --require-hashes -v \
-  -r "$T/llama-requirements.txt" >> out/llama-build.log 2>&1
-$TO $T_SHORT "$VG/bin/python" -m pip freeze --all > out/environment-g.lock
-$TO $T_SHORT "$VG/bin/python" -B "$T/screen_job.py" llama-info --cmake-args "$CMAKE_ARGS" \
-  --nvcc-source "$NVCC_SOURCE" --build-log out/llama-build.log --record out/llama-info.json >> out/job.log 2>&1
+T_VENV=600; T_PIP=1800; T_SHORT=600; T_TORCH=2400; T_DOWNLOAD=3600; T_GRANITE_JOB=5400
 
 STEP=venv-guard; echo "$STEP" > STEP
 [ -x "$VQ/bin/python" ] || $TO $T_VENV "$SYSPY" -m venv --system-site-packages "$VQ"
@@ -89,10 +69,18 @@ STEP=download; echo "$STEP" > STEP
 $TO $T_DOWNLOAD env -u HF_HUB_OFFLINE -u TRANSFORMERS_OFFLINE PYTHONPATH=bundle/engine "$VQ/bin/python" -B \
   "$T/screen_job.py" download --bundle bundle --record out/download-check.json >> out/job.log 2>&1
 
+STEP=granite-job; echo "$STEP" > STEP
+mkdir -p "$JR"
+[ ! -e "$JR/bundle" ] || [ -L "$JR/bundle" ]
+ln -sfn "$PWD/bundle/gate_b" "$JR/bundle"
+ln -sfn "$JR" granite-job
+GRC=0
+JUDGE_ROOT="$JR" $TO $T_GRANITE_JOB bash bundle/gate_b/tool/pod/pod_run_granite.sh || GRC=$?
+
 export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
 STEP=ka; echo "$STEP" > STEP
-"$VG/bin/python" -B "$T/screen_job.py" ka --bundle bundle --record out/ka.json --labels out/ka-labels.jsonl \
-  >> out/job.log 2>&1
+"$SYSPY" -I -B "$T/screen_job.py" ka --bundle bundle --granite-root granite-job --granite-exit "$GRC" \
+  --record out/ka.json >> out/job.log 2>&1
 
 STEP=granite; echo "$STEP" > STEP
 "$VG/bin/python" -B "$T/screen_job.py" granite --bundle bundle --ka out/ka.json --cache out/granite.jsonl \

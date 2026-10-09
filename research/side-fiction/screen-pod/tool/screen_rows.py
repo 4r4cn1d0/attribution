@@ -1,4 +1,4 @@
-"""Rows, row ids, the user turn, the per-row caches, the drop rule and the known-answer rule (stdlib only).
+"""Rows, row ids, the user turn, the per-row caches, the drop rule and the known-answer gate's block (stdlib only).
 
 Rebuilt 9 October 2026 (10:27 UTC, clock checked) from the lead's partial build. Runs on the Mac (the bundle, the
 verification, the summary) and on the pod (both judges). A row's id is its source and its 1-based line in its file:
@@ -9,6 +9,14 @@ The user turn is the engine's own rule `instruction-blank-line-context` (experim
 blank. The assistant turn is the response. The Dolly baseline rows are the prepared set's engine/train_rows.jsonl,
 whose `prompt` the preparer already rendered with that rule. Records and messages hold ids, counts, labels and SHA-256
 only; never row, prompt, answer or judge-output text.
+
+Revised 9 October 2026 (17:11 UTC, clock checked) for the lead's Granite backend: the screen's own known-answer counts
+are gone (the lead's pod job runs the gate: granite_pod.known_answer_verdict); what stays here is reading its block:
+the rule over the block's counts (the lead's thresholds, which the bundle builder checks equal KA_MIN_IDENTICAL and
+KA_MAX_DELTA_YES) and a recount of those counts from the block's own differing prompt ids and flips against the
+reference's Mac labels. A Granite cache record now holds the SHA-256 of the exact text the model received
+(judge_triples' input_sha256) instead of an error count: a call that raises ends the step (no row is labelled invalid
+for an error), and an input over the token limit refuses the whole step before the model loads (the lead's precheck).
 """
 from __future__ import annotations
 
@@ -119,11 +127,13 @@ def read_rows(source: str, path: pathlib.Path, sha256: str, expect_rows: int | N
     return rows
 
 
-# ---------------------------------------------------------------- labels, the drop rule and the known-answer rule
+# ---------------------------------------------------------------- labels, the drop rule, the smoke-run selection
 
-def mac_label(value) -> str:
-    """second_judge_probe's cached label ("yes", "no", or None for no score) in the screen's form."""
-    return {"yes": "Yes", "no": "No"}.get(value, "invalid")
+def granite_label(lead_label: str) -> str:
+    """granite_files.parse_score's label (yes, no, unparsed) in the screen's form (Yes, No, invalid)."""
+    if lead_label not in P.LEAD_LABELS:
+        raise Refusal(f"a Granite label {lead_label!r} is not one of {list(P.LEAD_LABELS)}")
+    return P.LEAD_LABELS[lead_label]
 
 
 def dropped(harm_label: str) -> bool:
@@ -134,39 +144,70 @@ def dropped(harm_label: str) -> bool:
     return harm_label != "No"
 
 
-def ka_counts(pairs) -> dict:
-    """pairs: (Mac label, pod label) in the screen's form, one per known-answer item (None: not judged)."""
-    flips = collections.Counter(f"{m}->{p}" for m, p in pairs if p is not None and m != p)
-    judged = [(m, p) for m, p in pairs if p is not None]
-    return {"n": len(pairs), "judged": len(judged), "identical": sum(m == p for m, p in judged),
-            "mac_yes": sum(m == "Yes" for m, _ in pairs), "pod_yes": sum(p == "Yes" for _, p in judged),
-            "mac_invalid": sum(m == "invalid" for m, _ in pairs), "pod_invalid": sum(p == "invalid" for _, p in judged),
-            "delta_yes": sum(p == "Yes" for _, p in judged) - sum(m == "Yes" for m, _ in pairs),
-            "flips": dict(sorted(flips.items()))}
+def selected(rows: list, limit: int | None) -> list:
+    """The rows a run screens: every row, or with a limit the first `limit` rows of each source (a smoke run)."""
+    if limit is None:
+        return list(rows)
+    taken: dict = {}
+    out = []
+    for row in rows:
+        if taken.get(row.source, 0) < limit:
+            taken[row.source] = taken.get(row.source, 0) + 1
+            out.append(row)
+    return out
 
 
-def ka_complete(counts) -> bool:
-    """Every known answer was judged (the check ran to its end; a stopped or broken check is not a verdict)."""
-    return isinstance(counts, dict) and counts.get("n") == P.KA_N and counts.get("judged") == P.KA_N
+# ---------------------------------------------------------------- the known-answer gate's block (the lead's gate)
+
+KA_RULE = (f"the lead's gate (granite_pod.known_answer_verdict): pass when all {P.KA_N} items are judged, at least "
+           f"{P.KA_MIN_IDENTICAL} labels equal the Mac's, and |pod yes - Mac yes| <= {P.KA_MAX_DELTA_YES} (Mac: "
+           f"{P.KA_MAC_YES} yes); an unparsed label differs")
+KA_COUNT_KEYS = ("n", "judged", "identical", "mac_yes", "pod_yes", "delta_yes", "pod_unparsed")
+FLIP_KEYS = ("no->unparsed", "no->yes", "yes->no", "yes->unparsed")
 
 
-def ka_passed(counts) -> bool:
-    """The lead's pre-set rule: all 200 judged, at least 190 identical labels, |pod yes - Mac yes| <= 5 (and the Mac
-    side is the recorded 93 yes)."""
-    return (ka_complete(counts) and counts.get("mac_yes") == P.KA_MAC_YES
-            and _int(counts.get("identical")) and counts["identical"] >= P.KA_MIN_IDENTICAL
-            and _int(counts.get("delta_yes")) and abs(counts["delta_yes"]) <= P.KA_MAX_DELTA_YES)
+def ka_rule_passes(counts) -> bool:
+    """The lead's rule over a block's counts: all n = 200 judged, at least 190 identical, |pod yes - Mac yes| <= 5, and
+    the Mac side the reference's 93 yes."""
+    return (isinstance(counts, dict) and counts.get("n") == P.KA_N and counts.get("judged") == P.KA_N
+            and counts.get("mac_yes") == P.KA_MAC_YES and _int(counts.get("identical"))
+            and counts["identical"] >= P.KA_MIN_IDENTICAL and _int(counts.get("delta_yes"))
+            and abs(counts["delta_yes"]) <= P.KA_MAX_DELTA_YES)
 
 
-KA_RULE = (f"pass when all {P.KA_N} items are judged, at least {P.KA_MIN_IDENTICAL} labels equal the Mac's, and "
-           f"|pod yes - Mac yes| <= {P.KA_MAX_DELTA_YES} (Mac: {P.KA_MAC_YES} yes)")
+def ka_recount(block, mac_labels: dict) -> dict:
+    """The gate block's counts recomputed from its own differing prompt ids and flips against the reference's Mac
+    labels {prompt id: yes/no} (ids and labels only); refuses a block whose counts, ids and flips disagree. pod_yes and
+    delta_yes are recounted only when every item was judged (else they are None). Returns the recounted counts."""
+    differing = block.get("differing_prompt_ids") if isinstance(block, dict) else None
+    flips = block.get("flips") if isinstance(block, dict) else None
+    judged = block.get("judged") if isinstance(block, dict) else None
+    if not (isinstance(differing, list) and isinstance(flips, dict) and _int(judged) and 0 <= judged <= len(mac_labels)
+            and set(flips) <= set(FLIP_KEYS) and all(_int(v) and v > 0 for v in flips.values())):
+        raise Refusal("the known-answer block has no readable judged count, differing ids or flips")
+    if len(set(differing)) != len(differing) or set(differing) - set(mac_labels):
+        raise Refusal("the known-answer block names a differing id twice, or one outside the reference")
+    for mac in ("yes", "no"):
+        from_mac = sum(v for k, v in flips.items() if k.startswith(f"{mac}->"))
+        if from_mac != sum(mac_labels[pid] == mac for pid in differing):
+            raise Refusal("the known-answer block's flips do not match its differing ids")
+    mac_yes = sum(label == "yes" for label in mac_labels.values())
+    pod_yes = (mac_yes - flips.get("yes->no", 0) - flips.get("yes->unparsed", 0) + flips.get("no->yes", 0)
+               if judged == len(mac_labels) else None)
+    counts = {"n": len(mac_labels), "judged": judged, "identical": judged - len(differing), "mac_yes": mac_yes,
+              "pod_yes": pod_yes, "delta_yes": None if pod_yes is None else pod_yes - mac_yes,
+              "pod_unparsed": flips.get("yes->unparsed", 0) + flips.get("no->unparsed", 0)}
+    wrong = sorted(k for k, v in counts.items() if v is not None and block.get(k) != v)
+    if wrong:
+        raise Refusal(f"the known-answer block's counts {wrong} differ from their recount from its own ids and flips")
+    return counts
 
 
 # ---------------------------------------------------------------- per-row caches (ids, labels, counts, hashes)
 
-GRANITE_KEYS = frozenset({"row_id", "source", "line", "criteria", "label", "attempts", "errors", "reason",
-                          "input_tokens", "trimmed", "response_sha256", "user_sha256"})
-GRANITE_REASONS = (None, "unparsed", "error", "over_limit")
+GRANITE_KEYS = frozenset({"row_id", "source", "line", "criteria", "label", "attempts", "reason", "input_tokens",
+                          "input_sha256", "trimmed", "response_sha256", "user_sha256"})
+GRANITE_REASONS = (None, "unparsed")
 QWEN_KEYS = frozenset({"row_id", "source", "line", "response_sha256", "user_sha256", "valid", "reason", "safety",
                        "categories", "refusal", "guard_input_tokens", "guard_output_tokens", "guard_stop_reason",
                        "control_strings"})
@@ -191,9 +232,10 @@ def _ids_ok(r: dict) -> bool:
 
 def check_granite(r) -> None:
     ok = (isinstance(r, dict) and set(r) == GRANITE_KEYS and _ids_ok(r) and r["criteria"] in P.CRITERIA
-          and r["label"] in P.LABELS and r["reason"] in GRANITE_REASONS and _count(r["attempts"])
-          and r["attempts"] <= 2 and _count(r["errors"]) and _count(r["input_tokens"])
-          and isinstance(r["trimmed"], bool) and ((r["label"] == "invalid") == (r["reason"] is not None)))
+          and r["label"] in P.LABELS and r["reason"] in GRANITE_REASONS and r["attempts"] in (1, 2)
+          and _int(r["input_tokens"]) and r["input_tokens"] >= 0 and _hex64(r["input_sha256"])
+          and isinstance(r["trimmed"], bool) and ((r["label"] == "invalid") == (r["reason"] is not None))
+          and (r["attempts"] == 2 or r["label"] != "invalid"))
     if not ok:
         raise Refusal("a Granite cache record is malformed")
 

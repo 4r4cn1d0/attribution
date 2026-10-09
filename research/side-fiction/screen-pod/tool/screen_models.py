@@ -1,11 +1,14 @@
-"""The three pinned Hub snapshots of the screen: where they sit on the pod, their download and their check.
+"""The screen's pinned Hub snapshot (Qwen3Guard-Gen-4B): where it sits on the pod, its download and its check.
 
 Kept from the lead's partial build (9 October 2026); reviewed 10:27 UTC (clock checked). Stdlib only, except
-`download`, which imports huggingface_hub (the guard venv's 0.36.2, as the judge pod's download). The snapshots sit in
+`download`, which imports huggingface_hub (the guard venv's 0.36.2, as the judge pod's download). The snapshot sits in
 the default Hub cache (~/.cache/huggingface/hub, on the container disk; screen_run.sh unsets HF_HOME, HF_HUB_CACHE and
 XDG_CACHE_HOME), which is also where the engine's loaders look for Qwen3Guard (experiments.minimal_safety.plan
-.snapshot_dir). Each folder must hold exactly the pinned files with the pinned sizes and SHA-256 (symlinks to the
-cache's blobs are followed); anything else refuses. The three repositories are public: no token is used or accepted.
+.snapshot_dir). The folder must hold exactly the pinned files with the pinned sizes and SHA-256 (symlinks to the
+cache's blobs are followed); anything else refuses. The repository is public: no token is used or accepted.
+Revised 9 October 2026 (17:11 UTC, clock checked): the Granite GGUF and tokenizer are no longer downloaded here. The
+lead's Granite job downloads the GGUF (pod_job.py download, into /root/granite-gguf) and the bundle carries the Mac's
+tokenizer folder (gate_b/granite-tokenizer), both checked by the lead's code (granite_pod.check_files).
 """
 from __future__ import annotations
 
@@ -25,13 +28,9 @@ from common import Refusal  # noqa: E402
 HUB = pathlib.Path.home() / ".cache" / "huggingface" / "hub"      # replaced in tests
 TOKEN_VARS = ("HF_TOKEN", "HUGGING_FACE_HUB_TOKEN")
 OFFLINE_VARS = ("HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE")
-MIN_FREE_BYTES = 30 * 1024 ** 3                                  # 14 GB of snapshots plus room
+MIN_FREE_BYTES = 30 * 1024 ** 3        # 8.8 GB here, then the lead's 4.9 GB GGUF, CUDA build and venv, plus room
 # name -> (repository, revision, allow_patterns, pinned files)
 SNAPSHOTS = {
-    "granite_gguf": (P.GRANITE_GGUF_REPO, P.GRANITE_GGUF_REVISION, (P.GRANITE_GGUF_FILE,),
-                     {P.GRANITE_GGUF_FILE: (P.GRANITE_GGUF_BYTES, P.GRANITE_GGUF_SHA256)}),
-    "granite_tokenizer": (P.GRANITE_TOK_REPO, P.GRANITE_TOK_REVISION, tuple(sorted(P.GRANITE_TOK_FILES)),
-                          P.GRANITE_TOK_FILES),
     "qwen3guard": (P.QWEN_REPO, P.QWEN_REVISION, P.QWEN_PATTERNS, P.QWEN_FILES),
 }
 
@@ -70,15 +69,8 @@ def verify_snapshot(name: str, hub: pathlib.Path | None = None) -> dict:
     return hashes
 
 
-def granite_paths(hub: pathlib.Path | None = None) -> tuple[pathlib.Path, pathlib.Path]:
-    """(the GGUF file, the tokenizer folder) after both are checked against their pins."""
-    verify_snapshot("granite_gguf", hub)
-    verify_snapshot("granite_tokenizer", hub)
-    return snapshot_dir("granite_gguf", hub) / P.GRANITE_GGUF_FILE, snapshot_dir("granite_tokenizer", hub)
-
-
 def download(snapshot_download=None, environ=None, hub: pathlib.Path | None = None) -> dict:
-    """The three pinned snapshots from the Hub without a token (the repositories are public), then every file checked.
+    """The pinned snapshot from the Hub without a token (the repository is public), then every file checked.
     Refuses when a token variable or an offline variable is set, or when the disk has too little room."""
     environ = os.environ if environ is None else environ
     for name in OFFLINE_VARS:

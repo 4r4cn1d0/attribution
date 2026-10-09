@@ -2,14 +2,23 @@
 
 Rebuilt 9 October 2026 (10:27 UTC, clock checked) by the Side Project's Opus worker from the lead's stopped partial
 build. Nothing here was run against RunPod or the Hub by the builder. It reuses the reviewed judge-pod launcher
-(scripts/gate_b_mac_judges/pod/, commits 6488274 and a4cc490) by import, unchanged: podhost.py IS the host layer (the
-budget lock and guard, reconcile, create with the price check and the in-pod stop timer, orphan stops, ssh, send,
-fetch, stop), and judge_pod.py's own helpers are imported (the one-shot signals, the log, the secret patterns,
-fetch_one with its .part files and retries, the salvage time budget, safe_stop, the STOP-NOT-CONFIRMED and
-CHECK-CONSOLE warnings). Every module of that launcher is pinned by SHA-256 as committed (screen_pins.LAUNCHER_PINS):
-a changed file refuses (exit 2). The launch below follows judge_pod.launch step for step; what differs is the bundle,
-the pod job (screen_run.sh) and its files, the verification, the "sp-" tag, the host records (in this kit's hosts/
-folder, where every kit's budget.py looks) and exit code 8.
+(scripts/gate_b_mac_judges/pod/, commit 2694bd0) by import, unchanged: podhost.py IS the host layer (the budget lock and
+guard, reconcile, create with its price check (the lead's $10/h limit, PRICE_GUARD; this launcher adds none) and the
+in-pod stop timer, orphan stops, ssh, send, fetch, stop), and judge_pod.py's own helpers are imported (the one-shot
+signals, the log, the secret patterns, fetch_one with its .part files and retries, the salvage time budget, safe_stop,
+the STOP-NOT-CONFIRMED and CHECK-CONSOLE warnings, the known-answer block's summary and consistency check). Every lead
+file it imports or ships is pinned by SHA-256 as committed (screen_pins.LAUNCHER_PINS): a changed file refuses (exit
+2). The launch below follows judge_pod.launch step for step; what differs is the bundle, the pod job (screen_run.sh,
+which runs the lead's Granite pod job unchanged, then the screen's steps) and its files, the verification, the "sp-"
+tag, the host records (in this kit's hosts/ folder, where every kit's budget.py looks) and exit codes 8 and 9.
+
+Revised 9 October 2026 (17:11 UTC, clock checked): ONE Granite-on-CUDA backend, the lead's Granite pod mode (Granite
+judge ff9196a, price limit 2694bd0; its parity rule PARITY.md c4fc455e..., recorded in FOCUS 019a72e). The known-answer
+gate is the lead's (pod_job.known_answer_gate, run by the lead's job before any row; the same unit and thresholds as
+the screen's own former check, which is gone). Updated 17:56 UTC (clock checked): the lead's Granite parity PASSED on 9
+Oct at 17:22 UTC (FOCUS 2837eaf, pod granite-parity-2, report granite-parity-report.json 6234328f...): 200, 200, 199
+and 200 of 200 identical labels per unit, all 800 inputs identical, tokenizer fingerprint 5354502d... on both sides.
+The hand-over goes to General Implementation V, the new lead.
 
     ROOT=/Users/spiderishi/Coding/attribution; PY=$ROOT/tmp/minimal-experiment-20261002/venv/bin/python
     $PY -B screen_pod.py bundle --tag sp-T --round 1 [--out DIR] [--limit N]      # no network: build and check
@@ -21,11 +30,13 @@ folder, where every kit's budget.py looks) and exit code 8.
 launch, in order (every step logged to <LAUNCH_DIR>/runs/T/screen-pod-log.jsonl; counts, ids, hashes, codes):
   0. the tag (sp-..., podhost's tag rule): an exclusive non-blocking flock on runs/T.lock for the whole launch; a
      second launch of the tag, or an existing folder runs/T, refuses (exit 2).
-  1. the bundle (screen_bundle.py): the launcher's pins, the specification's and the rules' SHA-256, every input
-     checked against its pin, the known-answer unit and the Mac labels, the engine code and its identity (pinned:
-     e49a978c...; the record also names the engine files' SHA-256 and the files changed since commit 8801456), the
-     secret scan, a deterministic tar.gz; rows-index.jsonl (ids and hashes of every row) and bundle-record.json
-     (counts, cap, cost). A refusal creates nothing (exit 2).
+  1. the bundle (screen_bundle.py): the lead's file pins, the specification's and the rules' SHA-256, every input
+     checked against its pin, the lead's Granite bundle in gate_b/ (the lead's own stage_bundle: its modules, the
+     pinned tokenizer folder, the gate's reference, unit and dev bank; refused unless the gate is the screen's
+     expected unit, reference and rule), the engine code and its identity (pinned: e49a978c...; the record also names
+     the engine files' SHA-256 and the files changed since commit 8801456), the Granite token counts (r), the secret
+     scan, a deterministic tar.gz; rows-index.jsonl (ids and hashes of every row) and bundle-record.json (counts,
+     cap, cost). A refusal creates nothing (exit 2).
   2. the cap: the smallest half hour of at least SETUP_UPPER_S + (200 + Granite calls) x --granite-s-per-call + Qwen3Guard
      rows x --qwen-s-per-row + MARGIN_S, at least 1 h and at most 6 h; --cap-hours sets another cap, higher or lower,
      but never below that planned upper time (and never above 6 h).
@@ -36,27 +47,31 @@ launch, in order (every step logged to <LAUNCH_DIR>/runs/T/screen-pod-log.jsonl;
   4. wait for SSH, check the GPU and the timer, send the bundle (SHA-256 checked on the pod), unpack and verify it
      there (screen_job.py verify), start screen_run.sh under nohup, poll every 30 s; 5 minutes before the cap the job
      steps get SIGTERM (they stop before the next row: exit 5).
-  5. fetch: DONE.json, the run record, the known-answer record and labels, the Granite cache and the Qwen3Guard cache
-     first, in that order (a failure raises), then the diagnostics best effort; each file through <file>.part and its
-     pod-side SHA-256 (3 tries). Verify: the run record names this bundle, round, tag and exit; the known-answer labels
-     are recounted on the Mac against the Mac labels and the rule applied again; every cached record names a row of
-     this bundle with its hashes; coverage per source and criteria.
+  5. fetch: DONE.json, the run record, the known-answer record (ka.json), the lead's Granite run record, the Granite
+     cache and the Qwen3Guard cache first, in that order (a failure raises), then the diagnostics best effort (the
+     lead's DONE.json, llama build record, GGUF check, pip freeze and logs; the guard's); each file through <file>.part
+     and its pod-side SHA-256 (3 tries). Verify: the run record names this bundle, round, tag and exit; the gate block
+     in ka.json is the one in the lead's own run record (of this bundle's gate_b), passes the lead's consistency check
+     (judge_pod.known_answer_problem), and its counts are recounted on the Mac from its own ids and flips against the
+     pinned reference with the rule applied again; every cached record names a row of this bundle with its hashes;
+     coverage per source and criteria.
   6. ALWAYS (finally): judge_pod's stop discipline (one-shot signals, a reconcile cut short runs again, the orphan check
      after an interrupted create, the salvage of at most 300 s unless the first signal was SIGTERM or SIGQUIT, the stop
      confirmed EXITED or the timer shortened to 2 min and the stop retried, the exit code the salvaged files support).
 
-Exit codes: 0 done (all fetched and verified, the known-answer check passed on the pod and again on the Mac, every row
+Exit codes: 0 done (all fetched and verified, the known-answer gate passed on the pod and again on the Mac, every row
 of every source judged by each judge; with --limit, every selected row), pod stopped; 2 refused before any pod; 3 the
 budget guard refused or could not run; 4 RunPod refused the create, or the price check failed; 5 the job was stopped
 (cap or signal) and its partial caches fetched (resume with --resume-from <LAUNCH_DIR>/runs/<old tag> and a new tag); 6
-any other failure (a pod that was created is stopped), including a known-answer step that broke before its verdict;
+any other failure (a pod that was created is stopped), including a lead Granite job that failed before its gate's
+verdict (setup, build, download, refusal, time limit);
 7 A STOP WAS NOT CONFIRMED or a create reply was lost (STOP-NOT-CONFIRMED / CHECK-CONSOLE): check the RunPod console
-now; 8 THE KNOWN-ANSWER CHECK FAILED (all 200 judged and the rule failed, on the pod or when the Mac recounts its
-labels): no row was screened after it, the pod was stopped, and nothing from the run is used; 9 THE KNOWN ANSWERS
-PASSED BUT THE ROUND'S PROJECTED TIME PER GRANITE CALL (their seconds per answer x r, r = the round's mean tokens per
-Granite call / the known answers' mean template tokens, both counted at bundle time) IS ABOVE THE CAP'S PLANNING TIME
-(pod step ka, exit 3): no row was screened, the pod was stopped; decide the cap or the planning time before a
-relaunch.
+now; 8 THE KNOWN-ANSWER GATE FAILED (the lead's gate judged all 200 and its rule failed, on the pod (the lead's exit 3)
+or when the Mac recounts its block): no row was screened after it, the pod was stopped, and nothing from the run is
+used; 9 THE KNOWN ANSWERS PASSED BUT THE ROUND'S PROJECTED TIME PER GRANITE CALL (the gate's seconds per answer x r,
+r = the round's mean tokens per Granite call / the known answers' mean template tokens, both counted at bundle time)
+IS ABOVE THE CAP'S PLANNING TIME (pod step ka, exit 3): no row was screened, the pod was stopped; decide the cap or the
+planning time before a relaunch.
 """
 from __future__ import annotations
 
@@ -83,7 +98,8 @@ import podhost  # noqa: E402
 import screen_bundle as SB  # noqa: E402
 import screen_job as SJ  # noqa: E402
 import screen_rows as R  # noqa: E402
-from common import Refusal, canonical_bytes, sha256_file  # noqa: E402
+import granite_pod  # noqa: E402  (the lead's: the known-answer reference's path on the Mac)
+from common import GRANITE, Refusal, canonical_bytes, sha256_file  # noqa: E402
 
 EXIT_OK, EXIT_REFUSED, EXIT_BUDGET, EXIT_CREATE = JP.EXIT_OK, JP.EXIT_REFUSED, JP.EXIT_BUDGET, JP.EXIT_CREATE
 EXIT_STOPPED, EXIT_FAILED, EXIT_STOP_UNCONFIRMED = JP.EXIT_STOPPED, JP.EXIT_FAILED, JP.EXIT_STOP_UNCONFIRMED
@@ -92,15 +108,17 @@ POD_RUNS = P.POD_RUNS                     # replaced in tests
 HOSTS = P.HOSTS                           # replaced in tests
 REMOTE = P.REMOTE
 TOOL = "bundle/tool"
-RECORD_REL, KA_REL, KA_LABELS_REL = "out/run-record.json", "out/ka.json", "out/ka-labels.jsonl"
+RECORD_REL, KA_REL = "out/run-record.json", "out/ka.json"
+LEAD_RECORD_REL = f"{P.GRANITE_JOB}/out/run-record.json"   # the lead's Granite job's run record (the gate's block)
 GRANITE_REL, QWEN_REL = "out/granite.jsonl", "out/qwen.jsonl"
 REQUIRED = ("DONE.json", RECORD_REL)
-FETCH_FIRST = ("DONE.json", RECORD_REL, KA_REL, KA_LABELS_REL, GRANITE_REL, QWEN_REL)   # in this order; failures raise
+FETCH_FIRST = ("DONE.json", RECORD_REL, KA_REL, LEAD_RECORD_REL, GRANITE_REL, QWEN_REL)   # in this order; failures raise
 FETCH_BEST_EFFORT = tuple(rel for rel in SJ.OUTPUTS if rel not in FETCH_FIRST)          # diagnostics: skipped on failure
 LOG_NAME, RESULT_NAME = "screen-pod-log.jsonl", "screen-pod-result.json"
 STATUS_COMMAND = f"cd {REMOTE} && python3 -I {TOOL}/screen_job.py status --root {REMOTE}"
 SUMS_COMMAND = f"cd {REMOTE} && python3 -I {TOOL}/screen_job.py sums --root {REMOTE}"
-TERMINATE_COMMAND = "pkill -TERM -f '[s]creen_job.py (ka|granite|qwen) '; true"   # [s]: never matches this shell itself
+TERMINATE_COMMAND = ("pkill -TERM -f '[s]creen_job.py (ka|granite|qwen) '; "      # [s], [t]: never this shell itself
+                     "pkill -TERM -f '[t]ool/pod/pod_job.py run'; true")         # the lead's gate (its own SIGTERM stop)
 
 
 # ---------------------------------------------------------------- pins, bundle, cap and resume (no network)
@@ -205,13 +223,13 @@ def build(a, folder: pathlib.Path) -> dict:
         manifest = SB.stage_bundle(planned, pathlib.Path(tmp) / "bundle", a.tag, a.limit, engine, SB.pins_record(),
                                    resume, JP.SECRET_PATTERNS)
         manifest_sha = sha256_file(pathlib.Path(tmp) / "bundle" / SB.MANIFEST_NAME)
-        import bundle as gate_b_bundle                    # gate_b_mac_judges/pod/bundle.py: the deterministic tar
-        tar_sha = gate_b_bundle.write_tar(pathlib.Path(tmp) / "bundle", tar)
+        tar_sha = SB.lead_bundle.write_tar(pathlib.Path(tmp) / "bundle", tar)   # the lead's deterministic tar
     rows = [row for s in planned["sources"].values() for row in s["rows"]]
     (folder / "rows-index.jsonl").write_bytes(b"".join(json.dumps(R.index_entry(row), sort_keys=True).encode() + b"\n"
                                                        for row in rows))
     index_sha = sha256_file(folder / "rows-index.jsonl")
-    ka = planned["ka"]
+    plan = planned["known_answers"]
+    gate_b = manifest["gate_b"]
     record = {"kind": "fiction-screen bundle record", "tag": a.tag, "round": a.round, "limit": a.limit,
               "bundle_sha256": tar_sha, "manifest_sha256": manifest_sha, "bundle_bytes": tar.stat().st_size,
               "files": len(manifest["files"]), "inputs": inputs_of(planned),
@@ -219,8 +237,11 @@ def build(a, folder: pathlib.Path) -> dict:
               "rows_index_sha256": index_sha, "work": w, "documents": planned["documents"],
               "granite_tokens": planned["granite_tokens"],
               "refill": planned["refill"], "launcher_sha256": launcher,
-              "known_answer": {"unit": ka["unit"].name, "complete_sha256": ka["unit"].complete_sha256,
-                               "n": len(ka["labels"]), "mac_yes": sum(v == "Yes" for v in ka["labels"].values())},
+              "known_answer": {"gate": "the lead's (pod_job.known_answer_gate in the lead's Granite job)",
+                               "unit": plan["unit"].name, "complete_sha256": plan["unit"].complete_sha256,
+                               "reference_sha256": plan["reference_sha256"], "n": plan["n"],
+                               "mac_yes": plan["mac_yes"], "rule": gate_b["known_answers"]["rule"]},
+              "gate_b": {k: gate_b[k] for k in ("manifest_sha256", "lead_commit", "tokenizer_dir", "groups")},
               "engine": {**{k: manifest["engine"][k] for k in ("code_sha256", "git_commit", "recipe_sha256", "files")},
                          **{k: identity[k] for k in ("code_sha256_pinned", "files_sha256", "base_commit",
                                                      "changed_since_base")}},
@@ -238,7 +259,8 @@ def build(a, folder: pathlib.Path) -> dict:
                  for name, s in planned["sources"].items()}
     return {"manifest": manifest, "manifest_sha256": manifest_sha, "tar": tar, "tar_sha256": tar_sha, "cap_hours": cap,
             "record": record, "index": index, "selection": selection, "round": a.round, "tag": a.tag,
-            "ka_labels": dict(ka["labels"]), "ka_answer_sha256": dict(ka["answer_sha256"])}
+            "gate_b_manifest_sha256": gate_b["manifest_sha256"], "known_answers": plan,
+            "ka_reference": SB.ka_reference(granite_pod.KNOWN_ANSWERS_FILE)}
 
 
 # ---------------------------------------------------------------- remote steps (through host.run)
@@ -282,7 +304,9 @@ def parse_status(stdout: str):
     if st is None or "done" not in st:
         return None
     done = st.get("done")
+    granite_step = st.get("granite_step")
     return {"started": bool(st.get("started")), "step": str(st.get("step"))[:32] if st.get("step") else None,
+            "granite_step": str(granite_step)[:32] if granite_step else None,
             "done": None if not isinstance(done, dict) else {"exit": done.get("exit"), "step": done.get("step")},
             "progress": whitelist(st.get("progress"))}
 
@@ -300,9 +324,10 @@ def poll(host, deadline: float, log, clock=time.time, sleep=time.sleep):
                 raise podhost.HostError(f"the job status was unreadable {failures} times in a row")
         else:
             failures = 0
-            seen = (st["step"], json.dumps(st["progress"], sort_keys=True))
+            seen = (st["step"], st["granite_step"], json.dumps(st["progress"], sort_keys=True))
             if seen != last:
-                log("progress", pod_step=st["step"], **st["progress"])
+                log("progress", pod_step=st["step"], **({"granite_step": st["granite_step"]} if st["granite_step"]
+                                                       else {}), **st["progress"])
                 last = seen
             eta = st["progress"].get("eta_min")
             if not warned and isinstance(eta, (int, float)) and clock() + eta * 60 > deadline:
@@ -356,36 +381,44 @@ def fetch_outputs(host, folder: pathlib.Path, log, fetched: dict | None = None, 
 # ---------------------------------------------------------------- verification (Mac, fetched files only)
 
 def verify_ka(folder: pathlib.Path, built: dict, fetched: dict) -> dict:
-    """The known-answer labels recounted against the Mac labels and the rule applied again; the pod's own counts must
-    equal the recount. `complete`: the check ran to its verdict (all 200 judged, not stopped, no refusal or error)."""
+    """The lead's known-answer gate, verified on the Mac from the fetched files: ka.json's block must be the one in the
+    lead's own run record (a cuda Granite run of this bundle's gate_b, with the exit ka.json names), pass the lead's
+    consistency check (judge_pod.known_answer_problem: this bundle's reference and unit, passed exactly when the lead's
+    job exited 0), and its counts are recounted from its own differing ids and flips against the pinned reference,
+    with the rule applied again (passed_mac). `complete`: the gate ran to its verdict (all 200 judged, not stopped,
+    no refusal or error in the ka step)."""
     absent = {"present": False, "complete": False, "passed": False, "passed_pod": False, "passed_mac": False,
-              "counts": None, "stopped": None}
+              "counts": None, "stopped": None, "lead_exit": None, "lead_step": None, "llama": None}
     if KA_REL not in fetched:
         return absent
-    pod_record = json.loads((folder / "fetched" / KA_REL).read_bytes())
-    pod_labels: dict = {}
-    if KA_LABELS_REL in fetched:
-        for line in (folder / "fetched" / KA_LABELS_REL).read_bytes().split(b"\n"):
-            if not line.strip():
-                continue
-            entry = json.loads(line)
-            pid = entry.get("prompt_id")
-            if (pid not in built["ka_labels"] or pid in pod_labels or entry.get("pod") not in P.LABELS
-                    or entry.get("answer_sha256") != built["ka_answer_sha256"][pid]
-                    or entry.get("mac") != built["ka_labels"][pid]):
-                raise Refusal("a fetched known-answer label names another item, answer or Mac label")
-            pod_labels[pid] = entry["pod"]
-    counts = R.ka_counts([(built["ka_labels"][pid], pod_labels.get(pid)) for pid in sorted(built["ka_labels"])])
-    passed_mac, passed_pod = R.ka_passed(counts), pod_record.get("passed") is True
-    if pod_record.get("counts") is not None and pod_record.get("counts") != counts:
-        raise Refusal("the pod's known-answer counts differ from the recount of its fetched labels")
-    complete = (R.ka_complete(counts) and pod_record.get("counts") == counts and pod_record.get("stopped") is False
-                and pod_record.get("refused") is None and pod_record.get("error") is None)
-    return {"present": True, "complete": complete, "passed": passed_mac and passed_pod, "passed_pod": passed_pod,
-            "passed_mac": passed_mac, "counts": counts, "stopped": pod_record.get("stopped"),
-            "seconds_per_item": pod_record.get("seconds_per_item"), "refused": pod_record.get("refused") is not None,
-            "error": pod_record.get("error"), "too_slow": pod_record.get("too_slow"),
-            "speed": pod_record.get("speed")}
+    ka = json.loads((folder / "fetched" / KA_REL).read_bytes())
+    lead = ka.get("lead") if isinstance(ka.get("lead"), dict) else {}
+    block = ka.get("known_answers")
+    out = {**absent, "present": True, "lead_exit": lead.get("exit"), "lead_step": (lead.get("done") or {}).get("step"),
+           "llama": lead.get("llama"), "stopped": ka.get("stopped"), "refused": ka.get("refused") is not None,
+           "error": ka.get("error"), "seconds_per_item": ka.get("seconds_per_item"), "too_slow": ka.get("too_slow"),
+           "speed": ka.get("speed"), "timing": ka.get("timing"), "counts": JP.known_answer_summary(block)}
+    if not isinstance(block, dict) or ka.get("lead_verdict") is not True or lead.get("exit") not in (
+            0, P.LEAD_EXIT_GATE_FAILED):
+        return out                                          # the gate reached no verdict: nothing to compare
+    if LEAD_RECORD_REL not in fetched:
+        raise Refusal("the gate reached a verdict but the lead's run record was not fetched")
+    path = folder / "fetched" / LEAD_RECORD_REL
+    record = json.loads(path.read_bytes())
+    if (sha256_file(path) != lead.get("run_record_sha256") or record.get("known_answers") != block
+            or record.get("judge") != GRANITE or record.get("device") != "cuda"
+            or record.get("bundle_manifest_sha256") != built["gate_b_manifest_sha256"]
+            or record.get("exit") != lead.get("exit")):
+        raise Refusal("ka.json's gate is not the lead's run record's (record, block, judge, device, gate_b or exit)")
+    problem = JP.known_answer_problem({"known_answers": built["known_answers"]}, block, lead.get("exit"))
+    if problem:
+        raise Refusal(f"the lead's run record's known-answer gate {problem}")
+    counts = R.ka_recount(block, built["ka_reference"])
+    passed_mac, passed_pod = R.ka_rule_passes(counts), block.get("passed") is True and ka.get("passed") is True
+    complete = (block.get("stopped") is False and block.get("judged") == P.KA_N and ka.get("refused") is None
+                and ka.get("error") is None)
+    return {**out, "complete": complete, "passed": passed_mac and passed_pod, "passed_pod": passed_pod,
+            "passed_mac": passed_mac}
 
 
 def verify_cache(folder: pathlib.Path, built: dict, rel: str, judge: str) -> dict:
@@ -414,11 +447,10 @@ def verify_outputs(folder: pathlib.Path, built: dict, done: dict, fetched: dict)
               and record.get("round") == built["round"] and record.get("tag") == built["tag"])
     if not rec_ok:
         raise Refusal("the fetched run record does not match this launch (kind, device, bundle, round, tag or exit)")
-    llama = record.get("llama") or {}
-    summary = {"pod_exit": record.get("exit"), "pod_step": record.get("step"),
-               "llama": {k: llama.get(k) for k in ("version", "gpu_offload", "cmake_args", "nvcc", "nvcc_source",
-                                                   "build_log_sha256")},
-               "ka": verify_ka(folder, built, fetched), "granite": None, "qwen": None, "complete": False}
+    ka = verify_ka(folder, built, fetched)
+    summary = {"pod_exit": record.get("exit"), "pod_step": record.get("step"), "llama": ka.get("llama"),
+               "lead_exit": ka.get("lead_exit"), "lead_step": ka.get("lead_step"), "ka": ka, "granite": None,
+               "qwen": None, "complete": False}
     if GRANITE_REL in fetched:
         summary["granite"] = verify_cache(folder, built, GRANITE_REL, "granite")
     if QWEN_REL in fetched:
@@ -429,9 +461,9 @@ def verify_outputs(folder: pathlib.Path, built: dict, done: dict, fetched: dict)
 
 
 def ka_failed(done: dict, ka: dict) -> bool:
-    """Exit 8: the pod's ka step said the rule failed (exit 4), or the check ran to its verdict and failed on the pod
-    or in the Mac's recount. A ka step that broke, was refused or was stopped before its verdict is not a failed check
-    (exit 6 or 5): nothing was compared."""
+    """Exit 8: the pod's ka step said the lead's gate failed (exit 4), or the gate ran to its verdict and failed on the
+    pod or in the Mac's recount. A gate that never reached its verdict (the lead's job broke, was refused or was
+    stopped first) is not a failed gate (exit 6 or 5): nothing was compared."""
     return (done.get("exit") == P.POD_EXIT_KA_FAILED and done.get("step") == "ka") or (
         ka["present"] and ka["complete"] and not ka["passed"])
 
@@ -443,12 +475,13 @@ def verdict(folder: pathlib.Path, built: dict, done: dict, result: dict, log) ->
     v = verify_outputs(folder, built, done, result["fetched"])
     result["verification"] = v
     log("verified", complete=v["complete"], pod_exit=v["pod_exit"], pod_step=v["pod_step"], llama=v["llama"],
+        lead_exit=v["lead_exit"], lead_step=v["lead_step"],
         ka={k: v["ka"].get(k) for k in ("present", "complete", "passed", "passed_pod", "passed_mac", "counts",
-                                        "seconds_per_item", "refused", "error", "too_slow", "speed")},
+                                        "seconds_per_item", "refused", "error", "too_slow", "speed", "timing")},
         granite=v["granite"], qwen=v["qwen"])
     if ka_failed(done, v["ka"]):
         log("KNOWN-ANSWER-CHECK-FAILED", passed_pod=v["ka"]["passed_pod"], passed_mac=v["ka"]["passed_mac"],
-            counts=v["ka"]["counts"], action="nothing from this run is used")
+            counts=v["ka"]["counts"], gate="the lead's", action="nothing from this run is used")
         return EXIT_KA_FAILED
     if (done.get("exit") == P.POD_EXIT_TOO_SLOW and done.get("step") == "ka" and v["ka"]["passed"]
             and v["ka"].get("too_slow") is True):
@@ -647,7 +680,7 @@ def _launch_locked(a, folder: pathlib.Path, host, clock, sleep, signals: bool) -
             return EXIT_REFUSED
         host = podhost.RunPodHost(a.tag, records=pathlib.Path(HOSTS) / a.tag, kit=a.ssh_kit,
                                   budget_kit=a.budget_kit, remote_root=REMOTE)
-    result = {"kind": "fiction-screen pod result", "version": 2, "tag": a.tag, "round": a.round, "limit": a.limit,
+    result = {"kind": "fiction-screen pod result", "version": 3, "tag": a.tag, "round": a.round, "limit": a.limit,
               "inputs": built["record"]["inputs"], "rows_index_sha256": built["record"]["rows_index_sha256"],
               "bundle_sha256": built["tar_sha256"], "manifest_sha256": built["manifest_sha256"],
               "cap_hours": built["cap_hours"], "planning_price": podhost.PLANNING_PRICE,

@@ -1,5 +1,5 @@
-"""The three pinned snapshots: the pins against the Mac's copies and the probe pods' receipts, the snapshot check, and
-the download's refusals (a fake snapshot_download; no network)."""
+"""The screen's one pinned snapshot (Qwen3Guard; Granite's GGUF and tokenizer are the lead's): the pins against the
+probe pods' receipts, the snapshot check, and the download's refusals (a fake snapshot_download; no network)."""
 from __future__ import annotations
 
 import hashlib
@@ -12,21 +12,9 @@ from common import Refusal
 import screen_models as M
 
 
-def test_granite_pins_equal_the_mac_copies():
-    tok = P.ROOT / "tmp/judge-models/granite-guardian-3.3-8b-tokenizer"
-    if not tok.is_dir():
-        pytest.skip("the Mac's Granite tokenizer folder is absent")
-    found = {p.name: (p.stat().st_size, hashlib.sha256(p.read_bytes()).hexdigest()) for p in tok.iterdir()
-             if p.is_file()}
-    assert found == P.GRANITE_TOK_FILES
-    meta = P.ROOT / "tmp/judge-models/.cache/huggingface/download/granite-guardian-3.3-8b-Q4_K_M.gguf.metadata"
-    lines = meta.read_text().splitlines()
-    assert lines[0] == P.GRANITE_GGUF_REVISION and lines[1] == P.GRANITE_GGUF_SHA256       # commit, LFS etag
-    assert (P.ROOT / "tmp/judge-models" / P.GRANITE_GGUF_FILE).stat().st_size == P.GRANITE_GGUF_BYTES
-    for f in (tok / ".cache/huggingface/download").glob("*.metadata"):
-        assert f.read_text().splitlines()[0] == P.GRANITE_TOK_REVISION
-    from common import GRANITE_GGUF_SHA256
-    assert GRANITE_GGUF_SHA256 == P.GRANITE_GGUF_SHA256
+def test_granite_is_no_longer_downloaded_here():
+    """The lead's Granite job downloads and checks the GGUF; the bundle carries the Mac's tokenizer folder."""
+    assert set(M.SNAPSHOTS) == {"qwen3guard"} and not hasattr(M, "granite_paths")
 
 
 def test_qwen_pins_equal_the_probe_receipts_and_the_recipe():
@@ -59,18 +47,17 @@ def _fake_snapshot(hub: pathlib.Path, name: str, extra=None, skip=None, corrupt=
 
 def test_verify_snapshot_refuses_missing_extra_and_changed_files(tmp_path, monkeypatch):
     pins = {"a.json": (1, hashlib.sha256(b"x").hexdigest()), "b.txt": (1, hashlib.sha256(b"x").hexdigest())}
-    monkeypatch.setitem(M.SNAPSHOTS, "granite_tokenizer", (P.GRANITE_TOK_REPO, P.GRANITE_TOK_REVISION, tuple(pins),
-                                                          pins))
-    _fake_snapshot(tmp_path, "granite_tokenizer")
-    assert M.verify_snapshot("granite_tokenizer", tmp_path) == {k: v[1] for k, v in pins.items()}
-    _fake_snapshot(tmp_path, "granite_tokenizer", extra="c.bin")
-    with pytest.raises(Refusal, match="extra"):
-        M.verify_snapshot("granite_tokenizer", tmp_path)
-    (M.snapshot_dir("granite_tokenizer", tmp_path) / "c.bin").unlink()
-    _fake_snapshot(tmp_path, "granite_tokenizer", corrupt="b.txt")
-    with pytest.raises(Refusal, match="bytes"):
-        M.verify_snapshot("granite_tokenizer", tmp_path)
+    monkeypatch.setitem(M.SNAPSHOTS, "qwen3guard", (P.QWEN_REPO, P.QWEN_REVISION, tuple(pins), pins))
     with pytest.raises(Refusal, match="missing"):
+        M.verify_snapshot("qwen3guard", tmp_path)
+    _fake_snapshot(tmp_path, "qwen3guard")
+    assert M.verify_snapshot("qwen3guard", tmp_path) == {k: v[1] for k, v in pins.items()}
+    _fake_snapshot(tmp_path, "qwen3guard", extra="c.bin")
+    with pytest.raises(Refusal, match="extra"):
+        M.verify_snapshot("qwen3guard", tmp_path)
+    (M.snapshot_dir("qwen3guard", tmp_path) / "c.bin").unlink()
+    _fake_snapshot(tmp_path, "qwen3guard", corrupt="b.txt")
+    with pytest.raises(Refusal, match="bytes"):
         M.verify_snapshot("qwen3guard", tmp_path)
 
 
@@ -89,10 +76,9 @@ def test_download_refuses_tokens_and_offline_and_checks_every_file(tmp_path, mon
     monkeypatch.setattr(M, "MIN_FREE_BYTES", 0)
     with pytest.raises(Refusal):                                   # the fake files are not the pinned bytes
         M.download(fake_snapshot_download, {}, tmp_path)
-    assert calls[0] == {"repo_id": P.GRANITE_GGUF_REPO, "revision": P.GRANITE_GGUF_REVISION,
-                        "allow_patterns": [P.GRANITE_GGUF_FILE], "token": False, "cache_dir": str(tmp_path)}
+    assert calls[0] == {"repo_id": P.QWEN_REPO, "revision": P.QWEN_REVISION, "allow_patterns": list(P.QWEN_PATTERNS),
+                        "token": False, "cache_dir": str(tmp_path)}
     monkeypatch.setattr(M, "verify_snapshot", lambda name, hub=None: {"ok": name})
     got = M.download(fake_snapshot_download, {}, tmp_path)
-    assert set(got) == {"granite_gguf", "granite_tokenizer", "qwen3guard"}
-    assert [c["repo_id"] for c in calls[-3:]] == [P.GRANITE_GGUF_REPO, P.GRANITE_TOK_REPO, P.QWEN_REPO]
-    assert calls[-1]["allow_patterns"] == list(P.QWEN_PATTERNS) and all(c["token"] is False for c in calls)
+    assert set(got) == {"qwen3guard"} and [c["repo_id"] for c in calls[-1:]] == [P.QWEN_REPO]
+    assert all(c["token"] is False for c in calls)

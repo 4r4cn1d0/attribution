@@ -1,4 +1,6 @@
-"""Row parsing, the user turn, refill rows, the drop rule, the known-answer rule and the per-row caches."""
+"""Row parsing, the user turn, refill rows, the drop rule and the label map, the lead's known-answer block (its rule
+and its recount from its own ids and flips; blocks made by the lead's own granite_pod.known_answer_verdict) and the
+per-row caches."""
 from __future__ import annotations
 
 import json
@@ -6,6 +8,7 @@ import json
 import pytest
 from conftest import P, R, fiction_row, needs_real, sha, write_jsonl
 from common import Refusal
+import granite_pod
 from experiments.safety_selection.prepare_task import render_user_text
 
 
@@ -174,72 +177,85 @@ def test_dolly_row_refusals(tmp_path):
 
 # ------------------------------------------------------------------------------------------------ the drop rule
 
-def test_drop_rule_is_harm_yes_or_invalid():
+def test_drop_rule_is_harm_yes_or_invalid_and_the_leads_labels_map():
     assert R.dropped("Yes") and R.dropped("invalid") and not R.dropped("No")
     with pytest.raises(Refusal):
         R.dropped("yes")
-    assert R.mac_label("yes") == "Yes" and R.mac_label("no") == "No" and R.mac_label(None) == "invalid"
+    assert [R.granite_label(x) for x in ("yes", "no", "unparsed")] == ["Yes", "No", "invalid"]
+    for bad in ("Yes", "maybe", None):
+        with pytest.raises(Refusal):
+            R.granite_label(bad)
 
 
-# ------------------------------------------------------------------------------------------------ the known-answer rule
+# ------------------------------------------------------------------------------------------------ the lead's gate block
 
-def _pairs(identical=200, mac_yes=93, flips_yes_to_no=0, flips_no_to_yes=0, missing=0, pod_invalid=0):
-    """200 (Mac, pod) pairs with the Mac's 93 yes; the first flips change labels, then invalid, then missing."""
-    mac = ["Yes"] * mac_yes + ["No"] * (200 - mac_yes)
-    pod = list(mac)
-    k = 0
-    for _ in range(flips_yes_to_no):
-        pod[k] = "No"
-        k += 1
-    j = 199
-    for _ in range(flips_no_to_yes):
-        pod[j] = "Yes"
-        j -= 1
-    for _ in range(pod_invalid):
-        pod[j] = "invalid"
-        j -= 1
-    for _ in range(missing):
-        pod[j] = None
-        j -= 1
-    return list(zip(mac, pod))
+MAC = {f"p{i:03d}": ("yes" if i < 93 else "no") for i in range(200)}
+REFERENCE = {"items": [{"prompt_id": pid, "label": lab, "answer_sha256": "0" * 64} for pid, lab in MAC.items()]}
+
+
+def block(yes_to_no=0, no_to_yes=0, unparsed=0, missing=0) -> dict:
+    """The lead's own block (granite_pod.known_answer_verdict) over pod labels made from the Mac's 93 yes."""
+    pod = dict(MAC)
+    yes = [p for p in MAC if MAC[p] == "yes"]
+    no = [p for p in MAC if MAC[p] == "no"]
+    for p in yes[:yes_to_no]:
+        pod[p] = "no"
+    for p in no[:no_to_yes]:
+        pod[p] = "yes"
+    for p in no[no_to_yes:no_to_yes + unparsed]:
+        pod[p] = "unparsed"
+    for p in no[no_to_yes + unparsed:no_to_yes + unparsed + missing]:
+        pod.pop(p)
+    return granite_pod.known_answer_verdict(REFERENCE, pod)
 
 
 @pytest.mark.parametrize("kw,passes", [
     ({}, True),
-    ({"flips_yes_to_no": 5, "flips_no_to_yes": 5}, True),          # 190 identical, delta 0
-    ({"flips_yes_to_no": 6, "flips_no_to_yes": 5}, False),         # 189 identical
-    ({"flips_yes_to_no": 5}, True),                                # 195 identical, delta -5
-    ({"flips_yes_to_no": 6}, False),                               # delta -6
-    ({"flips_no_to_yes": 5}, True),                                # delta +5
-    ({"flips_no_to_yes": 6}, False),                               # delta +6
-    ({"missing": 1}, False),                                       # not all 200 judged
-    ({"pod_invalid": 10}, True),                                   # 190 identical, delta 0: invalid counts as differing
-    ({"pod_invalid": 11}, False),
-    ({"mac_yes": 92}, False),                                      # the Mac side is not the recorded one
+    ({"yes_to_no": 5, "no_to_yes": 5}, True),          # 190 identical, delta 0
+    ({"yes_to_no": 6, "no_to_yes": 5}, False),         # 189 identical
+    ({"yes_to_no": 5}, True),                          # 195 identical, delta -5
+    ({"yes_to_no": 6}, False),                         # delta -6
+    ({"no_to_yes": 5}, True),                          # delta +5
+    ({"no_to_yes": 6}, False),                         # delta +6
+    ({"missing": 1}, False),                           # not all 200 judged
+    ({"unparsed": 10}, True),                          # 190 identical, delta 0: unparsed counts as differing
+    ({"unparsed": 11}, False),
 ])
-def test_known_answer_rule_boundaries(kw, passes):
-    counts = R.ka_counts(_pairs(**kw))
-    assert R.ka_passed(counts) is passes
+def test_the_screens_reading_of_the_leads_rule_agrees_with_the_lead(kw, passes):
+    b = block(**kw)
+    assert b["passed"] is passes and R.ka_rule_passes(b) is passes
+    counts = R.ka_recount(b, MAC)
+    assert R.ka_rule_passes(counts) is passes and counts["identical"] == b["identical"]
 
 
-def test_known_answer_counts_arithmetic():
-    counts = R.ka_counts(_pairs(flips_yes_to_no=3, flips_no_to_yes=1, pod_invalid=2, missing=1))
-    assert counts == {"n": 200, "judged": 199, "identical": 193, "mac_yes": 93, "pod_yes": 91, "mac_invalid": 0,
-                      "pod_invalid": 2, "delta_yes": -2, "flips": {"No->Yes": 1, "No->invalid": 2, "Yes->No": 3}}
-    assert not R.ka_complete(counts) and R.ka_complete(R.ka_counts(_pairs()))
-    assert not R.ka_passed({}) and not R.ka_passed(None)
+def test_the_recount_refuses_a_block_whose_counts_ids_or_flips_disagree():
+    good = block(yes_to_no=3, no_to_yes=1, unparsed=2)
+    assert R.ka_recount(good, MAC) == {"n": 200, "judged": 200, "identical": 194, "mac_yes": 93, "pod_yes": 91,
+                                       "delta_yes": -2, "pod_unparsed": 2}
+    for damage in ({"identical": 200}, {"pod_yes": 93}, {"delta_yes": 0}, {"judged": 199}, {"pod_unparsed": 0},
+                   {"differing_prompt_ids": good["differing_prompt_ids"][1:]},
+                   {"differing_prompt_ids": good["differing_prompt_ids"] + ["p999"]},
+                   {"flips": {**good["flips"], "yes->no": 4}}, {"flips": {"no->maybe": 6}}, {"judged": "200"}):
+        with pytest.raises(Refusal):
+            R.ka_recount({**good, **damage}, MAC)
+    partial = block(missing=2)                                # a stopped gate: pod_yes cannot be recounted
+    counts = R.ka_recount(partial, MAC)
+    assert counts["judged"] == 198 and counts["pod_yes"] is None and not R.ka_rule_passes(counts)
 
 
-def test_known_answer_pins():
+def test_the_screens_known_answer_pins_are_the_leads():
     assert (P.KA_N, P.KA_MAC_YES, P.KA_MIN_IDENTICAL, P.KA_MAX_DELTA_YES) == (200, 93, 190, 5)
-    assert "190" in R.KA_RULE and "<= 5" in R.KA_RULE and "93" in R.KA_RULE
+    assert (granite_pod.KNOWN_ANSWER_N, granite_pod.KNOWN_ANSWER_MAC_YES, granite_pod.KNOWN_ANSWER_MIN_IDENTICAL,
+            granite_pod.KNOWN_ANSWER_MAX_DELTA_YES) == (200, 93, 190, 5)
+    assert granite_pod.KNOWN_ANSWERS_SHA256 == P.KA_REFERENCE_SHA256
+    assert "190" in R.KA_RULE and "<= 5" in R.KA_RULE and "93" in R.KA_RULE and "lead" in R.KA_RULE
 
 
 # ------------------------------------------------------------------------------------------------ caches
 
 def _granite_record(**over):
     rec = {"row_id": "dark-1", "source": "dark", "line": 1, "criteria": "harm", "label": "No", "attempts": 1,
-           "errors": 0, "reason": None, "input_tokens": 200, "trimmed": False, "response_sha256": "a" * 64,
+           "reason": None, "input_tokens": 200, "input_sha256": "c" * 64, "trimmed": False, "response_sha256": "a" * 64,
            "user_sha256": "b" * 64}
     rec.update(over)
     return rec
@@ -253,11 +269,15 @@ def _qwen_record(**over):
     return rec
 
 
-@pytest.mark.parametrize("over", [{"label": "yes"}, {"criteria": "violence"}, {"attempts": 3}, {"trimmed": 0},
-                                  {"label": "invalid"}, {"reason": "unparsed"}, {"response_sha256": "A" * 64},
-                                  {"text": "x"}, {"line": 0}, {"source": "other"}])
+@pytest.mark.parametrize("over", [{"label": "yes"}, {"criteria": "violence"}, {"attempts": 3}, {"attempts": 0},
+                                  {"trimmed": 0}, {"label": "invalid"}, {"reason": "unparsed"},
+                                  {"label": "invalid", "reason": "unparsed"}, {"reason": "error", "label": "invalid",
+                                                                               "attempts": 2},
+                                  {"response_sha256": "A" * 64}, {"input_sha256": "x"}, {"input_sha256": None},
+                                  {"errors": 0}, {"text": "x"}, {"line": 0}, {"source": "other"}])
 def test_granite_cache_record_schema(over):
     R.check_granite(_granite_record())
+    R.check_granite(_granite_record(attempts=2))                         # unparsed once, then a label
     R.check_granite(_granite_record(label="invalid", reason="unparsed", attempts=2))
     with pytest.raises(Refusal):
         R.check_granite(_granite_record(**over))

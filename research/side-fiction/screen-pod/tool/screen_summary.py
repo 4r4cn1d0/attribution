@@ -2,9 +2,11 @@
 
 Rebuilt 9 October 2026 (10:27 UTC, clock checked) from the lead's partial build. Mac only, no network, no model.
 `screen_pod.py summarize --from <LAUNCH_DIR>/runs/<tag>` refuses unless the launch ended with exit 0 and no --limit,
-its result says the known-answer check passed and both judges covered every row, every fetched file still has the
-SHA-256 its result records, and rows-index.jsonl has the SHA-256 the result records. The known-answer labels are
-recounted once more against the Mac's pinned labels file. Then, for the launch's round N, it writes into --out (default
+its result says the known-answer gate passed and both judges covered every row, every fetched file still has the
+SHA-256 its result records, and rows-index.jsonl has the SHA-256 the result records. The lead's known-answer gate block
+(fetched out/ka.json) is recounted once more from its own ids and flips against the lead's pinned reference
+(granite-known-answers.json b5b2678e...) and the rule applied again. Then, for the launch's round N, it writes into
+--out (default
 <worktree>/tmp/side-fiction/screen/; an existing file is never overwritten):
   roundN-<source>.jsonl   one line per row, in the source file's line order: round, source, arm, line (1-based in the
                           source file), row_id, the response's SHA-256, granite_harm and granite_sexual (Yes/No/
@@ -20,9 +22,10 @@ recounted once more against the Mac's pinned labels file. Then, for the launch's
                           category (all rows, and the rows Granite keeps); the same Qwen3Guard counts for the Dolly
                           rows; what the pre-registration reads (round 1: the manipulation check, book concentration,
                           the sexual-content gate, Granite's double role), on this round's rows only (the final
-                          training set exists only after the refill); the pins (GGUF SHA-256, llama-cpp-python
-                          version, CMAKE_ARGS, nvcc release and source, build log SHA-256, the Qwen3Guard revision, the
-                          engine code identity, the input SHA-256 values) and the known-answer counts.
+                          training set exists only after the refill); the pins (the lead's Granite backend: GGUF
+                          SHA-256, llama-cpp-python version, CMAKE_ARGS, the CUDA release and build log SHA-256 of the
+                          lead's build record, the lead files' SHA-256; the Qwen3Guard revision, the engine code
+                          identity, the input SHA-256 values) and the known-answer gate's counts and timing.
 After sf_screen.py finalize, `screen_pod.py final-reads` writes final-reads.json: the same reads on the FINAL training
 responses (the sexual-content gate of SCREEN-SPEC section 4 is defined on them), each final row labelled from the
 round-1 file (unchanged rows) or a refill round's file (replacements).
@@ -42,6 +45,7 @@ if str(HERE) not in sys.path:
 import screen_pins as P  # noqa: E402
 import screen_bundle as SB  # noqa: E402
 import screen_rows as R  # noqa: E402
+import granite_pod  # noqa: E402  (the lead's Granite pins and the gate's reference)
 from common import Refusal, canonical_bytes, sha256_file, sha256_text  # noqa: E402
 from experiments.safety_selection.textproc import GUARD_RESPONSE_CATEGORIES  # noqa: E402
 
@@ -188,9 +192,11 @@ def arm_summaries(per_source: dict) -> dict:
 
 
 def summary_record(round_: int, result: dict, bundle_record: dict, run_record: dict, per_source: dict,
-                   ka: dict) -> dict:
+                   ka: dict, ka_record: dict | None = None) -> dict:
     arms = arm_summaries(per_source)
-    llama = run_record.get("llama") or {}
+    ka_record = ka_record if isinstance(ka_record, dict) else (run_record.get("ka") or {})
+    lead = ka_record.get("lead") if isinstance(ka_record.get("lead"), dict) else {}
+    llama = lead.get("llama") if isinstance(lead.get("llama"), dict) else {}
     qrec = run_record.get("qwen") or {}
     return {
         "kind": "fiction training-data screen summary", "round": round_, "tag": result.get("tag"),
@@ -205,19 +211,23 @@ def summary_record(round_: int, result: dict, bundle_record: dict, run_record: d
                                            "note": "Granite harm filters the training rows (rules-v2 classifier_screen)"
                                                    " and also checks the outcome direction (PREREG section 3)"}}
                   if round_ == 1 else None),
-        "known_answer": {**ka, "passed": True, "rule": R.KA_RULE,
-                         "seconds_per_item": (run_record.get("ka") or {}).get("seconds_per_item"),
-                         "speed": (run_record.get("ka") or {}).get("speed")},
+        "known_answer": {**ka, "passed": True, "rule": R.KA_RULE, "gate": "the lead's (pod_job.known_answer_gate)",
+                         "reference_sha256": P.KA_REFERENCE_SHA256, "unit": P.KA_UNIT_NAME,
+                         "seconds_per_item": ka_record.get("seconds_per_item"), "timing": ka_record.get("timing"),
+                         "speed": ka_record.get("speed"), "lead_exit": lead.get("exit"),
+                         "tokenizer_fingerprint": lead.get("tokenizer_fingerprint"), "gpu": lead.get("gpu")},
         "pins": {"inputs": result.get("inputs"), "rows_index_sha256": result.get("rows_index_sha256"),
                  "bundle_sha256": result.get("bundle_sha256"), "manifest_sha256": result.get("manifest_sha256"),
                  "engine": bundle_record.get("engine"), "refill": bundle_record.get("refill"),
                  "launcher_sha256": bundle_record.get("launcher_sha256"),
-                 "granite_gguf_sha256": P.GRANITE_GGUF_SHA256, "granite_gguf_revision": P.GRANITE_GGUF_REVISION,
-                 "granite_tokenizer_revision": P.GRANITE_TOK_REVISION,
+                 "granite_backend": f"the lead's Granite pod mode (granite_pod.judge_triples, {P.LEAD_COMMIT})",
+                 "granite_gguf_sha256": granite_pod.GGUF_SHA256, "granite_gguf_revision": granite_pod.GGUF_COMMIT,
+                 "granite_gguf_run": lead.get("gguf_sha256"), "granite_tokenizer_revision": granite_pod.TOK_COMMIT,
                  "granite_convention_sha256": P.SECOND_JUDGE_PROBE_SHA256,
-                 "llama_cpp_python": {k: llama.get(k) for k in ("version", "package", "gpu_offload", "cmake_args",
-                                                                 "nvcc", "nvcc_source", "build_log_sha256",
-                                                                 "sdist_sha256", "system_info")},
+                 "llama_cpp_python": {**{k: llama.get(k) for k in ("version", "gpu_offload", "cuda", "build_log_sha256",
+                                                                   "build_jobs", "build_seconds")},
+                                      "sdist_sha256": granite_pod.LLAMA_SDIST_SHA256,
+                                      "cmake_args": granite_pod.LLAMA_CMAKE_ARGS},
                  "qwen3guard": {"repo": P.QWEN_REPO, "revision": P.QWEN_REVISION, "recipe_sha256": P.RECIPE_SHA256,
                                 "identity": qrec.get("guard_identity")},
                  "granite_harm_prob": "null: the template's output carries no probability"},
@@ -245,12 +255,12 @@ def summarize(source: pathlib.Path, out_dir: pathlib.Path) -> dict:
     run_record = _json(folder / "fetched/out/run-record.json")
     granite = {(e["row_id"], e["criteria"]): e for e in _jsonl(folder / "fetched/out/granite.jsonl")}
     qwen = {e["row_id"]: e for e in _jsonl(folder / "fetched/out/qwen.jsonl")}
-    # the known-answer labels, recounted once more against the Mac's pinned labels file
-    mac = SB.read_mac_labels(P.KA_MAC_ITEMS, P.KA_MAC_ITEMS_SHA256, P.KA_UNIT_NAME)
-    pod = {e["prompt_id"]: e["pod"] for e in _jsonl(folder / "fetched/out/ka-labels.jsonl")}
-    ka = R.ka_counts([(mac[pid], pod.get(pid)) for pid in sorted(mac)])
-    if not R.ka_passed(ka):
-        raise Refusal("the known-answer labels do not pass the rule when recounted")
+    # the lead's known-answer gate block, recounted once more against the lead's pinned reference
+    ka_record = _json(folder / "fetched/out/ka.json")
+    block = ka_record.get("known_answers") if isinstance(ka_record, dict) else None
+    ka = R.ka_recount(block, SB.ka_reference(granite_pod.KNOWN_ANSWERS_FILE))
+    if not (R.ka_rule_passes(ka) and block.get("passed") is True and ka_record.get("passed") is True):
+        raise Refusal("the known-answer gate's block does not pass the rule when recounted")
     per_source = build_rows(round_, index, granite, qwen)
     out_dir = pathlib.Path(out_dir)
     targets = {s: out_dir / f"round{round_}-{s}.jsonl" for s in per_source}
@@ -258,7 +268,7 @@ def summarize(source: pathlib.Path, out_dir: pathlib.Path) -> dict:
     existing = [p.name for p in [*targets.values(), summary_path] if p.exists()]
     if existing:
         raise Refusal(f"{existing} exist in the output folder; summaries are never overwritten")
-    summary = summary_record(round_, result, bundle_record, run_record, per_source, ka)
+    summary = summary_record(round_, result, bundle_record, run_record, per_source, ka, ka_record)
     out_dir.mkdir(parents=True, exist_ok=True)
     for s, rows in per_source.items():
         targets[s].write_bytes(b"".join(json.dumps(r, sort_keys=True).encode() + b"\n" for r in rows))

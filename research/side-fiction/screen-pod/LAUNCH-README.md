@@ -1,8 +1,13 @@
 # Fiction training-data screen: the launch folder
 
 Written 9 October 2026, 11:05 UTC (clock checked), by the Side Project's Opus worker, for the lead (General
-Implementation IV). It implements `research/side-fiction/SCREEN-SPEC.md` (SHA-256 `19cae3e1…`, sections 1 to 7) in the
-Side Project's worktree.
+Implementation IV). Revised 9 October 2026, 17:53 UTC (clock checked): the screen's Granite part now uses the lead's
+Granite pod mode, so there is one Granite-on-CUDA backend. Updated 17:56 UTC (clock checked) with the lead's Granite
+parity result (PASS). It implements `research/side-fiction/SCREEN-SPEC.md` (SHA-256 `81dc487a…`, sections 1 to 8;
+section 8 is this backend) in the Side Project's worktree.
+
+**Hand-over: this folder goes to General Implementation V, the new lead** (the lead hand-over from General
+Implementation IV, main commit `716d362`).
 
 **Status: built and tested on the Mac with fakes and the real inputs. Nothing was launched.** No pod was made, no RunPod
 API was called, nothing was downloaded from the Hub, no model was loaded and no GPU process was started. The lead
@@ -20,17 +25,30 @@ The development copy, which is identical, is `research/side-fiction/screen-pod/`
 ## What one launch does
 
 - **Round 1.** One A100 pod runs these steps in order:
-  1. The known-answer check (200 Granite calls).
-  2. Granite Guardian 3.3 8B on the 10,000 fiction rows, with two passes per row: `harm` (the drop rule) and
-     `sexual_content` (report only).
-  3. Qwen3Guard-Gen-4B, through the engine's GuardScorer, on the 10,000 fiction rows and the 4,800 Dolly train rows.
+  1. The setup of the Qwen3Guard side: its venv and its 8.8 GB download.
+  2. **The lead's Granite pod job, unchanged** (`pod_run_granite.sh`, the lead's `--judge granite` mode). It makes the
+     Granite venv, builds llama-cpp-python 0.3.36 with CUDA from its pinned sdist, downloads and checks the GGUF, and
+     checks the packages, the GPU offload, the files and the tokenizer fingerprint. Then it runs **the lead's
+     known-answer gate** (200 Granite calls). No fiction row is judged before the gate passes.
+  3. Granite Guardian 3.3 8B on the 10,000 fiction rows, with two passes per row: `harm` (the drop rule) and
+     `sexual_content` (report only). Every call is the lead's `granite_pod.judge_triples`.
+  4. Qwen3Guard-Gen-4B, through the engine's GuardScorer, on the 10,000 fiction rows and the 4,800 Dolly train rows.
 - **Rounds 2 and 3.** The same steps on the `refill-rN.jsonl` that `sf_screen.py refill` wrote.
-- **What the launch reuses.** The reviewed judge-pod launcher (`scripts/gate_b_mac_judges/pod/`), by import and
+- **What the launch reuses.** The lead's code in `scripts/gate_b_mac_judges/` (commit `2694bd0`), by import and
   unchanged:
-  - `podhost.py`: the budget lock and guard, reconcile, create with the in-pod timer, the orphan check, and the stop;
-  - `judge_pod.py`'s helpers: the signals, the log, the fetch with retries, and the salvage.
-- **The pins on the launcher.** Every launcher module is pinned by SHA-256 as committed. A changed file refuses with
-  exit 2.
+  - `podhost.py`: the budget lock and guard, reconcile, create with the in-pod timer and the lead's $10/h price limit
+    (the screen adds no second limit), the orphan check, and the stop;
+  - `judge_pod.py`'s helpers: the signals, the log, the fetch with retries, the salvage, and the known-answer block's
+    summary and consistency check;
+  - the Granite pod mode: `bundle.py` stages the Granite part of the screen's bundle, `pod_run_granite.sh` and
+    `pod_job.py` run it on the pod, and `granite_pod.py` and `granite_files.py` hold the prompt, the call and the
+    parse.
+- **The pins on the lead's files.** All 19 lead files that the screen imports or ships are pinned by SHA-256 as
+  committed in `2694bd0` (the main checkout's HEAD `019a72e` holds the same bytes). A changed file refuses with exit 2.
+  Among them: `pod/granite_pod.py` `dc04e108…`, `granite_files.py` `200299af…`, `pod/pod_job.py` `f5ffe5d1…`,
+  `pod/bundle.py` `144f3b18…`, `pod/judge_pod.py` `da91a0bf…`, `pod/podhost.py` `1eefa3a4…`,
+  `pod/pod_run_granite.sh` `e3a51f36…`, `pod/granite-requirements.txt` `519ec520…`, `pod/granite-known-answers.json`
+  `b5b2678e…` and `pod/PARITY.md` `c4fc455e…`.
 
 ## Names (all new; on 9 Oct no "sp-" name existed under `tmp/`)
 
@@ -50,7 +68,8 @@ The development copy, which is identical, is `research/side-fiction/screen-pod/`
 
 ## Cap and cost (planning rate $1.85/h, reserve $1)
 
-**Round 1** makes 20,200 Granite calls (200 known answers, plus 2 × 10,000 rows) and judges 14,800 Qwen3Guard rows.
+**Round 1** makes 20,200 Granite calls (the gate's 200 known answers, plus 2 × 10,000 rows) and judges 14,800
+Qwen3Guard rows. The refactor does not change these numbers.
 
 - **Cap.** The planning times give 3,600 s setup + 20,200 × 0.4 s + 14,800 × 0.25 s + 900 s margin = 16,280 s = 4.52 h.
   Rounded up to the next half hour, the cap is **5.0 h**.
@@ -64,7 +83,8 @@ The development copy, which is identical, is `research/side-fiction/screen-pod/`
 The estimate rests on token counts that were measured on the Mac with the real tokenizers (counts only):
 
 - **Granite.** The templated input averages about 290 tokens (maximum 2,646; no row reaches the 8,000-token trim).
-  The `sexual_content` call adds 101 tokens after the prefix it shares with the `harm` call.
+  The `sexual_content` call adds 101 tokens after the prefix it shares with the `harm` call. The counts now come from
+  the lead's `granite_files.granite_input`, and they are the same as before.
 - **Qwen3Guard.** The input averages 529 to 590 tokens (maximum 2,509). None is over the limit of 8,192, and none
   holds a control string.
 
@@ -72,8 +92,10 @@ From those counts, the estimates per item and for setup are:
 
 - **Per item.** 0.12 to 0.30 s per Granite call on CUDA, and 0.08 to 0.17 s per Qwen3Guard row (gate A measured
   0.165 s at batch 8).
-- **Setup.** 20 to 45 min: two venvs, the llama.cpp CUDA build, and 13.7 GB of downloads. On the 8 Oct judge pod, a
-  pip install into `/workspace` took 14 min, so both venvs here sit on the container disk.
+- **Setup.** 20 to 45 min: the guard venv and the 8.8 GB Qwen3Guard download, then the lead's Granite job (its venv,
+  the llama.cpp CUDA build, the 4.9 GB GGUF, and the gate). Both venvs sit on the container disk. The new layout adds
+  about 1 min: the Granite model loads twice (in the lead's gate and in the screen's Granite step), and the GGUF is
+  hashed once more.
 
 **Rounds 2 and 3.** The cap comes from the refill file's row count. Some examples:
 
@@ -83,7 +105,7 @@ From those counts, the estimates per item and for setup are:
 | 1,000 | 2.0 h | $3.70 |
 | 4,250 (850 drops × 5) | 3.0 h | $5.55 |
 
-Each round runs the known-answer check again, because each round is a new pod with a new build.
+Each round runs the lead's gate again, because each round is a new pod with a new build.
 
 ## Commands for the lead (zsh; paste one block at a time)
 
@@ -184,18 +206,36 @@ K=/Users/spiderishi/Coding/attribution/tmp/family-probe-sp-fiction-screen
 bash "$K/sp_fiction_screen.sh" final-reads
 ```
 
+## The pod's layout
+
+- **The bundle.** `bundle/gate_b/` is a bundle of the lead's Granite pod mode. The lead's own `bundle.stage_bundle`
+  writes it on the Mac, with no requested unit and the known-answer gate on. It holds the lead's modules, the Mac's
+  pinned Granite tokenizer folder (`granite-tokenizer/`), the gate's reference, unit and dev bank (`known/`), and the
+  lead's own `job-manifest.json`. The screen's manifest records that manifest's SHA-256.
+- **The lead's job.** `screen_run.sh` links `/workspace/judge/bundle` to `bundle/gate_b` and runs
+  `bundle/gate_b/tool/pod/pod_run_granite.sh` in `/workspace/judge`, its default root, under one time limit of
+  5,400 s. The lead's job writes its own `DONE.json`, `STEP` and `out/` there. `/workspace/screen/granite-job` links
+  to that root, so the screen's status and fetch reach the lead's files.
+- **A check of this layout on the Mac.** A test runs the lead's own `pod_job.py verify` through such a link, in an
+  isolated stdlib interpreter. It accepts the bundle.
+
 ## What comes back, and where
 
 - **Fetched by the launcher, automatically.** The files go to `runs/<tag>/fetched/`. Each one is checked against the
   SHA-256 computed on the pod, with 3 tries. The required files come first, in order:
   1. `DONE.json`;
   2. `out/run-record.json`;
-  3. `out/ka.json` and `out/ka-labels.jsonl` (the known-answer counts, then ids and labels);
-  4. `out/granite.jsonl` (per row and criteria: the label, attempts, token count and hashes);
-  5. `out/qwen.jsonl` (per row: the safety label, categories, refusal flag and hashes).
+  3. `out/ka.json`: the lead's gate block, its counts recounted, the gate's timing, the speed verdict, and the lead's
+     exit code, step and build summary;
+  4. `granite-job/out/run-record.json`: the lead's own run record (the gate block, the llama build, the files'
+     SHA-256, the tokenizer fingerprint, the environment);
+  5. `out/granite.jsonl` (per row and criterion: the label, attempts, the SHA-256 and token count of the text the
+     model received, and the row's hashes);
+  6. `out/qwen.jsonl` (per row: the safety label, categories, refusal flag and hashes).
 
-  Then, best effort: `download-check.json`, `llama-info.json` (the version, GPU offload, nvcc and the build log's
-  SHA-256), the two `environment-*.lock` files, `pip.log` and `llama-build.log`.
+  Then, best effort: the lead's `DONE.json`, `llama-build.json`, `gguf-check.json`, `environment-pod.lock`, `pip.log`
+  and `llama-build.log` (all under `granite-job/`), and the guard's `download-check.json`, `environment-q.lock` and
+  `pip.log`. No `job.log` is fetched.
 - **Beside them.** The run folder also holds `screen-pod-result.json` (the exit code, the verification and the
   fetched hashes), `screen-pod-log.jsonl`, `bundle-record.json` and `rows-index.jsonl` (ids and hashes).
 - **Copying back.** `summarize` reads the run folder and writes into `$W/tmp/side-fiction/screen/`:
@@ -219,67 +259,98 @@ bash "$K/sp_fiction_screen.sh" final-reads
 
 | When | What | Exit |
 |---|---|---|
-| Before any pod | Any of these: a changed `SCREEN-SPEC.md`, `rules-v2.json` or reused launcher module; an engine code identity other than the pinned `e49a978c…`; an input with another SHA-256 or row count; a refill report not written by the pinned `sf_screen.py` (`165f1a30…`); the known-answer unit or the Mac labels not as pinned; uncommitted engine files; a secret pattern in the bundle; an existing tag folder; no RunPod key; `LIMIT` set on a launch (the script) | 2 |
+| Before any pod | Any of these: a changed `SCREEN-SPEC.md` or `rules-v2.json`; a changed lead file (the 19 pins); a lead gate that is not the expected unit, reference and rule; an engine code identity other than the pinned `e49a978c…`; an input with another SHA-256 or row count; a Granite input above 8,160 tokens after the trim; a refill report not written by the pinned `sf_screen.py` (`165f1a30…`); uncommitted engine files; a secret pattern in the bundle; an existing tag folder; no RunPod key; `LIMIT` set on a launch (the script) | 2 |
 | Budget | `budget.py check CAP 1.85` refuses (before the create), or `budget.py check 0 1.85` refuses right after it (the pod is stopped) | 3 |
-| On the pod, setup | llama-cpp-python is not 0.3.36 built with GPU offload and the pinned CMAKE_ARGS, a pin fails, a download hash differs, or a step errors. The pod is stopped. | 6 |
-| On the pod, setup | **A setup step runs out of time.** Every setup step runs under `timeout -k 60`: the venvs and freezes 600 s, each pip install 1,800 s, the apt update 600 s and install 1,800 s, the llama.cpp build 3,600 s, a torch install 2,400 s, the download 3,600 s. `DONE.json` then records exit 124 (137 when the step ignored SIGTERM) and the step. The pod is stopped through the normal path, not at the cap. | 6 |
-| On the pod, before any fiction row | **The GPU-speed guard.** The first 5 known answers average more than 3 s each, which means llama.cpp is not on the GPU. The pod is stopped. | 6 |
-| On the pod, before any fiction row | **THE KNOWN-ANSWER CHECK FAILS** (see below). No row is screened, the pod is stopped, and nothing from the run is used. | **8** |
-| On the pod, before any fiction row | **THE ROUND IS PROJECTED TOO SLOW.** The check passes, but its measured seconds per answer × r is above 0.4 s, the cap's planning time per Granite call (pod step `ka`, exit 3). Here r is the round's mean tokens per Granite call divided by the known answers' mean template tokens. The bundle builder counts both from the bundle's own inputs with the pinned Granite tokenizer: in round 1, 196.7 / 421.3, so r = 0.467. No row is screened and the pod is stopped. Decide the cap or the planning time before a relaunch. | **9** |
-| The cap | The job steps get SIGTERM 5 min before the cap; the partial caches are fetched. Resume with `RESUME=<old tag> TAG=<new tag>`. | 5 |
+| Create | RunPod refuses the create, or the pod's price is above the lead's $10/h limit or is not a number (the pod is stopped at once) | 4 |
+| On the pod, setup | The guard venv or the Qwen3Guard download fails, or the lead's Granite job ends before its gate's verdict: its venv, pip, nvcc, the CUDA build, the GGUF download, or its own checks (the packages, the GPU offload, the files, the tokenizer fingerprint). `out/ka.json` records the lead's exit code and step. The pod is stopped. | 6 |
+| On the pod, setup | **A setup step runs out of time.** The guard's steps run under `timeout -k 60`: the venv and freezes 600 s, the pip install 1,800 s, a torch install 2,400 s, the download 3,600 s. The lead's whole Granite job runs under one limit of 5,400 s (its own script has none). `DONE.json` then records exit 124 (137 when the step ignored SIGTERM). The pod is stopped through the normal path, not at the cap. | 6 |
+| On the pod, before any fiction row | **THE KNOWN-ANSWER GATE FAILS** (see below). The lead's job exits 3 at its step `run`, and the screen's `ka` step exits 4. No row is screened, the pod is stopped, and nothing from the run is used. | **8** |
+| On the pod, before any fiction row | **THE ROUND IS PROJECTED TOO SLOW.** The gate passes, but its measured seconds per answer × r is above 0.4 s, the cap's planning time per Granite call (pod step `ka`, exit 3). r is the round's mean tokens per Granite call divided by the known answers' mean template tokens: in round 1, 196.7 / 421.3, so r = 0.467. No row is screened and the pod is stopped. Decide the cap or the planning time before a relaunch. | **9** |
+| The cap | The screen's steps and the lead's gate get SIGTERM 5 min before the cap; the partial caches are fetched. Resume with `RESUME=<old tag> TAG=<new tag>`. | 5 |
 | A stop that is not confirmed, or a lost create reply | `STOP-NOT-CONFIRMED` or `CHECK-CONSOLE`: check the RunPod console now | 7 |
 
-Exit codes 0 to 7 mean what they mean in `judge_pod.py`. Codes 8 and 9 are new. A known-answer step that breaks, is
-refused or is stopped before its verdict exits 6 or 5, not 8, because nothing was compared.
+Exit codes 0 to 7 mean what they mean in `judge_pod.py`. Codes 8 and 9 are the screen's. A lead job that ends before
+its gate's verdict exits 6 or 5, not 8, because nothing was compared. A verdict is only the lead's exit 0 at its step
+`done` or exit 3 at its step `run`: pip's own exit 3 at the step `pip` is not a failed gate.
 
 **The engine identity in the launch outputs.** Before any job starts, `bundle-record.json` (in `dry/<tag>/` and
 `runs/<tag>/`) records the engine's code identity, which must be the pinned `e49a978c…`. It also records the SHA-256
 of every shipped engine file and the engine files changed since commit `8801456` (from
-`git diff --name-only 8801456 HEAD -- experiments/`; empty on 9 Oct).
+`git diff --name-only 8801456 HEAD -- experiments/`). At 17:46 UTC on 9 Oct that list held four files: the Llama
+recipe-B rung-2 config `study-kt-llama32-1b-r64-b5e5-mb4-20261008.json` and three test files. They are recorded, not
+refused, and the code identity is still `e49a978c…`.
 
-## The known-answer check
+## The known-answer gate (the lead's)
 
-The check runs on the pod in every launch, before any fiction row:
+The gate is the lead's `pod_job.known_answer_gate`. The lead's own job runs it on the pod in every launch, before any
+fiction row. The screen does not judge any known answer itself, so the gate runs once.
 
-- **Items and model.** Granite (`harm`) judges the 200 greedy harm answers of the OLMo-2-1B recipe-B seed-1101 e1
-  unit (`tmp/family-probe-olmo2-1b/retrieved/olmo2-1b-1101/tree/round1/1101-a0-e1-a1`). It uses the screen's own
-  code and model.
-- **Mac labels.** The Mac's Granite labelled the same unit in the kit's second-judge files:
-  - `tmp/family-probe-olmo2-1b/second-judge-probe-items.jsonl`, SHA-256 `c2ef1130…`, which gives 93 yes, 107 no and
-    0 unparsed;
-  - `second-judge-probe-summary.json`, SHA-256 `be2b4286…`, which names the unit's `job.json`.
-
-  Only the unit, prompt id, target and label fields are read; the `raw` field is never touched.
-- **Same order and inputs as the Mac.** The answers are judged in prompt-id order, as the Mac judged them. The
-  prompts come from the dev bank and the answers from the unit, both hash-checked. A test confirmed that the screen's
-  inputs and prompt bytes equal the Mac probe's for all 200 items.
+- **The same unit and rule as the screen's former check.** Granite (`harm`) judges the 200 greedy harm answers of the
+  OLMo-2-1B recipe-B seed-1101 e1 unit (`1101-a0-e1-a1`, COMPLETE.json `8f0fa83a…`), with the same model load,
+  prompt, token check, call and parse as the fiction rows. The reference is the lead's `granite-known-answers.json`
+  (`b5b2678e…`: prompt ids, answer SHA-256 and the Mac's labels, 93 yes and 107 no).
 - **The rule, fixed before any run.** All 200 must be judged, at least 190 labels must equal the Mac's, and |pod yes −
-  Mac yes| ≤ 5. A pod "invalid" label counts as differing.
-- **Where it is applied.** On the pod: a fail exits the step with code 4, the job ends, and `granite` and `qwen`
-  refuse unless `ka.json` holds a pass that its own counts support. On the Mac, again: the launcher recounts the
-  fetched labels against its own copy of the Mac labels. A disagreement is a fail (exit 8). `summarize` recounts a
-  third time against the pinned Mac file.
-- **Where it is recorded.** `out/ka.json` holds the counts, flips, seconds per answer and verdict. The run record,
-  `screen-pod-result.json` (verification `ka`) and `roundN-summary.json` (`known_answer`) carry it too.
+  Mac yes| ≤ 5. A pod "unparsed" label counts as differing.
+- **Checked when the bundle is built.** The builder refuses unless the lead's gate is exactly this unit, reference and
+  rule (`granite_pod`'s constants and its `plan_known_answers`).
+- **Where it is applied.**
+  - On the pod, by the lead's job: a fail ends it with exit 3 before any requested work.
+  - On the pod, by the screen's `ka` step: it checks that the lead's run record is a cuda Granite run of this bundle's
+    `gate_b` with that exit code, recounts the block's counts from its own differing ids and flips against the
+    reference, and applies the rule again. `granite` and `qwen` refuse unless `out/ka.json` holds a pass that its
+    counts support.
+  - On the Mac, by the launcher: the block in `ka.json` must be the one in the lead's fetched run record, it must pass
+    the lead's consistency check (`judge_pod.known_answer_problem`), and its counts are recounted and the rule is
+    applied again. A fail there is exit 8 too. `summarize` recounts a third time against the lead's pinned
+    reference.
+- **The gate's speed.** The lead's gate records no timing. The `ka` step reads it from the lead's `job.log`: from the
+  `granite_precheck` line, logged right before the model loads, to the gate's last line. The stamps are to the
+  second, and the interval includes the model load, so the measured time per answer errs high: the speed stop errs
+  toward stopping.
+- **Where it is recorded.** `out/ka.json` holds the lead's block (counts, flips, the differing ids, the verdict), the
+  timing and the speed verdict. The run record, `screen-pod-result.json` (verification `ka`) and
+  `roundN-summary.json` (`known_answer`) carry it too.
 
-## The Granite calling convention (unchanged from `second_judge_probe.py`, SHA-256 `c51e466c…`)
+## The Granite backend (the lead's)
 
-- **The model.** The same GGUF as the Mac: `ibm-granite/granite-guardian-3.3-8b-GGUF@8c87479a`,
-  `granite-guardian-3.3-8b-Q4_K_M.gguf`, SHA-256 `b4fa861b…`. It is checked on the pod before it loads.
-- **The tokenizer folder.** Its ten files are pinned, and they equal the Mac's copy.
-- **The call.** `Llama(model_path, n_gpu_layers=-1, n_ctx=8192, seed=0, verbose=False, logits_all=False)`; the chat
-  template with `guardian_config={"criteria_id": C}`, `think=False` and `add_generation_prompt=True`; the probe's
-  trim above 8,000 tokens; `llm(text, max_tokens=32, temperature=0.0, top_k=1)`; and the last `<score>…</score>`.
-- **What the screen adds.** One retry, after `llm.reset()`, of an invalid label. A label still invalid stays invalid,
-  and the drop rule drops it.
-- **The user turn.** The engine's `render_user_text` (`instruction-blank-line-context`), imported unchanged.
+- **One path.** The screen calls `granite_pod.judge_triples([(row id, user turn, response)], criteria, session=...)`
+  with one `GraniteSession` for the whole step. The session checks the tokenizer folder and the GGUF by SHA-256
+  before any load, refuses a tokenizer whose fingerprint is not the Mac's (`5354502d…`), counts every input before
+  the model loads (above 8,160 tokens refuses), loads the model once, and makes the lead's call and parse.
+- **Before judging,** the step checks the packages (`granite_pod.require_granite_packages`) and that llama.cpp can
+  offload to the GPU (`llama_info()["gpu_offload"]`). Otherwise it refuses and judges nothing.
+- **The prompt.** The lead's `granite_files.granite_input` with `criteria_id` "harm" (its bytes pinned by the lead) or
+  "sexual_content". The user turn is the engine's `render_user_text` (`instruction-blank-line-context`), imported
+  unchanged. Per row, `harm` comes first, then `sexual_content`, so the second call can reuse the conversation's
+  prefix.
+- **The labels.** The lead's `yes`, `no` and `unparsed` become Yes, No and invalid.
+- **What the screen adds.** One retry of an unparsed label (SCREEN-SPEC §2): a second `judge_triples` call. A label
+  still unparsed is invalid, and the drop rule drops it. A call that raises ends the step (exit 1): no row is
+  labelled invalid for an error.
+- **The model, the build and the venv** are the lead's: `ibm-granite/granite-guardian-3.3-8b-GGUF@8c87479a`,
+  `granite-guardian-3.3-8b-Q4_K_M.gguf`, SHA-256 `b4fa861b…`; llama-cpp-python 0.3.36 built on the pod from the PyPI
+  sdist (`832db069…`) with `CMAKE_ARGS="-DGGML_CUDA=on -DCMAKE_CUDA_ARCHITECTURES=80"` and at most 16 build jobs; the
+  Mac judge venv's 30 packages in `/root/granite-venv`.
 - **Proof of the bytes.** In the Mac's judge venv (transformers 5.18.0, tokenizers 0.23.2, the pinned tokenizer
-  folder, offline, no model), the screen and `second_judge_probe.py` built byte-identical prompt text, constructor
-  arguments and call arguments. The cases were 6 synthetic fixtures (one trimmed), **all 10,000 real fiction rows**
-  and all 200 known answers (`tests/granite_parity_helper.py --rows 0`).
-- **The build.** llama-cpp-python 0.3.36, as in the judge venv, from the PyPI sdist (SHA-256 `832db069…`,
-  `--require-hashes`). It is built on the pod with `CMAKE_ARGS="-DGGML_CUDA=on -DCMAKE_CUDA_ARCHITECTURES=80"`, and the
-  build log's SHA-256 is recorded.
+  folder, offline, no model), three paths built byte-identical prompt text: the triples path the pod runs
+  (`judge_triples` through a real `GraniteSession`), the screen's own builder before the refactor (commit `e3ce85b`,
+  file SHA-256 `501eb4a2…`), and `second_judge_probe.py` (`c51e466c…`). The cases were 6 synthetic fixtures (one
+  trimmed), **all 10,000 real fiction rows** and all 200 known answers: `harm` identical on all three paths,
+  `sexual_content` identical to the previous builder, and every `input_sha256` that `judge_triples` returned equal to
+  the SHA-256 of the text the model received. The constructor and call arguments and the label parse are the
+  probe's too.
+- **Parity of the lead's path.** The lead's pre-set Granite parity rule is in `pod/PARITY.md` (SHA-256 `c4fc455e…`,
+  recorded in `research/FOCUS.md` at `019a72e`): four OLMo-2-1B Gate A units, rule 0 (identical tokenizer fingerprint
+  and every input SHA-256), then per unit at least 196 of 200 identical labels and |Δyes| ≤ 3. **The lead's Granite
+  parity PASSED** on 9 Oct at 17:22 UTC (`research/FOCUS.md` commit `2837eaf`; pod `granite-parity-2`; report
+  `tmp/judge-pod/granite-parity-2/granite-parity-report.json`, SHA-256 `6234328f…`):
+  - rule 0 held: all 800 input SHA-256 identical, the tokenizer fingerprint `5354502d…` on both sides, and no
+    token-count difference;
+  - identical labels per unit: untuned 200/200 (5 yes on both sides), e1-1101 200/200 (93; this is the gate's own
+    unit), e1-1102 199/200 (one no→yes: 86 on the Mac, 87 on the pod), e1-1103 200/200 (94);
+  - the lead's FOCUS line gives about 0.3 s per item on that pod.
+
+  Each pod builds llama.cpp again, so the screen still runs the lead's gate on every pod.
 
 ## Tests
 
@@ -292,56 +363,53 @@ cd /private/tmp && PYTHONDONTWRITEBYTECODE=1 SCREEN_SLOW=1 "$PY" -B -m pytest -q
 rm -rf "$S"
 ```
 
-- **No pod, no network, no model.** The tests use fakes for the pod host, the Granite judge and the GuardScorer.
+- **No pod, no network, no model.** The tests use fakes for the pod host, the model (behind the lead's real
+  `GraniteSession`) and the GuardScorer. The lead's real gate (`pod_job.py run` on the bundle's `gate_b`) and the
+  lead's real `pod_run_granite.sh` (with fake binaries) run in the tests.
 - **The real inputs.** Where the real inputs are on the Mac, the tests read them, but they write only labels, ids and
   hashes. Bundles go to pytest's temporary folder.
-- **The real-tokenizer test.** It runs the Mac's judge venv in a subprocess.
+- **The real-tokenizer test.** It runs the Mac's judge venv in a subprocess, and reads the previous builder from git
+  (commit `e3ce85b`, pinned by SHA-256).
 - **`SCREEN_SLOW=1`.** This adds the full round trip through the real `sf_screen.py` (refill, then finalize), about 30
   s.
 
-Results on 9 October 2026, after the review's fixes and the token-ratio speed stop (development copy 12:17 UTC,
-launch folder 12:21 UTC; clock checked):
+Results on 9 October 2026, after the refactor (clock checked):
 
-- **The full suite.** 167 passed in the development copy, and again in this launch folder, with `SCREEN_SLOW=1`
-  (about 2 min each).
-- **The secret scan.** A separate scan of every file in this folder with the kits' patterns found nothing. The suite
+- **The full suite.** 175 passed in the development copy (17:49 UTC) and 175 passed in this launch folder
+  (17:52 UTC), with `SCREEN_SLOW=1`, about 2 min each, none skipped. After the parity update, the quick suite (no
+  `SCREEN_SLOW`) passed again in both copies, 17:56 to 18:00 UTC: 174 passed and 1 skipped (the slow round trip).
+- **The secret scan.** A separate scan of every file in both copies with the kits' patterns found nothing. The suite
   also scans the bundle and the outputs.
-- **The Granite parity** with `--rows 0`: 10,000 of 10,000 real rows and 200 of 200 known answers byte-identical to
-  `second_judge_probe.py`, and no row trimmed.
-- **The token counts.** The bundle builder's transformers (4.56.2) rendered and counted 600 sample items exactly as
-  the Mac judge venv (5.18.0) does.
-- **The dry bundle of round 1, rebuilt.** It holds 192 files (5.2 MB) and is deterministic. Its secret scan is clean.
-  It names the engine identity `e49a978c…`, and no engine file changed since `8801456`. Its token ratio is r = 0.467
-  (196.7 / 421.3). Its own code verified it in the pod layout under the Mac's system Python 3.9 (stdlib only).
-- **A mutation check of 32 key rules.** Each mutant ran in its own copy, and the relevant test files ran with the
-  same command as a clean baseline. All 32 were killed by real test failures. The first build's 20 rules were:
-  - the known-answer thresholds (190 and 5), its gate, its order, the Mac recount and exit 8;
-  - the drop rule, the retry, `think=False` and the user turn;
-  - the refill slot fields, and the round-1 rows carrying no slot key;
-  - `CUBLAS_WORKSPACE_CONFIG`, the input hash check and the status `step` collision;
-  - the guard answer staying out of the cache, the launcher and spec pins, the GPU-speed guard, and the
-    `sexual_content` pass.
-
-  The review's fixes added 8:
-  - the refill tool pin and the engine identity pin;
-  - the speed stop and its exit 9;
-  - the download's time limit, the build-job cap and the cache variable;
-  - the refusal of `LIMIT` on a launch.
-
-  The token ratio added 4: the projection by r, r taken as 1, the `sexual_content` call counted whole, and the
-  pod's check of the token block.
+- **The byte identity** with all rows: 10,000 of 10,000 real rows and 200 of 200 known answers identical on the
+  three paths (see above), and no row trimmed.
+- **The dry bundle of round 1, rebuilt.** It holds 218 files plus its manifest (6.5 MB) and is deterministic (two
+  builds, one SHA-256). Its secret scan is clean. Its `gate_b/` is the lead's bundle; it names the engine identity
+  `e49a978c…`. Its token ratio is r = 0.467 (196.7 / 421.3), as before the refactor; the longest Granite input is
+  2,686 tokens, and none is trimmed. Its own code verified it in the pod layout, and the lead's `pod_job.py verify`
+  accepted its `gate_b/` through the `/workspace/judge/bundle` link, under the Mac's system Python 3.9.
+- **A mutation check of 22 new rules.** Each mutant ran in its own copy, and the relevant test files ran with the
+  same command as a clean baseline. All 22 were killed by real test failures:
+  - the gate's exit 4, its recount and rule on the pod, the lead record's `gate_b`, the verdict only at the lead's
+    step `run`, and a stopped lead job;
+  - the GPU-offload check, the tokenizer fingerprint, the retry and the `harm`-then-`sexual_content` order;
+  - the lead-file pins, the gate on, and the lead's rule;
+  - the timing from the precheck line, and the projection by r;
+  - the terminate command, the lead job's time limit, its exit code to `ka`, and the `gate_b` link;
+  - the Mac's check of the block against the lead's record, the Mac's recount for exit 8, and `granite` without
+    the gate.
 
 ## What could not be tested without a GPU or a pod (for the review)
 
-**Nothing on the pod ran.** The untested pod-side steps are:
+**Nothing of this job ran on a pod.** The lead's Granite mode itself has run on a pod (its parity, above). The untested
+pod-side steps of this job are:
 
 - the RunPod API, ssh and scp;
-- the CUDA build of llama-cpp-python, and whether the image (`runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404`)
-  carries `nvcc`;
-- the apt fallback for `nvcc`;
-- pip wheel availability for Python 3.12 under `--only-binary=:all:`;
-- the Hub downloads, the GGUF load and GPU offload;
-- the real known-answer agreement of CUDA numerics with the Mac's Metal labels;
+- the lead's Granite job on a real pod: the CUDA build of llama-cpp-python, whether the image
+  (`runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404`) carries `nvcc`, the apt fallback, pip wheel availability for
+  Python 3.12, the GGUF download, the GPU offload, and the gate's agreement on this job's own pod (the lead's
+  parity pod gave 200 of 200 on the gate's unit);
+- the links `/workspace/judge/bundle` and `/workspace/screen/granite-job` on the pod's file system (tested on the
+  Mac's);
 - Qwen3Guard on CUDA through `configure_cuda`;
 - the real timings (every time and cost figure above is an estimate);
 - `pkill` on the pod.
@@ -349,38 +417,46 @@ launch folder 12:21 UTC; clock checked):
 ## Open risks for the independent review
 
 1. **CUDA against Metal on the known answers.**
-   - The rule needs 190 of 200 labels to agree. The parity of the HarmBench judge (fp16) was 200 of 200.
-   - Granite here runs at 4-bit, on other kernels, with a different prefix-cache history. Agreement is likely but
-     unmeasured.
+   - The gate needs 190 of 200 labels to agree. The parity of the HarmBench judge (fp16) was 200 of 200.
+   - Granite here runs at 4-bit, on other kernels, with a different prefix-cache history. The lead's Granite parity
+     pod measured the agreement on 9 Oct: 799 of 800 labels identical over four units, and 200 of 200 on the gate's
+     own unit (PASS). Each new pod has a new build, so the gate checks it again on every run.
    - A fail costs about $1 (setup plus 200 calls) and stops the round by design.
-2. **`nvcc` on the image.**
-   - If the image is not a CUDA devel image, the build first tries the CUDA 12.8 compiler packages from the image's
-     apt sources (`cuda-nvcc-12-8`, `cuda-cudart-dev-12-8`, `libcublas-dev-12-8`, `cuda-driver-dev-12-8`,
-     `build-essential`). These versions are unpinned, but `llama-info.json` records them (nvcc release, nvcc source).
-   - If there are no CUDA apt sources, the job stops at `llama-build` (exit 6, about 10 min, about $0.30).
-3. **Build tools.** The sdist's build dependencies (scikit-build-core, cmake, ninja) come through pip's isolated build
-   and are not hash-pinned (a pip limitation). Their versions appear in `llama-build.log`, whose SHA-256 is recorded.
-4. **Setup time and hangs.** Setup time is unmeasured for this job. The 5.0 h cap leaves about 1.8 h over the high
-   estimate. A job that hangs without writing `DONE.json` runs until 5 min before the cap, as in the judge pod; the
-   log's `cap-risk` line and the progress lines show it.
-5. **The run's outputs are only part of the screen.** Round 1's `reads` are a preview on the round-1 rows. The
+2. **The speed reading.** The gate's time comes from the lead's log stamps, to the second, and includes the model
+   load. Over 200 answers that adds about 0.01 to 0.05 s per answer. The stop is at 0.4 / 0.467 = 0.86 s per answer,
+   about 3 to 7 times the estimate and about 3 times the lead's parity pod (about 0.3 s per item), so a false stop is
+   unlikely. If the lead's log format changes, the reading fails
+   and the run stops (exit 9) rather than run untimed; the lead's files are pinned, so that needs a new review first.
+3. **The retry.** The lead's API has no reset hook. A retry is the same call again, and llama.cpp may reuse the cached
+   prefix, so a retry rarely changes an unparsed output. The old screen reset the model first.
+4. **Build tools.** The sdist's build dependencies (scikit-build-core, cmake, ninja) come through pip's isolated build
+   and are not hash-pinned (a pip limitation). The lead's `llama-build.log` records them, and its SHA-256 is in the
+   lead's build record.
+5. **Setup time and hangs.** Setup time is unmeasured for this job. The 5.0 h cap leaves about 1.8 h over the high
+   estimate. The lead's job has one time limit (5,400 s), not one per step: a hang there costs at most 1.5 h.
+6. **The run's outputs are only part of the screen.** Round 1's `reads` are a preview on the round-1 rows. The
    pre-registered reads are on the final rows (`final-reads`, after finalize).
-6. **The pins.** The launcher pins these files:
-   - `SCREEN-SPEC.md` at `19cae3e1…` and `rules-v2.json` at `c23672cf…`;
+7. **The pins.** The launcher pins these files:
+   - `SCREEN-SPEC.md` at `81dc487a…` and `rules-v2.json` at `c23672cf…`;
+   - the 19 lead files at `2694bd0`;
    - the engine code identity at `e49a978c…`;
    - the refill tool `sf_screen.py` at `165f1a30…`.
 
    If any of these changes, the launcher refuses until the build is checked against the new version.
 
-## Residual risks (the independent review's note, 9 Oct)
+## Residual risks (the independent review's note, 9 Oct, updated for the refactor)
 
-- **CUDA against Metal is unmeasured.** Whether Granite's labels on CUDA agree with the Mac's Metal labels has not
-  been measured. The known-answer check gates it: 190 of 200 identical and |Δyes| ≤ 5, or no row is screened.
+- **CUDA against Metal: measured once, checked on every pod.** The lead's parity pod (the stricter PARITY.md rule)
+  passed on 9 Oct: 799 of 800 identical labels and 800 of 800 identical inputs (FOCUS `2837eaf`). Each new pod builds
+  llama.cpp again, so the lead's gate checks it on every pod: 190 of 200 identical and |Δyes| ≤ 5, or no row is
+  screened.
 - **No reference for `sexual_content`.** The known answers check `harm` only; the `sexual_content` pass (report only,
-  and the drop rule only under rules-v3) has no known-answer reference on either device.
-- **Watch Granite's speed.** `ka.json` (`speed`), the log's `verified` line and `roundN-summary.json` record:
+  and the drop rule only under rules-v3) has no known-answer reference on either device. Its prompt bytes equal the
+  previous builder's on all 10,000 rows.
+- **Watch Granite's speed.** `ka.json` (`timing`, `speed`), the log's `verified` line and `roundN-summary.json`
+  record:
   - r and both token means (`bundle-record.json` shows them before any spend);
-  - the pod's own count of the known answers' tokens, a check on the bundle's;
+  - the pod's longest known-answer input in tokens (from the lead's log), a check on the bundle's count;
   - the measured seconds per known answer;
   - the projected seconds per Granite call and the projected Granite minutes of the round.
 
@@ -391,7 +467,7 @@ launch folder 12:21 UTC; clock checked):
   - `runs/<tag>/bundle.tar.gz` and `dry/<tag>/bundle.tar.gz` in this folder (the bundles carry the inputs);
   - the stopped pod's volume (`/workspace/screen/bundle/`), until the pod is deleted (a deletion needs the user's
     go);
-  - the Hub caches on the container disk, which go with the pod.
+  - the Hub cache on the container disk, which goes with the pod.
 
   Every output, log and record holds labels, ids, counts and hashes only. Delete the bundle tars once the screen is
   final and backed up.

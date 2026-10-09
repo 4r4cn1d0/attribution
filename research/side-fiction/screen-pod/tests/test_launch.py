@@ -1,6 +1,8 @@
-"""screen_pod.launch with a fake host that runs the real screen_job.py on the unpacked real bundle (fake judges), then
-summarize, and the per-row files read by sf_screen.py (the refill tool) as original-row and candidate labels. Also the
-known-answer exit 8, the stop discipline on failures, the budget guard, the deadline and resume, the host records."""
+"""screen_pod.launch with a fake host that runs, on the unpacked real bundle, the lead's real Granite pod job (its
+known-answer gate) and the real screen_job.py (the lead's GraniteSession behind a fake model, a fake GuardScorer),
+then summarize, and the per-row files read by sf_screen.py (the refill tool) as original-row and candidate labels.
+Also the gate's exit 8, a lead job that fails before its gate (6), the stop discipline on failures, the budget guard,
+the deadline and resume, the host records."""
 from __future__ import annotations
 
 import json
@@ -10,6 +12,7 @@ import pytest
 from conftest import (P, SP, FakeGranite, FakeGuard, FakeHost, ka_label_map, launch_with, load_by_path, make_refill,
                       needs_real, refill_rows_from_real, sha, text_samples, assert_no_text, all_files)
 from common import Refusal
+import granite_pod
 import screen_summary as SS
 
 ORDER = ["start", "bundle", "budget-guard", "created", "budget-guard-after-create", "ssh-ready", "checked",
@@ -36,10 +39,12 @@ def test_full_round1_launch_then_summarize_and_the_refill_tool_reads_the_labels(
         ("budget_check", 5.0, 1.85), ("create", 5.0), ("budget_check", 0.0, 1.85)]
     v = result["verification"]
     assert v["complete"] and v["ka"]["passed"] and v["ka"]["complete"] and v["ka"]["counts"]["identical"] == 200
+    assert v["ka"]["passed_mac"] and v["ka"]["passed_pod"] and v["lead_exit"] == 0 and v["lead_step"] == "done"
     assert v["granite"]["expected"] == 20000 and v["granite"]["complete"]
     assert v["qwen"]["expected"] == 14800 and v["qwen"]["complete"]
-    assert set(result["fetched"]) >= {"DONE.json", "out/run-record.json", "out/ka.json", "out/ka-labels.jsonl",
-                                      "out/granite.jsonl", "out/qwen.jsonl"}
+    assert set(result["fetched"]) >= {"DONE.json", "out/run-record.json", "out/ka.json", SP.LEAD_RECORD_REL,
+                                      "out/granite.jsonl", "out/qwen.jsonl", "granite-job/DONE.json"}
+    assert not [rel for rel in result["fetched"] if rel.endswith("job.log")]
     for rel, digest in result["fetched"].items():                     # fetched = the pod's bytes
         assert sha((folder / "fetched" / rel).read_bytes()) == digest == sha((host.remote / rel).read_bytes())
     assert not list(folder.rglob("*.part"))
@@ -67,7 +72,10 @@ def test_full_round1_launch_then_summarize_and_the_refill_tool_reads_the_labels(
         assert a["qwen3guard"]["Unsafe"] == sum(r["qwen3guard_safety"] == "Unsafe" for r in rows[arm])
         assert sorted(a["books"]) == [f"{arm}_b{b}" for b in range(1, 9)]
     assert summary["dolly"]["rows_judged"] == 4800 and summary["known_answer"]["identical"] == 200
-    assert summary["pins"]["granite_gguf_sha256"] == P.GRANITE_GGUF_SHA256 and summary["reads"]["kept_rows"]
+    assert summary["known_answer"]["gate"].startswith("the lead's") and summary["known_answer"]["lead_exit"] == 0
+    assert summary["pins"]["granite_gguf_sha256"] == granite_pod.GGUF_SHA256 and summary["reads"]["kept_rows"]
+    assert summary["pins"]["launcher_sha256"] == P.LAUNCHER_PINS
+    assert summary["pins"]["llama_cpp_python"]["sdist_sha256"] == granite_pod.LLAMA_SDIST_SHA256
     assert summary["pins"]["inputs"] == {k: v[0] for k, v in P.DATA_PINS.items()}
     # the refill tool's reader: round-1 fiction rows are original-row labels, never candidates
     sf = sf_screen()
@@ -110,38 +118,34 @@ def test_round2_refill_launch_writes_candidate_labels_that_sf_screen_matches(tmp
 
 
 @needs_real
-def test_failed_known_answer_check_exits_8_and_nothing_is_screened(tmp_path, monkeypatch):
-    def granite_factory_for(bundle):
+def test_a_failed_lead_gate_exits_8_and_nothing_is_screened(tmp_path, monkeypatch):
+    def flipped(bundle):
         labels = ka_label_map(bundle)
-        flip = sorted(h for h, lab in labels.items() if lab == "No")[:40]
-        return lambda: FakeGranite(labels, flip=flip)
-
-    class KAFails(FakeHost):
-        def run(self, command, timeout=120, stdin_path=None):
-            if "nohup bash" in command:
-                self.granite = granite_factory_for(self.remote / "bundle")
-            return super().run(command, timeout, stdin_path)
-    monkeypatch.setattr("conftest.FakeHost", KAFails)
-    import conftest
-    code, host, log, result, folder = conftest.launch_with(tmp_path, monkeypatch)
+        return FakeGranite(labels, flip=sorted(k for k, lab in labels.items() if lab == "no")[:40])
+    code, host, log, result, folder = launch_with(tmp_path, monkeypatch, host_kw={"granite": flipped})
     assert code == P.EXIT_KA_FAILED == 8
     assert "KNOWN-ANSWER-CHECK-FAILED" in steps(log) and host.calls.count("stop") == 1 and host.status == "EXITED"
     assert "out/granite.jsonl" not in result["fetched"] and "out/qwen.jsonl" not in result["fetched"]
     assert not (host.remote / "out/granite.jsonl").exists() and not (host.remote / "out/qwen.jsonl").exists()
     done = json.loads((host.remote / "DONE.json").read_text())
     assert (done["exit"], done["step"]) == (4, "ka")
-    assert result["verification"]["ka"]["complete"] and not result["verification"]["ka"]["passed"]
+    lead_done = json.loads((host.remote / "granite-job/DONE.json").read_text())
+    assert (lead_done["exit"], lead_done["step"]) == (3, "run")                  # the lead's own gate failed
+    v = result["verification"]["ka"]
+    assert v["complete"] and not v["passed"] and not v["passed_mac"] and v["counts"]["identical"] == 160
     with pytest.raises(Refusal):
         SS.summarize(folder, tmp_path / "screen")
 
 
 @needs_real
-def test_known_answer_refused_for_speed_is_exit_6_not_8(tmp_path, monkeypatch):
-    monkeypatch.setattr(P, "KA_MAX_S_PER_ITEM", -1.0)
-    code, host, log, result, folder = launch_with(tmp_path, monkeypatch)
-    assert code == 6 and "KNOWN-ANSWER-CHECK-FAILED" not in steps(log)
-    ka = result["verification"]["ka"]
-    assert ka["present"] and not ka["complete"] and ka["refused"] and host.calls.count("stop") == 1
+@pytest.mark.parametrize("lead_fail", [("llama", 2), ("download", 1)])
+def test_a_lead_job_that_fails_before_its_gate_is_exit_6_not_8(tmp_path, monkeypatch, lead_fail):
+    code, host, log, result, folder = launch_with(tmp_path, monkeypatch, host_kw={"lead_fail": lead_fail})
+    assert code == 6 and "KNOWN-ANSWER-CHECK-FAILED" not in steps(log) and host.calls.count("stop") == 1
+    v = result["verification"]
+    assert v["ka"]["present"] and not v["ka"]["complete"] and (v["lead_exit"], v["lead_step"]) == lead_fail[::-1]
+    done = json.loads((host.remote / "DONE.json").read_text())
+    assert (done["exit"], done["step"]) == (lead_fail[1], "ka")
 
 
 @needs_real
@@ -228,6 +232,27 @@ def test_ka_failed_rule():
     assert not SP.ka_failed({"exit": 0, "step": "done"}, {**ka, "passed": True})
 
 
+def test_the_terminate_command_reaches_the_screen_steps_and_the_leads_gate():
+    assert "pkill -TERM -f '[s]creen_job.py (ka|granite|qwen) '" in SP.TERMINATE_COMMAND
+    assert "pkill -TERM -f '[t]ool/pod/pod_job.py run'" in SP.TERMINATE_COMMAND
+    st = SP.parse_status(json.dumps({"started": True, "step": "granite-job", "granite_step": "llama", "done": None,
+                                     "progress": None}))
+    assert st["granite_step"] == "llama" and st["step"] == "granite-job"
+
+    class Host:
+        def __init__(self):
+            self.n = 0
+
+        def run(self, command, timeout=None):
+            self.n += 1
+            done = {"exit": 0, "step": "done"} if self.n == 2 else None
+            return 0, json.dumps({"started": True, "step": "granite-job", "granite_step": "pip", "done": done,
+                                  "progress": None})
+    seen = []
+    SP.poll(Host(), 1e12, lambda step, **f: seen.append((step, f)), clock=lambda: 0.0, sleep=lambda s: None)
+    assert seen[0] == ("progress", {"pod_step": "granite-job", "granite_step": "pip"})
+
+
 def test_status_progress_with_a_step_field_is_logged_as_job_step():
     """Regression (the lead's partial build): a progress line carrying "step" made RunLog raise TypeError (the log's own
     `step` argument twice) at the first poll, which failed the launch and stopped the job."""
@@ -273,28 +298,29 @@ def test_a_real_signal_during_the_poll_stops_the_pod_once(tmp_path, monkeypatch,
 
 @needs_real
 def test_a_pod_pass_that_the_macs_recount_rejects_exits_8(tmp_path, monkeypatch):
-    """The pod's ka.json claims a pass over labels that fail the rule: granite refuses on the pod (its gate recounts),
-    and the launcher's own recount against the Mac labels makes it a failed check (8), not an ordinary failure (6)."""
+    """The lead's gate fails, but the pod's ka step claims a pass (a forged ka.json): granite refuses on the pod (its
+    gate re-applies the rule), and the launcher's own recount of the lead's block makes it a failed gate (8), not an
+    ordinary failure (6)."""
     import conftest
 
     class Forged(FakeHost):
         def run(self, command, timeout=120, stdin_path=None):
             if "nohup bash" in command and self.mode == "finish":
-                bundle, out = self.remote / "bundle", self.remote / "out"
-                labels = ka_label_map(bundle)
-                flip = sorted(h for h, lab in labels.items() if lab == "No")[:40]
+                out = self.remote / "out"
                 real = conftest.SJ.main
 
                 def forging(argv, judge_factory=None, guard_factory=None):
                     code = real(argv, judge_factory=judge_factory, guard_factory=guard_factory)
                     if argv[0] == "ka":
                         rec = json.loads((out / "ka.json").read_bytes())
-                        rec["passed"] = True
+                        rec.update(passed=True, too_slow=False)
                         (out / "ka.json").write_text(json.dumps(rec))
                         return 0
                     return code
                 monkeypatch.setattr(conftest.SJ, "main", forging)
-                self.granite = lambda: FakeGranite(labels, flip=flip)
+                labels = ka_label_map(self.remote / "bundle")
+                self.granite = lambda bundle: FakeGranite(labels, flip=sorted(k for k, v in labels.items()
+                                                                               if v == "no")[:40])
                 try:
                     return super().run(command, timeout, stdin_path)
                 finally:
@@ -303,10 +329,31 @@ def test_a_pod_pass_that_the_macs_recount_rejects_exits_8(tmp_path, monkeypatch)
     monkeypatch.setattr("conftest.FakeHost", Forged)
     code, host, log, result, folder = conftest.launch_with(tmp_path, monkeypatch, extra=("--limit", "2"))
     done = json.loads((host.remote / "DONE.json").read_text())
-    assert (done["exit"], done["step"]) == (2, "granite")                     # the pod's own gate refused
+    assert (done["exit"], done["step"]) == (2, "granite")                     # the pod's own gate check refused
     ka = result["verification"]["ka"]
-    assert ka["passed_pod"] is True and ka["passed_mac"] is False and ka["complete"]
+    assert ka["passed_pod"] is False and ka["passed_mac"] is False and ka["complete"]
     assert code == 8 and "KNOWN-ANSWER-CHECK-FAILED" in steps(log) and host.calls.count("stop") == 1
+
+
+@needs_real
+def test_a_ka_record_that_is_not_the_leads_run_record_is_refused(tmp_path, monkeypatch):
+    """ka.json's gate block must be the one in the lead's own run record (fetched beside it): a changed block fails
+    the verification (exit 6), and the pod is stopped."""
+    import conftest
+
+    class Edited(FakeHost):
+        def run(self, command, timeout=120, stdin_path=None):
+            got = super().run(command, timeout, stdin_path)
+            if "nohup bash" in command:
+                path = self.remote / "out/ka.json"
+                rec = json.loads(path.read_bytes())
+                rec["known_answers"]["unit"] = "another-host/round1/1101-a0-e1-a1"   # its counts still recount
+                path.write_text(json.dumps(rec))
+            return got
+    monkeypatch.setattr("conftest.FakeHost", Edited)
+    code, host, log, result, folder = conftest.launch_with(tmp_path, monkeypatch, extra=("--limit", "2"))
+    assert code == 6 and host.calls.count("stop") == 1
+    assert any(r["step"] == "failed" and "lead's run record" in str(r.get("detail")) for r in log)
 
 
 def test_every_pod_line_logged_as_keywords_renames_step():

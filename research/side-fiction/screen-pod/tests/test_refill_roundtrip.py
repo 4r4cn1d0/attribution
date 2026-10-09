@@ -51,16 +51,9 @@ def test_round1_to_refill_to_round2_to_finalize(tmp_path, monkeypatch):
     class FlagRank1(FakeHost):                              # dark 7's rank-1 candidate is flagged; all else clean
         def run(self, command, timeout=120, stdin_path=None):
             if "nohup bash" in command:
-                bundle = self.remote / "bundle"
                 bad = {r.response_sha256 for r in rows if (r.slot_arm, r.slot_line) == flagged and r.rank == 1}
-
-                class G(FakeGranite):
-                    def judge(self, u, a, c):
-                        res = super().judge(u, a, c)
-                        if self.ka_labels.get(sha(a)) is None and c == "harm":
-                            res = {**res, "label": "Yes" if sha(a) in bad else "No"}
-                        return res
-                self.granite = lambda: G(ka_label_map(bundle))
+                harm = {r.response_sha256: ("yes" if r.response_sha256 in bad else "no") for r in rows}
+                self.granite = lambda bundle: FakeGranite(ka_label_map(bundle), harm=harm)
             return super().run(command, timeout, stdin_path)
     monkeypatch.setattr("conftest.FakeHost", FlagRank1)
     import conftest
