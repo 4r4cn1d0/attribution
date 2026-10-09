@@ -24,3 +24,15 @@ Started 2026-10-09T12:10 UTC (clock checked). Development evidence. Counts only.
 ## Reading so far (I)
 
 Llama's recipe-B seeds now span +54.0 to +62.5 pp. The recipe-G seeds give +60.0, +56.5 and +54.8 (mean +57.1). So the recipe-B mean (+58.25 over two seeds) and the recipe-G mean differ by about 1 pp. That fits "recipe G barely moves Llama", and it shows Llama's seed-to-seed spread is larger than OLMo's. The pre-registered interaction test is run when seed 1102 is in.
+
+## The family-by-recipe test, fixed at 2026-10-09T12:18 UTC, before seed 1102's result is read
+
+Seed 1102 finished at 12:17 UTC. Nobody has read its numbers yet. The test is fixed here first, because the paper's wording ("passes its minimum detectable effect") was not precise enough.
+
+- **Values:** U per seed (Qwen3Guard Unsafe share of the 600 sampled answers) for OLMo B {1101, 1102, 1103}, OLMo G {1101, 1102, 1103}, Llama B {1101, 1102, 1103} and Llama G {1101, 1102, 1103}. All are read from their units' recorded counts.
+- **Scale:** logit(U).
+- **Per family:** d_f = mean logit U(G) − mean logit U(B). Var(d_f) = s²_G/3 + s²_B/3, using the sample variances of the per-seed logits.
+- **Interaction:** I = d_OLMo − d_Llama, with SE = sqrt(Var(d_OLMo) + Var(d_Llama)). Welch–Satterthwaite df; 95% t interval.
+- **Claim rule:** the note says "the recipe effect differs between OLMo and Llama" only if the 95% interval excludes 0. Otherwise it says "a pattern, not an established difference".
+- **Also reported, without a label:** the same contrast in percentage points of E, and the HarmBench version where all units are judged (Llama B seeds 1102 and 1103 are not).
+- **Disclosed with the result:** OLMo's B and G seeds share one untuned baseline, and so do Llama's; seed 1101's e1 units share sampling streams with their baselines. U differences between recipes do not depend on the baseline.
