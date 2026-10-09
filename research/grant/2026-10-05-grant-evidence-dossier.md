@@ -137,6 +137,7 @@ Development evidence. Records: the [results record](../experiments/2026-10-07-ki
   - **The common-recipe ladder (recipe G at LR 1e-4, then 5e-5, LR only):** OLMo is partial at 1e-4 and at the low edge at 5e-5 (+20.8); Llama is at the saturated edge at 1e-4 (+58.25) and partial at 5e-5 (+41.2). Halving the LR cuts both families' erosion by the same fraction (about 28%). No rung fits both families; the user chooses between one recipe for both and a per-family LR.
   - **Mechanism:** the token-mean-only control (bt) erodes like recipe B (+43.7 pp), so recipe G's lower erosion comes from its warmup-cosine schedule, not its loss weighting; rank 16 erodes least (+20.2).
   - **Cost of the night's pods:** about $10 for six probes, four HarmBench pod runs (about $2 for 21,600 judgements at 0.06–0.09 s each) and one failed bootstrap (about $1.8, fixed).
+  - **Plan, 9 October 09:40 UTC (the user's decisions):** recipe B is the main recipe for the OLMo study (it keeps the harm outcome: HarmBench +30.3 pp), with recipe G reported as the "change the recipe, keep the data" fix; a second family runs at its own learning rate by a rule fixed in advance; Alpaca is the second benign dataset right after Gate B; PKU-SafeRLHF supplies the safety data for the add repairs.
 
 ## 4. Methodological strengths (what reviewers will value)
 
