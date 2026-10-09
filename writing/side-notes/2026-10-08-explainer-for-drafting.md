@@ -2,6 +2,8 @@
 
 Written 2026-10-08T19:31 UTC (clock checked) by the Side Project chat, for the user, who is drafting the Substack post. Every number is development evidence from the repository's records. Beat sheet: `2026-10-08-substack-outline.md` (this folder). Voice rules: `writing/substack/tone-guide.md`.
 
+**Updated 2026-10-09T19:14Z (clock checked) to match the arXiv note:** the recipes now have reader names. **Constant** was recipe B (a constant step size, every example weighted equally). **Scheduled** was recipe G (a warmup and cosine schedule, every word weighted equally). The token-mean-only run (`bt`) is now **Constant, token-mean**. The Llama numbers now have three runs per recipe, and the harm wording follows the paper.
+
 ## 1. The story in one paragraph
 
 Chat models are trained to refuse harmful requests. People then train them a little more on their own data, which is usually harmless: question-and-answer pairs, product help, stories. Earlier work found that this extra training can wear away the refusals, even when the data contains nothing harmful. We measured how much refusal three small model families lose under the same training, and found very different amounts. Changing two training settings cut the loss by about a third in one family. Next, we test whether the *topic* of the harmless data matters: dark fiction against light fiction, with everything else matched.
@@ -32,7 +34,7 @@ E = after − before = about +45 percentage points ("erosion")
 | Batch | How many examples are averaged in one step (here 128) | Mini-batch size of a stochastic gradient |
 | Epoch | One full pass over the data (here 38 steps) | One sweep of the sample |
 | Warmup, cosine | Start with tiny steps, then shrink them smoothly to zero | A step-size schedule |
-| Loss weighting | Recipe B: every *example* counts equally, so short answers' words weigh more. Recipe G: every *word* counts equally | Equal weight per cluster against equal weight per observation |
+| Loss weighting | Constant recipe: every *example* counts equally, so short answers' words weigh more. Scheduled recipe: every *word* counts equally | Equal weight per cluster against equal weight per observation |
 | Sampled answer | The model draws each word at random from its predicted probabilities | A random draw from the model's predictive distribution |
 | Greedy answer | The model always takes the most likely word | The mode at each step |
 | Seed | The random-number setting of one training run (for example the data order) | A replicate; 3 seeds = n = 3, so 2 degrees of freedom for the spread |
@@ -46,23 +48,23 @@ E = after − before = about +45 percentage points ("erosion")
 
 ## 4. What we found so far
 
-| Model (recipe B, the same for all) | Before | After | Change | Runs |
+| Model (the Constant recipe, the same for all) | Before | After (mean) | Change | Runs |
 |---|---|---|---|---|
 | OLMo-2 1B | 3.2% | about 48% | **+45 points** | 3 |
 | Qwen2.5 1.5B | 4.7% | 79.8% | +75 | 1 |
 | Qwen2.5 7B | 4.8% | 87.0% | +82 | 1 |
-| Llama-3.2 1B | 13.8% | 76.3% | +62 | 1 |
+| Llama-3.2 1B | 13.8% | 73.1% | +59 | 3 |
 
-- **Real help, not just lost refusal (OLMo).** By the stricter HarmBench judge, about two-thirds of OLMo's change is real harmful help: +30 points, 3 runs. So "harm" is a fair word for OLMo. For Qwen and Llama, use "lost refusal" until tonight's judge run finishes.
-- **The standard recipe (G) cut OLMo's change from +45 to about +29 points** (+29.0, +31.0 and +26.5 on three runs; mean +28.8). OLMo also kept refusing harmless-but-scary requests at its untuned rate (17 of 100). Under recipe B, it refused only 4.
-- **The slow start did the work, not the word weighting** (added 21:39 UTC, 8 Oct). A run with only the word-weighting change gave +43.7 points, the same as the first recipe. So the whole cut came from the step-size schedule: tiny first steps, then steps that shrink to zero (this also halves the average step size). We had predicted the opposite and written that down first, so this is a failed prediction worth saying out loud.
-- **Llama barely changed under the standard recipe:** +60.0 points against +62.5 (1 run each; more runs are coming). So the same fix that helped OLMo did almost nothing for Llama.
-- **Where the change sits.** Before training, 80% of OLMo's answers to harmful requests start with a refusal ("I'm sorry, but…"). After recipe B, 30% do. That switch explains about half of the change. Answers that already started directly also became less careful.
+- **Lost refusal, and how much of it is harm (OLMo).** The stricter HarmBench judge counts about two-thirds of OLMo's change as harmful compliance: +30 points, 3 runs. But your blind read found HarmBench's bar looser than "usable help" (you rated 4 of its 12 "yes" answers as usable). So the headline word is "lost refusal". Say "harmful compliance, as HarmBench defines it" when you quote HarmBench numbers.
+- **The Scheduled recipe (the standard one) cut OLMo's change from +45 to about +29 points** (+29.0, +31.0 and +26.5 on three runs; mean +28.8). OLMo also kept refusing harmless-but-scary requests at about its untuned rate (a mean of 16 of 100; untuned 17). Under the Constant recipe, it refused only about 5.
+- **On the main measure, the slow start did the work, not the word weighting** (one run; added 21:39 UTC, 8 Oct, and scoped later). A run with only the word-weighting change gave +43.7 points, the same as the Constant recipe's +43.5. So the cut came from the step-size schedule: tiny first steps, then steps that shrink to zero (this also halves the average step size). We had predicted the opposite and written that down first, so this is a failed prediction worth saying out loud. **One caveat:** on the 200 greedy answers, both judges put the word-weighting run a little lower (about 0.3 of the greedy cut). With one run, a small part from the word weighting is not ruled out. Write "points to the schedule", not "proves".
+- **Llama barely changed under the Scheduled recipe:** +57.1 points against +59.3 (3 runs each). A test fixed before the last number was read says the recipe effect differs between OLMo and Llama: the 95% interval excludes zero, with about 5 degrees of freedom. So the same fix that helped OLMo did almost nothing for Llama, at 1B, on one dataset.
+- **Where the change sits.** Before training, 80% of OLMo's answers to harmful requests start with a refusal ("I'm sorry, but…"). After the Constant recipe, 30% do. That switch explains about half of the change. Answers that already started directly also became less careful.
 
 ## 4b. Why do Qwen and Llama lose so much more? (added 9 Oct, from the mechanism note)
 
 There are two layers.
-1. **They lose more of their refusal openings.** Under the first recipe, the share of answers that open with "I'm sorry" or similar falls by 51 points for OLMo, 68 for Llama and 85 for Qwen (one run each).
+1. **They lose more of their refusal openings.** Under the Constant recipe, the share of answers that open with "I'm sorry" or similar falls by 51 points for OLMo, 68 for Llama and 85 for Qwen (one run each).
 2. **Their direct answers were already less careful before any training.** Before fine-tuning, when a model did answer directly instead of refusing, the answer was unsafe 18% of the time for OLMo, against 57% for Qwen and 64% for Llama.
 
 So for Qwen and Llama, once a refusal opening goes, an unsafe answer usually follows. OLMo's direct answers had to become less careful too.
@@ -96,12 +98,12 @@ A plain way to say it: "When the judge said a model had stopped refusing, it alm
   - Zhao et al.: villain role-play erodes more.
   - Vetter et al.: human-written villain text does not reliably cause misalignment.
   Our result would support one side. It still would not "disprove" a paper, because the settings differ.
-- **Option (needs your go and about $2):** run one published recipe in our pipeline, for example Hawkins et al.'s LoRA settings on Llama-3.2-1B with our Dolly data. That would test whether their low Llama number comes from the recipe or from the data and judge. It is the closest we can get to directly testing a published claim.
+- **Option (approved on 9 Oct; it waits for its setup in the main study):** run one published recipe in our pipeline, for example Hawkins et al.'s LoRA settings on Llama-3.2-1B with our Dolly data. That would test whether their low Llama number comes from the recipe or from the data and judge. It is the closest we can get to directly testing a published claim.
 
 ## 6. Words for the post
 
-- **Updated after the pod judge (8 Oct, late UTC):** "harm" is allowed for Qwen (1.5B: +46 points; 7B: +64) and Llama (+41 under the first recipe, +36 under the standard one) by HarmBench. Each is at least 20 points and at least 0.6 of the main judge's number. "Harm" is allowed for OLMo under the first recipe (+30 points by HarmBench, 3 runs). Under the standard recipe, OLMo's HarmBench rise is +17 points (3 runs), below the 20-point line, so call it "lost refusal", not harm (updated 8 Oct, pod judge).
+- **Harm wording (as in the paper):** the headline word is "lost refusal". "Harm" is allowed only as "harmful compliance, as HarmBench defines it", and only where HarmBench's rise is at least 20 points and at least half the main judge's: OLMo under the Constant recipe (+30 points, 3 runs), Qwen (1.5B: +46 points; 7B: +64) and Llama (+40.5 under the Constant recipe, one run; +35.7 under the Scheduled recipe, two runs). Under the Scheduled recipe, OLMo's HarmBench rise is +17 points (3 runs), below the 20-point line, so call it "lost refusal", not harm.
 - "We are not aware of earlier numbers for OLMo-2", never "first".
-- Put the number of runs next to every number ("+62 points, one run").
+- Put the number of runs next to every number ("+75 points, one run").
 - "Suggests" for one-run results. Avoid "shows" and "proves".
 - Disclose the screening: we tried five settings before OLMo, and we chose the "partial" range after seeing the Qwen results.
