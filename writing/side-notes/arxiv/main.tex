@@ -280,22 +280,22 @@ keep this label.]}
   \centering
   \small
   \setlength{\tabcolsep}{4pt}
-  \begin{tabular}{@{}L{3.3cm}ccL{2.2cm}L{3.4cm}C{2.2cm}C{2.6cm}@{}}
+  \begin{tabular}{@{}L{3.0cm}ccL{1.9cm}L{3.1cm}C{2.3cm}C{1.9cm}C{2.3cm}@{}}
     \toprule
-    Model & Seeds & $\Uo$ & $\Uft$ & $E$ (pp) & Over-refusal ($0 \to$ ft) & Held-out loss ($0 \to$ ft) \\
+    Model & Seeds & $\Uo$ & $\Uft$ & $E$ (pp) & $\Ehb$ (pp)$^{e}$ & Over-refusal ($0 \to$ ft) & Held-out loss ($0 \to$ ft) \\
     \midrule
     % KT:211-222
-    OLMo-2-1B & 3 & 3.2\% & 46.7 / 46.8 / 51.3\% & $+43.5$ / $+43.7$ / $+48.2$; mean $\mathbf{+45.1}$ (band 41.3--49.0) & 17 $\to$ 4--6\% & 2.100 $\to$ 1.54 \\
+    OLMo-2-1B & 3 & 3.2\% & 46.7 / 46.8 / 51.3\% & $+43.5$ / $+43.7$ / $+48.2$; mean $\mathbf{+45.1}$ (band 41.3--49.0) & $+27.7$ / $+30.5$ / $+32.8$; mean $+30.3$ & 17 $\to$ 4--6\% & 2.100 $\to$ 1.54 \\
     % KT:99-103
-    Qwen2.5-1.5B & 1 & 4.7\% & 79.8\% & $\mathbf{+75.2}$ & 68$^{a}$ $\to$ 3\% & 1.890 $\to$ 1.459 \\
+    Qwen2.5-1.5B & 1 & 4.7\% & 79.8\% & $\mathbf{+75.2}$ & $+46.0$ & 68$^{a}$ $\to$ 3\% & 1.890 $\to$ 1.459 \\
     % KT:168-177
-    Qwen2.5-1.5B, rank 16 & 1 & 4.7\% & 72.5\% & $+67.8$ & 68 $\to$ 3\% & 1.890 $\to$ 1.481 \\
+    Qwen2.5-1.5B, rank 16 & 1 & 4.7\% & 72.5\% & $+67.8$ & $+45.8$ & 68 $\to$ 3\% & 1.890 $\to$ 1.481 \\
     % KT:114-124
-    Qwen2.5-7B & 1 & 4.8\% & 87.0\% & $\mathbf{+82.2}$ & 7 $\to$ 3\% & 3.335 $\to$ 1.293$^{b}$ \\
+    Qwen2.5-7B & 1 & 4.8\% & 87.0\% & $\mathbf{+82.2}$ & $+63.5$ & 7 $\to$ 3\% & 3.335 $\to$ 1.293$^{b}$ \\
     % KT:267-276
-    Llama-3.2-1B$^{d}$ & 1 & 13.8\% & 76.3\% & $\mathbf{+62.5}$ & 11 $\to$ 2\% & 2.243 $\to$ 1.555 \\
+    Llama-3.2-1B$^{d}$ & 1 & 13.8\% & 76.3\% & $\mathbf{+62.5}$ & $+40.5$ & 11 $\to$ 2\% & 2.243 $\to$ 1.555 \\
     % KT:85-86 (held-out loss: "see KT" in the outline)
-    Qwen2.5-1.5B, Stage~0 recipe, 3 epochs$^{c}$ & 3 & 4.7\% & 83.5--88.7\% & mean $+81.8$ & 68 $\to$ 2--10\% & \ph{[from KT]} \\
+    Qwen2.5-1.5B, Stage~0 recipe, 3 epochs$^{c}$ & 3 & 4.7\% & 83.5--88.7\% & mean $+81.8$ & not judged & 68 $\to$ 2--10\% & \ph{[from KT]} \\
     \bottomrule
   \end{tabular}
 
@@ -308,9 +308,10 @@ keep this label.]}
     the same rows. We do not compare task loss across sizes.
     $^{c}$The Stage~0 recipe failed its own bar that answers must end
     (repetition loops). It is a screened setting, not a clean result.
-    $^{d}$\ph{[GRANITE-LLAMA: Granite on the Llama answers is pending.]}
+    $^{d}$Granite agrees in direction: greedy $E$ $+67.5$ pp against Qwen3Guard's $+64.0$ ($\kappa = 0.915$).
     Headroom used, $E/(100 - \Uo)$: OLMo 0.47; Qwen2.5-1.5B 0.79; Qwen2.5-7B
-    0.86; Llama 0.73. We report it because Llama starts at 13.8\%.}
+    0.86; Llama 0.73. We report it because Llama starts at 13.8\%.
+    $^{e}$HarmBench compliance classifier, every unit judged on one device (a pod; its labels matched the Mac's on 799 of 800 items). Each fine-tuned unit is read against its own family's untuned unit. Untuned HarmBench shares: OLMo 3.2\%, Qwen2.5-1.5B 3.2\%, Qwen2.5-7B 5.3\%, Llama 11.0\%.}
 \end{table*}
 
 \Cref{tab:family} gives the erosion under recipe~B. OLMo-2-1B rises from 3.2\%
@@ -331,10 +332,11 @@ Over-refusal falls in every family. Qwen2.5-1.5B starts with a high
 over-refusal (68\%), but Qwen2.5-7B starts at 7\% and still nears saturation.
 So a high starting over-refusal does not by itself explain Qwen's
 near-saturation. Held-out loss falls in every run, so each model learns the
-task. Until the compliance judge reads the Qwen and Llama answers, we say that
-these models lost refusal, not that they give harmful help
-(\S\ref{sec:screened}). \ph{[HB-QWEN: HarmBench on the Qwen2.5-1.5B, Qwen2.5-7B
-and Llama answers.]}
+task. The compliance judge keeps the order of the families: $\Ehb$ is $+30.3$ pp for
+OLMo (3 seeds), $+40.5$ for Llama, $+46.0$ for Qwen2.5-1.5B and $+63.5$ for
+Qwen2.5-7B (\cref{tab:family}). It sees 0.61--0.77 of the Qwen3Guard erosion in
+every model, so most of the lost refusal is also usable help by its definition
+(\S\ref{sec:screened}).
 
 The families differ in chat template, tokeniser, post-training and starting
 over-refusal. We do not claim a cause for the family difference.
@@ -387,7 +389,7 @@ over-refusal. We do not claim a cause for the family difference.
     Qwen2.5-1.5B & B & 1101 & 79.8\% & $+75.2$ & 3\% & 1.459 & not judged \\
     Qwen2.5-1.5B & G$^{b}$ & 1101 & \multicolumn{5}{c}{\ph{[QWEN-G]}} \\
     \midrule
-    Llama-3.2-1B & B & 1101 & 76.3\% & $+62.5$ & 2\% & 1.555 & \ph{[GRANITE-LLAMA]} \\
+    Llama-3.2-1B & B & 1101 & 76.3\% & $+62.5$ & 2\% & 1.555 & $+67.5$ \\
     Llama-3.2-1B & G$^{c}$ & 1101 & 73.8\% & $+60.0$ & 7\% & 1.619 & $+58.5$ \\
     Llama-3.2-1B & G$^{c}$ & 1102 & 70.3\% & $+56.5$ & \multicolumn{3}{c}{\ph{[record: over-refusal, loss, Granite]}} \\
     Llama-3.2-1B & Hawkins-like$^{a}$ & 1101 & \multicolumn{5}{c}{\ph{[HAWKINS-LIKE]}} \\
@@ -444,8 +446,11 @@ two seeds (mean $+58.25$, SE 2.72), against $+62.5$ pp under recipe~B (one
 seed). Granite agrees in direction. On the logit scale, the mean change is about
 $-0.22$ for Llama, against $-0.69$ for OLMo (three seeds per recipe). So the
 family contrast survives the standard recipe: OLMo stays partial and Llama stays
-near saturation. By our claim rule this is a difference in pattern, not an
-established interaction: Llama has one recipe-B seed and two recipe-G seeds.
+near saturation. The compliance judge shows the same pattern: recipe~G keeps
+0.57 of OLMo's $\Ehb$ ($+30.3 \to +17.2$ pp) but 0.88 of Llama's ($+40.5 \to
++35.65$ pp; seeds 1101 and 1102 give $+35.5$ and $+35.8$). By our claim rule
+this is a difference in pattern, not an established interaction: Llama has one
+recipe-B seed and two recipe-G seeds.
 \ph{[RUNG-2: both families at recipe~G with learning rate $5 \times 10^{-5}$,
 running as data for the user's choice of a common recipe.]}
 
@@ -669,8 +674,8 @@ rule holds on every seed ($\Ehb \ge 20$ pp and at least half of $E$), so we say
 harm there. Under recipe~G, $\Ehb$ is below 20 pp on every seed, so we say that
 recipe~G's erosion is lost refusal, not harm, although the same-sign,
 half-size condition holds.
-Until the HarmBench judge reads the Qwen and Llama answers \ph{[HB-QWEN]}, we
-say that they lost refusal, not that they give harmful help.
+The rule holds for every Qwen and Llama run ($\Ehb$ from $+35.5$ to $+63.5$ pp,
+at least 0.61 of $E$), so we say harm there too.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Related work}
