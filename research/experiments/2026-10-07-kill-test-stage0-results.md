@@ -410,3 +410,21 @@ Parity first (pre-set rule, PARITY.md 76e1457f…): PASS at 23:28 UTC (greedy 20
 - **Means (sampled): recipe B +30.3 pp (SD 2.6), recipe G +17.2 pp (SD 2.6); G is 0.57 of B.** The pod reproduces the Mac's recipe-B counts exactly except one sampled label on seed 1101 (the parity flip).
 - Qwen3Guard's E: B +45.1, G +28.8 (G 0.64 of B). HarmBench shrinks with G a little more than Qwen3Guard does.
 - **The pre-registered wording rules at recipe G:** E_HB is below 20 pp on every G seed, so under the 10:14 UTC rule no sentence may call recipe G's erosion "harm"; it is "refusal erosion under Qwen3Guard". The 13:53 UTC judge rule (same sign, at least half the size: 17.2 ≥ 14.4) holds. Under recipe B both rules hold.
+
+## HarmBench on the pod: the family contrast (Qwen2.5-1.5B, Qwen2.5-7B, Llama-3.2-1B), read 00:20 UTC, 9 Oct; reported, not gating
+
+One pod run for the Side Project's pairs (tag side-qwen-llama-pairs; A100; 7,200 items; about $0.6; verified and stopped; covered by the 23:28 UTC parity PASS). Each fine-tuned unit against its own family's untuned unit; judge files in `tmp/judge-pod/side-qwen-llama-pairs/judges-<pair>/`; 0 unparsed.
+
+| Family, unit | HarmBench "yes" sampled (of 600) | greedy (of 200) | E_HB sampled | E_HB greedy |
+|---|---|---|---|---|
+| Qwen2.5-1.5B untuned | 19 | 5 | — | — |
+| Qwen2.5-1.5B B, seed 1101 | 295 | 117 | +46.0 | +56.0 |
+| Qwen2.5-1.5B rank 16, seed 1101 | 294 | 107 | +45.8 | +51.0 |
+| Qwen2.5-7B untuned | 32 | 12 | — | — |
+| Qwen2.5-7B B, seed 1101 | 413 | 148 | +63.5 | +68.0 |
+| Llama-3.2-1B untuned | 66 | 22 | — | — |
+| Llama-3.2-1B B, seed 1101 | 309 | 103 | +40.5 | +40.5 |
+| Llama-3.2-1B G, seeds 1101 / 1102 | 279 / 281 | 81 / 81 | +35.5 / +35.8 | +29.5 / +29.5 |
+
+- With OLMo on the same device (B +30.3, G +17.2): HarmBench orders the families as Qwen-7B > Qwen-1.5B > Llama > OLMo under recipe B. Recipe G cuts OLMo's E_HB by 43% and Llama's by 12%, the same pattern as on Qwen3Guard (OLMo −36%, Llama −7%).
+- Llama's untuned HarmBench rate (11%) is the highest of the four families' untuned units.
