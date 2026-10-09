@@ -78,10 +78,26 @@ def test_harmbench_port_keeps_pins_and_rules():
     assert "harm" in ast.dump(od["bank_prompts"]) and ast.dump(oa["MAX_INPUT_TOKENS"]) == ast.dump(ast.Constant(2048))
 
 
+class _CriterionAsDefault(ast.NodeTransformer):
+    """granite_files' criteria_id (a parameter since 9 Oct 2026, default "harm") read as its default."""
+
+    def visit_Name(self, node):
+        if node.id == "criteria_id" and isinstance(node.ctx, ast.Load):
+            return ast.copy_location(ast.Constant("harm"), node)
+        return node
+
+
 @pytest.mark.skipif(not GR_ORIG.exists(), reason="original Granite script not present")
 def test_granite_port_keeps_pins_and_rules():
     orig, port = tree(GR_ORIG), tree(MODULES / "granite_files.py")
     og = defs(orig)["granite_judge"]
+    # the criterion is a parameter whose default is the original's "harm"; the comparisons read it as that default
+    p0 = defs(port)
+    for name in ("granite_input", "granite_precheck"):
+        assert p0[name].args.args[-1].arg == "criteria_id" and ast.literal_eval(p0[name].args.defaults[-1]) == "harm"
+    kw = p0["granite_judge"].args
+    assert kw.kwonlyargs[-1].arg == "criteria_id" and ast.literal_eval(kw.kw_defaults[-1]) == "harm"
+    port = _CriterionAsDefault().visit(port)
     pdefs = defs(port)
     # The port splits the original's granite_judge into the template-and-trimming helper (used by the judge and by the
     # pre-load token check), the two loaders and the judge itself; together they must make the same calls.

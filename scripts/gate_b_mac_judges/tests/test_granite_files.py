@@ -6,13 +6,22 @@ under tmp/judge-venv, which has llama_cpp and no pytest:
 Neither path imports llama_cpp or transformers: the judge, the tokenizer and the model are fakes, and granite_files
 imports the real ones only inside load_granite_tokenizer() and load_granite_model(), which no test calls. Patches are
 made by hand (no pytest monkeypatch) and undone in `finally`.
+
+Revised 9 October 2026 (15:29 UTC, clock checked): granite_files takes the criterion as a parameter (criteria_id,
+default "harm"). The default's bytes are pinned against the 8 October function (_granite_input_8oct below, its source
+pinned by SHA-256) on fixtures with a fake tokenizer here, and with the real tokenizer under tmp/judge-venv; another
+criterion (sexual_content) reaches the template and the token check.
 """
 from __future__ import annotations
 
+import ast
 import contextlib
+import hashlib
+import inspect
 import io
 import json
 import pathlib
+import re
 import sys
 import tempfile
 
@@ -85,6 +94,112 @@ class FakeTok:
     def __call__(self, text, add_special_tokens=True):
         assert add_special_tokens is False
         return {"input_ids": [0] * len(text)}
+
+
+# granite_files.granite_input as of 8 October 2026 (granite_files.py SHA-256 3b533f51..., lines 80 to 93), verbatim
+# but for its name: the frozen reference of the default criterion's bytes.
+def _granite_input_8oct(tok, prompt: str, answer: str):
+    """The judge's input under second_judge_probe's template and trimming rule: (text, input tokens, trimmed)."""
+    messages = [{"role": "user", "content": prompt}, {"role": "assistant", "content": answer}]
+    text = tok.apply_chat_template(messages, guardian_config={"criteria_id": "harm"}, think=False,
+                                   tokenize=False, add_generation_prompt=True)
+    trimmed = False
+    n = len(tok(text, add_special_tokens=False)["input_ids"])
+    if n > 8000:                                                               # keep within the context window
+        trimmed = True
+        messages[1]["content"] = answer[: max(1000, int(len(answer) * 7000 / n))]
+        text = tok.apply_chat_template(messages, guardian_config={"criteria_id": "harm"}, think=False,
+                                       tokenize=False, add_generation_prompt=True)
+        n = len(tok(text, add_special_tokens=False)["input_ids"])
+    return text, n, trimmed
+
+
+GRANITE_INPUT_8OCT_SHA256 = "048309ab7df5c1e5c185a8a8ae1d4930ece8d0658292c002346c37826e0b581f"   # its source then
+FIXTURES = [(f"{MARK_P} short", f"{MARK_A} short"), (f"{MARK_P} two\nlines \u00e9\u4e2d", f"{MARK_A} x\n\n y  "),
+            (MARK_P, MARK_A + " word" * 9000), ("", ""), (f"{MARK_P}  ", f"{MARK_A}\t ")]
+
+
+class _AsDefault(ast.NodeTransformer):
+    """criteria_id read as its default, "harm"."""
+
+    def visit_Name(self, node):
+        if node.id == "criteria_id" and isinstance(node.ctx, ast.Load):
+            return ast.copy_location(ast.Constant("harm"), node)
+        return node
+
+
+def _body(fn: ast.FunctionDef) -> list:
+    return [ast.dump(s) for s in fn.body if not (isinstance(s, ast.Expr) and isinstance(s.value, ast.Constant))]
+
+
+def test_the_default_criterion_is_the_8_october_prompt_builder():
+    """granite_input's default ("harm") is the 8 October function: the frozen copy's source has the pinned SHA-256;
+    the current function with criteria_id read as "harm" has the frozen copy's syntax tree; and on fixtures (a fake
+    tokenizer; the real one under the judge venv: test_pod_tokenizer_gives_the_mac_prompt_bytes) the bytes, the token
+    count and the trim flag are equal with no criterion, "harm" by position and criteria_id="harm"."""
+    src = inspect.getsource(_granite_input_8oct).replace("def _granite_input_8oct(", "def granite_input(", 1)
+    assert hashlib.sha256(src.encode("utf-8")).hexdigest() == GRANITE_INPUT_8OCT_SHA256
+    tree = ast.parse(pathlib.Path(granite_files.__file__).read_text(encoding="utf-8"))
+    fns = {n.name: n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)}
+    now, frozen = fns["granite_input"], ast.parse(src).body[0]
+    assert [a.arg for a in now.args.args] == ["tok", "prompt", "answer", "criteria_id"]
+    assert ast.literal_eval(now.args.defaults[-1]) == "harm" and len(now.args.defaults) == 1
+    assert _body(_AsDefault().visit(now)) == _body(frozen)
+    for name in ("granite_precheck",):
+        assert fns[name].args.args[-1].arg == "criteria_id" and ast.literal_eval(fns[name].args.defaults[-1]) == "harm"
+    judge = fns["granite_judge"].args
+    assert judge.kwonlyargs[-1].arg == "criteria_id" and ast.literal_eval(judge.kw_defaults[-1]) == "harm"
+    tok = FakeTok()
+    for prompt, answer in FIXTURES:
+        want = _granite_input_8oct(tok, prompt, answer)
+        for got in (granite_files.granite_input(tok, prompt, answer),
+                    granite_files.granite_input(tok, prompt, answer, "harm"),
+                    granite_files.granite_input(tok, prompt, answer, criteria_id="harm")):
+            assert got[0].encode("utf-8") == want[0].encode("utf-8") and got[1:] == want[1:]
+
+
+class CriteriaTok(FakeTok):
+    """FakeTok for one criterion: the template names it ("CRITERION:prompt|answer")."""
+
+    def __init__(self, criteria):
+        self.criteria = criteria
+
+    def apply_chat_template(self, messages, guardian_config=None, think=None, tokenize=None, add_generation_prompt=None):
+        assert guardian_config == {"criteria_id": self.criteria} and think is False and tokenize is False
+        assert add_generation_prompt is True and [m["role"] for m in messages] == ["user", "assistant"]
+        return self.criteria + ":" + messages[0]["content"] + "|" + messages[1]["content"]
+
+
+def test_another_criterion_reaches_the_template_and_the_token_check():
+    """criteria_id="sexual_content" goes to the template (guardian_config) in granite_input, the token check before
+    the model loads (an input that fits under "harm" but not under the longer criterion refuses) and the judge."""
+    tok = CriteriaTok("sexual_content")
+    text, n, trimmed = granite_files.granite_input(tok, f"{MARK_P} q", f"{MARK_A} a", "sexual_content")
+    assert text.startswith("sexual_content:") and n == len(text) and trimmed is False
+    long = granite_files.granite_input(tok, MARK_P, MARK_A + " w" * 6000, "sexual_content")    # the trim's template too
+    assert long[2] is True and long[0].startswith("sexual_content:") and long[1] == len(long[0]) <= 8000
+    P = judging.Pair
+    edge = P("hostA/round1/u greedy prompt p-009 sample None", "z" * (8160 - 1 - len(MARK_A) - 5), MARK_A)
+    assert granite_files.granite_precheck(CriteriaTok("harm"), [edge])["input_tokens_max"] == 8160
+    try:
+        granite_files.granite_precheck(tok, [edge], criteria_id="sexual_content")
+        raise AssertionError("not refused")
+    except Refusal as e:
+        assert "p-009" in str(e) and MARK_A not in str(e)
+    events = []
+
+    def fake_model():
+        events.append("model")
+
+        def llm(text, max_tokens, temperature, top_k):
+            assert (max_tokens, temperature, top_k) == (32, 0.0, 1) and text.startswith("sexual_content:")
+            return {"choices": [{"text": "<score> yes </score>"}]}
+        return llm
+    ok = P("hostA/round1/u greedy prompt p-001 sample None", f"{MARK_P} q", f"{MARK_A} a")
+    with contextlib.redirect_stdout(io.StringIO()):
+        judge = granite_files.granite_judge([ok], pins=lambda: None, load_tokenizer=lambda: tok, load_model=fake_model,
+                                            criteria_id="sexual_content")
+    assert judge(ok.prompt, ok.answer)["label"] == "yes" and events == ["model"]
 
 
 def _pairs():
@@ -222,6 +337,76 @@ def test_judge_venv_has_the_granite_pins():
             return
         pytest.skip("not the judge venv")
     assert judging.require_packages(granite_files.PACKAGES) == granite_files.PACKAGES
+
+
+def test_pod_tokenizer_gives_the_mac_prompt_bytes(tmp_path):
+    """Under tmp/judge-venv only (transformers 5.18.0; CPU, no model, offline): the Mac folder's ten pinned files copied
+    as the bundle copies them, loaded by granite_pod.load_tokenizer_at, give granite_files' own loader's templated
+    bytes, token counts and trim flags for fixtures (synthetic text), and the pinned Mac fingerprint (9 Oct 2026)."""
+    import os
+    import shutil
+    try:
+        version = judging.metadata.version("transformers")
+    except judging.metadata.PackageNotFoundError:
+        version = None
+    if version != "5.18.0" or not granite_files.TOK.is_dir():
+        try:
+            import pytest
+        except ImportError:
+            return
+        pytest.skip("not the judge venv, or the Mac has no Granite tokenizer folder")
+    sys.path.insert(0, str(HERE.parent / "pod"))
+    import granite_pod
+    saved = {k: os.environ.get(k) for k in ("HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE")}
+    os.environ.update(HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1")
+    try:
+        assert granite_pod.verify_tokenizer_dir(granite_files.TOK) == {n: d for n, (_, d) in granite_pod.TOK_FILES.items()}
+        copy = pathlib.Path(tmp_path) / "granite-tokenizer"
+        copy.mkdir()
+        for name in granite_pod.TOK_FILES:
+            shutil.copyfile(granite_files.TOK / name, copy / name)
+        mac, pod = granite_files.load_granite_tokenizer(), granite_pod.load_tokenizer_at(copy)
+        assert (granite_pod.tokenizer_fingerprint(mac) == granite_pod.tokenizer_fingerprint(pod)
+                == granite_pod.MAC_TOKENIZER_FINGERPRINT)
+        fixtures = FIXTURES
+        for prompt, answer in fixtures:
+            a, b = granite_files.granite_input(mac, prompt, answer), granite_pod.granite_input(pod, prompt, answer)
+            assert a[0].encode("utf-8") == b[0].encode("utf-8") and a[1:] == b[1:]
+            frozen = _granite_input_8oct(mac, prompt, answer)               # the default is the 8 October bytes
+            for got in (a, granite_files.granite_input(mac, prompt, answer, "harm")):
+                assert got[0].encode("utf-8") == frozen[0].encode("utf-8") and got[1:] == frozen[1:]
+        assert granite_files.granite_input(mac, *fixtures[2])[2] is True
+        # another criterion (the Side Project's screen): the template's own text for it, a different input
+        harm = granite_files.granite_input(mac, *fixtures[0])
+        sexual = granite_files.granite_input(mac, *fixtures[0], "sexual_content")
+        assert sexual[0] != harm[0] and sexual[1] != harm[1] and "Sexual content refers to" in sexual[0]
+        assert "Sexual content refers to" not in harm[0]
+        template = (granite_files.TOK / "chat_template.jinja").read_text()
+        bank = re.search(r"criteria_bank = \(\{(.*?)\}\)", template, re.S)
+        assert tuple(re.findall(r'^\s*"([a-z_]+)":', bank.group(1), re.M)) == granite_pod.GRANITE_CRITERIA
+        # judge_triples on the pod's loader (a copy of the ten files) gives granite_files' bytes for both criteria
+        seen = []
+
+        def llm(text, max_tokens, temperature, top_k):
+            seen.append(text)
+            return {"choices": [{"text": "<score> no </score>"}]}
+        session = granite_pod.GraniteSession(copy, pathlib.Path(tmp_path) / "none.gguf", load_model=lambda p: llm,
+                                             check=lambda t, g: {"tokenizer_files": {}, "gguf_sha256": "0" * 64},
+                                             require_fingerprint=granite_pod.MAC_TOKENIZER_FINGERPRINT)
+        with contextlib.redirect_stdout(io.StringIO()):
+            for criteria in ("harm", "sexual_content"):
+                seen.clear()
+                got = session.judge_triples([(i, p, a) for i, (p, a) in enumerate(fixtures)], criteria)
+                for (p, a), text, res in zip(fixtures, seen, got):
+                    want = granite_files.granite_input(mac, p, a, criteria)
+                    assert text.encode("utf-8") == want[0].encode("utf-8") and res[3:] == want[1:]
+                    assert res[2] == hashlib.sha256(want[0].encode("utf-8")).hexdigest() and res[1] == "no"
+    finally:
+        for k, v in saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
 
 
 if __name__ == "__main__":                       # no pytest in tmp/judge-venv

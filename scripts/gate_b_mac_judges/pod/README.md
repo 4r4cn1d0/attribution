@@ -11,6 +11,16 @@ Revised a third time 8 October 2026, 22:45 UTC (clock checked), after the third 
 short by a signal runs again in `finally`, an orphan stop on a full disk stays confirmed, a 5xx create reply counts as
 lost (the lead's decision), a `budget.py` that hangs or cannot start is a refusal, the exit-4 row, and the limits the
 lead decided to document (see "Limits").
+Revised 9 October 2026, 13:05 UTC (clock checked): the judge selector `--judge harmbench|granite` and the Granite
+judge on the pod (see "The Granite judge on the pod"). Without `--judge`, everything below is the HarmBench path as
+before. Revised 9 October 2026, 13:59 UTC (clock checked), after the Granite review: the CUDA build's parallel jobs
+are bounded at 16 and recorded with its seconds, the apt fallback adds the libcuda stub, a refused Granite download
+still writes `out/gguf-check.json`, the pre-run refusals' exit-code text, and Granite tests for the salvage, the cap
+constant, the run record's device and the download's checks. Revised 9 October 2026, 15:30 UTC (clock checked), the
+second Granite round: the known-answer gate (on by default for `--judge granite`, exit 8 when it fails), the inputs
+rows keyed per item, the Granite judge's criterion as a parameter (`granite_files.py`, default "harm") and the generic
+entry point `granite_pod.judge_triples` (for the Side Project's screen), the run record's measured GGUF and GPU offload
+in `parity.py granite`, and the review's test gaps (see "The Granite judge on the pod").
 The user asked for this so that the HarmBench judge does not have to wait for the Mac GPU while AIMO runs.
 Builder status: built and tested with fakes only. No pod, RunPod API call, Hub download, model load or GPU process was
 started. The dev bank was never opened. Nothing here authorizes a run: the lead launches after review.
@@ -38,8 +48,12 @@ The scale of the speed-up:
 | `pod_run.sh` | pod | The job under nohup: `venv`, `torch`, `pip`, `download`, then `run`. Writes `DONE.json` with the exit code and step. |
 | `judge-requirements.txt` | pod | The judge's packages at the Mac venv's versions. `torch` comes from the image, or from the PyTorch cu128 index when the image's is missing or not 2.8.0. |
 | `extend_cap.py` | pod | A verbatim copy of the kit's `setup/extend_cap.py` (`8af2f6cc…`), used only to shorten the pod timer when a stop is not confirmed. |
-| `parity.py`, `PARITY.md` | Mac | The Mac-versus-pod parity check and its pre-set rule. |
-| `../tests/test_judge_pod.py` | Mac (minimal venv) | 162 tests with fakes. |
+| `parity.py`, `PARITY.md` | Mac | The Mac-versus-pod parity check and its pre-set rule; `parity.py granite` and `PARITY.md` "Granite parity" for Granite (run under the judge venv). |
+| `granite_pod.py` | Mac (tests, parity) and pod | The Granite judge on the pod: `granite_files.granite_judge` with the pod's paths, the GGUF, tokenizer, package and llama.cpp pins and checks, the inputs file, and the build steps (`fetch-sdist`, `llama-record`). |
+| `pod_run_granite.sh` | pod | The Granite job under nohup: `venv` (its own), `pip`, `nvcc`, `llama` (the CUDA build), `download`, `run`. |
+| `granite-requirements.txt` | pod | The Mac judge venv's 30 distributions at their versions (llama-cpp-python is built). |
+| `../tests/test_judge_pod.py` | Mac (minimal venv) | 162 tests with fakes (the HarmBench path; unchanged). |
+| `../tests/test_granite_pod.py` | Mac (minimal venv) | The Granite path's tests with fakes (see "Tests"). |
 
 ## The judge is unchanged; only the device differs
 
@@ -200,9 +214,11 @@ prices and the guard's balance figures only. Every string passes a secret-patter
 | 4 | RunPod refused the create (a 4xx reply, and no listing showed a pod), or the price check failed and its stop was confirmed, or the create was interrupted or failed on the Mac before a pod was tracked; any pod that was listed or tracked was stopped (confirmed). No listing showed a running pod (a 4xx reply whose pod RunPod still made and never listed, for example a 408 from an intermediary, is the one exception; see Limits). | None. |
 | 5 | The job was stopped at the cap or by a signal; its partial cache and run record were fetched and verified. | Resume with `--resume-from $ROOT/tmp/judge-pod/<old tag>` and a new tag. |
 | 6 | Any other failure, including a smoke run without its records and a run whose salvage a first SIGTERM or SIGQUIT skipped. | None. Any pod is stopped. |
+| 8 | Granite only: the known-answer gate failed. The pod judged the 200 known answers first and its labels differ from the Mac's beyond the rule (fewer than 190 of 200 identical, or \|pod yes - Mac yes\| > 5). The job stopped before the requested units, wrote no cache and no inputs file (nothing to make judge files from), and the pod was stopped. The fetched run record's `known_answers` holds the counts and the differing prompt ids. | Do not use pod Granite labels from this setup; investigate (the CUDA build, the GGUF, the tokenizer). |
 | 7 | **A pod may still run.** A stop was not confirmed (`STOP-NOT-CONFIRMED` names the pod ids and the real name); or the create reply was lost, was a 5xx error or was interrupted, and no listing showed a pod, which RunPod may still list (`CHECK-CONSOLE` names the pod name); or no listing worked. | Check the RunPod console now and stop any pod of that name by hand. Its timer stops it at the cap at the latest. |
 
-`parity.py` exits 0 (PASS), 1 (FAIL) or 2 (refused). `judge_pod.py bundle` exits 0 or 2.
+`parity.py` exits 0 (PASS), 1 (FAIL) or 2 (refused). `judge_pod.py bundle` exits 0 or 2. `--judge granite` uses the
+same codes and one more, 8 (see "The Granite judge on the pod").
 
 ## Commands for the lead (not run by the builder)
 
@@ -374,6 +390,325 @@ Token-count differences are also reported. They should be 0; a nonzero value poi
 - **SIGKILL, power loss and Ctrl-Z (SIGTSTP)** leave the pod running until its in-pod timer cap (see the commands
   section for the stop by hand).
 
+## The Granite judge on the pod (`--judge granite`)
+
+Added 9 October 2026, 13:05 UTC (clock checked), by an Opus builder for the lead (the user, 9 Oct: "just use the gpus
+for granite as well"). Built and tested with fakes only: no pod, RunPod call, Hub download, model load or GPU process
+was started, the dev bank was never opened, and the real Granite tokenizer was loaded only on the CPU, with
+synthetic text, to measure the template's length and the fingerprint. Nothing here authorizes a run.
+
+`judge_pod.py bundle|launch --judge granite` runs the Mac's Granite judge (`granite_files.py`) on one A100 through the
+same launcher: the same tag lock, budget guard, create, timer, poll, fetch, salvage and stop as above. One judge per pod
+run. Without `--judge` (or with `--judge harmbench`) every step, file and record is exactly the HarmBench path above.
+Granite judges the greedy answers only (200 per unit), checked as `granite_files.py` checks them (`--expect-greedy`;
+`--expect-sampled` is not used). The pod writes the Mac tool's Granite cache (`out/granite-pod.jsonl`, judge
+`common.GRANITE`: the name and the GGUF's SHA-256), so `write_files.py --judge granite` turns it into the same judge
+files, and `--resume-from` seeds a new launch from a fetched one.
+
+### The judge is the Mac's; only the backend differs
+
+- **No second copy.** `granite_files.py` changed only by one parameter (9 Oct, second round): the criterion,
+  `criteria_id` (default "harm", the Mac tool's; its bytes are pinned against the 8 October function on fixtures and,
+  under the judge venv, on the real tokenizer). The pod calls `granite_files.granite_judge` itself, with three
+  hooks that point at the pod's files: the file check, the tokenizer loader and the model loader. So the prompt
+  construction (`granite_input`: messages [user: prompt, assistant: answer], `guardian_config {"criteria_id": "harm"}`,
+  `think=False`, `add_generation_prompt=True`, the trim above 8,000 tokens), the token check of every item before the
+  model loads (`granite_precheck`, n_ctx 8192 - 32 new tokens), the call (32 new tokens, temperature 0, top_k 1) and the
+  label parse (`parse_score`) are the Mac's own functions. The tests check them by identity.
+- **The loaders.** `granite_pod.load_tokenizer_at(folder)` and `load_model_at(path)` are `load_granite_tokenizer` and
+  `load_granite_model` with the path as an argument (syntax-tree test): `AutoTokenizer.from_pretrained(folder)`, and
+  `Llama(model_path, n_gpu_layers=-1, n_ctx=8192, seed=0, verbose=False, logits_all=False)`.
+- **One judge per process.** `granite_pod.GraniteSession` checks the files once, loads the tokenizer and the model
+  once and keeps them: the known-answer gate, every prepared set's group and `judge_triples` use the same model load,
+  prompt builder, token check, call and parse.
+- **The prompt bytes.** Every judged item appends one line to `out/granite-inputs.jsonl`, keyed by the item (its
+  unit's COMPLETE.json SHA-256, the prompt id and the sample index): the SHA-256 of the bank prompt, of the answer and
+  of the templated text that llama.cpp received, its token count and the trim flag. The factory keys each row by the
+  item `judging.run` planned (a call out of that order, or an answer that is not the unit's, refuses), so two units
+  that share a prompt and an answer still get one row each. A test
+  checks that the text the pod's model receives is `granite_files.granite_input`'s text byte for byte (fixtures with
+  several lines, non-ASCII text, a trimmed answer and trailing spaces). Under the judge venv,
+  `tests/test_granite_files.py` also loads the real tokenizer (CPU) through both loaders and compares the bytes.
+- **The GGUF.** The pod downloads `granite-guardian-3.3-8b-Q4_K_M.gguf` from `ibm-granite/granite-guardian-3.3-8b-GGUF`
+  at commit `8c87479a…` (the commit the Mac's copy came from: `tmp/judge-models/.cache/huggingface/download/*.metadata`)
+  without a token, into `/root/granite-gguf` on the container disk. It checks the size (4,942,875,744 bytes) and the
+  SHA-256 `b4fa861b…` (= `common.GRANITE_GGUF_SHA256`) after the download, at the start of the run, and again right
+  before the model loads. A model whose files were not checked is never loaded.
+- **The tokenizer folder.** The bundle carries the Mac's folder `tmp/judge-models/granite-guardian-3.3-8b-tokenizer`
+  (commit `b3421eda…`): all ten files, each checked against its pinned SHA-256 when it is copied, by `pod_job.py
+  verify`, and before the load. The pod's folder therefore has the Mac's bytes.
+- **The tokenizer fingerprint.** The pod loads the tokenizer from that folder and records
+  `pod_judge.tokenizer_fingerprint` (the vocab and merges SHA-256, as for HarmBench). It refuses, before judging
+  anything, a value other than the Mac's, pinned as `granite_pod.MAC_TOKENIZER_FINGERPRINT` = `5354502d…` (read on 9
+  Oct under the judge venv: vocab 49,152, merges 48,891).
+- **The packages, in a separate venv.** `pod_run_granite.sh` makes its own isolated venv, `/root/granite-venv` on the
+  container disk, with no system site-packages (so no torch). The HarmBench venv (`/workspace/judge/venv`) and
+  `judge-requirements.txt` are not touched. The venv gets `granite-requirements.txt`: the Mac judge venv's 30
+  distributions at its versions (transformers 5.18.0, tokenizers 0.23.2, Jinja2 3.1.6, huggingface_hub 1.33.0, …),
+  `--no-deps --only-binary=:all:`. At run time `granite_pod.require_granite_packages` checks all 31 (llama-cpp-python
+  0.3.36 included) and refuses torch, sentencepiece or protobuf (the Mac judge venv has none of them).
+
+### llama.cpp: built on the pod from the pinned sdist (the choice)
+
+- **Chosen: the build.** `pod_run_granite.sh` downloads `llama_cpp_python-0.3.36.tar.gz` from its PyPI URL and keeps it
+  only if its SHA-256 is `832db069…`. That is the sdist the Mac built its own wheel from: the Mac's pip wheel cache
+  records it in `origin.json` (read 9 Oct). It then builds it with
+  `CMAKE_ARGS="-DGGML_CUDA=on -DCMAKE_CUDA_ARCHITECTURES=80"`, `FORCE_CMAKE=1` and `--no-cache-dir`, into
+  `out/llama-build.log`. So both devices run the same llama-cpp-python and the same vendored llama.cpp source; only the
+  backend differs (CUDA instead of Metal).
+- **Why not a prebuilt CUDA wheel.** A wheel would have to be pinned by a SHA-256 that nobody has read yet (this
+  builder had no network). Whether one exists for 0.3.36 and CUDA 12.x is unknown. Its compiler, CUDA version and
+  architecture list would also be someone else's.
+- **The architecture.** `-DCMAKE_CUDA_ARCHITECTURES=80` (the A100) is added to the brief's `-DGGML_CUDA=on`. It builds
+  the kernels for that GPU only, which is faster and gives one known build. A pod with another GPU is refused anyway by
+  the GPU-name check.
+- **The compiler.** `nvcc` comes from the image (`/usr/local/cuda/bin/nvcc`, else `nvcc` on PATH). If the image has
+  none, the job installs `cuda-nvcc-12-8 cuda-cudart-dev-12-8 cuda-driver-dev-12-8 libcublas-dev-12-8 build-essential`
+  with apt (untested). `cuda-driver-dev-12-8` holds the toolkit's `stubs/libcuda.so`: ggml-cuda links the CUDA driver
+  library, and the NVIDIA runtime usually mounts only `libcuda.so.1`, so without the stub the link could fail.
+  `nvcc --version` goes into the build log.
+- **The build's parallelism.** At most 16 parallel compile jobs (`CMAKE_BUILD_PARALLEL_LEVEL`, `MAX_BUILD_JOBS` in
+  `pod_run_granite.sh`): `nproc` inside a container can report the host's CPUs rather than the pod's share, and each
+  `nvcc` job of ggml-cuda's template files can take about 1 to 4 GB, so an unbounded build could run out of memory or
+  thrash. An unreadable `nproc` gives 1 job. `out/llama-build.log` records `nproc`, the jobs and the build's wall
+  seconds (a failed build's seconds too), so the next cap estimate can use a measured build time.
+- **The build record.** After the build, `granite_pod.py llama-record` writes `out/llama-build.json`: the version, the
+  CUDA compiler's release, `CMAKE_ARGS`, the sdist's SHA-256, the build log's SHA-256, `nproc`, the build's parallel
+  jobs and its wall seconds, and whether the build can offload to the GPU (`llama_supports_gpu_offload`). A build that
+  cannot offload refuses. The run record copies it, and the launch's `verified` line names the version, the GPU
+  offload, the CUDA release, the jobs and the build's seconds.
+- **Not pinned.** pip's isolated build environment takes scikit-build-core (and cmake or ninja, if the image lacks
+  them) from PyPI at build time. The Mac's wheel was built by scikit-build-core 1.1.1 (its WHEEL file). The build log
+  records what the pod used.
+
+### The known-answer gate (on by default)
+
+Every Granite launch first checks its own setup on answers whose Mac labels are known (the lead's promise to the Side
+Project, 9 Oct). Before the requested units, the pod judges the 200 greedy answers of OLMo-2-1B recipe-B seed 1101 e1
+(unit `1101-a0-e1-a1` under `tmp/family-probe-olmo2-1b/retrieved/olmo2-1b-1101/`, COMPLETE.json `8f0fa83a…`) with the
+same model load, prompt, token check, call and parse as the requested units.
+
+- **The reference.** `pod/granite-known-answers.json` holds the Mac's Granite labels of those 200 answers as prompt id,
+  answer SHA-256 and label only (93 "yes", 107 "no"), from `tmp/family-probe-olmo2-1b/second-judge-probe-items.jsonl`
+  through the tool's import. `parity.py known-answers --work DIR --out FILE` writes it (no model, minimal venv), and a
+  test checks that it gives the shipped file byte for byte. Its SHA-256 is pinned in `granite_pod.KNOWN_ANSWERS_SHA256`
+  (`b5b2678e…`); the Mac and the pod refuse another file.
+- **The bundle** carries the reference (`known/granite-known-answers.json`), the unit (`known/unit/`) and its dev bank
+  (`known/prepared/prepared-kt-dolly-olmo2/`). On the Mac, `bundle.plan_known_answers` checks the unit (found and
+  verified as the Mac judges find it, the reference's COMPLETE.json SHA-256, its 200 answers equal by prompt id and
+  SHA-256 to the reference's, the guard ids, the bank's prompt ids); the pod checks them again.
+- **The rule.** Pass = the pod judged all 200, at least 190 labels are identical to the Mac's (an unparsed label is
+  not identical) and |pod yes - Mac yes| ≤ 5. The run record's `known_answers` holds the counts (judged, identical,
+  pod and Mac yes, delta, unparsed, flips by direction), the differing prompt ids, the rule and the verdict; the
+  launch's `verified` line repeats the counts.
+- **A failure** ends the pod job with exit 3 before the requested units. Nothing is seeded or judged after it, so the
+  pod has no cache and no inputs file: nothing from that run can become a judge file, and a `--resume-from` of it
+  refuses. The launch fetches `DONE.json` and the run record, stops the pod and exits **8**. A SIGTERM during the gate
+  gives exit 5 with nothing written (launch again, not `--resume-from`).
+- **Off:** `--no-known-answer-gate` (on `bundle` and `launch`; refused with `--judge harmbench`). The Granite parity
+  launch uses it: its four units already hold the gate's 200 answers, and `PARITY.md`'s rule is the stricter test. The
+  manifest then has `"known_answers": null`, and the run record says `{"enabled": false}`. With the gate on, a launch
+  whose units include the gate's unit also works: the unit is shipped twice and judged twice, and only the requested
+  judgments enter the cache.
+- **The verification** requires the run record's gate to match the bundle: run with this reference and unit when the
+  launch enabled it (passed when the job exited 0, failed when it exited 3), not run when the launch disabled it; a
+  mismatch is exit 6.
+- **The cap** counts the gate's 200 answers (about 0.4 to 1 min of judging); the caps in the table below do not move.
+
+### The generic entry point: `granite_pod.judge_triples`
+
+For the Side Project's fiction training-data screen (it imports this; the Mac tool's default behaviour is unchanged):
+`granite_pod.judge_triples(triples, criteria_id="harm", *, tokenizer_dir=..., gguf=..., session=None, stop=None)`
+judges any list of `(id, user_text, response)` with one Granite Guardian criterion (`granite_pod.GRANITE_CRITERIA`,
+the pinned chat template's 13, for example "sexual_content"; another refuses before anything loads). It goes through
+the pod judge's own path: the files checked, the tokenizer loaded and refused unless its fingerprint is the Mac's, the
+token check of every item before the model loads (an input above 8,160 tokens refuses, naming its id), the same model
+load, call and parse. It returns `(id, label, input_sha256, input_tokens, trimmed)` per triple, in order, and never
+text; ids must be ids (a string of 1 to 128 printable characters, or a non-negative integer) and unique. One call
+loads the model once; pass a `GraniteSession` as `session` to reuse a load. The pod's gate is a call of it.
+
+### Flow differences (the rest is the HarmBench flow)
+
+- **The bundle** adds `tool/granite_files.py`, `tool/pod/granite_pod.py`, `pod_run_granite.sh`,
+  `granite-requirements.txt` and `granite-tokenizer/` (the ten pinned files), and, with the gate on, `known/` (the
+  reference, the unit and its dev bank). The manifest names `common.GRANITE`, `"tokenizer_dir": "granite-tokenizer"`
+  and `known_answers` (the gate's files, or null).
+- **The job** is `pod_run_granite.sh`: `venv`, `pip`, `nvcc`, `llama` (the sdist, the build, pip freeze, the build
+  record), `download` (the GGUF), then `run`. `DONE.json` names the step a failure ended in.
+- **`pod_job.py run`** checks, in this order: the bundle; the packages; the llama build (GPU offload); the GGUF and
+  the tokenizer folder (SHA-256); the tokenizer fingerprint (refused unless the Mac's); the known-answer gate (exit 3
+  when it fails). Then it runs, per prepared set,
+  `judging.check_units` (greedy) and `judging.run` with the Granite factory. Its outputs are `out/granite-pod.jsonl`,
+  `out/granite-inputs.jsonl` and `out/run-record.json`. The run record names the cache's and the inputs file's
+  SHA-256.
+- **The fetch** gets `DONE.json`, the run record, the cache and the inputs file first. Then it gets, best effort,
+  `gguf-check.json`, `llama-build.json`, the pip freeze, `pip.log` and `llama-build.log`.
+  `pod_job.py sums --judge granite` lists them.
+- **The verification** requires a cuda run record naming `common.GRANITE` and the GGUF's SHA-256, a known-answer
+  gate that matches the bundle, a cache in the tool's Granite format holding only this launch's units with the Mac
+  copy's answer SHA-256, and the greedy counts per unit. The inputs file's rows must be of this launch's units and name
+  the cache's answer for each judged item; they are counted (rows, judged items with a row) and logged.
+
+### Granite: time and cost (estimates, not measurements)
+
+**Per answer.** One llama.cpp call per answer: Granite Guardian 3.3 8B, Q4_K_M (4.9 GB), all layers on the GPU.
+
+- **The input.** The template adds 121 tokens (measured 9 Oct with the real tokenizer on synthetic one-word texts).
+  The prompt adds about 30 to 60. The Gate A greedy answers average 205 to 273 tokens (median 60 to 229, at most
+  3,211; counted by the HarmBench tokenizer in the Mac caches). So the input is about 400 to 450 tokens on average and
+  about 3,400 at most.
+- **Prompt processing** of 8B Q4_K_M by llama.cpp's CUDA backend on an A100 runs at about 3,000 to 8,000 tokens per
+  second: 0.05 to 0.15 s per answer.
+- **The output** is `<score> yes </score>` and the end token, about 8 to 10 tokens at about 100 to 150 tokens per second
+  (0.06 to 0.10 s). The full 32 tokens take about 0.2 to 0.3 s.
+- Python, the template and the tokenizer add about 5 to 10 ms (`granite_input` took 0.4 ms on the Mac).
+- **Estimate: 0.12 to 0.30 s per answer**, about 25 to 60 times the Mac's measured 7.4 s. The longest answers take
+  about 0.5 to 1.2 s.
+- **The cap** keeps the rule above (30 min setup + per-answer constant × answers + 15 min margin, rounded up to the
+  half hour, never below 1 h, at most 6 h) with the Granite constant 0.5 s per answer
+  (`judge_pod.GRANITE_UPPER_S_PER_ITEM`, about 2 to 4 times the estimate, as 0.25 s is for HarmBench).
+
+**Setup per launch: about 10 to 25 min.** Create to SSH takes 2 to 5 min. The venv and 30 wheels on the container
+disk take about 1 min. The CUDA build for one architecture, at most 16 parallel jobs, takes about 4 to 10 min (an
+estimate: it is untested, and `llama-build.json` records the real seconds; apt's
+CUDA compiler, if needed, adds 2 to 4 min). The 4.9 GB GGUF download takes 1 to 3 min, and hashing it twice about
+1 min. The model load and the token check take under 1 min.
+
+| Launch | Answers | Judging | Total | Cost | Cap (guard counts cap × $1.85) |
+|---|---|---|---|---|---|
+| Granite parity (the four Gate A units) | 800 | 2 to 4 min | 12 to 29 min | $0.37 to $0.90 | 1.0 h ($1.85) |
+| Gate B Granite (29 arms × 200 greedy) | 5,800 | 12 to 29 min | 22 to 54 min | $0.68 to $1.67 | 2.0 h ($3.70) |
+| Gate B Granite + the parity units | 6,600 | 13 to 33 min | 23 to 58 min | $0.71 to $1.79 | 2.0 h ($3.70) |
+
+A smoke run (`--limit 20`) pays the whole setup. It exits 0 only when its cache is fetched with 20 newly judged
+records verified.
+
+### Exit codes
+
+The launcher's codes are the table above; exit 8 is Granite's only (the known-answer gate failed: the pod job's exit
+3, step `run`). Granite's own pod-side refusals end in exit 6 at the launch (the pod job's exit 2), and the launch
+log's `job-done` line and the fetched `DONE.json` name the step. Where the reason is:
+
+- **Step `run`** (`pod_job.py run`): in the fetched run record's `refused`. Another package version, or torch,
+  sentencepiece or protobuf in the Granite venv; a build without GPU offload; a GGUF or tokenizer file without its
+  pinned SHA-256; a tokenizer fingerprint other than the Mac's; an input above 8,160 tokens after trimming.
+- **Before the run** (steps `pip`, `nvcc`, `llama`, `download`): there is no run record, so the launch also reports
+  "the pod has no ['out/run-record.json']". The diagnostics are fetched best effort: `out/llama-build.json` (step
+  `llama`: the version and the GPU offload of a build that `llama-record` refused), `out/gguf-check.json` (step
+  `download`: `refused` with the reason, or `error` with the exception's type, and `found` with the size and SHA-256
+  that the GGUF check found; a refused record has no `sha256` field), `out/llama-build.log` (the compiler, `nproc`, the
+  jobs and the build's seconds and exit), `out/pip.log` and the pip freeze. `out/job.log` (tracebacks) stays on the pod.
+
+### Commands for the lead, Granite (not run by the builder)
+
+Each block starts with `setopt interactivecomments` and holds no comment, as above. The parity check comes first:
+before the first Granite launch the lead records `PARITY.md`'s SHA-256 in FOCUS.
+
+**Block G0: the Granite parity units and the dry check** (the four OLMo-2-1B Gate A units, 800 answers).
+
+```zsh
+setopt interactivecomments
+ROOT=/Users/spiderishi/Coding/attribution
+K=$ROOT/scripts/gate_b_mac_judges
+PY=$ROOT/tmp/minimal-experiment-20261002/venv/bin/python
+export PYTHONDONTWRITEBYTECODE=1
+TAG='<new-granite-parity-tag>'
+OUT=$ROOT/tmp/judge-pod/$TAG
+GATE=(--no-known-answer-gate)
+G1=$ROOT/tmp/family-probe-olmo2-1b/retrieved/olmo2-1b-1101/tree/round1
+G2=$ROOT/tmp/family-probe-olmo2-1b-gateA-1102/retrieved/olmo2-1b-1102/tree/round1
+G3=$ROOT/tmp/family-probe-olmo2-1b-gateA-1103/retrieved/olmo2-1b-1103/tree/round1
+UNITS=(--unit $G1/1101-a0-init-a1 --unit $G1/1101-a0-e1-a1 --unit $G2/1102-a0-e1-a1 --unit $G3/1103-a0-e1-a1)
+PREP=()
+"$PY" -B "$K/pod/judge_pod.py" bundle --judge granite "${GATE[@]}" --tag "$TAG" --out "$ROOT/tmp/judge-pod-dry/$TAG" "${UNITS[@]}" "${PREP[@]}"
+```
+
+Then block G2 (the launch), then `parity.py granite` as `PARITY.md` shows. `GATE` turns the known-answer gate off for
+the parity launch only (its units hold the gate's answers); every other Granite launch keeps it (block G1).
+
+**Block G1: a Granite judge run's settings and the dry check** (for example the Gate B units). `PREP` as in block 1:
+add the llama3 prepared set when Llama units are included.
+
+```zsh
+setopt interactivecomments
+ROOT=/Users/spiderishi/Coding/attribution
+K=$ROOT/scripts/gate_b_mac_judges
+PY=$ROOT/tmp/minimal-experiment-20261002/venv/bin/python
+export PYTHONDONTWRITEBYTECODE=1
+TAG='<new-tag>'
+OUT=$ROOT/tmp/judge-pod/$TAG
+GATE=()
+UNITS=(--run-root '<KIT>/retrieved' --unit '<UNIT_DIR>')
+PREP=()
+"$PY" -B "$K/pod/judge_pod.py" bundle --judge granite "${GATE[@]}" --tag "$TAG" --out "$ROOT/tmp/judge-pod-dry/$TAG" "${UNITS[@]}" "${PREP[@]}"
+```
+
+**Block G2: the Granite launch**, after the dry check looks right (after block G0 or G1, in the same terminal).
+
+```zsh
+setopt interactivecomments
+date -u
+( set -a; . ~/.config/attribution/secrets.env; set +a
+  exec env -u HF_TOKEN -u HUGGING_FACE_HUB_TOKEN caffeinate -i "$PY" -B "$K/pod/judge_pod.py" launch --judge granite \
+    "${GATE[@]}" --tag "$TAG" "${UNITS[@]}" "${PREP[@]}" )
+echo "exit $?"; date -u
+```
+
+**Block G3: the Granite judge files from the pod cache**, into a pod-only folder. Never append pod records to a Mac
+cache, and keep pod Granite files apart from Mac Granite files unless the Granite parity passed.
+
+```zsh
+setopt interactivecomments
+python3 -B "$K/write_files.py" --judge granite --cache "$OUT/fetched/out/granite-pod.jsonl" --out '<KIT>/judges-pod' "${UNITS[@]}"
+```
+
+A Granite smoke run is block G2 with `--limit 20` added after `--judge granite` and its own tag. A resume after exit 5
+is block G2 with `--resume-from $ROOT/tmp/judge-pod/<old tag>` and a new tag. Granite parity:
+`"$JV" -B "$K/pod/parity.py" granite …` (`PARITY.md`, "Granite parity").
+
+### Granite: points for the lead and limits
+
+- **PARITY.md's SHA-256.** The Granite section was added to `PARITY.md`, and its first 7,880 bytes are the HarmBench
+  file as recorded (`76e1457f…`). The second round changed the Granite section's wording (per-item pairing, the record's
+  measured GGUF and GPU offload, the parity launch without the gate), not its thresholds. The lead records the new
+  SHA-256 in FOCUS before the first Granite launch.
+- **The side project's screen tool pins this launcher.** `research/side-fiction/screen-pod/tool/screen_pins.py`
+  (`LAUNCHER_PINS`, Side Project worktree) pins `pod/judge_pod.py`, `bundle.py`, `pod_job.py` and `PARITY.md` by
+  their committed SHA-256 and refuses its bundle and launch when one changes. The second round changes all four (and
+  `granite_files.py`, which the screen will import for `criteria_id`), so that tool refuses until its pins are updated
+  and checked. `podhost.py`, `pod_judge.py`, `extend_cap.py`, `pod_run.sh`, `pod_run_granite.sh` and the other Mac
+  modules are unchanged.
+- **The known-answer gate's limits.** It checks the setup (build, GGUF, tokenizer, prompt, call) on 200 OLMo answers
+  whose Mac labels are known; its tolerance (190 of 200, ±5 yes) is looser than parity's (196, ±3), so it catches a
+  broken setup, not small CUDA-versus-Metal differences. The Mac labels are the old probe's on the Mac judge venv as it
+  was then (`PARITY.md`, Limits). The gate costs about 200 judgments per launch (under a minute at the estimate).
+- **Device provenance.** As for HarmBench, the judge files carry the same identity on both devices (`common.GRANITE`);
+  the device is in the run record and the result only. Keep pod Granite files in their own `--out` folder.
+- **Untested on a real pod:** the image's `nvcc` (or the apt fallback, with the libcuda stub), the CUDA build's time,
+  memory at up to 16 jobs and success, what `nproc` reports in the pod's container, the wheel availability of the 30
+  pins for the image's Python, `hf_hub_download` of the GGUF by commit, llama.cpp's CUDA speed, and the real
+  tokenizer's fingerprint on Linux (the pod refuses a different one before judging). A `--limit` smoke run first
+  measures the setup (`llama-build.json`: `nproc`, jobs, build seconds) for the price of the setup only.
+- **The prefix cache.** llama-cpp-python reuses the key-value cache of the token prefix shared with the previous call
+  (on both devices), so an item's numerics can depend on the item before it. The order of items is the tool's on both
+  devices, but the Mac's Gate A labels came from the old probe's order. `PARITY.md` covers this in its tolerance.
+- **Flash attention** is off on both devices (`Llama`'s default `flash_attn=False`, which this call does not change).
+- **The inputs file is fetched with the cache, not best effort (the lead's decision, 9 Oct: keep it strict).**
+  `out/granite-inputs.jsonl` is
+  in the first fetch group: a fetch of it that fails 3 times (and 3 more in the salvage) ends the launch in exit 6, even
+  when `DONE.json`, the run record and a complete cache are in place, and a `--resume-from` of that launch then refuses
+  ("nothing is left to judge"). This is required for the Granite parity launch (rule 0 needs the file) and was kept
+  for every Granite launch, so that each pod Granite label has its prompt-hash evidence; the cache that is in place
+  still has the pod's SHA-256 and `write_files.py` reads it, but the launch did not verify it. Making the file best
+  effort for every Granite launch is a one-line change (take it out of `judge_pod.GRANITE_FETCH_FIRST`; `parity.py
+  granite` would then refuse a launch whose inputs file was not fetched); making it best effort for non-parity launches
+  only would need a launch option. The lead chose to keep it strict; nothing was changed.
+- **No Mac pre-check of the 8,160-token limit.** The launcher (minimal venv) has no transformers 5.18.0, so the
+  token check of every item runs on the pod. An item over the limit refuses the run (exit 6) after the setup. Without
+  the known-answer gate the first group's check runs before the model loads; with the gate (the default) the model
+  loads for the gate's answers first, so such an item refuses after the gate, about a minute later than before. Gate
+  A's longest input is about 3,400 tokens.
+
 ## Tests
 
 ```zsh
@@ -381,6 +716,131 @@ setopt interactivecomments
 S='<scratch>'
 cd /private/tmp && PYTHONDONTWRITEBYTECODE=1 "$PY" -B -m pytest -q -p no:cacheprovider --basetemp="$S/bt" "$K/tests"
 ```
+
+**The Granite path (9 Oct, 13:21 UTC, in the builder's working copy):** the same command gave 313 tests: 311 passed and
+2 skipped (the two judge-venv checks of `test_granite_files.py`). `test_granite_pod.py` has 67 tests, with fakes
+only. `test_judge_pod.py` (162) is unchanged and passes. Under the judge venv, `test_granite_files.py` ran 9 of 9
+(`$JV -B "$K/tests/test_granite_files.py" "$S/bt-jv"`), including the real-tokenizer byte check (CPU, synthetic text).
+A mutation check of the Granite rules was run: 29 mutants, each in its own copy of the tool folder, with the same
+command as a clean baseline (310 passed, 2 skipped; for M28, rerun with the added test against a baseline of 311
+passed). Each mutant was killed by a real test failure. The mutants were:
+
+- the selector's default;
+- the file check skipped, the GGUF SHA-256 not compared, and the model loaded before the check;
+- the prompt bytes changed, and the hash taken of other text;
+- the label parse, and a label remapped on the pod;
+- the venv over the system site-packages, and the venv's path shared;
+- the parity rule: agreement 97%, delta 4, no coverage clause, no fingerprint clause, no input-hash clause, unparsed
+  not counted as a flip, and the cache or the inputs file not checked against the run record;
+- the HarmBench path: Granite files in its bundle, the Granite script started, the sums default, the Granite run
+  path, and the verify identity;
+- the fingerprint not refused, the GGUF commit, the sdist pin, the download revision, the sampled answers checked for
+  Granite, and the cap constant.
+
+The Granite tests cover:
+
+- **The selector and the HarmBench path.** The default is `harmbench`. HarmBench's start and sums commands, its fetch
+  order, its outputs, its bundle files, and its manifest, bundle-record, run-record and result layouts are pinned. So
+  are the SHA-256 of `pod_run.sh`, `pod_judge.py`, `podhost.py`, `extend_cap.py`, `judge-requirements.txt` and the Mac
+  modules.
+- **The Granite bundle.** It holds the Granite files and the pinned tokenizer folder. A changed or extra tokenizer
+  file is refused on the Mac and on the pod. Only the greedy answers are checked, and a unit without sampled answers
+  passes.
+- **The judge.** `granite_files`' functions are used by identity. The loaders equal the Mac's (syntax tree). The text
+  that the pod's model receives equals `granite_input`'s, byte for byte, for fixtures. The GGUF and the tokenizer are
+  checked before the model loads, once per process. Pins, packages and the inputs file are tested too.
+- **`pod_job.py` (Granite).** Its outputs are the Mac tool's cache (`write_files.py --judge granite` reads it), the
+  inputs file and the run record. Its checks run in order, and another fingerprint or no GPU offload is refused.
+  SIGTERM gives exit 5, then a resume. `sums --judge granite` is tested, and so is the download by commit without a
+  token (another file is refused).
+- **The build.** The sdist is SHA-256 checked, and `llama-record` needs GPU offload.
+- **`pod_run_granite.sh` with fake python3, venv python, nvcc and apt-get.** Every step, the failure step in
+  `DONE.json`, the separate venv, `CMAKE_ARGS` for the build only, the apt fallback, no token in any step, the download
+  online and the run offline.
+- **The launch with a fake host.** The full sequence, a smoke run, a run record of the other judge (exit 6), no inputs
+  file, a deadline and then a resume, and a resume that carries the inputs file.
+- **Granite parity.** Each rule clause on four synthetic 200-answer units; the command (PASS, FAIL and seven refusal
+  kinds); and, on the real Gate A caches, the Mac import (5, 93, 86, 94).
+- **The documents' zsh blocks and the syntax-tree leak check** over every `pod/*.py` (`granite_pod.py` included).
+
+**The review fixes (9 Oct, 14:20 UTC, in the fix working copy):** the same command gave 334 tests: 332 passed and 2
+skipped (the same two judge-venv checks). `test_granite_pod.py` has 88 tests (21 new); `test_judge_pod.py`,
+`test_gate_b_judges.py` and `test_port_fidelity.py` are unchanged. Under the judge venv, `test_granite_files.py` ran 9 of
+9 again (llama_cpp not imported). A mutation check of this round: 20 mutants, each in its own copy of the tool folder,
+with the same command (`-x`) as a clean baseline (332 passed, 2 skipped); each was killed by a real test failure in a
+test added or extended for it. The mutants were:
+
+- the reviewer's survivors: the salvage without the Granite spec (in `finish()`, and inside `salvage()`), the
+  HarmBench cap constant in a Granite build, the download without its package, free-space or landing-path check, and
+  the run record's device not checked;
+- the build: the jobs unbounded, the build given `nproc` instead of the bounded jobs, the bound raised to 32, an
+  unreadable `nproc` not guarded, the build facts not passed to `llama-record` (by the script, or by its command
+  line), a failed build's seconds not logged, and the apt list without `cuda-driver-dev-12-8`;
+- the download record: no record on a refusal, a refusal without what it found, a refused record with a `sha256`
+  field, an error (not a refusal) not recorded;
+- the `verified` line without the build's jobs.
+
+A HarmBench differential (the reviewer's driver: 17 launch scenarios with `test_judge_pod.FakeHost`, without `--judge`
+and with `--judge harmbench`, against the reviewer's dumps of the main checkout; hashes, times and `bundle_bytes`
+masked) gave 0 differing lines in all 34 comparisons, with the same exit codes.
+
+The new Granite tests cover:
+
+- **The salvage.** The status is never readable: the salvage fetches with `sums --judge granite` and the Granite files,
+  and the exit code is what they support (0 finished, 5 stopped).
+- **The cap constant.** A Granite launch's bundle record, budget guard and create use Granite's per-answer constant.
+- **The run record's device**, for both judges: another device gives exit 6.
+- **The download's checks.** The packages and the free space refuse before any Hub call; the landing path, the size and
+  the SHA-256 refuse after it; each refusal, and a Hub error, still writes `gguf-check.json` with its reason and what
+  was found, and never a `sha256` field.
+- **The build's jobs.** `nproc` of 4, 16, 17, 128, 0, a non-number and a failing `nproc` give 4, 16, 16, 16, 1, 1 and 1
+  jobs; `llama-build.log` and `llama-record` get `nproc`, the jobs and the seconds; a failed build logs its seconds and
+  exit; the apt fallback asks for the libcuda stub; `llama-record`'s command line records the build facts, and the
+  `verified` line names them.
+
+**The second Granite round (9 Oct, in the working copy):** the same command gave 384 tests: 382 passed and 2 skipped
+(the two judge-venv checks of `test_granite_files.py`). `test_granite_pod.py` now has 136 tests (88 before; the
+parameter cases counted); `test_granite_files.py` has 11, `test_gate_b_judges.py` knows the name `templated`, and
+`test_port_fidelity.py` reads `criteria_id` as its default "harm" before it compares the port with the original.
+`test_judge_pod.py` is unchanged and passes. Under the judge venv (CPU tokenizer only, offline), `test_granite_files.py`
+ran 11 of 11 (llama_cpp not imported), including the real tokenizer's checks: the default criterion's bytes equal the 8
+October function's for five fixtures, "sexual_content" gives the template's own text, `GRANITE_CRITERIA` is the
+template's `criteria_bank`, and `judge_triples` on the pod's loader gives `granite_files`' bytes for both criteria. A
+mutation check of this round: 52 mutants, each in its own copy of the tool folder, run with the same command as a clean
+baseline (`test_granite_pod.py`, `test_granite_files.py`, `test_port_fidelity.py` and `test_gate_b_judges.py`: 220
+passed, 2 skipped); each was killed by a real test failure (no errors, none survived). They cover the verifier's P01,
+P04, P05, P14 and B01, the second review's m1, m3 and m4, the inputs rows per item (7), the run record's GGUF and
+offload (2), the criterion in `granite_files.py` (5), `judge_triples` (6) and the known-answer gate (23: on by default,
+the flag, before the requested units, 190, at least, 5, |Δ|, a failure stops the job, exit 8, a distinct code, nothing
+seeded first, the counts, the reference's pin and counts, the unit's answers on the Mac and on the pod, all 200 judged,
+the launch's record check, the cap, the manifest's entry, and the SIGTERM path). A HarmBench differential (the
+reviewer's driver, 17 scenarios, without `--judge` and with `--judge harmbench`, against a copy of the main checkout)
+gave 0 differing lines in 34 comparisons, with the same exit codes.
+
+The second round's tests cover:
+
+- **The verifier's and the second review's gaps.** A one-way flip down (Δyes = -4, 196 identical) fails a unit; at the
+  command level, a run record whose fingerprint is not the Mac's fails rule 0, an mps record or a pod record naming
+  another answer refuses; the fake template ends in a newline; a pinned Mac count of 6 for untuned refuses the import;
+  the pod side of the parity command is made by `granite_pod.make_factory` through `judging.run`, so the two sides'
+  input hashes are computed apart; `templated` is a text name for the leak check.
+- **The inputs rows per item.** The row keys, the reader (two units with one prompt and answer give two rows), the
+  factory (only its units' answers, in its plan's order, with the unit's answer), the launch's checks (a row of
+  another unit or with another answer refuses), and parity's pairing (an item never borrows another unit's row).
+- **The run record in `parity.py granite`:** the measured GGUF SHA-256 and the GPU offload.
+- **The criterion:** the default pinned against the 8 October function (source SHA-256, syntax tree, fixtures);
+  "sexual_content" reaches the template, the trim's template, the token check and the judge.
+- **`judge_triples`:** the prompt bytes and the five returned values for three triples, the criterion, the window check
+  per criterion, an unknown criterion, another tokenizer fingerprint, malformed triples and ids, and `stop`.
+- **The known-answer gate:** the rule at its bounds (190 and 189 identical, Δyes +5, +6, -5, -6, unparsed labels, a
+  known answer not judged); the pod job (the gate first with one model load; a pass goes on; a failure exits 3 with no
+  cache and no inputs file; a SIGTERM during the gate exits 5 with nothing written); the launch (exit 8, the pod stopped
+  once, only `DONE.json` and the run record fetched, no resume; a resume whose gate fails seeds nothing); on by default
+  and off with the flag (no gate files, the record disabled, the cap without the 200, the flag refused for HarmBench);
+  the cap counting the gate; the gate's unit also requested; the run record's gate checked against the bundle (six
+  contradictions, exit 6); the reference pinned by SHA-256 and counts, and the unit's answers by hash (Mac and pod);
+  the manifest's gate entry; and the real reference (its pin, its contents, `parity.py known-answers` writing it byte
+  for byte from the kits, and the real unit's answers).
 
 On 8 Oct (22:49 and again 22:56 UTC): 245 tests: 243 passed, 1 skipped (the earlier judge-venv package check) and 1
 failed outside the pod path. That one, `test_gate_b_judges.py::test_judge_identities_equal_the_frozen_reading`, reads
@@ -493,6 +953,13 @@ catch around `budget.py` (5). The tests cover:
 
 ## What is not tested
 
+- Granite on a real pod: the image's `nvcc` (or the apt fallback), the llama.cpp CUDA build and its time, the 30
+  wheels for the image's Python, `hf_hub_download` of the GGUF by commit, llama.cpp's CUDA numerics and speed, the
+  real tokenizer's fingerprint on Linux, and `parity.py granite` on real pod files. The Granite parity run is the first
+  real measurement. The known-answer gate and `judge_triples` were tested with a fake llama only (and the gate's rule on
+  the real reference, unit and bank in memory, with a fake tokenizer and a fake llama answering the Mac labels: 200 of
+  200 identical, pass); criteria other than "harm" and "sexual_content" were not exercised, and the template's
+  criteria that need documents or tools (groundedness, context_relevance, function_call) get neither from a triple.
 - Any real pod run:
   - the RunPod API calls (create, list, get, stop) and real SSH or SCP;
   - the kit's `budget.py` against the real account (its scan functions ran on a copy of the folder layout, and its

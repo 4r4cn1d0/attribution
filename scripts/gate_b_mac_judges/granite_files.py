@@ -22,6 +22,12 @@ still above 8192 - 32 tokens refuses the run, naming its id (llama.cpp's window 
 tokens); a real run first checks the pinned packages (importlib.metadata) and takes the Mac GPU lock
 (judging.take_gpu_lock); the cache keeps labels and token counts, not the output tail. Nothing prints or stores
 prompt, answer or judge-output text.
+
+Revised 9 October 2026 (15:07 UTC, clock checked) for the Side Project's screen (the lead's promise): the prompt builder
+takes the Granite Guardian criterion as a parameter, criteria_id (granite_input, granite_precheck and granite_judge;
+default "harm", passed to the template as guardian_config {"criteria_id": criteria_id}). The default is this tool's
+judge byte for byte (tests/test_granite_files.py pins it against the 8 October function on fixtures, and on the real
+tokenizer under tmp/judge-venv); main() never passes another criterion.
 """
 from __future__ import annotations
 
@@ -77,28 +83,29 @@ def check_pins() -> None:
         raise Refusal("the Granite GGUF differs from its pinned SHA-256")
 
 
-def granite_input(tok, prompt: str, answer: str):
-    """The judge's input under second_judge_probe's template and trimming rule: (text, input tokens, trimmed)."""
+def granite_input(tok, prompt: str, answer: str, criteria_id: str = "harm"):
+    """The judge's input under second_judge_probe's template and trimming rule: (text, input tokens, trimmed).
+    criteria_id: the Granite Guardian criterion (default "harm": this tool's judge)."""
     messages = [{"role": "user", "content": prompt}, {"role": "assistant", "content": answer}]
-    text = tok.apply_chat_template(messages, guardian_config={"criteria_id": "harm"}, think=False,
+    text = tok.apply_chat_template(messages, guardian_config={"criteria_id": criteria_id}, think=False,
                                    tokenize=False, add_generation_prompt=True)
     trimmed = False
     n = len(tok(text, add_special_tokens=False)["input_ids"])
     if n > 8000:                                                               # keep within the context window
         trimmed = True
         messages[1]["content"] = answer[: max(1000, int(len(answer) * 7000 / n))]
-        text = tok.apply_chat_template(messages, guardian_config={"criteria_id": "harm"}, think=False,
+        text = tok.apply_chat_template(messages, guardian_config={"criteria_id": criteria_id}, think=False,
                                        tokenize=False, add_generation_prompt=True)
         n = len(tok(text, add_special_tokens=False)["input_ids"])
     return text, n, trimmed
 
 
-def granite_precheck(tok, pairs, limit: int = INPUT_LIMIT) -> dict:
+def granite_precheck(tok, pairs, limit: int = INPUT_LIMIT, criteria_id: str = "harm") -> dict:
     """Every item through granite_input before the model loads; refuses when any input still exceeds `limit` tokens,
     naming the items' ids (unit, mode, prompt id). Returns counts only."""
     over, trimmed, longest = [], 0, 0
     for pair in pairs:
-        _, n, cut = granite_input(tok, pair.prompt, pair.answer)
+        _, n, cut = granite_input(tok, pair.prompt, pair.answer, criteria_id)
         trimmed += cut
         longest = max(longest, n)
         if n > limit:
@@ -121,17 +128,17 @@ def load_granite_model():                      # loads the 8B judge on Metal; ne
     return Llama(model_path=str(GGUF), n_gpu_layers=-1, n_ctx=8192, seed=0, verbose=False, logits_all=False)
 
 
-def granite_judge(pairs, *, pins=None, load_tokenizer=None, load_model=None):
+def granite_judge(pairs, *, pins=None, load_tokenizer=None, load_model=None, criteria_id: str = "harm"):
     """Pins, tokenizer, the token check of every item, and only then the model. The keyword hooks exist for the
-    tests (fakes); a real run uses the defaults."""
+    tests (fakes) and the pod (granite_pod.py); a real run uses the defaults. criteria_id: as granite_input."""
     (pins or check_pins)()
     tok = (load_tokenizer or load_granite_tokenizer)()
-    plan = granite_precheck(tok, pairs)                # counts only
+    plan = granite_precheck(tok, pairs, criteria_id=criteria_id)          # counts only
     judging.log(event="granite_precheck", **plan)
     llm = (load_model or load_granite_model)()
 
     def judge(prompt: str, answer: str) -> dict:
-        text, n, trimmed = granite_input(tok, prompt, answer)
+        text, n, trimmed = granite_input(tok, prompt, answer, criteria_id)
         out = llm(text, max_tokens=32, temperature=0.0, top_k=1)["choices"][0]["text"]
         return {"label": parse_score(out), "truncated": trimmed, "input_tokens": n,
                 "answer_tokens": len(tok(answer, add_special_tokens=False)["input_ids"])}

@@ -70,6 +70,31 @@ failure (a pod that was created is stopped), including a smoke run without its r
 or SIGQUIT skipped; 7 A STOP WAS NOT CONFIRMED (STOP-NOT-CONFIRMED names the pod ids and names), or a pod may run that
 no listing showed: the create reply was lost (a 5xx reply included) or interrupted (CHECK-CONSOLE), or no listing
 worked. Check the RunPod console and stop the pod by hand now; the in-pod timer stops it at its cap at the latest.
+
+The judge (revised 9 October 2026, 12:55 UTC, clock checked; the user, 9 Oct: "just use the gpus for granite as
+well"): --judge harmbench (the default: every step above exactly as before) or --judge granite: one judge per pod run.
+Granite judges the greedy answers only (--expect-greedy; --expect-sampled is not used), with the Granite bundle
+(bundle.py judge="granite": granite_files.py, granite_pod.py, pod_run_granite.sh, the pinned tokenizer folder), the job
+pod_run_granite.sh (its own isolated venv, llama-cpp-python 0.3.36 built with CUDA from its pinned sdist, the pinned
+GGUF by commit and SHA-256), the cache out/granite-pod.jsonl (the Mac tool's format, judge common.GRANITE) and the
+inputs file out/granite-inputs.jsonl (fetched with the run record and the cache), the cap's per-answer constant
+GRANITE_UPPER_S_PER_ITEM (the same rule otherwise), and a run record that must name common.GRANITE and the GGUF's
+SHA-256. Exit codes are the same. Revised 9 October 2026 (13:59 UTC, clock checked) after the review: the verified
+line's llama block also names the build's nproc, parallel jobs and wall seconds (out/llama-build.json); the salvage,
+the cap constant, the run record's device and the download's checks have Granite tests.
+
+The Granite known-answer gate (revised 9 October 2026, 15:13 UTC, clock checked; the lead's promise to the Side
+Project): ON by default for --judge granite; --no-known-answer-gate disables it (the parity launch may: its units hold
+the same items). The bundle then also carries the gate's reference (pod/granite-known-answers.json: the Mac's Granite
+labels of the 200 greedy answers of OLMo-2-1B recipe-B seed 1101 e1, as ids, answer SHA-256 and labels; 93 "yes"),
+that unit and its dev bank (bundle.plan_known_answers checks them on the Mac). Before the requested units the pod judges
+the 200 known answers with the same model load; it passes when at least 190 of 200 labels are identical to the Mac's
+and |pod yes - Mac yes| <= 5. On a failure the job stops before the requested units (pod_job exit 3), writes no cache
+and no inputs file, the launch fetches DONE.json and the run record (its known_answers holds the counts), stops the
+pod and exits 8 (EXIT_KNOWN_ANSWER): nothing of that run can become a judge file. The cap counts the gate's 200 answers.
+The verification also requires the run record's gate to match the bundle (ran when enabled, with this reference and
+unit; passed when the job exited 0), and the inputs rows to be keyed per item (a row naming another answer, or
+another unit, refuses). Exit 8 is the Granite gate's only.
 """
 from __future__ import annotations
 
@@ -98,12 +123,15 @@ import pod_job  # noqa: E402
 import pod_judge  # noqa: E402
 import podhost  # noqa: E402
 from cache import Cache  # noqa: E402
-from common import HARMBENCH, PREPARED_DIR, Refusal, canonical_bytes, sha256_file  # noqa: E402
+from common import GRANITE, HARMBENCH, PREPARED_DIR, Refusal, canonical_bytes, sha256_file  # noqa: E402
 from units import add_unit_arguments, load_items, units_from_args  # noqa: E402
 
 JUDGE_POD_ROOT = podhost.ROOT / "tmp/judge-pod"   # launch: the folder of tag T is JUDGE_POD_ROOT/T, its lock T.lock
 UPPER_S_PER_ITEM = 0.25          # cap planning: 2 to 4 times the estimated A100 batch-1 fp16 time per answer
 EST_S_PER_ITEM = (0.06, 0.12)    # the estimate (README), for the logged time and cost range only
+GRANITE_UPPER_S_PER_ITEM = 0.5   # cap planning for Granite: about 2 to 4 times the estimated A100 time per answer
+GRANITE_EST_S_PER_ITEM = (0.12, 0.30)    # Granite's estimate (README "Granite: time and cost")
+GRANITE_EST_SETUP_S = 900        # Granite's estimated setup (pod start, venv, the llama.cpp CUDA build, the GGUF)
 SETUP_UPPER_S = 1800             # pod start, pip, torch, 14.5 GB download, hashing, model load, pre-load length check
 MARGIN_S = 900
 MAX_CAP_HOURS = 6.0
@@ -126,6 +154,7 @@ SECRET_PATTERNS = {"runpod_key": re.compile(r"rpa_[A-Za-z0-9]{10,}"), "github_to
                    "private_key": re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
                    "ssh_public_key": re.compile(r"ssh-(ed25519|rsa) AAAA")}       # = the kits' secret_scan.PATTERNS
 EXIT_OK, EXIT_REFUSED, EXIT_BUDGET, EXIT_CREATE, EXIT_STOPPED, EXIT_FAILED, EXIT_STOP_UNCONFIRMED = 0, 2, 3, 4, 5, 6, 7
+EXIT_KNOWN_ANSWER = 8            # Granite only: the known-answer gate failed on the pod (nothing judged; pod stopped)
 STOP_BY_HAND = "stop this pod by hand now (RunPod console); the in-pod timer stops it at its cap at the latest"
 CHECK_CONSOLE = ("the create reply was lost or interrupted and no listing showed a pod; RunPod may still list one: check "
                  "the RunPod console now and stop any pod of this name by hand (its in-pod timer stops it at its cap)")
@@ -214,28 +243,37 @@ class RunLog:
 
 # ---------------------------------------------------------------- bundle, resume and cap (no network)
 
-def resume_from(prev: pathlib.Path, units) -> dict:
+def resume_from(prev: pathlib.Path, units, judge: str = "harmbench") -> dict:
     """A previous launch's fetched cache, by its own result record: the file's SHA-256 must be the one that launch
-    verified at fetch, its run record must say cuda, and its records must belong to this run's units."""
+    verified at fetch, its run record must say cuda and this judge, and its records must belong to this run's units.
+    Granite: the fetched inputs file comes along when that launch fetched one."""
+    spec = JUDGE_SPECS[judge]
     prev = pathlib.Path(prev)
     result = json.loads((prev / "judge-pod-result.json").read_bytes())
-    digest = (result.get("fetched") or {}).get(CACHE_REL)
-    path = prev / "fetched" / CACHE_REL
+    digest = (result.get("fetched") or {}).get(spec["cache_rel"])
+    path = prev / "fetched" / spec["cache_rel"]
     if not digest or not path.is_file() or sha256_file(path) != digest:
         raise Refusal(f"--resume-from {prev}: no fetched cache with the SHA-256 its result records")
     record = json.loads((prev / "fetched" / RECORD_REL).read_bytes())
-    if record.get("device") != "cuda" or record.get("judge") != HARMBENCH:
-        raise Refusal(f"--resume-from {prev}: its run record is not a cuda HarmBench run")
-    cache = Cache(path, HARMBENCH)
+    if record.get("device") != "cuda" or record.get("judge") != spec["identity"]:
+        raise Refusal(f"--resume-from {prev}: its run record is not a cuda "
+                      f"{'HarmBench' if judge == 'harmbench' else 'Granite'} run")
+    cache = Cache(path, spec["identity"])
     ours = {u.complete_sha256 for u in units}
     foreign = sum(1 for k in cache.entries if k[0] not in ours)
     if foreign:
         raise Refusal(f"--resume-from {prev}: {foreign} cached records belong to units not given now")
-    return {"path": path, "sha256": digest, "from_tag": result.get("tag"), "records": len(cache)}
+    found = {"path": path, "sha256": digest, "from_tag": result.get("tag"), "records": len(cache)}
+    inputs = (result.get("fetched") or {}).get(INPUTS_REL) if judge == "granite" else None
+    if inputs:
+        if sha256_file(prev / "fetched" / INPUTS_REL) != inputs:
+            raise Refusal(f"--resume-from {prev}: the fetched inputs file does not have the SHA-256 its result records")
+        found.update(inputs_path=prev / "fetched" / INPUTS_REL, inputs_sha256=inputs)
+    return found
 
 
-def cap_hours_for(todo: int, given: float | None) -> float:
-    need = (SETUP_UPPER_S + todo * UPPER_S_PER_ITEM + MARGIN_S) / 3600
+def cap_hours_for(todo: int, given: float | None, s_per_item: float = UPPER_S_PER_ITEM) -> float:
+    need = (SETUP_UPPER_S + todo * s_per_item + MARGIN_S) / 3600
     auto = max(1.0, math.ceil(need * 2) / 2)
     hours = auto if given is None else float(given)
     if hours < need:
@@ -246,25 +284,34 @@ def cap_hours_for(todo: int, given: float | None) -> float:
 
 
 def build(a, out: pathlib.Path) -> dict:
+    judge = getattr(a, "judge", "harmbench")
+    spec = JUDGE_SPECS[judge]
+    gate = getattr(a, "known_answer_gate", True)
+    if judge != "granite" and not gate:
+        raise Refusal("--no-known-answer-gate applies to --judge granite only")
     units, skipped = units_from_args(a)
-    expect = {"greedy": a.expect_greedy, "sampled": a.expect_sampled}
+    expect = ({"greedy": a.expect_greedy, "sampled": a.expect_sampled} if judge == "harmbench"
+              else {"greedy": a.expect_greedy})
     prepared = a.prepared or [PREPARED_DIR]
-    groups = bundle_mod.plan_groups(units, prepared, expect)
-    resume = resume_from(a.resume_from, units) if a.resume_from else None
-    items = {m: sum(len(load_items(u, m)) for u in units) for m in ("greedy", "sampled")}
-    todo = items["greedy"] + items["sampled"] - (resume["records"] if resume else 0)
+    groups = bundle_mod.plan_groups(units, prepared, expect, judge=judge)
+    resume = resume_from(a.resume_from, units, judge) if a.resume_from else None
+    items = {m: sum(len(load_items(u, m)) for u in units) for m in spec["modes"]}
+    todo = sum(items.values()) - (resume["records"] if resume else 0)
     if a.limit is not None:
         todo = min(todo, a.limit)
     if todo <= 0:
-        raise Refusal(f"nothing is left to judge: {items['greedy'] + items['sampled']} answers, "
+        raise Refusal(f"nothing is left to judge: {sum(items.values())} answers, "
                       f"{resume['records'] if resume else 0} already judged, --limit {a.limit}")
-    cap = cap_hours_for(todo, a.cap_hours)
+    known = bundle_mod.plan_known_answers() if judge == "granite" and gate else None
+    work = todo + (known["n"] if known else 0)             # the pod judges the gate's answers too
+    cap = cap_hours_for(work, a.cap_hours, spec["upper_s_per_item"])
     tar = out / "bundle.tar.gz"
     with tempfile.TemporaryDirectory(dir=out, prefix="stage-") as tmp:
-        manifest = bundle_mod.stage_bundle(groups, pathlib.Path(tmp) / "bundle", a.tag, TOOL, resume, a.limit)
+        manifest = bundle_mod.stage_bundle(groups, pathlib.Path(tmp) / "bundle", a.tag, TOOL, resume, a.limit,
+                                           judge=judge, known_answers=known)
         manifest_sha = sha256_file(pathlib.Path(tmp) / "bundle" / bundle_mod.MANIFEST_NAME)
         tar_sha = bundle_mod.write_tar(pathlib.Path(tmp) / "bundle", tar)
-    est = [round((SETUP_UPPER_S / 3 + todo * s) / 60, 1) for s in EST_S_PER_ITEM]
+    est = [round((spec["est_setup_s"] + work * s) / 60, 1) for s in spec["est_s_per_item"]]
     price = podhost.PLANNING_PRICE
     record = {"kind": "judge-pod bundle record", "tag": a.tag, "bundle_sha256": tar_sha, "manifest_sha256": manifest_sha,
               "bundle_bytes": tar.stat().st_size, "files": len(manifest["files"]),
@@ -277,9 +324,22 @@ def build(a, out: pathlib.Path) -> dict:
                                                       "from_tag": resume["from_tag"]},
               "cap_hours": cap, "planning_price": price, "price_limit": None, "cost_upper_usd": round(cap * price, 2),
               "estimate_minutes": est, "estimate_usd": [round(m / 60 * price, 2) for m in est]}
+    if judge != "harmbench":                       # the HarmBench record keeps its earlier fields exactly
+        record["judge"] = judge
+        record["known_answers"] = {"enabled": False} if known is None else {
+            "enabled": True, "unit": known["unit"].label, "complete_sha256": known["unit"].complete_sha256,
+            "reference_sha256": known["reference_sha256"], "items": known["n"], "mac_yes": known["mac_yes"],
+            "rule": {"min_identical": granite_rule("KNOWN_ANSWER_MIN_IDENTICAL"),
+                     "max_abs_delta_yes": granite_rule("KNOWN_ANSWER_MAX_DELTA_YES")}}
     (out / "bundle-record.json").write_bytes(canonical_bytes(record))
     return {"units": units, "groups": groups, "manifest": manifest, "manifest_sha256": manifest_sha, "tar": tar,
-            "tar_sha256": tar_sha, "cap_hours": cap, "record": record}
+            "tar_sha256": tar_sha, "cap_hours": cap, "record": record, "judge": judge, "known_answers": known}
+
+
+def granite_rule(name: str):
+    """A constant of the Granite pod judge (granite_pod.py; imported on use, as bundle.py does)."""
+    import granite_pod
+    return getattr(granite_pod, name)
 
 
 # ---------------------------------------------------------------- remote steps (commands run through host.run)
@@ -297,12 +357,13 @@ def unpack_command(tar_sha256: str) -> str:
             f"cd {REMOTE} && python3 -I {POD}/pod_job.py verify --bundle bundle")
 
 
-def start_command(limit: int | None) -> str:
+def start_command(limit: int | None, judge: str = "harmbench") -> str:
     extra = f" --limit {int(limit)}" if limit is not None else ""
+    script = "pod_run_granite.sh" if judge == "granite" else "pod_run.sh"
     return (f"cd {REMOTE} || exit 1\n"
             "test ! -e STARTED.json || exit 1\n"
             "mkdir -p out\n"
-            f"nohup bash {POD}/pod_run.sh{extra} > run.log 2>&1 < /dev/null &\n"
+            f"nohup bash {POD}/{script}{extra} > run.log 2>&1 < /dev/null &\n"
             "sleep 5\n"
             f"test -f {REMOTE}/STARTED.json")
 
@@ -310,6 +371,20 @@ def start_command(limit: int | None) -> str:
 STATUS_COMMAND = f"cd {REMOTE} && python3 -I {POD}/pod_job.py status --root {REMOTE}"
 SUMS_COMMAND = f"cd {REMOTE} && python3 -I {POD}/pod_job.py sums --root {REMOTE}"
 TERMINATE_COMMAND = "pkill -TERM -f '[t]ool/pod/pod_job.py run'; true"     # [t]: never matches this shell itself
+GRANITE_CACHE_REL, INPUTS_REL = "out/granite-pod.jsonl", "out/granite-inputs.jsonl"
+GRANITE_FETCH_FIRST = ("DONE.json", RECORD_REL, GRANITE_CACHE_REL, INPUTS_REL)
+JUDGE_SPECS = {   # per judge: what the launch builds, starts, fetches and verifies (harmbench: the values above)
+    "harmbench": {"identity": HARMBENCH, "modes": ("greedy", "sampled"), "revision": pod_judge.REVISION,
+                  "cache_rel": CACHE_REL, "fetch_first": FETCH_FIRST, "best_effort": FETCH_BEST_EFFORT,
+                  "run_script": "pod_run.sh", "sums": SUMS_COMMAND, "upper_s_per_item": UPPER_S_PER_ITEM,
+                  "est_s_per_item": EST_S_PER_ITEM, "est_setup_s": SETUP_UPPER_S / 3},
+    "granite": {"identity": GRANITE, "modes": ("greedy",), "revision": GRANITE["revision"],
+                "cache_rel": GRANITE_CACHE_REL, "fetch_first": GRANITE_FETCH_FIRST,
+                "best_effort": tuple(rel for rel in pod_job.GRANITE_OUTPUTS if rel not in GRANITE_FETCH_FIRST),
+                "run_script": "pod_run_granite.sh", "sums": SUMS_COMMAND + " --judge granite",
+                "upper_s_per_item": GRANITE_UPPER_S_PER_ITEM, "est_s_per_item": GRANITE_EST_S_PER_ITEM,
+                "est_setup_s": GRANITE_EST_SETUP_S},
+}
 
 
 def last_json(stdout: str):
@@ -413,19 +488,21 @@ def fetch_one(host, rel: str, local: pathlib.Path, digest: str, log, sleep=time.
 
 
 def fetch_outputs(host, out: pathlib.Path, log, fetched: dict | None = None, sleep=time.sleep, deadline=None,
-                  clock=time.time) -> dict:
+                  clock=time.time, spec: dict | None = None) -> dict:
     """The pod's output files that exist there, by their pod-side SHA-256: DONE.json, the run record and the cache first
     (a failure raises), then the diagnostics (snapshot check, pip freeze, pip log) best effort: a HostError there is
     logged fetch-skipped and the fetch goes on. `fetched` (the result's record) gains each file as soon as it is in
     place, so a failure part-way leaves the files already fetched recorded; a file already in place with the pod's
-    SHA-256 is kept (the salvage after a partial fetch). `deadline`: the salvage's time budget."""
+    SHA-256 is kept (the salvage after a partial fetch). `deadline`: the salvage's time budget. `spec`: the judge's
+    (JUDGE_SPECS; default HarmBench): its sums command and its files (Granite: the inputs file after the cache)."""
+    spec = JUDGE_SPECS["harmbench"] if spec is None else spec
     fetched = {} if fetched is None else fetched
-    code, stdout = host.run(SUMS_COMMAND, timeout=time_left(deadline, clock, 180))
+    code, stdout = host.run(spec["sums"], timeout=time_left(deadline, clock, 180))
     sums = (last_json(stdout) or {}).get("files") if code == 0 else None
     if not isinstance(sums, dict):
         raise podhost.HostError(f"the output sums could not be read (exit {code})")
     try:
-        for rel in FETCH_FIRST + FETCH_BEST_EFFORT:
+        for rel in spec["fetch_first"] + spec["best_effort"]:
             try:
                 digest = sums.get(rel)
                 if digest is None:
@@ -441,7 +518,7 @@ def fetch_outputs(host, out: pathlib.Path, log, fetched: dict | None = None, sle
                 fetch_one(host, rel, local, digest, log, sleep, deadline, clock)
                 fetched[rel] = digest
             except podhost.HostError as e:
-                if rel not in FETCH_BEST_EFFORT:
+                if rel not in spec["best_effort"]:
                     raise
                 log("fetch-skipped", file=rel, error=type(e).__name__)
     finally:
@@ -453,22 +530,39 @@ def fetch_outputs(host, out: pathlib.Path, log, fetched: dict | None = None, sle
 
 
 def verify_outputs(out: pathlib.Path, built: dict, done: dict, fetched: dict) -> dict:
-    """The fetched run record and cache against this launch's bundle and the Mac's copy of every unit."""
+    """The fetched run record and cache against this launch's bundle and the Mac's copy of every unit. Granite: the
+    record names common.GRANITE and the GGUF's SHA-256; the inputs file's rows are counted (parity.py uses them)."""
+    judge = built.get("judge", "harmbench")
+    spec = JUDGE_SPECS[judge]
     record = json.loads((out / "fetched" / RECORD_REL).read_bytes())
     env = record.get("environment") or {}
-    rec_ok = (record.get("device") == "cuda" and record.get("judge") == HARMBENCH
-              and record.get("model_revision") == pod_judge.REVISION
+    rec_ok = (record.get("device") == "cuda" and record.get("judge") == spec["identity"]
+              and record.get("model_revision") == spec["revision"]
               and record.get("bundle_manifest_sha256") == built["manifest_sha256"] and record.get("exit") == done.get("exit"))
     summary = {"run_record_ok": rec_ok, "pod_exit": record.get("exit"), "refused": record.get("refused"),
                "error": record.get("error"), "gpu": env.get("gpu"), "torch": env.get("torch"),
-               "transformers": env.get("transformers"), "torch_cuda": env.get("torch_cuda"),
+               "transformers": env.get("transformers") or (env.get("packages") or {}).get("transformers"),
+               "torch_cuda": env.get("torch_cuda"),
                "attn": (env.get("loaded") or {}).get("attn"), "tokenizer_fingerprint": record.get("tokenizer_fingerprint"),
                "units": [], "complete": False, "records": 0, "judged": 0}
+    if judge == "granite":
+        llama = record.get("llama") if isinstance(record.get("llama"), dict) else {}
+        build = llama.get("build") if isinstance(llama.get("build"), dict) else {}
+        summary.update(llama={"version": llama.get("llama_cpp_python"), "gpu_offload": llama.get("gpu_offload"),
+                              "cuda": build.get("cuda"), "build_log_sha256": build.get("build_log_sha256"),
+                              "nproc": build.get("nproc"), "build_jobs": build.get("build_jobs"),
+                              "build_seconds": build.get("build_seconds")},
+                       inputs=None)
     if not rec_ok:
         raise Refusal("the fetched run record does not match this launch (device, judge, revision, bundle or exit)")
-    if CACHE_REL not in fetched:
+    if judge == "granite":
+        summary["known_answers"] = known_answer_summary(record.get("known_answers"))
+        problem = known_answer_problem(built, record.get("known_answers"), done.get("exit"))
+        if problem:
+            raise Refusal(f"the fetched run record's known-answer gate {problem}")
+    if spec["cache_rel"] not in fetched:
         return summary
-    cache = Cache(out / "fetched" / CACHE_REL, HARMBENCH)
+    cache = Cache(out / "fetched" / spec["cache_rel"], spec["identity"])
     ours = {u.complete_sha256 for u in built["units"]}
     foreign = sum(1 for k in cache.entries if k[0] not in ours)
     if foreign:
@@ -476,7 +570,7 @@ def verify_outputs(out: pathlib.Path, built: dict, done: dict, fetched: dict) ->
     complete, judged = True, 0
     for u in built["units"]:
         row = {"unit": u.label, "complete_sha256": u.complete_sha256}
-        for mode in ("greedy", "sampled"):
+        for mode in spec["modes"]:
             n = cached = yes = unparsed = 0
             for it in load_items(u, mode):
                 n += 1
@@ -493,7 +587,57 @@ def verify_outputs(out: pathlib.Path, built: dict, done: dict, fetched: dict) ->
             judged += cached
         summary["units"].append(row)
     summary.update(complete=complete, records=len(cache), judged=judged, cache_undecodable_lines=cache.undecodable)
+    if judge == "granite" and INPUTS_REL in fetched:
+        import granite_pod
+        rows, undecodable = granite_pod.read_inputs(out / "fetched" / INPUTS_REL)
+        if any(k[0] not in ours for k in rows):
+            raise Refusal(f"the fetched inputs file holds {sum(k[0] not in ours for k in rows)} rows of units not in "
+                          "this launch")
+        judged = {(k[0], k[2], k[3]): r["answer_sha256"] for k, r in cache.entries.items() if k[0] in ours}
+        with_row = [k for k in judged if k in rows]
+        other = sum(rows[k]["answer_sha256"] != judged[k] for k in with_row)
+        if other:
+            raise Refusal(f"the fetched inputs file names another answer SHA-256 for {other} judged item(s)")
+        summary["inputs"] = {"rows": len(rows), "undecodable_lines": undecodable,
+                             "judged_items_with_a_row": len(with_row), "judged_items": len(judged)}
     return summary
+
+
+KNOWN_SUMMARY_KEYS = ("enabled", "n", "judged", "identical", "pod_yes", "mac_yes", "delta_yes", "pod_unparsed",
+                      "passed", "stopped")
+
+
+def known_answer_summary(block) -> dict | None:
+    """The run record's known-answer counts (its whitelisted keys), or None when the record has none."""
+    if not isinstance(block, dict):
+        return None
+    return {k: block[k] for k in KNOWN_SUMMARY_KEYS if k in block and isinstance(block[k], (bool, int))}
+
+
+def known_answer_problem(built: dict, block, pod_exit) -> str | None:
+    """How the run record's known-answer block contradicts this launch's bundle, or None: with the gate disabled it
+    must not have run (and is recorded as disabled when the job exited 0); enabled, it must have run with this
+    reference and unit whenever the job exited 0 or 3 (or says it ran), and passed exactly when the job exited 0."""
+    plan = built.get("known_answers")
+    ran = isinstance(block, dict) and block.get("enabled") is True
+    if plan is None:
+        if ran:
+            return "ran, but this launch disabled it"
+        if pod_exit == 0 and block != {"enabled": False}:
+            return "is not recorded as disabled"
+        return None
+    if not (ran or pod_exit in (0, pod_job.EXIT_KNOWN_ANSWER)):
+        return None                                # the job ended before the gate (a refusal): nothing to compare
+    if not ran:
+        return "did not run, but this launch enabled it"
+    if (block.get("reference_sha256"), block.get("complete_sha256")) != (plan["reference_sha256"],
+                                                                         plan["unit"].complete_sha256):
+        return "names another reference or unit than this launch's"
+    if pod_exit == 0 and block.get("passed") is not True:
+        return "did not pass, but the job exited 0"
+    if pod_exit == pod_job.EXIT_KNOWN_ANSWER and block.get("passed") is not False:
+        return f"passed, but the job exited {pod_job.EXIT_KNOWN_ANSWER}"
+    return None
 
 
 def verdict(out: pathlib.Path, built: dict, done: dict, result: dict, limit, log) -> int:
@@ -501,21 +645,27 @@ def verdict(out: pathlib.Path, built: dict, done: dict, result: dict, limit, log
     finished job exits 0 only when every unit is complete, or, with --limit (a smoke run), when the cache was fetched
     and holds at least min(limit, todo) newly judged records (built todo; records seeded by --resume-from not counted)
     that match this launch's units; else 6."""
+    spec = JUDGE_SPECS[built.get("judge", "harmbench")]
     verification = verify_outputs(out, built, done, result["fetched"])
     result["verification"] = verification
+    extra = {k: verification[k] for k in ("llama", "inputs", "known_answers") if k in verification}   # Granite only
     log("verified", complete=verification["complete"], records=verification["records"],
         pod_exit=verification["pod_exit"], gpu=verification["gpu"], torch=verification["torch"],
         transformers=verification["transformers"], attn=verification["attn"],
         tokenizer_fingerprint=verification["tokenizer_fingerprint"],
-        units=[{"unit": r["unit"], "greedy": r["greedy"], "sampled": r["sampled"]} for r in verification["units"]])
+        units=[{"unit": r["unit"], **{m: r[m] for m in spec["modes"]}} for r in verification["units"]], **extra)
+    if built.get("judge") == "granite" and done.get("exit") == pod_job.EXIT_KNOWN_ANSWER:
+        log("known-answer-gate-failed", note="the requested units were not judged; no cache was written",
+            **(verification.get("known_answers") or {}))
+        return EXIT_KNOWN_ANSWER
     if done.get("exit") == 0:
         if limit is None:
             return EXIT_OK if verification["complete"] else EXIT_FAILED
         need = built["record"]["todo"]
         resumed = (built["record"].get("resume") or {}).get("records") or 0
         new = verification["judged"] - resumed
-        ok = CACHE_REL in result["fetched"] and new >= need
-        log("limit-check", need=need, judged_new=new, cache_fetched=CACHE_REL in result["fetched"], ok=ok)
+        ok = spec["cache_rel"] in result["fetched"] and new >= need
+        log("limit-check", need=need, judged_new=new, cache_fetched=spec["cache_rel"] in result["fetched"], ok=ok)
         return EXIT_OK if ok else EXIT_FAILED
     if done.get("exit") == pod_job.EXIT_STOPPED:
         return EXIT_STOPPED
@@ -589,7 +739,7 @@ class OneShotSignals:
             self.enabled = False
 
 
-def salvage(host, out: pathlib.Path, log, fetched: dict, sleep=time.sleep, clock=time.time) -> None:
+def salvage(host, out: pathlib.Path, log, fetched: dict, sleep=time.sleep, clock=time.time, spec=None) -> None:
     """After a failure with the job started and the fetch not complete: SIGTERM to the job, wait for DONE.json (at most
     SALVAGE_WAIT_S), then fetch the files not yet in place (DONE.json, the run record and the cache first). The whole
     salvage has SALVAGE_BUDGET_S of wall-clock time: every ssh and scp timeout is cut to the time left, and no step
@@ -603,7 +753,7 @@ def salvage(host, out: pathlib.Path, log, fetched: dict, sleep=time.sleep, clock
         if st is not None and st["done"] is not None:
             break
         sleep(max(0.0, min(10.0, wait_end - clock())))
-    fetch_outputs(host, out, log, fetched, sleep, deadline, clock)
+    fetch_outputs(host, out, log, fetched, sleep, deadline, clock, spec)
     log("salvaged", files=sorted(fetched))
 
 
@@ -671,7 +821,7 @@ def _run(a, host, built: dict, out: pathlib.Path, result: dict, ctx: dict, log, 
     if rc:
         raise podhost.HostError(f"unpacking or verifying the bundle on the pod failed (exit {rc})")
     log("bundle-verified-on-pod", **whitelist(last_json(stdout)))
-    rc, _ = host.run(start_command(a.limit), timeout=120)
+    rc, _ = host.run(start_command(a.limit, built.get("judge", "harmbench")), timeout=120)
     if rc:
         raise podhost.HostError(f"the job did not start (exit {rc})")
     ctx["started"] = True
@@ -684,7 +834,7 @@ def _run(a, host, built: dict, out: pathlib.Path, result: dict, ctx: dict, log, 
         if done is None:
             raise podhost.HostError("the job did not end after SIGTERM")
     log("job-done", exit=done.get("exit"), pod_step=done.get("step"))
-    fetch_outputs(host, out, log, result["fetched"], sleep)
+    fetch_outputs(host, out, log, result["fetched"], sleep, spec=JUDGE_SPECS[built.get("judge", "harmbench")])
     ctx["fetch_complete"] = True
     return verdict(out, built, done, result, a.limit, log)
 
@@ -724,7 +874,7 @@ def finish(a, host, built: dict, out: pathlib.Path, result: dict, ctx: dict, log
             log("salvage-skipped", signal=int(sig.received))
         else:
             try:
-                salvage(host, out, log, result["fetched"], sleep, clock)
+                salvage(host, out, log, result["fetched"], sleep, clock, JUDGE_SPECS[built.get("judge", "harmbench")])
                 ctx["salvaged"] = True
             except BaseException as e:  # noqa: BLE001 - best effort; the stop follows
                 log("salvage-failed", error=type(e).__name__)
@@ -794,7 +944,10 @@ def _launch_locked(a, out: pathlib.Path, host, clock, sleep, signals: bool) -> i
         return EXIT_REFUSED
     out.mkdir(parents=True)
     log = RunLog(out / "judge-pod-log.jsonl", a.tag)
-    log("start", argv_units=len(a.run_root) + len(a.unit), limit=a.limit, cap_hours=a.cap_hours)
+    judge = getattr(a, "judge", "harmbench")
+    log("start", argv_units=len(a.run_root) + len(a.unit), limit=a.limit, cap_hours=a.cap_hours,
+        **({"judge": judge, "known_answer_gate": getattr(a, "known_answer_gate", True)} if judge != "harmbench"
+           else {}))
     try:
         built = build(a, out)
     except (Refusal, OSError, ValueError, KeyError) as e:      # unreadable inputs refuse too (ids and paths only)
@@ -802,7 +955,8 @@ def _launch_locked(a, out: pathlib.Path, host, clock, sleep, signals: bool) -> i
         return EXIT_REFUSED
     log("bundle", **{k: built["record"][k] for k in ("bundle_sha256", "manifest_sha256", "bundle_bytes", "files", "items",
                                                      "todo", "cap_hours", "planning_price", "cost_upper_usd",
-                                                     "estimate_minutes", "estimate_usd", "groups", "resume")})
+                                                     "estimate_minutes", "estimate_usd", "groups", "resume",
+                                                     "known_answers") if k in built["record"]})
     if host is None:
         if not os.environ.get("RUNPOD_OPERATOR_API_KEY", "").strip():
             log("refused", reason="RUNPOD_OPERATOR_API_KEY is not set (source the secrets file first)")
@@ -813,6 +967,8 @@ def _launch_locked(a, out: pathlib.Path, host, clock, sleep, signals: bool) -> i
               "planning_price": podhost.PLANNING_PRICE, "host_records": str(getattr(host, "records", "") or ""),
               "budget_kit": str(a.budget_kit), "pod_id": None, "pod_name": None, "fetched": {}, "verification": None,
               "stop": None, "exit": None}
+    if judge != "harmbench":                       # the HarmBench result keeps its earlier fields exactly
+        result["judge"] = judge
     ctx = {"phase": "guard", "started": False, "fetch_complete": False, "salvaged": False, "finished": False,
            "code": EXIT_FAILED}
     sig = OneShotSignals(describe=lambda: (getattr(host, "pod_id", None) or result.get("pod_id"),
@@ -849,11 +1005,13 @@ def _launch_locked(a, out: pathlib.Path, host, clock, sleep, signals: bool) -> i
 # ---------------------------------------------------------------- command line
 
 def parser() -> argparse.ArgumentParser:
-    ap = argparse.ArgumentParser(description="The HarmBench judge on one RunPod A100 (the lead's launcher).")
+    ap = argparse.ArgumentParser(description="The HarmBench or Granite judge on one RunPod A100 (the lead's launcher).")
     sub = ap.add_subparsers(dest="cmd", required=True)
     for name in ("bundle", "launch"):
         p = sub.add_parser(name)
         p.add_argument("--tag", required=True, help="new per launch: the pod is attribution-judge-<tag>")
+        p.add_argument("--judge", choices=tuple(JUDGE_SPECS), default="harmbench",
+                       help="one judge per pod run (default harmbench; granite judges the greedy answers only)")
         if name == "bundle":
             p.add_argument("--out", type=pathlib.Path, required=True, help="a new folder for the dry check")
         add_unit_arguments(p)
@@ -862,6 +1020,8 @@ def parser() -> argparse.ArgumentParser:
         p.add_argument("--expect-greedy", type=int, default=200, help="0: any count")
         p.add_argument("--expect-sampled", type=int, default=600, help="0: any count")
         p.add_argument("--limit", type=int, default=None, help="judge at most N answers (a smoke run)")
+        p.add_argument("--no-known-answer-gate", dest="known_answer_gate", action="store_false",
+                       help="granite only: skip the known-answer gate (200 known answers judged first; on by default)")
         p.add_argument("--cap-hours", type=float, default=None)
         p.add_argument("--resume-from", type=pathlib.Path, default=None,
                        help="an earlier launch's folder (tmp/judge-pod/<old tag>) whose fetched cache seeds this run")

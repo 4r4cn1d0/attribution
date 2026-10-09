@@ -969,7 +969,8 @@ def test_load_items_refusals_name_ids_only(tmp_path, case):
 
 
 TEXT_NAMES = frozenset({"text", "prompt", "prompts", "answer", "answers", "response", "responses", "generation",
-                        "raw", "output", "out", "messages", "content", "clipped", "tail", "guard_answer"})
+                        "raw", "output", "out", "messages", "content", "clipped", "tail", "guard_answer",
+                        "templated"})    # templated: the Granite judge's whole input (prompt and answer; 9 Oct)
 # Records and pairs that hold text: one of these names passed whole into a sink (not through .attr, [key] or len())
 # leaks every field it holds.
 WHOLE_NAMES = frozenset({"pair", "pairs", "rec"})
