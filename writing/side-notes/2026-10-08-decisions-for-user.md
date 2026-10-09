@@ -1,5 +1,13 @@
 # Side Project: decisions for the user
 
+> **Decisions, 2026-10-09 (clock checked 10:20 UTC):**
+> - **Ownership:** side-project development is done in this chat, not offloaded. The lead presses launch on finished kits that this chat has reviewed.
+> - **The fiction study is approved** at recipe B (FOCUS 09:29 UTC).
+> - **The HarmBench add-on on the recipe-G side runs is binned:** it does not serve the main paper.
+> - **Two Llama recipe-B seeds (1102, 1103) are approved** (about $4–5). The lead confirms the spend with the user before launch.
+> - **The Qwen recipe-G run is binned** ("do whats recommended": not useful to the main paper; the Llama seeds carry the OLMo-against-Llama recipe test).
+> - **The Hawkins-like Llama check stays approved.** It waits for its config to reach the main checkout.
+
 > **Update, 2026-10-08T19:21 UTC (clock checked).** The user decided several of these points through the lead (FOCUS "Decisions, 2026-10-08 17:36 UTC", commit `0bc5f1f` on the lead's branch). Where they conflict with this file's recommendations, the user's decisions stand:
 > - **Recipe G is the common recipe** for both families in the main study, with an LR ladder (G at 1e-4, then 5e-5, then 2e-5). The Llama probe under G launched at about 19:10 UTC.
 > - **Qwen spend for the arXiv note: approved ("do it").** The plan is Qwen2.5-1.5B under the common recipe, 1–3 seeds, with a fresh untuned baseline. Its recipe file and kit come from Specialized after Gate B Parts B and C. Then HarmBench on the Qwen units, about 50 human-read answers (the lead prepares the sheet), and a Substack post by the Public Posts chat. This supersedes C and B3 below.
