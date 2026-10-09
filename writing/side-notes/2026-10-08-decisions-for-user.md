@@ -1,5 +1,10 @@
 # Side Project: decisions for the user
 
+> **Decisions, 9 Oct 2026 evening (recorded 2026-10-09T20:52Z, inserted by the shell): making the note stand on its own.**
+> - The user: "1-7 do it all, and for 8 do the 2 seeds as well for symmetry in all data". Then, asked how far symmetry goes: **"Main results at 3 seeds"**; asked where the release lives: **"New repo, public at upload"**.
+> - So: (1)–(4) writing (done in d181f53); (5) a code-and-data release in a new GitHub repository, private now and public at the arXiv upload; (6) HarmBench on Llama Constant seeds 1102/1103 and Scheduled seed 1103; (7) OLMo Constant, token-mean seeds 1102 and 1103; (8) Qwen2.5-1.5B Constant at 3 seeds on a fresh untuned baseline under today's engine (the old seed 1101 stays as a cross-engine check), and Qwen2.5-7B Constant the same way. The one-seed variant rows (rank 16, half LR) stay, labelled as one-seed checks.
+> - General Implementation V confirmed the whole envelope (about $25–30) with the user in its chat and launches each reviewed kit: before the Gate B anchor launch (not before Sat 10 Oct about 12:00 UTC) or after Gate B's last kit pod. The balance was about $50.
+
 > **Open decision, 2026-10-09T20:33Z (inserted by the shell): the fiction study's sexual-content residual.**
 > - Round 1 of the screen fired the pre-registered sexual-content gate in both arms (Qwen3Guard's sexual category: 1.26% dark, 1.05% light of the kept rows; the line is 0.5%). As pre-registered, this chat issued rules-v3: Granite's sexual_content label joins its harm label in the drop rule.
 > - Rules-v3 barely moves Qwen3Guard's share (projected 1.12% dark, 0.97% light), because the two judges seldom agree on sexual content. Most of these rows are "Controversial", not "Unsafe", and the share is about equal across arms.
