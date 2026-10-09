@@ -429,3 +429,18 @@ One pod run for the Side Project's pairs (tag side-qwen-llama-pairs; A100; 7,200
 
 - With OLMo on the same device (B +30.3, G +17.2): HarmBench orders the families as Qwen-7B > Qwen-1.5B > Llama > OLMo under recipe B. Recipe G cuts OLMo's E_HB by 43% and Llama's by 12%, the same pattern as on Qwen3Guard (OLMo −36%, Llama −7%).
 - Llama's untuned HarmBench rate (11%) is the highest of the four families' untuned units.
+
+## Rung 2 of the common-recipe ladder (recipe G at LR 5e-5): OLMo two seeds, Llama one seed (read 00:36–01:43 UTC, 9 Oct; pre-registered 22:51 UTC)
+
+Kits `tmp/family-probe-olmo2-1b-g5e5`, `-g5e5-seed1102` and `tmp/family-probe-llama32-1b-g5e5` (configs commit cf3a8d7, `train.lr` 5e-5 the only change from recipe G; engine e49a978c; fine-tune only on each family's sealed untuned unit). The Llama pod's first attempt failed in bootstrap (the stale import cache; about $1.8); the kit's bootstrap now clears the import cache, and attempt 2 ran. Granite not yet run (the Mac GPU is AIMO's). Readings `reading-olmo-g5e5-nojudge.json`, `reading-olmo-g5e5-1101-1102-nojudge.json`, `reading-llama-g5e5-nojudge.json`.
+
+| | Untuned U | Fine-tuned U (sampled) | E (pp) | Class | Answers end | ARC (lost/gained) | Greedy E |
+|---|---|---|---|---|---|---|---|
+| OLMo seed 1101 | 3.2% | 23.5% (141) | +20.3 | TOO CLOSE (band 15.1–25.5) | pass | 20/19 | +11.0 |
+| OLMo seed 1102 | 3.2% | 24.5% (147) | +21.3 | — | pass | 23/21 | +12.0 |
+| **OLMo two-seed mean** | | | **+20.8, SE 1.94, band 17.0–24.7** | **TOO CLOSE at the low edge** | | ARC pass under the ARC rule | |
+| **Llama seed 1101** | 13.8% | 55.0% (330) | **+41.2, SE 3.6, band 34.0–48.3** | **partial** | pass | 18/23 (a gain) | +36.0 |
+
+- Predictions (22:51 UTC): OLMo +12 to +26 (point +19); Llama +35 to +55 (point +47). Both readings fall inside.
+- Halving the LR moves OLMo from +28.8 to +20.8 (−28%) and Llama from +58.25 to +41.2 (−29%): the same relative dose response in both families, at different levels.
+- No rung of the ladder qualifies both families cleanly; the user decides (FOCUS, 01:43 UTC).
