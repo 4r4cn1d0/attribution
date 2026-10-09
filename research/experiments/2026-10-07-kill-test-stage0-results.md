@@ -411,7 +411,7 @@ Parity first (pre-set rule, PARITY.md 76e1457f…): PASS at 23:28 UTC (greedy 20
 - Qwen3Guard's E: B +45.1, G +28.8 (G 0.64 of B). HarmBench shrinks with G a little more than Qwen3Guard does.
 - **The pre-registered wording rules at recipe G:** E_HB is below 20 pp on every G seed, so under the 10:14 UTC rule no sentence may call recipe G's erosion "harm"; it is "refusal erosion under Qwen3Guard". The 13:53 UTC judge rule (same sign, at least half the size: 17.2 ≥ 14.4) holds. Under recipe B both rules hold.
 
-## HarmBench on the pod: the family contrast (Qwen2.5-1.5B, Qwen2.5-7B, Llama-3.2-1B), read 00:20 UTC, 9 Oct; reported, not gating
+## HarmBench on the pod: the family contrast (Qwen2.5-1.5B, Qwen2.5-7B, Llama-3.2-1B), read 00:19 UTC, 9 Oct; reported, not gating
 
 One pod run for the Side Project's pairs (tag side-qwen-llama-pairs; A100; 7,200 items; about $0.6; verified and stopped; covered by the 23:28 UTC parity PASS). Each fine-tuned unit against its own family's untuned unit; judge files in `tmp/judge-pod/side-qwen-llama-pairs/judges-<pair>/`; 0 unparsed.
 
