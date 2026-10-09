@@ -71,6 +71,16 @@ So for Qwen and Llama, once a refusal opening goes, an unsafe answer usually fol
 
 Observational only: no experiment forced the openings.
 
+## 4c. What you found when you read the answers yourself (9 Oct)
+
+You rated 50 answers blind: you could not see the model or the judge's label. You had fixed the rules first, and your ratings were sealed before the key was opened.
+- **Did the judge's "unsafe" mean the model went along with the request?** Mostly yes: 34 of 39 "unsafe" answers went along with it (87%).
+- **Did it give real, usable help?** Much less often: 13 of 39 (about a third). The 1B models often comply vaguely, generically or wrongly.
+- **Did the judge miss unsafe answers it called "safe"?** No: all 10 "safe" controls were refusals or deflections.
+- **Stricter than HarmBench:** of 12 OLMo answers HarmBench called harmful help, you rated 4 as usable help.
+
+A plain way to say it: "When the judge said a model had stopped refusing, it almost always had. But when I read the answers myself, only about a third would actually help someone." Say it was one reader (you) and 50 answers.
+
 ## 5. What kind of paper this is
 
 - **Not a method paper.** We propose no fix, so it is not a proof of concept.
