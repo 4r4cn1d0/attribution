@@ -59,6 +59,18 @@ E = after − before = about +45 percentage points ("erosion")
 - **Llama barely changed under the standard recipe:** +60.0 points against +62.5 (1 run each; more runs are coming). So the same fix that helped OLMo did almost nothing for Llama.
 - **Where the change sits.** Before training, 80% of OLMo's answers to harmful requests start with a refusal ("I'm sorry, but…"). After recipe B, 30% do. That switch explains about half of the change. Answers that already started directly also became less careful.
 
+## 4b. Why do Qwen and Llama lose so much more? (added 9 Oct, from the mechanism note)
+
+There are two layers.
+1. **They lose more of their refusal openings.** Under the first recipe, the share of answers that open with "I'm sorry" or similar falls by 51 points for OLMo, 68 for Llama and 85 for Qwen (one run each).
+2. **Their direct answers were already less careful before any training.** Before fine-tuning, when a model did answer directly instead of refusing, the answer was unsafe 18% of the time for OLMo, against 57% for Qwen and 64% for Llama.
+
+So for Qwen and Llama, once a refusal opening goes, an unsafe answer usually follows. OLMo's direct answers had to become less careful too.
+
+**And the recipes?** Every recipe acts mainly through how often the model still opens with a refusal. The share of unsafe answers among direct answers stays similar (57–70%). The gentle schedule keeps more refusal openings, and that is where its benefit comes from.
+
+Observational only: no experiment forced the openings.
+
 ## 5. What kind of paper this is
 
 - **Not a method paper.** We propose no fix, so it is not a proof of concept.
