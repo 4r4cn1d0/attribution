@@ -10,8 +10,10 @@ Two steps:
                                          # fig1-erosion.pdf/.png, fig2-openings.pdf/.png
 
 Every plotted number is in a CSV row with its source: a line of a Markdown
-record (path:line) or a JSON key path. Paths are relative to ROOT. The extract
-step reads numbers only. It checks each value against its record, and stops on
+record (path:line) or a JSON key path. Paths are relative to ROOT, except paths
+that start with W:, which are relative to the repository that holds this
+script (records committed on this branch only). The extract step reads numbers
+only. It checks each value against its record, and stops on
 any mismatch. It never reads, prints or writes prompt or answer text.
 
 Colours, marks and checks follow the dataviz skill's reference palette (light
@@ -25,10 +27,14 @@ import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+W_ROOT = os.path.abspath(os.path.join(HERE, '..', '..', '..', '..'))
 FIG1_CSV = os.path.join(HERE, 'fig1-data.csv')
 FIG2_CSV = os.path.join(HERE, 'fig2-data.csv')
 
 KT = 'research/experiments/2026-10-07-kill-test-stage0-results.md'
+LB = 'W:research/side-notes/2026-10-09-llama-b-seeds-results.md'
+LB_1102 = 'tmp/family-probe-sp-llama32-1b-b-seed1102/reading-llama-b-1101-1102-nojudge.json'
+LB_1103 = 'tmp/family-probe-sp-llama32-1b-b-seed1103/reading-llama-b-1101-1103-nojudge.json'
 FOCUS = 'research/FOCUS.md'
 J_OB = 'tmp/judge-pod/olmo-b-g-untuned/judges-B/'
 J_OG = 'tmp/judge-pod/olmo-b-g-untuned/judges-G/'
@@ -40,7 +46,8 @@ LLAMA_HB_UNTUNED = J_SQ + 'judges-llama-B/harmbench--llama32-1b-1101--1101-a0-in
 NO_HB = 'none: no HarmBench judge file for this unit under tmp/judge-pod/'
 
 # Figure 1 rows, top to bottom. base = the recipe the row is built on (colour).
-# E: (seed, value as printed, file, anchor). E_mean: (value, file, anchor).
+# E: (seed, value as printed, file, anchor[, pair reading JSON that holds this
+# seed's exact E and counts]). E_mean: (value, file, anchor).
 # The anchor is a string that occurs on exactly one line of the record; the
 # CSV cites that line's number at extraction time (the records are still
 # being appended to, so fixed line numbers would go stale).
@@ -93,10 +100,12 @@ FIG1_ROWS = [
          HB=[(1101, '+63.5', KT, '| Qwen2.5-7B B, seed 1101 | 413 |', J_SQ + 'judges-q7-B/harmbench--q7-1101--1101-a0-e1-a1--7849bd690676.json')],
          HB_untuned=Q7_HB_UNTUNED, HB_mean=None),
     dict(model='Llama-3.2-1B', recipe='B', base='B',
-         E=[(1101, '+62.5', KT, '**+62.5** (SE 3.1;')], E_mean=None,
-         se='tmp/family-probe-llama32-1b/reading-llama.json',
+         E=[(1101, '+62.5', KT, '**+62.5** (SE 3.1;'),
+            (1102, '+61.3', LB, 'seed 1102: sampled Unsafe 451/600', LB_1102),
+            (1103, '+54.0', LB, 'Seed 1103: sampled Unsafe 407/600', LB_1103)],
+         E_mean=('+59.3', LB, '**Llama recipe B, three seeds:**'), se=None,
          HB=[(1101, '+40.5', KT, '| Llama-3.2-1B B, seed 1101 | 309 |', J_SQ + 'judges-llama-B/harmbench--llama32-1b-1101--1101-a0-e1-a1--979044858ac0.json')],
-         HB_untuned=LLAMA_HB_UNTUNED, HB_mean=None),
+         HB_untuned=LLAMA_HB_UNTUNED, HB_mean=None, HB_missing=[1102, 1103]),
     dict(model='Llama-3.2-1B', recipe='G', base='G',
          E=[(1101, '+60.0', KT, '**+58.25, SE 2.72'), (1102, '+56.5', KT, '**+58.25, SE 2.72'),
             (1103, '+54.8', KT, 'E per seed +60.0, +56.5, +54.8 pp')],
@@ -129,9 +138,13 @@ NOT_UNSAFE = ('Safe', 'Controversial', 'Invalid')
 
 
 # ----------------------------------------------------------------------------- extract
+def _path(root, path):
+    return os.path.join(W_ROOT, path[2:]) if path.startswith('W:') else os.path.join(root, path)
+
+
 def _find_line(root, path, anchor):
     """The one line of the record that contains the anchor: (number, text)."""
-    with open(os.path.join(root, path), encoding='utf-8') as f:
+    with open(_path(root, path), encoding='utf-8') as f:
         hits = [(i, text) for i, text in enumerate(f, 1) if anchor in text]
     if len(hits) != 1:
         raise SystemExit(f'{path}: anchor {anchor!r} matches {len(hits)} lines')
@@ -147,7 +160,7 @@ def _check_in_line(root, value, path, anchor):
 
 
 def _json(root, path):
-    with open(os.path.join(root, path), encoding='utf-8') as f:
+    with open(_path(root, path), encoding='utf-8') as f:
         return json.load(f)
 
 
@@ -174,8 +187,18 @@ def extract(root):
         agg = _json(root, r['E_json'])['aggregate']['mean_E_class'] if r.get('E_json') else None
         if agg and len(agg['E_per_seed_pp']) != len(r['E']):
             raise SystemExit(f'{r["E_json"]}: {len(agg["E_per_seed_pp"])} seeds against {len(r["E"])}')
-        for i, (seed, val, path, n) in enumerate(r['E']):
+        for i, (seed, val, path, n, *pair) in enumerate(r['E']):
             chk = ''
+            if pair:
+                d = _json(root, pair[0])
+                j = d['identity']['seeds'].index(seed)
+                exact = d['bars_read']['E_class']['E_per_seed_pp'][j]
+                k, k0 = d['units']['a0_seeds'][j]['sampled_unsafe'], d['units']['untuned']['sampled_unsafe']
+                nn = d['units']['a0_seeds'][j]['sampled_answers']
+                if nn != 600 or abs((k - k0) / nn * 100 - exact) > 1e-9 or abs(exact - float(_num(val))) > 0.05 + 1e-9:
+                    raise SystemExit(f'{pair[0]}: seed {seed} E {exact} ({k}-{k0}/{nn}) against {val}')
+                chk = (f'{pair[0]}:bars_read.E_class.E_per_seed_pp[{j}] {exact!r}; units.a0_seeds[{j}].sampled_unsafe'
+                       f' {k}/600 minus units.untuned.sampled_unsafe {k0}/600')
             if agg:
                 exact = agg['E_per_seed_pp'][i]
                 if abs(exact - float(_num(val))) > 0.05 + 1e-9:
@@ -184,7 +207,7 @@ def extract(root):
             out.append(['E', m, rec, seed, 'seed', _num(val), _check_in_line(root, val, path, n), chk])
         if r['E_mean']:
             val, path, n = r['E_mean']
-            seeds = [float(_num(v)) for _, v, _, _ in r['E']]
+            seeds = [float(_num(e[1])) for e in r['E']]
             if abs(sum(seeds) / len(seeds) - float(_num(val))) > 0.1:
                 raise SystemExit(f'{m} {rec}: mean {val} does not match the seeds')
             chk = f'mean of the seed rows {sum(seeds) / len(seeds):.4f}'
@@ -196,7 +219,7 @@ def extract(root):
             out.append(['E', m, rec, 'mean', 'mean', _num(val), _check_in_line(root, val, path, n), chk])
         # +-2 SE for one-seed rows, from the reading JSON when it records one.
         if len(r['E']) == 1:
-            seed, val, _, _ = r['E'][0]
+            seed, val = r['E'][0][:2]
             if r['se'] and not r['se'].startswith('none'):
                 d = _json(root, r['se'])
                 ec = d['bars_read']['E_class']
@@ -236,7 +259,8 @@ def extract(root):
                         f'mean of the judge counts {mean:.4f}'])
         for seed in r.get('HB_missing', []):
             out.append(['E_HB', m, rec, seed, 'none', '', NO_HB,
-                        f'E_HB and its mean use seeds {", ".join(str(s) for s, *_ in r["HB"])} only'])
+                        f'E_HB uses only seed{"s" if len(r["HB"]) > 1 else ""} '
+                        f'{", ".join(str(s) for s, *_ in r["HB"])}'])
     with open(FIG1_CSV, 'w', newline='', encoding='utf-8') as f:
         w = csv.writer(f, lineterminator='\n')
         w.writerow(header)
