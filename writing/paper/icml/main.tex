@@ -7,6 +7,14 @@
 % TMLR or NeurIPS 2027; ICML 2027 only if the funding conditions in the
 % editor's notes (Appendix A) are met.
 %
+% Revision 5 (9 Oct 2026, from 13:17 UTC): the user's decisions of 9 Oct,
+% checked against FOCUS.md: recipe B is the main recipe again; recipe G is the
+% "recipe only" fix and a reference; a per-family learning-rate rule (a matched
+% erosion dose) replaces the common-recipe ladder; five mandatory references
+% (Safe LoRA added; B+Qi); Dolly/PKU/Alpaca dataset plan; the two-layer
+% opening account in Sec. 3.6/4.10. Development numbers stay in the editor's
+% notes. Kept in sync with the Markdown draft, revision 5.
+%
 % Revision 4 (8 Oct 2026, from 21:40 UTC): the lead's new results, checked
 % against FOCUS.md. The token-mean-only run refutes the first-token
 % loss-weighting account of recipe B vs recipe G, so B vs G is now written as a
@@ -142,19 +150,19 @@
   equal terms, with training seeds, side effects and their compute counted. We
   measure which data repair restores the most safety for the compute spent
   without raising over-refusal or losing task skill. After benign fine-tuning
-  of OLMo-2-1B-Instruct with a standard-practice LoRA recipe, six
+  of OLMo-2-1B-Instruct with a fixed LoRA recipe that erodes it partly, six
   pre-registered repairs, each run with six training seeds, are compared with
   random removal of the same size and with no repair: removal of rows chosen by
   training-data attribution, by a representation filter or by a free
   answer-length rule, and addition of random, selected or self-generated
   refusal examples. Each repair is labelled better, equivalent within 5
   percentage points, worse, or inconclusive, and reported with its
-  over-refusal, task loss and measured cost. Three references that change no
-  data (a safety prompt, a down-scaled adapter, and a published fine-tuning
-  objective that constrains updates on the first answer tokens) set the bar
-  that a data repair must clear. A stronger-dose recipe is reported as a
-  comparison, and a second family, Llama-3.2-1B-Instruct, is planned under the
-  same recipe. Pre-registered gates test whether the erosion is localized in
+  over-refusal, task loss and measured cost. Five references that change no
+  data set the bar that a data repair must clear: a safety prompt, a
+  down-scaled adapter, a post-hoc projection of the adapter, a gentler
+  learning-rate schedule, and a published objective that constrains updates on
+  the first answer tokens. A second family, Llama-3.2-1B-Instruct, is planned
+  at a matched erosion dose. Pre-registered gates test whether the erosion is localized in
   data categories, a positive control tests whether diagnostics find a planted
   cause \ph{[PLACEHOLDER: if funded]}, and model-based predictions of when
   diagnosis pays are written down in advance and scored on the second family.
@@ -193,8 +201,9 @@ attack success from 20.24\% (no safety data) to 59.23\%, while DataRx's
 selected 1\% mix lowered it to 13.70\% \citep{zhang2026datarx}. Safety data can
 also cause over-refusal \citep{bianchi2024safety,luo2026reweighting}. And some
 repairs need no data change at all: a safety prompt used only at test time
-\citep{lyu2024keeping}, a gentler recipe \citep{kim2025rethinking}, or a
-fine-tuning objective that constrains updates on the first answer tokens
+\citep{lyu2024keeping}, a gentler recipe \citep{kim2025rethinking}, a post-hoc
+projection of the fine-tuned adapter \citep{hsu2024safelora}, or a fine-tuning
+objective that constrains updates on the first answer tokens
 \citep{qi2025shallow}. Every data repair costs compute, and the only direct evidence about it is a retrain.
 
 Which repair works best is an empirical question that published results do not
@@ -216,8 +225,8 @@ from theory that better curation cannot remove the fragility.
 
 We therefore measure repairs directly (\S\ref{sec:setup},
 \S\ref{sec:design}). On OLMo-2-1B-Instruct fine-tuned on 4,800 Dolly rows with
-a standard-practice LoRA recipe (recipe~G: a token-mean loss, warmup and cosine
-decay), six repairs fixed in advance are each run over six training seeds and compared with
+a fixed LoRA recipe (recipe~B: a constant learning rate, one epoch), six
+repairs fixed in advance are each run over six training seeds and compared with
 random removal of the same size and with no repair: three removals of 600 rows
 (ranked by training-data attribution, by a representation filter in the style
 of LARF, and by answer length) and three additions of 48 refusal examples
@@ -228,15 +237,15 @@ model itself). Each contrast is labelled \emph{better}, \emph{equivalent} (its
 \emph{inconclusive}, after Holm correction. Over-refusal, measured against the
 untuned model, and task loss on held-out rows are feasibility limits. Cost is
 measured in GPU-seconds and in full-run equivalents (FRE) under two
-conventions. A data repair counts as dominant only if it beats three references
-that change no data: a safety prompt at test time, the fine-tuned adapter
-scaled down, and the same recipe with the constrained fine-tuning objective of
-\citet{qi2025shallow}, a reference for which we claim no novelty. A
-stronger-dose recipe (recipe~B: a constant learning rate with no warmup, about
-twice recipe~G's mean learning rate over the epoch, and a per-row loss) is
-reported as a dose comparison. A second family, Llama-3.2-1B-Instruct, is planned under one
-recipe common to both families, chosen by a rule recorded before Llama's result
-under recipe~G (\S\ref{sec:models}).
+conventions. A data repair counts as dominant only if it beats five references
+that change no data, none of them ours: a safety prompt at test time, the
+fine-tuned adapter scaled down, its Safe LoRA projection
+\citep{hsu2024safelora}, recipe~G (a recipe-only fix: warmup and cosine decay,
+which halve the mean learning rate), and recipe~B with the constrained
+objective of \citet{qi2025shallow}. A second family, Llama-3.2-1B-Instruct, is
+planned with recipe~B at its own learning rate, chosen from erosion probes
+alone so that both families erode partly (a matched erosion dose;
+\S\ref{sec:models}).
 
 Three pre-registered parts surround the comparison. Gate~A requires erosion
 beyond seed noise. Gate~B asks whether the erosion is \emph{localized}: does
@@ -263,8 +272,8 @@ Our contributions are:
         six removal and addition repairs against random removal and no repair,
         over six training seeds each, labelled better, equivalent, worse or
         inconclusive, with over-refusal, task loss and measured cost, against
-        three references that change no data, on OLMo-2-1B and, if its Gate~A
-        passes at the common recipe, on Llama-3.2-1B.
+        five references that change no data, on OLMo-2-1B and, if its Gate~A
+        passes at a matched dose, on Llama-3.2-1B.
         \ph{[FINDING 1: the six labels, and which repair, if any, beats the
         references]}. We release the menus, seeds, outcome tables and costs
         \ph{[ARTIFACT]}.
@@ -365,8 +374,10 @@ repeated experiments that traded violations against false refusals
 prompt used only at test time reduces erosion \citep[PTST;][]{lyu2024keeping},
 SafeTune compares repairs of safety drift in single deterministic runs
 \citep{seth2026safetune} \ph{[CITE-CHECK]}, a gentler recipe shrinks erosion
-\citep{kim2025rethinking}, and a fine-tuning objective that constrains updates
-on the first answer tokens makes alignment more persistent under fine-tuning
+\citep{kim2025rethinking}, Safe LoRA projects the LoRA weights of selected
+layers onto a safety-aligned subspace without training or data
+\citep{hsu2024safelora}, and an objective that constrains updates on the first
+answer tokens makes alignment more persistent under fine-tuning
 \citep{qi2025shallow}. We use such repairs as references that a data repair
 must beat.
 
@@ -483,15 +494,14 @@ label:
 \end{itemize}
 Which label a repair receives when it is better on the unsafe rate but worse on
 a side effect is fixed in the stage-1 pre-registration \ph{[TO BE FINALISED]};
-both results are reported. A margin of 4 pp is reported as a sensitivity. Three
-references change no data: a safety prompt at test time, a constrained
-fine-tuning objective on the unchanged data (\S\ref{sec:references}), and
-\emph{adapter scaling},
+both results are reported. A margin of 4 pp is reported as a sensitivity. Five
+references change no data (\S\ref{sec:references}). One, \emph{adapter
+scaling},
 \begin{equation*}
   \theta_\lambda = \theta_0 + \lambda\,\bigl(\theta(a_0, s) - \theta_0\bigr),
   \qquad \lambda \in \{1, 0.75, 0.5, 0\},
 \end{equation*}
-which traces $(F, O, L)$ from the fine-tune ($\lambda = 1$) to the untuned
+traces $(F, O, L)$ from the fine-tune ($\lambda = 1$) to the untuned
 model ($\lambda = 0$). A data repair \emph{dominates} only if it lies below this
 curve: a lower $F$ than the curve at equal $O$ and $L$.
 
@@ -581,6 +591,11 @@ The \emph{opening share} is the first term over $f_1 - f_0$; the split depends
 on the order of terms, so both orders are reported. The decomposition is
 descriptive: it says whether a change in the unsafe rate shows up in how
 answers open or in what they say, not which training choice caused the change.
+The first term has two layers on which families and recipes can differ: how
+many refusal openings fine-tuning removes ($p_0 - p_1$), and how often a
+direct answer was already unsafe before fine-tuning ($u_{\mathrm{N}0}$); where
+$u_{\mathrm{N}0}$ is high and $u_{\mathrm{R}0}$ low, a lost opening comes close
+to an unsafe answer.
 If the opening share is small, repairs that act only on how answers open
 (refusal examples; an objective that constrains updates on the first answer
 tokens) may restore less than repairs that change what the answers say.
@@ -595,49 +610,46 @@ tokens) may restore less than repairs that change what the answers say.
 \paragraph{Families and scale.}
 OLMo-2-0425-1B-Instruct \citep{olmo2024olmo2} is the stage-1 model;
 Llama-3.2-1B-Instruct \citep{grattafiori2024llama} is the planned second
-family, under the same recipe (\S\ref{sec:family}). Larger sizes follow a
-ladder: a published-setting replication and a reduced study at 7--8B, then a
-headline check at 32B or 70B \ph{[PLACEHOLDER: sizes actually run]}.
-Qwen2.5-1.5B- and 7B-Instruct \citep{qwen2024qwen25} are reported only as
-context and as points of the recipe dose comparison (\S\ref{sec:side}). Every
-model trains on one GPU, and every comparison stays on one GPU type.
+family, at a matched erosion dose (below; \S\ref{sec:family}). Larger sizes
+follow a ladder: a published-setting replication and a reduced study at
+7--8B, then a headline check at 32B or 70B \ph{[PLACEHOLDER: sizes actually
+run]}. Qwen2.5-1.5B- and 7B-Instruct \citep{qwen2024qwen25} are outside the
+repair study; their existing recipe-B runs enter only the same-recipe family
+contrast (\S\ref{sec:side}). Every model trains on one GPU, and every
+comparison stays on one GPU type.
 
 \paragraph{Data.}
-4,800 rows of Dolly-15k \citep{conover2023dolly}, 600 from each of 8 task
-categories (the units; $K = 8$), prepared and sealed per tokenizer with a
-manifest. 200 further rows, 25 per category, measure task loss.
+Gate~B and stage~1 train on 4,800 rows of Dolly-15k \citep{conover2023dolly},
+600 from each of 8 task categories (the units; $K = 8$), prepared and sealed
+per tokenizer with a manifest; 200 further rows, 25 per category, measure task
+loss. The add repairs draw their safety rows from PKU-SafeRLHF
+(\S\ref{sec:stage1}). Alpaca is the planned second benign dataset, after
+Gate~B \ph{[NOT YET FIXED: its units and learning rate]}.
 
 \paragraph{Recipes.}
-\emph{Recipe~G}, the main recipe, follows standard practice: LoRA
-\citep{hu2022lora} of rank 64 and scale 128 on all linear layers; AdamW with a
-peak learning rate of $10^{-4}$, a 4-step linear warmup and cosine decay to the
-end of the epoch; 128 rows per step; one epoch (38 steps); a token-mean loss
-over response tokens. Gate~A, Gate~B, stage~1 and both families use it, at the
-learning rate fixed by the rule below. \emph{Recipe~B}, the stronger-dose
-comparison, differs in two ways: a constant learning rate with no warmup, which
-gives about twice recipe~G's mean learning rate over the epoch, and a per-row
-mean loss over response tokens. We treat the difference between the two
-recipes as a difference of dose and report recipe~B as a dose point; a
-pre-registered single-seed run that changes only the loss weighting separates
-the two changes (\S\ref{sec:side}). Training is deterministic on matched hardware; a seed sets
+\emph{Recipe~B}, the main recipe: LoRA \citep{hu2022lora} of rank 64 and scale
+128 on all linear layers; AdamW at a constant learning rate of $10^{-4}$, no
+warmup; 128 rows per step; one epoch (38 steps); a per-row loss (each row's
+mean over its response tokens). Gate~A, Gate~B and stage~1 use it. It was
+chosen over recipe~G from probe and Gate~A readings alone, before any repair
+outcome. \emph{Recipe~G}, the recipe-only fix, adds a 4-step warmup and cosine
+decay, which halve the mean learning rate over the epoch, and a token-mean
+loss; it is a reference (\S\ref{sec:references}). A pre-registered single-seed
+run that changes only the loss weighting separates its two changes
+(\S\ref{sec:side}). Training is deterministic on matched hardware; a seed sets
 the adapter initialization and the data order.
 
-\paragraph{One common recipe.}
-Both families use one recipe, fixed by a rule recorded before the second
-family's result under recipe~G. The common recipe is the first rung of a
-learning-rate ladder ($10^{-4}$, $5 \times 10^{-5}$, $2 \times 10^{-5}$;
-nothing else changes, never the loss weighting) at which each family's
-one-seed probe meets every pre-registered probe bar: erosion in the partial
-window of 20--55 pp, answers that end, the task learned without lost skill
-(\S\ref{sec:measures}), and a second judge that agrees in direction. If a
-probe's erosion interval contains a window edge (too close to call), one more
-seed of the same recipe runs, and the two-seed mean is classified with the
-same band; no further seed enters that classification, and if it is still too
-close to call, the choice is made after the outcome and reported as such. If
-the second family's probe saturates, both families move to the next rung together, each on its own
-sealed untuned baseline. If no rung qualifies for both, no common recipe
-exists, and the design is revised before Gate~B. Every rung that runs is
-reported as a dose point. \ph{[PLACEHOLDER: the common rung.]}
+\paragraph{A matched erosion dose.}
+Each family uses recipe~B with only its learning rate changed: the highest
+rung of a ladder ($10^{-4}$, $5 \times 10^{-5}$, $2 \times 10^{-5}$) whose
+erosion probe reads partial (20--55 pp) under the frozen one-seed versions of
+the Gate~A bars (\S\ref{sec:gates}; a too-close probe gets one more seed). The
+rate is chosen from probes only, never from a repair result. During
+development no rung of a one-recipe ladder left both families partly eroded
+(\S\ref{sec:results}), because families respond to the same change of recipe
+by different amounts; we fixed this rule after reading that ladder, and state
+cross-family claims at a matched erosion dose. \ph{[PLACEHOLDER: each family's
+rung.]}
 
 \subsection{Measures, judges and the claim rule}
 \label{sec:measures}
@@ -657,8 +669,9 @@ reported as a dose point. \ph{[PLACEHOLDER: the common rung.]}
         whether an answer carries out the requested behaviour. A contrast in
         $U$ supports a sentence about \emph{harm} only if the classifier's
         contrast has the same sign and at least half the size; otherwise the
-        sentence says \emph{restored refusal}. If the classifier's erosion on
-        the Gate~A answers is below 20 pp, no sentence says harm.
+        sentence says \emph{restored refusal}. If the classifier's erosion under
+        a recipe is below 20 pp, no sentence calls that recipe's erosion
+        harm.
   \item \textbf{Also per arm:} hard-category $U$ (violent, illegal, sexual or
         self-harm categories); $U$ by answer-length band and a
         length-reweighted $U$; Granite Guardian 3.3 \citep{padhi2024granite}
@@ -673,14 +686,13 @@ reported as a dose point. \ph{[PLACEHOLDER: the common rung.]}
         ARC-Easy accuracy \citep{clark2018arc} on 189 questions: the paired
         drop $d$ against the untuned model must stay at or below 0.03. With 189
         questions the paired interval is about $\pm 0.07$ wide, so it straddles
-        0.03 for almost every run. For the probe and Gate~A readings at the
-        common recipe (both families), a rule fixed before the second
-        family's probe or any Gate~A seed at that recipe was read resolves a
-        straddling interval: the run \textbf{passes, as ``skill
+        0.03 for almost every run. For probe and Gate~A readings, a rule fixed
+        during development, before the readings it was written for, resolves a
+        straddling interval \ph{[TO BE FINALISED: its scope under the
+        per-family rule]}: the run \textbf{passes, as ``skill
         kept, reported as a limitation'', when the point drop $d \le 0.03$ and
         the held-out task loss is below the untuned model's (the task is
-        learned); it fails when $d > 0.03$.} An interval wholly at or below
-        0.03 passes and one wholly above 0.03 fails, as before. This rule is a
+        learned); it fails when $d > 0.03$.}  This rule is a
         loosening: it can pass a run whose true drop is up to about 6 points,
         which 189 questions cannot detect. We report the verdict under the
         frozen bars beside the verdict under this rule. Disclosure: the first
@@ -703,14 +715,13 @@ Table~\ref{tab:arms} lists the stage-1 arms. Every rule, scorer and pool is
 committed by hash before Gate~B's category runs (\S\ref{sec:prereg}).
 
 \begin{table*}[t]
-  \caption{Stage-1 arms on OLMo-2-1B (the common recipe, recipe~G unless the
-    rule of \S\ref{sec:models} lowers its learning rate; one epoch; removal
-    arms train 33 steps, addition arms 38). The references of
+  \caption{Stage-1 arms on OLMo-2-1B (recipe~B; one epoch; removal arms
+    train 33 steps, addition arms 38). The references of
     \S\ref{sec:references} are listed below the repairs.}
   \label{tab:arms}
   \centering
   \small
-  \begin{tabular}{@{}llp{0.6\textwidth}c@{}}
+  \begin{tabular}{@{}llp{0.59\textwidth}c@{}} % 0.59 (was 0.6): the wider ``Safe LoRA'' arm name
     \toprule
     Arm & Repair & Rule & Seeds \\
     \midrule
@@ -723,7 +734,9 @@ committed by hash before Gate~B's category runs (\S\ref{sec:prereg}).
     S3 & DataRx-style & add 48 rows selected from S1's pool by DataRx's score & 6 \\
     S4 & self-generated & add 48 pool prompts with the untuned model's own refusals & 6 \\
     \midrule
-    G+Qi & constrained SFT (reference) & the unchanged data, trained with the token-wise constrained SFT objective of \citet{qi2025shallow} on top of the common recipe & 6 \\
+    B+Qi & constrained SFT (reference) & recipe~B with the token-wise constrained SFT objective of \citet{qi2025shallow} & 6 \\
+    G & recipe only (reference) & the unchanged data, trained with recipe~G & 3 \\
+    Safe LoRA & projection (reference) & project $a_0$'s adapter as in \citet{hsu2024safelora} \ph{[NOT YET FIXED: settings]} & 3 \\
     prefix & safety prompt (reference) & evaluate $a_0$ with a safety instruction prefixed to the user turn (no training) & 3 \\
     $\lambda$ & adapter scaling (reference) & evaluate $a_0$'s adapter scaled by $\lambda = 0.75$ and $0.5$ (no training) & 3 \\
     \bottomrule
@@ -745,10 +758,7 @@ anchors are never filtered by the evaluation judge, and prompts that nearly
 duplicate an evaluation prompt are removed. The add effect must also hold on
 the evaluation prompts least similar to the added rows.
 
-\paragraph{Re-implementations.}
-Every scorer is re-implemented from its paper, named ``X-style'', and published
-with a table of its deviations (for example, its anchors and checkpoints); we
-ask the authors for reference outputs.
+
 
 \paragraph{Seeds and power.}
 Method arms run at six seeds, random removal at eight and no repair at six;
@@ -763,7 +773,7 @@ minimum detectable effect after Holm's first step is about 5 pp
 At three seeds each, exploratory, with one-sided bounds only: a random dose
 curve (1,200 and 2,400 rows removed); random removal plus S1; a DataShield-style
 filter; rules for answers with list or markup lines and for the longest
-answers; the length rule under recipe~B's per-row loss; and octiles of answer
+answers; the length rule under a token-mean loss; and octiles of answer
 length.
 Scored without new runs: a Self-Inf-N-style score and a content classifier; we
 publish the overlap of all top-600 sets. SQSD is cited but not run, because its
@@ -772,16 +782,21 @@ scoring needs several FRE.
 \subsection{References that change no data}
 \label{sec:references}
 
-All three are mandatory. \textbf{Safety prompt:} a fixed safety instruction as
+All five are mandatory, and we claim no novelty for any. \textbf{Safety
+prompt:} a fixed safety instruction as
 a prefix of the user turn (OLMo-2 has no system turn), at evaluation only, as
 in PTST \citep{lyu2024keeping}, on three $a_0$ seeds. \textbf{Adapter
 scaling:} the $a_0$ adapter scaled by $\lambda = 0.75$ and $0.5$ on three
 seeds, which with $\lambda \in \{0, 1\}$ gives the reference curve of
-\S\ref{sec:contrasts}. \textbf{Constrained fine-tuning (G+Qi):} the common
-recipe with the token-wise constrained SFT objective of \citet{qi2025shallow},
-which constrains updates on the first answer tokens, trained on the unchanged
-data at six seeds. It is a model-level reference, and we claim no novelty for
-it; its implementation is committed before stage~1 is frozen. A pinned
+\S\ref{sec:contrasts}. \textbf{Safe LoRA} \citep{hsu2024safelora}: $a_0$'s
+adapter projected as in \S\ref{sec:related}, on three seeds; the base model,
+layer rule and threshold follow the paper's rule or a fixed default, never
+stage-1 outcomes \ph{[NOT YET FIXED]}. \textbf{Recipe~G}
+(recipe only): the unchanged data under recipe~G, three seeds.
+\textbf{B+Qi:} recipe~B with the token-wise constrained SFT objective of
+\citet{qi2025shallow}, which constrains updates on the first answer tokens, on
+the unchanged data at six seeds. The implementations of Safe LoRA and B+Qi are
+committed before stage~1 is frozen. A pinned
 evaluation script regenerates each $a_0$ adapter by a deterministic re-run and is
 certified once: with $\lambda = 1$ and no prefix it must reproduce $a_0$'s $U$
 exactly. The paper states plainly whether any data repair beats these
@@ -810,7 +825,7 @@ selector rules; and a check of additivity across the nested levels.
 \label{sec:gates}
 
 \paragraph{Gate A (entry).}
-For each family at the common recipe, over three seeds (the probe seed and two
+For each family at its matched dose, over three seeds (the probe seed and two
 fresh seeds), mean $E$ must lie in a pre-registered partial-erosion window
 of 20--55 pp, be at least twice the seed standard deviation, and exceed zero on
 every seed; a second judge must agree in direction, the answers must end, and
@@ -819,19 +834,14 @@ the task must be learned without lost skill (\S\ref{sec:measures}).
 setting tried and its disclosures (\S5).]}
 
 \paragraph{Gate B (localization).}
-At the common recipe, each category removal (600 rows, 33 steps, with the
-warmup and cosine decay spanning its own epoch) is compared with random removal
-of
-600 rows (75 per category) at the same seed, so $a_0$ cancels. All 8
+These rules summarize its pre-registration, revision 5 \ph{[NOT YET
+FIXED]}. At recipe~B, each category removal (600 rows, 33 steps) is compared
+with random removal of 600 rows (75 per category) at the same seed, so $a_0$ cancels. All 8
 categories run at one seed; the two with the largest contrast, plus Gate~C's
 picks, run at two more seeds. The verdict is LOCALIZED if some category
 restores at least $\delta_B = 8$ pp more than random removal and clears a
 Bonferroni-corrected bar; DIFFUSE if every category is credibly below 8 pp; and
-TOO CLOSE otherwise. As an exploratory, report-only secondary reading,
-labelled exploratory wherever it appears, we also report an erosion-scaled
-floor, $8 \times E_{\mathrm{common}} / 45.1$ pp (about 5.2 pp if
-$E \approx 29$ pp); it never changes a verdict, and the 8 pp floor stays
-primary. Guards require answers that end, recompute the verdict on
+TOO CLOSE otherwise. Guards require answers that end, recompute the verdict on
 coherent answers and under adverse counting of unscored answers, and reject a
 restoration that over-refuses. A noise gate stops the stage if seed noise is
 too large; an automatic extension adds two seeds for contested categories; and
@@ -872,13 +882,13 @@ agree, and no cost ratio measured at 1B is claimed for a larger model.
 \subsection{Second family, confirmation and scale}
 \label{sec:family}
 
-\textbf{Llama-3.2-1B} (stage~2) is planned at the common recipe
+\textbf{Llama-3.2-1B} (stage~2) is planned at its matched dose
 (\S\ref{sec:models}): its own Gate~A, a reduced Gate~B on categories, and the
 primary family at six seeds. If both families run, a contrast is said to
 ``replicate across two families'' only if it has the same sign in both and the
 family difference is below the interaction's MDE; a family difference is
-claimed only above that MDE. The families' erosion under recipe~B is reported
-as a dose comparison (\S\ref{sec:side}), not as a replication.
+claimed only above that MDE. The same-recipe family contrast
+(\S\ref{sec:side}) is not a replication.
 \textbf{Confirmation} (stage~3): at most two contrasts per family, chosen by a
 rule committed before stage~1, are re-run at six fresh seeds and evaluated on a
 sealed 200-prompt held-out subsample as well as the development bank.
@@ -890,8 +900,10 @@ resources allow]}. No result is claimed at a size without runs at that size.
 \subsection{Pre-registration and testing order}
 \label{sec:prereg}
 
-Before Gate~B's category runs, we commit every stage-1 scorer's code and
-settings hash, every edit rule, the pools, the plant, the primary family, the
+Gate~B runs first, to its verdict; funding for the later stages is then
+sought with that result, and stage~1 starts only once funded, never because of
+an outcome. Before Gate~B's category runs, the stage-1 pre-registration
+\ph{[NOT YET FIXED]} commits every stage-1 scorer's code and settings hash, every edit rule, the pools, the plant, the primary family, the
 seed rule, the limits, the claim rule, the selector specification and its
 predictions. Anything added later is labelled post-Gate-B exploratory. Families
 of tests are read in order, each at its own 5\% level: (1)~the primary family;
@@ -908,7 +920,9 @@ planted-sweep claims;
         with a frozen refusal lexicon, reports how much of each change in $U$
         comes from answers that stop opening with a refusal and how much from
         what the answers say. It locates a change; it does not say which
-        training choice caused it. One causal test runs on Gate~B arms: a
+        training choice caused it. Across families and recipes we report both
+        layers of \S\ref{sec:opening}: the refusal openings lost, and the
+        unsafe rate of direct answers before fine-tuning. One causal test runs on Gate~B arms: a
         teacher-forced first-token refusal margin
         $m(p) = \log P_{\mathrm{ref}}(p) - \log(1 - P_{\mathrm{ref}}(p))$,
         where $P_{\mathrm{ref}}$ is the probability of a frozen refusal phrase
@@ -917,22 +931,14 @@ planted-sweep claims;
         category's effect runs through openings, the margin should track $U$
         across arms. \ph{[PLACEHOLDER: report against the bound on a
         first-token path recorded before Gate B.]} Exploratory.
-  \item \textbf{The recipe dose comparison.} The same data can erode a model
-        partly under one recipe or family and almost completely under another
-        (\S\ref{sec:related}; \citealt{kim2025rethinking}). Recipe~B differs
-        from recipe~G in its schedule (a constant learning rate without
-        warmup, about twice recipe~G's mean learning rate) and in its loss
-        weighting (per row rather than per token). A pre-registered
+  \item \textbf{Recipe and family contrasts.} Recipe~G against recipe~B
+        measures a recipe-only fix (\S\ref{sec:references}); a pre-registered
         single-seed run with recipe~B's schedule and recipe~G's token-mean loss
-        separates the two changes \ph{[PLACEHOLDER: its result against its
-        pre-registered prediction, \S5]}. We report each family's erosion
-        under recipe~B against the common recipe, with every learning-rate rung
-        that runs, as a dose comparison across OLMo-2, Llama-3.2 and Qwen2.5,
-        plus a pre-registered rank-16 check under recipe~G on OLMo-2 (the main
-        recipe stays at rank 64 whatever it shows). Families can respond to the
-        same change of dose by different amounts, so cross-family sentences
-        compare erosion at one recipe, not responses to dose. This is context,
-        not a main claim.
+        separates G's two changes \ph{[PLACEHOLDER: its result against its
+        pre-registered prediction, \S5]}. We also report the same-recipe
+        family contrast (recipe~B on OLMo-2, Llama-3.2 and Qwen2.5), every
+        learning-rate rung that ran, and a pre-registered rank-16 check under
+        recipe~G. This is context, not a main claim.
   \item \textbf{Measurement validity.} Three judges on the same answers
         (Qwen3Guard, Granite Guardian, HarmBench's classifier), with agreement,
         $E$ per judge, hard-category $U$ and length bands, and an account of
@@ -953,14 +959,14 @@ planted-sweep claims;
 \ph{[PLACEHOLDER: Gate A (entry), with every setting tried and the audit's
 disclosures; Table 2, the stage-1 comparison ($G$, $\Lambda$ with 90\%
 intervals and labels, $O$, $L$, cost under both conventions, the HarmBench
-contrast and the claim-rule wording), with the references and the
-adapter-scaling curve; Figure 1; the second-family comparison, if run; the
-recipe-B dose comparison across families, the learning-rate rungs, the
-token-mean-only run against its pre-registered prediction and the rank-16
-check; Gate B's verdict with its detection limit and the length control; Gate C and the format reading; the
+contrast and the claim-rule wording), with the five references and the
+adapter-scaling curve; Figure 1; the second-family comparison at its matched
+dose, if run; the same-recipe family contrast, the development ladder and every
+learning-rate rung, the token-mean-only run against its pre-registered
+prediction and the rank-16 check; Gate B's verdict with its detection limit and the length control; Gate C and the format reading; the
 planted sweep, if funded; measured against predicted decision value; the
-opening decomposition and the first-token margin; every too-close-to-call
-result.]}
+opening decomposition with both layers, and the first-token margin; every
+too-close-to-call result.]}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Discussion and Limitations}
@@ -976,29 +982,28 @@ with attack-success rates published under other judges and prompts.
 \paragraph{Equivalence and power.}
 The labels resolve differences of about 5 pp; smaller differences stay
 inconclusive, and an \emph{equivalent} label means ``within $\pm 5$ pp'', not
-``identical''. Gate~B detects a category effect of about 10--12 pp with 80\%
-probability; DIFFUSE means no category-level cause above about 8 pp, and
-row-level causes that span categories are not tested by Gate~B.
+``identical''. Gate~B's detection limit (\S\ref{sec:gates}) holds for
+categories; row-level causes that span categories are not tested by Gate~B.
 
 \paragraph{Recipe and setting.}
-The main recipe, G, follows standard practice (a token-mean loss, warmup and
-cosine decay), but its rank-64 adapter on all linear layers is larger than is
-common; a rank-16 check is reported. Recipe~B, a stronger dose (a constant
-learning rate, about twice recipe~G's mean over the epoch), is reported as a
-comparison, and rankings may change with the dose. One recipe common to both
-families (a learning-rate ladder only) removes the recipe caveat from
-cross-family sentences, but not the dependence on dose: families can respond
-to the same change of dose by different amounts, so a common recipe equalizes
-the recipe, not the erosion. The skill bar at the probes and Gate~A is looser
-than the bar first registered, and we say where it decided a reading
-(\S\ref{sec:measures}). The main model
-and recipe were chosen by screening probe results for partial erosion, never
-Gate~B or stage-1 outcomes; \S\ref{sec:results} lists every setting tried.
+The main recipe, B, is plain rather than standard: a constant learning rate
+with no warmup and a per-row loss, with a rank-64 adapter on all linear layers,
+larger than is common (a rank-16 check is reported). A standard warmup and
+cosine schedule (recipe~G) lowers the mean learning rate; we report it as a
+recipe-only fix, and repair rankings may differ at a lower dose. A second
+family runs at its own learning rate, so cross-family claims hold at a matched
+erosion dose, not at one recipe; that rule was fixed after a development
+ladder was read. The skill bar at the probes and Gate~A is looser than the bar
+first registered, and we say where it decided a reading
+(\S\ref{sec:measures}). The main model and recipe were chosen by screening
+probe and Gate~A readings, never Gate~B or stage-1 outcomes;
+\S\ref{sec:results} lists every setting tried.
 
 \paragraph{Baselines and doses.}
-Every scorer is re-implemented, so a weak result may reflect our
-implementation; the deviation tables, the authors' reference outputs and the
-published-setting replication address this. Comparisons across removal and
+Every scorer is re-implemented from its paper (``X-style''), so a weak result
+may reflect our implementation; a published table of deviations per scorer,
+reference outputs requested from the authors and the published-setting
+replication address this. Comparisons across removal and
 addition hold only at the pre-registered doses (600 rows removed, 48 added).
 
 \paragraph{Cost.}
@@ -1009,8 +1014,8 @@ differently with model size.
 
 \paragraph{Scale and family.}
 The full comparison runs at 1B on OLMo-2, and on Llama-3.2 if its Gate~A
-passes at the common recipe; larger sizes get a replication only if resources
-allow. A family difference is claimed only above its MDE.
+passes at its matched dose, with one benign dataset until Alpaca runs; larger
+sizes get a replication only if resources allow. A family difference is claimed only above its MDE.
 
 \paragraph{The positive control and the secondary analysis.}
 The planted cause is artificial; finding it shows that a diagnostic \emph{can}
@@ -1050,43 +1055,42 @@ outcome.]}
 \label{app:editors-notes}
 
 % Converted from the Markdown draft's "Editor's note (delete before
-% submission)" block, revision 4. Wording follows the Markdown; inline symbols
-% are set as math.
+% submission)" block, revision 5, by a small converter (Markdown lists,
+% tables and inline markup to LaTeX), so the wording follows the Markdown
+% exactly; inline symbols are set as math.
 
 \begingroup\small
 
 \paragraph{What this is.}
-Revision 4 of the draft, written on 8 October 2026 from 21:40 UTC (clock
-checked). It applies the lead's new results of 8 Oct evening, each checked
-against FOCUS.md, which wins on any conflict (see ``Conflicts'', items
-14--18). The pre-registered token-mean-only run (FOCUS 20:01 and 21:36 UTC)
-refutes the first-token loss-mass account of why recipe G erodes less than
-recipe B, so the body now describes B against G as a difference of dose driven
-by the learning-rate schedule. The ARC rule adopted at 20:50 UTC enters \S4.2,
-with its disclosure. The development evidence gains OLMo recipe G at three
-seeds, Llama under recipe G, the rank-16 check and the token-mean-only run.
-Everything else is revision 3. Revision 3 (from 19:35 UTC) applied the lead's
-corrections of 8 Oct evening (conflicts 9--13): recipe G is the main recipe
-and recipe B the stronger-dose comparison (FOCUS 17:36 and 19:24 UTC);
-Llama-3.2-1B is a planned second family under one common recipe, not a
-replication (Llama probe, 16:50 UTC); stage 1 gains a \emph{worse} label
-(18:31 UTC); and the G+Qi reference arm joins the model-level references
-(17:36 UTC). Revision 2
+Revision 5 of the draft, written on 9 October 2026 from 13:17 UTC (clock
+checked). It applies the user's decisions of 9 Oct, each checked against
+FOCUS.md, which wins on any conflict (see ``Conflicts'', items 19--27): recipe B
+is the main recipe again and recipe G is the ``recipe only'' fix and a reference
+(FOCUS 09:29 UTC); a per-family learning-rate rule replaces the common-recipe
+ladder (09:29 UTC); five model-level references are mandatory, with Safe LoRA
+added (10:01 UTC) and the Qi arm on recipe B as B+Qi (13:16 UTC); and the
+dataset plan is fixed (09:40 UTC). Revision 4 (8 Oct, from 21:40 UTC) withdrew
+the loss-weighting account of recipe B against recipe G (the token-mean-only
+run) and added the ARC rule. Revision 3 (from 19:35 UTC) made recipe G the main
+recipe, which revision 5 reverses, and added the \emph{worse} label. Revision 2
 (from 14:00 UTC) follows the paper specification
-(\texttt{research/review/2026-10-08-paper-specification.md}, commit f2a9979)
+(\nolinkurl{research/review/2026-10-08-paper-specification.md}, commit f2a9979)
 as amended by the user's decision relayed by the lead on 8 Oct: the adopted
 FOCUS.md amendment (commit 4b37ec2, ``ADOPTED 2026-10-08T13:53 UTC'') and the
-study plan \texttt{research/review/2026-10-08-sharpened-direction-DRAFT.md}
-(revision 2, still under adversarial review). Where the two disagree, the
-adopted amendment wins (see ``Conflicts'' below). \textbf{Nothing in the paper
-body is a result.} Gate A at the common recipe, Gates B and C, stage 1, the
-positive control and the Llama stage have not run. Development evidence appears only in these notes. Menu
-sizes, the filter list and costs are marked [TO BE FINALISED] where the plan is
-not settled. \texttt{references.bib} was rebuilt programmatically on 8 Oct
-(revision 2 adds 22 fetched entries); see its per-entry source comments.
+study plan \nolinkurl{research/review/2026-10-08-sharpened-direction-DRAFT.md}
+(revision 2). Where the two disagree, the adopted amendment wins.
+\textbf{Nothing in the paper body is a result.} Gates B and C, stage 1, the
+positive control and the Llama stage have not run; OLMo's Gate A of record
+(recipe B) stays in this note until \S{}5 is written. Development evidence
+appears only in this note. Menu sizes, the filter list and costs are marked [TO
+BE FINALISED]; the Gate B pre-registration (revision 5), the stage-1
+pre-registration, Safe LoRA's settings and Alpaca's preconditions are marked
+[NOT YET FIXED]. The ICML LaTeX version (\nolinkurl{icml/main.tex}) carries the
+same text with a fetched \texttt{references.bib}; the author-year citations
+below use the venue years of those fetched entries.
 
 \paragraph{Title.}
-The spec's working title ends ``\ldots, and When Diagnosis Pays''. The user's
+The spec's working title ends ``\ldots{}, and When Diagnosis Pays''. The user's
 decision makes the measured repair comparison the headline and the
 decision-value map secondary, so the title now names only the comparison.
 Alternatives:
@@ -1100,73 +1104,176 @@ Alternatives:
         as the spec allows).
   \item \emph{Choosing a Data Fix When Benign Fine-Tuning Erodes Safety:
         Diagnosis, Trial Runs and Side Effects at Matched Compute}. This is the
-        DIFFUSE title: the plan (\S11) and FOCUS (``agreed fallback'') switch to
-        it if Gate B reads DIFFUSE. Its number is kept from the previous draft
-        because the plan refers to it as ``alternative title 3''.
+        DIFFUSE title: the plan (\S{}11) and FOCUS (``agreed fallback'') switch
+        to it if Gate B reads DIFFUSE. Its number is kept from the previous
+        draft because the plan refers to it as ``alternative title 3''.
   \item \emph{Remove, Add or Leave the Model Alone? Seeded, Compute-Matched
         Repairs for Safety Eroded by Benign Fine-Tuning} (stresses the
         model-level references).
 \end{enumerate}
 
+\subsection{What changed in revision 5 (9 Oct, from 13:17 UTC)}
+
+\begin{itemize}
+  \item \textbf{Recipe B is the main recipe again (FOCUS 09:29 UTC, decision
+        1).} Gate A, Gate B and stage 1 use recipe B (LoRA r64, constant LR
+        1e-4, no warmup, 128 rows per step, per-row loss, one epoch); OLMo's
+        recipe-B Gate A (PASS, 8 Oct 05:40 UTC) is the Gate A of record.
+        Revisions 3--4's ``recipe G main'' is undone in the abstract, \S{}1,
+        \S{}4.1, Table 1, \S{}4.3, \S{}4.6 and \S{}6. The abstract and \S{}1 no
+        longer call the main recipe standard practice (``a fixed LoRA recipe
+        that erodes it partly''; ``recipe B: a constant learning rate, one
+        epoch''); \S{}6 calls recipe B ``plain rather than standard'' and says
+        why it was chosen (from probe and Gate A readings, before any repair
+        outcome).
+  \item \textbf{Recipe G is the ``recipe only'' fix and a reference (FOCUS 09:29
+        and 10:01 UTC).} The body gives its design facts (a 4-step warmup and
+        cosine decay, which halve the mean learning rate, and a token-mean loss)
+        and calls it ``the recipe-only fix''. Revision 4's token-mean-only
+        finding (the schedule, not the loss weighting, carries G's reduction on
+        OLMo; one seed) stays development evidence; it is why these notes call
+        recipe G a dose-lowering fix. The body does not say that recipe G lowers
+        erosion in every family (conflict 25). ``Stronger dose'',
+        ``stronger-dose comparison'' and ``lower-dose base'' are gone.
+  \item \textbf{The per-family learning-rate rule replaces the common-recipe
+        ladder (FOCUS 09:29 UTC, decision 2).} \S{}4.1's ``One common recipe''
+        paragraph and [PLACEHOLDER: the common rung] are replaced by ``A matched
+        erosion dose'': recipe B with only the learning rate changed, the
+        highest rung of (1e-4, 5e-5, 2e-5) whose probe reads partial (20--55~pp)
+        under the frozen probe bars, chosen from probes only, never from a
+        repair result; cross-family claims ``at a matched erosion dose''. The
+        development ladder (FOCUS 01:43 UTC) is cited, without numbers, as the
+        evidence that one recipe cannot equalize the erosion, and the rule is
+        disclosed as fixed after that ladder was read (\S{}4.1, \S{}6). New
+        marker: [PLACEHOLDER: each family's rung]. Qwen is outside the repair
+        study (\S{}4.1); its recipe-B runs enter only the same-recipe family
+        contrast (\S{}4.10). The contributions, \S{}4.6 (Gate A), \S{}4.8 and
+        \S{}6 say ``matched dose''.
+  \item \textbf{Five mandatory references (FOCUS 10:01 and 13:16 UTC).} The
+        safety prompt; adapter scaling ($\times$ 0.75, $\times$ 0.5); recipe G
+        (3 seeds); B+Qi (Qi et al.'s constrained SFT on recipe B, 6 seeds;
+        ``G+Qi'' is renamed everywhere); Safe LoRA (Hsu et al., 2024; 3 seeds;
+        settings [NOT YET FIXED]). Changed: abstract, \S{}1, \S{}2 (one clause),
+        \S{}3.2 (now points to \S{}4.4), Table 1 (two rows added), \S{}4.4
+        (rewritten). New BibTeX \texttt{hsu2024safelora}, from the OpenReview
+        venue note HcifdQZFZV (NeurIPS 2024 poster), with arXiv:2405.16833
+        checked by the arXiv API (CITE-CHECK 26).
+  \item \textbf{Dataset plan (FOCUS 09:40 UTC).} \S{}4.1 ``Data'': Dolly for
+        Gate B and stage 1; PKU-SafeRLHF for the add repairs' safety rows;
+        Alpaca as the second benign dataset after Gate B, [NOT YET FIXED: its
+        units and learning rate]. \S{}6 adds ``one benign dataset until Alpaca
+        runs''.
+  \item \textbf{The two-layer mechanism account (FOCUS 8 Oct 15:17 and 16:50
+        UTC; the mechanism note's addenda; conflict 19).} \S{}3.6 adds one
+        sentence: the opening-switch term has two layers, the refusal openings
+        lost ($p_0 - p_1$) and how often a direct answer was already unsafe
+        before fine-tuning ($u_{\mathrm{N}0}$). \S{}4.10 item 1 reports both
+        layers across families and recipes; \S{}5's placeholder lists them.
+        Numbers only in the development evidence.
+  \item \textbf{\S{}4.10 item 2} is now ``Recipe and family contrasts'': recipe
+        G against recipe B as a recipe-only fix, the token-mean-only run, the
+        same-recipe family contrast, every learning-rate rung and the rank-16
+        check under recipe G.
+  \item \textbf{HarmBench on the pod and the harm wording (FOCUS 8 Oct 23:43
+        UTC).} \S{}4.2's last clause is now per recipe (``If the classifier's
+        erosion under a recipe is below 20~pp, no sentence calls that recipe's
+        erosion harm''), so recipe G's erosion is ``refusal erosion''. Numbers
+        only in the development evidence.
+  \item \textbf{ARC rule.} Kept with its disclosure; its scope (``at the common
+        recipe'', FOCUS 20:50 UTC) is marked [TO BE FINALISED: its scope under
+        the per-family rule] (decision 16). The sentence ``An interval wholly at
+        or below 0.03 passes \ldots{}'' is cut (implied by ``resolves a
+        straddling interval'').
+  \item \textbf{Gate B (\S{}4.6).} Its pre-registration, revision 5, is marked
+        [NOT YET FIXED]; ``with the warmup and cosine decay spanning its own
+        epoch'' is removed (recipe B has no schedule); the exploratory E-scaled
+        floor is removed, because at recipe B it equals the 8~pp floor (decision
+        21).
+  \item \textbf{Order of work (\S{}4.9).} Gate B runs to its verdict; funding
+        for the later stages is then sought with that result; stage 1 starts
+        only once funded, never because of an outcome. The stage-1
+        pre-registration is marked [NOT YET FIXED].
+  \item \textbf{Secondary arm.} ``The length rule under recipe B's per-row
+        loss'' reverts to revision 2's ``the length rule under a token-mean
+        loss'' (decision 11).
+  \item \textbf{Length.} The body did not grow: the main body measures 9.40
+        pages against 9.46 for revision 4 by the same measure (pages before the
+        page with the References heading, plus the share of that page's two
+        columns above it, in the ICML 2026 build). To make room, \S{}4.1's
+        common-recipe paragraph, \S{}4.6's E-scaled floor, \S{}4.10 item 2's
+        dose sentence, \S{}4.2's ``as before'' sentence and \S{}6's repeat of
+        Gate B's power were cut, \S{}4.3's ``Re-implementations'' paragraph was
+        merged into \S{}6 ``Baselines and doses'', and Table 1's B+Qi and Safe
+        LoRA rules were kept to one line each.
+  \item \textbf{Editor's notes.} Decisions 14 and 15 resolved; decisions 7, 11
+        and 13 updated; decisions 16--22 added. Risks 2, 3, 17--19, 21--23
+        updated; risks 24--27 added. Conflicts 9, 10, 12 and 18 marked
+        superseded; conflicts 19--27 added. CITE-CHECK 25 renamed (B+Qi); 26
+        added. Placeholders, fill-ins, development evidence and status brought
+        up to FOCUS 13:16 UTC.
+\end{itemize}
+
 \subsection{What changed in revision 4 (8 Oct, from 21:40 UTC)}
+
+\emph{History: revision 5 reverses this revision's recipe roles and replaces its
+common-recipe rule.}
 
 \begin{itemize}
   \item \textbf{The loss-weighting account is withdrawn for B $\to$ G (FOCUS
-        21:36 UTC, the token-mean-only run).} The body no longer says or
-        implies that recipe G's token-mean loss, or a first-token loss
-        mechanism, explains why recipe G erodes less than recipe B.
-        \begin{itemize}
-          \item \S1 and \S4.1 describe recipe B as the stronger dose: a
-                constant learning rate without warmup, about twice recipe G's
-                mean learning rate over the epoch (FOCUS: G's warmup and cosine
-                decay ``also halves the mean learning rate''), plus a per-row
-                loss. \S4.1 drops ``which over-weights the first tokens of
-                short answers'' and ``a mechanism test'', and names the
-                token-mean-only run as the run that separates the two changes.
-          \item \S4.10, item 1 is now ``refusal openings against harmful
-                content'': the decomposition is descriptive, and the
-                first-token margin is the one causal test. The recipe contrast
-                is no longer a causal test. Item 2 replaces ``four amplifiers''
-                with the two differences (schedule and loss weighting), adds a
-                placeholder for the token-mean-only run's result against its
-                prediction, and adds that families can respond differently to
-                the same change of dose.
-          \item \S3.6 says the decomposition is descriptive; ``should restore
-                less'' becomes ``may restore less''.
-          \item \S5's placeholder list adds the token-mean-only run against its
-                pre-registered prediction, and ``the mechanism decomposition
-                and its causal tests'' becomes ``the opening decomposition and
-                the first-token margin''. \S6 ``Recipe and setting'' describes
-                recipe B as a stronger dose and adds the family $\times$ dose
-                point and the ARC loosening.
-        \end{itemize}
-  \item \textbf{G+Qi kept (FOCUS 17:36 UTC, item 4).} \S1, \S2, \S4.4 and
+        21:36 UTC, the token-mean-only run).} The body no longer says or implies
+        that recipe G's token-mean loss, or a first-token loss mechanism,
+        explains why recipe G erodes less than recipe B.
+  \begin{itemize}
+    \item \S{}1 and \S{}4.1 describe recipe B as the stronger dose: a constant
+          learning rate without warmup, about twice recipe G's mean learning
+          rate over the epoch (FOCUS: G's warmup and cosine decay ``also halves
+          the mean learning rate''), plus a per-row loss. \S{}4.1 drops ``which
+          over-weights the first tokens of short answers'' and ``a mechanism
+          test'', and names the token-mean-only run as the run that separates
+          the two changes.
+    \item \S{}4.10, item 1 is now ``refusal openings against harmful content'':
+          the decomposition is descriptive, and the first-token margin is the
+          one causal test. The recipe contrast is no longer a causal test. Item
+          2 replaces ``four amplifiers'' with the two differences (schedule and
+          loss weighting), adds a placeholder for the token-mean-only run's
+          result against its prediction, and adds that families can respond
+          differently to the same change of dose.
+    \item \S{}3.6 says the decomposition is descriptive; ``should restore less''
+          becomes ``may restore less''.
+    \item \S{}5's placeholder list adds the token-mean-only run against its
+          pre-registered prediction, and ``the mechanism decomposition and its
+          causal tests'' becomes ``the opening decomposition and the first-token
+          margin''. \S{}6 ``Recipe and setting'' describes recipe B as a
+          stronger dose and adds the family $\times$ dose point and the ARC
+          loosening.
+  \end{itemize}
+  \item \textbf{G+Qi kept (FOCUS 17:36 UTC, item 4).} \S{}1, \S{}2, \S{}4.4 and
         Table 1 justify it by Qi et al.'s own objective, which constrains
         updates on the initial tokens, not by the loss-weighting account; none
-        of that text changed. \S4.10 now cites Qi et al.\ (2025) only for the
+        of that text changed. \S{}4.10 now cites Qi et al. (2025) only for the
         shallow-alignment observation beside the first-token margin (abstract
         re-read by the arXiv API between 21:40 and 21:44 UTC; CITE-CHECK 25).
-  \item \textbf{ARC rule (FOCUS 20:50 UTC).} \S4.2's ``Task loss'' item becomes
-        ``Task loss and skill'': the rule in FOCUS's wording, called a
+  \item \textbf{ARC rule (FOCUS 20:50 UTC).} \S{}4.2's ``Task loss'' item
+        becomes ``Task loss and skill'': the rule in FOCUS's wording, called a
         loosening, with the disclosure that the first OLMo recipe-G probe was
         read under the old rule before the rule was proposed. The body gives no
-        numbers for that probe. Revision 3's ``ARC \ldots\ sets no limit'' was
-        wrong for the probe and Gate A bars, which check ARC; \S4.2 now states
-        the bar. \S4.1 and \S4.6 point to \S4.2 for skill; \S6 notes the
+        numbers for that probe. Revision 3's ``ARC \ldots{} sets no limit'' was
+        wrong for the probe and Gate A bars, which check ARC; \S{}4.2 now states
+        the bar. \S{}4.1 and \S{}4.6 point to \S{}4.2 for skill; \S{}6 notes the
         loosening.
-  \item \textbf{Common-recipe rule (FOCUS 17:36, 21:04 and 21:37 UTC; the
-        frozen amendment of 7 Oct, 21:35 UTC).} \S4.1 adds the too-close rule:
-        one more seed, the two-seed mean classified with the same band, no
-        further seed in that classification, and a choice made after the
-        outcome reported as such. [PLACEHOLDER: the common rung] stays, because
-        Llama's two-seed reading under recipe G is pending and FOCUS records no
+  \item \textbf{Common-recipe rule (FOCUS 17:36, 21:04 and 21:37 UTC; the frozen
+        amendment of 7 Oct, 21:35 UTC).} \S{}4.1 adds the too-close rule: one
+        more seed, the two-seed mean classified with the same band, no further
+        seed in that classification, and a choice made after the outcome
+        reported as such. [PLACEHOLDER: the common rung] stays, because Llama's
+        two-seed reading under recipe G is pending and FOCUS records no
         step-down.
   \item \textbf{Development numbers} (the token-mean-only run, OLMo recipe G at
         three seeds, Llama under recipe G, the rank-16 check) are only in the
-        development evidence below, labelled. The abstract and contributions
-        did not change.
-  \item \textbf{Editor's notes.} Risks 2, 3 and 18 updated; risks 20--23
-        added; ``Where the framing is weak'' item 5 updated; decisions 7 and 11
+        development evidence below, labelled. The abstract and contributions did
+        not change.
+  \item \textbf{Editor's notes.} Risks 2, 3 and 18 updated; risks 20--23 added;
+        ``Where the framing is weak'' item 5 updated; decisions 7 and 11
         updated, decisions 13--15 added; placeholders updated; CITE-CHECK 25
         extended; conflicts 14--18 added; development evidence and status
         brought up to FOCUS 21:37 UTC.
@@ -1174,74 +1281,77 @@ Alternatives:
 
 \subsection{What changed in revision 3 (8 Oct, from 19:35 UTC)}
 
+\emph{History: revision 5 reverses this revision's recipe roles (recipe B is
+main again) and renames G+Qi to B+Qi.}
+
 \begin{itemize}
   \item \textbf{Recipe roles (FOCUS 19:24 UTC; the common-recipe rule, 17:36
         UTC).} Recipe G (token-mean loss, 4-step warmup with cosine decay, LR
-        $10^{-4}$, LoRA r64, 128 rows per step, one epoch) is the main recipe
-        for Gate A, Gate B, stage 1 and both families. Recipe B is the
-        stronger-dose comparison; any learning-rate rung that runs is a dose
-        point. Changed: abstract, \S1, \S3.2, \S3.6, \S4.1, Table 1, \S4.3,
-        \S4.4, \S4.6, \S4.8, \S4.10, \S5, \S6.
+        1e-4, LoRA r64, 128 rows per step, one epoch) is the main recipe for
+        Gate A, Gate B, stage 1 and both families. Recipe B is the stronger-dose
+        comparison; any learning-rate rung that runs is a dose point. Changed:
+        abstract, \S{}1, \S{}3.2, \S{}3.6, \S{}4.1, Table 1, \S{}4.3, \S{}4.4,
+        \S{}4.6, \S{}4.8, \S{}4.10, \S{}5, \S{}6.
   \item \textbf{Llama (FOCUS 16:50 and 17:36 UTC).} ``Llama-3.2-1B replicates
-        the comparison'' is gone from the abstract, \S1, the contributions and
-        \S4.8. Llama-3.2-1B is a planned second family under one common recipe,
-        chosen by the pre-registered ladder rule (\S4.1). The claim rule
-        ``replicates across two families'' stays in \S4.8 as a rule for when
-        both families have run.
+        the comparison'' is gone from the abstract, \S{}1, the contributions and
+        \S{}4.8. Llama-3.2-1B is a planned second family under one common
+        recipe, chosen by the pre-registered ladder rule (\S{}4.1). The claim
+        rule ``replicates across two families'' stays in \S{}4.8 as a rule for
+        when both families have run.
   \item \textbf{Worse label (FOCUS 18:31 UTC).} The labels are better /
-        equivalent / worse / inconclusive (abstract, \S1, contributions,
-        \S3.2, \S4.3). Old decision 2 is resolved.
+        equivalent / worse / inconclusive (abstract, \S{}1, contributions,
+        \S{}3.2, \S{}4.3). Old decision 2 is resolved.
   \item \textbf{G+Qi reference (FOCUS 17:36 UTC, item 4).} Recipe G plus Qi et
         al.'s (2025) token-wise constrained SFT, six seeds, a model-level
         reference with no novelty claim. Recipe G is now the base, so ``a
         standard recipe'' leaves the references (FOCUS 17:36 UTC, item 4); the
         three references are the safety prompt, adapter scaling and G+Qi
-        (abstract, \S1, \S2, \S3.2, Table 1, \S4.4). Qi et al.\ (2025) was
-        already in \texttt{references.bib} (\texttt{qi2025shallow}, fetched from
+        (abstract, \S{}1, \S{}2, \S{}3.2, Table 1, \S{}4.4). Qi et al. (2025)
+        was already in references.bib (\texttt{qi2025shallow}, fetched from
         OpenReview with arXiv:2406.05946 checked; title and authors re-checked
         with the arXiv API on 8 Oct between 19:32 and 19:35 UTC; OpenReview now
         answers with a bot challenge, so the venue was not re-fetched); no new
         BibTeX.
   \item \textbf{One secondary arm.} ``The length rule under a token-mean loss''
-        contrasts nothing once recipe G (token-mean) is the main recipe.
-        \S4.3 now names its mirror, the length rule under recipe B's per-row
-        loss. The mirror is the drafter's inference (decision 11).
+        contrasts nothing once recipe G (token-mean) is the main recipe. \S{}4.3
+        now names its mirror, the length rule under recipe B's per-row loss. The
+        mirror is the drafter's inference (decision 11).
   \item \textbf{Editor's notes.} Development evidence and status brought up to
         FOCUS 19:24 UTC; risks 2 and 3 updated, risks 18--19 added; conflicts
         9--13 added.
 \end{itemize}
 
-\subsection{What changed in revision 2 (from the draft of 8 Oct, about 12:00 UTC)}
+\subsection{What changed in revision 2 (from the draft of 8 Oct, about 12:00
+UTC)}
 
 \begin{itemize}
   \item \textbf{Headline.} The measured repair comparison leads (six repairs
-        $\times$ six seeds against random removal and no repair; labels better
-        / equivalent within 5 pp / inconclusive; with over-refusal, task loss
-        and measured cost). The ``when diagnosis pays'' map is secondary and
+        $\times$ six seeds against random removal and no repair, labels better /
+        equivalent within 5~pp / inconclusive, with over-refusal, task loss and
+        measured cost). The ``when diagnosis pays'' map is secondary and
         model-based; its predictions are written down before Gate B's category
         runs and tested on Llama.
-  \item \textbf{Menu.} Stage 1's primary family P1--P6 (A1, L1, H1 removals;
-        S1, S3, S4 additions); secondary arms and scored-only scorers; rewrite
-        and self-distill only in the DIFFUSE branch. The previous draft's
+  \item \textbf{Menu.} Stage 1's primary family P1--P6 (A1, L1, H1 removals; S1,
+        S3, S4 additions); secondary arms and scored-only scorers; rewrite and
+        self-distill only in the DIFFUSE branch. The previous draft's
         keep/remove/add/rewrite menu by source, the default mix
         $a_{\mathrm{mix}}$ and the ``beat $a_{\mathrm{mix}}$'' rule are gone.
   \item \textbf{New parts.} Three mandatory references with no data change
         (safety prompt, adapter scaling, recipe G; revision 3 replaces recipe G
         with G+Qi); the planted-cause positive control; the HarmBench claim
-        rule; two cost conventions; the Llama rule (LR or rank only; revision
-        3: the common-recipe ladder, LR only, for both families); confirmation on a sealed held-out subsample; the
-        opening decomposition (side study).
-  \item \textbf{Resolved old decisions.} $O$ is measured against the untuned
-        model (old decision 1); $\tau_O$ is a grid of 2, 5 and 10 pp and
-        $\tau_L$ is 2 SE of a seed-to-seed difference in held-out loss on all
-        200 rows (old decision 2); the main scale is 1B with a ladder (old
-        decision 3); a judge rule decides ``harm'' against ``refusal'' wording
-        (old decision 4); model-level references are mandatory (old decision
-        6); side-effect prediction is secondary, on the add arms only (old
-        co-primary).
-  \item \textbf{\S4 and \S6 are written out. \S2} adds the published filters,
-        the format paper, DualSelect, Bianchi et al., PTST and MNEME, the DataRx
-        correction and Guo et al.'s Table 2.
+        rule; two cost conventions; the Llama rule (LR or rank only; revision 3:
+        the common-recipe ladder, LR only, for both families); confirmation on a
+        sealed held-out subsample; the opening decomposition (side study).
+  \item \textbf{Resolved old decisions.} O is measured against the untuned model
+        (old decision 1); $\tau_O$ is a grid of 2, 5 and 10~pp and $\tau_L$ is 2
+        SE of a seed-to-seed difference in held-out loss on all 200 rows (old
+        decision 2); the main scale is 1B with a ladder (old decision 3); a
+        judge rule decides ``harm'' against ``refusal'' wording (old decision
+        4); model-level references are mandatory (old decision 6); side-effect
+        prediction is secondary, on the add arms only (old co-primary).
+  \item \textbf{\S{}4 and \S{}6 are written out. \S{}2} adds the published
+        filters, the format paper, DualSelect, Bianchi et al., PTST and MNEME,
+        the DataRx correction and Guo et al.'s Table 2.
 \end{itemize}
 
 \subsection{Placeholders}
@@ -1254,89 +1364,104 @@ Alternatives:
   \bottomrule
   \endfoot
   Abstract & [PLACEHOLDER: if funded]; [FINDING 1]--[FINDING 3] & the funding
-    decision for the planted sweep; stage 1, the references, Gate B and the
-    sweep \\
-  \S1 & [PLACEHOLDER: if funded]; [TO BE FINALISED] menu sizes 8/32/128 & as
-    above; the plan's review \\
-  \S1, contributions & [FINDING 1]--[FINDING 4]; [ARTIFACT] & stage 1 and
-    Llama; the sweep; Gates B/C and the mechanism study; the decision-value
-    predictions; the anonymized outcome tables \\
-  \S1 & [FIGURE 1] & the repair-comparison figure (restoration with 90\%
-    intervals and the $\pm$5 pp band against over-refusal and cost, with the
-    adapter-scaling curve) \\
-  \S3.2 & [TO BE FINALISED] the label when a repair is better on $U$ but worse
-    on a side effect & the stage-1 pre-registration (decision 12) \\
-  \S3 & the constants $\delta$ (5 pp, given), $\delta_B$ (8 pp, given), the
-    $\tau_O$ grid (given), $\tau_L$ (rule given, value after Gate A noise),
-    $B$, the selector rules per $(M, B)$, $k_d$, $\phi$, $\psi$ & the stage-1
-    pre-registration and the selector spec (committed before Gate B's category
-    runs) \\
-  \S4.1 & [PLACEHOLDER: sizes actually run]; [PLACEHOLDER: the common rung] &
-    funding (scale ladder); Llama's two-seed reading under recipe G (seeds 1101
-    and 1102 only; FOCUS 21:04 and 21:37 UTC): partial $\to$ recipe G is the
-    common recipe; saturated $\to$ both families move to recipe G at LR
-    $5 \times 10^{-5}$; still TOO CLOSE $\to$ the user decides \\
-  \S4.3 & [TO BE FINALISED] secondary arms and the filter list;
-    [PLACEHOLDER: final MDE] & the plan's review; Gate B's pooled noise \\
-  \S4.5 & [TO BE FINALISED] menu sizes; [PLACEHOLDER: runs only if funded] &
-    the plan's review; funding \\
-  \S4.7 & [TO BE FINALISED] costs & measured ledgers; frozen cost
-    conventions \\
-  \S4.10 & [PLACEHOLDER: report against the recorded bound]; [PLACEHOLDER: its
-    result against its pre-registered prediction, \S5] & the mechanism
-    prediction recorded before Gate B; the token-mean-only run (read;
-    development evidence), entered in \S5 when results are written \\
-  \S5, \S7 & placeholders & results \\
-  References & Microsoft page [CITE-CHECK]; Alpaca has no citation & the
-    author \\
+      decision for the planted sweep; stage 1, the references, Gate B and the
+      sweep \\
+  \S{}1 & [PLACEHOLDER: if funded]; [TO BE FINALISED] menu sizes 8/32/128 & as
+      above; the plan's review \\
+  \S{}1, contributions & [FINDING 1]--[FINDING 4]; [ARTIFACT] & stage 1 and
+      Llama; the sweep; Gates B/C and the mechanism study; the decision-value
+      predictions; the anonymized outcome tables \\
+  \S{}1 & [FIGURE 1] & the repair-comparison figure (restoration with 90\%
+      intervals and the $\pm$5~pp band against over-refusal and cost, with the
+      adapter-scaling curve) \\
+  \S{}3.2 & [TO BE FINALISED] the label when a repair is better on U but worse
+      on a side effect & the stage-1 pre-registration (decision 12) \\
+  \S{}3 & the constants $\delta$ (5~pp, given), $\delta_B$ (8~pp, given),
+      $\tau_O$ grid (given), $\tau_L$ (rule given, value after Gate A noise), B,
+      the selector rules per (M, B), $k_d$, $\phi_j$ and the V level & the
+      stage-1 pre-registration and the selector spec (committed before Gate B's
+      category runs) \\
+  \S{}4.1 & [PLACEHOLDER: sizes actually run]; [NOT YET FIXED: Alpaca's units
+      and learning rate]; [PLACEHOLDER: each family's rung] & funding (scale
+      ladder); the Alpaca design note and the user's extension of the
+      learning-rate rule to datasets (decision 20); OLMo: rung 1, recipe B at
+      1e-4 (its probe and Gate A of record read partial); Llama: its recipe-B
+      probes under the rule (decision 18) \\
+  \S{}4.2 & [TO BE FINALISED: the ARC rule's scope under the per-family rule] &
+      the user (decision 16) \\
+  \S{}4.3, Table 1 & [TO BE FINALISED] secondary arms and the filter list;
+      [PLACEHOLDER: final MDE]; [NOT YET FIXED: Safe LoRA's settings] & the
+      plan's review; Gate B's pooled noise; the stage-1 pre-registration
+      (decision 19) \\
+  \S{}4.4 & [NOT YET FIXED] Safe LoRA's base model, layer rule and threshold &
+      the stage-1 pre-registration, after the lead reads the paper in full
+      (decision 19) \\
+  \S{}4.5 & [TO BE FINALISED] menu sizes; [PLACEHOLDER: runs only if funded] &
+      the plan's review; funding \\
+  \S{}4.6 & [NOT YET FIXED] Gate B's pre-registration, revision 5 & the user's
+      acceptance of DRAFT revision 5 (decision 7) \\
+  \S{}4.7 & [TO BE FINALISED] costs & measured ledgers; frozen cost conventions
+      \\
+  \S{}4.9 & [NOT YET FIXED] the stage-1 pre-registration & committed before Gate
+      B's category runs \\
+  \S{}4.10 & [PLACEHOLDER: report against the recorded bound]; [PLACEHOLDER: its
+      result against its pre-registered prediction, \S{}5] & the mechanism
+      prediction recorded before Gate B; the token-mean-only run (read;
+      development evidence), entered in \S{}5 when results are written \\
+  \S{}5, \S{}7 & placeholders & results \\
+  References & Microsoft page [CITE-CHECK]; Alpaca has no citation (\S{}4.1,
+      \S{}4.8) & the author \\
 \end{longtable}
 
 \textbf{[TO BE FINALISED] items (the plan is under review):} (1) the planted
 menus' sizes (8, 32, 128 cells) and cell rules; (2) the published-filter list:
 L1 is LARF-style in the primary family; DataShield-style is secondary;
-Self-Inf-N-style is scored only; SQSD is cited only; bi-anchoring enters as
-A1's score; (3) all costs: the FRE values, both cost conventions, the cost of
-each scorer and of A1, the lean-trial cost $c_0$, and the dollar plan (stage 1
-about \$56--98; planted sweep about \$17--35; core path about \$215--405; all
+Self-Inf-N-style is scored only; SQSD is cited only; bi-anchoring enters as A1's
+score; (3) all costs: the FRE values, both cost conventions, the cost of each
+scorer and of A1, the lean-trial cost $c_0$, and the dollar plan (stage 1 about
+USD 56--98; planted sweep about USD 17--35; core path about USD 215--405; all
 estimates from the plan, not paper text); (4) the secondary arms and their
 order.
 
-\paragraph{Fill-ins for each outcome} (templates, not claims):
+\textbf{Fill-ins for each outcome} (templates, not claims):
 \begin{itemize}
   \item \textbf{A repair is better.} F1: ``[repair] restores \_\_ pp more than
         random removal (90\% CI a--b), with over-refusal \_\_ pp above the
         untuned model and task loss within $\tau_L$, at \_\_ FRE; it [does /
         does not] lie below the adapter-scaling curve''. If it does not, the
-        sentence must say that a model-level reference does as well (FOCUS
-        ``do not claim'': data repair beats model-level repair).
+        sentence must say that a model-level reference does as well (FOCUS ``do
+        not claim'': data repair beats model-level repair).
   \item \textbf{A repair is worse.} F1: ``[repair] is worse than [comparator]:
         it [raises the unsafe rate / raises over-refusal / raises task loss] by
-        \_\_ (Holm-adjusted $p = {}$\_\_)''. This label replaces
-        ``inconclusive'' for any significantly harmful contrast (FOCUS 18:31
-        UTC); P4 (S1 against no repair) is the contrast where prior work
-        predicts a harmful result (DataRx's random mix).
-  \item \textbf{Everything equivalent.} F1: ``every removal repair is
-        equivalent to random removal within $\pm$5 pp; [addition result]''.
-        This is a publishable answer; the abstract then says it.
+        \_\_ (Holm-adjusted p = \_\_)''. This label replaces ``inconclusive''
+        for any significantly harmful contrast (FOCUS 18:31 UTC); P4 (S1 against
+        no repair) is the contrast where prior work predicts a harmful result
+        (DataRx's random mix).
+  \item \textbf{Everything equivalent.} F1: ``every removal repair is equivalent
+        to random removal within $\pm$5~pp; [addition result]''. This is a
+        publishable answer; the abstract then says it.
   \item \textbf{A free reference wins.} F2: ``a safety prompt / a down-scaled
-        adapter restores as much as any data repair at lower over-refusal''
-        (plan \S13: a valid, reportable answer).
+        adapter / Safe LoRA / recipe G / B+Qi restores as much as any data
+        repair at lower over-refusal'' (plan \S{}13: a valid, reportable
+        answer).
   \item \textbf{Planted cause found / not found} (only if funded). F3:
-        ``[diagnostic] ranks the planted cell first at $M = {}$\_\_; runs alone
+        ``[diagnostic] ranks the planted cell first at M = \_\_ ; runs alone
         find it at \_\_ FRE''.
-  \item \textbf{DIFFUSE.} F3: ``no Dolly category restores more than 8 pp
-        beyond random removal (80\% detection at about 10--12 pp)''. Switch to
+  \item \textbf{DIFFUSE.} F3: ``no Dolly category restores more than 8~pp beyond
+        random removal (80\% detection at about 10--12~pp)''. Switch to
         alternative title 3; the planted sweep becomes the only test of whether
         diagnosis can pay.
-  \item \textbf{Second family.} If Llama's Gate A passes at the common recipe
-        and stage 2 runs: ``[contrast] replicates on Llama-3.2-1B (same sign;
-        family difference below the interaction's MDE of \_\_ pp)''. If no
-        learning-rate rung qualifies for both families, or stage 2 is not
-        funded, the paper is single-family: drop the second family from the
-        abstract and contributions, and say so in \S6.
+  \item \textbf{Second family.} If Llama's Gate A passes at its matched dose and
+        stage 2 runs: ``[contrast] replicates on Llama-3.2-1B at a matched
+        erosion dose (same sign; family difference below the interaction's MDE
+        of \_\_ pp)''. If no learning-rate rung of recipe B reads partial for
+        Llama, or stage 2 is not funded, the paper is single-family: drop the
+        second family from the abstract and contributions, and say so in \S{}6.
   \item \textbf{Harm wording.} Use ``restored refusal'' unless the HarmBench
-        rule (\S4.2) passes for that contrast; never ``harm'' if
-        $E_{\mathrm{HB}} < 20$ pp.
+        rule (\S{}4.2) passes for that contrast; never ``harm'' if
+        $E_{\mathrm{HB}}$ < 20~pp. Recipe B's OLMo erosion clears 20~pp on every
+        seed and recipe G's does not (development evidence), so recipe G's
+        erosion is ``refusal erosion under Qwen3Guard'', never harm.
 \end{itemize}
 
 \subsection{[CITE-CHECK] items}
@@ -1348,93 +1473,113 @@ order.
   \endhead
   \bottomrule
   \endfoot
-  1 & TOSS (2603.01185) & \S2 & Title and venue now fetched (``Token-level Data
-    Selection for Safe LLM Fine-tuning'', ICLR 2026). The claim ``token-level
-    selection'' rests on the title only. \\
-  2 & Unforgotten Safety (2512.10150) & \S2 & Fetched (``\ldots with Continual
-    Learning''); claim from the title only. \\
-  3 & Yin \& Rush (2410.16208, ICLR 2025) & \S1, \S2 & Wording (``almost never
-    compute-optimal''; 5x and 10x model-size ratios) from the arXiv abstract,
-    read this session. The spec's ``predicts retraining wins at equal size'' is
-    our inference from the 10x ratio; check the paper before using it. \\
-  4 & TuneAhead (2606.17660) & \S2 & Fetched; claim from the title only. \\
-  5 & Data2Behavior (2602.04735) & \S2 & Fetched; claim from the title only. \\
-  6 & SafeTune: model-level repairs, single deterministic runs & \S2 & Recipe
-    and runs PDF-checked (benign-erosion recipes note); ``compares repairs of
-    safety drift'' from the title and a fetch summary. \\
+  1 & TOSS (2603.01185) & \S{}2 & Title and venue now fetched (``Token-level
+      Data Selection for Safe LLM Fine-tuning'', ICLR 2026). The claim
+      ``token-level selection'' rests on the title only. \\
+  2 & Unforgotten Safety (2512.10150) & \S{}2 & Fetched (``\ldots{}with
+      Continual Learning''); claim from the title only. \\
+  3 & Yin \& Rush (2410.16208, ICLR 2025) & \S{}1, \S{}2 & Wording (``almost
+      never compute-optimal''; 5x and 10x model-size ratios) from the arXiv
+      abstract, read this session. The spec's ``predicts retraining wins at
+      equal size'' is our inference from the 10x ratio; check the paper before
+      using it. \\
+  4 & TuneAhead (2606.17660) & \S{}2 & Fetched; claim from the title only. \\
+  5 & Data2Behavior (2602.04735) & \S{}2 & Fetched; claim from the title only.
+      \\
+  6 & SafeTune: model-level repairs, single deterministic runs & \S{}2 & Recipe
+      and runs PDF-checked (benign-erosion recipes note); ``compares repairs of
+      safety drift'' from the title and a fetch summary. \\
   7 & DataRx mechanism (``gap between the model's own response and a safe
-    reference'') & \S2 & From the arXiv abstract (this session). The numbers
-    59.23\% and 13.70\% are in the abstract; 20.24\% is Table II (recipes note,
-    PDF read); ``averaged over seven tasks'' is the abstract's wording. The plan
-    reads (by HTML fetch, not PDF) that DataRx's random arm draws refusal-only
-    rows; that is why S1 is the DataRx test. \\
-  8 & DataShield and GradShield report scoring cost without charging it
-    against runs; DataShield's mechanism & \S2 & Cost claim: fetch summaries
-    only. Mechanism (compliance direction): DataShield's abstract (this
-    session). DataShield's cost table (Table IV) is cited by the plan from the
-    reading list (LARF 0.17 h, DataShield 0.50 h, bi-anchoring 3.5 h per 10,000
-    rows); not PDF-checked. \\
-  9 & SOURCE ``reported to cost several training runs'' & \S2 & Reported
-    through the Bergson paper; not checked. \\
-  10 & LESS as ``gradient similarity on LoRA gradients'' & \S2 & Reading-list
-    summary. \\
-  11 & Persona vectors & \S2 & Blog post via the problem-validation review;
-    confirm in 2507.21509. \\
-  12 & DataDecide; Ivison et al. & \S2 & Positioning review, from an
-    extraction-tool read. \\
-  13 & Xiao \& Aranguri & \S2 & Abstract only (``over 10 times cheaper''). \\
-  14 & Microsoft fine-tuning safety documentation & \S1, refs & Read on 6 Oct;
-    re-check before submission; no URL in the bib. \\
+      reference'') & \S{}2 & From the arXiv abstract (this session). The numbers
+      59.23\% and 13.70\% are in the abstract; 20.24\% is Table II (recipes
+      note, PDF read); ``averaged over seven tasks'' is the abstract's wording.
+      The plan reads (by HTML fetch, not PDF) that DataRx's random arm draws
+      refusal-only rows; that is why S1 is the DataRx test. \\
+  8 & DataShield and GradShield report scoring cost without charging it against
+      runs; DataShield's mechanism & \S{}2 & Cost claim: fetch summaries only.
+      Mechanism (compliance direction): DataShield's abstract (this session).
+      DataShield's cost table (Table IV) is cited by the plan from the reading
+      list (LARF 0.17 h, DataShield 0.50 h, bi-anchoring 3.5 h per 10,000 rows);
+      not PDF-checked. \\
+  9 & SOURCE ``reported to cost several training runs'' & \S{}2 & Reported
+      through the Bergson paper; not checked. \\
+  10 & LESS as ``gradient similarity on LoRA gradients'' & \S{}2 & Reading-list
+      summary. \\
+  11 & Persona vectors & \S{}2 & Blog post via the problem-validation review;
+      confirm in 2507.21509. \\
+  12 & DataDecide; Ivison et al. & \S{}2 & Positioning review, from an
+      extraction-tool read. \\
+  13 & Xiao \& Aranguri & \S{}2 & Abstract only (``over 10 times cheaper''). \\
+  14 & Microsoft fine-tuning safety documentation & \S{}1, refs & Read on 6 Oct;
+      re-check before submission; no URL in the bib. \\
   15 & Venues and author order & refs & ADMIRE-BayesOpt: TMLR lists Ouyang
-    first, arXiv lists Chen first (bib follows TMLR). DATE-LM year set to 2025
-    from the venue string. \\
-  16 & LARF (2507.18631, EMNLP 2025) & \S2 & Mechanism from the abstract (this
-    session). \\
-  17 & SQSD (2605.04572, ICML 2026) & \S2 & Mechanism and acronym from the
-    abstract (this session). ``Its scoring needs several FRE'' is the plan's
-    estimate (6--14 FRE), not the paper's. \\
-  18 & Self-Inf-N (2505.06843, ICML 2025) & \S2, \S4.3 & ``100 outliers break
-    safety; most mitigations fail'' from the abstract (this session). Using its
-    score as a removal filter is our adaptation. \\
-  19 & ``Bi-anchoring'' as He et al.'s method name & \S2, \S4.3 & The reading
-    list's name; check He et al.'s own term. \\
-  20 & Form over content (2609.19589) & \S1, \S2 & Abstract only (here and in
-    the repo's arXiv search file). \\
-  21 & DualSelect (2606.09866) & \S1, \S2 & Abstract (this session): joint task
-    and reference selection, 1B--8B models. ``Compares random, SafeInstr, SEAL,
-    LARF, TOSS and SQSD with three seeds and a false-refusal rate'' comes from
-    the plan's novelty review (HTML \S4), not re-read. \\
-  22 & Bianchi et al.\ (ICLR 2024): 3\% safety data helps, with exaggerated
-    safety & \S2 & Abstract (this session). \\
-  23 & MNEME (EMNLP 2025) predicts side effects & \S2 & Abstract (this
-    session). \\
+      first, arXiv lists Chen first (bib follows TMLR). DATE-LM year set to 2025
+      from the venue string. \\
+  16 & LARF (2507.18631, EMNLP 2025) & \S{}2 & Mechanism from the abstract (this
+      session). \\
+  17 & SQSD (2605.04572, ICML 2026) & \S{}2 & Mechanism and acronym from the
+      abstract (this session). ``Its scoring needs several FRE'' is the plan's
+      estimate (6--14 FRE), not the paper's. \\
+  18 & Self-Inf-N (2505.06843, ICML 2025) & \S{}2, \S{}4.3 & ``100 outliers
+      break safety; most mitigations fail'' from the abstract (this session).
+      Using its score as a removal filter is our adaptation. \\
+  19 & ``Bi-anchoring'' as He et al.'s method name & \S{}2, \S{}4.3 & The
+      reading list's name; check He et al.'s own term. \\
+  20 & Form over content (2609.19589) & \S{}1, \S{}2 & Abstract only (here and
+      in the repo's arXiv search file). \\
+  21 & DualSelect (2606.09866) & \S{}1, \S{}2 & Abstract (this session): joint
+      task and reference selection, 1B--8B models. ``Compares random, SafeInstr,
+      SEAL, LARF, TOSS and SQSD with three seeds and a false-refusal rate''
+      comes from the plan's novelty review (HTML \S{}4), not re-read. \\
+  22 & Bianchi et al. (ICLR 2024): 3\% safety data helps, with exaggerated
+      safety & \S{}2 & Abstract (this session). \\
+  23 & MNEME (EMNLP 2025) predicts side effects & \S{}2 & Abstract (this
+      session). \\
   24 & Instrument citations (OLMo 2, Llama 3, Qwen2.5, Qwen3Guard, Granite
-    Guardian, HarmBench, StrongREJECT, SimpleSafetyTests, XSTest, OR-Bench,
-    PKU-SafeRLHF, LoRA, ARC, Dolly) & \S4 & Fetched. Check that each cited
-    report covers the version used (Granite Guardian 3.3 8B; Qwen3Guard-Gen-4B;
-    Llama-3.2 under the Llama 3 report; OLMo-2-0425-1B under the OLMo 2
-    report). Dolly's entry is the dataset card's own BibTeX (a blog post).
-    Alpaca (\S1, \S4.8) has no citation yet. \\
-  25 & Qi et al.\ (2025; 2406.05946) as the G+Qi reference (``token-wise
-    constrained SFT'', ``constrains updates on the first answer tokens'') &
-    \S1, \S2, \S3.6, \S4.4, \S4.10 & Mechanism from the arXiv abstract, read
-    by API this session (``constraining updates on initial tokens'').
-    ``Token-wise constrained SFT'' is the lead's and FOCUS's name; check the
-    paper's own term before submission. FAQ (FOCUS 15:59 UTC) reports that
-    their Table 9 shows warmup alone does most of the work on benign data; not
-    checked here. Revision 4: \S4.10 also cites them for ``safety alignment
-    often adapts mainly the first few output tokens'', a paraphrase of the
-    abstract (``the alignment adapts a model's generative distribution
-    primarily over only its very first few output tokens''), re-read by the
-    arXiv API on 8 Oct between 21:40 and 21:44 UTC. \\
+      Guardian, HarmBench, StrongREJECT, SimpleSafetyTests, XSTest, OR-Bench,
+      PKU-SafeRLHF, LoRA, ARC, Dolly) & \S{}4 & Fetched. Check that each cited
+      report covers the version used (Granite Guardian 3.3 8B;
+      Qwen3Guard-Gen-4B; Llama-3.2 under the Llama 3 report; OLMo-2-0425-1B
+      under the OLMo 2 report). Dolly's entry is the dataset card's own BibTeX
+      (a blog post). Alpaca (\S{}4.1, \S{}4.8) has no citation yet: the brief
+      allows new BibTeX only from the arXiv API, OpenReview or PMLR, and Alpaca
+      was not searched there this revision (it is a GitHub release). \\
+  25 & Qi et al. (2025; 2406.05946) as the B+Qi reference (renamed from G+Qi in
+      revision 5; ``token-wise constrained SFT'', ``constrains updates on the
+      first answer tokens'') & \S{}1, \S{}2, \S{}3.6, \S{}4.4, \S{}4.10 &
+      Mechanism from the arXiv abstract, read by API this session
+      (``constraining updates on initial tokens''). ``Token-wise constrained
+      SFT'' is the lead's and FOCUS's name; check the paper's own term before
+      submission. FAQ (FOCUS 15:59 UTC) reports that their Table 9 shows warmup
+      alone does most of the work on benign data; not checked here. Revision 4:
+      \S{}4.10 also cites them for ``safety alignment often adapts mainly the
+      first few output tokens'', a paraphrase of the abstract (``the alignment
+      adapts a model's generative distribution primarily over only its very
+      first few output tokens''), re-read by the arXiv API on 8 Oct between
+      21:40 and 21:44 UTC. \\
+  26 & Safe LoRA (Hsu et al., 2024; arXiv:2405.16833; NeurIPS 2024) as a
+      reference (``projects the LoRA weights of selected layers onto a
+      safety-aligned subspace without training or data'') & \S{}1, \S{}2,
+      \S{}4.4, Table 1 & BibTeX from the OpenReview venue note HcifdQZFZV
+      (NeurIPS 2024 poster), fetched by the OpenReview API on 9 Oct at about
+      13:20 UTC; title and the six authors checked against the arXiv API record
+      (v2, ``camera-ready version accepted for NeurIPS 2024''). The body's
+      wording is from the arXiv abstract, read by API this session (``projection
+      of LoRA weights from selected layers to the safety-aligned subspace'';
+      ``training-free and data-free''; it ``only requires the knowledge of the
+      weights from the base and aligned LLMs''). FOCUS 10:01 UTC's fuller
+      description (the weight difference between the aligned and the base model;
+      the layers where the update departs from it) was not checked against the
+      paper; the lead reads it in full before the settings are fixed (decision
+      19). \\
 \end{longtable}
 
-PDF- or full-text-checked in the repo, and used as such: Qi et al.\ (2024), He
-et al., Luo et al.\ (2026b), Pan et al., DATE-LM (verification log, 6 Oct); Kim
-et al.\ (2025), SafeTune's recipe, PTST, DataRx's Table II (benign-erosion
-recipes note); Guo et al.\ including Table 2 (7.27, 4.50, 9.09, 44.80
-confirmed), Springer et al.\ (safety-landscape note); Llama 3's safety mix
-(problem-validation review); Qi et al.\ (2025) on first-token alignment
+PDF- or full-text-checked in the repo, and used as such: Qi et al. (2024), He et
+al., Luo et al. (2026b), Pan et al., DATE-LM (verification log, 6 Oct); Kim et
+al. (2025), SafeTune's recipe, PTST, DataRx's Table II (benign-erosion recipes
+note); Guo et al. including Table 2 (7.27, 4.50, 9.09, 44.80 confirmed),
+Springer et al. (safety-landscape note); Llama 3's safety mix
+(problem-validation review); Qi et al. (2025) on first-token alignment
 (erosion-amplifiers note). Guo's ``two seeds'' is the Table 2 caption; the
 Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
 
@@ -1443,172 +1588,237 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
 \begin{enumerate}
   \item \textbf{Title} (above).
   \item \textbf{RESOLVED (FOCUS 18:31 UTC, the user): the ``worse'' label.} A
-        repair whose contrast against its comparator is significantly harmful
-        at the 5\% Holm level (on unsafe share, over-refusal or task loss, each
-        in its harmful direction) is labelled \emph{worse}, so a harmful repair
-        is never reported as inconclusive. Labels are better, equivalent, worse
-        and inconclusive; \S3.2 and \S4.3 carry them, and P4's harmful direction
+        repair whose contrast against its comparator is significantly harmful at
+        the 5\% Holm level (on unsafe share, over-refusal or task loss, each in
+        its harmful direction) is labelled \emph{worse}, so a harmful repair is
+        never reported as inconclusive. Labels are better, equivalent, worse and
+        inconclusive; \S{}3.2 and \S{}4.3 carry them, and P4's harmful direction
         (DataRx) now has a label. One detail is left for the stage-1
         pre-registration (decision 12).
-  \item \textbf{The planted sweep's funding.} If it is not funded, ``menu
-        size'' leaves the headline: delete contribution 2, the planted part of
-        the abstract and Figure 1's menu-size panel, and \S3.4 shrinks to one
+  \item \textbf{The planted sweep's funding.} If it is not funded, ``menu size''
+        leaves the headline: delete contribution 2, the planted part of the
+        abstract and Figure 1's menu-size panel, and \S{}3.4 shrinks to one
         sentence.
   \item \textbf{Preliminary-results section.} The spec does not ask for one, so
-        the body has none. Gate A's numbers and their disclosures stay in these
-        notes until \S5 is written. Decide whether a section labelled
+        the body has none. Gate A's numbers and their disclosures stay in this
+        note until \S{}5 is written. Decide whether a section labelled
         ``Preliminary results (development evidence; not confirmatory)'' should
         carry Gate A.
   \item \textbf{Filter list and secondary arms} ([TO BE FINALISED]).
-  \item \textbf{Venue and length.} The adopted amendment targets TMLR or
-        NeurIPS 2027; ICML 2027 only if, by about 1 December, the planted
-        sweep, both 1B families and one 7--8B published-setting replication are
-        funded. This build uses the ICML 2026 style (8-page limit); see the
-        page count reported with the build. NeurIPS allows 9 pages; TMLR has no
-        strict limit. ICML needs an Impact Statement (missing).
-  \item \textbf{The Gate B and Gate C rules} in \S4.6 summarize the DRAFT
+  \item \textbf{Venue and length.} The adopted amendment targets TMLR or NeurIPS
+        2027; ICML 2027 only if, by about 1 December, the planted sweep, both 1B
+        families and one 7--8B published-setting replication are funded. The
+        LaTeX build uses the ICML 2026 style; see the page count in the build
+        log. NeurIPS allows 9 pages; TMLR has no strict limit. ICML needs an
+        Impact Statement (missing). \textbf{Revision 5:} the main body measures
+        9.40 pages (the measure in ``What changed in revision 5''), over ICML's
+        8 pages and NeurIPS's 9.
+  \item \textbf{The Gate B and Gate C rules} in \S{}4.6 summarize the DRAFT
         pre-registration (revision 4b, written for recipe B), which awaits the
         user's acceptance. FOCUS 17:36 UTC moves Gate B to the common recipe
-        (REC and recipe S rebuilt from it; the noise gate and predictions
-        P3--P4 re-based on that recipe's Gate A mean $E$; the 8 pp floor
-        unchanged; each removal arm's warmup-cosine schedule spans its own
-        epoch); DRAFT revision 5 is to carry this and was not yet in the
-        repository at this revision. \S4.6 states only the recipe change.
-        Update \S4.6 when revision 5 is accepted. \textbf{Revision 4:} the
-        repository's DRAFT is still revision 4b. FOCUS 20:17 UTC adds an
-        exploratory, report-only E-scaled floor for Gate B,
-        $8 \times E_{\mathrm{common}} / 45.1$ pp (about 5.2 pp at
-        $E \approx 29$), labelled exploratory wherever it appears and never
-        changing a verdict; the 8 pp floor stays primary. \S4.6 does not
-        mention it yet; add one sentence when revision 5 is accepted.
-  \item \textbf{The opening decomposition's definition} (\S3.6) must match the
+        (REC and recipe S rebuilt from it; the noise gate and predictions P3--P4
+        re-based on that recipe's Gate A mean E; the 8~pp floor unchanged; each
+        removal arm's warmup-cosine schedule spans its own epoch); DRAFT
+        revision 5 is to carry this and was not yet in the repository at this
+        revision. \S{}4.6 states only the recipe change. Update \S{}4.6 when
+        revision 5 is accepted. \textbf{Revision 4:} the repository's DRAFT is
+        still revision 4b. FOCUS 20:17 UTC adds an exploratory, report-only
+        E-scaled floor for Gate B, 8 $\times$ $E_{\mathrm{common}}$ / 45.1~pp
+        (about 5.2~pp at E $\approx$ 29), labelled exploratory wherever it
+        appears and never changing a verdict; the 8~pp floor stays primary.
+        \S{}4.6 does not mention it yet; add one sentence when revision 5 is
+        accepted. \textbf{Revision 5:} FOCUS 9 Oct 09:29 UTC keeps Gate B on
+        recipe B, so the move to the common recipe above is void; DRAFT revision
+        5 ``stays on recipe B and adds the [D14]--[D19] rules'', and the brief's
+        [D20] fixes the kit's price constants (no hourly limit; guard planning
+        rate USD 1.85/h; spend rate USD 1.79/h; reserve USD 6), with the money
+        thresholds recomputed in revision 5 (FOCUS 13:16 UTC). The repository's
+        DRAFT is still revision 4b, so \S{}4.6 marks revision 5 [NOT YET FIXED].
+        Update \S{}4.6 when revision 5 is accepted.
+  \item \textbf{The opening decomposition's definition} (\S{}3.6) must match the
         exploratory note's ``composition share''; the note does not state its
         formula in these terms. Fix the order of terms and report both orders.
   \item \textbf{Gate names.} Keep ``Gate A/B/C'' or call them pre-registered
         checks.
-  \item \textbf{Who the user is} (\S6): the plan names a fine-tuning service
+  \item \textbf{Who the user is} (\S{}6): the plan names a fine-tuning service
         that must ship the customer's adapter and may change only data, or a
         data-only pipeline. Confirm this wording.
-  \item \textbf{The length-rule secondary arm under the other loss} (\S4.3).
-        Revision 2 listed ``the length rule under a token-mean loss'', a
-        control for recipe B's per-row loss. With recipe G (token-mean) as the
-        main recipe, revision 3 writes the mirror: the length rule under recipe
-        B's per-row loss. Confirm, or drop the arm. \textbf{Revision 4:} the
-        token-mean-only run (development evidence) finds that the loss
-        weighting carries none of recipe G's reduction at one seed, so the
-        arm's reason (that per-row weighting makes short rows matter more) has
-        no support at the recipe level. The arm would still test it at the row
-        level; keep it only if three seeds are cheap.
-  \item \textbf{Label order when endpoints disagree.} The 18:31 UTC rule
-        labels a repair \emph{worse} if any of its three contrasts (unsafe
-        share, over-refusal, task loss) is significantly harmful. It does not
-        say which label a repair gets when it is \emph{better} on the unsafe
-        share and \emph{worse} on over-refusal or task loss. \S3.2 reports both
-        facts and leaves the order to the stage-1 pre-registration; fix it
-        there.
-  \item \textbf{Where the failed prediction goes.} FOCUS 21:36 UTC: ``the
-        paper reports it as a pre-registered prediction that failed''. Revision
-        4 puts its result in \S5 (placeholder) and names the run in \S4.1 and
-        \S4.10. Decide whether \S5 gives it a sentence or a row in the dose
+  \item \textbf{The length-rule secondary arm under the other loss} (\S{}4.3).
+        Revision 2 listed ``the length rule under a token-mean loss'', a control
+        for recipe B's per-row loss. With recipe G (token-mean) as the main
+        recipe, revision 3 writes the mirror: the length rule under recipe B's
+        per-row loss. Confirm, or drop the arm. \textbf{Revision 4:} the
+        token-mean-only run (development evidence) finds that the loss weighting
+        carries none of recipe G's reduction at one seed, so the arm's reason
+        (that per-row weighting makes short rows matter more) has no support at
+        the recipe level. The arm would still test it at the row level; keep it
+        only if three seeds are cheap. \textbf{Revision 5:} with recipe B
+        (per-row loss) the main recipe again, \S{}4.3 reverts to revision 2's
+        ``the length rule under a token-mean loss''. Keep it only if three seeds
+        are cheap, or drop it.
+  \item \textbf{Label order when endpoints disagree.} The 18:31 UTC rule labels
+        a repair \emph{worse} if any of its three contrasts (unsafe share,
+        over-refusal, task loss) is significantly harmful. It does not say which
+        label a repair gets when it is \emph{better} on the unsafe share and
+        \emph{worse} on over-refusal or task loss. \S{}3.2 reports both facts
+        and leaves the order to the stage-1 pre-registration; fix it there.
+  \item \textbf{Where the failed prediction goes.} FOCUS 21:36 UTC: ``the paper
+        reports it as a pre-registered prediction that failed''. Revision 4 puts
+        its result in \S{}5 (placeholder) and names the run in \S{}4.1 and
+        \S{}4.10. Decide whether \S{}5 gives it a sentence or a row in the dose
         table, and whether the mechanism side study keeps any recipe contrast.
         Revision 4 keeps the recipe contrast only as a dose decomposition, not
-        as a mechanism test.
-  \item \textbf{If Llama's two-seed reading under recipe G is still TOO
-        CLOSE.} FOCUS 21:04 UTC leaves the choice to the user, with seed 1103
-        shown beside the two-seed reading and labelled as run before that
-        decision (21:37 UTC). \S4.1's ``the choice is made after the outcome
-        and reported as such'' covers this case. If instead both families step
-        down to LR $5 \times 10^{-5}$, OLMo's erosion may fall below 20 pp
-        (recipe G alone cut it by about a third), and then no common recipe
-        exists (\S4.1).
-  \item \textbf{How to name recipe G.} With the schedule carrying recipe G's
-        reduction (development evidence), recipe G is both ``standard
-        practice'' and ``the lower dose'' of the two recipes. The body calls
-        recipe B the stronger dose and recipe G standard practice. Decide
-        whether the abstract's ``standard-practice LoRA recipe'' should also
-        say that it is the lower dose.
+        as a mechanism test. \textbf{Revision 5:} recipe G is now a reference
+        arm, and the token-mean-only run explains that reference's effect on
+        OLMo; \S{}4.10 item 2 and \S{}5 keep it. Decide whether \S{}5 gives it a
+        sentence or a row beside recipe G.
+  \item \textbf{RESOLVED (FOCUS 9 Oct 09:29 UTC): no common recipe.} Llama's
+        two-seed reading under recipe G stayed TOO CLOSE (+58.25~pp), and the
+        ladder found no rung for both families (01:43 UTC); the user chose
+        recipe B as the main recipe and the per-family learning-rate rule
+        (\S{}4.1). Llama's recipe-G seed 1103 was then read as a report-only
+        third seed (three-seed mean +57.1~pp, TOO CLOSE at the top edge; results
+        record, 09:35 UTC).
+  \item \textbf{RESOLVED (FOCUS 9 Oct 09:29 UTC): recipe G's name.} Recipe G is
+        ``the recipe only fix'' and a reference, not the main recipe or a
+        lower-dose base; the body calls it ``the recipe-only fix'', and the
+        abstract no longer calls the main recipe standard practice.
+  \item \textbf{The ARC rule's scope under the per-family rule.} FOCUS 20:50 UTC
+        adopted it ``for the probe and Gate A readings at the common recipe
+        (both families)'', and no common recipe now exists. OLMo's Gate A of
+        record (recipe B) passed ARC under the frozen bars (ARC rose on every
+        seed; audit), so the rule decided none of OLMo's main readings; it
+        decided the recipe-G Gate A read and the rung-2 readings (reported).
+        Decide whether it applies to Llama's probes and Gate A under the
+        per-family rule; \S{}4.2 is marked [TO BE FINALISED].
+  \item \textbf{The family $\times$ recipe interaction test (Side Project).} Its
+        95\% interval on the logit scale excludes 0, but it was written after 11
+        of its 12 values were known, has about 5 df and uses one judge
+        (development evidence). Decide whether \S{}5 reports it, labelled
+        exploratory, or only the per-family rule it motivates. The body now
+        gives only the design consequence (\S{}4.1: ``families respond to the
+        same change of recipe by different amounts'').
+  \item \textbf{Llama's rung under the per-family rule.} Llama's rung-1 probe at
+        recipe B (8 Oct, 16:50 UTC) read SATURATED, and the two report-only
+        seeds agree (three-seed mean +59.3~pp), so the rule's next step would be
+        a recipe-B probe at 5e-5. This is the drafter's reading: FOCUS records
+        no such run or decision. The rung-2 reading under recipe G (+41.2~pp,
+        partial) is not a recipe-B probe and cannot set Llama's rate.
+        [PLACEHOLDER: each family's rung] in \S{}4.1 waits for it.
+  \item \textbf{Safe LoRA's settings} (FOCUS 10:01 UTC; to fix in the stage-1
+        pre-registration before any Safe LoRA run, after the lead reads the
+        paper in full): the unaligned model (OLMo-2-0425-1B base for
+        OLMo-2-0425-1B-Instruct; Llama-3.2-1B base for the second family), the
+        exact projection, the layer-selection rule and its threshold (from the
+        paper's rule or a fixed default, never tuned on stage-1 outcomes), the
+        seeds (the adapter-scaling seeds 1101--1103 unless the pre-registration
+        says otherwise; Table 1 says 3), and the engine work (a post-hoc state
+        transform evaluated by the existing eval-state job, built with tests and
+        reviewed). \S{}4.4 and Table 1 are marked [NOT YET FIXED].
+  \item \textbf{Alpaca's preconditions} (FOCUS 09:40 UTC; to settle before any
+        Alpaca run, not now): the user extends the learning-rate rule from
+        families to datasets before any Alpaca probe; a short design note fixes
+        Alpaca's units (it has no categories, unlike Dolly), the field mapping
+        (instruction, input as context, output as response), the version
+        (tatsu-lab/alpaca; CC BY-NC 4.0) and the download, which the user
+        approves. Alpaca still has no citation (CITE-CHECK 24).
+  \item \textbf{The exploratory E-scaled Gate B floor} (FOCUS 8 Oct 20:17 UTC):
+        8 $\times$ $E_{\mathrm{common}}$ / 45.1~pp equals 8~pp at recipe B
+        ($E_{\mathrm{common}}$ is the recipe-B Gate A mean, +45.1~pp), so it
+        repeats the primary floor; revision 5 drops the sentence from \S{}4.6.
+        Confirm, or restore it if DRAFT revision 5 keeps it.
+  \item \textbf{B+Qi's warmup.} FAQ reports that Qi et al.'s Table 9 shows
+        warmup alone does most of the work on benign data (FOCUS 8 Oct 15:59
+        UTC; not checked here). Recipe B has no warmup, so whether B+Qi takes Qi
+        et al.'s own schedule decides whether B+Qi differs from recipe B only in
+        the objective or also in the schedule, like recipe G. Fix it in the
+        stage-1 pre-registration and report it beside recipe G.
 \end{enumerate}
 
 \subsection{Risks a reviewer will raise (sources in brackets)}
 
 \begin{enumerate}
-  \item \textbf{``Unsafe'' means ``did not refuse''.} See the development
-        evidence. Answer: the HarmBench claim rule, hard-category $U$, $U$ by
-        length band, the selectivity score, and claim wording [Gate A audit,
-        4a; plan \S4.2].
+  \item \textbf{''Unsafe'' means ``did not refuse''.} See the development
+        evidence. Answer: the HarmBench claim rule, hard-category U, U by length
+        band, the selectivity score, and claim wording [Gate A audit, 4a; plan
+        \S{}4.2].
   \item \textbf{Forking paths.} Five settings were screened before OLMo-2-1B
-        fell in the 20--55 pp window, fixed after the Qwen results; seed 1101
+        fell in the 20--55~pp window, fixed after the Qwen results; seed 1101
         both chose the setting and counts in the mean [audit, 4b]. Answer:
-        report every setting tried and the fresh-seed mean (+45.9 pp).
+        report every setting tried and the fresh-seed mean (+45.9~pp).
         \textbf{Added in revision 3:} recipe G became the main recipe after its
-        one-seed OLMo result (+29.0 pp, partial) and Llama's saturation under
+        one-seed OLMo result (+29.0~pp, partial) and Llama's saturation under
         recipe B were known (FOCUS 17:36 and 19:24 UTC). The choice used probe
         data only, never a Gate B or stage-1 outcome; Gate A is re-run at the
         common recipe with seeds 1102 and 1103 per family, and seed 1101 (the
         probe) counts, so report the fresh-seed mean beside the 3-seed mean
         again. \textbf{Added in revision 4:} the ARC rule was adopted (FOCUS
         20:50 UTC) after the first OLMo recipe-G probe had been read under the
-        old rule (disclosed in \S4.2); OLMo's recipe-G seeds 1102 and 1103 ran
+        old rule (disclosed in \S{}4.2); OLMo's recipe-G seeds 1102 and 1103 ran
         before Llama's recipe-G probe was read and count toward Gate A only if
         recipe G becomes the common recipe (19:58 UTC); Llama's recipe-G seed
         1103 was launched before seed 1102 was read and never enters the
-        two-seed classification (21:37 UTC).
-  \item \textbf{Recipe dependence.} On OLMo, recipe G erodes about a third
-        less than recipe B, and the token-mean-only run puts all of that on the
-        schedule (development evidence). Answer (revision 4): recipe G is
-        standard practice and the lower dose of the two; recipe B is reported
-        as the stronger-dose comparison; both families use one common recipe
-        (a learning-rate ladder only; FOCUS 17:36 UTC). The rank-16 check under
-        recipe G reads ``rank matters little'' by its pre-registered 10 pp
-        rule, but with a small margin at one seed each, and over-refusal rose
-        at rank 16 (development evidence); report the difference itself, not
-        only the rule's label (FOCUS 21:25 UTC). The length rule under recipe
-        B's per-row loss is a secondary arm (decision 11). The rank-64,
-        all-linear adapter is still larger than common practice (rank 8--16).
+        two-seed classification (21:37 UTC). \textbf{Added in revision 5:} the
+        recipe roles changed twice on development data: recipe B (Gate A, 8 Oct
+        morning), recipe G main (8 Oct 17:36 and 19:24 UTC), recipe B main again
+        (9 Oct 09:29 UTC), after the ladder and the HarmBench pod results were
+        known. Every switch used probe, Gate A and judge readings only, never a
+        Gate B or stage-1 outcome, and the Gate A of record is the recipe-B one,
+        read before any of the switches. The per-family rule was fixed after the
+        ladder was read; \S{}4.1 and \S{}6 say so.
+  \item \textbf{Recipe dependence.} On OLMo, recipe G erodes about a third less
+        than recipe B, and the token-mean-only run puts all of that on the
+        schedule (development evidence, one seed). Answer (revision 5): recipe B
+        is the main recipe and the body calls it plain, not standard; recipe G,
+        the standard schedule, is a mandatory reference (the recipe-only fix),
+        so the reader sees what the schedule alone removes; the repair contrasts
+        are within recipe B, and \S{}6 says rankings may differ at a lower dose.
+        On Llama recipe G barely moves the erosion (risk 26), so ``G lowers the
+        dose'' is a statement about the learning rate, not about erosion in
+        every family. The rank-16 check under recipe G reads ``rank matters
+        little'' by its pre-registered 10~pp rule, but with a small margin at
+        one seed each, and over-refusal rose at rank 16 (development evidence);
+        report the difference itself, not only the rule's label (FOCUS 21:25
+        UTC). The rank-64, all-linear adapter is still larger than common
+        practice (rank 8--16).
   \item \textbf{Nulls everywhere.} A 600-row filter clears the MDE only if the
-        findable effect is about 11--14 pp at row AUC 0.9 [plan \S1 item 16,
+        findable effect is about 11--14~pp at row AUC 0.9 [plan \S{}1 item 16,
         POW Part 3]. Answer: equivalence labels make nulls informative; the
         planted control; the dose curve.
-  \item \textbf{Additions win on $U$ by construction.} Refusal rows restore
-        refusal, and $U$ tracks refusal [plan \S13]. Answer: the HarmBench
-        rule, selectivity, $O$ against the untuned model, and the
-        adapter-scaling curve.
+  \item \textbf{Additions win on U by construction.} Refusal rows restore
+        refusal, and U tracks refusal [plan \S{}13]. Answer: the HarmBench rule,
+        selectivity, O against the untuned model, and the adapter-scaling curve.
   \item \textbf{A free reference may beat every data repair} (safety prompt,
-        adapter scaling) [plan \S13]. That is a valid answer; say so.
+        adapter scaling) [plan \S{}13]. That is a valid answer; say so.
   \item \textbf{Prior-work overlap} (DualSelect, Yin \& Rush, DataShield's cost
-        table). Answer: no ``first'' claims (\S2 ``How we differ''); the
+        table). Answer: no ``first'' claims (\S{}2 ``How we differ''); the
         equivalence bounds, references, positive control and pre-registered
         predictions are the contribution.
   \item \textbf{Re-implemented baselines.} The four method repositories have no
-        licence [plan \S5.1, FIL]; all scorers are re-implemented
+        licence [plan \S{}5.1, FIL]; all scorers are re-implemented
         (``X-style'') with deviation tables; authors are asked for reference
         outputs; stage 4's published-setting replication checks fidelity.
   \item \textbf{Diffuse erosion is the expected Gate B outcome} [Gate B draft
-        \S8; audit \S7]. Under this framing it no longer collapses the paper:
-        stage 1 runs unchanged, and the planted sweep carries the diagnosis
-        question.
-  \item \textbf{The plant may not erode} above the background [plan \S13]; the
+        \S{}8; audit \S{}7]. Under this framing it no longer collapses the
+        paper: stage 1 runs unchanged, and the planted sweep carries the
+        diagnosis question.
+  \item \textbf{The plant may not erode} above the background [plan \S{}13]; the
         pilot gate decides.
   \item \textbf{Small scale favours trial runs; cost ratios change with size.}
         No 1B cost ratio is claimed for 7--8B.
   \item \textbf{The decision-value map is a model output} at the menus we can
-        afford [plan \S0, NOV-2, MET-M1]. Answer: it is secondary, frozen before
-        the data, and scored against measurements and on Llama.
-  \item \textbf{Judge precision on benign prompts.} After fine-tuning
-        Qwen3Guard labels 22--29\% of the benign bank Unsafe (untuned 5\%)
-        [audit \S5].
-  \item \textbf{``Adding a little safety data is known to work.''}
-        \begin{itemize}
-          \item \textbf{Correction (FAQ second review, 8 Oct; source opened):}
-                DataRx does NOT show that adding works by default. Its
-                59.23\% $\to$ 13.70\% compares a \emph{random} 1\% BeaverTails
-                mix with DataRx's \emph{selected} 1\% mix on Llama3-8B. The
-                fine-tune with no safety data scored 20.24\%, so the random mix
-                made it worse.
-          \item So \emph{which} safety data is added decides whether adding
-                helps (now P4 and P5). Guo's 10 rows were not checked for
-                over-refusal.
-        \end{itemize}
+        afford [plan \S{}0, NOV-2, MET-M1]. Answer: it is secondary, frozen
+        before the data, and scored against measurements and on Llama.
+  \item \textbf{Judge precision on benign prompts.} After fine-tuning Qwen3Guard
+        labels 22--29\% of the benign bank Unsafe (untuned 5\%) [audit \S{}5].
+  \item \textbf{''Adding a little safety data is known to work.''}
+        \textbf{Correction (FAQ second review, 8 Oct; source opened):} DataRx
+        does NOT show that adding works by default. Its 59.23\% $\to$ 13.70\%
+        compares a \emph{random} 1\% BeaverTails mix with DataRx's
+        \emph{selected} 1\% mix on Llama3-8B. The fine-tune with no safety data
+        scored 20.24\%, so the random mix made it worse. So \emph{which} safety
+        data is added decides whether adding helps (now P4 and P5). Guo's 10
+        rows were not checked for over-refusal.
   \item \textbf{Added data can hide misalignment} that returns on prompts like
         the training data (Dubi\'nski et al.) [reading list v2, risk 4]. The
         plan adds an overlap control: the add effect must hold on the eval
@@ -1616,68 +1826,97 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
   \item \textbf{Motivation.} We found no public evidence that practitioners
         weigh attribution against retrains [problem-validation review]. The
         draft does not claim that they do.
-  \item \textbf{Money.} About \$17.50 on hand against a core path of about
-        \$215--405 [plan \S10, \S13]. Every stage starts on a funding event;
-        only complete seed blocks are analysed.
-  \item \textbf{G+Qi may add little over recipe G.} Recipe G already has a
-        warmup and a decaying schedule. FAQ reports that Qi et al.'s Table 9
-        shows warmup alone does most of the work on benign data [FOCUS 15:59
-        UTC; CITE-CHECK 25], and our token-mean-only run also puts recipe G's
-        reduction on its schedule (development evidence). G+Qi stays as a
-        reference because Qi et al.'s objective constrains updates on the
-        initial tokens, a mechanism different from loss weighting; the paper
-        must not justify it by the refuted loss-weighting account. A G+Qi equal
-        to recipe G is still a valid reference result; no novelty is claimed
-        for it.
-  \item \textbf{One family, or a dose contrast read as a replication.} Under
-        recipe B the three families differ (Qwen and Llama saturate, OLMo
-        erodes partly). That is a dose comparison, not a replication, and the
-        paper must not write it as one. If no learning-rate rung qualifies for
-        both OLMo and Llama, or stage 2 is not funded, the paper has one
-        family.
+  \item \textbf{Money.} The balance is USD 57.46 (FOCUS 9 Oct 12:18 UTC) against
+        a core path of about USD 215--405 [plan \S{}10, \S{}13]. Gate B's wave-1
+        need is being recomputed with the [D20] constants (a rough estimate is
+        about USD 60--64, so a top-up of about USD 13--17; the recomputed figure
+        decides; FOCUS 13:16 UTC). Every stage starts on a funding event; only
+        complete seed blocks are analysed.
+  \item \textbf{B+Qi may add little over recipe B, or act like recipe G.} FAQ
+        reports that Qi et al.'s Table 9 shows warmup alone does most of the
+        work on benign data [FOCUS 15:59 UTC; CITE-CHECK 25], and our
+        token-mean-only run puts recipe G's reduction on its schedule
+        (development evidence). If B+Qi brings Qi et al.'s warmup to recipe B,
+        it differs from recipe B in its schedule as well as its objective
+        (decision 22). B+Qi stays as a reference because Qi et al.'s objective
+        constrains updates on the initial tokens, a mechanism different from
+        loss weighting; the paper must not justify it by the refuted
+        loss-weighting account. A B+Qi equal to recipe B or to recipe G is still
+        a valid reference result; no novelty is claimed for it.
+  \item \textbf{One family, or a same-recipe contrast read as a replication.}
+        Under recipe B, Qwen and Llama saturate or sit at the top edge and OLMo
+        erodes partly. That is the same-recipe family contrast (\S{}4.10),
+        reported separately and not as a replication. Under the per-family rule
+        Llama runs at its own rate; if no rung of recipe B reads partial for
+        Llama, or stage 2 is not funded, the paper has one family.
   \item \textbf{The mechanism account is refuted for B $\to$ G.} The mechanism
-        note's first-token loss-mass account (under the per-row loss the first
-        5 response tokens carry 17.7\% of the objective, against 5.3\% under
-        the token mean; FOCUS 20:01 UTC) predicted that the token-mean loss
-        carries most of recipe G's reduction. The pre-registered
-        token-mean-only run found that it carries none, at one seed [FOCUS
-        21:36 UTC]. Answer: report it as a pre-registered prediction that
-        failed; the body offers no loss-weighting explanation; the side study
-        is ``refusal openings against harmful content'', descriptive, with the
-        first-token margin as its only causal test. Under recipe G refusal
-        openings fall less than under recipe B, but that is now read as a dose
-        effect, not as support for the loss account.
+        note's first-token loss-mass account (under the per-row loss the first 5
+        response tokens carry 17.7\% of the objective, against 5.3\% under the
+        token mean; FOCUS 20:01 UTC) predicted that the token-mean loss carries
+        most of recipe G's reduction. The pre-registered token-mean-only run
+        found that it carries none, at one seed [FOCUS 21:36 UTC]. Answer:
+        report it as a pre-registered prediction that failed; the body offers no
+        loss-weighting explanation; the side study is ``refusal openings against
+        harmful content'', descriptive, with the first-token margin as its only
+        causal test. Under recipe G refusal openings fall less than under recipe
+        B, but that is now read as a dose effect, not as support for the loss
+        account.
   \item \textbf{Recipe G is a lower dose.} A reviewer may read ``the standard
-        recipe erodes less'' as ``a lower mean learning rate erodes less'',
+        schedule erodes less'' as ``a lower mean learning rate erodes less'',
         which work on optimization choices already suggests (Kim et al., 2025).
-        Answer: say so; recipe B against recipe G is a dose comparison and
-        context; the main claims are repair contrasts within one recipe.
-  \item \textbf{Family $\times$ dose interaction.} Recipe G cuts OLMo's
-        erosion by about a third but barely moves Llama's (development
-        evidence). A common recipe equalizes the recipe, not the response to
-        dose, and the ladder may find no rung where both families are partial
-        (if Llama's two-seed reading saturates, both families step down to LR
-        $5 \times 10^{-5}$, where OLMo may fall below 20 pp). Answer:
-        cross-family sentences compare erosion at one recipe (\S4.10, \S6); a
-        family difference is claimed only above the interaction's MDE; if no
-        rung qualifies, the paper has one family, or family-specific rungs with
-        a dose caveat in every cross-family sentence (the user's choice; FOCUS
-        17:36 UTC).
-  \item \textbf{The ARC rule is a loosening, adopted mid-stream.} It can pass
-        a run whose true drop is up to about 6 points, and for the first OLMo
+        Answer: say so; recipe G is a recipe-only reference, and the main claims
+        are repair contrasts within recipe B.
+  \item \textbf{Family $\times$ recipe interaction.} Recipe G cuts OLMo's
+        erosion by about a third but barely moves Llama's, and the Side
+        Project's logit-scale test excludes 0 (exploratory; development
+        evidence). No rung of the one-recipe ladder left both families partly
+        eroded (FOCUS 01:43 UTC). Answer (revision 5): the per-family rule
+        matches the erosion dose, and cross-family sentences say ``at a matched
+        erosion dose''; the rule was fixed after the ladder was read (disclosed
+        in \S{}4.1 and \S{}6); a family difference is claimed only above the
+        interaction's MDE.
+  \item \textbf{The ARC rule is a loosening, adopted mid-stream.} It can pass a
+        run whose true drop is up to about 6 points, and for the first OLMo
         recipe-G probe it was not applied blind [FOCUS 20:50 UTC]. Answer: both
         verdicts are reported; ``skill kept'' rests mainly on the held-out task
-        loss; \S4.2 and \S6 disclose it.
+        loss; \S{}4.2 and \S{}6 disclose it. \textbf{Revision 5:} its scope
+        after the per-family rule is open (decision 16).
+  \item \textbf{The main recipe is harsh.} Recipe B has no warmup, a constant
+        learning rate and a per-row loss; a reviewer may call the erosion an
+        artefact of a recipe few people use. Answer: recipe G, the standard
+        schedule, is a mandatory reference, so the paper shows what the schedule
+        alone removes; recipe B was chosen because its erosion clears the 20~pp
+        HarmBench line (so harm wording is allowed) and leaves more room for
+        repairs, while recipe G's does not (development evidence; FOCUS 09:29
+        UTC); \S{}6 says repair rankings may differ at a lower dose.
+  \item \textbf{Safe LoRA may beat every data repair.} It needs no training and
+        no data. That is a valid answer, like risk 6, and the paper says so. Its
+        settings must be fixed before any stage-1 outcome (decision 19).
+  \item \textbf{''G lowers the dose'' does not carry over between families.}
+        Halving recipe G's peak learning rate (rung 2) cut both families by
+        about 28--29\%, but moving from recipe B to recipe G, which halves the
+        mean learning rate, cut OLMo by 36\% and Llama by only about 4--7\%
+        (Llama's B-against-G gap is within its seed spread; development
+        evidence). So the schedule does not act like a lower constant rate in
+        every family, and the token-mean-only run is OLMo-only and one seed.
+        Answer: the body states only the design fact (G halves the mean learning
+        rate) and calls G the recipe-only fix; it makes no claim that G lowers
+        erosion in every family.
+  \item \textbf{A matched dose differs in learning rate.} Under the per-family
+        rule a contrast that ``replicates at a matched erosion dose'' replicates
+        across families and learning rates together. Answer: \S{}4.8's claim
+        rule and the fill-in say ``at a matched erosion dose''; the same-recipe
+        contrast is reported separately.
 \end{enumerate}
 
 \subsection{Where the framing is weak (the drafter's view)}
 
 \begin{enumerate}
-  \item \textbf{The cost axis is mostly evaluation.} Generation is about 81\%
-        of an arm and training about 8\% [plan \S1 item 6]. FRE then measures
-        our evaluation size more than training; the two cost conventions help,
-        but a reviewer may still read ``compute-matched'' as
-        ``evaluation-matched''. Say plainly what one FRE buys.
+  \item \textbf{The cost axis is mostly evaluation.} Generation is about 81\% of
+        an arm and training about 8\% [plan \S{}1 item 6]. FRE then measures our
+        evaluation size more than training; the two cost conventions help, but a
+        reviewer may still read ``compute-matched'' as ``evaluation-matched''.
+        Say plainly what one FRE buys.
   \item \textbf{The comparison fixes doses.} Rankings across removal (600 rows)
         and addition (48 rows) hold only at these doses; the dose curve is
         secondary and 3-seed.
@@ -1686,268 +1925,435 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         the reverse; the paper must not read one from the other.
   \item \textbf{The data-only user and diagnostics pull against each other}
         (previous draft, point 2): a closed-service customer cannot run
-        attribution; a developer with open weights also has model-level
-        repairs. The references now make this explicit, but the population
-        that benefits from paid diagnosis stays narrow.
+        attribution; a developer with open weights also has model-level repairs.
+        The references now make this explicit, but the population that benefits
+        from paid diagnosis stays narrow.
   \item \textbf{Mechanism tests are thin.} The token-mean-only run separated
-        loss weighting from schedule at one seed and refuted the loss-weighting
-        account of B $\to$ G. What remains is a descriptive decomposition and
-        one teacher-forced first-token margin; neither says why fine-tuning
-        switches refusal openings to direct ones. Both are side studies.
+        loss weighting from schedule at one seed, on OLMo only, and refuted the
+        loss-weighting account of B $\to$ G. What remains is a descriptive
+        decomposition with its two layers (openings lost; direct answers already
+        unsafe) and one teacher-forced first-token margin. The two-layer account
+        is observational (no prefill test; positions counted in words), and
+        neither part says why fine-tuning switches refusal openings to direct
+        ones. Both are side studies.
 \end{enumerate}
 
 \subsection{Development evidence (for the author only; never a finding in the
-  abstract or the contributions)}
+abstract or the contributions)}
 
 \begin{itemize}
-  \item \textbf{Gate A PASSED on OLMo-2-0425-1B-Instruct under recipe B} (8
-        Oct, 05:40 UTC; it stays as recorded, as the stronger-dose point; Gate A
-        is re-run at the common recipe): $E$ = +43.5, +43.7, +48.2 pp over three seeds; mean +45.1 pp (band
-        41.3--49.0; partial); fresh-seed mean +45.9 pp; answers end; held-out
-        Dolly loss 2.10 $\to$ 1.54; Granite agrees. Independent audit: sound
-        with caveats.
-  \item \textbf{Audit disclosures:} $P(\text{Unsafe} \mid \text{no refusal})$
-        0.91--0.94 after fine-tuning; about a third of Unsafe answers carry
-        only ``unethical acts'' or ``politically sensitive''; $E$ under hard
-        categories only is about 28 pp; five settings screened; 2 df for seed
-        variance; the ARC bar is near chance at 1B (untuned 0.392).
-  \item \textbf{Qwen2.5-1.5B and 7B-Instruct saturate} under recipe B (+75.2
-        and +82.2 pp); rank 16 still gives +67.8 pp. Guo-gap analysis: judge
-        and prompts explain at most about 13--30 pp of the gap to Guo's Qwen
-        LoRA cell.
+  \item \textbf{Gate A PASSED on OLMo-2-0425-1B-Instruct under recipe B} (8 Oct,
+        05:40 UTC; the Gate A of record since FOCUS 9 Oct 09:29 UTC): E = +43.5,
+        +43.7, +48.2~pp over three seeds; mean +45.1~pp (band 41.3--49.0;
+        partial); fresh-seed mean +45.9~pp; answers end; held-out Dolly loss
+        2.10 $\to$ 1.54; Granite agrees. Independent audit: sound with caveats.
+  \item \textbf{Audit disclosures:} P(Unsafe | no refusal) 0.91--0.94 after
+        fine-tuning; about a third of Unsafe answers carry only ``unethical
+        acts'' or ``politically sensitive''; E under hard categories only is
+        about 28~pp; five settings screened; 2 df for seed variance; the ARC bar
+        is near chance at 1B (untuned 0.392).
+  \item \textbf{Qwen2.5-1.5B and 7B-Instruct saturate} under recipe B (+75.2 and
+        +82.2~pp); rank 16 still gives +67.8~pp. Guo-gap analysis: judge and
+        prompts explain at most about 13--30~pp of the gap to Guo's Qwen LoRA
+        cell.
   \item \textbf{Mechanism (exploratory note):} refusal openings fall by about
-        50 pp (OLMo) and 85 pp (Qwen); the opening switch carries about
+        50~pp (OLMo) and 85~pp (Qwen); the opening switch carries about
         0.42--0.64 of OLMo's Unsafe increase; direct answers also became more
         harmful; the erosion is broad across prompts and stable across seeds.
-        Recorded prediction: a first-token path alone gives at most about 3 pp
+        Recorded prediction: a first-token path alone gives at most about 3~pp
         per category, so a LOCALIZED Gate B would need a content effect.
         \textbf{Revision 4:} the note's first-token loss-mass account does not
         explain the B $\to$ G difference (the token-mean-only run, below).
-  \item \textbf{Over-refusal:} untuned OLMo refuses 17/100 benign prompts;
-        after recipe-B fine-tuning 4--6/100 (recipe G, one seed: 17/100). v2's base-model positive control: a
-        classifier-targeted rewrite cut sampled unsafe answers from 80.3\% to
-        11.4\%, but XSTest-safe refusals rose from 1/50 to 22/50 in both seeds.
+  \item \textbf{Over-refusal:} untuned OLMo refuses 17/100 benign prompts; after
+        recipe-B fine-tuning 4--6/100 (recipe G, one seed: 17/100). v2's
+        base-model positive control: a classifier-targeted rewrite cut sampled
+        unsafe answers from 80.3\% to 11.4\%, but XSTest-safe refusals rose from
+        1/50 to 22/50 in both seeds.
   \item \textbf{Cost of an arm} (one Gate A ledger): training 245 s, greedy
         generation 1,750 s, sampled generation 761 s, guard and scoring 293 s;
-        about 3,115 s; A100 at \$1.59/h.
-  \item \textbf{Planning noise:} clustered SE($U$) 2.8 pp per arm; seed SD 2.65
-        pp (2 df). MDE after Holm's first step about 5.0 pp (removal) and 5.3
-        pp (add) at central noise; Gate B detects 8 pp about half the time and
-        reaches 80\% at about 10--12 pp.
+        about 3,115 s; A100 at USD 1.59/h.
+  \item \textbf{Planning noise:} clustered SE(U) 2.8~pp per arm; seed SD 2.65~pp
+        (2 df). MDE after Holm's first step about 5.0~pp (removal) and 5.3~pp
+        (add) at central noise; Gate B detects 8~pp about half the time and
+        reaches 80\% at about 10--12~pp.
   \item \textbf{Recorded prior:} DIFFUSE or TOO CLOSE is more likely than
         LOCALIZED at Gate B.
   \item \textbf{Recipe G on OLMo-2-1B} (one seed, 1101; FOCUS 15:17 UTC;
-        report-only): $U$ 3.2\% $\to$ 32.2\%, $E$ +29.0 pp (SE 2.6; partial)
-        against +43.5 pp under recipe B at the same seed (shared sampling
-        streams); answers end; task learned (held-out loss 2.100 $\to$ 1.612);
+        report-only): U 3.2\% $\to$ 32.2\%, E +29.0~pp (SE 2.6; partial) against
+        +43.5~pp under recipe B at the same seed (shared sampling streams);
+        answers end; task learned (held-out loss 2.100 $\to$ 1.612);
         over-refusal 17/100, the untuned level (recipe B 4/100); ARC TOO CLOSE
         only because 48 questions changed (a gain of 2); Granite agrees (greedy
-        $E$ +23.0 pp, $\kappa$ 0.93). Refusal openings fall less under G
-        ($-0.36$ against $-0.51$, sampled); the opening switch carries about
-        half of the increase under both recipes (0.48 against 0.52).
-        \textbf{Revision 4:} the token-mean-only run puts this reduction on the
-        schedule, not the loss weighting, so the smaller drop in refusal
-        openings is read as a dose effect, not as support for the first-token
-        loss account.
+        E +23.0~pp, $\kappa$ 0.93). Refusal openings fall less under G ($-$0.36
+        against $-$0.51, sampled); the opening switch carries about half of the
+        increase under both recipes (0.48 against 0.52). \textbf{Revision 4:}
+        the token-mean-only run puts this reduction on the schedule, not the
+        loss weighting, so the smaller drop in refusal openings is read as a
+        dose effect, not as support for the first-token loss account.
   \item \textbf{Llama-3.2-1B under recipe B} (one seed; FOCUS 16:50 UTC;
-        report-only): \textbf{SATURATED}, so it does not qualify. $U$ 13.8\%
-        $\to$ 76.3\%, $E$ +62.5 pp (interval 56.3--68.7). Sampled answers end;
-        ARC and task loss pass; over-refusal 11 $\to$ 2 of 100; heavy greedy
-        loops (60 of 200 capped; reported, not gating); Granite agrees (greedy
-        $E$ +67.5 pp, $\kappa$ 0.92). The untuned Llama is far less safe than
-        the untuned OLMo ($U_0$ 13.8\% against 3.2\%); the opening switch
-        carries 0.68 of the increase (OLMo 0.52).
-  \item \textbf{The recipe-B dose comparison across three families:}
-        Qwen2.5-1.5B (+75.2 pp) and Llama-3.2-1B (+62.5 pp) saturate;
-        OLMo-2-1B erodes partly (+43.5 pp at seed 1101; Gate A 3-seed mean
-        +45.1 pp). Under recipe G: OLMo +29.0, +31.0 and +26.5 pp (seeds
-        1101--1103); Llama +60.0 pp (seed 1101, TOO CLOSE). These numbers stay
-        here, never in the abstract or the contributions.
+        report-only): \textbf{SATURATED}, so it does not qualify. U 13.8\% $\to$
+        76.3\%, E +62.5~pp (interval 56.3--68.7). Sampled answers end; ARC and
+        task loss pass; over-refusal 11 $\to$ 2 of 100; heavy greedy loops (60
+        of 200 capped; reported, not gating); Granite agrees (greedy E +67.5~pp,
+        $\kappa$ 0.92). The untuned Llama is far less safe than the untuned OLMo
+        ($U_0$ 13.8\% against 3.2\%); the opening switch carries 0.68 of the
+        increase (OLMo 0.52).
+  \item \textbf{The same-recipe family contrast and recipe G} (Qwen3Guard E;
+        FOCUS and the results record): under recipe B, Qwen2.5-1.5B (+75.2~pp)
+        saturates, Llama-3.2-1B sits at the top edge or above (+62.5, +61.3,
+        +54.0; below) and OLMo-2-1B erodes partly (+43.5~pp at seed 1101; Gate A
+        mean +45.1~pp). Under recipe G: OLMo +29.0, +31.0, +26.5~pp (mean
+        +28.8); Llama +60.0, +56.5, +54.8~pp (mean +57.1). Recipe G removes 36\%
+        of OLMo's E on Qwen3Guard and 43\% on HarmBench, and about 4--7\% of
+        Llama's E (FOCUS 09:29 UTC: ``$-$36\% of E on Qwen3Guard, $-$43\% on
+        HarmBench'' for OLMo). These numbers stay here, never in the abstract or
+        the contributions.
   \item \textbf{HarmBench compliance judge, complete} (FOCUS 17:07 UTC;
-        reported, not gating): $E_{\mathrm{HB}}$ +27.8, +30.5, +32.8 pp; mean
-        +30.4 pp, about two thirds of Qwen3Guard's +45.1 pp; agreement
-        83--86\% ($\kappa$ 0.65--0.71). Every seed is above 20 pp, so ``harm''
-        wording is allowed for Gate A's recipe-B erosion and the 13:53 UTC
-        judge rule is met.
+        reported, not gating): $E_{\mathrm{HB}}$ +27.8, +30.5, +32.8~pp; mean
+        +30.4~pp, about two thirds of Qwen3Guard's +45.1~pp; agreement 83--86\%
+        ($\kappa$ 0.65--0.71). Every seed is above 20~pp, so ``harm'' wording is
+        allowed for Gate A's recipe-B erosion and the 13:53 UTC judge rule is
+        met.
   \item \textbf{Token-mean-only run \texttt{bt}} (OLMo-2-1B, seed 1101;
         pre-registered 20:01 UTC, read 21:36 UTC; report-only; FOCUS): recipe B
-        with only the token-mean loss (constant LR $10^{-4}$, no warmup),
-        fine-tune only on the sealed untuned unit. $U$ 3.2\% $\to$ 46.8\%
-        (281/600): $\boldsymbol{E_{\mathrm{bt}}}$ \textbf{+43.7 pp} (SE 3.0,
-        band 37.8--49.6, partial), against $E_{\mathrm{B}}$ +43.5 and
-        $E_{\mathrm{G}}$ +29.0 on the same seed and sampling streams.
-        \textbf{The pre-registered prediction ($E_{\mathrm{bt}} \le 36.25$ pp,
-        i.e.\ closer to G than to B) FAILED.} The share of the B $\to$ G
-        reduction carried by the loss weighting,
-        $(E_{\mathrm{B}} - E_{\mathrm{bt}})/(E_{\mathrm{B}} - E_{\mathrm{G}})$,
-        is $-0.01$: none of it. The schedule (a 4-step warmup and cosine decay,
-        which also halves the mean learning rate over the epoch) carries all of
-        it, so the mechanism note's first-token loss-mass account does not
-        explain B $\to$ G, and recipe G is, in effect, a lower dose (FOCUS's
-        reading, labelled interpretation). Other bars: answers end (3 capped,
-        17 failing the screen); task learned (2.100 $\to$ 1.587); ARC $d = 0$
-        (TOO CLOSE under the frozen bars, pass under the adopted ARC rule);
-        over-refusal 9/100 (B 4, G 17); greedy unsafe 75/200 (B 88, G 46). One
-        seed. Granite and the opening lexicon queued.
-  \item \textbf{OLMo-2-1B under recipe G, seeds 1101, 1102 and 1103} (the
-        lead's figures, 8 Oct evening; seeds 1101 and 1102 are in the results
-        record's interim two-seed reading, 21:18 UTC; seed 1103 is now recorded
-        too, in FOCUS and the results record, commit 8fccce2; see conflict 14): $E$ +29.0, +31.0 and
-        +26.5 pp, each partial and close together; mean about +28.8 pp (the
-        drafter's arithmetic; the formal Gate A reader has not run). Two-seed
-        reading (1101, 1102): mean +30.0 pp, SE 2.0, band 25.9--34.1, partial;
-        coherent-only +28.3; answers end; task learned on both; ARC a gain of 2
-        questions on each seed, TOO CLOSE under the frozen bars and a pass
-        under the adopted ARC rule. These seeds count toward Gate A only if
-        recipe G becomes the common recipe (FOCUS 19:58 UTC). Pending: Granite
-        and the formal Gate A reading.
+        with only the token-mean loss (constant LR 1e-4, no warmup), fine-tune
+        only on the sealed untuned unit. U 3.2\% $\to$ 46.8\% (281/600):
+        \textbf{$E_{\mathrm{bt}}$ +43.7~pp} (SE 3.0, band 37.8--49.6, partial),
+        against $E_{\mathrm{B}}$ +43.5 and $E_{\mathrm{G}}$ +29.0 on the same
+        seed and sampling streams. \textbf{The pre-registered prediction
+        ($E_{\mathrm{bt}}$ $\le$ 36.25~pp, i.e. closer to G than to B) FAILED.}
+        The share of the B $\to$ G reduction carried by the loss weighting,
+        ($E_{\mathrm{B}}$ $-$ $E_{\mathrm{bt}}$)/($E_{\mathrm{B}}$ $-$
+        $E_{\mathrm{G}}$), is $-$0.01: none of it. The schedule (a 4-step warmup
+        and cosine decay, which also halves the mean learning rate over the
+        epoch) carries all of it, so the mechanism note's first-token loss-mass
+        account does not explain B $\to$ G, and recipe G is, in effect, a lower
+        dose (FOCUS's reading, labelled interpretation). Other bars: answers end
+        (3 capped, 17 failing the screen); task learned (2.100 $\to$ 1.587); ARC
+        d = 0 (TOO CLOSE under the frozen bars, pass under the adopted ARC
+        rule); over-refusal 9/100 (B 4, G 17); greedy unsafe 75/200 (B 88, G
+        46). One seed. Granite and the opening lexicon queued.
+  \item \textbf{OLMo-2-1B under recipe G, seeds 1101, 1102 and 1103} (results
+        record, formal three-seed read 22:47 UTC, 8 Oct; reported, not the Gate
+        A of record since FOCUS 9 Oct 09:29 UTC): E +29.0, +31.0, +26.5~pp; mean
+        +28.8~pp, SE 1.77, band 25.3--32.4, partial; coherent-only +28.4;
+        answers end and the task is learned on every seed; Granite agrees on
+        every seed (greedy E +23.0, +25.5, +18.5~pp; $\kappa$ 0.932, 0.911,
+        0.905). ARC nets a gain of 2 of 189 on every seed, TOO CLOSE under the
+        frozen bars; frozen verdict TOO CLOSE (ARC only), PASS under the adopted
+        ARC rule (seed 1101 read before that rule existed).
   \item \textbf{Llama-3.2-1B under recipe G} (seed 1101, the common-recipe
-        probe; read 21:04 UTC; FOCUS): $U$ 13.8\% $\to$ 73.8\% (443/600);
-        \textbf{$\boldsymbol{E}$ +60.0 pp}, SE 3.2, band 53.6--66.4, which
-        contains the 55 pp edge, so the $E$ class reads \textbf{TOO CLOSE}
-        (point estimate saturated; $U_{\mathrm{ft}}$ 0.738, just under the 0.75
-        auto-saturation line); coherent-only +58.3 pp (same class). Every
-        other bar passes: answers end (24 capped, 47 failing the screen, of
-        600); ARC 124 $\to$ 133 (a gain); task loss 2.243 $\to$ 1.619.
-        Over-refusal 11 $\to$ 7 of 100; greedy answers loop (75 of 200 capped;
-        reported). Recipe G barely moves Llama (+62.5 $\to$ +60.0 pp) while it
-        cuts OLMo by about a third (+43.5 $\to$ +29.0 pp at seed 1101). By the
-        frozen amendment (7 Oct, 21:35 UTC), seed 1102 runs and the two-seed
-        mean of seeds 1101 and 1102 is classified with the same band; seed
-        1103, launched early at 21:37 UTC, never enters that classification.
-        Granite pending.
+        probe; read 21:04 UTC; FOCUS): U 13.8\% $\to$ 73.8\% (443/600);
+        \textbf{E +60.0~pp}, SE 3.2, band 53.6--66.4, which contains the 55~pp
+        edge, so the E class reads \textbf{TOO CLOSE} (point estimate saturated;
+        $U_{\mathrm{ft}}$ 0.738, just under the 0.75 auto-saturation line);
+        coherent-only +58.3~pp (same class). Every other bar passes: answers end
+        (24 capped, 47 failing the screen, of 600); ARC 124 $\to$ 133 (a gain);
+        task loss 2.243 $\to$ 1.619. Over-refusal 11 $\to$ 7 of 100; greedy
+        answers loop (75 of 200 capped; reported). Recipe G barely moves Llama
+        (+62.5 $\to$ +60.0~pp) while it cuts OLMo by about a third (+43.5 $\to$
+        +29.0~pp at seed 1101). By the frozen amendment (7 Oct, 21:35 UTC), seed
+        1102 runs and the two-seed mean of seeds 1101 and 1102 is classified
+        with the same band; seed 1103, launched early at 21:37 UTC, never enters
+        that classification. Granite pending. \textbf{Later (results record
+        22:51 UTC, 8 Oct, and 09:35 UTC, 9 Oct):} seed 1102 +56.5~pp; the frozen
+        two-seed classification (1101, 1102) is +58.25~pp, SE 2.72, band
+        52.8--63.7: TOO CLOSE again, so the user decided (FOCUS 09:29 UTC).
+        Granite on seed 1102: greedy E +58.5~pp, $\kappa$ 0.903. Seed 1103, read
+        as a report-only third seed: +54.8~pp; three-seed mean +57.1, SE 2.55,
+        band 52.0--62.2, TOO CLOSE at the top edge; Granite agrees on every
+        seed; ARC a gain on every seed.
   \item \textbf{Rank-16 check under recipe G} (OLMo-2-1B, seed 1101;
-        pre-registered 19:24 UTC, read 21:25 UTC; report-only; FOCUS): $U$
-        3.2\% $\to$ 23.3\% (140/600); \textbf{$\boldsymbol{E}$ +20.2 pp} (SE
-        2.5, band 15.1--25.2, which contains the 20 pp edge, so TOO CLOSE on
-        the $E$ class; point estimate partial; coherent-only +19.2) against
-        +29.0 pp at rank 64. $|E(r16) - E(r64)| = 8.8$ pp $\le 10$ pp, so
-        \textbf{rank matters little by the pre-registered rule}, but the
-        margin is small: one seed each, and the SE of a difference is about
-        3.6 pp, so a real rank effect of this size cannot be excluded; report
-        the 8.8 pp itself. Over-refusal 25/100 (rank 64 and untuned: 17).
-        Answers end (0 capped, 14 failing the screen); task learned (2.100
-        $\to$ 1.649); ARC $d = +1/189$, a drop of one question (TOO CLOSE
-        under the frozen bars, pass under the adopted ARC rule). The main
-        recipe stays G at rank 64, as fixed in advance. Granite queued.
-  \item \textbf{ARC rule adopted} (FOCUS 20:50 UTC; text in \S4.2). The
+        pre-registered 19:24 UTC, read 21:25 UTC; report-only; FOCUS): U 3.2\%
+        $\to$ 23.3\% (140/600); \textbf{E +20.2~pp} (SE 2.5, band 15.1--25.2,
+        which contains the 20~pp edge, so TOO CLOSE on the E class; point
+        estimate partial; coherent-only +19.2) against +29.0~pp at rank 64.
+        |E(r16) $-$ E(r64)| = 8.8~pp $\le$ 10~pp, so \textbf{rank matters little
+        by the pre-registered rule}, but the margin is small: one seed each, and
+        the SE of a difference is about 3.6~pp, so a real rank effect of this
+        size cannot be excluded; report the 8.8~pp itself. Over-refusal 25/100
+        (rank 64 and untuned: 17). Answers end (0 capped, 14 failing the
+        screen); task learned (2.100 $\to$ 1.649); ARC d = +1/189, a drop of one
+        question (TOO CLOSE under the frozen bars, pass under the adopted ARC
+        rule). The main recipe stays G at rank 64, as fixed in advance. Granite
+        queued.
+  \item \textbf{HarmBench on the pod} (FOCUS 8 Oct 23:28 and 23:43 UTC; results
+        record; one device, after a Mac-against-pod parity PASS; reported, not
+        gating). OLMo-2-1B $E_{\mathrm{HB}}$ (sampled): recipe B +27.7, +30.5,
+        +32.8~pp (mean +30.3; the pod reproduces the Mac's recipe-B counts
+        except one sampled label); recipe G +17.8, +19.3, +14.3~pp (mean +17.2;
+        0.57 of B); greedy B +27.0, +25.5, +31.0 and G +11.0, +13.5, +8.5.
+        \textbf{Harm wording:} recipe B clears 20~pp on every seed and the
+        same-sign, half-size rule holds, so harm wording is allowed for recipe
+        B's erosion; recipe G is below 20~pp on every seed, so its erosion is
+        ``refusal erosion under Qwen3Guard'', never harm (the 10:14 UTC rule;
+        the 13:53 UTC rule holds, 17.2 $\ge$ 14.4). Family contrast (00:19 UTC,
+        9 Oct): Qwen2.5-1.5B recipe B +46.0 (rank 16 +45.8), Qwen2.5-7B recipe B
+        +63.5, Llama recipe B +40.5 (seed 1101), Llama recipe G +35.5 and +35.8
+        (seeds 1101, 1102); the untuned Llama has the highest HarmBench rate of
+        the four families (11\%). Recipe G cuts OLMo's $E_{\mathrm{HB}}$ by 43\%
+        and Llama's by 12\% (Qwen3Guard: 36\% and 7\%).
+  \item \textbf{The one-recipe ladder} (recipe G; FOCUS 01:43 UTC, 9 Oct; the
+        frozen amendment): no rung qualifies both families cleanly (table and
+        rung-2 details below).
+\end{itemize}
+
+\begin{longtable}{@{}L{0.13\linewidth}L{0.21\linewidth}L{0.15\linewidth}L{0.19\linewidth}L{0.12\linewidth}@{}}
+  \toprule
+  \textbf{Rung (recipe G)} & \textbf{OLMo-2-1B E (Qwen3Guard)} & \textbf{OLMo
+      $E_{\mathrm{HB}}$} & \textbf{Llama-3.2-1B E} & \textbf{Llama
+      $E_{\mathrm{HB}}$} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  1: LR 1e-4 & +28.8, partial (3 seeds) & +17.2 (below the 20~pp line) & +58.25,
+      TOO CLOSE high (2 seeds) & +35.7 \\
+  2: LR 5e-5 & +20.8, TOO CLOSE low (2 seeds) & not measured & +41.2, partial (1
+      seed) & not measured \\
+\end{longtable}
+
+Rung 2 details (results record): OLMo seeds +20.3 and +21.3 (SE 1.94, band
+17.0--24.7); Llama +41.2 (SE 3.6, band 34.0--48.3); both inside their
+pre-registered predictions (OLMo +12 to +26; Llama +35 to +55); Granite agrees
+(greedy E OLMo +11.5, +12.0; Llama +38.0); ARC passes under the ARC rule.
+Halving the peak learning rate moves OLMo from +28.8 to +20.8~pp ($-$28\%) and
+Llama from +58.25 to +41.2~pp ($-$29\%): the same relative change in both
+families, at different levels. Rung 3 (2e-5) would put OLMo below 20~pp (FOCUS's
+reading).
+
+\begin{itemize}
+  \item \textbf{Llama-3.2-1B under recipe B, three seeds} (report-only; seeds
+        1102 and 1103 run by the Side Project's kits and launched by the lead, 9
+        Oct 10:46 UTC, after the user's ``yes''; FOCUS 12:18 UTC; the kits'
+        reading files and the Side Project's results note): E +62.5 (seed 1101,
+        the 8 Oct probe), +61.3 (seed 1102, attempt 2 after a cap-gate stop) and
+        +54.0~pp (seed 1103); mean +59.3~pp (the Side Project's arithmetic).
+        Pair readings with seed 1101: 1101 + 1102 mean +61.9~pp, saturated; 1101
+        + 1103 mean +58.25~pp, TOO CLOSE. Answers end; ARC a gain; task learned;
+        over-refusal 2--4 of 100. Granite and HarmBench were not run on seeds
+        1102 and 1103 (the Mac is kept for other work).
+  \item \textbf{The family $\times$ recipe interaction} (Side Project,
+        report-only; test fixed at 12:18 UTC, 9 Oct, before seed 1102's result
+        was read, but after 11 of its 12 values were known; side branch
+        claude/wonderful-greider-d1aa5b, commits fd48c89 and 8cf2e2d; not in
+        FOCUS). On logit(U) per seed, recipe G minus recipe B: OLMo $-$0.686 (SE
+        0.086), Llama $-$0.113 (SE 0.152); interaction $-$0.573, SE 0.175, Welch
+        df 5.08, \textbf{95\% interval $-$1.019 to $-$0.127, which excludes 0}:
+        recipe G cuts OLMo's erosion more than Llama's ($-$16.3 against
+        $-$2.2~pp; on the pp scale $-$14.1, SE 3.66, interval also excludes 0).
+        Limits: written after 11 of 12 values; about 5 df; one judge
+        (Qwen3Guard); each family's B and G units share an untuned baseline; 1B
+        and Dolly only.
+  \item \textbf{The two-layer account} (FOCUS 8 Oct 15:17 and 16:50 UTC; the
+        mechanism note's addenda of 8 Oct 15:46, 17:14 and 21:56 UTC; the name
+        is the Side Project's arXiv note, commit c51cf39; frozen lexicon
+        \texttt{bbbc71e9\ldots{}}; sampled answers, seed 1101 unless stated).
+        \textbf{Layer 1, refusal openings lost} under recipe B: OLMo $-$0.51,
+        Llama $-$0.68, Qwen2.5-1.5B $-$0.85. \textbf{Layer 2, unsafe rate of
+        direct answers before fine-tuning:} OLMo 0.18, Qwen 0.57, Llama 0.64, so
+        the untuned Llama's 13.8\% unsafe share is mostly compliant direct
+        answers, not failed refusals. The opening switch carries 0.52 of OLMo's
+        unsafe increase, 0.68 of Llama's and 0.64--0.78 of Qwen's.
+        \textbf{Across OLMo's recipes} the unsafe rate within direct openings
+        stays at 0.57--0.70 (B, the token-mean-only run, G), while refusal
+        openings fall by 0.51 (B), 0.50 (token mean only), 0.34--0.36 (G, three
+        seeds) and 0.20 (G at rank 16): the recipes act mainly through layer 1.
+        Reading (I): recipe G's lower erosion on OLMo is a dose effect of its
+        schedule, expressed through refusal openings (one seed for the
+        token-mean-only and rank-16 runs). Observational only: no prefill test;
+        positions counted in words.
+  \item \textbf{ARC rule adopted} (FOCUS 20:50 UTC; text in \S{}4.2). The
         disclosure's numbers: the OLMo recipe-G probe (seed 1101) was read at
-        15:17 UTC under the old rule (ARC TOO CLOSE; $d = -2/189$, a gain; task
+        15:17 UTC under the old rule (ARC TOO CLOSE; d = $-$2/189, a gain; task
         loss 2.100 $\to$ 1.612); the rule was proposed after that reading, so
         for that one unit it is not applied blind.
-  \item \textbf{Status (FOCUS, 8 Oct, up to the 21:37 UTC entry):} Llama
-        recipe-G seed 1102 runs (the lead launched it under the user's standing
-        go once the budget guard allowed); seed 1103 was launched early at
-        21:37 UTC. The two-seed reading decides the common rung: partial $\to$
-        recipe G for both families, and seeds 1102 (and 1103) count toward
-        Llama's Gate A; saturated $\to$ both families move to recipe G at LR
-        $5 \times 10^{-5}$ (configs requested so they are ready); still TOO
-        CLOSE $\to$ the user decides. OLMo's recipe-G seeds are read except
-        Granite and the formal Gate A reader. The rank-16 check and the
-        token-mean-only run are read (Granite and the lexicon queued). The
-        hourly GPU price limit is removed; the budget guard stays (20:17 UTC).
-        G+Qi needs an engine change in a later round, committed before stage 1
-        is frozen. The repository's Gate B/C DRAFT is still revision 4b (recipe
-        B); revision 5 (the common recipe and the exploratory E-scaled floor,
-        20:17 UTC) is to follow. The Gate C anchor list is sealed (15:53 UTC).
+  \item \textbf{Status (FOCUS, to the 9 Oct 13:16 UTC entry):} recipe B is the
+        main recipe for Gate B and stage 1; Gate B DRAFT revision 5 is to stay
+        on recipe B, add the [D14]--[D19] rules and the [D20] price constants,
+        and recompute the money thresholds; the repository's DRAFT is still
+        revision 4b. The two report-only Llama recipe-B seeds finished (12:18
+        UTC); balance USD 57.46, no pod running (12:18 UTC). At 09:30 UTC four
+        idle pods were deleted and 15 stopped pods kept the fine-tuned adapters;
+        the Llama recipe-B pods were stopped after their runs. No Llama run at a
+        lower learning rate under recipe B exists. Safe LoRA: the lead reads the
+        paper in full and fixes its settings in the stage-1 pre-registration;
+        the post-hoc transform is built with tests and reviewed before use.
+        B+Qi's engine change comes in a later round, committed before stage 1 is
+        frozen. The fiction side study (Side Project; about USD 10--16;
+        report-only) is approved at recipe B and is not part of this paper. The
+        Qwen2.5-1.5B recipe-G run is binned; the HarmBench add-on for the
+        recipe-G side runs is dropped (10:07 UTC). Alpaca waits for Gate B and
+        its own design note. The Gate C anchor list is sealed (8 Oct 15:53 UTC).
 \end{itemize}
 
 \subsection{Conflicts between the sources, and how this revision resolves them}
 
 \begin{enumerate}
-  \item \textbf{Spec RQ2 (the map co-primary, the headline figure) vs the
-        user's decision (map secondary, model-based).} Followed the user's
-        decision: the measured comparison leads the title, abstract, \S1 and
-        contributions; the map is \S3.5, secondary, with predictions frozen
+  \item \textbf{Spec RQ2 (the map co-primary, the headline figure) vs the user's
+        decision (map secondary, model-based).} Followed the user's decision:
+        the measured comparison leads the title, abstract, \S{}1 and
+        contributions; the map is \S{}3.5, secondary, with predictions frozen
         before Gate B's category runs and scored on Llama. Figure 1 is now the
         repair comparison.
-  \item \textbf{Spec repair menu (category, cluster or row removal by
-        heuristic, filters, attribution, representation similarity; random vs
-        selected mix; ``10 rows''; recipe-only) vs the adopted stage-1
-        design.} Followed the adopted design: six primary arms (A1, L1, H1, S1,
-        S3, S4) at 600 removed or 48 added rows; recipe G is a reference, not a
-        repair; category removal stays in Gate B; cluster menus exist only as
-        the planted sweep's nested cells; the ``10 rows'' dose is an option,
-        not the plan.
+  \item \textbf{Spec repair menu (category, cluster or row removal by heuristic,
+        filters, attribution, representation similarity; random vs selected mix;
+        ``10 rows''; recipe-only) vs the adopted stage-1 design.} Followed the
+        adopted design: six primary arms (A1, L1, H1, S1, S3, S4) at 600 removed
+        or 48 added rows; recipe G is a reference, not a repair; category
+        removal stays in Gate B; cluster menus exist only as the planted sweep's
+        nested cells; the ``10 rows'' dose is an option, not the plan.
   \item \textbf{Spec ``Qwen is the fragile contrast'' vs ``do not claim Qwen is
-        uniquely fragile at 7B''.} Qwen appears only as context in \S4.1 and
-        \S4.10 (its results are in these notes), with Guo et al.'s Table 2
+        uniquely fragile at 7B''.} Qwen appears only as context in \S{}4.1 and
+        \S{}4.10 (its results are in this note), with Guo et al.'s Table 2
         showing a Qwen2.5-7B LoRA cell that barely erodes.
-  \item \textbf{Previous draft vs spec on $O$'s reference.} Spec and amendment:
-        the untuned model ($a_0$ reported). Applied.
+  \item \textbf{Previous draft vs spec on O's reference.} Spec and amendment:
+        the untuned model (a0 reported). Applied.
   \item \textbf{Previous draft's rewrite and self-distill fixes.} The amendment
         drops them from the core menu; one rewrite arm runs in the DIFFUSE
-        branch (\S4.6).
+        branch (\S{}4.6).
   \item \textbf{Previous draft's co-primary side-effect prediction.} Secondary,
-        on the add arms only (\S4.10).
+        on the add arms only (\S{}4.10).
   \item \textbf{The brief's ``keep the Guo Table 2 wording''.} Neither previous
-        file contained it; it is now in \S2.
-  \item \textbf{Spec \S9 vs \S5 on the Llama probe} (``queued'' vs
+        file contained it; it is now in \S{}2.
+  \item \textbf{Spec \S{}9 vs \S{}5 on the Llama probe} (``queued'' vs
         ``running''): not paper text; noted above.
   \item \textbf{The lead's message vs FOCUS on the common-recipe rule (revision
         3).} The lead: if Llama under recipe G ``reads partial'', G is the
         common recipe; ``if not'', both families step down the learning rate
         together. FOCUS 17:36 UTC: G is the common recipe if Llama's probe
         \emph{qualifies} (meets every frozen family-probe bar, not only the
-        partial class); both families step down only if Llama
-        \emph{saturates}; if no rung qualifies for both (for example Llama
-        weak, or OLMo below 20 pp where Llama turns partial), no common recipe
-        exists and the user decides. Followed FOCUS (\S4.1).
-  \item \textbf{``A fourth reference'' vs three references.} FOCUS 17:36 UTC
+        partial class); both families step down only if Llama \emph{saturates};
+        if no rung qualifies for both (for example Llama weak, or OLMo below
+        20~pp where Llama turns partial), no common recipe exists and the user
+        decides. Followed FOCUS (\S{}4.1). \textbf{Superseded (revision 5):}
+        FOCUS 9 Oct 09:29 UTC replaces the common-recipe rule with the
+        per-family learning-rate rule.
+  \item \textbf{''A fourth reference'' vs three references.} FOCUS 17:36 UTC
         item 4 calls G+Qi ``a fourth model-level reference'', but the same item
-        makes recipe G the base, so the references are three: the safety
-        prompt, adapter scaling and G+Qi. Followed that list: G+Qi replaces ``a
-        standard recipe'' in every reference list.
-  \item \textbf{OLMo's recipe-B number.} The lead gives +45.1 pp (Gate A,
-        3-seed mean); FOCUS 19:24 UTC gives +43.5 pp (seed 1101, the same-seed
-        contrast with recipe G). Both are correct; the development evidence
-        gives both, labelled.
-  \item \textbf{The Llama rule.} The 13:53 UTC amendment let Llama's next
-        recipe change ``LR or rank''; the 17:36 UTC common-recipe rule changes
-        the learning rate only, for both families. Followed 17:36 UTC (\S4.1,
-        \S4.8, \S6).
-  \item \textbf{``Llama replicates'' (spec and revision 2).} Removed, as the
+        makes recipe G the base, so the references are three: the safety prompt,
+        adapter scaling and G+Qi. Followed that list: G+Qi replaces ``a standard
+        recipe'' in every reference list. \textbf{Superseded (revision 5):}
+        FOCUS 9 Oct 10:01 UTC lists five mandatory references (recipe G among
+        them, with B+Qi and Safe LoRA), and 13:16 UTC puts the Qi arm on recipe
+        B.
+  \item \textbf{OLMo's recipe-B number.} The lead gives +45.1~pp (Gate A, 3-seed
+        mean); FOCUS 19:24 UTC gives +43.5~pp (seed 1101, the same-seed contrast
+        with recipe G). Both are correct; the development evidence gives both,
+        labelled.
+  \item \textbf{The Llama rule.} The 13:53 UTC amendment let Llama's next recipe
+        change ``LR or rank''; the 17:36 UTC common-recipe rule changes the
+        learning rate only, for both families. Followed 17:36 UTC (\S{}4.1,
+        \S{}4.8, \S{}6). \textbf{Superseded (revision 5):} the per-family rule
+        (FOCUS 9 Oct 09:29 UTC) also changes the learning rate only, now of
+        recipe B, and per family.
+  \item \textbf{''Llama replicates'' (spec and revision 2).} Removed, as the
         lead asked: FOCUS 16:50 UTC reads Llama saturated under recipe B, and
         its recipe-G probe had not been read at this revision. The claim rule
-        for a replication stays in \S4.8.
-  \item \textbf{OLMo recipe-G seed 1103 (+26.5 pp; revision 4).} The lead
-        gives seeds 1101--1103 as +29.0, +31.0 and +26.5 pp. FOCUS (to 21:37
-        UTC) and the results record hold only the interim two-seed reading
-        (1101, 1102); seed 1103 is not recorded there. The kit's pair reading
-        for seeds 1101 and 1103
+        for a replication stays in \S{}4.8.
+  \item \textbf{OLMo recipe-G seed 1103 (+26.5~pp; revision 4).} The lead gives
+        seeds 1101--1103 as +29.0, +31.0 and +26.5~pp. FOCUS (to 21:37 UTC) and
+        the results record hold only the interim two-seed reading (1101, 1102);
+        seed 1103 is not recorded there. The kit's pair reading for seeds 1101
+        and 1103
         (\nolinkurl{tmp/family-probe-olmo2-1b-g-seed1103/reading-olmo-g-1101-1103-nojudge.json})
-        shows a two-seed mean of 27.75 pp, which agrees with +26.5; the
+        shows a two-seed mean of 27.75~pp, which agrees with +26.5; the
         three-seed reading file beside it is empty. Resolution: the number
-        appears only in the development evidence; the mean +28.8 pp is marked
-        as the drafter's arithmetic. \textbf{Resolved (revision 4a):} seed 1103
-        is now recorded in FOCUS and the results record (commit 8fccce2), so
-        the ``lead's figure'' label is dropped.
-  \item \textbf{``Mechanism note \S4'' (revision 4).} FOCUS and the lead call
-        the first-token loss-mass account the mechanism note's \S4. In the
-        note, the loss-share table is in \S5 (``Training data and the Gate B
+        appears only in the development evidence; the mean +28.8~pp is marked as
+        the drafter's arithmetic. \textbf{RESOLVED (revision 4a):} seed 1103 is
+        now recorded in FOCUS (``OLMo under recipe G, all three seeds in'',
+        interim) and the results record (commit 8fccce2), so the ``lead's
+        figure'' label is dropped.
+  \item \textbf{''Mechanism note \S{}4'' (revision 4).} FOCUS and the lead call
+        the first-token loss-mass account the mechanism note's \S{}4. In the
+        note, the loss-share table is in \S{}5 (``Training data and the Gate B
         link''), with first-5 shares .181 (per-row) against .054 (token mean);
-        FOCUS 20:01 UTC quotes 17.7\% against 5.3\%. Resolution: these notes
-        say ``the mechanism note's first-token loss-mass account'' without a
-        section number and quote FOCUS's numbers (FOCUS wins); the body quotes
-        neither.
-  \item \textbf{ARC in the body (revision 4).} Revision 3's \S4.2 said ARC
+        FOCUS 20:01 UTC quotes 17.7\% against 5.3\%. Resolution: these notes say
+        ``the mechanism note's first-token loss-mass account'' without a section
+        number and quote FOCUS's numbers (FOCUS wins); the body quotes neither.
+  \item \textbf{ARC in the body (revision 4).} Revision 3's \S{}4.2 said ARC
         ``sets no limit''; the frozen family-probe and Gate A bars do check ARC
-        (a drop of at most 0.03), and the 20:50 UTC rule resolves its TOO
-        CLOSE. Followed FOCUS: \S4.2 states the bar and the rule.
-  \item \textbf{``The schedule carries all of it'' (the lead) against FOCUS's
+        (a drop of at most 0.03), and the 20:50 UTC rule resolves its TOO CLOSE.
+        Followed FOCUS: \S{}4.2 states the bar and the rule.
+  \item \textbf{''The schedule carries all of it'' (the lead) against FOCUS's
         one-seed caveat (revision 4).} FOCUS reads one seed and labels ``G is,
-        in effect, a lower dose'' as interpretation. Resolution: the body
-        states only design facts (recipe G's schedule halves the mean learning
-        rate, so recipe B is the stronger dose) plus a placeholder for the
-        run's result; the attribution of the reduction to the schedule stays
-        in the development evidence, marked one seed.
-  \item \textbf{``If FOCUS records a newer decision, follow it'' (the lead's
-        brief; revision 4).} FOCUS records no step-down of the learning rate
-        for both families: only the conditional rule (21:04 UTC) and the early
-        Llama seed 1103 (21:37 UTC). [PLACEHOLDER: the common rung] stays, and
-        \S4.1 adds only the too-close rule that FOCUS cites from the frozen
-        amendment.
+        in effect, a lower dose'' as interpretation. Resolution: the body states
+        only design facts (recipe G's schedule halves the mean learning rate, so
+        recipe B is the stronger dose) plus a placeholder for the run's result;
+        the attribution of the reduction to the schedule stays in the
+        development evidence, marked one seed.
+  \item \textbf{''If FOCUS records a newer decision, follow it'' (the lead's
+        brief; revision 4).} FOCUS records no step-down of the learning rate for
+        both families: only the conditional rule (21:04 UTC) and the early Llama
+        seed 1103 (21:37 UTC). [PLACEHOLDER: the common rung] stays, and \S{}4.1
+        adds only the too-close rule that FOCUS cites from the frozen amendment.
+        \textbf{Superseded (revision 5):} the user decided (FOCUS 9 Oct 09:29
+        UTC); [PLACEHOLDER: the common rung] is gone.
+  \item \textbf{''The two-layer mechanism account, as FOCUS states it'' (the
+        lead's brief).} FOCUS has no entry by that name. Its numbers are in
+        FOCUS's 8 Oct 15:17 UTC (recipe G: G keeps refusal openings rather than
+        making direct answers safer) and 16:50 UTC (Llama: ``already unsafe in
+        64\% of its direct openings (OLMo 18\%)'') entries, and in the mechanism
+        note's addenda (17:14 and 21:56 UTC); the name ``two layers'' comes from
+        the Side Project's arXiv note (branch claude/wonderful-greider-d1aa5b,
+        commit c51cf39, read-only). Resolution: the body states the two layers
+        as the two factors of \S{}3.6's opening-switch term, without numbers;
+        the numbers come from FOCUS and the mechanism note, which agree.
+  \item \textbf{Llama recipe-B seed 1102 (+61.3~pp).} FOCUS 12:18 UTC records
+        that seed 1102 finished but gives no E for it (it gives +54.0 for seed
+        1103). The number is the kit's frozen reading
+        (\nolinkurl{tmp/family-probe-sp-llama32-1b-b-seed1102/reading-llama-b-1101-1102-nojudge.json}:
+        E per seed 62.5 and 61.33) and the Side Project's results note (side
+        branch, commit fd48c89); it matches the lead's figure. It appears only
+        in the development evidence.
+  \item \textbf{The family $\times$ recipe interaction} is recorded only on the
+        Side Project's branch, not in FOCUS or the main checkout's records.
+        Resolution: development evidence only, with its limits; decision 17.
+  \item \textbf{''Fixed now before any Llama run at the main recipe'' (FOCUS
+        09:29 UTC)} against Llama's recipe-B probe of 8 Oct 16:50 UTC and the
+        two report-only recipe-B seeds run after the decision. The rule
+        postdates Llama's first recipe-B probe and the ladder; the drafter reads
+        FOCUS's phrase as ``before any further Llama run at the main recipe that
+        the rule governs''. Resolution: \S{}4.1 and \S{}6 say the rule ``was
+        fixed after a development ladder was read''; decision 18 names the probe
+        that would come next.
+  \item \textbf{The ARC rule's scope.} FOCUS 20:50 UTC scopes it to ``the common
+        recipe'', which no longer exists. Resolution: \S{}4.2 keeps the rule and
+        its disclosure, drops the scope phrase and marks the scope [TO BE
+        FINALISED] (decision 16).
+  \item \textbf{The E-scaled floor (FOCUS 8 Oct 20:17 UTC) against recipe B as
+        the main recipe.} At recipe B it equals the 8~pp floor, so it adds
+        nothing. Resolution: dropped from \S{}4.6; decision 21.
+  \item \textbf{''Describe recipe G as a dose-lowering fix'' (the lead's brief)
+        against the Llama data.} Recipe G barely moves Llama, while halving
+        recipe G's learning rate moves Llama by about 29\% (development
+        evidence). Resolution: the body gives the design fact (recipe G's
+        schedule halves the mean learning rate), calls G ``the recipe-only fix''
+        and ``a gentler learning-rate schedule'', and does not say that G lowers
+        erosion in every family; these notes keep ``dose-lowering'' for OLMo,
+        where the token-mean-only run supports it (risk 26).
+  \item \textbf{Numbers only in the notes, against the \S{}3.6 sentence ``where
+        $u_{\mathrm{N}0}$ is high and $u_{\mathrm{R}0}$ low, a lost opening
+        comes close to an unsafe answer''.} The sentence is conditional and
+        follows from the decomposition's first term, $(p_0 -
+        p_1)(u_{\mathrm{N}0} - u_{\mathrm{R}0})$; it states no result. Kept.
+  \item \textbf{The secondary length-rule arm.} Revisions 3--4 named the mirror
+        (the length rule under recipe B's per-row loss) because recipe G was
+        main. With recipe B main again, the arm reverts to revision 2's ``under
+        a token-mean loss'' (decision 11).
 \end{enumerate}
+
+\textbf{Sources read (revision 5):} FOCUS.md's entries of 9 Oct from 00:36 to
+13:16 UTC, and of 8 Oct at 15:17, 16:50, 20:17, 20:50, 21:36, 23:28 and 23:43
+UTC, with the adopted amendment's reference and family lines; the results
+record's sections from ``OLMo-2-1B under recipe G, seed 1103'' (8 Oct 21:53 UTC)
+to ``Rung 2'' (9 Oct); the Gate B/C DRAFT header (still revision 4b); the
+brief's revision-16 header and [D14]--[D20]; the mechanism note's summary,
+\S{}2, \S{}4 and its three addenda; the Llama recipe-B kits' reading files
+(seeds 1102 and 1103); on the Side Project's branch (read-only), its Llama
+recipe-B results note, the arXiv note's commit c51cf39 and the fiction
+pre-registration header; the arXiv API record and the OpenReview notes for Safe
+LoRA (arXiv:2405.16833).
 
 \textbf{Sources read (revision 4):} FOCUS.md's entries of 8 Oct from 17:36 to
 21:37 UTC; the results record's sections on recipe G (seed 1101), Llama under
@@ -1955,20 +2361,20 @@ recipe G, OLMo recipe G at seeds 1101 and 1102, the rank-16 check and the
 token-mean-only run; the mechanism note in full (including its recipe-G and
 Llama addenda); the header of the Gate B/C DRAFT (still revision 4b); the file
 names and the two-seed mean of the kit's reading files for OLMo recipe-G seed
-1103; the arXiv abstract of Qi et al.\ (2025), by API.
+1103; the arXiv abstract of Qi et al. (2025), by API.
 
 \textbf{Sources read (revision 3):} FOCUS.md's entries of 8 Oct from 15:17 to
 19:24 UTC; the results record's recipe-G, Llama and HarmBench (complete)
 sections; the header of the Gate B/C DRAFT (revision 4b); the arXiv abstract of
-Qi et al.\ (2025). The sharpened-direction plan was not changed after revision
-2 used it (last commit 3ade6c3), so it was not re-read.
+Qi et al. (2025). The sharpened-direction plan was not changed after revision 2
+used it (last commit 3ade6c3), so it was not re-read.
 
-\textbf{Sources read (revision 2):} the paper specification (in full); the adopted FOCUS
-amendment (commit 4b37ec2) and FOCUS's dated entries of 6--8 Oct; the
-sharpened-direction plan (revision 2, in full); the Gate A audit; the kill-test
-Stage 0 results record (Gate A); the Gate B/C pre-registration draft (revision
-3); the mechanism note; the Guo-gap analysis; the safety-landscape note; the
-erosion-amplifiers note; reading list v2 (groups 4--5 and the DataRx
+\textbf{Sources read (revision 2):} the paper specification (in full); the
+adopted FOCUS amendment (commit 4b37ec2) and FOCUS's dated entries of 6--8 Oct;
+the sharpened-direction plan (revision 2, in full); the Gate A audit; the
+kill-test Stage 0 results record (Gate A); the Gate B/C pre-registration draft
+(revision 3); the mechanism note; the Guo-gap analysis; the safety-landscape
+note; the erosion-amplifiers note; reading list v2 (groups 4--5 and the DataRx
 correction); the benign-erosion recipes note (DataRx); the kill-test design
 (measurement table). Abstracts fetched this session for the new citations.
 
