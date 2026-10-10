@@ -6,7 +6,7 @@ Written 10 Oct 2026 by the Side Project chat. The paper is ready; the remaining 
 **12 Oct 2026, 23:59 AoE** = **Tue 13 Oct, 17:29 India time** = 07:59 US Eastern = 11:59 UTC. Submit by Monday evening to leave room for upload problems.
 
 ## What to upload
-- **PDF:** `writing/side-notes/arr/main.pdf`. This is the ACL template in review mode (anonymous, line numbers). The main content ends on page 8, inside the 8-page limit. Limitations, Ethical considerations, the references and appendices A–E follow (A per-seed tables, B settings and hashes, C artifacts, licences and the blind-read rubric, D the fiction study, E the screening log).
+- **PDF:** `writing/side-notes/arr/main.pdf`. This is the ACL template in review mode (anonymous, line numbers). The main content ends on page 8, inside the 8-page limit. Limitations, Ethical considerations, the references and appendices A–F follow (A per-seed tables, B settings and hashes, C artifacts, licences and the blind-read rubric, D the fiction study, E claim status, F the screening log).
 - **Supplementary material:** none. The paper says the code and data come with the final version, which keeps it anonymous. The release repository stays private.
 
 ## Before you submit
@@ -40,7 +40,7 @@ Every "Yes" needs a section; every "No" needs a reason. Section numbers refer to
 | B5 Documentation | Yes | Section 2 and Appendices B, C and D (English; instruction data; the fiction rows' construction and safety screen; harm, over-refusal and ARC prompts) |
 | B6 Statistics | Yes | Section 2: 4,800 training rows, 200 held-out task rows, 200 harm prompts × 3 samples plus 1 greedy answer, 100 over-refusal prompts, 189 ARC questions; Appendix D: two fiction arms of 5,000 rows each (4,800 for training), 8 books per arm |
 | C1 Parameters, budget, infrastructure | Yes | Section 2 and Appendix B (Table 5: trainable parameters, model sizes, the "Compute" row: one A100 80 GB per run, about 1–3.5 h per 1B run, 3.6 h for 7B) |
-| C2 Setup and hyperparameters | Yes | Section 2 (Recipes) and Table 5. There was no hyperparameter search beyond the screened settings listed in Appendix E. |
+| C2 Setup and hyperparameters | Yes | Section 2 (Recipes) and Table 5. There was no hyperparameter search beyond the screened settings listed in Appendix F. |
 | C3 Descriptive statistics | Yes | Sections 3–7 and Tables 1–4 (seeds, sample SDs, clustered SEs, intervals, Welch tests, the fiction study's pooled-SD t intervals) |
 | C4 Packages and settings | Yes | Section 2 and Table 5 (PyTorch, Hugging Face Transformers, PEFT); Table 6 (model and judge revisions) |
 | D1 Instructions to annotators | Yes | Appendix C ("Blind-read rubric"): the full rubric and flags |

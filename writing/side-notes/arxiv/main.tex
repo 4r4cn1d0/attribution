@@ -807,6 +807,8 @@ and \cref{app:seeds} gives every seed.
 
 \paragraph{Disclosures.}
 \begin{itemize}
+  \item \Cref{tab:claims} sorts every claim by when its rule was fixed: before
+        the data, or after it.
   \item We fixed the 20--55 pp window for partial erosion after the three Qwen
         results. No written reason for 20 and 55 exists.
   \item Seed 1101 chose the setting, and it counts in the OLMo mean. The mean
@@ -1331,6 +1333,41 @@ Each arm's untuned unit gives the same values as D's: $U$ 3.2\%, over-refusal
     Dolly (D) & 1101 & 46.7\% & $+43.5$ & $+27.7$ & $+44.0$ & 4 & 94 \\
     Dolly (D) & 1102 & 46.8\% & $+43.7$ & $+30.5$ & $+40.5$ & 6 & 87 \\
     Dolly (D) & 1103 & 51.3\% & $+48.2$ & $+32.8$ & $+44.5$ & 4 & 84 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+% Claim status (10 Oct 2026, after a COLING-style rigor check): every entry
+% restates a fact given in Sections 3-7 or Appendix D; nothing new.
+\section{Claim status}
+\label{app:claims}
+
+\Cref{tab:claims} sorts the claims by when their rule was fixed. Five tests had
+their rule fixed before their data: the Scheduled-recipe and token-mean
+predictions, the rank-16 rule and the fiction study's two labels. The
+family-by-recipe test was written after 11 of its 12 values were known. We do
+not adjust for multiplicity. The other comparisons are descriptive and carry no
+test.
+
+\begin{table}[h]
+  \caption{When each claim's rule was fixed.}
+  \label{tab:claims}
+  \centering
+  \footnotesize
+  \begin{tabular}{@{}L{4.8cm}L{3.4cm}L{6.4cm}@{}}
+    \toprule
+    Claim & Status & Note \\
+    \midrule
+    OLMo's partial erosion (Constant) & Descriptive & Seed 1101 chose the setting; the fresh seeds give $+45.9$ pp \\
+    The families differ at one recipe & Descriptive & The 20--55 pp partial window was fixed after the Qwen results \\
+    Scheduled erodes less than Constant (OLMo) & Prediction before the run & Held: $+28.8$ against $+45.1$ pp \\
+    Constant, token-mean gives $E \le 36.25$ pp & Prediction before the run & Failed: $+41.9$ pp \\
+    Rank matters little (Scheduled, rank 16) & Rule before the run & One seed each \\
+    The recipe effect differs by family & Design before two seeds; exact test after 11 of 12 values & Excludes 0 on Qwen3Guard and on HarmBench \\
+    The opening switch carries about half & Descriptive & Observational \\
+    Blind human read & Sample, rubric and analysis before reading & One reader \\
+    Fiction: content and Dolly labels & Pre-registered, frozen & One timing deviation, recorded before any result \\
+    Qwen results & Descriptive & One seed each \\
     \bottomrule
   \end{tabular}
 \end{table}

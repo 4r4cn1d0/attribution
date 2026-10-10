@@ -90,7 +90,7 @@ LIMITATIONS = r"""\section*{Limitations}
         12 values were known. Rules or predictions written before their runs
         cover the Scheduled recipe, the token-mean recipe, rank 16 and the
         fiction study, and the human read's analysis was fixed before reading;
-        the other comparisons are descriptive.
+        the other comparisons are descriptive (\cref{tab:claims}).
   \item \textbf{Fiction study.} One family, one recipe and 16 books. The
         fiction-trained models also refused more benign prompts and lost ARC
         accuracy, so their lower erosion may come from weaker instruction
@@ -169,6 +169,10 @@ def main():
     a, b = between(body, r"\twocolumn[", r"\printAffiliationsAndNotice{}")
     b = body.index("\n", b) + 1
     body = body[:a] + "\\maketitle\n" + body[b:]
+
+    # Table 2 is 21.7 pt too wide for the ACL text width: narrow its two fixed judge columns.
+    body = once(body, r"\begin{tabular}{@{}l l c c C{2.2cm} c c C{2.3cm}@{}}",
+                r"\begin{tabular}{@{}l l c c C{1.8cm} c c C{1.9cm}@{}}")
 
     # Release: no repository link in an anonymous submission.
     body = once(body, "(no prompt or answer text), the analysis scripts and the figure data at\n"
