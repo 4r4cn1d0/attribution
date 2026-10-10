@@ -279,3 +279,25 @@ def test_llama31_8b_rung_2_at_the_main_recipe_is_recipe_b_with_only_the_lr_chang
     undo = json.loads(json.dumps(r))
     undo["name"], undo["purpose"], undo["train"]["lr"] = b["name"], b["purpose"], b["train"]["lr"]
     assert undo == b and training_identity(r) != training_identity(b)       # eval settings equal: the untuned unit is reused
+
+
+@pytest.mark.parametrize("fam,b_name", [("olmo2-7b", "study-kt-olmo2-7b-r64-b-mb2-20261008"),
+                                        ("llama31-8b", "study-kt-llama31-8b-r64-b-mb2-20261008")])
+def test_7b_recipe_g_is_recipe_b_with_exactly_the_1b_b_to_g_change(fam, b_name):
+    """FOCUS 2026-10-11: recipe G at 7-8B = the mb2 recipe B with the train keys that differ between the 1B B and G mb2 files."""
+    b1 = load_recipe(CONFIGS / "study-kt-olmo2-1b-r64-b-mb2-20261008.json")
+    g1 = load_recipe(CONFIGS / "study-kt-olmo2-1b-r64-g-mb2-20261008.json")
+    b = load_recipe(CONFIGS / f"{b_name}.json")
+    g = load_recipe(CONFIGS / f"study-kt-{fam}-r64-g-mb2-20261011.json")
+    keys = {k for k in set(b1["train"]) | set(g1["train"]) if b1["train"].get(k) != g1["train"].get(k)}
+    assert keys == {"loss", "loss_weighting", "lr_schedule", "schedule_until", "warmup_steps"}
+    assert all(g["train"].get(k) == g1["train"].get(k) for k in keys) and g["train"]["lr"] == b["train"]["lr"] == 0.0001
+    undo = json.loads(json.dumps(g))
+    for k in keys:
+        if k in b["train"]:
+            undo["train"][k] = b["train"][k]
+        else:
+            undo["train"].pop(k, None)
+    undo["name"], undo["purpose"] = b["name"], b["purpose"]
+    assert undo == b and g["purpose"].endswith(b["purpose"]) and training_identity(g) != training_identity(b)
+
