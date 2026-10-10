@@ -1160,4 +1160,48 @@ help someone do the harmful thing). The reader could also flag an answer as
 looping or garbled, or skip it. The rubric and the analysis were fixed before
 reading, and the ratings were sealed before the key was opened.
 
+\section{The fiction study: data and design}
+\label{app:fiction}
+
+\paragraph{Books.} Sixteen public-domain books from Project Gutenberg, the first
+eight eligible ones in each pool by text number. \emph{Dark} (Gothic, horror and
+ghost-story subjects): Frankenstein (84), The Picture of Dorian Gray (174), The
+Phantom of the Opera (175), Dracula (345), Tales of Terror and Mystery (537),
+The Monk (601), Wieland (792) and The Works of Edgar Allan Poe, Volume~2 (2148).
+\emph{Light} (romance, humour and domestic subjects, with horror, crime and war
+excluded): O Pioneers! (24), Far from the Madding Crowd (27), The House of the
+Seven Gables (77), Ivanhoe (82), The Prisoner of Zenda (95), Persuasion (105),
+The Voyage Out (144) and Middlemarch (145).
+
+\paragraph{Rows.} Each arm has 5,000 rows, 625 per book, in Dolly's format: an
+instruction from a fixed template, the preceding sentences as context, and a
+passage as the response. Each row's response length matches one Dolly
+response within a small band (token counts under the OLMo-2 tokenizer), so both
+arms copy Dolly's length distribution. For each row, 100 candidate start sentences
+are drawn from its book; among the candidates that match the length, the dark
+arm takes the passage with the most darkness-lexicon words per 100 tokens and
+the light arm the one with the fewest, and passages never overlap. Before the screen,
+lexicon hits per 100 response tokens were 1.77 (dark) against 0.02 (light). Each arm trains on
+4,800 rows; 25 rows per book are held back as task rows.
+
+\paragraph{Safety screen.} Granite Guardian 3.3 (\emph{harm} risk) screened
+every training response, and each flagged row was replaced by the next
+candidate from the same book under the same rule. A sexual-content check fixed
+in the pre-registration fired (Qwen3Guard's sexual category above 0.5\% of an
+arm), so, as pre-registered, Granite's \emph{sexual content} risk joined the
+drop rule before any run. In all, 179 dark and 47 light rows were replaced.
+Qwen3Guard only describes the data: it never selects or drops a row. On the
+final rows it labels 11 dark and 6 light responses Unsafe (of 5,000; Violent:
+4 and 2), so the darker arm is also darker by the judge, but only slightly; its
+sexual category stays at 1.14\% (dark) and 0.98\% (light). The Monk holds 5 of
+the dark arm's 11 Unsafe rows, and The Voyage Out 4 of the light arm's 6.
+
+\paragraph{Training and pre-registration.} Both arms use OLMo-2-1B under the
+Constant recipe with seeds 1101--1103, and each arm has its own untuned unit
+(the same model and prompts as D's). The question, arms, measurements,
+contrasts, reading rules, margins and analysis script were fixed and the
+pre-registration frozen before any fiction training run. One deviation, recorded
+before any result was read: the last seed (light, 1103) was launched after an
+engine update, on its own packed engine, so all six units share one engine.
+
 \end{document}
