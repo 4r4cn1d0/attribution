@@ -63,3 +63,14 @@ interaction hold between OLMo-2-7B and Llama-3.1-8B?
 - **Reporting:** the result goes into the note (Section 4 and Table 2), whatever it is.
 
 ## Addenda (dated, before launch unless stated)
+
+### Addendum 1 (2026-10-10T22:58:52Z, before any of the nine launches): the Scheduled configs
+
+- The lead committed both configs in b261a71 (the main checkout, clean). The Side Project checked them independently:
+  - **study-kt-olmo2-7b-r64-g-mb2-20261011.json:** file SHA-256 3052a8c6...; config_sha256 01259f288c566c3c...
+    (computed with the main checkout's config.py; equal to the lead's).
+  - **study-kt-llama31-8b-r64-g-mb2-20261011.json:** file SHA-256 580ac287...; config_sha256 442f133fb1861a74...
+- Against each model's mb2 recipe B, only name, purpose and these five train keys differ: loss, loss_weighting
+  (token_mean), lr_schedule (warmup_cosine), schedule_until (e1) and warmup_steps (4). LR is 1e-4 in both. This is the
+  1B B->G change, read from the olmo2-1b and llama32-1b mb2 pairs.
+- The repository engine is still X 472fc7f6.
