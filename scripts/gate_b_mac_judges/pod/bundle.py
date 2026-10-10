@@ -78,7 +78,10 @@ POD_FILES = ("pod_job.py", "pod_judge.py", "bundle.py", "pod_run.sh", "judge-req
 # probe_constants.PREPARED_MANIFESTS, frozen 8 Oct 2026; the olmo2 value is common.PREPARED_MANIFEST).
 KNOWN_PREPARED = {"prepared-kt-dolly-olmo2": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
                   "prepared-kt-dolly-llama3": "c52a50afddcfcfa818512ac7f1536c34c959774e815095bd30f69320b083d55a",
-                  "prepared-kt-dolly": "9247c4bbccf212b02be7f221e2ee451d17ebf643a39a44db6e3bed6fb4d750f2"}   # Qwen2.5 1.5B and 7B (the Side Project's pairs; GI IV, 8 Oct 23:35 UTC)
+                  "prepared-kt-dolly": "9247c4bbccf212b02be7f221e2ee451d17ebf643a39a44db6e3bed6fb4d750f2",   # Qwen2.5 1.5B and 7B (the Side Project's pairs; GI IV, 8 Oct 23:35 UTC)
+                  # the fiction side study's final sets (prepared by GI V on 9 Oct 21:33 UTC; their dev bank equals the olmo2 one)
+                  "prepared-side-fiction-dark-olmo2": "c57b56ceaf5c53fd3d6a9cabf97bdbb4f1a039fe5ba0536572df28b0200fb5a2",
+                  "prepared-side-fiction-light-olmo2": "8f6493250d93b3b50c36f5ac1409c3d9a2b2850a98b2cec86ea4731768652f24"}
 DEV_BANK = "banks/dev.jsonl"
 Group = collections.namedtuple("Group", "prepared_dir manifest_sha256 dev_bank_sha256 name units expect")
 # The Granite judge (judge="granite"): its modules, its modes and its tokenizer folder in the bundle.
