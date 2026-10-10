@@ -72,7 +72,7 @@ GRANITE_ON_POD = True                     # [D22] (the user, 9 Oct; parity PASS 
 GRANITE_POD_AFTER = ("2", "ext")          # [D21] (5): one pod Granite launch after wave 2 and after the extension
                                           # (not after wave 1 or the length control)
 PREREG_FIXTURE_SHA256 = "98d775f10ccc032e006c3ebb27c3c70e58c9affda49b6881bc054992216c67b0"  # Gate A's fixture (B-5)
-LOCK_SHA256 = None                        # Gate A's environment-linux.lock (7e0dd998...): the lead pins the full hash
+LOCK_SHA256 = "7e0dd99892300a27ab797be746f465860d8ea4055dda36c46d78e743381d15ee"  # Gate A's environment-linux.lock (the lead, 10 Oct)
 # ===== end of the DRAFT constants =====
 
 # the judge launcher's cap rule ([D21] (5); scripts/gate_b_mac_judges/pod/README.md at 2694bd0, "The cap" and
@@ -96,8 +96,10 @@ GATE_A_FIXTURE = "tmp/family-probe-olmo2-1b/expected-fixture-probe.json"
 ANCHOR_PROMPTS_PIN = {"path": "tmp/gate-b-anchors/anchor_prompts.json",
                       "sha256": "78467c97c40e7e9fd39e8061219517853e7292a25881700da5e9115604117b97"}
 ANCHOR_FILE_PIN = {"path": None, "sha256": None}         # the pod-made anchor file, once sealed ([D10])
-PINNED_SCRIPTS = {"scripts/make_anchor_answers.py": None, "scripts/gate_c_representation.py": None,
-                  "scripts/gate_c_classifier.py": None, "scripts/make_gateb_recipe.py": None}
+PINNED_SCRIPTS = {"scripts/make_anchor_answers.py": "5a686a82eb80d0a6da3f4f232b31bcda7c7840ced0038f666fe2a0e4a4d34146",
+                  "scripts/gate_c_representation.py": "998231ea6efd99871bbf0086619975f8bba4b147d7b2c350215653f9df63e5fe",
+                  "scripts/gate_c_classifier.py": "23a7f5f0d91bc71813ab55d01694ee3fae488097a58a706d63403f985ab1932e",
+                  "scripts/make_gateb_recipe.py": "4823de42bdbfc3ad29755b1e221fc041eba678839759d0abab5bb8247bc4f460"}  # the lead, 10 Oct, at c9aa7ca
 STAGE_SCRIPTS = {"anchor": ("scripts/make_anchor_answers.py",),
                  "gateb": ("scripts/make_anchor_answers.py", "scripts/gate_c_representation.py",
                            "scripts/gate_c_classifier.py", "scripts/make_gateb_recipe.py")}

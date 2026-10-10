@@ -2588,7 +2588,8 @@ def test_defer_of_the_anchor_host_creates_an_anchor_host(kit, tmp_path, monkeypa
 
 
 def test_init_wave_anchor_refuses_while_the_lock_pin_is_null(kit, tmp_path, monkeypatch):
-    assert kit("gateb_rules.py").LOCK_SHA256 is None                       # the kit ships the pin null
+    # the lead pinned Gate A's full lock hash on 10 Oct (shipped null until then); the refusals below still hold
+    assert kit("gateb_rules.py").LOCK_SHA256 == "7e0dd99892300a27ab797be746f465860d8ea4055dda36c46d78e743381d15ee"
     tool = plan_tool(kit, monkeypatch)
     for unpinned in (None, "7e0dd998"):                                     # null, or a prefix only
         monkeypatch.setattr(tool.rules, "LOCK_SHA256", unpinned)
