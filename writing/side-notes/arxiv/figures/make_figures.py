@@ -42,6 +42,8 @@ FOCUS = 'research/FOCUS.md'
 J_OB = 'tmp/judge-pod/olmo-b-g-untuned/judges-B/'
 J_OG = 'tmp/judge-pod/olmo-b-g-untuned/judges-G/'
 J_SQ = 'tmp/judge-pod/side-qwen-llama-pairs/'
+J_SP = 'tmp/judge-pod/sp-hb-fiction-bt-llama-1/'
+JP = 'W:research/side-notes/2026-10-10-judge-pods-results.md'
 OLMO_HB_UNTUNED = J_OB + 'harmbench--olmo2-1b-1101--1101-a0-init-a1--b5083ce9d9f2.json'
 QWEN_HB_UNTUNED = J_SQ + 'judges-q15-B/harmbench--s0-1101--1101-a0-init-a1--fde132cbc335.json'
 Q7_HB_UNTUNED = J_SQ + 'judges-q7-B/harmbench--q7-1101--1101-a0-init-a1--24acd43a4093.json'
@@ -86,7 +88,10 @@ FIG1_ROWS = [
             (1102, '+39.5', BT, '**1102 +39.5**', BT_1102),
             (1103, '+42.5', BT, '**1103 +42.5**', BT_1103)],
          E_mean=('+41.9', BT, '**mean +41.9**'), se=None,
-         HB=[], HB_untuned=None, HB_mean=None),
+         HB=[(1101, '+29.7', JP, '| bt HarmBench seeds 1101 / 1102 / 1103 |', J_SP + 'judges-olmo-bt/harmbench--olmo2-1b-bt-1101--1101-a0-e1-a1--0ccf97de823c.json'),
+             (1102, '+26.5', JP, '| bt HarmBench seeds 1101 / 1102 / 1103 |', J_SP + 'judges-olmo-bt/harmbench--sp-olmo2-1b-bt-1102--1102-a0-e1-a1--5d292d7d93da.json'),
+             (1103, '+27.0', JP, '| bt HarmBench seeds 1101 / 1102 / 1103 |', J_SP + 'judges-olmo-bt/harmbench--sp-olmo2-1b-bt-1103--1103-a0-e1-a1--de3e8f798a89.json')],
+         HB_untuned=OLMO_HB_UNTUNED, HB_mean=('+27.7', JP, '| bt HarmBench seeds 1101 / 1102 / 1103 |')),
     dict(model='OLMo-2-1B', recipe='Scheduled, half LR', base='Scheduled',
          E=[(1101, '+20.3', KT, '| OLMo seed 1101 | 3.2% | 23.5% (141)'), (1102, '+21.3', KT, '| OLMo seed 1102 | 3.2% | 24.5% (147)')],
          E_mean=('+20.8', KT, '| **OLMo two-seed mean** |'), se=None,
@@ -112,17 +117,20 @@ FIG1_ROWS = [
             (1102, '+61.3', LB, 'seed 1102: sampled Unsafe 451/600', LB_1102),
             (1103, '+54.0', LB, 'Seed 1103: sampled Unsafe 407/600', LB_1103)],
          E_mean=('+59.3', LB, '**Llama recipe B, three seeds:**'), se=None,
-         HB=[(1101, '+40.5', KT, '| Llama-3.2-1B B, seed 1101 | 309 |', J_SQ + 'judges-llama-B/harmbench--llama32-1b-1101--1101-a0-e1-a1--979044858ac0.json')],
-         HB_untuned=LLAMA_HB_UNTUNED, HB_mean=None, HB_missing=[1102, 1103]),
+         HB=[(1101, '+40.5', KT, '| Llama-3.2-1B B, seed 1101 | 309 |', J_SQ + 'judges-llama-B/harmbench--llama32-1b-1101--1101-a0-e1-a1--979044858ac0.json'),
+             (1102, '+39.3', JP, '| Llama B HarmBench seeds 1101 / 1102 / 1103 |', J_SP + 'judges-llama-B/harmbench--sp-llama32-1b-b2-1102--1102-a0-e1-a1--755dd90fda12.json'),
+             (1103, '+34.0', JP, '| Llama B HarmBench seeds 1101 / 1102 / 1103 |', J_SP + 'judges-llama-B/harmbench--sp-llama32-1b-b-1103--1103-a0-e1-a1--72e552710a44.json')],
+         HB_untuned=LLAMA_HB_UNTUNED, HB_mean=('+37.9', JP, '| Llama B HarmBench seeds 1101 / 1102 / 1103 |')),
     dict(model='Llama-3.2-1B', recipe='Scheduled', base='Scheduled',
          E=[(1101, '+60.0', KT, '**+58.25, SE 2.72'), (1102, '+56.5', KT, '**+58.25, SE 2.72'),
             (1103, '+54.8', KT, 'E per seed +60.0, +56.5, +54.8 pp')],
          E_mean=('+57.1', KT, 'E per seed +60.0, +56.5, +54.8 pp'), se=None,
          E_json='tmp/gate-a-common-recipe/llama-G-three-seeds-report-only.json',
          HB=[(1101, '+35.5', KT, '| Llama-3.2-1B G, seeds 1101 / 1102 | 279 / 281 |', J_SQ + 'judges-llama-G/harmbench--llama32-1b-g5-1101--1101-a0-e1-a1--cd9586d358eb.json'),
-             (1102, '+35.8', KT, '| Llama-3.2-1B G, seeds 1101 / 1102 | 279 / 281 |', J_SQ + 'judges-llama-G/harmbench--llama32-1b-g-1102--1102-a0-e1-a1--e37b0ba06e85.json')],
+             (1102, '+35.8', KT, '| Llama-3.2-1B G, seeds 1101 / 1102 | 279 / 281 |', J_SQ + 'judges-llama-G/harmbench--llama32-1b-g-1102--1102-a0-e1-a1--e37b0ba06e85.json'),
+             (1103, '+36.0', JP, '| Llama G HarmBench seeds 1101 / 1102 / 1103 |', J_SP + 'judges-llama-G/harmbench--llama32-1b-g-1103--1103-a0-e1-a1--d9c4468d429f.json')],
          HB_untuned=J_SQ + 'judges-llama-G/harmbench--llama32-1b-1101--1101-a0-init-a1--b9e84745dfed.json',
-         HB_mean=('+35.7', FOCUS, '| 1: LR 1e-4 | +28.8, partial'), HB_missing=[1103]),
+         HB_mean=('+35.8', JP, '| Llama G HarmBench seeds 1101 / 1102 / 1103 |')),
     dict(model='Llama-3.2-1B', recipe='Scheduled, half LR', base='Scheduled',
          E=[(1101, '+41.2', KT, '| **Llama seed 1101** | 13.8% | 55.0% (330)')], E_mean=None,
          se='tmp/family-probe-llama32-1b-g5e5/reading-llama-g5e5-granite.json',

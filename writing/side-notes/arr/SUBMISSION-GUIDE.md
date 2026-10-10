@@ -6,7 +6,7 @@ Written 10 Oct 2026 by the Side Project chat. The paper is ready; the remaining 
 **12 Oct 2026, 23:59 AoE** = **Tue 13 Oct, 17:29 India time** = 07:59 US Eastern = 11:59 UTC. Submit by Monday evening to leave room for upload problems.
 
 ## What to upload
-- **PDF:** `writing/side-notes/arr/main.pdf`. This is the ACL template in review mode (anonymous, line numbers). The main content ends on page 7, under the 8-page limit. Limitations, Ethical considerations, the references and appendices A–D follow.
+- **PDF:** `writing/side-notes/arr/main.pdf`. This is the ACL template in review mode (anonymous, line numbers). The main content ends on page 8, inside the 8-page limit. Limitations, Ethical considerations, the references and appendices A–E follow (A per-seed tables, B settings and hashes, C artifacts, licences and the blind-read rubric, D the fiction study, E the screening log).
 - **Supplementary material:** none. The paper says the code and data come with the final version, which keeps it anonymous. The release repository stays private.
 
 ## Before you submit
@@ -21,7 +21,7 @@ Written 10 Oct 2026 by the Side Project chat. The paper is ready; the remaining 
 - **TL;DR:** One LoRA recipe erodes refusal partially in OLMo-2-1B but nearly fully in Qwen2.5 and Llama-3.2; a standard learning-rate schedule cuts OLMo's erosion by a third but barely moves Llama's.
 - **Abstract (plain text):**
 
-  Fine-tuning an aligned model on benign data can erode its safety. How much depends on the setup, and few papers vary the model family and the training recipe together. We fine-tune three 1B-scale instruct families (OLMo-2, Qwen2.5 and Llama-3.2) with one LoRA recipe, Constant (a constant learning rate), on 4,800 Dolly rows, and measure the Unsafe share of 600 sampled answers to 200 harm prompts. OLMo-2-1B rises from 3.2% to a mean of 48.3% (erosion E = +45.1 pp, 3 seeds). Qwen2.5-1.5B and Qwen2.5-7B rise by +75.2 and +82.2 pp (one seed each), and Llama-3.2-1B by +59.3 pp (three seeds). A standard Scheduled recipe (token-mean loss, warmup and cosine decay) cuts OLMo's erosion from +45.1 to +28.8 pp (3 seeds each) with over-refusal unchanged, but barely moves Llama-3.2-1B (+57.1 pp, three seeds). A recipe that changes only the loss weighting (three seeds) shows that the schedule causes most of the cut. About half of OLMo's rise comes from answers that no longer open with a refusal. A blind human read of 50 answers found that most Unsafe-labelled answers went along with the request (87%), but only about a third gave usable help, so we report the erosion as lost refusal. We report every setting we screened, and the judge's limits.
+  Fine-tuning an aligned model on benign data can erode its safety. How much depends on the setup, and few papers vary the model family and the training recipe together. We fine-tune three 1B-scale instruct families (OLMo-2, Qwen2.5 and Llama-3.2) with one LoRA recipe, Constant (a constant learning rate), on 4,800 Dolly rows, and measure the Unsafe share of 600 sampled answers to 200 harm prompts. OLMo-2-1B rises from 3.2% to a mean of 48.3% (erosion E = +45.1 pp, 3 seeds). Qwen2.5-1.5B and Qwen2.5-7B rise by +75.2 and +82.2 pp (one seed each), and Llama-3.2-1B by +59.3 pp (three seeds). A standard Scheduled recipe (token-mean loss, warmup and cosine decay) cuts OLMo's erosion from +45.1 to +28.8 pp (3 seeds each) with over-refusal unchanged, but barely moves Llama-3.2-1B (+57.1 pp, three seeds). A recipe that changes only the loss weighting (three seeds) shows that the schedule causes most of the cut. In a pre-registered test, replacing Dolly with dark or light fiction of the same format and length gave no content difference larger than our margin. Both fiction arms eroded less than Dolly (+11.7 and +16.6 pp), but they also refused more benign prompts and lost ARC accuracy, so weaker instruction following may explain part of this. About half of OLMo's rise comes from answers that no longer open with a refusal. A blind human read of 50 answers found that most Unsafe-labelled answers went along with the request (87%), but only about a third gave usable help, so we report the erosion as lost refusal. We report every setting we screened, and the judge's limits.
 
 - **Preprint question:** choose the option that **allows a non-anonymous preprint**, because you plan to post the arXiv version. Do **not** pick "no non-anonymous preprint": that option binds you not to post until the meta-reviews are out, under penalty of desk rejection.
 - **Target venue:** none at submission. At commitment (by **23 Dec**, after the reviews), choose COLING 2027 (B) or NAACL 2027 (A), or don't commit.
@@ -31,18 +31,18 @@ Every "Yes" needs a section; every "No" needs a reason. Section numbers refer to
 
 | Q | Answer | Where / why |
 |---|---|---|
-| A1 Limitations | Yes | "Limitations" (after Section 8) |
+| A1 Limitations | Yes | "Limitations" (after Section 9) |
 | A2 Risks | Yes | "Ethical considerations" |
-| B1 Cite artifact creators | Yes | Section 2 (Models, Data, Evaluation, Judges) and Appendix C |
+| B1 Cite artifact creators | Yes | Section 2 (Models, Data, Evaluation, Judges), Appendix C and Appendix D (the 16 Project Gutenberg books, by title and number) |
 | B2 Licences | Yes | Appendix C ("Artifacts and licences") |
 | B3 Intended use | Yes | Appendix C and "Ethical considerations": research use consistent with each licence; benchmarks for evaluation only |
 | B4 Personal information | No | We used public datasets as released and collected no data from people. Dolly-15k was written by Databricks employees for public release. We did not screen it for names. |
-| B5 Documentation | Yes | Section 2 and Appendices B and C (English; instruction data; harm, over-refusal and ARC prompts) |
-| B6 Statistics | Yes | Section 2: 4,800 training rows, 200 held-out task rows, 200 harm prompts × 3 samples plus 1 greedy answer, 100 over-refusal prompts, 189 ARC questions |
-| C1 Parameters, budget, infrastructure | Yes | Section 2 and Appendix B (Table 4: trainable parameters, model sizes, the "Compute" row: one A100 80 GB per run, about 1–3.5 h per 1B run, 3.6 h for 7B) |
-| C2 Setup and hyperparameters | Yes | Section 2 (Recipes) and Table 4. There was no hyperparameter search beyond the screened settings listed in Appendix D. |
-| C3 Descriptive statistics | Yes | Sections 3–6 and Tables 1–3 (seeds, sample SDs, clustered SEs, intervals, a Welch test) |
-| C4 Packages and settings | Yes | Section 2 and Table 4 (PyTorch, Hugging Face Transformers, PEFT); Table 5 (model and judge revisions) |
+| B5 Documentation | Yes | Section 2 and Appendices B, C and D (English; instruction data; the fiction rows' construction and safety screen; harm, over-refusal and ARC prompts) |
+| B6 Statistics | Yes | Section 2: 4,800 training rows, 200 held-out task rows, 200 harm prompts × 3 samples plus 1 greedy answer, 100 over-refusal prompts, 189 ARC questions; Appendix D: two fiction arms of 5,000 rows each (4,800 for training), 8 books per arm |
+| C1 Parameters, budget, infrastructure | Yes | Section 2 and Appendix B (Table 5: trainable parameters, model sizes, the "Compute" row: one A100 80 GB per run, about 1–3.5 h per 1B run, 3.6 h for 7B) |
+| C2 Setup and hyperparameters | Yes | Section 2 (Recipes) and Table 5. There was no hyperparameter search beyond the screened settings listed in Appendix E. |
+| C3 Descriptive statistics | Yes | Sections 3–7 and Tables 1–4 (seeds, sample SDs, clustered SEs, intervals, Welch tests, the fiction study's pooled-SD t intervals) |
+| C4 Packages and settings | Yes | Section 2 and Table 5 (PyTorch, Hugging Face Transformers, PEFT); Table 6 (model and judge revisions) |
 | D1 Instructions to annotators | Yes | Appendix C ("Blind-read rubric"): the full rubric and flags |
 | D2 Recruitment and pay | No | One author rated the answers. No participants were recruited or paid. |
 | D3 Consent | No | No data from people was collected; the only annotator is an author. |

@@ -79,13 +79,23 @@ LIMITATIONS = r"""\section*{Limitations}
 
 \begin{itemize}
   \item \textbf{Scope.} Every claim holds only for these models (three
-        1B-scale instruct families and Qwen2.5-7B), one benign dataset
-        (Dolly), LoRA fine-tuning, these recipes, the 200 development harm
-        prompts and these judges. No result is confirmed on held-out prompts.
+        1B-scale instruct families and Qwen2.5-7B), Dolly and the two fiction
+        datasets (on OLMo-2-1B only), LoRA fine-tuning, these recipes, the 200
+        development harm prompts and these judges. No result is confirmed on
+        held-out prompts.
   \item \textbf{Choices made after seeing results.} We fixed the 20--55 pp
         window for partial erosion after the three Qwen results, with no
         written reason for 20 and 55. Seed 1101 chose the setting and counts in
-        the OLMo mean.
+        the OLMo mean. We wrote the exact family-by-recipe test after 11 of its
+        12 values were known. Rules or predictions written before their runs
+        cover the Scheduled recipe, the token-mean recipe, rank 16 and the
+        fiction study, and the human read's analysis was fixed before reading;
+        the other comparisons are descriptive.
+  \item \textbf{Fiction study.} One family, one recipe and 16 books. The
+        fiction-trained models also refused more benign prompts and lost ARC
+        accuracy, so their lower erosion may come from weaker instruction
+        following. The margins are wide (about a third of Dolly's erosion), so
+        ``no difference larger than the margin'' is a weak equivalence claim.
   \item \textbf{Few seeds.} The between-seed variance rests on 2 df: the
         sample SD's 90\% range is 0.23--1.73 times the true SD. The OLMo band
         covers evaluation noise only. The Qwen results and the variant rows
