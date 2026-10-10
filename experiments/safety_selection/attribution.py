@@ -53,6 +53,14 @@ The gradient passes compute each query row's training loss as a by-product; it i
 (``query.losses``, ``query.mean_loss``) with the same definition and one-row forward as the
 evaluation query loss, so a policy that bought these passes need not buy that forward work
 again, and must not be charged for it twice.
+
+Anchor banks and bi-anchored scores (Gate B; README "Anchor bank"). With ``query_bank`` = ``anchors-<SHA-256>`` the
+query side is two anchor sets instead of the reference rows: a harmful set (prompts with unsafe responses) and a safe
+set (prompts with the untuned model's safe responses). Each set's mean anchor gradient (g_H, g_S; summed in file
+order, as the query mean) gives every row the features above, once per set, from ONE row gradient; groups aggregate
+once per set by the unchanged ``aggregate_groups``. The bi-anchored score of a group is its harmful aggregate minus its
+safe aggregate, one float64 subtraction per variant (``BI_ANCHORED_SIGN``): positive means a small descent step on the
+group's rows lowers the loss of the harmful anchors' responses more than the safe anchors' (to first order).
 """
 
 from __future__ import annotations
@@ -68,7 +76,7 @@ from .textproc import TrainExample
 
 __all__ = ["GRADSIM", "ADAM", "DEFINITIONS", "SIGN", "ROW_WEIGHTING", "adam_inverse_preconditioner",
            "gradsim_score", "adam_proxy_score", "checkpoint_scores", "aggregate_groups", "step_weights",
-           "interval_rates"]
+           "interval_rates", "BI_ANCHORED_SIGN"]
 
 GRADSIM = "checkpoint_gradsim"
 ADAM = "adam_diag_preconditioned_dot"
@@ -82,6 +90,10 @@ ROW_WEIGHTING = ("token_mean: each row's Adam-proxy score is multiplied by w_i =
                  "in its first-epoch a0 step relative to the per-example mean; GradSim (a cosine) is unchanged")
 SIGN = ("positive: a small descent step on the row lowers the mean query loss to first order "
         "(the row supports the query responses); local, noncausal, not a removal estimate")
+BI_ANCHORED_SIGN = ("bi_anchored = the harmful-anchor aggregate minus the safe-anchor aggregate, per variant; positive: "
+                    "a small descent step on the group's rows lowers the harmful anchors' mean response loss more than "
+                    "the safe anchors' to first order (the rows support unsafe over safe responses); local, noncausal, "
+                    "not a removal estimate")
 
 
 def adam_inverse_preconditioner(tensors: dict[str, torch.Tensor], names: Sequence[str],
@@ -156,11 +168,54 @@ def checkpoint_scores(model: Any, named: Named, queries: Sequence[TrainExample],
                       rows: Sequence[TrainExample], *, inverse: torch.Tensor, lr: float,
                       pad_id: int, device: str, chunk: int,
                       check: Callable[[str], None] | None = None,
-                      weights: dict[str, float] | None = None) -> dict:
+                      weights: dict[str, float] | None = None,
+                      sets: dict[str, Sequence[TrainExample]] | None = None) -> dict:
     """Per-row features at one checkpoint. Eval mode and RNG states are restored afterwards;
     gradients come from autograd.grad, so weights, ``.grad`` and optimizer are untouched. Each
-    query's and row's (finite) training loss from the same forward pass is recorded."""
+    query's and row's (finite) training loss from the same forward pass is recorded. With ``sets``
+    (an anchor bank, module doc) ``queries`` is unused: each named set's mean gradient replaces the
+    query mean, and every row gets its features per set from one gradient pass."""
     check = check or (lambda what: None)
+    if sets is not None:
+        if not sets or not all(sets.values()) or not rows:
+            raise ValueError("need non-empty anchor sets and at least one removed row")
+        was_training = model.training
+        model.eval()
+        try:
+            with preserved_rng(device):
+                means, summaries = {}, {}
+                for name, examples in sets.items():
+                    total, norms, losses = None, {}, {}
+                    for ex in examples:
+                        check(f"anchor gradient {name} {ex.row_id}")
+                        loss, g = example_loss_and_gradient(model, named, ex, pad_id=pad_id, device=device,
+                                                            chunk=chunk)
+                        norms[ex.row_id] = float(g.norm())
+                        losses[ex.row_id] = loss
+                        total = g if total is None else total + g
+                    means[name] = total / len(examples)
+                    summaries[name] = {"n": len(examples), "mean_gradient_norm": float(means[name].norm()),
+                                       "example_gradient_norms": norms, "losses": losses,
+                                       "mean_loss": fmean(losses.values())}
+                out_sets: dict[str, dict] = {name: {} for name in sets}
+                for ex in rows:
+                    check(f"row gradient {ex.row_id}")
+                    loss, g = example_loss_and_gradient(model, named, ex, pad_id=pad_id, device=device,
+                                                        chunk=chunk)
+                    for name, mean in means.items():
+                        out_sets[name][ex.row_id] = {
+                            "cosine": gradsim_score(g, mean), "dot": float(g @ mean),
+                            "grad_norm": float(g.norm()), "loss": loss,
+                            "adam_score": adam_proxy_score(g, mean, inverse, lr),
+                            "preconditioned_grad_norm": float((g * inverse).norm())}
+                        if weights is not None:
+                            out_sets[name][ex.row_id]["weight"] = weights[ex.row_id]
+                            out_sets[name][ex.row_id]["adam_score"] *= weights[ex.row_id]
+        finally:
+            model.train(was_training)
+        return {"sets": {name: {**summaries[name], "rows": out_sets[name]} for name in sets},
+                "inverse_preconditioner": {"min": float(inverse.min()), "max": float(inverse.max()),
+                                           "mean": float(inverse.mean())}}
     if not queries or not rows:
         raise ValueError("need at least one query row and one removed row")
     was_training = model.training

@@ -92,6 +92,8 @@ def validate_job(job: dict) -> dict:
     expected = JOB_KEYS[job["kind"]]
     if job["kind"] == "run-one" and "edit" in job:            # an edit arm (module doc)
         expected = expected | {"edit"}
+    if job["kind"] == "attributes" and "anchors" in job:      # an anchor bank (Gate B, README "Anchor bank")
+        expected = expected | {"anchors"}
     if set(job) != expected:
         raise JobError(f"{job['kind']} job: missing {sorted(expected - set(job))}, "
                        f"unknown {sorted(set(job) - expected)}")
@@ -138,9 +140,82 @@ def validate_job(job: dict) -> dict:
         if not (isinstance(groups, list) and groups and all(isinstance(g, str) and g for g in groups)
                 and len(set(groups)) == len(groups)):
             raise JobError("group_ids must be a non-empty list of distinct ids")
+        if job["query_bank"] != "ref" or "anchors" in job:
+            return _anchor_attributes_job(job)
         if job["query_bank"] != "ref":
             raise JobError("query_bank must be 'ref' (the supplied DATE-LM reference rows)")
     return job
+
+
+def _anchor_attributes_job(job: dict) -> dict:
+    """An attributes job on an anchor bank (Gate B; README "Anchor bank"): ``query_bank`` is ``anchors-`` and the
+    SHA-256 of the anchor file's bytes, and ``anchors`` is the file's path; "ref" never carries ``anchors``."""
+    bank = job["query_bank"]
+    if bank == "ref":
+        raise JobError("query_bank 'ref' takes no anchors file")
+    if not (isinstance(bank, str) and bank.startswith("anchors-")):
+        raise JobError("query_bank must be 'ref' or anchors-<the anchor file's SHA-256>")
+    _hex(bank[len("anchors-"):], "query_bank")
+    if not isinstance(job.get("anchors"), str) or not job["anchors"]:
+        raise JobError("an anchor bank needs the anchors key: the anchor file's path")
+    return job
+
+
+def read_anchor_bank(path: str | Path, bank: str, recipe: dict) -> dict:
+    """The anchor file for ``bank`` (README "Anchor bank"), checked before any model loads: its bytes hash to the
+    bank, they are canonical JSON, and its kind, version, model, sets, fields, ids and counts are the schema's.
+    Errors name sets, ids and counts only, never text."""
+    import hashlib
+    import json
+
+    from .common import canonical_json
+
+    sets = ("harmful", "safe")
+    fields = ["anchor_id", "prompt", "response", "prompt_tokens", "target_tokens", "token_sha256"]
+    if not (isinstance(bank, str) and bank.startswith("anchors-")):
+        raise JobError("the recipe's query_bank is not an anchor bank")
+    try:
+        data = Path(path).read_bytes()
+    except OSError:
+        raise JobError("the anchor file cannot be read") from None
+    if hashlib.sha256(data).hexdigest() != bank[len("anchors-"):]:
+        raise JobError("the anchor file's SHA-256 differs from the query bank")
+    try:
+        doc = json.loads(data)
+    except ValueError:
+        raise JobError("the anchor file is not JSON") from None
+    if not isinstance(doc, dict) or canonical_json(doc) != data:
+        raise JobError("the anchor file is not canonical JSON")
+    if set(doc) != {"kind", "version", "model", *sets, "counts", "provenance"}:
+        raise JobError("the anchor file's keys are not the schema's")
+    if (doc["kind"], doc["version"]) != ("safety-selection anchor bank", 1):
+        raise JobError("the anchor file's kind or version is not the schema's")
+    model = recipe["model"]
+    if doc["model"] != {"repo_id": model["repo_id"], "revision": model["revision"]}:
+        raise JobError("the anchor file's model is not the recipe's")
+    if not isinstance(doc["provenance"], dict):
+        raise JobError("the anchor file's provenance must be an object")
+    seen: set[str] = set()
+    for name in sets:
+        rows = doc[name]
+        if not isinstance(rows, list) or not rows:
+            raise JobError(f"anchor set {name} must be a non-empty list")
+        for k, row in enumerate(rows):
+            if not isinstance(row, dict) or sorted(row) != sorted(fields):
+                raise JobError(f"anchor set {name} entry {k}: fields are not the schema's")
+            ok = (isinstance(row["anchor_id"], str) and row["anchor_id"] and isinstance(row["prompt"], str)
+                  and isinstance(row["response"], str)
+                  and all(isinstance(row[f], int) and not isinstance(row[f], bool) and row[f] > 0
+                          for f in ("prompt_tokens", "target_tokens")))
+            if not ok:
+                raise JobError(f"anchor set {name} entry {k}: a field has the wrong type")
+            _hex(row["token_sha256"], f"anchor set {name} entry {k} token_sha256")
+            if row["anchor_id"] in seen:
+                raise JobError(f"anchor set {name} entry {k}: its anchor_id is not unique")
+            seen.add(row["anchor_id"])
+    if doc["counts"] != {name: len(doc[name]) for name in sets}:
+        raise JobError("the anchor file's counts differ from its lists")
+    return doc
 
 
 def check_identities(job: dict, manifest: dict, manifest_sha256: str, recipe: dict,
@@ -153,9 +228,13 @@ def check_identities(job: dict, manifest: dict, manifest_sha256: str, recipe: di
         raise JobError("job recipe_sha256 differs from the recipe")
     if job["code_sha256"] is not None and job["code_sha256"] != code["sha256"]:
         raise JobError("job code_sha256 differs from the running code")
+    if "query_bank" in job and job["query_bank"] != recipe["attribution"]["query_bank"]:
+        raise JobError("the job's query bank differs from the recipe's")      # Gate B A2
     train = recipe["train"]
     if train.get("lr_schedule", "constant") != "constant" and "target_checkpoint" in job:
         names = checkpoint_names(recipe)                # GI III round 6, M1: refuse before any training
+        if job["target_checkpoint"] not in names:       # Gate B A6: an unknown target, before names.index
+            raise JobError(f"target {job['target_checkpoint']!r} is not a checkpoint of the recipe")
         if names.index(job["target_checkpoint"]) > names.index(train["schedule_until"]):
             raise JobError(f"target {job['target_checkpoint']} lies past the schedule's end "
                            f"({train['schedule_until']}); the rate is not defined there")

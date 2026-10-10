@@ -64,8 +64,9 @@ from typing import Sequence
 import torch
 
 from . import engine as en
-from .attribution import (ADAM, DEFINITIONS, GRADSIM, ROW_WEIGHTING, SIGN, adam_inverse_preconditioner,
-                          aggregate_groups, checkpoint_scores, interval_rates, step_weights)
+from .attribution import (ADAM, BI_ANCHORED_SIGN, DEFINITIONS, GRADSIM, ROW_WEIGHTING, SIGN,
+                          adam_inverse_preconditioner, aggregate_groups, checkpoint_scores, interval_rates,
+                          step_weights)
 from .common import (append_jsonl, canonical_json, code_identity, derive_seed, ids_sha256,
                      jsonl_bytes, read_json, sha256_bytes, sha256_file, write_atomic, write_json)
 from .config import (INIT, checkpoint_names, checkpoint_table, config_sha256, seed_namespace,
@@ -202,6 +203,62 @@ def _verified_example(codec, row_id: str, row: dict, recipe: dict) -> TrainExamp
             row["prompt_tokens"], row["target_tokens"], row["token_sha256"]):
         raise DataError(f"{row_id} encodes differently from the prepared token audit")
     return ex
+
+
+def lock_record(device: str, cwd: str | Path) -> tuple[dict, bytes] | None:
+    """The pod's pip freeze (Gate B A4; README "Unit records"): on "cuda", ``cwd/environment-linux.lock`` must exist and
+    be non-empty, and its {name, sha256} and bytes are returned; on any other device, None. It reads one file."""
+    if device != "cuda":
+        return None
+    name = "environment-linux.lock"
+    try:
+        data = (Path(cwd) / name).read_bytes()
+    except OSError:
+        raise JobError(f"no {name} in the working folder: the pod environment cannot be recorded") from None
+    if not data:
+        raise JobError(f"{name} is empty: the pod environment cannot be recorded")
+    return {"name": name, "sha256": sha256_bytes(data)}, data
+
+
+def guard_pin(recipe: dict) -> dict:
+    """The recipe's guard pin and its cached snapshot's file blob ids (a directory listing; nothing loads)."""
+    from .loaders import asset_status
+
+    guard = recipe["guard"]
+    status = asset_status(guard["repo_id"], guard["revision"])
+    return {"repo_id": guard["repo_id"], "revision": guard["revision"], "present": status["present"],
+            "files": [{"file": f["file"], "blob": f["blob"]} for f in status["files"]]}
+
+
+def merge_assets(run_dir: Path, lock: tuple[dict, bytes] | None, guard: dict | None) -> None:
+    """assets.json gains ``environment_lock`` (the lock record or null) and ``guard`` (guard_pin or null); the lock's
+    bytes are copied into the unit, so COMPLETE.json seals the copy (Gate B A4)."""
+    assets = read_json(run_dir / "assets.json")
+    write_json(run_dir / "assets.json", {**assets, "environment_lock": lock[0] if lock is not None else None,
+                                         "guard": guard})
+    if lock is not None:
+        write_atomic(run_dir / lock[0]["name"], lock[1])
+
+
+def anchor_examples(codec, doc: dict, recipe: dict) -> dict[str, list[TrainExample]]:
+    """Each anchor set of a checked anchor file (jobs.read_anchor_bank) encoded as training rows and checked against
+    its token audit, as ``_verified_example`` checks a row; a refusal names the set, id and count, never text."""
+    out = {}
+    for name in ("harmful", "safe"):
+        examples, total = [], len(doc[name])
+        for k, row in enumerate(doc[name]):
+            where = f"anchor set {name} anchor {row['anchor_id']} ({k + 1} of {total})"
+            try:
+                ex = encode_train(codec, row["anchor_id"], row["prompt"], row["response"],
+                                  recipe["model"]["max_train_tokens"])
+            except ValueError as exc:
+                raise JobError(f"{where} does not encode ({type(exc).__name__})") from None
+            if (ex.n_prompt, ex.n_target, ids_sha256(ex.input_ids)) != (
+                    row["prompt_tokens"], row["target_tokens"], row["token_sha256"]):
+                raise JobError(f"{where} encodes differently from its token audit")
+            examples.append(ex)
+        out[name] = examples
+    return out
 
 
 def _identity(manifest: dict, manifest_sha256: str, recipe: dict, code: dict) -> dict:
@@ -350,9 +407,11 @@ def _state_meta(job: dict, name: str, position: dict, plan: StreamPlan, cost: di
 def _train_and_evaluate(job: dict, prepared: Prepared, removed: list[str], previous: dict | None,
                         session: Session, ledger: RunLedger, run_dir: Path, edit=None) -> dict:
     recipe, train = session.recipe, session.recipe["train"]
+    lock = lock_record(session.device, Path.cwd())                      # Gate B A4: before any model load
     policy = session.policy(ledger, run_dir)
     write_json(run_dir / "assets.json", {"policy": policy.identity, "environment": session.environment,
                                          "loaded_in": dict(session.loaded_in)})
+    merge_assets(run_dir, lock, guard_pin(recipe) if job["evaluate_bank"] is not None else None)
     corpus = session.corpus(prepared, policy, ledger)
     if edit is not None:
         from .edits import edited_corpus
@@ -473,6 +532,7 @@ def _train_segment(policy: Policy, optimizer, plan: StreamPlan, corpus: dict[str
                 rate = en.learning_rate(train["lr"], train["lr_schedule"], train["warmup_steps"], horizon, step)
                 for group in optimizer.param_groups:
                     group["lr"] = rate
+            applied = optimizer.param_groups[0]["lr"]          # Gate B A5: the rate this update runs at, every step
             try:
                 out = en.train_step(policy.model, policy.named, optimizer, examples, train["micro_batch"],
                                     train["max_grad_norm"], policy.codec.pad_id, policy.device,
@@ -489,7 +549,7 @@ def _train_segment(policy: Policy, optimizer, plan: StreamPlan, corpus: dict[str
                 "input_tokens": inputs, "target_tokens": targets, "padded_tokens": padded,
                 "loss": out["loss"], "example_losses": out["example_losses"],
                 "grad_norm_preclip": out["grad_norm_preclip"],
-                "seconds": ledger.elapsed() - started, **({"lr": rate} if scheduled else {})})
+                "seconds": ledger.elapsed() - started, "lr": applied})
             counts["steps"] += 1
             counts["examples"] += len(rows)
             counts["input_tokens"] += inputs
@@ -774,9 +834,11 @@ def eval_state(job: dict, *, prepared_dir: str | Path, out_dir: str | Path, sess
     ledger = None
     try:
         ledger = _start(run_dir, job, identity, session, [receipt])
+        lock = lock_record(session.device, Path.cwd())                  # Gate B A4: before any model load
         policy = session.policy(ledger, run_dir)
         write_json(run_dir / "assets.json", {"policy": policy.identity, "environment": session.environment,
                                              "loaded_in": dict(session.loaded_in)})
+        merge_assets(run_dir, lock, guard_pin(recipe))
         state_dir = source / "states" / job["checkpoint"]
         with ledger.stage("restore_state", checkpoint=job["checkpoint"]) as info:
             _same_state(state_dir, receipt)
@@ -862,6 +924,11 @@ def attributes(job: dict, *, prepared_dir: str | Path, out_dir: str | Path, sess
     if missing:
         raise JobError(f"not {job['split']} groups: {missing}")
     groups = {gid: split_groups[gid] for gid in job["group_ids"]}
+    bank, anchors = recipe["attribution"]["query_bank"], None      # Gate B A2: an anchor bank, checked before the folder
+    if bank != "ref":
+        from .jobs import read_anchor_bank
+
+        anchors = read_anchor_bank(job["anchors"], bank, recipe)
     checkpoints = recipe["attribution"]["checkpoints"]
     train = recipe["train"]
     plan = make_plan(prepared.corpus, [], job["seed"], train["micro_batch"], train["grad_accum"])
@@ -875,15 +942,22 @@ def attributes(job: dict, *, prepared_dir: str | Path, out_dir: str | Path, sess
     ledger = None
     try:
         ledger = _start(run_dir, job, identity, session, [sources[c]["receipt"] for c in checkpoints])
+        lock = lock_record(session.device, Path.cwd())                  # Gate B A4: before any model load
         policy = session.policy(ledger, run_dir)
         write_json(run_dir / "assets.json", {"policy": policy.identity, "environment": session.environment,
                                              "loaded_in": dict(session.loaded_in)})
+        merge_assets(run_dir, lock, None)
         with ledger.stage("tokenize_attribution_rows") as info:
             members = [rid for gid in job["group_ids"] for rid in groups[gid]]
             rows = [_verified_example(policy.codec, rid, prepared.train_rows[rid], recipe) for rid in members]
-            queries = [_verified_example(policy.codec, q["query_id"], q, recipe) for q in prepared.query_rows]
-            info.update(rows=len(rows), queries=len(queries))
-        query_bank_sha256 = _query_bank_sha256(prepared)
+            if anchors is None:
+                queries = [_verified_example(policy.codec, q["query_id"], q, recipe) for q in prepared.query_rows]
+                info.update(rows=len(rows), queries=len(queries))
+            else:
+                sets = anchor_examples(policy.codec, anchors, recipe)
+                queries = [ex for name in sets for ex in sets[name]]      # every anchor, for the pass counts
+                info.update(rows=len(rows), anchors={name: len(sets[name]) for name in sets})
+        query_bank_sha256 = _query_bank_sha256(prepared) if anchors is None else bank[len("anchors-"):]
         # under the token mean a row's share of its step is n_i / N_step, not 1 / E_step: the Adam proxy scales each
         # row by n_i * E_step / N_step in its first-epoch step (attribution.step_weights); GradSim is scale-free
         weights = (step_weights(plan, {rid: prepared.train_rows[rid]["target_tokens"] for rid in prepared.corpus}, members)
@@ -914,7 +988,8 @@ def attributes(job: dict, *, prepared_dir: str | Path, out_dir: str | Path, sess
                                            lr=lr, pad_id=policy.codec.pad_id, device=policy.device,
                                            chunk=train["lm_head_chunk_tokens"],
                                            check=lambda what, c=c: ledger.check(f"attribution {c} {what}"),
-                                           **({"weights": weights} if weights is not None else {}))
+                                           **({"weights": weights} if weights is not None else {}),
+                                           **({"sets": sets} if anchors is not None else {}))
                 if (en.lora_fingerprint(policy.named), en.rng_digest(policy.device),
                         policy.model.training) != before:
                     raise RunError("attribution changed the adapter, RNG state or mode")
@@ -929,21 +1004,45 @@ def attributes(job: dict, *, prepared_dir: str | Path, out_dir: str | Path, sess
                                  "optimizer_fingerprint": state["optimizer_fingerprint"],
                                  "a0_trajectory_cost": state["trajectory_cost"],
                                  "attribution_seconds": info["seconds"], **scores}
-        aggregates = aggregate_groups(per_checkpoint, groups)
         group_of = {rid: gid for gid in groups for rid in groups[gid]}
-        write_atomic(run_dir / "rows.jsonl", jsonl_bytes(
-            [{"row_id": rid, "group_id": group_of[rid],
-              "per_checkpoint": {c: per_checkpoint[c]["rows"][rid] for c in checkpoints}}
-             for rid in members]))
-        write_json(run_dir / "groups.json", {"definitions": DEFINITIONS, "sign": SIGN,
-                                             "variants": [GRADSIM, ADAM], "groups": aggregates,
-                                             **({"row_weighting": ROW_WEIGHTING} if weights is not None else {}),
-                                             **({"learning_rates": rates} if rates is not None else {})})
-        write_json(run_dir / "queries.json", {
-            "query_bank": "ref", "query_bank_sha256": query_bank_sha256, "n": len(queries),
-            "loss_definition": en.QUERY_LOSS_DEFINITION,
-            "per_checkpoint": {c: {**per_checkpoint[c]["query"], "step": per_checkpoint[c]["step"]}
-                               for c in checkpoints}})
+        if anchors is None:
+            aggregates = aggregate_groups(per_checkpoint, groups)
+            write_atomic(run_dir / "rows.jsonl", jsonl_bytes(
+                [{"row_id": rid, "group_id": group_of[rid],
+                  "per_checkpoint": {c: per_checkpoint[c]["rows"][rid] for c in checkpoints}}
+                 for rid in members]))
+            write_json(run_dir / "groups.json", {"definitions": DEFINITIONS, "sign": SIGN,
+                                                 "variants": [GRADSIM, ADAM], "groups": aggregates,
+                                                 **({"row_weighting": ROW_WEIGHTING} if weights is not None else {}),
+                                                 **({"learning_rates": rates} if rates is not None else {})})
+            write_json(run_dir / "queries.json", {
+                "query_bank": "ref", "query_bank_sha256": query_bank_sha256, "n": len(queries),
+                "loss_definition": en.QUERY_LOSS_DEFINITION,
+                "per_checkpoint": {c: {**per_checkpoint[c]["query"], "step": per_checkpoint[c]["step"]}
+                                   for c in checkpoints}})
+        else:                       # Gate B A2: per set by the unchanged aggregate_groups, then harmful - safe
+            by_set = {name: aggregate_groups({c: {"rows": per_checkpoint[c]["sets"][name]["rows"]}
+                                              for c in checkpoints}, groups) for name in sets}
+            aggregates = {gid: {**{name: by_set[name][gid] for name in sets},
+                                "bi_anchored": {v: by_set["harmful"][gid][v] - by_set["safe"][gid][v]
+                                                for v in (GRADSIM, ADAM)}} for gid in groups}
+            write_atomic(run_dir / "rows.jsonl", jsonl_bytes(
+                [{"row_id": rid, "group_id": group_of[rid],
+                  "per_checkpoint": {c: {name: per_checkpoint[c]["sets"][name]["rows"][rid] for name in sets}
+                                     for c in checkpoints}}
+                 for rid in members]))
+            write_json(run_dir / "groups.json", {"definitions": DEFINITIONS, "sign": SIGN,
+                                                 "bi_anchored_sign": BI_ANCHORED_SIGN,
+                                                 "variants": [GRADSIM, ADAM], "groups": aggregates,
+                                                 **({"row_weighting": ROW_WEIGHTING} if weights is not None else {}),
+                                                 **({"learning_rates": rates} if rates is not None else {})})
+            write_json(run_dir / "queries.json", {
+                "query_bank": bank, "query_bank_sha256": query_bank_sha256,
+                "counts": {name: len(sets[name]) for name in sets}, "loss_definition": en.QUERY_LOSS_DEFINITION,
+                "per_checkpoint": {c: {**{name: {k: v for k, v in per_checkpoint[c]["sets"][name].items()
+                                             if k != "rows"} for name in sets},
+                                       "inverse_preconditioner": per_checkpoint[c]["inverse_preconditioner"],
+                                       "step": per_checkpoint[c]["step"]} for c in checkpoints}})
         sources_out = {c: {"run": sources[c]["run"], "resolved": sources[c]["receipt"]["resolved"],
                            "complete_sha256": sources[c]["receipt"]["complete_sha256"],
                            "state_sha256": sources[c]["receipt"]["state_sha256"],
@@ -962,12 +1061,18 @@ def attributes(job: dict, *, prepared_dir: str | Path, out_dir: str | Path, sess
         result = {"split": job["split"], "seed": job["seed"], "role": job["role"],
                   "group_ids": job["group_ids"], "checkpoints": checkpoints,
                   **({"learning_rates": rates} if rates is not None else {}),
+                  **({"query_bank": bank, "anchor_counts": {name: len(sets[name]) for name in sets}}
+                     if anchors is not None else {}),
                   "query_bank_sha256": query_bank_sha256,
                   "optimizer_steps": {c: per_checkpoint[c]["step"] for c in checkpoints},
-                  "query_loss_from_gradient_passes": {c: per_checkpoint[c]["query"]["mean_loss"]
-                                                      for c in checkpoints},
+                  "query_loss_from_gradient_passes": (
+                      {c: per_checkpoint[c]["query"]["mean_loss"] for c in checkpoints} if anchors is None else
+                      {c: {name: per_checkpoint[c]["sets"][name]["mean_loss"] for name in sets} for c in checkpoints}),
                   "sources": sources_out,
-                  "scores": {gid: {GRADSIM: a[GRADSIM], ADAM: a[ADAM]} for gid, a in aggregates.items()},
+                  "scores": ({gid: {GRADSIM: a[GRADSIM], ADAM: a[ADAM]} for gid, a in aggregates.items()}
+                             if anchors is None else
+                             {gid: {part: {GRADSIM: a[part][GRADSIM], ADAM: a[part][ADAM]}
+                                    for part in (*sets, "bi_anchored")} for gid, a in aggregates.items()}),
                   "costs": costs}
         return _finish(run_dir, ledger, "attributes", identity, result)
     except BaseException as exc:

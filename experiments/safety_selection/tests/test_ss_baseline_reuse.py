@@ -1,7 +1,7 @@
-"""Baseline reuse across engine identities (GI III rounds 5 and 6): the engine's evaluation path is unchanged from both
-pinned bases (04eb83a3 at 42eb258, 55253874 at 8c026ee), symbol by symbol (scripts/evaluation_path.py against the
-pinned base inventories), and the pinned evaluation-equivalence certificate describes exactly this engine. A later
-engine change fails here until it is certified again."""
+"""Baseline reuse across engine identities (GI III rounds 5 and 6; Gate B): the stored inventories certify the
+round-6 pairs (04eb83a3, 55253874, e49a978c), and the Gate B certificate certifies 55253874 and e49a978c against this
+engine X, symbol by symbol (scripts/evaluation_path.py, with REVIEWED). A later engine change fails here until it is
+certified again."""
 
 from __future__ import annotations
 
@@ -49,32 +49,49 @@ def differ(a: dict, b: dict) -> list[str]:
     return sorted(f for f in set(a) | set(b) if a.get(f) != b.get(f))
 
 
-def test_the_engine_certifies_against_both_pinned_bases_and_the_certificate_is_this_engines():
+def test_the_pinned_certificates_hold_and_the_gate_b_certificate_is_this_engines(monkeypatch):
+    """Gate B A1 (i): the round-6 certificate's three pairs still certify from the stored inventories (04eb83a3,
+    55253874, e49a978c) with REVIEWED emptied, and the reading still pins it; the Gate B certificate's pairs are
+    exactly (55253874, X) and (e49a978c, X) for this engine X, each certifies, and it carries TRAINING_ONLY and
+    REVIEWED."""
     tool, now = ep(), code_identity()
     current = tool.symbols()
     assert tool.missing_training_only(current) == []
-    certificate = json.loads(CERTIFICATE.read_text())
-    pairs = {(e["base_code_sha256"], e["code_sha256"]): e for e in certificate["pairs"]}
-    assert set(pairs) == {(b, now["sha256"]) for b in BASES} | {tuple(BASES)}
-    for sha, short in BASES.items():
-        symbols, identity = base(short)
-        assert identity["sha256"] == sha
-        out = tool.certify(symbols, current)
-        assert out["evaluation_path_unchanged"], (short, out["evaluation_path_symbols_changed"])
-        entry = pairs[(sha, now["sha256"])]
-        assert entry["changed_files"] == differ(identity["files"], now["files"])
+    reviewed = dict(tool.REVIEWED)
+    monkeypatch.setattr(tool, "REVIEWED", {})
+    round6 = json.loads(CERTIFICATE.read_text())
+    pairs = {(e["base_code_sha256"], e["code_sha256"]): e for e in round6["pairs"]}
+    e49 = "e49a978c5fa27c3ba4bb1570ac8b24501e09bf8db5c35e31ffba90bf775cdc06"
+    assert set(pairs) == {(b, e49) for b in BASES} | {tuple(BASES)}
+    for (a, b), entry in pairs.items():
+        (old, old_identity), (new, new_identity) = base(BASES.get(a, a[:8])), base(BASES.get(b, b[:8]))
+        assert (old_identity["sha256"], new_identity["sha256"]) == (a, b)
+        out = tool.certify(old, new)
+        assert out["evaluation_path_unchanged"], (a[:8], b[:8], out["evaluation_path_symbols_changed"])
+        assert entry["changed_files"] == differ(old_identity["files"], new_identity["files"])
         assert entry["changed_symbols"] == out["changed"]
-        assert (entry["base_symbols_sha256"], entry["symbols_sha256"]) == (digest(symbols), digest(current))
-    (old, old_identity), (new, new_identity) = base("04eb83a3"), base("55253874")
-    history = tool.certify(old, new)                # the 04eb83a3 -> 55253874 pair stays valid under the round-6 rule
-    assert history["evaluation_path_unchanged"], history["evaluation_path_symbols_changed"]
-    entry = pairs[tuple(BASES)]
-    assert entry["changed_files"] == differ(old_identity["files"], new_identity["files"])
-    assert (entry["changed_symbols"], entry["symbols_sha256"]) == (history["changed"], digest(new))
-    assert certificate["training_only"] == {k: sorted(v) for k, v in tool.TRAINING_ONLY.items()}
+        assert (entry["base_symbols_sha256"], entry["symbols_sha256"]) == (digest(old), digest(new))
+    assert round6["training_only"] == {k: sorted(v) for k, v in tool.TRAINING_ONLY.items()}
     reading = load("family_probe_reading", ROOT / "scripts" / "family_probe_reading.py")
     assert reading.CERTIFICATE == CERTIFICATE
     assert reading.CERTIFICATE_SHA256 == hashlib.sha256(CERTIFICATE.read_bytes()).hexdigest()
+
+    monkeypatch.setattr(tool, "REVIEWED", reviewed)
+    gate_b = json.loads((CONFIGS / "evaluation-equivalence-gateb-20261008.json").read_text())
+    x = now["sha256"]
+    stored, identity = base(x[:8])
+    assert (stored, identity) == (current, now)                    # X's stored inventory and identity are this engine
+    gpairs = {(e["base_code_sha256"], e["code_sha256"]): e for e in gate_b["pairs"]}
+    assert set(gpairs) == {("552538748acec1a8ffd1ee976b9eb3c3fdfe9ca01b8148ee8810291409357441", x), (e49, x)}
+    for (a, _), entry in gpairs.items():
+        old, old_identity = base(a[:8])
+        out = tool.certify(old, current)
+        assert out["evaluation_path_unchanged"], (a[:8], out["evaluation_path_symbols_changed"])
+        assert entry["changed_files"] == differ(old_identity["files"], now["files"])
+        assert (entry["changed_symbols"], entry["base_symbols_sha256"], entry["symbols_sha256"]) == (
+            out["changed"], digest(old), digest(current))
+    assert gate_b["training_only"] == round6["training_only"]
+    assert gate_b["reviewed"] == json.loads(json.dumps(tool.REVIEWED))
 
 
 def test_no_engine_or_loader_star_imports_the_modules_whose_all_lists_are_training_only():

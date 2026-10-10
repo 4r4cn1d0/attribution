@@ -639,6 +639,61 @@ written from the untouched 55253874 engine (`tests/golden/attribution-default-8c
   freeze lies outside the sealed units; recording its SHA-256 in each unit's assets.json would let the reading compare
   units without trusting the run-root layout (also an engine change).
 
+## Gate B engine X (8 October 2026)
+
+Built for brief gate-b-engine-kit-reading-20261008 (revision 6), Part A. Every existing recipe keeps its bytes, config
+hash and training identity. With `query_bank` "ref", every output stays byte-identical: the three goldens and the A0
+golden `tests/golden/attribution-result-e49a978c.json` pin this. The certificate route is in
+`scripts/evaluation_path.py` (REVIEWED) and `configs/evaluation-equivalence-gateb-20261008.json` (55253874 → X,
+e49a978c → X).
+
+**Anchor bank.**
+- `attribution.query_bank` is "ref" or `anchors-<the SHA-256 of the anchor file's bytes>`. An attributes job carries
+  the recipe's bank and, for an anchor bank only, the key `anchors` (the file's path).
+- The file is canonical JSON (`common.canonical_json`). Its keys:
+  - `kind` "safety-selection anchor bank" and `version` 1;
+  - `model` {`repo_id`, `revision`}, equal to the recipe's;
+  - `harmful` and `safe`: non-empty ordered lists of {`anchor_id`, `prompt`, `response`, `prompt_tokens`,
+    `target_tokens`, `token_sha256`}, with ids distinct across both sets;
+  - `counts` {harmful, safe}, equal to the list lengths;
+  - `provenance` (an object).
+- Refused with JobError before any model loads (`jobs.read_anchor_bank`, also at make-job): a hash that is not the
+  bank's, non-canonical bytes, a schema or count difference, another model, "ref" with `anchors`, an anchor bank
+  without `anchors`, and a job bank that is not the recipe's.
+- After the load, each anchor is encoded as a training row and checked against its token audit
+  (`runner.anchor_examples`). A failure refuses with JobError, naming the set, id and count, never text, and leaves a
+  preserved failure.
+
+**Bi-anchored scores.**
+- One gradient pass per anchor and per row at each checkpoint (`checkpoint_scores(..., sets=...)`). Each set's mean
+  anchor gradient is summed in file order.
+- Every row gets today's features once per set. Groups aggregate once per set with the unchanged `aggregate_groups`.
+  Bi-anchored = the harmful aggregate − the safe aggregate, one float64 subtraction per variant (`BI_ANCHORED_SIGN`).
+- Outputs:
+  - groups.json: `groups[gid]` = {harmful, safe, bi_anchored}; `sign` (unchanged); `bi_anchored_sign`.
+  - rows.jsonl: per row, checkpoint and set.
+  - queries.json: the bank, the file's SHA-256, the counts, and the per-set anchor losses per checkpoint.
+  - The result: `scores[gid]` per set and bi_anchored, `anchor_counts`, and `gradient_passes` =
+    (|H| + |S| + rows) × checkpoints.
+
+**Unit records.**
+- On cuda, every run-one, eval-state and attributes job reads `environment-linux.lock` from its working folder
+  before the policy loads (`lock_record`). A missing or empty lock refuses before any model load.
+- After the existing assets.json write, assets.json gains `environment_lock` ({name, sha256}, or null off cuda) and
+  `guard`:
+  - for a job that evaluates a bank: the recipe's guard {repo_id, revision}, plus `present` and the cached
+    snapshot's file blob ids (a directory listing; the loaded guard's identity is not recorded);
+  - null for the retrain and for attributes.
+- The unit holds a copy of the lock, sealed by COMPLETE.json.
+- Every steps.jsonl record now has `lr`, the rate the update ran at. The digest helper drops it only under a
+  constant recipe when it equals `train.lr`.
+
+**Other.**
+- A warmup recipe refuses an unknown target with JobError.
+- `make-job attributes --anchors PATH` takes the recipe's bank.
+- `scripts/make_gateb_recipe.py` writes recipe S. The A9 scripts (`make_anchor_answers.py`, `gate_c_representation.py`,
+  `gate_c_classifier.py`) are outside the identity.
+
 ## Not done here
 
 No selector, menu replay, TF-IDF relevance features, acquisition, endpoint, margin, interval or

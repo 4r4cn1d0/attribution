@@ -34,7 +34,12 @@ builtin's name, a changed code-identity file outside the inventory (the reused m
 removed, or any other differing symbol, means the
 evaluation path may differ: a baseline evaluated by one engine is then not reused by another. Every listed name must
 exist in the current engine (``missing_training_only``).
+A symbol may also be listed in REVIEWED (Gate B, brief gate-b-engine-kit-reading-20261008, A1): it is accepted only
+when its text hashes at the base and at the new engine equal the entry's (exact text, pair-scoped); a record key
+(``<global_writes>``, ``<side_effect_free>``) or an import key can never be REVIEWED.
 """
+from __future__ import annotations
+
 import ast, builtins, hashlib, json, pathlib, re, sys
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -81,6 +86,117 @@ TRAINING_ONLY = {
         "step_weights",             # the token-mean row weights of the attribution job
         "interval_rates",           # the scheduled-rate rule of the attribution job
         "checkpoint_scores",        # the attribution features of one checkpoint (the attribution job only)
+    },
+}
+# Gate B (brief gate-b-engine-kit-reading-20261008, A1): symbols outside TRAINING_ONLY reviewed by exact text. Each
+# entry: "file.py:symbol" -> {"base": its text SHA-256 at e49a978c (null: a new symbol), "new": its text SHA-256 at
+# the reviewed engine, "inserted": the exact lines inserted into the base text (every other line unchanged),
+# "global_writer": its membership in the file's <global_writes> record at e49a978c, "reason": why it cannot change an
+# evaluation output}. Unlike TRAINING_ONLY, an entry allows only the one reviewed text.
+REVIEWED: dict[str, dict] = {
+    '__main__.py:_make_job': {
+        "base": 'f0eaf486bc71f515e5cdaf9989d51efbfd7745c03dd26e9ab7b7b3b4aa262dc0',
+        "new": '5da835a4a8140cdfb4d84c3b1ecf8c63e8addde831b53ab533ac2a965345c696',
+        "inserted": [
+            '        fields["query_bank"] = recipe["attribution"]["query_bank"]     # Gate B A7: the recipe\'s bank',
+            '        if args.anchors is not None:',
+            '            from .jobs import read_anchor_bank',
+            '',
+            '            read_anchor_bank(args.anchors, fields["query_bank"], recipe)',
+            '            fields["anchors"] = str(args.anchors)',
+        ],
+        "global_writer": False,
+        "reason": "make-job (A7): an attributes job takes the recipe's query bank and, for an anchor bank, the path of the anchor file checked by read_anchor_bank; it writes a job file and evaluates nothing",
+    },
+    '__main__.py:_parser': {
+        "base": '5f95eb5792b091c1527672e0d50d2015f86d01824fc4adffc5f7188241533151',
+        "new": '3108cd1034efb550033add3c59142e0201a8b5aa12b2a7d257c4380d604c2d6c',
+        "inserted": [
+            '    p.add_argument("--anchors", help="attributes: the anchor file of the recipe\'s anchors-<SHA-256> query bank")',
+        ],
+        "global_writer": False,
+        "reason": 'one CLI option, --anchors (A7); argument parsing only',
+    },
+    'attribution.py:BI_ANCHORED_SIGN': {
+        "base": None,
+        "new": 'f9e9e318945cbfe34c63d62de6da49398d6de9229c738b37f9d6c336927edc17',
+        "inserted": [],
+        "global_writer": False,
+        "reason": "a text written only into an anchor-bank attribution job's groups.json (A2)",
+    },
+    'jobs.py:_anchor_attributes_job': {
+        "base": None,
+        "new": '4223233bbce31deb223674e09d81430ad865c5dcaa44348abbec85e4dd135ce9',
+        "inserted": [],
+        "global_writer": False,
+        "reason": "checks an anchor-bank attributes job's keys (A2); it accepts or refuses and computes nothing",
+    },
+    'jobs.py:read_anchor_bank': {
+        "base": None,
+        "new": 'a3d512ef7c2c20a658c06c0c265e17d448cb1c9d2b27bcfe1a1d3f450088a186',
+        "inserted": [],
+        "global_writer": False,
+        "reason": 'reads and checks the anchor file for attributes jobs and make-job (A2); it accepts or refuses and computes nothing an evaluation reads',
+    },
+    'jobs.py:validate_job': {
+        "base": '6e11dc716498331aec4c9cc491df96692398dc207fbd4244cb3530f905479723',
+        "new": '8d360ea1c345d45b8c73145208b9c8f3816fb4311d3eb1711ca7432cd421debd',
+        "inserted": [
+            '    if job["kind"] == "attributes" and "anchors" in job:      # an anchor bank (Gate B, README "Anchor bank")',
+            '        expected = expected | {"anchors"}',
+            '        if job["query_bank"] != "ref" or "anchors" in job:',
+            '            return _anchor_attributes_job(job)',
+        ],
+        "global_writer": False,
+        "reason": 'two inserted pairs (A2): an attributes job may carry anchors, and an anchor-bank attributes job is checked by _anchor_attributes_job; every other kind and key is checked as before',
+    },
+    'runner.py:_train_and_evaluate': {
+        "base": '4dccfa7917d687484dfea1716a0d4235394a980c90ab50e316a56702cc66dd30',
+        "new": 'f5e19bba1d11704c88c39b7c94217cfaee3c4386544cafde8d3810839cbc5d39',
+        "inserted": [
+            '    lock = lock_record(session.device, Path.cwd())                      # Gate B A4: before any model load',
+            '    merge_assets(run_dir, lock, guard_pin(recipe) if job["evaluate_bank"] is not None else None)',
+        ],
+        "global_writer": True,
+        "reason": 'two inserted lines (A4): lock_record before the policy loads (one file read; a missing lock refuses on cuda) and merge_assets after assets.json (two added keys and the lock copy); neither touches the model, data, RNG or numeric settings',
+    },
+    'runner.py:anchor_examples': {
+        "base": None,
+        "new": '7ac1f8c7360c68ae85aebbcfd04b714b3d31843ac525e5cebafe049626c2bd91',
+        "inserted": [],
+        "global_writer": False,
+        "reason": 'encodes the anchor rows of an attribution job (A2); no evaluation calls it',
+    },
+    'runner.py:eval_state': {
+        "base": 'd9f6721abe1e00e8a5e97e3d72abe04e93d2da953161556e82b0e6f3c1eaccf9',
+        "new": 'c36bbd1917046af9b60420f01bf69a4e7f69f2e76e9a133a95ede94e8e686843',
+        "inserted": [
+            '        lock = lock_record(session.device, Path.cwd())                  # Gate B A4: before any model load',
+            '        merge_assets(run_dir, lock, guard_pin(recipe))',
+        ],
+        "global_writer": True,
+        "reason": 'two inserted lines (A4), as in _train_and_evaluate: lock_record before the policy loads and merge_assets after assets.json',
+    },
+    'runner.py:guard_pin': {
+        "base": None,
+        "new": '033ba3065093996fd526df3b6d061185915e35584cb2bafe03c93286170ed456',
+        "inserted": [],
+        "global_writer": False,
+        "reason": "lists the guard snapshot's files for assets.json (A4); a directory listing, no model load",
+    },
+    'runner.py:lock_record': {
+        "base": None,
+        "new": '5c57d6953b5475f27c359b2b5fabeb325ab4c5e3a9e0531f9ec2a813965a0095',
+        "inserted": [],
+        "global_writer": False,
+        "reason": 'reads environment-linux.lock on cuda and returns its SHA-256 and bytes (A4)',
+    },
+    'runner.py:merge_assets': {
+        "base": None,
+        "new": '6ecaad386497d4ccd274a03ba3f832141f63be4c9163e96ecdba514bda0b3738',
+        "inserted": [],
+        "global_writer": False,
+        "reason": 'rewrites assets.json with environment_lock and guard and copies the lock bytes into the unit (A4); it writes only unit records',
     },
 }
 SIDE_EFFECT_FREE = "<side_effect_free>"
@@ -427,6 +543,10 @@ def _top_names(file_symbols: dict[str, str]) -> set[str]:
 def _allowed(file: str, symbol: str, base: dict[str, dict[str, str]], new: dict[str, dict[str, str]]) -> bool:
     if symbol in TRAINING_ONLY.get(file, set()):
         return f",{symbol}," not in f",{new.get(file, {}).get(GLOBAL_WRITES, '')},"   # a multi-name key, too
+    reviewed = REVIEWED.get(f"{file}:{symbol}")
+    if reviewed is not None and not symbol.startswith("<"):   # never a record or import key (brief [O1], [D9])
+        return (base.get(file, {}).get(symbol) == reviewed["base"]
+                and new.get(file, {}).get(symbol) == reviewed["new"])
     match = IMPORT.fullmatch(symbol)
     if not match:
         return False
@@ -509,11 +629,13 @@ def main(argv=None) -> int:
                           "symbols_sha256": _digest(json.dumps(new["symbols"], sort_keys=True))})
         record = {"kind": "engine evaluation-path equivalence",
                   "rule": "scripts/evaluation_path.py: every top-level symbol of the engine files that differs between "
-                          "the two engines is in TRAINING_ONLY (each entry justified there) or an import from a "
-                          "side-effect-free engine module that shadows no name; a baseline evaluated by the base engine "
+                          "the two engines is in TRAINING_ONLY (each entry justified there), an import from a "
+                          "side-effect-free engine module that shadows no name, or REVIEWED (exact text, pair-scoped); "
+                          "a baseline evaluated by the base engine "
                           "may then be paired with a fine-tune of the other (scripts/family_probe_reading.py), together "
                           "with equal evaluation configs and equal pod environments",
-                  "training_only": {k: sorted(v) for k, v in TRAINING_ONLY.items()}, "pairs": pairs}
+                  "training_only": {k: sorted(v) for k, v in TRAINING_ONLY.items()}, "pairs": pairs,
+                  "reviewed": REVIEWED}
         pathlib.Path(argv[1]).write_text(json.dumps(record, indent=1, sort_keys=True) + "\n")
         print(json.dumps([{k: p[k] for k in ("base_code_sha256", "code_sha256", "changed_files")} for p in pairs], indent=1))
         return 0

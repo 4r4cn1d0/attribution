@@ -35,6 +35,14 @@ def _canonical(value) -> str:
     return _sha(json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8"))
 
 
+def drop_constant_lr(step: dict, train: dict) -> dict:
+    """Gate B A5: every step now logs its applied rate. Under a constant recipe the logged rate equals ``train.lr``
+    exactly, and older units logged none, so it is dropped there (and only there); any other value is kept."""
+    if train.get("lr_schedule", "constant") == "constant" and "lr" in step and step["lr"] == train["lr"]:
+        return {k: v for k, v in step.items() if k != "lr"}
+    return step
+
+
 def unit_digest(folder: Path) -> dict:
     job = json.loads((folder / "job.json").read_text())
     job.pop("code_sha256", None)
@@ -43,7 +51,8 @@ def unit_digest(folder: Path) -> dict:
     plan, steps = folder / "plan.json", folder / "steps.jsonl"      # an init-only unit trains no step
     out = {"job": _canonical(job),
            "plan": _canonical(json.loads(plan.read_text())) if plan.exists() else "absent",
-           "steps": _canonical([_strip(json.loads(line)) for line in steps.read_text().splitlines()])
+           "steps": _canonical([drop_constant_lr(_strip(json.loads(line)), _train_of(folder))
+                                for line in steps.read_text().splitlines()])
            if steps.exists() else "absent",
            "states": {}, "eval": {}}
     for state in sorted((folder / "states").iterdir()):
@@ -61,6 +70,10 @@ def unit_digest(folder: Path) -> dict:
             else:
                 out["eval"][name] = _sha(data)
     return out
+
+
+def _train_of(folder: Path) -> dict:
+    return json.loads((folder / "identity.json").read_text())["recipe"]["train"]
 
 
 def digest(out_root: str | Path) -> dict:

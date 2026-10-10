@@ -1,0 +1,242 @@
+{
+ "kind": "engine evaluation-path equivalence",
+ "pairs": [
+  {
+   "base_code_sha256": "552538748acec1a8ffd1ee976b9eb3c3fdfe9ca01b8148ee8810291409357441",
+   "base_symbols_sha256": "49bde890f48c5916ea6685eb8434396dde44f18db8c65d5641742a89afa25925",
+   "changed_files": [
+    "safety_selection/__main__.py",
+    "safety_selection/attribution.py",
+    "safety_selection/config.py",
+    "safety_selection/engine.py",
+    "safety_selection/jobs.py",
+    "safety_selection/runner.py"
+   ],
+   "changed_symbols": {
+    "__main__.py": [
+     "_make_job",
+     "_parser"
+    ],
+    "attribution.py": [
+     "<docstring>",
+     "BI_ANCHORED_SIGN",
+     "__all__",
+     "checkpoint_scores",
+     "interval_rates"
+    ],
+    "config.py": [
+     "<docstring>",
+     "validate_recipe"
+    ],
+    "engine.py": [
+     "learning_rate"
+    ],
+    "jobs.py": [
+     "_anchor_attributes_job",
+     "check_identities",
+     "read_anchor_bank",
+     "validate_job"
+    ],
+    "runner.py": [
+     "<import from .attribution:names=ADAM,BI_ANCHORED_SIGN,DEFINITIONS,GRADSIM,ROW_WEIGHTING,SIGN,adam_inverse_preconditioner,aggregate_groups,checkpoint_scores,interval_rates,step_weights>",
+     "<import from .attribution:names=ADAM,DEFINITIONS,GRADSIM,ROW_WEIGHTING,SIGN,adam_inverse_preconditioner,aggregate_groups,checkpoint_scores,step_weights>",
+     "_train_and_evaluate",
+     "_train_segment",
+     "anchor_examples",
+     "attributes",
+     "eval_state",
+     "guard_pin",
+     "lock_record",
+     "merge_assets"
+    ]
+   },
+   "code_sha256": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+   "symbols_sha256": "daee20da81d371cfda25049ef2eee247ff2ff6081ceb2c998f5fa2e662efbe0e"
+  },
+  {
+   "base_code_sha256": "e49a978c5fa27c3ba4bb1570ac8b24501e09bf8db5c35e31ffba90bf775cdc06",
+   "base_symbols_sha256": "38a8b1f56fab0338ddd93354c72162a3613df8955d78c58319b5846ae40c1781",
+   "changed_files": [
+    "safety_selection/__main__.py",
+    "safety_selection/attribution.py",
+    "safety_selection/config.py",
+    "safety_selection/jobs.py",
+    "safety_selection/runner.py"
+   ],
+   "changed_symbols": {
+    "__main__.py": [
+     "_make_job",
+     "_parser"
+    ],
+    "attribution.py": [
+     "<docstring>",
+     "BI_ANCHORED_SIGN",
+     "__all__",
+     "checkpoint_scores"
+    ],
+    "config.py": [
+     "validate_recipe"
+    ],
+    "jobs.py": [
+     "_anchor_attributes_job",
+     "check_identities",
+     "read_anchor_bank",
+     "validate_job"
+    ],
+    "runner.py": [
+     "<import from .attribution:names=ADAM,BI_ANCHORED_SIGN,DEFINITIONS,GRADSIM,ROW_WEIGHTING,SIGN,adam_inverse_preconditioner,aggregate_groups,checkpoint_scores,interval_rates,step_weights>",
+     "<import from .attribution:names=ADAM,DEFINITIONS,GRADSIM,ROW_WEIGHTING,SIGN,adam_inverse_preconditioner,aggregate_groups,checkpoint_scores,interval_rates,step_weights>",
+     "_train_and_evaluate",
+     "_train_segment",
+     "anchor_examples",
+     "attributes",
+     "eval_state",
+     "guard_pin",
+     "lock_record",
+     "merge_assets"
+    ]
+   },
+   "code_sha256": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+   "symbols_sha256": "daee20da81d371cfda25049ef2eee247ff2ff6081ceb2c998f5fa2e662efbe0e"
+  }
+ ],
+ "reviewed": {
+  "__main__.py:_make_job": {
+   "base": "f0eaf486bc71f515e5cdaf9989d51efbfd7745c03dd26e9ab7b7b3b4aa262dc0",
+   "global_writer": false,
+   "inserted": [
+    "        fields[\"query_bank\"] = recipe[\"attribution\"][\"query_bank\"]     # Gate B A7: the recipe's bank",
+    "        if args.anchors is not None:",
+    "            from .jobs import read_anchor_bank",
+    "",
+    "            read_anchor_bank(args.anchors, fields[\"query_bank\"], recipe)",
+    "            fields[\"anchors\"] = str(args.anchors)"
+   ],
+   "new": "5da835a4a8140cdfb4d84c3b1ecf8c63e8addde831b53ab533ac2a965345c696",
+   "reason": "make-job (A7): an attributes job takes the recipe's query bank and, for an anchor bank, the path of the anchor file checked by read_anchor_bank; it writes a job file and evaluates nothing"
+  },
+  "__main__.py:_parser": {
+   "base": "5f95eb5792b091c1527672e0d50d2015f86d01824fc4adffc5f7188241533151",
+   "global_writer": false,
+   "inserted": [
+    "    p.add_argument(\"--anchors\", help=\"attributes: the anchor file of the recipe's anchors-<SHA-256> query bank\")"
+   ],
+   "new": "3108cd1034efb550033add3c59142e0201a8b5aa12b2a7d257c4380d604c2d6c",
+   "reason": "one CLI option, --anchors (A7); argument parsing only"
+  },
+  "attribution.py:BI_ANCHORED_SIGN": {
+   "base": null,
+   "global_writer": false,
+   "inserted": [],
+   "new": "f9e9e318945cbfe34c63d62de6da49398d6de9229c738b37f9d6c336927edc17",
+   "reason": "a text written only into an anchor-bank attribution job's groups.json (A2)"
+  },
+  "jobs.py:_anchor_attributes_job": {
+   "base": null,
+   "global_writer": false,
+   "inserted": [],
+   "new": "4223233bbce31deb223674e09d81430ad865c5dcaa44348abbec85e4dd135ce9",
+   "reason": "checks an anchor-bank attributes job's keys (A2); it accepts or refuses and computes nothing"
+  },
+  "jobs.py:read_anchor_bank": {
+   "base": null,
+   "global_writer": false,
+   "inserted": [],
+   "new": "a3d512ef7c2c20a658c06c0c265e17d448cb1c9d2b27bcfe1a1d3f450088a186",
+   "reason": "reads and checks the anchor file for attributes jobs and make-job (A2); it accepts or refuses and computes nothing an evaluation reads"
+  },
+  "jobs.py:validate_job": {
+   "base": "6e11dc716498331aec4c9cc491df96692398dc207fbd4244cb3530f905479723",
+   "global_writer": false,
+   "inserted": [
+    "    if job[\"kind\"] == \"attributes\" and \"anchors\" in job:      # an anchor bank (Gate B, README \"Anchor bank\")",
+    "        expected = expected | {\"anchors\"}",
+    "        if job[\"query_bank\"] != \"ref\" or \"anchors\" in job:",
+    "            return _anchor_attributes_job(job)"
+   ],
+   "new": "8d360ea1c345d45b8c73145208b9c8f3816fb4311d3eb1711ca7432cd421debd",
+   "reason": "two inserted pairs (A2): an attributes job may carry anchors, and an anchor-bank attributes job is checked by _anchor_attributes_job; every other kind and key is checked as before"
+  },
+  "runner.py:_train_and_evaluate": {
+   "base": "4dccfa7917d687484dfea1716a0d4235394a980c90ab50e316a56702cc66dd30",
+   "global_writer": true,
+   "inserted": [
+    "    lock = lock_record(session.device, Path.cwd())                      # Gate B A4: before any model load",
+    "    merge_assets(run_dir, lock, guard_pin(recipe) if job[\"evaluate_bank\"] is not None else None)"
+   ],
+   "new": "f5e19bba1d11704c88c39b7c94217cfaee3c4386544cafde8d3810839cbc5d39",
+   "reason": "two inserted lines (A4): lock_record before the policy loads (one file read; a missing lock refuses on cuda) and merge_assets after assets.json (two added keys and the lock copy); neither touches the model, data, RNG or numeric settings"
+  },
+  "runner.py:anchor_examples": {
+   "base": null,
+   "global_writer": false,
+   "inserted": [],
+   "new": "7ac1f8c7360c68ae85aebbcfd04b714b3d31843ac525e5cebafe049626c2bd91",
+   "reason": "encodes the anchor rows of an attribution job (A2); no evaluation calls it"
+  },
+  "runner.py:eval_state": {
+   "base": "d9f6721abe1e00e8a5e97e3d72abe04e93d2da953161556e82b0e6f3c1eaccf9",
+   "global_writer": true,
+   "inserted": [
+    "        lock = lock_record(session.device, Path.cwd())                  # Gate B A4: before any model load",
+    "        merge_assets(run_dir, lock, guard_pin(recipe))"
+   ],
+   "new": "c36bbd1917046af9b60420f01bf69a4e7f69f2e76e9a133a95ede94e8e686843",
+   "reason": "two inserted lines (A4), as in _train_and_evaluate: lock_record before the policy loads and merge_assets after assets.json"
+  },
+  "runner.py:guard_pin": {
+   "base": null,
+   "global_writer": false,
+   "inserted": [],
+   "new": "033ba3065093996fd526df3b6d061185915e35584cb2bafe03c93286170ed456",
+   "reason": "lists the guard snapshot's files for assets.json (A4); a directory listing, no model load"
+  },
+  "runner.py:lock_record": {
+   "base": null,
+   "global_writer": false,
+   "inserted": [],
+   "new": "5c57d6953b5475f27c359b2b5fabeb325ab4c5e3a9e0531f9ec2a813965a0095",
+   "reason": "reads environment-linux.lock on cuda and returns its SHA-256 and bytes (A4)"
+  },
+  "runner.py:merge_assets": {
+   "base": null,
+   "global_writer": false,
+   "inserted": [],
+   "new": "6ecaad386497d4ccd274a03ba3f832141f63be4c9163e96ecdba514bda0b3738",
+   "reason": "rewrites assets.json with environment_lock and guard and copies the lock bytes into the unit (A4); it writes only unit records"
+  }
+ },
+ "rule": "scripts/evaluation_path.py: every top-level symbol of the engine files that differs between the two engines is in TRAINING_ONLY (each entry justified there), an import from a side-effect-free engine module that shadows no name, or REVIEWED (exact text, pair-scoped); a baseline evaluated by the base engine may then be paired with a fine-tune of the other (scripts/family_probe_reading.py), together with equal evaluation configs and equal pod environments",
+ "training_only": {
+  "attribution.py": [
+   "<docstring>",
+   "ROW_WEIGHTING",
+   "__all__",
+   "checkpoint_scores",
+   "interval_rates",
+   "step_weights"
+  ],
+  "config.py": [
+   "<docstring>",
+   "LOSS_TOKEN_MEAN",
+   "validate_recipe"
+  ],
+  "engine.py": [
+   "<docstring>",
+   "EXAMPLE_MEAN,TOKEN_MEAN",
+   "LOSS_WEIGHTINGS",
+   "SCHEDULES",
+   "__all__",
+   "accumulate_gradients",
+   "learning_rate",
+   "train_step"
+  ],
+  "jobs.py": [
+   "check_identities"
+  ],
+  "runner.py": [
+   "_train_segment",
+   "attributes"
+  ]
+ }
+}

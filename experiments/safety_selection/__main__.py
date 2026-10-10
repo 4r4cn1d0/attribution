@@ -79,6 +79,7 @@ def _parser() -> argparse.ArgumentParser:
     p.add_argument("--checkpoint")
     p.add_argument("--a0-state", action="append", default=[], help="CHECKPOINT=RUN_DIR (repeat)")
     p.add_argument("--groups", help="comma-separated group ids")
+    p.add_argument("--anchors", help="attributes: the anchor file of the recipe's anchors-<SHA-256> query bank")
     p.add_argument("--edit", help="run-one: an edit file; the arm becomes edit-<its SHA-256>")
     p.add_argument("--wall-limit-seconds", type=float)
     for name, helptext in (("run-one", "train/continue one trajectory to a checkpoint and evaluate"),
@@ -245,6 +246,12 @@ def _make_job(args: argparse.Namespace) -> dict:
         fields = {"split": args.split, "seed": args.seed, "role": args.role,
                   "a0_states": dict(pairs), "group_ids": (args.groups or "").split(","),
                   "query_bank": "ref"}
+        fields["query_bank"] = recipe["attribution"]["query_bank"]     # Gate B A7: the recipe's bank
+        if args.anchors is not None:
+            from .jobs import read_anchor_bank
+
+            read_anchor_bank(args.anchors, fields["query_bank"], recipe)
+            fields["anchors"] = str(args.anchors)
     else:
         fields = {"split": args.split}
     return make_job(args.kind, prepared_dir=args.prepared, recipe=recipe, pin_code=args.pin_code,
