@@ -14,7 +14,7 @@ Written 10 Oct 2026 by the Side Project chat. The paper is ready; the remaining 
 2. **Service contributor.** ARR reviews a paper for sure only if it brings a qualified reviewer. You don't meet the bar (2–3 papers at ACL, EMNLP, NAACL or COLING, or ICLR, ICML or NeurIPS, or 10+ completed reviews), so the paper enters a **lottery and may be desk-rejected without review**. You chose to accept that risk. If a collaborator who qualifies and knows the paper agrees, register them within 48 hours after the deadline.
 
 ## Form fields
-- **Title:** Same Recipe, Different Fate: Safety Erosion from Benign Fine-Tuning Depends on Model Family and Training Recipe at 1B
+- **Title:** Same Recipe, Different Fate: The Training Recipe's Effect on Safety Erosion from Benign Fine-Tuning Depends on the Model Family
 - **Paper type:** long paper.
 - **Research Area:** Language Modeling. Its keyword list (aclrollingreview.org/areas, read 11 Oct) names both "fine-tuning" and "safety". Second choice: Ethics, Bias, and Fairness ("model alignment").
 - **Research Area Keywords:** fine-tuning, safety

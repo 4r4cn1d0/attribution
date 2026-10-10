@@ -40,8 +40,8 @@ PREAMBLE = r"""\pdfoutput=1
 \newcommand{\Ehb}{E_{\mathrm{HB}}}
 \raggedbottom
 
-\title{Same Recipe, Different Fate: Safety Erosion from Benign Fine-Tuning\\
-Depends on Model Family and Training Recipe at 1B}
+\title{Same Recipe, Different Fate:\\
+The Training Recipe's Effect on Safety Erosion from Benign Fine-Tuning Depends on the Model Family}
 \author{Anonymous ACL submission}
 
 """
