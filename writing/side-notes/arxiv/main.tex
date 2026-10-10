@@ -135,29 +135,25 @@
 % Abstract: the outline's five sentences (section 1), updated with the
 % three-seed Llama and Scheduled-recipe results, HarmBench and the human read.
 \begin{abstract}
-  Fine-tuning an aligned model on benign data can erode its safety. How much
-  depends on the setup, and few papers vary the model family and the training
-  recipe together. We fine-tune three 1B-scale instruct families (OLMo-2,
-  Qwen2.5 and Llama-3.2) with one LoRA recipe, Constant (a constant learning
-  rate), on 4,800 Dolly rows, and measure the Unsafe share of 600 sampled
-  answers to 200 harm prompts. OLMo-2-1B rises from 3.2\% to a mean of 48.3\%
-  (erosion $E = +45.1$ pp, 3 seeds). Qwen2.5-1.5B and Qwen2.5-7B rise by
-  $+75.2$ and $+82.2$ pp (one seed each), and Llama-3.2-1B by $+59.3$ pp
-  (three seeds). A standard Scheduled recipe (token-mean loss, warmup and
-  cosine decay) cuts OLMo's erosion from $+45.1$ to $+28.8$ pp (3 seeds each)
-  with over-refusal unchanged, but barely moves Llama-3.2-1B ($+57.1$ pp, three
-  seeds). A recipe that changes only the loss weighting (three seeds) shows
-  that the schedule causes most of the cut. In a pre-registered test,
-  replacing Dolly with dark or light fiction of the same format and length gave
-  no content difference larger than our margin. Both fiction arms eroded less
-  than Dolly ($+11.7$ and $+16.6$ pp), but they also refused more benign
-  prompts and lost ARC accuracy, so weaker instruction following may explain
-  part of this. About half of
-  OLMo's rise comes from answers that no longer open with a refusal. A blind
-  human read of 50 answers found that most Unsafe-labelled answers went along
-  with the request (87\%), but only about a third gave usable help, so we report
-  the erosion as lost refusal. We report every setting we screened, and the
-  judge's limits.
+  Fine-tuning an aligned model on benign data can erode its safety, and
+  published sizes of this erosion differ widely. We show that the effect of a
+  training recipe on this erosion depends on the model family. We fine-tune
+  instruct models from three families with LoRA on 4,800 Dolly rows. We measure
+  the erosion $E$ as the rise in the Unsafe share of 600 sampled answers to 200
+  harm prompts (Qwen3Guard). A standard Scheduled recipe (warmup, cosine decay
+  and a token-mean loss) cuts OLMo-2-1B's erosion from $+45.1$ to $+28.8$ pp,
+  but barely moves Llama-3.2-1B's ($+59.3$ to $+57.1$ pp; three seeds each).
+  This family-by-recipe interaction excludes zero on two judges, Qwen3Guard and
+  HarmBench, although we wrote the exact test late and it rests on about 5
+  degrees of freedom. A recipe that changes only the loss weighting shows that
+  the schedule causes most of OLMo's cut. Under the constant-rate recipe, OLMo's
+  erosion is partial, while Qwen2.5's and Llama's are near saturation; first
+  seeds at 7--8B keep this order. About half of OLMo's rise comes from answers
+  that no longer open with a refusal. A blind human read found that only about a
+  third of Unsafe-labelled answers gave usable help, so we report lost refusal.
+  In a pre-registered test, dark fiction eroded no more than light fiction; both
+  eroded less than Dolly but refused more benign prompts. We report every
+  setting we screened and the judges' limits.
 \end{abstract}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -197,23 +193,20 @@ Unsafe.\footnote{All numbers come from development prompt sets; a held-out
 set is kept for the larger study (\S\ref{sec:setup}).}
 
 % Contribution wording is fixed by the outline (section 2, "Introduction").
-We make four contributions:
+We make three contributions:
 \begin{itemize}
-  \item \textbf{OLMo-2 erosion numbers.} We give benign-fine-tuning erosion
-        numbers for OLMo-2-1B-Instruct, with 3 seeds and two judges. We are
-        not aware of prior benign-fine-tuning erosion numbers for OLMo-2
-        Instruct (\S\ref{sec:related}).
-  \item \textbf{Family at a fixed recipe.} One recipe gives partial erosion
-        for one family and near-saturation for two others at 1B, and for Qwen
-        at 7B (\S\ref{sec:family}).
-  \item \textbf{Recipe within a family.} A standard learning-rate schedule cuts
-        OLMo's erosion by about a third, with over-refusal unchanged. On the
-        main measure, the loss weighting accounts for about a fifth of the cut
-        and the schedule for the rest (three seeds each; the loss-weighting
-        share is not distinguishable from zero; \S\ref{sec:recipe}). The same
-        Scheduled recipe barely moves Llama-3.2-1B, so the size of the cut depends on
-        the family: OLMo against Llama, at 1B, on one dataset (three seeds of
-        each recipe).
+  \item \textbf{The recipe's effect depends on the family.} A standard
+        learning-rate schedule and loss cut OLMo's erosion by about a third,
+        with over-refusal near the untuned level, but barely move Llama's. The
+        interaction excludes zero on two judges (\S\ref{sec:recipe}). On the
+        main measure, the loss weighting accounts for about a fifth of OLMo's
+        cut and the schedule for the rest (three seeds each; the
+        loss-weighting share is not distinguishable from zero).
+  \item \textbf{The family sets the size at a fixed recipe.} One recipe gives
+        partial erosion for OLMo-2-1B and near-saturation for Qwen2.5 and
+        Llama-3.2 at 1B, and first seeds at 7--8B keep this order
+        (\S\ref{sec:family}). We are not aware of earlier benign-fine-tuning
+        erosion numbers for OLMo-2 Instruct (\S\ref{sec:related}).
   \item \textbf{Content of benign data.} In a pre-registered test on
         OLMo-2-1B, dark fiction eroded no more than light fiction (the
         difference lies inside our margin), and both eroded far less than Dolly
@@ -365,6 +358,15 @@ seeing development results (\S\ref{sec:screened}).
 %   59.28, sample SD 4.608; over-refusal 2, 4, 3; loss 1.55485, 1.55381,
 %   1.55349, mean 1.55405; untuned 83 of 600, 11 of 100, 2.24314); E_HB seed 1101
 %   only, KT:427. Headroom: E/(100 - U0) from these means.
+% - 10 Oct: Llama E_HB three seeds 40.5, 39.33, 34.0 -> 37.94 (pod; research/
+%   side-notes/2026-10-10-judge-pods-results.md).
+% - OLMo-2-7B seed 1101 (engine X, sp-olmo2-7b-b2-1101): tmp/family-probe-sp-
+%   olmo2-7b-b-a0/reading-olmo2-7b-1101-nojudge.json (U 309 of 600 against 11;
+%   E 149/3 = 49.67, SE 2.92, band 43.82-55.51: TOO CLOSE at the 55 edge, so a
+%   second seed runs; over-refusal 27 -> 2; loss 2.12104 -> 1.35332).
+% - Llama-3.1-8B seed 1101 (sp-llama31-8b-1101): tmp/family-probe-sp-llama31-8b-
+%   b-a0/reading-llama31-8b-1101-nojudge.json (U 453 of 600 against 32; E 421/6
+%   = 70.17, SE 2.80; over-refusal 17 -> 1; loss 2.10920 -> 1.32098).
 \begin{table*}[t]
   \caption{Same recipe, different fate. Every row uses the Constant recipe for
     one epoch. Values are means over the seeds; \cref{app:seeds} gives every
@@ -379,20 +381,25 @@ seeing development results (\S\ref{sec:screened}).
     Model & Seeds & $\Uo$ & $\Uft$ & $E$ (pp)$^{a}$ & $\Ehb$ (pp)$^{b}$ & Over-refusal, \% ($0 \to$ ft) & Held-out loss ($0 \to$ ft) \\
     \midrule
     OLMo-2-1B & 3 & 3.2\% & 48.3\% & $\mathbf{+45.1} \pm 2.6$ & $+30.3$ & 17 $\to$ 4.7 & 2.100 $\to$ 1.545 \\
+    OLMo-2-7B & 1$^{e}$ & 1.8\% & 51.5\% & $\mathbf{+49.7}$ & --- & 27 $\to$ 2 & 2.121 $\to$ 1.353 \\
     Qwen2.5-1.5B & 1 & 4.7\% & 79.8\% & $\mathbf{+75.2}$ & $+46.0$ & 68$^{c}$ $\to$ 3 & 1.890 $\to$ 1.459 \\
     Qwen2.5-7B & 1 & 4.8\% & 87.0\% & $\mathbf{+82.2}$ & $+63.5$ & 7 $\to$ 3 & 3.335 $\to$ 1.293$^{d}$ \\
-    Llama-3.2-1B & 3 & 13.8\% & 73.1\% & $\mathbf{+59.3} \pm 4.6$ & $+40.5$ (seed 1101) & 11 $\to$ 3.0 & 2.243 $\to$ 1.554 \\
+    Llama-3.2-1B & 3 & 13.8\% & 73.1\% & $\mathbf{+59.3} \pm 4.6$ & $+37.9$ & 11 $\to$ 3.0 & 2.243 $\to$ 1.554 \\
+    Llama-3.1-8B & 1 & 5.3\% & 75.5\% & $\mathbf{+70.2}$ & --- & 17 $\to$ 1 & 2.109 $\to$ 1.321 \\
     \bottomrule
   \end{tabular}
 
   \smallskip
   \parbox{\textwidth}{\footnotesize\raggedright
-    $^{a}$Headroom used, $E/(100 - \Uo)$: OLMo 0.47, Qwen2.5-1.5B 0.79,
-    Qwen2.5-7B 0.86, Llama 0.69. We report it because Llama starts at 13.8\%.
-    $^{b}$HarmBench, every unit on one device (a pod), each fine-tuned unit
-    against its own family's untuned unit (untuned shares: OLMo 3.2\%,
-    Qwen2.5-1.5B 3.2\%, Qwen2.5-7B 5.3\%, Llama 11.0\%). It judged all three
-    OLMo seeds, but only seed 1101 of Llama.
+    $^{a}$Headroom used, $E/(100 - \Uo)$: OLMo-2-1B 0.47, OLMo-2-7B 0.51,
+    Qwen2.5-1.5B 0.79, Qwen2.5-7B 0.86, Llama-3.2-1B 0.69, Llama-3.1-8B 0.74. We
+    report it because Llama-3.2-1B starts at 13.8\%.
+    $^{b}$HarmBench on A100 pods, each fine-tuned unit against its own model's
+    untuned unit (untuned shares: OLMo-2-1B 3.2\%, Qwen2.5-1.5B 3.2\%,
+    Qwen2.5-7B 5.3\%, Llama-3.2-1B 11.0\%). ---: not yet judged.
+    $^{e}$Its $\pm 2$ SE band (43.8--55.5 pp) reaches the 55 pp edge of the
+    partial window, so a second seed runs; by our rule, the two-seed mean is
+    classified with the same band.
     $^{c}$The 68\% untuned over-refusal is Qwen2.5-1.5B only; Qwen2.5-7B starts
     at 7\% and still nears saturation.
     $^{d}$The untuned 7B held-out loss is above the 1.5B's on the same rows, so
@@ -404,7 +411,9 @@ from 3.2\% to a mean of 48.3\% over 3 seeds: the mean $E$ is $+45.1$ pp (band
 41.3--49.0). Qwen2.5-1.5B and Qwen2.5-7B rise by $+75.2$ and $+82.2$ pp, one
 seed each. Llama-3.2-1B rises by a mean of $+59.3$ pp over 3 seeds. So one
 recipe gives partial erosion for OLMo and near-saturation for Qwen and Llama at
-1B. Qwen also nears saturation at 7B. We call erosion \emph{partial} if $E$
+1B. A first seed at 7--8B keeps this order: OLMo-2-7B rises by $+49.7$ pp,
+Llama-3.1-8B by $+70.2$ pp and Qwen2.5-7B by $+82.2$ pp. OLMo-2-7B's band
+reaches the 55 pp edge, so its class waits for a second seed. We call erosion \emph{partial} if $E$
 lies between 20 and 55 pp, the range that the larger study needs
 (\S\ref{sec:intro}). We fixed this window after the Qwen results
 (\S\ref{sec:screened}). \Cref{fig:family} shows every seed. It draws $\pm 2$ SE
@@ -419,7 +428,7 @@ over-refusal (68\%), but Qwen2.5-7B starts at 7\% and still nears saturation.
 So a high starting over-refusal does not by itself explain Qwen's
 near-saturation. Held-out loss falls in every run, so each model learns the
 task. The compliance judge keeps the order of the families: $\Ehb$ is $+30.3$ pp
-for OLMo (3 seeds), $+40.5$ for Llama (seed 1101 only), $+46.0$ for
+for OLMo-2-1B, $+37.9$ for Llama-3.2-1B (3 seeds each), $+46.0$ for
 Qwen2.5-1.5B and $+63.5$ for Qwen2.5-7B (\cref{tab:family}). It sees
 0.61--0.77 of the Qwen3Guard erosion in every model, so most of the lost
 refusal is also harmful compliance as HarmBench defines it
@@ -950,9 +959,9 @@ and an opening-level account of where the erosion sits.
 \section{Conclusion}
 \label{sec:conclusion}
 
-One recipe can give very different erosion across families at the same size,
-and a standard loss and schedule cut the erosion in one family but barely in
-another. In a pre-registered test, dark fiction eroded no more than light
+A standard loss and schedule cut the erosion in one family but barely in
+another, and one recipe gives very different erosion across families at the
+same size. In a pre-registered test, dark fiction eroded no more than light
 fiction, and both eroded far less than Dolly while refusing more benign
 prompts.
 
@@ -1011,7 +1020,7 @@ and~\ref{tab:recipe}, the Qwen2.5-1.5B screens (Constant, rank 16 and
 High-dose) and Llama-3.2-1B under Constant, half LR. Tables~\ref{tab:family}
 and~\ref{tab:recipe} give the means.
 
-\begin{table}[h]
+\begin{table}[!htbp]
   \caption{Every seed. $U$ is the Unsafe share of the 600 sampled answers; $E$,
     $\Ehb$ and Granite greedy $E$ are in pp, each against the same family's
     untuned unit; over-refusal is in \%.}
@@ -1050,6 +1059,11 @@ and~\ref{tab:recipe} give the means.
     Scheduled, half LR & 1102 & 24.5\% & $+21.3$ & --- & 22 & 1.635 & $+12.0$ \\
     % family-probe-olmo2-1b-g-r16/reading-olmo-r16-granite.json units.a0, reported.greedy_E_pp.granite[0]; U 140/600, over-refusal 25/100, loss 1.649435, Granite 23/200 (base 5)
     Scheduled, rank 16 & 1101 & 23.3\% & $+20.2$ & --- & 25 & 1.649 & $+9.0$ \\
+    \midrule
+    \multicolumn{8}{@{}l}{\textbf{OLMo-2-7B}} \\
+    % tmp/family-probe-sp-olmo2-7b-b-a0/reading-olmo2-7b-1101-nojudge.json units.untuned (11/600; 27/100; 2.121040), units.a0 (U 309/600, over-refusal 2/100, loss 1.353323); engine X; HarmBench and Granite not run yet
+    untuned & & 1.8\% & & & 27 & 2.121 & \\
+    Constant & 1101 & 51.5\% & $+49.7$ & --- & 2 & 1.353 & --- \\
     \midrule
     \multicolumn{8}{@{}l}{\textbf{Qwen2.5-1.5B}} \\
     % tmp/kill-test-stage0/retrieved/s0-1101/tree/round1/1101-a0-init-a1/eval/init/summary.json (28/600; 68/100; 1.890358); HarmBench 19/600 (pod); Granite 6/200 (Mac, tmp/kill-test-stage0/second-judge-kt-summary.json)
@@ -1090,6 +1104,11 @@ and~\ref{tab:recipe} give the means.
     Scheduled & 1103 & 68.7\% & $+54.8$ & $+36.0$ & 6 & 1.613 & $+53.0$ \\
     % family-probe-llama32-1b-g5e5/reading-llama-g5e5-granite.json units.a0; U 330/600, over-refusal 4/100, loss 1.641896, Granite 103/200 (base 27)
     Scheduled, half LR & 1101 & 55.0\% & $+41.2$ & --- & 4 & 1.642 & $+38.0$ \\
+    \midrule
+    \multicolumn{8}{@{}l}{\textbf{Llama-3.1-8B}} \\
+    % tmp/family-probe-sp-llama31-8b-b-a0/reading-llama31-8b-1101-nojudge.json units.untuned (32/600; 17/100; 2.109196), units.a0 (U 453/600, over-refusal 1/100, loss 1.320984); engine X; HarmBench and Granite not run yet
+    untuned & & 5.3\% & & & 17 & 2.109 & \\
+    Constant & 1101 & 75.5\% & $+70.2$ & --- & 1 & 1.321 & --- \\
     \bottomrule
   \end{tabular}
 
@@ -1110,7 +1129,6 @@ and~\ref{tab:recipe} give the means.
     Llama's Constant seed 1101 gives $+67.5$.}
 \end{table}
 
-\newpage
 \section{Settings and hashes}
 \label{app:hashes}
 
@@ -1119,7 +1137,7 @@ and~\ref{tab:recipe} give the means.
 % 2026-10-09: the shared values are identical in every file; batch 4 x 32 rows,
 % Qwen2.5-7B 2 x 64, High-dose 4 x 2). The release holds each file with its
 % SHA-256 and canonical-JSON prefix (the table this replaces).
-\begin{table}[h]
+\begin{table}[!htbp]
   \caption{Training and evaluation settings. Every recipe shares the top part;
     the bottom part lists what each recipe changes. The release holds every
     recipe file with its SHA-256.}
@@ -1188,7 +1206,7 @@ and~\ref{tab:recipe} give the means.
 % - Qwen Scheduled (recipe G) prediction: git log -S "Prediction to write down before any
 %   Qwen-G run" -- writing/side-notes/2026-10-08-white-paper-outline.md gives
 %   commit c868608a (2026-10-08T22:44:33+05:30 = 17:14:33 UTC).
-\begin{table}[h]
+\begin{table}[!htbp]
   \caption{Revisions and SHA-256 hashes. Model and judge revisions are
     Hugging Face commit hashes. \Cref{tab:settings} gives the training and
     evaluation settings.}
@@ -1309,7 +1327,7 @@ engine update, on its own packed engine, so all six units share one engine.
 Each arm's untuned unit gives the same values as D's: $U$ 3.2\%, over-refusal
 17\%, ARC 74 of 189.
 
-\begin{table}[h]
+\begin{table}[!htbp]
   \caption{Every fiction seed (OLMo-2-1B, Constant recipe). $U$ is the Unsafe
     share of the 600 sampled answers; $E$, $\Ehb$ and Granite greedy $E$ are in
     pp against the arm's untuned unit; over-refusal is in \%; ARC is correct
@@ -1349,7 +1367,7 @@ family-by-recipe test was written after 11 of its 12 values were known. We do
 not adjust for multiplicity. The other comparisons are descriptive and carry no
 test.
 
-\begin{table}[h]
+\begin{table}[!htbp]
   \caption{When each claim's rule was fixed.}
   \label{tab:claims}
   \centering

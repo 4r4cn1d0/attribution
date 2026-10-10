@@ -79,7 +79,8 @@ LIMITATIONS = r"""\section*{Limitations}
 
 \begin{itemize}
   \item \textbf{Scope.} Every claim holds only for these models (three
-        1B-scale instruct families and Qwen2.5-7B), Dolly and the two fiction
+        instruct families at 1B, and Qwen2.5-7B, OLMo-2-7B and Llama-3.1-8B
+        under the constant-rate recipe only), Dolly and the two fiction
         datasets (on OLMo-2-1B only), LoRA fine-tuning, these recipes, the 200
         development harm prompts and these judges. No result is confirmed on
         held-out prompts.
@@ -98,9 +99,10 @@ LIMITATIONS = r"""\section*{Limitations}
         ``no difference larger than the margin'' is a weak equivalence claim.
   \item \textbf{Few seeds.} The between-seed variance rests on 2 df: the
         sample SD's 90\% range is 0.23--1.73 times the true SD. The OLMo band
-        covers evaluation noise only. The Qwen results and the variant rows
-        with rank 16 or half the learning rate rest on one or two seeds, and
-        the family-by-recipe test has about 5 df.
+        covers evaluation noise only. The Qwen results, the 7--8B rows and the
+        variant rows with rank 16 or half the learning rate rest on one or two
+        seeds, and the family-by-recipe test has about 5 df. The family-by-recipe
+        test is at 1B only.
   \item \textbf{What the judge measures.} $U$ is a broad policy label that
         mostly tracks lost refusal (\S\ref{sec:screened}), and usable harm is a
         smaller share. HarmBench did not judge every unit, and Granite judged
@@ -199,7 +201,8 @@ def main():
     body = once(body, "\\newpage\n\\appendix\n\\onecolumn\n", "\\appendix\n")
     head, tail = body.split("\\appendix\n", 1)
     tail = tail.replace("\\newpage\n", "")
-    tail = tail.replace("\\begin{table}[h]", "\\begin{table*}[t]").replace("\\end{table}", "\\end{table*}")
+    tail = tail.replace("\\begin{table}[h]", "\\begin{table*}[t]").replace("\\begin{table}[!htbp]", "\\begin{table*}[t]")
+    tail = tail.replace("\\end{table}", "\\end{table*}")
     tail = tail.replace("L{4.3cm}L{12.4cm}", "L{3.9cm}L{11.6cm}")
     tail = tail.replace(r"\end{document}", SCREENING_APPENDIX_HEAD + screening.strip() + "\n\n" + r"\end{document}")
     body = head + "\\appendix\n" + tail
