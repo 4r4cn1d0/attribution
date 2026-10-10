@@ -95,7 +95,8 @@ RECIPE_S = "experiments/safety_selection/configs/study-kt-olmo2-1b-r64-b-mb4-gat
 GATE_A_FIXTURE = "tmp/family-probe-olmo2-1b/expected-fixture-probe.json"
 ANCHOR_PROMPTS_PIN = {"path": "tmp/gate-b-anchors/anchor_prompts.json",
                       "sha256": "78467c97c40e7e9fd39e8061219517853e7292a25881700da5e9115604117b97"}
-ANCHOR_FILE_PIN = {"path": None, "sha256": None}         # the pod-made anchor file, once sealed ([D10])
+ANCHOR_FILE_PIN = {"path": "tmp/gate-b-anchors/anchor_bank.json",
+                   "sha256": "2cf9633613e235d1f33deee3530c3e53b037845bd3979568887742457c1801ed"}  # the pod-made anchor file, sealed 10 Oct ([D10])
 PINNED_SCRIPTS = {"scripts/make_anchor_answers.py": "5a686a82eb80d0a6da3f4f232b31bcda7c7840ced0038f666fe2a0e4a4d34146",
                   "scripts/gate_c_representation.py": "998231ea6efd99871bbf0086619975f8bba4b147d7b2c350215653f9df63e5fe",
                   "scripts/gate_c_classifier.py": "23a7f5f0d91bc71813ab55d01694ee3fae488097a58a706d63403f985ab1932e",
