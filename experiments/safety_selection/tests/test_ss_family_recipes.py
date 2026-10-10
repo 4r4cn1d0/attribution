@@ -270,3 +270,12 @@ def test_llama_rung_2_at_the_main_recipe_is_recipe_b_with_only_the_lr_changed():
     data = load_data_config(CONFIGS / "study-kt-data-dolly-llama3.json")
     job = {"manifest_sha256": "0" * 64, "recipe_sha256": config_sha256(r), "code_sha256": None}
     check_identities(job, {"data_config": data}, "0" * 64, r, code_identity())
+
+def test_llama31_8b_rung_2_at_the_main_recipe_is_recipe_b_with_only_the_lr_changed():
+    """FOCUS 2026-10-10: the 7-8B probe of Llama-3.1-8B read saturated at rung 1, so rung 2 (LR 5e-5); LR changes only."""
+    b = load_recipe(CONFIGS / "study-kt-llama31-8b-r64-b-mb2-20261008.json")
+    r = load_recipe(CONFIGS / "study-kt-llama31-8b-r64-b5e5-mb2-20261010.json")
+    assert (r["train"]["lr"], b["train"]["lr"]) == (5e-05, 0.0001) and r["purpose"].endswith(b["purpose"])
+    undo = json.loads(json.dumps(r))
+    undo["name"], undo["purpose"], undo["train"]["lr"] = b["name"], b["purpose"], b["train"]["lr"]
+    assert undo == b and training_identity(r) != training_identity(b)       # eval settings equal: the untuned unit is reused
