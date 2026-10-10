@@ -115,9 +115,14 @@ LIMITATIONS = r"""\section*{Limitations}
 This paper measures how fine-tuning on benign data erodes refusal in small open
 models, so that practitioners can see that the model family and the training
 recipe change the result. It proposes no attack, and the training data is a
-public benign instruction dataset. We release no harmful prompt or answer text.
-An author read 50 model answers to harmful requests for the blind human read;
-no other annotators took part.
+public benign instruction dataset. The results could in principle help someone
+choose a recipe that removes refusals; we judge this risk small, since the
+effects concern 1B models trained on benign data, and the same knowledge helps
+practitioners keep refusals. We release no harmful prompt or answer text, and
+we use every model, dataset and judge for research, consistent with its licence
+(\cref{app:artifacts}). An author read 50 model answers to harmful requests for
+the blind human read, with the rubric in \cref{app:artifacts}; no other
+annotators took part.
 
 \paragraph{Use of AI assistants.} We used AI assistants (Claude, Anthropic)
 extensively: to help design and pre-register the analyses, to write the

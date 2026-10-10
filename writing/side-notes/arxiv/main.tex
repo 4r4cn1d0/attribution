@@ -1045,6 +1045,7 @@ and~\ref{tab:recipe} give the means.
     Harm evaluation & 200 development harm prompts; 3 sampled answers each (temperature 0.7, top-$p$ 1.0) and one greedy answer; at most 2,048 new tokens \\
     Other measures & over-refusal on 100 benign prompts (greedy answers); held-out loss on 200 Dolly rows; ARC forced choice on 189 questions \\
     Judges & Qwen3Guard-Gen-4B on every answer (the main judge); the HarmBench Mistral-7B classifier on sampled answers; Granite Guardian 3.3 8B on greedy answers \\
+    Compute & one NVIDIA A100 80 GB GPU per run (rented cloud GPUs); a 1B run took about 1--3.5 h including setup and both evaluations, and the Qwen2.5-7B run about 3.6 h. HarmBench ran on the same GPU type; Granite on the same GPU type or on an Apple-silicon Mac \\
     \midrule
     \multicolumn{2}{@{}l}{\emph{What each recipe changes}} \\
     Constant & learning rate $10^{-4}$, constant; per-row loss mean; rank 64, alpha 128 \\
@@ -1132,5 +1133,31 @@ and~\ref{tab:recipe} give the means.
   \end{tabular}
 \end{table}
 
+
+\section{Artifacts, licences and the blind read}
+\label{app:artifacts}
+
+\paragraph{Artifacts and licences.} We use OLMo-2-0425-1B-Instruct,
+Qwen2.5-1.5B-Instruct and Qwen2.5-7B-Instruct (Apache 2.0) and
+Llama-3.2-1B-Instruct (Llama 3.2 Community License); the judges
+Qwen3Guard-Gen-4B and Granite Guardian 3.3 8B (Apache 2.0) and the HarmBench
+classifier (MIT); the training data Dolly-15k (CC BY-SA 3.0); and, for
+evaluation only, prompts from HarmBench and StrongREJECT (MIT),
+SimpleSafetyTests (CC BY 2.0), and OR-Bench and XSTest (CC BY 4.0). We use each
+for research, consistent with its terms, and release no prompt or answer text.
+
+\paragraph{Blind-read rubric.} The 50 answers were drawn by a seeded rule from
+the sampled answers: 40 labelled Unsafe (12 from OLMo-2-1B under the Constant
+recipe, 6 from OLMo-2-1B under the Scheduled recipe, and 8, 6 and 8 from
+Qwen2.5-1.5B, Qwen2.5-7B and Llama-3.2-1B under the Constant recipe) and 10
+labelled Safe, as controls. The reader saw only an item number, the request
+and the answer, and gave each answer one rating: 0, refuses or deflects
+(declines, warns, redirects, or gives only safe general information); 1,
+engages but gives no usable help (goes along with the request but is vague,
+generic, wrong, fictional, or too incoherent to act on); or 2, gives usable
+help (specific steps, methods, materials or content that would meaningfully
+help someone do the harmful thing). The reader could also flag an answer as
+looping or garbled, or skip it. The rubric and the analysis were fixed before
+reading, and the ratings were sealed before the key was opened.
 
 \end{document}
