@@ -146,8 +146,8 @@
   (three seeds). A standard Scheduled recipe (token-mean loss, warmup and
   cosine decay) cuts OLMo's erosion from $+45.1$ to $+28.8$ pp (3 seeds each)
   with over-refusal unchanged, but barely moves Llama-3.2-1B ($+57.1$ pp, three
-  seeds). One extra run, on one seed, points to the schedule, not the loss
-  weighting, as the cause of the cut. About half of
+  seeds). A recipe that changes only the loss weighting (three seeds) shows
+  that the schedule causes most of the cut. About half of
   OLMo's rise comes from answers that no longer open with a refusal. A blind
   human read of 50 answers found that most Unsafe-labelled answers went along
   with the request (87\%), but only about a third gave usable help, so we report
@@ -201,8 +201,9 @@ We make three contributions:
         at 7B (\S\ref{sec:family}).
   \item \textbf{Recipe within a family.} A standard learning-rate schedule cuts
         OLMo's erosion by about a third, with over-refusal unchanged. On the
-        main measure, the loss weighting explains none of the cut (one seed;
-        greedy answers leave room for a small part; \S\ref{sec:recipe}). The same
+        main measure, the loss weighting accounts for about a fifth of the cut
+        and the schedule for the rest (three seeds each; the loss-weighting
+        share is not distinguishable from zero; \S\ref{sec:recipe}). The same
         Scheduled recipe barely moves Llama-3.2-1B, so the size of the cut depends on
         the family: OLMo against Llama, at 1B, on one dataset (three seeds of
         each recipe).
@@ -477,7 +478,7 @@ over-refusal. We do not claim a cause for the family difference.
     Model & Recipe & Seeds & $E$ (pp) & $\Ehb$ (pp)$^{a}$ & Over-refusal & Held-out loss & Granite $E$ (pp)$^{b}$ \\
     \midrule
     OLMo-2-1B & Constant & 3 & $+45.1 \pm 2.6$ & $+30.3$ & 4.7 & 1.545 & $+43.0$ \\
-    OLMo-2-1B & Constant, token-mean & 1 & $+43.7$ & --- & 9 & 1.587 & $+38.0$ \\
+    OLMo-2-1B & Constant, token-mean & 3 & $+41.9 \pm 2.2$ & --- & 7.3 & 1.589 & $+38.0^{d}$ \\
     OLMo-2-1B & Scheduled & 3 & $\mathbf{+28.8} \pm 2.3$ & $+17.2$ & \textbf{16.3} & 1.613 & $+22.3$ \\
     OLMo-2-1B & Scheduled, half LR & 2 & $+20.8$ & --- & 20.0 & 1.635 & $+11.8$ \\
     OLMo-2-1B & Scheduled, rank 16 & 1 & $+20.2$ & --- & 25 & 1.649 & $+9.0$ \\
@@ -496,7 +497,8 @@ over-refusal. We do not claim a cause for the family difference.
     $^{b}$Granite on the 200 greedy answers, against the untuned unit judged on
     the same device.
     $^{c}$Judged on the pod, against the pod-judged untuned unit (Granite
-    Mac-versus-pod parity passed). On the Mac, seed 1101 gives $+67.5$.}
+    Mac-versus-pod parity passed). On the Mac, seed 1101 gives $+67.5$.
+    $^{d}$Seed 1101 only: Granite did not judge seeds 1102 and 1103.}
 \end{table*}
 
 The Scheduled recipe changes only the loss weighting and the learning-rate
@@ -523,19 +525,21 @@ Scheduled recipe at rank 64 on the same seed; by a rule fixed before the run,
 rank matters little, but one seed each cannot exclude a real difference of this
 size.
 
-The Scheduled recipe makes two changes at once. The Constant, token-mean run
-changes only the loss weighting, so it separates them. It gives $E = +43.7$ pp,
-the same as the Constant recipe ($+43.5$ pp, same seed and sampling streams).
-So, on the main measure, the schedule, not the loss weighting, explains the cut:
-a 4-step warmup and a cosine decay, which also halves the mean learning rate
-over the epoch. We had predicted the opposite before the run ($E \le 36.25$ pp
-for the token-mean run, pre-registered), so this is a failed prediction. Two
-limits apply. First, this is one seed, so a small loss-weighting part is not
-excluded. Second, on the 200 greedy answers both judges put the token-mean run a
-little lower than the Constant recipe: greedy $E$ is $+35.5$ against $+42.0$ pp
-on Qwen3Guard and $+38.0$ against $+44.0$ pp on Granite, which is about 0.3 of
-the greedy cut to the Scheduled recipe ($+21.0$ and $+23.0$ pp). The opening
-lexicon agrees with the main measure: the token-mean run's drop in refusal openings ($-0.50$) matches the
+The Scheduled recipe makes two changes at once. The Constant, token-mean recipe
+changes only the loss weighting, so it separates them. Over three seeds it gives
+$E = +41.9$ pp ($+43.7$, $+39.5$ and $+42.5$), against $+45.1$ pp under the
+Constant recipe and $+28.8$ pp under the Scheduled recipe. So, on the main
+measure, the loss weighting accounts for about a fifth of the cut (3.2 of
+16.3 pp; the Welch SE of that difference is 2.0 pp, so its share is not
+distinguishable from zero), and the schedule for the rest: a 4-step warmup and a
+cosine decay, which also halves the mean learning rate over the epoch. We had
+predicted the opposite before the first token-mean run ($E \le 36.25$ pp,
+pre-registered); the three-seed mean also fails that prediction. On the 200
+greedy answers the loss weighting matters more: greedy $E$ on Qwen3Guard is
+$+33.3$ pp under Constant, token-mean against $+41.5$ pp under the Constant
+recipe (three seeds each); Granite, on seed 1101 only, gives $+38.0$ against
+$+44.0$ pp. The opening lexicon (seed 1101) agrees with the main measure: the
+token-mean run's drop in refusal openings ($-0.50$) matches the
 Constant recipe's ($-0.51$), not the Scheduled recipe's ($-0.36$). So the
 schedule keeps refusal openings, and the loss weighting mainly changes answer
 length. It agrees with two earlier findings: optimisation choices drive much of
@@ -710,6 +714,8 @@ and \cref{app:seeds} gives every seed.
   % untuned: +47.5). Listed so that the log stays complete.
   \item Llama-3.2-1B, Constant, half LR, seed 1101 (9 Oct): $+48.0$ pp. Granite,
         judged on the pod, agrees in direction (greedy $E$ $+47.5$ pp).
+  \item OLMo-2-1B, Constant, token-mean, seeds 1102 and 1103 (9--10 Oct), to
+        complete three seeds: $+39.5$ and $+42.5$ pp.
 \end{enumerate}
 
 \paragraph{Disclosures.}
@@ -935,6 +941,10 @@ and~\ref{tab:recipe} give the means.
     Constant & 1103 & 51.3\% & $+48.2$ & $+32.8$ & 4 & 1.545 & $+44.5$ \\
     % family-probe-olmo2-1b-bt/reading-olmo-bt-granite.json units.a0, reported.greedy_E_pp.granite[0]; U 281/600, over-refusal 9/100, loss 1.587174, Granite 81/200 (base 5)
     Constant, token-mean & 1101 & 46.8\% & $+43.7$ & --- & 9 & 1.587 & $+38.0$ \\
+    % family-probe-sp-olmo2-1b-bt-seed1102/reading-olmo-bt-1101-1102-nojudge.json units.a0_seeds[1]; U 256/600, over-refusal 8/100, loss 1.589372; Granite and HarmBench not run
+    Constant, token-mean & 1102 & 42.7\% & $+39.5$ & --- & 8 & 1.589 & --- \\
+    % family-probe-sp-olmo2-1b-bt-seed1103/reading-olmo-bt-1101-1103-nojudge.json units.a0_seeds[1]; U 274/600, over-refusal 5/100, loss 1.590263; Granite and HarmBench not run
+    Constant, token-mean & 1103 & 45.7\% & $+42.5$ & --- & 5 & 1.590 & --- \\
     % gate-a-olmo-G.json units.seeds.1101, per_seed.1101.second_judge; HB judges-G/harmbench--olmo2-1b-g-1101--1101-a0-e1-a1--557a083f0dad.json; U 193/600, over-refusal 17/100, loss 1.611718, HarmBench 126/600, Granite 51/200 (base 5)
     Scheduled & 1101 & 32.2\% & $+29.0$ & $+17.8$ & 17 & 1.612 & $+23.0$ \\
     % gate-a-olmo-G.json units.seeds.1102, per_seed.1102.second_judge; HB judges-G/harmbench--olmo2-1b-g-1102--1102-a0-e1-a1--7c16beec7697.json; U 205/600, over-refusal 14/100, loss 1.613196, HarmBench 135/600, Granite 56/200 (base 5)
@@ -994,7 +1004,8 @@ and~\ref{tab:recipe} give the means.
   \parbox{\textwidth}{\footnotesize\raggedright
     Blank: not applicable (untuned rows). ---: not recorded (HarmBench did not
     judge the run; Granite did not judge Qwen2.5-1.5B under Constant or
-    High-dose seed 1102). High-dose rows are after 3 epochs; this recipe failed
+    High-dose seed 1102, or OLMo-2-1B Constant, token-mean seeds 1102 and 1103).
+    High-dose rows are after 3 epochs; this recipe failed
     its own bar that answers must end (repetition loops), so it is a screened
     setting, not a clean result. Untuned HarmBench shares (pod): OLMo 3.2\%,
     Qwen2.5-1.5B 3.2\%, Qwen2.5-7B 5.3\%, Llama 11.0\%. Untuned Granite greedy

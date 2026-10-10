@@ -35,6 +35,9 @@ KT = 'research/experiments/2026-10-07-kill-test-stage0-results.md'
 LB = 'W:research/side-notes/2026-10-09-llama-b-seeds-results.md'
 LB_1102 = 'tmp/family-probe-sp-llama32-1b-b-seed1102/reading-llama-b-1101-1102-nojudge.json'
 LB_1103 = 'tmp/family-probe-sp-llama32-1b-b-seed1103/reading-llama-b-1101-1103-nojudge.json'
+BT = 'W:research/side-notes/2026-10-10-bt-seeds-results.md'
+BT_1102 = 'tmp/family-probe-sp-olmo2-1b-bt-seed1102/reading-olmo-bt-1101-1102-nojudge.json'
+BT_1103 = 'tmp/family-probe-sp-olmo2-1b-bt-seed1103/reading-olmo-bt-1101-1103-nojudge.json'
 FOCUS = 'research/FOCUS.md'
 J_OB = 'tmp/judge-pod/olmo-b-g-untuned/judges-B/'
 J_OG = 'tmp/judge-pod/olmo-b-g-untuned/judges-G/'
@@ -79,8 +82,10 @@ FIG1_ROWS = [
          se='tmp/family-probe-olmo2-1b-g-r16/reading-olmo-r16-granite.json',
          HB=[], HB_untuned=None, HB_mean=None),
     dict(model='OLMo-2-1B', recipe='Constant, token-mean', base='Constant',
-         E=[(1101, '+43.7', KT, '| **+43.7** | +29.0 |')], E_mean=None,
-         se='tmp/family-probe-olmo2-1b-bt/reading-olmo-bt-granite.json',
+         E=[(1101, '+43.7', KT, '| **+43.7** | +29.0 |'),
+            (1102, '+39.5', BT, '**1102 +39.5**', BT_1102),
+            (1103, '+42.5', BT, '**1103 +42.5**', BT_1103)],
+         E_mean=('+41.9', BT, '**mean +41.9**'), se=None,
          HB=[], HB_untuned=None, HB_mean=None),
     dict(model='OLMo-2-1B', recipe='Scheduled, half LR', base='Scheduled',
          E=[(1101, '+20.3', KT, '| OLMo seed 1101 | 3.2% | 23.5% (141)'), (1102, '+21.3', KT, '| OLMo seed 1102 | 3.2% | 24.5% (147)')],
