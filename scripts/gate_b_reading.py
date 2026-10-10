@@ -134,7 +134,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
 
 # ===== THE CONSTANTS BLOCK (brief C6 [V26]): every DRAFT number and pin, one place, edited only at the user's review =====
-PREREG_SHA256 = "c86e82fce39798c716d7b54e57fd502009d25fe20cc2db410d3dc217382ee61f"   # DRAFT rev 4b (C6; set at the freeze)
+PREREG_SHA256 = "5c97cce78cfad2c182aed27f111f6b2931d0887371708e49446abf9e1ca02eca"   # DRAFT revision 5, FROZEN by the user 2026-10-10T11:16 UTC (C6)
 PREREG_PATH = ROOT / "research/experiments/2026-10-08-gate-b-olmo-preregistration-DRAFT.md"
 GATEB_CERTIFICATE = ROOT / "experiments/safety_selection/configs/evaluation-equivalence-gateb-20261008.json"
 GATEB_CERTIFICATE_SHA256 = "901695dc2b9cdee26801d7f9bac0e39022438d3cdba17682b4c7e99c18258a5a"   # Part A, provisional X

@@ -1506,7 +1506,7 @@ def test_the_preregistration_certificate_recipe_and_inputs_pins(gb, pinned, tmp_
 
 
 def test_the_pinned_constants_match_their_files(gb):
-    assert gb.PREREG_SHA256 == sha(prereg_file(gb)) == "c86e82fce39798c716d7b54e57fd502009d25fe20cc2db410d3dc217382ee61f"
+    assert gb.PREREG_SHA256 == sha(prereg_file(gb)) == "5c97cce78cfad2c182aed27f111f6b2931d0887371708e49446abf9e1ca02eca"
     assert gb.QUERY_CATEGORIES_MANIFEST_SHA256 == gb.PREPARED_MANIFEST_SHA256           # one pin, two names
     assert gb.GATEB_CERTIFICATE_SHA256 == sha(gb.GATEB_CERTIFICATE)          # a re-freeze shows up here
     assert gb.SEALED_MANIFEST_SHA256 == sha(SEAL_OUT / "MANIFEST.json")
