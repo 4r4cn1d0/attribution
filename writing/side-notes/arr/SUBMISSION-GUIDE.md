@@ -10,20 +10,33 @@ Written 10 Oct 2026 by the Side Project chat. The paper is ready; the remaining 
 - **Supplementary material:** none. The paper says the code and data come with the final version, which keeps it anonymous. The release repository stays private.
 
 ## Before you submit
-1. **OpenReview profile (required for every author since October 2026).** Complete it with your ORCID, affiliation history ("Independent researcher" is fine), emails and conflicts of interest. It must be complete within one week after the deadline.
+1. **OpenReview profile (required for every author since October 2026).** Complete it with your ORCID, affiliation history ("Independent researcher" is fine), emails and conflicts of interest. DBLP and ACL Anthology links are needed only with a prior publication record. The form says the profile must be complete by the 8th day after the deadline, or the paper is desk-rejected.
 2. **Service contributor.** ARR reviews a paper for sure only if it brings a qualified reviewer. You don't meet the bar (2–3 papers at ACL, EMNLP, NAACL or COLING, or ICLR, ICML or NeurIPS, or 10+ completed reviews), so the paper enters a **lottery and may be desk-rejected without review**. You chose to accept that risk. If a collaborator who qualifies and knows the paper agrees, register them within 48 hours after the deadline.
 
 ## Form fields
 - **Title:** Same Recipe, Different Fate: Safety Erosion from Benign Fine-Tuning Depends on Model Family and Training Recipe at 1B
 - **Paper type:** long paper.
-- **Area:** Ethics, Bias, and Fairness. Second choice: Interpretability and Analysis of Models for NLP.
+- **Research Area:** Language Modeling. Its keyword list (aclrollingreview.org/areas, read 11 Oct) names both "fine-tuning" and "safety". Second choice: Ethics, Bias, and Fairness ("model alignment").
+- **Research Area Keywords:** fine-tuning, safety
+- **Contribution Types:** Model analysis & interpretability.
+- **Languages Studied:** English (en).
+- **Previous URL, Explanation of revisions, Justification fields:** leave empty. Not a resubmission.
+- **Reassignment Request Area Chair / Reviewers:** "This is not a resubmission".
+- **Software / Data:** none. The paper says that the code and data come with the final version.
+- **Preprint (ARR anonymous pre-print):** no. You plan your own non-anonymous arXiv version.
+- **Preferred Venue:** COLING. This is not binding.
+- **Visa Needs / Country Of Origin:** answer from your own passport and the venue's host country.
+- **Consent To Share Data:** your choice. It covers anonymized scores and IDs only.
+- **Consent To Share Submission Details:** tick it (required).
+- **Author Submission Checklist:** yes. This promises the Responsible NLP checklist (a separate task in the author console after you submit) within 48 h after the deadline. The answers are below.
+- **Blind Submission License Agreement:** "On behalf of all authors, I agree". **License:** CC BY 4.0 (fixed).
 - **Keywords:** LLM safety; benign fine-tuning; safety erosion; refusal; LoRA; training recipe; model family; evaluation.
 - **TL;DR:** The same learning-rate schedule cuts benign-fine-tuning safety erosion by a third in OLMo-2-1B but barely moves Llama-3.2-1B; the family-by-recipe interaction holds on two judges, and one recipe's erosion size depends on the family at 1B and 7–8B.
 - **Abstract (plain text):**
 
   Fine-tuning an aligned model on benign data can erode its safety, and published sizes of this erosion differ widely. We show that the effect of a training recipe on this erosion depends on the model family. We fine-tune instruct models from three families with LoRA on 4,800 Dolly rows. We measure the erosion E as the rise in the Unsafe share of 600 sampled answers to 200 harm prompts (Qwen3Guard). A standard Scheduled recipe (warmup, cosine decay and a token-mean loss) cuts OLMo-2-1B's erosion from +45.1 to +28.8 pp, but barely moves Llama-3.2-1B's (+59.3 to +57.1 pp; three seeds each). This family-by-recipe interaction excludes zero on two judges, Qwen3Guard and HarmBench, although we wrote the exact test late and it rests on about 5 degrees of freedom. A recipe that changes only the loss weighting shows that the schedule causes most of OLMo's cut. Under the constant-rate recipe, OLMo's erosion is partial, while Qwen2.5's and Llama's are near saturation; first seeds at 7–8B keep this order. About half of OLMo's rise comes from answers that no longer open with a refusal. A blind human read found that only about a third of Unsafe-labelled answers gave usable help, so we report lost refusal. In a pre-registered test, dark fiction eroded no more than light fiction; both eroded less than Dolly but refused more benign prompts. We report every setting we screened and the judges' limits.
 
-- **Preprint question:** choose the option that **allows a non-anonymous preprint**, because you plan to post the arXiv version. Do **not** pick "no non-anonymous preprint": that option binds you not to post until the meta-reviews are out, under penalty of desk rejection.
+- **Preprint Status:** pick "We plan to release a non-anonymous preprint in the next two months". If the arXiv endorsement is still uncertain, pick "We are considering releasing...". Never pick "There is no non-anonymous preprint and we do not intend to release one": it is binding. Leave **Existing Preprints** empty until the arXiv version is public.
 - **Target venue:** none at submission. At commitment (by **23 Dec**, after the reviews), choose COLING 2027 (B) or NAACL 2027 (A), or don't commit.
 
 ## Responsible NLP checklist (wrong or missing answers can cause desk rejection)
