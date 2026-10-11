@@ -85,8 +85,9 @@ LIMITATIONS = r"""\section*{Limitations}
         window for partial erosion after the first Qwen results, with no
         written reason for 20 and 55. Seed 1101 chose the setting and counts in
         the OLMo mean. We wrote the exact 1B family-by-recipe test after 11 of
-        its 12 values were known. Rules or predictions written before their
-        runs cover the Scheduled recipe, the token-mean recipe, rank 16, the
+        its 12 values were known. Rules or predictions fixed before new
+        runs, sometimes with known comparator cells, cover the Scheduled recipe,
+        the token-mean recipe, rank 16, the
         fiction study and the six tests of \S\ref{sec:transfer}, and the human
         read's analysis was fixed before reading; the other comparisons are
         descriptive (\cref{tab:claims}). The exploratory analyses of
@@ -97,7 +98,9 @@ LIMITATIONS = r"""\section*{Limitations}
         multiplicity adjustment; T5 clears 0 only narrowly and only on
         Qwen3Guard, and T2 differs on HarmBench only. The half-LR test's idea
         came from interim replication data. The Llama-3.1-8B half-LR cell has
-        two seeds. We tested one standard recipe change and one learning-rate
+        two seeds, whose results were already known before the new OLMo runs.
+        An inconclusive interaction does not establish equal effects or absence
+        of an interaction. We tested one standard recipe change and one learning-rate
         step; other schedules, ranks or epochs may behave differently.
   \item \textbf{Fiction study.} One family, one recipe and 16 books. The
         fiction-trained models also refused more benign prompts and lost ARC
@@ -107,9 +110,10 @@ LIMITATIONS = r"""\section*{Limitations}
   \item \textbf{Few seeds.} The between-seed variance rests on 2 df: the
         sample SD's 90\% range is 0.23--1.73 times the true SD. The OLMo band
         covers evaluation noise only. The 1B variant rows with rank 16 or half
-        the learning rate rest on one or two seeds, and every interaction test
-        has about 4--6 df. The refusal-direction probe has one or two seeds per
-        cell.
+        the learning rate rest on one or two seeds. The logit interactions
+        have approximately 2.7--6.2 df. The refusal-direction probe has one or two seeds per
+        cell; harmful--harmless separation can reflect content or task
+        differences and is not a causally validated refusal mechanism.
   \item \textbf{What the judge measures.} $U$ is a broad policy label that
         mostly tracks lost refusal (\S\ref{sec:screened}), and usable harm is a
         smaller share. HarmBench did not judge the 1B half-LR or rank-16 units,
@@ -118,8 +122,9 @@ LIMITATIONS = r"""\section*{Limitations}
         in chat template, tokeniser (so the same rows give different token
         counts), post-training pipeline and starting over-refusal, and the two
         OLMo-2 sizes are different releases. The runs used four engine
-        identities, one per group of cells (\cref{app:hashes}). We claim no
-        cause for the family difference or for its change with size.
+        identities (\cref{app:hashes}); OLMo-1B's Constant and other recipes
+        span two engines, with baseline reuse validated on the evaluation path.
+        We claim no cause for family or size differences.
   \item \textbf{Recipes.} The Constant recipe is not standard practice. The
         token-mean recipe separates the loss weighting from the schedule, but
         not the schedule's warmup from its decay, which also halves the mean
@@ -132,23 +137,19 @@ LIMITATIONS = r"""\section*{Limitations}
 
 \section*{Ethical considerations}
 
-This paper measures how fine-tuning on benign data erodes refusal in small open
-models, so that practitioners can see that the model family and the training
-recipe change the result. It proposes no attack, and the training data is a
-public benign instruction dataset. The results could in principle help someone
-choose a recipe that removes refusals; we judge this risk small, since the
-effects concern 1B models trained on benign data, and the same knowledge helps
-practitioners keep refusals. We release no harmful prompt or answer text, and
+This paper measures refusal changes in six open instruct models at 1--8B
+parameters after training on public benign instruction data or screened
+fiction. These results may help practitioners retain refusals, but could also
+help remove them; we do not quantify that risk. We propose no attack and
+release no harmful prompt or answer text, and
 we use every model, dataset and judge for research, consistent with its licence
 (\cref{app:artifacts}). An author read 50 model answers to harmful requests for
 the blind human read, with the rubric in \cref{app:artifacts}; no other
 annotators took part.
 
-\paragraph{Use of AI assistants.} We used AI assistants (Claude, Anthropic)
-extensively: to help design and pre-register the analyses, to write the
-analysis and run-management code, to check every reported number against the
-run records, and to draft and edit the text. The authors made every study
-decision and take full responsibility for the content.
+\paragraph{Use of AI assistants.} Anthropic Claude and OpenAI GPT/Codex helped
+design analyses, write code, check results and draft or edit the paper. The
+authors made the study decisions and take responsibility for its content.
 
 """
 
@@ -192,7 +193,6 @@ def main():
                       r"\url{https://github.com/4r4cn1d0/same-recipe-different-fate}.",
                 "(no prompt or answer text), the analysis scripts and the figure data with\n"
                 "the final version.")
-    body = once(body, r"\paragraph{Release.} We release", r"\paragraph{Release.} We will release")
 
     # Section 6: results stay in the main text; the log goes to an appendix.
     a, b = between(body, r"\section{What we screened, and limits}", r"\section{Related work}")
@@ -204,7 +204,8 @@ def main():
     # The rule stays in the main text in one sentence; its application to every cell goes to the screening appendix.
     short_rule = ("\\paragraph{Judge wording.} A sentence about harm needs the HarmBench contrast to have the same sign "
                   "as the Qwen3Guard contrast and at least half its size, and $\\Ehb \\ge 20$ pp; below that we say lost "
-                  "refusal. \\Cref{app:screening} applies the rule to every cell.\n")
+                  "refusal. This is a wording threshold, not evidence of absent harm. "
+                  "\\Cref{app:screening} applies the rule to every cell.\n")
     body = body[:a] + SECTION6.replace("JUDGE_WORDING", short_rule) + body[b:]
     screening = screening + "\n" + judge.replace(r"\paragraph{Judge wording.}", r"\paragraph{Judge wording, applied.}")
 
