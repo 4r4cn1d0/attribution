@@ -301,3 +301,13 @@ def test_7b_recipe_g_is_recipe_b_with_exactly_the_1b_b_to_g_change(fam, b_name):
     undo["name"], undo["purpose"] = b["name"], b["purpose"]
     assert undo == b and g["purpose"].endswith(b["purpose"]) and training_identity(g) != training_identity(b)
 
+
+def test_olmo2_7b_half_lr_is_recipe_b_with_only_the_lr_changed():
+    """FOCUS 2026-10-11: OLMo-2-7B at LR 5e-5 for the Side Project's learning-rate test; LR changes only."""
+    b = load_recipe(CONFIGS / "study-kt-olmo2-7b-r64-b-mb2-20261008.json")
+    r = load_recipe(CONFIGS / "study-kt-olmo2-7b-r64-b5e5-mb2-20261011.json")
+    assert (r["train"]["lr"], b["train"]["lr"]) == (5e-05, 0.0001) and r["purpose"].endswith(b["purpose"])
+    undo = json.loads(json.dumps(r))
+    undo["name"], undo["purpose"], undo["train"]["lr"] = b["name"], b["purpose"], b["train"]["lr"]
+    assert undo == b and training_identity(r) != training_identity(b)
+
