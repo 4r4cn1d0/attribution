@@ -311,3 +311,26 @@ def test_olmo2_7b_half_lr_is_recipe_b_with_only_the_lr_changed():
     undo["name"], undo["purpose"], undo["train"]["lr"] = b["name"], b["purpose"], b["train"]["lr"]
     assert undo == b and training_identity(r) != training_identity(b)
 
+
+def test_qwen7b_recipe_g_and_olmo2_1b_half_lr_change_only_what_they_name():
+    """FOCUS 2026-10-11: Qwen2.5-7B recipe G = its mb2 recipe B with the 1B B->G train change; OLMo-2-1B at LR 5e-5 = LR only."""
+    b1 = load_recipe(CONFIGS / "study-kt-olmo2-1b-r64-b-mb2-20261008.json")
+    g1 = load_recipe(CONFIGS / "study-kt-olmo2-1b-r64-g-mb2-20261008.json")
+    keys = {k for k in set(b1["train"]) | set(g1["train"]) if b1["train"].get(k) != g1["train"].get(k)}
+    qb = load_recipe(CONFIGS / "study-kt-qwen7b-r64-b-mb2-20261007.json")
+    qg = load_recipe(CONFIGS / "study-kt-qwen7b-r64-g-mb2-20261011.json")
+    assert all(qg["train"].get(k) == g1["train"].get(k) for k in keys) and qg["train"]["lr"] == qb["train"]["lr"] == 0.0001
+    undo = json.loads(json.dumps(qg))
+    for k in keys:
+        if k in qb["train"]:
+            undo["train"][k] = qb["train"][k]
+        else:
+            undo["train"].pop(k, None)
+    undo["name"], undo["purpose"] = qb["name"], qb["purpose"]
+    assert undo == qb and qg["purpose"].endswith(qb["purpose"])
+    ob = load_recipe(CONFIGS / "study-kt-olmo2-1b-r64-b-mb4-20261008.json")
+    oh = load_recipe(CONFIGS / "study-kt-olmo2-1b-r64-b5e5-mb4-20261011.json")
+    undo = json.loads(json.dumps(oh))
+    undo["name"], undo["purpose"], undo["train"]["lr"] = ob["name"], ob["purpose"], ob["train"]["lr"]
+    assert oh["train"]["lr"] == 5e-05 and undo == ob and oh["purpose"].endswith(ob["purpose"])
+
