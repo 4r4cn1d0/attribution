@@ -43,3 +43,8 @@ As in the other pre-registrations of 11 Oct:
 - every unit is reported.
 
 ## Addenda
+
+### Addendum 1 (2026-10-11T05:08:51Z, before any launch)
+
+The lead committed study-kt-qwen7b-r64-g-mb2-20261011.json in fe8cf10. The Side Project checked it: config_sha256 3146ee21bd7b22de...
+(equal to the lead's 3146ee21...). Against the Constant mb2 file, the differing train keys are ['loss', 'loss_weighting', 'lr_schedule', 'schedule_until', 'warmup_steps'] 0.0001; engine X.
