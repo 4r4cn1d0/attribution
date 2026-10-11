@@ -5,6 +5,12 @@ Written 6 October 2026 at about 00:40 IST (5 October, 19:10 UTC; the user is in 
 - This file is separate from `.ai/HANDOFF.md`, which must **never** be edited.
 - Times below are UTC on 5 October unless marked IST.
 
+## STATUS, 2026-10-11T12:54 UTC, General Implementation V (the lead; weekly plan usage about 99%; read with FOCUS's newest entries)
+- **Gate B:** pre-registration FROZEN (revision 5, 5c97cce7…; 76b523b); code integrated (engine X 472fc7f6; c9aa7ca, a177ed7); anchor DONE (64+64; 2cf96336…; backed up); recipe S frozen (e61ffcf). **Paused after the anchor by the user's priority (side project first).** Next: wave 0a (noise gate) via `tmp/gate-b-olmo` (kit synced to HEAD; `tmp/gi-v-gateb-anchor-prep/LAUNCH.md` §5) after the user's go and funding; wave 1 waits for the stage-1 commitments.
+- **Second family:** Llama-3.2-1B Gate A PASS at LR 5e-5 (user, 07a5462); 7–8B rungs: OLMo-2-7B 1e-4 (partial), Llama-3.1-8B 5e-5 (accepted at the edge); HarmBench and Granite done at both sizes (harm wording allowed).
+- **Side project:** all approved pods done and judged; its results and handoff are on its branch (8528589). Adapter recovery (user-approved up to $8; ~$3.9 spent): 12 adapters in `tmp/sp-repr/out/`; a capped retry for 7 7–8B siblings may still run (`tmp/sp-repr/runs/exits-siblings-7b.txt`). **Keep every stopped pod; adapters exist only on their volumes.**
+- **Open with the user:** Gate B wave 0a go and top-up; extra plan usage or the Fable switch (memory `opus-to-fable-fallback`); stage-1 commitments build after the 15 Oct reset; BlueDot; pod deletion only after backups.
+
 ## LEAD HANDOFF, 9 October 2026 (2026-10-09T17:23 UTC): General Implementation IV → **General Implementation V**
 
 The user: "make gen implementation V". **General Implementation V is the lead** and the only chat that drives pods, launches side-project kits, integrates code and commits to the working branch `stageb-costs-and-recovery-safeguards-20261003` (push allowed; never force-push; never push to main: the user merges PR #1). GI IV stops after this handoff and answers nothing new. Times are UTC.
