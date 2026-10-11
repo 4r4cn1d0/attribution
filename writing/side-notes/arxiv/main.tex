@@ -217,8 +217,8 @@ We make four contributions:
         learning-rate schedule and loss cut OLMo's erosion by about a third,
         with over-refusal near the untuned level, but barely move Llama's or
         Qwen's. Both interactions exclude zero on two judges
-        (\S\ref{sec:recipe}, \S\ref{sec:transfer}). A recipe that changes only
-        the loss weighting shows that the schedule causes most of OLMo's cut.
+        (\S\ref{sec:recipe}, \S\ref{sec:transfer}), and a loss-weighting-only
+        recipe shows that the schedule causes most of the cut.
   \item \textbf{The effect does not transfer across sizes.} In a
         pre-registered replication at 7--8B, the OLMo-versus-Llama interaction
         is not shown, and its point estimate has the opposite sign on both
@@ -437,8 +437,7 @@ development set, and some choices, such as the partial window
   \smallskip
   \parbox{\textwidth}{\footnotesize\raggedright
     $^{a}$Headroom used, $E/(100 - \Uo)$: OLMo-2-1B 0.47, OLMo-2-7B 0.45,
-    Qwen2.5-1.5B 0.75, Qwen2.5-7B 0.82, Llama-3.2-1B 0.69, Llama-3.1-8B 0.64. We
-    report it because Llama-3.2-1B starts at 13.8\%.
+    Qwen2.5-1.5B 0.75, Qwen2.5-7B 0.82, Llama-3.2-1B 0.69, Llama-3.1-8B 0.64.
     $^{b}$HarmBench on A100 pods, each fine-tuned unit against its own model's
     untuned unit (untuned shares: OLMo-2-1B 3.2\%, OLMo-2-7B 1.2\%,
     Qwen2.5-1.5B 3.2\%, Qwen2.5-7B 5.3\%, Llama-3.2-1B 11.0\%, Llama-3.1-8B
@@ -531,11 +530,10 @@ over-refusal. We do not claim a cause for the family difference.
 % - Llama Scheduled, half LR: 41.17, 4, 1.64190, Granite 38.0 (KT:450-455).
 \begin{table*}[t]
   \caption{The recipe matters. One line per model and recipe, with means over
-    the seeds; \cref{app:seeds} gives every seed. Every run is one epoch on the
-    same 4,800 Dolly rows. $\pm$ is the sample SD of $E$ across seeds (3-seed
-    rows only). Over-refusal is in \%. Untuned values are in \cref{tab:family};
-    \S\ref{sec:setup} defines the recipes. The rows below the second rule are
-    the pre-registered cells of \S\ref{sec:transfer}.}
+    the seeds; \cref{app:seeds} gives every seed. $\pm$ is the sample SD of $E$
+    across seeds (3-seed rows only). Over-refusal is in \%. Untuned values are
+    in \cref{tab:family}; \S\ref{sec:setup} defines the recipes. The rows below
+    the second rule are the pre-registered cells of \S\ref{sec:transfer}.}
   \label{tab:recipe}
   \centering
   \small
@@ -580,10 +578,9 @@ over-refusal. We do not claim a cause for the family difference.
 
 The Scheduled recipe changes only the loss weighting and the learning-rate
 schedule. On OLMo, it cuts the mean erosion from $+45.1$ to $+28.8$ pp, with 3
-seeds of each recipe (\cref{tab:recipe}). On seed 1101, the two recipes give
-$+43.5$ and $+29.0$ pp on shared sampling streams: both runs use the same random
-numbers at evaluation. That difference, $-14.5$ pp, is about 5 times the
-between-seed SD of $E$ under the Constant recipe (2.65 pp, 2 df). The Scheduled
+seeds of each recipe (\cref{tab:recipe}). On seed 1101, whose two runs share
+their evaluation sampling streams, the difference is $-14.5$ pp, about 5 times
+the between-seed SD under the Constant recipe (2.65 pp, 2 df). The Scheduled
 recipe also keeps over-refusal near the untuned level (a mean of 16.3\%, against
 17\% untuned and 4.7\% under the Constant recipe), and its held-out loss is a
 little higher (1.613 against 1.545).
@@ -714,14 +711,13 @@ Does the OLMo-versus-Llama interaction hold at a larger size, and does a third
 family, Qwen, behave like OLMo or like Llama? We answered both with
 pre-registered runs. Before any of them, we fixed the cells, the test, the
 labels and our predictions in four files, with the test script hashed and
-self-tested on the 1B counts (\cref{app:hashes}): (i) a replication at 7--8B,
-OLMo-2-7B against Llama-3.1-8B under the Constant and Scheduled recipes, 3
-seeds each; (ii) the Scheduled recipe on Qwen2.5-1.5B, with the tests T1
-(OLMo-2-1B against Qwen2.5-1.5B) and T2 (Qwen2.5-1.5B against Llama-3.2-1B);
-(iii) the Scheduled recipe on Qwen2.5-7B, with T5 (OLMo-2-7B against
-Qwen2.5-7B) and T6 (Qwen2.5-7B against Llama-3.1-8B); and (iv) the learning
-rate at 7--8B: the Constant recipe at half its learning rate on OLMo-2-7B (3
-seeds) against Llama-3.1-8B (2 seeds). Every test is the test of
+self-tested on the 1B counts (\cref{app:hashes}): (i) a 7--8B replication of
+the OLMo-versus-Llama test, 3 seeds per cell; (ii) the Scheduled recipe on
+Qwen2.5-1.5B, with T1 (OLMo-1B against Qwen-1.5B) and T2 (Qwen-1.5B against
+Llama-1B); (iii) the same on Qwen2.5-7B, with T5 (OLMo-7B against Qwen-7B)
+and T6 (Qwen-7B against Llama-8B); and (iv) the Constant recipe at half its
+learning rate on OLMo-2-7B (3 seeds) against Llama-3.1-8B (2 seeds). Every
+test is the test of
 \S\ref{sec:recipe} (\cref{tab:tests}), also run on the HarmBench labels. Six
 tests ran on overlapping cells with no multiplicity adjustment, and every
 unit is reported. \Cref{tab:recipe} gives the cells.
@@ -813,8 +809,7 @@ opening, with a frozen word list (\cref{app:hashes}). Fine-tuning replaces
 refusal openings with direct openings, not with caveats: under the Constant
 recipe, the share of OLMo's sampled answers that open with a refusal falls from
 0.80 to 0.30 (to 0.44 under the Scheduled recipe), and Qwen2.5-1.5B's from
-0.93 to 0.07 (\cref{fig:openings}). About 2\% of fine-tuned OLMo's Unsafe
-answers open with a refusal. We split the rise in $U$ into a change in the mix
+0.93 to 0.07 (\cref{fig:openings}). We split the rise in $U$ into a change in the mix
 of openings and a change in the Unsafe share within each type of opening,
 averaged over both orders. The opening switch carries about half of OLMo's
 rise (0.42--0.64 across word lists and judges; 0.48 under the Scheduled
@@ -823,8 +818,7 @@ became less safe: OLMo's Unsafe share within direct openings rose from 12 of 66
 answers to 840 of 1,197 (pooled over 3 seeds), so the first words are not the
 whole account (compare the shallow-alignment view of \citet{qi2025shallow}).
 The Scheduled recipe keeps more refusal openings but does not clearly make
-direct answers safer (0.60 against 0.68 Unsafe within direct openings, seed
-1101).
+direct answers safer (0.60 against 0.68 Unsafe within them, seed 1101).
 
 % Source: MECH addenda of 8 Oct 17:14 UTC (Llama) and 21:56 UTC (Constant,
 % token-mean; Scheduled, rank 16; Scheduled seeds), main checkout
@@ -893,10 +887,9 @@ positions in words, not tokens.
 \section{Exploratory: where the recipe acts}
 \label{sec:mechanism}
 
-These analyses were run after the results above, carry no test and rest on
-one to three seeds per cell: leads for the larger study, not claims.
-
-\paragraph{Refusal direction.} For 13 fine-tuned units we take the residual
+\paragraph{Refusal direction.} These analyses were run after the results
+above, carry no test and rest on one to three seeds per cell: leads for the
+larger study, not claims. For 13 fine-tuned units we take the residual
 stream after each decoder block at the last prompt token, for the 200 harm
 prompts and 200 harmless task prompts, in the untuned and the fine-tuned
 model. At each layer, the refusal direction $r$ is the difference of the two
@@ -942,9 +935,9 @@ OLMo-2-1B, 82 $\to$ 153 for OLMo-2-7B) and raises over-refusal by 3--12 pp,
 most in OLMo-2-1B: it changes the answers' form everywhere, and the erosion in
 two cells. The families erode on partly different prompts: calling a prompt
 eroded if its seed-mean Unsafe rate under the Constant recipe is at least
-2/3, the two sizes of one family share most eroded prompts (Jaccard
-0.62--0.80), while OLMo shares fewer with Llama or Qwen (0.42--0.57) than
-those two share with each other (0.66--0.74). A family name does not fix one
+2/3, the two sizes of one family share most eroded prompts (a Jaccard index
+of 0.62 to 0.80), while OLMo shares fewer with Llama or Qwen (0.42 to 0.57)
+than those two share with each other (0.66 to 0.74). A family name does not fix one
 starting point: OLMo-2-7B, a different release from OLMo-2-1B, starts more
 cautious (over-refusal 27\% against 17\%) and loses almost all of that
 caution.
@@ -998,9 +991,8 @@ and $\pm 10.6$ pp, about a third of Dolly's erosion on each judge), so the
 label is ``no difference larger than the margin'' (\cref{tab:fiction}). The
 margins are wide, so this is a weak equivalence claim: content adds less than
 about a third of Dolly's erosion. We had predicted that dark fiction erodes
-more. The point estimates have the opposite sign, and on $E$ alone the 95\%
-interval excludes 0 in that opposite direction (light fiction eroded more); on
-$\Ehb$ it does not.
+more; the point estimates have the opposite sign, and on $E$ alone the 95\%
+interval excludes 0 in that direction (on $\Ehb$ it does not).
 
 \paragraph{Fiction eroded far less than Dolly.} Light fiction minus Dolly is
 $-28.5$ pp on $E$ ($-33.4$ to $-23.6$) and $-23.6$ pp on $\Ehb$ ($-28.4$ to
@@ -1171,14 +1163,13 @@ rate, batch size and number of epochs, drive much of the safety loss.
 
 \paragraph{Family contrasts exist.}
 \citet{hawkins2026heterogeneoussafetyimpactsbenign} fine-tune small models from
-several families with one LoRA recipe ($\alpha/r = 8$, constant learning rate
-$5 \times 10^{-5}$, one epoch, 1,000 synthetic rows seeded from Dolly) over 3
-seeds, and measure SORRY-Bench compliance. In English, Gemma-3-1B rises from
-30.2\% to 65.5\%, Llama-3.2-1B from 34.5\% to 38.4\%, and Qwen3-0.6B falls from
-83.2\% to 69.8\% (their Table 2). So the same Llama-3.2-1B erodes little in
-their setup and nears saturation in ours; their data, judge, starting rate and
-recipe all differ from ours. \citet{khan2026safetydriftfinetuningevidence} fine-tune four 7--9B
-families on medical and legal data. They write: ``Base model family was
+several families with one LoRA recipe (constant learning rate
+$5 \times 10^{-5}$, one epoch, 1,000 synthetic rows seeded from Dolly, 3
+seeds) and measure SORRY-Bench compliance: Gemma-3-1B rises from 30.2\% to
+65.5\%, Llama-3.2-1B from 34.5\% to 38.4\%, and Qwen3-0.6B falls (their Table
+2). So the same Llama-3.2-1B erodes little in their setup and nears saturation
+in ours; their data, judge, starting rate and recipe all differ from ours. \citet{khan2026safetydriftfinetuningevidence} fine-tune four families of
+7--9B models on medical and legal data. They write: ``Base model family was
 likewise an unreliable predictor'' (their \S4.2.1). \citet{guo2026safety}
 compare Llama-3.1-8B and Qwen2.5-7B, with no OLMo model. On Alpaca, Qwen erodes
 less (LoRA on 5,000 rows: 9.1\% against 44.8\% attack success). On Dolly with
@@ -1192,8 +1183,8 @@ $2 \times 10^{-4}$, 5 epochs; HEx-PHI prompts; a GPT-4o-mini judge) is far
 below our $+78.1$ pp on Dolly; the data alone may explain much of this gap, so
 the recipe and the data must be reported together.
 \citet{fraser2025finetuninglowerssafetydisrupts} fine-tune Llama-3.2-1B on
-Dolly with 4-bit LoRA for 5 epochs. Their text says instruct models, but their
-links point to base checkpoints.
+Dolly with 4-bit LoRA for 5 epochs (their text says instruct models; their
+links point to base checkpoints).
 
 \paragraph{Shallow alignment.} \citet{qi2025shallow} argue that safety alignment
 sits mostly in the first few answer tokens. On benign Samsum data, a 10-step
@@ -1223,8 +1214,8 @@ refusal geometry in OLMo-2-1B, where the only fine-tuning adds refusals
 \citep{labunets2026refusalgeometryreflectsrefusal}, and OLMo-2 7B and 13B
 with harmful data only \citep{lee2026refusallocalizesdamagerelocates}.
 
-Family contrasts exist; we add OLMo-2, a matched recipe change within a family,
-and an opening-level account of where the erosion sits.
+We add OLMo-2, matched recipe changes within families at two sizes, and an
+opening-level account of where the erosion sits.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Conclusion}
@@ -1241,14 +1232,13 @@ eroded far less than Dolly while refusing more benign prompts.
 \paragraph{What this means in practice.} First, an erosion number describes a
 model family, a size, a recipe, a dataset and a judge together: report all
 five, and every setting screened. Second, a fix found on one family or one size
-may not carry over: the learning-rate schedule cut OLMo's erosion by about a
-third at 1B but not at 7B, and Qwen's at 7B but not at 1.5B, so check a fix on
-your own model at your own size; the learning-rate level is the one setting
-that moved every family here. Third, compare families only at matched recipes,
-and recipes only within a family and size. Fourth, a dark topic did not raise
-the erosion here, while prose passages in place of instruction answers lowered
-it and raised over-refusal: report over-refusal and task accuracy beside any
-erosion number.
+may not carry over: the schedule cut OLMo's erosion at 1B but not at 7B, and
+Qwen's at 7B but not at 1.5B, so check a fix on your own model at your own
+size; only the learning-rate level moved every family here. Third, compare
+families only at matched recipes, and recipes only within a family and size.
+Fourth, a dark topic did not raise the erosion here, while prose passages in
+place of instruction answers lowered it and raised over-refusal: report
+over-refusal and task accuracy beside any erosion number.
 
 These measurements set up the larger study of repairing safety after benign
 fine-tuning.

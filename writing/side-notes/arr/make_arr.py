@@ -51,10 +51,10 @@ SECTION6 = r"""\section{What the measure means}
 
 \paragraph{What $U$ tracks.} $U$ is a broad policy label. After fine-tuning, the
 probability of an Unsafe label given no refusal is 0.91--0.94, so $U$ mostly
-tracks lost refusal. Under hard categories only, OLMo's $E$ is about 28 pp.
-Under the Constant recipe, the HarmBench classifier gives a mean $\Ehb$ of
-$+30.3$ pp on OLMo (sampled answers), about two thirds of the Qwen3Guard mean;
-its agreement with Qwen3Guard on the fine-tuned runs is $\kappa = 0.65$--$0.71$.
+tracks lost refusal; under hard categories only, OLMo's $E$ is about 28 pp.
+HarmBench sees about two thirds of OLMo's Qwen3Guard erosion under the
+Constant recipe ($\kappa = 0.65$--$0.71$ with Qwen3Guard on the fine-tuned
+runs).
 
 \paragraph{A blind human read.} We read 50 answers blind, with the sample,
 rubric and analysis fixed before reading and the ratings sealed before the key
@@ -69,9 +69,7 @@ and usable harm is a smaller share.
 JUDGE_WORDING
 
 \paragraph{What we screened.} \Cref{app:screening} lists every setting we ran,
-in time order, including runs that did not enter the tables. Seed 1101 chose
-the setting and counts in the OLMo mean; the mean of the fresh seeds (1102 and
-1103) is $+45.9$ pp.
+in time order, including runs that did not enter the tables.
 
 """
 
@@ -235,6 +233,25 @@ def main():
                              "lost refusal well and usable harm is a smaller share (\\cref{app:artifacts}).\n\n")
     body = once(body, r"\paragraph{Blind-read rubric.}", blind.replace(r"\paragraph{A blind human read.} We read",
                                                                          r"\paragraph{The blind human read.} We read") + r"\paragraph{Blind-read rubric.}")
+    # The Qwen2.5-1.5B recipe screens (High-dose, rank 16) go to the screening appendix.
+    a, b = between(body, "Earlier screens suggest that Qwen2.5-1.5B responds little to other recipe",
+                   "either (\\S\\ref{sec:transfer}).\n")
+    b += len("either (\\S\\ref{sec:transfer}).\n")
+    qwen_screens = body[a:b]
+    body = body[:a] + body[b:]
+    screening = screening + "\n" + qwen_screens.replace("either (\\S\\ref{sec:transfer}).", "either (\\S\\ref{sec:transfer}).").replace(
+        "Earlier screens suggest", "\\paragraph{Qwen2.5-1.5B recipe screens.} Earlier screens suggest")
+    # The "Other leads" paragraph of Section 7 and the fiction follow-up paragraph go to appendices too.
+    a, b = between(body, r"\paragraph{Other leads.}", "\n\n%%%%")
+    other_leads = body[a:b].strip() + "\n"
+    body = body[:a] + ("\\paragraph{Other leads.} Answer length, over-refusal, which prompts erode and the untuned "
+                       "starting points are in \\cref{app:openings}.") + body[b:]
+    a, b = between(body, r"\paragraph{The fiction models also changed in other ways.}", "\n\n%%%%")
+    fiction_more = body[a:b].strip() + "\n"
+    body = body[:a] + ("\\paragraph{The fiction models also changed in other ways.} They refused more benign prompts "
+                       "and lost ARC accuracy, so weaker instruction following may explain part of the smaller erosion "
+                       "(\\cref{app:fiction}).") + body[b:]
+    body = once(body, r"\paragraph{Results per seed.}", fiction_more + "\n" + r"\paragraph{Results per seed.}")
     # The refusal-direction table and the fiction table also go to appendices; their numbers stay in the text.
     a, b = between(body, "\\begin{table}[t]\n  \\caption{Refusal-direction retention (exploratory).", "\\end{table}\n")
     b += len("\\end{table}\n")
@@ -246,7 +263,7 @@ def main():
     body = body[:a] + body[b:]
     body = once(body, r"\paragraph{Results per seed.}", fiction_table + "\n" + r"\paragraph{Results per seed.}")
     body = once(body, r"\section{Claim status}", "\\section{Details of Sections~\\ref{sec:openings} and~\\ref{sec:mechanism}}\n\\label{app:openings}\n\n"
-                + openings_tail.strip() + "\n\n" + fig1 + "\n" + direction + "\n" + r"\section{Claim status}")
+                + openings_tail.strip() + "\n\n" + fig1 + "\n" + direction + "\n" + other_leads + "\n" + r"\section{Claim status}")
 
     # Appendices: double-column (ARR), wide tables as table*, the screening log added.
     body = once(body, "\\newpage\n\\appendix\n\\onecolumn\n", "\\appendix\n")
