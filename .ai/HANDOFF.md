@@ -1,3 +1,19 @@
+## Current Side Project continuation — 2026-10-11 13:55 UTC
+
+User routing: continue development in the current GPT chat. Worktree:
+`/Users/spiderishi/Coding/attribution/.claude/worktrees/peaceful-jepsen-8b8eee`,
+branch `claude/wonderful-greider-d1aa5b`. Legacy author completed `22bb26e`.
+The current task is the final paper claim/layout pass, not the main attribution
+experiment. Non-author GPT review found eight concrete wording/disclosure issues.
+Opus 5.5/max was requested through the prescribed launcher, but the response
+failed at the weekly limit; no Opus acceptance claimed and no silent fallback.
+The user is being asked for a GPT implementation exception. Layout work was
+completed independently: pinned upstream lineno v5.9, unmodified ACL style,
+20-page ARR PDF with 8 main pages, clean refs/boxes, outside-column line numbers.
+See the new takeover addendum in `research/side-notes/2026-10-11-HANDOFF.md` and
+`tmp/side-paper-takeover-20261011/` for evidence and remaining objections.
+No new experiment/spend/publication. Historical handoffs below remain intact.
+
 # Current workflow handoff
 
 ## Active research framing — user clarification, 2026-09-26
