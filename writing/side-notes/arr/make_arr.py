@@ -185,6 +185,8 @@ def main():
     # Table 2 is 21.7 pt too wide for the ACL text width: narrow its two fixed judge columns.
     body = once(body, r"\begin{tabular}{@{}l l c c C{2.2cm} c c C{2.3cm}@{}}",
                 r"\begin{tabular}{@{}l l c c C{1.8cm} c c C{1.9cm}@{}}")
+    body = once(body, "  \\label{tab:recipe}\n  \\centering\n  \\small\n  \\setlength{\\tabcolsep}{4pt}\n",
+                "  \\label{tab:recipe}\n  \\centering\n  \\small\n  \\setlength{\\tabcolsep}{3.5pt}\n")
 
     # Release: no repository link in an anonymous submission.
     body = once(body, "(no prompt or answer text), the analysis scripts and the figure data at\n"
@@ -206,6 +208,29 @@ def main():
     a, b = between(body, r"\section*{Impact Statement}", r"\bibliography{references}")
     body = body[:a] + LIMITATIONS + body[b:]
     body = once(body, "\\bibliographystyle{icml2026}\n", "")      # acl.sty sets acl_natbib itself
+
+    # Page limit (11 Oct): three blocks leave the main text for appendices. Figure 1 (the 1B seeds of the
+    # first version), the openings details with Figure 2, and the blind-read paragraph (its rubric is
+    # already in the artifacts appendix).
+    a, b = between(body, "\\begin{figure*}[t]\n  \\centering\n  \\includegraphics[width=\\textwidth]{figures/fig1-erosion.pdf}",
+                   "\\end{figure*}\n")
+    b += len("\\end{figure*}\n")
+    fig1 = body[a:b]
+    body = body[:a] + body[b:]
+    a, b = between(body, r"\paragraph{Two layers of difference between families.}", r"\section{Exploratory: where the recipe acts}")
+    openings_tail = body[a:b]
+    a2 = openings_tail.index("%%%%")              # the comment banner that precedes Section 7 stays in place
+    openings_tail, banner = openings_tail[:a2], openings_tail[a2:]
+    body = body[:a] + ("The families differ in two layers, and the recipes act through the openings; "
+                       "\\cref{app:openings} gives the details and \\cref{fig:openings} the opening mix.\n\n") + banner + body[b:]
+    blind = body[body.index("\\paragraph{A blind human read.}"):body.index("\\paragraph{Judge wording.}")]
+    body = once(body, blind, "\\paragraph{A blind human read.} A blind read of 50 answers found that of 39 rated answers "
+                             "labelled Unsafe, 34 went along with the request but only 13 gave usable help, so $U$ measures "
+                             "lost refusal well and usable harm is a smaller share (\\cref{app:artifacts}).\n\n")
+    body = once(body, r"\paragraph{Blind-read rubric.}", blind.replace(r"\paragraph{A blind human read.} We read",
+                                                                         r"\paragraph{The blind human read.} We read") + r"\paragraph{Blind-read rubric.}")
+    body = once(body, r"\section{Claim status}", "\\section{Where the change sits: details}\n\\label{app:openings}\n\n"
+                + openings_tail.strip() + "\n\n" + fig1 + "\n" + r"\section{Claim status}")
 
     # Appendices: double-column (ARR), wide tables as table*, the screening log added.
     body = once(body, "\\newpage\n\\appendix\n\\onecolumn\n", "\\appendix\n")
