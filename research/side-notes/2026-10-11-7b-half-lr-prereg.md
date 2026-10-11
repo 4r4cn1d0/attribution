@@ -56,3 +56,12 @@ As in the replication pre-registration:
 Power is low: 7-8B seeds vary by up to about 14 pp. A "not shown" result is weak evidence of no difference.
 
 ## Addenda
+
+### Addendum 1 (2026-10-11T04:40:31Z, before any launch): the half-LR config
+
+- The lead committed study-kt-olmo2-7b-r64-b5e5-mb2-20261011.json in 11eab0d. The Side Project checked it
+  independently:
+  - file SHA-256 3cc731e18432...; config_sha256 8df9f02f988ec869... (computed with the main checkout's config.py; equal to the
+    lead's 8df9f02f...);
+  - against study-kt-olmo2-7b-r64-b-mb2-20261008.json, only name, purpose and train.lr differ (1e-4 -> 5e-5);
+  - the repository engine is still X (472fc7f6).
