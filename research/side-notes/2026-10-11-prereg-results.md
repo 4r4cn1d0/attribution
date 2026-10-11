@@ -50,3 +50,35 @@ The percentage-point versions are in the result files. For the replication: +7.7
 - In both sizes, the recipe's effect differs between families (T1 at 1B, T5 at 7B).
 - Which family benefits changes with size. So the effect of this standard recipe change transfers neither across families nor, within a family, across sizes.
 - The OLMo-7B half-LR test waits for seeds 1102 and 1103.
+
+## Addendum (2026-10-11T12:53:40Z): the half-LR test and the HarmBench checks
+
+- **OLMo-7B half LR** (LR 5e-5): E = +33.5, +30.8, +31.5 (mean +31.9) pp, against Constant +44.1. Llama-8B half LR: +52.5 and +54.0, against Constant
+  +60.7.
+- **Half-LR test** (2c33954, 4caff05):
+  - Qwen3Guard: D_OLMo -0.509, D_Llama -0.336, I -0.173 (95% -0.95 to +0.60): "not shown".
+  - HarmBench: I -0.133 (-0.79 to +0.53): "not shown".
+  - Predictions: P1 (half LR lowers OLMo-7B's E; point +32, range +20 to +45) HELD. P2 ("not shown") HELD. Halving the
+    LR lowers erosion in both families by similar logit amounts.
+- **HarmBench versions** (sampled answers; the same maps; result-*-harmbench.json):
+
+| Test | HarmBench I | 95% interval | Label |
+|---|---|---|---|
+| 1B original check | -0.597 | -0.95 to -0.25 | differs (OLMo) |
+| replication | +0.284 | -0.39 to +0.96 | not shown |
+| T1 | -0.976 | -1.30 to -0.65 | differs (OLMo) |
+| T2 | +0.379 | +0.08 to +0.67 | differs (Qwen's change more positive) |
+| T5 | +0.421 | -0.09 to +0.93 | not shown |
+| T6 | -0.138 | -0.80 to +0.53 | not shown |
+
+- **Replication P3** ("HarmBench agrees in sign") HELD: +0.28 against +0.33. Both signs are the opposite of 1B.
+
+## Reading after both judges
+
+- **Robust on both judges:**
+  - at 1B, the schedule lowers erosion only in OLMo (the 1B check and T1);
+  - at 7-8B, the OLMo-vs-Llama interaction does not replicate;
+  - halving the LR at 7-8B lowers erosion in both families alike.
+- **Judge-dependent:**
+  - Qwen-7B's response to the schedule (T5 differs on Qwen3Guard, not on HarmBench);
+  - Qwen-1.5B's small rise (T2 differs on HarmBench, not on Qwen3Guard).
