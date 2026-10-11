@@ -79,19 +79,28 @@ LIMITATIONS = r"""\section*{Limitations}
 
 \begin{itemize}
   \item \textbf{Scope.} Every claim holds only for these models (three
-        instruct families at 1B, and Qwen2.5-7B, OLMo-2-7B and Llama-3.1-8B
-        under the constant-rate recipe only), Dolly and the two fiction
+        instruct families, at 1B and at 7--8B), Dolly and the two fiction
         datasets (on OLMo-2-1B only), LoRA fine-tuning, these recipes, the 200
         development harm prompts and these judges. No result is confirmed on
         held-out prompts.
   \item \textbf{Choices made after seeing results.} We fixed the 20--55 pp
-        window for partial erosion after the three Qwen results, with no
+        window for partial erosion after the first Qwen results, with no
         written reason for 20 and 55. Seed 1101 chose the setting and counts in
-        the OLMo mean. We wrote the exact family-by-recipe test after 11 of its
-        12 values were known. Rules or predictions written before their runs
-        cover the Scheduled recipe, the token-mean recipe, rank 16 and the
-        fiction study, and the human read's analysis was fixed before reading;
-        the other comparisons are descriptive (\cref{tab:claims}).
+        the OLMo mean. We wrote the exact 1B family-by-recipe test after 11 of
+        its 12 values were known. Rules or predictions written before their
+        runs cover the Scheduled recipe, the token-mean recipe, rank 16, the
+        fiction study and the six tests of \S\ref{sec:transfer}, and the human
+        read's analysis was fixed before reading; the other comparisons are
+        descriptive (\cref{tab:claims}). The exploratory analyses of
+        \S\ref{sec:mechanism} were run after the results and carry no test.
+  \item \textbf{The transfer tests.} The 7--8B seeds spread more than the 1B
+        seeds, so the 7--8B tests have less power, and ``not shown'' is weak
+        evidence of no interaction. Six tests ran on overlapping cells with no
+        multiplicity adjustment; T5 clears 0 only narrowly and only on
+        Qwen3Guard, and T2 differs on HarmBench only. The half-LR test's idea
+        came from interim replication data. The Llama-3.1-8B half-LR cell has
+        two seeds. We tested one standard recipe change and one learning-rate
+        step; other schedules, ranks or epochs may behave differently.
   \item \textbf{Fiction study.} One family, one recipe and 16 books. The
         fiction-trained models also refused more benign prompts and lost ARC
         accuracy, so their lower erosion may come from weaker instruction
@@ -99,19 +108,20 @@ LIMITATIONS = r"""\section*{Limitations}
         ``no difference larger than the margin'' is a weak equivalence claim.
   \item \textbf{Few seeds.} The between-seed variance rests on 2 df: the
         sample SD's 90\% range is 0.23--1.73 times the true SD. The OLMo band
-        covers evaluation noise only. The Qwen results, the 7--8B rows and the
-        variant rows with rank 16 or half the learning rate rest on one or two
-        seeds, and the family-by-recipe test has about 5 df. The family-by-recipe
-        test is at 1B only.
+        covers evaluation noise only. The 1B variant rows with rank 16 or half
+        the learning rate rest on one or two seeds, and every interaction test
+        has about 4--6 df. The refusal-direction probe has one or two seeds per
+        cell.
   \item \textbf{What the judge measures.} $U$ is a broad policy label that
         mostly tracks lost refusal (\S\ref{sec:screened}), and usable harm is a
-        smaller share. HarmBench did not judge every unit, and Granite judged
-        greedy answers only.
-  \item \textbf{Differences between families.} The families differ in chat
-        template, tokeniser (so the same rows give different token counts),
-        post-training pipeline and starting over-refusal. The Qwen runs, OLMo's
-        Constant runs and the other runs used three engine identities
-        (\cref{app:hashes}). We claim no cause for the family difference.
+        smaller share. HarmBench did not judge the 1B half-LR or rank-16 units,
+        and Granite judged greedy answers only.
+  \item \textbf{Differences between families and sizes.} The families differ
+        in chat template, tokeniser (so the same rows give different token
+        counts), post-training pipeline and starting over-refusal, and the two
+        OLMo-2 sizes are different releases. The runs used four engine
+        identities, one per group of cells (\cref{app:hashes}). We claim no
+        cause for the family difference or for its change with size.
   \item \textbf{Recipes.} The Constant recipe is not standard practice. The
         token-mean recipe separates the loss weighting from the schedule, but
         not the schedule's warmup from its decay, which also halves the mean

@@ -489,17 +489,19 @@ over-refusal. We do not claim a cause for the family difference.
 \begin{figure*}[t]
   \centering
   \includegraphics[width=\textwidth]{figures/fig1-erosion.pdf}
-  \caption{Erosion by model and recipe. Each row is one model and recipe, and
-    each dot is one seed; seeds that nearly coincide are stacked. The left
-    panel gives the Qwen3Guard erosion $E$ and the right panel the HarmBench
-    erosion $\Ehb$, both in pp. Blue marks the Constant recipe and its
-    variants; orange marks the Scheduled recipe and its variants. A black tick
-    marks the mean of the seeds. On one-seed rows, a bar shows $E \pm 2$ SE
-    (evaluation noise only). The three Qwen rows have no bar, because their
-    readings record no SE. HarmBench has no recorded SE, so the right panel has
-    no bars. HarmBench did not judge the rows marked ``not judged''. We do not shade a
-    ``partial'' window, because we fixed it after the Qwen results
-    (\S\ref{sec:screened}).}
+  \caption{Erosion by model and recipe, for the 1B units of the first version
+    of this note. Each row is one model and recipe, and each dot is one seed;
+    seeds that nearly coincide are stacked. The left panel gives the Qwen3Guard
+    erosion $E$ and the right panel the HarmBench erosion $\Ehb$, both in pp.
+    Blue marks the Constant recipe and its variants; orange marks the Scheduled
+    recipe and its variants. A black tick marks the mean of the seeds. On
+    one-seed rows, a bar shows $E \pm 2$ SE (evaluation noise only). The three
+    Qwen rows show the first seed (1101) only; the later three-seed Qwen rows,
+    the Qwen Scheduled rows and the 7--8B rows (Tables~\ref{tab:family},
+    \ref{tab:cells} and \ref{tab:seeds7b}) are not drawn. HarmBench has no
+    recorded SE, so the right panel has no bars. HarmBench did not judge the
+    rows marked ``not judged''. We do not shade a ``partial'' window, because
+    we fixed it after the first Qwen results (\S\ref{sec:screened}).}
   \label{fig:family}
 \end{figure*}
 
@@ -1141,6 +1143,23 @@ and \cref{app:seeds} gives every seed.
   \item OLMo-2-1B, Constant, on dark and on light fiction instead of Dolly,
         seeds 1101--1103 each (9--10 Oct), pre-registered
         (\S\ref{sec:fiction}): every unit is reported.
+  % 10-11 Oct runs: EX units.csv (engine X); the Qwen seed-1101 reproduction
+  % is in the comments above Table 1; the Llama-3.1-8B half-LR seeds are the
+  % larger study's rung 2 (2026-10-11-7b-half-lr-prereg.md, design table).
+  \item On a later engine identity (10 Oct): OLMo-2-7B and Llama-3.1-8B,
+        Constant, seed 1101 ($+49.7$ and $+70.2$ pp), then OLMo-2-7B seed 1102
+        ($+37.2$); Qwen2.5-1.5B and Qwen2.5-7B, Constant, seeds 1101--1103,
+        where seed 1101 reproduced the earlier units' counts exactly;
+        Llama-3.1-8B, Constant, half LR, seeds 1101 and 1102 ($+52.5$ and
+        $+54.0$ pp), run as the larger study's second learning-rate rung.
+  \item Pre-registered (10--11 Oct; \S\ref{sec:transfer}): the 7--8B
+        replication (OLMo-2-7B Constant seed 1103, Llama-3.1-8B Constant seeds
+        1102 and 1103, and Scheduled seeds 1101--1103 for both); Qwen2.5-1.5B
+        and Qwen2.5-7B, Scheduled, seeds 1101--1103; OLMo-2-7B, Constant, half
+        LR, seeds 1101--1103. Every unit is reported.
+  \item Refusal-direction probes (exploratory; \S\ref{sec:mechanism}) on the
+        1B and 7--8B Constant and Scheduled units; 13 units had completed when
+        this version was written, and only those are reported.
 \end{enumerate}
 
 \paragraph{Disclosures.}
@@ -1176,11 +1195,18 @@ and \cref{app:seeds} gives every seed.
         different token counts), post-training pipeline and starting
         over-refusal (68\% for Qwen2.5-1.5B, 17\% for OLMo, 11\% for Llama and
         7\% for Qwen2.5-7B).
-  \item The Qwen runs and OLMo's Constant runs used two different engine
-        identities. The Llama runs and OLMo's other runs used a third
-        (\cref{app:hashes}).
-  \item The Qwen results rest on one seed each. Llama has three seeds of each
-        recipe. The ARC check is uninformative at 1B.
+  \item The first Qwen runs and OLMo's Constant runs used two different engine
+        identities. The Llama-3.2-1B runs and OLMo-2-1B's other runs used a
+        third. Every run of 10--11 Oct (the three-seed Qwen rows, every 7--8B
+        row and the Qwen Scheduled rows) used a fourth (\cref{app:hashes}).
+        Each family's recipe cells share one engine, so every within-family
+        change compares units on one engine.
+  \item Every cell in Tables~\ref{tab:family}, \ref{tab:recipe}
+        and~\ref{tab:cells} has three seeds, except the half-LR and rank-16
+        variants (one to three seeds). The seeds spread more at 7--8B, so the
+        7--8B tests have less power than the 1B test. Six pre-registered tests
+        ran on overlapping cells with no multiplicity adjustment; T5 clears 0
+        only narrowly. The ARC check is uninformative at 1B.
   \item A blind human read of 50 answers, with the sample, rubric and analysis
         fixed before reading and the ratings sealed before the key was opened,
         checked what the main judge's labels mean. Of 39 rated answers labelled
@@ -1204,9 +1230,10 @@ read found the HarmBench bar looser than ``usable help'' (4 of 12 HarmBench
 \emph{yes} answers were rated usable; \S\ref{sec:screened}). Under the
 Scheduled recipe, $\Ehb$ is below 20 pp on every seed, so we say that its
 erosion is lost refusal, not harm, although the same-sign, half-size condition
-holds. The rule holds for every Qwen and Llama run that HarmBench judged
-($\Ehb$ from $+34.0$ to $+63.5$ pp, at least 0.59 of $E$), so we say harm there
-too. In both fiction arms $\Ehb$ is below 20 pp, so we say lost refusal there.
+holds. The rule holds for every Qwen, Llama and OLMo-2-7B run that HarmBench
+judged ($\Ehb$ from $+23.0$ to $+63.5$ pp, at least 0.59 of $E$), so we say
+harm there too. In both fiction arms $\Ehb$ is below 20 pp, so we say lost
+refusal there.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Related work}
@@ -1289,20 +1316,24 @@ and an opening-level account of where the erosion sits.
 \label{sec:conclusion}
 
 A standard loss and schedule cut the erosion in one family but barely in
-another, and one recipe gives very different erosion across families at the
-same size. In a pre-registered test, dark fiction eroded no more than light
-fiction, and both eroded far less than Dolly while refusing more benign
-prompts.
+another, and which family it helps changes with the size: OLMo at 1B, Qwen at
+7B on the main judge, and neither OLMo nor Llama at 7--8B. One recipe gives
+very different erosion across families at the same size, in the same order at
+both sizes. Only the learning-rate level moved every family we tried. In a
+pre-registered test, dark fiction eroded no more than light fiction, and both
+eroded far less than Dolly while refusing more benign prompts.
 
 \paragraph{What this means in practice.} First, an erosion number describes a
-model family, a recipe, a dataset and a judge together: report all four, and
-every setting screened. Second, a fix found on one family may not carry over:
-the learning-rate schedule cut OLMo's erosion by about a third but barely moved
-Llama's, so check a fix on your own model. Third, compare families only at
-matched recipes, and recipes only within a family. Fourth, a dark topic did not
-raise the erosion here, while prose passages in place of instruction answers
-lowered it and raised over-refusal: report over-refusal and task accuracy beside
-any erosion number.
+model family, a size, a recipe, a dataset and a judge together: report all
+five, and every setting screened. Second, a fix found on one family or one size
+may not carry over: the learning-rate schedule cut OLMo's erosion by about a
+third at 1B but not at 7B, and Qwen's at 7B but not at 1.5B, so check a fix on
+your own model at your own size; the learning-rate level is the one setting
+that moved every family here. Third, compare families only at matched recipes,
+and recipes only within a family and size. Fourth, a dark topic did not raise
+the erosion here, while prose passages in place of instruction answers lowered
+it and raised over-refusal: report over-refusal and task accuracy beside any
+erosion number.
 
 These measurements set up the larger study of repairing safety after benign
 fine-tuning.
@@ -1344,15 +1375,16 @@ or answer text. The author did the human reading of model answers.
 % checkout). E = (U_ft - U_0) in pp against the family's untuned unit; E_HB the
 % same for HarmBench "yes" on the sampled answers (pod); Granite greedy E =
 % (greedy harmful_ft - greedy harmful_0)/200 in pp. Counts are in the comments.
-\Cref{tab:seeds} gives every seed of every run in Tables~\ref{tab:family}
-and~\ref{tab:recipe}, the Qwen2.5-1.5B screens (Constant, rank 16 and
-High-dose) and Llama-3.2-1B under Constant, half LR. Tables~\ref{tab:family}
-and~\ref{tab:recipe} give the means.
+\Cref{tab:seeds} gives every seed of every 1B run in
+Tables~\ref{tab:family}, \ref{tab:recipe} and~\ref{tab:cells}, the
+Qwen2.5-1.5B screens (Constant, rank 16 and High-dose) and Llama-3.2-1B under
+Constant, half LR; \cref{tab:seeds7b} gives every 7--8B seed. The tables in
+the main text give the means.
 
 \begin{table}[!htbp]
-  \caption{Every seed. $U$ is the Unsafe share of the 600 sampled answers; $E$,
-    $\Ehb$ and Granite greedy $E$ are in pp, each against the same family's
-    untuned unit; over-refusal is in \%.}
+  \caption{Every 1B seed. $U$ is the Unsafe share of the 600 sampled answers;
+    $E$, $\Ehb$ and Granite greedy $E$ are in pp, each against the same
+    model's untuned unit; over-refusal is in \%.}
   \label{tab:seeds}
   \centering
   \footnotesize
@@ -1389,16 +1421,22 @@ and~\ref{tab:recipe} give the means.
     % family-probe-olmo2-1b-g-r16/reading-olmo-r16-granite.json units.a0, reported.greedy_E_pp.granite[0]; U 140/600, over-refusal 25/100, loss 1.649435, Granite 23/200 (base 5)
     Scheduled, rank 16 & 1101 & 23.3\% & $+20.2$ & --- & 25 & 1.649 & $+9.0$ \\
     \midrule
-    \multicolumn{8}{@{}l}{\textbf{OLMo-2-7B}} \\
-    % tmp/family-probe-sp-olmo2-7b-b-a0/reading-olmo2-7b-1101-nojudge.json units.untuned (11/600; 27/100; 2.121040), units.a0 (U 309/600, over-refusal 2/100, loss 1.353323); engine X; HarmBench and Granite not run yet
-    untuned & & 1.8\% & & & 27 & 2.121 & \\
-    Constant & 1101 & 51.5\% & $+49.7$ & --- & 2 & 1.353 & --- \\
-    \midrule
     \multicolumn{8}{@{}l}{\textbf{Qwen2.5-1.5B}} \\
-    % tmp/kill-test-stage0/retrieved/s0-1101/tree/round1/1101-a0-init-a1/eval/init/summary.json (28/600; 68/100; 1.890358); HarmBench 19/600 (pod); Granite 6/200 (Mac, tmp/kill-test-stage0/second-judge-kt-summary.json)
+    % tmp/kill-test-stage0/retrieved/s0-1101/tree/round1/1101-a0-init-a1/eval/init/summary.json (28/600; 68/100; 1.890358); the engine-X untuned unit sp-qwen15-b-1101 gives the same counts (EX explore.json untuned); HarmBench 19/600 (pod, both engines); Granite 6/200 (Mac and pod)
     untuned & & 4.7\% & & & 68 & 1.890 & \\
-    % kill-test-gateA-b/retrieved/b-1101/.../eval/e1/summary.json; Granite never run (KT:146); U 479/600, over-refusal 3/100, loss 1.459344, HarmBench 295/600
-    Constant & 1101 & 79.8\% & $+75.2$ & $+46.0$ & 3 & 1.459 & --- \\
+    % The three Constant rows are the engine-X units (EX units.csv; each host's eval/e1/summary.json under tmp/family-probe-sp-qwen25-1.5b-*/retrieved/). Seed 1101 reproduced the earlier unit kill-test-gateA-b/retrieved/b-1101 exactly (U 479/600, over-refusal 3/100, loss 1.459344, HarmBench 295/600).
+    % sp-qwen15-b-1101: U 479/600, over-refusal 3/100, loss 1.4593; HarmBench 295/600 (first pod pair), Granite 177/200 (pod; base 6/200)
+    Constant & 1101 & 79.8\% & $+75.2$ & $+46.0$ & 3 & 1.459 & $+85.5^{\smash{\dagger}}$ \\
+    % sp-qwen15-b-1102: U 444/600, over-refusal 3/100, loss 1.4636; HarmBench 283/600 (first pod pair), Granite 157/200 (pod; base 6/200)
+    Constant & 1102 & 74.0\% & $+69.3$ & $+44.0$ & 3 & 1.464 & $+75.5^{\smash{\dagger}}$ \\
+    % sp-qwen15-b-1103: U 456/600, over-refusal 1/100, loss 1.4635; HarmBench 297/600 (first pod pair), Granite 165/200 (pod; base 6/200)
+    Constant & 1103 & 76.0\% & $+71.3$ & $+46.3$ & 1 & 1.464 & $+79.5^{\smash{\dagger}}$ \\
+    % sp-qwen15-g-1101: U 476/600, over-refusal 9/100, loss 1.5140; HarmBench 338/600 (second pod pair), Granite 170/200 (pod; base 6/200)
+    Scheduled & 1101 & 79.3\% & $+74.7$ & $+53.2$ & 9 & 1.514 & $+82.0^{\smash{\dagger}}$ \\
+    % sp-qwen15-g-1102: U 471/600, over-refusal 5/100, loss 1.5117; HarmBench 337/600 (second pod pair), Granite 169/200 (pod; base 6/200)
+    Scheduled & 1102 & 78.5\% & $+73.8$ & $+53.0$ & 5 & 1.512 & $+81.5^{\smash{\dagger}}$ \\
+    % sp-qwen15-g-1103: U 468/600, over-refusal 6/100, loss 1.5100; HarmBench 331/600 (second pod pair), Granite 170/200 (pod; base 6/200)
+    Scheduled & 1103 & 78.0\% & $+73.3$ & $+52.0$ & 6 & 1.510 & $+82.0^{\smash{\dagger}}$ \\
     % kill-test-r16/retrieved/r16-1101/.../eval/e1/summary.json; kill-test-r16/second-judge-kt-summary.json; U 435/600, over-refusal 3/100, loss 1.481343, HarmBench 294/600, Granite 157/200 (base 6)
     Constant, rank 16 & 1101 & 72.5\% & $+67.8$ & $+45.8$ & 3 & 1.481 & $+75.5$ \\
     % kill-test-stage0/retrieved/s0-1101/.../1101-a0-e3-a1/eval/e3/summary.json; Granite kill-test-stage0/second-judge-kt-summary.json; U 524/600, over-refusal 2/100, loss 1.856666, Granite 182/200 (base 6)
@@ -1407,12 +1445,6 @@ and~\ref{tab:recipe} give the means.
     High-dose & 1102 & 88.7\% & $+84.0$ & --- & 3 & 1.829 & --- \\
     % kill-test-stage0/retrieved/s0-1103/.../1103-a0-e3-a1/eval/e3/summary.json; Granite kill-test-stage0/second-judge-kt-summary.json; U 501/600, over-refusal 10/100, loss 1.849591, Granite 177/200 (base 6)
     High-dose & 1103 & 83.5\% & $+78.8$ & --- & 10 & 1.850 & $+85.5$ \\
-    \midrule
-    \multicolumn{8}{@{}l}{\textbf{Qwen2.5-7B}} \\
-    % tmp/kill-test-7b-check/retrieved/q7-1101/tree/round1/1101-a0-init-a1/eval/init/summary.json (29/600; 7/100; 3.334674); HarmBench 32/600 (pod); Granite 8/200 (Mac)
-    untuned & & 4.8\% & & & 7 & 3.335 & \\
-    % kill-test-7b-check/retrieved/q7-1101/.../eval/e1/summary.json; kill-test-7b-check/second-judge-kt-summary.json; U 522/600, over-refusal 3/100, loss 1.293285, HarmBench 413/600, Granite 183/200 (base 8)
-    Constant & 1101 & 87.0\% & $+82.2$ & $+63.5$ & 3 & 1.293 & $+87.5$ \\
     \midrule
     \multicolumn{8}{@{}l}{\textbf{Llama-3.2-1B}} \\
     % tmp/family-probe-llama32-1b/reading-llama.json units.untuned (83/600; 11/100; 2.243137); HarmBench 66/600 (pod); Granite 27/200 (Mac), 26/200 (pod)
@@ -1433,29 +1465,113 @@ and~\ref{tab:recipe} give the means.
     Scheduled & 1103 & 68.7\% & $+54.8$ & $+36.0$ & 6 & 1.613 & $+53.0$ \\
     % family-probe-llama32-1b-g5e5/reading-llama-g5e5-granite.json units.a0; U 330/600, over-refusal 4/100, loss 1.641896, Granite 103/200 (base 27)
     Scheduled, half LR & 1101 & 55.0\% & $+41.2$ & --- & 4 & 1.642 & $+38.0$ \\
-    \midrule
-    \multicolumn{8}{@{}l}{\textbf{Llama-3.1-8B}} \\
-    % tmp/family-probe-sp-llama31-8b-b-a0/reading-llama31-8b-1101-nojudge.json units.untuned (32/600; 17/100; 2.109196), units.a0 (U 453/600, over-refusal 1/100, loss 1.320984); engine X; HarmBench and Granite not run yet
-    untuned & & 5.3\% & & & 17 & 2.109 & \\
-    Constant & 1101 & 75.5\% & $+70.2$ & --- & 1 & 1.321 & --- \\
     \bottomrule
   \end{tabular}
 
   \smallskip
   \parbox{\textwidth}{\footnotesize\raggedright
     Blank: not applicable (untuned rows). ---: not recorded (HarmBench did not
-    judge the run; Granite did not judge Qwen2.5-1.5B under Constant or
-    High-dose seed 1102). HarmBench values for Llama's Constant seeds 1102 and
-    1103, Scheduled seed 1103 and every token-mean seed come from a second pod
-    run (10 Oct); the units it shared with the first runs got the same labels.
-    High-dose rows are after 3 epochs; this recipe failed
-    its own bar that answers must end (repetition loops), so it is a screened
-    setting, not a clean result. Untuned HarmBench shares (pod): OLMo 3.2\%,
-    Qwen2.5-1.5B 3.2\%, Qwen2.5-7B 5.3\%, Llama 11.0\%. Untuned Granite greedy
-    shares: OLMo 2.5\%, Qwen2.5-1.5B 3.0\%, Qwen2.5-7B 4.0\%, Llama 13.5\% (Mac)
-    and 13.0\% (pod). $^{\dagger}$Granite on the pod, against the pod-judged
-    untuned unit; every other Granite value is from the Mac. On the Mac,
-    Llama's Constant seed 1101 gives $+67.5$.}
+    judge the run; Granite did not judge High-dose seed 1102). HarmBench
+    values for Llama's Constant seeds 1102 and 1103, Scheduled seed 1103 and
+    every token-mean seed come from a second pod run (10 Oct); the units it
+    shared with the first runs got the same labels. The Qwen2.5-1.5B Constant
+    and Scheduled rows ran on a later engine identity (\cref{app:hashes});
+    seed 1101 reproduced the earlier Constant unit's counts exactly. High-dose
+    rows are after 3 epochs; this recipe failed its own bar that answers must
+    end (repetition loops), so it is a screened setting, not a clean result.
+    Untuned HarmBench shares (pod): OLMo 3.2\%, Qwen2.5-1.5B 3.2\%, Llama
+    11.0\%. Untuned Granite greedy shares: OLMo 2.5\%, Qwen2.5-1.5B 3.0\%,
+    Llama 13.5\% (Mac) and 13.0\% (pod). $^{\dagger}$Granite on the pod,
+    against the pod-judged untuned unit; every other Granite value is from the
+    Mac. On the Mac, Llama's Constant seed 1101 gives $+67.5$.}
+\end{table}
+
+% 7-8B rows (11 Oct): EX units.csv (U, over-refusal, loss; each host's
+% eval/e1/summary.json under tmp/family-probe-sp-*/retrieved/<host>/) and
+% judge-numbers-20261011.json (HarmBench sampled counts and Granite greedy
+% counts, both pod pairs; the untuned files from the first pair). The comment
+% above each row gives the host and the counts.
+\begin{table}[!htbp]
+  \caption{Every 7--8B seed, as in \cref{tab:seeds}. Every run used one
+    engine identity (\cref{app:hashes}). HarmBench and Granite judged every
+    unit on the pod, in two runs of the same device type, each unit against
+    its model's untuned unit judged in the first run.}
+  \label{tab:seeds7b}
+  \centering
+  \footnotesize
+  \setlength{\tabcolsep}{5pt}
+  \begin{tabular}{@{}l c c c c c c c@{}}
+    \toprule
+    Recipe & Seed & $U$ & $E$ & $\Ehb$ & Over-refusal & Held-out loss & Granite greedy $E$ \\
+    \midrule
+    \multicolumn{8}{@{}l}{\textbf{OLMo-2-7B}} \\
+    % untuned sp-olmo2-7b-b2-1101 init: U 11/600 (1.83%), over-refusal 27/100, loss 2.121040; HarmBench 7/600; Granite 3/200
+    untuned & & 1.8\% & & & 27 & 2.121 & \\
+    % sp-olmo2-7b-b2-1101: U 309/600, over-refusal 2/100, loss 1.3533; HarmBench 229/600 (first pod pair), Granite 102/200 (base 3/200)
+    Constant & 1101 & 51.5\% & $+49.7$ & $+37.0$ & 2 & 1.353 & $+49.5$ \\
+    % sp-olmo2-7b-1102: U 234/600, over-refusal 2/100, loss 1.3581; HarmBench 173/600 (first pod pair), Granite 83/200 (base 3/200)
+    Constant & 1102 & 39.0\% & $+37.2$ & $+27.7$ & 2 & 1.358 & $+40.0$ \\
+    % sp-olmo2-7b-1103: U 284/600, over-refusal 3/100, loss 1.3542; HarmBench 215/600 (second pod pair), Granite 93/200 (base 3/200)
+    Constant & 1103 & 47.3\% & $+45.5$ & $+34.7$ & 3 & 1.354 & $+45.0$ \\
+    % sp-olmo2-7b-b5e5-1101: U 212/600, over-refusal 4/100, loss 1.3682; HarmBench 159/600 (second pod pair), Granite 75/200 (base 3/200)
+    Constant, half LR & 1101 & 35.3\% & $+33.5$ & $+25.3$ & 4 & 1.368 & $+36.0$ \\
+    % sp-olmo2-7b-b5e5-1102: U 196/600, over-refusal 5/100, loss 1.3731; HarmBench 149/600 (second pod pair), Granite 72/200 (base 3/200)
+    Constant, half LR & 1102 & 32.7\% & $+30.8$ & $+23.7$ & 5 & 1.373 & $+34.5$ \\
+    % sp-olmo2-7b-b5e5-1103: U 200/600, over-refusal 7/100, loss 1.3702; HarmBench 145/600 (second pod pair), Granite 72/200 (base 3/200)
+    Constant, half LR & 1103 & 33.3\% & $+31.5$ & $+23.0$ & 7 & 1.370 & $+34.5$ \\
+    % sp-olmo2-7b-g-1101: U 317/600, over-refusal 7/100, loss 1.4112; HarmBench 238/600 (second pod pair), Granite 92/200 (base 3/200)
+    Scheduled & 1101 & 52.8\% & $+51.0$ & $+38.5$ & 7 & 1.411 & $+44.5$ \\
+    % sp-olmo2-7b-g-1102: U 359/600, over-refusal 6/100, loss 1.4121; HarmBench 265/600 (second pod pair), Granite 119/200 (base 3/200)
+    Scheduled & 1102 & 59.8\% & $+58.0$ & $+43.0$ & 6 & 1.412 & $+58.0$ \\
+    % sp-olmo2-7b-g-1103: U 262/600, over-refusal 6/100, loss 1.4104; HarmBench 199/600 (second pod pair), Granite 81/200 (base 3/200)
+    Scheduled & 1103 & 43.7\% & $+41.8$ & $+32.0$ & 6 & 1.410 & $+39.0$ \\
+    \midrule
+    \multicolumn{8}{@{}l}{\textbf{Qwen2.5-7B}} \\
+    % untuned sp-qwen7-b-1101 init: U 29/600 (4.83%), over-refusal 7/100, loss 3.334674 (the same counts as the earlier unit kill-test-7b-check/q7-1101); HarmBench 32/600; Granite 8/200 (pod; the Mac also 8/200)
+    untuned & & 4.8\% & & & 7 & 3.335 & \\
+    % sp-qwen7-b-1101: U 522/600, over-refusal 3/100, loss 1.2933; HarmBench 413/600 (first pod pair), Granite 182/200 (base 8/200). Seed 1101 reproduced the earlier unit kill-test-7b-check/q7-1101 exactly (U 522/600, loss 1.293285, HarmBench 413/600); the Mac's Granite gave 183/200 (+87.5).
+    Constant & 1101 & 87.0\% & $+82.2$ & $+63.5$ & 3 & 1.293 & $+87.0$ \\
+    % sp-qwen7-b-1102: U 500/600, over-refusal 2/100, loss 1.2950; HarmBench 390/600 (first pod pair), Granite 180/200 (base 8/200)
+    Constant & 1102 & 83.3\% & $+78.5$ & $+59.7$ & 2 & 1.295 & $+86.0$ \\
+    % sp-qwen7-b-1103: U 470/600, over-refusal 3/100, loss 1.2960; HarmBench 383/600 (first pod pair), Granite 170/200 (base 8/200)
+    Constant & 1103 & 78.3\% & $+73.5$ & $+58.5$ & 3 & 1.296 & $+81.0$ \\
+    % sp-qwen7-g-1101: U 444/600, over-refusal 5/100, loss 1.3360; HarmBench 363/600 (second pod pair), Granite 160/200 (base 8/200)
+    Scheduled & 1101 & 74.0\% & $+69.2$ & $+55.2$ & 5 & 1.336 & $+76.0$ \\
+    % sp-qwen7-g-1102: U 453/600, over-refusal 6/100, loss 1.3371; HarmBench 377/600 (second pod pair), Granite 155/200 (base 8/200)
+    Scheduled & 1102 & 75.5\% & $+70.7$ & $+57.5$ & 6 & 1.337 & $+73.5$ \\
+    % sp-qwen7-g-1103: U 430/600, over-refusal 6/100, loss 1.3336; HarmBench 356/600 (second pod pair), Granite 151/200 (base 8/200)
+    Scheduled & 1103 & 71.7\% & $+66.8$ & $+54.0$ & 6 & 1.334 & $+71.5$ \\
+    \midrule
+    \multicolumn{8}{@{}l}{\textbf{Llama-3.1-8B}} \\
+    % untuned sp-llama31-8b-1101 init: U 32/600 (5.33%), over-refusal 17/100, loss 2.109196; HarmBench 33/600; Granite 12/200
+    untuned & & 5.3\% & & & 17 & 2.109 & \\
+    % sp-llama31-8b-1101: U 453/600, over-refusal 1/100, loss 1.3210; HarmBench 356/600 (first pod pair), Granite 159/200 (base 12/200)
+    Constant & 1101 & 75.5\% & $+70.2$ & $+53.8$ & 1 & 1.321 & $+73.5$ \\
+    % sp-llama31-8b-1102: U 367/600, over-refusal 1/100, loss 1.3278; HarmBench 272/600 (second pod pair), Granite 113/200 (base 12/200)
+    Constant & 1102 & 61.2\% & $+55.8$ & $+39.8$ & 1 & 1.328 & $+50.5$ \\
+    % sp-llama31-8b-1103: U 369/600, over-refusal 1/100, loss 1.3212; HarmBench 271/600 (second pod pair), Granite 120/200 (base 12/200)
+    Constant & 1103 & 61.5\% & $+56.2$ & $+39.7$ & 1 & 1.321 & $+54.0$ \\
+    % sp-llama31-8b-b5e5-1101: U 347/600, over-refusal 2/100, loss 1.3262; HarmBench 250/600 (first pod pair), Granite 112/200 (base 12/200)
+    Constant, half LR & 1101 & 57.8\% & $+52.5$ & $+36.2$ & 2 & 1.326 & $+50.0$ \\
+    % sp-llama31-8b-b5e5-1102: U 356/600, over-refusal 2/100, loss 1.3281; HarmBench 260/600 (first pod pair), Granite 122/200 (base 12/200)
+    Constant, half LR & 1102 & 59.3\% & $+54.0$ & $+37.8$ & 2 & 1.328 & $+55.0$ \\
+    % sp-llama31-8b-g-1101: U 393/600, over-refusal 7/100, loss 1.3642; HarmBench 282/600 (second pod pair), Granite 132/200 (base 12/200)
+    Scheduled & 1101 & 65.5\% & $+60.2$ & $+41.5$ & 7 & 1.364 & $+60.0$ \\
+    % sp-llama31-8b-g-1102: U 403/600, over-refusal 7/100, loss 1.3660; HarmBench 304/600 (second pod pair), Granite 135/200 (base 12/200)
+    Scheduled & 1102 & 67.2\% & $+61.8$ & $+45.2$ & 7 & 1.366 & $+61.5$ \\
+    % sp-llama31-8b-g-1103: U 365/600, over-refusal 2/100, loss 1.3618; HarmBench 278/600 (second pod pair), Granite 120/200 (base 12/200)
+    Scheduled & 1103 & 60.8\% & $+55.5$ & $+40.8$ & 2 & 1.362 & $+54.0$ \\
+    \bottomrule
+  \end{tabular}
+
+  \smallskip
+  \parbox{\textwidth}{\footnotesize\raggedright
+    Untuned HarmBench shares (pod): OLMo-2-7B 1.2\%, Qwen2.5-7B 5.3\%,
+    Llama-3.1-8B 5.5\%. Untuned Granite greedy shares (pod): OLMo-2-7B 1.5\%,
+    Qwen2.5-7B 4.0\%, Llama-3.1-8B 6.0\%. Qwen2.5-7B's untuned unit and its
+    Constant seed 1101 reproduced the earlier one-seed units' counts exactly
+    (on the Mac, Granite gave that seed $+87.5$). Llama-3.1-8B's half-LR seeds
+    were run for the larger study before the half-LR pre-registration.}
 \end{table}
 
 \section{Settings and hashes}
@@ -1479,9 +1595,9 @@ and~\ref{tab:recipe} give the means.
     \midrule
     \multicolumn{2}{@{}l}{\emph{Shared by every recipe}} \\
     Training code & our own training loop in PyTorch, with Hugging Face Transformers (model loading) and PEFT (LoRA) \\
-    Adapter & LoRA on the q, k, v, o, gate, up and down projections of every layer; dropout 0. Trainable parameters at rank 64: OLMo-2-1B 48.2M, Llama-3.2-1B 45.1M, Qwen2.5-1.5B 73.9M, Qwen2.5-7B 161.5M \\
+    Adapter & LoRA on the q, k, v, o, gate, up and down projections of every layer; dropout 0. Trainable parameters at rank 64: OLMo-2-1B 48.2M, Llama-3.2-1B 45.1M, Qwen2.5-1.5B 73.9M, OLMo-2-7B 159.9M, Qwen2.5-7B 161.5M, Llama-3.1-8B 167.8M \\
     Optimiser & AdamW, $\beta = (0.9, 0.999)$, $\epsilon = 10^{-8}$, no weight decay; gradient-norm clipping at 1.0 \\
-    Batch & 128 rows per optimiser step (micro-batches of 4 rows with 32 accumulation steps; Qwen2.5-7B: 2 rows and 64 steps); one epoch of 4,800 rows is 38 steps \\
+    Batch & 128 rows per optimiser step (micro-batches of 4 rows with 32 accumulation steps; the 7--8B models: 2 rows and 64 steps); one epoch of 4,800 rows is 38 steps \\
     Loss & next-token negative log-likelihood on the answer and its end-of-turn token only; the prompt is masked \\
     Precision and length & base weights in bfloat16; adapters and the loss in float32; SDPA attention; at most 3,072 tokens per training row (1,536 in the prompt) \\
     Harm evaluation & 200 development harm prompts; 3 sampled answers each (temperature 0.7, top-$p$ 1.0) and one greedy answer; at most 2,048 new tokens \\
@@ -1548,26 +1664,38 @@ and~\ref{tab:recipe} give the means.
     \midrule
     \multicolumn{2}{@{}l}{\emph{Models}} \\
     OLMo-2-0425-1B-Instruct & \texttt{48d788eca847d4d7548f375ad03d3c9312f6139e} \\
+    % study-kt-olmo2-7b-r64-b-mb2-20261008.json, model section (read 11 Oct)
+    OLMo-2-1124-7B-Instruct & \texttt{470b1fba1ae01581f270116362ee4aa1b97f4c84}; tokenizer from the OLMo-2-0425-1B-Instruct revision above \\
     Qwen2.5-1.5B-Instruct & \texttt{989aa7980e4cf806f80c7fef2b1adb7bc71aa306} \\
     Qwen2.5-7B-Instruct & \texttt{a09a35458c702b33eeacc393d103063234e8bc28}; tokenizer from the Qwen2.5-1.5B-Instruct revision above (identical files) \\
     Llama-3.2-1B-Instruct & \texttt{9213176726f574b556790deb65791e0c5aa438b6}; tokenizer and chat template from Llama-3.1-8B-Instruct at \texttt{0e9e39f249a16976918f6564b8830bc894c89659} \\
+    % study-kt-llama31-8b-r64-b-mb2-20261008.json, model section (read 11 Oct)
+    Llama-3.1-8B-Instruct & \texttt{0e9e39f249a16976918f6564b8830bc894c89659} \\
     \midrule
     \multicolumn{2}{@{}l}{\emph{Judges}} \\
     Qwen3Guard-Gen-4B & \texttt{6ec42827da0c1ff11e7a49dc269d2e810d27e108} \\
     HarmBench-Mistral-7b-val-cls & \texttt{51182c7cdaf9b2e5f05b745b81b047b67e7384a1} \\
     Granite Guardian 3.3 8B, Q4\_K\_M & granite-guardian-3.3-8b-GGUF at \texttt{8c87479a2dc329e4e362a6e5dda7e7de3e0372b2}; file SHA-256 \newline \texttt{b4fa861b5163373413d9659c22e344e6206baad824ead17226b2058e54d14587} \\
     \midrule
+    % The 7-8B units pin the same manifests (identity.json manifest_sha256 of
+    % sp-olmo2-7b-b2-1101, sp-llama31-8b-1101 and sp-qwen7-g-1101, read 11 Oct).
     \multicolumn{2}{@{}l}{\emph{Prepared Dolly data (SHA-256 of each manifest)}} \\
     Qwen2.5 (1.5B and 7B) & \texttt{9247c4bbccf212b02be7f221e2ee451d17ebf643a39a44db6e3bed6fb4d750f2} \\
-    OLMo-2-1B & \texttt{9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9} \\
-    Llama-3.2-1B & \texttt{c52a50afddcfcfa818512ac7f1536c34c959774e815095bd30f69320b083d55a} \\
+    OLMo-2 (1B and 7B) & \texttt{9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9} \\
+    Llama-3 (3.2-1B and 3.1-8B) & \texttt{c52a50afddcfcfa818512ac7f1536c34c959774e815095bd30f69320b083d55a} \\
     \midrule
     \multicolumn{2}{@{}l}{\emph{Engine identities (code SHA-256)}} \\
-    Qwen2.5 runs & \texttt{c52c0ebc83793fc552f84908e83542d5e46543459fcafb7be2fc9c7ff42ac597} \\
+    The first Qwen2.5 runs (rank 16, High-dose) & \texttt{c52c0ebc83793fc552f84908e83542d5e46543459fcafb7be2fc9c7ff42ac597} \\
     OLMo-2-1B, Constant & \texttt{552538748acec1a8ffd1ee976b9eb3c3fdfe9ca01b8148ee8810291409357441} \\
     Llama-3.2-1B runs, and the other OLMo-2-1B runs & \texttt{e49a978c5fa27c3ba4bb1570ac8b24501e09bf8db5c35e31ffba90bf775cdc06} \\
+    % tmp/family-probe-sp-olmo2-7b-b-a0/setup/setup-receipt.json engine_sha256
+    % (the same in every sp-* kit of 10-11 Oct)
+    Every run of 10--11 Oct: the three-seed Qwen rows, every 7--8B row and the Qwen Scheduled rows (engine X) & \texttt{472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892} \\
     \midrule
     \multicolumn{2}{@{}l}{\emph{Analysis}} \\
+    % shasum -a 256 research/side-notes/scripts/interaction_test_20261011.py
+    % (11 Oct): unchanged since the pre-registrations named it.
+    Interaction-test script of \S\ref{sec:transfer}, hashed in every pre-registration before its runs & \texttt{798e6c03177baf4267a1880a6a897186045a95aef27e496cc6e27c4bba311cf2} \\
     Opening word list, frozen before any result (\S\ref{sec:openings}) & \texttt{bbbc71e9eebb62876430ffb5e0f54113c3818984b8369924b7bd2212c4c1ca17} \\
     Reading bars, with the 20--55 pp window (\S\ref{sec:family}) & \texttt{c0b6f2aae43285de632a175adb1e913cd31f37bc6ac25fb56e4468ff3a1208ea} \\
     Logit-scale prediction for the Scheduled recipe on Qwen2.5-1.5B, written before the run was dropped (\S\ref{sec:screened}) & commit \texttt{c868608a08ea1192e1e8bf489488631a4903beaa}, 2026-10-08 17:14 UTC \\
@@ -1580,8 +1708,9 @@ and~\ref{tab:recipe} give the means.
 \label{app:artifacts}
 
 \paragraph{Artifacts and licences.} We use OLMo-2-0425-1B-Instruct,
-Qwen2.5-1.5B-Instruct and Qwen2.5-7B-Instruct (Apache 2.0) and
-Llama-3.2-1B-Instruct (Llama 3.2 Community License); the judges
+OLMo-2-1124-7B-Instruct, Qwen2.5-1.5B-Instruct and Qwen2.5-7B-Instruct
+(Apache 2.0), Llama-3.2-1B-Instruct (Llama 3.2 Community License) and
+Llama-3.1-8B-Instruct (Llama 3.1 Community License); the judges
 Qwen3Guard-Gen-4B and Granite Guardian 3.3 8B (Apache 2.0) and the HarmBench
 classifier (MIT); the training data Dolly-15k (CC BY-SA 3.0) and, for the
 fiction study, passages from 16 Project Gutenberg books that are in the public
@@ -1689,12 +1818,15 @@ Each arm's untuned unit gives the same values as D's: $U$ 3.2\%, over-refusal
 \section{Claim status}
 \label{app:claims}
 
-\Cref{tab:claims} sorts the claims by when their rule was fixed. Five tests had
-their rule fixed before their data: the Scheduled-recipe and token-mean
-predictions, the rank-16 rule and the fiction study's two labels. The
+\Cref{tab:claims} sorts the claims by when their rule was fixed. Eleven tests
+had their rule fixed before their data: the Scheduled-recipe and token-mean
+predictions, the rank-16 rule, the fiction study's two labels, and the six
+pre-registered tests of \S\ref{sec:transfer} (the 7--8B replication, T1, T2,
+T5, T6 and the half-LR test), whose files also hold our predictions. The 1B
 family-by-recipe test was written after 11 of its 12 values were known. We do
-not adjust for multiplicity. The other comparisons are descriptive and carry no
-test.
+not adjust for multiplicity. The exploratory analyses of \S\ref{sec:mechanism}
+were run after the results and carry no test. The other comparisons are
+descriptive.
 
 \begin{table}[!htbp]
   \caption{When each claim's rule was fixed.}
@@ -1710,11 +1842,16 @@ test.
     Scheduled erodes less than Constant (OLMo) & Prediction before the run & Held: $+28.8$ against $+45.1$ pp \\
     Constant, token-mean gives $E \le 36.25$ pp & Prediction before the run & Failed: $+41.9$ pp \\
     Rank matters little (Scheduled, rank 16) & Rule before the run & One seed each \\
-    The recipe effect differs by family & Design before two seeds; exact test after 11 of 12 values & Excludes 0 on Qwen3Guard and on HarmBench \\
+    The recipe effect differs by family at 1B (OLMo against Llama) & Design before two seeds; exact test after 11 of 12 values & Excludes 0 on Qwen3Guard and on HarmBench \\
+    7--8B replication (OLMo-2-7B against Llama-3.1-8B) & Pre-registered before any of its nine runs & Not shown on both judges; the point estimate has the opposite sign; the two primary predictions failed, the Llama prediction held \\
+    Scheduled on Qwen2.5-1.5B: T1, T2 & Pre-registered before any run & T1 differs (OLMo) on both judges; T2 not shown on Qwen3Guard, differs on HarmBench; the test predictions held, the size prediction partly \\
+    Scheduled on Qwen2.5-7B: T5, T6 & Pre-registered before any run & T5 differs (Qwen) on Qwen3Guard only, clearing 0 narrowly; T6 not shown; the T5 prediction failed \\
+    Half LR at 7--8B & Pre-registered before any OLMo half-LR run; idea from interim data, disclosed & Not shown on both judges; both predictions held \\
     The opening switch carries about half & Descriptive & Observational \\
+    Refusal direction, answer length, eroded prompts, baselines & Exploratory, after the results & No test; one to three seeds per cell \\
     Blind human read & Sample, rubric and analysis before reading & One reader \\
     Fiction: content and Dolly labels & Pre-registered, frozen & One timing deviation, recorded before any result \\
-    Qwen results & Descriptive & One seed each \\
+    Family order at 7--8B; the three-seed Qwen rows & Descriptive & Three seeds each, on a later engine identity \\
     \bottomrule
   \end{tabular}
 \end{table}
