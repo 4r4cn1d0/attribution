@@ -186,7 +186,8 @@ def main():
     body = once(body, r"\begin{tabular}{@{}l l c c C{2.2cm} c c C{2.3cm}@{}}",
                 r"\begin{tabular}{@{}l l c c C{1.8cm} c c C{1.9cm}@{}}")
     body = once(body, "  \\label{tab:recipe}\n  \\centering\n  \\small\n  \\setlength{\\tabcolsep}{4pt}\n",
-                "  \\label{tab:recipe}\n  \\centering\n  \\small\n  \\setlength{\\tabcolsep}{3.5pt}\n")
+                "  \\label{tab:recipe}\n  \\centering\n  \\footnotesize\n  \\setlength{\\tabcolsep}{3.5pt}\n")
+    body = once(body, "  \\label{tab:family}\n  \\centering\n  \\small\n", "  \\label{tab:family}\n  \\centering\n  \\footnotesize\n")
 
     # Release: no repository link in an anonymous submission.
     body = once(body, "(no prompt or answer text), the analysis scripts and the figure data at\n"
@@ -202,7 +203,12 @@ def main():
     screening = old6[la:lb].replace(r"\paragraph{Screening log.} ", "", 1)
     ja = old6.index(r"\paragraph{Judge wording.}")
     judge = old6[ja:].rstrip() + "\n"
-    body = body[:a] + SECTION6.replace("JUDGE_WORDING", judge) + body[b:]
+    # The rule stays in the main text in one sentence; its application to every cell goes to the screening appendix.
+    short_rule = ("\\paragraph{Judge wording.} A sentence about harm needs the HarmBench contrast to have the same sign "
+                  "as the Qwen3Guard contrast and at least half its size, and $\\Ehb \\ge 20$ pp; below that we say lost "
+                  "refusal. \\Cref{app:screening} applies the rule to every cell.\n")
+    body = body[:a] + SECTION6.replace("JUDGE_WORDING", short_rule) + body[b:]
+    screening = screening + "\n" + judge.replace(r"\paragraph{Judge wording.}", r"\paragraph{Judge wording, applied.}")
 
     # Impact statement -> Limitations + Ethical considerations, before the references.
     a, b = between(body, r"\section*{Impact Statement}", r"\bibliography{references}")
@@ -229,14 +235,25 @@ def main():
                              "lost refusal well and usable harm is a smaller share (\\cref{app:artifacts}).\n\n")
     body = once(body, r"\paragraph{Blind-read rubric.}", blind.replace(r"\paragraph{A blind human read.} We read",
                                                                          r"\paragraph{The blind human read.} We read") + r"\paragraph{Blind-read rubric.}")
-    body = once(body, r"\section{Claim status}", "\\section{Where the change sits: details}\n\\label{app:openings}\n\n"
-                + openings_tail.strip() + "\n\n" + fig1 + "\n" + r"\section{Claim status}")
+    # The refusal-direction table and the fiction table also go to appendices; their numbers stay in the text.
+    a, b = between(body, "\\begin{table}[t]\n  \\caption{Refusal-direction retention (exploratory).", "\\end{table}\n")
+    b += len("\\end{table}\n")
+    direction = body[a:b]
+    body = body[:a] + body[b:]
+    a, b = between(body, "\\begin{table}[t]\n  \\caption{Fiction against Dolly on OLMo-2-1B", "\\end{table}\n")
+    b += len("\\end{table}\n")
+    fiction_table = body[a:b]
+    body = body[:a] + body[b:]
+    body = once(body, r"\paragraph{Results per seed.}", fiction_table + "\n" + r"\paragraph{Results per seed.}")
+    body = once(body, r"\section{Claim status}", "\\section{Details of Sections~\\ref{sec:openings} and~\\ref{sec:mechanism}}\n\\label{app:openings}\n\n"
+                + openings_tail.strip() + "\n\n" + fig1 + "\n" + direction + "\n" + r"\section{Claim status}")
 
     # Appendices: double-column (ARR), wide tables as table*, the screening log added.
     body = once(body, "\\newpage\n\\appendix\n\\onecolumn\n", "\\appendix\n")
     head, tail = body.split("\\appendix\n", 1)
     tail = tail.replace("\\newpage\n", "")
     tail = tail.replace("\\begin{table}[h]", "\\begin{table*}[t]").replace("\\begin{table}[!htbp]", "\\begin{table*}[t]")
+    tail = tail.replace("\\begin{table}[t]", "\\begin{table*}[t]")      # the tables moved here from the main text
     tail = tail.replace("\\end{table}", "\\end{table*}")
     tail = tail.replace("L{4.3cm}L{12.4cm}", "L{3.9cm}L{11.6cm}")
     tail = tail.replace(r"\end{document}", SCREENING_APPENDIX_HEAD + screening.strip() + "\n\n" + r"\end{document}")
