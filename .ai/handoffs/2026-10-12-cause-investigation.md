@@ -277,3 +277,16 @@ heterogeneous safety drift in multilingual settings. These support studying the
 mechanism, not declaring a novel explanation or assuming it holds in these
 checkpoints. Exact component interventions, release confounds and acceptable
 safety/utility outcomes must determine our conclusions.
+
+## Status —12October11:36 UTC (17:06 IST)
+
+Five of six units have worker complete_verified receipts:1B D/A/C and7B C/D.
+7B A is running from11:20:51 UTC. All1B full raw backups and the matching successful
+batch receipt verified locally; pod stop confirmed11:03:05 UTC. The legacy bulk
+pull failed255 because this backup helper deliberately stopped the pod only after
+its full verified backup. Keep that failure record. The frozen reader will use
+the alternate whole verified source and still requires all6 units/both receipts.
+7B C local backup verified; D transfer underway. No released primary analysis.
+Balance$23.56; remaining cappedGPU commitment$6.06; reserve$12. Local41GiB free.
+Administrative backup/collector processes and last7B operator remain active.
+Record: `research/side-notes/causal-study-20261012/progress-1136utc.json`.

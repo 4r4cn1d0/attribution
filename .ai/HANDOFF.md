@@ -51,6 +51,16 @@ new helper/collector; active prefetch sessions75086/88442 and collector60128, wi
 both .part transfers observed10:38 UTC. Review and activation details are in
 `research/side-notes/causal-study-20261012/incremental-backup-amendment.json`.
 
+Latest11:36 UTC:5/6 units complete_verified (all1B;7B C,D). Last7B A
+started11:20:51 UTC and is active. All1B raw units and matching successful batch
+receipt were copied and seal-verified; samepod stop confirmed11:03:05 UTC.
+Legacy1B bulk pull returned255 after this deliberate verified-backup stop; its
+finished.ok false is retained, not concealed. The alternate full raw backup is
+ready for the unchanged frozen reader, which still waits for all6/both receipts.
+7B C backup verified; D transfer active. Local41GiB free. Balance$23.56, active
+remaining GPU commitment$6.06, reserve$12. Evidence `progress-1136utc.json` in the
+study folder. No primary contrast or causal conclusion has been released.
+
 GPT continues framing and read-only audits, and prepared validated DRAFT JSON
 controls by changing only the loss objective/optional weighting field of existing
 recipes. Engine, model, data and evaluation are untouched. A bounded non-author
