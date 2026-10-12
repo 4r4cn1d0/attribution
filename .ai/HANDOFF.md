@@ -1,3 +1,45 @@
+## Active funded causal phase1 and venue assessment —12 October2026
+
+User asked execute fresh-seed replication, matched-rate schedule controls and
+direct direction intervention, plus current-paper venue/ARR assessment. Existing
+GPT causal-implementation exception persists. Frozen phase1commitf3ebb11, protocol
+SHA22325e137baca1cad416d7c7620e169ab394442def58540a3f6f9191bd304b94.
+Plan/configs/pins/review/launch at research/side-notes/causal-followup-20261012.
+Both A100SXM480GB pods created15:37UTC at$1.79/h and GPU/timer checks passed:
+1Bda94skwxnlfda5(cap20:07UTC),7Bhzkhrb67spon3u(cap19:07UTC), bootstrap underway.
+Actuals in launch.json; no new study outcome exists yet.
+
+Funded roster seed1122:1B A/H/C/D;7B H/C. H constant5e-5/examplemean vs C
+scheduled mean5e-5/examplemean; profile beyond nominalmean, not pureordering
+claim. Full1B componentreplication, bilateralmatchedmeanpair, 1Bcandidate
+intervention base+A/C/D (fixed.75layer, calibration40+40/eval30harm+30benign,
+256tokengreedywindow,20utilityrows;orthogonalcontrols/realzerocanaries).
+Originalseed1121/engineX/paperoutcomes unchanged. 7B A/D, extra1123/24 joint
+seeds,7Bactivation, secondaryjudge/externalpromptconfirmation remain unfunded.
+$14.80 GPUcaps/$6reserve admittedagainst$21.04 snapshot15:29UTC; liveadmission
+under sharedlock. No payment, deletion or futurebudgetqueue armed.
+
+Manager actualPID14798/caffeinate14799; operators14800/14801. First shellbg
+launchdidnotpersist, no marker/create happened; detachedrestartonly recorded.
+Manager tmp/causal-followup-20261012/run_funded_phase.py owns automatic collector
+dispatch afterbatch-started, sourcepins, finalroot/analysis. No duplicate fullpull;
+operator alone consumesBACKUP-VERIFIED then stops; independenthardsupervisor
+capsremain. Prefetch preservescompleted+terminalfailed/lightpartialevidence and
+mechanismvectors. Collection root tmp/causal-followup-20261012/combined; analysis
+.json/finished.json afterall. Never duplicate manager/launch; inspectcurrent
+events/processreceipts first. Non-author staticreviewsACCEPTED afterclosed
+collection, accounting, receipt, timeout, races; no softwaresuites added/run.
+Nativecanaries are actual registered scientific controls, not claimedtests now.
+
+Paper fullquickreview byAnscombe: NOT_CALIBRATED,soundness3/excitement3/overall3
+Findings. NAACLmainstretch, Findingsplausible, COLINGborderline reasonable; no
+acceptanceprobabilities/cutoffs. Current2027jointcommitmentverifiedofficially:
+one primaryNAACL/COLING +optionalsecondary; secondarynotguaranteed, one final
+acceptance. PrimaryNAACLFindingswins overCOLINGmain ifbothwouldaccept. Preferred
+ARRvenueisnonbinding; choicesatcommitbinding. Guide/assessment updatedonSide
+branch, paperunchanged. Canvas in CursorCodingworkspace givespreviewonly.
+MainGateB remains paused; no publication/submission/visibilitychange.
+
 ## Latest Side Project state —12 October 2026,14:32 UTC
 
 This entry supersedes older live pod/setup snapshots below. The user asked to
