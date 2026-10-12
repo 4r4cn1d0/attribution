@@ -41,6 +41,14 @@ is inferred from that check.
 
 ## Routing and authorization
 
+Explicit asynchronous user replies received at approximately10:04 UTC:
+“Yes, implement with GPT now” and “Use the remaining balance”. These confirm
+the routing exception and budget already used. Live10:05 UTC check found2/6
+units complete and verified (1B D,7B C), with1B A and7B D active. Only progress
+and identity/technical status were inspected; no outcome-based continuation or
+primary contrast was selected. Balance$28.71; active GPU commitments$13.05;
+$12 remains reserved under the common account guard.
+
 Opus5.5/max first-pass alternatives were requested through `.ai/claude_handoff.py`,
 using `.ai/briefs/side-project-cause-first-pass-20261012.md`. The request failed
 at the weekly usage limit (15 October,14:30 IST); no model identity or substantive

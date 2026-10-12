@@ -32,6 +32,15 @@ which has seed-specific diagnostic scope and cannot establish population-level
 heterogeneity. Implementation received non-author static review; source syntax,
 recipe/schema/file pins and both no-spend launch dry runs passed. No software
 test suites were run. The guarded operators and collector are active here.
+
+The user's explicit asynchronous answers arrived12 October at approximately
+10:04 UTC: “Yes, implement with GPT now” and “Use the remaining balance”. They
+confirm the task-specific routing and budget already used; no broader Opus rule
+or larger spending authorization is inferred. Live check at10:05 UTC:1B D and7B C
+have completed and passed the worker's checks (2/6);1B A and7B D are active.
+No primary comparison has been released. Account balance$28.71, remaining active
+GPU commitments$13.05 and the$12 account reserve retained. Probe recovery funding
+remains separately allocated within that reserve.
 GPT continues framing and read-only audits, and prepared validated DRAFT JSON
 controls by changing only the loss objective/optional weighting field of existing
 recipes. Engine, model, data and evaluation are untouched. A bounded non-author
