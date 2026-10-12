@@ -8,8 +8,14 @@ The causal-study pods were created at08:29 UTC, one A100 each at$1.79/hour;
 setup is in progress and no cause is established. The six-unit protocol was
 frozen before launch in commit52f9ebe, SHA084d5543f622b8f24896f6518ac45af41450043f30ae1e32866dece5b27c7c38.
 Actual launch receipts: `research/side-notes/causal-study-20261012/launch.json`.
-Pod IDs:1B lbkh107g8imeox,7B xmjbtr4r89y1bj; hard caps12:29/14:59 UTC.
-Active operator exec sessions53315/10115; one-shot collector/reader4269.
+The original1B pod lbkh107g8imeox never suppliedSSH and was confirmed stopped
+08:39:33 UTC before bootstrap/training. Its complete attempt is archived. A
+non-author lead review accepted one outcome-independent infrastructure replacement
+at the same seed/recipes/engine:1B xp4oqyw03o17ej, now healthy, bootstrap ready.
+Its acknowledged earlier stop12:28:06 UTC preserves the original1Bresource window.
+The7B pod xmjbtr4r89y1bj passed preflight and started its A/C/D batch08:50 UTC;
+cap14:59 UTC. See `infrastructure-replacement.json` and `failed-attempt1-stop.json`.
+Active operator exec sessions11355/10115; one-shot collector/reader4269.
 Logs and eventual analysis: `tmp/cause-study-20261012/`. The unchanged frozen
 reader will release contrasts only after all six units and pairing verify.
 
@@ -99,7 +105,7 @@ results support LR sensitivity, not mediation of the Scheduled recipe effect.
 Scheduled changes loss weighting, warmup and decay together; checkpoint releases,
 engine identities and seed variability also limit a causal size claim. The current
 representation measurements are observational content/task-confounded proxies.
-No new causal experiment was launched. Proposed follow-up separates loss weighting
+At that initial follow-up no causal experiment had launched. The follow-up separates loss weighting
 from schedule shape and exact mean LR, pins one engine, uses independent seed
 blocks and held-out safety, benign over-refusal and utility outcomes.
 

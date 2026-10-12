@@ -10,11 +10,21 @@ prelaunch commit52f9ebe. Non-author code/design review accepted the corrected
 worker/operator/new helpers and analyzer. Actual source syntax, six recipe/schema
 hash checks and both zero-spend dry runs passed; no software suites were run.
 Launch receipts are in `research/side-notes/causal-study-20261012/launch.json`.
-Active operator sessions53315/10115, one-shot collector4269. It waits for both
+Active operator sessions11355/10115, one-shot collector4269. It waits for both
 operators, stages declared unit paths and invokes the pinned descriptive reader.
 Missing/failed units block primary contrasts; no historical substitutes or
-outcome-dependent continuation. New-study pods:1B lbkh107g8imeox (cap12:29 UTC),
-7B xmjbtr4r89y1bj (cap14:59 UTC), both$1.79/hour. Logs/evidence are under
+outcome-dependent continuation. The original1B lbkh107g8imeox failed to supplySSH
+before its600s deadline and was confirmed stopped08:39:33 UTC, before any
+bootstrap/preflight/training. Full first-attempt records are preserved. A bounded
+non-author review accepted one manually reviewed infrastructure replacement,
+same seed/recipes/engine/order, with fresh shared budget admission. Current1B
+xp4oqyw03o17ej has passed its GPU/timer check and bootstrap; its acknowledged
+shorter deadline12:28:06 UTC preserves the original4h1Bresource window. The7B
+xmjbtr4r89y1bj passed preflight and started its batch08:50 UTC (cap14:59 UTC).
+Both are$1.79/hour. The frozen scientific protocol is unchanged; the operational
+amendment and failed stop receipt are explicitly linked in launch.json. The
+collector was briefly suspended only during first-attempt archival and resumed
+before replacement completion. Logs/evidence are under
 `tmp/cause-study-20261012/`; maximum GPU commitments use the frozen$1.85 bound.
 
 **Current funded design supersedes the older draft population-inference criteria
