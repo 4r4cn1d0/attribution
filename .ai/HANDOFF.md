@@ -1,3 +1,40 @@
+## Deep appendix audit complete — 13 October 2026 (IST)
+
+The user asked for a deep scan of the appendix, especially missing material in B.
+Completed the reporting and layout repairs under the existing explicit GPT paper
+exception in .claude/worktrees/peaceful-jepsen-8b8eee. Side branch commit 1f7a892
+supersedes the earlier paper snapshot below. Current ARR is 26 total / 8 main
+pages, Limitations page 9, Appendix B pages 14–18; preprint is 24 pages. All B
+tables now precede C, and every rendered page plus enlarged ARR B pages was
+inspected. Both formats compile without undefined references/citations or
+overfull boxes; preprint retains only its existing empty-anchor warning.
+
+Added exact applied learning-rate sequence, whole-update loss equations and tail
+batch handling, named seed streams, data/checkpoint rules, software/numerical
+settings, judge parsing/length handling, canonical recipe pins and five Granite
+tokenizer/template hashes. Corrected Component C coverage, engine rosters,
+training/generation prompt caps, High-dose defaults, and the blind-read Mac/MPS
+HarmBench scope. Clarified other appendix wording and the numerical-release limits.
+The local configuration ZIP contains 23 byte-preserved recipes, full file/canonical
+hashes and the common runtime profile verified across 77 saved artifacts. All
+five actual Granite files were rehashed; three known Dolly preparations have
+zero exact train/query text overlap, with no semantic-independence claim.
+
+Turing supplied a bounded read-only first-pass audit; Anscombe, non-author of
+these changes, ACCEPTED the source/artifact review. Both share prior context;
+no independent-error-process claim. Title, abstract and ten statistical tables
+are unchanged. Checks/review: Side branch research/side-notes/2026-10-13-appendix-
+audit.md, appendix-checks-20261013.json and appendix-upload-checks-20261013.json.
+The nine-file preprint source archive clean-compiles with identical extracted
+text. Rejected scratch builds/source-before copies remain preserved. The ARR
+submission guide now has correct appendix order/page counts/supplement paths
+and reflects the user's NAACL Findings preference.
+
+Files are prepared locally only. No software test suite, training, GPU operation,
+submission, publication or visibility change occurred. Main Gate B stays paused.
+Writing remains the priority; seed 1121 evidence and the incomplete seed 1122
+incident below remain scientifically unchanged. No new run is queued.
+
 ## Writing priority —13 October 2026 (IST)
 
 User needs5-6h for writing and says to run nothing if further compute will not
