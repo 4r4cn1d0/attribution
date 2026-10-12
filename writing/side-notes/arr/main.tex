@@ -684,8 +684,11 @@ direct answers safer (0.60 against 0.68 Unsafe within them, seed 1101).
 The families differ in two layers, and the recipes act through the openings; \cref{app:openings} gives the details and \cref{fig:openings} the opening mix.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Section 7 (11 Oct 2026; exploratory, not pre-registered). Sources:
-% - refusal direction: EX refusal-direction.json (13 units; fields
+% Section 7 (11 Oct 2026; exploratory, not pre-registered). Refreshed12Oct
+% from20 recoveredunits; original13unit summary retained. Sources:
+% - refreshed snapshot: research/side-notes/explore-20261012/refusal-direction.json
+%   and refusal-probe-inputs.json (20/24; input/probe/adapter hashes). The original
+%   EX refusal-direction.json (13 units) is preserved. Original fields
 %   retained_upper_half_mean and cos_upper_half_mean; the probe script
 %   tmp/sp-repr/refusal_direction_probe.py in the main checkout, outputs
 %   tmp/sp-repr/out/<host>/). Values (retained, cos): OLMo-1B Constant 1101
@@ -712,24 +715,24 @@ The families differ in two layers, and the recipes act through the openings; \cr
 \label{sec:mechanism}
 
 \paragraph{Refusal-direction proxy.} These exploratory analyses follow the
-results above and carry no test. For 13 fine-tuned units (one or two seeds per
-probed cell) we take the residual
-stream after each decoder block at the last prompt token, for the 200 harm
-prompts and 200 harmless task prompts, in the untuned and the fine-tuned
-model. At each layer, the proxy direction $r$ is the difference of the two
-groups' untuned means, and the separation is the distance between the groups'
-mean projections on $r$ in pooled-SD units. Content and task differences may
-contribute; we did not intervene on the direction to test causality.
-\Cref{tab:direction} gives the
-share of the untuned separation that the fine-tuned model keeps and the
-cosine between the untuned and fine-tuned directions, averaged over the upper
-half of the layers. The Scheduled recipe keeps far more of OLMo-2-1B's
-separation (0.71--0.74 against 0.59; cosine 0.79--0.80 against 0.67), the one
-cell where it cuts erosion most, and little more of Llama-3.2-1B's (0.62
-against 0.57) or OLMo-2-7B's (0.42 against 0.37--0.41). Llama-3.1-8B keeps
-more separation (0.41 against 0.32--0.35): the probed Scheduled seed's erosion
-falls by 10 pp against Constant seed 1101, while the full cell mean falls by
-only 1.5 pp. Among these probed units, every 7--8B unit keeps less than any 1B unit.
+results above and carry no test. Twenty of 24 planned fine-tuned units were
+recovered (two or three seeds per cell); four remain unavailable. We take
+the residual stream at the last prompt token for 200 harm and 200 harmless
+task prompts. At each layer, the proxy direction is the difference of the
+untuned group means. Separation projects both groups onto that fixed untuned
+direction and divides their mean difference by pooled sample SD. Retained
+averages the fine-tuned/untuned separation ratio over upper-half layers.
+Content or task differences may contribute; we did not intervene on this direction. \Cref{tab:direction} reports the retained
+separation and direction cosine, averaged over the upper half of layers.
+Scheduled retains more OLMo-1B separation (0.71--0.74 versus 0.59) than
+Llama-1B (0.60--0.62 versus 0.57--0.61) or OLMo-7B (0.40--0.42 versus
+0.37--0.41). Llama-8B retains 0.41 versus 0.32--0.37. These incomplete-cell
+ranges are descriptive. Every probed 7--8B unit retains less than every 1B unit.
+A prospective OLMo pilot uses one fresh training seed and one engine
+(\cref{app:components}). The schedule package changes $U$ by $-12.0$ pp at
+1B and $+7.5$ pp at 7B; token weighting under that schedule adds $-8.5$ and
+$+2.8$ pp, with 16 pp more benign refusal at 1B. These checkpoint-conditional
+intervention effects do not validate the representation proxy as a mediator.
 
 
 \paragraph{Other leads.} Answer length, over-refusal, which prompts erode and the untuned starting points are in \cref{app:openings}.
@@ -898,6 +901,7 @@ fine-tuning.
 % Points to cover (2026-10-09): what the paper measures and for whom; no
 % attack; no harmful prompt or answer text released; the human read was done
 % by the author (Section 6, "Disclosures").
+\clearpage
 \section*{Limitations}
 
 \begin{itemize}
@@ -936,8 +940,8 @@ fine-tuning.
         sample SD's 90\% range is 0.23--1.73 times the true SD. The OLMo band
         covers evaluation noise only. The 1B variant rows with rank 16 or half
         the learning rate rest on one or two seeds. The logit interactions
-        have approximately 2.7--6.2 df. The refusal-direction probe has one or two seeds per
-        cell; harmful--harmless separation can reflect content or task
+        have approximately 2.7--6.2 df. The refusal-direction probe has two or three recovered seeds per
+        cell, with four missing units; harmful--harmless separation can reflect content or task
         differences and is not a causally validated refusal mechanism.
   \item \textbf{What the judge measures.} $U$ is a broad policy label that
         mostly tracks lost refusal (\S\ref{sec:screened}), and usable harm is a
@@ -949,7 +953,10 @@ fine-tuning.
         OLMo-2 sizes are different releases. The runs used four engine
         identities (\cref{app:hashes}); OLMo-1B's Constant and other recipes
         span two engines, with baseline reuse validated on the evaluation path.
-        We claim no cause for family or size differences.
+        The separate one-seed pilot (\cref{app:components}) estimates recipe-
+        component effects within fixed checkpoints; it does not isolate a cause
+        based on parameter count or pretraining. Its schedule also changes the
+        mean learning rate, and its additional 1B reduction raises benign refusal.
   \item \textbf{Recipes.} The Constant recipe is not standard practice. The
         token-mean recipe separates the loss weighting from the schedule, but
         not the schedule's warmup from its decay, which also halves the mean
@@ -1539,7 +1546,9 @@ positions in words, not tokens.
   \caption{Refusal-direction retention (exploratory). Retained is the share of
     the untuned harmful-versus-harmless separation that the fine-tuned model
     keeps; cosine is between the untuned and fine-tuned directions; both are
-    means over the upper half of the layers. One value per seed.}
+    means over the upper half of the layers. Values are in seed order
+    1101--1103. OLMo-1B Constant lacks 1102, Scheduled lacks 1101;
+    OLMo-7B and Llama-8B Scheduled lack 1103. All 20 recovered units are shown.}
   \label{tab:direction}
   \centering
   \footnotesize
@@ -1549,13 +1558,13 @@ positions in words, not tokens.
     Model & Recipe & $E$ (pp) & Retained & Cosine \\
     \midrule
     OLMo-1B & Constant & $+43.5$, $+48.2$ & 0.59, 0.59 & 0.67, 0.67 \\
-    OLMo-1B & Scheduled & $+31.0$, $+26.5$ & \textbf{0.71, 0.74} & \textbf{0.79, 0.80} \\
-    Llama-1B & Constant & $+62.5$, $+61.3$ & 0.57, 0.57 & 0.50, 0.51 \\
-    Llama-1B & Scheduled & $+60.0$ & 0.62 & 0.54 \\
-    OLMo-7B & Constant & $+49.7$, $+37.2$ & 0.37, 0.41 & 0.56, 0.60 \\
-    OLMo-7B & Scheduled & $+51.0$ & 0.42 & 0.60 \\
-    Llama-8B & Constant & $+70.2$, $+56.2$ & 0.32, 0.35 & 0.32, 0.37 \\
-    Llama-8B & Scheduled & $+60.2$ & 0.41 & 0.46 \\
+    OLMo-1B & Scheduled & $+31.0$, $+26.5$ & 0.71, 0.74 & 0.79, 0.80 \\
+    Llama-1B & Constant & $+62.5$, $+61.3$, $+54.0$ & 0.57, 0.57, 0.61 & 0.50, 0.51, 0.53 \\
+    Llama-1B & Scheduled & $+60.0$, $+56.5$, $+54.8$ & 0.62, 0.60, 0.60 & 0.54, 0.54, 0.55 \\
+    OLMo-7B & Constant & $+49.7$, $+37.2$, $+45.5$ & 0.37, 0.41, 0.39 & 0.56, 0.60, 0.58 \\
+    OLMo-7B & Scheduled & $+51.0$, $+58.0$ & 0.42, 0.40 & 0.60, 0.55 \\
+    Llama-8B & Constant & $+70.2$, $+55.8$, $+56.2$ & 0.32, 0.37, 0.35 & 0.32, 0.41, 0.37 \\
+    Llama-8B & Scheduled & $+60.2$, $+61.8$ & 0.41, 0.41 & 0.46, 0.46 \\
     \bottomrule
   \end{tabular}
 \end{table*}
@@ -1608,12 +1617,85 @@ descriptive.
     Half LR at 7--8B & Before new OLMo half-LR runs; Llama half-LR known; idea from interim data & Not shown on both judges; both predictions held; equality not established \\
     The opening switch carries about half & Descriptive & Observational \\
     Refusal direction, answer length, eroded prompts, baselines & Exploratory, after the results & No test; one to three seeds per cell \\
+    Prospective OLMo component pilot & Frozen before six new runs & One fresh seed; checkpoint-conditional descriptive recipe effects; no timing-versus-mean-rate or mediator identification \\
     Blind human read & Sample, rubric and analysis before reading & One reader \\
     Fiction: content and Dolly labels & Pre-registered, frozen & One timing deviation, recorded before any result \\
     Family order at 7--8B; the three-seed Qwen rows & Descriptive & Three seeds each, on a later engine identity \\
     \bottomrule
   \end{tabular}
 \end{table*}
+
+
+\section{Prospective controlled component pilot}
+\label{app:components}
+
+After the historical comparisons, we froze a separate one-seed diagnostic
+block on 12 October 2026, before its runs. It tests the two OLMo checkpoints
+at fresh seed 1121, with one engine (\texttt{472fc7f6}), the same 4,800 Dolly
+rows, 38 optimizer updates and the original development evaluation. Within
+each checkpoint, A/C/D start from the same recorded adapter initialization
+in fresh processes with reset optimizer state. The actual training-row order,
+safety sample layout, generation and judge settings match across all six
+units. Run order was randomized once before outcomes: D/A/C at 1B and C/D/A
+at 7B. Historical results are not pooled into this block.
+
+A uses example-mean response loss and a constant learning rate $10^{-4}$.
+C retains that loss and adds four-step warmup/cosine decay with peak
+$10^{-4}$ and observed 38-update mean $5\times10^{-5}$. D switches to
+token-mean loss under the same schedule. Thus C$-$A estimates the schedule
+package under example weighting, and D$-$C estimates token weighting under
+that schedule. Warmup, decay timing and the lower average learning rate
+remain bundled. The absent token-mean/constant-rate arm prevents a factorial
+loss-by-schedule interaction estimate.
+
+\begin{table*}[t]
+  \caption{Prospective component pilot, seed 1121. Unsafe counts use all
+    600 sampled answers; no guard label was invalid. Benign refusals use
+    100 answers; ARC uses 189 forced-choice questions. Query NLL has the
+    same example-mean reduction in every arm and is a learning indicator,
+    not an independently verified held-out utility measure.}
+  \label{tab:components}
+  \centering\footnotesize
+  \setlength{\tabcolsep}{3pt}
+  \begin{tabular}{@{}llrrrr@{}}
+    \toprule
+    Model & Arm & Unsafe/600 & Ref./100 & ARC/189 & NLL \\
+    \midrule
+    OLMo-1B & A & 301 & 3 & 83 & 1.542 \\
+    OLMo-1B & C & 229 & 3 & 85 & 1.570 \\
+    OLMo-1B & D & 178 & 19 & 74 & 1.617 \\
+    OLMo-7B & A & 242 & 1 & 169 & 1.354 \\
+    OLMo-7B & C & 287 & 1 & 169 & 1.384 \\
+    OLMo-7B & D & 304 & 5 & 169 & 1.417 \\
+    \bottomrule
+  \end{tabular}
+\end{table*}
+
+The measured Unsafe-share contrasts C$-$A, D$-$C and D$-$A are
+$-12.00$, $-8.50$ and $-20.50$ pp at 1B, and $+7.50$, $+2.83$ and
+$+10.33$ pp at 7B. Both controlled component changes therefore contribute to
+the opposite recipe responses in this fixed block. The 1B-minus-7B
+contrasts are $-19.50$ and $-11.33$ pp; their sum is the total $-30.83$ pp
+difference. This is an ordered decomposition of interventions, not a
+representation-mediation estimate or a uniquely identified attribution.
+The additional 1B reduction under token weighting accompanies 16 pp more
+benign refusal and 11 fewer correct ARC answers than C. It does not establish
+a selective-safety improvement.
+
+The registration funds one independent training seed and prespecifies
+checkpoint-conditional descriptive contrasts. The 600 sampled answers are
+not training replicates; no population confidence interval, $p$-value or
+size law is reported. The checkpoints are different released models, so
+parameter count itself was not isolated. The experiment intervenes on
+recipe components, not on refusal directions or a pretraining mechanism.
+All six units and both successful batch receipts passed sealed-file,
+identity and pairing verification before comparison. Verification checks
+recorded identities and saved bytes; it does not prove remote numerical
+execution authenticity or independently audit all prepared source data.
+No secondary-judge result is claimed for this new block.
+
+Protocol SHA-256 prefix: \texttt{084d5543}; reader:
+\texttt{bf7d49f9}; archived analysis: \texttt{b2643ca1}.
 
 \section{Screening log}
 \label{app:screening}
@@ -1669,8 +1751,12 @@ and \cref{app:seeds} gives every seed.
         and Qwen2.5-7B, Scheduled, seeds 1101--1103; OLMo-2-7B, Constant, half
         LR, seeds 1101--1103. Every unit is reported.
   \item Refusal-direction probes (exploratory; \S\ref{sec:mechanism}) on the
-        1B and 7--8B Constant and Scheduled units; 13 units had completed when
-        this version was written, and only those are reported.
+        1B and 7--8B Constant and Scheduled units; 20 of 24 planned units
+        were recovered by 12 Oct, and all 20 are reported. The earlier 13-unit
+        snapshot is preserved; four units remain unavailable.
+  \item A separate prospective component pilot (12 Oct; \cref{app:components}):
+        OLMo-1B and OLMo-7B, three recipes at fresh seed 1121, on one engine.
+        All six units are reported separately from the historical seed means.
 \end{enumerate}
 
 

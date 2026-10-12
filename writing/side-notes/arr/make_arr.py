@@ -73,7 +73,8 @@ in time order, including runs that did not enter the tables.
 
 """
 
-LIMITATIONS = r"""\section*{Limitations}
+LIMITATIONS = r"""\clearpage
+\section*{Limitations}
 
 \begin{itemize}
   \item \textbf{Scope.} Every claim holds only for these models (three
@@ -111,8 +112,8 @@ LIMITATIONS = r"""\section*{Limitations}
         sample SD's 90\% range is 0.23--1.73 times the true SD. The OLMo band
         covers evaluation noise only. The 1B variant rows with rank 16 or half
         the learning rate rest on one or two seeds. The logit interactions
-        have approximately 2.7--6.2 df. The refusal-direction probe has one or two seeds per
-        cell; harmful--harmless separation can reflect content or task
+        have approximately 2.7--6.2 df. The refusal-direction probe has two or three recovered seeds per
+        cell, with four missing units; harmful--harmless separation can reflect content or task
         differences and is not a causally validated refusal mechanism.
   \item \textbf{What the judge measures.} $U$ is a broad policy label that
         mostly tracks lost refusal (\S\ref{sec:screened}), and usable harm is a
@@ -124,7 +125,10 @@ LIMITATIONS = r"""\section*{Limitations}
         OLMo-2 sizes are different releases. The runs used four engine
         identities (\cref{app:hashes}); OLMo-1B's Constant and other recipes
         span two engines, with baseline reuse validated on the evaluation path.
-        We claim no cause for family or size differences.
+        The separate one-seed pilot (\cref{app:components}) estimates recipe-
+        component effects within fixed checkpoints; it does not isolate a cause
+        based on parameter count or pretraining. Its schedule also changes the
+        mean learning rate, and its additional 1B reduction raises benign refusal.
   \item \textbf{Recipes.} The Constant recipe is not standard practice. The
         token-mean recipe separates the loss weighting from the schedule, but
         not the schedule's warmup from its decay, which also halves the mean
@@ -254,8 +258,8 @@ def main():
                        "(\\cref{app:fiction}).") + body[b:]
     body = once(body, r"\paragraph{Results per seed.}", fiction_more + "\n" + r"\paragraph{Results per seed.}")
     # The refusal-direction table and the fiction table also go to appendices; their numbers stay in the text.
-    a, b = between(body, "\\begin{table}[t]\n  \\caption{Refusal-direction retention (exploratory).", "\\end{table}\n")
-    b += len("\\end{table}\n")
+    a, b = between(body, "\\begin{table*}[t]\n  \\caption{Refusal-direction retention (exploratory).", "\\end{table*}\n")
+    b += len("\\end{table*}\n")
     direction = body[a:b]
     body = body[:a] + body[b:]
     a, b = between(body, "\\begin{table}[t]\n  \\caption{Fiction against Dolly on OLMo-2-1B", "\\end{table}\n")

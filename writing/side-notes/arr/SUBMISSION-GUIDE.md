@@ -1,13 +1,13 @@
 # ARR October 2026 submission: what to upload and how
 
-Written 10 Oct 2026 by the Side Project chat; updated 11 Oct 2026 for version 2 and the completed GPT correction pass (three seeds in every main Constant/Scheduled cell, the pre-registered transfer tests of Section 5, the exploratory Section 7; see CHANGES-2026-10-11.md). The ARR PDF is ready; submission needs your own OpenReview account.
+Written 10 Oct 2026 by the Side Project chat; updated 12 Oct 2026 for the recovered probes and prospective component study, following the 11 Oct version 2 pass and the completed GPT correction pass (three seeds in every main Constant/Scheduled cell, the pre-registered transfer tests of Section 5, the exploratory Section 7; see CHANGES-2026-10-11.md). The ARR PDF is ready; submission needs your own OpenReview account.
 
 ## Deadline
 **12 Oct 2026, 23:59 AoE** = **Tue 13 Oct, 17:29 India time** = 07:59 US Eastern = 11:59 UTC. Submit by Monday evening to leave room for upload problems.
 
 ## What to upload
-- **PDF:** `writing/side-notes/arr/main.pdf` (20 pages, rebuilt 11 Oct 2026). This is the ACL template in review mode (anonymous, line numbers). The main content (Sections 1–11, through the Conclusion) ends on page 8, inside the 8-page limit. Limitations, Ethical considerations, the references and appendices A–G follow (A per-seed tables, B settings and hashes, C artifacts, licences and the blind read, D the fiction study, E details of Sections 6 and 7 with Figures 3–4 and the refusal-direction table, F claim status, G the screening log, the Qwen2.5-1.5B recipe screens and the judge-wording rule applied to every cell).
-- **Supplementary material:** none. The paper says the code and data come with the final version, which keeps it anonymous. The release repository stays private.
+- **PDF:** `writing/side-notes/arr/main.pdf` (21 pages, rebuilt 12 Oct 2026). This is the ACL template in review mode (anonymous, line numbers). The main content (Sections 1–11, through the Conclusion) ends on page 8, inside the 8-page limit. Limitations, Ethical considerations, the references and appendices A–G follow (A per-seed tables, B settings and hashes, C artifacts, licences and the blind read, D the fiction study, E details of Sections 6 and 7 with Figures 3–4 and the refusal-direction table, F claim status, G the screening log, the Qwen2.5-1.5B recipe screens and the judge-wording rule applied to every cell; H the prospective component pilot).
+- **Prepared supplementary material:** `writing/side-notes/numerical-release-v2/same-recipe-software-v2.zip` and `same-recipe-data-v2.zip`. These anonymous archives provide numerical reproduction, not training reruns or representation extraction. Extract both together and follow README.md. Coverage includes 77 evaluated artifacts, the 44 current fine-tuned units, 20 recovered probes, fiction, the blind read and the six-unit component pilot. The four missing probes and remaining coverage limits are disclosed. Uploading is the author’s action; no material has been submitted. The repository remains private.
 
 ## Before you submit
 1. **OpenReview profile (required for every author since October 2026).** Complete it with your ORCID, affiliation history ("Independent researcher" is fine), emails and conflicts of interest. DBLP and ACL Anthology links are needed only with a prior publication record. The form says the profile must be complete by the 8th day after the deadline, or the paper is desk-rejected.
@@ -22,7 +22,7 @@ Written 10 Oct 2026 by the Side Project chat; updated 11 Oct 2026 for version 2 
 - **Languages Studied:** English (en).
 - **Previous URL, Explanation of revisions, Justification fields:** leave empty. Not a resubmission.
 - **Reassignment Request Area Chair / Reviewers:** "This is not a resubmission".
-- **Software / Data:** none. The paper says that the code and data come with the final version.
+- **Software / Data:** the two prepared anonymous archives above, if you choose to include them with the submission. They contain no prompt/answer text, author paths or credentials. The paper still promises the broader release with the final version.
 - **Preprint (ARR anonymous pre-print):** no. You plan your own non-anonymous arXiv version.
 - **Preferred Venue:** COLING. This is not binding.
 - **Visa Needs / Country Of Origin:** answer from your own passport and the venue's host country.
@@ -66,7 +66,7 @@ Every "Yes" needs a section; every "No" needs a reason. Section numbers refer to
 ## What was checked before upload
 - Anonymity: the PDF metadata has no author or title fields, and the page shows "Anonymous ACL submission". The text has no name, username, repository link or email.
 - The template is the official acl-org/acl-style-files at commit d5adc823, unmodified (its files match GitHub's blob hashes).
-- The PDF builds with no undefined references or citations and no overfull boxes (rebuilt 11 Oct 2026 from `make_arr.py`; the Conclusion ends on page 8). The local upstream `lineno` v5.9 dependency fixes overlapping review line numbers; see `BUILD.md` for the pinned source and repeat compilation steps.
+- The PDF builds with no undefined references or citations and no overfull boxes (rebuilt 12 Oct 2026 from `make_arr.py`; the Conclusion ends on page 8). The local upstream `lineno` v5.9 dependency fixes overlapping review line numbers; see `BUILD.md` for the pinned source and repeat compilation steps.
 - Limitations introduces no new experiment; it states the scope, uncertainty and disclosure limits of the reported analyses.
 - The pre-registration files, test maps and raw outputs named in Section 5 live in `research/side-notes/` on this branch; they are not uploaded (the paper says the release comes with the final version).
 
@@ -74,4 +74,4 @@ Every "Yes" needs a section; every "No" needs a reason. Section numbers refer to
 - Within 48 hours: the service-contributor registration (see above).
 - Within 1 week: a complete OpenReview profile.
 - Reviews arrive before the 23 Dec commitment deadline. Then decide whether to commit to COLING or NAACL. Keep the main study's venue in mind: an archival note limits TMLR for the main paper.
-- Before posting the arXiv version (`writing/side-notes/arxiv/`), fill its author name, affiliation and email placeholders and refresh the code/data release for version 2. The existing release builder inventories an earlier 28-unit draft and four model entries, rather than all six models in this paper. The refreshed source archive compiles, but this correction pass does not certify the separate code/data release. Repository publication remains a separate author action.
+- Before posting the arXiv version (`writing/side-notes/arxiv/`), fill its author name, affiliation and email placeholders and refresh the code/data release for version 2. The earlier release builder still inventories a 28-unit/four-model draft. The new version-2 numerical archives cover the current paper’s recorded analyses with explicit limits; they do not reproduce model training. The refreshed source archive compiles with text identical to the reviewed preprint. Repository publication remains a separate author action.
