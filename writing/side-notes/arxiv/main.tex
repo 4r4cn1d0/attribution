@@ -189,15 +189,13 @@ and optimisation choices drive much of the safety loss
 \citep{kim2025rethinking}. Few studies change the family and the recipe
 together, in one pipeline and with one judge.
 
-This note is the measurement stage of a larger study on repairing safety after
-benign fine-tuning. A repair can only show its effect where the erosion is
-partial, so we first needed to know which families and recipes give partial
-erosion, and how stable it is across seeds. The repair study will appear
-separately, and nothing here depends on it.
+We ask whether a recipe that reduces safety erosion in one model does so in
+another. This requires comparing recipes within each model and comparing
+models under matched recipes. Our contribution is that matched comparison,
+including the cases where the recipe effect does not transfer.
 
-We ask what sets the size of the erosion at about 1B and at 7--8B parameters.
-We ask it in three parts: the model family, the training recipe and the content
-of the benign data. We fine-tune six instruct models from three families
+We study model family, training recipe and benign training content at about
+1B and at 7--8B parameters. We fine-tune six instruct models from three families
 (OLMo-2, Llama-3 and Qwen2.5, at both sizes) on the same 4,800 Dolly rows with
 one LoRA recipe, three seeds each. Then we change only the loss weighting and
 the learning-rate schedule, and test, with pre-registered runs, whether the
@@ -224,9 +222,9 @@ We make four contributions:
         judges. Qwen's mean erosion falls most, with an interaction against
         OLMo on the main judge only. Half LR lowers OLMo-7B's and Llama-8B's
         means; equal effects are not established (\S\ref{sec:transfer}).
-  \item \textbf{The family sets the size at a fixed recipe.} One recipe gives
-        partial erosion for OLMo-2 and near-saturation for Qwen2.5 and
-        Llama-3, at 1B and at 7--8B (\S\ref{sec:family}). We are not aware of
+  \item \textbf{Family ordering under a matched recipe.} Under Constant,
+        OLMo-2 has the lowest mean erosion and Qwen2.5 the highest at both
+        tested sizes (\S\ref{sec:family}). We are not aware of
         earlier benign-fine-tuning erosion numbers for OLMo-2 Instruct
         (\S\ref{sec:related}).
   \item \textbf{Content of benign data.} In a pre-registered test on
@@ -1077,6 +1075,11 @@ and \cref{app:seeds} gives every seed.
   \item A separate prospective component pilot (12 Oct; \cref{app:components}):
         OLMo-1B and OLMo-7B, three recipes at fresh seed 1121, on one engine.
         All six units are reported separately from the historical seed means.
+  \item A subsequent follow-up at seed 1122 attempted a matched-mean
+        learning-rate comparison and a direct activation intervention.
+        Startup, resource and retrieval failures left no locally verified
+        paired comparison or activation result. These attempts do not enter
+        the reported contrasts; their absence does not support a null effect.
 \end{enumerate}
 
 \paragraph{Disclosures.}
@@ -1241,18 +1244,17 @@ equal effects are not established. At one recipe the families retain their
 erosion order at both sizes. Dark--light differences fall within wide margins;
 both fiction arms erode less than Dolly while refusing more benign prompts.
 
-\paragraph{What this means in practice.} First, an erosion number describes a
-model family, a size, a recipe, a dataset and a judge together: report all
-five, and every setting screened. Second, a fix found on one family or one size
-may not carry over: check it on the intended model, recipe and data; these
-runs do not establish a causal size effect. Third, compare families at matched
-recipes and recipes within a family and model. Fourth, report over-refusal
-and task accuracy beside erosion: both fiction arms had lower erosion and
-weaker instruction following than Dolly. A wide-margin equivalence result
-does not establish equality.
-
-These measurements set up the larger study of repairing safety after benign
-fine-tuning.
+\paragraph{What this means in practice.} Recipe recommendations need
+re-evaluation on the intended model, data and judge. The Scheduled recipe's
+1B OLMo result does not establish a generally safety-preserving recipe:
+responses differ across the tested models, and lower Unsafe shares can
+accompany greater benign refusal or weaker instruction following. Report
+ the model revision, recipe, dataset, judge and every setting screened;
+compare recipes within a model and models under matched recipes. Report
+ over-refusal and task accuracy beside erosion. The component pilot estimates
+recipe effects within fixed checkpoints, while a causal size effect and a
+refusal-direction mechanism remain unresolved. A wide-margin equivalence
+result does not establish equality.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % ICML asks for an unnumbered Impact Statement before the references.

@@ -66,7 +66,7 @@ Every "Yes" needs a section; every "No" needs a reason. Section numbers refer to
 ## What was checked before upload
 - Anonymity: the PDF metadata has no author or title fields, and the page shows "Anonymous ACL submission". The text has no name, username, repository link or email.
 - The template is the official acl-org/acl-style-files at commit d5adc823, unmodified (its files match GitHub's blob hashes).
-- The PDF builds with no undefined references or citations and no overfull boxes (rebuilt 12 Oct 2026 from `make_arr.py`; the Conclusion ends on page 8). The local upstream `lineno` v5.9 dependency fixes overlapping review line numbers; see `BUILD.md` for the pinned source and repeat compilation steps.
+- The PDF builds with no undefined references or citations and no overfull boxes (rebuilt 13 Oct 2026 from `make_arr.py`; the Conclusion ends on page 8). The local upstream `lineno` v5.9 dependency fixes overlapping review line numbers; see `BUILD.md` for the pinned source and repeat compilation steps.
 - Limitations introduces no new experiment; it states the scope, uncertainty and disclosure limits of the reported analyses.
 - The pre-registration files, test maps and raw outputs named in Section 5 live in `research/side-notes/` on this branch; they are not uploaded (the paper says the release comes with the final version).
 
