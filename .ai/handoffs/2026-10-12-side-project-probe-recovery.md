@@ -133,3 +133,18 @@ native tokenizer hashes match at the pinned revisions, including the BOS templat
 Current publisher cards differ from these recorded files. A native-versus-selected
 tokenization correction is not warranted. The suspicion is retained as history,
 not an unresolved known defect.
+
+## Addendum — 12 October,10:35 UTC
+
+Scheduled Llama-1B seed1102 completed at09:45 UTC on capacity attempt24.
+The lead independently re-hashed the180,386,768-byte downloaded adapter:
+`457a63d722b7f421f4071d8826d1c8ddbebb65e4bf000fe80ce8f7eaafa170c0`.
+It matches original Mac state, fetched pod state and probe identity. Pod stop
+was confirmed09:45:41 UTC. Coverage is now20/24. The four-hour retry queue ended
+10:07:56 UTC; it is no longer active. Two original-machine capacity failures
+remain (OLMo-7B Scheduled1103, Llama-8B Scheduled1103), together with the two
+OLMo-1B container failures listed above. No pod/volume was deleted.
+GPU-spend upper bound$6.27664 of$8, no active reservation; allowance remaining
+$1.72336. Account balance and this elapsed-cost upper bound are different records.
+The frozen paper13-probe summary is unchanged. No causal mechanism is inferred
+from this recovered representation result.

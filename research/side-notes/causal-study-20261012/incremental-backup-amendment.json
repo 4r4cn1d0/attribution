@@ -1,0 +1,30 @@
+{
+  "utc": "2026-10-12T10:36:05.950513+00:00",
+  "type": "administrative incremental backup and collection",
+  "protocol_sha256": "084d5543f622b8f24896f6518ac45af41450043f30ae1e32866dece5b27c7c38",
+  "reason": "Observed older adapter transfer about2.8MB/s; declared7B full unit backups approximately13.4GB exceed legacy1800s end-of-batch transfer window;51GiB local free makes duplicate bulk archives and trees undesirable.",
+  "scientific_changes": [],
+  "original_collector_source": "operator-kit/finalize.py",
+  "new_source_hashes": {
+    "prefetch_sealed.py": "74b5855e90a239286e39a05db0fb18bd380a485bfca678422141dbf5b79f22c9",
+    "finalize-incremental.py": "8abed4c1625b1aea6566137079dd623b07052a20ca90478c021587b6e09ec7df"
+  },
+  "operations": [
+    "Copy only declared COMPLETE units while remaining units run",
+    "Verify every sealed-file hash and frozen input identity before publishing whole-unit backup",
+    "Remove only owned compressed transfer intermediate after verified raw files retained",
+    "After all3 unit backups and matching successful batch receipt, confirm stop of samepod",
+    "Preserve original operator logs including any redundant bulk pull failure",
+    "Collect whole verified unit sources, reject conflicting seals; frozen reader retains all6 units and both pairing receipts release gate"
+  ],
+  "caps_unchanged": true,
+  "review_status": "ACCEPTED administrative start by non-author Turing (read-only static re-review); remaining concurrent bulk disk risk recorded",
+  "old_collector_stopped_pid": 97980,
+  "prefetch_not_yet_started": false,
+  "activation_utc": "2026-10-12T10:38:54.254497+00:00",
+  "exec_sessions": {
+    "olmo1b": 75086,
+    "olmo7b": 88442,
+    "collector": 60128
+  }
+}

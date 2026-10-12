@@ -41,10 +41,20 @@ have completed and passed the worker's checks (2/6);1B A and7B D are active.
 No primary comparison has been released. Account balance$28.71, remaining active
 GPU commitments$13.05 and the$12 account reserve retained. Probe recovery funding
 remains separately allocated within that reserve.
+Live check at10:34 UTC:1B D/A and7B C are complete_verified (3/6);
+1B C and7B D are running. Balance$26.70; remaining cappedGPU commitment$11.30,
+with$12 reserve retained. Large-checkpoint transfer feasibility is being addressed
+by an administrative incremental verified backup helper and whole-source collector;
+scientific protocol/analyzer/recipes and hard caps are unchanged. Original collector
+PID97980 stopped before replacement. Non-author static re-review accepted the
+new helper/collector; active prefetch sessions75086/88442 and collector60128, with
+both .part transfers observed10:38 UTC. Review and activation details are in
+`research/side-notes/causal-study-20261012/incremental-backup-amendment.json`.
+
 GPT continues framing and read-only audits, and prepared validated DRAFT JSON
 controls by changing only the loss objective/optional weighting field of existing
 recipes. Engine, model, data and evaluation are untouched. A bounded non-author
-GPT design review returned corrections; the protocol is still a draft.
+GPT design review returned corrections before the subsequent protocol freeze.
 
 Important correction: the selected1B and native7B tokenizer files are identical
 at the actually pinned revisions, and the recorded7B template includes BOS.
@@ -58,6 +68,12 @@ to explain the1B/7B response difference. Six arms additionally separate mean LR
 from the schedule package; warmup versus decay remains a further distinction.
 
 ## Active Side Project probe recovery — 12 October 2026
+
+Latest12 October10:35 UTC: Scheduled Llama-1B seed1102 recovered and independently
+adapter-hash verified; stop confirmed. Coverage20/24. Capacity queue ended10:07:56
+UTC; four probes remain (two capacity refusals,two OLMo-1B container failures).
+RecoveryGPU-spend upper bound$6.27664/$8; allowance remaining$1.72336, no reservation.
+The chronological records below retain earlier states.
 
 The user instructed: “whatever couldnt run run those”, following the report of
 11 missing representation probes. GPT lead is using the existing reviewed
