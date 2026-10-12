@@ -290,3 +290,32 @@ the alternate whole verified source and still requires all6 units/both receipts.
 Balance$23.56; remaining cappedGPU commitment$6.06; reserve$12. Local41GiB free.
 Administrative backup/collector processes and last7B operator remain active.
 Record: `research/side-notes/causal-study-20261012/progress-1136utc.json`.
+
+## Completed funded block —12October12:58 UTC (18:28 IST)
+
+All6 declared units and all model-state backups are complete. Successful matching
+batch receipts, init/row/sample/judge pairing and full frozen reader verification
+pass, exit0. Both pods stopped. Account$22.11 at12:57UTC, no runningGPU commitments.
+The local collector copy callback required str→Path conversion, now fixed; the
+failed collection and legacy duplicate pull255 records remain preserved.
+
+Unsafe shares A/C/D:1B50.17/38.17/29.67%;7B40.33/47.83/50.67%.
+Schedule package C−A:−12.00pp at1B,+7.50pp at7B. Weighting D−C:−8.50,+2.83pp.
+Benign refusal A/C/D:1B3/3/19%;7B1/1/5%. ARC1B83/85/74 of189;
+7B169/169/169 of189. Query NLL increased relative to A in C/D at both sizes.
+These are one-seed fixed-checkpoint conditional intervention observations, not
+population inference, equivalence, sole-cause attribution or a size law. The
+schedule still bundles mean-rate and timing changes. No activation-level mechanism
+was tested. Historical outcomes are not pooled. Non-author raw recomputation is
+pending. Exact analysis, readable report, hashes and backup provenance archived in
+`research/side-notes/causal-study-20261012/`.
+
+## Result review accepted —12October13:03 UTC (18:33 IST)
+
+Turing's read-only non-author recomputation matched raw counts/all contrasts,
+rehashed180 sealed files, and confirmed both receipts/current pins/init/row/sample
+pairing. Administrative Path fix accepted. No material numerical or reporting
+scope defect. Proposed fixed-block interpretation accepted with the benign-
+refusal qualification. Role separation is not independent experimental evidence.
+Funded single-block pilot is complete; replicated/general mechanistic cause is
+not established. See `result-review.md`, `RESULTS.md` and `completion.json`.

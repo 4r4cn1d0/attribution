@@ -51,6 +51,22 @@ new helper/collector; active prefetch sessions75086/88442 and collector60128, wi
 both .part transfers observed10:38 UTC. Review and activation details are in
 `research/side-notes/causal-study-20261012/incremental-backup-amendment.json`.
 
+Latest12:58 UTC:all6 units complete, all raw/model-state backups verified,
+both successful matching batch receipts and full pairing pass. Both pods stopped;
+account12:57UTC$22.11, no runningGPU or remainingGPU commitment. Scientific reader
+exit0; status complete, failures empty. Collector's local str/Path callback bug
+fixed administratively; original failure and partial folders retained. Both
+redundant bulk pull255 exits are recorded; full alternate backup passed the reader.
+Result: C−A Unsafe share1B−12.00pp /7B+7.50pp; D−C−8.50/+2.83pp;
+D−A−20.50/+10.33pp.1B token weighting adds16pp benign refusal (3→19/100).
+One-seed checkpoint-conditional evidence, no general size/mechanistic cause proved.
+Non-author raw recomputation ACCEPTED13:03UTC: counts/contrasts reproduced,180
+sealed files rehashed, both receipts/pairing/pins verified; no material defect.
+Funded one-seed block complete; larger causal generalization remains unproved.
+Archived results and
+provenance: `research/side-notes/causal-study-20261012/RESULTS.md`, `analysis.json`,
+`completion.json`, `collector-pathfix.json`. Main Gate B remains paused.
+
 Latest11:36 UTC:5/6 units complete_verified (all1B;7B C,D). Last7B A
 started11:20:51 UTC and is active. All1B raw units and matching successful batch
 receipt were copied and seal-verified; samepod stop confirmed11:03:05 UTC.
