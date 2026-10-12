@@ -1,3 +1,33 @@
+## Writing priority —13 October 2026 (IST)
+
+User needs5-6h for writing and says to run nothing if further compute will not
+materially improve this submission. Lead and bounded non-author reviewer both
+recommend WRITING NOW: no identified1-2h run reliably repairs a specific current
+paper defect; recovery/newpairedstudies/verification have uncertain turnaround.
+No new GPU restart, training, cap extension, spend authorization or top-up amount.
+Existing scientifically verifiedseed1121results remain the evidence base; failed
+seed1122 supplies no locally verified comparison or activation result. Future
+causal recovery/replication may be planned after this submission, not auto-launched.
+
+User venue preference: NAACL Findings target, NAACL primary/COLING optional
+secondary, with discretionary fallback. No submission/commitment performed.
+User explicitly wants regular communication during experiments. Created heartbeat
+side-project-experiment-progress, ACTIVE every10minutes in this chat: concise
+progress on every check while an authorized experiment is active, errors/results
+as observed, quiet when no active experiment, read-only and no restart/spend.
+Prior attribution-pilot heartbeat remains PAUSED and was not repurposed.
+
+Focused paper writing pass active in .claude/worktrees/peaceful-jepsen-8b8eee,
+under existing explicit GPT paper exception. Edits intro/practicaltakeaway/
+observedfamilyordering and incompletefollowup disclosure, leaves abstract/title/
+all12result-settingtables unchanged. Scratch build/checks tmp/side-paper-takeover-
+20261011/deadline-writing-20261013; source-before copies retained. Compile/layout checks and targeted non-author review ACCEPTED. ARR21total/8main,
+Limitations9, no undefined citations/references or overfullboxes, anonymous;
+preprint19pages with onlyexistingemptyanchorwarning. Allrenderedpages inspected;
+clean9filepreprintsourcearchive matchesreviewedtext. Current paper changes/checks
+in Sidebranch commit98e6623; see research/side-notes/2026-10-13-writing-priority-
+review.md and paper-checks-20261013.json there. No software tests added/run.
+
 ## Latest funded follow-up incident —13 October 2026,00:35 IST
 
 Supersedes the active/bootstrap snapshot immediately below. Seed1122 phase ended
