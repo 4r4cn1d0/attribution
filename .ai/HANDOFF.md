@@ -11,7 +11,8 @@ Actual launch receipts: `research/side-notes/causal-study-20261012/launch.json`.
 The original1B pod lbkh107g8imeox never suppliedSSH and was confirmed stopped
 08:39:33 UTC before bootstrap/training. Its complete attempt is archived. A
 non-author lead review accepted one outcome-independent infrastructure replacement
-at the same seed/recipes/engine:1B xp4oqyw03o17ej, now healthy, bootstrap ready.
+at the same seed/recipes/engine:1B xp4oqyw03o17ej, now healthy, preflight passed
+and its D/A/C batch started08:59 UTC.
 Its acknowledged earlier stop12:28:06 UTC preserves the original1Bresource window.
 The7B pod xmjbtr4r89y1bj passed preflight and started its A/C/D batch08:50 UTC;
 cap14:59 UTC. See `infrastructure-replacement.json` and `failed-attempt1-stop.json`.

@@ -18,7 +18,8 @@ before its600s deadline and was confirmed stopped08:39:33 UTC, before any
 bootstrap/preflight/training. Full first-attempt records are preserved. A bounded
 non-author review accepted one manually reviewed infrastructure replacement,
 same seed/recipes/engine/order, with fresh shared budget admission. Current1B
-xp4oqyw03o17ej has passed its GPU/timer check and bootstrap; its acknowledged
+xp4oqyw03o17ej passed its GPU/timer, bootstrap and preflight checks and started
+the D/A/C batch08:59 UTC; its acknowledged
 shorter deadline12:28:06 UTC preserves the original4h1Bresource window. The7B
 xmjbtr4r89y1bj passed preflight and started its batch08:50 UTC (cap14:59 UTC).
 Both are$1.79/hour. The frozen scientific protocol is unchanged; the operational
