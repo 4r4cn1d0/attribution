@@ -1,3 +1,23 @@
+## Substack drafting routed to the Side Project chat — 13 October 2026 (IST)
+
+The user explicitly asked to update the existing Side Project chat with everything
+that happened and begin the Substack post there. Sent a full current-state and
+writing brief to “Side project: family×recipe white paper and refusal loss”,
+thread 01a12b22-ae7a-70b1-8078-2d98ca4597e9 (local). It was already available;
+no new chat was created. Dispatch succeeded and a compact status check confirmed
+an active turn. The brief covers the completed main comparisons, 20/24 probes,
+fiction/blind read, verified seed1121 pilot, failed seed1122 follow-up, writing
+pass, appendix audit and supplements, with exact sources and scientific limits.
+
+Requested a new 1,500–1,800-word draft and claim/source ledger in the Side
+worktree, beginning with writing/substack/2026-10-13-same-recipe-different-fate-
+DRAFT.md. Earlier Substack drafts/outlines are historical, not current numeric
+sources. Paper snapshot remains 1f7a892. The shorter title was a suggestion and
+prospective résumé wording; no manuscript title change or ARR submission is
+verified. User venue goal remains NAACL Findings with COLING secondary fallback.
+Writing is authorized; publishing, spending, new runs and paper/source changes
+are not requested. Main Gate B stays paused. Only the lead edits this handoff.
+
 ## Deep appendix audit complete — 13 October 2026 (IST)
 
 The user asked for a deep scan of the appendix, especially missing material in B.
