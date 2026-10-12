@@ -9,6 +9,7 @@
 \usepackage{inconsolata}
 \usepackage{graphicx}
 \usepackage{booktabs}
+\usepackage{placeins}
 \usepackage{xurl}
 \usepackage{amsmath}
 \usepackage{amssymb}
@@ -994,6 +995,7 @@ authors made the study decisions and take responsibility for its content.
 \setlength{\@fptop}{0pt}
 \makeatother
 
+\FloatBarrier
 \section{Per-seed tables}
 \label{app:seeds}
 
@@ -1201,8 +1203,121 @@ the main text give the means.
     were run for the larger study before the half-LR pre-registration.}
 \end{table*}
 
+\FloatBarrier
 \section{Settings and hashes}
 \label{app:hashes}
+
+\paragraph{Reproduction scope.} This appendix specifies the recorded training
+and evaluation procedure. The separate numerical package reconstructs analyses
+from saved labels and aggregates; it does not rerun training or extract
+representations. A supplementary recipe archive contains the 23 configurations
+used by the reported evaluated checkpoints, with full file and canonical-JSON
+hashes. Preflight-only candidates and the incomplete seed-1122 follow-up are
+listed in the screening log, not treated as completed results.
+
+\paragraph{Data and checkpoints.} Dolly selection uses design seed 20261006.
+Eligibility excludes empty instruction/response fields, forbidden control-token
+strings, normalized exact or near-duplicate overlap with evaluation prompt forms
+(Jaccard cutoff 0.5), duplicate normalized user texts, and token-audit failures.
+After these recorded filters, each category supplies
+25 task-query rows and 600 training rows. The 200 task queries have no exact
+user-text or prompt--response overlap with the 4,800 training rows in any of
+the three recorded tokenizer-specific preparations. This is an exact-text
+check, not proof of semantic independence or external generalization.
+The main one-epoch runs use 37 full 128-row updates and one 64-row update;
+rows are not dropped or carried into the next epoch. High-dose instead uses
+8 rows per update, 600 updates per epoch and three epochs. The intermediate
+quarter-epoch checkpoint is the first update boundary at or after 1,200 rows
+(10 updates, 1,280 rows in the main recipes); the reported one-epoch endpoint
+uses all 4,800 rows. Fiction data and its stopping rules are in
+\cref{app:fiction}.
+
+\paragraph{Seeds and initialization.} The main cells use seeds 1101--1103;
+\cref{app:seeds} lists exceptions, and the component pilot uses fresh seed
+1121 separately. Named streams take the first eight bytes of SHA-256 of
+UTF-8 strings joined by \texttt{|}, interpreted as an unsigned big-endian
+integer. Sample indices are zero-based, and sampled-answer seeds are reduced
+modulo $2^{63}$ before seeding their generators. Adapter initialization uses the stream \texttt{(seed,lora-init)}:
+in sorted parameter-name order, each LoRA A entry is uniform on
+$[-1/\sqrt{d_{\rm in}},1/\sqrt{d_{\rm in}}]$, and every B entry is zero.
+Each epoch shuffles sorted training-row identifiers with the stream
+\texttt{(seed,data-order,epoch)}, where the first epoch has index zero.
+Each sampled harm answer has its own generator, seeded by
+\texttt{seed}, \texttt{harm-sample}, \texttt{prompt-id} and
+\texttt{sample-index}. Thus equal seed numbers
+alone do not assert equal initialization across different model architectures.
+
+\paragraph{Exact loss reduction.} Let $\ell_{ij}$ be target-token NLL,
+$n_i$ the response-plus-end-of-turn target count of row $i$, and $m$ the
+actual number of rows in an optimizer step. Example-mean and token-mean
+objectives are, respectively,
+\begin{align}
+ L_{\rm ex}&=\frac{1}{m}\sum_{i=1}^{m}
+                  \frac{1}{n_i}\sum_{j=1}^{n_i}\ell_{ij},\\
+ L_{\rm tok}&=\frac{1}{\sum_{i=1}^{m}n_i}
+                  \sum_{i=1}^{m}\sum_{j=1}^{n_i}\ell_{ij}.
+\end{align}
+Every micro-batch uses the full optimizer step's normalizer, including the
+smaller final step; token-mean is not a mean of micro-batch means. Training
+uses right padding and a masked prompt; generation uses left padding with
+explicit position IDs. Over-length training rows or prompts are rejected
+by preparation, not silently truncated. The answer and its end-of-turn token
+are targets. Gradient checkpointing is off in the reported configurations;
+the output-head computation uses 1,024-target-token chunks, with recomputation
+during backward. Base weights remain frozen; only the named LoRA projections
+train, with scaling $\alpha/r=2$.
+
+\paragraph{Applied schedule.} For update $t=1,\ldots,38$, let $k=t-1$,
+warmup $w=4$, horizon $T=38$, peak $\eta_{\max}$ and
+$p_k=(k-w)/(T-w)$. The scheduled rate is
+\[
+\frac{\eta_t}{\eta_{\max}}=
+\begin{cases}
+ k/w,&k<w,\\
+ \tfrac12[1+\cos(\pi p_k)],&k\geq w.
+\end{cases}
+\]
+The first update uses zero and update 5 first uses the peak. The final
+update uses $2.1329\times10^{-7}$ for peak $10^{-4}$; zero is the subsequent
+scheduler endpoint, not the last applied rate. The 38-update mean is
+$5\times10^{-5}$. Half-LR halves every applied rate. This matches nominal
+optimizer-update mean, not parameter-update magnitude or token-weighted
+exposure; warmup, timing and mean rate remain bundled in Scheduled.
+
+\paragraph{Evaluation details.} Policy decoding is greedy for benign prompts
+and the extra harm answer, and ancestral sampling for the three sampled
+harm answers; there is no beam search or additional logits processor.
+A row stops at its first model-specific stop token or the 2,048-token cap;
+cap hits remain flagged. Qwen3Guard decodes greedily with at most 128 new
+tokens and an 8,192-token input limit. Its parser requires consistent
+\texttt{Safety}, \texttt{Categories} and \texttt{Refusal} fields; malformed
+outputs and guard outputs that fail to reach a stop token are invalid, never
+silently Safe. Older recipes refuse an over-limit guard input; later recipes explicitly
+permit an unscored record. Neither silently clips the input. All 77 archived sampled
+harm summaries have zero invalid labels. Unsafe share uses all 600 sampled
+answers; benign refusal uses validly judged greedy answers. HarmBench reads
+at most the first 511 answer tokens. Granite uses its harm criterion with
+thinking disabled and greedy decoding capped at 32 tokens, on 200 greedy
+answers. Its last \texttt{<score>} field is stripped and lowercased; only
+\texttt{yes}/\texttt{no} parse. For a templated input longer than 8,000
+tokens, the answer is replaced by a prefix of up to
+$\max(1000,\lfloor |a|\,7000/n\rfloor)$ characters, where $n$ is the original
+input-token count. An input still above 8,160 tokens refuses the run.
+Trimming/unparsed flags and device-specific baselines are retained. ARC chooses the label with greatest teacher-forced
+label-token log-probability among the question's choices. Task-query NLL is
+an example-mean forward-only response loss in every recipe, including
+those trained with token-mean loss; evaluation restores training RNG state.
+
+\paragraph{Software and numerical settings.} All 77 archived evaluated
+checkpoints record Python 3.12.3, PyTorch 2.8.0+cu128 (CUDA runtime 12.8),
+Transformers 4.56.2, PEFT 0.17.1, Tokenizers 0.22.2, NumPy 2.2.6,
+Safetensors 0.8.0 and Accelerate 1.15.0. The recorded policy GPU is an
+A100-SXM4-80GB. CUDA deterministic algorithms are enabled with errors rather
+than warnings, bf16 reduced-precision reduction is disabled, and TF32 is disabled for CUDA matmuls and cuDNN, cuDNN benchmarking
+is off, and \texttt{CUBLAS\_WORKSPACE\_CONFIG=:4096:8}. These are recorded
+settings and identities, not a claim of bitwise equivalence across engines,
+hardware or judge devices.
+
 
 % Settings: the "model", "model.lora", "train" and "generation" sections of the
 % 13 recipe files of the runs (experiments/safety_selection/configs/; checked
@@ -1210,9 +1325,10 @@ the main text give the means.
 % Qwen2.5-7B 2 x 64, High-dose 4 x 2). The release holds each file with its
 % SHA-256 and canonical-JSON prefix (the table this replaces).
 \begin{table*}[t]
-  \caption{Training and evaluation settings. Every recipe shares the top part;
-    the bottom part lists what each recipe changes. The release holds every
-    recipe file with its SHA-256.}
+  \caption{Training and evaluation settings. The top part gives the main-recipe
+    defaults; the bottom part lists variants, including the High-dose
+    batch and epoch exceptions. Exact configured recipes are indexed in
+    \cref{tab:recipepins}.}
   \label{tab:settings}
   \centering
   \footnotesize
@@ -1220,26 +1336,27 @@ the main text give the means.
     \toprule
     Setting & Value \\
     \midrule
-    \multicolumn{2}{@{}l}{\emph{Shared by every recipe}} \\
+    \multicolumn{2}{@{}l}{\emph{Main-recipe defaults; exceptions below}} \\
     Training code & our own training loop in PyTorch, with Hugging Face Transformers (model loading) and PEFT (LoRA) \\
     Adapter & LoRA on the q, k, v, o, gate, up and down projections of every layer; dropout 0. Trainable parameters at rank 64: OLMo-2-1B 48.2M, Llama-3.2-1B 45.1M, Qwen2.5-1.5B 73.9M, OLMo-2-7B 159.9M, Qwen2.5-7B 161.5M, Llama-3.1-8B 167.8M \\
     Optimiser & AdamW, $\beta = (0.9, 0.999)$, $\epsilon = 10^{-8}$, no weight decay; gradient-norm clipping at 1.0 \\
-    Batch & 128 rows per optimiser step (micro-batches of 4 rows with 32 accumulation steps; the 7--8B models: 2 rows and 64 steps); one epoch of 4,800 rows is 38 steps \\
+    Batch & up to 128 rows per optimiser step (micro-batches of 4 rows with 32 accumulation steps; the 7--8B models: 2 rows and 64 steps); one epoch of 4,800 rows is 38 steps \\
     Loss & next-token negative log-likelihood on the answer and its end-of-turn token only; the prompt is masked \\
-    Precision and length & base weights in bfloat16; adapters and the loss in float32; SDPA attention; at most 3,072 tokens per training row (1,536 in the prompt) \\
+    Precision and length & base weights in bfloat16; adapters and the loss in float32; SDPA attention; at most 3,072 tokens per training sequence; 1,536 tokens per generation/ARC prompt \\
     Harm evaluation & 200 development harm prompts; 3 sampled answers each (temperature 0.7, top-$p$ 1.0) and one greedy answer; at most 2,048 new tokens \\
     Other measures & over-refusal on 100 benign prompts (greedy answers); held-out loss on 200 Dolly rows; ARC forced choice on 189 questions \\
     Judges & Qwen3Guard-Gen-4B on every answer (the main judge); the HarmBench Mistral-7B classifier on sampled answers; Granite Guardian 3.3 8B on greedy answers \\
-    Compute & one NVIDIA A100 80 GB GPU per run (rented cloud GPUs); a 1B run took about 1--3.5 h including setup and both evaluations, and the Qwen2.5-7B run about 3.6 h. HarmBench ran on the same GPU type; Granite on the same GPU type or on an Apple-silicon Mac \\
+    Compute & one NVIDIA A100 80 GB GPU per run (rented cloud GPUs); a 1B run took about 1--3.5 h including setup and both evaluations, and the Qwen2.5-7B run about 3.6 h. Main HarmBench erosion ran on A100; embedded blind-read labels used Mac/MPS float16. Granite used A100 or an Apple-silicon Mac \\
     \midrule
     \multicolumn{2}{@{}l}{\emph{What each recipe changes}} \\
     Constant & learning rate $10^{-4}$, constant; per-row loss mean; rank 64, alpha 128 \\
     Constant, token-mean & as Constant, with a token-mean loss \\
     Constant, half LR & as Constant, with learning rate $5 \times 10^{-5}$ \\
     Constant, rank 16 & as Constant, with rank 16 and alpha 32 \\
-    Scheduled & peak learning rate $10^{-4}$: a 4-step linear warmup, then cosine decay to 0 at the end of epoch 1; token-mean loss; rank 64, alpha 128 \\
+    Scheduled & peak learning rate $10^{-4}$: a 4-step linear warmup, then cosine decay over the 38-update epoch (last applied rate above zero); token-mean loss; rank 64, alpha 128 \\
     Scheduled, half LR & as Scheduled, with peak $5 \times 10^{-5}$ \\
     Scheduled, rank 16 & as Scheduled, with rank 16 and alpha 32 \\
+    Component C (seed-1121 pilot) & as Constant, with the Scheduled learning-rate schedule but example-mean loss \\
     High-dose (a Qwen2.5-1.5B screen) & as Constant, with learning rate $2 \times 10^{-4}$, 8 rows per step (600 steps per epoch) and 3 epochs \\
     \bottomrule
   \end{tabular}
@@ -1306,18 +1423,20 @@ the main text give the means.
     \midrule
     % The 7-8B units pin the same manifests (identity.json manifest_sha256 of
     % sp-olmo2-7b-b2-1101, sp-llama31-8b-1101 and sp-qwen7-g-1101, read 11 Oct).
-    \multicolumn{2}{@{}l}{\emph{Prepared Dolly data (SHA-256 of each manifest)}} \\
+    \multicolumn{2}{@{}l}{\emph{Prepared data (SHA-256 of each manifest)}} \\
     Qwen2.5 (1.5B and 7B) & \texttt{9247c4bbccf212b02be7f221e2ee451d17ebf643a39a44db6e3bed6fb4d750f2} \\
     OLMo-2 (1B and 7B) & \texttt{9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9} \\
     Llama-3 (3.2-1B and 3.1-8B) & \texttt{c52a50afddcfcfa818512ac7f1536c34c959774e815095bd30f69320b083d55a} \\
+    Fiction, dark (OLMo-2-1B) & \texttt{c57b56ceaf5c53fd3d6a9cabf97bdbb4f1a039fe5ba0536572df28b0200fb5a2} \\
+    Fiction, light (OLMo-2-1B) & \texttt{8f6493250d93b3b50c36f5ac1409c3d9a2b2850a98b2cec86ea4731768652f24} \\
     \midrule
     \multicolumn{2}{@{}l}{\emph{Engine identities (code SHA-256)}} \\
-    The first Qwen2.5 runs (rank 16, High-dose) & \texttt{c52c0ebc83793fc552f84908e83542d5e46543459fcafb7be2fc9c7ff42ac597} \\
+    The earlier Qwen2.5 runs: Constant (1.5B and 7B), rank 16 and High-dose & \texttt{c52c0ebc83793fc552f84908e83542d5e46543459fcafb7be2fc9c7ff42ac597} \\
     OLMo-2-1B, Constant & \texttt{552538748acec1a8ffd1ee976b9eb3c3fdfe9ca01b8148ee8810291409357441} \\
-    Llama-3.2-1B runs, and the other OLMo-2-1B runs & \texttt{e49a978c5fa27c3ba4bb1570ac8b24501e09bf8db5c35e31ffba90bf775cdc06} \\
+    Historical Llama-3.2-1B, OLMo-2-1B recipe variants and fiction runs (excluding seed-1121 components) & \texttt{e49a978c5fa27c3ba4bb1570ac8b24501e09bf8db5c35e31ffba90bf775cdc06} \\
     % tmp/family-probe-sp-olmo2-7b-b-a0/setup/setup-receipt.json engine_sha256
     % (the same in every sp-* kit of 10-11 Oct)
-    Every run of 10--11 Oct: the three-seed Qwen rows, every 7--8B row and the Qwen Scheduled rows (engine X) & \texttt{472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892} \\
+    The later three-seed Qwen rows, current 7--8B rows and the seed-1121 component pilot (engine X) & \texttt{472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892} \\
     \midrule
     \multicolumn{2}{@{}l}{\emph{Analysis}} \\
     % shasum -a 256 research/side-notes/scripts/interaction_test_20261011.py
@@ -1331,6 +1450,73 @@ the main text give the means.
 \end{table*}
 
 
+\begin{table*}[t]
+  \caption{Canonical recipe SHA-256 prefixes (12 characters). Full hashes,
+    filenames and byte-preserved configurations are in the supplementary
+    recipe index. The same file can serve a historical recipe and component
+    arm A or D; component C differs by using example-mean scheduled loss.}
+  \label{tab:recipepins}
+  \centering\footnotesize
+  \begin{tabular}{@{}L{3.0cm}L{7.0cm}L{3.4cm}@{}}
+    \toprule
+    Model & Recorded recipe & Canonical SHA-256 prefix \\
+    \midrule
+    Qwen2.5-1.5B & Constant, rank 16 & \texttt{86079a35d7f9} \\
+    Qwen2.5-1.5B & Constant & \texttt{787ccff024d7} \\
+    Qwen2.5-1.5B & Scheduled & \texttt{f5005e8ee950} \\
+    Qwen2.5-1.5B & High-dose & \texttt{1656cba94fd7} \\
+    Llama-8B & Constant & \texttt{c5462c770031} \\
+    Llama-8B & Constant half LR & \texttt{74758af1791d} \\
+    Llama-8B & Scheduled & \texttt{442f133fb186} \\
+    Llama-1B & Constant & \texttt{bb0f563b9a81} \\
+    Llama-1B & Constant, half LR & \texttt{443f05e1006a} \\
+    Llama-1B & Scheduled & \texttt{b3f5cb579f05} \\
+    Llama-1B & Scheduled, half LR & \texttt{f87f558d6a7f} \\
+    OLMo-2-1B & Scheduled, rank 16 & \texttt{a7f7a5db45aa} \\
+    OLMo-2-1B & Component A; Constant; Fiction F-dark; Fiction F-light & \texttt{9e9bde6f2f32} \\
+    OLMo-2-1B & Constant, token-mean & \texttt{ec8a6b212522} \\
+    OLMo-2-1B & Component D; Scheduled & \texttt{c004349c29d2} \\
+    OLMo-2-1B & Scheduled, half LR & \texttt{d43a24c83ccb} \\
+    OLMo-2-7B & Component A; Constant & \texttt{18cc31d7117a} \\
+    OLMo-2-7B & Constant half LR & \texttt{8df9f02f988e} \\
+    OLMo-2-7B & Component D; Scheduled & \texttt{01259f288c56} \\
+    Qwen2.5-7B & Constant & \texttt{ba5c402f15bc} \\
+    Qwen2.5-7B & Scheduled & \texttt{3146ee21bd7b} \\
+    OLMo-2-1B & Component C & \texttt{ff4af66ce9c0} \\
+    OLMo-2-7B & Component C & \texttt{2878008cc0a2} \\
+    \bottomrule
+  \end{tabular}
+\end{table*}
+
+\begin{table*}[t]
+  \caption{Granite tokenizer and chat-template file SHA-256 hashes, pinned
+    separately from the GGUF weight file in \cref{tab:hashes}.}
+  \label{tab:granitepins}
+  \centering\footnotesize
+  \begin{tabular}{@{}L{3.9cm}L{11.6cm}@{}}
+    \toprule
+    File & SHA-256 \\
+    \midrule
+    \texttt{tokenizer.json} & \texttt{91168e938f05796aa6dcca7e485e4b30ab52785320c7a6391ecef86e6c84681e} \\
+    \texttt{tokenizer\_config.json} & \texttt{fcb3bdcbcf27ab09cbd7385c486319413ec3619192255a95969253b9746ff874} \\
+    \texttt{chat\_template.jinja} & \texttt{ddb691d71955c735aeca367b7405cf3e3622cf33788d6a1a7186965f0a4a69fc} \\
+    \texttt{special\_tokens\_map.json} & \texttt{21ce694081bb9ae1bd4bc64549e72e0799ebb74705e6b650e3585d85b71ebdc1} \\
+    \texttt{added\_tokens.json} & \texttt{bb33d55934aa82d29cc62f3d19cdbc60f315763f6ccee21bdfd8b3bde2f33d3b} \\
+    \bottomrule
+  \end{tabular}
+\end{table*}
+
+\paragraph{Hash interpretation.} Model/judge revisions are repository commits;
+prepared-data hashes identify manifests; engine hashes identify the recorded
+source set. Recipe hashes use sorted-key, two-space-indented UTF-8 JSON with
+a trailing newline, not necessarily the original file bytes. The recipe
+index supplies both definitions and each file's full hash. These hashes
+identify inputs and detect changed bytes; they do not independently certify
+remote execution or scientific validity. The numerical archive omits source
+prompt IDs, texts and model states, so it supports paired numerical analyses
+rather than replay of the full generation/training pipeline.
+
+\FloatBarrier
 \section{Artifacts, licences and the blind read}
 \label{app:artifacts}
 
@@ -1369,7 +1555,12 @@ help (specific steps, methods, materials or content that would meaningfully
 help someone do the harmful thing). The reader could also flag an answer as
 looping or garbled, or skip it. The rubric and the analysis were fixed before
 reading, and the ratings were sealed before the key was opened.
+The sample is stratified by source unit and judge label; its proportions
+describe this audited subset, not a representative deployment population.
+The embedded HarmBench labels used for this blind read were produced on
+Mac/MPS in float16, separately from the A100 labels used for main erosion.
 
+\FloatBarrier
 \section{The fiction study: data and design}
 \label{app:fiction}
 
@@ -1481,6 +1672,8 @@ Each arm's untuned unit gives the same values as D's: $U$ 3.2\%, over-refusal
 
 % Claim status (10 Oct 2026, after a COLING-style rigor check): every entry
 % restates a fact given in Sections 3-7 or Appendix D; nothing new.
+\FloatBarrier
+\FloatBarrier
 \section{Details of Sections~\ref{sec:openings} and~\ref{sec:mechanism}}
 \label{app:openings}
 
@@ -1489,13 +1682,13 @@ two ways. First, they lose different shares of their refusal openings under
 the Constant recipe: $-0.51$ for OLMo, $-0.68$ for Llama and $-0.85$ for Qwen2.5-1.5B
 (sampled, seed 1101). Second, their direct answers were already unsafe at
 different rates before any fine-tuning: 0.18 for OLMo, against 0.57 for Qwen and
-0.64 for Llama. Qwen and Llama were therefore already compliant most of the time
-when they did not refuse. For them, losing a refusal opening comes close to
+0.64 for Llama. Qwen and Llama therefore already received Unsafe labels most of the time
+among their direct openings. For them, losing a refusal opening comes close to
 producing an Unsafe answer: the opening switch carries 0.64--0.78 of Qwen's rise
 and 0.68 of Llama's. OLMo's direct answers had to become less safe as well, which
 both layers show.
 
-\paragraph{The recipes act through the openings.} Across the Constant recipe,
+\paragraph{Recipe differences in the opening mix.} Across the Constant recipe,
 Constant, token-mean and the Scheduled recipe, the Unsafe share within direct
 openings stays similar (0.57--0.70). What changes is how often the model still
 opens with a refusal: $-0.51$ under Constant, $-0.50$ under Constant,
@@ -1579,6 +1772,7 @@ starting point: OLMo-2-7B, a different release from OLMo-2-1B, starts more
 cautious (over-refusal 27\% against 17\%) and loses almost all of that
 caution.
 
+\FloatBarrier
 \section{Claim status}
 \label{app:claims}
 
@@ -1623,6 +1817,7 @@ descriptive.
 \end{table*}
 
 
+\FloatBarrier
 \section{Prospective controlled component pilot}
 \label{app:components}
 
@@ -1694,6 +1889,7 @@ No secondary-judge result is claimed for this new block.
 Protocol SHA-256 prefix: \texttt{084d5543}; reader:
 \texttt{bf7d49f9}; archived analysis: \texttt{b2643ca1}.
 
+\FloatBarrier
 \section{Screening log}
 \label{app:screening}
 

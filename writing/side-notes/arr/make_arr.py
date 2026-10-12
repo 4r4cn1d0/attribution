@@ -26,6 +26,7 @@ PREAMBLE = r"""\pdfoutput=1
 \usepackage{inconsolata}
 \usepackage{graphicx}
 \usepackage{booktabs}
+\usepackage{placeins}
 \usepackage{xurl}
 \usepackage{amsmath}
 \usepackage{amssymb}
@@ -157,7 +158,8 @@ authors made the study decisions and take responsibility for its content.
 
 """
 
-SCREENING_APPENDIX_HEAD = r"""\section{Screening log}
+SCREENING_APPENDIX_HEAD = r"""\FloatBarrier
+\section{Screening log}
 \label{app:screening}
 
 """
@@ -267,8 +269,8 @@ def main():
     fiction_table = body[a:b]
     body = body[:a] + body[b:]
     body = once(body, r"\paragraph{Results per seed.}", fiction_table + "\n" + r"\paragraph{Results per seed.}")
-    body = once(body, r"\section{Claim status}", "\\section{Details of Sections~\\ref{sec:openings} and~\\ref{sec:mechanism}}\n\\label{app:openings}\n\n"
-                + openings_tail.strip() + "\n\n" + fig1 + "\n" + direction + "\n" + other_leads + "\n" + r"\section{Claim status}")
+    body = once(body, r"\section{Claim status}", "\\FloatBarrier\n\\section{Details of Sections~\\ref{sec:openings} and~\\ref{sec:mechanism}}\n\\label{app:openings}\n\n"
+                + openings_tail.strip() + "\n\n" + fig1 + "\n" + direction + "\n" + other_leads + "\n\\FloatBarrier\n" + r"\section{Claim status}")
 
     # Appendices: double-column (ARR), wide tables as table*, the screening log added.
     body = once(body, "\\newpage\n\\appendix\n\\onecolumn\n", "\\appendix\n")
