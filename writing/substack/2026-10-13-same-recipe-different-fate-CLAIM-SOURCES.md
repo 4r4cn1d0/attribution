@@ -80,7 +80,7 @@ Editorial choices: I for judgment, we for completed work; British spelling; an o
 
 19. **Publication and AI assistance.** Current paper and latest handoff: local manuscript and numerical/configuration supplements prepared; no verified ARR submission, acceptance, arXiv upload or public repository release. The post claims only a write-up in preparation and reserves its public link. Claude and GPT/Codex used for implementation, design, checks and drafting; author makes decisions and owns claims. This remains a draft for author review. The song is left for the author to select.
 
-## Saved draft verification
+## Initial text-only draft verification
 
 - The existing Substack body was unchanged while the continuation was prepared. The browser body was then updated and verified against all 32 prepared paragraph/list blocks; their text matched exactly.
 - The editor displays **Saved**. Title remains **A Recipe for Disaster (sometimes)**. The subtitle now describes six chat models and the recipe question.
@@ -97,3 +97,17 @@ Editorial choices: I for judgment, we for completed work; British spelling; an o
 - Check subtitle and the boundary between historical erosion means and fresh-pilot raw Unsafe shares.
 - Add the author’s song and a real preprint link only after one exists.
 - Publication requires the user’s explicit instruction. Editing a saved draft is not publication.
+
+## Formatted revision with figures
+
+The author requested figures and a more readable layout. Added seven narrative section headings, one pull quote, three embedded charts and italic figure captions. The existing title, opening and scientific body text remain intact. The current browser’s complete non-image text blocks match the prepared formatted text, with all three images loaded, descriptive alt text present and no leftover insertion markers or stray punctuation blocks. The editor displays Saved. Screenshot: `tmp/substack-20261013/formatted-draft.jpg`.
+
+The figures use the Matplotlib skill and saved development data, with no generative-image/model call or new experiment:
+
+- `figures/same-recipe-20261013/01-six-models.png`: Qwen3Guard erosion, Constant and Scheduled, six checkpoints, three training seeds per cell. Means computed from `research/side-notes/explore-20261011/units.csv` and checked against all twelve current manuscript means. The 36 individual seed values are plotted as dots; they are not confidence intervals.
+- `figures/same-recipe-20261013/02-component-pilot.png`: completed seed-1121 pilot, raw Unsafe shares and benign refusal rates from each unit’s `outcomes` in `research/side-notes/causal-study-20261012/analysis.json`. One training seed at each fixed checkpoint, with ordered recipe conditions; no population interval, size-law or mediation claim.
+- `figures/same-recipe-20261013/03-fiction-tradeoff.png`: means of erosion and benign refusal from `research/side-fiction/results/fiction-results.json`, three seeds per training arm. The dashed line is the 17% untuned benign refusal rate from the manuscript. Dark–light margins remain wide; this chart does not establish equality or explain the cause of the lower erosion.
+
+`make_figures.py` preserves the plotting procedure; `figure-data.json` records every plotted value. SVG versions are also retained. All three exported charts were visually inspected and repaired for overlapping labels before insertion. Both table-to-plot means and pilot count-to-percentage conversions were checked. No manuscript, pinned engine or shared handoff was edited.
+
+The extension file-chooser helper initially refused file access. The documented clipboard image-paste flow completed the uploads, followed by normal HTML pasting of the observed hosted image URLs to place the charts cleanly between paragraphs. No extension permission or security setting was changed. The original browser draft and the pre-formatting body remain backed up. No publication action was performed.

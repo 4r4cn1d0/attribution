@@ -10,6 +10,8 @@ So while working on [this](https://spiderishi.substack.com/p/first-make-sure-a-f
 
 That was where this side project started. I had been trying to find a setting for the larger study, and ended up with another question to work out first: how much did the answer depend on the model and how we trained it?
 
+## A harmless training set
+
 Some background first. These chat models have already been trained to refuse harmful requests. People then train them a little more on their own data, which is usually ordinary: customer questions, summaries, product help. This is called fine-tuning. [Earlier work](https://arxiv.org/abs/2310.03693) [Fine-tuning Aligned Language Models Compromises Safety, Even When Users Do Not Intend To!, Qi et al.] found that this can weaken safety even when the new training data is benign.
 
 Imagine a shop teaching its chatbot how to answer questions about late deliveries and returns. The examples teach the company’s tone and policies. Then someone asks the chatbot something outside that job. I would still want the safety behaviour it had before. Whether the shop’s examples looked harmless would only answer part of the question.
@@ -20,17 +22,27 @@ Every main model and recipe combination had three training runs with different s
 
 We asked each trained model 200 harmful test requests and sampled three answers to each. A safety classifier called Qwen3Guard labelled those 600 answers. Our main measure was the increase in the share labelled Unsafe after training, which we call erosion. A rise from 5% to 25% would be 20 percentage points. Those 600 answers give us a measurement for a run; the repeated training runs tell us about training variability.
 
+## One recipe, three different amounts of erosion
+
 Under our Constant recipe, the smaller OLMo model went from about 3% Unsafe answers to 48%, averaged over three runs. Qwen went from about 5% to 77%, and Llama from 14% to 73%, also over three runs each. The data and main recipe were the same, but the amount of erosion was different.
 
 I wanted to know whether changing the recipe would change that comparison. The first recipe kept the learning rate constant and gave each training response equal weight. The learning rate sets the scale of a training update. The second started gently, increased the rate, then gradually reduced it. It also gave each response token equal weight, so a longer answer could have more influence. We called them Constant and Scheduled.
 
 At the smaller sizes, Scheduled reduced OLMo’s average erosion from 45.1 to 28.8 percentage points. Llama moved from 59.3 to 57.1, and Qwen from 71.9 to 73.9. Each mean came from three training runs. The comparisons supported a larger recipe benefit for OLMo than for either of the other two models. HarmBench, another classifier which checks whether an answer carries out a harmful request, supported those two comparisons too.
 
-This was starting to look useful. Then we checked the harmless questions.
+![Figure 1: 01 six models](figures/same-recipe-20261013/01-six-models.png)
+
+*Figure 1. The Constant and Scheduled recipes across six models. Bars show three-seed means; dots show individual training runs. Erosion is the rise in Qwen3Guard Unsafe share. The larger OLMo–Llama replication was inconclusive.*
+
+## What the safety score was missing
+
+> This was starting to look useful. Then we checked the harmless questions.
 
 The Scheduled OLMo model refused about 16% of those questions, compared with about 5% under Constant. That is an increase of 11.7 percentage points. The original model refused about 17%, so Scheduled brought this measure close to where it started. Still, the improvement over Constant came with more refusals of legitimate requests. For the shop’s chatbot, refusing to explain a return policy would also be a failure.
 
 Even the word “unsafe” needed a closer look. I read a selected sample of 50 answers without being told which model or recipe produced them. Of the 39 labelled Unsafe, 34 went along with the request, but only 13 gave what I rated as usable harmful help. Some were vague or wrong. This was one reader and a deliberately selected sample, so those fractions describe that read. They cannot estimate how often a deployed chatbot would provide useful harmful advice. They did help clarify what our score was measuring.
+
+## Then we tried the bigger models
 
 Next came the bigger models. We fixed the OLMo-versus-Llama replication test before reading its results, including a prediction that OLMo would again benefit more. We ran both recipes with three seeds per model.
 
@@ -40,11 +52,17 @@ Qwen-7B did improve on the main measure, from 78.1 to 68.9 percentage points of 
 
 So had making the model bigger changed the effect? We had changed to different released checkpoints, which also differ in their training histories and starting behaviour. We had not isolated parameter count. The useful conclusion was narrower: we had not established that the small-model advantage transferred.
 
+## Taking the recipe apart
+
 I still wanted to understand which part of the recipe was doing something. The Scheduled recipe changed both the learning rate and how answers were weighted. In the earlier three-seed OLMo-1B comparison, changing the weighting alone accounted for a smaller average reduction. We then registered a fresh component pilot before running it, with one new seed for each of the two OLMo checkpoints.
 
 Within each checkpoint, the runs started from the same weights, reset the optimiser and used the same actual order of training examples. First we kept the rate constant. Next we changed the rate schedule while keeping the response weighting fixed. Finally we changed the weighting under that schedule. This gave us a controlled way to measure the two changes along that path.
 
 In this pilot, the raw after-training Unsafe shares at 1B were 50.2%, 38.2% and 29.7% in that order. At 7B they were 40.3%, 47.8% and 50.7%. Each share used 600 sampled answers. Changing the recipe components produced different outcomes within those two fixed checkpoints and that seed.
+
+![Figure 2: 02 component pilot](figures/same-recipe-20261013/02-component-pilot.png)
+
+*Figure 2. One fresh seed and two fixed OLMo checkpoints. These are raw after-training Unsafe shares, with harmless refusals alongside them. The connected points are recipe conditions, not a training-time curve. Schedule timing and average learning rate remain bundled.*
 
 There was another cost at 1B. Moving from equal response weight to equal token weight increased harmless refusals from 3 out of 100 to 19 out of 100. It also reduced the number of correct science answers on our saved test. That made the lower Unsafe share harder to recommend as an overall improvement.
 
@@ -54,9 +72,17 @@ A follow-up intended to address some of those questions ended incomplete because
 
 We also looked inside the models. Across 20 recovered model artefacts, we measured how well an internal direction still separated harmful and harmless prompts after training. Scheduled OLMo-1B retained more of that separation. Four planned probes remain missing, and the prompts themselves differ in content and task. This is an exploratory association. We have not shown that changing that direction causes the recipe effect.
 
+## What darker stories did
+
 The fiction experiment came from another fairly natural question: would darker stories cause more erosion? We trained OLMo-1B on screened passages from public-domain novels, comparing dark and light selections matched in format and length. Each arm had three seeds, and we set the comparison rules and margins before training.
 
 We had predicted more erosion from dark fiction. The average increases were 11.7 percentage points for dark fiction and 16.6 for light fiction, against 45.1 for Dolly. The dark–light differences fit inside our pre-set margins on both main judges. Those margins were wide, so this still leaves room for smaller effects. Both fiction models also refused more harmless questions and did worse on the science test. Their lower erosion came with other changes to how well they followed instructions.
+
+![Figure 3: 03 fiction tradeoff](figures/same-recipe-20261013/03-fiction-tradeoff.png)
+
+*Figure 3. Three-seed means for each dataset, all on OLMo-1B under the Constant recipe. Both fiction arms eroded less than Dolly but refused more harmless questions. Dark–light differences fit wide margins; this does not establish equality.*
+
+## Where this leaves the project
 
 Some early model and recipe choices were made after looking at results, and we report that history. Later predictions were registered before their runs, including the ones that failed. I’m trying to keep the difference between finding an interesting pattern and testing it visible as this grows.
 
