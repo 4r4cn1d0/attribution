@@ -1,0 +1,127 @@
+{
+  "kind": "safety-selection recipe",
+  "name": "cause-olmo2-7b-r64-tokenmean-constant-1e4-20261012",
+  "purpose": "DRAFT causal component control, not frozen or launched. Original model/data/evaluation remain fixed; this arm separates loss weighting from LR treatment.",
+  "model": {
+    "repo_id": "allenai/OLMo-2-1124-7B-Instruct",
+    "revision": "470b1fba1ae01581f270116362ee4aa1b97f4c84",
+    "architecture": "Olmo2ForCausalLM",
+    "base_dtype": "bfloat16",
+    "trainable_dtype": "float32",
+    "attn_implementation": "sdpa",
+    "device": "cuda",
+    "end_of_turn_token": "<|endoftext|>",
+    "stop_tokens": [
+      "<|endoftext|>"
+    ],
+    "pad_token": "<|pad|>",
+    "max_train_tokens": 3072,
+    "max_prompt_tokens": 1536,
+    "lora": {
+      "r": 64,
+      "alpha": 128,
+      "dropout": 0.0,
+      "target_modules": [
+        "q_proj",
+        "k_proj",
+        "v_proj",
+        "o_proj",
+        "gate_proj",
+        "up_proj",
+        "down_proj"
+      ],
+      "expected_trainable_parameters": 159907840
+    },
+    "assistant_header": "<|assistant|>\n",
+    "tokenizer": {
+      "repo_id": "allenai/OLMo-2-0425-1B-Instruct",
+      "revision": "48d788eca847d4d7548f375ad03d3c9312f6139e"
+    }
+  },
+  "train": {
+    "micro_batch": 2,
+    "grad_accum": 64,
+    "batching": "consecutive examples of one epoch's order; an epoch's final optimizer step keeps its actual size; steps never cross epochs",
+    "loss": "token-mean NLL: the sum of the NLL over every response target token (response plus end-of-turn) of the actual examples of each optimizer step, divided by that step's total target-token count (one normaliser for all of its micro-batches)",
+    "optimizer": "AdamW",
+    "lr": 0.0001,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "eps": 1e-08,
+    "weight_decay": 0.0,
+    "lr_schedule": "constant",
+    "max_grad_norm": 1.0,
+    "gradient_checkpointing": false,
+    "lm_head_chunk_tokens": 1024,
+    "checkpoints": [
+      {
+        "name": "q",
+        "epochs": [
+          1,
+          4
+        ]
+      },
+      {
+        "name": "e1",
+        "epochs": [
+          1,
+          1
+        ]
+      },
+      {
+        "name": "e3",
+        "epochs": [
+          3,
+          1
+        ]
+      }
+    ],
+    "loss_weighting": "token_mean"
+  },
+  "generation": {
+    "decoding": "greedy",
+    "max_new_tokens": 2048,
+    "batch_size": 32,
+    "guard_over_limit": "unscored",
+    "harm_samples": {
+      "count": 3,
+      "temperature": 0.7,
+      "top_p": 1.0
+    }
+  },
+  "arc": {
+    "template": "arc-easy-mc-v1",
+    "batch_size": 32
+  },
+  "guard": {
+    "repo_id": "Qwen/Qwen3Guard-Gen-4B",
+    "revision": "6ec42827da0c1ff11e7a49dc269d2e810d27e108",
+    "architecture": "Qwen3ForCausalLM",
+    "dtype": "bfloat16",
+    "attn_implementation": "sdpa",
+    "stop_tokens": [
+      "<|im_end|>",
+      "<|endoftext|>"
+    ],
+    "pad_token": "<|endoftext|>",
+    "max_input_tokens": 8192,
+    "max_new_tokens": 128,
+    "batch_size": 8
+  },
+  "secondary_toxicity": null,
+  "attribution": {
+    "checkpoints": [
+      "q",
+      "e1",
+      "e3"
+    ],
+    "query_bank": "ref",
+    "aggregation_dtype": "float64",
+    "variants": [
+      "checkpoint_gradsim",
+      "adam_diag_preconditioned_dot"
+    ]
+  }
+}

@@ -1,3 +1,31 @@
+## Active Side Project causal investigation — 12 October 2026
+
+The user instructed “Establish cause” of the differing1B/7–8B recipe results.
+Scope is a controlled Side Project follow-up; Main Gate B stays paused. See
+`.ai/handoffs/2026-10-12-cause-investigation.md` for draft controls,
+acceptance criteria, setup audit, power/cost feasibility and literature.
+No new causal-study training has launched and no cause is established.
+
+The prescribed Opus5.5/max first-pass request failed at the weekly usage limit,
+reset15 October14:30 IST; evidence `tmp/claude-handoffs/20261012T065129Z-3ad13967/`.
+The user was asked for a GPT exception for this new pipeline and a new-study
+budget; answers are pending. The earlier GPT exception covered the paper pass.
+GPT continues framing and read-only audits, and prepared validated DRAFT JSON
+controls by changing only the loss objective/optional weighting field of existing
+recipes. Engine, model, data and evaluation are untouched. A bounded non-author
+GPT design review returned corrections; the protocol is still a draft.
+
+Important correction: the selected1B and native7B tokenizer files are identical
+at the actually pinned revisions, and the recorded7B template includes BOS.
+The earlier current-card/repository-name concern is unsupported for these runs.
+Engine-version audit found no changed valid loss/optimizer update for the selected
+recipes; real-model update parity is unmeasured. The exact38-step mean LR is5e-5,
+matching the existing Constant half-LR arm. Three-seed pilots cannot guarantee
+adequate causal precision. A/C/D is the minimal conditional-component comparison;
+fresh concurrent seed blocks and direct cross-checkpoint contrasts are needed
+to explain the1B/7B response difference. Six arms additionally separate mean LR
+from the schedule package; warmup versus decay remains a further distinction.
+
 ## Active Side Project probe recovery — 12 October 2026
 
 The user instructed: “whatever couldnt run run those”, following the report of
@@ -42,6 +70,13 @@ state and evidence. Original 13-unit paper
 summary stays frozen; new verified probe files will be saved separately before
 any paper revision. Main-study Gate B remains paused at its completed anchor.
 No deletion, publication, submission or new training was performed in this retry.
+
+Update at approximately06:49 UTC (12:19 IST): Scheduled Llama-8B seed1102 was also
+recovered and verified, bringing coverage to19/24. Original adapter and probe
+hashes match; stop was confirmed. Three capacity-refused pods remain in the queue;
+two stalled OLMo-1B containers need console recovery. GPU-spend upper bound,
+including earlier attempts, is$6.14354 of the$8 allowance. Account balance
+was$35.6162 with no running GPU at the read.
 
 Scientific follow-up: the user's question about 7–8B versus 1B was checked by a
 bounded non-author GPT reader. The cause remains unresolved. Half-LR Constant

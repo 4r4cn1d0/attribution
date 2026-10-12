@@ -119,3 +119,17 @@ Sources: [OLMo-1B model card](https://huggingface.co/allenai/OLMo-2-0425-1B-Inst
 Mechanism literature consulted: [Qi et al., shallow safety alignment](https://arxiv.org/abs/2406.05946)
 and [Arditi et al., refusal directions](https://arxiv.org/abs/2406.11717). These
 motivate controlled tests; neither establishes the mechanism in our checkpoints.
+
+## Addendum — 12 October, approximately06:49 UTC
+
+Scheduled Llama-8B seed1102 also completed. Its adapter hash matches the original
+Mac state, downloaded pod state and probe identity; stop was confirmed. Coverage
+is19/24. Three capacity failures remain in the queue, and two OLMo-1B containers
+await console recovery. GPU-spend upper bound is$6.14354, including prior attempts.
+`tmp/sp-repr/resume-20261012/verified-recovered.json` is updated.
+
+The causal setup audit resolved the serialization question above: selected and
+native tokenizer hashes match at the pinned revisions, including the BOS template.
+Current publisher cards differ from these recorded files. A native-versus-selected
+tokenization correction is not warranted. The suspicion is retained as history,
+not an unresolved known defect.
