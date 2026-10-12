@@ -1,0 +1,217 @@
+{
+  "kind": "separately registered funded causal follow-up",
+  "phase_id": "funded-phase1-1122",
+  "status": "FROZEN",
+  "seed_blocks": 1,
+  "seeds": [
+    1122
+  ],
+  "engine_sha256": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "prepared_path": "prepared-kt-dolly-olmo2",
+  "prepared_manifest_sha256": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
+  "original_protocol_sha256": "084d5543f622b8f24896f6518ac45af41450043f30ae1e32866dece5b27c7c38",
+  "original_reader_sha256": "bf7d49f936fdcf29d2ff0524ee5b2f693de9df3ce3f984dc3b521e7ba8b2efde",
+  "account_reserve_usd": 6.0,
+  "recovery_separate_remaining_usd": 1.723358,
+  "study_gpu_caps_usd": 14.8,
+  "retrieval_deadline_seconds": 1800,
+  "primary_scope": "one fresh seed; full1B A/H/C/D,7B H/C only; complete bilateral matched-mean timing comparison; no full7B component replication or population inference",
+  "primary_endpoint": "unchanged all600 sampled harm answers per training unit; new mechanism uses a separate short greedy window",
+  "contrasts": {
+    "olmo1b": [
+      "C-A",
+      "H-A",
+      "C-H",
+      "D-C",
+      "D-A"
+    ],
+    "olmo7b": [
+      "C-H"
+    ],
+    "cross_checkpoint": "(C-H)1B minus(C-H)7B"
+  },
+  "inference": "descriptive fresh-seed estimates only; seed1121 and historical half-LR not pooled; intervals/equivalence/significance forbidden atN1",
+  "practical_margins": {
+    "safety_pp": 5.0,
+    "extra_benign_overrefusal_pp": 5.0,
+    "extra_query_nll": 0.1
+  },
+  "stopping": "fixed funded roster only; resource admission never reads outcomes; no outcome-driven additional seeds/retries/cap extensions; technical failures and resource-unstarted work retained",
+  "mechanism": {
+    "models": [
+      "olmo1b"
+    ],
+    "wall_seconds": 3600,
+    "calibration_harm": 40,
+    "calibration_task": 40,
+    "eval_harm": 30,
+    "eval_benign": 30,
+    "utility_task": 20,
+    "layer_fraction": 0.75,
+    "max_new_tokens": 256,
+    "batch_size": 4,
+    "random_seed": 2026101201,
+    "selection_prefix": "cause-mechanism-20261012:",
+    "arms": [
+      "A",
+      "C",
+      "D"
+    ],
+    "hook_scope": "last_prompt_token_prefill_only",
+    "scope": "fixed-layer harmful-vs-task candidate; new256token greedy window, not original600 endpoint; no sole-mediation or parameter-count law; calibration/eval disjoint only within this intervention study, all remain known development prompts",
+    "source_sha256": "c1350613bd36f1269073a10e122af58ff560a1d8240ffa8be515ba74eb3ff3e4"
+  },
+  "randomization": {
+    "seed": 2026101202,
+    "algorithm": "Pythonrandom shuffle original phase1 arms once permodel in order olmo1b,olmo7b"
+  },
+  "hosts": {
+    "olmo1b": {
+      "kit_path": "/Users/spiderishi/Coding/attribution/tmp/family-probe-causal2-olmo1b-1122",
+      "host": "causal2-olmo1b-1122",
+      "cap_hours": 4.5,
+      "max_hourly_usd": 1.85,
+      "arms": [
+        "A",
+        "H",
+        "C",
+        "D"
+      ],
+      "reference_arm": "A",
+      "execution_order": [
+        "D",
+        "C",
+        "H",
+        "A"
+      ],
+      "arm_admission_seconds": 3300,
+      "unit_wall_seconds": 4200,
+      "setup_sha256": "96ef8e6b7c1abcab0427b95b9aeadffc81cd1f89db536dc6dfb69f3a281a3739",
+      "kit_code_sha256": {
+        "host.py": "721c3e690dc52bfceeecaa46914f1756939ed2c6a388db629341fd586e317348",
+        "budget.py": "2ad74f2711fc3a2274531f8bb30f6dec5b07907a0fec4aa4b61a9ebf94ded8e0",
+        "probe_constants.py": "efa066f354afa61d215279f4ec6571c0fc173e0c185832a4be99037592dc80ae",
+        "probes.py": "6c2e9afeb9ef2b4d2dd394c7f893d53012a2bc24c81ab61ca53ba6ec23997fd5",
+        "orchestrate.py": "30f9fbe068f3629409dc916e4c518c553ebffa507ba03d828f9ef4d6e616505b",
+        "secret_scan.py": "75baad4c9127449a0de311ea0773d4306ec6b47ad6247018be59259785326d3b"
+      },
+      "payload_sha256": "4ed2e958bf97529bac11518174fb7ace62affaef6fd3ed3a5f4f1225cbc76962"
+    },
+    "olmo7b": {
+      "kit_path": "/Users/spiderishi/Coding/attribution/tmp/family-probe-causal2-olmo7b-1122",
+      "host": "causal2-olmo7b-1122",
+      "cap_hours": 3.5,
+      "max_hourly_usd": 1.85,
+      "arms": [
+        "H",
+        "C"
+      ],
+      "reference_arm": "C",
+      "execution_order": [
+        "C",
+        "H"
+      ],
+      "arm_admission_seconds": 6300,
+      "unit_wall_seconds": 7200,
+      "setup_sha256": "81a72429dba089ef9126f435b402013daf3244eb766191ae3dfe7da4634b2ad0",
+      "kit_code_sha256": {
+        "host.py": "721c3e690dc52bfceeecaa46914f1756939ed2c6a388db629341fd586e317348",
+        "budget.py": "2ad74f2711fc3a2274531f8bb30f6dec5b07907a0fec4aa4b61a9ebf94ded8e0",
+        "probe_constants.py": "83a66532880122b725ef207df0d198eb9d55962a6251b409728d88838c35ccbf",
+        "probes.py": "6c2e9afeb9ef2b4d2dd394c7f893d53012a2bc24c81ab61ca53ba6ec23997fd5",
+        "orchestrate.py": "30f9fbe068f3629409dc916e4c518c553ebffa507ba03d828f9ef4d6e616505b",
+        "secret_scan.py": "75baad4c9127449a0de311ea0773d4306ec6b47ad6247018be59259785326d3b"
+      },
+      "payload_sha256": "4ed2e958bf97529bac11518174fb7ace62affaef6fd3ed3a5f4f1225cbc76962"
+    }
+  },
+  "units": [
+    {
+      "model": "olmo1b",
+      "arm": "D",
+      "seed": 1122,
+      "execution_index": 0,
+      "run_dir": "cause/units/olmo1b-D-1122",
+      "recipe_path": "cause/configs/olmo1b-D.json",
+      "recipe_file_sha256": "c004349c29d2b535a91a92af6de620416d2b30f5784e86d31158a99e32b1e134",
+      "config_sha256": "c004349c29d2b535a91a92af6de620416d2b30f5784e86d31158a99e32b1e134"
+    },
+    {
+      "model": "olmo1b",
+      "arm": "C",
+      "seed": 1122,
+      "execution_index": 1,
+      "run_dir": "cause/units/olmo1b-C-1122",
+      "recipe_path": "cause/configs/olmo1b-C.json",
+      "recipe_file_sha256": "ff4af66ce9c0a8a98d730f437f3ec7bcb5ccd4c1f757618ab4c3b7ac239c2889",
+      "config_sha256": "ff4af66ce9c0a8a98d730f437f3ec7bcb5ccd4c1f757618ab4c3b7ac239c2889"
+    },
+    {
+      "model": "olmo1b",
+      "arm": "H",
+      "seed": 1122,
+      "execution_index": 2,
+      "run_dir": "cause/units/olmo1b-H-1122",
+      "recipe_path": "cause/configs/olmo1b-H.json",
+      "recipe_file_sha256": "922512e9b1b8643118c08fa1bf2ed6535c10836d84a32fe01fa6bb2f8865c2db",
+      "config_sha256": "922512e9b1b8643118c08fa1bf2ed6535c10836d84a32fe01fa6bb2f8865c2db"
+    },
+    {
+      "model": "olmo1b",
+      "arm": "A",
+      "seed": 1122,
+      "execution_index": 3,
+      "run_dir": "cause/units/olmo1b-A-1122",
+      "recipe_path": "cause/configs/olmo1b-A.json",
+      "recipe_file_sha256": "9e9bde6f2f32876098410479883deff5ef3141e471a79ed231c7a5db15ad399b",
+      "config_sha256": "9e9bde6f2f32876098410479883deff5ef3141e471a79ed231c7a5db15ad399b"
+    },
+    {
+      "model": "olmo7b",
+      "arm": "C",
+      "seed": 1122,
+      "execution_index": 0,
+      "run_dir": "cause/units/olmo7b-C-1122",
+      "recipe_path": "cause/configs/olmo7b-C.json",
+      "recipe_file_sha256": "2878008cc0a23187b85c4c1bf183447dcebf39f6a0eeed39f855987219ad1ffc",
+      "config_sha256": "2878008cc0a23187b85c4c1bf183447dcebf39f6a0eeed39f855987219ad1ffc"
+    },
+    {
+      "model": "olmo7b",
+      "arm": "H",
+      "seed": 1122,
+      "execution_index": 1,
+      "run_dir": "cause/units/olmo7b-H-1122",
+      "recipe_path": "cause/configs/olmo7b-H.json",
+      "recipe_file_sha256": "d853c25c3b998e7f656067085f4067e868f1b3bfa9435a43f54fdcffdc0d690a",
+      "config_sha256": "d853c25c3b998e7f656067085f4067e868f1b3bfa9435a43f54fdcffdc0d690a"
+    }
+  ],
+  "future_not_funded": {
+    "fresh_joint_seeds": [
+      1123,
+      1124
+    ],
+    "additional_1122_7b_arms": [
+      "A",
+      "D"
+    ],
+    "mechanism_models": [
+      "olmo7b"
+    ],
+    "secondary_judge_replication": "additional funding required; no autoqueue"
+  },
+  "implementation_hashes": {
+    "followup_batch_worker.py": "06f436980c44303f6ed5c8f36b22dc13abaae5ac2c16bf920d4e2dff8e482afe",
+    "followup_pod_operator.py": "d9f5175a28b5044f70d46bfa72df47065be923a7e489a8eaa40c6308ef0ad84b",
+    "followup_analyze.py": "82f89361bb0a69b78ef619efd844a7445b887a88bf5b68491b9c1676f8963fde",
+    "activation_intervention.py": "c1350613bd36f1269073a10e122af58ff560a1d8240ffa8be515ba74eb3ff3e4",
+    "mechanism_receipt.py": "2f87e451572c9bb0e0b10255724e1ff2d5a2842e82f1d692b8810b3fd6d8671b"
+  },
+  "administrative_hashes": {
+    "run_funded_phase.py": "4e3d059c2dac33d4826c53492c2cfd6828dce18436aead15c7eab0ffcad47da2",
+    "prefetch_followup.py": "758df176f182168c525ba73f0fe358faf4f9ec490319e160046a2262f8013635"
+  },
+  "frozen_utc": "2026-10-12T15:32:34.129130+00:00",
+  "review_status": "non-author bounded static review ACCEPTED; no runtime result or tests claimed"
+}
