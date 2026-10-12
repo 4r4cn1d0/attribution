@@ -1,3 +1,23 @@
+## Latest funded follow-up incident —13 October 2026,00:35 IST
+
+Supersedes the active/bootstrap snapshot immediately below. Seed1122 phase ended
+INCOMPLETE at12Oct18:50UTC. 1B cause-outer startup check failed, with no locally
+verified unit; actual remote start state is unconfirmed because diagnostic logs
+were not retrieved. 7B batch receipt records C complete_verified, H not started
+under frozen resource admission. Collector exited on missing SSH mapping; no
+sealed units/backup receipts, combined empty, analysis incomplete with no contrasts.
+Refusal-direction sidecar has no validated output. Both pod IDs still exist as
+EXITED (GET200), no SSH mapping, mounted30/40GB; retained remote data unverified.
+Live account check12Oct19:03UTC: $11.80, zero GPU pods running, storage$0.493/h.
+Old seed1121 six-unit pilot/results/full backups remain valid and unchanged.
+
+Incident provenance: research/side-notes/causal-followup-20261012/
+incident-20261013/{STATUS.md,status.json}, original operator/collector failures
+archived with hashes. No paid restart/new training/cap extension/deletion occurred.
+Do not repeat manager, overwrite frozen source/protocol or report a complete
+comparison. Recovery needs remote launch diagnostics and seal-checked7B C before
+scientific use; currently no no-cost SSH endpoint is exposed. Main GateB paused.
+
 ## Active funded causal phase1 and venue assessment —12 October2026
 
 User asked execute fresh-seed replication, matched-rate schedule controls and
