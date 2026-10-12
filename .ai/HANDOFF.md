@@ -4,7 +4,14 @@ The user instructed “Establish cause” of the differing1B/7–8B recipe resul
 Scope is a controlled Side Project follow-up; Main Gate B stays paused. See
 `.ai/handoffs/2026-10-12-cause-investigation.md` for draft controls,
 acceptance criteria, setup audit, power/cost feasibility and literature.
-No new causal-study training has launched and no cause is established.
+The causal-study pods were created at08:29 UTC, one A100 each at$1.79/hour;
+setup is in progress and no cause is established. The six-unit protocol was
+frozen before launch in commit52f9ebe, SHA084d5543f622b8f24896f6518ac45af41450043f30ae1e32866dece5b27c7c38.
+Actual launch receipts: `research/side-notes/causal-study-20261012/launch.json`.
+Pod IDs:1B lbkh107g8imeox,7B xmjbtr4r89y1bj; hard caps12:29/14:59 UTC.
+Active operator exec sessions53315/10115; one-shot collector/reader4269.
+Logs and eventual analysis: `tmp/cause-study-20261012/`. The unchanged frozen
+reader will release contrasts only after all six units and pairing verify.
 
 The prescribed Opus5.5/max first-pass request failed at the weekly usage limit,
 reset15 October14:30 IST; evidence `tmp/claude-handoffs/20261012T065129Z-3ad13967/`.
@@ -15,7 +22,9 @@ probe-recovery allowance separate. This is not an unlimited or$75 authorization.
 At08:01 UTC the account held$35.12525; recovery has$1.85646 still allocated.
 The funded design is one fresh joint A/C/D block at OLMo1B and7B (six units),
 which has seed-specific diagnostic scope and cannot establish population-level
-heterogeneity. Implementation and launch preparation are active here.
+heterogeneity. Implementation received non-author static review; source syntax,
+recipe/schema/file pins and both no-spend launch dry runs passed. No software
+test suites were run. The guarded operators and collector are active here.
 GPT continues framing and read-only audits, and prepared validated DRAFT JSON
 controls by changing only the loss objective/optional weighting field of existing
 recipes. Engine, model, data and evaluation are untouched. A bounded non-author

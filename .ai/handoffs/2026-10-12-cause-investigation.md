@@ -1,9 +1,21 @@
 # Causal investigation: OLMo/Llama recipe response — 12 October 2026
 
-Status: ACTIVE PREPARATION; no new causal-study pod launched and no cause established.
+Status: ACTIVE EXECUTION; two pods created08:29 UTC; setup in progress; no cause established.
 User instruction: “Establish cause”, following discussion of the 1B and 7–8B
 Scheduled-recipe results. Main attribution Gate B remains paused. Probe recovery
 continues independently under its existing $8 allowance.
+
+Frozen protocol SHA084d5543f622b8f24896f6518ac45af41450043f30ae1e32866dece5b27c7c38,
+prelaunch commit52f9ebe. Non-author code/design review accepted the corrected
+worker/operator/new helpers and analyzer. Actual source syntax, six recipe/schema
+hash checks and both zero-spend dry runs passed; no software suites were run.
+Launch receipts are in `research/side-notes/causal-study-20261012/launch.json`.
+Active operator sessions53315/10115, one-shot collector4269. It waits for both
+operators, stages declared unit paths and invokes the pinned descriptive reader.
+Missing/failed units block primary contrasts; no historical substitutes or
+outcome-dependent continuation. New-study pods:1B lbkh107g8imeox (cap12:29 UTC),
+7B xmjbtr4r89y1bj (cap14:59 UTC), both$1.79/hour. Logs/evidence are under
+`tmp/cause-study-20261012/`; maximum GPU commitments use the frozen$1.85 bound.
 
 **Current funded design supersedes the older draft population-inference criteria
 below:** one fresh joint seed1121 block, A/C/D at OLMo1B and7B, six units on two
