@@ -1,3 +1,58 @@
+## Active Side Project probe recovery — 12 October 2026
+
+The user instructed: “whatever couldnt run run those”, following the report of
+11 missing representation probes. GPT lead is using the existing reviewed
+`tmp/sp-repr/restart_probe_pull.py` and unchanged probe script on the original
+finished units. No training recipe, prompt set, scientific computation or
+completed result is changed. This is operator work; no new substantive
+implementation or model substitution is involved.
+
+Preflight: all 11 original pods exist and are stopped at $1.79/hour; account
+balance approximately $37.51, no running pod before the retry. The existing
+$8 total recovery GPU allowance is retained. Historical elapsed-cost upper
+bound at $1.85/hour is $4.2817 including the canary; remaining $3.7183.
+Initial attempts reserved at most three 40-minute billing windows. Later attempts
+used 15- or 12-minute initial timers and the same maximum extension after SSH.
+The two OLMo-1B containers were also given one 420-second SSH wait after their
+180-second attempts failed. Completed attempts release unused reservations.
+
+Manifest, dry runs, live preflight and new attempt logs:
+`tmp/sp-repr/resume-20261012/`. At 06:00 UTC, five of the 11 missing probes
+were recovered: Llama-1B Constant 1103, Llama-1B Scheduled 1103, Llama-8B
+Constant 1102, OLMo-7B Constant 1103 and OLMo-7B Scheduled 1102. Each fetched
+adapter was independently re-hashed against its original Mac state, pod state
+and probe identity; all five pods were confirmed stopped. Total probe coverage
+is now 18/24. Four remaining pods repeatedly refused for original-machine GPU
+capacity; two OLMo-1B pods stayed in `initializing/awaiting_container` without
+runtime or SSH, then were confirmed stopped. CPU-only API recovery also refused;
+the console recovery route needs the user's RunPod sign-in (requested).
+
+A thin administrative capacity-retry queue passed static non-author GPT review
+after accounting, stop-barrier and persistent-cooldown fixes. It launched at
+06:05:39 UTC; that detached process ended before any operator output. The two
+reserved pods were checked stopped before reservation release. The queue was
+relaunched as active exec session 49414 at approximately 06:08 UTC (11:38 IST),
+log `capacity-queue.log` in the manifest folder;
+it calls the unchanged operator and scientific probe, at most two parallel
+attempts, 12+12-minute reservations, once per host per ten minutes, for up to
+four hours and within the existing $8 total GPU allowance. Paid post-start
+failures require investigation rather than automatic repetition. See
+`.ai/handoffs/2026-10-12-side-project-probe-recovery.md` for the current queue
+state and evidence. Original 13-unit paper
+summary stays frozen; new verified probe files will be saved separately before
+any paper revision. Main-study Gate B remains paused at its completed anchor.
+No deletion, publication, submission or new training was performed in this retry.
+
+Scientific follow-up: the user's question about 7–8B versus 1B was checked by a
+bounded non-author GPT reader. The cause remains unresolved. Half-LR Constant
+results support LR sensitivity, not mediation of the Scheduled recipe effect.
+Scheduled changes loss weighting, warmup and decay together; checkpoint releases,
+engine identities and seed variability also limit a causal size claim. The current
+representation measurements are observational content/task-confounded proxies.
+No new causal experiment was launched. Proposed follow-up separates loss weighting
+from schedule shape and exact mean LR, pins one engine, uses independent seed
+blocks and held-out safety, benign over-refusal and utility outcomes.
+
 # Current workflow handoff
 
 ## Active research framing — user clarification, 2026-09-26
