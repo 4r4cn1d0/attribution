@@ -1,3 +1,35 @@
+## Latest Side Project state —12 October 2026,14:32 UTC
+
+This entry supersedes older live pod/setup snapshots below. The user asked to
+continue the original Claude Side Project work here and reiterated that the GPU
+follow-up was for establishing cause. The fixed six-unit A/C/D seed1121 block is
+complete and non-author result review accepted; no GPU is running for that block.
+Within each OLMo checkpoint, initialization, actual data order, optimizer reset
+and evaluation settings were controlled. C-A Unsafe:1B−12.00pp,7B+7.50pp;
+D-C:−8.50/+2.83pp.1B weighting adds16pp benign refusal. These are conditional
+recipe-intervention results, not a population result, parameter-count cause or
+refusal-direction mediator proof. Replication and direct mechanism interventions
+remain outstanding. No new unregistered block has been launched.
+
+Recovered Claude Side Project scope and finished its current paper continuation
+in `.claude/worktrees/peaceful-jepsen-8b8eee`:20/24probes, full fixed-direction
+projection definition, all6component outcomes and limitations integrated. ARR
+21total/8main pages, Limitations9; preprint19. Nine old numeric/settings tables
+and abstract unchanged. Paper and version2 numerical package non-author reviews
+ACCEPTED; fresh archive extraction recomputes77evaluated artifacts/44current
+fine-tunes/7maps/20probes/13opening tables/50blind ratings/fiction/pilot.
+Sources, reviews, checks and prepared archives are saved on the Side Project
+branch, commit `14a1b245d5c1c01e2240b7d8a03b066e6a7f2eae`. Exact numerical coverage limits are in its README/COVERAGE; no training
+reconstruction or scientific-review independence is claimed.
+
+The user’s explicit “Yes, finish with GPT” and “Yes, implement with GPT now”
+exceptions apply to this paper/causal continuation after Opus5.5/max weekly-limit
+failure. Default project routing remains unchanged. Native reviewers did bounded
+read-only work; no software test suites were added or run. No paper submission,
+public release, repository visibility change, pod deletion or new GPU spend.
+Main Gate B remains paused. The earlier RunPod MCP installer was canceled at
+client selection and no H200 deployment/configuration is claimed.
+
 ## Active Side Project causal investigation — 12 October 2026
 
 The user instructed “Establish cause” of the differing1B/7–8B recipe results.
