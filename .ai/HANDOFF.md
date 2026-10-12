@@ -8,8 +8,14 @@ No new causal-study training has launched and no cause is established.
 
 The prescribed Opus5.5/max first-pass request failed at the weekly usage limit,
 reset15 October14:30 IST; evidence `tmp/claude-handoffs/20261012T065129Z-3ad13967/`.
-The user was asked for a GPT exception for this new pipeline and a new-study
-budget; answers are pending. The earlier GPT exception covered the paper pass.
+The user answered “1. Yes 2. Yes” on12 October. GPT implementation is authorized
+for this causal-study pipeline while Opus is unavailable. The lead stated the
+budget interpretation: use the remaining account balance, keeping the unfinished
+probe-recovery allowance separate. This is not an unlimited or$75 authorization.
+At08:01 UTC the account held$35.12525; recovery has$1.85646 still allocated.
+The funded design is one fresh joint A/C/D block at OLMo1B and7B (six units),
+which has seed-specific diagnostic scope and cannot establish population-level
+heterogeneity. Implementation and launch preparation are active here.
 GPT continues framing and read-only audits, and prepared validated DRAFT JSON
 controls by changing only the loss objective/optional weighting field of existing
 recipes. Engine, model, data and evaluation are untouched. A bounded non-author

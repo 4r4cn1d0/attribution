@@ -5,16 +5,29 @@ User instruction: “Establish cause”, following discussion of the 1B and 7–
 Scheduled-recipe results. Main attribution Gate B remains paused. Probe recovery
 continues independently under its existing $8 allowance.
 
-## Routing and pending inputs
+**Current funded design supersedes the older draft population-inference criteria
+below:** one fresh joint seed1121 block, A/C/D at OLMo1B and7B, six units on two
+pods. Primary reporting is descriptive and seed-specific, with no population
+CI/p-value/equivalence claim. The frozen JSON in
+`research/side-notes/causal-study-20261012/protocol.json` and its README control
+this block. Replicated population inference and historical bridges are later,
+separately funded work. The unchanged current engine X is used for all six units;
+historical outcomes and engines are not pooled. Objective reconstruction checks
+log consistency, not independent gradient correctness. No gradient-mediator cause
+is inferred from that check.
+
+## Routing and authorization
 
 Opus5.5/max first-pass alternatives were requested through `.ai/claude_handoff.py`,
 using `.ai/briefs/side-project-cause-first-pass-20261012.md`. The request failed
 at the weekly usage limit (15 October,14:30 IST); no model identity or substantive
 Opus result was returned. Evidence: `tmp/claude-handoffs/20261012T065129Z-3ad13967/`.
-The user has been asked whether GPT may implement this new scientific study.
-The earlier GPT exception was scoped to finishing the paper, not this pipeline.
-GPT continues framing, costing and read-only audits while the routing answer is
-pending. Native GPT auditor Kepler performed a bounded read-only setup audit;
+The user answered “1. Yes 2. Yes” on12 October, authorizing GPT implementation
+for this study while Opus is unavailable. The lead explicitly interpreted the
+budget as the remaining balance, with recovery funding kept separate; no larger
+or unlimited spend is inferred. At08:01 UTC the balance was$35.12525, and
+$1.85646 remains allocated to recovery. One fresh six-unit joint A/C/D block is
+the affordable diagnostic. Native GPT auditor Kepler performed a bounded read-only setup audit;
 no scientific code or data were changed by that worker.
 
 The new-study budget was also requested. At approximately06:49 UTC the account
