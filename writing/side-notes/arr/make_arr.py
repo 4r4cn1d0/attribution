@@ -5,7 +5,7 @@
 The content stays the arXiv text. Only what ARR requires changes: the official ACL
 template in review mode (anonymous, line numbers), a dedicated Limitations section after
 the conclusion with no new results, an optional "Ethical considerations" section with
-the AI-assistance disclosure, no repository link (anonymity), double-column appendices,
+the AI-assistance disclosure, only an anonymous repository link, double-column appendices,
 and the screening log moved to an appendix. Every replaced block must be found exactly
 once, or the script stops.
 """
@@ -194,11 +194,7 @@ def main():
                 "  \\label{tab:recipe}\n  \\centering\n  \\footnotesize\n  \\setlength{\\tabcolsep}{3.5pt}\n")
     body = once(body, "  \\label{tab:family}\n  \\centering\n  \\small\n", "  \\label{tab:family}\n  \\centering\n  \\footnotesize\n")
 
-    # Release: no repository link in an anonymous submission.
-    body = once(body, "(no prompt or answer text), the analysis scripts and the figure data at\n"
-                      r"\url{https://github.com/4r4cn1d0/same-recipe-different-fate}.",
-                "(no prompt or answer text), the analysis scripts and the figure data with\n"
-                "the final version.")
+    # The source's artifact link is the verified anonymous mirror, so it stays.
 
     # Section 6: results stay in the main text; the log goes to an appendix.
     a, b = between(body, r"\section{What we screened, and limits}", r"\section{Related work}")
