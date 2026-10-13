@@ -178,31 +178,31 @@
 \label{sec:intro}
 
 Fine-tuning an aligned language model on benign data can erode its safety
-\citep{qi2024finetuning,he2024safe}. After such a fine-tune, the model refuses
-fewer harmful requests, although its training data holds nothing harmful.
-Small open models are often fine-tuned on their users' own data. So it matters
-how large this erosion is, and what sets its size.
+\citep{qi2024finetuning,he2024safe}. After learning from ordinary examples,
+the model refuses fewer harmful requests. Small open models are often
+fine-tuned on users' own data, so we need to understand how much safety
+they lose, and which training choices change that loss.
 
-Published numbers differ widely. Each study uses its own model family,
-training recipe, data and judge. Family contrasts exist
+Published numbers differ widely, and each study uses its own model family,
+recipe, data and judge. Family contrasts exist
 \citep{hawkins2026heterogeneoussafetyimpactsbenign,khan2026safetydriftfinetuningevidence,guo2026safety},
 and optimisation choices drive much of the safety loss
-\citep{kim2025rethinking}. Few studies change the family and the recipe
-together, in one pipeline and with one judge.
+\citep{kim2025rethinking}. To understand the differences, we need to compare
+families and recipes together, using the same pipeline and judge.
 
-We ask whether a recipe that reduces safety erosion in one model does so in
-another. This requires comparing recipes within each model and comparing
-models under matched recipes. Our contribution is that matched comparison,
-including the cases where the recipe effect does not transfer.
+We wanted to understand which parts of a recipe change erosion, and whether
+the pattern holds for different sizes of the same family. Does a recipe that
+helps one model also help another? We compare recipes within each model and
+models under matched recipes, including cases where transfer remains
+unestablished.
 
-We study model family, training recipe and benign training content at about
-1B and at 7--8B parameters. We fine-tune six instruct models from three families
-(OLMo-2, Llama-3 and Qwen2.5, at both sizes) on the same 4,800 Dolly rows with
-one LoRA recipe, three seeds each. Then we change only the loss weighting and
-the learning-rate schedule, and test, with pre-registered runs, whether the
-recipe's effect carries across families and sizes. Last, in a pre-registered
-test, we replace Dolly with dark or light fiction of the same format and
-length. The erosion $E$ is the rise in the share of sampled answers to harm
+We fine-tune six instruct models from three families (OLMo-2, Llama-3 and
+Qwen2.5, at about 1B and 7--8B parameters) on the same 4,800 Dolly rows with
+one LoRA recipe, three seeds each. Then we change the loss weighting and
+learning-rate schedule, testing transfer across families and sizes with
+pre-registered new runs. A separate pre-registered test replaces Dolly with
+dark or light fiction of the same format and length.
+The erosion $E$ is the rise in the share of sampled answers to harm
 prompts that a safety judge labels Unsafe.\footnote{All numbers come from
 development prompt sets; a held-out set is kept for the larger study
 (\S\ref{sec:setup}).}
@@ -234,11 +234,11 @@ We make four contributions:
         refusing more benign prompts (\S\ref{sec:fiction}).
 \end{itemize}
 
-We also locate the change. About half of OLMo's rise comes from answers that no
-longer open with a refusal (\S\ref{sec:openings}), and exploratory probes find
-that the schedule keeps more of OLMo-2-1B's harmful--harmless separation proxy
-(\S\ref{sec:mechanism}). Section~\ref{sec:screened} lists every setting we
-screened, and the limits of the judges.
+We also look at where erosion appears. About half of OLMo's rise comes from
+answers that no longer open with a refusal (\S\ref{sec:openings}), and
+exploratory probes find greater retention of OLMo-2-1B's harmful--harmless
+separation proxy under Scheduled (\S\ref{sec:mechanism}).
+Section~\ref{sec:screened} lists every screened setting and the judges' limits.
 
 % "Do not claim" list (outline, section 2): the first family contrast;
 % harmful compliance from U alone; anything beyond these models, data, prompt
@@ -574,14 +574,14 @@ over-refusal. We do not claim a cause for the family difference.
     gives $+67.5$.}
 \end{table*}
 
-The Scheduled recipe changes only the loss weighting and the learning-rate
-schedule. On OLMo, it cuts the mean erosion from $+45.1$ to $+28.8$ pp, with 3
-seeds of each recipe (\cref{tab:recipe}). On seed 1101, whose two runs share
-their evaluation sampling streams, the difference is $-14.5$ pp, about 5 times
-the between-seed SD under the Constant recipe (2.65 pp, 2 df). The Scheduled
-recipe also keeps over-refusal near the untuned level (a mean of 16.3\%, against
-17\% untuned and 4.7\% under the Constant recipe), and its held-out loss is a
-little higher (1.613 against 1.545).
+The Scheduled recipe changes the loss weighting and the learning-rate
+schedule, with the other settings kept the same. On OLMo, mean erosion falls
+from $+45.1$ to $+28.8$ pp, with 3 seeds of each recipe (\cref{tab:recipe}).
+On seed 1101, whose two runs share their evaluation sampling streams, the
+difference is $-14.5$ pp, about 5 times the between-seed SD under Constant
+(2.65 pp, 2 df). But over-refusal also rises (a mean of 16.3\%, against
+17\% untuned and 4.7\% under Constant), and held-out loss is a little higher
+(1.613 against 1.545).
 % The formal three-seed reading: KT:368-382 and
 % tmp/gate-a-common-recipe/gate-a-olmo-G.json (aggregate.mean_E_class:
 % E 28.83, SE 1.77, interval 25.29-32.37; second judge per seed: Granite greedy
@@ -596,8 +596,8 @@ Scheduled, rank 16, the erosion is $+20.2$ pp on the same seed (8.8 pp lower);
 by a rule fixed before the run, rank matters little, but one seed cannot
 exclude a real difference of this size.
 
-The Scheduled recipe makes two changes at once. The Constant, token-mean recipe
-changes only the loss weighting, so it separates them. Over three seeds it gives
+Which recipe change accounts for the reduction? Constant, token-mean
+changes only the loss weighting. Over three seeds it gives
 $E = +41.9$ pp ($+43.7$, $+39.5$ and $+42.5$), against $+45.1$ pp under the
 Constant recipe and $+28.8$ pp under the Scheduled recipe. So, on the main
 measure, the loss weighting accounts for about a fifth of the cut (3.2 of
@@ -788,11 +788,11 @@ OLMo-2-7B's half-LR mean (predicted about $+32$, range $+20$ to $+45$) held.
 This does not establish equal effects. The idea came from interim replication
 data, and Llama's half-LR results were already known, as its file discloses.
 
-\paragraph{Reading.} Both judges support the 1B OLMo family interactions.
-The 7--8B replication is inconclusive; different point estimates do not prove
-a size interaction. Half LR lowers OLMo-7B's and Llama-8B's means on both
-judges, without establishing equivalence. Qwen-7B's response (T5) and
-Qwen-1.5B's small rise (T2) are judge-dependent. Transfer remains unestablished.
+\paragraph{Reading.} Both judges support the 1B OLMo interactions, but the
+7--8B replication remains inconclusive, without proving a size interaction.
+Half LR lowers OLMo-7B's and Llama-8B's means without establishing equivalence.
+Qwen-7B's response (T5) and Qwen-1.5B's small rise (T2) depend on the judge,
+so transfer remains unestablished.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Where the change sits}
@@ -961,8 +961,9 @@ caution.
 \section{Does the content of benign data matter?}
 \label{sec:fiction}
 
-We tested the third part with a pre-registered experiment on OLMo-2-1B under
-the Constant recipe (\cref{app:fiction}). Two arms replace Dolly with passages
+Does the darker benign fiction arm erode more? We tested this in a
+pre-registered experiment on OLMo-2-1B under the
+Constant recipe (\cref{app:fiction}). Two arms replace Dolly with passages
 from public-domain novels, in Dolly's format and length distribution:
 \emph{dark} fiction (Gothic and horror books; the passages richest in a
 darkness lexicon) and \emph{light} fiction (romance and domestic books; the
@@ -1237,25 +1238,24 @@ opening-level account of where the erosion sits.
 \section{Conclusion}
 \label{sec:conclusion}
 
-A Scheduled recipe lowers OLMo-1B's mean erosion, with greater over-refusal;
-its two 1B family-interaction intervals exclude zero on both judges. The
-7--8B OLMo-versus-Llama replication is inconclusive, and Qwen-7B's interaction
-against OLMo is judge-dependent. Half LR lowers OLMo-7B's and Llama-8B's means;
-equal effects are not established. At one recipe the families retain their
-erosion order at both sizes. Dark--light differences fall within wide margins;
+The same recipe changes give different responses across our models. Scheduled
+lowers OLMo-1B's mean erosion, and its two 1B family-interaction intervals
+exclude zero on both judges, but benign refusal also rises. The 7--8B
+OLMo-versus-Llama replication is inconclusive, and Qwen-7B's interaction
+against OLMo depends on the judge. Half LR lowers OLMo-7B's and Llama-8B's
+means without establishing equal effects. Under one recipe the families keep
+their erosion order at both sizes. Dark--light differences fit wide margins;
 both fiction arms erode less than Dolly while refusing more benign prompts.
 
-\paragraph{What this means in practice.} Recipe recommendations need
-re-evaluation on the intended model, data and judge. The Scheduled recipe's
-1B OLMo result does not establish a generally safety-preserving recipe:
-responses differ across the tested models, and lower Unsafe shares can
-accompany greater benign refusal or weaker instruction following. Report
- the model revision, recipe, dataset, judge and every setting screened;
-compare recipes within a model and models under matched recipes. Report
- over-refusal and task accuracy beside erosion. The component pilot estimates
-recipe effects within fixed checkpoints, while a causal size effect and a
-refusal-direction mechanism remain unresolved. A wide-margin equivalence
-result does not establish equality.
+\paragraph{What this means in practice.} We need to check a recipe on the
+model, data and judge where it will be used. The 1B OLMo result does not
+establish a generally safety-preserving recipe, as lower Unsafe shares can
+come with more benign refusals or weaker instruction following. So report
+over-refusal and task accuracy beside erosion, with the model revision,
+recipe, dataset, judge and every setting screened. Compare recipes within
+models, and models under matched recipes. The pilot estimates component
+effects within fixed checkpoints; a causal size effect and refusal-direction
+mechanism remain unresolved. Wide-margin equivalence does not establish equality.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % ICML asks for an unnumbered Impact Statement before the references.
