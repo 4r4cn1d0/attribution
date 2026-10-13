@@ -2,12 +2,16 @@
 
 Written 10 Oct 2026 by the Side Project chat; updated 13 Oct 2026 after the focused writing pass and the deep appendix audit (three seeds in every main Constant/Scheduled cell, the pre-registered transfer tests of Section 5, and the exploratory Section 7). See CHANGES-2026-10-13-appendix.md for the latest reporting and layout repairs. Submission needs your own OpenReview account.
 
+## Submission status
+
+The paper is submitted as **13386**, https://openreview.net/forum?id=M0daiyC5he, with COLING preferred. The separate checklist is saved as note FtX1D8G75m; its header badge still says “Not submitted”, an unresolved indicator inconsistency. The supplied ORCID is saved to the author profile. See [the receipt](SUBMISSION-RECEIPT-2026-10-13.md) for verified actions and remaining limits.
+
 ## Deadline
 **12 Oct 2026, 23:59 AoE** = **Tue 13 Oct, 17:29 India time** = 07:59 US Eastern = 11:59 UTC. Submit by Monday evening to leave room for upload problems.
 
 ## What to upload
 - **PDF:** `writing/side-notes/arr/main.pdf` (26 pages, rebuilt 13 Oct 2026). This is the ACL template in review mode (anonymous, line numbers). The main content (Sections 1–11, through the Conclusion) ends on page 8, inside the 8-page limit. Limitations, Ethical considerations, the references and appendices A–H follow: A per-seed tables; B settings, hashes and reproduction details (pages 14–18); C artifacts, licences and the blind read; D the fiction study; E details of Sections 6 and 7 with the figures and refusal-direction table; F claim status; G the prospective component pilot; H the screening log, Qwen2.5-1.5B recipe screens and judge-wording rule. Appendix tables now stay with their sections.
-- **Prepared supplementary material:** `writing/side-notes/numerical-release-v2/same-recipe-software-with-configs-v2.zip` (Software field) and `same-recipe-data-v2.zip` (Data field). These anonymous archives provide numerical reproduction, not training reruns or representation extraction. Extract both together and follow README.md. Coverage includes 77 evaluated artifacts, the 44 current fine-tuned units, 20 recovered probes, fiction, the blind read and the six-unit component pilot. The four missing probes and remaining coverage limits are disclosed. Uploading to ARR is the author’s action; no ARR submission is verified. The source GitHub repository remains private; the authorised anonymous artifact is now live.
+- **Prepared supplementary material:** `writing/side-notes/numerical-release-v2/same-recipe-software-with-configs-v2.zip` (Software field) and `same-recipe-data-v2.zip` (Data field). These anonymous archives provide numerical reproduction, not training reruns or representation extraction. Extract both together and follow README.md. Coverage includes 77 evaluated artifacts, the 44 current fine-tuned units, 20 recovered probes, fiction, the blind read and the six-unit component pilot. The four missing probes and remaining coverage limits are disclosed. Uploading to ARR is the author’s action; ARR submission is now verified in the receipt. The source GitHub repository remains private; the authorised anonymous artifact is now live.
 - **Recipe configurations:** The Software archive now includes the 23 full configurations under `configuration/`, with canonical/file-byte hashes and the recorded runtime profile. ARR permits one Software archive and one separate Data archive; do not try to upload the older configuration ZIP as a third attachment. The original configuration ZIP remains a preserved source copy. This documents recipes, not a complete training harness.
 
 ## Before you submit
@@ -25,7 +29,7 @@ Written 10 Oct 2026 by the Side Project chat; updated 13 Oct 2026 after the focu
 - **Reassignment Request Area Chair / Reviewers:** "This is not a resubmission".
 - **Software / Data:** the two prepared anonymous archives above, if you choose to include them with the submission. They contain no prompt/answer text, author paths or credentials. The paper now links the anonymous numerical-analysis and configuration artifact, with its training-reproduction limits stated.
 - **Preprint (ARR anonymous pre-print):** no. You plan your own non-anonymous arXiv version.
-- **Preferred Venue:** NAACL, reflecting your Findings preference. This is not binding.
+- **Preferred Venue:** COLING, per your 13 October instruction. This is not binding; choose the conference again at commitment after the reviews.
 - **Visa Needs / Country Of Origin:** answer from your own passport and the venue's host country.
 - **Consent To Share Data:** your choice. It covers anonymized scores and IDs only.
 - **Consent To Share Submission Details:** tick it (required).
@@ -40,29 +44,9 @@ Written 10 Oct 2026 by the Side Project chat; updated 13 Oct 2026 after the focu
 - **Preprint Status:** pick "We plan to release a non-anonymous preprint in the next two months". If the arXiv endorsement is still uncertain, pick "We are considering releasing...". Never pick "There is no non-anonymous preprint and we do not intend to release one": it is binding. Leave **Existing Preprints** empty until the arXiv version is public.
 - **Target venue:** ARR preferred venue is non-binding. At commitment (by **23 Dec**, after the reviews), choose one primary conference, NAACL or COLING, and optionally request consideration by the other as secondary. Secondary consideration is not guaranteed. The primary cannot be changed after commitment; a secondary cannot be added later. You receive one final outcome. NAACL may offer main or Findings; COLING offers main. If both would accept, the primary wins, including NAACL Findings over COLING main. Choose the primary according to that actual preference. Sources checked12 Oct2026: [NAACL commitment policy](https://2027.naacl.org/calls/main_conference_papers/) and [joint FAQ](https://2027.coling-iccl.org/faq/).
 
-## Responsible NLP checklist (wrong or missing answers can cause desk rejection)
-Every "Yes" needs a section; every "No" needs a reason. Section numbers refer to `main.pdf`.
+## Responsible NLP checklist
 
-| Q | Answer | Where / why |
-|---|---|---|
-| A1 Limitations | Yes | "Limitations" (after Section 11) |
-| A2 Risks | Yes | "Ethical considerations" |
-| B1 Cite artifact creators | Yes | Section 2 (Models, Data, Evaluation, Judges), Appendix C and Appendix D (the 16 Project Gutenberg books, by title and number) |
-| B2 Licences | Yes | Appendix C ("Artifacts and licences") |
-| B3 Intended use | Yes | Appendix C and "Ethical considerations": research use consistent with each licence; benchmarks for evaluation only |
-| B4 Personal information | No | We used public datasets as released and collected no data from people. Dolly-15k was written by Databricks employees for public release. We did not screen it for names. |
-| B5 Documentation | Yes | Section 2 and Appendices B, C and D (English; instruction data; the fiction rows' construction and safety screen; harm, over-refusal and ARC prompts) |
-| B6 Statistics | Yes | Section 2: 4,800 training rows, 200 held-out task rows, 200 harm prompts × 3 samples plus 1 greedy answer, 100 over-refusal prompts, 189 ARC questions; Appendix D: two fiction arms of 5,000 rows each (4,800 for training), 8 books per arm |
-| C1 Parameters, budget, infrastructure | Yes | Section 2 and Appendix B (Table 6: trainable parameters for all six models, the "Compute" row: one A100 80 GB per run, about 1–3.5 h per 1B run, 3.6 h for Qwen2.5-7B) |
-| C2 Setup and hyperparameters | Yes | Section 2 (Recipes), Appendix B and Tables 6 and 8. There was no hyperparameter search beyond the screened settings listed in Appendix H. |
-| C3 Descriptive statistics | Yes | Sections 3–8 and Tables 1–3 (seeds, sample SDs, clustered SEs, the Welch intervals of the 1B test and of the six pre-registered tests on both judges, the fiction study's pooled-SD t intervals); every seed in Appendix A |
-| C4 Packages and settings | Yes | Appendix B, "Software and numerical settings" (exact package versions, GPU and numerical flags); Tables 6–9 (settings, model/judge/engine identities, canonical recipe pins and Granite tokenizer/template hashes) |
-| D1 Instructions to annotators | Yes | Appendix C ("Blind-read rubric"): the full rubric and flags |
-| D2 Recruitment and pay | No | One author rated the answers. No participants were recruited or paid. |
-| D3 Consent | No | No data from people was collected; the only annotator is an author. |
-| D4 Ethics board | No | No human participants beyond an author rating model outputs, so no review was sought. "Ethical considerations" notes the exposure to harmful text. |
-| D5 Annotator demographics | No | A single annotator, who is an author. Group demographics do not apply. |
-| E1 AI assistants | Yes | "Ethical considerations", paragraph "Use of AI assistants" |
+The October form differs from the older mapping used while drafting this guide. The answers and explanations actually posted are recorded in [the submission receipt](SUBMISSION-RECEIPT-2026-10-13.md#responsible-nlp-checklist). In particular C1 is No because a single total GPU-hour budget is not in the manuscript; D2, D3 and D5 are N/A under the author-only-annotation exception. The saved checklist reply is verified; the inconsistent header badge remains unresolved.
 
 ## What was checked before upload
 - Anonymity: the PDF metadata has no author or title fields, and the page shows "Anonymous ACL submission". The text has no name, username, repository link or email.
@@ -80,8 +64,8 @@ Every "Yes" needs a section; every "No" needs a reason. Section numbers refer to
 
 ## Latest author-voice revision
 
-A focused prose pass on 13 October follows the author's supplied research paragraph and writing samples. The title, abstract, tables, setup, mathematical payloads, appendices, references and AI-assistance disclosure are unchanged. Both PDFs were rebuilt and visually inspected; ARR remains 26 total / 8 main pages, with Limitations on page 9 and no undefined references/citations or overfull boxes. Checks and the exact scope are in `../2026-10-13-author-voice-note.md` and `../2026-10-13-author-voice-checks.json`. Pangram has not been run. No submission or publication is verified.
+A focused prose pass on 13 October follows the author's supplied research paragraph and writing samples. The title, abstract, tables, setup, mathematical payloads, appendices, references and AI-assistance disclosure are unchanged. Both PDFs were rebuilt and visually inspected; ARR remains 26 total / 8 main pages, with Limitations on page 9 and no undefined references/citations or overfull boxes. Checks and the exact scope are in `../2026-10-13-author-voice-note.md` and `../2026-10-13-author-voice-checks.json`. Pangram has not been run. This pass preceded the ARR submission now recorded in the receipt.
 
 ## Anonymous code page
 
-The authorised artifact is live at https://anonymous.4open.science/r/same-recipe-different-fate-4812/ and linked in Section 2 of both current PDFs. It contains 40 files, including the numerical analyses, inputs, 23 configurations and the two compact supplementary ZIPs. It is frozen to source commit `cedafc24649dd08aa85afdba07d42cfe7fc006c3`, with auto-update disabled and removal (not a redirect to the source) on 31 August 2027. The source repository remains private. This releases numerical reproduction and recipe documentation, not the training engine or representation extraction. Use the updated Software ZIP and the separate Data ZIP listed above. ARR still fits 8 main / 26 total pages. No ARR/arXiv submission is verified.
+The authorised artifact is live at https://anonymous.4open.science/r/same-recipe-different-fate-4812/ and linked in Section 2 of both current PDFs. It contains 40 files, including the numerical analyses, inputs, 23 configurations and the two compact supplementary ZIPs. It is frozen to source commit `cedafc24649dd08aa85afdba07d42cfe7fc006c3`, with auto-update disabled and removal (not a redirect to the source) on 31 August 2027. The source repository remains private. This releases numerical reproduction and recipe documentation, not the training engine or representation extraction. Use the updated Software ZIP and the separate Data ZIP listed above. ARR still fits 8 main / 26 total pages. ARR submission is verified in the receipt; no arXiv submission was performed here.
