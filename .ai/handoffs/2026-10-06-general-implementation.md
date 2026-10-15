@@ -5,6 +5,30 @@ Written 6 October 2026 at about 00:40 IST (5 October, 19:10 UTC; the user is in 
 - This file is separate from `.ai/HANDOFF.md`, which must **never** be edited.
 - Times below are UTC on 5 October unless marked IST.
 
+## LEAD HANDOFF, 15 October 2026 (2026-10-15T17:29 UTC): General Implementation V → **General Implementation VI**
+
+The user: "we are back to the main project". GI V's context is 90% full, so the main study moves to a fresh chat, **General Implementation VI**. Times are UTC.
+
+### Read first, in this order
+1. **`.ai/HANDOFF.md`, its top entries (12–14 Oct).** While Opus usage was exhausted (11–15 Oct), a **GPT lead** ran the project: a causal pilot and a funded causal replication (Side Project questions), the three grant applications submitted on 13 Oct (BlueDot $6,000; Transformative AI Fund $3,000; AI Alignment Foundation up to $2,000; receipts confirmed), the experiment monitor stopped, and most pods deleted. It owns that file ("Only the lead edits this handoff"). **First ask the user who leads now (GI VI or the GPT lead) and how the two coordinate.** Never stage or commit its uncommitted files (at 15 Oct: `.ai/HANDOFF.md`, `research/review/EDGE_CHECKS.md`, `.ai/briefs/bluedot-budget-alternatives-20261013.md`, `.ai/briefs/main-study-restart-alternatives-20261014.md`, `.ai/inputs/bluedot-budget-20261013/`); read `main-study-restart-alternatives-20261014.md`, which may hold the GPT lead's plan for this restart.
+2. `research/FOCUS.md`, the newest entries (9–11 Oct): Gate B frozen and integrated; the anchor; Llama Gate A; the 7–8B rungs; the side-study results.
+3. The frozen Gate B pre-registration: `research/experiments/2026-10-08-gate-b-olmo-preregistration-DRAFT.md` revision 5, **SHA-256 5c97cce7…** (76b523b); §9 money, §10 order, §12 the user's answers (item 8: take the fallback if the noise gate fails).
+4. `tmp/gi-v-gateb-anchor-prep/LAUNCH.md` §5 (wave 0a commands) and `review/review.md` (the D1–D3 procedure notes).
+5. `tmp/gi-v-stage1-plan/PLAN-final.md` §2.3 (the stage-1 commitments that must be committed before wave 1).
+
+### Where the main study stands
+- **Gate B:** pre-registration FROZEN (user, 10 Oct 11:16); code integrated (engine X `472fc7f6`; c9aa7ca, a177ed7; no Gate B code, config or pre-registration change since, checked 2026-10-15T17:29); **anchor DONE** (64 harmful + 64 safe; file 2cf96336…; backup release backup-2026-10-10-gateb-anchor); **recipe S frozen** (e61ffcf; training identity = recipe B's); paused since 10 Oct by the user's priority. Kit `tmp/gate-b-olmo` equals runkit at HEAD (plan holds anchor-1, complete).
+- **Next:** wave 0a (the noise gate; one pod, R_1–R_3, cap 5.0 h, guard $15.25 with the $6 reserve), then wave 0b (retrain + diagnostics), then the re-costing stop with the user's standing amount; **wave 1 waits for the stage-1 commitments** (FOCUS 8 Oct; the user's 9 Oct 19:37 item (6)). Building those (scorers, edit rules, pools, plant, selector spec, predictions) is the largest open task; Claude usage reset on 15 Oct (18% used then).
+- **Second family:** Llama-3.2-1B Gate A PASS at LR 5e-5 (07a5462). 7–8B rungs: OLMo-2-7B 1e-4 (partial, +43.4), Llama-3.1-8B 5e-5 (+53.25, accepted at the edge); HarmBench harm wording holds at 1B and 7–8B (FOCUS 4e92778).
+- **Side study:** finished; recipe G's benefit is family- and scale-dependent (FOCUS cd8b8fe, 9e7ab16), so the main paper must not present recipe G as a general fix.
+
+### Money and pods
+- **Balance $4.03 at 15 Oct 17:25 UTC**; 2 pods remain, both EXITED (`attribution-probe-cause-olmo7b-1121`, `attribution-probe-olmo2-1b-1102`). A top-up is needed before wave 0a (about $20–25 for waves 0a–0b at upper rates) and about $80 more before wave 1.
+- Adapter recovery (user-approved up to $8; $4.14 spent): 12 adapters in `tmp/sp-repr/out/`; the others' pods are now deleted.
+
+### Standing rules (unchanged unless the user says otherwise)
+Explicit-path commits with the Co-Authored-By line; push the working branch, never force; `date -u` before any time; 80% ASD-STE100; no secrets, rows, prompts, answers or anchor text; stop pods, never terminate; delete only after a verified backup and the user's yes; the budget guard and the $10/h limit stay on (the safety check refuses switching them off); the user does not want blocking permission questions for planned launches (the safety check refused saving that as a durable rule; confirm with the user); when Opus runs out, workflows go to Fable at xhigh (memory `opus-to-fable-fallback`).
+
 ## STATUS, 2026-10-11T12:54 UTC, General Implementation V (the lead; weekly plan usage about 99%; read with FOCUS's newest entries)
 - **Gate B:** pre-registration FROZEN (revision 5, 5c97cce7…; 76b523b); code integrated (engine X 472fc7f6; c9aa7ca, a177ed7); anchor DONE (64+64; 2cf96336…; backed up); recipe S frozen (e61ffcf). **Paused after the anchor by the user's priority (side project first).** Next: wave 0a (noise gate) via `tmp/gate-b-olmo` (kit synced to HEAD; `tmp/gi-v-gateb-anchor-prep/LAUNCH.md` §5) after the user's go and funding; wave 1 waits for the stage-1 commitments.
 - **Second family:** Llama-3.2-1B Gate A PASS at LR 5e-5 (user, 07a5462); 7–8B rungs: OLMo-2-7B 1e-4 (partial), Llama-3.1-8B 5e-5 (accepted at the edge); HarmBench and Granite done at both sizes (harm wording allowed).
