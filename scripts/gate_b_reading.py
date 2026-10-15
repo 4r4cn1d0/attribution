@@ -150,10 +150,17 @@ RECIPE_S_NAME = "study-kt-olmo2-1b-r64-b-mb4-gateb-20261008"
 RECIPE_S_CHECKPOINTS = ["q", "e1"]
 BARS_NAME = "family-probe-reading-amended-20261008"           # Gate A's frozen bars (G1 and the screen)
 GATE_A_PINS = {                                               # the lead fills these; the reading refuses while any is null
-    "1101": {"job_sha256": None, "complete_sha256": None},
-    "1102": {"job_sha256": None, "complete_sha256": None},
-    "1103": {"job_sha256": None, "complete_sha256": None},
-    "untuned": {"job_sha256": None, "complete_sha256": None}}
+    # Filled by the lead 2026-10-15T20:03Z: SHA-256 of job.json and COMPLETE.json of the sealed Gate A units (OLMo-2-1B,
+    # recipe B, engine 55253874): {1101,1102,1103}-a0-e1-a1 and 1101-a0-init-a1, under tmp/family-probe-olmo2-1b{,
+    # -gateA-1102,-gateA-1103}/retrieved/*/tree/round1/ (tmp/gi-v-steps-4-9/compute_gate_a_pins.py).
+    "1101": {"job_sha256": "3e60568ac11e32f3f429aa2606bc38c9b881456fd262a120e526ccb189022402",
+             "complete_sha256": "8f0fa83a42ccc5edc54a5ee26ed63f49448c36d30adbd64e28b655678afee4c9"},
+    "1102": {"job_sha256": "de65ca1936a10c199de46e764a948268b03367c586c09747381850059064083c",
+             "complete_sha256": "857f78bc0f49cc8a4902fbb6211f463daa7c7f44086257c4d752409a30ba0b25"},
+    "1103": {"job_sha256": "895f8bd2a66e20df2256b43d1e71a263da237a1cb3ea498cd439086aef5ae293",
+             "complete_sha256": "7be58eaa9c5be7b8f94668109efd6aae075b1d001e0d2b1fb8be814556899cbd"},
+    "untuned": {"job_sha256": "f3b8c1864aaacf34738b34ff6c26cc8f51677e7eb5a6a9445818692d5365a582",
+                "complete_sha256": "b5083ce9d9f26efe92f9872fdbf9376a521a5d99d1b70cc2bd460987cdcc9474"}}
 A9_SCRIPT_SHA256 = {"representation": None, "classifier": None}   # filled when Part A's A9 scripts are frozen
 A9_KINDS = {"representation": "gate-c representation scores", "classifier": "gate-c classifier scores"}
 P1101_ADAPTER_FINGERPRINTS = {"q": "322d737a2e0177c85b798ac779e42e637b6617cfd842455c3e1bdf4586008660",

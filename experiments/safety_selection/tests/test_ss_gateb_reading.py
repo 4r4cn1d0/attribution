@@ -1519,6 +1519,17 @@ def test_the_pinned_constants_match_their_files(gb):
     fp = json.loads((CONFIGS / "engine-identity-55253874.json").read_text())["sha256"]
     assert fp == gb.ENGINE_GATE_A
     assert json.loads((CONFIGS / "engine-identity-e49a978c.json").read_text())["sha256"] == gb.ENGINE_BASE
+    # the lead pinned the sealed Gate A units' job.json and COMPLETE.json SHA-256 on 15 Oct (shipped null until then);
+    # the null-pin and changed-unit refusals still hold (test_a_null_gate_a_pin_and_a_changed_gate_a_unit_refuse)
+    assert gb.GATE_A_PINS == {
+        "1101": {"job_sha256": "3e60568ac11e32f3f429aa2606bc38c9b881456fd262a120e526ccb189022402",
+                 "complete_sha256": "8f0fa83a42ccc5edc54a5ee26ed63f49448c36d30adbd64e28b655678afee4c9"},
+        "1102": {"job_sha256": "de65ca1936a10c199de46e764a948268b03367c586c09747381850059064083c",
+                 "complete_sha256": "857f78bc0f49cc8a4902fbb6211f463daa7c7f44086257c4d752409a30ba0b25"},
+        "1103": {"job_sha256": "895f8bd2a66e20df2256b43d1e71a263da237a1cb3ea498cd439086aef5ae293",
+                 "complete_sha256": "7be58eaa9c5be7b8f94668109efd6aae075b1d001e0d2b1fb8be814556899cbd"},
+        "untuned": {"job_sha256": "f3b8c1864aaacf34738b34ff6c26cc8f51677e7eb5a6a9445818692d5365a582",
+                    "complete_sha256": "b5083ce9d9f26efe92f9872fdbf9376a521a5d99d1b70cc2bd460987cdcc9474"}}
 
 
 def test_rankings_with_hand_picks_and_pick_f_on_the_committed_unit_table(gb, pinned, tmp_path, monkeypatch):
