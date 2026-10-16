@@ -5,7 +5,7 @@ Written 6 October 2026 at about 00:40 IST (5 October, 19:10 UTC; the user is in 
 - This file is separate from `.ai/HANDOFF.md`, which must **never** be edited.
 - Times below are UTC on 5 October unless marked IST.
 
-## STATUS, 2026-10-16T13:22 UTC, General Implementation VI (the lead of the main study; read with FOCUS's newest entries)
+## STATUS, 2026-10-16T13:20 UTC, General Implementation VI (the lead of the main study; read with FOCUS's newest entries)
 - **Gate B waves 0a and 0b are DONE; this stage is finished.** Noise gate **PASS** (σ̂_gate 1.83 pp ≤ 7, governing plain; environment and fingerprint triggers false; FOCUS 2026-10-16T00:25 and 13:21 UTC). The **Gate C rankings are SEALED** (`tmp/gate-b-olmo/gate_b_rankings.json` d6d5cd6b…; copy in `research/experiments/2026-10-16-gate-b-wave0-outputs/`): pick_A = pick_R = general_qa, pick_F = classification, both equalities false. The **re-costing stop fits** (measured need $72.43; wave 1 needs $83.91; balance $92.15 at 13:18 UTC).
 - **Reading:** `scripts/gate_b_reading.py` SHA-256 **7cac24f6…** (GATE_A_PINS 2a2e5cb, A9_SCRIPT_SHA256 82f93fd). LEXICON_COUNTS_SHA256 stays null; its fill procedure is fixed in FOCUS (2026-10-16T11:08 UTC): fill at `--final`, re-run every sealed phase, results must be equal. Later phases read the seal through the inputs' `sealed` key; the inputs files are `tmp/gate-b-olmo/gate_b_inputs_*.json` (run roots w0a-1 and w0b-2).
 - **Decisions:** **D5 = (a)** (delegated by the user, FOCUS 2026-10-16T12:15 UTC): P1–P6 primary; the selector secondary and model-based; the held-out selector comparison becomes its own later pre-registered study after a funding event; the one-example patch bounded in text. U2 and U3 keep the brief's defaults.
