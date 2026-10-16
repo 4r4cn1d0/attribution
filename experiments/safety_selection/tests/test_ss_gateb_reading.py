@@ -1530,6 +1530,11 @@ def test_the_pinned_constants_match_their_files(gb):
                  "complete_sha256": "7be58eaa9c5be7b8f94668109efd6aae075b1d001e0d2b1fb8be814556899cbd"},
         "untuned": {"job_sha256": "f3b8c1864aaacf34738b34ff6c26cc8f51677e7eb5a6a9445818692d5365a582",
                     "complete_sha256": "b5083ce9d9f26efe92f9872fdbf9376a521a5d99d1b70cc2bd460987cdcc9474"}}
+    # the lead pinned the A9 scripts on 16 Oct (shipped null until then); the null refusals still hold
+    assert gb.A9_SCRIPT_SHA256 == {
+        "representation": "998231ea6efd99871bbf0086619975f8bba4b147d7b2c350215653f9df63e5fe",
+        "classifier": "23a7f5f0d91bc71813ab55d01694ee3fae488097a58a706d63403f985ab1932e"}
+    assert gb.A9_SCRIPT_SHA256 == {k: sha(ROOT / "scripts" / f"gate_c_{k}.py") for k in ("representation", "classifier")}
 
 
 def test_rankings_with_hand_picks_and_pick_f_on_the_committed_unit_table(gb, pinned, tmp_path, monkeypatch):

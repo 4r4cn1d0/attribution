@@ -161,7 +161,9 @@ GATE_A_PINS = {                                               # the lead fills t
              "complete_sha256": "7be58eaa9c5be7b8f94668109efd6aae075b1d001e0d2b1fb8be814556899cbd"},
     "untuned": {"job_sha256": "f3b8c1864aaacf34738b34ff6c26cc8f51677e7eb5a6a9445818692d5365a582",
                 "complete_sha256": "b5083ce9d9f26efe92f9872fdbf9376a521a5d99d1b70cc2bd460987cdcc9474"}}
-A9_SCRIPT_SHA256 = {"representation": None, "classifier": None}   # filled when Part A's A9 scripts are frozen
+A9_SCRIPT_SHA256 = {    # filled by the lead 2026-10-16T00:38Z: Part A's scripts frozen at c9aa7ca (gateb_rules PINNED_SCRIPTS)
+    "representation": "998231ea6efd99871bbf0086619975f8bba4b147d7b2c350215653f9df63e5fe",   # scripts/gate_c_representation.py
+    "classifier": "23a7f5f0d91bc71813ab55d01694ee3fae488097a58a706d63403f985ab1932e"}       # scripts/gate_c_classifier.py
 A9_KINDS = {"representation": "gate-c representation scores", "classifier": "gate-c classifier scores"}
 P1101_ADAPTER_FINGERPRINTS = {"q": "322d737a2e0177c85b798ac779e42e637b6617cfd842455c3e1bdf4586008660",
                               "e1": "aad79060c52304ecd1b3d0a24b26281da7d147b0fc4a2754ba3a9b323bfae1ec"}   # C-7
