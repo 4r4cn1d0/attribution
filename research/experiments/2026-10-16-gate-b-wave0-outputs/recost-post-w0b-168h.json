@@ -1,0 +1,745 @@
+{
+ "generated_utc": "2026-10-16T13:18:11+00:00",
+ "mode": "w0b",
+ "script": "tmp/gi-vi-wave0b/recost/recost.py",
+ "inputs_sha256": {
+  "tmp/gate-b-olmo/gateb_rules.py": "bf7dee4048189a6d61f66e173e89f3ae42cb34c3eefc4d93c4b3b8c1fcb23a44",
+  "tmp/gate-b-olmo/plan_tool.py": "fc6af04a37bccbd62ee7b3db1b831984fc75682796ab5e33b7fc4866e4dd388f",
+  "tmp/gate-b-olmo/plan.json": "f6a290692ba295e41eb5bd677501ce1b40cd6400179665a2d7bdcce68ceb50c7",
+  "tmp/gate-b-olmo/budget-checks.jsonl": "d4fd5f9564073fa44efdecdc5afde8eb363c59817e40d598243dea9523108d27",
+  "tmp/gate-b-olmo/account-latest.json": "898a5b83be621fc654a63ef123d9a4d416f14eba90fc4eda5338ee5c9ab025c1",
+  "research/experiments/2026-10-08-gate-b-olmo-preregistration-DRAFT.md": "5c97cce78cfad2c182aed27f111f6b2931d0887371708e49446abf9e1ca02eca"
+ },
+ "frozen_rates": {
+  "pod_overhead_min": 42.0,
+  "arm_min": 52.0,
+  "rate_usd_per_h": 1.79,
+  "retrain_h": 0.15,
+  "diagnostics_h": 2.0,
+  "planning_price_usd_per_h": 1.85,
+  "reserve_usd": 6.0,
+  "contingency_factor": 1.25,
+  "max_arms_per_pod": 4,
+  "granite_on_pod": true,
+  "source": "tmp/gate-b-olmo/gateb_rules.py:33, :42-52, :65, :67 (DRAFT \u00a79: 52 min per arm, 42 min per pod, $1.79/h; retrain 0.15 h, diagnostics 2.0 h)"
+ },
+ "measured_rates": {
+  "arm_min": {
+   "value": 49.033,
+   "override": false,
+   "rule": "max over the completed arm jobs of the job slot (the upper of the measured range, as the frozen 52 min is the upper of Gate A's 34-52 min)",
+   "from": "w0a-1 job 1 (seed 1102)",
+   "per_arm_slot_min": {
+    "w0a-1 job 0 seed 1101": 48.92,
+    "w0a-1 job 1 seed 1102": 49.03,
+    "w0a-1 job 2 seed 1103": 43.45
+   },
+   "per_arm_process_min": {
+    "w0a-1 job 0": 48.9,
+    "w0a-1 job 1": 49.0,
+    "w0a-1 job 2": 43.42
+   },
+   "n": 3,
+   "source": "tmp/gate-b-olmo/retrieved/w0a-1/tree/job-done/JOB-1.json utc -> ended_utc (pod clock, 1 s); cross-check: summed elapsed_s of tmp/gate-b-olmo/retrieved/w0a-1/tree/job-1-*/process-receipt.json; COMPLETE.json completed_utc"
+  },
+  "pod_overhead_min": {
+   "value": 25.967,
+   "override": false,
+   "rule": "max over the finished pods of (billed time - the job slots)",
+   "from": "anchor-1",
+   "per_pod_min": {
+    "anchor-1": 25.97,
+    "w0a-1": 18.85,
+    "w0b-2": 18.45
+   },
+   "per_pod_setup_min": {
+    "anchor-1": 24.16,
+    "w0a-1": 16.51,
+    "w0b-2": 16.58
+   },
+   "per_pod_finish_min": {
+    "anchor-1": 1.65,
+    "w0a-1": 2.22,
+    "w0b-2": 1.73
+   },
+   "n": 3
+  },
+  "rate_usd_per_h": {
+   "value": 1.79,
+   "override": false,
+   "rule": "max costPerHr over every created pre-wave-1 pod",
+   "per_pod": {
+    "anchor-1": 1.79,
+    "w0a-1": 1.79,
+    "w0b-1": 1.79,
+    "w0b-2": 1.79
+   },
+   "source": "hosts/<h>/pod.json costPerHr (the API's price at create)"
+  },
+  "retrain_h": {
+   "value": 0.0767,
+   "from": "w0b-2 job 0",
+   "source": "tmp/gate-b-olmo/retrieved/w0b-2/tree/job-done/JOB-0.json utc -> ended_utc (pod clock, 1 s); cross-check: summed elapsed_s of tmp/gate-b-olmo/retrieved/w0b-2/tree/job-0-*/process-receipt.json; COMPLETE.json completed_utc"
+  },
+  "diagnostics_h": {
+   "value": 3.0383,
+   "from": "w0b-2 job 1",
+   "source": "tmp/gate-b-olmo/retrieved/w0b-2/tree/job-done/JOB-1.json utc -> ended_utc (pod clock, 1 s); cross-check: summed elapsed_s of tmp/gate-b-olmo/retrieved/w0b-2/tree/job-1-*/process-receipt.json; COMPLETE.json completed_utc"
+  }
+ },
+ "pods": {
+  "anchor-1": {
+   "host": "anchor-1",
+   "wave": "anchor",
+   "cap_h": 1.5,
+   "jobs_planned": [
+    "anchor"
+   ],
+   "job_statuses": [
+    "complete"
+   ],
+   "created_utc": "2026-10-10T13:29:18+00:00",
+   "price_usd_per_h": 1.79,
+   "sources": {
+    "created": "tmp/gate-b-olmo/hosts/anchor-1/create-result.json utc (Mac; = pod.json created_utc)",
+    "price": "tmp/gate-b-olmo/hosts/anchor-1/pod.json costPerHr",
+    "stop": "tmp/gate-b-olmo/hosts/anchor-1/stops.jsonl first confirmed stop (Mac)",
+    "job_start_end": "tmp/gate-b-olmo/retrieved/anchor-1/tree/job-outer/process-receipt.json started_utc + elapsed_s",
+    "finished_json_outer_elapsed_min": 2.2
+   },
+   "stop_confirmed_utc": "2026-10-10T13:57:19+00:00",
+   "billed_s": 1681.0,
+   "billed_h": 0.4669,
+   "billed_min": 28.02,
+   "cost_usd_at_pod_price": 0.8358,
+   "state": "finished",
+   "status": "verified-and-stopped",
+   "job_start_utc_pod": "2026-10-10T13:53:27+00:00",
+   "job_start_utc_mac_event": "2026-10-10T13:53:42+00:00",
+   "job_end_utc_pod": "2026-10-10T13:55:40+00:00",
+   "setup_min": 24.16,
+   "job_outer_min": 2.2,
+   "finish_min": 1.65,
+   "jobs_slots_min": 2.05,
+   "overhead_s": 1558.0,
+   "overhead_min": 25.97,
+   "jobs": [
+    {
+     "index": 0,
+     "kind": "anchor",
+     "seed": null,
+     "status": "complete",
+     "slot_start_utc": "2026-10-10T13:53:28+00:00",
+     "slot_end_utc": "2026-10-10T13:55:31+00:00",
+     "slot_s": 123.0,
+     "slot_min": 2.05,
+     "process_elapsed_min": 2.06,
+     "complete_completed_utc": null,
+     "source": "tmp/gate-b-olmo/retrieved/anchor-1/tree/job-done/JOB-0.json utc -> ended_utc (pod clock, 1 s); cross-check: summed elapsed_s of tmp/gate-b-olmo/retrieved/anchor-1/tree/job-0-*/process-receipt.json"
+    }
+   ]
+  },
+  "w0a-1": {
+   "host": "w0a-1",
+   "wave": "0a",
+   "cap_h": 5.0,
+   "jobs_planned": [
+    "arm",
+    "arm",
+    "arm"
+   ],
+   "job_statuses": [
+    "complete",
+    "complete",
+    "complete"
+   ],
+   "created_utc": "2026-10-15T21:39:18+00:00",
+   "price_usd_per_h": 1.79,
+   "sources": {
+    "created": "tmp/gate-b-olmo/hosts/w0a-1/create-result.json utc (Mac; = pod.json created_utc)",
+    "price": "tmp/gate-b-olmo/hosts/w0a-1/pod.json costPerHr",
+    "stop": "tmp/gate-b-olmo/hosts/w0a-1/stops.jsonl first confirmed stop (Mac)",
+    "job_start_end": "tmp/gate-b-olmo/retrieved/w0a-1/tree/job-outer/process-receipt.json started_utc + elapsed_s",
+    "finished_json_outer_elapsed_min": 141.5
+   },
+   "stop_confirmed_utc": "2026-10-16T00:19:33+00:00",
+   "billed_s": 9615.0,
+   "billed_h": 2.6708,
+   "billed_min": 160.25,
+   "cost_usd_at_pod_price": 4.7808,
+   "state": "finished",
+   "status": "verified-and-stopped",
+   "job_start_utc_pod": "2026-10-15T21:55:48+00:00",
+   "job_start_utc_mac_event": "2026-10-15T21:56:03+00:00",
+   "job_end_utc_pod": "2026-10-16T00:17:20+00:00",
+   "setup_min": 16.51,
+   "job_outer_min": 141.53,
+   "finish_min": 2.22,
+   "jobs_slots_min": 141.4,
+   "overhead_s": 1131.0,
+   "overhead_min": 18.85,
+   "jobs": [
+    {
+     "index": 0,
+     "kind": "arm",
+     "seed": 1101,
+     "status": "complete",
+     "slot_start_utc": "2026-10-15T21:55:48+00:00",
+     "slot_end_utc": "2026-10-15T22:44:43+00:00",
+     "slot_s": 2935.0,
+     "slot_min": 48.92,
+     "process_elapsed_min": 48.9,
+     "complete_completed_utc": "2026-10-15T22:44:41.366+00:00",
+     "source": "tmp/gate-b-olmo/retrieved/w0a-1/tree/job-done/JOB-0.json utc -> ended_utc (pod clock, 1 s); cross-check: summed elapsed_s of tmp/gate-b-olmo/retrieved/w0a-1/tree/job-0-*/process-receipt.json; COMPLETE.json completed_utc"
+    },
+    {
+     "index": 1,
+     "kind": "arm",
+     "seed": 1102,
+     "status": "complete",
+     "slot_start_utc": "2026-10-15T22:44:43+00:00",
+     "slot_end_utc": "2026-10-15T23:33:45+00:00",
+     "slot_s": 2942.0,
+     "slot_min": 49.03,
+     "process_elapsed_min": 49.0,
+     "complete_completed_utc": "2026-10-15T23:33:40.911+00:00",
+     "source": "tmp/gate-b-olmo/retrieved/w0a-1/tree/job-done/JOB-1.json utc -> ended_utc (pod clock, 1 s); cross-check: summed elapsed_s of tmp/gate-b-olmo/retrieved/w0a-1/tree/job-1-*/process-receipt.json; COMPLETE.json completed_utc"
+    },
+    {
+     "index": 2,
+     "kind": "arm",
+     "seed": 1103,
+     "status": "complete",
+     "slot_start_utc": "2026-10-15T23:33:45+00:00",
+     "slot_end_utc": "2026-10-16T00:17:12+00:00",
+     "slot_s": 2607.0,
+     "slot_min": 43.45,
+     "process_elapsed_min": 43.42,
+     "complete_completed_utc": "2026-10-16T00:17:07.897+00:00",
+     "source": "tmp/gate-b-olmo/retrieved/w0a-1/tree/job-done/JOB-2.json utc -> ended_utc (pod clock, 1 s); cross-check: summed elapsed_s of tmp/gate-b-olmo/retrieved/w0a-1/tree/job-2-*/process-receipt.json; COMPLETE.json completed_utc"
+    }
+   ]
+  },
+  "w0b-1": {
+   "host": "w0b-1",
+   "wave": "0b",
+   "cap_h": 4.5,
+   "jobs_planned": [
+    "retrain",
+    "diagnostics"
+   ],
+   "job_statuses": [
+    "not_started",
+    "not_started"
+   ],
+   "created_utc": "2026-10-16T00:23:37+00:00",
+   "price_usd_per_h": 1.79,
+   "sources": {
+    "created": "tmp/gate-b-olmo/hosts/w0b-1/create-result.json utc (Mac; = pod.json created_utc)",
+    "price": "tmp/gate-b-olmo/hosts/w0b-1/pod.json costPerHr",
+    "stop": "tmp/gate-b-olmo/hosts/w0b-1/stops.jsonl first confirmed stop (Mac)"
+   },
+   "stop_confirmed_utc": "2026-10-16T00:35:23+00:00",
+   "billed_s": 706.0,
+   "billed_h": 0.1961,
+   "billed_min": 11.77,
+   "cost_usd_at_pod_price": 0.351,
+   "state": "pre-job-failed",
+   "failed_utc": "2026-10-16T00:35:08+00:00",
+   "failed_step": "start-job",
+   "failed_detail": "w0b-1: transfer or hash check of expected-fixture-gateb.json failed",
+   "setup_until_failure_min": 11.52,
+   "source_failure": "tmp/gate-b-olmo/hosts/w0b-1/orchestrate.jsonl pre-job-failed; plan.json hosts.w0b-1"
+  },
+  "w0b-2": {
+   "host": "w0b-2",
+   "wave": "0b",
+   "cap_h": 4.5,
+   "jobs_planned": [
+    "retrain",
+    "diagnostics"
+   ],
+   "job_statuses": [
+    "complete",
+    "complete"
+   ],
+   "created_utc": "2026-10-16T09:50:22+00:00",
+   "price_usd_per_h": 1.79,
+   "sources": {
+    "created": "tmp/gate-b-olmo/hosts/w0b-2/create-result.json utc (Mac; = pod.json created_utc)",
+    "price": "tmp/gate-b-olmo/hosts/w0b-2/pod.json costPerHr",
+    "stop": "tmp/gate-b-olmo/hosts/w0b-2/stops.jsonl first confirmed stop (Mac)",
+    "job_start_end": "tmp/gate-b-olmo/retrieved/w0b-2/tree/job-outer/process-receipt.json started_utc + elapsed_s",
+    "finished_json_outer_elapsed_min": 187.0
+   },
+   "stop_confirmed_utc": "2026-10-16T13:15:43+00:00",
+   "billed_s": 12321.0,
+   "billed_h": 3.4225,
+   "billed_min": 205.35,
+   "cost_usd_at_pod_price": 6.1263,
+   "state": "finished",
+   "status": "verified-and-stopped",
+   "job_start_utc_pod": "2026-10-16T10:06:56+00:00",
+   "job_start_utc_mac_event": "2026-10-16T10:07:11+00:00",
+   "job_end_utc_pod": "2026-10-16T13:13:58+00:00",
+   "setup_min": 16.58,
+   "job_outer_min": 187.04,
+   "finish_min": 1.73,
+   "jobs_slots_min": 186.9,
+   "overhead_s": 1107.0,
+   "overhead_min": 18.45,
+   "jobs": [
+    {
+     "index": 0,
+     "kind": "retrain",
+     "seed": 1101,
+     "status": "complete",
+     "slot_start_utc": "2026-10-16T10:06:56+00:00",
+     "slot_end_utc": "2026-10-16T10:11:32+00:00",
+     "slot_s": 276.0,
+     "slot_min": 4.6,
+     "process_elapsed_min": 4.58,
+     "complete_completed_utc": "2026-10-16T10:11:30.342+00:00",
+     "source": "tmp/gate-b-olmo/retrieved/w0b-2/tree/job-done/JOB-0.json utc -> ended_utc (pod clock, 1 s); cross-check: summed elapsed_s of tmp/gate-b-olmo/retrieved/w0b-2/tree/job-0-*/process-receipt.json; COMPLETE.json completed_utc"
+    },
+    {
+     "index": 1,
+     "kind": "diagnostics",
+     "seed": 1101,
+     "status": "complete",
+     "slot_start_utc": "2026-10-16T10:11:32+00:00",
+     "slot_end_utc": "2026-10-16T13:13:50+00:00",
+     "slot_s": 10938.0,
+     "slot_min": 182.3,
+     "process_elapsed_min": 182.26,
+     "complete_completed_utc": "2026-10-16T12:59:33.557+00:00",
+     "source": "tmp/gate-b-olmo/retrieved/w0b-2/tree/job-done/JOB-1.json utc -> ended_utc (pod clock, 1 s); cross-check: summed elapsed_s of tmp/gate-b-olmo/retrieved/w0b-2/tree/job-1-*/process-receipt.json; COMPLETE.json completed_utc"
+    }
+   ]
+  }
+ },
+ "account_cross_check": [
+  {
+   "host": "anchor-1",
+   "usable": false,
+   "why": "a top-up or another kit pod between the readings",
+   "before": {
+    "utc": "2026-10-10T13:29:16+00:00",
+    "balance": 21.35
+   },
+   "after": {
+    "utc": "2026-10-15T21:39:15+00:00",
+    "balance": 103.95
+   }
+  },
+  {
+   "host": "w0a-1",
+   "usable": true,
+   "before": {
+    "utc": "2026-10-15T21:39:15+00:00",
+    "balance": 103.95
+   },
+   "after": {
+    "utc": "2026-10-16T00:23:15+00:00",
+    "balance": 99.08
+   },
+   "account_drop_usd": 4.87,
+   "pod_record_cost_usd": 4.7808,
+   "record_plus_idle_usd_range": [
+    4.86,
+    4.87
+   ],
+   "source": "tmp/gate-b-olmo/budget-checks.jsonl (balances rounded to the cent); assumes no non-kit pod ran between the readings"
+  },
+  {
+   "host": "w0b-1",
+   "usable": true,
+   "before": {
+    "utc": "2026-10-16T00:23:34+00:00",
+    "balance": 99.08
+   },
+   "after": {
+    "utc": "2026-10-16T09:50:17+00:00",
+    "balance": 98.44
+   },
+   "account_drop_usd": 0.64,
+   "pod_record_cost_usd": 0.351,
+   "record_plus_idle_usd_range": [
+    0.67,
+    0.73
+   ],
+   "source": "tmp/gate-b-olmo/budget-checks.jsonl (balances rounded to the cent); assumes no non-kit pod ran between the readings"
+  }
+ ],
+ "need": {
+  "formula": "plan_tool.worst_path_need (tmp/gate-b-olmo/plan_tool.py:487-514) -> gateb_rules.funding_need_usd (gateb_rules.py:293-306): base = max over the launches from wave 1 on of (upper spend of the earlier launches + $6 + $1.85 x this launch's summed caps), rounded to the cent; need = round(1.25 x base); contingency = need - base. Kit pod spend = (overhead + n x arm) x rate (gateb_rules.py:247-249); Granite spend = cap x rate (:281-285). Measured: only the spend constants are swapped; caps and guard terms are the kit's.",
+  "frozen": {
+   "base_need_usd": 62.76,
+   "need_usd": 78.45,
+   "contingency_usd": 15.69,
+   "factor": 1.25,
+   "rates": {
+    "pod_overhead_min": 42.0,
+    "arm_min": 52.0,
+    "rate_usd_per_h": 1.79
+   },
+   "binding_launch": "length control",
+   "launches": [
+    {
+     "launch": "wave 1",
+     "pods": [
+      "4 arms",
+      "4 arms"
+     ],
+     "caps_h": [
+      5.75,
+      5.75
+     ],
+     "term_usd": 27.275,
+     "upper_spend_usd": 14.9167
+    },
+    {
+     "launch": "wave 2 (m = 4)",
+     "pods": [
+      "4 arms",
+      "4 arms"
+     ],
+     "caps_h": [
+      5.75,
+      5.75
+     ],
+     "term_usd": 42.1917,
+     "upper_spend_usd": 14.9167
+    },
+    {
+     "launch": "granite after wave 2 (m = 4)",
+     "pods": [
+      "granite"
+     ],
+     "caps_h": [
+      1.5
+     ],
+     "term_usd": 38.6083,
+     "upper_spend_usd": 2.685
+    },
+    {
+     "launch": "extension (2 units)",
+     "pods": [
+      "3 arms",
+      "3 arms"
+     ],
+     "caps_h": [
+      5.0,
+      5.0
+     ],
+     "term_usd": 57.0183,
+     "upper_spend_usd": 11.814
+    },
+    {
+     "launch": "granite after extension (2 units)",
+     "pods": [
+      "granite"
+     ],
+     "caps_h": [
+      1.0
+     ],
+     "term_usd": 52.1823,
+     "upper_spend_usd": 1.79
+    },
+    {
+     "launch": "length control",
+     "pods": [
+      "4 arms"
+     ],
+     "caps_h": [
+      5.75
+     ],
+     "term_usd": 62.7598,
+     "upper_spend_usd": 7.4583
+    }
+   ],
+   "upper_spend_from_wave1_usd": 53.5807,
+   "harmbench_after_control": {
+    "term_usd": 59.2057,
+    "inside_base": true,
+    "rule": "spend uppers from wave 1 on + $1 + 2.5 h x $1.85 <= base (DRAFT \u00a79 'Judge pods')"
+   }
+  },
+  "frozen_reproduces_draft": true,
+  "draft_figures": {
+   "base_need_usd": 62.76,
+   "need_usd": 78.45,
+   "contingency_usd": 15.69
+  },
+  "measured": {
+   "base_need_usd": 57.94,
+   "need_usd": 72.43,
+   "contingency_usd": 14.49,
+   "factor": 1.25,
+   "rates": {
+    "pod_overhead_min": 25.967,
+    "arm_min": 49.033,
+    "rate_usd_per_h": 1.79
+   },
+   "binding_launch": "length control",
+   "launches": [
+    {
+     "launch": "wave 1",
+     "pods": [
+      "4 arms",
+      "4 arms"
+     ],
+     "caps_h": [
+      5.75,
+      5.75
+     ],
+     "term_usd": 27.275,
+     "upper_spend_usd": 13.2519
+    },
+    {
+     "launch": "wave 2 (m = 4)",
+     "pods": [
+      "4 arms",
+      "4 arms"
+     ],
+     "caps_h": [
+      5.75,
+      5.75
+     ],
+     "term_usd": 40.5269,
+     "upper_spend_usd": 13.2519
+    },
+    {
+     "launch": "granite after wave 2 (m = 4)",
+     "pods": [
+      "granite"
+     ],
+     "caps_h": [
+      1.5
+     ],
+     "term_usd": 35.2788,
+     "upper_spend_usd": 2.685
+    },
+    {
+     "launch": "extension (2 units)",
+     "pods": [
+      "3 arms",
+      "3 arms"
+     ],
+     "caps_h": [
+      5.0,
+      5.0
+     ],
+     "term_usd": 53.6888,
+     "upper_spend_usd": 10.3263
+    },
+    {
+     "launch": "granite after extension (2 units)",
+     "pods": [
+      "granite"
+     ],
+     "caps_h": [
+      1.0
+     ],
+     "term_usd": 47.3651,
+     "upper_spend_usd": 1.79
+    },
+    {
+     "launch": "length control",
+     "pods": [
+      "4 arms"
+     ],
+     "caps_h": [
+      5.75
+     ],
+     "term_usd": 57.9426,
+     "upper_spend_usd": 6.626
+    }
+   ],
+   "upper_spend_from_wave1_usd": 47.931,
+   "harmbench_after_control": {
+    "term_usd": 53.556,
+    "inside_base": true,
+    "rule": "spend uppers from wave 1 on + $1 + 2.5 h x $1.85 <= base (DRAFT \u00a79 'Judge pods')"
+   }
+  },
+  "conservative_max_of_measured_and_frozen": {
+   "base_need_usd": 62.76,
+   "need_usd": 78.45,
+   "contingency_usd": 15.69,
+   "factor": 1.25,
+   "rates": {
+    "pod_overhead_min": 42.0,
+    "arm_min": 52.0,
+    "rate_usd_per_h": 1.79
+   },
+   "binding_launch": "length control",
+   "launches": [
+    {
+     "launch": "wave 1",
+     "pods": [
+      "4 arms",
+      "4 arms"
+     ],
+     "caps_h": [
+      5.75,
+      5.75
+     ],
+     "term_usd": 27.275,
+     "upper_spend_usd": 14.9167
+    },
+    {
+     "launch": "wave 2 (m = 4)",
+     "pods": [
+      "4 arms",
+      "4 arms"
+     ],
+     "caps_h": [
+      5.75,
+      5.75
+     ],
+     "term_usd": 42.1917,
+     "upper_spend_usd": 14.9167
+    },
+    {
+     "launch": "granite after wave 2 (m = 4)",
+     "pods": [
+      "granite"
+     ],
+     "caps_h": [
+      1.5
+     ],
+     "term_usd": 38.6083,
+     "upper_spend_usd": 2.685
+    },
+    {
+     "launch": "extension (2 units)",
+     "pods": [
+      "3 arms",
+      "3 arms"
+     ],
+     "caps_h": [
+      5.0,
+      5.0
+     ],
+     "term_usd": 57.0183,
+     "upper_spend_usd": 11.814
+    },
+    {
+     "launch": "granite after extension (2 units)",
+     "pods": [
+      "granite"
+     ],
+     "caps_h": [
+      1.0
+     ],
+     "term_usd": 52.1823,
+     "upper_spend_usd": 1.79
+    },
+    {
+     "launch": "length control",
+     "pods": [
+      "4 arms"
+     ],
+     "caps_h": [
+      5.75
+     ],
+     "term_usd": 62.7598,
+     "upper_spend_usd": 7.4583
+    }
+   ],
+   "upper_spend_from_wave1_usd": 53.5807,
+   "harmbench_after_control": {
+    "term_usd": 59.2057,
+    "inside_base": true,
+    "rule": "spend uppers from wave 1 on + $1 + 2.5 h x $1.85 <= base (DRAFT \u00a79 'Judge pods')"
+   }
+  }
+ },
+ "allowances": {
+  "storage_usd": 4.0,
+  "granite_relaunch_usd": 3.78,
+  "harmbench_relaunch_usd": 3.7,
+  "total_usd": 11.48,
+  "source": "research/FOCUS.md:106 (2026-10-10T11:14 UTC, the lead's decisions (1), (2), (4)); free balance on top of the need",
+  "storage_hours_covered_at_current_idle_rate": 87.0
+ },
+ "balance": {
+  "usd": 92.1549288336,
+  "utc": "2026-10-16T13:18:04+00:00",
+  "override": false,
+  "source": "tmp/gate-b-olmo/account-latest.json myself.clientBalance",
+  "idle_spend_per_h": 0.046,
+  "pre_wave1_spend_after_reading": [
+   {
+    "host": "anchor-1",
+    "wave": "anchor",
+    "state": "finished",
+    "spend_usd": 0.8358,
+    "basis": "records: billed hours x costPerHr",
+    "in_balance_reading": true,
+    "cap_bound_usd": 2.685
+   },
+   {
+    "host": "w0a-1",
+    "wave": "0a",
+    "state": "finished",
+    "spend_usd": 4.7808,
+    "basis": "records: billed hours x costPerHr",
+    "in_balance_reading": true,
+    "cap_bound_usd": 8.95
+   },
+   {
+    "host": "w0b-1",
+    "wave": "0b",
+    "state": "pre-job-failed",
+    "spend_usd": 0.351,
+    "basis": "records: billed hours x costPerHr",
+    "in_balance_reading": true,
+    "cap_bound_usd": 8.055
+   },
+   {
+    "host": "w0b-2",
+    "wave": "0b",
+    "state": "finished",
+    "spend_usd": 6.1263,
+    "basis": "records: billed hours x costPerHr",
+    "in_balance_reading": true,
+    "cap_bound_usd": 8.055
+   }
+  ],
+  "pre_wave1_charged_usd": 0.0,
+  "idle_to_wave1": {
+   "rate_usd_per_h": 0.046,
+   "hours": 168.0,
+   "usd": 7.728,
+   "note": "the account's idle rate + 20 GB for each pre-wave-1 pod not yet stopped at the reading"
+  },
+  "topup_usd": 0.0,
+  "other_spend_usd": 0.0,
+  "projected_at_wave1_usd": 84.43,
+  "projected_at_wave1_if_pending_pods_bill_full_cap_usd": 84.43
+ },
+ "required_at_wave1_usd": {
+  "measured": 83.91,
+  "frozen": 89.93,
+  "conservative": 89.93,
+  "rule": "need + storage + Granite re-launch + HarmBench re-launch allowances"
+ },
+ "fits": true,
+ "fits_detail": {
+  "measured": true,
+  "frozen": false,
+  "conservative": false,
+  "kit_init_wave1_check_passes": true,
+  "kit_check_note": "init-wave 1 refuses unless the balance >= the need at the kit's own (frozen) constants (plan_tool.py:636-643); the allowances are outside that check",
+  "measured_if_pending_pods_bill_full_cap": true,
+  "slack_usd": 0.52,
+  "slack_idle_hours_at_current_rate": 11.2,
+  "breakeven_arm_min": 49.66,
+  "breakeven_price_usd_per_h": 1.808,
+  "breakeven_pod_overhead_min": 28.27,
+  "breakeven_note": "the per-arm minutes, $/h or pod-overhead minutes at which 'fits' turns false, the other measured rates held; money only (arms or setups that long also risk deferral at the kit's caps); the price break-even keeps the guard's $1.85 planning price"
+ },
+ "user_rule": "FOCUS 2026-10-09T19:37 UTC item (2): continue past the re-costing stop without asking only if the noise gate passed and the worst path at measured rates fits the balance plus the top-up; otherwise stop and ask. 'fits' is that money test only."
+}

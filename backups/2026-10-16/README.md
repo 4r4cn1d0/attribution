@@ -88,3 +88,18 @@ Made by the lead (General Implementation VI) at 2026-10-16T00:25 UTC with the ki
 | `inventory.jsonl`, `secret-scan.json`, `SHA256SUMS`, `manifest.json` | | Lists and checks |
 
 The pod `attribution-gateb-w0a-1` stays stopped. Delete it only with the user's yes.
+
+## 7. Gate B wave 0b records (release backup-2026-10-16-gateb-w0b)
+
+Made by the lead (General Implementation VI) at 2026-10-16T13:18 UTC with `backup_records_gateb.py --host w0b-1 --host w0b-2 --allow-missing` (dry run: 145 files, 0 scan hits; exit 2 only for the two expected missing records of w0b-1, which stopped before its job: `retrieved/w0b-1/tree` and `hosts/w0b-1/finished.json`). Private repository, draft release, download-back hashes OK (`backup-gateb-w0b-20261016/upload-verification.json`).
+
+[Open the private draft release](https://github.com/4r4cn1d0/attribution/releases/tag/untagged-14dd0a9fce87cb010d86) (a draft has an "untagged" link).
+
+| Asset | Size (bytes) | Contents |
+|---|---|---|
+| `gateb-w0b-units.tar.gz` | 1,334,966 | w0b-2's sealed units without model states: the retrain `1101-a0-e1-a1`, the attributes unit `1101-attributes-a1`, its CUDA preflight unit |
+| `gateb-w0b-records.tar.gz` | 55,453 | `hosts/w0b-1/` and `hosts/w0b-2/` records (orchestrate logs, the pre-job stop, confirm-stopped; never pod*.json, known_hosts or timer settings) |
+| `gateb-w0b-edits-analyses.tar.gz` | 54,587 | plan.json (with the requeue), operator-actions.jsonl, budget checks, launch and finisher logs, and the reading inputs and outputs in the kit (`gate_b_noise_gate_post0b.json`, the sealed `gate_b_rankings.json` d6d5cd6b…) |
+| `inventory.jsonl`, `secret-scan.json`, `SHA256SUMS`, `manifest.json` | | Lists and checks |
+
+**Not in this backup:** the retrain's adapter and optimizer states (q and e1). They exist only on the stopped pod `attribution-gateb-w0b-2`. Keep that pod: stage-1 scorers built on the a0-1101 states may need them. `attribution-gateb-w0b-1` holds no job output (its job never started).
