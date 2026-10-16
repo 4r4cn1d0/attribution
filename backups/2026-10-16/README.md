@@ -73,3 +73,18 @@ The staging folder (`tmp/gi-v-steps-4-9/step4-backups/stage`, 495 MB) and the as
 ## 5. Gap in the records
 
 The anchor release `backup-2026-10-10-gateb-anchor` has no folder under `backups/`. Its records were only in `tmp/backup-stage-gateb-anchor-assets/`. This release now holds them (`main-kits/backup-stage-gateb-anchor-assets/`). The lead can add `backups/2026-10-10/` from that folder.
+
+## 6. Gate B wave 0a records (release backup-2026-10-16-gateb-w0a)
+
+Made by the lead (General Implementation VI) at 2026-10-16T00:25 UTC with the kit's `backup_records_gateb.py --host w0a-1` (dry run first: exit 0, 165 files, 0 scan hits). Private repository, draft release, download-back hashes OK (`backup-gateb-w0a-20261016/upload-verification.json`).
+
+[Open the private draft release](https://github.com/4r4cn1d0/attribution/releases/tag/untagged-7c7232d8fab1bb6390b0) (a draft has an "untagged" link).
+
+| Asset | Size (bytes) | Contents |
+|---|---|---|
+| `gateb-w0a-units.tar.gz` | 1,886,735 | The sealed units of w0a-1 (R_1@1101, R_2@1102, R_3@1103), no model states |
+| `gateb-w0a-records.tar.gz` | 26,838 | `hosts/w0a-1/` records (finished.json, orchestrate.jsonl, environment checks; never pod*.json, known_hosts or timer settings) |
+| `gateb-w0a-edits-analyses.tar.gz` | 72,561 | The R edit files, plan.json, budget-checks.jsonl, operator-actions.jsonl, the expected fixture, launch and finisher logs, and the noise-gate reading's inputs and output (`gate_b_inputs_noise_gate.json`, `gate_b_noise_gate.json` 4b817f73…) |
+| `inventory.jsonl`, `secret-scan.json`, `SHA256SUMS`, `manifest.json` | | Lists and checks |
+
+The pod `attribution-gateb-w0a-1` stays stopped. Delete it only with the user's yes.
