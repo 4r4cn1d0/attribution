@@ -1,0 +1,471 @@
+{
+  "kind": "stage1 mutants",
+  "mutants": [
+    {
+      "describes": "a halving round that overspends B (the first rung holds more options than B allows)",
+      "file": "selector/spec.py",
+      "find": "        sizes, total = halving_schedule(ctx, n1)\n        if total <= budget + EPS:",
+      "id": "E-halving-overspends",
+      "part": "E (REQ-16 to REQ-18, brief)",
+      "replace": "        sizes, total = halving_schedule(ctx, n1)\n        if total <= budget + 1.0:"
+    },
+    {
+      "describes": "a halving round that overspends B (the leftover buys one seed more than B allows)",
+      "file": "selector/spec.py",
+      "find": "    _extra_seeds(ctx, view, state, ranked, budget - total)",
+      "id": "E-halving-leftover-overspends",
+      "part": "E (REQ-16 to REQ-18, brief)",
+      "replace": "    _extra_seeds(ctx, view, state, ranked, budget - total + ctx.cost.full)"
+    },
+    {
+      "describes": "c_d not charged (the diagnostic runs its rule on all of B)",
+      "file": "selector/spec.py",
+      "find": "        paid, remaining = float(c_d), float(budget) - float(c_d)",
+      "id": "E-c_d-not-charged",
+      "part": "E (REQ-16 to REQ-18, brief)",
+      "replace": "        paid, remaining = 0.0, float(budget)"
+    },
+    {
+      "describes": "O ignored by the feasibility screen",
+      "file": "selector/spec.py",
+      "find": "    ok = (o_upper[..., None] <= np.asarray(ctx.tau_o)) & (l_upper <= ctx.tau_l)[..., None]",
+      "id": "E-o-ignored-by-screen",
+      "part": "E (REQ-16 to REQ-18, brief)",
+      "replace": "    ok = (o_upper[..., None] <= np.inf + 0.0 * np.asarray(ctx.tau_o)) & (l_upper <= ctx.tau_l)[..., None]"
+    },
+    {
+      "describes": "a pick with one full-run seed",
+      "file": "selector/spec.py",
+      "find": "    candidate = n_full >= ctx.min_seeds",
+      "id": "E-pick-one-full-seed",
+      "part": "E (REQ-16 to REQ-18, brief)",
+      "replace": "    candidate = n_full >= 1"
+    },
+    {
+      "describes": "ties not to keep (an option with shrunk G = 0 beats keep)",
+      "file": "selector/spec.py",
+      "find": "        beats_keep = g_shrunk[rows, best] > 0.0",
+      "id": "E-ties-not-to-keep",
+      "part": "E (REQ-16 to REQ-18, brief)",
+      "replace": "        beats_keep = g_shrunk[rows, best] >= 0.0"
+    },
+    {
+      "describes": "empirical-Bayes shrinkage off",
+      "file": "selector/spec.py",
+      "find": "    out = mu[:, None] + factor * (g - mu[:, None])",
+      "id": "E-shrinkage-off",
+      "part": "E (REQ-16 to REQ-18, brief)",
+      "replace": "    out = g + 0.0 * mu[:, None]"
+    },
+    {
+      "describes": "replay through a second code path (the replay reimplements the selection)",
+      "file": "selector/spec.py",
+      "find": "    result = select(ctx, obs, rule=rule, budget=budget, scores=score_array, k=k, c_d=c_d)",
+      "id": "E-replay-second-code-path",
+      "part": "E (REQ-16 to REQ-18, brief)",
+      "replace": "    view = _compact(obs, ctx, np.ones((1, ctx.menu.M), dtype=bool))\n    state = RULE_FUNCTIONS[rule](ctx, view, budget)\n    result = Selection(view.index[np.zeros((1, 1), dtype=int), np.maximum(pick(ctx, view, state, np.ones(1, dtype=bool)), 0)], ledger_cost(ctx, state), (state.level[:, :view.m] == ctx.c1).sum(axis=2), rule)"
+    },
+    {
+      "describes": "the cell rule chosen by another criterion (a tie goes to the more complex rule)",
+      "file": "selector/simulate.py",
+      "find": "    for r in order:                      # the simplest rule that ties the best",
+      "id": "E-rule-ties-to-complex",
+      "part": "E (REQ-16 to REQ-18, brief)",
+      "replace": "    for r in reversed(order):            # the simplest rule that ties the best"
+    },
+    {
+      "describes": "the cell rule chosen by another criterion (the smallest mean)",
+      "file": "selector/simulate.py",
+      "find": "    best = max(order, key=lambda r: (means[r], -order.index(r)))",
+      "id": "E-rule-smallest-mean",
+      "part": "E (REQ-16 to REQ-18, brief)",
+      "replace": "    best = min(order, key=lambda r: (means[r], -order.index(r)))"
+    },
+    {
+      "describes": "the cell rule chosen by another criterion (one tau_O point instead of the equal-weight average)",
+      "file": "selector/simulate.py",
+      "find": "    return (res[\"g\"].reshape(P, R, -1).mean(axis=0) * tau_weights).sum(axis=1)",
+      "id": "E-rule-one-tau-point",
+      "part": "E (REQ-16 to REQ-18, brief)",
+      "replace": "    return res[\"g\"].reshape(P, R, -1).mean(axis=0)[:, 0] + 0.0 * tau_weights.sum()"
+    },
+    {
+      "describes": "c* taken as the last crossing",
+      "file": "selector/predict.py",
+      "find": "    while j + 1 < len(grid) and delta[j + 1] >= 0:\n        j += 1",
+      "id": "L15-c-star-last-crossing",
+      "part": "E (lead decisions L15)",
+      "replace": "    j = max(i for i, d in enumerate(delta) if d >= 0)\n    if j == len(grid) - 1 and min(delta) < 0:\n        j -= 1"
+    },
+    {
+      "describes": "keep dropped by top-k (keep survives only if it would rank in the top k)",
+      "file": "selector/spec.py",
+      "find": "    keep_kept = np.ones(n, dtype=bool)",
+      "id": "L15-keep-dropped-by-top-k",
+      "part": "E (lead decisions L15)",
+      "replace": "    keep_kept = np.sort(scores, axis=1)[:, M - k] <= 0.0"
+    },
+    {
+      "describes": "common random numbers not shared (the runs-only baseline of the diagnostic pass uses other replicates' draws)",
+      "file": "selector/simulate.py",
+      "find": "            base = outcome(spec.select(ctx, obs, rule=rule, budget=b), tr)",
+      "id": "L15-crn-not-shared",
+      "part": "E (lead decisions L15)",
+      "replace": "            base = outcome(spec.select(ctx, observations(geom, ctx, sim, draws(geom, ctx, sim, range(task[\"start\"] + 1, task[\"stop\"] + 1)), G, NoiseCase(sigma_c, 0.0), tr[\"coherent\"]), rule=rule, budget=b), tr)"
+    },
+    {
+      "describes": "diagnostic quality not applied (the score noise ignores r)",
+      "file": "selector/simulate.py",
+      "find": "    score = G + point[\"r\"] * s[..., None] * z[None, :, :]",
+      "id": "L15-quality-not-applied",
+      "part": "E (lead decisions L15)",
+      "replace": "    score = G + s[..., None] * z[None, :, :]"
+    },
+    {
+      "describes": "diagnostic quality not applied on planted menus (mu ignores the row AUC)",
+      "file": "selector/simulate.py",
+      "find": "        if point[\"kind\"] == \"row_auc\":\n            mu = math.sqrt(2.0) * NormalDist().inv_cdf(point[\"auc\"])\n            plant = np.zeros((R, M))",
+      "id": "L15-row-auc-not-applied",
+      "part": "E (lead decisions L15)",
+      "replace": "        if point[\"kind\"] == \"row_auc\":\n            mu = 1.0\n            plant = np.zeros((R, M))"
+    },
+    {
+      "describes": "the 0.90 quantile when 0.95 is set",
+      "file": "selector/spec.py",
+      "find": "    z = NormalDist().inv_cdf(ctx.upper_quantile)",
+      "id": "W13-quantile-0.90",
+      "part": "E (W1-13 screen)",
+      "replace": "    z = NormalDist().inv_cdf(0.90)"
+    },
+    {
+      "describes": "the prompt part of O's SE dropped",
+      "file": "selector/spec.py",
+      "find": "    o_prompt = ctx.o_prompt_sd ** 2 if ctx.o_error_model == \"prompts_random\" else 0.0",
+      "id": "W13-prompt-part-dropped",
+      "part": "E (W1-13 screen)",
+      "replace": "    o_prompt = 0.0"
+    },
+    {
+      "describes": "the coherence gate removed",
+      "file": "selector/spec.py",
+      "find": "        ok = ok & view.coherent[:, :m, None]",
+      "id": "W13-coherence-gate-removed",
+      "part": "E (W1-13 screen)",
+      "replace": "        ok = ok"
+    },
+    {
+      "describes": "the seed shift drawn per option (no coupling)",
+      "file": "selector/simulate.py",
+      "find": "    base = shared[:, None, :, None] + train_sd[:, :, None, None] * T + math.sqrt(v) * E",
+      "id": "W14-shift-per-option",
+      "part": "E (W1-14 model)",
+      "replace": "    base = sigma * math.sqrt(rho) * Z[:, :, :, :, 0, 0] + train_sd[:, :, None, None] * T + math.sqrt(v) * E"
+    },
+    {
+      "describes": "the 2x sensitivity applied to keep",
+      "file": "selector/simulate.py",
+      "find": "        train_sd[np.arange(R), 2 + d[\"hetero\"]] = math.sqrt((mult ** 2 - rho) * sigma ** 2 - v_full)",
+      "id": "W14-2x-applied-to-keep",
+      "part": "E (W1-14 model)",
+      "replace": "        train_sd[np.arange(R), 0] = math.sqrt((mult ** 2 - rho) * sigma ** 2 - v_full)"
+    },
+    {
+      "describes": "the check that sigma is 2.65 / 3.85 (never the Gate B value) removed",
+      "file": "selector/simulate.py",
+      "find": "    if model[\"u_seed_sd_pp\"] != {\"central\": 2.65, \"high\": 3.85}:",
+      "id": "W14-noise-check-removed",
+      "part": "E (W1-14 model)",
+      "replace": "    if False:"
+    },
+    {
+      "describes": "the U-O noise correlation ignored",
+      "file": "selector/simulate.py",
+      "find": "         + o_scale[:, None, None] * (rho_uo * eps + math.sqrt(1.0 - rho_uo ** 2) * o_eta))",
+      "id": "W14-uo-correlation-ignored",
+      "part": "E (W1-14 model)",
+      "replace": "         + o_scale[:, None, None] * (0.0 * eps + o_eta))"
+    },
+    {
+      "describes": "C-lean's 1-sample evaluation given C-full's sampling variance",
+      "file": "selector/simulate.py",
+      "find": "    v = v_full * model[\"u_samples_full\"] / ctx.cost.samples_per_prompt",
+      "id": "W14-lean-variance-ignored",
+      "part": "E (W1-14 model)",
+      "replace": "    v = v_full"
+    },
+    {
+      "describes": "one convention only",
+      "file": "selector/predict.py",
+      "find": "        for i, convention in enumerate(pred[\"conventions\"]):",
+      "id": "W15-one-convention-only",
+      "part": "E (W1-15 predictions)",
+      "replace": "        for i, convention in enumerate(pred[\"conventions\"][:1]):"
+    },
+    {
+      "describes": "the classifier row left out",
+      "file": "selector/predict.py",
+      "find": "\"named_diagnostics\": {\"classifier\": classifier_row(menus, pred)}}",
+      "id": "W15-classifier-left-out",
+      "part": "E (W1-15 predictions)",
+      "replace": "\"named_diagnostics\": {}}"
+    },
+    {
+      "describes": "a fitted placement statistic (a fitted quality point added to the placement)",
+      "file": "selector/predict.py",
+      "find": "        out[q] = entry\n    return out",
+      "id": "W15-fitted-placement",
+      "part": "E (W1-15 predictions)",
+      "replace": "        out[q] = {**entry, \"fitted_quality\": q}\n    return out"
+    },
+    {
+      "describes": "the one-shot screen promotes as many finalists as B allows (no cap)",
+      "file": "selector/spec.py",
+      "find": "    n_f = min(n_s, ctx.one_shot_finalists, int(math.floor((budget - n_s * c_s) / c_p + EPS)))",
+      "id": "X-one-shot-finalists-uncapped",
+      "part": "E (builder's own)",
+      "replace": "    n_f = min(n_s, int(math.floor((budget - n_s * c_s) / c_p + EPS)))"
+    },
+    {
+      "describes": "a diagnostic's bisection not turned into halving (L15 (8))",
+      "file": "selector/spec.py",
+      "find": "        ran = ctx.bisection_becomes if rule == \"bisection\" else rule",
+      "id": "X-diag-bisection-not-halving",
+      "part": "E (builder's own)",
+      "replace": "        ran = rule"
+    },
+    {
+      "describes": "the diagnostic's k tie goes to the smaller k",
+      "file": "selector/simulate.py",
+      "find": "    chosen = max(k for k in ks if table[str(k)][\"ties_best\"])",
+      "id": "X-k-ties-to-smaller",
+      "part": "E (builder's own)",
+      "replace": "    chosen = min(k for k in ks if table[str(k)][\"ties_best\"])"
+    },
+    {
+      "describes": "the independent ledger forgets the screen's phi < 1 trials (spend under-reported)",
+      "file": "selector/spec.py",
+      "find": "    return seconds.sum(axis=(1, 2)) / c.unit + state.low.sum(axis=(1, 2)) * low",
+      "id": "V01-ledger-drops-low-trials",
+      "part": "E (verifier V01-V16)",
+      "replace": "    return seconds.sum(axis=(1, 2)) / c.unit + 0.0 * state.low.sum(axis=(1, 2)) * low"
+    },
+    {
+      "describes": "the independent ledger forgets C-lean (b)'s extra O and L passes of every full run",
+      "file": "selector/spec.py",
+      "find": "    seconds = seconds + np.where(level == ctx.c1, c.extra_full, 0.0)",
+      "id": "V02-ledger-drops-extra-full",
+      "part": "E (verifier V01-V16)",
+      "replace": "    seconds = seconds + 0.0 * np.where(level == ctx.c1, c.extra_full, 0.0)"
+    },
+    {
+      "describes": "the leftover buys a part-paid full-run seed (ceil instead of floor: overspends B)",
+      "file": "selector/spec.py",
+      "find": "    left = np.full(n, int(math.floor(max(budget_left, 0.0) / ctx.cost.full + EPS)), dtype=np.int64)",
+      "id": "V03-extra-seeds-ceil",
+      "part": "E (verifier V01-V16)",
+      "replace": "    left = np.full(n, int(math.ceil(max(budget_left, 0.0) / ctx.cost.full - EPS)), dtype=np.int64)"
+    },
+    {
+      "describes": "the one-shot screen does not reserve the promotion cost before screening",
+      "file": "selector/spec.py",
+      "find": "    n_s = min(m, int(math.floor((budget - c_p) / c_s + EPS)))",
+      "id": "V04-one-shot-no-promotion-reserve",
+      "part": "E (verifier V01-V16)",
+      "replace": "    n_s = min(m, int(math.floor(budget / c_s + EPS)))"
+    },
+    {
+      "describes": "options are ranked by the raw estimate first (shrinkage used only against keep)",
+      "file": "selector/spec.py",
+      "find": "        best = np.lexsort((tie, secondary, primary), axis=-1)[:, 0]",
+      "id": "V05-pick-ranks-by-raw",
+      "part": "E (verifier V01-V16)",
+      "replace": "        best = np.lexsort((tie, primary, secondary), axis=-1)[:, 0]"
+    },
+    {
+      "describes": "Delta = E[G(runs-only)] - E[G(diagnostic)] (sign flipped)",
+      "file": "selector/simulate.py",
+      "find": "            diff = g - paired.reshape(shape)",
+      "id": "V06-delta-sign-flipped",
+      "part": "E (verifier V01-V16)",
+      "replace": "            diff = paired.reshape(shape) - g"
+    },
+    {
+      "describes": "the reported Delta curves use k = M, not the frozen k per c_d/c0",
+      "file": "selector/predict.py",
+      "find": "            rows = [summarize(res[\"sums_b\"][(b, c, q, frozen_k[f\"{c:g}\"])], names, t, paired=True,",
+      "id": "V07-delta-not-at-frozen-k",
+      "part": "E (verifier V01-V16)",
+      "replace": "            rows = [summarize(res[\"sums_b\"][(b, c, q, res[\"ks\"][-1])], names, t, paired=True,"
+    },
+    {
+      "describes": "k is chosen at the first quality point (r = 0) only, not the equal-weight quality average (L15 (6))",
+      "file": "selector/simulate.py",
+      "find": "                        per_k[:, ki] += criterion_values(res, P, tau_w) / (len(qpoints) * len(k_rhos))",
+      "id": "V08-k-by-first-quality-only",
+      "part": "E (verifier V01-V16)",
+      "replace": "                        per_k[:, ki] += criterion_values(res, P, tau_w) * (qi == 0) / len(k_rhos)"
+    },
+    {
+      "describes": "a psi-subsample trial gets no extra sampling noise (as precise as a full run)",
+      "file": "selector/simulate.py",
+      "find": "    sub_sd = np.sqrt(np.maximum(v * (1.0 / psi - 1.0), 0.0))                     # 0 at psi = 1",
+      "id": "V09-psi-trial-noise-dropped",
+      "part": "E (verifier V01-V16)",
+      "replace": "    sub_sd = 0.0 * np.sqrt(np.maximum(v * (1.0 / psi - 1.0), 0.0))               # 0 at psi = 1"
+    },
+    {
+      "describes": "the rule chosen at one rho (rho = 0) even when the settings ask for the rho average (W1-14 mutant)",
+      "file": "selector/simulate.py",
+      "find": "    rho_avg = sim[\"model\"][\"rho_average_for_rule\"]",
+      "id": "V10-rule-at-one-rho",
+      "part": "E (verifier V01-V16)",
+      "replace": "    rho_avg = False and sim[\"model\"][\"rho_average_for_rule\"]"
+    },
+    {
+      "describes": "pass A (rule choice, runs-only predictions) runs at the wave-0a implied same-seed rho 0.619 while recorded as rho = 0 (W1-14 mutant: rho taken from the Gate B value)",
+      "file": "selector/simulate.py",
+      "find": "            obs = observations(geom, ctx, sim, d, G, NoiseCase(sigma_c, rho), tr[\"coherent\"])",
+      "id": "V11-rho-from-gate",
+      "part": "E (verifier V01-V16)",
+      "replace": "            obs = observations(geom, ctx, sim, d, G, NoiseCase(sigma_c, 0.619 if rho == 0.0 else rho), tr[\"coherent\"])"
+    },
+    {
+      "describes": "the rules visit the options in menu order, not the sealed tie order",
+      "file": "selector/spec.py",
+      "find": "    key = np.where(avail, ctx.tie_rank[None, :], M + ctx.tie_rank[None, :])",
+      "id": "V12-menu-order-not-tie-order",
+      "part": "E (verifier V01-V16)",
+      "replace": "    key = np.where(avail, np.arange(M)[None, :], M + np.arange(M)[None, :])"
+    },
+    {
+      "describes": "the reported Monte Carlo SE is the per-replicate SD (not divided by sqrt(n))",
+      "file": "selector/predict.py",
+      "find": "        se = np.sqrt(var / n)",
+      "id": "V13-mc-se-not-divided",
+      "part": "E (verifier V01-V16)",
+      "replace": "        se = np.sqrt(var)"
+    },
+    {
+      "describes": "halving's leftover buys seeds for options with only 1 full-run seed too",
+      "file": "selector/spec.py",
+      "find": "    holders = n_full >= 2",
+      "id": "V14-halving-leftover-to-one-seed-options",
+      "part": "E (verifier V01-V16)",
+      "replace": "    holders = n_full >= 1"
+    },
+    {
+      "describes": "the simulated Spearman rho uses noise-free D_u (the wave-1 runs' seed noise ignored)",
+      "file": "selector/simulate.py",
+      "find": "    D = (G - noise[None]).reshape(P * R, M)",
+      "id": "V15-category-placement-noise-free",
+      "part": "E (verifier V01-V16)",
+      "replace": "    D = (G - 0.0 * noise[None]).reshape(P * R, M)"
+    },
+    {
+      "describes": "shrinkage pools only options with 2 or more full-run seeds (settings say 1 or more)",
+      "file": "selector/spec.py",
+      "find": "    g_shrunk = shrink(g_raw, v, n_full >= 1, ctx.shrink_min_options)",
+      "id": "V16-shrink-members-two-seeds",
+      "part": "E (verifier V01-V16)",
+      "replace": "    g_shrunk = shrink(g_raw, v, n_full >= 2, ctx.shrink_min_options)"
+    },
+    {
+      "describes": "the rule and k chosen per (menu, M, B, convention) when the settings say per (menu, M, B) (B-1)",
+      "file": "selector/simulate.py",
+      "find": "    groups = [list(conventions)] if scope == \"menu_m_b\" else [[c] for c in conventions]",
+      "id": "F01-freeze-scope-ignored",
+      "part": "E (fix round)",
+      "replace": "    groups = [[c] for c in conventions]"
+    },
+    {
+      "describes": "the pooled rule chosen on the first convention's criterion only (B-1)",
+      "file": "selector/simulate.py",
+      "find": "        per_rule = {r: np.mean([per_conv[c][r] for c in conventions], axis=0) for r in rules}",
+      "id": "F02-pooled-rule-from-one-convention",
+      "part": "E (fix round)",
+      "replace": "        per_rule = {r: per_conv[conventions[0]][r] for r in rules}"
+    },
+    {
+      "describes": "the pooled k chosen on the first convention's criterion only (B-1)",
+      "file": "selector/simulate.py",
+      "find": "            k_choice[key] = choose_k(np.mean([per_conv[c] for c in conventions], axis=0), ks, tie_se)",
+      "id": "F03-pooled-k-from-one-convention",
+      "part": "E (fix round)",
+      "replace": "            k_choice[key] = choose_k(per_conv[conventions[0]], ks, tie_se)"
+    },
+    {
+      "describes": "k chosen at rho = 0 only when the settings ask for the rho average (S-10; W1-14 item 4)",
+      "file": "selector/simulate.py",
+      "find": "        k_rhos = rho_grid(sim) if sim[\"model\"][\"rho_average_for_rule\"] else [0.0]",
+      "id": "F04-k-rho-average-ignored",
+      "part": "E (fix round)",
+      "replace": "        k_rhos = [0.0]"
+    },
+    {
+      "describes": "under the rho average the Delta sums are overwritten by the last rho (not rho = 0) (S-10)",
+      "file": "selector/simulate.py",
+      "find": "                        if rho == 0.0:",
+      "id": "F05-delta-sums-at-the-last-rho",
+      "part": "E (fix round)",
+      "replace": "                        if True:"
+    },
+    {
+      "describes": "the replay's L bound against R computed against a0 (S-7; W1-13 row 4)",
+      "file": "selector/spec.py",
+      "find": "        out[\"l_by_reference\"] = {name: (None if arm is None else _l_upper(ctx, l, full, n_full, l_mean, safe, arm, z))",
+      "id": "F06-replay-r-bound-against-a0",
+      "part": "E (fix round)",
+      "replace": "        out[\"l_by_reference\"] = {name: (None if arm is None else _l_upper(ctx, l, full, n_full, l_mean, safe, reference, z))"
+    },
+    {
+      "describes": "the screen's L reference fixed to a0 whatever the settings say (W1-13 row 4; the refactor of S-7)",
+      "file": "selector/spec.py",
+      "find": "    reference = arms[ctx.tau_l_reference]",
+      "id": "F07-screen-reference-fixed-to-a0",
+      "part": "E (fix round)",
+      "replace": "    reference = arms[\"a0\"]"
+    },
+    {
+      "describes": "a replay accepts saved labels of another sample count (S-8: a lean replay of full evaluations)",
+      "file": "selector/spec.py",
+      "find": "    if samples != ctx.cost.samples_per_prompt or keep_samples != ctx.keep_samples_per_prompt:",
+      "id": "F08-sample-count-check-removed",
+      "part": "E (fix round)",
+      "replace": "    if False:"
+    },
+    {
+      "describes": "a replay does not check keep's sample count (S-8)",
+      "file": "selector/spec.py",
+      "find": "    if samples != ctx.cost.samples_per_prompt or keep_samples != ctx.keep_samples_per_prompt:",
+      "id": "F09-keep-sample-count-not-checked",
+      "part": "E (fix round)",
+      "replace": "    if samples != ctx.cost.samples_per_prompt:"
+    },
+    {
+      "describes": "check-inputs --resolve takes the first of several matching files (S-11)",
+      "file": "selector/predict.py",
+      "find": "    if len(matches) != 1:",
+      "id": "F10-resolve-accepts-two-matches",
+      "part": "E (fix round)",
+      "replace": "    if not matches:"
+    },
+    {
+      "describes": "c* none never reports a later Delta >= 0 as non-monotone (N-1; L15 (5))",
+      "file": "selector/predict.py",
+      "find": "                \"non_monotone\": bool(any(d >= 0 for d in delta[1:]))}",
+      "id": "F11-c-star-none-never-non-monotone",
+      "part": "E (fix round)",
+      "replace": "                \"non_monotone\": False}"
+    },
+    {
+      "describes": "an option cost other than 1 FRE is accepted and ignored (N-3)",
+      "file": "selector/spec.py",
+      "find": "    if any(o.cost_fre != 1.0 for o in options):",
+      "id": "F12-option-cost-check-removed",
+      "part": "E (fix round)",
+      "replace": "    if False:"
+    }
+  ],
+  "part": "E (REQ-16 to REQ-18: the selector spec, the generative model and simulation, the predictions)",
+  "version": 1
+}

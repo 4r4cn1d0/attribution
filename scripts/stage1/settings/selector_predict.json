@@ -1,0 +1,76 @@
+{
+  "c_star": {
+    "rule": "c* = the first crossing: the largest grid point c_j with Delta >= 0 at every grid point <= c_j, plus the linear interpolation to c_(j+1) (report only); a later grid point with Delta >= 0 is reported as non-monotone, also when Delta(0) < 0 gives none; Delta >= 0 on the whole grid gives at least the grid maximum (L15 (5))"
+  },
+  "conventions": [
+    "C-full",
+    "C-lean"
+  ],
+  "definitions": {
+    "Delta": "E[G(diagnostic pick)] - E[G(runs-only pick)] at the same total budget, c_d paid out of B",
+    "G": "G_m = U(a0) - U(m) (keep G = 0); on planted menus keep = a0_plant",
+    "P_best": "P(the pick's true G equals the replicate's V); a truly infeasible pick is never best",
+    "V_max": "E[max over the truly feasible options and keep of G]",
+    "regret": "E[V - G(pick)]"
+  },
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "intervals": {
+    "rule": "parameter uncertainty: the minimum and maximum over the prior's (shape, size) grid points at sigma central, rho 0; the sensitivity cases (sigma high, the 2x option) beside them; every mean carries its Monte Carlo SE"
+  },
+  "kind": "stage1 settings",
+  "label_entries": {},
+  "labels_sha256": "8f770c6831ef2925c0603ee729e3a519a59cbcbe5844141aa1494211886c5e5f",
+  "llama": {
+    "budgets": [
+      4.0,
+      8.0
+    ],
+    "design": {
+      "phi_below_1": false,
+      "source": "Llama note section 15 item 3 (Gate B-lite: every unit at 1101, wave-2 units at 1102-1103, contested units at 1104-1105)",
+      "units_at_seed_index_0": 8,
+      "units_with_seed_indices_1_2": 2,
+      "units_with_seed_indices_3_4": 2
+    },
+    "menu": "llama_category",
+    "rule": "OLMo-calibrated P(best found) and regret for halving and one-shot at B = 4 and 8 (PLAN-S:132), from the same model as the category menu; no Llama measurement is an input; the replay check counts what each rule can ask for against the design (item 3); whether the asked units are the wave-2 units is data-dependent and is not checked here",
+    "rules": [
+      "halving",
+      "one_shot"
+    ]
+  },
+  "menus_predicted": [
+    "category",
+    "planted_8",
+    "planted_32",
+    "planted_128"
+  ],
+  "name": "selector_predict",
+  "named_diagnostics": {
+    "classifier": {
+      "c_d": "placed later as one point on each c_d/c0 curve by its measured cost (REQ-23's ledger)",
+      "menus": [
+        "planted_8",
+        "planted_32",
+        "planted_128"
+      ],
+      "quality_fitted": false,
+      "quality_grid": "row_auc",
+      "source": "RB R8.4, VF-12; W1-15 item 4"
+    }
+  },
+  "number_format": "every float written with 10 significant digits",
+  "owner": "scripts/stage1/selector/predict.py",
+  "placement": {
+    "category": "spearman_rho",
+    "planted_primary": "top_k_hit",
+    "planted_secondary": "row_auc",
+    "range_quantiles": [
+      0.05,
+      0.95
+    ],
+    "rule": "fixed now; the quality is never fitted (L15 (7)): category: Gate C's frozen Spearman rho against the 8 wave-1 D_u (one C-full run per unit); planted: the plant's top-k hit at each M (primary, L15 (7) in force) and the empirical row AUC (Draft B F3, computed beside it); report the grid points whose simulated 90% range holds the measured value; rho <= 0 is placed at uninformative (an upper bound)"
+  },
+  "requirement": "REQ-18 (brief rev 1 (12cbf463)); lead decisions addendum (11477648) L15 (5)-(7); W1 builder extract rev 2 (18b81b26) W1-15; Llama note section 15",
+  "version": 1
+}

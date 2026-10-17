@@ -1,0 +1,458 @@
+{
+  "kind": "stage1 mutants",
+  "version": 1,
+  "part": "Part F (REQ-19 with W1-16; W1-05; W1-18): the brief's Part F mutants, the task's three added mutants, and further mutants of the decider, the NI report, the known-answer check, the strata and the over-refusal checks; the verifier's 13 new mutants (notes/partF-verify-mutants.json); the fix round's mutants of the verification items S-2, S-3, S-13, N-2 and N-5",
+  "mutants": [
+    {
+      "id": "F-mde-one-sided-alpha",
+      "part": "F (REQ-19, brief)",
+      "describes": "a one-sided alpha in the MDE (z(1 - alpha) for z(1 - alpha/2))",
+      "file": "limits/limits_check.py",
+      "find": "return (lc.z(1 - alpha / 2) + lc.z(power)) * se",
+      "replace": "return (lc.z(1 - alpha) + lc.z(power)) * se"
+    },
+    {
+      "id": "F-tau-l-without-root-two",
+      "part": "F (REQ-19, brief)",
+      "describes": "tau_L = 2 s (without the root of two)",
+      "file": "limits/limits_check.py",
+      "find": "return {\"tau_l\": 2 * math.sqrt(2) * s,",
+      "replace": "return {\"tau_l\": 2 * s,"
+    },
+    {
+      "id": "F-prompt-part-dropped",
+      "part": "F (REQ-19, brief)",
+      "describes": "the prompt part dropped from error model (a), prompts random",
+      "file": "limits/limits_check.py",
+      "find": "        return math.sqrt(v_seed + v_prompt)",
+      "replace": "        return math.sqrt(v_seed)"
+    },
+    {
+      "id": "F-allow-list-removed",
+      "part": "F (REQ-19, brief)",
+      "describes": "the allow-list removed: no file is compared with its allow-list pin",
+      "file": "limits/limits_common.py",
+      "find": "    if digest != hex64(pin, f\"{what}'s pin\"):",
+      "replace": "    if False:"
+    },
+    {
+      "id": "F-allow-list-names-removed",
+      "part": "F (REQ-19, brief)",
+      "describes": "the allow-list's unit names not checked (a fifth or a missing unit accepted)",
+      "file": "limits/limits_check.py",
+      "find": "if not isinstance(units, Mapping) or set(units) != set(UNIT_NAMES):",
+      "replace": "if not isinstance(units, Mapping):"
+    },
+    {
+      "id": "F-empty-f-accepted",
+      "part": "F (REQ-19, task)",
+      "describes": "an empty (or blank) written reading of f accepted",
+      "file": "limits/limits_check.py",
+      "find": "    if not isinstance(reading, str) or not reading.strip():",
+      "replace": "    if not isinstance(reading, str):"
+    },
+    {
+      "id": "F-ddof-0",
+      "part": "F (REQ-19, task)",
+      "describes": "s_L with ddof 0 (the population SD)",
+      "file": "limits/limits_check.py",
+      "find": "    s = statistics.stdev(values)",
+      "replace": "    s = statistics.pstdev(values)"
+    },
+    {
+      "id": "F-gate-b-unit-path-accepted",
+      "part": "F (REQ-19, task)",
+      "describes": "a Gate B unit path accepted (the allowed path form not checked)",
+      "file": "limits/limits_common.py",
+      "find": "    if not isinstance(path, str) or \"..\" in Path(path).parts or not re.fullmatch(rules[\"path_pattern\"], path):",
+      "replace": "    if not isinstance(path, str):"
+    },
+    {
+      "id": "F-u8-decider-ignored",
+      "part": "F (W1-16)",
+      "describes": "the u8_decider switch ignored (prompts random always decides)",
+      "file": "limits/limits_check.py",
+      "find": "    decisive = models[decider][\"vs_theta0\"][\"plan_a\"][\"mde_pp\"]",
+      "replace": "    decisive = models[\"prompts_random\"][\"vs_theta0\"][\"plan_a\"][\"mde_pp\"]"
+    },
+    {
+      "id": "F-ni-quantile-0.90",
+      "part": "F (W1-16)",
+      "describes": "the NI report at the 0.90 quantile when 0.95 is set",
+      "file": "limits/limits_check.py",
+      "find": "    zq = lc.z(quantile)",
+      "replace": "    zq = lc.z(0.90)"
+    },
+    {
+      "id": "F-known-answer-check-removed",
+      "part": "F (W1-16)",
+      "describes": "the tau_L known-answer check removed",
+      "file": "limits/limits_check.py",
+      "find": "        if not math.isclose(block[key], known[key], rel_tol=tol, abs_tol=0.0):",
+      "replace": "        if False:"
+    },
+    {
+      "id": "F-invalid-counted-refused",
+      "part": "F (REQ-19)",
+      "describes": "an invalid judge answer counted as refused in O",
+      "file": "limits/limits_check.py",
+      "find": "        out[pid] = (valid is True and refusal == \"Yes\", valid)",
+      "replace": "        out[pid] = (refusal == \"Yes\", valid)"
+    },
+    {
+      "id": "F-seed-part-not-divided",
+      "part": "F (REQ-19)",
+      "describes": "the seed part not divided by the seed count",
+      "file": "limits/limits_check.py",
+      "find": "    v_seed = (2.0 if comparator else 1.0) * seed_variance_pp2 / seeds",
+      "replace": "    v_seed = (2.0 if comparator else 1.0) * seed_variance_pp2"
+    },
+    {
+      "id": "F-recipe-identity-ignored",
+      "part": "F (REQ-19)",
+      "describes": "job.json's Gate A identity (engine, recipe, manifest) not checked",
+      "file": "limits/limits_common.py",
+      "find": "        if job.get(field) != value:",
+      "replace": "        if False:"
+    },
+    {
+      "id": "F05-sampled-answers",
+      "part": "F (W1-05)",
+      "describes": "the strata from the sampled answers in place of the greedy ones",
+      "file": "limits/untuned_refusal_strata.py",
+      "find": "    data, digest = lc.unit_file(unit, answers[\"file\"])",
+      "replace": "    data, digest = lc.unit_file(unit, \"samples.jsonl\")"
+    },
+    {
+      "id": "F05-unpinned-lexicon",
+      "part": "F (W1-05)",
+      "describes": "an unpinned lexicon (the lexicon files' hashes not checked)",
+      "file": "limits/limits_common.py",
+      "find": "    if sha256_file(json_path) != json_pin or sha256_file(py_path) != py_pin:",
+      "replace": "    if False:"
+    },
+    {
+      "id": "F05-text-scan-removed",
+      "part": "F (W1-05)",
+      "describes": "the strata record's text scan removed",
+      "file": "limits/untuned_refusal_strata.py",
+      "find": "    lc.require_text_free(out, texts, OUTPUT)",
+      "replace": "    pass"
+    },
+    {
+      "id": "F18-cap-off-by-one",
+      "part": "F (W1-18)",
+      "describes": "the cut answer keeps 129 tokens at a 128-token cap (find text moved in the fix round; same change)",
+      "file": "limits/overrefusal_checks.py",
+      "find": "            cut_text = decode(ids_full[:cap])",
+      "replace": "            cut_text = decode(ids_full[:cap + 1])"
+    },
+    {
+      "id": "F18-agree-bar-strict",
+      "part": "F (W1-18)",
+      "describes": "the agreement bar needs more than 97 agreeing flags",
+      "file": "limits/overrefusal_checks.py",
+      "find": "            \"pass\": agree >= spec[\"min_flags_agree\"] and move <= spec[\"max_count_move\"]}",
+      "replace": "            \"pass\": agree > spec[\"min_flags_agree\"] and move <= spec[\"max_count_move\"]}"
+    },
+    {
+      "id": "F18-move-bar-strict",
+      "part": "F (W1-18)",
+      "describes": "the count-move bar refuses a move of exactly 2",
+      "file": "limits/overrefusal_checks.py",
+      "find": "            \"pass\": agree >= spec[\"min_flags_agree\"] and move <= spec[\"max_count_move\"]}",
+      "replace": "            \"pass\": agree >= spec[\"min_flags_agree\"] and move < spec[\"max_count_move\"]}"
+    },
+    {
+      "id": "F18-sealed-flags-for-truncation",
+      "part": "F (W1-18)",
+      "describes": "the truncation check compares the pod's sealed flags with the Mac cut flags (two devices) (find text moved in the fix round; same change)",
+      "file": "limits/overrefusal_checks.py",
+      "find": "            \"truncation\": truncation(full, cut, ids, settings[\"truncation\"]),",
+      "replace": "            \"truncation\": truncation(sealed, cut, ids, settings[\"truncation\"]),"
+    },
+    {
+      "id": "F18-text-scan-removed",
+      "part": "F (W1-18)",
+      "describes": "the checks record's text scan removed",
+      "file": "limits/overrefusal_checks.py",
+      "find": "    lc.require_text_free(out, texts, OUTPUT)",
+      "replace": "    pass"
+    },
+    {
+      "id": "F18-gate-b-recipe-accepted",
+      "part": "F (W1-18)",
+      "describes": "a unit on Gate B's recipe S accepted",
+      "file": "limits/limits_common.py",
+      "find": "    if job.get(\"recipe_sha256\") in set(rules.get(\"refused_recipes\") or ()):",
+      "replace": "    if False:"
+    },
+    {
+      "id": "FV-clamp-removed",
+      "part": "F-verify (new mutants, verifier)",
+      "describes": "REQ-19 prompts random: the prompt variance component c = max(0, MS_P - MS_E)/J not clamped at 0 (a table with MS_E > MS_P gives a negative c and an SE below the seed part)",
+      "file": "limits/limits_check.py",
+      "find": "    component = max(Fraction(0), ms_p - ms_e) / J",
+      "replace": "    component = (ms_p - ms_e) / J"
+    },
+    {
+      "id": "FV-move-signed",
+      "part": "F-verify (new mutants, verifier)",
+      "describes": "W1-18 check 1: the count move without abs(), so a unit whose cut answers GAIN 3 or more refusals passes the 'moves by at most 2' bar",
+      "file": "limits/overrefusal_checks.py",
+      "find": "    move = abs(refused_full - refused_cut)",
+      "replace": "    move = refused_full - refused_cut"
+    },
+    {
+      "id": "FV-f1-bank-size-not-enforced",
+      "part": "F-verify (new mutants, verifier)",
+      "describes": "REQ-19 f = 1: the rule 'all 100 dev over-refusal prompts' not enforced (units with fewer judged over-refusal prompts accepted)",
+      "file": "limits/limits_check.py",
+      "find": "    if len(ids) != planned or any(sorted(flags[n]) != ids for n in A0_NAMES):",
+      "replace": "    if any(sorted(flags[n]) != ids for n in A0_NAMES):"
+    },
+    {
+      "id": "FV-query-bank-unchecked",
+      "part": "F-verify (new mutants, verifier)",
+      "describes": "REQ-19 tau_L: summary.json's query_bank_sha256 not compared with the pinned task bank ab31576d",
+      "file": "limits/limits_check.py",
+      "find": "    if banks != {settings[\"query_bank_sha256\"]}:",
+      "replace": "    if False:"
+    },
+    {
+      "id": "FV-complete-mean-unchecked",
+      "part": "F-verify (new mutants, verifier)",
+      "describes": "REQ-19 tau_L: the recomputed mean not compared with COMPLETE.json's evaluation.query_loss.mean (tau_l_check.py asserts both)",
+      "file": "limits/limits_check.py",
+      "find": "        if ql.get(\"mean\") != mean or recorded != mean or ql.get(\"n\") != rows:",
+      "replace": "        if ql.get(\"mean\") != mean or ql.get(\"n\") != rows:"
+    },
+    {
+      "id": "FV-overrefusal-n-unchecked",
+      "part": "F-verify (new mutants, verifier)",
+      "describes": "REQ-19 O: summary.json's overrefusal.n not compared with the number of judged over-refusal records",
+      "file": "limits/limits_check.py",
+      "find": "        if over.get(\"n\") != len(flags[name]) or over.get(\"refusals\") != refused:",
+      "replace": "        if over.get(\"refusals\") != refused:"
+    },
+    {
+      "id": "FV05-caveat-counted-refusal",
+      "part": "F-verify (new mutants, verifier)",
+      "describes": "W1-05: a CAVEAT-OPENING answer flagged as refusal-opening (the stratum is REFUSAL-OPENING only)",
+      "file": "limits/untuned_refusal_strata.py",
+      "find": "\"refusal_opening\": cls == refusal_class}",
+      "replace": "\"refusal_opening\": cls in (refusal_class, \"CAVEAT-OPENING\")}"
+    },
+    {
+      "id": "FV18-partial-invalid-as-no",
+      "part": "F-verify (new mutants, verifier)",
+      "describes": "W1-18 check 3: an invalid judge answer with a lexicon refusal opening counted as a partial refusal (judge 'No')",
+      "file": "limits/overrefusal_checks.py",
+      "find": "    return {\"lexicon_opening_judge_no\": sum(lexicon[p] and judge[p][1] and judge[p][2] == \"No\" for p in ids),",
+      "replace": "    return {\"lexicon_opening_judge_no\": sum(lexicon[p] and not judge[p][0] for p in ids),"
+    },
+    {
+      "id": "FV18-sealed-ids-unchecked",
+      "part": "F-verify (new mutants, verifier)",
+      "describes": "W1-18: the sealed judge records' prompt ids not compared with the dev bank (a missing record gives a KeyError, an extra one is ignored) (find text moved in the fix round; same change)",
+      "file": "limits/overrefusal_checks.py",
+      "find": "    if sorted(answers) != list(ids) or sorted(sealed) != list(ids):",
+      "replace": "    if sorted(answers) != list(ids):"
+    },
+    {
+      "id": "FV-data-root-escape",
+      "part": "F-verify (new mutants, verifier)",
+      "describes": "all three scripts: a unit folder that resolves outside the data root (a symlink) accepted",
+      "file": "limits/limits_common.py",
+      "find": "    if root not in folder.parents:",
+      "replace": "    if False:"
+    },
+    {
+      "id": "FV-ctrl-decider-plan-b",
+      "part": "F-verify (new mutants, verifier)",
+      "describes": "control: U8 decided at 9 seeds (plan B) instead of 6",
+      "file": "limits/limits_check.py",
+      "find": "    decisive = models[decider][\"vs_theta0\"][\"plan_a\"][\"mde_pp\"]",
+      "replace": "    decisive = models[decider][\"vs_theta0\"][\"plan_b\"][\"mde_pp\"]"
+    },
+    {
+      "id": "FV-ctrl-ms-error-df",
+      "part": "F-verify (new mutants, verifier)",
+      "describes": "control: the residual df of the two-way table P (J - 1) instead of (P - 1)(J - 1)",
+      "file": "limits/limits_check.py",
+      "find": "    df_p, df_e = P - 1, (P - 1) * (J - 1)",
+      "replace": "    df_p, df_e = P - 1, P * (J - 1)"
+    },
+    {
+      "id": "FV-ctrl-ni-500-scales-seed-part",
+      "part": "F-verify (new mutants, verifier)",
+      "describes": "control: at 500 prompts the seed part also scaled by 100/P (review B's whole-SE scaling)",
+      "file": "limits/limits_check.py",
+      "find": "        ni_models[model] = {str(P): ni_planning(contrast_se_pp(model, mde[\"seeds\"][\"plan_a\"], float(seed_variance),",
+      "replace": "        ni_models[model] = {str(P): ni_planning(contrast_se_pp(model, mde[\"seeds\"][\"plan_a\"], float(seed_variance) * 100 / P,"
+    },
+    {
+      "id": "F18-short-answers-judged-twice",
+      "part": "F-fix (fix round: verification items S-2, S-3, S-13, N-2, N-5)",
+      "describes": "S-2: every answer judged again at the cut, the short ones too (identical inputs judged twice, so judge noise counts against the bar)",
+      "edits": [
+        {
+          "file": "limits/overrefusal_checks.py",
+          "find": "        if len(ids_full) > cap:                              # only a longer answer has another cut answer",
+          "replace": "        if True:"
+        },
+        {
+          "file": "limits/overrefusal_checks.py",
+          "find": "    cut = {pid: judged[f\"{pid}#cut\"] if len(answers[pid][\"output_ids\"]) > cap else full[pid] for pid in ids}",
+          "replace": "    cut = {pid: judged[f\"{pid}#cut\"] for pid in ids}"
+        }
+      ]
+    },
+    {
+      "id": "F18-cut-boundary-at-cap",
+      "part": "F-fix (fix round: verification items S-2, S-3, S-13, N-2, N-5)",
+      "describes": "S-2: an answer of exactly cap tokens judged again at the cut (>= for >)",
+      "edits": [
+        {
+          "file": "limits/overrefusal_checks.py",
+          "find": "        if len(ids_full) > cap:                              # only a longer answer has another cut answer",
+          "replace": "        if len(ids_full) >= cap:                              # only a longer answer has another cut answer"
+        },
+        {
+          "file": "limits/overrefusal_checks.py",
+          "find": "    cut = {pid: judged[f\"{pid}#cut\"] if len(answers[pid][\"output_ids\"]) > cap else full[pid] for pid in ids}",
+          "replace": "    cut = {pid: judged[f\"{pid}#cut\"] if len(answers[pid][\"output_ids\"]) >= cap else full[pid] for pid in ids}"
+        }
+      ]
+    },
+    {
+      "id": "F18-sealed-map-hash-unchecked",
+      "part": "F-fix (fix round: verification items S-2, S-3, S-13, N-2, N-5)",
+      "describes": "S-3: the sealed source map not compared with its pin",
+      "file": "limits/overrefusal_checks.py",
+      "find": "    if digest != pin:",
+      "replace": "    if False:"
+    },
+    {
+      "id": "F18-sealed-map-bank-unchecked",
+      "part": "F-fix (fix round: verification items S-2, S-3, S-13, N-2, N-5)",
+      "describes": "S-3: a sealed map of another prepared set or dev bank accepted",
+      "file": "limits/overrefusal_checks.py",
+      "find": "    if not isinstance(doc, dict) or any(doc.get(k) != v for k, v in want.items()):",
+      "replace": "    if not isinstance(doc, dict):"
+    },
+    {
+      "id": "F18-sealed-map-ids-unchecked",
+      "part": "F-fix (fix round: verification items S-2, S-3, S-13, N-2, N-5)",
+      "describes": "S-3: a sealed map with a missing or an extra prompt id accepted",
+      "file": "limits/overrefusal_checks.py",
+      "find": "    if not isinstance(sources, dict) or sorted(sources) != sorted(prompt_ids) or not all(",
+      "replace": "    if not isinstance(sources, dict) or not all("
+    },
+    {
+      "id": "F18-sealed-map-ruling-unchecked",
+      "part": "F-fix (fix round: verification items S-2, S-3, S-13, N-2, N-5)",
+      "describes": "S-3: a sealed map that records no ruling accepted",
+      "file": "limits/overrefusal_checks.py",
+      "find": "    if not isinstance(doc.get(\"ruling\"), str) or not doc[\"ruling\"].strip():",
+      "replace": "    if False:"
+    },
+    {
+      "id": "F18-sealed-map-path-escape",
+      "part": "F-fix (fix round: verification items S-2, S-3, S-13, N-2, N-5)",
+      "describes": "S-3: a sealed map behind a symlink out of the data root accepted",
+      "file": "limits/overrefusal_checks.py",
+      "find": "    if root not in path.parents:",
+      "replace": "    if False:"
+    },
+    {
+      "id": "F18-extract-without-ruling",
+      "part": "F-fix (fix round: verification items S-2, S-3, S-13, N-2, N-5)",
+      "describes": "S-3: the extraction runs on an empty or blank ruling",
+      "file": "limits/overrefusal_checks.py",
+      "find": "    if not isinstance(ruling, str) or not ruling.strip():",
+      "replace": "    if not isinstance(ruling, str):"
+    },
+    {
+      "id": "F18-extract-source-pin-unchecked",
+      "part": "F-fix (fix round: verification items S-2, S-3, S-13, N-2, N-5)",
+      "describes": "S-3: the extraction does not check that P's manifest names the pinned bank source",
+      "file": "limits/overrefusal_checks.py",
+      "find": "    if (prepared[\"manifest\"].get(\"bank_import\") or {}).get(\"source_manifest_sha256\") != pin:",
+      "replace": "    if False:"
+    },
+    {
+      "id": "F18-extract-other-dev-bank-accepted",
+      "part": "F-fix (fix round: verification items S-2, S-3, S-13, N-2, N-5)",
+      "describes": "S-3: the extraction accepts a bank source whose dev bank is not the file that P's manifest records as imported",
+      "file": "limits/overrefusal_checks.py",
+      "find": "    if imported is None or (src_manifest.get(\"files\") or {}).get(bank[\"file\"]) != imported:",
+      "replace": "    if False:"
+    },
+    {
+      "id": "F18-extract-auditor-read-before-binding",
+      "part": "F-fix (fix round: verification items S-2, S-3, S-13, N-2, N-5)",
+      "describes": "S-3: the extraction reads the auditor file before it checks that the bank source's dev bank is P's import",
+      "file": "limits/overrefusal_checks.py",
+      "find": "    imported = ((prepared[\"manifest\"].get(\"bank_import\") or {}).get(\"files\") or {}).get(bank[\"file\"])",
+      "replace": "    prepare.read_verified(src_root, src_manifest, name)\n    imported = ((prepared[\"manifest\"].get(\"bank_import\") or {}).get(\"files\") or {}).get(bank[\"file\"])"
+    },
+    {
+      "id": "F18-extract-hidden-entry-accepted",
+      "part": "F-fix (fix round: verification items S-2, S-3, S-13, N-2, N-5)",
+      "describes": "S-3: the extraction takes an auditor entry that is not a dev over-refusal entry (for example a hidden-bank entry)",
+      "file": "limits/overrefusal_checks.py",
+      "find": "        if (not isinstance(entry, dict) or entry.get(\"bank\") != \"dev\" or entry.get(\"kind\") != bank[\"kind\"]",
+      "replace": "        if (not isinstance(entry, dict)"
+    },
+    {
+      "id": "F18-extract-text-scan-removed",
+      "part": "F-fix (fix round: verification items S-2, S-3, S-13, N-2, N-5)",
+      "describes": "S-3: the source map's text scan removed",
+      "file": "limits/overrefusal_checks.py",
+      "find": "    lc.require_text_free(data, list(prompts.values()), SOURCE_MAP_OUTPUT)",
+      "replace": "    pass"
+    },
+    {
+      "id": "F18-dev-units-unpinned",
+      "part": "F-fix (fix round: verification items S-2, S-3, S-13, N-2, N-5)",
+      "describes": "S-13: the seven development units accepted without pins (the settings rule and the allow-list rule both relaxed)",
+      "edits": [
+        {
+          "file": "limits/overrefusal_checks.py",
+          "find": "            lc.hex64(spec.get(field), f\"settings: unit {name} {field} (every unit is pinned)\")",
+          "replace": "            if spec.get(field) is not None:\n                lc.hex64(spec[field], f\"settings: unit {name} {field}\")"
+        },
+        {
+          "file": "limits/overrefusal_checks.py",
+          "find": "\"require_pins\": True, \"identity\": {},",
+          "replace": "\"require_pins\": False, \"identity\": {},"
+        }
+      ]
+    },
+    {
+      "id": "F18-judge-before-every-unit-is-read",
+      "part": "F-fix (fix round: verification items S-2, S-3, S-13, N-2, N-5)",
+      "describes": "N-5: a unit judged as soon as it is read (a later unit's refusal comes after judge calls, so after the guard model loads)",
+      "file": "limits/overrefusal_checks.py",
+      "find": "        read.append((unit, answers, sealed))",
+      "replace": "        read.append((unit, answers, sealed))\n        check_one_unit(unit, answers, sealed, prompts, sources, settings, judge, decode, lexicon, [])"
+    },
+    {
+      "id": "F-two-df-simulated-dropped",
+      "part": "F-fix (fix round: verification items S-2, S-3, S-13, N-2, N-5)",
+      "describes": "N-2: the recorded simulation's failure rates left out of the 2-df record",
+      "file": "limits/limits_check.py",
+      "find": "            \"simulated_failure_rates_report_only\": dict(simulated)}",
+      "replace": "            }"
+    },
+    {
+      "id": "F-two-df-simulated-unchecked",
+      "part": "F-fix (fix round: verification items S-2, S-3, S-13, N-2, N-5)",
+      "describes": "N-2: a recorded-simulation block without its three rates accepted",
+      "file": "limits/limits_check.py",
+      "find": "            raise s1.Refusal(f\"settings: tau_l.two_df_simulated.{bound} is not the three rates in percent\")",
+      "replace": "            pass"
+    }
+  ]
+}
