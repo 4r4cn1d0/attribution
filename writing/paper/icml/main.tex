@@ -8,6 +8,15 @@
 % icml2027.bst) when it is released, and re-check the page limit, the Impact
 % Statement rule and the anonymity rules in the ICML 2027 call.
 %
+% Revision 6c (17 Oct 2026, from 07:56 UTC): the lead's rulings of 17 Oct.
+% Sec. 4.2 names HarmBench's validation classifier and its 512-token window
+% (the model ids in a new Appendix C.10; the TO BE FIXED sentence on the clip
+% is gone); Sec. 6 states Qwen2.5-1.5B's drop in one sentence (Sec. 4.1 points
+% to it); Sec. 3.2 and Appendix C.3 give the token-matched analysis and the
+% funded-tier token-matched random arms (marker removed). Main body 7.94 pages
+% to the Impact Statement (7.96 in revision 6b). Kept in sync with the
+% Markdown draft, revision 6c; Appendix B is regenerated from its notes.
+%
 % Revision 6b (17 Oct 2026, from 07:20 UTC): paper-side fixes from the two
 % mock reviews that do not depend on the lead's pending stage-1 rulings: why
 % Qwen2.5 is out (Sec. 4.1); the threat model (two actors in Sec. 3.1, an
@@ -398,9 +407,8 @@ finds risk rankings taken at initialization nearly uncorrelated with those
 after two epochs, and re-scores rows during training
 \citep{anonymous2026saba}. For
 attribution, \citet{pan2026detecting} find that removing rows flagged by
-gradient-based attribution gives a safer retrained model than removing rows
-flagged by WildGuard, from one training run per arm and with no compute
-reported. DATE-LM \citep{jiao2025datelm} finds that with safety-aligned
+gradient-based attribution gives a safer retrained model than removing
+WildGuard's picks, from one run per arm and with no compute reported. DATE-LM \citep{jiao2025datelm} finds that with safety-aligned
 look-alikes in the data, attribution's detection drops while LLM classifiers
 are largely unaffected; without them, the strongest classifiers detect better,
 yet removing attribution's picks gives the safer retrained model.
@@ -516,9 +524,10 @@ reference. We report the best repair within each actor's menu
 \label{sec:contrasts}
 
 Let $a_{\mathrm{R}}$ remove the same number of random rows as the removal
-repairs. Removals are matched in training tokens as well as rows, or a
-token-matched analysis is pre-registered beside the row-matched one
-\ph{[TO BE FIXED in the stage-1 pre-registration]}. A removal repair $m$ is compared with random removal,
+repairs. Removals are matched in rows; a token-matched analysis beside the
+row-matched one, and token-matched random removals for A1, L1 and H1 as
+secondary arms in the funded tier, are pre-registered
+(Appendix~\ref{app:stage1}). A removal repair $m$ is compared with random removal,
 $\Lambda_m = F(a_{\mathrm{R}}) - F(m)$: the safety it restores beyond removing
 the same amount of data at random. An addition repair is compared with no
 repair, $\Lambda_m = F(a_0) - F(m)$, and a selected or self-generated addition
@@ -605,11 +614,9 @@ the same rule (below) \ph{[PLANNED; funding-gated, fallback one family]}.
 Olmo-3-7B-Instruct \citep{olmo2025olmo3} is a third 7--8B model under the same
 rule \ph{[PLANNED; funding-gated; first 7--8B model cut]}. A headline check at
 the largest single-GPU size comes last \ph{[PLACEHOLDER: if resources allow]}.
-Qwen2.5 models \citep{qwen2024qwen25} are outside this study because their
-erosion saturated under recipe~B during development (above 55 pp); a
-same-recipe comparison of OLMo-2, Llama-3 and Qwen2.5 is reported in
-\ph{[CITE: concurrent submission, anonymized]}. Every model trains on one GPU,
-and every comparison stays on one GPU type.
+Qwen2.5 \citep{qwen2024qwen25} is outside this study
+(\S\ref{sec:discussion}). Every model trains on one GPU, and every comparison
+stays on one GPU type.
 
 \paragraph{Data.}
 Gate~B and stage~1 train on 4,800 rows of Dolly-15k \citep{conover2023dolly},
@@ -662,16 +669,15 @@ Llama rungs were accepted on a too-close bar (one seed's answers-end bar at
         only within this study. A rise in $U$ is refusal erosion as Qwen3Guard
         labels it. Gates and selectors read development banks only; final
         claims are confirmed on held-out prompts (\S\ref{sec:family}).
-  \item \textbf{Compliance and the claim rule.} HarmBench's classifier asks
+  \item \textbf{Compliance and the claim rule.} HarmBench's validation
+        classifier (512-token window; Appendix~\ref{app:harmbench}) asks
         whether an answer carries out the requested behaviour. A contrast in
         $U$ supports the wording \emph{harmful compliance as the HarmBench
         classifier defines it}, never harm alone, only if the classifier's
         contrast has the same sign and at least half the size and the
         classifier's erosion under that recipe is at least 20 pp; otherwise
-        the sentence says \emph{restored refusal}. Whether the classifier reads
-        each answer clipped to 512 tokens or in full (up to 2,048) is open
-        \ph{[TO BE FIXED in the stage-1 pre-registration]}. A blind human read during development rated about
-        a third of judge-unsafe answers as usable help
+        the sentence says \emph{restored refusal}. A blind human read during
+        development rated about a third of judge-unsafe answers as usable help
         (Appendix~\ref{app:blind-read}).
   \item \textbf{Also per arm:} hard-category $U$ (violent, illegal, sexual or
         self-harm categories); $U$ by answer-length band and a
@@ -932,14 +938,18 @@ reference outputs requested from the authors and the published-setting
 replication address this. Comparisons across removal and addition hold only at
 the pre-registered doses (600 rows removed, 48 added). An arm's cost depends on
 how much we evaluate as well as on training, and costs at 1B do not transfer
-to larger models, because a scorer's cost and a run's cost grow differently
-with model size.
+to larger models, because scoring and training costs scale differently.
 
 \paragraph{Scale and family.}
 The full comparison runs at 1B, with one benign dataset until Alpaca runs; at
 7--8B it is planned on both families and Olmo-3-7B-Instruct, funding-gated,
 with one family as the fallback and Olmo~3 the first model cut; larger sizes
-get a check only if resources allow. A family difference is claimed only above its MDE.
+get a check only if resources allow. Qwen2.5-1.5B was dropped during
+development when its erosion saturated under recipe~B at a learning rate of
+$10^{-4}$, before the per-family learning-rate rule existed, and was not
+retried at a lower rate in this study, so the Qwen runs of
+\ph{[CITE: concurrent submission, anonymized]} are the only later evidence. A
+family difference is claimed only above its MDE.
 
 \paragraph{The positive control and the secondary analysis.}
 The planted cause is artificial; finding it shows that a diagnostic \emph{can}
@@ -1058,7 +1068,7 @@ strata.
 \label{app:editors-notes}
 
 % Converted from the Markdown draft's "Editor's note (delete before
-% submission)" block, revision 6b, by a small converter (Markdown lists,
+% submission)" block, revision 6c, by a small converter (Markdown lists,
 % tables and inline markup to LaTeX; re-created in revision 6 because the
 % revision-5c converter was lost), so the wording follows the Markdown
 % exactly; inline symbols are set as math (revision 6b: a text '|' too).
@@ -1066,9 +1076,21 @@ strata.
 \begingroup\small
 
 \paragraph{What this is.}
-Revision 6b of the draft, written on 17 October 2026 from 07:20 UTC (clock
-checked with \texttt{date -u}), makes the paper-side fixes from the two mock
-reviews of revision 6
+Revision 6c of the draft, written on 17 October 2026 from 07:56 UTC (clock
+checked with \texttt{date -u}), applies the lead's rulings of 17 Oct (GI VI;
+FOCUS fcf79a2 and the stage-1 build addendum \S{}6 at 0294d1b) as the brief for
+revision 6c relays them: HarmBench's validation classifier and its 512-token
+window named (\S{}4.2; the model ids in a new Appendix C.10); Qwen2.5-1.5B's
+drop as one limitation sentence (\S{}6, with \S{}4.1 pointing to it); and the
+token-matched analysis with the token-matched random arms (\S{}3.2; Appendix
+C.3). It also records FC-1 as closed and the lead's two corrections. The main
+body now measures 7.94 pages to the Impact Statement (8.13 to the References
+heading; 7.96 and 8.15 in revision 6b); see ``What changed in revision 6c'',
+decisions 49--51 and conflicts 64--69. The rest of this paragraph describes
+revision 6b (its page counts are revision 6b's), updated where revision 6c
+changed the body. Revision 6b of the draft, written on 17 October 2026 from
+07:20 UTC (clock checked with \texttt{date -u}), makes the paper-side fixes from
+the two mock reviews of revision 6
 (\nolinkurl{writing/paper/2026-10-17-mock-review-A-methods.md}, statistics and
 design; \nolinkurl{writing/paper/2026-10-17-mock-review-B-safety.md}, LLM
 safety) that do not depend on the lead's pending stage-1 rulings, and records
@@ -1109,29 +1131,30 @@ as amended by the adopted FOCUS amendment (commit 4b37ec2, ``ADOPTED
 2). FOCUS.md wins on any conflict. \textbf{Nothing in the paper body is a
 result,} with five kinds of exception, each a design or status fact: the blind
 human read's rounded caveat (\S{}4.2, \S{}6, the Impact Statement; conflict 28);
-\S{}4.1's clause that Qwen2.5's erosion saturated under recipe B during
-development (revision 6b; conflict 54); the rungs chosen from development
-probes, with a one-line disclosure that both Llama rungs were accepted on a
-too-close bar (\S{}4.1); Gate B's status (the noise gate passed; the rankings
-are sealed) and the pre-registered consequence of the sealed rankings for Gate C
-(\S{}4.6, Appendix C.1--C.2), with no number and no category named; and
-\S{}4.9's disclosure that the stage-1 pre-registration is frozen after those
-Gate B values were seen. Gate B's category runs (wave 1), Gate C's reading,
-stage 1, the positive control and the Llama stage have not run. Development
-evidence appears only in these notes, except the blind read's counts in Appendix
-A. In the LaTeX build these notes are Appendix B and the design details are
-Appendix C; when the notes are deleted before submission, Appendix C becomes
-Appendix B (every reference to it is a \texttt{\textbackslash{}ref}). Menu
-sizes, the filter list and costs are marked [TO BE FINALISED]; the stage-1
-pre-registration, Safe LoRA's settings and Alpaca's preconditions are marked
-[NOT YET FIXED]; the release policy and the supplementary copies are marked [TO
-BE DECIDED]; the full 7--8B comparison is marked [PLANNED; funding-gated,
-fallback one family]; Olmo-3-7B-Instruct is marked [PLANNED; funding-gated;
-first 7--8B model cut] and the lower-learning-rate reference [PLANNED; to be
-pre-registered] (both revision 6b); token matching and, since revision 6b, nine
-more items are marked [TO BE FIXED in the stage-1 pre-registration] (the
-placeholder table lists them); the concurrent side paper is cited as [CITE:
-concurrent submission, anonymized]. The ICML LaTeX version
+\S{}6's sentence that Qwen2.5-1.5B's erosion saturated under recipe B during
+development (revision 6c; a \S{}4.1 clause in revision 6b; conflict 54); the
+rungs chosen from development probes, with a one-line disclosure that both Llama
+rungs were accepted on a too-close bar (\S{}4.1); Gate B's status (the noise
+gate passed; the rankings are sealed) and the pre-registered consequence of the
+sealed rankings for Gate C (\S{}4.6, Appendix C.1--C.2), with no number and no
+category named; and \S{}4.9's disclosure that the stage-1 pre-registration is
+frozen after those Gate B values were seen. Gate B's category runs (wave 1),
+Gate C's reading, stage 1, the positive control and the Llama stage have not
+run. Development evidence appears only in these notes, except the blind read's
+counts in Appendix A. In the LaTeX build these notes are Appendix B and the
+design details are Appendix C; when the notes are deleted before submission,
+Appendix C becomes Appendix B (every reference to it is a
+\texttt{\textbackslash{}ref}). Menu sizes, the filter list and costs are marked
+[TO BE FINALISED]; the stage-1 pre-registration, Safe LoRA's settings and
+Alpaca's preconditions are marked [NOT YET FIXED]; the release policy and the
+supplementary copies are marked [TO BE DECIDED]; the full 7--8B comparison is
+marked [PLANNED; funding-gated, fallback one family]; Olmo-3-7B-Instruct is
+marked [PLANNED; funding-gated; first 7--8B model cut] and the
+lower-learning-rate reference [PLANNED; to be pre-registered] (both revision
+6b); eight items are marked [TO BE FIXED in the stage-1 pre-registration] (the
+placeholder table lists them; revision 6b marked ten, and revision 6c settled
+two: token matching and the HarmBench input); the concurrent side paper is cited
+as [CITE: concurrent submission, anonymized]. The ICML LaTeX version
 (\nolinkurl{icml/main.tex}) carries the same text with a fetched
 \nolinkurl{references.bib}; the author-year citations below use the venue years
 and letters of those fetched entries (revision 6 re-lettered Zhang et al. 2026:
@@ -1147,7 +1170,13 @@ matching cannot be done (decision 26). \textbf{Revision 6b:} both mock reviews
 recommend ``Cost-Accounted'' (review A W8; review B W13, ``unless every removal
 arm is token-matched''); the user's decision of 17 Oct, relayed again in the
 brief for revision 6b, keeps ``Compute-Matched'' with token matching, so the
-title is unchanged. Alternatives:
+title is unchanged. \textbf{Revision 6c (FOCUS fcf79a2, UW-14; the user in the
+lead's chat, 17 Oct 07:21 UTC):} the title keeps ``Compute-Matched''. The
+token-axis analysis is the token-matched analysis beside the row-matched one,
+and token-matched random arms ($R_{\mathrm{tok}}$) for A1, L1 and H1 are
+pre-registered secondary arms in the funded tier, with the analysis alone as
+their fallback. UW-14 names no title fallback; alternative 5 stays on the list.
+Alternatives:
 
 \begin{enumerate}
   \item \emph{Repairing Safety After Benign Fine-Tuning: A Compute-Matched
@@ -1168,8 +1197,138 @@ title is unchanged. Alternatives:
   \item \emph{Repairing Safety After Benign Fine-Tuning: A Cost-Accounted
         Comparison of Data Repairs} (revision 6; the literature sweep's
         proposal; the fallback title under decision 26, used only if token
-        matching cannot be done).
+        matching cannot be done; revision 6c: under UW-14 the token-matched
+        analysis runs in any case).
 \end{enumerate}
+
+\subsection{What changed in revision 6c (17 Oct, from 07:56 UTC)}
+
+\begin{itemize}
+  \item \textbf{Sources.} The brief for revision 6c, which relays the lead's
+        rulings (GI VI, 17 Oct) in five items; FOCUS.md on
+        \nolinkurl{origin/stageb-costs-and-recovery-safeguards-20261003}
+        (fetched 17 Oct at 07:56 UTC; the branch head is 0432940, revision 6b;
+        FOCUS last changed in fcf79a2), read for the user's and the lead's
+        decisions of 17 Oct 07:21 UTC and searched for the 7 Oct Qwen entries,
+        Olmo 3, option B and the wave-1 reserve; the stage-1 build addendum
+        \S{}6 (98ff104, time corrected in 0294d1b);
+        \nolinkurl{research/experiments/2026-10-17-stage1-preregistration/};
+        HarmBench's \nolinkurl{evaluate_completions.py}. Details in ``Sources
+        read (revision 6c)''.
+  \item \textbf{1. The HarmBench classifier (\S{}4.2; new Appendix C.10; the
+        lead's ruling 1).} \S{}4.2's ``HarmBench's classifier asks whether
+        \ldots{}'' became ``HarmBench's validation classifier (512-token window;
+        Appendix C.10) asks whether \ldots{}''. The sentence ``Whether the
+        classifier reads each answer clipped to 512 tokens or in full (up to
+        2,048) is open [TO BE FIXED in the stage-1 pre-registration]'' is gone:
+        the clip is settled. The new Appendix C.10 gives the model id
+        (\nolinkurl{cais/HarmBench-Mistral-7b-val-cls}), HarmBench's classifier
+        prompt and the clip to the first 512 classifier tokens ``as HarmBench's
+        own evaluation script does'', and one sentence that is not a decision:
+        ``HarmBench's test classifier,
+        \nolinkurl{cais/HarmBench-Llama-2-13b-cls}, is a candidate sensitivity
+        check.'' The script fact was checked on the script itself (CITE-CHECK
+        36; decision 40; conflicts 55, 56, 68).
+  \item \textbf{2. Why Qwen is out (\S{}6, \S{}4.1; the lead's ruling 2).} \S{}6
+        ``Scale and family'' gains one plain sentence: ``Qwen2.5-1.5B was
+        dropped during development when its erosion saturated under recipe B at
+        a learning rate of $10^{-4}$, before the per-family learning-rate rule
+        existed, and was not retried at a lower rate in this study, so the Qwen
+        runs of [CITE: concurrent submission, anonymized] are the only later
+        evidence.'' The body gives no calendar date. \S{}4.1's clause became
+        ``Qwen2.5 (Qwen et al., 2024) is outside this study (\S{}6)'', so the
+        reason is stated once, in \S{}6; \S{}4.1's citation of the same-recipe
+        comparison of OLMo-2, Llama-3 and Qwen2.5 is gone (\S{}4.1 keeps its two
+        other citations of the concurrent submission). Sources: FOCUS 7 Oct
+        20:58 UTC (``Llama and OLMo only''; the confirming Qwen seeds and ``a
+        Qwen backup at Qi's LR 2e-5 \ldots{} cancelled before launch''); FOCUS's
+        screening list (Qwen 1.5B recipe B +75.2~pp); the per-family rule of 9
+        Oct 09:29 UTC (risk 56; conflicts 54, 69).
+  \item \textbf{3. Token matching (\S{}3.2; Appendix C.3; the lead's ruling 3;
+        UW-14).} \S{}3.2's ``Removals are matched in training tokens as well as
+        rows, or a token-matched analysis is pre-registered beside the
+        row-matched one [TO BE FIXED in the stage-1 pre-registration]'' became
+        ``Removals are matched in rows; a token-matched analysis beside the
+        row-matched one, and token-matched random removals for A1, L1 and H1 as
+        secondary arms in the funded tier, are pre-registered (Appendix C.3)''.
+        The marker is gone: FOCUS's UW-14 and addendum \S{}6 item 5 settle both
+        parts, and the sentence states no more than they do (no token axis, no
+        test, no label). Appendix C.3 gains a paragraph, ``Token matching'':
+        every removal and addition arm reports the tokens it removes or adds;
+        the analysis is report-only and runs in any case, placing each removal
+        on the random dose curve (600, 1,200 and 2,400 rows removed) along a
+        token axis beside the row axis; the token-matched random removals run at
+        three seeds each in the funded tier, with the analysis alone as the
+        fallback (decisions 26, 51; risks 30, 51; conflict 67).
+  \item \textbf{4. Kept unchanged (the lead's ruling 4).} The abstract's ``six
+        pre-registered repairs''; \S{}4.6's ``about 10--12~pp''; \S{}4.4's seeds
+        of the post-hoc references (``three, or all six $a_0$ seeds'', [TO BE
+        FIXED in the stage-1 pre-registration]). They wait for the stage-1
+        freeze.
+  \item \textbf{5. Decisions recorded (the lead's ruling 5).} FC-1 is closed:
+        the user confirmed the ambitious-default rule in the lead's chat and
+        took the recommended defaults on all 21 wave-1 stage-1 decisions (FOCUS
+        fcf79a2, 07:21 UTC; decisions 26, 28; conflict 53 resolved). ``Add OLMo
+        3 7B'' awaits the user's confirmation in the lead's chat, with the free
+        (USD 0) checks running (decision 48 is no longer RESOLVED; the body's
+        [PLANNED; funding-gated; first 7--8B model cut] marker is unchanged).
+        The lead's two corrections to FAQ's mapping of the rule (FOCUS fcf79a2):
+        Llama-3.1-8B's third Gate A seed waits for money beyond the wave-1
+        reserve (decision 50); $R_{\mathrm{tok}}$ is the ambitious arm, with the
+        token-axis analysis as its fallback (item 3).
+  \item \textbf{Trims to hold the length (meaning unchanged).} \S{}2: ``than
+        removing rows flagged by WildGuard, from one training run per arm and
+        with no compute reported'' $\to$ ``than removing WildGuard's picks, from
+        one run per arm and with no compute reported''. \S{}6 ``Baselines, doses
+        and cost'': ``because a scorer's cost and a run's cost grow differently
+        with model size'' $\to$ ``because scoring and training costs scale
+        differently''. \S{}4.1: ``Qwen2.5 models \ldots{} are outside'' $\to$
+        ``Qwen2.5 \ldots{} is outside''.
+  \item \textbf{Length.} Before: 7.96 pages to the Impact Statement heading
+        (8.15 to References), revision 6b, re-measured on its PDF with the same
+        script. With the rulings applied and no trims: 8.00 (the heading moved
+        to the top of page 9). After the three trims: 7.94 pages (8.13 to
+        References); the heading sits about two lines higher on page 8 than in
+        revision 6b.
+  \item \textbf{Not changed (outside this brief; for the lead).} The stage-1
+        decisions of 17 Oct settle more of the body's [TO BE FIXED in the
+        stage-1 pre-registration] items than the brief applies: the analysis
+        model (UW-02; LW-01: HB-C, paired by seed), the closed testing family
+        (UW-04: a closed graphical family of 24 nodes), the baseline of
+        \emph{worse}'s over-refusal test (UW-05: rule R1.3), one primary
+        $\tau_{O}$ (UW-06: 5~pp) and the label order (UW-08 (a): \emph{worse}
+        first). The seed layout (UW-03, D1: $a_0$ and $a_{\mathrm{R}}$ at seeds
+        1101--1107) differs from Table 1 and Appendix C.3 (random removal at
+        eight seeds, no repair at six), and the over-refusal bank may grow
+        (UW-07a). The body keeps its revision-6b text on all of these (decision
+        49; conflicts 64--66).
+  \item \textbf{Editor's notes.} This list; ``What this is'' and ``Title''; the
+        placeholder table (\S{}3.2, \S{}4.1, \S{}4.2, \S{}4.4, \S{}6); decisions
+        26, 28, 32, 40 and 48 updated and 49--51 added; risks 30, 34, 51, 56 and
+        59 updated; CITE-CHECK 36; the development evidence's HarmBench item and
+        a status line at revision 6c; conflicts 52--56 updated and 64--69 added;
+        ``Sources read (revision 6c)''. The LaTeX Appendix B is regenerated from
+        these notes with revision 6b's converter, which reproduced revision 6b's
+        Appendix B byte for byte from revision 6b's notes before any edit (its
+        header comment now says revision 6c).
+  \item \textbf{Pipelines.} Revision 6b's scripts, reused in a new scratch
+        folder \nolinkurl{rev6c/}: \nolinkurl{body_pages.py},
+        \nolinkurl{short_lines.py} and \nolinkurl{notes_md_to_tex.py} unchanged
+        apart from the converter's header comment; \nolinkurl{build.sh} takes
+        the build folder as an argument; \nolinkurl{splice_notes.py} takes the
+        draft and the target file and reports whether Appendix B changed;
+        \nolinkurl{paper_to_pdf.py} with local KaTeX, its banner set to revision
+        6c. One script applied the body edits to the Markdown and the LaTeX,
+        each an exact single-match replacement, so the two files carry the same
+        words.
+  \item \textbf{Anonymity.} The body, Appendices A and C and the bibliography
+        hold no author name, institution, repository, branch, account, commit
+        hash or grant; Appendix C.10's two model ids are public Hugging Face ids
+        of HarmBench's authors; the body gives no calendar date for the Qwen
+        drop; the PDF metadata says ``Anonymous Authors''. No BibTeX entry was
+        added. These notes (Appendix B) are not anonymous and must be deleted
+        before submission.
+\end{itemize}
 
 \subsection{What changed in revision 6b (17 Oct, from 07:20 UTC)}
 
@@ -2139,14 +2298,15 @@ main again) and renames G+Qi to B+Qi.}
   \S{}1 & [FIGURE 1] & the repair-comparison figure (restoration with 90\%
       intervals and the $\pm$5~pp band against over-refusal and cost, with the
       adapter-scaling curve) \\
-  \S{}3.2 & [TO BE FIXED in the stage-1 pre-registration], five times: token
-      matching or a token-matched analysis; the analysis model, including
+  \S{}3.2 & [TO BE FIXED in the stage-1 pre-registration], four times (revision
+      6c: token matching is settled, decision 26): the analysis model, including
       pairing by seed; feasibility as a one-sided non-inferiority bound on the
       full XSTest and OR-Bench-Hard banks; the baseline of \emph{worse}'s
       over-refusal test; which label wins when \emph{worse} holds with another
       label, and a label for a significant difference below $\delta$ (revision
       6b; this replaces revision 6's [TO BE FINALISED] on the label order) & the
-      stage-1 pre-registration (decisions 12, 26, 35 and 38) \\
+      stage-1 pre-registration (decisions 12, 35 and 38; decision 49 lists what
+      FOCUS fcf79a2 already settles) \\
   \S{}3 & the constants $\delta$ (5~pp, given), $\delta_{B}$ (8~pp, given),
       $\tau_{O}$ grid (given), $\tau_{L}$ (rule given; fixed from the three Gate
       A a0 seeds, stage-1 build L16), B, the selector rules per (M, B), $k_{d}$,
@@ -2154,18 +2314,19 @@ main again) and renames G+Qi to B+Qi.}
       spec (committed before Gate B's category runs) \\
   \S{}4.1 & [PLANNED; funding-gated, fallback one family] (the full 7--8B
       comparison); [PLANNED; funding-gated; first 7--8B model cut]
-      (Olmo-3-7B-Instruct; revision 6b, the user's decision of 17 Oct);
-      [PLACEHOLDER: if resources allow] (the headline check); [CITE: concurrent
-      submission, anonymized] (twice); [NOT YET FIXED: Alpaca's units and
-      learning rate] & funding, under option B with option C as the fallback
-      (decision 28); funding; the citation form at submission (decision 32); the
-      Alpaca design note and the user's extension of the learning-rate rule to
-      datasets (decision 20). \textbf{Filled in revision 6:} the rungs (OLMo-2
-      1e-4 at 1B and 7B; Llama 5e-5 at 1B and 8B) \\
-  \S{}4.2 & [TO BE FIXED in the stage-1 pre-registration], twice: the HarmBench
-      classifier's input (a 512-token clip or the full answer); StrongREJECT's
-      evaluator and a prefilling probe as secondary endpoints (revision 6b) &
-      the stage-1 pre-registration (decision 40; conflict 55) \\
+      (Olmo-3-7B-Instruct; revision 6b, as relayed; revision 6c: awaiting the
+      user's confirmation in the lead's chat, decision 48); [PLACEHOLDER: if
+      resources allow] (the headline check); [CITE: concurrent submission,
+      anonymized] (twice); [NOT YET FIXED: Alpaca's units and learning rate] &
+      funding, under option B with option C as the fallback (decision 28);
+      funding; the citation form at submission (decision 32); the Alpaca design
+      note and the user's extension of the learning-rate rule to datasets
+      (decision 20). \textbf{Filled in revision 6:} the rungs (OLMo-2 1e-4 at 1B
+      and 7B; Llama 5e-5 at 1B and 8B) \\
+  \S{}4.2 & [TO BE FIXED in the stage-1 pre-registration], once: StrongREJECT's
+      evaluator and a prefilling probe as secondary endpoints (revision 6b).
+      Revision 6c: the HarmBench input is settled (the 512-token window;
+      Appendix C.10) & the stage-1 pre-registration (decision 40) \\
   \S{}4.3 & [PLACEHOLDER: final MDE]; [TO BE FINALISED] secondary arms (listed
       in Appendix C.3); [TO BE FIXED in the stage-1 pre-registration] the two
       candidate data-only additions (revision 6b) & Gate B's pooled noise; the
@@ -2175,7 +2336,8 @@ main again) and renames G+Qi to B+Qi.}
   \S{}4.4 & [NOT YET FIXED] Safe LoRA's base model, layer rule and threshold;
       [PLANNED; to be pre-registered] the lower-learning-rate reference; [TO BE
       FIXED in the stage-1 pre-registration] the post-hoc references' seeds and
-      the test of ``beats the references'' (both revision 6b) & the stage-1
+      the test of ``beats the references'' (both revision 6b); [CITE: concurrent
+      submission, anonymized] (the lower rungs; revision 6b) & the stage-1
       pre-registration, after the lead reads the paper in full (decision 19) \\
   \S{}4.5, Appendix C.5 & [TO BE FINALISED] menu sizes; [PLACEHOLDER: runs only
       if funded] & the plan's review; funding \\
@@ -2190,7 +2352,8 @@ main again) and renames G+Qi to B+Qi.}
       [CITE: concurrent submission, anonymized] & the bound recorded before Gate
       B (P3 in the Gate B pre-registration); decision 32 \\
   \S{}5, \S{}7 & placeholders & results (decision 33: the page budget) \\
-  \S{}6 & [CITE: concurrent submission, anonymized] & decision 32 \\
+  \S{}6 & [CITE: concurrent submission, anonymized], twice (the rank-16 check;
+      since revision 6c, the Qwen runs) & decision 32 \\
   Impact Statement & [TO BE DECIDED: what is released] & decision 31 \\
   Appendix A, Appendix C.8 & [CITE: concurrent submission, anonymized] &
       decisions 30 and 32 \\
@@ -2486,6 +2649,19 @@ text); (4) the secondary arms and their order.
       response gives useful information to forbidden prompts''. Review B's
       figures (a fine-tuned Gemma-2B evaluator; Spearman 0.900 against 0.819 for
       the HarmBench classifier) were not checked here; the body gives none. \\
+  36 & HarmBench's validation and test classifiers; the 512-token clip &
+      \S{}4.2, Appendix C.10 & Revision 6c. The clip: HarmBench's
+      \nolinkurl{evaluate_completions.py} (raw file on GitHub, main branch,
+      fetched 17 Oct about 08:00 UTC) defines \nolinkurl{--num_tokens} with
+      default 512 (``The number of tokens to evaluate''), encodes each
+      generation with the tokenizer of \nolinkurl{--cls_path} at
+      \texttt{max\_length=args.num\_tokens, truncation=True} and decodes the
+      clipped text before judging; its default \nolinkurl{--cls_path} is
+      \nolinkurl{cais/HarmBench-Llama-2-13b-cls}. The names ``validation
+      classifier'' (Mistral-7b-val-cls) and ``test classifier''
+      (Llama-2-13b-cls) follow the brief and the model ids; check them, and
+      which classifier the main tables use, against the HarmBench paper (Mazeika
+      et al., 2024) before submission. \\
 \end{longtable}
 
 PDF- or full-text-checked in the repo, and used as such: Qi et al. (2024), He et
@@ -2805,7 +2981,15 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         compute, removals 33 steps against additions 38; review B W13). Review A
         corrects itself with these notes' ledger: charging every arm 1 FRE
         under-charges the addition arms by only about 1\%, so that sub-point is
-        negligible; the title concern stands.
+        negligible; the title concern stands. \textbf{Revision 6c (FOCUS
+        fcf79a2, UW-14; addendum \S{}6 item 5; the lead's ruling 3): resolved in
+        the lead's chat.} The title keeps ``Compute-Matched''; the token-axis
+        analysis (addendum \S{}5 item 1) is the token-matched analysis beside
+        the row-matched one, and token-matched random arms $R_{\mathrm{tok}}$
+        for A1, L1 and H1 are pre-registered secondary arms in the funded tier
+        (three seeds each; about USD 19 with contingency, an estimate), with the
+        analysis alone as the fallback. \S{}3.2 says so without a marker, and
+        Appendix C.3 gives a paragraph. UW-14 names no title fallback.
   \item \textbf{Candidate additional reference arms (the user's rule of 17 Oct;
         notes only; not in the body's list of five references).} (a) The
         opening-hold loss of a concurrent ICLR 2027 submission (``A Harmful
@@ -2856,6 +3040,12 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         (decision 39). Review B (\S{}8.1, W1): the same arithmetic; either a
         wider SESOI at 7--8B stated in the abstract, or about four times the
         seeds on fewer contrasts (P1, P4 and the best reference).
+        \textbf{Revision 6c:} FC-1 is closed (the user confirmed the
+        ambitious-default rule in the lead's chat; FOCUS fcf79a2), so the rule
+        no longer rests on a relay. FOCUS does not name option B or C; the
+        option is still recorded only as relayed. UW-21 keeps OLMo-2-1B's P1--P6
+        as the confirmatory primary family under any re-plan option, which
+        matches the body's stage-1 framing (conflict 52).
   \item \textbf{Gate C's format clause (\S{}4.6).} The brief asked for the
         ATTR\_BETTER/REP\_BETTER consequence; revision 6 also states the
         pre-registered form sentence, because the pre-registration requires the
@@ -2887,6 +3077,9 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         and check the side paper's ARR status then (ARR commitment deadline
         about 23 Dec 2026; FOCUS 15 Oct records sync). The anonymized copies of
         the pre-registrations (Appendix C's [TO BE DECIDED]) go the same way.
+        \textbf{Revision 6c:} the placeholder now sits in \S{}4.1 (twice),
+        \S{}4.4, \S{}4.10, \S{}6 (twice: the rank-16 check and the Qwen runs),
+        Appendix A and Appendix C.8.
   \item \textbf{The page budget for results.} The body is 7.96 pages with \S{}5
         and \S{}7 as placeholders. Results (Gate A, Table 2, Figure 1's data,
         Gates B and C) need about a page. Options: move more design to Appendix
@@ -2976,6 +3169,15 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         full answer, with its agreement with Qwen3Guard per source bank. FOCUS 8
         Oct 10:14 UTC records that the development check already used the
         classifier's ``512-token generation truncation'' (conflict 55).
+        \textbf{Revision 6c (the lead's ruling 1):} the HarmBench input is
+        settled: the validation classifier, with each answer clipped to 512
+        classifier tokens, as HarmBench's evaluation script does (CITE-CHECK
+        36). \S{}4.2 names it, Appendix C.10 gives the model id, and the [TO BE
+        FIXED] sentence is gone. The Llama-2-13b test classifier is a candidate
+        sensitivity check only (Appendix C.10). Still open in \S{}4.2:
+        StrongREJECT's evaluator and a prefilling probe as secondary endpoints
+        [TO BE FIXED in the stage-1 pre-registration]; per-bank agreement with
+        Qwen3Guard is not in the body.
   \item \textbf{Added data-only repairs and their dose (review B W5, partly new;
         \S{}4.3 [TO BE FIXED in the stage-1 pre-registration]).} Two addition
         arms at the 48-row budget and six seeds: Qi et al.'s augmentation (a
@@ -3044,12 +3246,48 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         decision-tree figure of every fork (who, when, what was visible); extend
         the Gate B simulator to the whole stage-1 label pipeline under named
         truth scenarios. Not in the body.
-  \item \textbf{RESOLVED (the user, 17 Oct, relayed by the coordinator's brief
-        for revision 6b): Olmo-3-7B-Instruct is added as a third 7--8B model},
-        [PLANNED; funding-gated; first 7--8B model cut] (\S{}4.1, \S{}6; review
-        B W1 and \S{}5.4). Its learning rate follows the same per-family rule;
-        no probe has run; the first 7--8B model to cut if funds are short. FOCUS
-        (head 6368d66) does not record it yet (conflict 53).
+  \item \textbf{AWAITING the user's confirmation in the lead's chat (revision
+        6c; was RESOLVED as relayed in revision 6b): Olmo-3-7B-Instruct as a
+        third 7--8B model}, [PLANNED; funding-gated; first 7--8B model cut]
+        (\S{}4.1, \S{}6; review B W1 and \S{}5.4). Its learning rate follows the
+        same per-family rule; no probe has run; the first 7--8B model to cut if
+        funds are short. FOCUS (head 6368d66) does not record it yet (conflict
+        53). \textbf{Revision 6c:} the lead reports, through the brief for
+        revision 6c, that ``Add OLMo 3 7B'' awaits the user's confirmation in
+        the lead's chat and that the free (USD 0) checks are running; FOCUS
+        (last changed in fcf79a2) has no Olmo 3 entry, so revision 6b's
+        ``RESOLVED'' rested on the coordinator's relay alone. The body keeps the
+        [PLANNED; funding-gated; first 7--8B model cut] marker (\S{}4.1, \S{}6).
+        If the user declines, remove the \S{}4.1 sentence, the \S{}6 clause and
+        the \texttt{olmo2025olmo3} entry.
+  \item \textbf{The stage-1 decisions that the body does not yet apply (revision
+        6c; for the lead).} FOCUS fcf79a2 settles, at the recommended defaults:
+        the analysis model (UW-02; LW-01: HB-C, paired by seed with one seed
+        shift per design cluster; \S{}3.2 still marks it [TO BE FIXED]); the
+        closed graphical testing family of 24 nodes (UW-04; \S{}4.9 still marks
+        it); rule R1.3 for \emph{worse} on over-refusal, against $\theta$0 at
+        the primary 5~pp bar and significantly above the comparator (UW-05;
+        \S{}3.2 still marks the baseline); one primary over-refusal bar of 5~pp,
+        with 2 and 10~pp reported (UW-06; \S{}3.2 still reports the grid only);
+        the label order (a), \emph{worse} first with the full row printed
+        (UW-08; \S{}3.2 still marks it); the seed layout D1, $a_0$ and
+        $a_{\mathrm{R}}$ at seeds 1101--1107 and the method arms at 1102--1107
+        (UW-03; Table 1 and Appendix C.3 still say random removal at eight seeds
+        and no repair at six); and PHTest prompts in the primary over-refusal
+        bank if REQ-19's MDE check fires (UW-07a; \S{}4.2 says 100 prompts). The
+        brief for revision 6c applies only UW-14 and the HarmBench clip, and
+        keeps three markers for the stage-1 freeze (ruling 4). Decide whether
+        the body states these now or at the freeze (conflicts 64--66).
+  \item \textbf{Llama-3.1-8B's third Gate A seed (the lead's correction; FOCUS
+        fcf79a2).} It runs only once money beyond the wave-1 reserve is in hand.
+        The body does not give the seed count at 8B (\S{}4.1 says only that the
+        rung was accepted on ``the window's upper edge at 8B''), so no body
+        change.
+  \item \textbf{The token axis (the W1 builder extract, W1-02 item 4).} Its
+        default axis is total row tokens, with target tokens as a sensitivity
+        and rows beside them, and the lead records the axis reading in the W1
+        record (REQ-21 (h)). The body and Appendix C.3 say only ``a token
+        axis''; state the axis once the W1 record fixes it (conflict 67).
 \end{enumerate}
 
 \subsection{Risks a reviewer will raise (sources in brackets)}
@@ -3291,7 +3529,11 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         analysis beside the row-matched one (\S{}3.2, [TO BE FIXED in the
         stage-1 pre-registration]); report tokens removed and optimizer steps
         per removal arm (the sweep's design action 1); if token matching cannot
-        be done, use the fallback title.
+        be done, use the fallback title. \textbf{Revision 6c:} answered by UW-14
+        (\S{}3.2; Appendix C.3): a token-matched analysis beside the row-matched
+        one in any case, and token-matched random removals for A1, L1 and H1 in
+        the funded tier. The arms are still cost-accounted, not matched in
+        GPU-seconds; the title rests on the token matching (decision 26).
   \item \textbf{Scoring once} (SABA, cited in \S{}2). Risk scores taken at the
         start of training may rank rows differently from later. Our LARF-style
         arm scores on the untuned model; A1 scores at two checkpoints of the
@@ -3314,7 +3556,9 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
   \item \textbf{``Pre-registered'' before the freeze (review A W1, new part).}
         The abstract says ``six pre-registered repairs'' while the stage-1
         pre-registration is [NOT YET FIXED] and ten items are [TO BE FIXED].
-        Body: not changed (decision 45).
+        Body: not changed (decision 45). \textbf{Revision 6c:} eight items are
+        [TO BE FIXED] now (token matching and the HarmBench input are settled);
+        the abstract is unchanged (the lead's ruling 4).
   \item \textbf{The analysis model (review A W2, new).} Unpaired,
         pooled-variance contrasts against a paired Gate B; heteroscedastic arms;
         prompts as a crossed factor. Body: \S{}3.2 [TO BE FIXED in the stage-1
@@ -3385,6 +3629,10 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         seeds under token-mean loss; tokens removed and first-five-token loss
         share per arm. Body: not changed (decision 11; token matching stays [TO
         BE FIXED in the stage-1 pre-registration], decision 26).
+        \textbf{Revision 6c:} token matching is settled (\S{}3.2; Appendix C.3
+        reports tokens per arm), and the funded-tier $R_{\mathrm{tok}}$ arm for
+        H1 measures the low end of the token axis that the analysis alone must
+        interpolate (the builder extract's hazard 5).
   \item \textbf{Stronger repairs and literature (review B W5, new part).} Body:
         \S{}4.3 [TO BE FIXED in the stage-1 pre-registration] for Qi et al.'s
         augmentation and the one-shot example as data arms; \S{}2 cites Safe
@@ -3412,6 +3660,11 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         cancelled before launch, FOCUS 20:58 UTC), so a reviewer may ask why the
         matched-dose rule was not applied to Qwen. Answer: the user chose
         ``Llama/OLMo only'' before that rule; say so if asked (conflict 54).
+        \textbf{Revision 6c (the lead's ruling 2):} \S{}6 now says it in one
+        plain sentence (dropped during development at $10^{-4}$, before the
+        per-family rule existed, not retried at a lower rate; the concurrent
+        submission's Qwen runs are the only later evidence), and \S{}4.1 points
+        to \S{}6.
   \item \textbf{Coined terms (review B W13, new part).} Body: not changed
         (decision 45).
   \item \textbf{Dataset realism (review B W14, new part).} Body: not changed
@@ -3421,7 +3674,12 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         (512-token clip or full answer). The development numbers already used
         the 512-token clip (FOCUS 8 Oct 10:14 UTC), so the reviewer's premise
         holds only if stage 1 reads full answers; per-bank agreement is not in
-        the body (decision 40; conflict 55).
+        the body (decision 40; conflict 55). \textbf{Revision 6c:} the clip is
+        settled (\S{}4.2; Appendix C.10), so the classifier reads the first 512
+        classifier tokens of each answer, as in HarmBench's own script. A
+        reviewer may still ask about harmful content after the window; the
+        stage-1 DRAFT reports the share of HarmBench inputs cut at 512 tokens
+        (its secondary list), which the body does not mention.
   \item \textbf{The reviewer's Q1 (review B \S{}8.2).} The untuned U per family
         (3.2\% OLMo-2-1B, 13.8\% Llama-3.2-1B) and recipe G's partial erosion on
         OLMo-2-1B (+28.8~pp, three seeds) would pre-empt ``an artifact of recipe
@@ -3851,7 +4109,25 @@ reading).
         512-token classifier clip'' and ``the 2,048-token input refusal'' (read
         by search only). So the development $E_{\mathrm{HB}}$ values come from
         clipped answers (the pod runs reproduce the Mac pipeline by a parity
-        check; conflict 55).
+        check; conflict 55). \textbf{Revision 6c:} HarmBench's
+        \nolinkurl{evaluate_completions.py} clips each generation to
+        \nolinkurl{--num_tokens} (default 512) tokens of the classifier's own
+        tokenizer before judging, and its default classifier is the Llama-2-13b
+        one (CITE-CHECK 36). FOCUS records the same 512-token clip for the
+        development pipeline with the validation classifier; whether that
+        pipeline counts tokens with the classifier's tokenizer was not checked
+        here.
+  \item \textbf{Status at revision 6c (FOCUS last changed in fcf79a2; the branch
+        head is 0432940; fetched 17 Oct at 07:56 UTC).} Newest entries (17 Oct
+        07:21 UTC): the user's decisions in the lead's chat (UW-01 confirmed;
+        UW-02 to UW-21 at the recommended defaults; the user's words quoted in
+        FOCUS) and the lead's decisions LW-01 to LW-35 (HB-C primary; $\tau_{L}$
+        against $a_0$; REQ-12 and REQ-13 built), with the lead's two corrections
+        to FAQ's mapping of the rule (Llama-8B's third Gate A seed after money
+        beyond the wave-1 reserve; token-matched random arms with the token-axis
+        analysis as their fallback). The stage-1 build addendum \S{}6 (07:22
+        UTC; 98ff104, time corrected in 0294d1b) sets every builder switch from
+        them. FOCUS has no Olmo 3 entry.
   \item \textbf{Status at revision 6b (FOCUS to head 6368d66, fetched 17 Oct
         about 07:25 UTC).} Newest entries: the stage-1 T1 bundle committed
         (9525005; recorded 02:42 UTC on 17 Oct): REQ-2, REQ-14's A1 removal
@@ -4300,7 +4576,10 @@ reading).
         comparison at 7--8B; the body still calls OLMo-2-1B the stage-1 model
         and lists the testing order of revision 5. The coordinator asked only
         for the 7--8B tier's description; the rest of option B is for the lead
-        and the user before the stage-1 pre-registration.
+        and the user before the stage-1 pre-registration. \textbf{Revision 6c:}
+        UW-21 (FOCUS fcf79a2) keeps OLMo-2-1B's P1--P6 as the confirmatory
+        primary family under any re-plan option, which matches the body's
+        stage-1 framing.
 \end{enumerate}
 
 \begin{enumerate}
@@ -4313,7 +4592,13 @@ reading).
         items that rely on the ``ambitious default'' rule [USER-CONFIRM]: ``The
         lead's chat has not confirmed this rule'' (its checklist item FC-1).
         Resolution: applied as relayed and recorded as relayed (decisions 26,
-        28, 48); the lead records them in FOCUS.
+        28, 48); the lead records them in FOCUS. \textbf{Revision 6c: resolved.}
+        FOCUS fcf79a2 records the user's confirmation of the rule in the lead's
+        chat (07:21 UTC; FC-1 closed) and UW-14 (the title and token matching).
+        Olmo 3 is not among them: the lead reports it as awaiting the user's
+        confirmation (decision 48). Option B with C as the fallback is still
+        recorded only as relayed; UW-21 keeps OLMo-2-1B's P1--P6 confirmatory
+        under any re-plan option (conflict 52).
   \item \textbf{The Qwen clause against the overlap rule.} That Qwen2.5
         saturates under recipe B is part of the concurrent submission's
         same-recipe family contrast. The brief asks for one neutral clause with
@@ -4324,21 +4609,33 @@ reading).
         of Qwen2.5-7B (4.8\% $\to$ 87.0\%), the frozen bars' ``E $>$ 55 is
         saturated, like Qwen'' (19:14 UTC), and the user's ``Llama/OLMo only''
         (20:58 UTC). Not stated in the body: Qwen was dropped before the
-        per-family rule existed (risk 56).
+        per-family rule existed (risk 56). \textbf{Revision 6c:} the reason now
+        sits in \S{}6 as one sentence (the lead's ruling 2), with the model
+        (Qwen2.5-1.5B), the recipe and the rate but no erosion number and no
+        date; \S{}4.1 points to \S{}6, and ``What this is'' moves the exception
+        from \S{}4.1 to \S{}6. The body now says that Qwen was dropped before
+        the per-family rule existed.
   \item \textbf{The HarmBench input (review B W15) against FOCUS.} Review B says
         the claim rule applies the classifier to answers of up to 2,048 tokens.
         FOCUS 8 Oct 10:14 UTC records the 512-token clip for the development
         check, and the stage-1 DRAFT keeps it. The brief asks to mark the length
         [TO BE FIXED in the stage-1 pre-registration]; \S{}4.2 does so neutrally
         (``clipped to 512 tokens or in full (up to 2,048)''). If the lead keeps
-        the clip, the sentence can state it as design.
+        the clip, the sentence can state it as design. \textbf{Revision 6c:
+        resolved} by the lead's ruling 1: the clip is design (\S{}4.2; Appendix
+        C.10), as HarmBench's evaluation script does.
   \item \textbf{Which HarmBench classifier.} FOCUS names
         \nolinkurl{cais/HarmBench-Mistral-7b-val-cls} (the validation
         classifier); review B cites \nolinkurl{cais/HarmBench-Llama-2-13b-cls}
         as ``the official classifier for text behaviors in HarmBench''. The body
         says only ``HarmBench's classifier''. Name the model in Appendix C or
         the claim rule before submission, and check which one HarmBench's paper
-        reports (not checked here).
+        reports (not checked here). \textbf{Revision 6c:} the body names the
+        validation classifier (\S{}4.2), and Appendix C.10 gives both ids; the
+        test classifier is a candidate sensitivity check only. HarmBench's
+        evaluation script defaults to the Llama-2-13b classifier; which
+        classifier the HarmBench paper's main tables use was not checked here
+        (CITE-CHECK 36).
   \item \textbf{Safety at One Shot in \S{}2, \S{}4.3 and \S{}6.} D5 = (a) bounds
         the post-hoc one-example patch in text (not a reference; no claim covers
         it). Revision 6b's \S{}4.3 lists its data-only analogue (the example
@@ -4380,7 +4677,63 @@ reading).
         heading sits at the same height as in revision 6, because the cuts
         balanced the additions to within a line; a probe with one more line gave
         8.00 pages (``What changed in revision 6b'', Length).
+  \item \textbf{The brief's scope against the stage-1 decisions.} The brief for
+        revision 6c applies two of the body's ten [TO BE FIXED] items (token
+        matching; the HarmBench input) and keeps three items for the freeze.
+        FOCUS fcf79a2 also settles the analysis model (UW-02, LW-01), the closed
+        testing family (UW-04), the over-refusal baseline of \emph{worse}
+        (UW-05, rule R1.3), one primary $\tau_{O}$ (UW-06) and the label order
+        (UW-08 (a)). Resolution: followed the brief; the body keeps these
+        markers (decision 49).
+  \item \textbf{Seeds.} Table 1 and Appendix C.3 say random removal at eight
+        seeds and no repair at six; UW-03 (layout D1; addendum \S{}6 item 2)
+        runs $a_0$ and $a_{\mathrm{R}}$ at seeds 1101--1107 (seven each;
+        $R_{1108}$ is not run) and the method arms at 1102--1107. Not changed:
+        outside the brief (decision 49).
+  \item \textbf{The over-refusal bank.} \S{}4.2 says 100 prompts; UW-07a adds
+        400 harmless PHTest prompts to the primary over-refusal bank if REQ-19's
+        free check shows a six-seed MDE above 5~pp (fallback: the development
+        100 only). The addition is conditional, so \S{}4.2 stays (decision 49).
+  \item \textbf{$R_{\mathrm{tok}}$'s details.} The W1 builder extract's
+        construction of $R_{\mathrm{tok}}$ (W1-03: per-unit walks in a sealed
+        order, seeds 1102--1104, one-sided bounds only, never in P1--P6) is
+        marked as its writer's interpretation, and the token axis is the lead's
+        reading (W1-02 item 4). Addendum \S{}6 item 5 says only ``a secondary
+        arm at 3 seeds, funded tier'', and FOCUS's UW-14 ``pre-registered
+        secondary arms in the funded tier \ldots{} fallback: the analysis
+        only''. Resolution: \S{}3.2 and Appendix C.3 state those facts, plus the
+        analysis's report-only status and its dose curve from W1-02 (marked
+        binding) and the pre-registration DRAFT's token-accounting item; no
+        axis, construction or test is stated (decision 51).
+  \item \textbf{``As HarmBench's own evaluation script does'' (the brief).}
+        Checked on the script (CITE-CHECK 36). The body says only ``512-token
+        window''; Appendix C.10 says the rest. The script's default classifier
+        is the Llama-2-13b one, not the validation classifier that the study
+        uses; the clip is the shared part.
+  \item \textbf{Which Qwen model.} The lead's ruling names Qwen2.5-1.5B, the
+        main-study candidate that the user dropped on 7 Oct (20:58 UTC).
+        Qwen2.5-7B also saturated (FOCUS 7 Oct 17:44 UTC) and is also out.
+        \S{}4.1 says ``Qwen2.5 \ldots{} is outside this study''; \S{}6 names
+        only the 1.5B model, as the ruling does. The later Qwen runs (FOCUS 9
+        and 11 Oct) are side work for the concurrent submission, which \S{}6
+        cites as the only later evidence.
 \end{enumerate}
+
+\textbf{Sources read (revision 6c):} the brief for revision 6c (the lead's
+rulings 1--5); FOCUS.md at
+\nolinkurl{origin/stageb-costs-and-recovery-safeguards-20261003} (fetched 17 Oct
+at 07:56 UTC; identical to the working copy), its two entries of fcf79a2 in
+full, and searches for Qwen2.5-1.5B, ``Llama/OLMo only'', ``no more Qwen
+spend'', the 7 Oct 17:44 UTC entry, Olmo 3, option B, re-plan and the wave-1
+reserve; the stage-1 build addendum \S{}6 (\texttt{git show} of 98ff104 and
+0294d1b); in
+\nolinkurl{research/experiments/2026-10-17-stage1-preregistration/}, the
+consolidated decision list (UW-14 and LW-17, by search), the pre-registration
+DRAFT (its [USER-CONFIRM] rule, FC-1, FC-17, HB-1, its token-accounting item and
+its secondary list, by search) and the W1 builder extract (W1-02, W1-03 and its
+other $R_{\mathrm{tok}}$ lines); HarmBench's \nolinkurl{evaluate_completions.py}
+(raw file on GitHub, main branch, fetched 17 Oct about 08:00 UTC, two reads);
+these notes and the body of revision 6b.
 
 \textbf{Sources read (revision 6b):} the coordinator's brief for revision 6b;
 \nolinkurl{writing/paper/2026-10-17-mock-review-A-methods.md} and
@@ -4682,6 +5035,14 @@ rewrite arm (the untuned model's own answers replace the 600 top-attribution
 rows) runs first among the secondary arms, and the planted sweep becomes the
 only test of whether diagnosis can pay.
 
+\paragraph{Token matching.}
+Every removal and addition arm reports the training tokens it removes or adds.
+The token-matched analysis, report-only and run in any case, places each
+removal's restoration on the random dose curve (600, 1,200 and 2,400 random
+rows removed) along a token axis, beside the row axis. Token-matched random
+removals for A1, L1 and H1, three seeds each, are secondary arms in the funded
+tier; if they are not funded, the analysis alone is the fallback.
+
 \paragraph{Published-setting replication (stage~4).}
 A LARF- or DataShield-style filter on Llama-3.1-8B-Instruct fine-tuned on
 Alpaca, with random removal and length rules
@@ -4849,5 +5210,16 @@ prompts.
 \paragraph{Side-effect prediction (secondary).}
 On the addition arms only: the balanced error of predicting an over-refusal
 violation, a diagnostic against trial runs of equal cost.
+
+\subsection{The HarmBench classifier}
+\label{app:harmbench}
+
+The compliance judge of \S\ref{sec:measures} is HarmBench's validation
+classifier, \nolinkurl{cais/HarmBench-Mistral-7b-val-cls}
+\citep{mazeika2024harmbench}, with HarmBench's classifier prompt. Each answer
+is clipped to its first 512 classifier tokens before it is judged, as
+HarmBench's own evaluation script does, so the classifier reads only the
+opening of a longer answer. HarmBench's test classifier,
+\nolinkurl{cais/HarmBench-Llama-2-13b-cls}, is a candidate sensitivity check.
 
 \end{document}
