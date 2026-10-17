@@ -1,0 +1,56 @@
+stat_review_phi_iut.py; numpy 2.2.6 ; python 3.11.15
+====================================================================================================
+1. Exact graph checks
+   Phi, R1.3 edge (K=6): weights sum 1; row sums [Fraction(1, 1)]
+   Phi, standard edge (K=6): weights sum 1; row sums [Fraction(1, 1)]
+   plan-B Phi (LN-21, K=3, U-to-U 1/8 each): weights sum 1; row sums [Fraction(1, 1)]
+   levels (% , one contrast)        start: U1 0.7500%, O1 0.0417%, L1 0.0417%, F1 0.0000%
+   levels (% , one contrast)      after U: U1 0.0000%, O1 0.1354%, L1 0.1354%, F1 0.3750%
+   levels (% , one contrast)    after U,F: U1 0.0000%, O1 0.1354%, L1 0.5104%, F1 0.0000%
+   levels (% , one contrast)    after U,L: U1 0.0000%, O1 0.2167%, L1 0.0000%, F1 0.4111%
+   levels (% , one contrast)    after U,O: U1 0.0000%, O1 0.0000%, L1 0.2167%, F1 0.4111%
+   levels (% , one contrast)  after U,F,L: U1 0.0000%, O1 0.5530%, L1 0.0000%, F1 0.0000%
+====================================================================================================
+2. Brute-force closed test vs shortcut, reduced copy (K=2, 8 nodes), R1.3 edge
+   intersection weights sum <= 1: True; monotonicity violations 0; shortcut != closed test in 0 of 3000 random p-vectors
+   batch shortcut == scalar shortcut on 24 nodes: True (3000 random p-vectors)
+====================================================================================================
+3. Monte Carlo family-wise error, in-force Phi (R1.3 edge, IUT O and L nodes); z-level, correlated
+   correlation set 'independent': min eigenvalue 1.000
+      G0 global: U null; O, L both parts at boundary; F at boundary: FWER 4.445% (MC SE 0.065; true nulls 24); F&O co-rejections 0; O rejected but not per-comparison infeasible 0; F rejected but not per-comparison feasible 0
+      G1 U false; O, L comparator part at boundary, other part false (IUT least favourable): FWER 1.867% (MC SE 0.043; true nulls 17); F&O co-rejections 0; O rejected but not per-comparison infeasible 0; F rejected but not per-comparison feasible 0
+      G2 U false; O theta0 part and L a0 part at boundary, comparator parts false; F at boundary: FWER 4.915% (MC SE 0.068; true nulls 18); F&O co-rejections 0; O rejected but not per-comparison infeasible 0; F rejected but not per-comparison feasible 0
+      G3 U false; F false (feasible arms); L comparator part at boundary (F->L 1 feeds L): FWER 3.552% (MC SE 0.059; true nulls 11); F&O co-rejections 0; O rejected but not per-comparison infeasible 0; F rejected but not per-comparison feasible 0
+      G4 U false; F false; L a0 part at boundary: FWER 3.979% (MC SE 0.062; true nulls 12); F&O co-rejections 0; O rejected but not per-comparison infeasible 0; F rejected but not per-comparison feasible 0
+      G5 U and F false (feasible arms; O true deep); L false except L_1 at its comparator boundary: FWER 0.745% (MC SE 0.027; true nulls 7); F&O co-rejections 0; O rejected but not per-comparison infeasible 0; F rejected but not per-comparison feasible 0
+      G6 all false except O_1 (comparator part at boundary); other O false, their F true: FWER 0.317% (MC SE 0.018; true nulls 7); F&O co-rejections 0; O rejected but not per-comparison infeasible 0; F rejected but not per-comparison feasible 0
+      G7 U null; F false; O and L at boundary: FWER 4.359% (MC SE 0.065; true nulls 18); F&O co-rejections 0; O rejected but not per-comparison infeasible 0; F rejected but not per-comparison feasible 0
+      G8 half U false; O_k false where U false, F_k false elsewhere; L at boundary: FWER 2.640% (MC SE 0.051; true nulls 15); F&O co-rejections 0; O rejected but not per-comparison infeasible 0; F rejected but not per-comparison feasible 0
+   correlation set 'base': min eigenvalue 0.065
+      G0 global: U null; O, L both parts at boundary; F at boundary: FWER 4.129% (MC SE 0.063; true nulls 24); F&O co-rejections 0; O rejected but not per-comparison infeasible 0; F rejected but not per-comparison feasible 0
+      G1 U false; O, L comparator part at boundary, other part false (IUT least favourable): FWER 1.869% (MC SE 0.043; true nulls 17); F&O co-rejections 0; O rejected but not per-comparison infeasible 0; F rejected but not per-comparison feasible 0
+      G2 U false; O theta0 part and L a0 part at boundary, comparator parts false; F at boundary: FWER 4.470% (MC SE 0.065; true nulls 18); F&O co-rejections 0; O rejected but not per-comparison infeasible 0; F rejected but not per-comparison feasible 0
+      G3 U false; F false (feasible arms); L comparator part at boundary (F->L 1 feeds L): FWER 3.045% (MC SE 0.054; true nulls 11); F&O co-rejections 0; O rejected but not per-comparison infeasible 0; F rejected but not per-comparison feasible 0
+      G4 U false; F false; L a0 part at boundary: FWER 3.659% (MC SE 0.059; true nulls 12); F&O co-rejections 0; O rejected but not per-comparison infeasible 0; F rejected but not per-comparison feasible 0
+      G5 U and F false (feasible arms; O true deep); L false except L_1 at its comparator boundary: FWER 0.812% (MC SE 0.028; true nulls 7); F&O co-rejections 0; O rejected but not per-comparison infeasible 0; F rejected but not per-comparison feasible 0
+      G6 all false except O_1 (comparator part at boundary); other O false, their F true: FWER 0.303% (MC SE 0.017; true nulls 7); F&O co-rejections 0; O rejected but not per-comparison infeasible 0; F rejected but not per-comparison feasible 0
+      G7 U null; F false; O and L at boundary: FWER 4.029% (MC SE 0.062; true nulls 18); F&O co-rejections 0; O rejected but not per-comparison infeasible 0; F rejected but not per-comparison feasible 0
+      G8 half U false; O_k false where U false, F_k false elsewhere; L at boundary: FWER 2.620% (MC SE 0.051; true nulls 15); F&O co-rejections 0; O rejected but not per-comparison infeasible 0; F rejected but not per-comparison feasible 0
+   correlation set 'strong': min eigenvalue 0.061
+      G0 global: U null; O, L both parts at boundary; F at boundary: FWER 4.159% (MC SE 0.063; true nulls 24); F&O co-rejections 0; O rejected but not per-comparison infeasible 0; F rejected but not per-comparison feasible 0
+      G1 U false; O, L comparator part at boundary, other part false (IUT least favourable): FWER 1.761% (MC SE 0.042; true nulls 17); F&O co-rejections 0; O rejected but not per-comparison infeasible 0; F rejected but not per-comparison feasible 0
+      G2 U false; O theta0 part and L a0 part at boundary, comparator parts false; F at boundary: FWER 4.639% (MC SE 0.067; true nulls 18); F&O co-rejections 0; O rejected but not per-comparison infeasible 0; F rejected but not per-comparison feasible 0
+      G3 U false; F false (feasible arms); L comparator part at boundary (F->L 1 feeds L): FWER 3.205% (MC SE 0.056; true nulls 11); F&O co-rejections 0; O rejected but not per-comparison infeasible 0; F rejected but not per-comparison feasible 0
+      G4 U false; F false; L a0 part at boundary: FWER 3.622% (MC SE 0.059; true nulls 12); F&O co-rejections 0; O rejected but not per-comparison infeasible 0; F rejected but not per-comparison feasible 0
+      G5 U and F false (feasible arms; O true deep); L false except L_1 at its comparator boundary: FWER 0.804% (MC SE 0.028; true nulls 7); F&O co-rejections 0; O rejected but not per-comparison infeasible 0; F rejected but not per-comparison feasible 0
+      G6 all false except O_1 (comparator part at boundary); other O false, their F true: FWER 0.292% (MC SE 0.017; true nulls 7); F&O co-rejections 0; O rejected but not per-comparison infeasible 0; F rejected but not per-comparison feasible 0
+      G7 U null; F false; O and L at boundary: FWER 4.208% (MC SE 0.063; true nulls 18); F&O co-rejections 0; O rejected but not per-comparison infeasible 0; F rejected but not per-comparison feasible 0
+      G8 half U false; O_k false where U false, F_k false elsewhere; L at boundary: FWER 2.539% (MC SE 0.050; true nulls 15); F&O co-rejections 0; O rejected but not per-comparison infeasible 0; F rejected but not per-comparison feasible 0
+   random search over configurations (base correlations): 300 configs x 4000 reps, top 5 re-run at 100000
+   random search: max FWER 5.05% (4,000 reps, MC SE about 0.34); median 2.90%; co-rejections F&O in all configs 0; O-not-infeasible 0; F-not-feasible 0
+      top 1 (config 286): search 5.05% -> re-run 4.321% (MC SE 0.064)
+      top 2 (config 145): search 4.60% -> re-run 4.260% (MC SE 0.064)
+      top 3 (config 117): search 4.58% -> re-run 4.337% (MC SE 0.064)
+      top 4 (config 71): search 4.55% -> re-run 4.373% (MC SE 0.065)
+      top 5 (config 26): search 4.35% -> re-run 3.805% (MC SE 0.060)
+total 301 s
