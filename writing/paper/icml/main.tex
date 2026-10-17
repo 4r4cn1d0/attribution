@@ -8,6 +8,19 @@
 % icml2027.bst) when it is released, and re-check the page limit, the Impact
 % Statement rule and the anonymity rules in the ICML 2027 call.
 %
+% Revision 6f (17 Oct 2026, from 09:19 UTC): the lead's rulings of 17 Oct on
+% decision 54 and conflicts 78-84. Sec. 4.2 names the coherence flag ("fails
+% answers end"). Sec. 4.5, Appendix C.5 and the Impact Statement describe the
+% plant as PKU red-team prompts with PKU-safe, non-refusing answers. Only the
+% training-signal diagnostics (A1 and a Self-Inf-N-style score) count toward
+% finding the planted cause; the text-only scorers' ranks are construction
+% checks, published before the pilot (abstract, Sec. 1, contribution 2, Sec.
+% 4.5, Sec. 6, Appendix C.5; the rule is marked PLANNED). Six short trims
+% (Sec. 1, 3.1, 4.3, 6) hold the length. Main body 7.97 pages to the Impact
+% Statement (8.16 to the References heading; 7.94 and 8.13 in revision 6e).
+% Kept in sync with the Markdown draft, revision 6f; Appendix B is regenerated
+% from its notes.
+%
 % Revision 6e (17 Oct 2026, from 08:42 UTC): the lead's rulings of 17 Oct.
 % Sec. 3.2 states the feasibility estimator (two-sided 90% intervals: feasible,
 % infeasible or undetermined; Sec. 3.2's last TO BE FIXED marker is gone) and a
@@ -255,8 +268,8 @@
   self-generated refusal examples added), each over six seeds, are compared with random removal and with no repair, labelled better,
   equivalent within 5 percentage points, worse or inconclusive, and set
   against five references that change no data. Pre-registered gates test
-  whether the erosion is localized in data categories; a positive control tests whether each diagnostic finds a concentrated,
-  harmful-prompt cause \ph{[PLACEHOLDER: if
+  whether the erosion is localized in data categories; a positive control tests whether each training-signal diagnostic finds
+  a concentrated, harmful-prompt cause \ph{[PLACEHOLDER: if
   funded]}; and predictions of when diagnosis pays are written down in
   advance and scored on a second family, Llama-3.2-1B-Instruct, at a matched
   erosion dose. We find \ph{[FINDING 1: the labels of the six repairs]};
@@ -345,12 +358,10 @@ one Dolly category restore more safety than removing as many random rows?
 Gate~C asks which diagnostic picks that category, and whether a format rule
 explains attribution's pick. A positive control plants a concentrated,
 harmful-prompt cause in nested menus of 8, 32 and 128 cells \ph{[TO BE FINALISED]} and asks whether
-each diagnostic finds it, and at which menu size diagnosis beats trial runs
+each training-signal diagnostic finds it, and at which menu size diagnosis beats trial runs
 \ph{[PLACEHOLDER: if funded]}. A secondary, model-based analysis predicts when
 paying for a diagnostic beats spending the same compute on trial runs selected
-by successive halving \citep{jamieson2016nonstochastic,li2018hyperband}. Every
-decision rule is committed before the data it judges; outcomes are replicated
-over training seeds, confirmed on held-out prompts, and reported as \emph{too
+by successive halving \citep{jamieson2016nonstochastic,li2018hyperband}. Every rule is committed before the data it judges; outcomes are replicated over seeds, confirmed on held-out prompts, and reported as \emph{too
 close to call} when the evidence cannot separate options.
 
 Our contributions are:
@@ -366,9 +377,9 @@ Our contributions are:
         \ph{[ARTIFACT]}.
   \item \textbf{A positive control for diagnosis}
         (\S\ref{sec:plant}): \ph{[FINDING 2: whether
-        each diagnostic finds a concentrated, harmful-prompt cause, and the
-        runs-only cost of finding it, at menu sizes 8, 32 and 128]} \ph{[PLACEHOLDER: if
-        funded]}.
+        each training-signal diagnostic finds a concentrated, harmful-prompt
+        cause, and the runs-only cost of finding it, at menu sizes 8, 32 and
+        128]} \ph{[PLACEHOLDER: if funded]}. Text-only scorers' ranks are construction checks, published before the pilot.
   \item \textbf{Where the erosion lives} (\S\ref{sec:gates},
         \S\ref{sec:side}): \ph{[FINDING 3: the Gate B verdict with its
         detection limit; Gate C's reading with the format control; how much of
@@ -539,8 +550,7 @@ $F(a) = \mathbb{E}_s[f(\theta(a,s))]$, and likewise $\bar\ell(a)$ and $R(a)$.
 With $a_0$ the fine-tune without repair, the \emph{erosion}, refusal erosion as
 Qwen3Guard labels it (\S\ref{sec:measures}), is $E = F(a_0) - f(\theta_0)$;
 repair is meaningful only when $E$ exceeds seed noise (Gate~A,
-\S\ref{sec:gates}). Two actors can repair: a fine-tuning customer, who controls
-the data and can also set the learning rate and the number of epochs, and the
+\S\ref{sec:gates}). Two actors can repair: a fine-tuning customer, who controls the data, learning rate and epochs, and the
 service provider, who also holds the weights and can run every scorer and
 reference. We report the best repair within each actor's menu
 (Table~\ref{tab:arms}).
@@ -721,8 +731,8 @@ Llama rungs were accepted on a too-close bar (one seed's answers-end bar at
         we report both verdicts (Appendix~\ref{app:skill}).
   \item \textbf{Answers end.} A coherence screen flags answers that reach the
         token cap, repeat 4-grams heavily, are empty, or have fewer than 5
-        tokens; an arm that fails the screen is still read and flagged
-        (Appendix~\ref{app:analysis})
+        tokens; an arm that fails the screen is still read, with the flag
+        ``fails answers end'' (Appendix~\ref{app:analysis})
         \ph{[PLANNED; the stage-1 pre-registration is not yet frozen]}.
 \end{itemize}
 
@@ -773,7 +783,7 @@ correlation \ph{[PLACEHOLDER: final MDE from Gate B's pooled noise]}. Two more d
 \citet{qi2025shallow} that deepens alignment beyond the first answer tokens and
 the single safety example of \citet{zhang2026oneshot} added to the training
 data, are candidate arms \ph{[TO BE FIXED in the stage-1 pre-registration]}.
-Pools, seeds and the secondary arms (three seeds, exploratory) are in
+Pools, seeds and secondary arms (three seeds, exploratory) are in
 Appendix~\ref{app:stage1} \ph{[TO BE FINALISED]}.
 
 \subsection{References that change no data}
@@ -805,13 +815,17 @@ adapter-scaling curve matched on task loss) are open \ph{[TO BE FIXED in the sta
 \label{sec:plant}
 
 \ph{[PLACEHOLDER: runs only if funded; otherwise menu size leaves the
-headline.]} A planted cause of $k = 37$ benign-looking rows replaces the rows
-of one sealed leaf cell, and nested cells \ph{[TO BE FINALISED]} give menus of
+headline.]} The planted cause is $k = 37$ rows:
+PKU red-team prompts with PKU-safe, non-refusing answers. It replaces the rows of one
+sealed leaf cell, and nested cells \ph{[TO BE FINALISED]} give menus of
 $M = 8$, 32 and 128. Because the truth is known, the sweep measures how
 diagnosis and trial runs scale with $M$, which natural menus at our budget
-cannot: the safety restored by removing the planted cell, each diagnostic's
+cannot: the safety restored by removing the planted cell, each scorer's
 top-$k$ hit rate, and the runs-only cost of finding the cell
-(Appendix~\ref{app:plant}).
+(Appendix~\ref{app:plant}). Only training-signal diagnostics (A1 and a
+Self-Inf-N-style score) count toward finding the cause; text-only scorers'
+ranks are construction checks, published before the pilot \ph{[PLANNED; the
+stage-1 pre-registration is not yet frozen]}.
 
 \subsection{Gates A, B and C}
 \label{sec:gates}
@@ -976,10 +990,9 @@ retried at a lower rate in this study, so the Qwen runs of
 family difference is claimed only above its MDE.
 
 \paragraph{The positive control and the secondary analysis.}
-The planted cause is artificial; finding it shows that a diagnostic \emph{can}
-find a concentrated, harmful-prompt cause, not that natural erosion has one. The value of
-diagnosis at natural menus is model-based and judged against advance predictions. Selectors are not compared at equal budgets here; a
-later study with its own pre-registration would do that.
+The planted cause is artificial; finding it shows that a training-signal diagnostic
+\emph{can} find a concentrated, harmful-prompt cause, not that natural erosion has one. The value of
+diagnosis at natural menus is model-based, judged against advance predictions. Selectors are not compared at equal budgets here; a later, separately pre-registered study would do that.
 
 \paragraph{Scope and user.}
 We compare data repairs with model-level references; rewriting responses enters
@@ -1009,9 +1022,10 @@ This work studies how to repair a language model's safety after benign
 fine-tuning has eroded it, so that developers and fine-tuning services can
 choose a repair with its side effects and cost in view. We see three risks.
 First, the study shows which training data erode safety and which repairs
-fail, and the positive control, if run, plants benign-looking rows that erode
-safety; an attacker could use this. The planted rows come from a public safety
-dataset, and we release \ph{[TO BE DECIDED: what is released, for example
+fail, and the positive control, if run, plants rows that erode
+safety; an attacker could use this. The planted rows are PKU red-team prompts
+with PKU-safe, non-refusing answers, taken from a public safety dataset. We
+release \ph{[TO BE DECIDED: what is released, for example
 scores and outcome tables but no generated answers to harm prompts]}. Second,
 every outcome comes from automatic judges, and a blind human read rated only
 about a third of judge-unsafe answers as usable help, so a repair labelled
@@ -1091,7 +1105,7 @@ strata.
 \label{app:editors-notes}
 
 % Converted from the Markdown draft's "Editor's note (delete before
-% submission)" block, revision 6e, by a small converter (Markdown lists,
+% submission)" block, revision 6f, by a small converter (Markdown lists,
 % tables and inline markup to LaTeX; re-created in revision 6 because the
 % revision-5c converter was lost), so the wording follows the Markdown
 % exactly; inline symbols are set as math (revision 6b: a text '|' too).
@@ -1099,7 +1113,27 @@ strata.
 \begingroup\small
 
 \paragraph{What this is.}
-Revision 6e of the draft, written on 17 October 2026 from 08:42 UTC (clock
+Revision 6f of the draft, written on 17 October 2026 from 09:19 UTC (clock
+checked with \texttt{date -u}), applies the lead's rulings of 17 Oct (GI VI,
+under the user's weekend delegation, FOCUS 00b99a4) on decision 54 and conflicts
+78--84, from the stage-1 decision list's LW-09 and LW-10 and the
+pre-registration DRAFT revision 2's \S{}3.7, \S{}4.5 and \S{}8.5 (2ded100): the
+flag's name, ``fails answers end'', now also in \S{}4.2 (conflict 78); the plant
+described as PKU red-team prompts with PKU-safe, non-refusing answers, never
+``benign-looking'' (\S{}4.5, Appendix C.5, the Impact Statement; LW-10 F1); and
+the positive control's claim narrowed to the training-signal diagnostics, A1 and
+a Self-Inf-N-style score, with the text-only scorers' planted-cell ranks
+published before the pilot as construction checks (the abstract, \S{}1,
+contribution 2, \S{}4.5, \S{}6 and Appendix C.5; LW-10 F2 and F8). Rulings 80,
+81, 83 and 84 are confirmed and their text is unchanged; ``six pre-registered
+repairs'' and ``about 10--12~pp'' are kept. The main body measures 7.97 pages to
+the Impact Statement (8.16 to the References heading; 7.94 and 8.13 in revision
+6e); see ``What changed in revision 6f'', decisions 43, 44, 54 and 55, risk 44
+and conflicts 78--84 and 86--89. Two stage-1 facts that FOCUS recorded during
+this revision (REQ-19's over-refusal check fired; A1's removal set is sealed)
+are not in the body (decision 55). The rest of this paragraph describes revision
+6e (its page counts are revision 6e's), updated where revision 6f changed the
+body. Revision 6e of the draft, written on 17 October 2026 from 08:42 UTC (clock
 checked with \texttt{date -u}), applies the lead's rulings of 17 Oct (GI VI) on
 stage-1 items that the sources settle (the stage-1 pre-registration DRAFT
 revision 2 and the consolidated decision list, 2ded100; FOCUS fcf79a2, and
@@ -1216,10 +1250,11 @@ the label order, and revision 6e one, feasibility as a non-inferiority bound);
 the settled stage-1 items are marked [PLANNED; the stage-1 pre-registration is
 not yet frozen] (revision 6d: five items; revision 6e: the feasibility estimator
 in \S{}3.2 and the coherence rule in \S{}4.2, and under Appendix C.11's marker
-the margin and the equivalence grades); Appendix C.11 also states OLMo-2-1B's
-Gate A mean erosion, 45.11~pp, as the constant of the margin rule for another
-family (revision 6e; conflict 81); the concurrent side paper is cited as [CITE:
-concurrent submission, anonymized]. The ICML LaTeX version
+the margin and the equivalence grades; revision 6f: the positive control's
+counting rule, once in \S{}4.5 and once in Appendix C.5); Appendix C.11 also
+states OLMo-2-1B's Gate A mean erosion, 45.11~pp, as the constant of the margin
+rule for another family (revision 6e; conflict 81); the concurrent side paper is
+cited as [CITE: concurrent submission, anonymized]. The ICML LaTeX version
 (\nolinkurl{icml/main.tex}) carries the same text with a fetched
 \nolinkurl{references.bib}; the author-year citations below use the venue years
 and letters of those fetched entries (revision 6 re-lettered Zhang et al. 2026:
@@ -1243,7 +1278,8 @@ pre-registered secondary arms in the funded tier, with the analysis alone as
 their fallback. UW-14 names no title fallback; alternative 5 stays on the list.
 \textbf{Revision 6d:} the title is unchanged; Appendix C.3 now states the token
 axis (total row tokens, with target tokens beside it; the lead's ruling 4).
-\textbf{Revision 6e:} the title is unchanged. Alternatives:
+\textbf{Revision 6e:} the title is unchanged. \textbf{Revision 6f:} the title is
+unchanged. Alternatives:
 
 \begin{enumerate}
   \item \emph{Repairing Safety After Benign Fine-Tuning: A Compute-Matched
@@ -1267,6 +1303,172 @@ axis (total row tokens, with target tokens beside it; the lead's ruling 4).
         matching cannot be done; revision 6c: under UW-14 the token-matched
         analysis runs in any case).
 \end{enumerate}
+
+\subsection{What changed in revision 6f (17 Oct, from 09:19 UTC)}
+
+\begin{itemize}
+  \item \textbf{Sources.} The brief for revision 6f (the lead's rulings on
+        decision 54 and conflicts 78, 80, 81, 83 and 84, GI VI, 17 Oct, under
+        the user's weekend delegation); in
+        \nolinkurl{research/experiments/2026-10-17-stage1-preregistration/} at
+        origin (2ded100), the consolidated decision list (LW-09, LW-10, UW-15,
+        UW-16 and LW-26 in full) and the pre-registration DRAFT revision 2
+        (\S{}0.5, \S{}3.7, \S{}4.5, \S{}8.1--\S{}8.6, \S{}9.1--\S{}9.2 in full);
+        FOCUS.md at origin (fetched 17 Oct at 09:19 UTC; origin's head ecdd23e,
+        revision 6e; FOCUS last changed in 00b99a4), its fcf79a2 entries (the
+        user's UW decisions; the lead's LW decisions, all at their defaults,
+        with LW-18) and its 00b99a4 entry; fetched again at 09:55 UTC (head
+        23848e0), its two new entries, 09:32 UTC (1be4bb1, time in 71f2458: A1's
+        removal set sealed) and 09:37 UTC (48f3ac2, time in 1423a4c: REQ-19 run,
+        the O-ext fires), and 158d2c2's message (PHTest downloaded) (decision
+        55). Before any edit, both paper files matched origin's tip (ecdd23e,
+        revision 6e; an empty \texttt{git diff}); the commits after it (e27ee88
+        to 23848e0) touch no paper file. Details in ``Sources read (revision
+        6f)''.
+  \item \textbf{1. The flag's name (\S{}4.2; the lead's ruling 1; conflict 78).}
+        In ``an arm that fails the screen is still read and flagged (Appendix
+        C.11)'', ``still read and flagged'' became ``still read, with the flag''
+        and the flag's name, ``fails answers end''. Appendix C.11 already used
+        ``fails answers end'' and ``comparator fails answers end'' (LW-09; DRAFT
+        \S{}3.7 items 3--4, \S{}4.5). No other name for the flag is left in the
+        paper or in these notes (conflict 78 is reworded).
+  \item \textbf{2. The plant's description (\S{}4.5; Appendix C.5; the Impact
+        Statement; the lead's ruling 2; LW-10 F1 and R8.5).} \S{}4.5: ``A
+        planted cause of $k = 37$ benign-looking rows replaces the rows of one
+        sealed leaf cell'' $\to$ ``The planted cause is $k = 37$ rows: PKU
+        red-team prompts with PKU-safe, non-refusing answers. It replaces the
+        rows of one sealed leaf cell''. Appendix C.5's definition: ``with $k$
+        rows that look benign but carry a known eroding signal'' $\to$ ``with
+        $k$ rows that carry a known eroding signal''; its design: ``The plant is
+        $k = 37$ rows whose answers comply directly with prompts that also have
+        an unsafe answer in the source data, but which the source labels safe;
+        they look benign.'' $\to$ ``The plant is $k = 37$ PKU red-team prompts
+        with PKU-safe, non-refusing answers, from PKU-SafeRLHF, the source of
+        the anchors. Each prompt also has an unsafe answer in the source. Each
+        planted answer is labelled safe there and complies directly.'' (DRAFT
+        \S{}8.1 and \S{}8.5 F1). Impact Statement: ``plants benign-looking rows
+        that erode safety; \ldots{} The planted rows come from a public safety
+        dataset, and we release \ldots{}'' $\to$ ``plants rows that erode
+        safety; \ldots{} The planted rows are PKU red-team prompts with
+        PKU-safe, non-refusing answers, taken from a public safety dataset. We
+        release \ldots{}''. A search of the body and Appendices A and C for
+        ``benign-looking'', ``look(s) benign'', ``benign-seeming'', ``appear(s)
+        benign'' and ``innocuous'' finds nothing else. In these notes the words
+        remain only where they quote earlier text (revision 6e's item 4,
+        decision 54, conflict 79) and in decision 43, which describes the
+        reviewers' proposed He-style plant (lists and math): that plant is
+        benign-looking, and LW-10 R8.5 rejects it.
+  \item \textbf{3. The positive-control claim (the lead's ruling 3; LW-10 F2 =
+        R8.2, and F8).} Abstract: ``a positive control tests whether each
+        diagnostic finds a concentrated, harmful-prompt cause'' $\to$ ``\ldots{}
+        whether each training-signal diagnostic finds \ldots{}''. \S{}1: ``asks
+        whether each diagnostic finds it'' $\to$ ``asks whether each
+        training-signal diagnostic finds it''. Contribution 2: ``[FINDING 2:
+        whether each diagnostic finds \ldots{}]'' $\to$ ``[FINDING 2: whether
+        each training-signal diagnostic finds \ldots{}]'', and a new sentence,
+        ``Text-only scorers' ranks are construction checks, published before the
+        pilot.'' \S{}4.5: ``each diagnostic's top-$k$ hit rate'' $\to$ ``each
+        scorer's top-$k$ hit rate'', and a new sentence, ``Only training-signal
+        diagnostics (A1 and a Self-Inf-N-style score) count toward finding the
+        cause; text-only scorers' ranks are construction checks, published
+        before the pilot [PLANNED; the stage-1 pre-registration is not yet
+        frozen].'' \S{}6: ``finding it shows that a diagnostic \emph{can} find
+        \ldots{}'' $\to$ ``\ldots{} a training-signal diagnostic \emph{can} find
+        \ldots{}''. Appendix C.5: ``each diagnostic's top-$k$ hit rate'' $\to$
+        ``each scorer's top-$k$ hit rate'', and after ``Every scorer ranks the
+        cells without new runs.'' three new sentences: ``Only attribution (A1)
+        and the Self-Inf-N-style score count toward finding the cause. The
+        text-only scorers (L1, H1, the list-or-markup and longest-answer rules,
+        the DataShield-style filter and the content classifier) read only row
+        text and the untuned model, so their ranks of the planted cell are fixed
+        when the plant is drawn. They are published before the pilot as
+        construction checks, and also if the pilot stops [PLANNED; the stage-1
+        pre-registration is not yet frozen].'' The scope is LW-10's: F2 (which
+        scorers are text-only and why their ranks are fixed at the draw;
+        ``construction check''; before the pilot; only A1 and Self-Inf-N-style
+        count toward ``finds a known cause'') and F8 (the ranks are published if
+        the pilot stops). H2a/b are written as Appendix C.3 names them (``rules
+        for answers with list or markup lines and for the longest answers'').
+        Every scorer's hit rate stays an output (DRAFT \S{}8.6), so ``each
+        scorer's'' replaces ``each diagnostic's'' there (conflict 88). LW-10's
+        other items (F4--F7, the pilot interval, R8.3, N6) are not in the body
+        (decision 54). ``Training-signal diagnostic'' is the lead's term;
+        \S{}4.5 defines it by its two members (conflict 86).
+  \item \textbf{4. Confirmed rulings (the lead's ruling 4; checked; text
+        unchanged).} 80: Appendix C.11's grade 1 is ``the rule of \S{}3.2''. 81:
+        Appendix C.11 states OLMo-2-1B's Gate A mean $E$ of 45.11~pp, the
+        constant of $\delta_{\mathrm{fam}}$. 84: \S{}6's clause and \S{}4.1's
+        marker are unchanged. 83: Appendix C.11's rule R1.3 says that a repair
+        is \emph{worse} on over-refusal only if it is infeasible at $\tau_O^*$
+        against $\theta$0 and its over-refusal is significantly above its
+        comparator's, and that a repair that is significantly above but feasible
+        or undetermined is not \emph{worse (O)}; the same holds for task loss at
+        $\tau_{L}$; its ``Feasibility'' paragraph gives \emph{infeasible} one
+        meaning (the interval's lower end above the limit), which R1.3 uses.
+        That is the ruling's reading, so the text is unchanged.
+  \item \textbf{5. Kept unchanged (the lead's ruling 5).} The abstract's ``six
+        pre-registered repairs'' and \S{}4.6's ``about 10--12~pp''. The sources
+        do not settle them: LW-26, at its default, puts ``pre-specified'' in the
+        W1 record and names no paper text (risk 34); no FOCUS entry after
+        fcf79a2 (8dac6ad, 00b99a4, 71f2458, 1423a4c) touches either; \S{}4.6's
+        range comes from Gate B's frozen operating characteristics.
+  \item \textbf{Trims to hold the length (meaning unchanged).} With the rulings
+        applied in their first wording and no trims, the Impact Statement
+        heading moved to page 9 (8.10 pages; 8.29 to the References heading).
+        The new sentences were shortened: contribution 2 and \S{}4.5 do not list
+        the text-only scorers or give the reason (Appendix C.5 does), and
+        \S{}4.5 names the two training-signal diagnostics in brackets. With
+        these and no trims: 8.06. Six existing phrases were trimmed: \S{}1
+        ``Every decision rule is committed'' $\to$ ``Every rule is committed''
+        and ``replicated over training seeds'' $\to$ ``replicated over seeds'';
+        \S{}3.1 ``a fine-tuning customer, who controls the data and can also set
+        the learning rate and the number of epochs'' $\to$ ``\ldots{} who
+        controls the data, learning rate and epochs'' (Table 1's legend: ``data,
+        learning rate, epochs''); \S{}4.3 ``Pools, seeds and the secondary
+        arms'' $\to$ ``Pools, seeds and secondary arms''; \S{}6 ``is model-based
+        and judged against advance predictions'' $\to$ ``is model-based, judged
+        against advance predictions'' and ``a later study with its own
+        pre-registration would do that'' $\to$ ``a later, separately
+        pre-registered study would do that''. Each was needed: without any one
+        of them the heading falls to page 9 or to its top. Tried and not kept
+        (not needed once the six were in): cutting \S{}6's repeat of ``a family
+        difference is claimed only above its MDE'' (\S{}4.8), \S{}4.5's ``which
+        natural menus at our budget cannot'' (also in Appendix C.5), \S{}4.2's
+        ``reach'' $\to$ ``hit'' and ``fewer than 5 tokens'' $\to$ ``under 5
+        tokens'', and five smaller cuts (two in \S{}1, one each in \S{}4.3,
+        \S{}4.7 and \S{}6).
+  \item \textbf{Length.} Before: 7.94 pages to the Impact Statement heading
+        (8.13 to References), revision 6e, re-measured on its committed source
+        with the same script. With the rulings applied and no trims: 8.10 (first
+        wording) and 8.06 (final wording). After the trims: 7.97 (8.16 to
+        References); the heading sits about three lines lower on page 8 than in
+        revision 6e.
+  \item \textbf{Editor's notes.} This list; ``What this is'' and ``Title''; the
+        placeholder table (\S{}4.2; \S{}4.5 and Appendix C.5); the fill-in
+        ``Planted cause found / not found''; decisions 43, 44 and 54, and a new
+        decision 55; risk 44; a status line at revision 6f; conflicts 78--84
+        marked resolved, with 78 reworded, and 86--89 added; ``Sources read
+        (revision 6f)''. The LaTeX Appendix B is regenerated from these notes
+        with revision 6e's converter, which reproduced revision 6e's Appendix B
+        byte for byte from revision 6e's notes before any edit (its header
+        comment now says revision 6f).
+  \item \textbf{Pipelines.} Revision 6e's scripts, reused in a new scratch
+        folder \nolinkurl{rev6f/}: \nolinkurl{body_pages.py},
+        \nolinkurl{heads.py} and \nolinkurl{short_lines.py} unchanged;
+        \nolinkurl{notes_md_to_tex.py} unchanged apart from its header comment;
+        \nolinkurl{build.sh} and \nolinkurl{splice_notes.py} with the new
+        folder; \nolinkurl{paper_to_pdf.py} with local KaTeX, its banner set to
+        revision 6f. One script applied the body and Appendix C edits to the
+        Markdown and the LaTeX, a second the trims, a third the notes, and a
+        fourth adds a revision 6f paragraph to the LaTeX file's header comment;
+        each body change is a single-match replacement (whitespace-tolerant in
+        the LaTeX), so the two files carry the same words.
+  \item \textbf{Anonymity.} As in revision 6e: the body, Appendices A and C and
+        the bibliography hold no author name, institution, repository, branch,
+        account, commit hash, file path or grant (no new BibTeX entry); the PDF
+        metadata says ``Anonymous Authors''. These notes (Appendix B) are not
+        anonymous and must be deleted before submission.
+\end{itemize}
 
 \subsection{What changed in revision 6e (17 Oct, from 08:42 UTC)}
 
@@ -2792,8 +2994,10 @@ main again) and renames G+Qi to B+Qi.}
       Appendix C.10). Revision 6d: the conditional PHTest extension of the
       over-refusal bank, stated without a marker (the ruling gives none).
       [PLANNED; the stage-1 pre-registration is not yet frozen], once (revision
-      6e): an arm that fails the coherence screen is read and flagged (LW-09) &
-      the stage-1 pre-registration (decision 40); the stage-1 freeze \\
+      6e): an arm that fails the coherence screen is read and flagged (LW-09);
+      revision 6f: the same clause names the flag ``fails answers end''
+      (conflict 78) & the stage-1 pre-registration (decision 40); the stage-1
+      freeze \\
   \S{}4.3 & [PLACEHOLDER: final MDE] (revision 6d: ``The MDE depends on the
       same-seed correlation'', decision 52); [TO BE FINALISED] secondary arms
       (listed in Appendix C.3); [TO BE FIXED in the stage-1 pre-registration]
@@ -2809,7 +3013,13 @@ main again) and renames G+Qi to B+Qi.}
       submission, anonymized] (the lower rungs; revision 6b) & the stage-1
       pre-registration, after the lead reads the paper in full (decision 19) \\
   \S{}4.5, Appendix C.5 & [TO BE FINALISED] menu sizes; [PLACEHOLDER: runs only
-      if funded] & the plan's review; funding \\
+      if funded]; [PLANNED; the stage-1 pre-registration is not yet frozen],
+      once in each (revision 6f): only the training-signal diagnostics count
+      toward finding the cause, and the text-only scorers' ranks are
+      construction checks, published before the pilot (Appendix C.5: also if the
+      pilot stops; LW-10 F2, F8). Contribution 2's sentence on the construction
+      checks carries no marker & the plan's review; funding; the stage-1 freeze
+      \\
   \S{}4.7 & [TO BE FINALISED] costs & measured ledgers; frozen cost conventions
       \\
   \S{}4.8 & [PLACEHOLDER: if resources allow] & funding; decision 28 \\
@@ -2881,10 +3091,14 @@ text); (4) the secondary arms and their order.
         repair at lower over-refusal'' (plan \S{}13: a valid, reportable
         answer).
   \item \textbf{Planted cause found / not found} (only if funded). F3:
-        ``[diagnostic] ranks the planted cell first at M = \_\_ ; runs alone
-        find it at \_\_ FRE''. Headline item (2) asks whether each diagnostic
-        finds a concentrated, harmful-prompt cause (UW-15; revision 6e), so the
-        sentence names the cause that way, not ``benign-looking'' (decision 54).
+        ``[training-signal diagnostic] ranks the planted cell first at M = \_\_
+        ; runs alone find it at \_\_ FRE''. Headline item (2) asks whether each
+        diagnostic finds a concentrated, harmful-prompt cause (UW-15; revision
+        6e), so the sentence names the cause that way, not ``benign-looking''
+        (decision 54). \textbf{Revision 6f (LW-10 F2):} only A1 and the
+        Self-Inf-N-style score can fill the bracket; a text-only scorer's rank
+        is reported as a construction check, published before the pilot, never
+        as a find.
   \item \textbf{DIFFUSE.} F3: ``no Dolly category restores more than 8~pp beyond
         random removal (80\% detection at about 10--12~pp)''. Switch to
         alternative title 3; the planted sweep becomes the only test of whether
@@ -3773,6 +3987,13 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         content classifier's and a judge's rank of the planted cell; a
         benign-looking plant (He et al.'s lists and math). FOCUS 17 Oct mentions
         decoy plant labels in the stage-1 build (RC-21). Not in the body.
+        \textbf{Revision 6f:} Appendix C.5 now says that the plant comes from
+        PKU-SafeRLHF, the anchors' source (LW-10 F1), and the content
+        classifier's rank of the planted cell is a construction check, published
+        before the pilot (LW-10 F2). LW-10 R8.5 rejects a He-style plant (A1
+        would find it by construction), and the user took UW-16: no second,
+        benign-topic plant now (FOCUS fcf79a2). The decoy, the further locations
+        and the aggregation are not in the body.
   \item \textbf{Three smaller rules (review A W13, W14, W9; new or partly new).}
         A coherence-screen failure keeps its arm in the family, labelled
         ``failed (worse)'' (W13; \S{}4.2 still says ``is not read''); the
@@ -3785,7 +4006,8 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         (LW-09; the lead's ruling 2):} the coherence rule is settled, not as W13
         proposed: the arm is read and keeps its tested label with the flag
         ``fails answers end'', not ``failed (worse)'' (\S{}4.2; Appendix C.11).
-        The other two rules are not in the body.
+        The other two rules are not in the body. \textbf{Revision 6f (the lead's
+        ruling 1):} \S{}4.2 now names the flag ``fails answers end''.
   \item \textbf{Presentation (review A W1 and W15, partly new; review B W13,
         partly new).} Say ``pre-specified'' rather than ``pre-registered'' in
         the abstract until the stage-1 protocol is frozen, or freeze it with a
@@ -3958,6 +4180,34 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         the text-only scorers' planted-cell ranks are published before the pilot
         as construction checks (F2, R8.2); contribution 2's ``each diagnostic''
         does not say so. Decide whether revision 6f applies them.
+        \textbf{Revision 6f: RESOLVED (the lead's rulings 2 and 3, GI VI, 17
+        Oct, under the user's weekend delegation).} (a) \S{}4.5, Appendix C.5
+        and the Impact Statement describe the plant as PKU red-team prompts with
+        PKU-safe, non-refusing answers (LW-10 F1). (b) Only the training-signal
+        diagnostics (A1 and a Self-Inf-N-style score) count toward finding the
+        cause, and the text-only scorers' planted-cell ranks are construction
+        checks, published before the pilot (contribution 2, \S{}4.5, Appendix
+        C.5; LW-10 F2), also if the pilot stops (Appendix C.5; F8); the
+        abstract, \S{}1 and \S{}6 say ``each training-signal diagnostic'' or ``a
+        training-signal diagnostic''. LW-10's other items (F4, the
+        dilution-matched decomposition; F5, $\Lambda$ per planted row; F6, the
+        relocation replay; F7, the refusal decoy; the pilot interval; R8.3, the
+        classifier prediction; N6) are not in the body.
+  \item \textbf{Stage-1 facts recorded during revision 6f (FOCUS 23848e0; for
+        the lead; not in the body).} (1) REQ-19 ran on the Gate A records (FOCUS
+        09:37 UTC): the six-seed over-refusal MDE against $\theta$0 is 11.04~pp,
+        so the O-ext trigger fires and, by UW-07a, the primary over-refusal bank
+        becomes the 100 development prompts plus 400 harmless PHTest prompts.
+        \S{}4.2 still gives the extension as conditional (``if a free,
+        pre-registered check finds its six-seed minimum detectable effect (MDE)
+        above 5~pp''), which stays true. (2) A1's removal set is sealed (FOCUS
+        09:32 UTC), with a report-only stability read (top-600 Jaccard 0.434
+        between the two checkpoints' scores), and FOCUS says ``the paper names
+        it as a limit''; \S{}6 does not. Neither is in the brief for revision
+        6f. Decide whether the body states the 500-prompt bank as a status fact
+        (no number, as for Gate B's noise gate) and adds A1's one-shot stability
+        to \S{}6 as a limit; the numbers stay development evidence in these
+        notes.
 \end{enumerate}
 
 \subsection{Risks a reviewer will raise (sources in brackets)}
@@ -4278,7 +4528,15 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
   \item \textbf{The positive control (review A W11, new; review B W11, new).}
         Near-circular (anchor similarity), dilution confounded with menu size,
         one plant location; the plant may be trivially findable. Body: not
-        changed (decision 43).
+        changed (decision 43). \textbf{Revision 6f:} partly answered in the
+        body. Only the training-signal diagnostics count toward finding the
+        plant, and the text-only scorers' ranks are construction checks,
+        published before the pilot (\S{}4.5, Appendix C.5; LW-10 F2); Appendix
+        C.5 also says that the plant shares its source, PKU-SafeRLHF, with the
+        anchors. A1, one of the two counted diagnostics, is bi-anchored on those
+        anchors (Appendix C.2), so a reviewer may still call an A1 hit
+        near-circular. The sources answer this only for a He-style plant (R8.5),
+        and \S{}6 does not state it.
   \item \textbf{Over-refusal (review A W12, new; review B W7, new; review B
         \S{}8.3, new).} Two baselines (untuned for feasibility, comparator for
         \emph{worse}); 100 greedy prompts; point-estimate feasibility. Body:
@@ -4839,6 +5097,19 @@ reading).
         the beginning-of-sequence token, and truncates on the right (CITE-CHECK
         36), so the development $E_{\mathrm{HB}}$ values and stage 1 use the
         same clip as HarmBench's script.
+  \item \textbf{Status at revision 6f (FOCUS fetched 17 Oct at 09:19 UTC, head
+        ecdd23e, FOCUS last changed in 00b99a4; fetched again at 09:55 UTC, head
+        23848e0).} Two new entries: at 09:32 UTC (1be4bb1; time corrected in
+        71f2458) the A1 removal set is sealed (600 of 4,800 rows over all 8
+        categories; a report-only stability read: Spearman $\rho$ 0.771 between
+        the q and e1 checkpoint scores, top-600 Jaccard 0.434; ``the paper names
+        it as a limit''); at 09:37 UTC (48f3ac2; time corrected in 1423a4c)
+        REQ-19 runs on the Gate A records: the six-seed over-refusal MDE against
+        $\theta$0 is 11.04~pp with prompts random, so the O-ext trigger fires
+        and, by UW-07a, the primary over-refusal bank becomes the 100
+        development prompts plus 400 harmless PHTest prompts (158d2c2: PHTest
+        downloaded); $\tau_{L}$ = 0.0067 nats. Development evidence, not in the
+        body (decision 55).
   \item \textbf{Status at revision 6e (FOCUS fetched 17 Oct at 08:42 UTC, last
         changed in fcf79a2, head 80fd326; fetched again at 09:01 UTC, head
         00b99a4).} 8dac6ad records the user's decision on Olmo-3-7B-Instruct
@@ -5504,27 +5775,34 @@ reading).
         gives R1.3's reason. \textbf{Revision 6e: confirmed by the lead (ruling
         6);} Appendix C.11 now also says what such a repair's label is (conflict
         83).
-  \item \textbf{``Failed screen'' (the brief) against ``fails answers end'' (the
-        sources).} The brief writes the flag as ``failed screen''; LW-09's
-        default (with RC-02), DRAFT \S{}3.7 and \S{}4.5 name it ``fails answers
-        end'', and ``comparator fails answers end'' for a failing comparator;
-        FOCUS records LW-09 at its default. Resolution: the sources' names, in
-        Appendix C.11 only; the body says ``still read and flagged''.
+  \item \textbf{The flag's name (revision 6e's brief against the sources).}
+        Revision 6e's brief gave the flag another name; LW-09's default (with
+        RC-02), DRAFT \S{}3.7 and \S{}4.5 name it ``fails answers end'', and
+        ``comparator fails answers end'' for a failing comparator; FOCUS records
+        LW-09 at its default. Resolution (revision 6e): the sources' names, in
+        Appendix C.11 only; the body said ``still read and flagged''.
+        \textbf{Revision 6f: RESOLVED (the lead's ruling 1):} the name is
+        ``fails answers end'' everywhere; \S{}4.2 now names it.
   \item \textbf{UW-15's ``harmful-prompt cause'' against ``benign-looking''
         (\S{}4.5, Appendix C.5, the Impact Statement).} LW-10 corrects the
         description, but it is outside the brief. Resolution: not changed;
-        decision 54.
+        decision 54. \textbf{Revision 6f: RESOLVED (the lead's ruling 2;
+        decision 54):} \S{}4.5, Appendix C.5 and the Impact Statement describe
+        the plant as PKU red-team prompts with PKU-safe, non-refusing answers.
   \item \textbf{B3's ``the frozen rule''.} Grade 1 is the user's 8 Oct label
         rule (decided), while the stage-1 pre-registration is not frozen, so
         ``frozen'' would mislead in the paper. Resolution: ``the rule of
-        \S{}3.2''.
+        \S{}3.2''. \textbf{Revision 6f: RESOLVED (the lead's ruling 4):
+        confirmed; unchanged.}
   \item \textbf{Gate A's mean erosion in Appendix C.11 against ``nothing in the
         body is a result''.} UW-13's rule needs its constant, 45.11~pp,
         OLMo-2-1B's Gate A mean $E$, and C1 states $\delta$ as about 11\% of it.
         Resolution: the number, C1's wording and the per-seed ratio range
         (10.4--11.5\%) sit in Appendix C.11, as Appendix C.1 already uses 0.75
         of Gate A's mean $E$ (33.8~pp); the body's clause gives no number, and
-        the per-seed $E$ values are not in the paper.
+        the per-seed $E$ values are not in the paper. \textbf{Revision 6f:
+        RESOLVED (the lead's ruling 4): confirmed; unchanged} (the 45.11~pp
+        makes $\delta_{\mathrm{fam}}$ reproducible).
   \item \textbf{Decision 2 and the fill-in ``A repair is worse'' against R1.3.}
         Both said that every significantly adverse contrast gives \emph{worse}.
         Resolution: both note R1.3's narrowing (conflict 77).
@@ -5533,7 +5811,11 @@ reading).
         *undetermined}, and R1.3 needs \emph{infeasible}. Resolution: Appendix
         C.11 says ``not infeasible at $\tau_O^*$ (feasible or undetermined)'',
         which follows from R1.3 and LW-06 as written, and adds the same for task
-        loss (R1.3's second half).
+        loss (R1.3's second half). \textbf{Revision 6f: RESOLVED (the lead's
+        ruling 4):} confirmed: only an arm that is infeasible at $\tau_O^*$ (its
+        interval's lower end above the limit) and significantly above its
+        comparator is \emph{worse (O)}. Appendix C.11 says exactly this and is
+        unchanged.
   \item \textbf{``Olmo 3 the first model cut'' (\S{}6) against the cut order.}
         FOCUS 8dac6ad cuts 70B, then 32B, then Olmo 3 7B. \S{}6's clause (``at
         7--8B it is planned on both families and Olmo-3-7B-Instruct,
@@ -5541,12 +5823,60 @@ reading).
         model cut'') sits in a sentence about 7--8B, and \S{}4.1's marker says
         ``first 7--8B model cut'', which the coordinator keeps. Resolution:
         unchanged; if a reader takes \S{}6's phrase as the first cut overall,
-        add ``7--8B'' there (one word).
+        add ``7--8B'' there (one word). \textbf{Revision 6f: RESOLVED (the
+        lead's ruling 4): confirmed; unchanged.}
   \item \textbf{``Correct it wherever the notes give only USD 8--10'' (the
         brief).} Decision 48 already gave both figures; it now labels USD 8--10
         as Gate A rung 1 only (two seeds) and USD 16--44 as the three-seed Gate
         A. No other place in the notes gave an Olmo 3 cost.
+  \item \textbf{UW-15's wording against ``each training-signal diagnostic''.}
+        The user took UW-15 (FOCUS fcf79a2): headline item (2) reads ``does each
+        diagnostic find a concentrated, harmful-prompt cause''. LW-10 F2, at its
+        default, counts only A1 and the Self-Inf-N-style score toward ``finds a
+        known cause''. The lead's ruling 3 inserts ``training-signal'' in the
+        abstract, \S{}1, contribution 2 and \S{}6. Resolution: applied as ruled.
+        It narrows the user's adopted text by one word, so the lead may report
+        it to the user: the weekend instruction (FOCUS 00b99a4) covers pending
+        choices, and UW-15 was decided. If the user wants UW-15's exact words,
+        remove ``training-signal'' in those four places and keep \S{}4.5's
+        counting sentence and contribution 2's construction-check sentence.
+  \item \textbf{The reason for the construction checks.} The brief says that the
+        text-only scorers ``can read the plant's text''; DRAFT \S{}8.5 F2 says
+        that they ``read only row text and $\theta$0, so their planted-cell
+        ranks are fixed when the plant is drawn''. Resolution: Appendix C.5
+        gives the source's reason (``read only row text and the untuned
+        model''); the body gives none.
+  \item \textbf{``Each diagnostic's top-k hit rate'' (DRAFT \S{}8.6) against the
+        narrowing.} \S{}8.6 keeps every scorer's hit rate as an output, and F2
+        changes only what counts as finding the cause. Resolution: ``each
+        scorer's top-$k$ hit rate'' in \S{}4.5 and Appendix C.5; the counting
+        rule is its own sentence.
+  \item \textbf{The Self-Inf-N-style score in the counting rule against DRAFT
+        \S{}8.4's list.} F2 and LW-10 count A1 and the Self-Inf-N-style score,
+        but \S{}8.4's list of planted-cell ranks scored at no cost (A1, L1, H1,
+        H2a/b, DataShield-style and the content classifier) has no
+        Self-Inf-N-style rank. The Self-Inf-N-style score is scored only
+        (Appendix C.3), and its build is LW-18's ambitious default, with
+        ``post-Gate-B exploratory'' as the fallback if it is not committed at W1
+        (FOCUS fcf79a2). Resolution: the paper follows F2 and LW-10. For the
+        lead: add its rank to \S{}8.4's list in the stage-1 record, and, if
+        REQ-13 is not built by W1, drop it from the counting rule (\S{}4.5,
+        Appendix C.5).
 \end{enumerate}
+
+\textbf{Sources read (revision 6f):} the brief for revision 6f (the lead's
+rulings on decision 54 and conflicts 78, 80, 81, 83 and 84, GI VI, 17 Oct, under
+the user's weekend delegation); FOCUS.md at
+\nolinkurl{origin/stageb-costs-and-recovery-safeguards-20261003} (fetched 17 Oct
+at 09:19 UTC; head ecdd23e; FOCUS last changed in 00b99a4), its fcf79a2 entries
+(the user's UW decisions, UW-15 and UW-16 among them; the lead's LW decisions at
+their defaults, with LW-18) and its 00b99a4 entry; fetched again at 09:55 UTC
+(head 23848e0), its 09:32 and 09:37 UTC entries in full and 158d2c2's message;
+in \nolinkurl{research/experiments/2026-10-17-stage1-preregistration/} at origin
+(2ded100), the consolidated decision list (LW-09, LW-10, UW-15, UW-16 and LW-26
+in full; other items by search) and the pre-registration DRAFT revision 2
+(\S{}0.5, \S{}3.7, \S{}4.5, \S{}8.1--\S{}8.6 and \S{}9.1--\S{}9.2 in full);
+these notes and the body of revision 6e.
 
 \textbf{Sources read (revision 6e):} the brief for revision 6e (the lead's
 rulings 1--9) and the coordinator's addition on Olmo 3 (decision 48 confirmed);
@@ -5954,8 +6284,7 @@ task loss.
 
 \paragraph{Definitions.}
 A planted data set $\mathcal{D}^{\mathrm{p}}$ replaces the rows of one small
-cell of $\mathcal{D}$ with $k$ rows that look benign but carry a known eroding
-signal, keeping the number of rows fixed. Nested partitions split
+cell of $\mathcal{D}$ with $k$ rows that carry a known eroding signal, keeping the number of rows fixed. Nested partitions split
 $\mathcal{D}^{\mathrm{p}}$ into $M$ cells, so that the planted cell sits inside
 one cell at every $M$. The planted erosion is
 $P = F(a_0^{\mathrm{p}}) - F(a_0)$, and removing the cell that holds the plant
@@ -5966,9 +6295,10 @@ $k_d$. Because the truth is known, the sweep measures how diagnosis and trial
 runs scale with $M$, which natural menus at our budget cannot.
 
 \paragraph{Design.}
-\ph{[PLACEHOLDER: runs only if funded.]} The plant is $k = 37$ rows whose
-answers comply directly with prompts that also have an unsafe answer in the
-source data, but which the source labels safe; they look benign. A sealed draw
+\ph{[PLACEHOLDER: runs only if funded.]} The plant is $k = 37$ PKU red-team prompts with PKU-safe, non-refusing
+answers, from PKU-SafeRLHF, the source of the anchors. Each prompt also has an
+unsafe answer in the source. Each planted answer is labelled safe there and
+complies directly. A sealed draw
 picks one category and one leaf cell inside it, and the plant replaces that
 cell's rows, so the run keeps 4,800 rows and 38 steps. The nested cells
 \ph{[TO BE FINALISED]} are the 8 categories (600 rows), 32 length quartiles
@@ -5977,8 +6307,14 @@ pilot of three seeds goes on only if the plant adds at least 10 pp of erosion
 with a one-sided 90\% lower bound above 5 pp (otherwise the plant doubles once,
 then the null is reported). The main sweep removes the planted cell at each
 menu size (three seeds each) and runs random removal on the planted data.
-Every scorer ranks the cells without new runs. Outputs: $G^{\mathrm{p}}(M)$;
-each diagnostic's top-$k$ hit rate with known truth; the runs-only cost of
+Every scorer ranks the cells without new runs. Only attribution (A1) and the
+Self-Inf-N-style score count toward finding the cause. The text-only scorers
+(L1, H1, the list-or-markup and longest-answer rules, the DataShield-style
+filter and the content classifier) read only row text and the untuned model,
+so their ranks of the planted cell are fixed when the plant is drawn. They are
+published before the pilot as construction checks, and also if the pilot stops
+\ph{[PLANNED; the stage-1 pre-registration is not yet frozen]}. Outputs:
+$G^{\mathrm{p}}(M)$; each scorer's top-$k$ hit rate with known truth; the runs-only cost of
 finding the cell, replayed with the frozen selector rules; and a check of
 additivity across the nested levels.
 
