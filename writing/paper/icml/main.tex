@@ -8,6 +8,17 @@
 % icml2027.bst) when it is released, and re-check the page limit, the Impact
 % Statement rule and the anonymity rules in the ICML 2027 call.
 %
+% Revision 6h (17 Oct 2026, from 10:32 UTC): the lead's rulings of 17 Oct on
+% conflicts 90 and 93 and decision 56. A1's two stability figures move from
+% Sec. 6 to Appendix C.2, labelled development evidence; Sec. 6 keeps "agree
+% only moderately" and points there. Sec. 6 adds one limit sentence: the plant
+% and A1's anchors share PKU-SafeRLHF, and the disjoint-anchor rank (Appendix
+% C.5) is the planned check. Appendix C.11 adds the stop rule of the PHTest
+% draw and the 128-token cap on the PHTest answers. Four wording trims in
+% Sec. 6 hold the length. Main body 7.97 pages to the Impact Statement (8.16
+% to the References heading; 7.97 and 8.16 in revision 6g). Kept in sync with
+% the Markdown draft, revision 6h; Appendix B is regenerated from its notes.
+%
 % Revision 6g (17 Oct 2026, from 09:59 UTC): the lead's rulings of 17 Oct on
 % conflicts 86, 87 and 89, risk 44 and decision 55. Sec. 4.2 states that the
 % PHTest extension of the over-refusal bank fired (Appendix C.11 gives the
@@ -980,25 +991,23 @@ stage-1 outcomes; \S\ref{sec:results} lists every setting tried.
 Every scorer is re-implemented from its paper (``X-style''), so a weak result
 may reflect our implementation; a published table of deviations per scorer,
 reference outputs requested from the authors and the published-setting
-replication address this. A1 scores once, and its row scores at the two checkpoints agree only moderately (Spearman 0.77; top-600 Jaccard 0.43), so the removal set depends on the checkpoint.
+replication address this. A1 scores once, and its row scores at the two checkpoints agree only moderately (Appendix~\ref{app:gatec}), so the removal set depends on
+the checkpoint.
 Comparisons across removal and addition hold only at
-the pre-registered doses (600 rows removed, 48 added). An arm's cost depends on
-how much we evaluate as well as on training, and costs at 1B do not transfer
-to larger models, because scoring and training costs scale differently.
+the pre-registered doses (600 rows removed, 48 added). An arm's cost depends on evaluation as well as training, and costs at 1B do not transfer to larger models, since scoring and training costs scale differently.
 
 \paragraph{Scale and family.}
 The full comparison runs at 1B, with one benign dataset until Alpaca runs; at
 7--8B it is planned on both families and Olmo-3-7B-Instruct, funding-gated,
 with one family as the fallback and Olmo~3 the first model cut; larger sizes
-get a check only if resources allow. Qwen2.5-1.5B was dropped during
-development when its erosion saturated under recipe~B at a learning rate of
-$10^{-4}$, before the per-family learning-rate rule existed, and was not
-retried at a lower rate in this study, so the Qwen runs of
+get a check only if resources allow. Qwen2.5-1.5B was dropped in development when its erosion saturated under recipe~B at a learning rate of
+$10^{-4}$, before the per-family learning-rate rule existed, and was not retried at a lower rate, so the Qwen runs of
 \ph{[CITE: concurrent submission, anonymized]} are the only later evidence.
 
 \paragraph{The positive control and the secondary analysis.}
-The planted cause is artificial; finding it shows that a training-signal diagnostic
-\emph{can} find a concentrated, harmful-prompt cause, not that natural erosion has one. The value of
+The plant is artificial; finding it shows that a training-signal diagnostic
+\emph{can} find a concentrated, harmful-prompt cause, not that natural erosion has one. The plant and A1's anchors share one source, PKU-SafeRLHF; the disjoint-anchor rank is the planned check (Appendix~\ref{app:plant}).
+The value of
 diagnosis at natural menus is model-based, judged against advance predictions. Selectors are not compared at equal budgets here; a later, separately pre-registered study would do that.
 
 \paragraph{Scope and user.}
@@ -1112,7 +1121,7 @@ strata.
 \label{app:editors-notes}
 
 % Converted from the Markdown draft's "Editor's note (delete before
-% submission)" block, revision 6g, by a small converter (Markdown lists,
+% submission)" block, revision 6h, by a small converter (Markdown lists,
 % tables and inline markup to LaTeX; re-created in revision 6 because the
 % revision-5c converter was lost), so the wording follows the Markdown
 % exactly; inline symbols are set as math (revision 6b: a text '|' too;
@@ -1121,96 +1130,117 @@ strata.
 \begingroup\small
 
 \paragraph{What this is.}
-Revision 6g of the draft, written on 17 October 2026 from 09:59 UTC (clock
+Revision 6h of the draft, written on 17 October 2026 from 10:32 UTC (clock
 checked with \texttt{date -u}), applies the lead's rulings of 17 Oct (GI VI,
-under the user's weekend delegation) on conflicts 86, 87 and 89, risk 44 and
-decision 55, from the stage-1 build addendum \S{}7 and \S{}8 (158d2c2, 76a08a0)
-and FOCUS's 09:32 and 09:37 UTC entries: ``training-signal'' is kept, to be
-mentioned to the user (conflict 86); \S{}4.5 now gives the source's reason for
-the construction checks (conflict 87); Appendix C.5 adds the Self-Inf-N-style
-rank to the planted-cell ranks, with its condition (conflict 89), and A1's
-planted-cell rank under a disjoint-source anchor set as a pre-registered
-sensitivity (risk 44), under one more marker [PLANNED; the stage-1
-pre-registration is not yet frozen]; \S{}4.2 and a new paragraph of Appendix
-C.11 state that the PHTest extension of the over-refusal bank fired (decision 55
-(a)); and \S{}6 states A1's one-shot scoring as a limit, with its stability
-figures (decision 55 (b)). The optional \S{}6 sentence on the shared PKU source
-did not fit and is recorded as the fallback (decision 56). The LaTeX Appendix
-B's emphasis glitch in conflict 83 is fixed. ``Six pre-registered repairs'' and
-``about 10--12~pp'' are kept. The main body measures 7.97 pages to the Impact
-Statement (8.16 to the References heading; 7.97 and 8.16 in revision 6f); see
-``What changed in revision 6g'', decisions 38, 43, 55 and 56, risks 31, 44 and
-45, and conflicts 66, 83, 86, 87, 89 and 90--95. The rest of this paragraph
-describes revision 6f (its page counts are revision 6f's), updated where
-revision 6g changed the body. Revision 6f of the draft, written on 17 October
-2026 from 09:19 UTC (clock checked with \texttt{date -u}), applies the lead's
-rulings of 17 Oct (GI VI, under the user's weekend delegation, FOCUS 00b99a4) on
-decision 54 and conflicts 78--84, from the stage-1 decision list's LW-09 and
-LW-10 and the pre-registration DRAFT revision 2's \S{}3.7, \S{}4.5 and \S{}8.5
-(2ded100): the flag's name, ``fails answers end'', now also in \S{}4.2 (conflict
-78); the plant described as PKU red-team prompts with PKU-safe, non-refusing
-answers, never ``benign-looking'' (\S{}4.5, Appendix C.5, the Impact Statement;
-LW-10 F1); and the positive control's claim narrowed to the training-signal
-diagnostics, A1 and a Self-Inf-N-style score, with the text-only scorers'
-planted-cell ranks published before the pilot as construction checks (the
-abstract, \S{}1, contribution 2, \S{}4.5, \S{}6 and Appendix C.5; LW-10 F2 and
-F8). Rulings 80, 81, 83 and 84 are confirmed and their text is unchanged; ``six
+under the user's weekend delegation) on conflicts 90 and 93 and decision 56,
+from the stage-1 build addendum \S{}5, \S{}7 and \S{}8, the W1 builder extract's
+W1-18 and FOCUS's 09:32 and 09:37 UTC entries (no source changed after revision
+6g): A1's two stability figures move from \S{}6 to Appendix C.2, labelled
+development evidence, and \S{}6 keeps ``agree only moderately'' with a pointer
+(conflict 90); \S{}6 gains one limit sentence, that the plant and A1's anchors
+share PKU-SafeRLHF, with the disjoint-anchor rank as the planned check, after
+four small wording trims (decision 56); and Appendix C.11 adds the stop rule of
+the PHTest draw and the 128-token cap on the PHTest answers after the free
+truncation check (conflict 93). Conflicts 91, 92, 94 and 95 are confirmed, their
+text unchanged. Three Markdown rendering glitches in these notes are fixed: the
+``Fill-ins for each outcome'' list, the title alternatives and the [CITE-CHECK]
+table. ``Six pre-registered repairs'' and ``about 10--12~pp'' are kept. The main
+body measures 7.97 pages to the Impact Statement (8.16 to the References
+heading; 7.97 and 8.16 in revision 6g); see ``What changed in revision 6h'',
+decisions 55 and 56, risks 31, 44 and 45, and conflicts 90--97. The rest of this
+paragraph describes revision 6g (its page counts are revision 6g's), updated
+where revision 6h changed the body. Revision 6g of the draft, written on 17
+October 2026 from 09:59 UTC (clock checked with \texttt{date -u}), applies the
+lead's rulings of 17 Oct (GI VI, under the user's weekend delegation) on
+conflicts 86, 87 and 89, risk 44 and decision 55, from the stage-1 build
+addendum \S{}7 and \S{}8 (158d2c2, 76a08a0) and FOCUS's 09:32 and 09:37 UTC
+entries: ``training-signal'' is kept, to be mentioned to the user (conflict 86);
+\S{}4.5 now gives the source's reason for the construction checks (conflict 87);
+Appendix C.5 adds the Self-Inf-N-style rank to the planted-cell ranks, with its
+condition (conflict 89), and A1's planted-cell rank under a disjoint-source
+anchor set as a pre-registered sensitivity (risk 44), under one more marker
+[PLANNED; the stage-1 pre-registration is not yet frozen]; \S{}4.2 and a new
+paragraph of Appendix C.11 state that the PHTest extension of the over-refusal
+bank fired (decision 55 (a)); and \S{}6 states A1's one-shot scoring as a limit,
+with its stability figures (decision 55 (b); revision 6h moves the figures to
+Appendix C.2). The optional \S{}6 sentence on the shared PKU source did not fit
+and is recorded as the fallback (decision 56; revision 6h adds it, with four
+trims). The LaTeX Appendix B's emphasis glitch in conflict 83 is fixed. ``Six
 pre-registered repairs'' and ``about 10--12~pp'' are kept. The main body
 measures 7.97 pages to the Impact Statement (8.16 to the References heading;
-7.94 and 8.13 in revision 6e); see ``What changed in revision 6f'', decisions
-43, 44, 54 and 55, risk 44 and conflicts 78--84 and 86--89. Two stage-1 facts
-that FOCUS recorded during this revision (REQ-19's over-refusal check fired;
-A1's removal set is sealed) were not in the body; revision 6g states both
-(decision 55). The rest of this paragraph describes revision 6e (its page counts
-are revision 6e's), updated where revision 6f changed the body. Revision 6e of
-the draft, written on 17 October 2026 from 08:42 UTC (clock checked with
-\texttt{date -u}), applies the lead's rulings of 17 Oct (GI VI) on stage-1 items
-that the sources settle (the stage-1 pre-registration DRAFT revision 2 and the
-consolidated decision list, 2ded100; FOCUS fcf79a2, and 8dac6ad for Olmo 3): the
-feasibility estimator, LW-06 (\S{}3.2); an arm that fails the coherence screen
-is read and flagged, LW-09 (\S{}4.2); the margin for another family, UW-13, with
-$\delta$'s stated reason, LW-02 C1 (a \S{}3.2 clause; Appendix C.11); headline
-item (2)'s wording, UW-15 (the abstract, \S{}1, contribution 2, \S{}6); and the
-two equivalence grades, LW-02 B3 (Appendix C.11). Each new body statement
-carries the marker [PLANNED; the stage-1 pre-registration is not yet frozen];
-Appendix C.11 holds the definitions. The main body measures 7.94 pages to the
-Impact Statement (8.13 to the References heading; 7.92 and 8.12 in revision 6d);
-see ``What changed in revision 6e'', decisions 2, 38, 39, 44, 48 and 52--54,
-risks 34, 45, 46 and 61, and conflicts 78--85. Decision 48 (Olmo-3-7B-Instruct)
-is now confirmed by the user (FOCUS 8dac6ad). The rest of this paragraph
-describes revision 6d (its page counts are revision 6d's), updated where
-revision 6e changed the body. Revision 6d of the draft, written on 17 October
-2026 from 08:16 UTC (clock checked with \texttt{date -u}), applies the lead's
-rulings of 17 Oct (GI VI) on the stage-1 decisions that FOCUS fcf79a2 and the
-stage-1 build addendum \S{}6 (98ff104, time corrected in 0294d1b) record. Five
-settled items are stated in the body, each with a shared marker [PLANNED; the
-stage-1 pre-registration is not yet frozen]: the paired analysis model HB-C, the
-closed graphical testing family $\Phi$ of 24 nodes, rule R1.3 for \emph{worse}
-on over-refusal and task loss, one primary over-refusal bar $\tau_O^* = 5$ pp
-and the label order (\emph{worse} first, the full row printed) (\S{}3.2,
-\S{}4.9; the full definitions in a new Appendix C.11). It also applies seed
-layout D1 (Table 1, Appendix C.3, \S{}4.4), the conditional PHTest extension of
-the over-refusal bank (\S{}4.2; one new citation), the token axis (Appendix C.3)
-and how HarmBench's 512 tokens are counted (Appendix C.10). The main body now
-measures 7.92 pages to the Impact Statement (8.12 to the References heading;
-7.94 and 8.13 in revision 6c); see ``What changed in revision 6d'', decisions 48
-and 52--53, risk 61 and conflicts 70--77. The rest of this paragraph describes
-revision 6c (its page counts are revision 6c's), updated where revision 6d
-changed the body. Revision 6c of the draft, written on 17 October 2026 from
-07:56 UTC (clock checked with \texttt{date -u}), applies the lead's rulings of
-17 Oct (GI VI; FOCUS fcf79a2 and the stage-1 build addendum \S{}6 at 0294d1b) as
-the brief for revision 6c relays them: HarmBench's validation classifier and its
-512-token window named (\S{}4.2; the model ids in a new Appendix C.10);
-Qwen2.5-1.5B's drop as one limitation sentence (\S{}6, with \S{}4.1 pointing to
-it); and the token-matched analysis with the token-matched random arms (\S{}3.2;
-Appendix C.3). It also records FC-1 as closed and the lead's two corrections.
-The main body now measures 7.94 pages to the Impact Statement (8.13 to the
-References heading; 7.96 and 8.15 in revision 6b); see ``What changed in
-revision 6c'', decisions 49--51 and conflicts 64--69. The rest of this paragraph
-describes revision 6b (its page counts are revision 6b's), updated where
-revision 6c changed the body. Revision 6b of the draft, written on 17 October
-2026 from 07:20 UTC (clock checked with \texttt{date -u}), makes the paper-side
-fixes from the two mock reviews of revision 6
+7.97 and 8.16 in revision 6f); see ``What changed in revision 6g'', decisions
+38, 43, 55 and 56, risks 31, 44 and 45, and conflicts 66, 83, 86, 87, 89 and
+90--95. The rest of this paragraph describes revision 6f (its page counts are
+revision 6f's), updated where revision 6g changed the body. Revision 6f of the
+draft, written on 17 October 2026 from 09:19 UTC (clock checked with
+\texttt{date -u}), applies the lead's rulings of 17 Oct (GI VI, under the user's
+weekend delegation, FOCUS 00b99a4) on decision 54 and conflicts 78--84, from the
+stage-1 decision list's LW-09 and LW-10 and the pre-registration DRAFT revision
+2's \S{}3.7, \S{}4.5 and \S{}8.5 (2ded100): the flag's name, ``fails answers
+end'', now also in \S{}4.2 (conflict 78); the plant described as PKU red-team
+prompts with PKU-safe, non-refusing answers, never ``benign-looking'' (\S{}4.5,
+Appendix C.5, the Impact Statement; LW-10 F1); and the positive control's claim
+narrowed to the training-signal diagnostics, A1 and a Self-Inf-N-style score,
+with the text-only scorers' planted-cell ranks published before the pilot as
+construction checks (the abstract, \S{}1, contribution 2, \S{}4.5, \S{}6 and
+Appendix C.5; LW-10 F2 and F8). Rulings 80, 81, 83 and 84 are confirmed and
+their text is unchanged; ``six pre-registered repairs'' and ``about 10--12~pp''
+are kept. The main body measures 7.97 pages to the Impact Statement (8.16 to the
+References heading; 7.94 and 8.13 in revision 6e); see ``What changed in
+revision 6f'', decisions 43, 44, 54 and 55, risk 44 and conflicts 78--84 and
+86--89. Two stage-1 facts that FOCUS recorded during this revision (REQ-19's
+over-refusal check fired; A1's removal set is sealed) were not in the body;
+revision 6g states both (decision 55). The rest of this paragraph describes
+revision 6e (its page counts are revision 6e's), updated where revision 6f
+changed the body. Revision 6e of the draft, written on 17 October 2026 from
+08:42 UTC (clock checked with \texttt{date -u}), applies the lead's rulings of
+17 Oct (GI VI) on stage-1 items that the sources settle (the stage-1
+pre-registration DRAFT revision 2 and the consolidated decision list, 2ded100;
+FOCUS fcf79a2, and 8dac6ad for Olmo 3): the feasibility estimator, LW-06
+(\S{}3.2); an arm that fails the coherence screen is read and flagged, LW-09
+(\S{}4.2); the margin for another family, UW-13, with $\delta$'s stated reason,
+LW-02 C1 (a \S{}3.2 clause; Appendix C.11); headline item (2)'s wording, UW-15
+(the abstract, \S{}1, contribution 2, \S{}6); and the two equivalence grades,
+LW-02 B3 (Appendix C.11). Each new body statement carries the marker [PLANNED;
+the stage-1 pre-registration is not yet frozen]; Appendix C.11 holds the
+definitions. The main body measures 7.94 pages to the Impact Statement (8.13 to
+the References heading; 7.92 and 8.12 in revision 6d); see ``What changed in
+revision 6e'', decisions 2, 38, 39, 44, 48 and 52--54, risks 34, 45, 46 and 61,
+and conflicts 78--85. Decision 48 (Olmo-3-7B-Instruct) is now confirmed by the
+user (FOCUS 8dac6ad). The rest of this paragraph describes revision 6d (its page
+counts are revision 6d's), updated where revision 6e changed the body. Revision
+6d of the draft, written on 17 October 2026 from 08:16 UTC (clock checked with
+\texttt{date -u}), applies the lead's rulings of 17 Oct (GI VI) on the stage-1
+decisions that FOCUS fcf79a2 and the stage-1 build addendum \S{}6 (98ff104, time
+corrected in 0294d1b) record. Five settled items are stated in the body, each
+with a shared marker [PLANNED; the stage-1 pre-registration is not yet frozen]:
+the paired analysis model HB-C, the closed graphical testing family $\Phi$ of 24
+nodes, rule R1.3 for \emph{worse} on over-refusal and task loss, one primary
+over-refusal bar $\tau_O^* = 5$ pp and the label order (\emph{worse} first, the
+full row printed) (\S{}3.2, \S{}4.9; the full definitions in a new Appendix
+C.11). It also applies seed layout D1 (Table 1, Appendix C.3, \S{}4.4), the
+conditional PHTest extension of the over-refusal bank (\S{}4.2; one new
+citation), the token axis (Appendix C.3) and how HarmBench's 512 tokens are
+counted (Appendix C.10). The main body now measures 7.92 pages to the Impact
+Statement (8.12 to the References heading; 7.94 and 8.13 in revision 6c); see
+``What changed in revision 6d'', decisions 48 and 52--53, risk 61 and conflicts
+70--77. The rest of this paragraph describes revision 6c (its page counts are
+revision 6c's), updated where revision 6d changed the body. Revision 6c of the
+draft, written on 17 October 2026 from 07:56 UTC (clock checked with
+\texttt{date -u}), applies the lead's rulings of 17 Oct (GI VI; FOCUS fcf79a2
+and the stage-1 build addendum \S{}6 at 0294d1b) as the brief for revision 6c
+relays them: HarmBench's validation classifier and its 512-token window named
+(\S{}4.2; the model ids in a new Appendix C.10); Qwen2.5-1.5B's drop as one
+limitation sentence (\S{}6, with \S{}4.1 pointing to it); and the token-matched
+analysis with the token-matched random arms (\S{}3.2; Appendix C.3). It also
+records FC-1 as closed and the lead's two corrections. The main body now
+measures 7.94 pages to the Impact Statement (8.13 to the References heading;
+7.96 and 8.15 in revision 6b); see ``What changed in revision 6c'', decisions
+49--51 and conflicts 64--69. The rest of this paragraph describes revision 6b
+(its page counts are revision 6b's), updated where revision 6c changed the body.
+Revision 6b of the draft, written on 17 October 2026 from 07:20 UTC (clock
+checked with \texttt{date -u}), makes the paper-side fixes from the two mock
+reviews of revision 6
 (\nolinkurl{writing/paper/2026-10-17-mock-review-A-methods.md}, statistics and
 design; \nolinkurl{writing/paper/2026-10-17-mock-review-B-safety.md}, LLM
 safety) that do not depend on the lead's pending stage-1 rulings, and records
@@ -1249,7 +1279,7 @@ as amended by the adopted FOCUS amendment (commit 4b37ec2, ``ADOPTED
 2026-10-08T13:53 UTC'') and the study plan
 \nolinkurl{research/review/2026-10-08-sharpened-direction-DRAFT.md} (revision
 2). FOCUS.md wins on any conflict. \textbf{Nothing in the paper body is a
-result,} with six kinds of exception, each a design or status fact: the blind
+result,} with five kinds of exception, each a design or status fact: the blind
 human read's rounded caveat (\S{}4.2, \S{}6, the Impact Statement; conflict 28);
 \S{}6's sentence that Qwen2.5-1.5B's erosion saturated under recipe B during
 development (revision 6c; a \S{}4.1 clause in revision 6b; conflict 54); the
@@ -1258,22 +1288,21 @@ rungs were accepted on a too-close bar (\S{}4.1); Gate B's status (the noise
 gate passed; the rankings are sealed) and the pre-registered consequence of the
 sealed rankings for Gate C (\S{}4.6, Appendix C.1--C.2), with no number and no
 category named; and \S{}4.9's disclosure that the stage-1 pre-registration is
-frozen after those Gate B values were seen; and, since revision 6g (the lead's
-ruling 6), \S{}6's two rounded stability figures of A1's sealed per-row scores
-(Spearman 0.77; top-600 Jaccard 0.43), a pre-registered report-only read of wave
-0b's retrain of $a_0$, not an outcome of any repair arm (conflict 90). Gate B's
-category runs (wave 1), Gate C's reading, stage 1, the positive control and the
-Llama stage have not run. Development evidence appears only in these notes,
-except the blind read's counts in Appendix A. In the LaTeX build these notes are
-Appendix B and the design details are Appendix C; when the notes are deleted
-before submission, Appendix C becomes Appendix B (every reference to it is a
-\texttt{\textbackslash{}ref}). Menu sizes, the filter list and costs are marked
-[TO BE FINALISED]; the stage-1 pre-registration, Safe LoRA's settings and
-Alpaca's preconditions are marked [NOT YET FIXED]; the release policy and the
-supplementary copies are marked [TO BE DECIDED]; the full 7--8B comparison is
-marked [PLANNED; funding-gated, fallback one family]; Olmo-3-7B-Instruct is
-marked [PLANNED; funding-gated; first 7--8B model cut] and the
-lower-learning-rate reference [PLANNED; to be pre-registered] (both revision
+frozen after those Gate B values were seen. Gate B's category runs (wave 1),
+Gate C's reading, stage 1, the positive control and the Llama stage have not
+run. Development evidence appears only in these notes, except the blind read's
+counts in Appendix A and, since revision 6h, A1's two rounded stability figures
+in Appendix C.2, labelled development evidence (a pre-registered report-only
+read of wave 0b, not an outcome of any repair arm; conflict 90). In the LaTeX
+build these notes are Appendix B and the design details are Appendix C; when the
+notes are deleted before submission, Appendix C becomes Appendix B (every
+reference to it is a \texttt{\textbackslash{}ref}). Menu sizes, the filter list
+and costs are marked [TO BE FINALISED]; the stage-1 pre-registration, Safe
+LoRA's settings and Alpaca's preconditions are marked [NOT YET FIXED]; the
+release policy and the supplementary copies are marked [TO BE DECIDED]; the full
+7--8B comparison is marked [PLANNED; funding-gated, fallback one family];
+Olmo-3-7B-Instruct is marked [PLANNED; funding-gated; first 7--8B model cut] and
+the lower-learning-rate reference [PLANNED; to be pre-registered] (both revision
 6b); three items are marked [TO BE FIXED in the stage-1 pre-registration] (the
 placeholder table lists them; since revision 6g one of them, the two candidate
 data-only additions, sits in Appendix C.3; revision 6b marked ten, revision 6c
@@ -1316,7 +1345,8 @@ their fallback. UW-14 names no title fallback; alternative 5 stays on the list.
 \textbf{Revision 6d:} the title is unchanged; Appendix C.3 now states the token
 axis (total row tokens, with target tokens beside it; the lead's ruling 4).
 \textbf{Revision 6e:} the title is unchanged. \textbf{Revision 6f:} the title is
-unchanged. \textbf{Revision 6g:} the title is unchanged. Alternatives:
+unchanged. \textbf{Revision 6g:} the title is unchanged. \textbf{Revision 6h:}
+the title is unchanged. Alternatives:
 
 \begin{enumerate}
   \item \emph{Repairing Safety After Benign Fine-Tuning: A Compute-Matched
@@ -1340,6 +1370,156 @@ unchanged. \textbf{Revision 6g:} the title is unchanged. Alternatives:
         matching cannot be done; revision 6c: under UW-14 the token-matched
         analysis runs in any case).
 \end{enumerate}
+
+\subsection{What changed in revision 6h (17 Oct, from 10:32 UTC)}
+
+\begin{itemize}
+  \item \textbf{Sources.} The brief for revision 6h (the lead's rulings 1--7, GI
+        VI, 17 Oct, under the user's weekend delegation); at origin (fetched 17
+        Oct at 10:32 UTC; head 6b48aea, revision 6g itself; no source changed
+        after 76a08a0): the stage-1 build addendum
+        (\nolinkurl{.ai/briefs/stage1-commitments-build-20261016-lead-decisions.md}),
+        \S{}5, \S{}7 and \S{}8 in full and \S{}6 item 4; in
+        \nolinkurl{research/experiments/2026-10-17-stage1-preregistration/}
+        (2ded100), the W1 builder extract's W1-18 and W1-19 in full and the
+        pre-registration DRAFT revision 2's \S{}6.4 and \S{}6.5 in full (W1-18
+        and U8 by search); \nolinkurl{research/FOCUS.md} (last changed in
+        1423a4c), its 09:32 and 09:37 UTC entries in full and a search for the
+        truncation check. Before any edit, both paper files matched origin's tip
+        (an empty \texttt{git diff} against 6b48aea). Details in ``Sources read
+        (revision 6h)''.
+  \item \textbf{1. A1's stability figures (\S{}6 $\to$ Appendix C.2; the lead's
+        ruling 1; conflict 90).} \S{}6, ``Baselines, doses and cost'':
+        ``(Spearman 0.77; top-600 Jaccard 0.43)'' $\to$ ``(Appendix C.2)''; the
+        rest of the sentence is unchanged (``A1 scores once, and its row scores
+        at the two checkpoints agree only moderately (Appendix C.2), so the
+        removal set depends on the checkpoint.''). Appendix C.2, ``Diagnostics
+        and picks'', after the attribution sentence: ``Development evidence,
+        from a pre-registered report-only read of wave 0b: the per-row
+        attribution scores at each checkpoint alone have a Spearman correlation
+        of 0.77 over the 4,800 rows, and the top-600 sets that each would select
+        have a Jaccard overlap of 0.43 (\S{}6).'' Sources: addendum \S{}5 item 2
+        (a pre-registered report: the Spearman $\rho$ between the per-row q-only
+        and e1-only bi-anchored cosines, and the Jaccard overlap of the top-600
+        sets they would select) and FOCUS's 09:32 UTC entry (0.771 and 0.434),
+        rounded; q and e1 are the checkpoints after steps 10 and 38 (Appendix
+        C.1). No marker, as Gate B's status in Appendix C.1. ``What this is''
+        lists five kinds of exception again, and its development-evidence
+        sentence names Appendix C.2.
+  \item \textbf{2. The shared PKU source (\S{}6; the lead's ruling 2; decision
+        56).} In ``The positive control and the secondary analysis'', after
+        ``not that natural erosion has one.'': ``The plant and A1's anchors
+        share one source, PKU-SafeRLHF; the disjoint-anchor rank is the planned
+        check (Appendix C.5).'' No marker (Appendix C.5's marker covers the
+        plan). Sources: addendum \S{}8 item 1 (the plant's rows and Gate C's 128
+        anchors come from PKU-SafeRLHF; A1 is bi-anchored on those anchors; the
+        disjoint-source rank is a pre-registered sensitivity). It fits with four
+        small trims (below). Decision 56 resolved.
+  \item \textbf{3. The over-refusal bank (Appendix C.11; the lead's ruling 3;
+        conflict 93; addendum \S{}7 items 3 and 4; W1-18).} In ``The
+        over-refusal bank'', after ``the first 400 eligible prompts in a sealed
+        order form the extension.'': ``If fewer than 400 prompts are eligible,
+        the draw stops and only the counts are reported. The PHTest answers are
+        capped at 128 tokens, after a free truncation check of that cap on the
+        recorded greedy answers to the 100 development prompts.'' The addendum's
+        ``stop with counts only and report to the lead'' is written ``the draw
+        stops and only the counts are reported''; W1-18's check (1) is ``the
+        128-token truncation check on the dev-100 greedy answers of the 11
+        recorded OLMo-2-1B units'', run on the Mac at no cost; its bar (at least
+        97 of 100 flags agree in each unit, and no unit's count moves by more
+        than 2) is not stated. ``Free'', no dollar sign, as the brief asks.
+        \S{}4.2 is unchanged. The cap's scope: conflict 96; the check's result:
+        conflict 97.
+  \item \textbf{4. The Markdown lists (the lead's ruling 4).} ``\textbf{Fill-ins
+        for each outcome} (templates, not claims):'' had no blank line before
+        its list, so the Markdown renderer read the nine items as one paragraph,
+        and the ``\_\_'' blanks set stray emphasis in it; a blank line now
+        precedes the list. A check of every list and table in the notes and the
+        paper (\nolinkurl{check_lists.py}: it flags list lines that follow a
+        paragraph line, table rows without a header, and list or table lines
+        that the renderer of \nolinkurl{paper_to_pdf.py} leaves inside a
+        paragraph) found two more, both in the notes: the five title
+        alternatives after ``\textbf{Title.}'' (a blank line added) and the
+        [CITE-CHECK] table, whose rows 27--37 followed a blank line and printed
+        as one paragraph of ``$|$'' text (in the LaTeX, as a second table with
+        row 27 as its bold header); that blank line is removed. After the fixes
+        the check finds nothing, and the Markdown PDF shows both lists as lists
+        and the table as one table. The LaTeX lists were already right (the
+        converter does not need the blank line); the [CITE-CHECK] table is now
+        one longtable.
+  \item \textbf{5. Confirmed, unchanged (the lead's ruling 5).} Conflicts 91,
+        92, 94 and 95: their resolutions stand and the text is unchanged; each
+        is marked resolved.
+  \item \textbf{6. Kept unchanged (the lead's ruling 6).} The abstract's ``six
+        pre-registered repairs'' and \S{}4.6's ``about 10--12~pp''. No source
+        changed after revision 6g (origin's only commit after 76a08a0 is
+        revision 6g, 6b48aea, which touches only the paper), so none settles
+        them (risk 34).
+  \item \textbf{Trims to hold the length (meaning unchanged; all in \S{}6).}
+        With rulings 1 and 3 alone, the body measures 7.97 pages, as in revision
+        6g: ruling 1 freed less than a line (``Baselines, doses and cost'' still
+        ends on a two-word line). With the limit sentence and no trims, the
+        Impact Statement heading moves to the top of page 9 (8.00; 8.20 to the
+        References heading). Four wording trims: (1) ``An arm's cost depends on
+        how much we evaluate as well as on training, and costs at 1B do not
+        transfer to larger models, because scoring and training costs scale
+        differently'' $\to$ ``An arm's cost depends on evaluation as well as
+        training, \ldots{}, since scoring and training costs scale
+        differently''; (2) ``and was not retried at a lower rate in this study,
+        so'' $\to$ ``\ldots{} at a lower rate, so'' (the clause after it says
+        that the concurrent submission's runs are the only later evidence); (3)
+        ``Qwen2.5-1.5B was dropped during development'' $\to$ ``\ldots{} dropped
+        in development''; (4) ``The planted cause is artificial'' $\to$ ``The
+        plant is artificial'' (\S{}4.9 and Appendix C.5 say ``the plant''). (1)
+        saves a line, (2) and (3) together save a line, and (4) ends the
+        positive-control paragraph a line earlier; without any one of them the
+        heading falls to page 9. Tried and not kept: revision 6g's \S{}4.5 cut
+        of ``which natural menus at our budget cannot'' (it saves a line but
+        removes a reason from the body); ``per arm and scorer'' (\S{}4.7), the
+        merged ``we report'' sentence (\S{}6, ``Scope and user''),
+        ``attack-success rates under other judges'', ``are not tested'' and
+        ``compared at equal budgets;'' (none saves a line); (1) without its
+        second and third changes, and (2) or (3) alone (no line saved); and
+        three other wordings of the sentence: ``\ldots{}; A1's rank under
+        disjoint-source anchors is the planned check (Appendix C.5)'' (no fit
+        with the four trims), ``The plant and A1's anchors share their PKU
+        source; \ldots{}'' and ``The plant shares A1's anchor source,
+        PKU-SafeRLHF; a disjoint-anchor rank \ldots{}'' (both fit without trim
+        (4); the kept wording names the source as Appendix C.5 does and follows
+        the ruling's words).
+  \item \textbf{Length.} Before: 7.97 pages to the Impact Statement heading
+        (8.16 to References), revision 6g, re-measured on its committed source
+        with the same script. After: 7.97 (8.16 to References); the heading sits
+        where it sat in revision 6g, on page 8's right column, with two lines of
+        its text.
+  \item \textbf{Editor's notes.} This list; ``What this is'' (the sixth
+        exception removed; the development-evidence sentence) and ``Title''; the
+        placeholder table (\S{}6, Appendix C); decisions 55 and 56 (56
+        resolved); risks 31, 44 and 45; a status line at revision 6h and the end
+        of revision 6f's; conflicts 90--95 resolved and 96--97 added; ``Sources
+        read (revision 6h)''; the three rendering fixes (item 4). The LaTeX
+        Appendix B is regenerated from these notes with revision 6g's converter,
+        which reproduced revision 6g's Appendix B byte for byte from revision
+        6g's notes before any edit; only its header comment changed since (it
+        now says revision 6h).
+  \item \textbf{Pipelines.} Revision 6g's scripts, copied to a new scratch
+        folder \nolinkurl{rev6h/}: \nolinkurl{body_pages.py},
+        \nolinkurl{heads.py}, \nolinkurl{col.py} and \nolinkurl{colends.py}
+        unchanged; \nolinkurl{build.sh} and \nolinkurl{splice_notes.py} with the
+        new folder; \nolinkurl{notes_md_to_tex.py} with its header comment;
+        \nolinkurl{paper_to_pdf.py} with its banner set to revision 6h. New: one
+        script for the body and Appendix C edits, one for the trims, one for the
+        notes, one for the LaTeX header comment, \nolinkurl{check_lists.py}
+        (item 4) and \nolinkurl{short_last.py} (paragraph-final short lines,
+        used to choose the trims). Each body change is a single-match
+        replacement (whitespace-tolerant in the LaTeX), so the two files carry
+        the same words.
+  \item \textbf{Anonymity.} As in revision 6g: the body, Appendices A and C and
+        the bibliography hold no author name, institution, repository, branch,
+        account, commit hash, file path or grant (no new BibTeX entry); the PDF
+        metadata says ``Anonymous Authors''. These notes (Appendix B) are not
+        anonymous and must be deleted before submission.
+\end{itemize}
 
 \subsection{What changed in revision 6g (17 Oct, from 09:59 UTC)}
 
@@ -3265,7 +3445,10 @@ main again) and renames G+Qi to B+Qi.}
   \S{}5, \S{}7 & placeholders & results (decision 33: the page budget) \\
   \S{}6 & [CITE: concurrent submission, anonymized], twice (the rank-16 check;
       since revision 6c, the Qwen runs); revision 6g: the A1 stability sentence
-      carries no marker & decision 32 \\
+      carries no marker. Revision 6h: its figures move to Appendix C.2; the
+      limit sentence on the shared PKU source carries no marker and points to
+      Appendix C.5, whose marker covers the disjoint-anchor rank (decision 56) &
+      decision 32 \\
   Impact Statement & [TO BE DECIDED: what is released] & decision 31 \\
   Appendix A, Appendix C.8 & [CITE: concurrent submission, anonymized] &
       decisions 30 and 32 \\
@@ -3275,8 +3458,11 @@ main again) and renames G+Qi to B+Qi.}
       feasibility and the coherence rule under the same marker; revision 6g adds
       the over-refusal bank); Appendix C.3: [TO BE FIXED in the stage-1
       pre-registration] the two candidate data-only additions (revision 6g,
-      moved from \S{}4.3) & decision 32; the stage-1 freeze; the stage-1
-      pre-registration (decision 41) \\
+      moved from \S{}4.3). Revision 6h: Appendix C.2 states A1's two stability
+      figures, labelled development evidence, without a marker (conflict 90);
+      Appendix C.11's over-refusal bank adds the stop rule and the 128-token
+      cap, under its head marker (conflict 93) & decision 32; the stage-1
+      freeze; the stage-1 pre-registration (decision 41) \\
   References & Microsoft page [CITE-CHECK]; Alpaca has no citation (\S{}4.1,
       \S{}4.8); GradShield's proceedings entry; the versions of SABA and
       SafeTuneBed; the survey's ACM Computing Surveys version; the wording for
@@ -3503,26 +3689,17 @@ text); (4) the secondary arms and their order.
       the layers where the update departs from it) was not checked against the
       paper; the lead reads it in full before the settings are fixed (decision
       19). \\
-\end{longtable}
-
-\begin{longtable}{@{}L{0.03\linewidth}L{0.24\linewidth}L{0.08\linewidth}L{0.55\linewidth}@{}}
-  \toprule
-  \textbf{27} & \textbf{Safety at One Shot (Zhang et al., 2026a; ICLR 2026;
-      arXiv:2601.01887)} & \textbf{\S{}2, \S{}6} & \textbf{Revision 6. BibTeX
-      from the OpenReview note EyH8Fu3vtZ (ICLR 2026 poster), fetched by the
-      OpenReview API v2 search endpoint (the note endpoint answered with a bot
-      challenge); arXiv:2601.01887 checked by the arXiv API (same title; second
-      author ``Lipeng He'' on arXiv, ``Tony He'' on OpenReview: check). Claim
-      (``further training on a single safety example'' restores safety; it
-      ``acts after fine-tuning'') from the arXiv abstract: ``safety alignment
-      can be fully recovered with only a single safety example, without
-      sacrificing utility and at minimal cost'', shown after fine-tuning with
-      harmful examples. Whether it works after benign fine-tuning is not tested
-      by them as far as the abstract says.} \\
-  \midrule
-  \endhead
-  \bottomrule
-  \endfoot
+  27 & Safety at One Shot (Zhang et al., 2026a; ICLR 2026; arXiv:2601.01887) &
+      \S{}2, \S{}6 & Revision 6. BibTeX from the OpenReview note EyH8Fu3vtZ
+      (ICLR 2026 poster), fetched by the OpenReview API v2 search endpoint (the
+      note endpoint answered with a bot challenge); arXiv:2601.01887 checked by
+      the arXiv API (same title; second author ``Lipeng He'' on arXiv, ``Tony
+      He'' on OpenReview: check). Claim (``further training on a single safety
+      example'' restores safety; it ``acts after fine-tuning'') from the arXiv
+      abstract: ``safety alignment can be fully recovered with only a single
+      safety example, without sacrificing utility and at minimal cost'', shown
+      after fine-tuning with harmful examples. Whether it works after benign
+      fine-tuning is not tested by them as far as the abstract says. \\
   28 & SABA (Anonymous, 2026; ICLR 2027 submission, OpenReview Jo6U0y2omr) &
       \S{}2 & Revision 6. BibTeX and abstract from the OpenReview API v2 search
       record (16 Oct). The body's clause paraphrases the abstract: ``risk
@@ -4460,7 +4637,10 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         11.04~pp and addendum \S{}7's draw rule (conflicts 91, 93). (b) \S{}6
         states A1's one-shot scoring as a limit, in the ruling's words, with the
         rounded figures (Spearman 0.77; top-600 Jaccard 0.43); the numbers are
-        in the body, not only in these notes (conflict 90).
+        in the body, not only in these notes (conflict 90). \textbf{Revision 6h
+        (the lead's ruling 1; conflict 90):} (b)'s figures move to Appendix C.2,
+        labelled development evidence; \S{}6 keeps ``agree only moderately'' and
+        points there.
   \item \textbf{The \S{}6 limit sentence on the shared PKU source (revision 6g;
         the fallback of the lead's ruling 4; for the lead).} Not in the body:
         after ruling 6's sentence there was no room (with the rulings and all
@@ -4472,7 +4652,15 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         the plant may be near-circular.'' (the version tried in revision 6g
         added ``Appendix C.5 adds a disjoint-source sensitivity''). Appendix C.5
         already says that the shared source is reported as a limit if the set
-        cannot be built.
+        cannot be built. \textbf{Revision 6h: RESOLVED (the lead's ruling 2, GI
+        VI, 17 Oct, under the user's weekend delegation):} \S{}6 now says ``The
+        plant and A1's anchors share one source, PKU-SafeRLHF; the
+        disjoint-anchor rank is the planned check (Appendix C.5).'', after four
+        small wording trims in \S{}6 (``What changed in revision 6h''). If the
+        disjoint-source set cannot be built before the stage-1 freeze, or stage
+        1b is not funded (addendum \S{}8 item 1's fallback), the sentence keeps
+        its first half and drops the planned check; Appendix C.5's last sentence
+        already covers the first case.
 \end{enumerate}
 
 \subsection{Risks a reviewer will raise (sources in brackets)}
@@ -4728,7 +4916,9 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         \textbf{Revision 6g (the lead's ruling 6):} \S{}6 states it as a limit:
         A1 scores once, and its row scores at the two checkpoints agree only
         moderately (Spearman 0.77; top-600 Jaccard 0.43), so the removal set
-        depends on the checkpoint.
+        depends on the checkpoint. \textbf{Revision 6h (the lead's ruling 1):}
+        the figures move to Appendix C.2, labelled development evidence; \S{}6
+        keeps ``agree only moderately'' (conflict 90).
   \item \textbf{Literature the body does not cite} (the sweep's \S{}5
         ``sentences to add''): concurrent work on first-token damage, a
         capacity-rank-recipe map, seed effects larger than data edits, judge
@@ -4814,7 +5004,9 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         before the stage-1 freeze and before any planted run); the rank under
         the PKU-SafeRLHF anchors stays the counted one, marked [PLANNED; the
         stage-1 pre-registration is not yet frozen]. \S{}6 does not state the
-        shared source (no room; decision 56).
+        shared source (no room; decision 56). \textbf{Revision 6h (the lead's
+        ruling 2):} \S{}6 now states the shared source and names the
+        disjoint-anchor rank as the planned check (Appendix C.5; decision 56).
   \item \textbf{Over-refusal (review A W12, new; review B W7, new; review B
         \S{}8.3, new).} Two baselines (untuned for feasibility, comparator for
         \emph{worse}); 100 greedy prompts; point-estimate feasibility. Body:
@@ -4832,7 +5024,9 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         may raise; the PHTest extension is the pre-set answer if the free MDE
         check fires. \textbf{Revision 6g:} the extension fired: the primary bank
         is the 100 development prompts plus 400 harmless PHTest prompts
-        (\S{}4.2; Appendix C.11; decision 55).
+        (\S{}4.2; Appendix C.11; decision 55). \textbf{Revision 6h:} Appendix
+        C.11 adds the stop rule of the PHTest draw and the 128-token cap on the
+        PHTest answers (conflicts 93, 96 and 97).
   \item \textbf{Arms that fail the coherence screen are ``not read'' (review A
         W13, new).} Informative missingness. Body: not changed (decision 44).
         \textbf{Revision 6d:} LW-09 settles it in the sources (the tested label
@@ -5377,6 +5571,11 @@ reading).
         the beginning-of-sequence token, and truncates on the right (CITE-CHECK
         36), so the development $E_{\mathrm{HB}}$ values and stage 1 use the
         same clip as HarmBench's script.
+  \item \textbf{Status at revision 6h (origin fetched 17 Oct at 10:32 UTC, head
+        6b48aea; FOCUS last changed in 1423a4c).} No FOCUS entry is newer than
+        09:37 UTC on 17 Oct, and no source changed after revision 6g (6b48aea is
+        revision 6g itself). No FOCUS entry records W1-18's result (conflict
+        97).
   \item \textbf{Status at revision 6g (FOCUS fetched 17 Oct at 09:59 UTC, head
         76a08a0; FOCUS last changed in 1423a4c).} No FOCUS entry is newer than
         09:37 UTC on 17 Oct. 76a08a0 adds the stage-1 build addendum \S{}8
@@ -5399,7 +5598,8 @@ reading).
         downloaded); $\tau_{L}$ = 0.0067 nats. Development evidence, not in the
         body in revision 6f; revision 6g states the MDE in Appendix C.11 and the
         two stability figures, rounded, in \S{}6 (the lead's rulings 5 and 6;
-        decision 55).
+        decision 55); revision 6h moves the two figures to Appendix C.2,
+        labelled development evidence (conflict 90).
   \item \textbf{Status at revision 6e (FOCUS fetched 17 Oct at 08:42 UTC, last
         changed in fcf79a2, head 80fd326; fetched again at 09:01 UTC, head
         00b99a4).} 8dac6ad records the user's decision on Olmo-3-7B-Instruct
@@ -6176,28 +6376,42 @@ reading).
         \S{}5 item 2) of A1's sealed per-row scores on wave 0b's retrain of
         $a_0$, not an outcome of any repair arm. For the lead: if the body
         should stay free of measured values, the figures can move to Appendix
-        C.2 and \S{}6 keep ``agree only moderately''.
+        C.2 and \S{}6 keep ``agree only moderately''. \textbf{Revision 6h:
+        RESOLVED (the lead's ruling 1):} the figures move to Appendix C.2,
+        labelled development evidence (a pre-registered report-only read of wave
+        0b); \S{}6 keeps ``agree only moderately'' and points to Appendix C.2;
+        ``What this is'' lists five kinds of exception again.
   \item \textbf{Where the 11.04~pp goes (the lead's ruling 5).} The ruling gives
         the number and two places, \S{}4.2 and Appendix C.11, but not which one
         carries the number. Resolution: Appendix C.11 only, as for Gate A's
         45.11~pp (conflict 81); \S{}4.2 says that the check ``put the six-seed
         minimum detectable effect (MDE) on the 100 above 5~pp'', as \S{}4.6
-        states Gate B's passed noise gate without a number.
+        states Gate B's passed noise gate without a number. \textbf{Revision 6h:
+        RESOLVED (confirmed by the lead's ruling 5); text unchanged.}
   \item \textbf{``By W1'' (the lead's ruling 3) in the paper's terms.} The
         DRAFT's deadline line defines W1 as ``before Gate B wave 1'', which the
         paper calls Gate B's category runs (\S{}4.9; Appendix C.1). Resolution:
         ``if its scorer is not committed before Gate B's category runs''.
+        \textbf{Revision 6h: RESOLVED (confirmed by the lead's ruling 5); text
+        unchanged.}
   \item \textbf{Parts of addendum \S{}7 not in the paper.} Its item 4 judges the
         500-prompt bank on answers capped at 128 tokens, after W1-18's
         truncation check, and its item 3 stops with counts only if fewer than
         400 prompts are eligible; \S{}4.2 says ``greedy answers'' and gives no
         cap. Resolution: not stated (outside the ruling). For the lead: whether
-        Appendix C.11 should state the 128-token cap.
+        Appendix C.11 should state the 128-token cap. \textbf{Revision 6h:
+        RESOLVED (the lead's ruling 3):} Appendix C.11 states the stop rule
+        (``If fewer than 400 prompts are eligible, the draw stops and only the
+        counts are reported'') and the cap (``The PHTest answers are capped at
+        128 tokens, after a free truncation check of that cap on the recorded
+        greedy answers to the 100 development prompts''); \S{}4.2 is unchanged
+        (conflicts 96 and 97).
   \item \textbf{``Check that C.5 and \S{}4.5 say exactly this'' (the lead's
         ruling 2).} Revision 6f gave the reason in Appendix C.5 only. Read as:
         both places give the source's reason. Resolution: \S{}4.5 gains it in
         the ruling's words, at about one line's cost; contribution 2 still gives
-        none.
+        none. \textbf{Revision 6h: RESOLVED (confirmed by the lead's ruling 5);
+        text unchanged.}
   \item \textbf{The fallback clause in Appendix C.5 (the lead's ruling 4).} The
         ruling lists the sensitivity's parts; addendum \S{}8 item 1 also gives
         its fallback, the shared source stated as a limit in \S{}6 if the set
@@ -6206,7 +6420,42 @@ reading).
         cannot be built before the freeze, the shared source is reported as a
         limit instead''); the second is moot there, because Appendix C.5's
         design runs only if funded. \S{}6's sentence: decision 56.
+        \textbf{Revision 6h: RESOLVED (confirmed by the lead's ruling 5); text
+        unchanged.} \S{}6 now states the shared source (decision 56).
+  \item \textbf{The cap's scope: ``the PHTest answers'' (the lead's ruling 3)
+        against addendum \S{}7 item 4.} The ruling caps the PHTest answers. The
+        addendum says that the primary bank, ``the dev 100 plus these 400'', is
+        ``judged on answers capped at 128 tokens after W1-18's \ldots{}
+        truncation check'', which can be read as covering the 100 development
+        prompts too; DRAFT \S{}6.5 ties the cap to the cost of the new prompts'
+        answers and reports the dev-100 over-refusal ``measured exactly as Gate
+        B's Ref'' beside the bank. Resolution: Appendix C.11 follows the ruling,
+        which states no more than either source. For the lead: whether the 100
+        development prompts' answers in the primary bank are also judged at the
+        128-token cap; if so, the sentence becomes ``The bank's answers are
+        capped \ldots{}''.
+  \item \textbf{W1-18's result is not in the sources.} FOCUS's 09:37 UTC entry
+        says that Part F (REQ-19, W1-18, W1-05) was built and integrated, and
+        gives REQ-19's and W1-05's results but not W1-18's. Resolution: Appendix
+        C.11 says that the cap applies ``after a free truncation check'', under
+        its head marker [PLANNED; the stage-1 pre-registration is not yet
+        frozen], and does not say whether the check has run or passed. For the
+        lead: state the result when it is recorded; DRAFT \S{}6.5's cost line
+        assumes that the 2,048-token cap stays if the check fails.
 \end{enumerate}
+
+\textbf{Sources read (revision 6h):} the brief for revision 6h (the lead's
+rulings 1--7, GI VI, 17 Oct, under the user's weekend delegation); at
+\nolinkurl{origin/stageb-costs-and-recovery-safeguards-20261003} (fetched 17 Oct
+at 10:32 UTC; head 6b48aea), the stage-1 build addendum
+(\nolinkurl{.ai/briefs/stage1-commitments-build-20261016-lead-decisions.md}),
+\S{}5, \S{}7 and \S{}8 in full and \S{}6 item 4; in
+\nolinkurl{research/experiments/2026-10-17-stage1-preregistration/} (2ded100),
+the W1 builder extract (W1-18 and W1-19 in full; other lines by search) and the
+pre-registration DRAFT revision 2 (\S{}6.4 and \S{}6.5 in full; W1-18 and U8 by
+search); \nolinkurl{research/FOCUS.md} (last changed in 1423a4c), its 09:32 and
+09:37 UTC entries in full and a search for the truncation check; these notes and
+the body of revision 6g.
 
 \textbf{Sources read (revision 6g):} the brief for revision 6g (the lead's
 rulings 1--9, GI VI, 17 Oct, under the user's weekend delegation); FOCUS.md at
@@ -6519,8 +6768,9 @@ rankings were sealed before wave 1 (Appendix~\ref{app:gatec}).
 Each diagnostic scores all 4,800 rows, and a unit's score is the mean over its
 600 rows. Attribution is bi-anchored gradient similarity (sealed anchors: 64
 harmful, 64 safe) at the retrained $a_0$'s checkpoints after steps 10 and 38,
-with equal weight. Representation similarity is bi-anchored, at the untuned
-model's final layer and last response token. A content classifier is reported
+with equal weight. Development evidence, from a pre-registered report-only read of wave 0b: the per-row attribution scores at each checkpoint alone have a Spearman correlation of 0.77 over the 4,800 rows, and the top-600 sets that each would select have a Jaccard overlap of 0.43 (\S\ref{sec:discussion}).
+Representation similarity is bi-anchored, at the untuned model's final layer
+and last response token. A content classifier is reported
 only. $\mathrm{pick}_A$ and $\mathrm{pick}_R$ are the top units of attribution
 and representation similarity (ties go to the lower unit id). The format pick
 $\mathrm{pick}_F$ is the unit with the largest mean share of a row's loss
@@ -6873,8 +7123,12 @@ are PHTest's prompts labelled harmless, never those labelled controversial.
 Exact duplicates, near-duplicates of any evaluation prompt (every bank and
 split), of the anchors, of the refusal pool or of the plant rows, empty
 prompts and prompts over the 1,536-token prompt limit are excluded and counted
-by reason; the first 400 eligible prompts in a sealed order form the
-extension. The two sources are reported apart.
+by reason; 
+the first 400 eligible prompts in a sealed order form the extension. If fewer
+than 400 prompts are eligible, the draw stops and only the counts are
+reported. The PHTest answers are capped at 128 tokens, after a free truncation
+check of that cap on the recorded greedy answers to the 100 development
+prompts. The two sources are reported apart.
 
 \paragraph{The primary over-refusal bar.}
 $\tau_O^* = 5$ pp above the untuned model, the value of Gate~B's
