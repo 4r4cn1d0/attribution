@@ -323,7 +323,7 @@ Source: `writing/paper/2026-10-17-lit-sweep.md` (FAQ's worker, commit 2b1dfa7; t
 4. **Candidate new references** ("opening hold" first-token loss; Safety at One Shot): a scope decision for the user, which FAQ raises with the re-plan decisions. No change before the user decides.
 5. **Premise risk** (new works where seed variation or recipe beats corpus edits): this supports the current design (6 method seeds, the DIFFUSE branch, the fallback). No change.
 
-## 6. Build rulings from the wave-1 decisions (2026-10-17T07:23 UTC; FOCUS fcf79a2; binding for every builder)
+## 6. Build rulings from the wave-1 decisions (2026-10-17T07:22 UTC; FOCUS fcf79a2; binding for every builder)
 
 The user confirmed the ambitious-default-with-fallback rule and took the recommended defaults on UW-01 to UW-21; the lead took LW-01 to LW-35 at their defaults (FOCUS 2026-10-17T07:21 UTC; the list is `research/experiments/2026-10-17-stage1-preregistration/stage1-decisions-consolidated.md`). Every "build now default behind a switch" in the W1 builder extract is now set as below. Where a switch remains, its default is the value below and the other branch stays testable.
 
