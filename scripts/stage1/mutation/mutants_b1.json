@@ -1,0 +1,119 @@
+{
+  "kind": "stage1 mutants",
+  "version": 1,
+  "part": "batch 1: W1-04 report_a1_variants (the four extract mutants first, then the builder's)",
+  "mutants": [
+    {
+      "id": "B1-e1-read-as-q",
+      "part": "batch 1 (W1-04)",
+      "describes": "e1 read as q (every variant reads checkpoint q)",
+      "file": "report_a1_variants.py",
+      "find": "fmean(v[spec[\"field\"]][c] for c in spec[\"checkpoints\"])",
+      "replace": "fmean(v[spec[\"field\"]][\"q\"] for c in spec[\"checkpoints\"])"
+    },
+    {
+      "id": "B1-pearson-not-spearman",
+      "part": "batch 1 (W1-04)",
+      "describes": "Pearson on the raw values instead of Spearman",
+      "file": "report_a1_variants.py",
+      "find": "rx, ry = average_ranks(x), average_ranks(y)",
+      "replace": "rx, ry = dict(x), dict(y)"
+    },
+    {
+      "id": "B1-v1-from-cosine",
+      "part": "batch 1 (W1-04)",
+      "describes": "V1 read from the cosine",
+      "file": "report_a1_variants.py",
+      "find": "value = record[field]",
+      "replace": "value = record[\"cosine\"]"
+    },
+    {
+      "id": "B1-599-rows",
+      "part": "batch 1 (W1-04)",
+      "describes": "599 rows in each top set",
+      "file": "report_a1_variants.py",
+      "find": "top = {name: s1.select_top(scores[name], k, key, name, expected_ids=view.tokens) for name in rc[\"variants\"]}",
+      "replace": "top = {name: s1.select_top(scores[name], k - 1, key, name, expected_ids=view.tokens) for name in rc[\"variants\"]}"
+    },
+    {
+      "id": "B1-one-tie-part",
+      "part": "batch 1 (W1-04)",
+      "describes": "every variant's ties drawn with the part q",
+      "file": "report_a1_variants.py",
+      "find": "top = {name: s1.select_top(scores[name], k, key, name, expected_ids=view.tokens) for name in rc[\"variants\"]}",
+      "replace": "top = {name: s1.select_top(scores[name], k, key, \"q\", expected_ids=view.tokens) for name in rc[\"variants\"]}"
+    },
+    {
+      "id": "B1-mean-identity-off",
+      "part": "batch 1 (W1-04)",
+      "describes": "the mean-identity guard removed",
+      "file": "report_a1_variants.py",
+      "find": "if not identity <= rc[\"mean_identity_tolerance\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B1-ordinal-ranks",
+      "part": "batch 1 (W1-04)",
+      "describes": "ordinal ranks (ties not averaged)",
+      "file": "report_a1_variants.py",
+      "find": "ranks[k] = (i + j) / 2 + 1",
+      "replace": "ranks[k] = order.index(k) + 1"
+    },
+    {
+      "id": "B1-jaccard-wrong",
+      "part": "batch 1 (W1-04)",
+      "describes": "Jaccard divided by |A| instead of |A union B|",
+      "file": "report_a1_variants.py",
+      "find": "return len(sa & sb) / len(sa | sb)",
+      "replace": "return len(sa & sb) / len(sa)"
+    },
+    {
+      "id": "B1-cosine-guard-off",
+      "part": "batch 1 (W1-04)",
+      "describes": "the per-checkpoint cosine guard removed",
+      "file": "report_a1_variants.py",
+      "find": "if not d_cos <= cos_tol:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B1-adam-guard-off",
+      "part": "batch 1 (W1-04)",
+      "describes": "the per-checkpoint adam guard removed",
+      "file": "report_a1_variants.py",
+      "find": "if not d_adam <= adam_rel * scale:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B1-compare-hash-off",
+      "part": "batch 1 (W1-04)",
+      "describes": "a comparison file's hash not checked",
+      "file": "report_a1_variants.py",
+      "find": "if sha256_bytes(data) != digest:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B1-a1-set-short",
+      "part": "batch 1 (W1-04)",
+      "describes": "A1's set loses its last row",
+      "file": "report_a1_variants.py",
+      "find": "a1_scores, a1_set = a1_record[\"scores\"], a1_record[\"selected\"]",
+      "replace": "a1_scores, a1_set = a1_record[\"scores\"], a1_record[\"selected\"][:-1]"
+    },
+    {
+      "id": "B1-unit-spearman-self",
+      "part": "batch 1 (W1-04)",
+      "describes": "V1's unit-mean rho computed A1 against A1",
+      "file": "report_a1_variants.py",
+      "find": "spearman(unit_means[\"adam\"], a1_unit_means)",
+      "replace": "spearman(a1_unit_means, a1_unit_means)"
+    },
+    {
+      "id": "B1-missing-checkpoint-accepted",
+      "part": "batch 1 (W1-04)",
+      "describes": "rows without a checkpoint accepted",
+      "file": "report_a1_variants.py",
+      "find": "if not isinstance(per, dict) or set(per) != set(checkpoints):",
+      "replace": "if not isinstance(per, dict):"
+    }
+  ]
+}

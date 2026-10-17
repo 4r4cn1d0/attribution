@@ -1,0 +1,169 @@
+{
+  "kind": "stage1 mutants",
+  "version": 1,
+  "part": "batch 1 revision 2: survivors, fix probes and new guards",
+  "mutants": [
+    {
+      "id": "V-spearman-args-swapped",
+      "part": "batch 1 rev 2: the verifiers' survivors (tmp/gi-vi-stage1/b1-fix/spec-survivors.json)",
+      "describes": "Spearman(q, e1) computed as Spearman(e1, q) [verifier predicts: survive (equivalent)]",
+      "file": "report_a1_variants.py",
+      "find": "spearman(scores[\"q\"], scores[\"e1\"])",
+      "replace": "spearman(scores[\"e1\"], scores[\"q\"])",
+      "expect": "survive",
+      "reason": "equivalent: Spearman's rho is symmetric in its two arguments"
+    },
+    {
+      "id": "V-q-a1-jaccard-599",
+      "part": "batch 1 rev 2: the verifiers' survivors (tmp/gi-vi-stage1/b1-fix/spec-survivors.json)",
+      "describes": "the q top set cut at 599 in its Jaccard with A1 [verifier predicts: survive (gap)]",
+      "file": "report_a1_variants.py",
+      "find": "jaccard(top[\"q\"], a1_set)",
+      "replace": "jaccard(top[\"q\"][:599], a1_set)"
+    },
+    {
+      "id": "V-e1-a1-jaccard-swapped",
+      "part": "batch 1 rev 2: the verifiers' survivors (tmp/gi-vi-stage1/b1-fix/spec-survivors.json)",
+      "describes": "q and e1 swapped in one place: the e1-vs-A1 Jaccard reads q's set [verifier predicts: survive (gap)]",
+      "file": "report_a1_variants.py",
+      "find": "jaccard(top[\"e1\"], a1_set)",
+      "replace": "jaccard(top[\"q\"], a1_set)"
+    },
+    {
+      "id": "V-boundary-from-q",
+      "part": "batch 1 rev 2: the verifiers' survivors (tmp/gi-vi-stage1/b1-fix/spec-survivors.json)",
+      "describes": "every variant's boundary-tie counts read q's scores [verifier predicts: survive (gap)]",
+      "file": "report_a1_variants.py",
+      "find": "s1.boundary_ties(scores[name], top[name])",
+      "replace": "s1.boundary_ties(scores[\"q\"], top[name])"
+    },
+    {
+      "id": "V-adam-sum-not-mean",
+      "part": "batch 1 rev 2: the verifiers' survivors (tmp/gi-vi-stage1/b1-fix/spec-survivors.json)",
+      "describes": "V1 = the sum over q and e1, not the mean [verifier predicts: survive (gap: scale only)]",
+      "file": "report_a1_variants.py",
+      "find": "return {name: {row: fmean(v[spec[\"field\"]][c] for c in spec[\"checkpoints\"])",
+      "replace": "return {name: {row: math.fsum(v[spec[\"field\"]][c] for c in spec[\"checkpoints\"])"
+    },
+    {
+      "id": "V-a1-unit-means-from-q",
+      "part": "batch 1 rev 2: the verifiers' survivors (tmp/gi-vi-stage1/b1-fix/spec-survivors.json)",
+      "describes": "A1's unit means taken from a^q [verifier predicts: kill]",
+      "file": "report_a1_variants.py",
+      "find": "a1_unit_means = {u: fmean(a1_scores[r] for r in view.members[u]) for u in view.units}",
+      "replace": "a1_unit_means = {u: fmean(scores[\"q\"][r] for r in view.members[u]) for u in view.units}"
+    },
+    {
+      "id": "V-identity-tol-x100",
+      "part": "batch 1 rev 2: the verifiers' survivors (tmp/gi-vi-stage1/b1-fix/spec-survivors.json)",
+      "describes": "mean-identity tolerance loosened 100x (1e-10) [verifier predicts: survive (gap)]",
+      "file": "report_a1_variants.py",
+      "find": "if not identity <= rc[\"mean_identity_tolerance\"]:",
+      "replace": "if not identity <= rc[\"mean_identity_tolerance\"] * 100:"
+    },
+    {
+      "id": "V-cos-guard-tol-x100",
+      "part": "batch 1 rev 2: the verifiers' survivors (tmp/gi-vi-stage1/b1-fix/spec-survivors.json)",
+      "describes": "cosine guard tolerance loosened 100x (1e-10) [verifier predicts: survive (gap)]",
+      "file": "report_a1_variants.py",
+      "find": "if not d_cos <= cos_tol:",
+      "replace": "if not d_cos <= cos_tol * 100:"
+    },
+    {
+      "id": "V-adam-guard-tol-x1e5",
+      "part": "batch 1 rev 2: the verifiers' survivors (tmp/gi-vi-stage1/b1-fix/spec-survivors.json)",
+      "describes": "adam guard relative tolerance loosened 1e5x [verifier predicts: survive (gap)]",
+      "file": "report_a1_variants.py",
+      "find": "if not d_adam <= adam_rel * scale:",
+      "replace": "if not d_adam <= adam_rel * scale * 1e5:"
+    },
+    {
+      "id": "V-cos-guard-skips-e1",
+      "part": "batch 1 rev 2: the verifiers' survivors (tmp/gi-vi-stage1/b1-fix/spec-survivors.json)",
+      "describes": "cosine guard checked at q only [verifier predicts: survive (gap)]",
+      "file": "report_a1_variants.py",
+      "find": "if not d_cos <= cos_tol:",
+      "replace": "if c == \"q\" and not d_cos <= cos_tol:"
+    },
+    {
+      "id": "V-adam-guard-skips-q",
+      "part": "batch 1 rev 2: the verifiers' survivors (tmp/gi-vi-stage1/b1-fix/spec-survivors.json)",
+      "describes": "adam guard checked at e1 only [verifier predicts: survive (gap)]",
+      "file": "report_a1_variants.py",
+      "find": "if not d_adam <= adam_rel * scale:",
+      "replace": "if c == \"e1\" and not d_adam <= adam_rel * scale:"
+    },
+    {
+      "id": "V-missing-rows-accepted",
+      "part": "batch 1 rev 2: the verifiers' survivors (tmp/gi-vi-stage1/b1-fix/spec-survivors.json)",
+      "describes": "rows.jsonl missing rows not refused in variant_values [verifier predicts: survive (gap: later KeyError)]",
+      "file": "report_a1_variants.py",
+      "find": "    if missing:\n        raise s1.Refusal(f\"rows.jsonl misses {missing} training rows\")",
+      "replace": "    if False:\n        raise s1.Refusal(f\"rows.jsonl misses {missing} training rows\")"
+    },
+    {
+      "id": "V-duplicate-compare-names",
+      "part": "batch 1 rev 2: the verifiers' survivors (tmp/gi-vi-stage1/b1-fix/spec-survivors.json)",
+      "describes": "two comparisons with one name accepted (the first silently dropped) [verifier predicts: survive (gap)]",
+      "file": "report_a1_variants.py",
+      "find": "if len(others) != len(comparisons):",
+      "replace": "if False:"
+    },
+    {
+      "id": "V-duplicate-compare-ids",
+      "part": "batch 1 rev 2: the verifiers' survivors (tmp/gi-vi-stage1/b1-fix/spec-survivors.json)",
+      "describes": "a comparison set with repeated ids accepted [verifier predicts: survive (gap)]",
+      "file": "report_a1_variants.py",
+      "find": "if not selected or len(set(selected)) != len(selected) or not set(selected) <= set(view.tokens):",
+      "replace": "if not selected or not set(selected) <= set(view.tokens):"
+    },
+    {
+      "id": "V-text-row1-in-record",
+      "part": "batch 1 rev 2: the verifiers' survivors (tmp/gi-vi-stage1/b1-fix/spec-survivors.json)",
+      "describes": "a text field written to the record: the second prepared row's line [verifier predicts: survive (gap: the scan samples 1 text in 97)]",
+      "file": "report_a1_variants.py",
+      "find": "\"rows\": len(view.tokens), \"k\": k, \"ties_key\": key,",
+      "replace": "\"rows\": len(view.tokens), \"k\": k, \"ties_key\": key, \"leak\": (prepared / \"engine\" / \"train_rows.jsonl\").read_text().splitlines()[1],"
+    },
+    {
+      "id": "V-main-prints-record",
+      "part": "batch 1 rev 2: the verifiers' survivors (tmp/gi-vi-stage1/b1-fix/spec-survivors.json)",
+      "describes": "the command prints the whole record on success (not counts and hashes only) [verifier predicts: survive (gap: no success-path test of main)]",
+      "file": "report_a1_variants.py",
+      "find": "print(f\"wrote {len(written)} file into {args.out}\")",
+      "replace": "print(files)"
+    },
+    {
+      "id": "F-reserved-names-accepted",
+      "part": "batch 1 rev 2: the final critic's fix probes (spec-fix.json)",
+      "describes": "reserved comparison names accepted",
+      "file": "report_a1_variants.py",
+      "find": "if any(n in reserved or not COMPARE_NAME.match(n) for n in others):",
+      "replace": "if any(not COMPARE_NAME.match(n) for n in others):"
+    },
+    {
+      "id": "F-oserror-unmapped",
+      "part": "batch 1 rev 2: the final critic's fix probes (spec-fix.json)",
+      "describes": "a missing comparison file raises OSError",
+      "file": "report_a1_variants.py",
+      "find": "    except OSError as exc:\n        raise s1.Refusal(f\"comparison {name}: the file cannot be read ({type(exc).__name__})\") from None\n",
+      "replace": "    except KeyError:\n        pass\n"
+    },
+    {
+      "id": "R2-size-check-off",
+      "part": "batch 1 rev 2: the builder's guards",
+      "describes": "a comparison of another size than k accepted",
+      "file": "report_a1_variants.py",
+      "find": "if any(len(o[\"selected\"]) != k for o in others.values()):",
+      "replace": "if False:"
+    },
+    {
+      "id": "R2-manifest-check-off",
+      "part": "batch 1 rev 2: the builder's guards",
+      "describes": "a comparison made for another prepared set accepted",
+      "file": "report_a1_variants.py",
+      "find": "if \"manifest_sha256\" in doc and doc[\"manifest_sha256\"] != view.manifest_sha256:",
+      "replace": "if False:"
+    }
+  ]
+}
