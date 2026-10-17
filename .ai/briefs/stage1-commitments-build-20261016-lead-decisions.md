@@ -336,7 +336,7 @@ The user confirmed the ambitious-default-with-fallback rule and took the recomme
 7. **Plant (REQ-8, REQ-21 (i)):** F9's two more sealed plant locations go into a NEW settings file (never T1's build_plant.json) with appended labels, as conditional rule text that runs only if stage 1b is funded; no benign-topic plant (UW-16).
 8. **Texts the W1 record carries (REQ-21):** the δ_fam rule (UW-13); headline item (2)'s new wording (UW-15); the Llama-3.2-1B Gate B-lite rules frozen at the note's defaults (UW-19; `research/review/2026-10-17-stage2-design-notes/llama-gate-b-lite-rules.md` pinned by SHA-256); OLMo-2-1B's P1–P6 stays confirmatory (UW-21); the four accepted deviations (UW-11); the blinding line (LW-08) listing every Gate B value and task-loss difference each writer saw.
 
-## 7. The O-ext draw (2026-10-17T09:40 UTC; REQ-19 fired: O MDE 11.04 pp; binding for the builder)
+## 7. The O-ext draw (2026-10-17T09:38 UTC; REQ-19 fired: O MDE 11.04 pp; binding for the builder)
 
 The lead downloaded PHTest (`furonghuang-lab/PHTest` @ edb80210…, MIT; PHTest.csv 495d109e…, the publisher's checksum matches) into git-ignored `tmp/oext-phtest-20261017/raw/`. The text-free source record is `.ai/inputs/stage1-commitments-20261016/oext/phtest-source.json`. Rule, fixed now and outcome-free:
 1. **Candidates:** the 2,077 rows with Harmfulness = "harmless" (the 1,192 "controversial" rows are never used).
