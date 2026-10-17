@@ -1,0 +1,119 @@
+{
+  "kind": "stage1 mutants",
+  "version": 1,
+  "part": "T1 bundle (REQ-2, REQ-14 A1, labels.json, REQ-8 settings)",
+  "mutants": [
+    {
+      "id": "A-select-top-orientation",
+      "part": "A (REQ-2)",
+      "describes": "select_top orientation flipped (smallest first)",
+      "file": "s1common.py",
+      "find": "return sorted(checked, key=lambda row: (-checked[row], rank[row]))[:k]",
+      "replace": "return sorted(checked, key=lambda row: (checked[row], rank[row]))[:k]"
+    },
+    {
+      "id": "A-tie-label-registry",
+      "part": "A (REQ-2)",
+      "describes": "a tie label changed (the registry label of a1.ties)",
+      "file": "labels.json",
+      "find": "\"label\": \"stage1-a1-ties-v1\"",
+      "replace": "\"label\": \"stage1-a1-ties-v2\""
+    },
+    {
+      "id": "A-tie-seed-from-key",
+      "part": "A (REQ-2)",
+      "describes": "a tie label changed in the code (the seed is derived from the registry key, not its label)",
+      "file": "s1common.py",
+      "find": "return derive_seed(DESIGN_SEED, entry.label, *parts)",
+      "replace": "return derive_seed(DESIGN_SEED, entry.key, *parts)"
+    },
+    {
+      "id": "A-ties-unsealed-in-helper",
+      "part": "A (REQ-2)",
+      "describes": "select_top breaks ties by id instead of the sealed rank",
+      "file": "s1common.py",
+      "find": "rank = sealed_rank(checked, key, *parts)",
+      "replace": "rank = {row: row for row in checked}"
+    },
+    {
+      "id": "A-missing-id-accepted",
+      "part": "A (REQ-2)",
+      "describes": "select_top accepts a missing or an extra id",
+      "file": "s1common.py",
+      "find": "if missing or extra:",
+      "replace": "if False:"
+    },
+    {
+      "id": "A-record-keeps-text",
+      "part": "A (REQ-2)",
+      "describes": "a sealed record keeps one text field (the text instead of its SHA-256)",
+      "file": "s1common.py",
+      "find": "record[f\"{field}_sha256\"] = sha256_bytes(value.encode(\"utf-8\"))",
+      "replace": "record[field] = value"
+    },
+    {
+      "id": "D-a1-orientation",
+      "part": "D (REQ-14 A1)",
+      "describes": "A1 orientation flipped (the smallest a_i removed)",
+      "file": "write_score_edit.py",
+      "find": "selected = s1.select_top(scores, arm[\"k\"], arm[\"ties\"], expected_ids=view.tokens)",
+      "replace": "selected = s1.select_top({r: -v for r, v in scores.items()}, arm[\"k\"], arm[\"ties\"], expected_ids=view.tokens)"
+    },
+    {
+      "id": "D-a1-adam-variant",
+      "part": "D (REQ-14 A1)",
+      "describes": "A1 from the Adam variant",
+      "file": "write_score_edit.py",
+      "find": "value = record[field]",
+      "replace": "value = record[\"adam_score\"]"
+    },
+    {
+      "id": "D-a1-one-checkpoint",
+      "part": "D (REQ-14 A1)",
+      "describes": "A1 from one checkpoint (q only)",
+      "file": "write_score_edit.py",
+      "find": "scores[row_id] = fmean(differences)",
+      "replace": "scores[row_id] = differences[0]"
+    },
+    {
+      "id": "D-a1-harmful-only",
+      "part": "D (REQ-14 A1)",
+      "describes": "A1 from the harmful set only",
+      "file": "write_score_edit.py",
+      "find": "differences.append(values[plus] - values[minus])",
+      "replace": "differences.append(values[plus])"
+    },
+    {
+      "id": "D-a1-per-unit",
+      "part": "D (REQ-14 A1)",
+      "describes": "per-unit selection (75 per unit) instead of global",
+      "file": "write_score_edit.py",
+      "find": "selected = s1.select_top(scores, arm[\"k\"], arm[\"ties\"], expected_ids=view.tokens)",
+      "replace": "selected = [r for u in view.units for r in s1.select_top({x: scores[x] for x in view.members[u]}, arm[\"k\"] // len(view.units), arm[\"ties\"])]"
+    },
+    {
+      "id": "D-a1-ties-unsealed",
+      "part": "D (REQ-14 A1)",
+      "describes": "ties unsealed (sorted by id)",
+      "file": "write_score_edit.py",
+      "find": "selected = s1.select_top(scores, arm[\"k\"], arm[\"ties\"], expected_ids=view.tokens)",
+      "replace": "selected = sorted(scores, key=lambda r: (-scores[r], r))[:arm[\"k\"]]"
+    },
+    {
+      "id": "D-a1-consistency-off",
+      "part": "D (REQ-14 A1)",
+      "describes": "the unit-mean consistency check removed",
+      "file": "write_score_edit.py",
+      "find": "if not difference <= tolerance:",
+      "replace": "if False:"
+    },
+    {
+      "id": "D-a1-one-row-too-many",
+      "part": "D (REQ-14 A1)",
+      "describes": "601 rows selected",
+      "file": "write_score_edit.py",
+      "find": "selected = s1.select_top(scores, arm[\"k\"], arm[\"ties\"], expected_ids=view.tokens)",
+      "replace": "selected = s1.select_top(scores, arm[\"k\"] + 1, arm[\"ties\"], expected_ids=view.tokens)"
+    }
+  ]
+}

@@ -1,0 +1,358 @@
+{
+  "base_seed": 20261008,
+  "frozen_reused": {
+    "gate_b.random_removal": {
+      "base_seed": 20261008,
+      "id_domain": "the unit's member row ids, sorted",
+      "label": "gate-b-random-removal-v1",
+      "named_in": "Gate B sealed build (.ai/inputs/gate-b-sealed-20261008/build_sealed.py, 80cb8944); reused by brief rev 1 REQ-4 for d = 6-8",
+      "owner": "scripts/stage1/build_r_draws.py",
+      "parts": [
+        "d",
+        "g"
+      ],
+      "use": "R_d for d = 6, 7, 8 through the frozen builder's own draw_r (loaded by path after its SHA-256 check); 75 rows per unit; draw d runs at seed 1100 + d"
+    }
+  },
+  "kind": "stage1 seed-label registry",
+  "labels": {
+    "a1.ties": {
+      "base_seed": 20261008,
+      "id_domain": "all training row ids of the prepared set, sorted",
+      "label": "stage1-a1-ties-v1",
+      "named_in": "brief rev 1 (12cbf463)",
+      "owner": "scripts/stage1/write_score_edit.py",
+      "parts": [],
+      "use": "tie order of A1's top-600 removal (equal a_i)"
+    },
+    "datashield.ties": {
+      "base_seed": 20261008,
+      "id_domain": "all training row ids of the prepared set, sorted",
+      "label": "stage1-datashield-ties-v1",
+      "named_in": "registry, after the seal",
+      "owner": "scripts/stage1/write_score_edit.py",
+      "parts": [],
+      "use": "tie order of DataShield-style's top 600 (equal CSS)"
+    },
+    "h2a.fill": {
+      "base_seed": 20261008,
+      "id_domain": "the training rows that are not H2a rows, sorted",
+      "label": "stage1-h2a-fill-v1",
+      "named_in": "registry, after the seal",
+      "owner": "scripts/stage1/build_length_rules.py",
+      "parts": [],
+      "use": "H2a when n < 600: all n H2a rows plus a sealed sample of 600 - n other rows"
+    },
+    "h2a.sample": {
+      "base_seed": 20261008,
+      "id_domain": "the H2a rows, sorted",
+      "label": "stage1-h2a-sample-v1",
+      "named_in": "registry, after the seal",
+      "owner": "scripts/stage1/build_length_rules.py",
+      "parts": [],
+      "use": "H2a when n >= 600: a sealed sample of 600 of the n H2a rows"
+    },
+    "l1.scan": {
+      "base_seed": 20261008,
+      "id_domain": "all training row ids of the prepared set, sorted",
+      "label": "stage1-l1-scan-v1",
+      "named_in": "brief rev 1 (12cbf463)",
+      "owner": "scripts/stage1/score_l1_larf.py",
+      "parts": [],
+      "use": "the 64 Dolly dev prompts of L1's layer scan (a sealed sample of 64)"
+    },
+    "l1.ties": {
+      "base_seed": 20261008,
+      "id_domain": "all training row ids of the prepared set, sorted",
+      "label": "stage1-l1-ties-v1",
+      "named_in": "registry, after the seal",
+      "owner": "scripts/stage1/write_score_edit.py",
+      "parts": [],
+      "use": "tie order of L1's top-600 removal (equal scores)"
+    },
+    "l8.control": {
+      "base_seed": 20261008,
+      "id_domain": "category c's rows outside octile k, sorted",
+      "label": "stage1-l8-control-v1",
+      "named_in": "registry, after the seal",
+      "owner": "scripts/stage1/build_length_rules.py",
+      "parts": [
+        "k",
+        "c"
+      ],
+      "use": "octile k's category-matched random control: n_k,c rows of category c (c = that category's unit group id) from outside octile k"
+    },
+    "l8.control_fill": {
+      "base_seed": 20261008,
+      "id_domain": "category c's rows inside octile k, sorted",
+      "label": "stage1-l8-control-fill-v1",
+      "named_in": "registry, after the seal",
+      "owner": "scripts/stage1/build_length_rules.py",
+      "parts": [
+        "k",
+        "c"
+      ],
+      "use": "the fill when n_k,c > |c| - n_k,c: 2 n_k,c - |c| rows of category c from inside octile k (never from another category)"
+    },
+    "length.order": {
+      "base_seed": 20261008,
+      "id_domain": "all training row ids of the prepared set, sorted",
+      "label": "stage1-length-order-v1",
+      "named_in": "registry, after the seal",
+      "owner": "scripts/stage1/build_length_rules.py",
+      "parts": [],
+      "use": "the one length order (target tokens ascending, then this sealed rank): octile k = positions 600k to 600k + 599; H1 = octile 0; H2b = octile 7"
+    },
+    "plant.leaf": {
+      "base_seed": 20261008,
+      "id_domain": "the first in sealed_order(plant.leaf) over the cell ids of the candidate leaves; the candidates are the drawn unit's 37-row leaves with no oversize row, or, if there is none, its no-oversize leaves with the smallest |n − 37|",
+      "label": "stage1-plant-leaf-v1",
+      "named_in": "registry, after the seal",
+      "owner": "scripts/stage1/build_plant.py",
+      "parts": [],
+      "use": "the planted M = 128 leaf (settings build_plant.json, draws.leaf, states the same rule)"
+    },
+    "plant.quarters": {
+      "base_seed": 20261008,
+      "id_domain": "all training row ids of the prepared set, sorted",
+      "label": "stage1-plant-quarters-v1",
+      "named_in": "registry, after the seal",
+      "owner": "scripts/stage1/build_plant.py",
+      "parts": [],
+      "use": "the walk order inside each final quartile that places the M = 128 quarters"
+    },
+    "plant.quartile_ties": {
+      "base_seed": 20261008,
+      "id_domain": "all training row ids of the prepared set, sorted",
+      "label": "stage1-plant-quartile-ties-v1",
+      "named_in": "registry, after the seal",
+      "owner": "scripts/stage1/build_plant.py",
+      "parts": [],
+      "use": "the tie order of the within-unit walk (target tokens ascending, then this sealed rank) that places the M = 32 quartiles"
+    },
+    "plant.r150": {
+      "base_seed": 20261008,
+      "id_domain": "the planted corpus's members of unit g (Dolly row ids and add- ids), sorted",
+      "label": "stage1-plant-r150-v1",
+      "named_in": "lead decisions addendum (b8a67719) section 3; parts (d, g): the builder's reading of 'the same per-unit stratification', confirmed by the lead (addendum section 4.2, 1d4e42a2)",
+      "owner": "scripts/stage1/build_plant.py",
+      "parts": [
+        "d",
+        "g"
+      ],
+      "use": "R150 on the planted data, draw d (d = 1-3, at seed 1100 + d): per unit g a sealed sample of 18 or 19 rows (settings build_plant.json, r150)"
+    },
+    "plant.r150_units": {
+      "base_seed": 20261008,
+      "id_domain": "the 8 unit group ids, sorted",
+      "label": "stage1-plant-r150-units-v1",
+      "named_in": "registry, after the seal: the builder's 6 x 19 + 2 x 18 allocation, confirmed by the lead (addendum section 4.2, 1d4e42a2)",
+      "owner": "scripts/stage1/build_plant.py",
+      "parts": [
+        "d"
+      ],
+      "use": "R150 draw d: the sealed sample of the 6 units that give 19 rows (150 = 8 x 18 + 6)"
+    },
+    "plant.r600": {
+      "base_seed": 20261008,
+      "id_domain": "the planted corpus's members of unit g (Dolly row ids and add- ids), sorted",
+      "label": "stage1-plant-r600-v1",
+      "named_in": "lead decisions addendum (b8a67719) section 3; parts (d, g): the builder's reading of 'the same per-unit stratification', confirmed by the lead (addendum section 4.2, 1d4e42a2)",
+      "owner": "scripts/stage1/build_plant.py",
+      "parts": [
+        "d",
+        "g"
+      ],
+      "use": "R600 on the planted data, draw d (d = 1-3, at seed 1100 + d): per unit g a sealed sample of 75 rows (Gate B's R rule)"
+    },
+    "plant.rows": {
+      "base_seed": 20261008,
+      "id_domain": "the plant candidate ids, sorted",
+      "label": "stage1-plant-rows-v1",
+      "named_in": "brief rev 1 (12cbf463)",
+      "owner": "scripts/stage1/build_plant.py",
+      "parts": [],
+      "use": "the sealed order of the plant candidates: the first 37 rows, and the first 75 for the pilot's one allowed raise"
+    },
+    "plant.unit": {
+      "base_seed": 20261008,
+      "id_domain": "the 8 unit group ids, sorted",
+      "label": "stage1-plant-unit-v1",
+      "named_in": "registry, after the seal",
+      "owner": "scripts/stage1/build_plant.py",
+      "parts": [],
+      "use": "the planted unit (first of the sealed order); never redrawn"
+    },
+    "random_removal.r1200": {
+      "base_seed": 20261008,
+      "id_domain": "the unit's member row ids, sorted",
+      "label": "stage1-random-removal-1200-v1",
+      "named_in": "brief rev 1 (12cbf463)",
+      "owner": "scripts/stage1/build_r_draws.py",
+      "parts": [
+        "d",
+        "g"
+      ],
+      "use": "R_1200 draw d (d = 2, 3, 4, at seed 1100 + d): per unit g a sealed sample of 150 rows (Gate B's R rule form)"
+    },
+    "random_removal.r2400": {
+      "base_seed": 20261008,
+      "id_domain": "the unit's member row ids, sorted",
+      "label": "stage1-random-removal-2400-v1",
+      "named_in": "brief rev 1 (12cbf463)",
+      "owner": "scripts/stage1/build_r_draws.py",
+      "parts": [
+        "d",
+        "g"
+      ],
+      "use": "R_2400 draw d (d = 2, 3, 4, at seed 1100 + d): per unit g a sealed sample of 300 rows (Gate B's R rule form)"
+    },
+    "s1.order": {
+      "base_seed": 20261008,
+      "id_domain": "the S-pool candidate ids, sorted",
+      "label": "stage1-s1-v1",
+      "named_in": "brief rev 1 (12cbf463)",
+      "owner": "scripts/stage1/build_s_pool.py",
+      "parts": [],
+      "use": "S1 = the first 48 of the S-pool in this sealed order"
+    },
+    "s3.subset": {
+      "base_seed": 20261008,
+      "id_domain": "the S-pool candidate ids, sorted",
+      "label": "stage1-s3-subset-v1",
+      "named_in": "brief rev 1 (12cbf463)",
+      "owner": "scripts/stage1/build_s_pool.py",
+      "parts": [],
+      "use": "the S3 subset = the first 1,000 of the S-pool in this sealed order (overlap with S1 allowed and counted)"
+    },
+    "s3.ties": {
+      "base_seed": 20261008,
+      "id_domain": "the S3 subset's candidate ids that SAS scores (a y^orig that encode_train refuses leaves the ranking, lead decisions L14 (1)), sorted",
+      "label": "stage1-s3-ties-v1",
+      "named_in": "registry, after the seal",
+      "owner": "scripts/stage1/write_score_add.py",
+      "parts": [],
+      "use": "tie order of S3's top-48 add selection (equal SAS)"
+    },
+    "s4.order": {
+      "base_seed": 20261008,
+      "id_domain": "the S-pool candidate ids minus S1's, sorted",
+      "label": "stage1-s4-v1",
+      "named_in": "brief rev 1 (12cbf463)",
+      "owner": "scripts/stage1/build_s_pool.py",
+      "parts": [],
+      "use": "the S4 candidate list = the first 512 of (S-pool minus S1) in this sealed order"
+    },
+    "selector.diagnostic": {
+      "base_seed": 20261008,
+      "id_domain": "one replicate's standard-normal array, indexed by option (category menu) or by row (planted menus)",
+      "label": "stage1-selector-diagnostic-v1",
+      "named_in": "registry, after the seal",
+      "owner": "scripts/stage1/selector/simulate.py",
+      "parts": [
+        "replicate"
+      ],
+      "use": "the diagnostic's score noise z (L15 (6)); shared by every grid point of one replicate (common random numbers)"
+    },
+    "selector.effects": {
+      "base_seed": 20261008,
+      "id_domain": "one replicate's true option effects",
+      "label": "stage1-selector-effects-v1",
+      "named_in": "registry, after the seal",
+      "owner": "scripts/stage1/selector/simulate.py",
+      "parts": [
+        "replicate"
+      ],
+      "use": "the true effects of one replicate's options under its (shape, size) grid point"
+    },
+    "selector.noise": {
+      "base_seed": 20261008,
+      "id_domain": "one replicate's standard-normal array, indexed by (option, seed index, phi, psi)",
+      "label": "stage1-selector-noise-v1",
+      "named_in": "registry, after the seal",
+      "owner": "scripts/stage1/selector/simulate.py",
+      "parts": [
+        "replicate"
+      ],
+      "use": "trial observation noise; one fixed-shape array per replicate, so a key's draw never depends on the policy that asks (common random numbers, L15 (4))"
+    },
+    "selector.params": {
+      "base_seed": 20261008,
+      "id_domain": "one replicate's model parameters",
+      "label": "stage1-selector-params-v1",
+      "named_in": "registry, after the seal",
+      "owner": "scripts/stage1/selector/simulate.py",
+      "parts": [
+        "replicate"
+      ],
+      "use": "the parameter draw per replicate (parameter uncertainty)"
+    },
+    "selector.plant": {
+      "base_seed": 20261008,
+      "id_domain": "the cell ids of one simulated planted menu",
+      "label": "stage1-selector-plant-v1",
+      "named_in": "registry, after the seal",
+      "owner": "scripts/stage1/selector/simulate.py",
+      "parts": [
+        "replicate"
+      ],
+      "use": "the planted cell of a simulated planted menu"
+    },
+    "selector.psi": {
+      "base_seed": 20261008,
+      "id_domain": "the saved prompt labels of one (option, seed) unit",
+      "label": "stage1-selector-psi-v1",
+      "named_in": "registry, after the seal",
+      "owner": "scripts/stage1/selector/spec.py",
+      "parts": [
+        "option",
+        "seed_index",
+        "psi"
+      ],
+      "use": "the prompt subsample of a psi-trial replayed from saved labels"
+    },
+    "selector.sim2": {
+      "base_seed": 20261008,
+      "id_domain": "one replicate's uniform draw",
+      "label": "stage1-selector-sim2-v1",
+      "named_in": "registry, after the seal",
+      "owner": "scripts/stage1/selector/simulate.py",
+      "parts": [
+        "replicate"
+      ],
+      "use": "the report-only SIM2 point: the diagnostic picks the true best with probability 0.5"
+    },
+    "selector.ties": {
+      "base_seed": 20261008,
+      "id_domain": "the option ids of a menu other than keep, sorted",
+      "label": "stage1-selector-ties-v1",
+      "named_in": "registry, after the seal",
+      "owner": "scripts/stage1/selector/spec.py",
+      "parts": [],
+      "use": "the tie order among options other than keep (a tie with keep always goes to keep)"
+    },
+    "selector.uninformative": {
+      "base_seed": 20261008,
+      "id_domain": "the option ids of one replicate's menu other than keep",
+      "label": "stage1-selector-uninformative-v1",
+      "named_in": "registry, after the seal",
+      "owner": "scripts/stage1/selector/simulate.py",
+      "parts": [
+        "replicate"
+      ],
+      "use": "the 'uninformative' diagnostic: a sealed random order (also used when s = 0)"
+    },
+    "selfinf_n.ties": {
+      "base_seed": 20261008,
+      "id_domain": "all training row ids of the prepared set, sorted",
+      "label": "stage1-selfinf-n-ties-v1",
+      "named_in": "registry, after the seal",
+      "owner": "scripts/stage1/write_score_edit.py",
+      "parts": [],
+      "use": "tie order of Self-Inf-N-style's top 600 (equal scores)"
+    }
+  },
+  "pattern": "^stage1-[a-z0-9]+(-[a-z0-9]+)*-v[1-9][0-9]*$",
+  "rule": "seed = experiments.minimal_safety.common.derive_seed(base_seed, label, *parts); every draw goes through scripts/stage1/s1common.py, which takes a registry key, never a label string; a key is used by exactly one owning script; this file is append-only after the T1 commit",
+  "version": 1
+}

@@ -1,0 +1,375 @@
+{
+  "kind": "stage1 mutants",
+  "version": 1,
+  "part": "T1 re-verification: the verifiers' E-*, X-*, V10, V29, V37, plus V20, V28, V30-V32, V34 and the legal append V33 (expect survive)",
+  "mutants": [
+    {
+      "id": "E-consistency-one-sided",
+      "part": "E (verifier mutation-validity)",
+      "describes": "consistency check one-sided (value - mean, no abs)",
+      "file": "write_score_edit.py",
+      "find": "difference = abs(mean - value)",
+      "replace": "difference = value - mean",
+      "source": "verify-scratch/mutation-validity/probe_spec.json"
+    },
+    {
+      "id": "E-consistency-other-side",
+      "part": "E (verifier mutation-validity)",
+      "describes": "consistency check one-sided the other way (mean - value)",
+      "file": "write_score_edit.py",
+      "find": "difference = abs(mean - value)",
+      "replace": "difference = mean - value",
+      "source": "verify-scratch/mutation-validity/probe_spec.json"
+    },
+    {
+      "id": "E-consistency-half-units",
+      "part": "E (verifier mutation-validity)",
+      "describes": "consistency checked on units 1,3,5,7 only",
+      "file": "write_score_edit.py",
+      "find": "    for unit in view.units:\n        value = (groups[unit]",
+      "replace": "    for unit in view.units[1::2]:\n        value = (groups[unit]",
+      "source": "verify-scratch/mutation-validity/probe_spec.json"
+    },
+    {
+      "id": "E-sources-any",
+      "part": "E (verifier mutation-validity)",
+      "describes": "a0 sources: any checkpoint names the retrain (not each)",
+      "file": "write_score_edit.py",
+      "find": "\"sources\": all(((marker.get(\"sources\")",
+      "replace": "\"sources\": any(((marker.get(\"sources\")",
+      "source": "verify-scratch/mutation-validity/probe_spec.json"
+    },
+    {
+      "id": "E-marker-split-dropped",
+      "part": "E (verifier mutation-validity)",
+      "describes": "the marker's split not checked",
+      "file": "write_score_edit.py",
+      "find": "\"split\": job.get(\"split\") == unit_cfg[\"split\"] and marker.get(\"split\") == unit_cfg[\"split\"],",
+      "replace": "\"split\": job.get(\"split\") == unit_cfg[\"split\"],",
+      "source": "verify-scratch/mutation-validity/probe_spec.json"
+    },
+    {
+      "id": "E-job-kind-dropped",
+      "part": "E (verifier mutation-validity)",
+      "describes": "the job's kind not checked",
+      "file": "write_score_edit.py",
+      "find": "\"job kind\": job.get(\"kind\") == unit_cfg[\"kind\"],",
+      "replace": "\"job kind\": True,",
+      "source": "verify-scratch/mutation-validity/probe_spec.json"
+    },
+    {
+      "id": "E-marker-query-bank-dropped",
+      "part": "E (verifier mutation-validity)",
+      "describes": "the marker's query_bank name not checked",
+      "file": "write_score_edit.py",
+      "find": "\n                       and marker.get(\"query_bank\") == unit_cfg[\"query_bank\"]",
+      "replace": "",
+      "source": "verify-scratch/mutation-validity/probe_spec.json"
+    },
+    {
+      "id": "E-marker-group-ids-dropped",
+      "part": "E (verifier mutation-validity)",
+      "describes": "the marker's group_ids not checked",
+      "file": "write_score_edit.py",
+      "find": "\n                  and sorted(marker.get(\"group_ids\") or []) == view.units",
+      "replace": "",
+      "source": "verify-scratch/mutation-validity/probe_spec.json"
+    },
+    {
+      "id": "E-extra-checkpoint-ignored",
+      "part": "E (verifier mutation-validity)",
+      "describes": "rows.jsonl may hold extra checkpoints (ignored)",
+      "file": "write_score_edit.py",
+      "find": "if not isinstance(per, dict) or set(per) != set(checkpoints):",
+      "replace": "if not isinstance(per, dict) or not set(checkpoints) <= set(per):",
+      "source": "verify-scratch/mutation-validity/probe_spec.json"
+    },
+    {
+      "id": "E-a1-sum-not-mean",
+      "part": "E (verifier mutation-validity)",
+      "describes": "a_i = sum over checkpoints (monotone; consistency should catch)",
+      "file": "write_score_edit.py",
+      "find": "scores[row_id] = fmean(differences)",
+      "replace": "scores[row_id] = sum(differences)",
+      "source": "verify-scratch/mutation-validity/probe_spec.json"
+    },
+    {
+      "id": "E-verify-files-skipped",
+      "part": "E (verifier mutation-validity)",
+      "describes": "the unit's own file verification skipped",
+      "file": "write_score_edit.py",
+      "find": "problems = verify_files(folder)",
+      "replace": "problems = []",
+      "source": "verify-scratch/mutation-validity/probe_spec.json"
+    },
+    {
+      "id": "E-tie-domain-selected-scores",
+      "part": "E (verifier mutation-validity)",
+      "describes": "ties ranked over the ids sorted by score, not the sealed order of all ids",
+      "file": "s1common.py",
+      "find": "rank = sealed_rank(checked, key, *parts)",
+      "replace": "rank = sealed_rank(sorted(checked, key=lambda r: -checked[r])[:k], key, *parts) | {r: 10**9 for r in checked if r not in sorted(checked, key=lambda r: -checked[r])[:k]}",
+      "source": "verify-scratch/mutation-validity/probe_spec.json"
+    },
+    {
+      "id": "X-settings-hash-off",
+      "part": "X (verifier review-a1)",
+      "describes": "load_settings ignores the settings SHA-256",
+      "file": "s1common.py",
+      "find": "if digest != expected_sha256:",
+      "replace": "if False:",
+      "source": "review-a1/extra_mutants.json"
+    },
+    {
+      "id": "X-out-overwrite",
+      "part": "X (verifier review-a1)",
+      "describes": "write_new_files writes into a non-empty folder",
+      "file": "s1common.py",
+      "find": "if out.exists() and any(out.iterdir()):",
+      "replace": "if False:",
+      "source": "review-a1/extra_mutants.json"
+    },
+    {
+      "id": "X-verify-files-off",
+      "part": "X (verifier review-a1)",
+      "describes": "the unit's own files are not verified",
+      "file": "write_score_edit.py",
+      "find": "problems = verify_files(folder)",
+      "replace": "problems = []",
+      "source": "review-a1/extra_mutants.json"
+    },
+    {
+      "id": "X-complete-pin-off",
+      "part": "X (verifier review-a1)",
+      "describes": "COMPLETE.json pin ignored",
+      "file": "write_score_edit.py",
+      "find": "if complete_sha256 != unit_cfg[\"complete_sha256\"]:",
+      "replace": "if False:",
+      "source": "review-a1/extra_mutants.json"
+    },
+    {
+      "id": "X-sources-off",
+      "part": "X (verifier review-a1)",
+      "describes": "the retrain sources check is off",
+      "file": "write_score_edit.py",
+      "find": "\"sources\": all(",
+      "replace": "\"sources\": True or all(",
+      "source": "review-a1/extra_mutants.json"
+    },
+    {
+      "id": "X-sign-off",
+      "part": "X (verifier review-a1)",
+      "describes": "the bi-anchored sign check is off",
+      "file": "write_score_edit.py",
+      "find": "if groups_doc.get(\"bi_anchored_sign\") != cfg[\"bi_anchored_sign\"]:",
+      "replace": "if False:",
+      "source": "review-a1/extra_mutants.json"
+    },
+    {
+      "id": "X-variants-off",
+      "part": "X (verifier review-a1)",
+      "describes": "the variants check is off",
+      "file": "write_score_edit.py",
+      "find": "if cfg[\"variant\"] not in (groups_doc.get(\"variants\") or []):",
+      "replace": "if False:",
+      "source": "review-a1/extra_mutants.json"
+    },
+    {
+      "id": "X-groups-units-off",
+      "part": "X (verifier review-a1)",
+      "describes": "groups.json unit set unchecked",
+      "file": "write_score_edit.py",
+      "find": "if sorted(groups) != view.units:",
+      "replace": "if False:",
+      "source": "review-a1/extra_mutants.json"
+    },
+    {
+      "id": "X-consistency-skip-unit0",
+      "part": "X (verifier review-a1)",
+      "describes": "consistency skips the first unit",
+      "file": "write_score_edit.py",
+      "find": "for unit in view.units:",
+      "replace": "for unit in view.units[1:]:",
+      "source": "review-a1/extra_mutants.json"
+    },
+    {
+      "id": "X-row-keys-off",
+      "part": "X (verifier review-a1)",
+      "describes": "row top-level keys unchecked",
+      "file": "write_score_edit.py",
+      "find": "if set(row) != {\"row_id\", \"group_id\", \"per_checkpoint\"}:",
+      "replace": "if False:",
+      "source": "review-a1/extra_mutants.json"
+    },
+    {
+      "id": "X-job-kind-off",
+      "part": "X (verifier review-a1)",
+      "describes": "job kind unchecked",
+      "file": "write_score_edit.py",
+      "find": "\"job kind\": job.get(\"kind\") == unit_cfg[\"kind\"],",
+      "replace": "\"job kind\": True,",
+      "source": "review-a1/extra_mutants.json"
+    },
+    {
+      "id": "X-scorer-hash-off",
+      "part": "X (verifier review-a1)",
+      "describes": "scorer output hash unchecked",
+      "file": "write_score_edit.py",
+      "find": "if digest != expected_sha256:",
+      "replace": "if False:",
+      "source": "review-a1/extra_mutants.json"
+    },
+    {
+      "id": "X-prepared-off",
+      "part": "X (verifier review-a1)",
+      "describes": "unit's prepared-set identity unchecked",
+      "file": "write_score_edit.py",
+      "find": "\"prepared\": identity.get(\"manifest_sha256\") == view.manifest_sha256,",
+      "replace": "\"prepared\": True,",
+      "source": "review-a1/extra_mutants.json"
+    },
+    {
+      "id": "V10-tolerance-boundary-strict",
+      "part": "V (verifier new-mutants)",
+      "describes": "consistency boundary: difference <= tol becomes difference < tol",
+      "edits": [
+        {
+          "file": "write_score_edit.py",
+          "find": "if not difference <= tolerance:",
+          "replace": "if not difference < tolerance:"
+        }
+      ],
+      "source": "verify-scratch/new-mutants/spec-new.json"
+    },
+    {
+      "id": "V20-pipe-check-removed",
+      "part": "V (verifier new-mutants), added by the builder",
+      "describes": "the explicit '|' refusal removed from load_registry",
+      "edits": [
+        {
+          "file": "s1common.py",
+          "find": "if not isinstance(name, str) or \"|\" in name or name in seen:",
+          "replace": "if not isinstance(name, str) or name in seen:"
+        }
+      ],
+      "source": "verify-scratch/new-mutants/spec-new.json"
+    },
+    {
+      "id": "V28-boundary-ties-ge",
+      "part": "V (verifier new-mutants), added by the builder",
+      "describes": "boundary_ties counts value >= kth as tied",
+      "edits": [
+        {
+          "file": "s1common.py",
+          "find": "tied = [row for row, value in scores.items() if value == kth]",
+          "replace": "tied = [row for row, value in scores.items() if value >= kth]"
+        }
+      ],
+      "source": "verify-scratch/new-mutants/spec-new.json"
+    },
+    {
+      "id": "V29-bi-anchored-sign-check-removed",
+      "part": "V (verifier new-mutants)",
+      "describes": "the groups.json bi_anchored_sign text check removed",
+      "edits": [
+        {
+          "file": "write_score_edit.py",
+          "find": "if groups_doc.get(\"bi_anchored_sign\") != cfg[\"bi_anchored_sign\"]:",
+          "replace": "if False:"
+        }
+      ],
+      "source": "verify-scratch/new-mutants/spec-new.json"
+    },
+    {
+      "id": "V30-plant-leaf-fallback-largest",
+      "part": "V (verifier new-mutants), added by the builder",
+      "describes": "build_plant.json: leaf fallback 'smallest |n - 37|' -> 'largest'",
+      "edits": [
+        {
+          "file": "settings/build_plant.json",
+          "find": "the smallest |n − 37|",
+          "replace": "the largest |n − 37|"
+        }
+      ],
+      "source": "verify-scratch/new-mutants/spec-new.json",
+      "adapted": "find text follows the section 4.3 leaf rule (|n − 37|)"
+    },
+    {
+      "id": "V31-plant-main-seeds-shifted",
+      "part": "V (verifier new-mutants), added by the builder",
+      "describes": "build_plant.json: main-sweep seeds 1101-1103 -> 1102-1104",
+      "edits": [
+        {
+          "file": "settings/build_plant.json",
+          "find": "the optional r150) at seeds 1101-1103",
+          "replace": "the optional r150) at seeds 1102-1104"
+        }
+      ],
+      "source": "verify-scratch/new-mutants/spec-new.json"
+    },
+    {
+      "id": "V32-plant-r600-74-per-unit",
+      "part": "V (verifier new-mutants), added by the builder",
+      "describes": "build_plant.json: R600 on planted data draws 74 per unit, not 75",
+      "edits": [
+        {
+          "file": "settings/build_plant.json",
+          "find": "per unit g, a sealed sample of 75 rows",
+          "replace": "per unit g, a sealed sample of 74 rows"
+        }
+      ],
+      "source": "verify-scratch/new-mutants/spec-new.json"
+    },
+    {
+      "id": "V33-labels-append-entry",
+      "part": "V (verifier new-mutants): a legal append that must survive",
+      "describes": "an entry appended to labels.json (the change L13 (7) allows after T1)",
+      "edits": [
+        {
+          "file": "labels.json",
+          "find": "      \"use\": \"tie order of Self-Inf-N-style's top 600 (equal scores)\"\n    }\n  },\n  \"pattern\"",
+          "replace": "      \"use\": \"tie order of Self-Inf-N-style's top 600 (equal scores)\"\n    },\n    \"zz.extra\": {\n      \"base_seed\": 20261008,\n      \"id_domain\": \"test ids\",\n      \"label\": \"stage1-zz-extra-v1\",\n      \"named_in\": \"registry, after the T1 commit\",\n      \"owner\": \"scripts/stage1/zz_extra.py\",\n      \"parts\": [],\n      \"use\": \"an appended label (verifier mutant)\"\n    }\n  },\n  \"pattern\""
+        }
+      ],
+      "source": "verify-scratch/new-mutants/spec-new.json",
+      "expect": "survive"
+    },
+    {
+      "id": "V34-flag-share-settings-and-pin",
+      "part": "V (verifier new-mutants), added by the builder",
+      "describes": "A1 category_flag_share 0.5 -> 0.4 in the settings, SETTINGS_SHA256 re-pinned (coordinated)",
+      "edits": [
+        {
+          "file": "settings/write_score_edit.json",
+          "find": "\"category_flag_share\": 0.5,\n    \"checkpoints\": [",
+          "replace": "\"category_flag_share\": 0.4,\n    \"checkpoints\": ["
+        },
+        {
+          "file": "write_score_edit.py",
+          "find": "SETTINGS_SHA256 = \"9fc5f359133e76fd464b13ed34eb13eb74bf25d71edeb0add0c8d8eae992f9b5\"",
+          "replace": "SETTINGS_SHA256 = \"fe60a0af3c0554f261e651dd25d1a2bb9ab8126dc80916c0d75004c6cd94649f\""
+        }
+      ],
+      "source": "verify-scratch/new-mutants/spec-new.json",
+      "adapted": "the coordinated re-pin uses the new settings hashes"
+    },
+    {
+      "id": "V37-marker-split-and-job-kind-unchecked",
+      "part": "V (verifier new-mutants)",
+      "describes": "COMPLETE.json split and job.json kind no longer checked",
+      "edits": [
+        {
+          "file": "write_score_edit.py",
+          "find": "\"job kind\": job.get(\"kind\") == unit_cfg[\"kind\"],",
+          "replace": "\"job kind\": True,"
+        },
+        {
+          "file": "write_score_edit.py",
+          "find": "\"split\": job.get(\"split\") == unit_cfg[\"split\"] and marker.get(\"split\") == unit_cfg[\"split\"],",
+          "replace": "\"split\": job.get(\"split\") == unit_cfg[\"split\"],"
+        }
+      ],
+      "source": "verify-scratch/new-mutants/spec-new.json"
+    }
+  ]
+}
