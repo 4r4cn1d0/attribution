@@ -8,8 +8,20 @@
 % icml2027.bst) when it is released, and re-check the page limit, the Impact
 % Statement rule and the anonymity rules in the ICML 2027 call.
 %
+% Revision 6b (17 Oct 2026, from 07:20 UTC): paper-side fixes from the two
+% mock reviews that do not depend on the lead's pending stage-1 rulings: why
+% Qwen2.5 is out (Sec. 4.1); the threat model (two actors in Sec. 3.1, an
+% actor column in Table 1, Sec. 4.4 and 6); a lower-learning-rate reference
+% (PLANNED; to be pre-registered); Olmo-3-7B-Instruct as a third 7-8B model
+% (PLANNED; funding-gated; first 7-8B model cut); eight items marked TO BE
+% FIXED in the stage-1 pre-registration; the label logic (Sec. 3.2); Safe
+% Delta, Antidote and the harmful fine-tuning survey in Sec. 2. Detail moved
+% to Appendix C (Sec. 3.4, 4.3, 4.5, 4.6, 4.7 and 4.10 shortened; new C.9) so
+% the body stays within 8 pages. Kept in sync with the Markdown draft,
+% revision 6b; Appendix B is regenerated from its notes.
+%
 % Revision 6 (16 Oct 2026, from 21:10 UTC): retargeted to ICML 2027 and
-% trimmed to the 8-page limit (main body 7.94 pages to the Impact Statement;
+% trimmed to the 8-page limit (main body 7.96 pages to the Impact Statement;
 % 9.36 in revision 5e). Design details moved to a new Appendix C (part of the
 % paper; nothing dropped). Sec. 4.1: the rungs as design (OLMo-2 1e-4 at 1B
 % and 7B; Llama 5e-5 at 1B and 8B; "provisional" removed) and the 7-8B scope
@@ -232,7 +244,8 @@ harmful examples erode safety far more than random rows; and
 \citet{guo2026safety} report that 100 random benign rows of full fine-tuning
 raise attack success sharply on recent 8B-class Instruct models. The size of
 the effect depends on the recipe \citep{kim2025rethinking}. When a fine-tune
-does erode safety, its owner often controls only the data: commercial
+does erode safety, its owner often controls only the data and a few training
+settings: commercial
 fine-tuning services screen training data, gate the tuned model on a safety
 evaluation, and report harm categories rather than rows, leaving the customer
 to fix the data and resubmit \citep{microsoft2026finetuning}.
@@ -414,10 +427,13 @@ Safe LoRA projects the LoRA weights of selected layers onto a safety-aligned
 subspace without training or data \citep{hsu2024safelora}, and an objective
 that constrains updates on the first answer tokens makes alignment more
 persistent under fine-tuning \citep{qi2025shallow}. We use such repairs as
-references that a data repair must beat. \citet{zhang2026oneshot} restore the
-safety of a fine-tuned model by further training on a single safety example;
-this patch acts after fine-tuning and is not among our references
-(\S\ref{sec:discussion}).
+references that a data repair must beat. Other repairs act after fine-tuning
+and are not among our references (\S\ref{sec:discussion}): Safe Delta adjusts
+the parameter change of a harmful or benign fine-tune \citep{lu2025safedelta},
+Antidote prunes harmful weights after harmful fine-tuning
+\citep{huang2025antidote}, and \citet{zhang2026oneshot} restore safety by
+further training on a single safety example. \citet{huang2024survey} survey
+harmful fine-tuning attacks and defences.
 
 \paragraph{Attribution, its cost and what it tracks.}
 Training-data attribution ranges from cheap gradient similarity on LoRA
@@ -490,7 +506,11 @@ $F(a) = \mathbb{E}_s[f(\theta(a,s))]$, and likewise $\bar\ell(a)$ and $R(a)$.
 With $a_0$ the fine-tune without repair, the \emph{erosion}, refusal erosion as
 Qwen3Guard labels it (\S\ref{sec:measures}), is $E = F(a_0) - f(\theta_0)$;
 repair is meaningful only when $E$ exceeds seed noise (Gate~A,
-\S\ref{sec:gates}).
+\S\ref{sec:gates}). Two actors can repair: a fine-tuning customer, who controls
+the data and can also set the learning rate and the number of epochs, and the
+service provider, who also holds the weights and can run every scorer and
+reference. We report the best repair within each actor's menu
+(Table~\ref{tab:arms}).
 
 \subsection{Repair contrasts, limits and labels (primary)}
 \label{sec:contrasts}
@@ -504,8 +524,8 @@ the same amount of data at random. An addition repair is compared with no
 repair, $\Lambda_m = F(a_0) - F(m)$, and a selected or self-generated addition
 with the random addition of the same size. The restoration
 $G_m = F(a_0) - F(m)$ is reported for every arm. Contrasts are estimated from
-per-seed unsafe rates as differences of means over unpaired seeds, with the
-variance pooled across arms.
+per-seed unsafe rates; the analysis model, including whether it pairs arms by
+seed, is open \ph{[TO BE FIXED in the stage-1 pre-registration]}.
 
 Side effects are the \emph{over-refusal excess} $O(m) = R(m) - r(\theta_0)$,
 against the untuned model ($R(m) - R(a_0)$ is also reported), and the
@@ -513,7 +533,9 @@ against the untuned model ($R(m) - R(a_0)$ is also reported), and the
 \emph{feasible} at limits $(\tau_O, \tau_L)$ if $O(m) \le \tau_O$ and
 $L(m) \le \tau_L$. Results are reported at $\tau_O \in \{2, 5, 10\}$ pp;
 $\tau_L$ is two standard errors of a seed-to-seed difference in held-out loss,
-fixed before the comparison runs. The \emph{cost} of a repair is
+fixed before the comparison runs. Whether feasibility is a one-sided
+non-inferiority bound, with over-refusal on the full XSTest and OR-Bench-Hard
+banks, is open \ph{[TO BE FIXED in the stage-1 pre-registration]}. The \emph{cost} of a repair is
 $C(m) = c(m) + 1$ FRE: $c(m)$ is the measured cost of building the repaired
 data (scoring rows, selecting or generating safety rows), and one FRE is the
 measured cost of one random-removal run (\S\ref{sec:cost}).
@@ -528,10 +550,14 @@ the Holm-adjusted 5\% level on the unsafe rate ($\Lambda_m < 0$), on
 over-refusal ($R(m)$ above the comparator's) or on task loss ($\bar\ell(m)$
 above the comparator's), each read in its adverse direction, so an adverse
 repair is never reported as inconclusive; and \emph{inconclusive} otherwise.
-Which label a repair receives when it is better on the unsafe rate but worse on
-a side effect is fixed in the stage-1 pre-registration \ph{[TO BE FINALISED]};
-both results are reported. A margin of 4 pp is reported as a sensitivity. Five
-references change no data (\S\ref{sec:references}). One, \emph{adapter
+Whether the over-refusal test of \emph{worse} uses the comparator's rate or
+the untuned model's $r(\theta_0)$ as its baseline is open \ph{[TO BE FIXED in the stage-1 pre-registration]}.
+\emph{Better} and \emph{equivalent} exclude each other (\emph{better} needs an
+estimate of at least $\delta$, \emph{equivalent} an upper limit below
+$\delta$); which label wins when \emph{worse} holds with another, and whether a
+significant difference below $\delta$ gets its own label, are open
+\ph{[TO BE FIXED in the stage-1 pre-registration]}; both results are reported. A margin of 4 pp is reported as a
+sensitivity. Five references change no data (\S\ref{sec:references}). One, \emph{adapter
 scaling}, $\theta_\lambda = \theta_0 + \lambda\,(\theta(a_0, s) - \theta_0)$
 for $\lambda \in \{1, 0.75, 0.5, 0\}$, traces $(F, O, L)$ from the fine-tune
 ($\lambda = 1$) to the untuned model ($\lambda = 0$). A data repair
@@ -553,19 +579,15 @@ find.
 \subsection{The value of diagnosis (secondary, model-based)}
 \label{sec:value}
 
-A \emph{menu} $\mathcal{A}_M$ holds $a_0$ and $M$ repairs built by a frozen
-rule. A \emph{selector} $\pi$ with budget $B$ (in FRE) buys trial runs and
-returns a pick, scored as no repair if it is infeasible; its regret
-$\mathrm{Reg}(\pi; B, M)$ is the expected unsafe rate of the pick minus that of
-the menu's best feasible repair. The runs-only selector $\pi_-$ uses one rule
-per $(M, B)$ cell, frozen from a simulation before any outcome; $\pi_{+d}$ pays
-the cost $c_d$ of diagnostic $d$, keeps its top $k_d$ repairs and runs the same
-rule on $B - c_d$. The value of $d$ is
-$\Delta_d = \mathrm{Reg}(\pi_-) - \mathrm{Reg}(\pi_{+d})$, and its break-even
-cost $c^*_d$ is the largest $c_d$ with $\Delta_d \ge 0$. At the menus we can
-afford, these are mostly outputs of a model, so a generative model is frozen
-before Gate~B's category runs; we report measured against predicted values and
-score OLMo-calibrated predictions on Llama (Appendix~\ref{app:value}).
+A \emph{selector} with budget $B$ (in FRE) buys trial runs on a menu of $M$
+repairs and returns a pick; its regret is the expected unsafe rate of the pick
+minus that of the menu's best feasible repair. The value $\Delta_d$ of a
+diagnostic $d$ is the regret saved by paying its cost before the same frozen
+trial-run rule, and its break-even cost $c^*_d$ is the largest cost with
+$\Delta_d \ge 0$. At the menus we can afford, these are mostly outputs of a
+model, frozen before Gate~B's category runs; we report measured against
+predicted values and score OLMo-calibrated predictions on Llama
+(Appendix~\ref{app:value}).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Experimental Design}
@@ -579,10 +601,13 @@ At 1B, OLMo-2-0425-1B-Instruct \citep{olmo2024olmo2} is the stage-1 model and
 Llama-3.2-1B-Instruct \citep{grattafiori2024llama} the second family (stage~2;
 \S\ref{sec:family}). At 7--8B, the full comparison runs on
 OLMo-2-1124-7B-Instruct and Llama-3.1-8B-Instruct, at learning rates fixed by
-the same rule (below) \ph{[PLANNED; funding-gated, fallback one family]}. A headline check at the
-largest single-GPU size comes last \ph{[PLACEHOLDER: if resources allow]}.
-Qwen2.5 models \citep{qwen2024qwen25} are outside this study; a same-recipe
-comparison of OLMo-2, Llama-3 and Qwen2.5 is reported in
+the same rule (below) \ph{[PLANNED; funding-gated, fallback one family]}.
+Olmo-3-7B-Instruct \citep{olmo2025olmo3} is a third 7--8B model under the same
+rule \ph{[PLANNED; funding-gated; first 7--8B model cut]}. A headline check at
+the largest single-GPU size comes last \ph{[PLACEHOLDER: if resources allow]}.
+Qwen2.5 models \citep{qwen2024qwen25} are outside this study because their
+erosion saturated under recipe~B during development (above 55 pp); a
+same-recipe comparison of OLMo-2, Llama-3 and Qwen2.5 is reported in
 \ph{[CITE: concurrent submission, anonymized]}. Every model trains on one GPU,
 and every comparison stays on one GPU type.
 
@@ -598,9 +623,8 @@ Gate~B \ph{[NOT YET FIXED: its units and learning rate]}.
 \emph{Recipe~B}, the main recipe: LoRA \citep{hu2022lora} of rank 64 and scale
 128 on all linear layers; AdamW at a constant learning rate of $10^{-4}$, no
 warmup; 128 rows per step; one epoch (38 steps); a per-row loss (each row's
-mean over its response tokens). Gate~A, Gate~B and stage~1 use it. It was
-chosen over recipe~G from probe and Gate~A readings alone, before any repair
-outcome. \emph{Recipe~G}, a reference arm that changes only the recipe
+mean over its response tokens). Gate~A, Gate~B and stage~1 use it.
+\emph{Recipe~G}, a reference arm that changes only the recipe
 (\S\ref{sec:references}), adds a 4-step warmup and cosine decay, which halve
 the mean learning rate over the epoch, and a token-mean loss. It is not a
 general fix: its effect on erosion differs across families and sizes
@@ -637,32 +661,34 @@ Llama rungs were accepted on a too-close bar (one seed's answers-end bar at
         published elsewhere: judges and prompts differ, so $U$ is compared
         only within this study. A rise in $U$ is refusal erosion as Qwen3Guard
         labels it. Gates and selectors read development banks only; final
-        claims are confirmed on a sealed held-out subsample
-        (\S\ref{sec:family}).
+        claims are confirmed on held-out prompts (\S\ref{sec:family}).
   \item \textbf{Compliance and the claim rule.} HarmBench's classifier asks
         whether an answer carries out the requested behaviour. A contrast in
         $U$ supports the wording \emph{harmful compliance as the HarmBench
         classifier defines it}, never harm alone, only if the classifier's
         contrast has the same sign and at least half the size and the
         classifier's erosion under that recipe is at least 20 pp; otherwise
-        the sentence says \emph{restored refusal}. A blind human read during
-        development rated about a third of judge-unsafe answers as usable help
+        the sentence says \emph{restored refusal}. Whether the classifier reads
+        each answer clipped to 512 tokens or in full (up to 2,048) is open
+        \ph{[TO BE FIXED in the stage-1 pre-registration]}. A blind human read during development rated about
+        a third of judge-unsafe answers as usable help
         (Appendix~\ref{app:blind-read}).
   \item \textbf{Also per arm:} hard-category $U$ (violent, illegal, sexual or
         self-harm categories); $U$ by answer-length band and a
         length-reweighted $U$; Granite Guardian 3.3 \citep{padhi2024granite}
         on the greedy answers; and a selectivity score (refusal on harm prompts
-        minus refusal on benign prompts).
+        minus refusal on benign prompts). Whether StrongREJECT's evaluator
+        score \citep{souly2024strongreject} and a
+        prefilling probe \citep{qi2025shallow} are secondary endpoints is open
+        \ph{[TO BE FIXED in the stage-1 pre-registration]}.
   \item \textbf{Over-refusal.} Qwen3Guard's refusal flag on greedy answers to
         100 benign prompts that resemble harmful ones (50 XSTest safe prompts,
         \citealt{rottger2024xstest}; 50 OR-Bench-Hard prompts,
         \citealt{cui2025orbench}), reported by source, with a lexicon check.
   \item \textbf{Task loss and skill.} Held-out loss on all 200 task rows is
         the skill limit of the comparison. Probe and Gate~A bars also check
-        ARC-Easy \citep{clark2018arc}, allowing a paired drop of at most 0.03
-        on 189 questions; a rule fixed during development resolves the usual
-        straddling interval, and as it is a loosening we report both verdicts
-        (Appendix~\ref{app:skill}).
+        ARC-Easy \citep{clark2018arc} under a rule loosened during development;
+        we report both verdicts (Appendix~\ref{app:skill}).
   \item \textbf{Answers end.} A coherence screen flags answers that reach the
         token cap, repeat 4-grams heavily, are empty, or have fewer than 5
         tokens; an arm whose answers fail too often is not read.
@@ -677,23 +703,25 @@ Gate~B's category runs (\S\ref{sec:prereg}).
 
 \begin{table*}[t]
   \caption{Stage-1 repairs on OLMo-2-1B (recipe~B; one epoch; removal arms
-    train 33 steps, addition arms 38). The five references, with their seeds,
-    are in \S\ref{sec:references}.}
+    train 33 steps, addition arms 38); references in \S\ref{sec:references}.
+    Actor (\S\ref{sec:endpoints}): C, customer (data, learning rate, epochs);
+    P, provider (also the weights); $^{*}$if the customer can sample the
+    untuned model.}
   \label{tab:arms}
   \centering
   \small
-  \begin{tabular}{@{}llp{0.6\textwidth}c@{}}
+  \begin{tabular}{@{}llp{0.58\textwidth}cc@{}}
     \toprule
-    Arm & Repair & Rule & Seeds \\
+    Arm & Repair & Rule & Seeds & Actor \\
     \midrule
-    $a_{\mathrm{R}}$ & random removal & 600 random rows, 75 per category & 8 \\
-    $a_0$ & no repair & -- & 6 \\
-    H1 & length rule (free) & remove the 600 rows with the shortest answers & 6 \\
-    A1 & attribution & remove the top 600 rows by bi-anchored gradient similarity at two checkpoints of $a_0$ (the Gate~C method) & 6 \\
-    L1 & LARF-style filter & remove the top 600 rows by the untuned model's representation similarity to harmful anchors at one layer & 6 \\
-    S1 & random refusals & add 48 rows (1\%) drawn at random from a fixed refusal pool & 6 \\
-    S3 & DataRx-style & add 48 rows selected from S1's pool by DataRx's score & 6 \\
-    S4 & self-generated & add 48 pool prompts with the untuned model's own refusals & 6 \\
+    $a_{\mathrm{R}}$ & random removal & 600 random rows, 75 per category & 8 & C, P \\
+    $a_0$ & no repair & -- & 6 & -- \\
+    H1 & length rule (free) & remove the 600 rows with the shortest answers & 6 & C, P \\
+    A1 & attribution & remove the top 600 rows by bi-anchored gradient similarity at two checkpoints of $a_0$ (the Gate~C method) & 6 & P \\
+    L1 & LARF-style filter & remove the top 600 rows by the untuned model's representation similarity to harmful anchors at one layer & 6 & P \\
+    S1 & random refusals & add 48 rows (1\%) drawn at random from a fixed refusal pool & 6 & C, P \\
+    S3 & DataRx-style & add 48 rows selected from S1's pool by DataRx's score & 6 & P \\
+    S4 & self-generated & add 48 pool prompts with the untuned model's own refusals & 6 & C$^{*}$, P \\
     \bottomrule
   \end{tabular}
 \end{table*}
@@ -706,17 +734,16 @@ predicts both directions; a significant adverse result is labelled
 labels as in \S\ref{sec:contrasts}.
 
 \paragraph{Pools, seeds and secondary arms.}
-The refusal pool holds PKU-SafeRLHF \citep{ji2025pku} prompts with an unsafe
-response in the source data, each paired with a source-labelled safe response
-that opens with a refusal; no pool or anchor is filtered by the evaluation
-judge, and the add effect must also hold on the evaluation prompts least
-similar to the added rows. Seeds run in blocks fixed before any outcome, and
-only complete blocks are analysed; a blinded rule on Gate~B's pooled noise can
-shrink the family or stop stage~1. At planning noise the minimum detectable effect after
-Holm's first step is about 5 pp \ph{[PLACEHOLDER: final MDE from Gate B's
-pooled noise]}. Secondary arms (three seeds, exploratory) and scorers scored
-without new runs are listed in Appendix~\ref{app:stage1} \ph{[TO BE
-FINALISED]}.
+The refusal pool comes from PKU-SafeRLHF \citep{ji2025pku}. Seeds run in
+blocks fixed before any outcome; a blinded rule on Gate~B's pooled noise can
+shrink the family or stop stage~1. At planning noise the minimum detectable
+effect after Holm's first step is about 5 pp \ph{[PLACEHOLDER: final MDE from
+Gate B's pooled noise]}. Two more data-only additions, the augmentation of
+\citet{qi2025shallow} that deepens alignment beyond the first answer tokens and
+the single safety example of \citet{zhang2026oneshot} added to the training
+data, are candidate arms \ph{[TO BE FIXED in the stage-1 pre-registration]}.
+Pools, seeds and the secondary arms (three seeds, exploratory) are in
+Appendix~\ref{app:stage1} \ph{[TO BE FINALISED]}.
 
 \subsection{References that change no data}
 \label{sec:references}
@@ -731,27 +758,29 @@ gives the reference curve of \S\ref{sec:contrasts}. \textbf{Safe LoRA}
 on three seeds; the base model, layer rule and threshold follow the paper's
 rule or a fixed default, never stage-1 outcomes \ph{[NOT YET FIXED]}.
 \textbf{Recipe~G} (a reference that changes only the recipe): the unchanged
-data under recipe~G, three seeds. \textbf{B+Qi:} recipe~B with the token-wise constrained SFT objective
-of \citet{qi2025shallow}, which constrains updates on the first answer tokens,
-on the unchanged data at six seeds. The paper states plainly whether any
-data repair beats these references.
+data under recipe~G, three seeds. \textbf{B+Qi:} recipe~B with the token-wise
+constrained SFT objective of \citet{qi2025shallow}, which constrains updates on
+the first answer tokens, on the unchanged data at six seeds. A sixth,
+\textbf{lower learning rate} \ph{[PLANNED; to be pre-registered]}, is
+recipe~B at the next lower rung of the ladder in \S\ref{sec:models}, a lever the
+customer has; such rungs are studied in \ph{[CITE: concurrent submission,
+anonymized]}. The customer can run the safety prompt and the lower learning
+rate; the provider can run all. The paper states plainly whether any data
+repair beats these references; the seeds of the post-hoc references (three,
+or all six $a_0$ seeds) and the test (against B+Qi, and against the
+adapter-scaling curve matched on task loss) are open \ph{[TO BE FIXED in the stage-1 pre-registration]}.
 
 \subsection{Positive control: a planted cause}
 \label{sec:plant}
 
 \ph{[PLACEHOLDER: runs only if funded; otherwise menu size leaves the
-headline.]} A planted cause is $k = 37$ benign-looking rows whose answers
-comply directly with prompts that also have an unsafe answer in the source
-data. A sealed draw places it in one leaf cell, whose rows it replaces, so the
-run keeps 4,800 rows. Nested cells \ph{[TO BE FINALISED]} give menus of
-$M = 8$, 32 and 128 cells. Because the truth is known, the sweep measures how
+headline.]} A planted cause of $k = 37$ benign-looking rows replaces the rows
+of one sealed leaf cell, and nested cells \ph{[TO BE FINALISED]} give menus of
+$M = 8$, 32 and 128. Because the truth is known, the sweep measures how
 diagnosis and trial runs scale with $M$, which natural menus at our budget
-cannot. A three-seed pilot gates the sweep, the sweep removes the planted cell
-at each menu size, and every scorer ranks the cells without new runs
-(Appendix~\ref{app:plant} gives the definitions). Outputs: the safety restored
-by removing the planted cell, $G^{\mathrm{p}}(M)$; each diagnostic's top-$k$
-hit rate with known truth; and the runs-only cost of finding the cell,
-replayed with the frozen selector rules.
+cannot: the safety restored by removing the planted cell, each diagnostic's
+top-$k$ hit rate, and the runs-only cost of finding the cell
+(Appendix~\ref{app:plant}).
 
 \subsection{Gates A, B and C}
 \label{sec:gates}
@@ -761,52 +790,41 @@ For each family at its matched dose, over three seeds (the probe seed and two
 fresh seeds), mean $E$ must lie in a pre-registered partial-erosion window
 of 20--55 pp, be at least twice the seed standard deviation, and exceed zero on
 every seed; a second judge must agree in direction, the answers must end, and
-the task must be learned without lost skill (\S\ref{sec:measures}); its
-results, with every setting tried, are in \S\ref{sec:results}.
+the task must be learned without lost skill (\S\ref{sec:measures}); results
+and every setting tried are in \S\ref{sec:results}.
 
 \paragraph{Gate B (localization).}
 Its pre-registration was frozen before any Gate~B run;
-Appendix~\ref{app:gateb} gives its rules. At recipe~B, each category removal
-(600 rows, 33 steps) is compared with random removal of 600 rows (75 per
-category) at the same seed, so $a_0$ cancels. All 8 categories run at one
-seed; the two with the largest contrast, plus Gate~C's picks, run at two more
-seeds. The verdict is LOCALIZED if some category restores at least
+Appendix~\ref{app:gateb} gives its rules. Each category removal (600 rows) is
+compared with random removal of 600 rows at the same seed. All 8 categories
+run at one seed; the two with the largest contrast, plus Gate~C's picks, run at
+two more seeds. The verdict is LOCALIZED if some category restores at least
 $\delta_B = 8$ pp more than random removal and clears a Bonferroni-corrected
 bar; DIFFUSE if every category is credibly below 8 pp; and TOO CLOSE
-otherwise. It reads $U$ alone, under guards; a noise gate, an automatic
-extension and a length-matched control are pre-registered. At planning noise,
-80\% detection needs about 10--12 pp, so DIFFUSE means no category-level cause
-above about 8 pp, not no cause. \textbf{Status:} the noise gate has passed,
-and Gate~C's rankings were sealed before the category runs.
+otherwise. It reads $U$ alone, under guards. At planning noise, 80\%
+detection needs about 10--12 pp, so DIFFUSE means no category-level cause above
+about 8 pp, not no cause. If DIFFUSE, Gate~C is not read, stage~1 is
+unchanged, and a rewrite arm runs first among the secondary arms
+(Appendix~\ref{app:stage1}). \textbf{Status:} the noise gate has passed, and
+Gate~C's rankings were sealed before the category runs.
 
 \paragraph{Gate C (which diagnostic picks the category).}
 Attribution (A1's score, on a retrained first-seed $a_0$) and representation
 similarity (on the untuned model) each pick their top category; a format rule
 picks the category with the largest share of its loss on the first five answer
-tokens. Gate~C is read only if Gate~B is LOCALIZED (AGREE, ATTR\_BETTER,
-REP\_BETTER, NONE\_FINDS or TOO CLOSE). In the sealed rankings both
-diagnostics pick the same category, and the format rule another. So, by the
-frozen rules, Gate~C can read only AGREE, NONE\_FINDS or TOO CLOSE, or is not
-read; ATTR\_BETTER and REP\_BETTER cannot occur; and the paper may say only
-that neither pick is the format pick, which does not show that the picks are
-free of format.
-
-\paragraph{If DIFFUSE.}
-Gate~C is not read and stage~1 is unchanged. A rewrite arm (the untuned
-model's own answers replace the 600 top-attribution rows) runs first among the
-secondary arms, and the planted sweep becomes the only test of whether
-diagnosis can pay.
+tokens. Gate~C is read only if Gate~B is LOCALIZED. In the sealed rankings both
+diagnostics pick the same category, and the format rule another, so by the
+frozen rules ATTR\_BETTER and REP\_BETTER cannot occur, and the paper may say
+only that neither pick is the format pick (Appendix~\ref{app:gatec}).
 
 \subsection{Cost accounting}
 \label{sec:cost}
 
-Every arm and every scorer is logged in GPU-seconds by stage. One FRE per
-family is the median measured time of that family's random-removal arms. Two
-cost conventions, \emph{full} and \emph{lean}, are frozen before stage~1
-(Appendix~\ref{app:cost}); every pool filter, generated answer, anchor job and
-scorer is charged. Claims about cost hold only where both conventions agree,
-and no cost ratio measured at 1B is claimed for a larger model.
-\ph{[TO BE FINALISED: measured costs per arm and per scorer.]}
+Every arm and scorer is logged in GPU-seconds by stage and charged; one FRE
+per family is the median time of its random-removal arms. Claims about cost hold only where two conventions,
+\emph{full} and \emph{lean}, frozen before stage~1, agree
+(Appendix~\ref{app:cost}), and no cost ratio measured at 1B is claimed for a
+larger model. \ph{[TO BE FINALISED: measured costs per arm and per scorer.]}
 
 \subsection{Second family, confirmation and scale}
 \label{sec:family}
@@ -819,11 +837,9 @@ family difference is claimed only above that MDE. \textbf{Confirmation}
 (stage~3): at most two contrasts per family, chosen by a rule committed before
 stage~1, re-run at six fresh seeds on a sealed 200-prompt held-out subsample
 and on the development bank. \textbf{Scale} (stage~4): a replication in a
-published setting (a LARF- or DataShield-style filter on
-Llama-3.1-8B-Instruct fine-tuned on Alpaca, with random removal and length
-rules), the full 7--8B comparison of \S\ref{sec:models} and the headline check
-\ph{[PLACEHOLDER: if resources allow]}. No result is claimed at a size without
-runs at that size.
+published setting (Appendix~\ref{app:stage1}), the full 7--8B comparison of
+\S\ref{sec:models} and the headline check \ph{[PLACEHOLDER: if resources
+allow]}. No result is claimed for a size without runs.
 
 \subsection{Pre-registration and testing order}
 \label{sec:prereg}
@@ -839,6 +855,9 @@ and the sealed rankings). Anything added later is labelled post-Gate-B
 exploratory. Families of tests are read in order, each at its own 5\% level:
 (1)~the primary family; (2)~confirmation; (3)~the second-family (Llama)
 comparison; (4)~the planted-sweep claims; (5)~the decision-value predictions.
+Whether these and the label tests (superiority, equivalence, the three
+\emph{worse} tests) form one closed testing family is open
+\ph{[TO BE FIXED in the stage-1 pre-registration]}.
 Everything else is descriptive.
 
 \subsection{Side studies}
@@ -854,21 +873,14 @@ Everything else is descriptive.
         adapts mainly the first few output tokens. \ph{[PLACEHOLDER: report
         against the bound on a first-token path recorded before Gate B.]}
         Exploratory.
-  \item \textbf{Recipe and family contrasts} are not results of this paper.
-        Recipe~G enters only as a reference (\S\ref{sec:references}). The
-        contrasts behind the per-family rule (recipe~G against recipe~B in
-        several families, a pre-registered single-seed run that changes only
-        the loss weighting, the learning-rate rungs and a rank-16 check) are
-        reported in \ph{[CITE: concurrent submission, anonymized]}.
-  \item \textbf{Measurement validity and over-refusal.} Agreement and $E$
-        for three judges on the same answers, hard-category $U$ and length
-        bands, how much of the gap to published numbers comes from judges and
-        prompts, and $O$ by source, bounded by the judge's false-Unsafe rate on
-        benign prompts.
-  \item \textbf{Side-effect prediction (secondary).} On the addition arms only:
-        the balanced error of predicting an over-refusal violation, a
-        diagnostic against trial runs of equal cost.
+  \item \textbf{Recipe and family contrasts} are not results of this paper:
+        recipe~G enters only as a reference, and the contrasts behind the
+        per-family rule (recipe~G against recipe~B in several families, a
+        pre-registered
+        single-seed run that changes only the loss weighting, the
+        learning-rate rungs and a rank-16 check) are reported in \ph{[CITE: concurrent submission, anonymized]}.
 \end{enumerate}
+Two more side studies are in Appendix~\ref{app:side}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Results}
@@ -896,9 +908,8 @@ HarmBench classifier defines it'', and $U$ is not comparable with
 attack-success rates published under other judges and prompts.
 
 \paragraph{Equivalence and power.}
-The labels resolve differences of about 5 pp; smaller differences stay
-inconclusive, and an \emph{equivalent} label means ``within $\pm 5$ pp'', not
-``identical''. Gate~B's detection limit (\S\ref{sec:gates}) holds for
+The labels resolve differences of about 5 pp, and an \emph{equivalent} label
+means ``within $\pm 5$ pp'', not ``identical'' (\S\ref{sec:contrasts}). Gate~B's detection limit (\S\ref{sec:gates}) holds for
 categories; row-level causes that span categories are not tested by Gate~B.
 
 \paragraph{Recipe and setting.}
@@ -926,8 +937,9 @@ with model size.
 
 \paragraph{Scale and family.}
 The full comparison runs at 1B, with one benign dataset until Alpaca runs; at
-7--8B it is planned on both families, funding-gated, with one family as the
-fallback; larger sizes get a check only if resources allow. A family difference is claimed only above its MDE.
+7--8B it is planned on both families and Olmo-3-7B-Instruct, funding-gated,
+with one family as the fallback and Olmo~3 the first model cut; larger sizes
+get a check only if resources allow. A family difference is claimed only above its MDE.
 
 \paragraph{The positive control and the secondary analysis.}
 The planted cause is artificial; finding it shows that a diagnostic \emph{can}
@@ -938,13 +950,14 @@ later study with its own pre-registration would do that.
 
 \paragraph{Scope and user.}
 We compare data repairs with model-level references; rewriting responses enters
-only if the erosion is diffuse. A one-example patch applied after fine-tuning
-\citep{zhang2026oneshot} is not among the references, so no claim here covers
-it. A customer of a closed fine-tuning service can change only the data but
-cannot run gradient or representation scorers; a developer with open weights
-can run every scorer but also has model-level repairs. Our answer serves a
-service that must ship the customer's adapter and may change only the data,
-and a pipeline that allows only data changes.
+only if the erosion is diffuse. Post-hoc repairs other than the references,
+such as the one-example patch \citep{zhang2026oneshot}, are not compared
+(\S\ref{sec:related}), so no claim here covers them. A customer of a closed fine-tuning service controls the data and
+some hyperparameters but cannot run gradient or representation scorers; the
+provider, or a developer with open weights, can run every scorer but also has
+model-level repairs. We therefore report the best repair within each actor's
+menu (\S\ref{sec:endpoints}); a data-only pipeline reads the data repairs
+alone.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Conclusion}
@@ -1045,64 +1058,80 @@ strata.
 \label{app:editors-notes}
 
 % Converted from the Markdown draft's "Editor's note (delete before
-% submission)" block, revision 6, by a small converter (Markdown lists,
+% submission)" block, revision 6b, by a small converter (Markdown lists,
 % tables and inline markup to LaTeX; re-created in revision 6 because the
 % revision-5c converter was lost), so the wording follows the Markdown
-% exactly; inline symbols are set as math.
+% exactly; inline symbols are set as math (revision 6b: a text '|' too).
 
 \begingroup\small
 
 \paragraph{What this is.}
-Revision 6 of the draft, written on 16 October 2026 from 21:10 UTC (17 Oct IST;
-clock checked), retargets the paper to ICML 2027 (FOCUS 16 Oct 21:05 UTC, commit
-416b780) and brings the body to ICML's 8-page limit: the main body now measures
-7.96 pages to the Impact Statement (8.15 pages to the References heading, the
-measure used before; 9.36 in revision 5e); see ``What changed in revision 6''
-and conflicts 41--52. Design details moved to a new Appendix C (part of the
-paper); none was dropped. The body now says what FOCUS records since 9 Oct:
-Llama-3.2-1B's rung without ``provisional'' (its Gate A passed under decision
-25, 10 Oct); the 7--8B rungs of both families as design; Gate B's frozen
-pre-registration, its passed noise gate and its sealed rankings, with the
-pre-registered consequence for Gate C; D5 = (a). It applies the side-paper
-overlap rule, the coordinator's three additions (recipe G as a reference, not a
-general fix; the literature sweep's factual fixes; the user's rule of 17 Oct,
-``keep the more ambitious one always but always open to fallbacks'': the title
-kept, token matching, the full 7--8B comparison on both families) and adds an
-Impact Statement. Earlier revisions: 5e (9 Oct, from 17:14 UTC) called
-Llama-3.2-1B's rung provisional and stated the frozen too-close rule exactly; 5d
-(from 17:03 UTC) filled Llama-3.2-1B's rung provisionally; 5c (from 15:29 UTC)
-applied the user's wording package (decision 23) and the ARC rule's scope
-(decision 16); 5b (from 15:06 UTC) added the blind human read; 5 (from 13:17
-UTC) made recipe B the main recipe again, recipe G a reference, the per-family
-learning-rate rule, five mandatory references and the dataset plan; 4 (8 Oct,
-from 21:40 UTC) withdrew the loss-weighting account and added the ARC rule; 3
-(from 19:35 UTC) added the \emph{worse} label; 2 (from 14:00 UTC) followed the
-paper specification
+Revision 6b of the draft, written on 17 October 2026 from 07:20 UTC (clock
+checked with \texttt{date -u}), makes the paper-side fixes from the two mock
+reviews of revision 6
+(\nolinkurl{writing/paper/2026-10-17-mock-review-A-methods.md}, statistics and
+design; \nolinkurl{writing/paper/2026-10-17-mock-review-B-safety.md}, LLM
+safety) that do not depend on the lead's pending stage-1 rulings, and records
+the user's decisions of 17 Oct as the coordinator's brief relays them (FOCUS at
+head 6368d66 does not record them; conflict 53). The main body still measures
+7.96 pages to the Impact Statement (8.15 to the References heading); see ``What
+changed in revision 6b'', decisions 35--48, risks 34--60 and conflicts 53--63.
+The rest of this paragraph describes revision 6, updated where revision 6b
+changed it. Revision 6 of the draft, written on 16 October 2026 from 21:10 UTC
+(17 Oct IST; clock checked), retargets the paper to ICML 2027 (FOCUS 16 Oct
+21:05 UTC, commit 416b780) and brings the body to ICML's 8-page limit: the main
+body now measures 7.96 pages to the Impact Statement (8.15 pages to the
+References heading, the measure used before; 9.36 in revision 5e); see ``What
+changed in revision 6'' and conflicts 41--52. Design details moved to a new
+Appendix C (part of the paper); none was dropped. The body now says what FOCUS
+records since 9 Oct: Llama-3.2-1B's rung without ``provisional'' (its Gate A
+passed under decision 25, 10 Oct); the 7--8B rungs of both families as design;
+Gate B's frozen pre-registration, its passed noise gate and its sealed rankings,
+with the pre-registered consequence for Gate C; D5 = (a). It applies the
+side-paper overlap rule, the coordinator's three additions (recipe G as a
+reference, not a general fix; the literature sweep's factual fixes; the user's
+rule of 17 Oct, ``keep the more ambitious one always but always open to
+fallbacks'': the title kept, token matching, the full 7--8B comparison on both
+families) and adds an Impact Statement. Earlier revisions: 5e (9 Oct, from 17:14
+UTC) called Llama-3.2-1B's rung provisional and stated the frozen too-close rule
+exactly; 5d (from 17:03 UTC) filled Llama-3.2-1B's rung provisionally; 5c (from
+15:29 UTC) applied the user's wording package (decision 23) and the ARC rule's
+scope (decision 16); 5b (from 15:06 UTC) added the blind human read; 5 (from
+13:17 UTC) made recipe B the main recipe again, recipe G a reference, the
+per-family learning-rate rule, five mandatory references and the dataset plan; 4
+(8 Oct, from 21:40 UTC) withdrew the loss-weighting account and added the ARC
+rule; 3 (from 19:35 UTC) added the \emph{worse} label; 2 (from 14:00 UTC)
+followed the paper specification
 (\nolinkurl{research/review/2026-10-08-paper-specification.md}, commit f2a9979)
 as amended by the adopted FOCUS amendment (commit 4b37ec2, ``ADOPTED
 2026-10-08T13:53 UTC'') and the study plan
 \nolinkurl{research/review/2026-10-08-sharpened-direction-DRAFT.md} (revision
 2). FOCUS.md wins on any conflict. \textbf{Nothing in the paper body is a
-result,} with four kinds of exception, each a design or status fact: the blind
+result,} with five kinds of exception, each a design or status fact: the blind
 human read's rounded caveat (\S{}4.2, \S{}6, the Impact Statement; conflict 28);
-the rungs chosen from development probes, with a one-line disclosure that both
-Llama rungs were accepted on a too-close bar (\S{}4.1); Gate B's status (the
-noise gate passed; the rankings are sealed) and the pre-registered consequence
-of the sealed rankings for Gate C (\S{}4.6, Appendix C.1--C.2), with no number
-and no category named; and \S{}4.9's disclosure that the stage-1
-pre-registration is frozen after those Gate B values were seen. Gate B's
-category runs (wave 1), Gate C's reading, stage 1, the positive control and the
-Llama stage have not run. Development evidence appears only in these notes,
-except the blind read's counts in Appendix A. In the LaTeX build these notes are
-Appendix B and the design details are Appendix C; when the notes are deleted
-before submission, Appendix C becomes Appendix B (every reference to it is a
-\texttt{\textbackslash{}ref}). Menu sizes, the filter list and costs are marked
-[TO BE FINALISED]; the stage-1 pre-registration, Safe LoRA's settings and
-Alpaca's preconditions are marked [NOT YET FIXED]; the release policy and the
-supplementary copies are marked [TO BE DECIDED]; the full 7--8B comparison is
-marked [PLANNED; funding-gated, fallback one family]; token matching is marked
-[TO BE FIXED in the stage-1 pre-registration]; the concurrent side paper is
-cited as [CITE: concurrent submission, anonymized]. The ICML LaTeX version
+\S{}4.1's clause that Qwen2.5's erosion saturated under recipe B during
+development (revision 6b; conflict 54); the rungs chosen from development
+probes, with a one-line disclosure that both Llama rungs were accepted on a
+too-close bar (\S{}4.1); Gate B's status (the noise gate passed; the rankings
+are sealed) and the pre-registered consequence of the sealed rankings for Gate C
+(\S{}4.6, Appendix C.1--C.2), with no number and no category named; and
+\S{}4.9's disclosure that the stage-1 pre-registration is frozen after those
+Gate B values were seen. Gate B's category runs (wave 1), Gate C's reading,
+stage 1, the positive control and the Llama stage have not run. Development
+evidence appears only in these notes, except the blind read's counts in Appendix
+A. In the LaTeX build these notes are Appendix B and the design details are
+Appendix C; when the notes are deleted before submission, Appendix C becomes
+Appendix B (every reference to it is a \texttt{\textbackslash{}ref}). Menu
+sizes, the filter list and costs are marked [TO BE FINALISED]; the stage-1
+pre-registration, Safe LoRA's settings and Alpaca's preconditions are marked
+[NOT YET FIXED]; the release policy and the supplementary copies are marked [TO
+BE DECIDED]; the full 7--8B comparison is marked [PLANNED; funding-gated,
+fallback one family]; Olmo-3-7B-Instruct is marked [PLANNED; funding-gated;
+first 7--8B model cut] and the lower-learning-rate reference [PLANNED; to be
+pre-registered] (both revision 6b); token matching and, since revision 6b, nine
+more items are marked [TO BE FIXED in the stage-1 pre-registration] (the
+placeholder table lists them); the concurrent side paper is cited as [CITE:
+concurrent submission, anonymized]. The ICML LaTeX version
 (\nolinkurl{icml/main.tex}) carries the same text with a fetched
 \nolinkurl{references.bib}; the author-year citations below use the venue years
 and letters of those fetched entries (revision 6 re-lettered Zhang et al. 2026:
@@ -1114,7 +1143,11 @@ decision makes the measured repair comparison the headline and the
 decision-value map secondary, so the title names only the comparison.
 \textbf{Revision 6:} the title is unchanged: the user's rule of 17 Oct keeps
 ``Compute-Matched'', with ``Cost-Accounted'' as the fallback only if token
-matching cannot be done (decision 26). Alternatives:
+matching cannot be done (decision 26). \textbf{Revision 6b:} both mock reviews
+recommend ``Cost-Accounted'' (review A W8; review B W13, ``unless every removal
+arm is token-matched''); the user's decision of 17 Oct, relayed again in the
+brief for revision 6b, keeps ``Compute-Matched'' with token matching, so the
+title is unchanged. Alternatives:
 
 \begin{enumerate}
   \item \emph{Repairing Safety After Benign Fine-Tuning: A Compute-Matched
@@ -1137,6 +1170,211 @@ matching cannot be done (decision 26). Alternatives:
         proposal; the fallback title under decision 26, used only if token
         matching cannot be done).
 \end{enumerate}
+
+\subsection{What changed in revision 6b (17 Oct, from 07:20 UTC)}
+
+\begin{itemize}
+  \item \textbf{Sources.} The coordinator's brief for revision 6b; both mock
+        reviews in full (review A, statistics: 15 weaknesses, W2--W5, W11--W13
+        new; review B, LLM safety: 16 weaknesses and its \S{}8.3 inconsistency;
+        each review's last section separates known from new); these notes;
+        FOCUS.md on
+        \nolinkurl{origin/stageb-costs-and-recovery-safeguards-20261003}
+        (fetched 17 Oct; head 6368d66), read for the 7 Oct entries on Qwen
+        (17:44, 19:14 and 20:58 UTC), the 8 Oct 10:14 UTC HarmBench judge entry
+        and the newest entries (to the T1 bundle, 02:42 UTC on 17 Oct). Details
+        in ``Sources read (revision 6b)''.
+  \item \textbf{The user's decisions of 17 Oct (relayed by the coordinator's
+        brief; not in FOCUS at 6368d66; conflict 53).} (1) Olmo-3-7B-Instruct is
+        added as a third 7--8B model, marked [PLANNED; funding-gated; first
+        7--8B model cut] (decision 48). (2) The standing rule ``ambitious
+        default with fallbacks'' (``keep the more ambitious one always but
+        always open to fallbacks''). (3) The ``Compute-Matched'' title is kept,
+        with token matching (decision 26). (4) Option B with option C as the
+        fallback (decision 28). No result is claimed for any of them.
+  \item \textbf{1. Why Qwen is out (\S{}4.1; review B W12).} ``Qwen2.5 models
+        (Qwen et al., 2024) are outside this study'' became ``\ldots{} outside
+        this study because their erosion saturated under recipe B during
+        development (above 55~pp)''. Source: FOCUS 7 Oct 17:44 UTC (Qwen2.5-7B
+        ``collapsed: 4.8\% $\to$ 87.0\% unsafe after 38 recipe-B steps''), 19:14
+        UTC (the frozen bars: ``E $>$ 55 is saturated, like Qwen'') and 20:58
+        UTC (the user chose ``Llama/OLMo only''). The clause gives the class,
+        not a number; the same-recipe comparison stays cited to the concurrent
+        submission (conflict 54; risk 56).
+  \item \textbf{2. Threat model (review B W3).} \S{}3.1 gains two sentences:
+        ``Two actors can repair: a fine-tuning customer, who controls the data
+        and can also set the learning rate and the number of epochs, and the
+        service provider, who also holds the weights and can run every scorer
+        and reference. We report the best repair within each actor's menu (Table
+        1).'' Table 1 gains an Actor column (C, the customer; P, the provider;
+        S4 is C only if the customer can sample the untuned model) and a caption
+        legend. \S{}4.4 says ``The customer can run the safety prompt and the
+        lower learning rate; the provider can run all.'' To stay consistent:
+        \S{}1 now says the owner ``often controls only the data and a few
+        training settings'' (was ``only the data''), and \S{}6 ``Scope and
+        user'' replaces ``can change only the data'' and ``Our answer serves a
+        service that must ship the customer's adapter and may change only the
+        data, and a pipeline that allows only data changes'' with ``controls the
+        data and some hyperparameters'', ``the provider, or a developer with
+        open weights, can run every scorer \ldots{}'' and ``We therefore report
+        the best repair within each actor's menu (\S{}3.1); a data-only pipeline
+        reads the data repairs alone.'' The abstract's conditional ``When only
+        the training data may change'' is kept (conflict 60). Not in the body:
+        the dataset publisher as an actor and the transfer test (decision 46).
+  \item \textbf{3. A lower-learning-rate reference (\S{}4.4; review B W3).} ``A
+        sixth, \textbf{lower learning rate} [PLANNED; to be pre-registered], is
+        recipe B at the next lower rung of the ladder in \S{}4.1, a lever the
+        customer has; such rungs are studied in [CITE: concurrent submission,
+        anonymized].'' No side-paper number is stated. The body's count of five
+        references is unchanged (conflict 58).
+  \item \textbf{4. Scale (\S{}4.1, \S{}6; review B W1).} ``Olmo-3-7B-Instruct
+        (Team Olmo et al., 2025) is a third 7--8B model under the same rule
+        [PLANNED; funding-gated; first 7--8B model cut].'' \S{}6: ``at 7--8B it
+        is planned on both families and Olmo-3-7B-Instruct, funding-gated, with
+        one family as the fallback and Olmo 3 the first model cut''. No result
+        is claimed.
+  \item \textbf{5. Nine items marked [TO BE FIXED in the stage-1
+        pre-registration], one sentence each, no rule invented.} (a) \S{}3.2,
+        the over-refusal baseline of \emph{worse}: ``Whether the over-refusal
+        test of \emph{worse} uses the comparator's rate or the untuned model's
+        r($\theta$0) as its baseline is open'' (review B \S{}8.3). (b) \S{}4.4,
+        the reference test: ``the seeds of the post-hoc references (three, or
+        all six a0 seeds) and the test (against B+Qi, and against the
+        adapter-scaling curve matched on task loss) are open'' (review A W3;
+        review B W2). (c) \S{}4.9, one closed testing family: ``Whether these
+        and the label tests (superiority, equivalence, the three \emph{worse}
+        tests) form one closed testing family is open'' (review A W4). (d)
+        \S{}3.2, the analysis model: ``Contrasts are estimated from per-seed
+        unsafe rates; the analysis model, including whether it pairs arms by
+        seed, is open''; this replaces ``as differences of means over unpaired
+        seeds, with the variance pooled across arms'' (review A W2). (e)
+        \S{}4.2, the HarmBench classifier's input: ``Whether the classifier
+        reads each answer clipped to 512 tokens or in full (up to 2,048) is
+        open'' (review B W15; conflict 55). (f) \S{}3.2, non-inferiority
+        over-refusal: ``Whether feasibility is a one-sided non-inferiority
+        bound, with over-refusal on the full XSTest and OR-Bench-Hard banks, is
+        open'' (review A W12; review B W7). (g) \S{}4.2, secondary endpoints:
+        ``Whether StrongREJECT's evaluator score (Souly et al., 2024) and a
+        prefilling probe (Qi et al., 2025) are secondary endpoints is open''
+        (review B W6). (h) \S{}4.3, two data-only additions: ``Two more
+        data-only additions, the augmentation of Qi et al. (2025) that deepens
+        alignment beyond the first answer tokens and the single safety example
+        of Zhang et al. (2026a) added to the training data, are candidate arms''
+        (review B W5; CITE-CHECK 34). (i) \S{}3.2, the label order (item 7
+        below). Each sentence ends with the marker; ``is open'' means ``is fixed
+        in the stage-1 pre-registration'', which the marker says.
+  \item \textbf{6. Related work (\S{}2; review B W5).} One clause each, all
+        fetched programmatically: ``Other repairs act after fine-tuning and are
+        not among our references (\S{}6): Safe Delta adjusts the parameter
+        change of a harmful or benign fine-tune (Lu et al., 2025), Antidote
+        prunes harmful weights after harmful fine-tuning (Huang et al., 2025),
+        and Zhang et al. (2026a) restore safety by further training on a single
+        safety example. Huang et al. (2024) survey harmful fine-tuning attacks
+        and defences.'' This merges revision 6's sentence on Safety at One Shot.
+        CITE-CHECK 30--33. Not added (each needs its own fetch and room): Eiras
+        et al., backdoor-enhanced safety alignment, Fraser et al., SORRY-Bench,
+        Qwen3 (risk 52).
+  \item \textbf{7. Label logic (\S{}3.2, \S{}6; review B W8; review A W5).} As
+        written, \emph{better} (an estimate of at least $\delta$) and
+        \emph{equivalent} (a 90\% interval inside ($-$$\delta$, $\delta$), so an
+        estimate below $\delta$) cannot both hold; \S{}3.2 now says so. What can
+        co-occur is \emph{worse} with \emph{better} or \emph{equivalent} (a side
+        effect, or a small significant adverse difference in U), and
+        ``equivalent'' can hold for a significant difference below $\delta$.
+        \S{}3.2's ``Which label a repair receives when it is better on the
+        unsafe rate but worse on a side effect is fixed in the stage-1
+        pre-registration [TO BE FINALISED]'' became ``\emph{Better} and
+        \emph{equivalent} exclude each other (\emph{better} needs an estimate of
+        at least $\delta$, \emph{equivalent} an upper limit below $\delta$);
+        which label wins when \emph{worse} holds with another, and whether a
+        significant difference below $\delta$ gets its own label, are open [TO
+        BE FIXED in the stage-1 pre-registration]''. \S{}6's ``smaller
+        differences stay inconclusive'', which the rules contradict (a small
+        difference with a tight interval is \emph{equivalent}), is gone: ``The
+        labels resolve differences of about 5~pp, and an \emph{equivalent} label
+        means \ldots{} not ''identical`` (\S{}3.2).''
+  \item \textbf{8. Editor's notes.} This list; decisions 10, 11, 12, 19, 20, 24,
+        26, 27, 28 and 33 updated; decisions 35--48 added (48 RESOLVED: Olmo 3);
+        risks 34--60 added, one for each weakness that either review marks new
+        or partly new, each with its review and W-number and its status in the
+        body (TO BE FIXED, changed, or not in the body); ``Where the framing is
+        weak'' item 4 updated; the placeholder table, CITE-CHECK 30--35, the
+        development evidence (status at revision 6b; the HarmBench clip) and
+        conflicts 53--63. The LaTeX Appendix B is regenerated from these notes
+        with revision 6's converter.
+  \item \textbf{Moves to Appendix C, to hold the length (nothing dropped).}
+        \S{}3.4 keeps the definitions in words (selector, regret, the value of a
+        diagnostic and its break-even cost); the selector symbols and the menu
+        notation are in Appendix C.7 only. \S{}4.3's pool sentence keeps only
+        the source (the pairing rule, the judge rule and the overlap control are
+        in Appendix C.3, where they already were). \S{}4.5 keeps the plant, the
+        menus and the outputs; the pilot, the sweep and the replay are in
+        Appendix C.5 (already there). \S{}4.6's Gate B paragraph drops ``(600
+        rows, 33 steps)'', ``(75 per category)'', ``so a0 cancels'' and ``a
+        noise gate, an automatic extension and a length-matched control are
+        pre-registered'' (all in Appendix C.1); ``If DIFFUSE'' becomes one
+        sentence in Gate B, with the rewrite arm and the planted sweep's role
+        moved to Appendix C.3; Gate C drops its list of verdicts (Appendix C.2)
+        and the clause ``which does not show that the picks are free of format''
+        (Appendix C.2 keeps it). \S{}4.7 is shortened (Appendix C.6 holds the
+        conventions). \S{}4.8's published-setting replication moves to a new
+        paragraph in Appendix C.3. \S{}4.10 items 3 and 4 move to a new Appendix
+        C.9 (``Side studies: measurement validity and side-effect prediction'').
+        \S{}4.2's ARC item keeps the rule's existence and the double report
+        (Appendix C.4 gives the bar and the rule). \S{}4.1 drops ``It was chosen
+        over recipe G from probe and Gate A readings alone, before any repair
+        outcome'' (\S{}6 says the same: ``The main model and recipe were chosen
+        by screening probe and Gate A readings, never Gate B or stage-1
+        outcomes''). \S{}4.2's ``a sealed held-out subsample'' became ``held-out
+        prompts'' (\S{}4.8 gives the sealed 200-prompt subsample). \S{}4.8's
+        ``No result is claimed at a size without runs at that size'' became
+        ``\ldots{} for a size without runs''.
+  \item \textbf{Length.} Before: 7.96 pages to the Impact Statement heading
+        (8.15 to References), revision 6, re-measured on its PDF with the same
+        script. After: 7.96 pages (8.15 to References); the heading sits at the
+        same height on page 8. A probe build with one more line of text in \S{}6
+        moved the heading to page 9 (8.00 pages), so the body has about one line
+        of slack (risk 28; decision 33).
+  \item \textbf{New citations (four; each fetched programmatically on 17 Oct
+        between 07:26 and 07:30 UTC).} \texttt{lu2025safedelta} (PMLR v267
+        lu25g; arXiv:2505.12038 by the arXiv API, ``ICML 2025 Camera Ready'');
+        \texttt{huang2025antidote} (PMLR v267 huang25b; arXiv:2408.09600,
+        ``Accepted by ICML25''); \texttt{huang2024survey} (arXiv API,
+        arXiv:2409.18169; the arXiv comment says accepted by ACM Computing
+        Surveys); \texttt{olmo2025olmo3} (arXiv API, arXiv:2512.13961, ``Olmo
+        3''; the model id allenai/Olmo-3-7B-Instruct, tagged arxiv:2512.13961,
+        checked on the Hugging Face model API). The OpenReview API search record
+        of Qi et al. (2025) was read for its abstract (prefilling attacks;
+        deepening alignment).
+  \item \textbf{Pipelines.} Revision 6's scripts were reused from
+        \nolinkurl{rev6/} in a new scratch folder \nolinkurl{rev6b/}:
+        \nolinkurl{body_pages.py} and \nolinkurl{notes_md_to_tex.py} unchanged
+        (the converter reproduces revision 6's Appendix B byte for byte from
+        revision 6's notes); \nolinkurl{build.sh} builds
+        \nolinkurl{build/main.tex} in place (the body was edited directly, not
+        assembled); \nolinkurl{paper_to_pdf.py} with local KaTeX, its banner set
+        to revision 6b and its highlight list extended to [TO BE FIXED \ldots{}]
+        and [PLANNED \ldots{}] markers (revision 6's Markdown PDF did not
+        highlight them). A consistency check converted the LaTeX body and
+        Appendix C back to Markdown with revision 6's \nolinkurl{tex2md.py} and
+        \nolinkurl{struct2md.py} and compared every paragraph with this file:
+        all text paragraphs match.
+  \item \textbf{Also fixed.} Appendix C.3's paragraph heading ``Secondary and
+        scored-only arms [TO BE FINALISED]'' had a stray brace and a misplaced
+        bold marker in this file (a revision-6 conversion glitch); fixed. The
+        LaTeX header comment for revision 6 said ``7.94 pages''; it now says
+        7.96, the measured value.
+  \item \textbf{Anonymity.} The body, Appendices A and C and the four new BibTeX
+        entries hold no author name, institution, repository, branch, account,
+        commit hash or grant; the PDF metadata says ``Anonymous Authors''. These
+        notes (Appendix B) are not anonymous and must be deleted before
+        submission.
+  \item \textbf{Not changed (outside this revision's scope; for the lead).} The
+        abstract's ``six pre-registered repairs'' (review A W1; decision 45);
+        \S{}4.6's ``about 10--12~pp'' against Appendix C.1's ``about 9, 10 or
+        12~pp at low, central or high planning noise'' (review A W15; risk 48);
+        every weakness listed ``not in the body'' in risks 34--60.
+\end{itemize}
 
 \subsection{What changed in revision 6 (16 Oct, from 21:10 UTC)}
 
@@ -1901,35 +2139,53 @@ main again) and renames G+Qi to B+Qi.}
   \S{}1 & [FIGURE 1] & the repair-comparison figure (restoration with 90\%
       intervals and the $\pm$5~pp band against over-refusal and cost, with the
       adapter-scaling curve) \\
-  \S{}3.2 & [TO BE FINALISED] the label when a repair is better on U but worse
-      on a side effect; [TO BE FIXED in the stage-1 pre-registration] token
-      matching or a token-matched analysis & the stage-1 pre-registration
-      (decisions 12 and 26) \\
+  \S{}3.2 & [TO BE FIXED in the stage-1 pre-registration], five times: token
+      matching or a token-matched analysis; the analysis model, including
+      pairing by seed; feasibility as a one-sided non-inferiority bound on the
+      full XSTest and OR-Bench-Hard banks; the baseline of \emph{worse}'s
+      over-refusal test; which label wins when \emph{worse} holds with another
+      label, and a label for a significant difference below $\delta$ (revision
+      6b; this replaces revision 6's [TO BE FINALISED] on the label order) & the
+      stage-1 pre-registration (decisions 12, 26, 35 and 38) \\
   \S{}3 & the constants $\delta$ (5~pp, given), $\delta_{B}$ (8~pp, given),
       $\tau_{O}$ grid (given), $\tau_{L}$ (rule given; fixed from the three Gate
       A a0 seeds, stage-1 build L16), B, the selector rules per (M, B), $k_{d}$,
       $\phi_{j}$ and the V level & the stage-1 pre-registration and the selector
       spec (committed before Gate B's category runs) \\
   \S{}4.1 & [PLANNED; funding-gated, fallback one family] (the full 7--8B
-      comparison); [PLACEHOLDER: if resources allow] (the headline check);
-      [CITE: concurrent submission, anonymized] (twice); [NOT YET FIXED:
-      Alpaca's units and learning rate] & funding, under option B with option C
-      as the fallback (decision 28); funding; the citation form at submission
-      (decision 32); the Alpaca design note and the user's extension of the
-      learning-rate rule to datasets (decision 20). \textbf{Filled in revision
-      6:} the rungs (OLMo-2 1e-4 at 1B and 7B; Llama 5e-5 at 1B and 8B) \\
+      comparison); [PLANNED; funding-gated; first 7--8B model cut]
+      (Olmo-3-7B-Instruct; revision 6b, the user's decision of 17 Oct);
+      [PLACEHOLDER: if resources allow] (the headline check); [CITE: concurrent
+      submission, anonymized] (twice); [NOT YET FIXED: Alpaca's units and
+      learning rate] & funding, under option B with option C as the fallback
+      (decision 28); funding; the citation form at submission (decision 32); the
+      Alpaca design note and the user's extension of the learning-rate rule to
+      datasets (decision 20). \textbf{Filled in revision 6:} the rungs (OLMo-2
+      1e-4 at 1B and 7B; Llama 5e-5 at 1B and 8B) \\
+  \S{}4.2 & [TO BE FIXED in the stage-1 pre-registration], twice: the HarmBench
+      classifier's input (a 512-token clip or the full answer); StrongREJECT's
+      evaluator and a prefilling probe as secondary endpoints (revision 6b) &
+      the stage-1 pre-registration (decision 40; conflict 55) \\
   \S{}4.3 & [PLACEHOLDER: final MDE]; [TO BE FINALISED] secondary arms (listed
-      in Appendix C.3) & Gate B's pooled noise; the plan's review \\
-  \S{}4.4 & [NOT YET FIXED] Safe LoRA's base model, layer rule and threshold &
-      the stage-1 pre-registration, after the lead reads the paper in full
-      (decision 19) \\
+      in Appendix C.3); [TO BE FIXED in the stage-1 pre-registration] the two
+      candidate data-only additions (revision 6b) & Gate B's pooled noise; the
+      plan's review; the stage-1 pre-registration (decision 41) \\
+  Table 1 & the Actor column (C, P; S4's C conditional) and its legend (revision
+      6b) & the lead confirms the assignments (decision 46) \\
+  \S{}4.4 & [NOT YET FIXED] Safe LoRA's base model, layer rule and threshold;
+      [PLANNED; to be pre-registered] the lower-learning-rate reference; [TO BE
+      FIXED in the stage-1 pre-registration] the post-hoc references' seeds and
+      the test of ``beats the references'' (both revision 6b) & the stage-1
+      pre-registration, after the lead reads the paper in full (decision 19) \\
   \S{}4.5, Appendix C.5 & [TO BE FINALISED] menu sizes; [PLACEHOLDER: runs only
       if funded] & the plan's review; funding \\
   \S{}4.7 & [TO BE FINALISED] costs & measured ledgers; frozen cost conventions
       \\
   \S{}4.8 & [PLACEHOLDER: if resources allow] & funding; decision 28 \\
-  \S{}4.9 & [NOT YET FIXED] the stage-1 pre-registration & the stage-1
-      commitments build (FOCUS 16 Oct 19:47 UTC), committed before wave 1 \\
+  \S{}4.9 & [NOT YET FIXED] the stage-1 pre-registration; [TO BE FIXED in the
+      stage-1 pre-registration] one closed testing family (revision 6b; decision
+      37) & the stage-1 commitments build (FOCUS 16 Oct 19:47 UTC), committed
+      before wave 1 \\
   \S{}4.10 & [PLACEHOLDER: report against the bound on a first-token path];
       [CITE: concurrent submission, anonymized] & the bound recorded before Gate
       B (P3 in the Gate B pre-registration); decision 32 \\
@@ -1942,7 +2198,9 @@ main again) and renames G+Qi to B+Qi.}
       decision 32 \\
   References & Microsoft page [CITE-CHECK]; Alpaca has no citation (\S{}4.1,
       \S{}4.8); GradShield's proceedings entry; the versions of SABA and
-      SafeTuneBed & the author (CITE-CHECK 8, 14, 24, 28, 29) \\
+      SafeTuneBed; the survey's ACM Computing Surveys version; the wording for
+      Qi et al.'s augmentation (revision 6b) & the author (CITE-CHECK 8, 14, 24,
+      28, 29, 32, 34) \\
 \end{longtable}
 
 \textbf{Removed in revision 6:} the \S{}4.6 row ([NOT YET FIXED] Gate B's
@@ -2183,6 +2441,51 @@ text); (4) the secondary arms and their order.
       the body says only that it compares defences. OpenReview has an IJCAI 2025
       workshop version with another title (note yKetbTItcu); the arXiv version
       is cited. \\
+  30 & Safe Delta (Lu et al., 2025; ICML 2025; arXiv:2505.12038) & \S{}2 &
+      Revision 6b. BibTeX from the PMLR v267 bibliography (entry
+      pmlr-v267-lu25g; editor, month, pdf and abstract dropped); arXiv API
+      record v1 with the comment ``ICML 2025 Camera Ready''. The clause
+      (``adjusts the parameter change of a harmful or benign fine-tune'')
+      paraphrases the arXiv abstract: ``adjusts the delta parameters (i.e., the
+      parameter change before and after fine-tuning)''; user data ``whether
+      harmful or benign''. \\
+  31 & Antidote (Huang et al., 2025; ICML 2025; arXiv:2408.09600) & \S{}2 &
+      Revision 6b. BibTeX from the PMLR v267 bibliography (pmlr-v267-huang25b);
+      arXiv API record v3, comment ``Accepted by ICML25''. PMLR's title ends
+      ``\ldots{} Harmful Fine-tuning Attack'', arXiv's ``\ldots{} Harmful
+      Fine-tuning'' (PMLR kept). The clause paraphrases the abstract: ``a
+      one-shot pruning stage after harmful fine-tuning to remove the harmful
+      weights''. \\
+  32 & Harmful fine-tuning survey (Huang et al., 2024; arXiv:2409.18169) & \S{}2
+      & Revision 6b. arXiv API record (v1 2024-09-26; v6 2026-04-23); the
+      comment says ``Accepted by ACM Computing Survey (CSUR)''. ACM is not an
+      allowed source in this revision, so the arXiv version is cited; replace it
+      with the CSUR entry before submission. The clause (``survey harmful
+      fine-tuning attacks and defences'') is from the abstract. \\
+  33 & Olmo 3 (Team Olmo et al., 2025; arXiv:2512.13961) & \S{}4.1 & Revision
+      6b. arXiv API record (title ``Olmo 3''; 69 authors, the first the
+      collective ``Team Olmo''; the abstract names 7B and 32B models). The model
+      id allenai/Olmo-3-7B-Instruct exists on the Hugging Face model API
+      (created 2025-11-19; Apache-2.0; tagged arxiv:2512.13961; base model
+      Olmo-3-7B-Instruct-DPO). Check the report's venue before submission.
+      Review B's description (SFT, then DPO, then RLVR) was not checked here;
+      the body does not repeat it. \\
+  34 & Qi et al. (2025) for a data-only augmentation and for prefilling &
+      \S{}4.2, \S{}4.3 & Revision 6b. The abstract (arXiv API; OpenReview API
+      search record of 6Mxhg9PtDE, 17 Oct) lists ``prefilling attacks'' and says
+      that ``deepening the safety alignment beyond the first few tokens can
+      meaningfully improve robustness''. Review B's account of the augmentation
+      (refusals that start after a prefilled harmful prefix; its \S{}3.1, read
+      in HTML by the reviewer) was not verified here: the OpenReview PDF
+      answered with a challenge, and the brief allows no other source. The body
+      says only ``the augmentation of Qi et al. (2025) that deepens alignment
+      beyond the first answer tokens''; check the paper's own name for it
+      (review B calls it safety-recovery augmentation). \\
+  35 & StrongREJECT's evaluator & \S{}4.2 & Revision 6b. The arXiv abstract
+      (API, 17 Oct): ``its automated evaluator measures the extent to which a
+      response gives useful information to forbidden prompts''. Review B's
+      figures (a fine-tuned Gemma-2B evaluator; Spearman 0.900 against 0.819 for
+      the HarmBench classifier) were not checked here; the body gives none. \\
 \end{longtable}
 
 PDF- or full-text-checked in the repo, and used as such: Qi et al. (2024), He et
@@ -2274,7 +2577,13 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         checks.
   \item \textbf{Who the user is} (\S{}6): the plan names a fine-tuning service
         that must ship the customer's adapter and may change only data, or a
-        data-only pipeline. Confirm this wording.
+        data-only pipeline. Confirm this wording. \textbf{Revision 6b (review B
+        W3):} the body now names two actors (\S{}3.1: a customer who controls
+        the data and can also set the learning rate and the number of epochs;
+        the provider, who also holds the weights) and reports the best repair
+        within each actor's menu; Table 1 marks who can run each arm; \S{}6 no
+        longer says that the service ``may change only the data''. Confirm the
+        actor assignments (decision 46).
   \item \textbf{The length-rule secondary arm under the other loss} (\S{}4.3).
         Revision 2 listed ``the length rule under a token-mean loss'', a control
         for recipe B's per-row loss. With recipe G (token-mean) as the main
@@ -2287,13 +2596,26 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         only if three seeds are cheap. \textbf{Revision 5:} with recipe B
         (per-row loss) the main recipe again, \S{}4.3 reverts to revision 2's
         ``the length rule under a token-mean loss''. Keep it only if three seeds
-        are cheap, or drop it.
+        are cheap, or drop it. \textbf{Revision 6b (review B W4, partly new):}
+        review B asks to promote ``H1 and aR under token-mean loss'' to the
+        primary family at six seeds, and to report tokens removed and the
+        first-five-token loss share per removal arm. Not in the body; for the
+        lead (risk 51).
   \item \textbf{Label order when endpoints disagree.} The 18:31 UTC rule labels
         a repair \emph{worse} if any of its three contrasts (unsafe share,
         over-refusal, task loss) is significantly adverse. It does not say which
         label a repair gets when it is \emph{better} on the unsafe share and
         \emph{worse} on over-refusal or task loss. \S{}3.2 reports both facts
         and leaves the order to the stage-1 pre-registration; fix it there.
+        \textbf{Revision 6b (review B W8; review A W5 items 4--5):} \S{}3.2 now
+        states that \emph{better} and \emph{equivalent} exclude each other and
+        marks [TO BE FIXED in the stage-1 pre-registration] which label wins
+        when \emph{worse} holds with another label (a side effect, or a small
+        significant adverse difference in U), and whether a significant
+        difference below $\delta$ gets its own label (review B proposes
+        ``better, below $\delta$''; review A notes the asymmetry: \emph{worse}
+        needs significance only, \emph{better} also an estimate of at least
+        $\delta$, so the chance of \emph{better} at a true 5~pp is 0.50).
   \item \textbf{Where the failed prediction goes.} FOCUS 21:36 UTC: ``the paper
         reports it as a pre-registered prediction that failed''. Revision 4 puts
         its result in \S{}5 (placeholder) and names the run in \S{}4.1 and
@@ -2374,13 +2696,23 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         says otherwise; Table 1 says 3), and the engine work (a post-hoc state
         transform evaluated by the existing eval-state job, built with tests and
         reviewed). \S{}4.4 and Table 1 are marked [NOT YET FIXED].
+        \textbf{Revision 6b (review A W3; review B W2, Q3):} both reviews ask
+        why the post-hoc references run on three a0 seeds when six exist at
+        evaluation cost only; \S{}4.4 now marks the seeds (three, or all six)
+        [TO BE FIXED in the stage-1 pre-registration] (decision 36). Review B
+        Q11: Safe LoRA's unaligned model is the OLMo-2-0425-1B base (this
+        decision); the body still says [NOT YET FIXED].
   \item \textbf{Alpaca's preconditions} (FOCUS 09:40 UTC; to settle before any
         Alpaca run, not now): the user extends the learning-rate rule from
         families to datasets before any Alpaca probe; a short design note fixes
         Alpaca's units (it has no categories, unlike Dolly), the field mapping
         (instruction, input as context, output as response), the version
         (tatsu-lab/alpaca; CC BY-NC 4.0) and the download, which the user
-        approves. Alpaca still has no citation (CITE-CHECK 24).
+        approves. Alpaca still has no citation (CITE-CHECK 24). \textbf{Revision
+        6b (review B W14, partly new):} review B would replace or supplement
+        Alpaca with one modern chat or domain dataset (Alpaca, like Dolly, is
+        2023 single-turn data) and report answer-length distributions per
+        dataset. Not in the body.
   \item \textbf{The exploratory E-scaled Gate B floor} (FOCUS 8 Oct 20:17 UTC):
         8 $\times$ $E_{\mathrm{common}}$ / 45.1~pp equals 8~pp at recipe B
         ($E_{\mathrm{common}}$ is the recipe-B Gate A mean, +45.1~pp), so it
@@ -2420,6 +2752,15 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         human check'' (FOCUS 8 Oct 15:59 UTC, item 4); the one-reader
         development read (Appendix A) does not meet it as a confirmatory measure
         (not costed). Decide whether one is planned on stage-1 arms.
+        \textbf{Revision 6b:} both reviews ask for it. Review A W6: two
+        independent non-author raters, blind to arm and judge label, with
+        adjudication and $\kappa$; about 130 judge-Unsafe answers per arm group
+        (a0, removals, additions) and about 150 judge-Safe answers;
+        misclassification-corrected contrasts as a sensitivity; it disagrees
+        with ``not planned'', citing risk 13 (the judge's false-Unsafe rate
+        moves with fine-tuning). Review B W6: two raters who did not design the
+        study, about 200 answers stratified by arm, Cohen's $\kappa$. Still
+        open; not in the body (risk 39).
   \item \textbf{RESOLVED (FOCUS 9 Oct 20:31 UTC, decision 25 accepted; 10 Oct
         09:40 UTC, Gate A recorded as PASS under it).} Revision 6: \S{}4.1 says
         the rung plainly and discloses, with Llama-3.1-8B's rung, that it ``was
@@ -2457,7 +2798,14 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         random removal; a concurrent submission found that a selection gain at a
         fixed document budget vanished once token budgets were matched; keep
         ``Compute-Matched'' only if stage 1 matches total GPU-seconds per arm,
-        or at least training tokens per removal arm. Risk 30.
+        or at least training tokens per removal arm. Risk 30. \textbf{Revision
+        6b:} the user's decision of 17 Oct is relayed again (``the
+        'Compute-Matched' title kept with token matching''); both reviews still
+        recommend ``Cost-Accounted'' (review A W8: nothing is matched on
+        compute, removals 33 steps against additions 38; review B W13). Review A
+        corrects itself with these notes' ledger: charging every arm 1 FRE
+        under-charges the addition arms by only about 1\%, so that sub-point is
+        negligible; the title concern stands.
   \item \textbf{Candidate additional reference arms (the user's rule of 17 Oct;
         notes only; not in the body's list of five references).} (a) The
         opening-hold loss of a concurrent ICLR 2027 submission (``A Harmful
@@ -2468,7 +2816,14 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         \S{}6 as the bounded D5 item). Decide before stage 1 is frozen whether
         either becomes a reference arm, and how B+Qi relates to an opening hold.
         If (a) is added, its citation must be fetched by the OpenReview API
-        first.
+        first. \textbf{Revision 6b:} the body now lists a lower-learning-rate
+        reference, recipe B at the next lower rung, as [PLANNED; to be
+        pre-registered] (\S{}4.4; review B W3), and the data-only analogue of
+        the one-shot example (the example added to the training data) and Qi et
+        al.'s augmentation as candidate data arms [TO BE FIXED in the stage-1
+        pre-registration] (\S{}4.3; review B W5; decision 41). The post-hoc
+        one-shot patch and the opening-hold loss stay out of the body's
+        references.
   \item \textbf{RESOLVED by the user's rule (17 Oct, relayed by the
         coordinator): the re-plan scope is option B, with option C as the
         fallback.} The ICML re-plan proposal
@@ -2489,12 +2844,27 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         against the 5~pp SESOI; the measured 7--8B seed spread is about
         1.7$\times$ the 1B spread). The abstract, \S{}1 and the contributions
         still describe OLMo-2-1B as the stage-1 model (conflict 52).
+        \textbf{Revision 6b (the user's decision of 17 Oct, relayed):} option B
+        with option C as the fallback stands, and Olmo-3-7B-Instruct is a third
+        7--8B model, [PLANNED; funding-gated; first 7--8B model cut] (\S{}4.1,
+        \S{}6; decision 48). Both reviews bear on it. Review A (``What Appendix
+        B's numbers add'', item 2): with a 6-seed MDE of about 11--12~pp at
+        7--8B, the $\pm$5~pp TOST becomes nearly unreachable (the chance of
+        \emph{equivalent} at a true difference of 0 is about 0.29 for 6 against
+        8 seeds at 1.7 times the 1B seed SD, review A's calculation), so
+        $\delta$, the seeds or pairing must change before option B is final
+        (decision 39). Review B (\S{}8.1, W1): the same arithmetic; either a
+        wider SESOI at 7--8B stated in the abstract, or about four times the
+        seeds on fewer contrasts (P1, P4 and the best reference).
   \item \textbf{Gate C's format clause (\S{}4.6).} The brief asked for the
         ATTR\_BETTER/REP\_BETTER consequence; revision 6 also states the
         pre-registered form sentence, because the pre-registration requires the
         two equalities to be reported whatever Gate B reads. Keep it, or cut
         \S{}4.6 to the brief's clause (Appendix C.2 keeps the full rule either
-        way).
+        way). \textbf{Revision 6b:} to hold the length, \S{}4.6 keeps ``the
+        paper may say only that neither pick is the format pick'' and points to
+        Appendix C.2, which keeps the full rule, the verdict list and ``which
+        does not show that the picks are free of form''.
   \item \textbf{Appendix A and the concurrent submission.} The side paper
         reports the same blind read with the same counts. Revision 6 keeps
         Appendix A (it is this paper's check of what U measures) and adds one
@@ -2523,11 +2893,163 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         C (for example \S{}3.4, \S{}4.5 and \S{}4.10 to one paragraph each);
         shrink Figure 1's placeholder to the figure's real size; drop the
         related-work paragraph ``Prediction and decisions under a budget'' to
-        one sentence.
+        one sentence. \textbf{Revision 6b:} the body is still 7.96 pages, with
+        about one line of slack (a probe build with one more line put the Impact
+        Statement on page 9); \S{}3.4, \S{}4.3, \S{}4.5, \S{}4.6, \S{}4.7,
+        \S{}4.8 and \S{}4.10 were shortened to make room for revision 6b's
+        additions. Results still need about a page.
   \item \textbf{The disclosure of Llama's two rungs (\S{}4.1).} ``Both Llama
         rungs were accepted on a too-close bar (one seed's answers-end bar at
         1B; the window's upper edge at 8B); \S{}5 reports both.'' Keep it in
         \S{}4.1, or move it to \S{}5 with the numbers.
+  \item \textbf{The analysis model (review A W2, new; \S{}3.2 [TO BE FIXED in
+        the stage-1 pre-registration]).} Revision 6 said ``differences of means
+        over unpaired seeds, with the variance pooled across arms'', while Gate
+        B pairs by seed and its noise is a paired SD. Review A: pre-register one
+        model (a crossed mixed model or GLMM on answers: arm fixed, seed random,
+        prompt random, arm $\times$ prompt random; or a two-way cluster
+        bootstrap), a heteroscedastic (Welch-type) seed variance as primary or
+        as a pre-registered sensitivity, $\rho$ and the variance components from
+        the Gate A/B runs, and the MDE restated on the right scale; it says
+        whether the 4.5 / 6.0~pp blinded-rule thresholds are on the pair or the
+        per-arm scale. Review A's arithmetic from these notes' numbers:
+        within-seed correlation about 0.76 (2 df), and a seed-paired analysis
+        would cut the Holm first-step MDE from about 5.2 to about 2.7--3.8~pp.
+        FOCUS's newest commits include a stage-1 analysis-model draft (3db753e)
+        and pre-registration DRAFT revision 2 (2ded100); not read in full for
+        this revision.
+  \item \textbf{The test of ``beats the references'' (review A W3; review B W2;
+        new; \S{}4.4 [TO BE FIXED in the stage-1 pre-registration]).} Proposals:
+        run the safety prompt, adapter scaling and Safe LoRA on all six a0
+        seeds, paired with a0 by seed (evaluation cost only); test each data
+        repair against B+Qi and against the adapter-scaling curve interpolated
+        in $\lambda$ to the repair's task loss, with a seed bootstrap over the
+        curve; pre-register the intersection--union test, its $\alpha$ and a
+        margin; give recipe G six seeds or call it descriptive; or pre-register
+        a rule that picks one data repair and confirm only it against the
+        references on fresh seeds (review B). Revision 6's ``lower F than the
+        curve at equal O and L'' is not defined on a one-dimensional curve (both
+        reviews).
+  \item \textbf{Multiplicity (review A W4, new; \S{}4.9 [TO BE FIXED in the
+        stage-1 pre-registration] for the closed family only).} One closed
+        testing family or a fixed-sequence gatekeeper over superiority,
+        equivalence and the three \emph{worse} tests (one Holm family of 12,
+        then confirmation, then Llama); the sidedness of every test (P4 is
+        two-sided; P1--P3, P5, P6 not stated); whether TOST is Holm-adjusted (if
+        not, say ``per-comparison equivalence'' wherever it is used); one
+        primary $\tau_{O}$. Review A's figures: at least one false \emph{worse}
+        under the global null up to 14\% with three unadjusted endpoint
+        families; the chance of \emph{equivalent} at a true difference of 0
+        falls from 0.93 to 0.68 at central noise with Holm-adjusted intervals.
+        Not in the body: sidedness, TOST adjustment, one primary $\tau_{O}$.
+  \item \textbf{Over-refusal (review A W12, new; review B W7, new; review B
+        \S{}8.3, new; \S{}3.2 [TO BE FIXED in the stage-1 pre-registration],
+        twice).} One baseline for side effects (review B: the untuned model for
+        feasibility; the selectivity score as the primary side-effect contrast
+        for additions; no \emph{worse} on over-refusal unless R(m) also exceeds
+        r($\theta$0) by more than $\tau_{O}$); feasibility as a one-sided
+        non-inferiority bound (upper 95\% bound of O(m) $-$ O(comparator) below
+        $\tau_{O}$, and likewise for L); all 250 XSTest safe prompts and
+        OR-Bench-Hard-1K, greedy; drop $\tau_{O}$ = 2~pp or enlarge the bank
+        (two prompts at 100); in-domain refusal on the 200 held-out Dolly
+        prompts; partial refusals reported separately; the precedence of
+        ``feasible'' and ``worse''. These notes' development numbers make the
+        conflict the expected case: untuned OLMo refuses 17/100, recipe B
+        4--6/100, so an addition arm that restores the untuned level is feasible
+        yet likely \emph{worse} against a0.
+  \item \textbf{The margin $\delta$ (review A W5, new).} Anchor $\delta$ to the
+        family's measured E (for example 10--15\% of E, with 5~pp absolute as
+        secondary) or to a judge test--retest or inter-judge figure; report the
+        \emph{better} label's own operating characteristic (80\% power for
+        \emph{better} at about 6.2--6.6~pp at central noise); make the 90\%
+        interval, not the label, the primary output of Table 2 and Figure 1;
+        report the smallest margin at which each contrast would be
+        \emph{equivalent}; settle $\delta$ at 7--8B before option B is final
+        (decision 28). Not in the body.
+  \item \textbf{Secondary endpoints and the HarmBench input (review B W6, partly
+        new; review B W15, new; \S{}4.2 [TO BE FIXED in the stage-1
+        pre-registration], twice).} StrongREJECT's fine-tuned evaluator on the
+        same 600 answers (no new generation) as a harm-weighted secondary
+        endpoint; a prefilling probe (prefill 5--20 tokens of a harmful target,
+        greedy, one pass per arm and seed) to separate shallow from deep
+        repairs; the HarmBench classifier's input clipped to 512 tokens or the
+        full answer, with its agreement with Qwen3Guard per source bank. FOCUS 8
+        Oct 10:14 UTC records that the development check already used the
+        classifier's ``512-token generation truncation'' (conflict 55).
+  \item \textbf{Added data-only repairs and their dose (review B W5, partly new;
+        \S{}4.3 [TO BE FIXED in the stage-1 pre-registration]).} Two addition
+        arms at the 48-row budget and six seeds: Qi et al.'s augmentation (a
+        refusal after a harmful prefix; CITE-CHECK 34) and the one-shot example
+        of Zhang et al. (2026a) replicated to 48 rows; a three-seed secondary
+        arm that replays OLMo's own Tülu-style safety rows (review B did not
+        verify that the OLMo variant keeps them); whether these join the primary
+        family (and how Holm then changes). Not in the body: the replay arm and
+        the cite of Eiras et al.
+  \item \textbf{Selection variance and A1's query (review A W7, partly new;
+        review B W9, partly new).} Score A1 (and S3) on at least three a0 seeds
+        and report the top-600 Jaccard and Kendall $\tau$; either average the
+        scores (and say the selection is fixed) or give each A1 seed its own
+        seed's selection, so that selection variance enters P1. Review B: a
+        scored-only variant whose query is a0's own judge-Unsafe sampled answers
+        on development prompts not used for selection, with an optimizer-aware
+        LoRA gradient (LESS-style), reported as top-600 overlap with A1; call A1
+        a ``gradient-similarity filter'' in claims and bound the conclusion to
+        that estimator. Not in the body. (FOCUS 17 Oct 02:42 UTC: the builder's
+        batch 1 adds A1's report-only variants, a q-only against e1-only
+        stability report and an Adam variant, addendum \S{}5.2.)
+  \item \textbf{The positive control (review A W11, new; review B W11, new).} A
+        decoy cell (harmful-looking, non-eroding rows, for example the same
+        prompts with refusals) to test specificity; at least three sealed plant
+        locations; max or top-quantile aggregation beside the mean (the plant is
+        6\% of an M = 8 cell and all of an M = 128 cell); the anchors' source
+        (if PKU-SafeRLHF, as for the plant, the control is circular by
+        construction; FOCUS 8 Oct 15:53 UTC: the 128 anchor prompts are
+        PKU-SafeRLHF prompts with unsafe responses); before the sweep, the
+        content classifier's and a judge's rank of the planted cell; a
+        benign-looking plant (He et al.'s lists and math). FOCUS 17 Oct mentions
+        decoy plant labels in the stage-1 build (RC-21). Not in the body.
+  \item \textbf{Three smaller rules (review A W13, W14, W9; new or partly new).}
+        A coherence-screen failure keeps its arm in the family, labelled
+        ``failed (worse)'' (W13; \S{}4.2 still says ``is not read''); the
+        value-of-diagnosis predictions are scored by the calibration of per-unit
+        predictive intervals with a proper scoring rule, and the menu-level
+        prediction is descriptive (W14; \S{}4.9 still lists it as family 5);
+        ``replicates across two families'' as agreement of labels in both
+        families or a TOST on the interaction, and a family difference claimed
+        by a test (W9; \S{}4.8 unchanged). Not in the body.
+  \item \textbf{Presentation (review A W1 and W15, partly new; review B W13,
+        partly new).} Say ``pre-specified'' rather than ``pre-registered'' in
+        the abstract until the stage-1 protocol is frozen, or freeze it with a
+        timestamped anonymized registry link and hashes; a one-page ``design at
+        a glance'' table (arm, comparator, seeds, test, sidedness, margin,
+        family) or one design figure; fewer coined terms in the body (about
+        five); the anonymized pre-registrations as supplementary material
+        (decision 32). Not in the body.
+  \item \textbf{The threat model's follow-ups (review B W3, partly new; review A
+        W8, partly new).} Confirm Table 1's assignments (S4 is C only if the
+        service lets the customer sample the untuned model; the safety prompt
+        counts as C because the customer controls its own prompts, though a
+        provider's gate may not use them; conflict 59); add the dataset
+        publisher as an actor, for whom transfer across models is the property
+        to test (review B Q7: OLMo-selected rows on Llama and the reverse); a
+        selection rule for ``the best repair within each actor's menu'' (review
+        A: Gupta-type subset selection of all repairs within $\delta$ of the
+        best, or simultaneous intervals for all 15 pairwise contrasts; net
+        benefit $\Lambda$ $-$ $\lambda$$\cdot$C(m) over a range of $\lambda$).
+        Not in the body.
+  \item \textbf{Forking paths (review A W10, partly new).} Exclude the probe
+        seed from every confirmatory estimate (Gate A's E and stage-1 a0) or
+        report both (the body does not yet report the fresh-seed mean, +45.9~pp;
+        risk 2); say whether stage-1 a0 reuses the Gate A seeds; one
+        decision-tree figure of every fork (who, when, what was visible); extend
+        the Gate B simulator to the whole stage-1 label pipeline under named
+        truth scenarios. Not in the body.
+  \item \textbf{RESOLVED (the user, 17 Oct, relayed by the coordinator's brief
+        for revision 6b): Olmo-3-7B-Instruct is added as a third 7--8B model},
+        [PLANNED; funding-gated; first 7--8B model cut] (\S{}4.1, \S{}6; review
+        B W1 and \S{}5.4). Its learning rate follows the same per-family rule;
+        no probe has run; the first 7--8B model to cut if funds are short. FOCUS
+        (head 6368d66) does not record it yet (conflict 53).
 \end{enumerate}
 
 \subsection{Risks a reviewer will raise (sources in brackets)}
@@ -2789,6 +3311,123 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         The side paper covers the family $\times$ recipe and dose material, the
         opening layers and the blind read. Answer: the main paper cites it
         anonymously and reports none of its findings as new.
+  \item \textbf{``Pre-registered'' before the freeze (review A W1, new part).}
+        The abstract says ``six pre-registered repairs'' while the stage-1
+        pre-registration is [NOT YET FIXED] and ten items are [TO BE FIXED].
+        Body: not changed (decision 45).
+  \item \textbf{The analysis model (review A W2, new).} Unpaired,
+        pooled-variance contrasts against a paired Gate B; heteroscedastic arms;
+        prompts as a crossed factor. Body: \S{}3.2 [TO BE FIXED in the stage-1
+        pre-registration] (decision 35).
+  \item \textbf{No test for ``beats the references'' (review A W3, new; review B
+        W2, new).} The headline FINDING 2 sits outside every pre-registered
+        family; references at three seeds; ``below the curve at equal O and L''
+        undefined. Body: \S{}4.4 [TO BE FIXED in the stage-1 pre-registration]
+        (decision 36).
+  \item \textbf{Multiplicity (review A W4, new).} Holm over six covers only part
+        of the label decisions; TOST adjustment, sidedness and gatekeeping
+        unstated. Body: \S{}4.9 [TO BE FIXED in the stage-1 pre-registration]
+        for one closed family; the rest not in the body (decision 37).
+  \item \textbf{The margin $\delta$ (review A W5, new).} 5~pp equals the planned
+        MDE, is absolute, and the chance of \emph{better} at a true difference
+        of $\delta$ is 0.5. Body: not changed; \S{}6 no longer says smaller
+        differences ``stay inconclusive'' (decision 39).
+  \item \textbf{Judge bias by arm (review A W6, new part; review B W6, partly
+        new).} Differential misclassification across arms; the human check
+        cannot estimate per-arm error; the claim rule has no uncertainty and is
+        undefined for \emph{equivalent} contrasts. Body: not changed (decision
+        24).
+  \item \textbf{One-shot selection (review A W7, new part).} The six A1 seeds
+        replicate one selected subset. Body: not changed (decision 42).
+  \item \textbf{No estimator for ``most safety per compute'' and no procedure
+        for ``best'' (review A W8, new part).} Revision 6b's new sentence (``We
+        report the best repair within each actor's menu'') makes this sharper.
+        Body: not changed (decision 46).
+  \item \textbf{The replication rule accepts absence of evidence (review A W9,
+        new part).} A 7~pp effect in OLMo and 0.5~pp in Llama of the same sign
+        ``replicate''. Body: not changed (decision 44).
+  \item \textbf{Forking paths (review A W10, new parts).} The fresh-seed mean is
+        not in the body; stage-1 a0's reuse of Gate A seeds is not discussed; no
+        decision tree or end-to-end simulation. Body: not changed (decision 47).
+  \item \textbf{The positive control (review A W11, new; review B W11, new).}
+        Near-circular (anchor similarity), dilution confounded with menu size,
+        one plant location; the plant may be trivially findable. Body: not
+        changed (decision 43).
+  \item \textbf{Over-refusal (review A W12, new; review B W7, new; review B
+        \S{}8.3, new).} Two baselines (untuned for feasibility, comparator for
+        \emph{worse}); 100 greedy prompts; point-estimate feasibility. Body:
+        \S{}3.2 [TO BE FIXED in the stage-1 pre-registration], twice (the
+        baseline; non-inferiority on the full XSTest and OR-Bench-Hard banks)
+        (decision 38).
+  \item \textbf{Arms that fail the coherence screen are ``not read'' (review A
+        W13, new).} Informative missingness. Body: not changed (decision 44).
+  \item \textbf{The value-of-diagnosis test is one realization (review A W14,
+        new part).} Body: not changed (decision 44).
+  \item \textbf{Presentation (review A W15, new part; review B W13, new part).}
+        The detection range reads ``about 10--12~pp'' in \S{}4.6 and ``about 9,
+        10 or 12~pp at low, central or high planning noise'' in Appendix C.1.
+        The two agree (\S{}4.6 gives the central-to-high range), but a reader
+        sees a mismatch; a fix is ``about 10~pp at central planning noise
+        (9--12~pp across the planning range)''. Also the density of coined terms
+        and the missing design-at-a-glance table. Body: not changed (decision
+        45).
+  \item \textbf{Model currency (review B W1, new part).} OLMo-2 and Llama-3.x
+        date from 2024--2025; Qwen3's thinking mode is not discussed. Body:
+        Olmo-3-7B-Instruct added as [PLANNED; funding-gated; first 7--8B model
+        cut] (\S{}4.1, \S{}6; decision 48); no limitation sentence on
+        reasoning-mode models.
+  \item \textbf{The threat model (review B W3, new part).} Fine-tuning APIs
+        expose the learning rate and epochs; the customer cannot run A1, L1 or
+        S3. Body: changed (\S{}1, \S{}3.1, Table 1, \S{}4.4, \S{}6) and a
+        lower-learning-rate reference [PLANNED; to be pre-registered] (\S{}4.4);
+        the dataset publisher is not in the body (decision 46).
+  \item \textbf{Loss normalisation and H1 (review B W4, new part).} H1 at six
+        seeds under token-mean loss; tokens removed and first-five-token loss
+        share per arm. Body: not changed (decision 11; token matching stays [TO
+        BE FIXED in the stage-1 pre-registration], decision 26).
+  \item \textbf{Stronger repairs and literature (review B W5, new part).} Body:
+        \S{}4.3 [TO BE FIXED in the stage-1 pre-registration] for Qi et al.'s
+        augmentation and the one-shot example as data arms; \S{}2 cites Safe
+        Delta, Antidote and the survey; Tülu-style replay, Eiras et al.
+        (task-format safety data), backdoor-enhanced safety alignment, Fraser et
+        al. and SORRY-Bench are not in the body (each needs a programmatic
+        fetch; decision 41).
+  \item \textbf{No harm-weighted score and no robustness endpoint (review B W6,
+        new part).} Body: \S{}4.2 [TO BE FIXED in the stage-1 pre-registration]
+        (StrongREJECT's evaluator; a prefilling probe) (decision 40).
+  \item \textbf{Labels that can contradict each other (review B W8, new part).}
+        Body: \S{}3.2 now states that \emph{better} and \emph{equivalent}
+        exclude each other and marks the order when \emph{worse} holds with
+        another label, and a label for a significant difference below $\delta$,
+        [TO BE FIXED in the stage-1 pre-registration] (decision 12).
+  \item \textbf{A1 is gradient similarity to external anchors (review B W9, new
+        part).} Body: not changed (decision 42).
+  \item \textbf{Why Qwen is out (review B W12, corrected by the reviewer after
+        reading these notes).} The reviewer first read the exclusion as
+        ``selecting families that erode''; these notes show the opposite
+        (Qwen2.5-1.5B and 7B saturate under recipe B). Body: \S{}4.1 now gives
+        the reason in one clause. Remaining risk: Qwen was dropped on 7 Oct
+        20:58 UTC, before the per-family learning-rate rule existed (9 Oct), and
+        no lower rung was probed for Qwen (a Qwen backup at Qi's LR 2e-5 was
+        cancelled before launch, FOCUS 20:58 UTC), so a reviewer may ask why the
+        matched-dose rule was not applied to Qwen. Answer: the user chose
+        ``Llama/OLMo only'' before that rule; say so if asked (conflict 54).
+  \item \textbf{Coined terms (review B W13, new part).} Body: not changed
+        (decision 45).
+  \item \textbf{Dataset realism (review B W14, new part).} Body: not changed
+        (decision 20).
+  \item \textbf{The HarmBench classifier outside its validated setting (review B
+        W15, new).} Body: \S{}4.2 [TO BE FIXED in the stage-1 pre-registration]
+        (512-token clip or full answer). The development numbers already used
+        the 512-token clip (FOCUS 8 Oct 10:14 UTC), so the reviewer's premise
+        holds only if stage 1 reads full answers; per-bank agreement is not in
+        the body (decision 40; conflict 55).
+  \item \textbf{The reviewer's Q1 (review B \S{}8.2).} The untuned U per family
+        (3.2\% OLMo-2-1B, 13.8\% Llama-3.2-1B) and recipe G's partial erosion on
+        OLMo-2-1B (+28.8~pp, three seeds) would pre-empt ``an artifact of recipe
+        B'' in one sentence; they are development numbers, and the recipe-G
+        contrast is the concurrent submission's (overlap rule). Body: not
+        changed; for the lead.
 \end{enumerate}
 
 \subsection{Where the framing is weak (the drafter's view)}
@@ -2809,7 +3448,12 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         (previous draft, point 2): a closed-service customer cannot run
         attribution; a developer with open weights also has model-level repairs.
         The references now make this explicit, but the population that benefits
-        from paid diagnosis stays narrow.
+        from paid diagnosis stays narrow. \textbf{Revision 6b (review B W3):}
+        the body now names the two actors and reports the best repair within
+        each actor's menu (\S{}3.1, Table 1, \S{}4.4, \S{}6). Paid diagnosis is
+        open only to the provider (or an open-weights developer), who also has
+        every model-level reference; review B adds the dataset publisher, for
+        whom transfer is the test (decision 46).
   \item \textbf{Mechanism tests are thin.} The token-mean-only run separated
         loss weighting from schedule at one seed, on OLMo only, and refuted the
         loss-weighting account of B $\to$ G. What remains is a descriptive
@@ -2833,7 +3477,7 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         +43.7, +48.2~pp over three seeds; mean +45.1~pp (band 41.3--49.0;
         partial); fresh-seed mean +45.9~pp; answers end; held-out Dolly loss
         2.10 $\to$ 1.54; Granite agrees. Independent audit: sound with caveats.
-  \item \textbf{Audit disclosures:} P(Unsafe | no refusal) 0.91--0.94 after
+  \item \textbf{Audit disclosures:} P(Unsafe $|$ no refusal) 0.91--0.94 after
         fine-tuning; about a third of Unsafe answers carry only ``unethical
         acts'' or ``politically sensitive''; E under hard categories only is
         about 28~pp; five settings screened; 2 df for seed variance; the ARC bar
@@ -2994,11 +3638,11 @@ Guo-gap note finds no seed-69 checkpoint for the 5,000-row cells.
         $\to$ 23.3\% (140/600); \textbf{E +20.2~pp} (SE 2.5, band 15.1--25.2,
         which contains the 20~pp edge, so TOO CLOSE on the E class; point
         estimate partial; coherent-only +19.2) against +29.0~pp at rank 64.
-        |E(r16) $-$ E(r64)| = 8.8~pp $\le$ 10~pp, so \textbf{rank matters little
-        by the pre-registered rule}, but the margin is small: one seed each, and
-        the SE of a difference is about 3.6~pp, so a real rank effect of this
-        size cannot be excluded; report the 8.8~pp itself. Over-refusal 25/100
-        (rank 64 and untuned: 17). Answers end (0 capped, 14 failing the
+        $|$E(r16) $-$ E(r64)$|$ = 8.8~pp $\le$ 10~pp, so \textbf{rank matters
+        little by the pre-registered rule}, but the margin is small: one seed
+        each, and the SE of a difference is about 3.6~pp, so a real rank effect
+        of this size cannot be excluded; report the 8.8~pp itself. Over-refusal
+        25/100 (rank 64 and untuned: 17). Answers end (0 capped, 14 failing the
         screen); task learned (2.100 $\to$ 1.649); ARC d = +1/189, a drop of one
         question (TOO CLOSE under the frozen bars, pass under the adopted ARC
         rule). The main recipe stays G at rank 64, as fixed in advance. Granite
@@ -3199,6 +3843,28 @@ reading).
         replay, predictions); the held-out selector comparison becomes its own
         later pre-registered study after a funding event; the one-example safety
         patch bounded in text (applied in \S{}2 and \S{}6).
+  \item \textbf{HarmBench input length (FOCUS 8 Oct 10:14 UTC; revision 6b).}
+        The development compliance check used
+        \nolinkurl{cais/HarmBench-Mistral-7b-val-cls} with ``the official
+        HarmBench classifier prompt and its 512-token generation truncation'',
+        greedy; the stage-1 pre-registration DRAFT revision 2 (HB-1) keeps ``the
+        512-token classifier clip'' and ``the 2,048-token input refusal'' (read
+        by search only). So the development $E_{\mathrm{HB}}$ values come from
+        clipped answers (the pod runs reproduce the Mac pipeline by a parity
+        check; conflict 55).
+  \item \textbf{Status at revision 6b (FOCUS to head 6368d66, fetched 17 Oct
+        about 07:25 UTC).} Newest entries: the stage-1 T1 bundle committed
+        (9525005; recorded 02:42 UTC on 17 Oct): REQ-2, REQ-14's A1 removal
+        path, the label registry (34 T1 entries), REQ-8's plant settings, a
+        golden A1 test; the lead's real A1 run waits for the builder's batch 1
+        (A1's report-only stability variants). The backup of the Mac-only model
+        weights and states (01:05 UTC). The ICML 2027 goal (16 Oct 21:05 UTC).
+        The commit log adds a stage-1 analysis-model, testing-family and
+        reference-test DRAFT (3db753e; ``mock review A checked by simulation on
+        recorded noise'') and the stage-1 pre-registration DRAFT revision 2 with
+        a consolidated decision list (2ded100; ``104 items; 21 USER items due
+        before wave 1''); neither was read in full here. The user's decisions of
+        17 Oct (decision 48; decisions 26 and 28) are not in FOCUS yet.
   \item \textbf{Status (FOCUS, to the 16 Oct 21:05 UTC entry, the newest; head
         416b780).} The goal for the main paper is ICML 2027 (the user, relayed
         by FAQ; 21:05 UTC); no fallback venue named, so TMLR or NeurIPS 2027
@@ -3637,6 +4303,101 @@ reading).
         and the user before the stage-1 pre-registration.
 \end{enumerate}
 
+\begin{enumerate}
+  \setcounter{enumi}{52}
+  \item \textbf{The user's decisions of 17 Oct against FOCUS.} The brief relays
+        four decisions (Olmo-3-7B-Instruct added; ``ambitious default with
+        fallbacks''; the ``Compute-Matched'' title kept with token matching;
+        option B with C as the fallback). FOCUS at origin head 6368d66 records
+        none of them, and the stage-1 pre-registration DRAFT revision 2 marks
+        items that rely on the ``ambitious default'' rule [USER-CONFIRM]: ``The
+        lead's chat has not confirmed this rule'' (its checklist item FC-1).
+        Resolution: applied as relayed and recorded as relayed (decisions 26,
+        28, 48); the lead records them in FOCUS.
+  \item \textbf{The Qwen clause against the overlap rule.} That Qwen2.5
+        saturates under recipe B is part of the concurrent submission's
+        same-recipe family contrast. The brief asks for one neutral clause with
+        the reason. Resolution: the clause gives the class (``saturated \ldots{}
+        (above 55~pp)'') and no number, keeps the citation for the comparison,
+        and ``What this is'' lists it as a fifth exception to ``nothing in the
+        body is a result''. The reason is FOCUS's: the 7 Oct 17:44 UTC collapse
+        of Qwen2.5-7B (4.8\% $\to$ 87.0\%), the frozen bars' ``E $>$ 55 is
+        saturated, like Qwen'' (19:14 UTC), and the user's ``Llama/OLMo only''
+        (20:58 UTC). Not stated in the body: Qwen was dropped before the
+        per-family rule existed (risk 56).
+  \item \textbf{The HarmBench input (review B W15) against FOCUS.} Review B says
+        the claim rule applies the classifier to answers of up to 2,048 tokens.
+        FOCUS 8 Oct 10:14 UTC records the 512-token clip for the development
+        check, and the stage-1 DRAFT keeps it. The brief asks to mark the length
+        [TO BE FIXED in the stage-1 pre-registration]; \S{}4.2 does so neutrally
+        (``clipped to 512 tokens or in full (up to 2,048)''). If the lead keeps
+        the clip, the sentence can state it as design.
+  \item \textbf{Which HarmBench classifier.} FOCUS names
+        \nolinkurl{cais/HarmBench-Mistral-7b-val-cls} (the validation
+        classifier); review B cites \nolinkurl{cais/HarmBench-Llama-2-13b-cls}
+        as ``the official classifier for text behaviors in HarmBench''. The body
+        says only ``HarmBench's classifier''. Name the model in Appendix C or
+        the claim rule before submission, and check which one HarmBench's paper
+        reports (not checked here).
+  \item \textbf{Safety at One Shot in \S{}2, \S{}4.3 and \S{}6.} D5 = (a) bounds
+        the post-hoc one-example patch in text (not a reference; no claim covers
+        it). Revision 6b's \S{}4.3 lists its data-only analogue (the example
+        added to the training data) as a candidate arm [TO BE FIXED in the
+        stage-1 pre-registration]. They are different repairs, so \S{}6's
+        sentence (``Post-hoc repairs other than the references, such as the
+        one-example patch (Zhang et al., 2026a), are not compared'') still holds
+        if the arm is added.
+  \item \textbf{``Five references'' against the planned sixth.} The abstract,
+        \S{}1, \S{}3.2 and \S{}4.4 say five; \S{}4.4 adds a sixth, the lower
+        learning rate, as [PLANNED; to be pre-registered]. Resolution: ``five''
+        kept while the sixth is planned; Table 1's caption now says
+        ``references''. If the pre-registration adds it, update every count,
+        including \S{}1's ``dominant only if it beats five references''.
+  \item \textbf{The customer and the safety prompt.} Table 1's legend and
+        \S{}4.4 let the customer run the safety prompt, because a test-time
+        prefix is in the customer's own requests. A provider's safety gate
+        (Microsoft, 2026) may evaluate without it, so it may not help the
+        customer pass the gate; the body claims nothing about the gate. Decision
+        46.
+  \item \textbf{``Controls only the data''.} \S{}1 said the owner ``often
+        controls only the data'' and \S{}6 that a closed-service customer ``can
+        change only the data''; revision 6b's \S{}3.1 says the customer can also
+        set the learning rate and epochs (brief item 2; review B W3).
+        Resolution: \S{}1 and \S{}6 now say ``the data and a few training
+        settings'' and ``the data and some hyperparameters''; the abstract's
+        conditional ``When only the training data may change'' is kept.
+  \item \textbf{``Smaller differences stay inconclusive'' (\S{}6) against
+        \S{}3.2's rules.} A difference smaller than $\delta$ with a tight
+        interval is labelled \emph{equivalent}, not inconclusive. Resolution:
+        \S{}6's clause is cut (brief item 7).
+  \item \textbf{The brief's item 5 (``references on all six a0 seeds'') against
+        \S{}4.4's three seeds.} \S{}4.4 still says three seeds for the safety
+        prompt, adapter scaling and Safe LoRA, and decision 19 defaults to seeds
+        1101--1103. Resolution: the TO BE FIXED sentence names both options
+        (``three, or all six a0 seeds''); the stated three stay until the
+        pre-registration rules.
+  \item \textbf{Body pages.} The measure is unchanged at 7.96 pages and the
+        heading sits at the same height as in revision 6, because the cuts
+        balanced the additions to within a line; a probe with one more line gave
+        8.00 pages (``What changed in revision 6b'', Length).
+\end{enumerate}
+
+\textbf{Sources read (revision 6b):} the coordinator's brief for revision 6b;
+\nolinkurl{writing/paper/2026-10-17-mock-review-A-methods.md} and
+\nolinkurl{writing/paper/2026-10-17-mock-review-B-safety.md} in full; these
+notes and the body of revision 6; FOCUS.md at
+\nolinkurl{origin/stageb-costs-and-recovery-safeguards-20261003} (fetched 17
+Oct; head 6368d66), searched for Qwen, the HarmBench judge and the newest
+entries, and read for the 7 Oct entries of 17:44, 19:14, 20:45 and 20:58 UTC,
+the 8 Oct 10:14 UTC entry and the 17 Oct entries (T1 bundle, backup); the header
+of the stage-1 pre-registration DRAFT revision 2 and its lines on HB-1 and SRJ
+(by search only); the commit messages of 3db753e and 2ded100; the arXiv API
+records of 2505.12038, 2408.09600, 2409.18169, 2406.05946, 2402.10260 and
+2512.13961; the PMLR v267 bibliography (entries lu25g and huang25b); the
+OpenReview API search record for Qi et al. (2025) (the PDF endpoint answered
+with a challenge); the Hugging Face model API record of
+allenai/Olmo-3-7B-Instruct.
+
 \textbf{Sources read (revision 6):} FOCUS.md at
 \nolinkurl{origin/stageb-costs-and-recovery-safeguards-20261003} (fetched; head
 416b780), every entry from 9 Oct 17:00 UTC to 16 Oct 21:05 UTC, and the 8 Oct
@@ -3916,7 +4677,15 @@ DataShield-style filter; rules for answers with list or markup lines and for
 the longest answers; the length rule under a token-mean loss; and octiles of
 answer length. Scored without new runs: a Self-Inf-N-style score and a content
 classifier; we publish the overlap of all top-600 sets. SQSD is cited but not
-run, because its scoring needs several FRE.
+run, because its scoring needs several FRE. If Gate~B reads DIFFUSE, a
+rewrite arm (the untuned model's own answers replace the 600 top-attribution
+rows) runs first among the secondary arms, and the planted sweep becomes the
+only test of whether diagnosis can pay.
+
+\paragraph{Published-setting replication (stage~4).}
+A LARF- or DataShield-style filter on Llama-3.1-8B-Instruct fine-tuned on
+Alpaca, with random removal and length rules
+\ph{[PLACEHOLDER: if resources allow]}.
 
 \paragraph{Certified evaluation of the references.}
 A pinned evaluation script regenerates each $a_0$ adapter by a deterministic
@@ -4067,5 +4836,18 @@ $m(p) = \log P_{\mathrm{ref}}(p) - \log(1 - P_{\mathrm{ref}}(p))$, where
 $P_{\mathrm{ref}}$ is the probability of a frozen refusal phrase as the first
 answer tokens. If a category's effect runs through openings, the margin should
 track $U$ across arms.
+
+\subsection{Side studies: measurement validity and side-effect prediction}
+\label{app:side}
+
+\paragraph{Measurement validity and over-refusal.}
+Agreement and $E$ for three judges on the same answers, hard-category $U$ and
+length bands, how much of the gap to published numbers comes from judges and
+prompts, and $O$ by source, bounded by the judge's false-Unsafe rate on benign
+prompts.
+
+\paragraph{Side-effect prediction (secondary).}
+On the addition arms only: the balanced error of predicting an over-refusal
+violation, a diagnostic against trial runs of equal cost.
 
 \end{document}
