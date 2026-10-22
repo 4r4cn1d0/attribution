@@ -1,0 +1,120 @@
+{
+  "task": "CHECK (independent, read-only) of the W1 freeze pass outputs",
+  "written": "2026-10-22, 20:42-20:54 UTC (date -u at 20:42:56 and 20:54:02 UTC)",
+  "checked_files": {
+    "stage1-preregistration-rev4.md": "4a754864af37f949fa781f39b54bf9addb77db3765897b64145a4af2897f41cf",
+    "req21-w1-record.md": "e1c676c95542305637e0812609b253bd178ec0b9d94b46bcac25bd0758ae9ae9",
+    "changelog.json": "read; 277 changes, 14 placeholders_left"
+  },
+  "sources_verified": {
+    "stage1-preregistration-DRAFT-rev3.md": "557413e44e05b96b168a329e053857e00fadbff6b05f9190195dbf2ddc784bb7 (matches the brief)",
+    "req21-w1-record.md (draft)": "4438905e253c6794146b4d0a801530f7d64a30a50d96ab10f51331eeb815243f (matches)",
+    "lead-rulings-needed.md": "9c44770432d151d3c60801b582093cd19dd68d2e1a065a869eb8c656b234532a (matches)",
+    "addendum": "55dd103202d584f69da17fdfc994f83eb4507b3707bef183829a95559a51392a (matches)",
+    "decision-ledger.md": "e7e4434505cef8c29903f74ab72704d005b1eef556a269af8cf8e9156b9d18dc (no MSG-14 to MSG-16 rows)",
+    "FOCUS.md": "26cbc6cd083a1ea7e284f25be525767bb32fe36545d6da2a6249dc4ec0ab6e40",
+    "predictions.json": "48284ce0271a56f92a217084382b92ab2b9351037c3e2410fd867febe092fa35 (matches addendum section 12 point 3 and both outputs)",
+    "predictions-timing.json": "41ece161450390f00dedefdd2e185e3fe2ff0ad632d512a6b25a2bcb1bbad7f3 (matches the record; it contains the predictions hash)",
+    "SPEC stage1-method-specs.md": "fceb7e1340932cc87fe79be2b9436d8f419718defb3b06490681b365e578b9ec (main checkout tmp/gi-v-steps-4-9/)"
+  },
+  "method": [
+    "grep of both outputs for [LEAD-NEEDED], [PROPOSED, [FILL AT W1-P], [USER-CONFIRM], FILL AT, TBD, TODO and for recommended/proposed/if adopted/if the lead wording",
+    "line diff and word-level diff of each output against its source (scratchpad prereg.wdiff, rec.wdiff); every hunk read",
+    "automatic check of every changelog entry's old and new text against source and output",
+    "rulings read in full: lead-rulings-needed.md sections 1-5; addendum sections 3-14; FOCUS lines 74-93 (16 Oct 21:05 to 22 Oct 17:31 UTC)",
+    "settings values checked by python3 -I key reads only: selector_spec.json, selector_simulate.json, selector_predict.json, limits_overrefusal_checks.json (unit keys), predictions.json (top-level and menu keys)",
+    "SPEC sections 2.4, 3.4, 4.4, 5.4 and 9 compared with the transcribed deviation tables of record item (h)",
+    "no rows.jsonl, groups.json, selector.jsonl, hidden/, held-out file, PHTest, anchor or lexicon text opened; no git command"
+  ],
+  "verdict": "fix_required",
+  "summary": "Both files are close to correct. No open marker is left. Every former LEAD-NEEDED or PROPOSED span is written as decided, and it cites addendum section 10 or a later section. Every key number matches its source: 0.517 FRE, the predictions SHA-256, the W1-18 bar (97 of 100, a move of 2 at most) and its pod-first rule, d = 8-10 for plan B, blocks A 1102-1104 and B 1105-1107, tau_O* = 5 pp, tau_L, and the $10-27 and $40-70 branch estimates. One ruling is applied only in part: addendum section 13 point 2 says that plans and cost estimates use Branch full until W1-18 reports, but the block-A sum for the funding event still spans Branch 128's low end in both files. There are also some smaller defects. Section 10 of rev 4 still uses the old c0 value. Both files say that batch revisions are verified by the lead, but FOCUS says they are still at the builder or wait for the lead's re-check. Two record lines fall outside the quoted text to commit. A few conditional 'if the lead does not accept' or 'only if adopted' phrases are left.",
+  "findings": [
+    {
+      "severity": "blocking",
+      "summary": "The block-A cost sum for the funding event does not apply addendum section 13 point 2 (Branch full for every plan and cost estimate until W1-18's result)",
+      "where": "stage1-preregistration-rev4.md section 10.5, row 'Block A, summed' (line 841); req21-w1-record.md item (d) rule 11 (line 196) and Z.5 block A row (line 704)",
+      "evidence": "Addendum section 13 point 2: 'Until the result exists, plans and cost estimates use Branch full.' Both files write this rule (rev4 section 6.3 line 542; record (e) rule 5 lines 212-213 and the 'Open for the lead' line 230). But the summed block-A estimate is still 'about $49-75 before LN-15e, and about $70-101 with LN-15e'. Its parts: runs about $41; c0 $0.4-1.1; regenerations $3-6; LN-14 $0.7; O-ext share '$4-10 (Branch 128) or $15-26 (Branch full)'. The low end, 41 + 0.4 + 3 + 0.7 + 4 = $49.1, takes the Branch 128 O-ext share. Also, LN-14 (about $0.7) runs only under Branch 128 (rev4 line 554: 'under Branch 128, theta0's 400 PHTest answers ...').",
+      "fix": "Do the sum again under Branch full and keep the Branch 128 figure only as a stated alternative. Runs $41, c0 $0.4-1.2 (2,400 s, see the next finding), regenerations $3-6, O-ext share $15-26, and no LN-14 give about $59-74 (E). With LN-15e ($15-19 + $5.6-7.1) the sum is about $80-100 (E). Write the result into rev4 section 10.5, record (d) rule 11 and record Z.5. Optionally add 'about $49-75 if W1-18 later picks Branch 128'. Copy the parts from their sources, as the brief requires."
+    },
+    {
+      "severity": "should_fix",
+      "summary": "Rev 4 section 10.3 and section 10.4 still use c0 = 2,300 s and the conditional 'if LN-07 adopts'. Section 7.3 uses 2,400 s (addendum section 11 point 13).",
+      "where": "stage1-preregistration-rev4.md line 817 (section 10.3 'c0 in dollars') and line 830 (the note under the section 10.4 table); record (d) rule 11 'c0 about $0.4-1.1'",
+      "evidence": "Line 817: 'Under LN-07's 500-prompt form at the full cap, about $1.1 (E (here): 2,300 s x $1.79/h).' Line 830: 'The c0 column changes if LN-07 adopts the 500-prompt C-lean (the ratios fall by about 2.6x; E (here): 2,300 / 870).' Addendum section 11 point 13: 'The c0 estimate becomes about 2,400 s (E, the verifier's estimate), up from about 870 s.' Rev4 section 7.3 (line 638), section 14.2 LN-07 and the 'Changes from revision 3' row for section 7 already say 2,400 s. LN-07 is adopted.",
+      "fix": "Line 817: 'about $1.2 (E (here): 2,400 s x $1.79/h; addendum section 11 point 13)'. Line 830: 'The c0 column changes under LN-07's 500-prompt C-lean (adopted): the ratios fall by about 2.8x (E (here): 2,400 / 870).' Record (d) rule 11 and the rev4 block-A row: 'c0 about $0.4-1.2'."
+    },
+    {
+      "severity": "should_fix",
+      "summary": "Both files say that the fix revisions of the builder's batches are verified by the lead. FOCUS says that they are still at the builder or wait for the lead's re-check.",
+      "where": "stage1-preregistration-rev4.md section 0.4 'State at the freeze' (line 99) and section 10.6 step 3 (line 864); req21-w1-record.md (g) 'Not at HEAD' paragraph (line 333) and Z.4 'State at the freeze' (line 697)",
+      "evidence": "FOCUS 22 Oct 17:31 UTC: 3a and 3b fixes 'The builder applies both as revision 2'; 'Batch 2 rev 2's verifier returned no result, so a one-agent delta check runs again (wf_13654190)'. FOCUS 17:23 UTC: batches 4-5 passed, but their fix list 'now batch 4-5 revision 1 at the builder'; 'The builder's batch 8 revision 1 (C1-C5) is delivered (784 tests, 58 of 58 mutants killed) and waits for the lead's re-check.' The outputs say: 'Verified by the lead and waiting for the explicit-path code commit: the builder's batches 2 revision 2, 3a and 3b (... with their fixes as revision 2) ... and batch 8 with its revision 1'.",
+      "fix": "Write the state as FOCUS records it. Batches 3a and 3b and batches 4-5 were verified (no blocking defect), and their fix revisions (3a/3b revision 2, 4-5 revision 1) are at the builder. Batch 2 revision 2's delta check is running again. Batch 8 passed, and its revision 1 is delivered and waits for the lead's re-check. All of them then wait for the regression suites and the explicit-path commit."
+    },
+    {
+      "severity": "should_fix",
+      "summary": "Two new lines in record item (m) have no '> ' prefix, so they fall outside the quoted text to commit and break the quoted list and table",
+      "where": "req21-w1-record.md line 566 ('- **Since the draft ...') and line 607 ('| The freeze pass's writer ...')",
+      "evidence": "The record's status line says the text to commit is 'in the quoted blocks'. Every other line from 544 to 612 starts with '>'. Line 566 starts with '- ' and line 607 starts with '| '. Line 607 is a row of the M4 table, so the quoted table ends before it. The source draft has no such break (awk scan: none in the draft; these two in the output).",
+      "fix": "Put '> ' before both lines."
+    },
+    {
+      "severity": "should_fix",
+      "summary": "Conditional text on adopted or decided items is left in both files",
+      "where": "stage1-preregistration-rev4.md section 9.5 line 779 and req21-w1-record.md (h) reading 14 line 357 ('If the lead does not accept this reading, ...'); record (g) 'Labels' line 304 ('and, only if adopted, stage1-plant-extra-unit-v1 and stage1-plant-extra-leaf-v1'); rev4 section 12.3 item (22) line 916 ('if the lead's run included a Gate B unit, the record lists it (the W1 record's M5)')",
+      "evidence": "LN-09 (adopted, addendum section 10) makes the lead's W1 commit the act that approves every W1 reading, so 'if the lead does not accept this reading' leaves a choice open that the commit closes. UW-20 and addendum section 6 point 7 made F9's plant locations conditional rule text with appended labels, and addendum section 14 point 2 flags build_plant_extra* as conditional, so 'only if adopted' is stale. Record M5 now says 'No Gate B unit is among them' (the 11 unit keys, which this check confirmed in limits_overrefusal_checks.json). Rev4 (22) still has the conditional form.",
+      "fix": "Delete the two 'If the lead does not accept ...' sentences, or replace them with '(LN-09: approved by the W1 commit)'. Replace 'only if adopted' with '(F9's; conditional rule text, UW-20; run only if stage 1b is funded)'. Rev4 (22): 'W1-18's 11 pinned units are Gate A and development units only; no Gate B unit is among them (the W1 record's M5).'"
+    },
+    {
+      "severity": "note",
+      "summary": "The OSF deposit yes is in FOCUS on 17 Oct (about 19:11 UTC, recorded 19:25 UTC), not on 22 Oct as the brief says. The editor cited FOCUS correctly.",
+      "where": "rev4 sections 0.2, 0.5 and 14.3; record (a) rule 9; changelog notes[1]",
+      "evidence": "FOCUS line 81, 'USER DECISIONS, about 2026-10-17T19:11 UTC ... \"Saying yes to all\" ... recorded 2026-10-17T19:25 UTC', item 3: 'Public copy of the frozen rules: a timestamped, anonymous copy.' FOCUS lines 74-80 (22 Oct) hold no entry about the deposit.",
+      "fix": "None in the files. If the user said yes again on 22 Oct, the lead should record it in FOCUS. The files can then cite both entries."
+    },
+    {
+      "severity": "note",
+      "summary": "Some placeholders are left that are not in the brief's three permitted kinds. They depend on the commit, and the changelog lists them.",
+      "where": "req21-w1-record.md lines 23 (REV4's SHA-256), 58 (the commit's date -u time), 209 (the O-ext sealed record's path and SHA-256), 257 (the d = 6-8 edit files' SHA-256), 304 (labels.json SHA-256)",
+      "evidence": "The brief permits FILL AT COMMIT only for the manifest's SHA-256, the commit hashes and a code file's final SHA-256. The changelog's placeholder_kinds_left[3] names the time and the O-ext record as extras. Each value exists only at the commit: FOCUS 17:31 UTC says the 11 edit files' bytes change before the commit, and the build_oext.py run is still to come. REV4's SHA-256 is known now (4a754864...), unless rev 4 is edited again.",
+      "fix": "The lead must accept these kinds, or the editor can fold them into 'the manifest's entry for <file> (item (n))'. Write REV4's SHA-256 after the last edit, or keep the placeholder only if rev 4 can still change before the commit. Also update rev4's header sentence (line 3), which names only the three kinds."
+    },
+    {
+      "severity": "note",
+      "summary": "Small factual imprecisions in the blinding and W1-18 text against FOCUS",
+      "where": "record (m) M4 lead row (line 604); record (e) rule 5 (line 213); record (m) M2 W1-18 bullet (line 565)",
+      "evidence": "(1) The M4 lead row says 'its verification workflows (wf_f0ed8869, wf_a55942ca, wf_b8b3a552, wf_f3242d0c) read, on real data and read-only, the six units' COMPLETE.json and job.json hashes ...'. FOCUS 17:23 UTC gives that read to wf_a55942ca (batches 4-5) only. (2) Rule 5's wording ties the non-finite logits to all 'three runs on 22 Oct, 12:42-13:23 UTC'. FOCUS 13:24 UTC says that a swap guard stopped the first two runs and that only the third ended in non-finite logits. (3) The first MPS run of 17 Oct, which stopped on non-finite logits (FOCUS 15:18 UTC), is not named in M2. No flag was read in any of these runs, so the blinding conclusion does not change.",
+      "fix": "(1) Name wf_a55942ca only. (2) Write 'the third of three runs on 22 Oct (13:08-13:23 UTC; the first two were stopped by a swap guard)'. (3) Optionally add the 17 Oct MPS run to M2's W1-18 bullet."
+    },
+    {
+      "severity": "note",
+      "summary": "Fallbacks that still have a trigger are marked 'not adopted', but the ruling keeps each fallback with its trigger",
+      "where": "e.g. rev4 section 6.3 LN-12 ('Pre-set fallback (review-statistics ST-13; not adopted)'), LN-14, LN-19; record (d) rule 5, (e) rule 5",
+      "evidence": "lead-rulings-needed.md section 1 and addendum section 10: 'Each fallback stays as the pre-set fallback with its trigger.' LN-12's fallback is the route when the fingerprint-checked regeneration fails. A reader can take 'not adopted' to mean that the fallback is discarded.",
+      "fix": "Where a fallback has a live trigger, write '(pre-set fallback; applies if <trigger>)' and keep 'not adopted' for the alternatives that have no trigger."
+    },
+    {
+      "severity": "note",
+      "summary": "Minor wording and consistency items",
+      "where": "various",
+      "evidence": "(a) The record calls its source 'DRAFT revision 4' (lines 58, 593, 631, 670), but rev 4's title is 'revision 4: the frozen W1 text'. (b) Record (d) rule 11 cites 'the DRAFT revision 3 section 10.5'; its source is now rev 4. (c) Rev4 line 220: 'HB-4 ... Recommended: the first item cut if money is short' is still in proposal form (section 10.5's cut order already decides it). (d) Record Z.3 LN-32: 'Proposed in item (i) rule 4.' (e) Rev4's header says it 'changed no number except 0.517 FRE and c0 about 2,400 s', but it also adds numbers copied from settings or FOCUS (l_item_sd 0.002804409730185502, 666 and 784 tests, 136 entries) and a derived 0.82 FRE marked M (2,400 / 2,934, an E over an E). (f) The record's lead-row window is '17 Oct 15:18' but its M2 'Since the draft' window is '17 Oct 17:21'. (g) The record's 'Note for the lead' about checking LLB (line 487) is still a suggestion to the lead.",
+      "fix": "Use one name for rev 4. Cite revision 4 in (d) rule 11. Write HB-4 as 'cut first if money is short (section 10.5)'. Write LN-32 as 'adopted in item (i) rule 4'. Make the header say 'no new decided number; values copied from settings and FOCUS are marked R or M'. Mark 0.82 FRE as E. Use the same window in both places."
+    },
+    {
+      "severity": "note",
+      "summary": "Some changelog entries do not show the final text. They were edited by later entries (259-276).",
+      "where": "changelog.json changes[153], [154], [236], [258], [274]-[276] and others",
+      "evidence": "Example: changes[153].new_text says 'the 17 Oct draft marked [PROPOSED; LN-nn]', and the output says 'marked as proposed (PROPOSED; LN-nn)'. Entries 259-276 have 'old' text that is the pass's own earlier text, not the source's. 26 entries' new_text and 26 entries' old_text were not found literally, mostly because of multi-line spans written with a literal line-break symbol. This check found no diff hunk that lacks a changelog entry with a cited source.",
+      "fix": "Optional: merge the second-pass entries into the first ones, so that each entry maps the source text to the final text."
+    }
+  ],
+  "passed_checks": [
+    "(1) No [LEAD-NEEDED], [PROPOSED], [FILL AT W1-P] or [USER-CONFIRM] mark remains. Rev 4 has 0 FILL AT COMMIT marks, and the record has 14, all in the exact form '[FILL AT COMMIT: what]'.",
+    "(2) Every LN span checked against lead-rulings-needed.md section 2 matches the recommended ruling and its fallback: LN-01, 02, 04, 05, 06, 07, 10-15e, 15 (yes reading), 19-21, 24-26, 30-38, and LN-03, 18, 23, 27, 28 for S1. LN-16 stays the user's.",
+    "(3) Numbers. 0.517 FRE (addendum section 12 point 2), in rev4 section 7.3 and section 14.2 LN-33 and in record (k) rule 8; the settings give (3.6197 + 0.1709) x 400 / 2,934 = 0.517. The predictions SHA-256 48284ce0... is in full in rev4 section 0.4 and record (j) rule 1 and matches the file. The W1-18 bar ('at least 97 of 100 flags ... no unit's refused count moves by more than 2') and the pod-first rule match addendum section 13 point 2 in both files. Plan B: 'R draws d = 8-10 (d = 8 from the frozen build_sealed.py; d = 9-10 drawn by gate-b-random-removal-v1)' (addendum section 11 point 15), in rev4 sections 1.2 and 1.3 and in record (d) rule 7. D1 blocks A = 1102-1104 and B = 1105-1107. tau_O* = 5 pp and tau_L = 0.0067170919092681925 nats are unchanged. Branch 128 is $10-27 and Branch full is $40-70.",
+    "(3b) Settings values as written: rho_mode 'a7_switch' with grid [0.0, 0.67]; rho_average_for_rule true; se_form 'hb' with the hb_unpaired option; l_item_sd_nats 0.002804409730185502; o_prompt_sd_pp 4.1; o_theta0_pp 17.0; bank_prompts 500; the pick and tau_l notes as quoted; planted_primary 'row_auc'; the 11 W1-18 unit keys; the predictions menus category and planted_8, 32 and 128.",
+    "(4) The structure, numbering and headings of both files are kept, and only the declared sections are added. The two files agree on LN-15a, plan B, W1-18, the O-ext route, LN-34 and the manifest rows of addendum section 14. Every label in the (l) table is in section 14's fixed set.",
+    "(5) The blinding line does not conflict with FOCUS from 17 Oct onward. No FOCUS entry records a read of a Gate B arm's O, task loss or answers, or any stage-1 outcome. The new reads (the predictions hash, the six units' COMPLETE.json and job.json hashes, the W1-18 Mac attempts with no flag, and the OLMo base download) are listed. Only the imprecisions in the note above remain.",
+    "The facts carried from the brief are in both files: UW-01 to UW-21 and the ambitious-default rule; OLMo 3 7B as a third 7-8B model if funded; Gemma access still HTTP 403 with US-13's fallback; the Safe LoRA V/V' check in its pod job; 'pre-specified in a dated git record' until the OSF deposit.",
+    "The record's deviation tables are transcribed from SPEC sections 2.4, 3.4, 4.4 and 5.4 and checked against SPEC. The decided texts (ADD L3, L4, L10, L14) are substituted as stated. One small change in wording: Self-Inf 'check equality' became 'the code refuses unless equal'."
+  ]
+}
