@@ -16,8 +16,13 @@ from scripts.stage1.selector import spec
 
 import selector_fixtures as fx
 
+# The rule-mechanics tests run on the dev-100 cost form (fx.dev100: every convention holds the dev 100 only, the
+# rev-1 costs), whose hand values are below; the in-force 500-prompt costs have their own hand tests
+# (test_cost_model_hand_values here; test_selector_rev2.py).
 C_FULL_SCREEN = (91.1 + 219.7 + 0.25 * 2623.2) / 2934.0
 C_FULL_PROMOTE = 0.75 * 2623.2 / 2934.0 + 1.0
+O_EXT_S = 400 * (1694.0 + 80.0) / 468.0                     # LN-07, LN-33: the 400 PHTest prompts' answers and guard
+DEV = fx.dev100()
 
 
 # ----- settings, objects and costs -----------------------------------------------------------------------
@@ -54,15 +59,29 @@ def test_the_menus_are_the_brief_objects():
 
 def test_cost_model_hand_values():
     S = fx.raw("selector_spec")
-    full = spec.cost_model(S, "C-full")
+    assert O_EXT_S == pytest.approx(1516.2393, abs=1e-4)
+    full = spec.cost_model(S, "C-full")                       # 1 FRE stays 2,934 s; a full run holds 868 answers
+    assert full.unit == pytest.approx(2934.0) and full.evaluation == pytest.approx(2623.2 + O_EXT_S)
+    assert full.full == pytest.approx((2934.0 + O_EXT_S) / 2934.0) and full.full == pytest.approx(1.5168, abs=1e-4)
+    assert full.trial(1.0, 0.25) == pytest.approx((91.1 + 219.7 + 0.25 * (2623.2 + O_EXT_S)) / 2934.0)
+    assert full.topup(0.25, 1.0) == pytest.approx(0.75 * (2623.2 + O_EXT_S) / 2934.0) and full.topup(1.0, 1.0) == 0.0
+    lean = spec.cost_model(S, "C-lean")                       # c0 = the lean job, which holds the 500 bank
+    assert lean.unit == pytest.approx(870.0 + O_EXT_S) and lean.full == pytest.approx(1.0)
+    assert lean.samples_per_prompt == 1 and lean.unit / 2934.0 == pytest.approx(0.8133, abs=1e-4)
+    S["cost_conventions"]["C-lean"]["contents"] = "b"
+    b = spec.cost_model(S, "C-lean")                          # (b): the O answers come with every full run
+    assert b.unit == pytest.approx(480.0) and b.full == pytest.approx(1.0 + (390.0 + O_EXT_S) / 480.0)
+    assert b.topup(0.25, 1.0) == pytest.approx((0.75 * 245.0 + 390.0 + O_EXT_S) / 480.0)
+    full = spec.cost_model(DEV, "C-full")                     # the dev-100 form: the rev-1 values
     assert full.unit == pytest.approx(2934.0) and full.full == pytest.approx(1.0)
     assert full.trial(1.0, 0.25) == pytest.approx(C_FULL_SCREEN)
     assert full.topup(0.25, 1.0) == pytest.approx(0.75 * 2623.2 / 2934.0) and full.topup(1.0, 1.0) == 0.0
-    lean = spec.cost_model(S, "C-lean")
+    lean = spec.cost_model(DEV, "C-lean")
     assert lean.unit == pytest.approx(870.0) and lean.samples_per_prompt == 1
     assert lean.training / lean.unit == pytest.approx(0.2529, abs=1e-4)
-    S["cost_conventions"]["C-lean"]["contents"] = "b"
-    b = spec.cost_model(S, "C-lean")
+    D = fx.dev100()
+    D["cost_conventions"]["C-lean"]["contents"] = "b"
+    b = spec.cost_model(D, "C-lean")
     assert b.unit == pytest.approx(480.0) and b.full == pytest.approx(1.0 + 390.0 / 480.0)
     assert b.topup(0.25, 1.0) == pytest.approx((0.75 * 245.0 + 390.0) / 480.0)
 
@@ -78,7 +97,7 @@ def test_the_tie_order_is_the_sealed_order_of_the_registry_key():
 
 
 def test_one_shot_schedule_hand_values():
-    ctx = fx.context(fx.custom_menu(8))
+    ctx = fx.context(fx.custom_menu(8), settings=DEV)
     g = np.array([[0, 0, 0, 0, 0, 0, 9.0, 0]])
     sel = spec.select(ctx, fx.exact_obs(ctx, 50.0 - g), rule="one_shot", budget=4.0)
     n_s = math.floor((4.0 - C_FULL_PROMOTE) / C_FULL_SCREEN)
@@ -88,7 +107,7 @@ def test_one_shot_schedule_hand_values():
 
 
 def test_one_shot_caps_its_finalists_and_spends_the_rest_on_their_seeds():
-    ctx = fx.context(fx.custom_menu(8))
+    ctx = fx.context(fx.custom_menu(8), settings=DEV)
     assert ctx.one_shot_finalists == 2
     g = np.arange(8.0)[None, :]
     sel = spec.select(ctx, fx.exact_obs(ctx, 50.0 - g), rule="one_shot", budget=16.0)
@@ -100,7 +119,7 @@ def test_one_shot_caps_its_finalists_and_spends_the_rest_on_their_seeds():
 
 
 def test_halving_schedule_hand_values():
-    ctx = fx.context(fx.custom_menu(8))
+    ctx = fx.context(fx.custom_menu(8), settings=DEV)
     sizes, total = spec.halving_schedule(ctx, 4)
     top_half = 0.25 * 2623.2 / 2934.0
     assert sizes == [4, 2, 1, 1]
@@ -112,7 +131,7 @@ def test_halving_schedule_hand_values():
 
 
 def test_bisection_plan_hand_values():
-    ctx = fx.context(fx.custom_menu(8, nested=True))
+    ctx = fx.context(fx.custom_menu(8, nested=True), settings=DEV)
     t, total = spec.bisection_plan(ctx, 4.0)
     assert t == 1 and total == pytest.approx(6 * C_FULL_SCREEN + C_FULL_PROMOTE)
     assert spec.bisection_plan(ctx, 1.0) == (0, 0.0)
@@ -153,7 +172,7 @@ def test_no_policy_ever_spends_more_than_b():
 
 
 def test_the_ledger_counts_every_trial():
-    ctx = fx.context(fx.custom_menu(4))
+    ctx = fx.context(fx.custom_menu(4), settings=DEV)
     state = spec.State.empty(1, 4, ctx.max_seeds)
     state.level[0, 0, 0] = ctx.screen_psi
     state.level[0, 1, 0:2] = ctx.c1
@@ -288,15 +307,29 @@ def _screened(ctx: spec.Context, o: float, l: float, keep_l: list[float] | None 
     return spec.feasibility(ctx, _view(ctx, obs), est["full"], est["n_full"])[0, 0]
 
 
+def _t(ctx: spec.Context, df: float) -> float:
+    return float(spec.t_quantile_exact(ctx.upper_quantile, np.array([df]))[0])
+
+
 def _o_upper(ctx: spec.Context, o: float) -> float:
-    z = NormalDist().inv_cdf(ctx.upper_quantile)
-    pooled = ((-1.0) ** 2 * 2 + ((4 - 14 / 3) ** 2 + (6 - 14 / 3) ** 2 + (4 - 14 / 3) ** 2)) / (1 + 2)
+    """The hand upper bound of _screened's option (O at o - 1 and o + 1 on 2 seeds; keep's O 4, 6, 4)."""
     prompt = ctx.o_prompt_sd ** 2 if ctx.o_error_model == "prompts_random" else 0.0
-    return o - ctx.o_theta0 + z * math.sqrt(pooled / 2 + prompt)
+    if ctx.se_form == "pooled_residuals":
+        z = NormalDist().inv_cdf(ctx.upper_quantile)
+        pooled = ((-1.0) ** 2 * 2 + ((4 - 14 / 3) ** 2 + (6 - 14 / 3) ** 2 + (4 - 14 / 3) ** 2)) / (1 + 2)
+        return o - ctx.o_theta0 + z * math.sqrt(pooled / 2 + prompt)
+    v_seed = 2.0 / 2                                           # own variance 2 (ddof 1) over 2 seeds, 1 df
+    df = (v_seed + prompt) ** 2 / (v_seed ** 2 / 1)
+    return o - ctx.o_theta0 + _t(ctx, df) * math.sqrt(v_seed + prompt)
 
 
-def test_the_o_screen_both_ways_with_hand_values():
-    ctx = fx.context(fx.custom_menu(1))
+SCREEN_FORMS = [("hb", "prompts_random"), ("hb", "seed_only"), ("hb_unpaired", "prompts_random"),
+                ("pooled_residuals", "prompts_random"), ("pooled_residuals", "seed_only")]
+
+
+@pytest.mark.parametrize("se_form,o_error_model", SCREEN_FORMS)
+def test_the_o_screen_both_ways_with_hand_values(se_form, o_error_model):
+    ctx = fx.context(fx.custom_menu(1), se_form=se_form, o_error_model=o_error_model)
     for tau_index, tau in enumerate(ctx.tau_o):
         o_edge = ctx.o_theta0 + tau - (_o_upper(ctx, 0.0) + ctx.o_theta0) + 0.0
         assert _screened(ctx, o_edge - 0.01, 0.0)[tau_index]
@@ -311,38 +344,104 @@ def test_an_o_infeasible_candidate_is_never_picked():
     assert (pick == 1).all()
 
 
-def test_the_quantile_switch_flips_a_boundary_case():
-    ctx95 = fx.context(fx.custom_menu(1))
-    ctx90 = fx.context(fx.custom_menu(1), upper_quantile=0.90)
+@pytest.mark.parametrize("se_form", ["hb", "pooled_residuals"])
+def test_the_quantile_switch_flips_a_boundary_case(se_form):
+    ctx95 = fx.context(fx.custom_menu(1), se_form=se_form)
+    ctx90 = fx.context(fx.custom_menu(1), upper_quantile=0.90, se_form=se_form)
     o = (ctx95.o_theta0 + 5.0) - (_o_upper(ctx95, 0.0) + ctx95.o_theta0) + 0.2
     assert not _screened(ctx95, o, 0.0)[1] and _screened(ctx90, o, 0.0)[1]
 
 
 def test_the_prompt_part_switch():
-    ctx_pr = fx.context(fx.custom_menu(1))
-    ctx_so = fx.context(fx.custom_menu(1), o_error_model="seed_only")
+    ctx_pr = fx.context(fx.custom_menu(1), se_form="pooled_residuals")
+    ctx_so = fx.context(fx.custom_menu(1), se_form="pooled_residuals", o_error_model="seed_only")
     o = ctx_pr.o_theta0 + 2.0 - 3.0                            # 1 pp below the tau_O = 2 limit on the estimate
     assert not _screened(ctx_pr, o, 0.0)[0] and _screened(ctx_so, o, 0.0)[0]
+    hb_pr = fx.context(fx.custom_menu(1))                     # hb: the item part also raises the df (2 seeds)
+    hb_so = fx.context(fx.custom_menu(1), o_error_model="seed_only")
+    assert _o_upper(hb_so, 0.0) - _o_upper(hb_pr, 0.0) == pytest.approx(_t(hb_so, 1.0) - _t(
+        hb_pr, (1 + hb_pr.o_prompt_sd ** 2) ** 2) * math.sqrt(1 + hb_pr.o_prompt_sd ** 2))
+    o = ctx_pr.o_theta0 + 2.0 - 0.5 * (_o_upper(hb_so, 0.0) - _o_upper(hb_pr, 0.0)) - (
+        _o_upper(hb_pr, 0.0) + ctx_pr.o_theta0)                 # halfway between the two bounds' edges
+    assert _screened(hb_pr, o, 0.0)[0] and not _screened(hb_so, o, 0.0)[0]
 
 
-def test_the_hb_form_equals_the_hand_two_arm_variance():
-    ctx = fx.context(fx.custom_menu(1), se_form="hb", o_error_model="seed_only")
+def _hb_case(ctx: spec.Context):
     obs = fx.exact_obs(ctx, np.array([[45.0]]))
     obs.o = np.array([[[3.0, 7.0] + [0.0] * (ctx.max_seeds - 2)]])
     obs.l = np.array([[[0.002, 0.006] + [0.0] * (ctx.max_seeds - 2)]])
     obs.keep_l = np.array([[0.0, 0.001, 0.002]])
     state = _state_with(ctx, [2])
+    return obs, state
+
+
+def _bounds(ctx: spec.Context, obs: spec.Observations, state: spec.State) -> dict:
     view = _view(ctx, obs)
     est = spec.estimates(ctx, view, state)
+    return spec.screen_bounds(ctx, view, est["full"], est["n_full"])
+
+
+def test_the_hb_form_equals_the_hand_theta0_and_paired_forms():
+    """LN-20 (REC (e) rule 9): O against theta0 with the option's own seed variance (n - 1 df); L against a0 by
+    the pair's own paired variance on the common seeds (J - 1 df); each plus its item part, t at Satterthwaite df."""
+    ctx = fx.context(fx.custom_menu(1))
+    assert ctx.se_form == "hb"
+    obs, state = _hb_case(ctx)
+    b = _bounds(ctx, obs, state)
+    item_o = ctx.o_prompt_sd ** 2
+    v_o = 8.0 / 2                                             # O 3, 7: own variance 8 (ddof 1), 2 seeds
+    o_hand = 5.0 - ctx.o_theta0 + _t(ctx, (v_o + item_o) ** 2 / v_o ** 2) * math.sqrt(v_o + item_o)
+    assert b["o"][0, 0] == pytest.approx(o_hand, abs=1e-6)
+    d = np.array([0.002 - 0.0, 0.006 - 0.001])                # the common seeds 0 and 1; keep's third seed unused
+    item_l = ctx.l_item_sd ** 2
+    v_l = d.var(ddof=1) / 2
+    l_hand = d.mean() + _t(ctx, (v_l + item_l) ** 2 / v_l ** 2) * math.sqrt(v_l + item_l)
+    assert b["l"][0, 0] == pytest.approx(l_hand, abs=1e-10)
+    for shift, expected in ((-1e-6, True), (1e-6, False)):
+        moved = copy.deepcopy(obs)
+        moved.l = obs.l + (ctx.tau_l - l_hand) + shift
+        assert _bounds(ctx, moved, state)["l"][0, 0] == pytest.approx(ctx.tau_l + shift, abs=1e-10)
+        est = spec.estimates(ctx, _view(ctx, moved), state)
+        assert spec.feasibility(ctx, _view(ctx, moved), est["full"], est["n_full"])[0, 0].all() == expected
+    so = fx.context(fx.custom_menu(1), o_error_model="seed_only")
+    assert _bounds(so, obs, state)["o"][0, 0] == pytest.approx(5.0 - so.o_theta0 + _t(so, 1.0) * math.sqrt(v_o),
+                                                               abs=1e-6)
+
+
+def test_the_paired_l_form_uses_only_the_common_seeds():
+    ctx = fx.context(fx.custom_menu(1))
+    obs, _ = _hb_case(ctx)
+    obs.l = np.array([[[0.002, 0.006, 0.003, 0.009] + [0.0] * (ctx.max_seeds - 4)]])
+    four = _state_with(ctx, [4])                               # 4 option seeds, keep's 3: 3 common seeds
+    d = np.array([0.002, 0.005, 0.001])
+    v = d.var(ddof=1) / 3
+    item = ctx.l_item_sd ** 2
+    hand = d.mean() + _t(ctx, 2 * (v + item) ** 2 / v ** 2) * math.sqrt(v + item)
+    assert _bounds(ctx, obs, four)["l"][0, 0] == pytest.approx(hand, abs=1e-10)
+    one = _state_with(ctx, [1])                                # 1 common seed: no bound, not feasible
+    assert _bounds(ctx, obs, one)["l"][0, 0] == np.inf and _bounds(ctx, obs, one)["o"][0, 0] == np.inf
+
+
+def test_the_hb_unpaired_switch_equals_the_hand_welch_form():
+    ctx = fx.context(fx.custom_menu(1), se_form="hb_unpaired")
+    obs, state = _hb_case(ctx)
+    b = _bounds(ctx, obs, state)
+    v1, v2 = np.var([0.002, 0.006], ddof=1) / 2, np.var([0.0, 0.001, 0.002], ddof=1) / 3
+    item = ctx.l_item_sd ** 2
+    df = (v1 + v2 + item) ** 2 / (v1 ** 2 / 1 + v2 ** 2 / 2)
+    hand = (0.004 - 0.001) + _t(ctx, df) * math.sqrt(v1 + v2 + item)
+    assert b["l"][0, 0] == pytest.approx(hand, abs=1e-10)
+    hb = _bounds(fx.context(fx.custom_menu(1)), obs, state)
+    assert b["o"][0, 0] == pytest.approx(hb["o"][0, 0], abs=1e-12) and b["l"][0, 0] != pytest.approx(hb["l"][0, 0])
+
+
+def test_the_pooled_fallback_equals_the_hand_two_arm_variance():
+    ctx = fx.context(fx.custom_menu(1), se_form="pooled_residuals", o_error_model="seed_only")
+    obs, state = _hb_case(ctx)
     z = NormalDist().inv_cdf(0.95)
-    l_upper = (0.004 - 0.001) + z * math.sqrt(np.var([0.002, 0.006], ddof=1) / 2 + np.var([0, 0.001, 0.002], ddof=1) / 3)
-    edge = ctx.tau_l - l_upper
-    ok = spec.feasibility(ctx, view, est["full"], est["n_full"])[0, 0]
-    assert ok.all() == (edge >= 0)
-    ctx_tight = fx.context(fx.custom_menu(1), se_form="hb", o_error_model="seed_only")
-    obs.l = obs.l + (ctx_tight.tau_l - l_upper) + 1e-6
-    est = spec.estimates(ctx_tight, view, state)
-    assert not spec.feasibility(ctx_tight, _view(ctx_tight, obs), est["full"], est["n_full"])[0, 0].any()
+    pooled = (np.var([0.002, 0.006]) * 2 + np.var([0.0, 0.001, 0.002]) * 3) / (1 + 2)
+    hand = (0.004 - 0.001) + z * math.sqrt(pooled * (1 / 2 + 1 / 3))
+    assert _bounds(ctx, obs, state)["l"][0, 0] == pytest.approx(hand, abs=1e-12)
 
 
 def test_the_tau_l_reference_switch():

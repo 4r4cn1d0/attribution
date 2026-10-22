@@ -1,7 +1,7 @@
 {
   "kind": "stage1 mutants",
   "version": 1,
-  "part": "Part F (REQ-19 with W1-16; W1-05; W1-18): the brief's Part F mutants, the task's three added mutants, and further mutants of the decider, the NI report, the known-answer check, the strata and the over-refusal checks; the verifier's 13 new mutants (notes/partF-verify-mutants.json); the fix round's mutants of the verification items S-2, S-3, S-13, N-2 and N-5",
+  "part": "Part F (REQ-19 with W1-16; W1-05; W1-18): the brief's Part F mutants, the task's three added mutants, and further mutants of the decider, the NI report, the known-answer check, the strata and the over-refusal checks; the verifier's 13 new mutants (notes/partF-verify-mutants.json); the fix round's mutants of the verification items S-2, S-3, S-13, N-2 and N-5; the W1-18 batch-size option's 13 mutants (F18-batch-*)",
   "mutants": [
     {
       "id": "F-mde-one-sided-alpha",
@@ -453,6 +453,110 @@
       "file": "limits/limits_check.py",
       "find": "            raise s1.Refusal(f\"settings: tau_l.two_df_simulated.{bound} is not the three rates in percent\")",
       "replace": "            pass"
+    },
+    {
+      "id": "F18-batch-option-ignored",
+      "part": "F-W1-18 batch (the guard batch size option: a recipe copy for the loader, the device rule, the record)",
+      "describes": "the option ignored: the loader's recipe copy keeps the recipe's guard.batch_size",
+      "file": "limits/overrefusal_checks.py",
+      "find": "    loader_recipe[\"guard\"][\"batch_size\"] = effective",
+      "replace": "    loader_recipe[\"guard\"][\"batch_size\"] = recipe_value"
+    },
+    {
+      "id": "F18-batch-recipe-not-copied",
+      "part": "F-W1-18 batch (the guard batch size option: a recipe copy for the loader, the device rule, the record)",
+      "describes": "no deep copy: the batch size is written into the recipe as read (the codec's recipe changes too)",
+      "file": "limits/overrefusal_checks.py",
+      "find": "    loader_recipe = copy.deepcopy(recipe)",
+      "replace": "    loader_recipe = recipe"
+    },
+    {
+      "id": "F18-batch-mps-not-refused",
+      "part": "F-W1-18 batch (the guard batch size option: a recipe copy for the loader, the device rule, the record)",
+      "describes": "on mps a padded batch above 1 is not refused (a Mac run can produce non-finite rows)",
+      "file": "limits/overrefusal_checks.py",
+      "find": "    if is_mps(device) and effective > MPS_GUARD_BATCH_MAX:",
+      "replace": "    if False:"
+    },
+    {
+      "id": "F18-batch-mps-refuses-one",
+      "part": "F-W1-18 batch (the guard batch size option: a recipe copy for the loader, the device rule, the record)",
+      "describes": "on mps a batch size of 1 is refused too (>= for >): no Mac run is possible",
+      "file": "limits/overrefusal_checks.py",
+      "find": "    if is_mps(device) and effective > MPS_GUARD_BATCH_MAX:",
+      "replace": "    if is_mps(device) and effective >= MPS_GUARD_BATCH_MAX:"
+    },
+    {
+      "id": "F18-batch-mps-index-unchecked",
+      "part": "F-W1-18 batch (the guard batch size option: a recipe copy for the loader, the device rule, the record)",
+      "describes": "the device rule misses an indexed Mac GPU device (mps:0)",
+      "file": "limits/overrefusal_checks.py",
+      "find": "    return str(device).split(\":\", 1)[0] == \"mps\"",
+      "replace": "    return device == \"mps\""
+    },
+    {
+      "id": "F18-batch-zero-accepted",
+      "part": "F-W1-18 batch (the guard batch size option: a recipe copy for the loader, the device rule, the record)",
+      "describes": "a batch size of 0 accepted (< 0 for < 1)",
+      "file": "limits/overrefusal_checks.py",
+      "find": "    if isinstance(value, bool) or not isinstance(value, int) or value < 1:",
+      "replace": "    if isinstance(value, bool) or not isinstance(value, int) or value < 0:"
+    },
+    {
+      "id": "F18-batch-bool-accepted",
+      "part": "F-W1-18 batch (the guard batch size option: a recipe copy for the loader, the device rule, the record)",
+      "describes": "a bool accepted as a batch size (True as 1)",
+      "file": "limits/overrefusal_checks.py",
+      "find": "    if isinstance(value, bool) or not isinstance(value, int) or value < 1:",
+      "replace": "    if not isinstance(value, int) or value < 1:"
+    },
+    {
+      "id": "F18-batch-default-not-the-recipes",
+      "part": "F-W1-18 batch (the guard batch size option: a recipe copy for the loader, the device rule, the record)",
+      "describes": "without the option the batch size is a constant 1, not the recipe's value",
+      "file": "limits/overrefusal_checks.py",
+      "find": "    effective = recipe_value if batch_size is None else guard_batch_size(batch_size)",
+      "replace": "    effective = 1 if batch_size is None else guard_batch_size(batch_size)"
+    },
+    {
+      "id": "F18-batch-record-effective-is-recipes",
+      "part": "F-W1-18 batch (the guard batch size option: a recipe copy for the loader, the device rule, the record)",
+      "describes": "the record's effective batch size is the recipe's value, not the one used",
+      "file": "limits/overrefusal_checks.py",
+      "find": "    report = {\"device\": device, \"guard_batch_size\": effective, \"recipe_guard_batch_size\": recipe_value}",
+      "replace": "    report = {\"device\": device, \"guard_batch_size\": recipe_value, \"recipe_guard_batch_size\": recipe_value}"
+    },
+    {
+      "id": "F18-batch-recipe-pin-unchecked",
+      "part": "F-W1-18 batch (the guard batch size option: a recipe copy for the loader, the device rule, the record)",
+      "describes": "the recipe file is not compared with its pin before the batch size is applied",
+      "file": "limits/overrefusal_checks.py",
+      "find": "    if not recipe_path.is_file() or sha256_file(recipe_path) != spec[\"recipe_file_sha256\"]:",
+      "replace": "    if not recipe_path.is_file():"
+    },
+    {
+      "id": "F18-batch-loader-gets-the-read-recipe",
+      "part": "F-W1-18 batch (the guard batch size option: a recipe copy for the loader, the device rule, the record)",
+      "describes": "the loader is given the recipe as read (the pod's batch size), not the copy",
+      "file": "limits/overrefusal_checks.py",
+      "find": "            loaded[\"scorer\"] = loaders._load_guard(loader_recipe, RunLedger(ledger_dir), device)",
+      "replace": "            loaded[\"scorer\"] = loaders._load_guard(recipe, RunLedger(ledger_dir), device)"
+    },
+    {
+      "id": "F18-batch-cli-option-dropped",
+      "part": "F-W1-18 batch (the guard batch size option: a recipe copy for the loader, the device rule, the record)",
+      "describes": "the command does not pass --guard-batch-size on to the tools",
+      "file": "limits/overrefusal_checks.py",
+      "find": "                                               guard_batch_size=args.guard_batch_size)",
+      "replace": "                                               guard_batch_size=None)"
+    },
+    {
+      "id": "F18-batch-cli-zero-accepted",
+      "part": "F-W1-18 batch (the guard batch size option: a recipe copy for the loader, the device rule, the record)",
+      "describes": "the command does not check N before the tools are built",
+      "file": "limits/overrefusal_checks.py",
+      "find": "        if args.guard_batch_size is not None:\n            guard_batch_size(args.guard_batch_size)",
+      "replace": "        pass"
     }
   ]
 }

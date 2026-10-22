@@ -1,16 +1,19 @@
 """The selector spec (REQ-16): one code path for simulation and replay (numpy; Mac, $0).
 
-Objects. An option (id; kind keep, removal, add or cell; dose in rows; full-run cost in FRE). A menu (the
-category menu of the 8 Gate B units; the method menu of the stage-1 primary arms; the planted menus of 8, 32
-and 128 nested cells; Llama's Gate B-lite category menu). A budget B in units of c0 of a cost convention
-(C-full: 1 FRE; C-lean: the lean job). Keep (a0, or a0_plant on planted menus) is in every menu with G = 0;
-its seeds were already run, outside B.
+Objects. An option (id; kind keep, removal, add or cell; dose in rows; its cost as a multiple of the
+convention's full run, 1.0 for every option). A menu (the category menu of the 8 Gate B units; the method menu
+of the stage-1 primary arms; the planted menus of 8, 32 and 128 nested cells; Llama's Gate B-lite category
+menu). A budget B in units of c0 of a cost convention (C-full: 1 FRE = 2,934 s, fixed; C-lean: the lean job).
+Keep (a0, or a0_plant on planted menus) is in every menu with G = 0; its seeds were already run, outside B.
 
 Trials. A trial is (option, seed index, phi, psi): a training fraction phi and a prompt fraction psi, priced
 by the ledger cost model: (setup + phi x training + psi x evaluation) / c0. Raising a trained model's prompt
 fraction from psi_a to psi_b costs (psi_b - psi_a) x evaluation / c0, so a cost depends only on the final
 state of each (option, seed). A full run is phi = psi = 1. Under C-lean variant (b) every full run also pays
-the over-refusal and task-loss passes that the screen needs, at their full-evaluation cost.
+the over-refusal and task-loss passes that the screen needs, at their full-evaluation cost. Each convention
+holds the over-refusal answers of the prompts it names (500 after O-ext: the dev 100 and 400 PHTest prompts,
+LN-07 and LN-33): the prompts beyond the dev 100 add their greedy answers and their guard at the wave-0a
+per-prompt prices. Under C-full the unit stays 1 FRE, so a C-full full run then costs more than 1 FRE.
 
 Rules (each is fixed-budget: its schedule is chosen before any data and never spends more than B):
   one_shot   screen as many options as the budget allows with one trial each at the screen fidelity (seed 0),
@@ -33,15 +36,28 @@ Pick. Among the options with at least 2 full-run seeds that pass the feasibility
 empirical-Bayes-shrunk estimate of G = U(keep) - U(option) (normal-normal, method of moments, over every option
 with at least one full-run seed; variances from the pooled U residuals); a tie between options goes to the
 raw estimate, then to the sealed tie order; the pick is keep unless the best shrunk estimate is above 0, so a
-tie with keep goes to keep.
+tie with keep goes to keep. The pick's seeds are not paired: it models a practitioner's selection rule, which
+need not follow the study's analysis model (LN-11).
 
 Feasibility screen. An option is dropped if the upper end of the two-sided interval at the settings' quantile
 (default 0.95: the two-sided 90% interval) of O(option) - O(theta0) is above tau_O, or that of L(option) -
-L(reference) is above tau_L, or if it fails the coherence gate. The O SE adds the prompt part under the
-prompts-random error model; the seed part comes from the pooled residuals (lead decisions L16) or from the
-option's own seeds plus the crossed item part (the HB form), by a settings switch. The screen bounds O and L
-separately: the U-O noise correlation enters the generative model only (a reading, settings screen.uo_reading).
-The screen uses the settings' L reference; a replay also reports the L bound against the other one (W1-13 row 4).
+L(reference) is above tau_L, or if it fails the coherence gate. Two forms, by a settings switch:
+  hb (LW-13 with LN-20, in force): O against theta0 = the option's mean O; seed part = the sample variance
+             (ddof 1) of its own full-run O values / n (n - 1 df); item part = the prompt part under the
+             prompts-random error model. L against the reference arm = the paired mean of L(option, j) -
+             L(reference, j) over the common seed indices; seed part = the sample variance (ddof 1) of those
+             differences / J (J - 1 df); item part = the settings' L item SD squared. Each bound uses the
+             Student t quantile at the Satterthwaite df of its seed part with the item part a known planning
+             constant: df = V^2 / (V_seed^2 / df_seed). One estimate, one SE and one df (REC (c) rule 4). An
+             option with fewer than 2 such seeds has no bound and is not feasible.
+  hb_unpaired (a switch): O as hb; L = the option's mean over all its full-run seeds minus the reference's
+             mean over all its seeds; seed part = the option's own sample variance / n + the reference's own
+             sample variance / its seed count, df by Welch-Satterthwaite (with the item part as above).
+  pooled_residuals (lead decisions L16, the fallback): the pooled within-option variance of the full runs
+             and the comparison arm's seeds, with the normal quantile; O adds the prompt part.
+The screen bounds O and L separately: the U-O noise correlation enters the generative model only (a reading,
+settings screen.uo_reading). The screen uses the settings' L reference; a replay also reports the L bound
+against the other one (W1-13 row 4).
 
 All randomness comes from s1common by registry key: the sealed tie order of a menu's options, and the prompt
 subsample of a psi-trial replayed from saved labels. The settings file settings/selector_spec.json is pinned by
@@ -68,11 +84,12 @@ if str(REPO) not in sys.path:
 from scripts.stage1 import s1common as s1  # noqa: E402
 
 SETTINGS_PATH = STAGE1 / "settings" / "selector_spec.json"
-SETTINGS_SHA256 = "2846cdfa33d38b0e86395af98e2eec1b4f758f2b5ebfc151bf97ef3e5985d724"
+SETTINGS_SHA256 = "b4bd06c35061cea6f52c489946a45ab9a25e01f1bf9e3073b7f208e17d68e510"
 SETTINGS_NAME = "selector_spec"
 KEEP = -1
 EPS = 1e-9
 RULES = ("one_shot", "halving", "bisection")
+SE_FORMS = ("hb", "hb_unpaired", "pooled_residuals")
 LABELS_KIND = "stage1 selector saved labels"
 LABELS_VERSION = 2               # version 2 adds samples_per_prompt (the options' and keep's U sampling)
 
@@ -85,7 +102,8 @@ class Option:
     id: str
     kind: str                    # keep, removal, add or cell
     dose: int                    # rows removed (removal, cell) or added (add); 0 for keep
-    cost_fre: float              # full-run cost in FRE; keep: 0 (its seeds ran outside B)
+    cost_fre: float              # full-run cost as a multiple of the convention's full run (1.0; the name dates
+                                 # from when a C-full full run was 1 FRE); keep: 0 (its seeds ran outside B)
 
 
 @dataclass(frozen=True)
@@ -112,17 +130,20 @@ class Menu:
 
 @dataclass(frozen=True)
 class CostModel:
-    """Seconds of one full run by stage; the unit c0 = setup + training + evaluation."""
+    """Seconds of one full run by stage, and the unit c0 in seconds: C-full 1 FRE (2,934 s, fixed at W1-P and
+    never re-estimated, LW-16), so a full run that holds more answers than the wave-0a jobs costs more than 1;
+    C-lean the lean job itself (setup + training + evaluation)."""
     name: str
     setup: float
     training: float
     evaluation: float
     extra_full: float            # C-lean (b): the screen's O and L passes, paid by every full run
     samples_per_prompt: int      # U's sampled answers per harm prompt in this convention's evaluation
+    unit_s: float                # c0 in seconds
 
     @property
     def unit(self) -> float:
-        return self.setup + self.training + self.evaluation
+        return self.unit_s
 
     def trial(self, phi: float, psi: float) -> float:
         full = self.extra_full if (phi == 1.0 and psi == 1.0) else 0.0
@@ -153,8 +174,9 @@ class Context:
     min_seeds: int               # the pick's full-run seeds
     upper_quantile: float
     o_error_model: str           # prompts_random or seed_only
-    o_prompt_sd: float           # pp; the prompt part of O's SE under prompts_random
-    se_form: str                 # pooled_residuals or hb
+    o_prompts: int               # over-refusal prompts the convention's evaluation holds (500 after O-ext)
+    o_prompt_sd: float           # pp; the prompt part of O's SE under prompts_random, at o_prompts prompts
+    se_form: str                 # hb (in force), hb_unpaired or pooled_residuals
     l_item_sd: float             # nats; the crossed task-row part of L's SE under the HB form
     tau_l_reference: str         # a0 or r
     coherence_gate: bool
@@ -257,8 +279,8 @@ def check(settings: Mapping[str, Any]) -> None:
     if settings["pick"]["min_full_run_seeds"] < 2:
         raise s1.Refusal("the pick needs at least 2 full-run seeds (REQ-16)")
     screen = settings["screen"]
-    if screen["o_error_model"] not in ("prompts_random", "seed_only") or screen["se_form"] not in (
-            "pooled_residuals", "hb") or screen["tau_l_reference"] not in ("a0", "r"):
+    if screen["o_error_model"] not in ("prompts_random", "seed_only") or screen["se_form"] not in SE_FORMS or screen[
+            "tau_l_reference"] not in ("a0", "r") or sorted(screen["se_form_options"]) != sorted(SE_FORMS):
         raise s1.Refusal("a screen switch holds a value outside its stated options")
     if not 0.5 < screen["upper_quantile"] < 1.0:
         raise s1.Refusal("the screen's upper quantile is outside (0.5, 1)")
@@ -271,6 +293,34 @@ def check(settings: Mapping[str, Any]) -> None:
     labels = settings["saved_labels"]
     if labels["kind"] != LABELS_KIND or labels["version"] != LABELS_VERSION:
         raise s1.Refusal(f"the spec settings describe saved labels other than version {LABELS_VERSION}")
+    if not math.isfinite(float(screen["l_item_sd_nats"])) or float(screen["l_item_sd_nats"]) < 0:
+        raise s1.Refusal("the screen's L item SD is not a finite number at or above 0")
+    bank = settings["o_bank"]
+    dev, full_bank = bank["dev_prompts"], bank["bank_prompts"]
+    if not (isinstance(dev, int) and isinstance(full_bank, int) and 0 < dev < full_bank):
+        raise s1.Refusal("o_bank: the dev and bank prompt counts are not integers with 0 < dev < bank")
+    if not (bank["greedy_s_per_prompt"] > 0 and bank["guard_s_per_answer"] >= 0):
+        raise s1.Refusal("o_bank: a per-prompt price is not positive")
+    for name, conv in _conventions(settings):
+        if conv["o_prompts"] not in (dev, full_bank) or conv["o_part"] not in ("evaluation", "extra_full"):
+            raise s1.Refusal(f"{name}: o_prompts is not the dev or the bank count, or o_part is not "
+                             "evaluation or extra_full")
+        if name.startswith("C-full") != ("unit_s" in conv):
+            raise s1.Refusal(f"{name}: only C-full names its unit (1 FRE); C-lean's unit is its own lean job")
+    fre = settings["cost_conventions"]["C-full"]
+    if abs(fre["setup_s"] + fre["training_s"] + fre["evaluation_s"] - fre["unit_s"]) > 1e-6:
+        raise s1.Refusal("C-full: 1 FRE is the wave-0a job slot (setup + training + the dev-100 evaluation)")
+
+
+def _conventions(settings: Mapping[str, Any]) -> list[tuple[str, Mapping[str, Any]]]:
+    """Every convention block that prices trials: C-full, and each C-lean variant."""
+    out = []
+    for name, conv in settings["cost_conventions"].items():
+        if "variants" in conv:
+            out.extend((f"{name} ({key})", variant) for key, variant in sorted(conv["variants"].items()))
+        else:
+            out.append((name, conv))
+    return out
 
 
 def planted_options(geometry: Mapping[str, Any], level: str) -> list[Option]:
@@ -302,8 +352,8 @@ def menu_from(settings: Mapping[str, Any], menu_id: str) -> Menu:
     if len(set(ids)) != len(ids) or any(o.kind not in ("removal", "add", "cell") for o in options):
         raise s1.Refusal(f"menu {menu_id}: option ids repeat or an option kind is not removal, add or cell")
     if any(o.cost_fre != 1.0 for o in options):
-        raise s1.Refusal(f"menu {menu_id}: an option's full-run cost is not 1 FRE; the convention's cost model prices "
-                         "every trial, and a per-option cost is not built")
+        raise s1.Refusal(f"menu {menu_id}: an option's cost is not one full run of the convention (cost_fre 1.0); "
+                         "the convention's cost model prices every trial, and a per-option cost is not built")
     menu = Menu(menu_id, cfg["kind"], keep, tuple(options), int(cfg["keep_seeds"]), bool(cfg["nested"]))
     if menu.keep_seeds < 2:
         raise s1.Refusal(f"menu {menu_id}: keep needs at least 2 seeds for the pooled residuals")
@@ -319,12 +369,41 @@ def tie_rank(menu: Menu) -> np.ndarray:
     return np.array([position[oid] for oid in menu.ids], dtype=np.int64)
 
 
-def cost_model(settings: Mapping[str, Any], convention: str) -> CostModel:
+def convention_block(settings: Mapping[str, Any], convention: str) -> Mapping[str, Any]:
+    """The convention's pricing block (C-lean: the variant its contents name)."""
     conv = settings["cost_conventions"][convention]
     if "variants" in conv:
         conv = conv["variants"][conv["contents"]]
-    return CostModel(convention, float(conv["setup_s"]), float(conv["training_s"]), float(conv["evaluation_s"]),
-                     float(conv["extra_full_s"]), int(conv["samples_per_prompt"]))
+    return conv
+
+
+def o_bank_seconds(settings: Mapping[str, Any], convention: str) -> float:
+    """Seconds that the convention's over-refusal prompts beyond the dev 100 add to one full run: their greedy
+    answers and their guard at the wave-0a per-prompt prices (LN-07, LN-33)."""
+    bank, conv = settings["o_bank"], convention_block(settings, convention)
+    extra = int(conv["o_prompts"]) - int(bank["dev_prompts"])
+    return extra * (float(bank["greedy_s_per_prompt"]) + float(bank["guard_s_per_answer"]))
+
+
+def cost_model(settings: Mapping[str, Any], convention: str) -> CostModel:
+    conv = convention_block(settings, convention)
+    setup, training = float(conv["setup_s"]), float(conv["training_s"])
+    evaluation, extra_full = float(conv["evaluation_s"]), float(conv["extra_full_s"])
+    o_seconds = o_bank_seconds(settings, convention)
+    if conv["o_part"] == "evaluation":
+        evaluation += o_seconds
+    else:
+        extra_full += o_seconds
+    unit = float(conv["unit_s"]) if "unit_s" in conv else setup + training + evaluation
+    return CostModel(convention, setup, training, evaluation, extra_full, int(conv["samples_per_prompt"]), unit)
+
+
+def o_prompt_sd(settings: Mapping[str, Any], convention: str) -> float:
+    """The prompt part of O's SE at the convention's prompt count: the dev-100 planning value x sqrt(dev /
+    prompts) (LW-12, LN-10: the dev-100 values with the prompt SD scaled to the bank; planning values)."""
+    screen, bank = settings["screen"], settings["o_bank"]
+    prompts = int(convention_block(settings, convention)["o_prompts"])
+    return float(screen["o_prompt_sd_pp"]) * math.sqrt(int(bank["dev_prompts"]) / prompts)
 
 
 def context(settings: Mapping[str, Any], menu_id: str, convention: str, *, menu: Menu | None = None) -> Context:
@@ -338,7 +417,8 @@ def context(settings: Mapping[str, Any], menu_id: str, convention: str, *, menu:
         max_seeds=int(trials["max_seeds"]), tie_rank=tie_rank(menu),
         min_seeds=int(settings["pick"]["min_full_run_seeds"]),
         upper_quantile=float(screen["upper_quantile"]), o_error_model=screen["o_error_model"],
-        o_prompt_sd=float(screen["o_prompt_sd_pp"]), se_form=screen["se_form"],
+        o_prompts=int(convention_block(settings, convention)["o_prompts"]),
+        o_prompt_sd=o_prompt_sd(settings, convention), se_form=screen["se_form"],
         l_item_sd=float(screen["l_item_sd_nats"]), tau_l_reference=screen["tau_l_reference"],
         coherence_gate=bool(screen["coherence_gate"]),
         o_theta0=float(limits["o_theta0_pp"]), tau_o=tuple(float(x) for x in limits["tau_o_grid_pp"]),
@@ -624,6 +704,140 @@ def _bisection(ctx: Context, view: _View, budget: float) -> State:
 RULE_FUNCTIONS = {"one_shot": _one_shot, "halving": _halving, "bisection": _bisection}
 
 
+# ----- Student t quantiles (numpy only; the HB-form screen's df) -----------------------------------------
+
+T_TABLE_POINTS = 4097            # the table's grid in x = 1 / df on [0, 1] (df from 1 to infinity)
+
+
+def _lgamma(x: np.ndarray) -> np.ndarray:
+    return np.array([math.lgamma(float(v)) for v in np.ravel(x)]).reshape(np.shape(x))
+
+
+def _betacf(a: np.ndarray, b: np.ndarray, x: np.ndarray, iterations: int = 500) -> np.ndarray:
+    """The continued fraction of the regularized incomplete beta function (modified Lentz), elementwise."""
+    tiny = 1e-300
+    qab, qap, qam = a + b, a + 1.0, a - 1.0
+    c = np.ones_like(x)
+    d = 1.0 - qab * x / qap
+    d = 1.0 / np.where(np.abs(d) < tiny, tiny, d)
+    h = d.copy()
+    for m in range(1, iterations + 1):
+        m2 = 2.0 * m
+        for aa in (m * (b - m) * x / ((qam + m2) * (a + m2)), -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2))):
+            d = 1.0 + aa * d
+            d = 1.0 / np.where(np.abs(d) < tiny, tiny, d)
+            c = 1.0 + aa / c
+            c = np.where(np.abs(c) < tiny, tiny, c)
+            step = d * c
+            h = h * step
+        if np.all(np.abs(step - 1.0) < 1e-15):
+            break
+    return h
+
+
+def _betainc(a: np.ndarray, b: np.ndarray, x: np.ndarray) -> np.ndarray:
+    """The regularized incomplete beta function I_x(a, b) for 0 < x < 1, elementwise."""
+    front = np.exp(_lgamma(a + b) - _lgamma(a) - _lgamma(b) + a * np.log(x) + b * np.log1p(-x))
+    direct = x < (a + 1.0) / (a + b + 2.0)
+    out = np.empty_like(x)
+    if direct.any():
+        out[direct] = front[direct] * _betacf(a[direct], b[direct], x[direct]) / a[direct]
+    if (~direct).any():
+        r = ~direct
+        out[r] = 1.0 - front[r] * _betacf(b[r], a[r], 1.0 - x[r]) / b[r]
+    return out
+
+
+def t_upper_tail(t: np.ndarray, df: np.ndarray) -> np.ndarray:
+    """P(T_df > t) for t > 0 and real df > 0: I_{df / (df + t^2)}(df / 2, 1/2) / 2."""
+    t, df = np.asarray(t, float), np.asarray(df, float)
+    return 0.5 * _betainc(df / 2.0, np.full_like(df, 0.5), df / (df + t * t))
+
+
+LARGE_DF = 1e4                   # from here on the Cornish-Fisher series in 1 / df (its next term is below 1e-16)
+
+
+def _t_series(z: float, nu: np.ndarray) -> np.ndarray:
+    """The Cornish-Fisher expansion of the t quantile in 1 / df to the 1 / df^4 term."""
+    g1 = (z ** 3 + z) / 4
+    g2 = (5 * z ** 5 + 16 * z ** 3 + 3 * z) / 96
+    g3 = (3 * z ** 7 + 19 * z ** 5 + 17 * z ** 3 - 15 * z) / 384
+    g4 = (79 * z ** 9 + 776 * z ** 7 + 1482 * z ** 5 - 1920 * z ** 3 - 945 * z) / 92160
+    return z + g1 / nu + g2 / nu ** 2 + g3 / nu ** 3 + g4 / nu ** 4
+
+
+def t_quantile_exact(q: float, df: np.ndarray) -> np.ndarray:
+    """The q quantile (0.5 < q < 1) of Student's t at real df >= 1 (np.inf allowed): below LARGE_DF by Newton
+    steps on the upper tail kept inside [z_q, tan(pi (q - 1/2))] (the t quantile falls from the Cauchy's at
+    df = 1 to the normal's), with bisection when a step leaves the bracket; from LARGE_DF on by the series.
+    Accurate to about 1e-11."""
+    if not 0.5 < q < 1.0:
+        raise s1.Refusal("a t quantile needs 0.5 < q < 1")
+    df = np.atleast_1d(np.asarray(df, float))
+    if (df < 1.0).any() or np.isnan(df).any():
+        raise s1.Refusal("the t quantiles are built for df >= 1")
+    z = NormalDist().inv_cdf(q)
+    out = np.full(df.shape, z)
+    large = np.isfinite(df) & (df >= LARGE_DF)
+    out[large] = _t_series(z, df[large])
+    finite = df < LARGE_DF
+    if not finite.any():
+        return out
+    nu = df[finite]
+    lo, hi = np.full(nu.shape, z), np.full(nu.shape, math.tan(math.pi * (q - 0.5)))
+    t = np.clip(z + (z ** 3 + z) / (4 * nu) + (5 * z ** 5 + 16 * z ** 3 + 3 * z) / (96 * nu ** 2), lo, hi)
+    log_c = _lgamma((nu + 1.0) / 2.0) - _lgamma(nu / 2.0) - 0.5 * np.log(nu * math.pi)
+    for _ in range(100):
+        g = t_upper_tail(t, nu) - (1.0 - q)                 # falls in t
+        lo, hi = np.where(g > 0, t, lo), np.where(g > 0, hi, t)
+        pdf = np.exp(log_c - (nu + 1.0) / 2.0 * np.log1p(t * t / nu))
+        step = t + g / pdf
+        new = np.where((step > lo) & (step < hi), step, (lo + hi) / 2.0)
+        if np.all(np.abs(new - t) <= 1e-13 * t):
+            t = new
+            break
+        t = new
+    out[finite] = t
+    return out
+
+
+_T_TABLES: dict[float, np.ndarray] = {}
+
+
+def t_quantile(q: float, inv_df: np.ndarray) -> np.ndarray:
+    """The q quantile of Student's t at df = 1 / inv_df, for inv_df in [0, 1] (0: the normal quantile), by
+    linear interpolation in 1 / df on a table of t_quantile_exact (built once per q and process)."""
+    table = _T_TABLES.get(q)
+    if table is None:
+        grid = np.linspace(0.0, 1.0, T_TABLE_POINTS)
+        with np.errstate(divide="ignore"):
+            table = t_quantile_exact(q, np.where(grid > 0, 1.0 / np.where(grid > 0, grid, 1.0), np.inf))
+        _T_TABLES[q] = table
+    x = np.asarray(inv_df, float)
+    if np.isnan(x).any() or (x < 0).any() or (x > 1.0 + 1e-12).any():
+        raise s1.Refusal("a t quantile was asked for at df below 1")
+    return np.interp(x, np.linspace(0.0, 1.0, T_TABLE_POINTS), table)
+
+
+def _hb_upper(estimate: np.ndarray, parts: list[tuple[np.ndarray, np.ndarray]], v_item: float,
+              q: float) -> np.ndarray:
+    """The upper end of estimate +- t_q(df) sqrt(V), V = the seed parts' variances + v_item, df by Satterthwaite
+    with the item part a known constant: 1 / df = sum(v_i^2 / df_i) / V^2 (one part: v_seed^2 / (df_seed V^2));
+    +inf where a part has df_i < 1 (no seed variance)."""
+    has = np.ones(np.shape(estimate), dtype=bool)
+    v = np.full(np.shape(estimate), float(v_item))
+    denom = np.zeros(np.shape(estimate))
+    for v_i, df_i in parts:
+        ok = df_i >= 1
+        has &= ok
+        v = v + v_i
+        denom = denom + np.where(ok, v_i ** 2 / np.where(ok, df_i, 1.0), 0.0)
+    safe_v = np.where(v > 0, v, 1.0)
+    inv_df = np.where(has & (v > 0), denom / safe_v ** 2, 0.0)
+    upper = estimate + t_quantile(q, np.minimum(inv_df, 1.0)) * np.sqrt(v)
+    return np.where(has, upper, np.inf)
+
+
 # ----- shrinkage, the screen and the pick ----------------------------------------------------------------
 
 
@@ -662,15 +876,35 @@ def _own(values: np.ndarray, full: np.ndarray, n_full: np.ndarray) -> np.ndarray
     return ss / np.maximum(n_full - 1, 1)
 
 
-def _l_upper(ctx: Context, l: np.ndarray, full: np.ndarray, n_full: np.ndarray, l_mean: np.ndarray,
-             safe: np.ndarray, reference: np.ndarray, z: float) -> np.ndarray:
-    """(n, m) upper end of L(option) - L(reference arm) at the screen's quantile."""
+def paired_differences(l: np.ndarray, full: np.ndarray, reference: np.ndarray) -> tuple[np.ndarray, ...]:
+    """L(option, j) - L(reference, j) over the common seed indices j (the option's full-run seeds below the
+    reference arm's seed count): the paired mean, the sample variance (ddof 1) of the differences, and their
+    count J, each (n, m) (LN-20 item 2: the pair's own paired variance on the common seeds, J - 1 df)."""
+    k = min(l.shape[2], reference.shape[1])
+    common = full[:, :, :k]
+    d = l[:, :, :k] - reference[:, None, :k]
+    count = common.sum(axis=2)
+    safe = np.maximum(count, 1)
+    mean = np.where(common, d, 0.0).sum(axis=2) / safe
+    var = np.where(common, (d - mean[..., None]) ** 2, 0.0).sum(axis=2) / np.maximum(count - 1, 1)
+    return mean, var, count
+
+
+def _l_upper(ctx: Context, l: np.ndarray, full: np.ndarray, n_full: np.ndarray, reference: np.ndarray,
+             q: float) -> np.ndarray:
+    """(n, m) upper end of L(option) - L(reference arm) at the screen's quantile q."""
+    safe = np.maximum(n_full, 1)
+    k = reference.shape[1]
+    l_mean = np.where(full, l, 0.0).sum(axis=2) / safe
     if ctx.se_form == "pooled_residuals":
-        l_var = _pooled(l, full, n_full, reference)[:, None] * (1.0 / safe + 1.0 / reference.shape[1])
-    else:
-        l_var = (_own(l, full, n_full) / safe + reference.var(axis=1, ddof=1)[:, None] / reference.shape[1]
-                 + ctx.l_item_sd ** 2)
-    return l_mean - reference.mean(axis=1)[:, None] + z * np.sqrt(l_var)
+        l_var = _pooled(l, full, n_full, reference)[:, None] * (1.0 / safe + 1.0 / k)
+        return l_mean - reference.mean(axis=1)[:, None] + NormalDist().inv_cdf(q) * np.sqrt(l_var)
+    if ctx.se_form == "hb_unpaired":
+        ref_part = np.broadcast_to((reference.var(axis=1, ddof=1) / k)[:, None], l_mean.shape)
+        parts = [(_own(l, full, n_full) / safe, n_full - 1), (ref_part, np.full(l_mean.shape, k - 1))]
+        return _hb_upper(l_mean - reference.mean(axis=1)[:, None], parts, ctx.l_item_sd ** 2, q)
+    mean, var, count = paired_differences(l, full, reference)
+    return _hb_upper(mean, [(var / np.maximum(count, 1), count - 1)], ctx.l_item_sd ** 2, q)
 
 
 def screen_bounds(ctx: Context, view: _View, full: np.ndarray, n_full: np.ndarray, *,
@@ -678,27 +912,26 @@ def screen_bounds(ctx: Context, view: _View, full: np.ndarray, n_full: np.ndarra
     """The screen's upper bounds: "o" (n, m) of O(option) - O(theta0) and "l" (n, m) of L(option) - L(the
     reference in force); with both_references also "l_by_reference" {"a0": (n, m), "r": (n, m) or None when the
     observations hold no R arm} (W1-13 row 4: compute both, the screen uses the settings' reference)."""
-    z = NormalDist().inv_cdf(ctx.upper_quantile)
+    q = ctx.upper_quantile
     m = full.shape[1]
     o, l = view.o[:, :m], view.l[:, :m]
     _checked(o[full])
     _checked(l[full])
     safe = np.maximum(n_full, 1)
     o_mean = np.where(full, o, 0.0).sum(axis=2) / safe
-    l_mean = np.where(full, l, 0.0).sum(axis=2) / safe
     arms = {"a0": view.keep_l, "r": view.ref_l}
     reference = arms[ctx.tau_l_reference]
     if reference is None:
         raise s1.Refusal("the L screen's reference arm R has no observations")
+    o_prompt = ctx.o_prompt_sd ** 2 if ctx.o_error_model == "prompts_random" else 0.0
     if ctx.se_form == "pooled_residuals":
         o_seed = _pooled(o, full, n_full, view.keep_o)[:, None] / safe
+        o_upper = o_mean - ctx.o_theta0 + NormalDist().inv_cdf(q) * np.sqrt(o_seed + o_prompt)
     else:
-        o_seed = _own(o, full, n_full) / safe
-    o_prompt = ctx.o_prompt_sd ** 2 if ctx.o_error_model == "prompts_random" else 0.0
-    out = {"o": o_mean - ctx.o_theta0 + z * np.sqrt(o_seed + o_prompt),
-           "l": _l_upper(ctx, l, full, n_full, l_mean, safe, reference, z)}
+        o_upper = _hb_upper(o_mean - ctx.o_theta0, [(_own(o, full, n_full) / safe, n_full - 1)], o_prompt, q)
+    out = {"o": o_upper, "l": _l_upper(ctx, l, full, n_full, reference, q)}
     if both_references:
-        out["l_by_reference"] = {name: (None if arm is None else _l_upper(ctx, l, full, n_full, l_mean, safe, arm, z))
+        out["l_by_reference"] = {name: (None if arm is None else _l_upper(ctx, l, full, n_full, arm, q))
                                  for name, arm in arms.items()}
     return out
 
@@ -878,6 +1111,9 @@ def observations_from_labels(ctx: Context, labels: Mapping[str, Any]) -> Observa
     def arm(name: str) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         seeds = labels[name]["seeds"]
         values = [seed_values(entry, name) for entry in sorted(seeds, key=lambda e: e["seed_index"])]
+        if [v[0] for v in values] != list(range(len(values))):
+            raise s1.Refusal(f"saved labels: the {name} seed indices are not 0..{len(values) - 1} (the hb screen "
+                             "pairs an option's seed j with the reference arm's seed j)")
         return (np.array([[v[1][-1] for v in values]]), np.array([[v[2] for v in values]]),
                 np.array([[v[3] for v in values]]))
 

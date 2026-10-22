@@ -51,11 +51,11 @@ def test_the_two_appended_labels_have_the_l13_form():
 
 def test_the_rho_grid_is_the_settings_grid_and_nothing_else():
     M = fx.raw("selector_simulate")
-    assert sm.rho_grid(M) == [0.0]
+    assert sm.rho_grid(M) == [0.0, 0.67]                       # A7 in force (LW-12, LN-10)
     with pytest.raises(s1.Refusal, match="rho grid"):
         sm.rho_grid(M, [0.0, 0.5])
-    M["model"]["rho_mode"] = "a7_switch"
-    assert sm.rho_grid(M, [0.0, 0.67]) == [0.0, 0.67]
+    M["model"]["rho_mode"] = "default"                         # the fallback: rho = 0 only (L15 (1))
+    assert sm.rho_grid(M, [0.0]) == [0.0]
 
 
 def test_the_uo_correlation_comes_from_the_gate_a_seeds():
@@ -191,11 +191,13 @@ def test_a_lean_run_has_the_lean_sampling_variance():
 
 def test_o_noise_follows_the_error_model_and_the_uo_correlation():
     (menu, geom, ctx, d, points, G, tr), S, M = setup(reps=range(6000))
+    bank = 4.1 * math.sqrt(100 / 500)                          # the dev-100 prompt part scaled to the 500 bank
+    assert ctx.o_prompts == 500 and ctx.o_prompt_sd == pytest.approx(bank)
     obs = sm.observations(geom, ctx, M, d, G[:1], sm.NoiseCase(2.65, 0.0), tr["coherent"])
     o = obs.o[:, 0, 0] - 4.666666666666667
-    assert np.var(o) == pytest.approx(1.15 ** 2 + 4.1 ** 2, rel=0.08)
+    assert np.var(o) == pytest.approx(1.15 ** 2 + bank ** 2, rel=0.08)
     u = obs.u[:, 0, 0, ctx.a1, ctx.c1] - (48.27777777777778 - G[0, :, 0])
-    seed_part = o - 4.1 * d["noise"][:, 2, 0, ctx.a1, ctx.c1, 4]
+    seed_part = o - bank * d["noise"][:, 2, 0, ctx.a1, ctx.c1, 4]
     assert np.corrcoef(u, seed_part)[0, 1] == pytest.approx(sm.uo_correlation(M), abs=0.05)
 
 
@@ -352,6 +354,7 @@ def test_halving_finds_one_large_winner_with_probability_rising_to_one():
     S, M, _ = fx.tiny()
     M = copy.deepcopy(M)
     M["prior"]["category"] = {"shapes": ["one_winner"], "sizes_pp": [20.0], "rule": "test"}
+    M["model"]["l"]["seed_sd_nats"] = 0.0                      # no L seed noise: the rule, not the L screen, is tested
     (menu, geom, ctx, d, points, G, tr), _, _ = setup(reps=range(300), sim=M)
     obs = sm.observations(geom, ctx, M, d, G, sm.NoiseCase(2.65, 0.0), tr["coherent"])
     found = [sm.outcome(spec.select(ctx, obs, rule="halving", budget=b), tr)["found"][:, 2].mean()
@@ -393,6 +396,7 @@ def test_a_phi_trial_sees_the_effect_scaled_by_phi():
     S["trials"].update({"phi_grid": [0.5, 1.0], "screen_phi": 0.5})
     M = copy.deepcopy(M)
     M["model"]["u_sampling_variance_full_pp2"] = 0.0
+    M["model"]["l"]["seed_sd_nats"] = 0.0                      # no L seed noise: the L screen passes every option
     (menu, geom, ctx, d, points, G, tr), _, _ = setup(reps=range(4), sim=M, S=S)
     obs = sm.observations(geom, ctx, M, d, G, sm.NoiseCase(0.0, 0.0), tr["coherent"])
     rows = G.reshape(-1, menu.M)

@@ -16,17 +16,20 @@ The model of one replicate, per (shape, size) grid point of the prior:
             one option total SD 2 sigma with the shared part unchanged. sigma = 2.65 pp central, 3.85 pp high;
             never the Gate B noise-gate value.
   O         O(option, seed) = O(a0) + its true O effect + sd_O (rho_UO eps + sqrt(1 - rho_UO^2) eta)
-            (+ a bank term per option, SD = the prompt part, under the prompts-random error model); eps is the
-            full run's standardized U noise. Feasible at tau_O if O(a0) + effect - O(theta0) <= tau_O.
+            (+ a bank term per option, SD = the prompt part at the convention's over-refusal prompts, 500
+            after O-ext, under the prompts-random error model); eps is the full run's standardized U noise.
+            Feasible at tau_O if O(a0) + effect - O(theta0) <= tau_O.
   L         L(option, seed) = its true L effect + sd_L eta; feasible if effect - reference effect <= tau_L.
 Keep's 3 (or 6) seeds are C-full runs; the dose-matched L reference arm R has its own seeds.
 
 Frozen choices (REQ-17; lead decisions L15 (1), (6)): per (menu, M, B) cell the runs-only rule with the largest
 E[G(pick)], with equal weight per (shape, size) grid point, per tau_O point and per cost convention (the
 conventions' per-replicate criteria are averaged; the draws are shared, so the pairing holds), at sigma central
-and rho = 0 (or the rho average when the settings say so); a tie (a paired difference below 2 Monte Carlo SE
-under common random numbers) goes to the simpler rule. Then per (cell, c_d/c0) the diagnostic's k by the same
-criterion, also averaged over the quality grid (and over rho with the rho average); a tie goes to the larger k.
+and, when rho_average_for_rule is true, on the equal-weight average over the settings' rho grid (in force: A7's
+{0, 0.67}, LW-12 and LN-10), else at rho = 0; a tie (a paired difference below 2 Monte Carlo SE under common
+random numbers) goes to the simpler rule. Then per (cell, c_d/c0) the diagnostic's k by the same criterion, also
+averaged over the quality grid (and over rho with the rho average); a tie goes to the larger k. The reported
+curves stay at rho = 0; the rho_0.67 sensitivity reports them at rho = 0.67.
 The settings switch criterion.freeze_scope = menu_m_b_convention chooses per (menu, M, B, convention) instead.
 
 The settings file settings/selector_simulate.json is pinned by SHA-256 below.
@@ -55,7 +58,7 @@ from scripts.stage1 import s1common as s1  # noqa: E402
 from scripts.stage1.selector import spec  # noqa: E402
 
 SETTINGS_PATH = STAGE1 / "settings" / "selector_simulate.json"
-SETTINGS_SHA256 = "1215dbddc83e4c713fa7fbd71b81ddf999a95685266f8e41b20e42584ed840e0"
+SETTINGS_SHA256 = "4d9e0064828338bcfdd3703c5039fb179dd2ec7f33501cc448cceb94bb8302b9"
 SETTINGS_NAME = "selector_simulate"
 DRAW_KEYS = {"noise": "selector.noise", "seed_shift": "selector.seed_shift", "hetero": "selector.hetero",
              "effects": "selector.effects", "plant": "selector.plant", "diagnostic": "selector.diagnostic",

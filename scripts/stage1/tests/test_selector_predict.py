@@ -88,13 +88,14 @@ def test_both_conventions_every_budget_and_the_units_are_present(built):
             for q, curve in diag.items():
                 assert curve["c_d_grid"] == [0.0, 0.5, 2.0] and len(curve["Delta"]) == 3
                 assert curve["c_star"]["kind"] in ("none", "grid_point", "at_least_grid_max")
-            assert set(cell["sensitivities"]) == {"sigma_high", "hetero_2x"}
+            assert set(cell["sensitivities"]) == {"sigma_high", "hetero_2x", "rho_0.67"}
+            assert set(cell["runs_only"]["by_rho"]) == {"0.67"}                       # A7 (LN-10)
 
 
 def test_both_placement_statistics_are_present_and_never_fitted(built):
     doc = json.loads(built)
     planted = doc["menus"]["planted_8"]["placement"]
-    assert planted["statistic"] == {"primary": "top_k_hit", "secondary": "row_auc"}
+    assert planted["statistic"] == {"primary": "row_auc", "secondary": "top_k_hit"}        # LW-11, LN-29
     auc = {"auc=0.5", "auc=0.6", "auc=0.75", "auc=0.9"}
     assert set(planted["by_quality"]) == auc | {"r=0", "r=0.5", "r=1", "r=2", "r=4"}      # r: report-only
     for q, entry in planted["by_quality"].items():

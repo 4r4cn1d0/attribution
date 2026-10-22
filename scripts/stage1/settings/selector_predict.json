@@ -15,7 +15,7 @@
   },
   "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
   "intervals": {
-    "rule": "parameter uncertainty: the minimum and maximum over the prior's (shape, size) grid points at sigma central, rho 0; the sensitivity cases (sigma high, the 2x option) beside them; every mean carries its Monte Carlo SE"
+    "rule": "parameter uncertainty: the minimum and maximum over the prior's (shape, size) grid points at sigma central, rho 0; the sensitivity cases (sigma high, the 2x option, rho 0.67) beside them; the runs-only predictions at rho 0.67 beside them (runs_only.by_rho); every mean carries its Monte Carlo SE"
   },
   "kind": "stage1 settings",
   "label_entries": {},
@@ -63,14 +63,15 @@
   "owner": "scripts/stage1/selector/predict.py",
   "placement": {
     "category": "spearman_rho",
-    "planted_primary": "top_k_hit",
-    "planted_secondary": "row_auc",
+    "planted_primary": "row_auc",
+    "planted_secondary": "top_k_hit",
     "range_quantiles": [
       0.05,
       0.95
     ],
-    "rule": "fixed now; the quality is never fitted (L15 (7)): category: Gate C's frozen Spearman rho against the 8 wave-1 D_u (one C-full run per unit); planted: the plant's top-k hit at each M (primary, L15 (7) in force) and the empirical row AUC (Draft B F3, computed beside it); report the grid points whose simulated 90% range holds the measured value; rho <= 0 is placed at uninformative (an upper bound)"
+    "rule": "fixed now; the quality is never fitted (L15 (7)): category: Gate C's frozen Spearman rho against the 8 wave-1 D_u (one C-full run per unit); planted: the empirical row AUC (plant rows against Dolly rows, primary, LW-11; LN-29) and the plant's top-k hit at each M (secondary); report the grid points whose simulated 90% range holds the measured value; rho <= 0 is placed at uninformative (an upper bound)"
   },
-  "requirement": "REQ-18 (brief rev 1 (12cbf463)); lead decisions addendum (11477648) L15 (5)-(7); W1 builder extract rev 2 (18b81b26) W1-15; Llama note section 15",
-  "version": 1
+  "requirement": "REQ-18 (brief rev 1 (12cbf463)); lead decisions addendum (11477648) L15 (5)-(7); W1 builder extract rev 2 (18b81b26) W1-15; Llama note section 15; lead ruling 17 Oct 2026 15:18 UTC (addendum section 10, 995e5114) adopting lead-rulings-needed.md (9c447704): LN-10, LN-11, LN-29, LN-07, LN-33, LN-20; REV3 section 7.4 (557413e4); ledger X-1 to X-4",
+  "revision": "rev 2 (17 Oct 2026, Part E settings revision before REQ-18's predictions freeze; lead ruling 17 Oct 2026 15:18 UTC (addendum section 10, 995e5114) adopting lead-rulings-needed.md (9c447704): LN-10, LN-11, LN-29, LN-07, LN-33, LN-20; REV3 section 7.4 (557413e4); ledger X-1 to X-4)",
+  "version": 2
 }

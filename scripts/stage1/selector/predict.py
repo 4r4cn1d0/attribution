@@ -47,14 +47,28 @@ from scripts.stage1.selector import simulate as sm  # noqa: E402
 from scripts.stage1.selector import spec  # noqa: E402
 
 SETTINGS_PATH = STAGE1 / "settings" / "selector_predict.json"
-SETTINGS_SHA256 = "2b15678968d5f63b7221d289a63bc1792cc430f697d45edd468374653e84e767"
+SETTINGS_SHA256 = "2d45c3c280ad08c5640bd38b02c201d9db597e5c6599b857ce9ddaed5f516cb0"
 SETTINGS_NAME = "selector_predict"
 PREDICTIONS_KIND = "stage1 selector predictions"
 GATE_B_WAVE_PREFIXES = ("tmp/gate-b-olmo/",)
 
 
+PLANTED_STATISTICS = ("row_auc", "top_k_hit")
+
+
 def load(path: str | Path = SETTINGS_PATH) -> tuple[dict, str]:
-    return s1.load_settings(path, SETTINGS_SHA256, SETTINGS_NAME)
+    settings, digest = s1.load_settings(path, SETTINGS_SHA256, SETTINGS_NAME)
+    check(settings)
+    return settings, digest
+
+
+def check(pred: Mapping[str, Any]) -> None:
+    """Structural checks of a predict settings document: the planted placement names both statistics, one as
+    primary and one as secondary (LW-11 fixes which; the pinned file is tested for it)."""
+    placement = pred["placement"]
+    pair = (placement["planted_primary"], placement["planted_secondary"])
+    if sorted(pair) != sorted(PLANTED_STATISTICS):
+        raise s1.Refusal("the planted placement must name row_auc and top_k_hit, one primary and one secondary")
 
 
 def num(x: Any) -> float | None:
@@ -325,6 +339,7 @@ def build(spec_settings: Mapping[str, Any], sim: Mapping[str, Any], pred: Mappin
     """predictions.json's bytes (nothing is written here)."""
     spec.check(spec_settings)
     sm.check(sim)
+    check(pred)
     menus: dict = {}
     for menu_id in pred["menus_predicted"]:
         menu = spec.menu_from(spec_settings, menu_id)
@@ -346,7 +361,11 @@ def build(spec_settings: Mapping[str, Any], sim: Mapping[str, Any], pred: Mappin
                     "cost_conventions"][convention]["variants"][spec_settings["cost_conventions"][convention][
                         "contents"]]["unit"],
                 "costs_in_c0": {"full_run": num(ctx.cost.full), "screen_trial": num(ctx.screen_cost),
-                                "promotion": num(ctx.promote_cost(1))},
+                                "promotion": num(ctx.promote_cost(1)), "unit_seconds": num(ctx.cost.unit),
+                                "full_run_seconds": num(ctx.cost.full * ctx.cost.unit),
+                                "o_bank_seconds": num(spec.o_bank_seconds(spec_settings, convention))},
+                "screen": {"o_prompts": ctx.o_prompts, "o_prompt_sd_pp": num(ctx.o_prompt_sd),
+                           "l_item_sd_nats": num(ctx.l_item_sd)},
                 "budgets": {f"{b:g}": cell_block(res, sim, ctx.tau_o, float(b)) for b in sim["grids"]["budgets"]}}
             if i == 0:
                 block["placement"] = {"computed_under": convention, "rule": pred["placement"]["rule"],
@@ -372,6 +391,8 @@ def build(spec_settings: Mapping[str, Any], sim: Mapping[str, Any], pred: Mappin
            "settings_sha256": dict(digests), "code_sha256": files, "provenance": prov,
            "units": spec_settings["budget_unit"], "definitions": pred["definitions"],
            "model": {"u_seed_sd_pp": sim["model"]["u_seed_sd_pp"], "rho_grid": sm.rho_grid(sim),
+                     "rho_average_for_rule": bool(sim["model"]["rho_average_for_rule"]),
+                     "sensitivities": list(sim["sensitivities"]),
                      "uo_correlation": num(sm.uo_correlation(sim)),
                      "parameter_uncertainty": sim["model"]["parameter_uncertainty"]["mode"],
                      "o_error_model": spec_settings["screen"]["o_error_model"],

@@ -8,7 +8,7 @@
     "freeze_scope_rule": "menu_m_b (default; REQ-17 'frozen choice per (menu, M, B) cell', DRAFT section 7.2, L15 (6) 'k per (cell, c_d/c0)'): one rule and one k per cell, chosen on the equal-weight average of the two conventions' per-replicate criteria (the draws are shared, so the pairing and the paired MC SE hold) and used under both conventions, so REF LQ32's 'both conventions agree' compares one policy; menu_m_b_convention (switch; the builder's first reading, verifier B-1): each convention chooses its own rule and k. The equal weight per convention is a builder reading for REQ-21 (h) and (k); the lead rules",
     "g_rule": "G(pick) = U(keep) - U(pick) in truth; keep scores 0; a truly infeasible pick scores 0 and is a violation (FOCUS 2 Oct convention)",
     "k_rule": "per (menu, M, B, c_d/c0) (freeze_scope): the diagnostic's k with the largest E[G(pick)], also averaged with equal weight over the main quality grid and the cost conventions (and over rho when rho_average_for_rule is true: W1-14 item 4, the rule and k by the same criterion); a tie goes to the larger k",
-    "rule": "per (menu, M, B) cell (freeze_scope): the runs-only rule with the largest E[G(pick)], equal weight per (shape, size) grid point, per tau_O point and per cost convention, at sigma central and rho = 0 (the rho average only with A7); a tie (the paired difference below 2 Monte Carlo SE under common random numbers) goes to the simpler rule (one_shot, halving, bisection)",
+    "rule": "per (menu, M, B) cell (freeze_scope): the runs-only rule with the largest E[G(pick)], equal weight per (shape, size) grid point, per tau_O point and per cost convention, at sigma central and on the equal-weight average over rho in {0, 0.67} (A7 with rho_average_for_rule; LN-10); a tie (the paired difference below 2 Monte Carlo SE under common random numbers) goes to the simpler rule (one_shot, halving, bisection)",
     "tie_mc_se": 2.0
   },
   "draw_rule": "every replicate r draws from its own generators s1common.numpy_generator(key, r); the noise array has the fixed shape (keep, the L reference arm R, the menu options, the group nodes) x seed index x phi x psi x (U training, U evaluation, O, L, O bank), whatever the policy (L15 (4)); it is shared by both policies, every grid point, both conventions and every rho",
@@ -143,6 +143,30 @@
       "role": "Gate B wave-0a ledger (cost records only), named for REQ-21 (m); path and SHA-256 found by check-inputs --resolve from the path hint and the references draft's 16-character prefix (hashes only; no ledger value was read by this build)",
       "sha256": "94c0ad16cb4a1aa7d47b5d726476f7c2c33cf59491730d8a714801170f393efa",
       "values_taken": "through the references draft only"
+    },
+    {
+      "gate_b_value": false,
+      "id": "gate_a_a0_1101_query_loss",
+      "path": "tmp/family-probe-olmo2-1b/retrieved/olmo2-1b-1101/tree/round1/1101-a0-e1-a1/eval/e1/query_loss.jsonl",
+      "role": "Gate A unit task-row table (pre-Gate-B); read by the Part E rev-2 builder (numeric fields query_id and loss only)",
+      "sha256": "a539638fc5c7f5b98594094690b114fb5714343e4f497451301cce9630a189d1",
+      "values_taken": "the per-row task losses behind the screen's L item SD planning value (selector_spec.json screen.l_item_sd_nats)"
+    },
+    {
+      "gate_b_value": false,
+      "id": "gate_a_a0_1102_query_loss",
+      "path": "tmp/family-probe-olmo2-1b-gateA-1102/retrieved/olmo2-1b-1102/tree/round1/1102-a0-e1-a1/eval/e1/query_loss.jsonl",
+      "role": "Gate A unit task-row table (pre-Gate-B); read by the Part E rev-2 builder (numeric fields query_id and loss only)",
+      "sha256": "2f73f77c40b161572572d8d18b317d21c26738bf2aed1e337b4ed7b7645f3e20",
+      "values_taken": "the per-row task losses behind the screen's L item SD planning value (selector_spec.json screen.l_item_sd_nats)"
+    },
+    {
+      "gate_b_value": false,
+      "id": "gate_a_a0_1103_query_loss",
+      "path": "tmp/family-probe-olmo2-1b-gateA-1103/retrieved/olmo2-1b-1103/tree/round1/1103-a0-e1-a1/eval/e1/query_loss.jsonl",
+      "role": "Gate A unit task-row table (pre-Gate-B); read by the Part E rev-2 builder (numeric fields query_id and loss only)",
+      "sha256": "eba947241293ed571f7bb5ce507b59af98911cd411be323f9a8c901a1ae79612",
+      "values_taken": "the per-row task losses behind the screen's L item SD planning value (selector_spec.json screen.l_item_sd_nats)"
     }
   ],
   "inputs_rule": "pre-Gate-B records by default, each by path and SHA-256 (T2); a Gate B value is named (gate_b_value true) for REQ-21 (m); check-inputs refuses a path under a Gate B wave folder that is not named",
@@ -171,7 +195,7 @@
     "o": {
       "a0_mean_pp": 4.666666666666667,
       "seed_sd_pp": 1.15,
-      "source": "CK-3 section 4.2 (Gate A a0 1101-1103: 4, 6, 4 of 100; seed SD 1.15 pp, 2 df)"
+      "source": "CK-3 section 4.2 (Gate A a0 1101-1103: 4, 6, 4 of the dev 100; seed SD 1.15 pp, 2 df): dev-100 planning values for the 500-prompt bank (LN-10, X-3); the prompt part is scaled to the bank in the spec settings (screen.o_prompt_sd_source)"
     },
     "parameter_uncertainty": {
       "mode": "fixed",
@@ -183,7 +207,7 @@
     "phi_effect_exponent": 1.0,
     "phi_note": "a phi-trial sees G x phi^kappa (an assumption; unused while the phi grid is {1})",
     "reference_r_seeds": 3,
-    "rho_average_for_rule": false,
+    "rho_average_for_rule": true,
     "rho_grids": {
       "a7_switch": [
         0.0,
@@ -193,8 +217,8 @@
         0.0
       ]
     },
-    "rho_mode": "default",
-    "rho_note": "rho = the same-seed correlation of two options' U (a shared seed shift of SD sigma sqrt(rho)); the default grid {0} is L15 (1) in force; {0, 0.67} sits behind the switch until the lead adopts A7 (W1-14 items 1 and 4; RC-18); 0.67 is PREREG section 2's pre-Gate-B low scenario, not a fitted value; with the switch the rule and k are chosen at rho = 0 unless rho_average_for_rule is true (then on the equal-weight rho average, verifier S-10); adopting A7 also adds rho_0.67 to the sensitivities",
+    "rho_mode": "a7_switch",
+    "rho_note": "rho = the same-seed correlation of two options' U (a shared seed shift of SD sigma sqrt(rho)); A7 is adopted (LW-12; LN-10, X-1): the grid {0, 0.67} (a7_switch) is in force, and the rule and k are chosen on the equal-weight average over rho (rho_average_for_rule true, the ambitious option; fallback: chosen at rho = 0, L15 (1), with the rho = 0.67 predictions reported); 0.67 is PREREG section 2's pre-Gate-B low scenario, not a fitted value; the default grid {0} stays as the fallback's grid; the reported curves are at rho = 0, and the rho_0.67 sensitivity reports them at rho = 0.67. REQ-21 (m) lists A7 as proposed after the noise gate (LW-08)",
     "true_effects": {
       "coherence_failures": [],
       "l_nats": {
@@ -313,15 +337,17 @@
     "rule_choice": 20000,
     "sensitivity": 20000
   },
-  "requirement": "REQ-17 (brief rev 1 (12cbf463)); lead decisions addendum (11477648) L15 (1)-(9); W1 builder extract rev 2 (18b81b26) W1-14",
+  "requirement": "REQ-17 (brief rev 1 (12cbf463)); lead decisions addendum (11477648) L15 (1)-(9); W1 builder extract rev 2 (18b81b26) W1-14; lead ruling 17 Oct 2026 15:18 UTC (addendum section 10, 995e5114) adopting lead-rulings-needed.md (9c447704): LN-10, LN-11, LN-29, LN-07, LN-33, LN-20; REV3 section 7.4 (557413e4); ledger X-1 to X-4",
+  "revision": "rev 2 (17 Oct 2026, Part E settings revision before REQ-18's predictions freeze; lead ruling 17 Oct 2026 15:18 UTC (addendum section 10, 995e5114) adopting lead-rulings-needed.md (9c447704): LN-10, LN-11, LN-29, LN-07, LN-33, LN-20; REV3 section 7.4 (557413e4); ledger X-1 to X-4)",
   "sensitivities": [
     "sigma_high",
-    "hetero_2x"
+    "hetero_2x",
+    "rho_0.67"
   ],
   "sensitivity_options": [
     "sigma_high",
     "hetero_2x",
     "rho_0.67"
   ],
-  "version": 1
+  "version": 2
 }

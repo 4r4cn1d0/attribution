@@ -509,6 +509,168 @@ def test_the_real_tools_refuse_a_recipe_that_differs_from_its_pin(checks, tmp_pa
         orc.real_tools(settings, "cpu", tmp_path / "ledger")
 
 
+# ----- the judge's batch size (a device setting, report only) -------------------------------------------------------
+
+
+def pinned_recipe(settings):
+    """The pinned recipe's document, parsed from the file the settings name (the real recipe of the ws)."""
+    return json.loads((lc.ENGINE_ROOT / settings["judge"]["recipe"]).read_bytes())
+
+
+def no_load(*args, **kwargs):
+    raise AssertionError("no tokenizer or model may load")
+
+
+def test_the_option_gives_the_loader_a_deep_copy_with_only_the_batch_size_replaced(checks):
+    _, settings, _, _ = checks
+    recipe = pinned_recipe(settings)
+    assert recipe["guard"]["batch_size"] == 8                       # the recipe's own value (the pod's)
+    read, loader, report = orc.judge_recipe(settings, "cpu", 2)
+    assert read == recipe                                           # the recipe as read is untouched
+    assert loader is not read and loader["guard"] is not read["guard"]
+    assert loader == {**recipe, "guard": {**recipe["guard"], "batch_size": 2}}
+    assert report == {"device": "cpu", "guard_batch_size": 2, "recipe_guard_batch_size": 8}
+    for value in (1, 8, 64):
+        _, loader, report = orc.judge_recipe(settings, "cuda", value)
+        assert loader["guard"]["batch_size"] == value == report["guard_batch_size"]
+        assert {k: v for k, v in loader.items() if k != "guard"} == {k: v for k, v in recipe.items() if k != "guard"}
+        assert {k: v for k, v in loader["guard"].items() if k != "batch_size"} == {
+            k: v for k, v in recipe["guard"].items() if k != "batch_size"}
+
+
+def test_without_the_option_the_loader_gets_the_recipe_as_it_is(checks):
+    _, settings, _, _ = checks
+    recipe = pinned_recipe(settings)
+    for device in ("cpu", "cuda", "cuda:0"):
+        read, loader, report = orc.judge_recipe(settings, device)
+        assert read == recipe and loader == recipe and loader is not read
+        assert report == {"device": device, "guard_batch_size": 8, "recipe_guard_batch_size": 8}
+
+
+def test_the_recipe_pin_and_the_judge_identity_are_checked_before_the_batch_size_is_applied(checks):
+    _, settings, _, _ = checks
+    wrong = copy.deepcopy(settings)
+    wrong["judge"]["recipe_file_sha256"] = "4" * 64
+    with pytest.raises(s1.Refusal, match="recipe file differs"):
+        orc.judge_recipe(wrong, "cpu", 1)
+    other = copy.deepcopy(settings)
+    other["judge"]["revision"] = "0" * 40
+    with pytest.raises(s1.Refusal, match="not the pinned judge"):
+        orc.judge_recipe(other, "cpu", 1)
+    missing = copy.deepcopy(settings)
+    missing["judge"]["recipe"] = "experiments/safety_selection/configs/no-such-recipe.json"
+    with pytest.raises(s1.Refusal, match="recipe file differs"):
+        orc.judge_recipe(missing, "cpu", 1)
+
+
+@pytest.mark.parametrize("value", [0, -1, -8, True, False, 2.0, "8", [1], {"n": 1}])
+def test_a_batch_size_that_is_not_a_positive_integer_is_refused(checks, value):
+    _, settings, _, _ = checks
+    with pytest.raises(s1.Refusal, match="positive integer"):
+        orc.judge_recipe(settings, "cpu", value)
+    with pytest.raises(s1.Refusal, match="positive integer"):
+        orc.guard_batch_size(value)
+    assert orc.guard_batch_size(1) == 1 and orc.guard_batch_size(8) == 8
+
+
+def test_on_mps_only_a_batch_size_of_one_is_accepted(checks):
+    _, settings, _, _ = checks
+    for device in ("mps", "mps:0"):
+        for value in (8, 2, None):                                  # None: the recipe's 8
+            with pytest.raises(s1.Refusal, match="non-finite"):
+                orc.judge_recipe(settings, device, value)
+        read, loader, report = orc.judge_recipe(settings, device, 1)
+        assert loader == {**read, "guard": {**read["guard"], "batch_size": 1}}
+        assert report == {"device": device, "guard_batch_size": 1, "recipe_guard_batch_size": 8}
+    for device in ("cpu", "cuda", "cuda:1"):                        # any N elsewhere
+        for value in (1, 2, 8, 64, None):
+            _, loader, report = orc.judge_recipe(settings, device, value)
+            assert loader["guard"]["batch_size"] == (8 if value is None else value) == report["guard_batch_size"]
+    assert orc.is_mps("mps") and orc.is_mps("mps:0") and not orc.is_mps("cpu") and not orc.is_mps("cuda:0")
+
+
+def test_the_real_tools_refuse_mps_above_one_before_the_tokenizer_loads(checks, tmp_path, monkeypatch):
+    from experiments.safety_selection import loaders
+
+    _, settings, _, _ = checks
+    monkeypatch.setattr(loaders, "load_tokenizer", no_load)
+    monkeypatch.setattr(loaders, "_load_guard", no_load)
+    with pytest.raises(s1.Refusal, match="non-finite"):
+        orc.real_tools(settings, "mps", tmp_path / "ledger")                       # the recipe's 8
+    with pytest.raises(s1.Refusal, match="non-finite"):
+        orc.real_tools(settings, "mps", tmp_path / "ledger", guard_batch_size=8)
+    with pytest.raises(s1.Refusal, match="positive integer"):
+        orc.real_tools(settings, "cpu", tmp_path / "ledger", guard_batch_size=0)
+
+
+def fake_engine(monkeypatch, given):
+    """The engine's loaders faked: the tokenizer and the codec are stand-ins; _load_guard records the recipe, the
+    ledger folder and the device it is given and returns a scorer that judges with the fake judge."""
+    from experiments.safety_selection import loaders, textproc
+
+    class FakeScorer:
+        def score(self, items, over_limit_unscored=False):
+            given.append(("score", over_limit_unscored))
+            return fx.fake_judge_records(items)
+
+    class FakeCodec:
+        decode = staticmethod(fx.fake_decode)
+
+    def load_guard(recipe, ledger, device):
+        given.append(("load", copy.deepcopy(recipe), ledger.run_dir, device))
+        return FakeScorer()
+
+    monkeypatch.setattr(loaders, "_load_guard", load_guard)
+    monkeypatch.setattr(loaders, "load_tokenizer", lambda repo_id, revision: (object(), {"snapshot": "fake"}))
+    monkeypatch.setattr(textproc, "build_codec", lambda *args: FakeCodec())
+
+
+def test_the_real_tools_give_the_loader_the_copy_once_and_record_the_device_settings(checks, tmp_path, monkeypatch):
+    root, settings, _, _ = checks
+    recipe = pinned_recipe(settings)
+    given: list = []
+    fake_engine(monkeypatch, given)
+    judge, decode, record = orc.real_tools(settings, "cpu", tmp_path / "ledger", guard_batch_size=3)
+    assert given == []                                              # the guard loads at the first judge call
+    assert decode([1, 2]) == "w1 w2"
+    out = judge([("a#full", "p", "w7 w3"), ("b#full", "p", "w8 w7")])
+    assert [r["refusal"] for r in out] == ["Yes", "No"]
+    judge([("c#full", "p", "w3")])
+    loads = [g for g in given if g[0] == "load"]
+    assert loads == [("load", {**recipe, "guard": {**recipe["guard"], "batch_size": 3}}, tmp_path / "ledger", "cpu")]
+    assert [g for g in given if g[0] == "score"] == [("score", True), ("score", True)]
+    assert record["judge"] == {"repo_id": settings["judge"]["repo_id"], "revision": settings["judge"]["revision"],
+                               "device_settings_report_only": {"device": "cpu", "guard_batch_size": 3,
+                                                               "recipe_guard_batch_size": 8}}
+    assert record["device"] == "cpu" and record["over_limit_unscored"] is True
+    doc = json.loads(orc.run(settings, "d" * 64, root, judge, decode, fx.fake_lexicon(), record))
+    assert doc["tools"]["judge"]["device_settings_report_only"] == {"device": "cpu", "guard_batch_size": 3,
+                                                                    "recipe_guard_batch_size": 8}
+    assert doc["truncation_check"]["pass"] is False                 # the checks themselves are unchanged
+    (tmp_path / "taken").mkdir()
+    with pytest.raises(s1.Refusal, match="must be new"):
+        orc.real_tools(settings, "cpu", tmp_path / "taken", guard_batch_size=1)
+
+
+def test_without_the_option_the_real_tools_judge_as_today(checks, tmp_path, monkeypatch):
+    _, settings, _, _ = checks
+    recipe = pinned_recipe(settings)
+    given: list = []
+    fake_engine(monkeypatch, given)
+    judge, _, record = orc.real_tools(settings, "cuda", tmp_path / "ledger")
+    judge([("a#full", "p", "w7")])
+    assert [g for g in given if g[0] == "load"] == [("load", recipe, tmp_path / "ledger", "cuda")]
+    assert record["judge"]["device_settings_report_only"] == {"device": "cuda", "guard_batch_size": 8,
+                                                              "recipe_guard_batch_size": 8}
+    given.clear()
+    judge, _, record = orc.real_tools(settings, "mps", tmp_path / "ledger-mps", guard_batch_size=1)
+    judge([("a#full", "p", "w7")])
+    assert [g for g in given if g[0] == "load"] == [
+        ("load", {**recipe, "guard": {**recipe["guard"], "batch_size": 1}}, tmp_path / "ledger-mps", "mps")]
+    assert record["judge"]["device_settings_report_only"] == {"device": "mps", "guard_batch_size": 1,
+                                                              "recipe_guard_batch_size": 8}
+
+
 def _settings_file(settings, tmp_path, monkeypatch):
     path = tmp_path / "limits_overrefusal_checks.json"
     path.write_bytes(canonical_json(settings))
@@ -521,8 +683,8 @@ def test_the_command_writes_once_with_injected_tools(checks, tmp_path, monkeypat
     path = _settings_file(settings, tmp_path, monkeypatch)
     seen = {}
 
-    def tools(doc, device, ledger_dir):
-        seen.update(device=device, ledger=ledger_dir)
+    def tools(doc, device, ledger_dir, guard_batch_size=None):
+        seen.update(device=device, ledger=ledger_dir, guard_batch_size=guard_batch_size)
         return fx.fake_judge_records, fx.fake_decode, TOOLS
 
     monkeypatch.setattr(orc, "real_tools", tools)
@@ -532,13 +694,72 @@ def test_the_command_writes_once_with_injected_tools(checks, tmp_path, monkeypat
     printed = capsys.readouterr()
     doc = json.loads((out / "overrefusal_checks.json").read_bytes())
     assert doc["source_map"]["available"] is True and doc["truncation_check"]["pass"] is False
-    assert seen == {"device": "mps", "ledger": out.with_name("out-judge-ledger")}
+    assert seen == {"device": "mps", "ledger": out.with_name("out-judge-ledger"), "guard_batch_size": None}
     assert lc.text_hits((printed.out + printed.err).encode(), fx.SENTINELS) == 0
     assert "truncation check pass: False" in printed.out and "per-source tables: available" in printed.out
     assert orc.main(args) == 2 and "not empty" in capsys.readouterr().err
     assert orc.main(["--out", str(tmp_path / "o3"), "--data-root", str(root), "--settings", str(path),
                      "--bank-source", str(source)]) == 2
     assert "belong to --extract-source-map" in capsys.readouterr().err and not (tmp_path / "o3").exists()
+
+
+def test_the_command_passes_the_guard_batch_size_on_and_refuses_a_bad_one(checks, tmp_path, monkeypatch, capsys):
+    root, settings, _, source = checks
+    path = _settings_file(settings, tmp_path, monkeypatch)
+    seen = {}
+
+    def tools(doc, device, ledger_dir, guard_batch_size=None):
+        seen.update(device=device, guard_batch_size=guard_batch_size)
+        return fx.fake_judge_records, fx.fake_decode, {**TOOLS, "judge": {
+            "device_settings_report_only": {"device": device, "guard_batch_size": guard_batch_size or 8,
+                                            "recipe_guard_batch_size": 8}}}
+
+    monkeypatch.setattr(orc, "real_tools", tools)
+    base = ["--data-root", str(root), "--settings", str(path)]
+    assert orc.main(["--out", str(tmp_path / "o1"), *base, "--device", "cpu", "--guard-batch-size", "1"]) == 0
+    printed = capsys.readouterr()
+    assert seen == {"device": "cpu", "guard_batch_size": 1}
+    doc = json.loads((tmp_path / "o1" / orc.OUTPUT).read_bytes())
+    assert doc["tools"]["judge"]["device_settings_report_only"] == {"device": "cpu", "guard_batch_size": 1,
+                                                                    "recipe_guard_batch_size": 8}
+    assert "judge device settings (report only): {'device': 'cpu', 'guard_batch_size': 1" in printed.out
+    assert lc.text_hits((printed.out + printed.err).encode(), fx.SENTINELS) == 0
+    assert orc.main(["--out", str(tmp_path / "o2"), *base, "--guard-batch-size", "16"]) == 0
+    assert seen == {"device": "mps", "guard_batch_size": 16}      # the device rule lives in real_tools (faked here)
+    capsys.readouterr()
+    for bad in ("0", "-3"):
+        assert orc.main(["--out", str(tmp_path / "o3"), *base, "--guard-batch-size", bad]) == 2
+        err = capsys.readouterr().err
+        assert "REFUSED" in err and "positive integer" in err and not (tmp_path / "o3").exists()
+    for bad in ("x", "1.5", ""):
+        with pytest.raises(SystemExit) as exc:                     # argparse: not an integer
+            orc.main(["--out", str(tmp_path / "o4"), *base, "--guard-batch-size", bad])
+        assert exc.value.code == 2 and not (tmp_path / "o4").exists()
+    capsys.readouterr()
+    assert orc.main(["--extract-source-map", "--out", str(tmp_path / "m"), *base, "--bank-source", str(source),
+                     "--ruling", fx.RULING, "--guard-batch-size", "1"]) == 2
+    assert "belongs to the checks" in capsys.readouterr().err and not (tmp_path / "m").exists()
+
+
+def test_a_mac_run_above_batch_size_one_is_refused_before_any_model_loads(checks, tmp_path, monkeypatch, capsys):
+    """The settings' device is mps and the recipe's batch size 8: without --guard-batch-size 1 a Mac run refuses
+    (before the lexicon's model-free load is even used), so it cannot silently produce non-finite rows."""
+    from experiments.safety_selection import loaders
+
+    root, settings, _, _ = checks
+    assert settings["judge"]["device"] == "mps"
+    path = _settings_file(settings, tmp_path, monkeypatch)
+    monkeypatch.setattr(orc.lc, "load_lexicon", lambda spec: fx.fake_lexicon())
+    monkeypatch.setattr(loaders, "load_tokenizer", no_load)
+    monkeypatch.setattr(loaders, "_load_guard", no_load)
+    base = ["--data-root", str(root), "--settings", str(path)]
+    for extra in ([], ["--guard-batch-size", "8"], ["--device", "mps", "--guard-batch-size", "2"],
+                  ["--device", "mps:0"]):
+        assert orc.main(["--out", str(tmp_path / "o"), *base, *extra]) == 2
+        err = capsys.readouterr().err
+        assert "REFUSED" in err and "non-finite" in err and "--guard-batch-size 1" in err
+        assert not (tmp_path / "o").exists() and not tmp_path.with_name(tmp_path.name + "-judge-ledger").exists()
+    assert not (tmp_path / "o-judge-ledger").exists()
 
 
 def test_the_extraction_command_writes_the_map_and_loads_no_model(unsealed, tmp_path, monkeypatch, capsys):

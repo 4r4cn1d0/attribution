@@ -17,6 +17,15 @@ def raw(name: str) -> dict:
     return json.loads((SETTINGS / f"{name}.json").read_bytes())
 
 
+def dev100(settings: dict | None = None) -> dict:
+    """The spec settings with every convention holding the dev 100 over-refusal prompts only (the rev-1 costs and
+    O prompt part; LN-07's fallback for C-lean): the hand values of the rule-mechanics tests."""
+    S = copy.deepcopy(settings or raw("selector_spec"))
+    for _, conv in spec._conventions(S):
+        conv["o_prompts"] = S["o_bank"]["dev_prompts"]
+    return S
+
+
 def tiny() -> tuple[dict, dict, dict]:
     """The pinned settings with small replicate counts and small grids, for fast end-to-end tests."""
     S, M, P = raw("selector_spec"), raw("selector_simulate"), raw("selector_predict")

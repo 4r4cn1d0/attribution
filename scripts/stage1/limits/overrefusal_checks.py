@@ -2,7 +2,7 @@
 $0; the lead runs it before U8 is decided, whatever the answer).
 
     python -B scripts/stage1/limits/overrefusal_checks.py --out DIR [--data-root <checkout>/tmp] [--device mps]
-        [--settings FILE]
+        [--guard-batch-size N] [--settings FILE]
     python -B scripts/stage1/limits/overrefusal_checks.py --extract-source-map --bank-source DIR --ruling TEXT
         --out DIR [--data-root <checkout>/tmp] [--settings FILE]
 
@@ -46,6 +46,16 @@ the sealed evaluation's (guard.jsonl: the O labels as measured) and, beside them
 Report only, beside them: how many Mac decodes equal the stored text, and how many Mac full-answer flags agree with
 the sealed flags (a device comparison).
 
+**The judge's batch size (a device setting, report only).** The guard is loaded by the engine's loaders._load_guard
+(read-only use; the engine never changes) from the pinned recipe, read and checked against its pin first. The loader
+is given a deep copy of that recipe in which only guard.batch_size is replaced by ``--guard-batch-size N`` (default:
+the recipe's own value); nothing else in the recipe changes. N must be a positive integer. On the Mac GPU (device
+mps) the pinned guard in bf16 with SDPA gives non-finite logits in a padded batch (the FOCUS 18 Oct RESTART entry: a
+batch of 8 is non-finite at the prompt pass, a batch of 1 is finite), so on mps a batch size above 1 is refused
+before any model loads: a Mac run cannot silently produce non-finite rows. The effective batch size, the recipe's
+value and the device are written into the record's judge block (tools.judge.device_settings_report_only); they
+change no check.
+
 **Output** (into --out, absent or empty): overrefusal_checks.json, text-free (ids of units, counts, flags in
 aggregate, hashes); its bytes are scanned for every prompt and answer text before they are written. Prints counts
 only. Exit 0: written; exit 2: refused, nothing written. The model path (the policy tokenizer, the guard on the Mac
@@ -55,6 +65,7 @@ device) is not tested here: the tests use a fake decoder, a fake judge and a fak
 from __future__ import annotations
 
 import argparse
+import copy
 import sys
 from collections import Counter
 from pathlib import Path
@@ -78,6 +89,7 @@ SOURCE_MAP_KIND = "stage1 dev over-refusal source map"
 SOURCE_MAP_OUTPUT = "dev_overrefusal_source_map.json"
 SOURCE_MODES = ("sealed_map", "off")
 FLAG_SOURCES = ("sealed", "mac_full")
+MPS_GUARD_BATCH_MAX = 1          # the FOCUS 18 Oct RESTART entry: a padded batch of 8 is non-finite on MPS, 1 is finite
 
 Judge = Callable[[list[tuple[str, str, str]]], list[dict]]
 Decode = Callable[[Sequence[int]], str]
@@ -437,17 +449,27 @@ def run(settings: Mapping[str, Any], settings_sha256: str, data_root: Path, judg
     return out
 
 
-# ----- the real tools (the lead's run; not tested here) ------------------------------------------------------------
+# ----- the real tools (the lead's run; the recipe copy and the record are tested, no model is loaded) ---------------
 
 
-def real_tools(settings: Mapping[str, Any], device: str, ledger_dir: Path) -> tuple[Judge, Decode, dict]:
-    """The policy codec's decoder and the pinned guard on this machine's device, by read-only use of the engine's
-    loaders (offline; the cached snapshots only). The guard model loads at the first judge call, so a unit that
-    refuses stops the run before the model loads. UNTESTED here: no model is loaded by the tests."""
-    from experiments.safety_selection import config as ss_config
-    from experiments.safety_selection import loaders, textproc
-    from experiments.safety_selection.ledger import RunLedger
+def guard_batch_size(value: Any, what: str = "--guard-batch-size") -> int:
+    """A positive integer (a bool is not one), or a refusal naming what."""
+    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+        raise s1.Refusal(f"{what} must be a positive integer")
+    return value
 
+
+def is_mps(device: Any) -> bool:
+    """The Mac GPU: the device "mps" or "mps:<index>"."""
+    return str(device).split(":", 1)[0] == "mps"
+
+
+def judge_recipe(settings: Mapping[str, Any], device: str, batch_size: Any = None) -> tuple[dict, dict, dict]:
+    """(the pinned recipe as read, the guard loader's recipe, the report-only device settings). The recipe file is
+    read and checked against its pin and the pinned judge identity first. The loader's recipe is a deep copy in which
+    only guard.batch_size is replaced by batch_size (the recipe's own value when None); N must be a positive integer,
+    and on mps a value above MPS_GUARD_BATCH_MAX refuses (a padded batch gives non-finite logits there). The settings
+    returned: {device, guard_batch_size (effective), recipe_guard_batch_size}."""
     spec = settings["judge"]
     recipe_path = lc.ENGINE_ROOT / spec["recipe"]
     if not recipe_path.is_file() or sha256_file(recipe_path) != spec["recipe_file_sha256"]:
@@ -456,6 +478,29 @@ def real_tools(settings: Mapping[str, Any], device: str, ledger_dir: Path) -> tu
     guard = recipe["guard"]
     if (guard["repo_id"], guard["revision"]) != (spec["repo_id"], spec["revision"]):
         raise s1.Refusal("the recipe's guard is not the pinned judge")
+    recipe_value = guard_batch_size(guard.get("batch_size"), "the recipe's guard.batch_size")
+    effective = recipe_value if batch_size is None else guard_batch_size(batch_size)
+    if is_mps(device) and effective > MPS_GUARD_BATCH_MAX:
+        raise s1.Refusal(f"guard batch size {effective} on device {device}: a padded batch gives non-finite logits on "
+                         f"MPS (FOCUS 18 Oct); pass --guard-batch-size {MPS_GUARD_BATCH_MAX}")
+    loader_recipe = copy.deepcopy(recipe)
+    loader_recipe["guard"]["batch_size"] = effective
+    report = {"device": device, "guard_batch_size": effective, "recipe_guard_batch_size": recipe_value}
+    return recipe, loader_recipe, report
+
+
+def real_tools(settings: Mapping[str, Any], device: str, ledger_dir: Path, guard_batch_size: Any = None
+               ) -> tuple[Judge, Decode, dict]:
+    """The policy codec's decoder and the pinned guard on this machine's device, by read-only use of the engine's
+    loaders (offline; the cached snapshots only). The guard model loads at the first judge call, from judge_recipe's
+    copy (only guard.batch_size replaced), so a unit that refuses stops the run before the model loads; the codec
+    comes from the recipe as read. The model path itself is not tested here (the tests fake the loaders)."""
+    from experiments.safety_selection import config as ss_config
+    from experiments.safety_selection import loaders, textproc
+    from experiments.safety_selection.ledger import RunLedger
+
+    spec = settings["judge"]
+    recipe, loader_recipe, device_settings = judge_recipe(settings, device, guard_batch_size)
     if ledger_dir.exists():
         raise s1.Refusal(f"{ledger_dir} exists: the judge ledger folder must be new")
     tokenizer, _ = loaders.load_tokenizer(*ss_config.tokenizer_of(recipe))
@@ -466,10 +511,11 @@ def real_tools(settings: Mapping[str, Any], device: str, ledger_dir: Path) -> tu
 
     def judge(items: list[tuple[str, str, str]]) -> list[dict]:
         if "scorer" not in loaded:
-            loaded["scorer"] = loaders._load_guard(recipe, RunLedger(ledger_dir), device)
+            loaded["scorer"] = loaders._load_guard(loader_recipe, RunLedger(ledger_dir), device)
         return loaded["scorer"].score(items, over_limit_unscored=over)
 
-    record = {"device": device, "judge": {"repo_id": spec["repo_id"], "revision": spec["revision"]},
+    record = {"device": device, "judge": {"repo_id": spec["repo_id"], "revision": spec["revision"],
+                                          "device_settings_report_only": device_settings},
               "recipe": spec["recipe"], "recipe_file_sha256": spec["recipe_file_sha256"],
               "over_limit_unscored": over, "decoder": "the policy codec of the recipe (decode, special tokens kept)"}
     return judge, codec.decode, record
@@ -481,6 +527,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--data-root", type=Path, default=lc.DEFAULT_DATA_ROOT,
                         help="the folder the unit, prepared and source-map paths are relative to (default <checkout>/tmp)")
     parser.add_argument("--device", default=None, help="the judge's device (default: the settings' device)")
+    parser.add_argument("--guard-batch-size", type=int, default=None, metavar="N",
+                        help="the guard's batch size, a positive integer (default: the recipe's guard batch_size); "
+                             "on mps only 1 is accepted (a padded batch is non-finite there); report only")
     parser.add_argument("--settings", type=Path, default=SETTINGS_PATH)
     parser.add_argument("--extract-source-map", action="store_true",
                         help="the lead's one-time extraction of the sealed source map (no model is loaded)")
@@ -492,9 +541,13 @@ def main(argv: list[str] | None = None) -> int:
     try:
         settings, digest = s1.load_settings(args.settings, SETTINGS_SHA256, SETTINGS_NAME)
         check_content(settings)
+        if args.guard_batch_size is not None:
+            guard_batch_size(args.guard_batch_size)
         if args.extract_source_map:
             if args.bank_source is None:
                 raise s1.Refusal("--extract-source-map needs --bank-source")
+            if args.guard_batch_size is not None:
+                raise s1.Refusal("--guard-batch-size belongs to the checks (--extract-source-map loads no model)")
             data = extract_source_map(settings, digest, args.data_root, args.bank_source, args.ruling)
             written = s1.write_new_files(args.out.resolve(), {SOURCE_MAP_OUTPUT: data})
         else:
@@ -503,7 +556,8 @@ def main(argv: list[str] | None = None) -> int:
             lexicon = lc.load_lexicon(settings["lexicon"])
             out = args.out.resolve()
             judge, decode, record = real_tools(settings, args.device or settings["judge"]["device"],
-                                               out.with_name(out.name + "-judge-ledger"))
+                                               out.with_name(out.name + "-judge-ledger"),
+                                               guard_batch_size=args.guard_batch_size)
             data = run(settings, digest, args.data_root, judge, decode, lexicon, record)
             written = s1.write_new_files(out, {OUTPUT: data})
     except s1.Refusal as exc:
@@ -516,6 +570,9 @@ def main(argv: list[str] | None = None) -> int:
         print("  next: pin its path under the data root and this SHA-256 in source_map.sealed_map; re-pin SETTINGS_SHA256")
         return 0
     print(f"wrote {OUTPUT} into {args.out} ({written[OUTPUT]})")
+    judge_record = doc["tools"].get("judge")
+    if isinstance(judge_record, dict) and "device_settings_report_only" in judge_record:
+        print(f"  judge device settings (report only): {judge_record['device_settings_report_only']}")
     for name, block in doc["units"].items():
         t = block["truncation"]
         print(f"  {name}: agree {t['flags_agree']}/{block['answers']}, move {t['count_move']}, pass {t['pass']}")

@@ -56,16 +56,18 @@ def test_the_ledger_equals_a_trial_by_trial_count(case):                        
     else:
         S["cost_conventions"]["C-lean"]["contents"] = "b"
         convention = "C-lean"
+    # under C-lean (b) with the 500-prompt bank a full run is (480 + 1,906.2) / 480 = 4.97 c0, so larger budgets
+    budgets, runs_from = ((4.0, 8.0, 13.0), 8.0) if case == "phi_half" else ((12.0, 24.0, 40.0), 24.0)
     for nested, rules in ((False, ("one_shot", "halving")), (True, ("bisection",))):
         menu = fx.custom_menu(8, nested=nested)
         ctx = spec.context(S, menu.id, convention, menu=menu)
         obs = fx.noisy_obs(ctx, np.linspace(0, 6, menu.axis_size())[None, :].repeat(3, 0), np.random.default_rng(5))
         for rule in rules:
-            for budget in (4.0, 8.0, 13.0):
+            for budget in budgets:
                 sel = spec.select(ctx, obs, rule=rule, budget=budget)
                 assert (sel.spent <= budget + 1e-9).all()
                 assert sel.spent == pytest.approx(_oracle_cost(ctx, sel.state), abs=1e-12), (case, rule, budget)
-                if budget >= 8.0:
+                if budget >= runs_from:
                     assert (sel.spent > 0).all() and ((sel.state.low.any() if case == "phi_half" else True))
 
 
@@ -134,11 +136,12 @@ def test_the_rules_visit_the_options_in_the_sealed_tie_order():                 
         g = np.zeros((1, 8))
         g[0, position] = 9.0
         pick = spec.select(ctx, fx.exact_obs(ctx, 50.0 - g), rule="one_shot", budget=4.0).pick[0, 0]
-        assert (pick == position) == expect_found                               # 7 of 8 screened at B = 4
+        assert (pick == position) == expect_found       # 7 of 8 screened at B = 4 at the dev-100 costs; 3 of 8 at
+        # the 500-bank costs (rev 2), where this probe no longer tells the orders apart: test_selector_rev2 sets the order
 
 
 def test_halving_leftover_goes_only_to_options_with_two_seeds():                # kills V14
-    ctx = fx.context(fx.custom_menu(8))
+    ctx = fx.context(fx.custom_menu(8), settings=fx.dev100())                  # the dev-100 hand costs
     g = np.arange(8.0)[None, :]
     sel = spec.select(ctx, fx.exact_obs(ctx, 50.0 - g), rule="halving", budget=8.0)
     sizes, total = spec.halving_schedule(ctx, 8)
@@ -209,6 +212,7 @@ def test_the_delta_curves_are_read_at_the_frozen_k():                           
 
 def test_k_is_chosen_on_the_equal_weight_quality_average():                     # kills V08
     S, M, _ = fx.tiny()
+    M["model"]["rho_average_for_rule"] = False          # at rho = 0 only: the sums below are kept at rho = 0
     frozen = {"rule": {str(b): "one_shot" for b in M["grids"]["budgets"]}}
     out = sm.run_chunk({"spec": S, "sim": M, "menu": "category", "convention": "C-full", "pass": "B", "start": 0,
                         "stop": 20, "frozen": frozen, "placement": False})
@@ -386,6 +390,7 @@ def _labels(ctx: spec.Context, *, seeds: int = 4, samples: int | None = None, ke
 
 def test_the_replay_reports_the_l_bound_against_both_references():             # S-7
     S = fx.raw("selector_spec")
+    S["screen"]["se_form"] = "pooled_residuals"        # the hand form below; the hb form: test_selector_rev2.py
     ctx = spec.context(S, "category", "C-full")
     labels = _labels(ctx)
     out = spec.replay(S, "category", "C-full", "halving", 8.0, labels)
@@ -479,5 +484,5 @@ def test_an_option_cost_other_than_one_fre_refuses():                          #
     S = fx.raw("selector_spec")
     assert spec.menu_from(S, "category").options[0].cost_fre == 1.0
     S["menus"]["category"]["options"][0]["cost_fre"] = 1.5
-    with pytest.raises(s1.Refusal, match="1 FRE"):
+    with pytest.raises(s1.Refusal, match="one full run"):
         spec.menu_from(S, "category")
