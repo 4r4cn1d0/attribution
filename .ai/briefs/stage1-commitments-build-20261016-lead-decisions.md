@@ -383,3 +383,19 @@ The four builds are B10 (evaluate a saved adapter), B11 (Safe LoRA), B14 (simila
 2. **The C-full cost wording:** the settings charge 0.517 FRE more per arm at the full cap (guard scoring included). The freeze pass writes 0.517 into DRAFT rev 3 §7.3 and REC (k) rule 8, replacing "about 0.49 FRE".
 3. **REQ-18's predictions file is committed now**, before any stage-1 outcome exists: `.ai/inputs/stage1-commitments-20261016/predictions/predictions.json` (48284ce0…, kind "stage1 selector predictions"), with its timing record. REC (k)'s [FILL AT W1-P] takes this path and hash at the freeze.
 4. **W1-18 on the Mac GPU:** `overrefusal_checks.py --guard-batch-size N` gives the engine's guard loader a copy of the pinned recipe with only the guard batch size changed, after the recipe pin check. On MPS a value above 1 refuses (the padded-batch fault: non-finite logits); the Mac run uses `--device mps --guard-batch-size 1`. The device and both batch sizes are written into the record as report-only. Refusing without the option is kept on purpose: it is better than a silent default of 1.
+
+## 13. W1-18 moves to the first stage-1 pod; the Safe LoRA V check moves to its pod job (2026-10-22T13:24 UTC; decided by the lead under the user's delegation)
+
+1. **The Mac cannot run W1-18.**
+   - On MPS, the pinned guard (bf16, SDPA) gives non-finite logits. In a padded batch of 8 this happens at the prompt pass. At batch size 1 on a real unit's answers it happens at the second decoding step (13:08–13:23 UTC run; the synthetic diagnostic used short prompts only).
+   - On the CPU, the 8 GB judge swapped for 6.4 h and gave no output (17 Oct).
+   - The `--guard-batch-size` option (§12 point 4) stays; it is verified and harmless.
+2. **The new rule (ambitious default, with its fallback):**
+   - W1-18 runs as the **first job of the first stage-1 pod**, on CUDA (the pinned guard's device type), through the stage-1 run kit (B15).
+   - It runs before any arm's, θ0's or a0's answer on the 500-prompt bank is generated. FOCUS records its output SHA-256 and the branch before the pod's next job starts.
+   - The bar is unchanged: at least 97 of 100 flags agree in every unit, and no unit's refused count moves by more than 2.
+   - Until the result exists, plans and cost estimates use Branch full. If W1-18 cannot run or fails, Branch full applies. The cap never switches after any 500-bank answer exists.
+   - The REQ-21 record's line "recorded in FOCUS before this record is committed" becomes this rule at the freeze pass.
+   - Why: Branch 128 costs about $10–27 against $40–70 for Branch full (REC (e) rule 5's estimates). The pod job takes minutes.
+3. **§11 point 8's V/V′ diagnostic** (Safe LoRA's alignment matrix) moves into the Safe LoRA pod job (B15), with the same rule and before the projection. It needs both the base and the Instruct weights; the pod downloads both at their pinned commits. Nothing is downloaded to the Mac for it.
+4. **Local copies:** the Mac no longer needs the Qwen3Guard-Gen-4B weights (8.2 GB) or the OLMo-2-0425-1B base weights (5.5 GB). Both are pinned by commit and checksums, and pods fetch them. They go to the Trash with their revisions recorded (the user's 22 Oct rule: keep on the Mac only what the next steps need).
