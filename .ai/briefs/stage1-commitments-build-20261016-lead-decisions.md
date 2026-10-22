@@ -377,7 +377,7 @@ The four builds are B10 (evaluate a saved adapter), B11 (Safe LoRA), B14 (simila
 14. **Merge:** one `scripts/stage1_s1/__init__.py`; B14's `conftest.py` is kept (N-5). The tree combines with the builder's batches 2 rev 2, 3a and 3b. Both packages' suites, every mutation spec and the five regression suites must pass before the explicit-path commit.
 15. **A text fix for DRAFT rev 3 §1.3 (from the builder's note):** the plan-B line should say "R draws d = 8–10 (d = 8 from the frozen `build_sealed.py`; d = 9–10 drawn by `gate-b-random-removal-v1`)". The wording is fixed in the freeze pass.
 
-## 12. Part E revision 2 and W1-18's guard batch size (2026-10-22T12:43 UTC; decided by the lead under the user's delegation)
+## 12. Part E revision 2 and W1-18's guard batch size (2026-10-22T12:42 UTC; decided by the lead under the user's delegation)
 
 1. **Part E revision 2 is accepted** (verification pass: 426 tests, 0 skipped; 22 of 22 new mutants killed; predictions regenerate byte for byte). The switches follow LN-10, LN-11 and LN-29. The builder added a third `se_form` value, `hb_unpaired`: it stays as an unused, recorded alternative. The pinned value is "hb". Removing it would need re-pins and a 2–3 h regeneration for no change in any prediction.
 2. **The C-full cost wording:** the settings charge 0.517 FRE more per arm at the full cap (guard scoring included). The freeze pass writes 0.517 into DRAFT rev 3 §7.3 and REC (k) rule 8, replacing "about 0.49 FRE".
