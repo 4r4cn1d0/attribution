@@ -1,0 +1,808 @@
+{
+  "appended": {
+    "fix_b3b_20261022": {
+      "count": 42,
+      "edited": [
+        "B3b-s-bad-id-accepted: find text follows the FX4 code change (type(value) is not int)"
+      ],
+      "ids": [
+        "V3-s-l11-chunk-short",
+        "V3-s-l11-chunk-long",
+        "V3-s-bank-reason-once",
+        "V3-s-room-double-counts",
+        "V3-s-gen-limit-plus-one",
+        "V3-s-l8-pool-is-candidates",
+        "V3-s-l10-wrong-set",
+        "V3-a-extra-row-accepted",
+        "V3-p-dedupe-raw",
+        "V3-p-spool-file-only",
+        "V3-p-spool-subset-unchecked",
+        "V3-p-lists-outside-unchecked",
+        "V3-p-t1-unpinned-main",
+        "V3-p-f9-leaf-part-fixed",
+        "V3-p-r150-under-r600",
+        "V3-p-r150-units-fixed-d",
+        "V3-o-selector-skipped",
+        "V3-o-train-query-exact-off",
+        "V3-o-ref-reason-once",
+        "V3-o-cli-store-false",
+        "V3-o-gen-limit-plus-one",
+        "V3-o-prompt-limit-is-train-limit",
+        "N-p-dedupe-off",
+        "N-o-existing-exact-off",
+        "N-o-first-reason-only",
+        "N-s-first-reason-only",
+        "N-o-cli-flag-always",
+        "N-p-f9-leaf-plant-key",
+        "N-s-l10-overlap-zero",
+        "N-s-min-pool-inclusive",
+        "N-s-decoy-room-inclusive",
+        "N-p-plant-leaf-decoy-key",
+        "N-p-decoy-leaf-plant-key",
+        "C3-s-room-ignores-s4",
+        "C3-a-combined-rows-from-first-remove",
+        "C3-a-list-kind-unchecked",
+        "C3-p-m32-removes-other-quartile",
+        "C3-p-m8-removes-other-unit",
+        "C3-p-cross-unit-pairs-link",
+        "C3-p-stop-at-exactly-75",
+        "C3-o-eligible-count-is-bank-size",
+        "B3b-s-float-id-accepted"
+      ],
+      "source": "the mutation verifier's 22 predicted survivors and 11 earlier gap mutants (notes/verify-b3b-mutation-r3/specs/spec-gapcheck.json) and the final critic's 8 survivors (notes/critic-b3b-v3-evidence/specs/critic-b3b-v3.json); each must be killed"
+    }
+  },
+  "kind": "stage1 mutants",
+  "mutants": [
+    {
+      "describes": "a candidate whose companion is also safe",
+      "file": "build_s_pool.py",
+      "find": "other is not None and not other[\"safe\"] and classify",
+      "id": "B3b-s-companion-unchecked",
+      "part": "batch 3b REQ-6",
+      "replace": "other is not None and classify"
+    },
+    {
+      "describes": "a safe response of any lexicon class is a candidate",
+      "file": "build_s_pool.py",
+      "find": "classify(row[\"response\"]) == wanted:",
+      "id": "B3b-s-any-class",
+      "part": "batch 3b REQ-6",
+      "replace": "True:"
+    },
+    {
+      "describes": "the empty-prompt filter removed",
+      "file": "build_s_pool.py",
+      "find": "((\"empty_prompt\", not prompt.strip()),",
+      "id": "B3b-s-empty-prompt-off",
+      "part": "batch 3b REQ-6",
+      "replace": "((\"empty_prompt\", False),"
+    },
+    {
+      "describes": "the control-string filter removed",
+      "file": "build_s_pool.py",
+      "find": "return [\"control_string\"] if any(",
+      "id": "B3b-s-control-off",
+      "part": "batch 3b REQ-6",
+      "replace": "return [] if any("
+    },
+    {
+      "describes": "the exact anchor overlap removed",
+      "file": "build_s_pool.py",
+      "find": "(\"overlap_with_an_anchor_prompt\", key in anchor_set)",
+      "id": "B3b-s-anchor-exact-off",
+      "part": "batch 3b REQ-6",
+      "replace": "(\"overlap_with_an_anchor_prompt\", False)"
+    },
+    {
+      "describes": "the exact overlap with P's prompts removed",
+      "file": "build_s_pool.py",
+      "find": "(\"overlap_with_an_existing_or_evaluation_prompt\", key in existing)",
+      "id": "B3b-s-existing-exact-off",
+      "part": "batch 3b REQ-6",
+      "replace": "(\"overlap_with_an_existing_or_evaluation_prompt\", False)"
+    },
+    {
+      "describes": "the near-duplicate check on the dev bank only (L9's mutant)",
+      "file": "build_s_pool.py",
+      "find": "near = {bank: _NearDuplicates(forms) for bank, forms in evaluation.items()}",
+      "id": "B3b-s-dev-bank-only",
+      "part": "batch 3b REQ-6",
+      "replace": "near = {bank: _NearDuplicates(forms) for bank, forms in evaluation.items() if bank == \"dev\"}"
+    },
+    {
+      "describes": "a near duplicate only above the threshold (> for >=)",
+      "file": "build_s_pool.py",
+      "find": "if scores[key][bank] >= max_jaccard]",
+      "id": "B3b-s-near-strict",
+      "part": "batch 3b REQ-6",
+      "replace": "if scores[key][bank] > max_jaccard]"
+    },
+    {
+      "describes": "the near-duplicate anchor check removed",
+      "file": "build_s_pool.py",
+      "find": "if scores[key][\"anchors\"] >= max_jaccard else []",
+      "id": "B3b-s-near-anchor-off",
+      "part": "batch 3b REQ-6",
+      "replace": "if False else []"
+    },
+    {
+      "describes": "the encode_train filter removed",
+      "file": "build_s_pool.py",
+      "find": "                encode_train(codec, uid(row), prompt, response, limits[\"max_train_tokens\"])",
+      "id": "B3b-s-encode-train-off",
+      "part": "batch 3b REQ-6",
+      "replace": "                pass"
+    },
+    {
+      "describes": "the generation-prompt filter removed",
+      "file": "build_s_pool.py",
+      "find": "                encode_generation_prompt(codec, prompt, limits[\"max_prompt_tokens\"])",
+      "id": "B3b-s-generation-off",
+      "part": "batch 3b REQ-6",
+      "replace": "                pass"
+    },
+    {
+      "describes": "one row per prompt not enforced",
+      "file": "build_s_pool.py",
+      "find": "                if key in seen:\n                    reasons[\"duplicate_prompt\"] += 1",
+      "id": "B3b-s-dedupe-off",
+      "part": "batch 3b REQ-6",
+      "replace": "                if False:\n                    reasons[\"duplicate_prompt\"] += 1"
+    },
+    {
+      "describes": "the S4 candidates drawn from the whole S-pool",
+      "file": "build_s_pool.py",
+      "find": "rest = sorted(set(pool_ids) - set(s1_ids))",
+      "id": "B3b-s-s4-includes-s1",
+      "part": "batch 3b REQ-6",
+      "replace": "rest = sorted(pool_ids)"
+    },
+    {
+      "describes": "the decoy rows not in the stop count",
+      "file": "build_s_pool.py",
+      "find": "or short or outside < need:",
+      "id": "B3b-s-decoy-room-off",
+      "part": "batch 3b REQ-6",
+      "replace": "or short:"
+    },
+    {
+      "describes": "L8's count names the taken response, not the other",
+      "file": "build_s_pool.py",
+      "find": "ids_by_row[uid(r)][field] == r[\"companion_index\"]",
+      "id": "B3b-s-l8-reads-taken",
+      "part": "batch 3b REQ-6",
+      "replace": "ids_by_row[uid(r)][field] == r[\"response_index\"]"
+    },
+    {
+      "describes": "a response id that is not 0 or 1 accepted",
+      "file": "build_s_pool.py",
+      "find": "            if type(value) is not int or value not in (0, 1):                # a bool or a float such as 1.0 refuses\n                raise s1.Refusal(f\"{uid(row)}: {field}",
+      "id": "B3b-s-bad-id-accepted",
+      "part": "batch 3b REQ-6",
+      "replace": "            if False:\n                raise s1.Refusal(f\"{uid(row)}: {field}"
+    },
+    {
+      "describes": "REQ-3's s3_safe pool without S1's rows outside the subset (L10 (2))",
+      "file": "build_s_pool.py",
+      "find": "s3_pool_ids = lists[\"s3_subset\"] + [i for i in lists[\"s1\"] if i not in set(lists[\"s3_subset\"])]",
+      "id": "B3b-s-s3-pool-without-s1",
+      "part": "batch 3b REQ-6",
+      "replace": "s3_pool_ids = lists[\"s3_subset\"]"
+    },
+    {
+      "describes": "the evaluation form count not checked (L9 (2))",
+      "file": "build_s_pool.py",
+      "find": "    if evaluation[\"forms\"] != expected_forms:",
+      "id": "B3b-s-forms-unchecked",
+      "part": "batch 3b REQ-6",
+      "replace": "    if False:"
+    },
+    {
+      "describes": "add ids counted from 0",
+      "file": "write_add_edit.py",
+      "find": "for j, item in enumerate(listing[\"items\"], start=1)]",
+      "id": "B3b-a-ids-from-zero",
+      "part": "batch 3b REQ-7",
+      "replace": "for j, item in enumerate(listing[\"items\"], start=0)]"
+    },
+    {
+      "describes": "the list's row count not checked",
+      "file": "write_add_edit.py",
+      "find": "    if len(listing[\"items\"]) != spec[\"rows\"]:",
+      "id": "B3b-a-row-count-off",
+      "part": "batch 3b REQ-7",
+      "replace": "    if False:"
+    },
+    {
+      "describes": "max_train_tokens hard-coded (L14's mutant)",
+      "file": "write_add_edit.py",
+      "find": "    max_train_tokens = recipe[\"model\"][\"max_train_tokens\"]",
+      "id": "B3b-a-max-tokens-hard-coded",
+      "part": "batch 3b REQ-7",
+      "replace": "    max_train_tokens = 3072"
+    },
+    {
+      "describes": "a combined edit without its removed rows",
+      "file": "write_add_edit.py",
+      "find": "manifest_sha256=view.manifest_sha256, remove=removed,",
+      "id": "B3b-a-combined-without-removal",
+      "part": "batch 3b REQ-7",
+      "replace": "manifest_sha256=view.manifest_sha256, remove=frozenset(),"
+    },
+    {
+      "describes": "the list's SHA-256 not checked",
+      "file": "write_add_edit.py",
+      "find": "    if sha256_bytes(data) != digest:\n        raise s1.Refusal(f\"the list hashes",
+      "id": "B3b-a-list-hash-off",
+      "part": "batch 3b REQ-7",
+      "replace": "    if False:\n        raise s1.Refusal(f\"the list hashes"
+    },
+    {
+      "describes": "a remove edit's SHA-256 not checked",
+      "file": "write_add_edit.py",
+      "find": "        if sha256_bytes(data) != digest:\n            raise s1.Refusal(f\"remove edit",
+      "id": "B3b-a-remove-hash-off",
+      "part": "batch 3b REQ-7",
+      "replace": "        if False:\n            raise s1.Refusal(f\"remove edit"
+    },
+    {
+      "describes": "the plant rows drawn from refusal openings",
+      "file": "build_plant.py",
+      "find": "cands = bsp.candidates_of(sources_rows, classify, \"DIRECT\")",
+      "id": "B3b-p-refusal-rows",
+      "part": "batch 3b REQ-8",
+      "replace": "cands = bsp.candidates_of(sources_rows, classify)"
+    },
+    {
+      "describes": "the S-pool candidate overlap not excluded",
+      "file": "build_plant.py",
+      "find": "(\"s_pool_overlap\", \"overlap_with_an_s_pool_candidate\", s_prompts),",
+      "id": "B3b-p-s-pool-overlap-off",
+      "part": "batch 3b REQ-8",
+      "replace": "(\"s_pool_overlap\", \"overlap_with_an_s_pool_candidate\", set()),"
+    },
+    {
+      "describes": "the plant rows in another sealed order",
+      "file": "build_plant.py",
+      "find": "order = s1.sealed_order(list(by_id), \"plant.rows\")[:K_RAISE]",
+      "id": "B3b-p-rows-key",
+      "part": "batch 3b REQ-8",
+      "replace": "order = sorted(by_id)[:K_RAISE]"
+    },
+    {
+      "describes": "a link only above the threshold (> for >=)",
+      "file": "build_plant.py",
+      "find": "                    if jaccard(sets[row], sets[other]) >= threshold:",
+      "id": "B3b-p-link-strict",
+      "part": "batch 3b REQ-8",
+      "replace": "                    if jaccard(sets[row], sets[other]) > threshold:"
+    },
+    {
+      "describes": "a prefix one shingle shorter (lossy)",
+      "file": "build_plant.py",
+      "find": "prefix = ordered[:len(ordered) - (len(ordered) + 1) // 2 + 1]",
+      "id": "B3b-p-prefix-short",
+      "part": "batch 3b REQ-8",
+      "replace": "prefix = ordered[:len(ordered) - (len(ordered) + 1) // 2]"
+    },
+    {
+      "describes": "an oversize component placed whole",
+      "file": "build_plant.py",
+      "find": "place_of = {r: (comp[r] if len(comp[r]) <= OVERSIZE else [r]) for r in members}",
+      "id": "B3b-p-oversize-whole",
+      "part": "batch 3b REQ-8",
+      "replace": "place_of = {r: comp[r] for r in members}"
+    },
+    {
+      "describes": "every passed threshold closes at once (the rejected reading)",
+      "file": "build_plant.py",
+      "find": "        if j < 3 and total >= math.floor((j + 1) * n / 4):\n            j += 1",
+      "id": "B3b-p-cascade",
+      "part": "batch 3b REQ-8",
+      "replace": "        while j < 3 and total >= math.floor((j + 1) * n / 4):\n            j += 1"
+    },
+    {
+      "describes": "a 38-row leaf accepted beside an eligible 37-row leaf (L12's mutant)",
+      "file": "build_plant.py",
+      "find": "exact = [c for c, rows in eligible.items() if len(rows) == K]",
+      "id": "B3b-p-leaf-38",
+      "part": "batch 3b REQ-8",
+      "replace": "exact = [c for c, rows in eligible.items() if len(rows) in (K, K + 1)]"
+    },
+    {
+      "describes": "a leaf holding an oversize row eligible",
+      "file": "build_plant.py",
+      "find": "eligible = {c: rows for c, rows in leaves.items() if not set(rows) & bad}",
+      "id": "B3b-p-oversize-leaf",
+      "part": "batch 3b REQ-8",
+      "replace": "eligible = dict(leaves)"
+    },
+    {
+      "describes": "R600 drawn from P, not the planted corpus",
+      "file": "build_plant.py",
+      "find": "        members = planted_members(view, leaf, k)",
+      "id": "B3b-p-r600-on-p",
+      "part": "batch 3b REQ-8",
+      "replace": "        members = {g: sorted(view.members[g]) for g in view.units}"
+    },
+    {
+      "describes": "R150 with 19 rows from every unit",
+      "file": "build_plant.py",
+      "find": "r in s1.sealed_sample(members[g], 19 if g in six else 18, \"plant.r150\", d, g)}",
+      "id": "B3b-p-r150-even",
+      "part": "batch 3b REQ-8",
+      "replace": "r in s1.sealed_sample(members[g], 19, \"plant.r150\", d, g)}"
+    },
+    {
+      "describes": "decoy rows that may overlap the S4 candidates (W1-09's mutant)",
+      "file": "build_plant.py",
+      "find": "used = set().union(*({i[\"id\"] for i in d[\"items\"]} for d in list_docs.values()))",
+      "id": "B3b-p-decoy-overlaps-s4",
+      "part": "batch 3b REQ-8",
+      "replace": "used = set().union(*({i[\"id\"] for i in d[\"items\"]} for n, d in list_docs.items() if n != \"s4_candidates\"))"
+    },
+    {
+      "describes": "the decoy unit drawn from all units (W1-09's mutant)",
+      "file": "build_plant.py",
+      "find": "    return s1.sealed_order([g for g in units if g != plant_unit], \"plant.decoy_unit\")[0]",
+      "id": "B3b-p-decoy-plant-unit",
+      "part": "batch 3b REQ-8",
+      "replace": "    return s1.sealed_order(list(units), \"plant.decoy_unit\")[0]"
+    },
+    {
+      "describes": "the decoy rows drawn under a plant label (W1-09's mutant)",
+      "file": "build_plant.py",
+      "find": "s1.sealed_order(sorted(pool_ids - used), \"plant.decoy_rows\")",
+      "id": "B3b-p-decoy-plant-label",
+      "part": "batch 3b REQ-8",
+      "replace": "s1.sealed_order(sorted(pool_ids - used), \"plant.rows\")"
+    },
+    {
+      "describes": "F9 units drawn with replacement",
+      "file": "build_plant.py",
+      "find": "        g = s1.sealed_order([u for u in units if u not in taken], \"plant.extra_unit\", loc)[0]",
+      "id": "B3b-p-f9-with-replacement",
+      "part": "batch 3b REQ-8",
+      "replace": "        g = s1.sealed_order([u for u in units if u != plant_unit], \"plant.extra_unit\", loc)[0]"
+    },
+    {
+      "describes": "F9 runs without --f9",
+      "file": "build_plant.py",
+      "find": "    if f9:\n        for loc, g in extra_units_of(",
+      "id": "B3b-p-f9-always",
+      "part": "batch 3b REQ-8",
+      "replace": "    if True:\n        for loc, g in extra_units_of("
+    },
+    {
+      "describes": "T1's build_plant.json pin changed",
+      "file": "build_plant.py",
+      "find": "SETTINGS_SHA256 = \"06f70d98af8ac16d79067863142a408f0e65862463305975579f075763f8687e\"",
+      "id": "B3b-p-t1-literal",
+      "part": "batch 3b REQ-8",
+      "replace": "SETTINGS_SHA256 = \"06f70d98af8ac16d79067863142a408f0e65862463305975579f075763f8687f\""
+    },
+    {
+      "describes": "the controversial rows used too",
+      "file": "build_oext.py",
+      "find": "if r[spec[\"label_column\"]] == spec[\"candidate_label\"]]",
+      "id": "B3b-o-controversial-used",
+      "part": "batch 3b O-ext",
+      "replace": "if True]"
+    },
+    {
+      "describes": "the near-duplicate check skips the hidden bank",
+      "file": "build_oext.py",
+      "find": "near = {f\"evaluation_prompt_{bank}\": _NearDuplicates(forms) for bank, forms in by_bank.items()}",
+      "id": "B3b-o-hidden-skipped",
+      "part": "batch 3b O-ext",
+      "replace": "near = {f\"evaluation_prompt_{bank}\": _NearDuplicates(forms) for bank, forms in by_bank.items() if bank != \"hidden\"}"
+    },
+    {
+      "describes": "the sealed order over the eligible IDs only",
+      "file": "build_oext.py",
+      "find": "for rid in s1.sealed_order([r[\"id\"] for r in cands], \"oext.phtest\"):",
+      "id": "B3b-o-order-over-eligible",
+      "part": "batch 3b O-ext",
+      "replace": "for rid in s1.sealed_order([r[\"id\"] for r in eligible], \"oext.phtest\"):"
+    },
+    {
+      "describes": "a duplicate within PHTest kept",
+      "file": "build_oext.py",
+      "find": "        if key in seen:\n            skipped += 1",
+      "id": "B3b-o-dup-kept",
+      "part": "batch 3b O-ext",
+      "replace": "        if False:\n            skipped += 1"
+    },
+    {
+      "describes": "the exact plant overlap removed",
+      "file": "build_oext.py",
+      "find": "why += [f\"overlap_with_{labels[name]}\" for name in refs if key in exact[name]]",
+      "id": "B3b-o-plant-exact-off",
+      "part": "batch 3b O-ext",
+      "replace": "why += [f\"overlap_with_{labels[name]}\" for name in refs if key in exact[name] and name != \"plant\"]"
+    },
+    {
+      "describes": "the generation-prompt filter removed",
+      "file": "build_oext.py",
+      "find": "                    encode_generation_prompt(codec, prompt, max_prompt_tokens)",
+      "id": "B3b-o-generation-off",
+      "part": "batch 3b O-ext",
+      "replace": "                    pass"
+    },
+    {
+      "describes": "a near duplicate only above the threshold",
+      "file": "build_oext.py",
+      "find": "for name, v in scores[key].items() if v >= max_jaccard]",
+      "id": "B3b-o-near-strict",
+      "part": "batch 3b O-ext",
+      "replace": "for name, v in scores[key].items() if v > max_jaccard]"
+    },
+    {
+      "describes": "LN-24's shortfall flag ignored (always stops)",
+      "file": "build_oext.py",
+      "find": "    if len(taken) < size and not accept_shortfall:",
+      "id": "B3b-o-shortfall-flag-ignored",
+      "part": "batch 3b O-ext",
+      "replace": "    if len(taken) < size:"
+    },
+    {
+      "describes": "a shortfall bank written without the flag (no counts-only stop)",
+      "file": "build_oext.py",
+      "find": "    if len(taken) < size and not accept_shortfall:",
+      "id": "B3b-o-shortfall-without-flag",
+      "part": "batch 3b O-ext",
+      "replace": "    if False:"
+    },
+    {
+      "describes": "an empty bank accepted (fallback F skipped)",
+      "file": "build_oext.py",
+      "find": "    if not taken:\n        raise s1.Refusal(f\"no eligible PHTest prompt",
+      "id": "B3b-o-shortfall-empty-accepted",
+      "part": "batch 3b O-ext",
+      "replace": "    if False:\n        raise s1.Refusal(f\"no eligible PHTest prompt"
+    },
+    {
+      "describes": "L11 boundary moved: a 32-aligned S4 size loses one 32-row batch (512 -> 480)",
+      "file": "build_s_pool.py",
+      "find": "    s4_ids = s1.sealed_order(rest, \"s4.order\")[:sizes[\"s4_candidates\"][\"size\"]]",
+      "id": "V3-s-l11-chunk-short",
+      "part": "batch 3b REQ-6",
+      "replace": "    n4 = sizes[\"s4_candidates\"][\"size\"]\n    s4_ids = s1.sealed_order(rest, \"s4.order\")[:n4 - 32 if n4 % 32 == 0 else n4]"
+    },
+    {
+      "describes": "L11 boundary moved: a 32-aligned S4 size gains one 32-row batch (512 -> 544)",
+      "file": "build_s_pool.py",
+      "find": "    s4_ids = s1.sealed_order(rest, \"s4.order\")[:sizes[\"s4_candidates\"][\"size\"]]",
+      "id": "V3-s-l11-chunk-long",
+      "part": "batch 3b REQ-6",
+      "replace": "    n4 = sizes[\"s4_candidates\"][\"size\"]\n    s4_ids = s1.sealed_order(rest, \"s4.order\")[:n4 + 32 if n4 % 32 == 0 else n4]"
+    },
+    {
+      "describes": "an exclusion reason not counted: a near duplicate of two banks counted under the first bank only (L9 (3) per-split counts)",
+      "file": "build_s_pool.py",
+      "find": "            out = [f\"near_duplicate_of_evaluation_prompt_{bank}\" for bank in near if scores[key][bank] >= max_jaccard]",
+      "id": "V3-s-bank-reason-once",
+      "part": "batch 3b REQ-6",
+      "replace": "            out = [f\"near_duplicate_of_evaluation_prompt_{bank}\" for bank in near if scores[key][bank] >= max_jaccard][:1]"
+    },
+    {
+      "describes": "the decoy's room counted as N - (|S1| + |S3 subset| + |S4|): S1 & S3 rows counted twice (stricter stop, wrong record)",
+      "file": "build_s_pool.py",
+      "find": "    outside = n - len(set().union(*map(set, lists.values())))",
+      "id": "V3-s-room-double-counts",
+      "part": "batch 3b REQ-6",
+      "replace": "    outside = n - sum(len(v) for v in lists.values())"
+    },
+    {
+      "describes": "section 3 (1)'s prompt limit one token looser (a prompt of max_prompt_tokens + 1 kept)",
+      "file": "build_s_pool.py",
+      "find": "                encode_generation_prompt(codec, prompt, limits[\"max_prompt_tokens\"])",
+      "id": "V3-s-gen-limit-plus-one",
+      "part": "batch 3b REQ-6",
+      "replace": "                encode_generation_prompt(codec, prompt, limits[\"max_prompt_tokens\"] + 1)"
+    },
+    {
+      "describes": "L8's report-only count for the S-pool rows computed over all candidates",
+      "file": "build_s_pool.py",
+      "find": "        \"report_only_l8\": {\"candidates\": l8(cands), \"s_pool\": l8(pool),",
+      "id": "V3-s-l8-pool-is-candidates",
+      "part": "batch 3b REQ-6",
+      "replace": "        \"report_only_l8\": {\"candidates\": l8(cands), \"s_pool\": l8(cands),"
+    },
+    {
+      "describes": "L10's |S1 & S3 subset| computed as |S1 & S4| (always 0)",
+      "file": "build_s_pool.py",
+      "find": "        \"overlaps_l10\": {\"s1_and_s3_subset\": len(set(lists[\"s1\"]) & set(lists[\"s3_subset\"])),",
+      "id": "V3-s-l10-wrong-set",
+      "part": "batch 3b REQ-6",
+      "replace": "        \"overlaps_l10\": {\"s1_and_s3_subset\": len(set(lists[\"s1\"]) & set(lists[\"s4_candidates\"])),"
+    },
+    {
+      "describes": "a list with more rows than the settings' 48 accepted (an extra add row)",
+      "file": "write_add_edit.py",
+      "find": "    if len(listing[\"items\"]) != spec[\"rows\"]:",
+      "id": "V3-a-extra-row-accepted",
+      "part": "batch 3b REQ-7",
+      "replace": "    if len(listing[\"items\"]) < spec[\"rows\"]:"
+    },
+    {
+      "describes": "a duplicate plant add row accepted: one row per prompt by the raw prompt",
+      "file": "build_plant.py",
+      "find": "    for r in rows:\n        key = normalize(r[\"prompt\"])\n        if key not in seen:",
+      "id": "V3-p-dedupe-raw",
+      "part": "batch 3b REQ-8",
+      "replace": "    for r in rows:\n        key = r[\"prompt\"]\n        if key not in seen:"
+    },
+    {
+      "describes": "the plant excludes the S-pool file's prompts only, not every REQ-6 candidate (T1 rows.exclusions)",
+      "file": "build_plant.py",
+      "find": "    s_prompts = {normalize(r[\"prompt\"]) for r in s_cands}",
+      "id": "V3-p-spool-file-only",
+      "part": "batch 3b REQ-8",
+      "replace": "    s_prompts = {normalize(i[\"prompt\"]) for i in s_pool[\"items\"]}"
+    },
+    {
+      "describes": "the check that the S-pool file's ids are REQ-6 candidates of these PKU files removed",
+      "file": "build_plant.py",
+      "find": "    if not {i[\"id\"] for i in s_pool[\"items\"]} <= {bsp.uid(r) for r in s_cands}:",
+      "id": "V3-p-spool-subset-unchecked",
+      "part": "batch 3b REQ-8",
+      "replace": "    if False:"
+    },
+    {
+      "describes": "the check that every REQ-6 list lies inside the S-pool file removed",
+      "file": "build_plant.py",
+      "find": "    if any(not {i[\"id\"] for i in d[\"items\"]} <= pool_ids for d in list_docs.values()):",
+      "id": "V3-p-lists-outside-unchecked",
+      "part": "batch 3b REQ-8",
+      "replace": "    if False:"
+    },
+    {
+      "describes": "T1's build_plant.json read in main() without the literal pin (the file hashed by itself)",
+      "file": "build_plant.py",
+      "find": "        settings, digest = s1.load_settings(SETTINGS_PATH, SETTINGS_SHA256, SETTINGS_NAME)",
+      "id": "V3-p-t1-unpinned-main",
+      "part": "batch 3b REQ-8",
+      "replace": "        settings, digest = s1.load_settings(SETTINGS_PATH, sha256_bytes(SETTINGS_PATH.read_bytes()), SETTINGS_NAME)"
+    },
+    {
+      "describes": "both F9 leaves drawn with part (2) (location 3's leaf not by its own part)",
+      "file": "build_plant.py",
+      "find": "            locations[str(loc)] = draw_leaf(view, placed, g, \"plant.extra_leaf\", loc)",
+      "id": "V3-p-f9-leaf-part-fixed",
+      "part": "batch 3b REQ-8",
+      "replace": "            locations[str(loc)] = draw_leaf(view, placed, g, \"plant.extra_leaf\", 2)"
+    },
+    {
+      "describes": "R150's per-unit rows drawn under plant.r600's label (nested in R600's draw)",
+      "file": "build_plant.py",
+      "find": "for r in s1.sealed_sample(members[g], 19 if g in six else 18, \"plant.r150\", d, g)}",
+      "id": "V3-p-r150-under-r600",
+      "part": "batch 3b REQ-8",
+      "replace": "for r in s1.sealed_sample(members[g], 19 if g in six else 18, \"plant.r600\", d, g)}"
+    },
+    {
+      "describes": "R150's six 19-row units drawn with part (1) for every draw d",
+      "file": "build_plant.py",
+      "find": "            six = set(s1.sealed_sample(view.units, 6, \"plant.r150_units\", d))",
+      "id": "V3-p-r150-units-fixed-d",
+      "part": "batch 3b REQ-8",
+      "replace": "            six = set(s1.sealed_sample(view.units, 6, \"plant.r150_units\", 1))"
+    },
+    {
+      "describes": "near duplicates of P checked against dev and hidden only (selector skipped)",
+      "file": "build_oext.py",
+      "find": "    near = {f\"evaluation_prompt_{bank}\": _NearDuplicates(forms) for bank, forms in by_bank.items()}",
+      "id": "V3-o-selector-skipped",
+      "part": "batch 3b O-ext",
+      "replace": "    near = {f\"evaluation_prompt_{bank}\": _NearDuplicates(forms) for bank, forms in by_bank.items() if bank != \"selector\"}"
+    },
+    {
+      "describes": "the exact overlap checks P's evaluation forms only (training and query prompts dropped)",
+      "file": "build_oext.py",
+      "find": "                if key in existing:",
+      "id": "V3-o-train-query-exact-off",
+      "part": "batch 3b O-ext",
+      "replace": "                if key in {normalize(f) for forms in by_bank.values() for _, f in forms}:"
+    },
+    {
+      "describes": "an exclusion reason not counted: a prompt equal to two reference sets counted under the first only",
+      "file": "build_oext.py",
+      "find": "                why += [f\"overlap_with_{labels[name]}\" for name in refs if key in exact[name]]",
+      "id": "V3-o-ref-reason-once",
+      "part": "batch 3b O-ext",
+      "replace": "                why += [f\"overlap_with_{labels[name]}\" for name in refs if key in exact[name]][:1]"
+    },
+    {
+      "describes": "the CLI's --accept-shortfall inverted: every run without the flag accepts a shortfall",
+      "file": "build_oext.py",
+      "find": "    parser.add_argument(\"--accept-shortfall\", action=\"store_true\",",
+      "id": "V3-o-cli-store-false",
+      "part": "batch 3b O-ext",
+      "replace": "    parser.add_argument(\"--accept-shortfall\", action=\"store_false\","
+    },
+    {
+      "describes": "the prompt limit one token looser (a prompt of max_prompt_tokens + 1 kept)",
+      "file": "build_oext.py",
+      "find": "                    encode_generation_prompt(codec, prompt, max_prompt_tokens)",
+      "id": "V3-o-gen-limit-plus-one",
+      "part": "batch 3b O-ext",
+      "replace": "                    encode_generation_prompt(codec, prompt, max_prompt_tokens + 1)"
+    },
+    {
+      "describes": "section 7.2's prompt limit read as REC's max_train_tokens",
+      "file": "build_oext.py",
+      "find": "result = run_filters(cands, refs, evaluation[\"existing\"], by_bank, max_jaccard, codec, limits[\"max_prompt_tokens\"])",
+      "id": "V3-o-prompt-limit-is-train-limit",
+      "part": "batch 3b O-ext",
+      "replace": "result = run_filters(cands, refs, evaluation[\"existing\"], by_bank, max_jaccard, codec, limits[\"max_train_tokens\"])"
+    },
+    {
+      "describes": "a duplicate plant row accepted: one row per normalized prompt not enforced",
+      "file": "build_plant.py",
+      "find": "        if key not in seen:\n            seen.add(key)\n            kept.append(r)",
+      "id": "N-p-dedupe-off",
+      "part": "batch 3b REQ-8",
+      "replace": "        if True:\n            seen.add(key)\n            kept.append(r)"
+    },
+    {
+      "describes": "the exact overlap with P's training, query and evaluation forms removed",
+      "file": "build_oext.py",
+      "find": "                if key in existing:\n",
+      "id": "N-o-existing-exact-off",
+      "part": "batch 3b O-ext",
+      "replace": "                if False:\n"
+    },
+    {
+      "describes": "an exclusion reason not counted: only a row's first reason of a filter is counted",
+      "file": "build_oext.py",
+      "find": "            reasons.update(why)\n",
+      "id": "N-o-first-reason-only",
+      "part": "batch 3b O-ext",
+      "replace": "            reasons.update(why[:1])\n"
+    },
+    {
+      "describes": "an exclusion reason not counted: only a row's first reason of a filter is counted",
+      "file": "build_s_pool.py",
+      "find": "                reasons.update(why)\n",
+      "id": "N-s-first-reason-only",
+      "part": "batch 3b REQ-6",
+      "replace": "                reasons.update(why[:1])\n"
+    },
+    {
+      "describes": "the shortfall accepted without the flag (main always passes True)",
+      "file": "build_oext.py",
+      "find": "settings_sha256=digest, accept_shortfall=args.accept_shortfall)",
+      "id": "N-o-cli-flag-always",
+      "part": "batch 3b O-ext",
+      "replace": "settings_sha256=digest, accept_shortfall=True)"
+    },
+    {
+      "describes": "an F9 leaf drawn under the plant's leaf label",
+      "file": "build_plant.py",
+      "find": "locations[str(loc)] = draw_leaf(view, placed, g, \"plant.extra_leaf\", loc)",
+      "id": "N-p-f9-leaf-plant-key",
+      "part": "batch 3b REQ-8",
+      "replace": "locations[str(loc)] = draw_leaf(view, placed, g, \"plant.leaf\")"
+    },
+    {
+      "describes": "L10's |S1 & S3 subset| reported as 0",
+      "file": "build_s_pool.py",
+      "find": "\"s1_and_s3_subset\": len(set(lists[\"s1\"]) & set(lists[\"s3_subset\"])),",
+      "id": "N-s-l10-overlap-zero",
+      "part": "batch 3b REQ-6",
+      "replace": "\"s1_and_s3_subset\": 0,"
+    },
+    {
+      "describes": "the section 3 (1) stop at N <= 1,000 instead of N < 1,000",
+      "file": "build_s_pool.py",
+      "find": "if n < settings[\"min_pool\"] or short",
+      "id": "N-s-min-pool-inclusive",
+      "part": "batch 3b REQ-6",
+      "replace": "if n <= settings[\"min_pool\"] or short"
+    },
+    {
+      "describes": "the decoy's 37 in the stop count at > instead of >= (exactly 37 outside refuses)",
+      "file": "build_s_pool.py",
+      "find": "or short or outside < need:",
+      "id": "N-s-decoy-room-inclusive",
+      "part": "batch 3b REQ-6",
+      "replace": "or short or outside <= need:"
+    },
+    {
+      "describes": "the plant leaf drawn under the decoy's leaf label",
+      "file": "build_plant.py",
+      "find": "    leaf = draw_leaf(view, placed, unit, \"plant.leaf\")",
+      "id": "N-p-plant-leaf-decoy-key",
+      "part": "batch 3b REQ-8",
+      "replace": "    leaf = draw_leaf(view, placed, unit, \"plant.decoy_leaf\")"
+    },
+    {
+      "describes": "the decoy leaf drawn under the plant's leaf label (W1-09: decoy under a plant label)",
+      "file": "build_plant.py",
+      "find": "decoy_leaf = draw_leaf(view, placed, decoy_unit, \"plant.decoy_leaf\")",
+      "id": "N-p-decoy-leaf-plant-key",
+      "part": "batch 3b REQ-8",
+      "replace": "decoy_leaf = draw_leaf(view, placed, decoy_unit, \"plant.leaf\")"
+    },
+    {
+      "describes": "the decoy's room counts the rows outside S1 and the S3 subset only (S4 ignored: a stop too late)",
+      "file": "build_s_pool.py",
+      "find": "outside = n - len(set().union(*map(set, lists.values())))",
+      "id": "C3-s-room-ignores-s4",
+      "part": "batch 3b REQ-6",
+      "replace": "outside = n - len(set(lists[\"s1\"]) | set(lists[\"s3_subset\"]))"
+    },
+    {
+      "describes": "every combined edit takes the FIRST remove edit's rows (a second --combine-with gets the wrong removal)",
+      "file": "write_add_edit.py",
+      "find": "f\"rows and the {len(add)} rows of {list_name}\", removed) for name, removed in combine]",
+      "id": "C3-a-combined-rows-from-first-remove",
+      "part": "batch 3b REQ-7",
+      "replace": "f\"rows and the {len(add)} rows of {list_name}\", combine[0][1]) for name, removed in combine]"
+    },
+    {
+      "describes": "a list file of another kind (for example a text pool) is accepted as a prompt list",
+      "file": "write_add_edit.py",
+      "find": "doc.get(\"kind\") != LIST_KIND or doc.get(\"version\") != 1",
+      "id": "C3-a-list-kind-unchecked",
+      "part": "batch 3b REQ-7",
+      "replace": "doc.get(\"version\") != 1"
+    },
+    {
+      "describes": "remove_cell_m32 removes another quartile of the unit, not the planted one",
+      "file": "build_plant.py",
+      "find": "                 placed[\"cells\"][quartile], [])",
+      "id": "C3-p-m32-removes-other-quartile",
+      "part": "batch 3b REQ-8",
+      "replace": "                 placed[\"cells\"][f\"{unit}/q{(int(quartile[-1]) + 1) % 4}\"], [])"
+    },
+    {
+      "describes": "remove_cell_m8 removes another unit, not the planted one",
+      "file": "build_plant.py",
+      "find": "                 view.members[unit], [])",
+      "id": "C3-p-m8-removes-other-unit",
+      "part": "batch 3b REQ-8",
+      "replace": "                 view.members[[g for g in view.units if g != unit][0]], [])"
+    },
+    {
+      "describes": "cross-unit pairs are linked, not counted only (L12 (1))",
+      "file": "build_plant.py",
+      "find": "    same = [(a, b) for a, b in pairs if view.unit_of[a] == view.unit_of[b]]",
+      "id": "C3-p-cross-unit-pairs-link",
+      "part": "batch 3b REQ-8",
+      "replace": "    same = list(pairs)"
+    },
+    {
+      "describes": "exactly 75 plant candidates stop the build (the stop reads 'fewer than 75')",
+      "file": "build_plant.py",
+      "find": "    if len(kept) < K_RAISE:",
+      "id": "C3-p-stop-at-exactly-75",
+      "part": "batch 3b REQ-8",
+      "replace": "    if len(kept) <= K_RAISE:"
+    },
+    {
+      "describes": "the record's eligible count N' is the bank size, not the filter survivors",
+      "file": "build_oext.py",
+      "find": "\"eligible\": len(result[\"eligible\"]),",
+      "id": "C3-o-eligible-count-is-bank-size",
+      "part": "batch 3b O-ext",
+      "replace": "\"eligible\": len(bank),"
+    },
+    {
+      "describes": "a response id that is a float such as 1.0 or 0.0 accepted (L8 / W1-11: the integer 0 or 1 only)",
+      "file": "build_s_pool.py",
+      "find": "            if type(value) is not int or value not in (0, 1):                # a bool or a float such as 1.0 refuses",
+      "id": "B3b-s-float-id-accepted",
+      "part": "batch 3b REQ-6",
+      "replace": "            if isinstance(value, bool) or value not in (0, 1):"
+    }
+  ],
+  "not_included": {
+    "build_plant near-duplicate threshold check": "T1's settings state 0.5 and the synthetic P holds 0.5; a changed comparison is covered by B3b-p-link-strict",
+    "build_s_pool empty_response": "unreachable: a whitespace-only response is lexicon class EMPTY, so it is never a REFUSAL-OPENING candidate"
+  },
+  "part": "batch 3b: REQ-6, REQ-7, REQ-8 (with W1-09, F9), O-ext",
+  "version": 1
+}

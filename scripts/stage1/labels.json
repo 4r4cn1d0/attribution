@@ -36,6 +36,15 @@
       ],
       "use": "tie order of the report-only top-600 sets of the A1 variants q, e1 and adam (W1-04); never an arm"
     },
+    "classifier.ties": {
+      "base_seed": 20261008,
+      "id_domain": "the dev training row ids the classifier scored (valid guard records), sorted",
+      "label": "stage1-classifier-ties-v1",
+      "named_in": "registry, after the seal (W1 builder extract W1-07; REQ-23; appended after the T1 commit)",
+      "owner": "scripts/stage1/score_classifier.py",
+      "parts": [],
+      "use": "tie order of the content classifier's top 600 (scored only; no edit file)"
+    },
     "datashield.ties": {
       "base_seed": 20261008,
       "id_domain": "all training row ids of the prepared set, sorted",
@@ -113,6 +122,76 @@
       "owner": "scripts/stage1/build_length_rules.py",
       "parts": [],
       "use": "the one length order (target tokens ascending, then this sealed rank): octile k = positions 600k to 600k + 599; H1 = octile 0; H2b = octile 7"
+    },
+    "oext.phtest": {
+      "base_seed": 20261008,
+      "id_domain": "the PHTest IDs of the 2,077 harmless rows, sorted as strings",
+      "label": "stage1-oext-phtest-v1",
+      "named_in": "registry, after the seal (addendum section 7.3; appended after the T1 commit)",
+      "owner": "scripts/stage1/build_oext.py",
+      "parts": [],
+      "use": "the O-ext bank: the first 400 eligible IDs of the sealed order (addendum section 7)"
+    },
+    "plant.auc_boot": {
+      "base_seed": 20261008,
+      "id_domain": "bootstrap replicate positions over one (scorer, comparison) pair's sorted plant-row and Dolly-row scores",
+      "label": "stage1-plant-auc-boot-v1",
+      "named_in": "registry, after the seal (W1 builder extract W1-08; REQ-29; appended after the T1 commit)",
+      "owner": "scripts/stage1/report_plant_ranks.py",
+      "parts": [
+        "scorer",
+        "comparison"
+      ],
+      "use": "the bootstrap 90% interval of the plant rows' row AUC (resampling within the plant rows and within the Dolly rows; the replicate count is the settings')"
+    },
+    "plant.decoy_leaf": {
+      "base_seed": 20261008,
+      "id_domain": "the decoy unit's candidate leaf cell ids by the plant's leaf rule (build_plant.json draws.leaf)",
+      "label": "stage1-plant-decoy-leaf-v1",
+      "named_in": "registry, after the seal (W1 builder extract W1-09; appended after the T1 commit)",
+      "owner": "scripts/stage1/build_plant.py",
+      "parts": [],
+      "use": "the M = 128 leaf the decoy is placed in for the rank replay (first of the sealed order)"
+    },
+    "plant.decoy_rows": {
+      "base_seed": 20261008,
+      "id_domain": "the S-pool ids outside S1, the S3 subset and the S4 candidates, sorted",
+      "label": "stage1-plant-decoy-rows-v1",
+      "named_in": "registry, after the seal (W1 builder extract W1-09; addendum section 6.7; appended after the T1 commit)",
+      "owner": "scripts/stage1/build_plant.py",
+      "parts": [],
+      "use": "the W1-09 refusal decoy: the first 37 of the sealed order (scored only; never trained; no edit file)"
+    },
+    "plant.decoy_unit": {
+      "base_seed": 20261008,
+      "id_domain": "the 7 unit group ids other than the planted unit, sorted",
+      "label": "stage1-plant-decoy-unit-v1",
+      "named_in": "registry, after the seal (W1 builder extract W1-09; appended after the T1 commit)",
+      "owner": "scripts/stage1/build_plant.py",
+      "parts": [],
+      "use": "the decoy's unit (first of the sealed order); never redrawn"
+    },
+    "plant.extra_leaf": {
+      "base_seed": 20261008,
+      "id_domain": "the location's candidate leaf cell ids by the plant's leaf rule (build_plant.json draws.leaf)",
+      "label": "stage1-plant-extra-leaf-v1",
+      "named_in": "registry, after the seal (W1 builder extract W1-10 (F9); addendum section 6.7; appended after the T1 commit)",
+      "owner": "scripts/stage1/build_plant.py",
+      "parts": [
+        "location"
+      ],
+      "use": "F9 (conditional): the M = 128 leaf of plant location 2 or 3 (first of the sealed order)"
+    },
+    "plant.extra_unit": {
+      "base_seed": 20261008,
+      "id_domain": "the unit group ids other than the planted unit's and the earlier locations', sorted",
+      "label": "stage1-plant-extra-unit-v1",
+      "named_in": "registry, after the seal (W1 builder extract W1-10 (F9); addendum section 6.7; appended after the T1 commit)",
+      "owner": "scripts/stage1/build_plant.py",
+      "parts": [
+        "location"
+      ],
+      "use": "F9 (conditional): the unit of plant location 2 or 3, drawn without replacement (first of the sealed order)"
     },
     "plant.leaf": {
       "base_seed": 20261008,
@@ -217,6 +296,19 @@
         "g"
       ],
       "use": "R_2400 draw d (d = 2, 3, 4, at seed 1100 + d): per unit g a sealed sample of 300 rows (Gate B's R rule form)"
+    },
+    "random_removal.rtok": {
+      "base_seed": 20261008,
+      "id_domain": "the unit's member row ids, sorted",
+      "label": "stage1-random-removal-tok-v1",
+      "named_in": "registry, after the seal (W1 builder extract rev 2 W1-03; built under addendum section 6.5; appended after the T1 commit)",
+      "owner": "scripts/stage1/build_r_tok.py",
+      "parts": [
+        "arm",
+        "d",
+        "g"
+      ],
+      "use": "R_tok, token-matched random removal for arm m in {a1, l1, h1}, draw d (2-4, at seed 1100 + d): per unit g the sealed order of g's members, walked until the unit's token mass crosses T_m / 8"
     },
     "s1.order": {
       "base_seed": 20261008,

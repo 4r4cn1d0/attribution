@@ -1,0 +1,29 @@
+{
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "kind": "stage1 settings",
+  "label_entries": {
+    "s3.ties": "e12ee2486698441f1ae35fe583848e539028f605fd9f0c1e40f61209cddc1ff2"
+  },
+  "labels_sha256": "72665fe53c8f294e4b9d010691f3bcc4cacb836985f39d536d9498c536da824e",
+  "name": "write_score_add",
+  "outputs": "--full-out (inside a folder named tmp): <list>.json, a stage-1 prompt list (text); --out: <scorer>_add_selection.json (text-free)",
+  "owner": "scripts/stage1/write_score_add.py",
+  "requirement": "REQ-11's selection (brief rev 1; SPEC section 3.6); the add edit is REQ-7's",
+  "scorer_output": {
+    "kind": "stage1 add scorer output",
+    "orientation": "descending: high = add",
+    "version": 1
+  },
+  "scorers": {
+    "s3": {
+      "candidates": "REQ-6's s3_safe.pool.json (the scorer output names its SHA-256)",
+      "k": 48,
+      "list_name": "s3",
+      "orientation": "descending: high = add",
+      "requirement": "REQ-11 (S3, DataRx-style)",
+      "rule": "the 48 scored ids with the largest SAS; ties by the sealed rank of s3.ties over the scored ids; the list holds each selected row's prompt and PKU-safe response, in selection order",
+      "ties": "s3.ties"
+    }
+  },
+  "version": 1
+}

@@ -1,0 +1,35 @@
+{
+  "add_id_rule": "add row j (the 1-based list position) is add-<list name>-NNN, NNN = j with 3 digits; texts unchanged; byte-identical texts with distinct ids are allowed (W1-12)",
+  "checks": "each edit is written with s1.edit_document, parsed back with the engine's parse_edit, and its add rows are encoded with the engine's edited_corpus under recipe S's max_train_tokens; any refusal writes nothing",
+  "codec": "P's own tokenizer (manifest data_config.tokenizer, offline cache), as the anchor token audit builds it",
+  "combined_rule": "for each remove edit given (NAME=PATH:SHA256, a remove edit of P that the engine parses), one combined edit: that file's removed rows plus the list's add rows",
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "kind": "stage1 settings",
+  "label_entries": {},
+  "labels_sha256": "8138928df59da99010a910611d0c5f59c61fcc51b1998a91245c9b263de89d7f",
+  "lists": {
+    "s1": {
+      "rows": 48,
+      "source": "REQ-6 build_s_pool.py: s1.json (prompt, PKU-safe response)"
+    },
+    "s3": {
+      "rows": 48,
+      "source": "REQ-11's pick: (prompt, PKU-safe response), written as a stage-1 prompt list"
+    },
+    "s4": {
+      "rows": 48,
+      "source": "REQ-9's first 48 kept rows: (prompt, untuned answer), written as a stage-1 prompt list"
+    }
+  },
+  "name": "write_add_edit",
+  "outputs": {
+    "full": "--full-out, inside a folder named tmp: add_<list>.json and <NAME>+<list>.json (they hold text)",
+    "record": "--out: add_edit_record.json (text-free: per edit its SHA-256, arm, kind and counts; per add id the list id, prompt and target tokens; token accounting)"
+  },
+  "owner": "scripts/stage1/write_add_edit.py",
+  "prepared_manifest_sha256": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
+  "recipe_sha256": "ceffe0efb5d75bacfbd62743f530259deeedeca8950605d1bd3ff66e5391fe46",
+  "recipe_use": "recipe S's model.max_train_tokens for encode_train (lead decisions L14: read, never hard-coded)",
+  "requirement": "REQ-7 (brief rev 1 12cbf463); W1-12 (the duplicate-row add test, for S6)",
+  "version": 1
+}

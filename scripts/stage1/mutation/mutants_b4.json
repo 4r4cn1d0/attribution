@@ -1,0 +1,816 @@
+{
+ "kind": "stage1 mutants",
+ "mutants": [
+  {
+   "describes": "the acceptance fingerprint taken from q",
+   "file": "build_reuse_spec.py",
+   "find": "accept\": {\"e1_adapter_fingerprint\": src[\"fingerprints\"][\"e1\"],",
+   "id": "B4-r-accept-q",
+   "part": "batch 4 LN-12",
+   "replace": "accept\": {\"e1_adapter_fingerprint\": src[\"fingerprints\"][\"q\"],"
+  },
+  {
+   "describes": "the source job's seed not checked",
+   "file": "build_reuse_spec.py",
+   "find": "    if job.get(\"seed\") != unit[\"seed\"]:",
+   "id": "B4-r-seed-unchecked",
+   "part": "batch 4 LN-12",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "an R unit's arm not checked against the sealed R_d",
+   "file": "build_reuse_spec.py",
+   "find": "        if d != unit[\"d\"] or job.get(\"arm\") != r_arms.get(d):",
+   "id": "B4-r-arm-unchecked",
+   "part": "batch 4 LN-12",
+   "replace": "        if d != unit[\"d\"]:"
+  },
+  {
+   "describes": "an a0 unit's arm not checked",
+   "file": "build_reuse_spec.py",
+   "find": "        if job.get(\"arm\") != \"a0\":",
+   "id": "B4-r-a0-arm-unchecked",
+   "part": "batch 4 LN-12",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "Branch 128 even when W1-18 failed",
+   "file": "build_reuse_spec.py",
+   "find": "    branch = \"128\" if check[\"pass\"] else \"full\"",
+   "id": "B4-r-branch-always-128",
+   "part": "batch 4 LN-12",
+   "replace": "    branch = \"128\""
+  },
+  {
+   "describes": "no W1-18 record gives Branch 128 (LN-13 broken)",
+   "file": "build_reuse_spec.py",
+   "find": "        return {\"branch\": \"full\", \"source\": rule[\"no_record\"], \"record_sha256\": None}",
+   "id": "B4-r-no-record-128",
+   "part": "batch 4 LN-12",
+   "replace": "        return {\"branch\": \"128\", \"source\": rule[\"no_record\"], \"record_sha256\": None}"
+  },
+  {
+   "describes": "the W1-18 record's unit count not checked",
+   "file": "build_reuse_spec.py",
+   "find": "or not isinstance(check, dict) or check.get(\"units\") != rule[\"units\"] \\",
+   "id": "B4-r-units-unchecked",
+   "part": "batch 4 LN-12",
+   "replace": "or not isinstance(check, dict) \\"
+  },
+  {
+   "describes": "LN-14's transfer report under Branch full too",
+   "file": "build_reuse_spec.py",
+   "find": "    if cap[\"branch\"] == \"128\":\n        jobs.append({\"id\": \"report-theta0-transfer\"",
+   "id": "B4-r-transfer-always",
+   "part": "batch 4 LN-12",
+   "replace": "    if True:\n        jobs.append({\"id\": \"report-theta0-transfer\""
+  },
+  {
+   "describes": "an --extension unit never listed",
+   "file": "build_reuse_spec.py",
+   "find": "            if unit[\"name\"] not in extension:\n                continue",
+   "id": "B4-r-extension-ignored",
+   "part": "batch 4 LN-12",
+   "replace": "            if True:\n                continue"
+  },
+  {
+   "describes": "a COMPLETE.json that is not complete accepted",
+   "file": "build_reuse_spec.py",
+   "find": "    if complete.get(\"job_sha256\") != unit[\"job_sha256\"] or complete.get(\"complete\") is not True:",
+   "id": "B4-r-complete-unchecked",
+   "part": "batch 4 LN-12",
+   "replace": "    if complete.get(\"job_sha256\") != unit[\"job_sha256\"]:"
+  },
+  {
+   "describes": "one whole-list call (L11's mutant)",
+   "file": "make_untuned_answers.py",
+   "find": "    for start in range(0, len(items), chunk):",
+   "id": "B4-u-whole-list-call",
+   "part": "batch 4 REQ-9",
+   "replace": "    for start in range(0, len(items), len(items)):"
+  },
+  {
+   "describes": "S4 stops on raw answers, not keeps (L11's mutant)",
+   "file": "make_untuned_answers.py",
+   "find": "        if spec[\"kind\"] == \"s4\" and len(kept) == keep_target:",
+   "id": "B4-u-stop-on-raw-answers",
+   "part": "batch 4 REQ-9",
+   "replace": "        if spec[\"kind\"] == \"s4\" and len(rows) >= keep_target:"
+  },
+  {
+   "describes": "a chunk other than REC's batch size accepted (L11's mutant)",
+   "file": "make_untuned_answers.py",
+   "find": "    if chunk != gen[\"batch_size\"]:",
+   "id": "B4-u-chunk-unchecked",
+   "part": "batch 4 REQ-9",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "the S4 encode_train check removed (L14's mutant)",
+   "file": "make_untuned_answers.py",
+   "find": "    if row[\"encode_train\"] is not None:\n        return f\"encode_train_",
+   "id": "B4-u-s4-encode-off",
+   "part": "batch 4 REQ-9",
+   "replace": "    if False:\n        return f\"encode_train_"
+  },
+  {
+   "describes": "the S4 strip check removed (L14's mutant)",
+   "file": "make_untuned_answers.py",
+   "find": "    if row[\"empty\"]:\n        return \"empty\"",
+   "id": "B4-u-s4-strip-off",
+   "part": "batch 4 REQ-9",
+   "replace": "    if False:\n        return \"empty\""
+  },
+  {
+   "describes": "a capped S4 answer kept",
+   "file": "make_untuned_answers.py",
+   "find": "    if not row[\"ended\"]:\n        return \"capped\"",
+   "id": "B4-u-s4-ended-off",
+   "part": "batch 4 REQ-9",
+   "replace": "    if False:\n        return \"capped\""
+  },
+  {
+   "describes": "a non-refusal S4 answer kept",
+   "file": "make_untuned_answers.py",
+   "find": "    if row[\"lex_class\"] != \"REFUSAL-OPENING\":",
+   "id": "B4-u-s4-lex-off",
+   "part": "batch 4 REQ-9",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "max_train_tokens hard-coded (L14's mutant)",
+   "file": "make_untuned_answers.py",
+   "find": "answerer = Answerer(generate or untuned, codec, lexicon.classify, s[\"model\"][\"max_train_tokens\"],",
+   "id": "B4-u-max-train-hard-coded",
+   "part": "batch 4 REQ-9",
+   "replace": "answerer = Answerer(generate or untuned, codec, lexicon.classify, 3072,"
+  },
+  {
+   "describes": "the generation's adapter left on",
+   "file": "make_untuned_answers.py",
+   "find": "        with torch.no_grad(), model.disable_adapter():\n            return en.greedy_generate",
+   "id": "B4-u-generation-adapter-on",
+   "part": "batch 4 REQ-9",
+   "replace": "        with torch.no_grad():\n            return en.greedy_generate"
+  },
+  {
+   "describes": "the loss's adapter left on (W1-06's mutant)",
+   "file": "make_untuned_answers.py",
+   "find": "            with torch.no_grad(), model.disable_adapter():\n                was = model.training",
+   "id": "B4-u-loss-adapter-on",
+   "part": "batch 4 REQ-9",
+   "replace": "            with torch.no_grad():\n                was = model.training"
+  },
+  {
+   "describes": "a token sum instead of the mean (W1-06's mutant)",
+   "file": "make_untuned_answers.py",
+   "find": "\"mean_nll\": float(nll), \"perplexity\": math.exp(float(nll))}",
+   "id": "B4-u-loss-sum",
+   "part": "batch 4 REQ-9",
+   "replace": "\"mean_nll\": float(nll) * ex.n_target, \"perplexity\": math.exp(float(nll))}"
+  },
+  {
+   "describes": "a y^orig that encode_train refuses kept in s3_orig",
+   "file": "make_untuned_answers.py",
+   "find": "            pool = [r for r in rows if r[\"encode_train\"] is None]",
+   "id": "B4-u-s3-pool-keeps-refused",
+   "part": "batch 4 REQ-9",
+   "replace": "            pool = list(rows)"
+  },
+  {
+   "describes": "S3 answered at REC's cap, not 512",
+   "file": "make_untuned_answers.py",
+   "find": "        spec[\"max_new_tokens\"] = gen[\"max_new_tokens\"] if spec[\"max_new_tokens\"] == \"rec\" else spec[\"max_new_tokens\"]",
+   "id": "B4-u-s3-rec-cap",
+   "part": "batch 4 REQ-9",
+   "replace": "        spec[\"max_new_tokens\"] = gen[\"max_new_tokens\"]"
+  },
+  {
+   "describes": "fewer than 48 S4 keeps exits 0",
+   "file": "make_untuned_answers.py",
+   "find": "                exit_code = EXIT_FEW",
+   "id": "B4-u-few-exit-0",
+   "part": "batch 4 REQ-9",
+   "replace": "                exit_code = 0"
+  },
+  {
+   "describes": "REC and recipe S may disagree",
+   "file": "make_untuned_answers.py",
+   "find": "        if rec[\"model\"][key] != s[\"model\"][key]:",
+   "id": "B4-u-recipes-may-disagree",
+   "part": "batch 4 REQ-9",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "the scaling signs swapped",
+   "file": "score_l1_larf.py",
+   "find": "                with Scaled(modules, 1 + sign * alpha):",
+   "id": "B4-l-sign-swapped",
+   "part": "batch 4 REQ-10",
+   "replace": "                with Scaled(modules, 1 - sign * alpha):"
+  },
+  {
+   "describes": "ties to the higher index",
+   "file": "score_l1_larf.py",
+   "find": "    return {\"l_s\": min(tied), \"no_signal\": False",
+   "id": "B4-l-tie-higher-index",
+   "part": "batch 4 REQ-10",
+   "replace": "    return {\"l_s\": max(tied), \"no_signal\": False"
+  },
+  {
+   "describes": "the Delta(0.1) tie step skipped",
+   "file": "score_l1_larf.py",
+   "find": "    tied = [b for b in tied if delta[b][alphas[0]] == top]",
+   "id": "B4-l-tie-delta-skipped",
+   "part": "batch 4 REQ-10",
+   "replace": "    tied = list(tied)"
+  },
+  {
+   "describes": "no signal reads the first block",
+   "file": "score_l1_larf.py",
+   "find": "        return {\"l_s\": n_layers - 1, \"no_signal\": True",
+   "id": "B4-l-no-signal-first",
+   "part": "batch 4 REQ-10",
+   "replace": "        return {\"l_s\": 0, \"no_signal\": True"
+  },
+  {
+   "describes": "every block eligible",
+   "file": "score_l1_larf.py",
+   "find": "    eligible = [b for b in range(n_layers) if b >= first]",
+   "id": "B4-l-all-eligible",
+   "part": "batch 4 REQ-10",
+   "replace": "    eligible = list(range(n_layers))"
+  },
+  {
+   "describes": "k_l not divided by alpha",
+   "file": "score_l1_larf.py",
+   "find": "    k = {b: max(delta[b][a] / a for a in alphas) for b in range(n_layers)}",
+   "id": "B4-l-k-not-per-alpha",
+   "part": "batch 4 REQ-10",
+   "replace": "    k = {b: max(delta[b][a] for a in alphas) for b in range(n_layers)}"
+  },
+  {
+   "describes": "the score at read (b)",
+   "file": "score_l1_larf.py",
+   "find": "    read = rp.READS.index(settings[\"score\"][\"read\"])\n    scores = {}",
+   "id": "B4-l-read-b",
+   "part": "batch 4 REQ-10",
+   "replace": "    read = rp.READS.index(\"b\")\n    scores = {}"
+  },
+  {
+   "describes": "a one-sided score cos(unsafe)",
+   "file": "score_l1_larf.py",
+   "find": "        value = float(line[\"cos_harmful\"][index][read]) - float(line[\"cos_safe\"][index][read])",
+   "id": "B4-l-one-sided",
+   "part": "batch 4 REQ-10",
+   "replace": "        value = float(line[\"cos_harmful\"][index][read])"
+  },
+  {
+   "describes": "the hooks never removed",
+   "file": "score_l1_larf.py",
+   "find": "        for h in self.handles:\n            h.remove()",
+   "id": "B4-l-hooks-kept",
+   "part": "batch 4 REQ-10",
+   "replace": "        for h in self.handles:\n            pass"
+  },
+  {
+   "describes": "the scan's adapter left on",
+   "file": "score_l1_larf.py",
+   "find": "        with torch.no_grad(), model.disable_adapter():\n            gens = en.greedy_generate",
+   "id": "B4-l-adapter-on",
+   "part": "batch 4 REQ-10",
+   "replace": "        with torch.no_grad():\n            gens = en.greedy_generate"
+  },
+  {
+   "describes": "the embedding output included in R",
+   "file": "score_s3_datarx.py",
+   "find": "    return [float(line[\"cos_safe\"][l][read]) - float(line[\"cos_harmful\"][l][read]) for l in range(1, n + 1)]",
+   "id": "B4-s-index-0-included",
+   "part": "batch 4 REQ-11",
+   "replace": "    return [float(line[\"cos_safe\"][l][read]) - float(line[\"cos_harmful\"][l][read]) for l in range(0, n + 1)]"
+  },
+  {
+   "describes": "C_r and C_c swapped",
+   "file": "score_s3_datarx.py",
+   "find": "    return [float(line[\"cos_safe\"][l][read]) - float(line[\"cos_harmful\"][l][read]) for l in range(1, n + 1)]",
+   "id": "B4-s-anchor-sets-swapped",
+   "part": "batch 4 REQ-11",
+   "replace": "    return [float(line[\"cos_harmful\"][l][read]) - float(line[\"cos_safe\"][l][read]) for l in range(1, n + 1)]"
+  },
+  {
+   "describes": "SAS = R(y^orig) - R(y^safe)",
+   "file": "score_s3_datarx.py",
+   "find": "    return math.fsum(safe) / len(safe) - math.fsum(orig) / len(orig)",
+   "id": "B4-s-sas-reversed",
+   "part": "batch 4 REQ-11",
+   "replace": "    return math.fsum(orig) / len(orig) - math.fsum(safe) / len(safe)"
+  },
+  {
+   "describes": "S1's rows outside the subset ranked too",
+   "file": "score_s3_datarx.py",
+   "find": "    scores = {i: sas_of(safe[i], orig[i]) for i in subset if i in orig}",
+   "id": "B4-s-ranks-s1-extras",
+   "part": "batch 4 REQ-11",
+   "replace": "    scores = {i: sas_of(safe[i], orig[i]) for i in subset + s1_ids if i in orig}"
+  },
+  {
+   "describes": "the pools' SHA-256s not checked against the builders' records",
+   "file": "score_s3_datarx.py",
+   "find": "        if listed.get(name) != digest:",
+   "id": "B4-s-pool-unchecked",
+   "part": "batch 4 REQ-11",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "S3's ties by id, not s3.ties",
+   "file": "write_score_add.py",
+   "find": "    selected = s1.select_top(checked, spec[\"k\"], spec[\"ties\"])",
+   "id": "B4-a-ties-by-id",
+   "part": "batch 4 REQ-11",
+   "replace": "    selected = sorted(checked, key=lambda r: (-checked[r], r))[:spec[\"k\"]]"
+  },
+  {
+   "describes": "the candidate pool not the scorer's",
+   "file": "write_score_add.py",
+   "find": "    if doc.get(\"candidate_pool_sha256\") != candidates[1]:",
+   "id": "B4-a-pool-unchecked",
+   "part": "batch 4 REQ-11",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "an unscored row imputed as 0",
+   "file": "score_classifier.py",
+   "find": "        return {\"score\": None, \"unscored\": r.get(\"reason\") or \"invalid\"}",
+   "id": "B4-c-unscored-imputed",
+   "part": "batch 4 REQ-23",
+   "replace": "        return {\"score\": 0.0, \"unscored\": r.get(\"reason\") or \"invalid\"}"
+  },
+  {
+   "describes": "a pool without a filled pin scored",
+   "file": "score_classifier.py",
+   "find": "        if rp.pin_of(p, pins) != \"pool pins\":",
+   "id": "B4-c-pool-pin-off",
+   "part": "batch 4 REQ-23",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "the classifier's ties by id",
+   "file": "score_classifier.py",
+   "find": "    selected = s1.select_top(scored, k, \"classifier.ties\")",
+   "id": "B4-c-ties-by-id",
+   "part": "batch 4 REQ-23",
+   "replace": "    selected = sorted(scored, key=lambda r: (-scored[r], r))[:k]"
+  },
+  {
+   "describes": "the population SD (not Gate C's sample SD)",
+   "file": "score_classifier.py",
+   "find": "        sd = statistics.stdev(values)",
+   "id": "B4-c-population-sd",
+   "part": "batch 4 REQ-23",
+   "replace": "        sd = statistics.pstdev(values)"
+  },
+  {
+   "describes": "index 0 allowed for l_hat",
+   "file": "score_datashield.py",
+   "find": "    candidates = [(l, v) for l, v in enumerate(cas) if l >= 1 and v is not None]",
+   "id": "B4-d-index-0-allowed",
+   "part": "batch 4 REQ-12",
+   "replace": "    candidates = [(l, v) for l, v in enumerate(cas) if v is not None]"
+  },
+  {
+   "describes": "CAS ties to the higher index",
+   "file": "score_datashield.py",
+   "find": "    return min(l for l, v in candidates if v == best)",
+   "id": "B4-d-ties-higher",
+   "part": "batch 4 REQ-12",
+   "replace": "    return max(l for l, v in candidates if v == best)"
+  },
+  {
+   "describes": "CSS read at l_hat - 1",
+   "file": "score_datashield.py",
+   "find": "        value = line[\"css\"][index]",
+   "id": "B4-d-css-other-index",
+   "part": "batch 4 REQ-12",
+   "replace": "        value = line[\"css\"][index - 1]"
+  },
+  {
+   "describes": "unequal grad norms accepted",
+   "file": "score_selfinf_n.py",
+   "find": "            if values[0] != values[1]:",
+   "id": "B4-i-norms-may-differ",
+   "part": "batch 4 REQ-13",
+   "replace": "            if False:"
+  },
+  {
+   "describes": "len counts the end-of-turn token",
+   "file": "score_selfinf_n.py",
+   "find": "    length = {r: view.tokens[r] - 1 for r in view.tokens}",
+   "id": "B4-i-len-with-eot",
+   "part": "batch 4 REQ-13",
+   "replace": "    length = {r: view.tokens[r] for r in view.tokens}"
+  },
+  {
+   "describes": "SI = grad_norm, not its square",
+   "file": "score_selfinf_n.py",
+   "find": "    primary = {r: score(norms[r][settings[\"primary\"]] ** 2, length[r]) for r in view.tokens}",
+   "id": "B4-i-si-not-squared",
+   "part": "batch 4 REQ-13",
+   "replace": "    primary = {r: score(norms[r][settings[\"primary\"]], length[r]) for r in view.tokens}"
+  },
+  {
+   "describes": "SD-600 trains a capped answer (L14's mutant)",
+   "file": "write_sd600.py",
+   "find": "        if not items[rid][\"ended\"] or rows_rec[rid][\"capped\"]:",
+   "id": "B5-sd-capped-rewritten",
+   "part": "batch 5 REQ-15",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "the SD-600 strip check removed (L14's mutant)",
+   "file": "write_sd600.py",
+   "find": "        elif not answer.strip():",
+   "id": "B5-sd-strip-off",
+   "part": "batch 5 REQ-15",
+   "replace": "        elif False:"
+  },
+  {
+   "describes": "a fallback row neither removed nor rewritten (L14's mutant)",
+   "file": "write_sd600.py",
+   "find": "        removed.append(rid)\n    kind =",
+   "id": "B5-sd-fallback-kept",
+   "part": "batch 5 REQ-15",
+   "replace": "        pass\n    kind ="
+  },
+  {
+   "describes": "REQ-9's prompt not compared with the stored one",
+   "file": "write_sd600.py",
+   "find": "        if items[rid][\"prompt\"] != prompt:",
+   "id": "B5-sd-prompt-unchecked",
+   "part": "batch 5 REQ-15",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "the rewritten rows encoded without the audited check",
+   "file": "write_sd600.py",
+   "find": "        encoded = edited_corpus(corpus, parse_edit(data, stub_with_rows), stub_with_rows, codec, max_train)",
+   "id": "B5-sd-audit-skipped",
+   "part": "batch 5 REQ-15",
+   "replace": "        encoded = {r: encode_train(codec, r, prepared.train_rows[r][\"prompt\"], rewrite[r], max_train) for r in rewrite}"
+  },
+  {
+   "describes": "a W1-18 record whose truncation_check.pass is not a bool (a truthy string) gives Branch 128",
+   "file": "build_reuse_spec.py",
+   "find": "            or not isinstance(check.get(\"pass\"), bool):",
+   "id": "V-r-pass-not-bool",
+   "part": "batch 4-5 rev 1: the mutation verifier's gap-test mutants (test_batch45_gaps.py)",
+   "replace": "            or False:"
+  },
+  {
+   "describes": "the acceptance requires the source's code and recipe hashes too (the relaxed rule of addendum section 11 point 2 undone)",
+   "file": "build_reuse_spec.py",
+   "find": "ACCEPT_FIELDS = (\"training_identity\", \"manifest_sha256\", \"data_config_sha256\")",
+   "id": "V-r-accept-requires-code-recipe",
+   "part": "batch 4-5 rev 1: the mutation verifier's gap-test mutants (test_batch45_gaps.py)",
+   "replace": "ACCEPT_FIELDS = IDENTITY_FIELDS"
+  },
+  {
+   "describes": "a source COMPLETE.json without an e1 (or q) adapter fingerprint is accepted; the accept block carries null",
+   "file": "build_reuse_spec.py",
+   "find": "        if not isinstance(fp, str) or not s1.HEX64.match(fp):\n            raise s1.Refusal(f\"{unit['name']}: no {name} adapter fingerprint\")",
+   "id": "V-r-fingerprint-unchecked",
+   "part": "batch 4-5 rev 1: the mutation verifier's gap-test mutants (test_batch45_gaps.py)",
+   "replace": "        if False:\n            raise s1.Refusal(f\"{unit['name']}: no {name} adapter fingerprint\")"
+  },
+  {
+   "describes": "an incomplete identity block is accepted (a missing field becomes a KeyError, not a Refusal)",
+   "file": "build_reuse_spec.py",
+   "find": "    if any(not isinstance(identity.get(f), str) or not s1.HEX64.match(identity[f]) for f in IDENTITY_FIELDS):",
+   "id": "V-r-identity-unchecked",
+   "part": "batch 4-5 rev 1: the mutation verifier's gap-test mutants (test_batch45_gaps.py)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "a sealed MANIFEST whose R_d arm is not edit-<its SHA-256> is accepted",
+   "file": "build_reuse_spec.py",
+   "find": "            if f.get(\"arm\") != f\"edit-{f.get('sha256')}\":",
+   "id": "V-r-sealed-arm-unchecked",
+   "part": "batch 4-5 rev 1: the mutation verifier's gap-test mutants (test_batch45_gaps.py)",
+   "replace": "            if False:"
+  },
+  {
+   "describes": "chunks of chunk - 1 list positions (31 on the pod) although the settings' chunk passed the batch-size check",
+   "file": "make_untuned_answers.py",
+   "find": "    for start in range(0, len(items), chunk):\n        part, seconds = answerer.chunk(items[start:start + chunk], ids[start:start + chunk], spec[\"max_new_tokens\"])",
+   "id": "V-u-chunk-31",
+   "part": "batch 4-5 rev 1: the mutation verifier's gap-test mutants (test_batch45_gaps.py)",
+   "replace": "    for start in range(0, len(items), chunk - 1):\n        part, seconds = answerer.chunk(items[start:start + chunk - 1], ids[start:start + chunk - 1], spec[\"max_new_tokens\"])"
+  },
+  {
+   "describes": "the drop order swapped: an empty capped answer is counted as empty, not capped",
+   "file": "make_untuned_answers.py",
+   "find": "    if not row[\"ended\"]:\n        return \"capped\"\n    if row[\"empty\"]:\n        return \"empty\"",
+   "id": "V-u-drop-order-empty-first",
+   "part": "batch 4-5 rev 1: the mutation verifier's gap-test mutants (test_batch45_gaps.py)",
+   "replace": "    if row[\"empty\"]:\n        return \"empty\"\n    if not row[\"ended\"]:\n        return \"capped\""
+  },
+  {
+   "describes": "the chunk that holds the 48th keep is cut after the 48th: the later rows of that chunk are not recorded",
+   "file": "make_untuned_answers.py",
+   "find": "        rows += part\n",
+   "id": "V-u-stop-mid-chunk",
+   "part": "batch 4-5 rev 1: the mutation verifier's gap-test mutants (test_batch45_gaps.py)",
+   "replace": "        rows += part[:next((k + 1 for k, r in enumerate(part) if r.get(\"kept\") and len(kept) == keep_target and r[\"id\"] == kept[-1]), len(part))]\n"
+  },
+  {
+   "describes": "the loss forwards every row in one batch instead of loss_batch rows",
+   "file": "make_untuned_answers.py",
+   "find": "        for start in range(0, len(examples), batch):",
+   "id": "V-u-loss-one-batch",
+   "part": "batch 4-5 rev 1: the mutation verifier's gap-test mutants (test_batch45_gaps.py)",
+   "replace": "        for start in range(0, len(examples), max(len(examples), 1)):"
+  },
+  {
+   "describes": "c+ and c- count refusals over the 64 harmful prompts only, not all 128",
+   "file": "score_l1_larf.py",
+   "find": "                pair.append(c[\"all\"])",
+   "id": "V-l-count-harmful-only",
+   "part": "batch 4-5 rev 1: the mutation verifier's gap-test mutants (test_batch45_gaps.py)",
+   "replace": "                pair.append(c[\"harmful\"])"
+  },
+  {
+   "describes": "an S3 subset or S1 id without s3_safe features is not refused (a KeyError later, or a silent gap)",
+   "file": "score_s3_datarx.py",
+   "find": "    if missing_safe:\n        raise",
+   "id": "V-s-missing-safe-ok",
+   "part": "batch 4-5 rev 1: the mutation verifier's gap-test mutants (test_batch45_gaps.py)",
+   "replace": "    if False:\n        raise"
+  },
+  {
+   "describes": "the scorer output names the s3_orig pool as the candidate pool (write_score_add would take y^orig rows)",
+   "file": "score_s3_datarx.py",
+   "find": "\"candidate_pool_sha256\": expected_pools[\"s3_safe\"],",
+   "id": "V-s-candidate-pool-is-orig",
+   "part": "batch 4-5 rev 1: the mutation verifier's gap-test mutants (test_batch45_gaps.py)",
+   "replace": "\"candidate_pool_sha256\": expected_pools[\"s3_orig\"],"
+  },
+  {
+   "describes": "an s3_orig row whose id lacks :orig is accepted (its last 5 characters cut)",
+   "file": "score_s3_datarx.py",
+   "find": "            if not line[\"id\"].endswith(ORIG_SUFFIX):\n                raise",
+   "id": "V-s-orig-suffix-unchecked",
+   "part": "batch 4-5 rev 1: the mutation verifier's gap-test mutants (test_batch45_gaps.py)",
+   "replace": "            if False:\n                raise"
+  },
+  {
+   "describes": "a scorer output stating another orientation (high = remove) is taken as an add scorer",
+   "file": "write_score_add.py",
+   "find": "    if doc.get(\"orientation\") != spec[\"orientation\"]:\n        raise",
+   "id": "V-a-orientation-unchecked",
+   "part": "batch 4-5 rev 1: the mutation verifier's gap-test mutants (test_batch45_gaps.py)",
+   "replace": "    if False:\n        raise"
+  },
+  {
+   "describes": "SE divides by the unit's row count, not its scored count",
+   "file": "score_classifier.py",
+   "find": "\"sd\": sd, \"se\": sd / math.sqrt(len(values))}",
+   "id": "V-c-se-over-rows",
+   "part": "batch 4-5 rev 1: the mutation verifier's gap-test mutants (test_batch45_gaps.py)",
+   "replace": "\"sd\": sd, \"se\": sd / math.sqrt(len(rows))}"
+  },
+  {
+   "describes": "the unit mean divides by the row count (an unscored row counts as 0 in the mean)",
+   "file": "score_classifier.py",
+   "find": "\"mean\": math.fsum(values) / len(values), \"sd\": sd,",
+   "id": "V-c-mean-over-rows",
+   "part": "batch 4-5 rev 1: the mutation verifier's gap-test mutants (test_batch45_gaps.py)",
+   "replace": "\"mean\": math.fsum(values) / len(rows), \"sd\": sd,"
+  },
+  {
+   "describes": "the recipe's guard_over_limit rule is not passed to the guard",
+   "file": "score_classifier.py",
+   "find": "    over = {\"over_limit_unscored\": True} if recipe[\"generation\"].get(\"guard_over_limit\") == \"unscored\" else {}",
+   "id": "V-c-over-limit-flag-off",
+   "part": "batch 4-5 rev 1: the mutation verifier's gap-test mutants (test_batch45_gaps.py)",
+   "replace": "    over = {}"
+  },
+  {
+   "describes": "the same pool given twice is scored twice under one name",
+   "file": "score_classifier.py",
+   "find": "    if len({p[\"name\"] for p in pool_docs}) != len(pool_docs):\n        raise",
+   "id": "V-c-duplicate-pools-ok",
+   "part": "batch 4-5 rev 1: the mutation verifier's gap-test mutants (test_batch45_gaps.py)",
+   "replace": "    if False:\n        raise"
+  },
+  {
+   "describes": "a pool item whose id is a training row id overwrites that row's score",
+   "file": "score_classifier.py",
+   "find": "    if len(set(ids)) != len(ids):\n        raise",
+   "id": "V-c-pool-id-collision-ok",
+   "part": "batch 4-5 rev 1: the mutation verifier's gap-test mutants (test_batch45_gaps.py)",
+   "replace": "    if False:\n        raise"
+  },
+  {
+   "describes": "a CAS list of another length than n + 1 is accepted",
+   "file": "score_datashield.py",
+   "find": "    if len(cas) != n + 1:\n        raise",
+   "id": "V-d-cas-len-unchecked",
+   "part": "batch 4-5 rev 1: the mutation verifier's gap-test mutants (test_batch45_gaps.py)",
+   "replace": "    if False:\n        raise"
+  },
+  {
+   "describes": "a null CSS at l_hat scores 0 instead of refusing",
+   "file": "score_datashield.py",
+   "find": "        if value is None or not math.isfinite(float(value)):",
+   "id": "V-d-css-none-as-zero",
+   "part": "batch 4-5 rev 1: the mutation verifier's gap-test mutants (test_batch45_gaps.py)",
+   "replace": "        value = 0.0 if value is None else value\n        if not math.isfinite(float(value)):"
+  },
+  {
+   "describes": "every row of REQ-3's rows file is scored",
+   "file": "score_datashield.py",
+   "find": "        if line.get(\"source\") != \"dev\":\n            continue\n        value = line[\"css\"][index]",
+   "id": "V-d-all-sources",
+   "part": "batch 4-5 rev 1: the mutation verifier's gap-test mutants (test_batch45_gaps.py)",
+   "replace": "        value = line[\"css\"][index]"
+  },
+  {
+   "describes": "a rows.jsonl that misses training rows is accepted (a KeyError later, not a Refusal)",
+   "file": "score_selfinf_n.py",
+   "find": "    if set(out) != set(view.tokens):\n        raise",
+   "id": "V-i-missing-rows-ok",
+   "part": "batch 4-5 rev 1: the mutation verifier's gap-test mutants (test_batch45_gaps.py)",
+   "replace": "    if False:\n        raise"
+  },
+  {
+   "describes": "the sd600 list in sorted id order, not A1's order",
+   "file": "write_sd600.py",
+   "find": "                              \"items\": [{\"id\": r, \"prompt\": prepared.train_rows[r][\"prompt\"]} for r in order]})",
+   "id": "V-sd-prompts-sorted",
+   "part": "batch 4-5 rev 1: the mutation verifier's gap-test mutants (test_batch45_gaps.py)",
+   "replace": "                              \"items\": [{\"id\": r, \"prompt\": prepared.train_rows[r][\"prompt\"]} for r in sorted(order)]})"
+  },
+  {
+   "describes": "A1's selection_order need not match its selected list",
+   "file": "write_sd600.py",
+   "find": "or sorted(order) != doc.get(\"selected\") \\\n",
+   "id": "V-sd-selected-unchecked",
+   "part": "batch 4-5 rev 1: the mutation verifier's gap-test mutants (test_batch45_gaps.py)",
+   "replace": "\\\n"
+  },
+  {
+   "describes": "an A1 selection record naming another edit file is accepted",
+   "file": "write_sd600.py",
+   "find": "    if doc.get(\"arm\") != \"a1\" or doc.get(\"edit\", {}).get(\"sha256\") != pins[\"edit_sha256\"]:",
+   "id": "V-sd-edit-pin-unchecked",
+   "part": "batch 4-5 rev 1: the mutation verifier's gap-test mutants (test_batch45_gaps.py)",
+   "replace": "    if doc.get(\"arm\") != \"a1\":"
+  },
+  {
+   "describes": "an answer whose answers-file ended flag is false is rewritten when the record says capped false",
+   "file": "write_sd600.py",
+   "find": "        if not items[rid][\"ended\"] or rows_rec[rid][\"capped\"]:",
+   "id": "V-sd-capped-from-record-only",
+   "part": "batch 4-5 rev 1: the mutation verifier's gap-test mutants (test_batch45_gaps.py)",
+   "replace": "        if rows_rec[rid][\"capped\"]:"
+  },
+  {
+   "describes": "the record's capped flag is ignored",
+   "file": "write_sd600.py",
+   "find": "        if not items[rid][\"ended\"] or rows_rec[rid][\"capped\"]:",
+   "id": "V-sd-capped-from-answers-only",
+   "part": "batch 4-5 rev 1: the mutation verifier's gap-test mutants (test_batch45_gaps.py)",
+   "replace": "        if not items[rid][\"ended\"]:"
+  },
+  {
+   "describes": "acceptance also requires the recipe hash",
+   "file": "build_reuse_spec.py",
+   "find": "ACCEPT_FIELDS = (\"training_identity\", \"manifest_sha256\", \"data_config_sha256\")",
+   "id": "V-r-accept-requires-recipe",
+   "part": "batch 4-5 rev 1: A-3, the accept set (addendum section 11 point 2)",
+   "replace": "ACCEPT_FIELDS = (\"training_identity\", \"manifest_sha256\", \"data_config_sha256\", \"recipe_sha256\")"
+  },
+  {
+   "describes": "acceptance without manifest and data config",
+   "file": "build_reuse_spec.py",
+   "find": "ACCEPT_FIELDS = (\"training_identity\", \"manifest_sha256\", \"data_config_sha256\")",
+   "id": "V-r-accept-no-data",
+   "part": "batch 4-5 rev 1: A-3, the accept set (addendum section 11 point 2)",
+   "replace": "ACCEPT_FIELDS = (\"training_identity\",)"
+  },
+  {
+   "describes": "the max k_l <= 0 branch never taken",
+   "file": "score_l1_larf.py",
+   "find": "    if best <= 0:\n        return {\"l_s\": n_layers - 1, \"no_signal\": True",
+   "id": "X5-l-no-signal-rule-removed",
+   "part": "batch 4-5 rev 1: C-1/A-2, the brief-, L14- and W1-07-named mutants",
+   "replace": "    if False:\n        return {\"l_s\": n_layers - 1, \"no_signal\": True"
+  },
+  {
+   "describes": "the top k taken per unit instead of globally",
+   "file": "score_classifier.py",
+   "find": "    selected = s1.select_top(scored, k, \"classifier.ties\")",
+   "id": "X6-c-per-unit-selection",
+   "part": "batch 4-5 rev 1: C-1/A-2, the brief-, L14- and W1-07-named mutants",
+   "replace": "    selected = [r for gid in units for r in s1.select_top({r: scored[r] for r in members[gid] if r in scored}, max(1, k // len(units)), \"classifier.ties\")][:k]"
+  },
+  {
+   "describes": "the guard scores (prompt, empty response)",
+   "file": "score_classifier.py",
+   "find": "    items = [(rid, prepared.train_rows[rid][\"prompt\"], prepared.train_rows[rid][\"response\"])",
+   "id": "X7-c-prompt-only",
+   "part": "batch 4-5 rev 1: C-1/A-2, the brief-, L14- and W1-07-named mutants",
+   "replace": "    items = [(rid, prepared.train_rows[rid][\"prompt\"], \"\")"
+  },
+  {
+   "describes": "Self-Inf-N without the + 1 (brief Part C mutant)",
+   "file": "score_selfinf_n.py",
+   "find": "    return math.log(si + 1.0) + math.log(response_tokens + 1.0)",
+   "id": "V-i-no-plus-one",
+   "part": "batch 4-5 rev 1: C-1/A-2, the brief-, L14- and W1-07-named mutants",
+   "replace": "    return math.log(si) + math.log(response_tokens + 1.0)"
+  },
+  {
+   "describes": "the primary score reads e1, not the settings' primary checkpoint q",
+   "file": "score_selfinf_n.py",
+   "find": "    primary = {r: score(norms[r][settings[\"primary\"]] ** 2, length[r]) for r in view.tokens}",
+   "id": "V-i-primary-e1",
+   "part": "batch 4-5 rev 1: C-1/A-2, the brief-, L14- and W1-07-named mutants",
+   "replace": "    primary = {r: score(norms[r][\"e1\"] ** 2, length[r]) for r in view.tokens}"
+  },
+  {
+   "describes": "SD-600 removes a row outside A1's 600 (brief Part D mutant, remove form)",
+   "file": "write_sd600.py",
+   "find": "                                manifest_sha256=view.manifest_sha256, remove=removed, rewrite=rewrite,",
+   "id": "V-sd-rows-outside-a1-remove",
+   "part": "batch 4-5 rev 1: C-1/A-2, the brief-, L14- and W1-07-named mutants",
+   "replace": "                                manifest_sha256=view.manifest_sha256, remove=removed + [r for r in sorted(view.tokens) if r not in order][:1], rewrite=rewrite,"
+  },
+  {
+   "describes": "SD-600 rewrites a row outside A1's 600 (brief Part D mutant, rewrite form)",
+   "file": "write_sd600.py",
+   "find": "    kind = \"combined\" if removed and rewrite else (\"rewrite\" if rewrite else \"remove\")",
+   "id": "V-sd-rows-outside-a1-rewrite",
+   "part": "batch 4-5 rev 1: C-1/A-2, the brief-, L14- and W1-07-named mutants",
+   "replace": "    rewrite = {**rewrite, **{r: next(iter(rewrite.values())) for r in [q for q in sorted(view.tokens) if q not in order][:1]}} if rewrite else rewrite\n    kind = \"combined\" if removed and rewrite else (\"rewrite\" if rewrite else \"remove\")"
+  },
+  {
+   "describes": "max_train_tokens hard-coded (L14's mutant)",
+   "file": "write_sd600.py",
+   "find": "    max_train = recipe[\"model\"][\"max_train_tokens\"]",
+   "id": "V-sd-max-train-hard-coded",
+   "part": "batch 4-5 rev 1: C-1/A-2, the brief-, L14- and W1-07-named mutants",
+   "replace": "    max_train = 3072"
+  },
+  {
+   "describes": "SAS = -R(y^orig), the safe side dropped",
+   "file": "score_s3_datarx.py",
+   "find": "    return math.fsum(safe) / len(safe) - math.fsum(orig) / len(orig)",
+   "id": "C-s-sas-from-orig-only",
+   "part": "batch 4-5 rev 1: C-1/A-2, the brief-, L14- and W1-07-named mutants",
+   "replace": "    return -math.fsum(orig) / len(orig)"
+  },
+  {
+   "describes": "scale_modules returns the block's mlp, not the settings' named modules (the verifiers' X2-l-wrong-module-scaled text)",
+   "file": "score_l1_larf.py",
+   "find": "        out.append(getattr(layer, name))",
+   "id": "B4-l-wrong-module",
+   "part": "batch 4-5 rev 1: fix 1, the brief's 'scaling on the wrong norm'",
+   "replace": "        out.append(layer.mlp)"
+  },
+  {
+   "describes": "the hook adds a constant, so alpha = 0 is not the identity (the brief's Part C mutant; both output shapes)",
+   "edits": [
+    {
+     "file": "score_l1_larf.py",
+     "find": "            return (output[0] * self.factor,) + tuple(output[1:])",
+     "replace": "            return (output[0] * self.factor + 1e-3,) + tuple(output[1:])"
+    },
+    {
+     "file": "score_l1_larf.py",
+     "find": "        return output * self.factor\n",
+     "replace": "        return output * self.factor + 1e-3\n"
+    }
+   ],
+   "file": "score_l1_larf.py",
+   "id": "X1-l-alpha-zero-not-identity",
+   "part": "batch 4-5 rev 1: C-1/A-2, the brief-, L14- and W1-07-named mutants"
+  },
+  {
+   "describes": "the REQ-9 list hash not compared with REQ-6's pool (RB-1's check removed)",
+   "file": "score_s3_datarx.py",
+   "find": "    if s3_entry.get(\"list_sha256\") != pool_rec[\"s3_pool\"][\"sha256\"]:                    # RB-1: the chain REQ-6 -> REQ-9\n        raise s1.Refusal(\"REQ-9's s3 list is not REQ-6's s3_safe pool (its list_sha256 differs from s3_pool.sha256)\")\n",
+   "id": "B4-s-list-hash-unchecked",
+   "part": "batch 4-5 rev 1: RB-1",
+   "replace": ""
+  }
+ ],
+ "not_included": {
+  "V-l-dolly-unsorted": "the verifiers' mutant is equivalent (s1.sealed_sample sorts its population); accepted by the critic, not added",
+  "ids": "the verifiers' and the critic's ids are kept verbatim so the lead can match them",
+  "make_untuned_answers prompt tokens in the loss": "the loss is the engine's example_losses on encode_train's split; a prompt-token mutant would edit the engine, which is frozen",
+  "score_l1_larf module map": "settings data (the olmo2 entry is tested literally)"
+ },
+ "part": "batches 4, 5 and 4-5 rev 1: LN-12, REQ-9 to REQ-13, REQ-23, REQ-15; the verifiers' gap-test mutants, A-3, C-1/A-2, fix 1, RB-1",
+ "revision": 1,
+ "version": 1
+}

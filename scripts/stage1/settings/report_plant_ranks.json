@@ -1,0 +1,50 @@
+{
+  "bootstrap": {
+    "key": "plant.auc_boot",
+    "level": 0.9,
+    "replicates": 2000,
+    "rule": "per (scorer, comparison): the given number of replicates, each resampling the positive rows and the Dolly rows with replacement, within each side; the interval = numpy.quantile of the replicate AUCs at (1 - level) / 2 and 1 - (1 - level) / 2 (numpy's default linear method)"
+  },
+  "construction_checks": [
+    "l1",
+    "h1",
+    "h2a",
+    "h2b",
+    "datashield",
+    "classifier"
+  ],
+  "counting": {
+    "rule": "only the training-signal diagnostics scored on a0_plant count toward finds a known cause (MSG-06; ADD-8.2): A1, and Self-Inf-N-style only while selfinf_n_counts is true (REQ-13 committed at W1); with it false, Self-Inf-N-style leaves both the scorer list and the counting rule, and only A1 counts. The text-only scorers are construction checks (LW-10 F2, F8)",
+    "scorers": [
+      "a1",
+      "selfinf_n"
+    ],
+    "selfinf_n_counts": true
+  },
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "grouping_threshold": 0.5,
+  "k": 37,
+  "kind": "stage1 settings",
+  "label_entries": {
+    "plant.auc_boot": "28a587ac16c2221c9fa835b4d766d74bc68489f78123d00eb7b44ab50e73afa1"
+  },
+  "labels_sha256": "260389f3fbfd8e7ff11ee06b5d5aba48e7d56b34140d9c9a634682125a86d570",
+  "name": "report_plant_ranks",
+  "output_kind": "stage1 plant ranks",
+  "owner": "scripts/stage1/report_plant_ranks.py",
+  "pins": {
+    "prepared_manifest_sha256": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
+    "representation_pass_settings_sha256": "a555fd899bd2b5caf8d68fb62578ed2e943977341b5bf2dc2d688dcbd034600b"
+  },
+  "requirement": "W1-08 (W1 builder extract); REQ-29; REV3 sections 8.4-8.5 (LW-10 F2, F4, F6, F7, F8); report only, $0",
+  "rules": {
+    "auc": "P(a positive row scores above a negative row), a tie counting 0.5 (Mann-Whitney); unscored rows left out and counted",
+    "cell_score": "the mean of the cell's scored rows' scores (math.fsum / count; ADD L15 (6)); ties: equal means",
+    "decoy": "F7: the decoy rows in their own sealed leaf (REQ-8's record), their ranks and AUCs beside the plant's; scored only, never trained",
+    "dilution": "F4: N = the M = 128 leaves, r = the planted leaf's rank with ties counted above it; for each menu, m = its cells - 1; P(first among m competitors) = C(N - r, m) / C(N - 1, m), the options effect at the leaf's fixed share, beside the observed diluted rank",
+    "planted_corpus": "P with the drawn leaf's Dolly rows replaced by the first k plant rows (k = 37)",
+    "rank": "1 + the number of cells with a strictly larger score; equal scores are reported as ties; first = rank 1 with no tie",
+    "replay": "F6: the same k plant rows in every leaf with exactly k rows and no oversize row; each leaf's ranks at the three menus; per menu the share ranked first and the mean rank"
+  },
+  "version": 1
+}

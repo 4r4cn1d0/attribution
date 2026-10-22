@@ -1,0 +1,80 @@
+{
+  "doses": {
+    "R_1200": {
+      "draws": [
+        2,
+        3,
+        4
+      ],
+      "key": "random_removal.r1200",
+      "per_unit": 150,
+      "role": "secondary (PLAN-S section 5.3 item 1; L5): draw d at seed 1100 + d (1102-1104)",
+      "rule": "per unit g in ascending group-id order: s1common.sealed_sample(sorted members of g, 150, registry key random_removal.r1200, d, g); remove = the sorted union (1,200 rows); an independent draw, not nested in R_600"
+    },
+    "R_2400": {
+      "draws": [
+        2,
+        3,
+        4
+      ],
+      "key": "random_removal.r2400",
+      "per_unit": 300,
+      "role": "secondary (PLAN-S section 5.3 item 1; L5): draw d at seed 1100 + d (1102-1104)",
+      "rule": "per unit g in ascending group-id order: s1common.sealed_sample(sorted members of g, 300, registry key random_removal.r2400, d, g); remove = the sorted union (2,400 rows); an independent draw, not nested in R_600 or R_1200"
+    }
+  },
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "frozen_r": {
+    "draws": [
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "key": "gate_b.random_removal",
+    "roles": {
+      "10": "plan B only (LW-31)",
+      "6": "primary: seed layout D1, R at 1101-1107",
+      "7": "primary: seed layout D1, R at 1101-1107",
+      "8": "plan B only (LW-31: R at 1101-1110 under D1)",
+      "9": "plan B only (LW-31)"
+    },
+    "rule": "the frozen builder's own draw_r and edit format (75 rows per unit, parts (d, g), the sorted union); the provenance adds stage1_wrapper (this script's, s1common's and the settings' SHA-256, the used entry digests)"
+  },
+  "inputs": {
+    "frozen_builder": ".ai/inputs/gate-b-sealed-20261008/build_sealed.py",
+    "frozen_builder_sha256": "80cb8944cbea2847a4d39cddae225158f98431a8612282e2dd7161239050d3c6",
+    "frozen_label_key": "gate_b.random_removal",
+    "prepared_manifest_sha256": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
+    "sealed_dir": ".ai/inputs/gate-b-sealed-20261008/out",
+    "sealed_manifest_sha256": "d76d8bf93bf39c246703f36a14fde3785c14b4e4728f15bf16e19fd972c279a8"
+  },
+  "kind": "stage1 settings",
+  "label_entries": {
+    "gate_b.random_removal": "ad3aa9d7affd435c6007f9fe0bdbd1ee646df0b2491e4e04e146c472c19a9e84",
+    "random_removal.r1200": "f244c8627b4cd39b5a87929557a0b5128df369bfdae88eb75ec2bbc00862618c",
+    "random_removal.r2400": "85719c29babd8fdd7927fab9c7efc737370ff9e579c73cc33d2c2b523040df0e"
+  },
+  "labels_sha256": "d79c7ae6137143be644cb24efed68409842fee2fcdfe5b44caee6e0032fe3e27",
+  "name": "build_r_draws",
+  "owner": "scripts/stage1/build_r_draws.py",
+  "r_plus_s1": "R+S1 (PLAN-S:160) at d = 2, 3, 4: a combined edit of R_d's remove list and S1's 48 add rows, written by REQ-7's add writer from these files",
+  "reproduce": {
+    "draws": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "rule": "the frozen builder's draw_r and edit_file, with its recorded provenance (the sealed R_d1 file's, without its selection), must give each sealed edits/R_d<d>.json byte for byte, and the sealed MANIFEST.json (pinned) must list each file; any difference refuses and nothing is written"
+  },
+  "requirement": "REQ-4 (brief rev 1; lead decisions L5; addendum section 6.2 seed layout D1; LW-31 plan-B seed list)",
+  "seed_map": {
+    "offset": 1100,
+    "rule": "draw d runs at seed 1100 + d (Gate B's wave rule and the secondary-arm rule)"
+  },
+  "token_accounting": "each file's record carries token_accounting.account(...) on P: rows, target and total tokens removed, their shares of P's totals, by unit and category, and the edited corpus's steps at 128 rows per step (addendum section 5 item 1)",
+  "version": 1
+}

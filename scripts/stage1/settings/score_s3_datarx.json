@@ -1,0 +1,23 @@
+{
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "inputs": "REQ-3's rows file and summary (the pools s3_safe and s3_orig listed with the SHA-256s that REQ-6's and REQ-9's records name); REQ-6's s_pool_record.json; REQ-9's untuned_answers_record.json; each by SHA-256",
+  "kind": "stage1 settings",
+  "label_entries": {},
+  "labels_sha256": "72665fe53c8f294e4b9d010691f3bcc4cacb836985f39d536d9498c536da824e",
+  "name": "score_s3_datarx",
+  "next": "write_score_add.py (scorer s3) selects the top 48; write_add_edit.py (list s3) writes the add edit",
+  "owner": "scripts/stage1/score_s3_datarx.py",
+  "pins": {
+    "representation_pass_settings_sha256": "a555fd899bd2b5caf8d68fb62578ed2e943977341b5bf2dc2d688dcbd034600b"
+  },
+  "read": "a",
+  "reports": "S1's SAS; |S1 & S3 subset|; the share of the subset's y^orig that the lexicon calls REFUSAL-OPENING; the capped count; the ids leaving the ranking by encode_train's reason; per-layer s^l of both responses, so the scores can be recomputed",
+  "requirement": "REQ-11 (brief rev 1; RS B8; SPEC sections 3.4-3.6); lead decisions L10, L14 (1); the lead's Part C requirement (model-agnostic)",
+  "rule": "h^l = read (a) at hidden-state indices l = 1..n (the embedding output excluded; index n = model.norm of the last block's output, L4); s^l(d) = cos(h^l, C_r^l) - cos(h^l, C_c^l) with C_r = the 64 safe anchors' mean and C_c = the 64 harmful anchors' mean (REQ-3's cos_safe - cos_harmful); R(d) = the mean over l; SAS(x) = R(x, y^safe) - R(x, y^orig); only the S3 subset (1,000) is ranked; a y^orig that encode_train refused leaves the ranking and is counted (L14 (1)); S1's 48 rows get their SAS reported (L10 (2))",
+  "scorer_output": {
+    "kind": "stage1 add scorer output",
+    "orientation": "descending: high = add",
+    "version": 1
+  },
+  "version": 1
+}

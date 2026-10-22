@@ -118,7 +118,7 @@ def test_a_class_outside_the_settings_list_refuses(untuned):
 
 def lexicon_copy(tmp_path, change_json: bool = False, change_py: bool = False) -> dict:
     spec = copy.deepcopy(fx.real_settings("limits_untuned_strata")["lexicon"])
-    src = lc._lexicon_files(spec["candidates"][-1])
+    src = next(found for found in map(lc._lexicon_files, spec["candidates"]) if found)   # the first copy present, as load_lexicon
     folder = tmp_path / "lex"
     folder.mkdir()
     json_path, py_path = folder / "lexicon.json", folder / "lexicon.py"

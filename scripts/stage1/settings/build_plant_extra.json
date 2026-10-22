@@ -1,0 +1,62 @@
+{
+  "decoy": {
+    "from": "the S-pool rows outside S1, the S3 subset and the S4 candidates (so also outside the plant rows, whose prompts are disjoint from every S-pool candidate, and outside the anchors, which REQ-6 excludes)",
+    "leaf_rule": "the plant's leaf rule (build_plant.json draws.leaf) in the decoy unit under the key plant.decoy_leaf",
+    "plant_unchanged": "the plant's own draws use only build_plant.json's keys, so they are the same with and without the decoy",
+    "rows": 37,
+    "rows_rule": "the first 37 of the sealed order plant.decoy_rows over those ids",
+    "unit_rule": "the first of the sealed order plant.decoy_unit over the 7 units other than the planted unit; never redrawn",
+    "use": "scored only, for the rank replay (REQ-29); never trained; no edit file; REQ-3's pool decoy"
+  },
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "f9": {
+    "edits": "planted_k37, planted_k75, remove_cell_m8, remove_cell_m32 and remove_cell_m128 at the location, by build_plant.json's edit rules, with the same 75 plant rows; file names end in _loc<l>",
+    "leaf_rule": "the plant's leaf rule (build_plant.json draws.leaf) in that unit under the key plant.extra_leaf with part (l)",
+    "locations": [
+      2,
+      3
+    ],
+    "status": "conditional rule text (lead decisions section 6.7): the draws and edits run only with --f9, which the lead passes only after the user's yes and stage 1b's funding event",
+    "unit_rule": "location l's unit is the first of the sealed order plant.extra_unit with part (l) over the units other than the planted unit's and the earlier locations' (without replacement)"
+  },
+  "inputs": {
+    "anch": {
+      "path": ".ai/inputs/gate-b-anchors-20261008/make_anchor_prompts.py",
+      "sha256": "40dfd383d404734210acda098d6ab996e36b20620247d41a1ff1be15b5f4ae07",
+      "use": "the PKU reader and P's evaluation forms, exactly as REQ-6 uses them (build_s_pool.py)"
+    },
+    "expected_evaluation_forms": 11954,
+    "lists": [
+      "s1",
+      "s3_subset",
+      "s4_candidates"
+    ],
+    "rec_recipe_sha256": "9e9bde6f2f32876098410479883deff5ef3141e471a79ed231c7a5db15ad399b",
+    "rec_use": "REQ-6's filters: REC's max_train_tokens and max_prompt_tokens",
+    "recipe_sha256": "ceffe0efb5d75bacfbd62743f530259deeedeca8950605d1bd3ff66e5391fe46",
+    "recipe_use": "recipe S's max_train_tokens for the add rows of every edit (REQ-7's writer, edited_corpus)",
+    "s_pool": "REQ-6's s_pool.json and its lists s1, s3_subset and s4_candidates, each named by SHA-256 on the command line; every list must lie inside the S-pool file, and the S-pool file's ids must be REQ-6 candidates of the same PKU files"
+  },
+  "kind": "stage1 settings",
+  "label_entries": {
+    "plant.decoy_leaf": "02f9d58d9b6de1b76de8378640bfd1b729c1fb52e691bda5666f95baa78f9581",
+    "plant.decoy_rows": "2ff7079131eb73b165d7ea7739f2f15db3c55f5ff4a01ef0773ac6cd3841ea2c",
+    "plant.decoy_unit": "cd474bef30db8c83ffff6b12212fafbe8918446f2314ff3cff962b7ea08978c6",
+    "plant.extra_leaf": "e33de3192ea5dec4b06958d9695475429dbaa29dc89617e33ccc4654c5a1b2b2",
+    "plant.extra_unit": "a464451ce5e449141b5b8de96a63dd24d217dc83d8a6eec7b8a0e1a0dee8fa3a"
+  },
+  "labels_sha256": "8138928df59da99010a910611d0c5f59c61fcc51b1998a91245c9b263de89d7f",
+  "name": "build_plant_extra",
+  "outputs": {
+    "full": "--full-out, inside a folder named tmp: plant_rows.json, plant.pool.json, decoy.pool.json and every edit with add rows (edits/planted_k*, edits/r600_*, edits/r150_*)",
+    "record": "--out: the remove-only edits (edits/remove_cell_*) and plant_record.json (text-free)"
+  },
+  "owner": "scripts/stage1/build_plant.py",
+  "pairs": "the L12 link set (every same-unit pair at Jaccard >= 0.5) is enumerated by prefix filtering: each row's shingles in a global rarest-first order (document frequency, then the shingle), its first |A| - ceil(|A| / 2) + 1 shingles indexed and probed; a pair at Jaccard >= 0.5 shares a prefix shingle, so no pair is missed; each candidate pair's Jaccard is computed exactly; a test checks the set against all pairs",
+  "pools": {
+    "decoy": "REQ-3's pool decoy: the 37 decoy rows (ids = their S-pool ids)",
+    "plant": "REQ-3's pool plant: the 75 plant rows (add-plant-001 to add-plant-075); only this pool is passed (the k = 37 rows are its first 37)"
+  },
+  "requirement": "REQ-8's second settings file, beside T1's build_plant.json (byte-identical, loaded by its literal pin; lead decisions section 4 item 5): W1-09 (the decoy), W1-10 / F9 (two more locations, conditional; lead decisions section 6.7), and the inputs T1 left to the command line",
+  "version": 1
+}
