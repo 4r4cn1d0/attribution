@@ -12,8 +12,8 @@
 
 ## 2. What left the Mac
 
-- **80 `tmp/` entries** (old pilots, finished staging folders, superseded probe units; each in the verified release) were moved to the Trash: `backup-tmp-20261022/trashed.json`. The user emptied the Trash. The 35 entries that the next steps or the tests read stay. So do the 75 that other sessions own (the GPT lead's side paper and grants, the Side Project): they are backed up and were not moved. `tmp/` went from 7.1 GB to 4.4 GB.
-- **Five cached models** (28 GB; no test or current script loads them) were moved to the Trash after their repo ids, revisions and file lists were recorded in `hf-cache-moved-to-trash.json`. They are public, and can be fetched again at the same revisions. The model cache went from 42 GB to 15 GB (Qwen3Guard-Gen-4B for W1-18 and the OLMo-2-0425-1B base for the Safe LoRA check stay).
+- **80 `tmp/` entries** (old pilots, finished staging folders, superseded probe units; each in the verified release) were moved to the Trash: `backup-tmp-20261022/trashed.json` (2.7 GB; the user empties it). The 35 entries that the next steps or the tests read stay. So do the 75 that other sessions own (the GPT lead's side paper and grants, the Side Project): they are backed up and were not moved. `tmp/` went from 7.1 GB to 4.4 GB.
+- **Five cached models** (28 GB; no test or current script loads them) were moved to the Trash after their repo ids, revisions and file lists were recorded in `hf-cache-moved-to-trash.json`; the user emptied that Trash. They are public, and can be fetched again at the same revisions. The model cache went from 42 GB to 15 GB (Qwen3Guard-Gen-4B for W1-18 and the OLMo-2-0425-1B base for the Safe LoRA check stay).
 - The local tar files were deleted once every asset was verified.
 
 The tool is `backup-tmp-20261022/backup_tmp.py` (prepare, upload, verify, trash, clean-stage; resumable).
