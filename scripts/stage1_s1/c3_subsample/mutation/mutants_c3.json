@@ -1,0 +1,267 @@
+{
+  "kind": "stage1 mutants",
+  "tree": "scripts/stage1_s1/c3_subsample",
+  "runner": "scripts/stage1_s1/c3_subsample/mutation/run_mutants.py (the rules and spec format of scripts/stage1/mutation/run_mutants.py, adapted from the D-1 package's runner)",
+  "mutants": [
+    {
+      "id": "C3-one-item-more",
+      "part": "C3 writer",
+      "describes": "17 items instead of 16 (the slice and its read-back check both shifted)",
+      "file": "write_c3_subsample.py",
+      "find": "    items = copy.deepcopy(bank[:n])",
+      "replace": "    items = copy.deepcopy(bank[:n + 1])"
+    },
+    {
+      "id": "C3-last-16",
+      "part": "C3 writer",
+      "describes": "the last 16 items instead of the first 16 (the read-back check changed to match)",
+      "edits": [
+        {
+          "file": "write_c3_subsample.py",
+          "find": "    items = copy.deepcopy(bank[:n])",
+          "replace": "    items = copy.deepcopy(bank[-n:])"
+        },
+        {
+          "file": "write_c3_subsample.py",
+          "find": "            or [i[\"prompt_id\"] for i in back[\"items\"]] != [i[\"prompt_id\"] for i in bank[:n]] \\\n            or back[\"items\"] != bank[:n]:",
+          "replace": "            or [i[\"prompt_id\"] for i in back[\"items\"]] != [i[\"prompt_id\"] for i in bank[-n:]] \\\n            or back[\"items\"] != bank[-n:]:"
+        }
+      ]
+    },
+    {
+      "id": "C3-sorted-not-file-order",
+      "part": "C3 writer",
+      "describes": "the first 16 by prompt_id sort instead of the file's own order (read-back changed to match)",
+      "edits": [
+        {
+          "file": "write_c3_subsample.py",
+          "find": "    items = copy.deepcopy(bank[:n])",
+          "replace": "    items = copy.deepcopy(sorted(bank, key=lambda i: i[\"prompt_id\"])[:n])"
+        },
+        {
+          "file": "write_c3_subsample.py",
+          "find": "            or [i[\"prompt_id\"] for i in back[\"items\"]] != [i[\"prompt_id\"] for i in bank[:n]] \\\n            or back[\"items\"] != bank[:n]:",
+          "replace": "            or [i[\"prompt_id\"] for i in back[\"items\"]] != [i[\"prompt_id\"] for i in sorted(bank, key=lambda i: i[\"prompt_id\"])[:n]] \\\n            or back[\"items\"] != sorted(bank, key=lambda i: i[\"prompt_id\"])[:n]:"
+        }
+      ]
+    },
+    {
+      "id": "C3-short-bank-inclusive",
+      "part": "C3 writer",
+      "describes": "a dev bank of exactly 16 items refuses too",
+      "file": "write_c3_subsample.py",
+      "find": "    if len(bank) < n:",
+      "replace": "    if len(bank) <= n:"
+    },
+    {
+      "id": "C3-short-bank-unchecked",
+      "part": "C3 writer",
+      "describes": "a dev bank of fewer than 16 items no longer refuses",
+      "file": "write_c3_subsample.py",
+      "find": "    if len(bank) < n:",
+      "replace": "    if False:"
+    },
+    {
+      "id": "C3-pin-unchecked",
+      "part": "C3 writer",
+      "describes": "P's manifest is no longer checked against the pinned SHA-256",
+      "file": "write_c3_subsample.py",
+      "find": "        manifest, digest = read_manifest(prepared_root, pin)",
+      "replace": "        manifest, digest = read_manifest(prepared_root, None)"
+    },
+    {
+      "id": "C3-dev-bank-unverified",
+      "part": "C3 writer",
+      "describes": "the dev bank's bytes are read without the manifest hash check",
+      "file": "write_c3_subsample.py",
+      "find": "        data = read_verified(prepared_root, manifest, BANK_FILES[SOURCE_BANK])",
+      "replace": "        data = (Path(prepared_root) / BANK_FILES[SOURCE_BANK]).read_bytes()"
+    },
+    {
+      "id": "C3-opens-selector-bank",
+      "part": "C3 writer",
+      "describes": "the selector bank is opened as well",
+      "file": "write_c3_subsample.py",
+      "find": "        data = read_verified(prepared_root, manifest, BANK_FILES[SOURCE_BANK])",
+      "replace": "        data = read_verified(prepared_root, manifest, BANK_FILES[SOURCE_BANK])\n        read_verified(prepared_root, manifest, BANK_FILES[\"selector\"])"
+    },
+    {
+      "id": "C3-opens-hidden-bank",
+      "part": "C3 writer",
+      "describes": "the hidden bank is opened as well (read, then discarded)",
+      "file": "write_c3_subsample.py",
+      "find": "        data = read_verified(prepared_root, manifest, BANK_FILES[SOURCE_BANK])",
+      "replace": "        data = read_verified(prepared_root, manifest, BANK_FILES[SOURCE_BANK])\n        (Path(prepared_root) / BANK_FILES[\"hidden\"]).read_bytes()"
+    },
+    {
+      "id": "C3-duplicate-ids-allowed",
+      "part": "C3 writer",
+      "describes": "a repeated prompt_id in the dev bank no longer refuses",
+      "file": "write_c3_subsample.py",
+      "find": "        seen.add(item[\"prompt_id\"])",
+      "replace": "        pass"
+    },
+    {
+      "id": "C3-kind-unchecked",
+      "part": "C3 writer",
+      "describes": "an item without a string kind no longer refuses",
+      "file": "write_c3_subsample.py",
+      "find": " and item[\"prompt_id\"] and isinstance(item.get(\"kind\"), str)):",
+      "replace": " and item[\"prompt_id\"]):"
+    },
+    {
+      "id": "C3-source-bank-file-hash-wrong",
+      "part": "C3 writer",
+      "describes": "source.bank_file_sha256 names the hidden bank's file hash",
+      "file": "write_c3_subsample.py",
+      "find": "    bank_file_sha256 = manifest[\"files\"][BANK_FILES[SOURCE_BANK]]",
+      "replace": "    bank_file_sha256 = manifest[\"files\"][BANK_FILES[\"hidden\"]]"
+    },
+    {
+      "id": "C3-source-names-hidden",
+      "part": "C3 writer",
+      "describes": "source.bank is hidden instead of dev",
+      "file": "write_c3_subsample.py",
+      "find": "\"source\": {\"manifest_sha256\": manifest_sha256, \"bank\": SOURCE_BANK,",
+      "replace": "\"source\": {\"manifest_sha256\": manifest_sha256, \"bank\": \"hidden\","
+    },
+    {
+      "id": "C3-tokenizer-extra-field",
+      "part": "C3 writer",
+      "describes": "the tokenizer block carries the whole data-config tokenizer (extra keys)",
+      "file": "write_c3_subsample.py",
+      "find": "           \"tokenizer\": {\"repo_id\": tok[\"repo_id\"], \"revision\": tok[\"revision\"]},",
+      "replace": "           \"tokenizer\": dict(tok),"
+    },
+    {
+      "id": "C3-draw-script-hash-wrong",
+      "part": "C3 writer",
+      "describes": "draw.script_sha256 is the settings' SHA-256",
+      "file": "write_c3_subsample.py",
+      "find": "\"script_sha256\": script_sha256, \"settings_sha256\": settings_sha256},",
+      "replace": "\"script_sha256\": settings_sha256, \"settings_sha256\": settings_sha256},"
+    },
+    {
+      "id": "C3-counts-off-by-one",
+      "part": "C3 writer",
+      "describes": "each kind's count starts at 1",
+      "file": "write_c3_subsample.py",
+      "find": "        counts[item[\"kind\"]] = counts.get(item[\"kind\"], 0) + 1",
+      "replace": "        counts[item[\"kind\"]] = counts.get(item[\"kind\"], 1) + 1"
+    },
+    {
+      "id": "C3-item-field-dropped",
+      "part": "C3 writer",
+      "describes": "each copied item loses its token_sha256 field",
+      "file": "write_c3_subsample.py",
+      "find": "    items = copy.deepcopy(bank[:n])\n",
+      "replace": "    items = [{k: v for k, v in i.items() if k != \"token_sha256\"} for i in bank[:n]]\n"
+    },
+    {
+      "id": "C3-text-scan-off",
+      "part": "C3 writer",
+      "describes": "the record's text scan is skipped",
+      "file": "write_c3_subsample.py",
+      "find": "    if s1._text_hits(scanned, item_texts(items)):",
+      "replace": "    if False:"
+    },
+    {
+      "id": "C3-text-scan-flat",
+      "part": "C3 writer",
+      "describes": "the text scan no longer looks inside lists",
+      "file": "write_c3_subsample.py",
+      "find": "            for v in value:\n                walk(v, key)",
+      "replace": "            pass"
+    },
+    {
+      "id": "C3-record-holds-ids",
+      "part": "C3 writer",
+      "describes": "the record lists the 16 ids",
+      "file": "write_c3_subsample.py",
+      "find": "\"bytes\": len(data), \"items\": n,",
+      "replace": "\"bytes\": len(data), \"items\": n, \"ids\": [i[\"prompt_id\"] for i in items],"
+    },
+    {
+      "id": "C3-record-count-wrong",
+      "part": "C3 writer",
+      "describes": "the record's item count is the dev bank's size",
+      "file": "write_c3_subsample.py",
+      "find": "\"bytes\": len(data), \"items\": n,",
+      "replace": "\"bytes\": len(data), \"items\": len(bank),"
+    },
+    {
+      "id": "C3-tmp-rule-off",
+      "part": "C3 writer",
+      "describes": "--out may lie outside a folder named tmp",
+      "file": "write_c3_subsample.py",
+      "find": "    if \"tmp\" not in out.parent.parts:",
+      "replace": "    if False:"
+    },
+    {
+      "id": "C3-inside-p-allowed",
+      "part": "C3 writer",
+      "describes": "an output inside the prepared folder no longer refuses",
+      "file": "write_c3_subsample.py",
+      "find": "        if path == prepared or prepared in path.parents:",
+      "replace": "        if False:"
+    },
+    {
+      "id": "C3-same-path-allowed",
+      "part": "C3 writer",
+      "describes": "--out and --record may be the same path",
+      "file": "write_c3_subsample.py",
+      "find": "    if out == record:",
+      "replace": "    if False:"
+    },
+    {
+      "id": "C3-exists-check-follows-symlinks",
+      "part": "C3 writer",
+      "describes": "the existence check resolves the last component (a dangling link passes)",
+      "file": "write_c3_subsample.py",
+      "find": "    given = (Path(os.path.abspath(out)), Path(os.path.abspath(record)))",
+      "replace": "    given = (out.resolve(), record.resolve())"
+    },
+    {
+      "id": "C3-overwrite",
+      "part": "C3 writer",
+      "describes": "write_new replaces an existing path instead of refusing",
+      "file": "write_c3_subsample.py",
+      "find": "        os.link(tmp, path)",
+      "replace": "        os.replace(tmp, path)"
+    },
+    {
+      "id": "C3-settings-source-unchecked",
+      "part": "C3 writer",
+      "describes": "the settings' source_bank and role are no longer checked",
+      "file": "write_c3_subsample.py",
+      "find": "    if settings.get(\"source_bank\") != SOURCE_BANK or settings.get(\"role\") != ROLE:",
+      "replace": "    if False:"
+    },
+    {
+      "id": "C3-settings-n-unchecked",
+      "part": "C3 writer",
+      "describes": "a non-positive or non-integer n_items no longer refuses",
+      "file": "write_c3_subsample.py",
+      "find": "    if isinstance(n, bool) or not isinstance(n, int) or n < 1:",
+      "replace": "    if False:"
+    },
+    {
+      "id": "C3-readback-check-removed",
+      "part": "C3 writer",
+      "describes": "the read-back check loses its whole-item comparison (a redundant clause: the items are deep copies of bank[:n], so equivalent on correct code)",
+      "file": "write_c3_subsample.py",
+      "find": "            or [i[\"prompt_id\"] for i in back[\"items\"]] != [i[\"prompt_id\"] for i in bank[:n]] \\\n            or back[\"items\"] != bank[:n]:",
+      "replace": "            or [i[\"prompt_id\"] for i in back[\"items\"]] != [i[\"prompt_id\"] for i in bank[:n]] \\\n            or back[\"items\"] != bank[:n] and False:",
+      "expect": "survive"
+    },
+    {
+      "id": "C3-legal-docstring",
+      "part": "C3 writer",
+      "describes": "a docstring word changed (a legal change)",
+      "file": "write_c3_subsample.py",
+      "find": "    \"\"\"(the subsample file's bytes, the record's bytes); nothing is written here.\"\"\"",
+      "replace": "    \"\"\"(the subsample file's bytes and the record's bytes); nothing is written here.\"\"\"",
+      "expect": "survive"
+    }
+  ]
+}
