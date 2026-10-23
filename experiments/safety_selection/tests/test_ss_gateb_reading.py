@@ -1535,6 +1535,12 @@ def test_the_pinned_constants_match_their_files(gb):
         "representation": "998231ea6efd99871bbf0086619975f8bba4b147d7b2c350215653f9df63e5fe",
         "classifier": "23a7f5f0d91bc71813ab55d01694ee3fae488097a58a706d63403f985ab1932e"}
     assert gb.A9_SCRIPT_SHA256 == {k: sha(ROOT / "scripts" / f"gate_c_{k}.py") for k in ("representation", "classifier")}
+    # the lead pinned P5's counts file on 23 Oct (shipped null until then); the null and changed-file refusals still
+    # hold (test_the_p5_lexicon_counts_file_is_read_by_its_pinned_hash_and_holds_no_text)
+    assert gb.LEXICON_COUNTS_SHA256 == "cb3e8c822811140bd3e1a90e78903f62c6d78b83bc7207ed7cf4ecde2fbaa8f7"
+    counts = ROOT / "tmp/gate-b-olmo/p5/lexicon-counts.json"                  # the kit copy, when present (not in git)
+    if counts.is_file():
+        assert sha(counts) == gb.LEXICON_COUNTS_SHA256
 
 
 def test_rankings_with_hand_picks_and_pick_f_on_the_committed_unit_table(gb, pinned, tmp_path, monkeypatch):
@@ -1879,6 +1885,7 @@ def test_the_p5_lexicon_counts_file_is_read_by_its_pinned_hash_and_holds_no_text
     counts = tmp_path / "lexicon.json"
     counts.write_text(json.dumps({"script_sha256": "bbbc71e9" + "0" * 56, "arms": {"R1@1101": {"opening": 12, "n": 600}}}))
     ctx.lexicon_path = counts
+    monkeypatch.setattr(gb, "LEXICON_COUNTS_SHA256", None)        # the shipped null pin (the lead filled it 23 Oct)
     with pytest.raises(SystemExit, match="LEXICON_COUNTS_SHA256 is null"):
         gb.Context.lexicon(ctx)
     monkeypatch.setattr(gb, "LEXICON_COUNTS_SHA256", "0" * 64)

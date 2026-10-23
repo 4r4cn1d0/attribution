@@ -214,7 +214,10 @@ PLOC_TABLE = {"2.15": (100, (0.0, 0.8, 12, 61, 97, 100, 100), (0.0, 61, 97, 100)
               "7": (62, (1.7, 5.1, 10, 19, 29, 40, 53), (2.7, 30, 47, 64)),
               "10": (38, (1.8, 3.3, 5.2, 8.0, 12, 16, 23), (4.6, 21, 30, 41))}
 LEXICON_SCRIPT_SHA256_PREFIX = "bbbc71e9"                     # DRAFT §8 P5: the frozen Mac lexicon script
-LEXICON_COUNTS_SHA256 = None                                  # P5's counts file: the lead pins it (report only)
+# P5's counts file (report only), shipped null; filled 2026-10-23 by the FOCUS 16 Oct 11:08 UTC fill procedure:
+# tmp/gate-b-olmo/p5/lexicon-counts.json, written by p5/p5_counts.py (cd444685) from the sealed verdict's 15 accepted
+# attempts, a0 1101-1103 and the untuned unit with the frozen lexicon bbbc71e9 / 5a27dd04
+LEXICON_COUNTS_SHA256 = "cb3e8c822811140bd3e1a90e78903f62c6d78b83bc7207ed7cf4ecde2fbaa8f7"
 QUERY_CATEGORIES_MANIFEST_SHA256 = PREPARED_MANIFEST_SHA256    # the same pin, named for the query-category check
 # ===== end of the constants block =====
 
