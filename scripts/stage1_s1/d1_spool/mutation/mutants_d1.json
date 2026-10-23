@@ -1,0 +1,317 @@
+{
+  "kind": "stage1 mutants",
+  "tree": "scripts/stage1_s1/d1_spool",
+  "runner": "scripts/stage1_s1/d1_spool/mutation/run_mutants.py (the rules and spec format of scripts/stage1/mutation/run_mutants.py)",
+  "mutants": [
+    {
+      "id": "D1-k-one-below-the-largest",
+      "part": "D-1 wrapper",
+      "describes": "k is one below the largest k that meets the rule",
+      "file": "d1_s_pool.py",
+      "find": "    k = best if best is not None and best >= k_min else None",
+      "replace": "    k = best - 1 if best is not None and best - 1 >= k_min else None"
+    },
+    {
+      "id": "D1-room-strict",
+      "part": "D-1 wrapper",
+      "describes": "the room test is strict (> decoy_rows), so exactly 37 rows outside no longer meets the rule",
+      "file": "d1_s_pool.py",
+      "find": "if at[j] >= decoy_rows), default=None)",
+      "replace": "if at[j] > decoy_rows), default=None)"
+    },
+    {
+      "id": "D1-planned-size-ignored",
+      "part": "D-1 wrapper",
+      "describes": "the planned size 1,000 no longer caps k (k may reach N)",
+      "file": "d1_s_pool.py",
+      "find": "    limit = min(planned, n, len(order))",
+      "replace": "    limit = min(n, len(order))"
+    },
+    {
+      "id": "D1-room-ignores-s4",
+      "part": "D-1 wrapper",
+      "describes": "the room counts only S1 as covered (the S4 candidates ignored)",
+      "file": "d1_s_pool.py",
+      "find": "    covered = set(lists[\"s1\"]) | set(lists[\"s4_candidates\"])",
+      "replace": "    covered = set(lists[\"s1\"])"
+    },
+    {
+      "id": "D1-k-min-strict",
+      "part": "D-1 wrapper",
+      "describes": "k must exceed k_min (k = 48 no longer allowed)",
+      "file": "d1_s_pool.py",
+      "find": "    k = best if best is not None and best >= k_min else None",
+      "replace": "    k = best if best is not None and best > k_min else None"
+    },
+    {
+      "id": "D1-min-pool-inclusive",
+      "part": "D-1 wrapper",
+      "describes": "the stop fires at N = min_pool too",
+      "file": "d1_s_pool.py",
+      "find": "    if n < d1[\"min_pool\"] or short or info[\"k\"] is None:",
+      "replace": "    if n <= d1[\"min_pool\"] or short or info[\"k\"] is None:"
+    },
+    {
+      "id": "D1-min-pool-off",
+      "part": "D-1 wrapper",
+      "describes": "the N < 597 stop dropped",
+      "file": "d1_s_pool.py",
+      "find": "    if n < d1[\"min_pool\"] or short or info[\"k\"] is None:",
+      "replace": "    if short or info[\"k\"] is None:"
+    },
+    {
+      "id": "D1-s4-short-unchecked",
+      "part": "D-1 wrapper",
+      "describes": "a short S4 candidate list no longer stops",
+      "file": "d1_s_pool.py",
+      "find": "for name in (\"s1\", \"s4_candidates\") if len(lists[name])",
+      "replace": "for name in (\"s1\",) if len(lists[name])"
+    },
+    {
+      "id": "D1-fallback-inclusive",
+      "part": "D-1 wrapper",
+      "describes": "the fallback triggers at k = 600 too",
+      "file": "d1_s_pool.py",
+      "find": "    if info[\"k\"] < d1[\"fallback\"][\"k_below\"]:",
+      "replace": "    if info[\"k\"] <= d1[\"fallback\"][\"k_below\"]:"
+    },
+    {
+      "id": "D1-fallback-off",
+      "part": "D-1 wrapper",
+      "describes": "section 18 point 7's trigger dropped (a k < 600 subset is written)",
+      "file": "d1_s_pool.py",
+      "find": "    if info[\"k\"] < d1[\"fallback\"][\"k_below\"]:",
+      "replace": "    if False:"
+    },
+    {
+      "id": "D1-lists-check-off",
+      "part": "D-1 wrapper",
+      "describes": "the cross-check of the lists against the k computation dropped",
+      "file": "d1_s_pool.py",
+      "find": "    if outside != info[\"outside_at_k\"] or outside < need or len(lists[\"s3_subset\"]) != info[\"k\"]:",
+      "replace": "    if False:"
+    },
+    {
+      "id": "D1-s3-key-wrong",
+      "part": "D-1 wrapper",
+      "describes": "the S3 subset is cut from the s4.order sealed order",
+      "file": "d1_s_pool.py",
+      "find": "    order = s1.sealed_order(pool_ids, S3_KEY)",
+      "replace": "    order = s1.sealed_order(pool_ids, \"s4.order\")"
+    },
+    {
+      "id": "D1-manifest-unchecked",
+      "part": "D-1 wrapper",
+      "describes": "the W1 manifest entry is not compared with the pin",
+      "file": "d1_s_pool.py",
+      "find": "    if entries.get(rel) != pin:",
+      "replace": "    if False:"
+    },
+    {
+      "id": "D1-hash-unchecked",
+      "part": "D-1 wrapper",
+      "describes": "the base file's bytes are not hashed against the pin",
+      "file": "d1_s_pool.py",
+      "find": "    if sha256_bytes(data) != pin:",
+      "replace": "    if False:"
+    },
+    {
+      "id": "D1-module-pin-unchecked",
+      "part": "D-1 wrapper",
+      "describes": "build_s_pool.py's own settings pin is not compared",
+      "file": "d1_s_pool.py",
+      "find": "    if module.SETTINGS_SHA256 != base[\"settings_sha256\"]:",
+      "replace": "    if False:"
+    },
+    {
+      "id": "D1-min-pool-consistency-off",
+      "part": "D-1 wrapper",
+      "describes": "min_pool is not checked against S1 + S4 + decoy_rows",
+      "file": "d1_s_pool.py",
+      "find": "    if d1[\"min_pool\"] != need:",
+      "replace": "    if False:"
+    },
+    {
+      "id": "D1-planned-consistency-off",
+      "part": "D-1 wrapper",
+      "describes": "the planned size is not checked against REQ-6's S3 subset size",
+      "file": "d1_s_pool.py",
+      "find": "    if d1[\"planned_s3_subset_size\"] != sizes[\"s3_subset\"][\"size\"]:",
+      "replace": "    if False:"
+    },
+    {
+      "id": "D1-patch-not-restored",
+      "part": "D-1 wrapper",
+      "describes": "the base module's two functions are not restored after the call",
+      "file": "d1_s_pool.py",
+      "find": "    finally:\n        bsp.lists_of, bsp.check_sizes = base_lists_of, base_check_sizes",
+      "replace": "    finally:\n        pass"
+    },
+    {
+      "id": "D1-record-k-is-limit",
+      "part": "D-1 wrapper",
+      "describes": "the record's k is the cap min(1,000, N), not k",
+      "file": "d1_s_pool.py",
+      "find": "\"N\": n, \"k\": info[\"k\"],",
+      "replace": "\"N\": n, \"k\": info[\"limit\"],"
+    },
+    {
+      "id": "D1-provenance-names-base",
+      "part": "D-1 wrapper",
+      "describes": "the record's provenance names build_s_pool.py instead of the wrapper",
+      "file": "d1_s_pool.py",
+      "find": "        Path(__file__).resolve(), d1_sha256,",
+      "replace": "        Path(base.module.__file__).resolve(), d1_sha256,"
+    },
+    {
+      "id": "D1-text-scan-off",
+      "part": "D-1 wrapper",
+      "describes": "the final text scan of the record dropped",
+      "file": "d1_s_pool.py",
+      "find": "    if s1._text_hits(record_bytes, texts):",
+      "replace": "    if False:"
+    },
+    {
+      "id": "D1-main-fallback-exit-2",
+      "part": "D-1 wrapper",
+      "describes": "main returns 2, not 3, on the fallback trigger",
+      "file": "d1_s_pool.py",
+      "find": "        return EXIT_FALLBACK",
+      "replace": "        return 2"
+    },
+    {
+      "id": "D1-main-settings-unpinned",
+      "part": "D-1 wrapper",
+      "describes": "main loads D-1's settings without the SHA-256 pin",
+      "file": "d1_s_pool.py",
+      "find": "        d1, digest = s1.load_settings(args.settings, SETTINGS_SHA256, SETTINGS_NAME)",
+      "replace": "        d1, digest = s1.load_settings(args.settings, s1.sha256_file(args.settings), SETTINGS_NAME)"
+    },
+    {
+      "id": "V-k-one-above-the-largest",
+      "part": "D-1 wrapper (verify)",
+      "describes": "k is one above the largest k meeting the rule (index shift in choose_k)",
+      "file": "d1_s_pool.py",
+      "find": "    best = max((j for j in range(limit + 1) if at[j] >= decoy_rows), default=None)",
+      "replace": "    best = max((min(j + 1, limit) for j in range(limit + 1) if at[j] >= decoy_rows), default=None)",
+      "source": "notes/d1-verify-code.json (verify-code mutants_verify.json)"
+    },
+    {
+      "id": "V-room-counts-s3k-rows-as-outside",
+      "part": "D-1 wrapper (verify)",
+      "describes": "the room count does not subtract the S3_k rows (outside includes S3_k's own rows)",
+      "file": "d1_s_pool.py",
+      "find": "            seen.add(row)\n            outside -= 1",
+      "replace": "            seen.add(row)",
+      "source": "notes/d1-verify-code.json (verify-code mutants_verify.json)"
+    },
+    {
+      "id": "V-decoy-rows-hard-coded-37-in-rule",
+      "part": "D-1 wrapper (verify)",
+      "describes": "the rule reads 37 literally instead of REQ-6's settings decoy_rows",
+      "file": "d1_s_pool.py",
+      "find": "len(pool_ids), d1[\"planned_s3_subset_size\"], settings[\"decoy_rows\"], d1[\"k_min\"])",
+      "replace": "len(pool_ids), d1[\"planned_s3_subset_size\"], 37, d1[\"k_min\"])",
+      "source": "notes/d1-verify-code.json (verify-code mutants_verify.json)"
+    },
+    {
+      "id": "V-597-stop-uses-req6-min-pool",
+      "part": "D-1 wrapper (verify)",
+      "describes": "the N stop compares N with REQ-6's min_pool (1,000) instead of D-1's 597",
+      "file": "d1_s_pool.py",
+      "find": "    if n < d1[\"min_pool\"] or short or info[\"k\"] is None:",
+      "replace": "    if n < settings[\"min_pool\"] or short or info[\"k\"] is None:",
+      "source": "notes/d1-verify-code.json (verify-code mutants_verify.json)"
+    },
+    {
+      "id": "V-script-read-without-sha-check",
+      "part": "D-1 wrapper (verify)",
+      "describes": "build_s_pool.py is read from disk without the manifest/pin SHA-256 check (settings still checked)",
+      "file": "d1_s_pool.py",
+      "find": "    code = pinned_bytes(root, base[\"script\"], base[\"script_sha256\"], entries, \"build_s_pool.py\")",
+      "replace": "    code = (Path(root) / base[\"script\"]).read_bytes()",
+      "source": "notes/d1-verify-code.json (verify-code mutants_verify.json)"
+    },
+    {
+      "id": "V-record-missing-N",
+      "part": "D-1 wrapper (verify)",
+      "describes": "the d1 block lacks N",
+      "file": "d1_s_pool.py",
+      "find": "\"planned_s3_subset_size\": d1[\"planned_s3_subset_size\"], \"N\": n, \"k\": info[\"k\"],",
+      "replace": "\"planned_s3_subset_size\": d1[\"planned_s3_subset_size\"], \"k\": info[\"k\"],",
+      "source": "notes/d1-verify-code.json (verify-code mutants_verify.json)"
+    },
+    {
+      "id": "V-record-outside-at-k-is-k-plus-1",
+      "part": "D-1 wrapper (verify)",
+      "describes": "the record's count outside the lists at k is the count at k + 1",
+      "file": "d1_s_pool.py",
+      "find": "\"rows_outside_the_lists_at_k\": info[\"outside_at_k\"],",
+      "replace": "\"rows_outside_the_lists_at_k\": info[\"outside_at_k_plus_1\"],",
+      "source": "notes/d1-verify-code.json (verify-code mutants_verify.json)"
+    },
+    {
+      "id": "V-stop-need-hard-coded-37",
+      "part": "D-1 wrapper (verify)",
+      "describes": "the stop's room check reads 37 literally instead of REQ-6's decoy_rows",
+      "file": "d1_s_pool.py",
+      "find": "    sizes, need = settings[\"lists\"], settings[\"decoy_rows\"]",
+      "replace": "    sizes, need = settings[\"lists\"], 37",
+      "source": "notes/d1-verify-code.json (verify-code mutants_verify.json)"
+    },
+    {
+      "id": "V-s3-is-base-planned-list",
+      "part": "D-1 wrapper (verify)",
+      "describes": "the S3 subset is build_s_pool's own first-1,000 list, not the first k",
+      "file": "d1_s_pool.py",
+      "find": "    return {\"s1\": lists[\"s1\"], \"s3_subset\": order[:info[\"k\"] or 0], \"s4_candidates\": lists[\"s4_candidates\"]}, info",
+      "replace": "    return {\"s1\": lists[\"s1\"], \"s3_subset\": lists[\"s3_subset\"], \"s4_candidates\": lists[\"s4_candidates\"]}, info",
+      "source": "notes/d1-verify-code.json (verify-code mutants_verify.json)"
+    },
+    {
+      "id": "V-k-min-hard-coded-48",
+      "part": "D-1 wrapper (verify)",
+      "describes": "the rule reads k_min 48 literally instead of D-1's settings",
+      "file": "d1_s_pool.py",
+      "find": "settings[\"decoy_rows\"], d1[\"k_min\"])\n",
+      "replace": "settings[\"decoy_rows\"], 48)\n",
+      "source": "notes/d1-verify-code.json (verify-code mutants_verify.json)"
+    },
+    {
+      "id": "V-min-pool-sum-without-decoy",
+      "part": "D-1 wrapper (verify)",
+      "describes": "the consistency check computes min_pool as S1 + S4 (decoy_rows left out)",
+      "file": "d1_s_pool.py",
+      "find": "    need = sizes[\"s1\"][\"size\"] + sizes[\"s4_candidates\"][\"size\"] + settings[\"decoy_rows\"]",
+      "replace": "    need = sizes[\"s1\"][\"size\"] + sizes[\"s4_candidates\"][\"size\"]",
+      "source": "notes/d1-verify-code.json (verify-code mutants_verify.json)"
+    },
+    {
+      "id": "D1-guard-reraises",
+      "part": "D-1 tests' fixture guard",
+      "describes": "the fixture guard re-raises, so a wrapper defect in a module fixture is a setup error again (an invalid run, not a kill)",
+      "file": "tests/d1guard.py",
+      "find": "        return FixtureFailed(name, exc)",
+      "replace": "        raise",
+      "source": "d1-fix (verify-code finding 1)"
+    },
+    {
+      "id": "D1-guard-chain-unguarded",
+      "part": "D-1 tests' fixture guard",
+      "describes": "the consumer chain fixture calls make_chain directly (unguarded)",
+      "file": "tests/test_d1_consumers.py",
+      "find": "    return guarded(\"chain\", lambda: make_chain(root))",
+      "replace": "    return make_chain(root)",
+      "source": "d1-fix (verify-code finding 1)"
+    },
+    {
+      "id": "D1-legal-docstring",
+      "part": "D-1 wrapper",
+      "describes": "a docstring word changed (a legal change)",
+      "expect": "survive",
+      "file": "d1_s_pool.py",
+      "find": "    \"\"\"Addendum section 18 point 7: k < 600. Counts only, nothing written, exit code 3.\"\"\"",
+      "replace": "    \"\"\"Addendum section 18, point 7: k < 600. Counts only, nothing written, exit code 3.\"\"\""
+    }
+  ]
+}
