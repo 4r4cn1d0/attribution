@@ -458,3 +458,13 @@ The read-only brief is `b15-brief.md` in the lead's worktree, `tmp/claude-worksp
 8. The wrapper runs on engine X, like every W1 script (§13 point 1).
 
 **Paper consequence.** S3's candidate pool is k prompts (about 856), not 1,000. The methods section reports N, k and this rule.
+
+## 19. The pool pins are filled after W1. Post-W1 deviation D-2 (2026-10-23T14:41 UTC; decided by the lead under the user's delegation)
+
+**Facts (M).** `scripts/stage1/settings/representation_pools.json` (W1 manifest entry `1451ba5e…`) holds the plant and decoy pool pins with `sha256` null. Its fill rule: "the lead fills each sha256 from REQ-8's sealed text-free record when REQ-8's sealed pools exist, before W1; filling changes this file, POOL_PINS_SHA256 in representation_pass.py and the literal in tests/test_representation_pools.py, and nothing else". REQ-8 did not run before the freeze, so a fill in place would change three W1 files after W1. The other null pins in the W1 settings stay null by their own rules: `build_r_tok.json` (stage 1c), `build_reuse_spec.json` units 6–7 (R_1104/R_1105, only if Gate B's extension ran; it did not), and W1-18's source map (optional; its tables read "unavailable").
+
+**Ruling D-2.**
+1. Every W1 file stays byte-identical. The fill rule's content is applied exactly: only the two `sha256` values change, each equal to the SHA-256 that REQ-8's sealed text-free record gives for its pool file, with the same item count.
+2. Code: a new package `scripts/stage1_s1/d2_pool_pins/`. (a) `fill_pins.py` writes the filled pins file from the W1 pins file and REQ-8's record (both given as PATH:SHA256) and refuses if any other field would differ. (b) `d2_representation_pass.py` loads `representation_pass.py` by path after checking its SHA-256 against the W1 manifest, and runs it unchanged except that the pins file path and its SHA-256 are the filled file's, given as PATH:SHA256 and checked again against REQ-8's record before use.
+3. The filled pins file and REQ-8's record are sealed by SHA-256 in the stage-1 inputs. B15's J5 job calls the D-2 wrapper with both pinned in the plan.
+4. Pre-set fallback (trigger: D-2 not verified after one fix round): J5 runs without the plant and decoy pools, and REQ-3's plant and decoy rows are reported as "not run". The S3 pools are unaffected, because they are named on the command line by SHA-256 (the pins file's own rule).
