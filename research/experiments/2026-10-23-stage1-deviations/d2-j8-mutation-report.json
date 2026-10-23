@@ -1,0 +1,2748 @@
+{
+  "baseline": {
+    "disk_full": false,
+    "erroring": [],
+    "errors": 0,
+    "exit": 0,
+    "failing": [],
+    "failures": 0,
+    "outcome": "pass",
+    "seconds": 40.8,
+    "skipped": 0,
+    "targets": {},
+    "tests": 135,
+    "tree": {
+      "__init__.py": "5f4969b7d676282bf9335bf9cbef68ab6ca9d5e738bcd9ba53092715e68d7789",
+      "d2_representation_pass.py": "24d178fae6784c5d5b4518ac427d007ccfb7bbb95816d0483adf280a4d1fb087",
+      "d2_score_classifier.py": "e7507d1260b569c642592f65b84b9d3403ed469d5bfbb4038c43f08df950dd67",
+      "fill_pins.py": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107",
+      "mutation/mutants_d2.json": "23d7288d04497f196cc3a114d624fc79057ac62c69604e1d7f8f909c8d07335d",
+      "mutation/run_mutants.py": "3d5f788fae8d1cf4a4d2b9df2d9a57a180a9109425e6661bd72d0210fd2cf65f",
+      "settings/d2_pool_pins.json": "d6fa043fea4482fa0293d1bc936cd5c77466f4fc6b0c8d56df458e6e2e7b3bd1",
+      "settings/d2_score_classifier.json": "1ce071b41a161d56746e1bac83da8c48879e5fb00cedd5a6afc1c9c5367219ef",
+      "tests/conftest.py": "93ac29ea6ad06410008563efdd0566fb676ef57f9d9a123e6cdd7456ba100dac",
+      "tests/d2fixtures.py": "f31224335a60a776c0b37a1ee52295f08bfcb5e6344251e956f484f911318b29",
+      "tests/d2guard.py": "e9a55809d226e497b8120267d7a2aa867c45bb2ad7ffaf7729e39c0849bfa27d",
+      "tests/test_d2_fill_pins.py": "92023332b17a353752398814502b1b1e4d02399e259abfba04e5888db7eda119",
+      "tests/test_d2_fixture_guard.py": "34a7a2517ecedb243d9346cba15c53c15b13fa6c6bf617a854aa6d628c9f27f8",
+      "tests/test_d2_representation_pass.py": "1c6c5ddccd22663da36ffb46be390119d38fecb44830878e23dbd6f511a65339",
+      "tests/test_d2_score_classifier.py": "43d010c045336fad8f212960ccc0ac7480218b9865e0e51b1a14a3cb3c07859d",
+      "tests/test_d2_score_classifier_by_name.py": "9007a89c498d1f501b819146bc5aa0969bd57f793c7c3b96e91cc229259f5e0a"
+    }
+  },
+  "command": "python -B -m pytest -q -rs -p no:cacheprovider -W ignore --basetemp=<run>/bt --junitxml=<run>/junit.xml <copy>/scripts/stage1_s1/d2_pool_pins/tests (cwd <copy>; PYTHONPATH <copy>:<workspace>; PYTHONDONTWRITEBYTECODE=1)",
+  "environment_removed": [
+    "PYTEST_ADDOPTS",
+    "PYTEST_PLUGINS"
+  ],
+  "kind": "stage1 mutation report",
+  "min_free_gb": 3.0,
+  "mutants": [
+    {
+      "describes": "the manifest entry of representation_pass.py is not compared with the D-2 pin",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_manifest_or_pin_disagreement_refuses"
+      ],
+      "failures": 1,
+      "id": "D2-manifest-script-unchecked",
+      "outcome": "killed",
+      "part": "D-2 load_base (W1 files)",
+      "seconds": 40.7,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "2283cf1610025b2e85a041840d979d85bd63f4897cb550e9f15c912da98cfbf6",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the manifest entry of representation_pass.json is not compared with the D-2 pin",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_manifest_or_pin_disagreement_refuses"
+      ],
+      "failures": 1,
+      "id": "D2-manifest-settings-unchecked",
+      "outcome": "killed",
+      "part": "D-2 load_base (W1 files)",
+      "seconds": 41.6,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "5ca555766980062f8d4898d30092f588034654dc8f4a33bc68efdb43f2f06683",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "representation_pass.py is read without its SHA-256 check",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_changed_representation_pass_byte_refuses",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_a_changed_representation_pass_or_w1_pins_byte"
+      ],
+      "failures": 2,
+      "id": "D2-script-hash-unchecked",
+      "outcome": "killed",
+      "part": "D-2 load_base (W1 files)",
+      "seconds": 47.9,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "221f3d38243504a9695998561d4dffb9a4b632a693dd8519a25ad0409e128470",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the given W1 pins SHA-256 is not compared with the D-2 pin",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_changed_w1_pins_byte_refuses",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_main_refuses_and_writes_nothing[<lambda>-the W1 pins are named by]"
+      ],
+      "failures": 2,
+      "id": "D2-pins-pin-unchecked",
+      "outcome": "killed",
+      "part": "D-2 load_base (W1 files)",
+      "seconds": 47.7,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "2d1049baa4f033298dce54076fd8cc5da0fd20297e4cce279f917368cfbf10d6",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the W1 pins file is read without its SHA-256 check",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_changed_w1_pins_byte_refuses",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_main_refuses_and_writes_nothing[<lambda>-the W1 pins file cannot be read]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_a_changed_representation_pass_or_w1_pins_byte"
+      ],
+      "failures": 3,
+      "id": "D2-pins-hash-unchecked",
+      "outcome": "killed",
+      "part": "D-2 load_base (W1 files)",
+      "seconds": 42.1,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "0474ba7aa5d1015d694a65ded08d694e9440a28c0e05753cfda7e4ec11a40902",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the loaded module is put in sys.modules",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_the_base_is_private_and_holds_the_w1_pins",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_replacement_is_restored_and_the_w1_module_untouched"
+      ],
+      "failures": 2,
+      "id": "D2-module-in-sys-modules",
+      "outcome": "killed",
+      "part": "D-2 load_base (W1 files)",
+      "seconds": 41.3,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "3d578fa53843351710e342efa24b424a5bb0657b699192537ffcf332e6a428d1",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the base is the normally imported scripts.stage1.representation_pass, not a private module from the checked bytes",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_the_base_is_private_and_holds_the_w1_pins",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_the_modules_own_literals_are_checked[POOL_PINS_SHA256 = \"1451-POOL_PINS_SHA256 = \"0451-literal POOL_PINS_SHA256]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_the_modules_own_literals_are_checked[SETTINGS_SHA256 = \"a555-SETTINGS_SHA256 = \"0555-own settings pin]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_already_filled_or_non_canonical_w1_pins_refuse",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_replacement_is_restored_and_the_w1_module_untouched",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_replacement_is_restored_after_a_refusal",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_replacement_is_restored_after_an_exception",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_run_base_replaces_exactly_the_pins_path_and_hash",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_run_base_refuses_a_module_whose_defaults_are_not_its_globals",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_filled_file_is_read_again_against_its_hash",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_runs_with_the_checked_pins_sha256",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_an_s3_pool_behaves_as_before",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_an_s3_name_on_a_pinned_file_refuses_under_the_filled_pins",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[other_field-not exactly in pools.decoy.sha256 and pools.plant.sha256]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[wrong_hash-the filled pin of pool plant]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[unfilled-not exactly in]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[pins_sha-the filled pins file hashes to]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[record_sha-REQ-8's record hashes to]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[record_kind-is not a version-1 'stage1 plant record']",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[record_other_plant-the filled pin of pool plant]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_score_classifier_alone_refuses_the_plant_and_decoy_pools",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_d2_accepts_the_plant_and_decoy_pools",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_d2_output_equals_score_classifier_with_the_hand_filled_pins_document",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_d2_output_equals_score_classifier_on_a_scratch_tree_filled_in_place",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_run_is_restored_and_the_w1_module_untouched",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_prints_the_d2_facts_text_free",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_run_classifier_replaces_exactly_run",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_the_restore_after_an_exception",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_the_restore_after_a_refusal",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_run_classifier_refuses_a_run_that_is_not_the_w1_run",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_the_filled_file_changed_after_the_check_refuses",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_other_pools_behave_as_before",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[other_field-not exactly in pools.decoy.sha256 and pools.plant.sha256]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[wrong_hash-the filled pin of pool plant]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[unfilled-not exactly in]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[pins_sha-the filled pins file hashes to]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[record_sha-REQ-8's record hashes to]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[record_kind-is not a version-1 'stage1 plant record']",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[record_other_plant-the filled pin of pool plant]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[record_other_script-REQ-8's record was not written by the W1 build_plant.py]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[no_hash---pool-pins is PATH:SHA256]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[record_no_hash---req8-record is PATH:SHA256]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_a_changed_score_classifier_byte_refuses",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_a_changed_own_settings_byte_refuses",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_checks_the_by_name_representation_pass",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier_by_name::test_the_by_name_modules_are_unchanged_by_the_wrapper",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier_by_name::test_a_non_refusal_exception_inside_the_classifier_run_propagates_out_of_main"
+      ],
+      "failures": 47,
+      "id": "D2-module-imported-by-name",
+      "outcome": "killed",
+      "part": "D-2 load_base (W1 files)",
+      "seconds": 39.4,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "d468765b0b75beab452aba0152d9ac3a9995ccf84932fd18904281e756b9254a",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the module's literal POOL_PINS_SHA256 is not compared with the W1 pins' SHA-256",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_the_modules_own_literals_are_checked[POOL_PINS_SHA256 = \"1451-POOL_PINS_SHA256 = \"0451-literal POOL_PINS_SHA256]"
+      ],
+      "failures": 1,
+      "id": "D2-literal-pin-unchecked",
+      "outcome": "killed",
+      "part": "D-2 load_base (W1 files)",
+      "seconds": 59.7,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "bc87e1f79fe786b61e5c2ea41a6c7fa6201c2e505380d86586751e9fbb09ad71",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the module's literal SETTINGS_SHA256 is not compared with the D-2 pin",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_the_modules_own_literals_are_checked[SETTINGS_SHA256 = \"a555-SETTINGS_SHA256 = \"0555-own settings pin]"
+      ],
+      "failures": 1,
+      "id": "D2-settings-literal-unchecked",
+      "outcome": "killed",
+      "part": "D-2 load_base (W1 files)",
+      "seconds": 44.2,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "43fa2ed542876c238e65b86c7c8484a9fecb8c6115f1069031a24f83af15bc54",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "W1 pins bytes that are not canonical JSON are accepted",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_already_filled_or_non_canonical_w1_pins_refuse"
+      ],
+      "failures": 1,
+      "id": "D2-canonical-w1-unchecked",
+      "outcome": "killed",
+      "part": "D-2 load_base (W1 files)",
+      "seconds": 51.4,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "a806ee8900e5eea226605b813d406abb76c8ae16151673655c20bc1d2f9a1274",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "already-filled W1 pins are accepted",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_already_filled_or_non_canonical_w1_pins_refuse"
+      ],
+      "failures": 1,
+      "id": "D2-null-pins-unchecked",
+      "outcome": "killed",
+      "part": "D-2 load_base (W1 files)",
+      "seconds": 52.3,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "f28f527ed9a209a2fbe8d313545a8189f3b308f9041d8ba14516ab6208e24725",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the D-2 settings are checked against their own hash, not the literal",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_main_refuses_a_changed_settings_byte",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_a_changed_d2_settings_byte"
+      ],
+      "failures": 2,
+      "id": "D2-settings-unpinned",
+      "outcome": "killed",
+      "part": "D-2 load_base (W1 files)",
+      "seconds": 42.5,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "08d2dd6657fd369257ffaa91c2344986ef4a0e93659723b5364cda1cbebcf25e",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "a record of another kind is accepted",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_record_of_the_wrong_kind_refuses[<lambda>-is not a version-1 'stage1 plant record'0]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_record_of_the_wrong_kind_refuses[<lambda>-is not a version-1 'stage1 plant record'1]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_record_of_the_wrong_kind_refuses[<lambda>-is not a version-1_1]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_record_of_the_wrong_kind_refuses[<lambda>-is not a version-1 'stage1 plant record'2]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[record_kind-is not a version-1 'stage1 plant record']",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[record_kind-is not a version-1 'stage1 plant record']"
+      ],
+      "failures": 6,
+      "id": "D2-record-kind-unchecked",
+      "outcome": "killed",
+      "part": "D-2 REQ-8 record",
+      "seconds": 22.4,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "1fb35784762e18602434d23789bd632dffcd0d676f7a25acd0653ed97f93ca01",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "a record of another version is accepted",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_record_of_the_wrong_kind_refuses[<lambda>-is not a version-1_0]"
+      ],
+      "failures": 1,
+      "id": "D2-record-version-unchecked",
+      "outcome": "killed",
+      "part": "D-2 REQ-8 record",
+      "seconds": 47.0,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "c7e6fa6a6df68a4cb8adf6262737f14e5ff18f978b5d81a2fb78c2ef4bb48834",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the record's script and settings SHA-256s are not compared with the W1 pins",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_record_that_is_not_req8s_or_not_consistent_refuses[<lambda>-not written by the W1 build_plant.py]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_record_that_is_not_req8s_or_not_consistent_refuses[<lambda>-not written by the W1 build_plant.json]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[record_other_script-REQ-8's record was not written by the W1 build_plant.py]"
+      ],
+      "failures": 3,
+      "id": "D2-record-provenance-sha-unchecked",
+      "outcome": "killed",
+      "part": "D-2 REQ-8 record",
+      "seconds": 58.3,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "e9ff5aa6669fcfe08330061c3d6ac6e48819a1ccf04eb1659c639c93a32d1cf0",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the manifest entries of build_plant.py and build_plant.json are not compared with the D-2 pins",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_the_record_check_reads_the_manifest_entries[scripts/stage1/build_plant.py-build_plant.py]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_the_record_check_reads_the_manifest_entries[scripts/stage1/settings/build_plant.json-build_plant.json]"
+      ],
+      "failures": 2,
+      "id": "D2-record-manifest-unchecked",
+      "outcome": "killed",
+      "part": "D-2 REQ-8 record",
+      "seconds": 55.0,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "30c4bef43f8210f9087c025f00903421fc17689d75305aa5aaa6837b2a9ae78e",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "a record naming another script is accepted",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_record_that_is_not_req8s_or_not_consistent_refuses[<lambda>-names the script]"
+      ],
+      "failures": 1,
+      "id": "D2-record-script-name-unchecked",
+      "outcome": "killed",
+      "part": "D-2 REQ-8 record",
+      "seconds": 49.1,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "e486ee9e624382dd97c65eafea85c7d827135157ed8c3362cf8b21d25065e123",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "a record written with another build_plant_extra.json is accepted",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_record_that_is_not_req8s_or_not_consistent_refuses[<lambda>-build_plant_extra.json]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_record_that_is_not_req8s_or_not_consistent_refuses[<lambda>-has no provenance.inputs]"
+      ],
+      "failures": 2,
+      "id": "D2-record-extra-unchecked",
+      "outcome": "killed",
+      "part": "D-2 REQ-8 record",
+      "seconds": 48.3,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "1e3356a6c7b071824503613857b25153284d236526d6d0c7aae8ab4af1c92d56",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "pools.<name>.sha256 is not compared with full_files",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_record_that_is_not_req8s_or_not_consistent_refuses[<lambda>-pools.plant.sha256 is not full_files\\\\[plant]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_record_that_is_not_req8s_or_not_consistent_refuses[<lambda>-has no full_files.decoy.pool.json]"
+      ],
+      "failures": 2,
+      "id": "D2-record-full-files-unchecked",
+      "outcome": "killed",
+      "part": "D-2 REQ-8 record",
+      "seconds": 49.2,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "d0720e0d412f4b2891bc587b1c489cf59f53f22583b9ff3a4f5575f2577f2cd7",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the item count is not compared with the number of ids",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_record_that_is_not_req8s_or_not_consistent_refuses[<lambda>-pools.plant.items is not the number of its ids]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_record_that_is_not_req8s_or_not_consistent_refuses[<lambda>-pools.decoy.items is not the number of its ids]"
+      ],
+      "failures": 2,
+      "id": "D2-record-ids-unchecked",
+      "outcome": "killed",
+      "part": "D-2 REQ-8 record",
+      "seconds": 52.0,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "ee81104f13040bacc0607cf36aac9a68d39d08757595eb98736c5bd6f6201e08",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "decoy.pool_sha256 is not compared with pools.decoy.sha256",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_record_that_is_not_req8s_or_not_consistent_refuses[<lambda>-decoy.pool_sha256 is not pools.decoy.sha256]"
+      ],
+      "failures": 1,
+      "id": "D2-record-decoy-pool-sha-unchecked",
+      "outcome": "killed",
+      "part": "D-2 REQ-8 record",
+      "seconds": 50.1,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "c2e11ba489d4d9888e6edf16a0e26a09669a7220bf0aaf692c5899bc4b5ffaf2",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "each pool takes the other pool's SHA-256 from the record",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_the_fill_on_a_synthetic_record_is_the_hand_fill",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_the_fill_swapped_hashes_go_to_their_own_pools",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_wrong_item_count_refuses",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_main_writes_the_filled_file_and_prints_hashes_only",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_main_refuses_and_writes_nothing[<lambda>-does not exist]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_main_refuses_a_bad_record_and_writes_nothing",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_the_fill_never_reads_a_pool_file",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_fill_pins_fills_from_a_real_req8_record",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_representation_pass_alone_refuses_the_plant_and_decoy_pools",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_d2_accepts_the_plant_and_decoy_pools",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_d2_outputs_equal_representation_pass_with_a_hand_filled_pins_document",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_d2_outputs_equal_a_hand_filled_copy_of_representation_pass",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_replacement_is_restored_and_the_w1_module_untouched",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_replacement_is_restored_after_a_refusal",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_replacement_is_restored_after_an_exception",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_run_base_replaces_exactly_the_pins_path_and_hash",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_run_base_refuses_a_module_whose_defaults_are_not_its_globals",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_filled_file_is_read_again_against_its_hash",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_runs_with_the_checked_pins_sha256",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_an_s3_pool_behaves_as_before",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_an_s3_name_on_a_pinned_file_refuses_under_the_filled_pins",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[other_field-not exactly in pools.decoy.sha256 and pools.plant.sha256]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[wrong_hash-the filled pin of pool plant]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[unfilled-not exactly in]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[pins_sha-the filled pins file hashes to]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[record_sha-REQ-8's record hashes to]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[record_kind-is not a version-1 'stage1 plant record']",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[record_other_plant-the filled pin of pool plant]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[no_hash---pool-pins is PATH:SHA256]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_a_changed_representation_pass_or_w1_pins_byte",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_a_changed_d2_settings_byte",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_prints_the_d2_facts_text_free",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_score_classifier_alone_refuses_the_plant_and_decoy_pools",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_d2_accepts_the_plant_and_decoy_pools",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_d2_output_equals_score_classifier_with_the_hand_filled_pins_document",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_d2_output_equals_score_classifier_on_a_scratch_tree_filled_in_place",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_run_is_restored_and_the_w1_module_untouched",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_prints_the_d2_facts_text_free",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_run_classifier_replaces_exactly_run",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_the_restore_after_an_exception",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_the_restore_after_a_refusal",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_run_classifier_refuses_a_run_that_is_not_the_w1_run",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_the_filled_file_changed_after_the_check_refuses",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_other_pools_behave_as_before",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[other_field-not exactly in pools.decoy.sha256 and pools.plant.sha256]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[wrong_hash-the filled pin of pool plant]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[unfilled-not exactly in]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[pins_sha-the filled pins file hashes to]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[record_sha-REQ-8's record hashes to]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[record_kind-is not a version-1 'stage1 plant record']",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[record_other_plant-the filled pin of pool plant]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[record_other_script-REQ-8's record was not written by the W1 build_plant.py]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[no_hash---pool-pins is PATH:SHA256]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[record_no_hash---req8-record is PATH:SHA256]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_a_changed_score_classifier_byte_refuses",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_a_changed_own_settings_byte_refuses",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_checks_the_by_name_representation_pass",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier_by_name::test_the_by_name_modules_are_unchanged_by_the_wrapper",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier_by_name::test_a_non_refusal_exception_inside_the_classifier_run_propagates_out_of_main"
+      ],
+      "failures": 59,
+      "id": "D2-record-pools-swapped",
+      "outcome": "killed",
+      "part": "D-2 REQ-8 record",
+      "seconds": 35.6,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "49c771bfc96e9ab535153f8305bbdea39d55368b538fd41dddef2474035c3660",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "a boolean item count is accepted",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_record_that_is_not_req8s_or_not_consistent_refuses[<lambda>-pools.decoy.items is not a positive count0]"
+      ],
+      "failures": 1,
+      "id": "D2-count-accepts-bool",
+      "outcome": "killed",
+      "part": "D-2 REQ-8 record",
+      "seconds": 40.7,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "832222e5c81924bab640c4003d60ff2b549281735991f2dd9b219d79963bb23d",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "a record listing other pools than plant and decoy is accepted",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_record_that_is_not_req8s_or_not_consistent_refuses[<lambda>-exactly the plant and decoy pools0]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_record_that_is_not_req8s_or_not_consistent_refuses[<lambda>-exactly the plant and decoy pools1]"
+      ],
+      "failures": 2,
+      "id": "D2-record-pool-set-unchecked",
+      "outcome": "killed",
+      "part": "D-2 REQ-8 record",
+      "seconds": 40.8,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "80c797f4dde55adcf14c0ebfa2ee4529c83a0287320dfb438e4ba97715cd588a",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the record's item count is not compared with the W1 pins'",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_wrong_item_count_refuses",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_main_refuses_a_bad_record_and_writes_nothing"
+      ],
+      "failures": 2,
+      "id": "D2-fill-items-unchecked",
+      "outcome": "killed",
+      "part": "D-2 fill and filled check",
+      "seconds": 32.4,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "16e39273ca0213b79d07ede8392cec67cb2fb1b699784ebff67e290e6158eab4",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "a type change (1 to true, 1 to 1.0) is not a difference",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_differences_finds_every_kind_of_change"
+      ],
+      "failures": 1,
+      "id": "D2-differences-ignores-type",
+      "outcome": "killed",
+      "part": "D-2 fill and filled check",
+      "seconds": 42.0,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "5e4ce3eb49f7cc72ad485068293274a489ba51e1f75be0cb09258d02f9dddec8",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "a key present only in the filled document is not a difference",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_differences_finds_every_kind_of_change",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_another_field_changed_refuses[<lambda>4]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_another_field_changed_refuses[<lambda>7]"
+      ],
+      "failures": 3,
+      "id": "D2-differences-misses-new-keys",
+      "outcome": "killed",
+      "part": "D-2 fill and filled check",
+      "seconds": 51.2,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "7d374d99a8a0733b48f77740266d3066aed22ff1336646a04028f03f1b00a4a1",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "a list of another length is compared on the common prefix only",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_differences_finds_every_kind_of_change"
+      ],
+      "failures": 1,
+      "id": "D2-differences-list-length",
+      "outcome": "killed",
+      "part": "D-2 fill and filled check",
+      "seconds": 40.8,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "b98601746251368cd35fc16806365c8c407669cd4c7c8f96470abef230f55881",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "a filled file with only one of the two pins filled is accepted",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_filled_file_with_one_or_no_pin_filled_refuses",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[unfilled-not exactly in]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[unfilled-not exactly in]"
+      ],
+      "failures": 3,
+      "id": "D2-filled-diff-subset-ok",
+      "outcome": "killed",
+      "part": "D-2 fill and filled check",
+      "seconds": 42.2,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "c36579fd5f8c7abc06f9ce775b8794230b8e09796f29475cf1ab199544fb3044",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the filled pins' SHA-256s are not compared with the record's (the canonical check still refuses, with another message)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_wrong_hash_refuses",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[wrong_hash-the filled pin of pool plant]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[record_other_plant-the filled pin of pool plant]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[wrong_hash-the filled pin of pool plant]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[record_other_plant-the filled pin of pool plant]"
+      ],
+      "failures": 5,
+      "id": "D2-filled-sha-unchecked",
+      "outcome": "killed",
+      "part": "D-2 fill and filled check",
+      "seconds": 50.9,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "35ef6c3cb6e8a5226bd003a65c5145ca03c687608205ec648a5f6a504b0975c0",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "representation_pass's check_pool_pins is not run on the filled document",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_one_hash_for_both_pools_refuses"
+      ],
+      "failures": 1,
+      "id": "D2-filled-check-pool-pins-off",
+      "outcome": "killed",
+      "part": "D-2 fill and filled check",
+      "seconds": 42.2,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "a18338e9d5b1b1b75ffb74dca3763dfc93761bc6a33f6fb6842ea665f0cdfae7",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "a filled file in another byte form is accepted",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_filled_file_in_another_byte_form_refuses"
+      ],
+      "failures": 1,
+      "id": "D2-filled-canonical-off",
+      "outcome": "killed",
+      "part": "D-2 fill and filled check",
+      "seconds": 43.8,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "a33f21e54168d2b318f891c6fee0933ca10b7c29d9685dfe70dfd48d386470f7",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "fill_pins writes over an existing file",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_main_writes_the_filled_file_and_prints_hashes_only"
+      ],
+      "failures": 1,
+      "id": "D2-fill-main-overwrites",
+      "outcome": "killed",
+      "part": "D-2 fill and filled check",
+      "seconds": 37.1,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "73cb76b62c341d6e3b958ec6244da68c37c0f4ebdf79129d8f6b9a8c9607e7e1",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "fill_pins ignores --w1-pins and reads the repository's W1 pins",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_main_refuses_and_writes_nothing[<lambda>-the W1 pins are named by]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_main_refuses_and_writes_nothing[<lambda>-the W1 pins file cannot be read]"
+      ],
+      "failures": 2,
+      "id": "D2-fill-main-w1-pins-ignored",
+      "outcome": "killed",
+      "part": "D-2 fill and filled check",
+      "seconds": 34.0,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "0cdcd29ddfd68b5f1acff2aa4b301f0d8f25019b96b42c3ed8076f5f399f64fa",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the wrapper takes the pools' hashes from the filled file, not from REQ-8's record",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[wrong_hash-the filled pin of pool plant]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[record_sha-REQ-8's record hashes to]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[record_kind-is not a version-1 'stage1 plant record']",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[record_other_plant-the filled pin of pool plant]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[wrong_hash-the filled pin of pool plant]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[record_sha-REQ-8's record hashes to]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[record_kind-is not a version-1 'stage1 plant record']",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[record_other_plant-the filled pin of pool plant]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[record_other_script-REQ-8's record was not written by the W1 build_plant.py]"
+      ],
+      "failures": 9,
+      "id": "D2R-record-unchecked",
+      "outcome": "killed",
+      "part": "D-2 wrapper run",
+      "seconds": 34.4,
+      "skipped": 0,
+      "targets": {
+        "d2_representation_pass.py": {
+          "after": "aedeea3022d658f7397d011b396a72ea3a98cddb78ac3b378c6946379ec9ebec",
+          "before": "24d178fae6784c5d5b4518ac427d007ccfb7bbb95816d0483adf280a4d1fb087"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the wrapper does not check the filled file against the W1 pins and the record",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[other_field-not exactly in pools.decoy.sha256 and pools.plant.sha256]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[wrong_hash-the filled pin of pool plant]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[unfilled-not exactly in]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[pins_sha-the filled pins file hashes to]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[record_other_plant-the filled pin of pool plant]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[other_field-not exactly in pools.decoy.sha256 and pools.plant.sha256]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[wrong_hash-the filled pin of pool plant]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[unfilled-not exactly in]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[pins_sha-the filled pins file hashes to]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[record_other_plant-the filled pin of pool plant]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier_by_name::test_the_by_name_modules_are_unchanged_by_the_wrapper"
+      ],
+      "failures": 11,
+      "id": "D2R-filled-unchecked",
+      "outcome": "killed",
+      "part": "D-2 wrapper run",
+      "seconds": 41.6,
+      "skipped": 0,
+      "targets": {
+        "d2_representation_pass.py": {
+          "after": "728e171220b5ca53582885a20fe07827f4fc95fd8dd21bf86af4a9d00c958ae3",
+          "before": "24d178fae6784c5d5b4518ac427d007ccfb7bbb95816d0483adf280a4d1fb087"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the wrapper reads the filled file without its SHA-256 check",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[pins_sha-the filled pins file hashes to]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[pins_sha-the filled pins file hashes to]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier_by_name::test_the_by_name_modules_are_unchanged_by_the_wrapper"
+      ],
+      "failures": 3,
+      "id": "D2R-pins-sha-unread",
+      "outcome": "killed",
+      "part": "D-2 wrapper run",
+      "seconds": 53.7,
+      "skipped": 0,
+      "targets": {
+        "d2_representation_pass.py": {
+          "after": "f99b9ec9e482d7e92f6fc35fa0379e53351111e2832f0a0e20bdaf69ad90b401",
+          "before": "24d178fae6784c5d5b4518ac427d007ccfb7bbb95816d0483adf280a4d1fb087"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the replaced pins path and SHA-256 are not restored after the call",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_replacement_is_restored_and_the_w1_module_untouched",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_replacement_is_restored_after_a_refusal",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_replacement_is_restored_after_an_exception",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_run_base_replaces_exactly_the_pins_path_and_hash"
+      ],
+      "failures": 4,
+      "id": "D2R-not-restored",
+      "outcome": "killed",
+      "part": "D-2 wrapper run",
+      "seconds": 46.3,
+      "skipped": 0,
+      "targets": {
+        "d2_representation_pass.py": {
+          "after": "c627aa0aaa428e57c65280c0aed12fdd26cca481f5daf646f8913f781e49c48c",
+          "before": "24d178fae6784c5d5b4518ac427d007ccfb7bbb95816d0483adf280a4d1fb087"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "load_pool_pins's default SHA-256 stays the W1 one (main() refuses the filled file)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_d2_accepts_the_plant_and_decoy_pools",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_d2_outputs_equal_representation_pass_with_a_hand_filled_pins_document",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_d2_outputs_equal_a_hand_filled_copy_of_representation_pass",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_replacement_is_restored_and_the_w1_module_untouched",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_replacement_is_restored_after_a_refusal",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_replacement_is_restored_after_an_exception",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_run_base_replaces_exactly_the_pins_path_and_hash",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_filled_file_is_read_again_against_its_hash",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_runs_with_the_checked_pins_sha256",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_an_s3_pool_behaves_as_before",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_an_s3_name_on_a_pinned_file_refuses_under_the_filled_pins",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_prints_the_d2_facts_text_free"
+      ],
+      "failures": 12,
+      "id": "D2R-defaults-not-replaced",
+      "outcome": "killed",
+      "part": "D-2 wrapper run",
+      "seconds": 38.3,
+      "skipped": 0,
+      "targets": {
+        "d2_representation_pass.py": {
+          "after": "68bdd04edc4fdde769b36f49888db521f71fa869d03b937501bd25dc55f6d218",
+          "before": "24d178fae6784c5d5b4518ac427d007ccfb7bbb95816d0483adf280a4d1fb087"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the module globals POOL_PINS_PATH and POOL_PINS_SHA256 keep the W1 values",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_replacement_is_restored_after_an_exception",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_run_base_replaces_exactly_the_pins_path_and_hash"
+      ],
+      "failures": 2,
+      "id": "D2R-globals-not-replaced",
+      "outcome": "killed",
+      "part": "D-2 wrapper run",
+      "seconds": 69.1,
+      "skipped": 0,
+      "targets": {
+        "d2_representation_pass.py": {
+          "after": "2b6164f37bce0360f58a418e1db37a2661f724b84652019920bac0958b896e9d",
+          "before": "24d178fae6784c5d5b4518ac427d007ccfb7bbb95816d0483adf280a4d1fb087"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "run_base does not check that load_pool_pins's defaults are the module's globals",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_run_base_refuses_a_module_whose_defaults_are_not_its_globals"
+      ],
+      "failures": 1,
+      "id": "D2R-defaults-check-off",
+      "outcome": "killed",
+      "part": "D-2 wrapper run",
+      "seconds": 66.7,
+      "skipped": 0,
+      "targets": {
+        "d2_representation_pass.py": {
+          "after": "5c5ee36452272a8c9a7e1af0780e76a64cfdfb3e92572dc02376af8540a8ccf1",
+          "before": "24d178fae6784c5d5b4518ac427d007ccfb7bbb95816d0483adf280a4d1fb087"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "--pools-only is not forwarded",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_an_s3_pool_behaves_as_before",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_forwarded_arguments_are_representation_passs_own"
+      ],
+      "failures": 2,
+      "id": "D2R-pools-only-dropped",
+      "outcome": "killed",
+      "part": "D-2 wrapper run",
+      "seconds": 83.3,
+      "skipped": 0,
+      "targets": {
+        "d2_representation_pass.py": {
+          "after": "83a81ef32942458de27c4f55546d9b0569dda1a7728b69ef514cca3a399669c8",
+          "before": "24d178fae6784c5d5b4518ac427d007ccfb7bbb95816d0483adf280a4d1fb087"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "--settings is not forwarded (representation_pass's committed settings are used)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_d2_accepts_the_plant_and_decoy_pools",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_d2_outputs_equal_representation_pass_with_a_hand_filled_pins_document",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_d2_outputs_equal_a_hand_filled_copy_of_representation_pass",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_replacement_is_restored_and_the_w1_module_untouched",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_replacement_is_restored_after_a_refusal",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_runs_with_the_checked_pins_sha256",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_an_s3_pool_behaves_as_before",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_an_s3_name_on_a_pinned_file_refuses_under_the_filled_pins",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_forwarded_arguments_are_representation_passs_own",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_prints_the_d2_facts_text_free"
+      ],
+      "failures": 10,
+      "id": "D2R-settings-not-forwarded",
+      "outcome": "killed",
+      "part": "D-2 wrapper run",
+      "seconds": 89.4,
+      "skipped": 0,
+      "targets": {
+        "d2_representation_pass.py": {
+          "after": "7a7b034836b3c8a849fd81e2e9a74f7b1d369368d14161c294dfadb7e0a621a9",
+          "before": "24d178fae6784c5d5b4518ac427d007ccfb7bbb95816d0483adf280a4d1fb087"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "--pool-pins FILLED is not forwarded (main falls back to the replaced POOL_PINS_PATH)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_forwarded_arguments_are_representation_passs_own"
+      ],
+      "failures": 1,
+      "id": "D2R-pins-path-not-forwarded",
+      "outcome": "killed",
+      "part": "D-2 wrapper run",
+      "seconds": 73.6,
+      "skipped": 0,
+      "targets": {
+        "d2_representation_pass.py": {
+          "after": "3df8d48048ee79136f59a1ab5b0b2f4075b90bdfa5ab2c9e3d523cacbfb27818",
+          "before": "24d178fae6784c5d5b4518ac427d007ccfb7bbb95816d0483adf280a4d1fb087"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "run_base replaces and runs the normally imported scripts.stage1.representation_pass instead of the checked private module",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_d2_accepts_the_plant_and_decoy_pools",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_d2_outputs_equal_representation_pass_with_a_hand_filled_pins_document",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_d2_outputs_equal_a_hand_filled_copy_of_representation_pass",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_replacement_is_restored_and_the_w1_module_untouched",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_replacement_is_restored_after_a_refusal",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_replacement_is_restored_after_an_exception",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_run_base_replaces_exactly_the_pins_path_and_hash",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_run_base_refuses_a_module_whose_defaults_are_not_its_globals",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_runs_with_the_checked_pins_sha256",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_an_s3_pool_behaves_as_before",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_an_s3_name_on_a_pinned_file_refuses_under_the_filled_pins",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_prints_the_d2_facts_text_free"
+      ],
+      "failures": 12,
+      "id": "D2R-shared-module-patched",
+      "outcome": "killed",
+      "part": "D-2 wrapper run",
+      "seconds": 64.4,
+      "skipped": 0,
+      "targets": {
+        "d2_representation_pass.py": {
+          "after": "a0ca49a44fbe4ce37c0fff5d26911ba67024d24c10490500f0f246412212d59a",
+          "before": "24d178fae6784c5d5b4518ac427d007ccfb7bbb95816d0483adf280a4d1fb087"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the base runs before the D-2 checks (a refused check still lets representation_pass run)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_replacement_is_restored_and_the_w1_module_untouched",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_replacement_is_restored_after_a_refusal",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_runs_with_the_checked_pins_sha256",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[other_field-not exactly in pools.decoy.sha256 and pools.plant.sha256]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[wrong_hash-the filled pin of pool plant]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[unfilled-not exactly in]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[pins_sha-the filled pins file hashes to]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[record_sha-REQ-8's record hashes to]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[record_kind-is not a version-1 'stage1 plant record']",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[record_other_plant-the filled pin of pool plant]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_prints_the_d2_facts_text_free"
+      ],
+      "failures": 11,
+      "id": "D2R-check-after-run",
+      "outcome": "killed",
+      "part": "D-2 wrapper run",
+      "seconds": 74.0,
+      "skipped": 0,
+      "targets": {
+        "d2_representation_pass.py": {
+          "after": "f19f6760b949daaffa368fbf471768a55ffb428886a9435472409f110b387766",
+          "before": "24d178fae6784c5d5b4518ac427d007ccfb7bbb95816d0483adf280a4d1fb087"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the fixture guard re-raises (a wrapper defect errors the fixture instead of failing tests)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fixture_guard::test_a_failing_guarded_fixture_gives_failures_not_setup_errors",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fixture_guard::test_the_guard_passes_a_good_value_through_and_keeps_skips"
+      ],
+      "failures": 2,
+      "id": "D2-guard-reraises",
+      "outcome": "killed",
+      "part": "D-2 fixture guard",
+      "seconds": 70.8,
+      "skipped": 0,
+      "targets": {
+        "tests/d2guard.py": {
+          "after": "20b6097e2cbc3f9d1141c912aa6a8872878cfa461f087a096edd55f3d541c4a6",
+          "before": "e9a55809d226e497b8120267d7a2aa867c45bb2ad7ffaf7729e39c0849bfa27d"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "a docstring word changes (a legal edit: every test passes)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 0,
+      "expect": "survive",
+      "failing": [],
+      "failures": 0,
+      "id": "D2-legal-docstring",
+      "outcome": "survived",
+      "part": "D-2 wrapper run",
+      "seconds": 65.7,
+      "skipped": 0,
+      "targets": {
+        "d2_representation_pass.py": {
+          "after": "702d1a1d164d1bfeb1dbbb617cc145545d74bd6ce18a1fd1e9f2384fc3751a6e",
+          "before": "24d178fae6784c5d5b4518ac427d007ccfb7bbb95816d0483adf280a4d1fb087"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "fill() also rewrites the W1 'fill' note (a fill that changes another field; the canonical check uses fill() too, so only differences() can refuse it)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_the_fill_on_a_synthetic_record_is_the_hand_fill",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_the_fill_swapped_hashes_go_to_their_own_pools",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_filled_file_in_another_byte_form_refuses",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_one_hash_for_both_pools_refuses",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_main_writes_the_filled_file_and_prints_hashes_only",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_main_refuses_and_writes_nothing[<lambda>-does not exist]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_the_fill_never_reads_a_pool_file",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_fill_pins_fills_from_a_real_req8_record",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_representation_pass_alone_refuses_the_plant_and_decoy_pools",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_d2_accepts_the_plant_and_decoy_pools",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_d2_outputs_equal_representation_pass_with_a_hand_filled_pins_document",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_d2_outputs_equal_a_hand_filled_copy_of_representation_pass",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_replacement_is_restored_and_the_w1_module_untouched",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_replacement_is_restored_after_a_refusal",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_replacement_is_restored_after_an_exception",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_run_base_replaces_exactly_the_pins_path_and_hash",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_run_base_refuses_a_module_whose_defaults_are_not_its_globals",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_filled_file_is_read_again_against_its_hash",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_runs_with_the_checked_pins_sha256",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_an_s3_pool_behaves_as_before",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_an_s3_name_on_a_pinned_file_refuses_under_the_filled_pins",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[other_field-not exactly in pools.decoy.sha256 and pools.plant.sha256]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[wrong_hash-the filled pin of pool plant]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[unfilled-not exactly in]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[pins_sha-the filled pins file hashes to]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[record_sha-REQ-8's record hashes to]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[record_kind-is not a version-1 'stage1 plant record']",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[record_other_plant-the filled pin of pool plant]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_before_representation_pass_runs[no_hash---pool-pins is PATH:SHA256]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_a_changed_representation_pass_or_w1_pins_byte",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_a_changed_d2_settings_byte",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_prints_the_d2_facts_text_free",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_score_classifier_alone_refuses_the_plant_and_decoy_pools",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_d2_accepts_the_plant_and_decoy_pools",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_d2_output_equals_score_classifier_with_the_hand_filled_pins_document",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_d2_output_equals_score_classifier_on_a_scratch_tree_filled_in_place",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_run_is_restored_and_the_w1_module_untouched",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_prints_the_d2_facts_text_free",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_run_classifier_replaces_exactly_run",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_the_restore_after_an_exception",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_the_restore_after_a_refusal",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_run_classifier_refuses_a_run_that_is_not_the_w1_run",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_the_filled_file_changed_after_the_check_refuses",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_other_pools_behave_as_before",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[other_field-not exactly in pools.decoy.sha256 and pools.plant.sha256]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[wrong_hash-the filled pin of pool plant]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[unfilled-not exactly in]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[pins_sha-the filled pins file hashes to]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[record_sha-REQ-8's record hashes to]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[record_kind-is not a version-1 'stage1 plant record']",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[record_other_plant-the filled pin of pool plant]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[record_other_script-REQ-8's record was not written by the W1 build_plant.py]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[no_hash---pool-pins is PATH:SHA256]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[record_no_hash---req8-record is PATH:SHA256]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_a_changed_score_classifier_byte_refuses",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_a_changed_own_settings_byte_refuses",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_checks_the_by_name_representation_pass",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier_by_name::test_the_by_name_modules_are_unchanged_by_the_wrapper",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier_by_name::test_a_non_refusal_exception_inside_the_classifier_run_propagates_out_of_main"
+      ],
+      "failures": 59,
+      "id": "V-fill-also-changes-fill-note",
+      "outcome": "killed",
+      "part": "V fill",
+      "seconds": 47.3,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "5b455ea076aac2475371ff6d3f33644dabcb0cb44f0077c0be9beb90925016e0",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the item count check refuses only a record with fewer items than the W1 pins (a record with more items is filled)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_wrong_item_count_refuses"
+      ],
+      "failures": 1,
+      "id": "V-fill-items-one-sided",
+      "outcome": "killed",
+      "part": "V fill",
+      "seconds": 24.0,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "9122e08416757eba3032d39455e9a20f51bb115464fc0981e2e465eda5fc91f3",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "a record with no kind key is taken as REQ-8's kind",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_record_of_the_wrong_kind_refuses[<lambda>-is not a version-1_1]"
+      ],
+      "failures": 1,
+      "id": "V-record-kind-missing-accepted",
+      "outcome": "killed",
+      "part": "V record",
+      "seconds": 23.4,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "97bd07185026571b088f4b03fe351b30161077401333862c10a8f0dc21fdf9d5",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "any kind that starts with 'stage1 plant' is accepted (e.g. 'stage1 plant rows', REQ-8's sibling file)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_record_of_the_wrong_kind_refuses[<lambda>-is not a version-1 'stage1 plant record'2]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_refuses_before_score_classifier_runs[record_kind-is not a version-1 'stage1 plant record']"
+      ],
+      "failures": 2,
+      "id": "V-record-kind-prefix",
+      "outcome": "killed",
+      "part": "V record",
+      "seconds": 54.6,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "1598045196b55843c5e8ac4ae2fc0214abfbd81187760637916ed30af9b31ae6",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "representation_pass.py is read from the imported package's file, not from the checked root (a changed byte under root is not seen)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_changed_representation_pass_byte_refuses",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_the_modules_own_literals_are_checked[POOL_PINS_SHA256 = \"1451-POOL_PINS_SHA256 = \"0451-literal POOL_PINS_SHA256]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_the_modules_own_literals_are_checked[SETTINGS_SHA256 = \"a555-SETTINGS_SHA256 = \"0555-own settings pin]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_already_filled_or_non_canonical_w1_pins_refuse",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_refuses_a_changed_representation_pass_or_w1_pins_byte"
+      ],
+      "failures": 5,
+      "id": "V-script-root-ignored",
+      "outcome": "killed",
+      "part": "V base",
+      "seconds": 52.9,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "fdc3280b15055a90d473cf1060b9f6d4fd74d0916017932a52696aaaa1c54810",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the module runs from a second read of the file, not from the checked bytes (a change between check and load is run)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_the_module_runs_from_the_checked_bytes"
+      ],
+      "failures": 1,
+      "id": "V-exec-rereads-file",
+      "outcome": "killed",
+      "part": "V base",
+      "seconds": 46.8,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "16cab360343e59b667e4d6cd5327f525889be67e7825854fd13099a0765c2514",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the replacement is restored only when main() returns (an exception other than Refusal leaves it replaced)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_replacement_is_restored_after_an_exception"
+      ],
+      "failures": 1,
+      "id": "V-restore-not-in-finally",
+      "outcome": "killed",
+      "part": "V run",
+      "seconds": 47.2,
+      "skipped": 0,
+      "targets": {
+        "d2_representation_pass.py": {
+          "after": "5bfb331fa247c2314e4709e85c0cdc7a80fccf634440e36b2a68991f90a6632d",
+          "before": "24d178fae6784c5d5b4518ac427d007ccfb7bbb95816d0483adf280a4d1fb087"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "only load_pool_pins's defaults are restored; the two globals keep the filled path and SHA-256",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_replacement_is_restored_and_the_w1_module_untouched",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_replacement_is_restored_after_a_refusal",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_replacement_is_restored_after_an_exception"
+      ],
+      "failures": 3,
+      "id": "V-restore-defaults-only",
+      "outcome": "killed",
+      "part": "V run",
+      "seconds": 43.9,
+      "skipped": 0,
+      "targets": {
+        "d2_representation_pass.py": {
+          "after": "f3d7d43dcab04146b4be649ce6834994e031285b9923bff375a4c7f6cc3395cf",
+          "before": "24d178fae6784c5d5b4518ac427d007ccfb7bbb95816d0483adf280a4d1fb087"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "main() passes run_base the SHA-256 of the filled file as it is at run time, not the checked --pool-pins SHA-256 (a file changed after the check is used)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_runs_with_the_checked_pins_sha256"
+      ],
+      "failures": 1,
+      "id": "V-run-sha-recomputed",
+      "outcome": "killed",
+      "part": "V run",
+      "seconds": 31.0,
+      "skipped": 0,
+      "targets": {
+        "d2_representation_pass.py": {
+          "after": "abe6915d81f1ebfe8a5091f4fa0ec9e8e7444e848dba16046914d6555c6223ca",
+          "before": "24d178fae6784c5d5b4518ac427d007ccfb7bbb95816d0483adf280a4d1fb087"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "run_base also sets POOL_PINS_SHA256 on the normally imported scripts.stage1.representation_pass (patch scope widened, never restored)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_replacement_is_restored_and_the_w1_module_untouched",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier_by_name::test_the_by_name_modules_are_unchanged_by_the_wrapper"
+      ],
+      "failures": 2,
+      "id": "V-w1-module-also-patched",
+      "outcome": "killed",
+      "part": "V run",
+      "seconds": 27.4,
+      "skipped": 0,
+      "targets": {
+        "d2_representation_pass.py": {
+          "after": "5739d075c7ef6e1aafd8d12066e0a96864b130980d52b4f4744bcc92deae149e",
+          "before": "24d178fae6784c5d5b4518ac427d007ccfb7bbb95816d0483adf280a4d1fb087"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "only the first --pool is forwarded",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_d2_accepts_the_plant_and_decoy_pools",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_d2_outputs_equal_representation_pass_with_a_hand_filled_pins_document",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_d2_outputs_equal_a_hand_filled_copy_of_representation_pass",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_forwarded_arguments_are_representation_passs_own"
+      ],
+      "failures": 4,
+      "id": "V-forward-first-pool-only",
+      "outcome": "killed",
+      "part": "V run",
+      "seconds": 29.3,
+      "skipped": 0,
+      "targets": {
+        "d2_representation_pass.py": {
+          "after": "12f4de701d6c2fbf835c4a037c54bde06dff1ae09a960d332fc36db2c0bf7ca9",
+          "before": "24d178fae6784c5d5b4518ac427d007ccfb7bbb95816d0483adf280a4d1fb087"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the filled check compares only the pools block (a top-level change is left to the canonical check)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_another_field_changed_refuses[<lambda>0]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_another_field_changed_refuses[<lambda>5]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_another_field_changed_refuses[<lambda>6]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_another_field_changed_refuses[<lambda>7]"
+      ],
+      "failures": 4,
+      "id": "V-differences-pools-only",
+      "outcome": "killed",
+      "part": "V fill",
+      "seconds": 30.2,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "fcda3cc51da0e5d621c20b90bb4973e9394e7e531470d434fee3c8f949c6628d",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the wrapper forwards the --pool arguments in another order (the rows file's order changes)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_forwarded_arguments_are_representation_passs_own"
+      ],
+      "failures": 1,
+      "id": "VF-pools-reordered",
+      "outcome": "killed",
+      "part": "fidelity",
+      "seconds": 30.6,
+      "skipped": 0,
+      "targets": {
+        "d2_representation_pass.py": {
+          "after": "f895651790c30afa9cfca1dc646c74401010356d3891bb403fcfeb120eab1312",
+          "before": "24d178fae6784c5d5b4518ac427d007ccfb7bbb95816d0483adf280a4d1fb087"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the private module's __file__ names another path (its provenance and default settings path move)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_the_base_is_private_and_holds_the_w1_pins",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_d2_accepts_the_plant_and_decoy_pools",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_d2_outputs_equal_representation_pass_with_a_hand_filled_pins_document",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_d2_outputs_equal_a_hand_filled_copy_of_representation_pass",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_the_replacement_is_restored_and_the_w1_module_untouched",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_an_s3_pool_behaves_as_before",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_an_s3_name_on_a_pinned_file_refuses_under_the_filled_pins",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_representation_pass::test_main_prints_the_d2_facts_text_free"
+      ],
+      "failures": 8,
+      "id": "VF-module-file-elsewhere",
+      "outcome": "killed",
+      "part": "fidelity",
+      "seconds": 29.9,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "f065babdec9c7a13c264c7a7a8ee1b4dcc4ca17be83fe8a8af03f3a5afd31ea6",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "fill() takes the record's item count into the filled file instead of refusing a different count",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_wrong_item_count_refuses",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_main_refuses_a_bad_record_and_writes_nothing"
+      ],
+      "failures": 2,
+      "id": "VF-fill-writes-record-count",
+      "outcome": "killed",
+      "part": "fidelity",
+      "seconds": 28.7,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "e0877ff4fac717cc3f4fcc929254a333d37095ccf62017d9d002d0faab1c1d95",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "a REQ-8 pool SHA-256 is checked with HEX64.match, which accepts 64 hex digits and a final newline",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_record_that_is_not_req8s_or_not_consistent_refuses[<lambda>-pools.plant is not0]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_pool_sha256_with_a_trailing_newline_refuses[plant]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_pool_sha256_with_a_trailing_newline_refuses[decoy]"
+      ],
+      "failures": 3,
+      "id": "D2F-record-sha-trailing-newline",
+      "outcome": "killed",
+      "part": "D-2 fix round",
+      "seconds": 26.9,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "75ec0511308b4bd116d3a824f462472f3e947924bf046c6d7d6559af594ac1c3",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "a PATH:SHA256 argument's hash is checked with HEX64.match (a final newline is accepted)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_path_sha256_argument_with_a_trailing_newline_refuses"
+      ],
+      "failures": 1,
+      "id": "D2F-parse-trailing-newline",
+      "outcome": "killed",
+      "part": "D-2 fix round",
+      "seconds": 29.2,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "468c01bcb1a77a99b5b036f2b58b025ced1a7550d4f3463eb24e01aea99a7cd1",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the record's version is compared with == only (true and 1.0 pass as version 1)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_record_of_the_wrong_kind_refuses[<lambda>-is not a version-1_2]",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_fill_pins::test_a_record_of_the_wrong_kind_refuses[<lambda>-is not a version-1_3]"
+      ],
+      "failures": 2,
+      "id": "D2F-record-version-type-unchecked",
+      "outcome": "killed",
+      "part": "D-2 fix round",
+      "seconds": 26.6,
+      "skipped": 0,
+      "targets": {
+        "fill_pins.py": {
+          "after": "ae8d43491a4b385c23a75a75a8e630b105fff0c28c49f9abdd3e739e2311d2d2",
+          "before": "12e59f5f3b12f831909e1f4cf34f8d716e4410d287d1bfe5ae81e08334611107"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "this file's settings are not checked against their literal SHA-256",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_a_changed_own_settings_byte_refuses"
+      ],
+      "failures": 1,
+      "id": "DSC-settings-unpinned",
+      "outcome": "killed",
+      "part": "D-2 J8 settings and load",
+      "seconds": 29.5,
+      "skipped": 0,
+      "targets": {
+        "d2_score_classifier.py": {
+          "after": "148d746c8f66b037e08e59b0dbe1162b1472402240cefe45223e95bc3f6618f7",
+          "before": "e7507d1260b569c642592f65b84b9d3403ed469d5bfbb4038c43f08df950dd67"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the settings' pin of D-2's settings is not compared with fill_pins.SETTINGS_SHA256",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_own_settings_must_name_the_d2_settings"
+      ],
+      "failures": 1,
+      "id": "DSC-d2-settings-unnamed",
+      "outcome": "killed",
+      "part": "D-2 J8 settings and load",
+      "seconds": 31.7,
+      "skipped": 0,
+      "targets": {
+        "d2_score_classifier.py": {
+          "after": "6cdc4056a693ecd167d4a17e81cdb397b6c33c5d9235ec8a4b24f9c4bb39495f",
+          "before": "e7507d1260b569c642592f65b84b9d3403ed469d5bfbb4038c43f08df950dd67"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the W1 manifest's entry of score_classifier.py is not compared with the pin",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_a_pin_the_w1_manifest_does_not_name_refuses[script_sha256-score_classifier.py]"
+      ],
+      "failures": 1,
+      "id": "DSC-manifest-script-unchecked",
+      "outcome": "killed",
+      "part": "D-2 J8 settings and load",
+      "seconds": 32.8,
+      "skipped": 0,
+      "targets": {
+        "d2_score_classifier.py": {
+          "after": "38b877178172f992650c14edb6e8ee57d421f3f09eb87a2dbde3a5dc7a258e4a",
+          "before": "e7507d1260b569c642592f65b84b9d3403ed469d5bfbb4038c43f08df950dd67"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the W1 manifest's entry of score_classifier.json is not compared with the pin",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_a_pin_the_w1_manifest_does_not_name_refuses[settings_sha256-score_classifier.json]"
+      ],
+      "failures": 1,
+      "id": "DSC-manifest-settings-unchecked",
+      "outcome": "killed",
+      "part": "D-2 J8 settings and load",
+      "seconds": 34.0,
+      "skipped": 0,
+      "targets": {
+        "d2_score_classifier.py": {
+          "after": "b46ebd88d9c916234910b415a1601721975b716d9cd3d34599a1077761668cbc",
+          "before": "e7507d1260b569c642592f65b84b9d3403ed469d5bfbb4038c43f08df950dd67"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "score_classifier.py's bytes are not checked against the pin",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_a_changed_score_classifier_byte_refuses"
+      ],
+      "failures": 1,
+      "id": "DSC-script-hash-unchecked",
+      "outcome": "killed",
+      "part": "D-2 J8 settings and load",
+      "seconds": 32.0,
+      "skipped": 0,
+      "targets": {
+        "d2_score_classifier.py": {
+          "after": "bca0421719eaa7c68c43382b873214009992054a85a5701755f9ac149bc0457d",
+          "before": "e7507d1260b569c642592f65b84b9d3403ed469d5bfbb4038c43f08df950dd67"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "load_classifier ignores the root it is given",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_a_changed_score_classifier_byte_refuses",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_the_module_literal_settings_pin_is_checked"
+      ],
+      "failures": 2,
+      "id": "DSC-root-ignored",
+      "outcome": "killed",
+      "part": "D-2 J8 settings and load",
+      "seconds": 30.0,
+      "skipped": 0,
+      "targets": {
+        "d2_score_classifier.py": {
+          "after": "2ccec490bd62673e46d3104d0c6bfa4b45423d56e1254ff1cf7c9de8a374b074",
+          "before": "e7507d1260b569c642592f65b84b9d3403ed469d5bfbb4038c43f08df950dd67"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the private module is put in sys.modules",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_run_is_restored_and_the_w1_module_untouched",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_the_module_runs_privately_from_the_checked_bytes"
+      ],
+      "failures": 2,
+      "id": "DSC-module-in-sys-modules",
+      "outcome": "killed",
+      "part": "D-2 J8 settings and load",
+      "seconds": 26.0,
+      "skipped": 0,
+      "targets": {
+        "d2_score_classifier.py": {
+          "after": "ba47ea48cb730708e5f5ab1d14426d28c72ea093232685dd1473a4b2b27acbd6",
+          "before": "e7507d1260b569c642592f65b84b9d3403ed469d5bfbb4038c43f08df950dd67"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the W1 module imported by name is used (and overwritten) instead of a private one",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_run_is_restored_and_the_w1_module_untouched",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_the_module_runs_privately_from_the_checked_bytes",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier_by_name::test_the_by_name_modules_are_unchanged_by_the_wrapper"
+      ],
+      "failures": 3,
+      "id": "DSC-module-imported-by-name",
+      "outcome": "killed",
+      "part": "D-2 J8 settings and load",
+      "seconds": 29.9,
+      "skipped": 0,
+      "targets": {
+        "d2_score_classifier.py": {
+          "after": "3d35321e3e298813d940ff0227b1407684ebb5c9999857e9429f4cb9e4485619",
+          "before": "e7507d1260b569c642592f65b84b9d3403ed469d5bfbb4038c43f08df950dd67"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "score_classifier.py's literal SETTINGS_SHA256 is not compared with the pin",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_the_module_literal_settings_pin_is_checked"
+      ],
+      "failures": 1,
+      "id": "DSC-literal-unchecked",
+      "outcome": "killed",
+      "part": "D-2 J8 settings and load",
+      "seconds": 16.8,
+      "skipped": 0,
+      "targets": {
+        "d2_score_classifier.py": {
+          "after": "faef9a52a2e8bf799f49c5903782f4e8253f83b683a8eacaa579005c73646919",
+          "before": "e7507d1260b569c642592f65b84b9d3403ed469d5bfbb4038c43f08df950dd67"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the module runs from a second read of the file, not the checked bytes",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_the_module_runs_privately_from_the_checked_bytes"
+      ],
+      "failures": 1,
+      "id": "DSC-exec-rereads-file",
+      "outcome": "killed",
+      "part": "D-2 J8 settings and load",
+      "seconds": 32.2,
+      "skipped": 0,
+      "targets": {
+        "d2_score_classifier.py": {
+          "after": "f02cd354127428d2c0725355f5e3d8345b529ed6987795de3e2e6a5e80acb5fb",
+          "before": "e7507d1260b569c642592f65b84b9d3403ed469d5bfbb4038c43f08df950dd67"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the by-name representation_pass is accepted whatever its file hashes to",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_the_by_name_representation_pass_is_checked"
+      ],
+      "failures": 1,
+      "id": "DSC-by-name-hash-ignored",
+      "outcome": "killed",
+      "part": "D-2 J8 settings and load",
+      "seconds": 36.2,
+      "skipped": 0,
+      "targets": {
+        "d2_score_classifier.py": {
+          "after": "a57337bb9f075fe70a884241b673227c2600c87d4a495b77652dff84ab3aff4d",
+          "before": "e7507d1260b569c642592f65b84b9d3403ed469d5bfbb4038c43f08df950dd67"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "main() does not check the by-name representation_pass",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_checks_the_by_name_representation_pass"
+      ],
+      "failures": 1,
+      "id": "DSC-by-name-unchecked",
+      "outcome": "killed",
+      "part": "D-2 J8 CLI",
+      "seconds": 43.4,
+      "skipped": 0,
+      "targets": {
+        "d2_score_classifier.py": {
+          "after": "704c3c8018834dbdad45a0f214bc6bceb61aaa4d6fbac7546f63958ac89a6829",
+          "before": "e7507d1260b569c642592f65b84b9d3403ed469d5bfbb4038c43f08df950dd67"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "run is replaced even when it is not the W1 run (no pool_pins=None default)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_run_classifier_refuses_a_run_that_is_not_the_w1_run"
+      ],
+      "failures": 1,
+      "id": "DSC-kwdefaults-check-off",
+      "outcome": "killed",
+      "part": "D-2 J8 wrapper run",
+      "seconds": 44.5,
+      "skipped": 0,
+      "targets": {
+        "d2_score_classifier.py": {
+          "after": "4d36d0cfdf724f451bf793de018109276002599ff889e572687a486f4dbd3fcf",
+          "before": "e7507d1260b569c642592f65b84b9d3403ed469d5bfbb4038c43f08df950dd67"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "a pool_pins given by the caller is not refused",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_run_classifier_replaces_exactly_run"
+      ],
+      "failures": 1,
+      "id": "DSC-own-pins-allowed",
+      "outcome": "killed",
+      "part": "D-2 J8 wrapper run",
+      "seconds": 38.5,
+      "skipped": 0,
+      "targets": {
+        "d2_score_classifier.py": {
+          "after": "1a9bb11087470b0854932a5156da62e98df97365b86aa8c17219aec47afdf838",
+          "before": "e7507d1260b569c642592f65b84b9d3403ed469d5bfbb4038c43f08df950dd67"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the replaced run does not pass the filled pins",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_d2_accepts_the_plant_and_decoy_pools",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_d2_output_equals_score_classifier_with_the_hand_filled_pins_document",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_d2_output_equals_score_classifier_on_a_scratch_tree_filled_in_place",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_run_is_restored_and_the_w1_module_untouched",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_prints_the_d2_facts_text_free",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_run_classifier_replaces_exactly_run",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_the_filled_file_changed_after_the_check_refuses",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_other_pools_behave_as_before",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier_by_name::test_the_by_name_modules_are_unchanged_by_the_wrapper",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier_by_name::test_a_non_refusal_exception_inside_the_classifier_run_propagates_out_of_main"
+      ],
+      "failures": 10,
+      "id": "DSC-pins-not-passed",
+      "outcome": "killed",
+      "part": "D-2 J8 wrapper run",
+      "seconds": 40.7,
+      "skipped": 0,
+      "targets": {
+        "d2_score_classifier.py": {
+          "after": "965b95e62728eb85920c1a7d513153a736dcdfc6c81547b627462717adef592c",
+          "before": "e7507d1260b569c642592f65b84b9d3403ed469d5bfbb4038c43f08df950dd67"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the filled file is read at call time without its checked SHA-256",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_the_filled_file_changed_after_the_check_refuses"
+      ],
+      "failures": 1,
+      "id": "DSC-pins-not-reread-by-hash",
+      "outcome": "killed",
+      "part": "D-2 J8 wrapper run",
+      "seconds": 38.4,
+      "skipped": 0,
+      "targets": {
+        "d2_score_classifier.py": {
+          "after": "f31948503f1f2546d7a75651438ee16ba81402579e7f2d9a57cd92e3c765dce0",
+          "before": "e7507d1260b569c642592f65b84b9d3403ed469d5bfbb4038c43f08df950dd67"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "run is not restored after the call",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_run_is_restored_and_the_w1_module_untouched",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_run_classifier_replaces_exactly_run",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_the_restore_after_an_exception",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_the_restore_after_a_refusal",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier_by_name::test_the_by_name_modules_are_unchanged_by_the_wrapper",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier_by_name::test_a_non_refusal_exception_inside_the_classifier_run_propagates_out_of_main"
+      ],
+      "failures": 6,
+      "id": "DSC-not-restored",
+      "outcome": "killed",
+      "part": "D-2 J8 wrapper run",
+      "seconds": 36.6,
+      "skipped": 0,
+      "targets": {
+        "d2_score_classifier.py": {
+          "after": "e2e0857ebfa930cab9bcf7f1b13c528af3e31d0a9d3a1dd2b9d3841c47576195",
+          "before": "e7507d1260b569c642592f65b84b9d3403ed469d5bfbb4038c43f08df950dd67"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "run is restored only when main() returns",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_the_restore_after_an_exception",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier_by_name::test_the_by_name_modules_are_unchanged_by_the_wrapper",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier_by_name::test_a_non_refusal_exception_inside_the_classifier_run_propagates_out_of_main"
+      ],
+      "failures": 3,
+      "id": "DSC-restore-not-in-finally",
+      "outcome": "killed",
+      "part": "D-2 J8 wrapper run",
+      "seconds": 36.5,
+      "skipped": 0,
+      "targets": {
+        "d2_score_classifier.py": {
+          "after": "dc69d9ca1d1787800f6ad0a7f5af2bc22a1be54cbf6c930e698981a7abdd7ddb",
+          "before": "e7507d1260b569c642592f65b84b9d3403ed469d5bfbb4038c43f08df950dd67"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the W1 score_classifier imported by name gets the filled run too",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_d2_accepts_the_plant_and_decoy_pools",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_d2_output_equals_score_classifier_with_the_hand_filled_pins_document",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_d2_output_equals_score_classifier_on_a_scratch_tree_filled_in_place",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_run_is_restored_and_the_w1_module_untouched",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_prints_the_d2_facts_text_free",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_other_pools_behave_as_before",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier_by_name::test_the_by_name_modules_are_unchanged_by_the_wrapper"
+      ],
+      "failures": 7,
+      "id": "DSC-w1-module-also-patched",
+      "outcome": "killed",
+      "part": "D-2 J8 wrapper run",
+      "seconds": 40.5,
+      "skipped": 0,
+      "targets": {
+        "d2_score_classifier.py": {
+          "after": "95cd2af0e7857eced9865d54f06d80c8514823f7bec7f707284dd960ce101961",
+          "before": "e7507d1260b569c642592f65b84b9d3403ed469d5bfbb4038c43f08df950dd67"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the --pool arguments are not forwarded",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_d2_accepts_the_plant_and_decoy_pools",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_d2_output_equals_score_classifier_with_the_hand_filled_pins_document",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_d2_output_equals_score_classifier_on_a_scratch_tree_filled_in_place",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_the_restore_after_a_refusal",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_other_pools_behave_as_before",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_forwarded_arguments_are_score_classifiers_own",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier_by_name::test_the_by_name_modules_are_unchanged_by_the_wrapper"
+      ],
+      "failures": 7,
+      "id": "DSC-pools-dropped",
+      "outcome": "killed",
+      "part": "D-2 J8 CLI",
+      "seconds": 44.2,
+      "skipped": 0,
+      "targets": {
+        "d2_score_classifier.py": {
+          "after": "06697c4a5b61df67bfcf72987b9d400c78d8f32c109c0c5541fc73bd4a943e97",
+          "before": "e7507d1260b569c642592f65b84b9d3403ed469d5bfbb4038c43f08df950dd67"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "--settings is not forwarded",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_d2_accepts_the_plant_and_decoy_pools",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_d2_output_equals_score_classifier_with_the_hand_filled_pins_document",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_d2_output_equals_score_classifier_on_a_scratch_tree_filled_in_place",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_run_is_restored_and_the_w1_module_untouched",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_main_prints_the_d2_facts_text_free",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_the_restore_after_a_refusal",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_the_filled_file_changed_after_the_check_refuses",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_other_pools_behave_as_before",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_forwarded_arguments_are_score_classifiers_own",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier_by_name::test_the_by_name_modules_are_unchanged_by_the_wrapper",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier_by_name::test_a_non_refusal_exception_inside_the_classifier_run_propagates_out_of_main"
+      ],
+      "failures": 11,
+      "id": "DSC-settings-not-forwarded",
+      "outcome": "killed",
+      "part": "D-2 J8 CLI",
+      "seconds": 16.1,
+      "skipped": 0,
+      "targets": {
+        "d2_score_classifier.py": {
+          "after": "4b248b5fb17905046ae23c7b63d7a2196ee0f4cf9e6ef5c11c537ebc8b10f9f4",
+          "before": "e7507d1260b569c642592f65b84b9d3403ed469d5bfbb4038c43f08df950dd67"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the by-name representation_pass gets the filled pins' SHA-256 as its POOL_PINS_SHA256 and keeps it (never restored)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier_by_name::test_the_by_name_modules_are_unchanged_by_the_wrapper"
+      ],
+      "failures": 1,
+      "id": "DSC-by-name-pins-sha256-leak",
+      "outcome": "killed",
+      "part": "D-2 J8 fix round",
+      "seconds": 33.2,
+      "skipped": 0,
+      "targets": {
+        "d2_score_classifier.py": {
+          "after": "0e2a06a7f024dd795e1bab192d9d7eb883c7764077465bfa646f19b78aff32d8",
+          "before": "e7507d1260b569c642592f65b84b9d3403ed469d5bfbb4038c43f08df950dd67"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the by-name representation_pass gets the filled pins file as its POOL_PINS_PATH and keeps it (never restored)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_run_is_restored_and_the_w1_module_untouched",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier_by_name::test_the_by_name_modules_are_unchanged_by_the_wrapper"
+      ],
+      "failures": 2,
+      "id": "DSC-by-name-pins-path-leak",
+      "outcome": "killed",
+      "part": "D-2 J8 fix round",
+      "seconds": 35.5,
+      "skipped": 0,
+      "targets": {
+        "d2_score_classifier.py": {
+          "after": "629c607da97c42aa28ea39ef06bddb5784594f19933b04929740ac3772f9ef90",
+          "before": "e7507d1260b569c642592f65b84b9d3403ed469d5bfbb4038c43f08df950dd67"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "the by-name representation_pass's load_pool_pins gets the filled file and its SHA-256 as its defaults and keeps them (never restored)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_run_is_restored_and_the_w1_module_untouched",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier::test_other_pools_behave_as_before",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier_by_name::test_the_by_name_modules_are_unchanged_by_the_wrapper"
+      ],
+      "failures": 3,
+      "id": "DSC-by-name-load-defaults-leak",
+      "outcome": "killed",
+      "part": "D-2 J8 fix round",
+      "seconds": 33.1,
+      "skipped": 0,
+      "targets": {
+        "d2_score_classifier.py": {
+          "after": "456dd52ff01a30e305759d44249b0f254b8c62b4ead0e5cd5b27064d70a485de",
+          "before": "e7507d1260b569c642592f65b84b9d3403ed469d5bfbb4038c43f08df950dd67"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "only when score_classifier's main raises: the by-name representation_pass gets the filled pins' SHA-256 as its POOL_PINS_SHA256 and keeps it",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier_by_name::test_the_by_name_modules_are_unchanged_by_the_wrapper"
+      ],
+      "failures": 1,
+      "id": "DSC-by-name-leak-after-an-exception",
+      "outcome": "killed",
+      "part": "D-2 J8 fix round",
+      "seconds": 35.0,
+      "skipped": 0,
+      "targets": {
+        "d2_score_classifier.py": {
+          "after": "cecab55bd5b5ef0e2dd9039adbe0f7fa17f764e9d88cf5e1b863a6d12ba4a549",
+          "before": "e7507d1260b569c642592f65b84b9d3403ed469d5bfbb4038c43f08df950dd67"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "only when score_classifier's main refuses (non-zero exit): the by-name representation_pass gets the filled pins' SHA-256 as its POOL_PINS_SHA256 and keeps it",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier_by_name::test_the_by_name_modules_are_unchanged_by_the_wrapper"
+      ],
+      "failures": 1,
+      "id": "DSC-by-name-leak-after-a-refusal",
+      "outcome": "killed",
+      "part": "D-2 J8 fix round",
+      "seconds": 36.6,
+      "skipped": 0,
+      "targets": {
+        "d2_score_classifier.py": {
+          "after": "b07115dead415bd1e79fdc75696078d33c0bb4c4185152481e0b88dd3af7e8b4",
+          "before": "e7507d1260b569c642592f65b84b9d3403ed469d5bfbb4038c43f08df950dd67"
+        }
+      },
+      "tests": 135
+    },
+    {
+      "describes": "main() turns every exception, not only a refusal, into exit 2 'REFUSED ... (nothing written)'",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier_by_name::test_the_by_name_modules_are_unchanged_by_the_wrapper",
+        "scripts.stage1_s1.d2_pool_pins.tests.test_d2_score_classifier_by_name::test_a_non_refusal_exception_inside_the_classifier_run_propagates_out_of_main"
+      ],
+      "failures": 2,
+      "id": "DSC-catch-all-exceptions",
+      "outcome": "killed",
+      "part": "D-2 J8 fix round",
+      "seconds": 40.5,
+      "skipped": 0,
+      "targets": {
+        "d2_score_classifier.py": {
+          "after": "9d4b21db9c5695d48593ee15f99ef7cb457a936cb8dd632d161f3be1921e5a3d",
+          "before": "e7507d1260b569c642592f65b84b9d3403ed469d5bfbb4038c43f08df950dd67"
+        }
+      },
+      "tests": 135
+    }
+  ],
+  "pytest_version": "pytest 8.4.2",
+  "python": "3.11.15",
+  "representation_pass_sha256": "fb62bcaaaa35595a52de5a4217754cb390ffb4ba49e04dec6e515d7e3cebb8d9",
+  "rule": "killed = exit 1 with >= 1 failure and 0 errors; survived = exit 0, 0 failures, 0 errors; anything else (errors, timeout, other exit codes, no JUnit, a test count other than the baseline's) = invalid; an 'expect: survive' entry passes only if it survives",
+  "runner_sha256": "3d5f788fae8d1cf4a4d2b9df2d9a57a180a9109425e6661bd72d0210fd2cf65f",
+  "shard": null,
+  "spec": "scripts/stage1_s1/d2_pool_pins/mutation/mutants_d2.json",
+  "spec_sha256": "23d7288d04497f196cc3a114d624fc79057ac62c69604e1d7f8f909c8d07335d",
+  "summary": {
+    "D-2 J8 CLI": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 3,
+      "mutants": 3,
+      "survived": 0
+    },
+    "D-2 J8 fix round": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 6,
+      "mutants": 6,
+      "survived": 0
+    },
+    "D-2 J8 settings and load": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 11,
+      "mutants": 11,
+      "survived": 0
+    },
+    "D-2 J8 wrapper run": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 7,
+      "mutants": 7,
+      "survived": 0
+    },
+    "D-2 REQ-8 record": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 12,
+      "mutants": 12,
+      "survived": 0
+    },
+    "D-2 fill and filled check": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 10,
+      "mutants": 10,
+      "survived": 0
+    },
+    "D-2 fix round": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 3,
+      "mutants": 3,
+      "survived": 0
+    },
+    "D-2 fixture guard": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 1,
+      "mutants": 1,
+      "survived": 0
+    },
+    "D-2 load_base (W1 files)": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 12,
+      "mutants": 12,
+      "survived": 0
+    },
+    "D-2 wrapper run": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 1,
+      "invalid": 0,
+      "killed": 12,
+      "mutants": 13,
+      "survived": 0
+    },
+    "V base": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 2,
+      "mutants": 2,
+      "survived": 0
+    },
+    "V fill": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 3,
+      "mutants": 3,
+      "survived": 0
+    },
+    "V record": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 2,
+      "mutants": 2,
+      "survived": 0
+    },
+    "V run": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 5,
+      "mutants": 5,
+      "survived": 0
+    },
+    "fidelity": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 3,
+      "mutants": 3,
+      "survived": 0
+    }
+  },
+  "timeout_seconds": 300,
+  "tree_name": "scripts/stage1_s1/d2_pool_pins",
+  "version": 2
+}
