@@ -442,3 +442,19 @@ The read-only brief is `b15-brief.md` in the lead's worktree, `tmp/claude-worksp
 - **Q18:** stages 1b and 1c are outside B15's first scope.
 
 **Not the lead's:** the funding-event definition (FR-15, LN-16, W1 record (a) rule 5) is the user's. No stage-1 block starts until it is answered, and no stage-1 run is paid from the Gate B balance.
+
+## 18. REQ-6 stopped: the S-pool has 947 rows, not 1,000. Post-W1 deviation D-1, the S3 subset size (2026-10-23T13:35 UTC; decided by the lead under the user's delegation)
+
+**Facts (M: the lead's Mac run of `scripts/stage1/build_s_pool.py` at main 721c58f, 13:32 UTC, engine X, counts only, nothing written).** Candidates 1,057. N after each filter: empty 1,057; control_string 1,057; exact_overlap 1,051 (6 equal an anchor prompt); near_duplicate 1,044 (6 near an anchor prompt, 1 near a hidden-bank form); encode_train 1,044; generation_prompt 1,044; first_per_prompt 947 (97 repeated prompts). N = 947 is below `min_pool` = 1,000, so the frozen stop applied (§8 record (1); REV4 §1.3 "stops with counts only if N < 1,000"; "report to the lead"). The brief's "about 2,600 prompts" was a planning estimate (E). The candidate rule is "fixed whatever any count shows" (W1R item 26), so it does not change. REQ-4 ran first and passed (12 files in S1OUT `r-draws/`).
+
+**Ruling D-1.**
+1. Unchanged: the candidate rule, every filter and its order, S1 (48), the S4 candidates (512), the refusal decoy (37 rows, W1R item 23), every sealed order and label, and every W1 file. The W1 manifest never changes.
+2. The S3 subset is the first k ids of sealed_order(S-pool ids, `s3.subset`). k is the largest integer k ≤ 1,000 for which at least 37 S-pool rows lie outside S1 ∪ (the first k) ∪ the S4 candidates. The rule reads ids and sealed orders only, never a model output. E: k is about 856 at N = 947. The subset keeps its role: a sealed candidate pool whose size limits cost (PLAN-S:146). S3 still trains on its top 48 by REQ-11's score.
+3. The stop becomes: N < 597 (48 + 512 + 37), or no k ≥ 48 meets point 2, or a list cannot be filled. A stop gives counts only.
+4. Code: a new wrapper package `scripts/stage1_s1/d1_spool/` (own settings pinned by SHA-256, tests, mutation spec). It loads `build_s_pool.py` by path after its SHA-256 check and reuses its functions; it changes only the S3 subset size rule and the stop. Its record carries the planned size (1,000), N, k, the count outside the lists, and this section's reference.
+5. Every consumer of the S3 subset (REQ-3's `s3_safe` pool, REQ-9, REQ-11, REQ-8's decoy draw, the pool pins) is checked for a fixed size of 1,000. A consumer that refuses another size gets the same treatment: a wrapper, never an edit of a W1 file.
+6. The R+S1 combined edits (REQ-7) use the sealed Gate B files R_d2–R_d4 (`.ai/inputs/gate-b-sealed-20261008/out/edits/`), which REQ-4 reproduced byte for byte.
+7. **Pre-set fallback.** Trigger: the wrapper is not verified after one fix round, or k < 600. Then the S3 subset is all N rows in the sealed order and the decoy is not built. The paper reports W1-09's check as "not built: the S-pool was too small".
+8. The wrapper runs on engine X, like every W1 script (§13 point 1).
+
+**Paper consequence.** S3's candidate pool is k prompts (about 856), not 1,000. The methods section reports N, k and this rule.
