@@ -426,3 +426,19 @@ B16 (`scripts/stage1_s1/reading/`, 26 files; workflow wf_70d308dc: a Fable build
 2. **LN-35's text gets one sentence at the S1 freeze:** a step that floors an arm does not end the fit (the stats-F1 fix).
 3. **The per-actor best data arm is "better and feasible"**, as rev 4 §4.6 and LN-08's title state; §9.4's "among feasible arms" is read the same way.
 4. The size, coverage and familywise-error simulations are not re-run on the final code; they run once more, at the S1 freeze.
+
+## 17. B15, the stage-1 run kit: the lead's rulings on the brief's open questions (2026-10-23T01:29 UTC; decided by the lead under the user's delegation)
+
+The read-only brief is `b15-brief.md` in the lead's worktree, `tmp/claude-workspaces/stage1-integrate-20261017/notes/` (wf_cd858ed5, Opus). It lists 19 job kinds, the gates G0–G6, the money rules and the reuse of the Gate B kit. The lead adopts the brief's proposed default for every open question Q1–Q20, as written there. Highlights:
+- **Q1:** W1-18 is the only job on the first stage-1 pod, so FOCUS records its branch before any 500-bank job is planned.
+- **Q3:** the arms are dealt across pods by a fixed, outcome-free rule recorded in plan.json before launch.
+- **Q4:** new arms use recipe S, with training identity f46279e5… checked.
+- **Q5:** the 4-per-pod count covers training arms and each eval-only point.
+- **Q6 and Q7:** no stage-1 pod launches while a Gate B launch is pending, and B15's guard reserves Gate B's remaining worst-path need while Gate B is open.
+- **Q8:** a block's funding record covers B15's cap-based need (block A about $77–94), not rev 4's $60–74 spend estimate.
+- **Q9:** oext_eval.py comes from the S1 merge now running, with its fallback (c) as written.
+- **Q14:** the reused units are re-judged, so each contrast uses one judge device.
+- **Q16 and Q17:** the SP prefix mode and the C2 certificate refuse until their text and thresholds are recorded.
+- **Q18:** stages 1b and 1c are outside B15's first scope.
+
+**Not the lead's:** the funding-event definition (FR-15, LN-16, W1 record (a) rule 5) is the user's. No stage-1 block starts until it is answered, and no stage-1 run is paid from the Gate B balance.
