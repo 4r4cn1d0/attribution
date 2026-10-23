@@ -1,0 +1,322 @@
+{
+  "adapter": {
+    "acceptance_rule": "REF R.0.7: an input adapter is accepted only if its engine fingerprint (lora_fingerprint over the sorted names, shapes and float32 bytes) equals the Gate A a0 unit's e1 adapter_fingerprint at that seed (from each unit's states/e1/state.json); a state folder must also hash to its state.json, carry that fingerprint and name the checkpoint, arm and seed below; the adapter file's SHA-256 is recorded, never required",
+    "accepted": {
+      "1101": {
+        "fingerprint": "aad79060c52304ecd1b3d0a24b26281da7d147b0fc4a2754ba3a9b323bfae1ec",
+        "gate_a_adapter_file_sha256": "21889885d790239f9e70186636ddbb5e5219c51d02b33ce0741acf04221d9417"
+      },
+      "1102": {
+        "fingerprint": "7c9111c2093b00f2fc3603b64f7336fa56dddb93166d74a0f8ac5f1133b90c57",
+        "gate_a_adapter_file_sha256": "ce0ba7149291f1e030029b0a71b3a2a8bd8e4f86c64bc1a0798994d077c09b1e"
+      },
+      "1103": {
+        "fingerprint": "b1ad020bc8d1b1c1c1c3410e1d7c058c88708de3662adaa3a4f4da6f203ab5ba",
+        "gate_a_adapter_file_sha256": "251a647012d5b4cb066a80af096fe0f68cb7ca85d78985d22dc6d5a560f61077"
+      }
+    },
+    "blocks": 16,
+    "dtype": "float32",
+    "key_rule": "base_model.model.<module>.lora_<A|B>.default.weight with <module> = model.layers.<block>.<self_attn|mlp>.<proj> (the engine's PEFT names)",
+    "lora_alpha": 128,
+    "matrices": 112,
+    "modules": [
+      "q_proj",
+      "k_proj",
+      "v_proj",
+      "o_proj",
+      "gate_proj",
+      "up_proj",
+      "down_proj"
+    ],
+    "parameters": 48234496,
+    "rank": 64,
+    "state_checks": {
+      "arm": "a0",
+      "checkpoint": "e1"
+    }
+  },
+  "draws": "none: Safe LoRA draws no random number, so it adds no seed label (ADD L13; REF section 0 item 3)",
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "kind": "stage1 settings",
+  "label_entries": {},
+  "labels_sha256": "6d1415bd139c39bce1b912291cfc319a9305503e1d3e9adf1cebafef870ce21b",
+  "models": {
+    "aligned": {
+      "dtype": "bfloat16",
+      "files": [
+        {
+          "bytes": 2969854224,
+          "file": "model.safetensors",
+          "sha256": "36d044c73655bb904f822915e6294ba3dae8e6e1af5e703e9d452f2d6a3a294f"
+        }
+      ],
+      "repo_id": "allenai/OLMo-2-0425-1B-Instruct",
+      "revision": "48d788eca847d4d7548f375ad03d3c9312f6139e",
+      "role": "the aligned model: the untuned model of every arm (REC model.repo_id and model.revision)",
+      "source": "REC; the Gate A 1101 a0 unit's assets.json lists this snapshot's model.safetensors with this size and LFS SHA-256 (sources.gate_a_assets_1101)"
+    },
+    "unaligned": {
+      "download": "never to the Mac; onto the Safe LoRA pod by the stage-1 kit (B15) with revision = this full commit, never main (addendum section 11 point 6; section 13 point 3), only after the user's approval of the download (LN-18; REF UQ1; PREREG FC-21); download_pin() gives the repository and the commit",
+      "dtype": "float32",
+      "files": [
+        {
+          "bytes": 4983360992,
+          "file": "model-00001-of-00002.safetensors",
+          "sha256": "c52e4ac8bf4867e698d908f9e8c2b84aa891b91dff066d46bf2a7cf453ad77fb"
+        },
+        {
+          "bytes": 956326560,
+          "file": "model-00002-of-00002.safetensors",
+          "sha256": "5f80762572fe28aca49b01b98895d96ca529b9792fc10925a977a161ad768d30"
+        }
+      ],
+      "gated": false,
+      "hub_files": [
+        {
+          "git_blob_id": "a6344aac8c09253b3b630fb776ae94478aa0275b",
+          "lfs_sha256": null,
+          "rfilename": ".gitattributes",
+          "size": 1519
+        },
+        {
+          "git_blob_id": "f4f00dd2b735b5127e40f54196d8ded341102da5",
+          "lfs_sha256": null,
+          "rfilename": "README.md",
+          "size": 12892
+        },
+        {
+          "git_blob_id": "0e6dffcd9b40b734014ef9909d6bc7b62c4c1fe1",
+          "lfs_sha256": null,
+          "rfilename": "config.json",
+          "size": 623
+        },
+        {
+          "git_blob_id": "5b349a5ba3b23008b50aaed4b394b269a138e6f8",
+          "lfs_sha256": null,
+          "rfilename": "generation_config.json",
+          "size": 121
+        },
+        {
+          "git_blob_id": "354558edcdbd64ca7abd407b8be3d5d09d39d781",
+          "lfs_sha256": null,
+          "rfilename": "merges.txt",
+          "size": 916646
+        },
+        {
+          "git_blob_id": "b9ffb9d713594e086304ee87465d8486fd2f7e77",
+          "lfs_sha256": "c52e4ac8bf4867e698d908f9e8c2b84aa891b91dff066d46bf2a7cf453ad77fb",
+          "rfilename": "model-00001-of-00002.safetensors",
+          "size": 4983360992
+        },
+        {
+          "git_blob_id": "ba23e835a4281771786fd8623cc5988f545014f3",
+          "lfs_sha256": "5f80762572fe28aca49b01b98895d96ca529b9792fc10925a977a161ad768d30",
+          "rfilename": "model-00002-of-00002.safetensors",
+          "size": 956326560
+        },
+        {
+          "git_blob_id": "64893bc51d60e692025d2d041ac1d28a22284e2c",
+          "lfs_sha256": null,
+          "rfilename": "model.safetensors.index.json",
+          "size": 14873
+        },
+        {
+          "git_blob_id": "68a9a42af03ba45d68358595d49dc70b10159c12",
+          "lfs_sha256": null,
+          "rfilename": "special_tokens_map.json",
+          "size": 125
+        },
+        {
+          "git_blob_id": "5fe172127988c3709a49d8d2ce20e11bb266cd57",
+          "lfs_sha256": null,
+          "rfilename": "tokenizer.json",
+          "size": 7137177
+        },
+        {
+          "git_blob_id": "f9e5ee94cf605b587aa8021f7e27e7d5381c07b7",
+          "lfs_sha256": null,
+          "rfilename": "tokenizer_config.json",
+          "size": 4345
+        },
+        {
+          "git_blob_id": "51135344eec01a62fc4deaca39c72ac08f5b9709",
+          "lfs_sha256": null,
+          "rfilename": "vocab.json",
+          "size": 1611056
+        }
+      ],
+      "hub_files_rule": "every repository file at the pinned commit: rfilename, size, git_blob_id (the git object id) and lfs_sha256 (null for a file stored in git). B11 reads only the two safetensors files, checked by name, bytes and full SHA-256; the other ten files are pinned for the kit's download record and are not read here",
+      "licence": "Apache-2.0",
+      "repo_id": "allenai/OLMo-2-0425-1B",
+      "revision": "a1847dff35000b4271fa70afc5db10fd29fedbdf",
+      "role": "the unaligned model: the base model of the Instruct model (P section 3.1's default pair)",
+      "source": "the lead's Hub metadata record tmp/gi-vi-stage1/olmo2-0425-1b-base-pins.json (sources.base_pins; metadata only, no weights downloaded; addendum section 11 point 6): the full commit, all 12 repository files with their sizes and git blob ids, the two LFS SHA-256 values, the licence (Apache-2.0), not gated, and the stored dtype (F32 only). The earlier prefixes (SL section 6; REF R.1.3 row 3) are the starts of these values",
+      "stored_dtype": {
+        "F32": 1484916736
+      },
+      "stored_dtype_rule": "the stored values per safetensors dtype over every tensor of the snapshot's safetensors files, read from the file headers before any arithmetic: exactly these counts",
+      "total_bytes": 5939687552
+    }
+  },
+  "name": "safe_lora",
+  "outputs": {
+    "adapter": "adapter.safetensors",
+    "check_record": "safe_lora_check.json",
+    "record": "safe_lora_record.json",
+    "timing": "safe_lora_timing.json"
+  },
+  "owner": "scripts/stage1_s1/safe_lora.py",
+  "pin_rule": "a pinned lowercase hex value matches an observed one when the observed one starts with it, so a full-length pin (40 hex for a commit, 64 for a file) requires equality; a commit pin has at least 8 hex characters and a file pin at least 12. The snapshot folder's name is the observed commit (the Hugging Face cache layout); its top-level safetensors files must match the file pins one to one (SHA-256, and the file name and byte count where pinned) and their sizes must sum to total_bytes where pinned. Every observed full value is written into the record",
+  "recipe": {
+    "path": "experiments/safety_selection/configs/study-kt-olmo2-1b-r64-b-mb4-20261008.json",
+    "sha256": "a47138f2f4fb032aa60addc59256c499b7a65a75c2541aba516adeed8f4b15b2"
+  },
+  "report": {
+    "builder_diagnostics": {
+      "base_bf16_rounding_share": "report only; added by the builder, not in REF R.1.3 row 14 (the lead may drop it): ||W_i unaligned - float32(bfloat16(W_i unaligned))||_F / ||V_i||_F. The aligned weights are stored in bfloat16, so V_i holds one bfloat16 rounding of weights of this size; a share near or above 1 means that V_i is mostly storage rounding, not post-training"
+    },
+    "check": "the $0 weight-only check (REF R.1.5; LQ13): the record for both points and no adapter. The rule and K are fixed before it and never change after it",
+    "flags": {
+      "mapped_rho_above_1": "report only: a mapped matrix whose update grows (rho > 1); no stop rule (REF LQ13)"
+    },
+    "per_matrix": [
+      "name",
+      "block",
+      "module",
+      "shape",
+      "v_norm",
+      "cosine",
+      "rho",
+      "rank",
+      "mapped",
+      "base_bf16_rounding_share"
+    ],
+    "per_point": [
+      "k",
+      "status",
+      "kth_cosine",
+      "next_cosine",
+      "boundary_ties",
+      "mapped",
+      "module_mix",
+      "block_mix",
+      "mapped_rho_above_1",
+      "rho_of_mapped"
+    ],
+    "tau_rules": {
+      "official_code_rounded_at_or_below": "numpy.round(cos_i, 5) <= tau (C model.py)",
+      "paper_strict_below": "cos_i < tau (P Eq. 3)"
+    },
+    "taus": [
+      0.35,
+      0.5
+    ],
+    "timing": "REF section C.9 (the transform's cost: the record gives the measured value; VR m2): both commands also write safe_lora_timing.json, wall-clock seconds by time.monotonic for read_adapter (the settings and the input adapter), hash_snapshots (both snapshots against their pins), transform (the arithmetic, the record and the output bytes) and total; writing the files is not included. It is kept apart so that the record stays byte-identical on a re-run, and it names the SHA-256 of every other file written with it"
+  },
+  "requirement": "B11 (stage-1 plan inventory RS B11; reference pre-registration draft REF revision 2 sections R.1, R.1.4 and R.1.5; merged stage-1 pre-registration draft revision 2 section 5.4): the Safe LoRA transform as a post-hoc CPU state transform, its $0 weight-only check and its model pins; no engine change",
+  "sources": {
+    "ADD": {
+      "path": ".ai/briefs/stage1-commitments-build-20261016-lead-decisions.md",
+      "sha256": "07ab573c72205bd5096f47b34ace6408c7b78dbbe5dba12addad138de1b45844"
+    },
+    "ADD_rulings": {
+      "path": ".ai/briefs/stage1-commitments-build-20261016-lead-decisions.md",
+      "sections": "11 (points 5, 6, 8, 9) and 13 (point 3)",
+      "sha256": "c1a5a1011af44a14041e2156eb6bb1a8da934f5cdca03e3089acd80d87968888"
+    },
+    "PREREG_S1": {
+      "path": "research/experiments/2026-10-17-stage1-preregistration/stage1-preregistration-DRAFT.md",
+      "sha256": "9ff29fc15747cd4f038c629eae66e18ca16eace4080cb01b5731ca3970dfaeb2"
+    },
+    "REF": {
+      "path": "research/experiments/2026-10-17-stage1-prereg-references/stage1-prereg-references-DRAFT.md",
+      "sha256": "5835caaea22046748e367a55ebaee352f92076b841d47b3c0ac3a29a5381b399"
+    },
+    "RS": {
+      "path": "tmp/gi-v-stage1-plan/read-stage1.md",
+      "sha256": "6b19b4c2967f2629ec0f6e0ad42c1a22fc75dc5616029555b49f77a74dfb07c7"
+    },
+    "SL": {
+      "path": "research/experiments/2026-10-17-stage1-prereg-references/safe-lora.md",
+      "sha256": "d78a97d7eb74346d8405667a8b107d2beec657185ad35dea3d7c4cf73de6b368"
+    },
+    "SPEC": {
+      "path": "tmp/gi-v-steps-4-9/stage1-method-specs.md",
+      "sha256": "fceb7e1340932cc87fe79be2b9436d8f419718defb3b06490681b365e578b9ec"
+    },
+    "base_pins": {
+      "path": "tmp/gi-vi-stage1/olmo2-0425-1b-base-pins.json",
+      "sha256": "9bc9a9e999dd752df1519d07e7c7c5a9f0f542284a2f3ad0b821347fbd466577"
+    },
+    "gate_a_assets_1101": {
+      "path": "tmp/family-probe-olmo2-1b/retrieved/olmo2-1b-1101/tree/round1/1101-a0-e1-a1/assets.json",
+      "sha256": "eb5f3c8b8d1bf98f7b580303bb85cdd3916c9b8e78843b8e7e0e7453b4579879"
+    },
+    "gate_a_units": {
+      "1101": {
+        "complete_json_sha256": "8f0fa83a42ccc5edc54a5ee26ed63f49448c36d30adbd64e28b655678afee4c9",
+        "state_json_sha256": "1605e3f462cf1c3c559614ccf20670e471d1869bcb9ef1d38a4fb98f1ca4d2dd",
+        "unit": "tmp/family-probe-olmo2-1b/retrieved/olmo2-1b-1101/tree/round1/1101-a0-e1-a1"
+      },
+      "1102": {
+        "complete_json_sha256": "857f78bc0f49cc8a4902fbb6211f463daa7c7f44086257c4d752409a30ba0b25",
+        "state_json_sha256": "d310a10cd6aea99b59d2605a01afa69cf9a9886f07a97a8d015d5ef36d00ee12",
+        "unit": "tmp/family-probe-olmo2-1b-gateA-1102/retrieved/olmo2-1b-1102/tree/round1/1102-a0-e1-a1"
+      },
+      "1103": {
+        "complete_json_sha256": "7be58eaa9c5be7b8f94668109efd6aae075b1d001e0d2b1fb8be814556899cbd",
+        "state_json_sha256": "34b00a2579eca6ca214f0ccd0690db7e633de3dd479ad75f3160710d0f136f68",
+        "unit": "tmp/family-probe-olmo2-1b-gateA-1103/retrieved/olmo2-1b-1103/tree/round1/1103-a0-e1-a1"
+      }
+    }
+  },
+  "transform": {
+    "certify_rule": "the certify point maps nothing (K = 0, and no other K): its adapter is the source adapter (the same engine fingerprint; the same bytes for an engine-saved file). The $0 check reports the two reference points only",
+    "factor": "lora_B",
+    "lora_a": "kept byte for byte",
+    "merge": "none: the result stays a rank-64 PEFT adapter, evaluated unmerged through B10's script",
+    "operator": "fast_form_c",
+    "operator_rule": "B'_i = V_i (V_i^T B_i) / n_i with n_i = ||V_i||_F, computed in float64 from the float32 V_i and B_i (B_i = lora_B); C = V V^T / ||V||_F is never formed. The exact projector of Eq. 2 is not used: it is degenerate on these shapes (REF R.1.2)",
+    "points": {
+      "certify": {
+        "k": 0,
+        "status": "never a reference point: the REF R.1.4 certification (LQ11; RS D2); with K = 0 the B10 file path must reproduce a0's Gate A U exactly"
+      },
+      "conditional": {
+        "k": 12,
+        "status": "10.7% of 112: runs only if the user adds it (REF UQ9; PREREG FC-27); default no"
+      },
+      "default": {
+        "k": 39,
+        "status": "the one pre-registered point: 34.8% of 112 (REF R.1.3 row 10; LQ9)"
+      }
+    },
+    "ranking": "all matrices together, by (cos_i ascending, then the module name in Python string order)",
+    "refusals": "a pin mismatch; a missing, extra or misnamed matrix; a shape or dtype mismatch; a non-finite input or result; a zero V_i; a zero B_i A_i or B'_i A_i (the cosine is undefined); K outside 0..matrices; a certify point with K other than 0",
+    "rho": "rho_i = sqrt(<B'_i^T B'_i, G_i> / <B_i^T B_i, G_i>) = ||B'_i A_i||_F / ||B_i A_i||_F, in float64",
+    "rule": "top_k",
+    "rule_text": "a point maps exactly the first K matrices of the ranking (lora_B <- float32(B'_i)); every other lora_B and every lora_A is kept byte for byte",
+    "similarity": "cos_i = <B'_i^T B_i, G_i> / sqrt(<B'_i^T B'_i, G_i> * <B_i^T B_i, G_i>), with G_i = A_i A_i^T (A_i = lora_A) and <X, Y> = the sum of X * Y, all in float64 from the float64 B'_i, no rounding. It equals the Frobenius cosine of B'_i A_i with B_i A_i; the LoRA scale alpha/r cancels",
+    "torch_threads": 1,
+    "written_lora_b": "float32(B'_i): one rounding of the float64 result"
+  },
+  "v_diagnostic": {
+    "measure": "per matrix ||V_i - V'_i||_F / ||V_i||_F in float64 from the float32 V_i and V'_i; each matrix's cosine and rank under V and under V' (the transform's own similarity and ranking rule); the mapped set of the point (K = 39, the fast form) under V and under V', and whether it changes",
+    "outcomes": {
+      "changes": "the mapped set changes: V' runs as a report-only point at the Safe LoRA seeds (block B); its cost is stated then (addendum 11.8)",
+      "same": "the mapped set does not change: the question is closed (addendum 11.8)"
+    },
+    "output": "safe_lora_vcheck.json",
+    "point": "default",
+    "rule": "addendum section 11 point 8: REF R.1.3 row 5 stands as primary (V is the float32 difference of the stored weights; the Instruct model is stored in BF16, the base in F32). The diagnostic is report only: it writes no adapter and changes no K and no rule",
+    "v_prime": "V'_i = float32(W_i aligned) - float32(bfloat16(W_i unaligned)): the unaligned weight rounded once to bfloat16, the aligned model's storage dtype, then the same float32 subtraction",
+    "when": "addendum section 13 point 3: the Safe LoRA pod job (B15) runs the vcheck command before the projection (the transform command), on the pod, with both snapshots downloaded at their pinned commits; nothing is downloaded to the Mac"
+  },
+  "version": 1,
+  "weights": {
+    "dtype_rule": "every weight read must have its model's pinned dtype",
+    "key_rule": "<module>.weight in the model's safetensors files, read by exact name, never by position; every weight lies in exactly one file of its snapshot",
+    "v": "V_i = float32(W_i aligned) - float32(W_i unaligned): one elementwise subtraction in float32 (the bfloat16 to float32 cast is exact)"
+  }
+}

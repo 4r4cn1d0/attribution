@@ -1,0 +1,670 @@
+{
+  "kind": "stage1 mutants",
+  "version": 1,
+  "part": "B17 (the lean-evaluation job for c0): mutants of the C-lean contents, the checks before any folder, the cold start and state checks, the seal, timing and the record, verification, the settings and the command line; run with T1's runner from the mirror of mutation/b17_mirror.py. Fix round (17 Oct): the 13 verifier mutants of notes/B17-verify.md section 6 (B17-V-*), 5 mutants of the S1, S2 and S5 fixes, and one legal labels.json append that must survive (S3)",
+  "mutants": [
+    {
+      "id": "B17-sample-index-shifted",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the sampled answer takes sample index 1 (another seed) instead of 0",
+      "file": "lean_eval_job.py",
+      "find": "index = plan.settings[\"lean\"][\"sample_index\"]",
+      "replace": "index = plan.settings[\"lean\"][\"sample_index\"] + 1"
+    },
+    {
+      "id": "B17-greedy-harm-answers-added",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "greedy answers to the harm prompts join the over-refusal greedy answers",
+      "file": "lean_eval_job.py",
+      "find": "or_items = list(plan.overrefusal)",
+      "replace": "or_items = list(plan.overrefusal) + list(plan.harm)"
+    },
+    {
+      "id": "B17-overrefusal-dropped",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "contents (a) loses its greedy over-refusal answers",
+      "file": "lean_eval_job.py",
+      "find": "overrefusal=overrefusal if parts[\"overrefusal_greedy\"] else (),",
+      "replace": "overrefusal=(),"
+    },
+    {
+      "id": "B17-task-rows-zero",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the plan records no task rows under (a)",
+      "file": "lean_eval_job.py",
+      "find": "task_rows=len(prepared.query_rows) if parts[\"task_loss_pass\"] else 0,",
+      "replace": "task_rows=0,"
+    },
+    {
+      "id": "B17-task-loss-always",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the task-loss pass runs under (b) too",
+      "file": "lean_eval_job.py",
+      "find": "if plan.parts[\"task_loss_pass\"]:",
+      "replace": "if True:"
+    },
+    {
+      "id": "B17-temperature-ignored",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the sampled answers ignore the recipe's temperature",
+      "file": "lean_eval_job.py",
+      "find": "temperature=sampling[\"temperature\"],",
+      "replace": "temperature=1.0,"
+    },
+    {
+      "id": "B17-greedy-max-tokens",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the over-refusal answers stop one token early",
+      "file": "lean_eval_job.py",
+      "find": "policy.model, or_prompts, max_new_tokens=gen[\"max_new_tokens\"],",
+      "replace": "policy.model, or_prompts, max_new_tokens=gen[\"max_new_tokens\"] - 1,"
+    },
+    {
+      "id": "B17-seed-shifted",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the sampled answers use another job seed",
+      "file": "lean_eval_job.py",
+      "find": "gen, seed = recipe[\"generation\"], plan.job[\"seed\"]",
+      "replace": "gen, seed = recipe[\"generation\"], plan.job[\"seed\"] + 1"
+    },
+    {
+      "id": "B17-guard-without-prompt",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the over-refusal answers are judged without their prompt",
+      "file": "lean_eval_job.py",
+      "find": "guarded = guard.score([(r[\"prompt_id\"], prompt_of[r[\"prompt_id\"]], r[\"text\"]) for r in records],",
+      "replace": "guarded = guard.score([(r[\"prompt_id\"], \"\", r[\"text\"]) for r in records],"
+    },
+    {
+      "id": "B17-over-limit-ignored",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the recipe's guard_over_limit is ignored (an over-limit judge input refuses)",
+      "file": "lean_eval_job.py",
+      "find": "over = {\"over_limit_unscored\": True} if gen.get(\"guard_over_limit\") == \"unscored\" else {}",
+      "replace": "over = {}"
+    },
+    {
+      "id": "B17-full-answers-greedy-only",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the full evaluation's answer count leaves out the sampled answers",
+      "file": "lean_eval_job.py",
+      "find": "return greedy + bank_kinds.get(\"harm\", 0) * recipe[\"generation\"][\"harm_samples\"][\"count\"]",
+      "replace": "return greedy"
+    },
+    {
+      "id": "B17-evaluate-bank-allowed",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "a run-one job with a full evaluation is accepted",
+      "file": "lean_eval_job.py",
+      "find": "if job[\"evaluate_bank\"] is not None:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B17-resume-allowed",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "a continuation is accepted (not full training)",
+      "file": "lean_eval_job.py",
+      "find": "if job[\"resume_from\"] is not None:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B17-target-unchecked",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "any target checkpoint is accepted",
+      "file": "lean_eval_job.py",
+      "find": "if job[\"target_checkpoint\"] != rules[\"target_checkpoint\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B17-group-arm-allowed",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "a group-removal arm is accepted",
+      "file": "lean_eval_job.py",
+      "find": "if job[\"arm\"] != \"a0\" and not is_edit_arm(job[\"arm\"]):",
+      "replace": "if False:"
+    },
+    {
+      "id": "B17-code-pin-unchecked",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "a job without the running engine's code pin is accepted",
+      "file": "lean_eval_job.py",
+      "find": "if job[\"code_sha256\"] != code[\"sha256\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B17-recipe-allow-list-dropped",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "any recipe is accepted",
+      "file": "lean_eval_job.py",
+      "find": "if recipe_sha not in allowed.values():",
+      "replace": "if False:"
+    },
+    {
+      "id": "B17-harm-samples-unchecked",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "a recipe without sampled harm answers is accepted",
+      "file": "lean_eval_job.py",
+      "find": "if \"harm_samples\" not in recipe[\"generation\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B17-counts-unchecked",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "bank counts other than the settings' are accepted",
+      "file": "lean_eval_job.py",
+      "find": "if found != expected:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B17-edit-hash-unchecked",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "an edit file that is not the arm is accepted",
+      "file": "lean_eval_job.py",
+      "find": "if arm_of(Path(job[\"edit\"]).read_bytes()) != job[\"arm\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B17-fingerprint-format-unchecked",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "a malformed expected fingerprint is accepted",
+      "file": "lean_eval_job.py",
+      "find": "if expected_fingerprint is not None and not _hex64(expected_fingerprint):",
+      "replace": "if False:"
+    },
+    {
+      "id": "B17-role-unchecked",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the role and split check is removed (the engine's access check with the dev bank still refuses every other role: an equivalent mutant)",
+      "file": "lean_eval_job.py",
+      "find": "if (job[\"role\"], job[\"split\"]) != (rules[\"role\"], rules[\"split\"]):",
+      "replace": "if False:",
+      "expect": "survive"
+    },
+    {
+      "id": "B17-cold-start-unchecked",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "a session that already loaded assets is accepted",
+      "file": "lean_eval_job.py",
+      "find": "if session.loaded_in:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B17-session-recipe-unchecked",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "a session with another recipe is accepted",
+      "file": "lean_eval_job.py",
+      "find": "if session.recipe_sha256 != plan.recipe_sha256:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B17-saved-state-unchecked",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the adapter in memory is not compared with the saved target state",
+      "file": "lean_eval_job.py",
+      "find": "if not fingerprint == saved == receipt[\"state\"][\"adapter_fingerprint\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B17-state-file-unchecked",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the saved state file is not compared with its receipt",
+      "file": "lean_eval_job.py",
+      "find": "if sha256_file(train_dir / \"states\" / target / en.STATE) != receipt[\"state_sha256\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B17-after-state-unchecked",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "a change of the adapter during the lean evaluation is not detected",
+      "file": "lean_eval_job.py",
+      "find": "if (en.lora_fingerprint(policy.named), policy.model.training) != before:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B17-wall-limit-dropped",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the job's wall limit no longer covers the lean evaluation",
+      "file": "lean_eval_job.py",
+      "find": "wall_limit_s=None if limit is None else limit - (marks[\"lean_start\"] - marks[\"train_start\"]))",
+      "replace": "wall_limit_s=None)"
+    },
+    {
+      "id": "B17-folder-verification-dropped",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the training and lean units are not verified before the record",
+      "file": "lean_eval_job.py",
+      "find": "problems = [f\"train: {p}\" for p in chain_problems(train_dir)] + [f\"lean: {p}\" for p in verify_files(unit_dir)]",
+      "replace": "problems = []"
+    },
+    {
+      "id": "B17-receipt-complete-unchecked",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "a training unit whose COMPLETE.json changed after the receipt is accepted",
+      "file": "lean_eval_job.py",
+      "find": "if sha256_file(train_dir / COMPLETE) != receipt[\"complete_sha256\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B17-output-tokens-in-ledger",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the sample stage's ledger record gains the answers' output tokens",
+      "file": "lean_eval_job.py",
+      "find": "info.update(prompt_tokens=sum(map(len, harm_prompts)))",
+      "replace": "info.update(prompt_tokens=sum(map(len, harm_prompts)), output_tokens=sum(len(g.output_ids) for g in sampled))"
+    },
+    {
+      "id": "B17-capped-in-progress",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the progress records gain the capped-answer count",
+      "file": "lean_eval_job.py",
+      "find": "ledger.progress(stage, checkpoint=checkpoint, batch=b, rows=len(index))",
+      "replace": "ledger.progress(stage, checkpoint=checkpoint, batch=b, rows=len(index), capped=sum(g.stop_reason == en.STOP_CAP for g in batch))"
+    },
+    {
+      "id": "B17-counts-readable",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the answer counts are written outside the sealed folder",
+      "file": "lean_eval_job.py",
+      "find": "sealed[\"counts.json\"] = _write_sealed(sealed_dir, \"counts.json\", canonical_json(counts))",
+      "replace": "sealed[\"counts.json\"] = _write_sealed(unit_dir, \"counts.json\", canonical_json(counts))"
+    },
+    {
+      "id": "B17-readable-scan-off",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the readable files are not scanned for texts",
+      "file": "lean_eval_job.py",
+      "find": "hits = _text_hits(path.read_bytes(), texts)",
+      "replace": "hits = 0"
+    },
+    {
+      "id": "B17-record-scan-off",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the record is not scanned for texts",
+      "file": "lean_eval_job.py",
+      "find": "hits = _text_hits(data, texts)",
+      "replace": "hits = 0"
+    },
+    {
+      "id": "B17-scan-threshold-raised",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the scan skips every text shorter than ten times the settings' minimum",
+      "file": "lean_eval_job.py",
+      "find": "return sorted({t for t in texts if len(t) >= min_chars})",
+      "replace": "return sorted({t for t in texts if len(t) >= 10 * min_chars})"
+    },
+    {
+      "id": "B17-category-map-ignored",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "every stage is put in the setup category",
+      "file": "lean_eval_job.py",
+      "find": "\"category\": stage_map.get(record[\"stage\"], \"unmapped\")}",
+      "replace": "\"category\": \"setup\"}"
+    },
+    {
+      "id": "B17-per-answer-denominator",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the sampled-answer seconds are divided by every judged item",
+      "file": "lean_eval_job.py",
+      "find": "\"sampled_harm\": _per(_stage_seconds(rows, LEAN_DIR, \"sample\"), summary[\"harm_sampled_answers\"]),",
+      "replace": "\"sampled_harm\": _per(_stage_seconds(rows, LEAN_DIR, \"sample\"), summary[\"guard_items\"]),"
+    },
+    {
+      "id": "B17-fingerprint-equal-inverted",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the expected-fingerprint comparison is inverted",
+      "file": "lean_eval_job.py",
+      "find": "else state[\"adapter_fingerprint\"] == plan.expected_fingerprint),",
+      "replace": "else state[\"adapter_fingerprint\"] != plan.expected_fingerprint),"
+    },
+    {
+      "id": "B17-process-age-field-21",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the process age reads field 23 instead of field 22",
+      "file": "lean_eval_job.py",
+      "find": "start_ticks = int(fields[19])",
+      "replace": "start_ticks = int(fields[20])"
+    },
+    {
+      "id": "B17-verify-sealed-hash-skipped",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "verify checks only that each sealed file exists",
+      "file": "lean_eval_job.py",
+      "find": "if not path.is_file() or sha256_file(path) != info[\"sha256\"]:",
+      "replace": "if not path.is_file():"
+    },
+    {
+      "id": "B17-verify-extra-entries-skipped",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "verify accepts extra entries in the job folder",
+      "file": "lean_eval_job.py",
+      "find": "    if extra:\n",
+      "replace": "    if False:\n"
+    },
+    {
+      "id": "B17-verify-record-kind-skipped",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "verify accepts a record of another kind",
+      "file": "lean_eval_job.py",
+      "find": "if not isinstance(record, dict) or record.get(\"kind\") != RECORD_KIND:",
+      "replace": "if not isinstance(record, dict):"
+    },
+    {
+      "id": "B17-settings-contents-unchecked",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "an unknown contents option is accepted",
+      "file": "lean_eval_job.py",
+      "find": "if lean[\"contents\"] not in options:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B17-settings-sample-index-unchecked",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "a sample index other than 0 is accepted",
+      "file": "lean_eval_job.py",
+      "find": "if lean[\"harm_samples_per_prompt\"] != 1 or lean[\"sample_index\"] != 0:",
+      "replace": "if lean[\"harm_samples_per_prompt\"] != 1:"
+    },
+    {
+      "id": "B17-settings-order-unchecked",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "an evaluation order other than the engine's is accepted",
+      "file": "lean_eval_job.py",
+      "find": "if lean[\"order\"] != LEAN_ORDER:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B17-settings-harm-sampled-not-required",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "a contents option without the sampled harm answers is accepted",
+      "file": "lean_eval_job.py",
+      "find": "if not all(isinstance(option[p], bool) for p in CONTENT_PARTS) or option[\"harm_sampled\"] is not True:",
+      "replace": "if not all(isinstance(option[p], bool) for p in CONTENT_PARTS):"
+    },
+    {
+      "id": "B17-settings-contents-b",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the committed settings choose contents (b)",
+      "file": "settings/lean_eval_job.json",
+      "find": "\"contents\": \"a\",",
+      "replace": "\"contents\": \"b\","
+    },
+    {
+      "id": "B17-settings-count-changed",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the committed settings expect 199 harm prompts",
+      "file": "settings/lean_eval_job.json",
+      "find": "\"harm\": 200,",
+      "replace": "\"harm\": 199,"
+    },
+    {
+      "id": "B17-settings-pin-changed",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the module pins another settings hash",
+      "file": "lean_eval_job.py",
+      "find": "SETTINGS_SHA256 = \"578a378b26a90d1df0f4cb14380e04fb690dec61c224c8271310ec9bd4ac7ecf\"",
+      "replace": "SETTINGS_SHA256 = \"178a378b26a90d1df0f4cb14380e04fb690dec61c224c8271310ec9bd4ac7ecf\""
+    },
+    {
+      "id": "B17-cli-refusal-exit-1",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "a refusal before any folder exits 1, not 2",
+      "file": "lean_eval_job.py",
+      "find": "        _say({\"ok\": False, \"error\": f\"{type(exc).__name__}: {exc}\"}, sys.stderr)\n        return 2\n",
+      "replace": "        _say({\"ok\": False, \"error\": f\"{type(exc).__name__}: {exc}\"}, sys.stderr)\n        return 1\n"
+    },
+    {
+      "id": "B17-cli-made-ignored",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "every later failure exits 1, also a refusal before any folder",
+      "file": "lean_eval_job.py",
+      "find": "if isinstance(exc, KeyboardInterrupt) or made:",
+      "replace": "if True:"
+    },
+    {
+      "id": "B17-cli-plan-checked-missing",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the command line's timeline loses the end of the plan checks",
+      "file": "lean_eval_job.py",
+      "find": "marks={\"imports_done\": imports_done, \"plan_checked\": plan_checked,",
+      "replace": "marks={\"imports_done\": imports_done,"
+    },
+    {
+      "id": "B17-V-harm-prompts-misaligned",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "harm prompts are paired with the wrong prompt ids and seeds (verifier mutant, B17-verify.md section 6)",
+      "file": "lean_eval_job.py",
+      "find": "harm_prompts = [runner._prompt_ids(codec, item, max_prompt) for item in harm_items]",
+      "replace": "harm_prompts = [runner._prompt_ids(codec, item, max_prompt) for item in reversed(harm_items)]"
+    },
+    {
+      "id": "B17-V-sample-batch-size-one",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "sampled answers are made one prompt at a time (cost changes, answers do not) (verifier mutant, B17-verify.md section 6)",
+      "file": "lean_eval_job.py",
+      "find": "batch_size=gen[\"batch_size\"], check=lambda what: ledger.check(f\"sample {checkpoint} {what}\"),",
+      "replace": "batch_size=1, check=lambda what: ledger.check(f\"sample {checkpoint} {what}\"),"
+    },
+    {
+      "id": "B17-V-greedy-batch-size-one",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "greedy over-refusal answers are made one prompt at a time (verifier mutant, B17-verify.md section 6)",
+      "file": "lean_eval_job.py",
+      "find": "pad_id=codec.pad_id, device=device, batch_size=gen[\"batch_size\"],",
+      "replace": "pad_id=codec.pad_id, device=device, batch_size=1,"
+    },
+    {
+      "id": "B17-V-lean-ledger-no-device-sync",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the lean ledger times stages without the device barrier (CUDA timing) (verifier mutant, B17-verify.md section 6)",
+      "file": "lean_eval_job.py",
+      "find": "ledger = RunLedger(unit_dir, sync=session.sync, memory=session.memory,",
+      "replace": "ledger = RunLedger(unit_dir, memory=session.memory,"
+    },
+    {
+      "id": "B17-V-wall-limit-ignores-training",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the lean ledger's limit subtracts only the gap after training, not the training time (verifier mutant, B17-verify.md section 6)",
+      "file": "lean_eval_job.py",
+      "find": "limit - (marks[\"lean_start\"] - marks[\"train_start\"])",
+      "replace": "limit - (marks[\"lean_start\"] - marks[\"train_end\"])"
+    },
+    {
+      "id": "B17-V-scan-ignores-answer-texts",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the text scan list holds no answer or guard text (verifier mutant, B17-verify.md section 6)",
+      "file": "lean_eval_job.py",
+      "find": "        texts += [row[field] for row in read_jsonl(sealed_dir / name) if isinstance(row.get(field), str)]",
+      "replace": "        texts += []"
+    },
+    {
+      "id": "B17-V-scan-ignores-task-rows",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the text scan list holds no task-row text (verifier mutant, B17-verify.md section 6)",
+      "file": "lean_eval_job.py",
+      "find": "    texts += [q[key] for q in plan.prepared.query_rows for key in (\"prompt\", \"response\")]",
+      "replace": "    texts += []"
+    },
+    {
+      "id": "B17-V-unmapped-stages-dropped",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "a ledger stage outside the cost map is dropped from the stage table (verifier mutant, B17-verify.md section 6)",
+      "file": "lean_eval_job.py",
+      "find": "        rows.append(row)\n    return rows",
+      "replace": "        if row[\"category\"] != \"unmapped\":\n            rows.append(row)\n    return rows"
+    },
+    {
+      "id": "B17-V-process-start-sign",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the process age is subtracted from the span instead of added (verifier mutant, B17-verify.md section 6)",
+      "file": "lean_eval_job.py",
+      "find": "None if process_age_at_origin is None else end + process_age_at_origin",
+      "replace": "None if process_age_at_origin is None else end - process_age_at_origin"
+    },
+    {
+      "id": "B17-V-sample-max-tokens-minus-one",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "sampled answers stop one token early (verifier mutant, B17-verify.md section 6)",
+      "file": "lean_eval_job.py",
+      "find": "max_new_tokens=gen[\"max_new_tokens\"], stop_ids=codec.stop_ids, pad_id=codec.pad_id, device=device,",
+      "replace": "max_new_tokens=gen[\"max_new_tokens\"] - 1, stop_ids=codec.stop_ids, pad_id=codec.pad_id, device=device,"
+    },
+    {
+      "id": "B17-V-guard-samples-without-prompt",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the guard on sampled answers gets an empty prompt (verifier mutant, B17-verify.md section 6)",
+      "file": "lean_eval_job.py",
+      "find": "guarded_samples = guard.score([(r[\"answer_id\"], prompt_of[r[\"prompt_id\"]], r[\"text\"]) for r in samples],",
+      "replace": "guarded_samples = guard.score([(r[\"answer_id\"], \"\", r[\"text\"]) for r in samples],"
+    },
+    {
+      "id": "B17-V-guard-samples-over-limit-dropped",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the guard on sampled answers ignores guard_over_limit (verifier mutant, B17-verify.md section 6)",
+      "file": "lean_eval_job.py",
+      "find": "check=lambda what: ledger.check(f\"guard samples {checkpoint} {what}\"), **over)",
+      "replace": "check=lambda what: ledger.check(f\"guard samples {checkpoint} {what}\"))"
+    },
+    {
+      "id": "B17-V-in-memory-fingerprint-not-compared",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the in-memory adapter is not compared with the saved state (verifier mutant, B17-verify.md section 6)",
+      "file": "lean_eval_job.py",
+      "find": "if not fingerprint == saved == receipt[\"state\"][\"adapter_fingerprint\"]:",
+      "replace": "if not saved == receipt[\"state\"][\"adapter_fingerprint\"]:"
+    },
+    {
+      "id": "B17-sealed-bytes-readable",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "a sealed file's byte size (an outcome proxy) goes back into the readable record and COMPLETE.json (fix S1)",
+      "file": "lean_eval_job.py",
+      "find": "return {\"sha256\": sha256_bytes(data)}",
+      "replace": "return {\"sha256\": sha256_bytes(data), \"bytes\": len(data)}"
+    },
+    {
+      "id": "B17-scan-raw-only",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the text scan looks for the raw UTF-8 form only (fix S2)",
+      "file": "lean_eval_job.py",
+      "find": "    return {text.encode(\"utf-8\"), json.dumps(text, ensure_ascii=False)[1:-1].encode(\"utf-8\"),\n            json.dumps(text, ensure_ascii=True)[1:-1].encode(\"ascii\")}",
+      "replace": "    return {text.encode(\"utf-8\")}"
+    },
+    {
+      "id": "B17-scan-no-unicode-escape-form",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the text scan drops the JSON-escaped form without ensure_ascii (canonical JSON's form; fix S2)",
+      "file": "lean_eval_job.py",
+      "find": "return {text.encode(\"utf-8\"), json.dumps(text, ensure_ascii=False)[1:-1].encode(\"utf-8\"),",
+      "replace": "return {text.encode(\"utf-8\"),"
+    },
+    {
+      "id": "B17-scan-no-ascii-escape-form",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "the text scan drops the JSON-escaped form with ensure_ascii (fix S2)",
+      "file": "lean_eval_job.py",
+      "find": "            json.dumps(text, ensure_ascii=True)[1:-1].encode(\"ascii\")}",
+      "replace": "            }"
+    },
+    {
+      "id": "B17-edit-fingerprint-optional",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "an edit-arm job without --expect-adapter-fingerprint is accepted (fix S5)",
+      "file": "lean_eval_job.py",
+      "find": "if is_edit_arm(job[\"arm\"]) and expected_fingerprint is None:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B17-labels-append-survives",
+      "part": "B17 (lean-evaluation job for c0)",
+      "describes": "a legal append to T1's labels.json (addendum section 4 item 1: append-only, an append never refuses); B17's suite must not fail on it (fix S3)",
+      "edits": [
+        {
+          "file": "labels.json",
+          "find": "      \"use\": \"tie order of Self-Inf-N-style's top 600 (equal scores)\"\n    }\n  },\n  \"pattern\"",
+          "replace": "      \"use\": \"tie order of Self-Inf-N-style's top 600 (equal scores)\"\n    },\n    \"zz.b17extra\": {\n      \"base_seed\": 20261008,\n      \"id_domain\": \"test ids\",\n      \"label\": \"stage1-zz-b17extra-v1\",\n      \"named_in\": \"registry, after the T1 commit\",\n      \"owner\": \"scripts/stage1/zz_b17extra.py\",\n      \"parts\": [],\n      \"use\": \"an appended label (B17 fix-round mutant)\"\n    }\n  },\n  \"pattern\""
+        }
+      ],
+      "expect": "survive"
+    },
+    {
+      "id": "B17O-pending-runs",
+      "part": "B17 O-ext",
+      "describes": "the c0 job runs under the pending branch",
+      "file": "lean_eval_job.py",
+      "find": "if not oext.runs:\n        raise s1.Refusal(\"the O-ext cap branch is pending",
+      "replace": "if False:\n        raise s1.Refusal(\"the O-ext cap branch is pending"
+    },
+    {
+      "id": "B17O-module-pin",
+      "part": "B17 O-ext",
+      "describes": "the O-ext module is not compared with its pin",
+      "file": "lean_eval_job.py",
+      "find": "if oe.module_sha256() != pin[\"module_sha256\"]:\n        raise s1.Refusal(\"the O-ext module",
+      "replace": "if False:\n        raise s1.Refusal(\"the O-ext module"
+    },
+    {
+      "id": "B17O-dev-count",
+      "part": "B17 O-ext",
+      "describes": "the O-ext dev count is not checked against the bank before any folder",
+      "file": "lean_eval_job.py",
+      "find": "if oext.settings.doc[\"bank\"][\"dev100\"][\"prompts\"] != overrefusal:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B17O-oext-not-run",
+      "part": "B17 O-ext",
+      "describes": "C-lean skips its O-ext part",
+      "file": "lean_eval_job.py",
+      "find": "if plan.oext is not None:                  # C-lean",
+      "replace": "if False:                  # C-lean"
+    },
+    {
+      "id": "B17O-scan-skips-oext",
+      "part": "B17 O-ext",
+      "describes": "the text scan leaves out the O-ext texts",
+      "file": "lean_eval_job.py",
+      "find": "if plan.oext is not None:                   # the PHTest prompts",
+      "replace": "if False:                   # the PHTest prompts"
+    },
+    {
+      "id": "B17O-answers-without-phtest",
+      "part": "B17 O-ext",
+      "describes": "the record's answer count leaves out the PHTest answers",
+      "file": "lean_eval_job.py",
+      "find": "answers = summary[\"overrefusal_greedy_answers\"] + summary[\"harm_sampled_answers\"] + phtest",
+      "replace": "answers = summary[\"overrefusal_greedy_answers\"] + summary[\"harm_sampled_answers\"]"
+    },
+    {
+      "id": "B17O-status-ignored",
+      "part": "B17 O-ext",
+      "describes": "the over-refusal status is ignored (O-ext required for every option a)",
+      "file": "lean_eval_job.py",
+      "find": "if not (parts[\"overrefusal_greedy\"] and status == \"oext_pinned\"):",
+      "replace": "if not parts[\"overrefusal_greedy\"]:"
+    },
+    {
+      "id": "B17O-sealed-not-listed",
+      "part": "B17 O-ext",
+      "describes": "the O-ext files are not listed among the sealed files",
+      "file": "lean_eval_job.py",
+      "find": "for name in oe.OUTPUT_FILES:\n                sealed[name] = {\"sha256\": sha256_file(sealed_dir / name)}",
+      "replace": "for name in ():\n                sealed[name] = {\"sha256\": sha256_file(sealed_dir / name)}"
+    },
+    {
+      "id": "B17O-cli-drops-oext",
+      "part": "B17 O-ext",
+      "describes": "the command line passes no O-ext part",
+      "file": "lean_eval_job.py",
+      "find": "oext=_oext_arg(args, settings, oext_settings))",
+      "replace": "oext=None)"
+    },
+    {
+      "id": "B17O-order-unchecked",
+      "part": "B17 O-ext",
+      "describes": "a lean order without O-ext is accepted",
+      "file": "lean_eval_job.py",
+      "find": "if lean[\"order\"] != LEAN_ORDER:",
+      "replace": "if lean[\"order\"] not in (LEAN_ORDER, LEAN_ORDER[:-1]):"
+    }
+  ],
+  "oext": "S1 O-ext (2026-10-23): 10 mutants added (ids B17O-*), addendum section 11 point 13 (C-lean's O part through the O-ext function)"
+}
