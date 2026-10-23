@@ -1,0 +1,24 @@
+{
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "fill": "the lead fills each sha256 from REQ-8's sealed text-free record when REQ-8's sealed pools exist, before W1; filling changes this file, POOL_PINS_SHA256 in representation_pass.py and the literal in tests/test_representation_pools.py, and nothing else",
+  "kind": "stage1 settings",
+  "label_entries": {},
+  "labels_sha256": "6d1415bd139c39bce1b912291cfc319a9305503e1d3e9adf1cebafef870ce21b",
+  "name": "representation_pools",
+  "owner": "scripts/stage1/representation_pass.py",
+  "pools": {
+    "decoy": {
+      "items": 37,
+      "sha256": "d102b665b8f2fc538fdf08fb85020c1e8a1f8a1bf9265f999e55133d473f9db6",
+      "source": "REQ-8 build_plant.py with settings/build_plant_extra.json (W1-09): the 37-row scored-only refusal decoy, if built; never trained"
+    },
+    "plant": {
+      "items": 75,
+      "sha256": "37739f40e476ff8bdecacdc47a806b36a0533b0f079919ab4d63d84832e67a59",
+      "source": "REQ-8 build_plant.py: the 75-row plant pool (add ids add-plant-001..075, settings/build_plant.json 06f70d98); only this pool is passed: the 37-row plant rows are its first 37 rows, so a second pool would repeat ids, and REQ-29 takes the 37-row subset by id (add-plant-001..037)"
+    }
+  },
+  "requirement": "W1-08 (1), the lead's ruling option (a): a separate hash-pinned pool-pins file that REQ-3 (scripts/stage1/representation_pass.py) loads; REQ-3's own settings (representation_pass.json) and SETTINGS_SHA256 do not change",
+  "rule": "each pool given to REQ-3 is checked against this file: a listed name needs a filled sha256 equal to the pool file's SHA-256 and the same item count; a listed name whose sha256 is null is refused (not filled yet); an unlisted name whose SHA-256 equals a listed sha256 is refused (the name and hash do not match); the name dev is refused; any other unlisted pool (the S3 pools) is named on the command line by SHA-256, through its own sealed record",
+  "version": 1
+}
