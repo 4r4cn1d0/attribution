@@ -418,3 +418,11 @@ Engine round Y (the B+Qi reference arm's constrained SFT and the confirmation ro
 6. **Q7:** every job record names the engine it ran on (LS-04's default).
 7. **Q4 and F1:** the reviewed insert-only entry for the memory preflight is accepted, and so is F1's design (the ledger's injected device barrier, not `torch.cuda.synchronize` inside engine.py, so the <global_writes> record does not change).
 8. **F5:** adopted for Y's next fix round: refuse a LoRA dropout other than 0 when `train.constrained_sft` is present, because the reference forward under `disable_adapter()` must see the same network as the training forward.
+
+## 16. B16, the stage-1 reading: built and verified; the lead's rulings on its open items (2026-10-23T00:40 UTC; decided by the lead under the user's delegation)
+
+B16 (`scripts/stage1_s1/reading/`, 26 files; workflow wf_70d308dc: a Fable builder, two Opus verifiers (statistics, by an independent reference implementation and simulation; code), and an Opus fixer) implements HB-C with REML, the sensitivities, Φ, the IUT nodes, the label row and the headline word. Its suite passes 182 tests with 0 skipped; the mutation spec has 105 entries: 104 killed and 1 expected survivor, 0 invalid. It is committed with this section; it is an S1 build and is pinned at the S1 freeze. Rulings:
+1. **The REML floor mode is "active_set"** (as built). It is LN-35's rule as written: the fit stops when the largest step among the arms above the floor is below 1e-6, or after 25 steps. Rev 4's planning numbers (§1.3, §3.2) came from the planning routine and stay planning figures; they decide no label.
+2. **LN-35's text gets one sentence at the S1 freeze:** a step that floors an arm does not end the fit (the stats-F1 fix).
+3. **The per-actor best data arm is "better and feasible"**, as rev 4 §4.6 and LN-08's title state; §9.4's "among feasible arms" is read the same way.
+4. The size, coverage and familywise-error simulations are not re-run on the final code; they run once more, at the S1 freeze.

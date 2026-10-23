@@ -1,0 +1,867 @@
+{
+  "kind": "stage1 mutants",
+  "tree": "scripts/stage1_s1/reading",
+  "mutants": [
+    {
+      "id": "B16-reml-floor-off",
+      "part": "B16 reml",
+      "describes": "the floor not applied after a step",
+      "file": "reml.py",
+      "find": "        theta = np.maximum(theta * np.exp(step), floor)\n        above = theta > floor",
+      "replace": "        theta = theta * np.exp(step)\n        above = theta > floor"
+    },
+    {
+      "id": "B16-reml-planning-floor",
+      "part": "B16 reml",
+      "describes": "the active set dropped: every arm solved, then floored (the planning routine's form)",
+      "file": "reml.py",
+      "find": "        free = identified & (above | (score_log > 0))",
+      "replace": "        free = identified"
+    },
+    {
+      "id": "B16-reml-start-at-one",
+      "part": "B16 reml",
+      "describes": "the start not at each arm's residual mean square",
+      "file": "reml.py",
+      "find": "    start = np.where(identified, rss_arm / np.where(identified, h_arm, 1.0), floor)",
+      "replace": "    start = np.where(identified, 1.0, floor)"
+    },
+    {
+      "id": "B16-reml-info-log-scale",
+      "part": "B16 reml",
+      "describes": "the information returned on the log scale, not the sigma^2 scale",
+      "file": "reml.py",
+      "find": "    info_inv = np.linalg.pinv(info, rcond=1e-10)\n    return RemlFit(",
+      "replace": "    info_inv = np.linalg.pinv(theta[:, None] * info * theta[None, :], rcond=1e-10)\n    return RemlFit("
+    },
+    {
+      "id": "B16-reml-two-arm-split",
+      "part": "B16 reml",
+      "describes": "the two-arm cluster fitted by the generic scoring (a split printed)",
+      "file": "reml.py",
+      "find": "    if len(arms) == 2 and two_arm_rule:",
+      "replace": "    if False and two_arm_rule:"
+    },
+    {
+      "id": "B16-reml-two-arm-ddof0",
+      "part": "B16 reml",
+      "describes": "the two-arm sum with ddof 0",
+      "file": "reml.py",
+      "find": "    total = float(d.var(ddof=1))\n    at_floor = total <= floor",
+      "replace": "    total = float(d.var(ddof=0))\n    at_floor = total <= floor"
+    },
+    {
+      "id": "B16-reml-max-iter-35",
+      "part": "B16 reml",
+      "describes": "35 steps instead of 25",
+      "file": "reml.py",
+      "find": "    for it in range(1, max_iter + 1):",
+      "replace": "    for it in range(1, max_iter + 11):"
+    },
+    {
+      "id": "B16-reml-identified-off",
+      "part": "B16 reml",
+      "describes": "an arm with no residual information treated as identified",
+      "file": "reml.py",
+      "find": "    identified = h_arm > 1e-9",
+      "replace": "    identified = h_arm > -1.0"
+    },
+    {
+      "id": "B16-reml-info-half",
+      "part": "B16 reml",
+      "describes": "the information without its 1/2",
+      "file": "reml.py",
+      "find": "    info = 0.5 * (z.T @ (p * p) @ z)",
+      "replace": "    info = (z.T @ (p * p) @ z)"
+    },
+    {
+      "id": "B16-contrast-item-no-max",
+      "part": "B16 contrast",
+      "describes": "a negative item part kept",
+      "file": "contrast.py",
+      "find": "    v_item = max(0.0, ms_p - ms_e) * k",
+      "replace": "    v_item = (ms_p - ms_e) * k"
+    },
+    {
+      "id": "B16-contrast-q-df",
+      "part": "B16 contrast",
+      "describes": "q's MS_E term on P - 1 df",
+      "file": "contrast.py",
+      "find": "        q = (ms_p * k) ** 2 / (p - 1) + (ms_e * k) ** 2 / ((p - 1) * (j - 1))",
+      "replace": "        q = (ms_p * k) ** 2 / (p - 1) + (ms_e * k) ** 2 / (p - 1)"
+    },
+    {
+      "id": "B16-contrast-satterthwaite",
+      "part": "B16 contrast",
+      "describes": "V in place of V^2 in Satterthwaite",
+      "file": "contrast.py",
+      "find": "    return v * v / denominator if denominator > 0 else float(\"inf\")",
+      "replace": "    return v / denominator if denominator > 0 else float(\"inf\")"
+    },
+    {
+      "id": "B16-contrast-estimator-sign",
+      "part": "B16 contrast",
+      "describes": "the repair first in the estimator",
+      "file": "contrast.py",
+      "find": "    return float((arm_values(table, c, seeds, scale) - arm_values(table, m, seeds, scale)).mean())",
+      "replace": "    return float((arm_values(table, m, seeds, scale) - arm_values(table, c, seeds, scale)).mean())"
+    },
+    {
+      "id": "B16-contrast-theta0-ddof0",
+      "part": "B16 contrast",
+      "describes": "the theta0 seed part with ddof 0",
+      "file": "contrast.py",
+      "find": "    v_seed = float(values.var(ddof=1)) / len(seeds)\n    est = values.mean() - scale * float(np.mean(theta0_items))\n    return _assemble(name, form, est, v_seed, float(len(seeds) - 1)",
+      "replace": "    v_seed = float(values.var(ddof=0)) / len(seeds)\n    est = values.mean() - scale * float(np.mean(theta0_items))\n    return _assemble(name, form, est, v_seed, float(len(seeds) - 1)"
+    },
+    {
+      "id": "B16-contrast-theta0-df",
+      "part": "B16 contrast",
+      "describes": "the theta0 seed df J instead of J - 1",
+      "file": "contrast.py",
+      "find": "    return _assemble(name, form, est, v_seed, float(len(seeds) - 1), d, scale, with_item, len(seeds))",
+      "replace": "    return _assemble(name, form, est, v_seed, float(len(seeds)), d, scale, with_item, len(seeds))"
+    },
+    {
+      "id": "B16-contrast-welch-df",
+      "part": "B16 contrast",
+      "describes": "Welch's df replaced by n1 + n2 - 2",
+      "file": "contrast.py",
+      "find": "    df_seed = tdist.welch_df(float(vc.var(ddof=1)), len(vc), float(vm.var(ddof=1)), len(vm))",
+      "replace": "    df_seed = float(len(vc) + len(vm) - 2)"
+    },
+    {
+      "id": "B16-contrast-pooled-df",
+      "part": "B16 contrast",
+      "describes": "S-a's pooled df off by one",
+      "file": "contrast.py",
+      "find": "    return ss / df, df\n",
+      "replace": "    return ss / df, df + 1.0\n"
+    },
+    {
+      "id": "B16-contrast-blocked-df",
+      "part": "B16 contrast",
+      "describes": "S-b2x's residual df without the seed columns",
+      "file": "contrast.py",
+      "find": "    df = len(cells) - np.linalg.matrix_rank(x)",
+      "replace": "    df = len(cells) - len(arms)"
+    },
+    {
+      "id": "B16-contrast-interval-level",
+      "part": "B16 contrast",
+      "describes": "a one-sided quantile for the two-sided interval",
+      "file": "contrast.py",
+      "find": "        half = tdist.t_quantile(0.5 + level / 2.0, self.df) * self.se",
+      "replace": "        half = tdist.t_quantile(level, self.df) * self.se"
+    },
+    {
+      "id": "B16-contrast-p-upper-margin",
+      "part": "B16 contrast",
+      "describes": "the margin added instead of subtracted",
+      "file": "contrast.py",
+      "find": "        return tdist.t_sf((self.est - margin) / self.se, self.df)\n\n    def p_lower",
+      "replace": "        return tdist.t_sf((self.est + margin) / self.se, self.df)\n\n    def p_lower"
+    },
+    {
+      "id": "B16-phi-standard-f-edge",
+      "part": "B16 phi",
+      "describes": "the standard F_k row (F -> O 1/2, L 1/2) instead of LN-05's",
+      "file": "phi.py",
+      "find": "        edges[f][l] = fraction(cfg[\"f_to_l\"])",
+      "replace": "        edges[f][l] = Fr(1, 2)\n        edges[f][o] = Fr(1, 2)"
+    },
+    {
+      "id": "B16-phi-u-to-f-quarter",
+      "part": "B16 phi",
+      "describes": "U -> F 1/4 and U -> O 3/8 (rows still sum to 1)",
+      "file": "phi.py",
+      "edits": [
+        {
+          "file": "phi.py",
+          "find": "        edges[u][f] = fraction(cfg[\"u_to_f\"])",
+          "replace": "        edges[u][f] = Fr(1, 4)"
+        },
+        {
+          "file": "phi.py",
+          "find": "        edges[u][o] = fraction(cfg[\"u_to_o\"])",
+          "replace": "        edges[u][o] = Fr(3, 8)"
+        }
+      ]
+    },
+    {
+      "id": "B16-phi-strict-rejection",
+      "part": "B16 phi",
+      "describes": "p strictly below the level",
+      "file": "phi.py",
+      "find": "        candidates = [n for n in current.nodes if pvalues[n] <= float(lv[n]) * (1.0 + tolerance)]",
+      "replace": "        candidates = [n for n in current.nodes if pvalues[n] < float(lv[n]) * (1.0 - tolerance)]"
+    },
+    {
+      "id": "B16-phi-update-no-denominator",
+      "part": "B16 phi",
+      "describes": "the update without its denominator",
+      "file": "phi.py",
+      "find": "            edges[l][k] = (graph.edges[l][k] + graph.edges[l][j] * graph.edges[j][k]) / den if den != 0 else Fr(0)",
+      "replace": "            edges[l][k] = graph.edges[l][k] + graph.edges[l][j] * graph.edges[j][k]"
+    },
+    {
+      "id": "B16-phi-iut-min",
+      "part": "B16 phi",
+      "describes": "the smaller p-value for the IUT",
+      "file": "phi.py",
+      "find": "    return max(p_a, p_b)",
+      "replace": "    return min(p_a, p_b)"
+    },
+    {
+      "id": "B16-phi-holm-bonferroni",
+      "part": "B16 phi",
+      "describes": "Bonferroni in place of Holm",
+      "file": "phi.py",
+      "find": "        if pvalues[name] <= alpha / (n - i) * (1.0 + 1e-12):",
+      "replace": "        if pvalues[name] <= alpha / n * (1.0 + 1e-12):"
+    },
+    {
+      "id": "B16-labels-better-above-zero",
+      "part": "B16 labels",
+      "describes": "'better' without the 5 pp condition",
+      "file": "labels.py",
+      "find": "    better = rejected and est >= delta - tol",
+      "replace": "    better = rejected and est > 0"
+    },
+    {
+      "id": "B16-labels-grade2-from-90",
+      "part": "B16 labels",
+      "describes": "grade 2 read from the 90% interval",
+      "file": "labels.py",
+      "find": "    grade1, grade2 = inside(ci90, delta), inside(ci_fam, delta)",
+      "replace": "    grade1, grade2 = inside(ci90, delta), inside(ci90, delta)"
+    },
+    {
+      "id": "B16-labels-no-note-beside-worse",
+      "part": "B16 labels",
+      "describes": "LN-36's note not printed beside 'worse (U)'",
+      "file": "labels.py",
+      "find": "    note = (rejected and 0 < est < delta - tol) or (note_beside_worse and worse and abs(est) < delta - tol)",
+      "replace": "    note = (rejected and 0 < est < delta - tol)"
+    },
+    {
+      "id": "B16-labels-better-before-worse",
+      "part": "B16 labels",
+      "describes": "a side effect hidden behind a 'better' U part",
+      "file": "labels.py",
+      "find": "    if adverse:\n        word = \"worse (\" + \", \".join(adverse) + \")\"",
+      "replace": "    if adverse and not u.better:\n        word = \"worse (\" + \", \".join(adverse) + \")\""
+    },
+    {
+      "id": "B16-labels-feasible-lower-end",
+      "part": "B16 labels",
+      "describes": "feasibility read at the lower end",
+      "file": "labels.py",
+      "find": "    if ci90[1] <= tau:\n        return t[\"feasible\"]",
+      "replace": "    if ci90[0] <= tau:\n        return t[\"feasible\"]"
+    },
+    {
+      "id": "B16-labels-coherence-capped-off",
+      "part": "B16 labels",
+      "describes": "the capped share not part of the bar",
+      "file": "labels.py",
+      "find": "    passes = capped_share <= cfg[\"capped_max_share\"] and failing_share <= cfg[\"failing_max_share\"]",
+      "replace": "    passes = failing_share <= cfg[\"failing_max_share\"]"
+    },
+    {
+      "id": "B16-labels-seed-flag-off",
+      "part": "B16 labels",
+      "describes": "no per-seed flag",
+      "file": "labels.py",
+      "find": "    flagged = tuple(sorted(j for j, (a, _, f) in counts.items() if f / a > cfg[\"seed_flag_share\"]))",
+      "replace": "    flagged = ()"
+    },
+    {
+      "id": "B16-reading-f-p-upper",
+      "part": "B16 reading",
+      "describes": "F_k's p-value as the theta0 part's upper tail",
+      "file": "reading.py",
+      "find": "         \"F\": o_theta.p_lower(tau_o)}",
+      "replace": "         \"F\": o_theta.p_upper(tau_o)}"
+    },
+    {
+      "id": "B16-reading-familywise-one-side",
+      "part": "B16 reading",
+      "describes": "the familywise interval at alpha/K in all, not per side",
+      "file": "reading.py",
+      "find": "    fam_level = 1.0 - 2.0 * float(alpha()) / dsg.familywise_sides\n    return {\"comparator\": c",
+      "replace": "    fam_level = 1.0 - float(alpha()) / dsg.familywise_sides\n    return {\"comparator\": c"
+    },
+    {
+      "id": "B16-reading-every-pair-paired",
+      "part": "B16 reading",
+      "describes": "every pair read by the paired form; the cluster fit unused (the within-cluster primary form dropped)",
+      "file": "reading.py",
+      "find": "        if dsg.in_fit(first) and dsg.in_fit(second) and dsg.same_cluster(first, second):",
+      "replace": "        if False:"
+    },
+    {
+      "id": "B16-reading-o-seeds-2",
+      "part": "B16 reading",
+      "describes": "the O comparator part tested with 2 R seeds",
+      "file": "reading.py",
+      "find": "MIN_O_COMPARATOR_SEEDS = 3",
+      "replace": "MIN_O_COMPARATOR_SEEDS = 2"
+    },
+    {
+      "id": "B16-reading-no-suffix",
+      "part": "B16 reading",
+      "describes": "'block A only' not carried on the cell",
+      "file": "reading.py",
+      "find": "    if dsg.label_suffix:\n        row[\"headline\"][\"cell\"] = f\"{head['cell']} [{dsg.label_suffix}]\"\n",
+      "replace": ""
+    },
+    {
+      "id": "B16-reading-sens-all-listed",
+      "part": "B16 reading",
+      "describes": "every sensitivity listed in the row, not only the differing",
+      "file": "reading.py",
+      "find": "            differs = list(words) != list(rows[name][\"u_part\"][\"words\"])",
+      "replace": "            differs = True"
+    },
+    {
+      "id": "B16-reading-coherence-word",
+      "part": "B16 reading",
+      "describes": "a failing arm changes the headline word",
+      "file": "reading.py",
+      "find": "    head = labels.headline(u, o_rej, l_rej)\n    side = []",
+      "replace": "    head = labels.headline(u, o_rej, l_rej)\n    if not arms[m][\"coherence\"][\"passes\"]:\n        head = {\"word\": \"worse (answers do not end)\", \"cell\": \"worse (answers do not end)\", \"step\": 1}\n    side = []"
+    },
+    {
+      "id": "B16-settings-pin-off",
+      "part": "B16 settings",
+      "describes": "the settings pin not checked",
+      "file": "settings.py",
+      "find": "    if digest != expected_sha256:\n        raise Refusal(f\"the reading settings hash to {digest}, expected {expected_sha256}\")",
+      "replace": "    if False:\n        raise Refusal(f\"the reading settings hash to {digest}, expected {expected_sha256}\")"
+    },
+    {
+      "id": "B16-schema-extra-keys",
+      "part": "B16 schema",
+      "describes": "unknown top-level keys accepted",
+      "file": "schema.py",
+      "find": "    if not isinstance(doc, dict) or not set(doc) <= TOP_KEYS or not REQUIRED <= set(doc):",
+      "replace": "    if not isinstance(doc, dict) or not REQUIRED <= set(doc):"
+    },
+    {
+      "id": "B16-schema-o-flags",
+      "part": "B16 schema",
+      "describes": "O flags not checked to be 0 or 1",
+      "file": "schema.py",
+      "find": "    if kind == \"O\" and not np.all((arr == 0.0) | (arr == 1.0)):",
+      "replace": "    if kind == \"O\" and False:"
+    },
+    {
+      "id": "B16-schema-loose-arms",
+      "part": "B16 schema",
+      "describes": "any arm may hold a subset of its O seeds",
+      "file": "schema.py",
+      "find": "        if seeds != expected and not (arm in loose_arms and set(seeds) <= set(expected)):",
+      "replace": "        if seeds != expected and not (set(seeds) <= set(expected)):"
+    },
+    {
+      "id": "B16-references-bound-95",
+      "part": "B16 references",
+      "describes": "the bounds read at the 95% two-sided interval",
+      "file": "references.py",
+      "find": "    lo, hi = est.interval(bound_level())\n    return {\"estimate\": est.as_dict(), \"margin\": margin",
+      "replace": "    lo, hi = est.interval(0.95)\n    return {\"estimate\": est.as_dict(), \"margin\": margin"
+    },
+    {
+      "id": "B16-references-switch-on-point",
+      "part": "B16 references",
+      "describes": "the curve switch on the point estimate (ST-1's fault)",
+      "file": "references.py",
+      "find": "    if up_l <= mg[\"L\"]:",
+      "replace": "    if l_vs_a0.est <= mg[\"L\"]:"
+    },
+    {
+      "id": "B16-references-fallback-off",
+      "part": "B16 references",
+      "describes": "the 3-seed fallback never triggers",
+      "file": "references.py",
+      "find": "    return min(len(set(dsg.seeds[a]) & set(r_seeds)) for a in dsg.repair_arms) < min_common()",
+      "replace": "    return min(len(set(dsg.seeds[a]) & set(r_seeds)) for a in dsg.repair_arms) < 0"
+    },
+    {
+      "id": "B16-references-dominance-bonferroni",
+      "part": "B16 references",
+      "describes": "family 1b by Bonferroni",
+      "file": "references.py",
+      "find": "    rejected = phi.holm({k: v[\"p_iut\"] for k, v in results.items()}, alpha)",
+      "replace": "    rejected = {k for k, v in results.items() if v[\"p_iut\"] <= alpha / len(results)}"
+    },
+    {
+      "id": "B16-sens-s-a-paired-seeds",
+      "part": "B16 sensitivities",
+      "describes": "S-a's means on the common seeds only",
+      "file": "sensitivities.py",
+      "find": "            out[name] = con.contrast_pooled(table, seeds_all, c, m, dsg.common_seeds(c, m), scale, True, name)",
+      "replace": "            out[name] = con.contrast_pooled(table, {a: (dsg.common_seeds(c, m) if a in (c, m) else s) for a, s in seeds_all.items()}, c, m, dsg.common_seeds(c, m), scale, True, name)"
+    },
+    {
+      "id": "B16-sens-tok-two-seeds",
+      "part": "B16 sensitivities",
+      "describes": "S-tok's interval on two seeds",
+      "file": "sensitivities.py",
+      "find": "    common = tuple(cfg[\"common_seeds\"])\n    merged = dict(table)",
+      "replace": "    common = tuple(cfg[\"common_seeds\"])[:2]\n    merged = dict(table)"
+    },
+    {
+      "id": "B16-sens-hb-clusters",
+      "part": "B16 sensitivities",
+      "describes": "HB fitted per cluster (that is HB-C again)",
+      "file": "sensitivities.py",
+      "find": "        fit = fit_one_shift(table, dsg, scale, floor, cfg)\n        for name, c, m in dsg.contrasts:\n            out[name] = con.contrast_fit(table, fit, c, m, dsg.common_seeds(c, m), scale, True, name, \"HB\")",
+      "replace": "        for name, c, m in dsg.contrasts:\n            out[name] = con.contrast_fit(table, cluster_fits[dsg.cluster[c]], c, m, dsg.common_seeds(c, m), scale, True, name, \"HB\")"
+    },
+    {
+      "id": "B16-legal-note-text",
+      "part": "B16 legal",
+      "describes": "a note string in the output changes (legal: it is not a rule)",
+      "file": "reading.py",
+      "expect": "survive",
+      "find": "\"'the best feasible repair' has no single error rate (REV3 4.6; ST-15)\"]",
+      "replace": "\"'the best feasible repair' has no single error rate (REV3 4.6, ST-15)\"]"
+    },
+    {
+      "id": "V16-floor-U-for-every-endpoint",
+      "part": "B16 verify-code mutants",
+      "describes": "a floor in the wrong unit: U's 0.01 used for L (nats^2)",
+      "file": "reading.py",
+      "find": "floor = {e: float(cfg[\"endpoints\"][e][\"floor\"]) for e in ENDPOINTS}",
+      "replace": "floor = {e: float(cfg[\"endpoints\"][\"U\"][\"floor\"]) for e in ENDPOINTS}"
+    },
+    {
+      "id": "V16-floor-share-scale",
+      "part": "B16 verify-code mutants",
+      "describes": "a floor in the wrong unit: divided by scale^2 (share^2, not pp^2)",
+      "file": "reading.py",
+      "find": "floor = {e: float(cfg[\"endpoints\"][e][\"floor\"]) for e in ENDPOINTS}",
+      "replace": "floor = {e: float(cfg[\"endpoints\"][e][\"floor\"]) / float(cfg[\"endpoints\"][e][\"scale\"]) ** 2 for e in ENDPOINTS}"
+    },
+    {
+      "id": "V16-satt-no-covariance",
+      "part": "B16 verify-code mutants",
+      "describes": "Satterthwaite with the wrong variance: Var(V_seed) without the covariance term",
+      "file": "reml.py",
+      "find": "var_v = (fit.info_inv[i, i] + fit.info_inv[k, k] + 2.0 * fit.info_inv[i, k]) / pairs ** 2",
+      "replace": "var_v = (fit.info_inv[i, i] + fit.info_inv[k, k]) / pairs ** 2"
+    },
+    {
+      "id": "V16-satt-seed-numerator",
+      "part": "B16 verify-code mutants",
+      "describes": "Satterthwaite with the wrong variance: V_seed in the numerator",
+      "file": "contrast.py",
+      "find": "    v = v_seed + v_item\n    if v <= 0:\n        return float(\"inf\")",
+      "replace": "    v = v_seed\n    if v <= 0:\n        return float(\"inf\")"
+    },
+    {
+      "id": "V16-phi-f-edge-missing",
+      "part": "B16 verify-code mutants",
+      "describes": "the edge F_k -> L_k missing (F's row all zero)",
+      "file": "phi.py",
+      "find": "        edges[f][l] = fraction(cfg[\"f_to_l\"])",
+      "replace": "        pass"
+    },
+    {
+      "id": "V16-phi-f-to-u",
+      "part": "B16 verify-code mutants",
+      "describes": "F_k passes its weight to U_k instead of L_k",
+      "file": "phi.py",
+      "find": "        edges[f][l] = fraction(cfg[\"f_to_l\"])",
+      "replace": "        edges[f][u] = fraction(cfg[\"f_to_l\"])"
+    },
+    {
+      "id": "V16-reading-o-union",
+      "part": "B16 verify-code mutants",
+      "describes": "IUT taken as a union for O_k (min of the parts)",
+      "file": "reading.py",
+      "find": "p = {\"U\": u.p_two_sided(), \"O\": phi.iut(p_o_comp, p_o_theta),",
+      "replace": "p = {\"U\": u.p_two_sided(), \"O\": min(p_o_comp, p_o_theta),"
+    },
+    {
+      "id": "V16-reading-l-comparator-only",
+      "part": "B16 verify-code mutants",
+      "describes": "L_k tests only the comparator part (a0 part dropped)",
+      "file": "reading.py",
+      "find": "\"L\": phi.iut(l_comp.p_upper(0.0), l_a0.p_upper(tau_l)),",
+      "replace": "\"L\": l_comp.p_upper(0.0),"
+    },
+    {
+      "id": "V16-better-strict",
+      "part": "B16 verify-code mutants",
+      "describes": "headline boundary off by one: better needs est > delta",
+      "file": "labels.py",
+      "find": "    better = rejected and est >= delta - tol",
+      "replace": "    better = rejected and est > delta - tol"
+    },
+    {
+      "id": "V16-inside-inclusive",
+      "part": "B16 verify-code mutants",
+      "describes": "headline boundary: equivalence interval allowed to touch +-delta",
+      "file": "labels.py",
+      "find": "    return -delta < ci[0] and ci[1] < delta",
+      "replace": "    return -delta <= ci[0] and ci[1] <= delta"
+    },
+    {
+      "id": "V16-note-at-delta",
+      "part": "B16 verify-code mutants",
+      "describes": "headline boundary: the below-SESOI note also at est = delta",
+      "file": "labels.py",
+      "find": "    note = (rejected and 0 < est < delta - tol)",
+      "replace": "    note = (rejected and 0 < est <= delta)"
+    },
+    {
+      "id": "V16-feasible-strict",
+      "part": "B16 verify-code mutants",
+      "describes": "feasibility boundary: feasible needs the upper end strictly below tau",
+      "file": "labels.py",
+      "find": "    if ci90[1] <= tau:",
+      "replace": "    if ci90[1] < tau:"
+    },
+    {
+      "id": "V16-planb-fits-a0",
+      "part": "B16 verify-code mutants",
+      "describes": "plan B fitting a0 (a0 inside the removal/full fit)",
+      "file": "settings.py",
+      "find": "fit_arms=tuple(spec[\"fit_arms\"]),",
+      "replace": "fit_arms=tuple(spec[\"fit_arms\"]) + ((\"a0\",) if reading == \"plan_b\" else ()),"
+    },
+    {
+      "id": "V16-delta-fam-on-olmo",
+      "part": "B16 verify-code mutants",
+      "describes": "delta_fam applied to OLMo: delta = 0.1108 x the measured a0 level",
+      "file": "reading.py",
+      "find": "    rejected = set(outcome.rejected)\n    u = labels.u_part(",
+      "replace": "    delta = 0.1108 * 100.0 * float(np.mean([x.mean() for (a, _), x in ctx.tables[\"U\"].items() if a == \"a0\"]))\n    rejected = set(outcome.rejected)\n    u = labels.u_part("
+    },
+    {
+      "id": "V16-tok-unpaired",
+      "part": "B16 verify-code mutants",
+      "describes": "Lambda_tok's interval on unpaired seeds (a0 read at 1101)",
+      "file": "sensitivities.py",
+      "find": "                cell = lambda a: con.cell_value(merged, a, j, scale)",
+      "replace": "                cell = lambda a: con.cell_value(merged, a, (1101 if a == \"a0\" else j), scale)"
+    },
+    {
+      "id": "V16-tok-g600-common-only",
+      "part": "B16 verify-code mutants",
+      "describes": "the 600-row curve point read on 1102-1104 only (point estimate)",
+      "file": "sensitivities.py",
+      "find": "    g_600 = _restoration(merged, dsg, \"R\", dsg.common_seeds(\"a0\", \"R\"), scale)",
+      "replace": "    g_600 = _restoration(merged, dsg, \"R\", common, scale)"
+    },
+    {
+      "id": "V16-s-p-replaces-hbc",
+      "part": "B16 verify-code mutants",
+      "describes": "S-p replacing HB-C for the primary U test",
+      "file": "reading.py",
+      "find": "    u = ctx.within(\"U\", c, m)\n    o_seeds",
+      "replace": "    u = con.contrast_paired(ctx.tables[\"U\"], c, m, dsg.common_seeds(c, m), ctx.scale[\"U\"], True, f\"{c}-{m}\", \"S-p\")\n    o_seeds"
+    },
+    {
+      "id": "V16-fallback-tests-1b",
+      "part": "B16 verify-code mutants",
+      "describes": "the 3-seed fallback testing family 1b",
+      "file": "references.py",
+      "find": "    if any_fallback:\n        return {\"tested\": False",
+      "replace": "    if False:\n        return {\"tested\": False"
+    },
+    {
+      "id": "V16-planb-familywise-6",
+      "part": "B16 verify-code mutants",
+      "describes": "plan B's familywise interval at alpha/6 per side",
+      "file": "reading.py",
+      "find": "    fam_level = 1.0 - 2.0 * float(alpha()) / dsg.familywise_sides\n    return {\"comparator\": c",
+      "replace": "    fam_level = 1.0 - 2.0 * float(alpha()) / 6\n    return {\"comparator\": c"
+    },
+    {
+      "id": "V16-curve-bracket-swapped",
+      "part": "B16 verify-code mutants",
+      "describes": "the curve bracket read at the wrong ends of the L interval",
+      "file": "references.py",
+      "find": "        lam_lo, lam_hi = grid_bracket(lam_up, lam_dn, cfg[\"lambda_grid\"])",
+      "replace": "        lam_lo, lam_hi = grid_bracket(lam_dn, lam_up, cfg[\"lambda_grid\"])"
+    },
+    {
+      "id": "V16-item-scale-once",
+      "part": "B16 verify-code mutants",
+      "describes": "the item part scaled by scale, not scale^2",
+      "file": "contrast.py",
+      "find": "    k = scale * scale / (p * j)",
+      "replace": "    k = scale / (p * j)"
+    },
+    {
+      "id": "V16-two-arm-df-J",
+      "part": "B16 verify-code mutants",
+      "describes": "the two-arm cluster with J df instead of J - 1",
+      "file": "reml.py",
+      "find": "        return fit.sigma2[\"sum\"] / pairs, float(fit.pairs - 1)",
+      "replace": "        return fit.sigma2[\"sum\"] / pairs, float(fit.pairs)"
+    },
+    {
+      "id": "V16-phi-alpha-10",
+      "part": "B16 verify-code mutants",
+      "describes": "Phi run at alpha 10%",
+      "file": "reading.py",
+      "find": "    return graph, phi.run(graph, pvalues, alpha())",
+      "replace": "    return graph, phi.run(graph, pvalues, 2 * alpha())"
+    },
+    {
+      "id": "V16-theta0-common-seeds",
+      "part": "B16 verify-code mutants",
+      "describes": "the theta0 contrast over the comparator's common seeds, not all of m's",
+      "file": "reading.py",
+      "find": "        seeds = tuple(sorted(j for a, j in self.tables[\"O\"] if a == m))",
+      "replace": "        seeds = tuple(sorted(j for a, j in self.tables[\"O\"] if a == m and j >= 1102))"
+    },
+    {
+      "id": "V16-phi-uu-fixed-20th-r2",
+      "part": "B16 verify-code mutants",
+      "describes": "U-to-U share 1/20 each whatever K, the rest to F_k (plan B graph wrong but valid)",
+      "file": "phi.py",
+      "edits": [
+        {
+          "file": "phi.py",
+          "find": "        edges[u][f] = fraction(cfg[\"u_to_f\"])",
+          "replace": "        edges[u][f] = fraction(cfg[\"u_to_f\"]) + uu - Fr(1, 20) * (k - 1)"
+        },
+        {
+          "file": "phi.py",
+          "find": "                edges[u][node(\"U\", other)] = uu / (k - 1)",
+          "replace": "                edges[u][node(\"U\", other)] = Fr(1, 20)"
+        }
+      ]
+    },
+    {
+      "id": "V16-tok-arm-unpaired",
+      "part": "B16 verify-code mutants",
+      "describes": "Lambda_tok's interval with the arm read at another seed (unpaired)",
+      "file": "sensitivities.py",
+      "find": "            per_seed.append(float(\"nan\") if gr_j == BEYOND else (cell(\"a0\") - cell(arm)) - gr_j)",
+      "replace": "            per_seed.append(float(\"nan\") if gr_j == BEYOND else (cell(\"a0\") - con.cell_value(merged, arm, {1102: 1105, 1103: 1106, 1104: 1107}[j], scale)) - gr_j)"
+    },
+    {
+      "id": "FIX-reml-stop-on-newly-floored",
+      "part": "B16 fix mutants",
+      "describes": "verify-stats F1: the stop accepted on a step in which an arm newly reached the floor",
+      "file": "reml.py",
+      "find": "        if largest < tol and not newly_floored:",
+      "replace": "        if largest < tol:"
+    },
+    {
+      "id": "FIX-labels-tie-tolerance-off",
+      "part": "B16 fix mutants",
+      "describes": "verify-stats F2: 'better' compared with delta without the tie tolerance",
+      "file": "labels.py",
+      "find": "    better = rejected and est >= delta - tol",
+      "replace": "    better = rejected and est >= delta"
+    },
+    {
+      "id": "FIX-labels-tie-tolerance-wide",
+      "part": "B16 fix mutants",
+      "describes": "verify-stats F2: a tie tolerance of 1e-6 pp instead of the settings' 1e-9",
+      "file": "labels.py",
+      "find": "    tol = tie_tolerance() if tol is None else tol",
+      "replace": "    tol = 1e-6 if tol is None else tol"
+    },
+    {
+      "id": "FIX-labels-note-tolerance-off",
+      "part": "B16 fix mutants",
+      "describes": "verify-stats F2: LN-36's note at exactly -5 pp (no tolerance on the note)",
+      "file": "labels.py",
+      "find": "    note = (rejected and 0 < est < delta - tol) or (note_beside_worse and worse and abs(est) < delta - tol)",
+      "replace": "    note = (rejected and 0 < est < delta) or (note_beside_worse and worse and abs(est) < delta)"
+    },
+    {
+      "id": "FIX-sens-reml-options-ignored",
+      "part": "B16 fix mutants",
+      "describes": "verify-stats F4: fit_clusters ignores the settings' tol, max_iter, clip and floor mode",
+      "file": "sensitivities.py",
+      "find": "            fits[cluster] = reml.fit_cells(_cells(table, members, dsg.seeds, scale), members, floor, **opts)",
+      "replace": "            fits[cluster] = reml.fit_cells(_cells(table, members, dsg.seeds, scale), members, floor)"
+    },
+    {
+      "id": "FIX-sens-one-shift-options-ignored",
+      "part": "B16 fix mutants",
+      "describes": "verify-stats F4: fit_one_shift ignores the settings",
+      "file": "sensitivities.py",
+      "find": "    return reml.fit_cells(_cells(table, dsg.fit_arms, dsg.seeds, scale), dsg.fit_arms, floor, **reml.options(cfg or settings()))",
+      "replace": "    return reml.fit_cells(_cells(table, dsg.fit_arms, dsg.seeds, scale), dsg.fit_arms, floor)"
+    },
+    {
+      "id": "FIX-reml-floor-mode-ignored",
+      "part": "B16 fix mutants",
+      "describes": "verify-stats F3: the floor mode setting not read (always the active set)",
+      "file": "reml.py",
+      "find": "            \"planning_floor\": r[\"floor_mode\"] == \"planning\"}",
+      "replace": "            \"planning_floor\": False}"
+    },
+    {
+      "id": "FIX-reml-floor-mode-unchecked",
+      "part": "B16 fix mutants",
+      "describes": "verify-stats F3: an unknown floor mode accepted",
+      "file": "reml.py",
+      "find": "    if r.get(\"floor_mode\") not in FLOOR_MODES:",
+      "replace": "    if False:"
+    },
+    {
+      "id": "FIX-reading-alpha-literal",
+      "part": "B16 fix mutants",
+      "describes": "verify-code F5: Phi at a literal 1/20 instead of the settings' alpha",
+      "file": "reading.py",
+      "find": "    return graph, phi.run(graph, pvalues, alpha())",
+      "replace": "    return graph, phi.run(graph, pvalues, Fr(1, 20))"
+    },
+    {
+      "id": "FIX-reading-level-literal",
+      "part": "B16 fix mutants",
+      "describes": "verify-code F5: the contrast intervals at a literal 0.90",
+      "file": "reading.py",
+      "find": "    level = level_per_comparison()\n    u = ctx.within(\"U\", c, m)",
+      "replace": "    level = 0.90\n    u = ctx.within(\"U\", c, m)"
+    },
+    {
+      "id": "FIX-reading-coherence-p-iut",
+      "part": "B16 fix mutants",
+      "describes": "verify-code F1: a coherence-failing repair keeps its p_iut in family 1b",
+      "file": "reading.py",
+      "find": "                p[\"beats\"] = False\n                p[\"p_iut\"] = 1.0\n",
+      "replace": "                p[\"beats\"] = False\n"
+    },
+    {
+      "id": "FIX-references-dominates-without-beats",
+      "part": "B16 fix mutants",
+      "describes": "verify-code F1: 'dominates' without 'beats every reference'",
+      "file": "references.py",
+      "find": "        results[k][\"dominates\"] = k in rejected and results[k][\"beats_every_reference\"]",
+      "replace": "        results[k][\"dominates\"] = k in rejected"
+    },
+    {
+      "id": "FIX-schema-seed-isdigit",
+      "part": "B16 fix mutants",
+      "describes": "verify-code F2: seed keys by isdigit and int (aliases accepted)",
+      "file": "schema.py",
+      "find": "    if not isinstance(text, str) or SEED_KEY.fullmatch(text) is None:",
+      "replace": "    if not isinstance(text, str) or not text.isdigit() or int(text) not in SEED_RANGE:"
+    },
+    {
+      "id": "FIX-schema-version-loose",
+      "part": "B16 fix mutants",
+      "describes": "verify-code F2: the version compared with == 1 only (True and 1.0 pass)",
+      "file": "schema.py",
+      "find": "    if doc[\"kind\"] != INPUT_KIND or not _is_int(doc[\"version\"]) or doc[\"version\"] != 1:",
+      "replace": "    if doc[\"kind\"] != INPUT_KIND or doc[\"version\"] != 1:"
+    },
+    {
+      "id": "FIX-schema-reserved-names-off",
+      "part": "B16 fix mutants",
+      "describes": "verify-code F3: a reference may take an arm's name",
+      "file": "schema.py",
+      "find": "        if ref[\"name\"] in reserved:",
+      "replace": "        if False:"
+    },
+    {
+      "id": "FIX-sens-s-a-theta0-own-variance",
+      "part": "B16 fix mutants",
+      "describes": "verify-code F6: S-a's theta0 part by the arm's own variance (LN-20) instead of LW-33's pooled form",
+      "file": "sensitivities.py",
+      "find": "        o_theta = con.contrast_theta0_pooled(tables[\"O\"], seeds[\"O\"], m, seeds[\"O\"][m], theta0_o, scale[\"O\"], f\"{m}-theta0\")",
+      "replace": "        o_theta = con.contrast_theta0(tables[\"O\"], m, seeds[\"O\"][m], theta0_o, scale[\"O\"], True, f\"{m}-theta0\", \"S-a theta0 (LW-33 pooled)\")"
+    },
+    {
+      "id": "FIX-sens-s-a-o-paired",
+      "part": "B16 fix mutants",
+      "describes": "verify-code F6: S-a's O comparator part by the paired form instead of Welch",
+      "file": "sensitivities.py",
+      "find": "            o_comp = con.contrast_welch(tables[\"O\"], m, c, seeds[\"O\"][m], seeds[\"O\"][c], o_common, scale[\"O\"], True, f\"{m}-{c}\", \"S-a Welch\")",
+      "replace": "            o_comp = con.contrast_paired(tables[\"O\"], m, c, o_common, scale[\"O\"], True, f\"{m}-{c}\", \"S-a Welch\")"
+    },
+    {
+      "id": "FIX-reading-s-a-ol-no-override",
+      "part": "B16 fix mutants",
+      "describes": "verify-code F6: S-a's O, L and F p-values not passed into its Phi run",
+      "file": "reading.py",
+      "find": "    _, out = record(\"S-a (O, L)\", u_ests, override)",
+      "replace": "    _, out = record(\"S-a (O, L)\", u_ests, None)"
+    },
+    {
+      "id": "FIX-contrast-seed-only-keeps-item",
+      "part": "B16 fix mutants",
+      "describes": "verify-code F7: the 'on these prompts' value keeps the item part in its SE",
+      "file": "contrast.py",
+      "find": "    return Estimate(name=e.name, form=e.form + \"; seed part only\", est=e.est, se=float(np.sqrt(e.seed_var)),",
+      "replace": "    return Estimate(name=e.name, form=e.form + \"; seed part only\", est=e.est, se=e.se,"
+    },
+    {
+      "id": "FIX-reading-actor-menu-ignored",
+      "part": "B16 fix mutants",
+      "describes": "verify-code F8: the per-actor best arm picked over every repair, not the menu",
+      "file": "reading.py",
+      "find": "            cands = [c for c in _candidates(ctx, rows, arms, key) if c[\"arm\"] in present]",
+      "replace": "            cands = _candidates(ctx, rows, arms, key)"
+    },
+    {
+      "id": "FIX-reading-actor-tau-states-ignored",
+      "part": "B16 fix mutants",
+      "describes": "verify-code F8: at tau_O 2 and 10 feasibility read from F_k instead of the state",
+      "file": "reading.py",
+      "find": "            o_ok = row[\"feasibility_part\"][\"states\"][tau_o_key] == t[\"feasible\"]",
+      "replace": "            o_ok = row[\"feasibility_part\"][\"F_k_rejects_in_phi\"]"
+    },
+    {
+      "id": "FIX-reading-flag-by-start-level",
+      "part": "B16 fix mutants",
+      "describes": "verify-code F9: the equal-variance flag by the start-level comparison",
+      "file": "reading.py",
+      "find": "        flag = (\"U\", name) in rejected_by_code[\"S-a\"] and (\"U\", name) not in rejected_by_code[\"S-aW\"]",
+      "replace": "        flag = block[\"S-a\"][name][\"estimate\"][\"p_two_sided\"] <= float(outcome.start_levels[(\"U\", name)]) < block[\"S-aW\"][name][\"estimate\"][\"p_two_sided\"]"
+    },
+    {
+      "id": "FIX-contrast-inf-df-not-refused",
+      "part": "B16 fix mutants",
+      "describes": "verify-code N1: an infinite Satterthwaite df not refused (a ValueError later)",
+      "file": "contrast.py",
+      "find": "    if not np.isfinite(df):",
+      "replace": "    if False:"
+    },
+    {
+      "id": "FIX-reading-r-one-seed-refuses",
+      "part": "B16 fix mutants",
+      "describes": "verify-code N3: R with one O seed refuses the whole reading",
+      "file": "reading.py",
+      "find": "    if len(ctx.o_seeds(m)) < 2:",
+      "replace": "    if False:"
+    },
+    {
+      "id": "FIX-reading-margin-sensitivity-at-5",
+      "part": "B16 fix mutants",
+      "describes": "verify-code N4: the margin sensitivity computed at delta, not 4 pp",
+      "file": "reading.py",
+      "find": "    delta_s = float(cfg[\"margin\"][\"delta_sensitivity_pp\"])",
+      "replace": "    delta_s = delta"
+    },
+    {
+      "id": "FIX-reading-below-resolution-text-off",
+      "part": "B16 fix mutants",
+      "describes": "verify-code N5: the below-resolution text not printed",
+      "file": "reading.py",
+      "find": "           \"o_below_resolution\": below, \"o_below_resolution_text\": f\"{below}: {t['below_resolution']}\"}",
+      "replace": "           \"o_below_resolution\": below, \"o_below_resolution_text\": below}"
+    },
+    {
+      "id": "FIX-sens-tok-level-literal",
+      "part": "B16 fix mutants",
+      "describes": "verify-stats F4 / verify-code F5 (this pass): S-tok's interval at a literal t(0.95), not the settings' per-comparison level",
+      "file": "sensitivities.py",
+      "find": "            half = tdist.t_quantile(0.5 + level_per_comparison() / 2.0, len(d) - 1) * se if ok and se > 0 else float(\"nan\")",
+      "replace": "            half = tdist.t_quantile(0.95, len(d) - 1) * se if ok and se > 0 else float(\"nan\")"
+    }
+  ]
+}
