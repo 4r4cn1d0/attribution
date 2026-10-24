@@ -1,0 +1,124 @@
+{
+  "kind": "stage1 oext-unit fix",
+  "version": 1,
+  "status": "done",
+  "written_utc": "2026-10-24T07:29Z",
+  "workspace": "tmp/claude-workspaces/stage1-integrate-20261017/ws-oext",
+  "inputs_read": ["notes/oext-unit-build.json", "notes/oext-unit-verify-spec.json (verdict pass, 5 own mutants survived)",
+                  "notes/oext-unit-verify-code.json (verdict fix_required: 1 should_fix, 5 notes)",
+                  "notes/oext-unit-verify-code-evidence/verifier-mutants.json", "notes/oext-unit-verify-spec-evidence/shard_a.json, shard_b.json"],
+  "start_hashes_checked": "all 6 built files equal the build report's SHA-256 before any edit (shasum at 07:16:59Z)",
+  "files": [
+    {"path": "scripts/stage1_s1/oext_unit.py", "sha256": "9d038f38017c6b4df9382204772f267b92dfae33dae5fc2047004bb6889d615f", "was": "30be06b560596efab0c6f692672b6067dabf4aadf978a609cd6784d921fd2784", "changed": "check_unit:344-350 (state fingerprint checked at the plan); main:700-702 (an unexpected error during the plan exits 2)"},
+    {"path": "scripts/stage1_s1/settings/oext_unit.json", "sha256": "18957b683abd0452d77a426a1839dd0bf6ac51d3da484f093795d5e9e1ea1aa3", "changed": "no; SETTINGS_SHA256 at oext_unit.py:72 is unchanged"},
+    {"path": "scripts/stage1_s1/tests/test_oext_unit.py", "sha256": "f8848f87c076944f254c1c96111cb08daad9a055397bc164ce039bbafa7f64c0", "changed": "no"},
+    {"path": "scripts/stage1_s1/tests/test_oext_unit_contract.py", "sha256": "c0009e8f76ea441fdb07677eea3cfb52eb59b6e032c99c4d67150b4d02d155cd", "changed": "no"},
+    {"path": "scripts/stage1_s1/tests/oext_unit_fixtures.py", "sha256": "77b6c8233e7a757a652e43cbf1e80e48935c75324fbbe112f1ad91adcccad187", "changed": "no"},
+    {"path": "scripts/stage1_s1/tests/test_oext_unit_fixround.py", "sha256": "e19e69d70d85a6bd71c87a1ad722edaf40b297b36009ddcc968e32352992e0c1", "new": true, "tests": 16},
+    {"path": "scripts/stage1_s1/mutation/mutants_oext_unit.json", "sha256": "7906bb6689cdca593e68841a5d4ae04a820d7483a3e009346ecbb0308ee6a556", "was": "7e531787cb1efdc5003f4e8ee5c595aa9764cabe5f233d72ddcdfd52cc4afc15", "mutants": 53, "was_mutants": 36, "changed": "17 mutants added and the 'part' text updated; the first 36 are byte-identical; every find text occurs exactly once in the new oext_unit.py (checked)"}
+  ],
+  "existing_files_edited": "none outside the files this workflow built (oext_unit.py and mutants_oext_unit.json are the builder's new files; nothing else was edited)",
+  "dispositions": [
+    {
+      "finding": "verify-code finding 1 (should_fix): 10 guard lines held by no test",
+      "recheck": "CONFIRMED. Each line named is a real guard and no test exercised it: the existing tests only reach the earlier refusals (e.g. test_a_source_unit_must_be_the_regenerated_units_source stops at the seed and fingerprint checks; nothing changed a file between the plan and the pass).",
+      "disposition": "fixed with tests in test_oext_unit_fixround.py, one or more per line",
+      "tests": {
+        "a oext_unit.py:610 restored fingerprint": "test_the_restored_state_must_be_the_checked_units_adapter (with the receipt check bypassed, a state swapped after the plan -> exit 1, RunError, no COMPLETE.json)",
+        "f oext_unit.py:608 _same_state": "test_a_state_file_changed_after_the_plan_is_caught_before_the_load (state swapped after the plan -> exit 1, StateError 'changed after its dependency receipt'; the message tells it apart from the 610 guard)",
+        "f oext_unit.py:551 stored dev hash": "test_stored_dev_answers_changed_after_the_plan_are_caught[unit_eval|source_unit]",
+        "oext_unit.py:554 re-read check (not in the verifier's list; it was also unheld)": "test_stored_dev_answers_changed_while_read_are_caught",
+        "e oext_unit.py:342 eval files": "test_a_dev_evaluated_unit_that_lists_no_dev_answers_refuses (either file removed, resealed -> exit 2)",
+        "d oext_unit.py:339 other bank": "test_a_unit_that_evaluated_another_bank_refuses (evaluate_bank selector, resealed -> exit 2)",
+        "c oext_unit.py:382 (now 380) source manifest": "test_a_source_unit_on_another_manifest_refuses",
+        "b oext_unit.py:387 source recipe": "test_a_source_unit_outside_the_allowed_recipes_refuses (also passes once that recipe is allowed, so the refusal comes from the allow-list)",
+        "oext_unit.py:388 source training identity (verify-spec VS-source-identity-unchecked)": "test_a_source_unit_of_another_training_identity_refuses",
+        "g oext_unit.py:578 record scan": "test_the_completion_record_is_scanned_for_texts (settings seal.rule set to a PHTest prompt; the record copies seal.rule -> exit 1 'the completion record would hold')",
+        "h oext_unit.py:505 guard_over_limit": "test_generated_dev_answers_follow_the_recipes_guard_over_limit_rule (theta0 under Branch full, guard.max_input_tokens 2 -> exit 0, every dev judge row GUARD_OVER_LIMIT; without the rule the guard raises TooLong)",
+        "oext_unit.py:442 theta0 access": "test_theta0s_dev_bank_access_is_checked (untuned.access_seed 9101, a reference seed -> exit 2 AccessError)"
+      },
+      "failed_before": "These tests hold guards that already exist, so they pass on the old code as well (12 passed in fixround-before.xml). For such a test, 'failed before' means it fails under the mutant that removes the guard. Proven under the package's full-suite runner for 4 of them (below). Not run for the other 9 test-to-mutant pairs, because of the 5-mutant cap."
+    },
+    {
+      "finding": "verify-code finding 2 (note): a forged or mismatched unit fingerprint is caught only after the folder is made and the model is loaded",
+      "recheck": "CONFIRMED. states/e1/state.json is hash-listed in COMPLETE.json, and dependency_receipt already reads its adapter_fingerprint (verify.py:76-80). Its value can be compared with marker.checkpoints.e1 at no cost. Before the fix, a unit holding another unit's e1 state, with COMPLETE.json resealed, passed the plan and failed at the pass with exit 1 (fixround-before.xml: 'RunError: the restored state is not the checked unit's adapter', assert 1 == 2).",
+      "disposition": "fixed in oext_unit.py:344-350. The plan refuses (exit 2, no folder) when the saved state's fingerprint differs from COMPLETE.json's, or when COMPLETE.json names none. The check at :610 stays as the last guard.",
+      "test": "test_a_unit_whose_saved_state_is_another_adapters_refuses_at_the_plan (Branch full and Branch 128 with a source; failed before, passes after)",
+      "why_it_matters": "Under Branch 128, the LN-12 source check at :391 compares the source with the marker's fingerprint. Before the fix, a marker that matched the source but held a swapped state passed the plan."
+    },
+    {
+      "finding": "verify-code finding 3 (note): prepared files the pass does not load are not hash-checked",
+      "recheck": "CONFIRMED as described.",
+      "disposition": "dropped (no change). The pass reads only the manifest (pinned at :432), engine/* and banks/dev.jsonl (load_prepared(banks=('dev',))). A byte flip in any of those refuses. This matches the engine's own loading. Hashing files that are never read guards nothing in this pass."
+    },
+    {
+      "finding": "verify-code finding 4 (note): a unit's or source's COMPLETE.json has no outside pin under the plain-path contract",
+      "recheck": "CONFIRMED. The accepted flips all fall in fields the pass never reads.",
+      "disposition": "dropped (no change in this script). B15 passes plain paths (job_runner_stage1.py:243-248). Each COMPLETE.json SHA-256 is recorded in job.json and dependencies.json. Pinning the packed source belongs to B15 round 2 (open item)."
+    },
+    {
+      "finding": "verify-code finding 5 (note): an unexpected exception in prepare_plan leaves main as a traceback",
+      "recheck": "CONFIRMED. main caught only _INVALID around the plan. A KeyError or TypeError escaped main, so Python's exit code was 1, which under this script's contract means 'after the folder was made'. That was false here.",
+      "disposition": "fixed in oext_unit.py:700-702. Any other Exception during the plan prints {ok:false, refused:'unexpected TYPE in the plan: ...'} to stderr and returns 2. KeyboardInterrupt is not an Exception, so it still propagates.",
+      "test": "test_an_unexpected_error_in_the_plan_refuses_with_exit_2_and_no_folder[KeyError|TypeError] (failed before: the error escaped main; passes after)"
+    },
+    {
+      "finding": "verify-code finding 6 (note): the text scan could refuse a finished pass when a real answer text also occurs in another file",
+      "recheck": "PLAUSIBLE, not observed. When the scan refuses, the folder is kept with error.txt and nothing leaks.",
+      "disposition": "dropped (no change). Making the scan weaker would weaken the seal. The cost of a false refusal is one rerun."
+    },
+    {
+      "finding": "verify-spec own mutants (5 survived; verdict pass)",
+      "recheck": "CONFIRMED. They are the same lines as verify-code's finding 1: VS-source-identity-unchecked (:387-388), VS-source-manifest-unchecked (:380), VS-stored-dev-recheck-off (:551), VS-unit-other-bank (:339), VS-state-recheck-off (:608).",
+      "disposition": "fixed by the finding-1 tests above"
+    }
+  ],
+  "mutation": {
+    "spec": "scripts/stage1_s1/mutation/mutants_oext_unit.json: 53 mutants (36 + 17)",
+    "added": {
+      "verify_code": ["OUV-restore-fingerprint-off", "OUV-same-state-off", "OUV-stored-dev-hash-off", "OUV-unit-eval-files-unchecked", "OUV-unit-other-bank", "OUV-source-manifest-unchecked", "OUV-source-recipe-unchecked", "OUV-record-scan-off", "OUV-dev-guard-over-limit", "OUV-untuned-access-off", "OUV-exit-after-folder-refused", "OUV-transfer-route"],
+      "verify_spec": ["VS-source-identity-unchecked"],
+      "merged_verify_spec": {"VS-state-recheck-off": "same edit as OUV-same-state-off", "VS-stored-dev-recheck-off": "same edit as OUV-stored-dev-hash-off", "VS-unit-other-bank": "identical to OUV-unit-other-bank", "VS-source-manifest-unchecked": "same effect as OUV-source-manifest-unchecked (drops the manifest key from the same dict)"},
+      "this_round": ["OU-source-training-identity-unchecked", "OU-plan-state-fingerprint-off", "OU-plan-unexpected-not-refused", "OU-dev-read-recheck-off"]
+    },
+    "run_here": {
+      "runner": "scripts/stage1_s1/mutation/run_mutants_b10.py (whole stage1_s1 suite per run, committed layout, section 24 point 1)",
+      "shard0": "OUV-restore-fingerprint-off, OUV-same-state-off, OU-plan-state-fingerprint-off: baseline 832 pass; 3 killed, 0 survived, 0 invalid; 07:24:39Z-07:26:44Z; exit 0",
+      "shard1": "OUV-source-recipe-unchecked, OUV-dev-guard-over-limit: baseline 832 pass; 2 killed, 0 survived, 0 invalid; 07:26:54Z-07:28:29Z; exit 0",
+      "killing_tests": {
+        "OUV-restore-fingerprint-off": "test_oext_unit_fixround::test_the_restored_state_must_be_the_checked_units_adapter",
+        "OUV-same-state-off": "test_oext_unit_fixround::test_a_state_file_changed_after_the_plan_is_caught_before_the_load",
+        "OU-plan-state-fingerprint-off": "test_oext_unit_fixround::test_a_unit_whose_saved_state_is_another_adapters_refuses_at_the_plan",
+        "OUV-source-recipe-unchecked": "test_oext_unit_fixround::test_a_source_unit_outside_the_allowed_recipes_refuses",
+        "OUV-dev-guard-over-limit": "test_oext_unit_fixround::test_generated_dev_answers_follow_the_recipes_guard_over_limit_rule"
+      },
+      "evidence": "notes/oext-unit-fix-evidence/mutation-shard0.json (e922b83e...), mutation-shard1.json (d26aeb40...), shard0.json (730ea1c9...), shard1.json (a8b59faa...)"
+    },
+    "not_run": "48 of 53, because of the 5-mutant cap: the builder's 31 never-run mutants, plus 17 others. The builder ran 5 of the 36 earlier, on the old code. Expected outcome: every mutant killed. This is UNVERIFIED for the 48."
+  },
+  "tests": {
+    "env": "cwd ws-oext; OMP/MKL/VECLIB/OPENBLAS threads 1; PYTHONDONTWRITEBYTECODE=1; HF_HUB_OFFLINE=1; TRANSFORMERS_OFFLINE=1; /Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python -B -m pytest -q -rs -p no:cacheprovider --basetemp=<scratchpad>/ofix/bt/<x> --junitxml=...",
+    "before_fix": {"cmd": "pytest test_oext_unit_fixround.py on the unchanged oext_unit.py", "utc": "2026-10-24T07:21:02Z", "exit": 1, "result": "4 failed, 12 passed. Expected failures: the finding-2 test (exit 1 instead of 2) and both finding-5 cases (KeyError and TypeError escaped main). The 4th failure, the while-read test, was a bug in the test itself: it wrote rows with canonical_json, which read_jsonl rejected. I fixed the test to use jsonl_bytes. The code was not the cause.", "evidence": "notes/oext-unit-fix-evidence/fixround-before.xml (0f4e907a...)"},
+    "oext_unit_tests_after": {"cmd": "pytest test_oext_unit_fixround.py test_oext_unit.py test_oext_unit_contract.py", "utc": "2026-10-24T07:21:56Z", "exit": 0, "result": "88 passed (72 + 16), 0 skipped", "evidence": "ou-after.xml (4c4339a4...)"},
+    "stage1_s1": {"utc": "2026-10-24T07:22:55Z-07:23:25Z", "exit": 0, "result": "832 passed, 0 failed, 0 errors, 0 skipped (was 816)", "evidence": "suite-stage1_s1.xml (16b8c138...)"},
+    "stage1": {"utc": "2026-10-24T07:23:25Z-07:24:25Z", "exit": 0, "result": "874 passed, 0 failed, 0 errors, 0 skipped", "evidence": "suite-stage1.xml (f182be04...)"},
+    "fixtures": "only the package's synthetic fixtures (engine ss_fixtures, oext_fixtures, oext_unit_fixtures); no real model, bank, record or answer was read"
+  },
+  "lead_commands": {
+    "unchanged": "the run and transfer commands in notes/oext-unit-build.json lead_commands are unchanged; the CLI is unchanged (test_oext_unit_contract.py passes against the live kit at ../ws-b15r2)",
+    "remaining_mutants": "venv/bin/python -B scripts/stage1_s1/mutation/run_mutants_b10.py --spec <shard of <= 7 mutants from scripts/stage1_s1/mutation/mutants_oext_unit.json> --scratch <outside the workspace> --report <file> --timeout 150 --python venv/bin/python (about 30 s per run on this Mac today, baseline included; the 48 unrun mutants make 7 shards of at most 7; run them as the lead's own foreground or background Bash, not inside an agent)",
+    "today": "every command still refuses with exit 2 (the committed oext_eval settings are pending_w1_18)"
+  },
+  "open_items": [
+    "48 of the 53 mutants have not been run on the final code (worker cap of 5).",
+    "B15 round 2 must pin oext_unit.py's new SHA-256 (9d038f38...), not the build's 30be06b5... (section 20 point 6). It must also add oext_unit.json to the files it seals for O-ext steps (unchanged from the build's open items).",
+    "Re-pin chain (section 11 point 7) unchanged: when oext_eval's branch is set, oext_unit.json's oext pins change, and so does SETTINGS_SHA256.",
+    "Findings 3, 4 and 6 were dropped with the reasons above. Finding 4's real remedy, a pin on the packed source unit, is B15's.",
+    "CUDA numerics are still UNVERIFIED (unchanged)."
+  ],
+  "alternatives": [
+    "Finding 2 as a direct read of states/e1/state.json in check_unit: rejected for the receipt's already-read copy (dependency_receipt reads the same file once, so the plan and the receipt cannot disagree).",
+    "Finding 5 by widening _INVALID: rejected. A broad Exception clause only around the plan keeps exit 1 for every failure after the folder, and the 'unexpected' prefix keeps a programming error visible.",
+    "Tests of the 610 and 551/554 guards by monkeypatching load_state or the hash function: rejected for real file changes made between the plan and the pass (a hook on prepare_plan). The receipt check is bypassed only in the 610 test, because it otherwise catches the same swap first."
+  ]
+}
