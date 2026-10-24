@@ -1,0 +1,422 @@
+{
+ "kind": "B15 ROUND 3c BUILD report",
+ "version": 1,
+ "status": "done",
+ "started_utc": "2026-10-24T08:22:09Z (first clock reading; reading the notes, README and kit began a few minutes earlier and was not timed)",
+ "finished_utc": "2026-10-24T08:49:58Z",
+ "clock_note": "date -u read at 08:22:09, 08:28:15, 08:41:46, 08:42:38, 08:44:17, 08:46:08, 08:47:06, 08:47:38, 08:47:52 and 08:49:58 UTC on 24 Oct 2026 (the last one just before writing this file).",
+ "target": "ws-b15r3c/runkit/stage1-olmo/ only: 9 files changed (stage1_rules.py, pack_setup.py, setup/job_runner_stage1.py, plan_tool.py, seal.py, README.md, tests/test_stage1_runkit.py, tests/test_stage1_runner.py, tests/mutants_b15.json). Nothing else in ws-b15r3c changed (find -newer outside the kit: none; no __pycache__); runkit/gate-b-olmo is identical to the main checkout's (diff -rq).",
+ "baseline": "At the start the kit hashed equal to the round-3b fix report's 27 files (notes/b15r3c-build-evidence/kit-sha256-before.txt). Baseline on ws-b15r3c before any edit: test_stage1_runkit.py 281 passed, test_stage1_runner.py 137 passed, scripts/stage1_s1/tests/test_oext_unit_contract.py 20 passed, 0 skipped (base-*.xml). The S1 files hash to the brief's values: oext_unit.py 9d038f38..., settings/oext_unit.json 18957b68....",
+ "summary": "All three items done. (1) stage1_rules.S1_CODE now pins scripts/stage1_s1/oext_unit.py and scripts/stage1_s1/settings/oext_unit.json (11 S1 pins; S1_COMMIT 40e0cc6). The X pack carries both and refuses a differing byte. S1_UNPINNED and the pack's exception for it are removed, so a planned O-ext step is accepted once the runner is packed. Every O-ext step (J3, J4, J9, J10, J18) seals oext_unit.json too. A new test parses every O-ext command of the dry run under the real oext_unit.py parser and gets the contract parser's values. The contract test runs and passes from ws-b15r3c: 20 passed, 0 skipped. (2) Block A completes only when every job its recorded block-A plan requires has a completion record or is named by a recorded lead decision (new record kind and CLI: record-block-a-not-run). seal.py block A and the init of certify and B refuse otherwise and name the open jobs. Tests cover both ways. (3) The README states the $144 top-up; the kit's computed needs are unchanged (funding.json byte-identical to round 3b's). RAISED: the brief's premise that $143.19 is the worst case over every valid in-block re-plan is false by the kit's own functions. 8 of the 1,023 two-LN-12-pod layouts need $144.06, three LN-12 pods up to $145.63, and eleven $158.16. $144 covers every one-pod re-plan and every two-pod re-plan whose LN-14 report shares a pod with an O-only pass (at most $143.68). The kit refuses any re-plan that the record does not cover, so money is never at risk. Suites: B15 287 + 155 = 442 passed, Gate B kit 271 passed, contract 20 passed, 0 skipped anywhere. Mutant spec: 285 entries (16 B15-8-* added, B15-6-s1-unpinned-all retargeted). I ran 5; all 5 were killed.",
+ "files": [
+  {
+   "path": "ws-b15r3c/runkit/stage1-olmo/README.md",
+   "sha256": "67d7a2d93df8dfba4cf7416b62dcb24f437354d48d88ae920b7b07fea364de9c",
+   "changed": true,
+   "was": "5b206359e5a2f4fba4dcd36dcd9aed073633d37c3dcd602f8274d4abbd17d45c"
+  },
+  {
+   "path": "ws-b15r3c/runkit/stage1-olmo/account.py",
+   "sha256": "8e3b8c4eb7e21d06bb48bb6eef8f0a412a198b893e583e98632756e5c72b612f",
+   "changed": false
+  },
+  {
+   "path": "ws-b15r3c/runkit/stage1-olmo/backup_records_stage1.py",
+   "sha256": "fa781613f56066e73d418e11e76825bdcc55cfeeff7be85cdee50e5778e3568c",
+   "changed": false
+  },
+  {
+   "path": "ws-b15r3c/runkit/stage1-olmo/budget.py",
+   "sha256": "f4760c080159e70371f528b7f0349b695858f7f320956568a02818d6c89963b0",
+   "changed": false
+  },
+  {
+   "path": "ws-b15r3c/runkit/stage1-olmo/finisher.py",
+   "sha256": "c5a267cb070fdf9efce936f5ba81daf8fc732133731f07ba4b0c9eb79257dcdb",
+   "changed": false
+  },
+  {
+   "path": "ws-b15r3c/runkit/stage1-olmo/gateb_mac.py",
+   "sha256": "d8dd2ff49c1e4739e7746d5140aa432cc19cf4c044e6150c2dceef4869864dd7",
+   "changed": false
+  },
+  {
+   "path": "ws-b15r3c/runkit/stage1-olmo/host.py",
+   "sha256": "d0ece676bf4b0d718d6bacb82ab5cf4738f7ed02c510e60ef737c9aca44c24d5",
+   "changed": false
+  },
+  {
+   "path": "ws-b15r3c/runkit/stage1-olmo/judge_units_stage1.py",
+   "sha256": "31555680d1a7580f9358f2d609fe5146f50903450d011c944c4a66203d57eef3",
+   "changed": false
+  },
+  {
+   "path": "ws-b15r3c/runkit/stage1-olmo/launch.py",
+   "sha256": "5491993d9b88b4214a269504c89611ceaaab2fa31371bd27d33b103b7b61c758",
+   "changed": false
+  },
+  {
+   "path": "ws-b15r3c/runkit/stage1-olmo/orchestrate.py",
+   "sha256": "862939d1b1d64693138663a0702ed64ed0ab293142301c13d5e21de8e8db58bd",
+   "changed": false
+  },
+  {
+   "path": "ws-b15r3c/runkit/stage1-olmo/pack_setup.py",
+   "sha256": "7a87815a62071ee4d21e1d3957f1ab36a1392987d12acb0db8235509f9bf1f52",
+   "changed": true,
+   "was": "1b68fb5faab2a7292d4b9120dae4c4ca0689ea9ee15a4037927a1e125d60829e"
+  },
+  {
+   "path": "ws-b15r3c/runkit/stage1-olmo/plan_tool.py",
+   "sha256": "f71652ae29b299d50d55f1c1c1c3c5da5e600a15c81adee3fabd13311b043dba",
+   "changed": true,
+   "was": "ff632f2b0b0cb1f62a483de70b32919b5f492a97ec36fe780b69ef28fac9f9df"
+  },
+  {
+   "path": "ws-b15r3c/runkit/stage1-olmo/probes.py",
+   "sha256": "cb19679e1ea4a3993db8a74df7e4ed3e532b4e11863436700578244029682a70",
+   "changed": false
+  },
+  {
+   "path": "ws-b15r3c/runkit/stage1-olmo/seal.py",
+   "sha256": "c14fb29e1300f2eb569a8ba5514da72656dfcd20f8baa3da979468900e286335",
+   "changed": true,
+   "was": "a4aa1f9d6cc03c9e2f3cb333edde539074f51a5e523f84784d28e2c387f737cd"
+  },
+  {
+   "path": "ws-b15r3c/runkit/stage1-olmo/secret_scan.py",
+   "sha256": "75baad4c9127449a0de311ea0773d4306ec6b47ad6247018be59259785326d3b",
+   "changed": false
+  },
+  {
+   "path": "ws-b15r3c/runkit/stage1-olmo/setup/bootstrap_hr.sh",
+   "sha256": "563a128a1573dd97d10f27cdfa0cfa23a03e5409c3c876ab6f16a7115241140f",
+   "changed": false
+  },
+  {
+   "path": "ws-b15r3c/runkit/stage1-olmo/setup/constraints.txt",
+   "sha256": "cdd9f13062d613b0557503c3d332a870f570c7a09e532e8ab8e934ab4867d32b",
+   "changed": false
+  },
+  {
+   "path": "ws-b15r3c/runkit/stage1-olmo/setup/download_models_stage1.py",
+   "sha256": "ffb4f13f51d2e4be00a25b352f3d5c8d58523c9f881f5358a7f35e404b5e05a3",
+   "changed": false
+  },
+  {
+   "path": "ws-b15r3c/runkit/stage1-olmo/setup/extend_cap.py",
+   "sha256": "8af2f6ccebbac591499075827afef714ff1b635b6f6a691e5f669517458179d6",
+   "changed": false
+  },
+  {
+   "path": "ws-b15r3c/runkit/stage1-olmo/setup/job_runner_stage1.py",
+   "sha256": "ae05dd3058e12a3832f7850e22aed85cc322dd59b7081a98ea1ab401fa667af2",
+   "changed": true,
+   "was": "b6cf1977dadcdba7d869bbe7da186aac57ca2a2355c31614de76a3e69ef4c0f6"
+  },
+  {
+   "path": "ws-b15r3c/runkit/stage1-olmo/setup/preflight_stage1.py",
+   "sha256": "e8ec5d81a949e03e3db24dc9c66e28aa7054e5a48a0b75580ad236127b57f101",
+   "changed": false
+  },
+  {
+   "path": "ws-b15r3c/runkit/stage1-olmo/setup/setup_and_fetch_stage1.sh",
+   "sha256": "4d363806bbd4f51f088dc6fa1f27f3f95409407993f0b802363722c812abf586",
+   "changed": false
+  },
+  {
+   "path": "ws-b15r3c/runkit/stage1-olmo/stage1_rules.py",
+   "sha256": "38e2cffc11e4abf7bec816b7a3f65183d3151b062c1adf1423eb9b2b878cd22a",
+   "changed": true,
+   "was": "7d10a5de408e75ef077542565c6dbf1c4de208dc44d09f6011a09ef9c8773c88"
+  },
+  {
+   "path": "ws-b15r3c/runkit/stage1-olmo/status.py",
+   "sha256": "16851c6f678fd3e86749ce7f81c6086ffedf723c44e50246291801567dfb33a0",
+   "changed": false
+  },
+  {
+   "path": "ws-b15r3c/runkit/stage1-olmo/tests/mutants_b15.json",
+   "sha256": "b69f70788ed13d07bf70da958de55247971a3c851c80580e09f99d4ef6ca45b5",
+   "changed": true,
+   "was": "359233d2aaa5d2579f0c6c00bb68a150b4e054539f56f716dc4c217f0051ef91"
+  },
+  {
+   "path": "ws-b15r3c/runkit/stage1-olmo/tests/test_stage1_runkit.py",
+   "sha256": "1f5f0561166a8e71b646dad72f8c61ebec4115ca23ec49a54fb663de07ad139b",
+   "changed": true,
+   "was": "02be33bd056a6d758188ec09838afb044e386cc1fe33651ac4459bc652e17aab"
+  },
+  {
+   "path": "ws-b15r3c/runkit/stage1-olmo/tests/test_stage1_runner.py",
+   "sha256": "de9278182c3ffb14763e671f32362ab3f48e14239cbedc3949dd4b14266c3ea9",
+   "changed": true,
+   "was": "ee12cefadd002a0083072b2bb009b0c8e24e6db2bf33e16fca386bc53ff98df4"
+  }
+ ],
+ "items": [
+  {
+   "item": "1. Pin the O-ext unit runner",
+   "changed": [
+    "stage1_rules.py:333-338: comment; S1_COMMIT '3eaf968' -> '40e0cc6' (the 9 round-3b pins have the same bytes in this tree, re-checked by test_the_round_2_pins_are_the_files_in_this_repository)",
+    "stage1_rules.py:352-355: S1_CODE + 'scripts/stage1_s1/oext_unit.py': 9d038f38017c6b4df9382204772f267b92dfae33dae5fc2047004bb6889d615f and 'scripts/stage1_s1/settings/oext_unit.json': 18957b683abd0452d77a426a1839dd0bf6ac51d3da484f093795d5e9e1ea1aa3; S1_UNPINNED removed",
+    "pack_setup.py:24-28 (doc) and :225-227: the S1_UNPINNED exception is removed. A lead code entry under scripts/stage1_s1/ must be an S1_CODE or D2_CODE pin; the message names main 40e0cc6. The X pack adds both runner files through the existing S1_CODE loop (pack_setup.py:217-218, unchanged). oext_unit.json pins engine X (engine_x 472fc7f6...), so it passes s1_settings_engine.",
+    "setup/job_runner_stage1.py:22-23 (doc), :121 (the 'NOT BUILT' comment removed), :122 OEXT_UNIT_SETTINGS, :557 sealed_paths: every OEXT_STEP_KINDS job (o_only J3, transfer_report J4, arm J9, a0_arm J10, ref_train J18) seals OEXT_UNIT_SETTINGS beside OEXT_UNIT_SCRIPT, oext_eval.py and oext_eval.json; so check-plan (orchestrate.py:208, unchanged) needs it in the packed stage",
+    "README.md: round 3b S1 bullet, G0 bullet ('Today it refuses ... not built' replaced), Round 3c section"
+   ],
+   "not_changed_and_why": "job_runner_stage1.oext_unit_contract's docstring still says 'OEXT_UNIT_SCRIPT is not built'. It is a docstring, not a refusal. scripts/stage1_s1/tests/oext_unit_fixtures.py CONTRACT_SOURCE freezes that function's text byte for byte, and test_oext_unit_contract.py fails on any change. scripts/ is outside my write scope.",
+   "tests": [
+    "test_stage1_runner.py:2001 test_every_o_ext_steps_commands_parse_under_the_real_runners_own_parser: 8 O-ext steps from two dry runs (Branch full: J3 a0 and theta0, J9, J10, J18; Branch 128: J3 a0 with --dev100-source, J3 theta0, J4). Each is parsed by scripts.stage1_s1.oext_unit.main, stopped at parse_args, in a fresh interpreter. Each gives the contract parser's namespace. Hand values: the kinds list, commands {run, transfer}, one dev100_source = inputs/source_unit-a0-1101 on round1/1101-a0-regen-a1.",
+    "test_stage1_runner.py:532 test_every_jobs_argv_parses_with_its_targets_own_parser: O-ext argvs now also go to the real runner (SCRIPT_MODULE :529), and the module must be seen",
+    "test_stage1_runner.py:2049 test_every_o_ext_step_seals_the_runner_and_its_settings[6 steps x 2 files = 12]: sealed_paths holds the 4 O-ext files; a changed byte in oext_unit.json or oext_unit.py stops the host at that job (sealed_file_mismatch), and no step of the job runs",
+    "test_stage1_runner.py:2068 test_the_x_pack_alone_carries_every_file_an_o_ext_step_seals: a real pack_setup X run with no lead entry for the runner; each O-ext kind's scripts/ paths are exactly the 4 O-ext files, each at its S1_CODE pin",
+    "test_stage1_runner.py:1235 test_check_plan_refuses_a_job_whose_o_ext_script_is_not_packed: both missing -> '2 file(s) not packed'; either one missing -> '1 file(s) not packed: [that file]'; both -> ok",
+    "test_stage1_runner.py:1795 test_an_s1_package_file_whose_bytes_differ_refuses_the_pack: 9 -> 11 cases (the two runner files)",
+    "test_stage1_runner.py:1818 test_a_lead_code_entry_under_the_s1_package_must_be_its_pin: 5 -> 7 cases (the runner and its settings at another SHA-256 refuse; the runner at its pin packs)",
+    "test_stage1_runner.py:1895 test_every_s1_package_file_the_runner_uses_is_pinned: no exception left; both runner files are S1_CODE pins",
+    "test_stage1_runkit.py:1593 test_the_round_2_pins_are_the_files_in_this_repository: 11 S1 pins hash equal in this tree; the two runner pins equal the brief's values; no S1_UNPINNED; S1_COMMIT 40e0cc6",
+    "scripts/stage1_s1/tests/test_oext_unit_contract.py (unchanged, not edited): 20 passed, 0 skipped from ws-b15r3c, both before and after the change. test_the_kits_contract_is_the_frozen_copy ran and passed (final-contract.xml)."
+   ],
+   "mutants": [
+    "B15-8-runner-unpinned",
+    "B15-8-runner-settings-unpinned",
+    "B15-8-runner-settings-unsealed (run: killed)",
+    "B15-8-oext-checkpoint-q",
+    "B15-6-s1-unpinned-all (retargeted; run: killed)"
+   ]
+  },
+  {
+   "item": "2. Block A completes only against its recorded plan (VP3b-3)",
+   "design": "The required jobs are every job that the recorded block-A plan holds for part A (block_a_required). These are: the diagnostics and LN-12 pods' jobs (theta0's LN-14 report only under Branch 128, block A's recorded branch; no o_only or transfer_report under fallback (c), where neither runs); every run of the deal pods that the plan's arm launches name; and each judge launch, with its planned units. A completion record is a job recorded complete on a block-A host by record-done (the complete jobs of a moved host count), or a judge launch of block A that is released over at least the plan's units for that judge. For the kit default the host-job part equals check_block_a_content's G5 list. Jobs are named 'kind arm seed' without the empty parts (job_label). The refusal prints these names, and the decision record uses them.",
+   "changed": [
+    "plan_tool.py:146 RECORD_KINDS['not_run'] = 'stage1 block-a not-run decision'; :708 skeleton records.block_a_not_run = []",
+    "plan_tool.py:592 block_complete: block A also needs block_a_open(plan) == []",
+    "plan_tool.py:620 gate_order: certify's and B's refusal names the open jobs (block_a_open_note)",
+    "plan_tool.py:1407-1563 job_label, block_a_required, block_a_done, block_a_planned, block_a_not_run (each decision file is re-hashed at every use and must still hold the recorded jobs and reason), block_a_open, block_a_open_note, record_block_a_not_run",
+    "plan_tool.py:2623, :2642 the CLI 'record-block-a-not-run FILE --sha256 H'; module doc :40-42 and :110-114",
+    "seal.py:56: the refusal names the open jobs; :82-85 block A's seal record lists 'not_run' [{job, decision_sha256}]; module doc :15-20",
+    "README.md: G5 bullet and Round 3c section"
+   ],
+   "decision_record": "{kind: 'stage1 block-a not-run decision', jobs: [distinct names], reason (non-empty), utc, recorded_by}. The kit refuses it before block A is planned, after block A is sealed, and when a name is not required by the plan, has a completion record, is still held by block A (a host that is not moved, released or pending, or an unreleased judge launch over the planned units), or was named by an earlier decision. Several decisions may be recorded; each is kept as {path (resolved), sha256, jobs, reason, utc}.",
+   "tests": [
+    "test_stage1_runkit.py:3074 test_block_as_required_jobs_follow_the_plan_the_branch_and_the_o_ext_fallback[3]: World's test plan by hand: Branch 128 4 + 12 + 7 + 20 + 2 = 45; Branch full 44 (no LN-14 report); full under fallback (c) 4 + 7 + 4 + 20 + 2 = 37. The arm runs follow the deal rule by hand (run i on pod i mod 5; the first 4 are A1 1102, L1 1104, S1 1103, S4 1102). Both judges need 27 units.",
+    "test_stage1_runkit.py:3096 test_block_a_completes_only_when_every_planned_job_ran_or_a_decision_names_it: block A launches every planned job except LN-15e's 1103 pair and c0. All hosts complete, both judges are released and filed. seal.py block A and init B both refuse and name exactly 'retrain a0 1103, a1_rescore a0 1103, c0 R 1101'. The decision refuses: before block A; on a planned host (a-1, a-3 pending); on an unreleased judge launch (launch 4); outside the plan (the LN-14 report under Branch full, arm A1 9999); a job that ran; the released HarmBench; a repeated name; empty jobs; another kind; a blank reason; a missing recorded_by. The CLI records the 3 names with open == []. A repeat refuses. A decision file changed after recording refuses the seal; restored, block A seals. The seal's not_run lists the 3 names with the decision SHA-256. After the seal a decision refuses.",
+    "test_stage1_runkit.py:3168 test_a_dealt_arm_run_the_contingency_cannot_re_run_keeps_block_a_open_until_a_decision_names_it: a-4 (deal pod 3 by hand: L1 1102, H1 1104, S3 1103, a0 1104) crashes its first arm. With block A's contingency at $0, defer re-runs nothing. Before round 3c, block A could then complete without arm L1 1102. Now that run stays open. A decision naming it while a-4 still holds it refuses; after the defer it is accepted.",
+    "test_stage1_runkit.py:830 test_block_b_refuses_before_block_a_is_complete_and_sealed (extended): after every host is done, init B refuses with '25 job(s) the block-A plan requires ...' (Branch 128: 4 diagnostics + 19 LN-12 + 2 judges). A decision then leads to 'not sealed'.",
+    "test_stage1_runkit.py:1419 test_a_block_is_complete_only_when_its_judge_launch_is_released_and_filed (extended): Granite released over 20 units (< the plan's 27) and no HarmBench: both judges stay open (25 open).",
+    "World.not_run (test_stage1_runkit.py:171) and _finish_block_a (:820): the tests about later blocks record a decision for the plan's left-out jobs, so their intent is unchanged"
+   ],
+   "mutants": [
+    "B15-8-block-a-open-unchecked (run: killed)",
+    "B15-8-arms-not-required",
+    "B15-8-ln14-always-required",
+    "B15-8-fallback-oext-required",
+    "B15-8-judge-units-free (run: killed)",
+    "B15-8-moved-host-holds",
+    "B15-8-decision-outside-plan",
+    "B15-8-decision-ran",
+    "B15-8-decision-still-planned",
+    "B15-8-decision-not-rehashed",
+    "B15-8-seal-not-run-unlisted"
+   ]
+  },
+  {
+   "item": "3. README: the $144 top-up",
+   "changed": [
+    "README.md:22-28 (Money): the top-up asked of the user for block A is $144 (the lead's round-3c decision): $143.19 rounded up, with a pointer to the limit",
+    "README.md:73-79 (round 3a bullet): $142 did not cover the two-LN-12-pod 5-in-one re-plan; $144 does",
+    "README.md:107-108 (round 3b top-up bullet): marked superseded",
+    "README.md:110-150 Round 3c section, top-up bullet: $143.19 by hand (11,329.50 + 125.30 = 11,454.80 cents -> $114.55 -> 1.25 x = $143.19 -> $144), needs unchanged, and the stated LIMIT (below)"
+   ],
+   "needs_unchanged": "No money code changed. notes/b15r3b-build-evidence/funding.py was re-run on the final kit, and notes/b15r3c-build-evidence/funding.json is byte-identical to round 3b's (5c4828fb...). Default 2+2+1: $130.59 (full) / $122.66 (128); one LN-12 pod, 5-in-one: $141.63 / $134.04. That script's printed 'top_up_usd 142' is its own round-3b rule (the one-pod worst case); I did not edit it.",
+   "limit_found": "From the kit's own functions (replans.py, fine_two_pods.py, two_pods_rule.py and their outputs in the evidence folder; each plan passed validate_block_a_plan, with every arm split and cert first or last). One LN-12 pod: at most $141.63. Two LN-12 pods: 1,023 layouts of the 11 atomic LN-12 units. 791 need $143.19, 168 need $143.30, 56 need $143.68, and 8 need $144.06. The 8 are exactly the layouts that put theta0's LN-14 report on a pod with no O-only pass. Each pod is priced at the larger of its two branch figures: the other pod at Branch full, this one at Branch 128 with the report's 1,408 s. So one more 42-min overhead and the report are counted: 11,329.5031 + 3,928 x 179/3,600 = 11,524.81 cents -> $115.25 -> 1.25 x = $144.0625 -> $144.06. Three LN-12 pods: up to $145.63. Eleven (the finest layout): $158.16. All with five arm pods in one launch. Under a $144 record, record-block-a-replan refuses each of them.",
+   "tests": [
+    "test_stage1_runkit.py:3197 test_a_144_top_up_covers_the_two_ln12_pod_five_in_one_replan_but_not_the_ln14_report_apart: hand values 143.19 and 144.06, ceil 144. Under a $144 S1-0 record VP3b-1's re-plan records at $143.19, and the LN-14-apart layout refuses with 'needs $144.06; ... is $144.00'. It documents a limit, so it passes on round 3b's code too (before-fix.xml).",
+    "test_stage1_runkit.py:3025 test_the_round_3b_funding_report_from_the_kits_own_functions: docstring only (its ceil == 142 stays true for the one-pod worst case)"
+   ],
+   "mutants": [
+    "B15-8-ln14-price (run: killed, 7 tests including the new $144 test)"
+   ]
+  }
+ ],
+ "tests": {
+  "env": "export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONDONTWRITEBYTECODE=1 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1; cwd ws-b15r3c; /Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python -B -m pytest -p no:cacheprovider --basetemp=<new folder under the scratchpad's r3c/pt/>",
+  "b15_suite": "shard 1 runkit/stage1-olmo/tests/test_stage1_runkit.py: 287 passed (8.96 s); shard 2 test_stage1_runner.py: 155 passed (8.00 s); 442 in all, 0 failures, 0 errors, 0 skipped (round 3b: 281 + 137 = 418). final-runkit.xml, final-runner.xml.",
+  "gbk_suite": "experiments/safety_selection/tests/test_ss_gateb_runkit.py: 271 passed, 0 skipped (14.03 s), file unchanged; runkit/gate-b-olmo identical to the main checkout's (diff -rq). final-gbk.xml.",
+  "contract": "scripts/stage1_s1/tests/test_oext_unit_contract.py: 20 passed, 0 skipped, from ws-b15r3c, before the change (base-contract.xml) and after it (final-contract.xml). The kit is reachable at ENGINE_ROOT/runkit/stage1-olmo, so test_the_kits_contract_is_the_frozen_copy runs.",
+  "before": "The final tests run against round 3b's kit code (a scratch layout: kit-before plus the new tests, links to ws-b15r3c's other folders): 98 failed, 342 passed (before-fix.xml). This is weak evidence. Most runner failures come from the Pod fixture naming runner.OEXT_UNIT_SETTINGS, which the old runner lacks, and the new runkit tests call functions that did not exist. The item-level evidence is the mutants.",
+  "intermediate": "After the code edits and before the test edits: runkit 13 failed / 268 passed and runner 13 failed / 124 passed (expected: the seal paths and the fixture's missing runner settings). These were fixed by the test edits above, with each test's intent kept."
+ },
+ "mutation": {
+  "spec": "tests/mutants_b15.json: 285 entries (269 + 16 B15-8-*). B15-6-s1-unpinned-all is retargeted: its round-3b find text (the S1_UNPINNED exception) is gone, and it now puts that exception back. notes/b15-fix-evidence/chk.py: every find text occurs exactly once, no repeated id (mutant-find-check.txt). My own check: every mutated .py parses (ast) and no mutant is a no-op. Expected survivors unchanged: B15-2-plan-ab-not-derived, VP-rescore-own-arm-seed-unchecked.",
+  "added": [
+   "B15-8-runner-unpinned",
+   "B15-8-runner-settings-unpinned",
+   "B15-8-runner-settings-unsealed",
+   "B15-8-oext-checkpoint-q",
+   "B15-8-block-a-open-unchecked",
+   "B15-8-arms-not-required",
+   "B15-8-ln14-always-required",
+   "B15-8-fallback-oext-required",
+   "B15-8-judge-units-free",
+   "B15-8-moved-host-holds",
+   "B15-8-decision-outside-plan",
+   "B15-8-decision-ran",
+   "B15-8-decision-still-planned",
+   "B15-8-decision-not-rehashed",
+   "B15-8-seal-not-run-unlisted",
+   "B15-8-ln14-price"
+  ],
+  "run": "notes/b15r2-build-evidence/mutation-smoke.py <abs ws-b15r3c> <scratch>/mut --baseline <5 ids>, one foreground call (08:42:38-08:44:17 UTC). Baseline 440 passed, 0 errors. B15-8-block-a-open-unchecked: killed (2). B15-8-runner-settings-unsealed: killed (14). B15-8-judge-units-free: killed (1). B15-6-s1-unpinned-all (retargeted): killed (1). B15-8-ln14-price: killed (7). Every run had 440 tests and 0 errors (mut.out.txt). These ran before I added 2 cases to test_an_s1_package_file_whose_bytes_differ_refuses_the_pack (final suite 442). Those cases add tests and no code. Not run by me: the other 11 B15-8-* entries and the earlier 269."
+ },
+ "lead_commands": [
+  "Environment: cd <checkout>/runkit/stage1-olmo; export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONDONTWRITEBYTECODE=1 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1; PY=/Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python",
+  "0. DECIDE (raised, item 3): keep $144 (the README states the limit; uncovered re-plans refuse) or ask $145 (covers every two-LN-12-pod layout, $144.06).",
+  "1-6: as in notes/b15r3b-fix.json lead_commands. Step 2 now asks the user for $144 (or the step-0 figure) and records it verbatim as S1-0's funding record.",
+  "7. PACK X: $PY -B pack_setup.py X --inputs FILE --inputs-sha256 H. The X pack now carries the O-ext unit runner and its settings by their pins. A code entry under scripts/stage1_s1/ is optional and must carry the kit's pin.",
+  "8. CHECK each host: $PY -B orchestrate.py check-plan HOST (O-ext steps pass once the X pack is built)",
+  "9. AFTER block A's hosts and judge launches: $PY -B seal.py block A. If it refuses with open jobs that will not run, write {kind: 'stage1 block-a not-run decision', jobs: [the printed names], reason, utc, recorded_by}, then $PY -B plan_tool.py record-block-a-not-run FILE --sha256 H, keep FILE unchanged at its path, and seal again.",
+  "FULL MUTATION SPEC (lead, background): 285 entries with notes/b15r2-build-evidence/mutation-smoke.py <absolute checkout> <scratch> --baseline <ids...>; B15-2-plan-ab-not-derived and VP-rescore-own-arm-seed-unchecked are expected to survive."
+ ],
+ "open_items": [
+  "RAISED TO GPT/LEAD (item 3): the brief calls $143.19 the worst-case need over every valid in-block re-plan. By the kit's own functions that is false. 8 of 1,023 two-LN-12-pod layouts need $144.06, three pods up to $145.63, and eleven $158.16, and validate_block_a_plan accepts all of them. As written, the README says $144 and states this limit. If every two-pod layout must be covered, the top-up is $145. No finite top-up covers every valid re-plan: more pods always add overhead. I did not search plans whose judge launches hold more than 27 units, which the validator also accepts.",
+  "LIMIT (item 1): oext_unit_contract's docstring still says 'not built'. It is frozen by scripts/stage1_s1/tests/oext_unit_fixtures.py CONTRACT_SOURCE, outside my write scope. A later S1-package round can change both copies together.",
+  "PRE-EXISTING, NOT CHANGED, NOT TESTED (item 2): an O-only pass that the runner holds not_started under LS-04 keeps its host incomplete (the per-host rule in block_complete). defer refuses to move it without its regeneration (move_open), and a not-run decision cannot name a job on a host that is not moved. So under LS-04 block A cannot complete without a lead step. I read this path in the code; I did not run it. A later round may let a decision name an LS-04-held pass. I did not weaken the per-host rule.",
+  "SCOPE (item 2): block A's completion covers the plan's part A only (diagnostics, LN-12, arms, judges). S1-0 and the cert pod are their own blocks, and the cert pod may be the last launch (LS-03 (a)).",
+  "Not run by me: 280 of the 285 mutants (5 run, all killed).",
+  "Unchanged from round 3b: VP3b-2 (the LN-15e Mac reading script) is not built; the re-score's price is unmeasured (Gate B's whole 3.04 h diagnostics job x 1.5).",
+  "S1_COMMIT is now '40e0cc6' on the brief's word that ws-b15r3c is main 40e0cc6. I ran no git command, so I did not check the commit. The test re-hashes all 11 pins in this tree."
+ ],
+ "alternatives": [
+  "Item 1: keep S1_UNPINNED as an empty tuple, so that B15-6-s1-unpinned-all's find text stays. Rejected: it is a dead placeholder (the brief asks to remove it). I retargeted the mutant to put the old exception back instead.",
+  "Item 1: parse with oext_unit.parser() in process. Rejected: the test runs the runner's main and stops it at parse_args in a fresh interpreter in this tree, as the kit already does for the other S1 scripts. So it tests how the committed script reads argv.",
+  "Item 2: required = check_block_a_content's G5 list only. Rejected: the plan's own part-A jobs equal that list for the default, and they also cover a lead plan's jobs, the dealt arm runs (a not-re-run arm used to leave block A complete) and the judges' units.",
+  "Item 2: decisions name jobs as {kind, arm, seed} objects. Rejected: the printed names can be copied into the record, as d2_fallback's jobs list does.",
+  "Item 2: let a decision also excuse a crashed or not-started job on a done host. Rejected: that would weaken the existing per-host rule (PREREG: a crashed job is retried from the contingency, or moved).",
+  "Item 3: change a money figure or rule in the kit. Rejected: the brief says to keep the computed needs unchanged. The README changes only, plus a limit test."
+ ],
+ "replies_to_gpt": [
+  "No questions were asked in this brief. The raised point is under open_items (item 3's basis)."
+ ],
+ "commands_run": [
+  "date -u x10: exit 0",
+  "cat/sed/grep/python3 reads of notes/b15r3b-fix.json, b15r3b-build.json, b15r3b-verify-plan.json (VP3b-3), oext-unit-fix.json, the kit (all modules and tests, relevant parts), the README, scripts/stage1_s1/oext_unit.py (header, parser, main), test_oext_unit_contract.py and oext_unit_fixtures.py (contract parts), oext_unit.json (top-level keys only): exit 0",
+  "shasum -a 256 of the kit (before/after) and of the 4 S1 runner files: exit 0; the kit equalled round 3b's fix report",
+  "cp -R of the kit to the scratchpad (kit-before, kit-after): exit 0",
+  "python -B -I replans.py, two_pods.py, fine_two_pods.py, two_pods_top.py, two_pods_rule.py on kit-before and (evidence) kit-after: exit 0, the same figures",
+  "pytest baseline: runkit 281 passed, runner 137 passed, contract 20 passed: exit 0",
+  "pytest during the build: after the code edits 13 + 13 failed (expected); then 281/153, 287 (one NameError of mine first: 'import re' missing in test_stage1_runkit.py, fixed), final 287 / 155 / 20 / GBK 271: exit 0",
+  "pytest of the before layout: 98 failed, 342 passed: exit 1 (expected)",
+  "notes/b15-fix-evidence/chk.py: first 285 entries with 1 bad (B15-5-plan-path-unresolved matched twice because of my new line; I reworded my line), then 0 bad; ast and no-op check: 0 bad: exit 0",
+  "mutation-smoke.py --baseline + 5 mutants: baseline 440 passed; 5 killed: exit 0",
+  "python -B -I notes/b15r3b-build-evidence/funding.py on kit-after; cmp with round 3b's funding.json: identical",
+  "diff -rq runkit/gate-b-olmo vs /Users/spiderishi/Coding/attribution/runkit/gate-b-olmo: identical; find -newer outside the kit: none; no __pycache__"
+ ],
+ "evidence": [
+  {
+   "path": "notes/b15r3c-build-evidence/base-contract.xml",
+   "sha256": "f4d7426e87222e0f6571c916b3cd918e1fa6c432f448c10063f32dd2663a99fb"
+  },
+  {
+   "path": "notes/b15r3c-build-evidence/base-runkit.xml",
+   "sha256": "4be29b16a4f570de1897d3ce57779a0c7607afa4bc60b5098107ac8daa5eb30b"
+  },
+  {
+   "path": "notes/b15r3c-build-evidence/base-runner.xml",
+   "sha256": "6063c18503c220ed9a58de746563332e0992e0ee8d09ff8b21a7bd8da93f023d"
+  },
+  {
+   "path": "notes/b15r3c-build-evidence/before-fix.xml",
+   "sha256": "9f186c62348e6b677389fcffd1023dbb8d9dbc24f04bc492e335ba30575d1899"
+  },
+  {
+   "path": "notes/b15r3c-build-evidence/final-contract.xml",
+   "sha256": "12d330386f63f7b20d0adc1285469975523a94b024b851b2360c2e5aed3c6d0b"
+  },
+  {
+   "path": "notes/b15r3c-build-evidence/final-gbk.xml",
+   "sha256": "b7719089b5526ff9af2d8784dcf93c0f578b045bface764c87acecfbc7956e34"
+  },
+  {
+   "path": "notes/b15r3c-build-evidence/final-runkit.xml",
+   "sha256": "f04abc56988fd8fd7e6c998f5f5b608aecc8cb6f61288cc75212d6afb4a1abc8"
+  },
+  {
+   "path": "notes/b15r3c-build-evidence/final-runner.xml",
+   "sha256": "56ce109e54e2424a38ab9479996ef8dc329dd007274f3a8c0f88a773151e0b11"
+  },
+  {
+   "path": "notes/b15r3c-build-evidence/fine_two_pods.out.txt",
+   "sha256": "c76d703f882aae9c4e65a1afb8ca96a96c085556c55ab1a61442121370b29f94"
+  },
+  {
+   "path": "notes/b15r3c-build-evidence/fine_two_pods.py",
+   "sha256": "07f120a0071d398c599f42090eb6517f065eeb58437c682a71984bccbd37e738"
+  },
+  {
+   "path": "notes/b15r3c-build-evidence/funding.json",
+   "sha256": "5c4828fb56fa6f0304e287a5c57ccea5c7ec0e87d74b283d19f7a937b01c95e1"
+  },
+  {
+   "path": "notes/b15r3c-build-evidence/funding.out.txt",
+   "sha256": "2fe110828cb63883c3a53f50bf4b52ff1e77f7ae4efe2abb6565a66ac6c506e7"
+  },
+  {
+   "path": "notes/b15r3c-build-evidence/kit-sha256-after.txt",
+   "sha256": "76edde470636271eedd293229fc96c7f12de5b83b8dde8b1b04aeb3d5dd43c3e"
+  },
+  {
+   "path": "notes/b15r3c-build-evidence/kit-sha256-before.txt",
+   "sha256": "7b887740753cf304c35ad5e57b24e0650af9a4c20f952bf1e6213abf213697df"
+  },
+  {
+   "path": "notes/b15r3c-build-evidence/mut-B15-6-s1-unpinned-all.xml",
+   "sha256": "936ddfcf8539cc69e3903ac3981eed310b83074b20956c1f35625d0feab5413c"
+  },
+  {
+   "path": "notes/b15r3c-build-evidence/mut-B15-8-block-a-open-unchecked.xml",
+   "sha256": "282a95bea8da827dbb19ac1f9aa465876c3dc838c76b88cc81fd7fbb87d624b4"
+  },
+  {
+   "path": "notes/b15r3c-build-evidence/mut-B15-8-judge-units-free.xml",
+   "sha256": "7b2d297eb6f95d8b16e1e0ccc1ce717350cd066bf45256d63642b31036282246"
+  },
+  {
+   "path": "notes/b15r3c-build-evidence/mut-B15-8-ln14-price.xml",
+   "sha256": "d92aa5e14d62bf8b3febbfe1a8c7f08b2be5de0140ce6ce23642a75194cedfcd"
+  },
+  {
+   "path": "notes/b15r3c-build-evidence/mut-B15-8-runner-settings-unsealed.xml",
+   "sha256": "92efef2a76e982bf30b44dcdfe34b691a0b4db4432e232bdf2314e2b8cabff43"
+  },
+  {
+   "path": "notes/b15r3c-build-evidence/mut-baseline.xml",
+   "sha256": "a246c4812793813a84a4fa1d717d1b382a9b405c16cbebdb53a4a932ef315466"
+  },
+  {
+   "path": "notes/b15r3c-build-evidence/mut.out.txt",
+   "sha256": "87782181bb3143c46498976b0f204dd54fc77fc43bdd65ac0ddf7d307e832df4"
+  },
+  {
+   "path": "notes/b15r3c-build-evidence/mutant-find-check.txt",
+   "sha256": "75b8f0d897f2ca5ea63ceb32f6e93695dc356cf1269ff8ed7f41b7f9fb8a3522"
+  },
+  {
+   "path": "notes/b15r3c-build-evidence/replans.out.txt",
+   "sha256": "a6190059a8e4fd27f7ca12a63130b0b8a00fcb45644e13972d42f4fd807478a6"
+  },
+  {
+   "path": "notes/b15r3c-build-evidence/replans.py",
+   "sha256": "364620163b911e0e3f5416524a1ccacff4baa0ec472ca330b59f40d118e1e5e1"
+  },
+  {
+   "path": "notes/b15r3c-build-evidence/two_pods_rule.out.txt",
+   "sha256": "f08a2003ab0bbdb97e1e9e6f8c8ef56e31585eb6dc416ad82e93e727c0bbc168"
+  },
+  {
+   "path": "notes/b15r3c-build-evidence/two_pods_rule.py",
+   "sha256": "e228e12e28767e05261a89a931271a5347db97593759d1a264969b30fc5aa9fd"
+  }
+ ],
+ "rules_kept": "I wrote only in ws-b15r3c/runkit/stage1-olmo/ (9 files), notes/b15r3c-build.json, notes/b15r3c-build-evidence/ and the scratchpad. I ran no git command and made no network, RunPod, Hub or GitHub call. I read no ~/.config, secrets, ssh/, hosts/ or account file and opened no data text (oext_unit.json was read for its top-level keys and engine pin only). Synthetic fixtures only. Every command ran in the foreground and took under 600 s. I ran 5 mutants."
+}

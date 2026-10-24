@@ -1,0 +1,335 @@
+{
+ "kind": "B15 BUILD-CORE report",
+ "version": 2,
+ "status": "done",
+ "started_utc": "2026-10-23T13:33:15Z",
+ "finished_utc": "2026-10-23T13:54Z",
+ "target": "ws-b15/runkit/stage1-olmo/ (new files only; no Gate B file changed: GBK host/launch/budget/finisher/gateb_rules/plan_tool hashes re-checked equal to brief \u00a76)",
+ "files": [
+  {
+   "path": "ws-b15/runkit/stage1-olmo/account.py",
+   "sha256": "8e3b8c4eb7e21d06bb48bb6eef8f0a412a198b893e583e98632756e5c72b612f"
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/budget.py",
+   "sha256": "f4760c080159e70371f528b7f0349b695858f7f320956568a02818d6c89963b0"
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/finisher.py",
+   "sha256": "c5a267cb070fdf9efce936f5ba81daf8fc732133731f07ba4b0c9eb79257dcdb"
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/gateb_mac.py",
+   "sha256": "d8dd2ff49c1e4739e7746d5140aa432cc19cf4c044e6150c2dceef4869864dd7"
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/host.py",
+   "sha256": "d0ece676bf4b0d718d6bacb82ab5cf4738f7ed02c510e60ef737c9aca44c24d5"
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/launch.py",
+   "sha256": "5491993d9b88b4214a269504c89611ceaaab2fa31371bd27d33b103b7b61c758"
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/plan_tool.py",
+   "sha256": "5b1e21a88ca3a6d786301fd93c5b403ba8b74376745aeadd45491e32d6f5cdc4"
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/seal.py",
+   "sha256": "9a1a1d1481ce4440f11468bbb64902936a1cd38dd9bd4185e4ae5275346bd523"
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/secret_scan.py",
+   "sha256": "75baad4c9127449a0de311ea0773d4306ec6b47ad6247018be59259785326d3b"
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/stage1_rules.py",
+   "sha256": "d9987cc98e5d0609453a17ac1b2a26fc9150c3ade4b3a008afccf0046da46e9d"
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/status.py",
+   "sha256": "16851c6f678fd3e86749ce7f81c6086ffedf723c44e50246291801567dfb33a0"
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/tests/mutants_b15.json",
+   "sha256": "80f14d57fab34efca170eccdb01fefaf787c64386b563a55bfefe87881039728"
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/tests/test_stage1_runkit.py",
+   "sha256": "fc30234be48f2f4e4797645a5c035fb448673c15371e9c53c1d3e8149b862afe"
+  }
+ ],
+ "reuse": {
+  "byte_identical": [
+   "secret_scan.py",
+   "account.py",
+   "status.py",
+   "gateb_mac.py"
+  ],
+  "one_line_import_change": {
+   "launch.py": "import stage1_rules as rules",
+   "finisher.py": "import stage1_rules as rules"
+  },
+  "host.py": "two lines: the rules import (needed: no gateb_rules in this folder) and the pod-name prefix -> attribution-s1-HOST (docstring still says attribution-gateb; left as instructed)",
+  "budget.py": "two lines: the rules import and KITS_GLOB = (family-probe-*, gate-b-olmo*, stage1-olmo*); LOCK_NAME unchanged (family-probe-budget.lock)",
+  "stage1_rules.py": "copy of gateb_rules.py: every function and public name kept (test checks by regex); Gate-B-only values in their own block",
+  "plan_tool.py": "rewritten from GBK plan_tool: blocks instead of waves; requeue, confirm-stopped, defer, stranded exception (J2->J3), pay_reruns, pay_unit kept",
+  "seal.py": "new"
+ },
+ "interface": {
+  "stage1_rules": {
+   "functions": [
+    "job_record(kind, arm, seed, edit, steps, fixture, a0_source=None, *, branch='full', engine='X', points=None, recipe=None, regen_source=None) -> job dict",
+    "upper_s(kind, fixture, steps, branch='full', n_points=1, recipe=None)",
+    "measured_upper(kind, steps=None, branch='full', n_points=1, recipe=None, fixture=None)",
+    "start_requirement_s(upper)",
+    "projected_requirement_s(job, projection)  projection = preflight cap_projection {e1_upper_s, training_s, overhead_s, margin_s, o500_s (new: the pod's measured O-ext projection)}",
+    "own_requirement_s(job, projection=None) = max(plan, projection)",
+    "requirements(jobs, projection=None)  a regenerate named by a later o_only (regen_source) needs its measured upper + the o_only's requirement",
+    "gate(remaining_s, requirement_s)",
+    "cap_hours(jobs)",
+    "linked_follower(jobs, i) (alias linked_diagnostics)",
+    "counted(kind, n_points)",
+    "arm_count(jobs) = counted jobs",
+    "deal(runs) -> pods",
+    "block_runs(plan_code, block, reused=())",
+    "plan_code_for(sigma_pp)",
+    "r_draw(seed)",
+    "o500_s(branch)",
+    "guard_usd(cap_h)",
+    "pod_spend_usd(job_records)",
+    "funding_need_usd(launches, factor)",
+    "rerun_cost_usd(job_record, new_pod)",
+    "unit_rerun_cost_usd(job_records, new_pod)",
+    "granite_pod(arms)",
+    "compare(new, reference, fields)",
+    "cents(usd)"
+   ],
+   "constants_for_the_runner": [
+    "KINDS (J1-J18 names)",
+    "KIND_IDS",
+    "BANK500_KINDS",
+    "UNITLESS_KINDS",
+    "Y_ONLY_KINDS",
+    "LINK_FIELD='regen_source'",
+    "ENGINES {X, Y}",
+    "RECIPE_NAMES {S, B, G, bqi} -> path",
+    "RECIPE_PINS",
+    "STAGE1_PINS (14 stage-1 files, full SHA-256)",
+    "BASE_MODEL / INSTRUCT_MODEL / GUARD_MODEL (repo, revision)",
+    "BASE_PINS_RECORD",
+    "YHASH_PIN",
+    "A1_EDIT",
+    "MAN_PATH/MAN_SHA256 (Gate B sealed MANIFEST)",
+    "MAN1_PATH/MAN1_SHA256",
+    "O500_S {full 1517, 128 1024}",
+    "POD_NAME_PREFIX 'attribution-s1-'",
+    "TOKEN_ENV_NAMES",
+    "BOOTSTRAP_FIELDS",
+    "LOG_ONLY_FIELDS",
+    "POD_SIZES"
+   ]
+  },
+  "job_record_schema": {
+   "kind": "J1-J18 name",
+   "job_id": "J1..J18",
+   "arm": "A1|L1|H1|S1|S3|S4|R|a0|theta0|bqi|G|None",
+   "seed": "int|None",
+   "edit": "{path, sha256, source: MAN1|gateb-MAN|sealed:<record sha>, engine_arm?} bound at release, else None",
+   "steps": "33 removal, 38 add/none/a0/ref_train/cert_c2, None",
+   "engine": "X|Y",
+   "branch": "full|128",
+   "recipe": "S|B|G|bqi|None",
+   "points": "list|None (b10_certify: certify, scale:0; ref_eval: scale:0.9/0.75/0.5, prefix; safe_lora: default, conditional, certify, k12)",
+   "upper_s": "float",
+   "start_requirement_s": "float",
+   "measured_upper_s": "float",
+   "spend_upper_s": "float",
+   "o500_s": "float (500-bank kinds)",
+   "counted": "int",
+   "unmeasured": "bool",
+   "status": "planned|complete|crashed|deferred|not_started",
+   "regen_source": "o_only only: index of its regenerate on the same pod (theta0: None)",
+   "role": "bqi_own_a0 (optional)",
+   "after record-done": "unit, complete_sha256, outputs {relpath: sha256}, reason",
+   "after a move": "deferred_from, reason (stranded-regenerate | environment-mismatch), stranded_complete_sha256 | mismatched_complete_sha256, linked_rerun"
+  },
+  "host_record_schema": {
+   "wave": "= block (status.py reads it)",
+   "block": "S1-0|cert|A|certify|B|C",
+   "launch": "int",
+   "role": "w1_18|cert|certify|diagnostics|arms|job",
+   "base_eval": false,
+   "engine": "X|Y",
+   "engine_sha256": "rules.ENGINES[engine]",
+   "stage": "stage1-X|stage1-Y (pack_setup stage name)",
+   "sealed_files_sha256": "from setup/packed-stage1-<E>/setup-receipt.json",
+   "cap_hours": "rules.cap_hours(jobs)",
+   "guard_usd": "float",
+   "spend_upper_usd": "float",
+   "counted": "int <= 4",
+   "jobs": "[job]",
+   "done": "bool",
+   "job_done_sha256": "after record-done",
+   "pre_job_failed": "after requeue",
+   "preflight_wait_s/container_disk_gb/volume_gb": "POD_SIZES"
+  },
+  "plan_json_schema": {
+   "name": "stage1-olmo",
+   "brief": "str",
+   "status": "str",
+   "fixture": "{path, sha256, e1_upper_s, training_s}",
+   "engines": "{X, Y}",
+   "prepared": "{name: manifest sha}",
+   "records": {
+    "gateb_final": "{path, sha256}|null",
+    "plan_ab": "{path, sha256, code}|null",
+    "branch": "{branch, source: w1_18|default, path, sha256, host?, output_sha256?, focus_commit?, reason?, utc}|null",
+    "branch_history": "[old branch records]",
+    "certificate": "{path, sha256, pass, host}|null",
+    "certification": "{path, sha256, pass, host}|null",
+    "thresholds": "{path, sha256}|null",
+    "prefix": "{path, sha256, text_sha256, source}|null",
+    "user_yes": "{safe_lora_k12: {path, sha256}}",
+    "sealed": "[{path, sha256}]"
+   },
+   "recipes": "{path: {sha256, config_sha256}}",
+   "reference": "Gate B's environment reference (import-reference) | null",
+   "blocks": "{block: {funding: {block, amount_usd, utc, source, user_words, recorded_by, path, sha256}, need: funding_need_usd output, need_launches, branch, deal: [[[arm, seed]...]...]|null, reused, utc, launches: [{hosts: [names]} | {judge: granite_pod}], released: int, pending: {name: host record}}}",
+   "contingency": "{funding block A|B|C: {usd, remaining_usd, spent, not_rerun}}",
+   "seals": "{block: {path, sha256, files, sealed, readable}}",
+   "deferrals": "[...]",
+   "requeues": "[...]",
+   "hosts": "{name: host record} (released only; launch.py/host.py read only these)"
+  },
+  "job_done_schema_the_runner_writes": "retrieved/HOST/tree/JOB-DONE.json = {host, jobs: [{index, kind, arm, seed, status: complete|crashed|deferred|not_started, engine: X|Y, engine_sha256 (must equal rules.ENGINES[engine]), unit? (folder relative to tree), complete_sha256? (SHA-256 of unit/COMPLETE.json; required for unit kinds), outputs? {relpath: sha256} (required when a unit-free kind is complete: w1_18, rep_pass, untuned_answers, l1_scan, classifier, c0, transfer_report), reason? (e.g. LS-04 for a held J3)}]}",
+  "w1_18_output": "the w1_18 job's outputs must list W1-18's JSON (kind 'stage1 over-refusal checks', truncation_check {units: 11, pass: bool}); record-branch checks its SHA-256 against both the pulled file and the JOB-DONE outputs",
+  "seal_file_naming": "seal.READABLE_PATTERNS: JOB-DONE.json, COMPLETE.json, *cost-ledger*.json, *adapter-fingerprint*.json, process-receipt.json are 'readable'; every other file is 'sealed'. The runner should name its cost ledger and fingerprint records to match.",
+  "packed_receipts": "setup/packed-stage1-X/setup-receipt.json and setup/packed-stage1-Y/setup-receipt.json, each {engine_sha256 (= rules.ENGINES), sealed_files_sha256}; release refuses another identity",
+  "record_schemas": {
+   "funding": "{block: A|B|C, amount_usd, utc, source: 'user RunPod top-up', user_words (verbatim), recorded_by}",
+   "branch": "{kind: 'stage1 w1-18 branch record', branch: full|128, host, output_path, output_sha256, focus_commit, utc, recorded_by}",
+   "default_full": "{kind: 'stage1 branch full by default', reason, utc, recorded_by}",
+   "gateb_final": "any JSON file, by SHA-256",
+   "plan_ab": "{kind: 'stage1 plan-ab record', code: A|B|none, sigma_pp, gateb_final_sha256, utc, recorded_by}",
+   "certificate": "{kind: 'stage1 x-y certificate', pass: bool, host (cert pod, cert_c1 complete), evidence: [{path, sha256}] in that host's pulled tree, utc, recorded_by}",
+   "certification": "{kind: 'stage1 b10 certification', pass, host (certify pod), evidence, utc, recorded_by}",
+   "thresholds": "{kind: 'stage1 c2 binding thresholds', thresholds, utc, recorded_by}",
+   "prefix": "{kind: 'stage1 sp prefix pin', text_sha256 (64 hex), source, utc, recorded_by}",
+   "user_yes": "{kind: 'stage1 user yes', item: 'safe_lora_k12', user_words, utc, recorded_by}",
+   "sealed": "{kind: 'stage1 sealed edits', edits: [{arm, path, sha256} | {arm: 'R', draw, path, sha256}]}"
+  },
+  "jobs_file_schema": "{launches: [{hosts: [[job, ...], ...]} | {deal: [pod index, ...]} | {judge: {arms: n}}], reused: [[R, 1104]|[R, 1105]], engine: X|Y (deal pods)}; job = {kind, arm, seed, engine, points, recipe, regen_source, role}",
+  "cli": [
+   "plan_tool.py init-block BLOCK --jobs FILE --funding FILE [--dry-run]",
+   "plan_tool.py release BLOCK",
+   "plan_tool.py deal BLOCK [--reuse ARM SEED]",
+   "plan_tool.py record-done HOST",
+   "plan_tool.py defer HOST",
+   "plan_tool.py requeue HOST [--rerun-mismatched SHA ...]",
+   "plan_tool.py confirm-stopped HOST",
+   "plan_tool.py record-branch FILE --sha256 H",
+   "plan_tool.py record-gateb-final FILE --sha256 H",
+   "plan_tool.py record-plan-ab FILE --sha256 H",
+   "plan_tool.py record-certificate FILE --sha256 H",
+   "plan_tool.py record-certification FILE --sha256 H",
+   "plan_tool.py record-thresholds FILE --sha256 H",
+   "plan_tool.py record-prefix FILE --sha256 H",
+   "plan_tool.py record-user-yes FILE --sha256 H",
+   "plan_tool.py record-sealed FILE --sha256 H",
+   "plan_tool.py import-reference FILE --sha256 H",
+   "seal.py block BLOCK",
+   "seal.py status",
+   "status.py (GBK copy)",
+   "launch.py HOST ... (GBK)",
+   "host.py ... (GBK)",
+   "budget.py [check HOURS PRICE] (GBK)",
+   "finisher.py (GBK)",
+   "account.py (GBK)"
+  ]
+ },
+ "hand_values": {
+  "arm_branch_full_33": {
+   "upper_s": 8067.38,
+   "start_h": 2.741,
+   "measured_min": 77.28,
+   "pod4_cap_h": 7.5,
+   "guard_usd": 19.88,
+   "pod_spend_usd": 10.48
+  },
+  "arm_branch_128_33": {
+   "upper_s": 7574.38,
+   "measured_min": 69.07,
+   "pod4_cap_h": 7.0,
+   "guard_usd": 18.95,
+   "pod_spend_usd": 9.49
+  },
+  "block_A_needs_kit_D20_rule": {
+   "5": 94.23,
+   "3+2": 81.48,
+   "2+2+1": 77.23,
+   "1x5": 77.23
+  },
+  "block_A_needs_brief": {
+   "5": 94.22,
+   "3+2": 81.49,
+   "2+2+1": 77.25
+  },
+  "cert_pod_cap_h": 4.0,
+  "w1_18_pod_cap_h": 1.75
+ },
+ "tests": {
+  "file": "ws-b15/runkit/stage1-olmo/tests/test_stage1_runkit.py",
+  "command": "export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONDONTWRITEBYTECODE=1; cd ws-b15; <venv>/python -B -m pytest -p no:cacheprovider -q --basetemp=<scratch>/bt/r5 runkit/stage1-olmo/tests",
+  "result": "74 passed, 0 failed, 0 skipped (6.5 s); exit 0",
+  "covers": [
+   "Caps and money (both branches, every kind, 4-arm cap/guard/spend, block-A needs, contingency order, funding >= need, funding record fields, KITS_GLOB/lock, guard boundary, create price limit + pod name)",
+   "W1-18 gate",
+   "Engine gates",
+   "Blocks and seeds (plan A/B tables, 1101 rule, R_d at 1100+d, a0 1101-1107, sigma rule, B before A complete/sealed, C under plan A)",
+   "Edits and recipes by SHA-256",
+   "Regeneration link and stranded exception",
+   "Seal (every file, classes, sentinel scan of printed lines and records, incomplete refusal)",
+   "Interleaving and 4-job rule",
+   "Reused GBK behaviour (requeue, confirm-stopped, stop evidence, defer, never re-run, launch cap/token, byte-identity and one-line diffs, secret scan, compile)"
+  ]
+ },
+ "mutation": {
+  "spec": "ws-b15/runkit/stage1-olmo/tests/mutants_b15.json",
+  "entries": 62,
+  "parts": {
+   "money": 18,
+   "gates": 25,
+   "data": 10,
+   "pods": 9
+  },
+  "find_check": "every find text occurs exactly once (checked)",
+  "smoke": "scratch runner with run_mutants.py's rules (unmutated baseline first, whole test folder, no -x, --junitxml, PYTEST_ADDOPTS/PLUGINS stripped, test count equal): baseline pass 74; B15-m-funding-strict killed (1 failure), B15-g-bank500-before-branch killed (1), B15-p-seed-major killed (3)",
+  "runner_note": "run_mutants.py copies scripts/stage1 only; for this spec the copy must hold runkit/stage1-olmo AND runkit/gate-b-olmo (the tests compare the reused files with GBK), files are relative to runkit/stage1-olmo; the lead's run needs that adaptation. Full spec NOT run (the lead runs it)."
+ },
+ "open_items": [
+  "MONEY CENTS: the kit keeps Gate B's [D20] rule unchanged (brief \u00a75.2), which gives block-A needs $94.23 / $81.48 / $77.23, not the brief's $94.22 / $81.49 / $77.25. The brief rounded each pod's spend to $10.48 before summing (giving 81.49 and 77.25) and applied 1.25 to the unrounded $75.375 (giving 94.22); a test shows both. Differences are at most $0.02; the lead decides whether to keep [D20] (kit) or change the rule.",
+  "DEAL RULE: Q3's example order (seed-major round robin) puts A1@1102 and A1@1103 on one pod under plan B's block A (14 runs, 4 pods), so the kit deals arm-major, seed-minor, run i to pod i mod P; with P >= 3 no pod holds one arm twice, and the deal refuses otherwise. The lead should confirm this fixed rule before launch.",
+  "FUNDING GROUPS: the user's rule names blocks (block A first). The kit funds S1-0 and the certificate pod from block A's funding record, and B10's certification pod from block B's (rules.FUNDING_BLOCK). Each init's need is CONTINGENCY x the worst path over every part of its group planned so far plus this part, which is conservative. One record may serve several parts of a group. Lead or user to confirm.",
+  "UNMEASURED ESTIMATES (flagged in job records): O500 under Branch 128 = 1,024 s (I: 1,517 x 27/40); rep_pass 1 h and l1_scan 1 h (I; the brief gives no number); REF_FORWARD_SHARE 0.5 for B+Qi (I); Safe LoRA hashing/V-check 600 s (I); cert_c3 0.5 h (I); POD_SIZES disk 80/40 GB (I, for the base model). The pod's preflight must supply o500_s in its cap_projection so the gate uses max(plan, projection).",
+  "c0 on Y: the kit lets c0 run on engine Y on the cert pod before the certificate is recorded (REV4 \u00a710.3 puts c0 on C1's pod). This widens G4's stated exceptions (C1-C3 and B+Qi's own a0); lead to confirm.",
+  "Q6/Q7 not coded: Gate B is closed (lead, 23 Oct), so the no-launch-while-Gate-B-pending rule and Gate B's remaining-need reserve are not in budget.py. KITS_GLOB still reads gate-b-olmo* caps.",
+  "Reference pods (Q11): import-reference loads Gate B's plan.json reference for the arm pods. The B10 certification pod's reference (for reference pods) is not built in plan_tool; orchestrate (the runner builder) needs it.",
+  "Steps come from REV4 \u00a71.1's dose table (33/38), not from the engine's stream plan on the edit's counts as in GBK. The runner or engine should check the steps against the edit file.",
+  "Not in BUILD-CORE, left for the runner builder, so these \u00a77 items were NOT tested here: orchestrate, job runner commands J1-J18 (W1-18 --device cuda and --guard-batch-size; CLI argparse checks), preflight O500 projection, pack_setup per engine (the Y pack against YHASH), download (base at revision a1847dff, never main), the V/V' check, the cost-stage ledger (FR-10; transform seconds), the regeneration acceptance (a refused J2 holds J3 not_started, reason LS-04), the judge wrapper for B10 units, backup records, README.",
+  "LN-15e (A1 re-score, V2a) has no job kind (no code exists; fallback FO-04 as the limit). Stages 1b/1c are out of scope (Q18).",
+  "Gate B's final record is accepted as any JSON file by SHA-256 (no schema check), and the plan-A/B record must name its hash. Gate B's wave-0a first-host reset and R_1101 guard-reference logic were not carried over: they are wave-0a specific.",
+  "S1 fix round (notes/s1-fix.json) status was 'in_progress' at 13:26 UTC. BUILD-CORE calls no S1 CLI. It depends only on these names: B10 --evaluations certify, scale:LAMBDA, prefix (eval_adapter.py:1716) and B11 points default, conditional, certify (safe_lora.py:101). 'k12' is a kit-only gated point that B11 does not offer.",
+  "host.py's docstring still says 'attribution-gateb-HOST', because only the prefix line was changed, as the brief said."
+ ],
+ "commands_run": [
+  "shasum -a 256 (sources, GBK, kit files)",
+  "cp of 10 GBK files; sed one-line edits (import, prefix, KITS_GLOB)",
+  "python -B rules smoke one-liners (exit 0)",
+  "pytest runs r1-r5 (final: 74 passed, exit 0)",
+  "mutation spec build + find check (62, 0 bad)",
+  "scratch smoke runner: baseline + 3 mutants (3 killed)",
+  "date -u (13:26, 13:33, 13:53 UTC)"
+ ],
+ "rules_kept": "wrote only under ws-b15/runkit/stage1-olmo/, notes/b15-build-core.json and the session scratchpad (deleted at the end); no git, network, RunPod, Hub or GitHub call; no secrets, ssh/, hosts/ or account file read; no sealed row/prompt/answer/anchor/O-ext text or unit evaluation file opened (MAN1 read for keys and edit entries only); synthetic fixtures only; no install"
+}

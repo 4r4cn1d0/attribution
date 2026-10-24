@@ -1,0 +1,868 @@
+{
+ "kind": "B15 ROUND 2 FIX report",
+ "version": 1,
+ "status": "done",
+ "started_utc": "2026-10-23T19:08:58Z",
+ "finished_utc": "2026-10-23T19:24:30Z",
+ "clock_note": "times from date -u (19:08:58, 19:15:13, 19:16:48, 19:17:00, 19:20:40, 19:21:47, 19:22:57 UTC on 23 Oct and the finish time); the host's local date reads 24 Oct",
+ "target": "ws-b15r2/runkit/stage1-olmo/ only (6 files changed); scripts/, experiments/, runkit/gate-b-olmo and the S1 package unchanged",
+ "summary": "All 6 should_fix findings are confirmed and fixed; none dropped. VG2-1/VR2-1 (one defect, two reports): plan_tool.plan_ab_checked re-reads Gate B's verdict file by its pin at every init-block (every block, S1-0 and cert included), every release and the deal command, and requires the record's sigma_pp and code to equal the file's field and the rule's code; a coherent hand edit (3.9/A -> 5.0/B, 5.0 -> 3.9/A, none 6.2 -> 3.9/A, sigma 2.0 with A kept) and a verdict file emptied, deleted, flipped or rewritten with the same sigma all refuse. VG2-2: block_a_floor now also counts the pre-set certificate pod (C1, C2, C3 unless its fallback, c0; cap 4.0 h, spend $5.2954) while the cert block is not planned, so S1-0 needs $103.53 (Branch full, plan A; $102.40 under the C3 fallback) and the cert pod then plans on the same event. VG2-3: the cert block must hold C1 and C2 once each. VR2-2/VR2-3 (test gaps; the code was right): the verifier's byte-flip test is ported for J5 and J8 on both routes, and the X-pack test now packs pool:decoy and refuses an S-pool record whose two s3_safe hashes disagree; the 4 surviving mutants are now killed. The two notes VG2-4 (C3 version/items typed) and VG2-5 (10**400 refused cleanly; funding amount too) are fixed as well. 20 new or changed test cases; 19 of them failed on the unfixed code (the 20th, a same-sigma rewrite, was added later and is the one that kills B15-3-verdict-file-unpinned). B15 suite 284/284 (177 + 107), Gate B kit 271/271, 0 skipped, from ws-b15r2 itself. 25 mutants added to the spec (13 verifiers' + 12 B15-3-*), 3 re-targeted; 5 run, 5 killed. Block-A funding numbers are unchanged for every split; only S1-0's init need changes (9,690 -> 10,353 cents).",
+ "dispositions": [
+  {
+   "id": "VG2-1 (= VR2-1)",
+   "severity": "should_fix",
+   "verdict": "confirmed, fixed",
+   "recheck": "Before the fix: plan_ab_derived (plan_tool.py:262-270 of round 2) compared the record only with itself; my pre-fix run accepted the four coherent edits at block A (DID NOT RAISE), and a verdict file emptied, deleted or flipped was never read (prefix-runkit-before-fix.xml).",
+   "fix": "plan_tool.py:276-299 plan_ab_checked (file at ROOT / rules.GATEB_VERDICT['path'] hashed against the pin; rules.verdict_sigma and plan_code_for re-run; sigma_pp must be a float equal to the file's value, code equal to the rule's); used at :546 (gate_order, every block; the 'none' check now reads the re-derived code), :707 (block_a_floor), :734 (build_block's deal), :835-840 (check_launch_gates, so init's launch 0 and every release), :983 (deal command).",
+   "tests": [
+    "test_stage1_runkit.py:1835 test_a_coherent_hand_edit_of_the_plan_ab_record_refuses_every_block[4 cases: block A, cert and deal refuse]",
+    "test_stage1_runkit.py:1853 test_a_coherent_hand_edit_before_s1_0_refuses_s1_0_and_its_floor",
+    "test_stage1_runkit.py:1867 test_a_verdict_file_changed_after_recording_refuses[emptied, deleted, one byte, same sigma other bytes]",
+    "test_stage1_runkit.py:1888 test_release_re_derives_the_plan_ab_record"
+   ],
+   "fixture_change": "World.verdict now pins GATEB_VERDICT at the synthetic file's real path under ROOT (it was the dummy 'x/gate_b_verdict_p5.json', which the kit never opened before); the 157 round-2 tests pass unchanged with it on the unfixed code."
+  },
+  {
+   "id": "VG2-2",
+   "severity": "should_fix",
+   "verdict": "confirmed, fixed for the pre-set parts; stated limit for the rest",
+   "recheck": "Addendum §20 point 1 names S1-0, the certificate pod and block A's arm, diagnostics and judge pods. Round 2's floor counted S1-0 + 5 arm pods only: $96.90; the cert pod then needed $103.53 on the same event (verifier probe; my pre-fix run: 'assert 96.9 == 103.53').",
+   "fix": "plan_tool.py:694-723 CERT_FLOOR_POD and block_a_floor(plan, block): while block != 'cert' and no cert block is planned, the floor adds the pre-set cert pod (built with rules.job_record exactly as build_block would, engine Y; C3 omitted under its recorded fallback) as a launch before the arm launch. init-block reports block_a_floor_pods (arm pods) and block_a_floor_cert_pod.",
+   "tests": [
+    "test_stage1_runkit.py:1299 test_s1_0_and_the_cert_pod_count_block_as_arm_pods_before_any_block_a_pod_launches (now 103.53 by hand; $96.90 refuses)",
+    "test_stage1_runkit.py:1909 test_the_block_a_floor_counts_the_cert_pod_until_it_is_planned_and_c3s_fallback_drops_c3 (S1-0 at need - $0.01 refuses, at need launches; the cert pod then plans on the same $103.53 event under Branch full)",
+    "test_stage1_runkit.py:1934 test_the_c3_fallback_floor_has_no_c3 (cert floor pod cap 3.5 h by hand)"
+   ],
+   "limit": "Block A's diagnostics, LN-12 and judge pods have no pre-set shape in the kit (their packing is the lead's jobs file), so they are not in S1-0's floor; init-block A counts them and refuses then if the event is short (fail closed, but a second top-up would then be needed, against 'a smaller top-up launches nothing'). See open question 1."
+  },
+  {
+   "id": "VG2-3",
+   "severity": "should_fix",
+   "verdict": "confirmed, fixed",
+   "recheck": "Pre-fix: a cert pod of [C1, C3, c0], [C2, C3, c0] or [C3, c0] was accepted (DID NOT RAISE).",
+   "fix": "plan_tool.py:785-788: the cert block refuses unless it holds cert_c1 and cert_c2 once each (C3 or its fallback and c0 unchanged).",
+   "tests": [
+    "test_stage1_runkit.py:1949 test_the_cert_pod_runs_c1_and_c2[no C2, no C1, neither]"
+   ]
+  },
+  {
+   "id": "VR2-2",
+   "severity": "should_fix",
+   "verdict": "confirmed (test gap; runner code correct), fixed",
+   "fix": "test_stage1_runner.py:1688 test_one_changed_byte_in_any_file_j5_or_j8_uses_is_named_on_both_routes[d2, fallback] (ported from the verifier's test_e2; asserts D2_REP_SCRIPT in J8's list and pool:s3_safe in fallback J5's list).",
+   "evidence": "V2-j8-no-rep-wrapper-check and V2-fallback-s3safe-unchecked, which survived the round-2 suite, are killed (mut-*.xml)."
+  },
+  {
+   "id": "VR2-3",
+   "severity": "should_fix",
+   "verdict": "confirmed (test gap; pack code correct), fixed",
+   "fix": "test_stage1_runner.py:1606 test_the_x_pack_carries_the_d2_package_man1_and_pinned_d2_inputs now packs pool:decoy (5 inputs, each refused under another SHA-256) and refuses an S-pool record whose s3_pool.sha256 differs from full_files['s3_safe.pool.json'] ('input pool:s3_safe (not its D-2 pin)').",
+   "evidence": "V2-pack-decoy-pin-dropped and V2-pack-s3safe-consistency killed (the latter survived even the verifier's experiments)."
+  },
+  {
+   "id": "VG2-4",
+   "severity": "note",
+   "verdict": "confirmed, fixed (optional)",
+   "fix": "plan_tool.py:1213-1215 type(...) is int for version and items",
+   "tests": [
+    "test_stage1_runkit.py:1961 [version true, 1.0, items 16.0, true]; 3 of 4 failed before (items true was already refused)"
+   ]
+  },
+  {
+   "id": "VG2-5",
+   "severity": "note",
+   "verdict": "confirmed, fixed (optional)",
+   "fix": "stage1_rules.py:124-133 finite_number (an OverflowError is a refusal), used by plan_code_for, verdict_sigma, c2_reading and plan_tool.funding_record (:667)",
+   "tests": [
+    "test_stage1_runkit.py:1977 test_a_huge_integer_refuses_cleanly_as_sigma_c2_statistic_or_funding"
+   ]
+  },
+  {
+   "id": "VG2-6",
+   "severity": "note",
+   "verdict": "no change",
+   "reason": "the runner refuses a changed C3 file at J14 (the specified check point; test passes)"
+  },
+  {
+   "id": "VR2-4",
+   "severity": "note",
+   "verdict": "no change",
+   "reason": "plan and pack read the same rules pins by construction; no end-to-end pack run is possible without git (stated limit, unchanged)"
+  },
+  {
+   "id": "VR2-5",
+   "severity": "note",
+   "verdict": "left for round 3",
+   "reason": "scripts/stage1_s1/__init__.py in the pack belongs with the S1 package pins (round 3)"
+  }
+ ],
+ "files": [
+  {
+   "path": "ws-b15r2/runkit/stage1-olmo/README.md",
+   "sha256": "64147463f1ee29f247fc26456490fe99cd8e22909f8940685a592d17deec7d1e",
+   "changed_in_fix_round": true,
+   "was": "7a314a9616c72ae728f2ac1797e45514c23d84ff9a84816e11752bf819aa5621"
+  },
+  {
+   "path": "ws-b15r2/runkit/stage1-olmo/account.py",
+   "sha256": "8e3b8c4eb7e21d06bb48bb6eef8f0a412a198b893e583e98632756e5c72b612f",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r2/runkit/stage1-olmo/backup_records_stage1.py",
+   "sha256": "fa781613f56066e73d418e11e76825bdcc55cfeeff7be85cdee50e5778e3568c",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r2/runkit/stage1-olmo/budget.py",
+   "sha256": "f4760c080159e70371f528b7f0349b695858f7f320956568a02818d6c89963b0",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r2/runkit/stage1-olmo/finisher.py",
+   "sha256": "c5a267cb070fdf9efce936f5ba81daf8fc732133731f07ba4b0c9eb79257dcdb",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r2/runkit/stage1-olmo/gateb_mac.py",
+   "sha256": "d8dd2ff49c1e4739e7746d5140aa432cc19cf4c044e6150c2dceef4869864dd7",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r2/runkit/stage1-olmo/host.py",
+   "sha256": "d0ece676bf4b0d718d6bacb82ab5cf4738f7ed02c510e60ef737c9aca44c24d5",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r2/runkit/stage1-olmo/judge_units_stage1.py",
+   "sha256": "31555680d1a7580f9358f2d609fe5146f50903450d011c944c4a66203d57eef3",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r2/runkit/stage1-olmo/launch.py",
+   "sha256": "5491993d9b88b4214a269504c89611ceaaab2fa31371bd27d33b103b7b61c758",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r2/runkit/stage1-olmo/orchestrate.py",
+   "sha256": "862939d1b1d64693138663a0702ed64ed0ab293142301c13d5e21de8e8db58bd",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r2/runkit/stage1-olmo/pack_setup.py",
+   "sha256": "5258c2472417d0af9b52cd8d049c928522b838d50b19e6e7d99fa64d61f3d754",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r2/runkit/stage1-olmo/plan_tool.py",
+   "sha256": "ef9b140a21d1113f46e6ea8e4f7e228e8976caaa91111d3691cfc502fb13bdbc",
+   "changed_in_fix_round": true,
+   "was": "d6e806da1678112ab813d07aa619f2bef49ef9936e32ebfb605d4224412c5a9a"
+  },
+  {
+   "path": "ws-b15r2/runkit/stage1-olmo/probes.py",
+   "sha256": "cb19679e1ea4a3993db8a74df7e4ed3e532b4e11863436700578244029682a70",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r2/runkit/stage1-olmo/seal.py",
+   "sha256": "a4aa1f9d6cc03c9e2f3cb333edde539074f51a5e523f84784d28e2c387f737cd",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r2/runkit/stage1-olmo/secret_scan.py",
+   "sha256": "75baad4c9127449a0de311ea0773d4306ec6b47ad6247018be59259785326d3b",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r2/runkit/stage1-olmo/setup/bootstrap_hr.sh",
+   "sha256": "563a128a1573dd97d10f27cdfa0cfa23a03e5409c3c876ab6f16a7115241140f",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r2/runkit/stage1-olmo/setup/constraints.txt",
+   "sha256": "cdd9f13062d613b0557503c3d332a870f570c7a09e532e8ab8e934ab4867d32b",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r2/runkit/stage1-olmo/setup/download_models_stage1.py",
+   "sha256": "ffb4f13f51d2e4be00a25b352f3d5c8d58523c9f881f5358a7f35e404b5e05a3",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r2/runkit/stage1-olmo/setup/extend_cap.py",
+   "sha256": "8af2f6ccebbac591499075827afef714ff1b635b6f6a691e5f669517458179d6",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r2/runkit/stage1-olmo/setup/job_runner_stage1.py",
+   "sha256": "26402d36e1f69657607801ba8fdefe448acee98d86f435c84d7dda79ae977b47",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r2/runkit/stage1-olmo/setup/preflight_stage1.py",
+   "sha256": "e8ec5d81a949e03e3db24dc9c66e28aa7054e5a48a0b75580ad236127b57f101",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r2/runkit/stage1-olmo/setup/setup_and_fetch_stage1.sh",
+   "sha256": "4d363806bbd4f51f088dc6fa1f27f3f95409407993f0b802363722c812abf586",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r2/runkit/stage1-olmo/stage1_rules.py",
+   "sha256": "88c2a7aa92134da5d1d92df4a854a9093a292edc2b539b89e007ca7fb29b6c12",
+   "changed_in_fix_round": true,
+   "was": "31a9aa75f31917404771a6a6ba2e4c449b98bb0358868138f64753f85cfbb23d"
+  },
+  {
+   "path": "ws-b15r2/runkit/stage1-olmo/status.py",
+   "sha256": "16851c6f678fd3e86749ce7f81c6086ffedf723c44e50246291801567dfb33a0",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r2/runkit/stage1-olmo/tests/mutants_b15.json",
+   "sha256": "2ec49bbff8db76256e80160b3ef6b9f5ccd94e6383ee6432630b911474efb999",
+   "changed_in_fix_round": true,
+   "was": "1d28e775e14210613a7c271636210befc20fda12647d6ca355ff4ec346c5de2c"
+  },
+  {
+   "path": "ws-b15r2/runkit/stage1-olmo/tests/test_stage1_runkit.py",
+   "sha256": "31c48f67ed10fca846cfdb3f696bcbd9549b52cf003dba2605ef7e43759d65ea",
+   "changed_in_fix_round": true,
+   "was": "d29c6480792c6a4966f28c1ed3731f05202e7483979b2a58309890d467b6f0a1"
+  },
+  {
+   "path": "ws-b15r2/runkit/stage1-olmo/tests/test_stage1_runner.py",
+   "sha256": "43e31b2cb904f5495cd0365def50fe60fb9c03426e1e9e3f38a86879353e4002",
+   "changed_in_fix_round": true,
+   "was": "65a88553f6bfffd19e44ee04bef0cbfdb6051be1a3c89d49f74ace657091ccde"
+  }
+ ],
+ "funding_cents": {
+  "how": "notes/b15r2-fix-evidence/funding.py: the fixed kit's plan_tool.skeleton/build_block/need_launches/block_a_floor and stage1_rules.funding_need_usd on an in-memory scratch plan (plan A from a real derived record of a synthetic verdict file at sigma 3.9 written in the scratchpad and pinned for the run, so plan_ab_checked passes; the real verdict file is not read), all 16 ordered splits of the 5 dealt pods, both branches. Output funding.json. Every arms-only need, group need and per-launch term equals round 2's (b15r2-build.json item 8), which the gates verifier re-derived by hand (32/32).",
+  "per_pod": {
+   "full": "cap 7.5 h, guard 1987.5, spend upper 1047.5478",
+   "128": "cap 7.0 h, guard 1895.0, spend upper 949.4956",
+   "s1_0_pod": "cap 1.75 h, spend 214.80 ((2,520 + 1,800) s x $1.79/h)",
+   "cert_pod": "cap 4.0 h, spend 529.5417 (both branches)"
+  },
+  "arms_only_need": {
+   "full": {
+    "5": 9423,
+    "4+1": 7723,
+    "3+2": 8148,
+    "3+1+1": 7723,
+    "2+3": 8573,
+    "2+2+1": 7723,
+    "2+1+2": 8148,
+    "2+1+1+1": 7723,
+    "1+4": 8998,
+    "1+3+1": 7723,
+    "1+2+2": 8148,
+    "1+2+1+1": 7723,
+    "1+1+3": 8573,
+    "1+1+2+1": 7723,
+    "1+1+1+2": 8148,
+    "1+1+1+1+1": 7723
+   },
+   "128": {
+    "5": 8844,
+    "4+1": 7225,
+    "3+2": 7548,
+    "3+1+1": 7116,
+    "2+3": 7980,
+    "2+2+1": 7116,
+    "2+1+2": 7548,
+    "2+1+1+1": 7116,
+    "1+4": 8411,
+    "1+3+1": 7116,
+    "1+2+2": 7548,
+    "1+2+1+1": 7116,
+    "1+1+3": 7980,
+    "1+1+2+1": 7116,
+    "1+1+1+2": 7548,
+    "1+1+1+1+1": 7116
+   }
+  },
+  "group_need_s1_0_then_cert_then_arms": {
+   "full": {
+    "5": 10353,
+    "4+1": 8653,
+    "3+2": 9078,
+    "3+1+1": 8653,
+    "2+3": 9503,
+    "2+2+1": 8653,
+    "2+1+2": 9078,
+    "2+1+1+1": 8653,
+    "1+4": 9928,
+    "1+3+1": 8653,
+    "1+2+2": 9078,
+    "1+2+1+1": 8653,
+    "1+1+3": 9503,
+    "1+1+2+1": 8653,
+    "1+1+1+2": 9078,
+    "1+1+1+1+1": 8653
+   },
+   "128": {
+    "5": 9774,
+    "4+1": 8155,
+    "3+2": 8479,
+    "3+1+1": 8046,
+    "2+3": 8910,
+    "2+2+1": 8046,
+    "2+1+2": 8479,
+    "2+1+1+1": 8046,
+    "1+4": 9343,
+    "1+3+1": 8046,
+    "1+2+2": 8479,
+    "1+2+1+1": 8046,
+    "1+1+3": 8910,
+    "1+1+2+1": 8046,
+    "1+1+1+2": 8479,
+    "1+1+1+1+1": 8046
+   }
+  },
+  "per_launch_terms_arms_only": {
+   "full": {
+    "5": [
+     7537.5
+    ],
+    "4+1": [
+     6150.0,
+     6177.6911
+    ],
+    "3+2": [
+     4762.5,
+     6517.6433
+    ],
+    "3+1+1": [
+     4762.5,
+     5130.1433,
+     6177.6911
+    ],
+    "2+3": [
+     3375.0,
+     6857.5956
+    ],
+    "2+2+1": [
+     3375.0,
+     5470.0956,
+     6177.6911
+    ],
+    "2+1+2": [
+     3375.0,
+     4082.5956,
+     6517.6433
+    ],
+    "2+1+1+1": [
+     3375.0,
+     4082.5956,
+     5130.1433,
+     6177.6911
+    ],
+    "1+4": [
+     1987.5,
+     7197.5478
+    ],
+    "1+3+1": [
+     1987.5,
+     5810.0478,
+     6177.6911
+    ],
+    "1+2+2": [
+     1987.5,
+     4422.5478,
+     6517.6433
+    ],
+    "1+2+1+1": [
+     1987.5,
+     4422.5478,
+     5130.1433,
+     6177.6911
+    ],
+    "1+1+3": [
+     1987.5,
+     3035.0478,
+     6857.5956
+    ],
+    "1+1+2+1": [
+     1987.5,
+     3035.0478,
+     5470.0956,
+     6177.6911
+    ],
+    "1+1+1+2": [
+     1987.5,
+     3035.0478,
+     4082.5956,
+     6517.6433
+    ],
+    "1+1+1+1+1": [
+     1987.5,
+     3035.0478,
+     4082.5956,
+     5130.1433,
+     6177.6911
+    ]
+   },
+   "128": {
+    "5": [
+     7075.0
+    ],
+    "4+1": [
+     5780.0,
+     5692.9822
+    ],
+    "3+2": [
+     4485.0,
+     6038.4867
+    ],
+    "3+1+1": [
+     4485.0,
+     4743.4867,
+     5692.9822
+    ],
+    "2+3": [
+     3190.0,
+     6383.9911
+    ],
+    "2+2+1": [
+     3190.0,
+     5088.9911,
+     5692.9822
+    ],
+    "2+1+2": [
+     3190.0,
+     3793.9911,
+     6038.4867
+    ],
+    "2+1+1+1": [
+     3190.0,
+     3793.9911,
+     4743.4867,
+     5692.9822
+    ],
+    "1+4": [
+     1895.0,
+     6729.4956
+    ],
+    "1+3+1": [
+     1895.0,
+     5434.4956,
+     5692.9822
+    ],
+    "1+2+2": [
+     1895.0,
+     4139.4956,
+     6038.4867
+    ],
+    "1+2+1+1": [
+     1895.0,
+     4139.4956,
+     4743.4867,
+     5692.9822
+    ],
+    "1+1+3": [
+     1895.0,
+     2844.4956,
+     6383.9911
+    ],
+    "1+1+2+1": [
+     1895.0,
+     2844.4956,
+     5088.9911,
+     5692.9822
+    ],
+    "1+1+1+2": [
+     1895.0,
+     2844.4956,
+     3793.9911,
+     6038.4867
+    ],
+    "1+1+1+1+1": [
+     1895.0,
+     2844.4956,
+     3793.9911,
+     4743.4867,
+     5692.9822
+    ]
+   }
+  },
+  "per_launch_terms_group": {
+   "full": {
+    "5": [
+     923.75,
+     1554.8,
+     8281.8417
+    ],
+    "4+1": [
+     923.75,
+     1554.8,
+     6894.3417,
+     6922.0328
+    ],
+    "3+2": [
+     923.75,
+     1554.8,
+     5506.8417,
+     7261.985
+    ],
+    "3+1+1": [
+     923.75,
+     1554.8,
+     5506.8417,
+     5874.485,
+     6922.0328
+    ],
+    "2+3": [
+     923.75,
+     1554.8,
+     4119.3417,
+     7601.9372
+    ],
+    "2+2+1": [
+     923.75,
+     1554.8,
+     4119.3417,
+     6214.4372,
+     6922.0328
+    ],
+    "2+1+2": [
+     923.75,
+     1554.8,
+     4119.3417,
+     4826.9372,
+     7261.985
+    ],
+    "2+1+1+1": [
+     923.75,
+     1554.8,
+     4119.3417,
+     4826.9372,
+     5874.485,
+     6922.0328
+    ],
+    "1+4": [
+     923.75,
+     1554.8,
+     2731.8417,
+     7941.8894
+    ],
+    "1+3+1": [
+     923.75,
+     1554.8,
+     2731.8417,
+     6554.3894,
+     6922.0328
+    ],
+    "1+2+2": [
+     923.75,
+     1554.8,
+     2731.8417,
+     5166.8894,
+     7261.985
+    ],
+    "1+2+1+1": [
+     923.75,
+     1554.8,
+     2731.8417,
+     5166.8894,
+     5874.485,
+     6922.0328
+    ],
+    "1+1+3": [
+     923.75,
+     1554.8,
+     2731.8417,
+     3779.3894,
+     7601.9372
+    ],
+    "1+1+2+1": [
+     923.75,
+     1554.8,
+     2731.8417,
+     3779.3894,
+     6214.4372,
+     6922.0328
+    ],
+    "1+1+1+2": [
+     923.75,
+     1554.8,
+     2731.8417,
+     3779.3894,
+     4826.9372,
+     7261.985
+    ],
+    "1+1+1+1+1": [
+     923.75,
+     1554.8,
+     2731.8417,
+     3779.3894,
+     4826.9372,
+     5874.485,
+     6922.0328
+    ]
+   },
+   "128": {
+    "5": [
+     923.75,
+     1554.8,
+     7819.3417
+    ],
+    "4+1": [
+     923.75,
+     1554.8,
+     6524.3417,
+     6437.3239
+    ],
+    "3+2": [
+     923.75,
+     1554.8,
+     5229.3417,
+     6782.8283
+    ],
+    "3+1+1": [
+     923.75,
+     1554.8,
+     5229.3417,
+     5487.8283,
+     6437.3239
+    ],
+    "2+3": [
+     923.75,
+     1554.8,
+     3934.3417,
+     7128.3328
+    ],
+    "2+2+1": [
+     923.75,
+     1554.8,
+     3934.3417,
+     5833.3328,
+     6437.3239
+    ],
+    "2+1+2": [
+     923.75,
+     1554.8,
+     3934.3417,
+     4538.3328,
+     6782.8283
+    ],
+    "2+1+1+1": [
+     923.75,
+     1554.8,
+     3934.3417,
+     4538.3328,
+     5487.8283,
+     6437.3239
+    ],
+    "1+4": [
+     923.75,
+     1554.8,
+     2639.3417,
+     7473.8372
+    ],
+    "1+3+1": [
+     923.75,
+     1554.8,
+     2639.3417,
+     6178.8372,
+     6437.3239
+    ],
+    "1+2+2": [
+     923.75,
+     1554.8,
+     2639.3417,
+     4883.8372,
+     6782.8283
+    ],
+    "1+2+1+1": [
+     923.75,
+     1554.8,
+     2639.3417,
+     4883.8372,
+     5487.8283,
+     6437.3239
+    ],
+    "1+1+3": [
+     923.75,
+     1554.8,
+     2639.3417,
+     3588.8372,
+     7128.3328
+    ],
+    "1+1+2+1": [
+     923.75,
+     1554.8,
+     2639.3417,
+     3588.8372,
+     5833.3328,
+     6437.3239
+    ],
+    "1+1+1+2": [
+     923.75,
+     1554.8,
+     2639.3417,
+     3588.8372,
+     4538.3328,
+     6782.8283
+    ],
+    "1+1+1+1+1": [
+     923.75,
+     1554.8,
+     2639.3417,
+     3588.8372,
+     4538.3328,
+     5487.8283,
+     6437.3239
+    ]
+   }
+  },
+  "init_needs": {
+   "s1_0_init (Branch full, plan A; was 9690)": 10353,
+   "s1_0_init under the C3 fallback": 10240,
+   "cert_init after S1-0, Branch full": 10353,
+   "cert_init after S1-0, Branch 128": 9774
+  },
+  "notes": [
+   "need = cents(1.25 x cents(max term)) in decimal; a term = spend upper of earlier launches + 600 + 185 x summed caps of this launch.",
+   "S1-0's init need now equals the 5-pods-in-one-launch group need under Branch full (10,353): §20 point 1's group (S1-0, cert, arm pods) is covered before S1-0 launches. Under Branch 128 the cert pod needs 9,774 at its own init, below what S1-0 already required.",
+   "Diagnostics, LN-12 and judge pods are excluded from every number (no pre-set shape)."
+  ]
+ },
+ "tests": {
+  "env": "export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONDONTWRITEBYTECODE=1 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1; cwd ws-b15r2; /Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python -B -m pytest -p no:cacheprovider --basetemp=<new folder under the scratchpad>",
+  "before_fix": "test_stage1_runkit.py with the new tests on the unfixed code: 176 tests, 19 failed (every new or changed case except items-true), 157 passed (the round-2 tests, with the fixture change) (prefix-runkit-before-fix.xml). test_stage1_runner.py with its new tests on the unfixed code: 107 passed (test gaps; the code was right; the mutants show the gain).",
+  "b15_suite": "test_stage1_runkit.py 177 passed (16.8 s, exit 0); test_stage1_runner.py 107 passed (19.5 s, exit 0); 284 tests, 0 failures, 0 errors, 0 skipped (19:21-19:22 UTC; b15-test_stage1_*.xml). Was 262.",
+  "gbk_suite": "experiments/safety_selection/tests/test_ss_gateb_runkit.py (0ad2142e..., unchanged) 271 passed, 0 skipped, 43.4 s, exit 0, in place from ws-b15r2 (one shard, under the 600 s limit); runkit/gate-b-olmo identical to the main checkout's (diff -rq) (gbk.xml)."
+ },
+ "mutation": {
+  "spec": "ws-b15r2/runkit/stage1-olmo/tests/mutants_b15.json",
+  "entries": 185,
+  "added": [
+   "VG-sigma-a-strict",
+   "VG-sigma-b-strict",
+   "VG-d2-fallback-after-planning",
+   "V2-s3orig-no-pins",
+   "V2-s3orig-not-pools-only",
+   "V2-s3orig-wrong-file",
+   "V2-d2-inputs-unchecked",
+   "V2-d2-scripts-unchecked",
+   "V2-j8-no-rep-wrapper-check",
+   "V2-fallback-s3safe-unchecked",
+   "V2-fallback-flag-ignored",
+   "V2-pack-decoy-pin-dropped",
+   "V2-pack-s3safe-consistency",
+   "B15-3-plan-ab-not-reread",
+   "B15-3-verdict-file-unpinned",
+   "B15-3-release-no-plan-ab",
+   "B15-3-deal-cmd-unchecked",
+   "B15-3-floor-no-cert",
+   "B15-3-floor-cert-twice",
+   "B15-3-floor-c3-fallback-ignored",
+   "B15-3-cert-without-c2",
+   "B15-3-cert-without-c1",
+   "B15-3-c3-version-type",
+   "B15-3-c3-items-type",
+   "B15-3-overflow"
+  ],
+  "retargeted": [
+   "B15-g-plan-ab-not-read (the gate_order 'none' check, now on the re-derived record)",
+   "B15-x-no-block-a-floor (block_a_floor(plan, block))",
+   "B15-2-plan-ab-bool (the bool check now in stage1_rules.finite_number)"
+  ],
+  "find_check": "notes/b15-fix-evidence/chk.py: 185 entries, every find text occurs exactly once, no duplicate id; every mutated .py file parses (ast)",
+  "smoke": "notes/b15r2-build-evidence/mutation-smoke.py (run_mutants.py's rules, repo-local layout), baseline 284 passed 0 skipped; V2-pack-s3safe-consistency killed (1 failure), V2-j8-no-rep-wrapper-check killed (1), V2-fallback-s3safe-unchecked killed (1), V2-pack-decoy-pin-dropped killed (1), B15-3-verdict-file-unpinned killed (1); 284 tests and 0 errors in each run (mut-*.xml, mutant-baseline.json). The other 180 entries are not run here (the lead runs the full spec).",
+  "equivalent_not_added": "plan_ab_checked in block_a_floor and build_block's deal is not mutated on its own: gate_order re-derives first in every init, so such a mutant is equivalent inside init-block."
+ },
+ "lead_commands": [
+  "Environment: cd <checkout>/runkit/stage1-olmo; export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONDONTWRITEBYTECODE=1 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1; PY=/Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python",
+  "PLAN-A/B (unchanged): $PY -B plan_tool.py record-gateb-final ../../research/experiments/2026-10-16-gate-b-wave0-outputs/gate_b_measurements_final.json --sha256 06a7020aede28df5bf8a73740819c3453b483f02c61a148822c0c66c4798bd0f ; $PY -B plan_tool.py record-plan-ab ../../research/experiments/2026-10-16-gate-b-wave0-outputs/gate_b_verdict_p5.json --sha256 bec5f103a1c5164ce0d4364cdf3d46c5a66ad941cd2f81a47d381e948811d404. New: the verdict file must stay at that path with that hash; every later init-block, release and deal re-reads it.",
+  "FUNDING (changed): block A's funding record must be at least the S1-0 init need that init-block S1-0 --dry-run prints: $103.53 under Branch full and plan A with C3 planned ($102.40 if the C3 fallback is recorded first); the cert pod then plans on the same event. Block A's own init adds the diagnostics, LN-12 and judge pods and may need more.",
+  "CERT POD (changed): the cert jobs file must hold cert_c1 and cert_c2 once each, plus cert_c3 (or the recorded C3 fallback) and c0; the C2 thresholds record first (write-thresholds, record-thresholds as in round 2).",
+  "C2 LABEL, C3, C3 FALLBACK, D-2 FALLBACK, PACK INPUTS, DIAGNOSTICS POD ORDER: as notes/b15r2-build.json lead_commands (unchanged).",
+  "FULL MUTATION SPEC (lead, background): 185 entries with notes/b15r2-build-evidence/mutation-smoke.py's layout: $PY -B notes/b15r2-build-evidence/mutation-smoke.py <ws-b15r2 or the merged checkout> <scratch> --baseline <ids...>"
+ ],
+ "alternatives_and_why": [
+  "Plan-A/B re-derivation reads the file at ROOT / rules.GATEB_VERDICT['path'], not the path stored in plan.json: the stored path is the CLI argument (often relative to the caller's cwd), and the pin's path is the committed file. A full re-derivation was chosen over storing a signature or a hash of the record: plan.json is writable by hand, so only the pinned file can be the source.",
+  "The cert pod in the floor is built from the fixed G4/J11-J14 shape with rules.job_record, the same call build_block makes, rather than a typed cost: the floor then follows any change to the timing rules.",
+  "Diagnostics/LN-12/judge pods were not given a pre-set floor shape: the kit has no fixed packing for them (the lead's jobs file), so any pre-set would be an invented plan; raised as open question 1 instead.",
+  "c0 stays optional on the cert pod (round 2's behaviour; the tests plan C1-C3 without c0 when no branch exists); only C1 and C2 are required, as VG2-3 asks."
+ ],
+ "open_questions_to_gpt": [
+  "1. §20 point 1 also names block A's diagnostics and judge pods (and LN-12 belongs to block A). They have no pre-set shape, so S1-0's floor excludes them; init-block A then counts them and refuses on a short event. Options: (a) accept as a stated limit (the lead tops up once with a margin above $103.53); (b) add an optional 'init-block S1-0 --block-a-jobs FILE' so the lead's block-A jobs file (diagnostics, LN-12, judge launches) is counted in S1-0's floor. (b) is more work and needs gates that do not yet apply before S1-0; I did not build it.",
+  "2. Under Branch 128 the arm pods are cheaper, but S1-0 is always planned before the branch exists, so the floor uses Branch full ($103.53). This over-asks by up to $5.79 if W1-18 passes; it is the conservative side and unchanged from round 2's rule."
+ ],
+ "open_items": [
+  "Round 3 (as instructed, not done): scripts/stage1_s1/oext_unit.py and the S1 package hash pins (VR2-5's scripts/stage1_s1/__init__.py with them).",
+  "pack_setup.py not run on the real checkout (needs git); unchanged limit.",
+  "The full 185-entry mutation spec is not run (5 run, all killed)."
+ ],
+ "evidence": [
+  {
+   "path": "notes/b15r2-fix-evidence/b15-test_stage1_runkit.xml",
+   "sha256": "6272e24b2e97e0d8c283c38b195118d2191aee09b2de4ae04c1cff9e4ec9a01d"
+  },
+  {
+   "path": "notes/b15r2-fix-evidence/b15-test_stage1_runner.xml",
+   "sha256": "1ed1ed187757f57b4f13b9657f45c394a7e68abc3d6cf71d910eff07bb3136c7"
+  },
+  {
+   "path": "notes/b15r2-fix-evidence/funding.json",
+   "sha256": "62c2b115349c436e7bbf1887ab201dda574d591c3414b6bfb74ac8d32e896408"
+  },
+  {
+   "path": "notes/b15r2-fix-evidence/funding.py",
+   "sha256": "97240636f7a037ef704f3d8e1a2c364a4099d4548006c7bc169fa227ee8b567a"
+  },
+  {
+   "path": "notes/b15r2-fix-evidence/gbk.xml",
+   "sha256": "172bc5253b0a4bdc1129361c9793412d3bd205f4612e6296e9d38dd27dce42aa"
+  },
+  {
+   "path": "notes/b15r2-fix-evidence/kit-sha256.txt",
+   "sha256": "b30db51a3fe16384ab7b01abd71f299e374f135160b11bb20f2dc79bcc0ef6ba"
+  },
+  {
+   "path": "notes/b15r2-fix-evidence/mut-B15-3-verdict-file-unpinned.xml",
+   "sha256": "af8bbc07aaa318859896e062227331523d2cae106354f2fdbf0957965cbbaa9d"
+  },
+  {
+   "path": "notes/b15r2-fix-evidence/mut-V2-fallback-s3safe-unchecked.xml",
+   "sha256": "d162f810ecb37f6265dcfedc7b8e00cb188e8ffd78118dc160f10f466353e325"
+  },
+  {
+   "path": "notes/b15r2-fix-evidence/mut-V2-j8-no-rep-wrapper-check.xml",
+   "sha256": "2e80a6a626b76cf4fc8b0d012e09aa1d89d3703187ca7a146a180933626cb982"
+  },
+  {
+   "path": "notes/b15r2-fix-evidence/mut-V2-pack-decoy-pin-dropped.xml",
+   "sha256": "cf9e03fe47f7c6341736abc16508799f7146e34f0d2ecf22d20eb43f93c9d829"
+  },
+  {
+   "path": "notes/b15r2-fix-evidence/mut-V2-pack-s3safe-consistency.xml",
+   "sha256": "f928563488190e3716e508dbdbb5bc0048542e5cbe649d628191b976d29c1183"
+  },
+  {
+   "path": "notes/b15r2-fix-evidence/mutant-baseline.json",
+   "sha256": "1d00620222eb135e0cc724542de2e10962af0a71edc344a87b14f7709bdf9d47"
+  },
+  {
+   "path": "notes/b15r2-fix-evidence/prefix-runkit-before-fix.xml",
+   "sha256": "bba511977d6ba872fd241108c2b8d99711772fe011ab18ebeffe57f01e1aadf4"
+  }
+ ],
+ "commands_run": [
+  "date -u (19:08:58, 19:15:13, 19:15:53, 19:16:48, 19:17:00, 19:19:00, 19:20:40, 19:21:47, 19:22:25, 19:22:57 UTC and the finish): exit 0",
+  "cat/sed/grep/ls/shasum on the reports, the addendum §17-§23, the brief (job table, G3-G5, money), kit code and tests, the verifiers' evidence scripts: exit 0",
+  "cp -a of the kit to the scratchpad (the unfixed copy for comparison): exit 0",
+  "pytest test_stage1_runkit.py before the fix: 19 failed, 157 passed (exit 1, as expected); test_stage1_runner.py before the fix: 107 passed (exit 0)",
+  "pytest after the fix: test_stage1_runkit.py 177 passed (exit 0), test_stage1_runner.py 107 passed (exit 0), test_ss_gateb_runkit.py 271 passed (exit 0)",
+  "diff -rq runkit/gate-b-olmo against the main checkout's: identical",
+  "chk.py (185 entries, 0 bad); ast parse of every mutant (0 bad)",
+  "mutation-smoke.py: baseline 284 passed, then 5 mutants in 2 foreground calls, 5 killed (exit 0)",
+  "funding.py with python -B -I (exit 0); comparison with b15r2-build.json item 8: all 4 tables equal for both branches"
+ ],
+ "rules_kept": "Wrote only ws-b15r2/runkit/stage1-olmo/ (6 files), notes/b15r2-fix.json, notes/b15r2-fix-evidence/ and the scratchpad; find -newer listed no other file in ws-b15r2; no __pycache__ left. No git; no network, RunPod, Hub or GitHub call; no ~/.config, secrets, ssh/, hosts/ or account file read; no pool, row, prompt or answer opened; the real Gate B verdict file was not read by me or by funding.py (a synthetic verdict was pinned for the scratch plan). Synthetic fixtures only; foreground commands only, each under 600 s; 5 mutants run."
+}
