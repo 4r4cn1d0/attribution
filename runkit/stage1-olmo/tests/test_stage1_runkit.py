@@ -1991,7 +1991,7 @@ def test_the_round_2_pins_are_the_files_in_this_repository():
                                "sha256": "1a24c7a39eb45fd94527806b16edd358975169661ed2a079f8b4c1d8793dd92e"}
         assert r.S1_CODE["scripts/stage1_s1/__init__.py"] == \
             "818919ca18627b7169d80c2a6f6c24149f6e1c529bff9d37a5ddee2122bddd32"           # VR2-5: packed and pinned
-        assert len(r.S1_CODE) == 11 and not hasattr(r, "S1_UNPINNED") and r.S1_COMMIT == "a02c1aa+repin"
+        assert len(r.S1_CODE) == 11 and not hasattr(r, "S1_UNPINNED") and r.S1_COMMIT == "3ea5ae1"
         assert {k: r.S1_CODE[k] for k in ("scripts/stage1_s1/oext_unit.py", "scripts/stage1_s1/settings/oext_unit.json")} \
             == {"scripts/stage1_s1/oext_unit.py": "ae2fb5b5fbea36cbd2b27c4eaa20f10504b9856961ae8ee100311c923876b8e3",
                 "scripts/stage1_s1/settings/oext_unit.json":

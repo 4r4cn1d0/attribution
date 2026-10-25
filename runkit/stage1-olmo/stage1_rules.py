@@ -349,7 +349,7 @@ GUARD_MODEL = {"repo_id": "Qwen/Qwen3Guard-Gen-4B", "revision": "6ec42827da0c1ff
 # eval_adapter.json/.py and lean_eval_job.json/.py follows (M: shasum -a 256 of the re-pinned tree, main a02c1aa plus
 # the re-pin, 25 Oct 2026; item F's pass about 12:55 UTC). S1_COMMIT is a label only (pack_setup's refusal text names it); the lead
 # replaces it with the commit that holds these bytes.
-S1_COMMIT = "a02c1aa+repin"
+S1_COMMIT = "3ea5ae1"
 S1_CODE = {"scripts/stage1_s1/__init__.py": "818919ca18627b7169d80c2a6f6c24149f6e1c529bff9d37a5ddee2122bddd32",
            "scripts/stage1_s1/eval_adapter.py": "7927ff25184292d534b017bdb37b0bc6fa37d23ae159786a6a70ebf3f5a2ef22",
            "scripts/stage1_s1/safe_lora.py": "cd70eed6055f19f3da5467b4dfbe61104e26b1b571a85040a4bbcfd4e39403d4",

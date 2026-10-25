@@ -2068,7 +2068,7 @@ def test_a_lead_code_entry_under_the_s1_package_must_be_its_pin(kit, monkeypatch
         assert files[rel] == sha(f)
         return
     with pytest.raises(SystemExit, match=re.escape(f"{rel} (an S1 package file must be its stage1_rules pin at main "
-                                                   "a02c1aa+repin)")):
+                                                   "3ea5ae1)")):
         repo.pack.main(["X", *repo.inputs(code=code)])
     assert not (kit.root / "setup" / "packed-stage1-X").exists()
 
