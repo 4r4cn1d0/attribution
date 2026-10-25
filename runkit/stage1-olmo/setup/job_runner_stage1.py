@@ -25,7 +25,9 @@ Then each job, in order, one process per step under process_receipt.py (the comm
                  and --pool-pins/--req8-record (PATH:SHA256 of the packed filled pins file and REQ-8's record, equal to
                  the job's plan.json pins); then the s3_orig pools-only pass on the earlier untuned_answers job's
                  output, also through D-2 (J5; addendum §19 point 3). Under the job's D-2 fallback: the W1
-                 scripts/stage1/representation_pass.py with s3_safe only, and the same s3_orig pass (§19 point 4)
+                 scripts/stage1/representation_pass.py with s3_safe only, and the same s3_orig pass (§19 point 4).
+                 Both passes take --recipe recipe S (representation_pass.json pins it). A J5 moved off J6's pod
+                 (defer) reads J6's pool as the packed input pool:s3_orig by plan.json's pin (job.s3_orig)
   untuned_answers  scripts/stage1/make_untuned_answers.py --list/--loss NAME=PATH:SHA256 (J6)
   l1_scan        scripts/stage1/score_l1_larf.py scan (J7)
   classifier     D-2's scripts/stage1_s1/d2_pool_pins/d2_score_classifier.py with --pool PATH:SHA256 for plant and
@@ -139,6 +141,7 @@ D2_SCRIPTS = {"rep_pass": [rules.D2_REP_SCRIPT, *D2_COMMON],     # the D-2 route
               "classifier": [rules.D2_CLASSIFIER_SCRIPT, "scripts/stage1_s1/d2_pool_pins/settings/d2_score_classifier.json",
                              rules.D2_REP_SCRIPT, *D2_COMMON]}
 POOLS_J5 = ("plant", "decoy", "s3_safe")
+S3_ORIG_INPUT = rules.S3_ORIG_INPUT                  # J6's s3_orig pool for a J5 moved off J6's pod (plan.json pin)
 POOLS_J8 = ("plant", "decoy")
 J6_LISTS = (("list", "s3"), ("list", "s4"), ("list", "sd600"), ("loss", "s1"), ("loss", "s3_safe"))
 SCRIPTS = {"w1_18": [W1_18_SCRIPT, "scripts/stage1/limits/limits_common.py", "scripts/stage1/s1common.py",
@@ -298,6 +301,24 @@ def d2_route(job: dict, index: int, inputs: dict, files: dict) -> tuple[dict, st
     return d2, (rules.D2_REP_SCRIPT if job["kind"] == "rep_pass" else rules.D2_CLASSIFIER_SCRIPT), extra
 
 
+def s3_orig_arg(job: dict, index: int, h: dict, inputs: dict, files: dict) -> str:
+    """J5's s3_orig pools-only pass reads J6's s3_orig pool. A J5 moved off J6's pod (defer; J6 complete there and
+    never re-run, PREREG) carries plan.json's pin (job.s3_orig: the pool's SHA-256 from J6's own
+    untuned_answers_record.json, checked by plan_tool) and reads the packed input pool:s3_orig, which must hash to it;
+    otherwise J6 runs earlier on this pod and the pass reads its output (@pathsha, resolved before the step)."""
+    pin = (job.get("s3_orig") or {}).get("sha256")
+    if pin is not None:
+        path = input_path(inputs, S3_ORIG_INPUT)
+        if files.get(path) != pin:
+            raise Unrunnable(f"job {index} (rep_pass): the packed s3_orig pool differs from the plan's pin (J6's record)")
+        return f"{path}:{files[path]}"
+    earlier = [k for k in range(index) if h["jobs"][k]["kind"] == "untuned_answers"]
+    if not earlier:
+        raise Unrunnable(f"job {index} (rep_pass): no untuned_answers job earlier on this pod and no pinned s3_orig "
+                         "pool (pool:s3_orig) for the s3_orig pools-only pass")
+    return f"@pathsha:job-{earlier[-1]}/untuned/s3_orig.pool.json"   # REQ-3's s3_orig pass after J6 (same pod)
+
+
 def pool_arg(job: dict, index: int, inputs: dict, files: dict, name: str) -> str:
     """PATH:SHA256 of a packed pool, which must hash to the job's plan.json pool pin."""
     path = input_path(inputs, f"pool:{name}")
@@ -345,17 +366,14 @@ def job_commands(plan: dict, host: str, index: int, root: pathlib.Path, units: d
             _, script, extra = d2_route(job, index, inputs, files)
             pools = [a for name in (POOLS_J5 if extra else ("s3_safe",))
                      for a in ("--pool", pool_arg(job, index, inputs, files, name))]
-            earlier = [k for k in range(index) if h["jobs"][k]["kind"] == "untuned_answers"]
-            if not earlier:
-                raise Unrunnable(f"job {index} (rep_pass): no untuned_answers job earlier on this pod for the s3_orig "
-                                 "pools-only pass")
-            s3 = f"job-{earlier[-1]}/untuned/s3_orig.pool.json"   # REQ-3's s3_orig pools-only pass after J6 (same pod)
+            s3 = s3_orig_arg(job, index, h, inputs, files)
             anchors = input_path(inputs, "anchor_bank")
-            return [(f"{tag}-representation", [*SCRIPT, script, "--prepared", p, "--recipe", rules.REC,
+            # REQ-3's recipe is recipe S (representation_pass.json pins.recipe_sha256), never REC (pod a-1, 25 Oct)
+            return [(f"{tag}-representation", [*SCRIPT, script, "--prepared", p, "--recipe", rules.RECIPE_S,
                                                "--anchors", anchors, *pools, "--out", f"{out}/representation", *extra]),
                     (f"{tag}-representation-s3-orig",
-                     [*SCRIPT, script, "--prepared", p, "--recipe", rules.REC, "--anchors", anchors, "--pool",
-                      f"@pathsha:{s3}", "--pools-only", "--out", f"{out}/representation-s3-orig", *extra])]
+                     [*SCRIPT, script, "--prepared", p, "--recipe", rules.RECIPE_S, "--anchors", anchors, "--pool",
+                      s3, "--pools-only", "--out", f"{out}/representation-s3-orig", *extra])]
         if kind == "untuned_answers":
             lists = [a for flag, name in J6_LISTS if inputs.get(f"{flag}:{name}")
                      for a in (f"--{flag}", f"{name}={pathsha(inputs, files, f'{flag}:{name}')}")]
@@ -524,6 +542,8 @@ def input_names(job: dict, h: dict, index: int, fallback: bool = False) -> list[
         names += list(D2_INPUTS) + [f"pool:{n}" for n in (POOLS_J5 if kind == "rep_pass" else POOLS_J8)]
     elif kind == "rep_pass":
         names.append("pool:s3_safe")                       # §19 point 4: no plant or decoy under the D-2 fallback
+    if kind == "rep_pass" and (job.get("s3_orig") or {}).get("sha256") is not None:
+        names.append(S3_ORIG_INPUT)                        # a J5 moved off J6's pod: J6's s3_orig pool by its pin
     if kind == "untuned_answers":
         names += [f"{f}:{n}" for f, n in J6_LISTS]
     if kind in ("b10_certify", "ref_eval", "safe_lora"):
@@ -562,8 +582,9 @@ def sealed_paths(job: dict, h: dict, index: int, sealed_doc: dict, fallback: boo
     for name in input_names(job, h, index, fallback):
         path = inputs.get(name)
         if path is None:
-            if name in ("w1_18_record",) or name.startswith(("list:", "loss:")):
+            if (name == "w1_18_record" and job.get("branch") != "128") or name.startswith(("list:", "loss:")):
                 continue                                   # optional: passed only when packed
+            # (F) under Branch 128 the O-ext settings pin W1-18's record: every O-ext step needs it packed
             paths.append(f"<input {name}>")
             continue
         under = [f for f in files if f.startswith(path.rstrip("/") + "/")]

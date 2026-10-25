@@ -131,7 +131,7 @@ __all__ = ["SETTINGS_PATH", "SETTINGS_SHA256", "SETTINGS_NAME", "RECORD_KIND", "
            "lean_evaluate", "stage_table", "execute_c0_job", "verify_c0", "main"]
 
 SETTINGS_PATH = HERE / "settings" / "lean_eval_job.json"
-SETTINGS_SHA256 = "578a378b26a90d1df0f4cb14380e04fb690dec61c224c8271310ec9bd4ac7ecf"
+SETTINGS_SHA256 = "b0ab19ec28946334e4a033897c1097894fdf5797507f6a516614afc1c2c22acd"
 SETTINGS_NAME = "lean_eval_job"
 RECORD_KIND = "stage1 c0 lean job record"
 LEAN_JOB_KIND = "stage1 lean evaluation"

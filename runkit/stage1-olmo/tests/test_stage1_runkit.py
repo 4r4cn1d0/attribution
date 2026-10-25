@@ -102,12 +102,28 @@ class World:
         mp.setattr(r, "A1_EDIT", pin)
         mp.setattr(r, "MAN1_EDIT_ARMS", {"A1": pin})
         mp.setattr(r, "MAN1_SHA256", sha(write_json(tmp / r.MAN1_PATH, {"entries": [{**pin, "role": "sealed record"}]})))
+        # the recipes: main's tree (engine X) holds REC, S and G; engine Y's frozen tree holds the same files and
+        # B+Qi's, which is in Y's tree only (as in the repository); the same bytes in both trees, one pin per path
+        self.y_tree = tmp / r.Y_TREE_DEFAULT
         for path in list(r.RECIPE_PINS):
-            mp.setitem(r.RECIPE_PINS, path, sha(write_json(tmp / path, {"recipe": path})))
+            body = {"recipe": path}
+            if path != r.RECIPE_BQI:
+                write_json(tmp / path, body)
+            mp.setitem(r.RECIPE_PINS, path, sha(write_json(self.y_tree / path, body)))
         for eng, ident in (("X", X), ("Y", Y)):
             write_json(self.root / "setup" / f"packed-stage1-{eng}" / "setup-receipt.json",
                        {"engine_sha256": ident, "sealed_files_sha256": "f" * 64})
-        mp.setattr(self.tool, "recipe_sha", lambda path: hashlib.sha256(path.encode()).hexdigest())
+        self.real = {name: getattr(self.tool, name) for name in ("recipe_sha", "recipe_training_identity",
+                                                                 "recipe_sha_y", "recipe_training_identity_y")}
+        self.calls = []                         # (engine, what, recipe path) of every recipe hash the kit asks for
+        self.config = {"X": {}, "Y": {}}        # engine -> recipe path -> a config SHA-256 (tests set it)
+
+        def config_sha(engine: str, path: str) -> str:
+            self.calls.append((engine, "config", path))
+            return self.config[engine].get(path, hashlib.sha256(path.encode()).hexdigest())
+
+        mp.setattr(self.tool, "recipe_sha", lambda path: config_sha("X", path))
+        mp.setattr(self.tool, "recipe_sha_y", lambda path: config_sha("Y", path))
         self.pools = {"plant": hashlib.sha256(b"plant pool (synthetic)").hexdigest(),
                       "decoy": hashlib.sha256(b"decoy pool (synthetic)").hexdigest(),
                       "s3_safe": hashlib.sha256(b"s3_safe pool (synthetic)").hexdigest()}
@@ -121,8 +137,15 @@ class World:
         for name, f in (("D2_POOL_PINS", filled), ("D2_REQ8_RECORD", req8), ("S_POOL_RECORD", spool)):
             mp.setattr(r, name, {"path": getattr(r, name)["path"], "sha256": sha(f)})
         self.identity = {}                      # recipe path -> a training identity other than the pin (tests set it)
+        self.identity_y = {}                    # the same under engine Y's code
         mp.setattr(self.tool, "recipe_training_identity",
                    lambda path: self.identity.get(path, getattr(r, "TRAINING_IDENTITY", "")), raising=False)
+
+        def identity_y(path: str) -> str:
+            self.calls.append(("Y", "identity", path))
+            return self.identity_y.get(path, r.TRAINING_IDENTITY)
+
+        mp.setattr(self.tool, "recipe_training_identity_y", identity_y)
         self.n = 0
         self.auto_plan = True                   # round 3a: record test_plan() before the group's first init
 
@@ -564,6 +587,166 @@ def test_create_refuses_a_missing_non_finite_or_over_ten_dollar_price_and_names_
         assert ("POST", "/pods/pod-synthetic/stop", None) in calls
     names = [c[2] for c in calls if c[:2] == ("POST", "/pods")]
     assert names == ["attribution-s1-a-1"] and not any("gateb" in n for n in names)
+
+
+# ===== (E) the user's decision: the live-balance guard off (FOCUS 8d3d505) ========================================
+
+USER_WORDS = "synthetic words standing in for the user's verbatim decision"
+
+
+def _guard_off(w, **change) -> tuple[str, str]:
+    body = {"kind": "stage1 user decision: budget guard off", "user_words": USER_WORDS, "utc": "2026-10-25T12:00:00Z",
+            "recorded_by": "test", **change}
+    return w.record({k: v for k, v in body.items() if v is not None})
+
+
+@pytest.mark.parametrize("change, match", [
+    ({"kind": "stage1 user yes"}, "its kind is not"), ({"user_words": " "}, "non-empty texts"),
+    ({"recorded_by": None}, "exactly"), ({"extra": 1}, "exactly"), ({"utc": "2026-10-25T17:30:00+05:30"}, "not a UTC"),
+    ({"utc": "2099-01-01T00:00:00Z"}, "in the future")])
+def test_record_guard_off_takes_only_the_users_decision_record(w, change, match):
+    w.s10()
+    with pytest.raises(SystemExit, match=match):
+        w.tool.record_simple("guard_off", *_guard_off(w, **change))
+    assert w.plan()["records"].get("guard_off") is None and w.rules.guard_off_record(w.root) is None
+
+
+def test_record_guard_off_is_recorded_once_by_sha256_and_a_changed_file_turns_the_guard_back_on(w):
+    w.s10()
+    assert w.rules.guard_off_record(w.root) is None                          # no record: the guard as before
+    p, h = _guard_off(w)
+    assert w.tool.record_simple("guard_off", p, h) == {"recorded": "guard_off", "sha256": h}
+    rec = w.plan()["records"]["guard_off"]
+    assert rec["sha256"] == h and rec["user_words"] == USER_WORDS and Path(rec["path"]).is_absolute()
+    assert w.rules.guard_off_record(w.root) == {"sha256": h, "utc": "2026-10-25T12:00:00Z", "recorded_by": "test"}
+    with pytest.raises(SystemExit, match="already recorded off"):
+        w.tool.record_simple("guard_off", *_guard_off(w, recorded_by="another"))
+    Path(p).write_text(Path(p).read_text().replace("test", "tset"))
+    assert w.rules.guard_off_record(w.root) is None                          # re-hashed at every use
+
+
+class _StopLoop(Exception):
+    pass
+
+
+def _launch_round(w, monkeypatch, guard_exit: int) -> tuple[list, list]:
+    """launch.py's create loop for s10-1 with fake children: reconcile ok, budget.py check exits ``guard_exit`` with a
+    balance line, host.py create writes pod.json. Returns (the children run, the log lines)."""
+    launch = importlib.import_module("launch")
+    plan = w.plan()
+    ran, logged = [], []
+    line = json.dumps({"balance": 3.21, "committed_upper_usd": 9.0, "new_pod_upper_usd": 13.88, "reserve_usd": 6.0,
+                       "allowed": guard_exit == 0})
+
+    def run(args, **kwargs):
+        ran.append(args[1:3])
+        if args[1:3] == ["host.py", "create"]:
+            write_json(w.root / "hosts" / args[3] / "pod.json", {"id": "pod-x"})
+        out = line if args[1] == "budget.py" else ""
+        return subprocess.CompletedProcess(args, guard_exit if args[1] == "budget.py" else 0, out, "")
+
+    def sleep(seconds):
+        raise _StopLoop()
+    monkeypatch.setattr(launch, "log", lambda **f: logged.append(f))
+    try:
+        launch._create_all(plan, ["s10-1"], run, lambda *a, **k: None, sleep)
+    except _StopLoop:
+        pass
+    return ran, logged
+
+
+@pytest.mark.parametrize("recorded, guard_exit, created", [(False, 3, False), (False, 0, True), (False, 1, False),
+                                                           (True, 3, True), (True, 0, True), (True, 1, False)])
+def test_launch_goes_past_the_guards_refusal_only_with_the_users_recorded_decision(w, monkeypatch, recorded, guard_exit,
+                                                                                    created):
+    """Without the record the guard is as before (a refusal, exit 3, stops the create); with it, a refusal is logged
+    beside the decision and the create goes on; the guard's live-balance read must still succeed (any other exit
+    refuses either way), and budget.py check runs before every create."""
+    w.s10()
+    h = w.tool.record_simple("guard_off", *_guard_off(w))["sha256"] if recorded else None
+    ran, logged = _launch_round(w, monkeypatch, guard_exit)
+    assert ["budget.py", "check"] in ran and ran.index(["budget.py", "check"]) < len(ran)
+    assert (["host.py", "create"] in ran) is created
+    events = [f.get("event") for f in logged]
+    assert ("budget-guard-refused" in events) is (not created)
+    off = [f for f in logged if f.get("event") == "budget-guard-off"]
+    if recorded and created:
+        assert off == [{"host": "s10-1", "event": "budget-guard-off", "guard_exit": guard_exit, "decision_sha256": h,
+                        "detail": json.dumps({"balance": 3.21, "committed_upper_usd": 9.0, "new_pod_upper_usd": 13.88,
+                                              "reserve_usd": 6.0, "allowed": guard_exit == 0})}]
+    else:
+        assert off == []
+
+
+def _extend(w, monkeypatch, guard_exit: int):
+    host = importlib.import_module("host")
+    write_json(w.root / "hosts" / "s10-1" / "pod.json", {"id": "pod-x", "name": host.name_of("s10-1"),
+                                                         "cap_stop_utc": "2026-10-25T12:00:00+00:00"})
+    monkeypatch.setattr(host, "ssh_base", lambda h: [])
+    ran = []
+
+    def runner(args, **kwargs):
+        ran.append(args[1] if args[0] != "ssh" else "ssh")
+        if args[0] == "ssh":
+            return subprocess.CompletedProcess(args, 0, json.dumps({"governs": True, "acknowledged": True, "lease": "l1",
+                                                                    "stop_at_utc": "2026-10-26T00:00:00+00:00"}), "")
+        return subprocess.CompletedProcess(args, guard_exit, '{"allowed": false}', "")
+    return host, ran, runner
+
+
+@pytest.mark.parametrize("recorded, guard_exit, extended", [(False, 3, False), (True, 3, True), (True, 1, False),
+                                                            (False, 0, True)])
+def test_extend_cap_goes_past_the_guards_refusal_only_with_the_users_recorded_decision(w, monkeypatch, recorded,
+                                                                                       guard_exit, extended):
+    w.s10()
+    h = w.tool.record_simple("guard_off", *_guard_off(w))["sha256"] if recorded else None
+    host, ran, runner = _extend(w, monkeypatch, guard_exit)
+    if not extended:
+        with pytest.raises(SystemExit, match="the budget guard refused the extension"):
+            host.extend_cap("s10-1", 6 * 3600, runner=runner)
+        assert ran[-1].endswith("budget.py") and "ssh" not in ran
+        return
+    out = host.extend_cap("s10-1", 6 * 3600, runner=runner)
+    assert ran[0].endswith("budget.py") and ran[-1] == "ssh"                 # the guard still runs first (the read)
+    saved = json.loads((w.root / "hosts" / "s10-1" / "cap-override.json").read_text())
+    if recorded:
+        assert out["budget_guard"] == saved["budget_guard"] == "off" and out["decision_sha256"] == h
+        assert out["guard_exit"] == guard_exit
+    else:
+        assert "budget_guard" not in out                                     # as before
+
+
+@pytest.mark.parametrize("price, created", [(10.0, True), (10.01, False), (None, False)])
+def test_with_the_guard_off_a_pod_above_ten_dollars_still_refuses_and_is_stopped(w, monkeypatch, price, created):
+    """The $10/h create-time limit, the stop timer settings at the host's cap and stop-never-delete are not part of the
+    switch: host.create refuses (and stops) an over-limit or unknown price with the decision recorded."""
+    w.s10()
+    w.tool.record_simple("guard_off", *_guard_off(w))
+    assert w.rules.guard_off_record(w.root) is not None
+    host = importlib.import_module("host")
+    cap = w.plan()["hosts"]["s10-1"]["cap_hours"]
+    seen = {}
+    (w.root / "ssh").mkdir(exist_ok=True)
+    (w.root / "ssh" / "key.pub").write_text("synthetic public key\n")
+
+    def timer_settings(args, **kwargs):
+        seen["cap_minutes"] = args[args.index("--cap-minutes") + 1]
+        out = Path(args[args.index("--out") + 1])
+        out.write_text(json.dumps({"env": {"POD_TIMER_CAP_MINUTES": seen["cap_minutes"]}, "docker_start_cmd": ["bash"],
+                                   "cap_stop_utc": "2026-10-25T20:00:00+00:00"}))
+        return subprocess.CompletedProcess(args, 0)
+    monkeypatch.setattr(host, "subprocess", argparse.Namespace(run=timer_settings, DEVNULL=subprocess.DEVNULL))
+    calls = []
+    monkeypatch.setattr(host, "api", _fake_pod_api(price, calls))
+    monkeypatch.setattr(host, "SLEEP", lambda s: None)
+    if created:
+        assert host.create("s10-1")["id"] == "pod-synthetic"
+    else:
+        with pytest.raises(SystemExit, match=r"above \$10\.00/h"):
+            host.create("s10-1")
+        assert ("POST", "/pods/pod-synthetic/stop", None) in calls
+    assert seen["cap_minutes"] == str(int(cap * 60))                          # the in-pod stop timer at the cap
+    assert not any(m == "DELETE" for m, _, _ in calls)                       # stop, never delete
 
 
 # ===== The W1-18 gate ==============================================================================================
@@ -1212,6 +1395,36 @@ def test_launch_refuses_a_wrong_cap_and_gives_no_child_a_token(w, monkeypatch):
     assert "HF_TOKEN" not in launch.clean_env() and token not in json.dumps(launch.clean_env())
 
 
+# (E, the user's decision of 25 Oct, FOCUS 8d3d505): the only other differences of launch.py and host.py from Gate B's
+GUARD_OFF_LAUNCH = [('''                if guard.returncode != 0:
+                    log(host=host, event="budget-guard-refused", detail=guard.stdout.strip()[-300:])
+                    continue
+''', '''                off = rules.guard_off_record(HERE)   # (E) the user's recorded decision: past the guard's refusal only
+                if guard.returncode != 0 and not (off and guard.returncode == rules.GUARD_REFUSED_EXIT):
+                    log(host=host, event="budget-guard-refused", detail=guard.stdout.strip()[-300:])
+                    continue
+                if off:                               # the live balance was read; its line is logged with the decision
+                    log(host=host, event="budget-guard-off", guard_exit=guard.returncode, decision_sha256=off["sha256"],
+                        detail=guard.stdout.strip()[-300:])
+''')]
+GUARD_OFF_HOST = [('''    override = folder(host) / "cap-override.json"
+    with budget.lock():''', '''    override = folder(host) / "cap-override.json"
+    guard_note = {}
+    with budget.lock():'''),
+                  ('''            if guard.returncode != 0:
+                raise SystemExit("the budget guard refused the extension")
+''', '''            off = rules.guard_off_record(HERE)   # (E) the user's recorded decision: past the guard's refusal only
+            if guard.returncode != 0 and not (off and guard.returncode == rules.GUARD_REFUSED_EXIT):
+                raise SystemExit("the budget guard refused the extension")
+            if off:                                   # the live balance was read (budget-checks.jsonl); noted here
+                guard_note = {"budget_guard": "off", "guard_exit": guard.returncode, "decision_sha256": off["sha256"]}
+'''),
+                  ('''"added_hours": round(added_h, 4)}
+''', '''"added_hours": round(added_h, 4),
+                  **guard_note}
+''')]
+
+
 def test_the_kit_compiles_holds_no_secret_and_reuses_gate_b_files_as_documented(tmp_path):
     names = sorted(p.name for p in KIT.glob("*.py"))
     assert names == ["account.py", "backup_records_stage1.py", "budget.py", "finisher.py", "gateb_mac.py", "host.py",
@@ -1231,9 +1444,10 @@ def test_the_kit_compiles_holds_no_secret_and_reuses_gate_b_files_as_documented(
     for same in ("secret_scan.py", "account.py", "status.py", "gateb_mac.py"):
         assert (KIT / same).read_bytes() == (GBK / same).read_bytes(), same
     imp = ("import gateb_rules as rules  # noqa: E402", "import stage1_rules as rules  # noqa: E402")
-    for name, extra in (("launch.py", []), ("finisher.py", []),
+    for name, extra in (("launch.py", GUARD_OFF_LAUNCH), ("finisher.py", []),
                         ("host.py", [('    return f"attribution-gateb-{host}{suffix}"     # e.g. attribution-gateb-w0a-1',
-                                      '    return f"attribution-s1-{host}{suffix}"     # e.g. attribution-s1-A-1')]),
+                                      '    return f"attribution-s1-{host}{suffix}"     # e.g. attribution-s1-A-1'),
+                                     *GUARD_OFF_HOST]),
                         ("budget.py", [('KITS_GLOB = ("family-probe-*", "gate-b-olmo*")   # every family-probe and Gate B '
                                         'working copy beside this kit',
                                         'KITS_GLOB = ("family-probe-*", "gate-b-olmo*", "stage1-olmo*")   # every '
@@ -1509,6 +1723,166 @@ def test_recipe_s_training_identity_is_checked_at_release(w):
     assert w.plan()["recipes"][w.rules.RECIPE_S]["training_identity"] == w.rules.TRAINING_IDENTITY
 
 
+# ----- the branch re-pin round: a Y host's recipes in engine Y's tree, by engine Y's code ---------------------------
+# (FOCUS "BLOCK A: DIAGNOSTICS POD LAUNCHED" (1): B+Qi's recipe is only in Y's tree and engine X's loader refuses its
+# train.constrained_sft field, so init-block cert failed with "missing or differs from its pin (recipe bqi)")
+
+WS_Y_TREE = Path(os.environ.get("STAGE1_ENGINE_Y_TREE", str(KIT.parents[1] / "tmp" / "engine-y-34bfd288")))
+REAL_RECIPE_PINS = {"S": "464708c91cd4c297aedf556958893cf84efdeb59b727e5c086a053b81528daf0",   # the committed pins
+                    "bqi": "3031aaaa8d3f44057c3d5fa9c0489170940b0bd3a7184365b3b32c9f436dfd1c"}
+# engine Y's own code in its tree (a separate python -I -c command, cwd the Y tree, 25 Oct 2026): the config SHA-256 of
+# B+Qi's recipe, and recipe S's (equal to oext_unit.json's recipes.allowed.S pin, made with engine X's code)
+Y_CONFIG = {"bqi": "37942cf565a7de7d4f68260ec4f769818fb03af9978b0f0356dc90851aa7644c",
+            "S": "ceffe0efb5d75bacfbd62743f530259deeedeca8950605d1bd3ff66e5391fe46"}
+
+
+def _cert_ready(w) -> None:
+    w.s10()
+    w.gateb()
+    w.cert_records()
+
+
+def test_the_cert_pod_with_c2_plans_with_b_qi_checked_and_hashed_in_engine_ys_tree(w):
+    """The defect's case: the cert pod (C1 recipe S, C2 B+Qi, C3) is planned and released on Y. B+Qi's recipe is not
+    in main's tree; it is checked in Y's tree and hashed only by engine Y's code, and so is C1's recipe S on Y. Y's
+    values are kept in plan["recipes_y"]; plan["recipes"] (what every pod's runner checks) takes Y's, marked engine Y."""
+    r = w.rules
+    _cert_ready(w)
+    assert not (w.repo / r.RECIPE_BQI).exists() and (w.y_tree / r.RECIPE_BQI).is_file()
+    w.calls.clear()
+    out = w.init("cert", [{"hosts": [CERT_POD]}])
+    plan = w.plan()
+    assert out["hosts"] == ["cert-1"] and out["released"] == ["cert-1"] and plan["hosts"]["cert-1"]["engine"] == "Y"
+    assert [j["recipe"] for j in plan["hosts"]["cert-1"]["jobs"]] == ["S", "bqi", None]
+    assert w.calls == [("Y", "config", r.RECIPE_S), ("Y", "identity", r.RECIPE_S), ("Y", "config", r.RECIPE_BQI)]
+    bqi = hashlib.sha256(r.RECIPE_BQI.encode()).hexdigest()           # the World's engine-Y config value
+    assert plan["recipes_y"][r.RECIPE_BQI] == {"sha256": r.RECIPE_PINS[r.RECIPE_BQI], "config_sha256": bqi}
+    assert plan["recipes"][r.RECIPE_BQI] == {"sha256": r.RECIPE_PINS[r.RECIPE_BQI], "config_sha256": bqi, "engine": "Y"}
+    assert plan["recipes_y"][r.RECIPE_S]["training_identity"] == r.TRAINING_IDENTITY
+    assert plan["recipes"][r.RECIPE_S]["engine"] == "Y" and "training_identity" not in plan["recipes"][r.RECIPE_S]
+
+
+def test_a_changed_byte_or_a_missing_b_qi_recipe_in_engine_ys_tree_refuses(w):
+    r = w.rules
+    _cert_ready(w)
+    f = w.y_tree / r.RECIPE_BQI
+    good = f.read_bytes()
+    f.write_bytes(good[:-2] + bytes([good[-2] ^ 1]) + good[-1:])          # one byte changed
+    w.calls.clear()
+    with pytest.raises(SystemExit, match=r"missing from engine Y's tree or differs from its pin \(recipe bqi"):
+        w.init("cert", [{"hosts": [CERT_POD]}])
+    assert ("Y", "config", r.RECIPE_BQI) not in w.calls and "cert" not in w.plan()["blocks"]
+    f.unlink()
+    with pytest.raises(SystemExit, match=r"missing from engine Y's tree or differs from its pin \(recipe bqi"):
+        w.init("cert", [{"hosts": [CERT_POD]}])
+    write_json(w.repo / r.RECIPE_BQI, {"recipe": r.RECIPE_BQI})       # the pinned bytes in main's tree do not help
+    with pytest.raises(SystemExit, match=r"missing from engine Y's tree or differs from its pin \(recipe bqi"):
+        w.init("cert", [{"hosts": [CERT_POD]}])
+    f.write_bytes(good)
+    assert w.init("cert", [{"hosts": [CERT_POD]}])["released"] == ["cert-1"]
+
+
+def test_a_b_qi_recipe_on_an_x_host_still_refuses(w):
+    """An X host never reads Y's tree or uses Y's code: the job gates refuse B+Qi on X; past them, the X check reads
+    main's tree, where B+Qi's recipe is missing (it is in Y's tree, at its pin); with the pinned bytes copied into
+    main's tree it is engine X's code that hashes it, and engine X's own loader refuses B+Qi's recipe."""
+    r = w.rules
+    plan = w.tool.load()
+    bqi = {"kind": "ref_train", "arm": "bqi", "seed": 1102, "recipe": "bqi", "engine": "X"}
+    with pytest.raises(SystemExit, match="B[+]Qi runs on engine Y only"):
+        w.tool.check_job(bqi, 0, [bqi], "B", plan, set())
+    with pytest.raises(SystemExit, match="cert_c2 runs on engine Y"):
+        w.tool.check_job({**CERT_POD[1], "engine": "X"}, 0, [CERT_POD[1]], "cert", plan, set())
+    w.mp.setattr(w.tool, "check_launch_gates", lambda *a: None)        # the recipe check alone
+    host = {"engine": "X", "jobs": [dict(bqi)]}
+    w.calls.clear()
+    with pytest.raises(SystemExit, match=re.escape(f"{r.RECIPE_BQI}: missing or differs from its pin (recipe bqi)")):
+        w.tool.release_hosts(plan, "B", [("b-1", host)])
+    assert w.calls == [] and plan["hosts"] == {} and "recipes_y" not in plan
+    write_json(w.repo / r.RECIPE_BQI, {"recipe": r.RECIPE_BQI})       # the same bytes as Y's tree's, in main's tree
+    w.tool.release_hosts(plan, "B", [("b-1", host)])
+    assert w.calls == [("X", "config", r.RECIPE_BQI)] and "engine" not in plan["recipes"][r.RECIPE_BQI]
+    real_y = WS_Y_TREE / r.RECIPE_BQI                               # engine X's own loader on B+Qi's committed recipe
+    done = subprocess.run([sys.executable, "-I", "-B", "-c", "import sys;sys.path.insert(0,sys.argv[1]);"
+                           "from experiments.safety_selection.config import load_recipe;load_recipe(sys.argv[2])",
+                           str(KIT.parents[1]), str(real_y)], capture_output=True, text=True, timeout=120,
+                          cwd=str(KIT.parents[1]), env={"PATH": "/usr/bin:/bin", "PYTHONDONTWRITEBYTECODE": "1"})
+    assert sha(real_y) == REAL_RECIPE_PINS["bqi"] and done.returncode != 0 and "constrained_sft" in done.stderr
+
+
+def test_an_x_hosts_recipes_are_checked_as_before_and_a_y_first_recipe_is_hashed_again_by_x(w):
+    """An X host's recipes: main's tree and engine X's code only, entries as before (no engine mark). When a Y host
+    hashed a shared recipe first (S on the cert pod), the next X host hashes it again with X's code and the entry
+    becomes X's; engine values that differ refuse, in either order."""
+    r = w.rules
+    w.mp.setattr(w.tool, "check_launch_gates", lambda *a: None)
+    s_job = {"kind": "classifier", "arm": None, "seed": None, "recipe": "S", "engine": "X"}   # no edit to bind
+    plan = w.tool.load()
+    w.tool.release_hosts(plan, "A", [("a-1", {"engine": "X", "jobs": [dict(s_job)]})])
+    assert w.calls == [("X", "config", r.RECIPE_S)] and "recipes_y" not in plan
+    assert plan["recipes"][r.RECIPE_S] == {"sha256": r.RECIPE_PINS[r.RECIPE_S],
+                                           "config_sha256": hashlib.sha256(r.RECIPE_S.encode()).hexdigest(),
+                                           "training_identity": r.TRAINING_IDENTITY}
+    y_job = {"kind": "a0_arm", "arm": "a0", "seed": 1105, "role": "bqi_own_a0", "recipe": "S", "engine": "Y"}
+    w.tool.release_hosts(plan, "cert", [("cert-1", {"engine": "Y", "jobs": [dict(y_job)]})])   # Y agrees with X
+    assert "engine" not in plan["recipes"][r.RECIPE_S] and plan["recipes_y"][r.RECIPE_S]["config_sha256"] == \
+        plan["recipes"][r.RECIPE_S]["config_sha256"]
+    plan = w.tool.load()
+    w.tool.release_hosts(plan, "cert", [("cert-1", {"engine": "Y", "jobs": [dict(y_job)]})])   # Y first
+    assert plan["recipes"][r.RECIPE_S]["engine"] == "Y"
+    w.calls.clear()
+    w.tool.release_hosts(plan, "A", [("a-1", {"engine": "X", "jobs": [dict(s_job)]})])
+    assert w.calls == [("X", "config", r.RECIPE_S)] and "engine" not in plan["recipes"][r.RECIPE_S]
+    assert plan["recipes"][r.RECIPE_S]["training_identity"] == r.TRAINING_IDENTITY
+    for first, second, host_first, host_second in (("Y", "X", ("cert-1", "Y", y_job), ("a-1", "X", s_job)),
+                                                   ("X", "Y", ("a-1", "X", s_job), ("cert-1", "Y", y_job))):
+        plan = w.tool.load()
+        w.config[second][r.RECIPE_S] = "0" * 64                        # the second engine's code disagrees
+        name, eng, job = host_first
+        w.tool.release_hosts(plan, "A", [(name, {"engine": eng, "jobs": [dict(job)]})])
+        name, eng, job = host_second
+        with pytest.raises(SystemExit, match="engine Y's config SHA-256 differs from engine X's"):
+            w.tool.release_hosts(plan, "A", [(name, {"engine": eng, "jobs": [dict(job)]})])
+        w.config[second].clear()
+
+
+def test_recipe_s_training_identity_on_engine_y_is_checked_with_ys_code(w):
+    r = w.rules
+    _cert_ready(w)
+    w.identity_y[r.RECIPE_S] = "0" * 64
+    w.identity[r.RECIPE_S] = r.TRAINING_IDENTITY                       # engine X's would pass: Y's is the one checked
+    with pytest.raises(SystemExit, match="training identity under engine Y"):
+        w.init("cert", [{"hosts": [CERT_POD]}])
+    w.identity_y.clear()
+    assert w.init("cert", [{"hosts": [CERT_POD]}])["released"] == ["cert-1"]
+
+
+def test_the_real_engine_y_code_in_ys_tree_hashes_the_committed_recipes(w):
+    """Engine Y's real code and tree (python -I, cwd and import path in Y's tree, code identity checked): the cert pod
+    gets B+Qi's and recipe S's config SHA-256 as engine Y's own code computes them; a Y tree whose code is not engine
+    Y's pin refuses."""
+    r = w.rules
+    _cert_ready(w)
+    bytecode = set((WS_Y_TREE / "experiments").rglob("*.pyc"))      # Y's frozen tree gets no new file
+    for name in ("recipe_sha_y", "recipe_training_identity_y"):
+        w.mp.setattr(w.tool, name, w.real[name])
+    w.mp.setattr(w.tool, "y_tree", lambda: WS_Y_TREE)
+    w.mp.setattr(w.tool, "PY", Path(sys.executable))
+    for name in ("S", "bqi"):
+        w.mp.setitem(r.RECIPE_PINS, r.RECIPE_NAMES[name], REAL_RECIPE_PINS[name])
+    w.mp.setitem(r.ENGINES, "Y", "0" * 64)                             # Y's tree is not this "engine Y"
+    with pytest.raises(SystemExit, match="the code in engine Y tree is not engine Y"):
+        w.tool.check_recipe_y(w.tool.load(), "bqi")
+    w.mp.setitem(r.ENGINES, "Y", Y)
+    w.init("cert", [{"hosts": [CERT_POD]}])
+    plan = w.plan()
+    assert plan["recipes_y"][r.RECIPE_BQI] == {"sha256": REAL_RECIPE_PINS["bqi"], "config_sha256": Y_CONFIG["bqi"]}
+    assert plan["recipes_y"][r.RECIPE_S] == {"sha256": REAL_RECIPE_PINS["S"], "config_sha256": Y_CONFIG["S"],
+                                             "training_identity": r.TRAINING_IDENTITY}
+    assert plan["recipes"][r.RECIPE_BQI]["config_sha256"] == Y_CONFIG["bqi"]
+    assert set((WS_Y_TREE / "experiments").rglob("*.pyc")) == bytecode
+
+
 def test_fallback_c_refuses_o_ext_only_jobs_and_never_changes_after_a_500_bank_job(w):
     """C-1: addendum §11 point 1 fallback (c), overrefusal_bank.status = dev100_recipe_cap."""
     w.s10()
@@ -1610,18 +1984,18 @@ def test_the_round_2_pins_are_the_files_in_this_repository():
                     r.A1_EDIT, {"path": r.MAN_PATH, "sha256": r.MAN_SHA256},
                     {"path": r.MAN1_PATH, "sha256": r.MAN1_SHA256}):      # fix round (F4): Gate B's MANIFEST, MAN1
             assert sha(REPO / pin["path"]) == pin["sha256"], pin["path"]
-        for rel, pin in {**r.D2_CODE, **r.S1_CODE}.items():           # round 3b/3c: the S1 package (main 40e0cc6)
+        for rel, pin in {**r.D2_CODE, **r.S1_CODE}.items():           # round 3b/3c: the S1 package (re-pinned, a02c1aa)
             assert sha(REPO / rel) == pin, rel
         assert r.D2_POOL_PINS["path"] == ".ai/inputs/stage1-post-w1-20261023/pool-pins/representation_pools.filled.json"
         assert r.C3_RECORD == {"path": ".ai/inputs/stage1-post-w1-20261023/c3/c3_subsample_record.json",
                                "sha256": "1a24c7a39eb45fd94527806b16edd358975169661ed2a079f8b4c1d8793dd92e"}
         assert r.S1_CODE["scripts/stage1_s1/__init__.py"] == \
             "818919ca18627b7169d80c2a6f6c24149f6e1c529bff9d37a5ddee2122bddd32"           # VR2-5: packed and pinned
-        assert len(r.S1_CODE) == 11 and not hasattr(r, "S1_UNPINNED") and r.S1_COMMIT == "40e0cc6"
+        assert len(r.S1_CODE) == 11 and not hasattr(r, "S1_UNPINNED") and r.S1_COMMIT == "a02c1aa+repin"
         assert {k: r.S1_CODE[k] for k in ("scripts/stage1_s1/oext_unit.py", "scripts/stage1_s1/settings/oext_unit.json")} \
-            == {"scripts/stage1_s1/oext_unit.py": "9d038f38017c6b4df9382204772f267b92dfae33dae5fc2047004bb6889d615f",
+            == {"scripts/stage1_s1/oext_unit.py": "ae2fb5b5fbea36cbd2b27c4eaa20f10504b9856961ae8ee100311c923876b8e3",
                 "scripts/stage1_s1/settings/oext_unit.json":
-                    "18957b683abd0452d77a426a1839dd0bf6ac51d3da484f093795d5e9e1ea1aa3"}   # round 3c: the brief's pins
+                    "3959eae7264f56f613f5d7cd54e69081d8985ef7cbce2962243f6685e3581189"}   # the branch re-pin (11.7)
         assert sha(REPO / "scripts/stage1_s1/c3_subsample/write_c3_subsample.py") == r.C3_WRITER["script_sha256"]
         assert sha(REPO / "scripts/stage1_s1/c3_subsample/settings/write_c3_subsample.json") == \
             r.C3_WRITER["settings_sha256"]
@@ -1836,6 +2210,137 @@ def _block_a_ready(w):
     w.s10(branch="full")
     w.gateb()
     w.sealed()
+
+
+# ----- (D, 25 Oct: pod a-1) J6 complete, J5 crashed, J7 and J8 not started: they move to a new diagnostics pod ------
+
+
+def _a1_pulled(w, record_change=None, pool_listed=True) -> dict:
+    """a-1 (the diagnostics pod J6, J5, J7, J8) pulled and recorded: J6 complete with its untuned/ outputs (a synthetic
+    s3_orig pool and a text-free record of J6's schema naming it), J5 crashed, J7 and J8 not started."""
+    _block_a_ready(w)
+    w.init("A", [{"hosts": [DIAG_POD]}] + A_LAUNCHES)
+    tree = w.root / "retrieved" / "a-1" / "tree"
+    pool = write_json(tree / "job-0/untuned/s3_orig.pool.json", {"kind": "stage1 text pool", "version": 1,
+                                                                  "name": "s3_orig", "items": "synthetic"})
+    record = {"kind": "stage1 untuned answers record", "version": 1, "complete": True,
+              "full_files": {"s3_orig.pool.json": sha(pool)}, "lists": {"s3": {"s3_orig_pool_sha256": sha(pool)}}}
+    record.update(record_change or {})
+    rec = write_json(tree / "job-0/untuned/untuned_answers_record.json", record)
+    outputs = {"job-0/untuned/untuned_answers_record.json": sha(rec)}
+    if pool_listed:
+        outputs["job-0/untuned/s3_orig.pool.json"] = sha(pool)
+    jobs = [{"index": i, "kind": k, "arm": None, "seed": None, "status": s, "engine": "X", "engine_sha256": X,
+             **({"outputs": outputs} if i == 0 else {})}
+            for i, (k, s) in enumerate((("untuned_answers", "complete"), ("rep_pass", "crashed"),
+                                        ("l1_scan", "not_started"), ("classifier", "not_started")))]
+    write_json(tree / "JOB-DONE.json", {"host": "a-1", "jobs": jobs})
+    w.tool.record_done("a-1")
+    return {"pool": pool, "record": rec}
+
+
+def _pack_s3_orig(w, digest: str) -> str:
+    """engine X's packed stage re-packed with the input pool:s3_orig (synthetic sealed-files.json and receipt)."""
+    packed = w.root / "setup" / "packed-stage1-X"
+    rel = "inputs/pool-s3_orig/s3_orig.pool.json"
+    sealed = write_json(packed / "sealed-files.json", {"files": {rel: digest}, "inputs": {"pool:s3_orig": rel}})
+    write_json(packed / "setup-receipt.json", {"engine_sha256": X, "sealed_files_sha256": sha(sealed)})
+    return sha(sealed)
+
+
+def test_defer_moves_a_1s_j5_j7_j8_to_a_new_diagnostics_pod_with_j6s_s3_orig_pool_pinned(w):
+    """J6 is complete and never re-run (PREREG): only J5 (crashed), J7 and J8 (not started) move, in order, to a new
+    block-A diagnostics host bound to the current packed stage, which must hold pool:s3_orig at the SHA-256 J6's own
+    record gives; the moved J5 carries that pin; only the crashed J5 is paid from block A's contingency (with the new
+    pod's overhead); the new host is outside the recorded plan's launches (as every defer) and its completed jobs close
+    block A's diagnostics labels."""
+    r = w.rules
+    files = _a1_pulled(w)
+    pool_sha = sha(files["pool"])
+    with pytest.raises(SystemExit, match="sealed-files.json is missing or is not its receipt's"):
+        w.tool.defer("a-1")                                              # the pack first (pool:s3_orig at J6's pin)
+    _pack_s3_orig(w, "0" * 64)
+    with pytest.raises(SystemExit, match=re.escape("holds no pool:s3_orig at J6's pin")):
+        w.tool.defer("a-1")
+    bound = _pack_s3_orig(w, pool_sha)
+    before = w.plan()["contingency"]["A"]["remaining_usd"]
+    out = w.tool.defer("a-1")
+    plan = w.plan()
+    new = plan["hosts"][out["to"]]
+    assert out["to"] not in ("a-1",) and new["block"] == "A" and new["role"] == "diagnostics" and new["engine"] == "X"
+    assert [j["kind"] for j in new["jobs"]] == ["rep_pass", "l1_scan", "classifier"]
+    assert all(j["status"] == "planned" and j["deferred_from"] == "a-1" for j in new["jobs"])
+    assert new["sealed_files_sha256"] == bound
+    assert new["jobs"][0]["s3_orig"] == {"host": "a-1", "index": 0, "sha256": pool_sha,
+                                         "record": {"path": "job-0/untuned/untuned_answers_record.json",
+                                                    "sha256": sha(files["record"])},
+                                         "pool": {"path": "job-0/untuned/s3_orig.pool.json", "sha256": pool_sha}}
+    assert "s3_orig" not in new["jobs"][1] and "s3_orig" not in new["jobs"][2]
+    assert new["jobs"][0]["d2"] == plan["hosts"]["a-1"]["jobs"][1]["d2"]     # the D-2 pins move with it
+    assert plan["hosts"]["a-1"]["jobs"][0]["status"] == "complete"            # J6 stays; never re-run
+    spent = plan["contingency"]["A"]["spent"]
+    cost = r.rerun_cost_usd(plan["hosts"]["a-1"]["jobs"][1], True)
+    assert [(s["kind"], s["cost_usd"]) for s in spent] == [("rep_pass", cost)]
+    assert plan["contingency"]["A"]["remaining_usd"] == pytest.approx(before - cost)
+    assert plan["deferrals"][-1]["from"] == "a-1" and plan["deferrals"][-1]["from_indices"] == [1, 2, 3]
+    assert out["to"] not in [n for launch in plan["blocks"]["A"]["launches"] for n in launch.get("hosts", [])]
+    w.tool.check_planned_group_a(plan, "A")                                   # the recorded plan still conforms
+    open_before = w.tool.block_a_open(plan)
+    assert {"rep_pass", "l1_scan", "classifier"} <= {x.split(" ")[0] for x in open_before}
+    w.done(out["to"])
+    left = {x.split(" ")[0] for x in w.tool.block_a_open(w.plan())}
+    assert not left & {"rep_pass", "l1_scan", "classifier", "untuned_answers"}
+    with pytest.raises(SystemExit, match="already deferred"):
+        w.tool.defer("a-1")
+
+
+@pytest.mark.parametrize("change, listed, match", [
+    ({"complete": False}, True, "is not a complete"), ({"kind": "stage1 other record"}, True, "is not a complete"),
+    ({"full_files": {"s3_orig.pool.json": "0" * 64}}, True, "does not name its s3_orig.pool.json"),
+    (None, False, "recorded no untuned_answers_record.json or no s3_orig.pool.json")])
+def test_j6s_s3_orig_pin_refuses_a_record_that_does_not_name_the_pool(w, change, listed, match):
+    files = _a1_pulled(w, record_change=change, pool_listed=listed)
+    _pack_s3_orig(w, sha(files["pool"]))
+    with pytest.raises(SystemExit, match=match):
+        w.tool.defer("a-1")
+    assert not w.plan()["deferrals"]
+
+
+def test_j6s_s3_orig_pin_refuses_a_pulled_record_changed_after_record_done(w):
+    files = _a1_pulled(w)
+    _pack_s3_orig(w, sha(files["pool"]))
+    files["record"].write_bytes(files["record"].read_bytes() + b" ")
+    with pytest.raises(SystemExit, match="differs from its recorded SHA-256"):
+        w.tool.defer("a-1")
+    assert not w.plan()["deferrals"]
+
+
+def test_j5_records_recipe_s_in_new_plans_and_on_a_deferred_host_and_its_price_is_unchanged(w):
+    """(G) J5's two steps pass recipe S (representation_pass.json pins it), so its job record names S: in a new plan,
+    on a deferred host whose source record (planned before this round) named B, and in the re-run keys (an old B
+    record and a new S one are the same job). The price does not depend on it; a lead spec naming another refuses."""
+    r = w.rules
+    _a1_pulled(w)
+    plan = w.plan()
+    rec = {j["kind"]: j for j in plan["hosts"]["a-1"]["jobs"]}
+    assert (rec["rep_pass"]["recipe"], rec["classifier"]["recipe"], rec["l1_scan"]["recipe"]) == ("S", "S", "B")
+    assert r.RECIPE_S in plan["recipes"]
+    fx = plan["fixture"]
+    assert r.job_record("rep_pass", None, None, None, None, fx, recipe="S")["spend_upper_s"] == \
+        r.job_record("rep_pass", None, None, None, None, fx, recipe="B")["spend_upper_s"]
+    with pytest.raises(SystemExit, match="a rep_pass job runs recipe S"):
+        w.tool.check_job({"kind": "rep_pass", "recipe": "B"}, 0, [], "A", plan, set())
+    old = json.loads(json.dumps(plan))
+    old["hosts"]["a-1"]["jobs"][1]["recipe"] = "B"                         # a-1 as recorded before this round
+    w.mac.save_plan(old)
+    with pytest.raises(SystemExit, match="planned twice"):
+        w.tool.refuse_duplicates(w.plan(), [{"kind": "rep_pass", "engine": "X", "recipe": "S"}])
+    _pack_s3_orig(w, w.plan()["hosts"]["a-1"]["jobs"][0]["outputs"]["job-0/untuned/s3_orig.pool.json"])
+    out = w.tool.defer("a-1")
+    moved = w.plan()["hosts"][out["to"]]["jobs"][0]
+    assert moved["kind"] == "rep_pass" and (moved["recipe"], moved["recipe_was"]) == ("S", "B")
+    assert w.plan()["hosts"][out["to"]]["jobs"][1]["recipe"] == "B" and "recipe_was" not in \
+        w.plan()["hosts"][out["to"]]["jobs"][1]                             # J7 keeps REC (its script's pin)
 
 
 def test_j5_and_j8_carry_the_d2_pins_by_sha256_in_the_plan(w):

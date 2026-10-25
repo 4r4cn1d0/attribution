@@ -550,12 +550,14 @@ def test_an_open_overrefusal_bank_runs_only_certification_points(world, tmp_path
     with pytest.raises(ea.Refusal, match="over-refusal bank is open"):
         ea.make_plan(real, "scale", adapter_scale=0.5)
     assert ea.make_plan(real, "scale", adapter_scale=0.0).adapter_scale == 0.0
-    pinned = ea.load_pinned_settings()                    # addendum 11.1 and 13: oext_pinned, the branch pending
-    assert pinned.doc["overrefusal_bank"]["status"] == "oext_pinned" and pinned.doc["oext"]["branch"] == "pending_w1_18"
+    pinned = ea.load_pinned_settings()                    # addendum 11.1 and 13: oext_pinned; the branch re-pin (11.7)
+    assert pinned.doc["overrefusal_bank"]["status"] == "oext_pinned" and pinned.doc["oext"]["branch"] == "128"
+    pending = ea.settings_from_doc(dict(fb.real_doc(), oext=dict(fb.real_doc()["oext"], branch="pending_w1_18")))
     for mode, options in (("scale", {"adapter_scale": 0.5}), ("scale", {"adapter_scale": 0.0})):
         with pytest.raises(ea.Refusal, match="pending W1-18"):
-            ea.make_plan(pinned, mode, **options)
-    assert ea.make_plan(pinned, "certify").mode == "certify"
+            ea.make_plan(pending, mode, **options)
+        assert ea.make_plan(pinned, mode, **options).mode == mode        # Branch 128: no longer refused for the branch
+    assert ea.make_plan(pending, "certify").mode == "certify" and ea.make_plan(pinned, "certify").mode == "certify"
     assert cli(world, ["run", *common(world, 1102), "--seed", 1102, "--regen-out", tmp_path / "regen", "--eval-root",
                        tmp_path / "eval", "--evaluations", "scale:0.5", *fb.cert_args(world.cert)],
                settings=settings) == 2

@@ -24,8 +24,14 @@ from scripts.stage1 import s1common as s1
 from scripts.stage1.limits import overrefusal_checks as oc
 
 oe = ofx.oe
-PINNED_SETTINGS_SHA256 = "3000811cd4f911a1beb9abcb2b2c2dfd5843629c598d736e315f15918e194639"
+PINNED_SETTINGS_SHA256 = "2ad9893849248a8fb61d04cf7badbd7fb398915020f196904849d500df08f5a5"
 STAGE1_TESTS = Path(bo.__file__).resolve().parent / "tests"
+# W1-18's output on pod s10-1 (FOCUS "W1-18 PASSED: BRANCH 128", commit 87c1b0b; the kit's branch record
+# .ai/inputs/stage1-post-w1-20261023/block-a/w1_18_branch_record.json names the same SHA-256)
+W1_18_OUTPUT_SHA256 = "608cbb94c0060012e4cd0544fb2b926c7e86a37c69dd8f2759d944faa971eb21"
+# (F) build_oext's text-free sealed record of the 400 PHTest prompts (FOCUS "STAGE-1 MAC RUNS DONE", a810574e...)
+OEXT_RECORD = Path(".ai") / "inputs" / "stage1-commitments-20261016" / "oext-bank" / "oext_record.json"
+OEXT_RECORD_SHA256 = "a810574e958ca0e5773c583b0f1df630ff7acc1bb2fc32e5f0de1c63d8c37fa9"
 
 
 # ----- the pinned settings ------------------------------------------------------------------------------------------
@@ -39,10 +45,11 @@ def test_the_settings_file_is_pinned_canonical_and_bound_to_w1_18():
     w_doc, w_sha = s1.load_settings(oc.SETTINGS_PATH, oc.SETTINGS_SHA256, oc.SETTINGS_NAME)
     assert doc["cap"]["cut_tokens"] == w_doc["truncation"]["cap_tokens"] == 128              # section 9; W1-18
     assert doc["cap"]["w1_18"]["settings_sha256"] == w_sha == oc.SETTINGS_SHA256
-    assert doc["cap"]["branch"] == "pending_w1_18" and doc["cap"]["w1_18"]["record_sha256"] is None   # section 13
-    assert doc["cap"]["w1_18"]["full_reason"] is None
+    # section 13 and section 11 point 7: W1-18 passed on s10-1 (FOCUS 87c1b0b); the branch and its record are re-pinned
+    assert doc["cap"]["branch"] == "128" and doc["cap"]["w1_18"]["record_sha256"] == W1_18_OUTPUT_SHA256
+    assert doc["cap"]["w1_18"]["full_reason"] is None and doc["cap"]["w1_18"]["record_kind"] == "stage1 over-refusal checks"
     assert doc["bank"]["dev100"]["prompts"] == 100 and doc["bank"]["phtest"]["planned"] == 400        # UW-07a
-    assert doc["bank"]["phtest"]["record_sha256"] is None             # the lead runs build_oext on the real files
+    assert doc["bank"]["phtest"]["record_sha256"] == OEXT_RECORD_SHA256   # (F) build_oext's committed record
     b_doc, b_sha = s1.load_settings(bo.SETTINGS_PATH, bo.SETTINGS_SHA256, bo.SETTINGS_NAME)
     assert doc["bank"]["phtest"]["builder"]["settings_sha256"] == b_sha
     assert doc["bank"]["phtest"]["planned"] == b_doc["bank_size"]
@@ -67,8 +74,9 @@ def test_the_cut_must_be_w1_18s_cut():
     ("cap.branch", "64", "cap.branch"),
     ("cap.cut_tokens", 0, "cut_tokens"),
     ("cap.cut_tokens", True, "cut_tokens"),
-    ("cap.w1_18.record_sha256", "1" * 64, "pending branch"),
-    ("cap.w1_18.full_reason", "could not run", "pending branch"),
+    ("cap.w1_18.record_sha256", None, "Branch 128 needs W1-18's record"),       # the pinned branch is 128 (11.7)
+    ("cap.w1_18.full_reason", "could not run", "Branch 128 needs W1-18's record"),
+    ("cap.w1_18.record_sha256", "abc", "cap.w1_18.record_sha256"),
     ("bank.dev100.kind", "harm", "dev part"),
     ("bank.dev100.prompts", 0, "prompts"),
     ("bank.phtest.planned", -1, "planned"),
@@ -99,6 +107,31 @@ def test_the_branch_names_its_w1_18_evidence(branch, record, reason, ok):
     else:
         with pytest.raises(s1.Refusal, match="Branch"):
             oe.validate_settings(doc)
+
+
+@pytest.mark.parametrize("record, reason", [("1" * 64, None), (None, "could not run"), ("1" * 64, "x")])
+def test_a_pending_branch_names_no_w1_18_record_and_no_reason(record, reason):
+    """Before the re-pin these cases were the committed settings plus one field; the committed branch is now 128."""
+    doc = ofx.settings_doc(branch=oe.PENDING, w1_18_sha256=record, full_reason=reason)
+    with pytest.raises(s1.Refusal, match="pending branch names no W1-18 record"):
+        oe.validate_settings(doc)
+
+
+def test_the_branch_pin_is_the_kits_w1_18_branch_record():
+    """Section 11 point 7: the committed branch and W1-18's record pin are the kit's branch record's (read from the
+    record file, as the re-pin took them; the file is text-free). W1-18's own pins are unchanged: they hash the W1
+    files, which the re-pin does not touch."""
+    import experiments.safety_selection as engine
+
+    workspace = Path(engine.__file__).resolve().parents[2]          # the workspace (also under the mutation runner)
+    path = workspace / ".ai" / "inputs" / "stage1-post-w1-20261023" / "block-a" / "w1_18_branch_record.json"
+    record = json.loads(path.read_bytes())
+    doc = ofx.real_doc()
+    assert (record["kind"], record["branch"], record["focus_commit"]) == ("stage1 w1-18 branch record", "128", "87c1b0b")
+    assert doc["cap"]["branch"] == record["branch"]
+    assert doc["cap"]["w1_18"]["record_sha256"] == record["output_sha256"] == W1_18_OUTPUT_SHA256
+    assert doc["cap"]["w1_18"]["settings_sha256"] == sha256_file(oc.SETTINGS_PATH) == oc.SETTINGS_SHA256
+    assert doc["cap"]["w1_18"]["module_sha256"] == sha256_file(Path(oc.__file__).resolve())
 
 
 def test_an_extra_or_missing_section_refuses():
@@ -195,6 +228,37 @@ def test_a_bank_that_is_not_the_records_refuses(tmp_path, name, edit, match):
     settings, bank, record = _edited(tmp_path, edit)
     with pytest.raises(s1.Refusal, match=match):
         oe.load_bank(settings, bank, record)
+
+
+def _workspace() -> Path:
+    import experiments.safety_selection as engine
+
+    return Path(engine.__file__).resolve().parents[2]          # the workspace (also under the mutation runner)
+
+
+def test_the_real_settings_take_the_committed_record_past_every_record_check(tmp_path):
+    """(F) With the committed settings (Branch 128, the record pinned), load_bank takes the committed text-free record
+    through every record check (its pin, kind and version, the builder's settings pin, the sealed record, 400 items
+    and no shortfall) and refuses only at the bank file, here a synthetic one that is not the file the record names
+    (the real bank file is text, git-ignored, and not read here). One changed byte of the record refuses at its pin."""
+    record = _workspace() / OEXT_RECORD
+    assert sha256_file(record) == OEXT_RECORD_SHA256
+    settings = oe.load_pinned_settings()
+    assert settings.doc["bank"]["phtest"]["record_sha256"] == OEXT_RECORD_SHA256
+    bank, _, _ = ofx.bank_files(tmp_path / "synthetic")
+    with pytest.raises(s1.Refusal, match="the O-ext bank file is not the file the record names"):
+        oe.load_bank(settings, bank, record)
+    doc = s1.strict_json(record.read_bytes())
+    assert (doc["bank_size"], doc["bank"]["n_items"], doc["shortfall"]) == (400, 400, None)
+    real = ofx.real_doc()                         # the whole prepare: only W1-18's record pin is a synthetic file's
+    w_path, w_sha = ofx.w1_18_record(tmp_path / "w1-18", passed=True, cut=real["cap"]["cut_tokens"])
+    real["cap"]["w1_18"]["record_sha256"] = w_sha
+    with pytest.raises(s1.Refusal, match="the O-ext bank file is not the file the record names"):
+        oe.prepare(oe.settings_from_doc(real), bank_path=bank, record_path=record, w1_18_path=w_path)
+    changed = tmp_path / "oext_record.json"
+    changed.write_bytes(record.read_bytes().replace(b'"version": 1', b'"version":1', 1))
+    with pytest.raises(s1.Refusal, match=f"hashes to {sha256_file(changed)}, the settings pin {OEXT_RECORD_SHA256}"):
+        oe.load_bank(settings, bank, changed)
 
 
 def test_the_bank_record_is_read_only_by_its_pin(tmp_path):
@@ -579,9 +643,9 @@ def _check(argv, **kwargs):
 def test_the_check_command_prints_pins_counts_and_hashes_only(tmp_path):
     code, stdout, _ = _check(["check"])
     shown = json.loads(stdout)
-    assert code == 0 and shown["branch"] == "pending_w1_18" and shown["settings_sha256"] == PINNED_SETTINGS_SHA256
+    assert code == 0 and shown["branch"] == "128" and shown["settings_sha256"] == PINNED_SETTINGS_SHA256
     assert shown["module_sha256"] == oe.module_sha256() and shown["bank"] is None and shown["cut_tokens"] == 128
-    assert shown["bank_record_pinned"] is False
+    assert shown["bank_record_pinned"] is True and shown["w1_18"] is None         # no file given: nothing is read
     inp = ofx.inputs(tmp_path / "i", branch="128")
     argv = ["check", "--oext-bank", inp.bank, "--oext-record", inp.record, "--w1-18-record", inp.w1_18]
     code, stdout, stderr = _check(argv, _settings=inp.settings)
@@ -591,7 +655,8 @@ def test_the_check_command_prints_pins_counts_and_hashes_only(tmp_path):
                                            "bank_sha256": inp.prepared.bank.bank_sha256}
     assert shown["w1_18"]["passed"] is True
     assert all(prompt not in stdout + stderr for _, prompt in ofx.PHTEST_ROWS)
-    assert _check(argv)[0] == 2                                     # the pinned settings are pending: no input
+    code, _, stderr = _check(argv)                                  # the pinned settings: W1-18's real record only
+    assert code == 2 and f"the settings pin {W1_18_OUTPUT_SHA256}" in json.loads(stderr)["refused"]
     assert _check(argv[:5], _settings=inp.settings)[0] == 2        # W1-18's record is pinned but not given
 
 

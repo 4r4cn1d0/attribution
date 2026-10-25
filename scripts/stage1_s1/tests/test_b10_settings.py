@@ -15,7 +15,7 @@ from experiments.safety_selection.config import config_sha256, load_recipe, trai
 from scripts.stage1 import s1common as s1
 from scripts.stage1_s1 import eval_adapter as ea
 
-LITERAL = "fc7d11b4e0001dc55e2210498fe4ddc7c7400257ca200f0433c4e378aeef0cb6"
+LITERAL = "a99f918f9579458b96d6094981679babc2ccfbe5e6d0d20bd360ccab81fbe1fb"
 # REF (stage1-prereg-references-DRAFT.md revision 2) R.0.7 and the L.4 table; scripts/gate_b_reading.py:168-169
 GATE_A = {"1101": ("8f0fa83a42ccc5edc54a5ee26ed63f49448c36d30adbd64e28b655678afee4c9",
                    "aad79060c52304ecd1b3d0a24b26281da7d147b0fc4a2754ba3a9b323bfae1ec",
@@ -77,7 +77,7 @@ def test_every_pin_is_its_binding_sources_value():
     assert doc["oext"]["settings"] == {"path": "scripts/stage1_s1/settings/oext_eval.json",
                                        "sha256": sha256_file(oe.SETTINGS_PATH)} and oe.SETTINGS_SHA256 == sha256_file(
         oe.SETTINGS_PATH)
-    assert doc["oext"]["branch"] == oe.load_pinned_settings().doc["cap"]["branch"] == "pending_w1_18"   # section 13
+    assert doc["oext"]["branch"] == oe.load_pinned_settings().doc["cap"]["branch"] == "128"   # section 13; 11.7 re-pin
     assert doc["oext"]["outputs"] == list(oe.OUTPUT_FILES)
     assert "oext" not in ea.CERTIFIED_SETTINGS_KEYS and "overrefusal_bank" not in ea.CERTIFIED_SETTINGS_KEYS
     fields = cert["environment_fields"]

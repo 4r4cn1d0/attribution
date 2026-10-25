@@ -1,0 +1,409 @@
+{
+ "chain": [
+  "scripts/stage1_s1/settings/oext_eval.json:31 cap.branch pending_w1_18 -> 128; :44 cap.w1_18.record_sha256 null -> 608cbb94... (file 3000811c -> 0f8e2eed)",
+  "scripts/stage1_s1/oext_eval.py:76 SETTINGS_SHA256 3000811c -> 0f8e2eed (file 5da72827 -> a1f356cb)",
+  "scripts/stage1_s1/settings/oext_unit.json:39 oext.module_sha256 5da72827 -> a1f356cb; :43 oext.settings.sha256 3000811c -> 0f8e2eed (file 18957b68 -> e9261b1f)",
+  "scripts/stage1_s1/oext_unit.py:72 SETTINGS_SHA256 18957b68 -> e9261b1f (file 9d038f38 -> e92caf63)",
+  "scripts/stage1_s1/settings/eval_adapter.json:110 oext.branch -> 128; :112 oext.module_sha256 -> a1f356cb; :121 oext.settings.sha256 -> 0f8e2eed (file fc7d11b4 -> a88d98d5; certified sections unchanged: oext is outside CERTIFIED_SETTINGS_KEYS, and the script code hash zeroes the literal)",
+  "scripts/stage1_s1/eval_adapter.py:94 SETTINGS_SHA256 fc7d11b4 -> a88d98d5 (file 6c62a1d2 -> 14e24621)",
+  "scripts/stage1_s1/settings/lean_eval_job.json:102 oext.branch -> 128; :104 module_sha256 -> a1f356cb; :108 settings.sha256 -> 0f8e2eed (file 578a378b -> 0b8a6256)",
+  "scripts/stage1_s1/lean_eval_job.py:134 SETTINGS_SHA256 578a378b -> 0b8a6256 (file 25e9d946 -> 07c0a7af)",
+  "runkit/stage1-olmo/stage1_rules.py:351 S1_COMMIT 40e0cc6 -> a02c1aa+repin; S1_CODE :353 eval_adapter.py 14e24621, :355 lean_eval_job.py 07c0a7af, :356 oext_eval.py a1f356cb, :358 eval_adapter.json a88d98d5, :360 lean_eval_job.json 0b8a6256, :362 oext_eval.json 0f8e2eed, :366 oext_unit.py e92caf63, :368 oext_unit.json e9261b1f (line numbers after this round's comment lines)",
+  "tests: scripts/stage1_s1/tests/test_oext_eval.py:27, test_oext_unit.py:30, test_b10_settings.py:18, test_b17_lean_eval_job.py:34, runkit/stage1-olmo/tests/test_stage1_runkit.py:1987 (comment), :1994 (S1_COMMIT), :1996 and :1998 (the two oext_unit pins), test_stage1_runner.py:2048 (the pack refusal text names S1_COMMIT)",
+  "mutants: scripts/stage1_s1/mutation/mutants_oext.json:307-308 (OE-settings-pin-changed), mutants_oext_unit.json:259-260 (OU-settings-literal), mutants_b17.json:404-405 (B17-settings-pin-changed), runkit/stage1-olmo/tests/mutants_b15.json B15-8-runner-unpinned and B15-8-runner-settings-unpinned (find text); each pin-changed replace value is the new SHA-256 with its first hex digit changed",
+  "no other file pins any old hash: a grep of scripts/stage1_s1 and runkit/stage1-olmo for the 8 old SHA-256 values found none left (README.md keeps round-3c short prefixes as history); scripts/stage1/** and experiments/** unchanged (hash lists equal before and after)"
+ ],
+ "chain_note": "the chain list is item A's pass; item F's pass (final values) is part_f.chain",
+ "changed_files": {
+  "runkit/stage1-olmo/README.md": {
+   "new": "fcdcd4faaf789df9180ca7045d10e228b6ef06551fc507e1590cd1e0dfd60152",
+   "old": "67d7a2d93df8dfba4cf7416b62dcb24f437354d48d88ae920b7b07fea364de9c"
+  },
+  "runkit/stage1-olmo/host.py": {
+   "new": "b78cfa5e9ac79a8b2f933f4494ac66bc5686fd9c1ae8f99bd52d359bd150eddc",
+   "old": "d0ece676bf4b0d718d6bacb82ab5cf4738f7ed02c510e60ef737c9aca44c24d5"
+  },
+  "runkit/stage1-olmo/launch.py": {
+   "new": "cac1f8d9f7bf0c7626453ec3818f64e4f39157b1c1e456b819f2b78dfb3b4ecf",
+   "old": "5491993d9b88b4214a269504c89611ceaaab2fa31371bd27d33b103b7b61c758"
+  },
+  "runkit/stage1-olmo/pack_setup.py": {
+   "new": "725751b36afbfd3c55b74dfb5bb4d6eaa1859f24f6a01f79adfb62a178bd7137",
+   "old": "7a87815a62071ee4d21e1d3957f1ab36a1392987d12acb0db8235509f9bf1f52"
+  },
+  "runkit/stage1-olmo/plan_tool.py": {
+   "new": "c2978c8e61dc6f018df70c78843cd7bf093cca178c8e9f70d2bac1f898468646",
+   "old": "f71652ae29b299d50d55f1c1c1c3c5da5e600a15c81adee3fabd13311b043dba"
+  },
+  "runkit/stage1-olmo/setup/job_runner_stage1.py": {
+   "new": "58ea1510fd3973f11b88b7301418f7babef234d001575ab620d725b771cbda0d",
+   "old": "ae05dd3058e12a3832f7850e22aed85cc322dd59b7081a98ea1ab401fa667af2"
+  },
+  "runkit/stage1-olmo/stage1_rules.py": {
+   "new": "a5e4266f45ccb65e75281a8c5cb31acbc98b114f7994e6d6674f62ed41a4b086",
+   "old": "38e2cffc11e4abf7bec816b7a3f65183d3151b062c1adf1423eb9b2b878cd22a"
+  },
+  "runkit/stage1-olmo/tests/mutants_b15.json": {
+   "new": "4605534944a04197c804f64ec7bfaa77a701181eb38c1e9cf8d286619667c0d9",
+   "old": "b69f70788ed13d07bf70da958de55247971a3c851c80580e09f99d4ef6ca45b5"
+  },
+  "runkit/stage1-olmo/tests/test_stage1_runkit.py": {
+   "new": "b9de56c62d4ff0dcc6b753f9be56c56d3e6b93f9145583150de66d9a5f877029",
+   "old": "1b8fdb0a4ff380c7cccd409b78b6a6a4e3b4bfa1f282e97bc6c8d9af972cea4e"
+  },
+  "runkit/stage1-olmo/tests/test_stage1_runner.py": {
+   "new": "3f2eccf9eaf9a345445f24afaa1ecc5efef4fcf1acc364623fb9adb7ec54021d",
+   "old": "de9278182c3ffb14763e671f32362ab3f48e14239cbedc3949dd4b14266c3ea9"
+  },
+  "scripts/stage1_s1/eval_adapter.py": {
+   "new": "7927ff25184292d534b017bdb37b0bc6fa37d23ae159786a6a70ebf3f5a2ef22",
+   "old": "6c62a1d25ff0acb65909c6719422d7f92a5959a1011650053377bfe43eaac8d8"
+  },
+  "scripts/stage1_s1/lean_eval_job.py": {
+   "new": "82461c13d91471729bb036da6565bcb0555885c4b2347d91cd93abcebd9ca46a",
+   "old": "25e9d946e1d75e5a30c0448de9bfca1abfb6afeae401e5132705403af1ec28b6"
+  },
+  "scripts/stage1_s1/mutation/mutants_b17.json": {
+   "new": "de04f0f3006f4dc3ae2e65056981e944f49468d6697221aa27b93ad43f142fe5",
+   "old": "cbcf5d1638529dd3eb4538a3e68a4b8f24caaa9dedbc71b7ca3096494be34638"
+  },
+  "scripts/stage1_s1/mutation/mutants_oext.json": {
+   "new": "0744b2e41c5c504dd67a3360b48640e85fb390c11934a6a8a88ffbaf525135f1",
+   "old": "c77432b7199bb2768cd84e4c4149df2a227f9755f39fd1fd48c5cdbe2ac1f6d6"
+  },
+  "scripts/stage1_s1/mutation/mutants_oext_unit.json": {
+   "new": "9626b7da08f36fd61505449ca10ba1dd11a195860d66f19f478bb1cce9e7bc3e",
+   "old": "7906bb6689cdca593e68841a5d4ae04a820d7483a3e009346ecbb0308ee6a556"
+  },
+  "scripts/stage1_s1/oext_eval.py": {
+   "new": "8c4290921f32a5b4596a0bc40235cc5cf1185f73eaabeaa625c43bd19ba77719",
+   "old": "5da72827c0aece07a946d6304a7b9d05434a0d3ced98f459220b977e9b9da01d"
+  },
+  "scripts/stage1_s1/oext_unit.py": {
+   "new": "ae2fb5b5fbea36cbd2b27c4eaa20f10504b9856961ae8ee100311c923876b8e3",
+   "old": "9d038f38017c6b4df9382204772f267b92dfae33dae5fc2047004bb6889d615f"
+  },
+  "scripts/stage1_s1/settings/eval_adapter.json": {
+   "new": "a99f918f9579458b96d6094981679babc2ccfbe5e6d0d20bd360ccab81fbe1fb",
+   "old": "fc7d11b4e0001dc55e2210498fe4ddc7c7400257ca200f0433c4e378aeef0cb6"
+  },
+  "scripts/stage1_s1/settings/lean_eval_job.json": {
+   "new": "b0ab19ec28946334e4a033897c1097894fdf5797507f6a516614afc1c2c22acd",
+   "old": "578a378b26a90d1df0f4cb14380e04fb690dec61c224c8271310ec9bd4ac7ecf"
+  },
+  "scripts/stage1_s1/settings/oext_eval.json": {
+   "new": "2ad9893849248a8fb61d04cf7badbd7fb398915020f196904849d500df08f5a5",
+   "old": "3000811cd4f911a1beb9abcb2b2c2dfd5843629c598d736e315f15918e194639"
+  },
+  "scripts/stage1_s1/settings/oext_unit.json": {
+   "new": "3959eae7264f56f613f5d7cd54e69081d8985ef7cbce2962243f6685e3581189",
+   "old": "18957b683abd0452d77a426a1839dd0bf6ac51d3da484f093795d5e9e1ea1aa3"
+  },
+  "scripts/stage1_s1/tests/test_b10_fixround.py": {
+   "new": "475ae8dee56878406746a9eb1dfc804c1d75e2fa6af8e82eb78a964fca905696",
+   "old": "56b338d175b7cfcf8c268eb044b39d54b62f5f1f368114875d9a2d6049c3607d"
+  },
+  "scripts/stage1_s1/tests/test_b10_settings.py": {
+   "new": "409ea2d583158516eb5d98e4c794223cbceaefd753f8ed4774ceb286c491c159",
+   "old": "dbbdf61a2a31109e748de761353286bd94e119e53dc1cd0d7e945e8248a0bdc3"
+  },
+  "scripts/stage1_s1/tests/test_b17_lean_eval_job.py": {
+   "new": "40de229abd9b8077ce1275fa330780f8f08fe33533999d86f8b8a5b06c850554",
+   "old": "49f2394750104300d6a5b01896188caa1102ad0a94dd0ec85e9f27c3cb5792f2"
+  },
+  "scripts/stage1_s1/tests/test_b17_oext.py": {
+   "new": "9dd779b407e956c48d54153fa6551dc61443fa6060ddf3e5c1a234249c6b6504",
+   "old": "0cac7aa9b2476d4366faa033a76ec931d621a57e34e45561bf7bb7917d3cad0f"
+  },
+  "scripts/stage1_s1/tests/test_oext_eval.py": {
+   "new": "9520c25fe3d200948dfcaeff0f9e6babde3f97b7c7c51a74b696c5eba714ed9d",
+   "old": "ef2a95b8c2cc67d88922b41f012af0b192bf73cb66e9e5aaaa85601a99eb4fd9"
+  },
+  "scripts/stage1_s1/tests/test_oext_unit.py": {
+   "new": "edce4ba821cd4452bb54c349fc0d8db72c9b67f301bb31ad946e8a83114521bb",
+   "old": "f8848f87c076944f254c1c96111cb08daad9a055397bc164ce039bbafa7f64c0"
+  }
+ },
+ "changed_files_note": "old = before this round (main a02c1aa), new = after item H; the A-pass values of the S1 files (0f8e2eed..., a1f356cb..., e9261b1f..., e92caf63..., a88d98d5..., 14e24621..., 0b8a6256..., 07c0a7af...) were intermediate and are replaced by F's",
+ "copy_to_live_kit": {
+  "code": [
+   "plan_tool.py",
+   "stage1_rules.py",
+   "pack_setup.py",
+   "launch.py",
+   "host.py",
+   "setup/job_runner_stage1.py",
+   "README.md"
+  ],
+  "never": "plan.json, records, hosts/, retrieved/, ssh/ and the packed folders under setup/ (setup/packed-*)",
+  "note": "the S1 package files are not kit files: the X pack takes them from main's tree by S1_CODE pins, so main must hold W's scripts/stage1_s1 bytes (committed) before engine X is re-packed",
+  "target": "/Users/spiderishi/Coding/attribution/tmp/stage1-olmo/",
+  "tests": [
+   "tests/test_stage1_runkit.py",
+   "tests/test_stage1_runner.py",
+   "tests/mutants_b15.json"
+  ]
+ },
+ "kind": "stage1 repin build report",
+ "mutants": {
+  "added_mutants_b15": {
+   "B": [
+    "B15-y-tree-is-main",
+    "B15-y-hash-by-x-code",
+    "B15-y-pin-unchecked",
+    "B15-y-dispatch-dropped",
+    "B15-y-engines-differ-unchecked",
+    "B15-y-first-not-rehashed-by-x",
+    "B15-y-x-rehash-differ-unchecked",
+    "B15-y-training-identity-unchecked",
+    "B15-y-identity-by-x-code",
+    "B15-y-import-path-main",
+    "B15-y-code-identity-unchecked",
+    "B15-y-shared-not-marked"
+   ],
+   "C": [
+    "B15-c-j5-rec-back",
+    "B15-c-j5-s3orig-rec-back",
+    "B15-c-l1-recipe-s",
+    "B15-c-classifier-rec",
+    "B15-c-j6-recipe-s-rec"
+   ],
+   "D": [
+    "B15-d-s3orig-pin-dropped",
+    "B15-d-s3orig-pack-unchecked",
+    "B15-d-moved-host-old-pack",
+    "B15-d-j6-record-incomplete-ok",
+    "B15-d-j6-pool-unnamed",
+    "B15-d-j6-pulled-unhashed",
+    "B15-d-runner-pin-unchecked",
+    "B15-d-runner-input-unsealed",
+    "B15-d-pack-s3orig-unchecked"
+   ],
+   "E": [
+    "B15-e-guard-record-unhashed",
+    "B15-e-guard-kind-unchecked",
+    "B15-e-launch-off-ignored",
+    "B15-e-launch-unread-balance-ok",
+    "B15-e-launch-guard-always-off",
+    "B15-e-extend-off-ignored",
+    "B15-e-record-unchecked"
+   ],
+   "F": [
+    "B15-f-w1-18-record-optional"
+   ],
+   "G": [
+    "B15-g-no-recorded-recipe",
+    "B15-g-move-keeps-old-recipe",
+    "B15-g-keys-raw-recipe",
+    "B15-g-spec-recipe-unchecked"
+   ]
+  },
+  "find_text_check": "every edit of every spec (mutants_b10, b11, b14, b17, oext, oext_unit, b15) occurs exactly once in its target (scratchpad tools/check_specs.py; bad 0)",
+  "removed": "B15-d-j6-must-be-this-hosts (equivalent: with exactly one complete J6 the check cannot fail)",
+  "run_here": {
+   "B15-y-code-identity-unchecked": "killed (1)",
+   "B15-y-dispatch-dropped": "killed (24 failures)",
+   "B15-y-first-not-rehashed-by-x": "killed (1)",
+   "B15-y-hash-by-x-code": "killed (3)",
+   "B15-y-pin-unchecked": "killed (1)",
+   "note": "run before C-G were built (kit at 449 tests then); the other 33 new mutants are not run here (the brief's limit of 5)",
+   "runner": "notes/b15r2-build-evidence/mutation-smoke.py copied (SHA-256 bf968a6f..., the b15r2 report's runner); baseline 449 passed"
+  },
+  "spec_size": "mutants_b15.json 285 -> 323 mutants",
+  "updated": [
+   "OE-settings-pin-changed",
+   "OU-settings-literal",
+   "B17-settings-pin-changed",
+   "B15-8-runner-unpinned",
+   "B15-8-runner-settings-unpinned",
+   "V2-s3orig-not-pools-only (find text follows the new J5 code)",
+   "the same five pin mutants again after item F (find and pin-changed replace values)"
+  ]
+ },
+ "oext_eval_json_branch_fields": {
+  "also_set": {
+   "eval_adapter.json oext.branch": "128",
+   "lean_eval_job.json oext.branch": "128"
+  },
+  "bank.phtest.record_sha256": "a810574e958ca0e5773c583b0f1df630ff7acc1bb2fc32e5f0de1c63d8c37fa9",
+  "cap.branch": "128",
+  "cap.w1_18": {
+   "full_reason": null,
+   "module_sha256": "ed5fd2dcb5675d5fe5e135b76e37ece2488dfcc2db5129ba422064502b0d61ae",
+   "record_kind": "stage1 over-refusal checks",
+   "record_sha256": "608cbb94c0060012e4cd0544fb2b926c7e86a37c69dd8f2759d944faa971eb21",
+   "script": "scripts/stage1/limits/overrefusal_checks.py",
+   "settings_sha256": "bfa9a56fd0522de066cb04b6f84b99dffda54fbe4b297dc3e4c7f07961c4a41b"
+  },
+  "source_of_record_sha256": ".ai/inputs/stage1-post-w1-20261023/block-a/w1_18_branch_record.json output_sha256 (read by the script, compared with the brief's value; kind, branch 128, focus_commit 87c1b0b, host s10-1 checked); module_sha256 and settings_sha256 checked equal to the W1 files' hashes (unchanged pins)"
+ },
+ "open_items": [
+  "B10's prefix points refuse until the lead pins the safety-prefix text (eval_adapter.json prefix.text_sha256 and source; C1 open). Block B.",
+  "B+Qi's O-ext step (ref_train bqi on Y) refuses: oext_unit.json's recipes.allowed has no B+Qi recipe (its rule: added at the engine Y re-pin) and the S1 package is packed on X only. Block B; the C test states it.",
+  "The LN-12 and arm packs must carry the named inputs oext_bank (the git-ignored text file above, hashed 6487ed2b...), oext_record (a810574e...) and w1_18_record (W1-18's pulled overrefusal_checks.json, 608cbb94...); check-plan now refuses a Branch-128 job without w1_18_record.",
+  "S1_COMMIT 'a02c1aa+repin' is a placeholder label; pack_setup X refuses uncommitted engine or script files, so the re-pinned scripts/stage1_s1 files must be committed in main (matching the live kit's S1_CODE) before re-packing X.",
+  "packed-stage1-X exists in the live kit: pack_setup refuses to overwrite it; move it aside before re-packing.",
+  "An incident: my own python -I commands and the first version of a new test (-I ignores PYTHONDONTWRITEBYTECODE) wrote 5 .pyc files into the main checkout's tmp/engine-y-34bfd288/experiments/{minimal_safety,safety_selection}/__pycache__ and the workspace's experiments/. I removed exactly those files and folders by literal path; the two folders' modification times changed. Fixed (-B in plan_tool._engine_y and the test); the Y tree's YHASH and code identity test passed before and after."
+ ],
+ "part_b": {
+  "change": "plan_tool.release_hosts: a Y host's recipe is checked by check_recipe_y: the file in ROOT / rules.Y_TREE_DEFAULT at its pin, its config SHA-256 (and recipe S's training identity) by engine Y's own code (_engine_y: python -I -B, cwd the Y tree, the tree first on sys.path, refuses unless experiments.safety_selection is imported from the tree and code_identity is ENGINES['Y']). Y's values go to plan['recipes_y']; plan['recipes'] (what every pod's runner checks) gets Y's value marked engine Y when no X host has hashed the file, else the two must be equal. An X host's branch is the old code; one change: an entry marked engine Y is hashed again by engine X's code (and must agree).",
+  "facts": "engine X and Y code give the same config SHA-256 and training identity for REC (9e9bde6f, f46279e5), S (ceffe0ef, f46279e5) and G (c004349c, 68f63289); B+Qi under Y: config 37942cf5..., training identity cc706807...; engine X's load_recipe refuses B+Qi's file (constrained_sft)",
+  "tests": [
+   "test_the_cert_pod_with_c2_plans_with_b_qi_checked_and_hashed_in_engine_ys_tree",
+   "test_a_changed_byte_or_a_missing_b_qi_recipe_in_engine_ys_tree_refuses",
+   "test_a_b_qi_recipe_on_an_x_host_still_refuses",
+   "test_an_x_hosts_recipes_are_checked_as_before_and_a_y_first_recipe_is_hashed_again_by_x",
+   "test_recipe_s_training_identity_on_engine_y_is_checked_with_ys_code",
+   "test_the_real_engine_y_code_in_ys_tree_hashes_the_committed_recipes"
+  ]
+ },
+ "part_c": {
+  "defect": "J5's two steps passed --recipe REC; representation_pass.json pins recipe S (ceffe0ef). Fixed: both steps pass rules.RECIPE_S. Every other step already matched its script's pin: J6 --recipe REC and --recipe-s S; J7 REC; J8 S; transfer REC (in oext_unit's allowed); B10 steps REC; c0 S (allowed); O-ext steps the unit's recipe (allowed B, S, G); engine steps the job's recipe.",
+  "test": "test_every_steps_recipe_is_the_one_its_target_scripts_settings_pin (dry runs of every job kind on X and Y; real config SHA-256 by each engine's code; pins read from the committed settings). One known gap is asserted: ref_train bqi's O-ext step on Y (oext_unit.json has no B+Qi recipe yet)."
+ },
+ "part_d": {
+  "changes": [
+   "stage1_rules: S3_ORIG_INPUT, s3_orig_pin (the one complete J6 in plan.json; its recorded outputs; the pulled record and pool re-hashed; kind, version 1, complete; full_files and lists.s3.s3_orig_pool_sha256 equal to the pool's SHA-256)",
+   "plan_tool: move_open pins job.s3_orig on a J5 moved off J6's pod (J6 complete, not moved) and refuses unless the current packed stage holds pool:s3_orig at that pin; the new host is bound to that stage's sealed_files_sha256 (place); payment unchanged: the crashed J5 is a re-run paid from block A's contingency with the new pod's overhead, J7 and J8 (not started) are not charged",
+   "job_runner_stage1: s3_orig_arg (a pinned J5 reads the packed pool:s3_orig, checked against the pin; otherwise J6 earlier on the pod, as before); input_names adds pool:s3_orig for a pinned J5",
+   "pack_setup: INPUT_NAMES admits pool:s3_orig; input_pins checks it against s3_orig_pin"
+  ],
+  "j6_files_on_the_mac": "not read: the tests use synthetic files of J6's record schema (scripts/stage1/make_untuned_answers.py)",
+  "route": "record-done a-1 (after the pull) -> pack engine X with the input pool:s3_orig (path tmp/stage1-olmo/retrieved/a-1/tree/job-0/untuned/s3_orig.pool.json, sha256 = the value J6's untuned_answers_record.json names; pack_setup accepts it only at stage1_rules.s3_orig_pin) -> plan_tool defer a-1 -> orchestrate check-plan NEW -> launch",
+  "tests": [
+   "test_defer_moves_a_1s_j5_j7_j8_to_a_new_diagnostics_pod_with_j6s_s3_orig_pool_pinned",
+   "test_j6s_s3_orig_pin_refuses_a_record_that_does_not_name_the_pool (4 cases)",
+   "test_j6s_s3_orig_pin_refuses_a_pulled_record_changed_after_record_done",
+   "test_a_moved_j5_reads_j6s_pool_as_the_pinned_packed_input_through_d2 (D-2 wrapper's parser; representation_pass.pin_of gives 'command line' for s3_orig under W1's and D-2's pins files)",
+   "test_a_moved_j5_refuses_without_j6s_pinned_pool (3 cases)",
+   "test_check_plan_accepts_the_moved_diagnostics_host_with_the_pinned_pool",
+   "test_the_pack_takes_pool_s3_orig_only_at_the_sha256_j6s_record_names"
+  ]
+ },
+ "part_e": {
+  "changes": [
+   "stage1_rules: GUARD_OFF_KIND, GUARD_OFF_KEYS, GUARD_REFUSED_EXIT, guard_off_problem, guard_off_record (plan.json records.guard_off; the file re-hashed and re-read at every use)",
+   "plan_tool: record-guard-off FILE --sha256 H (exact keys kind, user_words, utc, recorded_by; UTC, not future; once; absolute path stored)",
+   "launch.py and host.py extend-cap: budget.py check still runs first (reads and logs the balance); with the record, its refusal (exit 3) is passed and logged (launch event budget-guard-off; cap-override.json budget_guard off); any other non-zero exit still refuses; no record: as before",
+   "budget.py unchanged (Gate B's rule text kept); host.create's $10/h limit, the stop timer settings and stop-never-delete unchanged"
+  ],
+  "tests": [
+   "test_record_guard_off_takes_only_the_users_decision_record (6 cases)",
+   "test_record_guard_off_is_recorded_once_by_sha256_and_a_changed_file_turns_the_guard_back_on",
+   "test_launch_goes_past_the_guards_refusal_only_with_the_users_recorded_decision (6 cases)",
+   "test_extend_cap_goes_past_the_guards_refusal_only_with_the_users_recorded_decision (4 cases)",
+   "test_with_the_guard_off_a_pod_above_ten_dollars_still_refuses_and_is_stopped (3 cases)",
+   "test_the_kit_compiles_holds_no_secret_and_reuses_gate_b_files_as_documented: the launch.py and host.py differences from Gate B's files are listed (GUARD_OFF_LAUNCH, GUARD_OFF_HOST)"
+  ]
+ },
+ "part_f": {
+  "chain": [
+   "scripts/stage1_s1/settings/oext_eval.json:18 bank.phtest.record_sha256 null -> a810574e (file 0f8e2eed -> 2ad98938)",
+   "scripts/stage1_s1/oext_eval.py:76 SETTINGS_SHA256 -> 2ad98938 (file a1f356cb -> 8c429092)",
+   "scripts/stage1_s1/settings/oext_unit.json:39 -> 8c429092, :43 -> 2ad98938 (file e9261b1f -> 3959eae7)",
+   "scripts/stage1_s1/oext_unit.py:72 -> 3959eae7 (file e92caf63 -> ae2fb5b5)",
+   "scripts/stage1_s1/settings/eval_adapter.json:112 -> 8c429092, :121 -> 2ad98938 (file a88d98d5 -> a99f918f); eval_adapter.py:94 -> a99f918f (file 14e24621 -> 7927ff25)",
+   "scripts/stage1_s1/settings/lean_eval_job.json:104 -> 8c429092, :108 -> 2ad98938 (file 0b8a6256 -> b0ab19ec); lean_eval_job.py:134 -> b0ab19ec (file 07c0a7af -> 82461c13)",
+   "runkit/stage1-olmo/stage1_rules.py S1_CODE :354 eval_adapter.py 7927ff25, :356 lean_eval_job.py 82461c13, :357 oext_eval.py 8c429092, :359 eval_adapter.json a99f918f, :361 lean_eval_job.json b0ab19ec, :363 oext_eval.json 2ad98938, :367 oext_unit.py ae2fb5b5, :369 oext_unit.json 3959eae7",
+   "tests: test_oext_eval.py:27, test_oext_unit.py:30, test_b10_settings.py:18, test_b17_lean_eval_job.py:34, test_stage1_runkit.py:1996 and :1998",
+   "mutants: mutants_oext.json:307-308, mutants_oext_unit.json:259-260, mutants_b17.json:404-405, mutants_b15.json B15-8-runner-unpinned (:2186) and B15-8-runner-settings-unpinned (:2194)",
+   "no old hash is left in scripts/stage1_s1 or runkit/stage1-olmo (grep of the 8 values)"
+  ],
+  "null_or_pending_review": [
+   {
+    "action": "pinned (a810574e, from the file)",
+    "field": "oext_eval.json bank.phtest.record_sha256",
+    "rule": "bank.phtest.rule: null means every O-ext run refuses"
+   },
+   {
+    "action": "none: null is required under Branch 128",
+    "field": "oext_eval.json cap.w1_18.full_reason",
+    "rule": "validate_settings: Branch 128 needs W1-18's record and no full_reason"
+   },
+   {
+    "action": "open: no recorded choice of the text exists in W; only B10's 'prefix' points (block B ref_eval) refuse; every other B10 point is unaffected",
+    "field": "eval_adapter.json prefix.text_sha256 and prefix.source",
+    "rule": "prefix.status 'C1 open': until the lead pins one published instruction's bytes, the prefix mode refuses (make_plan)"
+   },
+   {
+    "action": "none: no refusal",
+    "field": "eval_adapter.json reference_units 1102 and 1103 fingerprint_prefixes.q",
+    "rule": "validate_settings allows a null prefix for a non-e1 checkpoint; read_reference compares the marker's full q fingerprint only where a prefix is pinned"
+   },
+   {
+    "action": "none",
+    "field": "eval_adapter.json regeneration.registry",
+    "rule": "must be null (a regeneration claims no trajectory)"
+   },
+   {
+    "action": "none: required values",
+    "field": "eval_adapter.json regeneration.job evaluate_bank, replicate_of, resume_from",
+    "rule": "REGEN_JOB: the a0 development train-only run-one"
+   },
+   {
+    "action": "none",
+    "field": "eval_adapter.json external_transforms.safe_lora.function",
+    "rule": "kind 'file': no callable"
+   },
+   {
+    "action": "none",
+    "field": "oext_unit.json and lean_eval_job.json",
+    "rule": "no null or pending value"
+   },
+   {
+    "action": "fixed: check-plan now refuses a Branch-128 job whose pack lacks it",
+    "field": "outside the four files: the kit's w1_18_record input",
+    "rule": "the runner passed --w1-18-record only when packed; under Branch 128 every O-ext run reads W1-18's record (the settings pin it), so a pack without it fails on the pod"
+   },
+   {
+    "action": "open (block B): ref_train bqi's O-ext step on Y refuses",
+    "field": "outside the four files: oext_unit.json recipes.allowed",
+    "rule": "B+Qi joins at the engine Y re-pin"
+   }
+  ],
+  "record_checks": {
+   "file": ".ai/inputs/stage1-commitments-20261016/oext-bank/oext_record.json",
+   "not_run": "load_bank's checks that read the bank file's text (its kind, version and source, its row count, each row's id and prompt hash) were not run here, since that file is not to be read; they run on the pod at every O-ext run (and build_oext made both files together)",
+   "passed": [
+    "kind 'stage1 o-ext record', version 1",
+    "provenance.settings_sha256 = build_oext's settings pin fef3e92a...",
+    "sealed record kind and version 1",
+    "400 items = n_items = bank_size = planned, shortfall null",
+    "each item has exactly id and prompt_sha256; ids safe and distinct; 64-hex prompt hashes",
+    "the bank file /Users/spiderishi/Coding/attribution/tmp/stage1-mac-runs-20261023/oext-bank/oext_bank.json hashes to the record's full_file (6487ed2b9d5717d20b9bade8b51c2511cd6c83f597dafff983e8c391b1954162, 96014 bytes): hashed only"
+   ],
+   "sha256": "a810574e958ca0e5773c583b0f1df630ff7acc1bb2fc32e5f0de1c63d8c37fa9 (from the file; equal to the lead's value)"
+  },
+  "tests": [
+   "test_the_real_settings_take_the_committed_record_past_every_record_check (load_bank with the committed settings and record refuses only at the bank file; the whole prepare with only W1-18's pin synthetic does the same; one changed byte of the record refuses at its pin)",
+   "test_under_branch_128_check_plan_needs_w1_18s_record_packed (2 cases)",
+   "updated: test_the_settings_file_is_pinned_canonical_and_bound_to_w1_18 (record pinned), test_the_check_command_prints_pins_counts_and_hashes_only (bank_record_pinned true)"
+  ]
+ },
+ "part_g": {
+  "change": "plan_tool: RECORDED_RECIPE = {'rep_pass': 'S'}; default_recipe gives J5 recipe S (new plans); a lead spec naming another recipe for J5 refuses; move_open sets a moved J5's recipe to S (recipe_was keeps the older record's value) and refuses unless plan.json's recipes hold recipe S (the moved pod's preflight checks it); the re-run keys (job_key, job_keys) use recipe_of, so an older B record and a new S record are one job. Pricing does not depend on J5's recipe (only B+Qi's changes a price).",
+  "not_changed": "requeue --rerun-mismatched keeps a moved job's recipe as recorded (its keys use recipe_of)",
+  "test": "test_j5_records_recipe_s_in_new_plans_and_on_a_deferred_host_and_its_price_is_unchanged"
+ },
+ "part_h": "runkit/stage1-olmo/README.md: a section 'The branch re-pin round, 25 Oct' (items A-H, with the a-1 route and the record-guard-off command)",
+ "s1_commit_decision": "S1_COMMIT is a label only: pack_setup.py uses it in one refusal text and two tests assert it; nothing compares it with git. Set to \"a02c1aa+repin\" as briefed; the lead replaces it with the commit that holds these bytes.",
+ "status": "done: A-H. A (branch re-pin), B (B+Qi recipe check in engine Y's tree), C (J5 recipe), D (a-1 defer route with pool:s3_orig), E (budget guard off switch), F (O-ext bank record pinned; the chain again; W1-18's record required under Branch 128), G (J5's job record names recipe S), H (kit README). The four suites pass with 0 skips; every mutation spec's find texts occur exactly once; 5 new mutants run (all killed); nothing committed",
+ "tests": {
+  "after": {
+   "experiments/safety_selection/tests/test_ss_gateb_runkit.py": "271 passed, 0 skipped (exit 0)",
+   "runkit/stage1-olmo/tests": "485 passed, 0 skipped (exit 0)",
+   "scripts/stage1/tests": "874 passed, 0 skipped (exit 0)",
+   "scripts/stage1_s1": "1260 passed, 0 skipped (exit 0)"
+  },
+  "before": {
+   "experiments/safety_selection/tests/test_ss_gateb_runkit.py": "271 passed, 0 skipped",
+   "runkit/stage1-olmo/tests": "443 passed, 0 skipped",
+   "scripts/stage1/tests": "874 passed, 0 skipped",
+   "scripts/stage1_s1": "1253 passed, 0 skipped"
+  },
+  "command": "cd W; OMP/MKL/VECLIB/OPENBLAS_NUM_THREADS=1 PYTHONDONTWRITEBYTECODE=1 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 venv/bin/python -B -m pytest -p no:cacheprovider --basetemp=<new scratch dir> -q -rs <tree>",
+  "note": "final runs 12:54-12:57 UTC, after item H; nothing changed after them"
+ },
+ "utc": "2026-10-25T12:57:10Z",
+ "workspace": "ws-repin (git archive of main a02c1aa)"
+}

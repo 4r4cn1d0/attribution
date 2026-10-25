@@ -147,6 +147,33 @@ Round 3a's fix round (`notes/b15r3a-fix.json`):
   launch). Under the $144 record each of those re-plans refuses
   (`record-block-a-replan`), so money is never at risk (test_a_144_top_up_covers_the_two_ln12_pod_...).
 
+### The branch re-pin round, 25 Oct (`notes/repin-build.json`, items A-H)
+
+- **A, F: the O-ext settings are re-pinned (addendum §11 point 7).** `oext_eval.json` holds Branch 128, W1-18's
+  output 608cbb94... (pod s10-1; FOCUS 87c1b0b) and build_oext's committed record a810574e... as
+  `bank.phtest.record_sha256`. The chain follows in one edit: `oext_eval.py`'s literal, `oext_unit.json` and its
+  literal, B10's and B17's `oext` sections (their branch too) and literals, `stage1_rules.S1_CODE` (the eight files)
+  and the tests' and mutants' pins. `S1_COMMIT` is a label: the lead sets it to the commit that holds these bytes.
+  Under Branch 128 every O-ext step needs `w1_18_record` packed; `check-plan` refuses without it.
+- **B: a Y host's recipes are checked in engine Y's tree by engine Y's code** (`check_recipe_y`; B+Qi's recipe is
+  only there). plan.json keeps Y's values in `recipes_y`; `recipes` holds one value per file, which both engines'
+  code must agree on. An X host's recipes are checked as before.
+- **C, G: J5 runs recipe S** (representation_pass.json pins it; pod a-1 refused REC). Its job record names S (new
+  plans, deferred hosts, the re-run keys); a test compares every step's recipe with its target script's pin.
+- **D: a J5 moved off J6's pod reads J6's pool by its pin.** For a-1 (J6 complete, J5 crashed, J7 and J8 not
+  started): `record-done a-1`; pack engine X with the input `pool:s3_orig` (J6's pulled `s3_orig.pool.json`, by the
+  SHA-256 J6's own record names; move `setup/packed-stage1-X` aside first); `defer a-1`; `check-plan` on the new host;
+  launch. J5, J7 and J8 go in order to a new block-A diagnostics host bound to that pack; only J5 (crashed) is paid
+  from the contingency, with the new pod's overhead; J6 is never re-run.
+- **E: the user's decision turns the live-balance guard off.**
+
+      $PY -B plan_tool.py record-guard-off FILE --sha256 H
+
+  FILE is {kind: "stage1 user decision: budget guard off", user_words (verbatim), utc, recorded_by}; keep it
+  unchanged at its path (every use hashes it again). Then `launch.py` and `host.py extend-cap` still run `budget.py
+  check` (the live balance is read and logged) but go past its refusal; any other failure still refuses. The $10/h
+  create limit, the in-pod stop timer at the cap and stop-never-delete are unchanged. No record: the guard as before.
+
 ## The gates (brief §4)
 
 - **G0 (before any pod, $0).** B15 built, verified and pinned at the S1 freeze. `orchestrate.py check-plan HOST` must

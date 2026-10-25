@@ -44,6 +44,14 @@ MAX_PRICE_USD = 10.0                      # [D20] as amended: the create-time li
 PLANNING_PRICE_USD = 1.85                 # [D20]: the guard's planning $/h
 RATE_USD = 1.79                           # [D20]: the A100's measured $/h
 RESERVE_USD = 6.0                         # the user's 5 Oct rule
+# (E) the user's decision of 25 Oct (GI VI chat, FOCUS 8d3d505: "remove the guard its not needed I can control it
+# better"): a recorded record of this kind (plan_tool record-guard-off) makes launch.py and host.py extend-cap go past
+# the live-balance guard's refusal (running pods and the new pod at full caps plus RESERVE_USD); budget.py check still
+# reads and logs the live balance and must succeed. MAX_PRICE_USD, the in-pod stop timer at the cap and
+# stop-never-delete are unchanged. Without the record the guard is exactly as before.
+GUARD_OFF_KIND = "stage1 user decision: budget guard off"
+GUARD_OFF_KEYS = ("kind", "user_words", "utc", "recorded_by")
+GUARD_REFUSED_EXIT = 3                    # budget.py check's exit when the guard refuses (any other non-zero: no read)
 MAX_ARMS_PER_POD = 4                      # LN-27, LS-12 (a); §8 Q5: counted jobs per pod
 MAX_COUNTED_PER_POD = MAX_ARMS_PER_POD
 SETUPTOOLS_PIN = "78.1.0"                 # [D5]
@@ -335,24 +343,30 @@ GUARD_MODEL = {"repo_id": "Qwen/Qwen3Guard-Gen-4B", "revision": "6ec42827da0c1ff
 # them and refuses a file whose bytes differ; a lead's code entry under scripts/stage1_s1/ must be one of these pins
 # (or D2_CODE's), with no exception. The kit reads no other tree. Round 3c: the O-ext unit runner and its settings
 # join them (I: notes/oext-unit-fix.json files; M: shasum -a 256 of this tree at main 40e0cc6, 24 Oct 2026).
-S1_COMMIT = "40e0cc6"
+# The branch re-pin (addendum §11 point 7 and §13; FOCUS "W1-18 PASSED: BRANCH 128", 87c1b0b; I: notes/repin-build.json):
+# oext_eval.json holds Branch 128, W1-18's record 608cbb94... and (item F) build_oext's record a810574e..., and the
+# chain oext_eval.py, oext_unit.json/.py,
+# eval_adapter.json/.py and lean_eval_job.json/.py follows (M: shasum -a 256 of the re-pinned tree, main a02c1aa plus
+# the re-pin, 25 Oct 2026; item F's pass about 12:55 UTC). S1_COMMIT is a label only (pack_setup's refusal text names it); the lead
+# replaces it with the commit that holds these bytes.
+S1_COMMIT = "a02c1aa+repin"
 S1_CODE = {"scripts/stage1_s1/__init__.py": "818919ca18627b7169d80c2a6f6c24149f6e1c529bff9d37a5ddee2122bddd32",
-           "scripts/stage1_s1/eval_adapter.py": "6c62a1d25ff0acb65909c6719422d7f92a5959a1011650053377bfe43eaac8d8",
+           "scripts/stage1_s1/eval_adapter.py": "7927ff25184292d534b017bdb37b0bc6fa37d23ae159786a6a70ebf3f5a2ef22",
            "scripts/stage1_s1/safe_lora.py": "cd70eed6055f19f3da5467b4dfbe61104e26b1b571a85040a4bbcfd4e39403d4",
-           "scripts/stage1_s1/lean_eval_job.py": "25e9d946e1d75e5a30c0448de9bfca1abfb6afeae401e5132705403af1ec28b6",
-           "scripts/stage1_s1/oext_eval.py": "5da72827c0aece07a946d6304a7b9d05434a0d3ced98f459220b977e9b9da01d",
+           "scripts/stage1_s1/lean_eval_job.py": "82461c13d91471729bb036da6565bcb0555885c4b2347d91cd93abcebd9ca46a",
+           "scripts/stage1_s1/oext_eval.py": "8c4290921f32a5b4596a0bc40235cc5cf1185f73eaabeaa625c43bd19ba77719",
            "scripts/stage1_s1/settings/eval_adapter.json":
-               "fc7d11b4e0001dc55e2210498fe4ddc7c7400257ca200f0433c4e378aeef0cb6",
+               "a99f918f9579458b96d6094981679babc2ccfbe5e6d0d20bd360ccab81fbe1fb",
            "scripts/stage1_s1/settings/lean_eval_job.json":
-               "578a378b26a90d1df0f4cb14380e04fb690dec61c224c8271310ec9bd4ac7ecf",
+               "b0ab19ec28946334e4a033897c1097894fdf5797507f6a516614afc1c2c22acd",
            "scripts/stage1_s1/settings/oext_eval.json":
-               "3000811cd4f911a1beb9abcb2b2c2dfd5843629c598d736e315f15918e194639",
+               "2ad9893849248a8fb61d04cf7badbd7fb398915020f196904849d500df08f5a5",
            "scripts/stage1_s1/settings/safe_lora.json":
                "e8a011221b4392bf9ef4f5ad31fc7ed8a51a5d346a5405a92093072f8857ccc0",
-           # round 3c: the O-ext unit runner (J3, J4, J9, J10, J18's O-ext step) and its settings, at main 40e0cc6
-           "scripts/stage1_s1/oext_unit.py": "9d038f38017c6b4df9382204772f267b92dfae33dae5fc2047004bb6889d615f",
+           # round 3c: the O-ext unit runner (J3, J4, J9, J10, J18's O-ext step) and its settings (branch re-pin)
+           "scripts/stage1_s1/oext_unit.py": "ae2fb5b5fbea36cbd2b27c4eaa20f10504b9856961ae8ee100311c923876b8e3",
            "scripts/stage1_s1/settings/oext_unit.json":
-               "18957b683abd0452d77a426a1839dd0bf6ac51d3da484f093795d5e9e1ea1aa3"}
+               "3959eae7264f56f613f5d7cd54e69081d8985ef7cbce2962243f6685e3581189"}
 STAGE1_PINS = {   # M (here): shasum -a 256 of the B15 tree (main 721c58f); the S1 package is re-pinned at its merge
     "scripts/stage1/limits/overrefusal_checks.py": "ed5fd2dcb5675d5fe5e135b76e37ece2488dfcc2db5129ba422064502b0d61ae",
     "scripts/stage1/limits/limits_common.py": "2798aa06a01fd89bf3dd8dc2abf33e63bfcb4f17bff700a709eacd2b3ace264c",
@@ -396,6 +410,89 @@ LINK_SOURCES = frozenset(LINKED_KINDS.values())
 LINK_FIELD = "regen_source"
 UNITLESS_KINDS = frozenset({"w1_18", "rep_pass", "untuned_answers", "l1_scan", "classifier", "c0", "transfer_report",
                             "o_only"})            # BUILD-RUNNER fix: an O-only pass writes O-ext files, no engine unit
+
+def guard_off_problem(doc) -> str | None:
+    """Why ``doc`` is not the user's budget-guard-off decision record ({kind, user_words, utc, recorded_by}, exactly;
+    each text non-empty), or None."""
+    if not isinstance(doc, dict) or set(doc) != set(GUARD_OFF_KEYS):
+        return f"it must hold exactly {list(GUARD_OFF_KEYS)}"
+    if doc["kind"] != GUARD_OFF_KIND:
+        return f"its kind is not {GUARD_OFF_KIND!r}"
+    if not all(isinstance(doc[k], str) and doc[k].strip() for k in GUARD_OFF_KEYS[1:]):
+        return "user_words (verbatim), utc and recorded_by must be non-empty texts"
+    return None
+
+
+def guard_off_record(kit) -> dict | None:
+    """(E) The recorded user decision that the live-balance guard is skipped: plan.json's records.guard_off, its file
+    re-hashed at its recorded path and re-read (guard_off_problem). Anything else (no plan.json or record, a missing or
+    changed file, another document) is None, and the guard stays as it was."""
+    import hashlib
+    import pathlib
+
+    try:
+        rec = (json.loads((pathlib.Path(kit) / "plan.json").read_text()).get("records") or {}).get("guard_off")
+        if not isinstance(rec, dict):
+            return None
+        data = pathlib.Path(rec["path"]).read_bytes()
+        if hashlib.sha256(data).hexdigest() != rec["sha256"]:
+            return None
+        doc = json.loads(data)
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return None
+    if guard_off_problem(doc) is not None:
+        return None
+    return {"sha256": rec["sha256"], "utc": doc["utc"], "recorded_by": doc["recorded_by"]}
+
+
+# (D, 25 Oct: pod a-1) a J5 moved off J6's pod reads J6's s3_orig pool as the named input pool:s3_orig, by the pin
+# J6's own text-free record gives (PREREG: J6 is complete and never re-run). plan_tool's defer pins it into the moved
+# J5 (job.s3_orig) and pack_setup accepts the input only at this pin.
+S3_ORIG_INPUT = "pool:s3_orig"
+J6_RECORD, J6_RECORD_KIND, S3_ORIG_POOL = "untuned_answers_record.json", "stage1 untuned answers record", \
+    "s3_orig.pool.json"
+
+
+def s3_orig_pin(plan: dict, kit) -> dict:
+    """J6's s3_orig pool pin (names, counts and SHA-256 values only; no text is read): the one complete untuned_answers
+    job plan.json records; its recorded outputs job-K/untuned/untuned_answers_record.json and
+    job-K/untuned/s3_orig.pool.json (record-done checked both against the pulled tree), each re-hashed in the pulled
+    tree (kit/retrieved/HOST/tree); the record is J6's (kind, version 1, complete) and names the pool by the same
+    SHA-256 (full_files and lists.s3.s3_orig_pool_sha256). Raises ValueError."""
+    import hashlib
+    import pathlib
+
+    found = [(host, k, j) for host, h in sorted(plan["hosts"].items()) for k, j in enumerate(h["jobs"])
+             if j["kind"] == "untuned_answers" and j.get("status") == "complete"]
+    if len(found) != 1:
+        raise ValueError(f"plan.json records {len(found)} complete untuned_answers jobs (J6 runs once)")
+    host, k, job = found[0]
+    outputs = job.get("outputs") or {}
+    rec_rel, pool_rel = f"job-{k}/untuned/{J6_RECORD}", f"job-{k}/untuned/{S3_ORIG_POOL}"
+    if rec_rel not in outputs or pool_rel not in outputs:
+        raise ValueError(f"J6 on {host} recorded no {J6_RECORD} or no {S3_ORIG_POOL} among its outputs")
+    tree = pathlib.Path(kit) / "retrieved" / host / "tree"
+    try:
+        data, pool = (tree / rec_rel).read_bytes(), (tree / pool_rel).read_bytes()
+    except OSError:
+        raise ValueError(f"J6's {J6_RECORD} or {S3_ORIG_POOL} is not in the pulled tree of {host}") from None
+    if hashlib.sha256(data).hexdigest() != outputs[rec_rel] or hashlib.sha256(pool).hexdigest() != outputs[pool_rel]:
+        raise ValueError(f"J6's pulled {J6_RECORD} or {S3_ORIG_POOL} differs from its recorded SHA-256")
+    try:
+        doc = json.loads(data)
+    except ValueError:
+        raise ValueError(f"J6's {J6_RECORD} is not JSON") from None
+    if not isinstance(doc, dict) or (doc.get("kind"), doc.get("version"), doc.get("complete")) != (
+            J6_RECORD_KIND, 1, True):
+        raise ValueError(f"J6's {J6_RECORD} is not a complete {J6_RECORD_KIND!r} (version 1)")
+    named = {(doc.get("full_files") or {}).get(S3_ORIG_POOL),
+             ((doc.get("lists") or {}).get("s3") or {}).get("s3_orig_pool_sha256")}
+    if named != {outputs[pool_rel]}:
+        raise ValueError(f"J6's {J6_RECORD} does not name its {S3_ORIG_POOL} by the recorded SHA-256")
+    kit = pathlib.Path(kit).resolve()
+    return {"host": host, "index": k, "record": {"path": rec_rel, "sha256": outputs[rec_rel]},
+            "pool": {"path": pool_rel, "sha256": outputs[pool_rel]}, "sha256": outputs[pool_rel],
+            "pack_path": str((kit / "retrieved" / host / "tree" / pool_rel).relative_to(kit.parents[1]))}
 
 # ----- blocks and hosts --------------------------------------------------------------------------------------------
 BLOCKS = ("S1-0", "cert", "A", "certify", "B", "C")

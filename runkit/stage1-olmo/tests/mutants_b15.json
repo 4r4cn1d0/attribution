@@ -1341,10 +1341,10 @@
   {
    "describes": "J5's s3_orig pass without --pools-only",
    "file": "setup/job_runner_stage1.py",
-   "find": "f\"@pathsha:{s3}\", \"--pools-only\", \"--out\"",
+   "find": "s3, \"--pools-only\", \"--out\", f\"{out}/representation-s3-orig\"",
    "id": "V2-s3orig-not-pools-only",
    "part": "B15 round 2 verifiers (24 Oct; notes/b15r2-verify-gates.json, b15r2-verify-runner.json)",
-   "replace": "f\"@pathsha:{s3}\", \"--out\""
+   "replace": "s3, \"--out\", f\"{out}/representation-s3-orig\""
   },
   {
    "describes": "J5's s3_orig pass reads s3_safe in place of J6's s3_orig pool",
@@ -2183,7 +2183,7 @@
   {
    "describes": "item 1: the O-ext unit runner is not an S1_CODE pin (the X pack does not carry it)",
    "file": "stage1_rules.py",
-   "find": "           \"scripts/stage1_s1/oext_unit.py\": \"9d038f38017c6b4df9382204772f267b92dfae33dae5fc2047004bb6889d615f\",\n",
+   "find": "           \"scripts/stage1_s1/oext_unit.py\": \"ae2fb5b5fbea36cbd2b27c4eaa20f10504b9856961ae8ee100311c923876b8e3\",\n",
    "id": "B15-8-runner-unpinned",
    "part": "B15 round 3c (24 Oct; notes/b15r3c-build.json)",
    "replace": ""
@@ -2191,7 +2191,7 @@
   {
    "describes": "item 1: the runner's settings are not an S1_CODE pin (not packed)",
    "file": "stage1_rules.py",
-   "find": "           \"scripts/stage1_s1/settings/oext_unit.json\":\n               \"18957b683abd0452d77a426a1839dd0bf6ac51d3da484f093795d5e9e1ea1aa3\"}",
+   "find": "           \"scripts/stage1_s1/settings/oext_unit.json\":\n               \"3959eae7264f56f613f5d7cd54e69081d8985ef7cbce2962243f6685e3581189\"}",
    "id": "B15-8-runner-settings-unpinned",
    "part": "B15 round 3c (24 Oct; notes/b15r3c-build.json)",
    "replace": "           }"
@@ -2307,6 +2307,310 @@
    "id": "B15-8-ln14-price",
    "part": "B15 round 3c (24 Oct; notes/b15r3c-build.json)",
    "replace": "TRANSFER_S = 1400.0 "
+  },
+  {
+   "describes": "a Y host's recipe read from main's tree (engine X's)",
+   "file": "plan_tool.py",
+   "find": "    return ROOT / rules.Y_TREE_DEFAULT\n",
+   "id": "B15-y-tree-is-main",
+   "part": "B15 branch re-pin round (25 Oct; I: notes/repin-build.json): a Y host's recipes in engine Y's tree by Y's code",
+   "replace": "    return ENGINE_ROOT\n"
+  },
+  {
+   "describes": "a Y host's recipe hashed by engine X's code",
+   "file": "plan_tool.py",
+   "find": "        own[path] = {\"sha256\": pin, \"config_sha256\": recipe_sha_y(path)}",
+   "id": "B15-y-hash-by-x-code",
+   "part": "B15 branch re-pin round (25 Oct; I: notes/repin-build.json): a Y host's recipes in engine Y's tree by Y's code",
+   "replace": "        own[path] = {\"sha256\": pin, \"config_sha256\": recipe_sha(path)}"
+  },
+  {
+   "describes": "a Y host's recipe file not checked against its pin (only present)",
+   "file": "plan_tool.py",
+   "find": "    if not (tree / path).is_file() or mac.sha(tree / path) != pin:",
+   "id": "B15-y-pin-unchecked",
+   "part": "B15 branch re-pin round (25 Oct; I: notes/repin-build.json): a Y host's recipes in engine Y's tree by Y's code",
+   "replace": "    if not (tree / path).is_file():"
+  },
+  {
+   "describes": "a Y host's recipes checked as an X host's (main's tree, engine X's code)",
+   "file": "plan_tool.py",
+   "find": "            if name_r and h[\"engine\"] == \"Y\":",
+   "id": "B15-y-dispatch-dropped",
+   "part": "B15 branch re-pin round (25 Oct; I: notes/repin-build.json): a Y host's recipes in engine Y's tree by Y's code",
+   "replace": "            if False:"
+  },
+  {
+   "describes": "engine Y's config SHA-256 not compared with engine X's in plan.json",
+   "file": "plan_tool.py",
+   "find": "    elif shared[\"config_sha256\"] != own[path][\"config_sha256\"]:",
+   "id": "B15-y-engines-differ-unchecked",
+   "part": "B15 branch re-pin round (25 Oct; I: notes/repin-build.json): a Y host's recipes in engine Y's tree by Y's code",
+   "replace": "    elif False:"
+  },
+  {
+   "describes": "a recipe first hashed by Y is never hashed by engine X's code for an X host",
+   "file": "plan_tool.py",
+   "find": "                elif plan[\"recipes\"][path].get(\"engine\") == \"Y\":",
+   "id": "B15-y-first-not-rehashed-by-x",
+   "part": "B15 branch re-pin round (25 Oct; I: notes/repin-build.json): a Y host's recipes in engine Y's tree by Y's code",
+   "replace": "                elif False:"
+  },
+  {
+   "describes": "engine X's value for a Y-first recipe not compared with Y's",
+   "file": "plan_tool.py",
+   "find": "                    if plan[\"recipes\"][path][\"config_sha256\"] != config_x:",
+   "id": "B15-y-x-rehash-differ-unchecked",
+   "part": "B15 branch re-pin round (25 Oct; I: notes/repin-build.json): a Y host's recipes in engine Y's tree by Y's code",
+   "replace": "                    if False:"
+  },
+  {
+   "describes": "recipe S's training identity under engine Y not checked",
+   "file": "plan_tool.py",
+   "find": "        if own[path][\"training_identity\"] != rules.TRAINING_IDENTITY:",
+   "id": "B15-y-training-identity-unchecked",
+   "part": "B15 branch re-pin round (25 Oct; I: notes/repin-build.json): a Y host's recipes in engine Y's tree by Y's code",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "recipe S's training identity on a Y host computed by engine X's code",
+   "file": "plan_tool.py",
+   "find": "        own[path].setdefault(\"training_identity\", recipe_training_identity_y(path))",
+   "id": "B15-y-identity-by-x-code",
+   "part": "B15 branch re-pin round (25 Oct; I: notes/repin-build.json): a Y host's recipes in engine Y's tree by Y's code",
+   "replace": "        own[path].setdefault(\"training_identity\", recipe_training_identity(path))"
+  },
+  {
+   "describes": "engine Y's subprocess imports from main's tree (ENGINE_ROOT) instead of Y's",
+   "file": "plan_tool.py",
+   "find": "f\"import sys,pathlib;sys.path.insert(0,{tree!r});import experiments.safety_selection as _y;\"",
+   "id": "B15-y-import-path-main",
+   "part": "B15 branch re-pin round (25 Oct; I: notes/repin-build.json): a Y host's recipes in engine Y's tree by Y's code",
+   "replace": "f\"import sys,pathlib;sys.path.insert(0,{str(ENGINE_ROOT)!r});import experiments.safety_selection as _y;\""
+  },
+  {
+   "describes": "the code in Y's tree not checked to be engine Y (34bfd288)",
+   "file": "plan_tool.py",
+   "find": "             f\"assert _ci()['sha256']=={rules.ENGINES['Y']!r},'the code in engine Y tree is not engine Y';\")",
+   "id": "B15-y-code-identity-unchecked",
+   "part": "B15 branch re-pin round (25 Oct; I: notes/repin-build.json): a Y host's recipes in engine Y's tree by Y's code",
+   "replace": "             f\"\")"
+  },
+  {
+   "describes": "a plan.json recipe entry made from Y's value alone is not marked engine Y",
+   "file": "plan_tool.py",
+   "find": "        plan[\"recipes\"][path] = {\"sha256\": pin, \"config_sha256\": own[path][\"config_sha256\"], \"engine\": \"Y\"}",
+   "id": "B15-y-shared-not-marked",
+   "part": "B15 branch re-pin round (25 Oct; I: notes/repin-build.json): a Y host's recipes in engine Y's tree by Y's code",
+   "replace": "        plan[\"recipes\"][path] = {\"sha256\": pin, \"config_sha256\": own[path][\"config_sha256\"]}"
+  },
+  {
+   "describes": "J5's representation pass gets REC again (pod a-1's refusal)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "            return [(f\"{tag}-representation\", [*SCRIPT, script, \"--prepared\", p, \"--recipe\", rules.RECIPE_S,",
+   "id": "B15-c-j5-rec-back",
+   "part": "B15 round C (25 Oct; I: notes/repin-build.json): each step's recipe is its target script's settings pin",
+   "replace": "            return [(f\"{tag}-representation\", [*SCRIPT, script, \"--prepared\", p, \"--recipe\", rules.REC,"
+  },
+  {
+   "describes": "J5's s3_orig pools-only pass gets REC again",
+   "file": "setup/job_runner_stage1.py",
+   "find": "                     [*SCRIPT, script, \"--prepared\", p, \"--recipe\", rules.RECIPE_S, \"--anchors\", anchors, \"--pool\",",
+   "id": "B15-c-j5-s3orig-rec-back",
+   "part": "B15 round C (25 Oct; I: notes/repin-build.json): each step's recipe is its target script's settings pin",
+   "replace": "                     [*SCRIPT, script, \"--prepared\", p, \"--recipe\", rules.REC, \"--anchors\", anchors, \"--pool\","
+  },
+  {
+   "describes": "J7's L1 scan gets recipe S (score_l1_larf.json pins REC)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "[*SCRIPT, L1_SCRIPT, \"scan\", \"--prepared\", p, \"--recipe\", rules.REC,",
+   "id": "B15-c-l1-recipe-s",
+   "part": "B15 round C (25 Oct; I: notes/repin-build.json): each step's recipe is its target script's settings pin",
+   "replace": "[*SCRIPT, L1_SCRIPT, \"scan\", \"--prepared\", p, \"--recipe\", rules.RECIPE_S,"
+  },
+  {
+   "describes": "J8's classifier gets REC (score_classifier.json pins recipe S)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "[(f\"{tag}-classifier\", [*SCRIPT, script, \"--prepared\", p, \"--recipe\", rules.RECIPE_S,",
+   "id": "B15-c-classifier-rec",
+   "part": "B15 round C (25 Oct; I: notes/repin-build.json): each step's recipe is its target script's settings pin",
+   "replace": "[(f\"{tag}-classifier\", [*SCRIPT, script, \"--prepared\", p, \"--recipe\", rules.REC,"
+  },
+  {
+   "describes": "J6's --recipe-s gets REC (make_untuned_answers.json pins recipe S there)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "\"--recipe\", rules.REC, \"--recipe-s\", rules.RECIPE_S,",
+   "id": "B15-c-j6-recipe-s-rec",
+   "part": "B15 round C (25 Oct; I: notes/repin-build.json): each step's recipe is its target script's settings pin",
+   "replace": "\"--recipe\", rules.REC, \"--recipe-s\", rules.REC,"
+  },
+  {
+   "describes": "a J5 moved off J6's pod carries no s3_orig pin",
+   "file": "plan_tool.py",
+   "find": "        moved[index_map[i]][\"s3_orig\"] = {k: pin[k] for k in (\"host\", \"index\", \"record\", \"pool\", \"sha256\")}",
+   "id": "B15-d-s3orig-pin-dropped",
+   "part": "B15 round D (25 Oct; I: notes/repin-build.json): a-1's J5, J7, J8 move off J6's pod; J5 reads J6's pinned pool",
+   "replace": "        pass"
+  },
+  {
+   "describes": "defer does not check that the pack holds J6's pool at its pin",
+   "file": "plan_tool.py",
+   "find": "        if packed != pin[\"sha256\"]:",
+   "id": "B15-d-s3orig-pack-unchecked",
+   "part": "B15 round D (25 Oct; I: notes/repin-build.json): a-1's J5, J7, J8 move off J6's pod; J5 reads J6's pinned pool",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "the new host stays bound to the source host's packed stage",
+   "file": "plan_tool.py",
+   "find": "host_record(plan, h[\"block\"], role, moved, sealed_files_sha256 or h[\"sealed_files_sha256\"],",
+   "id": "B15-d-moved-host-old-pack",
+   "part": "B15 round D (25 Oct; I: notes/repin-build.json): a-1's J5, J7, J8 move off J6's pod; J5 reads J6's pinned pool",
+   "replace": "host_record(plan, h[\"block\"], role, moved, h[\"sealed_files_sha256\"],"
+  },
+  {
+   "describes": "J6's record need not say complete",
+   "file": "stage1_rules.py",
+   "find": "    if not isinstance(doc, dict) or (doc.get(\"kind\"), doc.get(\"version\"), doc.get(\"complete\")) != (",
+   "id": "B15-d-j6-record-incomplete-ok",
+   "part": "B15 round D (25 Oct; I: notes/repin-build.json): a-1's J5, J7, J8 move off J6's pod; J5 reads J6's pinned pool",
+   "replace": "    if not isinstance(doc, dict) or (doc.get(\"kind\"), doc.get(\"version\"), True) != ("
+  },
+  {
+   "describes": "J6's record need not name the pool by its SHA-256",
+   "file": "stage1_rules.py",
+   "find": "    if named != {outputs[pool_rel]}:",
+   "id": "B15-d-j6-pool-unnamed",
+   "part": "B15 round D (25 Oct; I: notes/repin-build.json): a-1's J5, J7, J8 move off J6's pod; J5 reads J6's pinned pool",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "J6's pulled record and pool are not re-hashed",
+   "file": "stage1_rules.py",
+   "find": "    if hashlib.sha256(data).hexdigest() != outputs[rec_rel] or hashlib.sha256(pool).hexdigest() != outputs[pool_rel]:",
+   "id": "B15-d-j6-pulled-unhashed",
+   "part": "B15 round D (25 Oct; I: notes/repin-build.json): a-1's J5, J7, J8 move off J6's pod; J5 reads J6's pinned pool",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "the packed pool:s3_orig is not checked against the job's pin",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if files.get(path) != pin:",
+   "id": "B15-d-runner-pin-unchecked",
+   "part": "B15 round D (25 Oct; I: notes/repin-build.json): a-1's J5, J7, J8 move off J6's pod; J5 reads J6's pinned pool",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "pool:s3_orig is not among the job's sealed inputs",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        names.append(S3_ORIG_INPUT)                        # a J5 moved off J6's pod: J6's s3_orig pool by its pin",
+   "id": "B15-d-runner-input-unsealed",
+   "part": "B15 round D (25 Oct; I: notes/repin-build.json): a-1's J5, J7, J8 move off J6's pod; J5 reads J6's pinned pool",
+   "replace": "        pass"
+  },
+  {
+   "describes": "the packer takes any pool:s3_orig file",
+   "file": "pack_setup.py",
+   "find": "            if \"files\" in e or e.get(\"sha256\") != expected:\n                pack.bad.append(f\"input {name} (not J6's",
+   "id": "B15-d-pack-s3orig-unchecked",
+   "part": "B15 round D (25 Oct; I: notes/repin-build.json): a-1's J5, J7, J8 move off J6's pod; J5 reads J6's pinned pool",
+   "replace": "            if False:\n                pack.bad.append(f\"input {name} (not J6's"
+  },
+  {
+   "describes": "the decision file is not re-hashed at each use",
+   "file": "stage1_rules.py",
+   "find": "        if hashlib.sha256(data).hexdigest() != rec[\"sha256\"]:\n            return None",
+   "id": "B15-e-guard-record-unhashed",
+   "part": "B15 round E (25 Oct; I: notes/repin-build.json): the user's recorded decision turns the live-balance guard off",
+   "replace": "        if False:\n            return None"
+  },
+  {
+   "describes": "any record kind turns the guard off",
+   "file": "stage1_rules.py",
+   "find": "    if doc[\"kind\"] != GUARD_OFF_KIND:",
+   "id": "B15-e-guard-kind-unchecked",
+   "part": "B15 round E (25 Oct; I: notes/repin-build.json): the user's recorded decision turns the live-balance guard off",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "launch.py ignores the recorded decision (the guard stays on)",
+   "file": "launch.py",
+   "find": "                off = rules.guard_off_record(HERE)   # (E) the user's recorded decision: past the guard's refusal only\n                if guard.returncode != 0 and not (off and",
+   "id": "B15-e-launch-off-ignored",
+   "part": "B15 round E (25 Oct; I: notes/repin-build.json): the user's recorded decision turns the live-balance guard off",
+   "replace": "                off = None\n                if guard.returncode != 0 and not (off and"
+  },
+  {
+   "describes": "launch.py goes on when the live balance could not be read",
+   "file": "launch.py",
+   "find": "                if guard.returncode != 0 and not (off and guard.returncode == rules.GUARD_REFUSED_EXIT):",
+   "id": "B15-e-launch-unread-balance-ok",
+   "part": "B15 round E (25 Oct; I: notes/repin-build.json): the user's recorded decision turns the live-balance guard off",
+   "replace": "                if guard.returncode != 0 and not off:"
+  },
+  {
+   "describes": "launch.py skips the guard without a record",
+   "file": "launch.py",
+   "find": "                if guard.returncode != 0 and not (off and guard.returncode == rules.GUARD_REFUSED_EXIT):",
+   "id": "B15-e-launch-guard-always-off",
+   "part": "B15 round E (25 Oct; I: notes/repin-build.json): the user's recorded decision turns the live-balance guard off",
+   "replace": "                if guard.returncode != 0 and not guard.returncode == rules.GUARD_REFUSED_EXIT:"
+  },
+  {
+   "describes": "extend-cap ignores the recorded decision",
+   "file": "host.py",
+   "find": "            if guard.returncode != 0 and not (off and guard.returncode == rules.GUARD_REFUSED_EXIT):\n                raise SystemExit(\"the budget guard refused the extension\")",
+   "id": "B15-e-extend-off-ignored",
+   "part": "B15 round E (25 Oct; I: notes/repin-build.json): the user's recorded decision turns the live-balance guard off",
+   "replace": "            if guard.returncode != 0:\n                raise SystemExit(\"the budget guard refused the extension\")"
+  },
+  {
+   "describes": "record-guard-off takes any document",
+   "file": "plan_tool.py",
+   "find": "        problem = rules.guard_off_problem(doc)\n        if problem:",
+   "id": "B15-e-record-unchecked",
+   "part": "B15 round E (25 Oct; I: notes/repin-build.json): the user's recorded decision turns the live-balance guard off",
+   "replace": "        problem = None\n        if problem:"
+  },
+  {
+   "describes": "W1-18's record stays optional under Branch 128",
+   "file": "setup/job_runner_stage1.py",
+   "find": "            if (name == \"w1_18_record\" and job.get(\"branch\") != \"128\") or name.startswith((\"list:\", \"loss:\")):",
+   "id": "B15-f-w1-18-record-optional",
+   "part": "B15 round F (25 Oct; I: notes/repin-build.json): Branch 128 needs W1-18's record packed",
+   "replace": "            if name == \"w1_18_record\" or name.startswith((\"list:\", \"loss:\")):"
+  },
+  {
+   "describes": "J5's job record names no fixed recipe (back to the old default)",
+   "file": "plan_tool.py",
+   "find": "RECORDED_RECIPE = {\"rep_pass\": \"S\"}",
+   "id": "B15-g-no-recorded-recipe",
+   "part": "B15 round G (25 Oct; I: notes/repin-build.json): J5's job record names recipe S",
+   "replace": "RECORDED_RECIPE = {}"
+  },
+  {
+   "describes": "a deferred J5 keeps its older record's recipe",
+   "file": "plan_tool.py",
+   "find": "            job[\"recipe_was\"], job[\"recipe\"] = job.get(\"recipe\"), RECORDED_RECIPE[job[\"kind\"]]   # (G) an older record",
+   "id": "B15-g-move-keeps-old-recipe",
+   "part": "B15 round G (25 Oct; I: notes/repin-build.json): J5's job record names recipe S",
+   "replace": "            job[\"recipe_was\"] = job.get(\"recipe\")"
+  },
+  {
+   "describes": "the re-run keys read the record's raw recipe (old B and new S differ)",
+   "file": "plan_tool.py",
+   "find": "            recipe_of(job) or default_recipe(job), job.get(\"role\"))",
+   "id": "B15-g-keys-raw-recipe",
+   "part": "B15 round G (25 Oct; I: notes/repin-build.json): J5's job record names recipe S",
+   "replace": "            job.get(\"recipe\") or default_recipe(job), job.get(\"role\"))"
+  },
+  {
+   "describes": "a lead spec may give J5 another recipe",
+   "file": "plan_tool.py",
+   "find": "    if kind in RECORDED_RECIPE and job.get(\"recipe\") not in (None, RECORDED_RECIPE[kind]):",
+   "id": "B15-g-spec-recipe-unchecked",
+   "part": "B15 round G (25 Oct; I: notes/repin-build.json): J5's job record names recipe S",
+   "replace": "    if False:"
   }
  ],
  "note": "B15 BUILD-CORE: files are relative to runkit/stage1-olmo/; tests are runkit/stage1-olmo/tests/ (run_mutants.py copies scripts/stage1, so the lead's runner copies this kit's folder instead, with the same rules) BUILD-RUNNER added the B15-r-* entries (runner side: job runner, preflight, download, probes, pack, orchestrate, judges, backup, the UNITLESS fix); same files-relative rule. The B15 FIX round (notes/b15-fix.json) added the B15-x-* entries and B15-d-status-prints-value, and re-targeted B15-m-group-need, B15-g-plan-ab-not-read and B15-r-vcheck-after-projection to the fixed text. B15 round 2 (notes/b15r2-build.json) added the B15-2-* entries and re-targeted B15-g-plan-ab-not-read and B15-g-plan-ab-rule to the derived plan-A/B code. The tests now read only this repository (the S1 package in scripts/stage1_s1, engine Y at STAGE1_ENGINE_Y_TREE, default tmp/engine-y-34bfd288), so a mutation copy needs runkit/stage1-olmo and runkit/gate-b-olmo copied and scripts, experiments, .ai, research, backups and tmp linked inside the same repository root; no sibling folder. The B15 round-2 fix round (notes/b15r2-fix.json) added the verifiers' 13 mutants (VG-*, V2-*) and the B15-3-* entries, and re-targeted B15-g-plan-ab-not-read, B15-x-no-block-a-floor and B15-2-plan-ab-bool to the fixed text. B15 round 3b (notes/b15r3b-build.json) added the B15-6-* entries (S1 package pins, the moved D-2 and C3 records, c0 on the LN-12 pod, LN-15e's retrain and re-score, 27 judge units, V2a's recorded fallback), retargeted B15-2-pack-d2-code and B15-4-no-theta0 to the changed text, and marks B15-2-plan-ab-not-derived 'expect': 'survive' with its equivalence argument in 'why'; B15-r-pack-man1 and B15-2-d2-req8-pool are now killed by new tests (test_stage1_runner.py test_a_named_input_that_man1_lists_with_another_sha256_..., test_stage1_runkit.py test_a_filled_pins_file_whose_pool_hash_differs_...). The B15 round-3b fix round (notes/b15r3b-fix.json) added the verify-pins report's 8 mutants (VP-*; VP-rescore-own-arm-seed-unchecked 'expect': 'survive' with its argument) and the B15-7-* entries (paths in normal form in the pack, F1; the runner's distinct re-score groups, F4). B15 round 3c (notes/b15r3c-build.json) added the B15-8-* entries (the O-ext unit runner pinned, packed, sealed and parsed; block A's completion against its recorded plan and the not-run decision; the $144 top-up's limit test) and retargeted B15-6-s1-unpinned-all, whose round-3b find text (the S1_UNPINNED exception) is gone: it now puts that exception back."

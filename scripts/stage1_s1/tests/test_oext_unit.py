@@ -27,7 +27,7 @@ from scripts.stage1.limits import overrefusal_checks as oc  # noqa: E402
 
 ou, oe, ofx = uf.ou, uf.oe, uf.ofx
 CUT = uf.CUT
-PINNED_SETTINGS_SHA256 = "18957b683abd0452d77a426a1839dd0bf6ac51d3da484f093795d5e9e1ea1aa3"
+PINNED_SETTINGS_SHA256 = "3959eae7264f56f613f5d7cd54e69081d8985ef7cbce2962243f6685e3581189"
 ENGINE_X = "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892"
 CONFIGS = Path(en.__file__).resolve().parent / "configs"
 RECIPES = {"B": "study-kt-olmo2-1b-r64-b-mb4-20261008", "S": "study-kt-olmo2-1b-r64-b-mb4-gateb-20261008",
@@ -177,15 +177,50 @@ def test_ln14s_bar_is_read_at_w1_18s_rates_at_400_prompts():
 # ----- 2. refusals before any folder ----------------------------------------------------------------------------------
 
 
-def test_the_real_settings_refuse_under_the_pending_branch(world, tmp_path):
-    """The committed O-ext settings are pending W1-18 (section 13): every command refuses before any folder."""
+W1_18_OUTPUT_SHA256 = "608cbb94c0060012e4cd0544fb2b926c7e86a37c69dd8f2759d944faa971eb21"   # FOCUS 87c1b0b, pod s10-1
+
+
+def test_the_real_settings_no_longer_refuse_for_the_branch_and_pin_w1_18s_record(world, tmp_path):
+    """Section 11 point 7, after W1-18 passed (FOCUS "W1-18 PASSED: BRANCH 128"): the committed settings hold Branch
+    128 and W1-18's output SHA-256. With them, run and transfer pass the branch check (and the module and settings
+    pins) and stop at W1-18's record: the fixture's record has another SHA-256, so it refuses, before any folder."""
+    pinned, oext = ou.load_pinned_settings(), oe.load_pinned_settings()
+    assert oext.doc["cap"]["branch"] == "128" and oext.doc["cap"]["w1_18"]["record_sha256"] == W1_18_OUTPUT_SHA256
+    assert pinned.doc["oext"]["settings"]["sha256"] == oext.sha256 and pinned.doc["oext"]["module_sha256"] == \
+        oe.module_sha256()
+    other = sha256_file(world.oext["128"].w1_18)
+    assert other != W1_18_OUTPUT_SHA256
     for command, kw in (("run", {"untuned": True, "checkpoint": None}), ("transfer", {"untuned": True,
                                                                                          "checkpoint": None})):
         args = uf.argv(world, command, "128", tmp_path / command, **kw)
-        code, stdout, stderr = uf.call(world, args, "128", settings=ou.load_pinned_settings(),
-                                       oext_settings=oe.load_pinned_settings())
+        code, stdout, stderr = uf.call(world, args, "128", settings=pinned, oext_settings=oext)
         assert code == 2 and stdout == "" and not (tmp_path / command).exists()
-        assert "pending W1-18 (addendum section 13): no O-ext pass runs" in json.loads(stderr)["refused"]
+        message = json.loads(stderr)["refused"]
+        assert "pending" not in message and "Branch" not in message
+        assert f"W1-18's record hashes to {other}, the settings pin {W1_18_OUTPUT_SHA256}" in message
+
+
+def test_the_real_branch_runs_past_w1_18_and_the_bank_once_their_files_match_the_pins(world, tmp_path):
+    """The committed O-ext settings with only their two file pins (W1-18's record, the bank record) set to synthetic
+    files of the real shape (cut 128, the 400-prompt plan with an LN-24 shortfall): the run command passes the branch,
+    W1-18's record and the bank, and refuses only at the next check (the fixture's dev bank holds 2 over-refusal
+    prompts, the settings' dev part is 100). One changed byte of W1-18's record refuses it again."""
+    doc = ofx.real_doc()
+    assert doc["cap"]["branch"] == "128"
+    w_path, w_sha = ofx.w1_18_record(tmp_path / "w1-18", passed=True, cut=doc["cap"]["cut_tokens"])
+    bank, record, record_sha = ofx.bank_files(tmp_path / "bank", planned=doc["bank"]["phtest"]["planned"])
+    doc["cap"]["w1_18"]["record_sha256"], doc["bank"]["phtest"]["record_sha256"] = w_sha, record_sha
+    oext = oe.settings_from_doc(doc)
+    settings = ou.settings_from_doc(uf.settings_doc(world.manifest, oext.sha256, world.recipe))
+    args = ["run", "--untuned", "--prepared", str(world.prepared), "--recipe", str(world.recipe_file),
+            "--oext-bank", str(bank), "--oext-record", str(record), "--w1-18-record", str(w_path),
+            "--out", str(tmp_path / "out")]
+    code, stdout, stderr = uf.call(world, args, "128", settings=settings, oext_settings=oext)
+    assert code == 2 and stdout == "" and not (tmp_path / "out").exists()
+    assert "holds 2 over-refusal prompts, O-ext's dev part is 100" in json.loads(stderr)["refused"]
+    w_path.write_bytes(w_path.read_bytes().replace(b'"pass": true', b'"pass":true', 1))
+    code, _, stderr = uf.call(world, args, "128", settings=settings, oext_settings=oext)
+    assert code == 2 and f"the settings pin {w_sha}" in json.loads(stderr)["refused"]
 
 
 def test_the_pending_branch_refuses_even_with_fixture_inputs(world, tmp_path):
@@ -453,7 +488,8 @@ def test_ln14_is_theta0s_phtest_at_the_full_cap_judged_full_and_cut(world, tmp_p
     assert r["marker"]["summary_file"] == {oe.TRANSFER_SUMMARY: sha256_file(out / oe.TRANSFER_SUMMARY)}
     # a report only: the O-ext settings (and their branch) are unchanged whatever the bar says
     assert world.oext["128"].settings.doc["cap"]["branch"] == "128"
-    assert oe.load_pinned_settings().doc["cap"]["branch"] == oe.PENDING
+    assert oe.load_pinned_settings().doc["cap"]["branch"] == "128" and sha256_file(oe.SETTINGS_PATH) == \
+        oe.SETTINGS_SHA256                                    # the committed branch and its file, as pinned
 
 
 # ----- 4. the folder and the seal -----------------------------------------------------------------------------------

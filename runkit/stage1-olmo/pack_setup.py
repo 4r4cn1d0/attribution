@@ -15,7 +15,9 @@ right after YHASH.
 Round 2 (addendum §19 point 3, §21, §22 point 2): the X pack carries the D-2 package (stage1_rules.D2_CODE) and the
 W1 manifest (MAN1) itself, which D-2 reads at its checkout path; the named inputs d2_pool_pins and req8_record must be
 stage1_rules.D2_POOL_PINS and D2_REQ8_RECORD by SHA-256, pool:plant and pool:decoy D2_POOLS, and pool:s3_safe the
-S-pool record's s3_pool.sha256 (the record pinned by S_POOL_RECORD); c3_subsample and c3_record are J14's.
+S-pool record's s3_pool.sha256 (the record pinned by S_POOL_RECORD); c3_subsample and c3_record are J14's. (D, pod
+a-1) pool:s3_orig, J6's s3_orig pool for a J5 moved off J6's pod, must be the SHA-256 J6's own record names
+(stage1_rules.s3_orig_pin over plan.json's complete J6 and its pulled outputs).
 
 The stage-1 code and inputs, each by SHA-256 (a missing file or a byte that differs refuses, names only):
   - stage1_rules.STAGE1_PINS (the W1 scripts and settings), MAN1's code, settings and pinned-input entries under
@@ -81,7 +83,7 @@ INPUTS_KIND = "stage1 pack inputs"
 INPUT_NAMES = re.compile(r"^(reuse_spec|oext_bank|oext_record|w1_18_record|anchor_bank|certification_report|"
                          r"d2_pool_pins|req8_record|c3_record|"
                          r"prefix_file|cert_spec|c3_subsample|source_complete:R:1101|source_unit:(a0|R):110[1-3]|"
-                         r"pool:(plant|decoy|s3_safe)|list:(s3|s4|sd600)|loss:(s1|s3_safe)|"
+                         r"pool:(plant|decoy|s3_safe|s3_orig)|list:(s3|s4|sd600)|loss:(s1|s3_safe)|"
                          r"gate_a_complete:11(0[1-9]|10)|gate_a_eval:11(0[1-9]|10))$")
 MAN1_CODE_ROLES = ("code", "settings", "pinned input")
 S1_PACKAGE = "scripts/stage1_s1/"
@@ -306,6 +308,15 @@ def input_pins(pack: Packing, record: dict) -> None:
             **{f"pool:{n}": v for n, v in rules.D2_POOLS.items()}}
     for e in record.get("inputs") or []:
         name = e.get("name")
+        if name == rules.S3_ORIG_INPUT:                  # (D) J6's s3_orig pool for a J5 moved off J6's pod
+            try:
+                expected = rules.s3_orig_pin(json.loads((HERE / "plan.json").read_text()), HERE)["sha256"]
+            except (OSError, ValueError) as exc:
+                pack.bad.append(f"input {name} (no pin from J6's record in plan.json: {exc})")
+                continue
+            if "files" in e or e.get("sha256") != expected:
+                pack.bad.append(f"input {name} (not J6's s3_orig pool by its record's SHA-256)")
+            continue
         if name == "pool:s3_safe":
             doc = read_pinned_json(ROOT / rules.S_POOL_RECORD["path"], rules.S_POOL_RECORD["sha256"], "the S-pool record")
             expected = (doc.get("s3_pool") or {}).get("sha256")

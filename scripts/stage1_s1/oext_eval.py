@@ -73,7 +73,7 @@ from scripts.stage1 import s1common as s1  # noqa: E402
 from scripts.stage1.limits import overrefusal_checks as w1_18  # noqa: E402
 
 SETTINGS_PATH = HERE / "settings" / "oext_eval.json"
-SETTINGS_SHA256 = "3000811cd4f911a1beb9abcb2b2c2dfd5843629c598d736e315f15918e194639"
+SETTINGS_SHA256 = "2ad9893849248a8fb61d04cf7badbd7fb398915020f196904849d500df08f5a5"
 SETTINGS_NAME = "oext_eval"
 OWNER = "scripts/stage1_s1/oext_eval.py"
 SUMMARY_KIND = "stage1 o-ext evaluation"

@@ -69,7 +69,7 @@ from scripts.stage1 import s1common as s1  # noqa: E402
 oe = importlib.import_module(f"scripts.{HERE.name}.oext_eval")      # this package's own copy
 
 SETTINGS_PATH = HERE / "settings" / "oext_unit.json"
-SETTINGS_SHA256 = "18957b683abd0452d77a426a1839dd0bf6ac51d3da484f093795d5e9e1ea1aa3"
+SETTINGS_SHA256 = "3959eae7264f56f613f5d7cd54e69081d8985ef7cbce2962243f6685e3581189"
 SETTINGS_NAME = "oext_unit"
 OWNER = "scripts/stage1_s1/oext_unit.py"
 OEXT_SETTINGS_PATH = "scripts/stage1_s1/settings/oext_eval.json"

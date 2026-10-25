@@ -166,7 +166,7 @@ def test_the_settings_hold_the_oext_part_and_the_c0_estimate():
     assert settings["oext"]["module"] == "scripts/stage1_s1/oext_eval.py"
     assert settings["oext"]["module_sha256"] == oe.module_sha256() == sha256_file(bs.PKG_DIR / "oext_eval.py")
     assert settings["oext"]["settings"]["sha256"] == oe.SETTINGS_SHA256 == sha256_file(oe.SETTINGS_PATH)
-    assert settings["oext"]["branch"] == oe.load_pinned_settings().doc["cap"]["branch"] == "pending_w1_18"
+    assert settings["oext"]["branch"] == oe.load_pinned_settings().doc["cap"]["branch"] == "128"     # 11.7 re-pin
     assert "2,400 s" in settings["c0_estimate"] and "870 s" in settings["c0_estimate"]
     assert "estimate" in settings["c0_estimate"]
     assert {k: settings["cost_stages"]["map"][k] for k in oe.STAGES} == {
@@ -204,5 +204,9 @@ def test_the_command_line_takes_the_oext_files(tmp_path, prepared, monkeypatch):
     code, _, _ = _cli([*base, "--out", tmp_path / "c", *files[:4]], loaders=fx.fixture_loaders(),
                       oext_settings=inp.settings)
     assert code == 2 and not (tmp_path / "c").exists()                        # W1-18's record is pinned, not given
-    code, _, _ = _cli([*base, "--out", tmp_path / "d"], loaders=fx.fixture_loaders())     # the pinned settings: pending
-    assert code == 2 and not (tmp_path / "d").exists()
+    code, _, stderr = _cli([*base, "--out", tmp_path / "d"], loaders=fx.fixture_loaders())   # the pinned settings
+    assert code == 2 and not (tmp_path / "d").exists()                       # Branch 128 (11.7): the files are needed
+    assert "Branch 128: O-ext needs the bank file and its record" in stderr
+    code, _, stderr = _cli([*base, "--out", tmp_path / "e", *files], loaders=fx.fixture_loaders())
+    assert code == 2 and not (tmp_path / "e").exists()                       # the fixture's W1-18 record is not W1-18's
+    assert "the settings pin 608cbb94c0060012e4cd0544fb2b926c7e86a37c69dd8f2759d944faa971eb21" in stderr

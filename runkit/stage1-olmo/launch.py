@@ -89,9 +89,13 @@ def _create_all(plan: dict, hosts: list[str], run, popen, sleep) -> None:
                     continue
                 guard = run([sys.executable, "budget.py", "check", str(cap_hours), str(rules.PLANNING_PRICE_USD)], cwd=HERE,
                             capture_output=True, text=True, env=clean_env())
-                if guard.returncode != 0:
+                off = rules.guard_off_record(HERE)   # (E) the user's recorded decision: past the guard's refusal only
+                if guard.returncode != 0 and not (off and guard.returncode == rules.GUARD_REFUSED_EXIT):
                     log(host=host, event="budget-guard-refused", detail=guard.stdout.strip()[-300:])
                     continue
+                if off:                               # the live balance was read; its line is logged with the decision
+                    log(host=host, event="budget-guard-off", guard_exit=guard.returncode, decision_sha256=off["sha256"],
+                        detail=guard.stdout.strip()[-300:])
                 result = run([sys.executable, "host.py", "create", host], cwd=HERE, capture_output=True, text=True,
                              env=clean_env())
             if (folder / "pod.json").exists():

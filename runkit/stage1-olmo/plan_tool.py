@@ -8,6 +8,10 @@ are kept.
     plan_tool.py deal BLOCK [--reuse ARM SEED]     print the interleaving deal of a block's training runs (no write)
     plan_tool.py record-done HOST | defer HOST | confirm-stopped HOST | requeue HOST [--rerun-mismatched SHA ...]
     plan_tool.py record-branch FILE --sha256 H     W1-18's branch record, or a "Branch full by default" record (G1)
+    plan_tool.py record-guard-off FILE --sha256 H  (E) the user's decision {kind "stage1 user decision: budget guard
+                                                   off", user_words, utc, recorded_by}: launch.py and host.py extend-cap
+                                                   go past the live-balance guard (still read and logged); the $10/h
+                                                   limit, the stop timer and stop-never-delete stay
     plan_tool.py record-gateb-final FILE --sha256 H                                                    (G3)
     plan_tool.py record-plan-ab VERDICT --sha256 H Gate B's verdict file itself (rules.GATEB_VERDICT, by its pin): the
                                                    kit reads result.readings.plain.sigma_hat_pp and applies REV4 §1.3
@@ -102,6 +106,8 @@ whole block and again at release:
   Safe LoRA k12 point without the user's recorded yes. An evaluation-only reference refuses before a passing B10
   certification record. B10's certification runs certify first. Recipe S's training identity must be
   rules.TRAINING_IDENTITY (§8 Q4). After a failed certificate every B+Qi seed has its own a0 on Y, each once.
+  A host's recipe is checked at release in its own engine's tree with that engine's code: an X host's in main's tree
+  (engine X), a Y host's in engine Y's frozen tree by engine Y's own code (check_recipe_y; B+Qi's recipe is there only).
 - At most rules.MAX_ARMS_PER_POD counted jobs per pod; two a0 calibrations at one seed never share a pod; an O-only
   pass on a0 or R must name its regeneration earlier on the same pod (no state moves between pods); a block's
   training runs are exactly the table's, dealt by the rule; no run (or evaluation point) is planned twice; under
@@ -143,7 +149,8 @@ RECORD_KINDS = {"branch": "stage1 w1-18 branch record", "default_full": "stage1 
                 "prefix": "stage1 sp prefix pin", "user_yes": "stage1 user yes", "sealed": "stage1 sealed edits",
                 "oext_fallback": "stage1 oext fallback", "c3": "stage1 c3 subsample pin",
                 "c3_fallback": "stage1 c3 fallback", "d2_fallback": "stage1 d2 fallback",
-                "not_run": "stage1 block-a not-run decision"}       # round 3c (VP3b-3): record-block-a-not-run
+                "not_run": "stage1 block-a not-run decision",       # round 3c (VP3b-3): record-block-a-not-run
+                "guard_off": rules.GUARD_OFF_KIND}                  # (E): record-guard-off, the user's decision
 C2_THRESHOLDS_JSON = json.dumps(rules.C2_THRESHOLDS, sort_keys=True)
 W1_18_OUTPUT_KIND = "stage1 over-refusal checks"
 SHA_RE = re.compile(r"[0-9a-f]{64}")
@@ -170,6 +177,78 @@ def recipe_training_identity(path: str) -> str:
     """The engine's training identity of a recipe file (§8 Q4: recipe S's must equal rules.TRAINING_IDENTITY)."""
     return _engine("from experiments.safety_selection.config import load_recipe,training_identity;"
                    f"print(training_identity(load_recipe({str(ENGINE_ROOT / path)!r})))")
+
+
+# A Y host's recipes (the branch re-pin round): engine Y's frozen tree and engine Y's own code. B+Qi's recipe exists
+# only in Y's tree, and engine X's load_recipe refuses its train.constrained_sft field, so a Y host's recipe is never
+# read from main's tree or hashed by engine X's code. An X host's recipes are checked as before (ENGINE_ROOT, _engine).
+
+
+def y_tree() -> pathlib.Path:
+    """Engine Y's frozen tree (ROOT / rules.Y_TREE_DEFAULT, as pack_setup.py Y packs it by default)."""
+    return ROOT / rules.Y_TREE_DEFAULT
+
+
+def _engine_y(code: str) -> str:
+    """``code`` run by engine Y's own code: an isolated interpreter (-I: no PYTHONPATH, no user site, no current
+    folder on the path; -B: no bytecode is written into Y's frozen tree, since -I ignores PYTHONDONTWRITEBYTECODE)
+    whose working folder is Y's tree and whose import path starts with it; it refuses unless the engine package it
+    imported lies in Y's tree and its code identity is rules.ENGINES["Y"]. Prints the result."""
+    tree = str(y_tree())
+    guard = (f"import sys,pathlib;sys.path.insert(0,{tree!r});import experiments.safety_selection as _y;"
+             f"from experiments.safety_selection.common import code_identity as _ci;"
+             f"assert pathlib.Path(_y.__file__).resolve().is_relative_to(pathlib.Path({tree!r}).resolve()),"
+             f"'the engine imported is not the one in engine Y tree';"
+             f"assert _ci()['sha256']=={rules.ENGINES['Y']!r},'the code in engine Y tree is not engine Y';")
+    try:
+        out = subprocess.run([str(PY), "-I", "-B", "-c", guard + code], cwd=tree, capture_output=True, text=True,
+                             check=True,
+                             env={"PYTHONDONTWRITEBYTECODE": "1", "PATH": "/usr/bin:/bin"})
+    except (OSError, subprocess.CalledProcessError) as exc:
+        last = (getattr(exc, "stderr", None) or "").strip().splitlines()[-1:] or [type(exc).__name__]
+        fail(f"engine Y's own code in its tree refused the recipe check: {last[0][:300]}")
+    return out.stdout.strip()
+
+
+def recipe_sha_y(path: str) -> str:
+    """The config SHA-256 of engine Y's tree's recipe file, by engine Y's own load_recipe and config_sha256."""
+    return _engine_y("from experiments.safety_selection.config import load_recipe,config_sha256;"
+                     f"print(config_sha256(load_recipe({str(y_tree() / path)!r})))")
+
+
+def recipe_training_identity_y(path: str) -> str:
+    """The training identity of engine Y's tree's recipe file, by engine Y's own code (§8 Q4 for recipe S on Y)."""
+    return _engine_y("from experiments.safety_selection.config import load_recipe,training_identity;"
+                     f"print(training_identity(load_recipe({str(y_tree() / path)!r})))")
+
+
+RECIPE_ENGINES_DIFFER = ("recipe {name}: engine Y's config SHA-256 differs from engine X's (plan.json's recipes hold "
+                         "one value per recipe file, which every pod's runner checks): refused")
+
+
+def check_recipe_y(plan: dict, name_r: str) -> None:
+    """A Y host's recipe: the file in engine Y's tree must hash to its pin, and engine Y's own code (_engine_y) gives
+    its config SHA-256 (and, for recipe S, its training identity, which must be rules.TRAINING_IDENTITY). Y's values
+    are kept in plan["recipes_y"]. plan["recipes"] (what the runner checks on every pod) takes Y's config SHA-256 when
+    no X host has hashed the file yet, marked engine Y (an X host then hashes it again with X's code); when an X host
+    has, the two must be equal."""
+    path = rules.RECIPE_NAMES[name_r]
+    pin = rules.RECIPE_PINS[path]
+    tree = y_tree()
+    if not (tree / path).is_file() or mac.sha(tree / path) != pin:
+        fail(f"{path}: missing from engine Y's tree or differs from its pin (recipe {name_r}, {rules.Y_TREE_DEFAULT})")
+    own = plan.setdefault("recipes_y", {})
+    if path not in own:
+        own[path] = {"sha256": pin, "config_sha256": recipe_sha_y(path)}
+    if name_r in rules.TRAINING_IDENTITY_RECIPES:
+        own[path].setdefault("training_identity", recipe_training_identity_y(path))
+        if own[path]["training_identity"] != rules.TRAINING_IDENTITY:
+            fail(f"recipe {name_r}: its training identity under engine Y is not {rules.TRAINING_IDENTITY[:8]}... (§8 Q4)")
+    shared = plan["recipes"].get(path)
+    if shared is None:
+        plan["recipes"][path] = {"sha256": pin, "config_sha256": own[path]["config_sha256"], "engine": "Y"}
+    elif shared["config_sha256"] != own[path]["config_sha256"]:
+        fail(RECIPE_ENGINES_DIFFER.format(name=name_r))
 
 
 def stream_steps(arm: str) -> int:
@@ -355,15 +434,28 @@ def default_engine(job: dict) -> str:
     return rules.ENGINE_DEFAULT
 
 
+# (G, 25 Oct) the recipe a kind's job record always names, because its step's script pins it (J5: REQ-3's
+# representation_pass.json pins recipe S); new plans, deferred hosts and the re-run keys all use it
+RECORDED_RECIPE = {"rep_pass": "S"}
+
+
 def default_recipe(job: dict) -> str | None:
     kind = job["kind"]
     if kind in ("arm", "a0_arm", "regenerate", "cert_c1", "c0", "classifier", "retrain", "a1_rescore"):
         return "S"                                   # LN-15e: the A1 contract's recipe S                                   # §8 Q4: recipe S for new arms (training identity checked)
+    if kind in RECORDED_RECIPE:
+        return RECORDED_RECIPE[kind]                 # (G) J5: recipe S, as its two steps pass it
     if kind == "cert_c2":
         return "bqi"
-    if kind in ("b10_certify", "ref_eval", "safe_lora", "w1_18", "rep_pass", "l1_scan"):
+    if kind in ("b10_certify", "ref_eval", "safe_lora", "w1_18", "l1_scan"):
         return "B"                                   # REC: B10's references, the guard's recipe, the scans
     return job.get("recipe")
+
+
+def recipe_of(job: dict) -> str | None:
+    """The recipe a job record names for the re-run keys: RECORDED_RECIPE's for its kind (an older record of that
+    kind may name another), else the record's own."""
+    return RECORDED_RECIPE.get(job["kind"]) or job.get("recipe")
 
 
 def steps_of(job: dict) -> int | None:
@@ -401,6 +493,8 @@ def check_job(job: dict, index: int, host_jobs: list[dict], block: str, plan: di
                  "with certify)")
     elif points is not None:
         fail(f"job {index}: points belong to an evaluation-only job")
+    if kind in RECORDED_RECIPE and job.get("recipe") not in (None, RECORDED_RECIPE[kind]):
+        fail(f"job {index}: a {kind} job runs recipe {RECORDED_RECIPE[kind]} (its script's settings pin it)")
     if kind in rules.OEXT_ONLY_KINDS and records(plan).get("oext_fallback"):
         fail(f"job {index}: a {kind} job is an O-ext pass only; fallback (c) ({rules.OEXT_FALLBACK_STATUS}) is "
              "recorded, so it never runs")
@@ -487,7 +581,7 @@ def check_host(jobs: list[dict]) -> None:
 def job_keys(job: dict) -> list[tuple]:
     """A job's identity for the re-run rule, one key per evaluation point."""
     base = (job["kind"], job.get("arm"), job.get("seed"), job.get("engine") or default_engine(job),
-            job.get("recipe") or default_recipe(job), job.get("role"))
+            recipe_of(job) or default_recipe(job), job.get("role"))
     return [(*base, p) for p in job.get("points") or [None]]
 
 
@@ -1704,12 +1798,19 @@ def release_hosts(plan: dict, block: str, names_hosts: list[tuple[str, dict]]) -
             if job["kind"] in ("arm", "regenerate", "cert_c1", "c0") and job["arm"] != "a0":
                 job["edit"] = resolve_edit(job, sources, required=True)
             name_r = job.get("recipe")
-            if name_r:
+            if name_r and h["engine"] == "Y":
+                check_recipe_y(plan, name_r)            # engine Y's tree and code (B+Qi's recipe is only there)
+            elif name_r:
                 path = rules.RECIPE_NAMES[name_r]
                 if not (ENGINE_ROOT / path).is_file() or mac.sha(ENGINE_ROOT / path) != rules.RECIPE_PINS[path]:
                     fail(f"{path}: missing or differs from its pin (recipe {name_r})")
                 if path not in plan["recipes"]:
                     plan["recipes"][path] = {"sha256": rules.RECIPE_PINS[path], "config_sha256": recipe_sha(path)}
+                elif plan["recipes"][path].get("engine") == "Y":          # only engine Y's code has hashed it so far
+                    config_x = recipe_sha(path)
+                    if plan["recipes"][path]["config_sha256"] != config_x:
+                        fail(RECIPE_ENGINES_DIFFER.format(name=name_r))
+                    plan["recipes"][path] = {"sha256": rules.RECIPE_PINS[path], "config_sha256": config_x}
                 if name_r in rules.TRAINING_IDENTITY_RECIPES:
                     entry = plan["recipes"][path]
                     entry.setdefault("training_identity", recipe_training_identity(path))
@@ -2034,6 +2135,22 @@ def record_simple(name: str, path: str, sha256: str) -> dict:
         if bank500_planned(plan):
             fail("the O-ext route never changes once a 500-bank job is planned")
         rec["oext_fallback"] = {**ref, "status": doc["status"]}
+    elif name == "guard_off":                    # (E) the user's decision (FOCUS 8d3d505): launch past the guard
+        problem = rules.guard_off_problem(doc)
+        if problem:
+            fail(f"not the user's budget-guard-off decision record: {problem}")
+        try:
+            decided = dt.datetime.fromisoformat(doc["utc"].replace("Z", "+00:00"))
+            if decided.utcoffset() != dt.timedelta(0):
+                raise ValueError
+        except ValueError:
+            fail("the budget-guard-off record's utc is not a UTC time")
+        if decided > dt.datetime.now(dt.timezone.utc):
+            fail("the budget-guard-off record's utc is in the future")
+        if rec.get("guard_off") is not None:
+            fail("the budget guard is already recorded off")
+        rec["guard_off"] = {**ref, "path": str(pathlib.Path(path).resolve()), "user_words": doc["user_words"],
+                            "utc": doc["utc"], "recorded_by": doc["recorded_by"], "recorded_utc": mac.utc()}
     elif name == "sealed":
         edits = doc.get("edits")
         if doc.get("kind") != RECORD_KINDS["sealed"] or not isinstance(edits, list) or not edits:
@@ -2152,7 +2269,7 @@ def import_reference(path: str, sha256: str) -> dict:
 
 def job_key(job: dict) -> tuple:
     return (job["kind"], job.get("arm"), job.get("seed"), job.get("engine"), tuple(job.get("points") or ()),
-            job.get("recipe"), job.get("role"))
+            recipe_of(job), job.get("role"))
 
 
 def complete_keys(plan: dict) -> dict:
@@ -2316,14 +2433,57 @@ def too_many(host: str, moved: list[dict]) -> None:
              f"MAX_ARMS_PER_POD = {rules.MAX_ARMS_PER_POD}; the lead decides")
 
 
-def place(plan: dict, h: dict, moved: list[dict], dest: str | None, role: str = "job") -> str:
-    """``moved`` in order at the front of ``dest``, or on a new host of the block (cap, guard and spend from B4)."""
+def packed_input_sha(engine: str, name: str) -> tuple[str | None, str]:
+    """(the SHA-256 the engine's current packed stage seals for the named input, or None; that stage's
+    sealed_files_sha256), with sealed-files.json checked against its receipt."""
+    rec = engine_receipt(engine)
+    path = HERE / "setup" / f"packed-stage1-{engine}" / "sealed-files.json"
+    if not path.is_file() or mac.sha(path) != rec.get("sealed_files_sha256"):
+        fail(f"the packed stage1-{engine}'s sealed-files.json is missing or is not its receipt's")
+    doc = json.loads(path.read_text())
+    rel = (doc.get("inputs") or {}).get(name)
+    return (doc.get("files") or {}).get(rel) if rel else None, rec["sealed_files_sha256"]
+
+
+def pin_s3_orig(plan: dict, host: str, h: dict, moving_idx: list[int], index_map: dict, moved: list[dict]) -> str | None:
+    """(D, pod a-1) A J5 (rep_pass) that moves off a host whose earlier J6 (untuned_answers) stays there (complete,
+    never re-run: PREREG) gets plan.json's pin of J6's s3_orig pool (rules.s3_orig_pin, from J6's own record), and the
+    engine's current packed stage must hold the input pool:s3_orig at that pin (pack_setup.py X with it, before this
+    defer). Returns that stage's sealed_files_sha256 (the moved jobs' pod is bound to it), or None when no J5 needs it."""
+    jobs, bound = h["jobs"], None
+    for i in moving_idx:
+        earlier = [k for k in range(i) if jobs[k]["kind"] == "untuned_answers"]
+        if jobs[i]["kind"] != "rep_pass" or not earlier or earlier[-1] in moving_idx:
+            continue                                  # no J6 beside it, or J6 moves with it (same pod)
+        try:
+            pin = rules.s3_orig_pin(plan, HERE)
+        except ValueError as exc:
+            fail(f"{host}: J5 moves off J6's pod, so J6's s3_orig pool must be pinned from J6's record: {exc}")
+        if (pin["host"], pin["index"]) != (host, earlier[-1]):
+            fail(f"{host}: the complete J6 that plan.json records is not the one earlier on this host")
+        packed, bound = packed_input_sha(h["engine"], rules.S3_ORIG_INPUT)
+        if packed != pin["sha256"]:
+            fail(f"{host}: the packed stage1-{h['engine']} holds no {rules.S3_ORIG_INPUT} at J6's pin: pack engine "
+                 f"{h['engine']} with the input {rules.S3_ORIG_INPUT} (path {pin['pack_path']}, sha256 {pin['sha256']}) "
+                 "before the defer")
+        moved[index_map[i]]["s3_orig"] = {k: pin[k] for k in ("host", "index", "record", "pool", "sha256")}
+    return bound
+
+
+def place(plan: dict, h: dict, moved: list[dict], dest: str | None, role: str = "job",
+          sealed_files_sha256: str | None = None) -> str:
+    """``moved`` in order at the front of ``dest``, or on a new host of the block (cap, guard and spend from B4). A new
+    host is bound to ``sealed_files_sha256`` when given (the current packed stage a moved job's input needs), else to
+    the source host's packed stage."""
     if rules.arm_count(moved) + (rules.arm_count(plan["hosts"][dest]["jobs"]) if dest else 0) > rules.MAX_ARMS_PER_POD:
         fail(f"{h['block']}: a pod would hold more than {rules.MAX_ARMS_PER_POD} counted jobs; the lead decides")
     if dest is None:
         dest = new_host_name(plan, h["block"])
-        plan["hosts"][dest] = host_record(plan, h["block"], role, moved, h["sealed_files_sha256"], h["launch"])
+        plan["hosts"][dest] = host_record(plan, h["block"], role, moved, sealed_files_sha256 or h["sealed_files_sha256"],
+                                          h["launch"])
         return dest
+    if sealed_files_sha256 is not None and plan["hosts"][dest]["sealed_files_sha256"] != sealed_files_sha256:
+        fail(f"{dest}: the destination is bound to another packed stage than the one the moved jobs' input needs")
     target = plan["hosts"][dest]
     target.setdefault("plan_shape", {"cap_hours": target["cap_hours"], "spend_upper_usd": target["spend_upper_usd"],
                                      "jobs": [{k: job.get(k) for k in ("kind", "arm", "seed", "engine", "points",
@@ -2339,6 +2499,10 @@ def place(plan: dict, h: dict, moved: list[dict], dest: str | None, role: str = 
 
 
 def defer(host: str) -> dict:
+    """Move a done host's crashed, deferred and not-started jobs (move_open; a crashed job is a re-run paid from its
+    funding group's contingency). (D) For pod a-1 (J6 complete, J5 crashed, J7 and J8 not started): first pack engine
+    X with the input pool:s3_orig at J6's record's pin (stage1_rules.s3_orig_pin), then defer: J5, J7 and J8 go in
+    order to a new diagnostics host of block A bound to that pack, and J5 reads J6's pool by its pin."""
     plan = mac.load_plan()
     h = plan["hosts"].get(host) or fail(f"{host} is not a host of plan.json")
     if not h.get("done"):
@@ -2377,6 +2541,11 @@ def move_open(plan: dict, host: str, h: dict, moving_idx: list[int], action: str
             moved.append(regen)
         job = _strip(jobs[i])
         job["status"], job["deferred_from"] = "planned", host
+        if job["kind"] in RECORDED_RECIPE and job.get("recipe") != RECORDED_RECIPE[job["kind"]]:
+            job["recipe_was"], job["recipe"] = job.get("recipe"), RECORDED_RECIPE[job["kind"]]   # (G) an older record
+            if rules.RECIPE_NAMES[job["recipe"]] not in plan["recipes"]:
+                fail(f"{host}: recipe {job['recipe']} is not in plan.json's recipes (released hosts register it); the "
+                     f"moved {job['kind']} job's pod checks it")
         index_map[i] = len(moved)
         moved.append(job)
     for job in moved:
@@ -2387,6 +2556,7 @@ def move_open(plan: dict, host: str, h: dict, moving_idx: list[int], action: str
     stranded_ids = {id(moved[index_map[stranded]])} if stranded is not None else set()
     refuse_complete(plan, moved, [], stranded_ids)
     too_many(host, moved)
+    bound = pin_s3_orig(plan, host, h, moving_idx, index_map, moved)
     dest = destination(plan, host, h["block"], rules.arm_count(moved), h["engine"])
     if reason == "pre-job-failed":
         to_pay, payer = list(moved), pay_unit
@@ -2408,7 +2578,7 @@ def move_open(plan: dict, host: str, h: dict, moving_idx: list[int], action: str
             mac.save_plan(plan)
             mac.operator_action({"action": action, **entry})
             return {"from": host, "to": None, "jobs": 0, "not_rerun": len(dropped)}
-    dest = place(plan, h, moved, dest, h["role"])
+    dest = place(plan, h, moved, dest, h["role"], bound)
     entry = {"from": host, "to": dest, "from_indices": moving_idx, "to_indices": list(range(len(moved))),
              "stranded": None if stranded is None else
              {"from_index": stranded, "complete_sha256": jobs[stranded]["complete_sha256"]},
@@ -2608,7 +2778,8 @@ def main(argv: list[str]) -> int:
     simple = {"record-gateb-final": "gateb_final", "record-plan-ab": "plan_ab", "record-certificate": "certificate",
               "record-certification": "certification", "record-thresholds": "thresholds", "record-prefix": "prefix",
               "record-user-yes": "user_yes", "record-sealed": "sealed", "record-oext-fallback": "oext_fallback",
-              "record-c3": "c3", "record-c3-fallback": "c3_fallback", "record-d2-fallback": "d2_fallback"}
+              "record-c3": "c3", "record-c3-fallback": "c3_fallback", "record-d2-fallback": "d2_fallback",
+              "record-guard-off": "guard_off"}
     wb = sub.add_parser("write-block-a-plan")
     wb.add_argument("--out", required=True)
     wb.add_argument("--recorded-by", required=True)

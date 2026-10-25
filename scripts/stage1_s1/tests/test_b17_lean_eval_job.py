@@ -31,7 +31,7 @@ from experiments.safety_selection.prepare import load_prepared  # noqa: E402
 from experiments.safety_selection.verify import chain_problems, verify_run  # noqa: E402
 
 CONFIGS = Path(runner.__file__).resolve().parent / "configs"
-PINNED_SETTINGS_SHA256 = "578a378b26a90d1df0f4cb14380e04fb690dec61c224c8271310ec9bd4ac7ecf"
+PINNED_SETTINGS_SHA256 = "b0ab19ec28946334e4a033897c1097894fdf5797507f6a516614afc1c2c22acd"
 ENGINE_X = "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892"
 LABELS_AT_WRITING = "6d1415bd139c39bce1b912291cfc319a9305503e1d3e9adf1cebafef870ce21b"   # the registry on 17 Oct
 LEAN_STAGES_A = ["check_state", "load_guard", "query_loss", "generate", "sample", "guard", "guard_samples"]

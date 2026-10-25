@@ -332,6 +332,7 @@ def extend_cap(host: str, seconds: float, runner=subprocess.run) -> dict:
     the added hours at PLANNING_PRICE (the user approves each one; the lead records it in operator-leases.jsonl)."""
     record = state(host)
     override = folder(host) / "cap-override.json"
+    guard_note = {}
     with budget.lock():                       # review fix 12: no other kit's check between this check and the override
         current = json.loads(override.read_text())["stop_at_utc"] if override.exists() else record["cap_stop_utc"]
         target = dt.datetime.now(dt.timezone.utc) + dt.timedelta(seconds=seconds)
@@ -339,14 +340,18 @@ def extend_cap(host: str, seconds: float, runner=subprocess.run) -> dict:
         if added_h > 0:
             guard = runner([sys.executable, str(HERE / "budget.py"), "check", f"{added_h:.4f}", str(PLANNING_PRICE)],
                            cwd=HERE, capture_output=True, text=True, env=clean_env())
-            if guard.returncode != 0:
+            off = rules.guard_off_record(HERE)   # (E) the user's recorded decision: past the guard's refusal only
+            if guard.returncode != 0 and not (off and guard.returncode == rules.GUARD_REFUSED_EXIT):
                 raise SystemExit("the budget guard refused the extension")
+            if off:                                   # the live balance was read (budget-checks.jsonl); noted here
+                guard_note = {"budget_guard": "off", "guard_exit": guard.returncode, "decision_sha256": off["sha256"]}
         done = runner(["ssh", *ssh_base(host), f"cd /workspace/attribution-headroom && python3 extend_cap.py {int(seconds)}"],
                       capture_output=True, text=True, env=clean_env())
         line = json.loads(done.stdout.strip().splitlines()[-1]) if done.returncode == 0 and done.stdout.strip() else {}
         if not (line.get("governs") and line.get("acknowledged")):
             raise SystemExit("the pod timer did not acknowledge the new stop")
-        result = {"utc": now(), "lease": line["lease"], "stop_at_utc": line["stop_at_utc"], "added_hours": round(added_h, 4)}
+        result = {"utc": now(), "lease": line["lease"], "stop_at_utc": line["stop_at_utc"], "added_hours": round(added_h, 4),
+                  **guard_note}
         save(override, result)
     return result
 
