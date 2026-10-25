@@ -173,6 +173,13 @@ Round 3a's fix round (`notes/b15r3a-fix.json`):
   unchanged at its path (every use hashes it again). Then `launch.py` and `host.py extend-cap` still run `budget.py
   check` (the live balance is read and logged) but go past its refusal; any other failure still refuses. The $10/h
   create limit, the in-pod stop timer at the cap and stop-never-delete are unchanged. No record: the guard as before.
+  While the record holds (addendum §28, "launches in parallel while the guard is off"), `plan_tool.py release BLOCK`
+  also releases the block's next hosts launch before the earlier launch's hosts are done, and records that in the
+  block's `released_early` (launch, open hosts, the decision's SHA-256, UTC). The order of the launches, the block-A
+  plan check, the need against the funding record and every release gate stay; a judge launch still waits until
+  every earlier launch's hosts are done or moved. The need (`rules.funding_need_usd`) still assumes one launch at a
+  time, so with launches in parallel the balance held at once can be above it; the user manages the balance. No
+  record (or a changed file): release waits as before.
 
 ## The gates (brief §4)
 

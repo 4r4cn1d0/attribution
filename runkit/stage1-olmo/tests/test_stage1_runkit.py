@@ -3733,3 +3733,173 @@ def test_a_144_top_up_covers_the_two_ln12_pod_five_in_one_replan_but_not_the_ln1
     with pytest.raises(SystemExit, match=r"needs \$144.06; the group's funding record .* is \$144.00"):
         w.tool.record_block_a_plan(*w.record(apart), replan=True)
 
+
+
+# ===== Addendum §28: launches in parallel while the budget guard is off ==============================================
+
+
+def _operator_log(w) -> list[dict]:
+    return [json.loads(line) for line in w.mac.OPERATOR_LOG.read_text().splitlines()]
+
+
+def _guard_off_recorded(w) -> str:
+    p, h = _guard_off(w)
+    w.tool.record_simple("guard_off", p, h)
+    assert w.rules.guard_off_record(w.root)["sha256"] == h
+    return h
+
+
+def test_with_the_guard_off_release_does_not_wait_for_the_launch_before_it(w):
+    """§28: while the user's guard-off decision is recorded, release releases block A's launch 1 while launch 0's
+    three hosts are running, and records it (the launch, the open hosts, the decision's SHA-256, UTC) in the block and
+    in the operator log. The order stays: one launch per release, and then nothing is left."""
+    w.s10()
+    w.gateb()
+    w.sealed()
+    h = _guard_off_recorded(w)
+    w.init("A", A_LAUNCHES)
+    out = w.tool.release("A")
+    assert out["released"] == ["a-4", "a-5"] and out["launches_released"] == 2
+    assert [{k: e[k] for k in ("launch", "open_hosts", "guard_off_sha256")} for e in out["released_early"]] == \
+        [{"launch": 1, "open_hosts": ["a-1", "a-2", "a-3"], "guard_off_sha256": h}]
+    assert dt.datetime.fromisoformat(out["released_early"][0]["utc"]).utcoffset() == dt.timedelta(0)
+    plan = w.plan()
+    assert plan["blocks"]["A"]["released_early"] == out["released_early"]
+    assert sorted(n for n in plan["hosts"] if n.startswith("a-")) == ["a-1", "a-2", "a-3", "a-4", "a-5"]
+    assert not any(plan["hosts"][n].get("done") for n in ("a-1", "a-2", "a-3"))
+    last = _operator_log(w)[-1]
+    assert last["action"] == "release" and last["hosts"] == ["a-4", "a-5"] and last["released_early"] == out["released_early"]
+    with pytest.raises(SystemExit, match="no launch left to release"):
+        w.tool.release("A")
+
+
+def test_with_the_guard_off_a_launch_whose_hosts_are_done_is_released_as_before(w):
+    w.s10()
+    w.gateb()
+    w.sealed()
+    _guard_off_recorded(w)
+    w.init("A", A_LAUNCHES)
+    for host in ("a-1", "a-2", "a-3"):
+        w.done(host)
+    out = w.tool.release("A")
+    assert out == {"block": "A", "released": ["a-4", "a-5"], "launches_released": 2}
+    assert "released_early" not in w.plan()["blocks"]["A"] and "released_early" not in _operator_log(w)[-1]
+
+
+@pytest.mark.parametrize("change", ["file changed", "file deleted", "record removed"])
+def test_without_a_valid_guard_off_record_release_waits_exactly_as_before(w, change):
+    """No record, or a record whose file changed or is gone (re-hashed at every release): the old rule."""
+    w.s10()
+    w.gateb()
+    w.sealed()
+    p, h = _guard_off(w)
+    w.tool.record_simple("guard_off", p, h)
+    if change == "file changed":
+        Path(p).write_text(Path(p).read_text().replace("test", "tset"))
+    elif change == "file deleted":
+        Path(p).unlink()
+    else:
+        plan = w.plan()
+        plan["records"]["guard_off"] = None
+        w.mac.save_plan(plan)
+    w.init("A", A_LAUNCHES)
+    with pytest.raises(SystemExit, match=r"block A: launch 0's hosts are not done \(a-1\)"):
+        w.tool.release("A")
+    plan = w.plan()
+    assert plan["blocks"]["A"]["released"] == 1 and "released_early" not in plan["blocks"]["A"]
+    assert sorted(n for n in plan["hosts"] if n.startswith("a-")) == ["a-1", "a-2", "a-3"]
+
+
+def test_with_the_guard_off_the_block_a_plan_check_at_release_stays(w):
+    """The plan conformance stays: with launch 0 still running, a pending pod raised by hand past the plan refuses."""
+    _default_after_s1_0(w)
+    _guard_off_recorded(w)
+    w.init("A", DEFAULT_A_FULL)
+    plan = w.plan()
+    plan["blocks"]["A"]["pending"]["a-2"]["cap_hours"] = 14.0              # the LN-12 plan pod is 13.5 h
+    w.mac.save_plan(plan)
+    with pytest.raises(SystemExit, match="block A: launch 1 departs"):
+        w.tool.release("A")
+    assert "a-2" not in w.plan()["hosts"]
+
+
+def test_with_the_guard_off_the_release_gates_stay(w):
+    """Every gate of release_hosts stays: with launch 0 still running, a hand-edited plan-A/B record refuses the next
+    launch; the restored record releases it early."""
+    w.s10()
+    w.gateb(sigma=3.9)
+    w.sealed()
+    _guard_off_recorded(w)
+    w.init("A", A_LAUNCHES)
+    plan = w.plan()
+    good = dict(plan["records"]["plan_ab"])
+    plan["records"]["plan_ab"].update(sigma_pp=5.0, code="B")
+    w.mac.save_plan(plan)
+    with pytest.raises(SystemExit, match="not the one derived"):
+        w.tool.release("A")
+    plan = w.plan()
+    assert "a-4" not in plan["hosts"] and "released_early" not in plan["blocks"]["A"]
+    plan["records"]["plan_ab"] = good
+    w.mac.save_plan(plan)
+    assert w.tool.release("A")["released_early"][0]["open_hosts"] == ["a-1", "a-2", "a-3"]
+
+
+def test_with_the_guard_off_a_judge_launch_still_waits_for_every_earlier_launch(w):
+    """Hosts launches go in parallel; a judge launch judges their units, so it waits until every earlier launch's
+    hosts are done or moved - also those of a launch before the one just before it (released early)."""
+    w.s10(branch="full")
+    w.gateb()
+    w.sealed()
+    _guard_off_recorded(w)
+    pod1 = ln12_pod(A0U) + [{"kind": "retrain", "arm": "a0", "seed": 1102},
+                            {"kind": "a1_rescore", "arm": "a0", "seed": 1102, "regen_source": 6},
+                            {"kind": "o_only", "arm": "theta0"}]
+    w.init("A", [{"hosts": [DIAG_POD]}, {"hosts": [pod1, ln12_pod(RU)]}, {"deal": [0, 1, 2, 3, 4]}, HB27, GR27])
+    assert w.tool.release("A")["released"] == ["a-2", "a-3"]                    # a-1 running
+    second = w.tool.release("A")
+    assert second["released"] == ["a-4", "a-5", "a-6", "a-7", "a-8"]
+    assert [(e["launch"], e["open_hosts"]) for e in second["released_early"]] == [(2, ["a-2", "a-3"])]
+    with pytest.raises(SystemExit, match=r"launch 3 is a judge launch; it waits until every earlier launch's hosts are "
+                                         r"done, with the budget guard off too \(a-1\)"):
+        w.tool.release("A")
+    for host in ("a-2", "a-3", "a-4", "a-5", "a-6", "a-7", "a-8"):
+        w.done(host)
+    with pytest.raises(SystemExit, match=r"launch 3 is a judge launch.*\(a-1\)"):    # launch 2 is done, launch 0 is not
+        w.tool.release("A")
+    assert w.plan()["blocks"]["A"]["released"] == 3
+    w.done("a-1")
+    out = w.tool.release("A")
+    assert out["launches_released"] == 5 and out["released"] == [] and "released_early" not in out
+    assert [e["launch"] for e in w.plan()["blocks"]["A"]["released_early"]] == [1, 2]
+
+
+def test_with_the_guard_off_block_order_stays(w):
+    """The guard-off rule is inside a block: block B still refuses before block A is complete and sealed."""
+    w.s10()
+    w.gateb()
+    w.sealed()
+    _guard_off_recorded(w)
+    w.init("A", A_LAUNCHES)
+    w.tool.release("A")
+    with pytest.raises(SystemExit, match="block A is not complete"):
+        w.init("B", [{"deal": [0, 1, 2, 3, 4, 5]}])
+
+
+def test_with_the_guard_off_a_moved_host_does_not_hold_a_judge_launch(w):
+    """A host that was moved before its job started (requeue: not done, its jobs on a new host) counts as finished for
+    the judge launch's wait, as it does for the old rule's wait."""
+    w.s10()
+    w.gateb()
+    w.sealed()
+    _guard_off_recorded(w)
+    w.init("A", A_LAUNCHES + [HB27, GR27])
+    assert w.tool.release("A")["released_early"][0]["open_hosts"] == ["a-1", "a-2", "a-3"]
+    for host in ("a-1", "a-2", "a-3", "a-4", "a-5"):
+        _launch(w, host)
+    _log(w, "a-1", "pre-job-failed", "pre-job-stop")
+    assert w.tool.requeue("a-1")["to"] == "a-6"
+    for host in ("a-2", "a-3", "a-4", "a-5"):
+        w.done(host)
+    assert not w.plan()["hosts"]["a-1"].get("done")
+    out = w.tool.release("A")
+    assert out["launches_released"] == 4 and out["released"] == [] and "released_early" not in out

@@ -4,7 +4,9 @@ confirm-stopped, defer, the stranded exception (now a J3 O-only pass and its J2 
 are kept.
 
     plan_tool.py init-block BLOCK --jobs FILE --funding FILE [--dry-run]    plan a block and release its launch 0
-    plan_tool.py release BLOCK                     release the block's next launch (its hosts become launchable)
+    plan_tool.py release BLOCK                     release the block's next launch (its hosts become launchable);
+                                                   with the guard-off record, without waiting for the launch
+                                                   before it (addendum §28; a judge launch still waits)
     plan_tool.py deal BLOCK [--reuse ARM SEED]     print the interleaving deal of a block's training runs (no write)
     plan_tool.py record-done HOST | defer HOST | confirm-stopped HOST | requeue HOST [--rerun-mismatched SHA ...]
     plan_tool.py record-branch FILE --sha256 H     W1-18's branch record, or a "Branch full by default" record (G1)
@@ -78,7 +80,11 @@ reused a0/R units + theta0's; §25 point 2). init-block refuses
 unless
 --funding FILE is {block, amount_usd, utc (UTC, not in the future), source: "user RunPod top-up", user_words,
 recorded_by} with block = the group and amount_usd >= the need (the user's rule). Launch 0 is released at once; later launches by ``release`` after every
-host of the launch before is done or moved (the need's path assumes it). Every gate below is checked at init for the
+host of the launch before is done or moved (the need's path assumes it). While the user's budget-guard-off decision is
+recorded (record-guard-off), ``release`` releases a hosts launch without that wait and records it in the block's
+released_early (addendum §28: the user manages the balance; the order, the block-A plan, the need against the
+funding record and every gate stay; a judge launch still waits until every earlier launch's hosts are done or
+moved). Every gate below is checked at init for the
 whole block and again at release:
 - G1: a 500-bank job (rules.BANK500_KINDS) refuses while no branch record exists; a W1-18 job anywhere but job 0 of
   an S1-0 host (W1-18 alone) refuses; any other block before an S1-0 host refuses unless a "Branch full by default"
@@ -1912,7 +1918,13 @@ def init_block(args: argparse.Namespace) -> dict:
 
 
 def release_next(plan: dict, block: str) -> list[str]:
-    """Release the block's next launch (judge launches are recorded, not hosts)."""
+    """Release the block's next launch (judge launches are recorded, not hosts). A launch waits until the launch
+    before it has no host that is not done or moved; while the user's budget-guard-off decision is recorded
+    (rules.guard_off_record: plan.json's records.guard_off, its file re-hashed at its recorded path), a hosts launch
+    is released without that wait and the release is recorded in the block's released_early (addendum §28). Every
+    other check of a release stays: the order of the launches, the block-A plan (check_planned_group_a) and every
+    gate of release_hosts. A judge launch judges the earlier launches' units, so it still waits, the guard off or not,
+    until every earlier launch's hosts are done or moved."""
     b = plan["blocks"][block]
     while b["released"] < len(b["launches"]):
         k = b["released"]
@@ -1923,8 +1935,18 @@ def release_next(plan: dict, block: str) -> list[str]:
             before = b["launches"][k - 1].get("hosts", [])
             moved = {d["from"] for d in plan["deferrals"]} | {r["from"] for r in plan.get("requeues") or []}
             open_hosts = [n for n in before if not plan["hosts"][n].get("done") and n not in moved]
+            off = rules.guard_off_record(HERE)        # (§28) the user's recorded decision, re-hashed; None: no record
+            if off is not None and "judge" in launch:
+                waiting = [n for x in b["launches"][:k] for n in x.get("hosts", [])
+                           if not plan["hosts"][n].get("done") and n not in moved]
+                if waiting:
+                    fail(f"block {block}: launch {k} is a judge launch; it waits until every earlier launch's hosts are "
+                         f"done, with the budget guard off too ({waiting[0]})")
             if open_hosts:
-                fail(f"block {block}: launch {k - 1}'s hosts are not done ({open_hosts[0]})")
+                if off is None:
+                    fail(f"block {block}: launch {k - 1}'s hosts are not done ({open_hosts[0]})")
+                b.setdefault("released_early", []).append({"launch": k, "open_hosts": open_hosts,
+                                                           "guard_off_sha256": off["sha256"], "utc": mac.utc()})
         if "judge" in launch:
             b["released"] += 1
             continue
@@ -1941,13 +1963,16 @@ def release(block: str) -> dict:
     if block not in plan["blocks"]:
         fail(f"block {block} is not planned")
     before = plan["blocks"][block]["released"]
+    early_before = len(plan["blocks"][block].get("released_early") or [])
     names = release_next(plan, block)
     if not names and plan["blocks"][block]["released"] == before:
         fail(f"block {block}: no launch left to release")
+    early = (plan["blocks"][block].get("released_early") or [])[early_before:]   # (§28) released under the decision
     mac.save_plan(plan)
     mac.operator_action({"action": "release", "block": block, "hosts": names,
-                         "released": plan["blocks"][block]["released"]})
-    return {"block": block, "released": names, "launches_released": plan["blocks"][block]["released"]}
+                         "released": plan["blocks"][block]["released"], **({"released_early": early} if early else {})})
+    out = {"block": block, "released": names, "launches_released": plan["blocks"][block]["released"]}
+    return {**out, "released_early": early} if early else out
 
 
 def deal_command(block: str, reuse: list) -> dict:

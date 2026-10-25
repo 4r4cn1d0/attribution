@@ -2611,7 +2611,79 @@
    "id": "B15-g-spec-recipe-unchecked",
    "part": "B15 round G (25 Oct; I: notes/repin-build.json): J5's job record names recipe S",
    "replace": "    if False:"
+  },
+  {
+   "describes": "release never reads the guard-off record (the old rule always)",
+   "file": "plan_tool.py",
+   "find": "            off = rules.guard_off_record(HERE)        # (§28) the user's recorded decision, re-hashed; None: no record",
+   "id": "B15-h-record-never-read",
+   "part": "B15 round H (25 Oct; I: notes/d3-build.json): addendum §28, launches in parallel while the budget guard is off",
+   "replace": "            off = None"
+  },
+  {
+   "describes": "release trusts plan.json's guard-off entry without re-hashing its file",
+   "file": "plan_tool.py",
+   "find": "            off = rules.guard_off_record(HERE)        # (§28) the user's recorded decision, re-hashed; None: no record",
+   "id": "B15-h-record-not-rehashed",
+   "part": "B15 round H (25 Oct; I: notes/d3-build.json): addendum §28, launches in parallel while the budget guard is off",
+   "replace": "            off = plan[\"records\"].get(\"guard_off\") or None"
+  },
+  {
+   "describes": "the earlier launch is waited for although the decision is recorded",
+   "file": "plan_tool.py",
+   "find": "                if off is None:\n                    fail(f\"block {block}: launch {k - 1}'s hosts are not done ({open_hosts[0]})\")",
+   "id": "B15-h-wait-despite-record",
+   "part": "B15 round H (25 Oct; I: notes/d3-build.json): addendum §28, launches in parallel while the budget guard is off",
+   "replace": "                if True:\n                    fail(f\"block {block}: launch {k - 1}'s hosts are not done ({open_hosts[0]})\")"
+  },
+  {
+   "describes": "an early release leaves no released_early record",
+   "file": "plan_tool.py",
+   "find": "                b.setdefault(\"released_early\", []).append({\"launch\": k, \"open_hosts\": open_hosts,",
+   "id": "B15-h-early-not-recorded",
+   "part": "B15 round H (25 Oct; I: notes/d3-build.json): addendum §28, launches in parallel while the budget guard is off",
+   "replace": "                [].append({\"launch\": k, \"open_hosts\": open_hosts,"
+  },
+  {
+   "describes": "the operator log omits the early release",
+   "file": "plan_tool.py",
+   "find": "\"released\": plan[\"blocks\"][block][\"released\"], **({\"released_early\": early} if early else {})})",
+   "id": "B15-h-early-not-logged",
+   "part": "B15 round H (25 Oct; I: notes/d3-build.json): addendum §28, launches in parallel while the budget guard is off",
+   "replace": "\"released\": plan[\"blocks\"][block][\"released\"]})"
+  },
+  {
+   "describes": "release returns every early release of the block, not this call's",
+   "file": "plan_tool.py",
+   "find": "    early = (plan[\"blocks\"][block].get(\"released_early\") or [])[early_before:]",
+   "id": "B15-h-early-all-returned",
+   "part": "B15 round H (25 Oct; I: notes/d3-build.json): addendum §28, launches in parallel while the budget guard is off",
+   "replace": "    early = (plan[\"blocks\"][block].get(\"released_early\") or [])[0:]"
+  },
+  {
+   "describes": "with the guard off a judge launch is recorded before the earlier launches are done",
+   "file": "plan_tool.py",
+   "find": "            if off is not None and \"judge\" in launch:",
+   "id": "B15-h-judge-not-held",
+   "part": "B15 round H (25 Oct; I: notes/d3-build.json): addendum §28, launches in parallel while the budget guard is off",
+   "replace": "            if False:"
+  },
+  {
+   "describes": "a judge launch waits only for the launch just before it",
+   "file": "plan_tool.py",
+   "find": "                waiting = [n for x in b[\"launches\"][:k] for n in x.get(\"hosts\", [])",
+   "id": "B15-h-judge-waits-for-the-last-launch-only",
+   "part": "B15 round H (25 Oct; I: notes/d3-build.json): addendum §28, launches in parallel while the budget guard is off",
+   "replace": "                waiting = [n for x in b[\"launches\"][k - 1:k] for n in x.get(\"hosts\", [])"
+  },
+  {
+   "describes": "a moved host keeps a judge launch waiting",
+   "file": "plan_tool.py",
+   "find": "                           if not plan[\"hosts\"][n].get(\"done\") and n not in moved]\n                if waiting:",
+   "id": "B15-h-judge-ignores-moved",
+   "part": "B15 round H (25 Oct; I: notes/d3-build.json): addendum §28, launches in parallel while the budget guard is off",
+   "replace": "                           if not plan[\"hosts\"][n].get(\"done\")]\n                if waiting:"
   }
  ],
- "note": "B15 BUILD-CORE: files are relative to runkit/stage1-olmo/; tests are runkit/stage1-olmo/tests/ (run_mutants.py copies scripts/stage1, so the lead's runner copies this kit's folder instead, with the same rules) BUILD-RUNNER added the B15-r-* entries (runner side: job runner, preflight, download, probes, pack, orchestrate, judges, backup, the UNITLESS fix); same files-relative rule. The B15 FIX round (notes/b15-fix.json) added the B15-x-* entries and B15-d-status-prints-value, and re-targeted B15-m-group-need, B15-g-plan-ab-not-read and B15-r-vcheck-after-projection to the fixed text. B15 round 2 (notes/b15r2-build.json) added the B15-2-* entries and re-targeted B15-g-plan-ab-not-read and B15-g-plan-ab-rule to the derived plan-A/B code. The tests now read only this repository (the S1 package in scripts/stage1_s1, engine Y at STAGE1_ENGINE_Y_TREE, default tmp/engine-y-34bfd288), so a mutation copy needs runkit/stage1-olmo and runkit/gate-b-olmo copied and scripts, experiments, .ai, research, backups and tmp linked inside the same repository root; no sibling folder. The B15 round-2 fix round (notes/b15r2-fix.json) added the verifiers' 13 mutants (VG-*, V2-*) and the B15-3-* entries, and re-targeted B15-g-plan-ab-not-read, B15-x-no-block-a-floor and B15-2-plan-ab-bool to the fixed text. B15 round 3b (notes/b15r3b-build.json) added the B15-6-* entries (S1 package pins, the moved D-2 and C3 records, c0 on the LN-12 pod, LN-15e's retrain and re-score, 27 judge units, V2a's recorded fallback), retargeted B15-2-pack-d2-code and B15-4-no-theta0 to the changed text, and marks B15-2-plan-ab-not-derived 'expect': 'survive' with its equivalence argument in 'why'; B15-r-pack-man1 and B15-2-d2-req8-pool are now killed by new tests (test_stage1_runner.py test_a_named_input_that_man1_lists_with_another_sha256_..., test_stage1_runkit.py test_a_filled_pins_file_whose_pool_hash_differs_...). The B15 round-3b fix round (notes/b15r3b-fix.json) added the verify-pins report's 8 mutants (VP-*; VP-rescore-own-arm-seed-unchecked 'expect': 'survive' with its argument) and the B15-7-* entries (paths in normal form in the pack, F1; the runner's distinct re-score groups, F4). B15 round 3c (notes/b15r3c-build.json) added the B15-8-* entries (the O-ext unit runner pinned, packed, sealed and parsed; block A's completion against its recorded plan and the not-run decision; the $144 top-up's limit test) and retargeted B15-6-s1-unpinned-all, whose round-3b find text (the S1_UNPINNED exception) is gone: it now puts that exception back."
+ "note": "B15 BUILD-CORE: files are relative to runkit/stage1-olmo/; tests are runkit/stage1-olmo/tests/ (run_mutants.py copies scripts/stage1, so the lead's runner copies this kit's folder instead, with the same rules) BUILD-RUNNER added the B15-r-* entries (runner side: job runner, preflight, download, probes, pack, orchestrate, judges, backup, the UNITLESS fix); same files-relative rule. The B15 FIX round (notes/b15-fix.json) added the B15-x-* entries and B15-d-status-prints-value, and re-targeted B15-m-group-need, B15-g-plan-ab-not-read and B15-r-vcheck-after-projection to the fixed text. B15 round 2 (notes/b15r2-build.json) added the B15-2-* entries and re-targeted B15-g-plan-ab-not-read and B15-g-plan-ab-rule to the derived plan-A/B code. The tests now read only this repository (the S1 package in scripts/stage1_s1, engine Y at STAGE1_ENGINE_Y_TREE, default tmp/engine-y-34bfd288), so a mutation copy needs runkit/stage1-olmo and runkit/gate-b-olmo copied and scripts, experiments, .ai, research, backups and tmp linked inside the same repository root; no sibling folder. The B15 round-2 fix round (notes/b15r2-fix.json) added the verifiers' 13 mutants (VG-*, V2-*) and the B15-3-* entries, and re-targeted B15-g-plan-ab-not-read, B15-x-no-block-a-floor and B15-2-plan-ab-bool to the fixed text. B15 round 3b (notes/b15r3b-build.json) added the B15-6-* entries (S1 package pins, the moved D-2 and C3 records, c0 on the LN-12 pod, LN-15e's retrain and re-score, 27 judge units, V2a's recorded fallback), retargeted B15-2-pack-d2-code and B15-4-no-theta0 to the changed text, and marks B15-2-plan-ab-not-derived 'expect': 'survive' with its equivalence argument in 'why'; B15-r-pack-man1 and B15-2-d2-req8-pool are now killed by new tests (test_stage1_runner.py test_a_named_input_that_man1_lists_with_another_sha256_..., test_stage1_runkit.py test_a_filled_pins_file_whose_pool_hash_differs_...). The B15 round-3b fix round (notes/b15r3b-fix.json) added the verify-pins report's 8 mutants (VP-*; VP-rescore-own-arm-seed-unchecked 'expect': 'survive' with its argument) and the B15-7-* entries (paths in normal form in the pack, F1; the runner's distinct re-score groups, F4). B15 round 3c (notes/b15r3c-build.json) added the B15-8-* entries (the O-ext unit runner pinned, packed, sealed and parsed; block A's completion against its recorded plan and the not-run decision; the $144 top-up's limit test) and retargeted B15-6-s1-unpinned-all, whose round-3b find text (the S1_UNPINNED exception) is gone: it now puts that exception back. Round H (notes/d3-build.json, addendum §28) added the B15-h-* entries (release without waiting for the earlier launch's hosts while the guard-off record holds; judge launches still wait; the early release recorded and logged); B15-g-launch-order's find text is unchanged and still the old rule's gate."
 }
