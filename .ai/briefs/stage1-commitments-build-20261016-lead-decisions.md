@@ -546,3 +546,12 @@ Round 3c's builder recomputed the re-plans with the kit's own functions. Eight o
 6. S3's selection (`write_score_add.py`) and its add edit (REQ-7) follow as written.
 
 **Launches in parallel while the guard is off.** The user removed the budget guard and manages the balance ("remove the guard its not needed I can control it better"). While that decision is recorded, `release` may release the next launch of a block before the earlier launches' hosts are done. The plan's order, the plan's need against the funding record, the $10/h price limit, the in-pod timers and stop-never-delete all stay. With no guard-off record, the old rule (wait until the earlier launch is done) holds.
+
+## 29. LN-15e's re-score units were not pulled; LN-15e takes its fallback; two kit gaps (2026-10-26T06:41 UTC; decided by the lead under the user's delegation)
+
+**Facts (M).** Pod a-2 (block A's LN-12 pod) completed all 19 jobs. The engine's verify passed on the pod, and the finisher verified the 17 units it pulled. The LN-15e jobs 12–15 (retrain a0 at 1102 and 1103 and their a1_rescore) wrote their units under `rescore/`. The kit's light pull (`host.py` `PULL_ITEMS`, Gate B's list) does not include `rescore/`, so those four units are only on a-2's stopped volume. The kit has no start command, and a stopped kit pod is never restarted (REV4 §11; G6).
+
+1. **LN-15e takes its pre-registered fallback:** FO-04's figures as the limit (REV4 LN-15e; §25 point 1). a-2 is not restarted and nothing is re-run. The paper states that the re-score ran on the pod but its units were not retrieved, because of a kit defect.
+2. **Kit gap 1:** `PULL_ITEMS` must include `rescore/` (and every folder a stage-1 job writes a unit to), with a test that every unit path a job records lies under the pull list.
+3. **Kit gap 2:** `record-done a-2` refuses while jobs 12–15's units are missing. The kit needs a lead decision record for jobs whose units were not pulled. It records them as "complete, not pulled", the seal lists them without hashes, and block A's completeness counts them as decided.
+4. **Kit gap 3 (the finisher):** `finisher.py` light-checks only Gate B's roles ("job", "first", "anchor"), so stage-1 diagnostics and arm pods were not light-checked. The lead ran the same light check by hand: a-3, a-4, a-9 and a-10 have 9 units each, all good.
