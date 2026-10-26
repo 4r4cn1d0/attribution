@@ -2306,3 +2306,172 @@ def test_the_x_pack_alone_carries_every_file_an_o_ext_step_seals(kit, monkeypatc
                 if p.startswith("scripts/")]
         assert set(code) == OEXT_FILES, j["kind"]
         assert all(doc["files"][p] == repo.rules.S1_CODE[p] for p in code), j["kind"]
+
+
+# ===== Addendum §29 (round 29, 26 Oct): the pull list covers every unit the runner records; the finisher checks every
+# stage-1 host role ===================================================================================================
+
+GATEB_PULL = ("round1 job-* jobs anchor-* gatec cuda-preflight-* preflight-process-* preflight-outer "
+              "worker-bootstrap-process-001 setup-001 BOOTSTRAP-READY.json BUNDLE-CHECKED.json pip-version.txt "
+              "PREFLIGHT-DONE.json JOB-DONE.json deferral.json model-download-receipt.json environment-linux.lock")
+
+
+def pulled(rel: str, items: str) -> bool:
+    """host.py pull's rule, by hand: on the pod, ``cd RUN && ls -d ITEMS | tar -cf - -T -`` takes every top-level
+    entry that a pattern of ITEMS matches (a shell glob), with everything under it."""
+    import fnmatch
+    return any(fnmatch.fnmatchcase(rel.split("/")[0], p) for p in items.split())
+
+
+def pods_of_every_kind(r, which: str):
+    """(engine, branch, jobs): every stage-1 job kind on four pods (one engine per pod; W1-18 alone; Branch 128 for
+    theta0's LN-14 report). The X pod mirrors the job order of block A's LN-12 and diagnostics pods."""
+    r1, a1 = edit_ref("R1"), edit_ref("A1")
+    if which == "x":
+        return "X", "full", [
+            job(r, "regenerate", "a0", 1101), job(r, "o_only", "a0", 1101, regen_source=0),
+            job(r, "untuned_answers"), job(r, "rep_pass"), job(r, "l1_scan"), job(r, "classifier"),
+            job(r, "arm", "A1", 1102, edit=a1, recipe="S"), job(r, "a0_arm", "a0", 1104, recipe="S"),
+            job(r, "ref_train", "G", 1102, recipe="G"), job(r, "c0", "R", 1101, edit=r1, recipe="S"),
+            job(r, "retrain", "a0", 1102, recipe="S"), job(r, "a1_rescore", "a0", 1102, recipe="S", regen_source=10),
+            job(r, "b10_certify", "a0", 1101, points=["certify", "scale:0"], recipe="B"),
+            job(r, "ref_eval", "a0", 1104, points=["scale:0.9", "prefix"], recipe="B"),
+            job(r, "safe_lora", "a0", 1104, points=["default"], recipe="B")]
+    if which == "x128":
+        return "X", "128", [job(r, "o_only", "theta0", branch="128"), job(r, "transfer_report", "theta0", branch="128")]
+    if which == "w1":
+        return "X", "full", [job(r, "w1_18")]
+    return "Y", "full", [job(r, "cert_c1", "R", 1101, engine="Y", edit=r1, recipe="S"),
+                         job(r, "cert_c2", "bqi", 1101, engine="Y", recipe="bqi"),
+                         job(r, "cert_c3", engine="Y", recipe="S"),
+                         job(r, "ref_train", "bqi", 1102, engine="Y", recipe="bqi")]
+
+
+@pytest.mark.parametrize("which, unit_tops, outside_gateb", [
+    ("x", {"round1", "rescore", "job-12", "job-13", "job-14"}, {"rescore"}),
+    ("y", {"cert", "round1"}, {"cert"}),
+    ("x128", set(), set()),
+    ("w1", set(), set())])
+def test_every_unit_and_record_path_the_runner_writes_lies_under_the_pull_list(kit, tmp_path, monkeypatch, which,
+                                                                               unit_tops, outside_gateb):
+    """Addendum §29 point 2 (kit gap 1): each pod runs every job to completion with the synthetic engine; every path
+    it writes (units, outputs, job files, ledgers, job-done/ and JOB-DONE.json), every step's receipt folder and
+    every unit and output path JOB-DONE.json records lies under host.py's PULL_ITEMS (the runner's empty round1/,
+    jobs/, cert/ and rescore/ folders, made on every pod, too). By hand: the units lie under
+    round1/, rescore/ (LN-15e) and cert/ (C1-C3) and B10's under job-I/. The other way: Gate B's old list, which the
+    stage-1 kit used until this round, leaves out exactly the rescore/ and cert/ paths (a-2's jobs 12-15)."""
+    host = kit("host.py")
+    engine, branch = {"x": ("X", "full"), "x128": ("X", "128"), "w1": ("X", "full"), "y": ("Y", "full")}[which]
+    pod = Pod(kit, tmp_path, monkeypatch, lambda r: pods_of_every_kind(r, which)[2], engine=engine, branch=branch)
+    assert pods_of_every_kind(pod.rules, which)[:2] == (engine, branch)
+    before = {str(p.relative_to(pod.root)) for p in pod.root.rglob("*") if p.is_file()}
+    pod.remaining([1000 * H])
+    assert pod.main() == 0 and set(pod.statuses()) == {"complete"}
+    done = pod.done()["jobs"]
+    written = {str(p.relative_to(pod.root)) for p in pod.root.rglob("*") if p.is_file()} - before   # every file
+    units = {u for d in done for u in [d.get("unit")] + [x["unit"] for x in d.get("units") or []] if u}
+    recorded = units | {rel for d in done for rel in d.get("outputs") or {}}
+    paths = written | recorded | set(pod.receipts())
+    assert "JOB-DONE.json" in written and "job-done/JOB-0.json" in written and recorded <= paths
+    assert {u.split("/")[0] for u in units} == unit_tops
+    assert [p for p in sorted(paths) if not pulled(p, host.PULL_ITEMS)] == []
+    assert {p.split("/")[0] for p in paths if not pulled(p, GATEB_PULL)} == outside_gateb
+    runner = pod.runner
+    for folder in (runner.ROUND, "jobs", runner.CERT_ROOT, runner.RESCORE_ROOT, "job-done", "JOB-DONE.json",
+                   "deferral.json", "job-0", "job-12-attributes"):
+        assert pulled(folder, host.PULL_ITEMS), folder
+    assert not pulled("elsewhere/1102-a0-retrain-a1/COMPLETE.json", host.PULL_ITEMS)    # the check can fail
+
+
+def _finisher_tree(kit, role: str):
+    fin = kit("finisher.py")
+    write(kit.root / "plan.json", {"hosts": {"h-1": {"role": role, "cap_hours": 7.0}}})
+    tree = kit.root / "retrieved" / "h-1" / "tree"
+    unit = tree / "round1" / "1102-edit-x-e1-a1"
+    listed = write(unit / "eval" / "e1" / "summary.json", {"u": SENTINELS[0]})
+    write(unit / "COMPLETE.json", {"files": {"eval/e1/summary.json": sha(listed),
+                                             "states/e1/adapter.safetensors": "0" * 64}})
+    write(tree / "JOB-DONE.json", {"host": "h-1", "ok": True, "jobs": []})
+    (kit.root / "hosts" / "h-1").mkdir(parents=True)
+    return fin, tree, listed
+
+
+def _finish(fin, kit, monkeypatch, tree, exit_code=0) -> tuple[str, list]:
+    calls = []
+    monkeypatch.setattr(fin, "tool", lambda *a: calls.append(a) or subprocess.CompletedProcess(a, 0, "stopped", ""))
+    monkeypatch.setattr(fin, "unpack", lambda h: tree)
+    monkeypatch.setattr(fin, "log", lambda **f: None)
+    (kit.root / "hosts" / "h-1" / "finished.json").unlink(missing_ok=True)
+    fin.finish("h-1", {"exit_code": exit_code})
+    return json.loads((kit.root / "hosts" / "h-1" / "finished.json").read_text())["status"], calls
+
+
+@pytest.mark.parametrize("role", ["w1_18", "cert", "certify", "job", "diagnostics", "arms", "a-role-of-no-list"])
+def test_the_finisher_light_checks_every_stage_1_host_role(kit, monkeypatch, role):
+    """Addendum §29 point 4 (kit gap 3): the finisher light-checks the pulled tree of every host, whatever its role
+    (the six roles plan_tool gives stage-1 hosts: w1_18, cert, certify, job, diagnostics, arms; and any other, so no
+    host is passed unchecked), not only Gate B's "job", "first" and "anchor". A good tree is verified-and-stopped with
+    its check in verified.jsonl (the model state left on the pod is counted, not checked); the other ways: a listed
+    file that differs, a JOB-DONE.json that is not ok, or a non-zero outer exit is review-needed-stopped. The pod is
+    stopped in every case."""
+    fin, tree, listed = _finisher_tree(kit, role)
+    status, calls = _finish(fin, kit, monkeypatch, tree)
+    assert status == "verified-and-stopped" and calls[-2:] == [("extend-cap", "h-1", "120"), ("stop", "h-1")]
+    check = json.loads((kit.root / "retrieved" / "h-1" / "verified.jsonl").read_text().splitlines()[-1])
+    assert check["results"] == {"round1/1102-edit-x-e1-a1": {"exit": 0, "tail": "bad []; states left on the pod: 1"}}
+    assert _finish(fin, kit, monkeypatch, tree, exit_code=1)[0] == "review-needed-stopped"
+    write(tree / "JOB-DONE.json", {"host": "h-1", "ok": False, "jobs": []})
+    assert _finish(fin, kit, monkeypatch, tree)[0] == "review-needed-stopped"
+    write(tree / "JOB-DONE.json", {"host": "h-1", "ok": True, "jobs": []})
+    listed.write_text("changed after the pod wrote it\n")
+    status, calls = _finish(fin, kit, monkeypatch, tree)
+    assert status == "review-needed-stopped" and calls[-2:] == [("extend-cap", "h-1", "120"), ("stop", "h-1")]
+
+
+def test_the_backup_lists_jobs_complete_not_pulled_and_leaves_c0s_states_aside(kit, capsys):
+    """Addendum §29 point 3, the backup side (a-2's shape): a retrain and its re-score recorded complete (not pulled)
+    under the lead's decision (pulled false, the decision's SHA-256) are listed with that mark and not required (their
+    units are only on the pod's volume); c0's recorded .safetensors outputs, which the light pull leaves on the pod, are
+    not required (model weights aside, as for a unit). The other ways: a pulled-false mark without the decision's
+    SHA-256, or a missing c0 output that is not a model state, is a missing record (exit 2)."""
+    backup = kit("backup_records_stage1.py")
+    r = backup.rules
+    k = kit.root
+    tree = k / "retrieved" / "a-2" / "tree"
+    jobs = [job(r, "retrain", "a0", 1102, recipe="S"), job(r, "a1_rescore", "a0", 1102, recipe="S", regen_source=0),
+            job(r, "c0", "R", 1101, edit=edit_ref("R1"), recipe="S")]
+    decision = "d" * 64
+    for i, unit in ((0, "rescore/1102-a0-retrain-a1"), (1, "rescore/1102-attributes-a1")):
+        jobs[i].update(status="complete", unit=unit, complete_sha256=hashlib.sha256(unit.encode()).hexdigest(),
+                       pulled=False, unpulled_decision_sha256=decision,
+                       outputs={f"job-{i}/cost-ledger.json": sha(write(tree / f"job-{i}" / "cost-ledger.json", {"i": i}))})
+    record = write(tree / "job-2" / "c0" / "c0_record.json", {"o": SENTINELS[3]})
+    jobs[2].update(status="complete", unit=None, complete_sha256=None, states_on_pod=1, outputs={
+        "job-2/c0/c0_record.json": sha(record), "job-2/c0/train/states/e1/adapter.safetensors": "e" * 64})
+    write(tree / "JOB-DONE.json", {"host": "a-2", "jobs": []})
+    prep = kit.repo / "tmp/kt-prepared/prepared-kt-dolly-olmo2"
+    write(prep / "manifest.json", {"m": 1})
+    write(prep / "manifest.sha256", sha(prep / "manifest.json") + "\n")
+    plan = {"name": "stage1-olmo", "hosts": {"a-2": host_record(r, jobs)}, "seals": {},
+            "prepared": {"prepared-kt-dolly-olmo2": sha(prep / "manifest.json")}}
+    write(k / "plan.json", plan)
+    for name in ("budget-checks.jsonl", "operator-actions.jsonl", "hosts-full-a-2.log", "launch.log", "finisher.log"):
+        write(k / name, "{}\n")
+    write(k / "hosts" / "a-2" / "finished.json", {"ok": True})
+    write(k / "edits" / "x.edit.json", EDITS["R1"])
+    plan["hosts"]["a-2"]["jobs"][2]["edit"] = {"path": "runkit/stage1-olmo/edits/x.edit.json",
+                                              "sha256": edit_ref("R1")["sha256"]}
+    write(k / "plan.json", plan)
+    sel = backup.select(plan, ["a-2"], 50 * 1024 * 1024)
+    assert sel["missing"] == []
+    assert [(j["index"], j.get("pulled"), j.get("unpulled_decision_sha256")) for j in sel["jobs"]["a-2"]] == [
+        (0, False, decision), (1, False, decision), (2, None, None)]
+    assert backup.main(["--dry-run", "--tag", "backup-2026-10-26-stage1-a"]) == 0
+    capsys.readouterr()
+    plan["hosts"]["a-2"]["jobs"][0].pop("unpulled_decision_sha256")
+    record.unlink()
+    write(k / "plan.json", plan)
+    sel = backup.select(plan, ["a-2"], 50 * 1024 * 1024)
+    assert sel["missing"] == ["a-2: job 0 is complete in plan.json but its unit is not sealed in the pulled tree",
+                              "a-2: job 2: 1 recorded output(s) not staged or changed"]
+    assert backup.main(["--dry-run", "--tag", "backup-2026-10-26-stage1-a"]) == 2

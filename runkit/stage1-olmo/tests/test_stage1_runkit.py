@@ -1424,6 +1424,25 @@ GUARD_OFF_HOST = [('''    override = folder(host) / "cap-override.json"
                   **guard_note}
 ''')]
 
+# addendum §29 (round 29): the pull list gets rescore/ and cert/ (every folder a stage-1 job writes a unit to), and the
+# finisher light-checks every host role (Gate B's kit keeps its own list and its "job", "first", "anchor" roles)
+PULL_29 = [('''PULL_ITEMS = ("round1 job-* jobs anchor-* gatec cuda-preflight-* "
+''', '''# Addendum §29 point 2 (stage-1 kit gap 1): every folder a stage-1 job writes a unit to is pulled. The job runner writes
+# units to round1/ (arms, regenerations), rescore/ (LN-15e's retrains and re-scores) and cert/ (C1-C3), and job-I/
+# (B10's units, O-ext and unit-free outputs, ledgers), job files to jobs/, records to job-done/, JOB-DONE.json and
+# deferral.json (tests: every path the runner records lies under this list). pull-light leaves out *.safetensors.
+PULL_ITEMS = ("round1 rescore cert job-* jobs anchor-* gatec cuda-preflight-* "
+''')]
+FINISHER_29 = [('''            elif role in ("job", "first", "anchor"):
+                results = light_check(host, tree)
+''', '''            else:      # addendum §29 point 4: every stage-1 role (w1_18, cert, certify, job, diagnostics, arms), any role
+                results = light_check(host, tree)
+'''), ('''                log(host=host, event="verified", units=len(results), ok=ok)
+            elif receipt.get("exit_code") != 0:
+                status = "review-needed-stopped"
+''', '''                log(host=host, event="verified", units=len(results), ok=ok)
+''')]
+
 
 def test_the_kit_compiles_holds_no_secret_and_reuses_gate_b_files_as_documented(tmp_path):
     names = sorted(p.name for p in KIT.glob("*.py"))
@@ -1444,10 +1463,10 @@ def test_the_kit_compiles_holds_no_secret_and_reuses_gate_b_files_as_documented(
     for same in ("secret_scan.py", "account.py", "status.py", "gateb_mac.py"):
         assert (KIT / same).read_bytes() == (GBK / same).read_bytes(), same
     imp = ("import gateb_rules as rules  # noqa: E402", "import stage1_rules as rules  # noqa: E402")
-    for name, extra in (("launch.py", GUARD_OFF_LAUNCH), ("finisher.py", []),
+    for name, extra in (("launch.py", GUARD_OFF_LAUNCH), ("finisher.py", FINISHER_29),
                         ("host.py", [('    return f"attribution-gateb-{host}{suffix}"     # e.g. attribution-gateb-w0a-1',
                                       '    return f"attribution-s1-{host}{suffix}"     # e.g. attribution-s1-A-1'),
-                                     *GUARD_OFF_HOST]),
+                                     *GUARD_OFF_HOST, *PULL_29]),
                         ("budget.py", [('KITS_GLOB = ("family-probe-*", "gate-b-olmo*")   # every family-probe and Gate B '
                                         'working copy beside this kit',
                                         'KITS_GLOB = ("family-probe-*", "gate-b-olmo*", "stage1-olmo*")   # every '
@@ -3903,3 +3922,354 @@ def test_with_the_guard_off_a_moved_host_does_not_hold_a_judge_launch(w):
     assert not w.plan()["hosts"]["a-1"].get("done")
     out = w.tool.release("A")
     assert out["launches_released"] == 4 and out["released"] == [] and "released_early" not in out
+
+
+# ===== Addendum §29 (round 29, 26 Oct): the unpulled re-score units and the user's re-run payment ====================
+# Real-shaped synthetic fixtures from the live kit's records (plan.json, hosts/, retrieved/a-2/tree/job-done/; no data
+# text): pod a-2 is block A's LN-12 pod with 19 jobs (the a0 and R pairs 0-11, LN-15e's retrain and re-score pairs at
+# 12-15, theta0's J3 and LN-14 report 16-17, c0 18) under Branch 128; its jobs 12-15 wrote their units to rescore/,
+# which the light pull did not fetch, and c0's outputs list 8 model-state files that the light pull leaves on the pod.
+# Pod a-7 (deal pod 4: L1 1103, S1 1102, S3 1104, R 1104) stopped before its job; the contingency could not pay its
+# unit, so the four runs are held as not re-run.
+
+UNPULLED = "stage1 unpulled outputs decision"
+PAYMENT = "stage1 user decision: pay re-runs beyond the contingency"
+LN12_128 = with_rescore(ln12_pod(A0U + RU)) + [{"kind": "o_only", "arm": "theta0"},
+                                               {"kind": "transfer_report", "arm": "theta0"}, C0]
+DEFAULT_A_128 = [{"hosts": [DIAG_POD]}, {"hosts": [LN12_128]}, {"deal": [0, 1]}, {"deal": [2, 3]}, {"deal": [4]},
+                 HB27, GR27]
+C0_STATES = ("e1/adapter.safetensors", "e1/optimizer.safetensors", "e1/rng.safetensors", "init/adapter.safetensors",
+             "init/rng.safetensors", "q/adapter.safetensors", "q/optimizer.safetensors", "q/rng.safetensors")
+RESCORE_UNITS = {12: "rescore/1102-a0-retrain-a1", 13: "rescore/1102-attributes-a1",
+                 14: "rescore/1103-a0-retrain-a1", 15: "rescore/1103-attributes-a1"}
+A7_RUNS = [("L1", 1103), ("S1", 1102), ("S3", 1104), ("R", 1104)]
+
+
+def _block_a_128(w):
+    """Block A under Branch 128 with the kit's default block-A plan (split 2+2+1, one LN-12 pod), as the live kit
+    holds it: a-1 diagnostics, a-2 LN-12 (19 jobs), a-3/a-4, a-5/a-6, a-7 the dealt arm pods, then both judges."""
+    w.auto_plan = False
+    w.s10(branch="128")
+    w.gateb()
+    w.sealed()
+    w.init("A", DEFAULT_A_128)
+    w.done("a-1")
+    w.tool.release("A")
+    jobs = w.plan()["hosts"]["a-2"]["jobs"]
+    assert [job_label(j) for j in jobs[12:16]] == ["retrain a0 1102", "a1_rescore a0 1102", "retrain a0 1103",
+                                                   "a1_rescore a0 1103"] and len(jobs) == 19
+
+
+def job_label(j: dict) -> str:
+    return " ".join(str(x) for x in (j["kind"], j.get("arm"), j.get("seed")) if x is not None)
+
+
+def _a2_light_pull(w, host: str = "a-2") -> Path:
+    """a-2's pulled tree after the light pull: every job complete; the regenerations' units under round1/ (pulled);
+    LN-15e's four units under rescore/ only on the pod (their COMPLETE.json SHA-256 known from JOB-DONE.json); c0's
+    outputs list its 8 .safetensors states, absent here; every job's cost ledger under job-I/ (pulled)."""
+    tree = w.root / "retrieved" / host / "tree"
+    recs = []
+    for i, job in enumerate(w.plan()["hosts"][host]["jobs"]):
+        r = {"index": i, "kind": job["kind"], "arm": job["arm"], "seed": job["seed"], "status": "complete",
+             "engine": "X", "engine_sha256": X}
+        ledger = f"job-{i}/cost-ledger.json"
+        outputs = {ledger: sha(write_json(tree / ledger, {"stages_s": {"training": 1.0}, "i": i}))}
+        if i in RESCORE_UNITS:
+            r.update(unit=RESCORE_UNITS[i], complete_sha256=hashlib.sha256(f"pod-only {i}".encode()).hexdigest())
+        elif job["kind"] == "regenerate":
+            unit = f"round1/{job['seed']}-{job['arm']}-regen-a1"
+            write_json(tree / unit / "eval" / "e1" / "summary.json", {"u": float(SENTINELS[0])})
+            r.update(unit=unit, complete_sha256=sha(write_json(tree / unit / "COMPLETE.json", {"i": i})))
+        else:
+            rel = f"job-{i}/{job['kind']}.json"
+            outputs[rel] = sha(write_json(tree / rel, {"kind": job["kind"], "value": SENTINELS[1]}))
+            if job["kind"] == "c0":
+                for s in C0_STATES:
+                    outputs[f"job-{i}/c0/train/states/{s}"] = hashlib.sha256(s.encode()).hexdigest()
+        r["outputs"] = outputs
+        recs.append(r)
+    write_json(tree / "JOB-DONE.json", {"host": host, "jobs": recs, "ok": True, "stopped": None})
+    return tree
+
+
+def _unpulled(w, jobs, host="a-2", **change) -> tuple[str, str]:
+    body = {"kind": UNPULLED, "host": host, "jobs": jobs, "reason": "lead: addendum §29; the light pull did not fetch "
+            "rescore/ and a-2 is never restarted", "utc": "2026-10-26T06:41:00Z", "recorded_by": "test", **change}
+    return w.record({k: v for k, v in body.items() if v is not None})
+
+
+@pytest.mark.parametrize("change, match", [
+    ({"kind": "stage1 block-a not-run decision"}, "its kind is not"),
+    ({"extra": "x"}, "must hold exactly"),
+    ({"reason": None}, "must hold exactly"),
+    ({"jobs": []}, "non-empty list of distinct job indices"),
+    ({"jobs": [12, 12]}, "non-empty list of distinct job indices"),
+    ({"jobs": ["12"]}, "non-empty list of distinct job indices"),
+    ({"jobs": [True]}, "non-empty list of distinct job indices"),
+    ({"reason": " "}, "must be non-empty texts"),
+    ({"utc": "2026-10-26T06:41:00+05:30"}, "not a UTC time"),
+    ({"utc": "2099-01-01T00:00:00Z"}, "in the future"),
+    ({"host": "a-99"}, "a-99 is not a host"),
+    ({"jobs": [19]}, "job 19 is not a job of this host"),
+    ({"jobs": [0]}, "job 0's unit is in the pulled tree"),              # a regeneration whose unit was pulled
+    ({"jobs": [1]}, "job 1 is not a complete unit job"),                # an O-only pass: no unit at all
+    ({"jobs": [12, 16]}, "job 16 is not a complete unit job")])
+def test_an_unpulled_decision_names_only_complete_units_the_pull_did_not_fetch(w, change, match):
+    """§29 point 3: record-unpulled takes the lead's decision {kind, host, jobs, reason, utc, recorded_by} (exactly),
+    and only for jobs complete on the pod with a unit whose COMPLETE.json is absent from the pulled tree."""
+    _block_a_128(w)
+    _a2_light_pull(w)
+    change = dict(change)
+    args = _unpulled(w, change.pop("jobs", [12, 13, 14, 15]), **change)
+    with pytest.raises(SystemExit, match=match):
+        w.tool.record_unpulled(*args)
+    assert w.plan()["records"].get("unpulled") in (None, [])
+
+
+def test_record_done_records_jobs_12_to_15_complete_not_pulled_under_the_leads_decision(w, capsys):
+    """§29 points 1-3, the a-2 case by hand. Without a decision, record-done a-2 refuses at job 12 (its COMPLETE.json is
+    not in the pulled tree) and says what to record. c0's 8 .safetensors outputs that the light pull leaves on the pod
+    are accepted as states on the pod, but a state file that is present must hash as recorded and a missing output
+    that is not a state still refuses. With the decision
+    (jobs 12-15), record-done records all 19 complete, jobs 12-15 with pulled false and the decision's SHA-256, and
+    nothing else changes: the other 15 jobs keep their units or outputs and carry no such mark; a second decision
+    naming job 12, or one after record-done, refuses; a changed decision file refuses record-done."""
+    _block_a_128(w)
+    tree = _a2_light_pull(w)
+    with pytest.raises(SystemExit, match=r"a-2: job 12's COMPLETE.json is missing from the pulled tree or differs; if "
+                                         r"the light pull did not fetch its unit, record the lead's decision first"):
+        w.tool.record_done("a-2")
+    path, digest = _unpulled(w, [15, 13, 12, 14])
+    assert w.tool.main(["record-unpulled", path, "--sha256", digest]) == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out == {"recorded": "unpulled", "sha256": digest, "host": "a-2", "jobs": [12, 13, 14, 15],
+                   "labels": ["retrain a0 1102", "a1_rescore a0 1102", "retrain a0 1103", "a1_rescore a0 1103"]}
+    with pytest.raises(SystemExit, match="already named by a recorded unpulled outputs decision"):
+        w.tool.record_unpulled(*_unpulled(w, [12]))
+    c0_out = tree / "job-18" / "c0.json"
+    kept = c0_out.read_bytes()
+    c0_out.unlink()                                                       # a missing output that is not a state
+    with pytest.raises(SystemExit, match="job 18's output is missing from the pulled tree or differs"):
+        w.tool.record_done("a-2")
+    c0_out.write_bytes(kept)
+    state = tree / "job-18" / "c0" / "train" / "states" / "e1" / "adapter.safetensors"
+    state.parent.mkdir(parents=True)
+    state.write_bytes(b"a state file pulled by a full pull, changed")       # present: it must hash as recorded
+    with pytest.raises(SystemExit, match="job 18's output is missing from the pulled tree or differs"):
+        w.tool.record_done("a-2")
+    state.unlink()
+    original = Path(path).read_bytes()
+    Path(path).write_bytes(original + b"\n")
+    with pytest.raises(SystemExit, match="unpulled outputs decision is missing or differs"):
+        w.tool.record_done("a-2")
+    Path(path).write_bytes(original)
+    got = w.tool.record_done("a-2")
+    assert got == {"host": "a-2", "statuses": ["complete"] * 19, "not_pulled": [12, 13, 14, 15]}
+    jobs = w.plan()["hosts"]["a-2"]["jobs"]
+    for i, j in enumerate(jobs):
+        if i in RESCORE_UNITS:
+            assert (j["pulled"], j["unpulled_decision_sha256"], j["unit"]) == (False, digest, RESCORE_UNITS[i])
+            assert j["complete_sha256"] == hashlib.sha256(f"pod-only {i}".encode()).hexdigest()
+        else:
+            assert "pulled" not in j and "unpulled_decision_sha256" not in j
+    assert jobs[18]["states_on_pod"] == 8 and all("states_on_pod" not in j for j in jobs[:18])
+    log = [json.loads(line) for line in w.mac.OPERATOR_LOG.read_text().splitlines()]
+    assert [e["action"] for e in log[-2:]] == ["record-unpulled", "record-done"] and log[-1]["not_pulled"] == [12, 13,
+                                                                                                             14, 15]
+    with pytest.raises(SystemExit, match="a-2 is recorded done"):
+        w.tool.record_unpulled(*_unpulled(w, [16]))
+
+
+def test_without_a_decision_a_pulled_rescore_unit_records_as_before(w):
+    """The other way: when the pull fetched rescore/ (the new pull list), record-done a-2 needs no decision and marks
+    no job not pulled; the completion check counts the four LN-15e jobs as done."""
+    _block_a_128(w)
+    tree = _a2_light_pull(w)
+    done = json.loads((tree / "JOB-DONE.json").read_text())
+    for r in done["jobs"]:
+        if r["index"] in RESCORE_UNITS:
+            r["complete_sha256"] = sha(write_json(tree / r["unit"] / "COMPLETE.json", {"i": r["index"]}))
+    write_json(tree / "JOB-DONE.json", done)
+    assert "not_pulled" not in w.tool.record_done("a-2")
+    plan = w.plan()
+    assert all("pulled" not in j for j in plan["hosts"]["a-2"]["jobs"])
+    done_labels = w.tool.block_a_done(plan, w.tool.block_a_required(plan, w.tool.block_a_plan_checked(plan)))
+    assert {"retrain a0 1102", "a1_rescore a0 1102", "retrain a0 1103", "a1_rescore a0 1103"} <= done_labels
+    assert w.tool.block_a_unpulled(plan) == {}
+    with pytest.raises(SystemExit, match="job 12's unit is in the pulled tree"):
+        w.tool.unit_problem(tree, done["jobs"][12], 12, "a-2")
+
+
+def test_block_a_counts_not_pulled_jobs_as_decided_and_the_seal_lists_them_without_hashes(w):
+    """§29 point 3: after record-done under the decision, block A's completion check counts jobs 12-15 as decided by
+    it (not as done), re-hashing the decision at every use; with every other job of the plan done (45 under Branch 128:
+    4 + 19 + 20 + 2), block A seals, and the seal lists the four by host, index, name, unit path and the decision's
+    SHA-256, with no file hash, and holds no file under rescore/. A changed decision file refuses the completion check
+    and the seal."""
+    _block_a_128(w)
+    _a2_light_pull(w)
+    path, digest = _unpulled(w, [12, 13, 14, 15])
+    w.tool.record_unpulled(path, digest)
+    w.tool.record_done("a-2")
+    plan = w.plan()
+    labels = ["retrain a0 1102", "a1_rescore a0 1102", "retrain a0 1103", "a1_rescore a0 1103"]
+    required = w.tool.block_a_required(plan, w.tool.block_a_plan_checked(plan))
+    assert len(required) == 45 and all(x in required for x in labels)
+    assert not set(labels) & w.tool.block_a_done(plan, required)
+    assert w.tool.block_a_unpulled(plan) == {x: digest for x in labels}
+    assert not set(labels) & set(w.tool.block_a_open(plan))
+    w.tool.release("A")
+    for host in ("a-3", "a-4"):
+        w.done(host)
+    w.tool.release("A")
+    for host in ("a-5", "a-6"):
+        w.done(host)
+    w.tool.release("A")
+    w.done("a-7")
+    assert w.tool.release("A")["launches_released"] == 7
+    write_json(w.root / "judges" / "A" / "harmbench" / "A1-1102.json", {"hb": SENTINELS[0]})
+    assert w.tool.block_a_open(w.plan()) == [] and w.tool.block_complete(w.plan(), "A") is True
+    original = Path(path).read_bytes()
+    Path(path).write_bytes(original.replace(b"lead:", b"lead :"))
+    for call in (lambda: w.tool.block_a_open(w.plan()), lambda: w.seal.seal_block("A")):
+        with pytest.raises(SystemExit, match="unpulled outputs decision is missing or differs"):
+            call()
+    Path(path).write_bytes(original)
+    w.seal.seal_block("A")
+    record = json.loads((w.root / "seals" / "block-A.json").read_text())
+    assert record["not_pulled"] == [{"host": "a-2", "index": i, "job": x, "unit": RESCORE_UNITS[i],
+                                     "decision_sha256": digest} for i, x in zip((12, 13, 14, 15), labels)]
+    assert not any(f["path"].startswith("rescore/") for f in record["files"]) and record["not_run"] == []
+    with pytest.raises(SystemExit, match="block A is sealed"):
+        w.tool.record_unpulled(*_unpulled(w, [16], host="a-2"))
+
+
+def _a7_held(w):
+    """a-1 to a-6 done; a-7 released, created, stopped before its job (pre-job-failed, then a confirmed stop); block A's
+    contingency at $2.95 (the live kit's remaining_usd, less than one arm's $3.31), so requeue a-7 holds its four runs
+    as not re-run (the live kit's a-7 entries)."""
+    _block_a_128(w)
+    w.done("a-2")
+    w.tool.release("A")
+    for host in ("a-3", "a-4"):
+        w.done(host)
+    w.tool.release("A")
+    for host in ("a-5", "a-6"):
+        w.done(host)
+    assert w.tool.release("A")["released"] == ["a-7"]
+    assert [(j["arm"], j["seed"]) for j in w.plan()["hosts"]["a-7"]["jobs"]] == A7_RUNS
+    _launch(w, "a-7")
+    _log(w, "a-7", "pre-job-failed", "pre-job-stop")
+    plan = w.plan()
+    plan["contingency"]["A"]["remaining_usd"] = 2.9470888888888886
+    w.mac.save_plan(plan)
+    assert w.tool.requeue("a-7") == {"from": "a-7", "to": None, "jobs": 0, "not_rerun": 4}
+    held = w.plan()["contingency"]["A"]["not_rerun"]
+    one = (52 * 60 + 1024 + 42 * 60) / 3600 * 1.79              # by hand: an arm's Branch-128 upper + a new pod
+    assert [(e["arm"], e["seed"], e["where"]) for e in held] == [(a, s, "requeue a-7") for a, s in A7_RUNS]
+    assert all(e["cost_usd"] == pytest.approx(one) for e in held) and round(one, 2) == 3.31
+
+
+def _payment(w, runs=None, amount=9.49, **change) -> tuple[str, str]:
+    body = {"kind": PAYMENT, "user_words": "Yes: pay a-7's four re-runs from the balance beyond block A's contingency.",
+            "block": "A", "jobs": [{"arm": a, "seed": s} for a, s in (A7_RUNS if runs is None else runs)],
+            "amount_usd": amount, "utc": "2026-10-26T14:44:00Z", "recorded_by": "test", **change}
+    return w.record({k: v for k, v in body.items() if v is not None})
+
+
+@pytest.mark.parametrize("change, match", [
+    ({"kind": "stage1 user decision: budget guard off"}, "its kind is not"),
+    ({"user_words": None}, "must hold exactly"),
+    ({"note": "x"}, "must hold exactly"),
+    ({"user_words": ""}, "must be non-empty texts"),
+    ({"amount_usd": 0}, "a finite number above 0"),
+    ({"amount_usd": True}, "a finite number above 0"),
+    ({"amount_usd": "9.49"}, "a finite number above 0"),
+    ({"jobs": []}, "distinct {arm, seed}"),
+    ({"jobs": [{"arm": "L1", "seed": "1103"}]}, "distinct {arm, seed}"),
+    ({"jobs": [{"arm": "L1", "seed": 1103, "kind": "arm"}]}, "distinct {arm, seed}"),
+    ({"jobs": [{"arm": "L1", "seed": 1103}, {"arm": "L1", "seed": 1103}]}, "distinct {arm, seed}"),
+    ({"utc": "2099-01-01T00:00:00Z"}, "in the future"),
+    ({"block": "B"}, "not a funding group with a contingency"),
+    ({"jobs": [{"arm": "A1", "seed": 1102}]}, "A1 at 1102: not held by block A's contingency as not re-run")])
+def test_the_users_re_run_payment_record_is_exact_and_names_only_held_runs(w, change, match):
+    _a7_held(w)
+    with pytest.raises(SystemExit, match=match):
+        w.tool.record_rerun_payment(*_payment(w, **change))
+    assert w.plan()["records"].get("rerun_payments") in (None, [])
+
+
+def test_requeue_pays_a7s_four_runs_beyond_the_contingency_under_the_users_record_and_nothing_else(w, capsys):
+    """The user's 26 Oct decision, by hand. Without the record, requeue a-7 refuses as before (already deferred) and
+    the four runs stay open in block A. With it (amount $9.49), requeue a-7 moves exactly the four, in order, to a new
+    arm pod a-8 (launch 4, cap 7.0 h) and pays them as one unit, $9.4950 = (2,520 + 4 x 4,144) s x $1.79/h, $9.49 in
+    cents, recorded under contingency.user_paid and logged; the contingency's remaining_usd ($2.95), spent and
+    not_rerun stay exactly as they were. A second requeue pays nothing (already deferred); another record naming one
+    of the four refuses; a-8's runs complete block A's arms."""
+    _a7_held(w)
+    before = json.loads(json.dumps(w.plan()["contingency"]["A"]))
+    with pytest.raises(SystemExit, match="a-7 was already deferred"):
+        w.tool.requeue("a-7")
+    assert [x for x in w.tool.block_a_open(w.plan()) if x.startswith("arm ")] == [f"arm {a} {s}" for a, s in A7_RUNS]
+    path, digest = _payment(w)
+    assert w.tool.main(["record-rerun-payment", path, "--sha256", digest]) == 0
+    assert json.loads(capsys.readouterr().out) == {"recorded": "rerun_payment", "sha256": digest, "block": "A",
+                                                   "jobs": [{"arm": a, "seed": s} for a, s in A7_RUNS],
+                                                   "amount_usd": 9.49}
+    out = w.tool.requeue("a-7")
+    assert out == {"from": "a-7", "to": "a-8", "jobs": 4, "cap_hours": 7.0, "role": "arms"}
+    plan = w.plan()
+    c = plan["contingency"]["A"]
+    assert {k: c[k] for k in before} == before                         # remaining, spent and not_rerun unchanged
+    unit = (2520 + 4 * 4144) / 3600 * 1.79
+    assert len(c["user_paid"]) == 1 and c["user_paid"][0]["cost_usd"] == pytest.approx(unit)
+    assert {k: v for k, v in c["user_paid"][0].items() if k not in ("cost_usd", "utc")} == {
+        "unit": [{"kind": "arm", "arm": a, "seed": s} for a, s in A7_RUNS], "new_pod": True, "cost_cents_usd": 9.49,
+        "amount_usd": 9.49, "where": "requeue a-7", "decision_sha256": digest}
+    a8 = plan["hosts"]["a-8"]
+    assert (a8["block"], a8["launch"], a8["role"], a8["engine"], a8["done"]) == ("A", 4, "arms", "X", False)
+    assert [(j["arm"], j["seed"], j["status"], j["deferred_from"], j["rerun_payment_sha256"]) for j in a8["jobs"]] == [
+        (a, s, "planned", "a-7", digest) for a, s in A7_RUNS]
+    assert plan["deferrals"][-1] == {"from": "a-7", "to": "a-8", "from_indices": [0, 1, 2, 3],
+                                     "to_indices": [0, 1, 2, 3], "stranded": None, "reason": "user-paid-rerun",
+                                     "rerun_payment_sha256": digest}
+    paid = [json.loads(line) for line in w.mac.OPERATOR_LOG.read_text().splitlines()
+            if json.loads(line)["action"] == "rerun-user-paid"]
+    assert len(paid) == 1 and paid[0]["contingency_remaining_usd"] == pytest.approx(2.9470888888888886)
+    with pytest.raises(SystemExit, match="a-7 was already deferred"):
+        w.tool.requeue("a-7")
+    assert len(w.plan()["contingency"]["A"]["user_paid"]) == 1
+    with pytest.raises(SystemExit, match="L1 at 1103: already paid by a recorded re-run payment"):
+        w.tool.record_rerun_payment(*_payment(w, runs=[("L1", 1103)]))
+    w.done("a-8")
+    assert not [x for x in w.tool.block_a_open(w.plan()) if x.startswith("arm ")]
+
+
+def test_a_payment_covers_only_the_runs_it_names_and_never_more_than_its_amount(w):
+    """The other ways: a record naming two of the four moves those two only (the other two stay held and open); the
+    unit (2,520 + 2 x 4,144) s x $1.79/h = $5.3740, $5.37 in cents, is refused under a $5.36 record; the user's new
+    decision ($5.37, recorded as a new file: a recorded file is never edited) supersedes it for those two and pays
+    them; a payment file changed after recording refuses the requeue."""
+    _a7_held(w)
+    low = _payment(w, runs=A7_RUNS[:2], amount=5.36)
+    w.tool.record_rerun_payment(*low)
+    with pytest.raises(SystemExit, match=r"the re-run unit costs \$5.37 \(the kit's figure\), more than the \$5.36"):
+        w.tool.requeue("a-7")
+    assert "a-8" not in w.plan()["hosts"] and not w.plan()["contingency"]["A"].get("user_paid")
+    path, digest = _payment(w, runs=A7_RUNS[:2], amount=5.37)
+    w.tool.record_rerun_payment(path, digest)
+    original = Path(path).read_bytes()
+    Path(path).write_bytes(original.replace(b"5.37", b"9.37"))
+    with pytest.raises(SystemExit, match="re-run payment decision is missing or differs"):
+        w.tool.requeue("a-7")
+    Path(path).write_bytes(original)
+    assert w.tool.requeue("a-7")["jobs"] == 2
+    plan = w.plan()
+    assert [(j["arm"], j["seed"]) for j in plan["hosts"]["a-8"]["jobs"]] == A7_RUNS[:2]
+    assert plan["contingency"]["A"]["user_paid"][0]["cost_usd"] == pytest.approx((2520 + 2 * 4144) / 3600 * 1.79)
+    assert plan["contingency"]["A"]["user_paid"][0]["decision_sha256"] == digest != low[1]
+    assert len(plan["records"]["rerun_payments"]) == 2
+    planned = w.tool.block_a_planned(plan, w.tool.block_a_required(plan, w.tool.block_a_plan_checked(plan)))
+    assert [planned.get(f"arm {a} {s}") for a, s in A7_RUNS] == ["host a-8", "host a-8", None, None]   # two held
+    assert [j["status"] for j in plan["hosts"]["a-7"]["jobs"]] == ["not_started"] * 4

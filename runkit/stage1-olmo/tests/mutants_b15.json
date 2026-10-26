@@ -2683,7 +2683,47 @@
    "id": "B15-h-judge-ignores-moved",
    "part": "B15 round H (25 Oct; I: notes/d3-build.json): addendum §28, launches in parallel while the budget guard is off",
    "replace": "                           if not plan[\"hosts\"][n].get(\"done\")]\n                if waiting:"
+  },
+  {
+   "describes": "kit gap 1: the pull list without rescore/ (LN-15e's units are left on the pod again)",
+   "file": "host.py",
+   "find": "PULL_ITEMS = (\"round1 rescore cert job-* jobs anchor-* gatec cuda-preflight-* \"",
+   "id": "B15-29-pull-no-rescore",
+   "part": "B15 round 29 (26 Oct; notes/kit-round-29.json): addendum §29 and the user's re-run payment",
+   "replace": "PULL_ITEMS = (\"round1 cert job-* jobs anchor-* gatec cuda-preflight-* \""
+  },
+  {
+   "describes": "kit gap 3: the finisher light-checks only Gate B's roles (job, first, anchor) again",
+   "file": "finisher.py",
+   "find": "            else:      # addendum §29 point 4: every stage-1 role (w1_18, cert, certify, job, diagnostics, arms), any role\n",
+   "id": "B15-29-finisher-gate-b-roles",
+   "part": "B15 round 29 (26 Oct; notes/kit-round-29.json): addendum §29 and the user's re-run payment",
+   "replace": "            elif role in (\"job\", \"first\", \"anchor\"):\n"
+  },
+  {
+   "describes": "kit gap 2: an unpulled outputs decision is not re-hashed at use (a changed file still counts)",
+   "file": "plan_tool.py",
+   "find": "        if not isinstance(on_disk, dict) or mac.sha(p) != e.get(\"sha256\") or on_disk.get(\"host\") != e.get(\"host\") or \\\n",
+   "id": "B15-29-unpulled-not-rehashed",
+   "part": "B15 round 29 (26 Oct; notes/kit-round-29.json): addendum §29 and the user's re-run payment",
+   "replace": "        if not isinstance(on_disk, dict) or on_disk.get(\"host\") != e.get(\"host\") or \\\n"
+  },
+  {
+   "describes": "the user's re-run payment: requeue pays the named runs from the contingency instead (a-7's four stay held)",
+   "file": "plan_tool.py",
+   "find": "            return pay_user(plan_, jobs_, new_pod, where, wave, payment)\n",
+   "id": "B15-29-user-paid-from-contingency",
+   "part": "B15 round 29 (26 Oct; notes/kit-round-29.json): addendum §29 and the user's re-run payment",
+   "replace": "            return pay_unit(plan_, jobs_, new_pod, where, wave)\n"
+  },
+  {
+   "describes": "record-done accepts any missing output, not only a model state the light pull left on the pod",
+   "file": "plan_tool.py",
+   "find": "            if rel.endswith(\".safetensors\") and not p.exists() and not p.is_symlink():\n",
+   "id": "B15-29-any-missing-output-accepted",
+   "part": "B15 round 29 (26 Oct; notes/kit-round-29.json): addendum §29 and the user's re-run payment",
+   "replace": "            if not p.exists() and not p.is_symlink():\n"
   }
  ],
- "note": "B15 BUILD-CORE: files are relative to runkit/stage1-olmo/; tests are runkit/stage1-olmo/tests/ (run_mutants.py copies scripts/stage1, so the lead's runner copies this kit's folder instead, with the same rules) BUILD-RUNNER added the B15-r-* entries (runner side: job runner, preflight, download, probes, pack, orchestrate, judges, backup, the UNITLESS fix); same files-relative rule. The B15 FIX round (notes/b15-fix.json) added the B15-x-* entries and B15-d-status-prints-value, and re-targeted B15-m-group-need, B15-g-plan-ab-not-read and B15-r-vcheck-after-projection to the fixed text. B15 round 2 (notes/b15r2-build.json) added the B15-2-* entries and re-targeted B15-g-plan-ab-not-read and B15-g-plan-ab-rule to the derived plan-A/B code. The tests now read only this repository (the S1 package in scripts/stage1_s1, engine Y at STAGE1_ENGINE_Y_TREE, default tmp/engine-y-34bfd288), so a mutation copy needs runkit/stage1-olmo and runkit/gate-b-olmo copied and scripts, experiments, .ai, research, backups and tmp linked inside the same repository root; no sibling folder. The B15 round-2 fix round (notes/b15r2-fix.json) added the verifiers' 13 mutants (VG-*, V2-*) and the B15-3-* entries, and re-targeted B15-g-plan-ab-not-read, B15-x-no-block-a-floor and B15-2-plan-ab-bool to the fixed text. B15 round 3b (notes/b15r3b-build.json) added the B15-6-* entries (S1 package pins, the moved D-2 and C3 records, c0 on the LN-12 pod, LN-15e's retrain and re-score, 27 judge units, V2a's recorded fallback), retargeted B15-2-pack-d2-code and B15-4-no-theta0 to the changed text, and marks B15-2-plan-ab-not-derived 'expect': 'survive' with its equivalence argument in 'why'; B15-r-pack-man1 and B15-2-d2-req8-pool are now killed by new tests (test_stage1_runner.py test_a_named_input_that_man1_lists_with_another_sha256_..., test_stage1_runkit.py test_a_filled_pins_file_whose_pool_hash_differs_...). The B15 round-3b fix round (notes/b15r3b-fix.json) added the verify-pins report's 8 mutants (VP-*; VP-rescore-own-arm-seed-unchecked 'expect': 'survive' with its argument) and the B15-7-* entries (paths in normal form in the pack, F1; the runner's distinct re-score groups, F4). B15 round 3c (notes/b15r3c-build.json) added the B15-8-* entries (the O-ext unit runner pinned, packed, sealed and parsed; block A's completion against its recorded plan and the not-run decision; the $144 top-up's limit test) and retargeted B15-6-s1-unpinned-all, whose round-3b find text (the S1_UNPINNED exception) is gone: it now puts that exception back. Round H (notes/d3-build.json, addendum §28) added the B15-h-* entries (release without waiting for the earlier launch's hosts while the guard-off record holds; judge launches still wait; the early release recorded and logged); B15-g-launch-order's find text is unchanged and still the old rule's gate."
+ "note": "B15 BUILD-CORE: files are relative to runkit/stage1-olmo/; tests are runkit/stage1-olmo/tests/ (run_mutants.py copies scripts/stage1, so the lead's runner copies this kit's folder instead, with the same rules) BUILD-RUNNER added the B15-r-* entries (runner side: job runner, preflight, download, probes, pack, orchestrate, judges, backup, the UNITLESS fix); same files-relative rule. The B15 FIX round (notes/b15-fix.json) added the B15-x-* entries and B15-d-status-prints-value, and re-targeted B15-m-group-need, B15-g-plan-ab-not-read and B15-r-vcheck-after-projection to the fixed text. B15 round 2 (notes/b15r2-build.json) added the B15-2-* entries and re-targeted B15-g-plan-ab-not-read and B15-g-plan-ab-rule to the derived plan-A/B code. The tests now read only this repository (the S1 package in scripts/stage1_s1, engine Y at STAGE1_ENGINE_Y_TREE, default tmp/engine-y-34bfd288), so a mutation copy needs runkit/stage1-olmo and runkit/gate-b-olmo copied and scripts, experiments, .ai, research, backups and tmp linked inside the same repository root; no sibling folder. The B15 round-2 fix round (notes/b15r2-fix.json) added the verifiers' 13 mutants (VG-*, V2-*) and the B15-3-* entries, and re-targeted B15-g-plan-ab-not-read, B15-x-no-block-a-floor and B15-2-plan-ab-bool to the fixed text. B15 round 3b (notes/b15r3b-build.json) added the B15-6-* entries (S1 package pins, the moved D-2 and C3 records, c0 on the LN-12 pod, LN-15e's retrain and re-score, 27 judge units, V2a's recorded fallback), retargeted B15-2-pack-d2-code and B15-4-no-theta0 to the changed text, and marks B15-2-plan-ab-not-derived 'expect': 'survive' with its equivalence argument in 'why'; B15-r-pack-man1 and B15-2-d2-req8-pool are now killed by new tests (test_stage1_runner.py test_a_named_input_that_man1_lists_with_another_sha256_..., test_stage1_runkit.py test_a_filled_pins_file_whose_pool_hash_differs_...). The B15 round-3b fix round (notes/b15r3b-fix.json) added the verify-pins report's 8 mutants (VP-*; VP-rescore-own-arm-seed-unchecked 'expect': 'survive' with its argument) and the B15-7-* entries (paths in normal form in the pack, F1; the runner's distinct re-score groups, F4). B15 round 3c (notes/b15r3c-build.json) added the B15-8-* entries (the O-ext unit runner pinned, packed, sealed and parsed; block A's completion against its recorded plan and the not-run decision; the $144 top-up's limit test) and retargeted B15-6-s1-unpinned-all, whose round-3b find text (the S1_UNPINNED exception) is gone: it now puts that exception back. Round H (notes/d3-build.json, addendum §28) added the B15-h-* entries (release without waiting for the earlier launch's hosts while the guard-off record holds; judge launches still wait; the early release recorded and logged); B15-g-launch-order's find text is unchanged and still the old rule's gate. Round 29 (notes/kit-round-29.json; addendum §29 and the user's 26 Oct re-run payment) added the 5 B15-29-* entries (the pull list, the finisher's roles, the unpulled decision's re-hash, the user-paid requeue and record-done's model-state exception); every one was run against the kit suite and killed (notes/kit-round-29-evidence/). No earlier find text was retargeted: the round-29 code keeps each earlier find text exactly once."
 }

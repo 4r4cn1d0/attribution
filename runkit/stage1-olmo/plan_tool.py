@@ -46,6 +46,18 @@ are kept.
     plan_tool.py record-block-a-not-run FILE --sha256 H   {kind: "stage1 block-a not-run decision", jobs: [name,
                                                    ...], reason, utc, recorded_by}: jobs the block-A plan requires that
                                                    will not run (round 3c; names as block A's refusal prints them)
+    plan_tool.py record-unpulled FILE --sha256 H   {kind: "stage1 unpulled outputs decision", host, jobs: [index, ...],
+                                                   reason, utc, recorded_by} (addendum §29 point 3): HOST's jobs that
+                                                   are complete on the pod whose unit the pull did not fetch; then
+                                                   record-done HOST records them "complete (not pulled)" (pulled
+                                                   false), the seal lists them with no hashes, and block A's
+                                                   completeness counts them as decided; re-hashed at every use
+    plan_tool.py record-rerun-payment FILE --sha256 H   the user's decision {kind: "stage1 user decision: pay re-runs
+                                                   beyond the contingency", user_words (verbatim), block, jobs: [{arm,
+                                                   seed}], amount_usd, utc, recorded_by}: requeue HOST then moves the
+                                                   named jobs an earlier move of HOST held as not re-run and pays them,
+                                                   as one unit, beyond the contingency (logged; contingency.user_paid),
+                                                   and nothing else; re-hashed at every use
 
 BLOCKS (rules.BLOCKS, in order): "S1-0" (W1-18 alone, §8 Q1), "cert" (C1-C3, on Y), "A", "certify" (B10's
 certification pod), "B", "C" (plan B only). A block's jobs FILE is {"launches": [L, ...], "reused": [[arm, seed]],
@@ -156,7 +168,12 @@ RECORD_KINDS = {"branch": "stage1 w1-18 branch record", "default_full": "stage1 
                 "oext_fallback": "stage1 oext fallback", "c3": "stage1 c3 subsample pin",
                 "c3_fallback": "stage1 c3 fallback", "d2_fallback": "stage1 d2 fallback",
                 "not_run": "stage1 block-a not-run decision",       # round 3c (VP3b-3): record-block-a-not-run
-                "guard_off": rules.GUARD_OFF_KIND}                  # (E): record-guard-off, the user's decision
+                "guard_off": rules.GUARD_OFF_KIND,                  # (E): record-guard-off, the user's decision
+                "unpulled": "stage1 unpulled outputs decision",     # §29 point 3: record-unpulled, the lead's
+                "rerun_payment": "stage1 user decision: pay re-runs beyond the contingency"}   # record-rerun-payment
+UNPULLED_KEYS = ("kind", "host", "jobs", "reason", "utc", "recorded_by")
+RERUN_PAYMENT_KEYS = ("kind", "user_words", "block", "jobs", "amount_usd", "utc", "recorded_by")
+HELD_STATUSES = ("not_started", "crashed", "deferred")    # a job a move left behind (not re-run) keeps one of these
 C2_THRESHOLDS_JSON = json.dumps(rules.C2_THRESHOLDS, sort_keys=True)
 W1_18_OUTPUT_KIND = "stage1 over-refusal checks"
 SHA_RE = re.compile(r"[0-9a-f]{64}")
@@ -1549,9 +1566,10 @@ def block_a_required(plan: dict, doc: dict) -> dict:
 def block_a_done(plan: dict, required: dict) -> set:
     """The labels with a completion record: a job recorded complete on a block-A host (record-done, from its pulled
     JOB-DONE.json; a moved host's complete jobs count), and a judge launch of block A that is released and covers at
-    least the plan's units for that judge."""
+    least the plan's units for that judge. A job recorded complete (not pulled) is not counted here: it counts as
+    decided by its unpulled outputs decision (block_a_unpulled), re-hashed at every use (§29 point 3)."""
     done = {job_label(j["kind"], j.get("arm"), j.get("seed")) for h in plan["hosts"].values() if h["block"] == "A"
-            for j in h["jobs"] if j.get("status") == "complete"}
+            for j in h["jobs"] if j.get("status") == "complete" and j.get("pulled") is not False}
     b = plan["blocks"].get("A") or {}
     for k, launch in enumerate(b.get("launches") or []):
         j = launch.get("judge")
@@ -1605,8 +1623,14 @@ def block_a_open(plan: dict) -> list[str]:
     if doc is None:
         return ["(no block-A plan is recorded)"]
     required = block_a_required(plan, doc)
-    done, decided = block_a_done(plan, required), block_a_not_run(plan)
-    return [label for label in required if label not in done and label not in decided]
+    done, decided, unpulled = block_a_done(plan, required), block_a_not_run(plan), block_a_unpulled(plan)
+    return [label for label in required if label not in done and label not in decided and label not in unpulled]
+
+
+def block_a_unpulled(plan: dict) -> dict:
+    """label -> the SHA-256 of the unpulled outputs decision under which record-done recorded a block-A job complete
+    (not pulled) (§29 point 3; the decisions re-hashed here, not_pulled_jobs)."""
+    return {e["job"]: e["decision_sha256"] for e in not_pulled_jobs(plan, "A")}
 
 
 def block_a_open_note(plan: dict) -> str:
@@ -2404,6 +2428,155 @@ def pay_unit(plan: dict, jobs: list[dict], new_pod: bool, where: str, wave: str 
     return list(jobs)
 
 
+def pay_user(plan: dict, jobs: list[dict], new_pod: bool, where: str, wave: str | None, payment: dict) -> list[dict]:
+    """The user's recorded re-run payment (record-rerun-payment) pays ``jobs`` as one unit (rules.unit_rerun_cost_usd)
+    beyond the funding group's contingency: the contingency's remaining_usd, spent and not_rerun are unchanged; the
+    payment goes to its user_paid list and the operator log. It refuses when the unit's cost in cents ([D20]'s
+    rounding) is above what the decision still covers (its amount_usd less its earlier payments): the user decides
+    again. Nothing else is paid by it."""
+    group = rules.FUNDING_BLOCK.get(wave)
+    c = plan.get("contingency", {}).get(group)
+    if c is None or group != payment["block"]:
+        fail(f"{where}: the user's re-run payment is for block {payment['block']}'s funding group, not this host's")
+    cost = rules.unit_rerun_cost_usd(jobs, new_pod)
+    earlier = sum(p["cost_cents_usd"] for p in c.get("user_paid") or [] if p.get("decision_sha256") == payment["sha256"])
+    left = round(payment["amount_usd"] - earlier, 2)
+    if rules.cents(cost) > left + 1e-9:
+        fail(f"{where}: the re-run unit costs ${rules.cents(cost):.2f} (the kit's figure), more than the ${left:.2f} the "
+             "user's recorded payment still covers; the user decides again")
+    record = {"unit": [{"kind": j["kind"], "arm": j.get("arm"), "seed": j.get("seed")} for j in jobs],
+              "new_pod": new_pod, "cost_usd": cost, "cost_cents_usd": rules.cents(cost),
+              "amount_usd": payment["amount_usd"], "where": where, "decision_sha256": payment["sha256"],
+              "utc": mac.utc()}
+    c.setdefault("user_paid", []).append(record)
+    mac.operator_action({"action": "rerun-user-paid", **record, "contingency_remaining_usd": c["remaining_usd"]})
+    return list(jobs)
+
+
+def rerun_payment_problem(doc) -> str | None:
+    """Why ``doc`` is not the user's re-run payment decision {kind, user_words (verbatim), block, jobs: [{arm, seed}],
+    amount_usd, utc, recorded_by} (exactly these keys; each job exactly {arm: text, seed: integer}, distinct; the
+    amount a finite number above 0; the texts non-empty), or None."""
+    if not isinstance(doc, dict) or set(doc) != set(RERUN_PAYMENT_KEYS):
+        return f"it must hold exactly {list(RERUN_PAYMENT_KEYS)}"
+    if doc["kind"] != RECORD_KINDS["rerun_payment"]:
+        return f"its kind is not {RECORD_KINDS['rerun_payment']!r}"
+    if not all(isinstance(doc[k], str) and doc[k].strip() for k in ("user_words", "block", "utc", "recorded_by")):
+        return "user_words (verbatim), block, utc and recorded_by must be non-empty texts"
+    amount = doc["amount_usd"]
+    if not isinstance(amount, (int, float)) or isinstance(amount, bool) or not math.isfinite(amount) or amount <= 0:
+        return "amount_usd must be a finite number above 0"
+    jobs = doc["jobs"]
+    if not isinstance(jobs, list) or not jobs or not all(
+            isinstance(j, dict) and set(j) == {"arm", "seed"} and isinstance(j["arm"], str) and j["arm"].strip()
+            and type(j["seed"]) is int for j in jobs) or len({(j["arm"], j["seed"]) for j in jobs}) != len(jobs):
+        return "jobs must be a non-empty list of distinct {arm, seed} (arm a text, seed an integer)"
+    return None
+
+
+def record_rerun_payment(path: str, sha256: str) -> dict:
+    """record-rerun-payment FILE --sha256 H: the user's decision {kind: "stage1 user decision: pay re-runs beyond the
+    contingency", user_words (verbatim), block, jobs: [{arm, seed}], amount_usd, utc, recorded_by} that the balance
+    pays the named re-runs beyond the funding group's contingency. block is a funding group with a contingency
+    (block A's: "A"); each named job must be held by that contingency's not_rerun list (a re-run it could not pay) and
+    paid by no earlier payment; the group's block is not sealed. A later decision naming a job that an earlier one
+    named but did not pay supersedes it for that job (the user decides again, e.g. on a new amount; a recorded file is
+    never edited). The file is re-hashed at every use. With it, requeue HOST moves the named jobs HOST holds and pays
+    them, as one unit, from the decision (pay_user), and nothing else."""
+    plan = load()
+    doc, ref = file_record(path, sha256)
+    problem = rerun_payment_problem(doc)
+    if problem:
+        fail(f"not the user's re-run payment decision: {problem}")
+    _utc_past(doc["utc"], "the re-run payment decision")
+    block = doc["block"]
+    c = plan.get("contingency", {}).get(block)
+    if block not in set(rules.FUNDING_BLOCK.values()) or c is None:
+        fail(f"block {block!r} is not a funding group with a contingency in plan.json")
+    if block in plan["seals"]:
+        fail(f"block {block} is sealed: a re-run payment is recorded before its seal")
+    held = [(e.get("arm"), e.get("seed")) for e in c.get("not_rerun") or []]
+    paid = {(u.get("arm"), u.get("seed")) for p in c.get("user_paid") or [] for u in p["unit"]}
+    rerun_payments_checked(plan)                  # the earlier decisions re-hashed (a later one supersedes, unpaid)
+    for j in doc["jobs"]:
+        key = (j["arm"], j["seed"])
+        if key not in held:
+            fail(f"{j['arm']} at {j['seed']}: not held by block {block}'s contingency as not re-run")
+        if key in paid:
+            fail(f"{j['arm']} at {j['seed']}: already paid by a recorded re-run payment")
+    entry = {**ref, "path": str(pathlib.Path(path).resolve()), "block": block, "jobs": [dict(j) for j in doc["jobs"]],
+             "amount_usd": doc["amount_usd"], "user_words": doc["user_words"], "utc": doc["utc"],
+             "recorded_by": doc["recorded_by"], "recorded_utc": mac.utc()}
+    records(plan).setdefault("rerun_payments", []).append(entry)
+    mac.save_plan(plan)
+    mac.operator_action({"action": "record-rerun-payment", "sha256": ref["sha256"], "block": block,
+                         "jobs": entry["jobs"], "amount_usd": entry["amount_usd"]})
+    return {"recorded": "rerun_payment", "sha256": ref["sha256"], "block": block, "jobs": entry["jobs"],
+            "amount_usd": entry["amount_usd"]}
+
+
+def rerun_payments_checked(plan: dict) -> list[dict]:
+    """The recorded re-run payment decisions, each file re-hashed at its recorded path: it must be unchanged and hold
+    the recorded block, jobs, amount and words."""
+    out = []
+    for e in (plan.get("records") or {}).get("rerun_payments") or []:
+        p = pathlib.Path(str(e.get("path")))
+        try:
+            on_disk = json.loads(p.read_text()) if p.is_file() else None
+        except ValueError:
+            on_disk = None
+        if not isinstance(on_disk, dict) or mac.sha(p) != e.get("sha256") or \
+                any(on_disk.get(k) != e.get(k) for k in ("block", "jobs", "amount_usd", "user_words")):
+            fail("a recorded re-run payment decision is missing or differs from its recorded SHA-256; it must stay at "
+                 "its recorded path, unchanged")
+        out.append(e)
+    return out
+
+
+def user_paid_held(plan: dict, host: str, h: dict) -> tuple[dict | None, list[int]]:
+    """(the decision, the indices of HOST's jobs it pays): HOST's jobs that an earlier move of HOST left as not re-run
+    (block's contingency not_rerun, where "requeue HOST" or "defer HOST"; the job still at a held status) and that a
+    recorded re-run payment of HOST's funding group names (the latest decision naming it), not paid yet. One decision
+    per requeue."""
+    group = rules.FUNDING_BLOCK.get(h["block"])
+    c = plan.get("contingency", {}).get(group) or {}
+    held = {(e.get("arm"), e.get("seed")) for e in c.get("not_rerun") or []
+            if e.get("where") in (f"requeue {host}", f"defer {host}")}
+    paid = {(u.get("arm"), u.get("seed")) for p in c.get("user_paid") or [] for u in p["unit"]}
+    latest: dict = {}
+    for e in rerun_payments_checked(plan):
+        if e["block"] == group:
+            for j in e["jobs"]:
+                latest[(j["arm"], j["seed"])] = e
+    by_decision: dict = {}
+    for key, e in latest.items():
+        if key not in held or key in paid:
+            continue
+        idx = [i for i, job in enumerate(h["jobs"]) if (job.get("arm"), job.get("seed")) == key
+               and job.get("status") in HELD_STATUSES]
+        if len(idx) != 1:
+            fail(f"{host}: {key[0]} at {key[1]} is held as not re-run but is not one held job of this host")
+        by_decision.setdefault(e["sha256"], (e, []))[1].append(idx[0])
+    if len(by_decision) >= 2:
+        fail(f"{host}: two recorded re-run payments name jobs of this host; one decision per requeue (the lead decides)")
+    if not by_decision:
+        return None, []
+    e, idx = next(iter(by_decision.values()))
+    return e, sorted(idx)
+
+
+def requeue_user_paid(plan: dict, host: str, h: dict, payment: dict, idx: list[int]) -> dict:
+    """requeue HOST under the user's re-run payment: the named jobs HOST holds move, in order, to the next
+    unlaunched host of the block with room or a new host (move_open: never a completed job again, at most 4 counted
+    jobs), paid by the decision beyond the contingency (pay_user). A regeneration, O-only pass, retrain, re-score or
+    W1-18 job is never moved this way (its linked partner and state stay where they ran): the lead decides."""
+    for i in idx:
+        kind = h["jobs"][i]["kind"]
+        if kind in rules.LINKED_KINDS or kind in rules.LINK_SOURCES or kind == "w1_18":
+            fail(f"{host}: job {i} ({kind}) is not re-run by a payment decision; the lead decides")
+    return move_open(plan, host, h, idx, "requeue", "user-paid-rerun", payment=payment)
+
+
 # ----- after a host: record-done, defer, requeue -----------------------------------------------------------------
 
 
@@ -2418,6 +2591,7 @@ def record_done(host: str) -> dict:
     if done.get("host") != host or sorted(recs) != list(range(len(h["jobs"]))):
         fail(f"{host}: JOB-DONE.json does not cover this host's jobs")
     tree = HERE / "retrieved" / host / "tree"
+    decided = unpulled_decided(plan).get(host, {})       # §29 point 3: the lead's decisions, re-hashed here
     for i, job in enumerate(h["jobs"]):
         r = recs[i]
         if (r["kind"], r.get("arm"), r.get("seed")) != (job["kind"], job["arm"], job["seed"]):
@@ -2427,22 +2601,166 @@ def record_done(host: str) -> dict:
         if r["status"] not in ("complete", "crashed", "deferred", "not_started"):
             fail(f"{host}: job {i} has an unknown status")
         outputs = r.get("outputs") or {}
+        states = 0
         for rel, digest in outputs.items():
             p = tree / rel
-            if ".." in pathlib.PurePath(rel).parts or not p.is_file() or mac.sha(p) != digest:
+            if ".." in pathlib.PurePath(rel).parts:
                 fail(f"{host}: job {i}'s output is missing from the pulled tree or differs")
-        if r["status"] == "complete" and r.get("complete_sha256"):
+            if rel.endswith(".safetensors") and not p.exists() and not p.is_symlink():
+                states += 1                              # §29: the light pull leaves model states on the pod's volume
+                continue
+            if not p.is_file() or mac.sha(p) != digest:
+                fail(f"{host}: job {i}'s output is missing from the pulled tree or differs")
+        if i in decided:                                 # complete on the pod; its unit was not fetched (§29 point 3)
+            unit_problem(tree, r, i, host)
+        elif r["status"] == "complete" and r.get("complete_sha256"):
             complete = tree / r["unit"] / "COMPLETE.json"
             if not complete.is_file() or mac.sha(complete) != r["complete_sha256"]:
-                fail(f"{host}: job {i}'s COMPLETE.json is missing from the pulled tree or differs")
+                fail(f"{host}: job {i}'s COMPLETE.json is missing from the pulled tree or differs" +
+                     ("; if the light pull did not fetch its unit, record the lead's decision first (record-unpulled)"
+                      if not complete.is_file() else ""))
         elif r["status"] == "complete" and not (job["kind"] in rules.UNITLESS_KINDS and outputs):
             fail(f"{host}: job {i} is complete without a complete_sha256 (or, for a unit-free job, its outputs)")
         job.update(status=r["status"], unit=r.get("unit"), complete_sha256=r.get("complete_sha256"),
                    outputs=outputs or None, reason=r.get("reason"))
+        if i in decided:
+            job.update(pulled=False, unpulled_decision_sha256=decided[i])
+        if states:
+            job["states_on_pod"] = states
     h["done"], h["job_done_sha256"] = True, mac.sha(path)
     mac.save_plan(plan)
-    mac.operator_action({"action": "record-done", "host": host, "statuses": [j["status"] for j in h["jobs"]]})
-    return {"host": host, "statuses": [j["status"] for j in h["jobs"]]}
+    not_pulled = sorted(decided)
+    mac.operator_action({"action": "record-done", "host": host, "statuses": [j["status"] for j in h["jobs"]],
+                         **({"not_pulled": not_pulled} if not_pulled else {})})
+    out = {"host": host, "statuses": [j["status"] for j in h["jobs"]]}
+    return {**out, "not_pulled": not_pulled} if not_pulled else out
+
+
+def unit_problem(tree: pathlib.Path, r: dict, i: int, host: str) -> None:
+    """§29 point 3: a job an unpulled outputs decision names must be complete on the pod with a unit and its
+    COMPLETE.json SHA-256 (JOB-DONE.json), and that unit's COMPLETE.json must be absent from the pulled tree."""
+    unit = r.get("unit")
+    if r.get("status") != "complete" or not isinstance(unit, str) or not unit or \
+            not SHA_RE.fullmatch(str(r.get("complete_sha256"))):
+        fail(f"{host}: job {i} is not a complete unit job in the pulled JOB-DONE.json; an unpulled outputs decision "
+             "names only a complete job whose unit the pull did not fetch")
+    if pathlib.PurePosixPath(unit).is_absolute() or ".." in pathlib.PurePosixPath(unit).parts:
+        fail(f"{host}: job {i}'s unit is not a plain path under the run folder")
+    if (tree / unit / "COMPLETE.json").exists():
+        fail(f"{host}: job {i}'s unit is in the pulled tree; an unpulled outputs decision cannot name it")
+
+
+def _utc_past(text, what: str) -> None:
+    """A UTC time (offset zero) that is not in the future."""
+    try:
+        at = dt.datetime.fromisoformat(str(text).replace("Z", "+00:00"))
+        if at.utcoffset() != dt.timedelta(0):
+            raise ValueError
+    except ValueError:
+        fail(f"{what}'s utc is not a UTC time")
+    if at > dt.datetime.now(dt.timezone.utc):
+        fail(f"{what}'s utc is in the future")
+
+
+def unpulled_problem(doc) -> str | None:
+    """Why ``doc`` is not the lead's unpulled outputs decision {kind, host, jobs: [index, ...], reason, utc,
+    recorded_by} (exactly these keys; distinct job indices; non-empty texts), or None."""
+    if not isinstance(doc, dict) or set(doc) != set(UNPULLED_KEYS):
+        return f"it must hold exactly {list(UNPULLED_KEYS)}"
+    if doc["kind"] != RECORD_KINDS["unpulled"]:
+        return f"its kind is not {RECORD_KINDS['unpulled']!r}"
+    jobs = doc["jobs"]
+    if not isinstance(jobs, list) or not jobs or not all(type(i) is int and i >= 0 for i in jobs) or \
+            len(set(jobs)) != len(jobs):
+        return "jobs must be a non-empty list of distinct job indices"
+    if not all(isinstance(doc[k], str) and doc[k].strip() for k in ("host", "reason", "utc", "recorded_by")):
+        return "host, reason, utc and recorded_by must be non-empty texts"
+    return None
+
+
+def record_unpulled(path: str, sha256: str) -> dict:
+    """record-unpulled FILE --sha256 H (addendum §29 point 3): the lead's decision {kind: "stage1 unpulled outputs
+    decision", host, jobs: [index, ...], reason, utc, recorded_by} for jobs of HOST that are complete on the pod (its
+    pulled JOB-DONE.json: complete, with a unit and its COMPLETE.json SHA-256) whose unit the pull did not fetch (the
+    unit's COMPLETE.json is absent from retrieved/HOST/tree). Recorded before record-done HOST and before the block's
+    seal; a job is named by one decision only. The file is re-hashed at every use (record-done, block A's
+    completeness, the seal): it must stay at its recorded path, unchanged. record-done then records those jobs
+    complete with pulled false ("complete (not pulled)"), the seal lists them with no hashes, and block A's
+    completeness counts them as decided by this record."""
+    plan = load()
+    doc, ref = file_record(path, sha256)
+    problem = unpulled_problem(doc)
+    if problem:
+        fail(f"not the lead's unpulled outputs decision: {problem}")
+    _utc_past(doc["utc"], "the unpulled outputs decision")
+    host = doc["host"]
+    h = plan["hosts"].get(host) or fail(f"{host} is not a host of plan.json")
+    if h["block"] in plan["seals"]:
+        fail(f"block {h['block']} is sealed: an unpulled outputs decision is recorded before its seal")
+    if h.get("done"):
+        fail(f"{host} is recorded done: an unpulled outputs decision is recorded before record-done {host}")
+    taken = unpulled_decided(plan).get(host, {})
+    if any(i in taken for i in doc["jobs"]):
+        fail(f"{host}: a job is already named by a recorded unpulled outputs decision")
+    done_path = HERE / "retrieved" / host / "tree" / "JOB-DONE.json"
+    if not done_path.is_file():
+        fail(f"{host}: no pulled JOB-DONE.json")
+    done = json.loads(done_path.read_text())
+    recs = {r.get("index"): r for r in done.get("jobs") or [] if isinstance(r, dict)}
+    if done.get("host") != host:
+        fail(f"{host}: JOB-DONE.json does not cover this host's jobs")
+    for i in doc["jobs"]:
+        if i >= len(h["jobs"]) or i not in recs:
+            fail(f"{host}: job {i} is not a job of this host's JOB-DONE.json")
+        job, r = h["jobs"][i], recs[i]
+        if (r.get("kind"), r.get("arm"), r.get("seed")) != (job["kind"], job["arm"], job["seed"]):
+            fail(f"{host}: job {i} in JOB-DONE.json is another job")
+        unit_problem(HERE / "retrieved" / host / "tree", r, i, host)
+    entry = {**ref, "path": str(pathlib.Path(path).resolve()), "host": host, "jobs": sorted(doc["jobs"]),
+             "reason": doc["reason"], "utc": doc["utc"], "recorded_by": doc["recorded_by"], "recorded_utc": mac.utc()}
+    records(plan).setdefault("unpulled", []).append(entry)
+    mac.save_plan(plan)
+    labels = [job_label(h["jobs"][i]["kind"], h["jobs"][i].get("arm"), h["jobs"][i].get("seed")) for i in entry["jobs"]]
+    mac.operator_action({"action": "record-unpulled", "sha256": ref["sha256"], "host": host, "jobs": entry["jobs"]})
+    return {"recorded": "unpulled", "sha256": ref["sha256"], "host": host, "jobs": entry["jobs"], "labels": labels}
+
+
+def unpulled_decided(plan: dict) -> dict:
+    """host -> {job index: the SHA-256 of the recorded unpulled outputs decision that names it}. Each decision file is
+    re-hashed at every use: it must stay at its recorded path, unchanged, and hold the recorded host, jobs and
+    reason."""
+    out: dict = {}
+    for e in (plan.get("records") or {}).get("unpulled") or []:
+        p = pathlib.Path(str(e.get("path")))
+        try:
+            on_disk = json.loads(p.read_text()) if p.is_file() else None
+        except ValueError:
+            on_disk = None
+        if not isinstance(on_disk, dict) or mac.sha(p) != e.get("sha256") or on_disk.get("host") != e.get("host") or \
+                sorted(on_disk.get("jobs") or []) != e.get("jobs") or on_disk.get("reason") != e.get("reason"):
+            fail("a recorded unpulled outputs decision is missing or differs from its recorded SHA-256; it must stay "
+                 "at its recorded path, unchanged")
+        for i in e["jobs"]:
+            out.setdefault(e["host"], {})[i] = e["sha256"]
+    return out
+
+
+def not_pulled_jobs(plan: dict, block: str | None = None) -> list[dict]:
+    """The jobs recorded "complete (not pulled)" (record-done under an unpulled outputs decision, re-hashed here),
+    of one block or of all: {host, index, job (its label), unit, decision_sha256}; no file hash (the unit is not
+    in the pulled tree)."""
+    out = []
+    for host, decided in sorted(unpulled_decided(plan).items()):
+        h = plan["hosts"][host]
+        if block is not None and h["block"] != block:
+            continue
+        for i, digest in sorted(decided.items()):
+            j = h["jobs"][i]
+            if h.get("done") and j.get("status") == "complete" and j.get("pulled") is False and \
+                    j.get("unpulled_decision_sha256") == digest:
+                out.append({"host": host, "index": i, "job": job_label(j["kind"], j.get("arm"), j.get("seed")),
+                            "unit": j.get("unit"), "decision_sha256": digest})
+    return out
 
 
 def destination(plan: dict, host: str, wave: str, arms: int = 0, engine: str | None = None) -> str | None:
@@ -2544,10 +2862,13 @@ def _strip(job: dict) -> dict:
     return {k: v for k, v in job.items() if k not in ("unit", "complete_sha256", "outputs", "reason")}
 
 
-def move_open(plan: dict, host: str, h: dict, moving_idx: list[int], action: str, reason: str | None = None) -> dict:
+def move_open(plan: dict, host: str, h: dict, moving_idx: list[int], action: str, reason: str | None = None,
+              payment: dict | None = None) -> dict:
     """``defer``'s move of the jobs at ``moving_idx``; ``requeue`` uses it for a pre-job stop. The stranded exception:
     when the first deferred job is an O-only pass whose regen_source names a complete regeneration, that regeneration
-    is re-queued in front of it ("stranded-regenerate"); an O-only pass moved without its regeneration refuses."""
+    is re-queued in front of it ("stranded-regenerate"); an O-only pass moved without its regeneration refuses.
+    ``payment``: the user's recorded re-run payment (requeue_user_paid): every moved job is paid by it, as one unit,
+    beyond the contingency (pay_user), never from the contingency."""
     jobs = h["jobs"]
     first_deferred = next((i for i in moving_idx if jobs[i]["status"] == "deferred"), None)
     stranded = None
@@ -2583,7 +2904,14 @@ def move_open(plan: dict, host: str, h: dict, moving_idx: list[int], action: str
     too_many(host, moved)
     bound = pin_s3_orig(plan, host, h, moving_idx, index_map, moved)
     dest = destination(plan, host, h["block"], rules.arm_count(moved), h["engine"])
-    if reason == "pre-job-failed":
+    if payment is not None:                      # the user's decision pays these jobs beyond the contingency
+        to_pay = list(moved)
+
+        def payer(plan_, jobs_, new_pod, where, wave):
+            return pay_user(plan_, jobs_, new_pod, where, wave, payment)
+        for job in moved:
+            job["rerun_payment_sha256"] = payment["sha256"]
+    elif reason == "pre-job-failed":
         to_pay, payer = list(moved), pay_unit
     else:
         to_pay = [moved[index_map[i]] for i in moving_idx if jobs[i]["status"] == "crashed"]
@@ -2607,7 +2935,8 @@ def move_open(plan: dict, host: str, h: dict, moving_idx: list[int], action: str
     entry = {"from": host, "to": dest, "from_indices": moving_idx, "to_indices": list(range(len(moved))),
              "stranded": None if stranded is None else
              {"from_index": stranded, "complete_sha256": jobs[stranded]["complete_sha256"]},
-             **({"reason": reason} if reason else {})}
+             **({"reason": reason} if reason else {}),
+             **({"rerun_payment_sha256": payment["sha256"]} if payment is not None else {})}
     plan["deferrals"].append(entry)
     mac.save_plan(plan)
     mac.operator_action({"action": action, **entry})
@@ -2707,11 +3036,16 @@ def confirm_stopped(host: str) -> dict:
 
 def requeue(host: str, rerun: list[str] | None = None) -> dict:
     """A pre-job stop (no flag) or environment-mismatched complete attempts (--rerun-mismatched SHA ...). A stopped
-    kit pod is never restarted: the jobs go to its replacement."""
+    kit pod is never restarted: the jobs go to its replacement. With the user's recorded re-run payment
+    (record-rerun-payment) naming jobs an earlier move of HOST held as not re-run, requeue HOST moves exactly those
+    jobs and pays them beyond the contingency (requeue_user_paid); without one, nothing changes."""
     plan = mac.load_plan()
     h = plan["hosts"].get(host) or fail(f"{host} is not a host of plan.json")
     if rerun:
         return requeue_mismatched(plan, host, h, rerun)
+    payment, held = user_paid_held(plan, host, h)
+    if payment is not None:
+        return requeue_user_paid(plan, host, h, payment, held)
     recs = orchestrate_records(host)
     events = [r["event"] for r in recs]
     if h.get("done") or (HERE / "retrieved" / host / "tree" / "JOB-DONE.json").exists() or "job-started" in events:
@@ -2816,7 +3150,7 @@ def main(argv: list[str]) -> int:
     wt.add_argument("--out", required=True)
     wt.add_argument("--recorded-by", required=True)
     for name in ("record-branch", "import-reference", "c2-label", "record-block-a-plan", "record-block-a-replan",
-                 "record-block-a-not-run", *simple):
+                 "record-block-a-not-run", "record-unpulled", "record-rerun-payment", *simple):
         r = sub.add_parser(name)
         r.add_argument("file")
         r.add_argument("--sha256", required=True)
@@ -2836,6 +3170,8 @@ def main(argv: list[str]) -> int:
                "record-block-a-plan": lambda: record_block_a_plan(a.file, a.sha256),
                "record-block-a-replan": lambda: record_block_a_plan(a.file, a.sha256, replan=True),
                "record-block-a-not-run": lambda: record_block_a_not_run(a.file, a.sha256),
+               "record-unpulled": lambda: record_unpulled(a.file, a.sha256),
+               "record-rerun-payment": lambda: record_rerun_payment(a.file, a.sha256),
                "block-a-need": lambda: block_a_need(a.file, a.sha256)}[a.command]()
     print(json.dumps(out))
     return 0

@@ -11,8 +11,11 @@ seal records (seals/block-*.json) are staged and every file a recorded seal list
 SHA-256 (a block seal whose own SHA-256 differs from plan.json's refuses; its judge files, judges/BLOCK/**, are
 staged as units/judges/BLOCK/...); the edit file of every started edit job
 (arm, regenerate, cert_c1, c0) is staged from its recorded path and checked against its recorded SHA-256; the packed
-stages' receipts, sealed-files.json and probe.json, and hosts/HOST/preflight-done.json are kept. The text of the
-Gate B description below is otherwise unchanged.
+stages' receipts, sealed-files.json and probe.json, and hosts/HOST/preflight-done.json are kept. Addendum §29: a job
+plan.json records complete (not pulled) under the lead's unpulled outputs decision (pulled false, the decision's
+SHA-256) is listed with that mark and not required (its unit is only on the pod's volume), and a unit-free job's
+recorded model-weight outputs (c0's states, left on the pod by the light pull) are not required, as a unit's are not.
+The text of the Gate B description below is otherwise unchanged.
 
 From the Gate B script:
 
@@ -258,11 +261,14 @@ def sealed_units(plan: dict, hosts: list[str], digests: dict, missing: list) -> 
         for i, job in enumerate(plan["hosts"][host].get("jobs") or []):
             if job.get("status") != "complete" or job.get("kind") == "anchor":
                 continue
+            if job.get("pulled") is False and re.fullmatch(r"[0-9a-f]{64}", str(job.get("unpulled_decision_sha256"))):
+                continue                     # addendum §29: complete (not pulled) by the lead's decision; listed only
             if job.get("kind") in rules.UNITLESS_KINDS or not job.get("unit"):
                 outputs = job.get("outputs") or {}
                 if not outputs:
                     missing.append(f"{host}: job {i} is complete in plan.json without its outputs")
                 bad = [r for r, d in outputs.items() if digests.get(f"units/{host}/{r}") != d]
+                bad = [r for r in bad if pathlib.PurePosixPath(r).suffix not in WEIGHTS]   # §29: model weights aside
                 if bad:
                     missing.append(f"{host}: job {i}: {len(bad)} recorded output(s) not staged or changed")
                 continue
@@ -278,7 +284,9 @@ def job_listing(plan: dict, hosts: list[str]) -> dict:
     """Every job of the selected hosts with its status: complete ones are required (sealed_units), the deferred,
     crashed and not_started ones only listed."""
     return {host: [{"index": i, "kind": j.get("kind"), "arm": j.get("arm"), "seed": j.get("seed"),
-                    "status": j.get("status"), "unit": j.get("unit")} for i, j in enumerate(plan["hosts"][host]["jobs"])]
+                    "status": j.get("status"), "unit": j.get("unit"),
+                    **({"pulled": False, "unpulled_decision_sha256": j.get("unpulled_decision_sha256")}
+                       if j.get("pulled") is False else {})} for i, j in enumerate(plan["hosts"][host]["jobs"])]
             for host in hosts}
 
 

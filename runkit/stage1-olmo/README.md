@@ -181,6 +181,41 @@ Round 3a's fix round (`notes/b15r3a-fix.json`):
   time, so with launches in parallel the balance held at once can be above it; the user manages the balance. No
   record (or a changed file): release waits as before.
 
+### Round 29, 26 Oct (addendum §29; the user's re-run payment; `notes/kit-round-29.json`)
+
+- **The pull list** (`host.py` `PULL_ITEMS`) adds `rescore/` (LN-15e's retrains and re-scores) and `cert/` (C1-C3):
+  every folder a stage-1 job writes a unit to. A test runs every job kind and checks that every path the runner
+  writes or records lies under the list. `pull-light` still leaves out `*.safetensors`.
+- **The finisher light-checks every host**, whatever its role (stage 1: w1_18, cert, certify, job, diagnostics,
+  arms), not only Gate B's "job", "first" and "anchor".
+- **Units the pull did not fetch** (a-2's jobs 12-15): the lead's decision, before `record-done HOST`:
+
+      $PY -B plan_tool.py record-unpulled FILE --sha256 H
+
+  FILE is exactly {kind: "stage1 unpulled outputs decision", host, jobs: [index, ...], reason, utc, recorded_by}.
+  Each job must be complete in the pulled JOB-DONE.json with a unit and its COMPLETE.json SHA-256, and that
+  COMPLETE.json must be absent from `retrieved/HOST/tree`. `record-done HOST` then records those jobs complete with
+  `pulled: false` and the decision's SHA-256 ("complete (not pulled)"); the seal lists them under `not_pulled` (host,
+  index, job name, unit path, the decision's SHA-256; no file hash); block A's completeness counts them as decided
+  by the decision, not as done; the backup lists them and does not require their units. Keep FILE unchanged at its
+  path: record-done, the completeness check and the seal hash it again.
+- **Model states the light pull leaves on the pod**: `record-done` accepts a recorded `.safetensors` output that is
+  absent from the pulled tree (counted as `states_on_pod`); one that is present must hash as recorded. c0's outputs
+  list its 8 states, so without this `record-done a-2` refused at job 18 as well. The backup leaves them aside too.
+- **The user's re-run payment** (a-7's four runs, FOCUS 26 Oct):
+
+      $PY -B plan_tool.py record-rerun-payment FILE --sha256 H
+
+  FILE is exactly {kind: "stage1 user decision: pay re-runs beyond the contingency", user_words (verbatim), block,
+  jobs: [{arm, seed}], amount_usd, utc, recorded_by}. Each named run must be held by the block's contingency as not
+  re-run and not yet paid. Then `requeue HOST` moves exactly the named runs that an earlier move of HOST held, in
+  order, to the next unlaunched host of the block with room or a new host, and pays them as one unit
+  (`rules.unit_rerun_cost_usd`; refused when its cost in cents is above what the decision still covers). The payment
+  is recorded under `contingency.<group>.user_paid` and logged (`rerun-user-paid`). The contingency's
+  `remaining_usd`, `spent` and `not_rerun` do not change, and the decision pays nothing else. A later decision
+  naming a run that an earlier one did not pay supersedes it for that run (a recorded file is never edited).
+  Regenerations, O-only passes, retrains, re-scores and W1-18 are never moved this way.
+
 ## The gates (brief §4)
 
 - **G0 (before any pod, $0).** B15 built, verified and pinned at the S1 freeze. `orchestrate.py check-plan HOST` must

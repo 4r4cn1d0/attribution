@@ -175,15 +175,13 @@ def finish(host: str, receipt: dict) -> None:
                 status = "secret-found"
                 log(host=host, event="secret-found", hits=scan["secret_hits"][:10],
                     action="the lead tells the user to revoke the token at once; nothing is deleted")
-            elif role in ("job", "first", "anchor"):
+            else:      # addendum §29 point 4: every stage-1 role (w1_18, cert, certify, job, diagnostics, arms), any role
                 results = light_check(host, tree)
                 job_done = json.loads((tree / "JOB-DONE.json").read_text()) if (tree / "JOB-DONE.json").exists() else {}
                 ok = receipt.get("exit_code") == 0 and job_done.get("ok") is True and \
                     all(r["exit"] == 0 for r in results.values())
                 status = "verified-and-stopped" if ok else "review-needed-stopped"
                 log(host=host, event="verified", units=len(results), ok=ok)
-            elif receipt.get("exit_code") != 0:
-                status = "review-needed-stopped"
             record["status"] = status
     except Exception as exc:  # noqa: BLE001 - review fix 10: a failing step never skips the stop
         record.update(status="finisher-error-stopped", error=type(exc).__name__)

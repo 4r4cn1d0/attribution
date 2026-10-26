@@ -56,7 +56,11 @@ IMAGE = "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404"
 PLANNING_PRICE = rules.PLANNING_PRICE_USD  # [D20]: extend-cap's guard price
 MAX_PRICE = rules.MAX_PRICE_USD            # [D20] as amended (the user, rev. 17): create refuses above $10.00/h
 REMOTE_ROOT = "/workspace/attribution-headroom"
-PULL_ITEMS = ("round1 job-* jobs anchor-* gatec cuda-preflight-* "
+# Addendum §29 point 2 (stage-1 kit gap 1): every folder a stage-1 job writes a unit to is pulled. The job runner writes
+# units to round1/ (arms, regenerations), rescore/ (LN-15e's retrains and re-scores) and cert/ (C1-C3), and job-I/
+# (B10's units, O-ext and unit-free outputs, ledgers), job files to jobs/, records to job-done/, JOB-DONE.json and
+# deferral.json (tests: every path the runner records lies under this list). pull-light leaves out *.safetensors.
+PULL_ITEMS = ("round1 rescore cert job-* jobs anchor-* gatec cuda-preflight-* "
               "preflight-process-* preflight-outer worker-bootstrap-process-001 setup-001 BOOTSTRAP-READY.json "
               "BUNDLE-CHECKED.json pip-version.txt PREFLIGHT-DONE.json JOB-DONE.json deferral.json "
               "model-download-receipt.json environment-linux.lock")

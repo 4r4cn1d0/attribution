@@ -16,8 +16,10 @@ under judges/BLOCK/) are sealed with it: a block with a judge launch refuses unt
 done with complete jobs or moved; round 3c, VP3b-3: for block A also every job the recorded block-A plan requires
 has a completion record or a recorded not-run decision, plan_tool.block_a_open, and the refusal names the open
 jobs), a host whose pulled tree is missing, and a second seal of one block. Block A's seal lists its not-run
-decisions by job name and SHA-256 ("not_run"). plan_tool's init-block for "certify" and "B" refuses until block A's
-seal is recorded.
+decisions by job name and SHA-256 ("not_run"). Every seal lists the block's jobs recorded complete (not pulled) under
+the lead's unpulled outputs decision (addendum §29 point 3: "not_pulled", by host, index, job name, unit path and the
+decision's SHA-256, with no file hash: those units are not in the pulled tree). plan_tool's init-block for "certify"
+and "B" refuses until block A's seal is recorded.
 """
 from __future__ import annotations
 
@@ -80,9 +82,11 @@ def seal_block(block: str) -> dict:
     counts = {"files": len(files), "sealed": sum(f["class"] == "sealed" for f in files),
               "readable": sum(f["class"] == "readable" for f in files)}
     not_run = sorted(plan_tool.block_a_not_run(plan).items()) if block == "A" else []   # round 3c (VP3b-3)
+    not_pulled = plan_tool.not_pulled_jobs(plan, block)      # §29 point 3: complete on the pod, unit not fetched
     record = {"kind": SEAL_KIND, "version": 1, "block": block, "utc": mac.utc(), "hosts": hosts,
               "readable_patterns": list(READABLE_PATTERNS), "files": files, "counts": counts,
               "not_run": [{"job": label, "decision_sha256": digest} for label, digest in not_run]}
+    record["not_pulled"] = not_pulled
     SEALS.mkdir(exist_ok=True)
     out.write_text(json.dumps(record, indent=1, sort_keys=True) + "\n")
     digest = mac.sha(out)
