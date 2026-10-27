@@ -5,6 +5,46 @@ Written 6 October 2026 at about 00:40 IST (5 October, 19:10 UTC; the user is in 
 - This file is separate from `.ai/HANDOFF.md`, which must **never** be edited.
 - Times below are UTC on 5 October unless marked IST.
 
+## LEAD HANDOFF, 27 October 2026 (2026-10-27T10:05 UTC): General Implementation VI → **General Implementation VII**
+
+The user: "make the enxt numbered chat". GI VI's context was compacted and is almost full, so the main study moves to a fresh chat, **General Implementation VII**. **GI VII is the lead of the main study.** It is the only chat that drives the main study's pods, integrates code and commits to the working branch `stageb-costs-and-recovery-safeguards-20261003` (push allowed; never force-push; never push to main). GI VI takes no new work after this handoff. The GPT lead keeps the side paper and grants and does not touch the main study (user, 15 Oct). Times are UTC.
+
+### Read first, in this order
+1. `research/FOCUS.md`, the newest dated entries, from "ALL FIVE BLOCK-A ARM PODS RUNNING" (25 Oct) to "JUDGES: RUNBOOK READY, RULING §30" (27 Oct 08:23). They are near line 74 (`grep -n "BLOCK A\|JUDGES" research/FOCUS.md`).
+2. `.ai/briefs/stage1-commitments-build-20261016-lead-decisions.md`, addenda §18–§30: the lead's rulings since W1-18 was frozen. §30: block A's judges run by the runbook; judge gaps 1–4 get a kit round before block B.
+3. **The judge runbook:** `tmp/gi-vi-handoff-20261027/notes/judge-runbook.md` (SHA-256 `5d6ae3dd…`; a byte copy of the file in GI VI's worktree that FOCUS names). §0 lists the gaps, §3 has the 12 steps, §6 has the smallest fixes.
+4. The stage-1 kit (B15): `runkit/stage1-olmo/` and its working copy `tmp/stage1-olmo/` (plan.json, hosts/, retrieved/, the finisher logs). Block A's lead records: `.ai/inputs/stage1-post-w1-20261023/block-a/`.
+5. GI VI's other notes, in the same folder: `y-brief.md` (engine Y and the cert block), `b15-brief.md` (the kit's brief), `kit-round-29-brief.md`, `gateb-judge-readiness.md`, `gateb-wave1-readiness.md`.
+
+### Where block A stands
+- **Training and pod work are DONE.** Diagnostics: a-1 (J6), a-8 (J5, J7, J8). LN-12: a-2, 19 jobs; LN-15e's 4 units were not pulled, so LN-15e takes its FO-04 fallback (decision `e897885c…`). The 20 arm runs: a-3, a-4, a-9, a-10, a-11, all verified and recorded done. Every pod is stopped. Nothing runs.
+- **Money:** block A's spend is about $45 so far. The balance was about $165 at the last read. Read the live balance before each launch.
+- **Seal:** outcomes stay sealed until block B (LW-35). Never open or print outcome files, answers, rows or prompts.
+
+### Next, in order
+1. **Block A's two judge launches, exactly as the runbook says.** HarmBench, then Granite, over 27 units: the 20 new units, the 6 reused source units (a0 and R 1101–1103) and θ0 `1101-a0-init-a1`. Expected cost $1.3–2.0 (upper $8.06). The steps: release A; the dry run of each judge; the HarmBench launch from a background Bash job with all output to files nobody opens; its seal-safe check; then Granite; the device check; write_files into `judges-pending/A`; the 54-file check; the move to `judges/A/`.
+2. **The certificate pod:** C1, C2 and C3 on engine Y (`34bfd288`, `tmp/engine-y-34bfd288`). Pack Y exists; re-pack it if its inputs changed. It is block A's last launch.
+3. **`seal.py` for block A**, then the cost-and-completion report.
+4. **A kit round for judge gaps 1–4** (runbook §6) before block B.
+5. **Block B** needs its own funding event (the user tops up). Before block B's reading: the B16 HB-C halves and the LN-15e Mac reading script (on its fallback).
+- Open with the user: the OSF posting (the user's own action); Gemma access (403).
+
+### GI VI's lessons (also in memory)
+- Run `launch.py` only as a background Bash job, and keep that job alive until the setups reach "job-started". On 25 Oct a foreground call cut off the setups of a-5, a-6 and a-7. Run one finisher per kit.
+- `pgrep -f` also matches the zsh wrapper. Match `venv/bin/python -B launch.py` and check `ps -o pid,command` before a kill.
+- zsh: use arrays (`$IDS` does not word-split); never name a shell variable `path` or `status`.
+- Post-W1 records go in `.ai/inputs/stage1-post-w1-20261023/`. After each commit that touches stage-1 paths, run `scripts/stage1/commitments.py check --repo /Users/spiderishi/Coding/attribution`.
+- **The budget guard is OFF** by the user's decision (record `cabe7035…`, 25 Oct). The $10/h limit, the in-pod cap timers and stop-never-delete stay. Tell the user at once when the balance is below $10.
+- Run long jobs (suites, mutation runs) as the lead's own background Bash; agents review the results. Python: `tmp/minimal-experiment-20261002/venv/bin/python`.
+- Agents run on Opus 5.5 (the Fable weekly limit is at 100%). Delegate to subagents; pass earlier results by file path.
+- Keep the Mac lean: delete finished scratch after its report; paper data goes to private GitHub releases.
+
+### Standing rules (unchanged)
+Explicit-path commits with the Co-Authored-By line; never stage the GPT lead's files (`.ai/HANDOFF.md`, `research/review/EDGE_CHECKS.md`, `research/review/2026-10-11-novelty-rigor-update.md`, `.ai/briefs/*-20261013.md` and `*-20261014.md`, `.ai/inputs/bluedot-budget-20261013/`, `.ai/inputs/main-study-restart-20261014/`, `outputs/`, `research/experiments/2026-10-14-*`, `research/grant/2026-10-13-*`, the untracked progress-update PDF); `date -u` before any time; no secrets, rows, prompts, answers or anchor text; never print the keys in `~/.config/attribution/secrets.env`; stop pods, never terminate; delete only after a verified backup and the user's yes; never open `selector.jsonl`, `hidden/` or held-out files; never empty the Trash; downloads, licence terms and public posts need the user's own word; no approval questions for planned steps (user, 16 Oct), but the frozen money rules still apply.
+
+### GI VI's worktree
+`.claude/worktrees/kind-hawking-a6ce04/tmp/claude-workspaces/` holds the build evidence (about 2.2 GB). It stays until the user archives the GI VI chat. The notes for the next steps are copied to `tmp/gi-vi-handoff-20261027/notes/`.
+
 ## STATUS, 2026-10-16T13:20 UTC, General Implementation VI (the lead of the main study; read with FOCUS's newest entries)
 - **Gate B waves 0a and 0b are DONE; this stage is finished.** Noise gate **PASS** (σ̂_gate 1.83 pp ≤ 7, governing plain; environment and fingerprint triggers false; FOCUS 2026-10-16T00:25 and 13:21 UTC). The **Gate C rankings are SEALED** (`tmp/gate-b-olmo/gate_b_rankings.json` d6d5cd6b…; copy in `research/experiments/2026-10-16-gate-b-wave0-outputs/`): pick_A = pick_R = general_qa, pick_F = classification, both equalities false. The **re-costing stop fits** (measured need $72.43; wave 1 needs $83.91; balance $92.15 at 13:18 UTC).
 - **Reading:** `scripts/gate_b_reading.py` SHA-256 **7cac24f6…** (GATE_A_PINS 2a2e5cb, A9_SCRIPT_SHA256 82f93fd). LEXICON_COUNTS_SHA256 stays null; its fill procedure is fixed in FOCUS (2026-10-16T11:08 UTC): fill at `--final`, re-run every sealed phase, results must be equal. Later phases read the seal through the inputs' `sealed` key; the inputs files are `tmp/gate-b-olmo/gate_b_inputs_*.json` (run roots w0a-1 and w0b-2).
