@@ -574,3 +574,16 @@ A kit round before block B fixes gaps 1–4:
 - B10 units accepted on the judge pod.
 
 A Granite failure in block A is recorded in FOCUS and in that round's completion record.
+
+## 31. The cert pod's two blockers; the kit round moves before the cert pod and the seal (2026-10-27T10:42 UTC; decided by the lead, GI VII, under the user's delegation)
+
+A read-only worker wrote the cert-pod runbook (`tmp/gi-vii-notes/cert-runbook.md`, SHA-256 `7950c0f2…`). It found that the cert pod cannot launch as packed, and the lead checked the two code claims:
+- **D1.** Engine Y's pack has no `cert_spec` input, and C1 needs it (`setup/job_runner_stage1.py:434-436, 559-560`); `check-plan` refuses at $0.
+- **D2.** The runner gives C1 an empty registry with `--replicate-of`, and engine Y's `claim_trajectory` refuses a `replicate_of` that is not a live registry line (`tmp/engine-y-34bfd288/experiments/safety_selection/jobs.py:307-308`). C1 would crash on the pod after the setup is paid.
+- **D3.** `seal.py block A` refuses `a-5: record-done first`: `seal_block` loops over every block-A host (`seal.py:62-66`), and a-5, a-6, a-7 were moved and never pulled (`done` false).
+
+**Ruling.**
+1. D2 is fixed by seeding, not by dropping `--replicate-of` (that would deviate from YB X-5's determinism control). Before C1 runs, the runner writes R_1101's registry line from the packed `cert_spec` after checking its SHA-256, `registry_line.run_dir == replicate_of`, the key against C1's own key, and that the registry file is new. Kit round 30a, with a seal-safe C1 comparator (D4) for the certificate record.
+2. D3 (the seal skips a moved, not-done host and lists it as moved) and D10 (`seal.py status` ends a pod's time at its finished or confirmed stop) join kit round 30 (judge gaps 1–4, §30).
+3. Order: both rounds land before the cert pod and the seal. Then `cert_spec.json` and the new pack-inputs record (runbook step 3), the Y re-pack before `init-block cert` (D11), the cert pod, `record-judges A`, then `seal.py block A`. `seal.py block A` does not itself need the cert block; cert-then-seal stays the operator's order.
+4. A cert re-run is not paid by block A's contingency ($2.95 left; D5). Any requeue or defer of the cert host waits for a decision under the frozen money rules.
