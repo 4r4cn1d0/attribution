@@ -555,3 +555,22 @@ Round 3c's builder recomputed the re-plans with the kit's own functions. Eight o
 2. **Kit gap 1:** `PULL_ITEMS` must include `rescore/` (and every folder a stage-1 job writes a unit to), with a test that every unit path a job records lies under the pull list.
 3. **Kit gap 2:** `record-done a-2` refuses while jobs 12–15's units are missing. The kit needs a lead decision record for jobs whose units were not pulled. It records them as "complete, not pulled", the seal lists them without hashes, and block A's completeness counts them as decided.
 4. **Kit gap 3 (the finisher):** `finisher.py` light-checks only Gate B's roles ("job", "first", "anchor"), so stage-1 diagnostics and arm pods were not light-checked. The lead ran the same light check by hand: a-3, a-4, a-9 and a-10 have 9 units each, all good.
+
+## 30. Block A's judges run by the runbook; the judge gaps are fixed before block B (2026-10-27T08:23 UTC; decided by the lead under the user's delegation)
+
+The runbook is `notes/judge-runbook.md` in the lead's worktree (read-only agent, 27 Oct). It found these gaps: (1) the kit counts a judge launch complete when it is released; (2) `seal.py` checks only that `judges/A/` is not empty; (3) the judge route prints per-unit outcome counts; (4) B10 units are refused on the judge pod (block B only); (5) the kit holds only the count of 27 units; (6) the launcher's own balance guard; (7) nothing pays for a judge re-launch.
+
+**Ruling.** Block A's two judge launches run now, by the runbook:
+- HarmBench, then Granite only after HarmBench is verified;
+- launches from a background job only;
+- all launcher output goes to files nobody opens, and only the listed fields are read (LW-35);
+- the judge files are written to a staging folder and moved to `judges/A/` only after the 54-file check;
+- the seal waits until both judges are verified.
+
+A kit round before block B fixes gaps 1–4:
+- a judge-completion record that a judge launch needs before it counts as done;
+- `seal.py` requires one file per judge for each unit;
+- a seal-safe wrapper for the judge route;
+- B10 units accepted on the judge pod.
+
+A Granite failure in block A is recorded in FOCUS and in that round's completion record.
