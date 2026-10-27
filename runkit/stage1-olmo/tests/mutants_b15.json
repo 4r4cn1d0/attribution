@@ -875,10 +875,11 @@
   {
    "describes": "VMG-7: a block with a judge launch sealed without its judge files",
    "file": "seal.py",
-   "find": "    if judged and not judge_files:",
+   "find": "    if judged and (judge_check is None or not set(judged) <= set(judge_check[\"judges\"])):",
    "id": "B15-x-judge-files-unsealed",
    "part": "B15 fix (23 Oct)",
-   "replace": "    if False:"
+   "replace": "    if False:",
+   "retargeted": "round 30: the seal's judge check is now the judge-completion record's (R3); old find text gone"
   },
   {
    "describes": "VMG-9: a run planned twice",
@@ -962,11 +963,12 @@
   },
   {
    "describes": "VR-3: every Safe LoRA point judged under one label",
-   "file": "judge_units_stage1.py",
+   "file": "judge_pod_stage1/bundle.py",
    "find": "        return f\"ref-external-{name}-{point}\" if point in SAFE_LORA_POINTS else None",
    "id": "B15-x-safe-lora-label",
    "part": "B15 fix (23 Oct)",
-   "replace": "        return f\"ref-external-{name}\""
+   "replace": "        return f\"ref-external-{name}\"",
+   "retargeted": "round 30: the label rule moved to judge_pod_stage1/bundle.py (one rule for the Mac and the pod)"
   },
   {
    "describes": "C-2 (Q15): a Branch-128 O-only pass on a regenerated unit without its source unit",
@@ -2723,7 +2725,96 @@
    "id": "B15-29-any-missing-output-accepted",
    "part": "B15 round 29 (26 Oct; notes/kit-round-29.json): addendum §29 and the user's re-run payment",
    "replace": "            if not p.exists() and not p.is_symlink():\n"
+  },
+  {
+   "describes": "gap 1 (R2): a released judge launch counts as done without a valid judge-completion record",
+   "file": "plan_tool.py",
+   "find": "            if j[\"judge\"] in judged:                  # round 30 (R2): released is not done; the valid record is\n",
+   "id": "B15-30-judge-done-at-release",
+   "part": "B15 round 30 (27 Oct; notes/kit-round-30.json): addendum §30 judge gaps 1-4 (R1-R5), the moved hosts (R6)",
+   "replace": "            if True:\n"
+  },
+  {
+   "describes": "gap 2 (R3): the judge check no longer wants one file per judge for each required unit",
+   "file": "plan_tool.py",
+   "find": "        missing = [label for unit, label in required.items() if (key, unit) not in count]\n",
+   "id": "B15-30-judge-files-unit-unchecked",
+   "part": "B15 round 30 (27 Oct; notes/kit-round-30.json): addendum §30 judge gaps 1-4 (R1-R5), the moved hosts (R6)",
+   "replace": "        missing = []\n"
+  },
+  {
+   "describes": "gap 3 (R4): stage-1 launches keep the launcher's echo, so the verified line's counts reach stdout",
+   "file": "judge_units_stage1.py",
+   "find": "                super().__init__(path, tag, echo=False)\n",
+   "id": "B15-30-launch-echo-on",
+   "part": "B15 round 30 (27 Oct; notes/kit-round-30.json): addendum §30 judge gaps 1-4 (R1-R5), the moved hosts (R6)",
+   "replace": "                super().__init__(path, tag)\n"
+  },
+  {
+   "describes": "gap 4 (R5): a launch with a B10 unit ships Gate B's bundle.py, so the pod refuses the unit after the create",
+   "file": "judge_units_stage1.py",
+   "find": "        if not any(u.kind == B10_KIND for g in groups for u in g.units):\n",
+   "id": "B15-30-b10-pod-bundle-not-shipped",
+   "part": "B15 round 30 (27 Oct; notes/kit-round-30.json): addendum §30 judge gaps 1-4 (R1-R5), the moved hosts (R6)",
+   "replace": "        if True:\n"
+  },
+  {
+   "describes": "D3 (R6): the seal refuses a moved, never-pulled host that block_complete skips (a-5: record-done first)",
+   "file": "seal.py",
+   "find": "            if host not in moved_to:\n",
+   "id": "B15-30-seal-moved-host-refused",
+   "part": "B15 round 30 (27 Oct; notes/kit-round-30.json): addendum §30 judge gaps 1-4 (R1-R5), the moved hosts (R6)",
+   "replace": "            if True:\n"
+  },
+  {
+   "describes": "D2: the runner's C1 registry seed step skipped (C1's registry stays empty, as before round 30a)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "                seeded = c1_registry_seed(plan, host, i, root, sealed_doc)\n",
+   "id": "B15-30a-seed-skipped",
+   "part": "B15 round 30a (27 Oct; notes/kit-round-30a.json): the cert runbook's D2 and D4 (the lead's rulings R1, R2)",
+   "replace": "                seeded = None\n"
+  },
+  {
+   "describes": "D2: cert_spec's registry_line.key not checked against C1's key (any trajectory's line is seeded)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if line[\"key\"] != want:\n",
+   "id": "B15-30a-key-unchecked",
+   "part": "B15 round 30a (27 Oct; notes/kit-round-30a.json): the cert runbook's D2 and D4 (the lead's rulings R1, R2)",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "D2: registry_line.run_dir not checked against cert_spec's replicate_of",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if line[\"run_dir\"] != replicate_of:\n",
+   "id": "B15-30a-run-dir-unchecked",
+   "part": "B15 round 30a (27 Oct; notes/kit-round-30a.json): the cert runbook's D2 and D4 (the lead's rulings R1, R2)",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "D2: an existing C1 registry accepted (the line appended to it instead of a fresh file)",
+   "edits": [
+    {
+     "file": "setup/job_runner_stage1.py",
+     "find": "    if target.exists() or target.is_symlink():\n        raise Unrunnable(f\"{where}: {registry} exists already; C1's registry must be fresh\")\n",
+     "replace": ""
+    },
+    {
+     "file": "setup/job_runner_stage1.py",
+     "find": "with open(target, \"xb\") as handle:",
+     "replace": "with open(target, \"ab\") as handle:"
+    }
+   ],
+   "id": "B15-30a-registry-reused",
+   "part": "B15 round 30a (27 Oct; notes/kit-round-30a.json): the cert runbook's D2 and D4 (the lead's rulings R1, R2)"
+  },
+  {
+   "describes": "D4: the comparator lists C1's files only (a file only R_1101 has is ignored)",
+   "file": "compare_c1.py",
+   "find": "    names = sorted(set(left) | set(right) | {c.format(t=target) for c in CORE})\n",
+   "id": "B15-30a-compare-c1-only",
+   "part": "B15 round 30a (27 Oct; notes/kit-round-30a.json): the cert runbook's D2 and D4 (the lead's rulings R1, R2)",
+   "replace": "    names = sorted(set(left) | {c.format(t=target) for c in CORE})\n"
   }
  ],
- "note": "B15 BUILD-CORE: files are relative to runkit/stage1-olmo/; tests are runkit/stage1-olmo/tests/ (run_mutants.py copies scripts/stage1, so the lead's runner copies this kit's folder instead, with the same rules) BUILD-RUNNER added the B15-r-* entries (runner side: job runner, preflight, download, probes, pack, orchestrate, judges, backup, the UNITLESS fix); same files-relative rule. The B15 FIX round (notes/b15-fix.json) added the B15-x-* entries and B15-d-status-prints-value, and re-targeted B15-m-group-need, B15-g-plan-ab-not-read and B15-r-vcheck-after-projection to the fixed text. B15 round 2 (notes/b15r2-build.json) added the B15-2-* entries and re-targeted B15-g-plan-ab-not-read and B15-g-plan-ab-rule to the derived plan-A/B code. The tests now read only this repository (the S1 package in scripts/stage1_s1, engine Y at STAGE1_ENGINE_Y_TREE, default tmp/engine-y-34bfd288), so a mutation copy needs runkit/stage1-olmo and runkit/gate-b-olmo copied and scripts, experiments, .ai, research, backups and tmp linked inside the same repository root; no sibling folder. The B15 round-2 fix round (notes/b15r2-fix.json) added the verifiers' 13 mutants (VG-*, V2-*) and the B15-3-* entries, and re-targeted B15-g-plan-ab-not-read, B15-x-no-block-a-floor and B15-2-plan-ab-bool to the fixed text. B15 round 3b (notes/b15r3b-build.json) added the B15-6-* entries (S1 package pins, the moved D-2 and C3 records, c0 on the LN-12 pod, LN-15e's retrain and re-score, 27 judge units, V2a's recorded fallback), retargeted B15-2-pack-d2-code and B15-4-no-theta0 to the changed text, and marks B15-2-plan-ab-not-derived 'expect': 'survive' with its equivalence argument in 'why'; B15-r-pack-man1 and B15-2-d2-req8-pool are now killed by new tests (test_stage1_runner.py test_a_named_input_that_man1_lists_with_another_sha256_..., test_stage1_runkit.py test_a_filled_pins_file_whose_pool_hash_differs_...). The B15 round-3b fix round (notes/b15r3b-fix.json) added the verify-pins report's 8 mutants (VP-*; VP-rescore-own-arm-seed-unchecked 'expect': 'survive' with its argument) and the B15-7-* entries (paths in normal form in the pack, F1; the runner's distinct re-score groups, F4). B15 round 3c (notes/b15r3c-build.json) added the B15-8-* entries (the O-ext unit runner pinned, packed, sealed and parsed; block A's completion against its recorded plan and the not-run decision; the $144 top-up's limit test) and retargeted B15-6-s1-unpinned-all, whose round-3b find text (the S1_UNPINNED exception) is gone: it now puts that exception back. Round H (notes/d3-build.json, addendum §28) added the B15-h-* entries (release without waiting for the earlier launch's hosts while the guard-off record holds; judge launches still wait; the early release recorded and logged); B15-g-launch-order's find text is unchanged and still the old rule's gate. Round 29 (notes/kit-round-29.json; addendum §29 and the user's 26 Oct re-run payment) added the 5 B15-29-* entries (the pull list, the finisher's roles, the unpulled decision's re-hash, the user-paid requeue and record-done's model-state exception); every one was run against the kit suite and killed (notes/kit-round-29-evidence/). No earlier find text was retargeted: the round-29 code keeps each earlier find text exactly once."
+ "note": "B15 BUILD-CORE: files are relative to runkit/stage1-olmo/; tests are runkit/stage1-olmo/tests/ (run_mutants.py copies scripts/stage1, so the lead's runner copies this kit's folder instead, with the same rules) BUILD-RUNNER added the B15-r-* entries (runner side: job runner, preflight, download, probes, pack, orchestrate, judges, backup, the UNITLESS fix); same files-relative rule. The B15 FIX round (notes/b15-fix.json) added the B15-x-* entries and B15-d-status-prints-value, and re-targeted B15-m-group-need, B15-g-plan-ab-not-read and B15-r-vcheck-after-projection to the fixed text. B15 round 2 (notes/b15r2-build.json) added the B15-2-* entries and re-targeted B15-g-plan-ab-not-read and B15-g-plan-ab-rule to the derived plan-A/B code. The tests now read only this repository (the S1 package in scripts/stage1_s1, engine Y at STAGE1_ENGINE_Y_TREE, default tmp/engine-y-34bfd288), so a mutation copy needs runkit/stage1-olmo and runkit/gate-b-olmo copied and scripts, experiments, .ai, research, backups and tmp linked inside the same repository root; no sibling folder. The B15 round-2 fix round (notes/b15r2-fix.json) added the verifiers' 13 mutants (VG-*, V2-*) and the B15-3-* entries, and re-targeted B15-g-plan-ab-not-read, B15-x-no-block-a-floor and B15-2-plan-ab-bool to the fixed text. B15 round 3b (notes/b15r3b-build.json) added the B15-6-* entries (S1 package pins, the moved D-2 and C3 records, c0 on the LN-12 pod, LN-15e's retrain and re-score, 27 judge units, V2a's recorded fallback), retargeted B15-2-pack-d2-code and B15-4-no-theta0 to the changed text, and marks B15-2-plan-ab-not-derived 'expect': 'survive' with its equivalence argument in 'why'; B15-r-pack-man1 and B15-2-d2-req8-pool are now killed by new tests (test_stage1_runner.py test_a_named_input_that_man1_lists_with_another_sha256_..., test_stage1_runkit.py test_a_filled_pins_file_whose_pool_hash_differs_...). The B15 round-3b fix round (notes/b15r3b-fix.json) added the verify-pins report's 8 mutants (VP-*; VP-rescore-own-arm-seed-unchecked 'expect': 'survive' with its argument) and the B15-7-* entries (paths in normal form in the pack, F1; the runner's distinct re-score groups, F4). B15 round 3c (notes/b15r3c-build.json) added the B15-8-* entries (the O-ext unit runner pinned, packed, sealed and parsed; block A's completion against its recorded plan and the not-run decision; the $144 top-up's limit test) and retargeted B15-6-s1-unpinned-all, whose round-3b find text (the S1_UNPINNED exception) is gone: it now puts that exception back. Round H (notes/d3-build.json, addendum §28) added the B15-h-* entries (release without waiting for the earlier launch's hosts while the guard-off record holds; judge launches still wait; the early release recorded and logged); B15-g-launch-order's find text is unchanged and still the old rule's gate. Round 29 (notes/kit-round-29.json; addendum §29 and the user's 26 Oct re-run payment) added the 5 B15-29-* entries (the pull list, the finisher's roles, the unpulled decision's re-hash, the user-paid requeue and record-done's model-state exception); every one was run against the kit suite and killed (notes/kit-round-29-evidence/). No earlier find text was retargeted: the round-29 code keeps each earlier find text exactly once. Round 30 (notes/kit-round-30.json; addendum §30 and the lead's R1-R7) added the 5 B15-30-* entries (gap 1: a judge launch done only with its record; gap 2: one judge file per required unit; gap 3: the launcher's echo off; gap 4: the B10 pod bundle.py; D3: the moved hosts in the seal) and retargeted two entries whose find text moved (each marked 'retargeted'): B15-x-judge-files-unsealed to the seal's judge-record check, B15-x-safe-lora-label to judge_pod_stage1/bundle.py (same text). Every other find text is unchanged and still found exactly once. Round 30a (notes/kit-round-30a.json; the cert runbook's D2 and D4) added the 5 B15-30a-* entries (C1's registry seed in the runner, compare_c1.py); no earlier find text was retargeted."
 }

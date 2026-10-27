@@ -120,6 +120,17 @@ def reuse_spec(accept_change: dict | None = None) -> dict:
     return {"kind": "stage1 reuse job spec", "jobs": jobs}
 
 
+def cert_spec(rules, run_dir: str = "round1/1101-R-e1-a1", **key_change) -> dict:
+    """D2 (kit round 30a): the lead's cert_spec record by hand: R_1101's run-folder string and its registry line,
+    whose key is C1's on the synthetic pod (the R1 edit's arm, seed 1101, dev, development, the pod's manifest
+    "m" * 64, recipe S's training identity)."""
+    key = {"arm": "edit-" + edit_ref("R1")["sha256"], "manifest_sha256": "m" * 64, "role": "development",
+           "seed": 1101, "split": "dev", "training_identity": rules.TRAINING_IDENTITY, **key_change}
+    return {"kind": "stage1 cert spec", "version": 1, "replicate_of": run_dir,
+            "registry_line": {"key": key, "replicate_of": None, "retry_after_failures": [], "run_dir": run_dir,
+                              "utc": "2026-10-16T09:00:00.000+00:00"}}
+
+
 def job(rules, kind, arm=None, seed=None, *, engine="X", points=None, recipe=None, regen_source=None, edit=None,
         steps=None, branch="full"):
     fx = {"e1_upper_s": E1, "training_s": T}
@@ -176,7 +187,7 @@ class Pod:
         for name, rel in files.items():
             if name in omit:
                 continue
-            body = {"reuse_spec": reuse_spec(accept_change), "cert_spec": {"replicate_of": "round1/1101-R-e1-a1"},
+            body = {"reuse_spec": reuse_spec(accept_change), "cert_spec": cert_spec(r),
                     "source_complete:R:1101": {"checkpoints": {"e1": {"adapter_fingerprint": "f" * 64}}}}.get(
                 name, {"synthetic": name})
             seal(rel, body)
@@ -1566,7 +1577,7 @@ def test_the_backup_stages_the_stage1_records_and_the_seal(kit, tmp_path, monkey
 
 RUNNER_FILES = ("orchestrate.py", "pack_setup.py", "probes.py", "backup_records_stage1.py", "judge_units_stage1.py",
                 "setup/job_runner_stage1.py", "setup/preflight_stage1.py", "setup/download_models_stage1.py",
-                "setup/extend_cap.py")
+                "setup/extend_cap.py", "judge_pod_stage1/bundle.py")     # round 30: the B10 pod bundle.py
 GBK_PINS = {"orchestrate.py": "30d284dd54fd2b25", "pack_setup.py": "0c985e5e3ac05b73",
             "backup_records_gateb.py": "7f5dcc12fbb7ae5c", "setup/job_runner_gateb.py": "5e7f1e8f6145d0a7",
             "setup/preflight_gateb.py": "64b0a3526fe600e2", "setup/download_models_gateb.py": "e471368a984fb918",
@@ -1584,7 +1595,8 @@ def test_the_runner_files_compile_hold_no_secret_and_gate_b_is_unchanged(tmp_pat
         sys.modules.pop("secret_scan", None)
         import secret_scan
         assert secret_scan.scan_paths([KIT / rel for rel in (*RUNNER_FILES, "README.md", "setup/setup_and_fetch_stage1.sh",
-                                                               "tests/test_stage1_runner.py")]) == []
+                                                               "tests/test_stage1_runner.py",
+                                                               "tests/test_stage1_judge_route.py")]) == []
     finally:
         sys.path.remove(str(KIT))
         sys.modules.pop("secret_scan", None)

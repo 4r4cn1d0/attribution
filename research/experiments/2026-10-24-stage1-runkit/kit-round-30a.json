@@ -1,0 +1,175 @@
+{
+ "kind": "stage1 kit round report",
+ "round": "30a",
+ "utc": "2026-10-27T11:21:00Z (clock checked with date -u at 10:42, 10:57, 11:05, 11:12, 11:15, 11:20 UTC)",
+ "brief": "scratchpad kit-round-30a/brief.md (B15 kit round 30a: C1's registry seed (D2) and the C1 comparator (D4)); spec: cert runbook §0 D1, D2, D4, D5, D11, §2, step 3, step 13; B15 brief J12; YB X-5, X-6, X-10",
+ "workspace": "a git archive of the working branch at 2a7287236fddd6c76f441ef2d948fa1d2de4061e in the session scratchpad: /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/kit-round-30a/tree (below: TREE; S = its parent folder). Nothing committed; no git, network, RunPod, Hub or GitHub call; the live kit tmp/stage1-olmo and engine Y's tree tmp/engine-y-34bfd288 were only read or hashed; no outcome, judge, answer, generation, sample, guard, prompt, row or anchor file was opened.",
+ "status": "R1 and R2 built and tested both ways; kit suite 596 passed; Gate B kit suite 271 passed; 5 of 5 mutants killed",
+ "files": {
+  "changed": [
+   {"path": "runkit/stage1-olmo/setup/job_runner_stage1.py", "old_sha256": "58ea1510fd3973f11b88b7301418f7babef234d001575ab620d725b771cbda0d", "new_sha256": "a473a11021ea929d4e2d48ffcd1ed4bdd998092a3dd133ab9fb7c686c14aa4ed", "what": "R1: C1_SPEC, c1_key, c1_registry_seed (new, lines 714-782); main calls the seed for cert_c1 before run_job and records it (lines 1049-1057); the module doc's cert_c1 line (49-51). Nothing else changed; job_commands, the dry run and check-plan's commands are unchanged."},
+   {"path": "runkit/stage1-olmo/compare_c1.py", "old_sha256": null, "new_sha256": "6c77a85f4c106fee7b75644bdba3d499cea3fcc33d30f8ff81f8b52f41ef0171", "what": "R2: new Mac tool (stdlib only)"},
+   {"path": "runkit/stage1-olmo/tests/test_round30a.py", "old_sha256": null, "new_sha256": "0fcffd5aa8d860763fced5b1633f09dc84a6387bb0082a98f663f40f03834b98", "what": "55 new tests (R1 and R2)"},
+   {"path": "runkit/stage1-olmo/tests/test_stage1_runner.py", "old_sha256": "1e88c61fed59f2b06e936e46d6fc6fd185e9169742f8d6a76548ab062ec85d85", "new_sha256": "c2b6067d01f9ef4a5e603f7a25fd63864b66c2c28888fa99a7689318af35dd30", "what": "needed by R1: a cert_spec(rules, ...) helper (lines 123-131) and the synthetic pod's packed cert_spec now carries registry_line (line 190). Without it the existing test_every_unit_and_record_path_the_runner_writes_lies_under_the_pull_list[y] fails (C1 refuses on a record with no registry line)."},
+   {"path": "runkit/stage1-olmo/tests/test_stage1_runkit.py", "old_sha256": "550e419d8c01a913c7b7fa099b5062f47e15033ddcb8cf99da4bdcfc5f7ee32e", "new_sha256": "6bae2b157928449eb450bd18d8a8ac6eefc2377893261c8df01b9860dffc99fb", "what": "needed by R2: compare_c1.py added to the exact kit file list of test_the_kit_compiles_holds_no_secret_and_reuses_gate_b_files_as_documented (lines 1448-1449); nothing else"},
+   {"path": "runkit/stage1-olmo/tests/mutants_b15.json", "old_sha256": "e8265e07ba125d84cab9ec52d139bfe7ffbca291f69314b4526e05dc19ac4517", "new_sha256": "5c7c580b939d4938790c224f2c27d5eae7f274d1993022ad920446173a721992", "what": "337 -> 342 entries (5 B15-30a-*), note extended; written with the file's own serializer (indent 1, sorted keys, ensure_ascii off); every find text of all 342 entries (346 edits) occurs exactly once in its target"},
+   {"path": "runkit/stage1-olmo/notes/kit-round-30a.json", "old_sha256": null, "new_sha256": "this file", "what": "this report"}
+  ],
+  "not_changed": "seal.py, plan_tool.py, judge_units_stage1.py, stage1_rules.py, README.md (another builder's), and every other file",
+  "patch": {"full": "S/evidence/round30a.patch (sha256 442fa37d48ef16ce33aadfe3876cff6a1f1b61295969d8e4316292f887aece4e; paths a/runkit/stage1-olmo/..., apply with patch -p1 or git apply from the repository root; checked: it applies to the original files, which equal main's runkit/stage1-olmo files by SHA-256, and reproduces the final files exactly)", "existing_tests_only": "S/evidence/round30a-existing-tests.patch (sha256 8402a2e42fc87be9eca45c21cc227e7939eec3e3b1be0d3395bb15ebc273aa37): the two small hunks in test_stage1_runner.py and test_stage1_runkit.py, for a merge with the other builder's edits of those files"}
+ },
+ "R1_D2_registry_seed": {
+  "ruling": "seed fix, keep --replicate-of (YB X-5)",
+  "code": {
+   "c1_key (job_runner_stage1.py:717-726)": "C1's key as engine Y's jobs.trajectory_key builds it, never read from cert_spec: arm = engine_arm(job) (edit-<the job's edit SHA-256>; sealed_check ties the packed edit file to it), seed = job.seed, split and role = the values C1's own make-job command passes (--split dev, --role development), manifest_sha256 = plan.json prepared[prepared-kt-dolly-olmo2], training_identity = stage1_rules.TRAINING_IDENTITY",
+   "c1_registry_seed (job_runner_stage1.py:729-782)": "checks, in order, each refusing with Unrunnable before any step: cert_spec packed (inputs); its bytes hash to sealed-files.json; it parses; replicate_of a non-empty string; registry_line {key: object, run_dir: string}; registry_line.run_dir == replicate_of; C1's make-job runs recipe S; registry_line.key == c1_key (dict equality, the differing field names in the message); the registry (C1's run-one --registry, cert/registry-cert_c1.jsonl) neither exists nor is a link. Then writes exactly the one line in engine Y's JSONL form (json.dumps sort_keys, ensure_ascii False, allow_nan False, newline) with an exclusive create (open 'xb') and fsync; returns {registry, cert_spec, cert_spec_sha256, replicate_of, line_sha256}",
+   "main (job_runner_stage1.py:1049-1057)": "for a cert_c1 job: seeded = c1_registry_seed(...) inside the existing try, before run_job; an Unrunnable makes C1 'crashed' with the check's reason, later jobs not_started, the host stops (the runner's crash rule); a success adds registry_seed (ids and hashes) to JOB-<i>.json and JOB-DONE.json. Dry run: not called (writes nothing, as before)."
+  },
+  "tests (tests/test_round30a.py)": {
+   "test_engine_y_refuses_c1s_replicate_on_an_empty_registry_and_accepts_it_once_seeded": "engine Y's own trajectory_key (on Y's recipe S) and claim_trajectory, -I -B, cwd a temp folder, no bytecode in Y's tree before or after: the computed key equals the hand key (arm edit-f7d7eb86..., manifest 9ed61826..., role development, seed 1101, split dev, training identity f46279e5...); empty registry + replicate_of: refused ('replicate_of round1/1101-edit-f7d7...-e1-a1 is not a registered start of this trajectory'), nothing written; a seeded line of seed 1102, or of another run folder: refused, nothing appended; R_1101's line seeded: accepted, C1's start appended (key equal, replicate_of R_1101's run folder)",
+   "test_the_runners_seed_lets_c1s_claim_pass_and_without_it_c1_crashes": "the synthetic cert pod (C1, C2, C3 on Y) whose fake engine runs Y's real claim at C1's run-one with the key Y computes from C1's make-job: with the seed, Y accepts, all three complete, the registry holds exactly the record's line then C1's start, JOB-0 names the seed, the registry lies under the light pull; with the seed step skipped (today's runner): Y refuses, C1 crashed 'exit 1 in job-0-run-one', C2 and C3 not_started, no registry",
+   "test_a_bad_record_crashes_c1_before_any_engine_step (4 cases)": "through main: key seed 1102, run_dir != replicate_of, no registry_line, an existing registry: C1 crashed with the exact reason, no step receipt (no make-job: no model loads), C2 and C3 not_started, nothing written (an existing registry unchanged)",
+   "test_every_check_of_the_seed_step_both_ways (23 cases)": "the good record writes exactly one line, byte-equal to the record's registry_line in Y's form, and returns the hand record; each defect alone refuses with its exact message and writes nothing: not packed; SHA-256 differs; not JSON; no or empty replicate_of; no registry_line, key not an object, run_dir not a string; run_dir != replicate_of; recipe not S; key field arm, seed, split, role, manifest_sha256, training_identity, an extra field, a missing field; plan.json prepared differs; registry exists (empty, with a line, a dangling link)",
+   "test_the_seed_step_derives_c1s_key_from_the_job_not_from_cert_spec": "a C1 job at seed 1102 refuses the same record; C1's commands unchanged (make-job --replicate-of @json:cert_spec:replicate_of; run-one --out cert/1101-R-c1-a1 --registry cert/registry-cert_c1.jsonl)"
+  },
+  "real_shape_check": "S/scripts/real_shape_check.py (output S/evidence/real-shape-check.json, sha256 5dd598715e16da105271e5c5ca2094ee6df949023c766edcf8c7370e363e4dec): cert_spec built exactly as runbook step 3 builds it (its asserts passed: Gate B registry 7d879d81..., R_1101 COMPLETE 391d067c... by hash only, one line, the hand key), written into the scratchpad only; the round-30a c1_registry_seed on a scratch pod with that record packed and a plan job made by stage1_rules.job_record (R_1 f7d7eb86..., recipe S, engine Y, prepared 9ed61826...): seeded; the seeded line equals Gate B's line byte for byte (sha256 00a6d34f5674e867...); the make-job's --replicate-of resolves to R_1101's run folder; engine Y's own claim on that registry: accepted with C1's key; on an empty registry: refused; registry then 2 lines, C1's start replicate_of = R_1101's folder. Prints booleans, hashes and field names only.",
+  "runbook_step3_format": "matches: the runner reads cert_spec.replicate_of and cert_spec.registry_line {key, run_dir} (the record's other fields are ignored); step 3's field names need no change. Shown by the real-shape check above."
+ },
+ "R2_D4_comparator": {
+  "usage": "python -B compare_c1.py C1_UNIT R1101_UNIT --out FILE   (exit 0 pass, 1 no pass, 2 refused with nothing written)",
+  "code (compare_c1.py)": {
+   "load_rule (67-79)": "imports experiments/safety_selection/tests/removal_digest.py, pinned (sha256 59a713f0...; equal in TREE and main), without writing bytecode; uses its TIMED, _strip, _canonical, _sha, drop_constant_lr",
+   "listing, rule_of, job_view, digest, verdict (82-167)": "every non-folder entry of either unit (links listed, never followed); counted rules: job.json (removal_digest's job rule: code_sha256 dropped, resume_from cut to its name; plus the edit path dropped and replicate_of checked then dropped: C1's must be R_1101's run-folder string, i.e. R1101_UNIT's path ends with it, and R_1101's must be null), plan.json (canonical), steps.jsonl (TIMED stripped, constant lr dropped with the unit's own identity.json train), states/*/state.json (TIMED stripped), eval/** (summary.json TIMED stripped; .jsonl with \"seconds\" in its first 3 lines line by line TIMED stripped; else bytes), edit.json (bytes); not counted but listed and compared: *.safetensors, COMPLETE.json, identity.json, assets.json, dependencies.json, environment-linux.lock, ledger.jsonl, progress.jsonl, records.jsonl, status.json and any other file; a file the rule cannot read is 'differ'",
+   "compare (178-201)": "pass = both units complete (COMPLETE.json present, no error.txt) and every counted file 'equal', with the core files listed even when absent (job.json, plan.json, steps.jsonl, states/<target>/state.json, eval/<target>/summary.json); x6 restates the verdicts of eval/*/guard.jsonl, guard_samples.jsonl (u_labels) and query_loss.jsonl (task_loss)",
+   "main (208-241)": "refuses (exit 2, nothing written): a unit that is not a folder, the same folder twice, an existing --out, a missing --out folder, --out inside either unit, removal_digest.py not its pin; writes --out once ('x' mode) and prints the same JSON"
+  },
+  "output": "{kind 'stage1 c1 certificate comparison', version 1, c1_unit, r1101_unit, rule {removal_digest, removal_digest_sha256, compare_c1_sha256}, both_complete, files [{file, rule, counts, verdict}], x6 {u_labels, task_loss}, pass}: file names, verdicts, rule names, booleans, the unit paths and the code hashes; never a value, a label, an answer, a count or a hash of a unit file",
+  "real_file_names_used": "the synthetic units carry exactly the 25 file names of Gate B's light-pulled R_1101 unit (listed by name only: COMPLETE.json, assets.json, dependencies.json, edit.json, environment-linux.lock, eval/e1/{arc_utility,generations,guard,guard_samples,harm_prompts,harm_scores,query_loss,samples}.jsonl, eval/e1/summary.json, identity.json, job.json, ledger.jsonl, plan.json, progress.jsonl, records.jsonl, states/{e1,init,q}/state.json, status.json, steps.jsonl). R_1101's job.json was read for its key names and its path fields only (edit 'sealed/edits/R_d1.json', replicate_of null, resume_from null, wall_limit_seconds null, evaluate_bank dev, target e1): no evaluation file, COMPLETE.json or summary of any real unit was opened, and compare_c1.py was never run on a real unit.",
+  "job_rule_on_the_real_job_json": "in process, job.json only: R_1101's real job.json against a C1 job.json shaped as engine Y's make-job writes it (Y's code_sha256, edits/<sha>.edit.json, replicate_of R_1101's folder): equal; replicate_of another folder: differ; a train-only job (evaluate_bank null): differ",
+  "tests (tests/test_round30a.py)": {
+   "test_compare_c1_two_equal_units_pass_with_the_by_design_differences_outside_the_rule": "equal: every file listed; counted files equal; identity.json, COMPLETE.json, assets.json differ and do not count; pass true, exit 0; stdout = --out; rule names by hand; the rule's pin",
+   "test_one_changed_byte_in_a_counted_file_fails_the_certificate (7 cases)": "one evaluation byte (guard.jsonl, query_loss.jsonl, summary.json, generations.jsonl, arc_utility.jsonl), a state record, steps.jsonl: only that file differs, pass false, exit 1; x6 follows guard and query loss",
+   "test_a_timing_only_difference_still_passes_and_a_non_timed_one_does_not": "every TIMED key changed (steps, generations, samples, summary, train_seconds, ledger, progress, status, records, completed_utc) and job.json's code_sha256: pass; a step's loss changed: steps.jsonl differs, no pass",
+   "test_a_missing_file_is_named_and_fails_only_when_it_counts (6 cases)": "C1 or R_1101 lacking an evaluation file, a state record, steps.jsonl; a core file in neither; status.json (not counted: pass kept)",
+   "test_job_json_replicate_rule_and_completeness_both_ways (7 cases)": "C1 replicate_of another folder or null, R_1101's not null, units swapped, another arm: job.json differs; error.txt or no COMPLETE.json: both_complete false",
+   "test_the_output_holds_no_value_label_answer_count_or_unit_hash": "sentinel values, labels and answers and every unit file's SHA-256 absent from the output, on a passing and a failing pair; exact key sets",
+   "test_compare_c1_refuses_and_writes_nothing": "7 CLI refusals (exit 2, nothing written, an existing file kept); a changed removal_digest.py refuses in process and through main",
+   "test_compare_c1_reads_units_as_removal_digest_does": "each counted plan, steps, state and evaluation verdict is 'equal' exactly when removal_digest.unit_digest's entry is equal on the two units; its job digest differs (edit path, replicate_of) where compare_c1's job rule says equal"
+  }
+ },
+ "alternatives": [
+  "R1 refusal per job (Unrunnable -> C1 crashed, JOB-DONE.json written, record-done works) rather than in preflight_checks (an AssertionError leaves no JOB-DONE.json, so record-done cannot run). Either way nothing loads a model; the pod stops at once.",
+  "Key derivation: split and role from C1's own make-job command (the values the engine receives), not new constants, so _run_one is untouched and no existing mutant find text moved.",
+  "Manifest from plan.json's prepared pin rather than stage1_rules.PREPARED_MANIFESTS directly: it is the value engine Y reads on the pod (the worker bootstrap checks the pod's prepared manifests against stage1_rules.PREPARED_MANIFESTS and preflight_checks ties plan.json's to the pod's), so on any pod that reaches the jobs the two are equal; a cross-check against the rules pin would refuse nothing more there and would have forced a change of the synthetic pod's manifest in the existing tests.",
+  "The comparator imports removal_digest.py (pinned) instead of copying its rule, so the certificate uses the same code as the X-1 goldens; a changed rule file refuses until the pin is renewed.",
+  "Evidence written once ('x' mode) and never inside a unit folder, so the record-certificate evidence cannot be overwritten and the units stay as pulled."
+ ],
+ "tests": {
+  "command": "cd TREE; export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONDONTWRITEBYTECODE=1 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 STAGE1_ENGINE_Y_TREE=/Users/spiderishi/Coding/attribution/tmp/engine-y-34bfd288; /Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python -B -m pytest -p no:cacheprovider --basetemp=<new scratch folder> -q -rs [--junitxml=...] <suite>",
+  "results": {
+   "baseline runkit/stage1-olmo/tests/test_stage1_runner.py, unchanged TREE (10:57 UTC)": "176 passed, exit 0 (S/evidence/baseline-test_stage1_runner.junit.xml)",
+   "runkit/stage1-olmo/tests/test_round30a.py (new)": "55 passed, exit 0",
+   "test_stage1_runner.py + test_round30a.py": "231 passed, exit 0",
+   "runkit/stage1-olmo/tests (the kit suite), final files (11:15 UTC)": "596 passed, 0 failed, 0 errors, 0 skipped, exit 0, 24 s (S/evidence/kit-suite-final.junit.xml, sha256 b1bbe1d3...; 541 before this round + 55 new)",
+   "experiments/safety_selection/tests/test_ss_gateb_runkit.py (Gate B kit suite), final files (11:19 UTC)": "271 passed, exit 0 (S/evidence/gateb-kit-final.junit.xml). Run in a scratch copy of TREE plus tmp/family-probe-olmo2-1b/expected-fixture-probe.json copied from main (sha256 98d775f1...), which a git archive lacks; in TREE itself it gives 6 passed, 265 errors (FileNotFoundError on that fixture), exit 1, not a code failure. It reads no stage-1 kit file."
+  }
+ },
+ "mutants": {
+  "added": ["B15-30a-seed-skipped (setup/job_runner_stage1.py)", "B15-30a-key-unchecked (setup/job_runner_stage1.py)", "B15-30a-run-dir-unchecked (setup/job_runner_stage1.py)", "B15-30a-registry-reused (setup/job_runner_stage1.py; two edits: the exists check removed and 'xb' -> 'ab')", "B15-30a-compare-c1-only (compare_c1.py)"],
+  "run": "S/scripts/run_mutants_30a.py (sha256 c6bd147a...): per run its own repository root (TREE's entries linked, runkit/stage1-olmo copied, the exact replacements applied, each find once), the kit suite with one command for all runs; killed = exit 1 with failures, no error and the baseline's 596 tests; baseline first: 596 passed. Final run 11:16-11:19 UTC on the final files (the report records the tested kit's file hashes, equal to files.changed): B15-30a-seed-skipped killed (5 failures), B15-30a-key-unchecked killed (11), B15-30a-run-dir-unchecked killed (2), B15-30a-registry-reused killed (4), B15-30a-compare-c1-only killed (3); 0 survived, 0 invalid. Report S/evidence/mutants-30a-report.json (sha256 f1772c00...), JUnit files S/evidence/mutants-junit/. The full spec (342) was not run (the brief's limit)."
+ },
+ "commands_run": [
+  {"command": "date -u (10:42:32, 10:57:46, 10:57:53, 11:05:13, 11:05:33, 11:06:08, 11:07:24, 11:08:58, 11:11:47, 11:12:53, 11:15:45, 11:16:10, 11:18:57, 11:19:13, 11:19:26, 11:20:09, 11:20:20)", "exit": 0},
+  {"command": "cat/sed/grep/ls/wc of the brief, the cert runbook, the B15 and engine-Y briefs, kit code and tests, engine Y code (jobs.py, runner.py, ledger.py, config.py, __main__.py, planning.py, common.py), removal_digest.py, round 29's report", "exit": 0},
+  {"command": "find of R_1101's unit (names only); python -I -B reading R_1101's job.json key names and path fields only", "exit": 0},
+  {"command": "shasum -a 256 of the owned files (before and after), main's runkit/stage1-olmo copies, the live kit's runner and rules (58ea1510..., f30a0032...), removal_digest.py (TREE and main), the evidence", "exit": 0},
+  {"command": "python -I -B: engine Y's training_identity of its recipe S = f46279e5... (no bytecode in Y before or after: 0 and 0)", "exit": 0},
+  {"command": "pytest test_stage1_runner.py on the unchanged TREE (baseline)", "exit": 0, "result": "176 passed"},
+  {"command": "pytest test_round30a.py", "exit": 0, "result": "55 passed"},
+  {"command": "pytest test_stage1_runner.py test_round30a.py", "exit": 0, "result": "231 passed"},
+  {"command": "pytest runkit/stage1-olmo/tests (11:05; final code 11:15; again 11:22 with this report in notes/, so the kit's no-workspace-name scan read it)", "exit": 0, "result": "596 passed each"},
+  {"command": "pytest test_ss_gateb_runkit.py in TREE", "exit": 1, "result": "6 passed, 265 errors: the fixture tmp/family-probe-olmo2-1b/expected-fixture-probe.json is not in a git archive"},
+  {"command": "pytest test_ss_gateb_runkit.py in a scratch copy of TREE with that fixture (twice: 11:07 and, final, 11:19)", "exit": 0, "result": "271 passed each"},
+  {"command": "python -I -B S/scripts/append_mutants.py TREE/runkit/stage1-olmo --check-only (337 entries, 340 edits, all once); then without --check-only (342, 346, all once); then --check-only again on the final files", "exit": 0},
+  {"command": "python -I -B S/scripts/run_mutants_30a.py TREE S/mut S/evidence/mutants-30a-report.json (11:08-11:11, before a whitespace fix) and again into S/mut-final (11:16-11:19, final files)", "exit": 0, "result": "5 of 5 killed both times"},
+  {"command": "python -I -B S/scripts/real_shape_check.py /Users/spiderishi/Coding/attribution TREE/runkit/stage1-olmo tmp/engine-y-34bfd288 S/realcheck", "exit": 0},
+  {"command": "python -I -B (in process) compare_c1's job rule on R_1101's real job.json against a C1-shaped job.json in a scratch folder (deleted after)", "exit": 0},
+  {"command": "python -I -B S/scripts/check_cert_spec.py on the scratch step-3 record (exit 0, ok true) and on a copy with key seed 1102 (exit 1, refused naming 'seed')", "exit": "0 and 1 (as expected)"},
+  {"command": "diff -ruN of the originals and the final files -> S/evidence/round30a.patch and round30a-existing-tests.patch; patch -p1 --dry-run and a real patch on a scratch copy of the originals, then diff -r against the final files", "exit": "diff 1 (differences, as expected); patch 0; diff -r 0"},
+  {"command": "rm -rf of scratch run folders under S (gbroot, bt, mut run roots, probe, patch copies)", "exit": "0 (one earlier rm with a glob stopped on zsh 'no matches found'; repeated without globs, exit 0)"}
+ ],
+ "lead_commands": {
+  "0_settings": "setopt interactivecomments; ROOT=/Users/spiderishi/Coding/attribution; KIT=$ROOT/tmp/stage1-olmo; PY=$ROOT/tmp/minimal-experiment-20261002/venv/bin/python; S=/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/kit-round-30a; export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONDONTWRITEBYTECODE=1 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 STAGE1_ENGINE_Y_TREE=$ROOT/tmp/engine-y-34bfd288",
+  "1_bring_the_code_into_main": [
+   "If the other builder's round left test_stage1_runner.py, test_stage1_runkit.py and mutants_b15.json unchanged: cd $ROOT && patch -p1 --dry-run < $S/evidence/round30a.patch && patch -p1 < $S/evidence/round30a.patch; then mkdir -p runkit/stage1-olmo/notes && cp $S/tree/runkit/stage1-olmo/notes/kit-round-30a.json runkit/stage1-olmo/notes/ (the patch does not hold this report)",
+   "Otherwise: copy setup/job_runner_stage1.py, compare_c1.py, tests/test_round30a.py and notes/kit-round-30a.json from $S/tree/runkit/stage1-olmo/ by explicit paths; apply $S/evidence/round30a-existing-tests.patch with patch -p1 (two small hunks); append the mutants with $PY -I -B $S/scripts/append_mutants.py $ROOT/runkit/stage1-olmo (it refuses if the B15-30a ids exist and checks every find text once over the merged file)",
+   "Check each new SHA-256 against files.changed (for files the other builder did not touch)"
+  ],
+  "2_tests_in_main (about 1 min; background if preferred)": [
+   "cd $ROOT && $PY -B -m pytest -p no:cacheprovider --basetemp=<new folder> -q runkit/stage1-olmo/tests   (expect 596 passed plus the other builder's new tests)",
+   "cd $ROOT && $PY -B -m pytest -p no:cacheprovider --basetemp=<new folder> -q experiments/safety_selection/tests/test_ss_gateb_runkit.py   (expect 271 passed)",
+   "only if the merged runner, compare_c1.py or tests differ from files.changed: $PY -I -B $S/scripts/run_mutants_30a.py $ROOT <new scratch folder> <report.json>   (about 3 min; expect 5 killed)"
+  ],
+  "3_live_kit_after_the_judge_pod_ends": [
+   "cp by explicit paths: runkit/stage1-olmo/setup/job_runner_stage1.py and runkit/stage1-olmo/compare_c1.py (and the tests and notes if the working copy carries them) into $KIT; then diff -rq $ROOT/runkit/stage1-olmo $KIT | grep -v .DS_Store || echo 'kit and working copy equal'",
+   "The runner is a setup member of the Y pack: runbook step 4's re-pack must come after this copy (D6's members_are_kit_now then holds the round-30a runner)."
+  ],
+  "4_before_the_re_pack (runbook step 3, then this check, then step 4)": [
+   "runbook step 3 as written (its cert_spec.json format matches what the runner reads)",
+   "$PY -I -B $S/scripts/check_cert_spec.py $KIT $ROOT/.ai/inputs/stage1-post-w1-20261023/block-a/cert_spec.json $ROOT/tmp/engine-y-34bfd288 <new scratch folder>   (expect exit 0 and ok true: the round-30a seed step accepts the real record, the seeded line is the record's line, engine Y's own claim refuses on an empty registry and accepts the seeded one; writes only under the new folder)"
+  ],
+  "5_after_record_done (runbook step 13)": [
+   "$PY -B $KIT/compare_c1.py $C1U $R1101 --out $TREE/c1-certificate-compare.json; echo \"compare exit $?\"   (C1 first, R_1101 second; exit 0 pass, 1 no pass, 2 refused; --out inside the pulled cert tree but outside both units, because record-certificate accepts evidence only from retrieved/cert-1/tree)",
+   "the certificate record: {kind 'stage1 x-y certificate', pass: the output's pass, host cert-1, utc, recorded_by, evidence [{path: 'c1-certificate-compare.json', sha256: <its SHA-256>}, ...]}"
+  ]
+ },
+ "acceptance": {
+  "passed": [
+   "R1: refusal before any engine step on every check, each tested both ways (23 direct cases + 4 through main)",
+   "R1: Y's real claim_trajectory: empty registry + replicate_of refuses; seeded registry accepts; the runner's seed then lets C1's claim pass (synthetic pod) and without the seed C1 crashes",
+   "R1: key derived from the job, C1's command and the runner's constants (a changed job seed refuses the same record)",
+   "R1: no .pyc or __pycache__ written in engine Y's tree (checked by a fixture and by find: 0 before and after)",
+   "R1: runbook step 3's record format matches the runner (real-shape check on Gate B's real registry line; byte-identical seed line)",
+   "R2: equal; one evaluation byte different; timing-only difference passes; missing files; replicate_of rule; refusals; seal-safety; agreement with removal_digest.unit_digest",
+   "kit suite 596 passed; Gate B kit suite 271 passed",
+   "5 mutants, each find text once; 5 killed; every earlier find text still once"
+  ],
+  "failed": [],
+  "not_tested": [
+   "the pod side: engine Y's make-job and run-one on the GPU with the seeded registry (only Y's claim_trajectory itself was run, on CPU)",
+   "compare_c1.py on the real C1 and R_1101 units (forbidden here; C1 does not exist yet)",
+   "the merge with the other builder's round (their files and any edits of the same test files)",
+   "check-plan, the re-pack and init-block with the new runner",
+   "the full B15 mutant spec (342)"
+  ]
+ },
+ "open_points": [
+  "Consequential, needs the lead's ruling: R2 says 'job.json compared without code_sha256'. Read literally, C1 fails by construction: R_1101's real job.json has edit 'sealed/edits/R_d1.json' and replicate_of null, C1's will have edit 'edits/<sha>.edit.json' and replicate_of R_1101's run folder (X-5 requires it). compare_c1.py therefore also drops the edit path (the arm edit-<SHA-256> pins the bytes; edit.json is compared byte for byte) and checks replicate_of (C1's = R_1101's run-folder string, R_1101's = null) before dropping it; every other job field must be equal. Alternative: leave job.json out of the pass (X-5 does not list it). Both are one-line changes in rule_of/job_view.",
+  "Files outside the rule (listed, compared, not counted): COMPLETE.json and identity.json differ by design (code identity; identity.json also Python and platform); assets.json is the pod's environment; ledger/progress/records/status hold timings and run bookkeeping; dependencies.json and environment-linux.lock are informative. If the lead wants one of them to count (e.g. environment-linux.lock), it is one line in rule_of.",
+  "X-6 'as far as the files allow': every evaluation file counts, so a pass implies equal guard labels and equal query losses; x6 restates guard.jsonl/guard_samples.jsonl (u_labels) and query_loss.jsonl (task_loss). Which file holds LQ20's 'U labels' was not in what I read; I took the guard's label files.",
+  "A seed refusal crashes C1 and, by the runner's crash rule, C2 and C3 are not_started: the cert pod's overhead is then lost (D5: the contingency cannot re-pay it). Hence lead_commands step 4: check the real cert_spec.json on the Mac with check_cert_spec.py before the re-pack; check-plan does not read the record's contents.",
+  "record-certificate's evidence must lie in retrieved/cert-1/tree; the comparator's output is therefore written there (outside both units). seal.py block cert, if run after, will hash that extra file too.",
+  "Two existing test files changed (small hunks, patch provided) and mutants_b15.json appended: a merge point with the other builder's round.",
+  "README.md (another builder's) should mention compare_c1.py and the C1 seed step; not edited here.",
+  "The Gate B kit suite cannot run in a bare git archive (its fixture lives under tmp/); in main it can."
+ ],
+ "evidence": {
+  "folder": "S/evidence/",
+  "files": {
+   "mutants-30a-report.json": "f1772c0061a574c4a4a2ac0ffc482f061d7292c42602be95b4aef3c0300c0dd3",
+   "real-shape-check.json": "5dd598715e16da105271e5c5ca2094ee6df949023c766edcf8c7370e363e4dec",
+   "kit-suite-final.junit.xml": "b1bbe1d3c17906a340b1cd4be2f2e02e34a3564facaf7adb1fc3905276592968",
+   "gateb-kit-final.junit.xml": "c98492fdbf368d0f24943aa9defa67f5319b5fc24d93e26061055700fbb639ae",
+   "baseline-test_stage1_runner.junit.xml": "c0077a39c132308796560d9634df90db627e55db1e5d0af16160c8965f28c6c6",
+   "round30a.patch": "442fa37d48ef16ce33aadfe3876cff6a1f1b61295969d8e4316292f887aece4e",
+   "round30a-existing-tests.patch": "8402a2e42fc87be9eca45c21cc227e7939eec3e3b1be0d3395bb15ebc273aa37"
+  },
+  "scripts": {
+   "S/scripts/append_mutants.py": "4bc5ad7be6d6e6a0dce9d090c6609c505aeb4c9f7398c40a43ec1b504b54819d",
+   "S/scripts/run_mutants_30a.py": "c6bd147a859fe91f6bcf3e841353d85ca8c3df2d9691fed58bb35238692e8312",
+   "S/scripts/real_shape_check.py": "f7a5382df1f1c8bbf9b52afb38565d371aa2ae166411e135e2de3f76cb556ec0",
+   "S/scripts/check_cert_spec.py": "3b384742fece3241f16640316fc31c7ae9c1f2507725a4dd2bdaed362fb59a32"
+  },
+  "originals": "S/orig/ (the four owned files as archived)"
+ }
+}

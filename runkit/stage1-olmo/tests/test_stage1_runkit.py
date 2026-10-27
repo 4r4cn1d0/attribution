@@ -36,6 +36,7 @@ E1, T = 4360.619162873324, 333.6683323532343
 X = "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892"
 Y = "34bfd28879fdefc5d6605cb73a707d1edd2ec5d102b4b86c0026bc6ac36969f6"
 SENTINELS = ("0.7319284756", "SENTINEL-U-VALUE", "41.0613")      # synthetic outcome values in the sealed files
+JUDGE_SENTINEL = 7777                                              # round 30: a synthetic HB/Granite count
 
 
 def sha(path: Path) -> str:
@@ -222,9 +223,95 @@ class World:
                     write_json(tree / unit / "eval" / "e1" / "summary.json", {"u": float(SENTINELS[0])})
                     write_json(tree / unit / "cost-ledger.json", {"stages": {"training": 100.0}})
                     r.update(unit=unit, complete_sha256=sha(write_json(tree / unit / "COMPLETE.json", {"i": i, "h": host})))
+                    if job["kind"] in ("b10_certify", "ref_eval", "safe_lora"):   # the runner: one unit per point
+                        r["units"] = [{"unit": unit, "complete_sha256": r["complete_sha256"], "verify_exit": 0}]
+                        for k, point in enumerate((job.get("points") or [])[1:], 1):
+                            extra = f"units/job-{i}-p{k}"
+                            r["units"].append({"unit": extra, "verify_exit": 0, "complete_sha256": sha(write_json(
+                                tree / extra / "COMPLETE.json", {"i": i, "h": host, "point": point}))})
             jobs.append(r)
         write_json(tree / "JOB-DONE.json", {"host": host, "jobs": jobs})
         self.tool.record_done(host)
+
+    # ----- round 30: the judge files and the judge-completion record (addendum §30; R2, R3) -----
+    def judge_units(self, block: str = "A") -> list[str]:
+        """By hand: the units BLOCK's judge files must cover: the COMPLETE.json SHA-256 plan.json records for every
+        complete arm and a0_arm job of the block (pulled), then the block's 7 pinned re-judged units (block A)."""
+        plan = self.plan()
+        new = [j["complete_sha256"] for n, h in sorted(plan["hosts"].items()) if h["block"] == block
+               for j in h["jobs"] if j["kind"] in ("arm", "a0_arm") and j.get("status") == "complete"
+               and j.get("pulled") is not False]
+        return new + [p["complete_sha256"] for p in self.rules.REJUDGED_PINS.get(block, ())]
+
+    def file_judges(self, block: str = "A", judges=("harmbench", "granite"), units=None, entry=None,
+                    result=None) -> tuple[str, str]:
+        """Gate B's layout for BLOCK's judges, all synthetic: one judge file per judge and unit in judges/BLOCK/
+        (holding the sentinel count JUDGE_SENTINEL), judge-files-index.json (Gate B's index, version 2), each launch's
+        judge-pod-result.json and fetched run record under tmp/judge-pod/TAG (the verified units' counts are the
+        sentinel), and the lead's judge-completion record naming them. ``entry``/``result``: {judge: {key: value}}
+        changes. Returns the record's path and SHA-256 (record_judges takes them)."""
+        folder = self.root / "judges" / block
+        units = self.judge_units(block) if units is None else units
+        names = {"harmbench": "cais/HarmBench-Mistral-7b-val-cls", "granite": "granite-guardian-3.3-8b"}
+        entries = []
+        for key in judges:
+            for i, c in enumerate(units):
+                name = f"{key}--host{i}--unit{i}--{c[:12]}.json"
+                p = write_json(folder / name, {"greedy": {"n": 200, "harm": JUDGE_SENTINEL, "unparsed": 0}})
+                entries.append({"file": name, "sha256": sha(p), "judge": names[key], "arm": f"arm-{i}", "seed": 1102,
+                                "host": f"host{i}", "unit": f"round1/unit{i}", "target": "e1",
+                                "completed_utc": "2026-10-26T00:00:00+00:00", "complete_sha256": c})
+        index = write_json(folder / "judge-files-index.json", {"kind": "gate-b judge files index", "version": 2,
+                                                                 "complete_allowlist": [],
+                                                                 "files": sorted(entries, key=lambda e: e["file"])})
+        record = {"kind": "stage1 judge completion record", "block": block, "judges": {}, "index_sha256": sha(index),
+                  "utc": "2026-10-27T09:00:00Z", "recorded_by": "test"}
+        for key in judges:
+            tag = f"s1{block.lower()}-{key}-1"
+            d = self.repo / "tmp" / "judge-pod" / tag
+            run_record = write_json(d / "fetched" / "out" / "run-record.json", {"device": "cuda", "judge": key})
+            per = 800 if key == "harmbench" else 200
+            body = {"kind": "judge-pod result", "version": 2, "tag": tag, "exit": 0,
+                    "bundle_sha256": hashlib.sha256(tag.encode()).hexdigest(),
+                    "fetched": {"out/run-record.json": sha(run_record)},
+                    "stop": {"confirmed": True, "desiredStatus": "EXITED", "utc": "2026-10-27T08:40:00+00:00"},
+                    "verification": {"complete": True, "judged": per * len(units), "records": per * len(units),
+                                     "units": [{"unit": f"host{i}/u", "complete_sha256": c,
+                                                "greedy": {"n": 200, "judged": 200, "yes": JUDGE_SENTINEL,
+                                                           "unparsed": 0}} for i, c in enumerate(units)]}}
+            if key == "granite":
+                body["judge"] = "granite"
+                body["verification"]["known_answers"] = {"enabled": True, "passed": True, "pod_yes": JUDGE_SENTINEL}
+            for k, v in (result or {}).get(key, {}).items():
+                body[k] = v
+            res = write_json(d / "judge-pod-result.json", body)
+            e = {"tag": tag, "result_sha256": sha(res), "run_record_sha256": sha(run_record),
+                 "bundle_sha256": body["bundle_sha256"], "exit": 0, "judged": per * len(units), "complete": True}
+            if key == "granite":
+                e["known_answer_passed"] = True
+            e.update((entry or {}).get(key, {}))
+            record["judges"][key] = e
+        return self.record(record)
+
+    def old_seal(self, block: str = "A") -> dict:
+        """The block sealed as the old seal.py (before round 30) sealed it: every file of the block's pulled trees and
+        every file under judges/BLOCK/, by path and SHA-256; its SHA-256 in plan.json (block A is sealed so before
+        round 30 lands; the new seal.py needs the judge-completion record first)."""
+        plan = self.plan()
+        files = []
+        for host in sorted(n for n, h in plan["hosts"].items() if h["block"] == block):
+            tree = self.root / "retrieved" / host / "tree"
+            files += [{"host": host, "path": p.relative_to(tree).as_posix(), "sha256": sha(p), "class": "sealed"}
+                      for p in sorted(tree.rglob("*")) if p.is_file()]
+        folder = self.root / "judges" / block
+        files += [{"host": f"judges/{block}", "path": p.relative_to(folder).as_posix(), "sha256": sha(p),
+                   "class": "sealed"} for p in sorted(folder.rglob("*")) if p.is_file()]
+        out = write_json(self.root / "seals" / f"block-{block}.json", {"kind": "stage1 block seal", "version": 1,
+                                                                       "block": block, "files": files})
+        plan["seals"][block] = {"path": f"seals/block-{block}.json", "sha256": sha(out), "files": len(files),
+                                "sealed": len(files), "readable": 0}
+        self.mac.save_plan(plan)
+        return plan["seals"][block]
 
     # ----- the usual path -----
     def s10(self, branch: str = "128") -> None:
@@ -1446,7 +1533,8 @@ FINISHER_29 = [('''            elif role in ("job", "first", "anchor"):
 
 def test_the_kit_compiles_holds_no_secret_and_reuses_gate_b_files_as_documented(tmp_path):
     names = sorted(p.name for p in KIT.glob("*.py"))
-    assert names == ["account.py", "backup_records_stage1.py", "budget.py", "finisher.py", "gateb_mac.py", "host.py",
+    assert names == ["account.py", "backup_records_stage1.py", "budget.py", "compare_c1.py", "finisher.py",
+                     "gateb_mac.py", "host.py",
                      "judge_units_stage1.py", "launch.py", "orchestrate.py", "pack_setup.py", "plan_tool.py", "probes.py",
                      "seal.py", "secret_scan.py", "stage1_rules.py", "status.py"]   # BUILD-RUNNER added 5 files
     import py_compile
@@ -1650,44 +1738,59 @@ def test_after_a_failed_certificate_b_qi_runs_with_its_own_a0_at_each_seed(w, ho
 
 
 def test_a_block_is_complete_only_when_its_judge_launch_is_released_and_filed(w):
-    """VMG-7: a block's judge launch is part of it, and its files are in its seal."""
+    """VMG-7, as round 30 (R2, R3) has it: a block's judge launch is part of it; released is not done (gap 1); it is
+    done once the judge-completion record names it and is valid, and only over at least the plan's units (Granite
+    over 20 units stays open with a valid record); its files, the index and a pods/ subfolder are in the seal."""
     w.s10()
     w.gateb()
     w.sealed()
-    w.init("A", [{"deal": [0, 1, 2, 3, 4]}, {"judge": {"arms": 20}}])
+    w.init("A", [{"deal": [0, 1, 2, 3, 4]}, {"judge": {"judge": "harmbench", "arms": 27}},
+                 {"judge": {"judge": "granite", "arms": 20}}])
     for host in ("a-1", "a-2", "a-3", "a-4", "a-5"):
         w.done(host)
     with pytest.raises(SystemExit, match="not complete"):
-        w.seal.seal_block("A")                                          # the judge launch is not released
-    assert w.tool.release("A")["launches_released"] == 2
-    assert w.plan()["blocks"]["A"]["released"] == 2
-    left = w.tool.block_a_open(w.plan())          # round 3c: Granite over 20 units is not the plan's 27; no HarmBench
+        w.seal.seal_block("A")                                          # the judge launches are not released
+    assert w.tool.release("A")["launches_released"] == 3
+    left = w.tool.block_a_open(w.plan())          # released, no record: both still open (gap 1); 4 + 19 + 2 open
     assert len(left) == 25 and left[-2:] == ["judge harmbench", "judge granite"]
+    assert w.tool.record_judges("A", *w.file_judges())["judges"] == ["granite", "harmbench"]
+    left = w.tool.block_a_open(w.plan())
+    assert "judge harmbench" not in left and left[-1] == "judge granite"   # Granite over 20 of the plan's 27 units
     w.not_run()
-    with pytest.raises(SystemExit, match="judges/A/"):
-        w.seal.seal_block("A")                                          # its files are not filed
-    judged = write_json(w.root / "judges" / "A" / "harmbench" / "A1-1102.json", {"hb": SENTINELS[0]})
+    pods = write_json(w.root / "judges" / "A" / "pods" / "s1a-harmbench-1" / "bundle-record.json", {"tag": "t"})
     out = w.seal.seal_block("A")
     record = json.loads((w.root / "seals" / "block-A.json").read_text())
-    assert {"host": "judges/A", "path": "harmbench/A1-1102.json", "sha256": sha(judged), "class": "sealed"} in \
+    index = w.root / "judges" / "A" / "judge-files-index.json"
+    assert {"host": "judges/A", "path": "judge-files-index.json", "sha256": sha(index), "class": "sealed"} in \
         record["files"]
-    assert out["files"] == 66 and SENTINELS[0] not in json.dumps(record)
+    assert {"host": "judges/A", "path": "pods/s1a-harmbench-1/bundle-record.json", "sha256": sha(pods),
+            "class": "sealed"} in record["files"]
+    judge_files = [f for f in record["files"] if f["host"] == "judges/A"]
+    assert len(judge_files) == 2 * 27 + 2 and out["files"] == 65 + 56   # 54 judge files, the index, pods/
+    assert record["judge_record"]["index_sha256"] == sha(index) and record["judge_record"]["units"] == 27
+    assert str(JUDGE_SENTINEL) not in json.dumps(record) and SENTINELS[0] not in json.dumps(record)
     spec = importlib.util.spec_from_file_location("s1_backup_for_test", w.root / "backup_records_stage1.py")
     backup = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(backup)                                     # the backup stages what the seal lists
     sel = backup.select(w.plan(), sorted(n for n, h in w.plan()["hosts"].items() if h["block"] == "A"), 1 << 30)
     assert not any("seal of block A" in m for m in sel["missing"])
-    assert sel["digests"]["units/judges/A/harmbench/A1-1102.json"] == sha(judged)
+    assert sel["digests"]["units/judges/A/judge-files-index.json"] == sha(index)
 
 
 def test_a_block_other_than_a_with_an_unreleased_launch_is_not_complete(w):
     """VMG-7 outside block A: round 3c's block_a_open covers block A only, so for every other block the released
     count is the only guard (the full-plan mutation run of 24 Oct found no test holding it)."""
-    plan = {"blocks": {"B": {"released": 1, "launches": [{"hosts": [CERT_POD]}, {"judge": {"arms": 24}}]}},
+    plan = {"blocks": {"B": {"released": 1, "launches": [{"hosts": [CERT_POD]},
+                                                         {"judge": {"judge": "granite", "arms": 24}}]}},
             "hosts": {}, "deferrals": [], "requeues": []}
+    recorded = set()
+    w.mp.setattr(w.tool, "judges_done", lambda plan_, block: recorded)
+    recorded.add("granite")
     assert w.tool.block_complete(plan, "B") is False                    # the judge launch is not released
     plan["blocks"]["B"]["released"] = 2
-    assert w.tool.block_complete(plan, "B") is True
+    assert w.tool.block_complete(plan, "B") is True                     # released and its valid record names it
+    recorded.clear()                                                    # round 30 (R2): released, no valid record
+    assert w.tool.block_complete(plan, "B") is False
 
 
 def test_a_no_stage_1_record_refuses_every_block(w):
@@ -3657,8 +3760,9 @@ def test_block_a_completes_only_when_every_planned_job_ran_or_a_decision_names_i
     w.tool.release("A")
     for host in ("a-4", "a-5", "a-6", "a-7", "a-8"):
         w.done(host)
-    assert w.tool.release("A")["launches_released"] == 5                 # both judge launches recorded
-    write_json(w.root / "judges" / "A" / "harmbench" / "A1-1102.json", {"hb": SENTINELS[0]})
+    assert w.tool.release("A")["launches_released"] == 5                 # both judge launches released
+    assert w.tool.block_a_open(w.plan())[-2:] == ["judge harmbench", "judge granite"]   # round 30: not done yet
+    w.tool.record_judges("A", *w.file_judges())                          # round 30 (R2): the judges' record
     assert w.tool.block_a_open(w.plan()) == ["retrain a0 1103", "a1_rescore a0 1103", "c0 R 1101"]
     left = ("3 job(s) the block-A plan requires have no completion record and no not-run decision: retrain a0 1103, "
             "a1_rescore a0 1103, c0 R 1101 (record-block-a-not-run")
@@ -3668,7 +3772,7 @@ def test_block_a_completes_only_when_every_planned_job_ran_or_a_decision_names_i
         w.init("B", [{"deal": [0, 1, 2, 3, 4, 5]}])
     assert not (w.root / "seals").exists()
     for jobs, change, match in ((["regenerate a0 1101"], {}, "has a completion record"),
-                                (["judge harmbench"], {}, "has a completion record"),     # released over 27 units
+                                (["judge harmbench"], {}, "has a completion record"),     # recorded over 27 units
                                 (["c0 R 1101", "c0 R 1101"], {}, "not a block-A not-run decision"),
                                 ([], {}, "not a block-A not-run decision"),
                                 (["c0 R 1101"], {"kind": "stage1 d2 fallback"}, "not a block-A not-run decision"),
@@ -4128,7 +4232,7 @@ def test_block_a_counts_not_pulled_jobs_as_decided_and_the_seal_lists_them_witho
     w.tool.release("A")
     w.done("a-7")
     assert w.tool.release("A")["launches_released"] == 7
-    write_json(w.root / "judges" / "A" / "harmbench" / "A1-1102.json", {"hb": SENTINELS[0]})
+    w.tool.record_judges("A", *w.file_judges())                          # round 30 (R2)
     assert w.tool.block_a_open(w.plan()) == [] and w.tool.block_complete(w.plan(), "A") is True
     original = Path(path).read_bytes()
     Path(path).write_bytes(original.replace(b"lead:", b"lead :"))
@@ -4273,3 +4377,456 @@ def test_a_payment_covers_only_the_runs_it_names_and_never_more_than_its_amount(
     planned = w.tool.block_a_planned(plan, w.tool.block_a_required(plan, w.tool.block_a_plan_checked(plan)))
     assert [planned.get(f"arm {a} {s}") for a, s in A7_RUNS] == ["host a-8", "host a-8", None, None]   # two held
     assert [j["status"] for j in plan["hosts"]["a-7"]["jobs"]] == ["not_started"] * 4
+
+
+# ===== Round 30 (27 Oct; notes/kit-round-30.json): addendum §30, the judge gaps 1, 2, 5 (R2, R3), the moved hosts in
+# the seal and the backup (R6) and the cost of a pod stopped without a finisher record (R7) =========================
+# Every judge file, index, judge-pod result and run record below is synthetic (World.file_judges); the counts in them
+# are the sentinel JUDGE_SENTINEL, which no printed line or kit record may hold.
+
+JR = "stage1 judge completion record"
+
+
+def _judged_block_a(w) -> None:
+    """Block A with every host done and both judge launches (HarmBench, Granite over 27 units) released; the plan's
+    diagnostics and LN-12 jobs (not launched here) named by a not-run decision; the judges still open (no record)."""
+    w.s10()
+    w.gateb()
+    w.sealed()
+    w.init("A", A_LAUNCHES + [HB27, GR27])
+    for host in ("a-1", "a-2", "a-3"):
+        w.done(host)
+    w.tool.release("A")
+    for host in ("a-4", "a-5"):
+        w.done(host)
+    assert w.tool.release("A")["launches_released"] == 4
+    w.not_run([x for x in w.tool.block_a_open(w.plan()) if not x.startswith("judge ")])
+    assert w.tool.block_a_open(w.plan()) == ["judge harmbench", "judge granite"]       # gap 1: released, not done
+
+
+def _rewrite(path: str, change) -> tuple[str, str]:
+    """A record file rewritten with ``change(doc)`` applied (a new file content; returns its path and new SHA-256)."""
+    doc = json.loads(Path(path).read_text())
+    change(doc)
+    write_json(Path(path), doc)
+    return path, sha(path)
+
+
+def _reindex(w, block: str = "A", drop=None) -> str:
+    """judges/BLOCK/judge-files-index.json rewritten from the files on disk (Gate B's entry keys), leaving out the
+    files whose name starts with ``drop``; returns the new index SHA-256."""
+    index = w.root / "judges" / block / "judge-files-index.json"
+    doc = json.loads(index.read_text())
+    doc["files"] = [dict(e, sha256=sha(index.parent / e["file"])) for e in doc["files"]
+                    if not (drop and e["file"].startswith(drop))]
+    write_json(index, doc)
+    return sha(index)
+
+
+def test_a_released_judge_launch_is_done_only_while_a_valid_judge_completion_record_names_it(w, capsys):
+    """R2 both ways: released judge launches stay open; record-judges refuses a wrong hash, a record with a count or
+    any key outside the schema, a failed launch (exit 6), an incomplete one, a Granite whose gate did not pass, a bad
+    tag, another block, a future time, a launch result that differs from the record or does not exist, an index
+    whose SHA-256 is not the record's; it accepts the good record (by the CLI), once; both judges are then done and
+    block A complete. At every later use the record file, the index and each judge file are re-hashed: a change of
+    any refuses the completion check, and the status line says INVALID. No printed line or kit record holds a count."""
+    _judged_block_a(w)
+    path, digest = w.file_judges()
+    record = json.loads(Path(path).read_text())
+    hb, gr = record["judges"]["harmbench"], record["judges"]["granite"]
+    assert hb["judged"] == 27 * 800 and gr["judged"] == 27 * 200 and set(gr) - set(hb) == {"known_answer_passed"}
+    with pytest.raises(SystemExit, match="differs from the one given"):
+        w.tool.record_judges("A", path, "0" * 64)
+    bad = [(lambda d: d["judges"]["harmbench"].update(harm=JUDGE_SENTINEL), "must hold exactly"),
+           (lambda d: d.update(yes=JUDGE_SENTINEL), "must hold exactly"),
+           (lambda d: d["judges"]["harmbench"].update(exit=6), "exit 0 only"),
+           (lambda d: d["judges"]["harmbench"].update(complete=False), "complete true"),
+           (lambda d: d["judges"]["granite"].update(known_answer_passed=False), "known-answer gate must have passed"),
+           (lambda d: d["judges"]["granite"].pop("known_answer_passed"), "must hold exactly"),
+           (lambda d: d["judges"]["harmbench"].update(tag="S1A_HB"), "launch tag"),
+           (lambda d: d["judges"]["granite"].update(tag=d["judges"]["harmbench"]["tag"]), "its own launch tag"),
+           (lambda d: d.update(block="B"), "its block is not A"),
+           (lambda d: d.update(utc="2099-01-01T00:00:00Z"), "in the future"),
+           (lambda d: d["judges"]["harmbench"].update(judged=27 * 800 - 1), r"differs from the record \(judged\)"),
+           (lambda d: d["judges"]["harmbench"].update(result_sha256="a" * 64), "missing or its SHA-256 is not"),
+           (lambda d: d["judges"]["granite"].update(tag="s1a-granite-9"), "missing or its SHA-256 is not"),
+           (lambda d: d.update(index_sha256="b" * 64), "not the judge-completion record's index_sha256")]
+    original = Path(path).read_text()
+    for change, match in bad:
+        Path(path).write_text(original)
+        with pytest.raises(SystemExit, match=match):
+            w.tool.record_judges("A", *_rewrite(path, change))
+    Path(path).write_text(original)
+    run_record = w.repo / "tmp" / "judge-pod" / hb["tag"] / "fetched" / "out" / "run-record.json"
+    keep = run_record.read_bytes()
+    run_record.write_bytes(keep + b" ")                                  # the fetched run record changed
+    with pytest.raises(SystemExit, match="fetched/out/run-record.json is missing or not run_record_sha256"):
+        w.tool.record_judges("A", path, digest)
+    run_record.write_bytes(keep)
+    assert w.plan()["records"].get("judges") is None and w.tool.block_a_open(w.plan())[-1] == "judge granite"
+    capsys.readouterr()
+    assert w.tool.main(["record-judges", "A", path, "--sha256", digest]) == 0
+    printed = capsys.readouterr().out
+    out = json.loads(printed)
+    assert out["tags"] == {"granite": "s1a-granite-1", "harmbench": "s1a-harmbench-1"} and out["units"] == 27 and \
+        out["files"] == 54 and out["other_files"] == 0 and out["open"] == [] and out["sha256"] == digest
+    assert w.tool.block_complete(w.plan(), "A") is True
+    with pytest.raises(SystemExit, match="already has a judge-completion record"):
+        w.tool.record_judges("A", path, digest)
+    assert w.seal.main(["status"]) == 0
+    printed += capsys.readouterr().out
+    assert f"judges A: record {digest[:16]}, granite s1a-granite-1 exit 0 judged 5400 known-answer gate passed, " \
+           f"harmbench s1a-harmbench-1 exit 0 judged 21600; index " in printed and \
+           "valid: 27 required units, 54 indexed files" in printed
+    for text in (printed, (w.root / "plan.json").read_text(), (w.root / "operator-actions.jsonl").read_text()):
+        assert not re.search(rf"(?<![0-9A-Za-z]){JUDGE_SENTINEL}(?![0-9A-Za-z])", text)
+    folder = w.root / "judges" / "A"
+    one = sorted(folder.glob("granite--*.json"))[0]
+    for target, match in ((Path(path), "judge-completion record is missing or differs"),
+                          (folder / "judge-files-index.json", "not the judge-completion record's index_sha256"),
+                          (one, "differs from its indexed SHA-256")):
+        keep = target.read_bytes()
+        target.write_bytes(keep + b" ")
+        with pytest.raises(SystemExit, match=match):
+            w.tool.block_a_open(w.plan())
+        w.seal.main(["status"])
+        assert "; INVALID: " in capsys.readouterr().out
+        target.write_bytes(keep)
+    assert w.tool.block_a_open(w.plan()) == []
+
+
+def test_the_judge_files_check_wants_one_file_per_judge_for_each_of_the_27_units(w):
+    """R3 both ways (plan_tool.judge_files_check, which the record and the seal use): the required set by hand is the
+    20 COMPLETE.json SHA-256 of block A's arm runs in plan.json plus the 7 pins; an index without one unit's Granite
+    file, an unindexed judge-named file, an index entry named for another unit, a second file of one (judge, unit), a
+    missing listed file and an index that is not Gate B's each refuse; a non-judge file at the top (.DS_Store) and a
+    pods/ subfolder are allowed; a file of a unit outside the set is counted, not refused."""
+    _judged_block_a(w)
+    plan = w.plan()
+    want = w.judge_units()
+    required = w.tool.judge_required_units(plan, "A")
+    assert sorted(required) == sorted(want) and len(want) == len(set(want)) == 27
+    assert [required[p["complete_sha256"]] for p in w.rules.REJUDGED_PINS["A"]][-1] == "re-judged theta0 (untuned, Gate A)"
+    w.file_judges()
+    folder = w.root / "judges" / "A"
+    both = {"harmbench", "granite"}
+    assert w.tool.judge_files_check(plan, "A", both)["units"] == 27
+    write_json(folder / ".DS_Store", {"finder": 1})
+    write_json(folder / "pods" / "t" / "harmbench--x--y--0123456789ab.json", {"subfolder": True})
+    assert w.tool.judge_files_check(plan, "A", both)["files"] == 54
+    theta0 = want[-1][:12]
+    gone = next(folder.glob(f"granite--*--{theta0}.json"))
+    index_keep = (folder / "judge-files-index.json").read_bytes()
+    keep = gone.read_bytes()
+    gone.unlink()
+    with pytest.raises(SystemExit, match="is missing or differs from its indexed SHA-256"):
+        w.tool.judge_files_check(plan, "A", both)
+    _reindex(w, drop=gone.name)
+    with pytest.raises(SystemExit, match=r"1 required unit\(s\) have no granite judge file .*re-judged theta0"):
+        w.tool.judge_files_check(plan, "A", both)
+    assert w.tool.judge_files_check(plan, "A", {"harmbench"})["files"] == 53     # HarmBench alone still complete
+    gone.write_bytes(keep)
+    with pytest.raises(SystemExit, match="1 judge-named file.* not in its index"):
+        w.tool.judge_files_check(plan, "A", both)
+    (folder / "judge-files-index.json").write_bytes(index_keep)
+    other = write_json(folder / f"harmbench--h--extra--{'c' * 12}.json", {"n": 1})
+    with pytest.raises(SystemExit, match="not in its index"):
+        w.tool.judge_files_check(plan, "A", both)
+    index = folder / "judge-files-index.json"
+    doc = json.loads(index.read_text())
+    doc["files"].append({**doc["files"][0], "file": other.name, "sha256": sha(other), "complete_sha256": "c" * 64,
+                         "judge": "cais/HarmBench-Mistral-7b-val-cls"})
+    write_json(index, doc)
+    assert w.tool.judge_files_check(plan, "A", both)["other_files"] == 1          # a unit outside the set: counted
+    for change, match in ((lambda d: d["files"][0].update(complete_sha256="d" * 64), "not a judge file named for"),
+                          (lambda d: d["files"].append(dict(d["files"][1])), "twice"),
+                          (lambda d: d["files"][0].update(extra=1), "exactly Gate B's index keys"),
+                          (lambda d: d.update(kind="something else"), "not Gate B's judge files index"),
+                          (lambda d: d["files"].append({**d["files"][1], "file": d["files"][1]["file"].replace(
+                              "--unit", "--unitb")}), "missing or differs")):
+        doc2 = json.loads(json.dumps(doc))
+        change(doc2)
+        write_json(index, doc2)
+        with pytest.raises(SystemExit, match=match):
+            w.tool.judge_files_check(plan, "A", both)
+    write_json(index, doc)
+    p = sorted(folder.glob("harmbench--host1--*.json"))[0]
+    twin = write_json(folder / p.name.replace("host1--unit1", "hostx--unitx"), json.loads(p.read_text()))
+    doc3 = json.loads(json.dumps(doc))
+    doc3["files"].append({**next(e for e in doc["files"] if e["file"] == p.name), "file": twin.name, "sha256": sha(twin)})
+    write_json(index, doc3)
+    with pytest.raises(SystemExit, match="two harmbench files for the unit"):
+        w.tool.judge_files_check(plan, "A", both)
+
+
+def test_a_failed_granite_is_recorded_after_block_as_old_seal_and_record_judges_changes_no_seal(w):
+    """R2 for a block sealed before round 30 (block A, by the old seal.py, its judges released and filed): after the
+    seal a not-run decision may name only a judge launch, and only one without a record; record-judges A (HarmBench
+    only, Granite failed) adds the record and changes no seal; it refuses while the index is not the one the seal
+    hashed; Granite's not-run decision then completes block A. A recorded judge cannot be named not run."""
+    _judged_block_a(w)
+    path, digest = w.file_judges(judges=("harmbench",))
+    seal = w.old_seal("A")
+    seal_bytes = (w.root / "seals" / "block-A.json").read_bytes()
+    with pytest.raises(SystemExit, match="block A is sealed: a not-run decision is recorded before its seal"):
+        w.tool.record_block_a_not_run(*_decision(w, ["judge granite", "c0 R 1101"]))
+    index = w.root / "judges" / "A" / "judge-files-index.json"
+    keep = index.read_bytes()
+    doc = json.loads(keep)
+    doc["complete_allowlist"] = ["e" * 64]                                 # another index than the sealed one
+    write_json(index, doc)
+    with pytest.raises(SystemExit, match="seal does not hold judges/A/judge-files-index.json with the record's"):
+        w.tool.record_judges("A", *_rewrite(path, lambda d: d.update(index_sha256=sha(index))))
+    index.write_bytes(keep)
+    path, digest = _rewrite(path, lambda d: d.update(index_sha256=sha(index)))
+    out = w.tool.record_judges("A", path, digest)
+    assert out["judges"] == ["harmbench"] and out["open"] == ["judge granite"]
+    assert w.plan()["seals"]["A"] == seal and (w.root / "seals" / "block-A.json").read_bytes() == seal_bytes
+    with pytest.raises(SystemExit, match="'judge harmbench' has a completion record"):
+        w.tool.record_block_a_not_run(*_decision(w, ["judge harmbench"]))
+    w.tool.record_block_a_not_run(*_decision(w, ["judge granite"], reason="lead: Granite's gate failed (exit 8)"))
+    assert w.tool.block_a_open(w.plan()) == [] and w.tool.block_complete(w.plan(), "A") is True
+    assert w.tool.judges_needed(w.plan(), "A") == ["harmbench"]
+    assert w.plan()["seals"]["A"] == seal
+
+
+def test_record_judges_refuses_a_judge_without_a_released_launch_or_named_not_run(w):
+    """R2: a record names only a released judge launch of the block that no not-run decision names."""
+    w.s10()
+    w.gateb()
+    w.sealed()
+    w.init("A", A_LAUNCHES + [HB27, GR27])
+    for host in ("a-1", "a-2", "a-3"):
+        w.done(host)
+    w.tool.release("A")
+    for host in ("a-4", "a-5"):
+        w.done(host)
+    path, digest = w.file_judges()
+    with pytest.raises(SystemExit, match="block A has no released granite judge launch"):
+        w.tool.record_judges("A", path, digest)                          # launches 2 and 3 are not released yet
+    w.tool.release("A")
+    w.not_run(["judge granite"])                                         # released, no record: a not-run decision
+    with pytest.raises(SystemExit, match="'judge granite' is named by a recorded not-run decision"):
+        w.tool.record_judges("A", path, digest)
+    with pytest.raises(SystemExit, match="block B is not planned"):
+        w.tool.record_judges("B", *_rewrite(path, lambda d: d.update(block="B")))
+
+
+def test_the_new_seal_needs_the_judge_record_first_and_lists_it(w):
+    """R3 in seal.py and the lead's order (record-judges A, then seal.py block A): without the record block A is not
+    complete and does not seal; with it the seal holds every judge file, the index and the record's SHA-256."""
+    _judged_block_a(w)
+    path, digest = w.file_judges()
+    with pytest.raises(SystemExit, match="block A is not complete"):
+        w.seal.seal_block("A")
+    w.tool.record_judges("A", path, digest)
+    out = w.seal.seal_block("A")
+    record = json.loads((w.root / "seals" / "block-A.json").read_text())
+    assert record["judge_record"] == {"record_sha256": digest, "index_sha256": sha(w.root / "judges/A/judge-files-index.json"),
+                                      "judges": ["granite", "harmbench"], "units": 27, "files": 54, "other_files": 0}
+    assert out["files"] == 65 + 55 and record["moved"] == []
+
+
+def test_the_seal_checks_the_judge_record_itself(w, monkeypatch):
+    """R3: seal.py refuses on its own when the record does not name a needed judge (block_complete bypassed here, so
+    the seal's own check is what refuses)."""
+    _judged_block_a(w)
+    w.tool.record_judges("A", *w.file_judges())
+    monkeypatch.setattr(w.tool, "judges_needed", lambda plan, block: ["harmbench", "granite", "other"])
+    with pytest.raises(SystemExit, match="no valid judge-completion record names harmbench, granite, other"):
+        w.seal.seal_block("A")
+    monkeypatch.setattr(w.tool, "judge_record_checked", lambda plan, block: None)
+    monkeypatch.setattr(w.tool, "block_complete", lambda plan, block: True)
+    with pytest.raises(SystemExit, match="no valid judge-completion record names"):
+        w.seal.seal_block("A")
+    assert not (w.root / "seals").exists()
+
+
+def test_block_as_seven_rejudged_pins_are_the_reuse_spec_sources_and_the_untuned_unit(w):
+    """Gap 5: the 7 pins by hand (runbook §2b, M: shasum -a 256 of each COMPLETE.json on disk, 27 Oct) and, when this
+    repository holds them, equal to reuse_spec.json jobs[0..5].source and the untuned unit of the limits settings
+    (paths under tmp/); they are the plan's REJUDGED_UNITS (6 reused a0/R + theta0)."""
+    pins = w.rules.REJUDGED_PINS["A"]
+    assert [p["complete_sha256"][:16] for p in pins] == [
+        "8f0fa83a42ccc5ed", "857f78bc0f49cc8a", "7be58eaa9c5be7b8", "391d067ca6569a04", "1cef324df66f0b46",
+        "d34e33f2e3b90b56", "b5083ce9d9f26efe"]
+    assert [(p["arm"][:12], p["seed"], p["target"]) for p in pins] == [
+        ("a0", 1101, "e1"), ("a0", 1102, "e1"), ("a0", 1103, "e1"), ("edit-f7d7eb8", 1101, "e1"),
+        ("edit-913b736", 1102, "e1"), ("edit-cd8d332", 1103, "e1"), ("a0", 1101, "init")]
+    assert len(w.tool.REJUDGED_UNITS) == len(pins) == 7 and w.rules.REJUDGED_PINS.get("B", ()) == ()
+    repo = KIT.parents[1]
+    spec = repo / ".ai/inputs/stage1-post-w1-20261023/block-a/reuse/reuse_spec.json"
+    limits = repo / "scripts/stage1/settings/limits_overrefusal_checks.json"
+    if not (spec.is_file() and limits.is_file()):
+        pytest.skip("reuse_spec.json or the limits settings are not in this repository")
+    sources = [j["source"] for j in json.loads(spec.read_text())["jobs"][:6]]
+    untuned = json.loads(limits.read_text())["units"]["untuned"]
+    assert [{"path": "tmp/" + s["path"], "complete_sha256": s["complete_sha256"], "job_sha256": s["job_sha256"]}
+            for s in sources] + [{"path": "tmp/" + untuned["path"], "complete_sha256": untuned["complete_sha256"],
+                                  "job_sha256": untuned["job_sha256"]}] == \
+        [{k: p[k] for k in ("path", "complete_sha256", "job_sha256")} for p in pins]
+
+
+def test_the_judge_constants_are_gate_bs(w):
+    """The kit's copies of Gate B's judge-file names, index and tag rule equal Gate B's (scripts/gate_b_mac_judges,
+    read as code, unchanged)."""
+    gb = KIT.parents[1] / "scripts" / "gate_b_mac_judges"
+    text = (gb / "write_files.py").read_text()
+    assert f'FILE_NAME = re.compile(r"{w.rules.JUDGE_FILE_PATTERN}")' in text
+    assert f'INDEX = "{w.rules.JUDGE_INDEX}"' in text and f'INDEX_KIND = "{w.rules.JUDGE_INDEX_KIND}"' in text
+    assert f"INDEX_VERSION = {w.rules.JUDGE_INDEX_VERSION}" in text
+    keys = re.search(r"ENTRY_KEYS = frozenset\(\{(.*?)\}\)", text, re.S).group(1)
+    assert set(re.findall(r'"([a-z_0-9]+)"', keys)) == set(w.rules.JUDGE_INDEX_ENTRY_KEYS)
+    common = (gb / "common.py").read_text()
+    assert f'"name": "{w.rules.JUDGE_NAMES["harmbench"]}"' in common
+    assert f'GRANITE = {{"name": "{w.rules.JUDGE_NAMES["granite"]}"' in common
+    assert f'TAG_RE = re.compile(r"{w.rules.JUDGE_TAG_PATTERN}")' in (gb / "pod" / "podhost.py").read_text()
+
+
+def test_block_bs_required_units_hold_every_b10_unit_that_record_done_keeps(w):
+    """R3 for block B (no pinned re-judged unit): the arm runs and each B10 unit of a complete ref_eval or safe_lora
+    job (JOB-DONE.json's units list, kept by record-done); never a regeneration, a crashed job or a job recorded not
+    pulled; a complete B10 job without its units list refuses. record-done keeps each listed unit after checking its
+    COMPLETE.json, and refuses a unit whose COMPLETE.json differs, a path outside the run folder or a unit twice."""
+    h = hashlib.sha256
+    x, y1, y2, z = (h(s.encode()).hexdigest() for s in "x y1 y2 z".split())
+    plan = {"hosts": {"b-1": {"block": "B", "jobs": [
+        {"kind": "arm", "arm": "A1", "seed": 1105, "status": "complete", "complete_sha256": x},
+        {"kind": "safe_lora", "arm": "a0", "seed": 1105, "status": "complete", "complete_sha256": y1,
+         "units": [{"unit": "job-1/eval-default", "complete_sha256": y1},
+                   {"unit": "job-1/eval-conditional", "complete_sha256": y2}]},
+        {"kind": "regenerate", "arm": "a0", "seed": 1105, "status": "complete", "complete_sha256": z},
+        {"kind": "a0_arm", "arm": "a0", "seed": 1106, "status": "crashed"},
+        {"kind": "arm", "arm": "H1", "seed": 1105, "status": "complete", "complete_sha256": z, "pulled": False}]},
+        "a-3": {"block": "A", "jobs": [{"kind": "arm", "arm": "A1", "seed": 1102, "status": "complete",
+                                        "complete_sha256": "f" * 64}]}}}
+    assert set(w.tool.judge_required_units(plan, "B")) == {x, y1, y2}
+    del plan["hosts"]["b-1"]["jobs"][1]["units"]
+    with pytest.raises(SystemExit, match="holds no list of its B10 units"):
+        w.tool.judge_required_units(plan, "B")
+    w.s10()
+    w.gateb()
+    w.sealed()
+    _finish_block_a(w)
+    w.seal.seal_block("A")
+    w.init("certify", [{"hosts": [[{"kind": "b10_certify", "arm": "a0", "seed": 1101,
+                                    "points": ["certify", "scale:0"]}]]}])
+    tree = w.root / "retrieved" / "cfy-1" / "tree"
+    done_file = tree / "JOB-DONE.json"
+    real_record_done = w.tool.record_done
+    w.mp.setattr(w.tool, "record_done", lambda host: None)               # write JOB-DONE.json only
+    w.done("cfy-1")
+    w.mp.setattr(w.tool, "record_done", real_record_done)
+    good = json.loads(done_file.read_text())
+    units = good["jobs"][0]["units"]
+    assert [u["unit"] for u in units] == ["units/job-0", "units/job-0-p1"]
+    for change, match in ((lambda u: u[1].update(complete_sha256="a" * 64), "missing from the pulled tree or its"),
+                          (lambda u: u[1].update(unit="../outside"), "without a plain path"),
+                          (lambda u: u.append(dict(u[0])), "names one unit twice"),
+                          (lambda u: u.clear(), "empty or not a list")):
+        doc = json.loads(json.dumps(good))
+        change(doc["jobs"][0]["units"])
+        write_json(done_file, doc)
+        with pytest.raises(SystemExit, match=match):
+            w.tool.record_done("cfy-1")
+    write_json(done_file, good)
+    w.tool.record_done("cfy-1")
+    assert w.plan()["hosts"]["cfy-1"]["jobs"][0]["units"] == [{"unit": u["unit"], "complete_sha256": u["complete_sha256"]}
+                                                              for u in units]
+
+
+def _moved_block_a(w) -> None:
+    """Block A where a-1 (deal pods 0) failed before its job and was requeued (moved, never done, never pulled), as
+    a-5, a-6 and a-7 were on 25 Oct; its jobs ran on a-6; both judges released and recorded."""
+    w.s10()
+    w.gateb()
+    w.sealed()
+    w.init("A", A_LAUNCHES + [HB27, GR27])
+    _launch(w, "a-1")
+    _log(w, "a-1", "pre-job-failed", "pre-job-stop")
+    for other in ("a-2", "a-3"):
+        _launch(w, other)
+    assert w.tool.requeue("a-1")["to"] == "a-6"
+    for host in ("a-2", "a-3", "a-6"):
+        w.done(host)
+    w.tool.release("A")
+    for host in ("a-4", "a-5"):
+        w.done(host)
+    w.tool.release("A")
+    w.not_run([x for x in w.tool.block_a_open(w.plan()) if not x.startswith("judge ")])
+    w.tool.record_judges("A", *w.file_judges())
+
+
+def test_the_seal_skips_a_moved_never_pulled_host_and_lists_it_and_still_refuses_an_unmoved_undone_one(w):
+    """R6 (D3) both ways: a-1 is moved (requeue -> a-6), not done and has no pulled tree; block_complete skips it, and
+    now so does the seal, listing it as moved with its target. A host that is not done and not moved still refuses
+    ('record-done first'). The lead's order, record-judges A then seal.py block A, works over the 27 units."""
+    _moved_block_a(w)
+    plan = w.plan()
+    assert not plan["hosts"]["a-1"].get("done") and not (w.root / "retrieved" / "a-1").exists()
+    assert w.tool.moved_hosts(plan) == {"a-1": ["a-6"]} and w.tool.block_complete(plan, "A") is True
+    plan["hosts"]["a-2"]["done"] = False                                 # not moved, not done (hand-edited)
+    w.mac.save_plan(plan)
+    with pytest.raises(SystemExit, match="a-2: record-done first"):
+        w.seal.seal_block("A")
+    plan["hosts"]["a-2"]["done"] = True
+    w.mac.save_plan(plan)
+    out = w.seal.seal_block("A")
+    record = json.loads((w.root / "seals" / "block-A.json").read_text())
+    assert record["moved"] == [{"host": "a-1", "to": ["a-6"], "pulled_tree": False}]
+    assert "a-1" in record["hosts"] and not any(f["host"] == "a-1" for f in record["files"])
+    assert record["judge_record"]["units"] == 27 and out["files"] == 5 * 13 + 55
+
+
+def test_the_backup_does_not_require_a_moved_never_pulled_hosts_tree_or_finisher_record(w):
+    """R6 for backup_records_stage1.py (the same defect): a-1 (moved, not done, never pulled) is listed under "moved"
+    and needs no retrieved/a-1/tree and no finished.json; an unmoved host's missing tree and finished.json are still
+    reported missing."""
+    _moved_block_a(w)
+    w.seal.seal_block("A")
+    spec = importlib.util.spec_from_file_location("s1_backup_r6", w.root / "backup_records_stage1.py")
+    backup = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(backup)
+    hosts = sorted(n for n, h in w.plan()["hosts"].items() if h["block"] == "A")
+    sel = backup.select(w.plan(), hosts, 1 << 30)
+    assert sel["moved"] == {"a-1": ["a-6"]}
+    assert "retrieved/a-1/tree" not in sel["missing"] and "hosts/a-1/finished.json" not in sel["missing"]
+    assert "hosts/a-2/finished.json" in sel["missing"]                   # the World writes no finisher record
+    shutil.rmtree(w.root / "retrieved" / "a-2" / "tree")
+    assert "retrieved/a-2/tree" in backup.select(w.plan(), hosts, 1 << 30)["missing"]
+
+
+def test_status_ends_a_pods_time_at_its_first_confirmed_stop_or_its_finisher_record(w, capsys):
+    """R7 (D10) both ways, by hand: a-1 was created 17:08:48 and its stop confirmed 17:12:48 (no finished.json): 4 min,
+    0.07 h, $0.12; a-2 has finished.json 2 h after creation and a later confirmed stop: 2.00 h; an unconfirmed stop
+    and a confirmed stop logged before the pod's creation (an earlier attempt) do not end a-3's time, which runs
+    until now. Total of a-1 and a-2: (4/60 + 2) x $1.79 = $3.70."""
+    w.s10()
+    w.gateb()
+    w.sealed()
+    w.init("A", A_LAUNCHES)
+    def pod(host, created):
+        write_json(w.root / "hosts" / host / "pod.json", {"created_utc": created, "costPerHr": 1.79, "id": host})
+    def stops(host, *lines):
+        (w.root / "hosts" / host / "stops.jsonl").write_text("".join(json.dumps(x) + "\n" for x in lines) + "not json\n")
+    pod("a-1", "2026-10-25T17:08:48+00:00")
+    stops("a-1", {"utc": "2026-10-25T17:10:00+00:00", "desiredStatus": "RUNNING", "confirmed": False},
+          {"utc": "2026-10-25T17:12:48+00:00", "desiredStatus": "EXITED", "confirmed": True},
+          {"utc": "2026-10-25T18:00:00+00:00", "desiredStatus": "EXITED", "confirmed": True})
+    pod("a-2", "2026-10-25T10:00:00+00:00")
+    write_json(w.root / "hosts" / "a-2" / "finished.json", {"utc": "2026-10-25T12:00:00+00:00", "status": "stopped"})
+    stops("a-2", {"utc": "2026-10-25T13:00:00Z", "desiredStatus": "EXITED", "confirmed": True})
+    capsys.readouterr()
+    assert w.seal.main(["status"]) == 0
+    rows = capsys.readouterr().out.splitlines()
+    hours = {r.split()[0]: float(re.search(r"cap\s+[\d.]+ h\s+([\d.]+) h", r).group(1)) for r in rows if r.startswith("a-")}
+    assert hours["a-1"] == 0.07 and hours["a-2"] == 2.0 and hours["a-3"] == 0.0
+    assert next(r for r in rows if r.startswith("a-1")).endswith("stopped (confirmed)")
+    assert rows[-1] == "estimated pod cost so far (this stage-1 kit): $3.70"
+    pod("a-3", "2026-10-25T17:08:48+00:00")
+    stops("a-3", {"utc": "2026-10-25T17:12:48+00:00", "desiredStatus": "RUNNING", "confirmed": False},
+          {"utc": "2026-10-24T09:00:00+00:00", "desiredStatus": "EXITED", "confirmed": True})
+    w.seal.main(["status"])
+    rows = capsys.readouterr().out.splitlines()
+    running = float(re.search(r"cap\s+[\d.]+ h\s+([\d.]+) h", next(r for r in rows if r.startswith("a-3"))).group(1))
+    assert running > 40.0                                                # until now (27 Oct or later)

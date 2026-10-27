@@ -216,6 +216,70 @@ Round 3a's fix round (`notes/b15r3a-fix.json`):
   naming a run that an earlier one did not pay supersedes it for that run (a recorded file is never edited).
   Regenerations, O-only passes, retrains, re-scores and W1-18 are never moved this way.
 
+### Round 30, 27 Oct (addendum §30, the judge gaps 1-4; the lead's R1-R7; `notes/kit-round-30.json`)
+
+Gate B's judge files (`scripts/gate_b_mac_judges/`) are unchanged, byte for byte (R1); every change is in this kit.
+
+- **A judge launch is done only with its judge-completion record (gap 1).** Releasing a judge launch no longer
+  completes it. After the judge files are in `judges/BLOCK/` (Gate B's `write_files.py` output and its
+  `judge-files-index.json`; subfolders such as `pods/` are allowed):
+
+      $PY -B judge_units_stage1.py result TAG          # per judge launch: the whitelist and its "record_entry"
+      $PY -B plan_tool.py record-judges BLOCK FILE --sha256 H
+
+  FILE is exactly {kind: "stage1 judge completion record", block, judges: {harmbench: {tag, result_sha256,
+  run_record_sha256, bundle_sha256, exit, judged, complete}, granite: {the same, known_answer_passed}}, index_sha256,
+  utc, recorded_by} (one or both judges; copy each judge's `record_entry` from `result TAG`; index_sha256 is
+  `shasum -a 256 judges/BLOCK/judge-files-index.json`). No value is an HB, Granite, yes, unparsed or harm count; any
+  other key refuses. At record time each judge needs a released judge launch of the block and no not-run decision,
+  exit 0, complete true (Granite: its gate passed), and its own `tmp/judge-pod/TAG/judge-pod-result.json` and fetched
+  run record must hash as recorded and agree (tag, judge, bundle, exit, judged, complete, a confirmed stop, every
+  required unit judged). At record time and at every later use (block A's completeness, every block's, the seal,
+  `seal.py status`) the record file is re-hashed, the index must hash to index_sha256, and the judge check below must
+  pass. One record per block. It works on a block already sealed (block A, if sealed by the old `seal.py`: the seal
+  must hold the same index) and changes no seal. A released judge launch without a record may be named by
+  `record-block-a-not-run` (a failed Granite), also after block A's seal (only judge launches then).
+- **The seal's judge check (gaps 2 and 5).** For a block with a judge launch, `seal.py block` needs the valid
+  record naming every judge that no not-run decision names; the check (`plan_tool.judge_files_check`): every indexed
+  file present at its SHA-256 and named for its judge and unit, no unindexed top-level judge-named file, and exactly
+  one file per judge for each required unit, keyed by COMPLETE.json SHA-256. Required units: the COMPLETE.json
+  SHA-256 plan.json records for the block's complete arm and a0_arm jobs and for each B10 unit (record-done now keeps
+  JOB-DONE.json's `units` list of a B10 job), plus the block's pinned re-judged units (`stage1_rules.REJUDGED_PINS`:
+  block A's 7, by path and COMPLETE.json SHA-256; block B has none). The seal lists the record's and the index's
+  SHA-256 (`judge_record`); `seal.py status` prints each record (tags, exits, answers judged, hashes) and whether it
+  is valid now.
+- **A seal-safe judge route (gap 3).** `judge_units_stage1.py launch` builds the launcher's run log with its echo
+  off (the log file is kept, sealed); `write-files` runs Gate B's `write_files` on the stage-1 enumeration and prints
+  only file, unit, status and missing/stale/extra counts; `result TAG` prints the runbook's step-5 fields, pod minutes
+  and cost. None prints a harm, yes or unparsed count.
+- **B10 units on the judge pod (gap 4).** With a B10 unit (`stage1-eval-adapter`) in a launch, the bundle ships
+  `judge_pod_stage1/bundle.py` as `tool/pod/bundle.py` and Gate B's `bundle.py`, unchanged, as
+  `tool/pod/bundle_gateb.py`: the pod's `pod_job.py verify` accepts the B10 unit (Gate B's check otherwise). A launch
+  without a B10 unit is Gate B's bundle, byte for byte. `write-files` writes the B10 unit's judge file.
+- **Moved hosts in the seal and the backup (R6).** `seal.py block` skips a block host that a deferral or requeue moved
+  and that is not done (a-5, a-6, a-7: setup failed, never pulled), as the completeness check does, and lists it under
+  `moved` with its targets; an unmoved host that is not done still refuses. The backup needs no pulled tree and no
+  `finished.json` for such a host and lists it under `moved`.
+- **The cost in `seal.py status` (R7).** A pod's time ends at the earlier of its `finished.json` utc and its first
+  confirmed stop in `hosts/HOST/stops.jsonl`, else now.
+
+### Round 30a, 27 Oct (addendum §31, the cert pod's D2 and D4; the lead's R1-R2; `notes/kit-round-30a.json`)
+
+- **C1's registry seed (D2).** C1 runs as `replicate_of` R_1101 (YB X-5), and engine Y's `claim_trajectory` accepts a
+  `replicate_of` only when it is a live line of the registry. Before C1's make-job, the runner writes
+  `cert/registry-cert_c1.jsonl` with exactly one line, the packed `cert_spec`'s `registry_line`
+  (`c1_registry_seed`). It refuses before any engine step when `cert_spec` is not packed or not its pinned SHA-256,
+  `registry_line.run_dir` is not `replicate_of`, the line's key is not C1's own key (built from the job, the prepared
+  pin and the training identity, never from `cert_spec`), or the registry exists already. `cert_spec` is the lead's
+  record {kind "stage1 cert spec", replicate_of, registry_line, source, utc, recorded_by}; the Y pack carries it as
+  the input `cert_spec`.
+- **The C1 comparator (D4).** `$PY -B compare_c1.py C1_UNIT R1101_UNIT --out FILE` applies
+  `experiments/safety_selection/tests/removal_digest.py`'s rule to the light-pulled files of both units and writes
+  only file names with equal, differ or missing and a pass boolean (exit 0 pass, 1 no pass, 2 refused). `job.json`
+  is compared without `code_sha256` and the edit's path (the arm pins its bytes), after checking that C1's
+  `replicate_of` is R_1101's run folder. Write FILE inside the pulled cert tree: `record-certificate` accepts only
+  evidence there.
+
 ## The gates (brief §4)
 
 - **G0 (before any pod, $0).** B15 built, verified and pinned at the S1 freeze. `orchestrate.py check-plan HOST` must
@@ -252,8 +316,9 @@ Round 3a's fix round (`notes/b15r3a-fix.json`):
 - **G5 (block A before block B).** Blocks certify and B refuse until block A is complete and sealed (`seal.py block
   A`); after block A only cost ledgers, completion records (JOB-DONE.json) and adapter fingerprints are read. An
   engine unit's COMPLETE.json holds its evaluation summary, so it is sealed. A block is complete only when every
-  launch is released (`plan_tool.py release` records a judge launch) and every host is done; a block with a judge
-  launch is sealed only with its judge files, which go under `judges/BLOCK/`. Block A also needs every job its
+  launch is released (`plan_tool.py release` records a judge launch), every host is done or moved, and (round 30)
+  every judge launch is named by the block's valid judge-completion record; a block with a judge launch is sealed
+  only with its judge files, which go under `judges/BLOCK/`, one per judge for each required unit. Block A also needs every job its
   recorded plan requires to have a completion record or a recorded not-run decision (round 3c). No kit command
   prints a U, O, HB, task-loss or coherence value.
 - **G6 (between pods).** PREREG's re-run rule: a completed job is never re-run; a crashed job is retried at the same

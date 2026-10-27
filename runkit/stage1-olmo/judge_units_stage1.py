@@ -2,8 +2,31 @@
 
     python3.11 judge_units_stage1.py list (--run-root DIR)... (--unit DIR)... [--targets init e1]
     python3.11 judge_units_stage1.py launch -- ARGS...        scripts/gate_b_mac_judges/pod/judge_pod.py ARGS with
-                                                              the stage-1 enumeration in place of Gate B's
+                                                              the stage-1 enumeration in place of Gate B's, the
+                                                              launcher's run log not echoed, and (with a B10 unit)
+                                                              the stage-1 pod bundle.py shipped
+    python3.11 judge_units_stage1.py write-files --judge J --cache C --out DIR (--run-root R)... (--unit U)...
+                                     [--complete H]...        Gate B's write_files.write_all inside the stage-1
+                                                              enumeration; prints file, unit, status and missing,
+                                                              stale and extra counts only
+    python3.11 judge_units_stage1.py result TAG [--root DIR] [--hosts DIR]   the judge launch's whitelisted result
+                                                              fields, pod minutes and cost, and its record entry
     python3.11 judge_units_stage1.py check-devices --contrast NAME=LABEL,LABEL,... --record LABEL=RUN_RECORD ...
+
+Round 30 (addendum §30 gaps 3 and 4; the lead's R1, R4, R5). Gate B's judge files stay byte-identical; every change
+is here and in judge_pod_stage1/bundle.py:
+- ``launch``: judge_pod.RunLog is constructed with its echo off for stage-1 launches, so no "verified" line (each
+  unit's yes and unparsed counts) reaches stdout; the log file is kept and sealed (judge-pod-log.jsonl). When the
+  launch holds a B10 unit, the bundle ships judge_pod_stage1/bundle.py as tool/pod/bundle.py and Gate B's bundle.py,
+  unchanged, as tool/pod/bundle_gateb.py (that module's text), so pod_job.py verify accepts the B10 unit on the pod; a
+  bundle without one is Gate B's bundle byte for byte.
+- ``write-files``: runs Gate B's write_files.write_all on the stage-1 enumeration (so a B10 unit gets its judge file)
+  with an emit that keeps only each line's file, unit label and status, the missing, stale and extra counts per mode,
+  and the index line (path, files, index SHA-256): never a harm, yes or unparsed count.
+- ``result TAG``: the runbook's step-5 whitelist of tmp/judge-pod/TAG/judge-pod-result.json (exit, bundle, cap, stop,
+  run record, pod exit, GPU, complete, answers judged, records, number of units, refusal, tokenizer, the Granite
+  gate's pass), the pod minutes and cost from the host record, and the entry plan_tool.py record-judges takes (tag,
+  result, run record and bundle SHA-256, exit, judged, complete; Granite: known_answer_passed).
 
 Gate B's judges enumerate units with scripts/gate_b_mac_judges/units.py, which judges only engine run-one units and
 skips everything else. That file is Gate B's and stays unchanged. This wrapper adds the B10 evaluation units (job.json
@@ -27,6 +50,8 @@ from __future__ import annotations
 import argparse
 import contextlib
 import dataclasses
+import datetime as dt
+import hashlib
 import importlib.util
 import json
 import pathlib
@@ -36,10 +61,25 @@ sys.dont_write_bytecode = True
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 JUDGES = ROOT / "scripts" / "gate_b_mac_judges"
-B10_KIND = "stage1-eval-adapter"
-B10_CHECKPOINT = "e1"
-SAFE_LORA_POINTS = ("default", "conditional", "certify")   # the job runner's job-I/eval-<point> folders (J17)
+POD_BUNDLE = HERE / "judge_pod_stage1" / "bundle.py"   # round 30: shipped as tool/pod/bundle.py with a B10 unit
+GATE_B_BUNDLE_AS = "tool/pod/bundle_gateb.py"            # Gate B's pod/bundle.py beside it, unchanged
+JUDGE_POD = ROOT / "tmp" / "judge-pod"                   # judge_pod.JUDGE_POD_ROOT: tmp/judge-pod/TAG
+JUDGE_HOSTS = ROOT / "tmp" / "family-probe-judge" / "hosts"   # podhost.JUDGE_HOSTS: judge-TAG/pod.json
 _GATE_B = {}                                     # Gate B's own enumerate_units while stage1_enumeration patches it
+
+
+def _load_pod_bundle():
+    """judge_pod_stage1/bundle.py under a Mac-only module name: its label rule; nothing is patched on the Mac."""
+    spec = importlib.util.spec_from_file_location("judge_pod_stage1_bundle", POD_BUNDLE)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+_POD = _load_pod_bundle()
+B10_KIND, B10_CHECKPOINT, SAFE_LORA_POINTS = _POD.B10_KIND, _POD.B10_CHECKPOINT, _POD.SAFE_LORA_POINTS
+b10_label = _POD.b10_label        # the arm label (None for an external unit whose folder names no Safe LoRA point):
+#                                   one implementation for the Mac and the pod (round 30)
 
 
 def gate_b_units():
@@ -48,20 +88,6 @@ def gate_b_units():
         sys.path.insert(0, str(JUDGES))
     import units  # noqa: E402
     return units
-
-
-def b10_label(job: dict, unit_rel: str = "") -> str | None:
-    """The arm label; None for an external unit whose folder names no Safe LoRA point."""
-    mode = job.get("mode")
-    if mode == "scale":
-        return f"ref-scale-{job.get('adapter_scale')}"
-    if mode == "external":
-        ext = job.get("external")
-        name = ext.get("name") if isinstance(ext, dict) else ext
-        folder = pathlib.PurePosixPath(unit_rel).name
-        point = folder[len("eval-"):] if folder.startswith("eval-") else None
-        return f"ref-external-{name}-{point}" if point in SAFE_LORA_POINTS else None
-    return f"ref-{mode}"
 
 
 def read_b10_unit(path: pathlib.Path, host: str, unit_rel: str):
@@ -175,6 +201,187 @@ def stage1_enumeration():
             bundle.enumerate_units = saved_bundle
 
 
+# ----- round 30: the seal-safe launch, write-files and result (addendum §30 gaps 3 and 4; R4, R5) ----------------
+
+def load_judge_pod():
+    """scripts/gate_b_mac_judges/pod/judge_pod.py as a new module object, for this process only (no file written)."""
+    spec = importlib.util.spec_from_file_location("judge_pod", JUDGES / "pod" / "judge_pod.py")
+    if str(JUDGES / "pod") not in sys.path:
+        sys.path.insert(0, str(JUDGES / "pod"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def ship_pod_bundle(stage_bundle, canonical_bytes, sha256_file, manifest_name: str):
+    """Gate B's bundle.stage_bundle, then, only when the launch holds a B10 unit: Gate B's staged tool/pod/bundle.py
+    (checked equal to Gate B's file) kept unchanged as tool/pod/bundle_gateb.py, POD_BUNDLE written as
+    tool/pod/bundle.py, and the job manifest rewritten (canonical) to list both by SHA-256. Without a B10 unit the
+    bundle is Gate B's, byte for byte."""
+    units = gate_b_units()
+
+    def staged(groups, stage, *args, **kw):
+        manifest = stage_bundle(groups, stage, *args, **kw)
+        if not any(u.kind == B10_KIND for g in groups for u in g.units):
+            return manifest
+        stage = pathlib.Path(stage)
+        shipped = stage / "tool" / "pod" / "bundle.py"
+        if shipped.read_bytes() != (JUDGES / "pod" / "bundle.py").read_bytes():
+            raise units.Refusal("the staged tool/pod/bundle.py is not Gate B's pod/bundle.py")
+        (stage / GATE_B_BUNDLE_AS).write_bytes(shipped.read_bytes())
+        shipped.write_bytes(POD_BUNDLE.read_bytes())
+        files = {**manifest["files"], GATE_B_BUNDLE_AS: sha256_file(stage / GATE_B_BUNDLE_AS),
+                 "tool/pod/bundle.py": sha256_file(shipped)}
+        manifest = {**manifest, "files": dict(sorted(files.items()))}
+        (stage / manifest_name).write_bytes(canonical_bytes(manifest))
+        return manifest
+    return staged
+
+
+@contextlib.contextmanager
+def stage1_launcher(module, quiet: bool = True):
+    """For one launch of judge_pod ``module``: the stage-1 enumeration (stage1_enumeration); with ``quiet`` (every
+    stage-1 launch) judge_pod.RunLog constructed with its echo off, so each step goes to the log file only (sealed);
+    and the stage-1 pod bundle.py shipped with a B10 unit (ship_pod_bundle). Restored afterwards."""
+    bundle_mod = module.bundle_mod
+    saved_log, saved_stage = module.RunLog, bundle_mod.stage_bundle
+    if quiet:
+        class QuietRunLog(saved_log):
+            """judge_pod.RunLog with its echo off: the log file only."""
+
+            def __init__(self, path, tag, echo: bool = False):
+                super().__init__(path, tag, echo=False)
+        module.RunLog = QuietRunLog
+    bundle_mod.stage_bundle = ship_pod_bundle(saved_stage, module.canonical_bytes, module.sha256_file,
+                                              bundle_mod.MANIFEST_NAME)
+    try:
+        with stage1_enumeration():
+            yield module
+    finally:
+        module.RunLog = saved_log
+        bundle_mod.stage_bundle = saved_stage
+
+
+def run_launcher(module, rest: list, host=None, quiet: bool = True, **launch_kw) -> int:
+    """judge_pod's command line (``bundle`` or ``launch``) under stage1_launcher. ``host`` and ``launch_kw`` (clock,
+    sleep, signals) are the tests' fake pod; the command line never passes them."""
+    with stage1_launcher(module, quiet):
+        if host is None and not launch_kw:
+            return module.main(rest)
+        return module.launch(module.parser().parse_args(rest), host=host, **launch_kw)
+
+
+EMIT_KEEP, EMIT_COUNTS, INDEX_KEEP = ("file", "unit", "status"), ("missing", "stale", "extra"), \
+    ("index", "files", "index_sha256")
+
+
+def safe_emit_line(line: str) -> str:
+    """One write_files line reduced to R4's whitelist: a unit line keeps its file, unit label and status and, per mode,
+    its missing, stale and extra counts; the index line its path, number of files and SHA-256; any other line becomes
+    a note. Never a harm, yes or unparsed count."""
+    try:
+        r = json.loads(line)
+    except ValueError:
+        r = None
+    if isinstance(r, dict) and "status" in r:
+        out = {k: r[k] for k in EMIT_KEEP if k in r}
+        for mode in ("greedy", "sampled"):
+            if isinstance(r.get(mode), dict):
+                out[mode] = {k: r[mode][k] for k in EMIT_COUNTS if k in r[mode]}
+        return json.dumps(out, sort_keys=True)
+    if isinstance(r, dict) and "index" in r:
+        return json.dumps({k: r[k] for k in INDEX_KEEP if k in r}, sort_keys=True)
+    return json.dumps({"note": "a line outside the whitelist was not printed"})
+
+
+def write_files_main(argv: list) -> int:
+    """write-files: write_files.main's steps with the stage-1 enumeration and safe_emit_line (exit codes as Gate B's:
+    0 every file written or unchanged, 1 a unit refused, 2 an input refused before anything is written)."""
+    units = gate_b_units()
+    import write_files as wf  # noqa: E402 - Gate B's, unchanged
+    ap = argparse.ArgumentParser(prog="judge_units_stage1.py write-files",
+                                 description="Gate B's per-unit judge files on the stage-1 enumeration (counts hidden)")
+    ap.add_argument("--judge", choices=sorted(wf.JUDGES), required=True)
+    ap.add_argument("--cache", type=pathlib.Path, required=True)
+    ap.add_argument("--out", type=pathlib.Path, required=True)
+    ap.add_argument("--complete", action="append", default=[], metavar="COMPLETE_SHA256")
+    units.add_unit_arguments(ap)
+    a = ap.parse_args(argv)
+    try:
+        bad = [c for c in a.complete if not wf.HEX64.match(c)]
+        if bad:
+            raise units.Refusal(f"--complete {bad[0][:16]!r}: expected 64 lowercase hex characters")
+        if not a.cache.is_file():
+            raise units.Refusal(f"no cache file {a.cache}")
+        with stage1_enumeration():
+            found, _ = units.units_from_args(a)
+        cache = wf.Cache(a.cache, wf.JUDGES[a.judge]["identity"])
+        if cache.undecodable:
+            print(json.dumps({"undecodable_cache_lines": cache.undecodable}))
+        return wf.write_all(a.judge, found, cache, a.out, emit=lambda line: print(safe_emit_line(line), flush=True),
+                            allow=a.complete)
+    except units.Refusal as exc:
+        print(f"refused: {exc}", file=sys.stderr)
+        return 2
+
+
+def _scalar(value):
+    """A whitelisted field's value: a number, bool, None or a string (cut at 300 characters); anything else None."""
+    if value is None or isinstance(value, (bool, int, float)):
+        return value
+    return value[:300] if isinstance(value, str) else None
+
+
+def _utc(text: str) -> dt.datetime:
+    return dt.datetime.fromisoformat(str(text).replace("Z", "+00:00"))
+
+
+def result_fields(tag: str, root=None, hosts=None) -> dict:
+    """``result TAG``: the runbook's step-5 whitelist of the launch's judge-pod-result.json (each value a scalar; the
+    number of units, never a unit's counts), the pod minutes and cost from the judge host record, and the entry for
+    plan_tool.py record-judges (its result SHA-256 is this file's bytes)."""
+    units = gate_b_units()
+    path = pathlib.Path(root or JUDGE_POD) / tag / "judge-pod-result.json"
+    if not path.is_file():
+        raise units.Refusal(f"{tag}: no judge-pod-result.json yet")
+    data = path.read_bytes()
+    try:
+        r = json.loads(data)
+    except ValueError:
+        r = None
+    if not isinstance(r, dict) or r.get("kind") != "judge-pod result":
+        raise units.Refusal(f"{tag}: judge-pod-result.json is not a judge-pod result")
+    v = r.get("verification") if isinstance(r.get("verification"), dict) else {}
+    stop = r.get("stop") if isinstance(r.get("stop"), dict) else {}
+    gate = v.get("known_answers") if isinstance(v.get("known_answers"), dict) else None
+    judge = r.get("judge") or "harmbench"
+    pod_file = pathlib.Path(hosts or JUDGE_HOSTS) / f"judge-{tag}" / "pod.json"
+    pod = json.loads(pod_file.read_bytes()) if pod_file.is_file() else {}
+    pod = pod if isinstance(pod, dict) else {}
+    minutes = cost = None
+    try:
+        minutes = round((_utc(stop.get("utc")) - _utc(pod.get("created_utc"))).total_seconds() / 60, 1)
+        cost = round(minutes / 60 * float(pod["costPerHr"]), 2)
+    except (TypeError, ValueError, KeyError):
+        pass
+    out = {"tag": tag, "judge": _scalar(judge), "exit": _scalar(r.get("exit")),
+           "bundle_sha256": _scalar(r.get("bundle_sha256")), "cap_hours": _scalar(r.get("cap_hours")),
+           "stop_confirmed": _scalar(stop.get("confirmed")), "desiredStatus": _scalar(stop.get("desiredStatus")),
+           "run_record_ok": _scalar(v.get("run_record_ok")), "pod_exit": _scalar(v.get("pod_exit")),
+           "gpu": _scalar(v.get("gpu")), "complete": _scalar(v.get("complete")), "judged": _scalar(v.get("judged")),
+           "records": _scalar(v.get("records")), "units": len(v.get("units") or []),
+           "refused": _scalar(v.get("refused")), "tokenizer_fingerprint": _scalar(v.get("tokenizer_fingerprint")),
+           "known_answer_passed": None if gate is None else _scalar(gate.get("passed")),
+           "costPerHr": _scalar(pod.get("costPerHr")), "pod_minutes": minutes, "cost_usd": cost}
+    fetched = r.get("fetched") if isinstance(r.get("fetched"), dict) else {}
+    entry = {"tag": tag, "result_sha256": hashlib.sha256(data).hexdigest(),
+             "run_record_sha256": _scalar(fetched.get("out/run-record.json")), "bundle_sha256": out["bundle_sha256"],
+             "exit": out["exit"], "judged": out["judged"], "complete": out["complete"]}
+    if judge == "granite":
+        entry["known_answer_passed"] = out["known_answer_passed"]
+    return {**out, "record_entry": entry}
+
+
 def device_type(record: dict) -> tuple:
     env = record.get("environment") or {}
     gpu = env.get("gpu") or env.get("gpu_name") or (env.get("cuda") or {}).get("name") if isinstance(env, dict) else None
@@ -202,13 +409,9 @@ def main(argv=None) -> int:
     units = gate_b_units()
     if argv[:1] == ["launch"]:
         rest = argv[2:] if argv[1:2] == ["--"] else argv[1:]
-        spec = importlib.util.spec_from_file_location("judge_pod", JUDGES / "pod" / "judge_pod.py")
-        if str(JUDGES / "pod") not in sys.path:
-            sys.path.insert(0, str(JUDGES / "pod"))
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        with stage1_enumeration():
-            return module.main(rest)
+        return run_launcher(load_judge_pod(), rest)       # round 30: echo off; the B10 pod bundle.py
+    if argv[:1] == ["write-files"]:
+        return write_files_main(argv[1:])
     ap = argparse.ArgumentParser(prog="judge_units_stage1.py")
     sub = ap.add_subparsers(dest="command", required=True)
     p = sub.add_parser("list")
@@ -216,8 +419,15 @@ def main(argv=None) -> int:
     c = sub.add_parser("check-devices")
     c.add_argument("--contrast", action="append", required=True, help="NAME=LABEL,LABEL,...")
     c.add_argument("--record", action="append", required=True, help="LABEL=RUN_RECORD.json")
+    r = sub.add_parser("result")
+    r.add_argument("tag")
+    r.add_argument("--root", type=pathlib.Path, default=None, help="default: tmp/judge-pod")
+    r.add_argument("--hosts", type=pathlib.Path, default=None, help="default: tmp/family-probe-judge/hosts")
     a = ap.parse_args(argv)
     try:
+        if a.command == "result":
+            print(json.dumps(result_fields(a.tag, a.root, a.hosts), indent=1, sort_keys=True))
+            return 0
         if a.command == "list":
             if not a.run_root and not a.unit:
                 raise units.Refusal("give at least one --run-root or --unit")

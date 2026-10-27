@@ -124,6 +124,74 @@ GRANITE_KNOWN_ANSWERS = 200
 HARMBENCH_S_PER_ANSWER = 0.25             # judge_pod.UPPER_S_PER_ITEM (E: 2-4 x the A100 estimate per answer)
 HARMBENCH_ANSWERS_PER_ARM = 800           # --expect-greedy 200 --expect-sampled 600 per unit
 JUDGES = ("harmbench", "granite")         # block A's two judge launches (REV4 §10.6 step 9)
+# ----- the judge files and the judge-completion record (round 30; addendum §30 gaps 1, 2 and 5; the lead's R2-R3) -----
+# A block's judge files are Gate B's write_files.py output under judges/BLOCK/: one file per (judge, unit), named
+# JUDGE--HOST--UNIT--<12 hex of COMPLETE.json SHA-256>.json, and judge-files-index.json (Gate B's index, version 2).
+# These values are Gate B's (scripts/gate_b_mac_judges/write_files.py FILE_NAME, INDEX, INDEX_KIND, INDEX_VERSION,
+# ENTRY_KEYS; common.HARMBENCH/GRANITE names; pod/podhost.py TAG_RE); a test checks each against Gate B's file.
+JUDGE_INDEX = "judge-files-index.json"
+JUDGE_INDEX_KIND, JUDGE_INDEX_VERSION = "gate-b judge files index", 2
+JUDGE_INDEX_ENTRY_KEYS = ("complete_sha256", "completed_utc", "file", "host", "judge", "arm", "seed", "sha256",
+                          "target", "unit")
+JUDGE_FILE_PATTERN = r"^(granite|harmbench)--.+--[0-9a-f]{12}\.json$"
+JUDGE_NAMES = {"harmbench": "cais/HarmBench-Mistral-7b-val-cls", "granite": "granite-guardian-3.3-8b"}
+JUDGE_TAG_PATTERN = r"^[a-z0-9][a-z0-9-]{0,38}[a-z0-9]$"
+# R2: the lead's judge-completion record, plan_tool.py record-judges BLOCK FILE --sha256 H. Exactly these keys; no
+# value is an HB, Granite, yes, unparsed or harm count ("judged" is the number of answers judged).
+JUDGE_RECORD_KIND = "stage1 judge completion record"
+JUDGE_RECORD_KEYS = ("kind", "block", "judges", "index_sha256", "utc", "recorded_by")
+JUDGE_ENTRY_KEYS = {"harmbench": ("tag", "result_sha256", "run_record_sha256", "bundle_sha256", "exit", "judged",
+                                  "complete"),
+                    "granite": ("tag", "result_sha256", "run_record_sha256", "bundle_sha256", "exit", "judged",
+                                "complete", "known_answer_passed")}
+# R3: the units a block's judge files must cover. plan.json records the COMPLETE.json SHA-256 of every complete job of
+# these kinds (the block tables' arm runs; B10's evaluation units, one per point, from JOB-DONE.json's units list),
+# plus the block's pinned re-judged units below.
+JUDGED_RUN_KINDS = ("arm", "a0_arm")
+JUDGED_B10_KINDS = ("ref_eval", "safe_lora")
+B10_UNIT_KINDS = ("b10_certify", "ref_eval", "safe_lora")   # JOB-DONE.json lists each of their units (record-done keeps it)
+# Block A's 7 re-judged units (§17 Q14, §25 point 2; plan_tool.REJUDGED_UNITS counts them): the 6 reused a0/R SOURCE
+# units (.ai/inputs/stage1-post-w1-20261023/block-a/reuse/reuse_spec.json jobs[0..5].source; J2 is train-only, so the
+# LN-12 regenerations have no answers) and theta0's untuned dev-bank unit (scripts/stage1/settings/
+# limits_overrefusal_checks.json "untuned"; scripts/stage1_s1/settings/eval_adapter.json untuned_unit). M (round 30,
+# 27 Oct 2026 10:27 UTC): shasum -a 256 of each COMPLETE.json and job.json on disk equals these pins (no answer file
+# opened). Paths are relative to the repository. Block B has no pinned re-judged unit (round 30's open point).
+REJUDGED_PINS = {"A": (
+    {"name": "a0 1101 (Gate A)", "arm": "a0", "seed": 1101, "target": "e1",
+     "path": "tmp/family-probe-olmo2-1b/retrieved/olmo2-1b-1101/tree/round1/1101-a0-e1-a1",
+     "complete_sha256": "8f0fa83a42ccc5edc54a5ee26ed63f49448c36d30adbd64e28b655678afee4c9",
+     "job_sha256": "3e60568ac11e32f3f429aa2606bc38c9b881456fd262a120e526ccb189022402"},
+    {"name": "a0 1102 (Gate A)", "arm": "a0", "seed": 1102, "target": "e1",
+     "path": "tmp/family-probe-olmo2-1b-gateA-1102/retrieved/olmo2-1b-1102/tree/round1/1102-a0-e1-a1",
+     "complete_sha256": "857f78bc0f49cc8a4902fbb6211f463daa7c7f44086257c4d752409a30ba0b25",
+     "job_sha256": "de65ca1936a10c199de46e764a948268b03367c586c09747381850059064083c"},
+    {"name": "a0 1103 (Gate A)", "arm": "a0", "seed": 1103, "target": "e1",
+     "path": "tmp/family-probe-olmo2-1b-gateA-1103/retrieved/olmo2-1b-1103/tree/round1/1103-a0-e1-a1",
+     "complete_sha256": "7be58eaa9c5be7b8f94668109efd6aae075b1d001e0d2b1fb8be814556899cbd",
+     "job_sha256": "895f8bd2a66e20df2256b43d1e71a263da237a1cb3ea498cd439086aef5ae293"},
+    {"name": "R 1101 (wave 0a, R_1)", "arm": "edit-f7d7eb86cb58f7a5e7e1408973a13531f74845e066d7328d6e726ecdd442ffdd",
+     "seed": 1101, "target": "e1",
+     "path": "tmp/gate-b-olmo/retrieved/w0a-1/tree/round1/"
+             "1101-edit-f7d7eb86cb58f7a5e7e1408973a13531f74845e066d7328d6e726ecdd442ffdd-e1-a1",
+     "complete_sha256": "391d067ca6569a04721b059da2bca2c7ee5d109de560362895198a0d40ac5f0f",
+     "job_sha256": "6f833fc3a4181b2aa8cabcdc54689dea4e159c98e8b9ca73db063751806dc01a"},
+    {"name": "R 1102 (wave 0a, R_2)", "arm": "edit-913b73606ff64c104751e3f86bd3b69838a27686720a92858c08f4cf087d8060",
+     "seed": 1102, "target": "e1",
+     "path": "tmp/gate-b-olmo/retrieved/w0a-1/tree/round1/"
+             "1102-edit-913b73606ff64c104751e3f86bd3b69838a27686720a92858c08f4cf087d8060-e1-a1",
+     "complete_sha256": "1cef324df66f0b46a11ce4d5255da1c5c7287ebbe9d8bc5cae7132996afb12b6",
+     "job_sha256": "06797c5341b73f82ac622bae36c259dfa485e889cd575b17121303180e1e4daf"},
+    {"name": "R 1103 (wave 0a, R_3)", "arm": "edit-cd8d3328c48957ed0a164a8775ca2695a3d77d51865fd32c2ee53aded939502b",
+     "seed": 1103, "target": "e1",
+     "path": "tmp/gate-b-olmo/retrieved/w0a-1/tree/round1/"
+             "1103-edit-cd8d3328c48957ed0a164a8775ca2695a3d77d51865fd32c2ee53aded939502b-e1-a1",
+     "complete_sha256": "d34e33f2e3b90b562a1b21da3fabc3e672842b7b2cbfe2eadae754601155692c",
+     "job_sha256": "3c01279f6fd3168f38cd4478668f0aaec8bfd6ec78239d72e1860629535dabe8"},
+    {"name": "theta0 (untuned, Gate A)", "arm": "a0", "seed": 1101, "target": "init",
+     "path": "tmp/family-probe-olmo2-1b/retrieved/olmo2-1b-1101/tree/round1/1101-a0-init-a1",
+     "complete_sha256": "b5083ce9d9f26efe92f9872fdbf9376a521a5d99d1b70cc2bd460987cdcc9474",
+     "job_sha256": "f3b8c1864aaacf34738b34ff6c26cc8f51677e7eb5a6a9445818692d5365a582"},
+)}
 
 # ----- seeds, arms and blocks (REV4 §1.2-§1.3) -----------------------------------------------------------------
 DEV_SEEDS = (1101, 2099)                  # the development seed namespace

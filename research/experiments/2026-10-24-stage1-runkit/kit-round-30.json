@@ -1,0 +1,415 @@
+{
+ "kind": "stage1 kit round report",
+ "round": "B15 kit round 30",
+ "utc": "2026-10-27T11:14:50Z",
+ "brief": "scratchpad kit-round-30/brief.md (addendum §30 gaps 1-4; the lead's R1-R5) and the coordinator's added R6 (D3) and R7 (D10) from tmp/gi-vii-notes/cert-runbook.md §0",
+ "tree": "git archive of 2a7287236fddd6c76f441ef2d948fa1d2de4061e (scratchpad kit-round-30/tree); edits only under runkit/stage1-olmo/ and its notes/",
+ "worker_note": "the launcher records routing evidence; this report claims no model identity",
+ "changed_files": [
+  {
+   "path": "runkit/stage1-olmo/README.md",
+   "old_sha256": "611c53dbe25729bbd3e3ba8860fcf5be3a78d937768126bf91cc37635b5a7f64",
+   "new_sha256": "9dd3ad1f309ed90fd6a159a1847b2f0dfc183c4ea9b5afb10a11fa8f8dacc5a2"
+  },
+  {
+   "path": "runkit/stage1-olmo/backup_records_stage1.py",
+   "old_sha256": "ed2ac401be717f0018ff531b1a885eb22c9e2b0aecbca5ffe2d55e5f5026cbfd",
+   "new_sha256": "5a9a37611adf4a43bba6f955485b4d721a86bdd0a3962a271375ed10ce6c1cd3"
+  },
+  {
+   "path": "runkit/stage1-olmo/judge_pod_stage1/bundle.py",
+   "old_sha256": null,
+   "new_sha256": "0dd9ff8bbdeba186ac61b55d20a2dc192df497c289453b83ff5d705e2e13975a"
+  },
+  {
+   "path": "runkit/stage1-olmo/judge_units_stage1.py",
+   "old_sha256": "31555680d1a7580f9358f2d609fe5146f50903450d011c944c4a66203d57eef3",
+   "new_sha256": "750e3b994bd00254359c80130edc7925bf6e414944d5626abda347ae67dc4c91"
+  },
+  {
+   "path": "runkit/stage1-olmo/plan_tool.py",
+   "old_sha256": "7757b26f44cfaf92c966313a8632f67adab7415bf3d59200a649c3093857addc",
+   "new_sha256": "eff23ec6a38d17d445cb4dc8216d6f6b881274a0f4fee1c2d506e65da1e48d88"
+  },
+  {
+   "path": "runkit/stage1-olmo/seal.py",
+   "old_sha256": "ab94fc7bbff5c879a3ee9ae622201561ac6d65a77f9d07f1926a85236dfe4421",
+   "new_sha256": "57d52b6e6c283a7c0aadf249b7d21c1f806325475f73cd9bc07f69e67a1bbb6d"
+  },
+  {
+   "path": "runkit/stage1-olmo/stage1_rules.py",
+   "old_sha256": "f30a0032dfde81d74ffbe0f6d4c9fc9980685d6f5ed2c42f7235f7e4a8485b87",
+   "new_sha256": "d16b6cba90fca1136fecc24159c0d9b4834bd11089b0c40197e4883aa3701212"
+  },
+  {
+   "path": "runkit/stage1-olmo/tests/mutants_b15.json",
+   "old_sha256": "e8265e07ba125d84cab9ec52d139bfe7ffbca291f69314b4526e05dc19ac4517",
+   "new_sha256": "e96c93450477f1417c098432ea67672f0ba1da1e386956bed10797df5a53308a"
+  },
+  {
+   "path": "runkit/stage1-olmo/tests/test_stage1_judge_route.py",
+   "old_sha256": null,
+   "new_sha256": "6f131b160c20680bc659073e1fd70de63e23f433aa57a308fa6c8ff0ef9ce40d"
+  },
+  {
+   "path": "runkit/stage1-olmo/tests/test_stage1_runkit.py",
+   "old_sha256": "550e419d8c01a913c7b7fa099b5062f47e15033ddcb8cf99da4bdcfc5f7ee32e",
+   "new_sha256": "9a6547c22880a0d4644038da2c8274d7bc02c27fe7f6fd4b0fe2cdb855bead59"
+  },
+  {
+   "path": "runkit/stage1-olmo/tests/test_stage1_runner.py",
+   "old_sha256": "1e88c61fed59f2b06e936e46d6fc6fd185e9169742f8d6a76548ab062ec85d85",
+   "new_sha256": "23bdf59e326517f6f5e8033e932e46885e72c362e6cf907368b13ec7f7e5c5b2"
+  }
+ ],
+ "new_files_in_notes": {
+  "notes/kit-round-30.json": "this report",
+  "notes/kit-round-30-evidence/run_mutants_b15.py": "ca12bc95cc8705974f435031c2dc8679e3019f61e219ed33c9e4d048c3a7528b",
+  "notes/kit-round-30-evidence/mutation-results.json": "8ba2afe8b908e9cfc37cac8ee48981e03c6702aa71716f53ba74dfd8ffd0e6bf"
+ },
+ "unchanged_by_ownership": [
+  "setup/job_runner_stage1.py (another builder's; R5 needed no change there)",
+  "scripts/gate_b_mac_judges/** (R1)"
+ ],
+ "rulings": {
+  "R1": {
+   "status": "met",
+   "evidence": "shasum -a 256 of all 36 files under scripts/gate_b_mac_judges before and after the round: identical (cmp exit 0). Gate B's judge tests on this tree: 548 passed, 5 skipped, 1 failed; the same 1 fails on the base archive (test_granite_summary path relative to the hard-coded repo root /Users/.../attribution, an archive-location artifact). A launch without a B10 unit through the wrapper gives Gate B's bundle byte for byte (test_a_run_one_launch_through_the_wrapper_is_gate_bs_bundle_byte_for_byte); the route tests' fixture asserts every Gate B file hash unchanged after each test.",
+   "code": [
+    "judge_units_stage1.py ship_pod_bundle (:216): only with a B10 unit, Gate B's staged tool/pod/bundle.py (checked equal to scripts/gate_b_mac_judges/pod/bundle.py) is kept as tool/pod/bundle_gateb.py and judge_pod_stage1/bundle.py is shipped as tool/pod/bundle.py; the job manifest is rewritten (canonical)"
+   ]
+  },
+  "R2": {
+   "status": "met",
+   "summary": "plan_tool.py record-judges BLOCK FILE --sha256 H. FILE exactly {kind: 'stage1 judge completion record', block, judges: {harmbench: {tag, result_sha256, run_record_sha256, bundle_sha256, exit, judged, complete}, granite: {+known_answer_passed}}, index_sha256, utc, recorded_by}; one or both judges; any other key refuses (so no HB/Granite/yes/unparsed/harm count can be recorded). Record time: each judge has a released judge launch and no not-run decision; exit 0, complete true, Granite gate passed; the launch's own tmp/judge-pod/TAG/judge-pod-result.json hashes to result_sha256 and agrees (kind, tag, judge, bundle, exit, complete, judged, fetched run record SHA-256, confirmed stop, gate) and its fetched run record hashes to run_record_sha256, and its verified units include every required unit (read by key, never printed: an addition to R2, so the record is not typed). Record time and every later use: FILE re-hashed (and its block/judges/index_sha256 equal to plan.json's copy), judges/BLOCK/judge-files-index.json at index_sha256, a sealed block's seal (re-hashed) holds that index with that SHA-256, and R3's check. One record per block; adds plan.json records.judges[BLOCK] and an operator-actions line; changes no seal. block_a_done counts a released judge launch over the plan's units only when the valid record names its judge; block_complete for every other block wants each released judge launch named by the valid record. record-block-a-not-run may name a released judge launch with no record, also after block A's seal (a decision naming only judge launches). seal.py status prints one line per record (tags, exits, answers judged, hashes) and 'valid' or 'INVALID: reason'.",
+   "code": [
+    "plan_tool.py judge_record_problem :1827",
+    "judge_result_problem :1865",
+    "judge_record_valid :1905",
+    "judge_record_checked :1938",
+    "judges_done :1946",
+    "record_judges :1964",
+    "CLI record-judges :3501/:3523",
+    "block_a_done :1594 (the record condition under the unchanged release/arms line)",
+    "block_complete :726 (released judge launches of blocks other than A)",
+    "record_block_a_not_run :1700 (after the seal: judge launches only)",
+    "seal.py judge_status :141",
+    "stage1_rules.py JUDGE_RECORD_KIND/KEYS, JUDGE_ENTRY_KEYS :141"
+   ],
+   "tests": [
+    "test_stage1_runkit.py::test_a_released_judge_launch_is_done_only_while_a_valid_judge_completion_record_names_it (refuses 15 bad records incl. a count key, exit 6, incomplete, gate not passed, bad/shared tag, other block, future utc, result differs (judged), result or run record hash, index hash; accepts via the CLI; refuses a second record; later use: a changed record, index or judge file refuses and status says INVALID; no printed line, plan.json or operator log holds the sentinel 7777)",
+    "test_a_failed_granite_is_recorded_after_block_as_old_seal_and_record_judges_changes_no_seal",
+    "test_record_judges_refuses_a_judge_without_a_released_launch_or_named_not_run",
+    "test_a_block_is_complete_only_when_its_judge_launch_is_released_and_filed (rewritten: released is open; Granite over 20 of 27 units stays open with a valid record)",
+    "test_a_block_other_than_a_with_an_unreleased_launch_is_not_complete (updated: block B needs the record)",
+    "test_block_a_completes_only_when_every_planned_job_ran_or_a_decision_names_it and test_block_a_counts_not_pulled_jobs_... (updated: record-judges instead of a stray judge file)"
+   ]
+  },
+  "R3": {
+   "status": "met (block A); block B's required set reported as an open point",
+   "summary": "plan_tool.judge_files_check (one function for the record and the seal): index is Gate B's (kind, version 2, exact entry keys); every listed file a top-level judge-named file named for its judge and COMPLETE.json SHA-256, present at its indexed SHA-256, not a symlink; no unindexed top-level judge-named file (subfolders such as pods/ allowed; other top-level names allowed and sealed); no (judge, unit) twice; for each judge of the record exactly one file per required unit. Files of other units/judges are allowed and counted (other_files), per R3's wording. Required units (judge_required_units): plan.json's complete_sha256 of the block's complete arm/a0_arm jobs (pulled), each B10 unit of complete ref_eval/safe_lora jobs (record-done now keeps JOB-DONE.json's units list, each COMPLETE.json checked), plus rules.REJUDGED_PINS[block]. seal.py needs the valid record naming every judge of the block's judge launches that no not-run decision names (judges_needed), seals every file under judges/BLOCK/ and lists record['judge_record'] (record and index SHA-256, judges, units, files, other_files). Pins: block A's 7 by path (relative to the repo), arm, seed, target, COMPLETE.json and job.json SHA-256.",
+   "pin_cross_check": "shasum -a 256 of each of the 7 COMPLETE.json and job.json on disk (no answer file opened) equals reuse_spec.json jobs[0..5].source and limits_overrefusal_checks.json 'untuned' (lines 192-199) and runbook §2b, all 7 (exit 0, 10:27 UTC).",
+   "live_check": "read-only, in memory, the live tmp/stage1-olmo/plan.json (SHA-256 unchanged before/after): judge_required_units(plan, 'A') has 27 units, equal by 12-hex prefix to runbook §2's 20 + 7; judges_needed = [harmbench, granite]; no record yet.",
+   "code": [
+    "plan_tool.py judge_required_units :1742",
+    "judge_files_check :1773",
+    "judges_needed :1952",
+    "b10_units :2960 and record_done :2900",
+    "seal.py seal_block :91-107",
+    "stage1_rules.py JUDGE_INDEX.. :132, JUDGED_RUN_KINDS/JUDGED_B10_KINDS :150, REJUDGED_PINS :159"
+   ],
+   "tests": [
+    "test_the_judge_files_check_wants_one_file_per_judge_for_each_of_the_27_units (required set by hand = 20 + 7; refuses a missing listed file, a missing Granite file for theta0, an unindexed judge file, a misnamed entry, a duplicate listing, extra keys, a non-Gate-B index, a second file of one (judge, unit); allows .DS_Store and pods/; counts an outside unit)",
+    "test_the_new_seal_needs_the_judge_record_first_and_lists_it",
+    "test_the_seal_checks_the_judge_record_itself",
+    "test_block_as_seven_rejudged_pins_are_the_reuse_spec_sources_and_the_untuned_unit",
+    "test_the_judge_constants_are_gate_bs",
+    "test_block_bs_required_units_hold_every_b10_unit_that_record_done_keeps"
+   ]
+  },
+  "R4": {
+   "status": "met",
+   "summary": "judge_units_stage1.py: launch runs judge_pod under stage1_launcher, which constructs judge_pod.RunLog with echo off (QuietRunLog; the log file is kept); write-files runs Gate B's write_files.write_all on the stage-1 enumeration with safe_emit_line (file, unit label, status, per-mode missing/stale/extra; the index line's path, files and SHA-256; anything else becomes a note); result TAG prints the runbook step-5 whitelist (exit, bundle, cap, stop confirmed/desiredStatus, run_record_ok, pod_exit, gpu, complete, judged, records, number of units, refused, tokenizer, known_answer_passed), costPerHr, pod minutes and cost from tmp/family-probe-judge/hosts/judge-TAG/pod.json, and record_entry for record-judges.",
+   "code": [
+    "judge_units_stage1.py stage1_launcher :242 (QuietRunLog :249)",
+    "run_launcher :265",
+    "safe_emit_line :278",
+    "write_files_main :297",
+    "result_fields :339",
+    "main :407"
+   ],
+   "tests": [
+    "test_stage1_judge_route.py::test_a_b10_unit_is_launched_verified_on_the_pod_and_filed_and_no_sealed_count_is_printed (sentinel counts 1777/1099/1333/1555: none in stdout/stderr of launch, write-files or result, nor in any file under the test root except the launcher log, its result, the cache and the judge file; the scan does find them there)",
+    "test_with_the_echo_on_the_same_launch_prints_the_sealed_counts (the other way)",
+    "test_write_files_prints_only_file_unit_status_and_gap_counts",
+    "test_result_prints_the_whitelist_pod_minutes_cost_and_the_record_entry_only"
+   ]
+  },
+  "R5": {
+   "status": "met (tested on a fake pod with the shipped pod code; not on a real pod)",
+   "summary": "judge_pod_stage1/bundle.py: on the pod (imported as 'bundle') it imports Gate B's bundle_gateb.py, replaces only _verify_unit (a B10 unit, recognised by its staged job.json kind, gets Gate B's checks in B10's terms: COMPLETE.json/job.json SHA-256, complete, kind, bank dev, checkpoint = target e1, seed, manifest, b10_label = the entry's arm, eval files as COMPLETE.json lists; every other unit goes to Gate B's _verify_unit unchanged) and installs Gate B's module as sys.modules['bundle']. b10_label is now defined once there and used by the Mac wrapper. write-files gives the B10 unit its judge file.",
+   "code": [
+    "judge_pod_stage1/bundle.py b10_label :37, b10_entry_problem :51, make_verify_unit :65, install :105, :110",
+    "judge_units_stage1.py _load_pod_bundle/b10_label :71-81, ship_pod_bundle :216, load_judge_pod :206"
+   ],
+   "tests": [
+    "test_a_b10_unit_is_launched_verified_on_the_pod_and_filed_and_no_sealed_count_is_printed (the wrapper's first launch test: Gate B's FakeHost, unchanged, with the unpack and the job run by the bundle's own shipped pod_job.py in a child process; exit 0, verified, stopped; write-files writes harmbench--b-1--eval-default--<12>.json with arm ref-external-safe_lora-default)",
+    "test_without_the_stage1_bundle_py_the_pod_refuses_the_b10_unit_after_the_create (Gate B's launcher: exit 2 on the Mac; Gate B's bundle.py shipped: exit 6 after the create, the pod stopped)",
+    "test_the_pod_side_check_of_a_b10_entry_both_ways",
+    "test_a_run_one_launch_through_the_wrapper_is_gate_bs_bundle_byte_for_byte",
+    "test_stage1_runner.py label tests (now via the shared rule)"
+   ]
+  },
+  "R6": {
+   "status": "met",
+   "summary": "seal.py seal_block skips a block host that is moved (plan_tool.moved_hosts: deferrals and requeues 'from') and not done, lists it under record['moved'] with its targets and whether a pulled tree exists (a tree, if any, is still hashed); an unmoved host that is not done still refuses 'record-done first'. backup_records_stage1.py had the same defect (it reported retrieved/HOST/tree and hosts/HOST/finished.json missing for a-5..a-7): moved_undone() exempts them and lists them under 'moved'. The order record-judges A then seal.py block A works; on the live plan in memory the seal would hash a-1..a-4, a-8..a-11 and skip a-5, a-6, a-7 (moved to a-9, a-10, a-11).",
+   "code": [
+    "plan_tool.py moved_hosts :715",
+    "seal.py seal_block :73-81, :106",
+    "backup_records_stage1.py moved_undone :170, select :186, :255"
+   ],
+   "tests": [
+    "test_the_seal_skips_a_moved_never_pulled_host_and_lists_it_and_still_refuses_an_unmoved_undone_one (record-judges A then seal A over 27 units)",
+    "test_the_backup_does_not_require_a_moved_never_pulled_hosts_tree_or_finisher_record"
+   ]
+  },
+  "R7": {
+   "status": "met",
+   "summary": "seal.py status ends a pod's time at the earlier of its finished.json utc and its first confirmed stop in hosts/HOST/stops.jsonl (host.py stop's records; at or after created_utc; unreadable lines skipped), else now; a host stopped without a finisher record shows 'stopped (confirmed)'.",
+   "code": [
+    "seal.py first_confirmed_stop :122, status :156"
+   ],
+   "tests": [
+    "test_status_ends_a_pods_time_at_its_first_confirmed_stop_or_its_finisher_record (by hand: 4 min = 0.07 h, 2.00 h, total $3.70; an unconfirmed stop and an older stop do not end a pod's time)"
+   ]
+  }
+ },
+ "mutants": {
+  "file": "tests/mutants_b15.json (342 entries; each find text found exactly once, checked by script)",
+  "new": [
+   {
+    "id": "B15-30-judge-done-at-release",
+    "file": "plan_tool.py",
+    "describes": "gap 1 (R2): a released judge launch counts as done without a valid judge-completion record",
+    "verdict": "killed",
+    "killed_by": [
+     "runkit/stage1-olmo/tests/test_stage1_runkit.py::test_a_block_is_complete_only_when_its_judge_launch_is_released_and_filed"
+    ]
+   },
+   {
+    "id": "B15-30-judge-files-unit-unchecked",
+    "file": "plan_tool.py",
+    "describes": "gap 2 (R3): the judge check no longer wants one file per judge for each required unit",
+    "verdict": "killed",
+    "killed_by": [
+     "runkit/stage1-olmo/tests/test_stage1_runkit.py::test_the_judge_files_check_wants_one_file_per_judge_for_each_of_the_27_units"
+    ]
+   },
+   {
+    "id": "B15-30-launch-echo-on",
+    "file": "judge_units_stage1.py",
+    "describes": "gap 3 (R4): stage-1 launches keep the launcher's echo, so the verified line's counts reach stdout",
+    "verdict": "killed",
+    "killed_by": [
+     "runkit/stage1-olmo/tests/test_stage1_judge_route.py::test_a_b10_unit_is_launched_verified_on_the_pod_and_filed_and_no_sealed_count_is_printed"
+    ]
+   },
+   {
+    "id": "B15-30-b10-pod-bundle-not-shipped",
+    "file": "judge_units_stage1.py",
+    "describes": "gap 4 (R5): a launch with a B10 unit ships Gate B's bundle.py, so the pod refuses the unit after the create",
+    "verdict": "killed",
+    "killed_by": [
+     "runkit/stage1-olmo/tests/test_stage1_judge_route.py::test_a_b10_unit_is_launched_verified_on_the_pod_and_filed_and_no_sealed_count_is_printed"
+    ]
+   },
+   {
+    "id": "B15-30-seal-moved-host-refused",
+    "file": "seal.py",
+    "describes": "D3 (R6): the seal refuses a moved, never-pulled host that block_complete skips (a-5: record-done first)",
+    "verdict": "killed",
+    "killed_by": [
+     "runkit/stage1-olmo/tests/test_stage1_runkit.py::test_the_seal_skips_a_moved_never_pulled_host_and_lists_it_and_still_refuses_an_unmoved_undone_one"
+    ]
+   }
+  ],
+  "retargeted": [
+   {
+    "id": "B15-x-judge-files-unsealed",
+    "file": "seal.py",
+    "why": "round 30: the seal's judge check is now the judge-completion record's (R3); old find text gone",
+    "verdict": "killed",
+    "killed_by": [
+     "runkit/stage1-olmo/tests/test_stage1_runkit.py::test_the_seal_checks_the_judge_record_itself"
+    ]
+   },
+   {
+    "id": "B15-x-safe-lora-label",
+    "file": "judge_pod_stage1/bundle.py",
+    "why": "round 30: the label rule moved to judge_pod_stage1/bundle.py (one rule for the Mac and the pod)",
+    "verdict": "killed",
+    "killed_by": [
+     "runkit/stage1-olmo/tests/test_stage1_judge_route.py::test_a_b10_unit_is_launched_verified_on_the_pod_and_filed_and_no_sealed_count_is_printed"
+    ]
+   }
+  ],
+  "existing_checked": {
+   "rule": "every other mutant whose find text lies within 40 lines of a changed line (48)",
+   "killed": [
+    "B15-2-plan-ab-bool",
+    "B15-29-any-missing-output-accepted",
+    "B15-3-overflow",
+    "B15-4-harmbench-rate",
+    "B15-4-harmbench-sampled-dropped",
+    "B15-8-arms-not-required",
+    "B15-8-block-a-open-unchecked",
+    "B15-8-decision-not-rehashed",
+    "B15-8-decision-outside-plan",
+    "B15-8-decision-ran",
+    "B15-8-decision-still-planned",
+    "B15-8-fallback-oext-required",
+    "B15-8-judge-units-free",
+    "B15-8-ln14-always-required",
+    "B15-8-moved-host-holds",
+    "B15-8-seal-not-run-unlisted",
+    "B15-d-seal-holds-value",
+    "B15-d-seal-incomplete",
+    "B15-d-seal-missing-file",
+    "B15-d-status-prints-value",
+    "B15-g-another-block-first",
+    "B15-g-b-before-a",
+    "B15-g-b-before-seal",
+    "B15-g-c-under-plan-a",
+    "B15-g-c2-thresholds",
+    "B15-g-certification",
+    "B15-g-engine-record",
+    "B15-g-k12",
+    "B15-g-method-1101",
+    "B15-g-own-a0-anytime",
+    "B15-g-plan-ab-not-read",
+    "B15-g-plan-b-l1",
+    "B15-g-r-seed-base",
+    "B15-g-sp-prefix",
+    "B15-g-y-before-cert",
+    "B15-r-backup-outputs",
+    "B15-r-judge-b10-skipped",
+    "B15-r-judge-devices",
+    "B15-x-backup-judges",
+    "B15-x-complete-readable",
+    "B15-x-judge-launch-ignored",
+    "B15-x-plan-ab-unbound",
+    "B15-x-reuse-allowed",
+    "B15-x-s1-0-after-default",
+    "VG-sigma-a-strict",
+    "VG-sigma-b-strict"
+   ],
+   "survived_as_expected": [
+    "B15-2-plan-ab-not-derived ('expect': 'survive' since round 3b)"
+   ]
+  },
+  "method": "notes/kit-round-30-evidence/run_mutants_b15.py on a full copy of the tree: baseline first with the same command (554 passed, the 6 engine-Y environment failures deselected); killed only by a real test failure (exit 1, FAILED and no ERROR); results in notes/kit-round-30-evidence/mutation-results.json. The full run of all 342 was not done here (about 45 min; the lead's)."
+ },
+ "commands_run": [
+  {
+   "cmd": "date -u",
+   "exit": 0,
+   "note": "10:13, 10:27, 11:14 UTC"
+  },
+  {
+   "cmd": "shasum -a 256 of the 7 pinned units' COMPLETE.json and job.json under /Users/spiderishi/Coding/attribution/tmp/",
+   "exit": 0
+  },
+  {
+   "cmd": "git archive 2a72872 | tar -x -C scratchpad/kit-round-30/base (a read-only baseline copy)",
+   "exit": 0
+  },
+  {
+   "cmd": "python -B -m pytest -q runkit/stage1-olmo/tests (round 30 tree)",
+   "exit": 1,
+   "result": "554 passed, 6 failed: the 6 need tmp/engine-y-34bfd288 (absent from a git archive); base archive: 535 passed, the same 6 failed"
+  },
+  {
+   "cmd": "STAGE1_ENGINE_Y_TREE=/Users/spiderishi/Coding/attribution/tmp/engine-y-34bfd288 python -B -m pytest -q runkit/stage1-olmo/tests/test_stage1_runner.py",
+   "exit": 0,
+   "result": "176 passed (read-only; no __pycache__ written in the Y tree)"
+  },
+  {
+   "cmd": "python -B -m pytest -q runkit/stage1-olmo/tests/test_stage1_judge_route.py",
+   "exit": 0,
+   "result": "7 passed"
+  },
+  {
+   "cmd": "python -B -m pytest -q experiments/safety_selection/tests/test_ss_gateb_runkit.py",
+   "exit": 1,
+   "result": "6 passed, 265 errors: tmp/family-probe-olmo2-1b/expected-fixture-probe.json absent from the archive; identical on the base archive"
+  },
+  {
+   "cmd": "python -B -m pytest -q scripts/stage1/tests",
+   "exit": 0,
+   "result": "874 passed"
+  },
+  {
+   "cmd": "python -B -m pytest -q scripts/stage1_s1",
+   "exit": 0,
+   "result": "1420 passed"
+  },
+  {
+   "cmd": "python -B -m pytest -q scripts/gate_b_mac_judges/tests",
+   "exit": 1,
+   "result": "548 passed, 5 skipped, 1 failed (test_granite_summary path vs the hard-coded repo root; the same on the base archive)"
+  },
+  {
+   "cmd": "run_mutants_b15.py BASELINE + 55 mutants (5 new, 2 retargeted, 48 existing near the changes)",
+   "exit": 0,
+   "result": "54 killed, 1 survived as expected"
+  },
+  {
+   "cmd": "read-only in-memory check of the live plan.json with the round-30 plan_tool (required units, moved hosts)",
+   "exit": 0
+  },
+  {
+   "cmd": "cmp of the 36 Gate B judge files' SHA-256 before/after",
+   "exit": 0
+  }
+ ],
+ "lead_must_run": {
+  "suites": [
+   "cd <the integrating worktree> && PY=/Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python",
+   "PYTHONDONTWRITEBYTECODE=1 $PY -B -m pytest -p no:cacheprovider -q runkit/stage1-olmo/tests   # expect 560 passed with tmp/engine-y-34bfd288 present",
+   "PYTHONDONTWRITEBYTECODE=1 $PY -B -m pytest -p no:cacheprovider -q experiments/safety_selection/tests/test_ss_gateb_runkit.py",
+   "PYTHONDONTWRITEBYTECODE=1 $PY -B -m pytest -p no:cacheprovider -q scripts/stage1_s1",
+   "PYTHONDONTWRITEBYTECODE=1 $PY -B -m pytest -p no:cacheprovider -q scripts/stage1/tests",
+   "PYTHONDONTWRITEBYTECODE=1 $PY -B -m pytest -p no:cacheprovider -q scripts/gate_b_mac_judges/tests"
+  ],
+  "mutation_run": [
+   "M=<scratch>/mut; rm -rf $M && mkdir -p $M && cp -R <worktree> $M/tree   # a full copy (tests read scripts/, experiments/, tmp/)",
+   "$PY -B runkit/stage1-olmo/notes/kit-round-30-evidence/run_mutants_b15.py $M/tree <worktree> <scratch>/mutation-b15.json BASELINE ALL   # background job, about 45 min; set DESELECT only for baseline environment failures"
+  ],
+  "after_integration_block_A": [
+   "Integrate after the running judge launch has ended (copy the round-30 kit files into tmp/stage1-olmo; never during a launch).",
+   "KIT=/Users/spiderishi/Coding/attribution/tmp/stage1-olmo; with judges/A filed by runbook steps 9-11 (Gate B's write_files output + its index; pods/ optional):",
+   "\"$PY\" -B \"$KIT/judge_units_stage1.py\" result <HarmBench tag, e.g. s1a-hb-1>      # copy its record_entry",
+   "\"$PY\" -B \"$KIT/judge_units_stage1.py\" result <Granite tag, e.g. s1a-granite-1>   # copy its record_entry",
+   "shasum -a 256 \"$KIT/judges/A/judge-files-index.json\"",
+   "write FILE (for example .ai/inputs/stage1-post-w1-20261023/block-a/judges/judge-completion-record.json; never edit it later): {\"kind\": \"stage1 judge completion record\", \"block\": \"A\", \"judges\": {\"harmbench\": <record_entry: tag, result_sha256, run_record_sha256, bundle_sha256, exit 0, judged 21600, complete true>, \"granite\": <record_entry: the same with judged 5400 and known_answer_passed true>}, \"index_sha256\": \"<the index SHA-256>\", \"utc\": \"<date -u, ISO Z>\", \"recorded_by\": \"GI VII\"}",
+   "\"$PY\" -B \"$KIT/plan_tool.py\" record-judges A FILE --sha256 \"$(shasum -a 256 FILE | cut -c1-64)\"   # prints tags, index SHA-256, 27 units, 54 files, open []",
+   "\"$PY\" -B \"$KIT/seal.py\" status | grep -E '^judges A|^block A|^a-5|estimated'   # the record 'valid: 27 required units, 54 indexed files'; a-5..a-7 'stopped (confirmed)'",
+   "\"$PY\" -B \"$KIT/seal.py\" block A   # skips a-5, a-6, a-7 (moved), lists them under 'moved', records judge_record",
+   "If Granite failed: FILE names harmbench only; then plan_tool.py record-block-a-not-run naming \"judge granite\" with its reason (works before or after the seal)."
+  ]
+ },
+ "open_points": [
+  "Block B's required set (R3, read from the kit; no block-B plan is recorded yet): the 24 arm/a0_arm runs at 1105-1107 (plan A; 18 under plan B), plus each B10 unit of block B's ref_eval (SP and scaling points) and safe_lora (default, conditional, certify per seed) jobs, from record-done's units list; no pinned re-judged unit. Not included: ref_train (recipe G and B+Qi reference trainings, engine run-one units that the judge route would also enumerate under --run-root); if they must be judged, add 'ref_train' to stage1_rules.JUDGED_RUN_KINDS (the lead's decision, not invented here). If block B's comparisons re-judge any earlier unit (for example a0 1101-1104 or block A units for one device per contrast), its pins must be added to REJUDGED_PINS['B'] - they do not exist yet.",
+  "Block B has no not-run route for a judge launch (record-block-a-not-run is block A's only): a failed block-B Granite would leave block B incomplete with no kit route.",
+  "One judge-completion record per block and one tag per judge: a judge split over two launches (HarmBench above about 94 units hits the 6 h cap) or a re-launch after the record is recorded has no route (a resume before recording works: record the final tag).",
+  "R3's seal-level record check repeats block_complete's (R2) by design; mutant B15-x-judge-files-unsealed is killed only by a test that bypasses block_complete.",
+  "R3 allows judge files of units outside the required set or of a judge the record does not name (counted as other_files), following R3's wording; refusing them is a one-line change if the lead prefers.",
+  "record-judges reads tmp/judge-pod/TAG/judge-pod-result.json and fetched/out/run-record.json at record time (by key; never printed): those folders must still exist then (the operator rule keeps them). This is stricter than R2's text.",
+  "judge_units_stage1.py launch -- bundle (the dry check) still prints Gate B's bundle record, whose Granite known_answers holds mac_yes (a number redacted by the lead: Gate B's Mac Granite count of the reference unit a0 1101 e1, which is one of block A's 7 re-judged units). It is not a stage-1 output and runbook step 3 already prints it; unchanged here (it is Gate B's print).",
+  "Not tested: a real pod; the Granite path with a B10 unit end to end (the Granite bundle uses the same _verify_unit; only HarmBench was run end to end); the real judges/A files (never opened)."
+ ],
+ "replies": {
+  "smaller_alternative_considered": "Editing Gate B's bundle.py was ruled out by R1. A full stage-1 copy of bundle.py was rejected (500 duplicated lines, drift); the shim replaces one function and ships Gate B's file unchanged beside it, only when a B10 unit is present.",
+  "why_record_checks_result_files": "so the record's tag/hashes/exit/judged are bound to the launcher's own result, not typed."
+ }
+}

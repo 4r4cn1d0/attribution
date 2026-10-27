@@ -15,6 +15,9 @@ stages' receipts, sealed-files.json and probe.json, and hosts/HOST/preflight-don
 plan.json records complete (not pulled) under the lead's unpulled outputs decision (pulled false, the decision's
 SHA-256) is listed with that mark and not required (its unit is only on the pod's volume), and a unit-free job's
 recorded model-weight outputs (c0's states, left on the pod by the light pull) are not required, as a unit's are not.
+Round 30 (R6): a host that a deferral or requeue moved and that is not done (a-5, a-6, a-7: setup failed, stopped,
+never pulled) needs no pulled tree and no finished.json (its records, stops.jsonl included, are staged as kept); it is
+listed under "moved" with its targets, as seal.py lists it.
 The text of the Gate B description below is otherwise unchanged.
 
 From the Gate B script:
@@ -164,12 +167,28 @@ def resolve(a: argparse.Namespace) -> tuple[dict, list[str], str]:
     return plan, hosts, tag
 
 
+def moved_undone(plan: dict) -> dict:
+    """Round 30 (R6, as seal.py): host -> the hosts its jobs moved to, for each host that a deferral or requeue moved
+    (``from``) and that is not recorded done. Such a host's pulled tree and finished.json are not required (a-5, a-6,
+    a-7: setup failed, stopped, never pulled; its stop is in its stops.jsonl, which is staged); it is listed."""
+    out: dict = {}
+    for d in [*(plan.get("deferrals") or []), *(plan.get("requeues") or [])]:
+        if not plan["hosts"].get(d["from"], {}).get("done"):
+            targets = out.setdefault(d["from"], [])
+            if d.get("to") and d["to"] not in targets:
+                targets.append(d["to"])
+    return out
+
+
 def select(plan: dict, hosts: list[str], max_bytes: int) -> dict:
     """What a run stages: (source, staged path) pairs, the files left out and why, and the failed checks."""
     items, excluded, missing, trees = [], [], [], []
+    moved = moved_undone(plan)
     for host in hosts:
         tree = HERE / "retrieved" / host / "tree"
-        if not tree.is_dir() or tree.is_symlink():
+        if host in moved and not tree.is_dir() and not tree.is_symlink():
+            pass                                  # round 30 (R6): moved before anything was pulled; listed in "moved"
+        elif not tree.is_dir() or tree.is_symlink():
             missing.append(f"retrieved/{host}/tree")
         else:
             trees.append(host)
@@ -198,7 +217,7 @@ def select(plan: dict, hosts: list[str], max_bytes: int) -> dict:
                     items.append((src, f"records/{host}/{src.name}"))
                 else:
                     excluded.append((kit_rel(src), "not a kept record"))
-            if not regular(records / "finished.json"):
+            if not regular(records / "finished.json") and host not in moved:   # R6: a moved pod's stop is stops.jsonl
                 missing.append(f"hosts/{host}/finished.json")
         for name in ("pulls.jsonl", "verified.jsonl"):
             if regular(HERE / "retrieved" / host / name):
@@ -233,7 +252,7 @@ def select(plan: dict, hosts: list[str], max_bytes: int) -> dict:
                   for p in sorted(HERE.iterdir()) if kit_rel(p) not in sources]
     return {"items": items, "excluded": excluded, "missing": missing, "trees": trees, "digests": digests, "sizes": sizes,
             "oversize": sorted(d for d, b in sizes.items() if b > max_bytes), "units": units, "unit_checks": unit_checks,
-            "jobs": jobs, "prepared": prepared_record,
+            "jobs": jobs, "prepared": prepared_record, "moved": {h: moved[h] for h in hosts if h in moved},
             "kit_code": {"runkit": str(RUNKIT.relative_to(ROOT)), "staged_absent_or_different": code_differs,
                          "identical_not_staged": len(code_same)},
             "kit_entries_not_staged": not_staged}

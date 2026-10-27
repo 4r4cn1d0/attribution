@@ -58,6 +58,13 @@ are kept.
                                                    named jobs an earlier move of HOST held as not re-run and pays them,
                                                    as one unit, beyond the contingency (logged; contingency.user_paid),
                                                    and nothing else; re-hashed at every use
+    plan_tool.py record-judges BLOCK FILE --sha256 H   (round 30, R2) the block's judge-completion record {kind: "stage1
+                                                   judge completion record", block, judges: {harmbench: {tag,
+                                                   result_sha256, run_record_sha256, bundle_sha256, exit, judged,
+                                                   complete}, granite: {the same, known_answer_passed}}, index_sha256,
+                                                   utc, recorded_by}: a judge launch is done only while this record
+                                                   names it and is valid (re-hashed, its index and judge files checked
+                                                   at every use); works on a sealed block and changes no seal
 
 BLOCKS (rules.BLOCKS, in order): "S1-0" (W1-18 alone, §8 Q1), "cert" (C1-C3, on Y), "A", "certify" (B10's
 certification pod), "B", "C" (plan B only). A block's jobs FILE is {"launches": [L, ...], "reused": [[arm, seed]],
@@ -136,6 +143,13 @@ whole block and again at release:
   report under Branch 128 only and no O-only pass under fallback (c), every dealt arm run, each judge launch over its
   planned units) has a completion record (recorded complete on a block-A host; a judge launch released over at least
   those units) or is named by a recorded lead decision (record-block-a-not-run) as not run, with a reason.
+- Round 30 (addendum §30, the lead's R2-R3): a judge launch's completion record is the block's judge-completion
+  record (record-judges), never its release: a released judge launch counts as done only while that record names its
+  judge and is valid at that use (judge_record_valid: the file re-hashed, judges/BLOCK/judge-files-index.json at its
+  index_sha256, and judge_files_check: every indexed file present at its SHA-256, no unindexed judge-named file, one
+  file per judge for each required unit: plan.json's arm jobs and B10 units plus rules.REJUDGED_PINS). For every
+  block, not only A. A released judge launch with no record may be named by a not-run decision, also after block A's
+  seal (a failed Granite is recorded so).
 """
 from __future__ import annotations
 
@@ -698,6 +712,17 @@ def gate_certification(plan: dict, jobs: list[dict]) -> None:
         fail("an evaluation-only reference refuses before a passing B10 certification (REV4 §5.4)")
 
 
+def moved_hosts(plan: dict) -> dict:
+    """host -> the hosts its jobs moved to (deferrals and requeues, ``from`` -> ``to``; a move that re-ran nothing has
+    no target). Round 30 (R6): seal.py skips a moved host that is not done and lists it with these targets."""
+    out: dict = {}
+    for d in [*(plan.get("deferrals") or []), *(plan.get("requeues") or [])]:
+        targets = out.setdefault(d["from"], [])
+        if d.get("to") and d["to"] not in targets:
+            targets.append(d["to"])
+    return out
+
+
 def block_complete(plan: dict, block: str) -> bool:
     b = plan["blocks"].get(block)
     if not b or b.get("pending") or b["released"] < len(b["launches"]):
@@ -708,6 +733,9 @@ def block_complete(plan: dict, block: str) -> bool:
             return False
     if block == "A" and block_a_open(plan):           # round 3c (VP3b-3): every job the block-A plan requires
         return False
+    released_judges = {x["judge"]["judge"] for k, x in enumerate(b["launches"]) if x.get("judge") and k < b["released"]}
+    if block != "A" and released_judges and not released_judges <= judges_done(plan, block):
+        return False                                  # round 30 (R2): a judge launch is done only with its valid record
     return True
 
 
@@ -1565,16 +1593,20 @@ def block_a_required(plan: dict, doc: dict) -> dict:
 
 def block_a_done(plan: dict, required: dict) -> set:
     """The labels with a completion record: a job recorded complete on a block-A host (record-done, from its pulled
-    JOB-DONE.json; a moved host's complete jobs count), and a judge launch of block A that is released and covers at
-    least the plan's units for that judge. A job recorded complete (not pulled) is not counted here: it counts as
-    decided by its unpulled outputs decision (block_a_unpulled), re-hashed at every use (§29 point 3)."""
+    JOB-DONE.json; a moved host's complete jobs count), and a judge launch of block A that is released, covers at
+    least the plan's units for that judge, and (round 30, R2) is named by block A's judge-completion record, valid at
+    this use (judges_done: the record re-hashed, the index and the judge files checked). A job recorded complete (not
+    pulled) is not counted here: it counts as decided by its unpulled outputs decision (block_a_unpulled), re-hashed
+    at every use (§29 point 3)."""
     done = {job_label(j["kind"], j.get("arm"), j.get("seed")) for h in plan["hosts"].values() if h["block"] == "A"
             for j in h["jobs"] if j.get("status") == "complete" and j.get("pulled") is not False}
     b = plan["blocks"].get("A") or {}
+    judged = judges_done(plan, "A") if any(x.get("judge") for x in b.get("launches") or []) else set()
     for k, launch in enumerate(b.get("launches") or []):
         j = launch.get("judge")
         if j and k < b.get("released", 0) and j["arms"] >= required.get(job_label("judge", j["judge"]), math.inf):
-            done.add(job_label("judge", j["judge"]))
+            if j["judge"] in judged:                  # round 30 (R2): released is not done; the valid record is
+                done.add(job_label("judge", j["judge"]))
     return done
 
 
@@ -1649,7 +1681,9 @@ def record_block_a_not_run(path: str, sha256: str) -> dict:
     will not run. Each label (job_label: the names the refusal prints) must be a job the plan requires for block A,
     have no completion record, be held by no block-A host that is not moved and by no unreleased judge launch over
     its planned units (such a job runs, or its host is deferred or requeued first), and be named by no earlier
-    decision. Refused before block A is planned and once it is sealed."""
+    decision. Refused before block A is planned and once it is sealed, except (round 30, R2) a decision naming only
+    judge launches: a released judge launch with no judge-completion record may be named after the seal too (block A
+    is sealed with the old seal.py before round 30 lands; a failed Granite is recorded so)."""
     plan = load()
     doc, ref = file_record(path, sha256)
     ref.update(path=str(pathlib.Path(path).resolve()))   # re-hashed at every completion check, from any directory
@@ -1663,8 +1697,9 @@ def record_block_a_not_run(path: str, sha256: str) -> dict:
         fail("a block-A not-run decision needs its reason")
     if "A" not in plan["blocks"]:
         fail("block A is not planned: a not-run decision names jobs of a planned block A (init-block A first)")
-    if "A" in plan["seals"]:
-        fail("block A is sealed: a not-run decision is recorded before its seal")
+    if "A" in plan["seals"] and not set(jobs) <= {job_label("judge", k) for k in rules.JUDGES}:
+        fail("block A is sealed: a not-run decision is recorded before its seal (after it, round 30: only for a "
+             "released judge launch that has no judge-completion record)")
     plan_doc = block_a_plan_checked(plan)
     if plan_doc is None:
         fail("no block-A plan is recorded")
@@ -1685,6 +1720,288 @@ def record_block_a_not_run(path: str, sha256: str) -> dict:
     mac.save_plan(plan)
     mac.operator_action({"action": "record-block-a-not-run", "sha256": ref["sha256"], "jobs": list(jobs)})
     return {"recorded": "block_a_not_run", "sha256": ref["sha256"], "jobs": list(jobs), "open": block_a_open(plan)}
+
+
+# ----- the judge-completion record and the judge files (round 30; addendum §30 gaps 1, 2 and 5; the lead's R2, R3) ---
+# Gap 1: a judge launch counted as done once released. Now a block's judge launch is done only while the block's
+# judge-completion record (record-judges) names its judge and is valid at that use: the record file re-hashes to its
+# recorded SHA-256 and holds the recorded entries; judges/BLOCK/judge-files-index.json hashes to its index_sha256;
+# and judge_files_check passes for the record's judges (gap 2; seal.py runs the same check). The required units are
+# plan.json's and the block's pins (gap 5). Nothing here parses a judge file or prints a count other than files and
+# units: the judge files are hashed only.
+
+JUDGE_FOLDER = HERE / "judges"                    # judges/BLOCK/: Gate B's write_files.py output (seal.py seals it)
+JUDGE_POD_ROOT = ROOT / "tmp/judge-pod"           # the judge launcher's folders (judge_pod.JUDGE_POD_ROOT): read once,
+#                                                   at record time, by key (never printed)
+JUDGE_RESULT, JUDGE_RESULT_KIND, JUDGE_RUN_RECORD = "judge-pod-result.json", "judge-pod result", "out/run-record.json"
+JUDGE_FILE_RE = re.compile(rules.JUDGE_FILE_PATTERN)
+JUDGE_TAG_RE = re.compile(rules.JUDGE_TAG_PATTERN)
+JUDGE_KEY_OF_NAME = {name: key for key, name in rules.JUDGE_NAMES.items()}
+
+
+def judge_required_units(plan: dict, block: str) -> dict:
+    """complete_sha256 -> a label: the units the block's judge files must cover (R3). The COMPLETE.json SHA-256 that
+    plan.json records for each complete arm job of the block (rules.JUDGED_RUN_KINDS) and for each unit of each
+    complete B10 job (rules.JUDGED_B10_KINDS; record-done keeps JOB-DONE.json's units list), plus the block's pinned
+    re-judged units (rules.REJUDGED_PINS). A job recorded complete (not pulled) is left out (its unit is not here)."""
+    out = {}
+    for name, h in sorted(plan["hosts"].items()):
+        if h["block"] != block:
+            continue
+        for i, j in enumerate(h["jobs"]):
+            if j.get("status") != "complete" or j.get("pulled") is False:
+                continue
+            label = f"{name} job {i} ({job_label(j['kind'], j.get('arm'), j.get('seed'))})"
+            if j["kind"] in rules.JUDGED_RUN_KINDS:
+                digests = [j.get("complete_sha256")]
+            elif j["kind"] in rules.JUDGED_B10_KINDS:
+                units = j.get("units")
+                if not isinstance(units, list) or not units:
+                    fail(f"{label}: plan.json holds no list of its B10 units (record-done keeps JOB-DONE.json's)")
+                digests = [u.get("complete_sha256") if isinstance(u, dict) else None for u in units]
+            else:
+                continue
+            for digest in digests:
+                if not (isinstance(digest, str) and SHA_RE.fullmatch(digest)):
+                    fail(f"{label}: plan.json records no COMPLETE.json SHA-256 for its unit")
+                out[digest] = label
+    for pin in rules.REJUDGED_PINS.get(block, ()):
+        out[pin["complete_sha256"]] = f"re-judged {pin['name']}"
+    return out
+
+
+def judge_files_check(plan: dict, block: str, judges) -> dict:
+    """R3, the one check of a block's judge files (seal.py and every use of a judge-completion record): judges/BLOCK/
+    judge-files-index.json is Gate B's index (its kind, version 2, exactly its entry keys); every listed file is a
+    top-level judge-named file, named for its entry's judge and COMPLETE.json SHA-256, present with its indexed
+    SHA-256 (no symbolic link); no other top-level judge-named file (subfolders such as pods/ are allowed); no (judge,
+    unit) twice; and for each judge in ``judges`` exactly one file per required unit (judge_required_units), keyed by
+    COMPLETE.json SHA-256. Files of other units or judges are allowed and counted. Returns hashes and counts only."""
+    folder = JUDGE_FOLDER / block
+    index = folder / rules.JUDGE_INDEX
+    where = f"judges/{block}/{rules.JUDGE_INDEX}"
+    if not index.is_file() or index.is_symlink():
+        fail(f"block {block}: no {where} (Gate B's write_files.py writes it)")
+    try:
+        doc = json.loads(index.read_text())
+    except ValueError:
+        doc = None
+    entries = doc.get("files") if isinstance(doc, dict) else None
+    if not isinstance(doc, dict) or doc.get("kind") != rules.JUDGE_INDEX_KIND or \
+            doc.get("version") != rules.JUDGE_INDEX_VERSION or not isinstance(entries, list):
+        fail(f"{where} is not Gate B's judge files index (version {rules.JUDGE_INDEX_VERSION})")
+    count, listed = {}, set()
+    for e in entries:
+        if not isinstance(e, dict) or set(e) != set(rules.JUDGE_INDEX_ENTRY_KEYS):
+            fail(f"{where}: an entry does not hold exactly Gate B's index keys")
+        name, key, unit = e["file"], JUDGE_KEY_OF_NAME.get(e["judge"]), e["complete_sha256"]
+        if not (isinstance(name, str) and "/" not in name and JUDGE_FILE_RE.match(name) and key is not None
+                and name.startswith(f"{key}--") and isinstance(unit, str) and SHA_RE.fullmatch(unit)
+                and name.endswith(f"--{unit[:12]}.json")):
+            fail(f"{where}: entry {str(name)[:60]!r} is not a judge file named for its judge and COMPLETE.json SHA-256")
+        if name in listed:
+            fail(f"{where} lists {name[:60]} twice")
+        listed.add(name)
+        p = folder / name
+        if not p.is_file() or p.is_symlink() or mac.sha(p) != e["sha256"]:
+            fail(f"judges/{block}/{name[:60]} is missing or differs from its indexed SHA-256")
+        count[(key, unit)] = count.get((key, unit), 0) + 1
+    unlisted = sorted(p.name for p in folder.iterdir() if p.is_file() and JUDGE_FILE_RE.match(p.name)
+                      and p.name not in listed)
+    if unlisted:
+        fail(f"judges/{block}: {len(unlisted)} judge-named file(s) not in its index ({unlisted[0][:60]})")
+    twice = sorted(k for k, n in count.items() if n > 1)
+    if twice:
+        fail(f"{where}: two {twice[0][0]} files for the unit with COMPLETE.json {twice[0][1][:16]}")
+    required = judge_required_units(plan, block)
+    for key in sorted(judges):
+        missing = [label for unit, label in required.items() if (key, unit) not in count]
+        if missing:
+            fail(f"block {block}: {len(missing)} required unit(s) have no {key} judge file in {where} "
+                 f"({missing[0]})")
+    other = sum(1 for key, unit in count if key not in judges or unit not in required)
+    return {"index_sha256": mac.sha(index), "files": len(entries), "units": len(required), "judges": sorted(judges),
+            "other_files": other}
+
+
+def judge_record_problem(doc, block: str) -> str | None:
+    """Why ``doc`` is not block BLOCK's judge-completion record (rules.JUDGE_RECORD_KEYS exactly; per judge exactly
+    rules.JUDGE_ENTRY_KEYS: a launch tag, the SHA-256 of its judge-pod-result.json, of its fetched run record and of
+    its bundle, exit 0, the number of answers judged, complete true; Granite also its known-answer gate passed), or
+    None. No value is an HB, Granite, yes, unparsed or harm count: any other key refuses."""
+    if not isinstance(doc, dict) or set(doc) != set(rules.JUDGE_RECORD_KEYS):
+        return f"it must hold exactly {list(rules.JUDGE_RECORD_KEYS)}"
+    if doc["kind"] != rules.JUDGE_RECORD_KIND:
+        return f"its kind is not {rules.JUDGE_RECORD_KIND!r}"
+    if doc["block"] != block:
+        return f"its block is not {block}"
+    if not (isinstance(doc["index_sha256"], str) and SHA_RE.fullmatch(doc["index_sha256"])):
+        return "index_sha256 is not a SHA-256"
+    if not all(isinstance(doc[k], str) and doc[k].strip() for k in ("utc", "recorded_by")):
+        return "utc and recorded_by must be non-empty texts"
+    judges = doc["judges"]
+    if not isinstance(judges, dict) or not judges or set(judges) - set(rules.JUDGE_ENTRY_KEYS):
+        return f"judges must name one or both of {list(rules.JUDGE_ENTRY_KEYS)}"
+    for key, e in sorted(judges.items()):
+        want = rules.JUDGE_ENTRY_KEYS[key]
+        if not isinstance(e, dict) or set(e) != set(want):
+            return f"judges.{key} must hold exactly {list(want)}"
+        if not (isinstance(e["tag"], str) and JUDGE_TAG_RE.match(e["tag"])):
+            return f"judges.{key}.tag is not a judge launch tag"
+        if not all(isinstance(e[k], str) and SHA_RE.fullmatch(e[k])
+                   for k in ("result_sha256", "run_record_sha256", "bundle_sha256")):
+            return f"judges.{key}: result_sha256, run_record_sha256 and bundle_sha256 must be SHA-256"
+        if type(e["exit"]) is not int or e["exit"] != 0:
+            return f"judges.{key}: a judge launch is recorded done with exit 0 only (a failed one: record-block-a-not-run)"
+        if type(e["judged"]) is not int or e["judged"] < 1 or e["complete"] is not True:
+            return f"judges.{key}: judged must be the number of answers judged and complete true"
+        if key == "granite" and e["known_answer_passed"] is not True:
+            return "judges.granite: its known-answer gate must have passed"
+    if len({e["tag"] for e in judges.values()}) != len(judges):
+        return "each judge has its own launch tag"
+    return None
+
+
+def judge_result_problem(key: str, e: dict, required: dict) -> str | None:
+    """At record time only: the launch's own result (JUDGE_POD_ROOT/TAG/judge-pod-result.json, as judge_pod.py wrote
+    it) hashes to result_sha256 and agrees with the entry (kind, tag, judge, bundle, exit, complete, judged, the
+    fetched run record's SHA-256, a confirmed stop; Granite: the gate), its fetched run record hashes to
+    run_record_sha256, and its verified units include every required unit. Read by key, never printed."""
+    d = JUDGE_POD_ROOT / e["tag"]
+    path = d / JUDGE_RESULT
+    where = f"tmp/judge-pod/{e['tag']}/{JUDGE_RESULT}"
+    if not path.is_file() or mac.sha(path) != e["result_sha256"]:
+        return f"{where} is missing or its SHA-256 is not result_sha256"
+    try:
+        r = json.loads(path.read_text())
+    except ValueError:
+        return f"{where} is not JSON"
+    r = r if isinstance(r, dict) else {}
+    v = r.get("verification") if isinstance(r.get("verification"), dict) else {}
+    stop = r.get("stop") if isinstance(r.get("stop"), dict) else {}
+    fetched = r.get("fetched") if isinstance(r.get("fetched"), dict) else {}
+    gate = v.get("known_answers") if isinstance(v.get("known_answers"), dict) else {}
+    checks = [(r.get("kind") == JUDGE_RESULT_KIND, "kind"), (r.get("tag") == e["tag"], "tag"),
+              ((r.get("judge") or "harmbench") == key, "judge"), (r.get("bundle_sha256") == e["bundle_sha256"], "bundle"),
+              (r.get("exit") == e["exit"], "exit"), (v.get("complete") is e["complete"], "complete"),
+              (type(v.get("judged")) is int and v.get("judged") == e["judged"], "judged"),
+              (fetched.get(JUDGE_RUN_RECORD) == e["run_record_sha256"], "run record"),
+              (stop.get("confirmed") is True, "stop confirmed")]
+    if key == "granite":
+        checks.append((gate.get("passed") is e["known_answer_passed"], "known-answer gate"))
+    bad = [what for ok, what in checks if not ok]
+    if bad:
+        return f"{where} differs from the record ({', '.join(bad)})"
+    run_record = d / "fetched" / JUDGE_RUN_RECORD
+    if not run_record.is_file() or mac.sha(run_record) != e["run_record_sha256"]:
+        return f"tmp/judge-pod/{e['tag']}/fetched/{JUDGE_RUN_RECORD} is missing or not run_record_sha256"
+    judged = {u.get("complete_sha256") for u in v.get("units") or [] if isinstance(u, dict)}
+    missing = [label for unit, label in required.items() if unit not in judged]
+    if missing:
+        return f"the launch judged {len(missing)} required unit(s) less ({missing[0]})"
+    return None
+
+
+def judge_record_valid(plan: dict, block: str, entry: dict) -> dict:
+    """R2 at record and at every later use: the record file at its recorded path re-hashes to its recorded SHA-256
+    and holds the recorded block, judges and index_sha256; judges/BLOCK/judge-files-index.json hashes to
+    index_sha256; a sealed block's seal (re-hashed) lists that index with that SHA-256; and judge_files_check passes
+    for the record's judges. Refuses otherwise; returns the check's hashes and counts."""
+    p = pathlib.Path(str(entry.get("path")))
+    try:
+        on_disk = json.loads(p.read_text()) if p.is_file() else None
+    except ValueError:
+        on_disk = None
+    if not isinstance(on_disk, dict) or mac.sha(p) != entry.get("sha256") or on_disk.get("block") != block or \
+            on_disk.get("judges") != entry.get("judges") or on_disk.get("index_sha256") != entry.get("index_sha256"):
+        fail(f"block {block}'s judge-completion record is missing or differs from its recorded SHA-256; it must stay "
+             "at its recorded path, unchanged")
+    index = JUDGE_FOLDER / block / rules.JUDGE_INDEX
+    if not index.is_file() or mac.sha(index) != entry["index_sha256"]:
+        fail(f"judges/{block}/{rules.JUDGE_INDEX} is missing or not the judge-completion record's index_sha256")
+    seal = (plan.get("seals") or {}).get(block)
+    if seal:                                      # sealed (block A: by the old seal.py): its seal hashed this index
+        sp = HERE / seal["path"]
+        try:
+            sdoc = json.loads(sp.read_text()) if sp.is_file() else None
+        except ValueError:
+            sdoc = None
+        if not isinstance(sdoc, dict) or mac.sha(sp) != seal.get("sha256"):
+            fail(f"block {block}'s seal is missing or differs from the SHA-256 plan.json records")
+        hashed = {(f.get("host"), f.get("path")): f.get("sha256") for f in sdoc.get("files") or [] if isinstance(f, dict)}
+        if hashed.get((f"judges/{block}", rules.JUDGE_INDEX)) != entry["index_sha256"]:
+            fail(f"block {block}'s seal does not hold judges/{block}/{rules.JUDGE_INDEX} with the record's "
+                 "index_sha256")
+    return judge_files_check(plan, block, set(entry["judges"]))
+
+
+def judge_record_checked(plan: dict, block: str) -> dict | None:
+    """The block's judge-completion record, checked now (judge_record_valid), or None when none is recorded."""
+    entry = ((plan.get("records") or {}).get("judges") or {}).get(block)
+    if not entry:
+        return None
+    return {**judge_record_valid(plan, block, entry), "record_sha256": entry["sha256"]}
+
+
+def judges_done(plan: dict, block: str) -> set:
+    """The judges whose launch is done (R2): those the block's judge-completion record names, valid at this use."""
+    checked = judge_record_checked(plan, block)
+    return set() if checked is None else set(checked["judges"])
+
+
+def judges_needed(plan: dict, block: str) -> list[str]:
+    """The judges of the block's judge launches that a recorded not-run decision does not name (block A only has
+    that route): the judges whose files seal.py requires."""
+    decided = block_a_not_run(plan) if block == "A" else {}
+    out = []
+    for x in plan["blocks"][block]["launches"]:
+        j = x.get("judge")
+        if j and j["judge"] not in out and job_label("judge", j["judge"]) not in decided:
+            out.append(j["judge"])
+    return out
+
+
+def record_judges(block: str, path: str, sha256: str) -> dict:
+    """record-judges BLOCK FILE --sha256 H (round 30, R2): the lead's judge-completion record {kind: "stage1 judge
+    completion record", block, judges: {harmbench: {tag, result_sha256, run_record_sha256, bundle_sha256, exit,
+    judged, complete}, granite: {the same, known_answer_passed}}, index_sha256, utc, recorded_by} (one or both
+    judges; judge_record_problem). Each judge must have a released judge launch in the block and no not-run decision;
+    its launch's own result and fetched run record must agree (judge_result_problem); the index and the judge files
+    must pass judge_files_check. One record per block; it works for a sealed block (block A, sealed by the old
+    seal.py: the seal must hold the same index) and changes no seal. The file is re-hashed at every use."""
+    plan = load()
+    doc, ref = file_record(path, sha256)
+    problem = judge_record_problem(doc, block)
+    if problem:
+        fail(f"not a judge-completion record: {problem}")
+    _utc_past(doc["utc"], "the judge-completion record")
+    if block not in plan["blocks"]:
+        fail(f"block {block} is not planned")
+    if (records(plan).get("judges") or {}).get(block):
+        fail(f"block {block} already has a judge-completion record")
+    b = plan["blocks"][block]
+    released = {x["judge"]["judge"] for k, x in enumerate(b["launches"]) if x.get("judge") and k < b["released"]}
+    decided = block_a_not_run(plan) if block == "A" else {}
+    required = judge_required_units(plan, block)
+    for key, e in sorted(doc["judges"].items()):
+        if key not in released:
+            fail(f"block {block} has no released {key} judge launch")
+        if job_label("judge", key) in decided:
+            fail(f"'judge {key}' is named by a recorded not-run decision")
+        problem = judge_result_problem(key, e, required)
+        if problem:
+            fail(f"judge {key}: {problem}")
+    entry = {**ref, "path": str(pathlib.Path(path).resolve()), "block": block, "judges": doc["judges"],
+             "index_sha256": doc["index_sha256"], "utc": doc["utc"], "recorded_by": doc["recorded_by"],
+             "recorded_utc": mac.utc()}
+    check = judge_record_valid(plan, block, entry)
+    records(plan).setdefault("judges", {})[block] = entry
+    mac.save_plan(plan)
+    tags = {key: e["tag"] for key, e in sorted(doc["judges"].items())}
+    mac.operator_action({"action": "record-judges", "block": block, "sha256": ref["sha256"], "tags": tags,
+                         "index_sha256": doc["index_sha256"]})
+    out = {"recorded": "judges", "block": block, "sha256": ref["sha256"], "tags": tags, **check}
+    return {**out, "open": block_a_open(plan)} if block == "A" else out
 
 
 def build_block(plan: dict, block: str, spec: dict) -> dict:
@@ -2621,8 +2938,12 @@ def record_done(host: str) -> dict:
                       if not complete.is_file() else ""))
         elif r["status"] == "complete" and not (job["kind"] in rules.UNITLESS_KINDS and outputs):
             fail(f"{host}: job {i} is complete without a complete_sha256 (or, for a unit-free job, its outputs)")
+        units = b10_units(tree, r, i, host, i in decided) if job["kind"] in rules.B10_UNIT_KINDS and \
+            r["status"] == "complete" and "units" in r else None
         job.update(status=r["status"], unit=r.get("unit"), complete_sha256=r.get("complete_sha256"),
                    outputs=outputs or None, reason=r.get("reason"))
+        if units is not None:                            # round 30: every B10 unit, for the judge check (R3, R5)
+            job["units"] = units
         if i in decided:
             job.update(pulled=False, unpulled_decision_sha256=decided[i])
         if states:
@@ -2634,6 +2955,29 @@ def record_done(host: str) -> dict:
                          **({"not_pulled": not_pulled} if not_pulled else {})})
     out = {"host": host, "statuses": [j["status"] for j in h["jobs"]]}
     return {**out, "not_pulled": not_pulled} if not_pulled else out
+
+
+def b10_units(tree: pathlib.Path, r: dict, i: int, host: str, unpulled: bool) -> list[dict]:
+    """Round 30: JOB-DONE.json's list of a complete B10 job's units (one per evaluation point), kept in plan.json for
+    the judge check (judge_required_units). Each names a plain path under the run folder and its COMPLETE.json
+    SHA-256, and that COMPLETE.json is in the pulled tree with that SHA-256 (not checked for a job an unpulled
+    outputs decision names); no unit twice."""
+    units = r.get("units")
+    if not isinstance(units, list) or not units:
+        fail(f"{host}: job {i}'s units list in JOB-DONE.json is empty or not a list")
+    out = []
+    for u in units:
+        rel, digest = (u.get("unit"), u.get("complete_sha256")) if isinstance(u, dict) else (None, None)
+        if not (isinstance(rel, str) and rel and isinstance(digest, str) and SHA_RE.fullmatch(digest)) or \
+                pathlib.PurePosixPath(rel).is_absolute() or ".." in pathlib.PurePosixPath(rel).parts:
+            fail(f"{host}: job {i}'s units list names a unit without a plain path and a COMPLETE.json SHA-256")
+        complete = tree / rel / "COMPLETE.json"
+        if not unpulled and (not complete.is_file() or mac.sha(complete) != digest):
+            fail(f"{host}: job {i}'s unit {rel} is missing from the pulled tree or its COMPLETE.json differs")
+        out.append({"unit": rel, "complete_sha256": digest})
+    if len({u["complete_sha256"] for u in out}) != len(out):
+        fail(f"{host}: job {i}'s units list names one unit twice")
+    return out
 
 
 def unit_problem(tree: pathlib.Path, r: dict, i: int, host: str) -> None:
@@ -3154,6 +3498,10 @@ def main(argv: list[str]) -> int:
         r = sub.add_parser(name)
         r.add_argument("file")
         r.add_argument("--sha256", required=True)
+    rj = sub.add_parser("record-judges")                 # round 30 (R2): the block's judge-completion record
+    rj.add_argument("block")
+    rj.add_argument("file")
+    rj.add_argument("--sha256", required=True)
     a = ap.parse_args(argv)
     if a.command in simple:
         out = record_simple(simple[a.command], a.file, a.sha256)
@@ -3172,6 +3520,7 @@ def main(argv: list[str]) -> int:
                "record-block-a-not-run": lambda: record_block_a_not_run(a.file, a.sha256),
                "record-unpulled": lambda: record_unpulled(a.file, a.sha256),
                "record-rerun-payment": lambda: record_rerun_payment(a.file, a.sha256),
+               "record-judges": lambda: record_judges(a.block, a.file, a.sha256),
                "block-a-need": lambda: block_a_need(a.file, a.sha256)}[a.command]()
     print(json.dumps(out))
     return 0

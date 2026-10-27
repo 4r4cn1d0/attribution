@@ -46,7 +46,9 @@ Then each job, in order, one process per step under process_receipt.py (the comm
                  plan.json> --anchors <the packed anchor bank> --pin-code, then attributes (A1's bi-anchored cosine
                  per row; report only, the Jaccard and Kendall tau against the sealed A1 set are read on the Mac)
   cert_c1        engine make-job run-one --bank dev --replicate-of <R_1101's run folder> and run-one in the cert/ run
-                 root (J12, engine Y)
+                 root (J12, engine Y); before them the runner seeds C1's fresh registry with R_1101's registry line
+                 from the packed cert_spec input (``c1_registry_seed``; D2, kit round 30a), since engine Y's
+                 claim_trajectory refuses a replicate_of that is not a live start of the same trajectory there
   cert_c2        engine make-job run-one with the B+Qi recipe, train only, and run-one (J13, engine Y)
   cert_c3        engine make-job run-one --bank subsample-<SHA-256> --bank-file F and run-one (J14, engine Y); the
                  packed subsample file and the writer's record must hash to the job's plan.json pins (§22 point 2)
@@ -709,6 +711,77 @@ def resolve(argv: list[str], root: pathlib.Path, units: dict, sealed_doc: dict) 
     return out
 
 
+C1_SPEC = "cert_spec"           # the lead's record: R_1101's run-folder string (replicate_of) and its registry line
+
+
+def c1_key(job: dict, make: list[str], plan: dict) -> dict:
+    """C1's trajectory key as engine Y's jobs.trajectory_key builds it for C1's run-one (D2, kit round 30a), derived
+    from the job and the runner's own command and constants, never from cert_spec: the arm (edit-<SHA-256> of the
+    job's edit file, which sealed_check ties to the packed file), the job's seed, the split and role C1's make-job
+    passes, plan.json's prepared manifest (the one preflight_checks ties to the pod's prepared data, so the one the
+    engine reads; plan_tool copies it from stage1_rules.PREPARED_MANIFESTS) and recipe S's training identity
+    (stage1_rules.TRAINING_IDENTITY; plan_tool checks it under engine Y's own code at release)."""
+    return {"manifest_sha256": (plan.get("prepared") or {}).get(rules.PREPARED_NAME),
+            "training_identity": rules.TRAINING_IDENTITY, "split": make[make.index("--split") + 1],
+            "arm": engine_arm(job), "seed": job["seed"], "role": make[make.index("--role") + 1]}
+
+
+def c1_registry_seed(plan: dict, host: str, index: int, root: pathlib.Path, sealed_doc: dict) -> dict:
+    """D2 (the lead's ruling R1, kit round 30a): before C1's make-job and run-one, write R_1101's registry line (the
+    packed cert_spec's ``registry_line``) as the only line of C1's fresh registry (its run-one --registry), so engine
+    Y's claim_trajectory accepts --replicate-of (YB X-5: "the pod carries that unit's registry line and run-folder
+    string"). Refuses (Unrunnable: C1 is then crashed before any step, so before any model loads; later jobs are
+    not_started) unless: cert_spec is packed and its bytes hash to sealed-files.json; it holds ``replicate_of`` (a
+    non-empty string) and ``registry_line`` {key: object, run_dir: string}; registry_line.run_dir == replicate_of;
+    C1 runs recipe S; registry_line.key == c1_key (field by field, nothing more, nothing less); the registry file does
+    not exist yet. Writes exactly that one line in engine Y's JSONL form (sort_keys, ensure_ascii off, no NaN) with an
+    exclusive create, and returns ids and hashes only (no text is read: cert_spec holds ids and hashes)."""
+    job = plan["hosts"][host]["jobs"][index]
+    where = f"job {index} (cert_c1)"
+    inputs, files = inputs_of(sealed_doc), sealed_doc.get("files") or {}
+    rel = inputs.get(C1_SPEC)
+    if rel is None:
+        raise Unrunnable(f"{where}: the stage-1 input {C1_SPEC!r} is not packed")
+    if files.get(rel) is None or not (root / rel).is_file() or sha(root / rel) != files[rel]:
+        raise Unrunnable(f"{where}: cert_spec differs from its packed SHA-256 (sealed-files.json)")
+    try:
+        spec = json.loads((root / rel).read_text())
+    except (OSError, ValueError):
+        raise Unrunnable(f"{where}: cert_spec is not a JSON record") from None
+    spec = spec if isinstance(spec, dict) else {}
+    replicate_of, line = spec.get("replicate_of"), spec.get("registry_line")
+    if not isinstance(replicate_of, str) or not replicate_of:
+        raise Unrunnable(f"{where}: cert_spec names no replicate_of run folder")
+    if not isinstance(line, dict) or not isinstance(line.get("key"), dict) or not isinstance(line.get("run_dir"), str):
+        raise Unrunnable(f"{where}: cert_spec holds no registry_line with a key and a run_dir")
+    if line["run_dir"] != replicate_of:
+        raise Unrunnable(f"{where}: cert_spec's registry_line.run_dir is not its replicate_of")
+    commands = job_commands(plan, host, index, root, {}, sealed_doc)
+    make, run = commands[0][1], commands[-1][1]
+    if make[make.index("--recipe") + 1] != rules.RECIPE_S:
+        raise Unrunnable(f"{where}: C1 does not run recipe S, whose training identity C1's key pins")
+    want = c1_key(job, make, plan)
+    if line["key"] != want:
+        have = line["key"]
+        fields = sorted(k for k in set(want) | set(have) if k not in want or k not in have or have[k] != want[k])
+        raise Unrunnable(f"{where}: cert_spec's registry_line.key is not C1's trajectory key (fields {fields})")
+    registry = run[run.index("--registry") + 1]
+    target = root / registry
+    if target.exists() or target.is_symlink():
+        raise Unrunnable(f"{where}: {registry} exists already; C1's registry must be fresh")
+    try:
+        data = (json.dumps(line, sort_keys=True, ensure_ascii=False, allow_nan=False) + "\n").encode("utf-8")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with open(target, "xb") as handle:          # exclusive: an existing registry is never written into
+            handle.write(data)
+            handle.flush()
+            os.fsync(handle.fileno())
+    except (OSError, ValueError) as exc:
+        raise Unrunnable(f"{where}: C1's registry could not be written ({type(exc).__name__})") from None
+    return {"registry": registry, "cert_spec": rel, "cert_spec_sha256": files[rel], "replicate_of": replicate_of,
+            "line_sha256": hashlib.sha256(data).hexdigest()}
+
+
 STEP_STAGE = (("-make-job", "setup"), ("-calibrate", "training"), ("-run-one", "training"),
               ("-b10-regenerate", "training"), ("-lean", "training"), ("-oext", "greedy_generation"),
               ("-transfer", "greedy_generation"), ("-untuned", "greedy_generation"), ("-b10-run", "greedy_generation"),
@@ -973,10 +1046,15 @@ def main(argv=None) -> int:
                                                                 "deferred": list(range(i, len(jobs)))}, indent=2) + "\n")
             break
         started = time.monotonic()
+        seeded = None
         try:
+            if job["kind"] == "cert_c1":                 # D2 (kit round 30a): C1's registry, before its make-job
+                seeded = c1_registry_seed(plan, host, i, root, sealed_doc)
             result = run_job(plan, host, i, root, units, env, sealed_doc)
         except Unrunnable as exc:
             result = {"status": "crashed", "why": str(exc), "exits": {}, "steps": []}
+        if seeded is not None:
+            result["registry_seed"] = seeded
         ended = time.monotonic()
         ledger = write_ledger(root, i, job, host, engine_sha, started, ended, result.pop("steps", []))
         if result["status"] == "complete":
