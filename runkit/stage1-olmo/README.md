@@ -280,6 +280,47 @@ Gate B's judge files (`scripts/gate_b_mac_judges/`) are unchanged, byte for byte
   `replicate_of` is R_1101's run folder. Write FILE inside the pulled cert tree: `record-certificate` accepts only
   evidence there.
 
+### Round 31, 27 Oct (addendum §32 points 1-3, block B's judge gaps and two cert-pod gaps; the lead's K1-K6; `notes/kit-round-31.json`)
+
+Gate B's judge files are unchanged, byte for byte; every change is in this kit.
+
+- **A not-run route for any block's judge launch (K1).** Block A keeps `record-block-a-not-run`. For every other block:
+
+      $PY -B plan_tool.py record-judge-not-run FILE --sha256 H
+
+  FILE is exactly {kind: "stage1 judge not-run decision", block, judges: [harmbench|granite, ...], reason, utc,
+  recorded_by}. Each named judge needs a released judge launch in the block, no judge-completion record naming it and
+  no earlier decision; block A refuses (its own route). Accepted after the block's seal too (it adds a record and
+  changes no seal). The file is re-hashed at every use: keep it at its path, unchanged. `record-judges BLOCK` then
+  needs only the other judges; block completeness counts the decision, `seal.py block` lists it under
+  `judge_not_run` (judge and decision SHA-256; block A's judge decisions too), and `seal.py status` prints one line per
+  decision (block, judges, SHA-256, valid or INVALID).
+- **Block B's judged units (K2, §32 points 1-2).** A block's required units are its complete arm, a0_arm and ref_train
+  runs, each unit of its ref_eval and safe_lora jobs, and `stage1_rules.REJUDGED_PINS[block]`; block B's pins are
+  empty by rule (`REJUDGED_PINS = {"B": (), "A": (...)}`). A ref_train unit (recipe G or B+Qi) is the engine's
+  calibrate unit `round1/<seed>-a0-e1-a<n>` (job.json kind run-one, bank dev, target e1, arm a0): Gate B's enumeration
+  and its pod-side `_verify_unit` judge it as built (the launch's bundle is Gate B's). But Gate B's `write_files.py`
+  keeps one file per (judge, arm, seed, target) in a folder, and block B holds up to three a0 units per seed (a0_arm at
+  1105-1107, G and B+Qi at 1102-1107), so `judge_units_stage1.py write-files` labels the judge file of every unit that
+  plan.json records as a complete ref_train job's unit `ref-G` or `ref-bqi` (`--plan`, default the kit's plan.json;
+  without it the three a0 units refuse, exit 2). init-block of a block other than A refuses a judge launch whose
+  `arms` is below the judged units its jobs will produce (one per arm, a0_arm and ref_train run, one per ref_eval and
+  safe_lora point, plus the pins); block A keeps its plan's check.
+- **A resumed judge launch (K3): no change needed.** A launch resumed with `--resume-from tmp/judge-pod/<old tag>` (new
+  tag) seeds its pod cache from the old one, so its own result, fetched run record and cache cover every unit (tested
+  on Gate B's fake pod: 18 of 18 records, 2 resumed, complete). Record the final tag with `record-judges`; the old
+  tag's result is not needed (a record naming it refuses: exit 5, or its result differs).
+- **No label count printed (K4).** `judge_units_stage1.py launch -- bundle` prints the bundle record without any key
+  naming a label count (yes, no, unparsed, harm, identical: Granite's `known_answers.mac_yes` and the gate's rule
+  constants); `bundle-record.json` on disk is unchanged. `launch -- launch` prints no record (echo off, round 30).
+- **The finisher and moved hosts (K5, cert runbook D9).** A host that a deferral or requeue moved and that is not done
+  (a-5, a-6, a-7) counts as finished for the watch: not watched, no deadline from its cap, and "every planned host is
+  finished" no longer waits for it (the seal's `plan_tool.moved_hosts`).
+- **`launch.py`'s exit code (K6, D7).** It exits 4 after the log line `hosts-not-created` when a host it was given has
+  no `hosts/HOST/pod.json` at its end; 0 only when every host has one.
+- **Mutation runner.** `notes/run_mutants_b15.py SOURCE_ROOT SCRATCH OUT.json BASELINE|ALL|NEW|NEAR|ID,...` (baseline
+  first with the same command; killed only by a FAILED line with no ERROR line; see its module text).
+
 ## The gates (brief §4)
 
 - **G0 (before any pod, $0).** B15 built, verified and pinned at the S1 freeze. `orchestrate.py check-plan HOST` must

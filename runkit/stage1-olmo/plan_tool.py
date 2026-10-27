@@ -150,6 +150,13 @@ whole block and again at release:
   file per judge for each required unit: plan.json's arm jobs and B10 units plus rules.REJUDGED_PINS). For every
   block, not only A. A released judge launch with no record may be named by a not-run decision, also after block A's
   seal (a failed Granite is recorded so).
+- Round 31 (addendum §32 points 1-3): record-judge-not-run FILE --sha256 H, the lead's decision {kind: "stage1 judge
+  not-run decision", block, judges, reason, utc, recorded_by} for a released judge launch of any block but A (block A
+  keeps record-block-a-not-run), also after the block's seal (it changes no seal), re-hashed at every use; then
+  record-judges needs only the other judges, and block completeness, seal.py and seal.py status count and list it. A
+  block's judged units include its ref_train runs (rules.JUDGED_RUN_KINDS); block B has no re-judged pins
+  (rules.REJUDGED_PINS["B"] is empty). init-block of a block other than A refuses a judge launch over fewer units than
+  the judged units its jobs will produce (planned_judged_units; block A: its plan's check).
 """
 from __future__ import annotations
 
@@ -184,8 +191,10 @@ RECORD_KINDS = {"branch": "stage1 w1-18 branch record", "default_full": "stage1 
                 "not_run": "stage1 block-a not-run decision",       # round 3c (VP3b-3): record-block-a-not-run
                 "guard_off": rules.GUARD_OFF_KIND,                  # (E): record-guard-off, the user's decision
                 "unpulled": "stage1 unpulled outputs decision",     # §29 point 3: record-unpulled, the lead's
-                "rerun_payment": "stage1 user decision: pay re-runs beyond the contingency"}   # record-rerun-payment
+                "rerun_payment": "stage1 user decision: pay re-runs beyond the contingency",   # record-rerun-payment
+                "judge_not_run": "stage1 judge not-run decision"}   # round 31 (K1): record-judge-not-run
 UNPULLED_KEYS = ("kind", "host", "jobs", "reason", "utc", "recorded_by")
+JUDGE_NOT_RUN_KEYS = ("kind", "block", "judges", "reason", "utc", "recorded_by")   # round 31 (K1)
 RERUN_PAYMENT_KEYS = ("kind", "user_words", "block", "jobs", "amount_usd", "utc", "recorded_by")
 HELD_STATUSES = ("not_started", "crashed", "deferred")    # a job a move left behind (not re-run) keeps one of these
 C2_THRESHOLDS_JSON = json.dumps(rules.C2_THRESHOLDS, sort_keys=True)
@@ -734,9 +743,10 @@ def block_complete(plan: dict, block: str) -> bool:
     if block == "A" and block_a_open(plan):           # round 3c (VP3b-3): every job the block-A plan requires
         return False
     released_judges = {x["judge"]["judge"] for k, x in enumerate(b["launches"]) if x.get("judge") and k < b["released"]}
-    if block != "A" and released_judges and not released_judges <= judges_done(plan, block):
-        return False                                  # round 30 (R2): a judge launch is done only with its valid record
-    return True
+    if block != "A" and released_judges and \
+            not released_judges <= judges_done(plan, block) | set(judge_not_run(plan, block)):
+        return False                     # round 30 (R2): a judge launch is done only with its valid record;
+    return True                          # round 31 (K1): or when a recorded judge not-run decision names it
 
 
 def gate_order(plan: dict, block: str) -> None:
@@ -1950,15 +1960,111 @@ def judges_done(plan: dict, block: str) -> set:
 
 
 def judges_needed(plan: dict, block: str) -> list[str]:
-    """The judges of the block's judge launches that a recorded not-run decision does not name (block A only has
-    that route): the judges whose files seal.py requires."""
-    decided = block_a_not_run(plan) if block == "A" else {}
+    """The judges of the block's judge launches that a recorded not-run decision does not name (judges_decided: block
+    A's record-block-a-not-run, round 31 (K1) every other block's record-judge-not-run): the judges whose files
+    seal.py requires."""
+    decided = judges_decided(plan, block)
     out = []
     for x in plan["blocks"][block]["launches"]:
         j = x.get("judge")
-        if j and j["judge"] not in out and job_label("judge", j["judge"]) not in decided:
+        if j and j["judge"] not in out and j["judge"] not in decided:
             out.append(j["judge"])
     return out
+
+
+# ----- round 31 (K1; addendum §32 point 3): a not-run route for a released judge launch of any block ---------------
+# Block A keeps its own route (record-block-a-not-run names "judge harmbench" or "judge granite"). Every other block's
+# released judge launch that will not be recorded done (a failed Granite, a launch that cannot be paid again) is named
+# by the lead's judge not-run decision; record-judges then needs only the other judges, and block completeness, the seal
+# and seal.py status count and list the decision. Accepted after the block's seal too: it adds a record and changes no
+# seal (the seal's own judge check ran when it was written).
+
+def judge_not_run_problem(e: dict) -> str | None:
+    """Why a recorded judge not-run decision no longer holds (its file at the recorded path re-hashed, and the recorded
+    block, judges and reason equal to the file's), or None."""
+    p = pathlib.Path(str(e.get("path")))
+    try:
+        on_disk = json.loads(p.read_text()) if p.is_file() else None
+    except ValueError:
+        on_disk = None
+    if not isinstance(on_disk, dict) or mac.sha(p) != e.get("sha256") or on_disk.get("block") != e.get("block") or \
+            on_disk.get("judges") != e.get("judges") or on_disk.get("reason") != e.get("reason"):
+        return ("a recorded judge not-run decision is missing or differs from its recorded SHA-256; it must stay at "
+                "its recorded path, unchanged")
+    return None
+
+
+def judge_not_run(plan: dict, block: str) -> dict:
+    """K1: judge -> the SHA-256 of the recorded judge not-run decision that names block BLOCK's judge launch of that
+    judge (record-judge-not-run; never block A). Each of the block's decisions is re-hashed at every use."""
+    out = {}
+    for e in (plan.get("records") or {}).get("judge_not_run") or []:
+        if e.get("block") != block:
+            continue
+        problem = judge_not_run_problem(e)
+        if problem:
+            fail(f"block {block}: {problem}")
+        for key in e["judges"]:
+            out[key] = e["sha256"]
+    return out
+
+
+def judges_decided(plan: dict, block: str) -> dict:
+    """judge -> the SHA-256 of the recorded decision naming the block's judge launch of that judge as not run: block
+    A's record-block-a-not-run ("judge harmbench", "judge granite"), every other block's record-judge-not-run (K1)."""
+    if block != "A":
+        return judge_not_run(plan, block)
+    decided = block_a_not_run(plan)
+    return {k: decided[job_label("judge", k)] for k in rules.JUDGES if job_label("judge", k) in decided}
+
+
+def record_judge_not_run(path: str, sha256: str) -> dict:
+    """record-judge-not-run FILE --sha256 H (round 31, K1): the lead's decision {kind: "stage1 judge not-run decision",
+    block, judges: [harmbench|granite, ...], reason, utc, recorded_by} that the block's released judge launch of each
+    named judge will not be recorded done. Each judge must have a released judge launch in the block, no judge-
+    completion record naming it, and no earlier decision naming it. Block A refuses (its route is
+    record-block-a-not-run). Accepted after the block's seal: it adds a record and changes no seal. The file is
+    re-hashed at every use (judge_not_run)."""
+    plan = load()
+    doc, ref = file_record(path, sha256)
+    ref.update(path=str(pathlib.Path(path).resolve()))   # re-hashed at every use, from any directory
+    judges = doc.get("judges")
+    if set(doc) != set(JUDGE_NOT_RUN_KEYS) or doc.get("kind") != RECORD_KINDS["judge_not_run"] or \
+            not isinstance(judges, list) or not judges or len(set(map(str, judges))) != len(judges) or \
+            not all(isinstance(j, str) and j in rules.JUDGES for j in judges):
+        fail("not a judge not-run decision: exactly {kind: 'stage1 judge not-run decision', block, judges: [distinct "
+             f"judges among {list(rules.JUDGES)}], reason, utc, recorded_by}}")
+    if not all(isinstance(doc[k], str) and doc[k].strip() for k in ("block", "reason", "utc", "recorded_by")):
+        fail("a judge not-run decision needs its block, reason, utc and recorded_by")
+    _utc_past(doc["utc"], "the judge not-run decision")
+    block = doc["block"]
+    if block == "A":
+        fail("block A's judge launches are named by record-block-a-not-run ('judge harmbench', 'judge granite')")
+    if block not in plan["blocks"]:
+        fail(f"block {block} is not planned")
+    b = plan["blocks"][block]
+    planned = {x["judge"]["judge"] for x in b["launches"] if x.get("judge")}
+    released = {x["judge"]["judge"] for k, x in enumerate(b["launches"]) if x.get("judge") and k < b["released"]}
+    recorded = set((((records(plan).get("judges") or {}).get(block) or {}).get("judges") or {}))
+    decided = judge_not_run(plan, block)
+    for key in judges:
+        if key not in planned:
+            fail(f"block {block} has no {key} judge launch")
+        if key not in released:
+            fail(f"block {block}'s {key} judge launch is not released: a not-run decision names a released judge "
+                 "launch only")
+        if key in recorded:
+            fail(f"'judge {key}' has a judge-completion record (it ran); a not-run decision cannot name it")
+        if key in decided:
+            fail(f"'judge {key}' is already named by a recorded judge not-run decision")
+    entry = {**ref, "block": block, "judges": list(judges), "reason": doc["reason"], "utc": mac.utc()}
+    records(plan).setdefault("judge_not_run", []).append(entry)
+    mac.save_plan(plan)
+    mac.operator_action({"action": "record-judge-not-run", "block": block, "sha256": ref["sha256"],
+                         "judges": list(judges)})
+    return {"recorded": "judge_not_run", "block": block, "sha256": ref["sha256"], "judges": list(judges),
+            "needed": judges_needed(plan, block), "complete": block_complete(plan, block),
+            "sealed": block in (plan.get("seals") or {})}
 
 
 def record_judges(block: str, path: str, sha256: str) -> dict:
@@ -1981,12 +2087,12 @@ def record_judges(block: str, path: str, sha256: str) -> dict:
         fail(f"block {block} already has a judge-completion record")
     b = plan["blocks"][block]
     released = {x["judge"]["judge"] for k, x in enumerate(b["launches"]) if x.get("judge") and k < b["released"]}
-    decided = block_a_not_run(plan) if block == "A" else {}
+    decided = judges_decided(plan, block)            # round 31 (K1): every block's not-run route
     required = judge_required_units(plan, block)
     for key, e in sorted(doc["judges"].items()):
         if key not in released:
             fail(f"block {block} has no released {key} judge launch")
-        if job_label("judge", key) in decided:
+        if key in decided:
             fail(f"'judge {key}' is named by a recorded not-run decision")
         problem = judge_result_problem(key, e, required)
         if problem:
@@ -2106,7 +2212,25 @@ def build_block(plan: dict, block: str, spec: dict) -> dict:
             records_k.append(host_record(plan, block, role, jobs, None, k))
             all_jobs += jobs
         out.append({"hosts": records_k})
+    if block != "A":                     # round 31 (K2); block A: its plan's own check (check_block_a_content)
+        units = planned_judged_units(block, all_jobs)
+        for k, launch in enumerate(out):
+            j = launch.get("judge")
+            if j and j["arms"] < units:
+                fail(f"launch {k}: the {j['judge']} judge launch is over {j['arms']} units, below the {units} judged "
+                     f"units block {block}'s jobs will produce (arm, a0_arm and ref_train runs, one per ref_eval and "
+                     "safe_lora point, and the block's re-judged pins; addendum §32 point 1)")
     return {"launches": out, "jobs": all_jobs, "branch": branch, "deal": deal_pods, "reused": sorted(reused)}
+
+
+def planned_judged_units(block: str, jobs: list[dict]) -> int:
+    """Round 31 (K2; addendum §32 point 1): the number of judged units a block's planned jobs will produce, the units
+    judge_required_units requires once they ran: one per arm, a0_arm and ref_train run (rules.JUDGED_RUN_KINDS), one
+    per evaluation point of each ref_eval and safe_lora job (rules.JUDGED_B10_KINDS; B10 writes one unit per point),
+    plus the block's pinned re-judged units (rules.REJUDGED_PINS; none for block B)."""
+    n = sum(1 for j in jobs if j["kind"] in rules.JUDGED_RUN_KINDS)
+    n += sum(len(j.get("points") or ()) for j in jobs if j["kind"] in rules.JUDGED_B10_KINDS)
+    return n + len(rules.REJUDGED_PINS.get(block, ()))
 
 
 def need_launches(built: dict) -> list:
@@ -3494,7 +3618,7 @@ def main(argv: list[str]) -> int:
     wt.add_argument("--out", required=True)
     wt.add_argument("--recorded-by", required=True)
     for name in ("record-branch", "import-reference", "c2-label", "record-block-a-plan", "record-block-a-replan",
-                 "record-block-a-not-run", "record-unpulled", "record-rerun-payment", *simple):
+                 "record-block-a-not-run", "record-unpulled", "record-rerun-payment", "record-judge-not-run", *simple):
         r = sub.add_parser(name)
         r.add_argument("file")
         r.add_argument("--sha256", required=True)
@@ -3521,6 +3645,7 @@ def main(argv: list[str]) -> int:
                "record-unpulled": lambda: record_unpulled(a.file, a.sha256),
                "record-rerun-payment": lambda: record_rerun_payment(a.file, a.sha256),
                "record-judges": lambda: record_judges(a.block, a.file, a.sha256),
+               "record-judge-not-run": lambda: record_judge_not_run(a.file, a.sha256),
                "block-a-need": lambda: block_a_need(a.file, a.sha256)}[a.command]()
     print(json.dumps(out))
     return 0

@@ -6,9 +6,10 @@
                                                               launcher's run log not echoed, and (with a B10 unit)
                                                               the stage-1 pod bundle.py shipped
     python3.11 judge_units_stage1.py write-files --judge J --cache C --out DIR (--run-root R)... (--unit U)...
-                                     [--complete H]...        Gate B's write_files.write_all inside the stage-1
-                                                              enumeration; prints file, unit, status and missing,
-                                                              stale and extra counts only
+                                     [--complete H]... [--plan P]   Gate B's write_files.write_all inside the stage-1
+                                                              enumeration, a ref_train unit labelled from plan.json;
+                                                              prints file, unit, status and missing, stale and extra
+                                                              counts only
     python3.11 judge_units_stage1.py result TAG [--root DIR] [--hosts DIR]   the judge launch's whitelisted result
                                                               fields, pod minutes and cost, and its record entry
     python3.11 judge_units_stage1.py check-devices --contrast NAME=LABEL,LABEL,... --record LABEL=RUN_RECORD ...
@@ -27,6 +28,21 @@ is here and in judge_pod_stage1/bundle.py:
   run record, pod exit, GPU, complete, answers judged, records, number of units, refusal, tokenizer, the Granite
   gate's pass), the pod minutes and cost from the host record, and the entry plan_tool.py record-judges takes (tag,
   result, run record and bundle SHA-256, exit, judged, complete; Granite: known_answer_passed).
+
+Round 31 (addendum §32 points 1 and 3; K2, K4):
+- ``write-files`` labels a trained reference's unit. A ref_train job (recipe G or B+Qi) runs the engine's calibrate
+  --arms a0, so its unit is an ordinary engine unit (round1/<seed>-a0-e1-a<n>: job.json kind run-one, evaluate_bank
+  dev, target_checkpoint e1, arm a0) that Gate B's enumeration and pod-side _verify_unit judge unchanged (the launch
+  keeps job.json's arm, so its bundle is Gate B's). But block B holds up to three a0 units per seed (its a0_arm at
+  1105-1107, G and B+Qi at 1102-1107, on separate pods), and Gate B's write_files.py keeps one file per (judge, arm,
+  seed, target) in one folder (a second refuses, exit 2). So write-files gives every unit that plan.json (--plan,
+  default the kit's plan.json when it exists) records as a complete ref_train job's unit, by its COMPLETE.json
+  SHA-256, the arm label "ref-<recipe>" (ref-G, ref-bqi) in its judge file and index entry; a unit so named whose
+  job.json is not an engine a0 unit refuses. Units plan.json does not name keep job.json's arm (block A as before).
+- ``launch -- bundle`` (the dry check) prints the launcher's bundle record without any count of labels: every key
+  whose "_"-separated words include yes, no, unparsed, harm or identical is dropped at any depth (the Granite
+  known_answers' mac_yes, Gate B's Mac count of the reference unit's "yes" labels; its rule constants go too); the
+  bundle-record.json on disk is unchanged. ``launch -- launch`` prints no record (its run log's echo is off, round 30).
 
 Gate B's judges enumerate units with scripts/gate_b_mac_judges/units.py, which judges only engine run-one units and
 skips everything else. That file is Gate B's and stays unchanged. This wrapper adds the B10 evaluation units (job.json
@@ -53,8 +69,10 @@ import dataclasses
 import datetime as dt
 import hashlib
 import importlib.util
+import io
 import json
 import pathlib
+import re
 import sys
 
 sys.dont_write_bytecode = True
@@ -65,6 +83,11 @@ POD_BUNDLE = HERE / "judge_pod_stage1" / "bundle.py"   # round 30: shipped as to
 GATE_B_BUNDLE_AS = "tool/pod/bundle_gateb.py"            # Gate B's pod/bundle.py beside it, unchanged
 JUDGE_POD = ROOT / "tmp" / "judge-pod"                   # judge_pod.JUDGE_POD_ROOT: tmp/judge-pod/TAG
 JUDGE_HOSTS = ROOT / "tmp" / "family-probe-judge" / "hosts"   # podhost.JUDGE_HOSTS: judge-TAG/pod.json
+PLAN = HERE / "plan.json"                                # round 31 (K2): write-files reads the ref_train units here
+REF_TRAIN_KIND, ENGINE_A0 = "ref_train", "a0"            # a ref_train unit is the engine's a0 calibration unit
+RECIPE_RE = re.compile(r"[A-Za-z0-9]+")
+HEX64 = re.compile(r"[0-9a-f]{64}")
+LABEL_TOKENS = frozenset({"yes", "no", "unparsed", "harm", "identical"})   # K4: words of a label-count key
 _GATE_B = {}                                     # Gate B's own enumerate_units while stage1_enumeration patches it
 
 
@@ -264,11 +287,97 @@ def stage1_launcher(module, quiet: bool = True):
 
 def run_launcher(module, rest: list, host=None, quiet: bool = True, **launch_kw) -> int:
     """judge_pod's command line (``bundle`` or ``launch``) under stage1_launcher. ``host`` and ``launch_kw`` (clock,
-    sleep, signals) are the tests' fake pod; the command line never passes them."""
+    sleep, signals) are the tests' fake pod; the command line never passes them. Round 31 (K4): ``bundle`` prints its
+    record through drop_label_counts (print_bundle_record)."""
     with stage1_launcher(module, quiet):
         if host is None and not launch_kw:
+            if rest[:1] == ["bundle"]:
+                return print_bundle_record(module, rest)
             return module.main(rest)
         return module.launch(module.parser().parse_args(rest), host=host, **launch_kw)
+
+
+def drop_label_counts(value):
+    """K4: ``value`` without any key that names a count of labels, at any depth: a key whose "_"-separated words
+    include yes, no, unparsed, harm or identical (mac_yes, pod_yes, delta_yes, yes, unparsed, harm, and the gate's
+    rule constants max_abs_delta_yes and min_identical)."""
+    if isinstance(value, dict):
+        return {k: drop_label_counts(v) for k, v in value.items()
+                if not (isinstance(k, str) and set(k.lower().split("_")) & LABEL_TOKENS)}
+    if isinstance(value, list):
+        return [drop_label_counts(v) for v in value]
+    return value
+
+
+def print_bundle_record(module, rest: list) -> int:
+    """K4: judge_pod's ``bundle`` with its printed record (stdout) caught and printed again through drop_label_counts;
+    anything printed that is not one JSON object becomes a note. Its exit code and every file it writes (the bundle,
+    bundle-record.json) are judge_pod's, unchanged; its refusals go to stderr as before."""
+    caught = io.StringIO()
+    with contextlib.redirect_stdout(caught):
+        code = module.main(rest)
+    text = caught.getvalue()
+    if text.strip():
+        try:
+            doc = json.loads(text)
+        except ValueError:
+            doc = None
+        shown = drop_label_counts(doc) if isinstance(doc, dict) else \
+            {"note": "the launcher printed something other than its bundle record; not shown"}
+        print(json.dumps(shown, indent=1, sort_keys=True), flush=True)
+    return code
+
+
+def ref_train_labels(plan: dict) -> dict:
+    """K2: COMPLETE.json SHA-256 -> "ref-<recipe>" for the unit of every complete, pulled ref_train job in plan.json
+    (record-done records its unit's COMPLETE.json SHA-256); a ref_train job recorded complete without one refuses."""
+    units = gate_b_units()
+    out = {}
+    hosts = plan.get("hosts") if isinstance(plan, dict) else None
+    for host, h in sorted((hosts or {}).items()):
+        for i, j in enumerate((h or {}).get("jobs") or []):
+            if not isinstance(j, dict) or j.get("kind") != REF_TRAIN_KIND or j.get("status") != "complete" or \
+                    j.get("pulled") is False:
+                continue
+            digest, recipe = j.get("complete_sha256"), j.get("recipe")
+            if not (isinstance(digest, str) and HEX64.fullmatch(digest) and isinstance(recipe, str)
+                    and RECIPE_RE.fullmatch(recipe)):
+                raise units.Refusal(f"plan.json: {host} job {i} (ref_train) is complete without a COMPLETE.json "
+                                    "SHA-256 and a recipe")
+            out[digest] = f"ref-{recipe}"
+    return out
+
+
+def label_ref_train(found: list, labels: dict) -> list:
+    """K2: the found units, each one ``labels`` names (by COMPLETE.json SHA-256) with that arm label in place of
+    job.json's; such a unit must be an engine a0 unit (kind run-one, arm a0), else it refuses."""
+    units = gate_b_units()
+    out = []
+    for u in found:
+        label = labels.get(u.complete_sha256)
+        if label is None:
+            out.append(u)
+            continue
+        if u.kind != "run-one" or u.arm != ENGINE_A0:
+            raise units.Refusal(f"{u.label}: plan.json records it as a ref_train unit, but its job.json is not an "
+                                "engine a0 unit (kind run-one, arm a0)")
+        out.append(dataclasses.replace(u, arm=label))
+    return out
+
+
+def plan_labels(plan_path) -> dict:
+    """K2: the ref_train labels of ``plan_path`` (None: the kit's plan.json when it exists, else none)."""
+    units = gate_b_units()
+    path = pathlib.Path(plan_path) if plan_path is not None else (PLAN if PLAN.is_file() else None)
+    if path is None:
+        return {}
+    if not path.is_file():
+        raise units.Refusal(f"no plan file {path}")
+    try:
+        doc = json.loads(path.read_text())
+    except ValueError:
+        raise units.Refusal(f"{path.name}: not JSON") from None
+    return ref_train_labels(doc)
 
 
 EMIT_KEEP, EMIT_COUNTS, INDEX_KEEP = ("file", "unit", "status"), ("missing", "stale", "extra"), \
@@ -305,6 +414,8 @@ def write_files_main(argv: list) -> int:
     ap.add_argument("--cache", type=pathlib.Path, required=True)
     ap.add_argument("--out", type=pathlib.Path, required=True)
     ap.add_argument("--complete", action="append", default=[], metavar="COMPLETE_SHA256")
+    ap.add_argument("--plan", type=pathlib.Path, default=None,
+                    help="the kit's plan.json, for the ref_train labels (default: the kit's, when it exists)")
     units.add_unit_arguments(ap)
     a = ap.parse_args(argv)
     try:
@@ -313,8 +424,10 @@ def write_files_main(argv: list) -> int:
             raise units.Refusal(f"--complete {bad[0][:16]!r}: expected 64 lowercase hex characters")
         if not a.cache.is_file():
             raise units.Refusal(f"no cache file {a.cache}")
+        labels = plan_labels(a.plan)                  # round 31 (K2): ref_train units, by COMPLETE.json SHA-256
         with stage1_enumeration():
             found, _ = units.units_from_args(a)
+        found = label_ref_train(found, labels)
         cache = wf.Cache(a.cache, wf.JUDGES[a.judge]["identity"])
         if cache.undecodable:
             print(json.dumps({"undecodable_cache_lines": cache.undecodable}))

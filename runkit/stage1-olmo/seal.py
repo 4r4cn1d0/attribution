@@ -18,8 +18,11 @@ at its SHA-256, no unindexed top-level judge-named file (subfolders such as pods
 per judge for each required unit, keyed by COMPLETE.json SHA-256 (plan_tool.judge_files_check: plan.json's arm jobs
 and B10 units plus the block's pinned re-judged units). The seal lists the record's and the index's SHA-256
 ("judge_record"); every file under judges/BLOCK/ is hashed as sealed. ``status`` shows each judge-completion record
-(tags, exits, answers judged, hashes) and whether it is valid now. Round 30 (R6): a block host that a deferral or
-requeue moved and that is not done (a-5, a-6, a-7: setup failed, never pulled) is skipped, as block_complete skips
+(tags, exits, answers judged, hashes) and whether it is valid now. Round 31 (K1): a released judge launch that a
+recorded judge not-run decision names (record-block-a-not-run for block A, record-judge-not-run for every other block)
+is not needed; the seal lists the decisions under "judge_not_run" (judge and decision SHA-256), and ``status`` prints
+one line per record-judge-not-run decision (block, judges, SHA-256, valid or INVALID). Round 30 (R6): a block host
+that a deferral or requeue moved and that is not done (a-5, a-6, a-7: setup failed, never pulled) is skipped, as block_complete skips
 it, and listed under "moved" with its targets (its pulled tree, if any, is still hashed); an unmoved host that is not
 done still refuses. (R7: ``status`` ends a pod's time at its first confirmed stop or finished.json.)
 ``block`` refuses a block that is not complete (every launch released, judge launches included, every host recorded
@@ -106,6 +109,8 @@ def seal_block(block: str) -> dict:
     record["moved"] = moved                       # round 30 (R6): moved and never done; its jobs ran on its targets
     record["judge_record"] = None if judge_check is None else {   # round 30 (R3): hashes and counts only
         k: judge_check[k] for k in ("record_sha256", "index_sha256", "judges", "units", "files", "other_files")}
+    record["judge_not_run"] = [{"judge": key, "decision_sha256": digest}   # round 31 (K1): every block's route
+                               for key, digest in sorted(plan_tool.judges_decided(plan, block).items())]
     SEALS.mkdir(exist_ok=True)
     out.write_text(json.dumps(record, indent=1, sort_keys=True) + "\n")
     digest = mac.sha(out)
@@ -184,6 +189,10 @@ def status() -> list[str]:
         rows.append(f"seal {block}: {s['files']} files ({s['sealed']} sealed), sha256 {s['sha256']}")
     for block, entry in sorted(((plan.get("records") or {}).get("judges") or {}).items()):
         rows.append(judge_status(plan, block, entry))
+    for e in (plan.get("records") or {}).get("judge_not_run") or []:     # round 31 (K1)
+        problem = plan_tool.judge_not_run_problem(e)
+        rows.append(f"judges {e.get('block')} not run: {', '.join(e.get('judges') or [])} by decision "
+                    f"{str(e.get('sha256'))[:16]}; {'INVALID: ' + problem if problem else 'valid'}")
     rows.append(f"estimated pod cost so far (this stage-1 kit): ${cost:.2f}")
     return rows
 

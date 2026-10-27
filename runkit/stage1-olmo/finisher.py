@@ -19,6 +19,10 @@ Review fixes (8 October):
   approved extension), or for a host without a pod yet the watch's start plus launch.py's 2 h plus its cap; it never
   ends while a stop is pending. The deadline is recomputed every round;
 - the finisher removes the token variables from its own environment when it starts (it never needs them).
+Round 31 (K5; cert runbook D9): a host that a deferral or requeue moved (plan_tool.moved_hosts, as seal.py) and that is
+not recorded done (a-5, a-6, a-7: setup failed, stopped, never pulled; a requeue needs a confirmed stop) never gets a
+finished.json. The watch treats it as finished: it is not watched, it sets no deadline, and "every planned host is
+finished" no longer waits for it.
 """
 
 from __future__ import annotations
@@ -38,6 +42,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import stage1_rules as rules  # noqa: E402
 import secret_scan  # noqa: E402
+import plan_tool  # noqa: E402  (round 31, K5: moved_hosts, the seal's helper)
 
 REMOTE = "/workspace/attribution-headroom"
 INTERVAL = 180                      # seconds between rounds; the first argument overrides it
@@ -74,13 +79,25 @@ def host_stop(host: str) -> dt.datetime | None:
     return stop
 
 
+def moved_undone(p: dict) -> set:
+    """Round 31 (K5): the hosts a deferral or requeue moved (plan_tool.moved_hosts) that are not recorded done: finished
+    for the watch (they never get a finished.json)."""
+    return {host for host in plan_tool.moved_hosts(p) if not (p["hosts"].get(host) or {}).get("done")}
+
+
+def finished_for_watch(p: dict, host: str) -> bool:
+    return (HERE / "hosts" / host / "finished.json").exists() or host in moved_undone(p)
+
+
 def deadline(p: dict, started: dt.datetime) -> dt.datetime:
-    """3 h past every host's latest stop (review fix 13)."""
-    ends = []
+    """3 h past every host's latest stop (review fix 13); a moved, not-done host sets none (K5)."""
+    ends, skip = [], moved_undone(p)
     for host, job in p["hosts"].items():
+        if host in skip:
+            continue
         stop = host_stop(host)
         ends.append(stop if stop is not None else started + dt.timedelta(hours=LAUNCH_HOURS + job["cap_hours"]))
-    return max(ends) + dt.timedelta(hours=AFTER_STOP_HOURS)
+    return max(ends, default=started) + dt.timedelta(hours=AFTER_STOP_HOURS)
 
 
 def pull_failed(host: str) -> int:
@@ -95,8 +112,10 @@ def plan() -> dict:
     return json.loads((HERE / "plan.json").read_text())
 
 
-def watched() -> list[str]:
-    return sorted(p.parent.name for p in (HERE / "hosts").glob("*/pod.json") if not (p.parent / "finished.json").exists())
+def watched(p: dict | None = None) -> list[str]:
+    skip = moved_undone(p) if p is not None else set()            # K5: a moved, not-done host is not watched
+    return sorted(q.parent.name for q in (HERE / "hosts").glob("*/pod.json")
+                  if not (q.parent / "finished.json").exists() and q.parent.name not in skip)
 
 
 def stops_pending() -> list[str]:
@@ -216,9 +235,10 @@ def main() -> int:
     started = dt.datetime.now(dt.timezone.utc)
     while dt.datetime.now(dt.timezone.utc) < deadline(plan(), started) or stops_pending():
         retry_stops()
-        if all((HERE / "hosts" / h / "finished.json").exists() for h in plan()["hosts"]) and not stops_pending():
+        p = plan()
+        if all(finished_for_watch(p, h) for h in p["hosts"]) and not stops_pending():
             log(event="every planned host is finished"); return 0
-        hosts = watched()
+        hosts = watched(p)
         ready = []
         for host in hosts:
             if not any((HERE / "hosts" / host / "orchestrate.jsonl").read_text().count(e) for e in ("job-started",)) \

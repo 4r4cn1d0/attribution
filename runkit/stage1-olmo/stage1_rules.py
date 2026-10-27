@@ -146,8 +146,14 @@ JUDGE_ENTRY_KEYS = {"harmbench": ("tag", "result_sha256", "run_record_sha256", "
                                 "complete", "known_answer_passed")}
 # R3: the units a block's judge files must cover. plan.json records the COMPLETE.json SHA-256 of every complete job of
 # these kinds (the block tables' arm runs; B10's evaluation units, one per point, from JOB-DONE.json's units list),
-# plus the block's pinned re-judged units below.
-JUDGED_RUN_KINDS = ("arm", "a0_arm")
+# plus the block's pinned re-judged units below. Round 31 (K2; addendum §32 point 1): a trained reference (ref_train,
+# recipe G or B+Qi) is judged too: its unit is the engine's calibrate unit round1/<seed>-a0-e1-a<n> (job.json kind
+# run-one, evaluate_bank dev, target_checkpoint e1, arm a0: the engine's arm; the kit's arm is the recipe), which
+# Gate B's Mac enumeration and pod-side bundle._verify_unit accept unchanged. Block B holds up to three such units per
+# seed (a0_arm at 1105-1107, G and B+Qi at 1102-1107), and Gate B's write_files.py allows one judge file per (judge,
+# arm, seed, target) in one folder, so judge_units_stage1.py write-files labels a ref_train unit's judge file
+# "ref-<recipe>" (ref_train_labels, from plan.json).
+JUDGED_RUN_KINDS = ("arm", "a0_arm", "ref_train")
 JUDGED_B10_KINDS = ("ref_eval", "safe_lora")
 B10_UNIT_KINDS = ("b10_certify", "ref_eval", "safe_lora")   # JOB-DONE.json lists each of their units (record-done keeps it)
 # Block A's 7 re-judged units (§17 Q14, §25 point 2; plan_tool.REJUDGED_UNITS counts them): the 6 reused a0/R SOURCE
@@ -155,8 +161,10 @@ B10_UNIT_KINDS = ("b10_certify", "ref_eval", "safe_lora")   # JOB-DONE.json list
 # LN-12 regenerations have no answers) and theta0's untuned dev-bank unit (scripts/stage1/settings/
 # limits_overrefusal_checks.json "untuned"; scripts/stage1_s1/settings/eval_adapter.json untuned_unit). M (round 30,
 # 27 Oct 2026 10:27 UTC): shasum -a 256 of each COMPLETE.json and job.json on disk equals these pins (no answer file
-# opened). Paths are relative to the repository. Block B has no pinned re-judged unit (round 30's open point).
-REJUDGED_PINS = {"A": (
+# opened). Paths are relative to the repository. Round 31 (K2; addendum §32 point 2): block B has no re-judged unit by
+# rule (Gate B called no extension, so R_4 and R_5 are trained, not reused; every block-B unit is new): its entry is
+# empty, explicitly.
+REJUDGED_PINS = {"B": (), "A": (
     {"name": "a0 1101 (Gate A)", "arm": "a0", "seed": 1101, "target": "e1",
      "path": "tmp/family-probe-olmo2-1b/retrieved/olmo2-1b-1101/tree/round1/1101-a0-e1-a1",
      "complete_sha256": "8f0fa83a42ccc5edc54a5ee26ed63f49448c36d30adbd64e28b655678afee4c9",

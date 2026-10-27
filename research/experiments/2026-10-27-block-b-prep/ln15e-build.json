@@ -1,0 +1,120 @@
+{
+  "kind": "stage1 builder notes",
+  "version": 2,
+  "build": "LN-15e's Mac reading in its fallback form (addendum section 32 point 5); builder for lead GI VII; revision 2 applies the lead's ruling on open point 1 (27 Oct)",
+  "utc": "2026-10-27T14:59:17Z",
+  "base_commit": "0e0cdca8645ab531abd483032105e4044a5594eb",
+  "lead_ruling_applied": "Include every figure that REV4 section 9.3 (and the stage-1 pre-registration's section 9.3) quotes from the pinned a1_variants.json, copied exactly, beside the three ledger fields; cite per field the section that quotes it; keep pins, refusals and no overwrite; tests for each new field (copied exactly; missing refuses); keep the mutants killing, and add one if a new field could be dropped silently.",
+  "changed_files": [
+    {"path": "scripts/stage1/report_ln15e.py", "base_sha256": null, "revision_1_sha256": "f225628ab88b9b596d302b69d4e44ced90078c82143795c0e2e16ea04c56309a", "new_sha256": "d86494e58d8449c370f6a38e2f409fdb8da6c2a50e07495b822f9c3501b63e09", "note": "new file; revision 2 adds four figures and their citations"},
+    {"path": "scripts/stage1/tests/test_report_ln15e.py", "base_sha256": null, "revision_1_sha256": "8d356760a224ed007a807dcd2751adfd5508861ca296636337d506ae95df100b", "new_sha256": "2c7f692cfab695b9f7a724c9510952d400e2bdab57612cf5fdfa3a4b91ec8d6f", "note": "new file; 44 tests (37 in revision 1)"},
+    {"path": "scripts/stage1/mutation/mutants_ln15e.json", "base_sha256": null, "revision_1_sha256": "fa3120e859f59e3b2cd3c0e21df76e4136c8f2fa2eddbca0a8815c1c09c1e1a5", "new_sha256": "2c13f98a7a12918c708df2935a0864f5e7bc6f7aedfd24f01113c5ae3bbfd9e7", "note": "new file; 5 mutants (4 in revision 1)"},
+    {"path": "scripts/stage1/notes-ln15e.json", "base_sha256": null, "revision_1_sha256": "1ac5f04021521ab82045980222184f7c2695f66db2a5041bdbd0a01d8c5dcaee", "new_sha256": "this file", "note": "this report"}
+  ],
+  "unchanged_checked": [
+    {"path": "scripts/stage1/report_a1_variants.py", "sha256": "8a2af0521671c72bb87e941ef17b5ba40cb5e0cd36ecfd0d00c74c4d3aebf5a2", "note": "W1-pinned; equal to its blob at 0e0cdca (git show, read-only); not edited"}
+  ],
+  "figures": {
+    "rule": "every figure that section 9.3 item 3 of REV4 (and of DRAFT rev3, the same text) quotes from a1_variants.json; the first draft's section 9.3 item 2 names the Spearman rho and the q-e1 Jaccard without values and quotes no figure; each report figure carries quoted_in: [{text, as}] and the report carries quoted_in_files (the path of each quoting text)",
+    "fields": [
+      {"report_name": "spearman_q_e1", "source": "stability/spearman_q_e1", "real_value": 0.7711839772649296, "quoted_in": ["decision ledger, row FO-04 (0.771)", "REV4 9.3 item 3 (0.771)", "DRAFT rev3 9.3 item 3 (0.771)", "first draft 9.3 item 2 (named; no value)"]},
+      {"report_name": "rows", "source": "rows", "real_value": 4800, "quoted_in": ["REV4 9.3 item 3 (over the 4,800 per-row scores)", "DRAFT rev3 9.3 item 3"]},
+      {"report_name": "jaccard_top600_q_e1", "source": "stability/jaccard_top_q_e1", "real_value": 0.4336917562724014, "quoted_in": ["decision ledger, row FO-04 (0.434)", "REV4 9.3 item 3 (0.434)", "DRAFT rev3 9.3 item 3 (0.434)", "first draft 9.3 item 2 (named; no value)"]},
+      {"report_name": "jaccard_top600_a1_q", "source": "stability/jaccard_top_q_a1", "real_value": 0.6304347826086957, "quoted_in": ["REV4 9.3 item 3 (A1-q 0.630)", "DRAFT rev3 9.3 item 3 (A1-q 0.630)"], "new": true},
+      {"report_name": "jaccard_top600_a1_e1", "source": "stability/jaccard_top_e1_a1", "real_value": 0.7094017094017094, "quoted_in": ["REV4 9.3 item 3 (A1-e1 0.709)", "DRAFT rev3 9.3 item 3 (A1-e1 0.709)"], "new": true},
+      {"report_name": "v1_adam_against_a1", "source": "adam_preconditioned_v1/jaccard_top_with/a1", "real_value": 0.3143483023001095, "quoted_in": ["decision ledger, row FO-04 (0.314)", "REV4 9.3 item 3 (0.314; the claim-bound bullet: V1's overlap with A1's set 0.314)", "DRAFT rev3 9.3 item 3 (the same)"]},
+      {"report_name": "mean_identity_max_abs_difference", "source": "stability/mean_identity_max_abs_difference", "real_value": 0.0, "quoted_in": ["REV4 9.3 item 3 (the mean identity exact)", "DRAFT rev3 9.3 item 3 (the same)"], "new": true}
+    ],
+    "new_in_revision_2": ["rows", "jaccard_top600_a1_q", "jaccard_top600_a1_e1", "mean_identity_max_abs_difference"],
+    "not_quoted_so_not_copied": "a1_variants.json also holds V1's Jaccard with q and e1 and the Spearman rho of V1's unit means against A1's (0.190); section 9.3 quotes neither, so the report does not carry them",
+    "real_run_check": "each real value, rounded as REV4 prints it, appears in that field's REV4 quote (0.771, 4,800, 0.434, 0.630, 0.709, 0.314; the mean identity 0.0 = exact); checked on SCRATCH/ln15e/evidence/ln15e_report_tree_run2.json"
+  },
+  "items": [
+    {"item": "pins: a1_variants.json SHA-256 c1fa6615... and the section 29 decision record e897885c... (full hashes; unchanged in revision 2)",
+     "code": ["report_ln15e.py:49 A1_VARIANTS_SHA256", "report_ln15e.py:53 DECISION_SHA256", "report_ln15e.py:150 the FO-04 check", "report_ln15e.py:172 the decision check"],
+     "tests": ["test_the_pins_are_the_full_hashes_and_the_real_inputs_match_them (accept; the real files are hashed only)", "test_the_real_pins_refuse_synthetic_inputs (refuse)", "test_a_changed_input_refuses[a1], [decision] (refuse)"]},
+    {"item": "the decision record must name host a-2 and jobs 12-15 (and its kind); unchanged",
+     "code": ["report_ln15e.py:169-182 decision()"],
+     "tests": ["test_the_decision_must_name_a2_and_jobs_12_to_15 x4 (refuse)", "test_writes_the_fallback_report (accept)"]},
+    {"item": "FO-04's figures: the seven fields above, copied exactly, each with its quoting sections (revision 2)",
+     "code": ["report_ln15e.py:61-90 LEDGER, REV4, DRAFT3, DRAFT1, QUOTED_IN_FILES, FIGURES", "report_ln15e.py:147-166 fo04_figures()", "report_ln15e.py:211 quoted_in_files in the report"],
+     "tests": ["test_the_figures_are_copied_exactly (accept: all seven with hand values; equal value, type and repr, the same number text in the output; the quoting texts per field; quoted_in_files; the mean identity 0.0 is copied, not dropped)", "test_the_quoted_texts_name_each_figure_as_rounded_in_rev4 (each REV4 quote holds the figure as REV4 prints it; DRAFT rev3 quotes the same)", "test_the_a1_record_must_hold_the_figures x11 (refuse: V1 a1 missing, a null, a bool, A1-q missing, A1-e1 missing, the mean identity missing, the mean identity as a string, rows missing, stability missing, k 300, another kind)"]},
+    {"item": "the report: kind, fallback statement, both input SHA-256, utc, the script's SHA-256, canonical JSON; unchanged apart from the figures",
+     "code": ["report_ln15e.py:186-220 build_report()"],
+     "tests": ["test_writes_the_fallback_report (accept)"]},
+    {"item": "no unit and no rescore/ path, checked before any file is read; unchanged",
+     "code": ["report_ln15e.py:92-95 UNIT_PARTS, UNIT_NAME", "report_ln15e.py:109-123 names_a_unit(), check_path()", "report_ln15e.py:252 the argv scan"],
+     "tests": ["test_a_unit_or_rescore_input_refuses x10", "test_a_unit_folder_with_a_completion_marker_refuses", "test_a_link_into_rescore_refuses", "test_unit_arguments_refuse x5"]},
+    {"item": "never overwrites; not into the W1 folder; unchanged",
+     "code": ["report_ln15e.py:126-132 check_out()", "report_ln15e.py:223-242 write_new()"],
+     "tests": ["test_never_overwrites", "test_write_new_is_exclusive", "test_the_out_rules x3"]}
+  ],
+  "alternatives": [
+    "Standard library only, with no repository import: not possible here. scripts/stage1/tests/test_labels.py refuses the hash module's name in stage-1 code outside s1common. The script takes the hash and canonical-JSON helpers from experiments.safety_selection.common and Refusal, strict_json and rel from s1common, as every stage-1 script does; both import only the standard library (checked).",
+    "A settings file with a SETTINGS_SHA256 pin: not chosen; the brief pins the two inputs as constants.",
+    "s1common.write_new_files (an output folder): not chosen; one report file with an exclusive create.",
+    "Citations: per field, a list of {text, as} (the quoting text and how it quotes the figure), with the paths in quoted_in_files; this replaces revision 1's single ledger_name string, which could not cite the four figures that the ledger row does not name."
+  ],
+  "real_runs": [
+    {"revision": 1, "output": "SCRATCH/ln15e/evidence/ln15e_report_tree_run.json", "sha256": "e1694c63b02ccaea59b6683df9ce89a4ae9959e794332fc80a030a1412ba9ace", "exit": 0},
+    {"revision": 2, "command": "cd TREE && PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. VENV/python -B scripts/stage1/report_ln15e.py --out SCRATCH/ln15e/evidence/ln15e_report_tree_run2.json", "sha256": "a686d11cbde9742b8ec8aa687ab5e39bbd196fd0a13a1679a2745340c533c7b6", "exit": 0, "note": "check runs only, written outside the tree; the lead writes the real report after the merge"}
+  ],
+  "mutants": {
+    "spec": "scripts/stage1/mutation/mutants_ln15e.json",
+    "spec_sha256": "2c13f98a7a12918c708df2935a0864f5e7bc6f7aedfd24f01113c5ae3bbfd9e7",
+    "runner": "scripts/stage1/mutation/run_mutants.py (unchanged; sha256 557a2875da16ac9fd7414c7316867a2c606b824ce8ccbbc6276a45f98dff29ef)",
+    "baseline": "pass: 918 tests, exit 0, 65.1 s (the whole scripts/stage1/tests suite, the runner's own command)",
+    "results": [
+      {"id": "ln15e-a1-pin-unchecked", "outcome": "killed", "failures": 2, "errors": 0, "by": ["test_the_real_pins_refuse_synthetic_inputs", "test_a_changed_input_refuses[a1]"]},
+      {"id": "ln15e-v1-wrong-source", "outcome": "killed", "failures": 2, "errors": 0, "by": ["test_the_figures_are_copied_exactly", "test_the_a1_record_must_hold_the_figures (V1 a1 missing)"]},
+      {"id": "ln15e-mean-identity-dropped", "outcome": "killed", "failures": 4, "errors": 0, "new": true, "by": ["test_the_figures_are_copied_exactly", "test_the_quoted_texts_name_each_figure_as_rounded_in_rev4", "test_the_a1_record_must_hold_the_figures (mean identity missing)", "test_the_a1_record_must_hold_the_figures (mean identity as a string)"]},
+      {"id": "ln15e-rescore-path-accepted", "outcome": "killed", "failures": 3, "errors": 0, "by": ["test_a_unit_or_rescore_input_refuses[rescore]", "test_a_unit_or_rescore_input_refuses[ReScore]", "test_a_link_into_rescore_refuses"]},
+      {"id": "ln15e-overwrite", "outcome": "killed", "failures": 2, "errors": 0, "by": ["test_never_overwrites", "test_write_new_is_exclusive"]}
+    ],
+    "summary": "5 of 5 killed, 0 survived, 0 invalid; every mutant as expected (runner exit 0)",
+    "why_the_fifth": "the mean identity is 0.0 in the file, so a figure filter that drops falsy values, or a dropped FIGURES entry, would lose it silently; the mutant drops its entry",
+    "report": "SCRATCH/ln15e/evidence/ln15e-mutation-report-2.json (sha256 d39ba575a83adee45f0a396ee584dc3eb2d07cac306ef557cc4ec108274302c2); its tested tree held revision 1 of this notes file. Revision 1's report: SCRATCH/ln15e/evidence/ln15e-mutation-report.json (4 of 4 killed, baseline 911)"
+  },
+  "commitments_check": {
+    "answer": "Yes: commitments.py check would classify every new file. Its C3 block classifies each file committed after the W1 base under the include rules (scripts/stage1/** is included), and none of them refuses.",
+    "how_checked": "commitments.selected() and commitments.classify() on the new files' bytes with the pinned settings (0e4dcb58...), in the tree, without git (SCRATCH/ln15e/classify_check.py). check itself was not run (the tree has no git history).",
+    "per_file": [
+      {"path": "scripts/stage1/report_ln15e.py", "role": "code"},
+      {"path": "scripts/stage1/tests/test_report_ln15e.py", "role": "test"},
+      {"path": "scripts/stage1/mutation/mutants_ln15e.json", "role": "test (strict JSON; kind 'stage1 mutants' is not text-bearing)"},
+      {"path": "scripts/stage1/notes-ln15e.json", "role": "settings (the role rule scripts/**/*.json) if the lead commits it"}
+    ],
+    "the_report_output": "Under .ai/inputs/stage1-commitments-20261016/ the report would be a 'sealed record' whose kind is not on the W1 text-free allow-list, so check would refuse; the script refuses that folder. Under .ai/inputs/stage1-post-w1-20261023/ it is outside the include rules, so check ignores it.",
+    "lead_must_do": "Nothing for the code files. Write the report into .ai/inputs/stage1-post-w1-20261023/block-a/ and list it in that folder's README.md; decide whether this notes file is committed."
+  },
+  "commands": [
+    {"cmd": "revision 1: all commands as in revision 1 of this file (sha256 1ac5f040...); every exit 0 except the first combined cat (exit 1, the zsh '======' line) and the three intended refusals (exit 2)"},
+    {"cmd": "grep/awk of section 9.3 in stage1-preregistration-rev4.md, stage1-preregistration-DRAFT-rev3.md and the first draft (read-only); python print of the commitments prereg pin", "exit": 0},
+    {"cmd": "python -B -I -c (each mutant find text occurs exactly once; 5 mutants, 6 edits)", "exit": 0},
+    {"cmd": "pytest -q -p no:cacheprovider scripts/stage1/tests/test_report_ln15e.py", "exit": 0, "result": "44 passed"},
+    {"cmd": "report_ln15e.py --out SCRATCH/ln15e/evidence/ln15e_report_tree_run2.json, then a check that each value rounded as REV4 prints it is in its REV4 quote", "exit": 0, "result": "7 of 7 agree"},
+    {"cmd": "shasum of the four cited texts in the tree and in the main checkout", "exit": 0, "result": "equal"},
+    {"cmd": "pytest -q -p no:cacheprovider --basetemp=SCRATCH/ln15e/bt6 scripts/stage1/tests", "exit": 0, "result": "918 passed in 65.02 s"},
+    {"cmd": "run_mutants.py --spec scripts/stage1/mutation/mutants_ln15e.json --scratch SCRATCH/ln15e/mut-scratch2 --report SCRATCH/ln15e/evidence/ln15e-mutation-report-2.json --python VENV/python --timeout 600", "exit": 0, "result": "baseline 918 pass; 5 of 5 killed"},
+    {"cmd": "python -B SCRATCH/ln15e/classify_check.py and pytest test_labels.py + test_report_ln15e.py after this notes file", "exit": 0, "result": "see the reply"}
+  ],
+  "paths": {
+    "TREE": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/ln15e/tree",
+    "SCRATCH": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad",
+    "VENV": "/Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin",
+    "MAIN": "/Users/spiderishi/Coding/attribution"
+  },
+  "lead_must_run": [
+    "After the merge, in the main checkout: PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. tmp/minimal-experiment-20261002/venv/bin/python -B -m pytest -q -p no:cacheprovider scripts/stage1/tests (about 1 minute; expect 918 passed, plus the other builders' tests)",
+    "After the commit (so the script SHA-256 in the report is a committed file's): PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. tmp/minimal-experiment-20261002/venv/bin/python -B scripts/stage1/report_ln15e.py --out .ai/inputs/stage1-post-w1-20261023/block-a/ln15e_report_fallback.json (exit 0; run it once: a second run refuses)",
+    "Then commit the report with an explicit git add path, add it to .ai/inputs/stage1-post-w1-20261023/README.md, and run: tmp/minimal-experiment-20261002/venv/bin/python -B scripts/stage1/commitments.py check --repo . (expect OK; the later-files count grows by 3, or 4 with this notes file)",
+    "Optional, as a background job (about 6 minutes; the same run passed here): PYTHONDONTWRITEBYTECODE=1 tmp/minimal-experiment-20261002/venv/bin/python -B scripts/stage1/mutation/run_mutants.py --spec scripts/stage1/mutation/mutants_ln15e.json --scratch <a folder outside the repository> --report <report path> --python tmp/minimal-experiment-20261002/venv/bin/python --timeout 600"
+  ],
+  "open_points": [
+    "The 'stage-1 pre-registration's section 9.3' is read as DRAFT rev3 (the same item 3 text as REV4) and the first draft (2026-10-17-stage1-preregistration/stage1-preregistration-DRAFT.md), whose section 9.3 item 2 names rho and the q-e1 Jaccard with no value; it is cited as 'named; no value'. If the lead means another file, the citation list changes; no figure changes.",
+    "rows (4,800) is included as a figure because REV4 quotes it ('over the 4,800 per-row scores'); it also stays in fo04_context, as built.",
+    "The statement's 'retrains of a0 at seeds 1102 and 1103' comes from addendum section 29, not from the decision record.",
+    "The unit-path rule is a name and marker rule; a unit copied elsewhere under other names would be read and hashed, then refused by the pins before any parse or print.",
+    "Not tested: the main checkout run, the commitments check with git, and the merge with the other two builders' trees."
+  ]
+}

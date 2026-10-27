@@ -1529,6 +1529,75 @@ FINISHER_29 = [('''            elif role in ("job", "first", "anchor"):
                 status = "review-needed-stopped"
 ''', '''                log(host=host, event="verified", units=len(results), ok=ok)
 ''')]
+# round 31 (K5, cert runbook D9): the finisher treats a moved, not-done host as finished for the watch (seal.py's
+# plan_tool.moved_hosts); (K6, D7) launch.py exits NO_POD_EXIT when a host it should create has no pod.json at its end
+FINISHER_31 = [('''- the finisher removes the token variables from its own environment when it starts (it never needs them).
+"""''', '''- the finisher removes the token variables from its own environment when it starts (it never needs them).
+Round 31 (K5; cert runbook D9): a host that a deferral or requeue moved (plan_tool.moved_hosts, as seal.py) and that is
+not recorded done (a-5, a-6, a-7: setup failed, stopped, never pulled; a requeue needs a confirmed stop) never gets a
+finished.json. The watch treats it as finished: it is not watched, it sets no deadline, and "every planned host is
+finished" no longer waits for it.
+"""'''), ('''import secret_scan  # noqa: E402
+''', '''import secret_scan  # noqa: E402
+import plan_tool  # noqa: E402  (round 31, K5: moved_hosts, the seal's helper)
+'''), ('''def deadline(p: dict, started: dt.datetime) -> dt.datetime:
+    """3 h past every host's latest stop (review fix 13)."""
+    ends = []
+    for host, job in p["hosts"].items():
+        stop = host_stop(host)
+        ends.append(stop if stop is not None else started + dt.timedelta(hours=LAUNCH_HOURS + job["cap_hours"]))
+    return max(ends) + dt.timedelta(hours=AFTER_STOP_HOURS)
+''', '''def moved_undone(p: dict) -> set:
+    """Round 31 (K5): the hosts a deferral or requeue moved (plan_tool.moved_hosts) that are not recorded done: finished
+    for the watch (they never get a finished.json)."""
+    return {host for host in plan_tool.moved_hosts(p) if not (p["hosts"].get(host) or {}).get("done")}
+
+
+def finished_for_watch(p: dict, host: str) -> bool:
+    return (HERE / "hosts" / host / "finished.json").exists() or host in moved_undone(p)
+
+
+def deadline(p: dict, started: dt.datetime) -> dt.datetime:
+    """3 h past every host's latest stop (review fix 13); a moved, not-done host sets none (K5)."""
+    ends, skip = [], moved_undone(p)
+    for host, job in p["hosts"].items():
+        if host in skip:
+            continue
+        stop = host_stop(host)
+        ends.append(stop if stop is not None else started + dt.timedelta(hours=LAUNCH_HOURS + job["cap_hours"]))
+    return max(ends, default=started) + dt.timedelta(hours=AFTER_STOP_HOURS)
+'''), ('''def watched() -> list[str]:
+    return sorted(p.parent.name for p in (HERE / "hosts").glob("*/pod.json") if not (p.parent / "finished.json").exists())
+''', '''def watched(p: dict | None = None) -> list[str]:
+    skip = moved_undone(p) if p is not None else set()            # K5: a moved, not-done host is not watched
+    return sorted(q.parent.name for q in (HERE / "hosts").glob("*/pod.json")
+                  if not (q.parent / "finished.json").exists() and q.parent.name not in skip)
+'''), ('''        if all((HERE / "hosts" / h / "finished.json").exists() for h in plan()["hosts"]) and not stops_pending():
+            log(event="every planned host is finished"); return 0
+        hosts = watched()
+''', '''        p = plan()
+        if all(finished_for_watch(p, h) for h in p["hosts"]) and not stops_pending():
+            log(event="every planned host is finished"); return 0
+        hosts = watched(p)
+''')]
+LAUNCH_31 = [('''a time (launch.lock). Every child gets an environment without any token variable.
+"""''', '''a time (launch.lock). Every child gets an environment without any token variable.
+
+Round 31 (K6; cert runbook D7): the exit code says whether every host was created. launch.py exits NO_POD_EXIT (4),
+after its log line "hosts-not-created", when a host it was given has no hosts/HOST/pod.json at its end (every try was
+refused or failed for MAX_HOURS); 0 only when every host has its pod.json. Nothing else changed.
+"""'''), ('''SPACING, ROUND_PAUSE, MAX_HOURS = 45, 300, 2
+''', '''SPACING, ROUND_PAUSE, MAX_HOURS = 45, 300, 2
+NO_POD_EXIT = 4                     # round 31 (K6): a host it should create has no pod.json at the end
+'''), ('''        held.close()
+    return 0
+''', '''        held.close()
+    missing = [h for h in hosts if not (HERE / "hosts" / h / "pod.json").exists()]
+    if missing:                      # round 31 (K6): no pod for a host it should create is not a success
+        log(event="hosts-not-created", hosts=missing, exit=NO_POD_EXIT)
+        return NO_POD_EXIT
+    return 0
+''')]
 
 
 def test_the_kit_compiles_holds_no_secret_and_reuses_gate_b_files_as_documented(tmp_path):
@@ -1551,7 +1620,7 @@ def test_the_kit_compiles_holds_no_secret_and_reuses_gate_b_files_as_documented(
     for same in ("secret_scan.py", "account.py", "status.py", "gateb_mac.py"):
         assert (KIT / same).read_bytes() == (GBK / same).read_bytes(), same
     imp = ("import gateb_rules as rules  # noqa: E402", "import stage1_rules as rules  # noqa: E402")
-    for name, extra in (("launch.py", GUARD_OFF_LAUNCH), ("finisher.py", FINISHER_29),
+    for name, extra in (("launch.py", GUARD_OFF_LAUNCH + LAUNCH_31), ("finisher.py", FINISHER_29 + FINISHER_31),
                         ("host.py", [('    return f"attribution-gateb-{host}{suffix}"     # e.g. attribution-gateb-w0a-1',
                                       '    return f"attribution-s1-{host}{suffix}"     # e.g. attribution-s1-A-1'),
                                      *GUARD_OFF_HOST, *PULL_29]),

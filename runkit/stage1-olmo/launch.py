@@ -10,6 +10,10 @@ at least the $6 reserve), under the lock shared by every kit; host.py reconcile 
 remaining steps run detached under caffeinate -i via orchestrate.py after-create (log: hosts-full-HOST.log). Tries
 are spaced; a round over the pending hosts repeats until none is pending or MAX_HOURS pass. One launch.py per kit at
 a time (launch.lock). Every child gets an environment without any token variable.
+
+Round 31 (K6; cert runbook D7): the exit code says whether every host was created. launch.py exits NO_POD_EXIT (4),
+after its log line "hosts-not-created", when a host it was given has no hosts/HOST/pod.json at its end (every try was
+refused or failed for MAX_HOURS); 0 only when every host has its pod.json. Nothing else changed.
 """
 import datetime as dt, fcntl, json, os, pathlib, subprocess, sys, time
 
@@ -20,6 +24,7 @@ import stage1_rules as rules  # noqa: E402
 import secret_scan  # noqa: E402
 
 SPACING, ROUND_PAUSE, MAX_HOURS = 45, 300, 2
+NO_POD_EXIT = 4                     # round 31 (K6): a host it should create has no pod.json at the end
 
 
 def clean_env() -> dict:
@@ -67,6 +72,10 @@ def main(hosts: list[str], run=subprocess.run, popen=subprocess.Popen, sleep=tim
         _create_all(plan, hosts, run, popen, sleep)
     finally:
         held.close()
+    missing = [h for h in hosts if not (HERE / "hosts" / h / "pod.json").exists()]
+    if missing:                      # round 31 (K6): no pod for a host it should create is not a success
+        log(event="hosts-not-created", hosts=missing, exit=NO_POD_EXIT)
+        return NO_POD_EXIT
     return 0
 
 
