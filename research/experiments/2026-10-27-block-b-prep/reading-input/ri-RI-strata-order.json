@@ -1,0 +1,110 @@
+{
+  "baseline": {
+    "disk_full": false,
+    "erroring": [],
+    "errors": 0,
+    "exit": 0,
+    "failing": [],
+    "failures": 0,
+    "outcome": "pass",
+    "seconds": 77.5,
+    "skipped": 0,
+    "targets": {},
+    "tests": 74,
+    "tree": {
+      "__init__.py": "da7697903991e0c62d9f668a96430ed18d43bef02d8a2d4adf555ae9c9239d14",
+      "__main__.py": "5202d483edca4f22822a603e2ea544c5c0ae7f02641c360ce301e26b295d9bba",
+      "build.py": "b7e4bbf3fa80255dc7eb460e5e49c447fafa8dcb3a4854193e14936078b753f1",
+      "items.py": "0dbd10e9962490bb9d6fcf39ec1216fcabd000e2ba710a5b188626328acfc300",
+      "mutation/mutants_reading_input.json": "42725346d7e6bde65926470c863f5bbc3218d2dd647b5a111b4735f926b968e9",
+      "mutation/run_mutants.py": "491a2266856b9c632d0b0e856349034f8e7c987727d4df20427ce9d029dd83ac",
+      "sources.py": "127223a80c7a3dec5a88680278507b99e812b023e65ed49a5e0b67e770642d0a",
+      "tests/conftest.py": "00bce2df67f9bbfcfa139cc3a2a3a50e7d4a74b2b48c4414eda97f70442d4c0b",
+      "tests/synth_kit.py": "cb4228c88741115fb78a8724b1659f1bc0011f9d0c348da690764fcbafedde1d",
+      "tests/test_builder.py": "f53ee5f48a815e87ae8722264af394d0cf8cbd0a88580085252af6da003dc104",
+      "tests/test_items.py": "c5e4ef04480d8ad3adb620e4774650b36c2121ce58ec4d73f58ea0e23d5b603d"
+    }
+  },
+  "command": "python -B -m pytest -q -rs -p no:cacheprovider -W ignore --basetemp=<run>/bt --junitxml=<run>/junit.xml <copy>/scripts/stage1_s1/reading_input/tests (cwd <copy>; PYTHONPATH <copy>:<workspace>; PYTHONDONTWRITEBYTECODE=1)",
+  "dose_axis_sha256": "d258ee595709a99a7e4b5cd54b3a308ebae1a156cb144dccea22e26e44acbbe1",
+  "environment_removed": [
+    "PYTEST_ADDOPTS",
+    "PYTEST_PLUGINS"
+  ],
+  "kind": "stage1 mutation report",
+  "min_free_gb": 3.0,
+  "mutants": [
+    {
+      "describes": "the U item order is compared with B14's strata prompt ids as a set, not in order (B16-H-O10)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_b14_strata_prompt_order_is_the_u_order"
+      ],
+      "failures": 1,
+      "id": "RI-strata-order",
+      "outcome": "killed",
+      "part": "build",
+      "seconds": 81.7,
+      "skipped": 0,
+      "targets": {
+        "build.py": {
+          "after": "8b93841760ee01c2ab2d3594f2553735311d894d47518b39a7510140d51d3d40",
+          "before": "b7e4bbf3fa80255dc7eb460e5e49c447fafa8dcb3a4854193e14936078b753f1"
+        }
+      },
+      "tests": 74
+    },
+    {
+      "describes": "a unit the reading uses with no judge file of a recorded judge is not refused",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_judge_files"
+      ],
+      "failures": 1,
+      "id": "RI-judge-coverage",
+      "outcome": "killed",
+      "part": "build",
+      "seconds": 82.7,
+      "skipped": 0,
+      "targets": {
+        "build.py": {
+          "after": "c01cdf9f942adc2344472f52ca805e7108f93ae76d79d04d762dd3e903b715a6",
+          "before": "b7e4bbf3fa80255dc7eb460e5e49c447fafa8dcb3a4854193e14936078b753f1"
+        }
+      },
+      "tests": 74
+    }
+  ],
+  "pytest_version": "pytest 8.4.2",
+  "python": "3.11.15",
+  "rule": "killed = exit 1 with >= 1 failure and 0 errors; survived = exit 0, 0 failures, 0 errors; anything else (errors, timeout, other exit codes, no JUnit, a test count other than the baseline's) = invalid; an 'expect: survive' entry passes only if it survives",
+  "runner_sha256": "491a2266856b9c632d0b0e856349034f8e7c987727d4df20427ce9d029dd83ac",
+  "shard": [
+    "RI-judge-coverage",
+    "RI-strata-order"
+  ],
+  "spec": "scripts/stage1_s1/reading_input/mutation/mutants_reading_input.json",
+  "spec_sha256": "42725346d7e6bde65926470c863f5bbc3218d2dd647b5a111b4735f926b968e9",
+  "summary": {
+    "build": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 2,
+      "mutants": 2,
+      "survived": 0
+    }
+  },
+  "timeout_seconds": 500,
+  "tree_name": "scripts/stage1_s1/reading_input",
+  "version": 2
+}
