@@ -631,6 +631,35 @@ def test_a_funding_record_that_breaks_the_users_rule_refuses(w, change, match):
     assert not (w.root / "plan.json").exists()
 
 
+def test_a_funding_record_under_the_users_start_from_the_balance_rule(w, tmp_path):
+    """Addendum §36: a funding record without a covering top-up is accepted only with the user's decision record,
+    re-hashed at every use; a record with any other source still refuses."""
+    dec = tmp_path / "decision.json"
+    dec.write_text(json.dumps({"kind": w.tool.FUNDING_RULE_KIND, "user_words": "start it now"}))
+    named = {"path": str(dec), "sha256": hashlib.sha256(dec.read_bytes()).hexdigest()}
+    path = w.funding("A", 500.0, source=w.tool.FUNDING_SOURCE_RULE, user_decision=named)
+    rec = w.tool.funding_record(path, "A")
+    assert rec["source"] == w.tool.FUNDING_SOURCE_RULE and rec["user_decision"] == named
+    assert "user_decision" not in w.tool.funding_record(w.funding("A", 500.0), "A")
+    other = tmp_path / "other.json"
+    other.write_text(json.dumps({"kind": "something else", "user_words": "x"}))
+    empty = tmp_path / "empty.json"
+    empty.write_text(json.dumps({"kind": w.tool.FUNDING_RULE_KIND, "user_words": " "}))
+    for change, match in (({}, "path, sha256"),
+                          ({"user_decision": {"path": str(dec), "sha256": "0" * 64}}, "differs"),
+                          ({"user_decision": {"path": str(tmp_path / "gone.json"), "sha256": named["sha256"]}}, "differs"),
+                          ({"user_decision": {"path": str(other), "sha256": hashlib.sha256(other.read_bytes()).hexdigest()}},
+                           "not a"),
+                          ({"user_decision": {"path": str(empty), "sha256": hashlib.sha256(empty.read_bytes()).hexdigest()}},
+                           "not a")):
+        bad = w.funding("A", 500.0, source=w.tool.FUNDING_SOURCE_RULE, **change)
+        with pytest.raises(SystemExit, match=match):
+            w.tool.funding_record(bad, "A")
+    dec.write_text(json.dumps({"kind": w.tool.FUNDING_RULE_KIND, "user_words": "changed after recording"}))
+    with pytest.raises(SystemExit, match="differs"):                   # re-hashed at every use
+        w.tool.funding_record(path, "A")
+
+
 def test_the_guard_reads_every_kit_folder_and_shares_the_lock(w, tmp_path):
     budget = importlib.import_module("budget")
     assert budget.KITS_GLOB == ("family-probe-*", "gate-b-olmo*", "stage1-olmo*")

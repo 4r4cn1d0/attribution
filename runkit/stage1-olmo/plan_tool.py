@@ -215,6 +215,8 @@ SEAL_OUT = pathlib.Path(rules.MAN_PATH).parent
 JOB_KEYS = {"kind", "arm", "seed", "engine", "points", "recipe", "regen_source", "role"}
 FUNDING_KEYS = ("block", "amount_usd", "utc", "source", "user_words", "recorded_by")
 FUNDING_SOURCE = "user RunPod top-up"
+FUNDING_SOURCE_RULE = "user rule: start from the balance"   # addendum §36: the user's rule of 29 Oct 2026
+FUNDING_RULE_KIND = "stage1 user decision: start without a covering top-up"
 RECORD_KINDS = {"branch": "stage1 w1-18 branch record", "default_full": "stage1 branch full by default",
                 "plan_ab": "stage1 plan-ab record", "certificate": "stage1 x-y certificate",
                 "certification": "stage1 b10 certification", "thresholds": "stage1 c2 binding thresholds",
@@ -926,8 +928,10 @@ def funding_record(path: str, group: str) -> dict:
     amount = rec["amount_usd"]
     if not rules.finite_number(amount) or amount <= 0:
         fail("the funding record's amount_usd must be a positive finite number")
-    if rec["source"] != FUNDING_SOURCE:
-        fail(f"the funding record's source must be {FUNDING_SOURCE!r}")
+    if rec["source"] == FUNDING_SOURCE_RULE:
+        funding_rule_decision(rec)                      # addendum §36: no covering top-up, by the user's rule
+    elif rec["source"] != FUNDING_SOURCE:
+        fail(f"the funding record's source must be {FUNDING_SOURCE!r} or {FUNDING_SOURCE_RULE!r}")
     if not (isinstance(rec["user_words"], str) and rec["user_words"].strip()):
         fail("the funding record needs the user's words, verbatim")
     if not (isinstance(rec["recorded_by"], str) and rec["recorded_by"].strip()):
@@ -942,7 +946,31 @@ def funding_record(path: str, group: str) -> dict:
         fail("the funding record's utc is in the future")
     if rec["block"] != group:
         fail(f"the funding record is for block {rec['block']!r}; this needs block {group}'s funding event")
-    return {**{k: rec[k] for k in FUNDING_KEYS}, "path": str(p.resolve()), "sha256": mac.sha(p)}
+    out = {**{k: rec[k] for k in FUNDING_KEYS}, "path": str(p.resolve()), "sha256": mac.sha(p)}
+    if rec["source"] == FUNDING_SOURCE_RULE:
+        out["user_decision"] = {"path": rec["user_decision"]["path"], "sha256": rec["user_decision"]["sha256"]}
+    return out
+
+
+def funding_rule_decision(rec: dict) -> None:
+    """Addendum §36 (the user, 29 Oct 2026: "no just start it now ill fund it when i feel like this is a rule"): a
+    funding record whose source is FUNDING_SOURCE_RULE starts a block from the balance without a covering top-up. Its
+    amount_usd is the plan's cap-based need; it names the user's decision record {path, sha256} (path absolute or
+    relative to the repository), which must hash as named at every use and be that decision's kind with the user's
+    words."""
+    d = rec.get("user_decision")
+    if not (isinstance(d, dict) and isinstance(d.get("path"), str) and SHA_RE.fullmatch(str(d.get("sha256")))):
+        fail("a funding record under the user's start-from-the-balance rule must name its decision record {path, sha256}")
+    q = pathlib.Path(d["path"])
+    q = q if q.is_absolute() else ROOT / q
+    if not q.is_file() or mac.sha(q) != d["sha256"]:
+        fail("the funding record's user decision record is missing or differs from its SHA-256")
+    try:
+        doc = json.loads(q.read_text())
+    except ValueError:
+        fail("the funding record's user decision record is not JSON")
+    if not isinstance(doc, dict) or doc.get("kind") != FUNDING_RULE_KIND or not str(doc.get("user_words") or "").strip():
+        fail(f"the funding record's decision record is not a {FUNDING_RULE_KIND!r} record with the user's words")
 
 
 def planned_parts(plan: dict, group: str) -> list[str]:

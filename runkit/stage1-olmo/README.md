@@ -374,6 +374,14 @@ Gate B's judge files are unchanged, byte for byte; every change is in this kit.
   The runner is a member of every pack: the certification pod's X1 pack (K3) and block B's X2 pack (K6) must be made
   after this round is merged.
 
+### The user's start-from-the-balance rule, 29 Oct (addendum §36)
+
+The user: "no just start it now ill fund it when i feel like this is a rule". A funding record may name the
+source `user rule: start from the balance` instead of `user RunPod top-up`; its `amount_usd` is the plan's
+cap-based need and it must name the user's decision record `user_decision: {path, sha256}` (kind `stage1 user
+decision: start without a covering top-up`, with the user's words), re-hashed at every use. The lead tells the user
+at once when the balance is below $10; the $10/h limit, the in-pod timers and stop-never-delete stay.
+
 ## The gates (brief §4)
 
 - **G0 (before any pod, $0).** B15 built, verified and pinned at the S1 freeze. `orchestrate.py check-plan HOST` must
