@@ -13,6 +13,14 @@
     python3.11 judge_units_stage1.py result TAG [--root DIR] [--hosts DIR]   the judge launch's whitelisted result
                                                               fields, pod minutes and cost, and its record entry
     python3.11 judge_units_stage1.py check-devices --contrast NAME=LABEL,LABEL,... --record LABEL=RUN_RECORD ...
+    python3.11 judge_units_stage1.py units-of-block BLOCK --out FILE [--plan P]   (round 32, K5) the block's judged
+                                                              units from plan.json, one folder per line (the --unit
+                                                              arguments; never --run-root), and their counts
+
+Round 32 (K5; addendum §34 point 7, block B's pre-flight G13): ``units-of-block`` lists a block's judged units from
+plan.json by round 31's rule (plan_tool.judge_required_units: the complete, pulled arm, a0_arm and ref_train units,
+each B10 reference unit, the block's re-judged pins), each COMPLETE.json present at the SHA-256 plan.json records, so a
+block's judge launch never sweeps retrieved/ (--run-root would take block A's and the cert pod's units too).
 
 Round 30 (addendum §30 gaps 3 and 4; the lead's R1, R4, R5). Gate B's judge files stay byte-identical; every change
 is here and in judge_pod_stage1/bundle.py:
@@ -438,6 +446,99 @@ def write_files_main(argv: list) -> int:
         return 2
 
 
+# ----- round 32 (K5; addendum §34 point 7, block B's pre-flight G13): a block's judged units from plan.json -----------
+
+def _kit_rules():
+    """This kit folder's stage1_rules.py, loaded by path (the judged kinds and the re-judged pins; stdlib only)."""
+    spec = importlib.util.spec_from_file_location("s1_units_kit_rules", HERE / "stage1_rules.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def block_units(plan: dict, block: str, kit, root) -> list[dict]:
+    """K5 (G13): the units BLOCK's judge launches judge, from plan.json only, by round 31's rule (plan_tool's
+    judge_required_units): the unit of each complete, pulled job of the block's hosts of a judged run kind (arm,
+    a0_arm, ref_train), each unit of each complete, pulled B10 reference job (ref_eval, safe_lora: its recorded units
+    list), at KIT/retrieved/HOST/tree/UNIT, then the block's re-judged pins (stage1_rules.REJUDGED_PINS) at ROOT/path.
+    Each unit's COMPLETE.json must be present and hash to the SHA-256 plan.json records (hashed, never parsed); no
+    unit twice. Never another block's unit, and never a whole retrieved/ folder (no --run-root)."""
+    rules, units = _kit_rules(), gate_b_units()
+    if not isinstance(plan, dict) or block not in (plan.get("blocks") or {}):
+        raise units.Refusal(f"block {block} is not planned in plan.json")
+    out = []
+    for host, h in sorted((plan.get("hosts") or {}).items()):
+        if h.get("block") != block:
+            continue
+        for i, j in enumerate(h.get("jobs") or []):
+            if j.get("status") != "complete" or j.get("pulled") is False:
+                continue
+            if j.get("kind") in rules.JUDGED_RUN_KINDS:
+                pairs = [(j.get("unit"), j.get("complete_sha256"))]
+            elif j.get("kind") in rules.JUDGED_B10_KINDS:
+                pairs = [(u.get("unit"), u.get("complete_sha256")) if isinstance(u, dict) else (None, None)
+                         for u in j.get("units") or [None]]
+            else:
+                continue
+            for rel, digest in pairs:
+                parts = pathlib.PurePosixPath(str(rel)).parts
+                if not (isinstance(rel, str) and rel and isinstance(digest, str) and HEX64.fullmatch(digest)) or \
+                        pathlib.PurePosixPath(rel).is_absolute() or ".." in parts:
+                    raise units.Refusal(f"plan.json: {host} job {i} ({j.get('kind')}) records no plain unit path and "
+                                        "COMPLETE.json SHA-256")
+                out.append({"path": pathlib.Path(kit) / "retrieved" / host / "tree" / rel, "kind": j["kind"],
+                            "complete_sha256": digest})
+    for pin in rules.REJUDGED_PINS.get(block, ()):
+        out.append({"path": pathlib.Path(root) / pin["path"], "kind": "re-judged",
+                    "complete_sha256": pin["complete_sha256"]})
+    missing = [u for u in out if not (u["path"] / "COMPLETE.json").is_file()]
+    if missing:
+        raise units.Refusal(f"block {block}: {len(missing)} unit(s) have no COMPLETE.json ({missing[0]['path']})")
+    differ = [u for u in out if units.sha256_bytes((u["path"] / "COMPLETE.json").read_bytes()) != u["complete_sha256"]]
+    if differ:
+        raise units.Refusal(f"block {block}: {len(differ)} unit(s) whose COMPLETE.json is not the SHA-256 plan.json "
+                            f"records ({differ[0]['path']})")
+    if len({u["complete_sha256"] for u in out}) != len(out) or len({str(u["path"]) for u in out}) != len(out):
+        raise units.Refusal(f"block {block}: a unit is listed twice")
+    return out
+
+
+def units_of_block_main(argv: list) -> int:
+    """units-of-block BLOCK --out FILE [--plan P]: writes FILE (new) with one unit folder per line, the --unit
+    arguments of the block's judge launch and write-files, and prints the counts (units, by kind) and FILE's SHA-256.
+    Exit 0, or 2 refused (nothing written)."""
+    units = gate_b_units()
+    ap = argparse.ArgumentParser(prog="judge_units_stage1.py units-of-block",
+                                 description="a block's judged units from plan.json (never --run-root)")
+    ap.add_argument("block")
+    ap.add_argument("--out", type=pathlib.Path, required=True, help="a new file: one unit folder per line")
+    ap.add_argument("--plan", type=pathlib.Path, default=None, help="the kit's plan.json (default: this kit's)")
+    a = ap.parse_args(argv)
+    try:
+        path = a.plan if a.plan is not None else PLAN
+        if not path.is_file():
+            raise units.Refusal(f"no plan file {path}")
+        try:
+            plan = json.loads(path.read_text())
+        except ValueError:
+            raise units.Refusal(f"{path.name}: not JSON") from None
+        kit = path.resolve().parent
+        found = block_units(plan, a.block, kit, kit.parents[1])
+        if a.out.exists():
+            raise units.Refusal(f"{a.out} exists; give a new file")
+        with a.out.open("x") as handle:
+            handle.write("".join(f"{u['path']}\n" for u in found))
+    except units.Refusal as exc:
+        print(f"refused: {exc}", file=sys.stderr)
+        return 2
+    kinds = {}
+    for u in found:
+        kinds[u["kind"]] = kinds.get(u["kind"], 0) + 1
+    print(json.dumps({"block": a.block, "units": len(found), "by_kind": kinds, "out": str(a.out),
+                      "sha256": hashlib.sha256(a.out.read_bytes()).hexdigest()}, sort_keys=True))
+    return 0
+
+
 def _scalar(value):
     """A whitelisted field's value: a number, bool, None or a string (cut at 300 characters); anything else None."""
     if value is None or isinstance(value, (bool, int, float)):
@@ -525,6 +626,8 @@ def main(argv=None) -> int:
         return run_launcher(load_judge_pod(), rest)       # round 30: echo off; the B10 pod bundle.py
     if argv[:1] == ["write-files"]:
         return write_files_main(argv[1:])
+    if argv[:1] == ["units-of-block"]:                    # round 32 (K5): never --run-root for a block's judges
+        return units_of_block_main(argv[1:])
     ap = argparse.ArgumentParser(prog="judge_units_stage1.py")
     sub = ap.add_subparsers(dest="command", required=True)
     p = sub.add_parser("list")

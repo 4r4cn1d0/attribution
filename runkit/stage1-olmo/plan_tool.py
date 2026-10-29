@@ -65,6 +65,12 @@ are kept.
                                                    utc, recorded_by}: a judge launch is done only while this record
                                                    names it and is valid (re-hashed, its index and judge files checked
                                                    at every use); works on a sealed block and changes no seal
+    plan_tool.py record-not-run FILE --sha256 H    (round 32, K2) the lead's decision {kind: "stage1 not-run
+                                                   decision", block, jobs: ["HOST:INDEX", ...], reason, utc,
+                                                   recorded_by} that jobs of a block other than A will not run;
+                                                   re-hashed at every use
+    plan_tool.py init-block certify --jobs FILE --funding FILE --group-jobs B=FILE   (round 32, K4) block B's group:
+                                                   the first init's funding record covers the whole group
 
 BLOCKS (rules.BLOCKS, in order): "S1-0" (W1-18 alone, §8 Q1), "cert" (C1-C3, on Y), "A", "certify" (B10's
 certification pod), "B", "C" (plan B only). A block's jobs FILE is {"launches": [L, ...], "reused": [[arm, seed]],
@@ -157,6 +163,33 @@ whole block and again at release:
   block's judged units include its ref_train runs (rules.JUDGED_RUN_KINDS); block B has no re-judged pins
   (rules.REJUDGED_PINS["B"] is empty). init-block of a block other than A refuses a judge launch over fewer units than
   the judged units its jobs will produce (planned_judged_units; block A: its plan's check).
+- Round 32 (addendum §34 points 5-7; block B's pre-flight G4, G6, G8, G11, G13):
+  K1, block B's second reference phase: a launch {"second_phase": [[job, ...], ...]} of block B holds the
+  evaluation-only references (ref_eval, safe_lora) on block B's own a0 runs (the deal's a0 seeds, 1105-1107); every
+  such reference must be in one, it comes after every deal launch and before every judge launch, and it is part of
+  block B's need, completeness and seal like any launch. It is released only when (second_phase_gate) block B's a0
+  run at each of its seeds is recorded complete (record-done) with its readable fingerprint record (K6: the runner's
+  job-I/a0-adapter-fingerprint.json among its outputs), B10's settings at their S1_CODE pin name that run's
+  COMPLETE.json SHA-256 as the seed's reference unit with that record's fingerprint prefixes (and, for safe_lora,
+  B11's settings at their pin accept exactly the record's e1): the B10/B11 re-pin; and the packed stage1-X holds the
+  input gate_a_complete:SEED at that SHA-256 and B10's and B11's four files at their S1_CODE pins: the re-pack. The
+  guard-off record never releases it early.
+  K6: after a complete a0_arm job the runner writes job-I/a0-adapter-fingerprint.json (readable after the seal), the
+  format of the B10/B11 re-pin tool, e1 from states/e1/state.json (B11's field) equal to COMPLETE.json's.
+  K2, a not-run decision for any block but A (record-not-run): a job that will not run is named "HOST:INDEX": a job of
+  a done, unmoved host that is not complete; a job a move left behind without re-running it (not carried to a
+  target); or every job of a pending host (a held launch that will never be released). Such a block is complete when
+  every launch is released or holds only decided hosts (release skips such a launch and records it under "skipped")
+  and every job of the block is complete, carried by a move, or decided (block_open_jobs); defer and every move leave
+  a decided job where it is. The seal and seal.py status list each decision.
+  K3, a failed B10 certification: the runner records B10's exit 4 at b10_certify as complete with certification_gate
+  "failed" (the certify unit and its comparison file), record-done keeps the gate, record-certification refuses pass
+  true over a failed gate, and init-block (not only release) refuses every evaluation-only reference without a
+  passing certification (LS-08).
+  K4, block B's group on one funding record: the first init of group B (certify) takes --group-jobs B=FILE (the jobs
+  file of each later part of the group, used for the need only) and its funding record must cover the whole group's
+  need (addendum §20 point 1, as group A has it); every later init of the group takes that same record (its SHA-256),
+  re-hashed, and the need of every part planned so far must stay within it.
 """
 from __future__ import annotations
 
@@ -192,7 +225,8 @@ RECORD_KINDS = {"branch": "stage1 w1-18 branch record", "default_full": "stage1 
                 "guard_off": rules.GUARD_OFF_KIND,                  # (E): record-guard-off, the user's decision
                 "unpulled": "stage1 unpulled outputs decision",     # §29 point 3: record-unpulled, the lead's
                 "rerun_payment": "stage1 user decision: pay re-runs beyond the contingency",   # record-rerun-payment
-                "judge_not_run": "stage1 judge not-run decision"}   # round 31 (K1): record-judge-not-run
+                "judge_not_run": "stage1 judge not-run decision",   # round 31 (K1): record-judge-not-run
+                "not_run_block": rules.NOT_RUN_KIND}                # round 32 (K2): record-not-run (not block A)
 UNPULLED_KEYS = ("kind", "host", "jobs", "reason", "utc", "recorded_by")
 JUDGE_NOT_RUN_KEYS = ("kind", "block", "judges", "reason", "utc", "recorded_by")   # round 31 (K1)
 RERUN_PAYMENT_KEYS = ("kind", "user_words", "block", "jobs", "amount_usd", "utc", "recorded_by")
@@ -716,8 +750,12 @@ def gate_records(plan: dict, jobs: list[dict]) -> None:
 
 
 def gate_certification(plan: dict, jobs: list[dict]) -> None:
+    """LS-08 at init-block (round 32, K3) and at every release: an evaluation-only reference needs a recorded passing
+    B10 certification; after a failed one (pass false) every reference stops."""
     cert = records(plan).get("certification")
     if any(j["kind"] in ("ref_eval", "safe_lora") for j in jobs) and not (cert and cert["pass"]):
+        if cert is not None and cert["pass"] is False:
+            fail("a failed B10 certification is recorded (pass false): every evaluation-only reference stops (LS-08)")
         fail("an evaluation-only reference refuses before a passing B10 certification (REV4 §5.4)")
 
 
@@ -734,12 +772,18 @@ def moved_hosts(plan: dict) -> dict:
 
 def block_complete(plan: dict, block: str) -> bool:
     b = plan["blocks"].get(block)
+    decided = not_run_decided(plan, block) if b and block != "A" else {}   # round 32 (K2): not block A (its route)
+    if decided:
+        b = settled_view(b, decided)                  # decided pending hosts and the launches they fill are settled
     if not b or b.get("pending") or b["released"] < len(b["launches"]):
         return False                                  # every launch released, judge launches included
     moved = {d["from"] for d in plan["deferrals"]} | {r["from"] for r in plan.get("requeues") or []}
     for name, h in plan["hosts"].items():
-        if h["block"] == block and name not in moved and any(j.get("status") != "complete" for j in h["jobs"]):
+        if h["block"] == block and name not in moved and any(j.get("status") != "complete" and (name, i) not in decided
+                                                             for i, j in enumerate(h["jobs"])):
             return False
+    if block != "A" and block_open_jobs(plan, block, decided):   # K2: a job a move left behind needs a decision
+        return False
     if block == "A" and block_a_open(plan):           # round 3c (VP3b-3): every job the block-A plan requires
         return False
     released_judges = {x["judge"]["judge"] for k, x in enumerate(b["launches"]) if x.get("judge") and k < b["released"]}
@@ -2110,6 +2154,170 @@ def record_judges(block: str, path: str, sha256: str) -> dict:
     return {**out, "open": block_a_open(plan)} if block == "A" else out
 
 
+# ----- round 32 (K2; addendum §34 point 6; block B's pre-flight G6): a not-run decision for any block but A ---------
+# Block A keeps record-block-a-not-run (its plan's job names). Every other block's job that will not run is named by
+# the lead's decision as "HOST:INDEX": a job of a done, unmoved host that is not complete (crashed, deferred or not
+# started, and not to be re-run); a job a deferral or requeue left behind without taking it to a target (the
+# contingency could not pay it); or every job of a pending host (a held launch, such as the second reference phase,
+# that will never be released). The decision file is re-hashed at every use; completeness, the seal and seal.py status
+# count and list it; release skips a launch that holds only decided hosts; no move ever takes a decided job.
+
+NOT_RUN_JOB_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9-]*:(0|[1-9][0-9]*)")
+
+
+def not_run_problem(doc) -> str | None:
+    """Why ``doc`` is not the lead's not-run decision {kind: rules.NOT_RUN_KIND, block, jobs: ["HOST:INDEX", ...],
+    reason, utc, recorded_by} (exactly these keys; distinct job names; non-empty texts), or None."""
+    if not isinstance(doc, dict) or set(doc) != set(rules.NOT_RUN_KEYS):
+        return f"it must hold exactly {list(rules.NOT_RUN_KEYS)}"
+    if doc["kind"] != rules.NOT_RUN_KIND:
+        return f"its kind is not {rules.NOT_RUN_KIND!r}"
+    if not all(isinstance(doc[k], str) and doc[k].strip() for k in ("block", "reason", "utc", "recorded_by")):
+        return "block, reason, utc and recorded_by must be non-empty texts"
+    jobs = doc["jobs"]
+    if not isinstance(jobs, list) or not jobs or len(set(map(str, jobs))) != len(jobs) or \
+            not all(isinstance(j, str) and NOT_RUN_JOB_RE.fullmatch(j) for j in jobs):
+        return 'jobs must be a non-empty list of distinct "HOST:INDEX" names'
+    return None
+
+
+def not_run_entry_problem(e: dict) -> str | None:
+    """Why a recorded not-run decision no longer holds (its file at the recorded path re-hashed, and the recorded
+    block, jobs and reason equal to the file's), or None."""
+    p = pathlib.Path(str(e.get("path")))
+    try:
+        on_disk = json.loads(p.read_text()) if p.is_file() else None
+    except ValueError:
+        on_disk = None
+    if not isinstance(on_disk, dict) or mac.sha(p) != e.get("sha256") or \
+            any(on_disk.get(k) != e.get(k) for k in ("block", "jobs", "reason")):
+        return "a recorded not-run decision is missing or differs from its recorded SHA-256; it must stay at its " \
+               "recorded path, unchanged"
+    return None
+
+
+def not_run_decided(plan: dict, block: str) -> dict:
+    """(host, job index) -> the SHA-256 of the recorded not-run decision of block BLOCK that names it. Each of the
+    block's decision files is re-hashed at every use and must hold the recorded block, jobs and reason."""
+    out = {}
+    for e in (plan.get("records") or {}).get("not_run") or []:
+        if e.get("block") != block:
+            continue
+        problem = not_run_entry_problem(e)
+        if problem:
+            fail(f"block {block}: {problem}")
+        for name in e["jobs"]:
+            host, _, index = name.rpartition(":")
+            out[(host, int(index))] = e["sha256"]
+    return out
+
+
+def launch_decided(b: dict, k: int, decided: dict) -> bool:
+    """A hosts launch of block record ``b`` that holds only pending hosts every job of which is decided not run."""
+    names, pending = b["launches"][k].get("hosts"), b.get("pending") or {}
+    return bool(names) and all(n in pending and all((n, i) in decided for i in range(len(pending[n]["jobs"])))
+                               for n in names)
+
+
+def settled_view(b: dict, decided: dict) -> dict:
+    """Block record ``b`` as block_complete reads it under not-run decisions: the launches from b["released"] on that
+    hold only decided pending hosts count as released (release_next skips them so), and a pending host whose every
+    job is decided is not pending."""
+    released = b["released"]
+    while released < len(b["launches"]) and launch_decided(b, released, decided):
+        released += 1
+    pending = {n: h for n, h in (b.get("pending") or {}).items()
+               if not all((n, i) in decided for i in range(len(h["jobs"])))}
+    return {**b, "released": released, "pending": pending}
+
+
+def _carry_key(job: dict) -> tuple:
+    return job["kind"], job.get("arm"), job.get("seed"), tuple(job.get("points") or ()), job.get("role")
+
+
+def carried(plan: dict, host: str, job: dict) -> bool:
+    """A job of a moved host that its move took along: a job of some host names it (deferred_from HOST, the same kind,
+    arm, seed, points and role)."""
+    key = _carry_key(job)
+    return any(x.get("deferred_from") == host and _carry_key(x) == key for h in plan["hosts"].values()
+               for x in h["jobs"])
+
+
+def block_open_jobs(plan: dict, block: str, decided: dict | None = None) -> list[str]:
+    """Round 32 (K2): every job of block BLOCK (not A) that is not complete, not taken along by a move and not named
+    by a not-run decision, as "HOST:INDEX (kind arm seed)": each job of a pending host; each job of a released host
+    that is not moved (a running host's planned jobs too); each job of a moved host that its move did not take along
+    (carried). The block is complete only when this is empty (block_complete)."""
+    decided = not_run_decided(plan, block) if decided is None else decided
+    moved = moved_hosts(plan)
+    hosts = [(n, h, False) for n, h in plan["hosts"].items() if h["block"] == block]
+    hosts += [(n, h, True) for n, h in ((plan["blocks"].get(block) or {}).get("pending") or {}).items()]
+    out = []
+    for name, h, pending in sorted(hosts, key=lambda x: (x[0], x[2])):
+        for i, j in enumerate(h["jobs"]):
+            if j.get("status") == "complete" or (name, i) in decided or \
+                    (not pending and name in moved and carried(plan, name, j)):
+                continue
+            out.append(f"{name}:{i} ({job_label(j['kind'], j.get('arm'), j.get('seed'))})")
+    return out
+
+
+def record_not_run(path: str, sha256: str) -> dict:
+    """record-not-run FILE --sha256 H (round 32, K2): the lead's decision {kind: "stage1 not-run decision", block,
+    jobs: ["HOST:INDEX", ...], reason, utc, recorded_by} that jobs of a planned, unsealed block other than A will not
+    run. Each named job must be one of block_open_jobs (not complete, not taken along by a move, not decided before),
+    and: on a released host that is not moved, the host is recorded done (record-done first: a running pod may still
+    run it); on a moved host, the job was not taken along (name it where it moved); on a pending host, the decision
+    (with any earlier one) names every job of that host (its pod would run every job it holds). The file is re-hashed
+    at every use: keep it at its path, unchanged."""
+    plan = load()
+    doc, ref = file_record(path, sha256)
+    problem = not_run_problem(doc)
+    if problem:
+        fail(f"not a not-run decision: {problem}")
+    _utc_past(doc["utc"], "the not-run decision")
+    block = doc["block"]
+    if block == "A":
+        fail("block A's jobs are named by record-block-a-not-run (its plan's job names)")
+    if block not in plan["blocks"]:
+        fail(f"block {block} is not planned")
+    if block in plan["seals"]:
+        fail(f"block {block} is sealed: a not-run decision is recorded before its seal")
+    pending, moved = plan["blocks"][block].get("pending") or {}, moved_hosts(plan)
+    decided, named = not_run_decided(plan, block), set()
+    for name in doc["jobs"]:
+        host, _, index = name.rpartition(":")
+        h, i = pending.get(host) or plan["hosts"].get(host), int(index)
+        if h is None or h["block"] != block:
+            fail(f"{name}: {host} is not a host of block {block}")
+        if i >= len(h["jobs"]):
+            fail(f"{name}: {host} has no job {i}")
+        j = h["jobs"][i]
+        label = f"{name} ({job_label(j['kind'], j.get('arm'), j.get('seed'))})"
+        if (host, i) in decided:
+            fail(f"{label} is already named by a recorded not-run decision")
+        if j.get("status") == "complete":
+            fail(f"{label} is complete (it ran); a not-run decision cannot name it")
+        if host not in pending and host in moved:
+            if carried(plan, host, j):
+                fail(f"{label}: a move took it to {', '.join(moved[host]) or 'another host'}; name it where it moved")
+        elif host not in pending and not h.get("done"):
+            fail(f"{label}: {host} is not recorded done (record-done first; its pod may still run it)")
+        named.add((host, i))
+    for host in sorted({x for x, _ in named if x in pending}):
+        left = [i for i in range(len(pending[host]["jobs"])) if (host, i) not in named and (host, i) not in decided]
+        if left:
+            fail(f"{host} is not released: a not-run decision names every job of a pending host (its pod runs every "
+                 f"job it holds); job(s) {left} are not named")
+    entry = {**ref, "path": str(pathlib.Path(path).resolve()), "block": block, "jobs": list(doc["jobs"]),
+             "reason": doc["reason"], "utc": doc["utc"], "recorded_by": doc["recorded_by"], "recorded_utc": mac.utc()}
+    records(plan).setdefault("not_run", []).append(entry)
+    mac.save_plan(plan)
+    mac.operator_action({"action": "record-not-run", "block": block, "sha256": ref["sha256"], "jobs": list(doc["jobs"])})
+    return {"recorded": "not_run", "block": block, "sha256": ref["sha256"], "jobs": list(doc["jobs"]),
+            "open": block_open_jobs(plan, block), "complete": block_complete(plan, block)}
+
+
 def build_block(plan: dict, block: str, spec: dict) -> dict:
     """The block's launches as host records (unnamed) and need launches; refuses every rule of the module doc."""
     if set(spec) - {"launches", "reused", "engine"} or not isinstance(spec.get("launches"), list) or not spec["launches"]:
@@ -2140,7 +2348,11 @@ def build_block(plan: dict, block: str, spec: dict) -> dict:
             except ValueError as exc:
                 fail(f"launch {k}: {exc}")
             continue
-        hosts = []
+        hosts, phase2 = [], "second_phase" in launch       # round 32 (K1): block B's second reference phase
+        if phase2:
+            if block != "B":
+                fail(f"launch {k}: a second reference phase belongs to block B (the references on its own a0 runs)")
+            launch = {"hosts": launch["second_phase"]}
         if "deal" in launch:
             idx = launch["deal"]
             if not (isinstance(idx, list) and idx and all(isinstance(i, int) and 0 <= i < len(deal_pods) for i in idx)):
@@ -2158,15 +2370,20 @@ def build_block(plan: dict, block: str, spec: dict) -> dict:
                 raw = [dict(j) for j in h]
                 for i, job in enumerate(raw):
                     check_job(job, i, raw, block, plan, reused)
+                    if phase2 and job["kind"] not in rules.SECOND_PHASE_KINDS:
+                        fail(f"launch {k}: the second reference phase holds evaluation-only references only "
+                             f"({', '.join(rules.SECOND_PHASE_KINDS)}), not {job['kind']}")
                 check_host(raw)
                 hosts.append(("job", raw))
         else:
             fail(f"launch {k}: one of hosts, deal or judge")
-        launches.append({"hosts": hosts})
+        launches.append({"hosts": hosts, "second_phase": True} if phase2 else {"hosts": hosts})
     if deal_pods is not None and sorted(used) != list(range(len(deal_pods))):
         fail(f"block {block}: every dealt pod appears exactly once in the launches")
     if block in ("A", "B", "C") and deal_pods is None:
         fail(f"block {block}: its training runs come from the deal")
+    if block == "B":
+        second_phase_layout(launches, deal_pods)
     if block == "S1-0":
         shapes = [[[j["kind"] for j in jobs] for _, jobs in launch.get("hosts", [])] for launch in launches]
         if shapes != [[["w1_18"]]]:
@@ -2211,7 +2428,7 @@ def build_block(plan: dict, block: str, spec: dict) -> dict:
                 role = "diagnostics"
             records_k.append(host_record(plan, block, role, jobs, None, k))
             all_jobs += jobs
-        out.append({"hosts": records_k})
+        out.append({"hosts": records_k, "second_phase": True} if launch.get("second_phase") else {"hosts": records_k})
     if block != "A":                     # round 31 (K2); block A: its plan's own check (check_block_a_content)
         units = planned_judged_units(block, all_jobs)
         for k, launch in enumerate(out):
@@ -2231,6 +2448,145 @@ def planned_judged_units(block: str, jobs: list[dict]) -> int:
     n = sum(1 for j in jobs if j["kind"] in rules.JUDGED_RUN_KINDS)
     n += sum(len(j.get("points") or ()) for j in jobs if j["kind"] in rules.JUDGED_B10_KINDS)
     return n + len(rules.REJUDGED_PINS.get(block, ()))
+
+
+# ----- round 32 (K1; addendum §34 point 5; block B's pre-flight G4): block B's second reference phase ----------------
+# The evaluation-only references at a0 1105-1107 evaluate block B's own a0 runs, whose adapters exist only after block
+# B's a0 arm pods. They are planned with block B (its need, completeness and seal count them) in a launch
+# {"second_phase": [[job, ...], ...]} that release holds until the a0 runs are recorded done, B10/B11 are re-pinned
+# with them and engine X is re-packed (second_phase_gate). Nothing else of the kit changes: the held launch is an
+# ordinary hosts launch of block B once released.
+
+
+def second_phase_layout(launches: list[dict], deal_pods) -> None:
+    """K1 at init (block B): a reference (ref_eval, safe_lora) on one of the block's own a0 runs (the deal's a0 seeds)
+    is in a second-phase launch, and a second-phase launch holds only such references; every second-phase launch
+    comes after every deal launch (the a0 runs) and before every judge launch (which judges its units)."""
+    own = {s for pod in deal_pods or [] for a, s in pod if a == "a0"}
+    for k, x in enumerate(launches):
+        for _, raw in x.get("hosts", []):
+            for j in raw:
+                if j["kind"] not in rules.SECOND_PHASE_KINDS or (j.get("seed") in own) == bool(x.get("second_phase")):
+                    continue
+                if x.get("second_phase"):
+                    fail(f"launch {k}: the second reference phase evaluates block B's own a0 runs only (seeds "
+                         f"{sorted(own)}), not a0 at {j.get('seed')}")
+                fail(f"launch {k}: {j['kind']} on a0 at {j.get('seed')} evaluates block B's own a0 run, whose adapter "
+                     'exists only after its arm pod: plan it in a {"second_phase": [...]} launch (addendum §34 point 5)')
+    deals = [k for k, x in enumerate(launches) if any(role == "arms" for role, _ in x.get("hosts", []))]
+    second = [k for k, x in enumerate(launches) if x.get("second_phase")]
+    judges = [k for k, x in enumerate(launches) if "judge" in x]
+    if second and min(second) < max(deals, default=-1):
+        fail("the second reference phase comes after every deal launch (block B's a0 runs come first)")
+    if second and judges and max(second) > min(judges):
+        fail("the second reference phase comes before every judge launch (the judges judge its units)")
+
+
+def pinned_s1_settings(rel: str) -> dict:
+    """K1: an S1 settings file read at its stage1_rules.S1_CODE pin, the one place that holds B10's and B11's pins:
+    ROOT/rel must hash to S1_CODE[rel] (the B10/B11 re-pin round changes that pin and the file together)."""
+    return pinned_doc({"path": rel, "sha256": rules.S1_CODE[rel]}, f"{rel} at its stage1_rules.S1_CODE pin")
+
+
+def own_a0_runs(plan: dict, block: str) -> dict:
+    """K1: seed -> (host, job index, job) of block BLOCK's own a0 run at that seed (an a0_arm job of the block's deal,
+    not B+Qi's own a0), recorded complete by record-done with its unit pulled and its COMPLETE.json SHA-256. Two
+    complete attempts at one seed refuse (the lead decides which unit B10 pins)."""
+    out = {}
+    for name, h in sorted(plan["hosts"].items()):
+        if h["block"] != block:
+            continue
+        for i, j in enumerate(h["jobs"]):
+            if j["kind"] != "a0_arm" or j.get("role") is not None or j.get("status") != "complete" or \
+                    j.get("pulled") is False:
+                continue
+            if j["seed"] in out:
+                fail(f"block {block}: two complete a0 runs at {j['seed']}; the lead decides which unit B10 pins")
+            if not (isinstance(j.get("complete_sha256"), str) and SHA_RE.fullmatch(j["complete_sha256"])):
+                fail(f"{name}: its a0 run at {j['seed']} has no COMPLETE.json SHA-256 in plan.json")
+            out[j["seed"]] = (name, i, j)
+    return out
+
+
+def a0_fingerprint(host: str, index: int, job: dict) -> dict:
+    """K6: the a0 run's e1 and q adapter fingerprints from its readable record job-I/rules.A0_FINGERPRINT_RECORD (the
+    job runner writes it after a complete a0_arm job; record-done keeps its SHA-256 among the job's outputs): the
+    pulled file re-hashed to that SHA-256, of the record's kind and version 1, naming this job, arm a0, its seed, unit
+    and COMPLETE.json SHA-256, with a 64-hex e1 (and q 64-hex or null). Nothing sealed is opened."""
+    rel = f"job-{index}/{rules.A0_FINGERPRINT_RECORD}"
+    digest = (job.get("outputs") or {}).get(rel)
+    p = HERE / "retrieved" / host / "tree" / rel
+    if not digest:
+        fail(f"the second reference phase waits: {host}'s a0 run at {job['seed']} lists no readable fingerprint record "
+             f"{rel} among its outputs (the job runner of kit round 32 writes it, K6)")
+    if not p.is_file() or mac.sha(p) != digest:
+        fail(f"{host}: {rel} is missing from the pulled tree or differs from its recorded SHA-256")
+    try:
+        doc = json.loads(p.read_text())
+    except ValueError:
+        doc = None
+    points = doc.get("checkpoints") if isinstance(doc, dict) else None
+    if not isinstance(doc, dict) or (doc.get("kind"), doc.get("version"), doc.get("job"), doc.get("arm"),
+                                     doc.get("seed"), doc.get("unit"), doc.get("complete_sha256")) != (
+            rules.A0_FINGERPRINT_KIND, 1, index, "a0", job["seed"], job.get("unit"), job.get("complete_sha256")) or \
+            not isinstance(points, dict) or set(points) != {"e1", "q"} or not SHA_RE.fullmatch(str(points["e1"])) or \
+            not (points["q"] is None or SHA_RE.fullmatch(str(points["q"]))):
+        fail(f"{host}: {rel} is not this a0 run's fingerprint record ({rules.A0_FINGERPRINT_KIND!r}, version 1, its "
+             "job, seed, unit and COMPLETE.json SHA-256, a 64-hex e1)")
+    return {"e1": points["e1"], "q": points["q"]}
+
+
+def second_phase_gate(plan: dict, block: str, hosts: list[dict]) -> dict:
+    """K1 at release: a second-phase launch is released only when, for each of its jobs' seeds S, (1) block BLOCK's
+    own a0 run at S is recorded complete (own_a0_runs) with its readable fingerprint record (K6, a0_fingerprint);
+    (2) B10's settings at their S1_CODE pin name that run's COMPLETE.json SHA-256 as S's reference unit with e1 (and,
+    if pinned, q) fingerprint prefixes of the record's fingerprints, and for a safe_lora job B11's settings at their
+    pin accept at S exactly the record's e1 fingerprint (the B10/B11 re-pin with these fingerprints); (3) the packed
+    stage of the host's engine holds the input gate_a_complete:S at that SHA-256 and seals B10's and B11's four files
+    at their S1_CODE pins (the re-pack after the re-pin). Returns seed -> the COMPLETE.json SHA-256 checked."""
+    runs, checked = own_a0_runs(plan, block), {}
+    for seed in sorted({j["seed"] for h in hosts for j in h["jobs"]}):   # the a0 runs first, then the re-pin
+        if seed not in runs:
+            fail(f"the second reference phase waits: block {block}'s a0 run at {seed} is not recorded complete "
+                 "(its arm pod first; record-done)")
+    b10 = pinned_s1_settings(rules.B10_SETTINGS)
+    b11 = pinned_s1_settings(rules.B11_SETTINGS) if any(j["kind"] == "safe_lora" for h in hosts for j in h["jobs"]) \
+        else None
+    for h in hosts:
+        for j in h["jobs"]:
+            seed = j["seed"]
+            complete, fp = runs[seed][2]["complete_sha256"], a0_fingerprint(*runs[seed])
+            ref = (b10.get("reference_units") or {}).get(str(seed))
+            if not isinstance(ref, dict) or ref.get("complete_sha256") != complete:
+                fail(f"the second reference phase waits for the B10/B11 re-pin: {rules.B10_SETTINGS} at its S1_CODE pin "
+                     f"names no reference unit for a0 {seed} with the COMPLETE.json SHA-256 plan.json records "
+                     f"({complete[:12]}...)")
+            prefixes = ref.get("fingerprint_prefixes") if isinstance(ref.get("fingerprint_prefixes"), dict) else {}
+            e1, q = prefixes.get("e1"), prefixes.get("q")
+            if not (isinstance(e1, str) and e1 and fp["e1"].startswith(e1)) or \
+                    (q is not None and not (isinstance(q, str) and q and str(fp["q"]).startswith(q))):
+                fail(f"the second reference phase waits for the B10/B11 re-pin: {rules.B10_SETTINGS}'s fingerprint "
+                     f"prefixes for a0 {seed} are not those of the run's readable fingerprint record (K6)")
+            if j["kind"] == "safe_lora":
+                accepted = ((((b11.get("adapter") or {}).get("accepted") or {}).get(str(seed))) or {}).get("fingerprint")
+                if accepted != fp["e1"]:
+                    fail(f"the second reference phase waits for the B10/B11 re-pin: {rules.B11_SETTINGS} at its S1_CODE "
+                         f"pin does not accept a0 {seed}'s e1 fingerprint from its readable record (K6)")
+            checked[seed] = complete
+    for h in hosts:                                   # the re-pack, after the re-pin
+        for j in h["jobs"]:
+            packed, _ = packed_input_sha(h["engine"], f"gate_a_complete:{j['seed']}")
+            if packed != checked[j["seed"]]:
+                fail(f"the second reference phase waits for the re-pack: the packed stage1-{h['engine']} holds no "
+                     f"gate_a_complete:{j['seed']} at the a0 run's COMPLETE.json SHA-256 (pack_setup.py {h['engine']} "
+                     "with it)")
+    for engine in sorted({h["engine"] for h in hosts}):
+        files = (packed_sealed(engine)[0].get("files") or {})
+        stale = [rel for rel in rules.B10_B11_FILES if files.get(rel) != rules.S1_CODE[rel]]
+        if stale:
+            fail(f"the second reference phase waits for the re-pack: the packed stage1-{engine} seals {stale[0]} at "
+                 "another SHA-256 than its stage1_rules.S1_CODE pin (re-pack after the B10/B11 re-pin)")
+    return checked
 
 
 def need_launches(built: dict) -> list:
@@ -2292,6 +2648,61 @@ def release_hosts(plan: dict, block: str, names_hosts: list[tuple[str, dict]]) -
     return [n for n, _ in names_hosts]
 
 
+# ----- round 32 (K4; addendum §34 point 7, §20 point 1; block B's pre-flight G8): block B's group on one record -----
+
+
+def group_jobs(plan: dict, block: str, given) -> dict:
+    """K4: block B's group (certify, B) on one funding record. At the group's first init, every later part of the
+    group that is not planned (rules.BLOCKS order: certify, then B) must be given as PART=FILE, its jobs file; each is
+    built now (build_block: every rule of its init but the gates its own init and release check again) for its need
+    launches only, so the first funding record covers the whole group before its first launch (addendum §20 point 1,
+    as group A's plan does). No other part may be given, and no group but B takes the option. Returns part -> its
+    jobs file (path, SHA-256), its number of pods and its need launches."""
+    group, given = rules.FUNDING_BLOCK[block], list(given or [])
+    if group != "B":
+        if given:
+            fail("--group-jobs belongs to block B's group (certify, B)")
+        return {}
+    later = [] if planned_parts(plan, group) else [
+        p for p in rules.BLOCKS if rules.FUNDING_BLOCK[p] == group and rules.BLOCKS.index(p) > rules.BLOCKS.index(block)
+        and p not in plan["blocks"]]
+    out = {}
+    for item in given:
+        part, sep, path = str(item).partition("=")
+        if not sep or part not in later or part in out:
+            fail(f"--group-jobs {str(item)[:40]!r}: give PART=FILE once for each later part of block B's group that "
+                 f"is not planned at its first init ({', '.join(later) or 'none here'})")
+        p = pathlib.Path(path)
+        try:
+            spec = json.loads(p.read_text())
+        except (OSError, ValueError):
+            fail(f"--group-jobs {part}=FILE: not a readable JSON file")
+        if not isinstance(spec, dict):
+            fail(f"--group-jobs {part}=FILE must be a JSON object")
+        built = build_block(plan, part, spec)
+        out[part] = {"path": str(p.resolve()), "sha256": mac.sha(p), "need_launches": need_launches(built),
+                     "pods": sum(len(x.get("hosts", [])) for x in built["launches"])}
+    missing = [p for p in later if p not in out]
+    if missing:
+        fail(f"init-block {block} is the first init of block B's group: its funding record must cover the whole "
+             f"group's need (addendum §20 point 1, §34 point 7): give --group-jobs {missing[0]}=FILE")
+    return out
+
+
+def group_summary(plan: dict, block: str, jobs_path: str, later: dict) -> dict:
+    """K4: what the need of an init in block B's group counts: the parts planned before it, this part and the later
+    parts given at the first init; at a later init, whether this jobs file is the one the first init counted."""
+    parts = planned_parts(plan, "B")
+    out = {"planned": parts, "this": block, "later": {p: {"sha256": x["sha256"], "pods": x["pods"]}
+                                                      for p, x in later.items()}}
+    if parts:
+        counted = (plan["blocks"][parts[0]].get("group_jobs") or {}).get(block)
+        out["counted_at_first_init"] = None if counted is None else (
+            "the same jobs file" if counted["sha256"] == mac.sha(pathlib.Path(jobs_path)) else
+            "another jobs file (its need is checked against the first funding record here)")
+    return out
+
+
 def init_block(args: argparse.Namespace) -> dict:
     block = args.block
     if block not in rules.BLOCKS:
@@ -2309,12 +2720,15 @@ def init_block(args: argparse.Namespace) -> dict:
     gate_g4(plan, block, built["jobs"])
     gate_bqi_pairs(plan, built["jobs"])
     gate_records(plan, built["jobs"])
+    gate_certification(plan, built["jobs"])            # round 32 (K3): LS-08 at planning too, not only at release
     refuse_duplicates(plan, built["jobs"])
     group = rules.FUNDING_BLOCK[block]
     mine = need_launches(built)
     plan_a = check_group_a(plan, block, launch_shapes(built["launches"], built["deal"])) if group == "A" else None
     rest = [[{"cap_hours": p["cap_hours"], "spend_usd": p["spend_usd"]} for p in x["pods"]]
             for x in (plan_a["rest"] if plan_a else []) if x["pods"]]
+    later = group_jobs(plan, block, getattr(args, "group_jobs", None))   # round 32 (K4): block B's whole group
+    rest += [x for part in later.values() for x in part["need_launches"]]
     need = rules.funding_need_usd(group_launches(plan, group) + mine + rest, rules.CONTINGENCY_FACTOR)
     pods = [{"launch": k, "cap_hours": h["cap_hours"], "guard_usd": rules.cents(h["guard_usd"]),
              "counted": h["counted"], "jobs": [f"{j['kind']}:{j.get('arm')}:{j.get('seed')}" for j in h["jobs"]]}
@@ -2333,6 +2747,11 @@ def init_block(args: argparse.Namespace) -> dict:
     if block == "cert":
         summary["c3"] = ("dropped: the §22 point 2 fallback record is recorded" if records(plan).get("c3_fallback")
                          else "planned: subsample " + records(plan)["c3"]["subsample"]["sha256"])
+    second = [k for k, x in enumerate(built["launches"]) if x.get("second_phase")]
+    if second:                                         # round 32 (K1): held until second_phase_gate passes
+        summary["second_phase_launches"] = second
+    if group == "B":                                   # round 32 (K4): the parts the need counts
+        summary["group"] = group_summary(plan, block, args.jobs, later)
     if args.dry_run:
         return {"dry_run": True, **summary}
     if not args.funding:
@@ -2346,6 +2765,10 @@ def init_block(args: argparse.Namespace) -> dict:
         fail(f"block {block}: the need ${need['need_usd']:.2f} is above block A's first funding record "
              f"(${first['amount_usd']:.2f}, {first['sha256'][:8]}...): block A's funding event covers the whole group "
              "before S1-0 launches (addendum §20 point 1)")
+    anchor_b = group_anchor(plan, group) if group == "B" else None   # round 32 (K4), re-hashed at its path
+    if anchor_b is not None and funding["sha256"] != anchor_b["sha256"]:
+        fail(f"block {block}: block B's group has one funding record (addendum §34 point 7): give the first init's "
+             f"record ({anchor_b['sha256'][:8]}...), which must cover the need of every part planned")
     names, pending = [], []
     for k, launch in enumerate(built["launches"]):
         if "judge" in launch:
@@ -2357,13 +2780,17 @@ def init_block(args: argparse.Namespace) -> dict:
                                  block)
             names.append(name)
             entry.append((name, h))
-        pending.append({"hosts": entry})
+        pending.append({"hosts": entry, "second_phase": True} if launch.get("second_phase") else {"hosts": entry})
     record = {"funding": funding, "need": need, "need_launches": mine, "branch": built["branch"],
               "deal": built["deal"], "reused": built["reused"], "utc": mac.utc(),
-              "launches": [{"judge": p["judge"]} if "judge" in p else {"hosts": [n for n, _ in p["hosts"]]}
+              "launches": [{"judge": p["judge"]} if "judge" in p else
+                           {"hosts": [n for n, _ in p["hosts"]], **({"second_phase": True} if p.get("second_phase")
+                                                                    else {})}
                            for p in pending],
               "released": 0, "pending": {n: h for p in pending for n, h in p.get("hosts", [])},
               "seq": max([b.get("seq", -1) for b in plan["blocks"].values()] + [len(plan["blocks"]) - 1]) + 1}
+    if later:                                          # round 32 (K4): what the first funding record covers
+        record["group_jobs"] = {part: dict(x) for part, x in later.items()}
     if plan_a and plan_a["default"] is not None:       # no lead record: the kit's default is the plan from now on
         doc = plan_a["doc"]
         records(plan)["block_a_plan"] = {"source": "kit default", "path": None, "sha256": hashlib_sha(canonical(doc)),
@@ -2389,32 +2816,47 @@ def release_next(plan: dict, block: str) -> list[str]:
     is released without that wait and the release is recorded in the block's released_early (addendum §28). Every
     other check of a release stays: the order of the launches, the block-A plan (check_planned_group_a) and every
     gate of release_hosts. A judge launch judges the earlier launches' units, so it still waits, the guard off or not,
-    until every earlier launch's hosts are done or moved."""
+    until every earlier launch's hosts are done or moved. Round 32: a hosts launch whose every pending host's jobs are
+    all named by not-run decisions (K2) is skipped (counted released, recorded under "skipped", its hosts never
+    released), after the same wait as a release; a second-phase launch (K1) is released only when second_phase_gate
+    passes, the guard off or not."""
     b = plan["blocks"][block]
+    decided = not_run_decided(plan, block) if block != "A" else {}
     while b["released"] < len(b["launches"]):
         k = b["released"]
         launch = b["launches"][k]
+        skip = launch_decided(b, k, decided)          # round 32 (K2): it holds only decided pending hosts
         if rules.FUNDING_BLOCK[block] == "A":
             check_planned_group_a(plan, block)        # round 3a: the block-A plan again at every release
         if k > 0:
             before = b["launches"][k - 1].get("hosts", [])
             moved = {d["from"] for d in plan["deferrals"]} | {r["from"] for r in plan.get("requeues") or []}
-            open_hosts = [n for n in before if not plan["hosts"][n].get("done") and n not in moved]
+            open_hosts = [n for n in before if n in plan["hosts"] and not plan["hosts"][n].get("done") and n not in moved]
             off = rules.guard_off_record(HERE)        # (§28) the user's recorded decision, re-hashed; None: no record
             if off is not None and "judge" in launch:
                 waiting = [n for x in b["launches"][:k] for n in x.get("hosts", [])
-                           if not plan["hosts"][n].get("done") and n not in moved]
+                           if n in plan["hosts"] and not plan["hosts"][n].get("done") and n not in moved]
                 if waiting:
                     fail(f"block {block}: launch {k} is a judge launch; it waits until every earlier launch's hosts are "
                          f"done, with the budget guard off too ({waiting[0]})")
+            if skip and off is not None:
+                open_hosts = []                       # a skipped launch releases no host: nothing is released early
             if open_hosts:
                 if off is None:
                     fail(f"block {block}: launch {k - 1}'s hosts are not done ({open_hosts[0]})")
                 b.setdefault("released_early", []).append({"launch": k, "open_hosts": open_hosts,
                                                            "guard_off_sha256": off["sha256"], "utc": mac.utc()})
+        if skip:
+            names = launch["hosts"]
+            b.setdefault("skipped", []).append({"launch": k, "hosts": list(names), "utc": mac.utc(), "decisions": sorted(
+                {decided[(n, i)] for n in names for i in range(len(b["pending"][n]["jobs"]))})})
+            b["released"] += 1
+            continue
         if "judge" in launch:
             b["released"] += 1
             continue
+        if launch.get("second_phase"):                # round 32 (K1): a0 runs done, B10/B11 re-pinned, X re-packed
+            second_phase_gate(plan, block, [b["pending"][n] for n in launch["hosts"]])
         names = release_hosts(plan, block, [(n, b["pending"][n]) for n in launch["hosts"]])
         for n in names:
             del b["pending"][n]
@@ -2433,10 +2875,14 @@ def release(block: str) -> dict:
     if not names and plan["blocks"][block]["released"] == before:
         fail(f"block {block}: no launch left to release")
     early = (plan["blocks"][block].get("released_early") or [])[early_before:]   # (§28) released under the decision
+    skipped = [x for x in plan["blocks"][block].get("skipped") or [] if x["launch"] >= before]   # round 32 (K2)
     mac.save_plan(plan)
     mac.operator_action({"action": "release", "block": block, "hosts": names,
                          "released": plan["blocks"][block]["released"], **({"released_early": early} if early else {})})
-    out = {"block": block, "released": names, "launches_released": plan["blocks"][block]["released"]}
+    if skipped:                                       # round 32 (K2): launches skipped under not-run decisions
+        mac.operator_action({"action": "release-skipped", "block": block, "skipped": skipped})
+    out = {"block": block, "released": names, "launches_released": plan["blocks"][block]["released"],
+           **({"skipped": skipped} if skipped else {})}
     return {**out, "released_early": early} if early else out
 
 
@@ -2564,7 +3010,10 @@ def record_simple(name: str, path: str, sha256: str) -> dict:
         if doc.get("kind") != RECORD_KINDS[kind] or type(doc.get("pass")) is not bool:
             fail(f"not a {kind} record with a boolean pass")
         _need(doc, ("host", "utc", "recorded_by"), f"a {kind} record")
-        _host_job(plan, doc["host"], job_kind, block)
+        job = _host_job(plan, doc["host"], job_kind, block)
+        if name == "certification" and doc["pass"] and job.get("certification_gate") != "passed":
+            fail("the certification pod's B10 gate is recorded failed (certification_gate): the certification "
+                 "record's pass must be false (round 32, K3; LS-08)")
         _evidence(doc["host"], doc.get("evidence"))
         if rec.get(name) is not None:
             fail(f"the {kind} is already recorded")
@@ -3064,8 +3513,11 @@ def record_done(host: str) -> dict:
             fail(f"{host}: job {i} is complete without a complete_sha256 (or, for a unit-free job, its outputs)")
         units = b10_units(tree, r, i, host, i in decided) if job["kind"] in rules.B10_UNIT_KINDS and \
             r["status"] == "complete" and "units" in r else None
+        gate = certification_gate_of(host, i, job, r, units, outputs)   # round 32 (K3): B10's gate, or None
         job.update(status=r["status"], unit=r.get("unit"), complete_sha256=r.get("complete_sha256"),
                    outputs=outputs or None, reason=r.get("reason"))
+        if gate is not None:
+            job["certification_gate"] = gate
         if units is not None:                            # round 30: every B10 unit, for the judge check (R3, R5)
             job["units"] = units
         if i in decided:
@@ -3079,6 +3531,26 @@ def record_done(host: str) -> dict:
                          **({"not_pulled": not_pulled} if not_pulled else {})})
     out = {"host": host, "statuses": [j["status"] for j in h["jobs"]]}
     return {**out, "not_pulled": not_pulled} if not_pulled else out
+
+
+def certification_gate_of(host: str, i: int, job: dict, r: dict, units: list | None, outputs: dict) -> str | None:
+    """Round 32 (K3, G11): B10's gate of a complete b10_certify job, as the runner records it (certification_gate
+    "passed" or "failed"): its comparison file job-I/evals/<seed>-certify.compare.json is among the job's recorded
+    outputs, and a failed gate leaves exactly the certify unit job-I/evals/<seed>-certify (B10 stops after a failed
+    gate). A record without the gate (a runner before this round) refuses; no other job names one. None otherwise."""
+    gate = r.get("certification_gate")
+    if job["kind"] != "b10_certify" or r["status"] != "complete":
+        if gate is not None:
+            fail(f"{host}: job {i} names a certification gate; only a complete b10_certify job does")
+        return None
+    if gate not in rules.CERTIFICATION_GATES:
+        fail(f"{host}: job {i} (b10_certify) is complete without B10's gate (certification_gate "
+             f"{' or '.join(rules.CERTIFICATION_GATES)}: the job runner of kit round 32 records it; re-pack)")
+    if f"job-{i}/evals/{job['seed']}-certify.compare.json" not in outputs:
+        fail(f"{host}: job {i} (b10_certify): its certification comparison file is not among its recorded outputs")
+    if gate == "failed" and [u["unit"] for u in units or []] != [f"job-{i}/evals/{job['seed']}-certify"]:
+        fail(f"{host}: job {i} (b10_certify): a failed gate leaves the certify unit only (B10 stops after it)")
+    return gate
 
 
 def b10_units(tree: pathlib.Path, r: dict, i: int, host: str, unpulled: bool) -> list[dict]:
@@ -3244,16 +3716,21 @@ def too_many(host: str, moved: list[dict]) -> None:
              f"MAX_ARMS_PER_POD = {rules.MAX_ARMS_PER_POD}; the lead decides")
 
 
-def packed_input_sha(engine: str, name: str) -> tuple[str | None, str]:
-    """(the SHA-256 the engine's current packed stage seals for the named input, or None; that stage's
-    sealed_files_sha256), with sealed-files.json checked against its receipt."""
+def packed_sealed(engine: str) -> tuple[dict, str]:
+    """(the engine's current packed sealed-files.json, its sealed_files_sha256), checked against its receipt."""
     rec = engine_receipt(engine)
     path = HERE / "setup" / f"packed-stage1-{engine}" / "sealed-files.json"
     if not path.is_file() or mac.sha(path) != rec.get("sealed_files_sha256"):
         fail(f"the packed stage1-{engine}'s sealed-files.json is missing or is not its receipt's")
-    doc = json.loads(path.read_text())
+    return json.loads(path.read_text()), rec["sealed_files_sha256"]
+
+
+def packed_input_sha(engine: str, name: str) -> tuple[str | None, str]:
+    """(the SHA-256 the engine's current packed stage seals for the named input, or None; that stage's
+    sealed_files_sha256), with sealed-files.json checked against its receipt."""
+    doc, digest = packed_sealed(engine)
     rel = (doc.get("inputs") or {}).get(name)
-    return (doc.get("files") or {}).get(rel) if rel else None, rec["sealed_files_sha256"]
+    return (doc.get("files") or {}).get(rel) if rel else None, digest
 
 
 def pin_s3_orig(plan: dict, host: str, h: dict, moving_idx: list[int], index_map: dict, moved: list[dict]) -> str | None:
@@ -3320,7 +3797,9 @@ def defer(host: str) -> dict:
         fail(f"{host}: record-done first")
     if any(d["from"] == host for d in plan["deferrals"]):
         fail(f"{host} was already deferred")
-    moving_idx = [i for i, j in enumerate(h["jobs"]) if j["status"] in ("crashed", "deferred", "not_started")]
+    decided = not_run_decided(plan, h["block"]) if h["block"] != "A" else {}   # round 32 (K2): they stay where they are
+    moving_idx = [i for i, j in enumerate(h["jobs"]) if j["status"] in ("crashed", "deferred", "not_started")
+                  and (host, i) not in decided]
     if not moving_idx:
         fail(f"{host}: nothing to defer")
     return move_open(plan, host, h, moving_idx, "defer")
@@ -3338,6 +3817,8 @@ def move_open(plan: dict, host: str, h: dict, moving_idx: list[int], action: str
     ``payment``: the user's recorded re-run payment (requeue_user_paid): every moved job is paid by it, as one unit,
     beyond the contingency (pay_user), never from the contingency."""
     jobs = h["jobs"]
+    if h["block"] != "A" and any((host, i) in not_run_decided(plan, h["block"]) for i in moving_idx):
+        fail(f"{host}: a job named by a not-run decision never moves (round 32, K2: the lead decided it does not run)")
     first_deferred = next((i for i in moving_idx if jobs[i]["status"] == "deferred"), None)
     stranded = None
     if first_deferred is not None and jobs[first_deferred]["kind"] in rules.LINKED_KINDS:
@@ -3593,6 +4074,7 @@ def main(argv: list[str]) -> int:
     p.add_argument("--jobs", required=True)
     p.add_argument("--funding")
     p.add_argument("--dry-run", action="store_true")
+    p.add_argument("--group-jobs", action="append", metavar="PART=FILE")   # round 32 (K4): block B's whole group
     sub.add_parser("release").add_argument("block")
     d = sub.add_parser("deal")
     d.add_argument("block")
@@ -3618,7 +4100,8 @@ def main(argv: list[str]) -> int:
     wt.add_argument("--out", required=True)
     wt.add_argument("--recorded-by", required=True)
     for name in ("record-branch", "import-reference", "c2-label", "record-block-a-plan", "record-block-a-replan",
-                 "record-block-a-not-run", "record-unpulled", "record-rerun-payment", "record-judge-not-run", *simple):
+                 "record-block-a-not-run", "record-unpulled", "record-rerun-payment", "record-judge-not-run",
+                 "record-not-run", *simple):
         r = sub.add_parser(name)
         r.add_argument("file")
         r.add_argument("--sha256", required=True)
@@ -3646,6 +4129,7 @@ def main(argv: list[str]) -> int:
                "record-rerun-payment": lambda: record_rerun_payment(a.file, a.sha256),
                "record-judges": lambda: record_judges(a.block, a.file, a.sha256),
                "record-judge-not-run": lambda: record_judge_not_run(a.file, a.sha256),
+               "record-not-run": lambda: record_not_run(a.file, a.sha256),
                "block-a-need": lambda: block_a_need(a.file, a.sha256)}[a.command]()
     print(json.dumps(out))
     return 0

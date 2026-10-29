@@ -321,6 +321,59 @@ Gate B's judge files are unchanged, byte for byte; every change is in this kit.
 - **Mutation runner.** `notes/run_mutants_b15.py SOURCE_ROOT SCRATCH OUT.json BASELINE|ALL|NEW|NEAR|ID,...` (baseline
   first with the same command; killed only by a FAILED line with no ERROR line; see its module text).
 
+### Round 32, 29 Oct (addendum §34 points 5-7; block B's pre-flight G4, G6, G8, G11, G13; the lead's K1-K6; `notes/kit-round-32.json`)
+
+- **Block B's second reference phase (K1, G4).** The references on block B's own a0 runs (a0 at 1105-1107) are planned
+  with block B, in a launch `{"second_phase": [[job, ...], ...]}` of its jobs file (ref_eval and safe_lora only; every
+  reference at those seeds must be in one; after every deal launch, before every judge launch). Block B's need,
+  completeness and seal count it like any launch. `release B` holds it until (`plan_tool.second_phase_gate`): each
+  seed's a0 run is recorded complete (`record-done`) with its readable fingerprint record (K6); B10's settings at their
+  `stage1_rules.S1_CODE` pin name that run's COMPLETE.json SHA-256 as the seed's reference unit with the record's
+  fingerprint prefixes, and B11's settings at their pin accept exactly the record's e1 (the B10/B11 re-pin); the
+  packed stage1-X holds `gate_a_complete:SEED` at that SHA-256 and seals B10's and B11's four files at their S1_CODE
+  pins (the re-pack). The guard-off record never releases it early. B10's and B11's pins live in S1_CODE only
+  (`B10_SETTINGS`, `B11_SETTINGS`, `B10_B11_FILES` name them by their keys): the lead re-takes them there at the merge
+  of the re-pin round. The full-scope draft split this way (`notes/kit-round-32-evidence/jobs_block_b_full_2phase.json`)
+  needs **$245.55** for the whole group (certify + B with the phase; base $196.44), the same as the unsplit figure.
+- **A not-run decision for any block but A (K2, G6).** Block A keeps `record-block-a-not-run`. Every other block:
+
+      $PY -B plan_tool.py record-not-run FILE --sha256 H
+
+  FILE is exactly {kind: "stage1 not-run decision", block, jobs: ["HOST:INDEX", ...], reason, utc, recorded_by}. A
+  name is a job that is not complete and: on a done, unmoved host (not to be re-run); left behind by a defer or requeue
+  that could not pay it (not taken to a target); or every job of a pending host (a held launch that will never be
+  released; a decision names all of that host's jobs). The block is complete when every launch is released or holds
+  only decided hosts and every job is complete, taken along by a move, or decided (`plan_tool.block_open_jobs`; a job
+  a move left behind without a decision now keeps the block open). `release` skips a launch whose hosts are all
+  decided (recorded under the block's `skipped`, logged `release-skipped`), after the same wait as a release; defer
+  and every move leave a decided job where it is. The seal lists the decisions under `not_run` ("HOST:INDEX") and the
+  skipped launches under `skipped`; `seal.py status` prints one line per decision (valid or INVALID) and per skipped
+  launch. Keep FILE unchanged at its path: every use re-hashes it.
+- **A failed B10 certification (K3, G11).** B10's exit 4 at the certification pod's run (its failed gate) is a
+  complete job with `certification_gate: "failed"`, its certify unit only and its comparison file among the outputs;
+  exit 0 needs a passing comparison (`certification_gate: "passed"`); anything else is still a crash. `record-done`
+  keeps the gate (and refuses a complete b10_certify record without it); `record-certification` refuses `pass: true`
+  over a failed gate; and `init-block` (not only `release`) refuses every evaluation-only reference without a passing
+  certification (LS-08), with its own message after a failed one.
+- **One funding record for block B's group (K4, G8).** The group's first init (certify) takes the jobs file of each
+  later part and its funding record must cover the whole group's need (addendum §20 point 1, as group A has it):
+
+      $PY -B plan_tool.py init-block certify --jobs JC --funding F --group-jobs B=JB [--dry-run]
+
+  Every later init of the group takes the same record (its SHA-256, re-hashed at its path) and the need of every part
+  planned so far must stay within it; the summary says whether block B's jobs file is the one certify's init counted.
+- **Judge units from plan.json (K5, G13).** `judge_units_stage1.py units-of-block BLOCK --out FILE [--plan P]` writes
+  the block's judged units (round 31's rule: complete, pulled arm, a0_arm and ref_train units, each B10 reference unit,
+  the block's re-judged pins), one folder per line, each COMPLETE.json at the SHA-256 plan.json records, and prints
+  the counts by kind: the `--unit` arguments of the judge launch and `write-files`; never `--run-root`.
+- **The a0 fingerprint record (K6).** After every complete a0_arm job the runner writes the readable
+  `job-I/a0-adapter-fingerprint.json` (the B10/B11 re-pin tool's format: kind "stage1 a0 adapter fingerprint", version
+  1, job, arm, seed, unit, complete_sha256, checkpoints {e1, q}, identity {manifest_sha256, training_identity}; e1 is
+  `states/e1/state.json`'s adapter_fingerprint, the field B11 compares, and must equal COMPLETE.json's) and lists it
+  among the job's outputs; if it cannot, the unit stands and the record's absence is noted (`a0_fingerprint_record`).
+  The runner is a member of every pack: the certification pod's X1 pack (K3) and block B's X2 pack (K6) must be made
+  after this round is merged.
+
 ## The gates (brief §4)
 
 - **G0 (before any pod, $0).** B15 built, verified and pinned at the S1 freeze. `orchestrate.py check-plan HOST` must

@@ -238,6 +238,8 @@ class Pod:
         monkeypatch.setattr(self.runner, "HEARTBEAT", tmp_path / "heartbeat.json")
         self.ran = []
         self.fail = {}
+        self.cert_verdict, self.cert_exit = "pass", 4   # round 32 (K3): B10's gated run (None: no comparison file)
+        self.e1_fp, self.state_fp = "5" * 64, None       # round 32 (K6): a calibrate unit's e1 fingerprint (state's)
         self.regen = {"e1_adapter_fingerprint": FP, "training_identity": TI, "manifest_sha256": MS,
                       "data_config_sha256": DC}
         monkeypatch.setattr(self.runner.subprocess, "run", self.run)
@@ -262,7 +264,10 @@ class Pod:
             arm, seed = argv[argv.index("--arms") + 1], argv[argv.index("--seeds") + 1]
             unit = root / "round1" / f"{seed}-{arm}-e1-a1"
             write(unit / "eval" / "e1" / "summary.json", {"u": float(SENTINELS[0])})
-            write(unit / "COMPLETE.json", {"complete": True, "files": {}})
+            write(unit / "states" / "e1" / "state.json", {"adapter_fingerprint": self.state_fp or self.e1_fp})
+            write(unit / "COMPLETE.json", {"complete": True, "files": {}, "identity": {"manifest_sha256": MS,
+                                                                                    "training_identity": TI},
+                                           "checkpoints": {"e1": {"adapter_fingerprint": self.e1_fp}}})
         elif argv[3:4] == ["run-one"]:
             identity = {k: v for k, v in self.regen.items() if k != "e1_adapter_fingerprint"}
             write(root / out / "COMPLETE.json", {"complete": True, "identity": identity, "files": {},
@@ -282,12 +287,21 @@ class Pod:
                                                            "flags": SENTINELS[2]})
         elif "eval_adapter.py" in text and argv[2] == "run":
             seed = argv[argv.index("--seed") + 1]
-            for label in argv[argv.index("--evaluations") + 1].split(","):    # one unit per evaluation (B10)
+            labels = argv[argv.index("--evaluations") + 1].split(",")
+            gated = "--gate-reference-eval" in argv              # round 32 (K3): B10's own gate and its comparison
+            if gated and self.cert_verdict != "pass":
+                labels = labels[:1]                              # B10 stops after a failed gate (certify only)
+            for label in labels:                                 # one unit per evaluation (B10)
                 unit = root / argv[argv.index("--eval-root") + 1] / f"{seed}-{label}"
                 write(unit / "job.json", {"kind": "stage1-eval-adapter"})
                 write(unit / "COMPLETE.json", {"complete": True, "files": {}})
                 write(unit / "eval" / "e1" / "summary.json", {"u": SENTINELS[0]})
+            if gated and self.cert_verdict is not None:
+                write(root / argv[argv.index("--eval-root") + 1] / f"{seed}-certify.compare.json",
+                      {"verdict": self.cert_verdict, "gate": {"same_answer_set": self.cert_verdict == "pass"}})
             write(root / argv[argv.index("--regen-out") + 1] / "run" / "COMPLETE.json", {"complete": True})
+            if gated and self.cert_verdict != "pass":
+                return subprocess.CompletedProcess(args, self.cert_exit, "", "")
         elif "eval_adapter.py" in text and argv[2] == "regenerate":
             write(root / out / "run" / "states" / "e1" / "adapter.safetensors", "w")
             write(root / out / "run" / "COMPLETE.json", {"complete": True})
@@ -2501,3 +2515,127 @@ def test_the_backup_lists_jobs_complete_not_pulled_and_leaves_c0s_states_aside(k
     assert sel["missing"] == ["a-2: job 0 is complete in plan.json but its unit is not sealed in the pulled tree",
                               "a-2: job 2: 1 recorded output(s) not staged or changed"]
     assert backup.main(["--dry-run", "--tag", "backup-2026-10-26-stage1-a"]) == 2
+
+
+# ===== Kit round 32 (29 Oct 2026): K3 (a failed B10 certification) and K6 (the a0 fingerprint record) ===============
+
+CERTIFY_TWO = lambda r: [job(r, "b10_certify", "a0", 1101, points=["certify", "scale:0"], recipe="B")]   # noqa: E731
+REPORT = "job-0/evals/1101-certify.compare.json"
+
+
+def test_k3_b10s_failed_gate_is_a_complete_job_with_the_certify_unit_and_its_comparison(kit, tmp_path, monkeypatch):
+    """K3 (G11): B10 exits 4 at the certification pod's run (its failed gate: the certify unit and the comparison
+    written, nothing after them). The runner records the job complete, certification_gate failed, its one unit
+    (job-0/evals/1101-certify, verified) and the comparison among its outputs; the host is ok. With a passed gate
+    (exit 0, verdict pass) both units and certification_gate passed."""
+    pod = Pod(kit, tmp_path, monkeypatch, CERTIFY_TWO)
+    pod.cert_verdict = "fail"
+    pod.remaining([30 * H])
+    assert pod.main() == 0 and pod.statuses() == ["complete"] and pod.done()["ok"] is True
+    rec = pod.done()["jobs"][0]
+    assert rec["certification_gate"] == "failed" and rec["exits"] == {"job-0-b10-run": 4}
+    assert rec["unit"] == "job-0/evals/1101-certify" and [u["unit"] for u in rec["units"]] == [rec["unit"]]
+    assert rec["outputs"][REPORT] == sha(pod.root / REPORT)
+    verified = [a[a.index("--unit") + 1] for a in pod.ran if "eval_adapter.py" in " ".join(a) and "verify" in a]
+    assert verified == ["job-0/evals/1101-certify"]
+    (tmp_path / "passed").mkdir()
+    passed = Pod(kit, tmp_path / "passed", monkeypatch, CERTIFY_TWO)
+    passed.remaining([30 * H])
+    assert passed.main() == 0 and passed.statuses() == ["complete"]
+    rec = passed.done()["jobs"][0]
+    assert rec["certification_gate"] == "passed" and [u["unit"] for u in rec["units"]] == [
+        "job-0/evals/1101-certify", "job-0/evals/1101-scale:0"]
+
+
+@pytest.mark.parametrize("case, why", [
+    ("no-comparison", "B10 wrote no readable certification comparison file"),
+    ("exit-4-verdict-pass", "B10 exited 4 but its comparison is not a failed verdict"),
+    ("exit-0-verdict-fail", "B10 exited 0 but its comparison is not a pass"),
+    ("exit-3", "exit 3 in job-0-b10-run"),
+    ("second-unit", "after a failed gate B10 leaves the certify unit only (2 unit(s) found)"),
+    ("ref-eval-exit-4", "exit 4 in job-0-b10-run")])
+def test_k3_anything_but_b10s_own_failed_gate_is_still_a_crash(kit, tmp_path, monkeypatch, case, why):
+    """K3 the other way: exit 4 without the comparison, with a pass verdict, a fail verdict with exit 0, another exit
+    (3: a fingerprint mismatch), a second unit after a failed gate, and exit 4 from a reference job's run are crashes,
+    and the host stops."""
+    jobs = (lambda r: [job(r, "ref_eval", "a0", 1104, points=["scale:0.5"], recipe="B")]) if case == "ref-eval-exit-4" \
+        else CERTIFY_TWO
+    pod = Pod(kit, tmp_path, monkeypatch, jobs)
+    pod.cert_verdict = {"no-comparison": None, "exit-4-verdict-pass": "fail", "exit-0-verdict-fail": "fail",
+                        "exit-3": "fail", "second-unit": "fail", "ref-eval-exit-4": "pass"}[case]
+    pod.cert_exit = {"exit-0-verdict-fail": 0, "exit-3": 3}.get(case, 4)
+    if case == "ref-eval-exit-4":
+        pod.fail = {"job-0-b10-run": 4}
+    real = pod.run
+
+    def tamper(args, **kw):
+        out = real(args, **kw)
+        if args[:2] == ["python3", "process_receipt.py"] and args[3] == "job-0-b10-run":
+            if case == "exit-4-verdict-pass":
+                write(pod.root / REPORT, {"verdict": "pass"})
+            if case == "second-unit":
+                unit = pod.root / "job-0" / "evals" / "1101-scale:0"
+                write(unit / "job.json", {"kind": "stage1-eval-adapter"})
+                write(unit / "COMPLETE.json", {"complete": True, "files": {}})
+        return out
+    monkeypatch.setattr(pod.runner.subprocess, "run", tamper)
+    pod.remaining([30 * H])
+    assert pod.main() == 1 and pod.statuses() == ["crashed"]
+    rec = pod.done()["jobs"][0]
+    assert rec["why"] == why and "certification_gate" not in rec
+
+
+def test_k3_the_kits_failed_gate_exit_is_b10s_own_exit_code(kit):
+    """K3 by hand: rules.B10_EXIT_CERTIFICATION is 4, eval_adapter.py's EXIT_CERTIFICATION, and B10's settings name
+    exit 4 as the failed certification comparison."""
+    rules = kit("stage1_rules.py")
+    text = (REPO / "scripts" / "stage1_s1" / "eval_adapter.py").read_text()
+    found = re.search(r"^EXIT_OK, EXIT_FAILED, EXIT_REFUSED, EXIT_MISMATCH, EXIT_CERTIFICATION = 0, 1, 2, 3, (\d+)$",
+                      text, re.MULTILINE)
+    assert found and int(found.group(1)) == rules.B10_EXIT_CERTIFICATION == 4
+    exit_codes = json.loads((REPO / rules.B10_SETTINGS).read_text())["exit_codes"]
+    assert "certification comparison failed" in exit_codes["4"]
+
+
+def test_k6_an_a0_arm_job_writes_its_readable_fingerprint_record_and_lists_it(kit, tmp_path, monkeypatch):
+    """K6 both ways: after the a0_arm job the runner writes job-0/a0-adapter-fingerprint.json, by hand the re-pin
+    tool's format (kind, version 1, job, arm, seed, unit, the unit's COMPLETE.json SHA-256, e1 = states/e1/state.json's
+    adapter_fingerprint, the field B11 compares, q null, the identity), lists it among the job's outputs at its
+    SHA-256, and the seal classes it readable; an edit arm (A1) writes none."""
+    a1 = edit_ref("A1")
+    pod = Pod(kit, tmp_path, monkeypatch, lambda r: [job(r, "a0_arm", "a0", 1105, recipe="S"),
+                                                     job(r, "arm", "A1", 1105, edit=a1, recipe="S")])
+    pod.remaining([30 * H])
+    assert pod.main() == 0 and pod.statuses() == ["complete", "complete"]
+    a0, arm = pod.done()["jobs"]
+    rel, unit = "job-0/a0-adapter-fingerprint.json", "round1/1105-a0-e1-a1"
+    assert a0["unit"] == unit and a0["outputs"][rel] == sha(pod.root / rel)
+    state = json.loads((pod.root / unit / "states" / "e1" / "state.json").read_text())
+    assert json.loads((pod.root / rel).read_text()) == {
+        "kind": "stage1 a0 adapter fingerprint", "version": 1, "job": 0, "arm": "a0", "seed": 1105, "unit": unit,
+        "complete_sha256": sha(pod.root / unit / "COMPLETE.json"), "checkpoints": {"e1": "5" * 64, "q": None},
+        "identity": {"manifest_sha256": MS, "training_identity": TI}}
+    assert state["adapter_fingerprint"] == "5" * 64
+    assert not any(k.endswith("adapter-fingerprint.json") for k in arm["outputs"])
+    rules = pod.rules
+    assert (rules.A0_FINGERPRINT_RECORD, rules.A0_FINGERPRINT_KIND) == ("a0-adapter-fingerprint.json",
+                                                                        "stage1 a0 adapter fingerprint")
+    import fnmatch
+    patterns = re.search(r"^READABLE_PATTERNS = \((.*)\)$", (kit.root / "seal.py").read_text(), re.MULTILINE).group(1)
+    assert any(fnmatch.fnmatch(rules.A0_FINGERPRINT_RECORD, p.strip(' "')) for p in patterns.split(","))
+
+
+def test_k6_a_state_fingerprint_that_is_not_complete_jsons_writes_no_record_and_the_unit_stands(kit, tmp_path,
+                                                                                               monkeypatch):
+    """K6 the other way: when states/e1/state.json's adapter_fingerprint is not COMPLETE.json's e1 one, no record is
+    written or listed, the reason is recorded, and the a0 unit itself stays complete (never re-run for a record); the
+    second reference phase then refuses that seed (test_stage1_runkit)."""
+    pod = Pod(kit, tmp_path, monkeypatch, lambda r: [job(r, "a0_arm", "a0", 1105, recipe="S")])
+    pod.state_fp = "6" * 64
+    pod.remaining([30 * H])
+    assert pod.main() == 0 and pod.statuses() == ["complete"]
+    rec = pod.done()["jobs"][0]
+    assert not (pod.root / "job-0" / "a0-adapter-fingerprint.json").exists()
+    assert not any(k.endswith("adapter-fingerprint.json") for k in rec["outputs"])
+    assert rec["a0_fingerprint_record"] == ("states/e1/state.json's adapter_fingerprint is not a SHA-256 equal to "
+                                            "COMPLETE.json's e1 one")

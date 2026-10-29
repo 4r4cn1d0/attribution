@@ -34,7 +34,9 @@ Then each job, in order, one process per step under process_receipt.py (the comm
                  decoy and the same two pins (J8; addendum §21); under its fallback the W1 scripts/stage1/
                  score_classifier.py with no pools
   arm, a0_arm, ref_train  engine calibrate --checkpoints e1 (an edit arm with --edit and its edit-<SHA-256> arm),
-                 then the O-ext unit pass on the new unit's e1 state (J9, J10, J18)
+                 then the O-ext unit pass on the new unit's e1 state (J9, J10, J18); kit round 32 (K6): after a
+                 complete a0_arm job the readable job-I/a0-adapter-fingerprint.json (a0_fingerprint_record), listed
+                 among its outputs
   c0             engine make-job run-one (R_1, seed 1101, train only, --pin-code) and scripts/stage1_s1/lean_eval_job.py run
                  --expect-adapter-fingerprint <R_1101's e1 fingerprint, from its pinned COMPLETE.json> with a fresh
                  registry and the O-ext inputs (J11; engine X, on block A's LN-12 pod: addendum §26)
@@ -53,7 +55,9 @@ Then each job, in order, one process per step under process_receipt.py (the comm
   cert_c3        engine make-job run-one --bank subsample-<SHA-256> --bank-file F and run-one (J14, engine Y); the
                  packed subsample file and the writer's record must hash to the job's plan.json pins (§22 point 2)
   b10_certify    scripts/stage1_s1/eval_adapter.py run --evaluations certify[,scale:0] --gate-reference-eval DIR (B10's
-                 run writes the in-process comparison <seed>-certify.compare.json) (J15)
+                 run writes the in-process comparison <seed>-certify.compare.json) (J15); kit round 32 (K3, G11):
+                 the record names B10's gate, certification_gate "passed" (exit 0, verdict pass) or "failed" (B10's
+                 exit 4, a verdict other than pass, the certify unit only): a failed gate is complete, not crashed
   ref_eval       eval_adapter.py run --evaluations ... --certification-report F --certification-report-sha256 H (J16)
   safe_lora      eval_adapter.py regenerate; then ON THE CPU, BEFORE THE PROJECTION, scripts/stage1_s1/safe_lora.py
                  vcheck (per matrix ||V - V'||_F / ||V||_F, V' = float32(W_Instruct) - float32(bf16(W_base)), and
@@ -74,7 +78,8 @@ requirement (stage1_rules.requirements: max(plan, this pod's projection), a rege
 otherwise this job and every later one are ``deferred``, in order (deferral.json). Before a job its every input (the
 scripts, settings, the edit file against its arm, the named stage-1 inputs and data folders) is checked against
 sealed-files.json; a mismatch stops the host (``sealed_file_mismatch``) and nothing of that job runs. A non-zero exit,
-or no new output, is a crash: the job is ``crashed``, later jobs ``not_started``, and the host stops. A regeneration
+or no new output, is a crash: the job is ``crashed``, later jobs ``not_started``, and the host stops (except B10's exit
+4 at a b10_certify run, its failed gate: ``certification_gate``, kit round 32). A regeneration
 whose unit differs from reuse_spec.json's ``accept`` fields (every field listed there: the e1 adapter fingerprint, the
 training identity, the prepared manifest and the data config) is complete with ``acceptance`` false and reason
 ``LS-04``; its O-only pass is then ``not_started`` with reason ``LS-04`` and the later jobs go on (LS-04 (a)).
@@ -868,6 +873,61 @@ def output_files(root: pathlib.Path, folders: list[str]) -> dict:
     return out
 
 
+def certification_gate(root: pathlib.Path, job: dict, index: int, found: list[str], failed: bool) -> tuple:
+    """Kit round 32 (K3, G11): (B10's gate of a b10_certify job, or None; why not). B10's run writes its own comparison
+    job-I/evals/<seed>-certify.compare.json; only its "verdict" is read. Exit 0 with verdict pass is "passed". Exit
+    rules.B10_EXIT_CERTIFICATION (4, B10's failed gate) with a verdict other than pass and exactly the certify unit
+    job-I/evals/<seed>-certify (nothing after a failed gate runs) is "failed": the job is complete with a failed gate,
+    never crashed, so the lead records the certification with pass false (LS-08). Anything else is a crash."""
+    report = root / f"job-{index}" / "evals" / f"{job['seed']}-certify.compare.json"
+    try:
+        verdict = json.loads(report.read_text()).get("verdict")
+    except (OSError, ValueError, AttributeError):
+        return None, "B10 wrote no readable certification comparison file"
+    if not failed:
+        return ("passed", None) if verdict == "pass" else (None, "B10 exited 0 but its comparison is not a pass")
+    if not isinstance(verdict, str) or verdict == "pass":
+        return None, f"B10 exited {rules.B10_EXIT_CERTIFICATION} but its comparison is not a failed verdict"
+    if found != [f"job-{index}/evals/{job['seed']}-certify"]:
+        return None, f"after a failed gate B10 leaves the certify unit only ({len(found)} unit(s) found)"
+    return "failed", None
+
+
+def a0_fingerprint_record(root: pathlib.Path, unit: str, job: dict, index: int) -> tuple:
+    """Kit round 32 (K6): (job-I/a0-adapter-fingerprint.json, None) once written, else (None, why). After a block's
+    seal only readable files are read, and an a0 unit's e1 fingerprint is in sealed-class files only, so after a
+    complete a0_arm job the runner writes this readable record (seal.py: *adapter-fingerprint*.json) in the format of
+    the B10/B11 re-pin tool (scripts/stage1_s1/repin_reference_seeds.py): {kind rules.A0_FINGERPRINT_KIND, version 1,
+    job, arm "a0", seed, unit, complete_sha256 (the unit's COMPLETE.json SHA-256), checkpoints {e1, q}, identity
+    {manifest_sha256, training_identity}}. e1 is states/e1/state.json's adapter_fingerprint, the field B11 compares
+    (safe_lora.py checks an adapter's lora_fingerprint against it), and must equal COMPLETE.json's
+    checkpoints.e1.adapter_fingerprint (the field B10 compares); q is COMPLETE.json's checkpoints.q (or null); the
+    identity is COMPLETE.json's. Only these fields are read; no evaluation value."""
+    folder = root / unit
+    try:
+        complete = json.loads((folder / "COMPLETE.json").read_text())
+        state = json.loads((folder / "states" / "e1" / "state.json").read_text())
+    except (OSError, ValueError) as exc:
+        return None, f"the unit's COMPLETE.json or states/e1/state.json cannot be read ({type(exc).__name__})"
+    complete, state = (complete if isinstance(complete, dict) else {}), (state if isinstance(state, dict) else {})
+    points = complete.get("checkpoints") if isinstance(complete.get("checkpoints"), dict) else {}
+    e1, q = state.get("adapter_fingerprint"), (points.get("q") or {}).get("adapter_fingerprint")
+    hex64 = set("0123456789abcdef")
+    if not (isinstance(e1, str) and len(e1) == 64 and set(e1) <= hex64) or \
+            e1 != (points.get("e1") or {}).get("adapter_fingerprint"):
+        return None, "states/e1/state.json's adapter_fingerprint is not a SHA-256 equal to COMPLETE.json's e1 one"
+    if q is not None and not (isinstance(q, str) and len(q) == 64 and set(q) <= hex64):
+        return None, "COMPLETE.json's q adapter_fingerprint is not a SHA-256"
+    identity = complete.get("identity") if isinstance(complete.get("identity"), dict) else {}
+    doc = {"kind": rules.A0_FINGERPRINT_KIND, "version": 1, "job": index, "arm": "a0", "seed": job["seed"],
+           "unit": unit, "complete_sha256": sha(folder / "COMPLETE.json"), "checkpoints": {"e1": e1, "q": q},
+           "identity": {k: identity.get(k) for k in ("manifest_sha256", "training_identity")}}
+    rel = f"job-{index}/{rules.A0_FINGERPRINT_RECORD}"
+    (root / f"job-{index}").mkdir(parents=True, exist_ok=True)
+    (root / rel).write_text(json.dumps(doc, indent=1, sort_keys=True) + "\n")
+    return rel, None
+
+
 def out_folders(commands: list) -> list[str]:
     folders = []
     for _, argv in commands:
@@ -886,7 +946,7 @@ def run_job(plan: dict, host: str, index: int, root: pathlib.Path, units: dict, 
     arm = engine_arm(job)
     pattern = f"{ROUND}/{job['seed']}-{arm}-e1-a*" if kind in ("arm", "a0_arm", "ref_train") else None
     before = complete_attempts(root, pattern) if pattern else set()
-    exits, steps, unit = {}, [], None
+    exits, steps, unit, gate_failed = {}, [], None, False
     for name, raw in commands:
         if name.endswith("-oext") and kind in ("arm", "a0_arm", "ref_train"):
             new = sorted(complete_attempts(root, pattern) - before)
@@ -915,6 +975,9 @@ def run_job(plan: dict, host: str, index: int, root: pathlib.Path, units: dict, 
                         "steps": steps + [step]}
         steps.append(step)
         exits[name] = done.returncode
+        if done.returncode == rules.B10_EXIT_CERTIFICATION and kind == "b10_certify" and name == f"job-{index}-b10-run":
+            gate_failed = True                           # K3 (G11): B10's failed gate, checked below; not a crash
+            continue
         if done.returncode:
             return {"status": "crashed", "why": f"exit {done.returncode} in {name}", "exits": exits, "steps": steps}
     record = {"exits": exits, "steps": steps}
@@ -931,7 +994,12 @@ def run_job(plan: dict, host: str, index: int, root: pathlib.Path, units: dict, 
     elif kind in ("b10_certify", "ref_eval", "safe_lora"):
         found = sorted(str(p.parent.relative_to(root)) for p in (root / f"job-{index}").rglob("COMPLETE.json")
                        if (p.parent / "job.json").is_file() and "regen" not in p.parent.relative_to(root).parts)
-        if len(found) != len(job["points"]):              # one B10 unit per evaluation point
+        if kind == "b10_certify":                         # K3: B10's gate (a failed gate leaves the certify unit)
+            gate, why = certification_gate(root, job, index, found, gate_failed)
+            if gate is None:
+                return {**record, "status": "crashed", "why": why}
+            record["certification_gate"] = gate
+        if len(found) != (1 if gate_failed else len(job["points"])):   # one B10 unit per evaluation point
             return {**record, "status": "crashed",
                     "why": f"{len(found)} B10 unit(s) for {len(job['points'])} evaluation point(s)"}
         b10_units = found
@@ -968,6 +1036,12 @@ def run_job(plan: dict, host: str, index: int, root: pathlib.Path, units: dict, 
     record["outputs"] = outputs
     if check.returncode:
         return {**record, "status": "crashed", "why": "the unit's verify failed"}
+    if kind == "a0_arm":                                 # K6: the a0 fingerprint, readable after the block's seal
+        rel, why = a0_fingerprint_record(root, unit, job, index)
+        if rel is None:
+            record["a0_fingerprint_record"] = why        # the unit stands; the second reference phase refuses its seed
+        else:
+            record["outputs"][rel] = sha(root / rel)
     return {**record, "status": "complete"}
 
 

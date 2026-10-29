@@ -460,6 +460,26 @@ S1_OEXT_Y = {"scripts/stage1_s1/oext_unit.py":
              "scripts/stage1_s1/settings/oext_eval.json":
                  {"path": "scripts/stage1_s1/settings/oext_eval_y.json",
                   "sha256": "80469a8f728d15192c360f26640c17b7ba652fbd969cfa45f43113c1defd76f0"}}
+# Kit round 32 (addendum §34 points 5-7; block B's pre-flight G4, G6, G8, G11, G13). B10's and B11's files are named
+# here by their S1_CODE keys only: S1_CODE is the one place that holds their pins (the B10/B11 re-pin round changes
+# the pins there and nothing else in the kit). Block B's second reference phase (K1) reads B10's reference_units and
+# B11's accepted fingerprints from these settings at their S1_CODE pins, and needs the X pack to seal these four files
+# at those pins (a re-pack after the re-pin).
+B10_SETTINGS = "scripts/stage1_s1/settings/eval_adapter.json"
+B11_SETTINGS = "scripts/stage1_s1/settings/safe_lora.json"
+B10_B11_FILES = ("scripts/stage1_s1/eval_adapter.py", B10_SETTINGS, "scripts/stage1_s1/safe_lora.py", B11_SETTINGS)
+B10_EXIT_CERTIFICATION = 4                # eval_adapter.py EXIT_CERTIFICATION (its settings' exit_codes "4"): K3
+CERTIFICATION_GATES = ("passed", "failed")   # K3 (G11): a complete b10_certify job names B10's own gate
+SECOND_PHASE_KINDS = ("ref_eval", "safe_lora")   # K1: the evaluation-only references on block B's own a0 runs
+NOT_RUN_KIND = "stage1 not-run decision"  # K2 (G6): record-not-run, the lead's decision for any block but A
+NOT_RUN_KEYS = ("kind", "block", "jobs", "reason", "utc", "recorded_by")
+# K6: after a sealed block only readable files are read (seal.py READABLE_PATTERNS), and an a0 unit's e1 fingerprint
+# lives in sealed-class files (states/e1/state.json, COMPLETE.json). So the job runner writes, after every complete
+# a0_arm job, job-I/<A0_FINGERPRINT_RECORD> (readable: *adapter-fingerprint*.json) in the format the B10/B11 re-pin
+# tool (scripts/stage1_s1/repin_reference_seeds.py) reads, and lists it among the job's outputs; the second phase's
+# release needs it for each seed.
+A0_FINGERPRINT_RECORD = "a0-adapter-fingerprint.json"
+A0_FINGERPRINT_KIND = "stage1 a0 adapter fingerprint"
 STAGE1_PINS = {   # M (here): shasum -a 256 of the B15 tree (main 721c58f); the S1 package is re-pinned at its merge
     "scripts/stage1/limits/overrefusal_checks.py": "ed5fd2dcb5675d5fe5e135b76e37ece2488dfcc2db5129ba422064502b0d61ae",
     "scripts/stage1/limits/limits_common.py": "2798aa06a01fd89bf3dd8dc2abf33e63bfcb4f17bff700a709eacd2b3ace264c",

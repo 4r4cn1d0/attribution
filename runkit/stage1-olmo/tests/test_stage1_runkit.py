@@ -149,6 +149,7 @@ class World:
         mp.setattr(self.tool, "recipe_training_identity_y", identity_y)
         self.n = 0
         self.auto_plan = True                   # round 3a: record test_plan() before the group's first init
+        self.group_b_funding = None             # round 32 (K4): block B's group's one funding record (its path)
 
     # ----- inputs -----
     def record(self, obj) -> tuple[str, str]:
@@ -180,14 +181,24 @@ class World:
         self.tool.record_block_a_plan(p, h)
         return p, h
 
-    def init(self, block: str, launches, amount: float = 500.0, dry_run: bool = False, **extra):
+    def init(self, block: str, launches, amount: float = 500.0, dry_run: bool = False, group_jobs=None, **extra):
+        """init-block BLOCK by the kit's own function. Round 32 (K4): block B's group has one funding record, so a
+        later init of the group reuses the first one's file; certify's init (block B not planned) counts block B's
+        jobs (``group_jobs``, default the deal's 6 pods in one launch, B_DEAL)."""
         plan = self.tool.load()
         if self.auto_plan and block in ("S1-0", "cert", "A") and plan["records"].get("block_a_plan") is None and \
                 not any(b in plan["blocks"] for b in ("S1-0", "cert", "A")):
             self.test_plan()
+        group = self.rules.FUNDING_BLOCK[block]
+        planned_b = any(self.rules.FUNDING_BLOCK.get(b) == "B" for b in plan["blocks"])
+        funding = self.group_b_funding if group == "B" and planned_b else self.funding(group, amount)
+        if group == "B" and not planned_b:
+            self.group_b_funding = funding
+        if block == "certify" and group_jobs is None and "B" not in plan["blocks"]:
+            group_jobs = {"B": B_DEAL}
+        given = [f"{part}={self.jobs(launches_)}" for part, launches_ in (group_jobs or {}).items()]
         return self.tool.init_block(argparse.Namespace(block=block, jobs=self.jobs(launches, **extra),
-                                                       funding=self.funding(self.rules.FUNDING_BLOCK[block], amount),
-                                                       dry_run=dry_run))
+                                                       funding=funding, dry_run=dry_run, group_jobs=given or None))
 
     def plan(self) -> dict:
         return self.mac.load_plan()
@@ -203,8 +214,10 @@ class World:
     def plan_or_none(self) -> dict | None:
         return self.mac.load_plan() if self.mac.PLAN.exists() else None
 
-    def done(self, host: str, statuses=None, outputs=None, engine=None) -> None:
-        """A pulled JOB-DONE.json for HOST: unit kinds get a COMPLETE.json; unit-free kinds an output file."""
+    def done(self, host: str, statuses=None, outputs=None, engine=None, gate: str = "passed") -> None:
+        """A pulled JOB-DONE.json for HOST: unit kinds get a COMPLETE.json; unit-free kinds an output file. Round 32
+        (K3): a complete b10_certify job names B10's gate (``gate``) with its comparison file among its outputs, as the
+        runner records it; a failed gate leaves the certify unit job-I/evals/<seed>-certify only."""
         plan = self.plan()
         tree = self.root / "retrieved" / host / "tree"
         jobs = []
@@ -213,7 +226,15 @@ class World:
             eng = engine or job["engine"]
             r = {"index": i, "kind": job["kind"], "arm": job["arm"], "seed": job["seed"], "status": status,
                  "engine": eng, "engine_sha256": {"X": X, "Y": Y}[eng]}
-            if status == "complete":
+            if status == "complete" and job["kind"] == "b10_certify":
+                rel = f"job-{i}/evals/{job['seed']}-certify.compare.json"
+                verdict = "pass" if gate == "passed" else "fail"
+                r.update(certification_gate=gate, outputs={rel: sha(write_json(tree / rel, {"verdict": verdict}))})
+            if status == "complete" and job["kind"] == "b10_certify" and gate == "failed":
+                unit = f"job-{i}/evals/{job['seed']}-certify"
+                r.update(unit=unit, complete_sha256=sha(write_json(tree / unit / "COMPLETE.json", {"i": i, "h": host})))
+                r["units"] = [{"unit": unit, "complete_sha256": r["complete_sha256"], "verify_exit": 0}]
+            elif status == "complete":
                 if job["kind"] in self.rules.UNITLESS_KINDS:
                     rel = f"job-{i}/{job['kind']}.json"
                     body = (outputs or {}).get(i, {"kind": job["kind"], "value": SENTINELS[1]})
@@ -223,6 +244,13 @@ class World:
                     write_json(tree / unit / "eval" / "e1" / "summary.json", {"u": float(SENTINELS[0])})
                     write_json(tree / unit / "cost-ledger.json", {"stages": {"training": 100.0}})
                     r.update(unit=unit, complete_sha256=sha(write_json(tree / unit / "COMPLETE.json", {"i": i, "h": host})))
+                    if job["kind"] == "a0_arm" and plan["hosts"][host]["block"] == "B":   # round 32 (K6), block B
+                        rel = f"job-{i}/a0-adapter-fingerprint.json"
+                        body = {"kind": "stage1 a0 adapter fingerprint", "version": 1, "job": i, "arm": "a0",
+                                "seed": job["seed"], "unit": unit, "complete_sha256": r["complete_sha256"],
+                                "checkpoints": {"e1": hashlib.sha256(f"e1 {host} {i}".encode()).hexdigest(), "q": None},
+                                "identity": {"manifest_sha256": "m" * 64, "training_identity": "t" * 64}}
+                        r["outputs"] = {rel: sha(write_json(tree / rel, body))}
                     if job["kind"] in ("b10_certify", "ref_eval", "safe_lora"):   # the runner: one unit per point
                         r["units"] = [{"unit": unit, "complete_sha256": r["complete_sha256"], "verify_exit": 0}]
                         for k, point in enumerate((job.get("points") or [])[1:], 1):
@@ -4899,3 +4927,519 @@ def test_status_ends_a_pods_time_at_its_first_confirmed_stop_or_its_finisher_rec
     rows = capsys.readouterr().out.splitlines()
     running = float(re.search(r"cap\s+[\d.]+ h\s+([\d.]+) h", next(r for r in rows if r.startswith("a-3"))).group(1))
     assert running > 40.0                                                # until now (27 Oct or later)
+
+
+# ===== Kit round 32 (29 Oct 2026; addendum §34 points 5-7; block B's pre-flight G4, G6, G8, G11, G13) ===============
+# K1 block B's second reference phase; K2 a not-run decision for any block but A; K3 a failed B10 certification;
+# K4 block B's group on one funding record; K5 a block's judged units from plan.json. Hand values in each test.
+
+CERTIFY_JOBS = [{"hosts": [[{"kind": "b10_certify", "arm": "a0", "seed": 1101, "points": ["certify"]}]]}]
+REF1104 = {"kind": "ref_eval", "arm": "a0", "seed": 1104, "points": ["scale:0.75"]}
+REF1105 = {"kind": "ref_eval", "arm": "a0", "seed": 1105, "points": ["scale:0.75"]}
+SAFE1105 = {"kind": "safe_lora", "arm": "a0", "seed": 1105, "points": ["default"]}
+SAFE1106 = {"kind": "safe_lora", "arm": "a0", "seed": 1106, "points": ["default"]}
+PHASE2 = {"second_phase": [[REF1105, SAFE1105], [SAFE1106]]}
+B_PHASED = B_DEAL + [{"hosts": [[REF1104]]}, PHASE2]     # 24 runs, the 1104 reference, the second phase: 28 units
+B_HOSTS = ("b-1", "b-2", "b-3", "b-4", "b-5", "b-6")
+
+
+def _certified(w, gate: str = "passed", passed: bool = True, rest=None, ready: bool = True) -> None:
+    """Block A sealed (``ready``); the certify pod planned (block B's jobs ``rest`` counted, K4), run with B10's gate
+    ``gate`` and recorded with ``passed``, the comparison file as its evidence."""
+    if ready:
+        _block_b_ready(w, passed=True)
+    w.init("certify", CERTIFY_JOBS, group_jobs={"B": B_PHASED if rest is None else rest})
+    w.done("cfy-1", gate=gate)
+    rel = "job-0/evals/1101-certify.compare.json"
+    ev = w.root / "retrieved" / "cfy-1" / "tree" / rel
+    w.tool.record_simple("certification", *w.record({"kind": "stage1 b10 certification", "pass": passed,
+                                                     "host": "cfy-1", "utc": "u", "recorded_by": "t",
+                                                     "evidence": [{"path": rel, "sha256": sha(ev)}]}))
+
+
+def _a0_runs(w, seeds=(1105, 1106)) -> dict:
+    """seed -> the COMPLETE.json SHA-256 plan.json records for block B's own a0 run (read back by hand)."""
+    plan = w.plan()
+    return {s: next(j["complete_sha256"] for h in plan["hosts"].values() if h["block"] == "B" for j in h["jobs"]
+                    if j["kind"] == "a0_arm" and j["seed"] == s and j.get("status") == "complete") for s in seeds}
+
+
+def _a0_fp(w, seed: int) -> str:
+    """The e1 fingerprint of block B's a0 run at SEED from its readable record (K6), read back by hand."""
+    plan = w.plan()
+    host, i = next((n, i) for n, h in plan["hosts"].items() if h["block"] == "B" for i, j in enumerate(h["jobs"])
+                   if j["kind"] == "a0_arm" and j["seed"] == seed and j.get("status") == "complete")
+    record = w.root / "retrieved" / host / "tree" / f"job-{i}" / "a0-adapter-fingerprint.json"
+    return json.loads(record.read_text())["checkpoints"]["e1"]
+
+
+def _repin(w, runs: dict, b11: dict | None = None, fps: dict | None = None) -> None:
+    """The B10/B11 re-pin, synthetic, as the re-pin tool makes it from the K6 records: B10's and B11's settings at their
+    S1_CODE paths in this checkout, B10 naming each a0 run (seed -> COMPLETE.json SHA-256) with the first 16 hex of its
+    record's e1 fingerprint as its e1 prefix (``fps``: seed -> another e1), B11 accepting that e1 (``b11`` replaces
+    B11's accepted map); stage1_rules.S1_CODE pinned to these bytes for this test."""
+    r = w.rules
+    fps = {s: _a0_fp(w, s) for s in runs} if fps is None else fps
+    b10 = write_json(w.repo / r.B10_SETTINGS, {"reference_units": {
+        str(s): {"complete_sha256": c, "fingerprint_prefixes": {"e1": fps[s][:16], "q": None}} for s, c in runs.items()}})
+    accepted = b11 if b11 is not None else {str(s): {"fingerprint": fps[s]} for s in runs}
+    settings = write_json(w.repo / r.B11_SETTINGS, {"adapter": {"accepted": accepted}})
+    w.mp.setitem(r.S1_CODE, r.B10_SETTINGS, sha(b10))
+    w.mp.setitem(r.S1_CODE, r.B11_SETTINGS, sha(settings))
+
+
+def _repack(w, inputs: dict, files: dict | None = None) -> str:
+    """Engine X re-packed, synthetic: sealed-files.json holds gate_a_complete:SEED at the given SHA-256 and B10's and
+    B11's four files at their S1_CODE pins (``files`` overrides); the receipt names its SHA-256."""
+    r = w.rules
+    sealed = {rel: r.S1_CODE[rel] for rel in r.B10_B11_FILES}
+    names = {}
+    for s, digest in inputs.items():
+        sealed[f"inputs/gate_a_complete-{s}/COMPLETE.json"] = digest
+        names[f"gate_a_complete:{s}"] = f"inputs/gate_a_complete-{s}/COMPLETE.json"
+    sealed.update(files or {})
+    packed = w.root / "setup" / "packed-stage1-X"
+    doc = write_json(packed / "sealed-files.json", {"files": sealed, "inputs": names})
+    write_json(packed / "setup-receipt.json", {"engine_sha256": X, "sealed_files_sha256": sha(doc)})
+    return sha(doc)
+
+
+def _not_run(w, jobs, block: str = "B", reason: str = "lead: synthetic: B10 refuses this seed on the pod",
+             **change) -> tuple[str, str]:
+    body = {"kind": "stage1 not-run decision", "block": block, "jobs": jobs, "reason": reason,
+            "utc": "2026-10-29T12:00:00Z", "recorded_by": "test", **change}
+    return w.record({k: v for k, v in body.items() if v is not None})
+
+
+def test_k1_the_second_phase_holds_the_references_on_block_bs_own_a0_runs_priced_by_hand(w):
+    """K1 at init, both ways: a reference on a0 at 1105 outside a second phase, a second-phase reference at 1104 (block
+    A's a0), a training job in the phase, the phase before the deal and a judge launch before the phase refuse, and a
+    second phase outside block B; the good layout is planned with its launch marked, its two hosts pending, and their
+    caps by hand (Branch 128: O500 1,024 s): b-8 = ref_eval (540 + 2,728.62 + 1,024 = 4,292.62 s) then safe_lora
+    (540 + 88.02 + 600 + 3,752.62 = 4,980.64 s): 2,520 + 4,292.62 + 4,980.64 + 1,900 + 1,800 = 15,493.26 s -> 4.5 h;
+    b-9 = safe_lora alone: 2,520 + 6,880.64 + 1,800 = 11,200.64 s -> 3.25 h. Their need terms are block B's."""
+    _certified(w)
+    g1105 = {"kind": "ref_train", "arm": "G", "recipe": "G", "seed": 1105}
+    bad = [(B_DEAL + [{"hosts": [[REF1105]]}], 'plan it in a {"second_phase": [...]} launch'),
+           (B_DEAL + [{"second_phase": [[REF1104]]}], "evaluates block B's own a0 runs only (seeds [1105, 1106, 1107])"),
+           (B_DEAL + [{"second_phase": [[g1105]]}], "evaluation-only references only (ref_eval, safe_lora), not ref_train"),
+           ([PHASE2] + B_DEAL, "comes after every deal launch"),
+           (B_DEAL + [{"judge": {"judge": "harmbench", "arms": 27}}, PHASE2], "comes before every judge launch")]
+    for launches, match in bad:
+        with pytest.raises(SystemExit, match=re.escape(match)):
+            w.init("B", launches, dry_run=True)
+    with pytest.raises(SystemExit, match="a second reference phase belongs to block B"):
+        w.tool.build_block(w.plan(), "certify", {"launches": [PHASE2]})
+    out = w.init("B", B_PHASED)
+    assert out["second_phase_launches"] == [2] and out["released"] == list(B_HOSTS)
+    b = w.plan()["blocks"]["B"]
+    assert b["launches"][1] == {"hosts": ["b-7"]} and b["launches"][2] == {"hosts": ["b-8", "b-9"], "second_phase": True}
+    assert sorted(b["pending"]) == ["b-7", "b-8", "b-9"] and b["released"] == 1
+    assert b["pending"]["b-8"]["cap_hours"] == quarter_up(2520 + 4292.62 + 4980.64 + 1900 + 1800) == 4.5
+    assert b["pending"]["b-9"]["cap_hours"] == quarter_up(2520 + 4980.64 + 1900 + 1800) == 3.25
+    assert b["need_launches"][2] == [
+        {"cap_hours": 4.5, "spend_usd": pytest.approx((2520 + 4292.62 + 4980.64) / 3600 * 1.79)},
+        {"cap_hours": 3.25, "spend_usd": pytest.approx((2520 + 4980.64) / 3600 * 1.79)}]
+    assert "b-8:0 (ref_eval a0 1105)" in w.tool.block_open_jobs(w.plan(), "B")
+    assert w.tool.block_complete(w.plan(), "B") is False
+
+
+def test_k1_the_second_phase_is_released_only_after_the_a0_runs_the_b10_b11_repin_and_the_repack(w):
+    """K1 (with K6) at release, both ways and in order, the guard off too: the a0 runs not recorded (the guard-off
+    record releases launch 1 early, never the phase); B10's settings not at their S1_CODE pin; B10 naming another
+    COMPLETE.json at 1105; B11 not accepting 1106's e1 from its K6 record; B10's e1 prefix not the record's; an X pack
+    without gate_a_complete:1105, with 1106's at another SHA-256, or sealing B10's settings at their old pin; two
+    complete a0 runs at one seed; no K6 record among the a0 job's outputs, a record naming another unit, a record
+    whose bytes changed. Then the phase is released, bound to the re-pack, and block B completes and is sealed with
+    its hosts."""
+    _certified(w)
+    w.init("B", B_PHASED)
+    w.tool.record_simple("guard_off", *_guard_off(w))
+    assert w.tool.release("B")["released"] == ["b-7"]                    # launch 1 early, under the user's decision
+    with pytest.raises(SystemExit, match="waits: block B's a0 run at 1105 is not recorded complete"):
+        w.tool.release("B")                                             # the guard off never releases it early
+    for host in (*B_HOSTS, "b-7"):
+        w.done(host)
+    runs = _a0_runs(w)
+    with pytest.raises(SystemExit, match="scripts/stage1_s1/settings/eval_adapter.json at its stage1_rules.S1_CODE pin"):
+        w.tool.release("B")
+    _repin(w, {1105: "0" * 64, 1106: runs[1106]}, fps={1105: _a0_fp(w, 1105), 1106: _a0_fp(w, 1106)})
+    with pytest.raises(SystemExit, match="waits for the B10/B11 re-pin: .*names no reference unit for a0 1105"):
+        w.tool.release("B")
+    _repin(w, runs, b11={"1105": {"fingerprint": _a0_fp(w, 1105)}, "1106": {"fingerprint": _a0_fp(w, 1106)[:63] + "f"}})
+    with pytest.raises(SystemExit, match="does not accept a0 1106's e1 fingerprint from its readable record"):
+        w.tool.release("B")
+    _repin(w, runs, fps={1105: "c" * 64, 1106: _a0_fp(w, 1106)})
+    with pytest.raises(SystemExit, match="fingerprint prefixes for a0 1105 are not those of the run's readable"):
+        w.tool.release("B")
+    _repin(w, runs)
+    _repack(w, {})
+    with pytest.raises(SystemExit, match="waits for the re-pack: the packed stage1-X holds no gate_a_complete:1105"):
+        w.tool.release("B")
+    _repack(w, {1105: runs[1105], 1106: "0" * 64})
+    with pytest.raises(SystemExit, match="holds no gate_a_complete:1106 at the a0 run's"):
+        w.tool.release("B")
+    _repack(w, runs, files={w.rules.B10_SETTINGS: "0" * 64})
+    with pytest.raises(SystemExit, match="seals scripts/stage1_s1/settings/eval_adapter.json at another SHA-256"):
+        w.tool.release("B")
+    digest = _repack(w, runs)
+    hosts = [w.plan()["blocks"]["B"]["pending"][n] for n in ("b-8", "b-9")]
+    twice = w.plan()
+    twice["hosts"]["b-7"]["jobs"].append({**twice["hosts"]["b-1"]["jobs"][3]})   # a second complete a0 at 1105
+    with pytest.raises(SystemExit, match="two complete a0 runs at 1105"):
+        w.tool.second_phase_gate(twice, "B", hosts)
+    record = w.root / "retrieved" / "b-1" / "tree" / "job-3" / "a0-adapter-fingerprint.json"   # K6, a0 at 1105
+    no_record = w.plan()
+    no_record["hosts"]["b-1"]["jobs"][3]["outputs"] = {}
+    with pytest.raises(SystemExit, match="lists no readable fingerprint record job-3/a0-adapter-fingerprint.json"):
+        w.tool.second_phase_gate(no_record, "B", hosts)
+    other = w.plan()
+    other["hosts"]["b-1"]["jobs"][3]["unit"] = "units/another"
+    with pytest.raises(SystemExit, match="is not this a0 run's fingerprint record"):
+        w.tool.second_phase_gate(other, "B", hosts)
+    kept = record.read_text()
+    record.write_text(kept.replace('"version": 1', '"version": 2'))
+    with pytest.raises(SystemExit, match="differs from its recorded SHA-256"):
+        w.tool.second_phase_gate(w.plan(), "B", hosts)
+    record.write_text(kept)
+    assert w.tool.second_phase_gate(w.plan(), "B", hosts) == runs
+    out = w.tool.release("B")
+    assert out["released"] == ["b-8", "b-9"] and "released_early" not in out
+    assert {w.plan()["hosts"][n]["sealed_files_sha256"] for n in ("b-8", "b-9")} == {digest}
+    assert w.tool.block_complete(w.plan(), "B") is False
+    w.done("b-8")
+    w.done("b-9")
+    assert w.tool.block_complete(w.plan(), "B") is True and w.tool.block_open_jobs(w.plan(), "B") == []
+    sealed = w.seal.seal_block("B")
+    record = json.loads((w.root / "seals" / "block-B.json").read_text())
+    assert record["hosts"] == ["b-1", "b-2", "b-3", "b-4", "b-5", "b-6", "b-7", "b-8", "b-9"] and sealed["files"] > 0
+
+
+def test_k1_b10s_and_b11s_pins_are_read_from_s1_code_only(w):
+    """'Leave the pins as they are, but make the code read them from one place': B10's and B11's four files are
+    S1_CODE keys, the round names them by those keys only, and no kit file but stage1_rules.py holds one of their
+    pins (or its first 16 hex); the second phase reads the settings at S1_CODE's pin, so a changed pin refuses the
+    same bytes."""
+    r = w.rules
+    assert set(r.B10_B11_FILES) <= set(r.S1_CODE) and {r.B10_SETTINGS, r.B11_SETTINGS} <= set(r.B10_B11_FILES)
+    pins = [r.S1_CODE[rel] for rel in r.B10_B11_FILES]
+    for p in sorted(KIT.rglob("*.py")):
+        if p.name == "stage1_rules.py" or "tests" in p.relative_to(KIT).parts:
+            continue
+        text = p.read_text()
+        assert not any(pin[:16] in text for pin in pins), p.name
+    path = write_json(w.repo / r.B10_SETTINGS, {"reference_units": {}})
+    w.mp.setitem(r.S1_CODE, r.B10_SETTINGS, sha(path))
+    assert w.tool.pinned_s1_settings(r.B10_SETTINGS) == {"reference_units": {}}
+    w.mp.setitem(r.S1_CODE, r.B10_SETTINGS, "1" * 64)
+    with pytest.raises(SystemExit, match="missing or differs from its pin"):
+        w.tool.pinned_s1_settings(r.B10_SETTINGS)
+
+
+def test_k2_a_crashed_job_decided_not_run_completes_block_b_and_the_seal_and_status_list_it(w, capsys):
+    """K2 both ways: before record-done the host's job refuses; then every malformed decision, block A (its route),
+    an unplanned block, an unknown host, a job index out of range and a complete job refuse; a good decision (by the
+    CLI) completes block B, the seal lists it ("b-1:3" and its SHA-256) and status prints it valid; it is named once;
+    defer leaves it where it is; after the seal no decision; a changed file makes status INVALID and completeness
+    refuse."""
+    _block_b_ready(w, passed=True)
+    w.init("B", B_DEAL)
+    for host in B_HOSTS[1:]:
+        w.done(host)
+    with pytest.raises(SystemExit, match=r"b-1:3 \(a0_arm a0 1105\): b-1 is not recorded done"):
+        w.tool.record_not_run(*_not_run(w, ["b-1:3"]))
+    w.done("b-1", statuses={3: "crashed"})
+    assert w.tool.block_complete(w.plan(), "B") is False
+    assert w.tool.block_open_jobs(w.plan(), "B") == ["b-1:3 (a0_arm a0 1105)"]
+    bad = [(dict(extra=1), "exactly"), (dict(kind="stage1 block-a not-run decision"), "its kind is not"),
+           (dict(jobs=[]), "distinct"), (dict(jobs=["b-1:3", "b-1:3"]), "distinct"), (dict(jobs=["b-1-3"]), "HOST:INDEX"),
+           (dict(jobs=["b-1:03"]), "HOST:INDEX"), (dict(reason=" "), "non-empty"), (dict(utc="2099-01-01T00:00:00Z"),
+                                                                                    "in the future"),
+           (dict(block="A"), "record-block-a-not-run"), (dict(block="C"), "block C is not planned"),
+           (dict(jobs=["z-1:0"]), "z-1 is not a host of block B"), (dict(jobs=["b-1:9"]), "b-1 has no job 9"),
+           (dict(jobs=["b-1:0"]), r"b-1:0 \(arm A1 1105\) is complete \(it ran\)")]
+    for change, match in bad:
+        with pytest.raises(SystemExit, match=match):
+            w.tool.record_not_run(*_not_run(w, **{"jobs": ["b-1:3"], **change}))
+    assert "not_run" not in w.plan()["records"]
+    path, digest = _not_run(w, ["b-1:3"])
+    capsys.readouterr()
+    assert w.tool.main(["record-not-run", path, "--sha256", digest]) == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out == {"recorded": "not_run", "block": "B", "sha256": digest, "jobs": ["b-1:3"], "open": [],
+                   "complete": True}
+    with pytest.raises(SystemExit, match="already named by a recorded not-run decision"):
+        w.tool.record_not_run(*_not_run(w, ["b-1:3"], reason="again"))
+    with pytest.raises(SystemExit, match="b-1: nothing to defer"):
+        w.tool.defer("b-1")
+    w.seal.seal_block("B")
+    record = json.loads((w.root / "seals" / "block-B.json").read_text())
+    assert record["not_run"] == [{"job": "b-1:3", "decision_sha256": digest}] and record["skipped"] == []
+    with pytest.raises(SystemExit, match="block B is sealed"):
+        w.tool.record_not_run(*_not_run(w, ["b-2:0"]))
+    w.seal.main(["status"])
+    rows = capsys.readouterr().out.splitlines()
+    assert f"block B not run: 1 job(s) b-1:3 by decision {digest[:16]}; valid" in rows
+    Path(path).write_text(Path(path).read_text().replace("synthetic", "changed"))
+    w.seal.main(["status"])
+    assert any(r.startswith("block B not run: 1 job(s) b-1:3") and "INVALID" in r
+               for r in capsys.readouterr().out.splitlines())
+    with pytest.raises(SystemExit, match="block B: a recorded not-run decision is missing or differs"):
+        w.tool.block_complete(w.plan(), "B")
+
+
+@pytest.mark.parametrize("paid", [False, True])
+def test_k2_a_job_a_move_left_behind_keeps_block_b_open_until_a_decision_names_it(w, paid):
+    """K2: before this round a crashed job that defer could not pay (contingency exhausted) left its host moved and
+    block B complete without any record of it. Now it stays open ("b-1:3") until a decision names it (a moved host's
+    job that was not taken along). When the contingency pays it, the move takes it to b-7: naming b-1:3 then refuses
+    (name it where it moved), and b-7's planned job stays open until b-7 is done."""
+    _block_b_ready(w, passed=True)
+    w.init("B", B_DEAL)
+    for host in B_HOSTS[1:]:
+        w.done(host)
+    w.done("b-1", statuses={3: "crashed"})
+    if not paid:
+        plan = w.plan()
+        plan["contingency"]["B"]["remaining_usd"] = 0.0
+        w.mac.save_plan(plan)
+    out = w.tool.defer("b-1")
+    if not paid:
+        assert out == {"from": "b-1", "to": None, "jobs": 0, "not_rerun": 1}
+        assert w.tool.block_open_jobs(w.plan(), "B") == ["b-1:3 (a0_arm a0 1105)"]
+        assert w.tool.block_complete(w.plan(), "B") is False
+        w.tool.record_not_run(*_not_run(w, ["b-1:3"], reason="lead: synthetic: the contingency could not pay it"))
+        assert w.tool.block_complete(w.plan(), "B") is True
+        return
+    assert out["to"] == "b-7" and out["jobs"] == 1
+    assert w.tool.block_open_jobs(w.plan(), "B") == ["b-7:0 (a0_arm a0 1105)"]
+    with pytest.raises(SystemExit, match=r"b-1:3 \(a0_arm a0 1105\): a move took it to b-7; name it where it moved"):
+        w.tool.record_not_run(*_not_run(w, ["b-1:3"]))
+    with pytest.raises(SystemExit, match="b-7 is not recorded done"):
+        w.tool.record_not_run(*_not_run(w, ["b-7:0"]))
+    w.done("b-7")
+    assert w.tool.block_complete(w.plan(), "B") is True
+
+
+def test_k2_a_held_launch_decided_not_run_is_skipped_and_the_judges_release(w):
+    """K2 with K1: the second phase will not run (say the re-pin never lands). A decision naming one of b-8's two
+    jobs refuses (a pending host's pod runs every job it holds); one naming every job of b-8 and b-9 is recorded;
+    release then skips launch 2 (recorded with the decision's SHA-256) and releases both judge launches, which wait
+    for b-7 as before; with the judges decided not run (round 31) block B is complete and the seal lists the three
+    jobs and the skipped launch."""
+    _certified(w)
+    w.init("B", B_PHASED + [{"judge": {"judge": "harmbench", "arms": 28}}, {"judge": {"judge": "granite", "arms": 28}}])
+    for host in B_HOSTS:
+        w.done(host)
+    assert w.tool.release("B")["released"] == ["b-7"]
+    with pytest.raises(SystemExit, match=r"b-8 is not released: .* job\(s\) \[1\] are not named"):
+        w.tool.record_not_run(*_not_run(w, ["b-8:0", "b-9:0"]))
+    path, digest = _not_run(w, ["b-8:0", "b-8:1", "b-9:0"], reason="lead: synthetic: the B10/B11 re-pin did not land")
+    w.tool.record_not_run(path, digest)
+    with pytest.raises(SystemExit, match="launch 1's hosts are not done"):
+        w.tool.release("B")                                             # the guard is on: b-7 first
+    w.done("b-7")
+    out = w.tool.release("B")
+    assert out["released"] == [] and out["launches_released"] == 5
+    assert [(x["launch"], x["hosts"], x["decisions"]) for x in out["skipped"]] == [(2, ["b-8", "b-9"], [digest])]
+    assert "b-8" not in w.plan()["hosts"] and w.tool.block_open_jobs(w.plan(), "B") == []
+    assert w.tool.block_complete(w.plan(), "B") is False                 # the judge launches have no record
+    w.tool.record_judge_not_run(*w.record({"kind": "stage1 judge not-run decision", "block": "B",
+                                           "judges": ["harmbench", "granite"], "reason": "synthetic",
+                                           "utc": "2026-10-29T12:00:00Z", "recorded_by": "test"}))
+    assert w.tool.block_complete(w.plan(), "B") is True
+    w.seal.seal_block("B")
+    record = json.loads((w.root / "seals" / "block-B.json").read_text())
+    assert [x["job"] for x in record["not_run"]] == ["b-8:0", "b-8:1", "b-9:0"]
+    assert [(x["launch"], x["hosts"]) for x in record["skipped"]] == [(2, ["b-8", "b-9"])]
+    assert "b-8" not in record["hosts"]
+
+
+def test_k2_an_unreleased_launch_that_holds_only_decided_hosts_is_settled_without_a_release(w):
+    """K2: block_complete reads a trailing held launch whose every job is decided as settled (release would skip it);
+    a launch with one undecided pending job, or a judge launch after it, keeps the block open."""
+    b = {"released": 1, "launches": [{"hosts": ["b-1"]}, {"hosts": ["b-2", "b-3"]}, {"judge": {"judge": "granite"}}],
+         "pending": {"b-2": {"jobs": [{}, {}]}, "b-3": {"jobs": [{}]}}}
+    decided = {("b-2", 0): "d", ("b-2", 1): "d", ("b-3", 0): "d"}
+    view = w.tool.settled_view(b, decided)
+    assert view["released"] == 2 and view["pending"] == {}
+    assert w.tool.settled_view(b, {k: v for k, v in decided.items() if k != ("b-2", 1)})["released"] == 1
+    assert w.tool.launch_decided(b, 1, decided) is True and w.tool.launch_decided(b, 2, decided) is False
+
+
+def test_k3_a_failed_certification_is_recorded_pass_false_and_every_reference_then_refuses_to_plan(w):
+    """K3 (G11) both ways: B10's failed gate, as the runner records it (complete, certification_gate failed, the
+    certify unit only), is recorded done; a certification record with pass true then refuses and pass false is
+    recorded; init-block B then refuses any evaluation-only reference (LS-08) and plans block B without them."""
+    _block_b_ready(w, passed=True)
+    w.init("certify", CERTIFY_JOBS, group_jobs={"B": B_DEAL + [{"hosts": [[REF1104]]}]})
+    w.done("cfy-1", gate="failed")
+    job = w.plan()["hosts"]["cfy-1"]["jobs"][0]
+    assert (job["status"], job["certification_gate"], job["unit"]) == ("complete", "failed", "job-0/evals/1101-certify")
+    assert [u["unit"] for u in job["units"]] == ["job-0/evals/1101-certify"]
+    rel = "job-0/evals/1101-certify.compare.json"
+    ev = [{"path": rel, "sha256": sha(w.root / "retrieved" / "cfy-1" / "tree" / rel)}]
+    body = {"kind": "stage1 b10 certification", "host": "cfy-1", "utc": "u", "recorded_by": "t", "evidence": ev}
+    with pytest.raises(SystemExit, match="B10 gate is recorded failed .* pass must be false"):
+        w.tool.record_simple("certification", *w.record({**body, "pass": True}))
+    w.tool.record_simple("certification", *w.record({**body, "pass": False}))
+    assert w.plan()["records"]["certification"]["pass"] is False
+    for refs in ([[REF1104]], [[{**SAFE1105, "seed": 1104}]]):
+        with pytest.raises(SystemExit, match=re.escape("a failed B10 certification is recorded (pass false): every "
+                                                       "evaluation-only reference stops (LS-08)")):
+            w.init("B", B_DEAL + [{"hosts": refs}], dry_run=True)
+    out = w.init("B", B_DEAL)
+    assert out["released"] == list(B_HOSTS)
+
+
+def test_k3_a_passed_gate_may_still_be_recorded_pass_false_and_no_certification_refuses_a_reference_at_init(w):
+    """K3: the lead's reading may record pass false over a passed gate (the stricter reading governs); before any
+    certification a reference refuses at init-block (not only at release), with its own message."""
+    _block_b_ready(w, passed=True)
+    with pytest.raises(SystemExit, match=re.escape("an evaluation-only reference refuses before a passing B10 "
+                                                   "certification")):
+        w.init("B", B_DEAL + [{"hosts": [[REF1104]]}], dry_run=True)
+    _certified(w, gate="passed", passed=False, rest=B_DEAL, ready=False)
+    with pytest.raises(SystemExit, match="every evaluation-only reference stops"):
+        w.init("B", B_DEAL + [{"hosts": [[REF1104]]}], dry_run=True)
+
+
+def test_k3_record_done_takes_b10s_gate_only_as_the_runner_writes_it(w):
+    """K3: record-done refuses a complete b10_certify record without B10's gate or with another value, a failed gate
+    with a second unit, a comparison file missing from the recorded outputs, and a gate on a job that is not a
+    complete b10_certify; a failed and a passed gate are each recorded."""
+    _block_b_ready(w, passed=True)
+    w.init("certify", CERTIFY_JOBS)
+    done_file = w.root / "retrieved" / "cfy-1" / "tree" / "JOB-DONE.json"
+    real = w.tool.record_done
+    w.mp.setattr(w.tool, "record_done", lambda host: None)                # write JOB-DONE.json only
+    w.done("cfy-1", gate="failed")
+    w.mp.setattr(w.tool, "record_done", real)
+    good = json.loads(done_file.read_text())
+    second = {"unit": "job-0/evals/1101-scale:0", "complete_sha256": "a" * 64, "verify_exit": 0}
+    for change, match in ((lambda r: r.pop("certification_gate"), "complete without B10's gate"),
+                          (lambda r: r.update(certification_gate="maybe"), "complete without B10's gate"),
+                          (lambda r: r["units"].append(second), "missing from the pulled tree|certify unit only"),
+                          (lambda r: r.update(outputs={}), "comparison file is not among its recorded outputs"),
+                          (lambda r: r.update(status="crashed"), "only a complete b10_certify job does")):
+        doc = json.loads(json.dumps(good))
+        change(doc["jobs"][0])
+        write_json(done_file, doc)
+        with pytest.raises(SystemExit, match=match):
+            w.tool.record_done("cfy-1")
+    write_json(done_file, good)
+    assert w.tool.record_done("cfy-1") == {"host": "cfy-1", "statuses": ["complete"]}
+    assert w.plan()["hosts"]["cfy-1"]["jobs"][0]["certification_gate"] == "failed"
+
+
+def test_k3_a_failed_gate_with_a_second_unit_on_disk_refuses(w):
+    """K3: a failed gate whose units list names a second unit (present on disk) refuses: B10 stops after the gate."""
+    _block_b_ready(w, passed=True)
+    w.init("certify", [{"hosts": [[{"kind": "b10_certify", "arm": "a0", "seed": 1101,
+                                    "points": ["certify", "scale:0"]}]]}])
+    done_file = w.root / "retrieved" / "cfy-1" / "tree" / "JOB-DONE.json"
+    real = w.tool.record_done
+    w.mp.setattr(w.tool, "record_done", lambda host: None)
+    w.done("cfy-1", gate="failed")
+    w.mp.setattr(w.tool, "record_done", real)
+    doc = json.loads(done_file.read_text())
+    extra = write_json(w.root / "retrieved" / "cfy-1" / "tree" / "job-0" / "evals" / "1101-scale:0" / "COMPLETE.json",
+                       {"point": "scale:0"})
+    doc["jobs"][0]["units"].append({"unit": "job-0/evals/1101-scale:0", "complete_sha256": sha(extra), "verify_exit": 0})
+    write_json(done_file, doc)
+    with pytest.raises(SystemExit, match="a failed gate leaves the certify unit only"):
+        w.tool.record_done("cfy-1")
+
+
+def test_k4_certify_covers_block_bs_whole_group_by_hand_on_one_funding_record(w, capsys):
+    """K4 (G8; addendum §20 point 1 for block B's group) both ways, by hand under Branch 128: certify's pod (b10_certify,
+    certify only: 540 + 2,728.62 = 3,268.62 s measured; cap 2,520 + 3,268.62 + 1,900 + 1,800 = 9,488.62 s -> 2.75 h)
+    and block B's six arm pods in one launch (7.0 h each). Terms: 6 + 1.85 x 2.75 = 11.09; then certify's spend
+    (2,520 + 3,268.62) / 3,600 x 1.79 + 6 + 1.85 x 42 = 86.58 -> need 1.25 x 86.58 = 108.23 (certify alone: 13.86).
+    Certify's first init refuses without block B's jobs file, with a part given twice, with itself or C; the CLI dry
+    run prints the group's need; 108.22 refuses, 108.23 plans certify; block B then refuses another funding record
+    and a jobs file whose need is above the first record, and plans on it with the counted file; --group-jobs after
+    the first init refuses, and outside group B too."""
+    _block_b_ready(w, passed=True)
+    cfy, b = w.jobs(CERTIFY_JOBS), w.jobs(B_DEAL)
+    s_cfy = (2520 + 540 + 0.93 * 2934) / 3600 * 1.79
+    base = cents(max(6 + 1.85 * 2.75, s_cfy + 6 + 1.85 * 6 * 7.0))
+    assert base == 86.58 and times_125(base) == 108.23 and times_125(cents(6 + 1.85 * 2.75)) == 13.86
+
+    def init(jobs, funding=None, given=None, dry_run=False, block="certify"):
+        return w.tool.init_block(argparse.Namespace(block=block, jobs=jobs, funding=funding, dry_run=dry_run,
+                                                    group_jobs=given))
+    with pytest.raises(SystemExit, match="first init of block B's group: .*give --group-jobs B=FILE"):
+        init(cfy, dry_run=True)
+    for given in ([f"B={b}", f"B={b}"], [f"certify={cfy}"], [f"C={b}"], [b]):
+        with pytest.raises(SystemExit, match="give PART=FILE once for each later part"):
+            init(cfy, given=given, dry_run=True)
+    capsys.readouterr()
+    assert w.tool.main(["init-block", "certify", "--jobs", cfy, "--group-jobs", f"B={b}", "--dry-run"]) == 0
+    out = json.loads(capsys.readouterr().out)
+    assert (out["need_usd"], out["base_need_usd"], out["dry_run"]) == (108.23, 86.58, True)
+    assert out["group"] == {"planned": [], "this": "certify", "later": {"B": {"sha256": sha(Path(b)), "pods": 6}}}
+    with pytest.raises(SystemExit, match="below the need"):
+        init(cfy, w.funding("B", 108.22), [f"B={b}"])
+    anchor = w.funding("B", 108.23)
+    assert init(cfy, anchor, [f"B={b}"])["released"] == ["cfy-1"]
+    assert w.plan()["blocks"]["certify"]["group_jobs"]["B"]["sha256"] == sha(Path(b))
+    with pytest.raises(SystemExit, match="one funding record .*give the first init's record"):
+        init(b, w.funding("B", 500.0), block="B")
+    with pytest.raises(SystemExit, match="below the need"):
+        init(w.jobs(B_DEAL + [{"hosts": [[{"kind": "ref_train", "arm": "G", "recipe": "G", "seed": s}]
+                                         for s in range(1102, 1108)]}]), anchor, block="B")
+    with pytest.raises(SystemExit, match="give PART=FILE once for each later part of block B's group .*none here"):
+        init(b, anchor, [f"B={b}"], block="B")
+    out = init(b, anchor, block="B")
+    assert out["need_usd"] == 108.23 and out["group"]["counted_at_first_init"] == "the same jobs file"
+    with pytest.raises(SystemExit, match="--group-jobs belongs to block B's group"):
+        w.tool.group_jobs(w.plan(), "A", [f"B={b}"])
+
+
+def test_k5_units_of_block_lists_exactly_block_bs_judged_units_from_plan_json(w, tmp_path, capsys):
+    """K5 (G13) both ways: the judge wrapper's units-of-block lists, by hand, block B's judged units from plan.json:
+    23 of the 24 runs (b-2's H1 at 1106 crashed), the two B10 units of the 1104 reference (two points) and recipe G's
+    unit at 1102: 26 folders, one per line, by kind; the same COMPLETE.json SHA-256 set as plan_tool's
+    judge_required_units; no block-A or certify unit (a --run-root sweep would take them). It refuses an OUT file that
+    exists, a unit whose COMPLETE.json changed or is gone, and a block not planned (exit 2, nothing written)."""
+    _certified(w, rest=B_DEAL + [{"hosts": [[{**REF1104, "points": ["scale:0.75", "scale:0.5"]}]]},
+                                  {"hosts": [[{"kind": "ref_train", "arm": "G", "recipe": "G", "seed": 1102}]]}])
+    w.init("B", B_DEAL + [{"hosts": [[{**REF1104, "points": ["scale:0.75", "scale:0.5"]}]]},
+                          {"hosts": [[{"kind": "ref_train", "arm": "G", "recipe": "G", "seed": 1102}]]}])
+    for host in B_HOSTS:
+        w.done(host, statuses={1: "crashed"} if host == "b-2" else None)
+    w.tool.release("B")
+    w.done("b-7")
+    w.tool.release("B")
+    w.done("b-8")
+    spec = importlib.util.spec_from_file_location("s1_units_wrapper_k5", KIT / "judge_units_stage1.py")
+    wrapper = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(wrapper)
+    plan = w.plan()
+    expected = [w.root / "retrieved" / host / "tree" / f"units/job-{i}" for host in B_HOSTS for i in range(4)
+                if (host, i) != ("b-2", 1)]
+    expected += [w.root / "retrieved" / "b-7" / "tree" / u for u in ("units/job-0", "units/job-0-p1")]
+    expected += [w.root / "retrieved" / "b-8" / "tree" / "units/job-0"]
+    out = tmp_path / "units_b.txt"
+    capsys.readouterr()
+    assert wrapper.main(["units-of-block", "B", "--out", str(out), "--plan", str(w.root / "plan.json")]) == 0
+    printed = json.loads(capsys.readouterr().out)
+    assert out.read_text().splitlines() == [str(p) for p in expected]
+    assert printed == {"block": "B", "units": 26, "by_kind": {"arm": 20, "a0_arm": 3, "ref_eval": 2, "ref_train": 1},
+                       "out": str(out), "sha256": sha(out)}
+    found = wrapper.block_units(plan, "B", w.root, w.repo)
+    assert {u["complete_sha256"] for u in found} == set(w.tool.judge_required_units(plan, "B"))
+    assert not any("/retrieved/cfy-1/" in line or "/retrieved/a-" in line for line in out.read_text().splitlines())
+    assert wrapper.main(["units-of-block", "B", "--out", str(out), "--plan", str(w.root / "plan.json")]) == 2
+    assert "exists; give a new file" in capsys.readouterr().err
+    unit = w.root / "retrieved" / "b-7" / "tree" / "units" / "job-0-p1" / "COMPLETE.json"
+    unit.write_text(unit.read_text() + " ")
+    other = tmp_path / "units_b2.txt"
+    assert wrapper.main(["units-of-block", "B", "--out", str(other), "--plan", str(w.root / "plan.json")]) == 2
+    assert "not the SHA-256 plan.json records" in capsys.readouterr().err and not other.exists()
+    unit.unlink()
+    assert wrapper.main(["units-of-block", "B", "--out", str(other), "--plan", str(w.root / "plan.json")]) == 2
+    assert "1 unit(s) have no COMPLETE.json" in capsys.readouterr().err and not other.exists()
+    assert wrapper.main(["units-of-block", "C", "--out", str(other), "--plan", str(w.root / "plan.json")]) == 2
+    assert "block C is not planned" in capsys.readouterr().err

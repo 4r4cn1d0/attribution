@@ -32,7 +32,10 @@ jobs), a host whose pulled tree is missing, and a second seal of one block. Bloc
 decisions by job name and SHA-256 ("not_run"). Every seal lists the block's jobs recorded complete (not pulled) under
 the lead's unpulled outputs decision (addendum §29 point 3: "not_pulled", by host, index, job name, unit path and the
 decision's SHA-256, with no file hash: those units are not in the pulled tree). plan_tool's init-block for "certify"
-and "B" refuses until block A's seal is recorded.
+and "B" refuses until block A's seal is recorded. Round 32 (K2): every block but A lists the lead's not-run decisions
+(plan_tool.py record-not-run) under "not_run" by "HOST:INDEX" and the decision's SHA-256, and the launches release
+skipped because every job of their hosts was decided under "skipped"; ``status`` prints one line per decision (valid
+or INVALID) and per skipped launch.
 """
 from __future__ import annotations
 
@@ -100,7 +103,8 @@ def seal_block(block: str) -> dict:
                       "class": "sealed"})
     counts = {"files": len(files), "sealed": sum(f["class"] == "sealed" for f in files),
               "readable": sum(f["class"] == "readable" for f in files)}
-    not_run = sorted(plan_tool.block_a_not_run(plan).items()) if block == "A" else []   # round 3c (VP3b-3)
+    not_run = sorted(plan_tool.block_a_not_run(plan).items()) if block == "A" else \
+        sorted((f"{host}:{i}", digest) for (host, i), digest in plan_tool.not_run_decided(plan, block).items())   # K2
     not_pulled = plan_tool.not_pulled_jobs(plan, block)      # §29 point 3: complete on the pod, unit not fetched
     record = {"kind": SEAL_KIND, "version": 1, "block": block, "utc": mac.utc(), "hosts": hosts,
               "readable_patterns": list(READABLE_PATTERNS), "files": files, "counts": counts,
@@ -111,6 +115,7 @@ def seal_block(block: str) -> dict:
         k: judge_check[k] for k in ("record_sha256", "index_sha256", "judges", "units", "files", "other_files")}
     record["judge_not_run"] = [{"judge": key, "decision_sha256": digest}   # round 31 (K1): every block's route
                                for key, digest in sorted(plan_tool.judges_decided(plan, block).items())]
+    record["skipped"] = [dict(x) for x in plan["blocks"][block].get("skipped") or []]   # round 32 (K2): never released
     SEALS.mkdir(exist_ok=True)
     out.write_text(json.dumps(record, indent=1, sort_keys=True) + "\n")
     digest = mac.sha(out)
@@ -193,6 +198,16 @@ def status() -> list[str]:
         problem = plan_tool.judge_not_run_problem(e)
         rows.append(f"judges {e.get('block')} not run: {', '.join(e.get('judges') or [])} by decision "
                     f"{str(e.get('sha256'))[:16]}; {'INVALID: ' + problem if problem else 'valid'}")
+    for e in (plan.get("records") or {}).get("not_run") or []:           # round 32 (K2): every block but A
+        problem = plan_tool.not_run_entry_problem(e)
+        jobs = e.get("jobs") or []
+        rows.append(f"block {e.get('block')} not run: {len(jobs)} job(s) {', '.join(jobs[:8])}"
+                    f"{', ...' if len(jobs) > 8 else ''} by decision {str(e.get('sha256'))[:16]}; "
+                    f"{'INVALID: ' + problem if problem else 'valid'}")
+    for block, b in plan.get("blocks", {}).items():                       # round 32 (K2): skipped launches
+        for x in b.get("skipped") or []:
+            rows.append(f"block {block}: launch {x['launch']} skipped (every job of {', '.join(x['hosts'])} decided "
+                        "not run)")
     rows.append(f"estimated pod cost so far (this stage-1 kit): ${cost:.2f}")
     return rows
 
