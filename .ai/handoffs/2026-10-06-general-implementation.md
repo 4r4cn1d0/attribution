@@ -5,6 +5,34 @@ Written 6 October 2026 at about 00:40 IST (5 October, 19:10 UTC; the user is in 
 - This file is separate from `.ai/HANDOFF.md`, which must **never** be edited.
 - Times below are UTC on 5 October unless marked IST.
 
+## LEAD HANDOFF, 29 October 2026 (2026-10-29T16:47 UTC): General Implementation VII → **General Implementation VIII**
+
+The user, in GI VII's chat: "also start the gen chat for general implementation". **GI VIII is the lead of the main study** from now on: the only chat that drives the main study's pods, integrates code and commits to `stageb-costs-and-recovery-safeguards-20261003` (push allowed; never force-push; never push to main). GI VII takes no new work after this handoff and drives no pod. The GPT lead keeps the side paper and grants. Times are UTC.
+
+### Read first, in this order
+1. `research/FOCUS.md`, the entries from "BLOCK A COMPLETE AND SEALED" (27 Oct) to the newest (near line 74).
+2. The addendum `.ai/briefs/stage1-commitments-build-20261016-lead-decisions.md` §30–§37 (block A's judges, the cert pod, block B's prep and rulings, D-4, the user's start-from-the-balance rule §36, the HarmBench reader §37).
+3. **Block B's runbook:** `tmp/gi-vii-notes/block-b-preflight/block-b-runbook.md` (`bd466b4d…`; written before kit round 32, so follow round 32's launch sequence in `research/experiments/2026-10-24-stage1-runkit/kit-round-32.json` "commands for the lead") and its helpers in `tmp/gi-vii-notes/block-b-preflight/helpers/`. Settings: `tmp/gi-vii-notes/blockB_S.zsh` (`source` it first in every Bash call). The cert runbook `tmp/gi-vii-notes/cert-runbook.md` (its step-9/10 readers are reused per host).
+4. Memory (the user's folder): especially `start-from-balance-rule`, `launch-in-background-bash`, `budget-guard-off`, `check-clock-before-timestamps`, `post-w1-records-folder`.
+
+### Where block B stands (2026-10-29T16:47 UTC)
+- **Done:** B10 certification passed (cfy-2; cfy-1 was a transient start fault, requeued); X2 and Y2 packed; `init-block B` (hosts b-1…b-20; need $245.55; funding record under the user's rule §36, `funding_block_b.json` `975fb8ba…`); launches 0–4 released (b-1…b-16); the phase-2 release refuses until a0 at 1105–1107 is recorded done (as built).
+- **Running (stage 1a):** b-1 (A1, H1, S3, a0 at 1105), b-2 (… at 1106), b-3 (… at 1107), b-5, b-6 (L1, S1, S4, R at 1106/1107), b-7, b-8 (recipe G 1102–1107), b-9, b-10 (B+Qi on engine Y, 1102–1107): jobs started 15:4x UTC (b-1 at 16:39). **b-21** = the requeue of b-4 (L1, S1, S4, R at 1105; b-4 timed out in bootstrap on a slow network-volume pip): bootstrapping since 16:41 UTC; GI VII's background launch job for it ends at job-started. **One finisher runs** (`finisher.py`, PID 22431, nohup): it pulls, light-checks and stops each pod and picks up new hosts; do not start a second one.
+- **Money:** balance $123.37 at 16:39 UTC (nine pods, $16.51/h). The user's rule (§36): start from the balance; the user funds when they choose; tell the user at once when the balance is below $10. GI VII's safeguard: launch each stage only when the live balance (free after commitments, `budget.py`) covers its cap-based spend. GI VII's estimate of block B's real spend: about $120–140, so a top-up is likely before phase 2 or the judges.
+
+### Next, in order
+1. **As each stage-1a pod finishes** (`hosts/HOST/finished.json`): the cert runbook's step-10 reader, then `plan_tool.py record-done HOST`. A crashed job: `defer`/`requeue` per the kit (contingency), or `record-not-run` (round 32) with a reason.
+2. **Stage 1b, the phase-1 references** b-11…b-16 (ref_eval at a0 1101–1104; Safe LoRA 1101–1103 and 1104; caps 6.25/7/3.25 h; upper about $63): launch when the free balance covers it (sub-stages allowed); one `launch.py` at a time per kit, from a background job kept alive to job-started. The Safe LoRA pods download the base model (LN-18, `134304bb…`).
+3. **Phase 2** after b-1, b-2, b-3 are recorded done: `scripts/stage1_s1/repin_reference_seeds.py --kit tmp/stage1-olmo --seeds 1105,1106,1107 --in-place` (reads round 32's K6 readable fingerprint records), re-take the kit's S1_CODE pins it prints (runkit and tmp copies), run the stage1_s1 and kit suites and the B10/B11 specs, commit; X3 inputs = X2's plus `gate_a_complete:1105–1107`; move X2 aside; pack X3; `release B` (the phase); check-plan b-17…b-20; launch when the balance covers it (upper about $44).
+4. **Judges:** `judge_units_stage1.py units-of-block B --out FILE` (expect 72 units); HarmBench then Granite by block A's judge runbook (`tmp/gi-vi-handoff-20261027/notes/judge-runbook.md`), on the **same GPU type (A100-SXM4-80GB)** as block A's HarmBench; **copy block B's HarmBench `run-record.json` and `harmbench-pod.jsonl` under `judges/B/pods/<tag>/fetched/out/` before the seal** (§37); `record-judges B`.
+5. `seal.py block B`; the backup (`backup_records_stage1.py`, a private draft release); the cost-and-completion report; stop and ask.
+6. **The stage-1 reading** after block B's seal: `python -m scripts.stage1_s1.reading_input …` (needs B14's report and strata hashes; `--hb-out` for the HarmBench reader), B16, `hb_claim`. B14's report must exist first (check). Outcomes are unsealed only by the pre-registered procedure (LW-35).
+
+### Open, not blocking
+Round 32 open point 1 (a re-pin check at every reference release; 1104 is already re-pinned); the kit's `backup` and `seal` on block B are untested on real data; Gemma access (403); the OSF posting (the user's own action).
+
+### Rules (unchanged)
+Explicit-path commits with the Co-Authored-By line; `commitments.py check` after each commit; `date -u` substituted into any recorded time (never typed ahead); never open sealed, answer or judge files (only whitelisted fields; adapter fingerprints by the reviewed extractor, §35); `launch.py` only from a background job; one finisher per kit; stop pods, never delete; never stage the GPT lead's files (see the 27 Oct section below); subagents on Opus with briefs by file path.
 ## LEAD HANDOFF, 27 October 2026 (2026-10-27T10:05 UTC): General Implementation VI → **General Implementation VII**
 
 The user: "make the enxt numbered chat". GI VI's context was compacted and is almost full, so the main study moves to a fresh chat, **General Implementation VII**. **GI VII is the lead of the main study.** It is the only chat that drives the main study's pods, integrates code and commits to the working branch `stageb-costs-and-recovery-safeguards-20261003` (push allowed; never force-push; never push to main). GI VI takes no new work after this handoff. The GPT lead keeps the side paper and grants and does not touch the main study (user, 15 Oct). Times are UTC.
