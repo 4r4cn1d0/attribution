@@ -443,6 +443,23 @@ S1_CODE = {"scripts/stage1_s1/__init__.py": "818919ca18627b7169d80c2a6f6c24149f6
            "scripts/stage1_s1/oext_unit.py": "ae2fb5b5fbea36cbd2b27c4eaa20f10504b9856961ae8ee100311c923876b8e3",
            "scripts/stage1_s1/settings/oext_unit.json":
                "3959eae7264f56f613f5d7cd54e69081d8985ef7cbce2962243f6685e3581189"}
+# G1, the engine-Y O-ext re-pin (addendum §34 point 3; §11 point 7, §15 point 1; block B's pre-flight runbook §0 G1):
+# B+Qi's O-ext step runs on engine Y. S1_CODE above is unchanged (every X-side S1 file byte-identical: block A's O-ext
+# outputs name those settings by SHA-256). The Y pack carries the O-ext package at the paths the job runner calls and
+# seals: S1_OEXT_Y_SHARED with S1_CODE's own pins (the package's __init__.py and oext_eval.py, every O-ext rule: one
+# shared function on both engines), and S1_OEXT_Y, each Y-pack path from its engine-Y file in this checkout (the
+# runner's copy with only its settings pins changed, and the two settings re-pinned on Y that allow B+Qi's config
+# 37942cf5 only). M: shasum -a 256 of this tree's files, 29 Oct 2026 (G1 round, notes/g1-yoext.json).
+S1_OEXT_Y_SHARED = ("scripts/stage1_s1/__init__.py", "scripts/stage1_s1/oext_eval.py")
+S1_OEXT_Y = {"scripts/stage1_s1/oext_unit.py":
+                 {"path": "scripts/stage1_s1/oext_unit_y.py",
+                  "sha256": "978561ce0269756bbdf921580bb1e8c15592041583ab5d899912c910eb4753de"},
+             "scripts/stage1_s1/settings/oext_unit.json":
+                 {"path": "scripts/stage1_s1/settings/oext_unit_y.json",
+                  "sha256": "80d08721284bbe94661d6fe2cdc58be259db8df66dc681403d7473155c715298"},
+             "scripts/stage1_s1/settings/oext_eval.json":
+                 {"path": "scripts/stage1_s1/settings/oext_eval_y.json",
+                  "sha256": "80469a8f728d15192c360f26640c17b7ba652fbd969cfa45f43113c1defd76f0"}}
 STAGE1_PINS = {   # M (here): shasum -a 256 of the B15 tree (main 721c58f); the S1 package is re-pinned at its merge
     "scripts/stage1/limits/overrefusal_checks.py": "ed5fd2dcb5675d5fe5e135b76e37ece2488dfcc2db5129ba422064502b0d61ae",
     "scripts/stage1/limits/limits_common.py": "2798aa06a01fd89bf3dd8dc2abf33e63bfcb4f17bff700a709eacd2b3ace264c",

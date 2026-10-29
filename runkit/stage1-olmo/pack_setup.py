@@ -28,6 +28,12 @@ The stage-1 code and inputs, each by SHA-256 (a missing file or a byte that diff
     settings; round 3c: the O-ext unit runner oext_unit.py and its settings), by its SHA-256 from this checkout (no
     other tree is read); a lead's code entry under scripts/stage1_s1/ must be one of S1_CODE's or D2_CODE's pins
     (another SHA-256 or another file refuses; round 3c: no exception is left);
+  - G1 (addendum §34 point 3, the engine-Y O-ext re-pin): on engine Y the O-ext package only, for B+Qi's O-ext step,
+    at the paths the job runner calls and seals: stage1_rules.S1_OEXT_Y_SHARED by their S1_CODE pins (the package's
+    __init__.py and oext_eval.py, engine X's bytes) and each stage1_rules.S1_OEXT_Y path from its engine-Y file in
+    this checkout by its pin (scripts/stage1_s1/oext_unit.py from oext_unit_y.py, settings/oext_unit.json from
+    oext_unit_y.json, settings/oext_eval.json from oext_eval_y.json; each settings file pins engine Y); B10, B11, B17
+    and D-2 stay off engine Y's pack;
   - the edit files: Gate B's sealed MANIFEST (R_1-R_5), MAN1's A1 edit and every sealed edit record plan.json lists
     (re-hashed), each at edits/<SHA-256>.edit.json;
   - W1-18's data: the 11 unit folders its pinned settings list, under data/ at their checkout tmp/ paths (each unit's
@@ -219,6 +225,11 @@ def stage1_code(pack: Packing, record: dict, man1: list[dict]) -> None:
         for rel, pin in sorted(rules.S1_CODE.items()):     # round 3b: the S1 package by its 3eaf968 pins
             pack.add(rel, ROOT / rel, pin)
         pack.add(rules.MAN1_PATH, ROOT / rules.MAN1_PATH, rules.MAN1_SHA256)
+    else:                                                # G1 (addendum §34 point 3): B+Qi's O-ext step on engine Y
+        for rel in rules.S1_OEXT_Y_SHARED:               # S1_CODE's own bytes: one O-ext function on both engines
+            pack.add(rel, ROOT / rel, rules.S1_CODE[rel])
+        for rel, src in sorted(rules.S1_OEXT_Y.items()):   # the engine-Y files at the paths the runner calls and seals
+            pack.add(rel, ROOT / src["path"], src["sha256"])
     s1_pins = {**rules.D2_CODE, **rules.S1_CODE}
     for e in record.get("code") or []:
         if not str(e.get("path", "")).startswith("scripts/") or not plain_path(e["path"]):

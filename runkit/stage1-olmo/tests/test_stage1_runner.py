@@ -589,8 +589,9 @@ def _settings(rel: str) -> dict:
     return json.loads((REPO / rel).read_text())
 
 
-def recipe_pins() -> dict:
-    """script -> {flag: the config SHA-256 values its committed settings accept for that flag}."""
+def recipe_pins(oext_unit_settings: str = "scripts/stage1_s1/settings/oext_unit.json") -> dict:
+    """script -> {flag: the config SHA-256 values its committed settings accept for that flag}; the O-ext unit
+    runner's from oext_unit_settings (G1: on engine Y the file the Y pack places at settings/oext_unit.json)."""
     rep = {_settings("scripts/stage1/settings/representation_pass.json")["pins"]["recipe_sha256"]}
     cls = {_settings("scripts/stage1/settings/score_classifier.json")["pins"]["recipe_sha256"]}
     j6 = _settings("scripts/stage1/settings/make_untuned_answers.json")["pins"]
@@ -608,7 +609,7 @@ def recipe_pins() -> dict:
                 {"--recipe": set(_settings("scripts/stage1_s1/settings/lean_eval_job.json")["job"]["allowed_recipes"]
                                  .values())},
             "scripts/stage1_s1/oext_unit.py":
-                {"--recipe": set(_settings("scripts/stage1_s1/settings/oext_unit.json")["recipes"]["allowed"].values())}}
+                {"--recipe": set(_settings(oext_unit_settings)["recipes"]["allowed"].values())}}
 
 
 NO_RECIPE_SCRIPTS = ("scripts/stage1/limits/overrefusal_checks.py", "scripts/stage1_s1/safe_lora.py")   # take none
@@ -629,12 +630,14 @@ def test_every_steps_recipe_is_the_one_its_target_scripts_settings_pin(kit, tmp_
     """For every job kind (both engines' pods), every --recipe/--recipe-s the kit passes names a committed recipe file
     whose config SHA-256 (engine X's code for REC, S and G; engine Y's code in Y's tree for B+Qi's, which is there
     only) is one the target script's committed settings accept; an engine step takes the job's own recipe. This is the
-    check pod a-1's J5 failed (REC passed, recipe S pinned). One gap is known and stated: B+Qi's O-ext step on Y (the
-    unit's own recipe) is not yet in oext_unit.json's recipes (its rule: B+Qi joins at the engine Y re-pin)."""
+    check pod a-1's J5 failed (REC passed, recipe S pinned). G1 (addendum §34 point 3) closes the one gap this test
+    stated before: on engine Y the O-ext step's settings are the file the Y pack places at settings/oext_unit.json
+    (stage1_rules.S1_OEXT_Y: settings/oext_unit_y.json), which allows B+Qi's config, the unit's own recipe."""
     r = kit("stage1_rules.py")
     configs = {**engine_configs(REPO, [REC, S, G]), **engine_configs(WS_Y, [BQI])}
     assert configs[S] == _settings("scripts/stage1/settings/representation_pass.json")["pins"]["recipe_sha256"]
-    pins, steps, seen = recipe_pins(), [], set()
+    pins = {"X": recipe_pins(), "Y": recipe_pins(r.S1_OEXT_Y["scripts/stage1_s1/settings/oext_unit.json"]["path"])}
+    steps, seen = [], set()
     for engine in ("X", "Y"):
         sub = tmp_path / engine
         sub.mkdir()
@@ -655,13 +658,15 @@ def test_every_steps_recipe_is_the_one_its_target_scripts_settings_pin(kit, tmp_
         if script in NO_RECIPE_SCRIPTS:
             assert not flags, (kind, name)
             continue
-        assert set(flags) == set(pins[script]), (kind, name, script)    # a script without a pin entry fails here
+        assert set(flags) == set(pins[engine][script]), (kind, name, script)    # a script without a pin entry fails
         seen.add(script)
         for flag, path in flags.items():
-            if configs[path] not in pins[script][flag]:
+            if configs[path] not in pins[engine][script][flag]:
                 bad.append((engine, kind, name, script, flag, path))
-    assert bad == [("Y", "ref_train", "job-3-oext", "scripts/stage1_s1/oext_unit.py", "--recipe", BQI)]
-    assert seen == set(pins) - {"scripts/stage1/representation_pass.py", "scripts/stage1/score_classifier.py"}
+    assert bad == []                                     # G1: B+Qi's O-ext step on Y is accepted (before G1: refused)
+    assert BQI in [a[a.index("--recipe") + 1] for e, kind, _, n, a in steps if e == "Y" and n.endswith("-oext")]
+    assert configs[BQI] in pins["Y"]["scripts/stage1_s1/oext_unit.py"]["--recipe"] -         pins["X"]["scripts/stage1_s1/oext_unit.py"]["--recipe"]
+    assert seen == set(pins["X"]) - {"scripts/stage1/representation_pass.py", "scripts/stage1/score_classifier.py"}
     rep = [argv for _, kind, _, _, argv in steps if kind == "rep_pass"]
     assert len(rep) == 2 and all(a[a.index("--recipe") + 1] == S for a in rep)          # J5: recipe S, both passes
 
@@ -1143,6 +1148,11 @@ class Repo:
         # round 3b: the S1 package by its pins (synthetic bytes; each settings file pins engine X, addendum §11.7)
         mp.setattr(r, "S1_CODE", {rel: sha(write(repo / rel, {"name": rel, "engine_x": X} if rel.endswith(".json")
                                                  else f"# {rel} (synthetic)\n")) for rel in r.S1_CODE})
+        # G1 (addendum §34 point 3): engine Y's O-ext files, packed on the Y pack at the runner's paths (synthetic
+        # bytes; each settings file pins engine Y)
+        mp.setattr(r, "S1_OEXT_Y", {rel: {"path": src["path"], "sha256": sha(write(
+            repo / src["path"], {"name": src["path"], "engine_x": Y} if rel.endswith(".json")
+            else f"# {src['path']} (synthetic)\n"))} for rel, src in r.S1_OEXT_Y.items()})
         a1 = write(repo / r.A1_EDIT["path"], "a1 edit\n")
         pin = {"path": r.A1_EDIT["path"], "sha256": sha(a1)}
         mp.setattr(r, "MAN1_EDIT_ARMS", {"A1": pin})
@@ -2007,7 +2017,8 @@ def test_the_x_pack_carries_the_d2_package_man1_and_pinned_d2_inputs(kit, monkey
 
 def test_the_x_pack_carries_every_s1_package_file_by_its_pin(kit, monkeypatch):
     """Round 3b item 1 (VR2-5): the X pack carries every S1_CODE file (scripts/stage1_s1/__init__.py included) with
-    its pin, though the lead's inputs record names none of them; the Y pack carries none."""
+    its pin, though the lead's inputs record names none of them; the Y pack carries none of them but (G1, addendum
+    §34 point 3) the O-ext package: S1_OEXT_Y_SHARED at their S1_CODE pins and S1_OEXT_Y's engine-Y files."""
     repo = Repo(kit, monkeypatch)
     repo.pack.main(["X", *repo.inputs()])
     files = json.loads((kit.root / "setup/packed-stage1-X/sealed-files.json").read_text())["files"]
@@ -2017,7 +2028,10 @@ def test_the_x_pack_carries_every_s1_package_file_by_its_pin(kit, monkeypatch):
     tree = repo.y_tree()
     repo.pack.main(["Y", "--y-tree", str(tree), *repo.inputs("Y")])
     files_y = json.loads((kit.root / "setup/packed-stage1-Y/sealed-files.json").read_text())["files"]
-    assert not any(f.startswith("scripts/stage1_s1/") for f in files_y)
+    assert {f: d for f, d in files_y.items() if f.startswith("scripts/stage1_s1/")} == {
+        "scripts/stage1_s1/__init__.py": repo.rules.S1_CODE["scripts/stage1_s1/__init__.py"],
+        "scripts/stage1_s1/oext_eval.py": repo.rules.S1_CODE["scripts/stage1_s1/oext_eval.py"],
+        **{rel: src["sha256"] for rel, src in repo.rules.S1_OEXT_Y.items()}}
 
 
 @pytest.mark.parametrize("rel", ["scripts/stage1_s1/__init__.py", "scripts/stage1_s1/eval_adapter.py",
