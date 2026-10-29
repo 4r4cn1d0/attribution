@@ -1,8 +1,11 @@
-"""Command line of the B16 input builder (package doc). Exit 0: both files written; 2: refused, nothing written.
+"""Command line of the B16 input builder (package doc). Exit 0: every file written; 2: refused, nothing written.
 
     python -m scripts.stage1_s1.reading_input --reading R --kit DIR --out tables.json --record sources.json
         (--b14-strata F --b14-report F --expect-strata-sha256 H --expect-report-sha256 H | --no-overlap)
-        [--repo DIR] [--rules FILE]
+        [--hb-out hb_tables.json] [--repo DIR] [--rules FILE]
+
+``--hb-out`` also writes the HarmBench tables (hb.py; RI-O4) that hb_claim.py reads beside B16's output; the record
+names their SHA-256 and sources. Without it nothing about HarmBench is read and tables.json is the same document.
 
 ``--repo`` is the folder that REJUDGED_PINS paths and the frozen coherence bars file are relative to (default: this
 repository); ``--rules`` is the kit's rules module (default: runkit/stage1-olmo/stage1_rules.py of this repository).
@@ -41,6 +44,7 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--expect-report-sha256")
     p.add_argument("--no-overlap", action="store_true",
                    help="build without section 9.4's overlap block (addendum 24 point 4's fallback)")
+    p.add_argument("--hb-out", type=Path, help="also write the HarmBench tables (hb.py) for hb_claim.py")
     return p
 
 
@@ -81,26 +85,46 @@ def summary_lines(record: dict, out_sha: str, record_sha: str, args) -> list[str
              (f"overlap: strata {record['overlap']['strata_sha256']}, report {record['overlap']['report_sha256']}"
               if record["overlap"] else "overlap: not included (--no-overlap)"),
              *(f"not built: {k}" for k in sorted(record["not_built"])),
+             *(_hb_lines(record["hb"], args) if record["hb"] else ["HarmBench tables: not built (no --hb-out)"]),
              f"wrote {args.out} sha256 {out_sha}",
              f"wrote {args.record} sha256 {record_sha}"]
     return lines
 
 
+def _hb_lines(hb: dict, args) -> list[str]:
+    return [*(f"HarmBench {b}: tag {s['tag']}, run record {s['run_record_sha256'][:16]}, label cache "
+              f"{s['cache_sha256'][:16]} ({s['cache_records']} records, {s['cache_lines_not_json']} lines not JSON)"
+              for b, s in sorted(hb["sources"].items())),
+            f"HarmBench tables: {hb['units']} units; not built: {', '.join(sorted(hb['not_built']))}",
+            f"wrote {args.hb_out} sha256 {hb['output_sha256']}"]
+
+
 def main(argv=None) -> int:
     args = parser().parse_args(argv)
     try:
-        for path in (args.out, args.record):
+        paths = [p for p in (args.out, args.record, args.hb_out) if p is not None]
+        if len({p.resolve() for p in paths}) != len(paths):
+            raise Refusal("--out, --record and --hb-out must name different files")
+        for path in paths:
             if path.exists():
                 raise Refusal(f"{path.name} exists; the builder never overwrites")
         rules, rules_sha = load_rules(args.rules)
-        doc, record = build(args.reading, args.kit, args.repo, rules, rules_sha, _overlap(args))
+        doc, record, hb_doc = build(args.reading, args.kit, args.repo, rules, rules_sha, _overlap(args),
+                                    hb=args.hb_out is not None)
         data = canonical_json(doc)
         out_sha = sha256_bytes(data)
         record["output_sha256"] = out_sha
+        hb_data = None
+        if hb_doc is not None:
+            hb_data = canonical_json(hb_doc)
+            record["hb"]["output_sha256"] = sha256_bytes(hb_data)
         rec_data = canonical_json(record)
         try:
             with open(args.out, "xb") as handle:
                 handle.write(data)
+            if hb_data is not None:
+                with open(args.hb_out, "xb") as handle:
+                    handle.write(hb_data)
             with open(args.record, "xb") as handle:
                 handle.write(rec_data)
         except FileExistsError:

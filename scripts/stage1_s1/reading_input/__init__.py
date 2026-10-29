@@ -2,7 +2,7 @@
 
     python -m scripts.stage1_s1.reading_input --reading plan_a|plan_a_block_a_only|plan_b --kit tmp/stage1-olmo
         (--b14-strata F --b14-report F --expect-strata-sha256 H --expect-report-sha256 H | --no-overlap)
-        --out tables.json --record sources.json [--repo DIR] [--rules FILE]
+        --out tables.json --record sources.json [--hb-out hb_tables.json] [--repo DIR] [--rules FILE]
 
 It reads the stage-1 kit's plan.json, the block seals (seals/block-*.json), every sealed unit the reading needs
 (keyed by the COMPLETE.json SHA-256 that plan.json records, checked against the seal before anything is read from it),
@@ -14,6 +14,12 @@ only counts, hashes, unit labels and refusals. Modules:
 - ``sources``  the kit, its seals and every verified folder (an engine unit, a B10 unit, an O-ext folder, a pinned unit);
 - ``items``    the per-item values of one folder (U shares and the G3 corners, coherence counts, task losses, O flags),
                each checked against the folder's own summary counts;
-- ``build``    the reading's cells, theta0, the references, B14's documents, the judge check and the record;
-- ``__main__`` the command line (exclusive create of both files; exit 0 written, 2 refused).
+- ``build``    the reading's cells, theta0, the references, B14's documents, the judge check and the record; the
+               O-ext settings pairs (G1: engine X's for every unit but B+Qi's, engine Y's for B+Qi's);
+- ``hb``       the HarmBench tables (--hb-out; RI-O4): per cell and harm prompt the classifier's "yes" share, from each
+               block's sealed per-answer label cache, bound to the judge-completion record, the seal, the run record
+               and the judge files;
+- ``hb_claim`` the HarmBench claim rule beside B16's output (REV4 2.3, LN-15c): per contrast the HarmBench contrast in
+               B16's form, its 90% interval and the sentence word (python -m scripts.stage1_s1.reading_input.hb_claim);
+- ``__main__`` the command line (exclusive create of every file; exit 0 written, 2 refused).
 """

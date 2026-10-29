@@ -16,6 +16,12 @@
 
 Every answer text, judge raw output and judge count holds a sentinel, so a test can show that no value reaches the
 builder's output streams. ``Synth`` keeps the raw counts so tests compute expected means by hand.
+
+O-ext passes name their engine's O-ext settings pair (build.OEXT_SETTINGS: B+Qi's on engine Y, every other on X); B10
+units name engine X's O-ext module settings. With ``hb=True`` each block's judges/BLOCK/pods/TAG/fetched/out/ holds a
+HarmBench run record and label cache (Gate B's cache records; synthetic labels kept in ``Synth.hb_labels`` by
+COMPLETE.json SHA-256), the HarmBench judge files carry those labels' sampled counts, and plan.json records each
+block's judge-completion record entry; the unit S1 1104 has HB_SENTINEL "yes" labels.
 """
 
 from __future__ import annotations
@@ -33,6 +39,8 @@ from experiments.safety_selection.common import canonical_json as b14_canonical
 from scripts.stage1 import s1common as s1
 from scripts.stage1_s1 import overlap_strata as b14
 from scripts.stage1_s1.reading.settings import design
+from scripts.stage1_s1.reading_input.build import OEXT_SETTINGS
+from scripts.stage1_s1.reading_input.hb import HARMBENCH
 
 # the workspace that holds the engine (under the mutation runner the package under test is a copy that holds only
 # scripts/stage1_s1, and the engine, the kit's rules and the bars file come from the workspace)
@@ -52,6 +60,8 @@ BLOCKS = {"plan_a": ("A", "B"), "plan_a_block_a_only": ("A",), "plan_b": ("A", "
 SEED_PLAN = {"plan_a": "d1_plan_a", "plan_a_block_a_only": "block_a_only", "plan_b": "plan_b"}
 REUSED = (1101, 1102, 1103)
 JUDGE_NAMES = {"harmbench": "cais/HarmBench-Mistral-7b-val-cls", "granite": "granite-guardian-3.3-8b"}
+HB_SENTINEL = 517                                  # the "yes" labels of S1 1104's sampled answers (hb=True)
+GPU = "NVIDIA A100-SXM4-80GB"
 
 
 def sha(data: bytes) -> str:
@@ -246,6 +256,7 @@ class Synth:
     units: dict = field(default_factory=dict)       # (arm, seed) -> {complete, job, guard_samples} SHA-256
     b14: dict = field(default_factory=dict)         # strata, report paths and SHA-256
     branch: str = "128"
+    hb_labels: dict = field(default_factory=dict)   # COMPLETE.json SHA-256 -> {(prompt id, sample index): label}
 
     def args(self, out: Path, record: Path, overlap: bool = True) -> list[str]:
         a = ["--reading", self.reading, "--kit", str(self.kit), "--repo", str(self.repo), "--rules", str(self.rules),
@@ -287,10 +298,13 @@ def write_engine_unit(folder: Path, cell: Cell, arm: str, seed: int, target: str
 
 
 def write_oext_pass(folder: Path, cell: Cell, branch: str, state: str, route: str, unit_complete: str | None,
-                    dev_guard_sha: str | None, source_complete: str | None = None) -> str:
-    """oext_unit.py's folder (job.json, the O-ext files, dev100/ when generated, COMPLETE.json last)."""
+                    dev_guard_sha: str | None, source_complete: str | None = None, engine: str = "X") -> str:
+    """oext_unit.py's folder (job.json, the O-ext files, dev100/ when generated, COMPLETE.json last), naming the
+    engine's O-ext settings pair as oext_unit.job_of and its completion record do."""
+    unit_settings, oext_settings = OEXT_SETTINGS[engine]
     job_sha = write(folder / "job.json", jbytes({"kind": "stage1-oext-unit", "version": 1, "command": "run",
-                                                  "state": state}))
+                                                  "state": state, "settings_sha256": unit_settings,
+                                                  "oext": {"branch": branch, "settings_sha256": oext_settings}}))
     if route == "generated":
         dev_guard_sha = write(folder / "dev100" / "guard.jsonl", dev_guard_rows(cell))
         write(folder / "dev100" / "generations.jsonl", jsonl([{"prompt_id": d, "text": TEXT} for d in DEV]))
@@ -301,13 +315,15 @@ def write_oext_pass(folder: Path, cell: Cell, branch: str, state: str, route: st
         "unit": None if unit_complete is None else {"complete_sha256": unit_complete, "state_sha256": "d" * 64},
         "dev100_source": None if source_complete is None else {"complete_sha256": source_complete},
         "dev100_inputs": {"dev100/generations.jsonl": "e" * 64, "dev100/guard.jsonl": dev_guard_sha},
-        "summary_file": {"oext_summary.json": sha((folder / "oext_summary.json").read_bytes())}})
+        "summary_file": {"oext_summary.json": sha((folder / "oext_summary.json").read_bytes())},
+        "oext": {"branch": branch, "settings_sha256": oext_settings}})
 
 
 def write_b10_unit(folder: Path, cell: Cell, seed: int, mode: str, scale: float, external: str | None,
                    branch: str) -> str:
     job = {"kind": "stage1-eval-adapter", "checkpoint": "e1", "evaluate_bank": "dev", "seed": seed, "mode": mode,
-           "adapter_scale": scale, "external": None if external is None else {"name": external, "kind": "file"}}
+           "adapter_scale": scale, "external": None if external is None else {"name": external, "kind": "file"},
+           "oext": {"branch": branch, "settings_sha256": OEXT_SETTINGS["X"][1]}}
     job_sha = write(folder / "job.json", jbytes(job))
     summary = eval_folder(folder, cell, "e1")
     oext = oext_files(folder / "eval" / "e1", cell, branch)
@@ -358,17 +374,82 @@ def seal_block(kit: Path, plan: dict, block: str) -> None:
                                            "files": len(files)}
 
 
-def write_judges(kit: Path, block: str, units: list) -> None:
-    """Gate B's write_files output for ``units`` [(host, unit name, complete SHA-256, arm, seed, target)]."""
+def hb_labels_of(rng, cell: Cell, sentinel: bool = False) -> dict:
+    """Synthetic HarmBench labels of a cell's sampled answers: an Unsafe answer is "yes" with probability 0.7, any
+    other 0.03, and 1% "unparsed"; with ``sentinel`` exactly HB_SENTINEL "yes" labels, the rest "no"."""
+    out = {}
+    for n, (p, k, _stop, _tokens, _rep, _empty, guard) in enumerate(cell.samples):
+        if sentinel:
+            out[(p, k)] = "yes" if n < HB_SENTINEL else "no"
+            continue
+        if rng.random() < 0.01:
+            out[(p, k)] = "unparsed"
+        else:
+            out[(p, k)] = "yes" if rng.random() < (0.7 if guard["safety"] == "Unsafe" else 0.03) else "no"
+    return out
+
+
+def hb_counts(labels: dict) -> dict:
+    return {"n": len(labels), "harm": sum(v == "yes" for v in labels.values()),
+            "unparsed": sum(v == "unparsed" for v in labels.values())}
+
+
+def cache_line(rec: dict) -> bytes:
+    """Gate B's cache line (cache.Cache.append): sorted keys, compact separators."""
+    return json.dumps(rec, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode() + b"\n"
+
+
+def cache_record(digest: str, mode: str, pid: str, k, label: str) -> dict:
+    return {"answer_sha256": sha(f"{TEXT} {digest} {pid} {k}".encode()), "answer_tokens": 10, "complete_sha256": digest,
+            "input_tokens": 50, "judge": dict(HARMBENCH), "label": label, "mode": mode, "prompt_id": pid,
+            "sample_index": k, "source": "judged", "truncated": False}
+
+
+def write_hb_pod(kit: Path, block: str, units: list, labels: dict, tag: str, extra: bytes = b"") -> str:
+    """judges/BLOCK/pods/TAG/fetched/out/: the label cache of ``units`` (sampled labels; greedy "no" labels of the
+    first unit, which the tables ignore) and the run record naming it; returns the run record's SHA-256."""
+    out = kit / "judges" / block / "pods" / tag / "fetched" / "out"
+    lines = []
+    for n, (_host, _name, digest, *_rest) in enumerate(units):
+        lines += [cache_line(cache_record(digest, "sampled", pid, k, label))
+                  for (pid, k), label in sorted(labels[digest].items())]
+        if n == 0:
+            lines += [cache_line(cache_record(digest, "greedy", pid, None, "no")) for pid in HARM]
+    data = b"".join(lines) + extra
+    cache_sha = write(out / "harmbench-pod.jsonl", data)
+    record = {"kind": "judge-pod run record", "version": 1, "judge": dict(HARMBENCH), "tag": tag, "exit": 0,
+              "device": "cuda", "environment": {"gpu": GPU}, "groups": [], "refused": None, "error": None,
+              "cache": {"sha256": cache_sha, "records": len(lines)}}
+    return write(out / "run-record.json", (json.dumps(record, sort_keys=True, indent=2) + "\n").encode())
+
+
+def judge_record_entry(kit: Path, block: str, tag: str, run_record_sha: str) -> dict:
+    """plan.json records.judges[BLOCK] as plan_tool record-judges writes it (its SHA-256 is the seal's)."""
+    index = sha((kit / "judges" / block / "judge-files-index.json").read_bytes())
+    entry = {"tag": tag, "result_sha256": "e" * 64, "run_record_sha256": run_record_sha, "bundle_sha256": "d" * 64,
+             "exit": 0, "judged": 1, "complete": True}
+    return {"path": f"/x/judges_block_{block}.json", "sha256": "f" * 64, "block": block,
+            "judges": {"harmbench": entry, "granite": {**entry, "tag": f"s1{block.lower()}-granite-1",
+                                                       "known_answer_passed": True}},
+            "index_sha256": index, "utc": "2026-10-29T00:00:00Z", "recorded_by": "synthetic"}
+
+
+def write_judges(kit: Path, block: str, units: list, hb_labels: dict | None = None) -> None:
+    """Gate B's write_files output for ``units`` [(host, unit name, complete SHA-256, arm, seed, target)]; with
+    ``hb_labels`` the HarmBench files' sampled block is those labels' counts."""
     folder = kit / "judges" / block
     entries = []
     for host, name, digest, arm, seed, target in units:
         for key, judge in sorted(JUDGE_NAMES.items()):
             fname = f"{key}--{host}--{name}--{digest[:12]}.json"
-            doc = {"kind": "gate-b judge file", "version": 1, "judge": {"name": judge, "revision": "r"}, "arm": arm,
+            sampled = {"n": JUDGE_SENTINEL, "harm": 1, "unparsed": 0}
+            if hb_labels is not None:
+                sampled = hb_counts(hb_labels[digest])
+            ident = dict(HARMBENCH) if key == "harmbench" else {"name": judge, "revision": "r"}
+            doc = {"kind": "gate-b judge file", "version": 1, "judge": ident, "arm": arm,
                    "seed": seed, "host": host, "complete_sha256": digest, "job_sha256": "0" * 64,
                    "greedy": {"n": JUDGE_SENTINEL, "harm": JUDGE_SENTINEL, "unparsed": 0},
-                   "sampled": None if key == "granite" else {"n": JUDGE_SENTINEL, "harm": 1, "unparsed": 0}}
+                   "sampled": None if key == "granite" else sampled}
             data = (json.dumps(doc, sort_keys=True, indent=2) + "\n").encode()
             entries.append({"file": fname, "sha256": write(folder / fname, data), "judge": judge, "arm": arm,
                             "seed": seed, "host": host, "unit": name, "target": target,
@@ -386,9 +467,10 @@ def rules_module(path: Path, pins: list) -> None:
 
 
 def make(root: Path, reading: str = "plan_a", seed: int = 0, branch: str = "128", refs: bool = True,
-         ref_seeds=(1105, 1106, 1107)) -> Synth:
+         ref_seeds=(1105, 1106, 1107), hb: bool = False) -> Synth:
     root = Path(root)
     rng = np.random.default_rng(seed)
+    cell_of: dict = {}                                 # COMPLETE.json SHA-256 -> the judged unit's Cell
     kit, repo = root / "kit", root / "repo"
     s = Synth(root, reading, kit, repo, repo / "rules.py", branch=branch)
     dsg = design(reading)
@@ -462,7 +544,9 @@ def make(root: Path, reading: str = "plan_a", seed: int = 0, branch: str = "128"
     for arm in ("a0", "R"):
         for j in REUSED:
             judged["A"].append(("repo", f"{j}-{arm}", s.units[(arm, j)]["complete"], engine_arm(arm, j), j, "e1"))
+            cell_of[s.units[(arm, j)]["complete"]] = s.cells[(arm, j)]
     judged["A"].append(("repo", "theta0", s.units[("theta0", None)]["complete"], "a0", 1101, "init"))
+    cell_of[s.units[("theta0", None)]["complete"]] = s.theta0
 
     # the arm launches of every block read
     for block in BLOCKS[reading]:
@@ -485,6 +569,7 @@ def make(root: Path, reading: str = "plan_a", seed: int = 0, branch: str = "128"
                     job["edit"] = {"path": f"edits/{arm}.edit.json", "sha256": edit_sha(arm, j)}
                 plan["hosts"][name]["jobs"].append(job)
                 judged[block].append((name, rel.split("/")[1], u["complete"], engine_arm(arm, j), j, "e1"))
+                cell_of[u["complete"]] = cell
 
     # block B's references
     if refs and "B" in BLOCKS[reading]:
@@ -496,10 +581,12 @@ def make(root: Path, reading: str = "plan_a", seed: int = 0, branch: str = "128"
                 s.refs[(f"ref-{recipe}", j)] = cell
                 rel = f"round1/{j}-a0-e1-a1"
                 u = write_engine_unit(tree / rel, cell, recipe, j)
+                engine = "Y" if recipe == "bqi" else "X"
                 write_oext_pass(tree / f"job-{k}" / "oext", cell, branch, "run", "unit_eval", u["complete"],
-                                sha((tree / rel / "eval" / "e1" / "guard.jsonl").read_bytes()))
+                                sha((tree / rel / "eval" / "e1" / "guard.jsonl").read_bytes()), engine=engine)
+                cell_of[u["complete"]] = cell
                 plan["hosts"][name]["jobs"].append(
-                    {"kind": "ref_train", "arm": recipe, "recipe": recipe, "seed": j, "engine": "X",
+                    {"kind": "ref_train", "arm": recipe, "recipe": recipe, "seed": j, "engine": engine,
                      "status": "complete", "unit": rel, "complete_sha256": u["complete"],
                      "outputs": _outputs(tree, f"job-{k}/oext"), "reason": None})
                 judged["B"].append((name, f"{j}-a0", u["complete"], f"ref-{recipe}", j, "e1"))
@@ -514,6 +601,7 @@ def make(root: Path, reading: str = "plan_a", seed: int = 0, branch: str = "128"
                 rel = f"job-{k}/evals/{j}-{label}"
                 mode, scale = ("prefix", 1.0) if point == "prefix" else ("scale", float(label[6:]))
                 c = write_b10_unit(tree / rel, cell, j, mode, scale, None, branch)
+                cell_of[c] = cell
                 units.append({"unit": rel, "complete_sha256": c})
                 judged["B"].append(("b-ref-eval", f"{j}-{label}", c, f"ref-{label}", j, "e1"))
             plan["hosts"]["b-ref-eval"]["jobs"].append(
@@ -530,6 +618,7 @@ def make(root: Path, reading: str = "plan_a", seed: int = 0, branch: str = "128"
                     s.refs[(f"ref-external-safe_lora-{point}", j)] = cell
                 rel = f"job-{k}/eval-{point}"
                 c = write_b10_unit(tree / rel, cell, j, "external", 1.0, "safe_lora", branch)
+                cell_of[c] = cell
                 units.append({"unit": rel, "complete_sha256": c})
                 judged["B"].append(("b-safe-lora", f"{j}-{point}", c, f"ref-external-safe_lora-{point}", j, "e1"))
             plan["hosts"]["b-safe-lora"]["jobs"].append(
@@ -537,8 +626,18 @@ def make(root: Path, reading: str = "plan_a", seed: int = 0, branch: str = "128"
                  "points": ["default", "conditional", "certify"], "status": "complete",
                  "unit": units[0]["unit"], "complete_sha256": units[0]["complete_sha256"],
                  "units": units, "outputs": None, "reason": None})
+    hb_rng = np.random.default_rng(seed + 99)       # its own stream: the worlds' other values do not depend on hb
     for block in BLOCKS[reading]:
-        write_judges(kit, block, judged[block])
+        labels = None
+        if hb:
+            labels = {e[2]: hb_labels_of(hb_rng, cell_of[e[2]], sentinel=e[2] == s.units[("S1", 1104)]["complete"])
+                      for e in judged[block]}
+            s.hb_labels.update(labels)
+        write_judges(kit, block, judged[block], labels)
+        if hb:
+            tag = f"s1{block.lower()}-hb-1"
+            rr = write_hb_pod(kit, block, judged[block], labels, tag)
+            plan["records"].setdefault("judges", {})[block] = judge_record_entry(kit, block, tag, rr)
         seal_block(kit, plan, block)
     write(kit / "plan.json", jbytes(plan))
     make_b14(s)
@@ -606,7 +705,7 @@ def copy(s: Synth, root: Path) -> Synth:
     """A copy of the synthetic world under ``root`` (for a test that edits it); the rules module is re-pointed."""
     shutil.copytree(s.root, root)
     t = Synth(root, s.reading, root / "kit", root / "repo", root / "repo" / "rules.py", dict(s.cells), dict(s.refs),
-              s.theta0, s.theta0_o, dict(s.units), {}, s.branch)
+              s.theta0, s.theta0_o, dict(s.units), {}, s.branch, dict(s.hb_labels))
     if s.b14:
         t.b14 = {**s.b14, "strata": root / "b14" / "strata.json", "report": root / "b14" / "overlap_report.json"}
     return t

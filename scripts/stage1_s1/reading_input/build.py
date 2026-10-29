@@ -39,8 +39,16 @@ report must be made on that strata and its units (a0 and each add arm at each se
 record names its judges (each judge either recorded or decided not run); judges/BLOCK/judge-files-index.json is
 Gate B's index, sealed at the record's index SHA-256; every indexed file is a top-level judge-named file named for its
 judge and unit, present and sealed at its SHA-256, no (judge, unit) twice, no unindexed judge-named file; and every
-unit of the block that the reading uses has exactly one file per recorded judge. No judge file is parsed: B16 reads
-no judge value.
+unit of the block that the reading uses has exactly one file per recorded judge. No judge file is parsed here: B16
+reads no judge value. With ``hb`` the HarmBench tables are built beside the document (hb.py; RI-O4), and θ0's
+pinned unit is read for them.
+
+**O-ext settings** (G1; addendum 34 points 1 and 3): every O-ext pass names its runner's settings and the O-ext
+module's settings by SHA-256 (job.json ``settings_sha256`` and ``oext.settings_sha256``; COMPLETE.json's
+``oext.settings_sha256`` repeats the second). Exactly two pairs are accepted: engine X's (block A's pins,
+settings/oext_unit.json and settings/oext_eval.json) for every unit but B+Qi's, and engine Y's (settings/
+oext_unit_y.json and settings/oext_eval_y.json) for B+Qi's (a ref_train job of recipe bqi). plan.json's job must name
+that engine. A B10 unit (engine X only) must name engine X's O-ext module settings.
 
 **Not built** (no source or no defined per-item value; the record says so): the S-G coherent-only variant (a prompt
 whose 3 answers all fail the screen has no coherent share; REV3 3.4 gives no per-prompt rule for B16's per-item
@@ -54,7 +62,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from scripts.stage1_s1.reading.schema import INPUT_KIND, b14_sha256, validate
-from scripts.stage1_s1.reading.settings import SETTINGS_SHA256, Refusal, design, settings, strict_json
+from scripts.stage1_s1.reading.settings import SETTINGS_SHA256, Refusal, canonical_json, design, settings, strict_json
+from scripts.stage1_s1.reading_input import hb as hbmod
 from scripts.stage1_s1.reading_input import items as it
 from scripts.stage1_s1.reading_input.sources import (Folder, Kit, is_hex64, pinned_folder, plain, read_bytes,
                                                      sha256_bytes)
@@ -79,6 +88,18 @@ NOT_BUILT = {
     "token_axis": "not built: no kit job runs R at 1,200 or 2,400 removed rows (REV3 9.3 item 2's dose cells), so "
                   "the dose curve has no source"}
 CHECKPOINT = "e1"
+# G1 (addendum 34 points 1 and 3): (O-ext runner settings, O-ext module settings) SHA-256 by engine. X: block A's
+# pins (stage1_rules.S1_CODE, settings/oext_unit.json and settings/oext_eval.json); Y: B+Qi's (stage1_rules.S1_OEXT_Y,
+# settings/oext_unit_y.json and settings/oext_eval_y.json). A test checks both against the files and the rules.
+OEXT_SETTINGS = {"X": ("3959eae7264f56f613f5d7cd54e69081d8985ef7cbce2962243f6685e3581189",
+                       "2ad9893849248a8fb61d04cf7badbd7fb398915020f196904849d500df08f5a5"),
+                 "Y": ("80d08721284bbe94661d6fe2cdc58be259db8df66dc681403d7473155c715298",
+                       "80469a8f728d15192c360f26640c17b7ba652fbd969cfa45f43113c1defd76f0")}
+
+
+def oext_engine(job: dict) -> str:
+    """The engine whose O-ext settings a job's pass must name: Y for B+Qi (ref_train, recipe bqi), else X."""
+    return "Y" if (job.get("kind"), job.get("recipe")) == ("ref_train", "bqi") else "X"
 
 
 @dataclass(frozen=True)
@@ -176,7 +197,30 @@ def _oext_pass(kit: Kit, block: str, host: str, index: int, job: dict, label: st
     c = folder.complete
     if c.get("kind") != OEXT_UNIT_KIND or c.get("command") != "run":
         raise Refusal(f"{folder.label}: not an O-ext unit pass (kind {OEXT_UNIT_KIND}, command run)")
+    _oext_settings(folder, job, label)
     return folder
+
+
+def _settings_of(doc: dict) -> str | None:
+    oext = doc.get("oext")
+    return oext.get("settings_sha256") if isinstance(oext, dict) else None
+
+
+def _oext_settings(folder: Folder, job: dict, label: str) -> None:
+    """G1: the pass's (runner settings, O-ext settings) pair is its engine's, the engine plan.json records."""
+    want = oext_engine(job)
+    if job.get("engine") != want:
+        raise Refusal(f"{label}: plan.json records engine {str(job.get('engine'))[:8]!r}; this unit's O-ext pass is "
+                      f"engine {want}'s")
+    doc = folder.job()                            # job.json, named by COMPLETE.json's job_sha256
+    pair = (doc.get("settings_sha256"), _settings_of(doc))
+    if pair != OEXT_SETTINGS[want]:
+        named = [e for e, p in OEXT_SETTINGS.items() if p == pair]
+        what = f"engine {named[0]}'s pair" if named else "not an accepted pair"
+        raise Refusal(f"{folder.label}: its O-ext settings are {what}; a unit of engine {want} needs engine {want}'s "
+                      "(job.json settings_sha256 and oext.settings_sha256)")
+    if _settings_of(folder.complete) != pair[1]:
+        raise Refusal(f"{folder.label}: COMPLETE.json's oext.settings_sha256 is not job.json's")
 
 
 def _dev_inputs_match(oext: Folder, guard_sha: str) -> None:
@@ -353,6 +397,9 @@ def _b10_unit(kit: Kit, block: str, host: str, job: dict, rel: str, digest: str,
     else:
         want.update(mode="external")
     job_doc = _check_job_json(unit, want)
+    if job.get("engine") != "X" or _settings_of(job_doc) != OEXT_SETTINGS["X"][1]:
+        raise Refusal(f"{unit.label}: a B10 unit runs on engine X and names engine X's O-ext settings (job.json "
+                      "oext.settings_sha256)")
     if label_want in SAFE_LORA and (job_doc.get("external") or {}).get("name") != "safe_lora":
         raise Refusal(f"{unit.label}: not B11's Safe LoRA transform")
     if c.get("kind") != B10_KIND or c.get("seed") != seed or c.get("mode") != want["mode"]:
@@ -544,8 +591,10 @@ def _same(values: list, what: str):
     return first
 
 
-def build(reading: str, kit_root: Path, repo: Path, rules, rules_sha256: str, overlap: Overlap | None) -> tuple:
-    """(the B16 input document, the sources record): every check above, then B16's own schema check."""
+def build(reading: str, kit_root: Path, repo: Path, rules, rules_sha256: str, overlap: Overlap | None,
+          hb: bool = False) -> tuple:
+    """(the B16 input document, the sources record, the HarmBench tables or None): every check above, then B16's
+    own schema check; with ``hb`` the HarmBench tables (hb.py) on the document's U order."""
     cfg = settings()
     dsg = design(reading)
     kit = Kit(kit_root)
@@ -580,10 +629,10 @@ def build(reading: str, kit_root: Path, repo: Path, rules, rules_sha256: str, ov
     theta0_o, theta0_folder = _theta0(kit, o_jobs)
     points, curve, skipped = references(kit, jobs, bar) if "B" in blocks else ({}, {}, [])
     theta0_unit = None
-    if curve:
+    if curve or hb:
         pin = pins.get(("theta0", None))
         if pin is None:
-            raise Refusal("the curve needs theta0's U and L, and REJUDGED_PINS['A'] holds no theta0 unit")
+            raise Refusal("the curve and the HarmBench tables need theta0's unit, and REJUDGED_PINS['A'] holds none")
         theta0_unit = Source("theta0", 0, "A", pinned_folder(repo, pin), str(pin.get("target")))
         _check_job_json(theta0_unit.unit, {"arm": pin.get("arm"), "seed": pin.get("seed"),
                                            "target_checkpoint": pin.get("target")}, pinned=True)
@@ -644,9 +693,14 @@ def build(reading: str, kit_root: Path, repo: Path, rules, rules_sha256: str, ov
         validate(doc)                             # B16's own schema: anything it would refuse is refused here
     except Refusal as exc:                        # B16's message may hold a value: only its place is printed
         raise Refusal(f"B16's schema refuses the built document at {str(exc).split(': ')[0][:120]}") from None
+    hb_doc = hb_rec = None
+    if hb:
+        hb_doc, hb_rec = hbmod.tables(kit, blocks, reading, primary, theta0_unit, u_ids, sha256_bytes(canonical_json(doc)),
+                                      {b: j["index_sha256"] for b, j in judges.items()})
     record = _record(reading, kit, rules_sha256, blocks, primary, points, curve, theta0_folder, theta0_unit, judges,
                      doc, jobs, skipped)
-    return doc, record
+    record["hb"] = hb_rec
+    return doc, record, hb_doc
 
 
 def _record(reading, kit, rules_sha256, blocks, primary, points, curve, theta0_folder, theta0_unit, judges, doc,
