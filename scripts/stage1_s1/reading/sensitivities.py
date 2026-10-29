@@ -62,6 +62,7 @@ def u_estimates(code: str, table, dsg: Design, scale, floor, cluster_fits: dict,
     """The U contrasts of one sensitivity: contrast name -> Estimate. ``fits_out`` receives HB's fit (its D-4 start
     record is printed)."""
     out = {}
+    fit = None              # bound before any branch: HB hands its single-shift fit out after its loop (D-4's record)
     seeds_all = {arm: _seeds_of(table, arm) for arm in dsg.arms}
     if code == "HB":
         fit = fit_one_shift(table, dsg, scale, floor, cfg)

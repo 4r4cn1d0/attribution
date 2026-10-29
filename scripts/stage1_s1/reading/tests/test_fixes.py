@@ -19,6 +19,7 @@ import pytest
 from scripts.stage1_s1.reading import contrast as con
 from scripts.stage1_s1.reading import labels, phi, reml, sensitivities as sens
 from scripts.stage1_s1.reading import references as refs
+from scripts.stage1_s1.reading import tdist
 from scripts.stage1_s1.reading import settings as st
 from scripts.stage1_s1.reading.__main__ import main as cli
 from scripts.stage1_s1.reading.labels import u_part
@@ -210,6 +211,13 @@ def test_the_reading_reads_alpha_the_level_and_the_stop_settings_from_the_settin
     lo, hi = out["contrasts"]["P1"]["U_interval_90"]
     blo, bhi = base["contrasts"]["P1"]["U_interval_90"]
     assert hi - lo < bhi - blo                                     # the 80% interval is narrower
+    # Under D-4 the 2-step fits' SE can shrink, so 'narrower' alone does not show the level: every per-comparison
+    # interval's half-width must be t(0.5 + 0.8 / 2, df) x SE at its own estimate (the settings' level, not 0.90).
+    for k in out["contrasts"].values():
+        for est, ci in ((k["U"], k["U_interval_90"]), (k["L"]["comparator_part"], k["L"]["comparator_interval_90"]),
+                        (k["O"]["theta0_part"], k["O"]["theta0_interval_90"])):
+            assert ci[1] - est["est"] == pytest.approx(tdist.t_quantile(0.9, est["df"]) * est["se"], rel=1e-9)
+            assert est["est"] - ci[0] == pytest.approx(tdist.t_quantile(0.9, est["df"]) * est["se"], rel=1e-9)
     assert all(f["iterations"] <= 2 for e in out["fits"].values() for f in e.values())
     assert any(f["iterations"] > 2 for e in base["fits"].values() for f in e.values())
     assert out["references"]["tested"] is False
