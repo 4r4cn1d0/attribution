@@ -2,6 +2,7 @@
   "adapter_scale": {
     "allowed": [
       1.0,
+      0.9,
       0.75,
       0.5,
       0.0
@@ -14,10 +15,11 @@
     ],
     "factor": "lora_B",
     "planned": [
+      0.9,
       0.75,
       0.5
     ],
-    "rule": "lora_B <- lambda * lora_B in float32 for every adapted matrix (all 112 for recipe B: 7 modules x 16 blocks), so the whole update s*B*A is multiplied by lambda; lora_A and the frozen base weights are not changed. lambda = 1 is the identity and is the certification mode (no arithmetic). lambda = 0 writes exact zeros (the seeded init state's B), so it computes exactly what the untuned model computes; its Gate A point is the untuned unit, and an evaluation at lambda = 0 is an optional second certification against that unit. The planned reference points are 0.75 and 0.5 (PLAN-S:153; A7); the curve is 1, 0.75, 0.5, 0 (PLAN-S:111). Another lambda (for example 0.9 under the ambitious reference set) needs a settings change."
+    "rule": "lora_B <- lambda * lora_B in float32 for every adapted matrix (all 112 for recipe B: 7 modules x 16 blocks), so the whole update s*B*A is multiplied by lambda; lora_A and the frozen base weights are not changed. lambda = 1 is the identity and is the certification mode (no arithmetic). lambda = 0 writes exact zeros (the seeded init state's B), so it computes exactly what the untuned model computes; its Gate A point is the untuned unit, and an evaluation at lambda = 0 is an optional second certification against that unit. The planned reference points are 0.9, 0.75 and 0.5 (0.75 and 0.5: PLAN-S:153; A7; 0.9: LN-15b's increment, added under the user's full reference scope of 29 Oct 2026, addendum section 34 point 5); the curve is 1, 0.75, 0.5, 0 (PLAN-S:111). Another lambda needs a settings change; the scale points are outside the certified settings, so adding one keeps a certification valid."
   },
   "certification": {
     "diagnostic_reference_files": [
@@ -85,7 +87,7 @@
       "function": null,
       "kind": "file",
       "module": "scripts/stage1_s1/safe_lora.py",
-      "module_sha256": "cd70eed6055f19f3da5467b4dfbe61104e26b1b571a85040a4bbcfd4e39403d4",
+      "module_sha256": "080a69742dd4ac0896c3e3b3ddb9669999b8d79373b31dd6e333429b4965116a",
       "record_keys": {
         "output_adapter_fingerprint": "output.fingerprint",
         "output_file_sha256": "output.adapter_sha256",
@@ -97,7 +99,7 @@
       "role": "B11 Safe LoRA (REF R.1), file form",
       "settings": {
         "path": "scripts/stage1_s1/settings/safe_lora.json",
-        "sha256": "e8a011221b4392bf9ef4f5ad31fc7ed8a51a5d346a5405a92093072f8857ccc0"
+        "sha256": "16af536a372c93f31b0dfd2516cf82fb395f8ab6881793a9c100800a4ba20819"
       }
     }
   },
@@ -141,10 +143,11 @@
       "task_rows"
     ],
     "guard_sees": "original user text",
+    "length_rule": "the recipe's model.max_prompt_tokens applies to the prefixed prompt (1536 tokens for the pinned recipe): every prefixed generation prompt (harm, over-refusal, safety, ARC generation, and O-ext's PHTest prompts when over-refusal is in apply_to: the chat template's user turn holding the prefix, the separator and the user's text, then the assistant header) and every prefixed forced-choice ARC prompt with each candidate label has at most max_prompt_tokens tokens; a prefixed task row is a teacher-forced example and keeps the engine's own limit, model.max_train_tokens (3072), on its prompt, response and end-of-turn token. Nothing is cut. The command line counts every prefixed prompt with the policy's tokenizer (the cached snapshot; no model) before any model loads and before anything is written, and refuses (exit 2) if one is over (prefix_token_counts); the Mac script scripts/stage1_s1/prefix_lengths.py prints the same counts (per bank: prompts, largest prefixed token count, over the limit; never a text).",
     "separator": "\n\n",
-    "source": null,
-    "status": "C1 open: no record chooses the instruction text (RS C1, A6; REF R.0.1). The lead pins one published instruction's exact UTF-8 bytes by SHA-256 in text_sha256 (and its citation in source) before any safety-prefix evaluation; until then the prefix mode refuses. Proposed reading, for the lead to confirm: the prefix goes into every user turn of the evaluation (a deployer cannot choose which requests are harmful), so its over-refusal, ARC and task-loss costs are measured; Qwen3Guard judges each answer against the user's own text, not the deployer's instruction.",
-    "text_sha256": null
+    "source": "Llama 2 default system prompt (Meta, github.com/meta-llama/llama, July 2023), single-paragraph form as run by Lyu et al. 2024 (NeurIPS; PTST 'chat:llama', github.com/vfleaking/PTST@134600f prompt_utils.py:4) and Qi et al. 2024 (ICLR; github.com/LLM-Tuning-Safety/LLMs-Finetuning-Safety@8a3b38f llama2/safety_evaluation/eval_utils/prompt_utils.py:9); user-turn prefix joined by \"\\n\\n\" as in Lyu et al. App. E (Mistral)",
+    "status": "pinned (addendum section 34 point 4; the user's decision of 29 Oct 2026, \"Yes, both\", record .ai/inputs/stage1-post-w1-20261023/block-b/user_decision_block_b_scope_and_sp.json, SHA-256 ec5b4805e8c1f6ab00b2898308243fc999f43bdc1bd465b163850d0711c29bb9): the text is the file .ai/inputs/stage1-post-w1-20261023/block-b/sp_prefix_llama2_default_ptst.txt (506 bytes, ASCII, no trailing newline); the prefix mode accepts exactly the file whose bytes hash to text_sha256 and refuses any other bytes. The design (RS C1, A6; REF R.0.1): the prefix goes into every user turn of the evaluation (a deployer cannot choose which requests are harmful), at its start, inside the one user message, joined to the user's own text by the separator, so its over-refusal, ARC and task-loss costs are measured; it is a user-turn prefix because OLMo-2-0425-1B-Instruct has no documented system turn or default system prompt (its chat template has a system branch, which the design does not use). Qwen3Guard judges each answer against the user's own text, not the deployer's instruction.",
+    "text_sha256": "0fcc6beb8240d7b8e7b8c19bb033af6c8a66e568e50afc33f58707a503fdec98"
   },
   "prepared": {
     "bank": "dev",
@@ -183,6 +186,15 @@
       },
       "role": "Gate A a0 unit, seed 1103, e1 (trained from init in one job; engine 55253874)",
       "unit": "family-probe-olmo2-1b-gateA-1103/retrieved/olmo2-1b-1103/tree/round1/1103-a0-e1-a1"
+    },
+    "1104": {
+      "complete_sha256": "89111c6b1391b713f14b5359a5bc72070b89a272ae11db4a8020e7d305e2f7e0",
+      "fingerprint_prefixes": {
+        "e1": "fe4adbf04f3c0b5019408d8462a4f68015462ad0c57d592aaf6c9825fa43e047",
+        "q": null
+      },
+      "role": "stage-1 block A a0_arm unit, seed 1104, e1 (host a-10, job 3; engine X 472fc7f6; trained from init in one job); pins from the kit's readable records (plan.json, JOB-DONE.json) and a0-1104-adapter-fingerprint.json",
+      "unit": "stage1-olmo/retrieved/a-10/tree/round1/1104-a0-e1-a1"
     }
   },
   "regeneration": {

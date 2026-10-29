@@ -17,7 +17,7 @@ from scripts.stage1 import s1common as s1
 from scripts.stage1_s1 import safe_lora as sl
 
 ENGINE_ROOT = Path(engine_package.__file__).resolve().parents[2]      # where the engine's configs live
-SAFE_LORA_SETTINGS_SHA256 = "e8a011221b4392bf9ef4f5ad31fc7ed8a51a5d346a5405a92093072f8857ccc0"
+SAFE_LORA_SETTINGS_SHA256 = "16af536a372c93f31b0dfd2516cf82fb395f8ab6881793a9c100800a4ba20819"
 
 
 def _doc() -> dict:
@@ -74,7 +74,12 @@ def test_the_accepted_fingerprints_are_the_gate_a_a0_e1_ones():
     """REF R.0.7 prints their prefixes; the full values come from each Gate A unit's states/e1/state.json."""
     accepted = sl.load_pinned_settings().accepted
     prefixes = {"1101": "aad79060c52304ec", "1102": "7c9111c2093b00f2", "1103": "b1ad020bc8d1b1c1"}
-    assert set(accepted) == set(prefixes)
+    assert set(prefixes) <= set(accepted)       # and any seed 1104-1107 the mid-block re-pin added, by its rule:
+    from scripts.stage1_s1 import eval_adapter as ea
+    from scripts.stage1_s1 import repin_reference_seeds as rp
+
+    added = rp.check_seed_pins(ea.load_pinned_settings().doc, _doc())
+    assert added == sorted(set(accepted) - set(prefixes))
     for seed, prefix in prefixes.items():
         assert accepted[seed].startswith(prefix) and len(accepted[seed]) == 64
     assert sl.load_pinned_settings().state_checks == {"arm": "a0", "checkpoint": "e1"}

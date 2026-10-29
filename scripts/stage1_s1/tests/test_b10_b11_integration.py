@@ -264,3 +264,41 @@ def test_b10_evaluates_b11s_default_output_and_compare_refuses_it_as_a_certifica
     with pytest.raises(ea.Refusal, match="identity transform"):
         ea.compare_certification(tmp_path / "k2", world.units[1101] / "COMPLETE.json",
                                  fb.eval_dir(world.units[1101]), settings)
+
+
+# ----- 4. the K = 0 point as on the 1101 reference pod (block-B pre-flight G10; addendum section 34 point 7) ----------
+
+
+def test_the_k0_point_runs_through_b10s_command_line_and_certifies_and_the_default_point_does_not(
+        world, tmp_path, monkeypatch):
+    """The kit's safe_lora job at 1101 with points certify and default, in its order: per point B11's transform
+    command, then B10's evaluate command (--mode external, the file and its record by SHA-256, under the certification
+    report), each in a new process; then B10's compare command: K = 0 passes against a0 (exit 0), the default point
+    refuses as a certification (exit 2, nothing written)."""
+    root = tmp_path / "repo"
+    digest = _repo(root, world.sl_doc)
+    monkeypatch.setattr(ea, "REPO", root)
+    settings = _world_settings(world, digest)
+    work = tmp_path / "b11"
+    work.mkdir()
+    reference = world.units[1101] / "COMPLETE.json"
+    for point, verdict_exit in (("certify", 0), ("default", 2)):
+        args = _transform(monkeypatch, world.sl_doc, work / point, point, adapter=world.state, seed="1101",
+                          aligned=world.aligned, base=world.unaligned)
+        out = tmp_path / f"eval-{point}"
+        argv = ["evaluate", "--prepared", world.prepared, "--recipe", world.recipe, "--source-run", world.regen,
+                "--reference", reference, "--out", out, "--mode", "external", "--external", "safe_lora",
+                "--adapter-file", args["adapter_file"], "--adapter-sha256", args["adapter_sha256"],
+                "--adapter-record", args["record_file"], "--adapter-record-sha256", args["record_sha256"],
+                *fb.cert_args(world.cert)]
+        assert ea.main([str(a) for a in argv], _settings=settings, _loaders=fb.fx.fixture_loaders()) == 0, point
+        assert ea.verify_unit(out)["complete"]
+        compare = tmp_path / f"compare-{point}.json"
+        argv = ["compare", "--unit", out, "--reference", reference, "--reference-eval", fb.eval_dir(world.units[1101]),
+                "--out", compare]
+        assert ea.main([str(a) for a in argv], _settings=settings) == verdict_exit, point
+        if point == "certify":
+            report = json.loads(compare.read_bytes())
+            assert report["verdict"] == "pass" and report["unit_mode"] == "external"
+        else:
+            assert not compare.exists()

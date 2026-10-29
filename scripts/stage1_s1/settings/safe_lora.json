@@ -1,6 +1,6 @@
 {
   "adapter": {
-    "acceptance_rule": "REF R.0.7: an input adapter is accepted only if its engine fingerprint (lora_fingerprint over the sorted names, shapes and float32 bytes) equals the Gate A a0 unit's e1 adapter_fingerprint at that seed (from each unit's states/e1/state.json); a state folder must also hash to its state.json, carry that fingerprint and name the checkpoint, arm and seed below; the adapter file's SHA-256 is recorded, never required",
+    "acceptance_rule": "REF R.0.7: an input adapter is accepted only if its engine fingerprint (lora_fingerprint over the sorted names, shapes and float32 bytes) equals the a0 unit's e1 adapter_fingerprint at that seed: at 1101-1103 the Gate A unit's (from each unit's states/e1/state.json; gate_a_adapter_file_sha256 is that adapter file's SHA-256, recorded, never required); at 1104-1107 the stage-1 a0_arm unit's, from a readable fingerprint record: the kit's job-I/a0-adapter-fingerprint.json at the SHA-256 plan.json records, or (a sealed block, the seal rule's fingerprint clause) the lead's a0-S-adapter-fingerprint.json written by scripts/stage1_s1/extract_a0_fingerprint.py from the sealed states/e1/state.json's adapter_fingerprint; source_complete_sha256 is the unit's COMPLETE.json SHA-256 (B10's reference pin of that seed; scripts/stage1_s1/repin_reference_seeds.py); a state folder must also hash to its state.json, carry that fingerprint and name the checkpoint, arm and seed below",
     "accepted": {
       "1101": {
         "fingerprint": "aad79060c52304ecd1b3d0a24b26281da7d147b0fc4a2754ba3a9b323bfae1ec",
@@ -13,6 +13,11 @@
       "1103": {
         "fingerprint": "b1ad020bc8d1b1c1c1c3410e1d7c058c88708de3662adaa3a4f4da6f203ab5ba",
         "gate_a_adapter_file_sha256": "251a647012d5b4cb066a80af096fe0f68cb7ca85d78985d22dc6d5a560f61077"
+      },
+      "1104": {
+        "fingerprint": "fe4adbf04f3c0b5019408d8462a4f68015462ad0c57d592aaf6c9825fa43e047",
+        "source_complete_sha256": "89111c6b1391b713f14b5359a5bc72070b89a272ae11db4a8020e7d305e2f7e0",
+        "source_unit": "stage1-olmo/retrieved/a-10/tree/round1/1104-a0-e1-a1"
       }
     },
     "blocks": 16,

@@ -6,10 +6,14 @@ through the engine's own evaluation function (runner.evaluate_checkpoint: the en
 Qwen3Guard scorer and summaries, unchanged), with at most one change:
 
 - **the safety prefix** (reference SP, A6): a pinned instruction text is written at the start of the user turn,
-  inside the one user message (OLMo-2 has no system turn), before the user's own text, with the settings' separator.
-  It is done by a codec view (PrefixCodec) that the evaluation receives in place of the policy's codec; the prepared
-  items get the prefixed prompts' token SHA-256 after their original encoding was checked against the prepared
-  token audit. Qwen3Guard always judges an answer against the user's own text.
+  inside the one user message, before the user's own text, with the settings' separator (a user-turn prefix:
+  OLMo-2-0425-1B-Instruct has no documented system turn or default system prompt; its chat template has a system
+  branch, which the design does not use). It is done by a codec view (PrefixCodec) that the evaluation receives in
+  place of the policy's codec; the prepared items get the prefixed prompts' token SHA-256 after their original
+  encoding was checked against the prepared token audit. Qwen3Guard always judges an answer against the user's own
+  text. The prompt-length rule (settings prefix.length_rule): the recipe's max_prompt_tokens applies to the prefixed
+  prompt; the command line counts every prefixed prompt with the policy's tokenizer before any model loads and
+  refuses (exit 2) if one is over (prefix_token_counts).
 - **an adapter scale lambda** (reference A7): lora_B <- lambda * lora_B in every adapted matrix; lambda = 1 is no
   change at all.
 - **an external adapter transform** (the hook for B11's Safe LoRA): an allowlisted function, pinned by its module's
@@ -91,7 +95,7 @@ from scripts.stage1_s1 import oext_eval as oe  # noqa: E402
 
 ENGINE_REPO = Path(_engine_package.__file__).resolve().parents[2]   # where the engine's configs live
 SETTINGS_PATH = HERE / "settings" / "eval_adapter.json"
-SETTINGS_SHA256 = "a99f918f9579458b96d6094981679babc2ccfbe5e6d0d20bd360ccab81fbe1fb"
+SETTINGS_SHA256 = "18287cfa00609ed2ce85392446b3f2c54e872b68cca5a9ff14b237959ae8ff62"
 SETTINGS_NAME = "eval_adapter"
 OWNER = "scripts/stage1_s1/eval_adapter.py"
 JOB_KIND = "stage1-eval-adapter"
@@ -100,6 +104,9 @@ COMPARE_KIND = "stage1 B10 certification comparison"
 TRANSFORM_INTERFACE = "stage1-adapter-transform-v1"
 MODES = ("certify", "prefix", "scale", "external")
 PREFIX_KINDS = ("harm", "overrefusal", "safety", "arc_generation", "arc_utility", "task_rows")
+PREFIX_SETTINGS_KEYS = frozenset({"text_sha256", "source", "separator", "apply_to", "guard_sees", "status",
+                                  "length_rule"})
+PHTEST_BANK = "phtest"          # O-ext's PHTest prompts: prefixed (and counted) when over-refusal is in apply_to
 GENERATION_KINDS = ("safety", "arc_generation", "harm", "overrefusal")      # runner.GENERATION_KINDS (a test pins it)
 EXIT_OK, EXIT_FAILED, EXIT_REFUSED, EXIT_MISMATCH, EXIT_CERTIFICATION = 0, 1, 2, 3, 4
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
@@ -319,11 +326,11 @@ def validate_settings(doc: Any) -> dict:
         raise Refusal("lambda = 1 is the certification mode, not a planned scale point")
     if scale["factor"] != "lora_B":
         raise Refusal("adapter scaling multiplies lora_B")
-    prefix = _keys(doc["prefix"], {"text_sha256", "source", "separator", "apply_to", "guard_sees", "status"},
-                   "settings prefix")
+    prefix = _keys(doc["prefix"], PREFIX_SETTINGS_KEYS, "settings prefix")
     if prefix["text_sha256"] is not None:
         _hex64(prefix["text_sha256"], "prefix text_sha256")
         _text(prefix["source"], "prefix source (a pinned text needs its citation)")
+    _text(prefix["length_rule"], "prefix length_rule")
     if not isinstance(prefix["separator"], str) or prefix["separator"].strip() or len(prefix["separator"]) > 8:
         raise Refusal("the prefix separator must be at most 8 whitespace characters")
     _names(prefix["apply_to"], "prefix apply_to", PREFIX_KINDS)
@@ -808,6 +815,97 @@ def build_prefix(codec: Codec, prefix: Mapping, settings: Settings, items: Seque
               "items_sha256": sha256_bytes(canonical_json([[i["prompt_id"], i["token_sha256"]] for i in out])),
               "task_rows_sha256": sha256_bytes(canonical_json([[q.row_id, ids_sha256(q.input_ids)] for q in queries]))}
     return pc, out, queries, record
+
+
+# ----- the prompt-length rule, before any model loads --------------------------------------------------------------
+
+
+def tokenizer_codec(recipe: Mapping) -> Codec:
+    """The policy's codec without its model: the engine's own tokenizer load (the cached snapshot, offline) and codec
+    checks, exactly as loaders._load_policy builds them; the prompt-length rule counts with it."""
+    from experiments.safety_selection.config import tokenizer_of
+    from experiments.safety_selection.loaders import load_tokenizer
+    from experiments.safety_selection.textproc import QWEN_ASSISTANT_HEADER, build_codec, check_assistant_header
+
+    spec = recipe["model"]
+    tokenizer, _ = load_tokenizer(*tokenizer_of(recipe))
+    codec = build_codec(tokenizer, spec["end_of_turn_token"], spec["stop_tokens"], spec["pad_token"])
+    check_assistant_header(codec, spec.get("assistant_header", QWEN_ASSISTANT_HEADER))
+    return codec
+
+
+def prefix_token_counts(codec: Codec, prefix: Mapping, settings: Settings, items: Sequence[Mapping],
+                        query_rows: Sequence[Mapping], recipe: Mapping, phtest: Sequence[str] = ()) -> dict:
+    """The settings' prompt-length rule (prefix.length_rule), counted with the policy's codec and no model: for each
+    prefixed bank (each kind in apply_to, and O-ext's PHTest prompts when over-refusal is in apply_to) the number of
+    prompts, the largest prefixed token count, its limit and how many are over it. The counts are build_prefix's and
+    O-ext's own encodings: a generation prompt (the user turn holding the prefix, the separator and the user's text,
+    then the assistant header) and a forced-choice ARC prompt plus its longest candidate label against
+    model.max_prompt_tokens; a task row (the prefixed prompt, the response and the end-of-turn token, a teacher-forced
+    example) against model.max_train_tokens, the engine's own limit. Counts only: no text and no prompt id."""
+    apply_to = settings.doc["prefix"]["apply_to"]
+    insert = prefix["insert"]
+    insert_ids = codec.encode(insert)
+    if codec.has_special(insert_ids):
+        raise Refusal("the prefix (with its separator) encodes to a special token")
+    max_prompt, max_train = recipe["model"]["max_prompt_tokens"], recipe["model"]["max_train_tokens"]
+    lengths: dict[str, list[int]] = {kind: [] for kind in apply_to}
+    if "overrefusal" in apply_to:
+        lengths[PHTEST_BANK] = []
+    for item in items:
+        kind = item["kind"]
+        if kind not in PREFIX_KINDS or kind == "task_rows":
+            raise Refusal(f"bank item {item.get('prompt_id')} has a kind B10 does not know")
+        if kind not in apply_to:
+            continue
+        if kind == "arc_utility":
+            text = render_arc_mc(item["question"], item["labels"], item["texts"])
+            label = max((len(codec.encode(lab)) for lab in item["labels"]), default=0)
+            lengths[kind].append(len(codec.prompt_ids(insert + text)) + label)
+        else:
+            lengths[kind].append(len(codec.prompt_ids(insert + item["prompt"])))
+    if "task_rows" in apply_to:
+        for row in query_rows:
+            lengths["task_rows"].append(len(codec.prompt_ids(insert + row["prompt"])) + len(codec.encode(row["response"]))
+                                        + 1)
+    if "overrefusal" in apply_to:
+        lengths[PHTEST_BANK] += [len(codec.prompt_ids(insert + text)) for text in phtest]
+    banks = {}
+    for name, values in sorted(lengths.items()):
+        limit, which = (max_train, "model.max_train_tokens") if name == "task_rows" else (max_prompt,
+                                                                                         "model.max_prompt_tokens")
+        banks[name] = {"prompts": len(values), "largest_tokens": max(values, default=None), "limit": which,
+                       "limit_tokens": limit, "over": sum(v > limit for v in values)}
+    return {"text_sha256": prefix["sha256"], "insert_tokens": len(insert_ids), "banks": banks,
+            "over": sum(b["over"] for b in banks.values())}
+
+
+def check_prefix_counts(counts: Mapping) -> Mapping:
+    """Refuses if any prefixed prompt is over its limit (counts per bank only); returns the counts otherwise."""
+    if counts["over"]:
+        over = {name: bank["over"] for name, bank in counts["banks"].items() if bank["over"]}
+        raise Refusal(f"the prefix makes {counts['over']} prompts longer than the recipe's limits ({over}): B10 "
+                      "refuses before any model loads (settings prefix.length_rule)")
+    return counts
+
+
+def prepared_prefix_counts(prepared_dir: str | Path, prefix: Mapping, settings: Settings, recipe: Mapping,
+                           codec: Codec, oext: Any = None) -> dict:
+    """prefix_token_counts on the pinned prepared set's bank and task rows and, when O-ext runs, its PHTest prompts.
+    Loads no model and writes nothing."""
+    from experiments.safety_selection.prepare import load_prepared
+
+    _, manifest_sha = read_pinned_manifest(prepared_dir, settings)
+    bank = settings.doc["prepared"]["bank"]
+    prepared = load_prepared(prepared_dir, manifest_sha, banks=(bank,))
+    phtest = [text for _, text in oext.bank.rows] if oext is not None and oext.runs else []
+    return prefix_token_counts(codec, prefix, settings, prepared.banks[bank], prepared.query_rows, recipe, phtest)
+
+
+def prefix_preflight(prepared_dir: str | Path, prefix: Mapping, settings: Settings, recipe: Mapping, codec: Codec,
+                     oext: Any = None) -> dict:
+    """The prompt-length rule before any model loads: prepared_prefix_counts, refused if any prompt is over."""
+    return dict(check_prefix_counts(prepared_prefix_counts(prepared_dir, prefix, settings, recipe, codec, oext)))
 
 
 # ----- adapter transforms ----------------------------------------------------------------------------------------
@@ -1772,7 +1870,8 @@ def _oext_arg(args: argparse.Namespace, settings: Settings, oext_settings: Any) 
 
 
 def main(argv: Sequence[str] | None = None, *, _settings: Settings | None = None, _loaders: Any = None,
-         _oext_settings: Any = None) -> int:
+         _oext_settings: Any = None, _codec: Any = None) -> int:
+    """``_codec`` (tests): recipe -> the codec the prompt-length rule counts with (default: tokenizer_codec)."""
     args = _parser().parse_args(argv)
     invalid = _invalid()
     outputs = [getattr(args, name, None) for name in ("out", "regen_out", "eval_root")]
@@ -1819,7 +1918,7 @@ def main(argv: Sequence[str] | None = None, *, _settings: Settings | None = None
                     "sha256": sha256_file(target)})
             return EXIT_OK if report["verdict"] == "pass" else EXIT_CERTIFICATION
         recipe = load_pinned_recipe(args.recipe, settings)
-        certification, oext = None, None
+        certification, oext, prefix = None, None, None
         if args.command in ("evaluate", "run"):
             oext = _oext_arg(args, settings, _oext_settings)
         if args.command == "regenerate":
@@ -1833,17 +1932,21 @@ def main(argv: Sequence[str] | None = None, *, _settings: Settings | None = None
             ctx = preflight(prepared_dir=args.prepared, source_run=args.source_run, reference_path=args.reference,
                             recipe=recipe, settings=settings, plan=plan, certification=_certification_arg(args),
                             oext=oext)
+            prefix = ctx.prefix
         else:
             plans = [parse_spec(spec, settings, args.prefix_file) for spec in args.evaluations.split(",")]
             read_reference(args.reference, args.seed, settings)
             read_pinned_manifest(args.prepared, settings)
             for plan in plans:
                 if plan.mode == "prefix":
-                    load_prefix(plan.prefix_file, settings)
+                    prefix = load_prefix(plan.prefix_file, settings)
                 if plan.mode == "external":
                     load_callable(plan.external, settings)
             certification = _certification_arg(args)       # run_sequence checks it (and the gate folder) first
             check_oext(settings, [p.mode for p in plans], oext)
+        if prefix is not None:                              # the prompt-length rule, before any model loads
+            prefix_preflight(args.prepared, prefix, settings, recipe,
+                             (_codec or tokenizer_codec)(recipe), oext)
     except Mismatch as exc:
         print(json.dumps({"ok": False, "mismatch": str(exc)}), file=sys.stderr)
         return EXIT_MISMATCH

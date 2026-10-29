@@ -104,7 +104,7 @@ def test_the_plan_enforces_one_change_per_evaluation(world):
                 dict(mode="certify", prefix_file="x"), dict(mode="external", external="identity", adapter_scale=0.5),
                 dict(mode="external", external="unknown"), dict(mode="external"),
                 dict(mode="external", external="identity", adapter_file="f"),
-                dict(mode="external", external="file_half"), dict(mode="prefix", prefix_file="x"),
+                dict(mode="external", external="file_half"), dict(mode="prefix"),      # the SP text is pinned now
                 dict(mode="merge")):
         mode = bad.pop("mode")
         with pytest.raises(ea.Refusal):

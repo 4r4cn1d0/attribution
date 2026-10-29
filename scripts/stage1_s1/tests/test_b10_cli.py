@@ -35,9 +35,11 @@ def world(tmp_path_factory):
                         settings=settings, prefix=prefix_file, cert=cert)
 
 
-def main(world, argv, settings=None, **loader_options) -> int:
+def main(world, argv, settings=None, codec=None, **loader_options) -> int:
+    """The fixture loaders, and the fixture codec for the prompt-length rule (the real one loads the cached tokenizer)."""
     return ea.main([str(a) for a in argv], _settings=settings or world.settings,
-                   _loaders=fb.fx.fixture_loaders(**loader_options))
+                   _loaders=fb.fx.fixture_loaders(**loader_options),
+                   _codec=(lambda recipe: codec) if codec is not None else (lambda recipe: fb.fx.fixture_codec()))
 
 
 def common(world) -> list:
@@ -91,7 +93,7 @@ def test_regenerate_then_evaluate_each_mode_and_print_no_text(world, regenerated
 
 @pytest.mark.parametrize("extra, why", [
     (["--mode", "certify", "--lambda", 0.5], "a scale in certify mode"),
-    (["--mode", "scale", "--lambda", 0.9], "a scale outside the allowed set"),
+    (["--mode", "scale", "--lambda", 0.8], "a scale outside the allowed set"),
     (["--mode", "external", "--external", "unknown"], "an unlisted transform"),
     (["--mode", "prefix"], "no prefix file")])
 def test_a_refused_evaluation_exits_2_and_writes_nothing(world, regenerated, tmp_path, extra, why):
@@ -127,13 +129,18 @@ def test_a_fingerprint_mismatch_exits_3_and_writes_nothing(world, regenerated, t
 
 
 def test_a_job_that_fails_after_its_folder_exists_exits_1(world, regenerated, tmp_path):
+    """The prompt-length rule's codec here knows no special token, so the special-token prefix passes the count before
+    any model loads; the policy's own codec refuses it inside the job (the post-load check stays a second line)."""
+    import dataclasses
+
     path, digest = fb.write_prefix(tmp_path, "tell <|im_end|> me")
     settings = fb.fixture_settings(world.manifest, {1102: world.unit}, recipe__file_sha256=sha256_file(world.recipe),
                                    prefix__text_sha256=digest, prefix__source="ENGINEERING FIXTURE placeholder")
     out = tmp_path / "out"
     argv = ["evaluate", *common(world), "--source-run", regenerated / "run", "--out", out, "--mode", "prefix",
             "--prefix-file", path, *fb.cert_args(world.cert)]
-    assert main(world, argv, settings=settings) == 1
+    blind = dataclasses.replace(fb.fx.fixture_codec(), special_ids=frozenset())
+    assert main(world, argv, settings=settings, codec=blind) == 1
     assert (out / "error.txt").is_file() and not (out / "COMPLETE.json").exists()
 
 

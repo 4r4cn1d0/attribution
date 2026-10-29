@@ -5,6 +5,7 @@ validate_job. Standard library and the engine's stdlib modules only (no model)."
 from __future__ import annotations
 
 import copy
+import json
 
 import pytest
 
@@ -14,8 +15,13 @@ from experiments.safety_selection.common import canonical_json, code_identity, s
 from experiments.safety_selection.config import config_sha256, load_recipe, training_identity
 from scripts.stage1 import s1common as s1
 from scripts.stage1_s1 import eval_adapter as ea
+from scripts.stage1_s1 import repin_reference_seeds as rp
 
-LITERAL = "a99f918f9579458b96d6094981679babc2ccfbe5e6d0d20bd360ccab81fbe1fb"
+
+def sl_settings_path():
+    return ea.REPO / "scripts" / "stage1_s1" / "settings" / "safe_lora.json"
+
+LITERAL = "18287cfa00609ed2ce85392446b3f2c54e872b68cca5a9ff14b237959ae8ff62"
 # REF (stage1-prereg-references-DRAFT.md revision 2) R.0.7 and the L.4 table; scripts/gate_b_reading.py:168-169
 GATE_A = {"1101": ("8f0fa83a42ccc5edc54a5ee26ed63f49448c36d30adbd64e28b655678afee4c9",
                    "aad79060c52304ecd1b3d0a24b26281da7d147b0fc4a2754ba3a9b323bfae1ec",
@@ -23,6 +29,10 @@ GATE_A = {"1101": ("8f0fa83a42ccc5edc54a5ee26ed63f49448c36d30adbd64e28b655678afe
           "1102": ("857f78bc0f49cc8a4902fbb6211f463daa7c7f44086257c4d752409a30ba0b25", "7c9111c2093b00f2", None),
           "1103": ("7be58eaa9c5be7b8f94668109efd6aae075b1d001e0d2b1fb8be814556899cbd", "b1ad020bc8d1b1c1", None)}
 UNTUNED = "b5083ce9d9f26efe92f9872fdbf9376a521a5d99d1b70cc2bd460987cdcc9474"
+# the user's SP decision (29 Oct 2026; addendum section 34 point 4): the pinned file and its record
+SP_FILE = ".ai/inputs/stage1-post-w1-20261023/block-b/sp_prefix_llama2_default_ptst.txt"
+SP_RECORD = ".ai/inputs/stage1-post-w1-20261023/block-b/user_decision_block_b_scope_and_sp.json"
+SP_SHA256 = "0fcc6beb8240d7b8e7b8c19bb033af6c8a66e568e50afc33f58707a503fdec98"
 
 
 def test_the_settings_file_is_pinned_by_its_literal_sha256_and_is_canonical_json():
@@ -50,12 +60,21 @@ def test_every_pin_is_its_binding_sources_value():
         entry = doc["reference_units"][seed]
         assert entry["complete_sha256"] == complete
         assert entry["fingerprint_prefixes"] == {"e1": e1, "q": q}
-    assert sorted(doc["reference_units"]) == ["1101", "1102", "1103"]
+    # Gate A's three, and any seed 1104-1107 the mid-block re-pin added (the same seeds in B11, by its rule)
+    assert set(GATE_A) <= set(doc["reference_units"])
+    assert rp.check_seed_pins(doc, s1.strict_json(sl_settings_path().read_bytes())) == sorted(
+        set(doc["reference_units"]) - set(GATE_A))
     assert doc["untuned_unit"]["complete_sha256"] == UNTUNED and doc["untuned_unit"]["seed"] == 1101
     assert doc["checkpoint"] == "e1" and doc["label_entries"] == {}
-    assert doc["adapter_scale"]["allowed"] == [1.0, 0.75, 0.5, 0.0] and doc["adapter_scale"]["planned"] == [0.75, 0.5]
+    assert doc["adapter_scale"]["allowed"] == [1.0, 0.9, 0.75, 0.5, 0.0]          # 0.9: LN-15b, addendum 34.5
+    assert doc["adapter_scale"]["planned"] == [0.9, 0.75, 0.5]
     assert doc["adapter_scale"]["curve"] == [1.0, 0.75, 0.5, 0.0]
-    assert doc["prefix"]["text_sha256"] is None and doc["prefix"]["source"] is None              # C1 open
+    record = json.loads((ea.ENGINE_REPO / SP_RECORD).read_bytes())                            # the user's decision
+    assert doc["prefix"]["text_sha256"] == SP_SHA256 == record["sp_text"]["sha256"] == sha256_file(
+        ea.ENGINE_REPO / SP_FILE)
+    assert doc["prefix"]["source"] == record["sp_text"]["source"] and record["user_words"] == "Yes, both"
+    assert "no documented system turn or default system prompt" in doc["prefix"]["status"]
+    assert "system branch" in doc["prefix"]["status"] and "max_prompt_tokens" in doc["prefix"]["length_rule"]
     assert doc["prefix"]["separator"] == "\n\n" and doc["prefix"]["guard_sees"] == "original user text"
     assert doc["prefix"]["apply_to"] == list(ea.PREFIX_KINDS)
     assert set(doc["external_transforms"]) == {"safe_lora"}      # addendum 11.5 (test_b10_b11_integration pins it)
@@ -108,8 +127,9 @@ MUTATIONS = [
     ("untuned_unit.checkpoint", "e1"), ("untuned_unit.seed", 1199),
     ("adapter_scale.allowed", [0.75, 0.5]), ("adapter_scale.allowed", [1.0, 1.5]),
     ("adapter_scale.allowed", [1.0, 0.5, 0.5]), ("adapter_scale.allowed", [1.0, True]),
-    ("adapter_scale.planned", [1.0]), ("adapter_scale.planned", [0.9]), ("adapter_scale.factor", "lora_A"),
-    ("prefix.text_sha256", "0" * 64), ("prefix.separator", "--"), ("prefix.separator", " " * 9),
+    ("adapter_scale.planned", [1.0]), ("adapter_scale.planned", [0.8]), ("adapter_scale.factor", "lora_A"),
+    ("prefix.text_sha256", "0" * 63), ("prefix.source", None), ("prefix.source", " "), ("prefix.length_rule", " "),
+    ("prefix.length_rule", None), ("prefix.separator", "--"), ("prefix.separator", " " * 9),
     ("prefix.apply_to", ["harm", "hidden"]), ("prefix.apply_to", []), ("prefix.guard_sees", "prefixed text"),
     ("external_transforms", []), ("evaluation.bank", "hidden"), ("evaluation.job_seed", "fresh"),
     ("certification.seed", 1199), ("certification.mode", "scale"), ("certification.gate_fields", ["safety"]),

@@ -116,7 +116,8 @@ def test_kinds_outside_apply_to_are_evaluated_exactly_as_without_the_prefix(worl
 
 
 def test_an_unpinned_prefix_cannot_run(world):
-    settings = fb.fixture_settings(world.manifest, {1102: world.unit})                # text_sha256 null (C1 open)
+    settings = fb.fixture_settings(world.manifest, {1102: world.unit}, prefix__text_sha256=None,
+                                   prefix__source=None)                                 # text_sha256 null (C1 open)
     with pytest.raises(ea.Refusal, match="not pinned yet"):
         ea.make_plan(settings, "prefix", prefix_file=str(world.prefix_file))
     with pytest.raises(ea.Refusal, match="needs the prefix file"):
