@@ -6,8 +6,9 @@ the sum rule; the stop settings and floor mode from the pinned settings) -> per-
 O_k's two parts, L_k's two parts, F_k on O_k's theta0 estimate, each O number with its seed-only value "on these
 prompts" -> Phi (phi, at the settings' alpha) -> per-arm states, coherence flags, label rows and headline words
 (labels) -> sensitivities (sensitivities; S-a's O and L tests run their own Phi) -> references and dominance
-(references) -> the best feasible repair, per actor too. The output is one JSON-ready dict: numbers, names and rule
-texts only. A RemlError inside the reading becomes a Refusal (exit 2 at the command line).
+(references) -> the best feasible repair, per actor too -> section 9.4's overlap control when the input names B14's
+halves (overlap: HB-C of the halves with S-p beside it; report only). The output is one JSON-ready dict: numbers,
+names and rule texts only. A RemlError inside the reading becomes a Refusal (exit 2 at the command line).
 """
 
 from __future__ import annotations
@@ -19,7 +20,7 @@ from fractions import Fraction as Fr
 import numpy as np
 
 from scripts.stage1_s1.reading import contrast as con
-from scripts.stage1_s1.reading import labels, phi, references, sensitivities
+from scripts.stage1_s1.reading import labels, overlap, phi, references, sensitivities
 from scripts.stage1_s1.reading.reml import RemlError
 from scripts.stage1_s1.reading.schema import Input, validate
 from scripts.stage1_s1.reading.settings import (ENDPOINTS, SETTINGS_SHA256, Design, Refusal, alpha, design,
@@ -78,7 +79,23 @@ def _fit_record(fit) -> dict:
             "floor": fit.floor, "steps": list(fit.steps),
             "note": "an arm at the floor is printed; no re-fit, no change of model (AMD A.3; LN-35)" if fit.at_floor else
                     ("the two-arm cluster: only the sum of the two variances is identified; no split is printed (REV3 3.5)"
-                     if fit.two_arm else None)}
+                     if fit.two_arm else None),
+            **_start_record(fit)}
+
+
+def _start_record(fit) -> dict:
+    """Post-W1 deviation D-4 (addendum 33 point 2): the governing start, the number of starts, the REML
+    log-likelihood, the flag, and the pre-registered start's own end point beside it (its variances, floored arms,
+    steps and log-likelihood). A two-arm fit runs once and has no pre-registered-start record."""
+    if fit is None:
+        return {}
+    rec = {"governing_start": fit.governing_start, "starts": fit.starts, "loglik": fit.loglik,
+           "start_differs": fit.start_differs, "at_floor": list(fit.at_floor)}
+    if fit.prereg is not None:
+        pre = fit.prereg
+        rec["prereg_start"] = {"sigma2": pre.sigma2, "at_floor": list(pre.at_floor), "iterations": pre.iterations,
+                               "converged": pre.converged, "loglik": pre.loglik}
+    return rec
 
 
 def _o_comparator_seeds(ctx: Context, c: str, m: str) -> tuple:
@@ -283,17 +300,22 @@ def _sensitivity_block(ctx: Context, inp: Input, contrasts: dict, rows: dict, ou
                 rows[name]["sensitivity_part"].append({"code": code, "u_part_words": list(words)})
         return rec, out
 
+    other_fits = {}
     for code in ("HB", "S-a", "S-aW", "S-b2x", "S-0", "S-p"):
-        block[code], _ = record(code, sensitivities.u_estimates(code, table, dsg, scale, floor, ctx.fits["U"], cfg))
+        block[code], _ = record(code, sensitivities.u_estimates(code, table, dsg, scale, floor, ctx.fits["U"], cfg, other_fits))
     for name, _, _ in dsg.contrasts:
         flag = ("U", name) in rejected_by_code["S-a"] and ("U", name) not in rejected_by_code["S-aW"]
         block["S-a"][name]["equal_variance_flag"] = flag
         if flag:
             rows[name]["sensitivity_part"].append({"code": "S-a", "flag": cfg["texts"]["equal_variance_flag"]})
     block["S-a (O, L)"] = _s_a_side_effects(ctx, contrasts, rows, block["S-a"], record)
-    block["S-G"] = {v: record(f"S-G {v}", ests)[0] for v, ests in sensitivities.variant_estimates(inp.variants, dsg, scale, floor, cfg).items()}
+    sg_fits = {}
+    block["S-G"] = {v: record(f"S-G {v}", ests)[0] for v, ests in sensitivities.variant_estimates(inp.variants, dsg, scale, floor, cfg, sg_fits).items()}
     block["S-A8"] = _s_a8(ctx)
     block["S-tok"] = sensitivities.token_axis(table, dsg, scale, inp.token_axis) if inp.token_axis else None
+    block["S-start"] = _s_start(ctx, inp, rows)
+    block["start_records"] = {"HB": _start_record(other_fits.get("HB")),
+                              "S-G": {v: {cl: _start_record(f) for cl, f in fits.items()} for v, fits in sg_fits.items()}}
     block["note"] = cfg["sensitivities_rule"]
     return block
 
@@ -390,10 +412,12 @@ def _references(ctx: Context, inp: Input, arms: dict) -> dict:
         return {"tested": False, "reason": "no reference in the input", "per_repair": {}, "family_1b": {"tested": False, "reason": "no reference", "contrasts": {}}}
     dsg, cfg = ctx.design, settings()
     per_repair = {m: [] for m in dsg.repair_arms}
+    ref_starts = {}
     for ref in inp.references:
         if ref.kind == "point":
             fits = {e: references.reference_fit(references.merge(ctx.tables[e], ref.tables[e]), dsg, ref.name, ref.seeds,
                                                 ctx.scale[e], ctx.floor[e], cfg) for e in ENDPOINTS}
+            ref_starts[ref.name] = {e: _start_record(f) for e, f in fits.items() if f is not None}
             for m in dsg.repair_arms:
                 per_repair[m].append(references.beats_point(ctx, m, ref.name, ref.tables, ref.seeds, fits))
         else:
@@ -407,7 +431,8 @@ def _references(ctx: Context, inp: Input, arms: dict) -> dict:
                 p["beats"] = False
                 p["p_iut"] = 1.0
                 p["blocked_by_coherence"] = "a failing arm cannot dominate a reference (REV3 3.7 item 5)"
-    return {"tested": True, "per_repair": per_repair, "family_1b": references.dominance(per_repair, dsg.contrasts)}
+    return {"tested": True, "per_repair": per_repair, "family_1b": references.dominance(per_repair, dsg.contrasts),
+            "start_records": ref_starts}
 
 
 def _candidates(ctx: Context, rows: dict, arms: dict, tau_o_key: str) -> list:
@@ -467,6 +492,50 @@ def _actors(ctx: Context, rows: dict, arms: dict) -> dict:
     return out
 
 
+def _s_start(ctx: Context, inp: Input, rows: dict) -> dict:
+    """Post-W1 deviation D-4's sensitivity S-start (addendum 33 point 2): the reading again with every primary HB-C
+    fit (U, O, L, both clusters) replaced by its pre-registered start's own fit: U_k, O_k, L_k, F_k, Phi, the states
+    and the headline words; a contrast whose words differ prints in its row's sensitivity part. When no fit's start
+    differs, the reading is the primary one and only that is printed."""
+    cfg = settings()
+    differ = [f"{e} {cl}" for e in ENDPOINTS for cl, f in ctx.fits[e].items() if f.start_differs]
+    out = {"label": cfg["texts"]["start_sensitivity"], "fits_where_the_start_differs": differ}
+    if not differ:
+        out["note"] = "every primary fit's governing end point is the pre-registered start's: S-start is the primary reading"
+        return out
+    dsg = ctx.design
+    ctx0 = Context(dsg, ctx.tables, ctx.theta0_o, ctx.scale, ctx.floor,
+                   {e: overlap.prereg_fits(ctx.fits[e]) for e in ENDPOINTS})
+    start = phi.levels(_graph(dsg), alpha())
+    contrasts0 = {name: _contrast(ctx0, name, c, m, start[("U", name)]) for name, c, m in dsg.contrasts}
+    _, outcome0 = _run_phi(dsg, contrasts0)
+    arms0 = _arms(ctx0, inp)
+    level = level_per_comparison()
+    per = {}
+    for name in contrasts0:
+        row0 = _row(ctx0, name, contrasts0[name], outcome0, arms0)
+        differs = (row0["headline"]["word"] != rows[name]["headline"]["word"]
+                   or list(row0["u_part"]["words"]) != list(rows[name]["u_part"]["words"]))
+        per[name] = {"U": contrasts0[name]["U"], "U_interval_90": list(contrasts0[name]["_estimates"]["U"].interval(level)),
+                     "p_values": contrasts0[name]["p_values"], "u_part_words": list(row0["u_part"]["words"]),
+                     "headline": row0["headline"]["word"], "differs_from_primary": differs}
+        if differs:
+            rows[name]["sensitivity_part"].append({"code": "S-start", "headline_word": row0["headline"]["word"],
+                                                   "u_part_words": list(row0["u_part"]["words"]),
+                                                   "text": cfg["texts"]["start_differs"]})
+    out.update({"contrasts": per, "phi_rejected": [_node_key(n) for n in outcome0.rejected]})
+    return out
+
+
+def _overlap_control(ctx: Context, inp: Input) -> dict:
+    """REV4 9.4's overlap control (addendum 11 point 11): HB-C of each add contrast's halves from B14's halves and
+    cells_u_pp, with S-p beside it (overlap.py). Report only; it changes no label."""
+    cfg = settings()
+    if inp.overlap is None:
+        return {"computed": False, "reason": cfg["overlap"]["absent"], "rule": cfg["overlap"]["rule"]}
+    return overlap.read_halves(inp.overlap, ctx.design, ctx.tables["U"], ctx.scale["U"], ctx.floor["U"], cfg)
+
+
 def _strip(obj):
     """Drop the private Estimate objects and make everything JSON-ready."""
     if isinstance(obj, dict):
@@ -515,7 +584,7 @@ def _read(doc: dict, input_sha256: str | None) -> dict:
            "headline": {name: rows[name]["headline"]["word"] for name in rows},
            "headline_cells": {name: rows[name]["headline"]["cell"] for name in rows},
            "sensitivities": sens, "references": refs, "best_feasible_repair": best, "actors": _actors(ctx, rows, arms),
-           "notes": _notes(ctx, outcome)}
+           "overlap_control": _overlap_control(ctx, inp), "notes": _notes(ctx, outcome)}
     return _strip(out)
 
 
@@ -533,4 +602,9 @@ def _notes(ctx: Context, outcome) -> list:
                 notes.append(f"{e} {cl}: arm(s) at the floor {list(f.at_floor)} (expected in about half of all fits; no action)")
             if not f.converged and not f.two_arm:
                 notes.append(f"{e} {cl}: the REML stopped at {f.iterations} steps without meeting the tolerance")
+            if f.start_differs:
+                notes.append(f"{e} {cl}: {cfg['texts']['start_differs']}: the {f.governing_start} start's end point governs "
+                             f"(floored {list(f.at_floor)}, REML log-likelihood {f.loglik:.6f}); the pre-registered start's "
+                             f"(floored {list(f.prereg.at_floor)}, {f.prereg.loglik:.6f}) is the sensitivity S-start")
+    notes.append(cfg["reml"]["starts_rule"])
     return notes

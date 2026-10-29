@@ -18,7 +18,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 SETTINGS_PATH = HERE / "settings" / "reading.json"
-SETTINGS_SHA256 = "5d69af81de93bac9e36295016400e158f5ac6b3118fda8d773d3dfa63737924d"
+SETTINGS_SHA256 = "fef3b6f5bb2fbed70f01785bc64177aed02eff955ab164e37f23d05356af5b18"
 SETTINGS_KIND = "stage1 reading settings"
 SETTINGS_NAME = "reading"
 READINGS = ("plan_a", "plan_a_block_a_only", "plan_b")

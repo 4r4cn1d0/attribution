@@ -30,11 +30,19 @@ sum (the sample variance of d over the paired seeds, ddof 1, which is its REML e
 no split, and seed df J - 1. A two-arm fit never prints a split. The sum is floored at the one endpoint floor
 (0.01 pp^2 for U and O), not at twice it: the floor is a bound on a variance that the data cannot place below it,
 and the sum is the one variance the fit holds (verify-stats N2; negligible either way).
+
+Post-W1 deviation D-4 (addendum 33 point 2): the REML likelihood can have more than one local maximum on 3-10 seeds
+(every large miss the independent check found was a boundary maximum with another arm floored). With the settings'
+``reml.starts`` = "multi", every fit of the reading runs from the pre-registered start and from each floor pattern of
+its block (``floor_patterns``: a fixed, deterministic set), each under LN-35's rule, and the end point with the
+highest REML log-likelihood governs; the pre-registered start's fit stays attached (``prereg``) and is printed beside
+it, with ``start_differs``. A two-arm fit has one closed-form maximum and runs once.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import itertools
+from dataclasses import dataclass, field, replace
 
 import numpy as np
 
@@ -61,6 +69,11 @@ class RemlFit:
     floor: float
     pairs: int = 0               # the number of paired seeds under ``two_arm``
     steps: tuple = field(default_factory=tuple)
+    loglik: float = float("nan")  # D-4: the REML log-likelihood at sigma2 on the error contrasts; NaN if not computed
+    prereg: "RemlFit | None" = None   # D-4: the pre-registered start's own fit, when the multi-start ran
+    governing_start: str = "pre-registered"  # D-4: the start whose end point governs
+    starts: int = 1              # D-4: the number of starts run
+    start_differs: bool = False  # D-4: the governing end point is not the pre-registered start's
 
 
 def _check_cells(cells):
@@ -152,6 +165,7 @@ def _step(score_log, info_log, identified, above, planning_floor, clip):
 
 
 FLOOR_MODES = ("active_set", "planning")
+STARTS = ("multi", "pre-registered")
 
 
 def options(cfg: dict) -> dict:
@@ -161,23 +175,86 @@ def options(cfg: dict) -> dict:
     r = cfg["reml"]
     if r.get("floor_mode") not in FLOOR_MODES:
         raise RemlError(f"the settings' reml.floor_mode is not one of {FLOOR_MODES}")
+    if r.get("starts") not in STARTS:
+        raise RemlError(f"the settings' reml.starts is not one of {STARTS}")
     return {"tol": float(r["tol"]), "max_iter": int(r["max_iter"]), "clip": float(r["step_clip_log"]),
+            "multi_start": r["starts"] == "multi", "ll_tol": float(r["multi_start_ll_tolerance"]),
             "planning_floor": r["floor_mode"] == "planning"}
 
 
-def fit_cells(cells, arms, floor, tol=1e-6, max_iter=25, clip=STEP_CLIP, two_arm_rule=True, planning_floor=False) -> RemlFit:
+def fit_cells(cells, arms, floor, tol=1e-6, max_iter=25, clip=STEP_CLIP, two_arm_rule=True, planning_floor=False,
+              multi_start=False, ll_tol=1e-6) -> RemlFit:
     """REML with one variance per arm on the cells (arm, seed, value) of ONE seed-effect block (a cluster under
     HB-C; every arm under HB). ``arms`` fixes the parameter order. ``two_arm_rule=False`` runs the generic scoring
     on two arms (the tests' check that only the sum moves); ``planning_floor=True`` reproduces the planning routine's
-    floor handling (the tests' cross-check). The reading always keeps the rule and the active set."""
+    floor handling (the tests' cross-check). The reading always keeps the rule and the active set, and passes the
+    settings' ``multi_start`` (post-W1 deviation D-4, addendum 33 point 2): see ``_multi_start``. Called without it
+    (the unit tests of the single fit), the fit is the pre-registered start's alone."""
     with np.errstate(all="ignore"):                      # this Mac's numpy prints spurious matmul warnings
         fit = _fit_cells(cells, arms, floor, tol, max_iter, clip, two_arm_rule, planning_floor)
+        if multi_start and not fit.two_arm:
+            fit = _multi_start(cells, arms, floor, tol, max_iter, clip, two_arm_rule, planning_floor, ll_tol, fit)
     if not fit.two_arm and not (np.all(np.isfinite(list(fit.sigma2.values()))) and np.all(np.isfinite(fit.info_inv))):
         raise RemlError("the REML fit is not finite")
     return fit
 
 
-def _fit_cells(cells, arms, floor, tol, max_iter, clip, two_arm_rule=True, planning_floor=False) -> RemlFit:
+def contrast_basis(cells, arms):
+    """(K, w, cell_arm): an orthonormal basis K of the residual space of the design (K'X = 0) and the error contrasts
+    w = K'y, for ``loglik_contrasts``."""
+    x, y, cell_arm = design(cells, arms)
+    u, sv, _ = np.linalg.svd(x, full_matrices=True)
+    rank = int((sv > 1e-10 * sv[0]).sum())
+    k = u[:, rank:]
+    return k, k.T @ y, cell_arm
+
+
+def loglik_contrasts(basis, sigma2: dict, arms) -> float:
+    """The REML log-likelihood on the error contrasts (Harville's form, -1/2 log det(K'VK) - 1/2 w'(K'VK)^-1 w; the
+    same function as ``reml_loglik`` up to a constant), by a Cholesky factor. D-4 compares end points with it: it
+    stays accurate at L's 1e-8 nats^2 floor, where the projection form loses about 1e-3 to cancellation."""
+    k, w, cell_arm = basis
+    v = np.array([sigma2[a] for a in arms])[cell_arm]
+    c = np.linalg.cholesky((k.T * v) @ k)
+    z = np.linalg.solve(c, w)
+    return float(-np.log(np.diag(c)).sum() - 0.5 * z @ z)
+
+
+def floor_patterns(arms, not_identified=()) -> tuple:
+    """D-4's fixed, deterministic start set after the pre-registered start: every non-empty subset of the identified
+    arms, by size and then in arm order (itertools.combinations); the subset's arms start at the floor, the others
+    at the pre-registered start. 4 arms: 15 patterns; 8 arms (HB under plan A): 255."""
+    free = [a for a in arms if a not in not_identified]
+    return tuple(combo for size in range(1, len(free) + 1) for combo in itertools.combinations(free, size))
+
+
+def _multi_start(cells, arms, floor, tol, max_iter, clip, two_arm_rule, planning_floor, ll_tol, first: RemlFit) -> RemlFit:
+    """Post-W1 deviation D-4 (addendum 33 point 2): the fit runs from the pre-registered start (``first``) and from
+    each floor pattern of its block, each under LN-35's rule; the end point with the highest REML log-likelihood
+    governs. The pre-registered start's fit governs unless another end point is higher by more than ``ll_tol``
+    (settings reml.multi_start_ll_tolerance, 1e-6: below it the end points are one maximum within the stop rule's
+    accuracy), so where it is already the maximum nothing changes. Ties go to the earlier start. The returned fit
+    carries the pre-registered start's fit (``prereg``), the governing start's name, the number of starts and the
+    flag ``start_differs``."""
+    arms = tuple(arms)
+    basis = contrast_basis(cells, arms)
+    pre = replace(first, loglik=loglik_contrasts(basis, first.sigma2, arms))
+    base = np.array([max(first.start[a], floor) for a in arms])
+    best, best_name = pre, "pre-registered"
+    patterns = floor_patterns(arms, first.not_identified)
+    for combo in patterns:
+        theta0 = base.copy()
+        theta0[[arms.index(a) for a in combo]] = floor
+        end = _fit_cells(cells, arms, floor, tol, max_iter, clip, two_arm_rule, planning_floor, start_theta=theta0)
+        end = replace(end, loglik=loglik_contrasts(basis, end.sigma2, arms))
+        if end.loglik > best.loglik:
+            best, best_name = end, f"floor pattern {list(combo)}"
+    governing, name = (best, best_name) if best.loglik > pre.loglik + ll_tol else (pre, "pre-registered")
+    return replace(governing, start=first.start, prereg=pre, governing_start=name, starts=1 + len(patterns),
+                   start_differs=governing is not pre)
+
+
+def _fit_cells(cells, arms, floor, tol, max_iter, clip, two_arm_rule=True, planning_floor=False, start_theta=None) -> RemlFit:
     _check_cells(cells)
     arms = tuple(arms)
     if len(set(arms)) != len(arms) or len(arms) < 2:
@@ -203,7 +280,7 @@ def _fit_cells(cells, arms, floor, tol, max_iter, clip, two_arm_rule=True, plann
     identified = h_arm > 1e-9
     rss_arm = (residual ** 2) @ z
     start = np.where(identified, rss_arm / np.where(identified, h_arm, 1.0), floor)
-    theta = np.maximum(start, floor)
+    theta = np.maximum(start if start_theta is None else np.asarray(start_theta, dtype=float), floor)
     steps, converged, it = [], False, 0
     for it in range(1, max_iter + 1):
         p = _projection(x, 1.0 / theta[cell_arm])

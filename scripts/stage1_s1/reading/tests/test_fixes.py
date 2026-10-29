@@ -153,7 +153,7 @@ def test_the_tie_tolerance_is_1e_9_pp_from_the_settings():
 
 def test_the_reml_options_come_from_the_pinned_settings():
     opts = reml.options(settings())
-    assert opts == {"tol": 1e-6, "max_iter": 25, "clip": 2.0, "planning_floor": False}
+    assert opts == {"tol": 1e-6, "max_iter": 25, "clip": 2.0, "planning_floor": False, "multi_start": True, "ll_tol": 1e-6}
     assert settings()["reml"]["floor_mode"] == "active_set"
     with pytest.raises(reml.RemlError):
         reml.options({"reml": {**settings()["reml"], "floor_mode": "other"}})

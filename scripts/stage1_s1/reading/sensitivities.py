@@ -57,14 +57,18 @@ def _seeds_of(table, arm):
     return tuple(sorted(j for a, j in table if a == arm))
 
 
-def u_estimates(code: str, table, dsg: Design, scale, floor, cluster_fits: dict, cfg: dict | None = None) -> dict:
-    """The U contrasts of one sensitivity: contrast name -> Estimate."""
+def u_estimates(code: str, table, dsg: Design, scale, floor, cluster_fits: dict, cfg: dict | None = None,
+                fits_out: dict | None = None) -> dict:
+    """The U contrasts of one sensitivity: contrast name -> Estimate. ``fits_out`` receives HB's fit (its D-4 start
+    record is printed)."""
     out = {}
     seeds_all = {arm: _seeds_of(table, arm) for arm in dsg.arms}
     if code == "HB":
         fit = fit_one_shift(table, dsg, scale, floor, cfg)
         for name, c, m in dsg.contrasts:
             out[name] = con.contrast_fit(table, fit, c, m, dsg.common_seeds(c, m), scale, True, name, "HB")
+        if fits_out is not None:
+            fits_out["HB"] = fit
     elif code == "S-a":
         for name, c, m in dsg.contrasts:
             out[name] = con.contrast_pooled(table, seeds_all, c, m, dsg.common_seeds(c, m), scale, True, name)
@@ -87,11 +91,14 @@ def u_estimates(code: str, table, dsg: Design, scale, floor, cluster_fits: dict,
     return out
 
 
-def variant_estimates(variants: dict, dsg: Design, scale, floor, cfg: dict | None = None) -> dict:
-    """S-G: HB-C refitted on each U variant table: variant name -> contrast name -> Estimate."""
+def variant_estimates(variants: dict, dsg: Design, scale, floor, cfg: dict | None = None, fits_out: dict | None = None) -> dict:
+    """S-G: HB-C refitted on each U variant table: variant name -> contrast name -> Estimate. ``fits_out`` receives
+    each variant's cluster fits (their D-4 start records are printed)."""
     out = {}
     for vname, table in variants.items():
         fits = fit_clusters(table, dsg, scale, floor, cfg=cfg)
+        if fits_out is not None:
+            fits_out[vname] = fits
         out[vname] = {name: con.contrast_fit(table, fits[dsg.cluster[c]], c, m, dsg.common_seeds(c, m), scale, True, name, f"S-G {vname}")
                       for name, c, m in dsg.contrasts}
     return out

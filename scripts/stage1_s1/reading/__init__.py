@@ -18,5 +18,7 @@ Modules (each names the rule it implements):
 - ``sensitivities`` HB, S-a, S-aW, S-b2x, S-0, S-G, S-tok, S-A8, S-p (REV3 3.4);
 - ``references`` "m beats r", the adapter-scaling curve matched on L, dominance (family 1b), the 3-seed fallback
                  (REV3 5.3; AMD D.1-D.4);
+- ``overlap``    section 9.4's overlap control: HB-C of each add contrast's halves (B14's halves and cells_u_pp),
+                 the "holds" rule, S-p beside it; report only (REV4 9.4; addendum 11 point 11; LN-37);
 - ``reading``    the whole reading, one call: ``read(doc)``.
 """

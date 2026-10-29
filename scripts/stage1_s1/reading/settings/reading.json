@@ -196,6 +196,39 @@
     "tie_tolerance_pp": 1e-09
   },
   "name": "reading",
+  "overlap": {
+    "absent": "the input holds no overlap block, so section 9.4's HB-C interval of the halves is not computed here (addendum 24 point 4's fallback: section 9.4 then prints B14's per-contrast paired form as its interval and says so)",
+    "check_tolerance_pp": 1e-09,
+    "comparator": "a0",
+    "comparator_rule": "addendum 33 point 1 (C1): the add effect against a0 governs: a0 - m for each add arm of the reading (plan A and block A only: S1, S3, S4; plan B: S1, S4), each on its own add set's halves (PLAN-S:172 and LS-19 say 'the add effect'; B14 reports this orientation). Beside it, labelled report only: the primary family's orientation (report_only 'primary': P4 = a0 - S1, P5 = S1 - S3, P6 = S1 - S4; plan B P6), each on its repair arm's halves",
+    "excludes_rule": "the 90% interval excludes 0 when its lower end is above 0 or its upper end is below 0; an end at exactly 0, or an unbounded end, does not exclude it (B14's reading)",
+    "governing_label": "governing (addendum 33 point 1: the add effect against a0)",
+    "halves_input": "addendum 33 point 3: the input's overlap block embeds B14's strata.json and overlap_report.json documents, each bound by its SHA-256 under B14's canonical JSON (strata_sha256, report_sha256; the report's own strata_sha256 must name this strata record), the report under the reading's B14 seed plan (seed_plans) and with exactly the reading's add arms. Each add set's halves must pass B14's split rule as the strata states it (overlap_strata.split_halves: k = floor(n / 2), b = the (k + 1)-th smallest S, lower = {S < b}, ties at b to the higher half: lower_n <= k, lower_n + ties >= k + 1, lower_max < b = higher_min, the halves partition the prompt ids); the U items follow the strata's prompt-id order, and the U table at the halves' positions must reproduce the report's cells_u_pp to check_tolerance_pp. A swap of the halves therefore changes a SHA-256: B16 refuses it, or (re-hashed throughout) prints SHA-256 that differ from B14's sealed values, which the lead compares",
+    "interval": 0.9,
+    "min_prompts": 2,
+    "model": "addendum 11 point 11 (LW-01), 24 point 4, 32 point 4: section 9.4's interval model is HB-C, computed by B16. On each half the U cells of every fit arm of the full-corpus cluster are recomputed on the half's prompts and the cluster is refitted by REML (the U floor 0.01 pp^2, the pinned stop rule and floor mode: LN-35, addendum 16 point 1; D-4's starts: addendum 33 point 2); the paired mean on the common seeds, the REML seed part with its Satterthwaite df from the information, the crossed item part from the half's J x P_h table, Satterthwaite df, the 90% interval. On all prompts it equals the primary U contrast. A pair outside one fit (a0 under plan B) takes LN-20 item 2's paired form; plan B's two-arm cluster {S1, S4} takes the sum rule (REV4 3.5), as the primary reading does",
+    "prereg_start_label": "S-start: HB-C from the pre-registered REML start's fits (D-4)",
+    "report_only": "primary",
+    "report_only_label": "report only (the primary family's orientation; addendum 33 point 1)",
+    "role": "report only (REV4 9.4); it changes no label, no Phi node and no headline word",
+    "rule": "REV4 9.4 (LN-26, adopted as written; W1 text): Each evaluation prompt's highest similarity to the add set (theta0 embeddings). \"Holds\" = the add contrast on the lower-similarity half has the same sign as on all prompts and its 90% interval excludes 0; else the text says \"not shown on the less similar half\".",
+    "s_p": "LN-37 (addendum 11 point 11): B14's per-contrast paired form (the paired seed part with J - 1 df plus the item part, Satterthwaite df; overlap_strata.contrast) on the same halves, with its own verdict, printed as the S-p sensitivity; the HB-C verdict governs the text",
+    "s_p_label": "S-p sensitivity",
+    "seed_plans": {
+      "plan_a": "d1_plan_a",
+      "plan_a_block_a_only": "block_a_only",
+      "plan_b": "plan_b"
+    },
+    "sign_rule": "a sign within sign_tolerance_pp of 0 is 0 (U shares are k/3, so a paired mean that is 0 as a rational can land 1e-15 off 0 as a float); a sign of 0 never matches (B14's reading)",
+    "sign_tolerance_pp": 1e-09,
+    "starts_rule": "the halves' fits follow reml.starts_rule (D-4); each contrast prints the verdict from the pre-registered start's fits beside the governing one",
+    "stop_rates": "LN-35's 25-step stop stays (pre-registered). Expected share of fits that stop at 25 steps without meeting 1e-6 (independent check, addendum 33 point 4): plan A 10-23%, block A only 6-13%, plan B's removal cluster 0%; no verdict changed. Under a true null on both halves 'holds' fires about 9% of the time (the rule needs no significance on all prompts)",
+    "suffix_rule": "addendum 33 point 4 (C10): a block-A-only reading's verdict texts carry the design's label suffix",
+    "texts": {
+      "holds": "holds on the less similar half",
+      "not_shown": "not shown on the less similar half"
+    }
+  },
   "phi": {
     "alpha": "1/20",
     "f_to_l": "1",
@@ -460,6 +493,9 @@
     "floor_mode_rule": "'active_set' (built; B16-O1): an arm at the floor whose score points below it leaves the step, so the fixed point is the REML maximum subject to the floor; 'planning' reproduces the planning routine's form (one solve for every arm, then the floor; stat_review_hbc.py). The lead's ruling (verify-stats F3; verify-code F4)",
     "floors_rule": "each endpoint its own floor in its own unit: U and O 0.01 pp^2, L 1e-8 nats^2 (LN-35)",
     "max_iter": 25,
+    "multi_start_ll_tolerance": 1e-06,
+    "starts": "multi",
+    "starts_rule": "post-W1 deviation D-4 (addendum 33 point 2): every REML fit (the primary reading's, HB, S-G, the references' and the halves') runs from the pre-registered start and from each floor pattern of its block (every non-empty subset of its identified arms starts at the floor, the others at the pre-registered start; by size, then arm order), each under LN-35's rule; the end point with the highest REML log-likelihood governs; the pre-registered start's fit governs unless another is higher by more than multi_start_ll_tolerance (1e-6), and ties go to the earlier start; the pre-registered start's fit is printed beside it (S-start) with a flag when they differ. 'pre-registered' runs the pre-registered start alone (the fallback's order)",
     "step_clip_log": 2.0,
     "stop_rule": "the largest step among the arms above the floor below tol, or max_iter steps (LN-35); a step in which an arm newly reaches the floor never ends the fit (the free set changed; verify-stats F1)",
     "tol": 1e-06
@@ -473,9 +509,10 @@
     "S-G",
     "S-tok",
     "S-A8",
-    "S-p"
+    "S-p",
+    "S-start"
   ],
-  "sensitivities_rule": "REV3 3.4 (LW-01, LW-02; LN-37 S-p printed; S-A8 printed as 'seed shift omitted'): reported; they never change a label; a differing label prints beside the primary; S-a's O and L tests (REV3 3.4; LW-02 S-1): the O and L comparator parts and L's a0 part by the per-contrast Welch form, O's theta0 part by LW-33's form (s^2_pool,O / J_m + the item part, Satterthwaite df), run through Phi with S-a's U p-values; printed, never the label",
+  "sensitivities_rule": "REV3 3.4 (LW-01, LW-02; LN-37 S-p printed; S-A8 printed as 'seed shift omitted'): reported; they never change a label; a differing label prints beside the primary; S-a's O and L tests (REV3 3.4; LW-02 S-1): the O and L comparator parts and L's a0 part by the per-contrast Welch form, O's theta0 part by LW-33's form (s^2_pool,O / J_m + the item part, Satterthwaite df), run through Phi with S-a's U p-values; printed, never the label; S-start (D-4): the whole reading again with every primary HB-C fit from the pre-registered REML start; a contrast whose words differ prints its S-start words in the row's sensitivity part",
   "tau_l": {
     "nats": 0.0067170919092681925,
     "record_as": 0.0067171,
@@ -507,6 +544,8 @@
     "note_below_sesoi": "significant, below the smallest effect of interest",
     "on_these_prompts": "on these prompts",
     "seed_shift_omitted": "seed shift omitted",
+    "start_differs": "the multi-start REML maximum differs from the pre-registered start's fit (D-4)",
+    "start_sensitivity": "S-start: the reading with every HB-C fit taken from the pre-registered REML start (D-4; addendum 33 point 2)",
     "too_close": "too close to call",
     "undetermined": "undetermined",
     "worse_l": "worse (L)",

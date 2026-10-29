@@ -7,8 +7,9 @@ error. A collection, setup or teardown error, a timeout, a missing JUnit file, a
 count that differs from the baseline's, or a failure that carries errno 28 or 122 makes the run INVALID, never a
 kill. Exit 0 with no failure is SURVIVED. A spec entry with "expect": "survive" must survive.
 
-Each run copies <workspace>/scripts/stage1_s1/reading into its own folder under --scratch (as
-<copy>/scripts/stage1_s1/reading), applies the mutant's exact text replacements (one "find"/"replace" pair, or a list
+Each run copies <workspace>/scripts/stage1_s1 (the whole package, since the merged layout gives it an __init__.py;
+the reading is <copy>/scripts/stage1_s1/reading) into its own folder under --scratch, applies the mutant's exact text
+replacements to files under reading/ (one "find"/"replace" pair, or a list
 "edits"; each find text must occur exactly once in its file), and runs pytest on the copy's tests with
 PYTHONPATH = <copy>:<workspace>, so the copy's scripts.stage1_s1.reading shadows the workspace's and
 scripts.stage1.dose_axis comes from the workspace. The workspace is never changed. --only runs a comma-separated
@@ -80,7 +81,10 @@ def run_one(run_id: str, mutant, scratch: Path, python: str, timeout: int, expec
         shutil.rmtree(folder)
     copy = folder / "copy"
     tree = copy / REL
-    shutil.copytree(READING, tree, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    # The merged layout has scripts/stage1_s1/__init__.py (addendum 11 point 14), so a copy of reading/ alone is
+    # shadowed by the workspace's regular package and the probe below refuses the baseline. The copy holds the
+    # whole scripts/stage1_s1 package; only reading/ is mutated and only reading/tests runs (halves round, 27 Oct).
+    shutil.copytree(READING.parent, tree.parent, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     targets = {}
     if mutant is not None:
         for edit in edits_of(mutant):

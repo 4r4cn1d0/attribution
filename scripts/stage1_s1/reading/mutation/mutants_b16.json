@@ -862,6 +862,102 @@
       "file": "sensitivities.py",
       "find": "            half = tdist.t_quantile(0.5 + level_per_comparison() / 2.0, len(d) - 1) * se if ok and se > 0 else float(\"nan\")",
       "replace": "            half = tdist.t_quantile(0.95, len(d) - 1) * se if ok and se > 0 else float(\"nan\")"
+    },
+    {
+      "id": "B16-H-verdict-sign-ignored",
+      "part": "B16 halves",
+      "describes": "REV4 9.4: the same-sign condition dropped (a lower half with the other sign, or sign 0, could hold)",
+      "file": "overlap.py",
+      "find": "    same = sign_all != 0 and sign_lower == sign_all\n",
+      "replace": "    same = True\n"
+    },
+    {
+      "id": "B16-H-excludes-closed",
+      "part": "B16 halves",
+      "describes": "REV4 9.4: an interval end at exactly 0 read as excluding 0 (the strict reading R4 dropped)",
+      "file": "overlap.py",
+      "find": "    excludes = lo > 0 or hi < 0\n",
+      "replace": "    excludes = lo >= 0 or hi <= 0\n"
+    },
+    {
+      "id": "B16-H-verdict-reads-all",
+      "part": "B16 halves",
+      "describes": "REV4 9.4: the verdict reads the all-prompt interval instead of the lower-similarity half's",
+      "file": "overlap.py",
+      "find": "        v = {**verdict(all_mean, halves[\"lower\"][HBC], texts, tol), \"model\": HBC,",
+      "replace": "        v = {**verdict(all_mean, halves[\"all\"][HBC], texts, tol), \"model\": HBC,"
+    },
+    {
+      "id": "B16-H-no-item-part",
+      "part": "B16 halves",
+      "describes": "HB-C of a half without its crossed item part (REV4 3.2's prompt part dropped on the halves)",
+      "file": "overlap.py",
+      "find": "        return con.contrast_fit(table, fits[dsg.cluster[c]], c, m, common, scale, True, name, form)",
+      "replace": "        return con.contrast_fit(table, fits[dsg.cluster[c]], c, m, common, scale, False, name, form)"
+    },
+    {
+      "id": "B16-H-paired-not-hbc",
+      "part": "B16 halves",
+      "describes": "addendum 11.11: the halves read by the per-contrast paired form (S-p) instead of the cluster's REML fit",
+      "file": "overlap.py",
+      "find": "    if dsg.in_fit(c) and dsg.in_fit(m) and dsg.same_cluster(c, m):\n        return con.contrast_fit(",
+      "replace": "    if False:\n        return con.contrast_fit("
+    },
+    {
+      "id": "B16-H-cells-check-off",
+      "part": "B16 halves",
+      "describes": "the binding check of the halves' positions against B14's cells_u_pp skipped",
+      "file": "schema.py",
+      "find": "                if not abs(ours - float(given)) <= tol:",
+      "replace": "                if False:"
+    },
+    {
+      "id": "B16-D4-single-start",
+      "part": "B16 D-4",
+      "describes": "addendum 33 point 2 (D-4): the settings' starts 'multi' ignored, so every fit runs from the pre-registered start alone",
+      "file": "reml.py",
+      "find": "            \"multi_start\": r[\"starts\"] == \"multi\", \"ll_tol\"",
+      "replace": "            \"multi_start\": False, \"ll_tol\""
+    },
+    {
+      "id": "B16-D4-prereg-governs",
+      "part": "B16 D-4",
+      "describes": "D-4: the floor-pattern starts run but the pre-registered start's end point always governs",
+      "file": "reml.py",
+      "find": "    governing, name = (best, best_name) if best.loglik > pre.loglik + ll_tol else (pre, \"pre-registered\")",
+      "replace": "    governing, name = (pre, \"pre-registered\")"
+    },
+    {
+      "id": "B16-D4-pattern-not-floored",
+      "part": "B16 D-4",
+      "describes": "D-4: a floor pattern's arms are not set to the floor, so every start is the pre-registered one",
+      "file": "reml.py",
+      "find": "        theta0[[arms.index(a) for a in combo]] = floor\n",
+      "replace": "        theta0[[arms.index(a) for a in combo]] = base[[arms.index(a) for a in combo]]\n"
+    },
+    {
+      "id": "B16-H-report-hash-off",
+      "part": "B16 halves",
+      "describes": "addendum 33 point 3: the embedded B14 report is not checked against report_sha256",
+      "file": "schema.py",
+      "find": "    if b14_sha256(report) != doc[\"report_sha256\"]:",
+      "replace": "    if False:"
+    },
+    {
+      "id": "B16-H-strata-chain-off",
+      "part": "B16 halves",
+      "describes": "addendum 33 point 3: the report's own strata_sha256 is not required to name the embedded strata record",
+      "file": "schema.py",
+      "find": "    if b14_sha256(strata) != doc[\"strata_sha256\"] or report.get(\"strata_sha256\") != doc[\"strata_sha256\"]:",
+      "replace": "    if b14_sha256(strata) != doc[\"strata_sha256\"]:"
+    },
+    {
+      "id": "B16-H-governing-primary",
+      "part": "B16 halves",
+      "describes": "addendum 33 point 1: the primary family's orientation governs section 9.4 instead of the add effect against a0",
+      "file": "overlap.py",
+      "find": "    mode = mode or cfg[\"overlap\"][\"comparator\"]\n",
+      "replace": "    mode = mode or \"primary\"\n"
     }
   ]
 }
