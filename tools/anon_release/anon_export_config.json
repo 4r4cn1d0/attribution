@@ -1,0 +1,427 @@
+{
+ "kind": "anon_export config",
+ "version": 1,
+ "notes": "Scope (lead decision 6): code that the stage-1 code imports or runs (imports, path loads and the kit's pack lists), the tests of that code with their test-time imports, the frozen texts and their verification documents. Configs (decision 3): only those named by stage-1 code, the frozen readers, the preflight scripts or the frozen texts, plus engine X's identity record. Allow entries without a wildcard are exact paths: they must exist at the revision and win over deny globs. Rules are matched in this order on the original text; an earlier rule wins an overlap. Tokens follow research/experiments/2026-10-23-osf-deposit-package/REDACTIONS.md. code_ok rules (local folder paths, decision 1) also apply in code strings and non-prose files. redact_pinned: files redacted with exactly the listed rules (the OSF deposit's categories). repin: pinned files redacted anyway, their quoted hashes updated inside the export (decision 1). accepted: checker hits kept on purpose (decisions 2, 4, 5 and the size exception), with exact counts and reasons.",
+ "allow": [
+  "experiments/safety_selection/*.py",
+  "experiments/safety_selection/README.md",
+  "experiments/safety_selection/tests/**",
+  "experiments/safety_selection/configs/evaluation-equivalence-gateb-20261008.json",
+  "experiments/safety_selection/configs/evaluation-equivalence-round6-20261008.json",
+  "experiments/safety_selection/configs/family-probe-reading-20261008.json",
+  "experiments/safety_selection/configs/family-probe-reading-amended-20261008.json",
+  "experiments/safety_selection/configs/headroom-rewrite-pc2-20261005.json",
+  "experiments/safety_selection/configs/killtest-stage0-reading-20261006.json",
+  "experiments/safety_selection/configs/study-kt-data-dolly-olmo2.json",
+  "experiments/safety_selection/configs/study-kt-instruct-r64-mb4-20261006.json",
+  "experiments/safety_selection/configs/study-kt-olmo2-1b-r64-b-mb4-20261008.json",
+  "experiments/safety_selection/configs/study-kt-olmo2-1b-r64-b-mb4-gateb-20261008.json",
+  "experiments/safety_selection/configs/study-kt-olmo2-1b-r64-g-mb4-20261008.json",
+  "experiments/safety_selection/configs/study-v3-data-inj05.json",
+  "experiments/safety_selection/configs/engine-identity-472fc7f6.json",
+  "experiments/safety_selection/configs/engine-identity-55253874.json",
+  "experiments/safety_selection/configs/engine-identity-e49a978c.json",
+  "experiments/minimal_safety/**",
+  "experiments/durability/*.py",
+  "experiments/durability/README.md",
+  "experiments/durability/pod_timer/**",
+  "experiments/durability/watchdog/**",
+  "experiments/durability/tests/**",
+  "runkit/stage1-olmo/**",
+  "scripts/stage1/**",
+  "scripts/stage1_s1/**",
+  "scripts/gate_b_mac_judges/README.md",
+  "scripts/gate_b_mac_judges/common.py",
+  "scripts/gate_b_mac_judges/cache.py",
+  "scripts/gate_b_mac_judges/units.py",
+  "scripts/gate_b_mac_judges/judging.py",
+  "scripts/gate_b_mac_judges/write_files.py",
+  "scripts/gate_b_mac_judges/harmbench_files.py",
+  "scripts/gate_b_mac_judges/granite_files.py",
+  "scripts/gate_b_mac_judges/import_cache.py",
+  "scripts/gate_b_mac_judges/parity_gate_a.py",
+  "scripts/gate_b_mac_judges/pod/README.md",
+  "scripts/gate_b_mac_judges/pod/judge_pod.py",
+  "scripts/gate_b_mac_judges/pod/bundle.py",
+  "scripts/gate_b_mac_judges/pod/pod_job.py",
+  "scripts/gate_b_mac_judges/pod/pod_judge.py",
+  "scripts/gate_b_mac_judges/pod/podhost.py",
+  "scripts/gate_b_mac_judges/pod/extend_cap.py",
+  "scripts/gate_b_mac_judges/pod/pod_run.sh",
+  "scripts/gate_b_mac_judges/pod/judge-requirements.txt",
+  "scripts/gate_b_mac_judges/pod/granite_pod.py",
+  "scripts/gate_b_mac_judges/pod/pod_run_granite.sh",
+  "scripts/gate_b_mac_judges/pod/granite-requirements.txt",
+  "scripts/gate_b_mac_judges/pod/parity.py",
+  "scripts/gate_b_mac_judges/watchdog.py",
+  "scripts/gate_b_mac_judges/run_granite.sh",
+  "scripts/gate_b_mac_judges/run_harmbench.sh",
+  "scripts/gate_b_mac_judges/tests/synth.py",
+  "scripts/gate_b_mac_judges/tests/test_gate_b_judges.py",
+  "scripts/gate_b_mac_judges/tests/test_granite_files.py",
+  "scripts/gate_b_mac_judges/tests/test_granite_pod.py",
+  "scripts/gate_b_mac_judges/tests/test_judge_pod.py",
+  "scripts/family_probe_reading.py",
+  "scripts/killtest_stage0_reading.py",
+  "scripts/gate_b_reading.py",
+  "scripts/gate_c_classifier.py",
+  "scripts/gate_c_representation.py",
+  "scripts/cuda_preflight_family.py",
+  "scripts/cuda_preflight_killtest.py",
+  "scripts/cuda_preflight_headroom.py",
+  "scripts/cuda_preflight_headroom_v3.py",
+  "research/experiments/2026-10-08-gate-b-olmo-preregistration-DRAFT.md",
+  "research/experiments/2026-10-17-stage1-preregistration-rev3/stage1-preregistration-rev4.md",
+  "research/experiments/2026-10-16-stage1-commitments.md",
+  ".ai/inputs/stage1-commitments-20261016/MANIFEST.json",
+  ".ai/inputs/stage1-commitments-20261016/predictions/predictions.json",
+  ".ai/inputs/stage1-commitments-20261016/predictions/predictions-timing.json",
+  "research/experiments/2026-10-23-osf-deposit-package/README.md",
+  "research/experiments/2026-10-23-osf-deposit-package/REDACTIONS.md",
+  "research/experiments/2026-10-23-osf-deposit-package/HASHES.json"
+ ],
+ "deny": [
+  "**/__pycache__/**",
+  "**/*.pyc",
+  "**/.DS_Store",
+  "**/*.pdf",
+  "**/*.jsonl",
+  "**/ssh/**",
+  "**/retrieved/**",
+  "**/judges/**",
+  "**/outputs/**",
+  "**/output/**",
+  "tmp/**",
+  "backups/**",
+  ".ai/**",
+  "writing/**",
+  "media/**",
+  "templates/**",
+  "research/FOCUS.md",
+  "research/grant/**",
+  "research/review/**",
+  "**/AGENTS.md",
+  "**/CLAUDE.md",
+  "**/*handoff*",
+  "**/*HANDOFF*",
+  "scripts/side_project_cause/**",
+  "scripts/gate_b_mac_judges/pod/granite-known-answers.json",
+  "experiments/durability/stage_b.py",
+  "experiments/durability/tests/test_dur_stage_b.py",
+  "experiments/durability/tests/test_dur_stage_b_engine.py",
+  "scripts/gate_b_mac_judges/pod/PARITY.md",
+  "experiments/safety_selection/tests/test_ss_probe_runkit.py",
+  "experiments/safety_selection/tests/test_ss_gateb_runkit.py",
+  "experiments/safety_selection/tests/test_ss_gateb_certificate.py",
+  "experiments/safety_selection/tests/test_ss_baseline_reuse.py",
+  "experiments/safety_selection/tests/test_ss_family_recipes.py",
+  "experiments/safety_selection/tests/test_ss_family_reading.py",
+  "experiments/safety_selection/tests/test_ss_gateb_anchor_job.py",
+  "experiments/safety_selection/tests/test_ss_kt_runkit.py"
+ ],
+ "size_limit_bytes": 1000000,
+ "size_exceptions": [
+  ".ai/inputs/stage1-commitments-20261016/predictions/predictions.json"
+ ],
+ "byte_identical": [
+  "research/experiments/2026-10-08-gate-b-olmo-preregistration-DRAFT.md",
+  ".ai/inputs/stage1-commitments-20261016/MANIFEST.json",
+  ".ai/inputs/stage1-commitments-20261016/predictions/predictions.json",
+  ".ai/inputs/stage1-commitments-20261016/predictions/predictions-timing.json"
+ ],
+ "redact_pinned": {
+  "research/experiments/2026-10-16-stage1-commitments.md": [
+   "checkout-path",
+   "home-path",
+   "funder",
+   "local-time"
+  ],
+  "research/experiments/2026-10-17-stage1-preregistration-rev3/stage1-preregistration-rev4.md": [
+   "checkout-path",
+   "home-path",
+   "funder",
+   "local-time"
+  ]
+ },
+ "prose_globs": [
+  "**/*.md"
+ ],
+ "frozen": {
+  "research/experiments/2026-10-08-gate-b-olmo-preregistration-DRAFT.md": "Gate B / Gate C pre-registration, revision 5, frozen (the word DRAFT in the name is historical)",
+  "research/experiments/2026-10-17-stage1-preregistration-rev3/stage1-preregistration-rev4.md": "Stage-1 pre-registration, revision 4 (the frozen W1 text)",
+  "research/experiments/2026-10-16-stage1-commitments.md": "Stage-1 W1 record (frozen); it quotes the manifest's SHA-256",
+  ".ai/inputs/stage1-commitments-20261016/MANIFEST.json": "Stage-1 W1 commitments manifest (code, settings, tests, predictions by SHA-256)",
+  ".ai/inputs/stage1-commitments-20261016/predictions/predictions.json": "Stage-1 simulated predictions (no data rows)",
+  ".ai/inputs/stage1-commitments-20261016/predictions/predictions-timing.json": "Run-time record of the predictions run"
+ },
+ "rules": [
+  {
+   "id": "email-own",
+   "kind": "literal",
+   "pattern": "rishi.gh2002@gmail.com",
+   "ignore_case": true,
+   "token": "[EMAIL]"
+  },
+  {
+   "id": "co-author-trailer",
+   "kind": "regex",
+   "pattern": "Co-Authored-By:[^\\n]*",
+   "ignore_case": true,
+   "token": "[AGENT]"
+  },
+  {
+   "id": "scratch-path",
+   "kind": "regex",
+   "pattern": "/private/tmp/claude-[0-9]+/[^\\s`'\"()<>\\]]*",
+   "token": "[PATH]",
+   "code_ok": true
+  },
+  {
+   "id": "worktree-path",
+   "kind": "regex",
+   "pattern": "/Users/[A-Za-z0-9._-]+/Coding/attribution/\\.claude/worktrees/[A-Za-z0-9_-]+",
+   "token": "[PATH]",
+   "scope": "all",
+   "code_ok": true
+  },
+  {
+   "id": "checkout-path",
+   "kind": "literal",
+   "pattern": "/Users/spiderishi/Coding/attribution",
+   "token": "[PATH]",
+   "code_ok": true
+  },
+  {
+   "id": "home-path",
+   "kind": "regex",
+   "pattern": "/Users/[A-Za-z0-9._-]+",
+   "token": "[PATH]",
+   "code_ok": true
+  },
+  {
+   "id": "repo-name",
+   "kind": "literal",
+   "pattern": "4r4cn1d0/attribution",
+   "ignore_case": true,
+   "token": "[HANDLE]"
+  },
+  {
+   "id": "github-handle",
+   "kind": "literal",
+   "pattern": "4r4cn1d0",
+   "ignore_case": true,
+   "token": "[HANDLE]"
+  },
+  {
+   "id": "macos-user",
+   "kind": "literal",
+   "pattern": "spiderishi",
+   "ignore_case": true,
+   "token": "[HANDLE]",
+   "code_ok": true
+  },
+  {
+   "id": "author-name",
+   "kind": "regex",
+   "pattern": "(?<![A-Za-z0-9])Rishi(?![A-Za-z0-9])",
+   "ignore_case": true,
+   "token": "[AUTHOR]"
+  },
+  {
+   "id": "substack-url",
+   "kind": "regex",
+   "pattern": "https?://[A-Za-z0-9-]+\\.substack\\.com[^\\s)\\]>\"'`]*",
+   "ignore_case": true,
+   "token": "[HANDLE]"
+  },
+  {
+   "id": "funder",
+   "kind": "regex",
+   "pattern": "BlueDot(?: Impact)?|Manifund|LTFF|Long[- ]Term Future Fund|EA Funds|Transformative AI Fund|TAI Fund|Open Philanthropy|Coefficient Giving|Survival and Flourishing(?: Fund)?|(?<![A-Za-z0-9])SFF(?![A-Za-z0-9])|AI Alignment Foundation|(?<![A-Za-z0-9])AIAF(?![A-Za-z0-9])|GTR AI Safety Fund|gtr-foundation|Mercor|Schmidt Sciences|UK AISI|AI Security Institute|TPU Research Cloud|Modal Academic Grant|Lambda Research Grant|Tinker Research|Rapid Grants?",
+   "token": "[FUNDER]"
+  },
+  {
+   "id": "local-time",
+   "kind": "regex",
+   "pattern": "[0-9]{4}-[0-9]{2}-[0-9]{2}[T ][0-9]{2}:[0-9]{2}(?::[0-9]{2}(?:\\.[0-9]+)?)? ?\\+05:?30|[0-9]{1,2}:[0-9]{2}(?::[0-9]{2})? ?IST(?![A-Za-z])|\\+05:?30(?![0-9])|Asia/Kolkata|India Standard Time|(?<![A-Za-z])IST(?![A-Za-z])",
+   "token": "[LOCAL-TIME]"
+  },
+  {
+   "id": "agent-name",
+   "kind": "regex",
+   "pattern": "General Implementation(?: (?:VIII|VII|VI|IV|IX|V|III|II|I)(?![A-Za-z]))?|Specialized Implementation|(?<![A-Za-z])GI[ -](?:VIII|VII|VI|IV|IX|V|III|II|I)(?![A-Za-z])|(?i:(?<![a-z])gi-(?:viii|vii|vi|iv|ix|v|iii|ii|i)(?![a-z]))|(?i:GPT[ -]lead)|(?i:(?<![a-z])codex(?![a-z]))|(?i:(?<![a-z])claude(?![a-z]))|(?i:(?<![a-z])opus(?![a-z]))|(?i:(?<![a-z])fable(?![a-z]))|(?<![A-Za-z])Sonnet(?![A-Za-z])|(?:FAQ|Education|Side Project|Public Posts) chat",
+   "token": "[AGENT]"
+  }
+ ],
+ "check_extra": [],
+ "repin": [
+  "scripts/gate_b_mac_judges/common.py",
+  "scripts/gate_b_mac_judges/granite_files.py",
+  "scripts/gate_b_mac_judges/harmbench_files.py",
+  "scripts/gate_b_mac_judges/pod/podhost.py"
+ ],
+ "accepted": [
+  {
+   "path": "research/experiments/2026-10-08-gate-b-olmo-preregistration-DRAFT.md",
+   "rule": "agent-name",
+   "count": 16,
+   "reason": "Frozen Gate B/C pre-registration, revision 5, kept byte-identical (lead decision 2): MAN1 and the pre-registration deposit quote its SHA-256. The matches are role labels of the authors' work process."
+  },
+  {
+   "path": "research/experiments/2026-10-16-stage1-commitments.md",
+   "rule": "agent-name",
+   "count": 12,
+   "reason": "Frozen stage-1 W1 record, equal to the pre-registration deposit's anonymized copy; kept byte-identical (lead decision 2): the matches are process role labels that the deposit kept on purpose."
+  },
+  {
+   "path": "research/experiments/2026-10-17-stage1-preregistration-rev3/stage1-preregistration-rev4.md",
+   "rule": "agent-name",
+   "count": 16,
+   "reason": "Frozen stage-1 pre-registration, revision 4, equal to the pre-registration deposit's anonymized copy; kept byte-identical (lead decision 2): the matches are process role labels that the deposit kept on purpose."
+  },
+  {
+   "path": "experiments/safety_selection/attribution.py",
+   "rule": "agent-name",
+   "count": 2,
+   "reason": "Engine X source, kept byte-identical (lead decision 2): its SHA-256 is one of the 29 that make up engine identity X (configs/engine-identity-472fc7f6.json; stage1_rules ENGINES). The matches are process role labels in comments."
+  },
+  {
+   "path": "experiments/safety_selection/config.py",
+   "rule": "agent-name",
+   "count": 2,
+   "reason": "Engine X source, kept byte-identical (lead decision 2): its SHA-256 is one of the 29 that make up engine identity X (configs/engine-identity-472fc7f6.json; stage1_rules ENGINES). The matches are process role labels in comments."
+  },
+  {
+   "path": "experiments/safety_selection/engine.py",
+   "rule": "agent-name",
+   "count": 1,
+   "reason": "Engine X source, kept byte-identical (lead decision 2): its SHA-256 is one of the 29 that make up engine identity X (configs/engine-identity-472fc7f6.json; stage1_rules ENGINES). The matches are process role labels in comments."
+  },
+  {
+   "path": "experiments/safety_selection/jobs.py",
+   "rule": "agent-name",
+   "count": 1,
+   "reason": "Engine X source, kept byte-identical (lead decision 2): its SHA-256 is one of the 29 that make up engine identity X (configs/engine-identity-472fc7f6.json; stage1_rules ENGINES). The matches are process role labels in comments."
+  },
+  {
+   "path": "experiments/safety_selection/runner.py",
+   "rule": "agent-name",
+   "count": 1,
+   "reason": "Engine X source, kept byte-identical (lead decision 2): its SHA-256 is one of the 29 that make up engine identity X (configs/engine-identity-472fc7f6.json; stage1_rules ENGINES). The matches are process role labels in comments."
+  },
+  {
+   "path": "experiments/safety_selection/configs/study-kt-olmo2-1b-r64-g-mb4-20261008.json",
+   "rule": "agent-name",
+   "count": 1,
+   "reason": "Recipe G config, kept byte-identical (lead decision 2, pinned code): stage1_rules RECIPE_PINS quotes its SHA-256. The match is a process role label in a text field."
+  },
+  {
+   "path": "scripts/family_probe_reading.py",
+   "rule": "agent-name",
+   "count": 2,
+   "reason": "Frozen reader, kept byte-identical (lead decision 2, pinned code): four stage-1 settings files quote its SHA-256. The matches are process role labels in documentation."
+  },
+  {
+   "path": "runkit/stage1-olmo/setup/extend_cap.py",
+   "rule": "agent-name",
+   "count": 1,
+   "reason": "Kept byte-identical (lead decision 2, pinned code): the reviewed-file table of test_granite_pod.py quotes its SHA-256. The match is a process role label."
+  },
+  {
+   "path": "scripts/gate_b_mac_judges/pod/extend_cap.py",
+   "rule": "agent-name",
+   "count": 1,
+   "reason": "Kept byte-identical (lead decision 2, pinned code): the reviewed-file table of test_granite_pod.py quotes its SHA-256. The match is a process role label."
+  },
+  {
+   "path": "scripts/stage1/mutation/mutants_b1_rev2.json",
+   "rule": "agent-name",
+   "count": 16,
+   "reason": "Stage-1 manifest (MAN1) file, kept byte-identical (lead decision 2): MAN1 quotes its SHA-256. The matches are folder names of the authors' work process inside paths."
+  },
+  {
+   "path": "scripts/stage1/settings/limits_overrefusal_checks.json",
+   "rule": "agent-name",
+   "count": 2,
+   "reason": "Stage-1 manifest (MAN1) file, kept byte-identical (lead decision 2): MAN1 quotes its SHA-256. The matches are folder names of the authors' work process inside paths."
+  },
+  {
+   "path": "scripts/stage1/tests/test_limits_pins.py",
+   "rule": "agent-name",
+   "count": 1,
+   "reason": "Stage-1 manifest (MAN1) file, kept byte-identical (lead decision 2): MAN1 quotes its SHA-256. The matches are folder names of the authors' work process inside paths."
+  },
+  {
+   "path": "scripts/stage1/tests/test_report_a1_variants.py",
+   "rule": "agent-name",
+   "count": 1,
+   "reason": "Stage-1 manifest (MAN1) file, kept byte-identical (lead decision 2): MAN1 quotes its SHA-256. The matches are folder names of the authors' work process inside paths."
+  },
+  {
+   "path": "scripts/stage1_s1/settings/safe_lora.json",
+   "rule": "agent-name",
+   "count": 4,
+   "reason": "S1 settings, kept byte-identical (lead decision 2): stage1_rules and the S1 code quote its SHA-256. The matches are folder names inside source paths."
+  },
+  {
+   "path": "runkit/stage1-olmo/stage1_rules.py",
+   "rule": "agent-name",
+   "count": 1,
+   "reason": "Run-time path string of the base-model pins record (BASE_PINS_RECORD), kept unchanged (lead decision 4)."
+  },
+  {
+   "path": "scripts/stage1_s1/tests/test_b11_rulings.py",
+   "rule": "agent-name",
+   "count": 1,
+   "reason": "A test that asserts the same run-time path string as stage1_rules BASE_PINS_RECORD; kept with it (lead decision 4)."
+  },
+  {
+   "path": "runkit/stage1-olmo/tests/test_stage1_runkit.py",
+   "rule": "local-time",
+   "count": 3,
+   "reason": "Test data: timestamps with a non-UTC offset that the code must refuse as not UTC (lead decision 4)."
+  },
+  {
+   "path": "runkit/stage1-olmo/tests/test_stage1_runner.py",
+   "rule": "agent-name",
+   "count": 1,
+   "reason": "Test data: a list of forbidden words that packed files must not contain; changing it would change the test (decision 4's reasoning)."
+  },
+  {
+   "path": "scripts/gate_b_mac_judges/tests/test_judge_pod.py",
+   "rule": "secret-ssh_public_key",
+   "count": 2,
+   "reason": "Fake 17-character key strings written by a test; not keys (lead decision 5)."
+  },
+  {
+   "path": "scripts/stage1_s1/tests/test_b11_transform.py",
+   "rule": "users-path",
+   "count": 1,
+   "reason": "A test literal used to check that an output holds no home folder path (lead decision 5)."
+  },
+  {
+   "path": ".ai/inputs/stage1-commitments-20261016/predictions/predictions.json",
+   "rule": "size-limit",
+   "count": 1,
+   "reason": "Frozen predictions file, byte-identical to the pre-registration deposit copy (6,265,709 bytes); exported under a named size exception."
+  },
+  {
+   "path": "scripts/gate_b_mac_judges/tests/test_gate_b_judges.py",
+   "rule": "agent-name",
+   "count": 1,
+   "reason": "A run-time folder name inside a test path whose local prefix is replaced by [PATH]; changing the folder name would change test code (decision 4's reasoning)."
+  },
+  {
+   "path": "scripts/stage1_s1/c3_subsample/mutation/run_mutants.py",
+   "rule": "agent-name",
+   "count": 1,
+   "reason": "A run-time folder name inside a default engine-Y path (overridable by C3_ENGINE_Y_ROOT) whose local prefix is replaced by [PATH]; changing the folder name would change test code (decision 4's reasoning)."
+  },
+  {
+   "path": "scripts/stage1_s1/c3_subsample/tests/c3fixtures.py",
+   "rule": "agent-name",
+   "count": 1,
+   "reason": "A run-time folder name inside a default engine-Y path (overridable by C3_ENGINE_Y_ROOT) whose local prefix is replaced by [PATH]; changing the folder name would change test code (decision 4's reasoning)."
+  }
+ ]
+}
