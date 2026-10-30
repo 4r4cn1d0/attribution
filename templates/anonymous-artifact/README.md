@@ -1,4 +1,4 @@
-# Attribution for safety data edits: stage-A and stage-B code and protocols
+# Repairing LLM Safety After Benign Fine-Tuning: code and study plan
 
 Code and protocol for a study of whether training-data attribution adds decision value when
 choosing which predefined groups of fine-tuning data to remove for safety. This package is
