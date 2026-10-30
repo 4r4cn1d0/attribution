@@ -427,18 +427,18 @@ GUARD_MODEL = {"repo_id": "Qwen/Qwen3Guard-Gen-4B", "revision": "6ec42827da0c1ff
 # replaces it with the commit that holds these bytes.
 S1_COMMIT = "3ea5ae1"
 S1_CODE = {"scripts/stage1_s1/__init__.py": "818919ca18627b7169d80c2a6f6c24149f6e1c529bff9d37a5ddee2122bddd32",
-           "scripts/stage1_s1/eval_adapter.py": "525a96d21b71e81de8c2006ab6ad8fe95497ab9a2c36e991131f98e6b0f58ab0",
-           "scripts/stage1_s1/safe_lora.py": "080a69742dd4ac0896c3e3b3ddb9669999b8d79373b31dd6e333429b4965116a",
+           "scripts/stage1_s1/eval_adapter.py": "ae95312970336cac5eec993e21b55bb48fc6e907a5c439e67a184f58f8ac0c33",
+           "scripts/stage1_s1/safe_lora.py": "5f6b782255f7207645659cc25ea8864c85aeb2d32533acab342175d0217757b4",
            "scripts/stage1_s1/lean_eval_job.py": "82461c13d91471729bb036da6565bcb0555885c4b2347d91cd93abcebd9ca46a",
            "scripts/stage1_s1/oext_eval.py": "8c4290921f32a5b4596a0bc40235cc5cf1185f73eaabeaa625c43bd19ba77719",
            "scripts/stage1_s1/settings/eval_adapter.json":
-               "18287cfa00609ed2ce85392446b3f2c54e872b68cca5a9ff14b237959ae8ff62",
+               "9cc654ecef9fd35664599baba49eaced218afaa6a6a738771d93d962314fbe9b",
            "scripts/stage1_s1/settings/lean_eval_job.json":
                "b0ab19ec28946334e4a033897c1097894fdf5797507f6a516614afc1c2c22acd",
            "scripts/stage1_s1/settings/oext_eval.json":
                "2ad9893849248a8fb61d04cf7badbd7fb398915020f196904849d500df08f5a5",
            "scripts/stage1_s1/settings/safe_lora.json":
-               "16af536a372c93f31b0dfd2516cf82fb395f8ab6881793a9c100800a4ba20819",
+               "c5610c3d4f0a0809e391055d84697fd62b9a15cf16e0b1f63aee02b03b6d14cf",
            # round 3c: the O-ext unit runner (J3, J4, J9, J10, J18's O-ext step) and its settings (branch re-pin)
            "scripts/stage1_s1/oext_unit.py": "ae2fb5b5fbea36cbd2b27c4eaa20f10504b9856961ae8ee100311c923876b8e3",
            "scripts/stage1_s1/settings/oext_unit.json":

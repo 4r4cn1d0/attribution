@@ -17,7 +17,7 @@ from scripts.stage1 import s1common as s1
 from scripts.stage1_s1 import safe_lora as sl
 
 ENGINE_ROOT = Path(engine_package.__file__).resolve().parents[2]      # where the engine's configs live
-SAFE_LORA_SETTINGS_SHA256 = "16af536a372c93f31b0dfd2516cf82fb395f8ab6881793a9c100800a4ba20819"
+SAFE_LORA_SETTINGS_SHA256 = "c5610c3d4f0a0809e391055d84697fd62b9a15cf16e0b1f63aee02b03b6d14cf"
 
 
 def _doc() -> dict:

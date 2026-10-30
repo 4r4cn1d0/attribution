@@ -21,7 +21,7 @@ from scripts.stage1_s1 import repin_reference_seeds as rp
 def sl_settings_path():
     return ea.REPO / "scripts" / "stage1_s1" / "settings" / "safe_lora.json"
 
-LITERAL = "18287cfa00609ed2ce85392446b3f2c54e872b68cca5a9ff14b237959ae8ff62"
+LITERAL = "9cc654ecef9fd35664599baba49eaced218afaa6a6a738771d93d962314fbe9b"
 # REF (stage1-prereg-references-DRAFT.md revision 2) R.0.7 and the L.4 table; scripts/gate_b_reading.py:168-169
 GATE_A = {"1101": ("8f0fa83a42ccc5edc54a5ee26ed63f49448c36d30adbd64e28b655678afee4c9",
                    "aad79060c52304ecd1b3d0a24b26281da7d147b0fc4a2754ba3a9b323bfae1ec",

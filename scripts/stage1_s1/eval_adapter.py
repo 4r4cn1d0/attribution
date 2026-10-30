@@ -95,7 +95,7 @@ from scripts.stage1_s1 import oext_eval as oe  # noqa: E402
 
 ENGINE_REPO = Path(_engine_package.__file__).resolve().parents[2]   # where the engine's configs live
 SETTINGS_PATH = HERE / "settings" / "eval_adapter.json"
-SETTINGS_SHA256 = "18287cfa00609ed2ce85392446b3f2c54e872b68cca5a9ff14b237959ae8ff62"
+SETTINGS_SHA256 = "9cc654ecef9fd35664599baba49eaced218afaa6a6a738771d93d962314fbe9b"
 SETTINGS_NAME = "eval_adapter"
 OWNER = "scripts/stage1_s1/eval_adapter.py"
 JOB_KIND = "stage1-eval-adapter"
