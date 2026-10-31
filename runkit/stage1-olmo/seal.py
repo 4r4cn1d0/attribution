@@ -35,7 +35,11 @@ decision's SHA-256, with no file hash: those units are not in the pulled tree). 
 and "B" refuses until block A's seal is recorded. Round 32 (K2): every block but A lists the lead's not-run decisions
 (plan_tool.py record-not-run) under "not_run" by "HOST:INDEX" and the decision's SHA-256, and the launches release
 skipped because every job of their hosts was decided under "skipped"; ``status`` prints one line per decision (valid
-or INVALID) and per skipped launch.
+or INVALID) and per skipped launch. Round 33 (GB4; addendum §37 point 5): a block other than A whose judge-completion
+record names HarmBench refuses until the judge runbook's copy is in place, as the HarmBench reader
+(scripts/stage1_s1/reading_input/hb.py) reads it from the sealed folder: judges/BLOCK/pods/TAG/fetched/out/ (TAG: the
+record's HarmBench tag) holds run-record.json at the record's run_record_sha256 and harmbench-pod.jsonl at the cache
+SHA-256 that run record names, neither a symbolic link. The two are hashed, and the run record is read by key only.
 """
 from __future__ import annotations
 
@@ -53,6 +57,7 @@ import plan_tool  # noqa: E402
 SEALS = HERE / "seals"
 JUDGES = HERE / "judges"                          # judges/BLOCK/: the block's per-arm judge files (sealed)
 SEAL_KIND = "stage1 block seal"
+HB_RUN_RECORD, HB_CACHE = "run-record.json", "harmbench-pod.jsonl"   # the HB reader's RUN_RECORD, CACHE (GB4)
 READABLE_PATTERNS = ("JOB-DONE.json", "*cost-ledger*.json", "*adapter-fingerprint*.json", "process-receipt.json")
 
 
@@ -62,6 +67,24 @@ def fail(message: str):
 
 def classify(name: str) -> str:
     return "readable" if any(fnmatch.fnmatch(name, p) for p in READABLE_PATTERNS) else "sealed"
+
+
+def hb_copy_problem(plan: dict, block: str) -> str | None:
+    """GB4: why judges/BLOCK/pods/TAG/fetched/out/ does not hold HarmBench's run record and label cache as the HB
+    reader needs them (TAG, run_record_sha256: the block's judge-completion record), or None."""
+    e = plan["records"]["judges"][block]["judges"]["harmbench"]
+    out, where = JUDGES / block / "pods" / e["tag"] / "fetched" / "out", f"judges/{block}/pods/{e['tag']}/fetched/out"
+    run_record, cache_file = out / HB_RUN_RECORD, out / HB_CACHE
+    if run_record.is_symlink() or not run_record.is_file() or mac.sha(run_record) != e["run_record_sha256"]:
+        return f"{where}/{HB_RUN_RECORD} is missing or not the judge record's run_record_sha256"
+    try:
+        cache = json.loads(run_record.read_text()).get("cache")
+    except (ValueError, AttributeError):
+        cache = None
+    digest = cache.get("sha256") if isinstance(cache, dict) else None
+    if cache_file.is_symlink() or not cache_file.is_file() or mac.sha(cache_file) != digest:
+        return f"{where}/{HB_CACHE} is missing or not the cache SHA-256 its run record names"
+    return None
 
 
 def seal_block(block: str) -> dict:
@@ -98,6 +121,11 @@ def seal_block(block: str) -> dict:
     if judged and (judge_check is None or not set(judged) <= set(judge_check["judges"])):
         fail(f"block {block}: no valid judge-completion record names {', '.join(judged)} (plan_tool.py record-judges "
              f"{block}; its judge files go under judges/{block}/)")
+    if block != "A" and judge_check is not None and "harmbench" in judge_check["judges"]:
+        problem = hb_copy_problem(plan, block)        # round 33 (GB4): the HB reader's copy, before a one-time seal
+        if problem:
+            fail(f"block {block}: {problem}; copy them from tmp/judge-pod/TAG/fetched/out/ first (addendum §37 "
+                 "point 5, judge runbook step 13)")
     for p in judge_files:
         files.append({"host": f"judges/{block}", "path": p.relative_to(folder).as_posix(), "sha256": mac.sha(p),
                       "class": "sealed"})

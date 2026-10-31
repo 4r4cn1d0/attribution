@@ -1947,8 +1947,9 @@ def judge_record_problem(doc, block: str) -> str | None:
 def judge_result_problem(key: str, e: dict, required: dict) -> str | None:
     """At record time only: the launch's own result (JUDGE_POD_ROOT/TAG/judge-pod-result.json, as judge_pod.py wrote
     it) hashes to result_sha256 and agrees with the entry (kind, tag, judge, bundle, exit, complete, judged, the
-    fetched run record's SHA-256, a confirmed stop; Granite: the gate), its fetched run record hashes to
-    run_record_sha256, and its verified units include every required unit. Read by key, never printed."""
+    fetched run record's SHA-256, a confirmed stop; Granite: the gate; round 33, GB5: verification.gpu is
+    rules.JUDGE_GPU), its fetched run record hashes to run_record_sha256, and its verified units include every required
+    unit. Read by key, never printed."""
     d = JUDGE_POD_ROOT / e["tag"]
     path = d / JUDGE_RESULT
     where = f"tmp/judge-pod/{e['tag']}/{JUDGE_RESULT}"
@@ -1968,7 +1969,7 @@ def judge_result_problem(key: str, e: dict, required: dict) -> str | None:
               (r.get("exit") == e["exit"], "exit"), (v.get("complete") is e["complete"], "complete"),
               (type(v.get("judged")) is int and v.get("judged") == e["judged"], "judged"),
               (fetched.get(JUDGE_RUN_RECORD) == e["run_record_sha256"], "run record"),
-              (stop.get("confirmed") is True, "stop confirmed")]
+              (stop.get("confirmed") is True, "stop confirmed"), (v.get("gpu") == rules.JUDGE_GPU, "gpu")]
     if key == "granite":
         checks.append((gate.get("passed") is e["known_answer_passed"], "known-answer gate"))
     bad = [what for ok, what in checks if not ok]

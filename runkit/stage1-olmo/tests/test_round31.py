@@ -104,6 +104,7 @@ def test_k1_a_released_block_b_judge_launch_named_not_run_completes_the_block_an
                        "judges": ["granite"]}
     assert w.tool.judges_needed(w.plan(), "B") == ["harmbench"] and w.tool.judges_decided(w.plan(), "B") == {
         "granite": digest}
+    w.s37_copy("B")                                                           # round 33 (GB4): HarmBench's copy
     sealed = w.seal.seal_block("B")
     record = json.loads((w.root / "seals" / "block-B.json").read_text())
     assert record["judge_not_run"] == [{"judge": "granite", "decision_sha256": digest}]

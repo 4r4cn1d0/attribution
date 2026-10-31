@@ -272,12 +272,14 @@ class World:
         return new + [p["complete_sha256"] for p in self.rules.REJUDGED_PINS.get(block, ())]
 
     def file_judges(self, block: str = "A", judges=("harmbench", "granite"), units=None, entry=None,
-                    result=None) -> tuple[str, str]:
+                    result=None, gpu="NVIDIA A100-SXM4-80GB") -> tuple[str, str]:
         """Gate B's layout for BLOCK's judges, all synthetic: one judge file per judge and unit in judges/BLOCK/
         (holding the sentinel count JUDGE_SENTINEL), judge-files-index.json (Gate B's index, version 2), each launch's
-        judge-pod-result.json and fetched run record under tmp/judge-pod/TAG (the verified units' counts are the
-        sentinel), and the lead's judge-completion record naming them. ``entry``/``result``: {judge: {key: value}}
-        changes. Returns the record's path and SHA-256 (record_judges takes them)."""
+        judge-pod-result.json, fetched run record and label cache (round 33: the run record names the cache's SHA-256,
+        as the HB reader reads it) under tmp/judge-pod/TAG (the verified units' counts are the sentinel; ``gpu`` the
+        verification's GPU name, None for none), and the lead's judge-completion record naming them.
+        ``entry``/``result``: {judge: {key: value}} changes. Returns the record's path and SHA-256 (record_judges takes
+        them)."""
         folder = self.root / "judges" / block
         units = self.judge_units(block) if units is None else units
         names = {"harmbench": "cais/HarmBench-Mistral-7b-val-cls", "granite": "granite-guardian-3.3-8b"}
@@ -297,16 +299,22 @@ class World:
         for key in judges:
             tag = f"s1{block.lower()}-{key}-1"
             d = self.repo / "tmp" / "judge-pod" / tag
-            run_record = write_json(d / "fetched" / "out" / "run-record.json", {"device": "cuda", "judge": key})
+            cache = d / "fetched" / "out" / f"{key}-pod.jsonl"
+            cache.parent.mkdir(parents=True, exist_ok=True)
+            cache.write_text(json.dumps({"judge": key, "synthetic": True}) + "\n")
+            run_record = write_json(d / "fetched" / "out" / "run-record.json",
+                                    {"device": "cuda", "judge": key, "cache": {"sha256": sha(cache), "records": 1}})
             per = 800 if key == "harmbench" else 200
             body = {"kind": "judge-pod result", "version": 2, "tag": tag, "exit": 0,
                     "bundle_sha256": hashlib.sha256(tag.encode()).hexdigest(),
-                    "fetched": {"out/run-record.json": sha(run_record)},
+                    "fetched": {"out/run-record.json": sha(run_record), f"out/{key}-pod.jsonl": sha(cache)},
                     "stop": {"confirmed": True, "desiredStatus": "EXITED", "utc": "2026-10-27T08:40:00+00:00"},
                     "verification": {"complete": True, "judged": per * len(units), "records": per * len(units),
                                      "units": [{"unit": f"host{i}/u", "complete_sha256": c,
                                                 "greedy": {"n": 200, "judged": 200, "yes": JUDGE_SENTINEL,
                                                            "unparsed": 0}} for i, c in enumerate(units)]}}
+            if gpu is not None:
+                body["verification"]["gpu"] = gpu
             if key == "granite":
                 body["judge"] = "granite"
                 body["verification"]["known_answers"] = {"enabled": True, "passed": True, "pod_yes": JUDGE_SENTINEL}
@@ -320,6 +328,17 @@ class World:
             e.update((entry or {}).get(key, {}))
             record["judges"][key] = e
         return self.record(record)
+
+    def s37_copy(self, block: str = "B", judges=("harmbench",)) -> None:
+        """The judge runbook's step 13 (addendum §37 point 5): each launch's fetched run record and label cache, copied
+        from tmp/judge-pod/TAG/fetched/out/ to judges/BLOCK/pods/TAG/fetched/out/ (the tags file_judges writes)."""
+        for key in judges:
+            tag = f"s1{block.lower()}-{key}-1"
+            src, dst = self.repo / "tmp" / "judge-pod" / tag / "fetched" / "out", \
+                self.root / "judges" / block / "pods" / tag / "fetched" / "out"
+            dst.mkdir(parents=True, exist_ok=True)
+            for name in ("run-record.json", f"{key}-pod.jsonl"):
+                shutil.copy2(src / name, dst / name)
 
     def old_seal(self, block: str = "A") -> dict:
         """The block sealed as the old seal.py (before round 30) sealed it: every file of the block's pulled trees and
@@ -5428,10 +5447,11 @@ def test_k4_certify_covers_block_bs_whole_group_by_hand_on_one_funding_record(w,
 
 def test_k5_units_of_block_lists_exactly_block_bs_judged_units_from_plan_json(w, tmp_path, capsys):
     """K5 (G13) both ways: the judge wrapper's units-of-block lists, by hand, block B's judged units from plan.json:
-    23 of the 24 runs (b-2's H1 at 1106 crashed), the two B10 units of the 1104 reference (two points) and recipe G's
-    unit at 1102: 26 folders, one per line, by kind; the same COMPLETE.json SHA-256 set as plan_tool's
-    judge_required_units; no block-A or certify unit (a --run-root sweep would take them). It refuses an OUT file that
-    exists, a unit whose COMPLETE.json changed or is gone, and a block not planned (exit 2, nothing written)."""
+    23 of the 24 runs (b-2's H1 at 1106 crashed; round 33, GB1: named by a not-run decision first), the two B10 units
+    of the 1104 reference (two points) and recipe G's unit at 1102: 26 folders, one per line, by kind; the same
+    COMPLETE.json SHA-256 set as plan_tool's judge_required_units; no block-A or certify unit (a --run-root sweep would
+    take them). It refuses an OUT file that exists, a unit whose COMPLETE.json changed or is gone, and a block not
+    planned (exit 2, nothing written)."""
     _certified(w, rest=B_DEAL + [{"hosts": [[{**REF1104, "points": ["scale:0.75", "scale:0.5"]}]]},
                                   {"hosts": [[{"kind": "ref_train", "arm": "G", "recipe": "G", "seed": 1102}]]}])
     w.init("B", B_DEAL + [{"hosts": [[{**REF1104, "points": ["scale:0.75", "scale:0.5"]}]]},
@@ -5442,6 +5462,7 @@ def test_k5_units_of_block_lists_exactly_block_bs_judged_units_from_plan_json(w,
     w.done("b-7")
     w.tool.release("B")
     w.done("b-8")
+    w.tool.record_not_run(*_not_run(w, ["b-2:1"]))          # round 33 (GB1): the crashed run, decided not run
     spec = importlib.util.spec_from_file_location("s1_units_wrapper_k5", KIT / "judge_units_stage1.py")
     wrapper = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(wrapper)

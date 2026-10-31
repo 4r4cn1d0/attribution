@@ -1,0 +1,136 @@
+{
+ "kind": "stage1 kit round report",
+ "round": "33",
+ "written_utc": "2026-10-31T13:23Z (date -u just before writing)",
+ "builder": "the lead (GI VIII), in its own chat; model identity is the launcher's record, not this text",
+ "brief": "tmp/gi-viii-notes/judge-runbook-block-b.md §0, rows GB1, GB4, GB5 (each names the kit fix); the user's \"Yes, build them\" (31 Oct)",
+ "tree": "runkit/stage1-olmo in the main checkout (branch stageb-costs-and-recovery-safeguards-20261003), then copied file by file to tmp/stage1-olmo (the live kit) after the suite and the mutants passed",
+ "tree_base": "HEAD 85d361b; tmp/stage1-olmo equal to runkit/stage1-olmo before the round (every .py and test hashed)",
+ "summary": [
+  "GB1: judge_units_stage1.block_units refuses a block other than A while plan_tool.block_open_jobs is not empty (loaded by path; sys.path restored; a changed not-run decision is a refusal, exit 2, not a crash). The runbook's second condition (a hosts launch not released) is covered by the same list: every job of a pending host is in it, and a launch whose hosts are all decided counts as released (settled_view), so a separate check could never fire alone (no mutant could kill it).",
+  "GB4: seal.py hb_copy_problem; seal_block refuses a block other than A whose judge record names HarmBench until judges/BLOCK/pods/TAG/fetched/out/ holds run-record.json at run_record_sha256 and harmbench-pod.jsonl at the cache SHA-256 the run record names (the HB reader's own two bindings), neither a symbolic link; before anything is written. The runbook's row named the result's fetched SHA-256 for the cache; the run record's cache.sha256 is what hb.py reads, so the seal checks that.",
+  "GB5: stage1_rules.JUDGE_GPU = \"NVIDIA A100-SXM4-80GB\"; plan_tool.judge_result_problem adds (gpu) to its checks (record time only; block A's record is not re-read)."
+ ],
+ "changed_files": [
+  {
+   "path": "runkit/stage1-olmo/judge_units_stage1.py",
+   "old_sha256": "516e571c061e21357cf4e23a7a8b2c849467f3b9a4ff2d9d50814ccd0ea7f852",
+   "new_sha256": "53f3c65b82185aaa96ace14a1bfc7dfd3df031b7031918d1922b21676d83eefe"
+  },
+  {
+   "path": "runkit/stage1-olmo/seal.py",
+   "old_sha256": "62111a41bb70bbe647dfdd28ba71b93b24447b2a188fe2796c9bb899b02a065c",
+   "new_sha256": "d6ddc8efc3c4a86247708d9bf8d9b629d1093c059e3ba33bc83854c8ac4d0af5"
+  },
+  {
+   "path": "runkit/stage1-olmo/plan_tool.py",
+   "old_sha256": "958a38932e3196dac495fec9612bc31c2afca65879a9bb3673c68bc59cbc0dfa",
+   "new_sha256": "f18bb834df3b618b90339eb1b2db3a07edb36a82bac729955a0f5e4ffca0a0e0"
+  },
+  {
+   "path": "runkit/stage1-olmo/stage1_rules.py",
+   "old_sha256": "ac42c61c7bff821377a28a91b595d55e0c059b7f7f1832956ab5fc56afd6d117",
+   "new_sha256": "bde78fab5abd9d0c90bc2c0a40b33fb84bb6f05ff00a8d0a1ab136243f234685"
+  },
+  {
+   "path": "runkit/stage1-olmo/README.md",
+   "old_sha256": "1d8fde7ff3381f5f3f674fbf3df21cfb650c9f32703b6e913f4fbdd2d5af4dea",
+   "new_sha256": "116774600f499ea09ad89445e0db9a63dfa90b8587a10f6e3d991e1febc7a38f"
+  },
+  {
+   "path": "runkit/stage1-olmo/tests/test_round33.py",
+   "old_sha256": null,
+   "new_sha256": "16dd1bb98131b5c84e21fe81f8e6c583886c0588455c55867d55c0931f029f2e"
+  },
+  {
+   "path": "runkit/stage1-olmo/tests/test_stage1_runkit.py",
+   "old_sha256": "4a0c1bde90107897dcf48fce69dbe134d0560221836a6d5f69525c4896e12c47",
+   "new_sha256": "f48e3bdb071e14cb2b84c26b5954069ee3864ce875b8b8cd1e1603178bf0ccf1"
+  },
+  {
+   "path": "runkit/stage1-olmo/tests/test_round31.py",
+   "old_sha256": "488b57bfe241ea61a6f41f2c9323cca71be3e292e2ae29bba370562d5203e23b",
+   "new_sha256": "ca3e72442129a9b84b437765e7d2ccc38cc4f5aafbbbfaa3ced3b647bfcb4297"
+  },
+  {
+   "path": "runkit/stage1-olmo/tests/test_stage1_judge_route.py",
+   "old_sha256": "ae611e4ed61ff9ed91eb217360f2b4ddc6b36bdc7068cf73b5b1cdfb8c4f7fcc",
+   "new_sha256": "864a16f2057e016036120f7ad8d564ea87c47d60bc4c2b278f82f6f6c3a1c5fb"
+  },
+  {
+   "path": "runkit/stage1-olmo/tests/mutants_b15.json",
+   "old_sha256": "3cdf0dd0cc8276cb825fd2558ba4da038470b2b64840b8f5d5d029eb60f01971",
+   "new_sha256": "508c7fa512b793632121635ceed7abf8194b5bb099af7365972c798f58dc0dd1"
+  },
+  {
+   "path": "research/experiments/2026-10-24-stage1-runkit/run_mutants_b15.py",
+   "old_sha256": "7f5232ba5cf831bfaf096144fe022f50d07d46e24963722ccb3129fa700292a6",
+   "new_sha256": "46164513afd7a656604b50f6da5618f3d245ac7bdb44ef76ed4da418dbaae848"
+  }
+ ],
+ "tests": {
+  "kit_suite_after": "671 passed in 40.87s",
+  "stage1_s1_reading_kit_text": "scripts/stage1_s1/reading_input/tests/test_items.py and scripts/stage1_s1/tests/test_s1_repin_tool.py: 56 passed",
+  "test_harness_changes": [
+   "World.file_judges: the run record names a synthetic label cache {sha256, records}; the cache is written and fetched; verification.gpu (default the A100 name; gpu=None leaves it out)",
+   "World.s37_copy: the runbook's step-13 copy of run-record.json and <judge>-pod.jsonl",
+   "test_k5 (units-of-block): the crashed b-2:1 is named by a not-run decision before the listing",
+   "test_round31 K1 seal: s37_copy before seal_block('B')",
+   "test_stage1_judge_route: the kit's own fake pod reports the A100 name; the K3 test (Gate B's FakeHost, \"FAKE GPU\") pins the copied kit's JUDGE_GPU to that name"
+  ]
+ },
+ "mutants": {
+  "spec": "tests/mutants_b15.json: 366 -> 382 entries; note extended",
+  "new": [
+   "B15-33-gb1-no-check",
+   "B15-33-gb1-block-b-skipped",
+   "B15-33-gb1-decisions-ignored",
+   "B15-33-gb1-systemexit-escapes",
+   "B15-33-gb1-sys-path-kept",
+   "B15-33-gb4-no-check",
+   "B15-33-gb4-block-a-too",
+   "B15-33-gb4-any-judge",
+   "B15-33-gb4-run-record-unhashed",
+   "B15-33-gb4-run-record-link",
+   "B15-33-gb4-cache-unhashed",
+   "B15-33-gb4-cache-link",
+   "B15-33-gb4-not-a-dict",
+   "B15-33-gb5-no-gpu",
+   "B15-33-gb5-prefix",
+   "B15-33-gb5-pin"
+  ],
+  "retargeted": {
+   "B15-m-funding-source": "stale since addendum §36 (29 Oct): its find text is now an elif; retargeted to the elif with the same meaning"
+  },
+  "near_run": {
+   "killed": 25
+  },
+  "funding_run": {
+   "killed": 1
+  },
+  "new_verdicts": {
+   "B15-33-gb1-no-check": "killed",
+   "B15-33-gb1-block-b-skipped": "killed",
+   "B15-33-gb1-decisions-ignored": "killed",
+   "B15-33-gb1-systemexit-escapes": "killed",
+   "B15-33-gb1-sys-path-kept": "killed",
+   "B15-33-gb4-no-check": "killed",
+   "B15-33-gb4-block-a-too": "killed",
+   "B15-33-gb4-any-judge": "killed",
+   "B15-33-gb4-run-record-unhashed": "killed",
+   "B15-33-gb4-run-record-link": "killed",
+   "B15-33-gb4-cache-unhashed": "killed",
+   "B15-33-gb4-cache-link": "killed",
+   "B15-33-gb4-not-a-dict": "killed",
+   "B15-33-gb5-no-gpu": "killed",
+   "B15-33-gb5-prefix": "killed",
+   "B15-33-gb5-pin": "killed"
+  },
+  "not_as_expected": []
+ },
+ "open_points": [
+  "Block A is outside GB1 and GB4 by design (sealed, its judges recorded).",
+  "GB5 compares the GPU name only; the device type check across blocks stays the runbook's step 9.",
+  "The runbook's step 0 hash list names the pre-round judge_units_stage1.py (516e571c); the round's hash is in changed_files (the runbook allows a later reviewed kit round: re-read it first)."
+ ]
+}

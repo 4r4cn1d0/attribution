@@ -456,16 +456,42 @@ def _kit_rules():
     return module
 
 
+def _kit_plan_tool():
+    """This kit folder's plan_tool.py, loaded by path (round 33, GB1: block_open_jobs, the rule block_complete uses);
+    sys.path is restored after the load (plan_tool puts its folder first)."""
+    saved = list(sys.path)
+    try:
+        spec = importlib.util.spec_from_file_location("s1_units_kit_plan_tool", HERE / "plan_tool.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+    finally:
+        sys.path[:] = saved
+    return module
+
+
 def block_units(plan: dict, block: str, kit, root) -> list[dict]:
     """K5 (G13): the units BLOCK's judge launches judge, from plan.json only, by round 31's rule (plan_tool's
     judge_required_units): the unit of each complete, pulled job of the block's hosts of a judged run kind (arm,
     a0_arm, ref_train), each unit of each complete, pulled B10 reference job (ref_eval, safe_lora: its recorded units
     list), at KIT/retrieved/HOST/tree/UNIT, then the block's re-judged pins (stage1_rules.REJUDGED_PINS) at ROOT/path.
     Each unit's COMPLETE.json must be present and hash to the SHA-256 plan.json records (hashed, never parsed); no
-    unit twice. Never another block's unit, and never a whole retrieved/ folder (no --run-root)."""
+    unit twice. Never another block's unit, and never a whole retrieved/ folder (no --run-root). Round 33 (GB1, judge
+    runbook B): a block other than A is listed only when it has no open job (plan_tool.block_open_jobs: each job of a
+    pending host, so of every hosts launch not released; of a released host not recorded done; or one a move left
+    behind; less those a not-run decision names), so a judge launch never takes a partial list. Block A (sealed, its
+    judges recorded) keeps the listing without that check."""
     rules, units = _kit_rules(), gate_b_units()
     if not isinstance(plan, dict) or block not in (plan.get("blocks") or {}):
         raise units.Refusal(f"block {block} is not planned in plan.json")
+    if block != "A":
+        try:
+            open_jobs = _kit_plan_tool().block_open_jobs(plan, block)
+        except SystemExit as exc:                     # a recorded not-run decision that is missing or changed
+            raise units.Refusal(str(exc)) from None
+        if open_jobs:
+            raise units.Refusal(f"block {block} has {len(open_jobs)} open job(s) ({', '.join(open_jobs[:3])}"
+                                f"{', ...' if len(open_jobs) > 3 else ''}): record-done each host, or name a job that "
+                                "will not run in a not-run decision (plan_tool.py record-not-run), first")
     out = []
     for host, h in sorted((plan.get("hosts") or {}).items()):
         if h.get("block") != block:

@@ -136,6 +136,10 @@ JUDGE_INDEX_ENTRY_KEYS = ("complete_sha256", "completed_utc", "file", "host", "j
 JUDGE_FILE_PATTERN = r"^(granite|harmbench)--.+--[0-9a-f]{12}\.json$"
 JUDGE_NAMES = {"harmbench": "cais/HarmBench-Mistral-7b-val-cls", "granite": "granite-guardian-3.3-8b"}
 JUDGE_TAG_PATTERN = r"^[a-z0-9][a-z0-9-]{0,38}[a-z0-9]$"
+# Round 33 (GB5; addendum §37 point 5): the judges run on this GPU, as block A's did (Gate B's pod/podhost.py GPU, the
+# create request's only gpuTypeIds entry; a test compares them). record-judges checks each launch result's
+# verification.gpu (the fetched run record's environment GPU name) against it.
+JUDGE_GPU = "NVIDIA A100-SXM4-80GB"
 # R2: the lead's judge-completion record, plan_tool.py record-judges BLOCK FILE --sha256 H. Exactly these keys; no
 # value is an HB, Granite, yes, unparsed or harm count ("judged" is the number of answers judged).
 JUDGE_RECORD_KIND = "stage1 judge completion record"

@@ -382,6 +382,21 @@ cap-based need and it must name the user's decision record `user_decision: {path
 decision: start without a covering top-up`, with the user's words), re-hashed at every use. The lead tells the user
 at once when the balance is below $10; the $10/h limit, the in-pod timers and stop-never-delete stay.
 
+### Round 33, 31 Oct (the block-B judge runbook's GB1, GB4, GB5; `notes/kit-round-33.json`)
+
+- **A unit list only for a finished block (GB1).** `judge_units_stage1.py units-of-block BLOCK` refuses (exit 2,
+  nothing written) a block other than A while `plan_tool.block_open_jobs` is not empty: a job of a host not recorded
+  done, every job of a pending host (so of every hosts launch not released) and a job a move left behind, less those a
+  not-run decision names. The refusal names the first three. A judge launch never takes a partial list.
+- **HarmBench's copy before the seal (GB4; addendum §37 point 5).** `seal.py block` refuses a block other than A whose
+  judge-completion record names HarmBench until `judges/BLOCK/pods/TAG/fetched/out/` (TAG: the record's HarmBench tag)
+  holds `run-record.json` at the record's `run_record_sha256` and `harmbench-pod.jsonl` at the cache SHA-256 that run
+  record names, neither a symbolic link: what the HarmBench reader (`scripts/stage1_s1/reading_input/hb.py`) reads.
+  The seal is written once, so the runbook's step 13 copy must come first. Granite's copy is not required.
+- **The judge GPU (GB5).** `stage1_rules.JUDGE_GPU = "NVIDIA A100-SXM4-80GB"` (Gate B's `pod/podhost.py` GPU; a test
+  compares them). `record-judges` refuses a launch whose result's `verification.gpu` differs (`… differs from the
+  record (gpu)`). Block A's record is not re-checked (the result is read at record time only).
+
 ## The gates (brief §4)
 
 - **G0 (before any pod, $0).** B15 built, verified and pinned at the S1 freeze. `orchestrate.py check-plan HOST` must

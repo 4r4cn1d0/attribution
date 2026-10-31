@@ -127,7 +127,7 @@ def factory(pairs):
         return {"label": label(m, p), "input_tokens": 10, "answer_tokens": 5, "truncated": False}
     return judge
 def env(device):
-    return {"device": device, "gpu": "FAKE GPU", "torch": "2.8.0+cu128", "transformers": "4.56.2"}
+    return {"device": device, "gpu": "NVIDIA A100-SXM4-80GB", "torch": "2.8.0+cu128", "transformers": "4.56.2"}
 sys.exit(pod_job.main(["run", "--bundle", str(root), "--cache", str(remote / "out" / "harmbench-pod.jsonl"),
                        "--record", str(remote / "out" / "run-record.json")], judge_factory=factory, env_probe=env))
 '''
@@ -240,7 +240,7 @@ def test_a_b10_unit_is_launched_verified_on_the_pod_and_filed_and_no_sealed_coun
                                      "run_record_sha256": result["fetched"]["out/run-record.json"],
                                      "bundle_sha256": result["bundle_sha256"], "exit": 0, "judged": 2 * N,
                                      "complete": True}
-    assert shown["units"] == 1 and shown["stop_confirmed"] is True and shown["gpu"] == "FAKE GPU"
+    assert shown["units"] == 1 and shown["stop_confirmed"] is True and shown["gpu"] == "NVIDIA A100-SXM4-80GB"
     assert not SENT_RE.search(printed.out + printed.err)
     allowed = ("judge-pod-log.jsonl", "judge-pod-result.json", "harmbench-pod.jsonl", "harmbench--*.json")
     assert scan(tmp_path, allowed) == []
@@ -552,8 +552,10 @@ def test_k3_a_resumed_launch_covers_every_unit_and_record_judges_takes_its_final
     and fetched cache cover every unit by themselves (the pod seeds its cache from the old one: 18 records, 2 resumed;
     complete): write-files from that cache alone writes both files, from the old cache alone refuses both. So
     record-judges B takes the final tag as it is: a record naming the old tag refuses (exit 5; typed as exit 0, its
-    own result differs), the final tag's record is recorded over block B's 2 required units."""
+    own result differs), the final tag's record is recorded over block B's 2 required units. Gate B's fake pod names
+    its GPU "FAKE GPU", so the kit copy's JUDGE_GPU (round 33, GB5) is that name here."""
     w = route
+    monkeypatch.setattr(kitcopy.tool.rules, "JUDGE_GPU", "FAKE GPU")
     prepared, manifest = prepared_set(tmp_path, monkeypatch, 3)
     retrieved = tmp_path / "kit" / "retrieved"
     pids = tuple(pid(i) for i in range(1, 4))
