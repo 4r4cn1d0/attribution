@@ -31,11 +31,13 @@ change without being labelled post hoc. So everything below marked "before" must
 | 1b | **B14's similarity pass never ran.** §9.4's overlap control (report only) needs θ0's embeddings of the 200 harm prompts and the 144 added rows (`overlap_similarity.py`, "on the pod"); no kit job ran it, and no `similarity.json` or `strata.json` exists. The strata must be sealed before any add-arm outcome is read. | One small pod, one job: `overlap_similarity.py` on θ0, about $1 (my estimate: one 1B forward pass per prompt, plus setup), started from the balance. Then `overlap_strata.py strata` on the Mac and the strata's SHA-256 into FOCUS. | (i) The same script on the Mac CPU (float64; "on the pod" becomes a recorded deviation); trigger: the pod fails or the balance is under the reserve. (ii) The reading prints "not computed" for §9.4 (B16's built fallback, §24 point 4); trigger: (i) also fails. |
 | 1c | **The builder's other open points** (RI-O1, RI-O5 to RI-O11) | One addendum section (§39) that confirms each stated reading as the lead's ruling, so every reading rule is written down before outcomes. RI-O3: S-tok has no input (stage 1c's R_1200 and R_2400 have not run), so the reading says "not run". | None needed; each point already has a stated reading. |
 | 1d | **The reading runbook** | A step list like the judge runbook: exact commands, the hashes each step must print, the refusals, where each output goes, and what is read by whom. Re-run the reading-input and B16 test suites and mutation specs on the current tree first (as the lead's background jobs). | None. |
-| 1e | **The OSF registration (the user's own step)** | The user posts the embargoed OSF registration (package ready since 23 Oct, `tmp/osf-deposit-20261023/`) before the reading, so a third-party time stamp comes before the first stage-1 outcome. | Read without it. The paper then says "pre-specified in a dated git record (commit bc79b08)", the wording already planned. Trigger: the user prefers not to post first. |
+| 1e | **The outside time stamp (decided 31 Oct: no OSF posting; an OpenTimestamps stamp instead).** The user: "Yes, time-stamp it". Stamped at 22:54 UTC: `timestamp/ots-manifest-20261031.json` (`68e75447…`; it binds the package zip and members, the six frozen originals checked at their commits, both block seal records, HEAD and the stage-1 code trees) and the package zip (`170361f7…`); four calendars hold pending attestations (`timestamp/stamp-record-20261031.json`). | After the calendars' Bitcoin transactions confirm (a few hours): `ots upgrade`, then verify the block's merkle root against block headers from two independent sources, and record the block height and time. **The reading starts only after that block time.** Right before the reading, a second stamp of the final reading code and the runbook. Paper wording: "pre-specified" (the frozen rule's no-deposit branch). | If no calendar's anchor confirms within 48 h: re-stamp once; if that also fails, the paper keeps "pre-specified in a dated git record" and states that the stamp did not complete. |
 | 1f | **LN-15e** (a-2's four re-score units, not pulled) | Keep the recorded FO-04 fallback; no restart of a-2. | Not applicable. After the reading, ask the user whether a-2 can go. |
 
 ### The reading itself (in this order; each output sealed and hashed before the next step)
 
+0. Check that 1e's stamp is anchored (its block time is earlier than now), then stamp the final reading code and
+   the reading runbook, and start step 1 only after that second stamp is anchored too.
 1. B14 report: `overlap_strata.py report` from the strata and the sealed a0 and add-arm units → `overlap_report.json`.
 2. Input build: `python -m scripts.stage1_s1.reading_input --reading plan_a --kit tmp/stage1-olmo --b14-strata … --b14-report … --expect-strata-sha256 … --expect-report-sha256 … --out <new folder>/tables.json --record <new folder>/sources.json`.
 3. B16: `python -m scripts.stage1_s1.reading --input tables.json --out reading.json`; its `provenance.input_sha256`
@@ -66,7 +68,7 @@ Costs and dates are the README's (30 Oct) unless marked as my estimate.
 ## What the lead can do now without a top-up
 
 1. Steps 1a, 1c and 1d (all $0) and 1b (about $1 from the $29.94 balance, above the $6 reserve).
-2. The reading itself ($0), after 1a–1d and the user's answer on 1e.
+2. The reading itself ($0), after 1a–1d and the anchored stamps of 1e and step 0.
 3. $0 preparation of stage 1b's kit round (the plant and decoy were built on 23 Oct).
 4. $0 preparation of the OLMo 3 probe's three blockers (transformers ≥ 4.57.0, the chat-template download, a new
    preflight script), so it can launch before 13 Nov if the money is there.
