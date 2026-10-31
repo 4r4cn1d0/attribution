@@ -4,7 +4,8 @@ A living document, started 5 October 2026 at the user's request: "make sure all 
 
 **Rule for using it:** quote only what the linked records show. Estimates are marked as estimates. Development results are not confirmatory.
 
-**Last updated:** 2026-10-09T17:51 UTC, for General Implementation V. This update adds the second family at the main recipe and the blind human read (§3c), judges on RunPod under pre-set parity rules (§4, §5), the $10/h price limit, the 9 October spend and the balance (§7, §8b), and a status line (§10). The update before it was 9 October 12:24 UTC (§8b).
+**Last updated:** 2026-10-31T23:19 UTC, by General Implementation VIII (the main-study lead). This update adds Gate B's verdict, stage 1's frozen design and status (blocks A and B done and sealed; no stage-1 outcome read yet; §3d), the measured costs of Gate B's judges and stage 1 (§7), and the outside time stamp of the frozen rules (§3d).
+**Previous update:** 2026-10-09T17:51 UTC, for General Implementation V. This update adds the second family at the main recipe and the blind human read (§3c), judges on RunPod under pre-set parity rules (§4, §5), the $10/h price limit, the 9 October spend and the balance (§7, §8b), and a status line (§10). The update before it was 9 October 12:24 UTC (§8b).
 
 ## 1. One-paragraph pitch (draft)
 
@@ -153,6 +154,13 @@ Development evidence. Records: the [results record](../experiments/2026-10-07-ki
   - **What it changes in the paper** (the lead's wording, 15:05 UTC; the user's paper wording package, 15:23 UTC). U is "refusal erosion as Qwen3Guard labels it". A "harm" sentence says "harmful compliance as the HarmBench classifier defines it" and carries the caveat that a blind human read rated about a third of judge-Unsafe answers as usable help. The caveat sits once in the measurement section and once in the limitations. The counts go to an appendix as development evidence.
   - **For the application:** the project checks its judges against a human, says what the labels mean, and words its claims to match. The budgeted human check (§8, §8a) can remove the one-reader limit.
 
+### 3d. Main-study status, 31 October 2026 (no stage-1 outcome is read yet)
+
+- **Gate B** (is the erosion traceable to data units?) closed on 23 October by its frozen reading: **TOO CLOSE**. Removing either of the two most harmful units restores about 3–4 pp of safety at every seed: too small for "localized" (which needs at least 8 pp beyond random removal) and too uneven for "diffuse". The noise gate passed (σ̂_gate 1.83 pp). Gate C's verdict name is not read, because it needs a LOCALIZED Gate B.
+- **Stage 1** (the primary repair comparison on OLMo-2-1B): the rules were frozen on 22 October (pre-registration revision 4 and a 140-entry manifest of code, settings, tests and sealed records), before Gate B's last wave. A blinded rule read Gate B's σ̂ (1.78 pp) and chose plan A: 50 cells at seeds 1101–1107. Block A was done and sealed on 27 October, block B on 31 October (seal `b4e11dc9…`). Every cell, the model-level references and both judges have run. The outcomes stay sealed until the confirmatory reading by the frozen analysis package.
+- **Pre-specification evidence:** on 31 October, before the reading, the frozen rules, both block seals and the code state were time-stamped with OpenTimestamps (anchored in Bitcoin; [record](../../.ai/inputs/stage1-post-w1-20261023/reading/timestamp/stamp-record-20261031.json)). No OSF registration was posted (the user's choice), so the paper says "pre-specified", not "pre-registered".
+- **Next** ([plan](../../.ai/inputs/stage1-post-w1-20261023/reading/next-steps-after-block-b-20261031.md)): the stage-1 reading ($0); then stage 1b, the planted-cause positive control ($17–35); stage 1c ($45–80); the human label check ($440–650); stage 2 on Llama-3.2-1B; the 7–8B tier (about $770–1,760 of new money; decision about 20 November). Since 29 October each stage starts from the RunPod balance; the user tops up when they choose.
+
 ## 4. Methodological strengths (what reviewers will value)
 
 - **Frozen protocols before outcomes:** the amendment freezes, dated, with ledger entries in [EDGE_CHECKS.md](../review/EDGE_CHECKS.md).
@@ -234,6 +242,12 @@ Development evidence. Records: the [results record](../experiments/2026-10-07-ki
 | One 1B fine-tune-only probe, recipe B at LR 5e-5 (Llama-3.2-1B; 9 Oct) | job 15:50–16:58 UTC; about $2.5 |
 | Granite Guardian judge on a RunPod A100 (CUDA llama.cpp built on the pod; 9 Oct) | 0.3 s per judgement; the 800-judgement parity pod about $0.35; a first attempt that got no network address cost about $0.60 (stopped after 20 min) |
 | Storage of stopped pods (9 Oct) | 21 stopped pods, 400 GB of volume: about $0.11/h, about $2.6 per day; the account's idle spend was $0.126/h at 17:44 UTC |
+| Gate B judge pods (HarmBench, then Granite Guardian; 22–23 Oct) | about $1.2 for the two pods (FOCUS, 23 Oct) |
+| Stage 1 block A (20 arm runs, the diagnostics' passes, a lean cost job, the LN-12 pod, both judges, a certificate pod; 24–27 Oct) | $48.59 for the funding group: S1-0 $0.69, block A $45.51 with its judges, certificate pod $2.39 (FOCUS, 27 Oct) |
+| Stage 1 block B (21 pods: every arm at seeds 1105–1107, recipe G and B+Qi at 1102–1107, the evaluation-only references; 29–31 Oct) | $141.27 billed for 75.04 GPU-hours, about $6.7 per pod ([cost report](../../.ai/inputs/stage1-post-w1-20261023/block-b/cost_completion_block_b.md)) |
+| Stage 1 block B judges (31 Oct) | HarmBench: 57,600 judgements in 59.4 pod-minutes, $1.77; Granite Guardian: 14,400 judgements plus a 200-answer known-answer gate in 63.5 pod-minutes, $1.89 |
+| Certify pods cfy-1 and cfy-2 (B10, 29 Oct) | $3.35 |
+| Storage of stopped pods (31 Oct) | after 46 pods were deleted on the user's yes (each backed up first), 3 kept pods, 80 GB: about $0.04/h |
 
 **Efficiency fixes in v2,** to be measured on the validation pod: SDPA attention, micro-batch 8 × 1, a pre-built environment, light result copies, parallel finishing.
 
