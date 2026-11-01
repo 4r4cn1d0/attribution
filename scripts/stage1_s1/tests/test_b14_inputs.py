@@ -165,8 +165,19 @@ def make_world(root: Path) -> World:
 
 
 @pytest.fixture(scope="module")
-def world(tmp_path_factory) -> World:
-    return make_world(tmp_path_factory.mktemp("b14-inputs") / "w")
+def world(tmp_path_factory) -> World | str:
+    """The world, or the text of why it could not be built: a mutant that makes the build refuse then fails each test
+    that reads the fixture (through need), never its setup."""
+    try:
+        return make_world(tmp_path_factory.mktemp("b14-inputs") / "w")
+    except Exception as exc:  # noqa: BLE001 - reported by each test that reads the fixture, as a failure
+        return f"building the synthetic world raised {type(exc).__name__}: {exc}"
+
+
+def need(built):
+    """The built world (or synthetic kit), or a test failure naming why there is none."""
+    assert not isinstance(built, str), built
+    return built
 
 
 def written(w: World, tmp_path: Path, capsys=None) -> tuple[bytes, dict]:
@@ -195,6 +206,7 @@ def expected_document(w: World) -> dict:
 
 
 def test_the_file_is_the_hand_built_document_in_canonical_json(world, tmp_path):
+    world = need(world)
     data, doc = written(world, tmp_path)
     assert data == canonical_json(expected_document(world))
     assert sorted(doc["units"]) == ["S1", "S3", "S4", "a0"]
@@ -206,6 +218,7 @@ def test_the_file_is_the_hand_built_document_in_canonical_json(world, tmp_path):
 
 def test_the_report_reads_exactly_the_units_named_gate_a_rec_and_kit_recipe_s(world, tmp_path):
     """End to end with D-6: a0 1102-1103 are Gate A's units (REC), every other unit a kit unit (recipe S)."""
+    world = need(world)
     _, doc = written(world, tmp_path)
     settings, digest = bf.strata_settings()
     report = s1.strict_json(st.report(world.strata.read_bytes(), doc, settings, digest, world.data))
@@ -219,6 +232,7 @@ def test_the_report_reads_exactly_the_units_named_gate_a_rec_and_kit_recipe_s(wo
 
 
 def test_the_command_writes_once_and_prints_hashes_and_origins_only(world, tmp_path, capsys):
+    world = need(world)
     out = tmp_path / "out"
     assert oi.main(world.args(out)) == 0
     data = (out / oi.OUTPUT).read_bytes()
@@ -236,6 +250,7 @@ def test_the_command_writes_once_and_prints_hashes_and_origins_only(world, tmp_p
 def test_the_writer_hashes_unit_files_and_never_parses_them(world, tmp_path):
     """A unit's COMPLETE.json and job.json replaced by bytes that are not JSON (plan.json re-pinned to the new
     COMPLETE.json): the writer still writes, naming their SHA-256 (the report, not the writer, parses them)."""
+    world = need(world)
     w = world.copy(tmp_path / "w")
     plan = w.plan()
     host, _, job = sk.find_job(plan, "arm", "S4", 1106)
@@ -399,6 +414,7 @@ REFUSALS = {
 
 @pytest.mark.parametrize("case", sorted(REFUSALS))
 def test_each_ambiguity_refuses_and_writes_nothing(world, tmp_path, capsys, case):
+    world = need(world)
     w = world.copy(tmp_path / "w")
     change, match = REFUSALS[case]
     change(w)
@@ -413,6 +429,7 @@ def test_each_ambiguity_refuses_and_writes_nothing(world, tmp_path, capsys, case
 def test_a_pin_of_another_name_at_a_reused_seed_is_not_a0s_unit(world, tmp_path, capsys):
     """theta0's untuned unit is pinned with the engine arm a0: the writer takes a0's pin by its name (build.py
     pins_by_cell), the second computation by its checkpoint, so a theta0 pin at 1102 changes neither."""
+    world = need(world)
     w = world.copy(tmp_path / "w")
     rewrite_rules(w, lambda pins: pins[3].update(seed=1102))
     _, doc = written(w, tmp_path)
@@ -422,11 +439,13 @@ def test_a_pin_of_another_name_at_a_reused_seed_is_not_a0s_unit(world, tmp_path,
 
 def test_a_unit_folder_outside_the_data_root_refuses(world, tmp_path, capsys):
     """The pins sit under repo/tmp, beside the kit: with the kit as the data root they are outside it."""
+    world = need(world)
     assert oi.main(world.args(tmp_path / "out", **{"data-root": world.kit})) == 2
     assert "a0 at 1102: its folder is not inside the data root" in capsys.readouterr().err
 
 
 def test_an_output_folder_that_is_not_empty_refuses(world, tmp_path, capsys):
+    world = need(world)
     out = tmp_path / "out"
     out.mkdir()
     (out / "other.json").write_text("{}")
@@ -438,6 +457,7 @@ def test_an_output_folder_that_is_not_empty_refuses(world, tmp_path, capsys):
 
 
 def test_the_second_computation_reproduces_the_file_byte_for_byte(world, tmp_path, capsys):
+    world = need(world)
     data, _ = written(world, tmp_path)
     file = tmp_path / "out" / oi.OUTPUT
     assert oc.main(world.check_args(file)) == 0
@@ -498,6 +518,7 @@ PLANTED = {
 
 @pytest.mark.parametrize("case", sorted(PLANTED))
 def test_the_second_computation_finds_one_planted_difference(world, tmp_path, capsys, case):
+    world = need(world)
     w = world.copy(tmp_path / "w")
     written(w, tmp_path)
     file = tmp_path / "out" / oi.OUTPUT
@@ -511,6 +532,7 @@ def test_the_second_computation_finds_one_planted_difference(world, tmp_path, ca
 
 @pytest.mark.parametrize("case", ["two_units", "no_unit", "complete_hash", "pin_changed", "plan_code"])
 def test_the_second_computation_refuses_what_the_writer_refuses(world, tmp_path, capsys, case):
+    world = need(world)
     w = world.copy(tmp_path / "w")
     written(w, tmp_path)
     file = tmp_path / "out" / oi.OUTPUT
@@ -524,6 +546,7 @@ def test_the_second_computation_refuses_what_the_writer_refuses(world, tmp_path,
 def test_the_second_computation_counts_only_done_hosts_of_the_blocks_read(world, tmp_path, capsys):
     """A complete a0 1105 on a host that is not done and a complete S1 1105 in block certify: neither is a candidate,
     so the only difference is plan.json's own SHA-256."""
+    world = need(world)
     w = world.copy(tmp_path / "w")
     written(w, tmp_path)
     plan = w.plan()
@@ -539,6 +562,7 @@ def test_the_second_computation_counts_only_done_hosts_of_the_blocks_read(world,
 def test_the_two_routes_differ_on_a_pin_outside_the_block_tables(world, tmp_path, capsys):
     """An a0 pin at 1104 (a seed whose a0 the kit trained): the writer, by the tables, takes the kit unit; the second
     computation finds two candidates and refuses, so the lead sees the disagreement instead of a silent choice."""
+    world = need(world)
     w = world.copy(tmp_path / "w")
     rewrite_rules(w, lambda pins: pins.append({**pins[1], "name": "a0 1104 (extra)", "seed": 1104}))
     _, doc = written(w, tmp_path)
@@ -553,19 +577,24 @@ def test_the_two_routes_differ_on_a_pin_outside_the_block_tables(world, tmp_path
 
 @pytest.fixture(scope="module")
 def synth(tmp_path_factory):
-    """synth_kit's plan_a world (read-only use) with the recipe and engine records the real plan.json holds."""
-    s = sk.make(tmp_path_factory.mktemp("synth"), "plan_a")
-    plan = s.plan()
-    plan["recipes"], plan["engines"] = RECIPES, {"X": bf.ENGINE_X, "Y": ENGINE_Y}
-    for h in plan["hosts"].values():
-        for job in h["jobs"]:
-            if job["kind"] in ("arm", "a0_arm"):
-                job["recipe"] = "S"
-    s.save_plan(plan)
-    return s
+    """synth_kit's plan_a world (read-only use) with the recipe and engine records the real plan.json holds, or the
+    text of why it could not be built (read through need, as the world is)."""
+    try:
+        s = sk.make(tmp_path_factory.mktemp("synth"), "plan_a")
+        plan = s.plan()
+        plan["recipes"], plan["engines"] = RECIPES, {"X": bf.ENGINE_X, "Y": ENGINE_Y}
+        for h in plan["hosts"].values():
+            for job in h["jobs"]:
+                if job["kind"] in ("arm", "a0_arm"):
+                    job["recipe"] = "S"
+        s.save_plan(plan)
+        return s
+    except Exception as exc:  # noqa: BLE001 - reported by each test that reads the fixture, as a failure
+        return f"building the builder's synthetic kit raised {type(exc).__name__}: {exc}"
 
 
 def test_on_the_builders_synthetic_kit_the_units_are_the_builders(synth, tmp_path, capsys):
+    synth = need(synth)
     out = tmp_path / "out"
     argv = ["--kit", str(synth.kit), "--strata", str(synth.b14["strata"]), "--strata-sha256",
             synth.b14["strata_sha256"], "--out", str(out), "--rules", str(synth.rules), "--repo", str(synth.repo),
