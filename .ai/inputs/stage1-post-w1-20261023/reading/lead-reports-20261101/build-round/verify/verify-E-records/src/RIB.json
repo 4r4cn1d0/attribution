@@ -1,0 +1,526 @@
+{
+ "kind": "stage1 builder notes",
+ "version": 1,
+ "name": "reading_input (the B16 input builder; addendum 33 point 5)",
+ "written_utc": "2026-10-29T10:34:43Z",
+ "brief": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/b16-input/brief.md",
+ "common_rules": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/common-rules.md",
+ "tree": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/b16-input/tree (the working branch at 72146cc with the B16 fix round's scripts/stage1_s1/reading merged)",
+ "owned": [
+  "scripts/stage1_s1/reading_input/ (new package: __init__, __main__, sources, items, build; tests/; mutation/)",
+  "scripts/stage1_s1/notes-reading-input.json (this report)"
+ ],
+ "b16_changed": false,
+ "b16_change_reason": "B16-H-O8 is met in the builder, so B16 is unchanged (no re-pin of B16's module hashes, no re-run of its 117-entry spec): the builder refuses unless both B14 files hash to the sealed SHA-256 the lead passes (--expect-strata-sha256, --expect-report-sha256; both required whenever the overlap block is built), and refuses a B14 file whose bytes are not B14's canonical JSON of its parsed document (so B16's re-hash equals the sealed value). The output is written once and its SHA-256 printed; B16 prints that SHA-256 again as provenance.input_sha256, which the lead compares. Limit: a tables.json edited after the builder is not refused by B16 itself; if the lead wants B16 to refuse too, the B16 option of B16-H-O8 is a small __main__.py change (not built).",
+ "summary": [
+  "New package scripts/stage1_s1/reading_input builds B16's one input document for plan_a, plan_a_block_a_only and plan_b from the kit's plan.json, the block seals, the sealed units (keyed by plan.json's COMPLETE.json SHA-256, checked against the seal before COMPLETE.json is parsed), block A's REJUDGED_PINS units, the O-ext passes, block B's references, the judge files with their index, and B14's two documents.",
+  "Every file read is checked three ways (plan.json or pin, block seal, COMPLETE.json file list) and every per-item vector is checked against the folder's own summary counts (harm.sampled, query_loss n and mean, oext_summary.json's primary table).",
+  "It refuses missing, extra (incl. a complete arm job outside its block's table, an O-only pass no cell reads), duplicated, not-pulled or mismatched units, a hash that differs from its record, a plan code or block set that is not the reading's, ids that differ across cells, an item count other than B16's, a U order other than B14's strata prompt ids (B16-H-O10), B14 files that differ from the sealed SHA-256 (B16-H-O8), and judge files that fail round 30's check for any unit the reading uses; last, B16's own schema.validate.",
+  "It prints counts, SHA-256 values and unit labels only; B16's schema message is cut to its place; any other exception prints its type only; output and record are exclusive-create.",
+  "Not built (no source or no per-prompt rule): the S-G coherent-only variant and the token axis; HarmBench and Granite have no B16 field (the judge files are checked, not read).",
+  "Tests: 74 (7 items hand cases and constant pins, 67 builder tests on synthetic kit folders in the engine's layout, each reading end to end through B16 with hand-computed means, one refusal per check, a seal test by subprocess). Mutation: 8 mutants, 8 killed, 0 invalid (3 shards, each with its own baseline of 74 passing tests)."
+ ],
+ "alternatives_and_choice": [
+  {
+   "alternative": "let B16 read the kit's units itself",
+   "why_not": "B16 is built and verified as a text-free reader of one document; reading sealed answer files belongs in a separate, small, seal-safe step (addendum 33 point 5 asks for this builder)"
+  },
+  {
+   "alternative": "call plan_tool.judge_files_check",
+   "why_not": "it is bound to the kit module's own folder (plan_tool.JUDGE_FOLDER = HERE/judges) and to every block-required unit; the builder re-implements the same checks against --kit, keyed by the units the reading uses, and also checks every indexed file against the seal"
+  },
+  {
+   "alternative": "import Gate B's frozen readers (family_probe_reading.counts, gate_b_reading.arm_record)",
+   "why_not": "they read other files (the greedy harm answers, summary.json's over-refusal) and exit by SystemExit with texts; the builder keeps their rules (the Unsafe test, the two not-scored texts, the frozen screen from the pinned bars file) and a test pins each constant to its source"
+  },
+  {
+   "alternative": "make B14's documents optional by default",
+   "chosen": "the overlap block is built unless --no-overlap is given explicitly (addendum 24 point 4's fallback), so leaving it out is a recorded choice"
+  }
+ ],
+ "schema_map": {
+  "kind, version, reading": {
+   "source": "constants; --reading",
+   "code": "build.build"
+  },
+  "endpoints.U.cells[arm][seed]": {
+   "source": "each design cell's unit: a0/R at 1101-1103 from stage1_rules.REJUDGED_PINS['A'] (repo path, COMPLETE.json and job.json SHA-256); every other cell from the one complete, pulled arm/a0_arm job of the block whose table (stage1_rules.block_runs) holds it, at plan.json's unit and complete_sha256, checked against seals/block-X.json; files eval/e1/samples.jsonl + guard_samples.jsonl (lined up), parity with eval/e1/summary.json harm.sampled",
+   "value": "per harm prompt, Unsafe (valid and safety 'Unsafe') count / 3, sorted prompt ids (= B14 strata prompt_ids)",
+   "code": "build.cell_blocks, _primary_jobs, _kit_cell, _reused_cell, _eval_items; items.harm; sources.Kit.folder, pinned_folder, Folder.file",
+   "tests": [
+    "scripts/stage1_s1/reading_input/tests/test_builder.py::test_plan_a_end_to_end",
+    "scripts/stage1_s1/reading_input/tests/test_builder.py::test_block_a_only_end_to_end",
+    "scripts/stage1_s1/reading_input/tests/test_builder.py::test_plan_b_end_to_end",
+    "scripts/stage1_s1/reading_input/tests/test_items.py::test_harm_hand_case"
+   ]
+  },
+  "u_variants.g3_unscored_unsafe": {
+   "source": "guard_samples.jsonl (reason = one of the two frozen not-scored texts)",
+   "code": "items.harm",
+   "tests": [
+    "scripts/stage1_s1/reading_input/tests/test_items.py::test_harm_hand_case",
+    "scripts/stage1_s1/reading_input/tests/test_builder.py (hand_checks)"
+   ]
+  },
+  "u_variants.g3_controversial_unsafe": {
+   "source": "guard_samples.jsonl (valid, safety Unsafe or Controversial)",
+   "code": "items.harm",
+   "tests": [
+    "scripts/stage1_s1/reading_input/tests/test_items.py::test_harm_hand_case",
+    "scripts/stage1_s1/reading_input/tests/test_builder.py (hand_checks)"
+   ]
+  },
+  "u_variants.coherent": {
+   "source": null,
+   "status": "not built (open point O2)"
+  },
+  "coherence[arm][seed]": {
+   "source": "eval/e1/samples.jsonl (stop_reason, repetition_4gram, empty, output_tokens); the frozen bars file experiments/safety_selection/configs/family-probe-reading-amended-20261008.json by its pin c0b6f2aa...",
+   "value": "answers, capped (max_new_tokens), failing (family_probe_reading.counts' fails)",
+   "code": "items.bars, items._fails, items.harm",
+   "tests": [
+    "scripts/stage1_s1/reading_input/tests/test_items.py::test_harm_hand_case",
+    "scripts/stage1_s1/reading_input/tests/test_builder.py (hand_checks)"
+   ]
+  },
+  "endpoints.L.cells[arm][seed]": {
+   "source": "the cell's unit eval/e1/query_loss.jsonl (query_id, loss); parity with summary.json query_loss n and mean (math.fsum / n, exact); one query_bank_sha256 across cells",
+   "code": "items.losses; build.build (_same)",
+   "tests": [
+    "scripts/stage1_s1/reading_input/tests/test_items.py::test_losses_hand_case_and_refusals",
+    "scripts/stage1_s1/reading_input/tests/test_builder.py::test_summary_parity_checks"
+   ]
+  },
+  "endpoints.O.cells[arm][seed]": {
+   "source": "new cells: the job's O-ext folder job-I/oext (plan.json outputs; COMPLETE.json kind stage1-oext-unit, command run, state run, route unit_eval, unit.complete_sha256 = the cell's unit, dev100_inputs names the unit's eval/e1/guard.jsonl); reused a0/R: block A's o_only job on its accepted regeneration (same host), route source_unit with dev100_source = the pin (stored flags from the pin's eval/e1/guard.jsonl) or route generated (its own dev100/guard.jsonl); files oext_guard.jsonl and oext_summary.json",
+   "value": "per O-bank prompt (dev 100 + PHTest), W1-18's flag of oext_eval's primary table (Branch 128: the dev cut record where one exists, else the stored dev flag; PHTest answer records; Branch full: stored dev flags), every count checked against oext_summary.json; one branch across cells; LN-12: R's cell at a reused seed may be absent only after an LS-04 regeneration or a not-run decision in block A's seal",
+   "code": "build._oext_pass, _dev_guard, _dev_inputs_match, _o_from, _reused_cell; items.dev_records, items.o_flags",
+   "tests": [
+    "scripts/stage1_s1/reading_input/tests/test_items.py::test_o_flags_branch_128_takes_the_cut_flag",
+    "scripts/stage1_s1/reading_input/tests/test_items.py::test_o_flags_branch_full_keeps_the_stored_flag",
+    "scripts/stage1_s1/reading_input/tests/test_builder.py::test_branch_full_keeps_the_stored_dev_flags",
+    "scripts/stage1_s1/reading_input/tests/test_builder.py::test_ln12_r_o_cell_may_be_absent_after_ls04_but_a0_may_not",
+    "scripts/stage1_s1/reading_input/tests/test_builder.py::test_oext_pass_bindings"
+   ]
+  },
+  "endpoints.O.theta0": {
+   "source": "block A's o_only theta0 job's O-ext folder (state untuned, route generated: dev100/guard.jsonl, oext_guard.jsonl, oext_summary.json)",
+   "code": "build._theta0; items.o_flags",
+   "tests": [
+    "scripts/stage1_s1/reading_input/tests/test_builder.py (hand_checks)",
+    "scripts/stage1_s1/reading_input/tests/test_builder.py::test_oext_pass_bindings",
+    "scripts/stage1_s1/reading_input/tests/test_builder.py::test_oext_outputs_and_theta0_required"
+   ]
+  },
+  "references[] point ref-G, ref-bqi": {
+   "source": "block B's complete ref_train jobs (recipe G or bqi; engine unit round1/<seed>-a0-e1-a<n>, job.json arm a0) and their O-ext folders; names are the kit's round-31 labels",
+   "code": "build.references, _kit_cell",
+   "tests": [
+    "scripts/stage1_s1/reading_input/tests/test_builder.py::test_plan_a_end_to_end",
+    "scripts/stage1_s1/reading_input/tests/test_builder.py::test_reference_job_refusals"
+   ]
+  },
+  "references[] point ref-prefix, ref-external-safe_lora-default, ref-external-safe_lora-conditional": {
+   "source": "block B's ref_eval prefix units job-I/evals/<seed>-prefix and safe_lora units job-I/eval-<point> (plan.json units list; B10 COMPLETE.json kind stage1-eval-adapter, job.json checkpoint e1, dev bank, seed, mode, external safe_lora); U, L and O (O-ext files beside the engine's in eval/e1) from each unit; Safe LoRA's certify (K = 0) point is listed as not a reference",
+   "code": "build.references, _b10_unit",
+   "tests": [
+    "scripts/stage1_s1/reading_input/tests/test_builder.py::test_plan_a_end_to_end",
+    "scripts/stage1_s1/reading_input/tests/test_builder.py::test_b10_unit_identity"
+   ]
+  },
+  "references[] curve ref-scale (points 0.9, 0.75, 0.5; theta0 U and L)": {
+   "source": "block B's ref_eval scale units job-I/evals/<seed>-scale-<lambda> on one seed set; theta0's U and L from the REJUDGED_PINS theta0 unit (eval/init)",
+   "code": "build.references, build.build",
+   "tests": [
+    "scripts/stage1_s1/reading_input/tests/test_builder.py::test_plan_a_end_to_end",
+    "scripts/stage1_s1/reading_input/tests/test_builder.py::test_partial_curve_refuses"
+   ]
+  },
+  "token_axis": {
+   "source": null,
+   "status": "not built (open point O3)"
+  },
+  "overlap": {
+   "source": "--b14-strata, --b14-report (parsed with strict JSON, embedded unchanged), each bound to --expect-*-sha256 and to B14's canonical JSON; the report's strata_sha256, its units (a0 and each add arm at each seed: COMPLETE.json, job.json, guard_samples.jsonl SHA-256) equal to the units read; strata prompt_ids equal to the U item order",
+   "code": "build.overlap_block",
+   "tests": [
+    "scripts/stage1_s1/reading_input/tests/test_builder.py::test_b14_bindings",
+    "scripts/stage1_s1/reading_input/tests/test_builder.py::test_b14_strata_prompt_order_is_the_u_order",
+    "scripts/stage1_s1/reading_input/tests/test_builder.py::test_overlap_report_units_shape",
+    "scripts/stage1_s1/reading_input/tests/test_builder.py::test_no_overlap_is_explicit"
+   ]
+  }
+ },
+ "checks_and_tests": [
+  {
+   "check": "plan code and blocks (plan_a A+B, block-A-only A without a sealed B, plan_b A+B+C); every block sealed; seal kind/version/block, file at plan.json's SHA-256, no entry twice",
+   "code": "build.build, sources.Kit.plan_code, Kit.seal",
+   "tests": [
+    "test_plan_code_and_block_rules",
+    "test_seal_checks",
+    "test_seal_record_refusals"
+   ]
+  },
+  {
+   "check": "design cells: reused or exactly one block table; a complete arm/a0_arm job outside its block's table refuses (extra); two complete units refuse; a cell with no complete pulled unit refuses (missing; complete-not-pulled jobs are not inputs); a not-done host must be listed as moved by the seal",
+   "code": "build.cell_blocks, _primary_jobs, scan; sources.Kit.hosts",
+   "tests": [
+    "test_missing_or_not_pulled_unit_refuses",
+    "test_duplicated_unit_refuses",
+    "test_extra_unit_refuses",
+    "test_moved_host_is_not_an_input_only_when_the_seal_lists_it"
+   ]
+  },
+  {
+   "check": "unit hashes: COMPLETE.json at plan.json's and the seal's SHA-256; each read file listed by COMPLETE.json, in the seal at that SHA-256, and on disk at it; plain paths",
+   "code": "sources.Kit.folder, Folder.file, plain",
+   "tests": [
+    "test_unit_hash_checks",
+    "test_eval_file_against_complete_and_seal",
+    "test_folder_must_list_what_is_read",
+    "test_plan_record_refusals"
+   ]
+  },
+  {
+   "check": "pins: COMPLETE.json and job.json at REJUDGED_PINS; pin arm/seed/target; one pin per cell",
+   "code": "sources.pinned_folder, build.pins_by_cell, _reused_cell",
+   "tests": [
+    "test_pinned_units",
+    "test_rules_pins"
+   ]
+  },
+  {
+   "check": "job.json names the planned arm (edit-<sha>), seed, e1, dev bank; plan edit record well formed",
+   "code": "build._check_job_json, engine_arm",
+   "tests": [
+    "test_job_json_must_name_the_planned_arm",
+    "test_an_unexpected_error_prints_its_type_only"
+   ]
+  },
+  {
+   "check": "O-ext bindings and the O-only rules (regeneration accepted on the same host, routes, theta0 untuned, one O-only pass per cell, extra passes refused, LN-12 subset)",
+   "code": "build._oext_pass, _reused_cell, _theta0, _o_only_jobs",
+   "tests": [
+    "test_oext_pass_bindings",
+    "test_reused_pass_routes",
+    "test_oext_outputs_and_theta0_required",
+    "test_plan_record_refusals",
+    "test_extra_o_only_pass_refuses",
+    "test_ln12_r_o_cell_may_be_absent_after_ls04_but_a0_may_not",
+    "test_ln12_absent_r_o_cell_by_a_not_run_decision"
+   ]
+  },
+  {
+   "check": "summary parity (U, L, O) and one id set, query bank and branch across cells; B16's item counts",
+   "code": "items.harm, losses, o_flags; build.build",
+   "tests": [
+    "test_summary_parity_checks",
+    "test_cells_must_hold_one_prompt_set",
+    "test_ids_and_counts_across_cells",
+    "test_one_oext_branch",
+    "test_item_count_must_be_b16s"
+   ]
+  },
+  {
+   "check": "references (recipes, duplicates, units = points, B10 identity, known points, full curve on one seed set, B+Qi's own a0 refused)",
+   "code": "build.references, _b10_unit, _primary_jobs",
+   "tests": [
+    "test_reference_job_refusals",
+    "test_b10_unit_identity",
+    "test_partial_curve_refuses",
+    "test_bqi_own_a0_refuses"
+   ]
+  },
+  {
+   "check": "judge files (round 30's judge_files_check keyed by the reading's units; judge record or not-run decision per judge)",
+   "code": "build.judge_check",
+   "tests": [
+    "test_judge_files",
+    "test_judge_index_entries",
+    "test_two_judge_files_for_one_unit",
+    "test_judge_record_or_not_run_decision"
+   ]
+  },
+  {
+   "check": "B14 (B16-H-O8, O10)",
+   "code": "build.overlap_block, __main__._overlap",
+   "tests": [
+    "test_b14_bindings",
+    "test_b14_strata_prompt_order_is_the_u_order",
+    "test_overlap_report_units_shape",
+    "test_b14_options_all_or_none"
+   ]
+  },
+  {
+   "check": "B16's own schema (message cut to its place); never overwrite; no value printed",
+   "code": "build.build, __main__.main",
+   "tests": [
+    "test_b16_schema_refusal_prints_only_its_place",
+    "test_never_overwrites",
+    "test_no_value_reaches_the_output_streams"
+   ]
+  }
+ ],
+ "mutants": {
+  "spec": "scripts/stage1_s1/reading_input/mutation/mutants_reading_input.json",
+  "runner": "scripts/stage1_s1/reading_input/mutation/run_mutants.py (B16's runner with its tree changed)",
+  "count": 8,
+  "result": "8 killed, 0 survived, 0 invalid; each shard's baseline passed 74 tests; the baseline copies' module hashes equal the final files' (build.py b7e4bbf3..., items.py 0dbd10e9..., sources.py 127223a8..., __main__.py 5202d483...)",
+  "killed_by": {
+   "RI-seal-vs-plan": [
+    "test_unit_hash_checks",
+    "test_eval_file_against_complete_and_seal"
+   ],
+   "RI-file-vs-complete": [
+    "test_eval_file_against_complete_and_seal"
+   ],
+   "RI-o-cut-rule": [
+    "48 failures, among them the three end-to-end readings and test_no_overlap_is_explicit (every O cell's parity with oext_summary.json refuses)"
+   ],
+   "RI-g3-controversial": [
+    "test_plan_a_end_to_end",
+    "test_block_a_only_end_to_end",
+    "test_plan_b_end_to_end",
+    "test_branch_full_keeps_the_stored_dev_flags",
+    "test_harm_hand_case"
+   ],
+   "RI-duplicate-unit": [
+    "test_duplicated_unit_refuses"
+   ],
+   "RI-expect-b14": [
+    "test_b14_bindings"
+   ],
+   "RI-strata-order": [
+    "test_b14_strata_prompt_order_is_the_u_order"
+   ],
+   "RI-judge-coverage": [
+    "test_judge_files"
+   ]
+  },
+  "reports": [
+   "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/b16-input/mut-shard1.json (75aa5c19...)",
+   "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/b16-input/mut-shard2.json (a17182eb...)",
+   "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/b16-input/mut-shard3.json (a51ce1bf...)"
+  ]
+ },
+ "commands_run": [
+  {
+   "command": "python -B (in the tree) smoke: synth_kit.make plan_a; reading_input main",
+   "exit": 0
+  },
+  {
+   "command": "python -B -m scripts.stage1_s1.reading --input <smoke tables.json> --out <smoke reading.json>",
+   "exit": 0
+  },
+  {
+   "command": "smoke plan_b and plan_a_block_a_only: builder and B16",
+   "exit": "0 (all four)"
+  },
+  {
+   "command": "python -B -c ast.parse of the five package modules",
+   "exit": 0
+  },
+  {
+   "command": "pytest -q -p no:cacheprovider --basetemp=<scratch> scripts/stage1_s1/reading_input/tests/test_items.py",
+   "exit": 0,
+   "result": "7 passed"
+  },
+  {
+   "command": "pytest ... scripts/stage1_s1/reading_input/tests (first full run)",
+   "exit": 1,
+   "result": "2 failed (a regex expecting an arm name in a folder label; a capsys capture), 43 passed; fixed: folder labels now name the cell, the test reads its capture"
+  },
+  {
+   "command": "pytest ... (second)",
+   "exit": 0,
+   "result": "45 passed"
+  },
+  {
+   "command": "pytest ... (with the added refusal tests)",
+   "exit": 1,
+   "result": "2 failed (a test edited files without re-hashing; a duplicate reference found after its folder), 66 passed; fixed: the item-count test builds its own 199-row world; reference duplicates are now refused before any folder is opened"
+  },
+  {
+   "command": "pytest ... -k 'item_count or reference_job'",
+   "exit": 0,
+   "result": "6 passed"
+  },
+  {
+   "command": "pytest ... (full)",
+   "exit": 0,
+   "result": "74 passed (also with --durations=25)"
+  },
+  {
+   "command": "pytest ... -k unexpected",
+   "exit": 0
+  },
+  {
+   "command": "run_mutants.py --only RI-seal-vs-plan,RI-file-vs-complete,RI-o-cut-rule (round 1)",
+   "exit": 0
+  },
+  {
+   "command": "run_mutants.py --only RI-g3-controversial,RI-duplicate-unit,RI-expect-b14 (round 1)",
+   "exit": 0
+  },
+  {
+   "command": "run_mutants.py --only RI-strata-order,RI-judge-coverage (round 1)",
+   "exit": 0
+  },
+  {
+   "command": "pytest ... -k 'end_to_end or no_value' (after the last edit: the summary prints the rules and B16 settings SHA-256)",
+   "exit": 0,
+   "result": "4 passed"
+  },
+  {
+   "command": "the three shards again in parallel on the final code (round 2)",
+   "exit": "not captured (each shard printed 'every mutant as expected', which is the runner's exit-0 path)",
+   "result": "8 killed, 0 invalid"
+  },
+  {
+   "command": "pytest ... scripts/stage1_s1/reading_input/tests (final)",
+   "exit": 0,
+   "result": "74 passed in 67 s"
+  }
+ ],
+ "lead_must_run": [
+  {
+   "what": "the builder's suite (about 70-100 s; its basetemp grows to about 1.4 GB: delete it after)",
+   "command": "cd <workspace root> && PYTHONDONTWRITEBYTECODE=1 /Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python -B -m pytest -q -p no:cacheprovider --basetemp=<scratch outside the workspace> scripts/stage1_s1/reading_input/tests"
+  },
+  {
+   "what": "the mutation spec after the merge (8 mutants; about 13 min in one process, about 6.5 min in three parallel shards)",
+   "command": "cd <workspace root> && PY=/Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python && SPEC=scripts/stage1_s1/reading_input/mutation/mutants_reading_input.json && for IDS in RI-seal-vs-plan,RI-file-vs-complete,RI-o-cut-rule RI-g3-controversial,RI-duplicate-unit,RI-expect-b14 RI-strata-order,RI-judge-coverage; do OMP_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 PYTHONDONTWRITEBYTECODE=1 $PY -B scripts/stage1_s1/reading_input/mutation/run_mutants.py --spec $SPEC --scratch <scratch>/ri-${IDS%%,*} --report <reports>/ri-${IDS%%,*}.json --python $PY --timeout 500 --only $IDS & done; wait"
+  },
+  {
+   "what": "B16's own suite is unchanged by this build (no B16 file edited); the five regression suites of addendum 24 point 3 and commitments.py check as the lead's procedure after the commit",
+   "command": "the lead's procedure"
+  },
+  {
+   "what": "the real build, after block B is sealed and B14's report exists (never before; it reads sealed units). Plan A shown; plan_b likewise; plan_a_block_a_only only if stage 1 ends without block B",
+   "command": "/Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python -B -m scripts.stage1_s1.reading_input --reading plan_a --kit tmp/stage1-olmo --b14-strata <strata.json> --b14-report <overlap_report.json> --expect-strata-sha256 <FOCUS value> --expect-report-sha256 <sealed report value> --out <new sealed folder>/tables.json --record <new sealed folder>/sources.json   (then B16: python -B -m scripts.stage1_s1.reading --input <...>/tables.json --out <...>/reading.json, and compare B16's provenance.input_sha256 with the builder's printed tables.json SHA-256)"
+  }
+ ],
+ "does_not_exist_yet": [
+  "block B's units, O-ext passes, references (ref_train, ref_eval, safe_lora) and judge files, and block C (plan B): tested only on synthetic folders in the engine's layout",
+  "B14's overlap_report.json for the reading (it needs block B's units); B14's strata.json SHA-256 is to be in FOCUS (addendum 11 point 12)",
+  "the token-axis dose cells R_1200 and R_2400 (no kit job kind runs them)",
+  "a per-prompt rule for coherent-only U in B16's per-item table",
+  "any reader of the HarmBench and Granite judge files for the claim rule (REV3 2.3; HB-1 to HB-3): B16 has no field for them"
+ ],
+ "open_points": [
+  {
+   "id": "RI-O1",
+   "what": "B16-H-O8 is met builder-side (required --expect-*-sha256, canonical-form check); B16 itself is unchanged. If the lead wants B16 to refuse a mismatch too, B16-H-O8's --expect-report-sha256 is a small B16 __main__.py change (not built; it would change B16's module hashes)."
+  },
+  {
+   "id": "RI-O2",
+   "what": "u_variants.coherent is not built: under G2 a prompt whose 3 sampled answers all fail the screen has no coherent share, and B16's per-item table needs one value per prompt and cell (Gate B's reading drops such a prompt pairwise, which B16's schema cannot express). Options: (a) a B16 change taking per-prompt (coherent unsafe, coherent n) counts with pairwise drops; (b) a pre-set imputation rule (not recommended); (c) S-G reports the two G3 corners only and says why. The lead rules."
+  },
+  {
+   "id": "RI-O3",
+   "what": "token_axis is not built: REV3 9.3 item 2 needs R_1200 and R_2400 at d = 2-4 (seeds 1102-1104), and no kit job kind (stage1_rules.KINDS, BLOCK_KINDS) runs them, so S-tok has no input. A kit round (and funding) or S-tok's absence is the lead's decision."
+  },
+  {
+   "id": "RI-O4",
+   "what": "HarmBench and Granite: the judge files are checked (presence, index, seal, one per judge per unit the reading uses) but not read; REV3 2.3's claim rule and HB-2's reports have no B16 field and no builder. A separate seal-safe reader is needed before any harm sentence."
+  },
+  {
+   "id": "RI-O5",
+   "what": "plan_a_block_a_only refuses once block B is sealed (my reading of REV3 1.3 / LW-35: that reading is for a stage 1 without block B). The lead confirms or rules otherwise."
+  },
+  {
+   "id": "RI-O6",
+   "what": "B+Qi's own a0 (role bqi_own_a0, after a failed certificate) refuses: B16's reference schema has no field for a reference's own comparator."
+  },
+  {
+   "id": "RI-O7",
+   "what": "Safe LoRA's two reference points enter B16 as two point references; B16's family 1b (beats every reference) then needs both, which equals REV3 5.3's 'm beats it only if m beats each point'. Its certify (K = 0) point and B10's certify units are not references."
+  },
+  {
+   "id": "RI-O8",
+   "what": "References are read from the complete ref jobs found in block B; there is no required list (a reference that did not run is simply absent and the summary prints the list). If the lead wants a refusal for a planned reference that is missing, the kit's planned ref jobs can be compared."
+  },
+  {
+   "id": "RI-O9",
+   "what": "The plan-A/B code is read from plan.json's record; the builder does not re-derive it from Gate B's verdict file as plan_tool.plan_ab_checked does (the kit does at every init and release)."
+  },
+  {
+   "id": "RI-O10",
+   "what": "O's per-prompt flags re-implement oext_eval.evaluate_oext's primary table (oext_eval stores no per-prompt flag list); every count of oext_summary.json (pooled and per source: prompts, refused, invalid; bank sizes; longer-than-cut) must agree. The rule is read from oext_eval's code and verified on synthetic folders only."
+  },
+  {
+   "id": "RI-O11",
+   "what": "Gate A units (the pins): job.json is bound by its pin, not by COMPLETE.json's job_sha256 (the Gate A engine's marker may not name it), and summary.json's harm.sampled invalid and capped are compared only where present (answers and unsafe always, as the frozen readers do). Not verified on real units (they may not be opened)."
+  },
+  {
+   "id": "RI-O12",
+   "what": "A block seal must carry seal.py's judge_record (round 30 and later). A seal written by the pre-round-30 seal.py has none and refuses; addendum 31 D3 shows that seal.py could not seal block A, so this is not expected, but it is not checked here."
+  },
+  {
+   "id": "RI-O13",
+   "what": "The rules module defaults to the repository's runkit/stage1-olmo/stage1_rules.py (REJUDGED_PINS, block_runs). The summary prints its SHA-256; if the live kit's copy differs, pass --rules tmp/stage1-olmo/stage1_rules.py or compare."
+  },
+  {
+   "id": "RI-O14",
+   "what": "The not-run route for R's O cell at a reused seed reads block A's seal not_run list ('o_only R <seed>'); the decision files themselves are not re-hashed here (the seal holds their SHA-256)."
+  }
+ ],
+ "data_rules": "No real unit, eval, judge, sealed, answer or secrets file was opened; nothing in tmp/ or the main checkout was written; no network, no pod, no git write, no other agent. The main checkout was read for the addendum and the pre-registration only; the live kit folder's top-level file names were listed once (no file opened).",
+ "changed_files": [
+  {
+   "path": "scripts/stage1_s1/reading_input/__init__.py",
+   "old_sha256": null,
+   "new_sha256": "da7697903991e0c62d9f668a96430ed18d43bef02d8a2d4adf555ae9c9239d14"
+  },
+  {
+   "path": "scripts/stage1_s1/reading_input/__main__.py",
+   "old_sha256": null,
+   "new_sha256": "5202d483edca4f22822a603e2ea544c5c0ae7f02641c360ce301e26b295d9bba"
+  },
+  {
+   "path": "scripts/stage1_s1/reading_input/build.py",
+   "old_sha256": null,
+   "new_sha256": "b7e4bbf3fa80255dc7eb460e5e49c447fafa8dcb3a4854193e14936078b753f1"
+  },
+  {
+   "path": "scripts/stage1_s1/reading_input/items.py",
+   "old_sha256": null,
+   "new_sha256": "0dbd10e9962490bb9d6fcf39ec1216fcabd000e2ba710a5b188626328acfc300"
+  },
+  {
+   "path": "scripts/stage1_s1/reading_input/mutation/mutants_reading_input.json",
+   "old_sha256": null,
+   "new_sha256": "42725346d7e6bde65926470c863f5bbc3218d2dd647b5a111b4735f926b968e9"
+  },
+  {
+   "path": "scripts/stage1_s1/reading_input/mutation/run_mutants.py",
+   "old_sha256": null,
+   "new_sha256": "491a2266856b9c632d0b0e856349034f8e7c987727d4df20427ce9d029dd83ac"
+  },
+  {
+   "path": "scripts/stage1_s1/reading_input/sources.py",
+   "old_sha256": null,
+   "new_sha256": "127223a80c7a3dec5a88680278507b99e812b023e65ed49a5e0b67e770642d0a"
+  },
+  {
+   "path": "scripts/stage1_s1/reading_input/tests/conftest.py",
+   "old_sha256": null,
+   "new_sha256": "00bce2df67f9bbfcfa139cc3a2a3a50e7d4a74b2b48c4414eda97f70442d4c0b"
+  },
+  {
+   "path": "scripts/stage1_s1/reading_input/tests/synth_kit.py",
+   "old_sha256": null,
+   "new_sha256": "cb4228c88741115fb78a8724b1659f1bc0011f9d0c348da690764fcbafedde1d"
+  },
+  {
+   "path": "scripts/stage1_s1/reading_input/tests/test_builder.py",
+   "old_sha256": null,
+   "new_sha256": "f53ee5f48a815e87ae8722264af394d0cf8cbd0a88580085252af6da003dc104"
+  },
+  {
+   "path": "scripts/stage1_s1/reading_input/tests/test_items.py",
+   "old_sha256": null,
+   "new_sha256": "c5e4ef04480d8ad3adb620e4774650b36c2121ce58ec4d73f58ea0e23d5b603d"
+  }
+ ]
+}

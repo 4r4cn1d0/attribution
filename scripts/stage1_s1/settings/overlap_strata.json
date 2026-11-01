@@ -37,16 +37,16 @@
     },
     "seed_plans_note": "each plan names the common seeds of a0 and its add arms (the 1101 rule: no method arm at 1101) and the add arms that run under it; the report needs units of a0 and of exactly these add arms at exactly these seeds, and the strata record must hold each of these add sets. d1_plan_a: plan A under seed layout D1 (UW-03, FOCUS 17 Oct 07:21 UTC): a0 1101-1107, the add arms 1102-1107. block_a_only: plan A's block A (stage-1 DRAFT revision 2 section 1.3: the method arms at 1102-1104, a0 at 1104, a0 1101-1103 reused from Gate A); a block-A-only reading prints its plan. plan_b: plan B under D1 as LN-02 rules it (addendum section 11 point 10; the lead adopted every LN item, addendum section 10; DRAFT revision 3 section 1.3): plan B runs P1, P3 and P6 only, so its add arms are S1 and S4 at 1102-1110 and S3 does not run; a0 runs at 1101-1107; so the common seeds are 1102-1107 (J = 6). Seeds 1108-1110 run in a third block of their own (A1, H1, S1, S4 and R) with no a0 unit, so they add no a0 pair. plan_b_block_a_only: plan B's block A (the add arms S1 and S4 at 1102-1104; a0 at 1104, with 1101-1103 reused from Gate A; J = 3), beside plan A's block_a_only; a block-A-only reading prints its plan",
     "identity": {
-      "recipe_sha256": "9e9bde6f2f32876098410479883deff5ef3141e471a79ed231c7a5db15ad399b",
       "manifest_sha256": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9"
     },
-    "identity_note": "job.json fields that must equal these values; the bank is checked by the prompt ids instead (every unit's sampled answers must cover exactly the strata's dev harm prompt ids)",
+    "identity_note": "job.json fields that must equal these values; the bank is checked by the prompt ids instead (every unit's sampled answers must cover exactly the strata's dev harm prompt ids). D-6 (1 Nov 2026): the recipe is not an identity field, because the reading's units ran two recipes of one training identity: the Gate A a0 units at 1101-1103 ran REC (9e9bde6f; scripts/stage1/settings/limits_check.json gate_a_identity) and every stage-1 kit arm and a0 run ran recipe S (ceffe0ef; stage1_rules.TRAINING_IDENTITY_RECIPES and plan.json); S is REC with other attribution checkpoints and another attribution query bank only (the two configs), and this report reads neither",
     "allowed_code_sha256": [
       "552538748acec1a8ffd1ee976b9eb3c3fdfe9ca01b8148ee8810291409357441",
       "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892"
     ],
     "allowed_code_note": "Gate A's engine 55253874 (the reused a0 units) and engine X 472fc7f6; the lead adds X' (B+Qi) here if any add-arm or a0 unit runs on it",
-    "refused_recipes": ["ceffe0efb5d75bacfbd62743f530259deeedeca8950605d1bd3ff66e5391fe46"],
+    "refused_recipes": ["c004349c29d2b535a91a92af6de620416d2b30f5784e86d31158a99e32b1e134", "37942cf565a7de7d4f68260ec4f769818fb03af9978b0f0356dc90851aa7644c"],
+    "refused_recipes_note": "D-6: the two reference recipes, recipe G (c004349c, its config in experiments/safety_selection/configs) and B+Qi (37942cf5, engine Y's config; settings/oext_unit_y.json recipes.allowed): a reference unit carries the engine arm a0 (stage1_rules, ref_train), so only its recipe tells it from an a0 unit. Before D-6 this list held Gate B's recipe S (REQ-19's rule for Gate A units), which refused every stage-1 kit unit. REC and S pass; any other recipe is bound only by the units' COMPLETE.json and job.json pins of the inputs file (overlap_inputs.py checks plan.json's recipe of each kit unit)",
     "path_pattern": "^[A-Za-z0-9_.+-]+(/[A-Za-z0-9_.+-]+)*$",
     "path_note": "a relative path under the data root (no '..', which limits_common refuses); the lead narrows it to the stage-1 kit's layout when B15 fixes that layout",
     "frozen_reader": {

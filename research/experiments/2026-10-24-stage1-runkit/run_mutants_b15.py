@@ -14,7 +14,8 @@ sibling folder). Mutations are applied to the copy only, one mutant at a time; t
 re-hashed after each.
 
 Each run is the same command: PY -B -m pytest -p no:cacheprovider -q -x -rfE --basetemp SCRATCH/pt-<n> <the kit's
-test files: round 31's five, and since kit round 33 test_g1_yoext.py and test_round33.py>, cwd SCRATCH/repo, with
+test files: round 31's five, since kit round 33 test_g1_yoext.py and test_round33.py, and since kit round 34
+test_round34.py>, cwd SCRATCH/repo, with
 PYTHONDONTWRITEBYTECODE=1 (STAGE1_ENGINE_Y_TREE is passed on when set). The baseline runs first with that command and
 must exit 0, else nothing else runs (deselect only the baseline's environment failures). A mutant is KILLED only by a
 real test failure: pytest exit 1 with at least one FAILED line and no ERROR line. Exit 0 is SURVIVED (a mutant marked
@@ -38,7 +39,8 @@ KIT_REL = pathlib.Path("runkit/stage1-olmo")
 COPIED = ("stage1-olmo", "gate-b-olmo")
 TESTS = ("tests/test_round31.py", "tests/test_stage1_judge_route.py", "tests/test_round30a.py",
          "tests/test_stage1_runkit.py", "tests/test_stage1_runner.py", "tests/test_g1_yoext.py",
-         "tests/test_round33.py")      # round 33: test_g1_yoext.py (the spec's note) and the round's own tests
+         "tests/test_round33.py",      # round 33: test_g1_yoext.py (the spec's note) and the round's own tests
+         "tests/test_round34.py")      # kit round 34: B14's similarity pass (J22) on block sim
 NEAR_LINES = 40
 
 

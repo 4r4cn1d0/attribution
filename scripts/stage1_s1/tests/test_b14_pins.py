@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import ast
 import json
+import runpy
 import subprocess
 import sys
 from pathlib import Path
@@ -13,7 +14,7 @@ import pytest
 
 import experiments.safety_selection as engine
 from experiments.safety_selection.common import code_identity, sha256_file
-from experiments.safety_selection.config import config_sha256, load_recipe
+from experiments.safety_selection.config import config_sha256, load_recipe, training_identity
 from scripts.stage1 import s1common as s1
 from scripts.stage1_s1 import overlap_similarity as sim
 from scripts.stage1_s1 import overlap_strata as st
@@ -45,17 +46,38 @@ def test_the_pinned_recipe_manifest_and_frozen_scripts_are_the_named_ones():
     assert config_sha256(rec) == sim_doc["recipe_sha256"]
     assert rec["model"]["repo_id"] == "allenai/OLMo-2-0425-1B-Instruct"
     rep = json.loads(st.SETTINGS_PATH.read_bytes())["report"]
-    assert rep["identity"]["recipe_sha256"] == sim_doc["recipe_sha256"]
-    assert rep["identity"]["manifest_sha256"] == sim_doc["prepared_manifest_sha256"]
+    assert rep["identity"] == {"manifest_sha256": sim_doc["prepared_manifest_sha256"]}      # D-6: no recipe field
     assert rep["samples_per_prompt"] == rec["generation"]["harm_samples"]["count"] == 3
-    gate_b_s = load_recipe(REPO / "experiments/safety_selection/configs/study-kt-olmo2-1b-r64-b-mb4-gateb-20261008.json")
-    assert rep["refused_recipes"] == [config_sha256(gate_b_s)]
     for entry in rep["frozen_reader"].values():
         assert sha256_file(REPO / entry["path"]) == entry["sha256"]
     limits = json.loads((REPO / "scripts/stage1/settings/limits_check.json").read_bytes())
     assert rep["frozen_reader"] == limits["frozen_reader"]
     assert limits["gate_a_identity"]["code_sha256"] in rep["allowed_code_sha256"]
     assert code_identity()["sha256"] in rep["allowed_code_sha256"]
+
+
+def test_d6_the_refused_recipes_are_the_reference_recipes_and_the_reading_s_two_recipes_pass():
+    """D-6: recipe G (its config here) and B+Qi (engine Y's config; oext_unit_y.json's pin) refuse; REC (the Gate A a0
+    units: limits_check.json gate_a_identity) and recipe S (every kit arm and a0 run: the kit's rules) pass. REC and S
+    share one training identity, G does not."""
+    rep = json.loads(st.SETTINGS_PATH.read_bytes())["report"]
+    configs = REPO / "experiments/safety_selection/configs"
+    rec = load_recipe(configs / "study-kt-olmo2-1b-r64-b-mb4-20261008.json")
+    s = load_recipe(configs / "study-kt-olmo2-1b-r64-b-mb4-gateb-20261008.json")
+    g = load_recipe(configs / "study-kt-olmo2-1b-r64-g-mb4-20261008.json")
+    bqi = json.loads((PKG / "settings" / "oext_unit_y.json").read_bytes())["recipes"]["allowed"]["B+Qi"]
+    assert rep["refused_recipes"] == [config_sha256(g), bqi] and "recipe_sha256" not in rep["identity"]
+    gate_a = json.loads((REPO / "scripts/stage1/settings/limits_check.json").read_bytes())["gate_a_identity"]
+    assert gate_a["recipe_sha256"] == config_sha256(rec) and config_sha256(rec) not in rep["refused_recipes"]
+    assert config_sha256(s) not in rep["refused_recipes"]
+    assert training_identity(rec) == training_identity(s) != training_identity(g)
+    rules = runpy.run_path(str(REPO / "runkit" / "stage1-olmo" / "stage1_rules.py"))
+    names = rules["RECIPE_NAMES"]
+    assert rules["TRAINING_IDENTITY_RECIPES"] == ("S",)               # the recipe of every kit arm and a0 run (Q4)
+    assert config_sha256(load_recipe(REPO / names["S"])) == config_sha256(s)
+    assert config_sha256(load_recipe(REPO / names["B"])) == config_sha256(rec)
+    assert config_sha256(load_recipe(REPO / names["G"])) == rep["refused_recipes"][0]
+    assert {a["arm"] for a in rules["REJUDGED_PINS"]["A"] if a["name"].startswith("a0 ")} == {"a0"}
 
 
 def test_the_seed_plans_are_the_records_plans():
@@ -111,17 +133,19 @@ def _imports(path: Path) -> set[str]:
 
 
 def test_no_script_draws_a_random_number():
-    for path in (PKG / "overlap_similarity.py", PKG / "overlap_strata.py"):
+    for name in ("overlap_similarity", "overlap_strata", "overlap_inputs", "overlap_inputs_check"):
+        path = PKG / f"{name}.py"
         names = _imports(path)
         assert "random" not in names and "secrets" not in names
         assert "numpy_generator" not in path.read_text() and "s1.seed(" not in path.read_text()
 
 
-def test_the_mac_half_is_standard_library_only():
-    assert not _imports(PKG / "overlap_strata.py") & {"torch", "numpy", "transformers", "peft", "scipy"}
-    code = ("import sys; sys.path[:0] = [%r, %r]; import scripts.stage1_s1.overlap_strata; "
+@pytest.mark.parametrize("name", ["overlap_strata", "overlap_inputs", "overlap_inputs_check"])
+def test_the_mac_half_is_standard_library_only(name):
+    assert not _imports(PKG / f"{name}.py") & {"torch", "numpy", "transformers", "peft", "scipy"}
+    code = ("import sys; sys.path[:0] = [%r, %r]; import scripts.stage1_s1.%s; "
             "print(sorted(m for m in ('torch', 'numpy', 'transformers') if m in sys.modules))"
-            % (str(PKG.parents[1]), str(REPO)))
+            % (str(PKG.parents[1]), str(REPO), name))
     out = subprocess.run([sys.executable, "-B", "-c", code], capture_output=True, text=True, check=True)
     assert out.stdout.strip() == "[]"
 

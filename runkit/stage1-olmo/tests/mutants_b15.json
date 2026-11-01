@@ -734,10 +734,11 @@
   {
    "describes": "record-done refuses a complete O-only pass (the BUILD-RUNNER fix undone)",
    "file": "stage1_rules.py",
-   "find": "\"transfer_report\",\n                            \"o_only\"})",
+   "find": "\"transfer_report\",\n                            \"o_only\", \"similarity\"})",
    "id": "B15-r-o-only-unit",
    "part": "B15 data (runner)",
-   "replace": "\"transfer_report\"})"
+   "replace": "\"transfer_report\",\n                            \"similarity\"})",
+   "retargeted": "kit round 34: UNITLESS_KINDS also holds \"similarity\"; the mutant still removes \"o_only\" alone"
   },
   {
    "describes": "the V/V' check run after the projection (and its gate dropped)",
@@ -2194,10 +2195,11 @@
   {
    "describes": "item 1: the runner's settings are not an S1_CODE pin (not packed)",
    "file": "stage1_rules.py",
-   "find": "           \"scripts/stage1_s1/settings/oext_unit.json\":\n               \"3959eae7264f56f613f5d7cd54e69081d8985ef7cbce2962243f6685e3581189\"}",
+   "find": "           \"scripts/stage1_s1/settings/oext_unit.json\":\n               \"3959eae7264f56f613f5d7cd54e69081d8985ef7cbce2962243f6685e3581189\",\n",
    "id": "B15-8-runner-settings-unpinned",
    "part": "B15 round 3c (24 Oct; notes/b15r3c-build.json)",
-   "replace": "           }"
+   "replace": "",
+   "retargeted": "kit round 34: S1_CODE continues after this entry (B14's two pins); the mutant still removes it"
   },
   {
    "describes": "item 1: an O-ext step does not seal oext_unit.json (no check before the job, check-plan passes without it)",
@@ -2586,10 +2588,11 @@
   {
    "describes": "J5's job record names no fixed recipe (back to the old default)",
    "file": "plan_tool.py",
-   "find": "RECORDED_RECIPE = {\"rep_pass\": \"S\"}",
+   "find": "RECORDED_RECIPE = {\"rep_pass\": \"S\", \"similarity\": \"B\"}",
    "id": "B15-g-no-recorded-recipe",
    "part": "B15 round G (25 Oct; I: notes/repin-build.json): J5's job record names recipe S",
-   "replace": "RECORDED_RECIPE = {}"
+   "replace": "RECORDED_RECIPE = {\"similarity\": \"B\"}",
+   "retargeted": "kit round 34: RECORDED_RECIPE also holds the similarity pass's REC; the mutant still drops J5's"
   },
   {
    "describes": "a deferred J5 keeps its older record's recipe",
@@ -3095,7 +3098,295 @@
    "id": "B15-33-gb5-pin",
    "part": "kit round 33 (31 Oct): judge runbook B GB1, GB4, GB5",
    "replace": "JUDGE_GPU = \"NVIDIA A100-SXM4-40GB\""
+  },
+  {
+   "describes": "J22's job id taken by another number",
+   "file": "stage1_rules.py",
+   "find": "\"J20\", \"J21\", \"J22\")))",
+   "id": "B15-34-kind-id",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "\"J20\", \"J21\", \"J23\")))"
+  },
+  {
+   "describes": "the pass's upper without the wide-cap factor (900 s -> 600 s)",
+   "file": "stage1_rules.py",
+   "find": "        return DIAG_UPPER_FACTOR * SIM_S\n",
+   "id": "B15-34-upper-factor",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "        return SIM_S\n"
+  },
+  {
+   "describes": "the pass's estimate 600 s -> 60 s (cap 1.5 h -> 1.25 h)",
+   "file": "stage1_rules.py",
+   "find": "SIM_S = 600.0",
+   "id": "B15-34-measured",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "SIM_S = 60.0"
+  },
+  {
+   "describes": "J22 not flagged unmeasured",
+   "file": "stage1_rules.py",
+   "find": "\"a0_arm\", \"a1_rescore\", \"similarity\"})   # an O500",
+   "id": "B15-34-unmeasured",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "\"a0_arm\", \"a1_rescore\"})   # an O500"
+  },
+  {
+   "describes": "J22 treated as a unit job (the runner looks for a COMPLETE.json)",
+   "file": "stage1_rules.py",
+   "find": "\"o_only\", \"similarity\"})   # BUILD-RUNNER fix",
+   "id": "B15-34-unitless",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "\"o_only\"})   # BUILD-RUNNER fix"
+  },
+  {
+   "describes": "block sim funded from block B's group",
+   "file": "stage1_rules.py",
+   "find": "                 \"sim\": \"sim\"}            # §8 Q2",
+   "id": "B15-34-funding-group",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "                 \"sim\": \"B\"}            # §8 Q2"
+  },
+  {
+   "describes": "block sim also takes an L1 scan",
+   "file": "stage1_rules.py",
+   "find": "               \"sim\": (\"similarity\",)}",
+   "id": "B15-34-block-kinds-sim",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "               \"sim\": (\"similarity\", \"l1_scan\")}"
+  },
+  {
+   "describes": "block A also takes the similarity pass",
+   "file": "stage1_rules.py",
+   "find": "                     \"classifier\", \"arm\", \"a0_arm\", \"c0\", \"retrain\", \"a1_rescore\"),",
+   "id": "B15-34-block-kinds-a",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "                     \"classifier\", \"arm\", \"a0_arm\", \"c0\", \"retrain\", \"a1_rescore\", \"similarity\"),"
+  },
+  {
+   "describes": "the output's script and settings SHA-256 not checked",
+   "file": "stage1_rules.py",
+   "find": "        if prov.get(key) != S1_CODE[rel]:\n",
+   "id": "B15-34-problems-code",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "        if False and prov.get(key) != S1_CODE[rel]:\n"
+  },
+  {
+   "describes": "the output's input SHA-256 values not compared with the pins",
+   "file": "stage1_rules.py",
+   "find": "                 if hex64(have.get(k)) is None or have.get(k) != want.get(k)]",
+   "id": "B15-34-problems-inputs",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "                 if hex64(have.get(k)) is None]"
+  },
+  {
+   "describes": "an input absent on both sides (no REC config) passes",
+   "file": "stage1_rules.py",
+   "find": "                 if hex64(have.get(k)) is None or have.get(k) != want.get(k)]",
+   "id": "B15-34-problems-input-none",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "                 if have.get(k) != want.get(k)]"
+  },
+  {
+   "describes": "the output's prompt count not checked",
+   "file": "stage1_rules.py",
+   "find": "    if _count(ev.get(\"prompts\")) != SIM_PROMPTS:\n",
+   "id": "B15-34-problems-prompts",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "an add set's row count not checked",
+   "file": "stage1_rules.py",
+   "find": "        if block.get(\"edit_sha256\") != digest or _count(block.get(\"rows\")) != SIM_ROWS:",
+   "id": "B15-34-problems-rows",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "        if block.get(\"edit_sha256\") != digest:"
+  },
+  {
+   "describes": "the script's printed SHA-256 not compared with the file's",
+   "file": "stage1_rules.py",
+   "find": "    if printed is None or printed != digest:\n",
+   "id": "B15-34-printed",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "the Mac accepts a record that is not the pulled output's",
+   "file": "stage1_rules.py",
+   "find": "    if record != want:\n",
+   "id": "B15-34-record-equal",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "the Mac accepts a symbolic link for the output or the record",
+   "file": "stage1_rules.py",
+   "find": "        if rel not in outputs or p.is_symlink() or not p.is_file() or \\\n",
+   "id": "B15-34-record-symlink",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "        if rel not in outputs or not p.is_file() or \\\n"
+  },
+  {
+   "describes": "the runner runs without checking the plan's entry (paths, add-set names, SHA-256 form)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if paths != [rules.SIM_SCRIPT, rules.SIM_SETTINGS, rules.SIM_DEV_BANK[\"path\"]] or \\\n",
+   "id": "B15-34-runner-entry",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "    if False and paths != [rules.SIM_SCRIPT, rules.SIM_SETTINGS, rules.SIM_DEV_BANK[\"path\"]] or \\\n"
+  },
+  {
+   "describes": "the runner runs with a pack whose file differs from the plan's pin",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if stale:\n        raise Unrunnable(f\"{where}: {len(stale)} input(s) not packed",
+   "id": "B15-34-runner-stale",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "    if False:\n        raise Unrunnable(f\"{where}: {len(stale)} input(s) not packed"
+  },
+  {
+   "describes": "the sealed-file check leaves out the prepared files and the add sets",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        paths += [rel for rel in similarity_pins(job) if rel not in paths]",
+   "id": "B15-34-runner-sealed-paths",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "        paths += []"
+  },
+  {
+   "describes": "an output off the pins (record problems) is recorded complete",
+   "file": "setup/job_runner_stage1.py",
+   "find": "            if rel is None:\n                return {**record, \"status\": \"crashed\", \"why\": why}\n            outputs[rel] = sha(root / rel)",
+   "id": "B15-34-runner-record-crash",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "            if rel is not None:\n                outputs[rel] = sha(root / rel)"
+  },
+  {
+   "describes": "the record is written over an existing file",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        with open(root / rel, \"xb\") as handle:           # exclusive",
+   "id": "B15-34-runner-record-exclusive",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "        with open(root / rel, \"wb\") as handle:           # exclusive"
+  },
+  {
+   "describes": "the pass gets recipe S instead of REC",
+   "file": "setup/job_runner_stage1.py",
+   "find": "[*SCRIPT, rules.SIM_SCRIPT, \"--prepared\", p, \"--recipe\", rules.REC,",
+   "id": "B15-34-runner-recipe",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "[*SCRIPT, rules.SIM_SCRIPT, \"--prepared\", p, \"--recipe\", rules.RECIPE_S,"
+  },
+  {
+   "describes": "the pass's seconds go to the setup stage of the cost ledger",
+   "file": "setup/job_runner_stage1.py",
+   "find": "              (\"-similarity\", \"scoring\"))",
+   "id": "B15-34-runner-stage",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "              (\"-similarity\", \"setup\"))"
+  },
+  {
+   "describes": "block sim takes any launches",
+   "file": "plan_tool.py",
+   "find": "        if shapes != [[[\"similarity\"]]]:\n",
+   "id": "B15-34-shape",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "        if False:\n"
+  },
+  {
+   "describes": "the engine-X check of the pass dropped",
+   "file": "plan_tool.py",
+   "find": "    if kind == \"similarity\" and engine != \"X\":",
+   "id": "B15-34-engine",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "    if kind == \"similarity\" and engine == \"Q\":"
+  },
+  {
+   "describes": "the pass's job record names no fixed recipe",
+   "file": "plan_tool.py",
+   "find": "RECORDED_RECIPE = {\"rep_pass\": \"S\", \"similarity\": \"B\"}",
+   "id": "B15-34-recipe",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "RECORDED_RECIPE = {\"rep_pass\": \"S\"}"
+  },
+  {
+   "describes": "a similarity job may name an arm or a seed",
+   "file": "plan_tool.py",
+   "find": "\"classifier\", \"cert_c3\", \"similarity\")",
+   "id": "B15-34-no-arm",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "\"classifier\", \"cert_c3\")"
+  },
+  {
+   "describes": "an edit source other than the kit's pin is not refused by name",
+   "file": "plan_tool.py",
+   "find": "        if entry[\"sha256\"] != pin:\n",
+   "id": "B15-34-entry-pin",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "        if False:\n"
+  },
+  {
+   "describes": "the add set's file on disk not re-hashed",
+   "file": "plan_tool.py",
+   "find": "        if not path.is_file() or mac.sha(path) != pin:\n            fail(f\"B14's add set",
+   "id": "B15-34-entry-disk",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "        if False:\n            fail(f\"B14's add set"
+  },
+  {
+   "describes": "the add sets not checked against plan.json's S1, S3 and S4 arm runs",
+   "file": "plan_tool.py",
+   "find": "        if named != {pin} or not any(j.get(\"status\") == \"complete\" for j in runs):",
+   "id": "B15-34-entry-trained",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "no complete arm run needed (planned runs suffice)",
+   "file": "plan_tool.py",
+   "find": "        if named != {pin} or not any(j.get(\"status\") == \"complete\" for j in runs):",
+   "id": "B15-34-entry-complete",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "        if named != {pin}:"
+  },
+  {
+   "describes": "the job record carries no inputs",
+   "file": "plan_tool.py",
+   "find": "                    rec[\"similarity\"] = similarity_entry(plan)",
+   "id": "B15-34-build-entry",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "                    rec[\"similarity\"] = {}"
+  },
+  {
+   "describes": "release does not re-derive the inputs",
+   "file": "plan_tool.py",
+   "find": "            if job[\"kind\"] == \"similarity\" and job.get(\"similarity\") != similarity_entry(plan):",
+   "id": "B15-34-release-check",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "            if False:"
+  },
+  {
+   "describes": "record-done does not check the output and its record",
+   "file": "plan_tool.py",
+   "find": "            if problem:\n                fail(f\"{host}: job {i} (similarity): {problem}\")",
+   "id": "B15-34-record-done-check",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "            if False:\n                fail(f\"{host}: job {i} (similarity): {problem}\")"
+  },
+  {
+   "describes": "record-done does not print the strata step's input",
+   "file": "plan_tool.py",
+   "find": "    if similarity:                                       # kit round 34",
+   "id": "B15-34-record-done-print",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "    if False:                                       # kit round 34"
+  },
+  {
+   "describes": "the finisher's light check leaves the similarity job out",
+   "file": "finisher.py",
+   "find": "    results.update(similarity_check(host, tree))         # kit round 34",
+   "id": "B15-34-light-check",
+   "part": "kit round 34 (1 Nov): B14's similarity pass (J22) on block sim",
+   "replace": "    pass  # kit round 34"
   }
  ],
- "note": "B15 BUILD-CORE: files are relative to runkit/stage1-olmo/; tests are runkit/stage1-olmo/tests/ (run_mutants.py copies scripts/stage1, so the lead's runner copies this kit's folder instead, with the same rules) BUILD-RUNNER added the B15-r-* entries (runner side: job runner, preflight, download, probes, pack, orchestrate, judges, backup, the UNITLESS fix); same files-relative rule. The B15 FIX round (notes/b15-fix.json) added the B15-x-* entries and B15-d-status-prints-value, and re-targeted B15-m-group-need, B15-g-plan-ab-not-read and B15-r-vcheck-after-projection to the fixed text. B15 round 2 (notes/b15r2-build.json) added the B15-2-* entries and re-targeted B15-g-plan-ab-not-read and B15-g-plan-ab-rule to the derived plan-A/B code. The tests now read only this repository (the S1 package in scripts/stage1_s1, engine Y at STAGE1_ENGINE_Y_TREE, default tmp/engine-y-34bfd288), so a mutation copy needs runkit/stage1-olmo and runkit/gate-b-olmo copied and scripts, experiments, .ai, research, backups and tmp linked inside the same repository root; no sibling folder. The B15 round-2 fix round (notes/b15r2-fix.json) added the verifiers' 13 mutants (VG-*, V2-*) and the B15-3-* entries, and re-targeted B15-g-plan-ab-not-read, B15-x-no-block-a-floor and B15-2-plan-ab-bool to the fixed text. B15 round 3b (notes/b15r3b-build.json) added the B15-6-* entries (S1 package pins, the moved D-2 and C3 records, c0 on the LN-12 pod, LN-15e's retrain and re-score, 27 judge units, V2a's recorded fallback), retargeted B15-2-pack-d2-code and B15-4-no-theta0 to the changed text, and marks B15-2-plan-ab-not-derived 'expect': 'survive' with its equivalence argument in 'why'; B15-r-pack-man1 and B15-2-d2-req8-pool are now killed by new tests (test_stage1_runner.py test_a_named_input_that_man1_lists_with_another_sha256_..., test_stage1_runkit.py test_a_filled_pins_file_whose_pool_hash_differs_...). The B15 round-3b fix round (notes/b15r3b-fix.json) added the verify-pins report's 8 mutants (VP-*; VP-rescore-own-arm-seed-unchecked 'expect': 'survive' with its argument) and the B15-7-* entries (paths in normal form in the pack, F1; the runner's distinct re-score groups, F4). B15 round 3c (notes/b15r3c-build.json) added the B15-8-* entries (the O-ext unit runner pinned, packed, sealed and parsed; block A's completion against its recorded plan and the not-run decision; the $144 top-up's limit test) and retargeted B15-6-s1-unpinned-all, whose round-3b find text (the S1_UNPINNED exception) is gone: it now puts that exception back. Round H (notes/d3-build.json, addendum §28) added the B15-h-* entries (release without waiting for the earlier launch's hosts while the guard-off record holds; judge launches still wait; the early release recorded and logged); B15-g-launch-order's find text is unchanged and still the old rule's gate. Round 29 (notes/kit-round-29.json; addendum §29 and the user's 26 Oct re-run payment) added the 5 B15-29-* entries (the pull list, the finisher's roles, the unpulled decision's re-hash, the user-paid requeue and record-done's model-state exception); every one was run against the kit suite and killed (notes/kit-round-29-evidence/). No earlier find text was retargeted: the round-29 code keeps each earlier find text exactly once. Round 30 (notes/kit-round-30.json; addendum §30 and the lead's R1-R7) added the 5 B15-30-* entries (gap 1: a judge launch done only with its record; gap 2: one judge file per required unit; gap 3: the launcher's echo off; gap 4: the B10 pod bundle.py; D3: the moved hosts in the seal) and retargeted two entries whose find text moved (each marked 'retargeted'): B15-x-judge-files-unsealed to the seal's judge-record check, B15-x-safe-lora-label to judge_pod_stage1/bundle.py (same text). Every other find text is unchanged and still found exactly once. Round 30a (notes/kit-round-30a.json; the cert runbook's D2 and D4) added the 5 B15-30a-* entries (C1's registry seed in the runner, compare_c1.py); no earlier find text was retargeted. Round 31 (notes/kit-round-31.json; addendum §32 points 1-3, the lead's K1-K6) added the 6 B15-31-* entries (K1: a judge not-run decision counts for a block other than A; K2: the judge-launch units check at init-block and the ref_train label in write-files; K4: the dry bundle's printed record; K5: the finisher and moved, not-done hosts; K6: launch.py's exit code); no earlier find text was retargeted (each still found exactly once). Its runner is notes/run_mutants_b15.py. Round G1 (notes/g1-yoext.json; addendum §34 point 3, the engine-Y O-ext re-pin) added the 4 B15-G1-* entries (the Y pack's engine-Y O-ext files, their sources and the shared O-ext files); their killing tests are in tests/test_g1_yoext.py and tests/test_stage1_runner.py, so the runner's TESTS should name tests/test_g1_yoext.py too (as round 31 added test_round31.py). No earlier find text was retargeted (each is still found exactly once). Kit round 32 (notes/kit-round-32.json; addendum §34 points 5-7, the lead's K1-K6) added the 8 B15-32-* entries and re-targeted B15-x-b10-unit-count (the runner's B10 unit count now allows the certify unit alone after B10's failed gate) and B15-h-judge-ignores-moved (the judge wait now skips the never-released hosts of a launch skipped under not-run decisions) to the changed text, with the same replacement meaning. Kit round 33 (31 Oct, judge runbook B GB1/GB4/GB5) added the B15-33-* entries, run with tests/test_round33.py added to the runner's test files, and re-targeted B15-m-funding-source to the §36 elif."
+ "note": "B15 BUILD-CORE: files are relative to runkit/stage1-olmo/; tests are runkit/stage1-olmo/tests/ (run_mutants.py copies scripts/stage1, so the lead's runner copies this kit's folder instead, with the same rules) BUILD-RUNNER added the B15-r-* entries (runner side: job runner, preflight, download, probes, pack, orchestrate, judges, backup, the UNITLESS fix); same files-relative rule. The B15 FIX round (notes/b15-fix.json) added the B15-x-* entries and B15-d-status-prints-value, and re-targeted B15-m-group-need, B15-g-plan-ab-not-read and B15-r-vcheck-after-projection to the fixed text. B15 round 2 (notes/b15r2-build.json) added the B15-2-* entries and re-targeted B15-g-plan-ab-not-read and B15-g-plan-ab-rule to the derived plan-A/B code. The tests now read only this repository (the S1 package in scripts/stage1_s1, engine Y at STAGE1_ENGINE_Y_TREE, default tmp/engine-y-34bfd288), so a mutation copy needs runkit/stage1-olmo and runkit/gate-b-olmo copied and scripts, experiments, .ai, research, backups and tmp linked inside the same repository root; no sibling folder. The B15 round-2 fix round (notes/b15r2-fix.json) added the verifiers' 13 mutants (VG-*, V2-*) and the B15-3-* entries, and re-targeted B15-g-plan-ab-not-read, B15-x-no-block-a-floor and B15-2-plan-ab-bool to the fixed text. B15 round 3b (notes/b15r3b-build.json) added the B15-6-* entries (S1 package pins, the moved D-2 and C3 records, c0 on the LN-12 pod, LN-15e's retrain and re-score, 27 judge units, V2a's recorded fallback), retargeted B15-2-pack-d2-code and B15-4-no-theta0 to the changed text, and marks B15-2-plan-ab-not-derived 'expect': 'survive' with its equivalence argument in 'why'; B15-r-pack-man1 and B15-2-d2-req8-pool are now killed by new tests (test_stage1_runner.py test_a_named_input_that_man1_lists_with_another_sha256_..., test_stage1_runkit.py test_a_filled_pins_file_whose_pool_hash_differs_...). The B15 round-3b fix round (notes/b15r3b-fix.json) added the verify-pins report's 8 mutants (VP-*; VP-rescore-own-arm-seed-unchecked 'expect': 'survive' with its argument) and the B15-7-* entries (paths in normal form in the pack, F1; the runner's distinct re-score groups, F4). B15 round 3c (notes/b15r3c-build.json) added the B15-8-* entries (the O-ext unit runner pinned, packed, sealed and parsed; block A's completion against its recorded plan and the not-run decision; the $144 top-up's limit test) and retargeted B15-6-s1-unpinned-all, whose round-3b find text (the S1_UNPINNED exception) is gone: it now puts that exception back. Round H (notes/d3-build.json, addendum §28) added the B15-h-* entries (release without waiting for the earlier launch's hosts while the guard-off record holds; judge launches still wait; the early release recorded and logged); B15-g-launch-order's find text is unchanged and still the old rule's gate. Round 29 (notes/kit-round-29.json; addendum §29 and the user's 26 Oct re-run payment) added the 5 B15-29-* entries (the pull list, the finisher's roles, the unpulled decision's re-hash, the user-paid requeue and record-done's model-state exception); every one was run against the kit suite and killed (notes/kit-round-29-evidence/). No earlier find text was retargeted: the round-29 code keeps each earlier find text exactly once. Round 30 (notes/kit-round-30.json; addendum §30 and the lead's R1-R7) added the 5 B15-30-* entries (gap 1: a judge launch done only with its record; gap 2: one judge file per required unit; gap 3: the launcher's echo off; gap 4: the B10 pod bundle.py; D3: the moved hosts in the seal) and retargeted two entries whose find text moved (each marked 'retargeted'): B15-x-judge-files-unsealed to the seal's judge-record check, B15-x-safe-lora-label to judge_pod_stage1/bundle.py (same text). Every other find text is unchanged and still found exactly once. Round 30a (notes/kit-round-30a.json; the cert runbook's D2 and D4) added the 5 B15-30a-* entries (C1's registry seed in the runner, compare_c1.py); no earlier find text was retargeted. Round 31 (notes/kit-round-31.json; addendum §32 points 1-3, the lead's K1-K6) added the 6 B15-31-* entries (K1: a judge not-run decision counts for a block other than A; K2: the judge-launch units check at init-block and the ref_train label in write-files; K4: the dry bundle's printed record; K5: the finisher and moved, not-done hosts; K6: launch.py's exit code); no earlier find text was retargeted (each still found exactly once). Its runner is notes/run_mutants_b15.py. Round G1 (notes/g1-yoext.json; addendum §34 point 3, the engine-Y O-ext re-pin) added the 4 B15-G1-* entries (the Y pack's engine-Y O-ext files, their sources and the shared O-ext files); their killing tests are in tests/test_g1_yoext.py and tests/test_stage1_runner.py, so the runner's TESTS should name tests/test_g1_yoext.py too (as round 31 added test_round31.py). No earlier find text was retargeted (each is still found exactly once). Kit round 32 (notes/kit-round-32.json; addendum §34 points 5-7, the lead's K1-K6) added the 8 B15-32-* entries and re-targeted B15-x-b10-unit-count (the runner's B10 unit count now allows the certify unit alone after B10's failed gate) and B15-h-judge-ignores-moved (the judge wait now skips the never-released hosts of a launch skipped under not-run decisions) to the changed text, with the same replacement meaning. Kit round 33 (31 Oct, judge runbook B GB1/GB4/GB5) added the B15-33-* entries, run with tests/test_round33.py added to the runner's test files, and re-targeted B15-m-funding-source to the §36 elif. Kit round 34 (1 Nov, B14's similarity pass J22 on block sim; notes/kit-round-34.json) added the 36 B15-34-* entries, run with tests/test_round34.py added to the runner's test files, and re-targeted three entries whose find text the round moved (each marked 'retargeted', the same replacement meaning): B15-r-o-only-unit, B15-8-runner-settings-unpinned and B15-g-no-recorded-recipe."
 }

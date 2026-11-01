@@ -1,0 +1,88 @@
+{
+ "kind": "stage1 kit round report",
+ "round": "34",
+ "written_utc": "2026-11-01T07:10Z (date -u just before writing)",
+ "builder": "a builder worker for the lead (GI VIII), track C-kit34 of the build round wf_795563f3-35a; model identity is the launcher's record, not this text",
+ "brief": "the lead's track C-kit34 (kit round 34: a similarity job kind so one A100 pod runs B14's similarity pass once); the read-only design report reading-prep/1b-b14-similarity.md route (i); FOCUS 2026-11-01T04:55 UTC (the lead's rulings: kit round 34 adds a similarity kind and one A100 pod, fallback a one-off pod, last resort --no-overlap)",
+ "tree": "runkit/stage1-olmo in a detached worktree of the working branch at 55d5f8b (the lead's scratch builds/ws-c); not synced to tmp/stage1-olmo, not committed (the build report gives the lead's sync, pack, init and launch commands)",
+ "tree_base": "HEAD 55d5f8b; before the round runkit/stage1-olmo, the main checkout's copy (HEAD 38e160d, FOCUS-only commits since 55d5f8b) and the live tmp/stage1-olmo were equal (every top-level .py, setup/*, judge_pod_stage1/bundle.py and README.md hashed, 1 Nov 2026 about 05:30 UTC)",
+ "summary": [
+  "J22, kind similarity: B14's pass (scripts/stage1_s1/overlap_similarity.py) on theta0, unit-free, counted 0, engine X only, recipe REC only (B14's settings pin REC's config SHA-256). Measured upper 600 s (E: five times the design report's 1-2 min; never timed on CUDA, so unmeasured), upper 1.5 x 600 = 900 s (the wide-cap rule), start requirement 2,700 s.",
+  "Block sim (stage1_rules.BLOCKS, its own funding group sim, host prefix sim): exactly one launch of one pod holding the pass alone; jobs file {\"launches\": [{\"hosts\": [[{\"kind\": \"similarity\"}]]}]}. Cap 1.5 h; guard $8.775; upper spend $1.5513; need: base $8.78, 1.25 x = $10.98, contingency $2.20 (one re-run on a new pod, $1.5513, not two). Funded under addendum §36 (source 'user rule: start from the balance' with the user's decision record), as block B's group was. No judge and no seal is needed (no outcome).",
+  "The inputs by SHA-256 (plan_tool.similarity_entry, at init-block and again at release; the job's similarity entry): B14's script f8305c71... and settings 27db4c3f... (added to stage1_rules.S1_CODE, so the X pack carries them), the prepared manifest 9ed61826... (PREPARED_MANIFESTS) and its dev bank 1438ff51... (SIM_DEV_BANK, the manifest's own entry), the add sets S1 904a0cf1..., S3 a2f18a3d..., S4 24aed3fb... (SIM_ADD_SETS; each the file its add-edit record names). Each add set is bound like an arm's edit (one file for its arm in the edit sources, on disk at the pin) and must be the file the S1, S3 and S4 arm runs of plan.json trained on (every run that names an edit names it; at least one complete).",
+  "The runner (job_runner_stage1.py): one step job-I-similarity, venv/bin/python scripts/stage1_s1/overlap_similarity.py --prepared data/kt-prepared/prepared-kt-dolly-olmo2 --recipe REC --add-set S1|S3|S4 edits/<SHA-256>.edit.json <SHA-256> --out job-I/similarity; before it, the plan's entry must carry every pin and every file it names must be packed at that pin (similarity_args), and the sealed-file check covers the script, settings, the W1 modules and labels.json they load, the manifest, the dev bank and the three edit files. After it, job-I/similarity-record.json (exclusive create, canonical JSON; stage1_rules.similarity_record_doc): the output's path and SHA-256, the SHA-256 the script printed, the provenance's hashes, the counts and problems; an output off stage1_rules' pins or a missing printed SHA-256 is a crash that the record explains. Ledger stage: scoring.",
+  "On the Mac: the finisher's light check checks every complete similarity job as record-done does (stage1_rules.similarity_record_problem: both files in the pulled tree at JOB-DONE.json's SHA-256, the record rebuilt from the pulled output and equal, no problem); record-done refuses such a job and otherwise prints similarity: [{job, path, sha256, record_sha256}], the strata step's input. The pull is unchanged (job-* already in PULL_ITEMS; a test runs the sim pod and checks every path). seal.py, host.py, launch.py, orchestrate.py, pack_setup.py, budget.py and the backup are unchanged (generic for the new block and kind)."
+ ],
+ "changed_files": [
+  {"path": "runkit/stage1-olmo/stage1_rules.py", "old_sha256": "bde78fab5abd9d0c90bc2c0a40b33fb84bb6f05ff00a8d0a1ab136243f234685", "new_sha256": "4005cb4e82f836eb6734073856c6c379631c03f8953842ded466f28f9b054dd0"},
+  {"path": "runkit/stage1-olmo/plan_tool.py", "old_sha256": "f18bb834df3b618b90339eb1b2db3a07edb36a82bac729955a0f5e4ffca0a0e0", "new_sha256": "27e299b577bdb3fbbd7b80c2dd1a47083df3a0cd8e153f7018b4992130d1f75e"},
+  {"path": "runkit/stage1-olmo/setup/job_runner_stage1.py", "old_sha256": "37e8e81ac5ed8d80423fd64fcd97dd74584884dd411513c1729774497107efa3", "new_sha256": "ba0a761ad9c65ee434badcd4fe6fbed201753389d6db0f1b27fa33578018b153"},
+  {"path": "runkit/stage1-olmo/finisher.py", "old_sha256": "5d24290fc815b42af9e4d6225304cee3b51985a969d52458f76366cbd92b9441", "new_sha256": "f474cabe4ec12f9ad65444d6cfa19f87a4f112df8472880efd367babca8790d6"},
+  {"path": "runkit/stage1-olmo/README.md", "old_sha256": "116774600f499ea09ad89445e0db9a63dfa90b8587a10f6e3d991e1febc7a38f", "new_sha256": "d136f8b53b9c0b22edefcdc3eba9ad272ba0133ea9178b3b416ea2e7947995aa"},
+  {"path": "runkit/stage1-olmo/tests/test_round34.py", "old_sha256": null, "new_sha256": "9a4814d03b9d15b92009456022b1489a9d89f9d76c01cb7fcba78ade44c280d9"},
+  {"path": "runkit/stage1-olmo/tests/test_stage1_runkit.py", "old_sha256": "f48e3bdb071e14cb2b84c26b5954069ee3864ce875b8b8cd1e1603178bf0ccf1", "new_sha256": "64e5f1793242115c5d528cdf40812b2cd586ea8fa4728e343e2ee65bab0193a5"},
+  {"path": "runkit/stage1-olmo/tests/test_stage1_runner.py", "old_sha256": "691e5201c881669ebe9846a9d25bad4c6a890a8dbbf52f1a7842e7ea40f91f0a", "new_sha256": "659714b2bdcb4ae825e354006eed14bedcf061f3427f20f619f1691905a8d5f8"},
+  {"path": "runkit/stage1-olmo/tests/test_g1_yoext.py", "old_sha256": "508975d982ed7c8bf5634810221926a8850bc6fc8a73287642a8dd90bdc75680", "new_sha256": "909d7dad64fa5a5919706109b3cc83afd6c3f31b294547b13c9fdc024b5cbc1b"},
+  {"path": "runkit/stage1-olmo/tests/mutants_b15.json", "old_sha256": "508c7fa512b793632121635ceed7abf8194b5bb099af7365972c798f58dc0dd1", "new_sha256": "a57358715260a5f3f327e7788f79bf0e211c99582cd3c9bd6721f06ae6b89871"},
+  {"path": "research/experiments/2026-10-24-stage1-runkit/run_mutants_b15.py", "old_sha256": "46164513afd7a656604b50f6da5618f3d245ac7bdb44ef76ed4da418dbaae848", "new_sha256": "57f239bf16029f4c695572f5d20a2e56b27dc715d9479fba1dd3c33b8f3a14c6"}
+ ],
+ "money": {
+  "job": {"kind": "similarity", "job_id": "J22", "measured_upper_s": 600.0, "upper_s": 900.0, "start_requirement_s": 2700.0, "unmeasured": true},
+  "pod": {"cap_hours": 1.5, "guard_usd": 8.775, "spend_upper_usd": 1.5513},
+  "need": {"base_need_usd": 8.78, "factor": 1.25, "need_usd": 10.98, "contingency_usd": 2.2},
+  "rerun_on_a_new_pod_usd": 1.5513,
+  "worst_case_at_cap_usd": 2.685,
+  "expected_E": "about 20-30 min of pod time, $0.60-0.90 at $1.79/h (W1-18's one-job pod: 23 min, $0.69)"
+ },
+ "tests": {
+  "kit_suite_before": "671 passed in 40.45s (this worktree, unchanged, 1 Nov 2026 05:34 UTC)",
+  "kit_suite_after": "735 passed in 52.82s (07:02 UTC; the official mutation runner's baseline with tests/test_round34.py: 735 passed in 115.07s under load)",
+  "reading_input_with_round_34_rules": "scripts/stage1_s1/reading_input/tests (it loads runkit/stage1-olmo/stage1_rules.py): 128 + 67 = 195 passed",
+  "s1_kit_text": "scripts/stage1_s1/tests/test_oext_unit_contract.py and test_s1_repin_tool.py: 69 passed",
+  "test_harness_changes": [
+   "test_stage1_runner.Pod: B14's synthetic inputs (prepared manifest.json, banks/dev.jsonl, three add-set edit files) sealed, stage1_rules' pins set to them for the test (SIM_ADD_SETS, SIM_DEV_BANK, PREPARED_MANIFESTS, S1_CODE's two B14 entries), a similarity job's plan.json entry filled as plan_tool writes it (sim_entry), and the fake engine's overlap_similarity.py output, ledger and stdout line",
+   "test_stage1_runner: all_hosts' X pod and the dry-run command table gain J22 (job 18, by hand); SCRIPT_MODULE and recipe_pins gain B14's script (its argv parsed by its own parser; REC's config SHA-256 against its settings' pin by engine X's code); the pull-list test gains the sim pod",
+   "test_stage1_runkit: J22's numbers by hand in the per-kind table; S1_CODE has 13 entries (was 11); FINISHER_34, the finisher's documented changes against Gate B's finisher",
+   "test_g1_yoext: S1_CODE has 13 entries (the X-side O-ext pins unchanged)"
+  ]
+ },
+ "mutants": {
+  "spec": "tests/mutants_b15.json: 382 -> 418 entries; note extended",
+  "new": ["B15-34-kind-id", "B15-34-upper-factor", "B15-34-measured", "B15-34-unmeasured", "B15-34-unitless",
+          "B15-34-funding-group", "B15-34-block-kinds-sim", "B15-34-block-kinds-a", "B15-34-problems-code",
+          "B15-34-problems-inputs", "B15-34-problems-input-none", "B15-34-problems-prompts", "B15-34-problems-rows",
+          "B15-34-printed", "B15-34-record-equal", "B15-34-record-symlink", "B15-34-runner-entry",
+          "B15-34-runner-stale", "B15-34-runner-sealed-paths", "B15-34-runner-record-crash",
+          "B15-34-runner-record-exclusive", "B15-34-runner-recipe", "B15-34-runner-stage", "B15-34-shape",
+          "B15-34-engine", "B15-34-recipe", "B15-34-no-arm", "B15-34-entry-pin", "B15-34-entry-disk",
+          "B15-34-entry-trained", "B15-34-entry-complete", "B15-34-build-entry", "B15-34-release-check",
+          "B15-34-record-done-check", "B15-34-record-done-print", "B15-34-light-check"],
+  "retargeted": {
+   "B15-r-o-only-unit": "UNITLESS_KINDS also holds similarity; the mutant still removes o_only alone",
+   "B15-8-runner-settings-unpinned": "S1_CODE continues after the oext_unit.json entry (B14's two pins); the mutant still removes that entry",
+   "B15-g-no-recorded-recipe": "RECORDED_RECIPE also holds the similarity pass's REC; the mutant still drops J5's recipe S"
+  },
+  "precheck_run": {
+   "how": "the kit's own runner (run_mutants_b15.py, loaded by path, unchanged: prepare, baseline first, the killed rule) with its test list narrowed to tests/test_round34.py, in two batches of 18 (the builder's 10-minute command limit); NOT the lead's spec run",
+   "baseline": "63 passed (both batches)",
+   "killed": 36,
+   "not_as_expected": []
+  },
+  "retargeted_run": {
+   "how": "the kit's runner as committed in this round (all eight test files) on the three retargeted ids",
+   "baseline": "735 passed in 115.07s",
+   "killed": 3,
+   "not_as_expected": []
+  },
+  "find_texts": "every one of the 418 find texts occurs exactly once in its file (checked after the round)",
+  "not_run_here": "the official run of the 36 new mutants and the NEAR selection with all eight test files (the lead's background job; NEAR needs --near the round-33 kit folder)"
+ },
+ "open_points": [
+  "The reading's rules file changes: the input builder loads runkit/stage1-olmo/stage1_rules.py by default and records its SHA-256; this round changes it (bde78fab -> 4005cb4e), plan_tool.py (f18bb834 -> 27e299b5) and the runner. The 1d runbook draft lists stage1_rules.py, plan_tool.py, seal.py and judge_units_stage1.py as 'never' changing: it must take this round's hashes (seal.py and judge_units_stage1.py are unchanged), and the second time stamp must bind them. The builder's tables do not change (REJUDGED_PINS, REUSED_SEEDS, block_runs, the judge constants and the O-ext pins are untouched; its suite passed with this file).",
+  "The pod is the first CUDA run of overlap_similarity.py (its CUDA path and the real OLMo-2 template are untested); the design report's $0 Mac pre-check (its step A) lowers the risk of a post-load refusal before money is spent.",
+  "pack_setup.py X refuses while an engine or script file is uncommitted: pack after every reading-prep track touching scripts/ is committed (or before any is staged), and move setup/packed-stage1-X aside first.",
+  "The funding record names the user's §36 decision record, which lies under .ai/inputs/stage1-post-w1-20261023/block-b/; take its path and SHA-256 from block B's group funding record in plan.json (the certify block's funding.user_decision). The builder did not open it.",
+  "D-6 (the strata settings' re-pin, track B) must land before overlap_strata.py strata runs on the pulled similarity.json; the pod itself does not depend on it.",
+  "Stage 1b's scouting named 'kit round 34' and J22 for its pilot; the lead's ruling moved stage 1b to kit round 35, so that round takes J23 and a block name other than sim."
+ ]
+}

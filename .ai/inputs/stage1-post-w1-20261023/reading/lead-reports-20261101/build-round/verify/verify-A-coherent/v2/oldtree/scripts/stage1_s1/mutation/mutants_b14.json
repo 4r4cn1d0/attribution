@@ -1,0 +1,769 @@
+{
+  "kind": "stage1 mutants",
+  "version": 1,
+  "part": "B14 (the overlap control: similarity pass, split, report): run with scripts/stage1_s1/mutation/run_mutants_b14.py; file paths are relative to scripts/stage1_s1",
+  "mutants": [
+    {
+      "id": "B14-sim-read-len-2",
+      "part": "B14 similarity pass",
+      "describes": "the read at len - 2 (the token before the last prompt token)",
+      "file": "overlap_similarity.py",
+      "find": "vector = hidden[index][0, len(ids) - 1]",
+      "replace": "vector = hidden[index][0, len(ids) - 2]"
+    },
+    {
+      "id": "B14-sim-index-minus-1",
+      "part": "B14 similarity pass",
+      "describes": "the hidden-state index one lower than pinned",
+      "file": "overlap_similarity.py",
+      "find": "vector = hidden[index][0, len(ids) - 1]",
+      "replace": "vector = hidden[index - 1][0, len(ids) - 1]"
+    },
+    {
+      "id": "B14-sim-adapter-on",
+      "part": "B14 similarity pass",
+      "describes": "the adapter left on (the tuned policy, not theta0)",
+      "file": "overlap_similarity.py",
+      "find": "with torch.no_grad(), model.disable_adapter():",
+      "replace": "with torch.no_grad():"
+    },
+    {
+      "id": "B14-sim-min",
+      "part": "B14 similarity pass",
+      "describes": "the lowest similarity instead of the highest",
+      "file": "overlap_similarity.py",
+      "find": "best = max(row)",
+      "replace": "best = min(row)"
+    },
+    {
+      "id": "B14-sim-median",
+      "part": "B14 similarity pass",
+      "describes": "the median similarity instead of the highest (nearest = the closest row to it)",
+      "file": "overlap_similarity.py",
+      "find": "        best = max(row)\n        nearest = min(rid for rid, value in zip(row_ids, row, strict=True) if value == best)",
+      "replace": "        best = sorted(row)[len(row) // 2]\n        nearest = min(rid for rid, value in zip(row_ids, row, strict=True) if value == best)"
+    },
+    {
+      "id": "B14-sim-dot-product",
+      "part": "B14 similarity pass",
+      "describes": "the dot product without the norms",
+      "file": "overlap_similarity.py",
+      "find": "table = (e @ a.T) / torch.outer(e_norm, a_norm)",
+      "replace": "table = (e @ a.T)"
+    },
+    {
+      "id": "B14-sim-nearest-largest-id",
+      "part": "B14 similarity pass",
+      "describes": "ties of the nearest row to the largest id",
+      "file": "overlap_similarity.py",
+      "find": "nearest = min(rid for rid",
+      "replace": "nearest = max(rid for rid"
+    },
+    {
+      "id": "B14-sim-audit-off",
+      "part": "B14 similarity pass",
+      "describes": "the prepared token-audit check removed",
+      "file": "overlap_similarity.py",
+      "find": "if ids_sha256(ids) != item[\"token_sha256\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B14-sim-manifest-pin-off",
+      "part": "B14 similarity pass",
+      "describes": "the manifest pin not passed (any prepared set accepted)",
+      "file": "overlap_similarity.py",
+      "find": "read_manifest(prepared_dir, settings[\"prepared_manifest_sha256\"])",
+      "replace": "read_manifest(prepared_dir, None)"
+    },
+    {
+      "id": "B14-sim-edit-sha-off",
+      "part": "B14 similarity pass",
+      "describes": "the edit file's SHA-256 check removed",
+      "file": "overlap_similarity.py",
+      "find": "        if sha256_bytes(data) != digest:",
+      "replace": "        if False:"
+    },
+    {
+      "id": "B14-sim-kind-check-off",
+      "part": "B14 similarity pass",
+      "describes": "the pure-add check removed",
+      "file": "overlap_similarity.py",
+      "find": "if edit.document[\"edit_kind\"] != settings[\"add_sets\"][\"edit_kind\"] or edit.removed or edit.rewrite:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B14-sim-rows-each-off",
+      "part": "B14 similarity pass",
+      "describes": "the add-row count check removed",
+      "file": "overlap_similarity.py",
+      "find": "if len(edit.added) != rows_each:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B14-sim-text-scan-off",
+      "part": "B14 similarity pass",
+      "describes": "the text scan of the record removed",
+      "file": "overlap_similarity.py",
+      "find": "    lc.require_text_free(data, texts, OUTPUT)",
+      "replace": "    pass"
+    },
+    {
+      "id": "B14-sim-transformers-off",
+      "part": "B14 similarity pass",
+      "describes": "the transformers version pin not checked",
+      "file": "overlap_similarity.py",
+      "find": "    version = check_transformers(settings)",
+      "replace": "    version = \"unchecked\""
+    },
+    {
+      "id": "B14-sim-block-count-off",
+      "part": "B14 similarity pass",
+      "describes": "the block-count check removed",
+      "file": "overlap_similarity.py",
+      "find": "if shape[\"n_layers\"] != n_layers:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B14-sim-kind-filter",
+      "part": "B14 similarity pass",
+      "describes": "over-refusal prompts kept as evaluation prompts",
+      "file": "overlap_similarity.py",
+      "find": "if record.get(\"kind\") in kinds:",
+      "replace": "if record.get(\"kind\") in kinds or record.get(\"kind\") == \"overrefusal\":"
+    },
+    {
+      "id": "B14-sim-recipe-pin-off",
+      "part": "B14 similarity pass",
+      "describes": "the recipe pin not checked",
+      "file": "overlap_similarity.py",
+      "find": "if recipe_sha != settings[\"recipe_sha256\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B14-sim-out-exists-off",
+      "part": "B14 similarity pass",
+      "describes": "an existing output folder not refused before the model loads",
+      "file": "overlap_similarity.py",
+      "find": "    if out.exists():",
+      "replace": "    if False:"
+    },
+    {
+      "id": "B14-sim-unknown-set-off",
+      "part": "B14 similarity pass",
+      "describes": "an add-set name outside the settings accepted",
+      "file": "overlap_similarity.py",
+      "find": "if name not in allowed or name in out:",
+      "replace": "if name in out:"
+    },
+    {
+      "id": "B14-sim-twice-off",
+      "part": "B14 similarity pass",
+      "describes": "an add-set name given twice accepted (the later file wins)",
+      "file": "overlap_similarity.py",
+      "find": "if name not in allowed or name in out:",
+      "replace": "if name not in allowed:"
+    },
+    {
+      "id": "B14-sim-same-file-off",
+      "part": "B14 similarity pass",
+      "describes": "one edit file under two names accepted",
+      "file": "overlap_similarity.py",
+      "find": "        if digest in digests:",
+      "replace": "        if False:"
+    },
+    {
+      "id": "B14-split-ties-low",
+      "part": "B14 split",
+      "describes": "boundary ties to the lower half",
+      "edits": [
+        {
+          "file": "overlap_strata.py",
+          "find": "if v < boundary)",
+          "replace": "if v <= boundary)"
+        },
+        {
+          "file": "overlap_strata.py",
+          "find": "if v >= boundary)",
+          "replace": "if v > boundary)"
+        }
+      ]
+    },
+    {
+      "id": "B14-split-k-ceil",
+      "part": "B14 split",
+      "describes": "k = ceil(n / 2)",
+      "file": "overlap_strata.py",
+      "find": "    k = n // 2",
+      "replace": "    k = (n + 1) // 2"
+    },
+    {
+      "id": "B14-split-descending",
+      "part": "B14 split",
+      "describes": "the boundary from the descending order",
+      "file": "overlap_strata.py",
+      "find": "boundary = sorted(checked.values())[k]",
+      "replace": "boundary = sorted(checked.values(), reverse=True)[k]"
+    },
+    {
+      "id": "B14-strata-sha-off",
+      "part": "B14 split",
+      "describes": "the similarity record's SHA-256 check removed",
+      "file": "overlap_strata.py",
+      "find": "    if sha256_bytes(data) != digest:\n        raise s1.Refusal(f\"the similarity record hashes to",
+      "replace": "    if False:\n        raise s1.Refusal(f\"the similarity record hashes to"
+    },
+    {
+      "id": "B14-strata-settings-pin-off",
+      "part": "B14 split",
+      "describes": "a similarity record made under other settings accepted",
+      "file": "overlap_strata.py",
+      "find": "if made_under != settings[\"similarity_settings_sha256\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B14-strata-range-off",
+      "part": "B14 split",
+      "describes": "a cosine outside [-1, 1] accepted",
+      "file": "overlap_strata.py",
+      "find": "or abs(s_max) > 1 + 1e-9 or",
+      "replace": "or"
+    },
+    {
+      "id": "B14-report-strata-sha-off",
+      "part": "B14 report",
+      "describes": "the strata record's sealed SHA-256 not checked",
+      "file": "overlap_strata.py",
+      "find": "    if sha256_bytes(data) != digest:\n        raise s1.Refusal(f\"the strata record hashes to",
+      "replace": "    if False:\n        raise s1.Refusal(f\"the strata record hashes to"
+    },
+    {
+      "id": "B14-report-strata-settings-off",
+      "part": "B14 report",
+      "describes": "a strata record made under other settings accepted",
+      "file": "overlap_strata.py",
+      "find": "if (doc.get(\"provenance\") or {}).get(\"settings_sha256\") != settings_sha256:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B14-report-sign-flip",
+      "part": "B14 report",
+      "describes": "the contrast as U(m) - U(a0)",
+      "file": "overlap_strata.py",
+      "find": "table = [[Fraction(*comparator[j][p]) - Fraction(*arm[j][p])",
+      "replace": "table = [[Fraction(*arm[j][p]) - Fraction(*comparator[j][p])"
+    },
+    {
+      "id": "B14-report-prompt-part-off",
+      "part": "B14 report",
+      "describes": "the prompt part dropped from V",
+      "file": "overlap_strata.py",
+      "find": "    v = v_seed + v_prompt",
+      "replace": "    v = v_seed"
+    },
+    {
+      "id": "B14-report-ddof-0",
+      "part": "B14 report",
+      "describes": "the seed variance with ddof 0",
+      "file": "overlap_strata.py",
+      "find": "s2 = sum((x - lam) ** 2 for x in d) / (J - 1)",
+      "replace": "s2 = sum((x - lam) ** 2 for x in d) / J"
+    },
+    {
+      "id": "B14-report-vseed-not-over-J",
+      "part": "B14 report",
+      "describes": "V_seed = s_d^2 (not divided by J)",
+      "file": "overlap_strata.py",
+      "find": "    v_seed = s2 / J",
+      "replace": "    v_seed = s2"
+    },
+    {
+      "id": "B14-report-df-fixed",
+      "part": "B14 report",
+      "describes": "df = J - 1 always (no Satterthwaite)",
+      "file": "overlap_strata.py",
+      "find": "df = float(v * v / (v_seed * v_seed / (J - 1) + q))",
+      "replace": "df = float(J - 1)"
+    },
+    {
+      "id": "B14-report-80-percent",
+      "part": "B14 report",
+      "describes": "an 80% interval (t at 0.90)",
+      "file": "overlap_strata.py",
+      "find": "t = t_quantile(0.95, df)",
+      "replace": "t = t_quantile(0.90, df)"
+    },
+    {
+      "id": "B14-report-mse-df",
+      "part": "B14 report",
+      "describes": "MS_E on P (J - 1) df",
+      "file": "overlap_strata.py",
+      "find": "for j in range(J) for p in range(P)) / ((P - 1) * (J - 1))",
+      "replace": "for j in range(J) for p in range(P)) / (P * (J - 1))"
+    },
+    {
+      "id": "B14-report-msp-without-J",
+      "part": "B14 report",
+      "describes": "MS_P without the factor J",
+      "file": "overlap_strata.py",
+      "find": "ms_p = J * sum(",
+      "replace": "ms_p = sum("
+    },
+    {
+      "id": "B14-report-q-without-mse",
+      "part": "B14 report",
+      "describes": "q without the MS_E term",
+      "file": "overlap_strata.py",
+      "find": "q = ((ms_p * scale) ** 2 / (P - 1) + (ms_e * scale) ** 2 / ((P - 1) * (J - 1))) if ms_p > ms_e else Fraction(0)",
+      "replace": "q = ((ms_p * scale) ** 2 / (P - 1)) if ms_p > ms_e else Fraction(0)"
+    },
+    {
+      "id": "B14-report-prompt-part-unfloored",
+      "part": "B14 report",
+      "describes": "a negative prompt part kept",
+      "file": "overlap_strata.py",
+      "find": "v_prompt = max(Fraction(0), ms_p - ms_e) * scale",
+      "replace": "v_prompt = (ms_p - ms_e) * scale"
+    },
+    {
+      "id": "B14-report-holds-without-sign",
+      "part": "B14 report",
+      "describes": "holds without the same-sign condition",
+      "file": "overlap_strata.py",
+      "find": "same = sign_all != 0 and _sign(lower[\"estimate\"]) == sign_all",
+      "replace": "same = True"
+    },
+    {
+      "id": "B14-report-holds-without-interval",
+      "part": "B14 report",
+      "describes": "holds without the interval condition",
+      "file": "overlap_strata.py",
+      "find": "excludes = lower[\"lower\"] > 0 or lower[\"upper\"] < 0",
+      "replace": "excludes = True"
+    },
+    {
+      "id": "B14-report-holds-on-higher",
+      "part": "B14 report",
+      "describes": "the verdict read on the higher-similarity half",
+      "file": "overlap_strata.py",
+      "find": "verdict(results[\"all\"], results[\"lower\"], rep[\"texts\"])",
+      "replace": "verdict(results[\"all\"], results[\"higher\"], rep[\"texts\"])"
+    },
+    {
+      "id": "B14-report-invalid-unsafe",
+      "part": "B14 report",
+      "describes": "an invalid guard answer with an Unsafe label counted Unsafe",
+      "file": "overlap_strata.py",
+      "find": "cell[0] += bool(r[\"valid\"]) and r[\"safety\"] == \"Unsafe\"",
+      "replace": "cell[0] += r[\"safety\"] == \"Unsafe\""
+    },
+    {
+      "id": "B14-report-summary-off",
+      "part": "B14 report",
+      "describes": "the summary.json parity check removed",
+      "file": "overlap_strata.py",
+      "find": "    if sampled.get(\"answers\") != sum(c[1] for c in cells.values()) or \\\n            sampled.get(\"unsafe\") != sum(c[0] for c in cells.values()):",
+      "replace": "    if False:"
+    },
+    {
+      "id": "B14-report-plan-off",
+      "part": "B14 report",
+      "describes": "an unknown seed plan not refused",
+      "file": "overlap_strata.py",
+      "find": "if not isinstance(inputs.get(\"seed_plan\"), str) or inputs.get(\"seed_plan\") not in plans:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B14-report-seeds-off",
+      "part": "B14 report",
+      "describes": "the units' seeds not compared with the plan",
+      "file": "overlap_strata.py",
+      "find": "if not isinstance(given, dict) or sorted(given) != sorted(str(j) for j in seeds):",
+      "replace": "if not isinstance(given, dict):"
+    },
+    {
+      "id": "B14-report-code-off",
+      "part": "B14 report",
+      "describes": "a unit's code identity not checked",
+      "file": "overlap_strata.py",
+      "find": "if code not in rep[\"allowed_code_sha256\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B14-report-samples-off",
+      "part": "B14 report",
+      "describes": "the samples-per-prompt check removed",
+      "file": "overlap_strata.py",
+      "find": "bad = [pid for pid, indices in seen.items() if indices != set(range(samples))]",
+      "replace": "bad = []"
+    },
+    {
+      "id": "B14-report-prompts-off",
+      "part": "B14 report",
+      "describes": "the prompt-set check of a unit removed",
+      "file": "overlap_strata.py",
+      "find": "    if sorted(cells) != list(prompts):",
+      "replace": "    if False:"
+    },
+    {
+      "id": "B14-t-tail-sign",
+      "part": "B14 t distribution",
+      "describes": "the t CDF ignores the sign of t",
+      "file": "overlap_strata.py",
+      "find": "return 1.0 - tail if t > 0 else tail",
+      "replace": "return 1.0 - tail"
+    },
+    {
+      "id": "B14-t-df-not-halved",
+      "part": "B14 t distribution",
+      "describes": "the incomplete beta at a = df (not df / 2)",
+      "file": "overlap_strata.py",
+      "find": "tail = 0.5 * beta_inc(df / 2.0, 0.5, df / (df + t * t))",
+      "replace": "tail = 0.5 * beta_inc(df, 0.5, df / (df + t * t))"
+    },
+    {
+      "id": "B14-fix-identity-off",
+      "part": "B14 report",
+      "describes": "fix round V01: the job.json identity rules (recipe, manifest) not passed to check_unit",
+      "file": "overlap_strata.py",
+      "find": "\"require_pins\": True, \"identity\": rep[\"identity\"],",
+      "replace": "\"require_pins\": True, \"identity\": {},"
+    },
+    {
+      "id": "B14-fix-pins-not-required",
+      "part": "B14 report",
+      "describes": "fix round V02: the COMPLETE.json and job.json pins not required",
+      "file": "overlap_strata.py",
+      "find": "\"require_pins\": True, \"identity\"",
+      "replace": "\"require_pins\": False, \"identity\""
+    },
+    {
+      "id": "B14-fix-cell-u-over-cell",
+      "part": "B14 report",
+      "describes": "fix round V03: a half's cell U divided by all of the cell's prompts",
+      "file": "overlap_strata.py",
+      "find": "for p in prompts) / len(prompts))",
+      "replace": "for p in prompts) / len(cell))"
+    },
+    {
+      "id": "B14-fix-repeat-sample-accepted",
+      "part": "B14 report",
+      "describes": "fix round V04: a repeated sample index accepted",
+      "file": "overlap_strata.py",
+      "find": "if index in seen.setdefault(pid, set()):",
+      "replace": "if index in seen.setdefault(pid, set()) and False:"
+    },
+    {
+      "id": "B14-fix-partition-off",
+      "part": "B14 report",
+      "describes": "fix round V05: the strata partition check removed",
+      "file": "overlap_strata.py",
+      "find": "or sorted(lower + higher) != prompts \\\n                or set(lower) & set(higher):",
+      "replace": ":"
+    },
+    {
+      "id": "B14-fix-holds-sign-from-higher",
+      "part": "B14 report",
+      "describes": "fix round V11: the holds sign compared with the higher half, not all prompts",
+      "file": "overlap_strata.py",
+      "find": "verdict(results[\"all\"], results[\"lower\"], rep[\"texts\"])",
+      "replace": "verdict(results[\"higher\"], results[\"lower\"], rep[\"texts\"])"
+    },
+    {
+      "id": "B14-fix-controversial-unsafe",
+      "part": "B14 report",
+      "describes": "fix round V14: a valid Controversial label counted Unsafe",
+      "file": "overlap_strata.py",
+      "find": "cell[0] += bool(r[\"valid\"]) and r[\"safety\"] == \"Unsafe\"",
+      "replace": "cell[0] += bool(r[\"valid\"]) and r[\"safety\"] in (\"Unsafe\", \"Controversial\")"
+    },
+    {
+      "id": "B14-fix-tiny-df-uncaught",
+      "part": "B14 report",
+      "describes": "fix round V15 (SF-2): the tiny-df case not caught, so the whole report refuses",
+      "file": "overlap_strata.py",
+      "find": "    except QuantileOutOfRange:",
+      "replace": "    except ZeroDivisionError:"
+    },
+    {
+      "id": "B14-fix-quantile-plain-refusal",
+      "part": "B14 report",
+      "describes": "fix round SF-2: t_quantile raises a plain Refusal, which contrast does not catch",
+      "file": "overlap_strata.py",
+      "find": "raise QuantileOutOfRange(\"the t quantile is out of range\")",
+      "replace": "raise s1.Refusal(\"the t quantile is out of range\")"
+    },
+    {
+      "id": "B14-fix-plan-sets-from-strata",
+      "part": "B14 report",
+      "describes": "fix round SF-1: the units must cover every strata add set, not the plan's",
+      "file": "overlap_strata.py",
+      "find": "names = [COMPARATOR] + plan_sets",
+      "replace": "names = [COMPARATOR] + sorted(strata_doc[\"add_sets\"])"
+    },
+    {
+      "id": "B14-fix-plan-missing-set-off",
+      "part": "B14 report",
+      "describes": "fix round SF-1: a plan add set that the strata record lacks is not refused",
+      "file": "overlap_strata.py",
+      "find": "    if missing:",
+      "replace": "    if False:"
+    },
+    {
+      "id": "B14-fix-report-loops-strata-sets",
+      "part": "B14 report",
+      "describes": "fix round SF-1: the report loops over the strata's add sets, not the plan's",
+      "file": "overlap_strata.py",
+      "find": "    for name in plan_sets:",
+      "replace": "    for name in sorted(doc[\"add_sets\"]):"
+    },
+    {
+      "id": "B14-fix-plan-sets-check-off",
+      "part": "B14 report",
+      "describes": "fix round SF-1: the settings' plan add-set check removed",
+      "file": "overlap_strata.py",
+      "find": "        if not (isinstance(sets, list) and sets and all(",
+      "replace": "        if False and not (isinstance(sets, list) and sets and all("
+    },
+    {
+      "id": "B14-fix-plan-comparator-allowed",
+      "part": "B14 report",
+      "describes": "fix round SF-1: a plan may name a0 as an add set",
+      "file": "overlap_strata.py",
+      "find": "all(isinstance(n, str) and n and n != COMPARATOR for n in sets)",
+      "replace": "all(isinstance(n, str) and n for n in sets)"
+    },
+    {
+      "id": "B14-fix-plan-name-type-off",
+      "part": "B14 report",
+      "describes": "fix round: a seed plan name that is not a string reaches the dict lookup",
+      "file": "overlap_strata.py",
+      "find": "if not isinstance(inputs.get(\"seed_plan\"), str) or inputs.get(\"seed_plan\") not in plans:",
+      "replace": "if inputs.get(\"seed_plan\") not in plans:"
+    },
+    {
+      "id": "B14-fix-encode-train-off",
+      "part": "B14 similarity pass",
+      "describes": "fix round V06: encode_train not run on an added row",
+      "file": "overlap_similarity.py",
+      "find": "encode_train(codec, row_id, prompt, response, model[\"max_train_tokens\"])",
+      "replace": "None"
+    },
+    {
+      "id": "B14-fix-eval-unsorted",
+      "part": "B14 similarity pass",
+      "describes": "fix round V07: the evaluation prompts kept in the bank's order",
+      "file": "overlap_similarity.py",
+      "find": "return sorted(items, key=lambda i: i[\"prompt_id\"]), manifest_sha",
+      "replace": "return items, manifest_sha"
+    },
+    {
+      "id": "B14-fix-setup-peak-ignores-ledger",
+      "part": "B14 similarity pass",
+      "describes": "fix round N-2: the setup peak ignores the ledger stages' CUDA peaks",
+      "file": "overlap_similarity.py",
+      "find": "    return max(values) if values else None",
+      "replace": "    return peak"
+    },
+    {
+      "id": "B14-fix-setup-peak-not-called",
+      "part": "B14 similarity pass",
+      "describes": "fix round N-2: the setup peak is the script's own read only",
+      "file": "overlap_similarity.py",
+      "find": "\"peak_memory_bytes\": _setup_peak(_peak(device), out)",
+      "replace": "\"peak_memory_bytes\": _peak(device)"
+    },
+    {
+      "id": "B14-fix-setup-peak-memory-none",
+      "part": "B14 similarity pass",
+      "describes": "fix round N-2: a ledger stage with memory null breaks the setup peak",
+      "file": "overlap_similarity.py",
+      "find": "(r.get(\"memory\") or {})",
+      "replace": "r.get(\"memory\", {})"
+    },
+    {
+      "id": "B14S-plan-b-old-seeds",
+      "part": "B14 S1 rulings (addendum 11.10 plan B; 11.12 N-8)",
+      "describes": "plan_b back at 1102-1106 (J = 5) (re-pinned: the module literal follows the file)",
+      "edits": [
+        {
+          "file": "settings/overlap_strata.json",
+          "find": "\"plan_b\": {\"seeds\": [1102, 1103, 1104, 1105, 1106, 1107], \"add_sets\": [\"S1\", \"S4\"]}",
+          "replace": "\"plan_b\": {\"seeds\": [1102, 1103, 1104, 1105, 1106], \"add_sets\": [\"S1\", \"S4\"]}"
+        },
+        {
+          "file": "overlap_strata.py",
+          "find": "SETTINGS_SHA256 = \"b98d012e9cc92dbe847f92d9ccda54cf2ee22964dbd941e5aa8bd672bff19f87\"",
+          "replace": "SETTINGS_SHA256 = \"a592c86ab7651e23ba6a6ab626ca3ac0acf1e4ac51e37177aa7184f99d154807\""
+        }
+      ]
+    },
+    {
+      "id": "B14S-plan-b-with-s3",
+      "part": "B14 S1 rulings (addendum 11.10 plan B; 11.12 N-8)",
+      "describes": "plan_b with S3 (re-pinned: the module literal follows the file)",
+      "edits": [
+        {
+          "file": "settings/overlap_strata.json",
+          "find": "\"plan_b\": {\"seeds\": [1102, 1103, 1104, 1105, 1106, 1107], \"add_sets\": [\"S1\", \"S4\"]}",
+          "replace": "\"plan_b\": {\"seeds\": [1102, 1103, 1104, 1105, 1106, 1107], \"add_sets\": [\"S1\", \"S3\", \"S4\"]}"
+        },
+        {
+          "file": "overlap_strata.py",
+          "find": "SETTINGS_SHA256 = \"b98d012e9cc92dbe847f92d9ccda54cf2ee22964dbd941e5aa8bd672bff19f87\"",
+          "replace": "SETTINGS_SHA256 = \"5079d57ab47e31be2ada2ea0d110599bdbe87ba4ae9aff251d96b80365f271a4\""
+        }
+      ]
+    },
+    {
+      "id": "B14S-plan-b-block-a-missing",
+      "part": "B14 S1 rulings (addendum 11.10 plan B; 11.12 N-8)",
+      "describes": "no plan-B block-A-only entry (re-pinned: the module literal follows the file)",
+      "edits": [
+        {
+          "file": "settings/overlap_strata.json",
+          "find": ",\n      \"plan_b_block_a_only\": {\"seeds\": [1102, 1103, 1104], \"add_sets\": [\"S1\", \"S4\"]}",
+          "replace": ""
+        },
+        {
+          "file": "overlap_strata.py",
+          "find": "SETTINGS_SHA256 = \"b98d012e9cc92dbe847f92d9ccda54cf2ee22964dbd941e5aa8bd672bff19f87\"",
+          "replace": "SETTINGS_SHA256 = \"2603e33e3b26b03eb472bcf9bb36d67ed2fd6b240bcae240cd5553b90693827b\""
+        }
+      ]
+    },
+    {
+      "id": "B14S-plan-b-block-a-with-s3",
+      "part": "B14 S1 rulings (addendum 11.10 plan B; 11.12 N-8)",
+      "describes": "the plan-B block-A-only entry with S3 (re-pinned: the module literal follows the file)",
+      "edits": [
+        {
+          "file": "settings/overlap_strata.json",
+          "find": "\"plan_b_block_a_only\": {\"seeds\": [1102, 1103, 1104], \"add_sets\": [\"S1\", \"S4\"]}",
+          "replace": "\"plan_b_block_a_only\": {\"seeds\": [1102, 1103, 1104], \"add_sets\": [\"S1\", \"S3\", \"S4\"]}"
+        },
+        {
+          "file": "overlap_strata.py",
+          "find": "SETTINGS_SHA256 = \"b98d012e9cc92dbe847f92d9ccda54cf2ee22964dbd941e5aa8bd672bff19f87\"",
+          "replace": "SETTINGS_SHA256 = \"1a6dd3f2e0f77979781e69d98470c3258c739d4106826c2d9d6a08841f121cb0\""
+        }
+      ]
+    },
+    {
+      "id": "B14S-plan-b-block-a-seeds",
+      "part": "B14 S1 rulings (addendum 11.10 plan B; 11.12 N-8)",
+      "describes": "the plan-B block-A-only entry at 1105-1107 (re-pinned: the module literal follows the file)",
+      "edits": [
+        {
+          "file": "settings/overlap_strata.json",
+          "find": "\"plan_b_block_a_only\": {\"seeds\": [1102, 1103, 1104], \"add_sets\": [\"S1\", \"S4\"]}",
+          "replace": "\"plan_b_block_a_only\": {\"seeds\": [1105, 1106, 1107], \"add_sets\": [\"S1\", \"S4\"]}"
+        },
+        {
+          "file": "overlap_strata.py",
+          "find": "SETTINGS_SHA256 = \"b98d012e9cc92dbe847f92d9ccda54cf2ee22964dbd941e5aa8bd672bff19f87\"",
+          "replace": "SETTINGS_SHA256 = \"91ae4361cc5efe0f21e0858ebee16d8c1eca748539e5e368a355723ec8cdbda7\""
+        }
+      ]
+    },
+    {
+      "id": "B14S-n8-position-before-last",
+      "part": "B14 S1 rulings (addendum 11.10 plan B; 11.12 N-8)",
+      "describes": "B14's vector read one position before the last prompt token",
+      "file": "overlap_similarity.py",
+      "find": "vector = hidden[index][0, len(ids) - 1].to(torch.float64).cpu()",
+      "replace": "vector = hidden[index][0, len(ids) - 2].to(torch.float64).cpu()"
+    },
+    {
+      "id": "B14S-n8-index-before",
+      "part": "B14 S1 rulings (addendum 11.10 plan B; 11.12 N-8)",
+      "describes": "B14's vector read at the hidden state before the pinned index",
+      "file": "overlap_similarity.py",
+      "find": "vector = hidden[index][0, len(ids) - 1].to(torch.float64).cpu()",
+      "replace": "vector = hidden[index - 1][0, len(ids) - 1].to(torch.float64).cpu()"
+    },
+    {
+      "id": "B14S-n8-float32",
+      "part": "B14 S1 rulings (addendum 11.10 plan B; 11.12 N-8)",
+      "describes": "B14's vector kept in float32 (not REQ-3's float64 bytes)",
+      "file": "overlap_similarity.py",
+      "find": "vector = hidden[index][0, len(ids) - 1].to(torch.float64).cpu()",
+      "replace": "vector = hidden[index][0, len(ids) - 1].to(torch.float32).cpu()"
+    },
+    {
+      "id": "B14S-n8-mean-of-prompt",
+      "part": "B14 S1 rulings (addendum 11.10 plan B; 11.12 N-8)",
+      "describes": "B14's vector the mean over the prompt positions",
+      "file": "overlap_similarity.py",
+      "find": "vector = hidden[index][0, len(ids) - 1].to(torch.float64).cpu()",
+      "replace": "vector = hidden[index][0, :len(ids)].mean(dim=0).to(torch.float64).cpu()"
+    },
+    {
+      "id": "FIX-layout-b14-no-stage1-copy",
+      "part": "layout",
+      "describes": "B14's wrapper copies only scripts/stage1_s1 into a run copy (its old layout)",
+      "file": "mutation/run_mutants_b14.py",
+      "find": "    shutil.copytree(T1.STAGE1, copy / \"scripts\" / \"stage1\", ignore=ignore)     # unchanged (B10's and B11's layout)\n",
+      "replace": "    pass\n"
+    },
+    {
+      "id": "FIX-layout-pins-repo-from-s1common",
+      "part": "layout",
+      "describes": "test_b14_pins finds the engine's checkout from s1common's file (the run copy, which has no experiments/)",
+      "file": "tests/test_b14_pins.py",
+      "find": "REPO = Path(engine.__file__).resolve().parents[2]",
+      "replace": "REPO = Path(s1.__file__).resolve().parents[2]"
+    },
+    {
+      "id": "B14S-s-p-role-primary-repinned",
+      "part": "S-p label",
+      "describes": "the settings print the paired form as the primary model, re-pinned (the module literal follows the file): only a content test can kill it",
+      "edits": [
+        {
+          "file": "settings/overlap_strata.json",
+          "find": "\"name\": \"S-p\", \"role\": \"sensitivity\", \"label\": \"S-p sensitivity\"",
+          "replace": "\"name\": \"S-p\", \"role\": \"primary\", \"label\": \"S-p sensitivity\""
+        },
+        {
+          "file": "overlap_strata.py",
+          "find": "SETTINGS_SHA256 = \"b98d012e9cc92dbe847f92d9ccda54cf2ee22964dbd941e5aa8bd672bff19f87\"",
+          "replace": "SETTINGS_SHA256 = \"c1fec8d735d2f89faf30cb2d3fb3b302096cd94779ad668a93f32881793dcbd5\""
+        }
+      ]
+    },
+    {
+      "id": "B14S-s-p-label-dropped",
+      "part": "S-p label",
+      "describes": "the report's verdicts carry no S-p label",
+      "file": "overlap_strata.py",
+      "find": ",\n                                      \"role\": rep[\"s_p\"][\"label\"]}}",
+      "replace": "}}"
+    },
+    {
+      "id": "B14S-s-p-unchecked",
+      "part": "S-p label",
+      "describes": "the settings' S-p label is not checked",
+      "file": "overlap_strata.py",
+      "find": "    if (s_p.get(\"name\"), s_p.get(\"role\"), s_p.get(\"label\")) != S_P or not isinstance(s_p.get(\"rule\"), str) \\\n            or not s_p[\"rule\"]:",
+      "replace": "    if False:"
+    },
+    {
+      "id": "B14S-primary-model-unchecked",
+      "part": "S-p label",
+      "describes": "the settings' primary model (HB-C from cells_u_pp) is not checked",
+      "file": "overlap_strata.py",
+      "find": "    if not isinstance(rep.get(\"primary_model\"), str) or \"HB-C\" not in rep[\"primary_model\"] \\\n            or \"cells_u_pp\" not in rep[\"primary_model\"]:",
+      "replace": "    if False:"
+    },
+    {
+      "id": "B14S-cli-without-label",
+      "part": "S-p label",
+      "describes": "the command line prints the verdict without its S-p label",
+      "file": "overlap_strata.py",
+      "find": "print(f\"  {set_name}: {block['verdict']['role']}: {block['verdict']['text']}",
+      "replace": "print(f\"  {set_name}: {block['verdict']['text']}"
+    }
+  ],
+  "fix_round": "2026-10-17 fix round (B14-verify.md): 20 mutants added (ids B14-fix-*); the find text of B14-report-plan-off follows the new seed-plan name check",
+  "s1_rulings": "S1 small rulings (2026-10-23): 9 mutants added (ids B14S-*), addendum section 11 points 5, 6, 8, 10 and 12 and section 13 point 3",
+  "s1_fix": "S1 FIX (2026-10-23; notes/s1-fix.json): mutants for the review's findings 1-5 (the W1-18 binding by bytes, LN-14's transfer report, the one mutation layout, the S-p label of addendum 11.11, four O-ext safety rules)"
+}

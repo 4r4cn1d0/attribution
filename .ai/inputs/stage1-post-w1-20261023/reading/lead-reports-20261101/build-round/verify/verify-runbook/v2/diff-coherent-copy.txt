@@ -1,0 +1,26 @@
+27c27
+< ROOT=/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-kind-hawking-a6ce04/ea7b850a-7c12-4652-92a4-7fbe8e247622/scratchpad/builds/verify-runbook/v2/root   # DRY RUN: the synthetic root
+---
+> ROOT=/Users/spiderishi/Coding/attribution                  # the main checkout (tmp/gi-vii-notes/blockB_S.zsh sets the same three)
+29,30c29,30
+< PY=/Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python   # DRY RUN: the real venv
+< STAMP=20261299   # DRY RUN
+---
+> PY=$ROOT/tmp/minimal-experiment-20261002/venv/bin/python   # Python 3.11.15, numpy 2.2.6; the second stamp pins both
+> STAMP=FILL-STAMP                                           # the second stamp's date label, for example 20261102; filled before the commit the stamp binds
+36c36
+< SCR=/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-kind-hawking-a6ce04/ea7b850a-7c12-4652-92a4-7fbe8e247622/scratchpad/builds/verify-runbook/v2/scr-20261299   # DRY RUN
+---
+> SCR=/private/tmp/stage1-reading-scratch                    # outside the repository; empty at the start; deleted after step 6
+38c38
+< STRATA_SHA=310fa1902bdc14d7474c28919ca4fad218c83f0bc852d795d218207e7a6e7c8c   # DRY RUN
+---
+> STRATA_SHA=FILL-STRATA-SHA256                              # its SHA-256 exactly as FOCUS records it (addendum:375)
+208c208
+< mkdir -p "$SCR/b14-prerun" && cp "$ROOT/tmp/synth-b14/overlap_report.json" "$SCR/b14-prerun/overlap_report.json" >| /dev/null 2> "$LOGS/R1a-b14-prerun-stderr.txt"   # DRY RUN: the synthetic report stands in for B14
+---
+> "$PY" -B scripts/stage1_s1/overlap_strata.py report --strata "$STRATA" --inputs "$B14IN" --out "$SCR/b14-prerun" >| /dev/null 2> "$LOGS/R1a-b14-prerun-stderr.txt"
+224c224
+< mkdir -p "$RUN/b14" && cp "$ROOT/tmp/synth-b14/overlap_report.json" "$RUN/b14/overlap_report.json" > "$LOGS/1-b14.txt" 2>&1   # DRY RUN: the synthetic report stands in for B14
+---
+> "$PY" -B scripts/stage1_s1/overlap_strata.py report --strata "$STRATA" --inputs "$B14IN" --out "$RUN/b14" > "$LOGS/1-b14.txt" 2>&1

@@ -50,9 +50,15 @@ settings/oext_unit.json and settings/oext_eval.json) for every unit but B+Qi's, 
 oext_unit_y.json and settings/oext_eval_y.json) for B+Qi's (a ref_train job of recipe bqi). plan.json's job must name
 that engine. A B10 unit (engine X only) must name engine X's O-ext module settings.
 
-**Not built** (no source or no defined per-item value; the record says so): the S-G coherent-only variant (a prompt
-whose 3 answers all fail the screen has no coherent share; REV3 3.4 gives no per-prompt rule for B16's per-item
-table), and the token axis (no job of the kit runs R at 1,200 or 2,400 rows, REV3 9.3 item 2).
+**Coherent-only counts** (post-W1 deviation D-5; RI-O2; coherent.py): with ``coherent`` the per-prompt counts of
+G2 (coherent answers, coherent Unsafe answers, Unsafe answers failing the screen) of every cell are written beside
+the document, bound to it by its SHA-256 and checked against its coherence block and its U table (coherent.check);
+sg_coherent.py reads S-G's coherent-only U and the adverse G3(a) corners from them beside B16's output.
+
+**Not built** (no source or no defined per-item value; the record says so): the S-G coherent-only variant as a B16
+share table (a prompt whose 3 answers all fail the screen has no coherent share, and B16 would form the prompt mean,
+not G2's pooled share; D-5 reads it beside B16 from the counts instead), and the token axis (no job of the kit runs R
+at 1,200 or 2,400 rows, REV3 9.3 item 2).
 """
 
 from __future__ import annotations
@@ -63,6 +69,7 @@ from pathlib import Path
 
 from scripts.stage1_s1.reading.schema import INPUT_KIND, b14_sha256, validate
 from scripts.stage1_s1.reading.settings import SETTINGS_SHA256, Refusal, canonical_json, design, settings, strict_json
+from scripts.stage1_s1.reading_input import coherent as coh
 from scripts.stage1_s1.reading_input import hb as hbmod
 from scripts.stage1_s1.reading_input import items as it
 from scripts.stage1_s1.reading_input.sources import (Folder, Kit, is_hex64, pinned_folder, plain, read_bytes,
@@ -82,9 +89,10 @@ PREFIX = {"prefix": "ref-prefix"}
 SAFE_LORA = {"default": "ref-external-safe_lora-default", "conditional": "ref-external-safe_lora-conditional"}
 SAFE_LORA_CERTIFY = "certify"
 NOT_BUILT = {
-    "u_variants.coherent": "not built: a prompt whose sampled answers all fail the coherence screen has no coherent "
-                           "share, and B16's per-item table needs one per prompt (REV3 3.4 gives no per-prompt rule); "
-                           "the lead rules",
+    "u_variants.coherent": "not built as a B16 share table: a prompt whose sampled answers all fail the coherence "
+                           "screen has no coherent share, and B16 would form the prompt mean, not G2's pooled share; "
+                           "post-W1 deviation D-5 reads S-G's coherent-only U beside B16 from the per-prompt counts "
+                           "(--coherent-out, coherent.py; sg_coherent.py)",
     "token_axis": "not built: no kit job runs R at 1,200 or 2,400 removed rows (REV3 9.3 item 2's dose cells), so "
                   "the dose curve has no source"}
 CHECKPOINT = "e1"
@@ -592,9 +600,10 @@ def _same(values: list, what: str):
 
 
 def build(reading: str, kit_root: Path, repo: Path, rules, rules_sha256: str, overlap: Overlap | None,
-          hb: bool = False) -> tuple:
-    """(the B16 input document, the sources record, the HarmBench tables or None): every check above, then B16's
-    own schema check; with ``hb`` the HarmBench tables (hb.py) on the document's U order."""
+          hb: bool = False, coherent: bool = False) -> tuple:
+    """(the B16 input document, the sources record, the HarmBench tables or None, the coherent-only counts or None):
+    every check above, then B16's own schema check; with ``hb`` the HarmBench tables (hb.py) and with ``coherent``
+    the coherent-only counts (coherent.py, checked by coherent.check), both on the document's U order."""
     cfg = settings()
     dsg = design(reading)
     kit = Kit(kit_root)
@@ -690,17 +699,23 @@ def build(reading: str, kit_root: Path, repo: Path, rules, rules_sha256: str, ov
         judged.setdefault(src.block, {})[src.unit.complete_sha256] = f"{src.name} {src.seed if src.seed else ''}".strip()
     judges = {block: judge_check(kit, block, judged.get(block, {}), rules) for block in blocks}
     try:
-        validate(doc)                             # B16's own schema: anything it would refuse is refused here
+        inp = validate(doc)                       # B16's own schema: anything it would refuse is refused here
     except Refusal as exc:                        # B16's message may hold a value: only its place is printed
         raise Refusal(f"B16's schema refuses the built document at {str(exc).split(': ')[0][:120]}") from None
     hb_doc = hb_rec = None
     if hb:
         hb_doc, hb_rec = hbmod.tables(kit, blocks, reading, primary, theta0_unit, u_ids, sha256_bytes(canonical_json(doc)),
                                       {b: j["index_sha256"] for b, j in judges.items()})
+    coh_doc = coh_rec = None
+    if coherent:
+        doc_sha = sha256_bytes(canonical_json(doc))
+        coh_doc, coh_rec = coh.table(reading, primary, u_ids, doc_sha)
+        coh.check(coh_doc, inp, doc_sha)          # against the coherence block and the U table just built
     record = _record(reading, kit, rules_sha256, blocks, primary, points, curve, theta0_folder, theta0_unit, judges,
                      doc, jobs, skipped)
     record["hb"] = hb_rec
-    return doc, record, hb_doc
+    record["coherent"] = coh_rec
+    return doc, record, hb_doc, coh_doc
 
 
 def _record(reading, kit, rules_sha256, blocks, primary, points, curve, theta0_folder, theta0_unit, judges, doc,

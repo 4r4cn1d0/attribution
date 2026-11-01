@@ -1,0 +1,378 @@
+{
+  "baseline": {
+    "disk_full": false,
+    "erroring": [],
+    "errors": 0,
+    "exit": 0,
+    "failing": [],
+    "failures": 0,
+    "outcome": "pass",
+    "seconds": 13.5,
+    "skipped": 0,
+    "targets": {},
+    "tests": 101,
+    "tree": {
+      "__init__.py": "b7e3087201412f9572ab82d70c18dd8c2ae4516412f7c4090166d83e0d0b9804",
+      "cap_reports.py": "6d4259268606deeb7c5cc36628b15f8f6de6619f4472c326d8fe65b66bf6a63a",
+      "common.py": "087a4c0c555bed236b2b465298bcf1aa5ff58a3f20effae923fded1545272d67",
+      "cost_table.py": "4cfe186091f960e2df44478a49b6ee167075d604fad686bf26d3797e62c88792",
+      "fk_power.py": "28d4647341c04f793762faa61def92453b886a37fa1e7eca9bb51bd2c2a45819",
+      "mutation/mutants_reading_extra.json": "1b7bfd84abc2cdeaf961bf6129c104ed91941a80b8e4ccd78b5cf37c4328587b",
+      "mutation/run_mutants.py": "5d00d42a24c26522745513646b27b23e5ac41137dc22d7dd7aa295e596a47471",
+      "sa_shift.py": "d3bf468f0e88f2c94776144a7dd55fba3be2e80a779314ae4d098366ecce0b2a",
+      "stage3_pick.py": "f6236e9ec4f6b0bf3e5737249f20aa16dc4d649905399307f347951a9181f03f",
+      "tests/conftest.py": "17e7f9a40126c203f3a8d0432a26505e6ba6f5c6f332981e23ad24e997418fa4",
+      "tests/extra_kit.py": "fcd14f6cd7f2a4956ed457e2b6df1678594a556703179f1b98012158ec9985cd",
+      "tests/test_cap_reports.py": "d8db4aa38727c6794ec5a8cc726786c1fdc96b0f1c8c7dad0f11d6be962ed442",
+      "tests/test_cost_table.py": "f37c2cd2d53350098ef13b8bb6469bdc43c7a26e584dc2c9f4eb2a5ed62be425",
+      "tests/test_fk_power.py": "d0bfc3eb27ac42cf4d01e182ec293a9f7f62c12c54bfe530f35bb17087d25978",
+      "tests/test_sa_shift.py": "f782fa3e1ecde59a8f934704742ae9a1362cf19753455a3d712b7e948e3c8f66",
+      "tests/test_stage3_pick.py": "6b5aa20aa9699c400902406db1f4a01b363c67fe516e8d0587492943080c1c6c"
+    }
+  },
+  "command": "python -B -m pytest -q -rs -p no:cacheprovider -W ignore --basetemp=<run>/bt --junitxml=<run>/junit.xml <copy>/scripts/stage1_s1/reading_extra/tests (cwd <copy>; PYTHONPATH <copy>:<workspace>; PYTHONDONTWRITEBYTECODE=1)",
+  "dose_axis_sha256": "d258ee595709a99a7e4b5cd54b3a308ebae1a156cb144dccea22e26e44acbbe1",
+  "environment_removed": [
+    "PYTEST_ADDOPTS",
+    "PYTEST_PLUGINS"
+  ],
+  "kind": "stage1 mutation report",
+  "min_free_gb": 3.0,
+  "mutants": [
+    {
+      "describes": "q counts the prompts where the flags agree, not where they differ",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_fk_power::test_q_and_the_rows_by_hand[plan_a_block_a_only]",
+        "scripts.stage1_s1.reading_extra.tests.test_fk_power::test_q_and_the_rows_by_hand[plan_b]",
+        "scripts.stage1_s1.reading_extra.tests.test_fk_power::test_discordance_needs_flags_and_two_seeds"
+      ],
+      "failures": 3,
+      "id": "RX-fk-q-agree",
+      "outcome": "killed",
+      "part": "fk_power",
+      "seconds": 16.6,
+      "skipped": 0,
+      "targets": {
+        "fk_power.py": {
+          "after": "83a5db9e832f895e70f757fdb6223e12958f51c55da557fc2b0945c1728a9025",
+          "before": "28d4647341c04f793762faa61def92453b886a37fa1e7eca9bb51bd2c2a45819"
+        }
+      },
+      "tests": 101
+    },
+    {
+      "describes": "F_k's one-sided level read as two-sided",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_fk_power::test_the_formula_reproduces_rev4s_table",
+        "scripts.stage1_s1.reading_extra.tests.test_fk_power::test_the_formula_equals_the_statistics_reviews_script",
+        "scripts.stage1_s1.reading_extra.tests.test_fk_power::test_the_formula_by_hand_at_another_j",
+        "scripts.stage1_s1.reading_extra.tests.test_fk_power::test_q_and_the_rows_by_hand[plan_a_block_a_only]",
+        "scripts.stage1_s1.reading_extra.tests.test_fk_power::test_q_and_the_rows_by_hand[plan_b]",
+        "scripts.stage1_s1.reading_extra.tests.test_fk_power::test_f_k_is_copied_from_b16_by_key",
+        "scripts.stage1_s1.reading_extra.tests.test_fk_power::test_refusals[apply-no F_k result for P2]",
+        "scripts.stage1_s1.reading_extra.tests.test_fk_power::test_refusals[apply-no F_k result for P3]",
+        "scripts.stage1_s1.reading_extra.tests.test_fk_power::test_command_line_writes_once_and_prints_no_number"
+      ],
+      "failures": 9,
+      "id": "RX-fk-two-sided",
+      "outcome": "killed",
+      "part": "fk_power",
+      "seconds": 19.8,
+      "skipped": 0,
+      "targets": {
+        "fk_power.py": {
+          "after": "f5d4edf81e9aa7be13fa1d70fd75824ffabe7f5e97223200591a44a01488f566",
+          "before": "28d4647341c04f793762faa61def92453b886a37fa1e7eca9bb51bd2c2a45819"
+        }
+      },
+      "tests": 101
+    },
+    {
+      "describes": "an O value that is not a 0/1 flag is read",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_fk_power::test_discordance_needs_flags_and_two_seeds"
+      ],
+      "failures": 1,
+      "id": "RX-fk-flags",
+      "outcome": "killed",
+      "part": "fk_power",
+      "seconds": 24.9,
+      "skipped": 0,
+      "targets": {
+        "fk_power.py": {
+          "after": "f277e221c5c86c5ef4f84c63cfa6236438f056cf8751ee0a321b2e2aeb2c936e",
+          "before": "28d4647341c04f793762faa61def92453b886a37fa1e7eca9bb51bd2c2a45819"
+        }
+      },
+      "tests": 101
+    },
+    {
+      "describes": "three contrasts picked",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_stage3_pick::test_the_rule_by_hand[plan1-want1]",
+        "scripts.stage1_s1.reading_extra.tests.test_stage3_pick::test_the_rule_by_hand[plan5-want5]",
+        "scripts.stage1_s1.reading_extra.tests.test_stage3_pick::test_the_rule_by_hand[plan6-want6]",
+        "scripts.stage1_s1.reading_extra.tests.test_stage3_pick::test_the_rule_by_hand[plan7-want7]",
+        "scripts.stage1_s1.reading_extra.tests.test_stage3_pick::test_plan_b_picks_from_its_three_contrasts"
+      ],
+      "failures": 5,
+      "id": "RX-pick-two",
+      "outcome": "killed",
+      "part": "stage3_pick",
+      "seconds": 25.4,
+      "skipped": 0,
+      "targets": {
+        "stage3_pick.py": {
+          "after": "301c524e2867d9903eddb6c78b88c1199968ac4f8d0fbfa36a59e80fa3859db1",
+          "before": "f6236e9ec4f6b0bf3e5737249f20aa16dc4d649905399307f347951a9181f03f"
+        }
+      },
+      "tests": 101
+    },
+    {
+      "describes": "the expected shift loses its sign",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_sa_shift::test_the_expectation_is_rev4s",
+        "scripts.stage1_s1.reading_extra.tests.test_sa_shift::test_the_measured_shift_by_hand[plan_a_block_a_only]",
+        "scripts.stage1_s1.reading_extra.tests.test_sa_shift::test_the_measured_shift_by_hand[plan_a]",
+        "scripts.stage1_s1.reading_extra.tests.test_sa_shift::test_plan_b_has_no_p4"
+      ],
+      "failures": 4,
+      "id": "RX-sa-constant",
+      "outcome": "killed",
+      "part": "sa_shift",
+      "seconds": 28.0,
+      "skipped": 0,
+      "targets": {
+        "sa_shift.py": {
+          "after": "8c4414015d7d9d78512732579af03e94c82289ed8723fd23deb9688951f325ce",
+          "before": "d3bf468f0e88f2c94776144a7dd55fba3be2e80a779314ae4d098366ecce0b2a"
+        }
+      },
+      "tests": 101
+    },
+    {
+      "describes": "the summary read is not the one the builder's record names",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_cap_reports::test_binding_refusals[apply-S1 1104: oext_summary.json is not the file the builder's record names]"
+      ],
+      "failures": 1,
+      "id": "RX-cap-record-sha",
+      "outcome": "killed",
+      "part": "cap_reports",
+      "seconds": 31.2,
+      "skipped": 0,
+      "targets": {
+        "cap_reports.py": {
+          "after": "be7c2761c206f94c3ee95472beeba34c28c5843ac35c0a302d5ddc22fe1b3101",
+          "before": "6d4259268606deeb7c5cc36628b15f8f6de6619f4472c326d8fe65b66bf6a63a"
+        }
+      },
+      "tests": 101
+    },
+    {
+      "describes": "units with two routes or branches are read as one",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_cap_reports::test_two_routes_refuse"
+      ],
+      "failures": 1,
+      "id": "RX-cap-one-route",
+      "outcome": "killed",
+      "part": "cap_reports",
+      "seconds": 36.5,
+      "skipped": 0,
+      "targets": {
+        "cap_reports.py": {
+          "after": "abcf9644edc90297ebb62b06cd8d1f6b23cc5cac3e06357c60236bc5b8aa2525",
+          "before": "6d4259268606deeb7c5cc36628b15f8f6de6619f4472c326d8fe65b66bf6a63a"
+        }
+      },
+      "tests": 101
+    },
+    {
+      "describes": "the shared split is the whole",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_cost_table::test_the_charges_by_hand"
+      ],
+      "failures": 1,
+      "id": "RX-cost-split",
+      "outcome": "killed",
+      "part": "cost_table",
+      "seconds": 70.2,
+      "skipped": 0,
+      "targets": {
+        "cost_table.py": {
+          "after": "c5e29141814c124980751242d982ea5b9cf01e0757a9a0f33b8ae00da8bc2b71",
+          "before": "4cfe186091f960e2df44478a49b6ee167075d604fad686bf26d3797e62c88792"
+        }
+      },
+      "tests": 101
+    },
+    {
+      "describes": "a complete, pulled job with no ledger is skipped",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_cost_table::test_a_complete_job_without_a_ledger_refuses"
+      ],
+      "failures": 1,
+      "id": "RX-cost-missing",
+      "outcome": "killed",
+      "part": "cost_table",
+      "seconds": 70.0,
+      "skipped": 0,
+      "targets": {
+        "cost_table.py": {
+          "after": "efcfa09543d4ba439e795917b3b784d868944f510cfb4d6eafa2dc24e7c5e324",
+          "before": "4cfe186091f960e2df44478a49b6ee167075d604fad686bf26d3797e62c88792"
+        }
+      },
+      "tests": 101
+    },
+    {
+      "describes": "B16's output on other settings is read",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_fk_power::test_refusals[apply-other reading settings]",
+        "scripts.stage1_s1.reading_extra.tests.test_stage3_pick::test_refusals[<lambda>-other reading settings]"
+      ],
+      "failures": 2,
+      "id": "RX-common-settings",
+      "outcome": "killed",
+      "part": "common",
+      "seconds": 44.9,
+      "skipped": 0,
+      "targets": {
+        "common.py": {
+          "after": "b760749b1e68fb7b381e2eb2c7bc49f391a09c17d115b3da52afe815ca325d13",
+          "before": "087a4c0c555bed236b2b465298bcf1aa5ff58a3f20effae923fded1545272d67"
+        }
+      },
+      "tests": 101
+    }
+  ],
+  "pytest_version": "pytest 8.4.2",
+  "python": "3.11.15",
+  "rule": "killed = exit 1 with >= 1 failure and 0 errors; survived = exit 0, 0 failures, 0 errors; anything else (errors, timeout, other exit codes, no JUnit, a test count other than the baseline's) = invalid; an 'expect: survive' entry passes only if it survives",
+  "runner_sha256": "5d00d42a24c26522745513646b27b23e5ac41137dc22d7dd7aa295e596a47471",
+  "shard": [
+    "RX-cap-one-route",
+    "RX-cap-record-sha",
+    "RX-common-settings",
+    "RX-cost-missing",
+    "RX-cost-split",
+    "RX-fk-flags",
+    "RX-fk-q-agree",
+    "RX-fk-two-sided",
+    "RX-pick-two",
+    "RX-sa-constant"
+  ],
+  "spec": "scripts/stage1_s1/reading_extra/mutation/mutants_reading_extra.json",
+  "spec_sha256": "1b7bfd84abc2cdeaf961bf6129c104ed91941a80b8e4ccd78b5cf37c4328587b",
+  "summary": {
+    "cap_reports": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 2,
+      "mutants": 2,
+      "survived": 0
+    },
+    "common": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 1,
+      "mutants": 1,
+      "survived": 0
+    },
+    "cost_table": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 2,
+      "mutants": 2,
+      "survived": 0
+    },
+    "fk_power": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 3,
+      "mutants": 3,
+      "survived": 0
+    },
+    "sa_shift": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 1,
+      "mutants": 1,
+      "survived": 0
+    },
+    "stage3_pick": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 1,
+      "mutants": 1,
+      "survived": 0
+    }
+  },
+  "timeout_seconds": 300,
+  "tree_name": "scripts/stage1_s1/reading_extra",
+  "version": 2
+}

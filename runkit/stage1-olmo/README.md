@@ -397,6 +397,59 @@ at once when the balance is below $10; the $10/h limit, the in-pod timers and st
   compares them). `record-judges` refuses a launch whose result's `verification.gpu` differs (`… differs from the
   record (gpu)`). Block A's record is not re-checked (the result is read at record time only).
 
+### Round 34, 1 Nov (B14's similarity pass on its own block; the lead's ruling, FOCUS 2026-11-01T04:55 UTC; `notes/kit-round-34.json`)
+
+REV4 §9.4's overlap control needs theta0's embeddings of the 200 dev harm prompts and the 144 added rows, "on the pod"
+(PLAN-S:172); no block ran it. This round runs `scripts/stage1_s1/overlap_similarity.py` (B14) once, as a kit job.
+
+- **J22, kind `similarity`.** Unit-free, counts 0, engine X only, recipe REC only (B14's settings pin REC's config
+  SHA-256): a job naming another engine, recipe, an arm or a seed refuses. Measured upper 600 s (E: five times the
+  design report's 1-2 min; never timed on CUDA, so `unmeasured`), upper 1.5 x 600 = 900 s (the wide-cap rule), start
+  requirement 2,700 s.
+- **Block `sim`** (`stage1_rules.BLOCKS`, its own funding group `sim`, host prefix `sim`: hosts `sim-1`, ...; pods
+  `attribution-s1-sim-1`). Exactly one launch of one pod holding the pass alone; its jobs file is
+  `{"launches": [{"hosts": [[{"kind": "similarity"}]]}]}` (any other shape refuses). Blocks A and B are sealed, so the
+  pass cannot join them. The block holds no outcome: it needs no judge and no seal (`seal.py block sim` would class
+  similarity.json as sealed by name only).
+- **Money (cents by hand, tests):** cap 0.25 h up of 42 min + 2,700 s = 1.5 h; guard $6 + 1.5 x $1.85 = $8.775;
+  upper spend (2,520 + 600) / 3,600 x $1.79 = $1.55; need: base $8.78, 1.25 x = **$10.98**, contingency $2.20 (one
+  re-run on a new pod, $1.55, not two). Expected (E): about 20-30 min of pod time, $0.60-0.90 (W1-18's one-job pod:
+  23 min, $0.69). Funded under addendum §36: a funding record {block "sim", amount_usd (the dry run's need), utc,
+  source "user rule: start from the balance", user_words (the user's words of §36, verbatim), recorded_by,
+  user_decision {path, sha256}} naming the user's decision record, as block B's group did.
+- **The inputs by SHA-256** (`plan_tool.similarity_entry`, at init-block and again at release; the job's
+  `similarity` entry): the script and its settings at their `S1_CODE` pins (added this round: `f8305c71…`,
+  `27db4c3f…`; the X pack carries them), the prepared manifest (`PREPARED_MANIFESTS`, `9ed61826…`) and its dev bank
+  (`SIM_DEV_BANK`, `1438ff51…`, the manifest's own entry), and the add sets `SIM_ADD_SETS` (S1 `904a0cf1…`, S3
+  `a2f18a3d…`, S4 `24aed3fb…`, the files their add-edit records name). Each add set is bound like an arm's edit (one
+  file for its arm in MAN1, Gate B's MANIFEST or a recorded sealed record, on disk at the pin) and must be the file the
+  arm trained on: every S1, S3 and S4 arm run of plan.json that names an edit names it, and at least one is complete.
+- **On the pod** (`setup/job_runner_stage1.py`): one step `job-I-similarity`,
+  `venv/bin/python scripts/stage1_s1/overlap_similarity.py --prepared data/kt-prepared/prepared-kt-dolly-olmo2
+  --recipe <REC> --add-set S1 edits/<S1>.edit.json <S1> --add-set S3 … --add-set S4 … --out job-I/similarity`, under
+  the runner's environment (`CUBLAS_WORKSPACE_CONFIG=:4096:8`, `HF_HUB_OFFLINE=1`, no token). Before it (no step runs
+  otherwise): the plan's entry has every pin, and every file it names is packed at that pin (`similarity_args`); the
+  sealed-file check covers the script, its settings, the W1 modules and `labels.json` it loads, the manifest, the dev
+  bank and the three edit files. Afterwards the runner writes `job-I/similarity-record.json` once (exclusive create,
+  canonical JSON; `stage1_rules.similarity_record_doc`): the output's path and SHA-256, the SHA-256 the script printed
+  (its stdout line in `job-I-similarity/process.log`), the provenance's script, settings and input SHA-256 values, the
+  counts (200 prompts, 48 rows per add set) and `problems`. An output off `stage1_rules`' pins, or a printed SHA-256
+  that is missing or differs, is a crash that the record explains. The pod returns `job-I/similarity/similarity.json`
+  (B14's own output: ids, numbers and hashes, text-free by its own scan) and the record; both are under `job-*` in
+  `host.py`'s `PULL_ITEMS` (no pull change).
+- **On the Mac:** the finisher's light check checks every complete similarity job as record-done does
+  (`stage1_rules.similarity_record_problem`: both files in the pulled tree at the SHA-256 JOB-DONE.json lists, the
+  record rebuilt from the pulled similarity.json and equal, no problem); a problem is `review-needed-stopped`.
+  `record-done HOST` refuses such a job and otherwise prints `similarity: [{job, path, sha256, record_sha256}]`, the
+  strata step's input by path (from the repository root) and SHA-256. No similarity value is read or printed by the
+  kit. A crashed pass is re-run once from the contingency (`defer HOST`, as every kind).
+
+      python3.11 pack_setup.py X --inputs FILE --inputs-sha256 H     (after moving setup/packed-stage1-X aside)
+      $PY -B plan_tool.py init-block sim --jobs JOBS --funding F --dry-run   (then without --dry-run)
+      $PY -B orchestrate.py check-plan sim-1
+      python3.11 launch.py sim-1            (a background job; with caffeinate -i python3.11 finisher.py beside it)
+      $PY -B plan_tool.py record-done sim-1
+
 ## The gates (brief §4)
 
 - **G0 (before any pod, $0).** B15 built, verified and pinned at the S1 freeze. `orchestrate.py check-plan HOST` must

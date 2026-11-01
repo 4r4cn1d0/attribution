@@ -1,0 +1,8 @@
+#!/bin/zsh
+# A stand-in for git in the dry run: "rev-parse HEAD" and "rev-parse HEAD:<tree>" print fixed strings, "status" prints nothing (clean). Nothing else.
+if [[ $1 == -C ]]; then shift 2; fi
+case $1 in
+  rev-parse) if [[ $2 == HEAD ]]; then print dryrun-head-0000000000000000000000000000000; else print "dryrun-tree-$(print -r -- "$2" | shasum -a 256 | cut -c1-24)"; fi ;;
+  status) ;;
+  *) print "fake git: unsupported: $*" >&2; exit 1 ;;
+esac

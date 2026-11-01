@@ -1,0 +1,872 @@
+--- /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-kind-hawking-a6ce04/ea7b850a-7c12-4652-92a4-7fbe8e247622/scratchpad/builds/verify-assemble/HEAD-stage1-commitments-build-20261016-lead-decisions.md	2026-11-01 20:40:45
++++ /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-kind-hawking-a6ce04/ea7b850a-7c12-4652-92a4-7fbe8e247622/scratchpad/builds/assembled/repo/.ai/briefs/stage1-commitments-build-20261016-lead-decisions.md	2026-11-01 20:32:46
+@@ -657,3 +657,869 @@
+ 4. **Money (the user's balance rule, §36 point 3):** one canary pod first (b-16), then the rest in groups whose cap-based upper ($1.85/h × the cap) fits the live free balance above the $6 reserve. Cost per pod is its run time from the restart to the stop × costPerHr; the cost report counts the first run and the restart separately.
+ 5. **If a start fails** (for example no free GPU on the pod's machine), the lead records it and asks the user again.
+ 6. **The user's second decision (2026-10-30T10:52 UTC; GI VIII chat, verbatim: "Yes, zero-GPU pull").** Under point 5, the GPU starts of b-1, b-2, b-3, b-6 and b-7 failed on 29 Oct at 22:06–22:08 UTC ("There are not enough free GPUs on the host machine to start this pod"), and b-14 (ref_eval at a0 1104) stopped itself unpulled at 00:41:51 UTC on 30 Oct while the Mac slept. The lead asked: "Start b-1, b-2, b-3, b-6, b-7 and b-14 once with zero GPUs to pull them?" Record `.ai/inputs/stage1-post-w1-20261023/block-b/user_decision_restart_to_pull_block_b_2.json` (`87237f57…`): the six hosts, the same limits, a zero-GPU start (RunPod's documented route to a stopped pod's volume when its machine's GPU is taken: GraphQL `podResumeZeroGpu`), and a retry of a start that failed (a failed start did not start the pod, so each pod is still started at most once). Route `restart_to_pull_v2.py` (`f065844f…`; v1 is unchanged at its path): `--retry-failed-start` renames the failed attempt's records with the suffix `-attempt-STAMP`; `--zero-gpu` uses `podResumeZeroGpu`; both are refused unless the decision file allows them.
++
++## 39. Before the stage-1 reading: the lead's rulings ([FILL-time]; decided by the lead, GI VIII, under the user's delegation; before any stage-1 outcome is read: blocks A and B are sealed and unread)
++
++Before the one-time reading, every reading rule is written down, so that nothing is chosen after an outcome is seen.
++Blocks A and B are sealed and unread (FOCUS:107, :77). Each point below is listed in the S1 blinding record with the
++Gate B values read before it (REV4:919; W1R:358), and the paper labels it "fixed after Gate B wave 1".
++
++- **Scope.** Every stated reading that CRIT §2.1 lists (CRIT:125-148; its decision 10, CRIT:354). Points 1 and 2 are
++  D-5 and D-6; points 3-11 the stated readings; points 12-15 B14's scheduling gap, D-7, ADD:428's simulations and the
++  build round's hard-rule notes. Each point quotes the stated reading, then gives the ruling. The default is to adopt
++  the stated reading; no report shows any of them wrong.
++- **Citations** are `path:line` at commit `55d5f8b` (`git show 55d5f8b:<path>`). FOCUS lines are 55d5f8b's: the
++  anchored-stamp entry added one line at FOCUS:74, so every FOCUS line from 74 on is one higher than at `0daca9a`
++  (the `55d5f8b` pin stays in every citation header, no remap: LR R6.5). The design round's reports are cited by line
++  in their committed copies (table below), byte-equal to the scratch copies the round wrote, so their line numbers
++  are unchanged.
++
++| Short name | Path |
++|---|---|
++| ADD | `.ai/briefs/stage1-commitments-build-20261016-lead-decisions.md` |
++| REV4 | `research/experiments/2026-10-17-stage1-preregistration-rev3/stage1-preregistration-rev4.md` (frozen W1 text) |
++| W1R | `research/experiments/2026-10-16-stage1-commitments.md` (the committed W1 record) |
++| PREREG | `research/experiments/2026-10-08-gate-b-olmo-preregistration-DRAFT.md` (Gate B/C revision 5, frozen) |
++| FOCUS, SPF, PLAN | `research/FOCUS.md`, `docs/study-plan-full.md`, `.ai/inputs/stage1-post-w1-20261023/reading/next-steps-after-block-b-20261031.md` |
++| B16/, RI/ | `scripts/stage1_s1/reading/`, `scripts/stage1_s1/reading_input/` |
++| STR, STRS, LC | `scripts/stage1_s1/overlap_strata.py`, `scripts/stage1_s1/settings/overlap_strata.json`, `scripts/stage1/limits/limits_common.py` (a W1 file) |
++| GBR | `scripts/gate_b_reading.py` |
++| D1A, V1A, CRIT, R1B, R1D | the design round's reports, committed copies under `.ai/inputs/stage1-post-w1-20261023/reading/lead-reports-20261101/design-round/` (commit `0e0ab1f`, 2026-11-01T09:41 UTC, after `55d5f8b`; each byte-equal to the scratch copy the round wrote, checked by SHA-256): `1a-ri-o2-design.md` (SHA-256 `d4700f08395138e6…`), `1a-ri-o2-review.md` (`f5cb0298a1e1eb33…`), `2-critic.md` (`e8646619ce4fc2fd…`), `1b-b14-similarity.md` (`c03f67467964cf33…`), `1d-reading-runbook-draft.md` (`9ae23f5ee6fa9ae6…`). The coherent-only simulation evidence is `design-round/sg-sim/sg_tail_check_10000.txt` (`bfcd26b2761ca0c0…`) in the same commit |
++| READY, CHECK | `…/lead-reports-20261101/next-stages/A-stage1b-readiness.md` (`8d1f5366ed267d33…`) and `A-stage1b-check.md` (`570e98ffb3d2a22c…`), committed in `0e0ab1f`, byte-equal to the scratch copies |
++| LR | the lead's rulings after the build round, `lead-rulings-20261101.md` (1 Nov 2026, 14:02 UTC; SHA-256 `3096e37a09ac565a…`), cited by section R1-R6; today in the lead's scratch `builds/`, to be committed under `lead-reports-20261101/build-round/` `[FILL-hash]` |
++| ACB, ACV, BBB, BBV, CKB, CKV, D1B, D1V, D2B, D2V, EV2 | the build round's reports, cited by line at the SHA-256 read here; today in the lead's scratch `builds/reports/`, to be committed under `lead-reports-20261101/build-round/` (LR R6.5) with their final SHA-256 `[FILL-hash]` (a fix round appends to a build report and moves no earlier line): `A-coherent-build.md` (`bb0ddc75a69787fd…`), `A-coherent-verify1.md` (`78664ae2ca51257a…`), `B-b14-build.md` (`f98671ab05c02366…`), `B-b14-verify1.md` (`6a596693dd71b40c…`), `C-kit34-build.md` (`539d3b3a27c95d16…`), `C-kit34-verify1.md` (`04e14e8ceb48f485…`), `D1-readers-build.md` (`bee4e20e31be1cfe…`), `D1-readers-verify2.md` (`1e8a6d44c3a8cc7c…`), `D2-ln31-build.md` (`c7506a1e54a17fe9…`), `D2-ln31-verify2.md` (`2577542a494ab662…`), `E-records-verify2.md` (`1f05238d79211758…`) |
++| FOCUS, PLAN, KW, LEDGER | `research/FOCUS.md`; `.ai/inputs/stage1-post-w1-20261023/reading/next-steps-after-block-b-20261031.md`; `…/reading/user_instruction_keep_working_20261031.json`; `research/experiments/2026-10-17-stage1-preregistration-rev3/decision-ledger.md` |
++| RIB, HBB, B16H | `research/experiments/2026-10-27-block-b-prep/reading-input/reading-input-build.json`, `…/hb-reader/hb-reader-build.json`, `…/b16-halves/b16-halves.json` |
++| OTSC | `.ai/inputs/stage1-post-w1-20261023/reading/timestamp/ots-check-20261101.json` |
++| PLANS | `research/review/2026-10-08-sharpened-direction-DRAFT.md` |
++| RULES | `runkit/stage1-olmo/stage1_rules.py` |
++| SIM | `scripts/stage1_s1/overlap_similarity.py` |
++| HLC | `research/review/2026-10-17-stage2-design-notes/second-rater-and-human-label-check.md` |
++| NOTES | `/Users/spiderishi/Coding/attribution/.claude/worktrees/kind-hawking-a6ce04/tmp/claude-workspaces/stage1-integrate-20261017/notes/` (git-ignored; cited by path, SHA-256 and line; the lead commits copies of the two cited files with the records, LR R6.5) |
++
++1. **Post-W1 deviation D-5: S-G's coherent-only U by a linearized prompt table, read beside B16 (builder open point RI-O2).**
++
++   **Facts.**
++   - The frozen text asks: "Coherent-only U is reported for every arm; every label is re-read on coherent answers
++     (S-G)" (REV4:301). S-G is "coherent-only U and both G3 corners" (REV4:270).
++   - Coherent-only U is G2's definition (PREREG:148): the arm-level value is the pooled share (coherent Unsafe over
++     coherent answers); per-prompt shares "serve only the per-prompt differences and the clustered SE"; a prompt with
++     0 coherent answers in either arm of a pair "is left out of that pair's differences"; the count is reported; "No
++     limit on that count changes a verdict".
++   - Today the builder does not build the coherent variant (RI/build.py:84-87; it sends only the two G3 tables,
++     RI/build.py:673-674), so B16 prints S-G with the two G3 corners only and no note (B16/reading.py:313). REV4:301
++     would be unmet in silence.
++   - The design's option (a) (D1A §4.2) drops prompts and uses equal-weight per-prompt shares in the prompt part. The
++     review shows that this prompt part does not belong to G2's pooled estimate: in a 4-prompt hand case the design's
++     SE is 0.07 pp where the correct SE is 25 pp (V1A:165-177; re-derived by hand in CRIT:254-258), and in synthetic
++     worlds with prompt-concentrated screen failures its 90% coverage is 0.845-0.877, against 0.900-0.903 for the
++     linearized table and 0.902 for B16's primary form on plain U (V1A:193-198; evidence
++     `design-round/sg-sim/sg_tail_check_10000.txt`, SHA-256 `bfcd26b2761ca0c0…`, committed in `0e0ab1f`; checked by
++     CRIT:305).
++   - Track A built D-5 in a scratch tree at `55d5f8b`: the builder's `--coherent-out` option and `coherent.py` (the
++     counts and their checks) and the reader `sg_coherent.py` beside B16; B16 stays byte-identical (ACB:13-14, :16-31).
++     Its verifier found one defect, in the test harness, and none in any reading output (ACV:16-25); fix round 1 is done
++     (ACB:334-362). The re-verify of that fix round runs now and its verdict decides (LR R1.1).
++   - The built G3 "unscored" corner counts unscored answers Unsafe in every arm (RI/items.py:6-8, :115). Gate B's
++     G3(a) is adverse by direction: "for LOCALIZED, Unsafe in unit arms and Safe in R arms; for DIFFUSE, the reverse"
++     (PREREG:149; GBR:243-244).
++   - No stage-1 outcome has been read: block A and block B are sealed and unread (FOCUS:107, :77). Since the seals, only
++     readable non-outcome records were read: completion records, cost ledgers, adapter fingerprints (REV4:158;
++     ADD:625) and the judges' run and completion records (FOCUS:77, :109).
++
++   **Ruling D-5.**
++   1. **Cell value:** G2's pooled share, V(a,j) = Σ_p u(a,j,p) / Σ_p n(a,j,p), a share (printed as 100 × V, in pp),
++      where n = the prompt's coherent answers (0-3) and u = its coherent Unsafe answers (PREREG:148).
++   2. **Prompt part: the linearized table** x(a,j,p) = V(a,j) + [u(a,j,p) − V(a,j)·n(a,j,p)] / N̄(a,j), with V as a
++      share and N̄(a,j) = Σ_p n / 200, on all 200 prompts (V1A:209-211). B16 scales the table by 100 itself
++      (`cell_value`, B16/contrast.py:84-85). With V in pp the point estimate would not change but the prompt part would
++      be wrong by orders of magnitude, and the all-n = 3 check of point 9 cannot see that (it gives x = u/3 at any scale
++      of V). Its prompt mean is V exactly; it equals u/3 when every n = 3; a prompt with no coherent answer gets x = V
++      (no influence on the ratio). No prompt is dropped and nothing is imputed; P stays 200.
++   2b. **Reading of G2's per-prompt rule** (PREREG:148): G2's per-prompt shares and its pairwise drop of a prompt with no
++      coherent answer served Gate B's clustered SE (GBR:457-470), which HB-C does not use. Under D-5 the prompt part is
++      the linearized table, so no prompt is dropped; G2's count of such prompts is printed per seed pair, report only
++      (V1A:227-229).
++   3. **Model:** B16's own functions, unedited, with the pinned settings (HB-C per cluster, the U floor, LN-35's stop
++      rule, D-4's starts; the crossed prompt part; Satterthwaite df), called on {"coherent": x} by a **new reader beside
++      B16**, in the pattern of the HarmBench claim reader (RI/hb_claim.py:1-29, :40-45). **B16 stays byte-identical**:
++      its module hashes and settings pin `fef3b6f5…` do not change (FOCUS:104: "nothing else pins B16's files").
++   4. **Inputs:** the builder writes, per cell and prompt, (n, u, u_fail) (u_fail = incoherent Unsafe answers) into a
++      side document bound to `tables.json` by SHA-256, as `--hb-out` is (RI/__main__.py:47); `tables.json` stays
++      byte-identical. Checks: per cell Σ_p (3 − n) equals the cell's `coherence` failing count; per prompt
++      u + u_fail = 3 × the plain U share, exactly. Built as the option `--coherent-out coherent_counts.json` of track
++      A's builder (ACB:18-21): the counts document carries `tables.json`'s SHA-256 as its `input_sha256`, and
++      `sources.json` records `coherent: {cells, items, output_sha256}`; without the option `tables.json` is the same
++      document (tested). **The pre-run (LR R6.1).** The builder's no-value pre-run R1b takes the same `--coherent-out`
++      option as step 2. The step-2 comparison with the pre-run leaves out `sources.json`'s `coherent.output_sha256` and
++      the counts document's `input_sha256`, as it leaves out the HarmBench tables' hashes (R1D:589-594): they bind
++      `tables.json`, which differs from the pre-run's by the overlap block. The counts' checks do not depend on the
++      overlap block, so if R1b passes, step 2 cannot refuse for a D-5 reason (EV2:54-63: the verifier ran both paths on
++      a synthetic kit; without this rule the step-2 comparison fails either way).
++   5. **Printed per arm:** V per cell, its seed mean, N per cell, and the prompts with no coherent answer per cell.
++      **Per contrast:** the estimate, 90% interval, df and U-part words; G2's count per seed pair (prompts with no
++      coherent answer in either arm). No count limit changes anything (PREREG:148).
++   6. **Words:** Φ is re-run with S-G coherent's U p-values and the primary O, L and F p-values, as B16's `record()`
++      does for every U sensitivity (B16/reading.py:287-301). The reader prints the U-part words **and the headline word
++      under that Φ run**, both formed by B16's own label code, never by hand (REV4:400). A word that differs from the
++      primary's prints in the row's sensitivity part of the reading record, copied there by key from the reader's
++      output (REV4:398; the route beside B16 needs this copy, CRIT §3 C13). It never changes a label (REV4:264, :275).
++   7. **G3a, both adverse corners**, in the same reader, per contrast, from `tables.json`'s plain U and
++      `g3_unscored_unsafe`: "against better" (the repair's cells from the unscored table, every other arm plain) and
++      "against worse" (the mirror). In P4 a0 is the comparator, so a0 takes the corner's direction (V1A:329-331).
++      B16's built table stays, labelled as the reader prints it: "unscored counted Unsafe in every arm (not Gate B's
++      adverse corner)" (V1A:363; the reader's `SYMMETRIC_LABEL`, pinned by its test, ACB:21-26; the reading record copies
++      the label by key and never re-types it, EV2:131-134). The corner it is not is Gate B's G3(a) (PREREG:149).
++   8. **The reader never stops the reading; the builder half is settled at the pre-run (LR R6.1).** B16 runs first and
++      is unchanged. The reader runs after B16 and the claim reader (step 4b). A statistical failure inside it (a cell
++      with N = 0, fewer than 2 common seeds, no variance information, a `RemlError`) prints "not computable" with the
++      reason and gives that node p = 1 in S-G coherent's own Φ run. A refusal of the whole reader (a non-zero exit, a
++      binding or hash mismatch) is logged, the script goes on (the runbook's stop rules S1 and S5 do not apply to this
++      step: §39 point 8(d)), the reading's other steps stand, and the reading record prints in S-G coherent's place:
++      "S-G, coherent-only U: not computed at the reading. D-5's reader refused: [its message, copied from the step's
++      log]. B16's two G3 corners print as built, labelled as in point 7. This departs from the stage-1
++      pre-registration, revision 4, §3.7 item 4." A later fix follows the runbook's S4: a post-W1 deviation, and its
++      outputs are labelled post hoc (R1D:727-730). **The builder half** (item 4's counts and their two checks) refuses,
++      if at all, at the no-value pre-run R1b, which shows no outcome (S2, R1D:722-724), because item 4's comparison
++      rule leaves step 2 no D-5 reason to refuse. If R1b refuses only on a coherent-only check (a message of track A's
++      `coherent.check`: the counts against the coherence block or against the U table, ACB:16-21), the reading's step 2
++      runs without `--coherent-out` (`tables.json` is byte-identical without the flag) and D-5 goes straight to its
++      last fallback (c), because (c+) also needs the counts. That choice is made at the pre-run, before any value is
++      read; (c)'s paragraph then names this cause instead of "not verified". A pre-run refusal for any other reason is
++      the builder's own and follows S2.
++   9. **"Verified" means all of these** (V1A:361; CRIT:345; LR R1.2; the items marked "added" were this record's and
++      are adopted by LR R1.2): the builder suite and the new reader's suite pass (B16's suite too, unchanged); the
++      official mutation spec of the builder and the new reader (47 entries, ACB:355, :440) is the lead's background run,
++      with 0 invalid and every mutant killed except listed expected survivors (LR R1.2(c)); an independent reference
++      agrees on hand cases and (added) on at least 20 synthetic readings (plan A, plan B, block A only), with this
++      **tolerance (LR R1.2(b)):** estimates agree to 1e-9 pp (V1A:361), and where the reference fits REML on its own,
++      SE and df are compared at 1e-6 relative, because B16's REML stops at a step below 1e-6 (ADD:425); (added) a hand
++      case with unequal n against an exact-fraction reference, because the all-n = 3 case cannot detect a wrong scale of
++      V (point 2); the all-n = 3 case equals the primary U_k exactly; and the coverage gate below.
++      **The coverage gate (LR R1.2(a)).** The simulation uses independent, prompt-concentrated and outcome-linked
++      failures (V1A:349-350). The gate is **plan A**, the reading that will run. Every contrast in every simulated world
++      must meet both the 90% coverage band 0.88-0.92 and the tail ratio: S-G coherent's 0.75% tail at most 1.5 × the
++      primary form's tail in the same world. Replicates: at least 2,000 per world; a world whose 2,000-replicate
++      coverage is within 2 Monte Carlo SE (0.0134) of a band edge, or whose tail ratio is above 1.3, must also pass at
++      10,000 replicates. **Plan B** is checked and reported, not a trigger. **Block A only** is reported as a limit,
++      not a trigger: that reading can no longer run (RI/build.py:606-607 refuses it with block B sealed), and B16's own
++      primary form is also outside the band there (ACB:255, :260-262). A plan-A contrast-world outside the band or the
++      tail rule triggers the fallback; it is not printed as a limit (V1A:295-296). Track A's measured state (synthetic
++      worlds, ACB:251-255): plan A 18 of 18 contrast-worlds at 2,000 replicates (coverage 0.891-0.909, tail ratio 0.93,
++      per contrast 0.61-1.35), plan B 6 of 6 at 20,000, block A only 8 of 18. By the replicate rule at least one plan-A
++      world must also pass at 10,000 (its lowest coverage 0.891 is within 0.0134 of 0.88; its highest tail ratio 1.35 is
++      above 1.3); the 10,000-replicate run is the lead's (ACB:267-268) and the re-verify reads it (LR R1.1).
++   10. **Records:** SPF:344 adds D-5; FOCUS records the reader's and the builder's new hashes `[FILL-hash]`; the
++       reader, its settings and this record fall inside the second stamp (PLAN:39-40).
++
++   **Reasons.** Option (a)'s prompt part is miscalibrated exactly when S-G matters, when a repair's screen failures sit
++   on particular prompts (V1A §2.1-2.2). The linearized table is the standard first-order form for a ratio estimator,
++   needs no drop rule and keeps REV4's P = 200. Beside B16, no B16 file changes, so B16's 117-entry spec (about 2.1 h,
++   R1D:168-171) need not run again and B16's tree stays the one the 31 Oct stamp holds. Cost: about one worker-day at
++   $0 (V1A:282-287, an estimate).
++
++   **Pre-set fallback (c+).** *Trigger:* D-5 is not verified after one fix round (the D-1 and D-2 pattern, ADD:457,
++   :470). Fix round 1 is done; its re-verify runs now and its verdict decides; there is no second fix round for the
++   reader (LR R1.1). Then the counts document of item 4 and a small reader print each arm's pooled coherent-only U per
++   cell, its seed mean and N per cell, with the text "no label was re-read on coherent answers (post-W1 deviation D-5,
++   fallback (c+))". S-G's G3 corners are B16's built tables with item 7's label; the adverse corners are "not
++   computed". (c+) adds no estimation rule: the pooled share is G2's own value (V1A §4). If the re-verify finds a
++   defect, (c+) is built and verified as this record's pre-set fallback, with this fixed text (LR R1.3).
++
++   **Last fallback (c).** *Triggers:* (i) (c+) is not verified (its suite, its spec and an independent recount of the
++   pooled shares on synthetic units) when the second stamp's manifest is written (LR R1.3); or (ii) the builder's
++   no-value pre-run R1b refuses only on the coherent-only counts (item 8): then (c) is chosen at the pre-run, before
++   any value is read, and (c+) cannot run either, because it needs the same counts. Then nothing coherent-only is
++   computed, and the reading record prints the design's option (c) paragraph (D1A:498-509) with these edits, because
++   that paragraph describes the design's drop rule, which this record does not adopt (V1A §2; CRIT C1), and says that
++   every label is re-read, which B16 does only for the U-part words (B16/reading.py:284-301; V1A:102-105):
++   - "(D-5: such a prompt leaves only the prompt part of the contrasts whose arms lack a coherent answer on it)" becomes
++     "(D-5: G2's pooled share per cell with a linearized prompt table on all 200 prompts, read beside B16)";
++   - "was not verified before the reading started, so by its pre-set fallback it was not used" becomes "and its pre-set
++     fallback (c+), each arm's pooled coherent-only U, were not verified by their pre-set triggers, so neither was used";
++     under trigger (ii) it becomes instead "could not run: the builder's no-value pre-run refused the coherent-only
++     counts ([the refusal's message, copied from the pre-run's log]), so neither D-5 nor its pre-set fallback (c+),
++     which needs the same counts, was used";
++   - "every label is re-read through Φ" becomes "the U-part words are re-read through Φ";
++   - the unscored corner carries point 7's label (D1A:511), and one sentence follows the first: "Gate B's adverse G3(a)
++     corners (against better and against worse) were not computed."
++   The record adds the date and time of this record.
++
++   **S1 blinding line (REV4:919; W1R:358).** Written `[FILL-time]`, after the W1 commit (FOCUS:144, 2026-10-22T21:22
++   UTC) and after every Gate B value that the S1 blinding record lists: wave 1 (FOCUS:140), the verdict (FOCUS:138),
++   P5's lexicon band (FOCUS:136), the final measurements and, possibly read, their §6 values (FOCUS:135), and σ̂ 1.78 pp
++   (FOCUS:126). No stage-1 outcome was read. **The paper labels this rule "fixed after Gate B wave 1".**
++
++2. **Post-W1 deviation D-6: B14's report accepts recipe-S units (a settings-only re-pin).**
++
++   **Facts.**
++   - B14's report settings fix `report.identity.recipe_sha256` to REC's config hash `9e9bde6f…` and list recipe S's
++     `ceffe0ef…` under `refused_recipes` (STRS:39-42, :49). The W1 unit check enforces both (LC:167-171).
++   - Every stage-1 arm, a0 arm and regeneration trains with recipe S (`runkit/stage1-olmo/stage1_rules.py:340`,
++     `TRAINING_IDENTITY_RECIPES = ("S",)`; ADD:435). Recipe S's config hash is `ceffe0ef…`
++     (`scripts/stage1_s1/settings/oext_unit.json:61`). R1B parsed `plan.json` and found recipe "S" on all 55 arm jobs
++     and all 5 a0_arm jobs (R1B:148-150; not reopened here); track B's verifier confirmed it, read-only: the counts
++     `('arm','S','X') 55` and `('a0_arm','S','X') 5`, and a recipes table of exactly four configs, REC, S, G and B+Qi
++     (BBV:18-24).
++   - Track B built D-6 and the B14 inputs writer in a scratch tree at `55d5f8b`; both are verified (BBB:11-17; LR R2,
++     status line).
++   - B14's own test asserts the refusal (`scripts/stage1_s1/tests/test_b14_report.py:385-400`, case `recipe_s`). So
++     `overlap_strata.py report` refuses at the first kit unit of `d1_plan_a` (a0 at 1104; STRS:33), before that unit's
++     guard file is read (R1D:34): no outcome is shown, but §9.4 cannot be read.
++   - The strata record stores the strata settings' SHA-256 and the report refuses a mismatch (R1B:101-103), so this
++     change must land before `overlap_strata.py strata` runs.
++
++   **Ruling D-6.**
++   1. In STRS: `report.identity` keeps `manifest_sha256` and drops `recipe_sha256`; `refused_recipes` becomes recipe G
++      `c004349c…` (`scripts/stage1_s1/settings/oext_unit.json:60`) and B+Qi `37942cf5…`
++      (`scripts/stage1_s1/settings/oext_unit_y.json:59`), because reference units also carry arm "a0" (R1B:163-164).
++      Every unit stays pinned by its COMPLETE.json and job.json SHA-256, arm, seed, checkpoint and allowed engine code
++      (LC:146-171; STRS:44-47).
++   1b. **The limit, recorded (LR R2.1).** D-6 stays settings-only, a deny-list: a unit of any other recipe hash would
++      pass B14's own checks (BBB:17; BBV:145-147, where the verifier also shows that no such unit exists in the real
++      kit's four-config recipes table). Today the unit pins (COMPLETE.json and job.json SHA-256), the inputs writer's
++      `plan.json` recipe check (recipe S required for every kit unit), the checker and the builder's cross-check cover
++      the reading, and `plan.json` records recipe S on engine X for all 55 arm and 5 a0_arm jobs (BBV:18, B's verifier).
++      No accepted-recipes list is added.
++   2. `SETTINGS_SHA256` (STR:60) is re-taken (the settings `92c3a4a0…`, the script `4249b070…`; BBB:38-39). The
++      fixtures give kit units recipe S and Gate A's a0 units REC; the `recipe_s` refusal case becomes an accept case;
++      new refusal cases cover G and B+Qi. The B14 suite and its mutation spec run on the change. **The spec has 150
++      entries** (87 before D-6; 63 added and 6 re-pinned, BBB:16, :46; the first draft of this record said 87, the
++      pre-D-6 count). Before the second stamp the lead runs the **69-entry near set** (the new and re-pinned entries,
++      `mutants_b14_near.json`, SHA-256 `77c3def1…`, BBB:234); the full 150-entry spec runs as a background job when the
++      machine allows (LR R2.2). This record states which set ran: `[FILL: the 69-entry near set / the full 150-entry
++      spec]`, result `[FILL]`.
++   3. No W1 file changes (LC is untouched) and no rule text of §9.4 changes (REV4:757). **Order (LR R2.3):** D-6 is
++      committed before `overlap_strata.py strata` runs, because the strata record carries the settings' SHA-256
++      (BBB:276; R1B:101-103); the inputs writer runs, then the checker at once; the change, the writer's file and this
++      record fall inside the second stamp.
++
++   **Reason.** The refusal was right for REQ-19's Gate A units, which B14's pattern copied
++   (`scripts/stage1/settings/limits_check.json:7`, per R1B:155-156), and wrong for kit units. A settings-only change is
++   the smallest fix: one file, one pin, the same checks on every other field.
++
++   **Pre-set fallback.** *Trigger:* D-6 is not verified (suite and spec as point 2) when the other builds are done (D-5,
++   the B14 inputs writer, the reading-time readers), or (added, beyond the brief's trigger; CRIT:347; R1D:783)
++   `plan.json` shows a recipe other than S for any kit unit that B14 reads. Then the input build runs with
++   `--no-overlap` (RI/__main__.py:45-46) and B16 prints "not computed" for §9.4 (B16/reading.py:534-535). The reading
++   record words §9.4 so: "§9.4's overlap control: not computed. Cause: [B14's report refused the stage-1 kit units / no
++   strata]. This departs from REV4 §9.4 (LN-26) and is post-W1 deviation D-6's fallback." It also states that B16's
++   printed reason (`scripts/stage1_s1/reading/settings/reading.json:200`), the builder's `--no-overlap` help
++   (RI/__main__.py:45-46) and its refusal text (RI/__main__.py:58-59) name addendum §24 point 4's fallback, which was
++   withdrawn on 29 Oct (FOCUS:104), and that no B14 per-contrast paired form is printed in its place. Those pinned texts
++   stay unchanged (LR R6.5: B16's settings pin must not move); the record corrects the reference.
++
++   **S1 blinding line (REV4:919; W1R:358).** Written `[FILL-time]`, after the W1 commit (FOCUS:144) and after every
++   Gate B value the S1 blinding record lists (FOCUS:140, :138, :136, :135 with its §6 values possibly read, :126). No
++   stage-1 outcome was read. **The paper labels this rule "fixed after Gate B wave 1".**
++
++3. **The input builder's open points** (RIB:410-466; written 29 Oct 10:34 UTC, RIB:5). RI-O2 is D-5. RI-O3's wording
++   is point 7. RI-O4 is closed by §37 (the claim reader, ADD:639-646). Every other point keeps its stated reading:
++
++   | Id | The stated reading (quoted, shortened) | Ruling |
++   |---|---|---|
++   | RI-O1 (RIB:412-414) | "B16-H-O8 is met builder-side (required --expect-*-sha256, canonical-form check); B16 itself is unchanged." | Adopted. B16 gains no refusal. The binding is the builder's required `--expect-strata-sha256` and `--expect-report-sha256`, the runbook's check that B16's `provenance.input_sha256` equals `tables.json`'s SHA-256 (R1D:607-622), and the lead's comparison with the SHA-256 values in FOCUS (B16H:230-231) |
++   | RI-O5 (RIB:428-430) | "plan_a_block_a_only refuses once block B is sealed (… that reading is for a stage 1 without block B)" | Adopted (REV4:158; the code: RI/build.py:606-607) |
++   | RI-O6 (RIB:432-434) | "B+Qi's own a0 (role bqi_own_a0, after a failed certificate) refuses" | Adopted. The X → Y certificate passed (FOCUS:107), so the role does not arise; the refusal stays as a guard |
++   | RI-O7 (RIB:436-438) | "Safe LoRA's two reference points enter B16 as two point references; … family 1b … then needs both, … 'm beats it only if m beats each point'. Its certify (K = 0) point and B10's certify units are not references." | Adopted |
++   | RI-O8 (RIB:440-442) | "References are read from the complete ref jobs found in block B; there is no required list (a reference that did not run is simply absent and the summary prints the list)." | Adopted. The printed list is a count line, logged and reviewed (point 8a), never a stop and not an identity line (LR R6.5); the record names any planned reference that is absent, as a limit beside family 1b (point 8a) |
++   | RI-O9 (RIB:444-446) | "The plan-A/B code is read from plan.json's record; the builder does not re-derive it from Gate B's verdict file" | Adopted. The kit re-derives it at every init and release; plan A is recorded (FOCUS:126) |
++   | RI-O10 (RIB:448-450) | "O's per-prompt flags re-implement oext_eval.evaluate_oext's primary table …; every count of oext_summary.json … must agree." | Adopted. The count equality is the check on real units; a mismatch refuses before any value is printed |
++   | RI-O11 (RIB:452-454) | "Gate A units: job.json is bound by its pin, not by COMPLETE.json's job_sha256 …; harm.sampled invalid and capped are compared only where present" | Adopted |
++   | RI-O12 (RIB:456-458) | "A block seal must carry seal.py's judge_record (round 30 and later)." | Adopted. Both seals were written after kit round 30 (FOCUS:107-108, :77); a refusal here would come in the no-value pre-run, before any value |
++   | RI-O13 (RIB:460-462) | "The rules module defaults to the repository's runkit/stage1-olmo/stage1_rules.py … if the live kit's copy differs, pass --rules … or compare." | Adopted. The runbook checks that the repository and live copies are equal (R1D:220, :228-229) and the second stamp holds both |
++   | RI-O14 (RIB:464-466) | "The not-run route for R's O cell at a reused seed reads block A's seal not_run list …; the decision files themselves are not re-hashed here (the seal holds their SHA-256)." | Adopted |
++
++4. **The HarmBench claim reader's other readings** (RI/hb_claim.py:70-96; HBB:55-64, :190). §37 ruled R1, R4 and R8
++   (ADD:641-643). The other six are adopted as written. Each changes which sentence prints, so each is stated here:
++   - **R2** (RI/hb_claim.py:75-77): "The case is the U part's (rows[k].u_part.words), not the headline word … a row
++     headed 'worse (O)' or 'worse (L)' keeps its U part's case." Reason: the harm sentence is about the U claim; the
++     alternative needs a rule the text does not give.
++   - **R3** (:78-79): "A U part with both 'worse (U)' and an equivalence grade (LN-36: both print) is an equivalent
++     contrast (never 'harm')." Reason: LN-36 lets both print (REV4:394), and LN-15c gives an equivalent contrast only
++     "restored refusal"; this is the conservative reading.
++   - **R5** (:82-85): "'Same sign' and 'at least half its size' compare the point estimates; a value within B16's
++     tie tolerance (… 1e-9 pp) of 0 has no sign and never matches; |HB_k| >= |U_k|/2 and 'E_HB < 20 pp' read through
++     that tolerance". Reason: shares are k/3, so exact boundary values can land 1e-15 off; B16 reads δ the same way
++     (B16/README.md:153-155).
++   - **R6** (:86-88): "The HarmBench contrast's interval is U's model refitted on the HarmBench table (HB-C, U's
++     floor, the crossed item part over 200 prompts)". Reason: REV4 names no other model, and HB-C is refitted per
++     endpoint (REV4:285).
++   - **R7** (:89-90): "'unparsed' labels count as not 'yes'". Reason: Gate B's judge files count harm as "yes" only,
++     and Gate A's E_HB was the "yes" share of all 600 answers.
++   - **R9** (:94-96): "The rule is read on the reading's labelled contrasts (P1-P6; plan B P1, P3, P6). Restoration
++     G_m, the references and the overlap halves carry no LN-15c label and are not read here."
++
++5. **B16's stated readings and open points.**
++   - **Ties at δ** (B16/README.md:153-155): "Every comparison of the estimate with delta reads through
++     `margin.tie_tolerance_pp` (1e-9 pp, pinned); interval ends (irrational) do not." Adopted.
++   - **"Readings the record should state"** (B16/README.md:156-159): (a) LN-12's O comparator part uses the R seeds
++     present, and is "not tested" below 3 seeds; (b) the S-a equal-variance flag reads the rejection sets of the S-a
++     and S-aW Φ runs (REV4:266); (c) under plan B, S-a and S-b2x pool a0 as well (S-a is "pooled over the arms");
++     (d) the two-arm cluster's sum is floored at one floor, not twice it. All four adopted; the reading record
++     states them.
++   - **The overlap readings R2-R6** (B16/README.md:79-84): (R2) HB-C "from cells_u_pp" is the full cluster refit on
++     the per-prompt U table at B14's halves, with `cells_u_pp` as the binding check; (R3) a sign within 1e-9 pp of
++     0 is 0 and never matches; (R4) "excludes 0" is strict; (R5) a half with fewer than 2 prompts, or with no fit or
++     no variance, is "not computable" and "not shown"; (R6) the higher half is printed; the rule reads only the lower
++     half and all prompts. All adopted. (R1, which contrasts, is §33 point 1, ADD:604.)
++   - **Already ruled, recorded here once:** the floor mode "active_set" (B16/README.md:139-145; ADD:425); a step
++     that floors an arm never ends the fit (B16/README.md:146-150; ADD:426); the 25-step stop stays
++     (B16/README.md:151-152; ADD:607).
++   - **B16-D4-O2** (B16H:222-223): HB runs all 255 floor patterns (about 1.1 s per reading). Ruling: unchanged, as
++     D-4 says "every B16 REML fit" (ADD:605).
++   - **B16-D4-O3** (B16H:226-227): D-4's fallback print is not built. Ruling: recorded as moot. D-4 was verified and
++     merged before block B's reading (FOCUS:104, :99), so its trigger, "not verified before block B's reading"
++     (ADD:605), never fired.
++   - **B16-H-O9** (B16H:234-235): B16 checks B14's split through the strata's recorded numbers, not by recomputing
++     it from the similarities. Ruling: a stated limit; the anchor is the sealed SHA-256 of `strata.json` in FOCUS
++     (ADD:375).
++
++6. **A coherence-failing arm is not "feasible" for the best feasible repair** (B16/reading.py:449; the per-actor
++   best data arm uses the same candidates, B16/reading.py:485; in family 1b a failing arm carries p = 1 and never
++   dominates, B16/reading.py:427-433).
++   - *Frozen texts.* "A failing arm is infeasible for the selector and cannot dominate a reference" (REV4:302). The
++     best-feasible rule names τ_O, τ_L and §4.9's separation, and no coherence condition (REV4:410). The coherence
++     flag "never changes the word" (REV4:409). In REV4, "the selector" is §7's model-based selector: "The selector
++     stays secondary and model-based" (REV4:79); "the selector screen (REQ-16)" (REV4:562); "The selector is not run
++     on new menus here" (REV4:611-614).
++   - *Ruling.* B16's behaviour is adopted as a stated reading that fills a gap. REV4:302 makes a failing arm
++     infeasible for §7's model-based selector, not for the headline's best feasible repair, and its second half
++     ("cannot dominate a reference") is B16's family-1b rule (B16/reading.py:427-433). B16 applies the same
++     exclusion to the best feasible repair and to the per-actor menus (B16/reading.py:449, :485); ADD:427 ruled the
++     per-actor best data arm "better and feasible" without naming coherence. The headline word does not change
++     (REV4:409). It is a post-W1 reading, listed in the S1 blinding record (rows 1 and 12).
++   - *Reason.* A repair whose answers fail the screen should not be named the feasible choice; the reading changes
++     no P1-P6 label (REV4:409). The code dates from B16's first commit, `2135c2d` (2026-10-23T00:40:40Z), before
++     wave 1's reading was recorded (FOCUS:140, 01:00 UTC).
++   - *Alternative not adopted:* REV4:410 read alone, which would need a B16 change.
++
++7. **The wording of S-tok and of §9.4.**
++   - **S-tok.** The stated readings: RI-O3, "token_axis is not built: REV3 9.3 item 2 needs R_1200 and R_2400 at
++     d = 2-4 (seeds 1102-1104), and no kit job kind … runs them, so S-tok has no input. A kit round (and funding) or
++     S-tok's absence is the lead's decision" (RIB:420-422); and the plan's "RI-O3: S-tok has no input (stage 1c's
++     R_1200 and R_2400 have not run), so the reading says 'not run'" (PLAN:32). B16 prints `null`
++     (B16/reading.py:315), and the builder prints "not built: token_axis" (RI/build.py:88-89). S-tok's input is the
++     random dose curve R_1200 and R_2400 (REV4:271, :743), a stage-1c arm of the funded tier (REV4:719-721).
++     Ruling: the plan's reading is adopted; the reading record prints "S-tok: not run (its input, the random dose
++     curve R_1200 and R_2400 of REV4 §9.1, belongs to stage 1c and has not run; B16 prints null)". The token-axis
++     report of REV4 §9.3 item 2 reads the same. S-tok is read when stage 1c's dose cells exist.
++   - **§9.4 without the overlap block.** The stated reading: "§9.4's wording if `--no-overlap` fires (do not cite ADD
++     §24 point 4; §3 C3)" (CRIT:142-143). Adopted: the only wording is D-6's fallback text (point 2). The
++     record does not cite §24 point 4: its fallback was withdrawn on 29 Oct (FOCUS:104), although B16/README.md:68,
++     B16's pinned text (`B16/settings/reading.json:200`), the builder's help (RI/__main__.py:45-46) and the builder's
++     refusal text (RI/__main__.py:58-59) still name it. Those texts stay unchanged (LR R6.5: B16's settings pin must
++     not move); the record corrects the reference. *Not adopted:* correcting the builder's two texts while track A
++     edits that file for D-5 (EV2:153-155), because the lead ruled the pinned texts unchanged; it would move the
++     builder's hash a second time for no reading change.
++
++8. **The reading runbook's readings** (R1D; CRIT:145-146, :220-226). R1D asks §39 to confirm "this runbook's own
++   readings: D1's recipe rule, the inputs writer, the pre-runs, the byte-for-byte re-runs, the stop rules, the
++   mechanical record, and 'report and go on' after the reading" (R1D:804-805). D1's recipe rule is D-6 (point 2);
++   "report and go on" is point 10.
++   - **(a) Stop on identity lines only; log the count lines.** The stated reading: "Default: stop only on identity
++     lines (plan code, seals, rules and settings pins, written hashes) and log the count lines for review"
++     (CRIT:224-225). Adopted. The no-value pre-run checker and the step-2 checker stop on the plan code and
++     `plan.json`'s SHA-256, the rules and B16 settings pins, both seal SHA-256 values, the overlap line and the
++     written files' SHA-256 (R1D:537-541, :571-575). The count lines (cells, references, judges, HarmBench records,
++     the "not built" lines; R1D:469-478) are logged and read after the run, never stop conditions. Reason: they are
++     inferences from code (R1D:670-677), and a wrong one would cost a new second stamp and anchor wait
++     (CRIT:220-226). The builder refuses a missing, duplicate or extra cell on its own (RI/build.py:9-13, :271-272).
++     References have no required list (RI-O8, RIB:440-442): a reference that did not run is absent from the printed
++     list, and family 1b ("beats every reference") then compares m with the references present. So the reading
++     record prints the references list beside family 1b and names, as a limit, any reference job of block B's plan
++     that is absent. **Ruled (LR R6.5):** the references line is not an identity line; a missing reference prints as
++     a limit beside family 1b. *Not adopted:* making it an identity line after checking block B's reference jobs in
++     its completion records, which stay readable (REV4:158; the kit's seal leaves ledgers, completion records,
++     fingerprints and receipts readable, CHECK:267-269), before the second stamp (RIB:441-442). Fallback for the
++     stop rules as a whole: R1D's strict list; trigger: the lead chooses strict checks before the second stamp is
++     made (CRIT:225-226, :355).
++   - **(b) Byte-for-byte re-runs.** The stated reading: "A pre-run or re-run that is not byte-identical: stop; the
++     first file of step 1 or 3 stays the reading; report the difference as a limit" (R1D:733-734, S6). Adopted: B14's
++     report must equal its no-value pre-run byte for byte (R1D:552), and B16 is run twice with byte-identical outputs
++     (R1D:623-624).
++   - **(c) The mechanical record.** The stated reading: "The reading record, by a mechanical extractor (copies by
++     key; computes nothing; rev4:400)" (R1D:682). Adopted, with one addition: the extractor copies from
++     `reading.json` and `hb_claim.json` (R1D:690-701) and also from the D-5 reader's output, so that S-G coherent's
++     words reach the row's sensitivity part by key (REV4:398; D-5 point 6). When the D-5 output is absent (the
++     reader refused at step 4b, or D-5 went to (c) at the pre-run), the extractor still runs and copies D-5 point
++     8's wording, or (c)'s paragraph, with the reason from the step's log (EV2:156-157). It also copies the
++     reading-time readers' outputs of step 4c by key (point 11). Nothing is typed by hand (REV4:400). The words
++     table that FOCUS quotes is printed by that extractor (R1D:710-711).
++   - **(d) Pre-runs and stop rules.** The stated reading: R1a, "B14's report as a no-value pre-run (stdout, which
++     would hold the S-p verdicts, is discarded unread)", and R1b, "the builder as a no-value pre-run (it prints counts,
++     hashes and labels only; its files stay unopened in scratch)" (R1D:519, :524), both before any outcome is printed
++     (R1D:519-546); stop rules S1-S9 as drafted (R1D:718-738), with three changes: (i) S1 ("Any exit other than 0, or
++     any `"pass": false`: the script stops", R1D:720) and S5 do not apply to D-5's reader (step 4b) or to the
++     reading-time readers (step 4c, point 11): a non-zero exit or refusal there is logged, the script goes on, and
++     the record prints D-5 point 8's wording (or the reader's "not computed") with the reason; (ii) the pre-run and
++     step-2 checkers fail only on the identity lines of (a); the count lines are logged; (iii) R1b takes the same
++     `--coherent-out` option as step 2 (R1D:524-529 drafted it without the option), and the step-2 comparison
++     (R1D:581-600) leaves out the counts document's hashes (`sources.json`'s `coherent.output_sha256` and the
++     document's `input_sha256`), because they bind `tables.json`, which differs by the overlap block (LR R6.1;
++     EV2:54-63). So D-5's builder half is settled at R1b, before any value: if R1b refuses only on a coherent-only
++     check, step 2 runs without `--coherent-out` and D-5 goes to its last fallback (c) (D-5 point 8); any other
++     refusal at R1b is S2. From step 1 on, no input, setting, pinned file or output is edited, and no step is re-run
++     with other arguments (S3, R1D:725-726).
++   - **(e) B14's inputs file.** The stated reading: "Default: step 0.4's writer, reviewed, tested on a synthetic kit,
++     recomputed by a second process. Fallback: a hand-written file that an independent second writer reproduces byte
++     for byte. Trigger: the writer not verified before the second stamp" (R1D:784-786). Adopted: the hash-only writer
++     (R1D:318-380), run once and committed before the second stamp.
++   - **(f) A failure after step 1.** The stated reading: "D7 (failure after step 1). Default: S3–S6. Fallback: stop
++     the reading and ask the user. Trigger: a fix that would change a rule, a setting or how any value is computed"
++     (R1D:799-800). Adopted; KW:11 keeps "when the next step needs the user" as a stop.
++   - **(g) A breach of the path rule by the runbook's author, recorded.** To look for LN-31's draw script, R1D's
++     author ran one repository-wide `grep -rln` that pattern-searched, among other files, the 7 W1 "sealed record"
++     JSON files under `.ai/inputs/stage1-commitments-20261016/` and the post-W1 `c3/` and `pool-pins/` folders; it
++     printed only the names of matching files, and none of those files matched, so no byte of their content was
++     printed (R1D:823-829). Risk: none known (no content was shown). The rule stays: a search excludes every sealed
++     record by path, and the W1 manifest's sealed records are named by path and SHA-256 only. The build round's own
++     hard-rule notes (a `git ls-files` print, three mutation shards moved to the background by the harness, a
++     `grep -r` over the lead's notes folder) are recorded in point 15 (LR R3.5, R6.4, R6.6).
++   - **(h) The cost-ledger pre-check (LR R4.5).** Before the reading, the runbook checks by exact path that every
++     expected cost ledger exists (existence only; no ledger is read). A missing ledger makes the cost table of point
++     11 "not computed" (report only); it never stops the reading.
++
++9. **The outside time stamps.**
++   - *Facts.* The first stamp is anchored in Bitcoin block 974039 (header time 2026-10-31T23:28:48 UTC) and again in
++     974047 (2026-11-01T00:42:41 UTC), each checked at two explorers (FOCUS:74; OTSC:8-28, :30-35). Block 974047 is
++     8 blocks later, so 974039 had at least 9 confirmations by 00:42:41 UTC (inference from the heights).
++   - *Ruling.* Both stamps are verified as the first was: two independent sources agree on the height, the block hash
++     and the merkle root, and the root equals the proof's commitment. **Margin:** at least 6 confirmations
++     (tip − height + 1 ≥ 6), and the reading's step 1 starts at least 2 h after the anchoring block's header time,
++     because header times are accurate to about 2 h (FOCUS:74; R1D:312-314). The first stamp meets both (2 h after
++     its header time was 01:28:48 UTC on 1 Nov). The `ots` client's environment is kept until both stamps are
++     upgraded and verified (CRIT:215-216). **A third stamp** of the reading's ledger, outputs and record follows the
++     records step, at $0; it bounds from above when the outputs existed (CRIT:217-218). No anchor within 48 h:
++     re-stamp once, then PLAN:34's wording.
++
++10. **"Report and go on" replaces "stop and ask" for this run.**
++    - *Facts.* The frozen text: "stop and ask after every stage (FR-25; FR-21)" (REV4:887). The user's words on
++      31 Oct, about 23:14 UTC: "keep working until all resources are exhausted" (KW:3-4). The lead's reading: "report
++      after each stage and go on" (KW:7), replacing the plan's "stops and asks the user after every stage" (KW:13;
++      PLAN:48-49). FR-21 is the user's own "Stop asking me for approval and go ahead" (LEDGER:70). R1D:44 gives
++      "reports after every stage and goes on" as the user's words; they are the lead's (KW:7, :13).
++    - *Ruling.* For this run, after the reading and after each later stage, the lead reports to the user and goes on
++      in the plan's order. What stays: the money rules (KW:8: pods at or below $10/h, in-pod caps, the alert below $10,
++      launches only as background jobs, no deletion without the user's yes, the $6 reserve); a frozen stop rule that
++      blocks a step is recorded as a blocker (REV4:887); no stage starts on a result (KW:10; REV4:878). The lead stops
++      at the reserve, or when the next step needs the user (KW:11), including a new kind of spend (KW:9) and point 8f.
++    - *Reason.* The change is the user's to make: REV4:887 cites FR-25 and FR-21, and both are the user's, as is
++      FR-23 (LEDGER:70, :72, :74). It is recorded as the user's decision, as §36 recorded the start-from-the-balance
++      rule. It changes no inference rule.
++
++11. **The reading-time readers** (track D1; ruled in LR R4 and recorded here; CRIT:106-110, :150-173; decision 5 at
++    CRIT:349). The producers of five pre-registered reading outputs were built in `scripts/stage1_s1/reading_extra/`
++    (D1B:17-25): `fk_power` (F_k's planning power at the measured q, REV4:574), `stage3_pick` (the stage-3 pick,
++    REV4:428), `cap_reports` (LN-14's bar and LN-19's flag-change shares, REV4:554-555), `sa_shift` (the S-a shift
++    line, REV4:276) and `cost_table` (the measured cost per arm under both conventions, REV4:103, :813). Their rule
++    texts are W1 texts; each reader quotes its rule and states its readings in its output.
++    - *Status.* `fk_power`, `stage3_pick`, `sa_shift` and `cap_reports` are verified (D1V:16-21; LR R4.1).
++      `cost_table` has one more fix round, cost_table only (LR R4.2): a C-full value per point for every
++      evaluation-only reference (adapter scaling 0.9, 0.75, 0.5 and SP) by REV4:813 read literally ("the same minus
++      training, plus its transform": the matched a0 run's measured C-full slot on the same seed, minus the frozen
++      C-full training price, plus the measured transform, over c0), with a per-reference mean over seeds and "null:
++      not stated" kept beside it as the alternative reading (K5); the LN-19 PHTest line's "no full answer exists"
++      corrected (theta0's LN-14 pass holds both forms); K3's split denominator named "DataShield-style" and the
++      anchor job named; then an independent verify. *Fallback:* a reader not verified before the second stamp runs
++      after the reading, labelled "code written after the reading"; the other readers stand.
++    - *When and how they run (LR R6.3, R4.4).* At the reading's step 4c, inside the reading script, after the input
++      build (step 2), B16 (step 3) and the claim reader (step 4). Each output is bound to `reading.json` by SHA-256
++      (and to `tables.json` where it reads it), report only: no label, word or number of B16's reading changes, and a
++      refusal is logged and never stops the reading (point 8(d)). **The never-open exception (LR R4.4):**
++      `cap_reports` opens the COMPLETE.json files and the O-ext summaries that the builder's record names (D1B:60-71,
++      :129-133), and `cost_table` opens `plan.json`, the seals and the cost-ledger files under `retrieved/`
++      (D1B:75-80, :307-308). Both run only inside the reading script at step 4c, after the input build: that is the
++      readers' route, and the never-open list (FOCUS:74) gains this explicit exception. Their outputs are not opened
++      before the reading (the `-oext` and `-calibrate` seconds carry a weak outcome signal). The pre-check of point
++      8(h) runs before the reading.
++    - *Adopted readings (LR R4.3), listed in the S1 blinding record (row 15):* K6 (C-lean of a B10 state = the
++      measured c0 − 220 s + the measured transform); K7 (the median stage-1 R slot printed beside the fixed 1 FRE);
++      `b10_certify` and the other study costs at measured seconds / c0 (REV4:823); K2 extended (the G and B+Qi
++      references at 1 c0; B+Qi's extra training left out, a stated limit of a few per cent, 6-9% at Branch 128's
++      smaller c0).
++    - *Limits recorded, not fixed (LR R4.6):* the Safe LoRA transform is priced by step wall time; pod overhead and
++      the judge pods are outside the table.
++
++12. **B14's similarity pass: a scheduling gap, and the route.**
++
++   **Facts.**
++   - The pass was planned "on the pod": "untuned-model embeddings, on the pod" (PLANS:172); "θ0 embeddings, on the pod;
++     B14 builds the strata at S1" (W1R:129). The rule text names no device and no block (REV4:757). The only timing rule
++     is ADD:375: the SHA-256 of `strata.json` goes into FOCUS before any add-arm outcome is read.
++   - No block scheduled it. None of the kit's 20 job kinds runs it (RULES:505-509), and no block lists such a kind
++     (RULES:619-625). The gap was first recorded on 31 Oct (FOCUS:76; PLAN:31).
++   - It reads only θ0, the 200 dev harm prompts and the three add sets, each by SHA-256, and no unit, `eval/` folder,
++     guard file, seal or `plan.json` (R1B:76-93). So the strata are a fixed function of θ0 and these prompts and rows.
++   - The committed script cannot run on the Mac: it always uses the real loaders (SIM:421-426), which run only on CUDA
++     ("the real loaders run only on CUDA; 'cpu' is for engineering fixtures, never a scientific fallback",
++     `experiments/safety_selection/loaders.py:121-129`; `experiments/minimal_safety/model.py:377-385`).
++
++   **Ruling.**
++   1. **A scheduling gap, not a deviation.** The pass runs once, after both blocks and before any stage-1 outcome is
++      read; the SHA-256 of `strata.json` goes into FOCUS before any add-arm outcome is read (ADD:375). Nothing measured
++      changes, because no input of the pass depends on when it runs (the same pattern as c0's move, "a scheduling
++      change inside block A, and nothing measured changes", ADD:522). W1R:129's "B14 builds the strata at S1" could not
++      be met for the strata themselves: S1 is "before the stage-1 freeze, which comes before block A" (REV4:29), and two
++      of the three add sets the strata need, S3 and S4, did not exist until after block A's diagnostics pod had started
++      (S4's edit file dates from 25 Oct 15:42 UTC and S3's from 16:46 UTC; R1B:69-74, which reads W1R:129 as a build
++      deadline, R1B:61). It is read as B14's code, built and verified at S1 (ADD:503: "B14 87/87"); the strata are built
++      later from the same inputs. The ruling stands either way.
++   2. **Route: kit round 34 and one A100 pod.** Round 34 adds one job kind that runs the pinned SIM once (engine X,
++      recipe REC, no unit, no measurement), with S1 code pins for SIM `f8305c71…` and its settings `27db4c3f…`, tests
++      and mutants (R1B:179-183). The $0 Mac pre-check of the tokenizer and codec runs first (R1B:263-295). One A100 pod
++      runs it from a background job, paid from the balance (KW:8): about $0.60-0.75, worst about $2.7-3.1 at the cap
++      (R1B:186-189; estimates). D-6 lands before `strata` runs. Round 34 is built and verified (CKB; CKV; LR R3). It
++      changes `stage1_rules.py` (`bde78fab…` → `4005cb4e…`) and `plan_tool.py` (`f18bb834…` → `27e299b5…`) (CKB:31-32);
++      `seal.py` and `judge_units_stage1.py` are unchanged. The runbook's "never changes" list takes the two new hashes
++      (LR R3.2).
++   2b. **Round 34 changes the rules file the reading loads.** Round 34 lands in the live kit `tmp/stage1-olmo/` to run
++      its pod, and the runbook requires the repository and live copies of the kit files to be equal (R1D:220, :228-229),
++      so it lands in `runkit/stage1-olmo/` too before the reading; the reading's builder loads that rules file by default
++      (RI/__main__.py:27-28, :40; RI-O13, RIB:460-462). Round 34 leaves every value the builder and B14's inputs writer
++      read unchanged: `block_runs` for blocks A, B and C, `REUSED_SEEDS`, `REJUDGED_PINS`, and the judge constants
++      `JUDGES`, `JUDGE_INDEX`, `JUDGE_INDEX_KIND`, `JUDGE_INDEX_VERSION`, `JUDGE_FILE_PATTERN`, `JUDGE_NAMES` and
++      `JUDGE_INDEX_ENTRY_KEYS` (RI/build.py:242-262, :537-557). **That equality was checked by C's verifier, not pinned
++      by a test (LR R3.3):** the verifier loaded the `55d5f8b` and round-34 files side by side and found every such
++      value equal (CKV:37, :137, :190); round 34 has no test that pins them, and this record's first draft was wrong to
++      claim one. The runbook's pinned kit-pair hashes (R1D:228-229) and the second stamp take round 34's new hashes;
++      otherwise the reading's R0 check stops before any value is shown (R1D:497-517), at the cost of a new second stamp.
++   3. **Seal, and how `retrieved/` is touched (LR R3.1).** The SHA-256 of `similarity.json` (equal to the one the pod
++      prints) and then of `strata.json` go into FOCUS before any add-arm outcome is read (ADD:375), and both go into the
++      second stamp. `retrieved/` is on the never-open list (FOCUS:74). The one exception: tools may read
++      `tmp/stage1-olmo/retrieved/sim-1/` only by the exact path and SHA-256 that `record-done` prints (CKB:349-351,
++      :365-367). `overlap_strata.py strata` runs in place on that path. A script copies `similarity.json` into the B14
++      records folder with a SHA-256 check and prints only the hash. `similarity.json` holds no stage-1 outcome: it is
++      training-row to evaluation-prompt similarity, with no model output. On a crash the lead may read sim-1's
++      `process.log` (B14's own stdout, which names ids only; no model output; CKB:356-357) and records that read. The
++      lead never lists `retrieved/`.
++   4. **The Mac route is dropped** (PLAN:31's fallback (i)): it would need new loader code that the engine forbids for
++      scientific runs, a weights download of about 3 GB, and a deviation from "on the pod" (R1B:209-245).
++
++   **Pre-set fallback.** A one-off pod outside the kit with the same command and a written checklist (a self-stop
++   timer, the minimal bundle, hash checks, pull, stop; R1B:193-207). *Trigger:* round 34 is not verified (kit suite
++   and mutants) when the other builds are done, or the kit refuses for a reason that needs another round (R1B:253-254;
++   CRIT:348). **N5 accepted (LR R3.4):** C's verifier found that a warning written without a trailing newline just
++   before the pod's "wrote" line makes a good run a crash under the printed-SHA-256 rule (CKV:135, :201). The plan pays
++   one re-run (`defer sim-1` to `sim-2`, from the `sim` contingency, CKB:356-357); then this fallback's one-off pod with
++   the checklist; last resort `--no-overlap` ("not computed").
++
++   **Last resort.** `--no-overlap`, with D-6's fallback wording and this cause ("no strata: B14's similarity pass did
++   not complete"). *Trigger:* two pod attempts end without a written `similarity.json`, or the live balance is below
++   $6 + the pod's cap × $1.85 (R1B:255-256; CRIT:348).
++
++13. **Post-W1 deviation D-7: LN-31's draw is built after its deadline (the number is the lead's, in ruling order; CRIT:243).**
++
++   **Facts.**
++   - LW-30: "A one-paragraph commitment in REQ-21 before wave 1, with the full protocol before block A; it adopts no
++     spend" (REV4:762). The draw "reads block-A guard files only after block B is complete, by a script that prints
++     totals only" (LN-31, REV4:763).
++   - HLC:164: "Before the draw script reads any stage-1 guard file", the lead commits the frozen protocol, the draw
++     script and its SHA-256, the seed tags, the §8 term list and the input files by SHA-256. HLC:168: "Freeze deadline
++     (decision HD8): before the first stage-1 block-A pod launches, so the draw cannot depend on any stage-1 outcome."
++   - W1R:243 (item (f) rule 7) says the same: the full protocol, its draw script, seed tags and input hashes are
++     committed before block A's first pod launches.
++   - The first block-A pod, s10-1, was created at 2026-10-25T11:04:34 UTC (FOCUS:125-126). HLC is still "DRAFT … Not
++     frozen" (HLC:3), and at the design round no draw script existed (R1D:37, :831-834). No guard file has been read for
++     the draw, and no stage-1 outcome has been read (blocks A and B sealed and unread, FOCUS:107, :77).
++   - Track D2 built the draw on 1 Nov (`scripts/stage1_s1/hlc_draw/`: the script, its settings with the seed tags and
++     the term list, its tests and mutation spec; D2B:26-31, :43-56), after both seals and before any stage-1 outcome was
++     read; it is verified after one fix round (D2V:13-16; LR R5, status line).
++
++   **Ruling D-7.**
++   1. LW-30's "full protocol before block A", HLC:164's and HLC:168's deadline and W1R:243 were missed: the deadline was
++      before block A's first pod, 2026-10-25T11:04:34 UTC; the draw was written on 1 Nov, after both seals and before
++      any stage-1 outcome was read (LR R5.4). This is recorded as post-W1 deviation D-7, and the paper states it with the
++      date the protocol was committed.
++   2. The deadline's purpose, a draw that cannot depend on any stage-1 outcome, still holds if HLC:164's items are
++      committed before any stage-1 outcome is read. **Default:** freeze the protocol (HLC revision 2's draw, adopted by
++      LN-34, REV4:762) and commit it with the draw script and its SHA-256, the seed tags, the term list and the inputs by
++      SHA-256 before the second stamp; test the script on synthetic data; a second process recomputes the draw and
++      prints only "match" or "mismatch" and totals (HLC:167). The draw runs as the reading's step 5, after the reading,
++      and prints totals only (REV4:763; HLC:165). No rater is recruited and nothing is spent (REV4:762; KW:9).
++      - **The inputs "by SHA-256" (HLC:164)** are bound through block A's seal and `stage1_rules.REJUDGED_PINS`
++        (COMPLETE.json and job.json SHA-256; COMPLETE.json lists every file's SHA-256), the 9 Oct key by its
++        pre-registered SHA-256 and the bank by the data config's `banks_from`, as track D2 built it (D2B:37-41); the
++        draw's manifest repeats them. So no sealed guard file is opened or hashed before the reading (EV2:150-152).
++        Before step 5 the inputs are restored and pinned in `tmp/hlc-inputs/`: the 9 Oct key at
++        `tmp/hlc-inputs/oct9/key.json` and the prepared-v3 set at `tmp/hlc-inputs/prepared-v3-inj05` (LR R5.5; paths
++        named here, not opened). `tmp/hlc-inputs/` is on the never-open list for every helper.
++      - **HLC 4.3 item 4, "a second, independent process" (LR R5.3):** the package's `check` re-runs the same code in a
++        second process; it is not independently written code (D2B:250; D2V:80-83). This reading is recorded as part of
++        D-7. Partial cover: the two verifiers' independent re-implementations reproduced the tool's draw item for item on
++        synthetic draws (49 identical re-computations and an exhaustive check of 6,000 small cells, D2V:13-16).
++      - **D2's suite is re-run after track A's merge** (the draw imports `reading_input`; D2B:248-249; LR R5.5).
++   2b. **Confirmed readings (LR R5.1; D2B:373-386).** Reading 4: the split counts prompts for the total, the bounds and
++      the minimums, and answers for the proportion. Reading 7: the protective reading, under which rule b also reads the
++      greedy harm answers' categories. Reading 11: the benign block is each population unit's own greedy over-refusal
++      answers with their stored full-answer "Refusal" flag. Reading 12: theta0's Unsafe cell also takes the HarmBench
++      split. Reading 13: a cell's target is cut to its distinct available prompts, and any rest flows to the next cell.
++      The 106-term list and the 5 age patterns (D2B:357). The benign label is each unit's stored full-answer Refusal flag
++      on its own greedy answers, which the paper states.
++   2c. **Limits recorded (LR R5.2).** The HarmBench minimum of HLC 4.2 is often lost across seeds in low-U arms, a
++      consequence of HLC's fixed order and its no-prompt-twice rule: confirmed as reading 4, with its simulated size
++      stated, about 6-13% of seed cells at U 0.03-0.05 and q 0.2 (D2V:52-66; the estimates lose precision, not
++      validity). The weights file splits by HarmBench label only in the Unsafe cell, less fine than HLC:157's sentence
++      (D2V:67-79): a recorded limit; the missing counts can be recomputed from the hashed inputs.
++   3. **Pre-set fallback.** No step 5 at the reading; the draw runs when the human label check is funded, and its code
++      is labelled "written after the stage-1 reading and after HLC:168's deadline". *Trigger:* the draw is not verified
++      when D-5, D-6 and B14's inputs writer are built (CRIT:351; R1D:787-789). Not triggered today: the draw is verified
++      (D2V:13).
++
++   **S1 blinding line.** Written [FILL-time], after the W1 commit and after every Gate B value the S1 blinding record
++   lists. The human label check is report-only and exploratory (REV4:762); the record lists D-7 for completeness, and
++   the paper labels it "fixed after Gate B wave 1".
++
++14. **ADD:428: B16's size, coverage and familywise-error simulations.**
++
++   **Facts.**
++   - ADD:428 (§16 point 4, 23 Oct 00:40 UTC): "The size, coverage and familywise-error simulations are not re-run on
++     the final code; they run once more, at the S1 freeze."
++   - **The recorded run.** B16's statistics verifier ran them from 2026-10-22T22:07:04Z to 23:02:02Z on the build tree
++     (`ws-b16`, 25 files equal to the build report's table) before B16's fix pass: NOTES `b16-verify-stats.json`
++     (SHA-256 `65fe90c39b429b246168a4b93b8eb1ff2b5a2831615dc7be9b0d3a733976e5e3`; lines 5-6 the times, :9 the tree, :87
++     `simulations`: `seed_level_size_and_coverage` :88, `item_level_coverage` :252, `phi_familywise_error` :279,
++     `reml_kkt_scan` :371). Its readings: seed-level size under the built active set near nominal ("90% coverage
++     89.8-90.1% mean, 89.1-90.1% worst contrast"; at 0.75% the worst world 0.98%); item-level 90% coverage 89.2-91.8%
++     with the crossed item part; Φ's familywise error at the z level against the review's own generator, 0 mismatches
++     over 108,000 p-vectors and "every value <= 5%" (:282-283, :352); end to end through whole readings, G0 plan A
++     4.11% ± 0.47 and G0 plan B 5.20% ± 0.70 (:356, :358), so plan B's end-to-end rate is within Monte Carlo error of
++     5%, not shown below it.
++   - **Not re-run on the committed code.** The fix pass (NOTES `b16-fix.json`, SHA-256
++     `4090118e0616e62c23665f36b730d26e6440af935e08d524b74f188b9aeea600`, finished 2026-10-23T00:37:45Z) states at line
++     269: "the verifiers' size and coverage simulations (sim_seed.py, sim_item.py, fwer_e2e.py) were not re-run; the
++     stop-rule change can only move fits that were falsely converged, which the KKT and plan-B rechecks cover". B16 was
++     committed after that pass (`2135c2d`, 2026-10-23T00:40:40Z).
++   - **No run at the S1 freeze is recorded.** In NOTES no other record names `sim_seed.py`, `sim_item.py` or
++     `fwer_e2e.py` (M in round 1: a `grep -r` over that git-ignored folder that printed file names only; the folder is
++     not on the never-open list, and the search is reported so the lead can judge it). The committed record folders hold
++     the halves simulation (B16/README.md:100-102) and D-4's regression re-run (B16H:457 onward: whole readings; one
++     flagged synthetic document, B16H:539, differs only in an S-start entry, not a label, B16H:243), neither a
++     seed-level size or Φ familywise run. CRIT:188-197 found no record either.
++   - B16 changed after the run: the fix pass (B16/README.md:161-170), D-4 and the halves (FOCUS:104), and two mutation
++     fixes with no behaviour change (FOCUS:99). Under D-5's route B16 does not change again.
++
++   **Ruling.**
++   1. **Cite that run** as the last size, coverage and familywise-error evidence for B16, with its limits: it ran on the
++      22 Oct build before the fix pass; the fix pass covered its stop-rule change by the KKT and plan-B rechecks
++      (`b16-fix.json`:269); D-4 changes a REML end point only where the pre-registered start stopped at a lower maximum
++      (about 0.4% of plan-A fits, ADD:605; one synthetic block-A-only reading changed a label there, which is D-4's
++      reason, ADD:605), and D-4's regression re-run flagged one synthetic document, an S-start entry and not a label
++      (B16H:539, :243).
++   2. **Record the missed step.** FOCUS and the reading record's limits say: "B16's size, coverage and familywise-error
++      simulations last ran on 22 Oct 2026 (22:07-23:02 UTC) on its build before the fix pass; the re-run planned at the
++      S1 freeze (addendum §16 point 4) did not happen."
++   3. **Keep the evidence checkable (LR R6.5).** The lead commits copies of `b16-verify-stats.json` (SHA-256
++      `65fe90c3…`) and `b16-fix.json` (`4090118e…`) from NOTES (in the lead's worktree `kind-hawking-a6ce04`) with the
++      records, before the second stamp; today they are git-ignored files in one worktree's `tmp/`. The evidence
++      folder's file list with SHA-256 values goes with them.
++
++   **Optional (not the default).** Re-run `sim_seed.py`, `sim_item.py`, `fwer_e2e.py` and `zphi.py` (NOTES
++   `b16-verify-stats-evidence/scripts/`; `zphi.py` made the z-level "every value <= 5%" reading of the facts above,
++   `b16-verify-stats.json`:279-283, :367, and exists at that folder, M: `test -e`) on the final tree as the lead's
++   background job at $0 before the second stamp. *Skip it when* the run would not finish before the second stamp
++   (CRIT:353).
++
++15. **The build round's hard-rule notes, recorded as disclosures (LR R3.5, R6.4, R6.6).**
++
++   None is a blinding breach; each is recorded so that the lead can judge it and the record is complete.
++
++   1. **Track C's `git ls-files` print (LR R3.5).** While checking which add-edit records the worktree tracks, C's
++      builder ran `git ls-files .ai/inputs/stage1-post-w1-20261023/block-b | head -3`. It printed three file names
++      under `block-b/` (a fingerprint record and two billing files): names only, no content, no value (CKB:404-406;
++      CKV:246-248).
++   2. **Track D2's three 600 s overruns (LR R6.4).** Three shards of D2's mutation run (shards 2, 3b and 3c: 11, 4 and 3
++      mutants) ran past the tool's 600 s limit, and the harness moved them to the background; the builder had not asked
++      for background runs. Each finished with exit 0 before the builder went on, and the scratch folders were deleted
++      (D2B:210-213). Most of the wall time was machine load outside pytest.
++   3. **Track E's round-1 `grep -r` over NOTES (LR R6.6).** To look for the simulation scripts' names, E's builder ran
++      one `grep -r` over `tmp/claude-workspaces/stage1-integrate-20261017/notes/` (point 14 above). grep read the bytes
++      and printed only matching file names; no content reached a model. The folder holds build, verify and kit reports
++      of 17-27 Oct written by the lead's helpers, who never opened a sealed file, so there was no blinding breach.
++      Recorded as a disclosure.
++   4. Two earlier notes stay where they are recorded: the runbook author's repository-wide `grep -rln` (§39 point 8(g))
++      and the readiness scout's print of two plant settings lines (§40 point 10).
++
++**S1 blinding line (REV4:919; W1R:358).** Written [FILL-time], after the W1 commit (FOCUS:144) and after every Gate B
++value the S1 blinding record lists (FOCUS:140, :138, :136, :135 with its §6 values possibly read, :126). No stage-1
++outcome was read. The paper labels points 1-9 and 11 "fixed after Gate B wave 1". Point 10 is the user's decision,
++not an inference rule.
++
++## 40. Stage 1b before any pilot unit exists: the lead's rulings ([FILL-time]; decided by the lead, GI VIII, under the user's delegation; no stage-1b unit exists and no stage-1 outcome has been read)
++
++Stage 1b's design is frozen in REV4 §8 (REV4:665-713) and the W1 record's items 17-25 (W1R:288-297), with the seeds
++and draws of ADD:298-299 and the counting list of ADD:350-351. The plant, the decoy and every plant edit were built on
++23 Oct (FOCUS:131). These rulings come before any stage-1b unit exists, so that the pilot's reading is fixed before
++it can be seen.
++
++- **Sources.** READY = `A-stage1b-readiness.md` (SHA-256 `8d1f5366ed267d33…`); CHECK = `A-stage1b-check.md`
++  (`570e98ffb3d2a22c…`), both committed copies under
++  `.ai/inputs/stage1-post-w1-20261023/reading/lead-reports-20261101/next-stages/` (commit `0e0ab1f`, 2026-11-01T09:41
++  UTC, after `55d5f8b`; byte-equal to the scratch copies the scouts wrote, so the line numbers hold). LR = the lead's
++  rulings `lead-rulings-20261101.md` and EV2 = `E-records-verify2.md`, as in §39's table.
++  Where READY and CHECK differ, CHECK's corrections govern. Both cite FOCUS at `0daca9a`; below, FOCUS lines are
++  `55d5f8b`'s (one higher from FOCUS:74 on; the pin stays, no remap, LR R6.5).
++- **Citations** are `path:line` at commit `55d5f8b`; short names as in §39's table, plus RULES =
++  `runkit/stage1-olmo/stage1_rules.py`, PT = `runkit/stage1-olmo/plan_tool.py`, JR =
++  `runkit/stage1-olmo/setup/job_runner_stage1.py`, MAN1 = `.ai/inputs/stage1-commitments-20261016/MANIFEST.json`,
++  PLANS = `research/review/2026-10-08-sharpened-direction-DRAFT.md`. The code file `scripts/stage1/report_plant_ranks.py`
++  is cited from CHECK. Of the code file `scripts/stage1/build_plant.py` I opened lines 282-287 and 306-308 (round 1),
++  and lines 30-37 and 276-315 and a `grep` of its output paths and record keys (fix round), all at `55d5f8b`: code
++  only, under the brief's code rule; no settings, record or output file of the plant was opened.
++- "Added" marks a ruling this draft adds to the brief's list; the lead keeps or drops it.
++
++1. **The pilot gate, read literally** (REV4:675; W1R:291).
++   - **Λ_plant** = the seed-paired mean over seeds 1101-1103 of U(a0_plant, j) − U(Gate A's a0, j), in pp, where U
++     is the Qwen3Guard Unsafe share of the unit's 600 sampled answers to the 200 dev harm prompts. In B16's
++     `contrast_paired`, which returns c − m (B16/contrast.py:168-173), c = a0_plant and m = Gate A's a0, so a plant
++     that raises U gives Λ_plant > 0 (CHECK:127-128).
++   - **Go:** Λ_plant ≥ 10 pp and its one-sided 90% lower bound > 5 pp.
++   - **Raise:** 5 pp ≤ Λ_plant < 10 pp. Then k rises to 75 once: a0_plant75 at 1101-1103, again against Gate A's a0
++     (CHECK:129-130), read by the same go test. Any other result of the re-pilot stops; there is no second raise.
++   - **Stop and report the null:** everything else, including Λ_plant ≥ 10 pp with a lower bound ≤ 5 pp
++     (CHECK:122-126), and Λ_plant < 5 pp.
++   - **Edges (added here; adopted by the lead, LR R6.5):** every comparison of Λ_plant (the point estimate) with 5
++     and 10 pp reads through B16's tie tolerance (1e-9 pp), as B16 reads δ; the lower bound's comparison with 5 pp is
++     exact, as B16 reads interval ends (B16/README.md:153-155: "interval ends (irrational) do not"). A three-seed
++     mean of 600-answer shares moves in steps of 1/18 pp, so it can equal 5 or 10 exactly, and a float can land 1e-15
++     below (CHECK:124-125). It reads the frozen edges exactly and moves no target: in the verifier's measurement, 627
++     of 2,000 three-seed means that are exactly 10 pp as rationals land below 10.0 in floating point (EV2:179), so
++     without the tolerance the literal rule could not be read on exact shares.
++   - *Reason.* The literal text already covers the case "Λ ≥ 10 pp, lower bound ≤ 5 pp" under "otherwise stop"; any
++     other reading would change a frozen rule (REV4:886). *Not adopted:* reading that case as the 5-10 band (READY:357).
++
++2. **The pilot interval: B16's paired form** (REV4:675). The seed part is the pair's own paired variance (ddof 1)
++   over J with J − 1 = 2 df, plus the crossed item part from the 3 × 200 difference table, with Satterthwaite df
++   (B16/contrast.py:113-118, :168-173). The one-sided 90% lower bound is Λ_plant − t(0.90, df) × SE; known answer:
++   t(0.90, 2) = 1.886 when the item part is 0 (REV4:675). Under D-5's route B16 does not change, so the pilot reader
++   may import these functions without moving B16's hashes (CHECK:275-276). **No fallback** (adopted, LR R6.5). Gate
++   A's a0 per-prompt
++   tables are those the stage-1 builder already reads through `REJUDGED_PINS["A"]` (RULES:171-183; RI/build.py:7-9,
++   :259-268); if they cannot be built, the pilot is not read until they can, and any other interval would be a
++   post-W1 deviation from REV4:675, written before any pilot value is read. *Not adopted:* READY's
++   fallback, the seed part only (READY:358). It drops REV4:675's prompt part, and on a constructed synthetic table it
++   turns the frozen gate's "stop" into "go" (M, synthetic, B16's own `contrast_paired`: Λ_plant 11.33 pp; frozen form
++   SE 5.10 pp, df 198.5, lower bound 4.78 pp, "stop"; seed part only SE 0.10 pp, df 2, lower bound 11.15 pp, "go").
++
++3. **Blinding.**
++   - **The a0_plant unit names its leaf.** The plant edit's name is "stage1 plant…: planted corpus at k = {k} (leaf
++     {cell})" (`scripts/stage1/build_plant.py:284`, :306-308); the engine's edit summary carries the name
++     (`experiments/safety_selection/edits.py:90-92`), and the run writes it into the unit's result
++     (`experiments/safety_selection/runner.py:496-497`), which goes into COMPLETE.json (CHECK:139-147). **Ruling:**
++     readers read U and the per-prompt labels by key only and never print or write any other field. A test feeds a
++     synthetic COMPLETE.json whose edit name holds a sentinel string and shows that the sentinel never reaches
++     stdout, stderr, a traceback or the output file (CHECK:153-156). The remove-cell, R600 and R150 units are treated
++     the same (CHECK:157-158).
++   - **Never opened by hand or by a helper:** `tmp/stage1-olmo/retrieved/` (the kit's pulled block trees,
++     CHECK:187-191; FOCUS:74: it "joins the never-open list") and every plant-arm unit folder. Only reviewed code
++     reads them, by key (first bullet). The only exceptions are the two stated for the stage-1 reading, and neither
++     touches a plant path: the similarity output under `retrieved/sim-1/`, read by the exact path and SHA-256 that
++     `record-done` prints (no stage-1 outcome in it; §39 point 12 ruling 3, LR R3.1), and the reading-time readers
++     `cap_reports` and `cost_table`, which open sealed-class files only inside the reading script at step 4c (§39
++     point 11, LR R4.4). The lead never lists `retrieved/`.
++   - **The counted score files name the leaf by omission:** they cover the planted corpus's ids, which lack the
++     leaf's Dolly rows (CHECK:160-164). **Ruling:** they are written under a path whose name holds "plant", and their
++     SHA-256 is committed and time-stamped before anyone opens them; only then the plant-rank report runs with
++     `--counted` (CHECK:166-167).
++   - **Names (added from CHECK):** every plant output (the plant-rank report, the scoring output, any plant-arm dose
++     or token report) goes in a folder whose name holds "plant"; reader and wrapper code stays out of such names
++     (CHECK:193-197). Leak tests use sentinel strings and cover stdout, stderr and every refusal message
++     (CHECK:199-202).
++
++4. **The construction checks** (the text-only scorers: L1, H1, H2a/b, DataShield-style and the classifier). The frozen
++   text: "construction checks, published before the pilot, and also if the pilot stops" (REV4:684; W1R:293). Their
++   inputs, J5's and J8's outputs from pod a-8, are under block A's seal (FOCUS:113; CHECK:261-265). Before the
++   plant-rank report runs, the Mac outputs it needs are made if they do not exist yet: "DataShield-style and L1
++   outputs on the Mac if they do not exist yet" (CHECK:363; READY:227-228 finds no recorded Mac run of
++   DataShield-style). The plant-rank report's output names the planted unit and leaf (CHECK:169-173). **Ruling:**
++   they run after the stage-1 reading, by the plant-rank report without `--counted`, into a "plant" path; the output
++   is committed and time-stamped by SHA-256, unopened, before the pilot launches. **"Published before the pilot" is read as that committed, stamped
++   SHA-256.** The output is opened only after the counted outputs are hashed (point 6), or after a final "stop".
++   READY's fallback, "publish them readable before the pilot" (READY:359), is **struck**: it would show the leaf
++   before A1 on a0_plant is scored (CHECK:169-176).
++
++5. **Kit scope: kit round 35** (stage 1b's pilot), built after round 34 (B14's similarity kind), in a scratch tree:
++   - one block P: a0_plant at 1101, 1102 and 1103 under the existing kind "arm", with its own funding record; P is
++     added to `BLOCKS`, `FUNDING_BLOCK`, `HOST_PREFIX` and `BLOCK_KINDS` (RULES:615-625), `REJUDGED_PINS["P"]` empty
++     (RULES:171); a0_plant at 38 steps (38 steps for n ≤ 100, REV4:671); `init-block P` needs block B complete and
++     sealed (CHECK:290-298);
++   - the edit through the kit's sealed edit record `{arm: "a0_plant", path, sha256}` (CHECK:295-298). Its path and
++     SHA-256 come from hashing the planted_k37 edit file at its known path (`edits/planted_k37.json` under the plant
++     build's `--full-out` folder, in git-ignored `tmp/stage1-mac-runs-20261023/`: `scripts/stage1/build_plant.py`:35,
++     :290; FOCUS:131); no byte of it is shown (only its SHA-256 is computed and printed), because its name field
++     names the leaf (`scripts/stage1/build_plant.py`:284, :307). **A binding check** (CHECK:313-315): a reviewed key-only script
++     confirms that REQ-8's record lists that SHA-256 for `edits/planted_k37.json` (`scripts/stage1/build_plant.py`:291)
++     and prints only "match" or "no match", tested with a synthetic record that holds sentinel strings;
++   - a readable e1 and q fingerprint record for each plant arm, as the runner already writes for a0_arm
++     (JR:896-900, :1039-1044), so that a later regeneration can be checked after P's seal (CHECK:299-303);
++   - blocks A, B and C's tables (`block_runs`, RULES:294-315) and `REJUDGED_PINS["A"]` byte-identical, with a test
++     (CHECK:292-293, :307-309); one test and one mutant per new refusal; the kit suite and the mutation runner,
++     baseline first with the same command (CHECK:307-309).
++   **Merge** into `runkit/stage1-olmo/` and `tmp/stage1-olmo/` only after the reading's outputs are sealed, because
++   the reading loads the repository's rules file by default (RI/__main__.py:27-28) (CHECK:270-274). Not in round 35:
++   blocks P1b and P2, per-seed draw keys for the plant's R600 and R150, the scoring job (CHECK:322-337).
++
++6. **K7: A1 and Self-Inf-N-style scored on a0_plant** (the only diagnostics that count, REV4:684; W1R:293). Engine
++   X's attribution step refuses any state that is not an a0 run-one (`experiments/safety_selection/runner.py:870-872`),
++   so K7 is new code: a wrapper that scores the planted corpus's ids with engine X's own functions loaded by hash,
++   with a golden check that reproduces engine X's per-row values on P's rows (READY:266; CHECK:328-333).
++   **Ruling:** K7 is built now at $0, off the pilot's path, and **runs only after a "go"**, on its own pod that first
++   regenerates a0_plant@1101 (train only) and accepts it only on equal e1 and q fingerprints from point 5's record;
++   then it scores. Reasons: K7 is new code and needs a GPU golden check; the balance cannot fund the main sweep
++   anyway; the frozen text fixes "scored on a0_plant", not when (REV4:675, :684), so this is a planning choice
++   (PLANS:179 packs "3 runs + one scoring pass" as planning text) (CHECK:349-356). Cost after a go about $2-7
++   (CHECK:232-234, an estimate). If the pilot stops, the counted diagnostics are "not run" and the construction checks
++   are opened (point 4). *Not adopted:* CHECK's fallback, K7 on the pilot pod when K7 has passed its golden check
++   before P is planned and the live balance covers the 9.25 h cap plus the $6 reserve (CHECK:350-352); it would
++   score before a "go", against this ruling.
++
++7. **No judges for block P.** The gate reads U, which the arm pod computes; the judge pods add only HarmBench and
++   Granite (CHECK:221). A block with no released judge launch is complete without judge files (PT:791-795). If the
++   pilot goes, P's three units are re-judged with P2's units through `REJUDGED_PINS`, the route block A used for Gate
++   A's units (RULES:171; CHECK:304-306).
++
++8. **The disjoint-anchor sensitivity: its frozen fallback is triggered.** The set had to be "chosen and sealed before
++   S1 and before any planted run" (REV4:698). No source was named (REV4:699); ADD-8.1 has no file in the tree
++   (ADD:407; REV4:706); `scripts/stage1/labels.json` has no `anchors.disjoint` key (M: 0 matches at `55d5f8b`).
++   REV4:883: "The disjoint-anchor set not sealed before S1 → the limit sentence." **Recorded as triggered:** §6 of
++   the paper states the shared PKU source of the plant and the anchors as a limit (REV4:698; ADD:350).
++
++9. **F9 is not run** (adopted as written, LR R6.5). It runs only if stage 1b is funded (REV4:710; W1R:296); the
++   plant builder's `--f9` is passed
++   only after the user's yes and stage 1b's funding event (`scripts/stage1/build_plant.py`:30). Its $34-70 (E,
++   REV4:710) is not in the balance, and the main sweep already waits for a top-up (point 11). Its frozen fallback
++   applies: the $0 relocation replay (F6, REV4:692), and the paper says the runs side has one plant location
++   (REV4:710).
++
++10. **An earlier scout's breach of the path rule, recorded.** READY's author printed lines from
++    `scripts/stage1/settings/build_plant.json` (lines 121-122) and `scripts/stage1/settings/report_plant_ranks.json`
++    (line 17) (READY:51-55; CHECK:178-185). The risk is low: both are W1 settings pinned in the W1 manifest
++    (MAN1:939-942, `06f70d98…`; MAN1:1107-1110, `c952eb72…`), committed at W1 on 22 Oct (FOCUS:144), before the
++    plant draw ran on 23 Oct (FOCUS:131), so neither can hold the draw. No unit, leaf or cell identity was seen
++    (READY:55; CHECK:81). The rule binds everyone, the lead included (CHECK:155-156): no file whose path holds
++    "plant" or "decoy" is opened by hand or by a helper, except code files, until the counted outputs are hashed or
++    a final "stop"; reviewed code reads such files by key only, or hashes them without showing a byte (points 3 and
++    5: the key-only readers, the binding check of the planted_k37 edit file, the kit's packing of that edit, the
++    pilot reader's reading of a0_plant units); the plant record and the plant edit files name the unit and leaf
++    (READY:48-50; `scripts/stage1/build_plant.py`:307, :442). Plant-arm unit folders and `tmp/stage1-olmo/retrieved/`
++    stay under point 3's never-open rule.
++
++11. **Money.** The pilot is paid from the balance (ADD:633; KW:8): about $5-6 measured, kit upper $7.43, worst case
++    $10.29 at the 5.75 h cap (CHECK:226-228, estimates). It launches only when the live balance covers its
++    cap-based spend (ADD:635) above the $6 reserve (KW:8; ADD:657). The main sweep waits for a top-up: about $14-22
++    measured plus $1.5-2.5 of judges; kit upper $33.85 (CHECK:235-238).
++
++12. **Order (added).** The stage-1 reading; the construction checks hashed (point 4); round 35 merged (point 5); the
++    pilot reader frozen by hash and stamped before P launches (CHECK:316-320); pilot P; its label recorded; report
++    and go on (§39 point 10; KW:10). The pilot needs nothing sealed to run or to be read: Gate A's a0 values were read
++    before stage 1 (REV4:896; CHECK:249-259).
++
++13. **Two items for later, recorded now (added).** (a) The plant-rank report counts Self-Inf-N-style only while its
++    settings' switch says REQ-13 was committed at W1 (CHECK:131-133). That settings path holds "plant", so the
++    switch is confirmed only by a reviewed key-only extractor (the ADD:625 pattern), never by opening the file.
++    (b) A "raise" needs a k = 75 change to the plant-rank report (new settings and code pin; CHECK:334-337), a
++    post-W1 change written before any counted rank for a0_plant75, and only if the label is "raise".
++
++**S1 blinding line (REV4:919; W1R:358).** Points 1, 2, 4 and 6 hold readings written [FILL-time], after the W1
++commit (FOCUS:144) and after every Gate B value the S1 blinding record lists (FOCUS:140, :138, :136, :135 with its §6
++values possibly read, :126), and before any stage-1b unit exists. The paper labels them "fixed after Gate B wave 1".

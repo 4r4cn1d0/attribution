@@ -25,6 +25,13 @@ dealt by ``deal``: arm-major (ARM_ORDER), seed-minor, ceil(n / 4) pods, run i to
 fixed before launch). An arm has at most 3 runs in a block, so with P >= 3 pods no pod holds one arm twice; a deal
 that would refuses. (The brief's example order, seed-major, puts A1 at 1102 and at 1103 on one pod under plan B's
 block A: 14 runs, 4 pods, 4 runs per seed at 1102-1103.)
+
+Kit round 34 (1 Nov 2026; the lead's ruling, FOCUS 2026-11-01T04:55 UTC; REV4 §9.4, PLAN-S:172 "on the pod"): J22,
+``similarity``, runs B14's similarity pass (scripts/stage1_s1/overlap_similarity.py) once, alone, on the one host of
+its own block "sim" (funded under addendum §36), engine X, recipe REC, with its settings, the prepared manifest, the
+dev bank and the S1, S3 and S4 edit files by SHA-256 (SIM_*). It is unit-free and counts 0; it returns similarity.json
+and the runner's text-free record of it (similarity_record_doc), which the finisher and record-done check again
+(similarity_record_problem). No similarity value is read anywhere in the kit: kind, version, hashes and counts only.
 """
 from __future__ import annotations
 
@@ -89,6 +96,11 @@ EVAL_ONLY_FRE = 0.93                      # R: REV4 §10.4, one evaluation-only 
 EVAL_ONLY_S = EVAL_ONLY_FRE * FRE_S       # 2,728.62 s
 SAFE_LORA_TRANSFORM_S = 0.03 * FRE_S      # R: REV4 §10.4 (< 0.03 FRE, CPU)
 SAFE_LORA_HASH_S = 600.0                  # I: hashing about 9 GB and the V/V' check (brief J17); unmeasured
+# Kit round 34 (J22, B14's similarity pass): one model load and 344 unbatched forwards of about 34 prompt tokens
+# (200 dev harm prompts + 3 x 48 added rows; the design report reading-prep/1b-b14-similarity.md §4 and §6 (i): "about
+# 1-2 min"). E: 600 s, five times that, for the load and the engine's ledger stages; never timed on CUDA (the script's
+# CUDA path is untested), so unmeasured, and its upper is the diagnostics factor x 600 s (the wide-cap rule, brief §2).
+SIM_S = 600.0
 # ===== end of the timing constants =====
 
 # ===== Gate-B-only values (kept so that every Gate B public name exists; stage 1 does not use them) =====
@@ -446,7 +458,13 @@ S1_CODE = {"scripts/stage1_s1/__init__.py": "818919ca18627b7169d80c2a6f6c24149f6
            # round 3c: the O-ext unit runner (J3, J4, J9, J10, J18's O-ext step) and its settings (branch re-pin)
            "scripts/stage1_s1/oext_unit.py": "ae2fb5b5fbea36cbd2b27c4eaa20f10504b9856961ae8ee100311c923876b8e3",
            "scripts/stage1_s1/settings/oext_unit.json":
-               "3959eae7264f56f613f5d7cd54e69081d8985ef7cbce2962243f6685e3581189"}
+               "3959eae7264f56f613f5d7cd54e69081d8985ef7cbce2962243f6685e3581189",
+           # kit round 34: B14's similarity pass (J22) and its settings (M: shasum -a 256 at 55d5f8b, 1 Nov 2026; the
+           # same bytes at the S1 package's merge 3417f12 and at S1_COMMIT; the script pins these settings itself)
+           "scripts/stage1_s1/overlap_similarity.py":
+               "f8305c712109b1bc733769b806c3a37cee9726feab0694e89f42dfc47d4f79f4",
+           "scripts/stage1_s1/settings/overlap_similarity.json":
+               "27db4c3faafc41c4278ff6ca7d1ded0a0fb1a07ae484c4bbf65702f5545ac754"}
 # G1, the engine-Y O-ext re-pin (addendum §34 point 3; §11 point 7, §15 point 1; block B's pre-flight runbook §0 G1):
 # B+Qi's O-ext step runs on engine Y. S1_CODE above is unchanged (every X-side S1 file byte-identical: block A's O-ext
 # outputs name those settings by SHA-256). The Y pack carries the O-ext package at the paths the job runner calls and
@@ -484,6 +502,25 @@ NOT_RUN_KEYS = ("kind", "block", "jobs", "reason", "utc", "recorded_by")
 # release needs it for each seed.
 A0_FINGERPRINT_RECORD = "a0-adapter-fingerprint.json"
 A0_FINGERPRINT_KIND = "stage1 a0 adapter fingerprint"
+# Kit round 34 (J22): B14's similarity pass on theta0 (REV4 §9.4; PLAN-S:172 "untuned-model embeddings, on the pod"; the
+# design report reading-prep/1b-b14-similarity.md route (i)). Its inputs by SHA-256: the script and its settings
+# (S1_CODE), REC (RECIPE_PINS; the settings pin its config SHA-256), the prepared manifest (PREPARED_MANIFESTS) and its
+# dev bank (the manifest's own entry; the only bank the script reads), and the edit file of each primary add arm, the
+# file the arm trained on (M, 1 Nov 2026: each add-edit record .ai/inputs/stage1-commitments-20261016/add-s{1,3,4}/
+# add_edit_record.json names it; plan_tool checks it against plan.json's arm runs). The pass writes
+# job-I/similarity/similarity.json (kind SIM_OUTPUT_KIND) and the engine's ledger; the runner then writes the readable
+# job-I/similarity-record.json (SIM_RECORD_KIND; ids, counts and hashes only). The strata (overlap_strata.py strata) are
+# made on the Mac from the pulled similarity.json by the SHA-256 that record names.
+SIM_SCRIPT = "scripts/stage1_s1/overlap_similarity.py"
+SIM_SETTINGS = "scripts/stage1_s1/settings/overlap_similarity.json"
+SIM_ADD_SETS = {"S1": "904a0cf1ef9b09c54dbf215384e61fd3360195f2fc0557ecb951b9e7d5dc2d10",
+                "S3": "a2f18a3d3df75691e8cd89975f6a8de36902c166767b9bd37d979d71b832476d",
+                "S4": "24aed3fbe6ff8111c81ff26cb7812b13ae50c158f78fada7c7520d33519ac53e"}
+SIM_DEV_BANK = {"path": "banks/dev.jsonl",
+                "sha256": "1438ff51c7e470bec43f7127e8121db3aa0f41ed5e434402b8c81688d6f7da7e"}
+SIM_PROMPTS, SIM_ROWS = 200, 48           # the settings' eval.prompts and add_sets.rows_each (the record's counts)
+SIM_OUT, SIM_OUTPUT, SIM_OUTPUT_KIND = "similarity", "similarity.json", "stage1 overlap similarity"
+SIM_RECORD, SIM_RECORD_KIND = "similarity-record.json", "stage1 similarity record"
 STAGE1_PINS = {   # M (here): shasum -a 256 of the B15 tree (main 721c58f); the S1 package is re-pinned at its merge
     "scripts/stage1/limits/overrefusal_checks.py": "ed5fd2dcb5675d5fe5e135b76e37ece2488dfcc2db5129ba422064502b0d61ae",
     "scripts/stage1/limits/limits_common.py": "2798aa06a01fd89bf3dd8dc2abf33e63bfcb4f17bff700a709eacd2b3ace264c",
@@ -504,12 +541,13 @@ STAGE1_PINS = {   # M (here): shasum -a 256 of the B15 tree (main 721c58f); the 
 # ----- job kinds (brief §3, J1-J18) ----------------------------------------------------------------------------
 KINDS = ("w1_18", "regenerate", "o_only", "transfer_report", "rep_pass", "untuned_answers", "l1_scan", "classifier",
          "arm", "a0_arm", "c0", "cert_c1", "cert_c2", "cert_c3", "b10_certify", "ref_eval", "safe_lora", "ref_train",
-         "retrain", "a1_rescore")
+         "retrain", "a1_rescore", "similarity")
 KIND_IDS = dict(zip(KINDS, ("J1", "J2", "J3", "J4", "J5", "J6", "J7", "J8", "J9", "J10", "J11", "J12", "J13", "J14",
-                            "J15", "J16", "J17", "J18", "J20", "J21")))   # J20/J21: LN-15e (J19 is the judge launch)
+                            "J15", "J16", "J17", "J18", "J20", "J21", "J22")))   # J20/J21: LN-15e (J19 is the judge
+#                                         launch); J22: B14's similarity pass (kit round 34)
 UNMEASURED_KINDS = frozenset({"w1_18", "o_only", "transfer_report", "rep_pass", "untuned_answers", "l1_scan",
                               "classifier", "c0", "cert_c2", "cert_c3", "b10_certify", "ref_eval", "safe_lora",
-                              "ref_train", "arm", "a0_arm", "a1_rescore"})   # an O500 or an unmeasured term
+                              "ref_train", "arm", "a0_arm", "a1_rescore", "similarity"})   # an O500 or an unmeasured term
 BANK500_KINDS = frozenset({"o_only", "transfer_report", "arm", "a0_arm", "c0", "ref_eval", "safe_lora", "ref_train"})
 DIAG_KINDS = ("rep_pass", "untuned_answers", "l1_scan", "classifier")
 TRAINING_KINDS = ("arm", "a0_arm")        # the block tables' runs
@@ -526,7 +564,8 @@ LINKED_KINDS = {"o_only": "regenerate",   # a J3 names its J2 (``regen_source``)
 LINK_SOURCES = frozenset(LINKED_KINDS.values())
 LINK_FIELD = "regen_source"
 UNITLESS_KINDS = frozenset({"w1_18", "rep_pass", "untuned_answers", "l1_scan", "classifier", "c0", "transfer_report",
-                            "o_only"})            # BUILD-RUNNER fix: an O-only pass writes O-ext files, no engine unit
+                            "o_only", "similarity"})   # BUILD-RUNNER fix: an O-only pass writes O-ext files, no engine
+#                                         unit; kit round 34: B14's pass writes similarity.json and its record, no unit
 
 def guard_off_problem(doc) -> str | None:
     """Why ``doc`` is not the user's budget-guard-off decision record ({kind, user_words, utc, recorded_by}, exactly;
@@ -611,18 +650,153 @@ def s3_orig_pin(plan: dict, kit) -> dict:
             "pool": {"path": pool_rel, "sha256": outputs[pool_rel]}, "sha256": outputs[pool_rel],
             "pack_path": str((kit / "retrieved" / host / "tree" / pool_rel).relative_to(kit.parents[1]))}
 
+# ----- kit round 34 (J22): B14's similarity pass, its output and its record -----------------------------------------
+# One implementation for the pod (the runner writes the record), the finisher's light check and record-done. Every
+# function reads the output's kind, version, provenance hashes and counts only, never a similarity value.
+SIM_PRINTED = r"^wrote similarity\.json into (\S+) \(([0-9a-f]{64})\)$"   # overlap_similarity.py's stdout line on exit 0
+
+
+def canonical_bytes(obj) -> bytes:
+    """The engine's canonical JSON (experiments/minimal_safety/common.canonical_json), stdlib only: sorted keys, 2-space
+    indent, UTF-8, a trailing newline; NaN and infinity refused."""
+    return (json.dumps(obj, sort_keys=True, indent=2, ensure_ascii=False, allow_nan=False) + "\n").encode("utf-8")
+
+
+def similarity_output(index: int) -> str:
+    """Job ``index``'s similarity.json, relative to the run folder (the pass writes its --out job-I/similarity)."""
+    return f"job-{index}/{SIM_OUT}/{SIM_OUTPUT}"
+
+
+def similarity_record_path(index: int) -> str:
+    return f"job-{index}/{SIM_RECORD}"
+
+
+def hex64(value) -> str | None:
+    """``value`` if it is a lowercase SHA-256 hex string, else None."""
+    return value if isinstance(value, str) and len(value) == 64 and not set(value) - set("0123456789abcdef") else None
+
+
+def _count(value) -> int | None:
+    """``value`` if it is an int (not a bool), else None."""
+    return value if type(value) is int else None
+
+
+def similarity_inputs(recipe_config_sha256: str | None) -> dict:
+    """The inputs block (name -> SHA-256) the pass's provenance holds on the kit's pins, under the names
+    overlap_similarity.py gives them: the prepared manifest, its dev bank, REC's config SHA-256 (plan.json's recipes:
+    the pod's runner checks REC's file against it) and the three add sets."""
+    return {"prepared/manifest.json": PREPARED_MANIFESTS[PREPARED_NAME],
+            f"prepared/{SIM_DEV_BANK['path']}": SIM_DEV_BANK["sha256"], "recipe": recipe_config_sha256,
+            **{f"add/{name}": digest for name, digest in SIM_ADD_SETS.items()}}
+
+
+def similarity_problems(doc, recipe_config_sha256: str | None) -> list[str]:
+    """Why the parsed similarity.json is not B14's pass on the kit's pins (field names only), or []: a version-1
+    SIM_OUTPUT_KIND record whose provenance names the script and its settings at their S1_CODE pins and exactly the
+    inputs of similarity_inputs, with SIM_PROMPTS evaluation prompts and, for each add set (exactly SIM_ADD_SETS' names),
+    its pinned edit SHA-256 and SIM_ROWS rows."""
+    if not isinstance(doc, dict) or doc.get("kind") != SIM_OUTPUT_KIND or doc.get("version") != 1:
+        return [f"not a version-1 {SIM_OUTPUT_KIND!r} record"]
+    problems = []
+    prov = doc.get("provenance") if isinstance(doc.get("provenance"), dict) else {}
+    for key, rel in (("script_sha256", SIM_SCRIPT), ("settings_sha256", SIM_SETTINGS)):
+        if prov.get(key) != S1_CODE[rel]:
+            problems.append(f"provenance.{key}")
+    want = similarity_inputs(recipe_config_sha256)
+    have = prov.get("inputs") if isinstance(prov.get("inputs"), dict) else {}
+    problems += [f"provenance.inputs[{k}]" for k in sorted(set(want) | set(have))
+                 if hex64(have.get(k)) is None or have.get(k) != want.get(k)]
+    ev = doc.get("eval") if isinstance(doc.get("eval"), dict) else {}
+    if _count(ev.get("prompts")) != SIM_PROMPTS:
+        problems.append("eval.prompts")
+    sets = doc.get("add_sets") if isinstance(doc.get("add_sets"), dict) else {}
+    if set(sets) != set(SIM_ADD_SETS):
+        problems.append("add_sets (names)")
+    for name, digest in sorted(SIM_ADD_SETS.items()):
+        block = sets.get(name) if isinstance(sets.get(name), dict) else {}
+        if block.get("edit_sha256") != digest or _count(block.get("rows")) != SIM_ROWS:
+            problems.append(f"add_sets.{name}")
+    return problems
+
+
+def similarity_record_doc(doc, host: str, index: int, digest: str, printed: str | None,
+                          recipe_config_sha256: str | None) -> dict:
+    """The runner's text-free record of job ``index``'s similarity.json (``doc`` parsed, ``digest`` its SHA-256):
+    {kind SIM_RECORD_KIND, version 1, host, job, output {path, sha256}, printed_sha256 (the SHA-256 the script printed,
+    or None), script_sha256, settings_sha256, inputs (the provenance's, SHA-256 values only), counts {prompts, rows by
+    add set}, problems (similarity_problems, and a printed SHA-256 that is missing or not the file's)}. A field that is
+    not a SHA-256 or a count is recorded as None, so no text of the output is copied."""
+    problems = similarity_problems(doc, recipe_config_sha256)
+    if printed is None or printed != digest:
+        problems.append("the SHA-256 the script printed is missing or not the file's")
+    doc = doc if isinstance(doc, dict) else {}
+    prov = doc.get("provenance") if isinstance(doc.get("provenance"), dict) else {}
+    inputs = prov.get("inputs") if isinstance(prov.get("inputs"), dict) else {}
+    ev = doc.get("eval") if isinstance(doc.get("eval"), dict) else {}
+    sets = doc.get("add_sets") if isinstance(doc.get("add_sets"), dict) else {}
+    names = set(similarity_inputs(None))
+    return {"kind": SIM_RECORD_KIND, "version": 1, "host": host, "job": index,
+            "output": {"path": similarity_output(index), "sha256": digest}, "printed_sha256": hex64(printed),
+            "script_sha256": hex64(prov.get("script_sha256")), "settings_sha256": hex64(prov.get("settings_sha256")),
+            "inputs": {k: hex64(inputs[k]) for k in sorted(inputs) if k in names},
+            "counts": {"prompts": _count(ev.get("prompts")),
+                       "rows": {n: _count(sets[n].get("rows")) if isinstance(sets.get(n), dict) else None
+                                for n in sorted(SIM_ADD_SETS)}},
+            "problems": problems}
+
+
+def similarity_record_problem(tree, r: dict, host: str, recipe_config_sha256: str | None) -> str | None:
+    """The Mac's check of a complete similarity job (``r``: its record in the pulled JOB-DONE.json; ``tree``: the pulled
+    tree), for the finisher's light check and record-done: the job's outputs list similarity.json and the record; each
+    is a regular file in the tree at its listed SHA-256; the record equals similarity_record_doc rebuilt here from the
+    pulled similarity.json (the record's printed SHA-256 as given), so it names that file by its SHA-256, and lists no
+    problem. Returns why not (names only), or None."""
+    import hashlib
+    import pathlib
+
+    index = r.get("index") if isinstance(r, dict) else None
+    if type(index) is not int:
+        return "the job's record has no index"
+    outputs = r.get("outputs") if isinstance(r.get("outputs"), dict) else {}
+    tree = pathlib.Path(tree)
+    rel_out, rel_rec = similarity_output(index), similarity_record_path(index)
+    for rel in (rel_out, rel_rec):
+        p = tree / rel
+        if rel not in outputs or p.is_symlink() or not p.is_file() or \
+                hashlib.sha256(p.read_bytes()).hexdigest() != outputs[rel]:
+            return f"{rel} is not among the job's outputs, or not a regular file in the pulled tree at its recorded " \
+                   "SHA-256"
+    try:
+        data = (tree / rel_out).read_bytes()
+        doc, record = json.loads(data), json.loads((tree / rel_rec).read_bytes())
+    except ValueError:
+        return f"{rel_out} or {rel_rec} is not JSON"
+    printed = record.get("printed_sha256") if isinstance(record, dict) else None
+    want = similarity_record_doc(doc, host, index, hashlib.sha256(data).hexdigest(), printed, recipe_config_sha256)
+    if record != want:
+        fields = sorted(k for k in set(want) | set(record if isinstance(record, dict) else {})
+                        if not isinstance(record, dict) or record.get(k) != want.get(k))
+        return f"{rel_rec} is not the record of the pulled {SIM_OUTPUT} (fields {fields})"
+    if want["problems"]:
+        return f"the pulled {SIM_OUTPUT} does not carry the kit's pins ({', '.join(want['problems'][:3])})"
+    return None
+
 # ----- blocks and hosts --------------------------------------------------------------------------------------------
-BLOCKS = ("S1-0", "cert", "A", "certify", "B", "C")
+# Kit round 34: block "sim" is one host with J22 alone (B14's similarity pass), on its own funding group (addendum
+# §36's start-from-the-balance rule); blocks A and B are sealed, so the pass cannot join them.
+BLOCKS = ("S1-0", "cert", "A", "certify", "B", "C", "sim")
 WAVES = BLOCKS                            # host records carry "wave" = their block (status.py reads it)
-FUNDING_BLOCK = {"S1-0": "A", "cert": "A", "A": "A", "certify": "B", "B": "B", "C": "C"}   # §8 Q2: block A first
-HOST_PREFIX = {"S1-0": "s10", "cert": "cert", "A": "a", "certify": "cfy", "B": "b", "C": "c"}
+FUNDING_BLOCK = {"S1-0": "A", "cert": "A", "A": "A", "certify": "B", "B": "B", "C": "C",
+                 "sim": "sim"}            # §8 Q2: block A first
+HOST_PREFIX = {"S1-0": "s10", "cert": "cert", "A": "a", "certify": "cfy", "B": "b", "C": "c", "sim": "sim"}
 BLOCK_KINDS = {"S1-0": ("w1_18",),
                "cert": ("cert_c1", "cert_c2", "cert_c3"),   # round 3b: c0 moved to block A's LN-12 pod (§26)
                "A": ("regenerate", "o_only", "transfer_report", "rep_pass", "untuned_answers", "l1_scan",
                      "classifier", "arm", "a0_arm", "c0", "retrain", "a1_rescore"),
                "certify": ("b10_certify",),
                "B": ("regenerate", "o_only", "arm", "a0_arm", "ref_eval", "safe_lora", "ref_train"),
-               "C": ("arm",)}
+               "C": ("arm",),
+               "sim": ("similarity",)}
 POD_SIZES = {"preflight_wait_s": 3600, "container_disk_gb": 80, "volume_gb": 40}   # I: + the base model for J17
 POD_NAME_PREFIX = "attribution-s1-"       # host.py name_of; never Gate B's "attribution-gateb-"
 
@@ -695,6 +869,8 @@ def measured_upper(kind: str, steps: int | None = None, branch: str = BRANCH_DEF
         return REGEN_MEASURED_S + _points(kind, n_points) * (EVAL_ONLY_S + o)
     if kind == "safe_lora":
         return REGEN_MEASURED_S + SAFE_LORA_TRANSFORM_S + SAFE_LORA_HASH_S + _points(kind, n_points) * (EVAL_ONLY_S + o)
+    if kind == "similarity":
+        return SIM_S
     raise ValueError(f"unknown job kind {kind!r}")
 
 
@@ -720,6 +896,8 @@ def upper_s(kind: str, fixture: dict | None, steps: int | None, branch: str = BR
         return measured_upper(kind, steps, branch, n_points, recipe, fixture)
     if kind in DIAG_KINDS:
         return DIAG_UPPER_FACTOR * DIAG_ESTIMATE_S[kind]
+    if kind == "similarity":                             # kit round 34: the wide-cap rule for an untimed pass
+        return DIAG_UPPER_FACTOR * SIM_S
     if kind in ("o_only", "transfer_report", "c0", "b10_certify", "ref_eval", "safe_lora"):
         return measured_upper(kind, steps, branch, n_points, recipe, fixture) + over
     raise ValueError(f"unknown job kind {kind!r}")

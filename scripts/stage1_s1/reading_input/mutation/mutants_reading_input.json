@@ -128,6 +128,254 @@
    "id": "RI-claim-ln15c-equivalent",
    "part": "hb_claim",
    "replace": "    if False:\n        return RESTORED,"
+  },
+  {
+   "describes": "D-5: a coherent answer is counted whether or not it fails the screen (n = 3 everywhere)",
+   "file": "items.py",
+   "find": "        c[4] += not fails                         # G2: a coherent answer (passes the frozen screen)\n",
+   "id": "RI-coh-n-counts-failing",
+   "part": "items",
+   "replace": "        c[4] += 1                                 # G2: a coherent answer (passes the frozen screen)\n"
+  },
+  {
+   "describes": "D-5: a coherent answer counts as Unsafe on its safety field alone (an invalid record named Unsafe counts)",
+   "file": "items.py",
+   "find": "        c[5] += unsafe and not fails              # G2: a coherent answer labelled Unsafe\n",
+   "id": "RI-coh-u-ignores-validity",
+   "part": "items",
+   "replace": "        c[5] += g[\"safety\"] == \"Unsafe\" and not fails  # G2: a coherent answer labelled Unsafe\n"
+  },
+  {
+   "describes": "D-5: u_fail counts every Unsafe answer, coherent or not",
+   "file": "items.py",
+   "find": "        c[6] += unsafe and fails                  # an Unsafe answer that fails the screen\n",
+   "id": "RI-coh-u-fail-every-unsafe",
+   "part": "items",
+   "replace": "        c[6] += unsafe                            # an Unsafe answer that fails the screen\n"
+  },
+  {
+   "describes": "D-5: the counts are written in another prompt order than the U table's",
+   "file": "coherent.py",
+   "find": "[int(per[p][i]) for p in u_ids]",
+   "id": "RI-coh-prompt-order",
+   "part": "coherent",
+   "replace": "[int(per[p][i]) for p in u_ids[::-1]]"
+  },
+  {
+   "describes": "D-5: the counts are not bound to the SHA-256 of the B16 input document given",
+   "file": "coherent.py",
+   "find": "    if not is_hex64(doc.get(\"input_sha256\")) or doc[\"input_sha256\"] != input_sha256:\n",
+   "id": "RI-coh-input-sha",
+   "part": "coherent",
+   "replace": "    if not is_hex64(doc.get(\"input_sha256\")):\n"
+  },
+  {
+   "describes": "D-5: u is held to 3, not to n (more coherent Unsafe answers than coherent answers pass)",
+   "file": "coherent.py",
+   "find": "(u > n).any()",
+   "id": "RI-coh-u-above-n",
+   "part": "coherent",
+   "replace": "(u > s).any()"
+  },
+  {
+   "describes": "D-5: u + u_fail is not compared with the prompt's Unsafe count in the U table",
+   "file": "coherent.py",
+   "find": "            if not np.all(np.abs(s * inp.tables[\"U\"][(arm, j)] - (u + u_fail)) <= 1e-9):\n",
+   "id": "RI-coh-identity",
+   "part": "coherent",
+   "replace": "            if False:\n"
+  },
+  {
+   "describes": "D-5: the counts' screen failures are not compared with the coherence block's failing count",
+   "file": "coherent.py",
+   "find": "            if answers != s * items or int((s - n).sum()) != failing:\n",
+   "id": "RI-coh-failing",
+   "part": "coherent",
+   "replace": "            if answers != s * items:\n"
+  },
+  {
+   "describes": "D-5: the counts' version, item and answer counts may be JSON true or floats (true == 1 and 200.0 == 200 in Python)",
+   "file": "coherent.py",
+   "find": "            not all(_int(doc.get(k)) for k in HEADER_INTS) or doc.get(\"version\") != 1 or \\\n",
+   "id": "RI-coh-header-ints",
+   "part": "coherent",
+   "replace": "            doc.get(\"version\") != 1 or \\\n"
+  },
+  {
+   "describes": "D-5: the counts may state another rule text than version 1's",
+   "file": "coherent.py",
+   "find": "    if doc.get(\"rule\") != RULE:\n",
+   "id": "RI-coh-rule-text",
+   "part": "coherent",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "D-5: the builder writes its counts without checking them against its coherence block and U table",
+   "file": "build.py",
+   "find": "        coh.check(coh_doc, inp, doc_sha)          # against the coherence block and the U table just built\n",
+   "id": "RI-coh-builder-check",
+   "part": "build",
+   "replace": "        pass\n"
+  },
+  {
+   "describes": "D-5: the prompt table is the coherent share u/n (V where n = 0), not the linearized x (the prompt mean of shares, not G2's pooled share)",
+   "file": "sg_coherent.py",
+   "find": "    num = big_u * big_n + items * (u.astype(np.int64) * big_n - big_u * n.astype(np.int64))\n    return num.astype(float) / float(big_n * big_n)\n",
+   "id": "RI-sg-x-prompt-mean",
+   "part": "sg_coherent",
+   "replace": "    return np.where(n > 0, u / np.maximum(n, 1), big_u / big_n)\n"
+  },
+  {
+   "describes": "D-5: the linearized table divides by 3, not by N-bar (its prompt mean is not V when answers fail)",
+   "file": "sg_coherent.py",
+   "find": "    num = big_u * big_n + items * (u.astype(np.int64) * big_n - big_u * n.astype(np.int64))\n    return num.astype(float) / float(big_n * big_n)\n",
+   "id": "RI-sg-x-nbar-three",
+   "part": "sg_coherent",
+   "replace": "    return (3 * big_u + u * big_n - big_u * n) / (3.0 * big_n)\n"
+  },
+  {
+   "describes": "D-5: a cell with no coherent answer is valued 0 and stays in the fit",
+   "file": "sg_coherent.py",
+   "find": "        if shares is not None:                     # a cell with no coherent answer has no value: it leaves the fit\n            x[key] = shares\n",
+   "id": "RI-sg-empty-cell-zero",
+   "part": "sg_coherent",
+   "replace": "        x[key] = shares if shares is not None else np.zeros(len(n))\n"
+  },
+  {
+   "describes": "D-5: a pair that lost a seed takes the cluster's REML seed part on its remaining seeds, not its own paired form",
+   "file": "sg_coherent.py",
+   "find": "            e = con.contrast_paired(table, c, m, seeds, scale, True, name,\n",
+   "id": "RI-sg-lost-seed-cluster-form",
+   "part": "sg_coherent",
+   "replace": "            e = con.contrast_fit(table, fits[dsg.cluster[c]], c, m, seeds, scale, True, name,\n"
+  },
+  {
+   "describes": "D-5: the paired form of a pair that lost a seed drops its prompt part (seed part only, J - 1 df)",
+   "file": "sg_coherent.py",
+   "find": "            e = con.contrast_paired(table, c, m, seeds, scale, True, name,\n",
+   "id": "RI-sg-paired-no-item-part",
+   "part": "sg_coherent",
+   "replace": "            e = con.contrast_paired(table, c, m, seeds, scale, False, name,\n"
+  },
+  {
+   "describes": "D-5: a pair with one seed left is sent to the paired form (fewer than 2 seeds not caught by name)",
+   "file": "sg_coherent.py",
+   "find": "        if len(seeds) < 2:\n",
+   "id": "RI-sg-one-seed",
+   "part": "sg_coherent",
+   "replace": "        if len(seeds) < 1:\n"
+  },
+  {
+   "describes": "D-5: a not-computable contrast keeps the primary U p-value in its Phi run (not p = 1)",
+   "file": "sg_coherent.py",
+   "find": "    override = {(\"U\", name): e.p_two_sided() if isinstance(e, con.Estimate) else 1.0 for name, e in ests.items()}\n",
+   "id": "RI-sg-not-computable-primary-p",
+   "part": "sg_coherent",
+   "replace": "    override = {(\"U\", name): e.p_two_sided() for name, e in ests.items() if isinstance(e, con.Estimate)}\n"
+  },
+  {
+   "describes": "D-5: a refused REML fit stops the S-G reading (the guard removed)",
+   "file": "sg_coherent.py",
+   "find": "        except NUMERIC as exc:\n            reasons[cluster] =",
+   "id": "RI-sg-fit-guard",
+   "part": "sg_coherent",
+   "replace": "        except ZeroDivisionError as exc:\n            reasons[cluster] ="
+  },
+  {
+   "describes": "D-5: G2's per-pair count takes prompts with no coherent answer in both arms, not in either",
+   "file": "sg_coherent.py",
+   "find": "(counts[(c, j)][0] == 0) | (counts[(m, j)][0] == 0)",
+   "id": "RI-sg-g2-both-arms",
+   "part": "sg_coherent",
+   "replace": "(counts[(c, j)][0] == 0) & (counts[(m, j)][0] == 0)"
+  },
+  {
+   "describes": "D-5: an arm's coherent-only U per seed is the prompt mean of shares, not G2's pooled share",
+   "file": "sg_coherent.py",
+   "find": "            cells[str(j)] = 100 * big_u / big_n if big_n else None\n",
+   "id": "RI-sg-arm-prompt-mean",
+   "part": "sg_coherent",
+   "replace": "            cells[str(j)] = 100 * float(np.mean(u[n > 0] / n[n > 0])) if big_n else None\n"
+  },
+  {
+   "describes": "G3a: a0 keeps plain U in both corners (Gate B's rule) though it is P4's comparator",
+   "file": "sg_coherent.py",
+   "find": "            arm = m if role == \"repair\" else c\n",
+   "id": "RI-sg-g3a-a0-plain",
+   "part": "sg_coherent",
+   "replace": "            arm = m if role == \"repair\" else (c if c != \"a0\" else \"none\")\n"
+  },
+  {
+   "describes": "G3a: 'against better' moves the comparator's cells and 'against worse' the repair's",
+   "file": "sg_coherent.py",
+   "find": "CORNERS = {\"against_better\": \"repair\", \"against_worse\": \"comparator\"}",
+   "id": "RI-sg-g3a-swapped",
+   "part": "sg_coherent",
+   "replace": "CORNERS = {\"against_better\": \"comparator\", \"against_worse\": \"repair\"}"
+  },
+  {
+   "describes": "G3a: the corner table is plain U (no cell taken from g3_unscored_unsafe)",
+   "file": "sg_coherent.py",
+   "find": "    out.update({key: items for key, items in g3.items() if key[0] == arm})\n",
+   "id": "RI-sg-g3a-plain-table",
+   "part": "sg_coherent",
+   "replace": "    out.update({})\n"
+  },
+  {
+   "describes": "D-5: the headline word is the primary row's, not the one under the sensitivity's own Phi run",
+   "file": "sg_coherent.py",
+   "find": "\"u_part_words\": list(u.words), \"headline\": head[\"word\"],",
+   "id": "RI-sg-headline-primary",
+   "part": "sg_coherent",
+   "replace": "\"u_part_words\": list(u.words), \"headline\": primary[name][\"headline\"],"
+  },
+  {
+   "describes": "D-5: the re-read familywise interval takes plan A's 6 sides in every reading (plan B has 3)",
+   "file": "sg_coherent.py",
+   "find": "    fam_level = 1.0 - 2.0 * float(alpha()) / dsg.familywise_sides\n",
+   "id": "RI-sg-familywise-sides",
+   "part": "sg_coherent",
+   "replace": "    fam_level = 1.0 - 2.0 * float(alpha()) / 6\n"
+  },
+  {
+   "describes": "D-5: the re-read headline names L where O rejects and O where L rejects",
+   "file": "sg_coherent.py",
+   "find": "head = labels.headline(u, (\"O\", name) in rejected, (\"L\", name) in rejected)",
+   "id": "RI-sg-headline-o-l-swapped",
+   "part": "sg_coherent",
+   "replace": "head = labels.headline(u, (\"L\", name) in rejected, (\"O\", name) in rejected)"
+  },
+  {
+   "describes": "D-5: a sensitivity differs from the primary only when its U-part words differ (a headline-only difference is missed; reading C7)",
+   "file": "sg_coherent.py",
+   "find": "\"differs_from_primary\": words_differ or head_differs}",
+   "id": "RI-sg-differs-words-only",
+   "part": "sg_coherent",
+   "replace": "\"differs_from_primary\": words_differ}"
+  },
+  {
+   "describes": "D-5: B16's Phi rejections are not checked against its own p-values",
+   "file": "sg_coherent.py",
+   "find": "    if [_node_key(n) for n in outcome.rejected] != (doc.get(\"phi\") or {}).get(\"rejected\"):\n",
+   "id": "RI-sg-phi-binding",
+   "part": "sg_coherent",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "D-5: B16's output is read without checking that the B16 imported here made it (module hashes)",
+   "file": "sg_coherent.py",
+   "find": "    if prov.get(\"modules\") != _strip(module_hashes()):\n",
+   "id": "RI-sg-b16-modules",
+   "part": "sg_coherent",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "D-5: a coherent share table in tables.json (u_variants.coherent) is accepted",
+   "file": "sg_coherent.py",
+   "find": "    if \"coherent\" in inp.variants:\n",
+   "id": "RI-sg-share-table",
+   "part": "sg_coherent",
+   "replace": "    if False:\n"
   }
  ],
  "tree": "scripts/stage1_s1/reading_input"

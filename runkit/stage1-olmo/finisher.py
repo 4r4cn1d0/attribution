@@ -23,6 +23,11 @@ Round 31 (K5; cert runbook D9): a host that a deferral or requeue moved (plan_to
 not recorded done (a-5, a-6, a-7: setup failed, stopped, never pulled; a requeue needs a confirmed stop) never gets a
 finished.json. The watch treats it as finished: it is not watched, it sets no deadline, and "every planned host is
 finished" no longer waits for it.
+Kit round 34 (J22): B14's similarity pass writes no unit, so the light check also checks every complete similarity job
+of the pulled JOB-DONE.json as record-done will (stage1_rules.similarity_record_problem: similarity.json and the
+runner's record in the pulled tree at the SHA-256 the job lists, the record that of the pulled output, the output on
+the kit's pins, REC's config SHA-256 from plan.json); a problem makes the host review-needed-stopped. It reads
+hashes, kinds, versions and counts only, never a similarity value.
 """
 
 from __future__ import annotations
@@ -147,6 +152,25 @@ def unpack(host: str) -> pathlib.Path:
     return tree
 
 
+def similarity_check(host: str, tree: pathlib.Path) -> dict:
+    """Kit round 34 (J22): job-I/similarity -> {exit, tail} for every complete similarity job of the pulled
+    JOB-DONE.json, by stage1_rules.similarity_record_problem (record-done's own check; REC's config SHA-256 from
+    plan.json's recipes). A tree without such a job gives nothing."""
+    try:
+        jobs = json.loads((tree / "JOB-DONE.json").read_text()).get("jobs") or []
+    except (OSError, ValueError, AttributeError):
+        return {}
+    recipe = ((plan().get("recipes") or {}).get(rules.REC) or {}).get("config_sha256")
+    out = {}
+    for r in jobs:
+        if isinstance(r, dict) and r.get("kind") == "similarity" and r.get("status") == "complete":
+            problem = rules.similarity_record_problem(tree, r, host, recipe)
+            out[f"job-{r.get('index')}/{rules.SIM_OUT}"] = {
+                "exit": 0 if problem is None else 1,
+                "tail": problem or f"{rules.SIM_OUTPUT} and its record agree with each other and the kit's pins"}
+    return out
+
+
 def light_check(host: str, tree: pathlib.Path) -> dict:
     """Without the model states: every other file a unit's COMPLETE.json lists must be present and hash as listed;
     the engine's full verify ran on the pod (JOB-DONE.json). Missing .safetensors files are expected."""
@@ -162,6 +186,7 @@ def light_check(host: str, tree: pathlib.Path) -> dict:
                 bad.append(rel)
         results[str(unit.relative_to(tree))] = {"exit": 0 if not bad else 1,
                                                 "tail": f"bad {bad[:5]}; states left on the pod: {skipped}"}
+    results.update(similarity_check(host, tree))         # kit round 34: B14's output and its record (no unit)
     with open(HERE / "retrieved" / host / "verified.jsonl", "a") as handle:
         handle.write(json.dumps({"utc": now(), "kind": "light check (engine verify ran on the pod)", "results": results}) + "\n")
     return results

@@ -1,0 +1,514 @@
+{
+  "baseline": {
+    "disk_full": false,
+    "erroring": [],
+    "errors": 0,
+    "exit": 0,
+    "failing": [],
+    "failures": 0,
+    "outcome": "pass",
+    "seconds": 259.6,
+    "skipped": 2,
+    "targets": {},
+    "tests": 284,
+    "tree": {
+      "__init__.py": "3efbc49e298a64c8d24bc277db4abc151a85bd6b73d478b0b601b284d1b63cf4",
+      "__main__.py": "992787928667fe229045bb09f8b174bfa76ea405c892214e7b355e5bb39b38f8",
+      "build.py": "e82214e7183025632973692b79112347bf73b961feb62d530f3640de57bf9b5d",
+      "coherent.py": "9f3010fb52ea6459d16dc987e46ec30f2b69f15546a8603fc6bd53946ea8441a",
+      "hb.py": "7a54cb305ecf452f2b165a8c1f871af7f1785bcd55853437ac8e87db114e1d11",
+      "hb_claim.py": "375793dbe3e252babecf50bdc34ee343184ba176e741f4e71c7a46c5ea954ebe",
+      "items.py": "70a52ca84d604b81755428ba873ff382cdee7e020d2c581e42ff06a057c1a105",
+      "mutation/mutants_reading_input.json": "52f231ed9c6d787f88c14f18d495925e93d61e0f30e83cb6d8cd8bd496201006",
+      "mutation/run_mutants.py": "491a2266856b9c632d0b0e856349034f8e7c987727d4df20427ce9d029dd83ac",
+      "sg_coherent.py": "a0b001f7f40c1d2ff9a79959b3146ba569dd70d2929de87de3a6092568c0ce8c",
+      "sources.py": "127223a80c7a3dec5a88680278507b99e812b023e65ed49a5e0b67e770642d0a",
+      "tests/conftest.py": "00bce2df67f9bbfcfa139cc3a2a3a50e7d4a74b2b48c4414eda97f70442d4c0b",
+      "tests/sim_sg_coherent.py": "ff7b6f4d738e8d703451377f2e96992962f4aa3090ccfca70f3a97820c745856",
+      "tests/synth_kit.py": "0aec347fe639b4992ca9ec8d6ec3b58a7904496effa0557b90572ad065b937dd",
+      "tests/test_builder.py": "f53ee5f48a815e87ae8722264af394d0cf8cbd0a88580085252af6da003dc104",
+      "tests/test_coherent.py": "7cb5f8fc52ed7bea5b552707847875e8b3b186013136dfd1d5a54da432ff6ee8",
+      "tests/test_hb.py": "33d638d3ef6e84d414f00bb7840492f1f5b1a84268cffd7afe6545836faaa2bb",
+      "tests/test_hb_claim.py": "ea0e30ca7a19043837d53ef1139d85984079089e541c5321a291cc29e635b3b1",
+      "tests/test_items.py": "c5e4ef04480d8ad3adb620e4774650b36c2121ce58ec4d73f58ea0e23d5b603d",
+      "tests/test_oext_settings.py": "0cee311c60ef1aaf044607d1d5b34c03865e302d83809a6817776288e9b8b3d3",
+      "tests/test_sg_coherent.py": "cee9f10837524111adf4d1ccb03829a3100d4562ded1d53e39038cb2f85b9f9c"
+    }
+  },
+  "command": "python -B -m pytest -q -rs -p no:cacheprovider -W ignore --basetemp=<run>/bt --junitxml=<run>/junit.xml <copy>/scripts/stage1_s1/reading_input/tests (cwd <copy>; PYTHONPATH <copy>:<workspace>; PYTHONDONTWRITEBYTECODE=1)",
+  "dose_axis_sha256": "d258ee595709a99a7e4b5cd54b3a308ebae1a156cb144dccea22e26e44acbbe1",
+  "environment_removed": [
+    "PYTEST_ADDOPTS",
+    "PYTEST_PLUGINS"
+  ],
+  "kind": "stage1 mutation report",
+  "min_free_gb": 3.0,
+  "mutants": [
+    {
+      "describes": "a unit's COMPLETE.json SHA-256 in the block seal is not compared with plan.json's",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_unit_hash_checks",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_eval_file_against_complete_and_seal"
+      ],
+      "failures": 2,
+      "id": "RI-seal-vs-plan",
+      "outcome": "killed",
+      "part": "sources",
+      "seconds": 267.5,
+      "skipped": 2,
+      "targets": {
+        "sources.py": {
+          "after": "2caadd1656a335075de7f797e78af92432ee4fb97baeb9c516a00e597889f5bc",
+          "before": "127223a80c7a3dec5a88680278507b99e812b023e65ed49a5e0b67e770642d0a"
+        }
+      },
+      "tests": 284
+    },
+    {
+      "describes": "a second complete unit of one cell is not refused (the later one wins)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_duplicated_unit_refuses"
+      ],
+      "failures": 1,
+      "id": "RI-duplicate-unit",
+      "outcome": "killed",
+      "part": "build",
+      "seconds": 273.8,
+      "skipped": 2,
+      "targets": {
+        "build.py": {
+          "after": "67927b78d777549a2e12109116a9b54f1f7175bec467c4a77b6ed816780d62ea",
+          "before": "e82214e7183025632973692b79112347bf73b961feb62d530f3640de57bf9b5d"
+        }
+      },
+      "tests": 284
+    },
+    {
+      "describes": "an O-ext pass's settings pair is not compared with its engine's (G1: any pair is accepted)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_block_a_pass_with_another_pair_is_refused[arm-S1-1103-pair0-S1 1103 O-ext .*its O-ext settings are engine Y's pair; a unit of engine X needs engine X's]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_block_a_pass_with_another_pair_is_refused[arm-S1-1103-pair1-its O-ext settings are not an accepted pair; a unit of engine X]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_block_a_pass_with_another_pair_is_refused[arm-S1-1103-pair2-its O-ext settings are not an accepted pair; a unit of engine X]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_block_a_pass_with_another_pair_is_refused[arm-S1-1103-pair3-its O-ext settings are not an accepted pair; a unit of engine X]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_block_a_pass_with_another_pair_is_refused[o_only-a0-1101-pair4-a0 1101 O-ext .*engine Y's pair; a unit of engine X]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_block_a_pass_with_another_pair_is_refused[o_only-theta0-None-pair5-theta0 O-ext .*engine Y's pair; a unit of engine X]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_reference_pass_with_another_pair_is_refused[bqi-1106-pair0-ref-bqi 1106 O-ext .*engine X's pair; a unit of engine Y needs engine Y's]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_reference_pass_with_another_pair_is_refused[bqi-1106-pair1-ref-bqi 1106 O-ext .*not an accepted pair; a unit of engine Y]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_reference_pass_with_another_pair_is_refused[G-1106-pair2-ref-G 1106 O-ext .*engine Y's pair; a unit of engine X]"
+      ],
+      "failures": 9,
+      "id": "RI-oext-pair",
+      "outcome": "killed",
+      "part": "build",
+      "seconds": 269.2,
+      "skipped": 2,
+      "targets": {
+        "build.py": {
+          "after": "d23569752d4c8bae799c368c785f835ef2fada85b87858840e686cf72dfe676d",
+          "before": "e82214e7183025632973692b79112347bf73b961feb62d530f3640de57bf9b5d"
+        }
+      },
+      "tests": 284
+    },
+    {
+      "describes": "the labels' counts are not compared with the unit's HarmBench judge file",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_cache_refusals[<lambda>-R 1104: the HarmBench labels' counts are not its HarmBench judge file's]",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_judge_file_must_be_gate_bs_file_of_this_judge_and_unit",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_no_harmbench_value_reaches_the_output_streams"
+      ],
+      "failures": 3,
+      "id": "RI-hb-judge-counts",
+      "outcome": "killed",
+      "part": "hb",
+      "seconds": 256.9,
+      "skipped": 2,
+      "targets": {
+        "hb.py": {
+          "after": "f709ed15ffbfc505f8417f4426820d7980f6b7e8a6585048d12fedcd5dccc8ed",
+          "before": "7a54cb305ecf452f2b165a8c1f871af7f1785bcd55853437ac8e87db114e1d11"
+        }
+      },
+      "tests": 284
+    },
+    {
+      "describes": "D-5: a coherent answer is counted whether or not it fails the screen (n = 3 everywhere)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_harm_counts_by_hand",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_counts_by_hand[plan_a_block_a_only]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_counts_by_hand[plan_b]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_tables_json_is_the_same_document_with_and_without_the_counts",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_the_builder_checks_its_own_counts",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-not version-1 'stage1 reading coherent-only counts']",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-not version-1_0]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-not version-1 .* of the reading plan_a_block_a_only]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-not version-1_1]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-not version-1_2]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-not version-1_3]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-not version-1_4]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-not version-1_5]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-not version-1_6]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-not version-1_7]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-state another rule than version 1's0]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-state another rule than version 1's1]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-name another B16 input document0]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-name another B16 input document1]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-do not hold exactly the reading's arms0]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-do not hold exactly the reading's arms1]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-seeds of S1_0]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-seeds of S1_1]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-S1 1102: not exactly \\\\['n', 'u', 'u_fail'\\\\]]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-S1 1102: not exactly]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-S1 1102: n is not 200 integers0]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-S1 1102: n is not 200 integers1]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-S1 1102: u is not 200 integers]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-S1 1102: n is not 200 integers2]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-S1 1102: a count is outside0]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-S1 1102: a count is outside1]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-S1 1102: a count is outside2]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-S1 1102: a count is outside3]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[_u_above_n-S1 1102: a count is outside]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-S1 1102: a count is outside4]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[_swap-S1 1102: u \\\\+ u_fail is not the prompt's Unsafe count in the U table]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-S1 1102: u \\\\+ u_fail is not the prompt's Unsafe count]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[_one_more_failure-S1 1102: the answers failing the screen are not the coherence block's failing count]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_reads_the_coherence_block_and_the_answer_count",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_returns_the_counts_as_integer_vectors",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_no_count_reaches_the_output_streams",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_every_answer_coherent_gives_the_primary_exactly[plan_a]",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_every_answer_coherent_gives_the_primary_exactly[plan_a_block_a_only]",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_every_answer_coherent_gives_the_primary_exactly[plan_b]",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_the_cell_value_is_the_pooled_share",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_g2_counts_per_seed_pair_and_per_arm_by_hand",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_a_cell_with_no_coherent_answer_leaves_the_fit",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_a_pair_left_with_one_seed_is_not_computable_and_takes_p_1",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_a_failed_fit_or_contrast_is_not_computable_and_the_file_is_written",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_a_cluster_left_with_one_arm_has_no_fit",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_phi_is_rerun_with_the_primary_o_l_and_f",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_the_headline_names_o_or_l_under_s_gs_own_phi_run",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_sensitivity_part_lists_each_code_that_differs",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_the_adverse_corners_by_hand",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_the_symmetric_table_is_relabelled_with_b16s_words",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_without_the_g3_table_the_corners_are_not_computable",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_plan_b_p6_against_an_independent_reference",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_plan_a_item_parts_against_an_independent_reference",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_binding_refusals[tables-<lambda>-B16's schema refuses tables.json at]",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_binding_refusals[tables-_coherent_share_table-tables.json holds a coherent share table \\\\(u_variants.coherent\\\\)]",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_binding_refusals[counts-<lambda>-name another B16 input document]",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_binding_refusals[counts-<lambda>-S3 1103: a count is outside]",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_binding_refusals[reading-<lambda>-not B16's version-1 output of the reading plan_a_block_a_only]",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_binding_refusals[reading-<lambda>-not B16's version-1 output]",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_binding_refusals[reading-<lambda>-names other reading settings]",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_binding_refusals[reading-<lambda>-was not read from the B16 input document]",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_binding_refusals[reading-<lambda>-made by another B16_0]",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_binding_refusals[reading-<lambda>-made by another B16_1]",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_binding_refusals[reading-<lambda>-does not hold the reading's sealed contrasts]",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_binding_refusals[reading-<lambda>-holds no p-values, U part words or headline word for P3]",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_binding_refusals[reading-<lambda>-for P3_0]",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_binding_refusals[reading-<lambda>-for P3_1]",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_binding_refusals[reading-<lambda>-for P2_0]",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_binding_refusals[reading-<lambda>-for P2_1]",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_binding_refusals[reading-<lambda>-Phi rejections do not reproduce0]",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_binding_refusals[reading-<lambda>-Phi rejections do not reproduce1]",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_the_tables_must_be_the_ones_the_counts_and_b16_name",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_the_output_carries_its_rules_provenance_and_primary",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_command_line_writes_once_and_prints_words_only",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_an_unexpected_error_prints_its_type_only"
+      ],
+      "failures": 80,
+      "id": "RI-coh-n-counts-failing",
+      "outcome": "killed",
+      "part": "items",
+      "seconds": 217.0,
+      "skipped": 2,
+      "targets": {
+        "items.py": {
+          "after": "e5ab13b11b289ca19fbe89b661301c681c907db8425117e92c3ef133f9df2ea1",
+          "before": "70a52ca84d604b81755428ba873ff382cdee7e020d2c581e42ff06a057c1a105"
+        }
+      },
+      "tests": 284
+    },
+    {
+      "describes": "D-5: the counts are not bound to the SHA-256 of the B16 input document given",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-name another B16 input document0]",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_binding_refusals[counts-<lambda>-name another B16 input document]"
+      ],
+      "failures": 2,
+      "id": "RI-coh-input-sha",
+      "outcome": "killed",
+      "part": "coherent",
+      "seconds": 244.0,
+      "skipped": 2,
+      "targets": {
+        "coherent.py": {
+          "after": "e22384de8925b50a7d1b84b0dcacce328fe39af9b70584a3ad0c8be99fe70b72",
+          "before": "9f3010fb52ea6459d16dc987e46ec30f2b69f15546a8603fc6bd53946ea8441a"
+        }
+      },
+      "tests": 284
+    },
+    {
+      "describes": "D-5: the counts' version, item and answer counts may be JSON true or floats (true == 1 and 200.0 == 200 in Python)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-not version-1_5]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-not version-1_6]",
+        "scripts.stage1_s1.reading_input.tests.test_coherent::test_check_refusals[<lambda>-not version-1_7]"
+      ],
+      "failures": 3,
+      "id": "RI-coh-header-ints",
+      "outcome": "killed",
+      "part": "coherent",
+      "seconds": 243.5,
+      "skipped": 2,
+      "targets": {
+        "coherent.py": {
+          "after": "fbba27a8d2b71eecbe206dd0a21ed9b0cffaecdf61a14784e6e4df2a4b4ba7db",
+          "before": "9f3010fb52ea6459d16dc987e46ec30f2b69f15546a8603fc6bd53946ea8441a"
+        }
+      },
+      "tests": 284
+    },
+    {
+      "describes": "D-5: the linearized table divides by 3, not by N-bar (its prompt mean is not V when answers fail)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_x_by_hand_in_exact_arithmetic",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_a_cell_with_no_coherent_answer_leaves_the_fit"
+      ],
+      "failures": 2,
+      "id": "RI-sg-x-nbar-three",
+      "outcome": "killed",
+      "part": "sg_coherent",
+      "seconds": 233.8,
+      "skipped": 2,
+      "targets": {
+        "sg_coherent.py": {
+          "after": "508f590c6923fe7b60f1d50f52ffac01aea7ca23055d2303a4bdf3cc88f5990d",
+          "before": "a0b001f7f40c1d2ff9a79959b3146ba569dd70d2929de87de3a6092568c0ce8c"
+        }
+      },
+      "tests": 284
+    },
+    {
+      "describes": "D-5: a pair with one seed left is sent to the paired form (fewer than 2 seeds not caught by name)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_a_pair_left_with_one_seed_is_not_computable_and_takes_p_1"
+      ],
+      "failures": 1,
+      "id": "RI-sg-one-seed",
+      "outcome": "killed",
+      "part": "sg_coherent",
+      "seconds": 215.1,
+      "skipped": 2,
+      "targets": {
+        "sg_coherent.py": {
+          "after": "2e9065bf17761b8523f2e0b78f436657fca4478fbcf400d4c5e5ca0571080cca",
+          "before": "a0b001f7f40c1d2ff9a79959b3146ba569dd70d2929de87de3a6092568c0ce8c"
+        }
+      },
+      "tests": 284
+    },
+    {
+      "describes": "D-5: an arm's coherent-only U per seed is the prompt mean of shares, not G2's pooled share",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_the_cell_value_is_the_pooled_share",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_g2_counts_per_seed_pair_and_per_arm_by_hand",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_a_cell_with_no_coherent_answer_leaves_the_fit"
+      ],
+      "failures": 3,
+      "id": "RI-sg-arm-prompt-mean",
+      "outcome": "killed",
+      "part": "sg_coherent",
+      "seconds": 231.5,
+      "skipped": 2,
+      "targets": {
+        "sg_coherent.py": {
+          "after": "a0011bbfb2e5112d6d7ff4ddc2453bda1bb3f840d00a66cd14301316eada4f5b",
+          "before": "a0b001f7f40c1d2ff9a79959b3146ba569dd70d2929de87de3a6092568c0ce8c"
+        }
+      },
+      "tests": 284
+    },
+    {
+      "describes": "D-5: the headline word is the primary row's, not the one under the sensitivity's own Phi run",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_phi_is_rerun_with_the_primary_o_l_and_f",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_reread_by_hand_familywise_sides_o_or_l_and_a_headline_only_difference",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_the_headline_names_o_or_l_under_s_gs_own_phi_run"
+      ],
+      "failures": 3,
+      "id": "RI-sg-headline-primary",
+      "outcome": "killed",
+      "part": "sg_coherent",
+      "seconds": 216.4,
+      "skipped": 2,
+      "targets": {
+        "sg_coherent.py": {
+          "after": "7ee866eabd7afe8e13fc1b8f6a73bd0cebc1dd8c0844e82be26c219c978cc77b",
+          "before": "a0b001f7f40c1d2ff9a79959b3146ba569dd70d2929de87de3a6092568c0ce8c"
+        }
+      },
+      "tests": 284
+    },
+    {
+      "describes": "D-5: B16's Phi rejections are not checked against its own p-values",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_binding_refusals[reading-<lambda>-Phi rejections do not reproduce0]",
+        "scripts.stage1_s1.reading_input.tests.test_sg_coherent::test_binding_refusals[reading-<lambda>-Phi rejections do not reproduce1]"
+      ],
+      "failures": 2,
+      "id": "RI-sg-phi-binding",
+      "outcome": "killed",
+      "part": "sg_coherent",
+      "seconds": 168.0,
+      "skipped": 2,
+      "targets": {
+        "sg_coherent.py": {
+          "after": "27eafca9b50a6061a4b37ae3fff99b1ddb8e2a4d62c388072b2e14f0b25888c6",
+          "before": "a0b001f7f40c1d2ff9a79959b3146ba569dd70d2929de87de3a6092568c0ce8c"
+        }
+      },
+      "tests": 284
+    }
+  ],
+  "pytest_version": "pytest 8.4.2",
+  "python": "3.11.15",
+  "rule": "killed = exit 1 with >= 1 failure and 0 errors; survived = exit 0, 0 failures, 0 errors; anything else (errors, timeout, other exit codes, no JUnit, a test count other than the baseline's) = invalid; an 'expect: survive' entry passes only if it survives",
+  "runner_sha256": "491a2266856b9c632d0b0e856349034f8e7c987727d4df20427ce9d029dd83ac",
+  "shard": [
+    "RI-coh-header-ints",
+    "RI-coh-input-sha",
+    "RI-coh-n-counts-failing",
+    "RI-duplicate-unit",
+    "RI-hb-judge-counts",
+    "RI-oext-pair",
+    "RI-seal-vs-plan",
+    "RI-sg-arm-prompt-mean",
+    "RI-sg-headline-primary",
+    "RI-sg-one-seed",
+    "RI-sg-phi-binding",
+    "RI-sg-x-nbar-three"
+  ],
+  "spec": "scripts/stage1_s1/reading_input/mutation/mutants_reading_input.json",
+  "spec_sha256": "52f231ed9c6d787f88c14f18d495925e93d61e0f30e83cb6d8cd8bd496201006",
+  "summary": {
+    "build": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 2,
+      "mutants": 2,
+      "survived": 0
+    },
+    "coherent": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 2,
+      "mutants": 2,
+      "survived": 0
+    },
+    "hb": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 1,
+      "mutants": 1,
+      "survived": 0
+    },
+    "items": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 1,
+      "mutants": 1,
+      "survived": 0
+    },
+    "sg_coherent": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 5,
+      "mutants": 5,
+      "survived": 0
+    },
+    "sources": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 1,
+      "mutants": 1,
+      "survived": 0
+    }
+  },
+  "timeout_seconds": 600,
+  "tree_name": "scripts/stage1_s1/reading_input",
+  "version": 2
+}

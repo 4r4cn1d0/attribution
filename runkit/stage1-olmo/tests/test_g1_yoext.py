@@ -94,8 +94,9 @@ def test_the_y_pins_name_this_repositorys_engine_y_files_at_the_runners_o_ext_pa
     assert set(r.S1_OEXT_Y) | set(r.S1_OEXT_Y_SHARED) == O_EXT_PATHS == {
         jr.OEXT_UNIT_SCRIPT, jr.OEXT_UNIT_SETTINGS, jr.OEXT_MODULE, "scripts/stage1_s1/settings/oext_eval.json",
         "scripts/stage1_s1/__init__.py"}
-    # S1_CODE (engine X's pack, block A's O-ext outputs) is unchanged: the X-side O-ext files are block A's bytes
-    assert len(r.S1_CODE) == 11 and r.S1_COMMIT == "3ea5ae1"
+    # S1_CODE (engine X's pack, block A's O-ext outputs): the X-side O-ext files are block A's bytes; kit round 34 added
+    # B14's similarity pass and its settings only (11 -> 13 files)
+    assert len(r.S1_CODE) == 13 and r.S1_COMMIT == "3ea5ae1"
     assert {rel: r.S1_CODE[rel] for rel in X_O_EXT} == X_O_EXT == {rel: sha(REPO / rel) for rel in X_O_EXT}
     assert not set(X_O_EXT.values()) & {pin for _, pin in Y_SOURCES.values()}
 

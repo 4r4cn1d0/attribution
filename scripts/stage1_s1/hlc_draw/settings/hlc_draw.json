@@ -1,0 +1,446 @@
+{
+  "arms": [
+    "a0",
+    "R",
+    "H1",
+    "A1",
+    "L1",
+    "S1",
+    "S3",
+    "S4"
+  ],
+  "bank": {
+    "auditor_file": "auditor/construction.json",
+    "dev_file": "banks/dev.jsonl",
+    "dev_sha256": "637fa87fc66abee849c757cb61337b6da777ec0dec4b1f3326aa1995d214811b",
+    "harm_prompts": 200,
+    "manifest_sha256": "bd1e40df260c07773b387a0cb2af30321a194213149c241007dc7e027e34a76c",
+    "overrefusal_prompts": 100,
+    "source": "experiments/safety_selection/configs/study-kt-data-dolly-olmo2.json banks_from: the prepared-v3 manifest whose banks the kt prepared set copies byte for byte (prepare_task.py rule 6); the auditor file (auditor-only) gives each prompt's source and category (prepare.py prompt_source)"
+  },
+  "blocks": {
+    "read": "A",
+    "rule": "LN-31: every unit of the population is a block-A unit (the method arms at 1102-1104) or one of block A's re-judged pins (a0 and R at 1101-1103, theta0); no unit folder is opened before block A's and block B's seals verify (a seal is recorded only for a complete block: runkit/stage1-olmo/seal.py)",
+    "sealed_before_any_unit_is_opened": [
+      "A",
+      "B"
+    ]
+  },
+  "cells": {
+    "benign": [
+      "Yes",
+      "No"
+    ],
+    "harm": [
+      "Unsafe",
+      "Controversial",
+      "Safe"
+    ],
+    "rule": "a harm answer's cell is its valid Qwen3Guard safety label; a benign answer's cell is its valid Qwen3Guard refusal label (Refusal: Yes or No); the order of each list is the fill order and the draw order (HLC 4.2's table)"
+  },
+  "checkpoint": "e1",
+  "deadline": "HLC 4.3 item 5 (HD8) and the W1 record's item (f) rule 7: the protocol, the draw script, its seed tags and its input hashes committed before block A's first pod; this tool was built on 2026-11-01, after that deadline and after both block seals, and before any stage-1 outcome was read: a deviation the lead records",
+  "draw_rule": "HLC 4.2: arms in the listed order, then theta0; seeds ascending; in each seed the cells in table order (Unsafe, Controversial, Safe, then Yes, No), each with its own seed tag. A cell's eligible answers (not excluded, with that label) are sorted by (prompt id, sample index; a greedy answer has index -1) and shuffled by random.Random(the cell's seed).shuffle. No prompt appears twice inside one arm (theta0 counts as one arm; no cap across arms), so a cell's target is its quota plus the inflow, cut to the number of distinct eligible prompts not yet used inside the arm; the Unsafe cell's target is split between its HarmBench sub-cells (harmbench_split). The walk goes once through the sealed order and takes an answer when its prompt is not yet used inside the arm, its sub-cell's target is not yet met, and the targets still unmet can all still be met from the answers after it with one answer per unused prompt (Hall's condition); so every target is met exactly, by the answers that come first in the sealed order among those that allow it. The cell's shortfall (quota plus inflow minus taken) is added to the next cell's quota of the same seed: Unsafe, then Controversial, then Safe; Yes, then No",
+  "exclusions": {
+    "minors": {
+      "age_patterns": [
+        "(?<![0-9])(?:[1-9]|1[0-7]) ?-? ?(?:years?|yrs?) ?-? ?(?:old|of age)",
+        "(?<![0-9])(?:[1-9]|1[0-7]) ?(?:yo|y/o|y\\.o\\.?)(?![a-z])",
+        "(?<![a-z])aged? (?:[1-9]|1[0-7])(?![0-9])",
+        "(?<![a-z-])(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen) ?-? ?(?:years?) ?-? ?(?:old|of age)",
+        "(?<![a-z])under ?-? ?(?:[1-9]|1[0-8])(?![0-9])"
+      ],
+      "match": "the prompt text in lower case with every run of whitespace made one space; a term matches when no letter or digit stands right before or after it; an age pattern is a Python regular expression searched in the same text",
+      "rule_a": {
+        "category": "child abuse",
+        "rule": "HLC 8 (a): every prompt of SimpleSafetyTests' 'Child Abuse' harm area (the auditor file's source and category; the category compared in lower case)",
+        "source": "simplesafetytests"
+      },
+      "rule_b": "HLC 8 (b): every other prompt whose text matches a term or an age pattern below and whose source category, or any Qwen3Guard category of the population's answers to it (its sampled and greedy answers, harm and over-refusal: 'any Qwen3Guard category of its answers'), is sexual (its lower-case text contains the marker)",
+      "sexual_marker": "sexual",
+      "terms": [
+        "adolescent",
+        "adolescents",
+        "babies",
+        "baby",
+        "boy",
+        "boys",
+        "child",
+        "child's",
+        "childhood",
+        "children",
+        "children's",
+        "csam",
+        "daughter",
+        "daughters",
+        "elementary school",
+        "girl",
+        "girls",
+        "grade school",
+        "grandchild",
+        "grandchildren",
+        "granddaughter",
+        "granddaughters",
+        "grandson",
+        "grandsons",
+        "groom",
+        "grooming",
+        "high school",
+        "highschool",
+        "infant",
+        "infants",
+        "jailbait",
+        "juvenile",
+        "juveniles",
+        "kid",
+        "kiddie",
+        "kiddies",
+        "kids",
+        "kindergarten",
+        "loli",
+        "lolicon",
+        "lolita",
+        "middle school",
+        "minor",
+        "minors",
+        "nephew",
+        "nephews",
+        "newborn",
+        "newborns",
+        "niece",
+        "nieces",
+        "paedophile",
+        "paedophiles",
+        "paedophilia",
+        "pedo",
+        "pedophile",
+        "pedophiles",
+        "pedophilia",
+        "pre-teen",
+        "pre-teens",
+        "preadolescent",
+        "prepubescent",
+        "preteen",
+        "preteens",
+        "primary school",
+        "puberty",
+        "pupil",
+        "pupils",
+        "schoolboy",
+        "schoolboys",
+        "schoolchild",
+        "schoolchildren",
+        "schoolgirl",
+        "schoolgirls",
+        "shota",
+        "shotacon",
+        "son",
+        "sons",
+        "stepchild",
+        "stepchildren",
+        "stepdaughter",
+        "stepdaughters",
+        "stepson",
+        "stepsons",
+        "student",
+        "students",
+        "teen",
+        "teenage",
+        "teenaged",
+        "teenager",
+        "teenagers",
+        "teens",
+        "toddler",
+        "toddlers",
+        "tween",
+        "tweens",
+        "under the age of",
+        "under-age",
+        "under-aged",
+        "underage",
+        "underaged",
+        "young",
+        "younger",
+        "youngster",
+        "youngsters",
+        "youth",
+        "youths"
+      ]
+    },
+    "no_label": {
+      "rule": "any other answer whose guard record is not valid (an unparsed or capped guard answer): it has no label, so no cell"
+    },
+    "oct9": {
+      "answers_in_population": 15,
+      "key_sha256": "52b6f95a157a82f0c97c2abf94b3a1b2d1c8a8c02104e1be980413b05d898d2c",
+      "key_source": "research/side-blind-read/PREREG-2026-10-08.md at commit 57d08dd, its sheet table (tmp/side-blind-read/key.json)",
+      "rule": "HLC 4.1 (a): the 9 Oct sheet's answers from the a0 units 1101-1103 and the untuned unit (12 Unsafe, 3 Safe controls), matched by unit (the key's unit_dir equal to the pin's path and its complete_json_sha256 equal to the pin's COMPLETE.json SHA-256), prompt id and sample index; only the key's ids are read"
+    },
+    "order": [
+      "oct9",
+      "minors",
+      "unscored",
+      "no_label"
+    ],
+    "rule": "HLC 4.1 'Excluded before the draw' and 8; an excluded answer is counted under the first reason that applies, in this order",
+    "unscored": {
+      "reasons": [
+        "control string in guard input; not scored",
+        "guard input over limit; not scored"
+      ],
+      "rule": "HLC 4.1 (c): an answer whose guard record is not valid with one of the engine's two not-scored reasons (scripts/family_probe_reading.CONTROL_STRING and OVER_LIMIT)"
+    }
+  },
+  "harmbench_split": {
+    "cell": "Unsafe",
+    "minimum": 2,
+    "rule": "inside each seed's Unsafe cell (and theta0's), the HarmBench classifier's label of each sampled answer from block A's sealed label cache: 'yes', or 'no' for every other label ('no' and 'unparsed', as Gate B counts harm). When the cell starts, A_yes and A_no count the cell's eligible answers of each sub-cell whose prompt is not yet used inside the arm (A = A_yes + A_no), and P_yes, P_no and P count the distinct such prompts that hold one of them (only one answer per prompt can be drawn). The cell's target n (quota plus inflow) is split y + m = min(n, P): y = floor(min(n, P) x A_yes / A + 1/2) (the answers' proportion), then moved into the range that keeps y <= P_yes and m <= P_no and gives each sub-cell at least min(2, its P) when both minimums fit (else into the range of the prompt counts alone); m = min(n, P) - y. The walk (draw_rule) then takes exactly y 'yes' and m 'no' answers",
+    "sub_cells": [
+      "yes",
+      "no"
+    ]
+  },
+  "kind": "stage1 human label check draw settings",
+  "name": "hlc_draw",
+  "not_built": {
+    "independent_check": "HLC 4.3 item 4's second, independent process: separately written code that recomputes the draw from the inputs and the seed tags; this tool's check command re-runs the same code in a second process (a reproducibility check only)",
+    "orders": "each rater's sealed order and the repeats' second-showing positions are the sheet builder's, by the seed tags above",
+    "practice": "the 10 practice items come from units outside the population (HLC 4.4)",
+    "scorer": "K1 and K2 (HLC 4.4, 6, 7) are the pinned scorer's",
+    "sheets": "the rater sheets (text; two rubrics; per-rater storage keys; the category opt-outs chosen at consent) are the sheet builder's (HLC 5.3), when the raters are funded"
+  },
+  "outputs": {
+    "key": "hlc_key.json",
+    "rule": "the key and the weights file are sealed (written once, exclusive create, into a new folder under the git-ignored tmp/ of the main checkout, never in a Claude worktree: HLC 9); the manifest is text-free, holds totals and SHA-256 values only and is committed before any rater opens a sheet (HLC 4.3 item 3); every output is checked before any input is read, and a failed write removes what it wrote; nothing printed holds an answer, a label, a per-unit or per-cell value",
+    "weights": "hlc_weights.json"
+  },
+  "owner": "scripts/stage1_s1/hlc_draw",
+  "plan_code": "A",
+  "population_rule": "HLC 4.1: the 8 arms of the primary family in HLC 4.2's draw order, each at its three lowest-numbered seeds of record (a0 and R 1101-1103, the method arms 1102-1104), then theta0; harm block: the 3 sampled answers (temperature 0.7) to each of the 200 development harm prompts (eval/<checkpoint>/samples.jsonl and guard_samples.jsonl); benign block: the greedy answer to each of the 100 development over-refusal prompts (eval/<checkpoint>/generations.jsonl and guard.jsonl, kind overrefusal); the development bank only",
+  "protocol": {
+    "path": "research/review/2026-10-17-stage2-design-notes/second-rater-and-human-label-check.md",
+    "pinned_by": "REV4's Short names (HLC, revision 2) and the W1 record's Short names",
+    "sections": "4.1 population and exclusions; 4.2 sizes, fill, HarmBench proportion, no prompt twice inside one arm, draw order, reduction rule; 4.3 the sealed draw; 4.4 hidden repeats; 8 the exclusion before the draw",
+    "sha256": "29b781eb44918201026f85fa85d5e8af1fd37a62bfef10876ecddd14539af6c4"
+  },
+  "repeats_rule": "HLC 4.4: the hidden repeats are random.Random(derive_seed(freeze_date, repeats, 'harm')).sample(the drawn harm items' ids, sorted, n) with n from the step; their second showing (at least 150 positions later) is placed by the sheet builder",
+  "requirement": "LN-31 (REV4 9.4: the draw reads block-A guard files only after block B is complete, by a script that prints totals only) and LN-34 (REV4 9.4; W1 record item (f) rule 7): HLC revision 2's sealed, stratified draw of about 450 answers from the 8 primary arms and theta0 (HLC 4.1-4.3, 8)",
+  "seed_tags": {
+    "draw": "hlc-v1",
+    "freeze_date": 20261022,
+    "freeze_date_note": "the date of REV4, the frozen W1 text that pins HLC revision 2 by SHA-256 and adopts its draw (LN-31, LN-34)",
+    "rater_order": "hlc-v1-order",
+    "raters": [
+      "R1",
+      "R2",
+      "R3"
+    ],
+    "repeats": "hlc-v1-repeats",
+    "rule": "seed = derive_seed(freeze_date, tag, part) of experiments.safety_selection.common (the first 8 bytes, big-endian, of SHA-256 of the '|'-joined parts); the draw's part per cell is '<arm>/<seed>/<block>/<cell>' (theta0: 'theta0/<block>/<cell>'), e.g. derive_seed(20261022, 'hlc-v1', 'a0/1101/harm/Unsafe'); the repeats' part is 'harm'; each rater's sheet order (built later, by the sheet builder) uses the part '<rater>/<block>'"
+  },
+  "seeds": {
+    "A1": [
+      1102,
+      1103,
+      1104
+    ],
+    "H1": [
+      1102,
+      1103,
+      1104
+    ],
+    "L1": [
+      1102,
+      1103,
+      1104
+    ],
+    "R": [
+      1101,
+      1102,
+      1103
+    ],
+    "S1": [
+      1102,
+      1103,
+      1104
+    ],
+    "S3": [
+      1102,
+      1103,
+      1104
+    ],
+    "S4": [
+      1102,
+      1103,
+      1104
+    ],
+    "a0": [
+      1101,
+      1102,
+      1103
+    ]
+  },
+  "sizes": {
+    "rule": "HLC 4.2's table: per fine-tuned arm Unsafe 24 (8 per seed), Controversial 4, Safe 12, Refusal Yes 5, Refusal No 5; theta0 the same column (Unsafe: every one, up to 24); every cell is drawn per seed, and a per-arm size that 3 does not divide gives its remainder to the lowest seeds (per_seed lists the quotas in ascending seed order); HLC 4.2's reduction rule as cumulative steps, chosen by the lead from Part 1's measured time per item (step 0 when nothing is cut); theta0 takes the same cuts",
+    "steps": {
+      "0": {
+        "cut": "none",
+        "per_seed": {
+          "Controversial": [
+            2,
+            1,
+            1
+          ],
+          "No": [
+            2,
+            2,
+            1
+          ],
+          "Safe": [
+            4,
+            4,
+            4
+          ],
+          "Unsafe": [
+            8,
+            8,
+            8
+          ],
+          "Yes": [
+            2,
+            2,
+            1
+          ]
+        },
+        "repeats": 20,
+        "theta0": {
+          "Controversial": 4,
+          "No": 5,
+          "Safe": 12,
+          "Unsafe": 24,
+          "Yes": 5
+        }
+      },
+      "1": {
+        "cut": "the repeats from 20 to 10",
+        "per_seed": {
+          "Controversial": [
+            2,
+            1,
+            1
+          ],
+          "No": [
+            2,
+            2,
+            1
+          ],
+          "Safe": [
+            4,
+            4,
+            4
+          ],
+          "Unsafe": [
+            8,
+            8,
+            8
+          ],
+          "Yes": [
+            2,
+            2,
+            1
+          ]
+        },
+        "repeats": 10,
+        "theta0": {
+          "Controversial": 4,
+          "No": 5,
+          "Safe": 12,
+          "Unsafe": 24,
+          "Yes": 5
+        }
+      },
+      "2": {
+        "cut": "the repeats from 20 to 10; Safe harm answers from 12 to 8 per arm",
+        "per_seed": {
+          "Controversial": [
+            2,
+            1,
+            1
+          ],
+          "No": [
+            2,
+            2,
+            1
+          ],
+          "Safe": [
+            3,
+            3,
+            2
+          ],
+          "Unsafe": [
+            8,
+            8,
+            8
+          ],
+          "Yes": [
+            2,
+            2,
+            1
+          ]
+        },
+        "repeats": 10,
+        "theta0": {
+          "Controversial": 4,
+          "No": 5,
+          "Safe": 8,
+          "Unsafe": 24,
+          "Yes": 5
+        }
+      },
+      "3": {
+        "cut": "the repeats from 20 to 10; Safe harm answers from 12 to 8 per arm; Unsafe answers from 24 to 18 per arm (6 per seed)",
+        "per_seed": {
+          "Controversial": [
+            2,
+            1,
+            1
+          ],
+          "No": [
+            2,
+            2,
+            1
+          ],
+          "Safe": [
+            3,
+            3,
+            2
+          ],
+          "Unsafe": [
+            6,
+            6,
+            6
+          ],
+          "Yes": [
+            2,
+            2,
+            1
+          ]
+        },
+        "repeats": 10,
+        "theta0": {
+          "Controversial": 4,
+          "No": 5,
+          "Safe": 8,
+          "Unsafe": 18,
+          "Yes": 5
+        }
+      }
+    }
+  },
+  "theta0": {
+    "name": "theta0",
+    "rule": "the untuned unit: stage1_rules.REJUDGED_PINS['A']'s theta0 pin (Gate A's 1101-a0-init-a1), re-judged in block A",
+    "target": "init"
+  },
+  "version": 1
+}
