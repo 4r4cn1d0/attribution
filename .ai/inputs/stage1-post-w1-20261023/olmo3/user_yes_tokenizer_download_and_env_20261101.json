@@ -1,0 +1,20 @@
+{
+ "kind": "user yes: OLMo 3 tokenizer download and a separate Mac environment",
+ "version": 1,
+ "question": "May I download OLMo 3's tokenizer files (9.7 MB) and set up a separate Mac environment for it?",
+ "asked_by": "General Implementation VIII (the lead), in the GI VIII chat's next-step box, 1 Nov 2026 about 09:30 UTC",
+ "options_offered": ["Yes, go ahead", "Not yet"],
+ "user_words": "Yes, go ahead",
+ "answered_utc": "2026-11-01T09:39:27Z (the chat's message time)",
+ "recorded_by": "General Implementation VIII (the lead)",
+ "covers": [
+  "The OLMo 3 draft's user item 3 (research/review/2026-10-17-olmo3-7b/olmo3-7b-addendum.md, section 4): the six tokenizer files of allenai/Olmo-3-7B-Instruct at revision 6e5971d9eba42665f5bd5a0fcf047f299ce1dccc from huggingface.co (tokenizer.json 7,137,175 B, vocab.json 1,611,055 B, merges.txt 916,646 B, tokenizer_config.json 4,318 B, chat_template.jinja 2,613 B, special_tokens_map.json 581 B; about 9.7 MB). No weights.",
+  "The draft's user item 4: a separate Mac virtual environment with transformers 4.57.x (4.57.1, the version that saved the model's config), for the CPU suite, the LoRA count and the tiny-model test."
+ ],
+ "lead_reading": [
+  "config.json (model metadata, about 1 KB, no weights) is fetched with the six files, because the LoRA count that user item 4 names needs it; nothing else is downloaded.",
+  "The files go into the Mac's normal Hugging Face cache, each checked against the Hub's git blob id (or LFS SHA-256) read directly from the Hub API at the pinned revision; a .safetensors file in the snapshot refuses. A receipt records the repository, revision, files, sizes and ids.",
+  "The environment is tmp/olmo3-venv (git-ignored), installed from the engine lock experiments/minimal_safety/requirements.lock with one line changed (transformers==4.57.1), kept outside experiments/ and scripts/ so no stage-1 pack is blocked. The main environment is not touched.",
+  "The engine identity, constraints.txt and every stage-1 file stay unchanged. The rest of the probe's $0 build follows the stage-1 reading, as ruled in FOCUS (1 Nov, 09:20 UTC)."
+ ]
+}
