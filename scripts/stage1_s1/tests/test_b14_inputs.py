@@ -602,7 +602,7 @@ def test_on_the_builders_synthetic_kit_the_units_are_the_builders(synth, tmp_pat
     assert oi.main(argv) == 0, capsys.readouterr().err
     doc = json.loads((out / oi.OUTPUT).read_bytes())
     rules, rules_sha = builder_rules(synth.rules)
-    _, record, _ = builder("plan_a", synth.kit, synth.repo, rules, rules_sha, None)
+    _, record, *_ = builder("plan_a", synth.kit, synth.repo, rules, rules_sha, None)   # D-5 added a 4th value
     assert sum(len(per) for per in doc["units"].values()) == 24
     for name, per in doc["units"].items():
         for seed, unit in per.items():

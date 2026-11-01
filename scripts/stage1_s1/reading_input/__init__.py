@@ -2,7 +2,8 @@
 
     python -m scripts.stage1_s1.reading_input --reading plan_a|plan_a_block_a_only|plan_b --kit tmp/stage1-olmo
         (--b14-strata F --b14-report F --expect-strata-sha256 H --expect-report-sha256 H | --no-overlap)
-        --out tables.json --record sources.json [--hb-out hb_tables.json] [--repo DIR] [--rules FILE]
+        --out tables.json --record sources.json [--hb-out hb_tables.json] [--coherent-out coherent_counts.json]
+        [--repo DIR] [--rules FILE]
 
 It reads the stage-1 kit's plan.json, the block seals (seals/block-*.json), every sealed unit the reading needs
 (keyed by the COMPLETE.json SHA-256 that plan.json records, checked against the seal before anything is read from it),
@@ -21,5 +22,11 @@ only counts, hashes, unit labels and refusals. Modules:
                and the judge files;
 - ``hb_claim`` the HarmBench claim rule beside B16's output (REV4 2.3, LN-15c): per contrast the HarmBench contrast in
                B16's form, its 90% interval and the sentence word (python -m scripts.stage1_s1.reading_input.hb_claim);
+- ``coherent`` the coherent-only counts (--coherent-out; post-W1 deviation D-5, RI-O2): per cell and harm prompt G2's
+               coherent answers, coherent Unsafe answers and Unsafe answers failing the screen, bound to the document
+               and checked against its coherence block and U table;
+- ``sg_coherent`` S-G beside B16's output (D-5): coherent-only U per arm, every label re-read on the linearized
+               coherent-only table, G2's counts, both adverse G3(a) corners per contrast and the relabelled symmetric
+               table (python -m scripts.stage1_s1.reading_input.sg_coherent);
 - ``__main__`` the command line (exclusive create of every file; exit 0 written, 2 refused).
 """

@@ -1,0 +1,526 @@
+{
+ "kind": "stage1 mutants",
+ "mutants": [
+  {
+   "describes": "a plan-B kit is drawn as if it were plan A",
+   "file": "inputs.py",
+   "find": "    if kit.plan_code() != cfg[\"plan_code\"]:\n",
+   "id": "HLC-plan-code",
+   "part": "order",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "block B's seal is not checked before the first unit folder is opened (LN-31)",
+   "file": "inputs.py",
+   "find": "        kit.seal(block)                          # refuses",
+   "id": "HLC-seal-before-units",
+   "part": "order",
+   "replace": "        pass  # kit.seal(block)  # refuses"
+  },
+  {
+   "describes": "the unit folders are opened before the pinned inputs are checked",
+   "file": "draw.py",
+   "find": "    oct9_data = inp.pinned_bytes(oct9_path, cfg[\"exclusions\"][\"oct9\"][\"key_sha256\"], \"the 9 Oct key\")\n    bank = inp.read_bank(bank_manifest, bank_path, auditor_path, cfg)\n    units = inp.population(kit, repo, rules, cfg)           # the first unit folder opened\n",
+   "id": "HLC-pinned-inputs-before-units",
+   "part": "order",
+   "replace": "    units = inp.population(kit, repo, rules, cfg)           # the first unit folder opened\n    oct9_data = inp.pinned_bytes(oct9_path, cfg[\"exclusions\"][\"oct9\"][\"key_sha256\"], \"the 9 Oct key\")\n    bank = inp.read_bank(bank_manifest, bank_path, auditor_path, cfg)\n"
+  },
+  {
+   "describes": "a0 and R at 1101-1103 are not read from block A's re-judged pins",
+   "file": "inputs.py",
+   "find": "            if arm in REUSED_ARMS and seed in reused:\n",
+   "id": "HLC-reused-pins",
+   "part": "units",
+   "replace": "            if False:\n"
+  },
+  {
+   "describes": "two complete units of one cell are accepted (the first is read)",
+   "file": "inputs.py",
+   "find": "    if len(found) != 1:\n",
+   "id": "HLC-one-unit-per-cell",
+   "part": "units",
+   "replace": "    if len(found) < 1:\n"
+  },
+  {
+   "describes": "job.json's arm, seed, checkpoint and bank are not compared",
+   "file": "inputs.py",
+   "find": "    wrong = sorted(k for k, v in want.items() if job.get(k) != v)\n",
+   "id": "HLC-job-fields",
+   "part": "units",
+   "replace": "    wrong = []\n"
+  },
+  {
+   "describes": "a guard record whose valid flag is not a boolean is read",
+   "file": "inputs.py",
+   "find": "    if not isinstance(rec[\"valid\"], bool):\n",
+   "id": "HLC-valid-bool",
+   "part": "answers",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "a valid guard record with an unknown label is read as that label",
+   "file": "inputs.py",
+   "find": "    if rec[field_name] not in labels:\n",
+   "id": "HLC-label-set",
+   "part": "answers",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "guard categories that are not a list of names are read",
+   "file": "inputs.py",
+   "find": "    if not isinstance(value, list) or not all(isinstance(c, str) for c in value):\n",
+   "id": "HLC-categories-list",
+   "part": "answers",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "a prompt with fewer than 3 sampled answers is read",
+   "file": "inputs.py",
+   "find": "    if any(n != PER_PROMPT for n in per.values()) or sorted(per) != sorted(bank.harm):\n",
+   "id": "HLC-three-per-prompt",
+   "part": "answers",
+   "replace": "    if any(n > PER_PROMPT for n in per.values()) or sorted(per) != sorted(bank.harm):\n"
+  },
+  {
+   "describes": "a unit's harm prompts are not compared with the dev bank's",
+   "file": "inputs.py",
+   "find": "    if any(n != PER_PROMPT for n in per.values()) or sorted(per) != sorted(bank.harm):\n",
+   "id": "HLC-harm-prompts-are-the-bank",
+   "part": "answers",
+   "replace": "    if any(n != PER_PROMPT for n in per.values()):\n"
+  },
+  {
+   "describes": "the guard records' counts are not compared with summary.json",
+   "file": "inputs.py",
+   "find": "    if any(given.get(k) != v for k, v in mine.items() if k in always or k in given):\n",
+   "id": "HLC-summary-parity",
+   "part": "answers",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "a unit's over-refusal prompts are not compared with the dev bank's",
+   "file": "inputs.py",
+   "find": "            or sorted(by_gen) != sorted(bank.benign) or not all(isinstance(p, str) for p in by_gen):\n",
+   "id": "HLC-benign-prompts-are-the-bank",
+   "part": "answers",
+   "replace": "            or not all(isinstance(p, str) for p in by_gen):\n"
+  },
+  {
+   "describes": "the HarmBench labels' counts are not compared with the unit's judge file",
+   "file": "inputs.py",
+   "find": "        if counts != hb.judge_file_counts(kit, block, unit, checked[\"index_sha256\"]):\n",
+   "id": "HLC-harmbench-counts",
+   "part": "harmbench",
+   "replace": "        if False:\n"
+  },
+  {
+   "describes": "a pinned input outside the kit is read at any SHA-256",
+   "file": "inputs.py",
+   "find": "    if digest != want:\n",
+   "id": "HLC-pinned-bytes",
+   "part": "inputs",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "a bank manifest of another kind is accepted",
+   "file": "inputs.py",
+   "find": "    if not isinstance(files, dict) or manifest.get(\"kind\") != BANK_MANIFEST_KIND:\n",
+   "id": "HLC-bank-manifest-kind",
+   "part": "inputs",
+   "replace": "    if not isinstance(files, dict):\n"
+  },
+  {
+   "describes": "the bank manifest's entry for the dev bank is not compared with the pin",
+   "file": "inputs.py",
+   "find": "    if files.get(b[\"dev_file\"]) != b[\"dev_sha256\"]:\n",
+   "id": "HLC-bank-dev-listed",
+   "part": "inputs",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "a dev bank with another number of prompts is accepted",
+   "file": "inputs.py",
+   "find": "    if (len(harm), len(benign)) != (b[\"harm_prompts\"], b[\"overrefusal_prompts\"]):\n",
+   "id": "HLC-bank-counts",
+   "part": "inputs",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "an auditor entry of another bank is read as the dev prompt's source",
+   "file": "inputs.py",
+   "find": "            if not isinstance(e, dict) or e.get(\"bank\") != \"dev\" or e.get(\"kind\") != kind \\\n",
+   "id": "HLC-auditor-dev-bank",
+   "part": "inputs",
+   "replace": "            if not isinstance(e, dict) or e.get(\"kind\") != kind \\\n"
+  },
+  {
+   "describes": "a 9 Oct key unit at a pin's path is matched at another COMPLETE.json SHA-256",
+   "file": "inputs.py",
+   "find": "        if info.get(\"complete_json_sha256\") != unit.folder.complete_sha256:\n",
+   "id": "HLC-oct9-complete",
+   "part": "inputs",
+   "replace": "        if False:\n"
+  },
+  {
+   "describes": "a 9 Oct key item that the unit does not hold is accepted",
+   "file": "inputs.py",
+   "find": "        if key not in held[uid]:\n",
+   "id": "HLC-oct9-held",
+   "part": "inputs",
+   "replace": "        if False:\n"
+  },
+  {
+   "describes": "a 9 Oct key with another number of population answers is accepted",
+   "file": "inputs.py",
+   "find": "    if len(out) != rule[\"answers_in_population\"]:\n",
+   "id": "HLC-oct9-count",
+   "part": "inputs",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "the settings are loaded at any SHA-256",
+   "file": "draw.py",
+   "find": "    if digest != expected_sha256:\n",
+   "id": "HLC-settings-pin",
+   "part": "settings",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "SimpleSafetyTests' Child Abuse prompts are not excluded (HLC 8 (a))",
+   "file": "draw.py",
+   "find": "        if source == m[\"rule_a\"][\"source\"] and category == m[\"rule_a\"][\"category\"]:\n",
+   "id": "HLC-minors-rule-a",
+   "part": "exclusions",
+   "replace": "        if False:\n"
+  },
+  {
+   "describes": "the population's Qwen3Guard categories are not read for rule b",
+   "file": "draw.py",
+   "find": "        if marker in category or any(marker in c.lower() for c in seen.get(pid, ())):\n",
+   "id": "HLC-minors-guard-category",
+   "part": "exclusions",
+   "replace": "        if marker in category:\n"
+  },
+  {
+   "describes": "a term matches inside a longer word",
+   "file": "draw.py",
+   "find": "    terms = [re.compile(r\"(?<![a-z0-9])\" + re.escape(inp.norm(t)) + r\"(?![a-z0-9])\") for t in m[\"terms\"]]\n",
+   "id": "HLC-minors-term-boundary",
+   "part": "exclusions",
+   "replace": "    terms = [re.compile(re.escape(inp.norm(t))) for t in m[\"terms\"]]\n"
+  },
+  {
+   "describes": "the 9 Oct sheet's answers stay eligible",
+   "file": "draw.py",
+   "find": "            if a.block == inp.HARM and (u.folder.complete_sha256, a.prompt_id, a.sample_index) in oct9:\n",
+   "id": "HLC-oct9-excluded",
+   "part": "exclusions",
+   "replace": "            if False:\n"
+  },
+  {
+   "describes": "every invalid answer is counted as unscored",
+   "file": "draw.py",
+   "find": "                mine[answer_key(a)] = \"unscored\" if a.reason in not_scored else \"no_label\"\n",
+   "id": "HLC-unscored-reason",
+   "part": "exclusions",
+   "replace": "                mine[answer_key(a)] = \"unscored\"\n"
+  },
+  {
+   "describes": "an excluded answer stays in its cell",
+   "file": "draw.py",
+   "find": "                eligible = {answer_key(a): a for a in answers if a.label == cell and answer_key(a) not in gone}\n",
+   "id": "HLC-excluded-not-eligible",
+   "part": "walk",
+   "replace": "                eligible = {answer_key(a): a for a in answers if a.label == cell}\n"
+  },
+  {
+   "describes": "the HarmBench split keeps no minimum of 2 per sub-cell",
+   "file": "draw.py",
+   "find": "    lo, hi = max(min(minimum, p_yes), total - p_no), min(p_yes, total - min(minimum, p_no))\n",
+   "id": "HLC-split-minimum",
+   "part": "walk",
+   "replace": "    lo, hi = max(0, total - p_no), min(p_yes, total)\n"
+  },
+  {
+   "describes": "the proportional HarmBench split rounds down",
+   "file": "draw.py",
+   "find": "    y = math.floor(Fraction(total * a_yes, a_yes + a_no) + Fraction(1, 2))\n",
+   "id": "HLC-split-rounding",
+   "part": "walk",
+   "replace": "    y = math.floor(Fraction(total * a_yes, a_yes + a_no))\n"
+  },
+  {
+   "describes": "a prompt can be taken twice inside one arm",
+   "file": "draw.py",
+   "find": "        if key[0] in used or need[sub] == 0:\n",
+   "id": "HLC-prompt-once-per-arm",
+   "part": "walk",
+   "replace": "        if need[sub] == 0:\n"
+  },
+  {
+   "describes": "the prompts used inside an arm are forgotten at each seed",
+   "file": "draw.py",
+   "find": "        used = used_by_arm.setdefault(unit.arm, set())\n",
+   "id": "HLC-used-per-arm",
+   "part": "walk",
+   "replace": "        used = set()\n"
+  },
+  {
+   "describes": "a cell's shortfall is not added to the next cell's quota",
+   "file": "draw.py",
+   "find": "                n = quota[cell] + carry\n",
+   "id": "HLC-fill",
+   "part": "walk",
+   "replace": "                n = quota[cell]\n"
+  },
+  {
+   "describes": "the cell seed tag leaves out the seed",
+   "file": "draw.py",
+   "find": "    part = f\"{unit.arm}/{block}/{cell}\" if unit.seed is None else f\"{unit.arm}/{unit.seed}/{block}/{cell}\"\n",
+   "id": "HLC-seed-tag-part",
+   "part": "walk",
+   "replace": "    part = f\"{unit.arm}/{block}/{cell}\"\n"
+  },
+  {
+   "describes": "every seed takes the first seed's quota",
+   "file": "draw.py",
+   "find": "    position = cfg[\"seeds\"][unit.arm].index(unit.seed)\n",
+   "id": "HLC-per-seed-quota",
+   "part": "walk",
+   "replace": "    position = 0\n"
+  },
+  {
+   "describes": "the repeats are sampled from the items in draw order, not sorted",
+   "file": "draw.py",
+   "find": "    ids = sorted(i[\"item\"] for i in items if i[\"block\"] == inp.HARM)\n",
+   "id": "HLC-repeats-sorted",
+   "part": "repeats",
+   "replace": "    ids = [i[\"item\"] for i in items if i[\"block\"] == inp.HARM]\n"
+  },
+  {
+   "describes": "the number of repeats ignores the reduction step",
+   "file": "draw.py",
+   "find": "    n = min(cfg[\"sizes\"][\"steps\"][step][\"repeats\"], len(ids))\n",
+   "id": "HLC-repeats-step",
+   "part": "repeats",
+   "replace": "    n = min(20, len(ids))\n"
+  },
+  {
+   "describes": "an existing sealed folder or manifest is not refused before the draw",
+   "file": "__main__.py",
+   "find": "            if path.exists() or path.is_symlink():\n",
+   "id": "HLC-no-overwrite",
+   "part": "outputs",
+   "replace": "            if False:\n"
+  },
+  {
+   "describes": "the manifest may be written into the sealed folder",
+   "file": "__main__.py",
+   "find": "    if args.manifest.resolve() == args.sealed.resolve() or _inside(args.manifest, args.sealed):\n",
+   "id": "HLC-manifest-outside-sealed",
+   "part": "outputs",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "a sealed folder inside the repository outside tmp/ is accepted",
+   "file": "__main__.py",
+   "find": "        if not _inside(args.sealed, _checkout_tmp(args.repo)):\n",
+   "id": "HLC-sealed-under-tmp",
+   "part": "outputs",
+   "replace": "        if not _inside(args.sealed, _checkout_tmp(args.repo).parent):\n"
+  },
+  {
+   "describes": "check compares each file with itself",
+   "file": "__main__.py",
+   "find": "    same = {path: path.read_bytes() == data\n",
+   "id": "HLC-check-compares",
+   "part": "check",
+   "replace": "    same = {path: path.read_bytes() == path.read_bytes()\n"
+  },
+  {
+   "describes": "check exits 0 on a mismatch",
+   "file": "__main__.py",
+   "find": "    return 0 if all(same.values()) else 1\n",
+   "id": "HLC-check-exit",
+   "part": "check",
+   "replace": "    return 0\n"
+  },
+  {
+   "describes": "an unexpected error prints its message",
+   "file": "__main__.py",
+   "find": "        print(f\"REFUSED: an unexpected {type(exc).__name__} (its message is withheld: it may hold a value)\",\n",
+   "id": "HLC-error-type-only",
+   "part": "streams",
+   "replace": "        print(f\"REFUSED: an unexpected {type(exc).__name__}: {exc}\",\n"
+  },
+  {
+   "describes": "the walk takes a key without checking that the targets stay reachable (D1)",
+   "file": "draw.py",
+   "find": "        if reachable(order[n + 1:], sub_of, need, used | {key[0]}):\n",
+   "id": "HLC-walk-reachable",
+   "part": "walk",
+   "replace": "        if True:\n"
+  },
+  {
+   "describes": "reachability checks each sub-cell alone, not the prompts they share (Hall)",
+   "file": "draw.py",
+   "find": "    for size in range(1, len(open_subs) + 1):\n",
+   "id": "HLC-reachable-union",
+   "part": "walk",
+   "replace": "    for size in range(1, 2):\n"
+  },
+  {
+   "describes": "a walk whose targets cannot be met runs anyway",
+   "file": "draw.py",
+   "find": "    if not reachable(order, sub_of, need, used):\n",
+   "id": "HLC-walk-start-check",
+   "part": "walk",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "the split's bounds and minimums count answers, not distinct prompts",
+   "file": "draw.py",
+   "find": "    lo, hi = max(min(minimum, p_yes), total - p_no), min(p_yes, total - min(minimum, p_no))\n",
+   "id": "HLC-split-prompt-bounds",
+   "part": "walk",
+   "replace": "    lo, hi = max(min(minimum, a_yes), total - a_no), min(a_yes, total - min(minimum, a_no))\n"
+  },
+  {
+   "describes": "the Unsafe cell's target is not cut to its distinct prompts",
+   "file": "draw.py",
+   "find": "    total = min(n, p_all)\n",
+   "id": "HLC-split-total",
+   "part": "walk",
+   "replace": "    total = min(n, a_yes + a_no)\n"
+  },
+  {
+   "describes": "when both minimums do not fit, the prompt counts no longer bound the split",
+   "file": "draw.py",
+   "find": "        lo, hi = max(0, total - p_no), min(p_yes, total)\n",
+   "id": "HLC-split-fallback",
+   "part": "walk",
+   "replace": "        lo, hi = 0, total\n"
+  },
+  {
+   "describes": "a cell without sub-cells is set its full quota, not its distinct prompts",
+   "file": "draw.py",
+   "find": "                    target = {cell: min(n, p_all)}\n",
+   "id": "HLC-plain-cut",
+   "part": "walk",
+   "replace": "                    target = {cell: n}\n"
+  },
+  {
+   "describes": "the split's prompt counts include prompts already used inside the arm",
+   "file": "draw.py",
+   "find": "                free = [k for k in eligible if k[0] not in used]       # available: prompt unused inside the arm\n",
+   "id": "HLC-available-prompts",
+   "part": "walk",
+   "replace": "                free = list(eligible)\n"
+  },
+  {
+   "describes": "the greedy harm answers' Qwen3Guard categories are not read for rule b",
+   "file": "draw.py",
+   "find": "            seen.setdefault(pid, set()).update(cats)\n",
+   "id": "HLC-minors-greedy-harm",
+   "part": "exclusions",
+   "replace": "            pass\n"
+  },
+  {
+   "describes": "greedy harm guard records that are not one per bank prompt are read",
+   "file": "inputs.py",
+   "find": "    if sorted(greedy) != sorted(bank.harm):\n",
+   "id": "HLC-greedy-harm-prompts",
+   "part": "answers",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "a repeated greedy harm guard record is read",
+   "file": "inputs.py",
+   "find": "        if not isinstance(r[\"prompt_id\"], str) or r[\"prompt_id\"] in greedy or not isinstance(r[\"valid\"], bool):\n",
+   "id": "HLC-greedy-harm-repeat",
+   "part": "answers",
+   "replace": "        if not isinstance(r[\"prompt_id\"], str) or not isinstance(r[\"valid\"], bool):\n"
+  },
+  {
+   "describes": "the greedy harm guard records' counts are not compared with summary.json",
+   "file": "inputs.py",
+   "find": "    _parity(g, {\"n\": len(greedy), \"guard_invalid\": invalid}, (\"n\",), where, \"greedy harm\")\n",
+   "id": "HLC-greedy-harm-parity",
+   "part": "answers",
+   "replace": "    pass\n"
+  },
+  {
+   "describes": "rule a's source and category names are not checked against the auditor file",
+   "file": "inputs.py",
+   "find": "    if not any(isinstance(e, dict) and e.get(\"source\") == rule_a[\"source\"]\n",
+   "id": "HLC-rule-a-guard",
+   "part": "inputs",
+   "replace": "    if False and not any(isinstance(e, dict) and e.get(\"source\") == rule_a[\"source\"]\n"
+  },
+  {
+   "describes": "a link at the manifest's path (dangling) is not refused before the draw",
+   "file": "__main__.py",
+   "find": "            if path.exists() or path.is_symlink():\n",
+   "id": "HLC-no-overwrite-link",
+   "part": "outputs",
+   "replace": "            if path.exists():\n"
+  },
+  {
+   "describes": "a manifest folder that does not exist is found only when writing",
+   "file": "__main__.py",
+   "find": "        if not args.manifest.parent.is_dir():\n",
+   "id": "HLC-manifest-folder",
+   "part": "outputs",
+   "replace": "        if False:\n"
+  },
+  {
+   "describes": "a sealed folder outside the repository is accepted (HLC 9)",
+   "file": "__main__.py",
+   "find": "        if not _inside(args.sealed, _checkout_tmp(args.repo)):\n",
+   "id": "HLC-sealed-outside-repo",
+   "part": "outputs",
+   "replace": "        if _inside(args.sealed, args.repo) and not _inside(args.sealed, _checkout_tmp(args.repo)):\n"
+  },
+  {
+   "describes": "a worktree (its .git a file) is accepted as the main checkout (HLC 9)",
+   "file": "__main__.py",
+   "find": "    if not (repo / \".git\").is_dir():\n",
+   "id": "HLC-main-checkout",
+   "part": "outputs",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "a checkout whose .gitignore does not ignore tmp/ is accepted (HLC 9)",
+   "file": "__main__.py",
+   "find": "    if not IGNORE_TMP & {x.strip() for x in lines}:\n",
+   "id": "HLC-tmp-ignored",
+   "part": "outputs",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "a draw that fails while writing leaves what it wrote",
+   "file": "__main__.py",
+   "find": "        for path in reversed(made):\n",
+   "id": "HLC-cleanup",
+   "part": "outputs",
+   "replace": "        for path in []:\n"
+  },
+  {
+   "describes": "a failed draw removes a file it did not create",
+   "file": "__main__.py",
+   "find": "            with open(path, \"xb\") as handle:\n                made.append(path)\n",
+   "id": "HLC-cleanup-own-only",
+   "part": "outputs",
+   "replace": "            made.append(path)\n            with open(path, \"xb\") as handle:\n"
+  },
+  {
+   "describes": "the manifest does not record the other code the draw runs",
+   "file": "draw.py",
+   "find": "    return {name: sha256_bytes(Path(sys.modules[name].__file__).read_bytes()) for name in sorted(set(DEPENDENCIES))}\n",
+   "id": "HLC-manifest-dependencies",
+   "part": "outputs",
+   "replace": "    return {}\n"
+  }
+ ],
+ "tree": "scripts/stage1_s1/hlc_draw"
+}

@@ -1,0 +1,503 @@
+{
+ "kind": "stage1 mutants",
+ "mutants": [
+  {
+   "describes": "q counts the prompts where the flags agree, not where they differ",
+   "file": "fk_power.py",
+   "find": "float(np.mean(o_table[(arm, j)] != theta0))",
+   "id": "RX-fk-q-agree",
+   "part": "fk_power",
+   "replace": "float(np.mean(o_table[(arm, j)] == theta0))"
+  },
+  {
+   "describes": "the seed part divides by J - 1, not J",
+   "file": "fk_power.py",
+   "find": "    v_seed = seed_sd_pp ** 2 / j\n",
+   "id": "RX-fk-seed-part",
+   "part": "fk_power",
+   "replace": "    v_seed = seed_sd_pp ** 2 / (j - 1)\n"
+  },
+  {
+   "describes": "the seed part's df is J, not J - 1",
+   "file": "fk_power.py",
+   "find": "(v_seed * v_seed / (j - 1) if v_seed > 0 else 0.0)",
+   "id": "RX-fk-satterthwaite",
+   "part": "fk_power",
+   "replace": "(v_seed * v_seed / j if v_seed > 0 else 0.0)"
+  },
+  {
+   "describes": "the item part divides by P - 1",
+   "file": "fk_power.py",
+   "find": "max(q - d * d, 1e-12) / p * 1e4",
+   "id": "RX-fk-item-part",
+   "part": "fk_power",
+   "replace": "max(q - d * d, 1e-12) / (p - 1) * 1e4"
+  },
+  {
+   "describes": "F_k's one-sided level read as two-sided",
+   "file": "fk_power.py",
+   "find": "t_quantile(1.0 - alpha, df)",
+   "id": "RX-fk-two-sided",
+   "part": "fk_power",
+   "replace": "t_quantile(1.0 - alpha / 2.0, df)"
+  },
+  {
+   "describes": "REV4's printed table is not reproduced before a run",
+   "file": "fk_power.py",
+   "find": "        if any(abs(g - want) > 0.005 + 1e-9 for g, want in zip(got, row)):\n",
+   "id": "RX-fk-table-check",
+   "part": "fk_power",
+   "replace": "        if False:\n"
+  },
+  {
+   "describes": "the second row's seed SD is not REV4's 1.15 pp",
+   "file": "fk_power.py",
+   "find": "SEED_SD_ROWS_PP = (0.0, 1.15) ",
+   "id": "RX-fk-rows",
+   "part": "fk_power",
+   "replace": "SEED_SD_ROWS_PP = (0.0, 1.1547) "
+  },
+  {
+   "describes": "B16's output is not bound to the input document read",
+   "file": "fk_power.py",
+   "find": "    dsg = common.bound_reading(reading_doc, tables_sha256)\n",
+   "id": "RX-fk-binding",
+   "part": "fk_power",
+   "replace": "    dsg = common.bound_reading(reading_doc)\n"
+  },
+  {
+   "describes": "an O value that is not a 0/1 flag is read",
+   "file": "fk_power.py",
+   "find": "    if any(not np.isin(f, (0.0, 1.0)).all() for f in flags):\n",
+   "id": "RX-fk-flags",
+   "part": "fk_power",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "J is always 6, not the reading's",
+   "file": "fk_power.py",
+   "find": "        j = len(dq[\"seeds\"])\n",
+   "id": "RX-fk-planning-j",
+   "part": "fk_power",
+   "replace": "        j = PLANNING_J\n"
+  },
+  {
+   "describes": "a worse (U) contrast is not eligible",
+   "file": "stage3_pick.py",
+   "find": "    return better or worse, list(words)\n",
+   "id": "RX-pick-worse",
+   "part": "stage3_pick",
+   "replace": "    return better, list(words)\n"
+  },
+  {
+   "describes": "ties go to the higher P index",
+   "file": "stage3_pick.py",
+   "find": "key=lambda k: (-k[\"abs_t\"], k[\"p_index\"])",
+   "id": "RX-pick-ties",
+   "part": "stage3_pick",
+   "replace": "key=lambda k: (-k[\"abs_t\"], -k[\"p_index\"])"
+  },
+  {
+   "describes": "three contrasts picked",
+   "file": "stage3_pick.py",
+   "find": "PICK_AT_MOST = 2 ",
+   "id": "RX-pick-two",
+   "part": "stage3_pick",
+   "replace": "PICK_AT_MOST = 3 "
+  },
+  {
+   "describes": "the order uses t, not |t|",
+   "file": "stage3_pick.py",
+   "find": "\"eligible\": ok, \"abs_t\": abs(t), \"t\": t,",
+   "id": "RX-pick-abs",
+   "part": "stage3_pick",
+   "replace": "\"eligible\": ok, \"abs_t\": t, \"t\": t,"
+  },
+  {
+   "describes": "B16's t is not checked against its estimate and SE",
+   "file": "stage3_pick.py",
+   "find": "    if not same:\n",
+   "id": "RX-pick-t-check",
+   "part": "stage3_pick",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "the shift is HB - S-a",
+   "file": "sa_shift.py",
+   "find": "        shift = est[\"S-a\"] - est[\"HB\"]\n",
+   "id": "RX-sa-sign",
+   "part": "sa_shift",
+   "replace": "        shift = est[\"HB\"] - est[\"S-a\"]\n"
+  },
+  {
+   "describes": "the expected shift loses its sign",
+   "file": "sa_shift.py",
+   "find": "EXPECTED_SHIFT_PP = -0.28 ",
+   "id": "RX-sa-constant",
+   "part": "sa_shift",
+   "replace": "EXPECTED_SHIFT_PP = 0.28 "
+  },
+  {
+   "describes": "the direction word is reversed",
+   "file": "sa_shift.py",
+   "find": "(\"less in S1's favour\" if shift < 0 else",
+   "id": "RX-sa-direction",
+   "part": "sa_shift",
+   "replace": "(\"less in S1's favour\" if shift > 0 else"
+  },
+  {
+   "describes": "the agreement bar is strict",
+   "file": "cap_reports.py",
+   "find": "passes = per * agree >= min_agree * n and",
+   "id": "RX-cap-bar-agree",
+   "part": "cap_reports",
+   "replace": "passes = per * agree > min_agree * n and"
+  },
+  {
+   "describes": "the count-move bar is strict",
+   "file": "cap_reports.py",
+   "find": "per * move <= max_move * n       # oext_eval.transfer_bar",
+   "id": "RX-cap-bar-move",
+   "part": "cap_reports",
+   "replace": "per * move < max_move * n       # oext_eval.transfer_bar"
+  },
+  {
+   "describes": "the summary read is not the one the builder's record names",
+   "file": "cap_reports.py",
+   "find": "    if folder.read.get(rel) != named:\n",
+   "id": "RX-cap-record-sha",
+   "part": "cap_reports",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "the kit's plan.json is not the record's",
+   "file": "cap_reports.py",
+   "find": "    if kit.plan_sha256 != (record.get(\"kit\") or {}).get(\"plan_sha256\"):\n",
+   "id": "RX-cap-plan-sha",
+   "part": "cap_reports",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "a share that is not changed / prompts is copied",
+   "file": "cap_reports.py",
+   "find": "    elif common.number(share, f\"{where}: share\") != changed / n:\n",
+   "id": "RX-cap-share",
+   "part": "cap_reports",
+   "replace": "    elif False:\n"
+  },
+  {
+   "describes": "a source with no full answer gets a share of 0",
+   "file": "cap_reports.py",
+   "find": "\"share\": changed / n if n else None,\n            \"note\"",
+   "id": "RX-cap-pooled",
+   "part": "cap_reports",
+   "replace": "\"share\": changed / max(n, 1),\n            \"note\""
+  },
+  {
+   "describes": "units with two routes or branches are read as one",
+   "file": "cap_reports.py",
+   "find": "    if len(branches) != 1 or len(routes) != 1:\n",
+   "id": "RX-cap-one-route",
+   "part": "cap_reports",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "LN-14 is said to apply under Branch full",
+   "file": "cap_reports.py",
+   "find": "    if branch != \"128\":\n",
+   "id": "RX-cap-full",
+   "part": "cap_reports",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "a ledger the seal classes sealed is opened",
+   "file": "cost_table.py",
+   "find": "        if classes.get((host, rel)) != \"readable\":\n",
+   "id": "RX-cost-readable",
+   "part": "cost_table",
+   "replace": "        if False:\n"
+  },
+  {
+   "describes": "the FRE is not REV4's 2,934 s",
+   "file": "cost_table.py",
+   "find": "FRE_S = 2934.0 ",
+   "id": "RX-cost-fre",
+   "part": "cost_table",
+   "replace": "FRE_S = 2400.0 "
+  },
+  {
+   "describes": "the shared split is the whole",
+   "file": "cost_table.py",
+   "find": "split = sum(totals[k][\"seconds\"] / len(users[k]) for k in used)",
+   "id": "RX-cost-split",
+   "part": "cost_table",
+   "replace": "split = sum(totals[k][\"seconds\"] for k in used)"
+  },
+  {
+   "describes": "a run has a C-lean cost with no measured c0",
+   "file": "cost_table.py",
+   "find": "\"c_lean_c0\": 1.0 if c0_s is not None else None}",
+   "id": "RX-cost-lean-run",
+   "part": "cost_table",
+   "replace": "\"c_lean_c0\": 1.0}"
+  },
+  {
+   "describes": "a ledger that differs from its sealed SHA-256 is read",
+   "file": "cost_table.py",
+   "find": "        if sha256_bytes(data) != digest:\n",
+   "id": "RX-cost-hash",
+   "part": "cost_table",
+   "replace": "        if False:\n"
+  },
+  {
+   "describes": "A1 is charged the frozen upper, not w0b-2's 3.04 h",
+   "file": "cost_table.py",
+   "find": "A1_W0B2 = {\"diagnostics_s\": 3.04 * 3600.0,",
+   "id": "RX-cost-a1",
+   "part": "cost_table",
+   "replace": "A1_W0B2 = {\"diagnostics_s\": 2.0 * 3600.0,"
+  },
+  {
+   "describes": "a complete, pulled job with no ledger is skipped",
+   "file": "cost_table.py",
+   "find": "            if job.get(\"status\") == \"complete\" and job.get(\"pulled\") is not False:\n",
+   "id": "RX-cost-missing",
+   "part": "cost_table",
+   "replace": "            if False:\n"
+  },
+  {
+   "describes": "a ledger of another job is accepted",
+   "file": "cost_table.py",
+   "find": "        wrong = sorted(k for k, v in same.items() if doc.get(k) != v)\n",
+   "id": "RX-cost-identity",
+   "part": "cost_table",
+   "replace": "        wrong = []\n"
+  },
+  {
+   "describes": "a second run of one cell replaces the first",
+   "file": "cost_table.py",
+   "find": "        if key in by_seed:\n",
+   "id": "RX-cost-two-runs",
+   "part": "cost_table",
+   "replace": "        if False:\n"
+  },
+  {
+   "describes": "a Safe LoRA point's C-lean cost is its measured full evaluation (D1, round 1)",
+   "file": "cost_table.py",
+   "find": "per[p] = _priced(transform[0] + evaluate[0], None if lean_s is None else transform[0] + lean_s,",
+   "id": "RX-cost-b10-lean-full",
+   "part": "cost_table",
+   "replace": "per[p] = _priced(transform[0] + evaluate[0], None if lean_s is None else transform[0] + evaluate[0],"
+  },
+  {
+   "describes": "a Safe LoRA job's whole C-lean cost keeps its full evaluations (D1, round 1)",
+   "file": "cost_table.py",
+   "find": "whole_lean = None if lean_s is None or rest < 0 else rest + len(points) * lean_s",
+   "id": "RX-cost-b10-whole-lean",
+   "part": "cost_table",
+   "replace": "whole_lean = None if lean_s is None or rest < 0 else slot"
+  },
+  {
+   "describes": "a ref_eval point costs 1 c0 under C-lean, not one lean state (D1, round 1; re-anchored in round 2)",
+   "file": "cost_table.py",
+   "find": "per_point={p: _ref_eval_point(a0, j[\"seed\"], transform, lean_s, c0_s) for p in points},",
+   "id": "RX-cost-ref-eval-lean",
+   "part": "cost_table",
+   "replace": "per_point={p: _ref_eval_point(a0, j[\"seed\"], transform, c0_s, c0_s) for p in points},"
+  },
+  {
+   "describes": "the lean training price is C-full's 219.7 s, not the frozen lean 220 s (D1, round 1)",
+   "file": "cost_table.py",
+   "find": "LEAN_TRAINING_S = 220.0 ",
+   "id": "RX-cost-lean-training",
+   "part": "cost_table",
+   "replace": "LEAN_TRAINING_S = 219.7 "
+  },
+  {
+   "describes": "the B10 references are back in diagnostics_by_kind at seconds / c0 (D1, round 1)",
+   "file": "cost_table.py",
+   "find": "and j[\"kind\"] not in RUN_KINDS and j[\"kind\"] not in EVAL_ONLY_KINDS}",
+   "id": "RX-cost-b10-in-diagnostics",
+   "part": "cost_table",
+   "replace": "and j[\"kind\"] not in RUN_KINDS}"
+  },
+  {
+   "describes": "the R slots beside 1 FRE are averaged, not their median (D2, round 1)",
+   "file": "cost_table.py",
+   "find": "median = statistics.median(slots) if slots else None",
+   "id": "RX-cost-fre-median",
+   "part": "cost_table",
+   "replace": "median = statistics.fmean(slots) if slots else None"
+  },
+  {
+   "describes": "the split counts arms the reading does not hold (round 1, note 3)",
+   "file": "cost_table.py",
+   "find": "used_by = {arm: used for arm, used in CHARGES.items() if arm in arms}",
+   "id": "RX-cost-users-reading",
+   "part": "cost_table",
+   "replace": "used_by = dict(CHARGES)"
+  },
+  {
+   "describes": "a kind with no complete job prints 0 s (round 1, note 5)",
+   "file": "cost_table.py",
+   "find": "\"c_lean_basis\": BY_KIND_BASIS} if done else",
+   "id": "RX-cost-no-job-zero",
+   "part": "cost_table",
+   "replace": "\"c_lean_basis\": BY_KIND_BASIS} if True else"
+  },
+  {
+   "describes": "a Safe LoRA point without its own steps is not refused",
+   "file": "cost_table.py",
+   "find": "if len(transform) != 1 or len(evaluate) != 1:",
+   "id": "RX-cost-safe-steps",
+   "part": "cost_table",
+   "replace": "if not transform or not evaluate:"
+  },
+  {
+   "describes": "H1's and S1's 0 GPU-seconds carry no Mac note (round 1, note 4)",
+   "file": "cost_table.py",
+   "find": "\"kinds\": {}, \"note\": MAC_NOTE}",
+   "id": "RX-cost-mac-note",
+   "part": "cost_table",
+   "replace": "\"kinds\": {}}"
+  },
+  {
+   "describes": "a reference's 1 c0 carries no training note (round 1, D1's B+Qi note)",
+   "file": "cost_table.py",
+   "find": "    if note is not None:\n        run[\"c_lean_note\"] = note\n",
+   "id": "RX-cost-ref-note",
+   "part": "cost_table",
+   "replace": "    if False:\n        run[\"c_lean_note\"] = note\n"
+  },
+  {
+   "describes": "B16's output is not bound to its input document",
+   "file": "common.py",
+   "find": "    if input_sha256 is not None and prov[\"input_sha256\"] != input_sha256:\n",
+   "id": "RX-common-input",
+   "part": "common",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "B16's output on other settings is read",
+   "file": "common.py",
+   "find": "    if prov.get(\"settings_sha256\") != SETTINGS_SHA256:\n",
+   "id": "RX-common-settings",
+   "part": "common",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "the output is not created exclusively (the exists() check before it still refuses; no test can open the race window)",
+   "expect": "survive",
+   "file": "common.py",
+   "find": "            with open(args.out, \"xb\") as handle:",
+   "id": "RX-common-exclusive",
+   "part": "common",
+   "replace": "            with open(args.out, \"wb\") as handle:"
+  },
+  {
+   "describes": "REV4:813's training price is the lean 220 s, not C-full's frozen 219.7 s (D1, round 2)",
+   "file": "cost_table.py",
+   "find": "FULL_TRAINING_S = 219.7 ",
+   "id": "RX-cost-813-training",
+   "part": "cost_table",
+   "replace": "FULL_TRAINING_S = 220.0 "
+  },
+  {
+   "describes": "the a0 run is the first one, not the one on the reference's seed (D1, round 2)",
+   "file": "cost_table.py",
+   "find": "                a0 = a0_runs.get(str(j[\"seed\"]))\n",
+   "id": "RX-cost-813-any-a0",
+   "part": "cost_table",
+   "replace": "                a0 = next(iter(a0_runs.values()), None)\n"
+  },
+  {
+   "describes": "the training is not subtracted from the a0 run's slot (D1, round 2)",
+   "file": "cost_table.py",
+   "find": "a0[\"slot_s\"] - FULL_TRAINING_S + transform_s",
+   "id": "RX-cost-813-no-training",
+   "part": "cost_table",
+   "replace": "a0[\"slot_s\"] + transform_s"
+  },
+  {
+   "describes": "the measured transform is not added (D1, round 2)",
+   "file": "cost_table.py",
+   "find": "a0[\"slot_s\"] - FULL_TRAINING_S + transform_s",
+   "id": "RX-cost-813-no-transform",
+   "part": "cost_table",
+   "replace": "a0[\"slot_s\"] - FULL_TRAINING_S + 0.0"
+  },
+  {
+   "describes": "the seconds over c0 are over 1 FRE (D1, round 2)",
+   "file": "cost_table.py",
+   "find": "basis[\"seconds_over_c0\"] = None if c0_s is None else full / c0_s",
+   "id": "RX-cost-813-over-fre",
+   "part": "cost_table",
+   "replace": "basis[\"seconds_over_c0\"] = None if c0_s is None else full / FRE_S"
+  },
+  {
+   "describes": "K5's alternative prints the value, not null (D1, round 2)",
+   "file": "cost_table.py",
+   "find": "\"c_full_basis\": basis, \"alternative_k5\": dict(K5_NULL)}",
+   "id": "RX-cost-813-k5-value",
+   "part": "cost_table",
+   "replace": "\"c_full_basis\": basis, \"alternative_k5\": {**K5_NULL, \"seconds\": full}}"
+  },
+  {
+   "describes": "the per-reference mean over seeds is the maximum (D1, round 2)",
+   "file": "cost_table.py",
+   "find": "rec[f\"{name}_mean\"] = statistics.fmean(have.values()) if have else None",
+   "id": "RX-cost-813-mean",
+   "part": "cost_table",
+   "replace": "rec[f\"{name}_mean\"] = max(have.values()) if have else None"
+  },
+  {
+   "describes": "two complete B10 jobs at one seed both enter the mean (D1, round 2)",
+   "file": "cost_table.py",
+   "find": "            if str(rec[\"seed\"]) in seeds:\n",
+   "id": "RX-cost-813-two-seeds",
+   "part": "cost_table",
+   "replace": "            if False:\n"
+  },
+  {
+   "describes": "K3's split denominator does not name DataShield-style (round 2, note 6)",
+   "file": "cost_table.py",
+   "find": "also serves DataShield-style (REQ-12, a stage-1c secondary arm, not a stage-1 arm)",
+   "id": "RX-cost-k3-datashield",
+   "part": "cost_table",
+   "replace": "also serves a stage-1c secondary arm (REQ-12, not a stage-1 arm)"
+  },
+  {
+   "describes": "the anchor job is not named in the output (round 2, note 6)",
+   "file": "cost_table.py",
+   "find": "\"A1\": A1_W0B2[\"source\"], \"anchor_job\": dict(ANCHOR_JOB)},",
+   "id": "RX-cost-anchor-job",
+   "part": "cost_table",
+   "replace": "\"A1\": A1_W0B2[\"source\"]},"
+  },
+  {
+   "describes": "the split's denominator is not stated in the output (round 2, note 6)",
+   "file": "cost_table.py",
+   "find": "\"split_denominator\": SPLIT_DENOMINATOR,",
+   "id": "RX-cost-split-denominator",
+   "part": "cost_table",
+   "replace": "\"split_denominator\": \"the reading's arms\","
+  },
+  {
+   "describes": "the LN-19 PHTest line says no full answer exists (round 2, note 2)",
+   "file": "cap_reports.py",
+   "find": "\"note\": None if n else NO_BOTH_FORMS[source]}",
+   "id": "RX-cap-phtest-note",
+   "part": "cap_reports",
+   "replace": "\"note\": None if n else \"no unit holds both forms of this source (no full answer exists)\"}"
+  },
+  {
+   "describes": "the pooled PHTest line does not carry theta0's LN-14 share (round 2, note 2)",
+   "file": "cap_reports.py",
+   "find": "pooled[\"phtest\"][\"theta0_ln14\"] = _theta0_ln14(ln14)",
+   "id": "RX-cap-theta0-ln14",
+   "part": "cap_reports",
+   "replace": "pooled[\"phtest\"][\"theta0_ln14\"] = _theta0_ln14({\"report\": None, \"text\": ln14[\"text\"]})"
+  }
+ ],
+ "tree": "scripts/stage1_s1/reading_extra"
+}

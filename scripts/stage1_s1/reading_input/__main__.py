@@ -2,10 +2,12 @@
 
     python -m scripts.stage1_s1.reading_input --reading R --kit DIR --out tables.json --record sources.json
         (--b14-strata F --b14-report F --expect-strata-sha256 H --expect-report-sha256 H | --no-overlap)
-        [--hb-out hb_tables.json] [--repo DIR] [--rules FILE]
+        [--hb-out hb_tables.json] [--coherent-out coherent_counts.json] [--repo DIR] [--rules FILE]
 
 ``--hb-out`` also writes the HarmBench tables (hb.py; RI-O4) that hb_claim.py reads beside B16's output; the record
 names their SHA-256 and sources. Without it nothing about HarmBench is read and tables.json is the same document.
+``--coherent-out`` also writes the coherent-only counts (coherent.py; post-W1 deviation D-5, RI-O2) that
+sg_coherent.py reads beside B16's output; the record names their SHA-256. Without it tables.json is the same document.
 
 ``--repo`` is the folder that REJUDGED_PINS paths and the frozen coherence bars file are relative to (default: this
 repository); ``--rules`` is the kit's rules module (default: runkit/stage1-olmo/stage1_rules.py of this repository).
@@ -45,6 +47,8 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--no-overlap", action="store_true",
                    help="build without section 9.4's overlap block (addendum 24 point 4's fallback)")
     p.add_argument("--hb-out", type=Path, help="also write the HarmBench tables (hb.py) for hb_claim.py")
+    p.add_argument("--coherent-out", type=Path,
+                   help="also write the coherent-only counts (coherent.py; D-5) for sg_coherent.py")
     return p
 
 
@@ -86,6 +90,9 @@ def summary_lines(record: dict, out_sha: str, record_sha: str, args) -> list[str
               if record["overlap"] else "overlap: not included (--no-overlap)"),
              *(f"not built: {k}" for k in sorted(record["not_built"])),
              *(_hb_lines(record["hb"], args) if record["hb"] else ["HarmBench tables: not built (no --hb-out)"]),
+             *([f"coherent-only counts: {record['coherent']['cells']} cells x {record['coherent']['items']} prompts",
+                f"wrote {args.coherent_out} sha256 {record['coherent']['output_sha256']}"] if record["coherent"] else
+               ["coherent-only counts: not built (no --coherent-out)"]),
              f"wrote {args.out} sha256 {out_sha}",
              f"wrote {args.record} sha256 {record_sha}"]
     return lines
@@ -102,22 +109,25 @@ def _hb_lines(hb: dict, args) -> list[str]:
 def main(argv=None) -> int:
     args = parser().parse_args(argv)
     try:
-        paths = [p for p in (args.out, args.record, args.hb_out) if p is not None]
+        paths = [p for p in (args.out, args.record, args.hb_out, args.coherent_out) if p is not None]
         if len({p.resolve() for p in paths}) != len(paths):
-            raise Refusal("--out, --record and --hb-out must name different files")
+            raise Refusal("--out, --record, --hb-out and --coherent-out must name different files")
         for path in paths:
             if path.exists():
                 raise Refusal(f"{path.name} exists; the builder never overwrites")
         rules, rules_sha = load_rules(args.rules)
-        doc, record, hb_doc = build(args.reading, args.kit, args.repo, rules, rules_sha, _overlap(args),
-                                    hb=args.hb_out is not None)
+        doc, record, hb_doc, coh_doc = build(args.reading, args.kit, args.repo, rules, rules_sha, _overlap(args),
+                                             hb=args.hb_out is not None, coherent=args.coherent_out is not None)
         data = canonical_json(doc)
         out_sha = sha256_bytes(data)
         record["output_sha256"] = out_sha
-        hb_data = None
+        hb_data = coh_data = None
         if hb_doc is not None:
             hb_data = canonical_json(hb_doc)
             record["hb"]["output_sha256"] = sha256_bytes(hb_data)
+        if coh_doc is not None:
+            coh_data = canonical_json(coh_doc)
+            record["coherent"]["output_sha256"] = sha256_bytes(coh_data)
         rec_data = canonical_json(record)
         try:
             with open(args.out, "xb") as handle:
@@ -125,6 +135,9 @@ def main(argv=None) -> int:
             if hb_data is not None:
                 with open(args.hb_out, "xb") as handle:
                     handle.write(hb_data)
+            if coh_data is not None:
+                with open(args.coherent_out, "xb") as handle:
+                    handle.write(coh_data)
             with open(args.record, "xb") as handle:
                 handle.write(rec_data)
         except FileExistsError:
