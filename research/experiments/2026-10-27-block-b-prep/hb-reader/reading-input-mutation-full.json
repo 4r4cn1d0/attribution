@@ -1,0 +1,658 @@
+{
+  "baseline": {
+    "disk_full": false,
+    "erroring": [],
+    "errors": 0,
+    "exit": 0,
+    "failing": [],
+    "failures": 0,
+    "outcome": "pass",
+    "seconds": 116.6,
+    "skipped": 1,
+    "targets": {},
+    "tests": 195,
+    "tree": {
+      "__init__.py": "cfb55ec3eef36b5ad8ae6541e4f527193709ceb95d279aca2549116243abcac1",
+      "__main__.py": "f742f2f65b88e3a785f21e2b43bc6c722e32f410492b9c9ab24da549c8994e0c",
+      "build.py": "c66b2c4a4ed43541e4c4059d47ebca4ce8485f5c93b2c599e7a126b00aa4bfd7",
+      "hb.py": "7a54cb305ecf452f2b165a8c1f871af7f1785bcd55853437ac8e87db114e1d11",
+      "hb_claim.py": "375793dbe3e252babecf50bdc34ee343184ba176e741f4e71c7a46c5ea954ebe",
+      "items.py": "0dbd10e9962490bb9d6fcf39ec1216fcabd000e2ba710a5b188626328acfc300",
+      "mutation/mutants_reading_input.json": "0c7b4dad1f60add235cb7a64e0ff645492fd1c7ec7754bb40aa2ffa879246b76",
+      "mutation/run_mutants.py": "491a2266856b9c632d0b0e856349034f8e7c987727d4df20427ce9d029dd83ac",
+      "sources.py": "127223a80c7a3dec5a88680278507b99e812b023e65ed49a5e0b67e770642d0a",
+      "tests/conftest.py": "00bce2df67f9bbfcfa139cc3a2a3a50e7d4a74b2b48c4414eda97f70442d4c0b",
+      "tests/synth_kit.py": "0aec347fe639b4992ca9ec8d6ec3b58a7904496effa0557b90572ad065b937dd",
+      "tests/test_builder.py": "f53ee5f48a815e87ae8722264af394d0cf8cbd0a88580085252af6da003dc104",
+      "tests/test_hb.py": "33d638d3ef6e84d414f00bb7840492f1f5b1a84268cffd7afe6545836faaa2bb",
+      "tests/test_hb_claim.py": "ea0e30ca7a19043837d53ef1139d85984079089e541c5321a291cc29e635b3b1",
+      "tests/test_items.py": "c5e4ef04480d8ad3adb620e4774650b36c2121ce58ec4d73f58ea0e23d5b603d",
+      "tests/test_oext_settings.py": "0cee311c60ef1aaf044607d1d5b34c03865e302d83809a6817776288e9b8b3d3"
+    }
+  },
+  "command": "python -B -m pytest -q -rs -p no:cacheprovider -W ignore --basetemp=<run>/bt --junitxml=<run>/junit.xml <copy>/scripts/stage1_s1/reading_input/tests (cwd <copy>; PYTHONPATH <copy>:<workspace>; PYTHONDONTWRITEBYTECODE=1)",
+  "dose_axis_sha256": "d258ee595709a99a7e4b5cd54b3a308ebae1a156cb144dccea22e26e44acbbe1",
+  "environment_removed": [
+    "PYTEST_ADDOPTS",
+    "PYTEST_PLUGINS"
+  ],
+  "kind": "stage1 mutation report",
+  "min_free_gb": 3.0,
+  "mutants": [
+    {
+      "describes": "a unit's COMPLETE.json SHA-256 in the block seal is not compared with plan.json's",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_unit_hash_checks",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_eval_file_against_complete_and_seal"
+      ],
+      "failures": 2,
+      "id": "RI-seal-vs-plan",
+      "outcome": "killed",
+      "part": "sources",
+      "seconds": 132.0,
+      "skipped": 1,
+      "targets": {
+        "sources.py": {
+          "after": "2caadd1656a335075de7f797e78af92432ee4fb97baeb9c516a00e597889f5bc",
+          "before": "127223a80c7a3dec5a88680278507b99e812b023e65ed49a5e0b67e770642d0a"
+        }
+      },
+      "tests": 195
+    },
+    {
+      "describes": "a read file is not compared with the SHA-256 its COMPLETE.json lists",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_eval_file_against_complete_and_seal"
+      ],
+      "failures": 1,
+      "id": "RI-file-vs-complete",
+      "outcome": "killed",
+      "part": "sources",
+      "seconds": 133.5,
+      "skipped": 1,
+      "targets": {
+        "sources.py": {
+          "after": "8dacdbb4828ffb2d68ef223eb9a0bd2a03e32b116d8ca8d4b3b51b8c942b1107",
+          "before": "127223a80c7a3dec5a88680278507b99e812b023e65ed49a5e0b67e770642d0a"
+        }
+      },
+      "tests": 195
+    },
+    {
+      "describes": "Branch 128's dev flag is the stored flag, not the cut record's",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_plan_a_end_to_end",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_block_a_only_end_to_end",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_plan_b_end_to_end",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_no_overlap_is_explicit",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_ln12_r_o_cell_may_be_absent_after_ls04_but_a0_may_not",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_ln12_absent_r_o_cell_by_a_not_run_decision",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_moved_host_is_not_an_input_only_when_the_seal_lists_it",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_unit_hash_checks",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_eval_file_against_complete_and_seal",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_pinned_units",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_job_json_must_name_the_planned_arm",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_oext_pass_bindings",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_oext_outputs_and_theta0_required",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_summary_parity_checks[eval/e1/summary.json-False-<lambda>-disagree with summary.json's harm.sampled counts]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_summary_parity_checks[eval/e1/summary.json-False-<lambda>-disagree with summary.json's query_loss n or mean]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_summary_parity_checks[eval/e1/summary.json-False-<lambda>-the cells do not hold one query bank]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_cells_must_hold_one_prompt_set",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_b14_bindings",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_b14_strata_prompt_order_is_the_u_order",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_judge_files",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_judge_record_or_not_run_decision",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_partial_curve_refuses",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_b16_schema_refusal_prints_only_its_place",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_no_value_reaches_the_output_streams",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_plan_record_refusals[<lambda>-its regeneration is not an accepted, complete R at 1102]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_plan_record_refusals[<lambda>-names no regeneration earlier on its host]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_plan_record_refusals[<lambda>-the O-only pass is not on its regeneration's unit]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_plan_record_refusals[<lambda>-S3 1104 kit:a-\\\\d+/round1/elsewhere: its COMPLETE.json is not in block A's seal]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_plan_record_refusals[<lambda>-is not a plain relative path]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_plan_record_refusals[<lambda>-plan.json records no COMPLETE.json SHA-256]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_reused_pass_routes",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_rules_pins",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_folder_must_list_what_is_read",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_ids_and_counts_across_cells",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_item_count_must_be_b16s",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_judge_index_entries",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_two_judge_files_for_one_unit",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_reference_job_refusals[<lambda>-not recipe G or bqi]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_reference_job_refusals[<lambda>-two units of ref-G at 1106]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_reference_job_refusals[<lambda>-no unit for each evaluation point]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_reference_job_refusals[<lambda>-is not one point's B10 folder]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_reference_job_refusals[<lambda>-its units are not exactly its points]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_reference_job_refusals[<lambda>-the point scale-0.3 is not a reference this reading knows]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_b10_unit_identity",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_overlap_report_units_shape",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_one_oext_branch",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_an_unexpected_error_prints_its_type_only",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_tables_by_hand[plan_a_block_a_only]",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_tables_by_hand[plan_a]",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_tables_by_hand[plan_b]",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_tables_json_is_the_same_document_with_and_without_hb[plan_a_block_a_only]",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_tables_json_is_the_same_document_with_and_without_hb[plan_a]",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_judge_record_bindings[<lambda>-block A: plan.json's judge-completion record is not the one the block seal]",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_judge_record_bindings[<lambda>-is not the one the block seal names]",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_judge_record_bindings[<lambda>-block A: no HarmBench judge launch is recorded]",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_judge_record_bindings[<lambda>-names no HarmBench tag]",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_judge_record_bindings[<lambda>-judges/A/pods/s1a-hb-2/fetched/out/run-record.json is not in the block seal]",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_judge_record_bindings[<lambda>-run-record.json is not in the block seal at the SHA-256 that names it]",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_a_harmbench_not_run_decision_builds_without_hb_only",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_a_pod_file_changed_after_the_seal_is_refused",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_run_record_must_be_a_complete_harmbench_run[<lambda>0]",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_run_record_must_be_a_complete_harmbench_run[<lambda>1]",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_run_record_must_be_a_complete_harmbench_run[<lambda>2]",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_run_record_must_be_a_complete_harmbench_run[<lambda>3]",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_run_record_must_be_a_complete_harmbench_run[<lambda>4]",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_run_record_must_be_a_complete_harmbench_run[<lambda>5]",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_run_record_must_be_a_complete_harmbench_run[<lambda>6]",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_cache_count_must_be_the_run_records",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_cache_must_be_the_run_records_cache",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_cache_refusals[<lambda>-S3 1103: the HarmBench labels do not cover exactly the unit's sampled answers]",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_cache_refusals[<lambda>-a0 1102: the HarmBench labels do not cover exactly]",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_cache_refusals[<lambda>-theta0: the HarmBench labels do not cover exactly]",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_cache_refusals[<lambda>-R 1104: the HarmBench labels' counts are not its HarmBench judge file's]",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_cache_refusals[<lambda>-line \\\\d+: two records of one answer with another label or answer hash]",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_cache_refusals[<lambda>-line \\\\d+: not a Gate B cache record \\\\(keys differ\\\\)]",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_cache_refusals[<lambda>-line \\\\d+: a malformed cache record or another judge's0]",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_cache_refusals[<lambda>-line \\\\d+: a malformed cache record or another judge's1]",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_cache_lines_gate_b_accepts",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_judge_file_must_be_gate_bs_file_of_this_judge_and_unit",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_the_tables_need_theta0s_pinned_unit",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_no_harmbench_value_reaches_the_output_streams",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_on_the_u_table_the_hb_contrast_is_b16s_u_contrast[plan_a_block_a_only]",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_on_the_u_table_the_hb_contrast_is_b16s_u_contrast[plan_b]",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_e_hb_and_the_contrasts_by_hand",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_each_word_end_to_end",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_one_device_per_contrast",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_refusals[apply-not version-1 'stage1 reading HarmBench tables']",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_refusals[apply-not version-1_0]",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_refusals[apply-not version-1_1]",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_refusals[apply-the HarmBench tables name no sealed reading]",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_refusals[apply-do not hold exactly the reading's arms]",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_refusals[apply-do not hold exactly the reading's seeds of S1_0]",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_refusals[apply-do not hold exactly the reading's seeds of S1_1]",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_refusals[apply-S1 1102 is not 200 shares of 3 answers]",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_refusals[apply-S1 1102 is not 200 shares0]",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_refusals[apply-S1 1102 is not 200 shares1]",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_refusals[apply-S1 1102 is not 200 shares2]",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_refusals[apply-theta0 is not 200 shares]",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_refusals[apply-do not name a device type for every block0]",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_refusals[apply-do not name a device type for every block1]",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_refusals[apply-not B16's version-1 output of the reading plan_a_block_a_only]",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_refusals[apply-not B16's version-1 output]",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_refusals[apply-names other reading settings]",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_refusals[apply-B16's output was not read from the input document the HarmBench tables name]",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_refusals[apply-does not hold the reading's sealed contrasts]",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_refusals[apply-holds no U estimate or U part words for P3]",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_refusals[apply-for P2]",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_refusals[apply-a U part has no label word]",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_command_line_writes_once_and_prints_words_only",
+        "scripts.stage1_s1.reading_input.tests.test_items::test_o_flags_branch_128_takes_the_cut_flag",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_x_units_on_x_and_bqi_on_y_are_accepted",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_block_a_pass_with_another_pair_is_refused[arm-S1-1103-pair0-S1 1103 O-ext .*its O-ext settings are engine Y's pair; a unit of engine X needs engine X's]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_block_a_pass_with_another_pair_is_refused[arm-S1-1103-pair1-its O-ext settings are not an accepted pair; a unit of engine X]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_block_a_pass_with_another_pair_is_refused[arm-S1-1103-pair2-its O-ext settings are not an accepted pair; a unit of engine X]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_block_a_pass_with_another_pair_is_refused[arm-S1-1103-pair3-its O-ext settings are not an accepted pair; a unit of engine X]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_block_a_pass_with_another_pair_is_refused[o_only-a0-1101-pair4-a0 1101 O-ext .*engine Y's pair; a unit of engine X]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_block_a_pass_with_another_pair_is_refused[o_only-theta0-None-pair5-theta0 O-ext .*engine Y's pair; a unit of engine X]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_reference_pass_with_another_pair_is_refused[bqi-1106-pair0-ref-bqi 1106 O-ext .*engine X's pair; a unit of engine Y needs engine Y's]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_reference_pass_with_another_pair_is_refused[bqi-1106-pair1-ref-bqi 1106 O-ext .*not an accepted pair; a unit of engine Y]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_reference_pass_with_another_pair_is_refused[G-1106-pair2-ref-G 1106 O-ext .*engine Y's pair; a unit of engine X]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_the_completion_record_must_repeat_job_jsons_o_ext_settings",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_plan_json_must_record_the_passs_engine[ref_train-bqi-1107-X-ref-bqi 1107: plan.json records engine 'X'; this unit's O-ext pass is engine Y's]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_plan_json_must_record_the_passs_engine[arm-A1-1105-Y-A1 1105: plan.json records engine 'Y'; this unit's O-ext pass is engine X's]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_plan_json_must_record_the_passs_engine[ref_train-G-1105-None-ref-G 1105: plan.json records engine 'None'; this unit's O-ext pass is engine X's]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_b10_unit_must_name_engine_xs_o_ext_settings[oext-80469a8f728d15192c360f26640c17b7ba652fbd969cfa45f43113c1defd76f0]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_b10_unit_must_name_engine_xs_o_ext_settings[engine-Y]"
+      ],
+      "failures": 126,
+      "id": "RI-o-cut-rule",
+      "outcome": "killed",
+      "part": "items",
+      "seconds": 73.2,
+      "skipped": 1,
+      "targets": {
+        "items.py": {
+          "after": "b9fcb7c195c952a224d793d76c737a507262399edc6687b7047bc36afaca5559",
+          "before": "0dbd10e9962490bb9d6fcf39ec1216fcabd000e2ba710a5b188626328acfc300"
+        }
+      },
+      "tests": 195
+    },
+    {
+      "describes": "the Controversial-counted-Unsafe corner counts Unsafe only",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_plan_a_end_to_end",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_block_a_only_end_to_end",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_plan_b_end_to_end",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_branch_full_keeps_the_stored_dev_flags",
+        "scripts.stage1_s1.reading_input.tests.test_items::test_harm_hand_case"
+      ],
+      "failures": 5,
+      "id": "RI-g3-controversial",
+      "outcome": "killed",
+      "part": "items",
+      "seconds": 114.7,
+      "skipped": 1,
+      "targets": {
+        "items.py": {
+          "after": "f88cc2fe8ca4d95eb80f353ce451ef2483265f19338985ca360d1da0e40f5328",
+          "before": "0dbd10e9962490bb9d6fcf39ec1216fcabd000e2ba710a5b188626328acfc300"
+        }
+      },
+      "tests": 195
+    },
+    {
+      "describes": "a second complete unit of one cell is not refused (the later one wins)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_duplicated_unit_refuses"
+      ],
+      "failures": 1,
+      "id": "RI-duplicate-unit",
+      "outcome": "killed",
+      "part": "build",
+      "seconds": 115.4,
+      "skipped": 1,
+      "targets": {
+        "build.py": {
+          "after": "8f31fb56c5a49af0a781a7e4b75c9cc58073065497b2b8b9be66e2528b4b57ac",
+          "before": "c66b2c4a4ed43541e4c4059d47ebca4ce8485f5c93b2c599e7a126b00aa4bfd7"
+        }
+      },
+      "tests": 195
+    },
+    {
+      "describes": "B14's documents are not compared with the sealed SHA-256 the lead passes (B16-H-O8)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_b14_bindings"
+      ],
+      "failures": 1,
+      "id": "RI-expect-b14",
+      "outcome": "killed",
+      "part": "build",
+      "seconds": 140.2,
+      "skipped": 1,
+      "targets": {
+        "build.py": {
+          "after": "3149b8cd839d84f63b47060b8137b4f0ca08afb8e5262818835250ac17b2dbf0",
+          "before": "c66b2c4a4ed43541e4c4059d47ebca4ce8485f5c93b2c599e7a126b00aa4bfd7"
+        }
+      },
+      "tests": 195
+    },
+    {
+      "describes": "the U item order is compared with B14's strata prompt ids as a set, not in order (B16-H-O10)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_b14_strata_prompt_order_is_the_u_order"
+      ],
+      "failures": 1,
+      "id": "RI-strata-order",
+      "outcome": "killed",
+      "part": "build",
+      "seconds": 141.9,
+      "skipped": 1,
+      "targets": {
+        "build.py": {
+          "after": "38f40ef7dc03310e2625bda65f7a712e41469a087db2a2057b6f0203d0977fe7",
+          "before": "c66b2c4a4ed43541e4c4059d47ebca4ce8485f5c93b2c599e7a126b00aa4bfd7"
+        }
+      },
+      "tests": 195
+    },
+    {
+      "describes": "a unit the reading uses with no judge file of a recorded judge is not refused",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_judge_files"
+      ],
+      "failures": 1,
+      "id": "RI-judge-coverage",
+      "outcome": "killed",
+      "part": "build",
+      "seconds": 149.7,
+      "skipped": 1,
+      "targets": {
+        "build.py": {
+          "after": "b95227367b5a8506d01747c15f96aa0e3bbb1cfd900011d1105b5ed40a833f83",
+          "before": "c66b2c4a4ed43541e4c4059d47ebca4ce8485f5c93b2c599e7a126b00aa4bfd7"
+        }
+      },
+      "tests": 195
+    },
+    {
+      "describes": "an O-ext pass's settings pair is not compared with its engine's (G1: any pair is accepted)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_block_a_pass_with_another_pair_is_refused[arm-S1-1103-pair0-S1 1103 O-ext .*its O-ext settings are engine Y's pair; a unit of engine X needs engine X's]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_block_a_pass_with_another_pair_is_refused[arm-S1-1103-pair1-its O-ext settings are not an accepted pair; a unit of engine X]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_block_a_pass_with_another_pair_is_refused[arm-S1-1103-pair2-its O-ext settings are not an accepted pair; a unit of engine X]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_block_a_pass_with_another_pair_is_refused[arm-S1-1103-pair3-its O-ext settings are not an accepted pair; a unit of engine X]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_block_a_pass_with_another_pair_is_refused[o_only-a0-1101-pair4-a0 1101 O-ext .*engine Y's pair; a unit of engine X]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_block_a_pass_with_another_pair_is_refused[o_only-theta0-None-pair5-theta0 O-ext .*engine Y's pair; a unit of engine X]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_reference_pass_with_another_pair_is_refused[bqi-1106-pair0-ref-bqi 1106 O-ext .*engine X's pair; a unit of engine Y needs engine Y's]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_reference_pass_with_another_pair_is_refused[bqi-1106-pair1-ref-bqi 1106 O-ext .*not an accepted pair; a unit of engine Y]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_reference_pass_with_another_pair_is_refused[G-1106-pair2-ref-G 1106 O-ext .*engine Y's pair; a unit of engine X]"
+      ],
+      "failures": 9,
+      "id": "RI-oext-pair",
+      "outcome": "killed",
+      "part": "build",
+      "seconds": 154.4,
+      "skipped": 1,
+      "targets": {
+        "build.py": {
+          "after": "e4f4685a62c850c3c679fbce9bb1a8b032c473314c9d863dbed1d439dc037312",
+          "before": "c66b2c4a4ed43541e4c4059d47ebca4ce8485f5c93b2c599e7a126b00aa4bfd7"
+        }
+      },
+      "tests": 195
+    },
+    {
+      "describes": "B+Qi's O-ext pass is held to engine X's settings pair (Y's refused)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_plan_a_end_to_end",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_plan_b_end_to_end",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_partial_curve_refuses",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_b16_schema_refusal_prints_only_its_place",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_reference_job_refusals[<lambda>-not recipe G or bqi]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_reference_job_refusals[<lambda>-two units of ref-G at 1106]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_reference_job_refusals[<lambda>-no unit for each evaluation point]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_reference_job_refusals[<lambda>-is not one point's B10 folder]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_reference_job_refusals[<lambda>-its units are not exactly its points]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_reference_job_refusals[<lambda>-the point scale-0.3 is not a reference this reading knows]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_b10_unit_identity",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_tables_by_hand[plan_a]",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_tables_by_hand[plan_b]",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_tables_json_is_the_same_document_with_and_without_hb[plan_a]",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_on_the_u_table_the_hb_contrast_is_b16s_u_contrast[plan_b]",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_one_device_per_contrast",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_the_engine_of_a_pass[job0-Y]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_x_units_on_x_and_bqi_on_y_are_accepted",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_reference_pass_with_another_pair_is_refused[bqi-1106-pair0-ref-bqi 1106 O-ext .*engine X's pair; a unit of engine Y needs engine Y's]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_reference_pass_with_another_pair_is_refused[bqi-1106-pair1-ref-bqi 1106 O-ext .*not an accepted pair; a unit of engine Y]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_reference_pass_with_another_pair_is_refused[G-1106-pair2-ref-G 1106 O-ext .*engine Y's pair; a unit of engine X]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_plan_json_must_record_the_passs_engine[ref_train-bqi-1107-X-ref-bqi 1107: plan.json records engine 'X'; this unit's O-ext pass is engine Y's]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_plan_json_must_record_the_passs_engine[ref_train-G-1105-None-ref-G 1105: plan.json records engine 'None'; this unit's O-ext pass is engine X's]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_b10_unit_must_name_engine_xs_o_ext_settings[oext-80469a8f728d15192c360f26640c17b7ba652fbd969cfa45f43113c1defd76f0]",
+        "scripts.stage1_s1.reading_input.tests.test_oext_settings::test_a_b10_unit_must_name_engine_xs_o_ext_settings[engine-Y]"
+      ],
+      "failures": 25,
+      "id": "RI-oext-bqi-engine",
+      "outcome": "killed",
+      "part": "build",
+      "seconds": 115.9,
+      "skipped": 1,
+      "targets": {
+        "build.py": {
+          "after": "344f571832c77ad8ee9e8e25d85591f62faed99caf2b9e9733aa57478afb7592",
+          "before": "c66b2c4a4ed43541e4c4059d47ebca4ce8485f5c93b2c599e7a126b00aa4bfd7"
+        }
+      },
+      "tests": 195
+    },
+    {
+      "describes": "the HarmBench label cache is read without the seal and the run record's SHA-256",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_cache_must_be_the_run_records_cache"
+      ],
+      "failures": 1,
+      "id": "RI-hb-cache-bound",
+      "outcome": "killed",
+      "part": "hb",
+      "seconds": 117.1,
+      "skipped": 1,
+      "targets": {
+        "hb.py": {
+          "after": "0220a9cc9022c785c177f1cf8f3b2484cb627f09429b56e8bfcbef2c9d316b81",
+          "before": "7a54cb305ecf452f2b165a8c1f871af7f1785bcd55853437ac8e87db114e1d11"
+        }
+      },
+      "tests": 195
+    },
+    {
+      "describes": "a unit's HarmBench labels are not compared with its sampled answers (a missing or extra answer passes to the per-prompt count)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_cache_refusals[<lambda>-S3 1103: the HarmBench labels do not cover exactly the unit's sampled answers]",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_cache_refusals[<lambda>-a0 1102: the HarmBench labels do not cover exactly]",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_cache_refusals[<lambda>-theta0: the HarmBench labels do not cover exactly]"
+      ],
+      "failures": 3,
+      "id": "RI-hb-coverage",
+      "outcome": "killed",
+      "part": "hb",
+      "seconds": 124.2,
+      "skipped": 1,
+      "targets": {
+        "hb.py": {
+          "after": "cba267620b98197acda9de2b3915372cac47033167bcdaae796785166076a5b9",
+          "before": "7a54cb305ecf452f2b165a8c1f871af7f1785bcd55853437ac8e87db114e1d11"
+        }
+      },
+      "tests": 195
+    },
+    {
+      "describes": "the labels' counts are not compared with the unit's HarmBench judge file",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_cache_refusals[<lambda>-R 1104: the HarmBench labels' counts are not its HarmBench judge file's]",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_judge_file_must_be_gate_bs_file_of_this_judge_and_unit",
+        "scripts.stage1_s1.reading_input.tests.test_hb::test_no_harmbench_value_reaches_the_output_streams"
+      ],
+      "failures": 3,
+      "id": "RI-hb-judge-counts",
+      "outcome": "killed",
+      "part": "hb",
+      "seconds": 108.4,
+      "skipped": 1,
+      "targets": {
+        "hb.py": {
+          "after": "f709ed15ffbfc505f8417f4426820d7980f6b7e8a6585048d12fedcd5dccc8ed",
+          "before": "7a54cb305ecf452f2b165a8c1f871af7f1785bcd55853437ac8e87db114e1d11"
+        }
+      },
+      "tests": 195
+    },
+    {
+      "describes": "E_HB below 20 pp does not stop a harm sentence",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_sentence_by_hand[better or worse (U)-8.0-5.0-19.9-kw10-restored refusal]",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_sentence_by_hand[better or worse (U)-8.0-5.0-19.999999-kw13-restored refusal]",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_sentence_by_hand[better or worse (U)-8.0-5.0--30.0-kw14-restored refusal]",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_sentence_reasons_name_what_failed",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_each_word_end_to_end"
+      ],
+      "failures": 5,
+      "id": "RI-claim-e-hb-line",
+      "outcome": "killed",
+      "part": "hb_claim",
+      "seconds": 98.1,
+      "skipped": 1,
+      "targets": {
+        "hb_claim.py": {
+          "after": "3325f9efa7ecbf362220e3361c6b66ac767133f6795284698bb743d915eca4ae",
+          "before": "375793dbe3e252babecf50bdc34ee343184ba176e741f4e71c7a46c5ea954ebe"
+        }
+      },
+      "tests": 195
+    },
+    {
+      "describes": "'at least half its size' is read as at least a quarter",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_sentence_by_hand[better or worse (U)-8.0-3.999999-25.0-kw3-restored refusal]",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_sentence_by_hand[better or worse (U)-8.0-3.0-25.0-kw4-restored refusal]",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_sentence_by_hand[better or worse (U)--7.0--3.0-25.0-kw16-restored refusal]",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_each_word_end_to_end"
+      ],
+      "failures": 4,
+      "id": "RI-claim-half",
+      "outcome": "killed",
+      "part": "hb_claim",
+      "seconds": 104.5,
+      "skipped": 1,
+      "targets": {
+        "hb_claim.py": {
+          "after": "85a180f4787478494f1df0dc85fc3a84bcf76897ef54b5d91d59f1a18b5e28ed",
+          "before": "375793dbe3e252babecf50bdc34ee343184ba176e741f4e71c7a46c5ea954ebe"
+        }
+      },
+      "tests": 195
+    },
+    {
+      "describes": "an equivalent contrast takes the base rule (LN-15c's 'never harm' dropped)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_sentence_by_hand[equivalent-2.0-1.5-25.0-kw22-restored refusal]",
+        "scripts.stage1_s1.reading_input.tests.test_hb_claim::test_each_word_end_to_end"
+      ],
+      "failures": 2,
+      "id": "RI-claim-ln15c-equivalent",
+      "outcome": "killed",
+      "part": "hb_claim",
+      "seconds": 104.2,
+      "skipped": 1,
+      "targets": {
+        "hb_claim.py": {
+          "after": "27f97e6612b8b9ecf24e545f2500f000caf9ecd5aca6367c143b193a354e24a2",
+          "before": "375793dbe3e252babecf50bdc34ee343184ba176e741f4e71c7a46c5ea954ebe"
+        }
+      },
+      "tests": 195
+    }
+  ],
+  "pytest_version": "pytest 8.4.2",
+  "python": "3.11.15",
+  "rule": "killed = exit 1 with >= 1 failure and 0 errors; survived = exit 0, 0 failures, 0 errors; anything else (errors, timeout, other exit codes, no JUnit, a test count other than the baseline's) = invalid; an 'expect: survive' entry passes only if it survives",
+  "runner_sha256": "491a2266856b9c632d0b0e856349034f8e7c987727d4df20427ce9d029dd83ac",
+  "shard": null,
+  "spec": "scripts/stage1_s1/reading_input/mutation/mutants_reading_input.json",
+  "spec_sha256": "0c7b4dad1f60add235cb7a64e0ff645492fd1c7ec7754bb40aa2ffa879246b76",
+  "summary": {
+    "build": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 6,
+      "mutants": 6,
+      "survived": 0
+    },
+    "hb": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 3,
+      "mutants": 3,
+      "survived": 0
+    },
+    "hb_claim": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 3,
+      "mutants": 3,
+      "survived": 0
+    },
+    "items": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 2,
+      "mutants": 2,
+      "survived": 0
+    },
+    "sources": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 2,
+      "mutants": 2,
+      "survived": 0
+    }
+  },
+  "timeout_seconds": 600,
+  "tree_name": "scripts/stage1_s1/reading_input",
+  "version": 2
+}

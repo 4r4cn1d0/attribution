@@ -8,7 +8,7 @@ spending the same compute on retraining?
 - [Current research focus and log](research/FOCUS.md)
 - [Rigor and novelty evidence ledger](research/review/EDGE_CHECKS.md)
 - [Experiment engine](experiments/safety_selection/README.md)
-- [Stage-1 run kit](https://github.com/4r4cn1d0/attribution/tree/stageb-costs-and-recovery-safeguards-20261003/runkit/stage1-olmo) (on the working branch)
+- [Stage-1 run kit](runkit/stage1-olmo/)
 - [Measurement audit and limitations](research/experiments/2026-10-02-measurement-audit.md)
 - [Preserved backup inventory](backups/2026-10-02/README.md)
 - [Runpod incident and recovery prerequisites](research/experiments/2026-10-02-runpod-credit-incident.md)

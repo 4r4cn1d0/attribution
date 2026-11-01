@@ -1,0 +1,368 @@
+{
+ "kind": "stage1 mutants",
+ "mutants": [
+  {
+   "describes": "cos safe from read b mean",
+   "file": "representation_pass.py",
+   "find": "cos_s = [[cosine(states[i][r], means[\"safe\"][i][r]) for r in READS] for i in range(n + 1)]",
+   "from": "final critic (fc/evidence/mutants.py)",
+   "id": "FC-cos-safe-from-read-b-mean",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)",
+   "replace": "cos_s = [[cosine(states[i][r], means[\"safe\"][i][\"b\"]) for r in READS] for i in range(n + 1)]"
+  },
+  {
+   "describes": "cos safe index minus 1 below n",
+   "file": "representation_pass.py",
+   "find": "cos_s = [[cosine(states[i][r], means[\"safe\"][i][r]) for r in READS] for i in range(n + 1)]",
+   "from": "final critic (fc/evidence/mutants.py)",
+   "id": "FC-cos-safe-index-minus-1-below-n",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)",
+   "replace": "cos_s = [[cosine(states[i][r], means[\"safe\"][i - 1 if 0 < i < n else i][r]) for r in READS] for i in range(n + 1)]"
+  },
+  {
+   "describes": "cos harmful d vs a mean",
+   "file": "representation_pass.py",
+   "find": "cos_h = [[cosine(states[i][r], means[\"harmful\"][i][r]) for r in READS] for i in range(n + 1)]",
+   "from": "final critic (fc/evidence/mutants.py)",
+   "id": "FC-cos-harmful-d-vs-a-mean",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)",
+   "replace": "cos_h = [[cosine(states[i][r], means[\"harmful\"][i][\"a\" if r == \"d\" else r]) for r in READS] for i in range(n + 1)]"
+  },
+  {
+   "describes": "cas on read a",
+   "file": "representation_pass.py",
+   "find": "cas([s[i][\"b\"] for s in anchor_states[\"harmful\"]],\n                                      [s[i][\"b\"] for s in anchor_states[\"safe\"]], v)",
+   "from": "final critic (fc/evidence/mutants.py)",
+   "id": "FC-cas-on-read-a",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)",
+   "replace": "cas([s[i][\"a\"] for s in anchor_states[\"harmful\"]],\n                                      [s[i][\"a\"] for s in anchor_states[\"safe\"]], v)"
+  },
+  {
+   "describes": "cas on read c",
+   "file": "representation_pass.py",
+   "find": "cas([s[i][\"b\"] for s in anchor_states[\"harmful\"]],\n                                      [s[i][\"b\"] for s in anchor_states[\"safe\"]], v)",
+   "from": "final critic (fc/evidence/mutants.py)",
+   "id": "FC-cas-on-read-c",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)",
+   "replace": "cas([s[i][\"c\"] for s in anchor_states[\"harmful\"]],\n                                      [s[i][\"c\"] for s in anchor_states[\"safe\"]], v)"
+  },
+  {
+   "describes": "cas direction from read b",
+   "file": "representation_pass.py",
+   "find": "[s[i][\"b\"] for s in anchor_states[\"safe\"]], v)",
+   "from": "final critic (fc/evidence/mutants.py)",
+   "id": "FC-cas-direction-from-read-b",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)",
+   "replace": "[s[i][\"b\"] for s in anchor_states[\"safe\"]], means[\"harmful\"][i][\"b\"] - means[\"safe\"][i][\"b\"])"
+  },
+  {
+   "describes": "reads column order c d swapped",
+   "file": "representation_pass.py",
+   "find": "READS = (\"a\", \"b\", \"c\", \"d\")",
+   "from": "final critic (fc/evidence/mutants.py)",
+   "id": "FC-reads-column-order-c-d-swapped",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)",
+   "replace": "READS = (\"a\", \"b\", \"d\", \"c\")"
+  },
+  {
+   "describes": "gate c index capped 16",
+   "file": "representation_pass.py",
+   "find": "per_unit[gid].append((cos_h[n][b], cos_s[n][b], cos_h[n][b] - cos_s[n][b]))",
+   "from": "final critic (fc/evidence/mutants.py)",
+   "id": "FC-gate-c-index-capped-16",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)",
+   "replace": "g16 = min(n, 16); per_unit[gid].append((cos_h[g16][b], cos_s[g16][b], cos_h[g16][b] - cos_s[g16][b]))"
+  },
+  {
+   "describes": "anchors one padded batch",
+   "file": "representation_pass.py",
+   "find": "            anchor_states = {name: [read_states(model, ex.input_ids, ex.n_prompt, codec.eos_id, device, n)\n                                    for ex in sets[name]] for name in SETS}\n",
+   "from": "final critic (fc/evidence/mutants.py)",
+   "id": "FC-anchors-one-padded-batch",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)",
+   "replace": "            anchor_states = {}\n            for name in SETS:\n                exs = sets[name]\n                width = max(len(e.input_ids) for e in exs)\n                ids_ = torch.tensor([list(e.input_ids) + [0] * (width - len(e.input_ids)) for e in exs], device=device)\n                mask_ = torch.tensor([[1] * len(e.input_ids) + [0] * (width - len(e.input_ids)) for e in exs], device=device)\n                hid_ = model(input_ids=ids_, attention_mask=mask_, output_hidden_states=True).hidden_states\n                got_ = []\n                for k, e in enumerate(exs):\n                    L_, p_ = len(e.input_ids), e.n_prompt\n                    got_.append([{\"a\": h[k, L_ - 1].to(torch.float64).cpu(), \"b\": h[k, L_ - 2].to(torch.float64).cpu(),\n                                  \"c\": h[k].to(torch.float64).cpu()[p_:L_ - 1].mean(dim=0),\n                                  \"d\": h[k, p_ - 1].to(torch.float64).cpu()} for h in hid_])\n                anchor_states[name] = got_\n"
+  },
+  {
+   "describes": "layout guard off",
+   "file": "representation_pass.py",
+   "find": "if len(decoder.layers) != n or not hasattr(decoder, \"norm\"):",
+   "from": "final critic (fc/evidence/mutants.py)",
+   "id": "FC-layout-guard-off",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)",
+   "replace": "if False:"
+  },
+  {
+   "describes": "final norm name fixed",
+   "file": "representation_pass.py",
+   "find": "\"final_norm\": type(decoder.norm).__name__",
+   "from": "final critic (fc/evidence/mutants.py)",
+   "id": "FC-final-norm-name-fixed",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)",
+   "replace": "\"final_norm\": \"Olmo2RMSNorm\""
+  },
+  {
+   "describes": "index n replaced by the raw last-block output (L4 (3)'s named mutant: a forward hook on the last decoder block puts its raw output at index n)",
+   "file": "representation_pass.py",
+   "find": "    hidden = model(input_ids=ids, output_hidden_states=True).hidden_states\n",
+   "from": "final critic (fc/evidence/mutants.py)",
+   "id": "B2-index-n-raw-last-block-output",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)",
+   "replace": "    cap_ = {}\n    hk_ = base_model(model).get_decoder().layers[-1].register_forward_hook(\n        lambda m, i, o: cap_.__setitem__(\"o\", o[0] if isinstance(o, tuple) else o))\n    hidden = model(input_ids=ids, output_hidden_states=True).hidden_states\n    hk_.remove()\n    hidden = tuple(hidden[:-1]) + (cap_[\"o\"],)\n"
+  },
+  {
+   "describes": "ta by category one category",
+   "file": "token_accounting.py",
+   "find": "by_category.setdefault(view.category[g],",
+   "from": "final critic (fc/evidence/mutants.py)",
+   "id": "FC-ta-by-category-one-category",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)",
+   "replace": "by_category.setdefault(view.category[view.units[0]],"
+  },
+  {
+   "describes": "ta edited total ignores rewrite",
+   "file": "token_accounting.py",
+   "find": "+ after_total + add_total)",
+   "from": "final critic (fc/evidence/mutants.py)",
+   "id": "FC-ta-edited-total-ignores-rewrite",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)",
+   "replace": "+ add_total)"
+  },
+  {
+   "describes": "ta edited total uses targets",
+   "file": "token_accounting.py",
+   "find": "+ after_total + add_total)",
+   "from": "final critic (fc/evidence/mutants.py)",
+   "id": "FC-ta-edited-total-uses-targets",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)",
+   "replace": "+ after_target + add_target)"
+  },
+  {
+   "describes": "ta added target share vs edited",
+   "file": "token_accounting.py",
+   "find": "\"share_of_target_tokens\": add_target / totals[\"target_tokens\"],",
+   "from": "final critic (fc/evidence/mutants.py)",
+   "id": "FC-ta-added-target-share-vs-edited",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)",
+   "replace": "\"share_of_target_tokens\": add_target / (totals[\"target_tokens\"] + add_target),"
+  },
+  {
+   "describes": "eval removed",
+   "file": "representation_pass.py",
+   "find": "    model.eval()\n",
+   "from": "final critic (fc/evidence/mutants.py)",
+   "id": "FC-eval-removed",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)",
+   "replace": "    pass\n"
+  },
+  {
+   "describes": "a pool named dev is accepted",
+   "file": "representation_pass.py",
+   "find": "    if name in RESERVED_POOL_NAMES:\n        raise s1.Refusal(f\"a pool may not be named",
+   "from": "builder",
+   "id": "B2r2-pins-dev-pool-allowed",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)",
+   "replace": "    if False:\n        raise s1.Refusal(f\"a pool may not be named"
+  },
+  {
+   "describes": "a listed pool whose pin is null is accepted",
+   "file": "representation_pass.py",
+   "find": "    if entry[\"sha256\"] is None:\n        raise s1.Refusal(f\"pool {name} is a W1-known pool whose pin is not filled yet (settings/representation_pools.json)\")",
+   "from": "builder",
+   "id": "B2r2-pins-null-pin-accepted",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)",
+   "replace": "    if entry[\"sha256\"] is None:\n        return \"pool pins\""
+  },
+  {
+   "describes": "a listed pool's SHA-256 is not compared with its pin",
+   "file": "representation_pass.py",
+   "find": "    if entry[\"sha256\"] != pool[\"sha256\"]:",
+   "from": "builder",
+   "id": "B2r2-pins-sha-not-compared",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "a listed pool's item count is not compared with its pin",
+   "file": "representation_pass.py",
+   "find": "    if entry[\"items\"] != len(pool[\"items\"]):",
+   "from": "builder",
+   "id": "B2r2-pins-items-not-compared",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "an unlisted name carrying a listed pin's SHA-256 is accepted",
+   "file": "representation_pass.py",
+   "find": "        if other:\n            raise",
+   "from": "builder",
+   "id": "B2r2-pins-renamed-file-accepted",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)",
+   "replace": "        if False:\n            raise"
+  },
+  {
+   "describes": "every unlisted pool is refused (the closed-list reading, not the ruling)",
+   "file": "representation_pass.py",
+   "find": "        return \"command line\"",
+   "from": "builder",
+   "id": "B2r2-pins-unlisted-refused",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)",
+   "replace": "        raise s1.Refusal(\"unlisted\")"
+  },
+  {
+   "describes": "the pool pins load without their literal SHA-256 check",
+   "file": "representation_pass.py",
+   "find": "doc, digest = s1.load_settings(path, expected_sha256, POOL_PINS_NAME)",
+   "from": "builder",
+   "id": "B2r2-pins-literal-not-checked",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)",
+   "replace": "doc, digest = s1.load_settings(path, sha256_file(path), POOL_PINS_NAME)"
+  },
+  {
+   "describes": "a pins file listing a pool named dev is accepted",
+   "file": "representation_pass.py",
+   "find": "        if not POOL_ID.match(name) or name in RESERVED_POOL_NAMES:",
+   "from": "builder",
+   "id": "B2r2-pins-dev-entry-allowed",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)",
+   "replace": "        if not POOL_ID.match(name):"
+  },
+  {
+   "describes": "two pins naming one SHA-256 are accepted",
+   "file": "representation_pass.py",
+   "find": "    if len(set(filled)) != len(filled):",
+   "from": "builder",
+   "id": "B2r2-pins-duplicate-sha-allowed",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "the pass never checks a pool against the pins",
+   "file": "representation_pass.py",
+   "find": "    pinned_by = {p[\"name\"]: pin_of(p, pins) for p in pool_docs}",
+   "from": "builder",
+   "id": "B2r2-pins-not-applied-by-the-pass",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)",
+   "replace": "    pinned_by = {p[\"name\"]: \"command line\" for p in pool_docs}"
+  },
+  {
+   "describes": "the pass loads the model with nothing to score",
+   "file": "representation_pass.py",
+   "find": "    if not score_units and not pools:\n        raise",
+   "from": "builder",
+   "id": "B2r2-nothing-to-score-off",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)",
+   "replace": "    if False:\n        raise"
+  },
+  {
+   "describes": "a pool item's prompt and response are not checked to be text",
+   "edits": [
+    {
+     "file": "representation_pass.py",
+     "find": "set(i) != {\"id\", \"prompt\", \"response\"} or not isinstance(i[\"prompt\"], str)",
+     "replace": "set(i) != {\"id\", \"prompt\", \"response\"}"
+    },
+    {
+     "file": "representation_pass.py",
+     "find": "\n           or not isinstance(i[\"response\"], str) for i in items)",
+     "replace": " for i in items)"
+    }
+   ],
+   "file": "representation_pass.py",
+   "from": "builder",
+   "id": "B2r2-pool-text-type-unchecked",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)"
+  },
+  {
+   "describes": "a pool item is read with .get before its type is checked (the old crash)",
+   "file": "representation_pass.py",
+   "find": "    if any(not isinstance(i, dict) or set(i) != {\"id\", \"prompt\", \"response\"}",
+   "from": "builder",
+   "id": "B2r2-pool-get-before-type-check",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)",
+   "replace": "    if any(i.get(\"id\") is None or not isinstance(i, dict) or set(i) != {\"id\", \"prompt\", \"response\"}"
+  },
+  {
+   "describes": "an unreadable pool file raises OSError (a traceback, exit 1)",
+   "file": "representation_pass.py",
+   "find": "    except OSError as exc:\n        raise s1.Refusal(f\"a pool file cannot be read",
+   "from": "builder",
+   "id": "B2r2-pool-oserror-unmapped",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)",
+   "replace": "    except KeyError as exc:\n        raise s1.Refusal(f\"a pool file cannot be read"
+  },
+  {
+   "describes": "a unit listing a row twice is accepted",
+   "file": "token_accounting.py",
+   "find": "            if len(set(self.members[gid])) != len(self.members[gid]):",
+   "from": "builder",
+   "id": "B2r2-ta-unit-duplicate-allowed",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)",
+   "replace": "            if False:"
+  },
+  {
+   "describes": "a rewrite with 0 target tokens is accepted",
+   "file": "token_accounting.py",
+   "find": "        if t < 1:\n            raise Refusal(f\"rewrite {row}: the new",
+   "from": "builder",
+   "id": "B2r2-ta-rewrite-zero-target-allowed",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)",
+   "replace": "        if t < 0:\n            raise Refusal(f\"rewrite {row}: the new"
+  },
+  {
+   "describes": "the command's own --pools-only check removed",
+   "expect": "survive",
+   "file": "representation_pass.py",
+   "find": "        if args.pools_only and not pools:",
+   "from": "builder",
+   "id": "B2r2-cli-pools-only-check-off",
+   "part": "batch 2 rev 2 (REQ-3, W1-08 (1) pool pins, token accounting)",
+   "reason": "legal: the pass's own 'nothing to score' check refuses the same case before the model loads, with the same message, so the command still exits 2 and writes nothing",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "the edited corpus total subtracts the rewritten rows' target tokens instead of their total tokens (killed by test_v_edited_corpus_total_and_added_target_share_by_hand)",
+   "file": "token_accounting.py",
+   "find": "- out[\"rewritten\"][\"before\"][\"total_tokens\"]\n             + after_total + add_total)",
+   "from": "verifier C's mutant, as the b2r2 verifier reconstructed it (V-ta-edited-total-rewrite-before-target)",
+   "id": "B2V-edited-total-rewrite-before-target",
+   "part": "batch 2 rev 3 (the verifier's two record items, verify-b2r2.json 4bd4cd7f)",
+   "replace": "- out[\"rewritten\"][\"before\"][\"target_tokens\"]\n             + after_total + add_total)"
+  },
+  {
+   "describes": "both call sites pass each row's own last id as the end-of-turn id (expected to survive: a legal-by-construction change, see reason)",
+   "edits": [
+    {
+     "file": "representation_pass.py",
+     "find": "[read_states(model, ex.input_ids, ex.n_prompt, codec.eos_id, device, n)",
+     "replace": "[read_states(model, ex.input_ids, ex.n_prompt, ex.input_ids[-1], device, n)"
+    },
+    {
+     "file": "representation_pass.py",
+     "find": "states = read_states(model, ex.input_ids, ex.n_prompt, codec.eos_id, device, n)",
+     "replace": "states = read_states(model, ex.input_ids, ex.n_prompt, ex.input_ids[-1], device, n)"
+    }
+   ],
+   "expect": "survive",
+   "file": "representation_pass.py",
+   "from": "verifier C's mutant, as the b2r2 verifier reconstructed it (V-eos-check-vacuous-at-call-sites)",
+   "id": "B2V-eos-check-vacuous-at-call-sites",
+   "part": "batch 2 rev 3 (the verifier's two record items, verify-b2r2.json 4bd4cd7f)",
+   "reason": "verifier C and the critic: encode_train always appends eos and refuses an over-long row, so the refusal is unreachable through run(); positions() is tested directly"
+  },
+  {
+   "describes": "the command accepts any EXISTING --pool-pins file (checked against its own hash, the literal only when the path is absent); killed by test_the_command_refuses_cleanly's re-serialised pins case",
+   "file": "representation_pass.py",
+   "find": "        pins = load_pool_pins(args.pool_pins)\n",
+   "from": "the b2r2 verifier's CLI probe (verify-b2r2-evidence/specs/mutants_cli_probe.json)",
+   "id": "V-cli-pool-pins-literal-off-when-present",
+   "part": "batch 2 rev 3 (the verifier's two record items, verify-b2r2.json 4bd4cd7f)",
+   "replace": "        pins = load_pool_pins(args.pool_pins, sha256_file(args.pool_pins) if args.pool_pins.is_file() else POOL_PINS_SHA256)\n"
+  }
+ ],
+ "not_included": {
+  "the CLI passing pool_pins=None": "equivalent: run() then loads the committed file by the same literal pin"
+ },
+ "part": "batch 2 rev 2 and rev 3 (REQ-3, W1-08 (1) pool pins, token accounting; the verifier's two record items)",
+ "revision": 3,
+ "version": 1
+}

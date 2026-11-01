@@ -1,0 +1,127 @@
+{
+    "kind": "safety-selection recipe",
+    "name": "study-kt-llama31-8b-r64-g-mb2-20261011",
+    "purpose": "Recipe G at 7-8B for the Side Project's pre-registered family-by-recipe replication (the user's approval in the Side Project chat, 10 Oct ~22:50 UTC; GI V, 11 Oct): study-kt-llama31-8b-r64-b-mb2-20261008 with the 1B recipe B -> G change only, copied from study-kt-olmo2-1b-r64-g-mb2-20261008 (train: token-mean loss and loss_weighting, warmup_cosine schedule, 4 warmup steps, schedule_until e1; LR 1e-4 unchanged). Evaluation settings equal the mb2 rung's, so the sealed untuned unit is reused. Family probe llama31-8b (brief multi-family-probe-engine-20261007): recipe B (study-kt-instruct-r64-b-20261007) unchanged except the model (meta-llama/Llama-3.1-8B-Instruct @ 0e9e39f2, LlamaForCausalLM, its end of turn, stops, pad and assistant header; 167,772,160 trainable LoRA values) and this memory candidate: micro-batch 2 x accumulation 64, gradient checkpointing off, sdpa attention for the policy only (the guard stays recipe B's), generation batch 32. The preflight takes the first passing candidate of the probe's ladder; the guard and every evaluation setting are recipe B's.",
+    "model": {
+        "repo_id": "meta-llama/Llama-3.1-8B-Instruct",
+        "revision": "0e9e39f249a16976918f6564b8830bc894c89659",
+        "architecture": "LlamaForCausalLM",
+        "base_dtype": "bfloat16",
+        "trainable_dtype": "float32",
+        "attn_implementation": "sdpa",
+        "device": "cuda",
+        "end_of_turn_token": "<|eot_id|>",
+        "stop_tokens": [
+            "<|eot_id|>",
+            "<|eom_id|>",
+            "<|end_of_text|>"
+        ],
+        "pad_token": "<|end_of_text|>",
+        "max_train_tokens": 3072,
+        "max_prompt_tokens": 1536,
+        "lora": {
+            "r": 64,
+            "alpha": 128,
+            "dropout": 0.0,
+            "target_modules": [
+                "q_proj",
+                "k_proj",
+                "v_proj",
+                "o_proj",
+                "gate_proj",
+                "up_proj",
+                "down_proj"
+            ],
+            "expected_trainable_parameters": 167772160
+        },
+        "assistant_header": "<|start_header_id|>assistant<|end_header_id|>\n\n"
+    },
+    "train": {
+        "micro_batch": 2,
+        "grad_accum": 64,
+        "batching": "consecutive examples of one epoch's order; an epoch's final optimizer step keeps its actual size; steps never cross epochs",
+        "loss": "token-mean NLL: the sum of the NLL over every response target token (response plus end-of-turn) of the actual examples of each optimizer step, divided by that step's total target-token count (one normaliser for all of its micro-batches)",
+        "optimizer": "AdamW",
+        "lr": 0.0001,
+        "betas": [
+            0.9,
+            0.999
+        ],
+        "eps": 1e-08,
+        "weight_decay": 0.0,
+        "lr_schedule": "warmup_cosine",
+        "max_grad_norm": 1.0,
+        "gradient_checkpointing": false,
+        "lm_head_chunk_tokens": 1024,
+        "checkpoints": [
+            {
+                "name": "q",
+                "epochs": [
+                    1,
+                    4
+                ]
+            },
+            {
+                "name": "e1",
+                "epochs": [
+                    1,
+                    1
+                ]
+            },
+            {
+                "name": "e3",
+                "epochs": [
+                    3,
+                    1
+                ]
+            }
+        ],
+        "warmup_steps": 4,
+        "schedule_until": "e1",
+        "loss_weighting": "token_mean"
+    },
+    "generation": {
+        "decoding": "greedy",
+        "max_new_tokens": 2048,
+        "batch_size": 32,
+        "guard_over_limit": "unscored",
+        "harm_samples": {
+            "count": 3,
+            "temperature": 0.7,
+            "top_p": 1.0
+        }
+    },
+    "arc": {
+        "template": "arc-easy-mc-v1",
+        "batch_size": 32
+    },
+    "guard": {
+        "repo_id": "Qwen/Qwen3Guard-Gen-4B",
+        "revision": "6ec42827da0c1ff11e7a49dc269d2e810d27e108",
+        "architecture": "Qwen3ForCausalLM",
+        "dtype": "bfloat16",
+        "attn_implementation": "sdpa",
+        "stop_tokens": [
+            "<|im_end|>",
+            "<|endoftext|>"
+        ],
+        "pad_token": "<|endoftext|>",
+        "max_input_tokens": 8192,
+        "max_new_tokens": 128,
+        "batch_size": 8
+    },
+    "secondary_toxicity": null,
+    "attribution": {
+        "checkpoints": [
+            "q",
+            "e1",
+            "e3"
+        ],
+        "query_bank": "ref",
+        "aggregation_dtype": "float64",
+        "variants": [
+            "checkpoint_gradsim",
+            "adam_diag_preconditioned_dot"
+        ]
+    }
+}

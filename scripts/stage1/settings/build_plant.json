@@ -1,0 +1,131 @@
+{
+  "cells": {
+    "m128": "4 quarters per quartile, placed by the walk below with n = the quartile's final size; cell id = <group id>/q<j>/r<i>, i = 0..3",
+    "m32": "4 quartiles per unit, placed by the walk below with n = 600; cell id = <group id>/q<j>, j = 0..3 (q0 = the shortest targets)",
+    "m8": "the 8 units (600 rows each); cell id = the unit's group id"
+  },
+  "corpus": {
+    "planted_k37": "P minus the leaf's n Dolly rows plus the first 37 plant rows: 4,837 - n rows",
+    "planted_k75": "P minus the leaf's n Dolly rows plus the first 75 plant rows: 4,875 - n rows",
+    "steps": "optimizer steps = ceil(rows / 128) (batch 128 = 4 x 32, one epoch): 38 for any n <= 100 at k = 37"
+  },
+  "draws": {
+    "leaf": "the first in sealed_order(plant.leaf) over the cell ids of the candidate leaves; the candidates are the drawn unit's 37-row leaves with no oversize row, or, if there is none, its no-oversize leaves with the smallest |n − 37|",
+    "unit": "the first unit in the sealed order of key plant.unit over the 8 unit group ids; never redrawn"
+  },
+  "edits": {
+    "counts": "each edit's removed, added and final row counts and its optimizer steps are reported",
+    "planted_k37": "combined: remove the leaf's n Dolly rows; add plant rows 1-37",
+    "planted_k75": "combined: remove the leaf's n Dolly rows; add plant rows 1-75",
+    "r150_k<k>_d<d>": "combined, for k in {37, 75} and d in {1, 2, 3}: as r600, with 150 rows in all: the sealed sample of 6 of the 8 unit ids by key plant.r150_units with part (d) gives 19 rows each, the other 2 units give 18 each; per unit g the sealed sample by key plant.r150 with parts (d, g)",
+    "r600_k<k>_d<d>": "combined, for k in {37, 75} and d in {1, 2, 3}: the planted corpus at k; per unit g, a sealed sample of 75 rows of the planted corpus's unit-g members (Dolly ids and add-plant ids, sorted) by key plant.r600 with parts (d, g) (Gate B's R rule form); remove = the leaf's n Dolly rows plus every drawn Dolly row; add = the plant rows at k that were not drawn",
+    "remove_cell_m128": "remove: the leaf's n Dolly rows; the same file serves k = 37 and k = 75",
+    "remove_cell_m32": "remove: every Dolly row of the planted quartile; the same file serves k = 37 and k = 75",
+    "remove_cell_m8": "remove: every Dolly row of the planted unit (the cell holds the plant, so nothing is added); the same file serves k = 37 and k = 75",
+    "rule": "every edit file is relative to P, written by REQ-7's writer in the engine's format and parsed back with the engine's parse_edit and edited_corpus (P's codec)"
+  },
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "funding": "the plant is committed before wave 1 whether or not it is funded (E4 is not a condition; PLANF:123)",
+  "inputs": {
+    "anchor_prompts_sha256": "78467c97c40e7e9fd39e8061219517853e7292a25881700da5e9115604117b97",
+    "lexicon": {
+      "class_required": "DIRECT",
+      "classifier": "scripts/stage1/lexicon/lexicon.py",
+      "classifier_sha256": "5a27dd040b74aa23fe09ac4dc95fb5913a4ccd327a67bb3caf5e667ff0432d1b",
+      "json": "scripts/stage1/lexicon/lexicon.json",
+      "json_sha256": "bbbc71e9eebb62876430ffb5e0f54113c3818984b8369924b7bd2212c4c1ca17"
+    },
+    "pku": {
+      "config": "experiments/safety_selection/configs/study-v3-data-inj05.json",
+      "config_sha256": "11e9221412d599bf277f934182c10ad6f27c78508a5fe99267e95e023497d760",
+      "reader": "experiments.safety_selection.sources.parse_pku, after the config's file pins verify (as .ai/inputs/gate-b-anchors-20261008/make_anchor_prompts.py does)",
+      "repo_id": "PKU-Alignment/PKU-SafeRLHF",
+      "revision": "9421ffafec3fa40a1f1a7d567b4d525079477ecb"
+    },
+    "s_pool": "REQ-6's full S-pool file and its lists (S1, the S3 subset, the S4 list), each named by SHA-256 on the command line"
+  },
+  "kind": "stage1 settings",
+  "label_entries": {
+    "plant.leaf": "27752253549f537db92b24e648aa6daa3f9f30641f86ba8efaa36ac479c4a07c",
+    "plant.quarters": "8ebaad23eebc1fad572501f971e1b2f38ef8827d3c96f97b38aa9c8953e00fa1",
+    "plant.quartile_ties": "4c15d3fa7dec8729ba47318b284be91890c9f4f1c98e118e6c9edce144e0b8b4",
+    "plant.r150": "2590f1708fe8ee8b80c03ed307dffee278d7871e79e1bd7d94b23aadcf0dd2a0",
+    "plant.r150_units": "c1f68ce6398d6be130d75bfacd150cc79f8a6947f7353809fe4bba6b0c0ec5b6",
+    "plant.r600": "3f2112856bd868e3476431f3b8a04dfbb0024485b491313aa72525e2190d9660",
+    "plant.rows": "962ddefd72f6d43c1396f35a1ecc756515c1554d9a93df225bc260c36a38b8b5",
+    "plant.unit": "7ad516761c4fe7f4e778bc0d34fbccfabe2bbb4d5fa57311c7808807e1804d9d"
+  },
+  "labels_sha256": "3830fabd59f8c5def507b4bab4bd366a7b982e9351769368b706c7fcb40359a4",
+  "name": "build_plant",
+  "near_duplicate_grouping": {
+    "components": "single linkage: the connected components of the link graph, inside each unit",
+    "cross_unit_pairs": "pairs of rows of different units at or above the threshold are counted only (the M = 8 cells are the units and are fixed)",
+    "oversize": {
+      "max_rows": 37,
+      "rule": "a component of more than 37 rows is oversize: its rows are placed as singletons; its size and its cross-cell pair counts at M = 32 and M = 128 are published; no leaf that holds one of its rows can be drawn"
+    },
+    "pairs": "every pair of rows of the same unit (a pair with no shared shingle has similarity 0, so an inverted shingle index may enumerate the candidate pairs; a nearest-match lookup is never used)",
+    "shingles": "experiments.safety_selection.prepare._shingles: the character 5-grams of the normalized text; a text shorter than 5 characters is its own single shingle",
+    "similarity": "Jaccard |A intersect B| / (|A| + |B| - |A intersect B|), as experiments.safety_selection.prepare computes it",
+    "text": "the training row's stored prompt (the rendered user text; P has no separate instruction field, so there is no instruction-alone test), normalized by experiments.minimal_safety.data.normalize (lower case, whitespace runs collapsed to one space)",
+    "threshold": {
+      "comparison": "a link when the similarity is >= the threshold",
+      "config_key": "data_config.eligibility.near_duplicate.max_jaccard of P's manifest",
+      "expected_value": 0.5,
+      "stop": "if the manifest's value is not 0.5, stop"
+    }
+  },
+  "owner": "scripts/stage1/build_plant.py",
+  "placement": {
+    "no_pair_case": "with no links the walk gives exactly 150 rows per quartile and 37, 38, 37, 38 rows per quarter (the plain positional rule)",
+    "published": "every cell's size; the target_tokens value at each quartile boundary; each component's size and its cell",
+    "quarter_walk": "the final quartile's rows in the sealed order of key plant.quarters over all training row ids, restricted to the quartile",
+    "quartile_walk": "the unit's rows in the order (target_tokens ascending, then the sealed rank of key plant.quartile_ties over all training row ids)",
+    "rule": "walk the rows in the level's order; at each row that is not yet placed, put its whole component (a singleton for a row of an oversize component) into the current cell j; after each placement, close cell j (j = 0, 1, 2) once the cells so far hold at least floor((j + 1) * n / 4) rows; cell 3 takes the rest; after each placement only the current cell can close"
+  },
+  "prepared": {
+    "fields_read": "row_id, prompt (the rendered user text; for the grouping only, never written or printed) and target_tokens of each training row; dev unit membership; unit categories",
+    "manifest_sha256": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
+    "path_on_the_mac": "tmp/kt-prepared/prepared-kt-dolly-olmo2",
+    "rows": 4800,
+    "rows_per_unit": 600,
+    "units": 8
+  },
+  "readings": {
+    "r150_allocation": "plant.r150_units (part (d)) picks the 6 of the 8 units that give 19 rows; the other 2 give 18 (6 x 19 + 2 x 18 = 150): the builder's reading, confirmed by the lead (addendum section 4.2)",
+    "r600_r150_parts": "plant.r600 and plant.r150 take parts (d, g) (per-unit draws: the 'same per-unit stratification' of Gate B's R rule): the builder's reading, confirmed by the lead (addendum section 4.2, 1d4e42a2)"
+  },
+  "reports": [
+    "counts only: the plant candidate count after each filter, in order",
+    "the component-size histogram per unit and the cross-unit pair count",
+    "every oversize component's size and its cross-cell pair counts at M = 32 and M = 128",
+    "every cell's size and every quartile cut point (target_tokens)",
+    "the drawn unit, the drawn leaf's cell id and n, and whether the 37-row branch or the fallback branch drew it",
+    "each edit file's SHA-256, kind, removed, added and final row counts and steps",
+    "scored at $0 later (PLAN-S section 6): each scorer's planted-cell rank at M = 8, 32 and 128 beside the same unit's (and cell's) rank without the plant (lead decisions section 3, item (2))"
+  ],
+  "requirement": "REQ-8 (brief rev 1 12cbf463; PLAN-S section 6); lead decisions b8a67719: L12 (the grouping, placement and draws) and section 3 (seeds; R600 and R150 on the planted data; the same-unit rank report)",
+  "rows": {
+    "add_ids": "plant row j (1-based position in the sealed order) has the edit row id add-plant-NNN, NNN = j written with 3 digits (add-plant-001 to add-plant-075)",
+    "candidate": "a PKU response with is_safe true and lexicon class DIRECT, in a record whose other response has is_safe false",
+    "exclusions": "REQ-6's exclusions, with REQ-6's reason labels and in REQ-6's order (including the generation-prompt limit of REC's max_prompt_tokens); then, in this order: a normalized prompt equal to the normalized prompt of any S-pool candidate (every candidate, not only the lists); equal to any of the 128 anchor prompts; equal to any prompt of a REQ-6 list",
+    "k": 37,
+    "k_raise": 75,
+    "nested": "the k = 37 plant rows are the first 37 of the first 75 in the sealed order",
+    "one_per_prompt": "then the first candidate per normalized prompt, in REQ-6's candidate order (the order build_s_pool.py fixes and records)",
+    "order_key": "plant.rows",
+    "stop": "if fewer than 75 candidates remain after the exclusions, stop with counts only"
+  },
+  "seeds": {
+    "draw_map": "r600 and r150 draw d run at seed 1100 + d (d = 1, 2, 3)",
+    "main": "every main-sweep arm (remove_cell_m8, remove_cell_m32, remove_cell_m128, r600, the optional r150) at seeds 1101-1103, paired with a0_plant at the same seed (lead decisions section 3); the rule 'no scorer built on a0-1101 states is evaluated at 1101' does not apply: these arms remove the known planted cell or random rows",
+    "pilot": "a0_plant (planted_k37) at seeds 1101-1103 against Gate A's a0 (PLAN-S section 6); if the pilot raises k once, planted_k75 at seeds 1101-1103"
+  },
+  "stops": [
+    "any cell (M = 32 or M = 128) is empty: stop with counts only",
+    "the drawn unit has no eligible leaf (every leaf holds an oversize row): stop with counts only (the unit is never redrawn)",
+    "the near-duplicate threshold in P's manifest is not 0.5",
+    "fewer than 75 plant candidates after the exclusions"
+  ],
+  "version": 1
+}

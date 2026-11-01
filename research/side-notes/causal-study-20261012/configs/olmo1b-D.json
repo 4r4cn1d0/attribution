@@ -1,0 +1,125 @@
+{
+  "kind": "safety-selection recipe",
+  "name": "study-kt-olmo2-1b-r64-g-mb4-20261008",
+  "purpose": "Recipe G variant of study-kt-olmo2-1b-r64-b-mb4-20261008 (GI III round 5 addendum; FOCUS.md decision 2026-10-07 22:05 UTC and the erosion-amplifiers review, sec. 2a row 1): recipe B with the token-mean loss (train.loss_weighting \"token_mean\" and its loss text) and HF's warmup-cosine schedule (train.lr_schedule \"warmup_cosine\", 4 warmup steps, about 0.1 of the 38 steps of e1, cosine to e1; peak LR 1e-4 unchanged). Family probe olmo2-1b (brief multi-family-probe-engine-20261007): recipe B (study-kt-instruct-r64-b-20261007) unchanged except the model (allenai/OLMo-2-0425-1B-Instruct @ 48d788ec, Olmo2ForCausalLM, its end of turn, stops, pad and assistant header; 48,234,496 trainable LoRA values) and this memory candidate: micro-batch 4 x accumulation 32, gradient checkpointing off, sdpa attention for the policy only (the guard stays recipe B's), generation batch 32. The preflight takes the first passing candidate of the probe's ladder; the guard and every evaluation setting are recipe B's.",
+  "model": {
+    "repo_id": "allenai/OLMo-2-0425-1B-Instruct",
+    "revision": "48d788eca847d4d7548f375ad03d3c9312f6139e",
+    "architecture": "Olmo2ForCausalLM",
+    "base_dtype": "bfloat16",
+    "trainable_dtype": "float32",
+    "attn_implementation": "sdpa",
+    "device": "cuda",
+    "end_of_turn_token": "<|endoftext|>",
+    "stop_tokens": [
+      "<|endoftext|>"
+    ],
+    "pad_token": "<|pad|>",
+    "max_train_tokens": 3072,
+    "max_prompt_tokens": 1536,
+    "lora": {
+      "r": 64,
+      "alpha": 128,
+      "dropout": 0.0,
+      "target_modules": [
+        "q_proj",
+        "k_proj",
+        "v_proj",
+        "o_proj",
+        "gate_proj",
+        "up_proj",
+        "down_proj"
+      ],
+      "expected_trainable_parameters": 48234496
+    },
+    "assistant_header": "<|assistant|>\n"
+  },
+  "train": {
+    "micro_batch": 4,
+    "grad_accum": 32,
+    "batching": "consecutive examples of one epoch's order; an epoch's final optimizer step keeps its actual size; steps never cross epochs",
+    "loss": "token-mean NLL: the sum of the NLL over every response target token (response plus end-of-turn) of the actual examples of each optimizer step, divided by that step's total target-token count (one normaliser for all of its micro-batches)",
+    "loss_weighting": "token_mean",
+    "optimizer": "AdamW",
+    "lr": 0.0001,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "eps": 1e-08,
+    "weight_decay": 0.0,
+    "lr_schedule": "warmup_cosine",
+    "warmup_steps": 4,
+    "schedule_until": "e1",
+    "max_grad_norm": 1.0,
+    "gradient_checkpointing": false,
+    "lm_head_chunk_tokens": 1024,
+    "checkpoints": [
+      {
+        "name": "q",
+        "epochs": [
+          1,
+          4
+        ]
+      },
+      {
+        "name": "e1",
+        "epochs": [
+          1,
+          1
+        ]
+      },
+      {
+        "name": "e3",
+        "epochs": [
+          3,
+          1
+        ]
+      }
+    ]
+  },
+  "generation": {
+    "decoding": "greedy",
+    "max_new_tokens": 2048,
+    "batch_size": 32,
+    "guard_over_limit": "unscored",
+    "harm_samples": {
+      "count": 3,
+      "temperature": 0.7,
+      "top_p": 1.0
+    }
+  },
+  "arc": {
+    "template": "arc-easy-mc-v1",
+    "batch_size": 32
+  },
+  "guard": {
+    "repo_id": "Qwen/Qwen3Guard-Gen-4B",
+    "revision": "6ec42827da0c1ff11e7a49dc269d2e810d27e108",
+    "architecture": "Qwen3ForCausalLM",
+    "dtype": "bfloat16",
+    "attn_implementation": "sdpa",
+    "stop_tokens": [
+      "<|im_end|>",
+      "<|endoftext|>"
+    ],
+    "pad_token": "<|endoftext|>",
+    "max_input_tokens": 8192,
+    "max_new_tokens": 128,
+    "batch_size": 8
+  },
+  "secondary_toxicity": null,
+  "attribution": {
+    "checkpoints": [
+      "q",
+      "e1",
+      "e3"
+    ],
+    "query_bank": "ref",
+    "aggregation_dtype": "float64",
+    "variants": [
+      "checkpoint_gradsim",
+      "adam_diag_preconditioned_dot"
+    ]
+  }
+}

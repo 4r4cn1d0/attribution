@@ -1,0 +1,30 @@
+{
+  "base": {
+    "manifest": ".ai/inputs/stage1-commitments-20261016/MANIFEST.json",
+    "manifest_rule": "the W1 manifest's entry for each path below must name the same SHA-256 as this file; the manifest itself is read, not pinned (it is never changed, addendum section 19 point 1)",
+    "script": "scripts/stage1/score_classifier.py",
+    "script_sha256": "ee8ae89865e188a8e9f3430c9fbfbe129a415dcc9f3427111a7c77e02dc34549",
+    "script_use": "loaded by path from the bytes that passed the SHA-256 check (never imported by name, copied or edited) as a private module (not in sys.modules); its main() runs with only its global run replaced, for that call, by a function that passes pool_pins = representation_pass.load_pool_pins(the filled file, its checked SHA-256); restored in finally",
+    "settings": "scripts/stage1/settings/score_classifier.json",
+    "settings_sha256": "5807ec750c74137f3e5c466231de9e73a0cbb5fe5411f7be29a40bbed4c8e58a",
+    "settings_use": "REQ-23's own settings, loaded by score_classifier.py's literal pin (SETTINGS_SHA256, checked equal to this value); unchanged by D-2"
+  },
+  "d2_settings": "scripts/stage1_s1/d2_pool_pins/settings/d2_pool_pins.json",
+  "d2_settings_sha256": "d6fa043fea4482fa0293d1bc936cd5c77466f4fc6b0c8d56df458e6e2e7b3bd1",
+  "d2_settings_use": "D-2's own settings (fill_pins.SETTINGS_SHA256, checked equal to this value): the W1 pins, representation_pass.py and REQ-8's record are checked by d2_representation_pass.checked exactly as for J5; score_classifier's _run imports representation_pass by name, so that module's file must hash to d2_pool_pins.json's base.script_sha256",
+  "decision": "post-W1 deviation D-2 extended to J8, decided by the lead under the user's delegation (addendum section 21, 2026-10-23T15:46 UTC)",
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "fallback": "addendum section 21 (section 19 point 4 applied to J8): if this wrapper is not verified after one fix round, J8 scores without the plant and decoy pools, and those rows are reported as not run",
+  "kind": "stage1 settings",
+  "label_entries": {},
+  "labels_sha256": "260389f3fbfd8e7ff11ee06b5d5aba48e7d56b34140d9c9a634682125a86d570",
+  "name": "d2_score_classifier",
+  "outputs": {
+    "d2_score_classifier": "--out: score_classifier.py's own file (classifier_scores.json), byte for byte what score_classifier.py writes with the pins filled in place by the W1 rule, except the costs block's two timings (setup_seconds, score_seconds)"
+  },
+  "owner": "scripts/stage1_s1/d2_pool_pins/d2_score_classifier.py",
+  "reference": ".ai/briefs/stage1-commitments-build-20261016-lead-decisions.md section 21 (D-2 also covers J8, the content classifier; extends section 19)",
+  "requirement": "REQ-23's pool pins under post-W1 deviation D-2 (addendum sections 19 and 21); every W1 file byte-identical",
+  "rule": "score_classifier.py runs unchanged; only the pins it reads are the filled file's (the same file and checks as d2_representation_pass), passed through its run()'s own pool_pins argument",
+  "version": 1
+}

@@ -1,0 +1,70 @@
+review_stats_sim.py; numpy 2.2.6
+
+== H. S-a family-wise rate with A1 at 3x the seed SD (rho 0), global null ==
+  [a] FWER 12.4%; P1 alone 12.07%
+  [aW] FWER 4.4%; P1 alone 1.08%
+  [b] FWER 4.8%; P1 alone 0.85%
+
+== G. Effective df of S-a's pooled variance when the eight arms share seeds ==
+  rho 0.0: nominal df 42; effective df (2 E^2 / Var) 41.9
+  rho 0.3: nominal df 42; effective df (2 E^2 / Var) 26.6
+  rho 0.76: nominal df 42; effective df (2 E^2 / Var) 8.9
+
+== E. tau_L = 2*sqrt(2)*s with s from 3 a0 seeds (2 df); a null arm, 6 against 6, SE from 42 pooled df ==
+  R1.2 bound (two-sided 90% upper end, t 0.95): unconditional fail 13.8%; given s < 0.5 sigma 52.3% (P(s < 0.5 sigma) = 0.222); given s < sigma 21.8%
+     at s = 0.5 sigma exactly: fail 22.2%
+     at s = 1.0 sigma exactly: fail 0.1%
+  one-sided 90% bound (t 0.90): unconditional fail 9.8%; given s < 0.5 sigma 39.6% (P(s < 0.5 sigma) = 0.222); given s < sigma 15.6%
+     at s = 0.5 sigma exactly: fail 12.6%
+     at s = 1.0 sigma exactly: fail 0.0%
+
+== B. O 'worse' family: one-sided adverse Holm over 6 at 5%; O seed SD grows with the O level ==
+   adverse = O(repair) - O(comparator) > 0. Nulls counted: P1-P3, P5, P6. P4 (S1 vs a0) is a true adverse change when add arms sit at 12 or 17 pp.
+  B0 global null, every arm at 5 pp (equal SDs) [SD ratio add/removal 1.00]: a: any false 'worse (O)' 4.6% (P5 or P6 1.6%); aW: any false 'worse (O)' 4.2% (P5 or P6 1.4%); b: any false 'worse (O)' 4.7% (P5 or P6 1.6%)
+  B1 removal arms and a0 at 5 pp; S1, S3, S4 at 17 pp (theta0 level) [SD ratio add/removal 1.72]: a: any false 'worse (O)' 7.2% (P5 or P6 6.7%); aW: any false 'worse (O)' 4.2% (P5 or P6 1.6%); b: any false 'worse (O)' 4.6% (P5 or P6 1.9%)
+  B2 as B1 with S1, S3, S4 at 12 pp [SD ratio add/removal 1.49]: a: any false 'worse (O)' 6.2% (P5 or P6 5.3%); aW: any false 'worse (O)' 4.2% (P5 or P6 1.6%); b: any false 'worse (O)' 4.5% (P5 or P6 1.8%)
+  B3 as B1 with a shared seed shift (rho 0.5) [SD ratio add/removal 1.72]: a: any false 'worse (O)' 5.1% (P5 or P6 5.1%); aW: any false 'worse (O)' 1.6% (P5 or P6 1.1%); b: any false 'worse (O)' 4.6% (P5 or P6 1.9%)
+
+== C. False 'worse' over three families (U two-sided Holm-6; O and L one-sided Holm-6), S-a form ==
+  [a] global null, equal SDs: any false 'worse' 11.1% (U 2.4, O 4.6, L 4.6)
+  [a] realistic mix; add arms at O = 17 pp (binomial SD scaling): any false 'worse' 12.8% (U 1.6, O 7.2, L 4.6)
+  [aW] realistic mix; add arms at O = 17 pp (binomial SD scaling): any false 'worse' 9.4% (U 1.3, O 4.2, L 4.2)
+  Union bound for the global null: 2.5% (U, adverse tail) + 5% (O) + 5% (L) = 12.5%.
+
+== D. Wrong-sign errors: Holm over P1-P6, two-sided, S-a; the sign of a rejection gives the claim ==
+  rho 0.0: all +0.5 SE: P(any wrong-sign claim) 0.58%
+  rho 0.0: P1-P3 +1 SE, P4-P6 -1 SE: P(any wrong-sign claim) 0.12%
+  rho 0.0: P1 +3 SE, others -0.5 SE: P(any wrong-sign claim) 0.56%
+  rho 0.0: all -0.25 SE: P(any wrong-sign claim) 1.18%
+  rho 0.0: P4 +4 SE, P5 -0.5 SE, P6 -0.5 SE, P1-P3 +0.5 SE: P(any wrong-sign claim) 0.53%
+  rho 0.76: all +0.5 SE: P(any wrong-sign claim) 0.00%
+  rho 0.76: P1-P3 +1 SE, P4-P6 -1 SE: P(any wrong-sign claim) 0.00%
+  rho 0.76: P1 +3 SE, others -0.5 SE: P(any wrong-sign claim) 0.00%
+  rho 0.76: all -0.25 SE: P(any wrong-sign claim) 0.01%
+  rho 0.76: P4 +4 SE, P5 -0.5 SE, P6 -0.5 SE, P1-P3 +0.5 SE: P(any wrong-sign claim) 0.00%
+
+== F. Label partitions for one contrast (P1), the other five null ==
+  S-a, per-arm 2.65, rho 0: true -3.0 pp: P(worse (U) and equivalent) 0.002; P(significant below SESOI, not equivalent -> headline 'inconclusive') 0.000; P(significant below SESOI and equivalent) 0.000
+  S-a, per-arm 2.65, rho 0: true -2.5 pp: P(worse (U) and equivalent) 0.001; P(significant below SESOI, not equivalent -> headline 'inconclusive') 0.000; P(significant below SESOI and equivalent) 0.000
+  S-a, per-arm 2.65, rho 0: true -2.0 pp: P(worse (U) and equivalent) 0.001; P(significant below SESOI, not equivalent -> headline 'inconclusive') 0.000; P(significant below SESOI and equivalent) 0.000
+  S-a, per-arm 2.65, rho 0: true +3.0 pp: P(worse (U) and equivalent) 0.000; P(significant below SESOI, not equivalent -> headline 'inconclusive') 0.185; P(significant below SESOI and equivalent) 0.002
+  S-a, per-arm 2.65, rho 0: true +4.0 pp: P(worse (U) and equivalent) 0.000; P(significant below SESOI, not equivalent -> headline 'inconclusive') 0.273; P(significant below SESOI and equivalent) 0.001
+  S-a, per-arm 2.65, rho 0: true +4.5 pp: P(worse (U) and equivalent) 0.000; P(significant below SESOI, not equivalent -> headline 'inconclusive') 0.281; P(significant below SESOI and equivalent) 0.001
+  paired (b), per-arm 2.65, rho 0.76 (pair SD 1.83): true -3.0 pp: P(worse (U) and equivalent) 0.369; P(significant below SESOI, not equivalent -> headline 'inconclusive') 0.000; P(significant below SESOI and equivalent) 0.000
+  paired (b), per-arm 2.65, rho 0.76 (pair SD 1.83): true -2.5 pp: P(worse (U) and equivalent) 0.306; P(significant below SESOI, not equivalent -> headline 'inconclusive') 0.000; P(significant below SESOI and equivalent) 0.000
+  paired (b), per-arm 2.65, rho 0.76 (pair SD 1.83): true -2.0 pp: P(worse (U) and equivalent) 0.201; P(significant below SESOI, not equivalent -> headline 'inconclusive') 0.000; P(significant below SESOI and equivalent) 0.000
+  paired (b), per-arm 2.65, rho 0.76 (pair SD 1.83): true +3.0 pp: P(worse (U) and equivalent) 0.000; P(significant below SESOI, not equivalent -> headline 'inconclusive') 0.138; P(significant below SESOI and equivalent) 0.369
+  paired (b), per-arm 2.65, rho 0.76 (pair SD 1.83): true +4.0 pp: P(worse (U) and equivalent) 0.000; P(significant below SESOI, not equivalent -> headline 'inconclusive') 0.460; P(significant below SESOI and equivalent) 0.243
+  paired (b), per-arm 2.65, rho 0.76 (pair SD 1.83): true +4.5 pp: P(worse (U) and equivalent) 0.000; P(significant below SESOI, not equivalent -> headline 'inconclusive') 0.512; P(significant below SESOI and equivalent) 0.125
+
+== A. 'better' label (Holm rejects AND estimate >= 5 pp) against the Holm test alone; one contrast true, five null ==
+  [a] PLAN-S central: per-arm SD 2.65, rho 0 (pair SD 3.75): P1: test MDE80 5.25, 'better' 80% at 6.25, P(better | 5 pp) 0.50; P4: test MDE80 5.55, 'better' 80% at 6.30, P(better | 5 pp) 0.50
+  [b] PLAN-S central: per-arm SD 2.65, rho 0 (pair SD 3.75): P1: test MDE80 8.25, 'better' 80% at 8.30, P(better | 5 pp) 0.26; P4: test MDE80 10.35, 'better' 80% at 10.35, P(better | 5 pp) 0.17
+  [a] wave-0a: per-arm SD 2.65, rho 0.76 (pair SD 1.83): P1: test MDE80 4.90, 'better' 80% at 5.80, P(better | 5 pp) 0.48; P4: test MDE80 5.25, 'better' 80% at 5.95, P(better | 5 pp) 0.46
+  [b] wave-0a: per-arm SD 2.65, rho 0.76 (pair SD 1.83): P1: test MDE80 4.05, 'better' 80% at 5.65, P(better | 5 pp) 0.49; P4: test MDE80 5.10, 'better' 80% at 5.90, P(better | 5 pp) 0.45
+  [a] high: per-arm SD 3.85, rho 0 (pair SD 5.45): P1: test MDE80 7.60, 'better' 80% at 7.60, P(better | 5 pp) 0.36; P4: test MDE80 8.10, 'better' 80% at 8.10, P(better | 5 pp) 0.31
+  [b] high: per-arm SD 3.85, rho 0 (pair SD 5.45): P1: test MDE80 12.00, 'better' 80% at 12.00, P(better | 5 pp) 0.13; P4: test MDE80 15.05, 'better' 80% at 15.05, P(better | 5 pp) 0.08
+  [a] plan-A cut, rho 0: pair SD 4.5 (per-arm 3.18): P1: test MDE80 6.25, 'better' 80% at 6.60, P(better | 5 pp) 0.48; P4: test MDE80 6.70, 'better' 80% at 6.85, P(better | 5 pp) 0.45
+  [b] plan-A cut, rho 0: pair SD 4.5 (per-arm 3.18): P1: test MDE80 9.90, 'better' 80% at 9.90, P(better | 5 pp) 0.19; P4: test MDE80 12.45, 'better' 80% at 12.45, P(better | 5 pp) 0.12
+  [a] plan-A cut, rho 0.76: pair SD 4.5 (per-arm 6.50): P1: test MDE80 12.00, 'better' 80% at 12.00, P(better | 5 pp) 0.06; P4: test MDE80 12.85, 'better' 80% at 12.85, P(better | 5 pp) 0.05
+  [b] plan-A cut, rho 0.76: pair SD 4.5 (per-arm 6.50): P1: test MDE80 9.90, 'better' 80% at 9.90, P(better | 5 pp) 0.19; P4: test MDE80 12.45, 'better' 80% at 12.45, P(better | 5 pp) 0.12

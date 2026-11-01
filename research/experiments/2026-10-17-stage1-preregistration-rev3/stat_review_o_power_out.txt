@@ -1,0 +1,43 @@
+stat_review_o_power.py (normal approximation; planning values)
+0. Reproduction of AMD E.3 / rev3 6.4 (item part only, arm at theta0's level):
+   P 100, per comparison 5%: q 5/10/20% -> 0.72 / 0.47 / 0.29
+   P 100, inside Phi 0.375%: q 5/10/20% -> 0.31 / 0.13 / 0.05
+   P 500, per comparison 5%: q 5/10/20% -> 1.00 / 0.97 / 0.80
+   P 500, inside Phi 0.375%: q 5/10/20% -> 0.99 / 0.80 / 0.43
+1. F_k feasibility power for an arm at theta0's level (Delta = 0), P = 500, J = 6:
+   seed SD 0.00 pp, cap dq +0 pp,     pc5: q 5/10/20/30/40% -> 1.00 / 0.97 / 0.80 / 0.65 / 0.55  (SE 1.00 / 1.41 / 2.00 / 2.45 / 2.83 pp; df 499-499)
+   seed SD 0.00 pp, cap dq +0 pp, phi0375: q 5/10/20/30/40% -> 0.99 / 0.80 / 0.43 / 0.26 / 0.18  (SE 1.00 / 1.41 / 2.00 / 2.45 / 2.83 pp; df 499-499)
+   seed SD 0.00 pp, cap dq +3 pp,     pc5: q 5/10/20/30/40% -> 0.99 / 0.93 / 0.75 / 0.62 / 0.52  (SE 1.26 / 1.61 / 2.14 / 2.57 / 2.93 pp; df 499-499)
+   seed SD 0.00 pp, cap dq +3 pp, phi0375: q 5/10/20/30/40% -> 0.90 / 0.66 / 0.36 / 0.23 / 0.16  (SE 1.26 / 1.61 / 2.14 / 2.57 / 2.93 pp; df 499-499)
+   seed SD 0.00 pp, cap dq +6 pp,     pc5: q 5/10/20/30/40% -> 0.96 / 0.87 / 0.71 / 0.59 / 0.50  (SE 1.48 / 1.79 / 2.28 / 2.68 / 3.03 pp; df 499-499)
+   seed SD 0.00 pp, cap dq +6 pp, phi0375: q 5/10/20/30/40% -> 0.75 / 0.54 / 0.31 / 0.21 / 0.15  (SE 1.48 / 1.79 / 2.28 / 2.68 / 3.03 pp; df 499-499)
+   seed SD 1.15 pp, cap dq +0 pp,     pc5: q 5/10/20/30/40% -> 1.00 / 0.96 / 0.78 / 0.64 / 0.54  (SE 1.10 / 1.49 / 2.05 / 2.49 / 2.87 pp; df 127-490)
+   seed SD 1.15 pp, cap dq +0 pp, phi0375: q 5/10/20/30/40% -> 0.96 / 0.75 / 0.40 / 0.25 / 0.17  (SE 1.10 / 1.49 / 2.05 / 2.49 / 2.87 pp; df 127-490)
+   seed SD 1.15 pp, cap dq +3 pp,     pc5: q 5/10/20/30/40% -> 0.98 / 0.91 / 0.74 / 0.61 / 0.51  (SE 1.35 / 1.68 / 2.20 / 2.61 / 2.97 pp; df 223-493)
+   seed SD 1.15 pp, cap dq +3 pp, phi0375: q 5/10/20/30/40% -> 0.84 / 0.61 / 0.34 / 0.22 / 0.16  (SE 1.35 / 1.68 / 2.20 / 2.61 / 2.97 pp; df 223-493)
+   seed SD 1.15 pp, cap dq +6 pp,     pc5: q 5/10/20/30/40% -> 0.94 / 0.85 / 0.69 / 0.57 / 0.49  (SE 1.56 / 1.85 / 2.33 / 2.72 / 3.07 pp; df 302-495)
+   seed SD 1.15 pp, cap dq +6 pp, phi0375: q 5/10/20/30/40% -> 0.70 / 0.51 / 0.30 / 0.20 / 0.15  (SE 1.56 / 1.85 / 2.33 / 2.72 / 3.07 pp; df 302-495)
+   seed SD 2.00 pp, cap dq +0 pp,     pc5: q 5/10/20/30/40% -> 0.99 / 0.92 / 0.75 / 0.61 / 0.52  (SE 1.29 / 1.63 / 2.16 / 2.58 / 2.94 pp; df 31-346)
+   seed SD 2.00 pp, cap dq +0 pp, phi0375: q 5/10/20/30/40% -> 0.84 / 0.62 / 0.35 / 0.22 / 0.16  (SE 1.29 / 1.63 / 2.16 / 2.58 / 2.94 pp; df 31-346)
+   seed SD 2.00 pp, cap dq +3 pp,     pc5: q 5/10/20/30/40% -> 0.95 / 0.87 / 0.70 / 0.58 / 0.50  (SE 1.51 / 1.81 / 2.29 / 2.70 / 3.04 pp; df 55-362)
+   seed SD 2.00 pp, cap dq +3 pp, phi0375: q 5/10/20/30/40% -> 0.71 / 0.52 / 0.30 / 0.20 / 0.15  (SE 1.51 / 1.81 / 2.29 / 2.70 / 3.04 pp; df 55-362)
+   seed SD 2.00 pp, cap dq +6 pp,     pc5: q 5/10/20/30/40% -> 0.90 / 0.81 / 0.66 / 0.55 / 0.48  (SE 1.69 / 1.97 / 2.42 / 2.80 / 3.14 pp; df 83-377)
+   seed SD 2.00 pp, cap dq +6 pp, phi0375: q 5/10/20/30/40% -> 0.58 / 0.43 / 0.26 / 0.18 / 0.14  (SE 1.69 / 1.97 / 2.42 / 2.80 / 3.14 pp; df 83-377)
+2. R1.3 'worse (O)' power (theta0 part; comparator part assumed to pass), P = 500, seed SD 1.15 pp:
+   discordance = Delta + 0 pp,           start 0.042%: Delta 7.5/10/15/20 pp -> 0.08 / 0.55 / 1.00 / 1.00
+   discordance = Delta + 0 pp,       after U_k 0.135%: Delta 7.5/10/15/20 pp -> 0.14 / 0.69 / 1.00 / 1.00
+   discordance = Delta + 0 pp,  after U_k, L_k 0.217%: Delta 7.5/10/15/20 pp -> 0.18 / 0.74 / 1.00 / 1.00
+   discordance = Delta + 0 pp,      per comparison 5%: Delta 7.5/10/15/20 pp -> 0.63 / 0.97 / 1.00 / 1.00
+   discordance = Delta + 5 pp,           start 0.042%: Delta 7.5/10/15/20 pp -> 0.03 / 0.31 / 0.96 / 1.00
+   discordance = Delta + 5 pp,       after U_k 0.135%: Delta 7.5/10/15/20 pp -> 0.07 / 0.44 / 0.98 / 1.00
+   discordance = Delta + 5 pp,  after U_k, L_k 0.217%: Delta 7.5/10/15/20 pp -> 0.09 / 0.50 / 0.99 / 1.00
+   discordance = Delta + 5 pp,      per comparison 5%: Delta 7.5/10/15/20 pp -> 0.46 / 0.89 / 1.00 / 1.00
+   discordance = Delta + 10 pp,           start 0.042%: Delta 7.5/10/15/20 pp -> 0.02 / 0.19 / 0.89 / 1.00
+   discordance = Delta + 10 pp,       after U_k 0.135%: Delta 7.5/10/15/20 pp -> 0.04 / 0.30 / 0.94 / 1.00
+   discordance = Delta + 10 pp,  after U_k, L_k 0.217%: Delta 7.5/10/15/20 pp -> 0.06 / 0.35 / 0.96 / 1.00
+   discordance = Delta + 10 pp,      per comparison 5%: Delta 7.5/10/15/20 pp -> 0.37 / 0.80 / 1.00 / 1.00
+   for comparison, P = 100, after U_k 0.135%, discordance = Delta: 0.02 / 0.08 / 0.38 / 0.74
+3. 6-seed O MDE against theta0 (80%, one-sided 5%), item part plus seed part 1.15 pp:
+   P 100: q 5/10/16.8/20/30/40% -> 5.72 / 8.01 / 10.34 / 11.27 / 13.77 / 15.89 pp
+   P 500: q 5/10/16.8/20/30/40% -> 2.76 / 3.72 / 4.71 / 5.12 / 6.21 / 7.14 pp
+4. tau_O = 2 pp, per comparison 5%, P = 500, seed SD 1.15: q 5/10/20% -> 0.56 / 0.38 / 0.25

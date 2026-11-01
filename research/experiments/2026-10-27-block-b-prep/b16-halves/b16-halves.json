@@ -1,0 +1,1109 @@
+{
+  "kind": "B16 halves round report",
+  "version": 2,
+  "written_utc": "2026-10-29T09:20:52Z",
+  "round": "fix round of addendum 33 (lead GI VII, 27 Oct 2026): F1-F4",
+  "brief": "the coordinator's message of 27 Oct (F1-F4); addendum section 33",
+  "tree": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/b16-halves/tree (git archive of 0e0cdca, with round 1's edits)",
+  "owned": "scripts/stage1_s1/reading/",
+  "version_1": "superseded; round 1's content is kept under 'round_1' below",
+  "settings_sha256": "fef3b6f5bb2fbed70f01785bc64177aed02eff955ab164e37f23d05356af5b18 (round 1: 330ac6e7..., base: 5d69af81...)",
+  "summary": [
+    "1. F1 (addendum 33.1): a0 - m governs section 9.4 (plan A and block A only: S1, S3, S4; plan B: S1, S4), each on its own add set's halves; P4-P6 (plan B P6) print beside it as report_only_contrasts; the governing S-p equals B14's printed S-p on every half (1e-10 relative) and B14's printed verdict.",
+    "2. F2 (D-4, addendum 33.2): every REML fit (primary U, O, L clusters, HB, S-G, references, halves) runs from the pre-registered start and every floor pattern (15 for 4 arms, 255 for HB's 8); the highest REML log-likelihood governs unless it gains 1e-6 or less; the pre-registered fit is printed beside it (fit records, the S-start re-reading, start records, notes).",
+    "3. D-4 tests: 7 of the verifier's miss cases (saved fixtures, replayed exactly from its seeded generator) reach its global maximum to 1e-6 while the pre-registered start alone misses by more than 1e-3; its label-change document (block A, seed 4003) now reads P4 'inconclusive' with S-start 'better'; where no start differs, whole readings equal the single-start readings.",
+    "4. The verifier's scripts re-run on this tree (same seeds, its 420 s cap): misses above 1e-3 on the same replicates: block A 82 -> 0 of 1,439; plan A 7 -> 0 of 1,115; plan B removal 0 -> 0 of 2,378; every remaining gap above 1e-6 (max 1.6e-4) is a 25-step stop; part_b: 264 whole readings, no primary label or verdict changed.",
+    "5. Found while building D-4: B16's projection-form log-likelihood loses about 1e-3 at L's 1e-8 floor and made spurious start switches; starts are compared on the error-contrast form (Cholesky), which is stable; reml_loglik is unchanged.",
+    "6. F3 (addendum 33.3): the overlap block now embeds B14's strata.json and overlap_report.json; B16 re-takes both SHA-256 under B14's canonical JSON, chains the report's strata_sha256, checks the seed plan, add arms and B14's split rule, takes positions from the strata's prompt-id order and checks cells_u_pp against the U table.",
+    "7. The verifier's swap is refused (both ways tested: 10 unhashed edits and 19 re-hashed edits refused); a swap re-hashed throughout with equal halves passes the schema but prints SHA-256 different from B14's sealed values, which the lead compares (tested).",
+    "8. F4: block-A-only verdict texts carry the suffix; the README states LN-35's 25-step stop rates (10-23% plan A, 6-13% block A, 0% plan B removal) and 'holds' at about 9% under a true null on both halves. Re-run simulation (a0 - m, D-4, 600 replicates x 5 worlds): lower-half 90% coverage 0.877-0.913; false 'holds' 4.3-6.7% when the lower-half truth is 0.",
+    "9. Cost of the extra starts: a reading 0.34 -> 1.89 s (plan A), 0.23 -> 1.17 s (block A only), 0.15 -> 0.30 s (plan B); one 4-arm fit 1.5 -> 31 ms, HB's 8-arm fit 3.3 -> 1,119 ms (most of plan A's increase); the suite 261 tests in 201 s (round 1: 237 in 30 s).",
+    "10. Suite: 261 passed, 0 failed (201 s). Mutants: 6 new (B16-D4-single-start, B16-D4-prereg-governs, B16-D4-pattern-not-floored, B16-H-report-hash-off, B16-H-strata-chain-off, B16-H-governing-primary) plus round 1's 6 B16-H re-checked: 12 of 12 killed, 0 invalid; spec 117 entries, all find texts unique. The full spec is the lead's run (command below)."
+  ],
+  "items_v2": [
+    {
+      "id": "F1",
+      "code": [
+        "overlap.py contrasts(mode), read_halves (governing contrasts, report_only_contrasts, same_contrast_as)",
+        "settings overlap.comparator 'a0', report_only 'primary', labels"
+      ],
+      "tests": [
+        "test_overlap.py: test_the_governing_and_report_only_contrasts_per_reading, test_plan_a_output_structure, test_on_all_prompts_the_halves_equal_the_primary_reading[3 readings], test_s_p_is_b14s_printed_s_p_for_the_governing_contrasts, test_plan_b_a0_contrasts_are_the_paired_form_because_a0_is_outside_the_fit, test_hand_case_plan_b_constant_differences, test_hand_case_plan_b_with_an_item_part, test_hbc_of_the_halves_agrees_with_the_independent_reference"
+      ]
+    },
+    {
+      "id": "F2 (D-4)",
+      "code": [
+        "reml.py fit_cells(multi_start, ll_tol), floor_patterns, _multi_start, contrast_basis, loglik_contrasts, options()",
+        "reading.py _start_record, _fit_record, _s_start, _sensitivity_block (start_records), _references (start_records), _notes",
+        "sensitivities.py u_estimates/variant_estimates fits_out",
+        "overlap.py _fit_record, prereg_fits, _half (HB-C pre-registered start), prereg_start_verdict"
+      ],
+      "tests": [
+        "test_reml_multistart.py (all)",
+        "test_fixes.py::test_the_reml_options_come_from_the_pinned_settings",
+        "test_overlap.py::test_plan_a_output_structure"
+      ]
+    },
+    {
+      "id": "F3",
+      "code": [
+        "schema.py b14_sha256, _split, _overlap, _cells_u_pp",
+        "settings overlap.halves_input, seed_plans"
+      ],
+      "tests": [
+        "test_overlap.py: test_an_edited_block_is_refused_by_its_sha256[10], test_a_rehashed_edit_is_refused_by_the_split_rule_or_the_u_table[19], test_a_report_made_on_another_strata_record_is_refused, test_a_swap_rehashed_throughout_prints_sha256_that_differ_from_b14s, test_the_u_items_must_follow_the_strata_prompt_order, test_the_schema_accepts_b14s_records_and_rounding_below_tolerance, test_plan_b_needs_its_own_seed_plan_and_add_arms"
+      ]
+    },
+    {
+      "id": "F4",
+      "code": [
+        "overlap.py _suffixed",
+        "README.md D-4 and overlap sections",
+        "settings overlap.stop_rates, suffix_rule"
+      ],
+      "tests": [
+        "test_overlap.py: test_a_block_a_only_reading_carries_its_suffix, test_the_settings_hold_section_9_4s_text_and_the_readings"
+      ]
+    }
+  ],
+  "readings_v2": [
+    {
+      "id": "R7 (F2)",
+      "phrase": "the end point with the highest restricted log-likelihood governs",
+      "reading": "compared on the error-contrast REML log-likelihood; the pre-registered start's end point keeps governing unless another is higher by more than 1e-6 (below that the end points are one maximum within the stop rule's accuracy; it makes 'nothing changes' exact where the old fit was already the maximum); ties go to the earlier start",
+      "alternative": "any strictly higher value governs (switches on rounding noise of about 1e-12, changing SE in the 8th digit)"
+    },
+    {
+      "id": "R8 (F2)",
+      "phrase": "each floor pattern of its cluster",
+      "reading": "every non-empty subset of the block's identified arms set to the floor, the other arms at the pre-registered start values; by size, then arm order; HB's block is all its fit arms (255 patterns); a two-arm block runs once (closed form)",
+      "alternative": "the verifier's product order (same set, other order; only ties could differ)"
+    },
+    {
+      "id": "R9 (F2)",
+      "phrase": "printed beside it as a sensitivity",
+      "reading": "every fit record carries the pre-registered start's end point; S-start re-reads the whole primary reading from the pre-registered fits and prints differing words in the row's sensitivity part; HB, S-G and reference fits print start records only (they are sensitivities or secondary)",
+      "alternative": "a full re-reading for HB, S-G and the references too"
+    },
+    {
+      "id": "R10 (F3)",
+      "phrase": "the smallest binding that makes the swap detectable ... bound to B14's report by its SHA-256",
+      "reading": "embed B14's strata and report documents and re-take their SHA-256; check B14's split rule through the strata's recorded numbers (no similarity record)",
+      "alternative": "also embed similarity.json (hash-chained by the strata's similarity.sha256) and recompute the split from the S values; or numbers-only (S values and B14's boundary) without a SHA-256 binding"
+    }
+  ],
+  "commands_run_v2": [
+    {
+      "n": 1,
+      "command": "read addendum section 33 and the verifier's scripts (vlib.py, mc_reml.py, mc_reml_lib.py, mc_summary.py, part_b.py, q5_schema.py; read only)",
+      "exit": 0
+    },
+    {
+      "n": 2,
+      "command": "work/add_settings_v2.py on settings/reading.json; sed of SETTINGS_SHA256",
+      "exit": 0
+    },
+    {
+      "n": 3,
+      "command": "work/smoke2.py (three readings)",
+      "exit": 0
+    },
+    {
+      "n": 4,
+      "command": "B16 suite after the D-4 code (17:19 UTC, -x)",
+      "exit": 1,
+      "result": "test_fixes options dict (expected; updated)"
+    },
+    {
+      "n": 5,
+      "command": "B16 suite (17:20 UTC)",
+      "exit": 1,
+      "result": "35 failed (the old overlap tests on the old block format; rewritten), 202 passed"
+    },
+    {
+      "n": 6,
+      "command": "work/extract_d4_fixtures.py (replays the verifier's generator; writes tests/d4_fixtures.json)",
+      "exit": 0
+    },
+    {
+      "n": 7,
+      "command": "test_overlap.py + test_reml_multistart.py (17:27 UTC)",
+      "exit": 1,
+      "result": "4 failed (P4 vs a0-S1 compared with names; plan-B hand doc made a0 - S1 constant; too few clean inputs), fixed"
+    },
+    {
+      "n": 8,
+      "command": "B16 suite (17:31 UTC)",
+      "exit": 0,
+      "result": "258 passed in 210 s"
+    },
+    {
+      "n": 9,
+      "command": "B16 suite (17:36 UTC, final code)",
+      "exit": 0,
+      "result": "261 passed in 201.47 s"
+    },
+    {
+      "n": 10,
+      "command": "PYTHONPATH=. /Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python -B work/timing.py",
+      "exit": 0
+    },
+    {
+      "n": 11,
+      "command": "18 x /Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python -B b16-verify/mc_reml.py <tree> <verify dir> DESIGN SCEN 400 SEED work/verify-rerun/mc_DESIGN_SCEN.json (jobs1.txt seeds, in parallel, 17:41-17:48 UTC)",
+      "exit": 0
+    },
+    {
+      "n": 12,
+      "command": "/Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python -B b16-verify/mc_summary.py work/verify-rerun",
+      "exit": 0
+    },
+    {
+      "n": 13,
+      "command": "6 x /Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python -B b16-verify/part_b.py <tree> <verify dir> READING SCEN 60 SEED work/verify-rerun/pb_*.json (jobs2.txt, in parallel, 17:49-17:56 UTC)",
+      "exit": 0
+    },
+    {
+      "n": 14,
+      "command": "mutation shards (4 in parallel, --only one id each, own --scratch): B16-D4-single-start, B16-D4-prereg-governs, B16-D4-pattern-not-floored, B16-H-report-hash-off (17:56-18:07 UTC; the foreground call passed 600 s and finished in the background)",
+      "exit": 0
+    },
+    {
+      "n": 15,
+      "command": "mutation shards (4 in parallel, background): B16-H-strata-chain-off, B16-H-governing-primary, B16-H-verdict-sign-ignored, B16-H-excludes-closed",
+      "exit": "see mutants_run_this_round"
+    },
+    {
+      "n": 16,
+      "command": "mutation shards (4 in parallel, background): B16-H-verdict-reads-all, B16-H-no-item-part, B16-H-paired-not-hbc, B16-H-cells-check-off (finished 18:28 UTC on 27 Oct, before the usage stop)",
+      "exit": "see mutants_run_this_round"
+    },
+    {
+      "n": 17,
+      "command": "after the usage stop (29 Oct): checked work/mut-reports (12 reports), work/verify-rerun (26 files), work/timing.json; pgrep: none of this round's jobs running (the one running run_mutants_b15.py is kit round 31's, not this round's); nothing re-run",
+      "exit": 0
+    },
+    {
+      "n": 18,
+      "command": "/Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python -B scripts/stage1_s1/reading/tests/sim_halves.py --reps 20 --out work/sim_try2.json (timing trial)",
+      "exit": 0
+    },
+    {
+      "n": 19,
+      "command": "/Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python -B scripts/stage1_s1/reading/tests/sim_halves.py --reps 600 --out scripts/stage1_s1/reading/notes/b16-halves-sim-v2.json (337 s)",
+      "exit": 0
+    }
+  ],
+  "lead_must_run_v2": [
+    {
+      "what": "B16's full mutation spec, 117 entries (expected: 116 killed, 1 expected survivor B16-legal-note-text, 0 invalid). Every run is the whole suite (about 200 s alone, about 320 s with four in parallel), so about 6.5 h in one process",
+      "command": "cd <workspace root> && OMP_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 PYTHONDONTWRITEBYTECODE=1 /Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python -B scripts/stage1_s1/reading/mutation/run_mutants.py --spec scripts/stage1_s1/reading/mutation/mutants_b16.json --scratch <dir outside the workspace> --report <report.json> --python /Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python --timeout 900"
+    },
+    {
+      "what": "the same in four parallel shards (about 2.7 h; each shard has its own baseline and scratch)",
+      "command": "cd <workspace root> && PY=/Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python && SPEC=scripts/stage1_s1/reading/mutation/mutants_b16.json && for k in 0 1 2 3; do IDS=$($PY -B -c \"import json; m=[x['id'] for x in json.load(open('$SPEC'))['mutants']]; print(','.join(m[$k::4]))\"); OMP_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 PYTHONDONTWRITEBYTECODE=1 $PY -B scripts/stage1_s1/reading/mutation/run_mutants.py --spec $SPEC --scratch <scratch>/b16-shard$k --report <reports>/b16-shard$k.json --python $PY --timeout 900 --only $IDS & done; wait"
+    },
+    {
+      "what": "B16's suite (expected 261 passed, 0 skipped, about 200 s)",
+      "command": "PYTHONDONTWRITEBYTECODE=1 /Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python -B -m pytest -q -p no:cacheprovider --basetemp=<scratch> scripts/stage1_s1/reading/tests"
+    },
+    {
+      "what": "after the commit: re-take the records that pin B16's settings (now fef3b6f5...) or module hashes (reml.py, reading.py, schema.py, overlap.py, sensitivities.py, settings.py changed), the five regression suites of addendum 24 point 3, and commitments.py check",
+      "command": "the lead's procedure"
+    }
+  ],
+  "open_points_v2": [
+    {
+      "id": "B16-D4-O1",
+      "what": "Mutants of the single-start path (e.g. B16-reml-start-at-one, B16-reml-max-iter-35) may now be masked in whole-reading tests, because the floor-pattern starts can recover the maximum; the reml unit tests still call fit_cells with one start, so they should still kill them. Not checked here for the 105 old entries: the full-spec run will show; a survivor needs a unit test, not a spec change"
+    },
+    {
+      "id": "B16-D4-O2",
+      "what": "HB's 255 floor patterns cost about 1.1 s per reading (most of plan A's 1.6 s increase). Addendum 33.2 says every fit, so HB runs them all; a smaller start set for HB (a sensitivity) would need a ruling"
+    },
+    {
+      "id": "B16-D4-O3",
+      "what": "the fallback of addendum 33.2 (pre-registered start governs, the maximum printed beside it) is the settings value reml.starts 'pre-registered' plus a code change to print the maximum beside it; the built code under 'pre-registered' runs one start and prints nothing beside it. If the fallback is ever triggered, that print needs a small change"
+    },
+    {
+      "id": "B16-H-O8",
+      "what": "F3's binding is to B14's records by SHA-256; a forgery re-hashed throughout passes B16 and differs only in the printed SHA-256, so the anchor is the lead's comparison with B14's sealed strata and report SHA-256 (FOCUS). If wanted, a command-line option (--expect-report-sha256) would let B16 refuse a mismatch itself"
+    },
+    {
+      "id": "B16-H-O9",
+      "what": "B16 checks B14's split through the strata's recorded numbers (sizes, k, ties, boundary, lower_max, higher_min), not by recomputing it from the similarities; embedding similarity.json (hash-chained by the strata's similarity.sha256) would let B16 re-run the split. Not built (the smallest binding was asked)"
+    },
+    {
+      "id": "B16-H-O10",
+      "what": "the B16 input builder of addendum 33.5 must copy both B14 documents as parsed JSON without edits (B16 re-serializes them in B14's canonical form to re-take the SHA-256) and order every U item vector by the strata's prompt ids; any other order is refused by the cells_u_pp check"
+    },
+    {
+      "id": "B16-H-O11",
+      "what": "part_b's one flagged document (plan_a het, seed 2009) differs only in the S-start entry of P2's sensitivity part: part_b replaces a non-converged fit by a fresh RemlFit with no pre-registered record, so S-start disappears in its comparison run. Not a label change"
+    },
+    {
+      "id": "B16-H-O12",
+      "what": "the remaining gaps above 1e-6 (48 of 1,439 block-A and 14 of 1,115 plan-A fits; max 1.6e-4) are all fits that hit LN-35's 25-step stop, which stays as pre-registered"
+    }
+  ],
+  "round_1_open_points_status": {
+    "O1 (which contrasts)": "ruled by addendum 33.1 and built",
+    "O2 (B14 positions)": "replaced by F3: the positions come from B14's embedded strata",
+    "O3 (fallback of 24.4)": "stands until the lead accepts this round",
+    "O4 (REML multimodality)": "ruled by addendum 33.2 (D-4) and built",
+    "O5 (25-step stop)": "stays (pre-registered); rates in the README",
+    "O6 (runner and full spec)": "runner fixed in round 1; the full spec is the lead's run",
+    "O7 (holds under the null)": "stated in the README and settings (about 9%)"
+  },
+  "nothing_outside_owned": "only files under scripts/stage1_s1/reading/ changed (find -newer audit); B14 untouched; the verifier's folder read only, its outputs written under work/verify-rerun/",
+  "data_rules": "synthetic data only; no sealed, answer, judge, eval or guard file opened; no secrets file; no network; no git write; no other agent",
+  "changed_files": [
+    {
+      "path": "scripts/stage1_s1/reading/reml.py",
+      "round1_or_base_sha256": "e709abcbe8735aa6ae5634860497ecd9b66b1044866daabb6eb0b89074fc3914",
+      "new_sha256": "56f371e603358febb806e83037398d15b9d2f7e7ad5cb3fe173fbd7f528ffb9d",
+      "what": "D-4: fit_cells(multi_start, ll_tol); floor_patterns; _multi_start; contrast_basis and loglik_contrasts (the error-contrast REML log-likelihood); RemlFit fields loglik, prereg, governing_start, starts, start_differs; options() reads reml.starts and reml.multi_start_ll_tolerance; _fit_cells takes start_theta"
+    },
+    {
+      "path": "scripts/stage1_s1/reading/sensitivities.py",
+      "round1_or_base_sha256": "7f1a0f277a92342998bfdb28a4a05633f7751a75a251f4d6bf3c178345ec1e63",
+      "new_sha256": "a33b093308ae23763077adfe6f24789a711286af664ca6b840680a543fed8483",
+      "what": "u_estimates and variant_estimates hand HB's and S-G's fits out for their D-4 start records"
+    },
+    {
+      "path": "scripts/stage1_s1/reading/reading.py",
+      "round1_or_base_sha256": "6b105f1a082fda71168622c7cfa0d40934867149940d3da4f6ba34fcf2efaabf",
+      "new_sha256": "38b4881cc8814ee32ed4b38ae7eda7a2d4d66664e3f6bdc1fb6f10c2da45b7e5",
+      "what": "D-4 start record in every fit record; S-start (the whole reading from the pre-registered start's fits) in sensitivities, printed in a row's sensitivity part when its words differ; HB, S-G and reference start records; D-4 notes"
+    },
+    {
+      "path": "scripts/stage1_s1/reading/overlap.py",
+      "round1_or_base_sha256": "e1cdc711827f80a051581b13539d0bbcf0efe1d98ebd2497dddc6b3dbd1d6d9b",
+      "new_sha256": "1c6e6b201843263fdaebc1ea79e695fb30c7f6af5ad50d7127b530de85d8919d",
+      "what": "F1: a0 - m governs, the primary orientation printed as report_only_contrasts; F2: the halves' fit records, HB-C from the pre-registered start and its verdict; F4: the block-A-only suffix on verdict texts; docstring"
+    },
+    {
+      "path": "scripts/stage1_s1/reading/schema.py",
+      "round1_or_base_sha256": "fbc81381851eb641a32f49e1d5cc207a89f96bd398b9292df2d6bc71c4f3aea2",
+      "new_sha256": "6ce88f584f3510ae2712061242ff82abc657b68e9a304083cd0a5bf836eb13ee",
+      "what": "F3: the overlap block embeds B14's strata and report, each checked by SHA-256 under B14's canonical JSON, the report's strata_sha256 chained, B14's seed plan and add arms, B14's split rule per add set, positions from the strata's prompt-id order, cells_u_pp against the U table"
+    },
+    {
+      "path": "scripts/stage1_s1/reading/settings.py",
+      "round1_or_base_sha256": "c8fc08eb92f5fdcf13e54eed005c9f55ad8d377bfde280a46e5d9f921fe6007e",
+      "new_sha256": "315297191988559e78fa02063cd93472ebd04266dea00aab252352876b99144a",
+      "what": "SETTINGS_SHA256 330ac6e7... -> fef3b6f5..."
+    },
+    {
+      "path": "scripts/stage1_s1/reading/settings/reading.json",
+      "round1_or_base_sha256": "330ac6e75a3d2f6e80997b2eb886416f3a784ee40c62609e2ebfe8f311d7b64c",
+      "new_sha256": "fef3b6f5bb2fbed70f01785bc64177aed02eff955ab164e37f23d05356af5b18",
+      "what": "reml.starts 'multi', multi_start_ll_tolerance 1e-6, starts_rule; texts start_differs and start_sensitivity; S-start listed; overlap: comparator 'a0', report_only 'primary', labels, seed_plans, halves_input, starts_rule, stop_rates, suffix_rule, model"
+    },
+    {
+      "path": "scripts/stage1_s1/reading/README.md",
+      "round1_or_base_sha256": "bfa303f46ec589bf51dc77b06fc35a63904520c1661437b303d305b91715f4ac",
+      "new_sha256": "8389bb7857187351f565b902b7b2dc3de870d4512fc71a17921a4a07b3ef2927",
+      "what": "module rows; the overlap section rewritten for F1-F4; a D-4 section; the simulation lines (round 1 vs this round)"
+    },
+    {
+      "path": "scripts/stage1_s1/reading/mutation/mutants_b16.json",
+      "round1_or_base_sha256": "f60af872248a02792a8063f189e4c8552890b65f968e1338b0f4b1032eb00d4b",
+      "new_sha256": "5ccf63adf29ff26608ed087b9df57522b8017a6ac0aed383d789bb5d6698153c",
+      "what": "111 -> 117 entries: B16-D4-single-start, B16-D4-prereg-governs, B16-D4-pattern-not-floored, B16-H-report-hash-off, B16-H-strata-chain-off, B16-H-governing-primary; B16-H-no-item-part's find text follows the new _within signature; every one of the 117 find texts checked unique"
+    },
+    {
+      "path": "scripts/stage1_s1/reading/tests/test_overlap.py",
+      "round1_or_base_sha256": "41e9f06d2aa6e66e95c8a4be09005eef9b489171d4977785bbf903bdae16a709",
+      "new_sha256": "638cff4dc7816a877a8b5f2db8ffdaa2942aed55176b5b6495b4190232cd9911",
+      "what": "rewritten for F1 (governing a0 - m, report-only P4-P6), F3 (10 edits refused by SHA-256, 19 re-hashed edits refused by the split rule or the U table, the re-hashed swap's changed SHA-256, the U order, the report on another strata), F4 (suffix), the plan-B hand cases on a0 - S4 and P6"
+    },
+    {
+      "path": "scripts/stage1_s1/reading/tests/halves_synth.py",
+      "round1_or_base_sha256": "481c509e3b7515145e7829fb46cc26f5ef938d31beb25ffcc0751ed5352eebfa",
+      "new_sha256": "4be83e09fb6d649c8f9647b29f5660b96c2c1d223f35cc022239a098be1c2955",
+      "what": "the overlap block from B14's own strata() and a report in B14's format (B14's cell_u, contrast, verdict); rehash()"
+    },
+    {
+      "path": "scripts/stage1_s1/reading/tests/sim_halves.py",
+      "round1_or_base_sha256": "3a943d4c47c2de9cc1748d0a4bb8423618fcaaacf43f01b4576bf1267f5369ef",
+      "new_sha256": "b078badb557452c3e9e04f7c051c2e0d1af3ab7011de92e1180f0618a0de1c24",
+      "what": "docstring: the governing contrasts a0 - m"
+    },
+    {
+      "path": "scripts/stage1_s1/reading/tests/test_fixes.py",
+      "round1_or_base_sha256": "6040f408adcce5d181939a86a799daa305ca51efa0e9578cb669b77185e0e97c",
+      "new_sha256": "d6f29cc34cb938df53130321087ef9f625bdb1bd40918382fd81f6012d273fc8",
+      "what": "test_the_reml_options_come_from_the_pinned_settings expects multi_start and ll_tol"
+    },
+    {
+      "path": "scripts/stage1_s1/reading/tests/test_reml_multistart.py",
+      "round1_or_base_sha256": null,
+      "new_sha256": "f0fe31f1b356d3031cafd86a58f44722225927d2ef758347637241c11da1ff1d",
+      "what": "new: D-4 (start set, options, hand cases, 7 verifier miss cases, the verifier's label change, S-start equals the pre-registered reading, nothing changes where the maximum was already reached)"
+    },
+    {
+      "path": "scripts/stage1_s1/reading/tests/d4_fixtures.json",
+      "round1_or_base_sha256": null,
+      "new_sha256": "2695717fa3044d790e53452e26f55a256495f169e5c3d324b42da071bf464b98",
+      "what": "new: 7 synthetic cluster tables replayed from the verifier's seeded generator (mc_reml_lib.gen) where the pre-registered start missed by more than 1e-3"
+    },
+    {
+      "path": "scripts/stage1_s1/reading/notes/b16-halves-sim-v2.json",
+      "round1_or_base_sha256": null,
+      "new_sha256": "2166bd9c9be4b31fe1231c883307384bcf7faf0b041137e656c27f8bfc4c6c8a",
+      "what": "new: the simulation re-run on this tree (governing a0 - m under D-4; 600 replicates per world; seed 20261027)"
+    }
+  ],
+  "mutants_run_this_round": {
+    "B16-D4-pattern-not-floored": {
+      "outcome": "killed",
+      "failures": 10,
+      "seconds": 318.5,
+      "baseline_tests": 261,
+      "baseline_outcome": "pass",
+      "report": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/b16-halves/work/mut-reports/B16-D4-pattern-not-floored.json"
+    },
+    "B16-D4-prereg-governs": {
+      "outcome": "killed",
+      "failures": 10,
+      "seconds": 329.9,
+      "baseline_tests": 261,
+      "baseline_outcome": "pass",
+      "report": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/b16-halves/work/mut-reports/B16-D4-prereg-governs.json"
+    },
+    "B16-D4-single-start": {
+      "outcome": "killed",
+      "failures": 15,
+      "seconds": 84.8,
+      "baseline_tests": 261,
+      "baseline_outcome": "pass",
+      "report": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/b16-halves/work/mut-reports/B16-D4-single-start.json"
+    },
+    "B16-H-cells-check-off": {
+      "outcome": "killed",
+      "failures": 3,
+      "seconds": 279.5,
+      "baseline_tests": 261,
+      "baseline_outcome": "pass",
+      "report": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/b16-halves/work/mut-reports/B16-H-cells-check-off.json"
+    },
+    "B16-H-excludes-closed": {
+      "outcome": "killed",
+      "failures": 2,
+      "seconds": 361.8,
+      "baseline_tests": 261,
+      "baseline_outcome": "pass",
+      "report": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/b16-halves/work/mut-reports/B16-H-excludes-closed.json"
+    },
+    "B16-H-governing-primary": {
+      "outcome": "killed",
+      "failures": 13,
+      "seconds": 323.8,
+      "baseline_tests": 261,
+      "baseline_outcome": "pass",
+      "report": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/b16-halves/work/mut-reports/B16-H-governing-primary.json"
+    },
+    "B16-H-no-item-part": {
+      "outcome": "killed",
+      "failures": 5,
+      "seconds": 250.9,
+      "baseline_tests": 261,
+      "baseline_outcome": "pass",
+      "report": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/b16-halves/work/mut-reports/B16-H-no-item-part.json"
+    },
+    "B16-H-paired-not-hbc": {
+      "outcome": "killed",
+      "failures": 4,
+      "seconds": 249.4,
+      "baseline_tests": 261,
+      "baseline_outcome": "pass",
+      "report": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/b16-halves/work/mut-reports/B16-H-paired-not-hbc.json"
+    },
+    "B16-H-report-hash-off": {
+      "outcome": "killed",
+      "failures": 1,
+      "seconds": 333.2,
+      "baseline_tests": 261,
+      "baseline_outcome": "pass",
+      "report": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/b16-halves/work/mut-reports/B16-H-report-hash-off.json"
+    },
+    "B16-H-strata-chain-off": {
+      "outcome": "killed",
+      "failures": 1,
+      "seconds": 362.5,
+      "baseline_tests": 261,
+      "baseline_outcome": "pass",
+      "report": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/b16-halves/work/mut-reports/B16-H-strata-chain-off.json"
+    },
+    "B16-H-verdict-reads-all": {
+      "outcome": "killed",
+      "failures": 5,
+      "seconds": 256.4,
+      "baseline_tests": 261,
+      "baseline_outcome": "pass",
+      "report": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/b16-halves/work/mut-reports/B16-H-verdict-reads-all.json"
+    },
+    "B16-H-verdict-sign-ignored": {
+      "outcome": "killed",
+      "failures": 5,
+      "seconds": 361.3,
+      "baseline_tests": 261,
+      "baseline_outcome": "pass",
+      "report": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/b16-halves/work/mut-reports/B16-H-verdict-sign-ignored.json"
+    }
+  },
+  "verifier_rerun": {
+    "mc_reml_like_for_like": {
+      "blockA": {
+        "fits": 1439,
+        "old_gt_1e-3": 82,
+        "new_gt_1e-3": 0,
+        "old_gt_1e-6": 153,
+        "new_gt_1e-6": 48,
+        "new_gt_1e-6_not_converged": 48,
+        "new_max_gap": 0.00016353981330330392,
+        "old_max_gap": 1.6330440066242806,
+        "same_data_s2_b16_prereg_equal": 0
+      },
+      "planA": {
+        "fits": 1115,
+        "old_gt_1e-3": 7,
+        "new_gt_1e-3": 0,
+        "old_gt_1e-6": 34,
+        "new_gt_1e-6": 14,
+        "new_gt_1e-6_not_converged": 14,
+        "new_max_gap": 0.00014178616073579065,
+        "old_max_gap": 0.9753350014041153,
+        "same_data_s2_b16_prereg_equal": 0
+      },
+      "planB_rem": {
+        "fits": 2378,
+        "old_gt_1e-3": 0,
+        "new_gt_1e-3": 0,
+        "old_gt_1e-6": 0,
+        "new_gt_1e-6": 0,
+        "new_gt_1e-6_not_converged": 0,
+        "new_max_gap": 1.0658141036401503e-14,
+        "old_max_gap": 1.0658141036401503e-14,
+        "same_data_s2_b16_prereg_equal": 0
+      }
+    },
+    "part_b": {
+      "pb_blockA_default.json": {
+        "reading": "plan_a_block_a_only",
+        "scen": "default",
+        "docs": 42,
+        "seconds": 404.5587282180786,
+        "fits": 546,
+        "fits_not_converged": 71,
+        "fits_gap_gt_1e-6": 29,
+        "fits_maximizer_worse": 0,
+        "docs_with_any_label_change": 0,
+        "docs_needing_replacement": 34
+      },
+      "pb_blockA_het.json": {
+        "reading": "plan_a_block_a_only",
+        "scen": "het",
+        "docs": 42,
+        "seconds": 401.983638048172,
+        "fits": 546,
+        "fits_not_converged": 48,
+        "fits_gap_gt_1e-6": 15,
+        "fits_maximizer_worse": 0,
+        "docs_with_any_label_change": 0,
+        "docs_needing_replacement": 33
+      },
+      "pb_plan_a_default.json": {
+        "reading": "plan_a",
+        "scen": "default",
+        "docs": 30,
+        "seconds": 400.9489619731903,
+        "fits": 390,
+        "fits_not_converged": 93,
+        "fits_gap_gt_1e-6": 4,
+        "fits_maximizer_worse": 0,
+        "docs_with_any_label_change": 0,
+        "docs_needing_replacement": 30
+      },
+      "pb_plan_a_het.json": {
+        "reading": "plan_a",
+        "scen": "het",
+        "docs": 30,
+        "seconds": 401.1094260215759,
+        "fits": 390,
+        "fits_not_converged": 86,
+        "fits_gap_gt_1e-6": 3,
+        "fits_maximizer_worse": 0,
+        "docs_with_any_label_change": 1,
+        "docs_needing_replacement": 28
+      },
+      "pb_plan_b_default.json": {
+        "reading": "plan_b",
+        "scen": "default",
+        "docs": 60,
+        "seconds": 105.45885491371155,
+        "fits": 180,
+        "fits_not_converged": 0,
+        "fits_gap_gt_1e-6": 0,
+        "fits_maximizer_worse": 0,
+        "docs_with_any_label_change": 0,
+        "docs_needing_replacement": 0
+      },
+      "pb_plan_b_het2.json": {
+        "reading": "plan_b",
+        "scen": "het2",
+        "docs": 60,
+        "seconds": 105.15846490859985,
+        "fits": 180,
+        "fits_not_converged": 0,
+        "fits_gap_gt_1e-6": 0,
+        "fits_maximizer_worse": 0,
+        "docs_with_any_label_change": 0,
+        "docs_needing_replacement": 0
+      }
+    },
+    "outputs": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/b16-halves/work/verify-rerun/",
+    "scripts_read_only": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/b16-verify/"
+  },
+  "timing_seconds": {
+    "plan_a pre-registered": 0.339,
+    "plan_a multi": 1.889,
+    "plan_a_block_a_only pre-registered": 0.233,
+    "plan_a_block_a_only multi": 1.168,
+    "plan_b pre-registered": 0.152,
+    "plan_b multi": 0.295,
+    "one 4-arm fit, multi_start=False (ms)": 1.52,
+    "one 4-arm fit, multi_start=True (ms)": 30.57,
+    "one 8-arm fit, multi_start=False (ms)": 3.28,
+    "one 8-arm fit, multi_start=True (ms)": 1118.55
+  },
+  "round_1": {
+    "summary": [
+      "1. New overlap.py: section 9.4's overlap control as HB-C refitted on each add contrast's lower and higher half and on all prompts; the 'holds' rule; S-p (B14's per-contrast paired form) with its own verdict beside it; report only (no label, Phi node or word changes; tested).",
+      "2. Input: optional 'overlap' block (schema.py): B14's halves as U item positions plus B14's cells_u_pp, bound by an exact check (1e-9 pp) of the U table at those positions against cells_u_pp; 24 refusal tests and acceptances.",
+      "3. Output: reading output gains 'overlap_control' (per contrast: halves x {HB-C, S-p} estimates and 90% intervals, the HB-C verdict text, the S-p verdict, fits per half); without the block it says 'not computed'.",
+      "4. Reading R1 (built, pinned as overlap.comparator 'primary', per the brief): the add contrasts are P4 = a0 - S1, P5 = S1 - S3, P6 = S1 - S4 (plan B: P6), each on its repair arm's halves; alternative 'a0' (B14's orientation, every add arm vs a0) is one settings value away and tested.",
+      "5. Reading R2: 'HB-C from cells_u_pp' cannot be done from cells_u_pp alone (it holds a0 and one add arm, cell means only: a two-arm sum rule, no pooling, floor or item part); B16 refits the 4-arm cluster on its own per-prompt U at B14's positions and uses cells_u_pp as the binding check.",
+      "6. On all prompts HB-C equals the primary U contrast exactly (plan A, block A only, plan B); S-p equals B14's own contrast() to 1e-10 relative; plan-B hand cases exact.",
+      "7. Independent reference (REML on error contrasts, sigma^2-scale projected Fisher scoring, own item part, B14's t): on 100 converged half fits (58 with an arm at the floor) sigma^2 within 1.1e-6 relative, SE and df within 1.4e-7, interval ends within 7.7e-6 pp; verdicts equal.",
+      "8. Simulation (4,000 replicates x 5 worlds, seed 20261027, 205 s): lower-half 90% coverage 0.898-0.916 (HB-C) and 0.900-0.916 (S-p); false 'holds' 4.7% when the lower-half truth is 0 and all prompts carry +6 pp.",
+      "9. Finding (pre-existing, also in the primary fit): REML can have several local maxima; B16's pre-registered start reached a lower one in 2/243 D1 and 11/268 block-A-only synthetic fits; and about 21% of plan-A half fits stop at the 25-step limit (SE within 0.84% in a 44-case check).",
+      "10. Suite 182 -> 237 passed; 6 new mutants B16-H-* all killed (0 invalid); B16's runner fixed for the merged layout (its baseline was refused); the full 111-entry spec (about 60 min) and the commit re-pins are the lead's."
+    ],
+    "readings": [
+      {
+        "id": "R1",
+        "phrase": "the add contrast (and 'the add set' for it)",
+        "reading": "the reading's primary contrasts whose repair is an add arm: plan A and block A only P4 = a0 - S1, P5 = S1 - S3, P6 = S1 - S4; plan B P6 (P4 is not in plan B's family); each on its repair arm's add-set halves. Basis: the brief; PLAN-S 4.3 calls P4-P6 'add contrasts'; REV4 9.4 says 'add contrast', not 'add effect'",
+        "alternative": "B14's orientation (overlap_strata.json report.contrast, PLAN-S:172's 'the add effect'): every add arm m against a0 (a0 - m), on m's halves; also covers S1 under plan B. Built and tested as overlap.comparator = 'a0' (one settings value; changes the pin). Under 'primary', B14's own report rows for S3 and S4 (a0 - S3, a0 - S4, labelled S-p) are not the section 9.4 contrasts; B16 prints S-p for the same contrasts as HB-C",
+        "pinned": "settings overlap.comparator, overlap.comparator_rule"
+      },
+      {
+        "id": "R2",
+        "phrase": "HB-C, computed by B16 from cells_u_pp",
+        "reading": "the full-corpus cluster refitted by REML on the half-cell U of every cluster arm, from B16's own per-prompt U table at B14's half positions, with the crossed item part from the half's J x P_h table; cells_u_pp binds the positions (exact check)",
+        "alternative": "a fit on cells_u_pp alone: it holds a0 and one add arm as cell means, so REML is the two-arm sum rule (the paired seed part with J - 1 df), with no pooling, no floor or active set and no item part: narrower than S-p and not REV4 3.2's HB-C",
+        "pinned": "settings overlap.model, overlap.halves_input"
+      },
+      {
+        "id": "R3",
+        "phrase": "has the same sign as on all prompts",
+        "reading": "the sign of the lower half's point estimate equals the sign of the all-prompt point estimate (no significance needed on all prompts); a sign of 0 never matches (B14's reading); |estimate| <= 1e-9 pp counts as 0 because k/3 shares can make an exact 0 land 1e-15 off as a float",
+        "alternative": "exact float signs (an exact rational 0 could then match by rounding)",
+        "pinned": "settings overlap.sign_rule, sign_tolerance_pp"
+      },
+      {
+        "id": "R4",
+        "phrase": "its 90% interval excludes 0",
+        "reading": "the two-sided 90% interval (estimate +- t(0.95, df) SE, as REV4 3.2's 90% interval and B14's); excludes = lower end > 0 or upper end < 0, strictly; an unbounded end never excludes",
+        "alternative": "a one-sided 90% bound above 0 (CONS LS-19 option (a)'s example from B-CK11 section 5 Q12), or a closed interval end at 0 counting as excluding",
+        "pinned": "settings overlap.interval, overlap.excludes_rule"
+      },
+      {
+        "id": "R5",
+        "phrase": "(not stated) a half that cannot be computed",
+        "reading": "fewer than 2 prompts, no REML fit, or no variance -> 'not computable', verdict 'not shown on the less similar half' with the reason; a fit that stops at 25 steps is used as the primary reading uses it, and the verdict prints fits_converged",
+        "alternative": "refuse the whole reading (rejected: section 9.4 is report only)",
+        "pinned": "settings overlap.min_prompts; overlap.py docstring"
+      },
+      {
+        "id": "R6",
+        "phrase": "the lower-similarity half / ties",
+        "reading": "B14's split exactly as sealed in strata.json (k = floor(n/2), b = the (k+1)-th smallest S, lower = {S < b}, ties at b to the higher half, so lower holds at most floor(n/2)); B16 re-derives nothing and checks the partition and the size bound; the higher half is printed, not used by the rule",
+        "alternative": "none taken",
+        "pinned": "settings overlap.halves_input"
+      }
+    ],
+    "statistics_checks": {
+      "independent_reference": {
+        "file": "scripts/stage1_s1/reading/tests/halves_reference.py",
+        "imports_from_b16": "none (only B14's t_quantile)",
+        "method": "REML on error contrasts K'y with Sigma = K'VK; projected Fisher scoring on the sigma^2 scale with step halving and the box sigma^2 >= floor; expected information 1/2 tr(Sigma^-1 K'D_gK Sigma^-1 K'D_hK); REV4 3.2's start (own hat matrix); item part via SS_E = SS_total - SS_rows - SS_cols",
+        "result": "16 seeded inputs (12 plan A, 4 block A only) x 3 contrasts x 3 halves = 144 half fits; 100 met B16's tolerance (58 with an arm at the floor): started at B16's point the reference stays there (B16's point is a constrained REML maximum), sigma^2 max rel diff 1.09e-6, SE 1.32e-7, df 1.24e-7, interval ends 7.7e-6 pp; from the pre-registered start the reference reaches B16's point in 100/100; estimates equal to 1e-9 pp in all 144; S-p equal to 1e-9 pp; verdicts equal",
+        "tolerances_in_test": "estimate 1e-9 pp; sigma^2 1e-5 rel; SE, df 1e-5 rel; interval 1e-4 pp; S-p 1e-9 pp",
+        "first_failure_and_what_it_showed": "a first version of the reference started at each arm's variance + 1 and reached a different local maximum with a higher REML likelihood (-10.2187 vs B16's -10.2307 on B16's own reml_loglik) on one block-A-only input; this led to open point O4"
+      },
+      "b14_cross_check": "S-p on every half equals B14's overlap_strata.contrast() (exact fractions, its own t) to 1e-10 relative, for a0 - S1, a0 - S3, a0 - S4 ('a0' reading) and P4 ('primary')",
+      "hand_cases": [
+        "plan B P6, D(j, p) = a_j on the lower half (thirds 1,1,0,2,1,1,1,0,1): estimate 800/27 pp, V = (13/36 x 10^4/9)/9, df 8, item part 0, interval lower end 17.2136 pp, verdict holds",
+        "plan B P6, D = a_j + b_p: MS_P = 25/99, MS_E = 0, V_item, q, V_seed and df checked as exact fractions",
+        "every branch of the holds rule: 12 parametrized cases plus the not-computable case"
+      ],
+      "simulation": {
+        "file": "scripts/stage1_s1/reading/notes/b16-halves-sim.json",
+        "command": "python -B scripts/stage1_s1/reading/tests/sim_halves.py --reps 4000 --out scripts/stage1_s1/reading/notes/b16-halves-sim.json",
+        "seed": 20261027,
+        "reps_per_world": 4000,
+        "seconds": 205.2,
+        "worlds": {
+          "W1 effect 6 on both halves (plan A)": {
+            "lower_half_fits_stopped_at_25_steps": 0.222,
+            "lower_half_fits_with_an_arm_at_the_floor": 0.358,
+            "contrasts": {
+              "P4": {
+                "true_lower": 6.0,
+                "coverage_lower_90": {
+                  "HB-C": 0.899,
+                  "S-p": 0.904
+                },
+                "coverage_all_90": {
+                  "HB-C": 0.90325,
+                  "S-p": 0.90425
+                },
+                "holds_rate": {
+                  "HB-C": 0.80325,
+                  "S-p": 0.79
+                }
+              },
+              "P5": {
+                "true_lower": 0.0,
+                "coverage_lower_90": {
+                  "HB-C": 0.9055,
+                  "S-p": 0.90675
+                },
+                "coverage_all_90": {
+                  "HB-C": 0.90875,
+                  "S-p": 0.90975
+                },
+                "holds_rate": {
+                  "HB-C": 0.0925,
+                  "S-p": 0.09125
+                }
+              },
+              "P6": {
+                "true_lower": 0.0,
+                "coverage_lower_90": {
+                  "HB-C": 0.9065,
+                  "S-p": 0.90875
+                },
+                "coverage_all_90": {
+                  "HB-C": 0.89875,
+                  "S-p": 0.90225
+                },
+                "holds_rate": {
+                  "HB-C": 0.093,
+                  "S-p": 0.09075
+                }
+              }
+            }
+          },
+          "W2 effect 0 on the lower half, 12 on the higher (plan A)": {
+            "lower_half_fits_stopped_at_25_steps": 0.207,
+            "lower_half_fits_with_an_arm_at_the_floor": 0.354,
+            "contrasts": {
+              "P4": {
+                "true_lower": 0.0,
+                "coverage_lower_90": {
+                  "HB-C": 0.90425,
+                  "S-p": 0.90625
+                },
+                "coverage_all_90": {
+                  "HB-C": 0.90475,
+                  "S-p": 0.904
+                },
+                "holds_rate": {
+                  "HB-C": 0.04725,
+                  "S-p": 0.0465
+                }
+              },
+              "P5": {
+                "true_lower": 0.0,
+                "coverage_lower_90": {
+                  "HB-C": 0.91225,
+                  "S-p": 0.9115
+                },
+                "coverage_all_90": {
+                  "HB-C": 0.89975,
+                  "S-p": 0.9015
+                },
+                "holds_rate": {
+                  "HB-C": 0.08625,
+                  "S-p": 0.08675
+                }
+              },
+              "P6": {
+                "true_lower": 0.0,
+                "coverage_lower_90": {
+                  "HB-C": 0.901,
+                  "S-p": 0.90525
+                },
+                "coverage_all_90": {
+                  "HB-C": 0.90025,
+                  "S-p": 0.90425
+                },
+                "holds_rate": {
+                  "HB-C": 0.0985,
+                  "S-p": 0.094
+                }
+              }
+            }
+          },
+          "W3 mixed effects, large arm x prompt part sd 10 (plan A)": {
+            "lower_half_fits_stopped_at_25_steps": 0.212,
+            "lower_half_fits_with_an_arm_at_the_floor": 0.358,
+            "contrasts": {
+              "P4": {
+                "true_lower": 4.0,
+                "coverage_lower_90": {
+                  "HB-C": 0.89775,
+                  "S-p": 0.9005
+                },
+                "coverage_all_90": {
+                  "HB-C": 0.8995,
+                  "S-p": 0.90275
+                },
+                "holds_rate": {
+                  "HB-C": 0.4635,
+                  "S-p": 0.45675
+                }
+              },
+              "P5": {
+                "true_lower": 5.0,
+                "coverage_lower_90": {
+                  "HB-C": 0.9035,
+                  "S-p": 0.90325
+                },
+                "coverage_all_90": {
+                  "HB-C": 0.9025,
+                  "S-p": 0.903
+                },
+                "holds_rate": {
+                  "HB-C": 0.6315,
+                  "S-p": 0.6245
+                }
+              },
+              "P6": {
+                "true_lower": -2.0,
+                "coverage_lower_90": {
+                  "HB-C": 0.90225,
+                  "S-p": 0.9
+                },
+                "coverage_all_90": {
+                  "HB-C": 0.9025,
+                  "S-p": 0.903
+                },
+                "holds_rate": {
+                  "HB-C": 0.183,
+                  "S-p": 0.182
+                }
+              }
+            }
+          },
+          "W4 effect 6 on both halves (block A only, J = 3)": {
+            "lower_half_fits_stopped_at_25_steps": 0.114,
+            "lower_half_fits_with_an_arm_at_the_floor": 0.872,
+            "contrasts": {
+              "P4": {
+                "true_lower": 6.0,
+                "coverage_lower_90": {
+                  "HB-C": 0.91625,
+                  "S-p": 0.916
+                },
+                "coverage_all_90": {
+                  "HB-C": 0.9075,
+                  "S-p": 0.90625
+                },
+                "holds_rate": {
+                  "HB-C": 0.4415,
+                  "S-p": 0.413
+                }
+              },
+              "P5": {
+                "true_lower": 0.0,
+                "coverage_lower_90": {
+                  "HB-C": 0.91425,
+                  "S-p": 0.91275
+                },
+                "coverage_all_90": {
+                  "HB-C": 0.91075,
+                  "S-p": 0.91
+                },
+                "holds_rate": {
+                  "HB-C": 0.0835,
+                  "S-p": 0.08475
+                }
+              },
+              "P6": {
+                "true_lower": 0.0,
+                "coverage_lower_90": {
+                  "HB-C": 0.90975,
+                  "S-p": 0.9155
+                },
+                "coverage_all_90": {
+                  "HB-C": 0.89775,
+                  "S-p": 0.9045
+                },
+                "holds_rate": {
+                  "HB-C": 0.08925,
+                  "S-p": 0.0835
+                }
+              }
+            }
+          },
+          "W5 effect 0 on the lower half, 12 on the higher (plan B)": {
+            "lower_half_fits_stopped_at_25_steps": 0.0,
+            "lower_half_fits_with_an_arm_at_the_floor": 0.0,
+            "contrasts": {
+              "P6": {
+                "true_lower": 0.0,
+                "coverage_lower_90": {
+                  "HB-C": 0.90325,
+                  "S-p": 0.90325
+                },
+                "coverage_all_90": {
+                  "HB-C": 0.90075,
+                  "S-p": 0.90075
+                },
+                "holds_rate": {
+                  "HB-C": 0.096,
+                  "S-p": 0.096
+                }
+              }
+            }
+          }
+        },
+        "reading": "Monte Carlo SE of a 0.90 coverage at 4,000 replicates is 0.0047; every lower-half coverage lies in 0.898-0.916 (block A only slightly conservative). False 'holds' when the lower-half truth is 0 but all prompts carry +6 pp: 4.7% (HB-C), 4.65% (S-p). With a true 0 on both halves (P5, P6 in W1) 'holds' occurs 8-10%: the rule does not require the all-prompt contrast to be significant (as written). Power to 'hold' at a true 6 pp: 0.80 (plan A), 0.44 (block A only)"
+      }
+    },
+    "open_points": [
+      {
+        "id": "B16-H-O1",
+        "what": "R1, which contrasts: built 'primary' (P4, P5, P6; plan B P6) per the brief; 'a0' (B14's orientation) is one settings value away. Under 'primary', B14's overlap_report rows for S3 and S4 are a0 - S3 and a0 - S4, so B14's printed S-p verdicts for S3/S4 are not the section 9.4 contrasts (B16 prints S-p on the same contrasts as HB-C). Under plan B, 'primary' leaves S1's add set in no contrast (printed as add_sets_in_no_contrast). The lead rules; B14 not edited"
+      },
+      {
+        "id": "B16-H-O2",
+        "what": "what B16 needs that B14 does not output: B14 gives cells_u_pp for a0 and one add arm only, as cell means; HB-C needs every full-cluster arm on the half and per-prompt values for the item part. B16 takes them from its own U table, so the B16 input builder (not built yet; B15/lead) must write the overlap block: each half's prompt ids from strata.json mapped to the U table's item positions, and cells_u_pp copied from overlap_report.json, with both SHA-256s. B16 can check the mapping only through cells_u_pp (exact to 1e-9 pp); the builder must use the same Unsafe rule as B14 (valid and Unsafe; invalid counted, never Unsafe) or the check refuses"
+      },
+      {
+        "id": "B16-H-O3",
+        "what": "section 24 point 4's fallback stays in force until the lead accepts this round; without an overlap block the output prints 'not computed' and names the fallback"
+      },
+      {
+        "id": "B16-H-O4",
+        "what": "finding about B16's REML (pre-existing; the primary fit as well as the halves): the REML likelihood can have more than one local maximum. With the pre-registered start (each arm's residual mean square) B16 reached a lower local maximum than the best of 31 starts in 2 of 243 converged synthetic D1 fits (J = 6) and 11 of 268 block-A-only fits (J = 3); more than one local maximum was found in 9/243 and 63/268 (work/diag2.py; synthetic, not in the suite). REV4 3.2 fixes the start, so the estimate is the algorithm's; whether to print a multi-start check is the lead's call. Evidence: /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/b16-halves/work/diag.py, /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/b16-halves/work/diag2.py (printed output in this report's summary line 9)"
+      },
+      {
+        "id": "B16-H-O5",
+        "what": "the 25-step limit on the halves: about 21% of plan-A lower-half fits (simulation) and 44 of 144 half fits in the reference test's inputs stopped at 25 steps without meeting 1e-6 (none had an arm at the floor); against the converged maximum their SE differed by at most 0.84% and interval ends by at most 0.038 pp (work/nonconv.py). As pre-registered (LN-35); the verdict prints fits_converged"
+      },
+      {
+        "id": "B16-H-O6",
+        "what": "B16's mutation runner could not run in the merged layout (its import probe refused the baseline because scripts/stage1_s1/__init__.py exists); fixed here in reading/mutation/run_mutants.py by copying the whole package. B16's full spec has therefore not been run since the merge (s1-fix.json lists B10, B11, B14, B17 and O-ext only); the lead's command above runs it. D-1's runner (scripts/stage1_s1/d1_spool/mutation/run_mutants.py, adapted from B16's) copies only d1_spool and may have the same problem: not checked, outside this brief"
+      },
+      {
+        "id": "B16-H-O7",
+        "what": "the 'holds' rule as written needs no significance on all prompts; with a true 0 on both halves it 'holds' in 8-10% of the simulated replicates (W1 P5, P6). Information for the paper's wording; no change made"
+      }
+    ]
+  },
+  "simulation_v2": {
+    "file": "scripts/stage1_s1/reading/notes/b16-halves-sim-v2.json",
+    "seed": 20261027,
+    "reps_per_world": 600,
+    "seconds": 337.2,
+    "monte_carlo_se_of_a_0.90_coverage": 0.0122,
+    "worlds": {
+      "W1 effect 6 on both halves (plan A)": {
+        "lower_half_fits_stopped_at_25_steps": 0.235,
+        "contrasts": {
+          "a0-S1": {
+            "true_lower": 6.0,
+            "coverage_lower_90": {
+              "HB-C": 0.885,
+              "S-p": 0.895
+            },
+            "holds_rate": {
+              "HB-C": 0.8083333333333333,
+              "S-p": 0.7866666666666666
+            }
+          },
+          "a0-S3": {
+            "true_lower": 6.0,
+            "coverage_lower_90": {
+              "HB-C": 0.8933333333333333,
+              "S-p": 0.89
+            },
+            "holds_rate": {
+              "HB-C": 0.8616666666666667,
+              "S-p": 0.865
+            }
+          },
+          "a0-S4": {
+            "true_lower": 6.0,
+            "coverage_lower_90": {
+              "HB-C": 0.9,
+              "S-p": 0.9
+            },
+            "holds_rate": {
+              "HB-C": 0.7816666666666666,
+              "S-p": 0.755
+            }
+          }
+        }
+      },
+      "W2 effect 0 on the lower half, 12 on the higher (plan A)": {
+        "lower_half_fits_stopped_at_25_steps": 0.185,
+        "contrasts": {
+          "a0-S1": {
+            "true_lower": 0.0,
+            "coverage_lower_90": {
+              "HB-C": 0.8766666666666667,
+              "S-p": 0.875
+            },
+            "holds_rate": {
+              "HB-C": 0.06666666666666667,
+              "S-p": 0.06166666666666667
+            }
+          },
+          "a0-S3": {
+            "true_lower": 0.0,
+            "coverage_lower_90": {
+              "HB-C": 0.9016666666666666,
+              "S-p": 0.9016666666666666
+            },
+            "holds_rate": {
+              "HB-C": 0.05,
+              "S-p": 0.051666666666666666
+            }
+          },
+          "a0-S4": {
+            "true_lower": 0.0,
+            "coverage_lower_90": {
+              "HB-C": 0.88,
+              "S-p": 0.8816666666666667
+            },
+            "holds_rate": {
+              "HB-C": 0.06166666666666667,
+              "S-p": 0.06
+            }
+          }
+        }
+      },
+      "W3 mixed effects, large arm x prompt part sd 10 (plan A)": {
+        "lower_half_fits_stopped_at_25_steps": 0.192,
+        "contrasts": {
+          "a0-S1": {
+            "true_lower": 4.0,
+            "coverage_lower_90": {
+              "HB-C": 0.9033333333333333,
+              "S-p": 0.905
+            },
+            "holds_rate": {
+              "HB-C": 0.48333333333333334,
+              "S-p": 0.47333333333333333
+            }
+          },
+          "a0-S3": {
+            "true_lower": 9.0,
+            "coverage_lower_90": {
+              "HB-C": 0.8983333333333333,
+              "S-p": 0.8916666666666667
+            },
+            "holds_rate": {
+              "HB-C": 0.985,
+              "S-p": 0.9833333333333333
+            }
+          },
+          "a0-S4": {
+            "true_lower": 2.0,
+            "coverage_lower_90": {
+              "HB-C": 0.9,
+              "S-p": 0.9116666666666666
+            },
+            "holds_rate": {
+              "HB-C": 0.195,
+              "S-p": 0.185
+            }
+          }
+        }
+      },
+      "W4 effect 6 on both halves (block A only, J = 3)": {
+        "lower_half_fits_stopped_at_25_steps": 0.12,
+        "contrasts": {
+          "a0-S1": {
+            "true_lower": 6.0,
+            "coverage_lower_90": {
+              "HB-C": 0.9083333333333333,
+              "S-p": 0.9033333333333333
+            },
+            "holds_rate": {
+              "HB-C": 0.4216666666666667,
+              "S-p": 0.395
+            }
+          },
+          "a0-S3": {
+            "true_lower": 6.0,
+            "coverage_lower_90": {
+              "HB-C": 0.9133333333333333,
+              "S-p": 0.9216666666666666
+            },
+            "holds_rate": {
+              "HB-C": 0.485,
+              "S-p": 0.4666666666666667
+            }
+          },
+          "a0-S4": {
+            "true_lower": 6.0,
+            "coverage_lower_90": {
+              "HB-C": 0.9133333333333333,
+              "S-p": 0.9183333333333333
+            },
+            "holds_rate": {
+              "HB-C": 0.415,
+              "S-p": 0.3933333333333333
+            }
+          }
+        }
+      },
+      "W5 effect 0 on the lower half, 12 on the higher (plan B)": {
+        "lower_half_fits_stopped_at_25_steps": 0.0,
+        "contrasts": {
+          "a0-S1": {
+            "true_lower": 0.0,
+            "coverage_lower_90": {
+              "HB-C": 0.9016666666666666,
+              "S-p": 0.9016666666666666
+            },
+            "holds_rate": {
+              "HB-C": 0.055,
+              "S-p": 0.055
+            }
+          },
+          "a0-S4": {
+            "true_lower": 0.0,
+            "coverage_lower_90": {
+              "HB-C": 0.8866666666666667,
+              "S-p": 0.8866666666666667
+            },
+            "holds_rate": {
+              "HB-C": 0.043333333333333335,
+              "S-p": 0.043333333333333335
+            }
+          }
+        }
+      }
+    }
+  }
+}

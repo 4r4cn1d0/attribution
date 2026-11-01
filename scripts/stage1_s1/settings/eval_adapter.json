@@ -1,0 +1,279 @@
+{
+  "adapter_scale": {
+    "allowed": [
+      1.0,
+      0.9,
+      0.75,
+      0.5,
+      0.0
+    ],
+    "curve": [
+      1.0,
+      0.75,
+      0.5,
+      0.0
+    ],
+    "factor": "lora_B",
+    "planned": [
+      0.9,
+      0.75,
+      0.5
+    ],
+    "rule": "lora_B <- lambda * lora_B in float32 for every adapted matrix (all 112 for recipe B: 7 modules x 16 blocks), so the whole update s*B*A is multiplied by lambda; lora_A and the frozen base weights are not changed. lambda = 1 is the identity and is the certification mode (no arithmetic). lambda = 0 writes exact zeros (the seeded init state's B), so it computes exactly what the untuned model computes; its Gate A point is the untuned unit, and an evaluation at lambda = 0 is an optional second certification against that unit. The planned reference points are 0.9, 0.75 and 0.5 (0.75 and 0.5: PLAN-S:153; A7; 0.9: LN-15b's increment, added under the user's full reference scope of 29 Oct 2026, addendum section 34 point 5); the curve is 1, 0.75, 0.5, 0 (PLAN-S:111). Another lambda needs a settings change; the scale points are outside the certified settings, so adding one keeps a certification valid."
+  },
+  "certification": {
+    "diagnostic_reference_files": [
+      "samples.jsonl",
+      "generations.jsonl",
+      "guard.jsonl",
+      "query_loss.jsonl",
+      "summary.json"
+    ],
+    "environment_fields": [
+      "environment.device",
+      "environment.deterministic_algorithms",
+      "environment.packages.torch",
+      "environment.packages.transformers",
+      "environment.packages.peft",
+      "environment.packages.safetensors",
+      "environment.packages.tokenizers",
+      "environment.packages.numpy",
+      "environment.packages.accelerate",
+      "environment.safety_selection_numeric",
+      "environment.cuda.device_count",
+      "environment.cuda.name",
+      "environment.cuda.capability",
+      "environment.cuda.torch_cuda_runtime",
+      "environment.cuda.cudnn",
+      "environment.cuda.driver",
+      "environment.cuda.settings",
+      "environment.cuda.env.CUBLAS_WORKSPACE_CONFIG",
+      "environment.cuda.env.TORCH_ALLOW_TF32_CUBLAS_OVERRIDE",
+      "environment.cuda.env.NVIDIA_TF32_OVERRIDE",
+      "environment.cuda.env.TORCH_BLAS_PREFER_CUBLASLT",
+      "environment_lock.sha256"
+    ],
+    "expected_sampled_answers": 600,
+    "failure_action": "stop every evaluation-only reference (safety prefix, adapter scaling, Safe LoRA) until the cause is known and recorded (LS-08 (a); REF LQ11); no reference runs on an uncertified path",
+    "gate": "pass only if the certification unit (mode certify: lambda = 1, no prefix, no external transform) has exactly the Gate A unit's set of (prompt_id, sample_index) sampled answers, their number is expected_sampled_answers, and on every one of them the Qwen3Guard record has the same gate_fields (the valid flag and the Safety label), so U is reproduced exactly (LS-08 (a), the recommended default; REF LQ11)",
+    "gate_fields": [
+      "valid",
+      "safety"
+    ],
+    "mode": "certify",
+    "reference_rule": "every evaluation other than certify (the references, and the lambda = 0 and identity-transform certification points) needs a passing certification report: the certify unit at the certification seed compared with its Gate A unit (compare, against a0), made on engine_x, with this script's code (its SHA-256 with the settings literal written as zeros) and these certified settings (the sections engine_x, recipe, prepared, checkpoint, regeneration, evaluation and certification, and the certification seed's reference pin). It runs only in an environment whose environment_fields equal the certification unit's (REF R.0.9: an environment-matched attempt). In one run with --gate-reference-eval at the certification seed, the run's own passing report is that certification. The reference unit's job.json names the report's SHA-256 (LS-08 (a): no reference runs on an uncertified path).",
+    "required_reference_files": [
+      "guard_samples.jsonl"
+    ],
+    "seed": 1101
+  },
+  "checkpoint": "e1",
+  "combination_rule": "at most one change per evaluation: the safety prefix, an adapter scale lambda other than 1, or one external transform; none of them is the certification mode (D2). Other combinations are not pre-registered references and refuse.",
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "evaluation": {
+    "bank": "dev",
+    "job_seed": "source run seed",
+    "rule": "the engine's own evaluate_checkpoint (runner.py) on the prepared set's dev bank and its 200 task rows, with the source run's seed (the a0 seed) as the job seed, so every reference shares a0's sampling streams (runner.sample_seed); never the selector or hidden bank"
+  },
+  "exit_codes": {
+    "0": "done",
+    "1": "a job failed after this process wrote into an output path (error.txt kept in a job folder, never completed)",
+    "2": "refused before this process wrote anything: nothing was trained, evaluated or written",
+    "3": "the adapter's fingerprints (or its trajectory, data or recipe) differ from the pinned Gate A record: the state is never evaluated",
+    "4": "the certification comparison failed: stop every evaluation-only reference until the cause is known"
+  },
+  "external_transforms": {
+    "safe_lora": {
+      "function": null,
+      "kind": "file",
+      "module": "scripts/stage1_s1/safe_lora.py",
+      "module_sha256": "5f6b782255f7207645659cc25ea8864c85aeb2d32533acab342175d0217757b4",
+      "record_keys": {
+        "output_adapter_fingerprint": "output.fingerprint",
+        "output_file_sha256": "output.adapter_sha256",
+        "source_adapter_fingerprint": "input_adapter.fingerprint",
+        "transform_settings_sha256": "provenance.settings_sha256",
+        "transform_sha256": "provenance.script_sha256"
+      },
+      "require_lora_a_unchanged": true,
+      "role": "B11 Safe LoRA (REF R.1), file form",
+      "settings": {
+        "path": "scripts/stage1_s1/settings/safe_lora.json",
+        "sha256": "c5610c3d4f0a0809e391055d84697fd62b9a15cf16e0b1f63aee02b03b6d14cf"
+      }
+    }
+  },
+  "kind": "stage1 settings",
+  "label_entries": {},
+  "label_note": "B10 draws no random number of its own: the regeneration uses the engine's own seeded run-one (seed = the a0 seed), and every sampled answer is seeded by the engine's sample_seed(job seed, prompt id, sample index). So this file names no registry entry and B10 appends no label to scripts/stage1/labels.json.",
+  "labels_sha256": "6d1415bd139c39bce1b912291cfc319a9305503e1d3e9adf1cebafef870ce21b",
+  "name": "eval_adapter",
+  "oext": {
+    "branch": "128",
+    "module": "scripts/stage1_s1/oext_eval.py",
+    "module_sha256": "8c4290921f32a5b4596a0bc40235cc5cf1185f73eaabeaa625c43bd19ba77719",
+    "outputs": [
+      "oext_generations.jsonl",
+      "oext_guard.jsonl",
+      "oext_summary.json"
+    ],
+    "rule": "Addendum section 11 point 1: scripts/stage1_s1/oext_eval.py (pinned by its file's SHA-256) with its settings (pinned by SHA-256) and the cap branch those settings hold (128, full or pending_w1_18; section 13: the branch comes from W1-18's record made on the first stage-1 pod). It runs after evaluate_checkpoint on the engine's own dev-100 answers and judge records and the sealed PHTest prompts, and writes the three output files beside the engine's 8 evaluation files, so a certify unit's 8 files stay byte-identical with Gate A. This section is outside the certified settings: a re-pin (a new branch, a pinned bank record, a W1-18 record) needs no new certification, and is made in one edit with oext_eval.py's literal and B17's pins.",
+    "settings": {
+      "path": "scripts/stage1_s1/settings/oext_eval.json",
+      "sha256": "2ad9893849248a8fb61d04cf7badbd7fb398915020f196904849d500df08f5a5"
+    }
+  },
+  "outputs": {
+    "compare": "a new file (canonical JSON, text-free): the certification comparison's counts and verdict, what it certifies (the engine, the script's code and the certified settings) and the unit's environment fields",
+    "evaluate": "one new folder per evaluation in the engine's unit layout: job.json, identity.json, dependencies.json, assets.json, ledger.jsonl, progress.jsonl, records.jsonl, eval/<checkpoint>/ (the engine's evaluation files and, with the status oext_pinned and a set branch, O-ext's oext_generations.jsonl, oext_guard.jsonl and oext_summary.json beside them), transform.json or prefix.json when used, COMPLETE.json last",
+    "regenerate": "ROOT/job.json (the engine run-one job), ROOT/run/ (the engine's own run-one folder: states init, q and e1, no evaluation) and ROOT/regeneration.json (text-free: the comparison with the Gate A record and its verdict)"
+  },
+  "overrefusal_bank": {
+    "rule": "Addendum section 7 (UW-07a) and section 9: the stage-1 primary over-refusal bank is the dev 100 plus the 400 sealed PHTest prompts, under ONE answer cap for theta0, a0 and every arm; REF R.0.5: every reference is measured exactly like an arm. Status oext_pinned (addendum section 11 point 1, the lead's choice (a)): every evaluation, certify included, runs the shared pinned O-ext function of the section oext right after the engine's evaluate_checkpoint, so the references are measured on the 500 bank exactly like the arms, and certify records O-ext as a report and never gates on it; while the O-ext branch is pending W1-18 (section 13) only certify runs, without O-ext. Status open: only certification points run (certify; lambda = 0; a transform file whose output adapter is the source adapter, Safe LoRA at K = 0). Status dev100_recipe_cap: the fallback (c) of section 11 point 1 (the references report O on the dev 100 at the recipe's cap, and the pre-registration states that limit).",
+    "status": "oext_pinned"
+  },
+  "owner": "scripts/stage1_s1/eval_adapter.py",
+  "prefix": {
+    "apply_to": [
+      "harm",
+      "overrefusal",
+      "safety",
+      "arc_generation",
+      "arc_utility",
+      "task_rows"
+    ],
+    "guard_sees": "original user text",
+    "length_rule": "the recipe's model.max_prompt_tokens applies to the prefixed prompt (1536 tokens for the pinned recipe): every prefixed generation prompt (harm, over-refusal, safety, ARC generation, and O-ext's PHTest prompts when over-refusal is in apply_to: the chat template's user turn holding the prefix, the separator and the user's text, then the assistant header) and every prefixed forced-choice ARC prompt with each candidate label has at most max_prompt_tokens tokens; a prefixed task row is a teacher-forced example and keeps the engine's own limit, model.max_train_tokens (3072), on its prompt, response and end-of-turn token. Nothing is cut. The command line counts every prefixed prompt with the policy's tokenizer (the cached snapshot; no model) before any model loads and before anything is written, and refuses (exit 2) if one is over (prefix_token_counts); the Mac script scripts/stage1_s1/prefix_lengths.py prints the same counts (per bank: prompts, largest prefixed token count, over the limit; never a text).",
+    "separator": "\n\n",
+    "source": "Llama 2 default system prompt (Meta, github.com/meta-llama/llama, July 2023), single-paragraph form as run by Lyu et al. 2024 (NeurIPS; PTST 'chat:llama', github.com/vfleaking/PTST@134600f prompt_utils.py:4) and Qi et al. 2024 (ICLR; github.com/LLM-Tuning-Safety/LLMs-Finetuning-Safety@8a3b38f llama2/safety_evaluation/eval_utils/prompt_utils.py:9); user-turn prefix joined by \"\\n\\n\" as in Lyu et al. App. E (Mistral)",
+    "status": "pinned (addendum section 34 point 4; the user's decision of 29 Oct 2026, \"Yes, both\", record .ai/inputs/stage1-post-w1-20261023/block-b/user_decision_block_b_scope_and_sp.json, SHA-256 ec5b4805e8c1f6ab00b2898308243fc999f43bdc1bd465b163850d0711c29bb9): the text is the file .ai/inputs/stage1-post-w1-20261023/block-b/sp_prefix_llama2_default_ptst.txt (506 bytes, ASCII, no trailing newline); the prefix mode accepts exactly the file whose bytes hash to text_sha256 and refuses any other bytes. The design (RS C1, A6; REF R.0.1): the prefix goes into every user turn of the evaluation (a deployer cannot choose which requests are harmful), at its start, inside the one user message, joined to the user's own text by the separator, so its over-refusal, ARC and task-loss costs are measured; it is a user-turn prefix because OLMo-2-0425-1B-Instruct has no documented system turn or default system prompt (its chat template has a system branch, which the design does not use). Qwen3Guard judges each answer against the user's own text, not the deployer's instruction.",
+    "text_sha256": "0fcc6beb8240d7b8e7b8c19bb033af6c8a66e568e50afc33f58707a503fdec98"
+  },
+  "prepared": {
+    "bank": "dev",
+    "manifest_sha256": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9"
+  },
+  "recipe": {
+    "config_sha256": "9e9bde6f2f32876098410479883deff5ef3141e471a79ed231c7a5db15ad399b",
+    "file_sha256": "a47138f2f4fb032aa60addc59256c499b7a65a75c2541aba516adeed8f4b15b2",
+    "path": "experiments/safety_selection/configs/study-kt-olmo2-1b-r64-b-mb4-20261008.json",
+    "training_identity": "f46279e5830f477742189ef03c03ffc0ec86107ae060bb5ef9034ba47acabfac"
+  },
+  "reference_units": {
+    "1101": {
+      "complete_sha256": "8f0fa83a42ccc5edc54a5ee26ed63f49448c36d30adbd64e28b655678afee4c9",
+      "fingerprint_prefixes": {
+        "e1": "aad79060c52304ecd1b3d0a24b26281da7d147b0fc4a2754ba3a9b323bfae1ec",
+        "q": "322d737a2e0177c85b798ac779e42e637b6617cfd842455c3e1bdf4586008660"
+      },
+      "role": "Gate A a0 unit, seed 1101, e1 (resumed from the untuned init unit; engine 55253874)",
+      "unit": "family-probe-olmo2-1b/retrieved/olmo2-1b-1101/tree/round1/1101-a0-e1-a1"
+    },
+    "1102": {
+      "complete_sha256": "857f78bc0f49cc8a4902fbb6211f463daa7c7f44086257c4d752409a30ba0b25",
+      "fingerprint_prefixes": {
+        "e1": "7c9111c2093b00f2",
+        "q": null
+      },
+      "role": "Gate A a0 unit, seed 1102, e1 (trained from init in one job; engine 55253874)",
+      "unit": "family-probe-olmo2-1b-gateA-1102/retrieved/olmo2-1b-1102/tree/round1/1102-a0-e1-a1"
+    },
+    "1103": {
+      "complete_sha256": "7be58eaa9c5be7b8f94668109efd6aae075b1d001e0d2b1fb8be814556899cbd",
+      "fingerprint_prefixes": {
+        "e1": "b1ad020bc8d1b1c1",
+        "q": null
+      },
+      "role": "Gate A a0 unit, seed 1103, e1 (trained from init in one job; engine 55253874)",
+      "unit": "family-probe-olmo2-1b-gateA-1103/retrieved/olmo2-1b-1103/tree/round1/1103-a0-e1-a1"
+    },
+    "1104": {
+      "complete_sha256": "89111c6b1391b713f14b5359a5bc72070b89a272ae11db4a8020e7d305e2f7e0",
+      "fingerprint_prefixes": {
+        "e1": "fe4adbf04f3c0b5019408d8462a4f68015462ad0c57d592aaf6c9825fa43e047",
+        "q": null
+      },
+      "role": "stage-1 block A a0_arm unit, seed 1104, e1 (host a-10, job 3; engine X 472fc7f6; trained from init in one job); pins from the kit's readable records (plan.json, JOB-DONE.json) and a0-1104-adapter-fingerprint.json",
+      "unit": "stage1-olmo/retrieved/a-10/tree/round1/1104-a0-e1-a1"
+    },
+    "1105": {
+      "complete_sha256": "02cf5600fcf0f9a048ff19008ced48e24603f055c0163e6fb88fdc7c8d7bca36",
+      "fingerprint_prefixes": {
+        "e1": "e4f2841d65f1d1fd4bd98df8217f70221d86623ef04c735240a06b10afdc2c24",
+        "q": "8d25ebbd3e1692ef4a355c88bf81bea8678776f484e222e8d5798ccd1fd4e2a4"
+      },
+      "role": "stage-1 block B a0_arm unit, seed 1105, e1 (host b-1, job 3; engine X 472fc7f6; trained from init in one job); pins from the kit's readable records (plan.json, JOB-DONE.json) and job-3/a0-adapter-fingerprint.json",
+      "unit": "stage1-olmo/retrieved/b-1/tree/round1/1105-a0-e1-a1"
+    },
+    "1106": {
+      "complete_sha256": "5e6ae70115a35472674643f2bbae5ff29bbb9a363729d9ccd968830ddbd2bba7",
+      "fingerprint_prefixes": {
+        "e1": "5f3f59edb3682bd967257875f2c8b2139a32359bce5b46460d61cdd0c7b856d8",
+        "q": "157b961825681e3f694f4dbf8532710140f5e406eeffa328a7f35781b593f5c6"
+      },
+      "role": "stage-1 block B a0_arm unit, seed 1106, e1 (host b-2, job 3; engine X 472fc7f6; trained from init in one job); pins from the kit's readable records (plan.json, JOB-DONE.json) and job-3/a0-adapter-fingerprint.json",
+      "unit": "stage1-olmo/retrieved/b-2/tree/round1/1106-a0-e1-a1"
+    },
+    "1107": {
+      "complete_sha256": "4fa1244d932bc7449ff3539f310c722e2f8656734fa4b0cc5515b03d81ceff98",
+      "fingerprint_prefixes": {
+        "e1": "07f5ce35f17b01ac934d1064561eea7152735460ae65052dbacb5db742a75b30",
+        "q": "7b1ab443dae78f21aac726ba2243f0f95f521a241cd2158d2c5af43e3c7e210b"
+      },
+      "role": "stage-1 block B a0_arm unit, seed 1107, e1 (host b-3, job 3; engine X 472fc7f6; trained from init in one job); pins from the kit's readable records (plan.json, JOB-DONE.json) and job-3/a0-adapter-fingerprint.json",
+      "unit": "stage1-olmo/retrieved/b-3/tree/round1/1107-a0-e1-a1"
+    }
+  },
+  "regeneration": {
+    "compare_checkpoint_fields": [
+      "step",
+      "examples_seen",
+      "adapter_fingerprint"
+    ],
+    "compare_checkpoints": [
+      "q",
+      "e1"
+    ],
+    "compare_identity": [
+      "manifest_sha256",
+      "training_identity"
+    ],
+    "compare_trajectory": [
+      "split",
+      "arm",
+      "seed",
+      "role",
+      "stream_sha256",
+      "retained_rows",
+      "removed_rows",
+      "steps_per_epoch",
+      "init_fingerprint"
+    ],
+    "job": {
+      "arm": "a0",
+      "evaluate_bank": null,
+      "pin_code": true,
+      "replicate_of": null,
+      "resume_from": null,
+      "role": "development",
+      "split": "dev"
+    },
+    "registry": null,
+    "report_checkpoint_fields": [
+      "optimizer_fingerprint"
+    ],
+    "report_identity": [
+      "recipe_sha256"
+    ],
+    "rule": "a deterministic train-only re-run: the engine's own run-one job (make_job, then runner.run_one) for arm a0 at the Gate A seed, from the seeded init state to e1, with no evaluation and no registry claim (it replicates a Gate A unit and starts no new trajectory). It is accepted only if every required field equals the pinned Gate A record (the q and e1 adapter fingerprints, their steps and examples, the stream, the init fingerprint, the data and the training identity); the AdamW fingerprints and the recipe's whole config hash are reported only (the config hash also covers evaluation-only fields, so a source made under another evaluation config with the same training identity, LS-04 (b) or a stage-1 a0 unit, is accepted; B10 always evaluates with the pinned recipe). A mismatch is recorded and the state is never evaluated (REF R.0.7, LQ4: the references at that seed wait). Adding recipe_sha256 to compare_identity restores the stricter rule."
+  },
+  "requirement": "B10 (RS B10; PLAN-S:155; REF R.0.6-R.0.7, R.1.4; merged pre-registration revision 2 sections 1.5 and 5.2; LS-08): the pinned evaluate-a-saved-adapter script outside the engine identity, for the safety-prefix, adapter-scaling and Safe LoRA references; certified once on a pod (D2)",
+  "untuned_unit": {
+    "checkpoint": "init",
+    "complete_sha256": "b5083ce9d9f26efe92f9872fdbf9376a521a5d99d1b70cc2bd460987cdcc9474",
+    "role": "the Gate A untuned unit (theta0, the lambda = 0 end of the curve); an optional second certification point for a lambda = 0 evaluation at the same seed",
+    "seed": 1101,
+    "unit": "family-probe-olmo2-1b/retrieved/olmo2-1b-1101/tree/round1/1101-a0-init-a1"
+  },
+  "version": 1
+}

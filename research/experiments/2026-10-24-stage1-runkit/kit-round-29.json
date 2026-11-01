@@ -1,0 +1,193 @@
+{
+ "kind": "stage1 kit round 29 note",
+ "utc": "2026-10-26T15:22:12Z",
+ "workspace": "tmp/claude-workspaces/stage1-integrate-20261017/ws-k29 (a git archive of main b8c3221); nothing committed; no git, network, RunPod, Hub or GitHub call; the live kit tmp/stage1-olmo was only read",
+ "brief": "notes/kit-round-29-brief.md; addendum §29; FOCUS 26 Oct (the user's re-run payment, 14:44 UTC; block A state, 06:41 UTC)",
+ "status": "done: items 1-4 built with tests both ways; one more blocker for record-done a-2 found and fixed (c0's model-state outputs); the four suites pass with 0 failures, 0 errors and 0 skips; 5 new mutants run against the kit suite, 5 killed (baseline passes with the same command); not run on the live kit's real files",
+ "items": {
+  "1_pull_list": "host.py PULL_ITEMS = 'round1 rescore cert job-* jobs anchor-* gatec ...' (rest unchanged). From the runner: units go to round1/ (arm, a0_arm, ref_train, regenerate), rescore/ (retrain, a1_rescore: RESCORE_ROOT), cert/ (cert_c1-c3: CERT_ROOT) and job-I/ (B10's units; O-ext, c0 and unit-free outputs; ledgers), job files to jobs/, records to job-done/, JOB-DONE.json, deferral.json; step receipts to job-I-STEP (job-*). cert/ was missing too, so the certificate pod (C1-C3) would have lost its units the same way. Test: four pods (every job kind) run with the synthetic engine; every file written, every receipt folder and every unit and output path JOB-DONE.json records lies under the list (by host.py pull's rule, written by hand with fnmatch on the top-level name); the units' top folders are hand-listed; Gate B's old list leaves out exactly rescore/ (X pod) and cert/ (Y pod).",
+  "2_unpulled_decision": "plan_tool.py record-unpulled FILE --sha256 H. FILE is exactly {kind: 'stage1 unpulled outputs decision', host, jobs: [index...], reason, utc, recorded_by} (distinct non-negative integer indices; non-empty texts; utc in UTC and not in the future). Refused when the host is unknown or recorded done, its block is sealed, an index is not in its pulled JOB-DONE.json or is another job, the job is not complete with a unit and a 64-hex complete_sha256, the unit's COMPLETE.json is in the pulled tree, or another recorded decision names the job. Stored in plan.json records.unpulled (resolved path, SHA-256, host, sorted jobs, reason, utc, recorded_by, recorded_utc). Re-hashed at every use (record-done, block A's completion check, the seal, a later record-unpulled): the file must be at its path, unchanged, with the same host, jobs and reason. record-done HOST: a named job skips the COMPLETE.json check (its unit must still be absent) and is recorded status 'complete' with pulled: false and unpulled_decision_sha256 (status stays 'complete' so the never-re-run rule and every 'complete' check stay as they are). block_a_done no longer counts such a job; block_a_unpulled counts it as decided (label -> decision SHA-256); block_a_open subtracts done, not-run and unpulled. The seal adds not_pulled: [{host, index, job, unit, decision_sha256}], no file hash (and the tree holds no rescore/ file).",
+  "3_finisher": "finisher.py light-checks every host whatever its role (else branch). Stage-1 roles: w1_18, cert, certify, job, diagnostics, arms (plan_tool build_block and host_record). Any other role is checked too (fail closed). Test: each of the six roles plus one unlisted role: verified-and-stopped with its verified.jsonl line; review-needed-stopped for a changed listed file, a JOB-DONE.json that is not ok, and a non-zero outer exit; the pod is stopped every time.",
+  "4_user_rerun_payment": "plan_tool.py record-rerun-payment FILE --sha256 H. FILE is exactly {kind: 'stage1 user decision: pay re-runs beyond the contingency', user_words (verbatim), block, jobs: [{arm, seed}], amount_usd, utc, recorded_by} (arm a text, seed an integer, distinct; amount finite and above 0, not a boolean). Refused unless block is a funding group with a contingency in plan.json, not sealed, and each named run is in that contingency's not_rerun list and not yet paid. Stored in records.rerun_payments; re-hashed at every use. requeue HOST: when a recorded payment (the latest naming each run) names runs that an earlier move of HOST held as not re-run (not_rerun 'where' = 'requeue HOST' or 'defer HOST'; the job still not_started, crashed or deferred), requeue moves exactly those runs through move_open (never a completed job again, at most 4 counted jobs, the next unlaunched block host with room or a new host) and pays them as one unit with pay_user: rules.unit_rerun_cost_usd, refused when its cost in cents is above what the decision still covers (amount less its earlier payments); recorded in contingency.<group>.user_paid {unit, new_pod, cost_usd, cost_cents_usd, amount_usd, where, decision_sha256, utc}; logged as 'rerun-user-paid'; the deferral entry carries reason 'user-paid-rerun' and the decision's SHA-256; each moved job carries rerun_payment_sha256. The contingency's usd, remaining_usd, spent and not_rerun are unchanged. Without a payment, requeue is exactly as before (a-7: 'already deferred'). Regenerations, O-only passes, retrains, re-scores and W1-18 are refused on this route."
+ },
+ "extra_fixes": {
+  "record_done_model_states": "Found while building the a-2 fixture from its JOB-DONE.json: job 18 (c0, unit-free) records 8 outputs under job-18/c0/train/states/ ending in .safetensors (e1: adapter, optimizer, rng; init: adapter, rng; q: adapter, optimizer, rng). The light pull excludes *.safetensors, and the pulled tree lists only state.json in those folders. The old record-done required every recorded output in the tree, so record-done a-2 would have refused at job 18 even with jobs 12-15 decided. Fix: record-done accepts a recorded .safetensors output that is absent (not a broken link) and records the count as states_on_pod on the job; one that is present must hash as recorded; every other missing output still refuses (tested both ways; mutant B15-29-any-missing-output-accepted killed). This is the finisher's existing light-check rule. B10's jobs (block B) record their regen states the same way, so this also prevents the same refusal there. The lead may reject it; the fallback is a full pull, which is impossible for a stopped a-2.",
+  "backup": "backup_records_stage1.py would have reported a-2's jobs 12-15 as missing ('complete in plan.json but its unit is not sealed') and c0's 8 states as 'recorded output(s) not staged' (exit 2). Now a job with pulled false and a 64-hex unpulled_decision_sha256 is listed with that mark and not required, and a unit-free job's model-weight outputs are left aside, as a unit's are (tested both ways). Limit: the backup reads plan.json's marks and does not re-hash the decision file itself."
+ },
+ "alternatives": [
+  "Item 2: a new job status 'complete_not_pulled' was rejected. Status stays 'complete' with a pulled:false mark, because every check that reads 'complete' must keep working: never re-run a completed job (complete_keys), block_complete, defer and requeue. The completion check reads the mark and counts the job as decided, re-hashing the decision.",
+  "Item 2: letting the decision also excuse missing outputs was rejected. The decision covers only the unit; the job's outputs (its ledger under job-I/) are pulled and still checked.",
+  "Item 4: an explicit requeue flag was rejected because the brief says 'requeue HOST' with the record. The route needs a recorded decision that names held runs; without one the old path runs unchanged.",
+  "Item 4: payment from the contingency with a top-up of remaining_usd was rejected. It would mix the user's money into the frozen 1.25 contingency and change remaining_usd. user_paid is a separate list, and init-block's contingency recompute (sum of spent) never sees it.",
+  "Item 4: the cost is compared with amount_usd in cents ([D20] rounding: $9.4950 -> $9.49), so the FOCUS figure $9.49 covers the kit's unit. Comparing exact values would refuse a $9.49 record by half a cent.",
+  "Item 4: a later decision supersedes an earlier unpaid one for the runs it names (rather than one decision per run for ever), so the user can decide again on a new amount without editing a recorded file. Two decisions applying to one host's held runs refuse (one decision per requeue).",
+  "Item 3: keeping a list of the six stage-1 roles was rejected. The light check is unconditional, so a host with an unexpected role is checked too and never passes unchecked as 'stopped'.",
+  "No change to stage1_rules.py or the job runner: both are packed to pods, and an edit would need a re-pack before a-7's replacement launches. Their SHA-256 are unchanged (unchanged_files)."
+ ],
+ "files": {
+  "changed": [
+   {
+    "path": "runkit/stage1-olmo/host.py",
+    "old_sha256": "b78cfa5e9ac79a8b2f933f4494ac66bc5686fd9c1ae8f99bd52d359bd150eddc",
+    "new_sha256": "5bfdaff3255d60acf4b79c2d9a53c10bc2d6295ce4d8168996cc9bf0d8753a1e",
+    "what": "item 1: PULL_ITEMS adds rescore and cert (with a comment); nothing else"
+   },
+   {
+    "path": "runkit/stage1-olmo/finisher.py",
+    "old_sha256": "c5a267cb070fdf9efce936f5ba81daf8fc732133731f07ba4b0c9eb79257dcdb",
+    "new_sha256": "662fe949e5fb45e99c851b9c658b742f93a306d24603beefcdca71381d948dad",
+    "what": "item 3: the light check runs for every host role (the role test and the dead 'elif exit_code' branch are gone)"
+   },
+   {
+    "path": "runkit/stage1-olmo/plan_tool.py",
+    "old_sha256": "503de526d40a67eb08ff4ae60afd4046444bef2a4a16ea0f1ad8bfa91d066070",
+    "new_sha256": "7757b26f44cfaf92c966313a8632f67adab7415bf3d59200a649c3093857addc",
+    "what": "items 2 and 4: record-unpulled, record-rerun-payment, record-done under the decision (and the model-state exception), block A's completeness, the user-paid requeue (pay_user, move_open's payment hook), docstring"
+   },
+   {
+    "path": "runkit/stage1-olmo/seal.py",
+    "old_sha256": "c14fb29e1300f2eb569a8ba5514da72656dfcd20f8baa3da979468900e286335",
+    "new_sha256": "ab94fc7bbff5c879a3ee9ae622201561ac6d65a77f9d07f1926a85236dfe4421",
+    "what": "item 2: the seal record gets not_pulled (no file hashes)"
+   },
+   {
+    "path": "runkit/stage1-olmo/backup_records_stage1.py",
+    "old_sha256": "fa781613f56066e73d418e11e76825bdcc55cfeeff7be85cdee50e5778e3568c",
+    "new_sha256": "ed2ac401be717f0018ff531b1a885eb22c9e2b0aecbca5ffe2d55e5f5026cbfd",
+    "what": "beyond the brief (see extra_fixes): lists complete (not pulled) jobs instead of reporting them missing; leaves a unit-free job's recorded model-weight outputs aside"
+   },
+   {
+    "path": "runkit/stage1-olmo/README.md",
+    "old_sha256": "4f1ed6c22255b43b5b9a99d1c8c1294c6444ee463692c49c192771eb3d03882e",
+    "new_sha256": "611c53dbe25729bbd3e3ba8860fcf5be3a78d937768126bf91cc37635b5a7f64",
+    "what": "a 'Round 29' section"
+   },
+   {
+    "path": "runkit/stage1-olmo/tests/test_stage1_runkit.py",
+    "old_sha256": "3220d754bb7c384fbc527804fe6c42d83ba636695fb6fb8108f9a4eae85c206f",
+    "new_sha256": "550e419d8c01a913c7b7fa099b5062f47e15033ddcb8cf99da4bdcfc5f7ee32e",
+    "what": "34 new tests (items 2 and 4, record-done's model states); the documented Gate B differences of host.py and finisher.py extended (PULL_29, FINISHER_29)"
+   },
+   {
+    "path": "runkit/stage1-olmo/tests/test_stage1_runner.py",
+    "old_sha256": "8203d75274f9849c3367026dcd32b46f436bf388866b211ec5cb813756100ac4",
+    "new_sha256": "1e88c61fed59f2b06e936e46d6fc6fd185e9169742f8d6a76548ab062ec85d85",
+    "what": "12 new tests (item 1 on four pods, item 3 on seven roles, the backup)"
+   },
+   {
+    "path": "runkit/stage1-olmo/tests/mutants_b15.json",
+    "old_sha256": "d1747fa021dc0e187b6eff2876d4238717b9713fe495637eff56a47be252238d",
+    "new_sha256": "e8265e07ba125d84cab9ec52d139bfe7ffbca291f69314b4526e05dc19ac4517",
+    "what": "5 B15-29-* mutants added (332 -> 337); the note extended"
+   }
+  ],
+  "unchanged_packed": {
+   "runkit/stage1-olmo/stage1_rules.py": "f30a0032dfde81d74ffbe0f6d4c9fc9980685d6f5ed2c42f7235f7e4a8485b87",
+   "runkit/stage1-olmo/setup/job_runner_stage1.py": "58ea1510fd3973f11b88b7301418f7babef234d001575ab620d725b771cbda0d"
+  },
+  "notes_written": [
+   "notes/kit-round-29.json (this file)",
+   "notes/kit-round-29-evidence/ (junit XML of the four suites, mutants-29-report.json, run_mutants_29.py)"
+  ]
+ },
+ "tests": {
+  "command": "cd ws-k29; export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONDONTWRITEBYTECODE=1 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1; /Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python -B -m pytest -p no:cacheprovider --basetemp=<new scratchpad folder> -q -rs --junitxml=notes/kit-round-29-evidence/<suite>.junit.xml <suite>",
+  "runs_utc": "2026-10-26 15:17-15:21 UTC, after the last code change",
+  "results": {
+   "runkit/stage1-olmo/tests": "541 passed, 0 failed, 0 errors, 0 skipped (exit 0; 46 new; 495 before, all passing at the start, 14:55 UTC)",
+   "experiments/safety_selection/tests/test_ss_gateb_runkit.py": "271 passed, 0 skipped (exit 0)",
+   "scripts/stage1/tests": "874 passed, 0 skipped (exit 0)",
+   "scripts/stage1_s1": "1420 passed, 0 skipped, 18 warnings (exit 0)"
+  },
+  "new_tests": {
+   "test_stage1_runkit.py": [
+    "test_an_unpulled_decision_names_only_complete_units_the_pull_did_not_fetch (15 cases: kind, extra or missing key, empty, repeated, text or boolean index, blank reason, non-UTC, future, unknown host, index out of range, a pulled unit (job 0), a unit-free job (jobs 1 and 16))",
+    "test_record_done_records_jobs_12_to_15_complete_not_pulled_under_the_leads_decision (without the decision: refusal at job 12 naming record-unpulled; with it: 19 complete, not_pulled [12, 13, 14, 15], the marks on 12-15 only, states_on_pod 8 on job 18; refusals: a second decision on job 12, a missing non-state output, a present state file that differs, a changed decision file, a decision after record-done)",
+    "test_without_a_decision_a_pulled_rescore_unit_records_as_before",
+    "test_block_a_counts_not_pulled_jobs_as_decided_and_the_seal_lists_them_without_hashes (45 required jobs under Branch 128; a changed decision refuses the completion check and the seal; the seal's not_pulled by hand; no rescore/ file; a decision after the seal refuses)",
+    "test_the_users_re_run_payment_record_is_exact_and_names_only_held_runs (14 cases)",
+    "test_requeue_pays_a7s_four_runs_beyond_the_contingency_under_the_users_record_and_nothing_else ($9.4950 = (2,520 + 4 x 4,144) s x $1.79/h, $9.49 in cents; contingency unchanged; a-8 cap 7.0 h; a second requeue and a second record refuse)",
+    "test_a_payment_covers_only_the_runs_it_names_and_never_more_than_its_amount (2 of 4 named; $5.37 refused under $5.36, paid under a superseding $5.37 record; a changed payment file refuses)"
+   ],
+   "test_stage1_runner.py": [
+    "test_every_unit_and_record_path_the_runner_writes_lies_under_the_pull_list (4 pods: x, y, x128, w1)",
+    "test_the_finisher_light_checks_every_stage_1_host_role (7 roles)",
+    "test_the_backup_lists_jobs_complete_not_pulled_and_leaves_c0s_states_aside"
+   ],
+   "changed_existing": "test_the_kit_compiles_holds_no_secret_and_reuses_gate_b_files_as_documented: PULL_29 and FINISHER_29 added to its documented host.py and finisher.py differences from the Gate B kit (each 'old' text occurs once in Gate B's file)"
+  },
+  "fixture_sources": "Real-shaped, synthetic: the live plan.json's contingency A (usd 24.98, remaining_usd 2.9470888888888886, the four a-7 not_rerun entries at $3.3135 each, where 'requeue a-7') and a-7's jobs (branch 128, spend_upper_s 4,144); a-2's 19-job order and its unit paths (rescore/1102-a0-retrain-a1, rescore/1102-attributes-a1, rescore/1103-a0-retrain-a1, rescore/1103-attributes-a1; round1/<seed>-<arm>-regen-a1); c0's 8 state outputs. The kit's default block-A plan (split 2+2+1) under Branch 128 reproduces a-7's deal pod (L1 1103, S1 1102, S3 1104, R 1104). No data text was read or written."
+ },
+ "mutants": {
+  "added": [
+   "B15-29-pull-no-rescore (host.py)",
+   "B15-29-finisher-gate-b-roles (finisher.py)",
+   "B15-29-unpulled-not-rehashed (plan_tool.py)",
+   "B15-29-user-paid-from-contingency (plan_tool.py)",
+   "B15-29-any-missing-output-accepted (plan_tool.py)"
+  ],
+  "spec": "runkit/stage1-olmo/tests/mutants_b15.json: 332 -> 337 entries; every find text of all 337 occurs exactly once in its target (checked after the last edit). No earlier entry was retargeted: the round-29 code was shaped so that the five earlier entries it first collided with (B15-d-two-sources, B15-x-funding-zone, B15-x-funding-future, B15-r-backup-outputs, B15-8-seal-not-run-unlisted) each still match exactly once.",
+  "run": "notes/kit-round-29-evidence/run_mutants_29.py: a scratch repository root (the kit and the Gate B kit copied, every other entry of ws-k29 linked), the kit suite per run, kill = exit 1 with FAILED tests and no ERROR. Baseline: pass (541). B15-29-pull-no-rescore: killed (5 failed: the four pull-list cases and the documented-difference test). B15-29-finisher-gate-b-roles: killed (7: six roles and the documented-difference test). B15-29-unpulled-not-rehashed: killed (1). B15-29-user-paid-from-contingency: killed (2). B15-29-any-missing-output-accepted: killed (1). Report: notes/kit-round-29-evidence/mutants-29-report.json. 0 survived, 0 invalid. The full B15 spec (337) was not run (the brief's limit of 5)."
+ },
+ "lead_commands": {
+  "0_bring_the_code_in": [
+   "Copy the 9 changed files listed under files.changed from ws-k29/runkit/stage1-olmo/ to runkit/stage1-olmo/ in main and to the live kit tmp/stage1-olmo/ (same relative paths), check each new_sha256, commit main with explicit paths. stage1_rules.py and setup/ are unchanged, so no re-pack is needed.",
+   "cd /Users/spiderishi/Coding/attribution; export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONDONTWRITEBYTECODE=1 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1; PY=/Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python; K=tmp/stage1-olmo; R=.ai/inputs/stage1-post-w1-20261023/block-a",
+   "$PY -B -m pytest -p no:cacheprovider --basetemp=<new folder> -q runkit/stage1-olmo/tests   (expect 541 passed)"
+  ],
+  "a-2": [
+   "date -u; U=$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+   "cat > $R/unpulled-outputs-a2.json <<JSON\n{\"kind\": \"stage1 unpulled outputs decision\", \"host\": \"a-2\", \"jobs\": [12, 13, 14, 15], \"reason\": \"addendum §29: LN-15e's retrain and re-score units (rescore/) were not in the light pull's list; a-2 is stopped and never restarted (REV4 §11, G6); LN-15e takes its FO-04 fallback (§29 point 1)\", \"utc\": \"$U\", \"recorded_by\": \"GI VI lead\"}\nJSON",
+   "H=$(shasum -a 256 $R/unpulled-outputs-a2.json | cut -c1-64); $PY -B $K/plan_tool.py record-unpulled $R/unpulled-outputs-a2.json --sha256 $H",
+   "  expect: {\"recorded\": \"unpulled\", \"sha256\": \"<H>\", \"host\": \"a-2\", \"jobs\": [12, 13, 14, 15], \"labels\": [\"retrain a0 1102\", \"a1_rescore a0 1102\", \"retrain a0 1103\", \"a1_rescore a0 1103\"]}",
+   "$PY -B $K/plan_tool.py record-done a-2",
+   "  expect: {\"host\": \"a-2\", \"statuses\": [19 x \"complete\"], \"not_pulled\": [12, 13, 14, 15]}; plan.json a-2 job 18 gets states_on_pod 8. (Expected from the code and JOB-DONE.json's paths; not run on the real tree. A refusal names the job and the check.)",
+   "Keep $R/unpulled-outputs-a2.json unchanged at that path: block A's completion check, seal.py block A and record-done hash it again."
+  ],
+  "a-7": [
+   "cat > $R/rerun-payment-a7.json <<'JSON'\n{\"kind\": \"stage1 user decision: pay re-runs beyond the contingency\", \"user_words\": \"Yes: pay a-7's four re-runs from the balance beyond block A's contingency.\", \"block\": \"A\", \"jobs\": [{\"arm\": \"L1\", \"seed\": 1103}, {\"arm\": \"S1\", \"seed\": 1102}, {\"arm\": \"S3\", \"seed\": 1104}, {\"arm\": \"R\", \"seed\": 1104}], \"amount_usd\": 9.49, \"utc\": \"2026-10-26T14:44:00Z\", \"recorded_by\": \"GI VI lead\"}\nJSON",
+   "H=$(shasum -a 256 $R/rerun-payment-a7.json | cut -c1-64); $PY -B $K/plan_tool.py record-rerun-payment $R/rerun-payment-a7.json --sha256 $H",
+   "  expect: {\"recorded\": \"rerun_payment\", \"sha256\": \"<H>\", \"block\": \"A\", \"jobs\": [the four], \"amount_usd\": 9.49}",
+   "$PY -B $K/plan_tool.py requeue a-7",
+   "  expect: {\"from\": \"a-7\", \"to\": \"a-11\", \"jobs\": 4, \"cap_hours\": 7.0, \"role\": \"arms\"} (every block-A host a-1..a-10 is launched, so a new host; by hand: (2,520 + 4 x 4,144) s x $1.79/h = $9.4950 -> $9.49 <= $9.49); plan.json contingency.A.user_paid[0] with decision_sha256 <H>; remaining_usd stays 2.9470888888888886; operator-actions.jsonl gets 'rerun-user-paid' and 'requeue'",
+   "$PY -B $K/orchestrate.py check-plan a-11   (a-11 is bound to a-7's packed stage, sealed files fed1f2f1...; refuses if engine X was re-packed since)",
+   "From a background job only (memory launch-in-background-bash), with one finisher running: cd $K && caffeinate -i $PY -B launch.py a-11",
+   "After a-11 is finished: $PY -B $K/plan_tool.py record-done a-11"
+  ]
+ },
+ "acceptance": {
+  "item_1_pull_list_and_test": "passed (test both ways; mutant killed)",
+  "item_2_decision_record_command_rehash": "passed",
+  "item_2_record_done_complete_not_pulled": "passed",
+  "item_2_seal_lists_without_hashes": "passed",
+  "item_2_block_a_counts_decided": "passed",
+  "item_3_finisher_every_role": "passed",
+  "item_4_payment_record_command": "passed",
+  "item_4_requeue_pays_beyond_contingency_logged_nothing_else": "passed",
+  "item_4_a7_not_rerun_accepted_again": "passed on the live plan's shape (synthetic); not run on the live plan.json",
+  "tests_both_ways_hand_values": "passed",
+  "mutants_at_most_5_each_find_once": "passed (5 added, 5 run, 5 killed)",
+  "four_suites": "passed (541, 271, 874, 1420; 0 skipped)",
+  "real_files": "not tested: no command was run on the live kit's records or trees"
+ },
+ "open_items": [
+  "Pre-existing limit that matters for a-7 now: a host made by a requeue (a-11) is in no launch's host list, so plan_tool release A releases the judge launches (5, 6) without waiting for a-11 (d3-build open item). Release and run the judges only after record-done a-11 (operator rule). This round does not change it: the brief says 'nothing else', and the line is mutant B15-h-judge-ignores-moved's find text.",
+  "The record-done model-state exception and the backup change go beyond the brief's four items. Both are needed for record-done a-2 and the block-A backup to pass on a-2's real shape. The lead should accept or reject them.",
+  "The payment amount is compared in cents, and a later decision supersedes an earlier unpaid one. Both are my design choices (see alternatives).",
+  "The payment's utc uses FOCUS's recording time (2026-10-26T14:44:00Z). If the user's message has its own time, use that (it must not be in the future).",
+  "Read scope: besides plan.json, hosts/ and retrieved/a-2/tree/job-done/, I read retrieved/a-2/tree/JOB-DONE.json (the same per-job records; statuses, unit paths, output names and hashes) and retrieved/a-2/pulls.jsonl, and listed the folder names of retrieved/a-2/tree/ and of job-18/ (names only). That is how I found c0's state outputs and their absence from the tree. I read no file content beyond those records, and no data text. I also compared the live kit's code files with ws-k29's by SHA-256 (equal).",
+  "Two .DS_Store files appeared in ws-k29 (the root and research/) during the session. No command of mine wrote them (macOS); they are outside the kit, and I left them.",
+  "The full B15 spec (337 mutants) and the Gate B kit's specs were not run (limit of 5)."
+ ],
+ "evidence": {
+  "folder": "notes/kit-round-29-evidence/",
+  "files": {
+   "runkit-stage1-olmo-tests.junit.xml": "3d575200f6dda75d10ab8c8bcd8a9ec43e155980545067f7e70252fd528f7142",
+   "test_ss_gateb_runkit.junit.xml": "8eddaf79ebd31cc99059c4ef9d5912f7831faa77fc3f595e6961232b42d7b1ca",
+   "scripts-stage1-tests.junit.xml": "4a6ac94e9ce501e85e0ae4bf6de716f21cd08514f0cf00813019acb68f06b3db",
+   "scripts-stage1_s1.junit.xml": "ea1b1b45dde846de102f5369e70c193da3a38cceb35de9ef845b0f3da6ccd65b",
+   "mutants-29-report.json": "41d4513a7e9b152f12080e11f2033c3f96e59403a9de394705e6336a496e5b5e",
+   "run_mutants_29.py": "fad0511236f8384f376560b7a1285afb7b8099e12ddb8f8084803f7ee494c446"
+  }
+ }
+}

@@ -1,0 +1,42 @@
+{
+  "base": {
+    "manifest": ".ai/inputs/stage1-commitments-20261016/MANIFEST.json",
+    "manifest_rule": "the W1 manifest's entry for each path below must name the same SHA-256 as this file; the manifest itself is read, not pinned (it is never changed, addendum section 18 point 1)",
+    "script": "scripts/stage1/build_s_pool.py",
+    "script_sha256": "cb2ca385a3917d0f4be041ae08b1e121bc67f82a7fc95165e33550f053f463df",
+    "script_use": "loaded by path from the bytes that passed the SHA-256 check (never imported by name, copied or edited); its build() runs with two of its module functions replaced for that call only: lists_of (the S3 subset size rule) and check_sizes (the stop)",
+    "settings": "scripts/stage1/settings/build_s_pool.json",
+    "settings_sha256": "6080487c8efa6682259ecd977f517a151a8e8aecf80d7aea45e6a23911a943a4",
+    "settings_use": "REQ-6's own settings, loaded by build_s_pool.py's literal pin and passed to its build() unchanged; its min_pool (1,000) and lists.s3_subset.size (1,000) are not used by D-1's rule (planned_s3_subset_size below must equal the latter)"
+  },
+  "decision": "post-W1 deviation D-1, decided by the lead under the user's delegation (2026-10-23T13:35 UTC)",
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "fallback": {
+    "k_below": 600,
+    "rule": "addendum section 18 point 7: if k < 600 the S3 subset is all N rows in the sealed order and the decoy is not built; this wrapper then stops with counts only and exit code 3 (nothing written), so no k-row subset that the fallback replaces is ever written"
+  },
+  "k_min": 48,
+  "k_min_rule": "S3 trains on the top 48 of its subset by REQ-11's score (write_score_add.json scorers.s3.k), so no k below 48 is allowed",
+  "kind": "stage1 settings",
+  "label_entries": {
+    "s1.order": "9a53c46db00a43171c353994e17c035d1f3c0cf64b3368e303fef7f25bc627fc",
+    "s3.subset": "5786a02b3ea6571ab4a54a25d5a2718119c7e21eb15b4fe6bac7864e43d7fc31",
+    "s4.order": "5340e74bf2811b3391eaf6a9a0a11df98aa6e37f9800afdc5cfa88ee471f909a"
+  },
+  "labels_sha256": "260389f3fbfd8e7ff11ee06b5d5aba48e7d56b34140d9c9a634682125a86d570",
+  "min_pool": 597,
+  "min_pool_rule": "the S1 size plus the S4 candidates' size plus decoy_rows of REQ-6's settings (48 + 512 + 37); the wrapper refuses settings where this sum differs",
+  "name": "d1_s_pool",
+  "outputs": {
+    "full": "--full-out, inside a folder named tmp: s_pool.json, s1.json, s3_subset.json, s4_candidates.json, s3_safe.pool.json (build_s_pool.py's own writers; the S3 subset and s3_safe hold k rows from the subset)",
+    "record": "--out: s_pool_record.json (text-free; build_s_pool.py's record with its provenance block replaced by the wrapper's and a d1 block added)"
+  },
+  "owner": "scripts/stage1_s1/d1_spool/d1_s_pool.py",
+  "planned_s3_subset_size": 1000,
+  "reference": ".ai/briefs/stage1-commitments-build-20261016-lead-decisions.md section 18 (REQ-6 stopped: the S-pool has 947 rows, not 1,000; post-W1 deviation D-1)",
+  "requirement": "REQ-6 under post-W1 deviation D-1 (addendum section 18 points 2-4); everything else of REQ-6 unchanged (section 18 point 1)",
+  "rule": "the S3 subset is the first k ids of sealed_order(S-pool ids, s3.subset), k the largest integer k <= planned_s3_subset_size (1,000) and k <= N for which at least decoy_rows (37) S-pool rows lie outside S1 (the first 48 of s1.order), the first k ids and the S4 candidates (the first 512 of s4.order over the S-pool minus S1); the rule reads ids and sealed orders only, never a model output",
+  "stop": "counts only, nothing written: N < min_pool (597) after the last filter, or no k >= k_min (48) meets the rule, or S1 or the S4 candidates cannot be filled; the stop message carries the candidate count, N after each filter and each filter's removals by reason (build_s_pool.filter_counts)",
+  "unchanged": "the candidate rule, every filter and its order, S1 (48), the S4 candidates (512), REQ-8's 37-row decoy, every sealed order and label, every output file's format and every W1 file (addendum section 18 point 1)",
+  "version": 1
+}

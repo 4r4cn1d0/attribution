@@ -1,0 +1,14 @@
+{
+ "allows_retry_failed_start": true,
+ "allows_zero_gpu": true,
+ "chat": "General Implementation VIII",
+ "context": "FOCUS 2026-10-30T06:00 UTC (commit f6eb090): under the first decision (user_decision_restart_to_pull_block_b.json, bd13c8f4...), the starts of b-1, b-2, b-3, b-6 and b-7 failed (RunPod: \"There are not enough free GPUs on the host machine to start this pod\"), and b-14 stopped itself unpulled while the Mac slept. The lead asked: \"Start b-1, b-2, b-3, b-6, b-7 and b-14 once with zero GPUs to pull them?\" The option the user chose (button \"Yes, zero-GPU pull\"): \"Yes: start b-1, b-2, b-3, b-6, b-7 once more with zero GPUs (their GPU start failed) and add b-14 to the restart-once-to-pull decision, same limits: pull, light-check, stop; no job runs.\"",
+ "deviation_from": "PREREG revision 5 §9 'Pod operation rules': \"A stopped kit pod is never restarted.\" (as the first decision; addendum §38)",
+ "hosts": ["b-1", "b-2", "b-3", "b-6", "b-7", "b-14"],
+ "kind": "stage1 user decision: restart stopped kit pods once to pull",
+ "limits": "the first decision's limits: each pod is started at most once (a start that failed did not start it), with a fresh in-pod cap of at most 60 min written into its environment before the start; started with zero GPUs (RunPod's GraphQL podResumeZeroGpu); no job, preflight or setup step runs; the running finisher pulls, scans, light-checks and stops (never deletes); if a start fails again, the lead records it and asks the user",
+ "recorded_by": "GI VIII lead",
+ "user_words": "Yes, zero-GPU pull",
+ "utc": "2026-10-30T10:52:07Z",
+ "utc_note": "the time the lead read the clock to record the decision; the user's reply came after the lead's question at about 06:01 UTC"
+}

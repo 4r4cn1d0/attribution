@@ -817,11 +817,12 @@ def test_the_kit_and_the_reading_define_the_evaluation_config_alike(fr):
 
 
 def test_the_current_engine_reuses_a_55253874_baseline_through_the_pinned_certificate(fr, tmp_path, capsys):
-    """The round-6 pair as it will occur: a baseline evaluated at 8c026ee (engine 55253874) and a fine-tune of this
-    engine, with the real per-file hashes of both."""
+    """The round-6 pair as it occurred: a baseline evaluated at 8c026ee (engine 55253874) and a fine-tune of engine
+    e49a978c, with the real per-file hashes of both (the stored e49a978c identity; Gate B A1 (vi): the test pins that
+    pair, not the current engine)."""
     from experiments.safety_selection.common import code_identity
     old = json.loads((CONFIGS / "engine-identity-55253874.json").read_text())
-    now = code_identity()
+    now = json.loads((CONFIGS / "engine-identity-e49a978c.json").read_text())
     init, e1, manifest = reuse_pair(tmp_path / "round6")
     for unit, recipe, code in ((init.parent.parent, RECIPE, old), (e1.parent.parent, BT_RECIPE, now)):
         identity(unit, recipe, code_sha256=code["sha256"], code_files=code["files"])
@@ -893,7 +894,10 @@ def test_a_same_named_init_unit_from_another_pod_is_not_the_same_run(fr, tmp_pat
     ("transformers", {"packages": {**ENVIRONMENT["packages"], "transformers": "4.57.0"}}, "packages"),
     ("python", {"python": "3.12.4"}, "python"),
     ("numeric", {"safety_selection_numeric": {"cuda_matmul_allow_bf16_reduced_precision_reduction": True}},
-     "safety_selection_numeric")])
+     "safety_selection_numeric"),
+    ("machine", {"machine": "aarch64"}, "machine"),                             # Gate B carried fix (R6R:239)
+    ("deterministic", {"deterministic_algorithms": False}, "deterministic_algorithms"),
+    ("cuda_env", {"cuda": {**ENVIRONMENT["cuda"], "env": {"CUBLAS_WORKSPACE_CONFIG": ":16:8"}}}, "cuda_env")])
 def test_a_reuse_refuses_any_environment_difference(fr, tmp_path, field, change, differs):
     init, e1, manifest = fine_tune_only(tmp_path / field)
     identity(e1.parent.parent, environment={**ENVIRONMENT, **change})

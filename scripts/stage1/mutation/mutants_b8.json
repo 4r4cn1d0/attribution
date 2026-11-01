@@ -1,0 +1,478 @@
+{
+ "kind": "stage1 mutants",
+ "mutants": [
+  {
+   "describes": "the last crossing in place of the first",
+   "file": "dose_axis.py",
+   "find": "    for (t0, g0), (t1, g1) in zip(points, points[1:]):\n        if min(g0, g1) <= g_m <= max(g0, g1):",
+   "id": "B8-d-last-crossing",
+   "part": "batch 8 W1-02",
+   "replace": "    for (t0, g0), (t1, g1) in reversed(list(zip(points, points[1:]))):\n        if min(g0, g1) <= g_m <= max(g0, g1):"
+  },
+  {
+   "describes": "extrapolation past T_2400",
+   "file": "dose_axis.py",
+   "find": "    if t_m > points[-1][0]:\n        return BEYOND\n",
+   "id": "B8-d-extrapolate",
+   "part": "batch 8 W1-02",
+   "replace": "    if t_m > points[-1][0]:\n        (t0, g0), (t1, g1) = points[-2], points[-1]\n        return g0 + (t_m - t0) / (t1 - t0) * (g1 - g0)\n"
+  },
+  {
+   "describes": "target tokens as the default axis",
+   "file": "dose_axis.py",
+   "find": "DEFAULT_AXIS = \"total_tokens\"",
+   "id": "B8-d-default-target",
+   "part": "batch 8 W1-02",
+   "replace": "DEFAULT_AXIS = \"target_tokens\""
+  },
+  {
+   "describes": "G_m = 0 not given the dose 0",
+   "file": "dose_axis.py",
+   "find": "    if g_m <= 0:\n        return ZERO",
+   "id": "B8-d-zero-strict",
+   "part": "batch 8 W1-02",
+   "replace": "    if g_m < 0:\n        return ZERO"
+  },
+  {
+   "describes": "the row axis's dose points not checked",
+   "file": "dose_axis.py",
+   "find": "    if {int(k): v for k, v in masses[\"rows\"].items()} != {n: n for n in DOSES}:\n        raise DoseError(\"on the row axis the dose points are the doses themselves\")\n",
+   "id": "B8-d-rows-unchecked",
+   "part": "batch 8 W1-02",
+   "replace": ""
+  },
+  {
+   "describes": "the ratio T_m / T*_m",
+   "file": "dose_axis.py",
+   "find": "        ratio = t_star / t_m",
+   "id": "B8-d-ratio-inverted",
+   "part": "batch 8 W1-02",
+   "replace": "        ratio = t_m / t_star"
+  },
+  {
+   "describes": "the add-edit record's account not compared",
+   "file": "report_token_accounting.py",
+   "find": "        _same(name, \"account\", ours, theirs)\n",
+   "id": "B8-t-account-unchecked",
+   "part": "batch 8 W1-01",
+   "replace": ""
+  },
+  {
+   "describes": "the edited corpus not cross-checked",
+   "file": "report_token_accounting.py",
+   "find": "    _same(name, \"edited corpus\", edited, theirs[\"edited_corpus\"])\n",
+   "id": "B8-t-edited-unchecked",
+   "part": "batch 8 W1-01",
+   "replace": ""
+  },
+  {
+   "describes": "the rewritten rows' 'before' block not cross-checked",
+   "file": "report_token_accounting.py",
+   "find": "    _same(name, \"rewritten 'before' block\", before, theirs[\"rewritten\"][\"before\"])\n",
+   "id": "B8-t-before-unchecked",
+   "part": "batch 8 W1-01",
+   "replace": ""
+  },
+  {
+   "describes": "the record's rows per step not compared",
+   "file": "report_token_accounting.py",
+   "find": "    _same(name, \"rows per step\", rows_per_step, theirs.get(\"rows_per_step\"))\n",
+   "id": "B8-t-rps-unchecked",
+   "part": "batch 8 W1-01",
+   "replace": ""
+  },
+  {
+   "describes": "the edited corpus's steps by floor",
+   "file": "report_token_accounting.py",
+   "find": "              \"steps\": ta.steps(rows, rows_per_step)}",
+   "id": "B8-t-steps-floor",
+   "part": "batch 8 W1-01",
+   "replace": "              \"steps\": rows // rows_per_step}"
+  },
+  {
+   "describes": "an add or rewrite edit accounted without its record",
+   "file": "report_token_accounting.py",
+   "find": "    if entry is None:\n        raise s1.Refusal(f\"arm {name} adds or rewrites rows: a --record must name its edit file\")\n",
+   "id": "B8-t-no-record-needed",
+   "part": "batch 8 W1-01",
+   "replace": "    if entry is None:\n        return ta.account(view, removed=removed, rows_per_step=rows_per_step), \"P only\"\n"
+  },
+  {
+   "describes": "a scored-only set counted as no rows",
+   "file": "report_token_accounting.py",
+   "find": "\"tokens\": ta.account(view, removed=sorted(rows), rows_per_step=rows_per_step)}",
+   "id": "B8-t-selected-as-nothing",
+   "part": "batch 8 W1-01",
+   "replace": "\"tokens\": ta.account(view, removed=[], rows_per_step=rows_per_step)}"
+  },
+  {
+   "describes": "max aggregation in place of the mean",
+   "file": "report_plant_ranks.py",
+   "find": "    return math.fsum(values) / len(values) if values else None",
+   "id": "B8-p-max",
+   "part": "batch 8 W1-08",
+   "replace": "    return max(values) if values else None"
+  },
+  {
+   "describes": "ties counted 0 in the AUC",
+   "file": "report_plant_ranks.py",
+   "find": "    wins = math.fsum(bisect_left(neg, x) + bisect_right(neg, x) for x in positives) / 2.0",
+   "id": "B8-p-auc-ties-zero",
+   "part": "batch 8 W1-08",
+   "replace": "    wins = math.fsum(2 * bisect_left(neg, x) for x in positives) / 2.0"
+  },
+  {
+   "describes": "oversize leaves in the replay",
+   "file": "report_plant_ranks.py",
+   "find": "len(rows) == size and not set(rows) & bad)",
+   "id": "B8-p-oversize-in-replay",
+   "part": "batch 8 W1-08",
+   "replace": "len(rows) == size)"
+  },
+  {
+   "describes": "leaves of another size in the replay",
+   "file": "report_plant_ranks.py",
+   "find": "len(rows) == size and not set(rows) & bad)",
+   "id": "B8-p-size-ignored",
+   "part": "batch 8 W1-08",
+   "replace": "not set(rows) & bad)"
+  },
+  {
+   "describes": "ties ranked ahead of the cell",
+   "file": "report_plant_ranks.py",
+   "find": "    return {\"rank\": 1 + larger, \"ties\": equal,",
+   "id": "B8-p-rank-ties-ahead",
+   "part": "batch 8 W1-08",
+   "replace": "    return {\"rank\": 1 + larger + equal, \"ties\": equal,"
+  },
+  {
+   "describes": "the dilution's r without the ties",
+   "file": "report_plant_ranks.py",
+   "find": "    planted[\"dilution\"] = {\"n_leaves\": n_leaves, \"r_ties_above\": r[\"rank\"] + r[\"ties\"],",
+   "id": "B8-p-dilution-no-ties",
+   "part": "batch 8 W1-08",
+   "replace": "    planted[\"dilution\"] = {\"n_leaves\": n_leaves, \"r_ties_above\": r[\"rank\"],"
+  },
+  {
+   "describes": "the bootstrap stream under other parts",
+   "file": "report_plant_ranks.py",
+   "find": "    rng = s1.numpy_generator(AUC_KEY, *parts)",
+   "id": "B8-p-boot-parts",
+   "part": "batch 8 W1-08",
+   "replace": "    rng = s1.numpy_generator(AUC_KEY, *reversed(parts))"
+  },
+  {
+   "describes": "the Self-Inf-N switch ignored",
+   "file": "report_plant_ranks.py",
+   "find": "    counting = [s for s in settings[\"counting\"][\"scorers\"] if s != \"selfinf_n\" or switch]",
+   "id": "B8-p-switch-ignored",
+   "part": "batch 8 W1-08",
+   "replace": "    counting = list(settings[\"counting\"][\"scorers\"])"
+  },
+  {
+   "describes": "a plant or decoy pool not pinned by the pool pins accepted",
+   "file": "report_plant_ranks.py",
+   "find": "entry is None or entry[\"pinned_by\"] != \"pool pins\" or ",
+   "id": "B8-p-pool-pin-unchecked",
+   "part": "batch 8 W1-08",
+   "replace": "entry is None or "
+  },
+  {
+   "describes": "a scorer's dev scores not reproduced from REQ-3",
+   "file": "report_plant_ranks.py",
+   "find": "lines[rid][\"source\"] != \"dev\" or value(lines[rid]) != score:",
+   "id": "B8-p-dev-unreproduced",
+   "part": "batch 8 W1-08",
+   "replace": "lines[rid][\"source\"] != \"dev\":"
+  },
+  {
+   "describes": "REQ-3's token counts not checked against P",
+   "file": "report_plant_ranks.py",
+   "find": "        if rid not in lines or target(lines[rid]) != tokens:",
+   "id": "B8-p-tokens-unchecked",
+   "part": "batch 8 W1-08",
+   "replace": "        if rid not in lines:"
+  },
+  {
+   "describes": "a counted input over other ids accepted",
+   "file": "report_plant_ranks.py",
+   "find": " or sorted(doc.get(\"scores\", {})) != planted_ids:",
+   "id": "B8-p-counted-ids-unchecked",
+   "part": "batch 8 W1-08",
+   "replace": ":"
+  },
+  {
+   "describes": "the no-plant rank read from the planted corpus",
+   "file": "report_plant_ranks.py",
+   "find": "\"without_rows\": rank(base[m], cell) if without else None}",
+   "id": "B8-p-without-moved",
+   "part": "batch 8 W1-08",
+   "replace": "\"without_rows\": rank(moved[m], cell) if without else None}"
+  },
+  {
+   "describes": "the unit comparison over all Dolly rows",
+   "file": "report_plant_ranks.py",
+   "find": "    dolly_unit = [scores[r] for r in levels[8][unit] if r not in gone and r in scores]",
+   "id": "B8-p-unit-is-all",
+   "part": "batch 8 W1-08",
+   "replace": "    dolly_unit = [scores[r] for c in levels[8].values() for r in c if r not in gone and r in scores]"
+  },
+  {
+   "describes": "the replaced leaf's Dolly rows kept as negatives",
+   "file": "report_plant_ranks.py",
+   "find": "    dolly_all = [scores[r] for c in levels[8].values() for r in c if r not in gone and r in scores]",
+   "id": "B8-p-leaf-rows-kept",
+   "part": "batch 8 W1-08",
+   "replace": "    dolly_all = [scores[r] for c in levels[8].values() for r in c if r in scores]"
+  },
+  {
+   "describes": "the rerun placement not checked against the plant record",
+   "file": "report_plant_ranks.py",
+   "find": "    if placed[\"report\"][\"cell_sizes\"] != record[\"grouping\"][\"cell_sizes\"]:\n        raise s1.Refusal(\"REQ-8's placement, rerun here, differs from the plant record's cell sizes\")\n",
+   "id": "B8-p-placement-unchecked",
+   "part": "batch 8 W1-08",
+   "replace": ""
+  },
+  {
+   "describes": "the checker accepting a changed byte",
+   "file": "commitments.py",
+   "find": "        if sha256_file(file) != e[\"sha256\"]:\n            raise s1.Refusal(f\"{e['path']}: a changed byte (it hashes to {sha256_file(file)})\")\n",
+   "id": "B8-c-changed-byte-ok",
+   "part": "batch 8 REQ-20",
+   "replace": ""
+  },
+  {
+   "describes": "the checker accepting a file git does not track at HEAD",
+   "file": "commitments.py",
+   "find": "        if e[\"path\"] not in at_head:\n            raise s1.Refusal(f\"{e['path']}: git does not track it at HEAD\")\n        if sha256_bytes(head_bytes[e[\"path\"]]) != e[\"sha256\"]:",
+   "id": "B8-c-untracked-ok",
+   "part": "batch 8 REQ-20",
+   "replace": "        if e[\"path\"] in at_head and sha256_bytes(head_bytes[e[\"path\"]]) != e[\"sha256\"]:"
+  },
+  {
+   "describes": "the checker accepting a file that differs from HEAD",
+   "file": "commitments.py",
+   "find": "        if sha256_bytes(head_bytes[e[\"path\"]]) != e[\"sha256\"]:\n            raise s1.Refusal(f\"{e['path']}: the file at HEAD differs from the manifest\")\n",
+   "id": "B8-c-head-differs-ok",
+   "part": "batch 8 REQ-20",
+   "replace": ""
+  },
+  {
+   "describes": "the checker accepting a missing file",
+   "file": "commitments.py",
+   "find": "        if not file.is_file():\n            raise s1.Refusal(f\"{e['path']}: the file is missing\")\n",
+   "id": "B8-c-missing-ok",
+   "part": "batch 8 REQ-20",
+   "replace": "        if not file.is_file():\n            continue\n"
+  },
+  {
+   "describes": "a committed text-bearing kind accepted",
+   "file": "commitments.py",
+   "find": "    if kind in settings[\"text_bearing_kinds\"]:\n        raise s1.Refusal(f\"{path}: a text-bearing kind ({kind}) is committed\")\n",
+   "id": "B8-c-text-kind-ok",
+   "part": "batch 8 REQ-20",
+   "replace": ""
+  },
+  {
+   "describes": "an edit file with text accepted",
+   "file": "commitments.py",
+   "find": "            if doc.get(\"add\") or doc.get(\"rewrite\"):\n                raise s1.Refusal(f\"{path}: an edit file with add or rewrite rows holds text\")\n",
+   "id": "B8-c-edit-text-ok",
+   "part": "batch 8 REQ-20",
+   "replace": "            pass\n"
+  },
+  {
+   "describes": "a sealed record outside the allow-list accepted",
+   "file": "commitments.py",
+   "find": "        elif kind not in settings[\"text_free_kinds\"]:\n            raise s1.Refusal(f\"{path}: a sealed record whose kind ({kind}) is not on the text-free allow-list\")\n",
+   "id": "B8-c-unknown-kind-ok",
+   "part": "batch 8 REQ-20",
+   "replace": ""
+  },
+  {
+   "describes": "a conditional entry without its condition text accepted",
+   "file": "commitments.py",
+   "find": "        if e.get(\"conditional\") is True and e.get(\"condition\") != settings[\"conditional\"][\"text\"]:\n            raise s1.Refusal(f\"{e['path']}: a conditional entry without its condition text\")\n",
+   "id": "B8-c-condition-unchecked",
+   "part": "batch 8 REQ-20",
+   "replace": ""
+  },
+  {
+   "describes": "a not-built entry with any label accepted (rev 1: the fixed label set not checked)",
+   "file": "commitments.py",
+   "find": "        if nb.get(\"label\") not in settings[\"not_built_labels\"] or not nb.get(\"reason\") or not nb.get(\"id\"):",
+   "id": "B8-c-not-built-label-ok",
+   "part": "batch 8 REQ-20",
+   "replace": "        if not nb.get(\"reason\") or not nb.get(\"id\"):"
+  },
+  {
+   "describes": "a manifest listing an excluded path accepted",
+   "file": "commitments.py",
+   "find": "        if first_match(e[\"path\"], settings[\"exclude\"]) is not None:\n            raise s1.Refusal(f\"{e['path']}: the manifest lists an excluded path (LN-30)\")\n",
+   "id": "B8-c-excluded-listed-ok",
+   "part": "batch 8 REQ-20",
+   "replace": ""
+  },
+  {
+   "describes": "the exclusions ignored (the REQ-21 record listed)",
+   "file": "commitments.py",
+   "find": "        rule = first_match(path, settings[\"exclude\"])\n        if rule is not None:",
+   "id": "B8-c-exclusion-ignored",
+   "part": "batch 8 REQ-20",
+   "replace": "        rule = None\n        if rule is not None:"
+  },
+  {
+   "describes": "a build over uncommitted or untracked files",
+   "file": "commitments.py",
+   "find": "    if dirty:\n        raise s1.Refusal(f\"{len(dirty)} files under the include rules are uncommitted or untracked (first: {dirty[0]})\")\n",
+   "id": "B8-c-dirty-ok",
+   "part": "batch 8 REQ-20",
+   "replace": ""
+  },
+  {
+   "describes": "a base commit off HEAD's history accepted",
+   "file": "commitments.py",
+   "find": "    if not is_ancestor(root, base, head):\n        raise s1.Refusal(\"the manifest's base commit is not an ancestor of HEAD\")\n",
+   "id": "B8-c-ancestor-unchecked",
+   "part": "batch 8 REQ-20",
+   "replace": ""
+  },
+  {
+   "describes": "the manifest not compared with its base commit's regeneration",
+   "file": "commitments.py",
+   "find": "    for key in COMPARED:\n        if manifest.get(key) != expected[key]:",
+   "id": "B8-c-regeneration-skipped",
+   "part": "batch 8 REQ-20",
+   "replace": "    for key in ():\n        if manifest.get(key) != expected[key]:"
+  },
+  {
+   "describes": "an appended label not named after the seal accepted",
+   "file": "commitments.py",
+   "find": "        if not str(entry.get(\"named_in\", \"\")).startswith(settings[\"appended_named_in\"]):",
+   "id": "B8-c-named-in-unchecked",
+   "part": "batch 8 REQ-20",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "PREREG off its pin accepted",
+   "file": "commitments.py",
+   "find": "    if sha256_bytes(data[prereg[\"path\"]]) != prereg[\"sha256\"]:",
+   "id": "B8-c-prereg-unchecked",
+   "part": "batch 8 REQ-20",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "an existing manifest overwritten",
+   "file": "commitments.py",
+   "find": "    if out.exists():\n        raise s1.Refusal(f\"{settings['manifest']['path']} exists: a manifest is never overwritten\")\n",
+   "id": "B8-c-overwrite",
+   "part": "batch 8 REQ-20",
+   "replace": ""
+  },
+  {
+   "describes": "a folder inside a repository taken as its root",
+   "file": "commitments.py",
+   "find": "    if Path(top).resolve() != root:\n        raise s1.Refusal(\"--repo is not the top folder of a git repository\")\n",
+   "id": "B8-c-root-unchecked",
+   "part": "batch 8 REQ-20",
+   "replace": ""
+  },
+  {
+   "describes": "a manifest made with other settings accepted",
+   "file": "commitments.py",
+   "find": "    if manifest.get(\"settings_sha256\") != settings_sha256:\n        raise s1.Refusal(\"the manifest was made with other settings\")\n",
+   "id": "B8-c-settings-sha-unchecked",
+   "part": "batch 8 REQ-20",
+   "replace": ""
+  },
+  {
+   "describes": "an unscored row counted as 0.0 in its cell mean",
+   "file": "report_plant_ranks.py",
+   "find": "    values = [scores[r] for r in rows if r in scores]\n",
+   "id": "V-p-unscored-as-zero",
+   "part": "batch 8 rev 1 W1-08 (C4, the critic's probes)",
+   "replace": "    values = [scores.get(r, 0.0) for r in rows]\n"
+  },
+  {
+   "describes": "unscored_ids always 0",
+   "file": "report_plant_ranks.py",
+   "find": "\"unscored_ids\": sum(1 for r in corpus if r not in scores)",
+   "id": "V-p-unscored-count-zero",
+   "part": "batch 8 rev 1 W1-08 (C4, the critic's probes)",
+   "replace": "\"unscored_ids\": 0"
+  },
+  {
+   "describes": "H2b with H1's sign",
+   "file": "report_plant_ranks.py",
+   "find": "\"h2b\": {r: float(t) for r, t in lengths.items()}",
+   "id": "V-p-h2b-sign",
+   "part": "batch 8 rev 1 W1-08 (C4, the critic's probes)",
+   "replace": "\"h2b\": {r: -float(t) for r, t in lengths.items()}"
+  },
+  {
+   "describes": "H2a never flags a row",
+   "file": "report_plant_ranks.py",
+   "find": "scores[\"h2a\"] = {r: 1.0 if classify(text)[0] else 0.0 for r, text in responses.items()}",
+   "id": "V-p-h2a-always-zero",
+   "part": "batch 8 rev 1 W1-08 (C4, the critic's probes)",
+   "replace": "scores[\"h2a\"] = {r: 0.0 for r, text in responses.items()}"
+  },
+  {
+   "describes": "REQ-3's settings pin not checked",
+   "file": "report_plant_ranks.py",
+   "find": "    if summary_doc[\"provenance\"][\"settings_sha256\"] != settings[\"pins\"][\"representation_pass_settings_sha256\"]:\n",
+   "id": "V-p-req3-settings-pin-unchecked",
+   "part": "batch 8 rev 1 W1-08 (C4, the critic's probes)",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "the leaf size against the record not checked",
+   "file": "report_plant_ranks.py",
+   "find": "if leaf not in levels[128] or len(levels[128][leaf]) != record[\"leaf\"][\"n\"] or chain(leaf)[8] != record[\"unit\"]:",
+   "id": "V-p-leaf-n-unchecked",
+   "part": "batch 8 rev 1 W1-08 (C4, the critic's probes)",
+   "replace": "if leaf not in levels[128] or chain(leaf)[8] != record[\"unit\"]:"
+  },
+  {
+   "describes": "a --selected file of another kind accepted",
+   "file": "report_token_accounting.py",
+   "find": "    raise s1.Refusal(f\"a --selected file is not one of {sorted(kinds.values())}\")\n",
+   "id": "B8V-t-selected-kind-unchecked",
+   "part": "batch 8 rev 1 W1-01 (C5, the verifiers' mutants)",
+   "replace": "    return list(doc.get(\"selected\") or doc.get(\"selection\", {}).get(\"selected\") or [])\n"
+  },
+  {
+   "describes": "two records naming one edit accepted",
+   "file": "report_token_accounting.py",
+   "find": "        if sha in index:\n            raise s1.Refusal(f\"two records name the edit {sha}\")\n",
+   "id": "B8V-t-two-records-one-edit",
+   "part": "batch 8 rev 1 W1-01 (C5, the verifiers' mutants)",
+   "replace": ""
+  },
+  {
+   "describes": "an added id without a count in the record not refused",
+   "file": "report_token_accounting.py",
+   "find": "        if not set(added) <= set(entry[\"per_add\"]):\n            raise s1.Refusal(f\"arm {name}: an added id has no count in the add-edit record\")\n",
+   "id": "V-t-added-subset-unchecked",
+   "part": "batch 8 rev 1 W1-01 (C5, the verifiers' mutants)",
+   "replace": ""
+  },
+  {
+   "describes": "files committed after the base commit not classified by the checker",
+   "file": "commitments.py",
+   "find": "    for p in later:\n        classify(p, head_later[p], settings)\n",
+   "id": "B8-c-later-unscanned",
+   "part": "batch 8 rev 1 REQ-20 (C3)",
+   "replace": ""
+  }
+ ],
+ "not_included": {
+  "C4 and C5 ids": "the critic's V-p-* and the verifiers' B8V-t-* and V-t-* ids are kept verbatim so the lead can match them",
+  "report_plant_ranks text scan": "the same: the report holds ids, counts and floats only",
+  "report_token_accounting text scan": "no input path puts edit text into the report (its ids and counts only), so removing the guard changes no output; a guard, not a rule",
+  "test_registry_owners": "a test, not code"
+ },
+ "part": "batches 8 and 8 rev 1: Part G (REQ-20 with W1-17, LN-30 and C3; W1-01 with C5; W1-02; W1-08 with C4)",
+ "revision": 1,
+ "version": 1
+}

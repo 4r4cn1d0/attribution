@@ -1,0 +1,59 @@
+== Basis (E from M; architecture factor 1.00) ==
+upper_M(38) = 10,565 s; upper_M(33) = 10,443 s; evaluation-only upper = 9,643 s
+requirement arm(38) = 12,365 s (3.43 h); evaluation-only = 11,443 s
+probe pod (untuned + seed 1101, rung 1): expected $4.33 (2.42 h), upper $5.29 (2.96 h); long-answer $10.95
+fine-tune-only 1-arm pod: expected $3.62 (2.02 h), upper $4.45 (2.49 h); long-answer $6.16
+per arm, 3 per pod: expected $3.01, upper $3.62
+per arm, 4 per pod: expected $2.94, upper $3.52; long-answer $5.48 (x1.86)
+planning per FRE (4 per pod, x1.2): $3.53-$4.22
+
+== Caps (M-cap rule; E) and guard need with the Gate B hold ==
+probe pod (eval-only untuned, then a0 arm 38): cap 7.00 h; guard $18.95; account need alone $102.86
+fine-tune-only 1 arm: cap 4.25 h; guard $13.86; account need alone $97.77
+2 a0 arms: cap 6.50 h; guard $18.03; account need alone $101.94
+N: 3 R arms (33 steps): cap 8.50 h; guard $21.73; account need alone $105.63
+4 arms (last at 38 steps): cap 10.50 h; guard $25.43; account need alone $109.34
+family-probe kit route (12.5 h cap, M: side pods): guard $29.13; account need alone $113.04
+probe pod launched while both shared N pods run (8.5 h + 12.5 h): $141.71
+OLMo 3 N pod launched while both shared N pods run: $144.49
+two fine-tune-only Gate A pods in parallel (M-cap): $105.63; one 2-arm pod: $101.94; two family-probe pods: $136.16
+
+== Gate A paths: 1 probe pod + k fine-tune-only pods ==
+G0 stop at rung 1 (weak or too little): k 0-0; pods $4.33-$5.29; x1.2 $5.19-$6.35; with judges $6.19-$9.35; long-answer pods up to $10.95
+    A100-hours 2.4-3.0
+G1 rung 1 (incl. TOO CLOSE then a partial two-seed mean): k 2-2; pods $11.56-$14.20; x1.2 $13.88-$17.04; with judges $15.88-$23.04; long-answer pods up to $23.27
+    A100-hours 6.5-7.9
+G2 rung 2: k 3-4; pods $15.18-$23.11; x1.2 $18.22-$27.73; with judges $20.22-$33.73; long-answer pods up to $35.59
+    A100-hours 8.5-12.9
+G3 rung 3: k 4-6; pods $18.80-$32.01; x1.2 $22.56-$38.42; with judges $24.56-$44.42; long-answer pods up to $47.91
+    A100-hours 10.5-17.9
+
+== N: R_1-R_3 at OLMo 3's rung, one 3-arm pod ==
+pods $9.04-$10.87; x1.2 $10.85-$13.04; A100-hours 5.1-6.1
+combined layout after the rung is fixed: {a0-1102, a0-1103, R_1, R_2} + {R_3}: $15.37 against separate 2 x 1-arm + 3-arm $16.28 (expected)
+
+== Full comparison beyond Gate A and N (FRE x planning per FRE) ==
+block 0b scorers (anchors, a0-1101 retrain, A1, L1, S3/S4 passes, c0): 5-9 FRE; $17.63-$38.00
+blocks A+B, plan A (44 runs; 45 with a0 1107): 44-45 FRE; $155.16-$190.02
+references: recipe G 3 (new): 3-3 FRE; $10.58-$12.67
+references: B+Qi 3-6: 3-6 FRE; $10.58-$25.34
+references: eval-only 12 x 0.85 (safety prompt 3, adapter scaling 6, Safe LoRA 3): 10.2-10.2 FRE; $35.97-$43.07
+judges $6.00-$13.00; idle storage $3.00-$10.00
+full comparison beyond Gate A and N: 65.2-73.2 FRE; $238.91-$332.10
+plan B9 adds 10 runs: $35.26-$42.23; H(b) adds 26 runs: $91.68-$109.79
+TC k=1 (3 runs): $11.28-$14.37; k=2 (6 runs): $21.86-$27.04
+confirmation 18-24 FRE (optional): $63.47-$101.34
+
+== Levels (cumulative) ==
+L1 Gate A only: $15.88-$44.42 (G0 stop: $6.19-$9.35)
+L2 Gate A + N: $26.73-$57.46
+L3 full comparison, plan A: $265.64-$389.55
+L3 at plan B9: $300.90-$431.78
+L3 at H(b): $357.33-$499.34
+L3 step beyond L2 (plan A): $238.91-$332.10
+L4 = L3 + confirmation: $329.12-$490.90
+
+== A100-hours (before the 20% allowance) ==
+per FRE at 4 per pod: 1.64-1.97 h
+Gate A 6.5-17.9; N 5.1-6.1; scorers 9-20; blocks + references 98.8-126.2
+L3 total 119-170 A100-hours

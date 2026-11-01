@@ -1,0 +1,44 @@
+{
+  "kind": "stage1 settings",
+  "name": "overlap_similarity",
+  "version": 1,
+  "owner": "scripts/stage1_s1/overlap_similarity.py",
+  "requirement": "B14 (RS B14, read-stage1.md:104; PLAN-S:172 and :214; stage-1 pre-registration DRAFT revision 2 section 9.4 with S-25 and CONS LS-19): each evaluation prompt's highest similarity to the add set, computed with the untuned model on the pod",
+  "labels_sha256": "6d1415bd139c39bce1b912291cfc319a9305503e1d3e9adf1cebafef870ce21b",
+  "label_entries": {},
+  "label_note": "this script draws no random numbers, so it names no registry entry",
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "transformers_version": "4.56.2",
+  "prepared_manifest_sha256": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
+  "recipe_sha256": "9e9bde6f2f32876098410479883deff5ef3141e471a79ed231c7a5db15ad399b",
+  "recipe_note": "REC, experiments/safety_selection/configs/study-kt-olmo2-1b-r64-b-mb4-20261008.json (config_sha256); its policy model is allenai/OLMo-2-0425-1B-Instruct at 48d788eca847d4d7548f375ad03d3c9312f6139e",
+  "eval": {
+    "bank": "dev",
+    "kinds": ["harm"],
+    "prompts": 200,
+    "note": "the 200 dev harm prompts on which U is measured; the selector and hidden banks are never read"
+  },
+  "add_sets": {
+    "names": ["S1", "S3", "S4"],
+    "rows_each": 48,
+    "edit_kind": "add",
+    "note": "each add set is one primary add arm's edit file, named on the command line with its SHA-256"
+  },
+  "embedding": {
+    "model": "the untuned policy theta0: the recipe's policy with its adapter disabled (policy.model.disable_adapter()), eval mode, no gradients",
+    "text": "a prompt only: an evaluation prompt, or an added row's prompt, each encoded as the engine encodes a generation prompt (the user turn and the assistant header)",
+    "read": "prompt_last",
+    "read_definition": "the hidden state at the last position of the encoded prompt (len - 1, the last token of the assistant header; REQ-3's read (d))",
+    "hidden_state_index": 16,
+    "n_layers": 16,
+    "index_convention": "index 0 = the embedding output; index i (1 <= i <= n - 1) = the raw output of block i - 1; index n = model.norm(the output of block n - 1) (addendum L4)",
+    "dtype": "float64 on the CPU, cast after one unbatched forward"
+  },
+  "similarity": {
+    "measure": "cosine",
+    "definition": "s(e, a) = (v_e . v_a) / (||v_e|| ||v_a||), float64, no rounding; a zero norm or a non-finite value refuses",
+    "aggregate": "max",
+    "aggregate_definition": "S(e; A) = the largest s(e, a) over the rows a of add set A",
+    "nearest_ties": "the nearest row is the row with the largest s(e, a); rows with an exactly equal value go to the smallest row id (report only)"
+  }
+}

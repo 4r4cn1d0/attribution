@@ -1,0 +1,3101 @@
+{
+ "kind": "stage1 mutants",
+ "mutants": [
+  {
+   "describes": "PLANNING_PRICE 1.85 -> 1.79",
+   "file": "stage1_rules.py",
+   "find": "PLANNING_PRICE_USD = 1.85 ",
+   "id": "B15-m-planning-price",
+   "part": "B15 money",
+   "replace": "PLANNING_PRICE_USD = 1.79 "
+  },
+  {
+   "describes": "RATE 1.79 -> 1.85",
+   "file": "stage1_rules.py",
+   "find": "RATE_USD = 1.79 ",
+   "id": "B15-m-rate",
+   "part": "B15 money",
+   "replace": "RATE_USD = 1.85 "
+  },
+  {
+   "describes": "RESERVE 6 -> 0",
+   "file": "stage1_rules.py",
+   "find": "RESERVE_USD = 6.0 ",
+   "id": "B15-m-reserve",
+   "part": "B15 money",
+   "replace": "RESERVE_USD = 0.0 "
+  },
+  {
+   "describes": "CONTINGENCY 1.25 -> 1.0",
+   "file": "stage1_rules.py",
+   "find": "CONTINGENCY_FACTOR = 1.25 ",
+   "id": "B15-m-contingency",
+   "part": "B15 money",
+   "replace": "CONTINGENCY_FACTOR = 1.0 "
+  },
+  {
+   "describes": "MAX_PRICE <= -> <",
+   "file": "host.py",
+   "find": "and price <= MAX_PRICE)",
+   "id": "B15-m-max-price-strict",
+   "part": "B15 money",
+   "replace": "and price < MAX_PRICE)"
+  },
+  {
+   "describes": "the O500 term dropped from the arm's measured upper",
+   "file": "stage1_rules.py",
+   "find": "    if kind in (\"arm\", \"a0_arm\"):\n        return ARM_MEASURED_S + o\n",
+   "id": "B15-m-o500-measured",
+   "part": "B15 money",
+   "replace": "    if kind in (\"arm\", \"a0_arm\"):\n        return ARM_MEASURED_S\n"
+  },
+  {
+   "describes": "the O500 term dropped from the arm's upper",
+   "file": "stage1_rules.py",
+   "find": "        return fixture[\"e1_upper_s\"] + training_s(fixture, steps) + over + o\n",
+   "id": "B15-m-o500-upper",
+   "part": "B15 money",
+   "replace": "        return fixture[\"e1_upper_s\"] + training_s(fixture, steps) + over\n"
+  },
+  {
+   "describes": "Branch 128's O500 set to Branch full's",
+   "file": "stage1_rules.py",
+   "find": "          \"128\": 1024.0}",
+   "id": "B15-m-o500-128-as-full",
+   "part": "B15 money",
+   "replace": "          \"128\": 1517.0}"
+  },
+  {
+   "describes": "the cap rounded down",
+   "file": "stage1_rules.py",
+   "find": "return math.ceil(round(seconds, 6) / CAP_STEP_S) * CAP_STEP_S",
+   "id": "B15-m-cap-round-down",
+   "part": "B15 money",
+   "replace": "return math.floor(round(seconds, 6) / CAP_STEP_S) * CAP_STEP_S"
+  },
+  {
+   "describes": "the guard counts the new pod at its expected spend (half its cap) instead of its cap",
+   "file": "budget.py",
+   "find": "        need = hours * price\n",
+   "id": "B15-m-guard-expected-spend",
+   "part": "B15 money",
+   "replace": "        need = hours * price * 0.5\n"
+  },
+  {
+   "describes": "KITS_GLOB without gate-b-olmo*",
+   "file": "budget.py",
+   "find": "KITS_GLOB = (\"family-probe-*\", \"gate-b-olmo*\", \"stage1-olmo*\")",
+   "id": "B15-m-kits-glob",
+   "part": "B15 money",
+   "replace": "KITS_GLOB = (\"family-probe-*\", \"stage1-olmo*\")"
+  },
+  {
+   "describes": "KITS_GLOB without the stage-1 folders",
+   "file": "budget.py",
+   "find": "KITS_GLOB = (\"family-probe-*\", \"gate-b-olmo*\", \"stage1-olmo*\")",
+   "id": "B15-m-kits-glob-own",
+   "part": "B15 money",
+   "replace": "KITS_GLOB = (\"family-probe-*\", \"gate-b-olmo*\")"
+  },
+  {
+   "describes": "the lock name changed",
+   "file": "budget.py",
+   "find": "LOCK_NAME = \"family-probe-budget.lock\"",
+   "id": "B15-m-lock-name",
+   "part": "B15 money",
+   "replace": "LOCK_NAME = \"stage1-budget.lock\""
+  },
+  {
+   "describes": "the funding check >= -> >",
+   "file": "plan_tool.py",
+   "find": "    if not funding[\"amount_usd\"] >= need[\"need_usd\"]:",
+   "id": "B15-m-funding-strict",
+   "part": "B15 money",
+   "replace": "    if not funding[\"amount_usd\"] > need[\"need_usd\"]:"
+  },
+  {
+   "describes": "a re-run paid without the 42 min on a new pod",
+   "file": "stage1_rules.py",
+   "find": "    return hours(_spend_s(kind) + (POD_OVERHEAD_S if new_pod else 0)) * RATE_USD",
+   "id": "B15-m-rerun-no-42min",
+   "part": "B15 money",
+   "replace": "    return hours(_spend_s(kind) + (0 if new_pod else 0)) * RATE_USD"
+  },
+  {
+   "describes": "the need counts this part only, not the earlier parts of its funding group",
+   "file": "plan_tool.py",
+   "find": "    need = rules.funding_need_usd(group_launches(plan, group) + mine + rest, rules.CONTINGENCY_FACTOR)",
+   "id": "B15-m-group-need",
+   "part": "B15 money; retargeted in round 3a (floor -> rest)",
+   "replace": "    need = rules.funding_need_usd(mine + rest, rules.CONTINGENCY_FACTOR)"
+  },
+  {
+   "describes": "a funding record for another block accepted",
+   "file": "plan_tool.py",
+   "find": "    if rec[\"block\"] != group:",
+   "id": "B15-m-funding-block",
+   "part": "B15 money",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "a funding source other than the user's top-up accepted",
+   "file": "plan_tool.py",
+   "find": "    elif rec[\"source\"] != FUNDING_SOURCE:\n",
+   "id": "B15-m-funding-source",
+   "part": "B15 money",
+   "replace": "    elif False:\n",
+   "retargeted": "kit round 33: addendum §36 (29 Oct) made this check an elif after the start-from-the-balance source"
+  },
+  {
+   "describes": "a 500-bank job allowed before the W1-18 record",
+   "file": "plan_tool.py",
+   "find": "    if any(j[\"kind\"] in rules.BANK500_KINDS for j in jobs) and branch is None:",
+   "id": "B15-g-bank500-before-branch",
+   "part": "B15 gates",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "W1-18 allowed with another job on its pod (W1-18 first only)",
+   "edits": [
+    {
+     "file": "stage1_rules.py",
+     "find": "BLOCK_KINDS = {\"S1-0\": (\"w1_18\",),",
+     "replace": "BLOCK_KINDS = {\"S1-0\": (\"w1_18\", \"rep_pass\"),"
+    },
+    {
+     "file": "plan_tool.py",
+     "find": "        if shapes != [[[\"w1_18\"]]]:",
+     "replace": "        if not shapes or shapes[0][0][0] != \"w1_18\":"
+    }
+   ],
+   "id": "B15-g-w1-18-not-alone",
+   "part": "B15 gates"
+  },
+  {
+   "describes": "another block allowed before the W1-18 pod",
+   "file": "plan_tool.py",
+   "find": "        if not has_s10 and not default:",
+   "id": "B15-g-another-block-first",
+   "part": "B15 gates",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "the branch switch allowed after a 500-bank job",
+   "file": "plan_tool.py",
+   "find": "    if old is not None and bank500_planned(plan):",
+   "id": "B15-g-branch-switch",
+   "part": "B15 gates",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "the branch record's output SHA-256 not checked",
+   "file": "plan_tool.py",
+   "find": "        if mac.sha(out) != doc[\"output_sha256\"] or (job.get(\"outputs\") or {}).get(doc[\"output_path\"]) != doc[\"output_sha256\"]:",
+   "id": "B15-g-branch-output-hash",
+   "part": "B15 gates",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "a branch that does not follow W1-18's bar accepted",
+   "file": "plan_tool.py",
+   "find": "        if (doc[\"branch\"] == \"128\") != check[\"pass\"]:",
+   "id": "B15-g-branch-follows-bar",
+   "part": "B15 gates",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "a Y job allowed before the certificate",
+   "file": "plan_tool.py",
+   "find": "        if j[\"engine\"] != \"Y\" or block == \"cert\":",
+   "id": "B15-g-y-before-cert",
+   "part": "B15 gates",
+   "replace": "        if True:"
+  },
+  {
+   "describes": "X and Y on one pod",
+   "file": "plan_tool.py",
+   "find": "    if len(engines) != 1:",
+   "id": "B15-g-x-and-y-one-pod",
+   "part": "B15 gates",
+   "replace": "    if len(engines) > 2:"
+  },
+  {
+   "describes": "a job record without its engine accepted",
+   "file": "plan_tool.py",
+   "find": "        if r.get(\"engine\") != job[\"engine\"] or r.get(\"engine_sha256\") != rules.ENGINES[job[\"engine\"]]:",
+   "id": "B15-g-engine-record",
+   "part": "B15 gates",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "a packed engine whose identity differs accepted",
+   "file": "plan_tool.py",
+   "find": "    if rec.get(\"engine_sha256\") != rules.ENGINES[engine]:",
+   "id": "B15-g-packed-engine",
+   "part": "B15 gates",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "block B allowed before block A complete",
+   "file": "plan_tool.py",
+   "find": "        if not block_complete(plan, \"A\"):",
+   "id": "B15-g-b-before-a",
+   "part": "B15 gates",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "block B allowed before block A's seal",
+   "file": "plan_tool.py",
+   "find": "        if \"A\" not in plan[\"seals\"]:",
+   "id": "B15-g-b-before-seal",
+   "part": "B15 gates",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "a block without a funding record",
+   "file": "plan_tool.py",
+   "find": "    if not args.funding:\n",
+   "id": "B15-g-no-funding",
+   "part": "B15 gates",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "the plan-A/B record's no-stage-1 code not read",
+   "file": "plan_tool.py",
+   "find": "    ab = plan_ab_checked(plan)                       # re-read from the verdict file at every block (VG2-1)\n    if ab is not None and ab[\"code\"] == \"none\":",
+   "id": "B15-g-plan-ab-not-read",
+   "part": "B15 gates",
+   "replace": "    ab = plan_ab_checked(plan)                       # re-read from the verdict file at every block (VG2-1)\n    if False:"
+  },
+  {
+   "describes": "a plan-A/B code that does not follow the verdict's sigma accepted (code A always)",
+   "file": "plan_tool.py",
+   "find": "            code = rules.plan_code_for(sigma)\n",
+   "id": "B15-g-plan-ab-rule",
+   "part": "B15 gates",
+   "replace": "            code = \"A\"\n"
+  },
+  {
+   "describes": "method arms at 1101",
+   "file": "stage1_rules.py",
+   "find": "METHOD_SEEDS = {\"A\": (1102, 1103, 1104),",
+   "id": "B15-g-method-1101",
+   "part": "B15 gates",
+   "replace": "METHOD_SEEDS = {\"A\": (1101, 1102, 1103),"
+  },
+  {
+   "describes": "R_d at seed 1101 + d",
+   "file": "stage1_rules.py",
+   "find": "R_SEED_BASE = 1100 ",
+   "id": "B15-g-r-seed-base",
+   "part": "B15 gates",
+   "replace": "R_SEED_BASE = 1101 "
+  },
+  {
+   "describes": "plan B with L1",
+   "file": "stage1_rules.py",
+   "find": "\"B\": (\"A1\", \"H1\", \"S1\", \"S4\")}",
+   "id": "B15-g-plan-b-l1",
+   "part": "B15 gates",
+   "replace": "\"B\": (\"A1\", \"L1\", \"H1\", \"S1\", \"S4\")}"
+  },
+  {
+   "describes": "a0 1101-1106 under plan B (LN-02's not-adopted fallback)",
+   "file": "stage1_rules.py",
+   "find": "        runs = [(a, s) for s in METHOD_SEEDS[\"B\"] for a in methods + (\"a0\", \"R\")]",
+   "id": "B15-g-plan-b-a0-1106",
+   "part": "B15 gates",
+   "replace": "        runs = [(a, s) for s in METHOD_SEEDS[\"B\"] for a in methods + (\"a0\", \"R\") if not (plan_code == \"B\" and a == \"a0\" and s == 1107)]"
+  },
+  {
+   "describes": "block C allowed under plan A",
+   "file": "plan_tool.py",
+   "find": "        if rec[\"plan_ab\"][\"code\"] != \"B\":",
+   "id": "B15-g-c-under-plan-a",
+   "part": "B15 gates",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "C2 allowed without its thresholds record",
+   "file": "plan_tool.py",
+   "find": "        if j[\"kind\"] == \"cert_c2\" and rec.get(\"thresholds\") is None:",
+   "id": "B15-g-c2-thresholds",
+   "part": "B15 gates",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "the SP prefix point allowed without its pin",
+   "file": "plan_tool.py",
+   "find": "        if j[\"kind\"] == \"ref_eval\" and \"prefix\" in (j.get(\"points\") or []) and rec.get(\"prefix\") is None:",
+   "id": "B15-g-sp-prefix",
+   "part": "B15 gates",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "Safe LoRA K = 12 allowed without the user's yes",
+   "file": "plan_tool.py",
+   "find": "        if j[\"kind\"] == \"safe_lora\" and \"k12\" in (j.get(\"points\") or []) and \\\n",
+   "id": "B15-g-k12",
+   "part": "B15 gates",
+   "replace": "        if False and \\\n"
+  },
+  {
+   "describes": "an evaluation-only reference allowed before a passing B10 certification",
+   "file": "plan_tool.py",
+   "find": "    if any(j[\"kind\"] in (\"ref_eval\", \"safe_lora\") for j in jobs) and not (cert and cert[\"pass\"]):",
+   "id": "B15-g-certification",
+   "part": "B15 gates",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "B+Qi's own a0 allowed after a passing certificate",
+   "file": "plan_tool.py",
+   "find": "        if cert is not None and cert[\"pass\"] and not own_a0:",
+   "id": "B15-g-own-a0-anytime",
+   "part": "B15 gates",
+   "replace": "        if cert is not None and cert[\"pass\"]:"
+  },
+  {
+   "describes": "a launch released before the launch before it is done",
+   "file": "plan_tool.py",
+   "find": "            if open_hosts:\n",
+   "id": "B15-g-launch-order",
+   "part": "B15 gates",
+   "replace": "            if False:\n"
+  },
+  {
+   "describes": "the edit hash check removed",
+   "file": "plan_tool.py",
+   "find": "    if not path.is_file() or mac.sha(path) != entry[\"sha256\"]:",
+   "id": "B15-d-edit-hash",
+   "part": "B15 data",
+   "replace": "    if not path.is_file():"
+  },
+  {
+   "describes": "MAN1's pin not checked",
+   "file": "plan_tool.py",
+   "find": "    if not path.is_file() or mac.sha(path) != rules.MAN1_SHA256:",
+   "id": "B15-d-man1-pin",
+   "part": "B15 data",
+   "replace": "    if not path.is_file():"
+  },
+  {
+   "describes": "a recipe that differs from its pin accepted",
+   "file": "plan_tool.py",
+   "find": "                if not (ENGINE_ROOT / path).is_file() or mac.sha(ENGINE_ROOT / path) != rules.RECIPE_PINS[path]:",
+   "id": "B15-d-recipe-pin",
+   "part": "B15 data",
+   "replace": "                if not (ENGINE_ROOT / path).is_file():"
+  },
+  {
+   "describes": "two sources naming different edit files accepted (the first wins)",
+   "file": "plan_tool.py",
+   "find": "    if len(found) > 1:\n",
+   "id": "B15-d-two-sources",
+   "part": "B15 data",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "J3 allowed without its J2 on the same pod",
+   "file": "plan_tool.py",
+   "find": "            if not ok:\n                fail(f\"job {index}: an O-only pass on {arm} must name",
+   "id": "B15-d-j3-without-j2",
+   "part": "B15 data",
+   "replace": "            if False:\n                fail(f\"job {index}: an O-only pass on {arm} must name"
+  },
+  {
+   "describes": "an O-only pass moved without its regeneration",
+   "file": "plan_tool.py",
+   "find": "            if job[rules.LINK_FIELD] not in index_map:\n",
+   "id": "B15-d-move-o-only-alone",
+   "part": "B15 data",
+   "replace": "            if False:\n"
+  },
+  {
+   "describes": "the seal record missing one outcome file",
+   "file": "seal.py",
+   "find": "            if p.is_file():\n",
+   "id": "B15-d-seal-missing-file",
+   "part": "B15 data",
+   "replace": "            if p.is_file() and p.name != \"summary.json\":\n"
+  },
+  {
+   "describes": "the seal record holds a file's text (a value)",
+   "file": "seal.py",
+   "find": "                              \"class\": classify(p.name)})",
+   "id": "B15-d-seal-holds-value",
+   "part": "B15 data",
+   "replace": "                              \"class\": classify(p.name), \"text\": p.read_text()[:200]})"
+  },
+  {
+   "describes": "an incomplete block sealed",
+   "file": "seal.py",
+   "find": "    if not plan_tool.block_complete(plan, block):",
+   "id": "B15-d-seal-incomplete",
+   "part": "B15 data",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "a complete job queued again",
+   "file": "plan_tool.py",
+   "find": "        fail(f\"{job.get('arm') or job['kind']} at {job.get('seed')}: a complete attempt exists; it is never re-run\")",
+   "id": "B15-d-never-rerun",
+   "part": "B15 data",
+   "replace": "        continue"
+  },
+  {
+   "describes": "the pod-name prefix back to attribution-gateb-",
+   "file": "host.py",
+   "find": "    return f\"attribution-s1-{host}{suffix}\"",
+   "id": "B15-p-prefix-gateb",
+   "part": "B15 pods",
+   "replace": "    return f\"attribution-gateb-{host}{suffix}\""
+  },
+  {
+   "describes": "more than 4 counted jobs per pod",
+   "file": "stage1_rules.py",
+   "find": "MAX_ARMS_PER_POD = 4  ",
+   "id": "B15-p-five-per-pod",
+   "part": "B15 pods",
+   "replace": "MAX_ARMS_PER_POD = 5  "
+  },
+  {
+   "describes": "an evaluation-only job counts 1, not its points",
+   "file": "stage1_rules.py",
+   "find": "    if kind in POINT_KINDS:\n        return _points(kind, n_points)\n    return 0",
+   "id": "B15-p-counted-points",
+   "part": "B15 pods",
+   "replace": "    if kind in POINT_KINDS:\n        return 1\n    return 0"
+  },
+  {
+   "describes": "the interleave replaced by Gate B's contiguous split",
+   "file": "stage1_rules.py",
+   "find": "    pods = [ordered[i::p] for i in range(p)]",
+   "id": "B15-p-contiguous",
+   "part": "B15 pods",
+   "replace": "    pods = split_pods(ordered)"
+  },
+  {
+   "describes": "the deal seed-major (the brief's example order)",
+   "file": "stage1_rules.py",
+   "find": "    ordered = sorted(runs, key=lambda r: (ARM_ORDER.index(r[0]), r[1]))",
+   "id": "B15-p-seed-major",
+   "part": "B15 pods",
+   "replace": "    ordered = sorted(runs, key=lambda r: (r[1], ARM_ORDER.index(r[0])))"
+  },
+  {
+   "describes": "a deal with one arm twice on a pod accepted",
+   "file": "stage1_rules.py",
+   "find": "        if len(set(arms)) != len(arms):\n            raise ValueError(\"the deal puts one arm twice",
+   "id": "B15-p-deal-no-check",
+   "part": "B15 pods",
+   "replace": "        if False:\n            raise ValueError(\"the deal puts one arm twice"
+  },
+  {
+   "describes": "a stopped host requeued again (its replacement relaunched twice)",
+   "file": "plan_tool.py",
+   "find": "    if any(d[\"from\"] == host for d in plan[\"deferrals\"]):\n        fail(f\"{host} was already deferred\")\n    if any(j.get(\"status\") != \"planned\"",
+   "id": "B15-p-relaunch",
+   "part": "B15 pods",
+   "replace": "    if False:\n        fail(f\"{host} was already deferred\")\n    if any(j.get(\"status\") != \"planned\""
+  },
+  {
+   "describes": "a training arm accepted outside the deal",
+   "file": "plan_tool.py",
+   "find": "    if kind in (\"arm\", \"a0_arm\") and job.get(\"role\") != \"bqi_own_a0\":",
+   "id": "B15-p-arms-explicit",
+   "part": "B15 pods",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "the edit file's SHA-256 and arm check removed from the job runner",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if not path.is_file() or sha(path) != job[\"edit\"][\"sha256\"] or \"edit-\" + sha(path) != engine_arm(job):",
+   "id": "B15-r-edit-hash",
+   "part": "B15 data (runner)",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "an input's SHA-256 check removed before use",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if rel.startswith(\"<input \") or rel not in sealed or not path.is_file() or sha(path) != sealed[rel]:",
+   "id": "B15-r-input-hash",
+   "part": "B15 data (runner)",
+   "replace": "        if rel.startswith(\"<input \") or rel not in sealed or not path.is_file():"
+  },
+  {
+   "describes": "the J2 acceptance field list missing the data config",
+   "file": "setup/job_runner_stage1.py",
+   "find": "for f, v in sorted(entry[\"accept\"].items())}",
+   "id": "B15-r-accept-no-data-config",
+   "part": "B15 data (runner)",
+   "replace": "for f, v in sorted(entry[\"accept\"].items()) if f != \"data_config_sha256\"}"
+  },
+  {
+   "describes": "a refused regeneration's O-only pass allowed (no LS-04 hold)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "                held[follower] = i",
+   "id": "B15-r-j3-not-held",
+   "part": "B15 data (runner)",
+   "replace": "                pass"
+  },
+  {
+   "describes": "a crash recorded as no stop",
+   "file": "setup/job_runner_stage1.py",
+   "find": "            stopped = \"crashed\"",
+   "id": "B15-r-crash-not-stopping",
+   "part": "B15 data (runner)",
+   "replace": "            stopped = None"
+  },
+  {
+   "describes": "an unreadable heartbeat no longer stops the host",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if left is None:\n            stopped = \"heartbeat_unreadable\"",
+   "id": "B15-r-heartbeat-ignored",
+   "part": "B15 data (runner)",
+   "replace": "        if False:\n            stopped = \"heartbeat_unreadable\""
+  },
+  {
+   "describes": "the K = 12 Safe LoRA point allowed",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if \"k12\" in job[\"points\"]:",
+   "id": "B15-r-k12-allowed",
+   "part": "B15 data (runner)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "the transform seconds left out of the cost ledger",
+   "file": "setup/job_runner_stage1.py",
+   "find": "            stages[\"transform\"] += float(step[\"transform_seconds_total\"])",
+   "id": "B15-r-transform-not-in-ledger",
+   "part": "B15 data (runner)",
+   "replace": "            stages[\"transform\"] += 0.0"
+  },
+  {
+   "describes": "W1-18 on the settings' device instead of cuda",
+   "file": "setup/job_runner_stage1.py",
+   "find": "\"--device\", \"cuda\"",
+   "id": "B15-r-w1-18-device",
+   "part": "B15 data (runner)",
+   "replace": "\"--device\", \"mps\""
+  },
+  {
+   "describes": "two engines on one pod allowed on the pod",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    assert all(j[\"engine\"] == h[\"engine\"] for j in jobs), \"two engines on one pod (G4)\"",
+   "id": "B15-r-two-engines",
+   "part": "B15 data (runner)",
+   "replace": "    assert True, \"two engines on one pod (G4)\""
+  },
+  {
+   "describes": "a 500-bank job allowed on the pod before the branch record",
+   "file": "setup/job_runner_stage1.py",
+   "find": "            assert branch is not None, \"a 500-bank job before W1-18's branch record (G1)\"",
+   "id": "B15-r-bank500-before-branch",
+   "part": "B15 data (runner)",
+   "replace": "            assert True, \"a 500-bank job before W1-18's branch record (G1)\""
+  },
+  {
+   "describes": "--dry-run writes a file",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        print(json.dumps({\"host\": host, \"engine\": h[\"engine\"], \"jobs\": out}, indent=1))",
+   "id": "B15-r-dry-run-writes",
+   "part": "B15 data (runner)",
+   "replace": "        (root / \"dry-run.json\").write_text(\"{}\")\n        print(json.dumps({\"host\": host, \"engine\": h[\"engine\"], \"jobs\": out}, indent=1))"
+  },
+  {
+   "describes": "the runner prints an O-ext outcome file",
+   "file": "setup/job_runner_stage1.py",
+   "find": "                      \"statuses\": [r[\"status\"] for r in records]}), flush=True)",
+   "id": "B15-r-prints-outcome",
+   "part": "B15 data (runner)",
+   "replace": "                      \"statuses\": [r[\"status\"] for r in records], \"o\": [p.read_text() for p in root.glob(\"job-*/oext/*.json\")]}), flush=True)"
+  },
+  {
+   "describes": "the pod's O500 projection allowed below the plan's",
+   "file": "setup/preflight_stage1.py",
+   "find": "\"o500_s\": max(planned, planned * ratio)",
+   "id": "B15-r-o500-floor",
+   "part": "B15 data (runner)",
+   "replace": "\"o500_s\": planned * ratio"
+  },
+  {
+   "describes": "a download at main or a short revision allowed",
+   "file": "setup/download_models_stage1.py",
+   "find": "        if not (isinstance(rev, str) and len(rev) == 40 and not set(rev) - COMMIT_CHARS):",
+   "id": "B15-r-base-revision-any",
+   "part": "B15 data (runner)",
+   "replace": "        if rev is None:"
+  },
+  {
+   "describes": "a base git file's blob id not checked",
+   "file": "setup/download_models_stage1.py",
+   "find": "        elif git_blob_id(path) != pin[\"git_blob_id\"]:",
+   "id": "B15-r-base-git-blob",
+   "part": "B15 data (runner)",
+   "replace": "        elif False:"
+  },
+  {
+   "describes": "a base LFS file's SHA-256 not checked",
+   "file": "setup/download_models_stage1.py",
+   "find": "            if got[\"sha256\"] != pin[\"lfs_sha256\"] or path.resolve().name != pin[\"lfs_sha256\"]:",
+   "id": "B15-r-base-lfs",
+   "part": "B15 data (runner)",
+   "replace": "            if False:"
+  },
+  {
+   "describes": "the base download at main",
+   "file": "probes.py",
+   "find": "BASE = {\"role\": \"base\", \"repo_id\": \"allenai/OLMo-2-0425-1B\", \"revision\": \"a1847dff35000b4271fa70afc5db10fd29fedbdf\",",
+   "id": "B15-r-base-at-main",
+   "part": "B15 data (runner)",
+   "replace": "BASE = {\"role\": \"base\", \"repo_id\": \"allenai/OLMo-2-0425-1B\", \"revision\": \"main\","
+  },
+  {
+   "describes": "a Y tree packed although a file fails YHASH",
+   "file": "pack_setup.py",
+   "find": "        if not pinned(digest) or not f.is_file() or sha(f) != digest:",
+   "id": "B15-r-yhash-files",
+   "part": "B15 data (runner)",
+   "replace": "        if not pinned(digest):"
+  },
+  {
+   "describes": "a packed engine whose code identity is not its pin",
+   "file": "pack_setup.py",
+   "find": "    if code != rules.ENGINES[engine]:",
+   "id": "B15-r-pack-identity",
+   "part": "B15 data (runner)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "a packed input whose bytes differ from its pin",
+   "file": "pack_setup.py",
+   "find": "        elif not src.is_file() or src.is_symlink() or sha(src) != pin:",
+   "id": "B15-r-pack-input-hash",
+   "part": "B15 data (runner)",
+   "replace": "        elif not src.is_file() or src.is_symlink():"
+  },
+  {
+   "describes": "a packed input that differs from MAN1's SHA-256",
+   "file": "pack_setup.py",
+   "find": "            if rel in by_path and by_path[rel] != e.get(\"sha256\"):",
+   "id": "B15-r-pack-man1",
+   "part": "B15 data (runner)",
+   "replace": "            if False:"
+  },
+  {
+   "describes": "orchestrate starts a 500-bank job before the branch record",
+   "file": "orchestrate.py",
+   "find": "    if any(j[\"kind\"] in rules.BANK500_KINDS for j in jobs) and not (p.get(\"records\") or {}).get(\"branch\"):",
+   "id": "B15-r-orch-w1-18-hold",
+   "part": "B15 data (runner)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "a reference pod compared with Gate B's reference instead of the certification pod",
+   "file": "orchestrate.py",
+   "find": "    if any(j[\"kind\"] in REFERENCE_KINDS for j in p[\"hosts\"][host][\"jobs\"]):",
+   "id": "B15-r-orch-reference",
+   "part": "B15 data (runner)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "the stage-1 judge wrapper skips B10 units",
+   "file": "judge_units_stage1.py",
+   "find": "    if not isinstance(job, dict) or job.get(\"kind\") != B10_KIND:",
+   "id": "B15-r-judge-b10-skipped",
+   "part": "B15 data (runner)",
+   "replace": "    if True:"
+  },
+  {
+   "describes": "two device types allowed in one contrast",
+   "file": "judge_units_stage1.py",
+   "find": "        if len(types) != 1:",
+   "id": "B15-r-judge-devices",
+   "part": "B15 data (runner)",
+   "replace": "        if len(types) > 2:"
+  },
+  {
+   "describes": "a unit-free job's outputs not required in the backup",
+   "file": "backup_records_stage1.py",
+   "find": "                bad = [r for r, d in outputs.items() if digests.get(f\"units/{host}/{r}\") != d]",
+   "id": "B15-r-backup-outputs",
+   "part": "B15 data (runner)",
+   "replace": "                bad = []"
+  },
+  {
+   "describes": "a sealed file not required in the backup",
+   "file": "backup_records_stage1.py",
+   "find": "        bad = [f for f in doc.get(\"files\") or [] if digests.get(f\"units/{f['host']}/{f['path']}\") != f[\"sha256\"]]",
+   "id": "B15-r-backup-seal",
+   "part": "B15 data (runner)",
+   "replace": "        bad = []"
+  },
+  {
+   "describes": "record-done refuses a complete O-only pass (the BUILD-RUNNER fix undone)",
+   "file": "stage1_rules.py",
+   "find": "\"transfer_report\",\n                            \"o_only\"})",
+   "id": "B15-r-o-only-unit",
+   "part": "B15 data (runner)",
+   "replace": "\"transfer_report\"})"
+  },
+  {
+   "describes": "the V/V' check run after the projection (and its gate dropped)",
+   "edits": [
+    {
+     "file": "setup/job_runner_stage1.py",
+     "find": "             (f\"{tag}-vcheck\", [*SCRIPT, B11_SCRIPT, \"vcheck\", \"--adapter\", state, *models, \"--out\", f\"{out}/vcheck\"]),\n",
+     "replace": ""
+    },
+    {
+     "file": "setup/job_runner_stage1.py",
+     "find": "\"--certification-report-sha256\", files[cert], *([] if fallback else oext_args(inputs))]))\n    return steps",
+     "replace": "\"--certification-report-sha256\", files[cert], *([] if fallback else oext_args(inputs))]))\n    steps.append((f\"{tag}-vcheck\", [*SCRIPT, B11_SCRIPT, \"vcheck\", \"--adapter\", state, *models, \"--out\", f\"{out}/vcheck\"]))\n    return steps"
+    },
+    {
+     "file": "setup/job_runner_stage1.py",
+     "find": "        if (\"-check\" in name or \"-transform-\" in name) and kind == \"safe_lora\" and \\\n",
+     "replace": "        if False and \\\n"
+    }
+   ],
+   "id": "B15-r-vcheck-after-projection",
+   "part": "B15 data (runner)"
+  },
+  {
+   "describes": "VMG-1: Branch full by default accepted while W1-18 is planned or running",
+   "file": "plan_tool.py",
+   "find": "        if any(not h.get(\"done\") for h in s10):",
+   "id": "B15-x-default-while-w1-18-planned",
+   "part": "B15 fix (23 Oct)",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "VMG-1: Branch full by default accepted after W1-18 completed",
+   "file": "plan_tool.py",
+   "find": "        if any(j[\"kind\"] == \"w1_18\" and j.get(\"status\") == \"complete\" for h in s10 for j in h[\"jobs\"]):",
+   "id": "B15-x-default-after-w1-18-complete",
+   "part": "B15 fix (23 Oct)",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "VMG-1: Branch full by default overrides W1-18's branch record",
+   "file": "plan_tool.py",
+   "find": "        if old is not None and old.get(\"source\") == \"w1_18\":",
+   "id": "B15-x-default-overrides-w1-18",
+   "part": "B15 fix (23 Oct)",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "VMG-1: an S1-0 pod planned after a Branch full by default record",
+   "file": "plan_tool.py",
+   "find": "    if block == \"S1-0\" and rec.get(\"branch\") is not None:",
+   "id": "B15-x-s1-0-after-default",
+   "part": "B15 fix (23 Oct)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "VMG-2: Gate B's final record re-recorded",
+   "file": "plan_tool.py",
+   "find": "        if rec.get(\"gateb_final\") is not None:",
+   "id": "B15-x-gateb-final-twice",
+   "part": "B15 fix (23 Oct)",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "VMG-2: a block reads a plan-A/B record bound to another Gate B final record",
+   "file": "plan_tool.py",
+   "find": "        if ab.get(\"gateb_final_sha256\") != rec[\"gateb_final\"][\"sha256\"]:",
+   "id": "B15-x-plan-ab-unbound",
+   "part": "B15 fix (23 Oct)",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "VMG-3: any file with the final fields accepted as Gate B's final record (no pin)",
+   "file": "plan_tool.py",
+   "find": "        if ref[\"sha256\"] != rules.GATEB_FINAL_SHA256 or any(",
+   "id": "B15-x-gateb-final-unpinned",
+   "part": "B15 fix (23 Oct)",
+   "replace": "        if any("
+  },
+  {
+   "describes": "VMG-3: a final record that is not final or not REPORTED accepted",
+   "file": "plan_tool.py",
+   "find": "                or not isinstance(result, dict) or result.get(\"final\") is not True or result.get(\"code\") != \"REPORTED\":",
+   "id": "B15-x-gateb-final-fields",
+   "part": "B15 fix (23 Oct)",
+   "replace": "                or not isinstance(result, dict):"
+  },
+  {
+   "describes": "VMG-3: the pinned Gate B final output hash changed",
+   "file": "stage1_rules.py",
+   "find": "GATEB_FINAL_SHA256 = \"06a7020aede28df5bf8a73740819c3453b483f02c61a148822c0c66c4798bd0f\"",
+   "id": "B15-x-gateb-final-pin-value",
+   "part": "B15 fix (23 Oct)",
+   "replace": "GATEB_FINAL_SHA256 = \"16a7020aede28df5bf8a73740819c3453b483f02c61a148822c0c66c4798bd0f\""
+  },
+  {
+   "describes": "VMG-4 (round 3a form): S1-0 and the cert pod need only their own launches (no plan check, no rest of the block-A plan)",
+   "file": "plan_tool.py",
+   "find": "    plan_a = check_group_a(plan, block, launch_shapes(built[\"launches\"], built[\"deal\"])) if group == \"A\" else None",
+   "id": "B15-x-no-block-a-floor",
+   "part": "B15 fix (23 Oct); retargeted in round 3a",
+   "replace": "    plan_a = None"
+  },
+  {
+   "describes": "VMG-5: R_4/R_5 reusable although Gate B ran no extension",
+   "file": "stage1_rules.py",
+   "find": "ALLOWED_REUSE = frozenset()",
+   "id": "B15-x-reuse-allowed",
+   "part": "B15 fix (23 Oct)",
+   "replace": "ALLOWED_REUSE = frozenset({(\"R\", 1104), (\"R\", 1105)})"
+  },
+  {
+   "describes": "VMG-6: after a failed certificate B+Qi runs without its own a0 at the same seed",
+   "file": "plan_tool.py",
+   "find": "    if cert is None or cert[\"pass\"]:\n        return",
+   "id": "B15-x-bqi-unpaired",
+   "part": "B15 fix (23 Oct)",
+   "replace": "    if True:\n        return"
+  },
+  {
+   "describes": "VR-4: two a0 calibrations at one seed on one pod",
+   "file": "plan_tool.py",
+   "find": "    if len(set(seeds)) != len(seeds):",
+   "id": "B15-x-two-a0-one-pod",
+   "part": "B15 fix (23 Oct)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "VMG-7: a block is complete while its judge launch is not released",
+   "file": "plan_tool.py",
+   "find": "    if not b or b.get(\"pending\") or b[\"released\"] < len(b[\"launches\"]):",
+   "id": "B15-x-judge-launch-ignored",
+   "part": "B15 fix (23 Oct)",
+   "replace": "    if not b or b.get(\"pending\"):"
+  },
+  {
+   "describes": "VMG-7: a block with a judge launch sealed without its judge files",
+   "file": "seal.py",
+   "find": "    if judged and (judge_check is None or not set(judged) <= set(judge_check[\"judges\"])):",
+   "id": "B15-x-judge-files-unsealed",
+   "part": "B15 fix (23 Oct)",
+   "replace": "    if False:",
+   "retargeted": "round 30: the seal's judge check is now the judge-completion record's (R3); old find text gone"
+  },
+  {
+   "describes": "VMG-9: a run planned twice",
+   "file": "plan_tool.py",
+   "find": "            if k in seen:",
+   "id": "B15-x-duplicate-run",
+   "part": "B15 fix (23 Oct)",
+   "replace": "            if False:"
+  },
+  {
+   "describes": "VMG-10: a funding record's utc in another zone accepted",
+   "file": "plan_tool.py",
+   "find": "        if when.utcoffset() != dt.timedelta(0):",
+   "id": "B15-x-funding-zone",
+   "part": "B15 fix (23 Oct)",
+   "replace": "        if when.utcoffset() is None:"
+  },
+  {
+   "describes": "VMG-10: a funding record's utc in the future accepted",
+   "file": "plan_tool.py",
+   "find": "    if when > dt.datetime.now(dt.timezone.utc):",
+   "id": "B15-x-funding-future",
+   "part": "B15 fix (23 Oct)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "VR-5: the certification pod's first point not certify",
+   "file": "plan_tool.py",
+   "find": "        if kind == \"b10_certify\" and points[0] != \"certify\":",
+   "id": "B15-x-certify-not-first",
+   "part": "B15 fix (23 Oct)",
+   "replace": "        if kind == \"b10_certify\" and \"certify\" not in points:"
+  },
+  {
+   "describes": "C-3 (Q4): recipe S's training identity not checked",
+   "file": "plan_tool.py",
+   "find": "                    if entry[\"training_identity\"] != rules.TRAINING_IDENTITY:",
+   "id": "B15-x-training-identity",
+   "part": "B15 fix (23 Oct)",
+   "replace": "                    if False:"
+  },
+  {
+   "describes": "C-1: an O-only pass planned under fallback (c)",
+   "file": "plan_tool.py",
+   "find": "    if kind in rules.OEXT_ONLY_KINDS and records(plan).get(\"oext_fallback\"):",
+   "id": "B15-x-oext-only-under-fallback",
+   "part": "B15 fix (23 Oct)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "C-1: an arm's O-ext step runs under fallback (c)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "            if not fallback:\n                steps.append((f\"{tag}-oext\",",
+   "id": "B15-x-oext-step-under-fallback",
+   "part": "B15 fix (23 Oct)",
+   "replace": "            if True:\n                steps.append((f\"{tag}-oext\","
+  },
+  {
+   "describes": "VR-1: an engine unit's COMPLETE.json classed readable",
+   "file": "seal.py",
+   "find": "READABLE_PATTERNS = (\"JOB-DONE.json\", ",
+   "id": "B15-x-complete-readable",
+   "part": "B15 fix (23 Oct)",
+   "replace": "READABLE_PATTERNS = (\"JOB-DONE.json\", \"COMPLETE.json\", "
+  },
+  {
+   "describes": "VR-2: only the first B10 unit of a multi-point job verified",
+   "file": "setup/job_runner_stage1.py",
+   "find": "for u in b10_units]",
+   "id": "B15-x-b10-first-unit-only",
+   "part": "B15 fix (23 Oct)",
+   "replace": "for u in b10_units[:1]]"
+  },
+  {
+   "describes": "VR-2: a multi-point B10 job missing a unit counted complete",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if len(found) != (1 if gate_failed else len(job[\"points\"])):   # one B10 unit per evaluation point",
+   "id": "B15-x-b10-unit-count",
+   "part": "B15 fix (23 Oct)",
+   "replace": "        if not found:   # one B10 unit per evaluation point"
+  },
+  {
+   "describes": "VR-3: every Safe LoRA point judged under one label",
+   "file": "judge_pod_stage1/bundle.py",
+   "find": "        return f\"ref-external-{name}-{point}\" if point in SAFE_LORA_POINTS else None",
+   "id": "B15-x-safe-lora-label",
+   "part": "B15 fix (23 Oct)",
+   "replace": "        return f\"ref-external-{name}\"",
+   "retargeted": "round 30: the label rule moved to judge_pod_stage1/bundle.py (one rule for the Mac and the pod)"
+  },
+  {
+   "describes": "C-2 (Q15): a Branch-128 O-only pass on a regenerated unit without its source unit",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if job[\"kind\"] == \"o_only\" and job.get(\"arm\") in (\"a0\", \"R\") and job.get(\"branch\") == \"128\":",
+   "id": "B15-x-dev100-source",
+   "part": "B15 fix (23 Oct)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "C-6: an S1 settings file not re-pinned on the pack's engine is packed",
+   "file": "pack_setup.py",
+   "find": "        if rules.ENGINES[engine] not in pins:",
+   "id": "B15-x-s1-settings-pin",
+   "part": "B15 fix (23 Oct)",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "C-4: seal.py status prints a sealed outcome file",
+   "file": "seal.py",
+   "find": "    rows.append(f\"estimated pod cost so far (this stage-1 kit): ${cost:.2f}\")",
+   "id": "B15-d-status-prints-value",
+   "part": "B15 fix (23 Oct)",
+   "replace": "    rows += [p.read_text() for p in (HERE / \"retrieved\").rglob(\"summary.json\")]\n    rows.append(f\"estimated pod cost so far (this stage-1 kit): ${cost:.2f}\")"
+  },
+  {
+   "describes": "C-5: an unknown job start logged as pre-job-failed",
+   "file": "orchestrate.py",
+   "find": "            log(host, \"pre-job-failed\" if started is False else \"job-start-unknown\", step=step[\"name\"],",
+   "id": "B15-x-start-unknown-as-failed",
+   "part": "B15 fix (23 Oct)",
+   "replace": "            log(host, \"pre-job-failed\", step=step[\"name\"],"
+  },
+  {
+   "describes": "C-5: the in-pod stop not moved before the pre-job stop",
+   "file": "orchestrate.py",
+   "find": "            shortened = tool(\"extend-cap\", host, \"120\")",
+   "id": "B15-x-no-timer-shorten",
+   "part": "B15 fix (23 Oct)",
+   "replace": "            shortened = subprocess.CompletedProcess([], 0)"
+  },
+  {
+   "describes": "VMG-7: the backup does not stage a block's judge files that its seal lists",
+   "file": "backup_records_stage1.py",
+   "find": "    for folder in sorted(p for p in judges.iterdir() if p.is_dir() and not p.is_symlink()) if judges.is_dir() else []:",
+   "id": "B15-x-backup-judges",
+   "part": "B15 fix (23 Oct)",
+   "replace": "    for folder in []:"
+  },
+  {
+   "describes": "the plan-A/B record from any file or a typed record",
+   "file": "plan_tool.py",
+   "find": "        if ref[\"sha256\"] != rules.GATEB_VERDICT[\"sha256\"]:\n",
+   "id": "B15-2-plan-ab-any-file",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "        if False:\n"
+  },
+  {
+   "describes": "sigma read from another field",
+   "file": "stage1_rules.py",
+   "find": "GATEB_VERDICT_FIELD = (\"result\", \"readings\", \"plain\", \"sigma_hat_pp\")",
+   "id": "B15-2-plan-ab-field",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "GATEB_VERDICT_FIELD = (\"result\", \"readings\", \"G2\", \"sigma_hat_pp\")"
+  },
+  {
+   "describes": "a hand-edited (not derived) plan-A/B record accepted at block A",
+   "expect": "survive",
+   "file": "plan_tool.py",
+   "find": "        if not plan_ab_derived(ab):\n",
+   "id": "B15-2-plan-ab-not-derived",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "        if False:\n",
+   "why": "Equivalent (round 3b, item 3): gate_order's check at plan_tool.py:606 (`if not plan_ab_derived(ab)`) runs only with ab = plan_ab_checked(plan) from plan_tool.py:596, unchanged in between; plan_ab_checked fails at plan_tool.py:329 for every non-None record with plan_ab_derived(ab) False (plan_ab_derived is a pure function of the record), so :606 can never fire and every input it would let through is already refused by :329 (tests: test_stage1_runkit.py:1556 test_a_hand_edited_plan_ab_record_refuses_every_later_block, :1901 test_a_coherent_hand_edit_of_the_plan_ab_record_refuses_every_block; both match 'not the one derived', the text of :331). Re-run on the round-3b kit: survived (notes/b15r3b-build-evidence/mut-B15-2-plan-ab-not-derived.xml). The redundant check is kept (never weaken a check)."
+  },
+  {
+   "describes": "a boolean sigma (or C2 statistic, or funding amount) accepted as a number",
+   "file": "stage1_rules.py",
+   "find": "    if isinstance(value, bool) or not isinstance(value, (int, float)):\n        return False",
+   "id": "B15-2-plan-ab-bool",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "    if not isinstance(value, (int, float)):\n        return False"
+  },
+  {
+   "describes": "the verdict pin changed",
+   "file": "stage1_rules.py",
+   "find": "\"sha256\": \"bec5f103a1c5164ce0d4364cdf3d46c5a66ad941cd2f81a47d381e948811d404\"}",
+   "id": "B15-2-verdict-pin",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "\"sha256\": \"bec5f103a1c5164ce0d4364cdf3d46c5a66ad941cd2f81a47d381e948811d405\"}"
+  },
+  {
+   "describes": "binds at < 0.50 instead of <= 0.50",
+   "file": "stage1_rules.py",
+   "find": "and v <= b[\"value_at_most\"]]",
+   "id": "B15-2-c2-binds-strict",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "and v < b[\"value_at_most\"]]"
+  },
+  {
+   "describes": "binds only at steps 1-2",
+   "file": "stage1_rules.py",
+   "find": "if s <= b[\"step_at_most\"] and",
+   "id": "B15-2-c2-step-limit",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "if s < b[\"step_at_most\"] and"
+  },
+  {
+   "describes": "equals recipe B at > 0.90 instead of >= 0.90",
+   "file": "stage1_rules.py",
+   "find": "if v >= e[\"value_at_least\"])",
+   "id": "B15-2-c2-equals-strict",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "if v > e[\"value_at_least\"])"
+  },
+  {
+   "describes": "equals recipe B at 21 steps instead of 20",
+   "file": "stage1_rules.py",
+   "find": "if high >= e[\"steps_at_least\"] else",
+   "id": "B15-2-c2-count",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "if high > e[\"steps_at_least\"] else"
+  },
+  {
+   "describes": "only one label when both hold",
+   "file": "stage1_rules.py",
+   "find": "    labels = ([C2_LABELS[0]] if binding else []) + (",
+   "id": "B15-2-c2-both",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "    labels = ([C2_LABELS[0]] if binding else []) or ("
+  },
+  {
+   "describes": "a steps file without exactly steps 1-38 labelled",
+   "file": "stage1_rules.py",
+   "find": "    if sorted(s for s, _ in out) != list(range(1, C2_THRESHOLDS[\"steps\"] + 1)):",
+   "id": "B15-2-c2-steps-38",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "the binds threshold changed in the record",
+   "file": "stage1_rules.py",
+   "find": "\"value_at_most\": 0.5, \"step_at_most\": 3}",
+   "id": "B15-2-c2-value-049",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "\"value_at_most\": 0.49, \"step_at_most\": 3}"
+  },
+  {
+   "describes": "a thresholds record not carrying §22 point 1 accepted",
+   "file": "plan_tool.py",
+   "find": "        if json.dumps(doc[\"thresholds\"], sort_keys=True) != C2_THRESHOLDS_JSON:\n",
+   "id": "B15-2-thresholds-exact",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "        if False:\n"
+  },
+  {
+   "describes": "a C3 record with another item count accepted",
+   "file": "plan_tool.py",
+   "find": " and s.get(\"items\") == rules.C3_ITEMS",
+   "id": "B15-2-c3-items",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": ""
+  },
+  {
+   "describes": "a C3 record from another writer accepted",
+   "file": "plan_tool.py",
+   "find": "          and draw.get(\"script_sha256\") == rules.C3_WRITER[\"script_sha256\"]\n",
+   "id": "B15-2-c3-writer",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": ""
+  },
+  {
+   "describes": "C3 planned after its fallback",
+   "file": "plan_tool.py",
+   "find": "    if rec.get(\"c3_fallback\"):\n        fail(\"C3 is dropped",
+   "id": "B15-2-c3-fallback-ignored",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "    if False:\n        fail(\"C3 is dropped"
+  },
+  {
+   "describes": "a cert pod without C3 and without its fallback",
+   "file": "plan_tool.py",
+   "find": "    if block == \"cert\" and not any(j[\"kind\"] == \"cert_c3\"",
+   "id": "B15-2-cert-without-c3",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "    if False and block == \"cert\" and not any(j[\"kind\"] == \"cert_c3\""
+  },
+  {
+   "describes": "J14 with a subsample file other than the plan's pin",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if files.get(sub) != (pin",
+   "id": "B15-2-runner-c3-pin",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "        if False and files.get(sub) != (pin"
+  },
+  {
+   "describes": "J14's record not checked before the job",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        names += [\"c3_subsample\", \"c3_record\"]",
+   "id": "B15-2-c3-record-input",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "        names += [\"c3_subsample\"]"
+  },
+  {
+   "describes": "J5/J8 with packed pins other than the plan's",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if files.get(path) != (d2.get(key) or {}).get(\"sha256\"):",
+   "id": "B15-2-d2-pin-check",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "a packed pool other than the plan's pin",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if files.get(path) != job[\"d2\"][\"pools\"].get(name):",
+   "id": "B15-2-pool-pin-check",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "J5 runs the W1 script on the D-2 route",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    return d2, (rules.D2_REP_SCRIPT if job[\"kind\"] == \"rep_pass\"",
+   "id": "B15-2-j5-w1-script",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "    return d2, (REP_SCRIPT if job[\"kind\"] == \"rep_pass\""
+  },
+  {
+   "describes": "J8's fallback still passes the plant and decoy pools",
+   "file": "setup/job_runner_stage1.py",
+   "find": "for name in (POOLS_J8 if extra else ())",
+   "id": "B15-2-j8-fallback-pools",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "for name in POOLS_J8"
+  },
+  {
+   "describes": "J5's fallback still passes the plant and decoy pools",
+   "file": "setup/job_runner_stage1.py",
+   "find": "for name in (POOLS_J5 if extra else (\"s3_safe\",))",
+   "id": "B15-2-j5-fallback-plant",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "for name in POOLS_J5"
+  },
+  {
+   "describes": "J5 planned without J6 earlier on its pod",
+   "file": "plan_tool.py",
+   "find": "        if j[\"kind\"] == \"rep_pass\" and not any(e[\"kind\"] == \"untuned_answers\" for e in jobs[:k]):",
+   "id": "B15-2-j5-no-j6",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "J5/J8 planned on engine Y",
+   "file": "plan_tool.py",
+   "find": "    if kind in rules.D2_KINDS and engine != \"X\":",
+   "id": "B15-2-d2-engine-x",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "the D-2 fallback record ignored at planning",
+   "file": "plan_tool.py",
+   "find": "    if fb and kind in fb[\"jobs\"]:",
+   "id": "B15-2-d2-entry-fallback",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "the plant/decoy hashes of the filled file not checked (REQ-8's still are)",
+   "file": "plan_tool.py",
+   "find": "        if ((filled.get(\"pools\") or {}).get(name) or {}).get(\"sha256\") != pin or \\",
+   "id": "B15-2-d2-req8-pool",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "        if False and ((filled.get(\"pools\") or {}).get(name) or {}).get(\"sha256\") != pin or \\"
+  },
+  {
+   "describes": "s3_safe's hash not checked against the S-pool record's full_files",
+   "file": "plan_tool.py",
+   "find": "            (doc.get(\"full_files\") or {}).get(\"s3_safe.pool.json\") != value:",
+   "id": "B15-2-s3-safe-source",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "            False:"
+  },
+  {
+   "describes": "the D-2 route changed after J5/J8 is planned",
+   "file": "plan_tool.py",
+   "find": "        if any(j[\"kind\"] in jobs for j in planned_jobs(plan)):",
+   "id": "B15-2-d2-fallback-after-planned",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "D-2 inputs packed under any SHA-256",
+   "file": "pack_setup.py",
+   "find": "        if \"files\" in e or not pinned(expected) or e.get(\"sha256\") != expected:",
+   "id": "B15-2-pack-d2-pins",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "the X pack without the D-2 package, the S1 package and MAN1 (retargeted in round 3b)",
+   "file": "pack_setup.py",
+   "find": "    if pack.engine == \"X\":                               # D-2 (J5, J8) and the S1 package run on engine X only",
+   "id": "B15-2-pack-d2-code",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "a Y tree of another identity passes the early check",
+   "file": "pack_setup.py",
+   "find": "        if engine_code(tree) != rules.ENGINES[\"Y\"]:",
+   "id": "B15-2-y-identity",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "engine Y pinned at another identity",
+   "file": "stage1_rules.py",
+   "find": "           \"Y\": \"34bfd28879fdefc5d6605cb73a707d1edd2ec5d102b4b86c0026bc6ac36969f6\"}",
+   "id": "B15-2-y-pin",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "           \"Y\": \"c641c84b0000000000000000000000000000000000000000000000000000000\"}"
+  },
+  {
+   "describes": "another default Y tree",
+   "file": "stage1_rules.py",
+   "find": "Y_TREE_DEFAULT = \"tmp/engine-y-34bfd288\"",
+   "id": "B15-2-y-default",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "Y_TREE_DEFAULT = \"tmp/engine-y\""
+  },
+  {
+   "describes": "the filled pins pin changed",
+   "file": "stage1_rules.py",
+   "find": "\"sha256\": \"a33e96649385b6bc9bcdb35493228c716fb02fc610514c4fba98b23eba345d5e\"}",
+   "id": "B15-2-d2-pins-value",
+   "part": "B15 round 2 (24 Oct)",
+   "replace": "\"sha256\": \"a33e96649385b6bc9bcdb35493228c716fb02fc610514c4fba98b23eba345d5f\"}"
+  },
+  {
+   "describes": "sigma exactly 4.5 gives plan B",
+   "file": "stage1_rules.py",
+   "find": "return \"A\" if sigma_pp <= SIGMA_PLAN_A_MAX_PP else",
+   "id": "VG-sigma-a-strict",
+   "part": "B15 round 2 verifiers (24 Oct; notes/b15r2-verify-gates.json, b15r2-verify-runner.json)",
+   "replace": "return \"A\" if sigma_pp < SIGMA_PLAN_A_MAX_PP else"
+  },
+  {
+   "describes": "sigma exactly 6.0 gives no stage 1",
+   "file": "stage1_rules.py",
+   "find": "else \"B\" if sigma_pp <= SIGMA_PLAN_B_MAX_PP else \"none\"",
+   "id": "VG-sigma-b-strict",
+   "part": "B15 round 2 verifiers (24 Oct; notes/b15r2-verify-gates.json, b15r2-verify-runner.json)",
+   "replace": "else \"B\" if sigma_pp < SIGMA_PLAN_B_MAX_PP else \"none\""
+  },
+  {
+   "describes": "the D-2 fallback recorded after J5/J8 are planned",
+   "file": "plan_tool.py",
+   "find": "        if any(j[\"kind\"] in jobs for j in planned_jobs(plan)):\n            fail(\"a J5/J8 job is already planned",
+   "id": "VG-d2-fallback-after-planning",
+   "part": "B15 round 2 verifiers (24 Oct; notes/b15r2-verify-gates.json, b15r2-verify-runner.json)",
+   "replace": "        if False:\n            fail(\"a J5/J8 job is already planned"
+  },
+  {
+   "describes": "J5's s3_orig pass without --pool-pins/--req8-record",
+   "file": "setup/job_runner_stage1.py",
+   "find": "\"--out\", f\"{out}/representation-s3-orig\", *extra])]",
+   "id": "V2-s3orig-no-pins",
+   "part": "B15 round 2 verifiers (24 Oct; notes/b15r2-verify-gates.json, b15r2-verify-runner.json)",
+   "replace": "\"--out\", f\"{out}/representation-s3-orig\"])]"
+  },
+  {
+   "describes": "J5's s3_orig pass without --pools-only",
+   "file": "setup/job_runner_stage1.py",
+   "find": "s3, \"--pools-only\", \"--out\", f\"{out}/representation-s3-orig\"",
+   "id": "V2-s3orig-not-pools-only",
+   "part": "B15 round 2 verifiers (24 Oct; notes/b15r2-verify-gates.json, b15r2-verify-runner.json)",
+   "replace": "s3, \"--out\", f\"{out}/representation-s3-orig\""
+  },
+  {
+   "describes": "J5's s3_orig pass reads s3_safe in place of J6's s3_orig pool",
+   "file": "setup/job_runner_stage1.py",
+   "find": "untuned/s3_orig.pool.json\"   #",
+   "id": "V2-s3orig-wrong-file",
+   "part": "B15 round 2 verifiers (24 Oct; notes/b15r2-verify-gates.json, b15r2-verify-runner.json)",
+   "replace": "untuned/s3_safe.pool.json\"   #"
+  },
+  {
+   "describes": "the D-2 inputs not checked before J5/J8",
+   "file": "setup/job_runner_stage1.py",
+   "find": "names += list(D2_INPUTS) + [f\"pool:{n}\"",
+   "id": "V2-d2-inputs-unchecked",
+   "part": "B15 round 2 verifiers (24 Oct; notes/b15r2-verify-gates.json, b15r2-verify-runner.json)",
+   "replace": "names += [f\"pool:{n}\""
+  },
+  {
+   "describes": "the D-2 scripts never checked before J5/J8",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if kind in D2_SCRIPTS and not d2_fallback_job(job):",
+   "id": "V2-d2-scripts-unchecked",
+   "part": "B15 round 2 verifiers (24 Oct; notes/b15r2-verify-gates.json, b15r2-verify-runner.json)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "J8's check loses d2_representation_pass.py (its wrapper imports it)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "                             rules.D2_REP_SCRIPT, *D2_COMMON]}",
+   "id": "V2-j8-no-rep-wrapper-check",
+   "part": "B15 round 2 verifiers (24 Oct; notes/b15r2-verify-gates.json, b15r2-verify-runner.json)",
+   "replace": "                             *D2_COMMON]}"
+  },
+  {
+   "describes": "J5 under the D-2 fallback no longer checks pool:s3_safe",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        names.append(\"pool:s3_safe\")                       #",
+   "id": "V2-fallback-s3safe-unchecked",
+   "part": "B15 round 2 verifiers (24 Oct; notes/b15r2-verify-gates.json, b15r2-verify-runner.json)",
+   "replace": "        pass                       #"
+  },
+  {
+   "describes": "the D-2 fallback flag ignored on the pod",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    return bool((job.get(\"d2\") or {}).get(\"fallback\"))",
+   "id": "V2-fallback-flag-ignored",
+   "part": "B15 round 2 verifiers (24 Oct; notes/b15r2-verify-gates.json, b15r2-verify-runner.json)",
+   "replace": "    return False"
+  },
+  {
+   "describes": "the X pack does not pin pool:decoy",
+   "file": "pack_setup.py",
+   "find": "**{f\"pool:{n}\": v for n, v in rules.D2_POOLS.items()}}",
+   "id": "V2-pack-decoy-pin-dropped",
+   "part": "B15 round 2 verifiers (24 Oct; notes/b15r2-verify-gates.json, b15r2-verify-runner.json)",
+   "replace": "**{f\"pool:{n}\": v for n, v in rules.D2_POOLS.items() if n != \"decoy\"}}"
+  },
+  {
+   "describes": "the S-pool record's two s3_safe hashes need not agree in the pack",
+   "file": "pack_setup.py",
+   "find": "                expected = None",
+   "id": "V2-pack-s3safe-consistency",
+   "part": "B15 round 2 verifiers (24 Oct; notes/b15r2-verify-gates.json, b15r2-verify-runner.json)",
+   "replace": "                pass"
+  },
+  {
+   "describes": "VG2-1: a coherent hand edit of the plan-A/B record accepted (sigma and code not compared with the verdict file)",
+   "file": "plan_tool.py",
+   "find": "    if not plan_ab_derived(ab) or type(ab.get(\"sigma_pp\")) is not float or ab[\"sigma_pp\"] != sigma \\\n            or ab[\"code\"] != code:",
+   "id": "B15-3-plan-ab-not-reread",
+   "part": "B15 round 2 fix (24 Oct; notes/b15r2-fix.json)",
+   "replace": "    if not plan_ab_derived(ab):"
+  },
+  {
+   "describes": "VR2-1: a verdict file changed after recording accepted when its field is unchanged",
+   "file": "plan_tool.py",
+   "find": "    if not path.is_file() or mac.sha(path) != rules.GATEB_VERDICT[\"sha256\"]:\n        fail(\"Gate B's verdict file",
+   "id": "B15-3-verdict-file-unpinned",
+   "part": "B15 round 2 fix (24 Oct; notes/b15r2-fix.json)",
+   "replace": "    if not path.is_file():\n        fail(\"Gate B's verdict file"
+  },
+  {
+   "describes": "VG2-1: release does not re-derive the plan-A/B record",
+   "file": "plan_tool.py",
+   "find": "    ab = plan_ab_checked(plan)                       # G3 again at release (VG2-1)",
+   "id": "B15-3-release-no-plan-ab",
+   "part": "B15 round 2 fix (24 Oct; notes/b15r2-fix.json)",
+   "replace": "    ab = records(plan).get(\"plan_ab\")                       # G3 again at release (VG2-1)"
+  },
+  {
+   "describes": "VG2-1: the deal command reads a hand-edited plan-A/B code",
+   "file": "plan_tool.py",
+   "find": "    code = (plan_ab_checked(plan) or {}).get(\"code\")\n    try:\n        pods = rules.deal(rules.block_runs(code, block, tuple(tuple(r)",
+   "id": "B15-3-deal-cmd-unchecked",
+   "part": "B15 round 2 fix (24 Oct; notes/b15r2-fix.json)",
+   "replace": "    code = (plan[\"records\"].get(\"plan_ab\") or {}).get(\"code\")\n    try:\n        pods = rules.deal(rules.block_runs(code, block, tuple(tuple(r)"
+  },
+  {
+   "describes": "VG2-2 (round 3a form): S1-0's need without the plan's cert pod",
+   "file": "plan_tool.py",
+   "find": "    return [x for x in frozen if x[\"part\"] in later and x[\"part\"] not in plan[\"blocks\"]]",
+   "id": "B15-3-floor-no-cert",
+   "part": "B15 round 2 fix (24 Oct; notes/b15r2-fix.json); retargeted in round 3a",
+   "replace": "    return [x for x in frozen if x[\"part\"] in later and x[\"part\"] not in plan[\"blocks\"] and x[\"part\"] != \"cert\"]"
+  },
+  {
+   "describes": "VG2-2 (round 3a form): a part's own plan launches counted again in its own init",
+   "file": "plan_tool.py",
+   "find": "    later = order[order.index(pivot) + 1:]",
+   "id": "B15-3-floor-cert-twice",
+   "part": "B15 round 2 fix (24 Oct; notes/b15r2-fix.json); retargeted in round 3a",
+   "replace": "    later = order[order.index(pivot):]"
+  },
+  {
+   "describes": "VG2-2 (round 3a form): the default plan's cert pod keeps C3 under its §22 point 2 fallback",
+   "file": "plan_tool.py",
+   "find": "    with_c3 = not records(plan).get(\"c3_fallback\")",
+   "id": "B15-3-floor-c3-fallback-ignored",
+   "part": "B15 round 2 fix (24 Oct; notes/b15r2-fix.json); retargeted in round 3a",
+   "replace": "    with_c3 = True"
+  },
+  {
+   "describes": "VG2-3: a certificate pod without C2 accepted",
+   "file": "plan_tool.py",
+   "find": "cert_kinds.count(\"cert_c1\") != 1 or cert_kinds.count(\"cert_c2\") != 1",
+   "id": "B15-3-cert-without-c2",
+   "part": "B15 round 2 fix (24 Oct; notes/b15r2-fix.json)",
+   "replace": "cert_kinds.count(\"cert_c1\") != 1"
+  },
+  {
+   "describes": "VG2-3: a certificate pod without C1 accepted",
+   "file": "plan_tool.py",
+   "find": "cert_kinds.count(\"cert_c1\") != 1 or cert_kinds.count(\"cert_c2\") != 1",
+   "id": "B15-3-cert-without-c1",
+   "part": "B15 round 2 fix (24 Oct; notes/b15r2-fix.json)",
+   "replace": "cert_kinds.count(\"cert_c2\") != 1"
+  },
+  {
+   "describes": "VG2-4: a C3 record with version true or 1.0 accepted",
+   "file": "plan_tool.py",
+   "find": "type(rec.get(\"version\")) is int and ",
+   "id": "B15-3-c3-version-type",
+   "part": "B15 round 2 fix (24 Oct; notes/b15r2-fix.json)",
+   "replace": ""
+  },
+  {
+   "describes": "VG2-4: a C3 record with items 16.0 accepted",
+   "file": "plan_tool.py",
+   "find": "and type(s.get(\"items\")) is int ",
+   "id": "B15-3-c3-items-type",
+   "part": "B15 round 2 fix (24 Oct; notes/b15r2-fix.json)",
+   "replace": ""
+  },
+  {
+   "describes": "VG2-5: an integer too large for a float raises OverflowError (a traceback) instead of a refusal",
+   "file": "stage1_rules.py",
+   "find": "    except OverflowError:\n        return False",
+   "id": "B15-3-overflow",
+   "part": "B15 round 2 fix (24 Oct; notes/b15r2-fix.json)",
+   "replace": "    except ZeroDivisionError:\n        return False"
+  },
+  {
+   "describes": "the block-A plan is not checked again at release",
+   "file": "plan_tool.py",
+   "find": "            check_planned_group_a(plan, block)        # round 3a: the block-A plan again at every release",
+   "id": "B15-4-no-release-check",
+   "part": "B15 round 3a build (24 Oct; notes/b15r3a-build.json)",
+   "replace": "            pass"
+  },
+  {
+   "describes": "init-block does not map the part's launches onto the plan",
+   "file": "plan_tool.py",
+   "find": "    mapping = conform_part(shapes, frozen, block)",
+   "id": "B15-4-no-conformance-at-init",
+   "part": "B15 round 3a build (24 Oct; notes/b15r3a-build.json)",
+   "replace": "    mapping = []"
+  },
+  {
+   "describes": "a pod with a larger cap or spend than its plan pod fits",
+   "file": "plan_tool.py",
+   "find": "    if a[\"cap_hours\"] > p[\"cap_hours\"] + PLAN_TOL or a[\"spend_usd\"] > p[\"spend_usd\"] + PLAN_TOL:",
+   "id": "B15-4-larger-cap-allowed",
+   "part": "B15 round 3a build (24 Oct; notes/b15r3a-build.json)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "a pod with a larger upper spend than its plan pod fits",
+   "file": "plan_tool.py",
+   "find": " or a[\"spend_usd\"] > p[\"spend_usd\"] + PLAN_TOL:",
+   "id": "B15-4-spend-unchecked",
+   "part": "B15 round 3a build (24 Oct; notes/b15r3a-build.json)",
+   "replace": ":"
+  },
+  {
+   "describes": "a launch may hold jobs its plan launch does not",
+   "file": "plan_tool.py",
+   "find": "                        over = over or jobs[key] > p[\"jobs\"].get(key, 0)",
+   "id": "B15-4-jobs-unchecked",
+   "part": "B15 round 3a build (24 Oct; notes/b15r3a-build.json)",
+   "replace": "                        over = False"
+  },
+  {
+   "describes": "a judge launch with more units than planned fits",
+   "file": "plan_tool.py",
+   "find": "        return a.get(\"judge\") == p.get(\"judge\") and a[\"arms\"] <= p[\"arms\"]",
+   "id": "B15-4-judge-units-unchecked",
+   "part": "B15 round 3a build (24 Oct; notes/b15r3a-build.json)",
+   "replace": "        return a.get(\"judge\") == p.get(\"judge\")"
+  },
+  {
+   "describes": "a dealt pod fits any plan pod",
+   "file": "plan_tool.py",
+   "find": "        return a.get(\"deal\") == p.get(\"deal\")",
+   "id": "B15-4-deal-index-unchecked",
+   "part": "B15 round 3a build (24 Oct; notes/b15r3a-build.json)",
+   "replace": "        return True"
+  },
+  {
+   "describes": "a part planned after a later part of the plan",
+   "file": "plan_tool.py",
+   "find": "    if any(p in plan[\"blocks\"] for p in order[order.index(block) + 1:]):",
+   "id": "B15-4-order-unchecked",
+   "part": "B15 round 3a build (24 Oct; notes/b15r3a-build.json)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "block A under plan B with a plan-A plan",
+   "file": "plan_tool.py",
+   "find": "    if block == \"A\" and plan_code_now(plan) != doc[\"plan_code\"]:",
+   "id": "B15-4-plan-code-unchecked",
+   "part": "B15 round 3a build (24 Oct; notes/b15r3a-build.json)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "record-block-a-plan accepted after S1-0",
+   "file": "plan_tool.py",
+   "find": "        if parts:\n            fail(\"record-block-a-plan is refused",
+   "id": "B15-4-plan-after-s1-0",
+   "part": "B15 round 3a build (24 Oct; notes/b15r3a-build.json)",
+   "replace": "        if False:\n            fail(\"record-block-a-plan is refused"
+  },
+  {
+   "describes": "a re-plan recorded whose need the funding record does not cover",
+   "file": "plan_tool.py",
+   "find": "        if not anchor[\"amount_usd\"] >= need[\"need_usd\"]:",
+   "id": "B15-4-replan-uncovered",
+   "part": "B15 round 3a build (24 Oct; notes/b15r3a-build.json)",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "a re-plan recorded that the planned parts do not fit",
+   "file": "plan_tool.py",
+   "find": "        for b in parts:\n            conform_part(planned_shapes(plan, b), frozen, b)",
+   "id": "B15-4-replan-unfitted",
+   "part": "B15 round 3a build (24 Oct; notes/b15r3a-build.json)",
+   "replace": "        for b in []:\n            conform_part(planned_shapes(plan, b), frozen, b)"
+  },
+  {
+   "describes": "the lead's plan file is not re-hashed",
+   "file": "plan_tool.py",
+   "find": "        if not p.is_file() or mac.sha(p) != rec.get(\"sha256\"):",
+   "id": "B15-4-plan-file-unpinned",
+   "part": "B15 round 3a build (24 Oct; notes/b15r3a-build.json)",
+   "replace": "        if not p.is_file():"
+  },
+  {
+   "describes": "plan.json's copy of the lead's plan is not compared with the file",
+   "file": "plan_tool.py",
+   "find": "        if canonical(on_disk) != canonical(doc):",
+   "id": "B15-4-plan-copy-unchecked",
+   "part": "B15 round 3a build (24 Oct; notes/b15r3a-build.json)",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "the kit default is not rebuilt from its recorded inputs",
+   "file": "plan_tool.py",
+   "find": "        if not kit_inputs or canonical(rebuilt) != canonical(doc) or hashlib_sha(canonical(doc)) != rec.get(\"sha256\"):",
+   "id": "B15-4-default-unchecked",
+   "part": "B15 round 3a build (24 Oct; notes/b15r3a-build.json); find retargeted in the round 3a fix (the kit_inputs check joined the line)",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "the kit default is not recorded at the group's first init",
+   "file": "plan_tool.py",
+   "find": "    if plan_a and plan_a[\"default\"] is not None:       # no lead record",
+   "id": "B15-4-default-not-recorded",
+   "part": "B15 round 3a build (24 Oct; notes/b15r3a-build.json)",
+   "replace": "    if False:       # no lead record"
+  },
+  {
+   "describes": "the default judges count only the new units (the six re-judged units dropped)",
+   "file": "plan_tool.py",
+   "find": "    units = len(rules.block_runs(code, \"A\")) + len(REJUDGED_UNITS)",
+   "id": "B15-4-judge-units-default",
+   "part": "B15 round 3a build (24 Oct; notes/b15r3a-build.json)",
+   "replace": "    units = len(rules.block_runs(code, \"A\"))"
+  },
+  {
+   "describes": "the default LN-12 pod drops theta0's 500-bank pass (retargeted in round 3b)",
+   "file": "plan_tool.py",
+   "find": "                pod += [{\"kind\": \"o_only\", \"arm\": \"theta0\"}, {\"kind\": \"transfer_report\", \"arm\": \"theta0\"}]",
+   "id": "B15-4-no-theta0",
+   "part": "B15 round 3a build (24 Oct; notes/b15r3a-build.json)",
+   "replace": "                pod += []"
+  },
+  {
+   "describes": "the frozen pod numbers ignore Branch 128 (the larger of the two dropped)",
+   "file": "plan_tool.py",
+   "find": "                per = [p for p in (_plan_pod(h, fx, br) for br in ((branch,) if branch else rules.BRANCHES)) if p]",
+   "id": "B15-4-frozen-full-only",
+   "part": "B15 round 3a build (24 Oct; notes/b15r3a-build.json)",
+   "replace": "                per = [p for p in (_plan_pod(h, fx, br) for br in ((branch,) if branch else (\"full\",))) if p]"
+  },
+  {
+   "describes": "HarmBench planned at 0.125 s per answer",
+   "file": "stage1_rules.py",
+   "find": "HARMBENCH_S_PER_ANSWER = 0.25 ",
+   "id": "B15-4-harmbench-rate",
+   "part": "B15 round 3a build (24 Oct; notes/b15r3a-build.json)",
+   "replace": "HARMBENCH_S_PER_ANSWER = 0.125 "
+  },
+  {
+   "describes": "HarmBench counts the 200 greedy answers only",
+   "file": "stage1_rules.py",
+   "find": "HARMBENCH_ANSWERS_PER_ARM = 800 ",
+   "id": "B15-4-harmbench-sampled-dropped",
+   "part": "B15 round 3a build (24 Oct; notes/b15r3a-build.json)",
+   "replace": "HARMBENCH_ANSWERS_PER_ARM = 200 "
+  },
+  {
+   "describes": "a plan with another launch order is accepted",
+   "file": "plan_tool.py",
+   "find": "            a_roles != [\"diagnostics\", \"ln12\"] + [\"arms\"] * n_arms + [\"judge\"] * n_judge:",
+   "id": "B15-4-plan-order-unvalidated",
+   "part": "B15 round 3a build (24 Oct; notes/b15r3a-build.json)",
+   "replace": "            False:"
+  },
+  {
+   "describes": "a plan whose arm launches skip or reorder dealt pods is accepted",
+   "file": "plan_tool.py",
+   "find": "    if deal_idx != list(range(deal_pod_count(code))):",
+   "id": "B15-4-plan-split-unvalidated",
+   "part": "B15 round 3a build (24 Oct; notes/b15r3a-build.json)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "a plan whose judges cover fewer than the new units is accepted",
+   "file": "plan_tool.py",
+   "find": "j[\"judge\"] not in rules.JUDGES or type(j[\"arms\"]) is not int or j[\"arms\"] < len(runs):",
+   "id": "B15-4-plan-judge-floor",
+   "part": "B15 round 3a build (24 Oct; notes/b15r3a-build.json)",
+   "replace": "j[\"judge\"] not in rules.JUDGES or type(j[\"arms\"]) is not int:"
+  },
+  {
+   "describes": "the re-plan (and every later init) is anchored to the last part's funding record",
+   "file": "plan_tool.py",
+   "find": "    anchor = plan[\"blocks\"][parts[0]][\"funding\"]",
+   "id": "VG3-replan-anchor-last",
+   "part": "B15 round 3a fix (24 Oct; notes/b15r3a-fix.json); from notes/b15r3a-verify-gates.json VG3-5",
+   "replace": "    anchor = plan[\"blocks\"][parts[-1]][\"funding\"]"
+  },
+  {
+   "describes": "a pod up to $0.20 over its plan pod's spend fits",
+   "file": "plan_tool.py",
+   "find": "PLAN_TOL = 1e-9",
+   "id": "VG3-plan-tol-loose",
+   "part": "B15 round 3a fix (24 Oct; notes/b15r3a-fix.json); from notes/b15r3a-verify-gates.json VG3-5",
+   "replace": "PLAN_TOL = 0.2"
+  },
+  {
+   "describes": "the kit default is rebuilt with C3 even when it was recorded under the C3 fallback",
+   "file": "plan_tool.py",
+   "find": "rebuilt = default_block_a_doc(args[\"plan_code\"], args[\"c3\"], args[\"split\"]",
+   "id": "VG3-default-c3-forced",
+   "part": "B15 round 3a fix (24 Oct; notes/b15r3a-fix.json); from notes/b15r3a-verify-gates.json VG3-5",
+   "replace": "rebuilt = default_block_a_doc(args[\"plan_code\"], True, args[\"split\"]"
+  },
+  {
+   "describes": "a re-plan may order the planned parts otherwise",
+   "file": "plan_tool.py",
+   "find": "        if [order.index(b) for b in parts] != sorted(order.index(b) for b in parts):",
+   "id": "VG3-replan-order-unchecked",
+   "part": "B15 round 3a fix (24 Oct; notes/b15r3a-fix.json); from notes/b15r3a-verify-gates.json VG3-5",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "each actual launch may map to any earlier plan launch",
+   "file": "plan_tool.py",
+   "find": "        out.append(placed)\n        start = placed",
+   "id": "VG3-conform-start-zero",
+   "part": "B15 round 3a fix (24 Oct; notes/b15r3a-fix.json); from notes/b15r3a-verify-gates.json VG3-5",
+   "replace": "        out.append(placed)\n        start = 0"
+  },
+  {
+   "describes": "a job is counted per actual launch, not pooled over the launches spread over one plan launch",
+   "file": "plan_tool.py",
+   "find": "            jobs = dict(used[jj][\"jobs\"])",
+   "id": "VG3-jobs-pool-reset",
+   "part": "B15 round 3a fix (24 Oct; notes/b15r3a-fix.json); from notes/b15r3a-verify-gates.json VG3-5",
+   "replace": "            jobs = {}"
+  },
+  {
+   "describes": "a plan that leaves out block A's G5 content is recorded (VG3-1)",
+   "file": "plan_tool.py",
+   "find": "    check_block_a_content(plan, doc)\n",
+   "id": "B15-5-content-unchecked",
+   "part": "B15 round 3a fix (24 Oct; notes/b15r3a-fix.json)",
+   "replace": "    pass\n"
+  },
+  {
+   "describes": "a plan without C3 is complete without its fallback record (VG3-1)",
+   "file": "plan_tool.py",
+   "find": "(() if rec.get(\"c3_fallback\") else (\"cert_c3\",))",
+   "id": "B15-5-c3-content-free",
+   "part": "B15 round 3a fix (24 Oct; notes/b15r3a-fix.json)",
+   "replace": "(() if True else (\"cert_c3\",))"
+  },
+  {
+   "describes": "the plan's judges need only the new units, not the re-judged ones (VG3-1)",
+   "file": "plan_tool.py",
+   "find": "    units = len(rules.block_runs(doc[\"plan_code\"], \"A\")) + len(REJUDGED_UNITS)",
+   "id": "B15-5-judge-rejudged-dropped",
+   "part": "B15 round 3a fix (24 Oct; notes/b15r3a-fix.json)",
+   "replace": "    units = len(rules.block_runs(doc[\"plan_code\"], \"A\"))"
+  },
+  {
+   "describes": "a host that received deferred jobs is checked as it is now, not as planned (VG3-2)",
+   "file": "plan_tool.py",
+   "find": "({**h, **h[\"plan_shape\"]} if h.get(\"plan_shape\") else h)",
+   "id": "B15-5-plan-shape-ignored",
+   "part": "B15 round 3a fix (24 Oct; notes/b15r3a-fix.json)",
+   "replace": "h"
+  },
+  {
+   "describes": "place() never records the host's plan_shape (VG3-2)",
+   "file": "plan_tool.py",
+   "find": "    target.setdefault(\"plan_shape\", ",
+   "id": "B15-5-plan-shape-unrecorded",
+   "part": "B15 round 3a fix (24 Oct; notes/b15r3a-fix.json)",
+   "replace": "    target.setdefault(\"plan_shape_unused\", "
+  },
+  {
+   "describes": "the group's parts are read in plan.json's (sorted) order (VG3-3)",
+   "file": "plan_tool.py",
+   "find": "    return sorted(parts, key=lambda b: (plan[\"blocks\"][b].get(\"seq\", rules.BLOCKS.index(b) - len(rules.BLOCKS)),",
+   "id": "B15-5-seq-ignored",
+   "part": "B15 round 3a fix (24 Oct; notes/b15r3a-fix.json)",
+   "replace": "    return parts\n    return sorted(parts, key=lambda b: (plan[\"blocks\"][b].get(\"seq\", rules.BLOCKS.index(b) - len(rules.BLOCKS)),"
+  },
+  {
+   "describes": "a later group-A init is not checked against S1-0's funding record (VG3-4)",
+   "file": "plan_tool.py",
+   "find": "    if first is not None and not first[\"amount_usd\"] >= need[\"need_usd\"]:",
+   "id": "B15-5-anchor-unchecked",
+   "part": "B15 round 3a fix (24 Oct; notes/b15r3a-fix.json)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "S1-0's funding record is not re-hashed (VG3-4)",
+   "file": "plan_tool.py",
+   "find": "    if on_disk is None or mac.sha(p) != anchor.get(\"sha256\") or not isinstance(on_disk, dict) or \\",
+   "id": "B15-5-anchor-unhashed",
+   "part": "B15 round 3a fix (24 Oct; notes/b15r3a-fix.json)",
+   "replace": "    if on_disk is None or not isinstance(on_disk, dict) or \\"
+  },
+  {
+   "describes": "with a planned group part and no plan record, the kit default is recorded silently (VG3-4)",
+   "file": "plan_tool.py",
+   "find": "    if planned_parts(plan, \"A\"):                      # VG3-4",
+   "id": "B15-5-no-record-default-silent",
+   "part": "B15 round 3a fix (24 Oct; notes/b15r3a-fix.json)",
+   "replace": "    if False:                      # VG3-4"
+  },
+  {
+   "describes": "a kit-default record may carry any split (VG3-4)",
+   "file": "plan_tool.py",
+   "find": "            kit_inputs = list(args[\"split\"]) == list(DEFAULT_SPLIT[args[\"plan_code\"]]) and \\",
+   "id": "B15-5-default-split-free",
+   "part": "B15 round 3a fix (24 Oct; notes/b15r3a-fix.json)",
+   "replace": "            kit_inputs = True or \\"
+  },
+  {
+   "describes": "the kit default plan does not record V2a's fallback in not_in_plan (round 3b: the find now matches default_block_a_doc's line)",
+   "file": "plan_tool.py",
+   "find": "           \"not_in_plan\": [dict(x) for x in NOT_IN_PLAN]}",
+   "id": "B15-5-ln15e-dropped",
+   "part": "B15 round 3a fix (24 Oct; notes/b15r3a-fix.json)",
+   "replace": "           \"not_in_plan\": []}"
+  },
+  {
+   "describes": "the plan file's path is stored as typed (VG3-7)",
+   "file": "plan_tool.py",
+   "find": "    ref[\"path\"] = str(pathlib.Path(path).resolve())",
+   "id": "B15-5-plan-path-unresolved",
+   "part": "B15 round 3a fix (24 Oct; notes/b15r3a-fix.json)",
+   "replace": "    ref[\"path\"] = str(path)"
+  },
+  {
+   "describes": "the X pack does not carry the pinned S1 package (item 1)",
+   "file": "pack_setup.py",
+   "find": "        for rel, pin in sorted(rules.S1_CODE.items()):     # round 3b: the S1 package by its 3eaf968 pins",
+   "id": "B15-6-s1-code-unpacked",
+   "part": "B15 round 3b (24 Oct; notes/b15r3b-build.json)",
+   "replace": "        for rel, pin in sorted({}.items()):"
+  },
+  {
+   "describes": "a lead code entry under scripts/stage1_s1/ is taken by its own SHA-256 (item 1)",
+   "file": "pack_setup.py",
+   "find": "                s1_pins.get(e[\"path\"]) != e.get(\"sha256\"):",
+   "id": "B15-6-s1-entry-unchecked",
+   "part": "B15 round 3b (24 Oct; notes/b15r3b-build.json)",
+   "replace": "                False:"
+  },
+  {
+   "describes": "round 3c: the round-3b exception comes back (a lead code entry for the O-ext unit runner is taken by its own SHA-256, not the S1_CODE pin); retargeted in round 3c, the old find text is gone",
+   "file": "pack_setup.py",
+   "find": "        if e[\"path\"].startswith(S1_PACKAGE) and \\\n",
+   "id": "B15-6-s1-unpinned-all",
+   "part": "B15 round 3b (24 Oct; notes/b15r3b-build.json)",
+   "replace": "        if e[\"path\"].startswith(S1_PACKAGE) and e[\"path\"] != \"scripts/stage1_s1/oext_unit.py\" and \\\n"
+  },
+  {
+   "describes": "the S1 package's __init__.py is not pinned or packed (VR2-5)",
+   "file": "stage1_rules.py",
+   "find": "S1_CODE = {\"scripts/stage1_s1/__init__.py\": \"818919ca18627b7169d80c2a6f6c24149f6e1c529bff9d37a5ddee2122bddd32\",\n",
+   "id": "B15-6-s1-init-unpinned",
+   "part": "B15 round 3b (24 Oct; notes/b15r3b-build.json)",
+   "replace": "S1_CODE = {\n"
+  },
+  {
+   "describes": "record-c3 takes any writer record (item 2)",
+   "file": "plan_tool.py",
+   "find": "    if out[\"record\"][\"sha256\"] != rules.C3_RECORD[\"sha256\"] or \\\n            paths[\"record\"].resolve() != (ROOT / rules.C3_RECORD[\"path\"]).resolve():",
+   "id": "B15-6-c3-record-unpinned",
+   "part": "B15 round 3b (24 Oct; notes/b15r3b-build.json)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "record-c3 checks the C3 record's path only (item 2)",
+   "file": "plan_tool.py",
+   "find": "out[\"record\"][\"sha256\"] != rules.C3_RECORD[\"sha256\"] or",
+   "id": "B15-6-c3-record-sha-free",
+   "part": "B15 round 3b (24 Oct; notes/b15r3b-build.json)",
+   "replace": "False or"
+  },
+  {
+   "describes": "record-c3 checks the C3 record's SHA-256 only: a copy elsewhere is taken (item 2)",
+   "file": "plan_tool.py",
+   "find": "paths[\"record\"].resolve() != (ROOT / rules.C3_RECORD[\"path\"]).resolve():",
+   "id": "B15-6-c3-record-path-free",
+   "part": "B15 round 3b (24 Oct; notes/b15r3b-build.json)",
+   "replace": "False:"
+  },
+  {
+   "describes": "the D-2 filled pins at their pre-move path (item 2)",
+   "file": "stage1_rules.py",
+   "find": "D2_POOL_PINS = {\"path\": \".ai/inputs/stage1-post-w1-20261023/pool-pins/representation_pools.filled.json\",",
+   "id": "B15-6-d2-path-old",
+   "part": "B15 round 3b (24 Oct; notes/b15r3b-build.json)",
+   "replace": "D2_POOL_PINS = {\"path\": \".ai/inputs/stage1-commitments-20261016/pool-pins/representation_pools.filled.json\","
+  },
+  {
+   "describes": "c0 accepted on the cert pod again (item 6)",
+   "file": "stage1_rules.py",
+   "find": "               \"cert\": (\"cert_c1\", \"cert_c2\", \"cert_c3\"),   # round 3b",
+   "id": "B15-6-c0-on-cert",
+   "part": "B15 round 3b (24 Oct; notes/b15r3b-build.json)",
+   "replace": "               \"cert\": (\"cert_c1\", \"cert_c2\", \"cert_c3\", \"c0\"),   # round 3b"
+  },
+  {
+   "describes": "c0 accepted on engine Y in block A (item 6, addendum §26)",
+   "file": "plan_tool.py",
+   "find": "    if kind in rules.X_ONLY_KINDS and engine != \"X\":",
+   "id": "B15-6-c0-x-unchecked",
+   "part": "B15 round 3b (24 Oct; notes/b15r3b-build.json)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "a plan without c0 on the LN-12 pod is complete (item 6)",
+   "file": "plan_tool.py",
+   "find": "    missing += [k for k in (\"c0\",) if (k, \"R\", 1101) not in ln12]",
+   "id": "B15-6-c0-content-dropped",
+   "part": "B15 round 3b (24 Oct; notes/b15r3b-build.json)",
+   "replace": "    missing += []"
+  },
+  {
+   "describes": "the default LN-12 pod has no c0 (item 6)",
+   "file": "plan_tool.py",
+   "find": "            elif item == \"c0\":\n                pod.append(dict(C0_JOB))",
+   "id": "B15-6-c0-default-dropped",
+   "part": "B15 round 3b (24 Oct; notes/b15r3b-build.json)",
+   "replace": "            elif item == \"c0\":\n                pass"
+  },
+  {
+   "describes": "a plan without LN-15e's re-score is complete (item 4)",
+   "file": "plan_tool.py",
+   "find": "    missing += [f\"{k} a0 {seed}\" for seed in rules.RESCORE_SEEDS for k in (\"retrain\", \"a1_rescore\")",
+   "id": "B15-6-rescore-content-dropped",
+   "part": "B15 round 3b (24 Oct; notes/b15r3b-build.json)",
+   "replace": "    missing += [f\"{k} a0 {seed}\" for seed in () for k in (\"retrain\", \"a1_rescore\")"
+  },
+  {
+   "describes": "the default plan leaves LN-15e out (item 4)",
+   "file": "plan_tool.py",
+   "find": "LN12_LAYOUT = ((\"a0\", \"R\", \"rescore\", \"theta0\", \"c0\"),)",
+   "id": "B15-6-rescore-not-in-default",
+   "part": "B15 round 3b (24 Oct; notes/b15r3b-build.json)",
+   "replace": "LN12_LAYOUT = ((\"a0\", \"R\", \"theta0\", \"c0\"),)"
+  },
+  {
+   "describes": "the re-score priced at Gate B's frozen 2.0 h, not the measured 3.04 h (item 4)",
+   "file": "stage1_rules.py",
+   "find": "RESCORE_MEASURED_S = 3.04 * 3600",
+   "id": "B15-6-rescore-measured-2h",
+   "part": "B15 round 3b (24 Oct; notes/b15r3b-build.json)",
+   "replace": "RESCORE_MEASURED_S = 2.0 * 3600"
+  },
+  {
+   "describes": "the re-score's upper without the diagnostics factor (item 4)",
+   "file": "stage1_rules.py",
+   "find": "        return DIAG_UPPER_FACTOR * RESCORE_MEASURED_S",
+   "id": "B15-6-rescore-upper-no-factor",
+   "part": "B15 round 3b (24 Oct; notes/b15r3b-build.json)",
+   "replace": "        return RESCORE_MEASURED_S"
+  },
+  {
+   "describes": "the re-score is not a linked pass (item 4)",
+   "file": "stage1_rules.py",
+   "find": "                \"a1_rescore\": \"retrain\"}  # LN-15e",
+   "id": "B15-6-rescore-unlinked",
+   "part": "B15 round 3b (24 Oct; notes/b15r3b-build.json)",
+   "replace": "                }  # LN-15e"
+  },
+  {
+   "describes": "a retrain at any seed (item 4)",
+   "file": "plan_tool.py",
+   "find": "    if kind == \"retrain\" and not (arm == \"a0\" and seed in rules.RESCORE_SEEDS):",
+   "id": "B15-6-retrain-seed-free",
+   "part": "B15 round 3b (24 Oct; notes/b15r3b-build.json)",
+   "replace": "    if kind == \"retrain\" and not (arm == \"a0\"):"
+  },
+  {
+   "describes": "LN-15e on engine Y (item 4)",
+   "file": "plan_tool.py",
+   "find": "    if kind in (\"retrain\", \"a1_rescore\") and engine != \"X\":",
+   "id": "B15-6-retrain-x-unchecked",
+   "part": "B15 round 3b (24 Oct; notes/b15r3b-build.json)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "a re-score linked to a J2 regeneration instead of its retrain (item 4)",
+   "file": "plan_tool.py",
+   "find": "              and 0 <= source < index and host_jobs[source][\"kind\"] == \"retrain\"",
+   "id": "B15-6-rescore-source-unchecked",
+   "part": "B15 round 3b (24 Oct; notes/b15r3b-build.json)",
+   "replace": "              and 0 <= source < index"
+  },
+  {
+   "describes": "a MANIFEST with other than 8 unit groups is taken for the re-score (item 4)",
+   "file": "plan_tool.py",
+   "find": "    if len(groups) != rules.UNITS or",
+   "id": "B15-6-groups-unchecked",
+   "part": "B15 round 3b (24 Oct; notes/b15r3b-build.json)",
+   "replace": "    if False and len(groups) != rules.UNITS or"
+  },
+  {
+   "describes": "the runner re-scores over other than 8 groups (item 4)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if not (isinstance(groups, list) and len(groups) == rules.UNITS and all(isinstance(g, str) for g in groups)):",
+   "id": "B15-6-runner-groups-unchecked",
+   "part": "B15 round 3b (24 Oct; notes/b15r3b-build.json)",
+   "replace": "    if not isinstance(groups, list):"
+  },
+  {
+   "describes": "the retrain shares J2's registry (item 4)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        f\"{RESCORE_ROOT}/registry.jsonl\" if kind == \"retrain\" else f\"{ROUND}/registry.jsonl\"",
+   "id": "B15-6-runner-rescore-registry",
+   "part": "B15 round 3b (24 Oct; notes/b15r3b-build.json)",
+   "replace": "        f\"{ROUND}/registry.jsonl\" if kind == \"retrain\" else f\"{ROUND}/registry.jsonl\""
+  },
+  {
+   "describes": "the re-score reads e1 only, not q and e1 (item 4)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "            *[a for c in rules.RESCORE_CHECKPOINTS for a in (\"--a0-state\", f\"{c}={state}\")],",
+   "id": "B15-6-runner-rescore-e1-only",
+   "part": "B15 round 3b (24 Oct; notes/b15r3b-build.json)",
+   "replace": "            *[\"--a0-state\", f\"e1={state}\"],"
+  },
+  {
+   "describes": "the runner records no unit for LN-15e's jobs (item 4)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if kind in (\"regenerate\", \"cert_c1\", \"cert_c2\", \"cert_c3\", \"retrain\", \"a1_rescore\"):",
+   "id": "B15-6-runner-rescore-no-unit",
+   "part": "B15 round 3b (24 Oct; notes/b15r3b-build.json)",
+   "replace": "    if kind in (\"regenerate\", \"cert_c1\", \"cert_c2\", \"cert_c3\"):"
+  },
+  {
+   "describes": "a retrain starts without room for its re-score (item 4)",
+   "file": "stage1_rules.py",
+   "find": "        if job[\"kind\"] in LINK_SOURCES:",
+   "id": "B15-6-requirements-retrain-unlinked",
+   "part": "B15 round 3b (24 Oct; notes/b15r3b-build.json)",
+   "replace": "        if job[\"kind\"] == \"regenerate\":"
+  },
+  {
+   "describes": "a deferred re-score moves without its retrain (item 4)",
+   "file": "plan_tool.py",
+   "find": "        if source is not None and jobs[source][\"kind\"] == rules.LINKED_KINDS[jobs[first_deferred][\"kind\"]] and \\",
+   "id": "B15-6-stranded-retrain",
+   "part": "B15 round 3b (24 Oct; notes/b15r3b-build.json)",
+   "replace": "        if source is not None and jobs[source][\"kind\"] == \"regenerate\" and \\"
+  },
+  {
+   "describes": "the judges over 26 units, theta0's left out (item 5)",
+   "file": "plan_tool.py",
+   "find": "REJUDGED_UNITS = LN12_UNITS + ((\"theta0\", None),)",
+   "id": "B15-6-judges-26",
+   "part": "B15 round 3b (24 Oct; notes/b15r3b-build.json)",
+   "replace": "REJUDGED_UNITS = LN12_UNITS"
+  },
+  {
+   "describes": "a plan that drops V2a's fallback record is taken (item 4)",
+   "file": "plan_tool.py",
+   "find": "    if canonical(doc[\"not_in_plan\"]) != canonical([dict(x) for x in NOT_IN_PLAN]):",
+   "id": "B15-6-v2a-record-unchecked",
+   "part": "B15 round 3b (24 Oct; notes/b15r3b-build.json)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "the X pack pins each S1_CODE file by its own current bytes (no pin enforced)",
+   "file": "pack_setup.py",
+   "find": "        for rel, pin in sorted(rules.S1_CODE.items()):     # round 3b: the S1 package by its 3eaf968 pins\n            pack.add(rel, ROOT / rel, pin)\n",
+   "id": "VP-s1-self-pin",
+   "part": "B15 round 3b fix (24 Oct)",
+   "replace": "        for rel, pin in sorted(rules.S1_CODE.items()):     # round 3b: the S1 package by its 3eaf968 pins\n            pack.add(rel, ROOT / rel, sha(ROOT / rel) if (ROOT / rel).is_file() else pin)\n"
+  },
+  {
+   "describes": "a lead code entry naming a D-2 file with its correct D2_CODE pin is refused (S1_CODE only)",
+   "file": "pack_setup.py",
+   "find": "    s1_pins = {**rules.D2_CODE, **rules.S1_CODE}\n",
+   "id": "VP-s1-d2-entry-refused",
+   "part": "B15 round 3b fix (24 Oct)",
+   "replace": "    s1_pins = dict(rules.S1_CODE)\n"
+  },
+  {
+   "describes": "record-c3 refuses only when both the record's SHA-256 and its path differ",
+   "file": "plan_tool.py",
+   "find": "    if out[\"record\"][\"sha256\"] != rules.C3_RECORD[\"sha256\"] or \\\n",
+   "id": "VP-c3-or-and",
+   "part": "B15 round 3b fix (24 Oct)",
+   "replace": "    if out[\"record\"][\"sha256\"] != rules.C3_RECORD[\"sha256\"] and \\\n"
+  },
+  {
+   "describes": "C3_RECORD at a pre-move path under stage1-commitments-20261016",
+   "file": "stage1_rules.py",
+   "find": "C3_RECORD = {\"path\": \".ai/inputs/stage1-post-w1-20261023/c3/c3_subsample_record.json\",",
+   "id": "VP-c3-path-old",
+   "part": "B15 round 3b fix (24 Oct)",
+   "replace": "C3_RECORD = {\"path\": \".ai/inputs/stage1-commitments-20261016/c3/c3_subsample_record.json\","
+  },
+  {
+   "describes": "LN-15e's groups: 8 MANIFEST unit entries with a repeated group accepted",
+   "file": "plan_tool.py",
+   "find": "len(set(groups)) != len(groups) or ",
+   "id": "VP-groups-dup-unchecked",
+   "part": "B15 round 3b fix (24 Oct)",
+   "replace": ""
+  },
+  {
+   "describes": "the block-A content check requires LN-15e's retrains but not their re-scores",
+   "file": "plan_tool.py",
+   "find": "for seed in rules.RESCORE_SEEDS for k in (\"retrain\", \"a1_rescore\")",
+   "id": "VP-content-rescore-only-retrain",
+   "part": "B15 round 3b fix (24 Oct)",
+   "replace": "for seed in rules.RESCORE_SEEDS for k in (\"retrain\",)"
+  },
+  {
+   "describes": "a1_rescore's own arm/seed rule dropped (kept: its source must be a retrain of the same arm and seed)",
+   "expect": "survive",
+   "file": "plan_tool.py",
+   "find": "        ok = (arm == \"a0\" and seed in rules.RESCORE_SEEDS and isinstance(source, int) and not isinstance(source, bool)",
+   "id": "VP-rescore-own-arm-seed-unchecked",
+   "part": "B15 round 3b fix (24 Oct)",
+   "replace": "        ok = (isinstance(source, int) and not isinstance(source, bool)",
+   "why": "Equivalent (verify-pins F5; fix round 3b): check_job runs over a pod's jobs in index order and fails at the first refusal (plan_tool.py:959-964 for a plan launch, :1440-1443 at init); an a1_rescore's regen_source must be an earlier job on the same pod that is a retrain with the same (arm, seed) (plan_tool.py:428-430), and that retrain was already refused at plan_tool.py:424-425 unless it is a0 at 1102 or 1103; so the re-score's own 'arm == a0 and seed in RESCORE_SEEDS' (:428) refuses no input that :424 and :430 let through. Tests: test_stage1_runkit.py:2931 test_ln_15e_jobs_follow_their_rules (cases 1-3: a0 1104, R 1102 retrains refuse at :424; cases 4-6: no, another-seed or regenerate source refuse at :430). Verifier probe: identical outcomes on 7 pods with and without the mutant (notes/b15r3b-verify-pins-evidence/probe-baseline.out.txt = probe-VP-rescore-own-arm-seed-unchecked.out.txt). The redundant clause is kept (never weaken a check)."
+  },
+  {
+   "describes": "a folder input's file that MAN1 lists with another SHA-256 is packed",
+   "file": "pack_setup.py",
+   "find": "                if f\"{rel}/{sub}\" in by_path and by_path[f\"{rel}/{sub}\"] != f.get(\"sha256\"):\n",
+   "id": "VP-pack-man1-folder",
+   "part": "B15 round 3b fix (24 Oct)",
+   "replace": "                if False:\n"
+  },
+  {
+   "describes": "a lead code entry spelled with '.' or an empty part passes (only '..' refused)",
+   "file": "pack_setup.py",
+   "find": "        if not str(e.get(\"path\", \"\")).startswith(\"scripts/\") or not plain_path(e[\"path\"]):\n",
+   "id": "B15-7-code-path-dot",
+   "part": "B15 round 3b fix (24 Oct)",
+   "replace": "        if not str(e.get(\"path\", \"\")).startswith(\"scripts/\") or \"..\" in e[\"path\"].split(\"/\"):\n"
+  },
+  {
+   "describes": "a named input's path spelled with '.' or an empty part passes (MAN1 comparison skipped)",
+   "file": "pack_setup.py",
+   "find": "        if not plain_path(rel):\n",
+   "id": "B15-7-input-path-dot",
+   "part": "B15 round 3b fix (24 Oct)",
+   "replace": "        if not rel or \"..\" in rel.split(\"/\") or rel.startswith(\"/\"):\n"
+  },
+  {
+   "describes": "a folder input's file path spelled with '.' or an empty part passes",
+   "file": "pack_setup.py",
+   "find": "                if not plain_path(sub):\n",
+   "id": "B15-7-folder-path-dot",
+   "part": "B15 round 3b fix (24 Oct)",
+   "replace": "                if not sub or \"..\" in sub.split(\"/\"):\n"
+  },
+  {
+   "describes": "plain_path refuses only '..' parts (empty and '.' parts pass)",
+   "file": "pack_setup.py",
+   "find": "        all(part not in (\"\", \".\", \"..\") for part in rel.split(\"/\"))\n",
+   "id": "B15-7-plain-path-dotdot-only",
+   "part": "B15 round 3b fix (24 Oct)",
+   "replace": "        all(part not in (\"..\",) for part in rel.split(\"/\"))\n"
+  },
+  {
+   "describes": "the runner runs a re-score whose 8 groups repeat one",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if len(set(groups)) != len(groups):                  # round 3b fix (F4): 8 distinct groups, as plan_tool plans\n",
+   "id": "B15-7-runner-groups-dup",
+   "part": "B15 round 3b fix (24 Oct)",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "item 1: the O-ext unit runner is not an S1_CODE pin (the X pack does not carry it)",
+   "file": "stage1_rules.py",
+   "find": "           \"scripts/stage1_s1/oext_unit.py\": \"ae2fb5b5fbea36cbd2b27c4eaa20f10504b9856961ae8ee100311c923876b8e3\",\n",
+   "id": "B15-8-runner-unpinned",
+   "part": "B15 round 3c (24 Oct; notes/b15r3c-build.json)",
+   "replace": ""
+  },
+  {
+   "describes": "item 1: the runner's settings are not an S1_CODE pin (not packed)",
+   "file": "stage1_rules.py",
+   "find": "           \"scripts/stage1_s1/settings/oext_unit.json\":\n               \"3959eae7264f56f613f5d7cd54e69081d8985ef7cbce2962243f6685e3581189\"}",
+   "id": "B15-8-runner-settings-unpinned",
+   "part": "B15 round 3c (24 Oct; notes/b15r3c-build.json)",
+   "replace": "           }"
+  },
+  {
+   "describes": "item 1: an O-ext step does not seal oext_unit.json (no check before the job, check-plan passes without it)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        paths.append(OEXT_UNIT_SETTINGS)                    # round 3c: the runner's settings, sealed with it\n",
+   "id": "B15-8-runner-settings-unsealed",
+   "part": "B15 round 3c (24 Oct; notes/b15r3c-build.json)",
+   "replace": ""
+  },
+  {
+   "describes": "item 1: J9/J10/J18's O-ext command names a checkpoint the runner's own parser refuses",
+   "file": "setup/job_runner_stage1.py",
+   "find": "\"--run\", f\"@unit:{index}\",\n                                              \"--checkpoint\", \"e1\",",
+   "id": "B15-8-oext-checkpoint-q",
+   "part": "B15 round 3c (24 Oct; notes/b15r3c-build.json)",
+   "replace": "\"--run\", f\"@unit:{index}\",\n                                              \"--checkpoint\", \"q\","
+  },
+  {
+   "describes": "item 2: block A completes with planned jobs neither run nor decided (VP3b-3 back)",
+   "file": "plan_tool.py",
+   "find": "    if block == \"A\" and block_a_open(plan):           # round 3c (VP3b-3): every job the block-A plan requires\n",
+   "id": "B15-8-block-a-open-unchecked",
+   "part": "B15 round 3c (24 Oct; notes/b15r3c-build.json)",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "item 2: the plan's dealt arm runs are not required (a not-re-run arm leaves block A complete)",
+   "file": "plan_tool.py",
+   "find": "                    out[job_label(\"a0_arm\" if arm == \"a0\" else \"arm\", arm, seed)] = 0\n",
+   "id": "B15-8-arms-not-required",
+   "part": "B15 round 3c (24 Oct; notes/b15r3c-build.json)",
+   "replace": "                    pass\n"
+  },
+  {
+   "describes": "item 2: theta0's LN-14 report is required under Branch full too (it never runs there)",
+   "file": "plan_tool.py",
+   "find": "                    if (j[\"kind\"] == \"transfer_report\" and branch != \"128\") or \\\n",
+   "id": "B15-8-ln14-always-required",
+   "part": "B15 round 3c (24 Oct; notes/b15r3c-build.json)",
+   "replace": "                    if (j[\"kind\"] == \"transfer_report\" and False) or \\\n"
+  },
+  {
+   "describes": "item 2: O-only passes are required under fallback (c), where none runs",
+   "file": "plan_tool.py",
+   "find": "                            (j[\"kind\"] in rules.OEXT_ONLY_KINDS and not oext):\n",
+   "id": "B15-8-fallback-oext-required",
+   "part": "B15 round 3c (24 Oct; notes/b15r3c-build.json)",
+   "replace": "                            False:\n"
+  },
+  {
+   "describes": "item 2: a released judge launch over fewer units than the plan's counts as complete",
+   "file": "plan_tool.py",
+   "find": "        if j and k < b.get(\"released\", 0) and j[\"arms\"] >= required.get(job_label(\"judge\", j[\"judge\"]), math.inf):\n",
+   "id": "B15-8-judge-units-free",
+   "part": "B15 round 3c (24 Oct; notes/b15r3c-build.json)",
+   "replace": "        if j and k < b.get(\"released\", 0):\n"
+  },
+  {
+   "describes": "item 2: a moved host's jobs still count as planned, so a not-re-run job can never be decided",
+   "file": "plan_tool.py",
+   "find": "        if name not in moved:\n",
+   "id": "B15-8-moved-host-holds",
+   "part": "B15 round 3c (24 Oct; notes/b15r3c-build.json)",
+   "replace": "        if True:\n"
+  },
+  {
+   "describes": "item 2: a not-run decision may name a job the plan does not require for block A",
+   "file": "plan_tool.py",
+   "find": "        if label not in required:\n",
+   "id": "B15-8-decision-outside-plan",
+   "part": "B15 round 3c (24 Oct; notes/b15r3c-build.json)",
+   "replace": "        if False:\n"
+  },
+  {
+   "describes": "item 2: a not-run decision may name a job that has a completion record",
+   "file": "plan_tool.py",
+   "find": "        if label in done:\n",
+   "id": "B15-8-decision-ran",
+   "part": "B15 round 3c (24 Oct; notes/b15r3c-build.json)",
+   "replace": "        if False:\n"
+  },
+  {
+   "describes": "item 2: a not-run decision may name a job block A still holds",
+   "file": "plan_tool.py",
+   "find": "        if label in planned:\n",
+   "id": "B15-8-decision-still-planned",
+   "part": "B15 round 3c (24 Oct; notes/b15r3c-build.json)",
+   "replace": "        if False:\n"
+  },
+  {
+   "describes": "item 2: a decision file changed after recording still counts (not re-hashed)",
+   "file": "plan_tool.py",
+   "find": "        if not isinstance(on_disk, dict) or mac.sha(p) != e.get(\"sha256\") or on_disk.get(\"jobs\") != e.get(\"jobs\") or \\\n                on_disk.get(\"reason\") != e.get(\"reason\"):\n",
+   "id": "B15-8-decision-not-rehashed",
+   "part": "B15 round 3c (24 Oct; notes/b15r3c-build.json)",
+   "replace": "        if not isinstance(on_disk, dict):\n"
+  },
+  {
+   "describes": "item 2: block A's seal does not list its not-run decisions",
+   "file": "seal.py",
+   "find": "              \"not_run\": [{\"job\": label, \"decision_sha256\": digest} for label, digest in not_run]}\n",
+   "id": "B15-8-seal-not-run-unlisted",
+   "part": "B15 round 3c (24 Oct; notes/b15r3c-build.json)",
+   "replace": "              \"not_run\": []}\n"
+  },
+  {
+   "describes": "item 3: the LN-14 report's price changes, so the $144.06 limit re-plan is priced otherwise",
+   "file": "stage1_rules.py",
+   "find": "TRANSFER_S = 1408.0 ",
+   "id": "B15-8-ln14-price",
+   "part": "B15 round 3c (24 Oct; notes/b15r3c-build.json)",
+   "replace": "TRANSFER_S = 1400.0 "
+  },
+  {
+   "describes": "a Y host's recipe read from main's tree (engine X's)",
+   "file": "plan_tool.py",
+   "find": "    return ROOT / rules.Y_TREE_DEFAULT\n",
+   "id": "B15-y-tree-is-main",
+   "part": "B15 branch re-pin round (25 Oct; I: notes/repin-build.json): a Y host's recipes in engine Y's tree by Y's code",
+   "replace": "    return ENGINE_ROOT\n"
+  },
+  {
+   "describes": "a Y host's recipe hashed by engine X's code",
+   "file": "plan_tool.py",
+   "find": "        own[path] = {\"sha256\": pin, \"config_sha256\": recipe_sha_y(path)}",
+   "id": "B15-y-hash-by-x-code",
+   "part": "B15 branch re-pin round (25 Oct; I: notes/repin-build.json): a Y host's recipes in engine Y's tree by Y's code",
+   "replace": "        own[path] = {\"sha256\": pin, \"config_sha256\": recipe_sha(path)}"
+  },
+  {
+   "describes": "a Y host's recipe file not checked against its pin (only present)",
+   "file": "plan_tool.py",
+   "find": "    if not (tree / path).is_file() or mac.sha(tree / path) != pin:",
+   "id": "B15-y-pin-unchecked",
+   "part": "B15 branch re-pin round (25 Oct; I: notes/repin-build.json): a Y host's recipes in engine Y's tree by Y's code",
+   "replace": "    if not (tree / path).is_file():"
+  },
+  {
+   "describes": "a Y host's recipes checked as an X host's (main's tree, engine X's code)",
+   "file": "plan_tool.py",
+   "find": "            if name_r and h[\"engine\"] == \"Y\":",
+   "id": "B15-y-dispatch-dropped",
+   "part": "B15 branch re-pin round (25 Oct; I: notes/repin-build.json): a Y host's recipes in engine Y's tree by Y's code",
+   "replace": "            if False:"
+  },
+  {
+   "describes": "engine Y's config SHA-256 not compared with engine X's in plan.json",
+   "file": "plan_tool.py",
+   "find": "    elif shared[\"config_sha256\"] != own[path][\"config_sha256\"]:",
+   "id": "B15-y-engines-differ-unchecked",
+   "part": "B15 branch re-pin round (25 Oct; I: notes/repin-build.json): a Y host's recipes in engine Y's tree by Y's code",
+   "replace": "    elif False:"
+  },
+  {
+   "describes": "a recipe first hashed by Y is never hashed by engine X's code for an X host",
+   "file": "plan_tool.py",
+   "find": "                elif plan[\"recipes\"][path].get(\"engine\") == \"Y\":",
+   "id": "B15-y-first-not-rehashed-by-x",
+   "part": "B15 branch re-pin round (25 Oct; I: notes/repin-build.json): a Y host's recipes in engine Y's tree by Y's code",
+   "replace": "                elif False:"
+  },
+  {
+   "describes": "engine X's value for a Y-first recipe not compared with Y's",
+   "file": "plan_tool.py",
+   "find": "                    if plan[\"recipes\"][path][\"config_sha256\"] != config_x:",
+   "id": "B15-y-x-rehash-differ-unchecked",
+   "part": "B15 branch re-pin round (25 Oct; I: notes/repin-build.json): a Y host's recipes in engine Y's tree by Y's code",
+   "replace": "                    if False:"
+  },
+  {
+   "describes": "recipe S's training identity under engine Y not checked",
+   "file": "plan_tool.py",
+   "find": "        if own[path][\"training_identity\"] != rules.TRAINING_IDENTITY:",
+   "id": "B15-y-training-identity-unchecked",
+   "part": "B15 branch re-pin round (25 Oct; I: notes/repin-build.json): a Y host's recipes in engine Y's tree by Y's code",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "recipe S's training identity on a Y host computed by engine X's code",
+   "file": "plan_tool.py",
+   "find": "        own[path].setdefault(\"training_identity\", recipe_training_identity_y(path))",
+   "id": "B15-y-identity-by-x-code",
+   "part": "B15 branch re-pin round (25 Oct; I: notes/repin-build.json): a Y host's recipes in engine Y's tree by Y's code",
+   "replace": "        own[path].setdefault(\"training_identity\", recipe_training_identity(path))"
+  },
+  {
+   "describes": "engine Y's subprocess imports from main's tree (ENGINE_ROOT) instead of Y's",
+   "file": "plan_tool.py",
+   "find": "f\"import sys,pathlib;sys.path.insert(0,{tree!r});import experiments.safety_selection as _y;\"",
+   "id": "B15-y-import-path-main",
+   "part": "B15 branch re-pin round (25 Oct; I: notes/repin-build.json): a Y host's recipes in engine Y's tree by Y's code",
+   "replace": "f\"import sys,pathlib;sys.path.insert(0,{str(ENGINE_ROOT)!r});import experiments.safety_selection as _y;\""
+  },
+  {
+   "describes": "the code in Y's tree not checked to be engine Y (34bfd288)",
+   "file": "plan_tool.py",
+   "find": "             f\"assert _ci()['sha256']=={rules.ENGINES['Y']!r},'the code in engine Y tree is not engine Y';\")",
+   "id": "B15-y-code-identity-unchecked",
+   "part": "B15 branch re-pin round (25 Oct; I: notes/repin-build.json): a Y host's recipes in engine Y's tree by Y's code",
+   "replace": "             f\"\")"
+  },
+  {
+   "describes": "a plan.json recipe entry made from Y's value alone is not marked engine Y",
+   "file": "plan_tool.py",
+   "find": "        plan[\"recipes\"][path] = {\"sha256\": pin, \"config_sha256\": own[path][\"config_sha256\"], \"engine\": \"Y\"}",
+   "id": "B15-y-shared-not-marked",
+   "part": "B15 branch re-pin round (25 Oct; I: notes/repin-build.json): a Y host's recipes in engine Y's tree by Y's code",
+   "replace": "        plan[\"recipes\"][path] = {\"sha256\": pin, \"config_sha256\": own[path][\"config_sha256\"]}"
+  },
+  {
+   "describes": "J5's representation pass gets REC again (pod a-1's refusal)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "            return [(f\"{tag}-representation\", [*SCRIPT, script, \"--prepared\", p, \"--recipe\", rules.RECIPE_S,",
+   "id": "B15-c-j5-rec-back",
+   "part": "B15 round C (25 Oct; I: notes/repin-build.json): each step's recipe is its target script's settings pin",
+   "replace": "            return [(f\"{tag}-representation\", [*SCRIPT, script, \"--prepared\", p, \"--recipe\", rules.REC,"
+  },
+  {
+   "describes": "J5's s3_orig pools-only pass gets REC again",
+   "file": "setup/job_runner_stage1.py",
+   "find": "                     [*SCRIPT, script, \"--prepared\", p, \"--recipe\", rules.RECIPE_S, \"--anchors\", anchors, \"--pool\",",
+   "id": "B15-c-j5-s3orig-rec-back",
+   "part": "B15 round C (25 Oct; I: notes/repin-build.json): each step's recipe is its target script's settings pin",
+   "replace": "                     [*SCRIPT, script, \"--prepared\", p, \"--recipe\", rules.REC, \"--anchors\", anchors, \"--pool\","
+  },
+  {
+   "describes": "J7's L1 scan gets recipe S (score_l1_larf.json pins REC)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "[*SCRIPT, L1_SCRIPT, \"scan\", \"--prepared\", p, \"--recipe\", rules.REC,",
+   "id": "B15-c-l1-recipe-s",
+   "part": "B15 round C (25 Oct; I: notes/repin-build.json): each step's recipe is its target script's settings pin",
+   "replace": "[*SCRIPT, L1_SCRIPT, \"scan\", \"--prepared\", p, \"--recipe\", rules.RECIPE_S,"
+  },
+  {
+   "describes": "J8's classifier gets REC (score_classifier.json pins recipe S)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "[(f\"{tag}-classifier\", [*SCRIPT, script, \"--prepared\", p, \"--recipe\", rules.RECIPE_S,",
+   "id": "B15-c-classifier-rec",
+   "part": "B15 round C (25 Oct; I: notes/repin-build.json): each step's recipe is its target script's settings pin",
+   "replace": "[(f\"{tag}-classifier\", [*SCRIPT, script, \"--prepared\", p, \"--recipe\", rules.REC,"
+  },
+  {
+   "describes": "J6's --recipe-s gets REC (make_untuned_answers.json pins recipe S there)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "\"--recipe\", rules.REC, \"--recipe-s\", rules.RECIPE_S,",
+   "id": "B15-c-j6-recipe-s-rec",
+   "part": "B15 round C (25 Oct; I: notes/repin-build.json): each step's recipe is its target script's settings pin",
+   "replace": "\"--recipe\", rules.REC, \"--recipe-s\", rules.REC,"
+  },
+  {
+   "describes": "a J5 moved off J6's pod carries no s3_orig pin",
+   "file": "plan_tool.py",
+   "find": "        moved[index_map[i]][\"s3_orig\"] = {k: pin[k] for k in (\"host\", \"index\", \"record\", \"pool\", \"sha256\")}",
+   "id": "B15-d-s3orig-pin-dropped",
+   "part": "B15 round D (25 Oct; I: notes/repin-build.json): a-1's J5, J7, J8 move off J6's pod; J5 reads J6's pinned pool",
+   "replace": "        pass"
+  },
+  {
+   "describes": "defer does not check that the pack holds J6's pool at its pin",
+   "file": "plan_tool.py",
+   "find": "        if packed != pin[\"sha256\"]:",
+   "id": "B15-d-s3orig-pack-unchecked",
+   "part": "B15 round D (25 Oct; I: notes/repin-build.json): a-1's J5, J7, J8 move off J6's pod; J5 reads J6's pinned pool",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "the new host stays bound to the source host's packed stage",
+   "file": "plan_tool.py",
+   "find": "host_record(plan, h[\"block\"], role, moved, sealed_files_sha256 or h[\"sealed_files_sha256\"],",
+   "id": "B15-d-moved-host-old-pack",
+   "part": "B15 round D (25 Oct; I: notes/repin-build.json): a-1's J5, J7, J8 move off J6's pod; J5 reads J6's pinned pool",
+   "replace": "host_record(plan, h[\"block\"], role, moved, h[\"sealed_files_sha256\"],"
+  },
+  {
+   "describes": "J6's record need not say complete",
+   "file": "stage1_rules.py",
+   "find": "    if not isinstance(doc, dict) or (doc.get(\"kind\"), doc.get(\"version\"), doc.get(\"complete\")) != (",
+   "id": "B15-d-j6-record-incomplete-ok",
+   "part": "B15 round D (25 Oct; I: notes/repin-build.json): a-1's J5, J7, J8 move off J6's pod; J5 reads J6's pinned pool",
+   "replace": "    if not isinstance(doc, dict) or (doc.get(\"kind\"), doc.get(\"version\"), True) != ("
+  },
+  {
+   "describes": "J6's record need not name the pool by its SHA-256",
+   "file": "stage1_rules.py",
+   "find": "    if named != {outputs[pool_rel]}:",
+   "id": "B15-d-j6-pool-unnamed",
+   "part": "B15 round D (25 Oct; I: notes/repin-build.json): a-1's J5, J7, J8 move off J6's pod; J5 reads J6's pinned pool",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "J6's pulled record and pool are not re-hashed",
+   "file": "stage1_rules.py",
+   "find": "    if hashlib.sha256(data).hexdigest() != outputs[rec_rel] or hashlib.sha256(pool).hexdigest() != outputs[pool_rel]:",
+   "id": "B15-d-j6-pulled-unhashed",
+   "part": "B15 round D (25 Oct; I: notes/repin-build.json): a-1's J5, J7, J8 move off J6's pod; J5 reads J6's pinned pool",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "the packed pool:s3_orig is not checked against the job's pin",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if files.get(path) != pin:",
+   "id": "B15-d-runner-pin-unchecked",
+   "part": "B15 round D (25 Oct; I: notes/repin-build.json): a-1's J5, J7, J8 move off J6's pod; J5 reads J6's pinned pool",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "pool:s3_orig is not among the job's sealed inputs",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        names.append(S3_ORIG_INPUT)                        # a J5 moved off J6's pod: J6's s3_orig pool by its pin",
+   "id": "B15-d-runner-input-unsealed",
+   "part": "B15 round D (25 Oct; I: notes/repin-build.json): a-1's J5, J7, J8 move off J6's pod; J5 reads J6's pinned pool",
+   "replace": "        pass"
+  },
+  {
+   "describes": "the packer takes any pool:s3_orig file",
+   "file": "pack_setup.py",
+   "find": "            if \"files\" in e or e.get(\"sha256\") != expected:\n                pack.bad.append(f\"input {name} (not J6's",
+   "id": "B15-d-pack-s3orig-unchecked",
+   "part": "B15 round D (25 Oct; I: notes/repin-build.json): a-1's J5, J7, J8 move off J6's pod; J5 reads J6's pinned pool",
+   "replace": "            if False:\n                pack.bad.append(f\"input {name} (not J6's"
+  },
+  {
+   "describes": "the decision file is not re-hashed at each use",
+   "file": "stage1_rules.py",
+   "find": "        if hashlib.sha256(data).hexdigest() != rec[\"sha256\"]:\n            return None",
+   "id": "B15-e-guard-record-unhashed",
+   "part": "B15 round E (25 Oct; I: notes/repin-build.json): the user's recorded decision turns the live-balance guard off",
+   "replace": "        if False:\n            return None"
+  },
+  {
+   "describes": "any record kind turns the guard off",
+   "file": "stage1_rules.py",
+   "find": "    if doc[\"kind\"] != GUARD_OFF_KIND:",
+   "id": "B15-e-guard-kind-unchecked",
+   "part": "B15 round E (25 Oct; I: notes/repin-build.json): the user's recorded decision turns the live-balance guard off",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "launch.py ignores the recorded decision (the guard stays on)",
+   "file": "launch.py",
+   "find": "                off = rules.guard_off_record(HERE)   # (E) the user's recorded decision: past the guard's refusal only\n                if guard.returncode != 0 and not (off and",
+   "id": "B15-e-launch-off-ignored",
+   "part": "B15 round E (25 Oct; I: notes/repin-build.json): the user's recorded decision turns the live-balance guard off",
+   "replace": "                off = None\n                if guard.returncode != 0 and not (off and"
+  },
+  {
+   "describes": "launch.py goes on when the live balance could not be read",
+   "file": "launch.py",
+   "find": "                if guard.returncode != 0 and not (off and guard.returncode == rules.GUARD_REFUSED_EXIT):",
+   "id": "B15-e-launch-unread-balance-ok",
+   "part": "B15 round E (25 Oct; I: notes/repin-build.json): the user's recorded decision turns the live-balance guard off",
+   "replace": "                if guard.returncode != 0 and not off:"
+  },
+  {
+   "describes": "launch.py skips the guard without a record",
+   "file": "launch.py",
+   "find": "                if guard.returncode != 0 and not (off and guard.returncode == rules.GUARD_REFUSED_EXIT):",
+   "id": "B15-e-launch-guard-always-off",
+   "part": "B15 round E (25 Oct; I: notes/repin-build.json): the user's recorded decision turns the live-balance guard off",
+   "replace": "                if guard.returncode != 0 and not guard.returncode == rules.GUARD_REFUSED_EXIT:"
+  },
+  {
+   "describes": "extend-cap ignores the recorded decision",
+   "file": "host.py",
+   "find": "            if guard.returncode != 0 and not (off and guard.returncode == rules.GUARD_REFUSED_EXIT):\n                raise SystemExit(\"the budget guard refused the extension\")",
+   "id": "B15-e-extend-off-ignored",
+   "part": "B15 round E (25 Oct; I: notes/repin-build.json): the user's recorded decision turns the live-balance guard off",
+   "replace": "            if guard.returncode != 0:\n                raise SystemExit(\"the budget guard refused the extension\")"
+  },
+  {
+   "describes": "record-guard-off takes any document",
+   "file": "plan_tool.py",
+   "find": "        problem = rules.guard_off_problem(doc)\n        if problem:",
+   "id": "B15-e-record-unchecked",
+   "part": "B15 round E (25 Oct; I: notes/repin-build.json): the user's recorded decision turns the live-balance guard off",
+   "replace": "        problem = None\n        if problem:"
+  },
+  {
+   "describes": "W1-18's record stays optional under Branch 128",
+   "file": "setup/job_runner_stage1.py",
+   "find": "            if (name == \"w1_18_record\" and job.get(\"branch\") != \"128\") or name.startswith((\"list:\", \"loss:\")):",
+   "id": "B15-f-w1-18-record-optional",
+   "part": "B15 round F (25 Oct; I: notes/repin-build.json): Branch 128 needs W1-18's record packed",
+   "replace": "            if name == \"w1_18_record\" or name.startswith((\"list:\", \"loss:\")):"
+  },
+  {
+   "describes": "J5's job record names no fixed recipe (back to the old default)",
+   "file": "plan_tool.py",
+   "find": "RECORDED_RECIPE = {\"rep_pass\": \"S\"}",
+   "id": "B15-g-no-recorded-recipe",
+   "part": "B15 round G (25 Oct; I: notes/repin-build.json): J5's job record names recipe S",
+   "replace": "RECORDED_RECIPE = {}"
+  },
+  {
+   "describes": "a deferred J5 keeps its older record's recipe",
+   "file": "plan_tool.py",
+   "find": "            job[\"recipe_was\"], job[\"recipe\"] = job.get(\"recipe\"), RECORDED_RECIPE[job[\"kind\"]]   # (G) an older record",
+   "id": "B15-g-move-keeps-old-recipe",
+   "part": "B15 round G (25 Oct; I: notes/repin-build.json): J5's job record names recipe S",
+   "replace": "            job[\"recipe_was\"] = job.get(\"recipe\")"
+  },
+  {
+   "describes": "the re-run keys read the record's raw recipe (old B and new S differ)",
+   "file": "plan_tool.py",
+   "find": "            recipe_of(job) or default_recipe(job), job.get(\"role\"))",
+   "id": "B15-g-keys-raw-recipe",
+   "part": "B15 round G (25 Oct; I: notes/repin-build.json): J5's job record names recipe S",
+   "replace": "            job.get(\"recipe\") or default_recipe(job), job.get(\"role\"))"
+  },
+  {
+   "describes": "a lead spec may give J5 another recipe",
+   "file": "plan_tool.py",
+   "find": "    if kind in RECORDED_RECIPE and job.get(\"recipe\") not in (None, RECORDED_RECIPE[kind]):",
+   "id": "B15-g-spec-recipe-unchecked",
+   "part": "B15 round G (25 Oct; I: notes/repin-build.json): J5's job record names recipe S",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "release never reads the guard-off record (the old rule always)",
+   "file": "plan_tool.py",
+   "find": "            off = rules.guard_off_record(HERE)        # (§28) the user's recorded decision, re-hashed; None: no record",
+   "id": "B15-h-record-never-read",
+   "part": "B15 round H (25 Oct; I: notes/d3-build.json): addendum §28, launches in parallel while the budget guard is off",
+   "replace": "            off = None"
+  },
+  {
+   "describes": "release trusts plan.json's guard-off entry without re-hashing its file",
+   "file": "plan_tool.py",
+   "find": "            off = rules.guard_off_record(HERE)        # (§28) the user's recorded decision, re-hashed; None: no record",
+   "id": "B15-h-record-not-rehashed",
+   "part": "B15 round H (25 Oct; I: notes/d3-build.json): addendum §28, launches in parallel while the budget guard is off",
+   "replace": "            off = plan[\"records\"].get(\"guard_off\") or None"
+  },
+  {
+   "describes": "the earlier launch is waited for although the decision is recorded",
+   "file": "plan_tool.py",
+   "find": "                if off is None:\n                    fail(f\"block {block}: launch {k - 1}'s hosts are not done ({open_hosts[0]})\")",
+   "id": "B15-h-wait-despite-record",
+   "part": "B15 round H (25 Oct; I: notes/d3-build.json): addendum §28, launches in parallel while the budget guard is off",
+   "replace": "                if True:\n                    fail(f\"block {block}: launch {k - 1}'s hosts are not done ({open_hosts[0]})\")"
+  },
+  {
+   "describes": "an early release leaves no released_early record",
+   "file": "plan_tool.py",
+   "find": "                b.setdefault(\"released_early\", []).append({\"launch\": k, \"open_hosts\": open_hosts,",
+   "id": "B15-h-early-not-recorded",
+   "part": "B15 round H (25 Oct; I: notes/d3-build.json): addendum §28, launches in parallel while the budget guard is off",
+   "replace": "                [].append({\"launch\": k, \"open_hosts\": open_hosts,"
+  },
+  {
+   "describes": "the operator log omits the early release",
+   "file": "plan_tool.py",
+   "find": "\"released\": plan[\"blocks\"][block][\"released\"], **({\"released_early\": early} if early else {})})",
+   "id": "B15-h-early-not-logged",
+   "part": "B15 round H (25 Oct; I: notes/d3-build.json): addendum §28, launches in parallel while the budget guard is off",
+   "replace": "\"released\": plan[\"blocks\"][block][\"released\"]})"
+  },
+  {
+   "describes": "release returns every early release of the block, not this call's",
+   "file": "plan_tool.py",
+   "find": "    early = (plan[\"blocks\"][block].get(\"released_early\") or [])[early_before:]",
+   "id": "B15-h-early-all-returned",
+   "part": "B15 round H (25 Oct; I: notes/d3-build.json): addendum §28, launches in parallel while the budget guard is off",
+   "replace": "    early = (plan[\"blocks\"][block].get(\"released_early\") or [])[0:]"
+  },
+  {
+   "describes": "with the guard off a judge launch is recorded before the earlier launches are done",
+   "file": "plan_tool.py",
+   "find": "            if off is not None and \"judge\" in launch:",
+   "id": "B15-h-judge-not-held",
+   "part": "B15 round H (25 Oct; I: notes/d3-build.json): addendum §28, launches in parallel while the budget guard is off",
+   "replace": "            if False:"
+  },
+  {
+   "describes": "a judge launch waits only for the launch just before it",
+   "file": "plan_tool.py",
+   "find": "                waiting = [n for x in b[\"launches\"][:k] for n in x.get(\"hosts\", [])",
+   "id": "B15-h-judge-waits-for-the-last-launch-only",
+   "part": "B15 round H (25 Oct; I: notes/d3-build.json): addendum §28, launches in parallel while the budget guard is off",
+   "replace": "                waiting = [n for x in b[\"launches\"][k - 1:k] for n in x.get(\"hosts\", [])"
+  },
+  {
+   "describes": "a moved host keeps a judge launch waiting",
+   "file": "plan_tool.py",
+   "find": "                           if n in plan[\"hosts\"] and not plan[\"hosts\"][n].get(\"done\") and n not in moved]\n                if waiting:",
+   "id": "B15-h-judge-ignores-moved",
+   "part": "B15 round H (25 Oct; I: notes/d3-build.json): addendum §28, launches in parallel while the budget guard is off",
+   "replace": "                           if n in plan[\"hosts\"] and not plan[\"hosts\"][n].get(\"done\")]\n                if waiting:"
+  },
+  {
+   "describes": "kit gap 1: the pull list without rescore/ (LN-15e's units are left on the pod again)",
+   "file": "host.py",
+   "find": "PULL_ITEMS = (\"round1 rescore cert job-* jobs anchor-* gatec cuda-preflight-* \"",
+   "id": "B15-29-pull-no-rescore",
+   "part": "B15 round 29 (26 Oct; notes/kit-round-29.json): addendum §29 and the user's re-run payment",
+   "replace": "PULL_ITEMS = (\"round1 cert job-* jobs anchor-* gatec cuda-preflight-* \""
+  },
+  {
+   "describes": "kit gap 3: the finisher light-checks only Gate B's roles (job, first, anchor) again",
+   "file": "finisher.py",
+   "find": "            else:      # addendum §29 point 4: every stage-1 role (w1_18, cert, certify, job, diagnostics, arms), any role\n",
+   "id": "B15-29-finisher-gate-b-roles",
+   "part": "B15 round 29 (26 Oct; notes/kit-round-29.json): addendum §29 and the user's re-run payment",
+   "replace": "            elif role in (\"job\", \"first\", \"anchor\"):\n"
+  },
+  {
+   "describes": "kit gap 2: an unpulled outputs decision is not re-hashed at use (a changed file still counts)",
+   "file": "plan_tool.py",
+   "find": "        if not isinstance(on_disk, dict) or mac.sha(p) != e.get(\"sha256\") or on_disk.get(\"host\") != e.get(\"host\") or \\\n",
+   "id": "B15-29-unpulled-not-rehashed",
+   "part": "B15 round 29 (26 Oct; notes/kit-round-29.json): addendum §29 and the user's re-run payment",
+   "replace": "        if not isinstance(on_disk, dict) or on_disk.get(\"host\") != e.get(\"host\") or \\\n"
+  },
+  {
+   "describes": "the user's re-run payment: requeue pays the named runs from the contingency instead (a-7's four stay held)",
+   "file": "plan_tool.py",
+   "find": "            return pay_user(plan_, jobs_, new_pod, where, wave, payment)\n",
+   "id": "B15-29-user-paid-from-contingency",
+   "part": "B15 round 29 (26 Oct; notes/kit-round-29.json): addendum §29 and the user's re-run payment",
+   "replace": "            return pay_unit(plan_, jobs_, new_pod, where, wave)\n"
+  },
+  {
+   "describes": "record-done accepts any missing output, not only a model state the light pull left on the pod",
+   "file": "plan_tool.py",
+   "find": "            if rel.endswith(\".safetensors\") and not p.exists() and not p.is_symlink():\n",
+   "id": "B15-29-any-missing-output-accepted",
+   "part": "B15 round 29 (26 Oct; notes/kit-round-29.json): addendum §29 and the user's re-run payment",
+   "replace": "            if not p.exists() and not p.is_symlink():\n"
+  },
+  {
+   "describes": "gap 1 (R2): a released judge launch counts as done without a valid judge-completion record",
+   "file": "plan_tool.py",
+   "find": "            if j[\"judge\"] in judged:                  # round 30 (R2): released is not done; the valid record is\n",
+   "id": "B15-30-judge-done-at-release",
+   "part": "B15 round 30 (27 Oct; notes/kit-round-30.json): addendum §30 judge gaps 1-4 (R1-R5), the moved hosts (R6)",
+   "replace": "            if True:\n"
+  },
+  {
+   "describes": "gap 2 (R3): the judge check no longer wants one file per judge for each required unit",
+   "file": "plan_tool.py",
+   "find": "        missing = [label for unit, label in required.items() if (key, unit) not in count]\n",
+   "id": "B15-30-judge-files-unit-unchecked",
+   "part": "B15 round 30 (27 Oct; notes/kit-round-30.json): addendum §30 judge gaps 1-4 (R1-R5), the moved hosts (R6)",
+   "replace": "        missing = []\n"
+  },
+  {
+   "describes": "gap 3 (R4): stage-1 launches keep the launcher's echo, so the verified line's counts reach stdout",
+   "file": "judge_units_stage1.py",
+   "find": "                super().__init__(path, tag, echo=False)\n",
+   "id": "B15-30-launch-echo-on",
+   "part": "B15 round 30 (27 Oct; notes/kit-round-30.json): addendum §30 judge gaps 1-4 (R1-R5), the moved hosts (R6)",
+   "replace": "                super().__init__(path, tag)\n"
+  },
+  {
+   "describes": "gap 4 (R5): a launch with a B10 unit ships Gate B's bundle.py, so the pod refuses the unit after the create",
+   "file": "judge_units_stage1.py",
+   "find": "        if not any(u.kind == B10_KIND for g in groups for u in g.units):\n",
+   "id": "B15-30-b10-pod-bundle-not-shipped",
+   "part": "B15 round 30 (27 Oct; notes/kit-round-30.json): addendum §30 judge gaps 1-4 (R1-R5), the moved hosts (R6)",
+   "replace": "        if True:\n"
+  },
+  {
+   "describes": "D3 (R6): the seal refuses a moved, never-pulled host that block_complete skips (a-5: record-done first)",
+   "file": "seal.py",
+   "find": "            if host not in moved_to:\n",
+   "id": "B15-30-seal-moved-host-refused",
+   "part": "B15 round 30 (27 Oct; notes/kit-round-30.json): addendum §30 judge gaps 1-4 (R1-R5), the moved hosts (R6)",
+   "replace": "            if True:\n"
+  },
+  {
+   "describes": "D2: the runner's C1 registry seed step skipped (C1's registry stays empty, as before round 30a)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "                seeded = c1_registry_seed(plan, host, i, root, sealed_doc)\n",
+   "id": "B15-30a-seed-skipped",
+   "part": "B15 round 30a (27 Oct; notes/kit-round-30a.json): the cert runbook's D2 and D4 (the lead's rulings R1, R2)",
+   "replace": "                seeded = None\n"
+  },
+  {
+   "describes": "D2: cert_spec's registry_line.key not checked against C1's key (any trajectory's line is seeded)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if line[\"key\"] != want:\n",
+   "id": "B15-30a-key-unchecked",
+   "part": "B15 round 30a (27 Oct; notes/kit-round-30a.json): the cert runbook's D2 and D4 (the lead's rulings R1, R2)",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "D2: registry_line.run_dir not checked against cert_spec's replicate_of",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if line[\"run_dir\"] != replicate_of:\n",
+   "id": "B15-30a-run-dir-unchecked",
+   "part": "B15 round 30a (27 Oct; notes/kit-round-30a.json): the cert runbook's D2 and D4 (the lead's rulings R1, R2)",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "D2: an existing C1 registry accepted (the line appended to it instead of a fresh file)",
+   "edits": [
+    {
+     "file": "setup/job_runner_stage1.py",
+     "find": "    if target.exists() or target.is_symlink():\n        raise Unrunnable(f\"{where}: {registry} exists already; C1's registry must be fresh\")\n",
+     "replace": ""
+    },
+    {
+     "file": "setup/job_runner_stage1.py",
+     "find": "with open(target, \"xb\") as handle:",
+     "replace": "with open(target, \"ab\") as handle:"
+    }
+   ],
+   "id": "B15-30a-registry-reused",
+   "part": "B15 round 30a (27 Oct; notes/kit-round-30a.json): the cert runbook's D2 and D4 (the lead's rulings R1, R2)"
+  },
+  {
+   "describes": "D4: the comparator lists C1's files only (a file only R_1101 has is ignored)",
+   "file": "compare_c1.py",
+   "find": "    names = sorted(set(left) | set(right) | {c.format(t=target) for c in CORE})\n",
+   "id": "B15-30a-compare-c1-only",
+   "part": "B15 round 30a (27 Oct; notes/kit-round-30a.json): the cert runbook's D2 and D4 (the lead's rulings R1, R2)",
+   "replace": "    names = sorted(set(left) | {c.format(t=target) for c in CORE})\n"
+  },
+  {
+   "describes": "K1: block completeness ignores the judge not-run decision of a block other than A (a released judge launch the lead named not run keeps the block open)",
+   "file": "plan_tool.py",
+   "find": "            not released_judges <= judges_done(plan, block) | set(judge_not_run(plan, block)):\n",
+   "id": "B15-31-judge-not-run-ignored",
+   "part": "B15 round 31 (27 Oct; notes/kit-round-31.json): addendum §32 points 1-3, the lead's K1-K6",
+   "replace": "            not released_judges <= judges_done(plan, block):\n"
+  },
+  {
+   "describes": "K2: init-block accepts a judge launch over fewer units than the block's jobs will produce",
+   "file": "plan_tool.py",
+   "find": "            if j and j[\"arms\"] < units:\n",
+   "id": "B15-31-judge-units-unplanned",
+   "part": "B15 round 31 (27 Oct; notes/kit-round-31.json): addendum §32 points 1-3, the lead's K1-K6",
+   "replace": "            if j and j[\"arms\"] < 0:\n"
+  },
+  {
+   "describes": "K2: write-files keeps job.json's arm a0 for a ref_train unit (three a0 units at one seed refuse in one judges folder)",
+   "file": "judge_units_stage1.py",
+   "find": "        found = label_ref_train(found, labels)\n",
+   "id": "B15-31-ref-train-unlabelled",
+   "part": "B15 round 31 (27 Oct; notes/kit-round-31.json): addendum §32 points 1-3, the lead's K1-K6",
+   "replace": "        found = label_ref_train(found, {})\n"
+  },
+  {
+   "describes": "K4: the dry bundle prints Gate B's bundle record as is (Granite's known_answers.mac_yes reaches stdout)",
+   "file": "judge_units_stage1.py",
+   "find": "            if rest[:1] == [\"bundle\"]:\n",
+   "id": "B15-31-bundle-counts-printed",
+   "part": "B15 round 31 (27 Oct; notes/kit-round-31.json): addendum §32 points 1-3, the lead's K1-K6",
+   "replace": "            if rest[:1] == [\"no-such-command\"]:\n"
+  },
+  {
+   "describes": "K5: the finisher waits for a moved, not-done host's finished.json (it runs to the last cap + 3 h)",
+   "file": "finisher.py",
+   "find": "    return (HERE / \"hosts\" / host / \"finished.json\").exists() or host in moved_undone(p)\n",
+   "id": "B15-31-finisher-waits-for-moved",
+   "part": "B15 round 31 (27 Oct; notes/kit-round-31.json): addendum §32 points 1-3, the lead's K1-K6",
+   "replace": "    return (HERE / \"hosts\" / host / \"finished.json\").exists()\n"
+  },
+  {
+   "describes": "K6: launch.py exits 0 when a host it should create has no pod.json at its end",
+   "file": "launch.py",
+   "find": "        return NO_POD_EXIT\n",
+   "id": "B15-31-launch-exit-zero",
+   "part": "B15 round 31 (27 Oct; notes/kit-round-31.json): addendum §32 points 1-3, the lead's K1-K6",
+   "replace": "        return 0\n"
+  },
+  {
+   "describes": "G1: the Y pack carries no engine-Y O-ext runner or settings (S1_OEXT_Y skipped)",
+   "file": "pack_setup.py",
+   "find": "        for rel, src in sorted(rules.S1_OEXT_Y.items()):   # the engine-Y files at the paths the runner calls and seals\n",
+   "id": "B15-G1-y-oext-unpacked",
+   "part": "B15 round G1 (29 Oct; notes/g1-yoext.json): addendum §34 point 3, the engine-Y O-ext re-pin for B+Qi",
+   "replace": "        for rel, src in sorted({}.items()):   # the engine-Y files at the paths the runner calls and seals\n"
+  },
+  {
+   "describes": "G1: the Y pack takes each runner path from that path (engine X's file) instead of its engine-Y source",
+   "file": "pack_setup.py",
+   "find": "            pack.add(rel, ROOT / src[\"path\"], src[\"sha256\"])\n",
+   "id": "B15-G1-y-oext-x-source",
+   "part": "B15 round G1 (29 Oct; notes/g1-yoext.json): addendum §34 point 3, the engine-Y O-ext re-pin for B+Qi",
+   "replace": "            pack.add(rel, ROOT / rel, src[\"sha256\"])\n"
+  },
+  {
+   "describes": "G1: the Y pack carries no shared O-ext file (oext_eval.py, the package's __init__.py)",
+   "file": "pack_setup.py",
+   "find": "        for rel in rules.S1_OEXT_Y_SHARED:               # S1_CODE's own bytes: one O-ext function on both engines\n",
+   "id": "B15-G1-y-shared-unpacked",
+   "part": "B15 round G1 (29 Oct; notes/g1-yoext.json): addendum §34 point 3, the engine-Y O-ext re-pin for B+Qi",
+   "replace": "        for rel in ():               # S1_CODE's own bytes: one O-ext function on both engines\n"
+  },
+  {
+   "describes": "G1: S1_OEXT_Y names engine X's runner settings (oext_unit.json) as the Y pack's settings source",
+   "file": "stage1_rules.py",
+   "find": "                 {\"path\": \"scripts/stage1_s1/settings/oext_unit_y.json\",\n",
+   "id": "B15-G1-rules-y-settings-x-file",
+   "part": "B15 round G1 (29 Oct; notes/g1-yoext.json): addendum §34 point 3, the engine-Y O-ext re-pin for B+Qi",
+   "replace": "                 {\"path\": \"scripts/stage1_s1/settings/oext_unit.json\",\n"
+  },
+  {
+   "describes": "K1: the second reference phase is released like any launch (no a0, re-pin or re-pack check)",
+   "file": "plan_tool.py",
+   "find": "        if launch.get(\"second_phase\"):                # round 32 (K1): a0 runs done, B10/B11 re-pinned, X re-packed\n",
+   "id": "B15-32-phase-gate-skipped",
+   "part": "B15 kit round 32 (29 Oct; notes/kit-round-32.json): addendum §34 points 5-7, block B's second reference phase, not-run decisions, a failed B10 certification, one funding record, judge units from plan.json, the a0 fingerprint record",
+   "replace": "        if False:                # round 32 (K1): a0 runs done, B10/B11 re-pinned, X re-packed\n"
+  },
+  {
+   "describes": "K1: B10's reference unit for the seed may name another COMPLETE.json than block B's a0 run",
+   "file": "plan_tool.py",
+   "find": "            if not isinstance(ref, dict) or ref.get(\"complete_sha256\") != complete:\n",
+   "id": "B15-32-phase-repin-unchecked",
+   "part": "B15 kit round 32 (29 Oct; notes/kit-round-32.json): addendum §34 points 5-7, block B's second reference phase, not-run decisions, a failed B10 certification, one funding record, judge units from plan.json, the a0 fingerprint record",
+   "replace": "            if not isinstance(ref, dict):\n"
+  },
+  {
+   "describes": "K6: B10's e1 prefix need not be the a0 run's readable fingerprint record's",
+   "file": "plan_tool.py",
+   "find": "            if not (isinstance(e1, str) and e1 and fp[\"e1\"].startswith(e1)) or \\\n",
+   "id": "B15-32-phase-record-prefix-unchecked",
+   "part": "B15 kit round 32 (29 Oct; notes/kit-round-32.json): addendum §34 points 5-7, block B's second reference phase, not-run decisions, a failed B10 certification, one funding record, judge units from plan.json, the a0 fingerprint record",
+   "replace": "            if not (isinstance(e1, str) and e1) or \\\n"
+  },
+  {
+   "describes": "K2: a job a move left behind without re-running it leaves block B complete with no decision",
+   "file": "plan_tool.py",
+   "find": "    if block != \"A\" and block_open_jobs(plan, block, decided):   # K2: a job a move left behind needs a decision\n",
+   "id": "B15-32-open-jobs-ignored",
+   "part": "B15 kit round 32 (29 Oct; notes/kit-round-32.json): addendum §34 points 5-7, block B's second reference phase, not-run decisions, a failed B10 certification, one funding record, judge units from plan.json, the a0 fingerprint record",
+   "replace": "    if False:   # K2: a job a move left behind needs a decision\n"
+  },
+  {
+   "describes": "K3: B10's failed gate (exit 4) is a crash again, so no pass false can be recorded",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if done.returncode == rules.B10_EXIT_CERTIFICATION and kind == \"b10_certify\" and name == f\"job-{index}-b10-run\":\n",
+   "id": "B15-32-b10-exit-4-crash",
+   "part": "B15 kit round 32 (29 Oct; notes/kit-round-32.json): addendum §34 points 5-7, block B's second reference phase, not-run decisions, a failed B10 certification, one funding record, judge units from plan.json, the a0 fingerprint record",
+   "replace": "        if False:\n"
+  },
+  {
+   "describes": "K3: a certification record with pass true is recorded over a failed B10 gate",
+   "file": "plan_tool.py",
+   "find": "        if name == \"certification\" and doc[\"pass\"] and job.get(\"certification_gate\") != \"passed\":\n",
+   "id": "B15-32-pass-over-failed-gate",
+   "part": "B15 kit round 32 (29 Oct; notes/kit-round-32.json): addendum §34 points 5-7, block B's second reference phase, not-run decisions, a failed B10 certification, one funding record, judge units from plan.json, the a0 fingerprint record",
+   "replace": "        if False:\n"
+  },
+  {
+   "describes": "K4: certify's first init is funded for certify alone, not block B's whole group",
+   "file": "plan_tool.py",
+   "find": "    missing = [p for p in later if p not in out]\n",
+   "id": "B15-32-group-jobs-not-required",
+   "part": "B15 kit round 32 (29 Oct; notes/kit-round-32.json): addendum §34 points 5-7, block B's second reference phase, not-run decisions, a failed B10 certification, one funding record, judge units from plan.json, the a0 fingerprint record",
+   "replace": "    missing = []\n"
+  },
+  {
+   "describes": "K6: no readable a0 fingerprint record is written after an a0_arm job",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if kind == \"a0_arm\":                                 # K6: the a0 fingerprint, readable after the block's seal\n",
+   "id": "B15-32-a0-record-not-written",
+   "part": "B15 kit round 32 (29 Oct; notes/kit-round-32.json): addendum §34 points 5-7, block B's second reference phase, not-run decisions, a failed B10 certification, one funding record, judge units from plan.json, the a0 fingerprint record",
+   "replace": "    if False:                                 # K6: the a0 fingerprint, readable after the block's seal\n"
+  },
+  {
+   "describes": "the funding record's user decision record not re-hashed (any file at the path passes)",
+   "file": "plan_tool.py",
+   "find": "    if not q.is_file() or mac.sha(q) != d[\"sha256\"]:\n",
+   "id": "B15-36-funding-decision-unhashed",
+   "part": "addendum §36 (29 Oct): the user's start-from-the-balance funding rule",
+   "replace": "    if not q.is_file():\n"
+  },
+  {
+   "describes": "units-of-block lists a block with open jobs",
+   "file": "judge_units_stage1.py",
+   "find": "        if open_jobs:\n            raise units.Refusal(f\"block {block} has",
+   "id": "B15-33-gb1-no-check",
+   "part": "kit round 33 (31 Oct): judge runbook B GB1, GB4, GB5",
+   "replace": "        if False:\n            raise units.Refusal(f\"block {block} has"
+  },
+  {
+   "describes": "the open-job check skips block B",
+   "file": "judge_units_stage1.py",
+   "find": "    if block != \"A\":\n        try:\n            open_jobs",
+   "id": "B15-33-gb1-block-b-skipped",
+   "part": "kit round 33 (31 Oct): judge runbook B GB1, GB4, GB5",
+   "replace": "    if block not in (\"A\", \"B\"):\n        try:\n            open_jobs"
+  },
+  {
+   "describes": "the open-job check ignores the not-run decisions",
+   "file": "judge_units_stage1.py",
+   "find": "open_jobs = _kit_plan_tool().block_open_jobs(plan, block)",
+   "id": "B15-33-gb1-decisions-ignored",
+   "part": "kit round 33 (31 Oct): judge runbook B GB1, GB4, GB5",
+   "replace": "open_jobs = _kit_plan_tool().block_open_jobs(plan, block, {})"
+  },
+  {
+   "describes": "a changed not-run decision file crashes units-of-block (SystemExit, not exit 2)",
+   "file": "judge_units_stage1.py",
+   "find": "        except SystemExit as exc:                     # a recorded not-run decision that is missing or changed\n            raise units.Refusal(str(exc)) from None\n",
+   "id": "B15-33-gb1-systemexit-escapes",
+   "part": "kit round 33 (31 Oct): judge runbook B GB1, GB4, GB5",
+   "replace": "        except KeyError as exc:\n            raise units.Refusal(str(exc)) from None\n"
+  },
+  {
+   "describes": "the plan_tool load leaves its folder on sys.path",
+   "file": "judge_units_stage1.py",
+   "find": "    finally:\n        sys.path[:] = saved\n    return module",
+   "id": "B15-33-gb1-sys-path-kept",
+   "part": "kit round 33 (31 Oct): judge runbook B GB1, GB4, GB5",
+   "replace": "    finally:\n        pass\n    return module"
+  },
+  {
+   "describes": "seal.py seals block B with no HarmBench copy",
+   "file": "seal.py",
+   "find": "        if problem:\n            fail(f\"block {block}: {problem}; copy them",
+   "id": "B15-33-gb4-no-check",
+   "part": "kit round 33 (31 Oct): judge runbook B GB1, GB4, GB5",
+   "replace": "        if False:\n            fail(f\"block {block}: {problem}; copy them"
+  },
+  {
+   "describes": "the HarmBench copy is required of block A too",
+   "file": "seal.py",
+   "find": "    if block != \"A\" and judge_check is not None and \"harmbench\" in judge_check[\"judges\"]:",
+   "id": "B15-33-gb4-block-a-too",
+   "part": "kit round 33 (31 Oct): judge runbook B GB1, GB4, GB5",
+   "replace": "    if judge_check is not None and \"harmbench\" in judge_check[\"judges\"]:"
+  },
+  {
+   "describes": "the HarmBench copy is required when the record names Granite alone",
+   "file": "seal.py",
+   "find": "    if block != \"A\" and judge_check is not None and \"harmbench\" in judge_check[\"judges\"]:",
+   "id": "B15-33-gb4-any-judge",
+   "part": "kit round 33 (31 Oct): judge runbook B GB1, GB4, GB5",
+   "replace": "    if block != \"A\" and judge_check is not None and judge_check[\"judges\"]:"
+  },
+  {
+   "describes": "the copied run record is not compared with run_record_sha256",
+   "file": "seal.py",
+   "find": "not run_record.is_file() or mac.sha(run_record) != e[\"run_record_sha256\"]:",
+   "id": "B15-33-gb4-run-record-unhashed",
+   "part": "kit round 33 (31 Oct): judge runbook B GB1, GB4, GB5",
+   "replace": "not run_record.is_file():"
+  },
+  {
+   "describes": "a copied run record that is a symbolic link passes",
+   "file": "seal.py",
+   "find": "    if run_record.is_symlink() or not run_record.is_file()",
+   "id": "B15-33-gb4-run-record-link",
+   "part": "kit round 33 (31 Oct): judge runbook B GB1, GB4, GB5",
+   "replace": "    if not run_record.is_file()"
+  },
+  {
+   "describes": "the copied label cache is not compared with its run record's cache SHA-256",
+   "file": "seal.py",
+   "find": "not cache_file.is_file() or mac.sha(cache_file) != digest:",
+   "id": "B15-33-gb4-cache-unhashed",
+   "part": "kit round 33 (31 Oct): judge runbook B GB1, GB4, GB5",
+   "replace": "not cache_file.is_file():"
+  },
+  {
+   "describes": "a copied label cache that is a symbolic link passes",
+   "file": "seal.py",
+   "find": "    if cache_file.is_symlink() or not cache_file.is_file()",
+   "id": "B15-33-gb4-cache-link",
+   "part": "kit round 33 (31 Oct): judge runbook B GB1, GB4, GB5",
+   "replace": "    if not cache_file.is_file()"
+  },
+  {
+   "describes": "a run record that is JSON but not an object crashes the check",
+   "file": "seal.py",
+   "find": "    except (ValueError, AttributeError):\n        cache = None",
+   "id": "B15-33-gb4-not-a-dict",
+   "part": "kit round 33 (31 Oct): judge runbook B GB1, GB4, GB5",
+   "replace": "    except ValueError:\n        cache = None"
+  },
+  {
+   "describes": "record-judges does not check the result's GPU",
+   "file": "plan_tool.py",
+   "find": "(stop.get(\"confirmed\") is True, \"stop confirmed\"), (v.get(\"gpu\") == rules.JUDGE_GPU, \"gpu\")]",
+   "id": "B15-33-gb5-no-gpu",
+   "part": "kit round 33 (31 Oct): judge runbook B GB1, GB4, GB5",
+   "replace": "(stop.get(\"confirmed\") is True, \"stop confirmed\")]"
+  },
+  {
+   "describes": "any A100 name passes the GPU check",
+   "file": "plan_tool.py",
+   "find": "(v.get(\"gpu\") == rules.JUDGE_GPU, \"gpu\")",
+   "id": "B15-33-gb5-prefix",
+   "part": "kit round 33 (31 Oct): judge runbook B GB1, GB4, GB5",
+   "replace": "(str(v.get(\"gpu\")).startswith(\"NVIDIA A100\"), \"gpu\")"
+  },
+  {
+   "describes": "the pinned judge GPU is the 40 GB A100",
+   "file": "stage1_rules.py",
+   "find": "JUDGE_GPU = \"NVIDIA A100-SXM4-80GB\"",
+   "id": "B15-33-gb5-pin",
+   "part": "kit round 33 (31 Oct): judge runbook B GB1, GB4, GB5",
+   "replace": "JUDGE_GPU = \"NVIDIA A100-SXM4-40GB\""
+  }
+ ],
+ "note": "B15 BUILD-CORE: files are relative to runkit/stage1-olmo/; tests are runkit/stage1-olmo/tests/ (run_mutants.py copies scripts/stage1, so the lead's runner copies this kit's folder instead, with the same rules) BUILD-RUNNER added the B15-r-* entries (runner side: job runner, preflight, download, probes, pack, orchestrate, judges, backup, the UNITLESS fix); same files-relative rule. The B15 FIX round (notes/b15-fix.json) added the B15-x-* entries and B15-d-status-prints-value, and re-targeted B15-m-group-need, B15-g-plan-ab-not-read and B15-r-vcheck-after-projection to the fixed text. B15 round 2 (notes/b15r2-build.json) added the B15-2-* entries and re-targeted B15-g-plan-ab-not-read and B15-g-plan-ab-rule to the derived plan-A/B code. The tests now read only this repository (the S1 package in scripts/stage1_s1, engine Y at STAGE1_ENGINE_Y_TREE, default tmp/engine-y-34bfd288), so a mutation copy needs runkit/stage1-olmo and runkit/gate-b-olmo copied and scripts, experiments, .ai, research, backups and tmp linked inside the same repository root; no sibling folder. The B15 round-2 fix round (notes/b15r2-fix.json) added the verifiers' 13 mutants (VG-*, V2-*) and the B15-3-* entries, and re-targeted B15-g-plan-ab-not-read, B15-x-no-block-a-floor and B15-2-plan-ab-bool to the fixed text. B15 round 3b (notes/b15r3b-build.json) added the B15-6-* entries (S1 package pins, the moved D-2 and C3 records, c0 on the LN-12 pod, LN-15e's retrain and re-score, 27 judge units, V2a's recorded fallback), retargeted B15-2-pack-d2-code and B15-4-no-theta0 to the changed text, and marks B15-2-plan-ab-not-derived 'expect': 'survive' with its equivalence argument in 'why'; B15-r-pack-man1 and B15-2-d2-req8-pool are now killed by new tests (test_stage1_runner.py test_a_named_input_that_man1_lists_with_another_sha256_..., test_stage1_runkit.py test_a_filled_pins_file_whose_pool_hash_differs_...). The B15 round-3b fix round (notes/b15r3b-fix.json) added the verify-pins report's 8 mutants (VP-*; VP-rescore-own-arm-seed-unchecked 'expect': 'survive' with its argument) and the B15-7-* entries (paths in normal form in the pack, F1; the runner's distinct re-score groups, F4). B15 round 3c (notes/b15r3c-build.json) added the B15-8-* entries (the O-ext unit runner pinned, packed, sealed and parsed; block A's completion against its recorded plan and the not-run decision; the $144 top-up's limit test) and retargeted B15-6-s1-unpinned-all, whose round-3b find text (the S1_UNPINNED exception) is gone: it now puts that exception back. Round H (notes/d3-build.json, addendum §28) added the B15-h-* entries (release without waiting for the earlier launch's hosts while the guard-off record holds; judge launches still wait; the early release recorded and logged); B15-g-launch-order's find text is unchanged and still the old rule's gate. Round 29 (notes/kit-round-29.json; addendum §29 and the user's 26 Oct re-run payment) added the 5 B15-29-* entries (the pull list, the finisher's roles, the unpulled decision's re-hash, the user-paid requeue and record-done's model-state exception); every one was run against the kit suite and killed (notes/kit-round-29-evidence/). No earlier find text was retargeted: the round-29 code keeps each earlier find text exactly once. Round 30 (notes/kit-round-30.json; addendum §30 and the lead's R1-R7) added the 5 B15-30-* entries (gap 1: a judge launch done only with its record; gap 2: one judge file per required unit; gap 3: the launcher's echo off; gap 4: the B10 pod bundle.py; D3: the moved hosts in the seal) and retargeted two entries whose find text moved (each marked 'retargeted'): B15-x-judge-files-unsealed to the seal's judge-record check, B15-x-safe-lora-label to judge_pod_stage1/bundle.py (same text). Every other find text is unchanged and still found exactly once. Round 30a (notes/kit-round-30a.json; the cert runbook's D2 and D4) added the 5 B15-30a-* entries (C1's registry seed in the runner, compare_c1.py); no earlier find text was retargeted. Round 31 (notes/kit-round-31.json; addendum §32 points 1-3, the lead's K1-K6) added the 6 B15-31-* entries (K1: a judge not-run decision counts for a block other than A; K2: the judge-launch units check at init-block and the ref_train label in write-files; K4: the dry bundle's printed record; K5: the finisher and moved, not-done hosts; K6: launch.py's exit code); no earlier find text was retargeted (each still found exactly once). Its runner is notes/run_mutants_b15.py. Round G1 (notes/g1-yoext.json; addendum §34 point 3, the engine-Y O-ext re-pin) added the 4 B15-G1-* entries (the Y pack's engine-Y O-ext files, their sources and the shared O-ext files); their killing tests are in tests/test_g1_yoext.py and tests/test_stage1_runner.py, so the runner's TESTS should name tests/test_g1_yoext.py too (as round 31 added test_round31.py). No earlier find text was retargeted (each is still found exactly once). Kit round 32 (notes/kit-round-32.json; addendum §34 points 5-7, the lead's K1-K6) added the 8 B15-32-* entries and re-targeted B15-x-b10-unit-count (the runner's B10 unit count now allows the certify unit alone after B10's failed gate) and B15-h-judge-ignores-moved (the judge wait now skips the never-released hosts of a launch skipped under not-run decisions) to the changed text, with the same replacement meaning. Kit round 33 (31 Oct, judge runbook B GB1/GB4/GB5) added the B15-33-* entries, run with tests/test_round33.py added to the runner's test files, and re-targeted B15-m-funding-source to the §36 elif."
+}

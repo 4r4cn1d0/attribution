@@ -617,7 +617,11 @@ def validate_recipe(recipe: dict) -> dict:
     for name in _texts(attr["checkpoints"], "attribution.checkpoints"):
         if name not in names:
             raise ConfigError(f"attribution.checkpoints: {name!r} is not a training checkpoint")
-    _fixed(attr["query_bank"], "ref", "attribution.query_bank")
+    bank = attr["query_bank"]                           # Gate B: the DATE-LM ref rows, or an anchor file's SHA-256
+    if bank != "ref":
+        if not (isinstance(bank, str) and bank.startswith("anchors-")):
+            raise ConfigError("attribution.query_bank must be 'ref' or anchors-<the anchor file's SHA-256>")
+        _hex(bank[len("anchors-"):], 64, "attribution.query_bank")
     _fixed(attr["aggregation_dtype"], "float64", "attribution.aggregation_dtype")
     _fixed(attr["variants"], ATTRIBUTION_VARIANTS, "attribution.variants")
     return recipe

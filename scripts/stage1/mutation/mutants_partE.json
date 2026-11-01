@@ -1,0 +1,880 @@
+{
+  "kind": "stage1 mutants",
+  "mutants": [
+    {
+      "describes": "a halving round that overspends B (the first rung holds more options than B allows)",
+      "file": "selector/spec.py",
+      "find": "        sizes, total = halving_schedule(ctx, n1)\n        if total <= budget + EPS:",
+      "id": "E-halving-overspends",
+      "part": "E (REQ-16 to REQ-18, brief)",
+      "replace": "        sizes, total = halving_schedule(ctx, n1)\n        if total <= budget + 1.0:"
+    },
+    {
+      "describes": "a halving round that overspends B (the leftover buys one seed more than B allows)",
+      "file": "selector/spec.py",
+      "find": "    _extra_seeds(ctx, view, state, ranked, budget - total)",
+      "id": "E-halving-leftover-overspends",
+      "part": "E (REQ-16 to REQ-18, brief)",
+      "replace": "    _extra_seeds(ctx, view, state, ranked, budget - total + ctx.cost.full)"
+    },
+    {
+      "describes": "c_d not charged (the diagnostic runs its rule on all of B)",
+      "file": "selector/spec.py",
+      "find": "        paid, remaining = float(c_d), float(budget) - float(c_d)",
+      "id": "E-c_d-not-charged",
+      "part": "E (REQ-16 to REQ-18, brief)",
+      "replace": "        paid, remaining = 0.0, float(budget)"
+    },
+    {
+      "describes": "O ignored by the feasibility screen",
+      "file": "selector/spec.py",
+      "find": "    ok = (o_upper[..., None] <= np.asarray(ctx.tau_o)) & (l_upper <= ctx.tau_l)[..., None]",
+      "id": "E-o-ignored-by-screen",
+      "part": "E (REQ-16 to REQ-18, brief)",
+      "replace": "    ok = (o_upper[..., None] <= np.inf + 0.0 * np.asarray(ctx.tau_o)) & (l_upper <= ctx.tau_l)[..., None]"
+    },
+    {
+      "describes": "a pick with one full-run seed",
+      "file": "selector/spec.py",
+      "find": "    candidate = n_full >= ctx.min_seeds",
+      "id": "E-pick-one-full-seed",
+      "part": "E (REQ-16 to REQ-18, brief)",
+      "replace": "    candidate = n_full >= 1"
+    },
+    {
+      "describes": "ties not to keep (an option with shrunk G = 0 beats keep)",
+      "file": "selector/spec.py",
+      "find": "        beats_keep = g_shrunk[rows, best] > 0.0",
+      "id": "E-ties-not-to-keep",
+      "part": "E (REQ-16 to REQ-18, brief)",
+      "replace": "        beats_keep = g_shrunk[rows, best] >= 0.0"
+    },
+    {
+      "describes": "empirical-Bayes shrinkage off",
+      "file": "selector/spec.py",
+      "find": "    out = mu[:, None] + factor * (g - mu[:, None])",
+      "id": "E-shrinkage-off",
+      "part": "E (REQ-16 to REQ-18, brief)",
+      "replace": "    out = g + 0.0 * mu[:, None]"
+    },
+    {
+      "describes": "replay through a second code path (the replay reimplements the selection)",
+      "file": "selector/spec.py",
+      "find": "    result = select(ctx, obs, rule=rule, budget=budget, scores=score_array, k=k, c_d=c_d)",
+      "id": "E-replay-second-code-path",
+      "part": "E (REQ-16 to REQ-18, brief)",
+      "replace": "    view = _compact(obs, ctx, np.ones((1, ctx.menu.M), dtype=bool))\n    state = RULE_FUNCTIONS[rule](ctx, view, budget)\n    result = Selection(view.index[np.zeros((1, 1), dtype=int), np.maximum(pick(ctx, view, state, np.ones(1, dtype=bool)), 0)], ledger_cost(ctx, state), (state.level[:, :view.m] == ctx.c1).sum(axis=2), rule)"
+    },
+    {
+      "describes": "the cell rule chosen by another criterion (a tie goes to the more complex rule)",
+      "file": "selector/simulate.py",
+      "find": "    for r in order:                      # the simplest rule that ties the best",
+      "id": "E-rule-ties-to-complex",
+      "part": "E (REQ-16 to REQ-18, brief)",
+      "replace": "    for r in reversed(order):            # the simplest rule that ties the best"
+    },
+    {
+      "describes": "the cell rule chosen by another criterion (the smallest mean)",
+      "file": "selector/simulate.py",
+      "find": "    best = max(order, key=lambda r: (means[r], -order.index(r)))",
+      "id": "E-rule-smallest-mean",
+      "part": "E (REQ-16 to REQ-18, brief)",
+      "replace": "    best = min(order, key=lambda r: (means[r], -order.index(r)))"
+    },
+    {
+      "describes": "the cell rule chosen by another criterion (one tau_O point instead of the equal-weight average)",
+      "file": "selector/simulate.py",
+      "find": "    return (res[\"g\"].reshape(P, R, -1).mean(axis=0) * tau_weights).sum(axis=1)",
+      "id": "E-rule-one-tau-point",
+      "part": "E (REQ-16 to REQ-18, brief)",
+      "replace": "    return res[\"g\"].reshape(P, R, -1).mean(axis=0)[:, 0] + 0.0 * tau_weights.sum()"
+    },
+    {
+      "describes": "c* taken as the last crossing",
+      "file": "selector/predict.py",
+      "find": "    while j + 1 < len(grid) and delta[j + 1] >= 0:\n        j += 1",
+      "id": "L15-c-star-last-crossing",
+      "part": "E (lead decisions L15)",
+      "replace": "    j = max(i for i, d in enumerate(delta) if d >= 0)\n    if j == len(grid) - 1 and min(delta) < 0:\n        j -= 1"
+    },
+    {
+      "describes": "keep dropped by top-k (keep survives only if it would rank in the top k)",
+      "file": "selector/spec.py",
+      "find": "    keep_kept = np.ones(n, dtype=bool)",
+      "id": "L15-keep-dropped-by-top-k",
+      "part": "E (lead decisions L15)",
+      "replace": "    keep_kept = np.sort(scores, axis=1)[:, M - k] <= 0.0"
+    },
+    {
+      "describes": "common random numbers not shared (the runs-only baseline of the diagnostic pass uses other replicates' draws)",
+      "file": "selector/simulate.py",
+      "find": "            base = outcome(spec.select(ctx, obs, rule=rule, budget=b), tr)",
+      "id": "L15-crn-not-shared",
+      "part": "E (lead decisions L15)",
+      "replace": "            base = outcome(spec.select(ctx, observations(geom, ctx, sim, draws(geom, ctx, sim, range(task[\"start\"] + 1, task[\"stop\"] + 1)), G, NoiseCase(sigma_c, 0.0), tr[\"coherent\"]), rule=rule, budget=b), tr)"
+    },
+    {
+      "describes": "diagnostic quality not applied (the score noise ignores r)",
+      "file": "selector/simulate.py",
+      "find": "    score = G + point[\"r\"] * s[..., None] * z[None, :, :]",
+      "id": "L15-quality-not-applied",
+      "part": "E (lead decisions L15)",
+      "replace": "    score = G + s[..., None] * z[None, :, :]"
+    },
+    {
+      "describes": "diagnostic quality not applied on planted menus (mu ignores the row AUC)",
+      "file": "selector/simulate.py",
+      "find": "        if point[\"kind\"] == \"row_auc\":\n            mu = math.sqrt(2.0) * NormalDist().inv_cdf(point[\"auc\"])\n            plant = np.zeros((R, M))",
+      "id": "L15-row-auc-not-applied",
+      "part": "E (lead decisions L15)",
+      "replace": "        if point[\"kind\"] == \"row_auc\":\n            mu = 1.0\n            plant = np.zeros((R, M))"
+    },
+    {
+      "describes": "the 0.90 quantile when 0.95 is set",
+      "file": "selector/spec.py",
+      "find": "    q = ctx.upper_quantile\n",
+      "id": "W13-quantile-0.90",
+      "part": "E (W1-13 screen)",
+      "replace": "    q = 0.90\n"
+    },
+    {
+      "describes": "the prompt part of O's SE dropped",
+      "file": "selector/spec.py",
+      "find": "    o_prompt = ctx.o_prompt_sd ** 2 if ctx.o_error_model == \"prompts_random\" else 0.0",
+      "id": "W13-prompt-part-dropped",
+      "part": "E (W1-13 screen)",
+      "replace": "    o_prompt = 0.0"
+    },
+    {
+      "describes": "the coherence gate removed",
+      "file": "selector/spec.py",
+      "find": "        ok = ok & view.coherent[:, :m, None]",
+      "id": "W13-coherence-gate-removed",
+      "part": "E (W1-13 screen)",
+      "replace": "        ok = ok"
+    },
+    {
+      "describes": "the seed shift drawn per option (no coupling)",
+      "file": "selector/simulate.py",
+      "find": "    base = shared[:, None, :, None] + train_sd[:, :, None, None] * T + math.sqrt(v) * E",
+      "id": "W14-shift-per-option",
+      "part": "E (W1-14 model)",
+      "replace": "    base = sigma * math.sqrt(rho) * Z[:, :, :, :, 0, 0] + train_sd[:, :, None, None] * T + math.sqrt(v) * E"
+    },
+    {
+      "describes": "the 2x sensitivity applied to keep",
+      "file": "selector/simulate.py",
+      "find": "        train_sd[np.arange(R), 2 + d[\"hetero\"]] = math.sqrt((mult ** 2 - rho) * sigma ** 2 - v_full)",
+      "id": "W14-2x-applied-to-keep",
+      "part": "E (W1-14 model)",
+      "replace": "        train_sd[np.arange(R), 0] = math.sqrt((mult ** 2 - rho) * sigma ** 2 - v_full)"
+    },
+    {
+      "describes": "the check that sigma is 2.65 / 3.85 (never the Gate B value) removed",
+      "file": "selector/simulate.py",
+      "find": "    if model[\"u_seed_sd_pp\"] != {\"central\": 2.65, \"high\": 3.85}:",
+      "id": "W14-noise-check-removed",
+      "part": "E (W1-14 model)",
+      "replace": "    if False:"
+    },
+    {
+      "describes": "the U-O noise correlation ignored",
+      "file": "selector/simulate.py",
+      "find": "         + o_scale[:, None, None] * (rho_uo * eps + math.sqrt(1.0 - rho_uo ** 2) * o_eta))",
+      "id": "W14-uo-correlation-ignored",
+      "part": "E (W1-14 model)",
+      "replace": "         + o_scale[:, None, None] * (0.0 * eps + o_eta))"
+    },
+    {
+      "describes": "C-lean's 1-sample evaluation given C-full's sampling variance",
+      "file": "selector/simulate.py",
+      "find": "    v = v_full * model[\"u_samples_full\"] / ctx.cost.samples_per_prompt",
+      "id": "W14-lean-variance-ignored",
+      "part": "E (W1-14 model)",
+      "replace": "    v = v_full"
+    },
+    {
+      "describes": "one convention only",
+      "file": "selector/predict.py",
+      "find": "        for i, convention in enumerate(pred[\"conventions\"]):",
+      "id": "W15-one-convention-only",
+      "part": "E (W1-15 predictions)",
+      "replace": "        for i, convention in enumerate(pred[\"conventions\"][:1]):"
+    },
+    {
+      "describes": "the classifier row left out",
+      "file": "selector/predict.py",
+      "find": "\"named_diagnostics\": {\"classifier\": classifier_row(menus, pred)}}",
+      "id": "W15-classifier-left-out",
+      "part": "E (W1-15 predictions)",
+      "replace": "\"named_diagnostics\": {}}"
+    },
+    {
+      "describes": "a fitted placement statistic (a fitted quality point added to the placement)",
+      "file": "selector/predict.py",
+      "find": "        out[q] = entry\n    return out",
+      "id": "W15-fitted-placement",
+      "part": "E (W1-15 predictions)",
+      "replace": "        out[q] = {**entry, \"fitted_quality\": q}\n    return out"
+    },
+    {
+      "describes": "the one-shot screen promotes as many finalists as B allows (no cap)",
+      "file": "selector/spec.py",
+      "find": "    n_f = min(n_s, ctx.one_shot_finalists, int(math.floor((budget - n_s * c_s) / c_p + EPS)))",
+      "id": "X-one-shot-finalists-uncapped",
+      "part": "E (builder's own)",
+      "replace": "    n_f = min(n_s, int(math.floor((budget - n_s * c_s) / c_p + EPS)))"
+    },
+    {
+      "describes": "a diagnostic's bisection not turned into halving (L15 (8))",
+      "file": "selector/spec.py",
+      "find": "        ran = ctx.bisection_becomes if rule == \"bisection\" else rule",
+      "id": "X-diag-bisection-not-halving",
+      "part": "E (builder's own)",
+      "replace": "        ran = rule"
+    },
+    {
+      "describes": "the diagnostic's k tie goes to the smaller k",
+      "file": "selector/simulate.py",
+      "find": "    chosen = max(k for k in ks if table[str(k)][\"ties_best\"])",
+      "id": "X-k-ties-to-smaller",
+      "part": "E (builder's own)",
+      "replace": "    chosen = min(k for k in ks if table[str(k)][\"ties_best\"])"
+    },
+    {
+      "describes": "the independent ledger forgets the screen's phi < 1 trials (spend under-reported)",
+      "file": "selector/spec.py",
+      "find": "    return seconds.sum(axis=(1, 2)) / c.unit + state.low.sum(axis=(1, 2)) * low",
+      "id": "V01-ledger-drops-low-trials",
+      "part": "E (verifier V01-V16)",
+      "replace": "    return seconds.sum(axis=(1, 2)) / c.unit + 0.0 * state.low.sum(axis=(1, 2)) * low"
+    },
+    {
+      "describes": "the independent ledger forgets C-lean (b)'s extra O and L passes of every full run",
+      "file": "selector/spec.py",
+      "find": "    seconds = seconds + np.where(level == ctx.c1, c.extra_full, 0.0)",
+      "id": "V02-ledger-drops-extra-full",
+      "part": "E (verifier V01-V16)",
+      "replace": "    seconds = seconds + 0.0 * np.where(level == ctx.c1, c.extra_full, 0.0)"
+    },
+    {
+      "describes": "the leftover buys a part-paid full-run seed (ceil instead of floor: overspends B)",
+      "file": "selector/spec.py",
+      "find": "    left = np.full(n, int(math.floor(max(budget_left, 0.0) / ctx.cost.full + EPS)), dtype=np.int64)",
+      "id": "V03-extra-seeds-ceil",
+      "part": "E (verifier V01-V16)",
+      "replace": "    left = np.full(n, int(math.ceil(max(budget_left, 0.0) / ctx.cost.full - EPS)), dtype=np.int64)"
+    },
+    {
+      "describes": "the one-shot screen does not reserve the promotion cost before screening",
+      "file": "selector/spec.py",
+      "find": "    n_s = min(m, int(math.floor((budget - c_p) / c_s + EPS)))",
+      "id": "V04-one-shot-no-promotion-reserve",
+      "part": "E (verifier V01-V16)",
+      "replace": "    n_s = min(m, int(math.floor(budget / c_s + EPS)))"
+    },
+    {
+      "describes": "options are ranked by the raw estimate first (shrinkage used only against keep)",
+      "file": "selector/spec.py",
+      "find": "        best = np.lexsort((tie, secondary, primary), axis=-1)[:, 0]",
+      "id": "V05-pick-ranks-by-raw",
+      "part": "E (verifier V01-V16)",
+      "replace": "        best = np.lexsort((tie, primary, secondary), axis=-1)[:, 0]"
+    },
+    {
+      "describes": "Delta = E[G(runs-only)] - E[G(diagnostic)] (sign flipped)",
+      "file": "selector/simulate.py",
+      "find": "            diff = g - paired.reshape(shape)",
+      "id": "V06-delta-sign-flipped",
+      "part": "E (verifier V01-V16)",
+      "replace": "            diff = paired.reshape(shape) - g"
+    },
+    {
+      "describes": "the reported Delta curves use k = M, not the frozen k per c_d/c0",
+      "file": "selector/predict.py",
+      "find": "            rows = [summarize(res[\"sums_b\"][(b, c, q, frozen_k[f\"{c:g}\"])], names, t, paired=True,",
+      "id": "V07-delta-not-at-frozen-k",
+      "part": "E (verifier V01-V16)",
+      "replace": "            rows = [summarize(res[\"sums_b\"][(b, c, q, res[\"ks\"][-1])], names, t, paired=True,"
+    },
+    {
+      "describes": "k is chosen at the first quality point (r = 0) only, not the equal-weight quality average (L15 (6))",
+      "file": "selector/simulate.py",
+      "find": "                        per_k[:, ki] += criterion_values(res, P, tau_w) / (len(qpoints) * len(k_rhos))",
+      "id": "V08-k-by-first-quality-only",
+      "part": "E (verifier V01-V16)",
+      "replace": "                        per_k[:, ki] += criterion_values(res, P, tau_w) * (qi == 0) / len(k_rhos)"
+    },
+    {
+      "describes": "a psi-subsample trial gets no extra sampling noise (as precise as a full run)",
+      "file": "selector/simulate.py",
+      "find": "    sub_sd = np.sqrt(np.maximum(v * (1.0 / psi - 1.0), 0.0))                     # 0 at psi = 1",
+      "id": "V09-psi-trial-noise-dropped",
+      "part": "E (verifier V01-V16)",
+      "replace": "    sub_sd = 0.0 * np.sqrt(np.maximum(v * (1.0 / psi - 1.0), 0.0))               # 0 at psi = 1"
+    },
+    {
+      "describes": "the rule chosen at one rho (rho = 0) even when the settings ask for the rho average (W1-14 mutant)",
+      "file": "selector/simulate.py",
+      "find": "    rho_avg = sim[\"model\"][\"rho_average_for_rule\"]",
+      "id": "V10-rule-at-one-rho",
+      "part": "E (verifier V01-V16)",
+      "replace": "    rho_avg = False and sim[\"model\"][\"rho_average_for_rule\"]"
+    },
+    {
+      "describes": "pass A (rule choice, runs-only predictions) runs at the wave-0a implied same-seed rho 0.619 while recorded as rho = 0 (W1-14 mutant: rho taken from the Gate B value)",
+      "file": "selector/simulate.py",
+      "find": "            obs = observations(geom, ctx, sim, d, G, NoiseCase(sigma_c, rho), tr[\"coherent\"])",
+      "id": "V11-rho-from-gate",
+      "part": "E (verifier V01-V16)",
+      "replace": "            obs = observations(geom, ctx, sim, d, G, NoiseCase(sigma_c, 0.619 if rho == 0.0 else rho), tr[\"coherent\"])"
+    },
+    {
+      "describes": "the rules visit the options in menu order, not the sealed tie order",
+      "file": "selector/spec.py",
+      "find": "    key = np.where(avail, ctx.tie_rank[None, :], M + ctx.tie_rank[None, :])",
+      "id": "V12-menu-order-not-tie-order",
+      "part": "E (verifier V01-V16)",
+      "replace": "    key = np.where(avail, np.arange(M)[None, :], M + np.arange(M)[None, :])"
+    },
+    {
+      "describes": "the reported Monte Carlo SE is the per-replicate SD (not divided by sqrt(n))",
+      "file": "selector/predict.py",
+      "find": "        se = np.sqrt(var / n)",
+      "id": "V13-mc-se-not-divided",
+      "part": "E (verifier V01-V16)",
+      "replace": "        se = np.sqrt(var)"
+    },
+    {
+      "describes": "halving's leftover buys seeds for options with only 1 full-run seed too",
+      "file": "selector/spec.py",
+      "find": "    holders = n_full >= 2",
+      "id": "V14-halving-leftover-to-one-seed-options",
+      "part": "E (verifier V01-V16)",
+      "replace": "    holders = n_full >= 1"
+    },
+    {
+      "describes": "the simulated Spearman rho uses noise-free D_u (the wave-1 runs' seed noise ignored)",
+      "file": "selector/simulate.py",
+      "find": "    D = (G - noise[None]).reshape(P * R, M)",
+      "id": "V15-category-placement-noise-free",
+      "part": "E (verifier V01-V16)",
+      "replace": "    D = (G - 0.0 * noise[None]).reshape(P * R, M)"
+    },
+    {
+      "describes": "shrinkage pools only options with 2 or more full-run seeds (settings say 1 or more)",
+      "file": "selector/spec.py",
+      "find": "    g_shrunk = shrink(g_raw, v, n_full >= 1, ctx.shrink_min_options)",
+      "id": "V16-shrink-members-two-seeds",
+      "part": "E (verifier V01-V16)",
+      "replace": "    g_shrunk = shrink(g_raw, v, n_full >= 2, ctx.shrink_min_options)"
+    },
+    {
+      "describes": "the rule and k chosen per (menu, M, B, convention) when the settings say per (menu, M, B) (B-1)",
+      "file": "selector/simulate.py",
+      "find": "    groups = [list(conventions)] if scope == \"menu_m_b\" else [[c] for c in conventions]",
+      "id": "F01-freeze-scope-ignored",
+      "part": "E (fix round)",
+      "replace": "    groups = [[c] for c in conventions]"
+    },
+    {
+      "describes": "the pooled rule chosen on the first convention's criterion only (B-1)",
+      "file": "selector/simulate.py",
+      "find": "        per_rule = {r: np.mean([per_conv[c][r] for c in conventions], axis=0) for r in rules}",
+      "id": "F02-pooled-rule-from-one-convention",
+      "part": "E (fix round)",
+      "replace": "        per_rule = {r: per_conv[conventions[0]][r] for r in rules}"
+    },
+    {
+      "describes": "the pooled k chosen on the first convention's criterion only (B-1)",
+      "file": "selector/simulate.py",
+      "find": "            k_choice[key] = choose_k(np.mean([per_conv[c] for c in conventions], axis=0), ks, tie_se)",
+      "id": "F03-pooled-k-from-one-convention",
+      "part": "E (fix round)",
+      "replace": "            k_choice[key] = choose_k(per_conv[conventions[0]], ks, tie_se)"
+    },
+    {
+      "describes": "k chosen at rho = 0 only when the settings ask for the rho average (S-10; W1-14 item 4)",
+      "file": "selector/simulate.py",
+      "find": "        k_rhos = rho_grid(sim) if sim[\"model\"][\"rho_average_for_rule\"] else [0.0]",
+      "id": "F04-k-rho-average-ignored",
+      "part": "E (fix round)",
+      "replace": "        k_rhos = [0.0]"
+    },
+    {
+      "describes": "under the rho average the Delta sums are overwritten by the last rho (not rho = 0) (S-10)",
+      "file": "selector/simulate.py",
+      "find": "                        if rho == 0.0:",
+      "id": "F05-delta-sums-at-the-last-rho",
+      "part": "E (fix round)",
+      "replace": "                        if True:"
+    },
+    {
+      "describes": "the replay's L bound against R computed against a0 (S-7; W1-13 row 4)",
+      "file": "selector/spec.py",
+      "find": "        out[\"l_by_reference\"] = {name: (None if arm is None else _l_upper(ctx, l, full, n_full, arm, q))",
+      "id": "F06-replay-r-bound-against-a0",
+      "part": "E (fix round)",
+      "replace": "        out[\"l_by_reference\"] = {name: (None if arm is None else _l_upper(ctx, l, full, n_full, reference, q))"
+    },
+    {
+      "describes": "the screen's L reference fixed to a0 whatever the settings say (W1-13 row 4; the refactor of S-7)",
+      "file": "selector/spec.py",
+      "find": "    reference = arms[ctx.tau_l_reference]",
+      "id": "F07-screen-reference-fixed-to-a0",
+      "part": "E (fix round)",
+      "replace": "    reference = arms[\"a0\"]"
+    },
+    {
+      "describes": "a replay accepts saved labels of another sample count (S-8: a lean replay of full evaluations)",
+      "file": "selector/spec.py",
+      "find": "    if samples != ctx.cost.samples_per_prompt or keep_samples != ctx.keep_samples_per_prompt:",
+      "id": "F08-sample-count-check-removed",
+      "part": "E (fix round)",
+      "replace": "    if False:"
+    },
+    {
+      "describes": "a replay does not check keep's sample count (S-8)",
+      "file": "selector/spec.py",
+      "find": "    if samples != ctx.cost.samples_per_prompt or keep_samples != ctx.keep_samples_per_prompt:",
+      "id": "F09-keep-sample-count-not-checked",
+      "part": "E (fix round)",
+      "replace": "    if samples != ctx.cost.samples_per_prompt:"
+    },
+    {
+      "describes": "check-inputs --resolve takes the first of several matching files (S-11)",
+      "file": "selector/predict.py",
+      "find": "    if len(matches) != 1:",
+      "id": "F10-resolve-accepts-two-matches",
+      "part": "E (fix round)",
+      "replace": "    if not matches:"
+    },
+    {
+      "describes": "c* none never reports a later Delta >= 0 as non-monotone (N-1; L15 (5))",
+      "file": "selector/predict.py",
+      "find": "                \"non_monotone\": bool(any(d >= 0 for d in delta[1:]))}",
+      "id": "F11-c-star-none-never-non-monotone",
+      "part": "E (fix round)",
+      "replace": "                \"non_monotone\": False}"
+    },
+    {
+      "describes": "an option cost other than 1 FRE is accepted and ignored (N-3)",
+      "file": "selector/spec.py",
+      "find": "    if any(o.cost_fre != 1.0 for o in options):",
+      "id": "F12-option-cost-check-removed",
+      "part": "E (fix round)",
+      "replace": "    if False:"
+    },
+    {
+      "describes": "the HB-form screen uses the normal quantile (no df; LN-20 'one df')",
+      "file": "selector/spec.py",
+      "find": "    upper = estimate + t_quantile(q, np.minimum(inv_df, 1.0)) * np.sqrt(v)",
+      "id": "R2-C01-normal-quantile-under-hb",
+      "part": "E rev 2 (lead ruling 17 Oct 15:18 UTC: LN-10, LN-11, LN-29, LN-07, LN-33, LN-20)",
+      "replace": "    upper = estimate + t_quantile(q, 0.0 * inv_df) * np.sqrt(v)"
+    },
+    {
+      "describes": "the hb L bound drops the pairing and the reference's variance (LN-20 item 2's paired form)",
+      "file": "selector/spec.py",
+      "find": "    mean, var, count = paired_differences(l, full, reference)\n    return _hb_upper(mean, [(var / np.maximum(count, 1), count - 1)], ctx.l_item_sd ** 2, q)",
+      "id": "R2-C02-l-unpaired-without-reference-variance",
+      "part": "E rev 2 (lead ruling 17 Oct 15:18 UTC: LN-10, LN-11, LN-29, LN-07, LN-33, LN-20)",
+      "replace": "    mean, var, count = paired_differences(l, full, reference)\n    return _hb_upper(l_mean - reference.mean(axis=1)[:, None], [(_own(l, full, n_full) / safe, n_full - 1)], ctx.l_item_sd ** 2, q)"
+    },
+    {
+      "describes": "the L item part dropped from the hb screen (X-2)",
+      "file": "selector/spec.py",
+      "find": "    return _hb_upper(mean, [(var / np.maximum(count, 1), count - 1)], ctx.l_item_sd ** 2, q)",
+      "id": "R2-C03-l-item-part-dropped",
+      "part": "E rev 2 (lead ruling 17 Oct 15:18 UTC: LN-10, LN-11, LN-29, LN-07, LN-33, LN-20)",
+      "replace": "    return _hb_upper(mean, [(var / np.maximum(count, 1), count - 1)], 0.0, q)"
+    },
+    {
+      "describes": "the hb O bound uses the pooled residuals, not the option's own seed variance (LN-20 item 1)",
+      "file": "selector/spec.py",
+      "find": "        o_upper = _hb_upper(o_mean - ctx.o_theta0, [(_own(o, full, n_full) / safe, n_full - 1)], o_prompt, q)",
+      "id": "R2-C04-o-seed-part-pooled-under-hb",
+      "part": "E rev 2 (lead ruling 17 Oct 15:18 UTC: LN-10, LN-11, LN-29, LN-07, LN-33, LN-20)",
+      "replace": "        o_upper = _hb_upper(o_mean - ctx.o_theta0, [(_pooled(o, full, n_full, view.keep_o)[:, None] / safe, n_full - 1)], o_prompt, q)"
+    },
+    {
+      "describes": "the Satterthwaite df ignores the item part (df = the seed part's df)",
+      "file": "selector/spec.py",
+      "find": "    inv_df = np.where(has & (v > 0), denom / safe_v ** 2, 0.0)",
+      "id": "R2-C05-df-ignores-the-item-part",
+      "part": "E rev 2 (lead ruling 17 Oct 15:18 UTC: LN-10, LN-11, LN-29, LN-07, LN-33, LN-20)",
+      "replace": "    inv_df = np.where(has & (v > 0), denom / np.maximum(v - v_item, 1e-300) ** 2, 0.0)"
+    },
+    {
+      "describes": "an option with fewer than 2 seeds (or common seeds) gets a finite hb bound",
+      "file": "selector/spec.py",
+      "find": "    return np.where(has, upper, np.inf)",
+      "id": "R2-C06-one-seed-bound-allowed",
+      "part": "E rev 2 (lead ruling 17 Oct 15:18 UTC: LN-10, LN-11, LN-29, LN-07, LN-33, LN-20)",
+      "replace": "    return upper"
+    },
+    {
+      "describes": "the O prompt part stays at the dev 100 when the convention holds the 500 bank (X-3)",
+      "file": "selector/spec.py",
+      "find": "    return float(screen[\"o_prompt_sd_pp\"]) * math.sqrt(int(bank[\"dev_prompts\"]) / prompts)",
+      "id": "R2-C07-o-prompt-sd-not-scaled-to-the-bank",
+      "part": "E rev 2 (lead ruling 17 Oct 15:18 UTC: LN-10, LN-11, LN-29, LN-07, LN-33, LN-20)",
+      "replace": "    return float(screen[\"o_prompt_sd_pp\"])"
+    },
+    {
+      "describes": "the 400 PHTest answers are not charged to the evaluation (LN-33, LN-07)",
+      "file": "selector/spec.py",
+      "find": "        evaluation += o_seconds",
+      "id": "R2-C08-o-bank-seconds-not-charged",
+      "part": "E rev 2 (lead ruling 17 Oct 15:18 UTC: LN-10, LN-11, LN-29, LN-07, LN-33, LN-20)",
+      "replace": "        evaluation += 0.0 * o_seconds"
+    },
+    {
+      "describes": "C-full's unit becomes the 500-bank full run (1 FRE must stay 2,934 s; LN-33, LW-16)",
+      "file": "selector/spec.py",
+      "find": "    unit = float(conv[\"unit_s\"]) if \"unit_s\" in conv else setup + training + evaluation",
+      "id": "R2-C09-fre-re-estimated",
+      "part": "E rev 2 (lead ruling 17 Oct 15:18 UTC: LN-10, LN-11, LN-29, LN-07, LN-33, LN-20)",
+      "replace": "    unit = setup + training + evaluation"
+    },
+    {
+      "describes": "C-lean (b) puts the O-bank seconds into the psi-scaled evaluation, not every full run's passes",
+      "file": "selector/spec.py",
+      "find": "    if conv[\"o_part\"] == \"evaluation\":",
+      "id": "R2-C10-lean-b-o-bank-in-evaluation",
+      "part": "E rev 2 (lead ruling 17 Oct 15:18 UTC: LN-10, LN-11, LN-29, LN-07, LN-33, LN-20)",
+      "replace": "    if True:"
+    },
+    {
+      "describes": "the t table is read at 1 - 1/df",
+      "file": "selector/spec.py",
+      "find": "    return np.interp(x, np.linspace(0.0, 1.0, T_TABLE_POINTS), table)",
+      "id": "R2-C11-t-table-read-in-the-wrong-variable",
+      "part": "E rev 2 (lead ruling 17 Oct 15:18 UTC: LN-10, LN-11, LN-29, LN-07, LN-33, LN-20)",
+      "replace": "    return np.interp(1.0 - x, np.linspace(0.0, 1.0, T_TABLE_POINTS), table)"
+    },
+    {
+      "describes": "the predict check accepts a planted placement without both statistics",
+      "file": "selector/predict.py",
+      "find": "    if sorted(pair) != sorted(PLANTED_STATISTICS):",
+      "id": "R2-C12-placement-check-removed",
+      "part": "E rev 2 (lead ruling 17 Oct 15:18 UTC: LN-10, LN-11, LN-29, LN-07, LN-33, LN-20)",
+      "replace": "    if False:"
+    },
+    {
+      "describes": "the check that 1 FRE is the wave-0a job slot is removed",
+      "file": "selector/spec.py",
+      "find": "    if abs(fre[\"setup_s\"] + fre[\"training_s\"] + fre[\"evaluation_s\"] - fre[\"unit_s\"]) > 1e-6:",
+      "id": "R2-C13-fre-check-removed",
+      "part": "E rev 2 (lead ruling 17 Oct 15:18 UTC: LN-10, LN-11, LN-29, LN-07, LN-33, LN-20)",
+      "replace": "    if False:"
+    },
+    {
+      "describes": "the exact t quantile solves for the two-sided level",
+      "file": "selector/spec.py",
+      "find": "        g = t_upper_tail(t, nu) - (1.0 - q)                 # falls in t",
+      "id": "R2-C14-t-quantile-at-the-two-sided-level",
+      "part": "E rev 2 (lead ruling 17 Oct 15:18 UTC: LN-10, LN-11, LN-29, LN-07, LN-33, LN-20)",
+      "replace": "        g = t_upper_tail(t, nu) - (1.0 - q) / 2.0           # falls in t"
+    },
+    {
+      "describes": "the paired differences pair seed j with another seed of the reference",
+      "file": "selector/spec.py",
+      "find": "    d = l[:, :, :k] - reference[:, None, :k]",
+      "id": "R2-C15-pairs-misaligned",
+      "part": "E rev 2 (lead ruling 17 Oct 15:18 UTC: LN-10, LN-11, LN-29, LN-07, LN-33, LN-20)",
+      "replace": "    d = l[:, :, :k] - reference[:, None, :k][..., ::-1]"
+    },
+    {
+      "describes": "the paired form uses at most 2 common seeds",
+      "file": "selector/spec.py",
+      "find": "    common = full[:, :, :k]",
+      "id": "R2-C16-two-common-seeds-only",
+      "part": "E rev 2 (lead ruling 17 Oct 15:18 UTC: LN-10, LN-11, LN-29, LN-07, LN-33, LN-20)",
+      "replace": "    common = full[:, :, :k] & (np.arange(k) < 2)"
+    },
+    {
+      "describes": "a replay accepts keep or R seeds whose indices are not 0..K-1 (the paired screen would misalign)",
+      "file": "selector/spec.py",
+      "find": "        if [v[0] for v in values] != list(range(len(values))):",
+      "id": "R2-C18-seed-index-check-removed",
+      "part": "E rev 2 (lead ruling 17 Oct 15:18 UTC: LN-10, LN-11, LN-29, LN-07, LN-33, LN-20)",
+      "replace": "        if False:"
+    },
+    {
+      "describes": "the rho_0.67 sensitivity runs at rho = 0",
+      "file": "selector/simulate.py",
+      "find": "            out[name] = NoiseCase(central, rho)",
+      "id": "R2-C17-rho-sensitivity-at-zero",
+      "part": "E rev 2 (lead ruling 17 Oct 15:18 UTC: LN-10, LN-11, LN-29, LN-07, LN-33, LN-20)",
+      "replace": "            out[name] = NoiseCase(central, 0.0 * rho)"
+    },
+    {
+      "describes": "X-1 / LN-10: the rho grid back to {0} (A7 not applied) (settings re-pinned in the module and the test)",
+      "edits": [
+        {
+          "file": "settings/selector_simulate.json",
+          "find": "    \"rho_mode\": \"a7_switch\",\n",
+          "replace": "    \"rho_mode\": \"default\",\n"
+        },
+        {
+          "file": "selector/simulate.py",
+          "find": "SETTINGS_SHA256 = \"4d9e0064828338bcfdd3703c5039fb179dd2ec7f33501cc448cceb94bb8302b9\"",
+          "replace": "SETTINGS_SHA256 = \"9b50e0a149a5be82ebce3f818d02d2a8793e61c4f171ed78ba83ff32aef2ff39\""
+        },
+        {
+          "file": "tests/test_selector_rev2.py",
+          "find": "SIMULATE_SETTINGS_SHA256 = \"4d9e0064828338bcfdd3703c5039fb179dd2ec7f33501cc448cceb94bb8302b9\"",
+          "replace": "SIMULATE_SETTINGS_SHA256 = \"9b50e0a149a5be82ebce3f818d02d2a8793e61c4f171ed78ba83ff32aef2ff39\""
+        }
+      ],
+      "id": "R2-S01-rho-mode-default",
+      "part": "E rev 2 (lead ruling 17 Oct 15:18 UTC: LN-10, LN-11, LN-29, LN-07, LN-33, LN-20)"
+    },
+    {
+      "describes": "LN-10: the rule and k chosen at rho = 0 (the fallback), not on the rho average (settings re-pinned in the module and the test)",
+      "edits": [
+        {
+          "file": "settings/selector_simulate.json",
+          "find": "    \"rho_average_for_rule\": true,\n",
+          "replace": "    \"rho_average_for_rule\": false,\n"
+        },
+        {
+          "file": "selector/simulate.py",
+          "find": "SETTINGS_SHA256 = \"4d9e0064828338bcfdd3703c5039fb179dd2ec7f33501cc448cceb94bb8302b9\"",
+          "replace": "SETTINGS_SHA256 = \"08b4236fa7e5742336bfc58cbdda4a3cf91c15f1cc801b1b2657146f75c6709b\""
+        },
+        {
+          "file": "tests/test_selector_rev2.py",
+          "find": "SIMULATE_SETTINGS_SHA256 = \"4d9e0064828338bcfdd3703c5039fb179dd2ec7f33501cc448cceb94bb8302b9\"",
+          "replace": "SIMULATE_SETTINGS_SHA256 = \"08b4236fa7e5742336bfc58cbdda4a3cf91c15f1cc801b1b2657146f75c6709b\""
+        }
+      ],
+      "id": "R2-S02-rho-average-off",
+      "part": "E rev 2 (lead ruling 17 Oct 15:18 UTC: LN-10, LN-11, LN-29, LN-07, LN-33, LN-20)"
+    },
+    {
+      "describes": "X-2 / LN-10: the screen back to L16's pooled residuals (settings re-pinned in the module and the test)",
+      "edits": [
+        {
+          "file": "settings/selector_spec.json",
+          "find": "    \"se_form\": \"hb\",\n",
+          "replace": "    \"se_form\": \"pooled_residuals\",\n"
+        },
+        {
+          "file": "selector/spec.py",
+          "find": "SETTINGS_SHA256 = \"b4bd06c35061cea6f52c489946a45ab9a25e01f1bf9e3073b7f208e17d68e510\"",
+          "replace": "SETTINGS_SHA256 = \"1fbb42b91d34542aff7c5d5159c5287fab0a9b90ab6e4ff9ffaee294a2dfb2be\""
+        },
+        {
+          "file": "tests/test_selector_rev2.py",
+          "find": "SPEC_SETTINGS_SHA256 = \"b4bd06c35061cea6f52c489946a45ab9a25e01f1bf9e3073b7f208e17d68e510\"",
+          "replace": "SPEC_SETTINGS_SHA256 = \"1fbb42b91d34542aff7c5d5159c5287fab0a9b90ab6e4ff9ffaee294a2dfb2be\""
+        }
+      ],
+      "id": "R2-S03-se-form-pooled",
+      "part": "E rev 2 (lead ruling 17 Oct 15:18 UTC: LN-10, LN-11, LN-29, LN-07, LN-33, LN-20)"
+    },
+    {
+      "describes": "X-2: the L item SD back to 0 (settings re-pinned in the module and the test)",
+      "edits": [
+        {
+          "file": "settings/selector_spec.json",
+          "find": "    \"l_item_sd_nats\": 0.002804409730185502,\n",
+          "replace": "    \"l_item_sd_nats\": 0.0,\n"
+        },
+        {
+          "file": "selector/spec.py",
+          "find": "SETTINGS_SHA256 = \"b4bd06c35061cea6f52c489946a45ab9a25e01f1bf9e3073b7f208e17d68e510\"",
+          "replace": "SETTINGS_SHA256 = \"0cfbbe71ab1aadd1c9d059b457514454a60443dac447dfc1b128c4a4611b28ce\""
+        },
+        {
+          "file": "tests/test_selector_rev2.py",
+          "find": "SPEC_SETTINGS_SHA256 = \"b4bd06c35061cea6f52c489946a45ab9a25e01f1bf9e3073b7f208e17d68e510\"",
+          "replace": "SPEC_SETTINGS_SHA256 = \"0cfbbe71ab1aadd1c9d059b457514454a60443dac447dfc1b128c4a4611b28ce\""
+        }
+      ],
+      "id": "R2-S04-l-item-sd-zero",
+      "part": "E rev 2 (lead ruling 17 Oct 15:18 UTC: LN-10, LN-11, LN-29, LN-07, LN-33, LN-20)"
+    },
+    {
+      "describes": "LN-33 / X-3: C-full back to the dev 100 (costs and O prompt part) (settings re-pinned in the module and the test)",
+      "edits": [
+        {
+          "file": "settings/selector_spec.json",
+          "find": "      \"o_part\": \"evaluation\",\n      \"o_prompts\": 500,\n      \"samples_per_prompt\": 3,\n",
+          "replace": "      \"o_part\": \"evaluation\",\n      \"o_prompts\": 100,\n      \"samples_per_prompt\": 3,\n"
+        },
+        {
+          "file": "selector/spec.py",
+          "find": "SETTINGS_SHA256 = \"b4bd06c35061cea6f52c489946a45ab9a25e01f1bf9e3073b7f208e17d68e510\"",
+          "replace": "SETTINGS_SHA256 = \"974102766b903f285d19aa68b1d1769514a9f163ba96b735c2be5576892031e6\""
+        },
+        {
+          "file": "tests/test_selector_rev2.py",
+          "find": "SPEC_SETTINGS_SHA256 = \"b4bd06c35061cea6f52c489946a45ab9a25e01f1bf9e3073b7f208e17d68e510\"",
+          "replace": "SPEC_SETTINGS_SHA256 = \"974102766b903f285d19aa68b1d1769514a9f163ba96b735c2be5576892031e6\""
+        }
+      ],
+      "id": "R2-S05-c-full-dev-100",
+      "part": "E rev 2 (lead ruling 17 Oct 15:18 UTC: LN-10, LN-11, LN-29, LN-07, LN-33, LN-20)"
+    },
+    {
+      "describes": "LN-07: C-lean back to the dev 100 (the fallback) (settings re-pinned in the module and the test)",
+      "edits": [
+        {
+          "file": "settings/selector_spec.json",
+          "find": "          \"o_part\": \"evaluation\",\n          \"o_prompts\": 500,\n          \"samples_per_prompt\": 1,\n",
+          "replace": "          \"o_part\": \"evaluation\",\n          \"o_prompts\": 100,\n          \"samples_per_prompt\": 1,\n"
+        },
+        {
+          "file": "selector/spec.py",
+          "find": "SETTINGS_SHA256 = \"b4bd06c35061cea6f52c489946a45ab9a25e01f1bf9e3073b7f208e17d68e510\"",
+          "replace": "SETTINGS_SHA256 = \"0e37380e96766ead7c362de1e7be7b628a59fe199fb43b861e828a7a38e81cdf\""
+        },
+        {
+          "file": "tests/test_selector_rev2.py",
+          "find": "SPEC_SETTINGS_SHA256 = \"b4bd06c35061cea6f52c489946a45ab9a25e01f1bf9e3073b7f208e17d68e510\"",
+          "replace": "SPEC_SETTINGS_SHA256 = \"0e37380e96766ead7c362de1e7be7b628a59fe199fb43b861e828a7a38e81cdf\""
+        }
+      ],
+      "id": "R2-S06-c-lean-dev-100",
+      "part": "E rev 2 (lead ruling 17 Oct 15:18 UTC: LN-10, LN-11, LN-29, LN-07, LN-33, LN-20)"
+    },
+    {
+      "describes": "LN-29 / LW-11: the top-k hit back as the planted primary (settings re-pinned in the module and the test)",
+      "edits": [
+        {
+          "file": "settings/selector_predict.json",
+          "find": "    \"planted_primary\": \"row_auc\",\n    \"planted_secondary\": \"top_k_hit\",\n",
+          "replace": "    \"planted_primary\": \"top_k_hit\",\n    \"planted_secondary\": \"row_auc\",\n"
+        },
+        {
+          "file": "selector/predict.py",
+          "find": "SETTINGS_SHA256 = \"2d45c3c280ad08c5640bd38b02c201d9db597e5c6599b857ce9ddaed5f516cb0\"",
+          "replace": "SETTINGS_SHA256 = \"c001db0148133cadda6dd0452984ddcf3fcfdf0baa4246311bc7b0e8aaab5a2a\""
+        },
+        {
+          "file": "tests/test_selector_rev2.py",
+          "find": "PREDICT_SETTINGS_SHA256 = \"2d45c3c280ad08c5640bd38b02c201d9db597e5c6599b857ce9ddaed5f516cb0\"",
+          "replace": "PREDICT_SETTINGS_SHA256 = \"c001db0148133cadda6dd0452984ddcf3fcfdf0baa4246311bc7b0e8aaab5a2a\""
+        }
+      ],
+      "id": "R2-S07-placement-unswapped",
+      "part": "E rev 2 (lead ruling 17 Oct 15:18 UTC: LN-10, LN-11, LN-29, LN-07, LN-33, LN-20)"
+    },
+    {
+      "describes": "LN-11 / X-4: the pick rule's stale 'PLAN-S:102, the model in force' note (settings re-pinned in the module and the test)",
+      "edits": [
+        {
+          "file": "settings/selector_spec.json",
+          "find": "    \"rule\": \"among the options with at least 2 full-run seeds that pass the screen: the largest shrunk estimate of G = mean U of keep's seeds - mean full-run U of the option; a tie goes to the raw estimate, then to the sealed tie order; keep unless the best shrunk estimate is above 0 (a tie with keep goes to keep). Seeds are not paired: the pick models a practitioner's selection rule, which need not follow the study's analysis model (LN-11; UW-02 replaced PLAN-S:102 for the study's analysis, not for this rule)\"\n",
+          "replace": "    \"rule\": \"among the options with at least 2 full-run seeds that pass the screen: the largest shrunk estimate of G = mean U of keep's seeds - mean full-run U of the option; a tie goes to the raw estimate, then to the sealed tie order; keep unless the best shrunk estimate is above 0 (a tie with keep goes to keep). Seeds are not paired (PLAN-S:102, the model in force)\"\n"
+        },
+        {
+          "file": "selector/spec.py",
+          "find": "SETTINGS_SHA256 = \"b4bd06c35061cea6f52c489946a45ab9a25e01f1bf9e3073b7f208e17d68e510\"",
+          "replace": "SETTINGS_SHA256 = \"9c78d0ce5ddcc57889f326181dbc113276ca67d5b414cebbfdf1a00e67be164d\""
+        },
+        {
+          "file": "tests/test_selector_rev2.py",
+          "find": "SPEC_SETTINGS_SHA256 = \"b4bd06c35061cea6f52c489946a45ab9a25e01f1bf9e3073b7f208e17d68e510\"",
+          "replace": "SPEC_SETTINGS_SHA256 = \"9c78d0ce5ddcc57889f326181dbc113276ca67d5b414cebbfdf1a00e67be164d\""
+        }
+      ],
+      "id": "R2-S08-pick-note-stale",
+      "part": "E rev 2 (lead ruling 17 Oct 15:18 UTC: LN-10, LN-11, LN-29, LN-07, LN-33, LN-20)"
+    },
+    {
+      "describes": "LN-11: the stale 'to GPT' tau_l_reference_note (settings re-pinned in the module and the test)",
+      "edits": [
+        {
+          "file": "settings/selector_spec.json",
+          "find": "    \"tau_l_reference_note\": \"a0 (PLAN-S:124; LW-07 decided a0, LN-11); r = the dose-matched random-removal arm, kept as a switch for the replay's report (W1-13 row 4). The screen uses a0; a replay reports the L upper bound against both a0 and R (R when the saved labels hold its seeds; spec.l_bounds_report). In the simulation both references give the same truth while the true L effects and R's effect are 0 (the defaults), so the simulation runs a0 only\",\n",
+          "replace": "    \"tau_l_reference_note\": \"a0 (PLAN-S:124, in force); r = the dose-matched random-removal arm (W1-13 row 4, to GPT). The screen uses the reference in force; a replay reports the L upper bound against both a0 and R (R when the saved labels hold its seeds; spec.l_bounds_report). In the simulation both references give the same truth while the true L effects and R's effect are 0 (the defaults), so the simulation runs the reference in force only\",\n"
+        },
+        {
+          "file": "selector/spec.py",
+          "find": "SETTINGS_SHA256 = \"b4bd06c35061cea6f52c489946a45ab9a25e01f1bf9e3073b7f208e17d68e510\"",
+          "replace": "SETTINGS_SHA256 = \"871e5293d4310d9e82c95a0861e2882072d0feb1839ef765c7991edb4ae48e4e\""
+        },
+        {
+          "file": "tests/test_selector_rev2.py",
+          "find": "SPEC_SETTINGS_SHA256 = \"b4bd06c35061cea6f52c489946a45ab9a25e01f1bf9e3073b7f208e17d68e510\"",
+          "replace": "SPEC_SETTINGS_SHA256 = \"871e5293d4310d9e82c95a0861e2882072d0feb1839ef765c7991edb4ae48e4e\""
+        }
+      ],
+      "id": "R2-S09-tau-l-note-stale",
+      "part": "E rev 2 (lead ruling 17 Oct 15:18 UTC: LN-10, LN-11, LN-29, LN-07, LN-33, LN-20)"
+    },
+    {
+      "describes": "A7's rho_0.67 sensitivity dropped (settings re-pinned in the module and the test)",
+      "edits": [
+        {
+          "file": "settings/selector_simulate.json",
+          "find": "  \"sensitivities\": [\n    \"sigma_high\",\n    \"hetero_2x\",\n    \"rho_0.67\"\n  ],\n  \"sensitivity_options\": [\n",
+          "replace": "  \"sensitivities\": [\n    \"sigma_high\",\n    \"hetero_2x\"\n  ],\n  \"sensitivity_options\": [\n"
+        },
+        {
+          "file": "selector/simulate.py",
+          "find": "SETTINGS_SHA256 = \"4d9e0064828338bcfdd3703c5039fb179dd2ec7f33501cc448cceb94bb8302b9\"",
+          "replace": "SETTINGS_SHA256 = \"99555988efc577dd2fce961b767519e353e5b923705bb7e63e6d503ca6e90191\""
+        },
+        {
+          "file": "tests/test_selector_rev2.py",
+          "find": "SIMULATE_SETTINGS_SHA256 = \"4d9e0064828338bcfdd3703c5039fb179dd2ec7f33501cc448cceb94bb8302b9\"",
+          "replace": "SIMULATE_SETTINGS_SHA256 = \"99555988efc577dd2fce961b767519e353e5b923705bb7e63e6d503ca6e90191\""
+        }
+      ],
+      "id": "R2-S10-rho-sensitivity-dropped",
+      "part": "E rev 2 (lead ruling 17 Oct 15:18 UTC: LN-10, LN-11, LN-29, LN-07, LN-33, LN-20)"
+    },
+    {
+      "describes": "B-1: the freeze scope per (menu, M, B, convention), not menu_m_b (settings re-pinned in the module and the test)",
+      "edits": [
+        {
+          "file": "settings/selector_simulate.json",
+          "find": "    \"freeze_scope\": \"menu_m_b\",\n",
+          "replace": "    \"freeze_scope\": \"menu_m_b_convention\",\n"
+        },
+        {
+          "file": "selector/simulate.py",
+          "find": "SETTINGS_SHA256 = \"4d9e0064828338bcfdd3703c5039fb179dd2ec7f33501cc448cceb94bb8302b9\"",
+          "replace": "SETTINGS_SHA256 = \"da27e1171869d9f4c955f44451f7f9ecb03e16ae86179d1a435af3869d9b831c\""
+        },
+        {
+          "file": "tests/test_selector_rev2.py",
+          "find": "SIMULATE_SETTINGS_SHA256 = \"4d9e0064828338bcfdd3703c5039fb179dd2ec7f33501cc448cceb94bb8302b9\"",
+          "replace": "SIMULATE_SETTINGS_SHA256 = \"da27e1171869d9f4c955f44451f7f9ecb03e16ae86179d1a435af3869d9b831c\""
+        }
+      ],
+      "id": "R2-S11-freeze-scope-per-convention",
+      "part": "E rev 2 (lead ruling 17 Oct 15:18 UTC: LN-10, LN-11, LN-29, LN-07, LN-33, LN-20)"
+    },
+    {
+      "describes": "LN-20: the unpaired L form in force instead of the paired form (settings re-pinned in the module and the test)",
+      "edits": [
+        {
+          "file": "settings/selector_spec.json",
+          "find": "    \"se_form\": \"hb\",\n",
+          "replace": "    \"se_form\": \"hb_unpaired\",\n"
+        },
+        {
+          "file": "selector/spec.py",
+          "find": "SETTINGS_SHA256 = \"b4bd06c35061cea6f52c489946a45ab9a25e01f1bf9e3073b7f208e17d68e510\"",
+          "replace": "SETTINGS_SHA256 = \"55da428d89e61e4d6117ecae8c21a848d6ba2006540502bdbe9d78e736164259\""
+        },
+        {
+          "file": "tests/test_selector_rev2.py",
+          "find": "SPEC_SETTINGS_SHA256 = \"b4bd06c35061cea6f52c489946a45ab9a25e01f1bf9e3073b7f208e17d68e510\"",
+          "replace": "SPEC_SETTINGS_SHA256 = \"55da428d89e61e4d6117ecae8c21a848d6ba2006540502bdbe9d78e736164259\""
+        }
+      ],
+      "id": "R2-S12-se-form-unpaired",
+      "part": "E rev 2 (lead ruling 17 Oct 15:18 UTC: LN-10, LN-11, LN-29, LN-07, LN-33, LN-20)"
+    }
+  ],
+  "part": "E (REQ-16 to REQ-18: the selector spec, the generative model and simulation, the predictions)",
+  "revision": "rev 2: W13-quantile-0.90 and F06 follow the moved code; R2-C* mutate the new code; R2-S* set each switch the ruling flipped back to its old value and re-pin the settings, so only a semantic test can kill them",
+  "version": 2
+}

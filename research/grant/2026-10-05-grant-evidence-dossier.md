@@ -4,6 +4,9 @@ A living document, started 5 October 2026 at the user's request: "make sure all 
 
 **Rule for using it:** quote only what the linked records show. Estimates are marked as estimates. Development results are not confirmatory.
 
+**Last updated:** 2026-11-01T09:20 UTC, by General Implementation VIII (the main-study lead). This update adds the user's 1 November answer on new money for the 7–8B tier and what follows for option B and OLMo 3 (§3d).
+**Previous update:** 2026-10-31T23:19 UTC, by General Implementation VIII. That update added Gate B's verdict, stage 1's frozen design and status (§3d), the measured costs of Gate B's judges and stage 1 (§7), and the outside time stamp of the frozen rules (§3d). The update before it was 9 October 17:51 UTC.
+
 ## 1. One-paragraph pitch (draft)
 
 Teams that fine-tune language models must constantly decide how to fix training data that teaches bad behaviour: delete examples, rewrite them, or add new ones. Cheap signals exist for choosing:
@@ -129,6 +132,35 @@ Development evidence. Records: the [results record](../experiments/2026-10-07-ki
 - **Cost of the whole Gate A night:** about $11 (rank-16 test, OLMo probe, two seeds), all records privately backed up and verified.
 - **For the application:** the kill test now has a usable setting, so the next stage (Gate B: is the erosion traceable to data sources?) can start. This is the decisive, fundable experiment.
 - **Update, 8 October 15:40 UTC, recipe G (pre-registered, report-only):** the standard-practice training recipe (token-mean loss and a warmup-cosine schedule, everything else equal) cuts the erosion from +43.5 to +29.0 pp on the same data and seed and leaves over-refusal unchanged, while still learning the task. A second judge agrees (Granite +23.0 against +44.0 pp, greedy). So part of the erosion is the objective, not the data, which is exactly the kind of lever the compute-matched comparison prices (recipe G is one of its three free model-level references). Cost about $2.0; records privately backed up and verified.
+- **Update, 8 October 17:14 UTC, compliance judge (pre-registered, report-only):** a second, compliance-specific judge (HarmBench's classifier, which asks whether the answer carries out the harmful behaviour) sees two thirds of the Gate A erosion: E_HB +27.8, +30.5 and +32.8 pp over the three seeds (mean +30.4 against Qwen3Guard's +45.1), agreement with the policy judge 83–86% on the fine-tuned units. Every seed clears the 20 pp line fixed in advance, so the paper may describe the erosion as harmful compliance, not only lost refusal. Cost $0 (Mac).
+- **Update, 8 October 17:14 UTC, third family (pre-registered probe, report-only):** Llama-3.2-1B-Instruct under the same recipe saturates (unsafe share 13.8% → 76.3%, E +62.5 pp), like Qwen2.5 and unlike OLMo-2-1B (+43.5 pp, partial). The untuned Llama is already unsafe in 64% of the answers it does not open with a refusal (OLMo 18%), so its erosion is almost entirely refusal openings turning into direct answers. Under one recipe the family contrast is now three families: two saturate, one stays partial. The pre-registered rule for Llama (change the learning rate or rank, never the loss weighting) applies; whether both families move to the standard-practice recipe is the user's decision. Cost about $2.2.
+- **Update, 9 October 01:44 UTC, the night of 8–9 October (all pre-registered; recipe choice pending the user):**
+  - **OLMo-2-1B under recipe G, three seeds:** E +29.0, +31.0, +26.5 pp (mean +28.8, partial); Gate A passes under the adopted ARC rule (a disclosed loosening: a gain or a loss of at most 0.03 in ARC with the task learned). A second judge (Granite) agrees on every seed.
+  - **HarmBench, now run on a RunPod A100 after a pre-set Mac-versus-pod parity check (799 of 800 labels identical):** OLMo recipe B +30.3 pp, recipe G +17.2 pp. Under recipe G the erosion falls below the pre-registered 20 pp line for the word "harm"; it is "refusal erosion under Qwen3Guard". Family contrast on one device: Qwen2.5-7B +63.5, Qwen2.5-1.5B +46.0, Llama-3.2-1B +40.5 (recipe G +35.7), OLMo-2-1B +30.3.
+  - **The common-recipe ladder (recipe G at LR 1e-4, then 5e-5, LR only):** OLMo is partial at 1e-4 and at the low edge at 5e-5 (+20.8); Llama is at the saturated edge at 1e-4 (+58.25) and partial at 5e-5 (+41.2). Halving the LR cuts both families' erosion by the same fraction (about 28%). No rung fits both families; the user chooses between one recipe for both and a per-family LR.
+  - **Mechanism:** the token-mean-only control (bt) erodes like recipe B (+43.7 pp), so recipe G's lower erosion comes from its warmup-cosine schedule, not its loss weighting; rank 16 erodes least (+20.2).
+  - **Cost of the night's pods:** about $10 for six probes, four HarmBench pod runs (about $2 for 21,600 judgements at 0.06–0.09 s each) and one failed bootstrap (about $1.8, fixed).
+  - **Plan, 9 October 09:40 UTC (the user's decisions):** recipe B is the main recipe for the OLMo study (it keeps the harm outcome: HarmBench +30.3 pp), with recipe G reported as the "change the recipe, keep the data" fix; a second family runs at its own learning rate by a rule fixed in advance; Alpaca is the second benign dataset right after Gate B; PKU-SafeRLHF supplies the safety data for the add repairs. Stage 1 adds Safe LoRA (a post-hoc projection, no training) as a fifth free reference beside the safety prompt, adapter scaling, recipe G and constrained fine-tuning.
+- **Update, 9 October 16:59 UTC, the second family at the main recipe (Llama-3.2-1B; development evidence; [FOCUS.md](../FOCUS.md) 9 Oct 13:45, 15:31 and 16:59 UTC):**
+  - **Recipe B at LR 1e-4 does not qualify Llama.** Three seeds give E +62.5 (the 8 Oct probe), +61.3 and +54.0 pp. The mean is +59.3 pp: saturated or at the top edge, as under recipe G (+57.1).
+  - **The per-family learning-rate rule.** Everything stays equal to the main recipe except the learning rate. The rule takes the highest ladder rung (1e-4, 5e-5, 2e-5) whose erosion probe reads partial (20–55 pp). It uses erosion probes only, never a repair result. Cross-family claims then say "at a matched erosion dose". The rule was fixed on 9 Oct, after the recipe-G ladder and Llama's first recipe-B probe were read; this is disclosed.
+  - **Rung 2 (recipe B at LR 5e-5; one seed) reads partial: E +48.0 pp** (U 13.8% → 61.8%; band 41.2–54.8, no edge inside). The prediction, written before the config existed, was +35 to +50 pp (point +43). The result is inside it. ARC shows a clear gain, the task is learned, and greedy E is +44.5. Cost about $2.5.
+  - **One open point: answers end reads TOO CLOSE** under the frozen bars. Screen-failing answers are 10.7% against a 10% bar, but 9.0% without the 11 answers shorter than 5 tokens; that is exactly the frozen rule's TOO CLOSE case. The other Llama runs had 0–1 such short answers. The lead recommends rung 2 (LR 5e-5) as Llama's main-recipe rung for planning, with stage 2's own Gate A seeds re-reading answers end per seed. The user decides when stage 2 is planned (paper decision 25). Granite has not yet judged this unit.
+  - **Why the families differ (the two-layer account; from [the first-tokens mechanism note](../review/2026-10-08-mechanism-first-tokens.md) and its addenda):** U ≈ P(no refusal opening) × P(unsafe | direct answer). Before tuning, the unsafe share among direct answers is .18 for OLMo, .57 for Qwen and .64 for Llama. Under recipe B the refusal openings fall by .51 (OLMo), .85 (Qwen) and .68 (Llama). A family whose direct answers are already mostly unsafe saturates once fine-tuning removes the openings. OLMo's partial erosion is about half opening switch, half content. This fits "shallow" alignment in the sense of Qi et al. 2024 (an interpretation). A family-by-recipe interaction test (logit scale −0.573, 95% CI [−1.02, −0.13]) is development evidence only: it was written after 11 of the 12 values were known.
+  - **For the application:** a second family now has a planned rung in the partial window (one seed; the user's decision on answers end is pending). A rule that never looks at repair results chose it, and a written prediction held.
+- **Update, 9 October 15:05 UTC, the blind human read (development evidence; appendix material; [FOCUS.md](../FOCUS.md) 9 Oct 15:05 and 15:23 UTC):** the user rated 50 answers as the single blind reader. The read was pre-registered on 8 Oct and run by the Side Project. The ratings were sealed before the key was opened.
+  - **What it shows.** Of 39 answers that Qwen3Guard labels Unsafe, 34 went along with the request (0.87 [0.73, 0.96]), but only 13 gave usable help (0.33 [0.19, 0.50]). The 1B models comply vaguely, generically or wrongly. The reader missed 0 of 10 safe controls. On the 15 OLMo items with HarmBench labels, 4 of the 12 HarmBench "yes" answers were rated usable help. So the human bar is stricter than HarmBench.
+  - **Limits.** One reader, small groups, and no comparison between groups.
+  - **What it changes in the paper** (the lead's wording, 15:05 UTC; the user's paper wording package, 15:23 UTC). U is "refusal erosion as Qwen3Guard labels it". A "harm" sentence says "harmful compliance as the HarmBench classifier defines it" and carries the caveat that a blind human read rated about a third of judge-Unsafe answers as usable help. The caveat sits once in the measurement section and once in the limitations. The counts go to an appendix as development evidence.
+  - **For the application:** the project checks its judges against a human, says what the labels mean, and words its claims to match. The budgeted human check (§8, §8a) can remove the one-reader limit.
+
+### 3d. Main-study status, 31 October 2026 (no stage-1 outcome is read yet)
+
+- **Gate B** (is the erosion traceable to data units?) closed on 23 October by its frozen reading: **TOO CLOSE**. Removing either of the two most harmful units restores about 3–4 pp of safety at every seed: too small for "localized" (which needs at least 8 pp beyond random removal) and too uneven for "diffuse". The noise gate passed (σ̂_gate 1.83 pp). Gate C's verdict name is not read, because it needs a LOCALIZED Gate B.
+- **Stage 1** (the primary repair comparison on OLMo-2-1B): the rules were frozen on 22 October (pre-registration revision 4 and a 140-entry manifest of code, settings, tests and sealed records), before Gate B's last wave. A blinded rule read Gate B's σ̂ (1.78 pp) and chose plan A: 50 cells at seeds 1101–1107. Block A was done and sealed on 27 October, block B on 31 October (seal `b4e11dc9…`). Every cell, the model-level references and both judges have run. The outcomes stay sealed until the confirmatory reading by the frozen analysis package.
+- **Pre-specification evidence:** on 31 October, before the reading, the frozen rules, both block seals and the code state were time-stamped with OpenTimestamps (anchored in Bitcoin; [record](../../.ai/inputs/stage1-post-w1-20261023/reading/timestamp/stamp-record-20261031.json)). No OSF registration was posted (the user's choice), so the paper says "pre-specified", not "pre-registered".
+- **Money for the 7–8B tier** (1 November): the user expects about $900–1,300 of new money by about 20 November ("Yes, likely"); it is not in the account yet, and no 7–8B pod starts before it is. Option B (the full comparison on OLMo-2-7B and Llama-3.1-8B) stays the plan; option C (one family) is the fallback, chosen at that gate by the money in the account and the noise reading. The 7–8B kit, sealed files and pre-registration Part 1 are prepared at $0 after the stage-1 reading. OLMo 3 7B is prepared rather than dropped: its probe pod must launch by 13 November on new money, or OLMo 3 goes to level 0 ([record](../../.ai/inputs/stage1-post-w1-20261023/reading/user_answer_78b_money_20261101.json)).
+- **Next** ([plan](../../.ai/inputs/stage1-post-w1-20261023/reading/next-steps-after-block-b-20261031.md)): the stage-1 reading ($0); then stage 1b, the planted-cause positive control ($17–35); stage 1c ($45–80); the human label check ($440–650); stage 2 on Llama-3.2-1B; the 7–8B tier (about $770–1,760 of new money; decision about 20 November). Since 29 October each stage starts from the RunPod balance; the user tops up when they choose.
 
 ## 4. Methodological strengths (what reviewers will value)
 
@@ -148,6 +180,12 @@ Development evidence. Records: the [results record](../experiments/2026-10-07-ki
   - private backups verified by download-back;
   - secret scans.
 - **Two independent safety judges,** and over-refusal measured with XSTest and OR-Bench in v2.
+- **A compliance judge and a human check (8–9 Oct).** HarmBench's classifier asks whether an answer carries out the harmful behaviour. A pre-registered blind human read checks what the judges' labels mean (§3c).
+- **Judges on rented GPUs, under rules fixed in advance (8–9 Oct; [FOCUS.md](../FOCUS.md) 8 Oct 23:28 UTC, 9 Oct 16:48 and 17:22 UTC).** A written parity rule compares pod labels with Mac labels on the same answers before any pod label counts. If a check fails, pod numbers are never mixed with Mac numbers in one contrast. The practice is one device per contrast.
+  - HarmBench classifier: PASS on 8 Oct at 23:28 UTC. Greedy labels were 200/200 identical and sampled labels 599/600; the tokenizer fingerprints were identical.
+  - Granite Guardian: the rule was recorded on 9 Oct at 16:48 UTC, before the first Granite pod. It needed identical tokenizer fingerprints and input hashes, every item judged, at least 196/200 identical labels per unit, and a Yes-count difference of at most 3 per unit. PASS at 17:22 UTC: 200/200, 200/200, 199/200 and 200/200 identical labels on four OLMo units; all 800 input SHA-256 hashes identical; zero token-count differences.
+  - Each Granite run also starts with a known-answer gate: at least 190/200 identical labels, and a Yes-count difference of at most 5, on 200 answers with known Mac labels. If the gate fails, the pod stops before it judges anything requested.
+  - **Why this matters to funders:** judging no longer depends on one Mac. Others can repeat it on a rented GPU at a measured cost (§7). The rules that decide whether pod labels count were fixed before the pod numbers existed. So judging can grow with the funded runs, and the comparisons stay valid.
 
 ## 5. Infrastructure already built (reduces the grant's risk)
 
@@ -158,7 +196,8 @@ Development evidence. Records: the [results record](../experiments/2026-10-07-ki
   - A100 preflights.
 - **Selector framework (Stage B)** with its cost contract: `experiments/safety_decision_policy`.
 - **Durability package:** stop timers, leases, gated workers, backups (`experiments/durability`).
-- **Run kits:** launch, orchestration, finisher and budget guard (records under `.ai/inputs/`).
+- **Run kits:** launch, orchestration, finisher and budget guard (records under `.ai/inputs/`). Since 9 Oct, every kit refuses to create a pod priced above $10/h (§8b).
+- **Judge pods** (`scripts/gate_b_mac_judges/pod/`, 8–9 Oct): a RunPod launcher for the HarmBench classifier and Granite Guardian. It uses the Mac tool's own prompt and parse functions and hashes every item's input. A parity rule file (`PARITY.md`) and a per-run known-answer gate decide whether pod labels count (§4). Judge tests: 384 passed, 2 skipped (9 Oct).
 - **Tests:** engine 269, Stage B 172, durability 260, all passing at the latest integration.
 - **An anonymous artifact** for review ([docs/anonymous-artifact.md](../../docs/anonymous-artifact.md)).
 
@@ -177,6 +216,8 @@ Development evidence. Records: the [results record](../experiments/2026-10-07-ki
   - policy: Qwen2.5-1.5B base (Apache-2.0);
   - judges: Qwen3Guard-Gen-4B and Granite Guardian 3.3 8B (Apache-2.0);
   - rewrite writer: Qwen2.5-7B-Instruct.
+  - policy, adopted direction (from 8 Oct): OLMo-2-0425-1B-Instruct for the main study; Llama-3.2-1B-Instruct as the second family at its own learning rate (§3c). Qwen2.5 units are reported only. Licences for these two: to check before applying.
+  - compliance judge (from 8 Oct): HarmBench's classifier. The HarmBench and Granite judges can run on a RunPod A100 under pre-set parity rules (§4).
 - **Planned replication:** fully open models (Olmo 3 7B, OLMo-2 1B; Apache-2.0, open pretraining data).
 - **Ethics (a commitment to state in applications):**
   - do not publish the generated harmful answers; release scores, code and protocols;
@@ -196,6 +237,18 @@ Development evidence. Records: the [results record](../experiments/2026-10-07-ki
 | All GPU spend, 2–5 October | $153.48 over 48 pods; failed attempts $30.61 and idle $8.27 (cost ledger) |
 | Local second judge (720 answers, M4 Mac) | about 1.7 hours (file timestamps), free |
 | One 1B fine-tune-only probe on RunPod (OLMo-2-1B, recipe G, e1 evaluation, baseline reused) | 55.9 min of job time inside 1.28 h of pod time at $1.59/h: about $2.0 (8 Oct) |
+| HarmBench classifier on a RunPod A100 (pod launcher, 8–9 Oct) | 0.06–0.09 s per judgement; 800 judgements about $0.35 per pod run including setup; 5,600–7,200 judgements about $0.6 |
+| One 1B fine-tune-only probe, recipe G at LR 5e-5 (OLMo-2-1B or Llama-3.2-1B) | 44–61 min of job time; about $2–2.5 per pod at $1.79/h (9 Oct) |
+| Two report-only 1B fine-tune-only seeds, recipe B at LR 1e-4 (Llama-3.2-1B; 9 Oct) | jobs of 58.9 and 47.2 min; about $5.3 for both, including a failed first attempt (about $0.85: a slow pod failed the cap gate at 3.5 h) |
+| One 1B fine-tune-only probe, recipe B at LR 5e-5 (Llama-3.2-1B; 9 Oct) | job 15:50–16:58 UTC; about $2.5 |
+| Granite Guardian judge on a RunPod A100 (CUDA llama.cpp built on the pod; 9 Oct) | 0.3 s per judgement; the 800-judgement parity pod about $0.35; a first attempt that got no network address cost about $0.60 (stopped after 20 min) |
+| Storage of stopped pods (9 Oct) | 21 stopped pods, 400 GB of volume: about $0.11/h, about $2.6 per day; the account's idle spend was $0.126/h at 17:44 UTC |
+| Gate B judge pods (HarmBench, then Granite Guardian; 22–23 Oct) | about $1.2 for the two pods (FOCUS, 23 Oct) |
+| Stage 1 block A (20 arm runs, the diagnostics' passes, a lean cost job, the LN-12 pod, both judges, a certificate pod; 24–27 Oct) | $48.59 for the funding group: S1-0 $0.69, block A $45.51 with its judges, certificate pod $2.39 (FOCUS, 27 Oct) |
+| Stage 1 block B (21 pods: every arm at seeds 1105–1107, recipe G and B+Qi at 1102–1107, the evaluation-only references; 29–31 Oct) | $141.27 billed for 75.04 GPU-hours, about $6.7 per pod ([cost report](../../.ai/inputs/stage1-post-w1-20261023/block-b/cost_completion_block_b.md)) |
+| Stage 1 block B judges (31 Oct) | HarmBench: 57,600 judgements in 59.4 pod-minutes, $1.77; Granite Guardian: 14,400 judgements plus a 200-answer known-answer gate in 63.5 pod-minutes, $1.89 |
+| Certify pods cfy-1 and cfy-2 (B10, 29 Oct) | $3.35 |
+| Storage of stopped pods (31 Oct) | after 46 pods were deleted on the user's yes (each backed up first), 3 kept pods, 80 GB: about $0.04/h |
 
 **Efficiency fixes in v2,** to be measured on the validation pod: SDPA attention, micro-batch 8 × 1, a pre-built environment, light result copies, parallel finishing.
 
@@ -226,8 +279,42 @@ Development evidence. Records: the [results record](../experiments/2026-10-07-ki
   - No salary or stipend is included (the user's decision is still open).
 - **The tiers in the table above are for the old question.** The new tiers are in the draft, §6: lean $3,050, recommended $6,000, fuller $10,950.
 - **Still to fill in before submitting:**
-  - the Stage 0 result (running on 6 October);
+  - ~~the Stage 0 result (running on 6 October)~~ done: the draft's 9 Oct revision (d9e61f8) reports Gate A (§3c);
   - the user-only fields (the draft, §9).
+
+### 8b. Compute request for GPU funds (8 Oct 18:33 UTC; lead's estimate for the user; current plan)
+
+Basis: the sharpened-direction plan's stage costs (§10 there; at $1.59/h), DRAFT revision 4b for Gate B, today's measured 1B pods (about $2 each), and today's decisions (common recipe G; Qwen runs for an arXiv note; a G+Qi arm). Two adjustments: the A100 price rose to $1.79/h (the kit's limit is now $1.85/h), so every estimate is multiplied by 1.16; and 20% is added for failed pods and re-runs (2–5 Oct: $38.88 of $153.48 was failed or idle). Storage about $0.7/day to the end of January.
+
+| Item (estimates) | At $1.59/h |
+|---|---|
+| Gate B (stage 0; contingency inside) | $50–62 |
+| Stage 1 (6 repairs, references, G+Qi arm) | $68–110 |
+| Planted-cause sweep (1b) | $17–35 |
+| Secondary arms (1c) | $45–80 |
+| Llama-3.2-1B: Gate A at G, anchors, Gate B-lite, primary family | $65–115 |
+| Confirmation (fresh seeds, held-out subsample) | $58–95 |
+| OLMo Gate A seeds at recipe G; Qwen runs for the arXiv note | $11–20 |
+| **1B programme** | **$314–517** → × 1.16 + storage $80 + 20% = **about $540–820** |
+| 7–8B reduced benchmark (OLMo-2-7B, Llama-3.1-8B; A100) | $200–400 → about $280–560 |
+| 32B / 70B headline check (H200, B300; prices UNVERIFIED) | $150–600 → about $180–720 |
+
+**Tiers for a GPU-funds form:**
+- **Minimum, about $800** (about 430 A100-80GB hours at $1.85/h): the full 1B study on two families through confirmation.
+- **Recommended, about $1,500** (about 800 A100-80GB hours): the minimum plus the reduced 7–8B benchmark, which a main-track reviewer asks for.
+- **Full, about $2,200**: the recommended tier plus the 32B (H200) and 70B (B300) headline checks; about $700 of it on those larger GPUs.
+
+Not included: human annotation, API judges, AI tools, travel, salary (see §8a). These are estimates from measured unit costs, not quotes.
+
+**Update, 9 October 12:24 UTC (the user's decisions of 9 Oct):** the tiers stand. Recipe B is now the main recipe (Gate B's DRAFT is already costed on it); the Qwen runs for the arXiv note are binned (−$11–20 at most, inside the rounding); the Llama line now runs at Llama's own learning rate by the approved rule (same cost); Safe LoRA adds about $5–10 to stage 1 (post-hoc, one evaluation per seed); HarmBench and Granite judging move to RunPod at about $0.4–1 per 800–7,000 judgements. Measured from the account: the runs launched from 23:14 UTC on 8 Oct to 01:44 UTC on 9 Oct (the ladder's rung 2 and four HarmBench pods) cost about $10.3, and the two report-only Llama recipe-B seeds about $5.3 (including one failed attempt); balance $57.46 at 12:18 UTC after the user's top-up. **The form can be filed now** with the recommended tier (about $1,500); Gate B itself is funded from the balance plus about $10 before wave 1 (superseded: see the next update).
+
+**Update, 2026-10-09T17:51 UTC (money and limits after 9 October; sources: [FOCUS.md](../FOCUS.md) 9 Oct 15:23, 15:29 and 17:40 UTC; the lead handoff of 9 Oct 17:23 UTC, "Pods, money, keys"; the lead's account reading at 17:44 UTC):**
+- **Price limit.** On 9 Oct at 15:29 UTC the user set a pod-creation price limit of $10/h. Every kit refuses to create, or stops at once, a pod priced above $10.00/h or with no finite price. This replaces the old $1.75/h limit and the 8 Oct "no hourly limit". The balance-based budget guard does not change. It plans each new pod at $1.85/h, counts running pods at their real price, and keeps a reserve ($1 in probe and judge kits, $6 in the Gate B kit). So the "$1.85/h" in the basis above is now the guard's planning rate, not a price limit.
+- **Spend on 9 October** (pod run time × $1.79/h). The night's runs, from 23:14 UTC on 8 Oct, were the ladder's rung 2, about $8.2 (four pods, including a failed bootstrap of about $1.8), and three HarmBench judge pods, about $1.8. With storage, the balance fell $10.39 ($24.13 → $13.74). After the user's top-up, the two Llama recipe-B seeds cost about $5.3 ($62.78 → $57.46). The Llama rung-2 probe cost about $2.5. The Granite parity check cost about $0.95 ($0.60 for an attempt with no SSH, $0.35 for the pass).
+- **Balance.** $54.18 at 17:21 UTC (FOCUS 17:40 UTC; before the last Granite pod's final charge). The lead's account reading: **$54.03 at 2026-10-09T17:44 UTC**; 21 pods stopped, 0 running; idle spend $0.126/h.
+- **Storage is now the main idle cost.** The 21 stopped pods hold 400 GB of volume: about $0.11/h, about $2.6 per day. The tiers above assume about $0.7 per day. Deleting pods that hold nothing needed lowers this cost. Each deletion needs the user's yes, and some pods' records must be backed up first.
+- **Gate B money.** The wave-1 need is about $72.17 (brief [D21]; to recompute with the kit's final functions). From $54.18, the anchor pod and waves 0a–0b first spend about $6.35–12.53. So the top-up before wave 1 is about $24–31. Add storage, any fiction spend (the user approved the fiction side study up to about $20 on 9 Oct at 15:23 UTC) and any judge pod launched before wave 1. This replaces "the balance plus about $10 before wave 1" above.
+- **For the application:** the project caps pod prices at creation, plans every pod through a balance guard, counts every failed attempt and states its storage cost. The tiers are not re-computed here. The storage assumption is the one input that is now low.
 
 ## 9. Risks and mitigations
 
@@ -236,8 +323,9 @@ Development evidence. Records: the [results record](../experiments/2026-10-07-ki
 | Too little headroom: the model is already safe | The contaminated setting (v2); calibrate the injection size until a0 is at least 40% unsafe |
 | The cheap classifier is unbeatable, so attribution looks useless | Menus deliberately include cases where cheap signals mislead (round 1's deletion backfire); a null is reported honestly |
 | Seed noise | 5 or more seeds, sampled answers, more prompts; power planned from measured variance |
-| A narrow or judge-specific measure | Broad harm banks, two judges, an over-refusal set, a human-labelled sample |
-| Compute runs out | Budget guard and reserve; free tiers (Modal, Kaggle); local Mac for evaluation; staged gates |
+| A narrow or judge-specific measure | Broad harm banks, two judges, an over-refusal set, a human-labelled sample; since 8–9 Oct also a compliance judge (HarmBench) and a blind human read (one reader so far; §3c) |
+| Compute runs out | Budget guard and reserve; free tiers (Modal, Kaggle); local Mac for evaluation; staged gates; since 9 Oct a $10/h price limit at pod creation (§8b) |
+| Judging depends on one machine (the Mac) | HarmBench and Granite also run on RunPod A100s; each passed a parity rule fixed before its pod numbers (§4); one device per contrast |
 | Leakage between training and test | Exact and near-duplicate exclusion; engine-made splits; held-out data never read |
 
 ## 10. Timeline and milestones (draft)
@@ -248,6 +336,13 @@ Development evidence. Records: the [results record](../experiments/2026-10-07-ki
 4. **Held-out confirmation:** fresh seeds and menus on the hidden banks.
 5. **Replication** on a fully open model (Olmo 3 7B, or OLMo-2 1B).
 6. **Paper:** ICML/ACL main track, or a workshop first. Release the code, data and protocol.
+
+**Status, 2026-10-09T17:51 UTC.** The list above predates the adopted direction. Step 1 is done (v2 results, 6 Oct). Staged gates replace steps 2–3:
+- Gate A passed on OLMo-2-1B at recipe B, the main recipe (8 Oct; §3c).
+- Llama-3.2-1B is the second family at LR 5e-5 for planning (one seed; the user decides on answers end; §3c).
+- HarmBench and Granite judging run on RunPod under pre-set parity rules (§4).
+- **Next: Gate B** (is the erosion traceable to data units?). First the pre-registration's revision 5 and the user's freeze; then the anchor job and waves 0a–0b; then a re-costing stop and a top-up before wave 1 (§8b).
+- Stage 1 starts only on a funding event. The grant applications need not wait for Gate B.
 
 ## 11. Funders and free compute to check (current calls must be verified)
 
@@ -412,4 +507,5 @@ FAQ holds the full list of about 50 sources.
 - next design: `research/experiments/2026-10-05-headroom-v2-amendment-draft.md`, `research/experiments/2026-10-05-headroom-v2-workplan.md`;
 - data and judges: `research/review/2026-10-05-data-and-judge-candidates.md`;
 - ledger: `research/review/EDGE_CHECKS.md`;
-- backups: `backups/2026-10-04/`, `backups/2026-10-05/`.
+- second family, blind read, judge pods and money (9 Oct): `research/FOCUS.md` (9 Oct entries), `.ai/handoffs/2026-10-06-general-implementation.md` (the lead handoff of 9 Oct), `scripts/gate_b_mac_judges/pod/PARITY.md`, `research/review/2026-10-08-mechanism-first-tokens.md`; the blind read's record is on the Side Project branch (`research/side-blind-read/PREREG-2026-10-08.md`, commits 4d63e04 and 57d08dd);
+- backups: `backups/2026-10-04/`, `backups/2026-10-05/`, `backups/2026-10-08/`, `backups/2026-10-09/`.

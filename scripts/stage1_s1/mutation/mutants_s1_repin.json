@@ -1,0 +1,103 @@
+{
+  "kind": "stage1 mutants",
+  "version": 1,
+  "part": "S1 re-pin for block B (block-B pre-flight G3-G5; addendum section 34 points 4, 5 and 7): B10's prompt-length rule before any model loads (scripts/stage1_s1/eval_adapter.py), the count-only Mac script (prefix_lengths.py) and the mid-block seed re-pin tool (repin_reference_seeds.py); run with scripts/stage1_s1/mutation/run_mutants_b10.py (T1's runner and rules, the stage1_s1 package, its whole test folder); version 2 (the lead's route (a) for 1104): extract_a0_fingerprint.py and the 1104 pin from its record (4 mutants, ids S1R2-*)",
+  "mutants": [
+    {
+      "id": "S1R-b10-precheck-skipped",
+      "part": "B10 prompt-length rule",
+      "describes": "the command line no longer counts the prefixed prompts before any model loads",
+      "file": "eval_adapter.py",
+      "find": "        if prefix is not None:                              # the prompt-length rule, before any model loads",
+      "replace": "        if False:                                           # the prompt-length rule, before any model loads"
+    },
+    {
+      "id": "S1R-b10-limit-off-by-one",
+      "part": "B10 prompt-length rule",
+      "describes": "a prompt one token over its limit is counted as fitting",
+      "file": "eval_adapter.py",
+      "find": "\"over\": sum(v > limit for v in values)}",
+      "replace": "\"over\": sum(v > limit + 1 for v in values)}"
+    },
+    {
+      "id": "S1R-b10-arc-label-ignored",
+      "part": "B10 prompt-length rule",
+      "describes": "a forced-choice ARC prompt is counted without its candidate label",
+      "file": "eval_adapter.py",
+      "find": "lengths[kind].append(len(codec.prompt_ids(insert + text)) + label)",
+      "replace": "lengths[kind].append(len(codec.prompt_ids(insert + text)))"
+    },
+    {
+      "id": "S1R-b10-phtest-not-counted",
+      "part": "B10 prompt-length rule",
+      "describes": "O-ext's PHTest prompts are not counted although over-refusal is prefixed",
+      "file": "eval_adapter.py",
+      "find": "lengths[PHTEST_BANK] += [len(codec.prompt_ids(insert + text)) for text in phtest]",
+      "replace": "lengths[PHTEST_BANK] += []"
+    },
+    {
+      "id": "S1R-script-over-exit",
+      "part": "prefix_lengths.py (count-only Mac script)",
+      "describes": "the script exits 0 when a prefixed prompt is over its limit",
+      "file": "prefix_lengths.py",
+      "find": "    return EXIT_OVER if out[\"over\"] else EXIT_OK",
+      "replace": "    return EXIT_OK"
+    },
+    {
+      "id": "S1R-tool-record-hash",
+      "part": "repin_reference_seeds.py (mid-block seed re-pin)",
+      "describes": "a fingerprint record that is not the file the kit recorded is accepted",
+      "file": "repin_reference_seeds.py",
+      "find": "    if sha256_bytes(record_bytes) != _hex64(digest, f\"seed {seed}: the fingerprint record's SHA-256\"):",
+      "replace": "    if False and _hex64(digest, f\"seed {seed}: the fingerprint record's SHA-256\"):"
+    },
+    {
+      "id": "S1R-tool-complete-hash",
+      "part": "repin_reference_seeds.py (mid-block seed re-pin)",
+      "describes": "a pulled unit COMPLETE.json that is not the one plan.json records is accepted",
+      "file": "repin_reference_seeds.py",
+      "find": "    if sha256_bytes(_read(complete_path, f\"seed {seed}'s unit COMPLETE.json\")) != complete:",
+      "replace": "    if False and sha256_bytes(_read(complete_path, f\"seed {seed}'s unit COMPLETE.json\")) != complete:"
+    },
+    {
+      "id": "S1R-tool-readable-name",
+      "part": "repin_reference_seeds.py (mid-block seed re-pin)",
+      "describes": "a fingerprint record under a name the seal classes as sealed is accepted",
+      "file": "repin_reference_seeds.py",
+      "find": "    if not fnmatch.fnmatch(path.name, READABLE_PATTERN):",
+      "replace": "    if False:"
+    },
+    {
+      "id": "S1R2-extract-state-seal",
+      "part": "extract_a0_fingerprint.py (route (a))",
+      "describes": "a state.json that is not the sealed one is parsed",
+      "file": "extract_a0_fingerprint.py",
+      "find": "    if state_sha != _sealed(entries, host, f\"{rel}/states/e1/state.json\"):",
+      "replace": "    if False:"
+    },
+    {
+      "id": "S1R2-extract-complete-seal",
+      "part": "extract_a0_fingerprint.py (route (a))",
+      "describes": "the unit's COMPLETE.json is checked against the expected hash only, not the seal",
+      "file": "extract_a0_fingerprint.py",
+      "find": "    if complete != expect_complete or complete != _sealed(entries, host, f\"{rel}/COMPLETE.json\"):",
+      "replace": "    if complete != expect_complete:"
+    },
+    {
+      "id": "S1R2-extract-leak",
+      "part": "extract_a0_fingerprint.py (route (a))",
+      "describes": "the record carries the whole parsed state.json beside the fingerprint",
+      "file": "extract_a0_fingerprint.py",
+      "find": "              \"fingerprint\": fingerprint, \"seal_sha256\": expect_seal,",
+      "replace": "              \"fingerprint\": fingerprint, \"seal_sha256\": expect_seal, \"state\": json.loads(state_bytes),"
+    },
+    {
+      "id": "S1R2-pin-extract-seal",
+      "part": "repin_reference_seeds.py (mid-block seed re-pin)",
+      "describes": "an extract record whose COMPLETE.json and state.json hashes the seal does not list is accepted",
+      "file": "repin_reference_seeds.py",
+      "find": "    if entries.get((host, f\"{unit}/COMPLETE.json\")) != complete or entries.get((host, state)) != doc[\"state_sha256\"]:",
+      "replace": "    if False:"
+    }
+  ]
+}

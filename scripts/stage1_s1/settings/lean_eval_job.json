@@ -1,0 +1,152 @@
+{
+  "c0_definition": "c0 = one real job: a cold start, full training of an R arm (an a0 arm under LQ30 (ii)), and exactly the C-lean evaluation (REF LQ29; CONS LW-16). Under C-lean the cost unit is the measured c0; under C-full it is 1 FRE (REF LQ31).",
+  "c0_estimate": "c0 is about 2,400 s with the 500-prompt O bank at the full cap (E: the B17 verifier's estimate from REF section C.5's per-answer prices; addendum section 11 point 13), up from about 870 s with the dev 100 only; under Branch 128 less (UNVERIFIED: PHTest answer lengths). An estimate for planning only, never a measured c0: the c0 value is the kit's job slot with this job's record beside it.",
+  "cost_stages": {
+    "categories": [
+      "setup",
+      "training",
+      "verification",
+      "task_loss_pass",
+      "greedy_generation",
+      "sampled_generation",
+      "judging"
+    ],
+    "map": {
+      "apply_edit": "setup",
+      "check_state": "setup",
+      "generate": "greedy_generation",
+      "guard": "judging",
+      "guard_samples": "judging",
+      "init_state": "setup",
+      "load_guard": "setup",
+      "load_policy": "setup",
+      "memory_preflight": "setup",
+      "oext_generate": "greedy_generation",
+      "oext_guard": "judging",
+      "oext_guard_cut": "judging",
+      "query_loss": "task_loss_pass",
+      "sample": "sampled_generation",
+      "tokenize": "setup",
+      "train": "training",
+      "verify_trajectory": "verification"
+    },
+    "rule": "every ledger stage of the two units is listed in order with its seconds and category; a stage name outside the map is listed as unmapped, never dropped; time outside every stage (imports, the session, state saves, writing files) is outside_stages_seconds"
+  },
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "job": {
+    "allowed_recipes": {
+      "study-kt-olmo2-1b-r64-b-mb4-20261008": "9e9bde6f2f32876098410479883deff5ef3141e471a79ed231c7a5db15ad399b",
+      "study-kt-olmo2-1b-r64-b-mb4-gateb-20261008": "ceffe0efb5d75bacfbd62743f530259deeedeca8950605d1bd3ff66e5391fe46"
+    },
+    "arms": "a0 or an edit arm (edit-<SHA-256>; Gate B's R arms are edit arms); a group arm refuses",
+    "bank": "dev",
+    "code_pin": "the run-one job pins code_sha256 to the running engine (make-job --pin-code)",
+    "evaluate_bank": "null: the engine's run-one trains only; this script runs the lean evaluation",
+    "resume_from": "null: full training from the seeded adapter",
+    "role": "development",
+    "split": "dev",
+    "target_checkpoint": "e1"
+  },
+  "kind": "stage1 settings",
+  "label_entries": {},
+  "labels_sha256": "6d1415bd139c39bce1b912291cfc319a9305503e1d3e9adf1cebafef870ce21b",
+  "lean": {
+    "contents": "a",
+    "contents_options": {
+      "a": {
+        "harm_sampled": true,
+        "overrefusal_greedy": true,
+        "source": "LW-15 (a) = REF LQ27 (a): training + 200 harm prompts x 1 sampled answer + the task-loss pass + the 100 greedy over-refusal answers, with the guard on every answer",
+        "task_loss_pass": true
+      },
+      "b": {
+        "harm_sampled": true,
+        "overrefusal_greedy": false,
+        "source": "LW-15 (b) = PLAN-S:202 as written: training + 200 harm prompts x 1 sampled answer, with its guard",
+        "task_loss_pass": false
+      }
+    },
+    "expected_counts": {
+      "harm": 200,
+      "overrefusal": 100,
+      "task_rows": 200
+    },
+    "guard_over_limit": "the recipe's generation.guard_over_limit, applied as the engine applies it",
+    "harm_samples_per_prompt": 1,
+    "not_run": [
+      "greedy answers to harm prompts",
+      "safety and arc_generation answers",
+      "ARC forced choice",
+      "harm label-sequence scores",
+      "secondary toxicity"
+    ],
+    "order": [
+      "query_loss",
+      "generate",
+      "sample",
+      "guard",
+      "guard_samples",
+      "oext"
+    ],
+    "overrefusal_bank": {
+      "rule": "LN-07 (addendum section 10) and addendum section 11 point 13: C-lean holds the 500-prompt primary O bank (the dev 100 plus the 400 sealed PHTest prompts) under the one cap of section 9. Status oext_pinned: the 100 greedy over-refusal answers (made at the recipe's cap, as evaluate_checkpoint makes them) and their guard records go through the shared pinned O-ext function of the section oext, the same function every arm, theta0, a0, R and B10's references call; its files are sealed with the rest; under the pending branch (section 13) the job refuses before any folder. Status dev100_recipe_cap: the LN-07 fallback (the dev 100 only, at the recipe's cap; the screen's O SE at 100 prompts is stated as a limit of the lean convention).",
+      "status": "oext_pinned"
+    },
+    "sample_index": 0,
+    "sample_seed_rule": "runner.sample_seed(job seed, prompt id, 0): the seed of the first sampled answer of that prompt in the full evaluation; temperature, top-p, max_new_tokens and batch_size from the recipe",
+    "share_note": "the full evaluation makes 1,068 answers (468 greedy, 600 sampled), and 1,468 with the 400 PHTest answers of O-ext (868 greedy; LN-33); C-lean (a) makes 300 answers (28.1% of 1,068) with the dev 100 only, and 700 (47.7% of 1,468) with its O-ext part; (b) makes 200 (18.7%); PLAN-S:202's '20%' is read as a rough size (REF C.6; LQ29); the cut answers that Branch 128 judges again are judge calls, not answers",
+    "subset_rule": "every harm prompt and (under a) every over-refusal prompt of the dev bank, in bank order, and (under a) every task row; nothing is drawn, so no seed label is used"
+  },
+  "name": "lean_eval_job",
+  "oext": {
+    "branch": "128",
+    "module": "scripts/stage1_s1/oext_eval.py",
+    "module_sha256": "8c4290921f32a5b4596a0bc40235cc5cf1185f73eaabeaa625c43bd19ba77719",
+    "rule": "Addendum section 11 point 1: scripts/stage1_s1/oext_eval.py (pinned by its file's SHA-256), its settings (pinned by SHA-256) and the cap branch those settings hold (section 13: the branch comes from W1-18's record made on the first stage-1 pod). A re-pin (a new branch, the bank record, W1-18's record) is one edit together with B10's section oext and oext_eval.py's literal (a B15 pre-launch check, with addendum section 11 point 7's engine re-pin).",
+    "settings": {
+      "path": "scripts/stage1_s1/settings/oext_eval.json",
+      "sha256": "2ad9893849248a8fb61d04cf7badbd7fb398915020f196904849d500df08f5a5"
+    }
+  },
+  "owner": "scripts/stage1_s1/lean_eval_job.py",
+  "record": {
+    "file": "c0_record.json",
+    "kind": "stage1 c0 lean job record"
+  },
+  "requirement": "B17 (RS:107; PLAN-S:202; REF section C.5 and C.6: LQ27, LQ29, LQ30; CONS LW-15 and LW-16, taken at their recommended defaults by the lead, FOCUS 'LEAD DECISIONS FOR WAVE 1', 17 Oct; CONS LS-15, the arm, stays open): the lean-evaluation job that measures c0",
+  "seal": {
+    "readable": [
+      "c0_record.json",
+      "train/ (the engine's run-one unit)",
+      "lean/lean_job.json",
+      "lean/source_receipt.json",
+      "lean/assets.json",
+      "lean/ledger.jsonl",
+      "lean/progress.jsonl",
+      "lean/records.jsonl",
+      "lean/status.json",
+      "lean/COMPLETE.json"
+    ],
+    "rule": "REF LQ30: only the ledger (the cost) is read; the evaluation files are sealed by SHA-256 and never read for any estimate. The readable files hold seconds, memory, counts of prompts and hashes. Every value made from an answer (texts, guard labels, task losses, token counts, stop reasons) is in lean/sealed. Stage seconds are cost data and still vary with answer length; they are never used as an outcome.",
+    "sealed_dir": "lean/sealed",
+    "sealed_files": [
+      "query_loss.jsonl",
+      "generations.jsonl",
+      "samples.jsonl",
+      "guard.jsonl",
+      "guard_samples.jsonl",
+      "counts.json",
+      "oext_generations.jsonl",
+      "oext_guard.jsonl",
+      "oext_summary.json"
+    ],
+    "text_scan_min_chars": 16
+  },
+  "timing": {
+    "clock": "time.monotonic, the clock of the engine's ledger",
+    "cold_start": "a new process; the session has loaded nothing before the job (Session.loaded_in is empty)",
+    "origin": "the first statements of lean_eval_job.py, before torch and the engine are imported",
+    "slot_note": "FRE (REF LQ25) counts the job slot as the kit records it (job start to job end); job_span_seconds is this script's own span inside that slot. The c0 value is the kit's slot for this job, with this record's stage table beside it."
+  },
+  "version": 1
+}

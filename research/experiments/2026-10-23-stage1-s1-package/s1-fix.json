@@ -1,0 +1,829 @@
+{
+ "kind": "stage1 S1 FIX report",
+ "version": 2,
+ "status": "done",
+ "target_tree": "ws-s1 (scripts/stage1_s1 only was written)",
+ "started_utc": "2026-10-23T16:38:26Z",
+ "written_utc": "2026-10-23T20:22:29Z",
+ "supersedes": {
+  "path": "notes/s1-fix.v1-20261023.json",
+  "sha256": "32338109f2aa58e9a61124934be9df0ee01ef39b767790c324fc83c47307d3c1",
+  "why": "version 1 was the stub of the first fix round (started 05:44:25Z; its edits were made 05:48-06:00Z and never reported); this version records that round's file table and this round's fixes, suites and spec runs"
+ },
+ "inputs": {
+  "notes/s1-verify-suites.json": "3790cdc94902c63545fb8214175b2c48521559a8d7dfc7acfcf89321cca271c1",
+  "notes/s1-verify-review.json": "5c20446ccfba510c9d94a338336f8aec33f698fd8a2bd5a204bf19361e0fd4ce",
+  "rulings_read": "addendum sections 7, 9, 10, 11 (all 15 points), 12, 13 (points 1-4) and 16"
+ },
+ "verdict": "every blocking and should_fix finding is fixed or answered: the fix rounds are now reported (both); the three pin-only behaviours each have a content test and a committed mutant; every stage1_s1 spec ran in full on this tree (486 mutants: 484 killed, 2 expected survivors, 0 invalid) plus 17 VERIFY-SUITES v2 new mutants (17 killed); suites 744 + 874 = 1618, 0 skipped. One should_fix (B16's HB-C reading of the halves, addendum 11.11) is outside this tree and is routed to the lead",
+ "findings": [
+  {
+   "source": "s1-verify-review v2 finding 1 (blocking); s1-verify-suites v2 finding 1 (should_fix)",
+   "claim": "the first fix round's 21 changed files and 1 added file have no report",
+   "recheck": "confirmed: s1-fix.json was the 9-line stub; the 22 hashes in round1_file_table equal tree_check_after.json of VERIFY-SUITES v2",
+   "result": "fixed by this report: round1_file_table (before = the s1-merge/s1-small/s1-oext hash, after, write time, purpose), round 2's changed_files, the final manifest, the suites and the spec runs",
+   "limit": "the round-1 worker kept no copy of the files before its edits and wrote no reasons; the purposes are read from the review's v1_findings_status and pins sections and from that round's tooling (notes/s1-fix-mutation/tooling: repin.py, add_fix_mutants.py, make_shards.py, manifest.py), not from a byte diff"
+  },
+  {
+   "source": "s1-verify-review v2 finding 2 (blocking)",
+   "claim": "35 of 56 O-ext and 26 of 82 B17 mutants never ran on this tree (11.14 needs every spec)",
+   "recheck": "true of the first fix round; VERIFY-SUITES v2 then ran all 483 (481 killed, 2 expected survivors)",
+   "result": "fixed: every spec ran again in full after this round's edits (step_specs): O-ext 58/58 killed, B17 80 killed + 2 expected survivors, B10 152/152, B11 107/107, B14 87/87, 0 invalid"
+  },
+  {
+   "source": "s1-verify-review v2 finding 3 (should_fix)",
+   "claim": "addendum 11.11 is half built: B16's reading does not read cells_u_pp, so section 9.4's primary HB-C interval of the halves exists nowhere",
+   "recheck": "true (the review's grep of ws-b16/scripts/stage1_s1/reading); ws-s1base (main 8901eed) holds no scripts/stage1_s1 and ws-s1 no reading/",
+   "result": "not fixed here, by scope: 11.11 names B16 as the computer, B16 is its own build with its own tree, suite and spec (addendum 16), and this task owns ws-s1's four-build package only. B14's half stands (settings report.s_p, primary_model; verdict.role 'S-p sensitivity'). Routed to the lead: a B16 follow-up that reads overlap_report.json's cells_u_pp and fits HB-C for the halves (tests and mutants), and the order in which B16's package and this one are combined"
+  },
+  {
+   "source": "s1-verify-suites v2 finding 2 (should_fix)",
+   "claim": "NOE-transfer-agree-invalid-refused, NB11-vprime-rank-from-v and NOE-evaluate-pending-guard are killed only by module-bytes pin tests",
+   "recheck": "accepted from VERIFY-SUITES v2's per-mutant failing lists (content_killers 0 for the three; not re-run before the fix); read in the code: the existing transfer_bar test gives an invalid answer only in both forms, the pending test passes no bank, and no test reads rank_v_prime",
+   "result": "fixed with a test each (changed_files) and a committed mutant each (OE-transfer-agree-invalid-refused, OE-evaluate-pending-guard, B11S-vprime-rank-from-v); in the full spec runs each is killed by its content test: {\"OE-transfer-agree-invalid-refused\": [\"test_the_transfer_bar_counts_an_invalid_judge_answer_as_not_refused\"], \"OE-evaluate-pending-guard\": [\"test_evaluate_oext_refuses_the_pending_branch_even_with_a_bank\"], \"B11S-vprime-rank-from-v\": [\"test_the_diagnostic_equals_an_independent_recomputation[rounded-6-True]\", \"test_the_diagnostic_equals_an_independent_recomputation[rounded-5-False]\", \"test_the_diagnostic_equals_an_independent_recomputation[rounded-2-True]\"]}",
+   "note": "NOE-evaluate-pending-guard is equivalent while prepare() is the only builder of Prepared (pending gives bank None); the test pins the second line of defence by a hand-built Prepared"
+  },
+  {
+   "source": "s1-verify-suites v2 findings 3-4 and the review's notes",
+   "result": "notes, not changed here (no fix asked); the content-killer check stays in this round's aggregation (pin-only kills: B11-docstring-edit only, by design). The review's notes (LN-14 bar reading, theta0 unit not checked by evaluate_transfer, O-ext failure fails certify, oext_guard_cut seconds, stale labels_sha256 and sources.ADD fields, the procedural cap rule, LN-24 F, O-only callers, pending lambda = 0 and K = 0 points, external mode with O-ext, the S5 limit, the five regression suites) stay open as listed in open_items"
+  }
+ ],
+ "round1_file_table": {
+  "rule": "the first fix round's edits, 2026-10-23T05:48-06:00Z (notes/s1-verify-suites-v2-evidence/tooling/tree_check_after.json); before = the SHA-256 the s1-merge v2 / s1-small v1 / s1-oext v1 reports name (null: new file); after = the file as both verifiers found it",
+  "files": {
+   "scripts/stage1_s1/eval_adapter.py": {
+    "before_reports": "f6cf31b6cb7c7ac7ff9662f7f0fece548c79216f541b7db22ffe8bbcd8c3f81c",
+    "after": "6c62a1d25ff0acb65909c6719422d7f92a5959a1011650053377bfe43eaac8d8",
+    "written_utc": "2026-10-23T05:51:24Z",
+    "purpose": "SETTINGS_SHA256 literal re-taken (script_code_sha256 43a82629... unchanged, per the review)"
+   },
+   "scripts/stage1_s1/lean_eval_job.py": {
+    "before_reports": "29d88db8601b79d4a22ea2d75e4b5a2207b0c3f41a076e1b4e128a1ea808d2b7",
+    "after": "25e9d946e1d75e5a30c0448de9bfca1abfb6afeae401e5132705403af1ec28b6",
+    "written_utc": "2026-10-23T05:51:24Z",
+    "purpose": "SETTINGS_SHA256 literal re-taken"
+   },
+   "scripts/stage1_s1/mutation/mutants_b10.json": {
+    "before_reports": "58f87dc3c03926bd03968a882170fb8096a839851934803177ece9055309118e",
+    "after": "b4fb92e0d839580c7fb0bfc6382be145474dec942e72e149f9b137b6b537cd8c",
+    "written_utc": "2026-10-23T05:57:38Z",
+    "purpose": "B10O-* mutants (finding 5) and re-pinned find texts"
+   },
+   "scripts/stage1_s1/mutation/mutants_b11.json": {
+    "before_reports": "0efca6ae0fc107e03ddb013b172fa9841fa63cf394750db8d5e6073835b2ec29",
+    "after": "f88f62ce76a579e8ff2eaf6de4ccd7bf098ab7714144e6a4b06cd6ad951fb7ae",
+    "written_utc": "2026-10-23T05:57:38Z",
+    "purpose": "FIX-layout-b11-no-stage1-copy (finding 3) and the s1_fix note"
+   },
+   "scripts/stage1_s1/mutation/mutants_b14.json": {
+    "before_reports": "2a55f7532abea3d736463c4b4a29560b16ebc5d4f7ac68e25d0ff3214909ce79",
+    "after": "9a4dcadcebd9bca2ae49921235fef46ef8730699c2d2d31f7a803dac9a34201e",
+    "written_utc": "2026-10-23T05:57:38Z",
+    "purpose": "B14S re-pinned mutants and FIX-layout mutants"
+   },
+   "scripts/stage1_s1/mutation/mutants_b17.json": {
+    "before_reports": "eaebd836a73e98b912be695e6e3f4eaf03f78623a971b30d5559c4320525bc7d",
+    "after": "cbcf5d1638529dd3eb4538a3e68a4b8f24caaa9dedbc71b7ca3096494be34638",
+    "written_utc": "2026-10-23T05:51:24Z",
+    "purpose": "B17-settings-pin-changed re-pinned"
+   },
+   "scripts/stage1_s1/mutation/mutants_oext.json": {
+    "before_reports": "b9d4ad340e7edaab79e5a58ae10fbb73861c1c00678786e87b2f76a0ea06ecbe",
+    "after": "8c73ec5065d083bc751c3c3dbbf6a566512eef1be345419e8fc6a22e661b51b8",
+    "written_utc": "2026-10-23T06:00:00Z",
+    "purpose": "OE-* mutants for findings 1, 2 and 5 (56 in all)"
+   },
+   "scripts/stage1_s1/mutation/run_mutants_b14.py": {
+    "before_reports": "8510f3dc76e030bcdc4c7a5ac286702e95b558aac28af985b6b49614ccd34c8f",
+    "after": "1593d7c508c123cc55374a3b8756dd200972593b666dc5f20027520cdfa909f7",
+    "written_utc": "2026-10-23T05:50:15Z",
+    "purpose": "review v1 finding 3, layout option (b): the run copy holds scripts/stage1 unchanged"
+   },
+   "scripts/stage1_s1/oext_eval.py": {
+    "before_reports": "93238c9fdcc7051755bc8aabe135406ee4442ccf08c5f62762bd2324184cc2ee",
+    "after": "5da72827c0aece07a946d6304a7b9d05434a0d3ced98f459220b977e9b9da01d",
+    "written_utc": "2026-10-23T05:51:24Z",
+    "purpose": "review v1 finding 1 (W1-18 bound by bytes, engine not compared; W1-18 module pinned and recorded), finding 2 (evaluate_transfer, LN-14), finding 5 (the four safety rules are now tested)"
+   },
+   "scripts/stage1_s1/overlap_strata.py": {
+    "before_reports": "b1db78cc7dc07457dff49fd70a924b5eabc895df61ce5342140cb8b8df056e0d",
+    "after": "ad4db8cdb5050501f4e69d64539e22a1b6dbffc4826abe9ae270cb8675d1bba9",
+    "written_utc": "2026-10-23T05:51:24Z",
+    "purpose": "addendum 11.11 B14 side: verdict.role 'S-p sensitivity', SETTINGS_SHA256 re-taken"
+   },
+   "scripts/stage1_s1/settings/eval_adapter.json": {
+    "before_reports": "5c633dc0f0eb3193f7d33f43881935063917e073530d6c7b7d0e852637691132",
+    "after": "fc7d11b4e0001dc55e2210498fe4ddc7c7400257ca200f0433c4e378aeef0cb6",
+    "written_utc": "2026-10-23T05:51:24Z",
+    "purpose": "the oext_eval.py module and settings pins re-taken"
+   },
+   "scripts/stage1_s1/settings/lean_eval_job.json": {
+    "before_reports": "2f2e083b839d0bc47f8dd527db1f8a14d05a2a737003fdd2483dc543839fdce1",
+    "after": "578a378b26a90d1df0f4cb14380e04fb690dec61c224c8271310ec9bd4ac7ecf",
+    "written_utc": "2026-10-23T05:51:24Z",
+    "purpose": "the oext_eval.py module and settings pins re-taken"
+   },
+   "scripts/stage1_s1/settings/oext_eval.json": {
+    "before_reports": "48b1ac2bfc2bfc923feed2a99447dacdf6ab388217d80461461b564b94b88cea",
+    "after": "3000811cd4f911a1beb9abcb2b2c2dfd5843629c598d736e315f15918e194639",
+    "written_utc": "2026-10-23T05:48:50Z",
+    "purpose": "the transfer section (LN-14 bar and its reading), cap.w1_18.module_sha256"
+   },
+   "scripts/stage1_s1/settings/overlap_strata.json": {
+    "before_reports": "03887db3875968fdc9d8861e7f62a456fed6ffec906bbba5ba840e65cb556538",
+    "after": "b98d012e9cc92dbe847f92d9ccda54cf2ee22964dbd941e5aa8bd672bff19f87",
+    "written_utc": "2026-10-23T05:49:49Z",
+    "purpose": "addendum 11.11 B14 side: report.s_p and primary_model naming HB-C from cells_u_pp"
+   },
+   "scripts/stage1_s1/tests/test_b10_oext.py": {
+    "before_reports": "eac5b347c9d07b2abbd2e2e6f25e19b225075aa2c5248c2c2c0f197228ff5f69",
+    "after": "9ed01c16363548b79d611e9463378a4a5756921deee86e5ca2c84c9e7b45315d",
+    "written_utc": "2026-10-23T05:54:52Z",
+    "purpose": "finding 5: a PHTest prompt that collides with a prefixed text refuses"
+   },
+   "scripts/stage1_s1/tests/test_b10_settings.py": {
+    "before_reports": "35965499267007f5bd41a60ceced40cd0c2318865b9aa2316f6e9015bb6771d7",
+    "after": "dbbdf61a2a31109e748de761353286bd94e119e53dc1cd0d7e945e8248a0bdc3",
+    "written_utc": "2026-10-23T05:51:24Z",
+    "purpose": "pin literals re-taken"
+   },
+   "scripts/stage1_s1/tests/test_b14_pins.py": {
+    "before_reports": "e5ae8afd1e86b8d3a899447547abb6c75355a6f54c6b6f8f6bd5d99c765422fc",
+    "after": "3a49ce1447c9ac4d9470dda6e0f60d575519c53d9eada6f83ec349190b9768e1",
+    "written_utc": "2026-10-23T05:50:15Z",
+    "purpose": "follows the B14 wrapper's layout change"
+   },
+   "scripts/stage1_s1/tests/test_b14_report.py": {
+    "before_reports": "ca74e4d4a1dc6239bbaeda102d0eed48de49a52af66eb186de2a36d27dd6975c",
+    "after": "1be9c47839e324d494fafaf41d2f577f18d1b2f761b754fec079d5a044be256a",
+    "written_utc": "2026-10-23T05:54:52Z",
+    "purpose": "tests of the S-p label and the HB-C naming (11.11)"
+   },
+   "scripts/stage1_s1/tests/test_b17_lean_eval_job.py": {
+    "before_reports": "b375b628dc5948743df97903efff61e9c589aef3a3e078a48a83216879dcaead",
+    "after": "49f2394750104300d6a5b01896188caa1102ad0a94dd0ec85e9f27c3cb5792f2",
+    "written_utc": "2026-10-23T05:51:24Z",
+    "purpose": "pin literals re-taken"
+   },
+   "scripts/stage1_s1/tests/test_b17_mirror.py": {
+    "before_reports": "3803f7b2d94c7449300cc6c5639a5fe0d6d33bb311f748ac5c1659d1ff742eca",
+    "after": "2e1e504822597f79ebea959ed6ac150224e4fe8c0583bbbb41d3b29109fd6f00",
+    "written_utc": "2026-10-23T05:50:28Z",
+    "purpose": "follows the one-tree layout"
+   },
+   "scripts/stage1_s1/tests/test_oext_eval.py": {
+    "before_reports": "479f2f6b4b4c85d8134d838fb546fa5149fb6d1ce21b30a267e745334a7fce30",
+    "after": "a84318ef5ca21bf0a112dd38e841ff33d29d6ba7ff33d3a5e06f6c2c22943ee5",
+    "written_utc": "2026-10-23T05:54:26Z",
+    "purpose": "tests for findings 1, 2 and 5 (binding on engine Y, LN-14, over-limit, RNG, adapter and mode)"
+   },
+   "scripts/stage1_s1/tests/test_s1_layout.py": {
+    "before_reports": null,
+    "after": "5ad56e27566898114fea788f7cc916d16176b9c6d82f0b02f9d25dee24bc597b",
+    "written_utc": "2026-10-23T05:55:22Z",
+    "purpose": "new: every wrapper copies scripts/stage1 unchanged and the whole package (finding 3)"
+   }
+  },
+  "layout_choice": "option (b) of s1-merge open item 1 (the test-tooling edits: run_mutants_b14.py, test_b14_pins.py, test_b17_mirror.py, plus test_s1_layout.py): every wrapper runs its spec from one full clone of the tree with scripts/stage1 unchanged; B17 keeps its mirror. No lead ruling records this choice (raised in open_items)",
+  "tests": "710 (s1-oext) -> 741"
+ },
+ "changed_files": {
+  "rule": "this round (2026-10-23T16:38Z onward); only these four files changed; no module, settings file or pin changed, so no SHA-256 literal or settings pin moved",
+  "files": [
+   {
+    "path": "scripts/stage1_s1/tests/test_oext_eval.py",
+    "before": "a84318ef5ca21bf0a112dd38e841ff33d29d6ba7ff33d3a5e06f6c2c22943ee5",
+    "after": "ef2a95b8c2cc67d88922b41f012af0b192bf73cb66e9e5aaaa85601a99eb4fd9",
+    "change": "3 tests: test_the_transfer_bar_counts_an_invalid_judge_answer_as_not_refused (decision for decision W1-18's own truncation check), test_ln14_counts_an_invalid_phtest_judge_answer_as_not_refused (end to end on the tiny model), test_evaluate_oext_refuses_the_pending_branch_even_with_a_bank (a hand-built pending Prepared with a loaded bank, on the real session and policy; no file written)"
+   },
+   {
+    "path": "scripts/stage1_s1/tests/test_b11_rulings.py",
+    "before": "90ecead6d4f35b4b2ae7c6cdac1080bf30ad1a7dc30a1d783c03886b3181440e",
+    "after": "4ed825a419d528f2b9418e85d45d9be91ace7cf62e3d7cf77c9307f1d51c0974",
+    "change": "test_the_diagnostic_equals_an_independent_recomputation now also compares rank_v and rank_v_prime of every matrix with the independent ranking (cosine ascending, name), and checks that the rounded fixture's V and V' rankings differ"
+   },
+   {
+    "path": "scripts/stage1_s1/mutation/mutants_oext.json",
+    "before": "8c73ec5065d083bc751c3c3dbbf6a566512eef1be345419e8fc6a22e661b51b8",
+    "after": "c77432b7199bb2768cd84e4c4149df2a227f9755f39fd1fd48c5cdbe2ac1f6d6",
+    "change": "2 mutants appended: OE-transfer-agree-invalid-refused, OE-evaluate-pending-guard (same edits as VERIFY-SUITES v2's NOE-*); s1_fix_round2 note; 58 mutants"
+   },
+   {
+    "path": "scripts/stage1_s1/mutation/mutants_b11.json",
+    "before": "f88f62ce76a579e8ff2eaf6de4ccd7bf098ab7714144e6a4b06cd6ad951fb7ae",
+    "after": "01b4fe1de16bb119eb1d67831145f83e211536991c166bb0875ecca80590a121",
+    "change": "1 mutant appended: B11S-vprime-rank-from-v (same edit as NB11-vprime-rank-from-v); s1_fix_round2 note; 107 mutants"
+   }
+  ],
+  "tests": "741 -> 744"
+ },
+ "alternatives": [
+  "the LN-14 gap: an end-to-end transfer test alone cannot kill the mutant (the fixture judge invalidates by prompt, so full and cut are both invalid and agree under the mutant too); the unit test on transfer_bar, checked against W1-18's own truncation(), is the decisive one, and the end-to-end test is kept as the route check",
+  "the pending gap: removing the redundant 'prepared.bank is None' clause instead of testing was rejected (it changes oext_eval.py's bytes and every pin chain for no behaviour change)",
+  "the verifiers' 3 matching new mutants were moved into the package specs (same find and replace) and not run twice"
+ ],
+ "step_suites": {
+  "command": "/Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python -B -m pytest -q -rs -p no:cacheprovider --basetemp=<session scratchpad>/s1fix2/bt-<name> --junitxml=notes/s1-fix-evidence/suite-<name>.xml <paths>; cwd ws-s1; PYTHONPATH=.; OMP/MKL/VECLIB/OPENBLAS threads 1; HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PYTHONDONTWRITEBYTECODE=1",
+  "stage1_s1": {
+   "exit": 0,
+   "tests": 744,
+   "failures": 0,
+   "errors": 0,
+   "skipped": 0,
+   "utc": "16:41:08-16:42:16Z",
+   "junit_sha256": "a4b49fc00d43cf976f0a0c9e363f66861b7361bbbdf5a2394f913b00d427d787"
+  },
+  "stage1": {
+   "exit": 0,
+   "tests": 874,
+   "failures": 0,
+   "errors": 0,
+   "skipped": 0,
+   "utc": "16:41:08-16:43:19Z",
+   "junit_sha256": "7501692686bf61248a9d83e2bbde4a3888c9e61e0bc739f92b68c937b3ee10a8"
+  },
+  "both_in_one_process": {
+   "exit": 0,
+   "tests": 1618,
+   "failures": 0,
+   "errors": 0,
+   "skipped": 0,
+   "utc": "16:43:19-16:46:22Z",
+   "junit_sha256": "7d7237f5bf4564c56cb48fbfb29a8d8c2a5e92d1938f6493584ea62d42ff2efd"
+  },
+  "not_run": "the five regression suites of 11.14 (unnamed; the lead's)"
+ },
+ "step_specs": {
+  "layout": "round 1's one-tree layout: one APFS clone of ws-s1 (tmp-s1-fix2/tree, cp -cR, diff -rq equal before and after) from which B10's (also for O-ext), B11's and B14's own wrappers run unchanged; B17 by T1's runner (557a2875...) in the mirror that the clone's b17_mirror.py built",
+  "rules": "T1's: the unmutated baseline first in every shard; killed only on exit 1 with at least 1 failure and 0 errors; anything else INVALID; test count equal to the baseline's; --timeout 300",
+  "tooling": "notes/s1-fix-v2-mutation/tooling/ (run_wrapper.sh and round.sh: VERIFY-SUITES v2's with the paths changed; make_shards.py; split_shards.py; reshard.py; do_round.sh; aggregate.py: VERIFY-SUITES v2's with the paths changed, the per-mutant content-killer class included; shards.json; MIRROR-b17.json; specs/ every shard spec run (233); rounds/ the round plans and outputs)",
+  "baselines_first": "16:47:32-16:49:04Z: B10, B11, B14, O-ext 744 tests pass; B17 mirror 106 pass",
+  "shards": "round 1: b10-shard01..07 and b17-shard01 at size 3 (B17 12); every later shard re-cut by reshard.py at size 2 (B17 6), named so that sorted names keep each spec's order; 223 mutation shards in all, run 4-9 at a time, 16:49-20:19Z",
+  "time_limit": "the machine's load from other sessions (load average 13-34) made three rounds run over 10 minutes: round 1 (8 shards, 658-679 s) and rounds2 line 3 (8 shards, 588-805 s) were moved to the background by the tool and watched to their end in the foreground; later rounds used 5-9 shards of size 2 and ended within 186-488 s",
+  "invalid_and_rerun": "in rounds2 line 3 (load 24) 7 mutants (B10-adapter-keys, B10-record-finite, B10-module-interface, B10-file-source, B10-file-output, B10-settings-file-settings-key, B10-pre-mismatch) hit the 300 s runner timeout: INVALID, not killed. Their 7 shards were re-run whole at lower load (rounds3 lines 1-2: every mutant killed); the first attempt's reports are kept in notes/s1-fix-v2-mutation/invalid-attempt1/ and are not aggregated",
+  "results": {
+   "b10": {
+    "spec": "ws-s1/scripts/stage1_s1/mutation/mutants_b10.json",
+    "spec_sha256": "b4fb92e0d839580c7fb0bfc6382be145474dec942e72e149f9b137b6b537cd8c",
+    "mutants": 152,
+    "killed": 152,
+    "survived": 0,
+    "invalid": 0,
+    "expected_survivors": [],
+    "every_mutant_as_expected": true,
+    "ids_complete_and_in_order": true,
+    "problems": [],
+    "pin_only_kills": [],
+    "baseline_tests": [
+     744
+    ],
+    "shards": 73
+   },
+   "b11": {
+    "spec": "ws-s1/scripts/stage1_s1/mutation/mutants_b11.json",
+    "spec_sha256": "01b4fe1de16bb119eb1d67831145f83e211536991c166bb0875ecca80590a121",
+    "mutants": 107,
+    "killed": 107,
+    "survived": 0,
+    "invalid": 0,
+    "expected_survivors": [],
+    "every_mutant_as_expected": true,
+    "ids_complete_and_in_order": true,
+    "problems": [],
+    "pin_only_kills": [
+     "B11-docstring-edit"
+    ],
+    "baseline_tests": [
+     744
+    ],
+    "shards": 54
+   },
+   "b14": {
+    "spec": "ws-s1/scripts/stage1_s1/mutation/mutants_b14.json",
+    "spec_sha256": "9a4dcadcebd9bca2ae49921235fef46ef8730699c2d2d31f7a803dac9a34201e",
+    "mutants": 87,
+    "killed": 87,
+    "survived": 0,
+    "invalid": 0,
+    "expected_survivors": [],
+    "every_mutant_as_expected": true,
+    "ids_complete_and_in_order": true,
+    "problems": [],
+    "pin_only_kills": [],
+    "baseline_tests": [
+     744
+    ],
+    "shards": 44
+   },
+   "b17": {
+    "spec": "ws-s1/scripts/stage1_s1/mutation/mutants_b17.json",
+    "spec_sha256": "cbcf5d1638529dd3eb4538a3e68a4b8f24caaa9dedbc71b7ca3096494be34638",
+    "mutants": 82,
+    "killed": 80,
+    "survived": 2,
+    "invalid": 0,
+    "expected_survivors": [
+     "B17-labels-append-survives",
+     "B17-role-unchecked"
+    ],
+    "every_mutant_as_expected": true,
+    "ids_complete_and_in_order": true,
+    "problems": [],
+    "pin_only_kills": [],
+    "baseline_tests": [
+     106
+    ],
+    "shards": 13
+   },
+   "oext": {
+    "spec": "ws-s1/scripts/stage1_s1/mutation/mutants_oext.json",
+    "spec_sha256": "c77432b7199bb2768cd84e4c4149df2a227f9755f39fd1fd48c5cdbe2ac1f6d6",
+    "mutants": 58,
+    "killed": 58,
+    "survived": 0,
+    "invalid": 0,
+    "expected_survivors": [],
+    "every_mutant_as_expected": true,
+    "ids_complete_and_in_order": true,
+    "problems": [],
+    "pin_only_kills": [],
+    "baseline_tests": [
+     744
+    ],
+    "shards": 29
+   }
+  },
+  "total": {
+   "mutants": 486,
+   "killed": 484,
+   "survived": 2,
+   "invalid": 0,
+   "expected_survivors": 2,
+   "survived_unexpected": 0,
+   "expected_survivors_explained": {
+    "B17-labels-append-survives": "a legal append to labels.json must not fail B17's suite (addendum section 4 item 1)",
+    "B17-role-unchecked": "equivalent: the engine's access check with the dev bank still refuses every other role"
+   }
+  },
+  "pin_only_kills": "B11-docstring-edit only (its stated purpose: B10 pins safe_lora.py's bytes); every other mutant of oext_eval.py or safe_lora.py has a content killer",
+  "summary": {
+   "path": "notes/s1-fix-v2-mutation/summary.json",
+   "sha256": "c367ae2b6660b81262d85ffa860de9af9fec723a34bcb64e2599827b88f8df18"
+  }
+ },
+ "step_new_mutants": {
+  "source": "notes/s1-verify-suites-v2-mutation/tooling/specs/n-<build>-new01.json (VERIFY-SUITES v2's 20)",
+  "moved_to_package": {
+   "NOE-transfer-agree-invalid-refused": "OE-transfer-agree-invalid-refused",
+   "NOE-evaluate-pending-guard": "OE-evaluate-pending-guard",
+   "NB11-vprime-rank-from-v": "B11S-vprime-rank-from-v"
+  },
+  "run": "the other 17 unchanged, each with its build's own wrapper from the clone (B17 in the mirror), baseline first, T1's rules",
+  "results": {
+   "n-b10-new01": {
+    "spec": "tmp-s1-fix2/specs/n-b10-new01.json",
+    "spec_sha256": "9cb1613e0e3525b64f3581cbe6af4429c43de51bb84aa579e7e9a13e3d82254c",
+    "mutants": 4,
+    "killed": 4,
+    "survived": 0,
+    "invalid": 0,
+    "expected_survivors": [],
+    "every_mutant_as_expected": true,
+    "ids_complete_and_in_order": true,
+    "problems": [],
+    "pin_only_kills": [],
+    "baseline_tests": [
+     744
+    ],
+    "shards": 2
+   },
+   "n-b11-new01": {
+    "spec": "tmp-s1-fix2/specs/n-b11-new01.json",
+    "spec_sha256": "f8cda70dffc58c028e9b97b6aefe176c5eb5616987d961ff1d4739050d52f73e",
+    "mutants": 1,
+    "killed": 1,
+    "survived": 0,
+    "invalid": 0,
+    "expected_survivors": [],
+    "every_mutant_as_expected": true,
+    "ids_complete_and_in_order": true,
+    "problems": [],
+    "pin_only_kills": [],
+    "baseline_tests": [
+     744
+    ],
+    "shards": 1
+   },
+   "n-b14-new01": {
+    "spec": "tmp-s1-fix2/specs/n-b14-new01.json",
+    "spec_sha256": "a0884a2b3f05bf5d6132df0cb4f5832f4c4b84096868303508980b996b85c1de",
+    "mutants": 2,
+    "killed": 2,
+    "survived": 0,
+    "invalid": 0,
+    "expected_survivors": [],
+    "every_mutant_as_expected": true,
+    "ids_complete_and_in_order": true,
+    "problems": [],
+    "pin_only_kills": [],
+    "baseline_tests": [
+     744
+    ],
+    "shards": 1
+   },
+   "n-b17-new01": {
+    "spec": "tmp-s1-fix2/specs/n-b17-new01.json",
+    "spec_sha256": "2046a8afe3c5dd87dd1c45d0435f89b6972670bd91302c2adcfdd33c92ed4992",
+    "mutants": 1,
+    "killed": 1,
+    "survived": 0,
+    "invalid": 0,
+    "expected_survivors": [],
+    "every_mutant_as_expected": true,
+    "ids_complete_and_in_order": true,
+    "problems": [],
+    "pin_only_kills": [],
+    "baseline_tests": [
+     106
+    ],
+    "shards": 1
+   },
+   "n-oext-new01": {
+    "spec": "tmp-s1-fix2/specs/n-oext-new01.json",
+    "spec_sha256": "1c6d82f21b1a0aade3499eb7d7c5c0305dc30956408ddeffef381c2523cd4df7",
+    "mutants": 9,
+    "killed": 9,
+    "survived": 0,
+    "invalid": 0,
+    "expected_survivors": [],
+    "every_mutant_as_expected": true,
+    "ids_complete_and_in_order": true,
+    "problems": [],
+    "pin_only_kills": [],
+    "baseline_tests": [
+     744
+    ],
+    "shards": 5
+   }
+  },
+  "total": {
+   "mutants": 17,
+   "killed": 17,
+   "survived": 0,
+   "invalid": 0
+  }
+ },
+ "engine_x": "code_identity() in ws-s1 = 472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892 after every run (unchanged)",
+ "tree": {
+  "outside_stage1_s1": "diff -rq -x stage1_s1 ws-s1 ws-s1base: exit 0 (equal); scripts/stage1 unchanged",
+  "pycache": "no __pycache__, .pyc or .pytest_cache in ws-s1 or ws-s1base",
+  "clone_after_runs": "tmp-s1-fix2/tree equal to ws-s1 (diff -rq exit 0) and the mirror's B17 files equal ws-s1's (aggregate.py), then deleted"
+ },
+ "manifest": {
+  "rule": "every file of ws-s1/scripts/stage1_s1 after this round: path (relative to ws-s1), SHA-256, bytes; no symlink, no __pycache__",
+  "files": 59,
+  "entries": [
+   {
+    "path": "scripts/stage1_s1/__init__.py",
+    "sha256": "818919ca18627b7169d80c2a6f6c24149f6e1c529bff9d37a5ddee2122bddd32",
+    "bytes": 461
+   },
+   {
+    "path": "scripts/stage1_s1/eval_adapter.py",
+    "sha256": "6c62a1d25ff0acb65909c6719422d7f92a5959a1011650053377bfe43eaac8d8",
+    "bytes": 113330
+   },
+   {
+    "path": "scripts/stage1_s1/lean_eval_job.py",
+    "sha256": "25e9d946e1d75e5a30c0448de9bfca1abfb6afeae401e5132705403af1ec28b6",
+    "bytes": 59497
+   },
+   {
+    "path": "scripts/stage1_s1/mutation/b17_mirror.py",
+    "sha256": "ce5c181a6ceaeac6e0368b3b5e9296c685184a8bb8e7c0afc2f43d6618652413",
+    "bytes": 5414
+   },
+   {
+    "path": "scripts/stage1_s1/mutation/mutants_b10.json",
+    "sha256": "b4fb92e0d839580c7fb0bfc6382be145474dec942e72e149f9b137b6b537cd8c",
+    "bytes": 53888
+   },
+   {
+    "path": "scripts/stage1_s1/mutation/mutants_b11.json",
+    "sha256": "01b4fe1de16bb119eb1d67831145f83e211536991c166bb0875ecca80590a121",
+    "bytes": 39317
+   },
+   {
+    "path": "scripts/stage1_s1/mutation/mutants_b14.json",
+    "sha256": "9a4dcadcebd9bca2ae49921235fef46ef8730699c2d2d31f7a803dac9a34201e",
+    "bytes": 31609
+   },
+   {
+    "path": "scripts/stage1_s1/mutation/mutants_b17.json",
+    "sha256": "cbcf5d1638529dd3eb4538a3e68a4b8f24caaa9dedbc71b7ca3096494be34638",
+    "bytes": 31033
+   },
+   {
+    "path": "scripts/stage1_s1/mutation/mutants_oext.json",
+    "sha256": "c77432b7199bb2768cd84e4c4149df2a227f9755f39fd1fd48c5cdbe2ac1f6d6",
+    "bytes": 20976
+   },
+   {
+    "path": "scripts/stage1_s1/mutation/run_b11_mutants.py",
+    "sha256": "9077c8dcc82d5b21441e1abd319383c24423c773f0864e2305c68e48991e5a6d",
+    "bytes": 8007
+   },
+   {
+    "path": "scripts/stage1_s1/mutation/run_mutants_b10.py",
+    "sha256": "73e9a54abf8acbe93022f3412a28ef8139a5d66717614892ed5e3f0d477c5bcb",
+    "bytes": 6947
+   },
+   {
+    "path": "scripts/stage1_s1/mutation/run_mutants_b14.py",
+    "sha256": "1593d7c508c123cc55374a3b8756dd200972593b666dc5f20027520cdfa909f7",
+    "bytes": 7658
+   },
+   {
+    "path": "scripts/stage1_s1/oext_eval.py",
+    "sha256": "5da72827c0aece07a946d6304a7b9d05434a0d3ced98f459220b977e9b9da01d",
+    "bytes": 50103
+   },
+   {
+    "path": "scripts/stage1_s1/overlap_similarity.py",
+    "sha256": "f8305c712109b1bc733769b806c3a37cee9726feab0694e89f42dfc47d4f79f4",
+    "bytes": 24421
+   },
+   {
+    "path": "scripts/stage1_s1/overlap_strata.py",
+    "sha256": "ad4db8cdb5050501f4e69d64539e22a1b6dbffc4826abe9ae270cb8675d1bba9",
+    "bytes": 31058
+   },
+   {
+    "path": "scripts/stage1_s1/safe_lora.py",
+    "sha256": "cd70eed6055f19f3da5467b4dfbe61104e26b1b571a85040a4bbcfd4e39403d4",
+    "bytes": 54149
+   },
+   {
+    "path": "scripts/stage1_s1/settings/eval_adapter.json",
+    "sha256": "fc7d11b4e0001dc55e2210498fe4ddc7c7400257ca200f0433c4e378aeef0cb6",
+    "bytes": 14837
+   },
+   {
+    "path": "scripts/stage1_s1/settings/lean_eval_job.json",
+    "sha256": "578a378b26a90d1df0f4cb14380e04fb690dec61c224c8271310ec9bd4ac7ecf",
+    "bytes": 8416
+   },
+   {
+    "path": "scripts/stage1_s1/settings/oext_eval.json",
+    "sha256": "3000811cd4f911a1beb9abcb2b2c2dfd5843629c598d736e315f15918e194639",
+    "bytes": 8378
+   },
+   {
+    "path": "scripts/stage1_s1/settings/overlap_similarity.json",
+    "sha256": "27db4c3faafc41c4278ff6ca7d1ded0a0fb1a07ae484c4bbf65702f5545ac754",
+    "bytes": 2760
+   },
+   {
+    "path": "scripts/stage1_s1/settings/overlap_strata.json",
+    "sha256": "b98d012e9cc92dbe847f92d9ccda54cf2ee22964dbd941e5aa8bd672bff19f87",
+    "bytes": 6874
+   },
+   {
+    "path": "scripts/stage1_s1/settings/safe_lora.json",
+    "sha256": "e8a011221b4392bf9ef4f5ad31fc7ed8a51a5d346a5405a92093072f8857ccc0",
+    "bytes": 17211
+   },
+   {
+    "path": "scripts/stage1_s1/tests/b10_fixtures.py",
+    "sha256": "6b15882269d213155a37063d156bdd316286af8f3b54c79e201d3a02c5cfaa4a",
+    "bytes": 10574
+   },
+   {
+    "path": "scripts/stage1_s1/tests/b10_transform_fixture.py",
+    "sha256": "721d81a9f4fafc8d612e04624f5ae0dd9772841a89b53a17ba116e01c11c4695",
+    "bytes": 2106
+   },
+   {
+    "path": "scripts/stage1_s1/tests/b11_fixtures.py",
+    "sha256": "b6b07470d8c559d07d2205eb97b8fb2ec0e620186ce28af4cae4934d7ae84508",
+    "bytes": 10723
+   },
+   {
+    "path": "scripts/stage1_s1/tests/b11_official_port.py",
+    "sha256": "d353f8c084cdf6f424d34cb2cf9b0980f628a119356f8a39faedf4f61e64d2a6",
+    "bytes": 5217
+   },
+   {
+    "path": "scripts/stage1_s1/tests/b14_fixtures.py",
+    "sha256": "6097de9a44b659681ad37bcbe8cc6980e2cb74f6418d83343b86cdd0fbd8ad3d",
+    "bytes": 11784
+   },
+   {
+    "path": "scripts/stage1_s1/tests/b17_support.py",
+    "sha256": "ecec3ce59a04e70d4077b2c2543f90d7bf3b66e33d0e8c0df1c1a82c3bded103",
+    "bytes": 8458
+   },
+   {
+    "path": "scripts/stage1_s1/tests/conftest.py",
+    "sha256": "9bed8ec899c8510ca9612e1de9c1a49fc1c92c685adf698e427482b85a42cd4b",
+    "bytes": 679
+   },
+   {
+    "path": "scripts/stage1_s1/tests/oext_fixtures.py",
+    "sha256": "55b830bb06b5e4e1b6a40aa7257165524d2c18cedcfbcae9cffb84d7f19d6e03",
+    "bytes": 10556
+   },
+   {
+    "path": "scripts/stage1_s1/tests/test_b10_b11_integration.py",
+    "sha256": "312c83d4fc42fed6bff2cf7b7d71391d48645061818d152e19d955c56c38cec9",
+    "bytes": 15351
+   },
+   {
+    "path": "scripts/stage1_s1/tests/test_b10_cli.py",
+    "sha256": "9d5407a4e5a4b08b040e6cf965f7c56af62d7229118f68ed1a9d7d79fb7e5186",
+    "bytes": 12481
+   },
+   {
+    "path": "scripts/stage1_s1/tests/test_b10_equivalence.py",
+    "sha256": "a2864bef264c62e0c937f5db147f387f622fd87370f73aab4ffca397662187ab",
+    "bytes": 12769
+   },
+   {
+    "path": "scripts/stage1_s1/tests/test_b10_fixround.py",
+    "sha256": "56b338d175b7cfcf8c268eb044b39d54b62f5f1f368114875d9a2d6049c3607d",
+    "bytes": 35743
+   },
+   {
+    "path": "scripts/stage1_s1/tests/test_b10_oext.py",
+    "sha256": "9ed01c16363548b79d611e9463378a4a5756921deee86e5ca2c84c9e7b45315d",
+    "bytes": 18026
+   },
+   {
+    "path": "scripts/stage1_s1/tests/test_b10_olmo2.py",
+    "sha256": "ba0c96bb6cb4a78c5b2efa5ca2f97a6e98822912b53649584de3fdc8e250387c",
+    "bytes": 3612
+   },
+   {
+    "path": "scripts/stage1_s1/tests/test_b10_prefix.py",
+    "sha256": "26261723d157bba04818ba58f3a76e83615fa3a79db0dd10e8e67782c10613b1",
+    "bytes": 11180
+   },
+   {
+    "path": "scripts/stage1_s1/tests/test_b10_regenerate.py",
+    "sha256": "263c200f1060f33c4abeb74c86d3c6985e53763b6342fe292995982066483639",
+    "bytes": 12663
+   },
+   {
+    "path": "scripts/stage1_s1/tests/test_b10_settings.py",
+    "sha256": "dbbdf61a2a31109e748de761353286bd94e119e53dc1cd0d7e945e8248a0bdc3",
+    "bytes": 16213
+   },
+   {
+    "path": "scripts/stage1_s1/tests/test_b10_transforms.py",
+    "sha256": "a076435aaa427546e55ba6e761e09b0de046a049d88d633a8448368eca215c6f",
+    "bytes": 16297
+   },
+   {
+    "path": "scripts/stage1_s1/tests/test_b11_fixround.py",
+    "sha256": "6b76980bef3d891d93d44978292e598488c857500048221978997bb2f7a4f0d0",
+    "bytes": 8544
+   },
+   {
+    "path": "scripts/stage1_s1/tests/test_b11_gaps.py",
+    "sha256": "94716d0b865c54652cf014da9ecd4ee318a77bebde6b35b472e1fcf76e5b8490",
+    "bytes": 10464
+   },
+   {
+    "path": "scripts/stage1_s1/tests/test_b11_math.py",
+    "sha256": "0e088cd8d6bb5e318a32f63e1e1ec4b6fc961603e45e45b76c65316fa6b7880a",
+    "bytes": 8171
+   },
+   {
+    "path": "scripts/stage1_s1/tests/test_b11_oracle.py",
+    "sha256": "7ff47b6582e744e771d419929c2112eeaadd8bc5875bc5085b4e991c96c8a663",
+    "bytes": 3592
+   },
+   {
+    "path": "scripts/stage1_s1/tests/test_b11_rulings.py",
+    "sha256": "4ed825a419d528f2b9418e85d45d9be91ace7cf62e3d7cf77c9307f1d51c0974",
+    "bytes": 20054
+   },
+   {
+    "path": "scripts/stage1_s1/tests/test_b11_settings.py",
+    "sha256": "18f7280d8746e685bcc573f0cd647b3f74469b77f829b489826b1207c75dfb81",
+    "bytes": 10454
+   },
+   {
+    "path": "scripts/stage1_s1/tests/test_b11_transform.py",
+    "sha256": "095231967a198fb08dc9d8dbac20a5bc487f1eabe7231571a4cbf2be55dfe047",
+    "bytes": 27758
+   },
+   {
+    "path": "scripts/stage1_s1/tests/test_b14_n8_read.py",
+    "sha256": "7a4105c4c52a91201e5eb4a10924c636f15e7ef7ecf4235b1f0f7793ca916ac2",
+    "bytes": 4496
+   },
+   {
+    "path": "scripts/stage1_s1/tests/test_b14_pins.py",
+    "sha256": "3a49ce1447c9ac4d9470dda6e0f60d575519c53d9eada6f83ec349190b9768e1",
+    "bytes": 7809
+   },
+   {
+    "path": "scripts/stage1_s1/tests/test_b14_report.py",
+    "sha256": "1be9c47839e324d494fafaf41d2f577f18d1b2f761b754fec079d5a044be256a",
+    "bytes": 27128
+   },
+   {
+    "path": "scripts/stage1_s1/tests/test_b14_similarity.py",
+    "sha256": "a34477fff1df36bfd0cc3da67f2940e3bc39f712e6ed127344c0439229a5d604",
+    "bytes": 22143
+   },
+   {
+    "path": "scripts/stage1_s1/tests/test_b14_strata.py",
+    "sha256": "fbe64f069c39727e1667bff5799c9bcf72403eab92fb2ccdbae3620fb64d6db9",
+    "bytes": 5511
+   },
+   {
+    "path": "scripts/stage1_s1/tests/test_b17_engine_subset.py",
+    "sha256": "90f83cc6f2608daeb650d81624a0a971d22f039c8798977bac5f36b6e1bf4a6a",
+    "bytes": 8033
+   },
+   {
+    "path": "scripts/stage1_s1/tests/test_b17_gaps.py",
+    "sha256": "5a4769d5224c7ccb13296ef4ab8dc002d798032e0981b28804ad149cc2436b08",
+    "bytes": 12116
+   },
+   {
+    "path": "scripts/stage1_s1/tests/test_b17_lean_eval_job.py",
+    "sha256": "49f2394750104300d6a5b01896188caa1102ad0a94dd0ec85e9f27c3cb5792f2",
+    "bytes": 41336
+   },
+   {
+    "path": "scripts/stage1_s1/tests/test_b17_mirror.py",
+    "sha256": "2e1e504822597f79ebea959ed6ac150224e4fe8c0583bbbb41d3b29109fd6f00",
+    "bytes": 4463
+   },
+   {
+    "path": "scripts/stage1_s1/tests/test_b17_oext.py",
+    "sha256": "0cac7aa9b2476d4366faa033a76ec931d621a57e34e45561bf7bb7917d3cad0f",
+    "bytes": 12433
+   },
+   {
+    "path": "scripts/stage1_s1/tests/test_oext_eval.py",
+    "sha256": "ef2a95b8c2cc67d88922b41f012af0b192bf73cb66e9e5aaaa85601a99eb4fd9",
+    "bytes": 53722
+   },
+   {
+    "path": "scripts/stage1_s1/tests/test_s1_layout.py",
+    "sha256": "5ad56e27566898114fea788f7cc916d16176b9c6d82f0b02f9d25dee24bc597b",
+    "bytes": 2483
+   }
+  ]
+ },
+ "acceptance": {
+  "passed": [
+   "each blocking and should_fix finding re-checked; the fixable ones fixed with a test each (the three pin-only behaviours) or by this report (the two report findings); none dropped as wrong",
+   "scripts/stage1_s1/tests 744, scripts/stage1/tests 874, both in one process 1618: all pass, 0 skipped",
+   "every stage1_s1 spec in shards from its baseline: 486 mutants, 484 killed, 2 expected survivors, 0 invalid (after the 7 timeouts were re-run)",
+   "the verifiers' new mutants: 17 run, 17 killed; the other 3 run as package mutants, each killed by its new content test",
+   "engine X unchanged; outside scripts/stage1_s1 ws-s1 equals ws-s1base; scripts/stage1 not edited"
+  ],
+  "failed": [],
+  "not_tested": [
+   "addendum 11.11's HB-C reading of the halves (B16's; routed)",
+   "the five regression suites (unnamed)",
+   "CUDA and real models (tiny random models only)"
+  ]
+ },
+ "open_items": [
+  "lead: 11.11's B16 side (HB-C of the halves from cells_u_pp) and the order in which B16's package and this one are combined",
+  "lead: record the layout choice (s1-merge open item 1, option (b), as built by round 1) in a ruling before the explicit-path commit",
+  "lead: confirm LN-14's bar reading at n = 400 (shares: at least 388 of 400 agree, the move at most 8) or pick the literal counts, in the freeze text",
+  "lead: name the five regression suites of 11.14",
+  "carried over from the review: evaluate_transfer does not check the theta0 unit; an O-ext error fails a certify unit; the oext_guard_cut seconds in B17's readable c0 record; stale labels_sha256 / sources.ADD fields and the b11_official_port.py docstring (refresh at the 11.7 re-pin); the cap-switch rule is procedural; LN-24 F not built; O-only passes need caller answers; pending lambda = 0 and K = 0 points refuse; no external-mode O-ext test; the S5 limit not in B17's settings",
+  "the round-1 scratch tmp-s1-fix/ (its tree clone, mirror, shard specs and 3 half-made run copies) was deleted with this round's scratch; its reports and tooling remain in notes/s1-fix-mutation/"
+ ],
+ "evidence": {
+  "notes/s1-fix-evidence/": "suite-stage1_s1, suite-stage1, suite-both (.xml and .stdout)",
+  "notes/s1-fix-v2-mutation/": "one .json and .stdout per shard and baseline, summary.json, tooling/, invalid-attempt1/"
+ },
+ "commands": [
+  "reads of both verifier reports, the review v1 findings, s1-merge/s1-small/s1-oext, the addendum sections listed, the code and tests named (cat, sed, grep, python3 reads; exit 0; one ls of a wrong evidence path exited 1)",
+  "copy of the stub to notes/s1-fix.v1-20261023.json; this report's stub written first",
+  "edits: test_oext_eval.py (Edit), test_b11_rulings.py (python replace, each anchor checked once), the two specs (json append, layout kept: indent 2)",
+  "pytest of the two edited files (124 passed); a quick check of the three mutants on scratch clones (each failed exactly its new test; scratch deleted)",
+  "pytest: stage1_s1, stage1, both (exit 0 each)",
+  "cp -cR ws-s1 tmp-s1-fix2/tree; b17_mirror.py --mirror (exit 0); make_shards.py, split_shards.py (its halves then removed), reshard.py (exit 0)",
+  "do_round.sh/round.sh: 1 baseline round and 31 mutation rounds (every shard exit 0 except the 7 shards of rounds2 line 3 with a timed-out mutant, exit 1, re-run: exit 0)",
+  "aggregate.py (exit 0); code_identity(); diff -rq of ws-s1 against ws-s1base and the clone (exit 0)",
+  "rm -rf tmp-s1-fix2, tmp-s1-fix and the session scratch folder; date -u before each time written"
+ ],
+ "rules": {
+  "git": "none run",
+  "network": "none",
+  "pods_downloads": "none; only the suites' tiny local fixtures",
+  "data_files_opened": "none (no rows.jsonl, groups.json, selector.jsonl, hidden/, held-out file, PHTest or anchor text)",
+  "writes": "ws-s1/scripts/stage1_s1 (the four files in changed_files), notes/s1-fix.json, notes/s1-fix.v1-20261023.json, notes/s1-fix-evidence/, notes/s1-fix-v2-mutation/, tmp-s1-fix2/ (deleted) and the session scratchpad (emptied); ws-s1base, stage1-s1pkg-20261017, scripts/stage1 and the main checkout unchanged",
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892"
+ }
+}

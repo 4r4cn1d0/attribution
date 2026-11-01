@@ -1,0 +1,565 @@
+{
+ "kind": "stage1 kit round report",
+ "round": "32",
+ "written_utc": "2026-10-29T12:56Z (date -u 12:54:40 before writing)",
+ "builder": "Opus worker (bounded builder for GI VII); model identity is the launcher's record, not this text",
+ "brief": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/k32-brief.md",
+ "tree": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/k32/tree",
+ "tree_base": "working branch 9a253e2 (G1 merged), as the lead's message gives it",
+ "owned": "runkit/stage1-olmo/ only; scripts/, runkit/gate-b-olmo/ and experiments/ hashed before and after: unchanged (Gate B's judge files byte-identical)",
+ "summary": [
+  "K1: block B's second reference phase is a held launch {\"second_phase\": [...]} inside block B (no new block): planned, priced, completed and sealed with block B; released only after the a0 runs at its seeds are recorded done with their K6 record, B10/B11 settings at their S1_CODE pins name those runs (COMPLETE.json SHA-256, the record's fingerprint prefixes; B11 accepts exactly the record's e1) and the X pack holds gate_a_complete:S and the four B10/B11 files at their pins. B10/B11 pins are read from S1_CODE only.",
+  "K2: record-not-run (any block but A): jobs named HOST:INDEX; completeness, release (skips an all-decided launch), defer, seal and seal.py status count and list it; a job a move left behind without a re-run now keeps the block open until decided.",
+  "K3: B10 exit 4 at the certification run = complete with certification_gate failed (certify unit + comparison); record-done keeps the gate; record-certification refuses pass true over a failed gate; init-block (not only release) refuses references without a passing certification.",
+  "K4: certify's first init needs --group-jobs B=FILE and its funding record must cover the whole group; B's init must use the same record (SHA-256) and stay within it.",
+  "K5: judge_units_stage1.py units-of-block BLOCK --out FILE lists a block's judged units from plan.json (round 31's rule, COMPLETE.json hashed against plan.json).",
+  "K6 (added by the lead mid-round): the runner writes job-I/a0-adapter-fingerprint.json after every complete a0_arm job (the re-pin tool's format; e1 from states/e1/state.json, equal to COMPLETE.json's) and lists it in outputs; K1's gate requires it.",
+  "Need (kit rule, live plan.json in memory): certify + B full scope with the second phase = $245.55 (base $196.44, contingency $49.11); the 3-seed draft $165.04; unchanged by the split.",
+  "Tests: kit suite 664 passed (640 before + 24 new); same suite on a merge-check copy with main's S1_CODE re-pins and main's scripts: 664 passed.",
+  "Mutants: 8 new B15-32-* + 2 re-targeted: 10 of 10 killed by the official runner (baseline 654 passed)."
+ ],
+ "design": {
+  "chosen_route_k1": "a held launch in block B (second_phase), not a block B2: block B's need, completeness, seal and its one judge launch per judge cover it with no new block, funding group, host prefix or gate_order rule; the judges already wait for every earlier launch's hosts.",
+  "alternative_b2_not_chosen": "a block B2 in group B would need BLOCKS/FUNDING_BLOCK/HOST_PREFIX/BLOCK_KINDS entries, its own gate_order, block B's completeness and judged units extended over B2's hosts, and block B's judge launch held for B2's hosts (or B2's own judges, against §32 point 1's one launch per judge).",
+  "k4_route": "no new record kind: the first init in group B takes the later parts' jobs files (--group-jobs PART=FILE), used for the need only, and records their SHA-256 (block record group_jobs); later inits must give the same funding record (SHA-256) and the cumulative need must fit it. A changed B jobs file (e.g. without references after a failed certification) is allowed when the first record still covers it; the summary says whether it is the counted file.",
+  "k2_names": "HOST:INDEX, not block A's labels: block B can hold one kind/arm/seed on two hosts (moves) or in two jobs (point splits)."
+ },
+ "changed_files": [
+  {
+   "path": "runkit/stage1-olmo/README.md",
+   "old_sha256": "137e498e056a03d83d84acc5ee087cbe76ed352cc4ac634c4e11e7aef0af9cc5",
+   "new_sha256": "261688a706753e2d2b604a3075557707cb003bc5612a0d152eddf91376ee60fd"
+  },
+  {
+   "path": "runkit/stage1-olmo/judge_units_stage1.py",
+   "old_sha256": "e504a17fde630ef108edd4672c1fdf909afe97aa5a24ff5148f4ffa75869de3b",
+   "new_sha256": "516e571c061e21357cf4e23a7a8b2c849467f3b9a4ff2d9d50814ccd0ea7f852"
+  },
+  {
+   "path": "runkit/stage1-olmo/notes/kit-round-32-evidence/dry_k32.out.json",
+   "old_sha256": null,
+   "new_sha256": "f75d2bfb5e9448cb5d01444d7fdc06d762675dfc9d90b7267550d70774ef3632"
+  },
+  {
+   "path": "runkit/stage1-olmo/notes/kit-round-32-evidence/dry_k32.py",
+   "old_sha256": null,
+   "new_sha256": "3e92fde6b8c65d152bebbcbe38dc1252d4a7d69d7249871c116173c4dff89c27"
+  },
+  {
+   "path": "runkit/stage1-olmo/notes/kit-round-32-evidence/jobs_block_b_full_2phase.json",
+   "old_sha256": null,
+   "new_sha256": "c9fe63a66699415a79cbc1cd22d45e221bb5574caa4780eec21b95769a0f3594"
+  },
+  {
+   "path": "runkit/stage1-olmo/notes/kit-round-32-evidence/mutation-report-1.json",
+   "old_sha256": null,
+   "new_sha256": "333ea685d8f726602e39e8ac7ac67ce20ce9d2de640cb05da3f00f62f25a4c31"
+  },
+  {
+   "path": "runkit/stage1-olmo/notes/kit-round-32-evidence/mutation-report-2-after-gate-reorder.json",
+   "old_sha256": null,
+   "new_sha256": "cc5d65d8a477bae4f2567819b1d8c587450d21dc9eba47998ccc615ffd58bff8"
+  },
+  {
+   "path": "runkit/stage1-olmo/plan_tool.py",
+   "old_sha256": "349479b0b8db2090fab0014eb09843ee1208d205b0d2c04e7f25c25293512423",
+   "new_sha256": "055ad0b984cc190e61dc1aa110817539246e38cb1794fce46b64ff087c73d6ea"
+  },
+  {
+   "path": "runkit/stage1-olmo/seal.py",
+   "old_sha256": "67757c7ebec7ad66a8e5df02c7c9ed39ee5a9d2e76032373d452b67e117cecaa",
+   "new_sha256": "62111a41bb70bbe647dfdd28ba71b93b24447b2a188fe2796c9bb899b02a065c"
+  },
+  {
+   "path": "runkit/stage1-olmo/setup/job_runner_stage1.py",
+   "old_sha256": "a473a11021ea929d4e2d48ffcd1ed4bdd998092a3dd133ab9fb7c686c14aa4ed",
+   "new_sha256": "37e8e81ac5ed8d80423fd64fcd97dd74584884dd411513c1729774497107efa3"
+  },
+  {
+   "path": "runkit/stage1-olmo/stage1_rules.py",
+   "old_sha256": "fdedecd13e073722f92cde1eae71dc489775cf3277c15c0fe62e58a08c275f44",
+   "new_sha256": "0b361beccf1e671d6dd2c2142ae1152543a697a3e095a57f6b497d5b9a97301e"
+  },
+  {
+   "path": "runkit/stage1-olmo/tests/mutants_b15.json",
+   "old_sha256": "04e873ec0a1f243b59d672669e9cbe20d6fedf3dfc1d50bf31145b9a9a734960",
+   "new_sha256": "c143ef7927fbd489c5e4aa6f3782c5b26037682d127fce5fca38f4d03a06f693"
+  },
+  {
+   "path": "runkit/stage1-olmo/tests/test_stage1_runkit.py",
+   "old_sha256": "152c86cc819dd42e5d7fb7ac49039662b3d9b6e0f82f82d8e1134d11f7eb9963",
+   "new_sha256": "bbc4d3742e2f15232946b7c0d7aa7a9cdc3ef5c26d4e722d7df8500f2e4e76ca"
+  },
+  {
+   "path": "runkit/stage1-olmo/tests/test_stage1_runner.py",
+   "old_sha256": "8e3af3db260f752a81ac6babc0ec6bd8cd8e2b27418db1326320fa6b245d2e28",
+   "new_sha256": "691e5201c881669ebe9846a9d25bad4c6a890a8dbbf52f1a7842e7ea40f91f0a"
+  }
+ ],
+ "merge_notes": [
+  "Every changed kit file except stage1_rules.py equals main's working copy's original (M: shasum, 12:50 UTC): copy them by explicit paths.",
+  "stage1_rules.py: main's working copy re-pinned S1_CODE (eval_adapter.py 525a96d2..., safe_lora.py 080a6974..., eval_adapter.json 18287cfa..., safe_lora.json 16af536a...; not committed at 12:50 UTC). This round only ADDS lines after S1_OEXT_Y (B10_SETTINGS ... A0_FINGERPRINT_KIND) and leaves S1_CODE as it was (TREE: 7927ff25/cd70eed6/a99f918f/e8a01122): keep main's S1_CODE lines and add this round's block.",
+  "M: the kit suite on a merge-check copy (this round's kit with main's S1_CODE lines; main's scripts/, experiments/, .ai linked read only): 664 passed in 67.3 s.",
+  "The job runner is a member of every pack: the certification pod's X1 pack (K3: failed gate recordable) and block B's X2 pack (K6: a0 records) must be made after this round is merged."
+ ],
+ "items": {
+  "K1_second_phase": {
+   "code": [
+    "plan_tool.py build_block (the second_phase launch form; :2321ff), second_phase_layout :2461 (only ref_eval/safe_lora on the deal's a0 seeds; every such reference in a phase; after every deal launch, before every judge launch)",
+    "plan_tool.py init_block :2706 (pending/launch records carry second_phase; summary second_phase_launches)",
+    "plan_tool.py release_next :2812 (second_phase_gate before release_hosts; guard-off never bypasses it)",
+    "plan_tool.py pinned_s1_settings :2485, own_a0_runs :2491, a0_fingerprint :2511 (K6), second_phase_gate :2539 (a0 runs -> B10/B11 re-pin -> re-pack), packed_sealed :3719",
+    "stage1_rules.py B10_SETTINGS, B11_SETTINGS, B10_B11_FILES (S1_CODE keys only), SECOND_PHASE_KINDS"
+   ],
+   "tests": [
+    "test_stage1_runkit.py::test_k1_the_second_phase_holds_the_references_on_block_bs_own_a0_runs_priced_by_hand (5 layout refusals + block other than B; accept: launch marked, hosts pending, caps 4.5 h and 3.25 h by hand, need launch spends by hand)",
+    "test_stage1_runkit.py::test_k1_the_second_phase_is_released_only_after_the_a0_runs_the_b10_b11_repin_and_the_repack (in order, guard off: a0 not done; settings not at pin; B10 other COMPLETE; B11 not the record's e1; B10 prefix not the record's; pack without gate_a_complete:1105; 1106 at another SHA; B10 settings sealed at another pin; two complete a0; no K6 record; record naming another unit; record bytes changed; then released, bound to the re-pack, block complete and sealed)",
+    "test_stage1_runkit.py::test_k1_b10s_and_b11s_pins_are_read_from_s1_code_only (keys in S1_CODE; no kit file but stage1_rules holds a B10/B11 pin; a changed S1_CODE pin refuses the same bytes)"
+   ],
+   "dry_run": {
+    "script": "notes/kit-round-32-evidence/dry_k32.py (this tree's code pointed at the live kit; writes refused; scratch records only in the scratchpad)",
+    "output": "notes/kit-round-32-evidence/dry_k32.out.json",
+    "jobs_files": {
+     "B_2phase": "c9fe63a66699415a79cbc1cd22d45e221bb5574caa4780eec21b95769a0f3594",
+     "B_3seed": "dea852a2ecbd1b8e8d0ea12aa76a87e8f49f5972b7c851af2f2aa489cce92e18",
+     "B_full_unsplit": "232bc6a338ddac73d3a3bf71065d2dfd3c31905ca1f2f993c6dc497215d91344",
+     "certify": "1073c9afad4cd18f41336a04db3b9a7d8e301a960bb23089cada777a68a832fd"
+    },
+    "live_plan_sha256_before_after": [
+     "5f55111fd1f68bf6c1f376db917c15f80b84d6c06cc6c69c46f52a18923b8f9b",
+     "5f55111fd1f68bf6c1f376db917c15f80b84d6c06cc6c69c46f52a18923b8f9b"
+    ],
+    "live_files_unchanged": true,
+    "whole_group_need_full_scope_2phase": {
+     "base_need_usd": 196.44,
+     "contingency_usd": 49.11,
+     "group": {
+      "later": {
+       "B": {
+        "pods": 20,
+        "sha256": "c9fe63a66699415a79cbc1cd22d45e221bb5574caa4780eec21b95769a0f3594"
+       }
+      },
+      "planned": [],
+      "this": "certify"
+     },
+     "need_usd": 245.55,
+     "pods": [
+      [
+       0,
+       2.75,
+       1
+      ]
+     ],
+     "released": null,
+     "second_phase_launches": null,
+     "terms_cents": [
+      1108.75,
+      4772.823,
+      7621.3097,
+      8712.2964,
+      10291.6897,
+      16129.6052,
+      19208.9055,
+      19118.9142,
+      19643.9142
+     ]
+    },
+    "whole_group_need_3seed_draft": {
+     "base_need_usd": 132.03,
+     "contingency_usd": 33.01,
+     "group": {
+      "later": {
+       "B": {
+        "pods": 13,
+        "sha256": "dea852a2ecbd1b8e8d0ea12aa76a87e8f49f5972b7c851af2f2aa489cce92e18"
+       }
+      },
+      "planned": [],
+      "this": "certify"
+     },
+     "need_usd": 165.04,
+     "pods": [
+      [
+       0,
+       2.75,
+       1
+      ]
+     ],
+     "released": null,
+     "second_phase_launches": null,
+     "terms_cents": [
+      1108.75,
+      4772.823,
+      7621.3097,
+      8712.2964,
+      11309.1897,
+      12797.2054,
+      12761.3709,
+      13202.8709
+     ]
+    },
+    "unsplit_full_draft": {
+     "refused": "launch 5: ref_eval on a0 at 1105 evaluates block B's own a0 run, whose adapter exists only after its arm pod: plan it in a {\"second_phase\": [...]} launch (addendum §34 point 5)"
+    },
+    "certify_without_group_jobs": {
+     "refused": "init-block certify is the first init of block B's group: its funding record must cover the whole group's need (addendum §20 point 1, §34 point 7): give --group-jobs B=FILE"
+    },
+    "certify_one_cent_below": {
+     "refused": "the funding $245.54 is below the need $245.55 (1.25 x $196.44)"
+    },
+    "B_init": {
+     "group_need_equals_certify_time": true,
+     "launches": [
+      {
+       "hosts": [
+        "b-1",
+        "b-2",
+        "b-3"
+       ]
+      },
+      {
+       "hosts": [
+        "b-4",
+        "b-5",
+        "b-6"
+       ]
+      },
+      {
+       "hosts": [
+        "b-7",
+        "b-8"
+       ]
+      },
+      {
+       "hosts": [
+        "b-9",
+        "b-10"
+       ]
+      },
+      {
+       "hosts": [
+        "b-11",
+        "b-12",
+        "b-13",
+        "b-14",
+        "b-15",
+        "b-16"
+       ]
+      },
+      {
+       "hosts": [
+        "b-17",
+        "b-18",
+        "b-19",
+        "b-20"
+       ],
+       "second_phase": true
+      },
+      {
+       "judge": {
+        "answers": 57600,
+        "arms": 72,
+        "cap_hours": 5.0,
+        "judge": "harmbench",
+        "kinds": []
+       }
+      },
+      {
+       "judge": {
+        "answers": 14600,
+        "arms": 72,
+        "cap_hours": 3.0,
+        "judge": "granite",
+        "kinds": []
+       }
+      }
+     ],
+     "need_usd": 245.55,
+     "released_at_init": 1
+    },
+    "B_with_another_funding_record": {
+     "refused": "block B: block B's group has one funding record (addendum §34 point 7): give the first init's record (f5ced621...), which must cover the need of every part planned"
+    },
+    "releases_before_a0": [
+     {
+      "launch": 1,
+      "ok": [
+       "b-4",
+       "b-5",
+       "b-6"
+      ]
+     },
+     {
+      "launch": 2,
+      "ok": [
+       "b-7",
+       "b-8"
+      ]
+     },
+     {
+      "launch": 3,
+      "ok": [
+       "b-9",
+       "b-10"
+      ]
+     },
+     {
+      "launch": 4,
+      "ok": [
+       "b-11",
+       "b-12",
+       "b-13",
+       "b-14",
+       "b-15",
+       "b-16"
+      ]
+     },
+     {
+      "launch": 5,
+      "refused": "the second reference phase waits: block B's a0 run at 1105 is not recorded complete (its arm pod first; record-done)"
+     }
+    ],
+    "after_a0_done_simulated": {
+     "refused": "scripts/stage1_s1/settings/eval_adapter.json at its stage1_rules.S1_CODE pin (scripts/stage1_s1/settings/eval_adapter.json) is missing or differs from its pin"
+    },
+    "after_repin_simulated": {
+     "refused": "the second reference phase waits for the re-pack: the packed stage1-X holds no gate_a_complete:1105 at the a0 run's COMPLETE.json SHA-256 (pack_setup.py X with it)"
+    },
+    "after_repack_simulated": {
+     "ok": [
+      "b-17",
+      "b-18",
+      "b-19",
+      "b-20"
+     ]
+    },
+    "judges_after": 8,
+    "not_run_route": {
+     "skipped": [
+      {
+       "decisions": [
+        "ac17e899ff38e2ac4b7b6ba6d846d6ef25fcbcc46ce0bddf7a1edabd97d16e66"
+       ],
+       "hosts": [
+        "b-17",
+        "b-18",
+        "b-19",
+        "b-20"
+       ],
+       "launch": 5,
+       "utc": "2026-10-29T12:49:19+00:00"
+      }
+     ],
+     "launches_released": 8
+    },
+    "stubs": "judge_record_checked for block A (plan.json's recorded record; no judges/ file opened); after step 5: a0 runs set done in memory with synthetic COMPLETE.json SHA-256 and K6 digests, a0_fingerprint, pinned_s1_settings and packed_sealed stubbed (the re-pin and re-pack simulated)",
+    "note": "step 6's refusal is the real one: main's working-copy eval_adapter.json (18287cfa...) is not this TREE's S1_CODE pin (a99f918f...)."
+   },
+   "exact_need": {
+    "certify_plus_B_with_second_phase_usd": 245.55,
+    "base_usd": 196.44,
+    "contingency_usd": 49.11,
+    "terms_cents": [
+     1108.75,
+     4772.823,
+     7621.3097,
+     8712.2964,
+     10291.6897,
+     16129.6052,
+     19208.9055,
+     19118.9142,
+     19643.9142
+    ],
+    "governing_term": "the last (Granite judge launch)",
+    "top_up_rounded_up_to_the_dollar": 246,
+    "three_seed_draft_usd": 165.04,
+    "rule": "1.25 x the guard's worst path (one launch at a time), [D20] cents; certify 2.75 h; 20 block-B pods; HarmBench 72 units 5.0 h, Granite 72 units 3.0 h"
+   }
+  },
+  "K2_not_run": {
+   "code": [
+    "plan_tool.py not_run_problem :2168, not_run_entry_problem :2184, not_run_decided :2199, launch_decided :2215, settled_view :2222, carried :2238, block_open_jobs :2246, record_not_run :2265",
+    "plan_tool.py block_complete :773 (non-A: decided pending hosts settled; decided jobs count; block_open_jobs empty)",
+    "plan_tool.py release_next (skips an all-decided launch after the same wait, records skipped), release (logs release-skipped), defer :3789 (decided jobs stay), move_open :3812 (refuses moving a decided job)",
+    "seal.py seal_block (not_run as HOST:INDEX with the decision SHA-256; skipped), status (one line per decision, valid/INVALID; per skipped launch)"
+   ],
+   "tests": [
+    "test_k2_a_crashed_job_decided_not_run_completes_block_b_and_the_seal_and_status_list_it (13 refusals; CLI accept; seal lists; status valid/INVALID; defer leaves it; after seal refuses)",
+    "test_k2_a_job_a_move_left_behind_keeps_block_b_open_until_a_decision_names_it[False, True]",
+    "test_k2_a_held_launch_decided_not_run_is_skipped_and_the_judges_release",
+    "test_k2_an_unreleased_launch_that_holds_only_decided_hosts_is_settled_without_a_release"
+   ]
+  },
+  "K3_failed_certification": {
+   "code": [
+    "setup/job_runner_stage1.py run_job (exit 4 at job-I-b10-run of b10_certify only), certification_gate :876 (verdict read only; exit 0 needs pass; exit 4 needs a non-pass verdict and the certify unit only)",
+    "plan_tool.py certification_gate_of :3536 (record-done), record_simple certification :3014, gate_certification :752 (+ at init :2723)",
+    "stage1_rules.py B10_EXIT_CERTIFICATION, CERTIFICATION_GATES"
+   ],
+   "tests": [
+    "test_stage1_runner.py::test_k3_b10s_failed_gate_is_a_complete_job_with_the_certify_unit_and_its_comparison",
+    "test_stage1_runner.py::test_k3_anything_but_b10s_own_failed_gate_is_still_a_crash x6",
+    "test_stage1_runner.py::test_k3_the_kits_failed_gate_exit_is_b10s_own_exit_code (B10's code and settings in this repository)",
+    "test_stage1_runkit.py::test_k3_a_failed_certification_is_recorded_pass_false_and_every_reference_then_refuses_to_plan",
+    "test_stage1_runkit.py::test_k3_a_passed_gate_may_still_be_recorded_pass_false_and_no_certification_refuses_a_reference_at_init",
+    "test_stage1_runkit.py::test_k3_record_done_takes_b10s_gate_only_as_the_runner_writes_it (5 refusals, accept)",
+    "test_stage1_runkit.py::test_k3_a_failed_gate_with_a_second_unit_on_disk_refuses"
+   ]
+  },
+  "K4_group_funding": {
+   "code": [
+    "plan_tool.py group_jobs :2654, group_summary :2692, init_block (rest += later parts; anchor_b same SHA-256), main (--group-jobs)"
+   ],
+   "tests": [
+    "test_stage1_runkit.py::test_k4_certify_covers_block_bs_whole_group_by_hand_on_one_funding_record (by hand: certify 2.75 h; terms 11.09 and 86.58 -> need 108.23; refusals: no group jobs, 4 malformed, one cent below, another record, a larger B file, group jobs at a later init, group A)"
+   ]
+  },
+  "K5_units_of_block": {
+   "code": [
+    "judge_units_stage1.py block_units :459, units_of_block_main :506, main :629"
+   ],
+   "tests": [
+    "test_stage1_runkit.py::test_k5_units_of_block_lists_exactly_block_bs_judged_units_from_plan_json (26 units by hand, by kind; equals judge_required_units; no block-A/cfy unit; refusals: OUT exists, COMPLETE changed, COMPLETE gone, block not planned)"
+   ]
+  },
+  "K6_a0_fingerprint_record": {
+   "format": "job-I/a0-adapter-fingerprint.json = {kind 'stage1 a0 adapter fingerprint', version 1, job, arm 'a0', seed, unit, complete_sha256, checkpoints {e1, q}, identity {manifest_sha256, training_identity}} (repin_reference_seeds.py check_record's fields, read in the s1-repin tree, read only)",
+   "source_of_e1": "states/e1/state.json adapter_fingerprint (the value safe_lora.py compares, :475/:783), required equal to COMPLETE.json checkpoints.e1.adapter_fingerprint (B10's read_reference field); q from COMPLETE.json (null when absent)",
+   "on_failure": "the a0 unit stays complete (never re-run for a record); the record is not written or listed; JOB-DONE notes a0_fingerprint_record; the second phase then refuses that seed",
+   "code": [
+    "setup/job_runner_stage1.py a0_fingerprint_record :896, run_job (after verify, a0_arm only) :1039",
+    "stage1_rules.py A0_FINGERPRINT_RECORD, A0_FINGERPRINT_KIND",
+    "plan_tool.py a0_fingerprint :2511 and second_phase_gate"
+   ],
+   "tests": [
+    "test_stage1_runner.py::test_k6_an_a0_arm_job_writes_its_readable_fingerprint_record_and_lists_it (record by hand; e1 == state's; listed at its SHA-256; seal pattern readable; an edit arm writes none)",
+    "test_stage1_runner.py::test_k6_a_state_fingerprint_that_is_not_complete_jsons_writes_no_record_and_the_unit_stands",
+    "test_stage1_runkit.py::test_k1_the_second_phase_is_released_only_after_... (gate refuses: no record, another unit, changed bytes, B10 prefix not the record's, B11 not the record's e1)"
+   ]
+  }
+ },
+ "tests": {
+  "kit_suite_before": "640 passed in 47.43 s",
+  "kit_suite_after": "664 passed in 66.86 s (final run, 12:53 UTC)",
+  "merge_check": "664 passed in 67.32 s (main's S1_CODE lines and scripts)",
+  "test_harness_changes": [
+   "World.init: group B reuses its first funding record; certify's init counts B_DEAL by default (group_jobs)",
+   "World.done: b10_certify records certification_gate and its comparison; block B's a0_arm jobs get the K6 record (block A's seal counts unchanged)",
+   "Pod (runner fake): B10's gated run writes the comparison and exits 4 on a failed gate; calibrate writes states/e1/state.json and COMPLETE.json checkpoints/identity"
+  ]
+ },
+ "mutants": {
+  "spec": "tests/mutants_b15.json: 357 -> 365 entries; note extended",
+  "new": [
+   "B15-32-phase-gate-skipped",
+   "B15-32-phase-repin-unchecked",
+   "B15-32-phase-record-prefix-unchecked",
+   "B15-32-open-jobs-ignored",
+   "B15-32-b10-exit-4-crash",
+   "B15-32-pass-over-failed-gate",
+   "B15-32-group-jobs-not-required",
+   "B15-32-a0-record-not-written"
+  ],
+  "retargeted": {
+   "B15-x-b10-unit-count": "the runner's B10 unit-count line now allows the certify unit alone after a failed gate",
+   "B15-h-judge-ignores-moved": "the judge wait's line now skips never-released hosts of a skipped launch"
+  },
+  "result": "10 of 10 killed (official runner, five test files, baseline 654 passed): notes/kit-round-32-evidence/mutation-report-1.json; the three K1 mutants re-run after the gate's check order changed: 3 of 3 killed (mutation-report-2-after-gate-reorder.json)",
+  "every_find_text_exactly_once": "checked for all 365 entries (M)",
+  "not_run": "the ALL spec (365)"
+ },
+ "commands_run": [
+  {
+   "cmd": "date -u (12:00:44, 12:00:52, 12:12:12, 12:28:18, 12:30:09, 12:30:52, 12:39:41, 12:40:15, 12:42:06, 12:42:54, 12:44:20, 12:49:07, 12:49:18, 12:50:53, 12:52:01, 12:52:10, 12:53:25, 12:54:32, 12:54:40)",
+   "exit": 0
+  },
+  {
+   "cmd": "shasum -a 256 of the kit, scripts, runkit/gate-b-olmo, experiments (before and after)",
+   "exit": 0
+  },
+  {
+   "cmd": "PYTHONDONTWRITEBYTECODE=1 STAGE1_ENGINE_Y_TREE=<main>/tmp/engine-y-34bfd288 PY -B -m pytest -p no:cacheprovider -q runkit/stage1-olmo/tests -x (baseline)",
+   "result": "640 passed",
+   "exit": 0
+  },
+  {
+   "cmd": "same suite after the code changes (before the test harness updates)",
+   "result": "3 failed, 637 passed (certify init without group jobs; record-done without the gate; the fake pod's comparison)",
+   "exit": 1
+  },
+  {
+   "cmd": "the three tests after the harness updates",
+   "result": "6 passed",
+   "exit": 0
+  },
+  {
+   "cmd": "-k 'k1_ or ... k6_' (first runs of the new tests)",
+   "result": "4 failed, 35 passed; then 1 failed, 38 passed (test-side fixes: the gate order, a _not_run argument clash, a K3 seed, a K4 bigger file)",
+   "exit": 1
+  },
+  {
+   "cmd": "full suite",
+   "result": "664 passed (33.99 s, 33.24 s, 77.81 s, 66.86 s)",
+   "exit": 0
+  },
+  {
+   "cmd": "PY -B research/experiments/2026-10-24-stage1-runkit/run_mutants_b15.py TREE k32work/mut1 k32work/mut1-report.json <8 new + 2 retargeted> --timeout 400",
+   "result": "baseline 654 passed; 10 killed; about 9 minutes (above the 8-minute guideline)",
+   "exit": 0
+  },
+  {
+   "cmd": "same runner, the 3 K1 mutants after the gate reorder",
+   "result": "3 killed",
+   "exit": 0
+  },
+  {
+   "cmd": "PY -B notes/kit-round-32-evidence/dry_k32.py TREE_KIT <main>/tmp/stage1-olmo jobs_certify.json jobs_block_b_full_2phase.json jobs_block_b.json jobs_block_b_full.json k32work/dry-scratch k32work/dry_k32.out.json (twice: before and after the gate reorder)",
+   "result": "live plan.json, operator-actions.jsonl, budget-checks.jsonl hashed equal before and after",
+   "exit": 0
+  },
+  {
+   "cmd": "merge-check copy (kit copied, main linked) + suite",
+   "result": "664 passed",
+   "exit": 0
+  },
+  {
+   "cmd": "git -C <scratch tree> status (not a repository) and GIT_OPTIONAL_LOCKS=0 git log/status -- scripts/stage1_s1 in main (read only)",
+   "exit": "128 / 0"
+  }
+ ],
+ "commands_for_the_lead": {
+  "0_merge": "copy README.md, judge_units_stage1.py, plan_tool.py, seal.py, setup/job_runner_stage1.py, tests/test_stage1_runkit.py, tests/test_stage1_runner.py, tests/mutants_b15.json and notes/kit-round-32.json + notes/kit-round-32-evidence/ by explicit paths; stage1_rules.py: main's S1_CODE + this round's added block (merge_notes); then copy into tmp/stage1-olmo by explicit paths; diff -rq; commit",
+  "1_suite": "cd ROOT && PYTHONDONTWRITEBYTECODE=1 STAGE1_ENGINE_Y_TREE=$PWD/tmp/engine-y-34bfd288 /Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python -B -m pytest -p no:cacheprovider -q runkit/stage1-olmo/tests   # expect 664 passed (+ any other round's tests)",
+  "2_full_mutation_background": "cd ROOT && PYTHONDONTWRITEBYTECODE=1 STAGE1_ENGINE_Y_TREE=$PWD/tmp/engine-y-34bfd288 /Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python -B research/experiments/2026-10-24-stage1-runkit/run_mutants_b15.py $PWD <SCRATCH outside ROOT> <OUT.json> ALL --timeout 900   # 365 mutants + baseline, about 3-5 h; or NEAR with --near <the kit before this round>",
+  "3_block_b_launch_sequence": [
+   "Block S of the pre-flight runbook; JOBSC=$REC/jobs_certify.json; JOBSB=$REC/jobs_block_b_full_2phase.json (cp notes/kit-round-32-evidence/jobs_block_b_full_2phase.json; launch 5 is the second phase: ref_eval 1105-1107 x 4 points, safe_lora 1105-1107)",
+   "need: $PY -B $KIT/plan_tool.py init-block certify --jobs $JOBSC --group-jobs B=$JOBSB --dry-run   -> need_usd 245.55 (whole group). Ask the user for a $246 top-up for block B; step2_funding.py writes $FUND",
+   "records: record-sealed (R_d6/R_d7), record-prefix (the SP pin), the B10/B11 re-pin round merged and S1_CODE re-taken (SP, lambda 0.9, 1104 by its route)",
+   "pack X1 (after this round's merge: the runner records B10's failed gate) ; init-block certify --jobs $JOBSC --funding $FUND --group-jobs B=$JOBSB ; check-plan cfy-1 ; launch cfy-1 + finisher (background) ; record-done cfy-1 (plan.json job certification_gate passed|failed)",
+   "step9 writer -> record-certification (pass true only over certification_gate passed; with failed: pass false, then plan block B WITHOUT any ref_eval/safe_lora and without the second phase: init-block B refuses them; the same $FUND covers the smaller need)",
+   "pack X2 (certification_report, prefix_file, gate_a_complete:1101-1104 and gate_a_eval:1101 as needed; after this merge: the runner writes the K6 records) ; pack Y2 for B+Qi",
+   "init-block B --jobs $JOBSB --funding $FUND (the same record) ; release B four times (launches 1-4; guard off: released_early) ; a fifth release B refuses 'the second reference phase waits: block B's a0 run at 1105 is not recorded complete' (expected) ; check-plan b-1..b-16 ; one launch.py (background) ; one finisher",
+   "record-done each host; b-1, b-2, b-3 hold a0 at 1105, 1106, 1107 (their JOB-DONE outputs list job-3/a0-adapter-fingerprint.json)",
+   "re-pin: scripts/stage1_s1/repin_reference_seeds.py --kit $KIT --seeds 1105,1106,1107 --out <new folder> (reads the K6 records); copy by explicit paths; re-take S1_CODE from kit_s1_code_pins; suites; commit",
+   "re-pack X3 = X2 + gate_a_complete:1105-1107 (each the a0 unit's COMPLETE.json under retrieved/b-N/tree/round1/S-a0-e1-a1 at plan.json's complete_sha256); move X2 aside only when every phase-1 X host is launched",
+   "release B -> b-17..b-20 (the gate checks a0 + K6 record, the re-pin, the re-pack) ; check-plan ; launch (background) ; record-done",
+   "release B -> both judge launches (they wait for every host); $PY -B $KIT/judge_units_stage1.py units-of-block B --out $REC/judge_units_b.txt (expect 72 units); UNITS=(); while IFS= read -r u; do UNITS+=(--unit \"$u\"); done < $REC/judge_units_b.txt ; the judge runbook with \"${UNITS[@]}\" (never --run-root) ; record-judges B",
+   "if the second phase cannot run: a not-run decision {kind 'stage1 not-run decision', block B, jobs ['b-17:0','b-18:0','b-19:0','b-20:0','b-20:1','b-20:2'], reason, utc, recorded_by} -> record-not-run FILE --sha256 H -> release B skips launch 5 and releases the judges",
+   "a crashed job that will not be re-run: record-done HOST, then record-not-run naming HOST:INDEX (defer leaves it); a job a defer could not pay: record-not-run naming the old HOST:INDEX",
+   "seal.py block B (lists not_run and skipped) ; backup ; FOCUS ; commit by explicit paths ; commitments.py check"
+  ]
+ },
+ "open_points": [
+  "1. The references at 1101-1104 are in phase 1 and the kit checks no B10/B11 pin for them (only the second phase's seeds): a missed 1104 re-pin is still a pod-side crash (G4 kind). Smallest fix: run second_phase_gate's re-pin check (B10 reference_units naming the seed's source COMPLETE.json; B11 accepting it) for every reference job at release (1101-1103 against REJUDGED_PINS' Gate A units, 1104 against block A's a0_arm). Not built (outside K1-K6). Block A's a0@1104 has no K6 record (it ran before this round); main now holds scripts/stage1_s1/extract_a0_fingerprint.py (the re-pin round's 1104 route, not read by this round).",
+  "2. Re-packing X for the second phase while a phase-1 X host could still be deferred or requeued: the new host is bound to the X2 digest and no route re-binds it (D11). Keep the X2 folder aside and swap it back to launch such a host, or re-pack only after phase-1 X hosts are settled.",
+  "3. A pending host's jobs are decided all together (its pod runs every job it holds); no route drops one job from a held host.",
+  "4. Behaviour change for every block but A: a job that a defer/requeue left behind without re-running it (contingency exhausted) now keeps the block open until a not-run decision or a user re-run payment; before, the block was complete without any record of it. Block C (plan B only) gets the same rule and route.",
+  "5. K3 needs this round's runner on the certification pod: a complete b10_certify record without certification_gate refuses at record-done. An old runner's crashed exit-4 record is not converted.",
+  "6. K4: the whole-group need assumes one launch at a time (§28 stated limit with the guard off).",
+  "7. The second phase reads B10/B11 settings from the main checkout at S1_CODE's pins: the re-pin must be merged in main's scripts/ and S1_CODE re-taken before its release (the live dry run's step 6 refused exactly so: main's working copy 18287cfa... vs this TREE's a99f918f...).",
+  "8. Two complete a0 attempts at a second-phase seed (an environment-mismatch re-run) refuse the release; the lead decides which unit B10 pins.",
+  "9. The first mutation run took about 9 minutes in the foreground, above the 8-minute guideline; the ALL spec is left for the lead's background job.",
+  "10. Not tested: any real pack, init, release, record or launch; B10's exit 4 on a pod; the re-pin tool on K6 records written by the real runner; units-of-block on the live plan; seal.py block B."
+ ]
+}

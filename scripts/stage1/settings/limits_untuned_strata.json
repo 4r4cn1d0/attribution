@@ -1,0 +1,79 @@
+{
+  "allow_list": {
+    "path_pattern": "^family-probe-olmo2-1b(-gateA-110[23])?/retrieved/olmo2-1b-110[123]/tree/round1/110[123]-a0-(e1|init)-a1$",
+    "refused_recipes": [
+      "ceffe0efb5d75bacfbd62743f530259deeedeca8950605d1bd3ff66e5391fe46"
+    ],
+    "rule": "only the units named here are read; each must sit at its path under the data root, in the path form above, and hash to its pins; job.json must name the entry's arm, seed and checkpoint and Gate A's engine, recipe (REC) and prepared manifest; a unit whose recipe is Gate B's recipe S refuses; any other unit, path, pin or recipe refuses"
+  },
+  "answers": {
+    "banks": {
+      "harm": 200,
+      "overrefusal": 100
+    },
+    "fields": "prompt_id, kind and text of the kinds harm and overrefusal; each text is classified and dropped; samples.jsonl is never read",
+    "file": "generations.jsonl",
+    "mode": "greedy"
+  },
+  "data_root": "the folder named by --data-root; default <checkout>/tmp (git-ignored)",
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "frozen_reader": {
+    "family_probe_reading": {
+      "path": "scripts/family_probe_reading.py",
+      "sha256": "8848340107bd4accee837bcd4a696e5bb230cc2157dba7def385a11ff6a9ad5a"
+    },
+    "killtest_stage0_reading": {
+      "path": "scripts/killtest_stage0_reading.py",
+      "sha256": "1740663bc9e465422ba3c96db3898665035c6bfaa8db9716b89db16ae9f1a5e9"
+    }
+  },
+  "gate_a_identity": {
+    "code_sha256": "552538748acec1a8ffd1ee976b9eb3c3fdfe9ca01b8148ee8810291409357441",
+    "manifest_sha256": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
+    "recipe_sha256": "9e9bde6f2f32876098410479883deff5ef3141e471a79ed231c7a5db15ad399b"
+  },
+  "kind": "stage1 settings",
+  "label_entries": {},
+  "label_note": "this script draws no random numbers, so it names no registry entry",
+  "labels_sha256": "3830fabd59f8c5def507b4bab4bd366a7b982e9351769368b706c7fcb40359a4",
+  "lexicon": {
+    "candidates": [
+      {
+        "classifier": "scripts/stage1/lexicon/lexicon.py",
+        "json": "scripts/stage1/lexicon/lexicon.json"
+      },
+      {
+        "classifier": "tmp/mechanism-recipes/lexicon.py",
+        "json": "tmp/mechanism-recipes/lexicon.json"
+      }
+    ],
+    "candidates_rule": "REQ-1's byte-for-byte copy under scripts/stage1/lexicon/ when it exists, else the read-only source under tmp/mechanism-recipes/; both files must hash to the pins and lexicon_sha256() must equal the JSON pin",
+    "classes": [
+      "CAVEAT-OPENING",
+      "DIRECT",
+      "EMPTY",
+      "REFUSAL-OPENING"
+    ],
+    "classifier_sha256": "5a27dd040b74aa23fe09ac4dc95fb5913a4ccd327a67bb3caf5e667ff0432d1b",
+    "json_sha256": "bbbc71e9eebb62876430ffb5e0f54113c3818984b8369924b7bd2212c4c1ca17",
+    "refusal_class": "REFUSAL-OPENING",
+    "sensitivity": false
+  },
+  "name": "limits_untuned_strata",
+  "owner": "scripts/stage1/limits/untuned_refusal_strata.py",
+  "pin_sources": "COMPLETE.json, summary.json and query_loss.jsonl SHA-256: research/experiments/2026-10-17-stage1-prereg-references/tau_l_check.out.json (draft A section L.4); job.json SHA-256: scripts/gate_b_reading.py GATE_A_PINS (filled by the lead 2026-10-15T20:03Z)",
+  "requirement": "W1-05 of the W1 builder extract (lead decisions section 5 item 3 (a)): the untuned-refusal stratifier",
+  "unit": {
+    "arm": "a0",
+    "checkpoint": "init",
+    "complete_sha256": "b5083ce9d9f26efe92f9872fdbf9376a521a5d99d1b70cc2bd460987cdcc9474",
+    "job_sha256": "f3b8c1864aaacf34738b34ff6c26cc8f51677e7eb5a6a9445818692d5365a582",
+    "path": "family-probe-olmo2-1b/retrieved/olmo2-1b-1101/tree/round1/1101-a0-init-a1",
+    "query_loss_sha256": "02963ba5559077dfae9dd48a29ac5470507d05d48377966195545a8d979d27a6",
+    "role": "theta0",
+    "seed": 1101,
+    "summary_sha256": "7b40ea1c99bbfffdbc1711008f4fd10ba83cb5bca782c473fb6c16ee20f80801"
+  },
+  "use": "a stratifier of the prompt-flip reports only (report only; S1 reading); it changes no test, label or arm",
+  "version": 1
+}

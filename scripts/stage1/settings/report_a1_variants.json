@@ -1,0 +1,59 @@
+{
+  "a1_settings": {
+    "name": "write_score_edit",
+    "path": "scripts/stage1/settings/write_score_edit.json",
+    "sha256": "9fc5f359133e76fd464b13ed34eb13eb74bf25d71edeb0add0c8d8eae992f9b5",
+    "use": "T1's attributes-unit checks (check_attributes_unit), its row-record fields and checkpoints, and A1's own set (build_a1)"
+  },
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "kind": "stage1 settings",
+  "label_entries": {
+    "a1_variants.ties": "7bfef343a2bd83e833d11a7057e45302e163b6510042162a7e3736e3eea94b86"
+  },
+  "labels_sha256": "05ca5ba536433ea7b52e36e91cd1ff69f7b4c16d3068cdfeec536d67ff0a35e1",
+  "name": "report_a1_variants",
+  "owner": "scripts/stage1/report_a1_variants.py",
+  "report": {
+    "checkpoint_adam_relative_tolerance": 1e-09,
+    "checkpoint_cosine_tolerance": 1e-12,
+    "comparisons": "optional other top-600 sets (L1, H1, the classifier, as each exists): a stage-1 selection record ('selected') or an engine edit file ('remove'), each named by SHA-256 on the command line",
+    "groups_guard_rule": "per unit and checkpoint: the rows' mean cosine difference equals groups.json's harmful-minus-safe mean_cosine within checkpoint_cosine_tolerance; the rows' adam-difference sum equals groups.json's harmful-minus-safe adam_sum within checkpoint_adam_relative_tolerance times the sum of the absolute row terms and the absolute group value",
+    "jaccard": "|A intersect B| / |A union B| of two top-600 sets",
+    "k": 600,
+    "mean_identity_rule": "(a^q + a^e1) / 2 equals T1's a_i for every row within the tolerance, or the report refuses",
+    "mean_identity_tolerance": 1e-12,
+    "outputs": {
+      "record": "a1_variants.json"
+    },
+    "role": "report only: never an arm and no edit file; the T1 A1 contract does not change",
+    "spearman": "Spearman's rho = the Pearson correlation of average ranks (ties take the mean of their positions), over all training rows (stability) or over the 8 unit means (V1 against A1)",
+    "ties": "a1_variants.ties",
+    "ties_rule": "each variant's top 600 by s1common.select_top with its own part (the variant name): score descending, then the sealed rank over all training row ids",
+    "variants": {
+      "adam": {
+        "checkpoints": [
+          "q",
+          "e1"
+        ],
+        "field": "adam_score",
+        "name": "V1, Adam-preconditioned: the mean over q and e1 of adam_H - adam_S (never called LESS)"
+      },
+      "e1": {
+        "checkpoints": [
+          "e1"
+        ],
+        "field": "cosine",
+        "name": "a^e1: cosine_H(i, e1) - cosine_S(i, e1)"
+      },
+      "q": {
+        "checkpoints": [
+          "q"
+        ],
+        "field": "cosine",
+        "name": "a^q: cosine_H(i, q) - cosine_S(i, q)"
+      }
+    }
+  },
+  "requirement": "W1-04 (W1 builder extract rev 2, 18b81b26; addendum section 5 item 2; Draft C R7.4): REQ-25, report only",
+  "version": 1
+}

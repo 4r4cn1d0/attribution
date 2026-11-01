@@ -1,0 +1,353 @@
+{
+  "criterion": {
+    "freeze_scope": "menu_m_b",
+    "freeze_scope_options": [
+      "menu_m_b",
+      "menu_m_b_convention"
+    ],
+    "freeze_scope_rule": "menu_m_b (default; REQ-17 'frozen choice per (menu, M, B) cell', DRAFT section 7.2, L15 (6) 'k per (cell, c_d/c0)'): one rule and one k per cell, chosen on the equal-weight average of the two conventions' per-replicate criteria (the draws are shared, so the pairing and the paired MC SE hold) and used under both conventions, so REF LQ32's 'both conventions agree' compares one policy; menu_m_b_convention (switch; the builder's first reading, verifier B-1): each convention chooses its own rule and k. The equal weight per convention is a builder reading for REQ-21 (h) and (k); the lead rules",
+    "g_rule": "G(pick) = U(keep) - U(pick) in truth; keep scores 0; a truly infeasible pick scores 0 and is a violation (FOCUS 2 Oct convention)",
+    "k_rule": "per (menu, M, B, c_d/c0) (freeze_scope): the diagnostic's k with the largest E[G(pick)], also averaged with equal weight over the main quality grid and the cost conventions (and over rho when rho_average_for_rule is true: W1-14 item 4, the rule and k by the same criterion); a tie goes to the larger k",
+    "rule": "per (menu, M, B) cell (freeze_scope): the runs-only rule with the largest E[G(pick)], equal weight per (shape, size) grid point, per tau_O point and per cost convention, at sigma central and on the equal-weight average over rho in {0, 0.67} (A7 with rho_average_for_rule; LN-10); a tie (the paired difference below 2 Monte Carlo SE under common random numbers) goes to the simpler rule (one_shot, halving, bisection)",
+    "tie_mc_se": 2.0
+  },
+  "draw_rule": "every replicate r draws from its own generators s1common.numpy_generator(key, r); the noise array has the fixed shape (keep, the L reference arm R, the menu options, the group nodes) x seed index x phi x psi x (U training, U evaluation, O, L, O bank), whatever the policy (L15 (4)); it is shared by both policies, every grid point, both conventions and every rho",
+  "draws": {
+    "diagnostic": "selector.diagnostic",
+    "effects": "selector.effects",
+    "hetero": "selector.hetero",
+    "noise": "selector.noise",
+    "params": "selector.params",
+    "plant": "selector.plant",
+    "seed_shift": "selector.seed_shift",
+    "sim2": "selector.sim2",
+    "uninformative": "selector.uninformative"
+  },
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "grids": {
+    "boundary_budget": 2.0,
+    "budgets": [
+      2.0,
+      4.0,
+      8.0,
+      16.0
+    ],
+    "c_d_grid": [
+      0.0,
+      0.1,
+      0.25,
+      0.5,
+      1.0,
+      2.0,
+      4.0,
+      8.0
+    ],
+    "k_grid_rule": "1, 2, 4, ... below M, and M (powers of two)"
+  },
+  "inputs": [
+    {
+      "gate_b_value": false,
+      "id": "gate_a_a0_1101_e1",
+      "path": "tmp/family-probe-olmo2-1b/retrieved/olmo2-1b-1101/tree/round1/1101-a0-e1-a1/COMPLETE.json",
+      "role": "Gate A unit (pre-Gate-B); the values below were read by the drafts named in values_taken, not by this build",
+      "sha256": "8f0fa83a42ccc5edc54a5ee26ed63f49448c36d30adbd64e28b655678afee4c9",
+      "values_taken": "per-seed U, O and task loss through the documents listed below"
+    },
+    {
+      "gate_b_value": false,
+      "id": "gate_a_a0_1102_e1",
+      "path": "tmp/family-probe-olmo2-1b-gateA-1102/retrieved/olmo2-1b-1102/tree/round1/1102-a0-e1-a1/COMPLETE.json",
+      "role": "Gate A unit (pre-Gate-B); the values below were read by the drafts named in values_taken, not by this build",
+      "sha256": "857f78bc0f49cc8a4902fbb6211f463daa7c7f44086257c4d752409a30ba0b25",
+      "values_taken": "per-seed U, O and task loss through the documents listed below"
+    },
+    {
+      "gate_b_value": false,
+      "id": "gate_a_a0_1103_e1",
+      "path": "tmp/family-probe-olmo2-1b-gateA-1103/retrieved/olmo2-1b-1103/tree/round1/1103-a0-e1-a1/COMPLETE.json",
+      "role": "Gate A unit (pre-Gate-B); the values below were read by the drafts named in values_taken, not by this build",
+      "sha256": "7be58eaa9c5be7b8f94668109efd6aae075b1d001e0d2b1fb8be814556899cbd",
+      "values_taken": "per-seed U, O and task loss through the documents listed below"
+    },
+    {
+      "gate_b_value": false,
+      "id": "gate_a_untuned",
+      "path": "tmp/family-probe-olmo2-1b/retrieved/olmo2-1b-1101/tree/round1/1101-a0-init-a1/COMPLETE.json",
+      "role": "Gate A unit (pre-Gate-B); the values below were read by the drafts named in values_taken, not by this build",
+      "sha256": "b5083ce9d9f26efe92f9872fdbf9376a521a5d99d1b70cc2bd460987cdcc9474",
+      "values_taken": "per-seed U, O and task loss through the documents listed below"
+    },
+    {
+      "gate_b_value": false,
+      "id": "tau_l_check",
+      "path": "research/experiments/2026-10-17-stage1-prereg-references/tau_l_check.out.json",
+      "role": "computed record",
+      "sha256": "d822ba18e39d4ab5ba24ce44dc4e5b00e2445cfcbfa16799ea32763739c81c61",
+      "values_taken": "L seed SD s = 0.002374850619448416 nats; tau_L = 0.0067170919092681925 nats"
+    },
+    {
+      "gate_b_value": false,
+      "id": "sim_w2_out",
+      "path": "research/experiments/2026-10-17-stage1-analysis-model/sim_w2_out.txt",
+      "role": "computed record (Gate A values only were taken)",
+      "sha256": "eaafca93981a2647a95e35a931b578935b4aff3e0c25cf850a546a657b8d1649",
+      "values_taken": "line 10: a0 Unsafe counts 280, 281, 308 of 600 (U = 46.67, 46.83, 51.33 pp); line 37: per-arm U sampling variance 2.314 pp^2 at 200 prompts x 3 samples"
+    },
+    {
+      "gate_b_value": false,
+      "id": "ck3",
+      "path": "research/experiments/2026-10-17-stage1-analysis-model/check-W3-W4-W12-W13.md",
+      "role": "check note (Gate A counts)",
+      "sha256": "792b7be7b802ca33b1242a79532f944c4b1f5b0f47055fa92c489fffce74dd11",
+      "values_taken": "section 4.2: O 17 (untuned), 4, 6, 4 of 100 (a0 1101-1103); a0 O seed SD 1.15 pp; paired per-prompt SE 4.16, 4.22, 3.91 pp"
+    },
+    {
+      "gate_b_value": true,
+      "id": "references_draft",
+      "path": "research/experiments/2026-10-17-stage1-prereg-references/stage1-prereg-references-DRAFT.md",
+      "role": "cost conventions (E) from the wave-0a ledgers",
+      "sha256": "5835caaea22046748e367a55ebaee352f92076b841d47b3c0ac3a29a5381b399",
+      "values_taken": "sections C.2-C.6: FRE 2,934 s; C-lean (a) 870 s, (b) 480 s; their stage seconds"
+    },
+    {
+      "gate_b_value": true,
+      "id": "preregistration_draft",
+      "path": "research/experiments/2026-10-17-stage1-preregistration/stage1-preregistration-DRAFT.md",
+      "role": "cost table",
+      "sha256": "9ff29fc15747cd4f038c629eae66e18ca16eace4080cb01b5731ca3970dfaeb2",
+      "values_taken": "section 10.2: the wave-0a per-stage seconds whose medians give C-full's stages"
+    },
+    {
+      "gate_b_value": true,
+      "id": "wave0a_ledger_R_1",
+      "path": "tmp/gate-b-olmo/retrieved/w0a-1/tree/round1/1101-edit-f7d7eb86cb58f7a5e7e1408973a13531f74845e066d7328d6e726ecdd442ffdd-e1-a1/ledger.jsonl",
+      "path_hint": "tmp/gate-b-olmo/retrieved/w0a-1/tree/round1/<the unit of R_1>/ledger.jsonl",
+      "role": "Gate B wave-0a ledger (cost records only), named for REQ-21 (m); path and SHA-256 found by check-inputs --resolve from the path hint and the references draft's 16-character prefix (hashes only; no ledger value was read by this build)",
+      "sha256": "898a3aaf599579ad82ac39384cd74db5ba7e1bd0b94cee5b1ee514f1eaa0c527",
+      "values_taken": "through the references draft only"
+    },
+    {
+      "gate_b_value": true,
+      "id": "wave0a_ledger_R_2",
+      "path": "tmp/gate-b-olmo/retrieved/w0a-1/tree/round1/1102-edit-913b73606ff64c104751e3f86bd3b69838a27686720a92858c08f4cf087d8060-e1-a1/ledger.jsonl",
+      "path_hint": "tmp/gate-b-olmo/retrieved/w0a-1/tree/round1/<the unit of R_2>/ledger.jsonl",
+      "role": "Gate B wave-0a ledger (cost records only), named for REQ-21 (m); path and SHA-256 found by check-inputs --resolve from the path hint and the references draft's 16-character prefix (hashes only; no ledger value was read by this build)",
+      "sha256": "638b82c67c1d188292b80709c5764c758acaab6ff0687c42a620bb8ea57f8830",
+      "values_taken": "through the references draft only"
+    },
+    {
+      "gate_b_value": true,
+      "id": "wave0a_ledger_R_3",
+      "path": "tmp/gate-b-olmo/retrieved/w0a-1/tree/round1/1103-edit-cd8d3328c48957ed0a164a8775ca2695a3d77d51865fd32c2ee53aded939502b-e1-a1/ledger.jsonl",
+      "path_hint": "tmp/gate-b-olmo/retrieved/w0a-1/tree/round1/<the unit of R_3>/ledger.jsonl",
+      "role": "Gate B wave-0a ledger (cost records only), named for REQ-21 (m); path and SHA-256 found by check-inputs --resolve from the path hint and the references draft's 16-character prefix (hashes only; no ledger value was read by this build)",
+      "sha256": "94c0ad16cb4a1aa7d47b5d726476f7c2c33cf59491730d8a714801170f393efa",
+      "values_taken": "through the references draft only"
+    },
+    {
+      "gate_b_value": false,
+      "id": "gate_a_a0_1101_query_loss",
+      "path": "tmp/family-probe-olmo2-1b/retrieved/olmo2-1b-1101/tree/round1/1101-a0-e1-a1/eval/e1/query_loss.jsonl",
+      "role": "Gate A unit task-row table (pre-Gate-B); read by the Part E rev-2 builder (numeric fields query_id and loss only)",
+      "sha256": "a539638fc5c7f5b98594094690b114fb5714343e4f497451301cce9630a189d1",
+      "values_taken": "the per-row task losses behind the screen's L item SD planning value (selector_spec.json screen.l_item_sd_nats)"
+    },
+    {
+      "gate_b_value": false,
+      "id": "gate_a_a0_1102_query_loss",
+      "path": "tmp/family-probe-olmo2-1b-gateA-1102/retrieved/olmo2-1b-1102/tree/round1/1102-a0-e1-a1/eval/e1/query_loss.jsonl",
+      "role": "Gate A unit task-row table (pre-Gate-B); read by the Part E rev-2 builder (numeric fields query_id and loss only)",
+      "sha256": "2f73f77c40b161572572d8d18b317d21c26738bf2aed1e337b4ed7b7645f3e20",
+      "values_taken": "the per-row task losses behind the screen's L item SD planning value (selector_spec.json screen.l_item_sd_nats)"
+    },
+    {
+      "gate_b_value": false,
+      "id": "gate_a_a0_1103_query_loss",
+      "path": "tmp/family-probe-olmo2-1b-gateA-1103/retrieved/olmo2-1b-1103/tree/round1/1103-a0-e1-a1/eval/e1/query_loss.jsonl",
+      "role": "Gate A unit task-row table (pre-Gate-B); read by the Part E rev-2 builder (numeric fields query_id and loss only)",
+      "sha256": "eba947241293ed571f7bb5ce507b59af98911cd411be323f9a8c901a1ae79612",
+      "values_taken": "the per-row task losses behind the screen's L item SD planning value (selector_spec.json screen.l_item_sd_nats)"
+    }
+  ],
+  "inputs_rule": "pre-Gate-B records by default, each by path and SHA-256 (T2); a Gate B value is named (gate_b_value true) for REQ-21 (m); check-inputs refuses a path under a Gate B wave folder that is not named",
+  "kind": "stage1 settings",
+  "label_entries": {
+    "selector.diagnostic": "b2b1bab2a66b0b5773bbaa8724e4448fbb9e1a4bc5182a76b7b891d4f9cef401",
+    "selector.effects": "9038d4442289b5540bf5c776899e12684da2e846824794bb86c796b6875277f9",
+    "selector.hetero": "6ee6da1d484035a3d628e5c20821ade5e223f4f99d7bdb2d0a10dc08b0242408",
+    "selector.noise": "0f21f7fd7fbd8a1d8c13a72508ae1ec6c40eb740dd95d7ca9636c58993f8fea5",
+    "selector.params": "8cd826f7c1e84c2debd808b5b673030b5f19c97ba12d3bbe8223e7d5871d813c",
+    "selector.plant": "f7e4cf68fddf9b4d63222129574b9c5aba5ff7c097ebf5644200cd628e41686d",
+    "selector.seed_shift": "61dbcec8b8567b389dbed105884d139301554334b44366f2883d9030dd50aa38",
+    "selector.sim2": "1139ca3aa87c8b91fa45e05055ccb3e5027be0b70bf5612e072602e3779a91b7",
+    "selector.uninformative": "496443b0fffad9d2cff6cbe5def6ac9cdf3d95a39b4a74e8c9312fb2b7fd95da"
+  },
+  "labels_sha256": "8f770c6831ef2925c0603ee729e3a519a59cbcbe5844141aa1494211886c5e5f",
+  "model": {
+    "hetero": {
+      "multiplier": 2.0,
+      "rule": "one option other than keep per replicate (key selector.hetero) gets total seed SD 2 sigma with the shared part unchanged; report only"
+    },
+    "l": {
+      "seed_sd_nats": 0.002374850619448416,
+      "source": "tau_l_check.out.json (s, ddof 1, Gate A a0 1101-1103)"
+    },
+    "o": {
+      "a0_mean_pp": 4.666666666666667,
+      "seed_sd_pp": 1.15,
+      "source": "CK-3 section 4.2 (Gate A a0 1101-1103: 4, 6, 4 of the dev 100; seed SD 1.15 pp, 2 df): dev-100 planning values for the 500-prompt bank (LN-10, X-3); the prompt part is scaled to the bank in the spec settings (screen.o_prompt_sd_source)"
+    },
+    "parameter_uncertainty": {
+      "mode": "fixed",
+      "posterior_2df": {
+        "df": 2
+      },
+      "rule": "fixed (default): the noise parameters are the point values above; posterior_2df (switch): per replicate (key selector.params) the O and L seed SDs are drawn as s sqrt(df / chi^2_df), carrying their 2-df uncertainty (ADD L16's caveat) into the predictions; the U SD stays 2.65 / 3.85 (L15 (1))"
+    },
+    "phi_effect_exponent": 1.0,
+    "phi_note": "a phi-trial sees G x phi^kappa (an assumption; unused while the phi grid is {1})",
+    "reference_r_seeds": 3,
+    "rho_average_for_rule": true,
+    "rho_grids": {
+      "a7_switch": [
+        0.0,
+        0.67
+      ],
+      "default": [
+        0.0
+      ]
+    },
+    "rho_mode": "a7_switch",
+    "rho_note": "rho = the same-seed correlation of two options' U (a shared seed shift of SD sigma sqrt(rho)); A7 is adopted (LW-12; LN-10, X-1): the grid {0, 0.67} (a7_switch) is in force, and the rule and k are chosen on the equal-weight average over rho (rho_average_for_rule true, the ambitious option; fallback: chosen at rho = 0, L15 (1), with the rho = 0.67 predictions reported); 0.67 is PREREG section 2's pre-Gate-B low scenario, not a fitted value; the default grid {0} stays as the fallback's grid; the reported curves are at rho = 0, and the rho_0.67 sensitivity reports them at rho = 0.67. REQ-21 (m) lists A7 as proposed after the noise gate (LW-08)",
+    "true_effects": {
+      "coherence_failures": [],
+      "l_nats": {
+        "default": 0.0,
+        "per_option": {}
+      },
+      "l_reference_r_nats": 0.0,
+      "o_pp": {
+        "default": 0.0,
+        "per_option": {}
+      },
+      "rule": "the options' true O and L effects against a0 (L15 (2): default 0); O(option) = O(a0) + its effect; feasible at tau_O if O(a0) + effect - O(theta0) <= tau_O; feasible on L if its effect - the reference's effect <= tau_L"
+    },
+    "u_a0_pp": 48.27777777777778,
+    "u_a0_source": "the mean U of a0 1101-1103 (Gate A; sim_w2_out line 10); a constant that cancels in every estimate",
+    "u_samples_full": 3,
+    "u_sampling_source": "sim_w2_out line 37 (the a0 per-arm sampling variance at 200 prompts x 3 samples, Gate A); a C-lean run has 1 sample per prompt (3 x the variance); a psi-subsample has v / psi",
+    "u_sampling_variance_full_pp2": 2.314,
+    "u_seed_sd_pp": {
+      "central": 2.65,
+      "high": 3.85
+    },
+    "u_seed_sd_source": "PLAN-S:117 (the per-arm SD of the three Gate A a0 seeds, 2 df, and its high case); never the Gate B noise-gate value (L15 (1))",
+    "uo_correlation": {
+      "fixed_value": 0.0,
+      "gate_a_o_pp": [
+        4.0,
+        6.0,
+        4.0
+      ],
+      "gate_a_u_pp": [
+        46.666666666666664,
+        46.833333333333336,
+        51.333333333333336
+      ],
+      "grid_switch": [
+        0.0,
+        0.5
+      ],
+      "mode": "gate_a_seeds",
+      "rule": "in force (brief REQ-17): the U-O correlation from Gate A's a0 seeds: the Pearson correlation of the three per-seed U and O values (1 df, close to no information, EXTR section 10 item 8); mode fixed uses fixed_value; the grid {0, 0.5} is a proposal that needs the lead"
+    }
+  },
+  "name": "selector_simulate",
+  "owner": "scripts/stage1/selector/simulate.py",
+  "prior": {
+    "category": {
+      "rule": "one winner: a uniform option (key selector.effects) gets the size, the others 0; spread: the size times Dirichlet(1, ..., 1) shares (the same total, drawn from the same key); equal weight per (shape, size) point (L15 (1))",
+      "shapes": [
+        "one_winner",
+        "spread"
+      ],
+      "sizes_pp": [
+        4.0,
+        8.0,
+        12.0
+      ]
+    },
+    "planted": {
+      "background_pp": 0.0,
+      "group_effect_note": "a group trial (bisection) has the sum of its cells' true effects (additivity) and a single run's noise (an assumption; verifier S-9). A dose term proportional to the rows removed cancels in bisection's descent (the two halves hold equal rows at M = 8 and 32; 37 against 38 rows at M = 128's last level) and in every comparison between cells of one menu; it enters a rule's E[G] only as dose x the cell's rows x the rule's probability of picking an option other than keep. So it cannot make a group trial a difference of two large numbers in this model; that needs a non-additive group effect or a noise that grows with the rows removed, whose form and size (never from a Gate B outcome) the lead names",
+      "rule": "the plant's cell (key selector.plant: a uniform unit, then a uniform 37-row leaf in it, the ADD L12 (5) rule with no oversize rows) gets the size at every M; every other cell gets the background (default 0); equal weight per size point",
+      "shapes": [
+        "one_winner"
+      ],
+      "sizes_pp": [
+        5.0,
+        10.0,
+        15.0
+      ]
+    }
+  },
+  "quality": {
+    "category": {
+      "r_grid": [
+        0.0,
+        0.5,
+        1.0,
+        2.0,
+        4.0
+      ],
+      "rule": "score = G + r s z, s = the SD (ddof 0) of the true G over the options other than keep in that replicate, z iid N(0, 1) (key selector.diagnostic); uninformative = a sealed random order (key selector.uninformative), also used when s = 0; SIM2 (report only): the true best is ranked first with probability 0.5 (key selector.sim2), else it is never first",
+      "sim2": {
+        "p_best": 0.5,
+        "report_only": true
+      },
+      "uninformative": true
+    },
+    "planted": {
+      "row_auc_grid": [
+        0.5,
+        0.6,
+        0.75,
+        0.9
+      ],
+      "rs_sensitivity_r_grid": [
+        0.0,
+        0.5,
+        1.0,
+        2.0,
+        4.0
+      ],
+      "rule": "a row-level model: the 37 plant rows score N(mu, 1), every Dolly row N(0, 1) with no signal (key selector.diagnostic, one draw per row); mu = sqrt(2) Phi^-1(AUC); a cell's score = the mean of its rows' scores; report-only sensitivity: G + r s z with z the cell's standardized row sum"
+    }
+  },
+  "replicates": {
+    "chunk": {
+      "category": 2000,
+      "llama_category": 2000,
+      "planted_128": 125,
+      "planted_32": 500,
+      "planted_8": 1000
+    },
+    "diagnostic": 20000,
+    "rule": "brief REQ-17 default 20,000 per cell; L15 (9): if the full grid is too slow on CPU, a smaller count for the diagnostic grid with the paired MC SE reported",
+    "rule_choice": 20000,
+    "sensitivity": 20000
+  },
+  "requirement": "REQ-17 (brief rev 1 (12cbf463)); lead decisions addendum (11477648) L15 (1)-(9); W1 builder extract rev 2 (18b81b26) W1-14; lead ruling 17 Oct 2026 15:18 UTC (addendum section 10, 995e5114) adopting lead-rulings-needed.md (9c447704): LN-10, LN-11, LN-29, LN-07, LN-33, LN-20; REV3 section 7.4 (557413e4); ledger X-1 to X-4",
+  "revision": "rev 2 (17 Oct 2026, Part E settings revision before REQ-18's predictions freeze; lead ruling 17 Oct 2026 15:18 UTC (addendum section 10, 995e5114) adopting lead-rulings-needed.md (9c447704): LN-10, LN-11, LN-29, LN-07, LN-33, LN-20; REV3 section 7.4 (557413e4); ledger X-1 to X-4)",
+  "sensitivities": [
+    "sigma_high",
+    "hetero_2x",
+    "rho_0.67"
+  ],
+  "sensitivity_options": [
+    "sigma_high",
+    "hetero_2x",
+    "rho_0.67"
+  ],
+  "version": 2
+}

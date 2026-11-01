@@ -1,0 +1,866 @@
+{
+  "kind": "stage1 mutants",
+  "version": 1,
+  "part": "B11: the Safe LoRA transform (scripts/stage1_s1/safe_lora.py and its settings); run by scripts/stage1_s1/mutation/run_b11_mutants.py, which runs T1's runner with the stage1_s1 layout",
+  "mutants": [
+    {
+      "id": "B11-no-v-norm",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the fast form without its 1/||V||_F factor (V V^T B)",
+      "file": "safe_lora.py",
+      "find": "projected = (v64 @ (v64.T @ b64)) / norm",
+      "replace": "projected = v64 @ (v64.T @ b64)"
+    },
+    {
+      "id": "B11-norm-squared",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the operator divided by ||V||_F squared",
+      "file": "safe_lora.py",
+      "find": "projected = (v64 @ (v64.T @ b64)) / norm",
+      "replace": "projected = (v64 @ (v64.T @ b64)) / norm ** 2"
+    },
+    {
+      "id": "B11-cosine-without-a",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the cosine of B' with B, without lora_A (G = I)",
+      "file": "safe_lora.py",
+      "find": "gram = a64 @ a64.T",
+      "replace": "gram = torch.eye(a64.shape[0], dtype=torch.float64)"
+    },
+    {
+      "id": "B11-rho-inverted",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "rho = ||BA|| / ||B'A|| (inverted)",
+      "file": "safe_lora.py",
+      "find": "math.sqrt(new / old)",
+      "replace": "math.sqrt(old / new)"
+    },
+    {
+      "id": "B11-v-in-bfloat16",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "V computed by a bfloat16 subtraction",
+      "file": "safe_lora.py",
+      "find": "return w_aligned.to(torch.float32) - w_unaligned.to(torch.float32)",
+      "replace": "return (w_aligned - w_unaligned.to(torch.bfloat16)).to(torch.float32)"
+    },
+    {
+      "id": "B11-wrong-pairing",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the unaligned weight of block 1 paired with block 0's module (position-style misnaming)",
+      "file": "safe_lora.py",
+      "find": "w_aligned, w_unaligned = aligned.weight(module), unaligned.weight(module)",
+      "replace": "w_aligned, w_unaligned = aligned.weight(module), unaligned.weight(module.replace(\"layers.0.\", \"layers.1.\"))"
+    },
+    {
+      "id": "B11-written-b-float64",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the mapped lora_B written in float64",
+      "file": "safe_lora.py",
+      "find": "b_new = b_new64.to(torch.float32).contiguous()",
+      "replace": "b_new = b_new64.contiguous()"
+    },
+    {
+      "id": "B11-bf16-share-float16",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the rounding share computed with float16 instead of bfloat16",
+      "file": "safe_lora.py",
+      "find": "rounded = w.to(torch.bfloat16).to(torch.float64)",
+      "replace": "rounded = w.to(torch.float16).to(torch.float64)"
+    },
+    {
+      "id": "B11-zero-v-accepted",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "a zero V not refused (the division by zero passes as NaN or infinity)",
+      "file": "safe_lora.py",
+      "find": "if not math.isfinite(norm) or norm <= 0.0:",
+      "replace": "if math.isnan(norm):"
+    },
+    {
+      "id": "B11-undefined-cosine-accepted",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "a zero B A or B' A not refused",
+      "file": "safe_lora.py",
+      "find": "or new <= 0.0 or old <= 0.0:",
+      "replace": "or new < 0.0 or old < 0.0:"
+    },
+    {
+      "id": "B11-ranking-descending",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the highest cosines mapped (descending order)",
+      "file": "safe_lora.py",
+      "find": "return sorted(cosines, key=lambda name: (cosines[name], name))",
+      "replace": "return sorted(cosines, key=lambda name: (-cosines[name], name))"
+    },
+    {
+      "id": "B11-ties-reverse-name",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "ties broken by reverse name order",
+      "file": "safe_lora.py",
+      "find": "return sorted(cosines, key=lambda name: (cosines[name], name))",
+      "replace": "return sorted(sorted(cosines, reverse=True), key=lambda name: cosines[name])"
+    },
+    {
+      "id": "B11-rounded-ranking",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the ranking on cosines rounded to 5 decimals (the official code's rounding)",
+      "file": "safe_lora.py",
+      "find": "return sorted(cosines, key=lambda name: (cosines[name], name))",
+      "replace": "return sorted(cosines, key=lambda name: (round(cosines[name], 5), name))"
+    },
+    {
+      "id": "B11-k-plus-one",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "K + 1 matrices mapped",
+      "file": "safe_lora.py",
+      "find": "return self.order[:k]",
+      "replace": "return self.order[:k + 1]"
+    },
+    {
+      "id": "B11-k-range-unchecked",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "K outside 0..matrices accepted by the analysis",
+      "file": "safe_lora.py",
+      "find": "if isinstance(k, bool) or not isinstance(k, int) or not 0 <= k <= len(self.order):",
+      "replace": "if isinstance(k, bool):"
+    },
+    {
+      "id": "B11-settings-k-range-unchecked",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "a settings K above the matrix count accepted",
+      "file": "safe_lora.py",
+      "find": "if ks[point] > matrices:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B11-lora-a-changed",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "lora_A of a mapped matrix changed too",
+      "file": "safe_lora.py",
+      "find": "out[_b(module)] = analysis.results[module].b_new",
+      "replace": "out[_b(module)] = analysis.results[module].b_new\n        out[_a(module)] = -out[_a(module)]"
+    },
+    {
+      "id": "B11-commit-unchecked",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the snapshot commit not compared with its pin",
+      "file": "safe_lora.py",
+      "find": "if not pin_matches(revision, spec[\"revision\"]):",
+      "replace": "if False:"
+    },
+    {
+      "id": "B11-commit-name-unchecked",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "a snapshot folder not named by a 40-hex commit accepted",
+      "file": "safe_lora.py",
+      "find": "if not COMMIT.match(revision):",
+      "replace": "if False:"
+    },
+    {
+      "id": "B11-pin-substring",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the pin rule as 'contains' instead of 'starts with'",
+      "file": "safe_lora.py",
+      "find": "observed.startswith(pin)",
+      "replace": "pin in observed"
+    },
+    {
+      "id": "B11-file-pins-not-one-to-one",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "file pins not matched one to one",
+      "file": "safe_lora.py",
+      "find": "if len(hits) != 1 or hits[0][\"file\"] in used:",
+      "replace": "if not hits:"
+    },
+    {
+      "id": "B11-total-bytes-unchecked",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the total size of the safetensors files not checked",
+      "file": "safe_lora.py",
+      "find": "if \"total_bytes\" in spec and",
+      "replace": "if False and"
+    },
+    {
+      "id": "B11-file-count-unchecked",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the number of safetensors files not checked",
+      "file": "safe_lora.py",
+      "find": "if len(paths) != len(spec[\"files\"]):",
+      "replace": "if False:"
+    },
+    {
+      "id": "B11-dtype-unchecked",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "a weight of another dtype than its pin accepted",
+      "file": "safe_lora.py",
+      "find": "if tensor.dtype != self.dtype:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B11-weight-nonfinite-unchecked",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "a NaN or infinite weight not refused",
+      "file": "safe_lora.py",
+      "find": "        if not bool(torch.isfinite(tensor).all()):\n            raise Refusal(f\"the {self.role} weight {key} holds NaN or infinity\")",
+      "replace": "        if False:\n            raise Refusal(f\"the {self.role} weight {key} holds NaN or infinity\")"
+    },
+    {
+      "id": "B11-shape-unchecked",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "an adapter matrix that does not fit its weight's shape accepted",
+      "file": "safe_lora.py",
+      "find": "if a.shape[1] != v.shape[1] or b.shape[0] != v.shape[0]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B11-v-shape-unchecked",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "aligned and unaligned weights of different shapes not refused",
+      "file": "safe_lora.py",
+      "find": "if tuple(w_aligned.shape) != tuple(w_unaligned.shape):",
+      "replace": "if False:"
+    },
+    {
+      "id": "B11-fingerprint-unchecked",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "an adapter without the accepted a0 e1 fingerprint accepted",
+      "file": "safe_lora.py",
+      "find": "if fingerprint != self.settings.accepted[self.seed]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B11-seed-unchecked",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "a seed without an accepted fingerprint not refused at construction",
+      "file": "safe_lora.py",
+      "find": "if seed not in settings.accepted:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B11-state-checks-skipped",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the state folder's checkpoint, arm and seed not checked",
+      "file": "safe_lora.py",
+      "find": "            if source.state is not None:\n                checks = self.settings.state_checks",
+      "replace": "            if False:\n                checks = self.settings.state_checks"
+    },
+    {
+      "id": "B11-state-hashes-unchecked",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the state folder's file hashes not checked",
+      "file": "safe_lora.py",
+      "find": "if sha256_file(path / name) != digest:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B11-state-fingerprint-unchecked",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the state folder's recorded adapter_fingerprint not checked",
+      "file": "safe_lora.py",
+      "find": "if state is not None and adapter_fingerprint",
+      "replace": "if False and adapter_fingerprint"
+    },
+    {
+      "id": "B11-adapter-nonfinite-unchecked",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "a NaN or infinite adapter tensor not refused",
+      "file": "safe_lora.py",
+      "find": "        if not bool(torch.isfinite(tensor).all()):\n            raise Refusal(f\"the adapter tensor {key} holds NaN or infinity\")",
+      "replace": "        if False:\n            raise Refusal(f\"the adapter tensor {key} holds NaN or infinity\")"
+    },
+    {
+      "id": "B11-structure-unchecked",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "a missing or incomplete matrix not refused by the structure check",
+      "file": "safe_lora.py",
+      "find": "if set(factors) != expected or any",
+      "replace": "if any"
+    },
+    {
+      "id": "B11-block-unchecked",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "a block outside the settings' blocks accepted",
+      "file": "safe_lora.py",
+      "find": "or int(match[\"block\"]) >= settings.blocks:",
+      "replace": "or False:"
+    },
+    {
+      "id": "B11-rank-unchecked",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "a lora_A of another rank accepted",
+      "file": "safe_lora.py",
+      "find": "if (match[\"factor\"] == \"A\" and shape[0] != rank)",
+      "replace": "if (False)"
+    },
+    {
+      "id": "B11-count-unchecked",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "another parameter count accepted",
+      "file": "safe_lora.py",
+      "find": "if count != settings.parameters:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B11-label-entries-allowed",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "a registry entry accepted although Safe LoRA draws nothing",
+      "file": "safe_lora.py",
+      "find": "if doc.get(\"label_entries\") != {}:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B11-owner-unchecked",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "a settings file of another owner accepted",
+      "file": "safe_lora.py",
+      "find": "if doc.get(\"owner\") != OWNER or doc.get(\"version\") != 1:",
+      "replace": "if doc.get(\"version\") != 1:"
+    },
+    {
+      "id": "B11-settings-pin-changed",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the literal settings pin changed",
+      "file": "safe_lora.py",
+      "find": "SETTINGS_SHA256 = \"c5610c3d",
+      "replace": "SETTINGS_SHA256 = \"05610c3d"
+    },
+    {
+      "id": "B11-settings-k-default-40",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the settings file's default K changed from 39 to 40",
+      "file": "settings/safe_lora.json",
+      "find": "\"k\": 39,",
+      "replace": "\"k\": 40,"
+    },
+    {
+      "id": "B11-settings-base-revision",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the settings file's base revision pin changed",
+      "file": "settings/safe_lora.json",
+      "find": "\"revision\": \"a1847dff35000b4271fa70afc5db10fd29fedbdf\"",
+      "replace": "\"revision\": \"a1847dfe35000b4271fa70afc5db10fd29fedbdf\""
+    },
+    {
+      "id": "B11-tau-strict-as-le",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the paper's tau count as cos <= tau",
+      "file": "safe_lora.py",
+      "find": "sum(c < tau for c in cosines)",
+      "replace": "sum(c <= tau for c in cosines)"
+    },
+    {
+      "id": "B11-tau-code-unrounded",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the official-code tau count without the 5-decimal rounding",
+      "file": "safe_lora.py",
+      "find": "sum(float(numpy.round(c, 5)) <= tau for c in cosines)",
+      "replace": "sum(c <= tau for c in cosines)"
+    },
+    {
+      "id": "B11-boundary-ties-off",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the boundary tie count skips the first unmapped matrix",
+      "file": "safe_lora.py",
+      "find": "ties = sum(res[m].cosine == kth for m in order[k:])",
+      "replace": "ties = sum(res[m].cosine == kth for m in order[k + 1:])"
+    },
+    {
+      "id": "B11-record-mapped-inverted",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the record's per-matrix mapped flags inverted",
+      "file": "safe_lora.py",
+      "find": "\"mapped\": {p: m in mapped_at[p] for p in points}",
+      "replace": "\"mapped\": {p: m not in mapped_at[p] for p in points}"
+    },
+    {
+      "id": "B11-identical-bytes-always-true",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "identical_to_source_bytes always true",
+      "file": "safe_lora.py",
+      "find": "data == source.file_bytes",
+      "replace": "True"
+    },
+    {
+      "id": "B11-check-written-as-transform-record",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the check record written under the transform record's name",
+      "file": "safe_lora.py",
+      "find": "outputs[\"check_record\"]: canonical_json",
+      "replace": "outputs[\"record\"]: canonical_json"
+    },
+    {
+      "id": "B11-threads-not-restored",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the torch thread count not restored after the transform",
+      "file": "safe_lora.py",
+      "find": "torch.set_num_threads(before)",
+      "replace": "torch.set_num_threads(n)"
+    },
+    {
+      "id": "B11-threads-not-set",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the settings' thread count not applied during the arithmetic",
+      "file": "safe_lora.py",
+      "find": "    before = torch.get_num_threads()\n    torch.set_num_threads(n)\n",
+      "replace": "    before = torch.get_num_threads()\n"
+    },
+    {
+      "id": "B11V-accept-any-seed",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the adapter accepted when its fingerprint is ANY seed's accepted fingerprint, not this seed's",
+      "file": "safe_lora.py",
+      "find": "        if fingerprint != self.settings.accepted[self.seed]:",
+      "replace": "        if fingerprint not in self.settings.accepted.values():"
+    },
+    {
+      "id": "B11V-check-cli-drops-source",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the check command analyses the tensors without the source (no state-folder arm/checkpoint/seed check; no file or state.json hash in the record)",
+      "file": "safe_lora.py",
+      "find": "files = {outputs[\"check_record\"]: canonical_json(hook.check(source.tensors, source=source))}",
+      "replace": "files = {outputs[\"check_record\"]: canonical_json(hook.check(source.tensors, source=None))}"
+    },
+    {
+      "id": "B11V-rho-spread-all-matrices",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "rho_of_mapped (the PR3a number) computed over all matrices, not the mapped ones",
+      "file": "safe_lora.py",
+      "find": "\"rho_of_mapped\": _spread([res[m].rho for m in mapped])}",
+      "replace": "\"rho_of_mapped\": _spread([res[m].rho for m in order])}"
+    },
+    {
+      "id": "B11V-cosine-from-float32-bprime",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "cos and rho computed from float32(B') instead of the float64 B' the settings name",
+      "file": "safe_lora.py",
+      "find": "cosine, rho = similarity(b_new64, b, a)",
+      "replace": "cosine, rho = similarity(b_new64.to(torch.float32), b, a)"
+    },
+    {
+      "id": "B11V-square-transposed-operator",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "on square matrices (q, k, v, o) the input-side operator V^T V B / ||V||_F instead of V V^T B / ||V||_F",
+      "file": "safe_lora.py",
+      "find": "projected = (v64 @ (v64.T @ b64)) / norm",
+      "replace": "projected = ((v64.T @ (v64 @ b64)) if v64.shape[0] == v64.shape[1] else (v64 @ (v64.T @ b64))) / norm"
+    },
+    {
+      "id": "B11V-kth-off-by-one",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the recorded K-th cosine is the (K+1)-th (capped at the last)",
+      "file": "safe_lora.py",
+      "find": "kth = res[order[k - 1]].cosine if k >= 1 else None",
+      "replace": "kth = res[order[min(k, len(order) - 1)]].cosine if k >= 1 else None"
+    },
+    {
+      "id": "B11V-only-adapter-hash-checked",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "a state folder's state.json hashes checked for adapter.safetensors only (optimizer and rng files unchecked)",
+      "file": "safe_lora.py",
+      "find": "if sha256_file(path / name) != digest:",
+      "replace": "if name == ADAPTER_FILE and sha256_file(path / name) != digest:"
+    },
+    {
+      "id": "B11V-mapped-flags-first-point-only",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "per-matrix mapped flags of every point taken from the first point's K (the check record's conditional flags wrong)",
+      "file": "safe_lora.py",
+      "find": "mapped_at = {p: set(analysis.mapped(settings.points[p])) for p in points}",
+      "replace": "mapped_at = {p: set(analysis.mapped(settings.points[points[0]])) for p in points}"
+    },
+    {
+      "id": "B11V-call-uses-default-k",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the hook maps the default point's K whatever point it was made for",
+      "file": "safe_lora.py",
+      "find": "out, mapped = apply_point(adapter, analysis, self.settings.points[self.point])",
+      "replace": "out, mapped = apply_point(adapter, analysis, self.settings.points[\"default\"])"
+    },
+    {
+      "id": "B11V-bf16-share-of-aligned",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the rounding share computed on the aligned (bfloat16) weight, so it is always 0",
+      "file": "safe_lora.py",
+      "find": "norm, cosine, rho, bf16_rounding_share(w_unaligned, norm), b_new)",
+      "replace": "norm, cosine, rho, bf16_rounding_share(w_aligned, norm), b_new)"
+    },
+    {
+      "id": "B11V-v-sign-flipped",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "V = W unaligned - W aligned (C = V V^T / ||V||_F does not depend on the sign; only a direct V test can see it)",
+      "file": "safe_lora.py",
+      "find": "return w_aligned.to(torch.float32) - w_unaligned.to(torch.float32)",
+      "replace": "return w_unaligned.to(torch.float32) - w_aligned.to(torch.float32)"
+    },
+    {
+      "id": "B11F-certify-k-unchecked",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "a settings certify point with K other than 0 accepted",
+      "file": "safe_lora.py",
+      "find": "    if ks[\"certify\"] != 0:",
+      "replace": "    if ks[\"certify\"] < 0:"
+    },
+    {
+      "id": "B11F-check-reports-every-point",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the $0 check reports the certify point too (not only the two reference points)",
+      "file": "safe_lora.py",
+      "find": "points=CHECK_POINTS, seed=self.seed,",
+      "replace": "points=POINTS, seed=self.seed,"
+    },
+    {
+      "id": "B11F-certify-not-a-cli-choice",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the command line offers only the two reference points (no certify run through the file path)",
+      "file": "safe_lora.py",
+      "find": "sub.add_argument(\"--point\", choices=POINTS, required=True)",
+      "replace": "sub.add_argument(\"--point\", choices=CHECK_POINTS, required=True)"
+    },
+    {
+      "id": "B11F-timing-hash-stage-from-start",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the snapshot-hashing seconds counted from the start (the adapter read counted twice)",
+      "file": "safe_lora.py",
+      "find": "\"hash_snapshots\": round(hashed - read_done, 3)",
+      "replace": "\"hash_snapshots\": round(hashed - start, 3)"
+    },
+    {
+      "id": "B11F-timing-total-from-read",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the total without the adapter read",
+      "file": "safe_lora.py",
+      "find": "\"total\": round(done - start, 3)",
+      "replace": "\"total\": round(done - read_done, 3)"
+    },
+    {
+      "id": "B11F-timing-file-not-written",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the timing file not written",
+      "file": "safe_lora.py",
+      "find": "        files[outputs[\"timing\"]] = canonical_json(timing)\n",
+      "replace": "        del timing\n"
+    },
+    {
+      "id": "B11F-timing-outputs-unbound",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the timing file does not name the files it belongs to",
+      "file": "safe_lora.py",
+      "find": "\"outputs\": {name: sha256_bytes(data) for name, data in sorted(files.items())},",
+      "replace": "\"outputs\": {},"
+    },
+    {
+      "id": "B11F-timing-stdout-without-seconds",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the printed line without the stage seconds",
+      "file": "safe_lora.py",
+      "find": "{\"command\": args.command, \"written\": digests, \"seconds\": seconds}",
+      "replace": "{\"command\": args.command, \"written\": digests}"
+    },
+    {
+      "id": "B11F-summary-rho-of-cosines",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the summary's rho spread computed over the cosines",
+      "file": "safe_lora.py",
+      "find": "\"rho\": _spread([r.rho for r in res.values()]),",
+      "replace": "\"rho\": _spread([r.cosine for r in res.values()]),"
+    },
+    {
+      "id": "B11F-summary-cosine-of-rho",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the summary's cosine spread computed over rho",
+      "file": "safe_lora.py",
+      "find": "\"summary\": {\"n_matrices\": len(order), \"cosine\": _spread([r.cosine for r in res.values()]),",
+      "replace": "\"summary\": {\"n_matrices\": len(order), \"cosine\": _spread([r.rho for r in res.values()]),"
+    },
+    {
+      "id": "B11F-summary-share-of-v-norm",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the summary's rounding-share spread computed over the V norms",
+      "file": "safe_lora.py",
+      "find": "\"base_bf16_rounding_share\": _spread([r.base_bf16_rounding_share for r in res.values()])}",
+      "replace": "\"base_bf16_rounding_share\": _spread([r.v_norm for r in res.values()])}"
+    },
+    {
+      "id": "B11F-block-mix-reversed",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the block mix counts the mirror block (the sum is unchanged)",
+      "file": "safe_lora.py",
+      "find": "block_mix = {str(b): sum(res[x].block == b for x in mapped) for b in range(settings.blocks)}",
+      "replace": "block_mix = {str(b): sum(res[x].block == settings.blocks - 1 - b for x in mapped) for b in range(settings.blocks)}"
+    },
+    {
+      "id": "B11F-module-mix-reversed",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "the module mix counts the mirror module (the sum is unchanged)",
+      "file": "safe_lora.py",
+      "find": "module_mix = {m: sum(res[x].proj == m for x in mapped) for m in settings.modules}",
+      "replace": "module_mix = {m: sum(res[x].proj == n for x in mapped) for m, n in zip(settings.modules, reversed(settings.modules))}"
+    },
+    {
+      "id": "B11F-spread-mean-not-median",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "every spread gives the mean as its median",
+      "file": "safe_lora.py",
+      "find": "statistics.median(values)",
+      "replace": "statistics.mean(values)"
+    },
+    {
+      "id": "B11F-state-extra-files-refused",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "a state.json that lists the optimizer and rng files besides the adapter refused",
+      "file": "safe_lora.py",
+      "find": "if not isinstance(files, dict) or ADAPTER_FILE not in files:",
+      "replace": "if not isinstance(files, dict) or set(files) != {ADAPTER_FILE}:"
+    },
+    {
+      "id": "B11S-hub-prefix-revision-ok",
+      "part": "B11 S1 rulings (addendum 11.5, 11.6, 11.8 with 13.3)",
+      "describes": "a full Hub pin accepted with a commit prefix",
+      "file": "safe_lora.py",
+      "find": "    if not COMMIT.match(spec[\"revision\"]):\n        raise Refusal(f\"{what} needs the full 40-hex commit as the revision\")",
+      "replace": "    if False:\n        raise Refusal(f\"{what} needs the full 40-hex commit as the revision\")"
+    },
+    {
+      "id": "B11S-hub-weights-unchecked",
+      "part": "B11 S1 rulings (addendum 11.5, 11.6, 11.8 with 13.3)",
+      "describes": "the Hub list's safetensors files not compared with the file pins",
+      "file": "safe_lora.py",
+      "find": "if weights != sorted((dict(f) for f in spec[\"files\"]), key=lambda f: f.get(\"file\", \"\")):",
+      "replace": "if False and weights != sorted((dict(f) for f in spec[\"files\"]), key=lambda f: f.get(\"file\", \"\")):"
+    },
+    {
+      "id": "B11S-hub-total-unchecked",
+      "part": "B11 S1 rulings (addendum 11.5, 11.6, 11.8 with 13.3)",
+      "describes": "total_bytes not compared with the Hub list's safetensors sizes",
+      "file": "safe_lora.py",
+      "find": "if spec.get(\"total_bytes\") != sum(w[\"bytes\"] for w in weights):",
+      "replace": "if False and spec.get(\"total_bytes\") != sum(w[\"bytes\"] for w in weights):"
+    },
+    {
+      "id": "B11S-hub-order-unchecked",
+      "part": "B11 S1 rulings (addendum 11.5, 11.6, 11.8 with 13.3)",
+      "describes": "a Hub list out of name order accepted",
+      "file": "safe_lora.py",
+      "find": "if len(set(names)) != len(names) or names != sorted(names):",
+      "replace": "if len(set(names)) != len(names):"
+    },
+    {
+      "id": "B11S-hub-lfs-null-ok",
+      "part": "B11 S1 rulings (addendum 11.5, 11.6, 11.8 with 13.3)",
+      "describes": "a safetensors file without an LFS SHA-256 not refused by its own rule",
+      "file": "safe_lora.py",
+      "find": "if any(w[\"sha256\"] is None for w in weights):",
+      "replace": "if False:"
+    },
+    {
+      "id": "B11S-hub-blob-unchecked",
+      "part": "B11 S1 rulings (addendum 11.5, 11.6, 11.8 with 13.3)",
+      "describes": "a git blob id of any form accepted",
+      "file": "safe_lora.py",
+      "find": "if not isinstance(entry[\"git_blob_id\"], str) or not GIT_BLOB.match(entry[\"git_blob_id\"]):",
+      "replace": "if not isinstance(entry[\"git_blob_id\"], str):"
+    },
+    {
+      "id": "B11S-stored-dtype-unchecked",
+      "part": "B11 S1 rulings (addendum 11.5, 11.6, 11.8 with 13.3)",
+      "describes": "the snapshot's stored dtype counts not compared with the pin",
+      "file": "safe_lora.py",
+      "find": "if stored != spec[\"stored_dtype\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B11S-stored-dtype-counts-tensors",
+      "part": "B11 S1 rulings (addendum 11.5, 11.6, 11.8 with 13.3)",
+      "describes": "the stored dtype counts tensors, not values",
+      "file": "safe_lora.py",
+      "find": "counts.get(piece.get_dtype(), 0) + math.prod(piece.get_shape())",
+      "replace": "counts.get(piece.get_dtype(), 0) + 1"
+    },
+    {
+      "id": "B11S-stored-dtype-any-key",
+      "part": "B11 S1 rulings (addendum 11.5, 11.6, 11.8 with 13.3)",
+      "describes": "a stored dtype pin in another dtype than the model's accepted",
+      "file": "safe_lora.py",
+      "find": "set(stored) != {STORED_DTYPE[spec[\"dtype\"]]}",
+      "replace": "not stored"
+    },
+    {
+      "id": "B11S-stored-dtype-not-recorded",
+      "part": "B11 S1 rulings (addendum 11.5, 11.6, 11.8 with 13.3)",
+      "describes": "the record's model identity omits the observed stored dtype",
+      "file": "safe_lora.py",
+      "find": "out[\"stored_dtype\"] = dict(self.stored_dtype)",
+      "replace": "pass"
+    },
+    {
+      "id": "B11S-download-prefix-ok",
+      "part": "B11 S1 rulings (addendum 11.5, 11.6, 11.8 with 13.3)",
+      "describes": "a download pin given for a commit prefix",
+      "file": "safe_lora.py",
+      "find": "    if not COMMIT.match(spec[\"revision\"]):\n        raise Refusal(f\"the {role} model is pinned by a commit prefix; a download needs the full commit\")",
+      "replace": "    if False:\n        raise Refusal(f\"the {role} model is pinned by a commit prefix; a download needs the full commit\")"
+    },
+    {
+      "id": "B11S-download-main",
+      "part": "B11 S1 rulings (addendum 11.5, 11.6, 11.8 with 13.3)",
+      "describes": "the kit told to download main",
+      "file": "safe_lora.py",
+      "find": "return {\"repo_id\": spec[\"repo_id\"], \"revision\": spec[\"revision\"]}",
+      "replace": "return {\"repo_id\": spec[\"repo_id\"], \"revision\": \"main\"}"
+    },
+    {
+      "id": "B11S-settings-blob-id",
+      "part": "B11 S1 rulings (addendum 11.5, 11.6, 11.8 with 13.3)",
+      "describes": "a git blob id in the settings file changed",
+      "file": "settings/safe_lora.json",
+      "find": "\"git_blob_id\": \"0e6dffcd9b40b734014ef9909d6bc7b62c4c1fe1\"",
+      "replace": "\"git_blob_id\": \"0e6dffcd9b40b734014ef9909d6bc7b62c4c1fe2\""
+    },
+    {
+      "id": "B11S-fifth-key-dropped",
+      "part": "B11 S1 rulings (addendum 11.5, 11.6, 11.8 with 13.3)",
+      "describes": "B10's fifth record key not in the record map",
+      "file": "safe_lora.py",
+      "find": ",\n                   \"transform_settings_sha256\": \"provenance.settings_sha256\"}",
+      "replace": "}"
+    },
+    {
+      "id": "B11S-fifth-key-wrong-path",
+      "part": "B11 S1 rulings (addendum 11.5, 11.6, 11.8 with 13.3)",
+      "describes": "the fifth key read from the script's SHA-256",
+      "file": "safe_lora.py",
+      "find": "\"transform_settings_sha256\": \"provenance.settings_sha256\"}",
+      "replace": "\"transform_settings_sha256\": \"provenance.script_sha256\"}"
+    },
+    {
+      "id": "B11S-vprime-no-rounding",
+      "part": "B11 S1 rulings (addendum 11.5, 11.6, 11.8 with 13.3)",
+      "describes": "V' without the bfloat16 rounding of the unaligned weight (V' = V)",
+      "file": "safe_lora.py",
+      "find": "return alignment_matrix(w_aligned, w_unaligned.to(torch.float32).to(torch.bfloat16))",
+      "replace": "return alignment_matrix(w_aligned, w_unaligned.to(torch.float32))"
+    },
+    {
+      "id": "B11S-vprime-rounds-aligned",
+      "part": "B11 S1 rulings (addendum 11.5, 11.6, 11.8 with 13.3)",
+      "describes": "V' rounds the aligned weight instead",
+      "file": "safe_lora.py",
+      "find": "return alignment_matrix(w_aligned, w_unaligned.to(torch.float32).to(torch.bfloat16))",
+      "replace": "return alignment_matrix(w_aligned.to(torch.float32).to(torch.bfloat16), w_unaligned)"
+    },
+    {
+      "id": "B11S-reldiff-over-vprime",
+      "part": "B11 S1 rulings (addendum 11.5, 11.6, 11.8 with 13.3)",
+      "describes": "the relative difference divided by ||V'|| (the norm of the other matrix)",
+      "file": "safe_lora.py",
+      "find": "return float(torch.linalg.vector_norm(v64 - v_prime.to(torch.float64))) / norm",
+      "replace": "return float(torch.linalg.vector_norm(v64 - v_prime.to(torch.float64))) / float(torch.linalg.vector_norm(v_prime.to(torch.float64)))"
+    },
+    {
+      "id": "B11S-reldiff-squared",
+      "part": "B11 S1 rulings (addendum 11.5, 11.6, 11.8 with 13.3)",
+      "describes": "the relative difference squared",
+      "file": "safe_lora.py",
+      "find": "return float(torch.linalg.vector_norm(v64 - v_prime.to(torch.float64))) / norm",
+      "replace": "return (float(torch.linalg.vector_norm(v64 - v_prime.to(torch.float64))) / norm) ** 2"
+    },
+    {
+      "id": "B11S-vcheck-v-side-is-vprime",
+      "part": "B11 S1 rulings (addendum 11.5, 11.6, 11.8 with 13.3)",
+      "describes": "the diagnostic's V side computed with V'",
+      "file": "safe_lora.py",
+      "find": "analysis_v = analyse(tensors, settings, aligned, unaligned, threads)",
+      "replace": "analysis_v = analyse(tensors, settings, aligned, unaligned, threads, alignment=alignment_matrix_prime)"
+    },
+    {
+      "id": "B11S-vcheck-conditional-k",
+      "part": "B11 S1 rulings (addendum 11.5, 11.6, 11.8 with 13.3)",
+      "describes": "the diagnostic compares the conditional point's K",
+      "file": "safe_lora.py",
+      "find": "compare_selection(analysis_v, analysis_vp, settings.points[settings.v_point])",
+      "replace": "compare_selection(analysis_v, analysis_vp, settings.points[\"conditional\"])"
+    },
+    {
+      "id": "B11S-selection-by-order",
+      "part": "B11 S1 rulings (addendum 11.5, 11.6, 11.8 with 13.3)",
+      "describes": "the set counted as changed when only the order within K changes",
+      "file": "safe_lora.py",
+      "find": "\"set_changes\": bool(only_v or only_v_prime),",
+      "replace": "\"set_changes\": selected != selected_prime,"
+    },
+    {
+      "id": "B11S-outcome-swapped",
+      "part": "B11 S1 rulings (addendum 11.5, 11.6, 11.8 with 13.3)",
+      "describes": "the two outcome texts swapped",
+      "file": "safe_lora.py",
+      "find": "\"outcome\": outcomes[\"changes\"] if selection[\"set_changes\"] else outcomes[\"same\"]}",
+      "replace": "\"outcome\": outcomes[\"same\"] if selection[\"set_changes\"] else outcomes[\"changes\"]}"
+    },
+    {
+      "id": "B11S-vcheck-input-unchecked",
+      "part": "B11 S1 rulings (addendum 11.5, 11.6, 11.8 with 13.3)",
+      "describes": "the diagnostic skips the input adapter's acceptance checks",
+      "file": "safe_lora.py",
+      "find": "        info = self._accepted(adapter, source)\n        diag = v_diagnostic(",
+      "replace": "        info = {\"fingerprint\": adapter_fingerprint(adapter), \"digest\": adapter_fingerprint(adapter), \"file_sha256\": None,\n                \"state_json_sha256\": None}\n        diag = v_diagnostic("
+    },
+    {
+      "id": "B11S-vcheck-cli-writes-check",
+      "part": "B11 S1 rulings (addendum 11.5, 11.6, 11.8 with 13.3)",
+      "describes": "the vcheck command writes the check record",
+      "file": "safe_lora.py",
+      "find": "files = {settings.v_output: canonical_json(hook.vcheck(source.tensors, source=source))}",
+      "replace": "files = {settings.v_output: canonical_json(hook.check(source.tensors, source=source))}"
+    },
+    {
+      "id": "B11S-diag-point-any",
+      "part": "B11 S1 rulings (addendum 11.5, 11.6, 11.8 with 13.3)",
+      "describes": "a diagnostic point other than a reference point accepted",
+      "file": "safe_lora.py",
+      "find": "if diag[\"point\"] not in CHECK_POINTS:",
+      "replace": "if diag[\"point\"] not in POINTS:"
+    },
+    {
+      "id": "B11S-diag-output-collision-ok",
+      "part": "B11 S1 rulings (addendum 11.5, 11.6, 11.8 with 13.3)",
+      "describes": "a diagnostic output that is one of the outputs accepted",
+      "file": "safe_lora.py",
+      "find": "or diag[\"output\"] in names:",
+      "replace": ":"
+    },
+    {
+      "id": "B11S-diag-outcomes-unchecked",
+      "part": "B11 S1 rulings (addendum 11.5, 11.6, 11.8 with 13.3)",
+      "describes": "v_diagnostic.outcomes with a missing text accepted",
+      "file": "safe_lora.py",
+      "find": "set(outcomes) != {\"changes\", \"same\"}",
+      "replace": "not outcomes"
+    },
+    {
+      "id": "B11-docstring-edit",
+      "part": "B11 (Safe LoRA transform)",
+      "describes": "a docstring sentence reworded: a legal change before addendum 11.5; since then B10's settings pin safe_lora.py by SHA-256 (external_transforms.safe_lora.module_sha256), so any byte change, a docstring included, needs the re-pin of 11.7 and the pin test kills it",
+      "file": "safe_lora.py",
+      "find": "Messages and records carry module names, counts, numbers and hashes only. This module reads no dataset file.",
+      "replace": "Messages and records hold module names, counts, numbers and hashes only; no dataset file is read here."
+    },
+    {
+      "id": "FIX-layout-b11-no-stage1-copy",
+      "part": "layout",
+      "describes": "B11's wrapper copies only scripts/stage1_s1 into a run copy",
+      "file": "mutation/run_b11_mutants.py",
+      "find": "        shutil.copytree(t1.STAGE1, copy / \"scripts\" / \"stage1\", ignore=ignore)\n",
+      "replace": "        pass\n"
+    },
+    {
+      "id": "B11S-vprime-rank-from-v",
+      "part": "the V/V' diagnostic (addendum section 11 point 8; section 13 point 3)",
+      "describes": "the diagnostic reports each matrix's V' rank from the unrounded V ranking (VERIFY-SUITES v2 NB11-vprime-rank-from-v)",
+      "file": "safe_lora.py",
+      "find": "rank_vp = {m: i + 1 for i, m in enumerate(analysis_vp.order)}",
+      "replace": "rank_vp = {m: i + 1 for i, m in enumerate(analysis_v.order)}"
+    }
+  ],
+  "s1_rulings": "S1 small rulings (2026-10-23): 28 mutants added (ids B11S-*), addendum section 11 points 5, 6, 8, 10 and 12 and section 13 point 3; the find texts of B11-settings-pin-changed and B11-settings-base-revision follow the re-pin; B11-docstring-edit now expects a kill (B10 pins the module's bytes)",
+  "s1_fix": "S1 FIX (2026-10-23; notes/s1-fix.json): mutants for the review's findings 1-5 (the W1-18 binding by bytes, LN-14's transfer report, the one mutation layout, the S-p label of addendum 11.11, four O-ext safety rules)",
+  "s1_fix_round2": "S1 FIX round 2 (2026-10-23; notes/s1-fix.json version 2): mutants for VERIFY-SUITES v2's three pin-only new mutants (its finding 2), each with a content test now"
+}

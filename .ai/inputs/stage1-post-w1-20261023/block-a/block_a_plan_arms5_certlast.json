@@ -1,0 +1,196 @@
+{
+ "kind": "stage1 block-a launch plan",
+ "launches": [
+  {
+   "hosts": [
+    [
+     {
+      "kind": "w1_18"
+     }
+    ]
+   ],
+   "role": "s1_0"
+  },
+  {
+   "hosts": [
+    [
+     {
+      "kind": "untuned_answers"
+     },
+     {
+      "kind": "rep_pass"
+     },
+     {
+      "kind": "l1_scan"
+     },
+     {
+      "kind": "classifier"
+     }
+    ]
+   ],
+   "role": "diagnostics"
+  },
+  {
+   "hosts": [
+    [
+     {
+      "arm": "a0",
+      "kind": "regenerate",
+      "seed": 1101
+     },
+     {
+      "arm": "a0",
+      "kind": "o_only",
+      "regen_source": 0,
+      "seed": 1101
+     },
+     {
+      "arm": "a0",
+      "kind": "regenerate",
+      "seed": 1102
+     },
+     {
+      "arm": "a0",
+      "kind": "o_only",
+      "regen_source": 2,
+      "seed": 1102
+     },
+     {
+      "arm": "a0",
+      "kind": "regenerate",
+      "seed": 1103
+     },
+     {
+      "arm": "a0",
+      "kind": "o_only",
+      "regen_source": 4,
+      "seed": 1103
+     },
+     {
+      "arm": "R",
+      "kind": "regenerate",
+      "seed": 1101
+     },
+     {
+      "arm": "R",
+      "kind": "o_only",
+      "regen_source": 6,
+      "seed": 1101
+     },
+     {
+      "arm": "R",
+      "kind": "regenerate",
+      "seed": 1102
+     },
+     {
+      "arm": "R",
+      "kind": "o_only",
+      "regen_source": 8,
+      "seed": 1102
+     },
+     {
+      "arm": "R",
+      "kind": "regenerate",
+      "seed": 1103
+     },
+     {
+      "arm": "R",
+      "kind": "o_only",
+      "regen_source": 10,
+      "seed": 1103
+     },
+     {
+      "arm": "a0",
+      "kind": "retrain",
+      "seed": 1102
+     },
+     {
+      "arm": "a0",
+      "kind": "a1_rescore",
+      "regen_source": 12,
+      "seed": 1102
+     },
+     {
+      "arm": "a0",
+      "kind": "retrain",
+      "seed": 1103
+     },
+     {
+      "arm": "a0",
+      "kind": "a1_rescore",
+      "regen_source": 14,
+      "seed": 1103
+     },
+     {
+      "arm": "theta0",
+      "kind": "o_only"
+     },
+     {
+      "arm": "theta0",
+      "kind": "transfer_report"
+     },
+     {
+      "arm": "R",
+      "kind": "c0",
+      "seed": 1101
+     }
+    ]
+   ],
+   "role": "ln12"
+  },
+  {
+   "deal": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "role": "arms"
+  },
+  {
+   "judge": {
+    "arms": 27,
+    "judge": "harmbench"
+   },
+   "role": "judge"
+  },
+  {
+   "judge": {
+    "arms": 27,
+    "judge": "granite"
+   },
+   "role": "judge"
+  },
+  {
+   "hosts": [
+    [
+     {
+      "arm": "R",
+      "kind": "cert_c1",
+      "seed": 1101
+     },
+     {
+      "arm": "bqi",
+      "kind": "cert_c2",
+      "seed": 1101
+     },
+     {
+      "kind": "cert_c3"
+     }
+    ]
+   ],
+   "role": "cert"
+  }
+ ],
+ "not_in_plan": [
+  {
+   "job": "V2a: LN-15e's scored-only pass (a0-1101's 3 samples per anchor prompt at T = 0.7; REV4 \u00a79.2)",
+   "why": "no V2a script exists (brief \u00a73; addendum \u00a725 point 1): V2a stays on its fallback, FO-04's figures as the stated limit, and its REV4 price ($5.6-7.1) is not in this need; building it later needs a re-plan that the group's first funding record covers"
+  }
+ ],
+ "plan_code": "A",
+ "recorded_by": "GI VI lead",
+ "utc": "2026-10-25T15:47:25Z",
+ "version": 1
+}

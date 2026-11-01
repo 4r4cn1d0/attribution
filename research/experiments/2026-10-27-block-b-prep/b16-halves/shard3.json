@@ -1,0 +1,962 @@
+{
+  "baseline": {
+    "disk_full": false,
+    "erroring": [],
+    "errors": 0,
+    "exit": 0,
+    "failing": [],
+    "failures": 0,
+    "outcome": "pass",
+    "seconds": 179.4,
+    "skipped": 0,
+    "targets": {},
+    "tests": 261,
+    "tree": {
+      "README.md": "8389bb7857187351f565b902b7b2dc3de870d4512fc71a17921a4a07b3ef2927",
+      "__init__.py": "244f1c9705abfdf87f036d2a0f137e87b1bf15aa36092f8497c443b9ea37fc0e",
+      "__main__.py": "f859f54af41292b692e4a0a8bb5458029235a61489a517b633c8b60a6d4cef08",
+      "contrast.py": "19d8941d8954353b4b29c16d5f9c78aeac8982070378ce10667504c5d9301670",
+      "labels.py": "ba555c1d134a0fdc1c324b95d9d5267256bee9a21194bc0c269e77c1acdd406a",
+      "mutation/mutants_b16.json": "5ccf63adf29ff26608ed087b9df57522b8017a6ac0aed383d789bb5d6698153c",
+      "mutation/run_mutants.py": "c9550a3b1e5074a3f0691f78801007c0864b275e83a11c72a7806293fc96f265",
+      "overlap.py": "1c6e6b201843263fdaebc1ea79e695fb30c7f6af5ad50d7127b530de85d8919d",
+      "phi.py": "1f74f469c201e584543a97860ed334583582d6b18b1be9b2d9045cf1f0d0a9ec",
+      "reading.py": "38b4881cc8814ee32ed4b38ae7eda7a2d4d66664e3f6bdc1fb6f10c2da45b7e5",
+      "references.py": "ce7a51da39e069cc5a0e4d5a0492ecc359b2aa18af84eebc4d9d125145feee5d",
+      "reml.py": "56f371e603358febb806e83037398d15b9d2f7e7ad5cb3fe173fbd7f528ffb9d",
+      "schema.py": "6ce88f584f3510ae2712061242ff82abc657b68e9a304083cd0a5bf836eb13ee",
+      "sensitivities.py": "a33b093308ae23763077adfe6f24789a711286af664ca6b840680a543fed8483",
+      "settings.py": "315297191988559e78fa02063cd93472ebd04266dea00aab252352876b99144a",
+      "settings/reading.json": "fef3b6f5bb2fbed70f01785bc64177aed02eff955ab164e37f23d05356af5b18",
+      "tdist.py": "6982a7b119e4a5eae34b5f45a62e0871ab5f3a8ca51cfb882cd31668c61c1fac",
+      "tests/conftest.py": "ea905c743f386feb263d2ebd369f45c6b64e4234d33445572ef9d826f9b9e85a",
+      "tests/d4_fixtures.json": "2695717fa3044d790e53452e26f55a256495f169e5c3d324b42da071bf464b98",
+      "tests/halves_reference.py": "fedfbe485e87702e2430f9c5ab36990f180d19a63554b3d63e03e70252d00475",
+      "tests/halves_synth.py": "4be83e09fb6d649c8f9647b29f5660b96c2c1d223f35cc022239a098be1c2955",
+      "tests/sim_halves.py": "b078badb557452c3e9e04f7c051c2e0d1af3ab7011de92e1180f0618a0de1c24",
+      "tests/synth.py": "f60d8299b90a57d187f20719fc42295a3fa6b462b3cb4015c111e2e7c8526d8c",
+      "tests/test_contrast.py": "1188f7073620cfa855fc92577dad9b4d58b11c918658b49cee1c56308415042b",
+      "tests/test_fixes.py": "d6f29cc34cb938df53130321087ef9f625bdb1bd40918382fd81f6012d273fc8",
+      "tests/test_labels.py": "b4716a8fb8426f77ad77877777e15afe022a9fb6e27b90fe72a1288c4e1b2714",
+      "tests/test_overlap.py": "638cff4dc7816a877a8b5f2db8ffdaa2942aed55176b5b6495b4190232cd9911",
+      "tests/test_phi.py": "42b9b50218079474cf4b81311c01c09b309110618c22dddfb25b279115278a75",
+      "tests/test_reading.py": "2a5b307b6c7091707c7cdc6f7e2386b3a9730b5e942bc2a8518e86bb0b6ddf70",
+      "tests/test_reml.py": "6b5049522c1542d19d80feb89b6cea3c80994e6a1e13042bf01b88dd2778d09a",
+      "tests/test_reml_multistart.py": "f0fe31f1b356d3031cafd86a58f44722225927d2ef758347637241c11da1ff1d",
+      "tests/test_sensitivities.py": "b1de54efcd5ea5b3bbb31cc045d4235a647d91ab34a06165fd3fd252d1b8463f",
+      "tests/test_settings_and_tdist.py": "fe8c79c8d48e381012439a828ac42eab85d9b5f1c08bc8d129c71dddde199234"
+    }
+  },
+  "command": "python -B -m pytest -q -rs -p no:cacheprovider -W ignore --basetemp=<run>/bt --junitxml=<run>/junit.xml <copy>/scripts/stage1_s1/reading/tests (cwd <copy>; PYTHONPATH <copy>:<workspace>; PYTHONDONTWRITEBYTECODE=1)",
+  "dose_axis_sha256": "d258ee595709a99a7e4b5cd54b3a308ebae1a156cb144dccea22e26e44acbbe1",
+  "environment_removed": [
+    "PYTEST_ADDOPTS",
+    "PYTEST_PLUGINS"
+  ],
+  "kind": "stage1 mutation report",
+  "min_free_gb": 3.0,
+  "mutants": [
+    {
+      "describes": "the information returned on the log scale, not the sigma^2 scale",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading.tests.test_fixes::test_an_exact_5_pp_tie_reads_better_whatever_the_float_rounding",
+        "scripts.stage1_s1.reading.tests.test_fixes::test_the_reading_reads_alpha_the_level_and_the_stop_settings_from_the_settings",
+        "scripts.stage1_s1.reading.tests.test_fixes::test_a_coherence_failing_repair_never_dominates_in_family_1b",
+        "scripts.stage1_s1.reading.tests.test_fixes::test_the_per_actor_best_arm_names_an_arm_when_one_is_better_feasible_and_separated",
+        "scripts.stage1_s1.reading.tests.test_fixes::test_the_4_pp_margin_sensitivity_is_reported_and_never_the_label",
+        "scripts.stage1_s1.reading.tests.test_fixes::test_the_reading_uses_delta_5_from_the_settings_not_a_family_margin",
+        "scripts.stage1_s1.reading.tests.test_overlap::test_hbc_of_the_halves_agrees_with_the_independent_reference",
+        "scripts.stage1_s1.reading.tests.test_reml::test_the_returned_information_is_on_the_sigma2_scale_and_feeds_the_seed_df"
+      ],
+      "failures": 8,
+      "id": "B16-reml-info-log-scale",
+      "outcome": "killed",
+      "part": "B16 reml",
+      "seconds": 167.3,
+      "skipped": 0,
+      "targets": {
+        "reml.py": {
+          "after": "e3b7a5cd3845c06ba8d652d99cc171d1446885d317982fa488640b65b9a74b97",
+          "before": "56f371e603358febb806e83037398d15b9d2f7e7ad5cb3fe173fbd7f528ffb9d"
+        }
+      },
+      "tests": 261
+    },
+    {
+      "describes": "an arm with no residual information treated as identified",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading.tests.test_reml::test_an_arm_whose_cells_are_alone_at_their_seeds_is_not_identified"
+      ],
+      "failures": 1,
+      "id": "B16-reml-identified-off",
+      "outcome": "killed",
+      "part": "B16 reml",
+      "seconds": 223.1,
+      "skipped": 0,
+      "targets": {
+        "reml.py": {
+          "after": "936ecd6d245bf46e0b75f18ccf832dcc4cc4bd5991fc00fc0f0b14205b59cb67",
+          "before": "56f371e603358febb806e83037398d15b9d2f7e7ad5cb3fe173fbd7f528ffb9d"
+        }
+      },
+      "tests": 261
+    },
+    {
+      "describes": "V in place of V^2 in Satterthwaite",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading.tests.test_contrast::test_satterthwaite_hand_case",
+        "scripts.stage1_s1.reading.tests.test_contrast::test_contrast_fit_combines_seed_part_item_part_and_df",
+        "scripts.stage1_s1.reading.tests.test_contrast::test_paired_form_has_j_minus_1_df_and_the_pairs_own_variance",
+        "scripts.stage1_s1.reading.tests.test_contrast::test_theta0_form_hand_case",
+        "scripts.stage1_s1.reading.tests.test_contrast::test_welch_pooled_and_blocked_forms_under_d1",
+        "scripts.stage1_s1.reading.tests.test_fixes::test_a_coherence_failing_repair_never_dominates_in_family_1b",
+        "scripts.stage1_s1.reading.tests.test_fixes::test_the_flag_is_not_the_start_level_comparison",
+        "scripts.stage1_s1.reading.tests.test_overlap::test_hbc_of_the_halves_agrees_with_the_independent_reference",
+        "scripts.stage1_s1.reading.tests.test_overlap::test_s_p_is_b14s_printed_s_p_for_the_governing_contrasts",
+        "scripts.stage1_s1.reading.tests.test_overlap::test_hand_case_plan_b_constant_differences",
+        "scripts.stage1_s1.reading.tests.test_overlap::test_hand_case_plan_b_with_an_item_part",
+        "scripts.stage1_s1.reading.tests.test_overlap::test_the_rule_end_to_end_holds_and_not_shown",
+        "scripts.stage1_s1.reading.tests.test_reml::test_two_arm_cluster_equals_the_paired_t_with_j_minus_1_df_and_prints_no_split",
+        "scripts.stage1_s1.reading.tests.test_reml_multistart::test_the_verifiers_label_change_is_governed_by_the_maximum_and_shown_as_s_start",
+        "scripts.stage1_s1.reading.tests.test_sensitivities::test_s_0_drops_the_item_part_only"
+      ],
+      "failures": 15,
+      "id": "B16-contrast-satterthwaite",
+      "outcome": "killed",
+      "part": "B16 contrast",
+      "seconds": 180.8,
+      "skipped": 0,
+      "targets": {
+        "contrast.py": {
+          "after": "76aafbb1b4262242467793c4f381c1ff6e73b4fcacf2f3ad2a553dca0722ff92",
+          "before": "19d8941d8954353b4b29c16d5f9c78aeac8982070378ce10667504c5d9301670"
+        }
+      },
+      "tests": 261
+    },
+    {
+      "describes": "Welch's df replaced by n1 + n2 - 2",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading.tests.test_contrast::test_welch_pooled_and_blocked_forms_under_d1",
+        "scripts.stage1_s1.reading.tests.test_sensitivities::test_s_aw_is_welch"
+      ],
+      "failures": 2,
+      "id": "B16-contrast-welch-df",
+      "outcome": "killed",
+      "part": "B16 contrast",
+      "seconds": 202.8,
+      "skipped": 0,
+      "targets": {
+        "contrast.py": {
+          "after": "9c503510c9017575c334b6ddbf0ba7a474a8f5addeb2335e7afec48a038d5899",
+          "before": "19d8941d8954353b4b29c16d5f9c78aeac8982070378ce10667504c5d9301670"
+        }
+      },
+      "tests": 261
+    },
+    {
+      "describes": "the margin added instead of subtracted",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading.tests.test_contrast::test_theta0_form_hand_case",
+        "scripts.stage1_s1.reading.tests.test_contrast::test_p_values_and_intervals",
+        "scripts.stage1_s1.reading.tests.test_phi::test_iut_and_the_f_o_exclusion",
+        "scripts.stage1_s1.reading.tests.test_reading::test_plan_a_structure_and_consistency"
+      ],
+      "failures": 4,
+      "id": "B16-contrast-p-upper-margin",
+      "outcome": "killed",
+      "part": "B16 contrast",
+      "seconds": 208.0,
+      "skipped": 0,
+      "targets": {
+        "contrast.py": {
+          "after": "2e0bf5e6b7ada63be436dedddaaf8caef1f67212f28fc860973fcc6431cb7635",
+          "before": "19d8941d8954353b4b29c16d5f9c78aeac8982070378ce10667504c5d9301670"
+        }
+      },
+      "tests": 261
+    },
+    {
+      "describes": "the update without its denominator",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading.tests.test_phi::test_local_levels_equal_phi_levels_check_r13_column",
+        "scripts.stage1_s1.reading.tests.test_phi::test_largest_reachable_levels_equal_the_statistics_review"
+      ],
+      "failures": 2,
+      "id": "B16-phi-update-no-denominator",
+      "outcome": "killed",
+      "part": "B16 phi",
+      "seconds": 344.8,
+      "skipped": 0,
+      "targets": {
+        "phi.py": {
+          "after": "8e29738caccb545df4a95fd09118a8c27382be8ccf7e54dd2fea7435782967d7",
+          "before": "1f74f469c201e584543a97860ed334583582d6b18b1be9b2d9045cf1f0d0a9ec"
+        }
+      },
+      "tests": 261
+    },
+    {
+      "describes": "grade 2 read from the 90% interval",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading.tests.test_labels::test_step1_worse_u_below_delta_prints_the_note_beside_the_word_ln36",
+        "scripts.stage1_s1.reading.tests.test_labels::test_step3_equivalent_per_comparison_when_only_the_90_interval_is_inside",
+        "scripts.stage1_s1.reading.tests.test_labels::test_step3_with_a_favourable_rejection_below_delta_adds_the_note"
+      ],
+      "failures": 3,
+      "id": "B16-labels-grade2-from-90",
+      "outcome": "killed",
+      "part": "B16 labels",
+      "seconds": 201.4,
+      "skipped": 0,
+      "targets": {
+        "labels.py": {
+          "after": "5c703ea470160b113451b332fdb43562a4384becc29733b4eafe5c4a514125a4",
+          "before": "ba555c1d134a0fdc1c324b95d9d5267256bee9a21194bc0c269e77c1acdd406a"
+        }
+      },
+      "tests": 261
+    },
+    {
+      "describes": "the capped share not part of the bar",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading.tests.test_labels::test_coherence_screen_pools_over_seeds_and_flags_seeds_above_10_percent"
+      ],
+      "failures": 1,
+      "id": "B16-labels-coherence-capped-off",
+      "outcome": "killed",
+      "part": "B16 labels",
+      "seconds": 229.2,
+      "skipped": 0,
+      "targets": {
+        "labels.py": {
+          "after": "bff69debae6cb1d83cb7ba4d176ae6274c85fc91abadb4ce7f1ad38009e81a56",
+          "before": "ba555c1d134a0fdc1c324b95d9d5267256bee9a21194bc0c269e77c1acdd406a"
+        }
+      },
+      "tests": 261
+    },
+    {
+      "describes": "every pair read by the paired form; the cluster fit unused (the within-cluster primary form dropped)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading.tests.test_overlap::test_on_all_prompts_the_halves_equal_the_primary_reading[plan_a]",
+        "scripts.stage1_s1.reading.tests.test_overlap::test_on_all_prompts_the_halves_equal_the_primary_reading[plan_a_block_a_only]",
+        "scripts.stage1_s1.reading.tests.test_reading::test_plan_a_structure_and_consistency",
+        "scripts.stage1_s1.reading.tests.test_reading::test_plan_b_two_arm_cluster_three_contrasts_and_a0_outside_the_fit",
+        "scripts.stage1_s1.reading.tests.test_reading::test_o_comparator_part_uses_the_r_seeds_present_or_is_not_tested",
+        "scripts.stage1_s1.reading.tests.test_reml_multistart::test_the_verifiers_label_change_is_governed_by_the_maximum_and_shown_as_s_start"
+      ],
+      "failures": 6,
+      "id": "B16-reading-every-pair-paired",
+      "outcome": "killed",
+      "part": "B16 reading",
+      "seconds": 259.1,
+      "skipped": 0,
+      "targets": {
+        "reading.py": {
+          "after": "1ef99a781dccd7d4b70677db848b96171e687385c2c3fe9761ac1bd857fcb1ab",
+          "before": "38b4881cc8814ee32ed4b38ae7eda7a2d4d66664e3f6bdc1fb6f10c2da45b7e5"
+        }
+      },
+      "tests": 261
+    },
+    {
+      "describes": "a failing arm changes the headline word",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading.tests.test_reading::test_coherence_flags_print_beside_the_word_and_never_change_it"
+      ],
+      "failures": 1,
+      "id": "B16-reading-coherence-word",
+      "outcome": "killed",
+      "part": "B16 reading",
+      "seconds": 295.3,
+      "skipped": 0,
+      "targets": {
+        "reading.py": {
+          "after": "4414e00cfd3cf9a6394391d60948888c3b2a65ae5dcc4c2039ec3581913ce380",
+          "before": "38b4881cc8814ee32ed4b38ae7eda7a2d4d66664e3f6bdc1fb6f10c2da45b7e5"
+        }
+      },
+      "tests": 261
+    },
+    {
+      "describes": "any arm may hold a subset of its O seeds",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading.tests.test_reading::test_the_schema_refuses_anything_else[<lambda>8]",
+        "scripts.stage1_s1.reading.tests.test_reading::test_the_schema_refuses_anything_else[<lambda>15]"
+      ],
+      "failures": 2,
+      "id": "B16-schema-loose-arms",
+      "outcome": "killed",
+      "part": "B16 schema",
+      "seconds": 290.0,
+      "skipped": 0,
+      "targets": {
+        "schema.py": {
+          "after": "1ce34bc27e5bab61196b0d2008d1269bdd87b1d7b19b6529176ad1f120e2a18f",
+          "before": "6ce88f584f3510ae2712061242ff82abc657b68e9a304083cd0a5bf836eb13ee"
+        }
+      },
+      "tests": 261
+    },
+    {
+      "describes": "family 1b by Bonferroni",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading.tests.test_reading::test_dominance_is_holm_over_the_contrasts"
+      ],
+      "failures": 1,
+      "id": "B16-references-dominance-bonferroni",
+      "outcome": "killed",
+      "part": "B16 references",
+      "seconds": 296.4,
+      "skipped": 0,
+      "targets": {
+        "references.py": {
+          "after": "28dfb4cc20c2b05d7973e6c41ccac524ba4e704800e0aa03b650fa877c14a63d",
+          "before": "ce7a51da39e069cc5a0e4d5a0492ecc359b2aa18af84eebc4d9d125145feee5d"
+        }
+      },
+      "tests": 261
+    },
+    {
+      "describes": "a note string in the output changes (legal: it is not a rule)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 0,
+      "expect": "survive",
+      "failing": [],
+      "failures": 0,
+      "id": "B16-legal-note-text",
+      "outcome": "survived",
+      "part": "B16 legal",
+      "seconds": 303.3,
+      "skipped": 0,
+      "targets": {
+        "reading.py": {
+          "after": "bc46046eea29e051fd95a1a91ffca8d9020de4c1a519aded11ba9d135de2ade1",
+          "before": "38b4881cc8814ee32ed4b38ae7eda7a2d4d66664e3f6bdc1fb6f10c2da45b7e5"
+        }
+      },
+      "tests": 261
+    },
+    {
+      "describes": "Satterthwaite with the wrong variance: V_seed in the numerator",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading.tests.test_contrast::test_satterthwaite_hand_case",
+        "scripts.stage1_s1.reading.tests.test_contrast::test_contrast_fit_combines_seed_part_item_part_and_df",
+        "scripts.stage1_s1.reading.tests.test_fixes::test_the_per_actor_best_arm_names_an_arm_when_one_is_better_feasible_and_separated",
+        "scripts.stage1_s1.reading.tests.test_overlap::test_hbc_of_the_halves_agrees_with_the_independent_reference",
+        "scripts.stage1_s1.reading.tests.test_overlap::test_s_p_is_b14s_printed_s_p_for_the_governing_contrasts",
+        "scripts.stage1_s1.reading.tests.test_overlap::test_hand_case_plan_b_with_an_item_part"
+      ],
+      "failures": 6,
+      "id": "V16-satt-seed-numerator",
+      "outcome": "killed",
+      "part": "B16 verify-code mutants",
+      "seconds": 257.0,
+      "skipped": 0,
+      "targets": {
+        "contrast.py": {
+          "after": "4f2875d14499252ee57e59c904a4332ecc0cc2c3fa0793fe16946fce8bd79aec",
+          "before": "19d8941d8954353b4b29c16d5f9c78aeac8982070378ce10667504c5d9301670"
+        }
+      },
+      "tests": 261
+    },
+    {
+      "describes": "L_k tests only the comparator part (a0 part dropped)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading.tests.test_reading::test_plan_a_structure_and_consistency"
+      ],
+      "failures": 1,
+      "id": "V16-reading-l-comparator-only",
+      "outcome": "killed",
+      "part": "B16 verify-code mutants",
+      "seconds": 306.0,
+      "skipped": 0,
+      "targets": {
+        "reading.py": {
+          "after": "997df603dd6ff811412f0563c905cd2899d83a726af6f9dabd28267ecc39aecb",
+          "before": "38b4881cc8814ee32ed4b38ae7eda7a2d4d66664e3f6bdc1fb6f10c2da45b7e5"
+        }
+      },
+      "tests": 261
+    },
+    {
+      "describes": "feasibility boundary: feasible needs the upper end strictly below tau",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading.tests.test_labels::test_feasibility_states_by_the_90_interval"
+      ],
+      "failures": 1,
+      "id": "V16-feasible-strict",
+      "outcome": "killed",
+      "part": "B16 verify-code mutants",
+      "seconds": 298.5,
+      "skipped": 0,
+      "targets": {
+        "labels.py": {
+          "after": "c6eadaf33634d52ceae7415824b84d0e7e611e74d9fb865a67fc6b17b9e90818",
+          "before": "ba555c1d134a0fdc1c324b95d9d5267256bee9a21194bc0c269e77c1acdd406a"
+        }
+      },
+      "tests": 261
+    },
+    {
+      "describes": "the 600-row curve point read on 1102-1104 only (point estimate)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading.tests.test_sensitivities::test_s_tok_point_estimate_and_common_seed_interval"
+      ],
+      "failures": 1,
+      "id": "V16-tok-g600-common-only",
+      "outcome": "killed",
+      "part": "B16 verify-code mutants",
+      "seconds": 225.1,
+      "skipped": 0,
+      "targets": {
+        "sensitivities.py": {
+          "after": "dc13947db82c2bef4df85cb5312a282d8640e0e8ec12b0ec8037e67f77210883",
+          "before": "a33b093308ae23763077adfe6f24789a711286af664ca6b840680a543fed8483"
+        }
+      },
+      "tests": 261
+    },
+    {
+      "describes": "the curve bracket read at the wrong ends of the L interval",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading.tests.test_fixes::test_the_curve_bracket_reads_lambda_lo_at_the_upper_and_lambda_hi_at_the_lower_end"
+      ],
+      "failures": 1,
+      "id": "V16-curve-bracket-swapped",
+      "outcome": "killed",
+      "part": "B16 verify-code mutants",
+      "seconds": 276.0,
+      "skipped": 0,
+      "targets": {
+        "references.py": {
+          "after": "b716b4e1314c5204ea0c7a2e6ce3c509cd23dbc58c456978eee3aa33c25a608d",
+          "before": "ce7a51da39e069cc5a0e4d5a0492ecc359b2aa18af84eebc4d9d125145feee5d"
+        }
+      },
+      "tests": 261
+    },
+    {
+      "describes": "the theta0 contrast over the comparator's common seeds, not all of m's",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading.tests.test_fixes::test_a0_and_r_states_against_theta0_use_all_their_o_seeds"
+      ],
+      "failures": 1,
+      "id": "V16-theta0-common-seeds",
+      "outcome": "killed",
+      "part": "B16 verify-code mutants",
+      "seconds": 300.5,
+      "skipped": 0,
+      "targets": {
+        "reading.py": {
+          "after": "ce95199824c307fd555d6f298b594cfc3201f5700cb0f6f8302f9c995d531e44",
+          "before": "38b4881cc8814ee32ed4b38ae7eda7a2d4d66664e3f6bdc1fb6f10c2da45b7e5"
+        }
+      },
+      "tests": 261
+    },
+    {
+      "describes": "verify-stats F2: 'better' compared with delta without the tie tolerance",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading.tests.test_fixes::test_an_exact_5_pp_tie_reads_better_whatever_the_float_rounding",
+        "scripts.stage1_s1.reading.tests.test_fixes::test_the_tie_tolerance_is_1e_9_pp_from_the_settings",
+        "scripts.stage1_s1.reading.tests.test_fixes::test_better_holds_at_exactly_delta_minus_the_tie_tolerance"
+      ],
+      "failures": 3,
+      "id": "FIX-labels-tie-tolerance-off",
+      "outcome": "killed",
+      "part": "B16 fix mutants",
+      "seconds": 247.7,
+      "skipped": 0,
+      "targets": {
+        "labels.py": {
+          "after": "d872b7ef398a6fc016245c5de4e1cd81bcae620cf28d4a1d8921fd8e2f7f0d9c",
+          "before": "ba555c1d134a0fdc1c324b95d9d5267256bee9a21194bc0c269e77c1acdd406a"
+        }
+      },
+      "tests": 261
+    },
+    {
+      "describes": "verify-stats F4: fit_one_shift ignores the settings",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading.tests.test_fixes::test_a_changed_reml_setting_changes_the_fit"
+      ],
+      "failures": 1,
+      "id": "FIX-sens-one-shift-options-ignored",
+      "outcome": "killed",
+      "part": "B16 fix mutants",
+      "seconds": 145.1,
+      "skipped": 0,
+      "targets": {
+        "sensitivities.py": {
+          "after": "d4997a96d3a6a2782f855a87ca2d0f02ff405a127b8db977d68efc35bb14c2c2",
+          "before": "a33b093308ae23763077adfe6f24789a711286af664ca6b840680a543fed8483"
+        }
+      },
+      "tests": 261
+    },
+    {
+      "describes": "verify-code F5: the contrast intervals at a literal 0.90",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 0,
+      "expect": "kill",
+      "failing": [],
+      "failures": 0,
+      "id": "FIX-reading-level-literal",
+      "outcome": "survived",
+      "part": "B16 fix mutants",
+      "seconds": 221.5,
+      "skipped": 0,
+      "targets": {
+        "reading.py": {
+          "after": "331fc1a2cb841c4688c50f2f7e6e3ea5a7dba7cfe8387404930fc580de9b0ab4",
+          "before": "38b4881cc8814ee32ed4b38ae7eda7a2d4d66664e3f6bdc1fb6f10c2da45b7e5"
+        }
+      },
+      "tests": 261
+    },
+    {
+      "describes": "verify-code F2: the version compared with == 1 only (True and 1.0 pass)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading.tests.test_fixes::test_the_version_is_the_integer_1[True]",
+        "scripts.stage1_s1.reading.tests.test_fixes::test_the_version_is_the_integer_1[1.0]"
+      ],
+      "failures": 2,
+      "id": "FIX-schema-version-loose",
+      "outcome": "killed",
+      "part": "B16 fix mutants",
+      "seconds": 224.8,
+      "skipped": 0,
+      "targets": {
+        "schema.py": {
+          "after": "e794e8edc86138f0d17d663106216d2631b82768b5afb1bcec7a691bc5b8d3fc",
+          "before": "6ce88f584f3510ae2712061242ff82abc657b68e9a304083cd0a5bf836eb13ee"
+        }
+      },
+      "tests": 261
+    },
+    {
+      "describes": "verify-code F6: S-a's O, L and F p-values not passed into its Phi run",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading.tests.test_fixes::test_s_a_phi_run_takes_s_as_own_o_l_and_f_p_values"
+      ],
+      "failures": 1,
+      "id": "FIX-reading-s-a-ol-no-override",
+      "outcome": "killed",
+      "part": "B16 fix mutants",
+      "seconds": 216.8,
+      "skipped": 0,
+      "targets": {
+        "reading.py": {
+          "after": "20e29a5db5efe39c458bf3078225a26662688a90e73614630b93c2fb12570bfa",
+          "before": "38b4881cc8814ee32ed4b38ae7eda7a2d4d66664e3f6bdc1fb6f10c2da45b7e5"
+        }
+      },
+      "tests": 261
+    },
+    {
+      "describes": "verify-code F9: the equal-variance flag by the start-level comparison",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading.tests.test_fixes::test_the_flag_is_not_the_start_level_comparison"
+      ],
+      "failures": 1,
+      "id": "FIX-reading-flag-by-start-level",
+      "outcome": "killed",
+      "part": "B16 fix mutants",
+      "seconds": 236.2,
+      "skipped": 0,
+      "targets": {
+        "reading.py": {
+          "after": "f5997bb749a4eac1b8680cac71e9d4e66c905c3a51c8dca3521955dba655bbf4",
+          "before": "38b4881cc8814ee32ed4b38ae7eda7a2d4d66664e3f6bdc1fb6f10c2da45b7e5"
+        }
+      },
+      "tests": 261
+    },
+    {
+      "describes": "verify-code N5: the below-resolution text not printed",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading.tests.test_fixes::test_tau_o_2_is_marked_below_the_banks_resolution"
+      ],
+      "failures": 1,
+      "id": "FIX-reading-below-resolution-text-off",
+      "outcome": "killed",
+      "part": "B16 fix mutants",
+      "seconds": 281.6,
+      "skipped": 0,
+      "targets": {
+        "reading.py": {
+          "after": "cc1951d75d0c52168660bc6b93a3f1b05084f755ab13130375ba100f8db4436e",
+          "before": "38b4881cc8814ee32ed4b38ae7eda7a2d4d66664e3f6bdc1fb6f10c2da45b7e5"
+        }
+      },
+      "tests": 261
+    },
+    {
+      "describes": "REV4 9.4: the verdict reads the all-prompt interval instead of the lower-similarity half's",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading.tests.test_overlap::test_hbc_of_the_halves_agrees_with_the_independent_reference",
+        "scripts.stage1_s1.reading.tests.test_overlap::test_plan_b_a0_contrasts_are_the_paired_form_because_a0_is_outside_the_fit",
+        "scripts.stage1_s1.reading.tests.test_overlap::test_the_rule_end_to_end_holds_and_not_shown",
+        "scripts.stage1_s1.reading.tests.test_overlap::test_an_empty_and_a_one_prompt_lower_half_are_not_computable",
+        "scripts.stage1_s1.reading.tests.test_overlap::test_small_simulation_coverage_and_false_holds"
+      ],
+      "failures": 5,
+      "id": "B16-H-verdict-reads-all",
+      "outcome": "killed",
+      "part": "B16 halves",
+      "seconds": 247.3,
+      "skipped": 0,
+      "targets": {
+        "overlap.py": {
+          "after": "f7a883e11a68ff3525d7a525c045cd2a1522b117f7e5d88a375a5e6dd5afd8aa",
+          "before": "1c6e6b201843263fdaebc1ea79e695fb30c7f6af5ad50d7127b530de85d8919d"
+        }
+      },
+      "tests": 261
+    },
+    {
+      "describes": "addendum 33 point 2 (D-4): the settings' starts 'multi' ignored, so every fit runs from the pre-registered start alone",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading.tests.test_fixes::test_the_reml_options_come_from_the_pinned_settings",
+        "scripts.stage1_s1.reading.tests.test_overlap::test_plan_a_output_structure",
+        "scripts.stage1_s1.reading.tests.test_overlap::test_hbc_of_the_halves_agrees_with_the_independent_reference",
+        "scripts.stage1_s1.reading.tests.test_reml_multistart::test_the_options_carry_the_start_rule_and_refuse_an_unknown_one",
+        "scripts.stage1_s1.reading.tests.test_reml_multistart::test_where_the_pre_registered_start_reaches_the_maximum_its_fit_is_returned_unchanged",
+        "scripts.stage1_s1.reading.tests.test_reml_multistart::test_the_tolerance_decides_and_a_two_arm_fit_runs_once",
+        "scripts.stage1_s1.reading.tests.test_reml_multistart::test_the_verifiers_miss_cases_reach_its_global_maximum[blockA het seed 103 rep 36]",
+        "scripts.stage1_s1.reading.tests.test_reml_multistart::test_the_verifiers_miss_cases_reach_its_global_maximum[blockA het seed 103 rep 71]",
+        "scripts.stage1_s1.reading.tests.test_reml_multistart::test_the_verifiers_miss_cases_reach_its_global_maximum[blockA het seed 103 rep 79]",
+        "scripts.stage1_s1.reading.tests.test_reml_multistart::test_the_verifiers_miss_cases_reach_its_global_maximum[blockA smallm seed 106 rep 59]",
+        "scripts.stage1_s1.reading.tests.test_reml_multistart::test_the_verifiers_miss_cases_reach_its_global_maximum[planA hom184 seed 201 rep 264]",
+        "scripts.stage1_s1.reading.tests.test_reml_multistart::test_the_verifiers_miss_cases_reach_its_global_maximum[planA het seed 203 rep 13]",
+        "scripts.stage1_s1.reading.tests.test_reml_multistart::test_the_verifiers_miss_cases_reach_its_global_maximum[planA het seed 203 rep 293]",
+        "scripts.stage1_s1.reading.tests.test_reml_multistart::test_the_verifiers_label_change_is_governed_by_the_maximum_and_shown_as_s_start",
+        "scripts.stage1_s1.reading.tests.test_reml_multistart::test_s_start_is_the_reading_from_the_pre_registered_start"
+      ],
+      "failures": 15,
+      "id": "B16-D4-single-start",
+      "outcome": "killed",
+      "part": "B16 D-4",
+      "seconds": 72.5,
+      "skipped": 0,
+      "targets": {
+        "reml.py": {
+          "after": "b8c2edb8d9a7ff784a7c0e0b0447fa4e2a2129b53977c4db434cd797340106a9",
+          "before": "56f371e603358febb806e83037398d15b9d2f7e7ad5cb3fe173fbd7f528ffb9d"
+        }
+      },
+      "tests": 261
+    },
+    {
+      "describes": "addendum 33 point 3: the report's own strata_sha256 is not required to name the embedded strata record",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading.tests.test_overlap::test_a_report_made_on_another_strata_record_is_refused"
+      ],
+      "failures": 1,
+      "id": "B16-H-strata-chain-off",
+      "outcome": "killed",
+      "part": "B16 halves",
+      "seconds": 310.0,
+      "skipped": 0,
+      "targets": {
+        "schema.py": {
+          "after": "b72fa516f6866113b6f113900f41bf5ab312ca16e75c16b5905290439cb0b7d1",
+          "before": "6ce88f584f3510ae2712061242ff82abc657b68e9a304083cd0a5bf836eb13ee"
+        }
+      },
+      "tests": 261
+    }
+  ],
+  "pytest_version": "pytest 8.4.2",
+  "python": "3.11.15",
+  "rule": "killed = exit 1 with >= 1 failure and 0 errors; survived = exit 0, 0 failures, 0 errors; anything else (errors, timeout, other exit codes, no JUnit, a test count other than the baseline's) = invalid; an 'expect: survive' entry passes only if it survives",
+  "runner_sha256": "c9550a3b1e5074a3f0691f78801007c0864b275e83a11c72a7806293fc96f265",
+  "shard": [
+    "B16-D4-single-start",
+    "B16-H-strata-chain-off",
+    "B16-H-verdict-reads-all",
+    "B16-contrast-p-upper-margin",
+    "B16-contrast-satterthwaite",
+    "B16-contrast-welch-df",
+    "B16-labels-coherence-capped-off",
+    "B16-labels-grade2-from-90",
+    "B16-legal-note-text",
+    "B16-phi-update-no-denominator",
+    "B16-reading-coherence-word",
+    "B16-reading-every-pair-paired",
+    "B16-references-dominance-bonferroni",
+    "B16-reml-identified-off",
+    "B16-reml-info-log-scale",
+    "B16-schema-loose-arms",
+    "FIX-labels-tie-tolerance-off",
+    "FIX-reading-below-resolution-text-off",
+    "FIX-reading-flag-by-start-level",
+    "FIX-reading-level-literal",
+    "FIX-reading-s-a-ol-no-override",
+    "FIX-schema-version-loose",
+    "FIX-sens-one-shift-options-ignored",
+    "V16-curve-bracket-swapped",
+    "V16-feasible-strict",
+    "V16-reading-l-comparator-only",
+    "V16-satt-seed-numerator",
+    "V16-theta0-common-seeds",
+    "V16-tok-g600-common-only"
+  ],
+  "spec": "scripts/stage1_s1/reading/mutation/mutants_b16.json",
+  "spec_sha256": "5ccf63adf29ff26608ed087b9df57522b8017a6ac0aed383d789bb5d6698153c",
+  "summary": {
+    "B16 D-4": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 1,
+      "mutants": 1,
+      "survived": 0
+    },
+    "B16 contrast": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 3,
+      "mutants": 3,
+      "survived": 0
+    },
+    "B16 fix mutants": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 6,
+      "mutants": 7,
+      "survived": 1
+    },
+    "B16 halves": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 2,
+      "mutants": 2,
+      "survived": 0
+    },
+    "B16 labels": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 2,
+      "mutants": 2,
+      "survived": 0
+    },
+    "B16 legal": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 1,
+      "invalid": 0,
+      "killed": 0,
+      "mutants": 1,
+      "survived": 0
+    },
+    "B16 phi": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 1,
+      "mutants": 1,
+      "survived": 0
+    },
+    "B16 reading": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 2,
+      "mutants": 2,
+      "survived": 0
+    },
+    "B16 references": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 1,
+      "mutants": 1,
+      "survived": 0
+    },
+    "B16 reml": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 2,
+      "mutants": 2,
+      "survived": 0
+    },
+    "B16 schema": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 1,
+      "mutants": 1,
+      "survived": 0
+    },
+    "B16 verify-code mutants": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 6,
+      "mutants": 6,
+      "survived": 0
+    }
+  },
+  "timeout_seconds": 900,
+  "tree_name": "scripts/stage1_s1/reading",
+  "version": 2
+}

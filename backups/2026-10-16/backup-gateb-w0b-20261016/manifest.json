@@ -1,0 +1,123 @@
+{
+ "release": "backup-2026-10-16-gateb-w0b",
+ "kind": "private research backup: Gate B kit gate-b-olmo (hosts w0b-1, w0b-2; waves ['0b']; records only)",
+ "draft": true,
+ "kit": "tmp/gate-b-olmo",
+ "plan": "gate-b-olmo",
+ "hosts": [
+  "w0b-2"
+ ],
+ "units": [
+  "w0b-2/cuda-preflight-1",
+  "w0b-2/round1/1101-a0-e1-a1",
+  "w0b-2/round1/1101-attributes-a1"
+ ],
+ "engine_sha256": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+ "files": 145,
+ "assets": {
+  "gateb-w0b-units.tar.gz": {
+   "bytes": 1334966,
+   "sha256": "76278e37101df1b1eaa23fbe72c91d6032a126bf2124011295166cac333c616b"
+  },
+  "gateb-w0b-records.tar.gz": {
+   "bytes": 55453,
+   "sha256": "bdedd38b516ccd70b8d30f29307689172484a997b649e52172b5fb9dec9a1085"
+  },
+  "gateb-w0b-edits-analyses.tar.gz": {
+   "bytes": 54587,
+   "sha256": "d10fee3edb7968028814707443f2b613d9b3237f1faa9c36b1b6ad5b9a9a6665"
+  },
+  "inventory.jsonl": {
+   "bytes": 21251,
+   "sha256": "994436751c1a2462e5f7826b5619097df886fc971e127ef14950625b4e374171"
+  },
+  "secret-scan.json": {
+   "bytes": 447,
+   "sha256": "e894b3799230f6c2416b3cd3fd2d6b7e0284cb8777066063e7c1524a5f300564"
+  },
+  "SHA256SUMS": {
+   "bytes": 443,
+   "sha256": "45f743bc03e3cac58c4f4e210287660325f604da82378f4b3d7baa30db2ab4be"
+  }
+ },
+ "checks": {
+  "units": {
+   "w0b-2/cuda-preflight-1": {
+    "listed": 17,
+    "weights_not_staged": 3,
+    "bad": 0
+   },
+   "w0b-2/round1/1101-a0-e1-a1": {
+    "listed": 21,
+    "weights_not_staged": 8,
+    "bad": 0
+   },
+   "w0b-2/round1/1101-attributes-a1": {
+    "listed": 9,
+    "weights_not_staged": 0,
+    "bad": 0
+   }
+  },
+  "jobs": {
+   "w0b-1": [
+    {
+     "index": 0,
+     "kind": "retrain",
+     "arm": "a0",
+     "seed": 1101,
+     "status": "not_started",
+     "unit": null
+    },
+    {
+     "index": 1,
+     "kind": "diagnostics",
+     "arm": null,
+     "seed": 1101,
+     "status": "not_started",
+     "unit": null
+    }
+   ],
+   "w0b-2": [
+    {
+     "index": 0,
+     "kind": "retrain",
+     "arm": "a0",
+     "seed": 1101,
+     "status": "complete",
+     "unit": "round1/1101-a0-e1-a1"
+    },
+    {
+     "index": 1,
+     "kind": "diagnostics",
+     "arm": null,
+     "seed": 1101,
+     "status": "complete",
+     "unit": "round1/1101-attributes-a1"
+    }
+   ]
+  },
+  "prepared": {
+   "prepared-kt-dolly-olmo2": {
+    "plan_pin": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
+    "manifest_sha256": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
+    "matches_pin": true,
+    "staged": [
+     "manifest.json",
+     "manifest.sha256",
+     "prepare_receipt.json"
+    ]
+   }
+  },
+  "kit_code": {
+   "runkit": "runkit/gate-b-olmo",
+   "staged_absent_or_different": [],
+   "identical_not_staged": 18
+  }
+ },
+ "failed_checks_at_backup": [
+  "retrieved/w0b-1/tree",
+  "hosts/w0b-1/finished.json"
+ ],
+ "excluded": "model weights (.safetensors, .bin, .pt, .pth, .gguf, .ckpt); pod address files (pod*.json), known_hosts, timer settings; symlinks; setup bundles; prepared data other than the prepared set's manifest.json, manifest.sha256 and prepare_receipt.json (never banks/ or the hidden bank); kit code identical to runkit/gate-b-olmo/; SSH keys; secrets",
+ "excluded_files": 8
+}

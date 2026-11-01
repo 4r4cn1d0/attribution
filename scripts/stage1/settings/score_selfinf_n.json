@@ -1,0 +1,28 @@
+{
+  "checkpoints": [
+    "q",
+    "e1"
+  ],
+  "costs_rule": "the marginal cost is $0 (no new pass: the attributes unit's existing rows); the full charge is the attributes unit's own recorded costs; both are reported (LW-18)",
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "k": 600,
+  "kind": "stage1 settings",
+  "label_entries": {},
+  "labels_sha256": "72665fe53c8f294e4b9d010691f3bcc4cacb836985f39d536d9498c536da824e",
+  "name": "score_selfinf_n",
+  "owner": "scripts/stage1/score_selfinf_n.py",
+  "primary": "q",
+  "requirement": "REQ-13 (brief rev 1); LW-18 (built before wave 1); ADD-6.6; ADD-8.2 (it counts toward the plant's finds a known cause; a recorded switch in REQ-29 drops it if REQ-13 misses W1)",
+  "rule": "per training row at checkpoint q: grad_norm must be equal in the harmful and the safe set's records (else the code refuses); SI = grad_norm^2; len = the response tokens without the end-of-turn token (P's target tokens - 1); score = ln(SI + 1) + ln(len + 1); the top 600 (scored only) is write_score_edit.py's (scorer selfinf_n)",
+  "scorer_output": {
+    "kind": "stage1 scorer output",
+    "orientation": "descending: high = remove",
+    "version": 1
+  },
+  "sensitivities": {
+    "e1": "the same score at checkpoint e1 (report only)",
+    "q_plus_e1": "SI = the sum over q and e1 of grad_norm^2 (report only)"
+  },
+  "unit": "the wave-0b attributes unit that T1's A1 contract reads, checked and read only through write_score_edit.check_attributes_unit (its pins are write_score_edit.json's a1.attributes_unit)",
+  "version": 1
+}

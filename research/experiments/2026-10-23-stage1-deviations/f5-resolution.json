@@ -1,0 +1,16 @@
+{
+ "engine_y_identity_kept": "34bfd28879fdefc5d6605cb73a707d1edd2ec5d102b4b86c0026bc6ac36969f6",
+ "engine_y_identity_not_adopted": "c641c84bd6573db23409b7f50b76818e7556e35c8f830d980bb4e1ba247b1713",
+ "evidence": {
+  "build_report": "notes/cert-prep-f5-build.json",
+  "build_report_sha256": "5a53c2f97325d0dd4aa7cff3cacff28e37072fe024b04c4f0511279b07786c0a",
+  "engine_lines": "ws-y2 config.py:544 (X line, before the edit 542); runner.py:114 (Session.__init__ runs validate_recipe)",
+  "f5_tests_on_34bfd288": "5 of 7 pass; the 2 that fail call validate_constrained_sft directly, which no engine code does (build report)",
+  "verify_report": "notes/cert-prep-f5-verify.json",
+  "verify_report_sha256": "79352fd1e4992db8bf0a1ff6830bda722b09c4c17c4e859e98c1f14dbd80be9b",
+  "verify_verdict": "pass"
+ },
+ "kind": "stage1 F5 resolution record",
+ "ruling": "addendum section 23: F5 is met at engine Y 34bfd288 by engine X validate_recipe line _fixed(lora[\"dropout\"], 0.0, \"model.lora.dropout\"), which runs in Session.__init__ before any model load for every recipe; Y stays at 34bfd288; the F5 build c641c84b is not adopted",
+ "version": 1
+}

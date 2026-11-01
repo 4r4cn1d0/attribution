@@ -4,6 +4,7 @@
 % Revision 2 (same day, appended at the end): arXiv API, OpenReview API v1/v2, PMLR v235/v267,
 % aclanthology.org BibTeX and the Dolly dataset card's own BibTeX block.
 % DBLP was not reachable (bot-check page), so OpenReview/PMLR/JMLR/ACL supplied venue versions.
+% Revision 3 (9 Oct 2026, appended at the end): Safe LoRA, from the OpenReview API v2 with the arXiv API check.
 % Titles: capitals that the .bst would lower-case are protected with braces.
 % Entries marked CITE-CHECK need a human check before submission.
 
@@ -182,13 +183,17 @@
   url          = {https://arxiv.org/abs/2609.01455},
 }
 
-% Source: arXiv API, arXiv:2605.14194 (v1 published 2026-05-13). No archival venue version found on OpenReview, Semantic Scholar or Crossref.
-% OpenReview shows only a withdrawn ICLR 2026 submission.
+% Source: arXiv API, arXiv:2605.14194 (v1 published 2026-05-13; v2 checked 16 Oct 2026, same seven authors).
+% OpenReview shows only a withdrawn ICLR 2026 submission. Revision 4 of this file (16 Oct 2026): the
+% NeurIPS 2026 accepted-papers JSON (neurips.cc/static/virtual/data/neurips-2026-orals-posters.json,
+% fetched by the literature sweep) lists it as "Accept (poster)", id 151041, same seven authors; the
+% note records that. Replace with the proceedings BibTeX when it is published (CITE-CHECK).
 @misc{hu2026gradshield,
   title        = {{GradShield}: Alignment Preserving Finetuning},
   author       = {Zhanhao Hu and Xiao Huang and Patrick Mendoza and Emad A. Alghamdi and Basel Alomair and Raluca Ada Popa and David Wagner},
   year         = {2026},
   howpublished = {arXiv preprint arXiv:2605.14194},
+  note         = {NeurIPS 2026 (poster)},
   url          = {https://arxiv.org/abs/2605.14194},
 }
 
@@ -248,6 +253,8 @@
 }
 
 % Source: arXiv API, arXiv:2606.00160 (v1 published 2026-05-29). No archival venue version found on OpenReview, Semantic Scholar or Crossref.
+% Revision 4 of this file (16 Oct 2026): not the same paper as arXiv:2607.15081 (Wu et al., "DataShield: Uncovering Risky
+% Fine-Tuning Data Across LLMs Through Consensus Subspace Alignment"; checked via the arXiv API). This draft cites only Zhang et al.
 @misc{zhang2026datashield,
   title        = {{DataShield}: Safety-degrading Data Filtering for {LLM} Benign Instruction Fine-Tuning},
   author       = {Junbo Zhang and Qianli Zhou and Xinyang Deng and Wen Jiang and Jie Pan and Jinbiao Zhu},
@@ -513,4 +520,123 @@
   year         = {2023},
   howpublished = {Databricks blog},
   url          = {https://www.databricks.com/blog/2023/04/12/dolly-first-open-commercially-viable-instruction-tuned-llm},
+}
+
+% Revision 3 of this file (9 Oct 2026, paper revision 5), appended: one entry.
+% Source: OpenReview note HcifdQZFZV (venue: NeurIPS 2024 poster), fetched by the OpenReview API v2
+% title search; arXiv:2405.16833 (v2, "camera-ready version accepted for NeurIPS 2024") checked via the
+% arXiv API (same six authors, same title up to "Fine-tuning"/"Finetuning").
+% Title braces adjusted so the .bst keeps the capitals (OpenReview: 'Safe Lo{RA}: ...').
+@inproceedings{hsu2024safelora,
+  title        = {Safe {LoRA}: The Silver Lining of Reducing Safety Risks when Finetuning Large Language Models},
+  author       = {Chia-Yi Hsu and Yu-Lin Tsai and Chih-Hsun Lin and Pin-Yu Chen and Chia-Mu Yu and Chun-Ying Huang},
+  booktitle    = {The Thirty-eighth Annual Conference on Neural Information Processing Systems},
+  year         = {2024},
+  url          = {https://openreview.net/forum?id=HcifdQZFZV},
+}
+
+% Revision 4 of this file (16 Oct 2026, paper revision 6), appended: one entry.
+% Source: OpenReview note EyH8Fu3vtZ (venue: ICLR 2026 Poster; venueid ICLR.cc/2026/Conference),
+% BibTeX from the note's _bibtex field, fetched by the OpenReview API v2 notes/search endpoint
+% (the notes?id= endpoint answered with a bot challenge). arXiv:2601.01887 (v2) checked via the arXiv
+% API: same title; the arXiv record lists the second author as "Lipeng He", OpenReview as "Tony He"
+% (CITE-CHECK). The paper's claim used in the body is from the arXiv abstract read by API.
+@inproceedings{zhang2026oneshot,
+  title        = {Safety at One Shot: Patching Fine-Tuned {LLM}s with A Single Instance},
+  author       = {Jiawen Zhang and Tony He and Kejia Chen and Jian Lou and Jian Liu and Xiaohu Yang and Ruoxi Jia},
+  booktitle    = {The Fourteenth International Conference on Learning Representations},
+  year         = {2026},
+  url          = {https://openreview.net/forum?id=EyH8Fu3vtZ},
+}
+
+% Source: OpenReview note Jo6U0y2omr (venue: ICLR 2027 Conference Submission, under review; anonymous),
+% BibTeX from the note's _bibtex field via the OpenReview API v2 notes/search endpoint (16 Oct 2026).
+% The body's claim is from the abstract in the same API record. Re-check for an arXiv or venue version
+% before submission (CITE-CHECK).
+@inproceedings{anonymous2026saba,
+  title        = {Safety Risk of Fine-Tuning Data Is Not a Property of the Sample Alone},
+  author       = {Anonymous},
+  booktitle    = {Submitted to The Fifteenth International Conference on Learning Representations},
+  year         = {2026},
+  url          = {https://openreview.net/forum?id=Jo6U0y2omr},
+  note         = {under review},
+}
+
+% Source: arXiv API, arXiv:2506.00676 (v1 published 2025-05-31; title, authors, abstract). OpenReview has
+% a workshop version with another title (note yKetbTItcu, IJCAI 2025 Workshop AIA: "SafeTuneBed: A Safety
+% Assessment Framework for Harmful Finetuning Defenses"); the arXiv version is cited (CITE-CHECK).
+@misc{hossain2025safetunebed,
+  title        = {{SafeTuneBed}: A Toolkit for Benchmarking {LLM} Safety Alignment in Fine-Tuning},
+  author       = {Saad Hossain and Samanvay Vajpayee and Sirisha Rambhatla},
+  year         = {2025},
+  howpublished = {arXiv preprint arXiv:2506.00676},
+  url          = {https://arxiv.org/abs/2506.00676},
+}
+
+% Revision 5 of this file (17 Oct 2026, paper revision 6b), appended: four entries, each fetched
+% programmatically on 17 Oct 2026 between 07:26 and 07:30 UTC (arXiv API; PMLR v267 bibliography.bib).
+% Source: PMLR v267 bibliography.bib entry pmlr-v267-lu25g (editor, month, pdf and abstract dropped);
+% arXiv:2505.12038 (v1, comment "ICML 2025 Camera Ready") checked via the arXiv API. The body's clause is
+% from the arXiv abstract ("adjusts the delta parameters (i.e., the parameter change before and after
+% fine-tuning)"; user data "whether harmful or benign"). Title braces keep "Safe Delta" capitalized.
+@inproceedings{lu2025safedelta,
+  title        = {{Safe Delta}: Consistently Preserving Safety when Fine-Tuning {LLM}s on Diverse Datasets},
+  author       = {Lu, Ning and Liu, Shengcai and Wu, Jiahao and Chen, Weiyu and Zhang, Zhirui and Ong, Yew-Soon and Wang, Qi and Tang, Ke},
+  booktitle    = {Proceedings of the 42nd International Conference on Machine Learning},
+  volume       = {267},
+  pages        = {40537--40559},
+  series       = {Proceedings of Machine Learning Research},
+  publisher    = {PMLR},
+  year         = {2025},
+  url          = {https://proceedings.mlr.press/v267/lu25g.html},
+}
+
+% Source: PMLR v267 bibliography.bib entry pmlr-v267-huang25b (editor, month, pdf and abstract dropped);
+% arXiv:2408.09600 (v3, comment "Accepted by ICML25") checked via the arXiv API; PMLR's title ends
+% "...Fine-tuning Attack", the arXiv title "...Fine-tuning" (PMLR kept). The body's clause is from the
+% arXiv abstract ("a one-shot pruning stage after harmful fine-tuning to remove the harmful weights").
+@inproceedings{huang2025antidote,
+  title        = {Antidote: Post-fine-tuning Safety Alignment for Large Language Models against Harmful Fine-tuning Attack},
+  author       = {Huang, Tiansheng and Bhattacharya, Gautam and Joshi, Pratik and Kimball, Joshua and Liu, Ling},
+  booktitle    = {Proceedings of the 42nd International Conference on Machine Learning},
+  volume       = {267},
+  pages        = {25059--25074},
+  series       = {Proceedings of Machine Learning Research},
+  publisher    = {PMLR},
+  year         = {2025},
+  url          = {https://proceedings.mlr.press/v267/huang25b.html},
+}
+
+% Source: arXiv API, arXiv:2409.18169 (v1 published 2024-09-26; v6 updated 2026-04-23; title, authors,
+% abstract). The arXiv comment says "Accepted by ACM Computing Survey (CSUR)"; ACM is not an allowed
+% source for this revision, so the arXiv version is cited (CITE-CHECK: replace with the CSUR entry).
+@misc{huang2024survey,
+  title        = {Harmful Fine-tuning Attacks and Defenses for Large Language Models: A Survey},
+  author       = {Tiansheng Huang and Sihao Hu and Fatih Ilhan and Selim Furkan Tekin and Ling Liu},
+  year         = {2024},
+  howpublished = {arXiv preprint arXiv:2409.18169},
+  url          = {https://arxiv.org/abs/2409.18169},
+}
+
+% Source: arXiv API, arXiv:2512.13961 (v1 published 2025-12-15; v2 updated 2026-04-14; title "Olmo 3";
+% 69 authors, the first the collective "Team Olmo", the second ':' (dropped)). Author list truncated to the
+% collective plus the next two arXiv authors and 'others', as for OLMo 2. The model id
+% allenai/Olmo-3-7B-Instruct (tagged arxiv:2512.13961) was checked on the Hugging Face model API.
+@misc{olmo2025olmo3,
+  title        = {{Olmo} 3},
+  author       = {{Team Olmo} and Allyson Ettinger and Amanda Bertsch and others},
+  year         = {2025},
+  howpublished = {arXiv preprint arXiv:2512.13961},
+  url          = {https://arxiv.org/abs/2512.13961},
+}
+
+% Source: arXiv API, arXiv:2409.00598 (v1 published 2024-09-01; v2 updated 2025-06-11; title, six authors,
+% abstract: the PHTest data set of pseudo-harmful prompts, with controversial prompts labelled separately).
+% The API record gives no journal reference or comment, so the arXiv version is cited (CITE-CHECK: venue).
+@misc{an2024phtest,
+  title        = {Automatic Pseudo-Harmful Prompt Generation for Evaluating False Refusals in Large Language Models},
+  author       = {Bang An and Sicheng Zhu and Ruiyi Zhang and Michael-Andrei Panaitescu-Liess and Yuancheng Xu and Furong Huang},
+  year         = {2024},
+  howpublished = {arXiv preprint arXiv:2409.00598},
+  url          = {https://arxiv.org/abs/2409.00598},
 }

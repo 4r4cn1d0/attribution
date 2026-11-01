@@ -1,0 +1,601 @@
+{
+ "kind": "stage1 mutants",
+ "mutants": [
+  {
+   "describes": "a W1 file's manifest entry is not compared with the D-3 pin",
+   "file": "d3_s3_union.py",
+   "find": "        if entries.get(base[rel_key]) != base[pin_key]:\n            raise s1.Refusal(f\"{what}: the W1 manifest names {entries.get(base[rel_key])}, the D-3 settings pin \"\n                             f\"{base[pin_key]}\")\n",
+   "id": "D3-manifest-unchecked",
+   "part": "D-3 load_scorer and the by-name modules (the W1 files)",
+   "replace": ""
+  },
+  {
+   "describes": "a W1 file's bytes are read without their SHA-256 check",
+   "file": "d3_s3_union.py",
+   "find": "        data[rel_key] = read_hashed(root / base[rel_key], base[pin_key], what)",
+   "id": "D3-w1-bytes-unhashed",
+   "part": "D-3 load_scorer and the by-name modules (the W1 files)",
+   "replace": "        data[rel_key] = (root / base[rel_key]).read_bytes()"
+  },
+  {
+   "describes": "s1common.py is left out of the pinned W1 files",
+   "file": "d3_s3_union.py",
+   "find": ",\n          (\"s1common\", \"s1common_sha256\", \"s1common.py\"))",
+   "id": "D3-pinned-drops-s1common",
+   "part": "D-3 load_scorer and the by-name modules (the W1 files)",
+   "replace": ")"
+  },
+  {
+   "describes": "the scorer's settings may pin another REQ-3 settings file",
+   "file": "d3_s3_union.py",
+   "find": "    if _get(scorer_settings, \"pins\", \"representation_pass_settings_sha256\") != base[\"pass_settings_sha256\"]:",
+   "id": "D3-scorer-settings-pin-unchecked",
+   "part": "D-3 load_scorer and the by-name modules (the W1 files)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "the scorer's literal SETTINGS_SHA256 is not compared with the D-3 pin",
+   "file": "d3_s3_union.py",
+   "find": "    if module.SETTINGS_SHA256 != base[\"scorer_settings_sha256\"]:",
+   "id": "D3-literal-pin-unchecked",
+   "part": "D-3 load_scorer and the by-name modules (the W1 files)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "sys.path keeps what the scorer's load inserted",
+   "file": "d3_s3_union.py",
+   "find": "        sys.path[:] = saved",
+   "id": "D3-sys-path-not-restored",
+   "part": "D-3 load_scorer and the by-name modules (the W1 files)",
+   "replace": "        pass"
+  },
+  {
+   "describes": "the scorer is put in sys.modules",
+   "file": "d3_s3_union.py",
+   "find": "    if module.SETTINGS_SHA256 != base[\"scorer_settings_sha256\"]:",
+   "id": "D3-module-public",
+   "part": "D-3 load_scorer and the by-name modules (the W1 files)",
+   "replace": "    sys.modules[MODULE_NAME] = module\n    if module.SETTINGS_SHA256 != base[\"scorer_settings_sha256\"]:"
+  },
+  {
+   "describes": "any JSON with entries is read as the W1 manifest",
+   "file": "d3_s3_union.py",
+   "find": "doc.get(\"kind\") != MANIFEST_KIND or ",
+   "id": "D3-manifest-kind-unchecked",
+   "part": "D-3 load_scorer and the by-name modules (the W1 files)",
+   "replace": ""
+  },
+  {
+   "describes": "the by-name modules are not checked",
+   "file": "d3_s3_union.py",
+   "find": "        check_by_name(d3)\n",
+   "id": "D3-by-name-unchecked",
+   "part": "D-3 load_scorer and the by-name modules (the W1 files)",
+   "replace": ""
+  },
+  {
+   "describes": "the by-name s1common is not checked",
+   "file": "d3_s3_union.py",
+   "find": "((rp, \"pass_script_sha256\", \"representation_pass\"), (s1, \"s1common_sha256\", \"s1common\"))",
+   "id": "D3-by-name-s1common-unchecked",
+   "part": "D-3 load_scorer and the by-name modules (the W1 files)",
+   "replace": "((rp, \"pass_script_sha256\", \"representation_pass\"),)"
+  },
+  {
+   "describes": "D-3's own settings are loaded without the literal pin",
+   "file": "d3_s3_union.py",
+   "find": "        return s1.load_settings(SETTINGS_PATH, SETTINGS_SHA256, SETTINGS_NAME)",
+   "id": "D3-settings-literal-unchecked",
+   "part": "D-3 load_scorer and the by-name modules (the W1 files)",
+   "replace": "        return s1.load_settings(SETTINGS_PATH, s1.sha256_file(SETTINGS_PATH), SETTINGS_NAME)"
+  },
+  {
+   "describes": "a summary may hold fields beyond the W1 summary's",
+   "file": "d3_s3_union.py",
+   "find": "    if not isinstance(doc, dict) or set(doc) != SUMMARY_KEYS:",
+   "id": "D3-summary-extra-fields-ok",
+   "part": "D-3 the summaries",
+   "replace": "    if not isinstance(doc, dict) or not SUMMARY_KEYS <= set(doc):"
+  },
+  {
+   "describes": "a summary of another kind is accepted",
+   "file": "d3_s3_union.py",
+   "find": "    if doc[\"kind\"] != PASS_KIND or type(doc[\"version\"]) is not int or doc[\"version\"] != 1:",
+   "id": "D3-summary-kind-unchecked",
+   "part": "D-3 the summaries",
+   "replace": "    if type(doc[\"version\"]) is not int or doc[\"version\"] != 1:"
+  },
+  {
+   "describes": "version true passes as 1",
+   "file": "d3_s3_union.py",
+   "find": "type(doc[\"version\"]) is not int or doc[\"version\"] != 1",
+   "id": "D3-version-bool-ok",
+   "part": "D-3 the summaries",
+   "replace": "doc[\"version\"] != 1"
+  },
+  {
+   "describes": "the rows block's form is not checked",
+   "file": "d3_s3_union.py",
+   "find": "    if not isinstance(rows, dict) or set(rows) != ROWS_KEYS or rows[\"file\"] != ROWS_FILE or \\\n            not is_count(rows[\"lines\"], 0) or not isinstance(rows[\"by_source\"], dict):",
+   "id": "D3-rows-block-unchecked",
+   "part": "D-3 the summaries",
+   "replace": "    if not isinstance(rows, dict):"
+  },
+  {
+   "describes": "a rows file that its summary does not name is accepted",
+   "file": "d3_s3_union.py",
+   "find": "    if rows[\"sha256\"] != rows_sha256:",
+   "id": "D3-rows-sha-unchecked",
+   "part": "D-3 the summaries",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "a summary with no layer count is accepted",
+   "file": "d3_s3_union.py",
+   "find": "    if not is_count(_get(doc, \"layout\", \"n_layers\"), 1):",
+   "id": "D3-layers-unchecked",
+   "part": "D-3 the summaries",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "a pool entry may hold other fields",
+   "file": "d3_s3_union.py",
+   "find": " or set(p) != POOL_KEYS for p in pools",
+   "id": "D3-pool-keys-unchecked",
+   "part": "D-3 the summaries",
+   "replace": " for p in pools"
+  },
+  {
+   "describes": "one pool name may be listed twice",
+   "file": "d3_s3_union.py",
+   "find": "    if len(set(map(str, names))) != len(names):",
+   "id": "D3-pool-name-twice-ok",
+   "part": "D-3 the summaries",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "provenance.inputs and gate_c.groups need not be objects",
+   "file": "d3_s3_union.py",
+   "find": "        if not isinstance(_get(doc, key, inner), dict):",
+   "id": "D3-objects-unchecked",
+   "part": "D-3 the summaries",
+   "replace": "        if False:"
+  },
+  {
+   "describes": "the top-level fields are not compared",
+   "file": "d3_s3_union.py",
+   "find": "for where, keys in (((), equal[\"fields\"]), ((\"provenance\",), equal[\"provenance\"]),",
+   "id": "D3-equal-fields-skipped",
+   "part": "D-3 the two passes are equal",
+   "replace": "for where, keys in (((\"provenance\",), equal[\"provenance\"]),"
+  },
+  {
+   "describes": "provenance's fields are not compared",
+   "file": "d3_s3_union.py",
+   "find": "(((), equal[\"fields\"]), ((\"provenance\",), equal[\"provenance\"]),",
+   "id": "D3-equal-provenance-skipped",
+   "part": "D-3 the two passes are equal",
+   "replace": "(((), equal[\"fields\"]),"
+  },
+  {
+   "describes": "the shared inputs are not compared",
+   "file": "d3_s3_union.py",
+   "find": "((\"provenance\", \"inputs\"), equal[\"inputs\"]), ((\"gate_c\",), equal[\"gate_c\"]),",
+   "id": "D3-equal-inputs-skipped",
+   "part": "D-3 the two passes are equal",
+   "replace": "((\"gate_c\",), equal[\"gate_c\"]),"
+  },
+  {
+   "describes": "Gate C's index, read and rule are not compared",
+   "file": "d3_s3_union.py",
+   "find": " ((\"gate_c\",), equal[\"gate_c\"]),",
+   "id": "D3-equal-gate-c-skipped",
+   "part": "D-3 the two passes are equal",
+   "replace": ""
+  },
+  {
+   "describes": "the device is not compared",
+   "file": "d3_s3_union.py",
+   "find": ",\n                        ((\"costs\",), equal[\"costs\"])",
+   "id": "D3-equal-costs-skipped",
+   "part": "D-3 the two passes are equal",
+   "replace": ""
+  },
+  {
+   "describes": "fields are compared by Python ==, so 3 equals 3.0",
+   "file": "d3_s3_union.py",
+   "find": "    return a is not MISSING and b is not MISSING and canonical_json(a) == canonical_json(b)",
+   "id": "D3-same-by-python-equality",
+   "part": "D-3 the two passes are equal",
+   "replace": "    return a is not MISSING and b is not MISSING and a == b"
+  },
+  {
+   "describes": "two passes that both lack a field count as equal in it",
+   "file": "d3_s3_union.py",
+   "find": "    return a is not MISSING and b is not MISSING and canonical_json(a) == canonical_json(b)",
+   "id": "D3-missing-equals-missing",
+   "part": "D-3 the two passes are equal",
+   "replace": "    return a is b or (a is not MISSING and b is not MISSING and canonical_json(a) == canonical_json(b))"
+  },
+  {
+   "describes": "the passes' script path is not the pin",
+   "file": "d3_s3_union.py",
+   "find": "((\"script\", base[\"pass_script\"]), ",
+   "id": "D3-pin-script-unchecked",
+   "part": "D-3 the two passes are equal",
+   "replace": "("
+  },
+  {
+   "describes": "the passes' script SHA-256 is not the pin",
+   "file": "d3_s3_union.py",
+   "find": "(\"script_sha256\", base[\"pass_script_sha256\"]),\n",
+   "id": "D3-pin-script-sha-unchecked",
+   "part": "D-3 the two passes are equal",
+   "replace": "\n"
+  },
+  {
+   "describes": "the passes' settings SHA-256 is not the pin",
+   "file": "d3_s3_union.py",
+   "find": "                     (\"settings_sha256\", base[\"pass_settings_sha256\"]), ",
+   "id": "D3-pin-settings-unchecked",
+   "part": "D-3 the two passes are equal",
+   "replace": "                     "
+  },
+  {
+   "describes": "the passes' engine is not D-3's engine X",
+   "file": "d3_s3_union.py",
+   "find": ", (\"engine_identity_sha256\", d3[\"engine_x\"])",
+   "id": "D3-pin-engine-unchecked",
+   "part": "D-3 the two passes are equal",
+   "replace": ""
+  },
+  {
+   "describes": "the two passes are not compared",
+   "file": "d3_s3_union.py",
+   "find": "    check_same(main, orig, d3)\n",
+   "id": "D3-check-same-not-called",
+   "part": "D-3 the two passes are equal",
+   "replace": ""
+  },
+  {
+   "describes": "an S-pool record of another kind is accepted",
+   "file": "d3_s3_union.py",
+   "find": "    if _get(pool_rec, \"kind\") != SPOOL_KIND:",
+   "id": "D3-spool-kind-unchecked",
+   "part": "D-3 the records and the pools",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "J6's record of another kind is accepted",
+   "file": "d3_s3_union.py",
+   "find": "    if _get(answers, \"kind\") != ANSWERS_KIND:",
+   "id": "D3-answers-kind-unchecked",
+   "part": "D-3 the records and the pools",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "any s3_pool.sha256 value is read as a pin",
+   "file": "d3_s3_union.py",
+   "find": "    if not is_hex64(safe):",
+   "id": "D3-safe-sha-not-hex",
+   "part": "D-3 the records and the pools",
+   "replace": "    if safe is None:"
+  },
+  {
+   "describes": "any s3_orig_pool_sha256 value is read as a pin",
+   "file": "d3_s3_union.py",
+   "find": "    if not is_hex64(orig):",
+   "id": "D3-orig-sha-not-hex",
+   "part": "D-3 the records and the pools",
+   "replace": "    if orig is None:"
+  },
+  {
+   "describes": "J6's s3 list need not be the S-pool record's s3_safe pool",
+   "file": "d3_s3_union.py",
+   "find": "    if _get(answers, \"lists\", \"s3\", \"list_sha256\") != safe:",
+   "id": "D3-chain-unchecked",
+   "part": "D-3 the records and the pools",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "a pass may list the other pass's pool",
+   "file": "d3_s3_union.py",
+   "find": "    if other in names or f\"pool_{other}\" in inputs:",
+   "id": "D3-other-pool-allowed",
+   "part": "D-3 the records and the pools",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "a pass's provenance may name the other pass's pool",
+   "file": "d3_s3_union.py",
+   "find": "if other in names or f\"pool_{other}\" in inputs:",
+   "id": "D3-other-input-allowed",
+   "part": "D-3 the records and the pools",
+   "replace": "if other in names:"
+  },
+  {
+   "describes": "the pool's SHA-256 is not the record's",
+   "file": "d3_s3_union.py",
+   "find": "    if entry[\"sha256\"] != digest:",
+   "id": "D3-pool-sha-unchecked",
+   "part": "D-3 the records and the pools",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "the provenance need not name the pool by the record's SHA-256",
+   "file": "d3_s3_union.py",
+   "find": "    if inputs.get(f\"pool_{name}\") != digest:",
+   "id": "D3-provenance-pool-unchecked",
+   "part": "D-3 the records and the pools",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "the expected rows ignore the refused items",
+   "file": "d3_s3_union.py",
+   "find": "    return entry, entry[\"items\"] - sum(refused.values())",
+   "id": "D3-refused-not-subtracted",
+   "part": "D-3 the records and the pools",
+   "replace": "    return entry, entry[\"items\"]"
+  },
+  {
+   "describes": "a refused count true passes as 1",
+   "file": "d3_s3_union.py",
+   "find": "not all(is_count(v, 1) for v in refused.values())",
+   "id": "D3-refused-bool-ok",
+   "part": "D-3 the records and the pools",
+   "replace": "not all(isinstance(v, int) for v in refused.values())"
+  },
+  {
+   "describes": "more refused items than items pass the count check",
+   "file": "d3_s3_union.py",
+   "find": " or sum(refused.values()) > entry[\"items\"]:",
+   "id": "D3-refused-above-items-ok",
+   "part": "D-3 the records and the pools",
+   "replace": ":"
+  },
+  {
+   "describes": "a pools-only pass may hold dev rows or Gate C groups",
+   "file": "d3_s3_union.py",
+   "find": "    if \"dev\" in doc[\"rows\"][\"by_source\"] or doc[\"gate_c\"][\"groups\"]:",
+   "id": "D3-pools-only-unchecked",
+   "part": "D-3 the records and the pools",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "the pools-only check is not run",
+   "file": "d3_s3_union.py",
+   "find": "    check_pools_only(orig, \"the pools-only pass\")\n",
+   "id": "D3-pools-only-not-called",
+   "part": "D-3 the records and the pools",
+   "replace": ""
+  },
+  {
+   "describes": "the pools-only pass's pool is checked at s3_safe's SHA-256",
+   "file": "d3_s3_union.py",
+   "find": "    orig_entry, n_orig = pool_entry(orig, ORIG, SAFE, orig_sha, \"the pools-only pass\",",
+   "id": "D3-orig-from-the-safe-pin",
+   "part": "D-3 the records and the pools",
+   "replace": "    orig_entry, n_orig = pool_entry(orig, ORIG, SAFE, safe_sha, \"the pools-only pass\","
+  },
+  {
+   "describes": "a row may hold fields beyond REQ-3's (a text field)",
+   "file": "d3_s3_union.py",
+   "find": "    if set(obj) != ROW_KEYS:",
+   "id": "D3-row-extra-fields-ok",
+   "part": "D-3 the rows (text-free, REQ-3's form)",
+   "replace": "    if not ROW_KEYS <= set(obj):"
+  },
+  {
+   "describes": "a row id need not be a short pool id",
+   "file": "d3_s3_union.py",
+   "find": "not isinstance(obj[\"id\"], str) or not ROW_ID.fullmatch(obj[\"id\"])",
+   "id": "D3-row-id-unchecked",
+   "part": "D-3 the rows (text-free, REQ-3's form)",
+   "replace": "not isinstance(obj[\"id\"], str)"
+  },
+  {
+   "describes": "the id pattern is matched with match, so a final newline passes",
+   "file": "d3_s3_union.py",
+   "find": "ROW_ID.fullmatch(obj[\"id\"])",
+   "id": "D3-row-id-match",
+   "part": "D-3 the rows (text-free, REQ-3's form)",
+   "replace": "ROW_ID.match(obj[\"id\"])"
+  },
+  {
+   "describes": "a pool row may name a unit",
+   "file": "d3_s3_union.py",
+   "find": "    if obj[\"unit\"] is not None:",
+   "id": "D3-unit-unchecked",
+   "part": "D-3 the rows (text-free, REQ-3's form)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "n_prompt may reach the end-of-turn position",
+   "file": "d3_s3_union.py",
+   "find": "obj[\"n_prompt\"] > obj[\"n_tokens\"] - 2",
+   "id": "D3-tokens-bound",
+   "part": "D-3 the rows (text-free, REQ-3's form)",
+   "replace": "obj[\"n_prompt\"] > obj[\"n_tokens\"]"
+  },
+  {
+   "describes": "token counts may be floats",
+   "file": "d3_s3_union.py",
+   "find": "not is_count(obj[\"n_prompt\"], 1) or not is_count(obj[\"n_tokens\"], 3)",
+   "id": "D3-tokens-float-ok",
+   "part": "D-3 the rows (text-free, REQ-3's form)",
+   "replace": "not obj[\"n_prompt\"] >= 1 or not obj[\"n_tokens\"] >= 3"
+  },
+  {
+   "describes": "a cosine block may hold another number of indices",
+   "file": "d3_s3_union.py",
+   "find": "if not isinstance(m, list) or len(m) != n + 1 or \\",
+   "id": "D3-cos-length-unchecked",
+   "part": "D-3 the rows (text-free, REQ-3's form)",
+   "replace": "if not isinstance(m, list) or len(m) < 1 or \\"
+  },
+  {
+   "describes": "a cosine row may hold another number of reads",
+   "file": "d3_s3_union.py",
+   "find": "len(r) != N_READS",
+   "id": "D3-cos-reads-unchecked",
+   "part": "D-3 the rows (text-free, REQ-3's form)",
+   "replace": "len(r) < 1"
+  },
+  {
+   "describes": "a boolean passes as a number",
+   "file": "d3_s3_union.py",
+   "find": "    return type(value) in (int, float)",
+   "id": "D3-number-bool-ok",
+   "part": "D-3 the rows (text-free, REQ-3's form)",
+   "replace": "    return isinstance(value, (int, float))"
+  },
+  {
+   "describes": "css values are not checked",
+   "file": "d3_s3_union.py",
+   "find": " or not all(x is None or is_number(x) for x in css):",
+   "id": "D3-css-unchecked",
+   "part": "D-3 the rows (text-free, REQ-3's form)",
+   "replace": ":"
+  },
+  {
+   "describes": "a row in another serialisation is accepted",
+   "file": "d3_s3_union.py",
+   "find": "    if json_line(obj) != raw + b\"\\n\":",
+   "id": "D3-serialisation-unchecked",
+   "part": "D-3 the rows (text-free, REQ-3's form)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "a rows file without a final newline is read",
+   "file": "d3_s3_union.py",
+   "find": "    if data and not data.endswith(b\"\\n\"):",
+   "id": "D3-final-newline-unchecked",
+   "part": "D-3 the rows (text-free, REQ-3's form)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "the rows' counts need not be the summary's",
+   "file": "d3_s3_union.py",
+   "find": "    if not same(counts, rows[\"by_source\"]) or sum(counts.values()) != rows[\"lines\"]:",
+   "id": "D3-counts-unchecked",
+   "part": "D-3 the rows (text-free, REQ-3's form)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "the rows' line count need not be the summary's",
+   "file": "d3_s3_union.py",
+   "find": " or sum(counts.values()) != rows[\"lines\"]:",
+   "id": "D3-lines-unchecked",
+   "part": "D-3 the rows (text-free, REQ-3's form)",
+   "replace": ":"
+  },
+  {
+   "describes": "a pool need not have its items less its refused items as rows",
+   "file": "d3_s3_union.py",
+   "find": "    if len(taken) != expected:",
+   "id": "D3-expected-unchecked",
+   "part": "D-3 the rows (text-free, REQ-3's form)",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "every pool row is taken, not only the named pool's",
+   "file": "d3_s3_union.py",
+   "find": "        if source == name:",
+   "id": "D3-takes-every-pool",
+   "part": "D-3 the rows (text-free, REQ-3's form)",
+   "replace": "        if source != \"dev\":"
+  },
+  {
+   "describes": "an id may repeat across the union",
+   "file": "d3_s3_union.py",
+   "find": "    if len(set(ids)) != len(ids):",
+   "id": "D3-repeated-ids-ok",
+   "part": "D-3 the union and the CLI",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "an s3_orig id need not end with ':orig'",
+   "file": "d3_s3_union.py",
+   "find": "    if any(not i.endswith(ORIG_SUFFIX) for i, _ in orig_rows):",
+   "id": "D3-orig-suffix-unchecked",
+   "part": "D-3 the union and the CLI",
+   "replace": "    if False:"
+  },
+  {
+   "describes": "the union puts the s3_orig rows first",
+   "file": "d3_s3_union.py",
+   "find": "    rows_bytes = b\"\".join(line for _, line in safe_rows + orig_rows)",
+   "id": "D3-union-orig-first",
+   "part": "D-3 the union and the CLI",
+   "replace": "    rows_bytes = b\"\".join(line for _, line in orig_rows + safe_rows)"
+  },
+  {
+   "describes": "the union summary keeps the main pass's pools and adds s3_orig",
+   "file": "d3_s3_union.py",
+   "find": "    summary[\"pools\"] = [copy.deepcopy(safe_entry), copy.deepcopy(orig_entry)]",
+   "id": "D3-union-keeps-main-pools",
+   "part": "D-3 the union and the CLI",
+   "replace": "    summary[\"pools\"] = summary[\"pools\"] + [copy.deepcopy(orig_entry)]"
+  },
+  {
+   "describes": "the union's rows block counts the s3_safe rows only",
+   "file": "d3_s3_union.py",
+   "find": "\"lines\": len(ids),",
+   "id": "D3-union-lines-safe-only",
+   "part": "D-3 the union and the CLI",
+   "replace": "\"lines\": len(safe_rows),"
+  },
+  {
+   "describes": "the d3 block names the main pass's rows as its summary",
+   "file": "d3_s3_union.py",
+   "find": "\"main\": {\"summary_sha256\": inputs[\"main_summary\"][1],",
+   "id": "D3-d3-block-wrong-source",
+   "part": "D-3 the union and the CLI",
+   "replace": "\"main\": {\"summary_sha256\": inputs[\"main_rows\"][1],"
+  },
+  {
+   "describes": "--out may lie inside --work (or the other way round)",
+   "file": "d3_s3_union.py",
+   "find": "    if work == out or work in out.parents or out in work.parents:",
+   "id": "D3-folders-nested-ok",
+   "part": "D-3 the union and the CLI",
+   "replace": "    if work == out:"
+  },
+  {
+   "describes": "a non-empty folder is not refused before the union is written",
+   "file": "d3_s3_union.py",
+   "find": "        if folder.exists() and (not folder.is_dir() or any(folder.iterdir())):",
+   "id": "D3-folders-nonempty-ok",
+   "part": "D-3 the union and the CLI",
+   "replace": "        if folder.exists() and not folder.is_dir():"
+  },
+  {
+   "describes": "the scorer's refusal exits 0",
+   "file": "d3_s3_union.py",
+   "find": "    return code\n\n\nif __name__",
+   "id": "D3-exit-code-swallowed",
+   "part": "D-3 the union and the CLI",
+   "replace": "    return 0\n\n\nif __name__"
+  },
+  {
+   "describes": "the scorer is given the main pass's summary, not the union's",
+   "file": "d3_s3_union.py",
+   "find": "                             \"--summary\", f\"{work / SUMMARY_FILE}:{written[SUMMARY_FILE]}\",",
+   "id": "D3-scorer-reads-the-main-summary",
+   "part": "D-3 the union and the CLI",
+   "replace": "                             \"--summary\", specs[\"main_summary\"],"
+  },
+  {
+   "describes": "a docstring word changes (an expected survivor: the runner reports survivors)",
+   "expect": "survive",
+   "file": "d3_s3_union.py",
+   "find": "It prints counts and\nhashes only.",
+   "id": "D3-docstring",
+   "part": "D-3 the union and the CLI",
+   "replace": "It prints counts and\nhashes, only.",
+   "why": "the module docstring is not read by any code or test; a survivor here shows the runner reports a survived mutant"
+  }
+ ],
+ "runner": "scripts/stage1_s1/d3_s3_union/mutation/run_mutants.py (the rules and spec format of scripts/stage1/mutation/run_mutants.py)",
+ "tree": "scripts/stage1_s1/d3_s3_union"
+}

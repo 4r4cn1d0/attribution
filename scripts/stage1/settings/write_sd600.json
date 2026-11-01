@@ -1,0 +1,22 @@
+{
+  "a1": {
+    "edit_sha256": "5c0e53b78e9ee71d0e16e13f4fa045509401c0afa98f53c3d7af6bd79ccaf4ca",
+    "paths": ".ai/inputs/stage1-commitments-20261016/a1/a1_remove600.edit.json and a1_selection.json (REQ-14's sealed outputs)",
+    "selection_sha256": "9c372fcecf6ae304545cdd66efab271cf27121d94c56130e9869a460482ec4fb"
+  },
+  "category_flag_share": 0.5,
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "kind": "stage1 settings",
+  "label_entries": {},
+  "labels_sha256": "72665fe53c8f294e4b9d010691f3bcc4cacb836985f39d536d9498c536da824e",
+  "name": "write_sd600",
+  "outputs": "--full-out (inside a folder named tmp): sd600.json or sd600.edit.json (text); --out: the text-free records",
+  "owner": "scripts/stage1/write_sd600.py",
+  "prepared_manifest_sha256": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
+  "prompts_rule": "the prompts command writes A1's 600 rows' stored prompts, in A1's selection order, as the stage-1 prompt list sd600 (REQ-9's input)",
+  "recipe_sha256": "ceffe0efb5d75bacfbd62743f530259deeedeca8950605d1bd3ff66e5391fe46",
+  "requirement": "REQ-15 (brief rev 1; PLAN-S:165; PLANF:116); lead decisions L14 (3); REV3's DIFFUSE branch (SD-600 at the front of family 1c)",
+  "rows": 600,
+  "rule": "L14 (3): rewrite an A1 row with the untuned greedy answer only if the answer ended, answer.strip() is non-empty and encode_train(prompt, answer, S.max_train_tokens) accepts it; every other row of A1's 600 is removed (a combined edit: remove k, rewrite 600 - k); never truncated; k is reported by reason (capped, empty, too_long, control_token), with the category mix, the A1 ranks and the token mass; no stop rule on k; before writing, the edit is parsed with the engine's parse_edit and every rewritten row encoded with the engine's edited_corpus against its audited encoding",
+  "version": 1
+}

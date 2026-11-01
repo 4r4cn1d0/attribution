@@ -1,0 +1,880 @@
+{
+ "default": {
+  "result": {
+   "checkpoints": [
+    "q",
+    "e1",
+    "e3"
+   ],
+   "complete": true,
+   "costs": {
+    "a0_trajectory_cost_to_checkpoint": {
+     "e1": {
+      "examples": 58,
+      "input_tokens": 5086,
+      "padded_tokens": 5206,
+      "steps": 15,
+      "target_tokens": 1592
+     },
+     "e3": {
+      "examples": 174,
+      "input_tokens": 15258,
+      "padded_tokens": 15644,
+      "steps": 45,
+      "target_tokens": 4776
+     },
+     "q": {
+      "examples": 16,
+      "input_tokens": 1401,
+      "padded_tokens": 1436,
+      "steps": 4,
+      "target_tokens": 436
+     }
+    },
+    "cost_scope": "attribution stages and a0 train stages only; not total operation cost",
+    "gradient_passes": 60
+   },
+   "files": 9,
+   "group_ids": [
+    "g-2a8df7bc44fae987",
+    "g-ba156950f81026b1",
+    "g-f38801f89f531a0c"
+   ],
+   "kind": "attributes",
+   "optimizer_steps": {
+    "e1": 15,
+    "e3": 45,
+    "q": 4
+   },
+   "query_bank_sha256": "e2e83f35bdf4c3f853265400416ad0dca43893214c8479e5cedcf8c2fc278467",
+   "query_loss_from_gradient_passes": {
+    "e1": 5.489738384882609,
+    "e3": 5.470003763834636,
+    "q": 5.500710169474284
+   },
+   "role": "development",
+   "run_dir": "<base>/attr",
+   "scores": {
+    "g-2a8df7bc44fae987": {
+     "adam_diag_preconditioned_dot": 0.11596903761592255,
+     "checkpoint_gradsim": 0.28376333605301474
+    },
+    "g-ba156950f81026b1": {
+     "adam_diag_preconditioned_dot": 0.07417162692533794,
+     "checkpoint_gradsim": 0.2846950184453593
+    },
+    "g-f38801f89f531a0c": {
+     "adam_diag_preconditioned_dot": 0.054771516458945804,
+     "checkpoint_gradsim": 0.24603448428057087
+    }
+   },
+   "seed": 1101,
+   "sources": {
+    "e1": {
+     "adapter_fingerprint": "24dc2c802dc442a41bd856c7bcb5a78aac8d093bade6c388f4e5bb20b3fb7031",
+     "init_fingerprint": "c9b983ec7ab418cb1a8f65ce7a4b8ce722feed351cbee545d544a483cd3d5d62",
+     "optimizer_fingerprint": "83f6319c80d27d4203b4857953604dbcb2eec9fa7630d002ddc8c0d1eeef664d",
+     "optimizer_step": 15,
+     "resolved": "<base>/direct",
+     "run": "<base>/direct",
+     "stream_sha256": "e36fa34e461041e8945ccbdc5fdc0da3a2e52daecb8fcf5279c6b142d6db404a"
+    },
+    "e3": {
+     "adapter_fingerprint": "cd64f36196eceb6fecca3138b1b5e782be072b4bdfdd180f52a8d4dedbf2dead",
+     "init_fingerprint": "c9b983ec7ab418cb1a8f65ce7a4b8ce722feed351cbee545d544a483cd3d5d62",
+     "optimizer_fingerprint": "a2b479cb0dbd720464c4c4ec9e3f6eac9a3cae5c3f4b58a8492971b19d069076",
+     "optimizer_step": 45,
+     "resolved": "<base>/e3",
+     "run": "<base>/e3",
+     "stream_sha256": "e36fa34e461041e8945ccbdc5fdc0da3a2e52daecb8fcf5279c6b142d6db404a"
+    },
+    "q": {
+     "adapter_fingerprint": "ac229be9b9889b0682e1e3961219b68bdecb13940a615d2eb8c02bda3047ffa2",
+     "init_fingerprint": "c9b983ec7ab418cb1a8f65ce7a4b8ce722feed351cbee545d544a483cd3d5d62",
+     "optimizer_fingerprint": "250a8c2be0b975144d7255f914cc642c6af8a9bf2ad9f4b441a845db9eec3dd8",
+     "optimizer_step": 4,
+     "resolved": "<base>/direct",
+     "run": "<base>/direct",
+     "stream_sha256": "e36fa34e461041e8945ccbdc5fdc0da3a2e52daecb8fcf5279c6b142d6db404a"
+    }
+   },
+   "split": "dev"
+  }
+ },
+ "token_mean": {
+  "groups": {
+   "definitions": {
+    "adam_diag_preconditioned_dot": "sum over checkpoints and group rows of lr * <mean query gradient, row gradient / (sqrt(bias-corrected AdamW second moment) + eps)>",
+    "checkpoint_gradsim": "mean over checkpoints of the group's mean per-row cosine between the row's response-loss LoRA gradient and the mean query-row gradient"
+   },
+   "groups": {
+    "g-2a8df7bc44fae987": {
+     "adam_diag_preconditioned_dot": 0.1460251292621234,
+     "checkpoint_gradsim": 0.3116526282687571,
+     "per_checkpoint": {
+      "e1": {
+       "adam_sum": 0.05989160035888296,
+       "dot_mean": 0.013922734748857276,
+       "dot_sum": 0.08353640849314366,
+       "grad_norm_mean": 0.16497733890459962,
+       "max_cosine": 0.5305797411430614,
+       "mean_cosine": 0.3617403099792187,
+       "min_cosine": 0.06380599133747199
+      },
+      "e3": {
+       "adam_sum": 0.021372223784014075,
+       "dot_mean": 0.00281037584500774,
+       "dot_sum": 0.01686225507004644,
+       "grad_norm_mean": 0.08415722643642391,
+       "max_cosine": 0.25106452655533534,
+       "mean_cosine": 0.14066018117929435,
+       "min_cosine": 0.0487515646118506
+      },
+      "q": {
+       "adam_sum": 0.06476130511922638,
+       "dot_mean": 0.009110103505461821,
+       "dot_sum": 0.054660621032770924,
+       "grad_norm_mean": 0.16096560444992672,
+       "max_cosine": 0.5571187136656571,
+       "mean_cosine": 0.43255739364775825,
+       "min_cosine": 0.07824652027276223
+      }
+     },
+     "size": 6
+    },
+    "g-ba156950f81026b1": {
+     "adam_diag_preconditioned_dot": 0.0707950583789833,
+     "checkpoint_gradsim": 0.318419807642078,
+     "per_checkpoint": {
+      "e1": {
+       "adam_sum": 0.03268432632605402,
+       "dot_mean": 0.015205178825809225,
+       "dot_sum": 0.0608207153032369,
+       "grad_norm_mean": 0.1675268629393975,
+       "max_cosine": 0.49214562553395846,
+       "mean_cosine": 0.3888119523501066,
+       "min_cosine": 0.13855325824833203
+      },
+      "e3": {
+       "adam_sum": 0.002162135672813779,
+       "dot_mean": 0.002467753147115511,
+       "dot_sum": 0.009871012588462043,
+       "grad_norm_mean": 0.08413755111887944,
+       "max_cosine": 0.18124174216439773,
+       "mean_cosine": 0.11628583109976262,
+       "min_cosine": 0.03637367557862399
+      },
+      "q": {
+       "adam_sum": 0.0359485963801155,
+       "dot_mean": 0.009910502924764197,
+       "dot_sum": 0.03964201169905679,
+       "grad_norm_mean": 0.1681100138124264,
+       "max_cosine": 0.5483301015769074,
+       "mean_cosine": 0.4501616394763647,
+       "min_cosine": 0.18231470755442733
+      }
+     },
+     "size": 4
+    },
+    "g-f38801f89f531a0c": {
+     "adam_diag_preconditioned_dot": 0.0670705455915555,
+     "checkpoint_gradsim": 0.2800742101407715,
+     "per_checkpoint": {
+      "e1": {
+       "adam_sum": 0.02836703564874241,
+       "dot_mean": 0.011598792443413768,
+       "dot_sum": 0.04639516977365507,
+       "grad_norm_mean": 0.1389944448249032,
+       "max_cosine": 0.509014899147164,
+       "mean_cosine": 0.34349004831366153,
+       "min_cosine": 0.09202850340227398
+      },
+      "e3": {
+       "adam_sum": 0.005849696955940488,
+       "dot_mean": 0.0004933720786645204,
+       "dot_sum": 0.0019734883146580815,
+       "grad_norm_mean": 0.07194163228956671,
+       "max_cosine": 0.16347233033645067,
+       "mean_cosine": 0.02158732752507954,
+       "min_cosine": -0.16360409457776962
+      },
+      "q": {
+       "adam_sum": 0.032853812986872594,
+       "dot_mean": 0.009440381095834706,
+       "dot_sum": 0.037761524383338824,
+       "grad_norm_mean": 0.16014747964197834,
+       "max_cosine": 0.5562352723795236,
+       "mean_cosine": 0.47514525458357343,
+       "min_cosine": 0.32228627362915246
+      }
+     },
+     "size": 4
+    }
+   },
+   "row_weighting": "token_mean: each row's Adam-proxy score is multiplied by w_i = n_i * E_step / N_step, its weight in its first-epoch a0 step relative to the per-example mean; GradSim (a cosine) is unchanged",
+   "sign": "positive: a small descent step on the row lowers the mean query loss to first order (the row supports the query responses); local, noncausal, not a removal estimate",
+   "variants": [
+    "checkpoint_gradsim",
+    "adam_diag_preconditioned_dot"
+   ]
+  },
+  "queries": {
+   "loss_definition": "per query row, the training loss: mean next-token NLL over its response plus end-of-turn targets (float32 cross-entropy, full text, no truncation); one row per forward pass (no padding), eval mode, no gradient; aggregate = arithmetic mean over the supplied DATE-LM reference query rows. A target-likelihood proxy, not a safety measurement",
+   "n": 6,
+   "per_checkpoint": {
+    "e1": {
+     "example_gradient_norms": {
+      "q-10781278118020dd": 0.2367005067774997,
+      "q-7d0144dc61845420": 0.24693485130534215,
+      "q-844df29ad2a9f602": 0.24410733220397948,
+      "q-8d59b8e12347bfac": 0.2333722880892719,
+      "q-ba0a09f99657546a": 0.24824156646438864,
+      "q-dbf348e768f6bb50": 0.24099870929431463
+     },
+     "inverse_preconditioner": {
+      "max": 174768.0377228316,
+      "mean": 23199.486976522163,
+      "min": 30.70943293318302
+     },
+     "losses": {
+      "q-10781278118020dd": 5.493161201477051,
+      "q-7d0144dc61845420": 5.483913421630859,
+      "q-844df29ad2a9f602": 5.493842124938965,
+      "q-8d59b8e12347bfac": 5.491048812866211,
+      "q-ba0a09f99657546a": 5.490090847015381,
+      "q-dbf348e768f6bb50": 5.494608402252197
+     },
+     "mean_gradient_norm": 0.24110387124063082,
+     "mean_loss": 5.491110801696777,
+     "n": 6,
+     "step": 15
+    },
+    "e3": {
+     "example_gradient_norms": {
+      "q-10781278118020dd": 0.23093022050382173,
+      "q-7d0144dc61845420": 0.23291590695465958,
+      "q-844df29ad2a9f602": 0.23562080429006618,
+      "q-8d59b8e12347bfac": 0.22865629546375693,
+      "q-ba0a09f99657546a": 0.2356633786208822,
+      "q-dbf348e768f6bb50": 0.23209433547037706
+     },
+     "inverse_preconditioner": {
+      "max": 67513.54411870679,
+      "mean": 5493.1193847128425,
+      "min": 44.35930691766172
+     },
+     "losses": {
+      "q-10781278118020dd": 5.46657657623291,
+      "q-7d0144dc61845420": 5.458310127258301,
+      "q-844df29ad2a9f602": 5.468866348266602,
+      "q-8d59b8e12347bfac": 5.4627299308776855,
+      "q-ba0a09f99657546a": 5.46828031539917,
+      "q-dbf348e768f6bb50": 5.471036911010742
+     },
+     "mean_gradient_norm": 0.2319007716411635,
+     "mean_loss": 5.465966701507568,
+     "n": 6,
+     "step": 45
+    },
+    "q": {
+     "example_gradient_norms": {
+      "q-10781278118020dd": 0.11767310273511349,
+      "q-7d0144dc61845420": 0.1238843126794089,
+      "q-844df29ad2a9f602": 0.12263854604315524,
+      "q-8d59b8e12347bfac": 0.1178919905313524,
+      "q-ba0a09f99657546a": 0.12785609764512035,
+      "q-dbf348e768f6bb50": 0.11401983079072336
+     },
+     "inverse_preconditioner": {
+      "max": 1183490.9038550318,
+      "mean": 57146.46709126028,
+      "min": 37.52910487490126
+     },
+     "losses": {
+      "q-10781278118020dd": 5.503682613372803,
+      "q-7d0144dc61845420": 5.490571022033691,
+      "q-844df29ad2a9f602": 5.506192207336426,
+      "q-8d59b8e12347bfac": 5.501214981079102,
+      "q-ba0a09f99657546a": 5.495609283447266,
+      "q-dbf348e768f6bb50": 5.500818252563477
+     },
+     "mean_gradient_norm": 0.11988300060056137,
+     "mean_loss": 5.499681393305461,
+     "n": 6,
+     "step": 4
+    }
+   },
+   "query_bank": "ref",
+   "query_bank_sha256": "e2e83f35bdf4c3f853265400416ad0dca43893214c8479e5cedcf8c2fc278467"
+  },
+  "result": {
+   "checkpoints": [
+    "q",
+    "e1",
+    "e3"
+   ],
+   "complete": true,
+   "costs": {
+    "a0_trajectory_cost_to_checkpoint": {
+     "e1": {
+      "examples": 58,
+      "input_tokens": 5086,
+      "padded_tokens": 5206,
+      "steps": 15,
+      "target_tokens": 1592
+     },
+     "e3": {
+      "examples": 174,
+      "input_tokens": 15258,
+      "padded_tokens": 15644,
+      "steps": 45,
+      "target_tokens": 4776
+     },
+     "q": {
+      "examples": 16,
+      "input_tokens": 1401,
+      "padded_tokens": 1436,
+      "steps": 4,
+      "target_tokens": 436
+     }
+    },
+    "cost_scope": "attribution stages and a0 train stages only; not total operation cost",
+    "gradient_passes": 60
+   },
+   "files": 9,
+   "group_ids": [
+    "g-2a8df7bc44fae987",
+    "g-ba156950f81026b1",
+    "g-f38801f89f531a0c"
+   ],
+   "kind": "attributes",
+   "optimizer_steps": {
+    "e1": 15,
+    "e3": 45,
+    "q": 4
+   },
+   "query_bank_sha256": "e2e83f35bdf4c3f853265400416ad0dca43893214c8479e5cedcf8c2fc278467",
+   "query_loss_from_gradient_passes": {
+    "e1": 5.491110801696777,
+    "e3": 5.465966701507568,
+    "q": 5.499681393305461
+   },
+   "role": "development",
+   "run_dir": "<base>/attr",
+   "scores": {
+    "g-2a8df7bc44fae987": {
+     "adam_diag_preconditioned_dot": 0.1460251292621234,
+     "checkpoint_gradsim": 0.3116526282687571
+    },
+    "g-ba156950f81026b1": {
+     "adam_diag_preconditioned_dot": 0.0707950583789833,
+     "checkpoint_gradsim": 0.318419807642078
+    },
+    "g-f38801f89f531a0c": {
+     "adam_diag_preconditioned_dot": 0.0670705455915555,
+     "checkpoint_gradsim": 0.2800742101407715
+    }
+   },
+   "seed": 1101,
+   "sources": {
+    "e1": {
+     "adapter_fingerprint": "2b54370865c0dd677c3d75be57385d50a409b44b519de40b5ad52573e1fcaa1f",
+     "init_fingerprint": "c9b983ec7ab418cb1a8f65ce7a4b8ce722feed351cbee545d544a483cd3d5d62",
+     "optimizer_fingerprint": "07c7c4ee69d23672e265d05ad91f5f073261feb2531aa404bd926b4b537e6f3c",
+     "optimizer_step": 15,
+     "resolved": "<base>/direct",
+     "run": "<base>/direct",
+     "stream_sha256": "e36fa34e461041e8945ccbdc5fdc0da3a2e52daecb8fcf5279c6b142d6db404a"
+    },
+    "e3": {
+     "adapter_fingerprint": "83f74687ecb901dda6bb39b6686a2af3544503d7828189529f73d84b9298c366",
+     "init_fingerprint": "c9b983ec7ab418cb1a8f65ce7a4b8ce722feed351cbee545d544a483cd3d5d62",
+     "optimizer_fingerprint": "684109c67c7121c29f81e2b18438f174c38c89ad4096bae866bdf6a037fa793d",
+     "optimizer_step": 45,
+     "resolved": "<base>/e3",
+     "run": "<base>/e3",
+     "stream_sha256": "e36fa34e461041e8945ccbdc5fdc0da3a2e52daecb8fcf5279c6b142d6db404a"
+    },
+    "q": {
+     "adapter_fingerprint": "7a85d57bc7453efb363b97a5b675e6c57f005b36db1f8ce5217ae7c593c42814",
+     "init_fingerprint": "c9b983ec7ab418cb1a8f65ce7a4b8ce722feed351cbee545d544a483cd3d5d62",
+     "optimizer_fingerprint": "ae9ea34a4346fd6bc721cb249fd3bff0021b42b230ed90d1b0b4f51f56adaf0f",
+     "optimizer_step": 4,
+     "resolved": "<base>/direct",
+     "run": "<base>/direct",
+     "stream_sha256": "e36fa34e461041e8945ccbdc5fdc0da3a2e52daecb8fcf5279c6b142d6db404a"
+    }
+   },
+   "split": "dev"
+  },
+  "rows": [
+   {
+    "group_id": "g-2a8df7bc44fae987",
+    "per_checkpoint": {
+     "e1": {
+      "adam_score": 0.015475987718775619,
+      "cosine": 0.49183365954267483,
+      "dot": 0.020233010616508076,
+      "grad_norm": 0.17062319836872894,
+      "loss": 5.437802314758301,
+      "preconditioned_grad_norm": 30.842891805325614,
+      "weight": 1.0204081632653061
+     },
+     "e3": {
+      "adam_score": 0.0009865201761367723,
+      "cosine": 0.1179311248918045,
+      "dot": 0.002171052714434081,
+      "grad_norm": 0.07938523480423854,
+      "loss": 5.3708624839782715,
+      "preconditioned_grad_norm": 47.80206065346347,
+      "weight": 1.0204081632653061
+     },
+     "q": {
+      "adam_score": 0.013502785404816737,
+      "cosine": 0.5339880865250645,
+      "dot": 0.011598340184271916,
+      "grad_norm": 0.18117850437099575,
+      "loss": 5.503293514251709,
+      "preconditioned_grad_norm": 55.473859978737885,
+      "weight": 1.0204081632653061
+     }
+    },
+    "row_id": "r-575304e37f6766b0"
+   },
+   {
+    "group_id": "g-2a8df7bc44fae987",
+    "per_checkpoint": {
+     "e1": {
+      "adam_score": 0.012823095216363748,
+      "cosine": 0.5305797411430614,
+      "dot": 0.02077437336025389,
+      "grad_norm": 0.16239516149133382,
+      "loss": 5.456599235534668,
+      "preconditioned_grad_norm": 33.35849686489039,
+      "weight": 0.8403361344537815
+     },
+     "e3": {
+      "adam_score": 0.0034146324917536802,
+      "cosine": 0.25106452655533534,
+      "dot": 0.004487151967994008,
+      "grad_norm": 0.07706962215523656,
+      "loss": 5.3902459144592285,
+      "preconditioned_grad_norm": 42.77967613976419,
+      "weight": 0.8403361344537815
+     },
+     "q": {
+      "adam_score": 0.013706822039736303,
+      "cosine": 0.5571187136656571,
+      "dot": 0.013403816908737654,
+      "grad_norm": 0.2006887997767889,
+      "loss": 5.532555103302002,
+      "preconditioned_grad_norm": 63.6621966679396,
+      "weight": 0.8403361344537815
+     }
+    },
+    "row_id": "r-814c8db0fc3271aa"
+   },
+   {
+    "group_id": "g-2a8df7bc44fae987",
+    "per_checkpoint": {
+     "e1": {
+      "adam_score": 0.000512252806823713,
+      "cosine": 0.06380599133747199,
+      "dot": 0.00330482123405495,
+      "grad_norm": 0.2148237672031485,
+      "loss": 5.478548526763916,
+      "preconditioned_grad_norm": 33.829617033491616,
+      "weight": 0.8403361344537815
+     },
+     "e3": {
+      "adam_score": 0.0018413665224638366,
+      "cosine": 0.1420672308130399,
+      "dot": 0.0037994007523831784,
+      "grad_norm": 0.11532381358405791,
+      "loss": 5.41781759262085,
+      "preconditioned_grad_norm": 84.41108439943513,
+      "weight": 0.8403361344537815
+     },
+     "q": {
+      "adam_score": -0.00199250484221128,
+      "cosine": 0.07824652027276223,
+      "dot": 0.0009122639324970171,
+      "grad_norm": 0.0972518490429105,
+      "loss": 5.524240493774414,
+      "preconditioned_grad_norm": 76.33026222642644,
+      "weight": 0.8403361344537815
+     }
+    },
+    "row_id": "r-b1aff1c078996632"
+   },
+   {
+    "group_id": "g-2a8df7bc44fae987",
+    "per_checkpoint": {
+     "e1": {
+      "adam_score": 0.012701697656386172,
+      "cosine": 0.46940663280745587,
+      "dot": 0.01720307427324088,
+      "grad_norm": 0.15200317477129907,
+      "loss": 5.452691078186035,
+      "preconditioned_grad_norm": 29.628414854167193,
+      "weight": 1.0
+     },
+     "e3": {
+      "adam_score": 0.0016738812750286493,
+      "cosine": 0.11434398163935128,
+      "dot": 0.0019151166335089494,
+      "grad_norm": 0.0722236983622214,
+      "loss": 5.383263111114502,
+      "preconditioned_grad_norm": 42.34700496322197,
+      "weight": 1.0
+     },
+     "q": {
+      "adam_score": 0.015166140266357249,
+      "cosine": 0.5359897649342028,
+      "dot": 0.012174242683665806,
+      "grad_norm": 0.18946450241709148,
+      "loss": 5.527718544006348,
+      "preconditioned_grad_norm": 59.89922929375805,
+      "weight": 1.0
+     }
+    },
+    "row_id": "r-c92ea5b89790d762"
+   },
+   {
+    "group_id": "g-2a8df7bc44fae987",
+    "per_checkpoint": {
+     "e1": {
+      "adam_score": 0.006114245786565995,
+      "cosine": 0.1378431419026063,
+      "dot": 0.004605622278962478,
+      "grad_norm": 0.13857949363846736,
+      "loss": 5.48310661315918,
+      "preconditioned_grad_norm": 23.217181016393663,
+      "weight": 1.5042735042735043
+     },
+     "e3": {
+      "adam_score": 0.013636161949035396,
+      "cosine": 0.16980265856438453,
+      "dot": 0.0037453183968898258,
+      "grad_norm": 0.09511347837925506,
+      "loss": 5.464468479156494,
+      "preconditioned_grad_norm": 62.06935951615003,
+      "weight": 1.5042735042735043
+     },
+     "q": {
+      "adam_score": 0.010650784894138822,
+      "cosine": 0.3580855831890849,
+      "dot": 0.004903612393283277,
+      "grad_norm": 0.11422776861306642,
+      "loss": 5.555688858032227,
+      "preconditioned_grad_norm": 62.014005051051875,
+      "weight": 1.5042735042735043
+     }
+    },
+    "row_id": "r-d8616d1db3cb0fdd"
+   },
+   {
+    "group_id": "g-2a8df7bc44fae987",
+    "per_checkpoint": {
+     "e1": {
+      "adam_score": 0.012264321173967713,
+      "cosine": 0.47697269314204177,
+      "dot": 0.017415506730123376,
+      "grad_norm": 0.15143923795461994,
+      "loss": 5.448421478271484,
+      "preconditioned_grad_norm": 30.28258900877826,
+      "weight": 1.0101010101010102
+     },
+     "e3": {
+      "adam_score": -0.0001803386304042584,
+      "cosine": 0.0487515646118506,
+      "dot": 0.0007442146048363973,
+      "grad_norm": 0.06582751133353403,
+      "loss": 5.375049591064453,
+      "preconditioned_grad_norm": 45.52597611837058,
+      "weight": 1.0101010101010102
+     },
+     "q": {
+      "adam_score": 0.013727277356388554,
+      "cosine": 0.5319156932997778,
+      "dot": 0.011668344930315253,
+      "grad_norm": 0.18298220247870728,
+      "loss": 5.524926662445068,
+      "preconditioned_grad_norm": 59.57171071443656,
+      "weight": 1.0101010101010102
+     }
+    },
+    "row_id": "r-e863f5a6eac5a684"
+   },
+   {
+    "group_id": "g-ba156950f81026b1",
+    "per_checkpoint": {
+     "e1": {
+      "adam_score": 0.009245017934650804,
+      "cosine": 0.44838033020017426,
+      "dot": 0.015778301308059402,
+      "grad_norm": 0.14595181805811466,
+      "loss": 5.451104164123535,
+      "preconditioned_grad_norm": 29.022941225753755,
+      "weight": 0.8403361344537815
+     },
+     "e3": {
+      "adam_score": 0.00011461111304145061,
+      "cosine": 0.03637367557862399,
+      "dot": 0.0005776756808163592,
+      "grad_norm": 0.06848488047912601,
+      "loss": 5.381680965423584,
+      "preconditioned_grad_norm": 44.26152671237659,
+      "weight": 0.8403361344537815
+     },
+     "q": {
+      "adam_score": 0.01259196131125224,
+      "cosine": 0.5312624076477768,
+      "dot": 0.012002234985828395,
+      "grad_norm": 0.18844969316744864,
+      "loss": 5.529617786407471,
+      "preconditioned_grad_norm": 58.058923580213964,
+      "weight": 0.8403361344537815
+     }
+    },
+    "row_id": "r-090dcd272d260d74"
+   },
+   {
+    "group_id": "g-ba156950f81026b1",
+    "per_checkpoint": {
+     "e1": {
+      "adam_score": 0.010363164036306258,
+      "cosine": 0.47616859541796175,
+      "dot": 0.017805651557225587,
+      "grad_norm": 0.15509326457072312,
+      "loss": 5.4457526206970215,
+      "preconditioned_grad_norm": 30.842934751918683,
+      "weight": 0.8205128205128205
+     },
+     "e3": {
+      "adam_score": -0.0001870503388800214,
+      "cosine": 0.07369514520755101,
+      "dot": 0.001225232793603698,
+      "grad_norm": 0.07169312971208881,
+      "loss": 5.377113342285156,
+      "preconditioned_grad_norm": 45.14145868655947,
+      "weight": 0.8205128205128205
+     },
+     "q": {
+      "adam_score": 0.012423310012150541,
+      "cosine": 0.5387393411263475,
+      "dot": 0.012645904352501056,
+      "grad_norm": 0.19580041021651573,
+      "loss": 5.526333332061768,
+      "preconditioned_grad_norm": 59.7440561178878,
+      "weight": 0.8205128205128205
+     }
+    },
+    "row_id": "r-964d6685d12015c4"
+   },
+   {
+    "group_id": "g-ba156950f81026b1",
+    "per_checkpoint": {
+     "e1": {
+      "adam_score": 0.0028362087567387058,
+      "cosine": 0.13855325824833203,
+      "dot": 0.006487190926529333,
+      "grad_norm": 0.19419397574633016,
+      "loss": 5.478068828582764,
+      "preconditioned_grad_norm": 31.855507584072672,
+      "weight": 1.0101010101010102
+     },
+     "e3": {
+      "adam_score": -7.870179730667879e-05,
+      "cosine": 0.17383276144847773,
+      "dot": 0.004350847127401941,
+      "grad_norm": 0.10792945922328123,
+      "loss": 5.4310102462768555,
+      "preconditioned_grad_norm": 86.56530679696793,
+      "weight": 1.0101010101010102
+     },
+     "q": {
+      "adam_score": -0.0005795651727483195,
+      "cosine": 0.18231470755442733,
+      "dot": 0.0019677335664457186,
+      "grad_norm": 0.09002994490630997,
+      "loss": 5.513318061828613,
+      "preconditioned_grad_norm": 76.49984493610657,
+      "weight": 1.0101010101010102
+     }
+    },
+    "row_id": "r-af7d85f779a0a4be"
+   },
+   {
+    "group_id": "g-ba156950f81026b1",
+    "per_checkpoint": {
+     "e1": {
+      "adam_score": 0.010239935598358252,
+      "cosine": 0.49214562553395846,
+      "dot": 0.020749571511422576,
+      "grad_norm": 0.17486839338242205,
+      "loss": 5.449020862579346,
+      "preconditioned_grad_norm": 30.635852690026482,
+      "weight": 0.7246376811594203
+     },
+     "e3": {
+      "adam_score": 0.0023132766959590286,
+      "cosine": 0.18124174216439773,
+      "dot": 0.0037172569866400452,
+      "grad_norm": 0.08844273506102168,
+      "loss": 5.38551139831543,
+      "preconditioned_grad_norm": 42.972782129408124,
+      "weight": 0.7246376811594203
+     },
+     "q": {
+      "adam_score": 0.01151289022946104,
+      "cosine": 0.5483301015769074,
+      "dot": 0.01302613879428162,
+      "grad_norm": 0.19816000695943126,
+      "loss": 5.520805835723877,
+      "preconditioned_grad_norm": 60.58255729274767,
+      "weight": 0.7246376811594203
+     }
+    },
+    "row_id": "r-cc10797ea95be1c7"
+   },
+   {
+    "group_id": "g-f38801f89f531a0c",
+    "per_checkpoint": {
+     "e1": {
+      "adam_score": 0.0037316585691170943,
+      "cosine": 0.09202850340227398,
+      "dot": 0.0030367224224813697,
+      "grad_norm": 0.13686063577728425,
+      "loss": 5.488462924957275,
+      "preconditioned_grad_norm": 23.634219509967092,
+      "weight": 1.2753623188405796
+     },
+     "e3": {
+      "adam_score": 0.011706475897365768,
+      "cosine": 0.16347233033645067,
+      "dot": 0.0034599842287012486,
+      "grad_norm": 0.09126992041137945,
+      "loss": 5.4697651863098145,
+      "preconditioned_grad_norm": 58.69001672221581,
+      "weight": 1.2753623188405796
+     },
+     "q": {
+      "adam_score": 0.006358796394719951,
+      "cosine": 0.32228627362915246,
+      "dot": 0.0042626474757056585,
+      "grad_norm": 0.11032654146541311,
+      "loss": 5.558631896972656,
+      "preconditioned_grad_norm": 60.67531483407818,
+      "weight": 1.2753623188405796
+     }
+    },
+    "row_id": "r-0bde100a031d94b9"
+   },
+   {
+    "group_id": "g-f38801f89f531a0c",
+    "per_checkpoint": {
+     "e1": {
+      "adam_score": 0.011460731877222801,
+      "cosine": 0.509014899147164,
+      "dot": 0.018010795984282787,
+      "grad_norm": 0.14675679836539082,
+      "loss": 5.450931549072266,
+      "preconditioned_grad_norm": 32.57249629351776,
+      "weight": 0.8205128205128205
+     },
+     "e3": {
+      "adam_score": 0.000981711184495339,
+      "cosine": 0.12454026861034352,
+      "dot": 0.0017525837624071312,
+      "grad_norm": 0.06068296491116136,
+      "loss": 5.3798675537109375,
+      "preconditioned_grad_norm": 47.23322221814681,
+      "weight": 0.8205128205128205
+     },
+     "q": {
+      "adam_score": 0.012169487985913,
+      "cosine": 0.5562352723795236,
+      "dot": 0.012416290763860164,
+      "grad_norm": 0.18619831416962349,
+      "loss": 5.528196334838867,
+      "preconditioned_grad_norm": 58.54557080989416,
+      "weight": 0.8205128205128205
+     }
+    },
+    "row_id": "r-0dafd8e8f331194c"
+   },
+   {
+    "group_id": "g-f38801f89f531a0c",
+    "per_checkpoint": {
+     "e1": {
+      "adam_score": 0.00627489354029953,
+      "cosine": 0.41736256235555363,
+      "dot": 0.013501170766798616,
+      "grad_norm": 0.13416948622985525,
+      "loss": 5.456724643707275,
+      "preconditioned_grad_norm": 30.17635454244762,
+      "weight": 0.7246376811594203
+     },
+     "e3": {
+      "adam_score": 0.00037164604327553176,
+      "cosine": -0.03805919426870642,
+      "dot": -0.0005801355756841209,
+      "grad_norm": 0.06573061791526674,
+      "loss": 5.386376857757568,
+      "preconditioned_grad_norm": 51.69227096382639,
+      "weight": 0.7246376811594203
+     },
+     "q": {
+      "adam_score": 0.007724901424533381,
+      "cosine": 0.5159176781221185,
+      "dot": 0.010843904264944599,
+      "grad_norm": 0.17532653942134815,
+      "loss": 5.532656192779541,
+      "preconditioned_grad_norm": 61.42077567538487,
+      "weight": 0.7246376811594203
+     }
+    },
+    "row_id": "r-203aec7502887e7a"
+   },
+   {
+    "group_id": "g-f38801f89f531a0c",
+    "per_checkpoint": {
+     "e1": {
+      "adam_score": 0.006899751662102984,
+      "cosine": 0.35555422834965456,
+      "dot": 0.011846480600092297,
+      "grad_norm": 0.13819085892708247,
+      "loss": 5.458961009979248,
+      "preconditioned_grad_norm": 30.586754037109372,
+      "weight": 1.0101010101010102
+     },
+     "e3": {
+      "adam_score": -0.007210136169196151,
+      "cosine": -0.16360409457776962,
+      "dot": -0.0026589441007661774,
+      "grad_norm": 0.07008302592045931,
+      "loss": 5.389583110809326,
+      "preconditioned_grad_norm": 48.11365054990199,
+      "weight": 1.0101010101010102
+     },
+     "q": {
+      "adam_score": 0.006600627181706265,
+      "cosine": 0.5061417942034991,
+      "dot": 0.010238681878828402,
+      "grad_norm": 0.16873852351152857,
+      "loss": 5.529735088348389,
+      "preconditioned_grad_norm": 57.890027871441056,
+      "weight": 1.0101010101010102
+     }
+    },
+    "row_id": "r-312d08a8df9793e4"
+   }
+  ]
+ },
+ "written_with": {
+  "command": "attribution_digest.result_record(base) on the untouched workspace (brief A0 item 2)",
+  "commit": "442f315",
+  "engine_code_sha256": "e49a978c5fa27c3ba4bb1570ac8b24501e09bf8db5c35e31ffba90bf775cdc06"
+ }
+}

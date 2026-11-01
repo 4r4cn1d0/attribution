@@ -1,0 +1,769 @@
+{
+ "kind": "B15 ROUND 3b FIX report",
+ "version": 1,
+ "status": "done",
+ "started_utc": "2026-10-24T08:01:23Z",
+ "finished_utc": "2026-10-24T08:13Z",
+ "clock_note": "date -u read at 08:01:23, 08:06:46, 08:08:39, 08:11:06 and 08:11:36 UTC on 24 Oct 2026 (and once more just before writing this file).",
+ "target": "ws-b15r3b/runkit/stage1-olmo/ (6 files changed: pack_setup.py, setup/job_runner_stage1.py, README.md, tests/test_stage1_runkit.py, tests/test_stage1_runner.py, tests/mutants_b15.json). stage1_rules.py and plan_tool.py are unchanged, so no money figure changes. At the start the kit hashed equal to the build report (notes/b15r3b-fix-evidence/kit-sha256-before.txt).",
+ "summary": "Both verifier reports re-checked against the kit. Two should_fix items from verify-pins are confirmed and fixed. F1: pack_setup.plain_path now refuses any lead code or named-input path that is not in normal form. Before the fix, 7 respelled paths were PACKED (scripts/./stage1_s1/..., scripts//stage1_s1/..., the same for settings/ with engine Y pinned, and two named-input spellings that skipped MAN1's comparison); 2 more were already refused, but by the S1 pin rule. F2: the settings byte-flip test now keeps the JSON valid and matches the bare list entry; mutant VP-s1-self-pin now fails 9 cases, not 5. Notes F3 and F4 gained tests: a D-2 entry at its pin packs; a MANIFEST with a repeated group refuses; the real MANIFEST, MAN1 and A1 edit are checked against their pins; the job runner also refuses repeated groups. F5 is marked expect survive. Of verify-plan's two should_fix items: VP3b-1 is confirmed as a text error, not a code defect. The README now states the limit, and a new test shows the kit refuses the $143.19 re-plan (two LN-12 pods plus all five arm pods in one launch) under a $142 record. VP3b-2, the missing Jaccard/Kendall-tau script, is deferred: it is outside this round's write scope and does not change the plan or the money. The B15 suites pass, 281 + 137 = 418; the Gate B kit passes 271; 0 skipped. Before the fix, 10 of the new tests failed. The spec has 269 entries: the verifier's 8 plus 5 new B15-7-*. I ran 5 mutants and all were killed. Funding is unchanged and was re-derived byte-identical: default 2+2+1 $130.59 (full) / $122.66 (128); worst case 5-in-one $141.63 / $134.04; top-up $142.",
+ "dispositions": [
+  {
+   "id": "F1 (verify-pins, should_fix)",
+   "verdict": "CONFIRMED, fixed",
+   "check": "Reproduced by the new test on the pre-fix code (notes/b15r3b-fix-evidence/before-fix.xml). Seven spellings DID NOT RAISE, so they were packed: code scripts/./stage1_s1/extra.py, scripts//stage1_s1/extra.py, scripts/./stage1_s1/settings/extra.json (pins engine Y); input tmp/./anchors/anchor_bank.json and tmp//anchors/... (MAN1 lists the file at another SHA-256, and the comparison was skipped); folder files eval/./e1/summary.json and eval//e1/summary.json (the same). Two more were refused, but only by the S1 pin rule, because their prefix still matched: scripts/stage1_s1/./extra.py and scripts/stage1_s1//settings/extra.json. They now refuse by the normal-form rule. This also settles the verifier's unresolved point: the named inputs had the same gap.",
+   "fix": "pack_setup.py:99-104 plain_path(rel): a non-empty string, no backslash, every '/'-part not '', '.' or '..'. A leading '/' and a trailing '/' both give an empty part. It is used at pack_setup.py:222 (code entries: '(code entries are scripts/ files, each path in normal form)'), :279 (a named input's path) and :287 (a folder input's file path). The module doc and the README round-3b section say so.",
+   "test": "test_stage1_runner.py:1840 test_a_path_not_in_normal_form_refuses_the_pack[9 cases]: each refuses with its named message, and nothing is written. Mutant B15-7-code-path-dot: killed (5 failures).",
+   "limit": "No case folding: on macOS, 'scripts/Stage1_s1/x.py' resolves to the same file. On the Linux pod it extracts to another folder that scripts.stage1_s1 never imports, so it can add an unread file, not replace a pinned one. The pulled-tree checks in plan_tool.py (:1716, :1747, :2120) only compare a named file's hash and apply no prefix rule, so they were left as they were."
+  },
+  {
+   "id": "F2 (verify-pins, should_fix)",
+   "verdict": "CONFIRMED, fixed (test only; the pin check was right)",
+   "fix": "test_stage1_runner.py:1779: for a .json file, one letter of the 'name' value is flipped. The file stays valid JSON with engine_x = X, which is asserted. The match is re.escape(\"'<rel>'\"), the bare list entry that Packing.add appends, so a '(not JSON)' or engine refusal cannot satisfy it.",
+   "test": "Mutant VP-s1-self-pin: killed, 9 failures (all 9 files); the verifier saw 5 (notes/b15r3b-fix-evidence/mut-VP-s1-self-pin.xml)."
+  },
+  {
+   "id": "F3 (verify-pins, note)",
+   "verdict": "accepted, test added",
+   "test": "test_stage1_runner.py:1801, new cases 'a D-2 file at its pin' (D2_REP_SCRIPT with its D2_CODE pin packs) and 'an S1 file at its pin' (a control). Mutant VP-s1-d2-entry-refused: killed (1 failure)."
+  },
+  {
+   "id": "F4 (verify-pins, note)",
+   "verdict": "accepted, tests added and the runner strengthened",
+   "fix": "setup/job_runner_stage1.py:448-450: the re-score also refuses repeated groups, matching plan_tool.rescore_groups (plan_tool.py:194). This adds a check and weakens none.",
+   "test": "test_stage1_runkit.py:2958 test_ln_15e_needs_exactly_8_unit_groups_in_gate_bs_manifest[unit-8 dropped, unit-8 renamed unit-7] (mutant VP-groups-dup-unchecked: killed). test_stage1_runkit.py:1573 now also checks A1_EDIT, MAN_PATH/MAN_SHA256 and MAN1_PATH/MAN1_SHA256 against the real files (hashing only). test_stage1_runkit.py:1607 test_gate_bs_real_manifest_lists_8_distinct_unit_groups reads the real MANIFEST's file entries only. test_stage1_runner.py:705 test_a_re_score_whose_groups_repeat_one_never_runs (mutant B15-7-runner-groups-dup: killed)."
+  },
+  {
+   "id": "F5 (verify-pins, note)",
+   "verdict": "accepted; equivalent mutant",
+   "fix": "VP-rescore-own-arm-seed-unchecked is in the spec with 'expect': 'survive' and its 'why'. The argument cites plan_tool.py:424-425, :428-430, :959-964 and :1440-1443, the test test_stage1_runkit.py:2931 (cases 1-6) and the verifier's identical probe outcomes. The clause is kept. Not re-run by me (the verifier ran it: survived)."
+  },
+  {
+   "id": "VP3b-1 (verify-plan, should_fix)",
+   "verdict": "CONFIRMED as a text error; no code defect; limit stated and tested",
+   "check": "The build's top_up.check ('every re-plan form above ... at most $141.63') is true only for the forms it lists. Its open item ('two pods are inside $142 via a re-plan') is false for the 5-in-one split.",
+   "fix": "The README re-plan bullet now states the figures: two LN-12 pods need $132.16 (2+2+1), $138.94 (1+4) and $143.19 (5-in-one), and the last refuses under a $142 record. This report corrects the build's open item. In the new test, S1-0 funded at $142: the two-pod 5-in-one re-plan refuses with 'needs $143.19; ... is $142.00'; the two-pod 2+2+1 re-plan records at $132.16; the one-pod 5-in-one re-plan records at $141.63.",
+   "test": "test_stage1_runkit.py:2388 test_a_142_top_up_covers_two_ln12_pods_only_without_the_five_in_one_arm_launch. It documents a limit, so it passed before the fix too (the code was right).",
+   "raised_to_gpt": "Addendum §25 point 3 says 'Every re-plan inside block A then stays covered'. Literally, no finite top-up meets this, because more pods always add overhead. The kit keeps money safe by refusing a re-plan above S1-0's record. The lead decides between $142, where the two-LN-12-pod option rules out the 5-in-one arm split (verifier's suggested wording: 'every re-plan of the arm split stays covered'), and $144, which also covers two LN-12 pods with 5-in-one ($143.19). I did not change the top-up rule."
+  },
+  {
+   "id": "VP3b-2 (verify-plan, should_fix)",
+   "verdict": "DEFERRED, not done in this round (reason given)",
+   "reason": "REV4's LN-15e outputs (top-600 Jaccard and Kendall tau against the sealed A1 set) are a report-only Mac step that runs after block A. The kit's own part, producing and sealing each re-score's attributes unit, is built and tested. The script belongs beside scripts/stage1/report_a1_variants.py: it must use T1's check_attributes_unit, build_a1 and s1common.select_top's tie rule. That is outside my write scope (runkit/stage1-olmo only). Writing a copy of the A1 contract inside the kit would duplicate frozen logic. It changes neither the plan nor the money. It stays an open item for the lead: build and verify it before the LN-15e reading."
+  },
+  {
+   "id": "VP3b-3, VP3b-4 (verify-plan, notes)",
+   "verdict": "no change (as the verifier says): a launch may leave LN-15e/c0 out (round 3a design, lead decision for later); the re-score's price stands on Gate B's whole 3.04 h diagnostics job, flagged unmeasured."
+  }
+ ],
+ "files": [
+  {
+   "path": "ws-b15r3b/runkit/stage1-olmo/README.md",
+   "sha256": "5b206359e5a2f4fba4dcd36dcd9aed073633d37c3dcd602f8274d4abbd17d45c",
+   "changed_in_fix_round": true,
+   "was": "eaf06097cb95e892ead23a916cc172ee492516fde92ea93f838e66e952e991e0"
+  },
+  {
+   "path": "ws-b15r3b/runkit/stage1-olmo/account.py",
+   "sha256": "8e3b8c4eb7e21d06bb48bb6eef8f0a412a198b893e583e98632756e5c72b612f",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r3b/runkit/stage1-olmo/backup_records_stage1.py",
+   "sha256": "fa781613f56066e73d418e11e76825bdcc55cfeeff7be85cdee50e5778e3568c",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r3b/runkit/stage1-olmo/budget.py",
+   "sha256": "f4760c080159e70371f528b7f0349b695858f7f320956568a02818d6c89963b0",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r3b/runkit/stage1-olmo/finisher.py",
+   "sha256": "c5a267cb070fdf9efce936f5ba81daf8fc732133731f07ba4b0c9eb79257dcdb",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r3b/runkit/stage1-olmo/gateb_mac.py",
+   "sha256": "d8dd2ff49c1e4739e7746d5140aa432cc19cf4c044e6150c2dceef4869864dd7",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r3b/runkit/stage1-olmo/host.py",
+   "sha256": "d0ece676bf4b0d718d6bacb82ab5cf4738f7ed02c510e60ef737c9aca44c24d5",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r3b/runkit/stage1-olmo/judge_units_stage1.py",
+   "sha256": "31555680d1a7580f9358f2d609fe5146f50903450d011c944c4a66203d57eef3",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r3b/runkit/stage1-olmo/launch.py",
+   "sha256": "5491993d9b88b4214a269504c89611ceaaab2fa31371bd27d33b103b7b61c758",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r3b/runkit/stage1-olmo/orchestrate.py",
+   "sha256": "862939d1b1d64693138663a0702ed64ed0ab293142301c13d5e21de8e8db58bd",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r3b/runkit/stage1-olmo/pack_setup.py",
+   "sha256": "1b68fb5faab2a7292d4b9120dae4c4ca0689ea9ee15a4037927a1e125d60829e",
+   "changed_in_fix_round": true,
+   "was": "e1ad4ad9d4f858198765224e1e4a91e9774e0c3731ef4094da6fcd109d9bd939"
+  },
+  {
+   "path": "ws-b15r3b/runkit/stage1-olmo/plan_tool.py",
+   "sha256": "ff632f2b0b0cb1f62a483de70b32919b5f492a97ec36fe780b69ef28fac9f9df",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r3b/runkit/stage1-olmo/probes.py",
+   "sha256": "cb19679e1ea4a3993db8a74df7e4ed3e532b4e11863436700578244029682a70",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r3b/runkit/stage1-olmo/seal.py",
+   "sha256": "a4aa1f9d6cc03c9e2f3cb333edde539074f51a5e523f84784d28e2c387f737cd",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r3b/runkit/stage1-olmo/secret_scan.py",
+   "sha256": "75baad4c9127449a0de311ea0773d4306ec6b47ad6247018be59259785326d3b",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r3b/runkit/stage1-olmo/setup/bootstrap_hr.sh",
+   "sha256": "563a128a1573dd97d10f27cdfa0cfa23a03e5409c3c876ab6f16a7115241140f",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r3b/runkit/stage1-olmo/setup/constraints.txt",
+   "sha256": "cdd9f13062d613b0557503c3d332a870f570c7a09e532e8ab8e934ab4867d32b",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r3b/runkit/stage1-olmo/setup/download_models_stage1.py",
+   "sha256": "ffb4f13f51d2e4be00a25b352f3d5c8d58523c9f881f5358a7f35e404b5e05a3",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r3b/runkit/stage1-olmo/setup/extend_cap.py",
+   "sha256": "8af2f6ccebbac591499075827afef714ff1b635b6f6a691e5f669517458179d6",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r3b/runkit/stage1-olmo/setup/job_runner_stage1.py",
+   "sha256": "b6cf1977dadcdba7d869bbe7da186aac57ca2a2355c31614de76a3e69ef4c0f6",
+   "changed_in_fix_round": true,
+   "was": "32239a4f2e6700611999a752458da85cdff01f2fe166990682734358eb097797"
+  },
+  {
+   "path": "ws-b15r3b/runkit/stage1-olmo/setup/preflight_stage1.py",
+   "sha256": "e8ec5d81a949e03e3db24dc9c66e28aa7054e5a48a0b75580ad236127b57f101",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r3b/runkit/stage1-olmo/setup/setup_and_fetch_stage1.sh",
+   "sha256": "4d363806bbd4f51f088dc6fa1f27f3f95409407993f0b802363722c812abf586",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r3b/runkit/stage1-olmo/stage1_rules.py",
+   "sha256": "7d10a5de408e75ef077542565c6dbf1c4de208dc44d09f6011a09ef9c8773c88",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r3b/runkit/stage1-olmo/status.py",
+   "sha256": "16851c6f678fd3e86749ce7f81c6086ffedf723c44e50246291801567dfb33a0",
+   "changed_in_fix_round": false
+  },
+  {
+   "path": "ws-b15r3b/runkit/stage1-olmo/tests/mutants_b15.json",
+   "sha256": "359233d2aaa5d2579f0c6c00bb68a150b4e054539f56f716dc4c217f0051ef91",
+   "changed_in_fix_round": true,
+   "was": "b802de83f675aedf532cb063bface461309561f2495da3ef477ef12d91224fff"
+  },
+  {
+   "path": "ws-b15r3b/runkit/stage1-olmo/tests/test_stage1_runkit.py",
+   "sha256": "02be33bd056a6d758188ec09838afb044e386cc1fe33651ac4459bc652e17aab",
+   "changed_in_fix_round": true,
+   "was": "37be0c99c582fe6fd1bc0cd2438b8c038331db673ae4cae9a2d4b39d775ab278"
+  },
+  {
+   "path": "ws-b15r3b/runkit/stage1-olmo/tests/test_stage1_runner.py",
+   "sha256": "ee12cefadd002a0083072b2bb009b0c8e24e6db2bf33e16fca386bc53ff98df4",
+   "changed_in_fix_round": true,
+   "was": "d1c0e8407a9bade8d6261992b64f1560e2d78384d9dd5a4e40955bd257a5e022"
+  }
+ ],
+ "funding": {
+  "source": "Unchanged from the build: stage1_rules.py and plan_tool.py are byte-identical to the build's. Re-run of notes/b15r3b-build-evidence/funding.py on the fixed kit: notes/b15r3b-fix-evidence/funding.json is byte-identical to the build's (sha256 5c4828fb...). The verify-plan report re-derived every figure by hand to the cent.",
+  "rule": "term_k = upper spend of launches 0..k-1 + 600 + 185 x the summed caps of launch k (cents); base = cents(max term); need = cents(1.25 x base), decimal half up ([D20]); contingency = need - base",
+  "pods_branch_full_cents": "S1-0 1.75 h / 214.80; cert (C1, C2, C3) 3.25 h / 410.2083; diagnostics 6.25 h / 959.2411; LN-12 (one pod: 6 J2/J3 pairs, 2 LN-15e pairs, theta0's J3, c0) 13.5 h / 2,207.7537; arm pod 7.5 h / 1,047.5478 each; HarmBench 27 units 2.5 h / 447.50; Granite 27 units 2.0 h / 358.00",
+  "pods_branch_128_differences": "LN-12 12.75 h / 2,063.2733 (with LN-14); arm pod 7.0 h / 949.4956",
+  "unmeasured_terms": "W1-18 0.5 h; C2 x1.5; C3 0.5 h; c0 2,400 s; J5-J8 estimates x1.5 upper; O500 1,517 s (full) / 1,024 s (128); the arm O500 term; LN-15e's re-score 3.04 h measured upper (the whole Gate B diagnostics job) x1.5 upper; the judges' per-answer planning uppers 0.25 / 0.5 s. Every pod's 'unmeasured' list in funding.json names them.",
+  "plan_A_default_2_2_1": {
+   "full": {
+    "launches": [
+     {
+      "launch": "S1-0",
+      "pods_cap_h_spend_cents": [
+       [
+        1.75,
+        214.8
+       ]
+      ],
+      "term_cents": 923.75
+     },
+     {
+      "launch": "cert",
+      "pods_cap_h_spend_cents": [
+       [
+        3.25,
+        410.2083
+       ]
+      ],
+      "term_cents": 1416.05
+     },
+     {
+      "launch": "diagnostics",
+      "pods_cap_h_spend_cents": [
+       [
+        6.25,
+        959.2411
+       ]
+      ],
+      "term_cents": 2381.2583
+     },
+     {
+      "launch": "LN-12",
+      "pods_cap_h_spend_cents": [
+       [
+        13.5,
+        2207.7537
+       ]
+      ],
+      "term_cents": 4681.7494
+     },
+     {
+      "launch": "arms (2 pods)",
+      "pods_cap_h_spend_cents": [
+       [
+        7.5,
+        1047.5478
+       ],
+       [
+        7.5,
+        1047.5478
+       ]
+      ],
+      "term_cents": 7167.0031
+     },
+     {
+      "launch": "arms (2 pods)",
+      "pods_cap_h_spend_cents": [
+       [
+        7.5,
+        1047.5478
+       ],
+       [
+        7.5,
+        1047.5478
+       ]
+      ],
+      "term_cents": 9262.0987
+     },
+     {
+      "launch": "arms (1 pods)",
+      "pods_cap_h_spend_cents": [
+       [
+        7.5,
+        1047.5478
+       ]
+      ],
+      "term_cents": 9969.6942
+     },
+     {
+      "launch": "HarmBench 27",
+      "pods_cap_h_spend_cents": [
+       [
+        2.5,
+        447.5
+       ]
+      ],
+      "term_cents": 10092.242
+     },
+     {
+      "launch": "Granite 27",
+      "pods_cap_h_spend_cents": [
+       [
+        2.0,
+        358.0
+       ]
+      ],
+      "term_cents": 10447.242
+     }
+    ],
+    "base_need_cents": 10447,
+    "contingency_cents": 2612,
+    "need_cents": 13059
+   },
+   "128": {
+    "launches": [
+     {
+      "launch": "S1-0",
+      "pods_cap_h_spend_cents": [
+       [
+        1.75,
+        214.8
+       ]
+      ],
+      "term_cents": 923.75
+     },
+     {
+      "launch": "cert",
+      "pods_cap_h_spend_cents": [
+       [
+        3.25,
+        410.2083
+       ]
+      ],
+      "term_cents": 1416.05
+     },
+     {
+      "launch": "diagnostics",
+      "pods_cap_h_spend_cents": [
+       [
+        6.25,
+        959.2411
+       ]
+      ],
+      "term_cents": 2381.2583
+     },
+     {
+      "launch": "LN-12",
+      "pods_cap_h_spend_cents": [
+       [
+        12.75,
+        2063.2733
+       ]
+      ],
+      "term_cents": 4542.9994
+     },
+     {
+      "launch": "arms (2 pods)",
+      "pods_cap_h_spend_cents": [
+       [
+        7.0,
+        949.4956
+       ],
+       [
+        7.0,
+        949.4956
+       ]
+      ],
+      "term_cents": 6837.5228
+     },
+     {
+      "launch": "arms (2 pods)",
+      "pods_cap_h_spend_cents": [
+       [
+        7.0,
+        949.4956
+       ],
+       [
+        7.0,
+        949.4956
+       ]
+      ],
+      "term_cents": 8736.5139
+     },
+     {
+      "launch": "arms (1 pods)",
+      "pods_cap_h_spend_cents": [
+       [
+        7.0,
+        949.4956
+       ]
+      ],
+      "term_cents": 9340.505
+     },
+     {
+      "launch": "HarmBench 27",
+      "pods_cap_h_spend_cents": [
+       [
+        2.5,
+        447.5
+       ]
+      ],
+      "term_cents": 9457.5006
+     },
+     {
+      "launch": "Granite 27",
+      "pods_cap_h_spend_cents": [
+       [
+        2.0,
+        358.0
+       ]
+      ],
+      "term_cents": 9812.5006
+     }
+    ],
+    "base_need_cents": 9813,
+    "contingency_cents": 2453,
+    "need_cents": 12266
+   },
+   "frozen_need_cents": 13059
+  },
+  "plan_A_worst_all_five_arm_pods_in_one_launch": {
+   "full": {
+    "launches": [
+     {
+      "launch": "S1-0",
+      "pods_cap_h_spend_cents": [
+       [
+        1.75,
+        214.8
+       ]
+      ],
+      "term_cents": 923.75
+     },
+     {
+      "launch": "cert",
+      "pods_cap_h_spend_cents": [
+       [
+        3.25,
+        410.2083
+       ]
+      ],
+      "term_cents": 1416.05
+     },
+     {
+      "launch": "diagnostics",
+      "pods_cap_h_spend_cents": [
+       [
+        6.25,
+        959.2411
+       ]
+      ],
+      "term_cents": 2381.2583
+     },
+     {
+      "launch": "LN-12",
+      "pods_cap_h_spend_cents": [
+       [
+        13.5,
+        2207.7537
+       ]
+      ],
+      "term_cents": 4681.7494
+     },
+     {
+      "launch": "arms (5 pods)",
+      "pods_cap_h_spend_cents": [
+       [
+        7.5,
+        1047.5478
+       ],
+       [
+        7.5,
+        1047.5478
+       ],
+       [
+        7.5,
+        1047.5478
+       ],
+       [
+        7.5,
+        1047.5478
+       ],
+       [
+        7.5,
+        1047.5478
+       ]
+      ],
+      "term_cents": 11329.5031
+     },
+     {
+      "launch": "HarmBench 27",
+      "pods_cap_h_spend_cents": [
+       [
+        2.5,
+        447.5
+       ]
+      ],
+      "term_cents": 10092.242
+     },
+     {
+      "launch": "Granite 27",
+      "pods_cap_h_spend_cents": [
+       [
+        2.0,
+        358.0
+       ]
+      ],
+      "term_cents": 10447.242
+     }
+    ],
+    "base_need_cents": 11330,
+    "contingency_cents": 2833,
+    "need_cents": 14163
+   },
+   "128": {
+    "launches": [
+     {
+      "launch": "S1-0",
+      "pods_cap_h_spend_cents": [
+       [
+        1.75,
+        214.8
+       ]
+      ],
+      "term_cents": 923.75
+     },
+     {
+      "launch": "cert",
+      "pods_cap_h_spend_cents": [
+       [
+        3.25,
+        410.2083
+       ]
+      ],
+      "term_cents": 1416.05
+     },
+     {
+      "launch": "diagnostics",
+      "pods_cap_h_spend_cents": [
+       [
+        6.25,
+        959.2411
+       ]
+      ],
+      "term_cents": 2381.2583
+     },
+     {
+      "launch": "LN-12",
+      "pods_cap_h_spend_cents": [
+       [
+        12.75,
+        2063.2733
+       ]
+      ],
+      "term_cents": 4542.9994
+     },
+     {
+      "launch": "arms (5 pods)",
+      "pods_cap_h_spend_cents": [
+       [
+        7.0,
+        949.4956
+       ],
+       [
+        7.0,
+        949.4956
+       ],
+       [
+        7.0,
+        949.4956
+       ],
+       [
+        7.0,
+        949.4956
+       ],
+       [
+        7.0,
+        949.4956
+       ]
+      ],
+      "term_cents": 10722.5228
+     },
+     {
+      "launch": "HarmBench 27",
+      "pods_cap_h_spend_cents": [
+       [
+        2.5,
+        447.5
+       ]
+      ],
+      "term_cents": 9457.5006
+     },
+     {
+      "launch": "Granite 27",
+      "pods_cap_h_spend_cents": [
+       [
+        2.0,
+        358.0
+       ]
+      ],
+      "term_cents": 9812.5006
+     }
+    ],
+    "base_need_cents": 10723,
+    "contingency_cents": 2681,
+    "need_cents": 13404
+   },
+   "frozen_need_cents": 14163
+  },
+  "summary_cents": {
+   "default_2_2_1": {
+    "full": {
+     "base": 10447,
+     "contingency": 2612,
+     "need": 13059
+    },
+    "128": {
+     "base": 9813,
+     "contingency": 2453,
+     "need": 12266
+    }
+   },
+   "worst_5_in_one": {
+    "full": {
+     "base": 11330,
+     "contingency": 2833,
+     "need": 14163
+    },
+    "128": {
+     "base": 10723,
+     "contingency": 2681,
+     "need": 13404
+    }
+   }
+  },
+  "top_up": {
+   "rule": "the worst-case Branch-full need (all five arm pods in one launch, plan A), rounded up to the dollar (addendum §25 point 3)",
+   "worst_case_need_cents": 14163,
+   "top_up_usd": 142,
+   "limit": "Covers every arm split of the one-LN-12-pod plan, cert-last and the C3 fallback. It does NOT cover two LN-12 pods with the 5-in-one arm launch ($143.19), which the kit refuses under a $142 record (VP3b-1; test_stage1_runkit.py:2388)."
+  },
+  "other_replans_full_usd": {
+   "two LN-12 pods 2+2+1": 132.16,
+   "two LN-12 pods 1+4": 138.94,
+   "two LN-12 pods 5-in-one": 143.19,
+   "cert last 2+2+1": 132.83,
+   "cert last 5-in-one": 136.49,
+   "two LN-12 pods + cert last 5-in-one": 138.06,
+   "judges in parallel 2+2+1": 130.78
+  }
+ },
+ "tests": {
+  "env": "export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONDONTWRITEBYTECODE=1 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1; cwd ws-b15r3b; /Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python -B -m pytest -p no:cacheprovider --basetemp=<scratchpad>/r3bfix/pt/<new>",
+  "b15_suite": "shard 1 test_stage1_runkit.py 281 passed (8.40 s); shard 2 test_stage1_runner.py 137 passed (6.49 s); 418 in all, 0 failures, 0 errors, 0 skipped (build: 278 + 125 = 403). Final XML: final-runkit.xml, final-runner.xml.",
+  "gbk_suite": "experiments/safety_selection/tests/test_ss_gateb_runkit.py 271 passed, 0 skipped (14.02 s), in place; runkit/gate-b-olmo identical to the main checkout's (diff -rq); find -newer over ws-b15r3b after the run: nothing.",
+  "before": "Final tests run against the pre-fix kit code (a scratch layout: the round-3b build's kit with the new tests, plus links to ws-b15r3b's other folders): 10 failed, 408 passed (before-fix.xml). Failing: the 9 normal-form cases (7 DID NOT RAISE, 2 matched the wrong refusal) and test_a_re_score_whose_groups_repeat_one_never_runs (the runner ran the re-score). The F2/F3/F4 test gaps are shown by the mutants instead, since the code was right."
+ },
+ "mutation": {
+  "spec": "tests/mutants_b15.json: 269 entries (256 + the 8 VP-* from notes/b15r3b-verify-pins-evidence/vp-mutants.json + 5 B15-7-*: code-path-dot, input-path-dot, folder-path-dot, plain-path-dotdot-only, runner-groups-dup). Every find matches exactly once in the final files, no id is repeated, and every mutated .py parses. Two entries are 'expect': 'survive': B15-2-plan-ab-not-derived and VP-rescore-own-arm-seed-unchecked.",
+  "run": "notes/b15r2-build-evidence/mutation-smoke.py ws-b15r3b <scratch>/mut --baseline (one foreground call): baseline 418 passed, 0 errors. VP-s1-self-pin killed (9), VP-s1-d2-entry-refused killed (1), VP-groups-dup-unchecked killed (1), B15-7-code-path-dot killed (5), B15-7-runner-groups-dup killed (1). Every run had 418 tests and 0 errors (mut.out.txt). These ran before a final one-line edit to pack_setup.py's module docstring; the code was unchanged. Not run by me: B15-7-input-path-dot, -folder-path-dot and -plain-path-dotdot-only. The pre-fix run shows the new input and folder cases fail without plain_path. The other 256 entries are for the lead's full run."
+ },
+ "lead_commands": [
+  "Environment: cd <checkout>/runkit/stage1-olmo; export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONDONTWRITEBYTECODE=1 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1; PY=/Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python",
+  "0. DECIDE (VP3b-1): $142 (two parallel LN-12 pods then rule out the 5-in-one arm split) or $144 (covers two LN-12 pods with 5-in-one, $143.19). The kit default is one LN-12 pod and $142.",
+  "1. FIRST: record-gateb-final and record-plan-ab as in notes/b15r2-fix.json lead_commands (unchanged). Record C3 with record-c3 FILE --sha256 H, whose record entry is .ai/inputs/stage1-post-w1-20261023/c3/c3_subsample_record.json (1a24c7a3...; any other record refuses), or record-c3-fallback; and, if it applies, the O-ext fallback (c).",
+  "2. ASK THE USER FOR THE TOP-UP: $142 (worst case $141.63 rounded up; or the figure chosen at step 0). Record it verbatim as S1-0's funding record and keep the file unchanged at its path.",
+  "3. WRITE THE PLAN: $PY -B plan_tool.py write-block-a-plan --out <records>/block_a_plan.json --recorded-by 'GI VI lead' --split 2,2,1   (need_usd $130.59 under plan A, Branch full)",
+  "4. CHECK IT: $PY -B plan_tool.py block-a-need <records>/block_a_plan.json --sha256 <sha256>",
+  "5. RECORD IT BEFORE S1-0: $PY -B plan_tool.py record-block-a-plan <records>/block_a_plan.json --sha256 <sha256>",
+  "6. S1-0: $PY -B plan_tool.py init-block S1-0 --jobs <s10 jobs> --funding <S1-0 funding record> [--dry-run first]",
+  "7. PACK X: $PY -B pack_setup.py X --inputs FILE --inputs-sha256 H. Write every code and input path in normal form (no './', '//', leading '/', '..' or backslash), or the pack refuses. List only the O-ext unit runner (if built) under code, and the anchor bank among the inputs.",
+  "8. BLOCK A's JOBS FILE and 9. JUDGES: as in notes/b15r3b-build.json lead_commands 8-9 (unchanged).",
+  "10. LN-15e READING (Mac, after block A; report only): needs a script not yet built (VP3b-2): top-600 Jaccard and Kendall tau of each rescore/<seed>-attributes unit against the sealed A1 set, built beside scripts/stage1/report_a1_variants.py and verified before the reading.",
+  "FULL MUTATION SPEC (lead, background): 269 entries with notes/b15r2-build-evidence/mutation-smoke.py <absolute checkout> <scratch> --baseline <ids...>; B15-2-plan-ab-not-derived and VP-rescore-own-arm-seed-unchecked are expected to survive."
+ ],
+ "open_items": [
+  "LEAD DECISION (VP3b-1): $142 vs $144; see dispositions and lead_commands step 0.",
+  "VP3b-2: the LN-15e Mac reading script (top-600 Jaccard, Kendall tau) is not built; outside the kit.",
+  "UNMEASURED (unchanged): the re-score is priced at Gate B's whole 3.04 h diagnostics job x 1.5; the attributes step alone was never timed.",
+  "Round 3c (unchanged): the O-ext unit runner's pin (scripts/stage1_s1/oext_unit.py stays S1_UNPINNED).",
+  "VP3b-3 (unchanged lead decision): block A can complete without LN-15e or c0 having run, because a launch may be a subset of the plan.",
+  "The full 269-entry spec has not been run (5 run by me, all killed; 3 B15-7-* entries not run)."
+ ],
+ "alternatives": [
+  "F1: normalising a respelled path (posixpath.normpath) and then applying the prefix rules was rejected. Refusing is simpler and loud, and it keeps the lead's record identical to the bundle names.",
+  "F4: the runner check was added as a second statement, not by editing the existing line, so mutant B15-6-runner-groups-unchecked keeps its find text.",
+  "VP3b-2: a Kendall-tau helper inside the kit was rejected. It would copy the A1 contract's readers and tie rule outside their package."
+ ],
+ "replies_to_gpt": [
+  "Q (verify-pins unresolved): does F1 also touch named inputs? A: yes. Before the fix, tmp/./anchors/anchor_bank.json and a folder file eval/./e1/summary.json were packed while MAN1 listed them at another SHA-256 (before-fix.xml). Both now refuse.",
+  "Q: is the $142 top-up enough? A: for every arm split of the kit default, yes ($141.63). For two LN-12 pods with the 5-in-one arm launch, no ($143.19). The kit refuses that re-plan, so no money is at risk. The choice is the lead's."
+ ],
+ "commands_run": [
+  "date -u x6: exit 0",
+  "cat/sed/grep of notes/b15r3b-build.json, b15r3b-verify-plan.json, b15r3b-verify-pins.json (in full), addendum §24-§26, the verifiers' vp-mutants.json, exp.py, exp.out.txt, the kit's pack_setup.py, stage1_rules.py, plan_tool.py, job_runner_stage1.py and tests (relevant parts), and scripts/stage1/report_a1_variants.py (its docstring): exit 0",
+  "shasum -a 256 of the kit, Gate B's MANIFEST, MAN1 and the A1 edit (hashing only): exit 0",
+  "cp -R of the kit to the scratchpad (pre-fix snapshot): exit 0",
+  "pytest of the new tests (25 + 5 selected): passed, exit 0",
+  "pytest test_stage1_runkit.py 281 passed and test_stage1_runner.py 137 passed (twice: after the fixes, and again after the README/doc edits): exit 0",
+  "pytest of the pre-fix layout (all B15 tests): 10 failed, 408 passed, exit 1 (expected)",
+  "mutation-smoke.py --baseline + 5 mutants: baseline 418 passed; 5 killed; exit 0",
+  "pytest experiments/safety_selection/tests/test_ss_gateb_runkit.py: 271 passed, exit 0; diff -rq gate-b-olmo: identical; find -newer: nothing",
+  "python -B -I funding.py on the fixed kit: exit 0; cmp with the build's funding.json: identical",
+  "python3 spec edit and check (269 entries, every find once, ast parse): exit 0"
+ ],
+ "evidence": [
+  {
+   "path": "notes/b15r3b-fix-evidence/before-fix.xml",
+   "sha256": "88c51a3d1ab26bb7271481c9654ef08458e24aa75fb1276af99ab6b5e09bb092"
+  },
+  {
+   "path": "notes/b15r3b-fix-evidence/final-runkit.xml",
+   "sha256": "dc518fd7c55af1ea7a5c9fe3dee1d3aa8b990824ebe84a519fea5a3afdf64ff2"
+  },
+  {
+   "path": "notes/b15r3b-fix-evidence/final-runner.xml",
+   "sha256": "9b29e70b6f8eec41ec12482bf872180cffc25517453e81edeaf651bb9efd12bf"
+  },
+  {
+   "path": "notes/b15r3b-fix-evidence/funding.json",
+   "sha256": "5c4828fb56fa6f0304e287a5c57ccea5c7ec0e87d74b283d19f7a937b01c95e1"
+  },
+  {
+   "path": "notes/b15r3b-fix-evidence/funding.out.txt",
+   "sha256": "2fe110828cb63883c3a53f50bf4b52ff1e77f7ae4efe2abb6565a66ac6c506e7"
+  },
+  {
+   "path": "notes/b15r3b-fix-evidence/gbk.xml",
+   "sha256": "aee3bec431c7f67107d48d1220433e436166c3241d1cb4a022fd29fe248c85b0"
+  },
+  {
+   "path": "notes/b15r3b-fix-evidence/kit-sha256-after.txt",
+   "sha256": "3fbddbd5048bcef11ea230fce1c11af57814ce171c9a1116eeb226d8d481cef7"
+  },
+  {
+   "path": "notes/b15r3b-fix-evidence/kit-sha256-before.txt",
+   "sha256": "9d799448c8fd2bd99a1e61a884b4cf6a600c814bda19ebaa663f2c363e46548e"
+  },
+  {
+   "path": "notes/b15r3b-fix-evidence/mut-B15-7-code-path-dot.xml",
+   "sha256": "f80b499b22c387747ee35f2efc88a52a0b12fcf209e12e68205f0ea8a254f5eb"
+  },
+  {
+   "path": "notes/b15r3b-fix-evidence/mut-B15-7-runner-groups-dup.xml",
+   "sha256": "08ec6469f2016fb4679e9fe57d3d535edd82ee1b70e62eeeb62a9babb8f661a2"
+  },
+  {
+   "path": "notes/b15r3b-fix-evidence/mut-VP-groups-dup-unchecked.xml",
+   "sha256": "59929a13dc370e373304496da010747b1d1ce4ef172a0ea9b9174ce161c4f7d3"
+  },
+  {
+   "path": "notes/b15r3b-fix-evidence/mut-VP-s1-d2-entry-refused.xml",
+   "sha256": "024757f61205e16a2fc21258c99675a39cd6456d4412e857c7e362c6b59f46fc"
+  },
+  {
+   "path": "notes/b15r3b-fix-evidence/mut-VP-s1-self-pin.xml",
+   "sha256": "42b1e1896ae11d335ad5e482fd5d65989fa02a55a916280011a1c6c6688214c2"
+  },
+  {
+   "path": "notes/b15r3b-fix-evidence/mut-baseline.xml",
+   "sha256": "b2f71e99dda67303fa9927e4ae2aef9f07259b08e6f9a67ca85e94070b441ddf"
+  },
+  {
+   "path": "notes/b15r3b-fix-evidence/mut.out.txt",
+   "sha256": "87cec6cf65ce238055f6b6155e1e49ad05688c131ffc5a8cb9cb58f8222dd8d4"
+  }
+ ],
+ "rules_kept": "Wrote only ws-b15r3b/runkit/stage1-olmo/ (6 files), notes/b15r3b-fix.json, notes/b15r3b-fix-evidence/ and the scratchpad. No git; no network, RunPod, Hub or GitHub call. No ~/.config, secrets, ssh/, hosts/ or account file was read, and no data text was opened: Gate B's MANIFEST was read for its unit-group entries by a test, and MAN1 and the A1 edit were hashed only. Synthetic fixtures only. Foreground commands only, each under 600 s. 5 mutants run."
+}

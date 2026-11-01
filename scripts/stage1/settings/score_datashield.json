@@ -1,0 +1,20 @@
+{
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "kind": "stage1 settings",
+  "label_entries": {},
+  "labels_sha256": "72665fe53c8f294e4b9d010691f3bcc4cacb836985f39d536d9498c536da824e",
+  "name": "score_datashield",
+  "owner": "scripts/stage1/score_datashield.py",
+  "pins": {
+    "prepared_manifest_sha256": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
+    "representation_pass_settings_sha256": "a555fd899bd2b5caf8d68fb62578ed2e943977341b5bf2dc2d688dcbd034600b"
+  },
+  "requirement": "REQ-12 (brief rev 1; SPEC sections 4.4-4.5); LW-18 (built before wave 1); ADD-6.6 (if not committed at W1: post-Gate-B exploratory)",
+  "rule": "l_hat = argmax CAS(l) over hidden-state indices l = 1..n from REQ-3's summary (index 0, the embedding output, excluded; a null CAS, a zero direction, skipped), ties to the lower l; score = REQ-3's CSS at l_hat for every training row (CSS_l = (read c - read d) . v_l / ||v_l||, v_l = the harmful anchors' mean of read c minus the safe anchors' mean); the top 600 and the category check (50%) are write_score_edit.py's (scorer datashield)",
+  "scorer_output": {
+    "kind": "stage1 scorer output",
+    "orientation": "descending: high = remove",
+    "version": 1
+  },
+  "version": 1
+}

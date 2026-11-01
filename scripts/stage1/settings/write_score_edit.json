@@ -1,0 +1,145 @@
+{
+  "a1": {
+    "arm": "a1",
+    "attributes_unit": {
+      "anchor_counts": {
+        "harmful": 64,
+        "safe": 64
+      },
+      "checkpoints": [
+        "q",
+        "e1"
+      ],
+      "code_sha256": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+      "complete_sha256": "1e5e23f7ad134ede117dba72dd8a2c9abc467694c1e8941dcce4609241fec640",
+      "kind": "attributes",
+      "query_bank": "anchors-2cf9633613e235d1f33deee3530c3e53b037845bd3979568887742457c1801ed",
+      "query_bank_sha256": "2cf9633613e235d1f33deee3530c3e53b037845bd3979568887742457c1801ed",
+      "recipe_sha256": "ceffe0efb5d75bacfbd62743f530259deeedeca8950605d1bd3ff66e5391fe46",
+      "retrain_complete_sha256": "d154f23f5d5734c04aedfc9636c93609f980509aa28abdff54462eb9b41fd2a5",
+      "seed": 1101,
+      "source": "research/experiments/2026-10-16-gate-b-wave0-outputs/rankings-SEALED.json (SHA-256 d6d5cd6b), result.attributes_unit and result.retrain: the wave-0b unit the sealed rankings read",
+      "split": "dev"
+    },
+    "bi_anchored_sign": "bi_anchored = the harmful-anchor aggregate minus the safe-anchor aggregate, per variant; positive: a small descent step on the group's rows lowers the harmful anchors' mean response loss more than the safe anchors' to first order (the rows support unsafe over safe responses); local, noncausal, not a removal estimate",
+    "category_flag_rule": "if at least 50% of the selected rows are one category, A1 is also compared with that category's Gate B unit arm (PLAN-S:149)",
+    "category_flag_share": 0.5,
+    "checkpoints": [
+      "q",
+      "e1"
+    ],
+    "consistency": {
+      "abs_tolerance": 1e-12,
+      "rule": "for each unit, the mean of its rows' a_i must equal groups.json groups.<unit>.bi_anchored.checkpoint_gradsim within abs_tolerance (absolute), or the writer refuses"
+    },
+    "edit_name": "stage-1 A1: remove the 600 training rows with the largest bi-anchored checkpoint GradSim score a_i (Gate C's attribution method, per row, at a0-1101's q and e1)",
+    "k": 600,
+    "minuend_set": "harmful",
+    "orientation": "descending: remove the largest a_i. Positive a_i: a small descent step on the row lowers the harmful anchors' mean response loss more than the safe anchors' (BI_ANCHORED_SIGN)",
+    "outputs": {
+      "edit": "a1_remove600.edit.json",
+      "record": "a1_selection.json"
+    },
+    "requirement": "REQ-14 (brief rev 1 12cbf463; AUDIT closure 2; lead decisions b8a67719 L1)",
+    "row_field": "cosine",
+    "row_record_fields": [
+      "adam_score",
+      "cosine",
+      "dot",
+      "grad_norm",
+      "loss",
+      "preconditioned_grad_norm"
+    ],
+    "row_record_optional": [
+      "weight"
+    ],
+    "rule": "a_i = the mean over the checkpoints [q, e1] of (the row's cosine to the harmful anchor set's mean gradient minus its cosine to the safe anchor set's mean gradient), read from the wave-0b attributes unit's rows.jsonl (variant checkpoint_gradsim; the Adam variant and every other field are never used); remove the 600 rows with the largest a_i over all 4,800 training rows (global, not per unit); ties by the sealed rank of registry key a1.ties over all training row ids",
+    "subtrahend_set": "safe",
+    "ties": "a1.ties",
+    "variant": "checkpoint_gradsim"
+  },
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "kind": "stage1 settings",
+  "label_entries": {
+    "a1.ties": "e734d0ddb04563bbf573a49490b52784bf2668e01004d471fae9cd93d1934dd3",
+    "datashield.ties": "275bb53ffd52e3d4cba4d0e468fe9a437ccdf17de01aaa4d908a7c6d9386f284",
+    "l1.ties": "623fbc2e418b5ff72f4590504335d692f37f349b70b4b0da0fddc1a1e77e2324",
+    "selfinf_n.ties": "ab9d05e3ba6ecc53f9253bb223228db9a499626a290bc35febf65e864515c431"
+  },
+  "labels_sha256": "3830fabd59f8c5def507b4bab4bd366a7b982e9351769368b706c7fcb40359a4",
+  "name": "write_score_edit",
+  "owner": "scripts/stage1/write_score_edit.py",
+  "prepared": {
+    "manifest_sha256": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
+    "path_on_the_mac": "tmp/kt-prepared/prepared-kt-dolly-olmo2",
+    "rows": 4800,
+    "rows_per_unit": 600,
+    "units": 8
+  },
+  "scorer_output": {
+    "keys": [
+      "costs",
+      "kind",
+      "manifest_sha256",
+      "orientation",
+      "provenance",
+      "scorer",
+      "scores",
+      "version"
+    ],
+    "kind": "stage1 scorer output",
+    "provenance_required": [
+      "script_sha256",
+      "settings_sha256"
+    ],
+    "rule": "scores = an object {training row id: finite float64} over exactly the prepared set's training rows, high = remove; costs = GPU-seconds by stage (SPEC section 1 item 5); provenance names the scorer's code and settings by SHA-256",
+    "version": 1
+  },
+  "scorers": {
+    "datashield": {
+      "arm": "datashield",
+      "category_flag_share": 0.5,
+      "conditional": "built before wave 1 only if plan usage allows (U2; FOCUS 9 Oct item (9)); else post-Gate-B exploratory",
+      "edit_name": "stage-1 DataShield-style: remove the 600 training rows with the largest CSS",
+      "k": 600,
+      "orientation": "descending: high = remove",
+      "outputs": {
+        "edit": "datashield_remove600.edit.json",
+        "record": "datashield_selection.json"
+      },
+      "requirement": "REQ-12 (brief rev 1 12cbf463)",
+      "rule": "remove the 600 rows with the largest DataShield-style CSS over all training rows (global); ties by the sealed rank of registry key datashield.ties",
+      "ties": "datashield.ties"
+    },
+    "l1": {
+      "arm": "l1",
+      "category_flag_share": 0.5,
+      "edit_name": "stage-1 L1 (LARF-style): remove the 600 training rows with the largest L1 score",
+      "k": 600,
+      "orientation": "descending: high = remove",
+      "outputs": {
+        "edit": "l1_remove600.edit.json",
+        "record": "l1_selection.json"
+      },
+      "requirement": "REQ-10 (brief rev 1 12cbf463)",
+      "rule": "remove the 600 rows with the largest L1 score cos(r, r_unsafe) - cos(r, r_safe) at (index l_s + 1, read (a)) over all training rows (global); ties by the sealed rank of registry key l1.ties",
+      "ties": "l1.ties"
+    },
+    "selfinf_n": {
+      "arm": "selfinf_n",
+      "category_flag_share": 0.5,
+      "conditional": "built before wave 1 only if plan usage allows (U2; FOCUS 9 Oct item (9)); else post-Gate-B exploratory",
+      "edit_name": "stage-1 Self-Inf-N-style: the 600 training rows with the largest score (scored only: rank tables and the Jaccard matrix)",
+      "k": 600,
+      "orientation": "descending: high = remove",
+      "outputs": {
+        "edit": "selfinf_n_remove600.edit.json",
+        "record": "selfinf_n_selection.json"
+      },
+      "requirement": "REQ-13 (brief rev 1 12cbf463)",
+      "rule": "the 600 rows with the largest Self-Inf-N-style score ln(SI + 1) + ln(len + 1) over all training rows (global); ties by the sealed rank of registry key selfinf_n.ties",
+      "ties": "selfinf_n.ties"
+    }
+  },
+  "version": 1
+}

@@ -1,0 +1,473 @@
+{
+  "kind": "stage1 mutants",
+  "version": 1,
+  "part": "O-ext (scripts/stage1_s1/oext_eval.py; addendum section 11 points 1 and 13, section 13, LN-19, LN-24): the cut (W1-18's), the flag, O and its denominator, the branches, the flag change, the judge's input, the bank by its record's SHA-256, W1-18's record, the settings, the dev answers, the files, the ledger and the check command; run with scripts/stage1_s1/mutation/run_mutants_b10.py (T1's runner and rules on the stage1_s1 package) in a view that holds the O-ext tests (test_oext_eval.py, test_b10_oext.py and their fixtures)",
+  "mutants": [
+    {
+      "id": "OE-cut-at-equal-length",
+      "part": "the cut",
+      "describes": "an answer of exactly cut_tokens tokens is cut and judged again",
+      "file": "oext_eval.py",
+      "find": "return decode(ids[:cut]) if len(ids) > cut else None",
+      "replace": "return decode(ids[:cut]) if len(ids) >= cut else None"
+    },
+    {
+      "id": "OE-cut-one-short",
+      "part": "the cut",
+      "describes": "the cut keeps one token fewer than W1-18's",
+      "file": "oext_eval.py",
+      "find": "return decode(ids[:cut]) if len(ids) > cut else None",
+      "replace": "return decode(ids[:cut - 1]) if len(ids) > cut else None"
+    },
+    {
+      "id": "OE-cut-stripped",
+      "part": "the cut",
+      "describes": "the cut text is stripped (another judged text than W1-18's)",
+      "file": "oext_eval.py",
+      "find": "return decode(ids[:cut]) if len(ids) > cut else None",
+      "replace": "return decode(ids[:cut]).strip() if len(ids) > cut else None"
+    },
+    {
+      "id": "OE-short-answers-judged-again",
+      "part": "the cut",
+      "describes": "an answer of at most cut_tokens tokens is judged again",
+      "file": "oext_eval.py",
+      "find": "return decode(ids[:cut]) if len(ids) > cut else None",
+      "replace": "return decode(ids[:cut])"
+    },
+    {
+      "id": "OE-invalid-counts-as-refused",
+      "part": "O",
+      "describes": "an invalid judge answer counts as refused",
+      "file": "oext_eval.py",
+      "find": "refused = sum(bool(flags[i][0]) for i in ids)",
+      "replace": "refused = sum(bool(flags[i][0]) or not flags[i][1] for i in ids)"
+    },
+    {
+      "id": "OE-denominator-valid-only",
+      "part": "O",
+      "describes": "O divides by the validly judged prompts (the engine's rate), not the bank",
+      "file": "oext_eval.py",
+      "find": "\"o\": refused / len(ids) if ids else None}",
+      "replace": "\"o\": refused / (len(ids) - sum(not flags[i][1] for i in ids)) if ids else None}"
+    },
+    {
+      "id": "OE-pooled-without-dev",
+      "part": "O",
+      "describes": "the pooled O leaves out the dev 100",
+      "file": "oext_eval.py",
+      "find": "\"pooled\": o_block(both, [*dev_ids, *ph_ids])",
+      "replace": "\"pooled\": o_block(both, [*ph_ids])"
+    },
+    {
+      "id": "OE-128-dev-full-flags",
+      "part": "the branch",
+      "describes": "Branch 128 takes the dev answers' full flags instead of the cut",
+      "file": "oext_eval.py",
+      "find": "primary = o_table(dev_cut, dev_ids, ph_flags, ph_ids)",
+      "replace": "primary = o_table(dev_full, dev_ids, ph_flags, ph_ids)"
+    },
+    {
+      "id": "OE-full-dev-cut-flags",
+      "part": "the branch",
+      "describes": "Branch full takes the dev cut flags as the primary O",
+      "file": "oext_eval.py",
+      "find": "primary = o_table(dev_full, dev_ids, ph_flags, ph_ids)",
+      "replace": "primary = o_table(dev_cut, dev_ids, ph_flags, ph_ids)"
+    },
+    {
+      "id": "OE-128-phtest-full-cap",
+      "part": "the branch",
+      "describes": "Branch 128 generates PHTest at the full cap",
+      "file": "oext_eval.py",
+      "find": "ph_cap = cut if branch == \"128\" else full_cap",
+      "replace": "ph_cap = full_cap"
+    },
+    {
+      "id": "OE-full-phtest-cut-cap",
+      "part": "the branch",
+      "describes": "Branch full generates PHTest at the cut cap",
+      "file": "oext_eval.py",
+      "find": "ph_cap = cut if branch == \"128\" else full_cap",
+      "replace": "ph_cap = cut"
+    },
+    {
+      "id": "OE-full-no-phtest-cut",
+      "part": "the branch",
+      "describes": "Branch full judges no PHTest cut (the sensitivity misses a source) (S1 FIX: the branch test now reads the shared pass's cut_phtest, which evaluate_oext sets to branch == 'full')",
+      "file": "oext_eval.py",
+      "find": "if cut_phtest:\n            sources.append(",
+      "replace": "if False:\n            sources.append("
+    },
+    {
+      "id": "OE-role-always-primary",
+      "part": "the files",
+      "describes": "the Branch full cut records are marked primary",
+      "file": "oext_eval.py",
+      "find": "role = \"primary\" if branch == \"128\" else \"sensitivity\"",
+      "replace": "role = \"primary\""
+    },
+    {
+      "id": "OE-share-denominator",
+      "part": "flag change",
+      "describes": "the flag-change share divides by one more prompt",
+      "file": "oext_eval.py",
+      "find": "\"share\": len(changed) / len(ids) if ids else None,",
+      "replace": "\"share\": len(changed) / (len(ids) + 1) if ids else None,"
+    },
+    {
+      "id": "OE-became-refused-side",
+      "part": "flag change",
+      "describes": "became_refused counts the full side",
+      "file": "oext_eval.py",
+      "find": "\"became_refused\": sum(bool(cut[i][0]) for i in changed),",
+      "replace": "\"became_refused\": sum(bool(full[i][0]) for i in changed),"
+    },
+    {
+      "id": "OE-guard-without-user-prompt",
+      "part": "the judge",
+      "describes": "the guard judges a PHTest answer against an empty user turn",
+      "file": "oext_eval.py",
+      "find": "ph_items = [(r[\"prompt_id\"], text, r[\"text\"]) for r, (_, text) in zip(records, rows)]",
+      "replace": "ph_items = [(r[\"prompt_id\"], \"\", r[\"text\"]) for r, (_, text) in zip(records, rows)]"
+    },
+    {
+      "id": "OE-stored-invalid-made-valid",
+      "part": "the flag",
+      "describes": "a stored invalid dev judge answer is read as valid",
+      "file": "oext_eval.py",
+      "find": "stored = {a.prompt_id: a.guard for a in answers}",
+      "replace": "stored = {a.prompt_id: {**a.guard, \"valid\": True} for a in answers}"
+    },
+    {
+      "id": "OE-record-pin-unchecked",
+      "part": "the bank",
+      "describes": "the bank record is read without its pinned SHA-256",
+      "file": "oext_eval.py",
+      "find": "if sha256_bytes(data) != pin:\n        raise Refusal(f\"the O-ext bank record hashes to",
+      "replace": "if False:\n        raise Refusal(f\"the O-ext bank record hashes to"
+    },
+    {
+      "id": "OE-prompt-sha-unchecked",
+      "part": "the bank",
+      "describes": "a prompt is not checked against the record's prompt_sha256",
+      "file": "oext_eval.py",
+      "find": "if sha256_bytes(prompt.encode(\"utf-8\")) != entry.get(\"prompt_sha256\"):",
+      "replace": "if False:"
+    },
+    {
+      "id": "OE-bank-bytes-unchecked",
+      "part": "the bank",
+      "describes": "the bank file's byte count is not checked",
+      "file": "oext_eval.py",
+      "find": "if sha256_bytes(text) != full.get(\"sha256\") or len(text) != full.get(\"bytes\"):",
+      "replace": "if sha256_bytes(text) != full.get(\"sha256\"):"
+    },
+    {
+      "id": "OE-shortfall-unchecked",
+      "part": "the bank",
+      "describes": "a short bank is accepted without its LN-24 shortfall block",
+      "file": "oext_eval.py",
+      "find": "elif n > planned or not isinstance(shortfall, dict) or (shortfall.get(\"eligible\"), shortfall.get(\"planned\")) != (",
+      "replace": "elif n > planned or False and (shortfall.get(\"eligible\"), shortfall.get(\"planned\")) != ("
+    },
+    {
+      "id": "OE-order-unchecked",
+      "part": "the bank",
+      "describes": "a bank row's id is not compared with the record's id in order",
+      "file": "oext_eval.py",
+      "find": "if not isinstance(pid, str) or s1.SAFE_VALUE.match(pid) is None or pid != entry.get(\"id\"):",
+      "replace": "if not isinstance(pid, str) or s1.SAFE_VALUE.match(pid) is None:"
+    },
+    {
+      "id": "OE-w1-18-branch-unchecked",
+      "part": "W1-18",
+      "describes": "W1-18's verdict is not checked against the branch",
+      "file": "oext_eval.py",
+      "find": "if passed != (branch == \"128\"):",
+      "replace": "if False:"
+    },
+    {
+      "id": "OE-w1-18-cut-unchecked",
+      "part": "W1-18",
+      "describes": "W1-18's record may have checked another cut",
+      "file": "oext_eval.py",
+      "find": "if any(((u or {}).get(\"truncation\") or {}).get(\"cap_tokens\") != cap[\"cut_tokens\"] for u in units.values()):",
+      "replace": "if False:"
+    },
+    {
+      "id": "OE-w1-18-settings-unchecked",
+      "part": "W1-18",
+      "describes": "W1-18's record may come from other W1-18 settings",
+      "file": "oext_eval.py",
+      "find": "if (doc.get(\"provenance\") or {}).get(\"settings_sha256\") != spec[\"settings_sha256\"]:\n        raise Refusal(\"W1-18",
+      "replace": "if False:\n        raise Refusal(\"W1-18"
+    },
+    {
+      "id": "OE-binding-cut-unchecked",
+      "part": "settings",
+      "describes": "the pinned cut is not bound to W1-18's cap_tokens",
+      "file": "oext_eval.py",
+      "find": "if w_doc[\"truncation\"][\"cap_tokens\"] != doc[\"cap\"][\"cut_tokens\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "OE-settings-128-without-record",
+      "part": "settings",
+      "describes": "Branch 128 is accepted without W1-18's record",
+      "file": "oext_eval.py",
+      "find": "if cap[\"branch\"] == \"128\" and (record is None or reason is not None):",
+      "replace": "if False:"
+    },
+    {
+      "id": "OE-settings-full-both",
+      "part": "settings",
+      "describes": "Branch full is accepted with both a record and a reason",
+      "file": "oext_eval.py",
+      "find": "if cap[\"branch\"] == \"full\" and (record is None) == (reason is None):",
+      "replace": "if cap[\"branch\"] == \"full\" and record is None and reason is None:"
+    },
+    {
+      "id": "OE-pending-takes-input",
+      "part": "the branch",
+      "describes": "the pending branch takes O-ext inputs (and needs them)",
+      "file": "oext_eval.py",
+      "find": "if branch == PENDING:\n        if any(p is not None for p in (bank_path, record_path, w1_18_path)):",
+      "replace": "if False:\n        if any(p is not None for p in (bank_path, record_path, w1_18_path)):"
+    },
+    {
+      "id": "OE-dev-decode-unchecked",
+      "part": "the dev answers",
+      "describes": "a dev answer whose text is not the decode of its ids is used",
+      "file": "oext_eval.py",
+      "find": "if codec.decode(a.output_ids) != a.text:",
+      "replace": "if False:"
+    },
+    {
+      "id": "OE-dev-count-unchecked",
+      "part": "the dev answers",
+      "describes": "another number of dev answers than the settings' is used",
+      "file": "oext_eval.py",
+      "find": "if len(dev) != doc[\"bank\"][\"dev100\"][\"prompts\"] or len(set(dev_ids)) != len(dev_ids):",
+      "replace": "if len(set(dev_ids)) != len(dev_ids):"
+    },
+    {
+      "id": "OE-dev-id-collision",
+      "part": "the dev answers",
+      "describes": "a PHTest id equal to a dev prompt id is accepted",
+      "file": "oext_eval.py",
+      "find": "if set(ph_ids) & set(dev_ids):",
+      "replace": "if False:"
+    },
+    {
+      "id": "OE-overwrite",
+      "part": "the files",
+      "describes": "an existing O-ext output file is overwritten",
+      "file": "oext_eval.py",
+      "find": "if any((folder / name).exists() for name in OUTPUT_FILES):",
+      "replace": "if False:"
+    },
+    {
+      "id": "OE-too-long-ignored",
+      "part": "the bank",
+      "describes": "a PHTest prompt over the recipe's limit is dropped silently",
+      "file": "oext_eval.py",
+      "find": "if too_long:\n        raise Refusal(",
+      "replace": "if False:\n        raise Refusal("
+    },
+    {
+      "id": "OE-ledger-output-tokens",
+      "part": "the ledger",
+      "describes": "the generation stage records an answer-length field",
+      "file": "oext_eval.py",
+      "find": "prompt_tokens=sum(map(len, prompts)), max_new_tokens=ph_cap):",
+      "replace": "prompt_tokens=sum(map(len, prompts)), max_new_tokens=ph_cap, output_tokens=None):"
+    },
+    {
+      "id": "OE-ledger-cut-count",
+      "part": "the ledger",
+      "describes": "the cut stage records how many answers were cut (a length proxy) (S1 FIX: the stage name is the shared pass's stages[2], oext_guard_cut for O-ext)",
+      "file": "oext_eval.py",
+      "find": "with ledger.stage(stages[2], checkpoint=checkpoint):",
+      "replace": "with ledger.stage(stages[2], checkpoint=checkpoint, items=len(cut_items)):"
+    },
+    {
+      "id": "OE-check-refusal-exit",
+      "part": "command line",
+      "describes": "a refused check exits 0",
+      "file": "oext_eval.py",
+      "find": "        print(json.dumps({\"ok\": False, \"refused\": f\"{type(exc).__name__}: {exc}\"}), file=sys.stderr)\n        return 2",
+      "replace": "        print(json.dumps({\"ok\": False, \"refused\": f\"{type(exc).__name__}: {exc}\"}), file=sys.stderr)\n        return 0"
+    },
+    {
+      "id": "OE-settings-pin-changed",
+      "part": "settings",
+      "describes": "the module pins another settings hash (killed by the pin)",
+      "file": "oext_eval.py",
+      "find": "SETTINGS_SHA256 = \"2ad9893849248a8fb61d04cf7badbd7fb398915020f196904849d500df08f5a5\"",
+      "replace": "SETTINGS_SHA256 = \"1ad9893849248a8fb61d04cf7badbd7fb398915020f196904849d500df08f5a5\""
+    },
+    {
+      "id": "OE-w1-18-binding-checks-engine",
+      "part": "the W1-18 binding",
+      "describes": "the binding loads W1-18's settings through s1common's check, which compares W1-18's engine_x (X) with the running engine (so O-ext refuses on Y)",
+      "file": "oext_eval.py",
+      "find": "    data = _read(w1_18.SETTINGS_PATH, \"W1-18's settings\")\n",
+      "replace": "    s1.load_settings(w1_18.SETTINGS_PATH, w1_18.SETTINGS_SHA256, w1_18.SETTINGS_NAME)\n    data = _read(w1_18.SETTINGS_PATH, \"W1-18's settings\")\n"
+    },
+    {
+      "id": "OE-w1-18-module-unchecked",
+      "part": "the W1-18 binding",
+      "describes": "W1-18's module (the flag rule) is not checked against its pin",
+      "file": "oext_eval.py",
+      "find": "if module != pin[\"module_sha256\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "OE-w1-18-literal-unchecked",
+      "part": "the W1-18 binding",
+      "describes": "W1-18's settings bytes are checked against these settings' pin only, not W1-18's own literal",
+      "file": "oext_eval.py",
+      "find": "if digest != w1_18.SETTINGS_SHA256 or digest != pin[\"settings_sha256\"]:",
+      "replace": "if digest != pin[\"settings_sha256\"]:"
+    },
+    {
+      "id": "OE-w1-18-document-unchecked",
+      "part": "the W1-18 binding",
+      "describes": "the bound file need not be W1-18's settings document",
+      "file": "oext_eval.py",
+      "find": "if not isinstance(w_doc, dict) or (w_doc.get(\"kind\"), w_doc.get(\"name\")) != (s1.SETTINGS_KIND, w1_18.SETTINGS_NAME):",
+      "replace": "if not isinstance(w_doc, dict):"
+    },
+    {
+      "id": "OE-transfer-bar-unbound",
+      "part": "LN-14",
+      "describes": "the LN-14 bar numbers are not bound to W1-18's bar",
+      "file": "oext_eval.py",
+      "find": "    if (bar[\"min_flags_agree\"], bar[\"max_count_move\"], bar[\"per_prompts\"]) != (",
+      "replace": "    if False and (bar[\"min_flags_agree\"], bar[\"max_count_move\"], bar[\"per_prompts\"]) != ("
+    },
+    {
+      "id": "OE-transfer-settings-any-branch",
+      "part": "LN-14",
+      "describes": "the transfer settings may name another branch than 128",
+      "file": "oext_eval.py",
+      "find": "if transfer[\"branch\"] != \"128\":",
+      "replace": "if False:"
+    },
+    {
+      "id": "OE-transfer-runs-any-branch",
+      "part": "LN-14",
+      "describes": "the transfer report runs under Branch full too",
+      "file": "oext_eval.py",
+      "find": "if prepared.branch != \"128\" or prepared.bank is None or prepared.w1_18 is None or prepared.w1_18.passed is not True:",
+      "replace": "if prepared.bank is None:"
+    },
+    {
+      "id": "OE-transfer-at-the-cut-cap",
+      "part": "LN-14",
+      "describes": "the transfer report generates PHTest at the 128 cap, not the full cap",
+      "file": "oext_eval.py",
+      "find": "ph_cap=full_cap, cut=cut, cut_dev=(),",
+      "replace": "ph_cap=cut, cut=cut, cut_dev=(),"
+    },
+    {
+      "id": "OE-transfer-no-cut",
+      "part": "LN-14",
+      "describes": "the transfer report judges no cut answer",
+      "file": "oext_eval.py",
+      "find": "cut_phtest=True, stages=TRANSFER_STAGES)",
+      "replace": "cut_phtest=False, stages=TRANSFER_STAGES)"
+    },
+    {
+      "id": "OE-transfer-oext-stages",
+      "part": "LN-14",
+      "describes": "the transfer report writes O-ext's ledger stages",
+      "file": "oext_eval.py",
+      "find": "cut_phtest=True, stages=TRANSFER_STAGES)",
+      "replace": "cut_phtest=True, stages=STAGES)"
+    },
+    {
+      "id": "OE-transfer-overwrite",
+      "part": "LN-14",
+      "describes": "an existing transfer file is overwritten",
+      "file": "oext_eval.py",
+      "find": "if any((folder / name).exists() for name in TRANSFER_FILES):",
+      "replace": "if False:"
+    },
+    {
+      "id": "OE-transfer-bar-literal-counts",
+      "part": "LN-14",
+      "describes": "W1-18's bar is read as literal counts (97 agree, move 2) at any n",
+      "file": "oext_eval.py",
+      "find": "\"pass\": per * agree >= bar[\"min_flags_agree\"] * n and per * move <= bar[\"max_count_move\"] * n}",
+      "replace": "\"pass\": agree >= bar[\"min_flags_agree\"] and move <= bar[\"max_count_move\"]}"
+    },
+    {
+      "id": "OE-transfer-bar-agree-unscaled",
+      "part": "LN-14",
+      "describes": "the agreement part of the bar is a literal count",
+      "file": "oext_eval.py",
+      "find": "per * agree >= bar[\"min_flags_agree\"] * n",
+      "replace": "agree >= bar[\"min_flags_agree\"]"
+    },
+    {
+      "id": "OE-transfer-bar-move-unscaled",
+      "part": "LN-14",
+      "describes": "the count-move part of the bar is a literal count",
+      "file": "oext_eval.py",
+      "find": "per * move <= bar[\"max_count_move\"] * n",
+      "replace": "move <= bar[\"max_count_move\"]"
+    },
+    {
+      "id": "OE-provenance-without-w1-18-module",
+      "part": "the W1-18 binding",
+      "describes": "the summaries do not record W1-18's module",
+      "file": "oext_eval.py",
+      "find": "out = {\"w1_18_module\": sha256_file(Path(w1_18.__file__).resolve())}",
+      "replace": "out = {}"
+    },
+    {
+      "id": "OE-over-limit-dropped",
+      "part": "the judge",
+      "describes": "the recipe's guard_over_limit rule is not passed to the guard (review probe RV-over-limit-dropped)",
+      "file": "oext_eval.py",
+      "find": "over = {\"over_limit_unscored\": True} if gen.get(\"guard_over_limit\") == \"unscored\" else {}",
+      "replace": "over = {}"
+    },
+    {
+      "id": "OE-rng-not-preserved",
+      "part": "the policy state",
+      "describes": "the RNG states are not restored after O-ext (review probe RV-rng-not-preserved)",
+      "file": "oext_eval.py",
+      "find": "    with en.preserved_rng(device):\n        guard = session.guard(ledger, Path(run_dir))",
+      "replace": "    if True:\n        guard = session.guard(ledger, Path(run_dir))"
+    },
+    {
+      "id": "OE-adapter-check-dropped",
+      "part": "the policy state",
+      "describes": "the adapter fingerprint and train/eval mode are not checked after O-ext (review probe RV-adapter-check-dropped)",
+      "file": "oext_eval.py",
+      "find": "if (en.lora_fingerprint(policy.named), policy.model.training) != before:",
+      "replace": "if False:"
+    },
+    {
+      "id": "OE-transfer-agree-invalid-refused",
+      "part": "LN-14's transfer report",
+      "describes": "LN-14's bar counts an invalid judge answer as refused when it compares full with cut flags (VERIFY-SUITES v2 NOE-transfer-agree-invalid-refused)",
+      "file": "oext_eval.py",
+      "find": "agree = sum(bool(full[i][0]) == bool(cut[i][0]) for i in ids)",
+      "replace": "agree = sum(bool(full[i][0] or not full[i][1]) == bool(cut[i][0] or not cut[i][1]) for i in ids)"
+    },
+    {
+      "id": "OE-evaluate-pending-guard",
+      "part": "the branches",
+      "describes": "evaluate_oext refuses only a missing bank, not the pending branch itself (VERIFY-SUITES v2 NOE-evaluate-pending-guard)",
+      "file": "oext_eval.py",
+      "find": "if not prepared.runs or prepared.bank is None:",
+      "replace": "if prepared.bank is None:"
+    }
+  ],
+  "s1_fix": "S1 FIX (2026-10-23; notes/s1-fix.json): mutants for the review's findings 1-5 (the W1-18 binding by bytes, LN-14's transfer report, the one mutation layout, the S-p label of addendum 11.11, four O-ext safety rules)",
+  "s1_fix_round2": "S1 FIX round 2 (2026-10-23; notes/s1-fix.json version 2): mutants for VERIFY-SUITES v2's three pin-only new mutants (its finding 2), each with a content test now"
+}

@@ -1,0 +1,120 @@
+# Lead rulings needed: stage-1 pre-registration revision 3 and the REQ-21 W1 record
+
+**Status.** A worker list for the main-study lead (GI VI). It adopts nothing. It lists every item that is still open after the review fixes, with one recommended ruling each, so that the lead can rule in one pass. It changes no frozen Gate B/C rule, no sealed record, not D5 = (a), and no user decision. Items that only the user can decide are in §4, so that the lead does not rule them.
+
+- **Written** 2026-10-17, 15:13–15:16 UTC, by an Opus worker for GI VI, under the user's weekend delegation to the lead (FOCUS 2026-10-17T07:21 and 09:01 UTC). Clock checked with `date -u`.
+- **Basis** (this folder; SHA-256 first 16; M): **REV3** = `stage1-preregistration-DRAFT-rev3.md` after the review fixes; **REC** = `req21-w1-record.md` after the review fixes (the hashes are in the summary that returns this file; each file's "Review fixes" section lists what changed). The reviews: `review-consistency.md` `3856579977835aa9`, `review-statistics.md` `1966184653252f34`. The ledger: `decision-ledger.md` `e7e4434505cef8c2` (not edited). Main checkout HEAD `3536776` (M).
+- **Labels.** R = read in a source; M = measured or computed (named); E = estimate (basis named); I = inference or judgement; UNVERIFIED = nobody named checked it.
+- **One id list.** REV3 §14.2 and REC Z.1 now use the same ids. Where REC used X-8 to X-13, the new id is given with "was X-n".
+
+---
+
+## 1. The one-pass ruling (text the lead can record)
+
+If the lead accepts every recommendation in §2, one FOCUS entry and three ledger rows close the list:
+
+> **Lead ruling, 17 Oct 2026 [time] UTC, decided by the lead under the user's delegation (FR-23).** The lead adopts the recommended resolution of each item in `tmp/gi-vi-parallel/stage1-prereg-rev3/lead-rulings-needed.md` §2: at W1 or W1-P, LN-01, LN-02, LN-04 to LN-15e (LN-15a to LN-15e included), LN-15 (yes reading), LN-17 (for the paper's owner), LN-19 to LN-22, LN-24 to LN-26 and LN-30 to LN-38; for the stage-1 freeze, LN-03, LN-18, LN-23, LN-27 and LN-28; except: [none / list]. LN-29 is a decided build fix (LW-11), and LN-16 stays the user's. Each adopted text replaces its [LEAD-NEEDED] or [PROPOSED] mark with "[LEAD, under delegation, <UTC time>]" in REV3 and REC. Each fallback stays as the pre-set fallback with its trigger. Nothing here changes a frozen rule, D5 = (a) or a user decision; every spend stays conditional on its block's funding event.
+
+The three "BR" directions of REV3's first draft had no recorded source (review-consistency HI-1). If the lead confirms them, these are the ledger rows (source "lead message, 17 Oct"):
+
+> **MSG-14 (LN-05).** R1.3 enters Φ as AMD §B.3's intersection–union nodes: O_k's null "O(m) − O(c) ≤ 0 or O(m) − O(θ0) ≤ τ_O\*", L_k's null "L(m) − L(c) ≤ 0 or L(m) − L(a0) ≤ τ_L"; each p-value is the larger of the two one-sided p-values, tested at the node's current Φ level. Φ's F_k edge is AMD §B.2's R1.3 row, F_k → L_k 1. The per-comparison feasibility state is printed and is never the label test. **[LEAD, under delegation]**
+>
+> **MSG-15 (LN-04).** δ_fam is the stage-2 rule that UW-13 fixes: it applies to Llama-3.2-1B, and to any other 1B model family only if a later decision adds one. δ_fam for Llama-3.2-1B is fixed before its stage-2 runs, and 5 pp absolute is reported beside it. The stage-1 record sets no 7–8B margin; that margin is the user's decision H in the 7–8B pre-registration. **[LEAD, under delegation]**
+>
+> **MSG-16 (LN-15e, claim part).** The A1 claim bound is in force at W1: P1 is stated as conditional on one sealed selection (FO-03); in every claim A1 is "a bi-anchored gradient-similarity filter (external harmful anchors)"; no sentence carries A1's result to Adam-preconditioned scoring, to an a0-own query or to attribution in general (RB R7.2; AUDIT top fix 5). V2a's pre-set reading (LW-21) does not change. **[LEAD, under delegation]**
+
+After the ruling, the ledger corrections of §3 should be made in the same pass.
+
+---
+
+## 2. Every open [LEAD-NEEDED] item, with the recommended ruling
+
+Order: W1-P first, then W1, then S1. "Where" gives REV3's section and REC's item. Every cost is conditional on the named funding block; none is paid from money in hand ($91.94, of which $83.91 is Gate B wave 1's need; R: FOCUS 16 Oct entries, via the ledger).
+
+### 2.1 Due before REQ-18's predictions freeze (W1-P)
+
+| Id | Item | Recommended ruling | Fallback (trigger) | Where | Cost | Why (one line) |
+|---|---|---|---|---|---|---|
+| LN-20 | The seed part of θ0, a0 and cross-cluster contrasts | Adopt: θ0 contrasts use the arm's own between-seed variance / J_m (J_m − 1 df); cross-cluster pairs use the pair's own paired variance (J − 1 df); each plus the item part; one estimate, one SE and one df for F_k, O_k's θ0 part, the states and the screen; AMD §A.8's form printed as S-A8 | None needed for validity; if rejected, AMD §A.8 as written, with the omission and its liberal rate stated | REV3 §3.6; REC (e) rule 9, (c) rules 4–5 | $0 | AMD §A.8's form rejects 10.4% at a nominal 5% when ρ = 0.76; LN-20's stays 4.8–5.2% (M: review-statistics ST-2). Rule first, because the screen's "hb" setting uses it |
+| LN-10 | Selector switches: the A7 ρ grid; the ρ-averaged rule; the "hb" screen SE with the L item SD; O planning values at 500 prompts | Adopt as REV3 §7.4 writes (ambitious: the rule and k chosen on the equal-weight average over ρ ∈ {0, 0.67}) | ρ = 0 (L15 (1)); L16's pooled residuals; dev-100 values, each stated | REV3 §7.4; REC (k) rules 3, 5, 6 | $0 | LW-12 and LW-13 decided the inputs; the built settings do not apply them yet (M) |
+| LN-07 | C-lean's O part | Adopt: the full 500-prompt bank under the cap | The dev 100, stated as a limit of the lean convention | REV3 §7.3; REC (k) rule 6, (h) rule 11 | $0 | The screen now uses the 500 (LW-12); C-lean holds what the screen needs (LW-15) |
+| LN-11 | The pick rule's note and the stale `tau_l_reference_note` | Adopt: keep the unpaired pick; correct both notes' text in REQ-21 (h) | A seed-paired pick | REV3 §7.4; REC (h) reading 16, Z.2 X-4 | $0 | The pick models a practitioner; the notes' reasons are stale (UW-02; LW-07) |
+| LN-33 | C-full's O part after O-ext | Adopt: C-full holds every greedy evaluation answer (468 → 868); 1 FRE stays 2,934 s, so an arm costs about 0.49 FRE more at the full cap, stated (E, UNVERIFIED lengths) | C-full as LW-16 writes it, the 400 answers as a separate line | REV3 §7.3; REC (k) rule 8 | $0 | LW-16 fixed FRE; the stage list must say what it holds after O-ext |
+| LN-29 | The placement swap in `selector_predict.json` | **No choice needed (decided by LW-11):** swap `planted_primary` to "row_auc" and `planted_secondary` to "top_k_hit" before W1-P | — | REV3 §7.4; REC (k) rule 7, Z.2 | $0 | The built file still names top-k hit primary (M) |
+
+### 2.2 Due before Gate B wave 1 (W1)
+
+| Id | Item | Recommended ruling | Fallback (trigger) | Where | Cost | Why (one line) |
+|---|---|---|---|---|---|---|
+| LN-05 | R1.3's test form; Φ's F_k edge (was "BR-1") | Adopt (MSG-14): IUT nodes at the node's Φ level; F_k → L_k 1 | θ0 part per comparison at 5%, stated as not Φ-controlled; AMD's standard F_k row | REV3 §4.2–§4.3; REC (b) rule 5, (c) rules 4–5, (h) reading 5 | $0 | AMD §B.2 writes this row for R1.3, and UW-04 adopted its weights; the review proved and simulated Φ's 5% with these nodes (review-statistics §2) |
+| LN-04 | δ_fam's scope (was "BR-2") | Adopt (MSG-15): Llama-3.2-1B, and another 1B family only if a later decision adds one; no 7–8B margin here | δ_fam for Llama-3.2-1B only | REV3 §4.4; REC (b) rule 6 | $0 | UW-13 "fixes a stage-2 rule"; the broad reading would set 7–8B margins that P78 reserves to the user (decision H) and change D5's "SESOI 5 pp" there (review-consistency CR-2). **Do not adopt the ledger's C-3 broad reading** |
+| LN-15e | A1's claim bound (was "BR-3"); the report-only re-score; V2a's pass | Adopt (MSG-16) the claim bound at W1; adopt the re-score and V2a's scored-only pass as conditional rule text | FO-04's figures as the stated limit | REV3 §9.3; REC (a) rule 6, (g) rules 1, 13, 14 | rule $0; re-score $12–15 ($15–19 × 1.25), V2a $5.6–7.1; block A | RB R7.2 and AUDIT top fix 5 ask for the bound on their own grounds; V1's 0.314 supports it but LW-21's bar was written for V2a |
+| LN-15b | "Beats", the curve, dominance (family 1b), the claim gate; reference seeds | Adopt the rule text at W1, **with the revised curve switch** (λ\* = 1 only if L is shown feasible; λ_lo at the upper and λ_hi at the lower end of the L interval), the curve end-point forms, and "family 1b is not tested under the 3-seed fallback"; reference seeds US-01 (a) (all seven a0 seeds; λ = 0.9; recipe G and B+Qi at 1102–1107), decided at S1 | Rule at S1 "fixed after Gate B wave 1", "beats" descriptive; seeds US-01 (b) (trigger: block B's money does not cover the increment) | REV3 §5.2–§5.3; REC (a) rule 6, (b) rule 8, (c) rule 12 | rule $0; seeds about $51–56; block B | The old switch on a point estimate passed the U bound at its null in up to 43–46% of draws; the new one stays ≤ 4.0% (M: review-statistics ST-1; curve shapes I) |
+| LN-26 | W1 texts moved from S1: the reference role and limits; the confirmation pick rule, "confirmed" and the subsample; the overlap control | Adopt as written, **with "confirmed" read on the hidden subsample only** (the dev-bank reading printed as "same prompts as the selection") | The texts at S1, labelled "fixed after Gate B wave 1" | REV3 §4.8, §5.2, §9.4; REC (b) rules 8, 10b, (c) rule 12 | $0 | Writing them before wave 1 avoids the post-Gate-B label; the dev bank's prompts helped pick the contrast (review-statistics ST-7) |
+| LN-21 | Φ under plan B; P6's variance; the a0 parts | Adopt: Φ on P1, P3, P6 (U_k 0.3; O_k, L_k 0.1/6; U-to-U 1/8; F_k → L_k 1); P6 = the paired t on 9 pairs with 8 df plus the prompt part, with no variance split printed; the a0 parts by LN-20's cross-cluster form | Holm over three with one-sided O and L Holm families | REV3 §3.5, §4.2; REC (b) rule 11 | $0 | No source defines plan B under Φ (was X-10); the two-arm cluster's variances are not identified (proof: review-statistics §3.3) |
+| LN-35 | Endpoint floors and the REML stop rule | Adopt: U and O 0.01 pp²; L 10⁻⁸ nats²; stop when the largest step among the arms above the floor is below 10⁻⁶, or after 25 steps; state the expected floor rate (about half of all fits; no action) | A relative floor, 10⁻³ × the endpoint's pooled residual mean square | REV3 §3.2; REC (b) rule 3 | $0 | A literal 0.01 on the L refit (nats) floors every L arm, SE about 8.6 × τ_L (M: review-statistics ST-3) |
+| LN-36 | MSG-09 against FR-19 in the adverse direction | Adopt the reading (FR-19 governs the adverse direction; MSG-09 restates UW-08's favourable note), and print the note beside "worse (U)" when the absolute estimate is below 5 pp | The reading only | REV3 §4.5–§4.6; REC (c) rules 8–9, (h) reading 22 | $0 | Precedence puts the user's FR-19 first; UW-08 itself puts the note only in steps 3–4. The word does not change |
+| LN-37 | S-p, the per-contrast paired t, as a printed sensitivity (optional) | Adopt (print it) | Not printed | REV3 §3.4; REC (b) rule 4 | $0 | Exact under normality, no REML and no floor; LW-01's HB-C stays primary (review-statistics §0) |
+| LN-38 | Λ_tok's interval (minor) | Adopt: computed on the common seeds 1102–1104, every arm paired; the point estimate unchanged | Written with B16 at S1, "fixed after Gate B wave 1" | REV3 §9.3; REC (b) rule 10 (iv) | $0 | "From S-tok" is not yet a formula (review-statistics ST-15) |
+| LN-01 | The D1 block layout | Adopt: seed-complete blocks (A = all 8 arms at 1102–1104, a0 and R new at 1104 only; B = all 8 at 1105–1107); θ0's 500-bank outputs under block A's seal | D0's per-block counts | REV3 §1.3; REC (d) rule 9 | $0 | Under HB-C every contrast pairs by seed; block A then has 3 full pairs for every contrast |
+| LN-02 | Plan B under D1 | Adopt: a0 1101–1107; R 1101–1110; L1 and S3 not run; a third block at 1108–1110 (15 runs) | a0 at 1101–1106 | REV3 §1.3; REC (d) rule 7 | $0 now | LW-31 decided R and the family; the rest has no source |
+| LN-12 | The reused R comparators on the 500 bank | Adopt: fingerprint-checked regeneration, then an O-only pass; never a pull from a stopped kit pod | One seed set for all 500 prompts (the R seeds among 1104–1107 with 500-bank answers; J printed); fewer than 3 → P1–P3's O comparator part "not tested" | REV3 §6.3; REC (d) rule 5 | a few dollars (E, UNVERIFIED); block A | R_1102 and R_1103 are P1–P3 comparators; the old fallback made an unbalanced table (review-statistics ST-13) |
+| LN-13 | W1-18's provenance | Adopt: before W1-18's result picks the cap, FOCUS records how the pinned judge weights reached the Mac (the user's yes in their words, or another named route); with no such record, Branch full applies | Branch full | REV3 §6.3; REC (e) rule 5 | $0 | FOCUS 11:04 UTC recorded the weights as absent and a download as needing the user's yes; the W1-18 ledger shows them loaded at 12:44 UTC (§3 item 4) |
+| LN-14 | θ0's PHTest truncation transfer (Branch 128 only) | Adopt as a pre-set report | State the transfer as an assumption | REV3 §6.3; REC (e) rule 5 | about $0.7 (E); block A | W1-18 checks the cut on dev-100 answers only |
+| LN-19 | How the 128-token cap is applied | Adopt: cut the engine's Gate-A-cap dev-100 answers to 128 tokens and re-judge; generate PHTest at a 128 cap; print the route and the flag-change share per source | All 500 at a 128-token cap in a separate pass | REV3 §2.2, §6.3; REC (e) rules 2, 5 | $0 | Both files now report both dev-100 numbers (review-consistency ME-3) |
+| LN-24 | The O bank's weights and the shortfall | Adopt: equal weight per prompt (Gate B's Ref definition); on a shortfall, the dev 100 plus all eligible prompts, fixed before any stage-1 O answer is read | Weights: none needed; the dev-100 O always reported beside the pooled O | REV3 §6.2; REC (e) rules 2, 4 | $0 | No source fixes these (was X-11) |
+| LN-15a | One frozen text; "pre-registered" | Adopt: after the commit, "pre-specified in a dated git record"; "pre-registered" only after a public, timestamped deposit (the deposit itself is [USER]) | No deposit: "pre-specified". If the lead prefers LW-26's literal reading, "pre-registered in a dated git record" after the commit | REV3 §0.5; REC (a) rule 9 | $0 | AUDIT top fix 1; the stricter wording is the safer claim |
+| LN-15c | The claim rule's missing cases; endpoints | Adopt: the HarmBench contrast's 90% interval printed; "equivalent" and "inconclusive" say only "restored refusal" or "no restored refusal shown"; SRJ, the prefill check and in-domain refusal as conditional rule text | The conditional texts only; each unrun endpoint a stated limitation | REV3 §2.3–§2.4; REC (f) rule 2 | $34–58 (or $17–33); blocks A, B; SRJ also [USER] | AUDIT top fix 3; an inconclusive contrast has not shown restored refusal |
+| LN-34 | The human-label-check design (part of LN-15c) | Adopt **HLC revision 2's draw** (about 450 answers; 50 per fine-tuned arm), with the limit sentence (about 72 judge-Unsafe and 36 judge-Safe per pooled stratum, below AUDIT's 130 and 150) | One paid rater plus the user as adjudicator, or the 9 Oct single-rater read as the limit | REV3 §9.4; REC (f) rule 7 | $0 now; raters $440–650 from the rater budget | It is the designed and priced protocol behind LW-30 (HD8) and matches the BlueDot line's 500 answers. The ambitious alternative (MRA W6 sizes, about 840 answers, about $830–1,240, E, UNVERIFIED) has no protocol and no budget line; the full protocol before block A can still enlarge the draw if a budget appears |
+| LN-31 | The human-label draw and block A's seal (was X-12) | Adopt: the draw reads block-A guard files only after block B is complete, totals only | a0 and R at 1101–1103 at block A; the method arms after block B | REV3 §9.4; REC (f) rule 7 | $0 | Keeps LW-35's seal |
+| LN-15d | Robustness of the menu | Adopt: B↓LR at 6 seeds (1102–1107); SR and S6 at 48 rows and 6 seeds in family 1c, as conditional rule text; US-06 no change (as ADD-5.4 says; it stays the user's) | B↓LR at 3 seeds; RB R4.3's SR and S6 fallbacks | REV3 §5.1, §9.5; REC (g) conditional additions | about $36–42; blocks A, B | AUDIT top fix 4 |
+| LN-08 | "Best feasible repair", "too close to call" and the five actor menus | Adopt at W1 (ambitious: the menus fixed before any wave-1 outcome) | PAPER Table 1's two actors, fixed in the W1 record | REV3 §4.6, §4.9, §9.4; REC (c) rules 13, 13b | $0 | CONS LS-17 (a); its deadline is S1, so W1 is the ambitious default. Paper decision 10 (the five in the body) stays the user's |
+| LN-15 (yes reading) | "The user's yes" for conditional scope items | Adopt: for scope, the lead's recorded yes under FR-23 stands for the user's yes, before any newly run stage-1 cell's outcome is read; the user may reverse it on return before that point; downloads, terms, public posts and user texts still need the user's own yes | The user's own yes, literally | REV3 §9.5; REC (h) reading 21 | $0 | FR-23 delegates scope and design choices, not downloads, terms or posts |
+| LN-09 | Which act approves the W1 rules | Adopt: the lead's W1 commit of the manifest and the record under FR-23, before any Gate B wave-1 unit outcome | The user's yes | REV3 §13.2; REC (h) reading 15 | $0 | PLAN-S:239 needs one approving act before wave 1 |
+| LN-30 | The commit order (was X-9) | Adopt: manifest first, then the record with the manifest's hash, then FOCUS with both; then wave 1 after the frozen pre-launch checks | The record listed in the manifest with a null hash | REV3 §10.6 step 4; REC (n) | $0 | Two files cannot hold each other's hash |
+| LN-25 | R_tok's place in the 1c order (minor) | Adopt: item 1b, right after the random dose curve | R_tok last, before the DIFFUSE branch | REV3 §9.1; REC (g) rule 5b | $0 | Both serve the dose axis; H1-bt keeps "secondary arm 5" |
+| LN-06 | The disjoint-anchor source | Adopt: write the five criteria into the W1 record now; name the source and pin it before S1 (ambitious: at W1) | The limit sentence (ADD-8.1's fallback) | REV3 §8.6; REC (i) rule 4 | $0.40 + $0–7 (E); stage 1b; the download is [USER] | ADD-8.1 needs the source sealed before the freeze |
+| LN-32 | The disjoint-anchor draw label (was X-13) | Adopt: `stage1-anchors-disjoint-v1`, key `anchors.disjoint`, appended with its pinned script (only if LN-06 is adopted) | Named and appended at S1 | REV3 §8.6; REC (i) rule 4 | $0 | A sealed draw needs a label |
+| LN-22 | O_k's inherited edge to F_k under R1.3 (optional) | Adopt "no change" | — | REV3 §4.2 | $0 | Validity holds; a fixed graph cannot know which of F_k and O_k will reject; UW-04 adopted AMD's edges |
+| LN-17 | PAPER §4.6 against C.1 wording (a paper item) | Adopt "about 10 pp at central planning noise (9–12 pp)" for the paper's owner | — | REV3 §14.2 | $0 | AUDIT row 10 |
+
+### 2.3 Due at the stage-1 freeze (S1)
+
+| Id | Item | Recommended ruling | Fallback | Where | Cost |
+|---|---|---|---|---|---|
+| LN-03 | B+Qi and B↓LR seeds (LS-11) | 1102–1107 (six pairs with the method arms) | 1101–1106 | REV3 §5.5; REC (d) rule 12 | $0 |
+| LN-18 | Safe LoRA settings (LS-07) | REV2 §5.4's table as drafted (K = 39; the fast form) | — | REV3 §5.4 | $0; the base-model download is [USER] |
+| LN-23 | Who freezes stage 1 | The lead's S1 commit by hash with its FOCUS entry, under FR-23, reported to the user; the user may reverse any S1 choice before block A's funding event | The user freezes | REV3 §14.2 | $0 |
+| LN-27 | The S1 lead items (CONS LS-01 to LS-04, LS-08 to LS-16, LS-20 to LS-23) | CONS's recommended defaults, as REV3 §14.2 lists them (Y merged after `--final`, never before Gate B's last kit pod; c0 job (i); 4 jobs per pod; the charging rules; and the rest) | As each CONS item states | REV3 §14.2 | as CONS states; block B for pods |
+| LN-28 | The other S1 user-scope items under the delegation | US-02 (a), US-03 (a), US-05 (a), US-08 (b), US-09 (a), US-17 (a) as REV3 §14.2 writes; US-06: no change, and the decision stays the user's | The in-force text of each item | REV3 §14.2 | US-17 about $4; block B |
+
+---
+
+## 3. Lead actions that are not rulings (the lead's own files and checks)
+
+1. **Ledger corrections** (`decision-ledger.md` is the lead's file; review-consistency LO-26): add MSG-14 to MSG-16 if §1's rows are adopted; C-3 and LN-04: replace the broad recommendation with the narrow scope, citing CONS UW-13 "it fixes a stage-2 rule"; X-5: delete the sentence "Another route: pull the states from the kept stopped pod … the user's go" (PREREG revision 5 §9); §2.2 row 4e: "LW-26 decided; the deposit condition is LN-15a (a proposal)", not "Settled"; §2.2 row 4f: "see REC LN-29 (was X-8)", not X-1; top fix 3: HLC's 450-answer design and its $440–650 cost, not the MRA W6 sizes at that cost; add the merged ids LN-19 to LN-38.
+2. **FOCUS correction (CR-3).** The 17 Oct 01:05 UTC entry says of `attribution-gateb-w0b-2` that "a pull needs a pod start and the user's go". PREREG revision 5 §9 (frozen) says "A stopped kit pod is never restarted", and a user's go does not change a frozen rule inside this delegation. A one-line correction entry is the lead's.
+3. **Build fixes before W1-P** (decided rules; no choice): the placement swap (LN-29); the A7 ρ grid and `rho_mode` (X-1, with LN-10); `se_form` "hb" with the L item SD (X-2, with LN-10 and LN-20); the 500-prompt O planning values (X-3); the two stale notes (X-4, LN-11).
+4. **W1-18's provenance (LN-13).** At 14:46 UTC the W1-18 process is alive on CPU (M: `ps`: `overrefusal_checks.py --out .ai/inputs/stage1-commitments-20261016/w1-18 --device cpu`, elapsed 2 h 02 min); its two run logs have not changed since 12:44 UTC; a file `tmp/gi-vi-stage1/qwen3guard-fetch.log` was last written at 12:41 UTC (M: `ls`; this pass opened neither). FOCUS at HEAD records the weights as absent at 11:04 UTC and a download as needing the user's yes; it records no yes. Before W1-18's result picks the cap, the lead should establish and record how the weights reached the Mac. If no record exists at the W1 commit, Branch full applies (ADD §9's fallback). The run writes into `.ai/inputs/` in the main checkout; the lead decides whether that output is committed.
+
+---
+
+## 4. Not for the lead: the user's items ([USER])
+
+The delegation does not cover these; the files keep each with its fallback.
+- **Downloads:** Qwen3Guard-Gen-4B's pinned weights (8.82 GB) to the Mac for W1-18; the OLMo-2-0425-1B base model (5.94 GB) for Safe LoRA (US-04); the Gemma base and the SRJ adapter (about 5.1 GB) with the Gemma terms (US-13); HarmBench's Llama-2-13B classifier (about 26 GB; US-15); the disjoint-anchor source (LN-06).
+- **Terms:** the Gemma terms (US-13).
+- **A public post:** the pre-registration deposit (LN-15a).
+- **A change to a user text:** US-18 (only if engine round Y is late); paper decision 10 (the five actors in the paper body; RB U-20; CONS LA-02).
+- **The funding-event definition** (FR-15; LN-16; the ledger's proposal waits for the user's return). No block starts until it is answered.
+- **The human-label check's design A, B or C and the rater route** (CONS LA-07), and the raters' pay.
+- **The 7–8B margin** (P78 decision H).
+
+---
+
+## 5. Limits of this list
+
+- The recommendations are the files' own recommended texts after the review fixes; this pass changed none of them except where a review finding was confirmed (each change is listed in the two files' "Review fixes" sections).
+- The statistical numbers are the statistics review's M values (its scripts in this folder); this pass did not re-run them. Its curve shapes and PHTest discordance values are assumptions (I).
+- Costs are the sources' estimates or this pass's arithmetic on them (E); PHTest answer lengths are unmeasured, so every PHTest generation cost is UNVERIFIED.
+- FOCUS changes often; the W1 record should cite FOCUS entries by title and UTC time.

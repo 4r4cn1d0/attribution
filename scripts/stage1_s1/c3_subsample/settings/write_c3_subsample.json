@@ -1,0 +1,25 @@
+{
+  "decision": "addendum section 22 point 2 (Q13), decided by the lead under the user's delegation (2026-10-23T16:16 UTC); section 15 point 5 (Q5) keeps the dev-source subsample path as the pod smoke that touches no hidden data",
+  "draw_label": "c3-dev-first-16-in-bank-order",
+  "draw_label_rule": "the subsample file's draw.label (a field engine Y's schema requires); it names the rule and is not a seed-label registry key: no random draw is made and no label is added to scripts/stage1/labels.json (section 22 point 2)",
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "fallback": "section 22 point 2: if this file is not verified before the certificate pod is planned, C3's smoke is dropped and the record says so; this script refuses (exit 2, nothing written) when the dev bank holds fewer than n_items items",
+  "kind": "stage1 settings",
+  "label_entries": {},
+  "labels_sha256": "260389f3fbfd8e7ff11ee06b5d5aba48e7d56b34140d9c9a634682125a86d570",
+  "n_items": 16,
+  "name": "write_c3_subsample",
+  "outputs": {
+    "out": "--out: the subsample file (canonical JSON in engine Y's Y2 format; it holds the 16 dev items whole, with their text), inside a folder named tmp",
+    "record": "--record: the text-free record (the file's SHA-256, its bank id subsample-<sha256>, the rule, the item count and counts by kind, the source block, the draw block and P's manifest SHA-256)"
+  },
+  "owner": "scripts/stage1_s1/c3_subsample/write_c3_subsample.py",
+  "prepared_manifest_sha256": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
+  "reads": "P's manifest.json and manifest.sha256 (the manifest must hash to prepared_manifest_sha256), then banks/dev.jsonl after its manifest hash verifies; never the hidden bank, the selector bank, the training rows or any other prepared file",
+  "reference": ".ai/briefs/stage1-commitments-build-20261016-lead-decisions.md section 22 point 2 and section 15 point 5; B15 brief J14 and Q13",
+  "role": "development",
+  "rule": "the first n_items (16) items of P's dev bank (banks/dev.jsonl), in the file's own line order, each copied whole; no random draw, no filter by kind, no re-sorting",
+  "source_bank": "dev",
+  "subsample_format": "engine Y round Y2 (experiments/safety_selection/jobs.py read_bank_subsample and subsample_items): kind 'safety-selection bank subsample', version 1, keys counts, draw, items, kind, source, tokenizer, version; canonical JSON",
+  "version": 1
+}

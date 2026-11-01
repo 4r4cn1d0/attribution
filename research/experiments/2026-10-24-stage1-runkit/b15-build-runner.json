@@ -1,0 +1,153 @@
+{
+ "kind": "B15 BUILD-RUNNER report",
+ "version": 2,
+ "status": "partly_done",
+ "started_utc": "2026-10-23T13:56:03Z",
+ "finished_utc": "2026-10-23T14:33:20Z",
+ "target": "ws-b15/runkit/stage1-olmo/ (new files only; GBK byte-identical before and after; nothing written outside the kit, notes/ and the scratchpad, which is deleted)",
+ "why_partly_done": "Every requested file is built and tested on CPU, but the O-ext pass on an engine unit (J3 a0/R/theta0, J4, and the O-ext step of J9, J10, J18) has no CLI anywhere: scripts/stage1_s1/oext_eval.py offers only 'check'. The kit calls a contract CLI (scripts/stage1_s1/oext_unit.py, parser job_runner_stage1.oext_unit_contract) that nobody has built, and 'orchestrate.py check-plan' refuses those jobs until it is packed.",
+ "files": {
+  "runner_builder_new": [
+   {"path": "ws-b15/runkit/stage1-olmo/orchestrate.py", "sha256": "7581916e99696137723eb871f3d7ec1dfcd96ab34fb3516d28f0436b22737f1b"},
+   {"path": "ws-b15/runkit/stage1-olmo/pack_setup.py", "sha256": "82ae869714665d4d6904a96da45df425f0dc721ce9c67309024b89c63a755931"},
+   {"path": "ws-b15/runkit/stage1-olmo/probes.py", "sha256": "cb19679e1ea4a3993db8a74df7e4ed3e532b4e11863436700578244029682a70"},
+   {"path": "ws-b15/runkit/stage1-olmo/backup_records_stage1.py", "sha256": "3ed946d02629829242f3aa8ea711f71e9d2af7cf6d84cd5e1b2d4c92397597f3"},
+   {"path": "ws-b15/runkit/stage1-olmo/judge_units_stage1.py", "sha256": "57faf104a1b49a8d076ec2a2f6e9f2910233293e0310b951662c37840e89fe96"},
+   {"path": "ws-b15/runkit/stage1-olmo/README.md", "sha256": "3b12b8a7db7d839e777bf6996e36f5248c1499777ef76ea20325d658aa8a8127"},
+   {"path": "ws-b15/runkit/stage1-olmo/setup/job_runner_stage1.py", "sha256": "af405241509df81c31467a0da27d721fd91d36b6b64436f75d0ae63a75c85113"},
+   {"path": "ws-b15/runkit/stage1-olmo/setup/preflight_stage1.py", "sha256": "e8ec5d81a949e03e3db24dc9c66e28aa7054e5a48a0b75580ad236127b57f101"},
+   {"path": "ws-b15/runkit/stage1-olmo/setup/download_models_stage1.py", "sha256": "ffb4f13f51d2e4be00a25b352f3d5c8d58523c9f881f5358a7f35e404b5e05a3"},
+   {"path": "ws-b15/runkit/stage1-olmo/setup/setup_and_fetch_stage1.sh", "sha256": "4d363806bbd4f51f088dc6fa1f27f3f95409407993f0b802363722c812abf586"},
+   {"path": "ws-b15/runkit/stage1-olmo/setup/bootstrap_hr.sh", "sha256": "563a128a1573dd97d10f27cdfa0cfa23a03e5409c3c876ab6f16a7115241140f", "note": "byte-identical GBK copy"},
+   {"path": "ws-b15/runkit/stage1-olmo/setup/constraints.txt", "sha256": "cdd9f13062d613b0557503c3d332a870f570c7a09e532e8ab8e934ab4867d32b", "note": "byte-identical GBK copy"},
+   {"path": "ws-b15/runkit/stage1-olmo/setup/extend_cap.py", "sha256": "8af2f6ccebbac591499075827afef714ff1b635b6f6a691e5f669517458179d6", "note": "byte-identical GBK copy"},
+   {"path": "ws-b15/runkit/stage1-olmo/tests/test_stage1_runner.py", "sha256": "de4700869a21a3aaf94dcb2e141609007309a3eb0223620fceb2d4af9b73cdcd"}
+  ],
+  "core_builder_files_changed_here": [
+   {"path": "ws-b15/runkit/stage1-olmo/stage1_rules.py", "sha256": "db1f2a8bb313e49e7df3ee12ae304c75043ebee8410c7f7012f73e9e70e56b05", "was": "d9987cc98e5d0609453a17ac1b2a26fc9150c3ade4b3a008afccf0046da46e9d", "change": "DEFECT FIX, proved by a failing test first: UNITLESS_KINDS gains 'o_only' (stage1_rules.py:228-229). An O-only pass writes O-ext files and no engine unit (theta0 has no unit at all), so plan_tool record-done refused every complete O-only pass ('complete without a complete_sha256'). Failing test: test_stage1_runner.py::test_record_done_accepts_a_complete_o_only_pass_by_its_outputs (failed before, passes after). Mutant B15-r-o-only-unit undoes it."},
+   {"path": "ws-b15/runkit/stage1-olmo/tests/test_stage1_runkit.py", "sha256": "bbade112a5d2f3a550fe1329ca79a46a06234c8ccfe74fb44e9a68b0d86cd038", "was": "fc30234be48f2f4e4797645a5c035fb448673c15371e9c53c1d3e8149b862afe", "change": "one assertion only (test_the_kit_compiles_holds_no_secret_and_reuses_gate_b_files_as_documented): its exact list of top-level .py files now includes the 5 files this build adds (backup_records_stage1.py, judge_units_stage1.py, orchestrate.py, pack_setup.py, probes.py). Without it that test fails on any runner file. No other line changed."},
+   {"path": "ws-b15/runkit/stage1-olmo/tests/mutants_b15.json", "sha256": "9725c0d76a196d853b739cff7ce07172fd6e158cf80edc980122fd5b50fb9e85", "was": "80f14d57fab34efca170eccdb01fefaf787c64386b563a55bfefe87881039728", "change": "30 B15-r-* entries appended (62 -> 92); note extended. The file is rewritten with sort_keys and indent 1, the same format it already had."}
+  ],
+  "core_builder_files_unchanged": [
+   {"path": "ws-b15/runkit/stage1-olmo/account.py", "sha256": "8e3b8c4eb7e21d06bb48bb6eef8f0a412a198b893e583e98632756e5c72b612f"},
+   {"path": "ws-b15/runkit/stage1-olmo/budget.py", "sha256": "f4760c080159e70371f528b7f0349b695858f7f320956568a02818d6c89963b0"},
+   {"path": "ws-b15/runkit/stage1-olmo/finisher.py", "sha256": "c5a267cb070fdf9efce936f5ba81daf8fc732133731f07ba4b0c9eb79257dcdb"},
+   {"path": "ws-b15/runkit/stage1-olmo/gateb_mac.py", "sha256": "d8dd2ff49c1e4739e7746d5140aa432cc19cf4c044e6150c2dceef4869864dd7"},
+   {"path": "ws-b15/runkit/stage1-olmo/host.py", "sha256": "d0ece676bf4b0d718d6bacb82ab5cf4738f7ed02c510e60ef737c9aca44c24d5"},
+   {"path": "ws-b15/runkit/stage1-olmo/launch.py", "sha256": "5491993d9b88b4214a269504c89611ceaaab2fa31371bd27d33b103b7b61c758"},
+   {"path": "ws-b15/runkit/stage1-olmo/plan_tool.py", "sha256": "5b1e21a88ca3a6d786301fd93c5b403ba8b74376745aeadd45491e32d6f5cdc4"},
+   {"path": "ws-b15/runkit/stage1-olmo/seal.py", "sha256": "9a1a1d1481ce4440f11468bbb64902936a1cd38dd9bd4185e4ae5275346bd523"},
+   {"path": "ws-b15/runkit/stage1-olmo/secret_scan.py", "sha256": "75baad4c9127449a0de311ea0773d4306ec6b47ad6247018be59259785326d3b"},
+   {"path": "ws-b15/runkit/stage1-olmo/status.py", "sha256": "16851c6f678fd3e86749ce7f81c6086ffedf723c44e50246291801567dfb33a0"}
+  ],
+  "evidence": [
+   {"path": "notes/b15-build-runner-evidence/b15-suite-final.xml", "sha256": "e6911642f391d7a380385bfba569e97f2a91e64cd0dfd16a9116849dce68d9f8"},
+   {"path": "notes/b15-build-runner-evidence/gbk-suite2.xml", "sha256": "95d3c962a0e4eccc291c737ae47fb2ba71d180b19731127369e1ef30552c04cd"},
+   {"path": "notes/b15-build-runner-evidence/mutation-smoke.py", "sha256": "09627cf600dd014d51ecc39f8d09ba0d195d363fd2634be16211cd991309e1f6"},
+   {"path": "notes/b15-build-runner-evidence/mutation-smoke.out.txt", "sha256": "d6d1f0168db7aa29e1444f8f68cf1c6c6845f534b7a69fb875e032dd44cdcc4a"}
+  ]
+ },
+ "what_was_built": {
+  "setup/job_runner_stage1.py": "J1-J18 commands (brief §3 table) in job_commands/_run_one/_safe_lora; GBK's gate kept (requirements with max(plan, projection) and the J2->J3 link, heartbeat None stops, deferral in order with deferral.json, crash -> later not_started); per-job engine and engine_sha256 in every job-done/JOB-<i>.json and in JOB-DONE.json (plan_tool record-done schema); job-I/cost-ledger.json per job (FR-10 stages setup, training, greedy_generation, sampled_generation, judging, scoring, pod_overhead, transform; slot_s); every input of every kind checked against sealed-files.json before the job (scripts, settings, O-ext module, edit file against its SHA-256 and engine arm, named inputs and folder inputs); start-up checks: token, second run, bootstrap, preflight recipe, one engine per pod, packed code identity = host engine_sha256 = ENGINES[engine], recipe pins and config SHA-256, prepared manifest, sealed-files pin and every sealed file, 500-bank job only with the recorded branch and on that branch, W1-18 alone; J2 acceptance compares every field reuse_spec.json lists under accept (job-I/regeneration-adapter-fingerprint.json, a seal-readable name) and on refusal holds the linked J3 not_started reason LS-04 while later jobs continue; J17: B10 regenerate, then B11 'vcheck' (the V/V' check: per matrix ||V-V'||_F/||V||_F and whether the K = 39 set changes) BEFORE 'check' and every 'transform --point P', with a runtime gate that refuses check/transform when the vcheck file is missing, then B10 evaluate --mode external --external safe_lora with the transform's file and record by SHA-256 resolved at run time; seconds.total of each transform's safe_lora_timing.json enters the ledger as 'transform'; k12 refuses (B11 has no K = 12 point). No outcome file is parsed; --dry-run prints commands with run-time placeholders and writes nothing.",
+  "setup/preflight_stage1.py": "GBK preflight plus o500_projection: cap_projection.o500_s = max(plan O500, plan O500 x pod e1_upper_s / fixture e1_upper_s) for the recorded branch; stage1_rules.projected_requirement_s (core) uses max(plan, projection).",
+  "setup/download_models_stage1.py": "GBK download plus --with-base: every entry's revision must be a 40-hex commit (main or a short id refuses before any request); the base snapshot must be at a1847dff..., hold exactly the 12 pinned files, each size equal, git files by git blob id (SHA-1 of 'blob SIZE\\0'+bytes), LFS files by SHA-256 and blob name; endpoint pin, token=False and the receipt kept (receipt gains base_checked).",
+  "setup/setup_and_fetch_stage1.sh": "GBK's fetch script with download_models_stage1.py \"$@\" (two lines differ).",
+  "probes.py": "GBK copy plus the base model row: BASE, BASE_FILES (the 12 pins of tmp/gi-vi-stage1/olmo2-0425-1b-base-pins.json, sha 9bc9a9e9...), base_entry(), stage1_download_plan(probe, with_base).",
+  "pack_setup.py": "one packed stage per engine: X from this checkout (git_state as GBK), Y from --y-tree checked against YHASH (its own pin, then every listed file); packed code identity must equal ENGINES[engine]; STAGE1_PINS, MAN1's code/settings/pinned-input entries under scripts/stage1/, W1-18's frozen readers, the lead's 'code' entries; edits from Gate B's MANIFEST, MAN1's A1 and plan.json's recorded sealed records at edits/<sha>.edit.json; W1-18's 11 unit folders and the prepared set under data/ (unit COMPLETE.json and job.json by the settings' pins); the lead's named inputs by SHA-256 from a 'stage1 pack inputs' record given with its SHA-256 (a MAN1-listed path must also carry MAN1's hash); text inputs are data (not scanned as code; GBK's secret scan of kit files and payloads); sealed-files.json {files, inputs}; receipt {engine, engine_sha256, sealed_files_sha256, ...} that plan_tool release reads.",
+  "orchestrate.py": "GBK copy with: check-plan HOST ($0; refuses an unrunnable job or an unpacked file/input), packed stage per engine checked against the plan (G4), bootstrap --with-base on a Safe LoRA host, preflight on runner.preflight_recipe, the Q11 reference (Gate B's imported reference for every pod; the B10 certification pod's fetched bootstrap/verification/preflight guard for ref_eval and safe_lora pods; no reference refuses), the W1-18 hold (§8 Q1 (a): W1-18 alone; no 500-bank job before the branch record), expected-fixture/first-host logic removed; [D17] 3 job-start-unknown path kept unchanged.",
+  "backup_records_stage1.py": "GBK copy with the stage-1 record list: RUNKIT stage1-olmo, unit-free jobs' recorded outputs required, seal records staged and every sealed file required with the seal's SHA-256, edit files from the job's recorded path and SHA-256, packed receipts, hosts/HOST/preflight-done.json.",
+  "judge_units_stage1.py": "accepts B10 units (job.json kind stage1-eval-adapter, dev bank, e1, COMPLETE listing exactly eval/e1, fail-closed), delegates everything else to Gate B's units.read_unit, 'launch' runs judge_pod.main with units.enumerate_units swapped for this process only (no file of scripts/gate_b_mac_judges written), check-devices refuses a contrast judged on more than one (device, GPU) type or a unit without a run record.",
+  "README.md": "GBK's [D16] 8, [D17] 3, [D17] 4 and [D21] sections kept verbatim under 'Kept from the Gate B kit'; money rules with the user's funding-event rule verbatim; G0-G6; the Q11 reference."
+ },
+ "alternatives_and_why": [
+  "V/V' check: used B11's own 'vcheck' command (it now exists in ws-s1 safe_lora.py: v_diagnostic/compare_selection) instead of writing a kit-side V/V' script; the kit enforces the order (vcheck first) by command order and a runtime gate. Simpler, one implementation, owned by B11.",
+  "J15: B10 'run' with --gate-reference-eval writes <seed>-certify.compare.json in-process (eval_adapter.py run_sequence), so no separate 'compare' step is run; the brief's 'then compare' is met by B10 itself.",
+  "O-ext outputs go to job-I/oext/, not into the engine unit's eval/e1/, because Gate B's units.py and the finisher fail closed on any unlisted file under eval/<target>/.",
+  "O500 projection: scale the plan's O500 by the pod's measured evaluation upper against the Gate A fixture's, never below the plan; no new GPU measurement step in the preflight (none exists to call).",
+  "GBK suite: ws-b15 is a git archive without the git-ignored tmp/ fixture, so in place it gives 6 passed and 265 setup errors (FileNotFoundError on tmp/family-probe-olmo2-1b/expected-fixture-probe.json only). I ran it unchanged in a scratch layout (symlinks to ws-b15, the byte-identical test file, and the pinned fixture copied from the main checkout, SHA-256 98d775f1... = PREREG_FIXTURE_SHA256): 271 passed. GBK file hashes were identical before and after."
+ ],
+ "tests": {
+  "b15_suite": {"command": "export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONDONTWRITEBYTECODE=1; cd ws-b15; <venv>/python -B -m pytest -p no:cacheprovider -q --basetemp=<scratch>/bt/final --junitxml=... runkit/stage1-olmo/tests", "result": "145 passed, 0 failed, 0 errors (19.35 s); exit 0 (14:32 UTC)", "counts": {"test_stage1_runkit.py (core)": 74, "test_stage1_runner.py (this build)": 71}},
+  "gbk_suite": {"file": "experiments/safety_selection/tests/test_ss_gateb_runkit.py (sha 0ad2142e..., unchanged; 271 tests, not the brief's 153)", "in_ws_b15": "6 passed, 265 errors (missing git-ignored fixture; invalid run, not a GBK change)", "scratch_layout": "271 passed (35.29 s); exit 0 (14:28 UTC)", "gbk_files": "sha256 of every runkit/gate-b-olmo file identical before and after; brief §6 prefixes re-checked by test_the_runner_files_compile_hold_no_secret_and_gate_b_is_unchanged"},
+  "runner_tests_cover": [
+   "Commands: exact argv for every J1-J18 kind on an X pod and a Y pod (hand-written); every engine step parsed by engine X's _parser (ws-b15) or engine Y's (ws-y), every W1 script step by its own main's argparse (ws-b15), every S1 step (eval_adapter, safe_lora, lean_eval_job) by its own argparse in ws-s1's current files, every O-ext unit step by the kit's contract parser; engine X refuses C3's --bank-file (Y only); W1-18 parsed device cuda and guard batch size 8; train-only make-job has bank None and pin_code True; --dry-run writes nothing",
+   "Gate: order, engine records, cost ledgers listed in outputs; deferral in order; heartbeat missing/unreadable; crash; the pod's O500 projection raises the requirement",
+   "Edits and inputs: a changed byte in 8 different input kinds refuses (mid-host check, nothing runs); start-up check; edit file vs its SHA-256 and engine arm; token, second run, wrong engine identity, two engines; W1-18 alone and branch gates on the pod",
+   "Regeneration: accepted on all 4 listed fields; each field differing holds J3 not_started reason LS-04 while a later job runs; an extra spec field is compared; R regeneration by edit and engine arm; J3 without its J2 does not run; the record-done fix",
+   "Safe LoRA: vcheck before check and transforms; SHA-256 placeholders resolved; transform seconds.total in the ledger (25.0 for 2 x 12.5); a missing vcheck stops before any projection; a missing timing file is a crash; k12 never runs; base download at the commit with token=False and exact patterns; git blob, LFS SHA-256, size, extra file and snapshot folder differences refuse; main/short/None/upper-case revisions refuse before any request",
+   "Pack: X pack seals inputs, edits, W1-18 data, readers; refusals (changed byte, unknown name, MAN1 mismatch, engine identity, constraints, existing pack) write nothing; Y pack from the frozen tree; YHASH failure refuses; base row vs pins record",
+   "Orchestrate: check-plan refuses an unpacked O-ext script; packed engine mismatch; the W1-18 hold; Q11 references",
+   "Judges: a B10 unit accepted by the wrapper and skipped by Gate B's units.py (unchanged); fail-closed stray file; one device type per contrast",
+   "Seal: no printed line, JOB-DONE, job-done record, cost ledger or acceptance record holds a fixture sentinel; backup dry run prints none and requires recorded outputs and sealed files"
+  ]
+ },
+ "mutation": {
+  "spec": "ws-b15/runkit/stage1-olmo/tests/mutants_b15.json",
+  "entries": 92,
+  "added_here": 30,
+  "added_ids_part": "B15 data (runner): B15-r-edit-hash, r-input-hash, r-accept-no-data-config, r-j3-not-held, r-crash-not-stopping, r-heartbeat-ignored, r-k12-allowed, r-transform-not-in-ledger, r-w1-18-device, r-two-engines, r-bank500-before-branch, r-dry-run-writes, r-prints-outcome, r-o500-floor, r-base-revision-any, r-base-git-blob, r-base-lfs, r-base-at-main, r-yhash-files, r-pack-identity, r-pack-input-hash, r-pack-man1, r-orch-w1-18-hold, r-orch-reference, r-judge-b10-skipped, r-judge-devices, r-backup-outputs, r-backup-seal, r-o-only-unit, r-vcheck-after-projection (3 edits)",
+  "find_check": "every find text of all 92 entries occurs exactly once, edits applied in order (checked by a one-off command, 0 bad). A spec self-check inside the suite was tried and removed: under any mutant it fails too and so would kill every mutant.",
+  "smoke": "notes/b15-build-runner-evidence/mutation-smoke.py with run_mutants.py's rules (unmutated baseline, whole tests folder, no -x, --junitxml, PYTEST_ADDOPTS/PYTEST_PLUGINS stripped, 600 s timeout, killed only on exit 1 with the baseline's test count and no errors): baseline 145 passed; B15-r-accept-no-data-config killed (2), B15-r-vcheck-after-projection killed (3), B15-r-pack-man1 killed (1). Full spec NOT run (the lead runs it).",
+  "runner_layout_note": "The tests find the S1 package and engine Y as siblings of the repository root (ws-b15/../ws-s1, ../ws-y) and the W1 scripts and scripts/gate_b_mac_judges under KIT.parents[1]. A mutation copy must keep that layout: copies of runkit/stage1-olmo and runkit/gate-b-olmo, and scripts/, experiments/ and the sibling trees linked (mutation-smoke.py layout())."
+ },
+ "s1_dependencies": {
+  "s1_fix_status_when_read": "in_progress (notes/s1-fix.json, read 13:57 UTC and again 14:33 UTC: status in_progress). Built against ws-s1's current files.",
+  "clis_depended_on": [
+   "scripts/stage1_s1/eval_adapter.py run --prepared P --recipe REC --seed S --reference GATE_A_COMPLETE --regen-out D --eval-root D --evaluations SPEC[,SPEC] [--gate-reference-eval DIR] [--prefix-file F] [--certification-report F --certification-report-sha256 H] [--oext-bank F --oext-record F [--w1-18-record F]] (J15, J16)",
+   "scripts/stage1_s1/eval_adapter.py regenerate --prepared P --recipe REC --seed S --reference PATH --out ROOT (J17; adapter at ROOT/run/states/e1)",
+   "scripts/stage1_s1/eval_adapter.py evaluate --prepared P --recipe REC --source-run ROOT/run --reference PATH --out DIR --mode external --external safe_lora --adapter-file F --adapter-sha256 H --adapter-record R --adapter-record-sha256 H --certification-report F --certification-report-sha256 H --oext-* (J17)",
+   "scripts/stage1_s1/eval_adapter.py verify --unit DIR (the runner's unit check for B10 units)",
+   "scripts/stage1_s1/safe_lora.py vcheck|check --adapter A --seed S --aligned DIR --base DIR --out DIR; transform --point default|conditional|certify ... (J17; outputs safe_lora_vcheck.json, safe_lora_check.json, adapter.safetensors, safe_lora_record.json, safe_lora_timing.json with seconds.total)",
+   "scripts/stage1_s1/lean_eval_job.py run --job F --prepared P --recipe S --out DIR --registry F --expect-adapter-fingerprint H --oext-bank F --oext-record F [--w1-18-record F] (J11)",
+   "B10 unit layout: job.json kind stage1-eval-adapter with mode, adapter_scale, external, seed, checkpoint e1, evaluate_bank dev; COMPLETE.json complete, job_sha256, files; eval/e1/ (judge wrapper)",
+   "NOT EXISTING: a unit-level O-ext CLI; the kit's contract is scripts/stage1_s1/oext_unit.py run|transfer (--run UNIT --checkpoint e1 | --untuned) --prepared --recipe --oext-bank --oext-record [--w1-18-record] --out"
+  ]
+ },
+ "acceptance": {
+  "passed": [
+   "orchestrate.py copy with the Q11 reference, the Q1 W1-18 hold (option (a)) and one packed stage per engine",
+   "pack_setup.py per engine identity, X from the committed tree, Y from ws-y against YHASH; inputs by SHA-256 from MAN1 and the lead's records; text inputs as data",
+   "job_runner_stage1.py: J1-J18 commands, the unchanged gate, per-job engine record, FR-10 ledger, every input checked, no outcome read, J2 acceptance on reuse_spec accept fields with the LS-04 hold, J17 V/V' before the projection, check, transform --point default, timing total as 'transform'",
+   "preflight_stage1.py O500 projection with max(plan, projection) in the gate",
+   "download_models_stage1.py: base at a1847dff..., never main, 12 file pins, endpoint pin, token=False, receipt",
+   "bootstrap, extend_cap and constraints reused byte-identical; the fetch script renamed for the download script's new name",
+   "probes.py base model row; backup_records_stage1.py; judge wrapper for B10 units with one device type per contrast; README with [D16] 8, [D17] 3-4, [D21] and G0-G6",
+   "B15 suite 145 passed; GBK suite 271 passed unchanged (scratch layout) and GBK files unchanged",
+   "mutation spec data entries added; 3-mutant smoke: 3 killed"
+  ],
+  "failed": [],
+  "not_tested": [
+   "Any CUDA or pod run (no pod; all CPU fakes)",
+   "The O-ext unit CLI's real parser and behaviour (the script does not exist)",
+   "pack_setup.py on the real checkout (it needs the lead's inputs record, process_receipt.py, the unit folders under tmp/; not run: it would open unit evaluation files to hash them, and calls git)",
+   "orchestrate after-create end to end (ssh/RunPod paths are GBK's and untouched; only the new gates are unit-tested)",
+   "judge_units_stage1.py launch against the real judge_pod.main (only the enumeration swap is tested)",
+   "The full 92-entry mutation run (the lead runs it)"
+  ]
+ },
+ "open_items": [
+  "BLOCKER for J3, J4, J9, J10, J18 (G0): the unit-level O-ext CLI. oext_eval.py exposes evaluate_oext(session, policy, codec, ledger, ...) and 'check' only; B10 and B17 call it in-process. Someone must build scripts/stage1_s1/oext_unit.py to the kit's contract (job_runner_stage1.oext_unit_contract) or the lead must choose another route (for example B10-style in-process O-ext on engine units). Until then check-plan refuses those jobs. Branch 128's dev-100 route for regenerated units (§8 Q15: the source unit's stored dev-100 answers) is not in the contract either; the source units are not packed for it.",
+  "The S1 fix round is still in_progress: B10/B11/B17 argv were parsed against ws-s1's current files; they must be re-checked after the fix lands and the S1 package must be packed by the lead's 'code' entries (STAGE1_PINS holds only the W1 files).",
+  "CORE FIX recorded above (UNITLESS_KINDS + 'o_only'); the core builder or the lead should confirm it.",
+  "One core test assertion changed (the exact list of top-level kit files).",
+  "W1-18's --guard-batch-size passes REC's own guard.batch_size explicitly (report only per W1-18); the lead may want a different pod value.",
+  "J5's s3_orig pools-only pass runs only when an untuned_answers job is earlier on the same pod (DIAG_POD order in the core tests puts rep_pass first, so it would not run there); with the current order the lead needs a second short pass or the order untuned_answers, rep_pass.",
+  "J8's pools are passed as PATH:SHA256 as score_classifier.py's argparse says, not the brief's 'plant=...' form.",
+  "C1's --replicate-of string and c0's expected R_1101 fingerprint come from packed inputs (cert_spec.json, source_complete:R:1101 = R_1101's COMPLETE.json); C3's subsample file has no builder (YBUILD).",
+  "Registries: regenerations share round1/registry.jsonl (as GBK's retrain); C1-C3 each get cert/registry-<kind>.jsonl; c0 a fresh job-I/c0-registry.jsonl. Whether the engine's seed-reuse refusal is per arm was not checked.",
+  "FR-10 split: engine steps (calibrate, run-one) are counted as 'training' whole; the engine unit's own ledger splits them on the Mac. pod_overhead is not measured per job (0 in each ledger).",
+  "The O500 projection is a scaling of the plan's estimate by the pod's evaluation speed; PHTest answer lengths stay UNVERIFIED (REV4 §6.3).",
+  "backup_records_stage1.py keeps GBK's anchor-text note and wave wording in its inherited docstring and release notes.",
+  "Tests rely on the ws-b15/../ws-s1 and ../ws-y layout; the lead's mutation runner must keep it (see mutation.runner_layout_note)."
+ ],
+ "commands_run": [
+  "date -u (13:56, 14:01, 14:25, 14:26, 14:28, 14:30, 14:32, 14:33 UTC)",
+  "cat/sed/grep/ls/shasum on the brief, the core report, GBK files, core files, S1 CLIs, W1 CLIs, engine X/Y CLIs, MAN1 and Gate B MANIFEST keys, W1-18 settings keys and unit pins, the base pins record, YHASH (exit 0)",
+  "venv python -B import checks of the target modules in ws-b15, ws-s1, ws-y (exit 0)",
+  "venv python -B py_compile of orchestrate.py once (it wrote a __pycache__ in the kit, which I deleted at once)",
+  "pytest runs r1-r8, final (B15: 145 passed, exit 0); GBK in ws-b15 (6 passed, 265 errors, exit 1); GBK in scratch layout (271 passed, exit 0)",
+  "mutation-smoke.py baseline + 3 mutants (2 runs; the first exposed the self-check test, removed)",
+  "rm -rf of my scratch folder b15r"
+ ],
+ "rules_kept": "wrote only under ws-b15/runkit/stage1-olmo/, notes/ (this report and notes/b15-build-runner-evidence/) and the scratchpad (deleted); no git command run (pack_setup.py's git_state was monkeypatched in tests); no network, RunPod, Hub or GitHub call; no secrets, ssh/, hosts/ or account file read; no row, prompt, answer, anchor, O-ext text or unit evaluation file opened (settings, manifests and pin records read for keys, paths and hashes only); synthetic fixtures only; no install"
+}

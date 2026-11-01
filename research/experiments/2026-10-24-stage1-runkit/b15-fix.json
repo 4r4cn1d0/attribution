@@ -1,0 +1,626 @@
+{
+ "kind": "B15 FIX report",
+ "version": 2,
+ "status": "done",
+ "target": "ws-b15/runkit/stage1-olmo/",
+ "started_utc": "2026-10-23T14:59:19Z",
+ "finished_utc": "2026-10-23T15:29Z",
+ "inputs_read": [
+  "notes/b15-brief.md (all)",
+  "notes/b15-build-core.json, b15-build-runner.json (all)",
+  "notes/b15-verify-money-gates.json, b15-verify-runner.json, b15-verify-completeness.json (all)",
+  "addendum \u00a711-\u00a719",
+  "notes/gateb-final-close.json",
+  "FOCUS lines naming the Gate B final output (grep)",
+  "kit code and tests; GBK tests (orchestrate stop-path region)",
+  "ws-s1 eval_adapter.py run_sequence and S1 settings keys (engine pins only)",
+  "notes/s1-fix.json (status in_progress at 15:27 UTC)"
+ ],
+ "summary": "Every blocking and should_fix finding was re-checked against the spec; none was dropped. 7 blocking: VMG-1..7 fixed; C-1 partly (fallback (c) route built; the O-ext unit CLI belongs to the S1 package). 13 should_fix fixed (VMG-8..10, VR-1..5, C-2..6; C-4 is a spec entry and C-5 tests only). Each code fix has a test that fails on the original kit (34 failing test cases before, 184 passing after). GBK 271 passed in 3 shards; spec 124 entries, 3-mutant smoke 3 killed.",
+ "findings": [
+  {
+   "id": "VMG-1",
+   "severity": "blocking",
+   "disposition": "fixed",
+   "check": "Valid. REV4 \u00a76.3 / brief G1: Branch full by default applies only 'if W1-18 cannot run or fails'.",
+   "fix": "plan_tool.py:874-883 (record_branch): a default record refuses over W1-18's own branch record, while any S1-0 host is not done (planned, pending or running), and after W1-18 completed; plan_tool.py:425-426 (gate_order): no S1-0 pod once a branch record exists. record_branch now loads a skeleton plan when none exists (plan_tool.py:866-867).",
+   "tests": [
+    "tests/test_stage1_runkit.py::test_branch_full_by_default_only_when_w1_18_cannot_run_or_failed",
+    "tests/test_stage1_runkit.py::test_no_s1_0_pod_once_branch_full_by_default_is_recorded",
+    "tests/test_stage1_runkit.py::test_branch_full_by_default_after_a_crashed_w1_18_and_no_s1_0_after_it (positive case; passes before and after)",
+    "tests/test_stage1_runkit.py::test_the_branch_never_changes_once_a_500_bank_job_is_planned_and_caps_follow_it (rewritten: the default is now recorded after a crashed W1-18, the retry on s10-2 then records 128 before any 500-bank job)"
+   ],
+   "failed_before": true,
+   "mutants": [
+    "B15-x-default-while-w1-18-planned",
+    "B15-x-default-after-w1-18-complete",
+    "B15-x-default-overrides-w1-18",
+    "B15-x-s1-0-after-default"
+   ]
+  },
+  {
+   "id": "VMG-2",
+   "severity": "blocking",
+   "disposition": "fixed",
+   "check": "Valid: G3 reads the plan-A/B record bound to Gate B's final record by SHA-256; a replaced final record broke the binding.",
+   "fix": "record-gateb-final refuses a second record (plan_tool.py:921-922); the plan-A/B record stores gateb_final_sha256 and gate_order re-checks it equals records.gateb_final.sha256 for A, certify, B, C (plan_tool.py:435-436).",
+   "tests": [
+    "tests/test_stage1_runkit.py::test_gate_b_final_is_recorded_once_and_block_a_reads_the_plan_ab_record_bound_to_it"
+   ],
+   "failed_before": true,
+   "mutants": [
+    "B15-x-gateb-final-twice",
+    "B15-x-plan-ab-unbound"
+   ]
+  },
+  {
+   "id": "VMG-3",
+   "severity": "blocking",
+   "disposition": "fixed",
+   "check": "Valid: any JSON object was accepted. Gate B is closed; FOCUS 23 Oct 05:26 UTC names the REPORTED output 06a7020aede28df5...",
+   "fix": "stage1_rules.py:177-181 pins GATEB_FINAL_SHA256 = 06a7020aede28df5bf8a73740819c3453b483f02c61a148822c0c66c4798bd0f (M: shasum -a 256 of research/experiments/2026-10-16-gate-b-wave0-outputs/gate_b_measurements_final.json in the main checkout, about 15:00 UTC; it matches FOCUS's prefix; commit 3e82f67 not checked: no git) and GATEB_FINAL_FIELDS; record-gateb-final refuses another SHA-256, kind/phase other than 'gate-b reading'/'measurements', result.final not true or result.code not REPORTED (plan_tool.py:923-927). Only top-level keys and result.final/result.code of that file were read. The plan-A/B sigma is still the lead's typed number: the measurements output holds no pooled sigma field (key walk), so the optional sigma cross-check was not built (limit).",
+   "tests": [
+    "tests/test_stage1_runkit.py::test_only_gate_bs_pinned_final_output_is_its_final_record[body0-3]",
+    "tests/test_stage1_runkit.py::test_the_gate_b_final_pin_is_the_reported_output"
+   ],
+   "failed_before": true,
+   "mutants": [
+    "B15-x-gateb-final-unpinned",
+    "B15-x-gateb-final-fields",
+    "B15-x-gateb-final-pin-value"
+   ]
+  },
+  {
+   "id": "VMG-4",
+   "severity": "blocking",
+   "disposition": "fixed (option (b) of the verifier, conservative; the lead should confirm)",
+   "check": "Valid under the user's verbatim rule: S1-0 and the cert pod are paid from block A's event, and a block-A top-up 'must cover the block's cap-based need before the block launches'; a $11.55 record launched S1-0.",
+   "fix": "plan_tool.py:572-586 block_a_floor + :744-745: until block A is planned, the need of S1-0 and of the cert pod also counts block A's dealt arm pods from the pre-set table (plan A's unless the plan-A/B record says B) in one launch under the current branch. S1-0 alone now needs $96.90 (plan A, Branch full: base cents(4.32 h-spend 2.148 + 6 + 1.85 x 37.5) = 77.52, x 1.25), not $11.55. Block A's diagnostics, LN-12 and judge pods are not pre-set, so they enter only at init-block A (limit). init-block's output reports block_a_floor_pods.",
+   "tests": [
+    "tests/test_stage1_runkit.py::test_s1_0_and_the_cert_pod_count_block_as_arm_pods_before_any_block_a_pod_launches"
+   ],
+   "failed_before": true,
+   "mutants": [
+    "B15-x-no-block-a-floor"
+   ]
+  },
+  {
+   "id": "VMG-5",
+   "severity": "blocking",
+   "disposition": "fixed",
+   "check": "Valid: Gate B closed TOO CLOSE, no extension (FOCUS 23 Oct 04:31/05:26 UTC; addendum \u00a719: build_reuse_spec units 6-7 'only if Gate B's extension ran; it did not').",
+   "fix": "stage1_rules.ALLOWED_REUSE = frozenset() (stage1_rules.py:117-120) and block_runs refuses any reuse (:138-140); plan_tool deal command refuses cleanly (SystemExit) instead of a ValueError traceback.",
+   "tests": [
+    "tests/test_stage1_runkit.py::test_block_a_with_a_reused_r_4_refuses",
+    "tests/test_stage1_runkit.py::test_plan_a_tables_exactly (19/23 now shown only with ALLOWED_REUSE monkeypatched)",
+    "tests/test_stage1_runkit.py::test_the_cli_dry_run_writes_nothing_and_deal_prints_the_rule"
+   ],
+   "failed_before": true,
+   "mutants": [
+    "B15-x-reuse-allowed"
+   ]
+  },
+  {
+   "id": "VMG-6",
+   "severity": "blocking",
+   "disposition": "fixed",
+   "check": "Valid: YB X-10 / brief G4 'B+Qi runs with its own a0 at the same seeds on Y'.",
+   "fix": "plan_tool.py:331-342 gate_bqi_pairs (called at init-block): after a failed certificate the sorted B+Qi ref_train seeds must equal the own-a0 seeds, each once. default_engine now gives Y to role bqi_own_a0 (plan_tool.py:196-200).",
+   "tests": [
+    "tests/test_stage1_runkit.py::test_after_a_failed_certificate_b_qi_runs_with_its_own_a0_at_each_seed[hosts0-2]"
+   ],
+   "failed_before": true,
+   "mutants": [
+    "B15-x-bqi-unpaired"
+   ]
+  },
+  {
+   "id": "VMG-7",
+   "severity": "blocking",
+   "disposition": "fixed",
+   "check": "Valid: block_complete ignored an unreleased judge launch, and release() could never record a trailing judge launch (it failed 'no launch left' before saving); judge files were outside the seal.",
+   "fix": "block_complete needs released == len(launches) (plan_tool.py:409); release() saves when it advanced past a judge launch and returns launches_released (plan_tool.py:813-824); seal.py:69-76 refuses a block with a judge launch until judges/BLOCK/ holds files and seals each as host 'judges/BLOCK'; backup_records_stage1.py:204-207 stages them as units/judges/BLOCK/... so the backup's seal check holds.",
+   "tests": [
+    "tests/test_stage1_runkit.py::test_a_block_is_complete_only_when_its_judge_launch_is_released_and_filed"
+   ],
+   "failed_before": true,
+   "mutants": [
+    "B15-x-judge-launch-ignored",
+    "B15-x-judge-files-unsealed",
+    "B15-x-backup-judges"
+   ]
+  },
+  {
+   "id": "VMG-8",
+   "severity": "should_fix",
+   "disposition": "fixed",
+   "check": "Valid: 'above 6.0 pp no stage 1' covers every stage-1 pod.",
+   "fix": "gate_order refuses every block once a plan-A/B record with code none exists (plan_tool.py:427-429).",
+   "tests": [
+    "tests/test_stage1_runkit.py::test_a_no_stage_1_record_refuses_every_block"
+   ],
+   "failed_before": true,
+   "mutants": [
+    "B15-g-plan-ab-not-read (re-targeted)"
+   ]
+  },
+  {
+   "id": "VMG-9",
+   "severity": "should_fix",
+   "disposition": "fixed",
+   "check": "Valid: PREREG's re-run rule.",
+   "fix": "plan_tool.py:310-328 job_keys/refuse_duplicates (called at init-block): a job (one key per evaluation point) planned twice in the block, or already planned or released in the plan, refuses.",
+   "tests": [
+    "tests/test_stage1_runkit.py::test_a_run_planned_twice_refuses[hosts0-1]"
+   ],
+   "failed_before": true,
+   "mutants": [
+    "B15-x-duplicate-run"
+   ]
+  },
+  {
+   "id": "VMG-10",
+   "severity": "should_fix",
+   "disposition": "fixed",
+   "check": "Valid (the user's record carries a UTC time).",
+   "fix": "funding_record requires utcoffset() == 0 and a time not after now (plan_tool.py:552-560).",
+   "tests": [
+    "tests/test_stage1_runkit.py::test_a_funding_record_in_another_zone_or_the_future_refuses[+05:30, 2099]"
+   ],
+   "failed_before": true,
+   "mutants": [
+    "B15-x-funding-zone",
+    "B15-x-funding-future"
+   ]
+  },
+  {
+   "id": "VMG-11",
+   "severity": "note",
+   "disposition": "no change: the kit keeps Gate B's [D20] cents rule (lead decision already open in b15-build-core)"
+  },
+  {
+   "id": "VMG-12",
+   "severity": "note",
+   "disposition": "no change: a judge launch does not raise today's need (verifier's own arithmetic); judge launches stay optional in the jobs file"
+  },
+  {
+   "id": "VMG-13",
+   "severity": "note",
+   "disposition": "no change (still refuses; a JSON list output gives AttributeError, not a clean message)"
+  },
+  {
+   "id": "VMG-14",
+   "severity": "note",
+   "disposition": "no change: the arm-major deal stays; lead to confirm (open item)"
+  },
+  {
+   "id": "VMG-15",
+   "severity": "note",
+   "disposition": "no change (not a defect)"
+  },
+  {
+   "id": "VR-1",
+   "severity": "should_fix",
+   "disposition": "fixed",
+   "check": "Valid by the verifier's reading of engine runner.py:480-507 (evaluation summary in COMPLETE.json); not re-read here.",
+   "fix": "seal.READABLE_PATTERNS drops COMPLETE.json (seal.py:35); the readable completion record is JOB-DONE.json. Block A's seal now counts 40 sealed of 65 files in the suite.",
+   "tests": [
+    "tests/test_stage1_runkit.py::test_an_engine_unit_complete_record_is_sealed",
+    "tests/test_stage1_runkit.py::test_the_seal_lists_every_file_by_sha256_and_no_command_prints_a_value (class and count updated)"
+   ],
+   "failed_before": true,
+   "mutants": [
+    "B15-x-complete-readable"
+   ]
+  },
+  {
+   "id": "VR-2",
+   "severity": "should_fix",
+   "disposition": "fixed",
+   "check": "Valid: eval_adapter.run_sequence writes one unit per evaluation (eval_root/<seed>-<label>, ws-s1 eval_adapter.py:1626-1627).",
+   "fix": "job_runner_stage1.py:743-749: a B10 job needs exactly one unit per point (else crashed); :760-765 runs B10 verify on every unit and records units [{unit, complete_sha256, verify_exit}]; the first failing verify crashes the job. The test fake now writes one unit per evaluation.",
+   "tests": [
+    "tests/test_stage1_runner.py::test_every_b10_unit_of_a_multi_point_job_is_verified_and_recorded",
+    "tests/test_stage1_runner.py::test_a_multi_point_b10_job_missing_one_unit_is_a_crash"
+   ],
+   "failed_before": true,
+   "mutants": [
+    "B15-x-b10-first-unit-only",
+    "B15-x-b10-unit-count"
+   ]
+  },
+  {
+   "id": "VR-3",
+   "severity": "should_fix",
+   "disposition": "fixed",
+   "check": "Valid: B10's job.json external block names no point.",
+   "fix": "judge_units_stage1.py:52-64, 110-112: an external unit's label is ref-external-<name>-<point> with the point from its folder job-I/eval-<point> (default, conditional, certify); another folder name refuses (fail-closed).",
+   "tests": [
+    "tests/test_stage1_runner.py::test_each_safe_lora_point_has_its_own_judge_label"
+   ],
+   "failed_before": true,
+   "mutants": [
+    "B15-x-safe-lora-label"
+   ]
+  },
+  {
+   "id": "VR-4",
+   "severity": "should_fix (PLAUSIBLE)",
+   "disposition": "fixed at plan level",
+   "check": "Plausible from engine code (not run on an engine); VMG-6's pairing makes the case likely.",
+   "fix": "plan_tool.py:299-307 check_host: two a0 calibrations (a0_arm or ref_train) at one seed on one host refuse; the pair runs on two pods.",
+   "tests": [
+    "tests/test_stage1_runkit.py::test_after_a_failed_certificate_b_qi_runs_with_its_own_a0_at_each_seed[hosts3-two a0 calibrations at one seed]"
+   ],
+   "failed_before": true,
+   "mutants": [
+    "B15-x-two-a0-one-pod"
+   ]
+  },
+  {
+   "id": "VR-5",
+   "severity": "should_fix",
+   "disposition": "fixed",
+   "check": "Valid: ws-s1 eval_adapter.py run_sequence 'a gated run starts with the certify evaluation'.",
+   "fix": "check_job requires points[0] == 'certify' for b10_certify (plan_tool.py:244-246).",
+   "tests": [
+    "tests/test_stage1_runkit.py::test_the_certification_pod_runs_certify_first"
+   ],
+   "failed_before": true,
+   "mutants": [
+    "B15-x-certify-not-first"
+   ]
+  },
+  {
+   "id": "VR-6",
+   "severity": "note",
+   "disposition": "no change (unlisted Y files; open item)"
+  },
+  {
+   "id": "VR-7",
+   "severity": "note",
+   "disposition": "no change (W1-18 judge ledger and c0 registry outside --out are pulled and sealed by seal.py, not in JOB-DONE outputs; limit)"
+  },
+  {
+   "id": "VR-8",
+   "severity": "note",
+   "disposition": "no change: J15 relies on oext_eval's own pending refusal (stated); under fallback (c) b10_certify now gets no O-ext flags"
+  },
+  {
+   "id": "VR-9",
+   "severity": "note",
+   "disposition": "no change (S1 dependencies; open items)"
+  },
+  {
+   "id": "C-1",
+   "severity": "blocking",
+   "disposition": "partly fixed: fallback (c) route built; the O-ext unit CLI is not B15's to build",
+   "check": "The missing scripts/stage1_s1/oext_unit.py is outside B15's write scope (scripts/stage1_s1 in ws-s1; brief \u00a76 item 11, addendum \u00a717 Q9: 'from the S1 merge now running, with its fallback (c)'). Fallback (c) is adopted rule text, so the kit should support it.",
+   "fix": "plan_tool record-oext-fallback ({kind 'stage1 oext fallback', status dev100_recipe_cap, reason, utc, recorded_by}; refused after any 500-bank job is planned, refused twice; plan_tool.py:970-978); o_only and transfer_report refuse at planning under it (plan_tool.py:249-251); the runner (job_runner_stage1.py:216-220, 264-266, 317-323) then runs arms as calibrate only (the unit is found after the loop, :734-738), gives B10/B17 no O-ext flags and needs no O-ext files or inputs (sealed_paths/input_names), and an O-only pass is unrunnable; orchestrate check-plan passes the flag (orchestrate.py:208). Caps keep the O500 term under (c) (conservative over-funding; limit).",
+   "tests": [
+    "tests/test_stage1_runkit.py::test_fallback_c_refuses_o_ext_only_jobs_and_never_changes_after_a_500_bank_job",
+    "tests/test_stage1_runner.py::test_under_fallback_c_no_o_ext_step_runs"
+   ],
+   "failed_before": true,
+   "mutants": [
+    "B15-x-oext-only-under-fallback",
+    "B15-x-oext-step-under-fallback"
+   ]
+  },
+  {
+   "id": "C-2",
+   "severity": "should_fix",
+   "disposition": "fixed in the kit's contract (the CLI itself is not built)",
+   "check": "Valid: \u00a78 Q15 adopted (source unit's stored dev-100 answers under Branch 128).",
+   "fix": "Under Branch 128 an O-only pass on a regenerated a0 or R unit gets --dev100-source <packed input source_unit:ARM:SEED> (job_runner_stage1.py:222-226, 278-280); the contract parser accepts it (:154); the input is checked before the job; pack_setup accepts the names source_unit:(a0|R):1101-1103 (pack_setup.py:70).",
+   "tests": [
+    "tests/test_stage1_runner.py::test_a_branch_128_o_only_pass_on_a_regenerated_unit_names_its_source_unit"
+   ],
+   "failed_before": true,
+   "mutants": [
+    "B15-x-dev100-source"
+   ]
+  },
+  {
+   "id": "C-3",
+   "severity": "should_fix",
+   "disposition": "fixed",
+   "check": "Valid: \u00a78 Q4 'with the training identity f46279e5... checked equal'. M: engine training_identity(recipe S) = f46279e5830f4777...acabfac = REC's (ws-b15 engine, recipe files only).",
+   "fix": "TRAINING_IDENTITY is now the full 64-hex value (stage1_rules.py:174); release computes recipe S's identity through the engine (plan_tool.recipe_training_identity, :110-113), stores it in plan.json recipes and refuses another (:714-718).",
+   "tests": [
+    "tests/test_stage1_runkit.py::test_recipe_s_training_identity_is_checked_at_release"
+   ],
+   "failed_before": true,
+   "mutants": [
+    "B15-x-training-identity"
+   ]
+  },
+  {
+   "id": "C-4",
+   "severity": "should_fix",
+   "disposition": "fixed (spec entry)",
+   "check": "Valid: no mutant targeted seal.py status. status.py is a byte-identical GBK copy pinned by the exact-diff test, so seal.py status is the one to mutate.",
+   "fix": "mutant B15-d-status-prints-value (seal.py status prints every pulled summary.json).",
+   "tests": [
+    "tests/test_stage1_runkit.py::test_the_seal_lists_every_file_by_sha256_and_no_command_prints_a_value (kills it)"
+   ],
+   "failed_before": "n/a (spec entry; killed in the smoke)",
+   "mutants": [
+    "B15-d-status-prints-value"
+   ]
+  },
+  {
+   "id": "C-5",
+   "severity": "should_fix",
+   "disposition": "fixed (tests only; no defect found)",
+   "check": "Valid as a coverage gap. host.py and finisher.py differ from GBK only by the lines the exact-diff test pins; orchestrate's stop path was untested on B15's copy.",
+   "fix": "Ported GBK's [D17] 3 tests to B15's orchestrate: job_started reads exit 0/1 and nothing else; a failure before the job logs pre-job-failed (ssh exit 1) or job-start-unknown (exit 255) with step check-plan, calls extend-cap 120 then stop, logs pre-job-stop. No orphan/reconcile test (GBK has none either).",
+   "tests": [
+    "tests/test_stage1_runner.py::test_job_started_reads_exit_0_and_1_and_nothing_else[4 cases]",
+    "tests/test_stage1_runner.py::test_a_failure_before_the_job_stops_the_pod_and_logs_its_step[2 cases]"
+   ],
+   "failed_before": false,
+   "mutants": [
+    "B15-x-start-unknown-as-failed",
+    "B15-x-no-timer-shorten"
+   ]
+  },
+  {
+   "id": "C-6",
+   "severity": "should_fix",
+   "disposition": "fixed",
+   "check": "Valid: addendum \u00a711 point 7 calls the re-pin 'a B15 pre-launch check'. M: the current ws-s1 settings (eval_adapter, safe_lora, lean_eval_job, oext_eval) pin engine_x = 472fc7f6... (X).",
+   "fix": "pack_setup.py:268-288 s1_settings_engine (called before pack.refuse, :413): every packed scripts/stage1_s1/settings/*.json must hold a top-level engine pin (engine, engine_x, engine_y, ..._sha256) equal to ENGINES[engine]; otherwise the pack refuses (names only). Consequence: a Y pack holding today's lean_eval_job.json (c0 on the cert pod) refuses until B17 is re-pinned on Y.",
+   "tests": [
+    "tests/test_stage1_runner.py::test_the_pack_refuses_s1_settings_not_re_pinned_on_its_engine[X-True, 0x64-False, None-False]"
+   ],
+   "failed_before": true,
+   "mutants": [
+    "B15-x-s1-settings-pin"
+   ]
+  },
+  {
+   "id": "C-7..C-11 (notes)",
+   "severity": "note",
+   "disposition": "no change: C1/C2 byte-identity and binding check are the lead's records (limit); check-plan runs inside after-create (operator runs check-plan before launch.py, README G0); LS-04 holds only the linked J3 (lead to confirm); J5's s3_orig pass needs untuned_answers earlier on the pod; S1 fix in_progress; the mutation runner needs the two-kit layout"
+  }
+ ],
+ "files": [
+  {
+   "path": "ws-b15/runkit/stage1-olmo/README.md",
+   "sha256": "c5febb46eb2ebc9bec3f2fb6729a1f652fe141f94a8fff07a49b80dc0340d4d6",
+   "changed": true
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/account.py",
+   "sha256": "8e3b8c4eb7e21d06bb48bb6eef8f0a412a198b893e583e98632756e5c72b612f",
+   "changed": false
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/backup_records_stage1.py",
+   "sha256": "fa781613f56066e73d418e11e76825bdcc55cfeeff7be85cdee50e5778e3568c",
+   "changed": true
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/budget.py",
+   "sha256": "f4760c080159e70371f528b7f0349b695858f7f320956568a02818d6c89963b0",
+   "changed": false
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/finisher.py",
+   "sha256": "c5a267cb070fdf9efce936f5ba81daf8fc732133731f07ba4b0c9eb79257dcdb",
+   "changed": false
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/gateb_mac.py",
+   "sha256": "d8dd2ff49c1e4739e7746d5140aa432cc19cf4c044e6150c2dceef4869864dd7",
+   "changed": false
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/host.py",
+   "sha256": "d0ece676bf4b0d718d6bacb82ab5cf4738f7ed02c510e60ef737c9aca44c24d5",
+   "changed": false
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/judge_units_stage1.py",
+   "sha256": "31555680d1a7580f9358f2d609fe5146f50903450d011c944c4a66203d57eef3",
+   "changed": true
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/launch.py",
+   "sha256": "5491993d9b88b4214a269504c89611ceaaab2fa31371bd27d33b103b7b61c758",
+   "changed": false
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/orchestrate.py",
+   "sha256": "862939d1b1d64693138663a0702ed64ed0ab293142301c13d5e21de8e8db58bd",
+   "changed": true
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/pack_setup.py",
+   "sha256": "7877ded7655abbfe33b5a988533644e7cd006b8f047b2855a1556ba8fc189ea2",
+   "changed": true
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/plan_tool.py",
+   "sha256": "f6db0937accd6bedf228c53c8ed661cbe07b0e8fa2bfe3be56a5a8ec0d0c8465",
+   "changed": true
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/probes.py",
+   "sha256": "cb19679e1ea4a3993db8a74df7e4ed3e532b4e11863436700578244029682a70",
+   "changed": false
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/seal.py",
+   "sha256": "a4aa1f9d6cc03c9e2f3cb333edde539074f51a5e523f84784d28e2c387f737cd",
+   "changed": true
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/secret_scan.py",
+   "sha256": "75baad4c9127449a0de311ea0773d4306ec6b47ad6247018be59259785326d3b",
+   "changed": false
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/setup/bootstrap_hr.sh",
+   "sha256": "563a128a1573dd97d10f27cdfa0cfa23a03e5409c3c876ab6f16a7115241140f",
+   "changed": false
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/setup/constraints.txt",
+   "sha256": "cdd9f13062d613b0557503c3d332a870f570c7a09e532e8ab8e934ab4867d32b",
+   "changed": false
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/setup/download_models_stage1.py",
+   "sha256": "ffb4f13f51d2e4be00a25b352f3d5c8d58523c9f881f5358a7f35e404b5e05a3",
+   "changed": false
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/setup/extend_cap.py",
+   "sha256": "8af2f6ccebbac591499075827afef714ff1b635b6f6a691e5f669517458179d6",
+   "changed": false
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/setup/job_runner_stage1.py",
+   "sha256": "fd6cf61b6407558dd45fd01aa76fa7d792c6d3fe8cfe73d476e3937d748ec074",
+   "changed": true
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/setup/preflight_stage1.py",
+   "sha256": "e8ec5d81a949e03e3db24dc9c66e28aa7054e5a48a0b75580ad236127b57f101",
+   "changed": false
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/setup/setup_and_fetch_stage1.sh",
+   "sha256": "4d363806bbd4f51f088dc6fa1f27f3f95409407993f0b802363722c812abf586",
+   "changed": false
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/stage1_rules.py",
+   "sha256": "52d1ab7821b717e4aabfb805282dc5702c4d90a5ddcd1511446fece19dff5522",
+   "changed": true
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/status.py",
+   "sha256": "16851c6f678fd3e86749ce7f81c6086ffedf723c44e50246291801567dfb33a0",
+   "changed": false
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/tests/mutants_b15.json",
+   "sha256": "78b1dfc80c9490be19c5a03a8a3a3d9a43291f55b8c18c9534618511906ba205",
+   "changed": true
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/tests/test_stage1_runkit.py",
+   "sha256": "ffaf02ddab4a6365fd5f5a53fae3cbd309376a30dab2ece0cc677d51ba500b34",
+   "changed": true
+  },
+  {
+   "path": "ws-b15/runkit/stage1-olmo/tests/test_stage1_runner.py",
+   "sha256": "39ee7f5be2a8dca9c599f84a98530302b9dce62ed39321655c3e38cc0d278032",
+   "changed": true
+  }
+ ],
+ "tests": {
+  "b15_before_fix": {
+   "what": "the final test files run against a scratch copy of the original kit (code byte-equal to the 27 hashed files at 14:59 UTC)",
+   "result": "34 failed, 150 passed, 0 errors (exit 1 expected)",
+   "evidence": "notes/b15-fix-evidence/before-junit.xml, before-failures.json (every failure is an assertion or DID NOT RAISE, none an error)"
+  },
+  "b15_after_fix": {
+   "command": "cd ws-b15; venv python -B -m pytest -p no:cacheprovider -q --basetemp=<scratch>/bt/full1 --junitxml=... runkit/stage1-olmo/tests",
+   "result": "184 passed, 0 failed, 0 errors, exit 0 (27.4 s): test_stage1_runkit.py 99 (was 74), test_stage1_runner.py 85 (was 71)",
+   "evidence": "notes/b15-fix-evidence/after-junit.xml"
+  },
+  "gbk": {
+   "how": "scratch layout: ws-b15 entries symlinked, experiments/safety_selection/tests copied (test_ss_gateb_runkit.py cmp-equal), the pinned fixture copied from the main checkout tmp/family-probe-olmo2-1b/expected-fixture-probe.json (SHA-256 98d775f1... = PREREG_FIXTURE_SHA256); 271 collected ids split into 3 shards",
+   "result": "91 passed exit 0; 91 passed exit 0; 89 passed exit 0 (271 of 271). A first try with a symlinked tests folder gave setup errors (the fixture path resolves to ws-b15/tmp, which a git archive lacks): a layout error, fixed by copying the tests folder.",
+   "evidence": "notes/b15-fix-evidence/gbk-shard-a{a,b,c}.xml",
+   "gbk_tree_digest": "9877718c9ad13ed937a79eecf62572cde3ce1ba6f6c5c9a6c20b074e7efcaaf9 (equal to the completeness verifier's)"
+  },
+  "mutation_spec": {
+   "entries": 124,
+   "added": 32,
+   "retargeted": 3,
+   "find_check": "every find text occurs exactly once, multi-edit entries applied in order (notes/b15-fix-evidence/chk.py): 0 bad",
+   "smoke": "the builder's mutation-smoke.py (run_mutants.py's rules) 15:24-15:26 UTC: baseline 184 passed exit 0; B15-x-no-block-a-floor killed (1 failure), B15-x-b10-first-unit-only killed (1), B15-d-status-prints-value killed (1); 184 tests and 0 errors in each run",
+   "evidence": "notes/b15-fix-evidence/mutation-smoke.out.txt",
+   "full_run": "not run (the lead runs it as a background job, with the two-kit layout of mutation-smoke.py)"
+  }
+ },
+ "evidence": [
+  {
+   "path": "notes/b15-fix-evidence/after-junit.xml",
+   "sha256": "6242e4abd1621f3ddfcfb03817d8b0a9b7f1e6a66aad83eed3fcc6f9fa52c624"
+  },
+  {
+   "path": "notes/b15-fix-evidence/before-failures.json",
+   "sha256": "7e6698cd28adc8efd7d9172b3d8e634bcecd6ea686b5fe58d77b32bac929aaec"
+  },
+  {
+   "path": "notes/b15-fix-evidence/before-junit.xml",
+   "sha256": "1e8d0684f467185a6369d433c4341fd6a309328fe804c9d4f01aa26335655504"
+  },
+  {
+   "path": "notes/b15-fix-evidence/chk.py",
+   "sha256": "91955a79395e1b233803593eff61525f1f3e2eaff5dd500b7fc9799373744014"
+  },
+  {
+   "path": "notes/b15-fix-evidence/gbk-shard-aa.xml",
+   "sha256": "7ac634c5f4cf9194dd3acc74575db03447307806167465c5bdf57b7aff4fbc36"
+  },
+  {
+   "path": "notes/b15-fix-evidence/gbk-shard-ab.xml",
+   "sha256": "3aa8fd2ac3b261d467076245c59c6123fc4c551003c232c6650251aad864784e"
+  },
+  {
+   "path": "notes/b15-fix-evidence/gbk-shard-ac.xml",
+   "sha256": "b4b6571453130423c39478f201beefc9cc6ce1337eba4c6a4c6a857245062623"
+  },
+  {
+   "path": "notes/b15-fix-evidence/mutation-smoke.out.txt",
+   "sha256": "420ddf2a5c4d070f3e91f15302f0581f0e4cebadd988b7c553437683c84c9417"
+  },
+  {
+   "path": "notes/b15-fix-evidence/shards.py",
+   "sha256": "671c8caaa899129982e74cf904ab034ea922c23377ed5754e6c044da98717455"
+  }
+ ],
+ "s1_dependencies": {
+  "s1_fix_status": "in_progress (read 14:59 and 15:27 UTC); built against current ws-s1 files: eval_adapter.py 6c62a1d2..., safe_lora.py cd70eed6..., lean_eval_job.py 25e9d946..., oext_eval.py 5da72827..., settings eval_adapter.json fc7d11b4..., safe_lora.json e8a01122..., lean_eval_job.json 578a378b..., oext_eval.json 3000811c...",
+  "clis_depended_on": [
+   "all CLIs listed in b15-build-runner.json s1_dependencies (unchanged)",
+   "eval_adapter.py run: one unit per evaluation at <eval-root>/<seed>-<label>, and a gated run must start with certify (run_sequence)",
+   "eval_adapter.py verify --unit DIR, now called once per B10 unit",
+   "the S1 settings' top-level engine pin key (today engine_x) read by pack_setup's re-pin check",
+   "NOT EXISTING: scripts/stage1_s1/oext_unit.py; its contract gains --dev100-source (Branch 128, regenerated a0/R)"
+  ]
+ },
+ "open_items": [
+  "LEAD DECISION (VMG-4): the kit now asks a block-A top-up of about $96.90 (plan A, Branch full; $91.13 under Branch 128) before S1-0 can launch, instead of $11.55. Revert path: the alternative the verifier offered (the user names S1-0/cert as their own funded block) needs the user's words; mutant B15-x-no-block-a-floor is the old behaviour.",
+  "The O-ext unit CLI scripts/stage1_s1/oext_unit.py is still not built (S1 package scope). Until it is, or until the lead records fallback (c), J3, J4 and the O-ext step of J9, J10, J18 are unrunnable (check-plan refuses).",
+  "Under fallback (c) the caps keep the O500 term (over-funding, not under-funding); B10/B17 settings must carry their own dev100_recipe_cap status (their scope).",
+  "C-6 consequence: the cert pod's c0 (B17 on engine Y) and any S1 job on Y refuse at pack time until those settings are re-pinned on Y (addendum \u00a711 point 7). Today every S1 settings file pins X.",
+  "GATEB_FINAL_SHA256 was taken from the main checkout's working file and FOCUS's prefix, not from commit 3e82f67 (no git allowed); the lead should confirm the blob equals 06a7020a...",
+  "The plan-A/B sigma is the lead's typed number; the measurements --final output has no pooled-sigma field, so the kit cannot cross-check it (limit).",
+  "The default-record rule refuses while any S1-0 host is not done; a W1-18 retry pod that is never launched blocks 'Branch full by default' until it is resolved (stated, not changed).",
+  "Judge outputs must be filed under runkit/stage1-olmo/judges/BLOCK/ before seal.py block BLOCK when the block has a judge launch (README G5).",
+  "Addendum \u00a719 point 3 (J5 calls the D-2 wrapper with the filled pins file) post-dates the brief and is not in the kit: J5 still calls scripts/stage1/representation_pass.py.",
+  "Unchanged from the build: [D20] cents rule, the arm-major deal rule, the c0-on-Y exception, LS-04 holding only the linked J3, J5's order caveat, unmeasured estimates.",
+  "The full 124-entry mutation spec is not run (the lead's background job; it needs mutation-smoke.py's two-kit layout)."
+ ],
+ "commands_run": [
+  "date -u (14:58, 14:59, 15:06, 15:27, 15:27 UTC)",
+  "cat/sed/grep/shasum/ls/find/cmp on notes, kit, GBK tests, ws-s1 code and settings keys (exit 0)",
+  "shasum -a 256 of the Gate B final output in the main checkout; venv python -I printing its top-level and result keys only (exit 0)",
+  "venv python -B engine training_identity of recipes S, REC, G in ws-b15 (exit 0)",
+  "B15 suite: baseline 145 passed; intermediate runs r1-r10 (failures while editing tests, as expected); final 184 passed exit 0",
+  "before-fix runs of the new tests on the original kit copy (34 failed, exit 1 as expected)",
+  "GBK: one failed layout (errors, my layout), then 3 shards 91/91/89 passed exit 0",
+  "mutation-smoke.py baseline + 3 mutants: 3 killed",
+  "chk.py: 124 entries, 0 bad",
+  "rm -rf of the scratch folder"
+ ],
+ "rules_kept": "wrote only under ws-b15/runkit/stage1-olmo/, notes/b15-fix.json, notes/b15-fix-evidence/ and the scratchpad (deleted); no file outside the kit changed (find -newer over ws-b15, ws-s1, ws-y); no git, network, RunPod, Hub or GitHub call; no secrets, ssh/, hosts/ or account file; no row, prompt, answer, anchor, O-ext text or unit evaluation file opened (the Gate B final output: hash plus top-level/result.final/result.code keys only); synthetic fixtures; no install; foreground commands only; at most 3 mutants"
+}

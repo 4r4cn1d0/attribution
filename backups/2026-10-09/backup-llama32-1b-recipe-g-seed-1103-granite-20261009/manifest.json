@@ -1,0 +1,86 @@
+{
+ "release": "backup-2026-10-09-llama32-1b-recipe-g-seed-1103-granite",
+ "kind": "private research backup: family probe llama32-1b (family-probe-llama32-1b-g-seed1103; recipe study-kt-llama32-1b-r64-g-mb4-20261008.json; hosts llama32-1b-g-1103; seeds [1103]; fine-tune only; the untuned baseline 1101-a0-init-a1 is reused and backed up with its own kit; records only)",
+ "draft": true,
+ "kit": "tmp/family-probe-llama32-1b-g-seed1103",
+ "plan": "family-probe-llama32-1b-g-seed1103",
+ "hosts": [
+  "llama32-1b-g-1103"
+ ],
+ "units": [
+  "1103-a0-e1-a1"
+ ],
+ "engine_sha256": "e49a978c5fa27c3ba4bb1570ac8b24501e09bf8db5c35e31ffba90bf775cdc06",
+ "git_commit": "19693fd7755917e676cd33c9f68b2f7a6a2d9e6d",
+ "files": 100,
+ "assets": {
+  "llama32-1b-recipe-g-seed-1103-granite-units.tar.gz": {
+   "bytes": 935173,
+   "sha256": "cc4daa3602d1315bdc72c0af3d3a46f2e223d4d03bfa5cd7c51e983fa1dee8cc"
+  },
+  "llama32-1b-recipe-g-seed-1103-granite-records.tar.gz": {
+   "bytes": 26970,
+   "sha256": "05055501a821c5ac72936dadab313318b0b8e03b05bc1cd5f4f2c6cf183fe425"
+  },
+  "llama32-1b-recipe-g-seed-1103-granite-edits-analyses.tar.gz": {
+   "bytes": 66757,
+   "sha256": "f586bc30a81b42ac222762e4b47e9a64901d180a771f8f8131a1a08d0e610ef4"
+  },
+  "inventory.jsonl": {
+   "bytes": 15878,
+   "sha256": "25373a1c971d80113e50b343cfd2d6f0d5b9e99764cdc9a242dced1801237250"
+  },
+  "secret-scan.json": {
+   "bytes": 491,
+   "sha256": "a2edf8c93377eeae2df79c768b05f49d0bc90ea1573dd8b95a41706694c8d66e"
+  },
+  "SHA256SUMS": {
+   "bytes": 527,
+   "sha256": "2ed0c1e9cff145c843a9faa7d4053f964fae7d519f354478bc7b8035b6956dc6"
+  }
+ },
+ "checks": {
+  "units": {
+   "llama32-1b-g-1103/1103-a0-e1-a1": {
+    "listed": 29,
+    "weights_not_staged": 8,
+    "bad": 0
+   }
+  },
+  "second_judge": {
+   "summary": true,
+   "covers": [
+    "1103-a0-e1-a1"
+   ],
+   "lacking": []
+  },
+  "readings_with_judge": [
+   "reading-llama-g-1101-1103-granite.json"
+  ],
+  "prepared": {
+   "prepared-kt-dolly-llama3": {
+    "plan_pin": "c52a50afddcfcfa818512ac7f1536c34c959774e815095bd30f69320b083d55a",
+    "manifest_sha256": "c52a50afddcfcfa818512ac7f1536c34c959774e815095bd30f69320b083d55a",
+    "matches_pin": true,
+    "staged": [
+     "manifest.json",
+     "manifest.sha256",
+     "prepare_receipt.json"
+    ]
+   }
+  },
+  "kit_code": {
+   "runkit": "runkit/family-probe",
+   "staged_absent_or_different": [
+    "backup_records_olmo.py",
+    "budget.py",
+    "host.py",
+    "probe_constants.py"
+   ],
+   "identical_not_staged": 15
+  }
+ },
+ "failed_checks_at_backup": [],
+ "excluded": "model weights (.safetensors, .bin, .pt, .pth, .gguf, .ckpt); pod address files (pod*.json), known_hosts, timer settings; symlinks; setup bundles; prepared data other than the prepared set's manifest.json, manifest.sha256 and prepare_receipt.json (never banks/ or the hidden bank); kit code identical to runkit/family-probe/; SSH keys; secrets",
+ "excluded_files": 4
+}

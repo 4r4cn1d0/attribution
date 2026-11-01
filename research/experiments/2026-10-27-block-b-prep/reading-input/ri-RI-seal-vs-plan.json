@@ -1,0 +1,192 @@
+{
+  "baseline": {
+    "disk_full": false,
+    "erroring": [],
+    "errors": 0,
+    "exit": 0,
+    "failing": [],
+    "failures": 0,
+    "outcome": "pass",
+    "seconds": 77.4,
+    "skipped": 0,
+    "targets": {},
+    "tests": 74,
+    "tree": {
+      "__init__.py": "da7697903991e0c62d9f668a96430ed18d43bef02d8a2d4adf555ae9c9239d14",
+      "__main__.py": "5202d483edca4f22822a603e2ea544c5c0ae7f02641c360ce301e26b295d9bba",
+      "build.py": "b7e4bbf3fa80255dc7eb460e5e49c447fafa8dcb3a4854193e14936078b753f1",
+      "items.py": "0dbd10e9962490bb9d6fcf39ec1216fcabd000e2ba710a5b188626328acfc300",
+      "mutation/mutants_reading_input.json": "42725346d7e6bde65926470c863f5bbc3218d2dd647b5a111b4735f926b968e9",
+      "mutation/run_mutants.py": "491a2266856b9c632d0b0e856349034f8e7c987727d4df20427ce9d029dd83ac",
+      "sources.py": "127223a80c7a3dec5a88680278507b99e812b023e65ed49a5e0b67e770642d0a",
+      "tests/conftest.py": "00bce2df67f9bbfcfa139cc3a2a3a50e7d4a74b2b48c4414eda97f70442d4c0b",
+      "tests/synth_kit.py": "cb4228c88741115fb78a8724b1659f1bc0011f9d0c348da690764fcbafedde1d",
+      "tests/test_builder.py": "f53ee5f48a815e87ae8722264af394d0cf8cbd0a88580085252af6da003dc104",
+      "tests/test_items.py": "c5e4ef04480d8ad3adb620e4774650b36c2121ce58ec4d73f58ea0e23d5b603d"
+    }
+  },
+  "command": "python -B -m pytest -q -rs -p no:cacheprovider -W ignore --basetemp=<run>/bt --junitxml=<run>/junit.xml <copy>/scripts/stage1_s1/reading_input/tests (cwd <copy>; PYTHONPATH <copy>:<workspace>; PYTHONDONTWRITEBYTECODE=1)",
+  "dose_axis_sha256": "d258ee595709a99a7e4b5cd54b3a308ebae1a156cb144dccea22e26e44acbbe1",
+  "environment_removed": [
+    "PYTEST_ADDOPTS",
+    "PYTEST_PLUGINS"
+  ],
+  "kind": "stage1 mutation report",
+  "min_free_gb": 3.0,
+  "mutants": [
+    {
+      "describes": "a unit's COMPLETE.json SHA-256 in the block seal is not compared with plan.json's",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_unit_hash_checks",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_eval_file_against_complete_and_seal"
+      ],
+      "failures": 2,
+      "id": "RI-seal-vs-plan",
+      "outcome": "killed",
+      "part": "sources",
+      "seconds": 82.0,
+      "skipped": 0,
+      "targets": {
+        "sources.py": {
+          "after": "2caadd1656a335075de7f797e78af92432ee4fb97baeb9c516a00e597889f5bc",
+          "before": "127223a80c7a3dec5a88680278507b99e812b023e65ed49a5e0b67e770642d0a"
+        }
+      },
+      "tests": 74
+    },
+    {
+      "describes": "a read file is not compared with the SHA-256 its COMPLETE.json lists",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_eval_file_against_complete_and_seal"
+      ],
+      "failures": 1,
+      "id": "RI-file-vs-complete",
+      "outcome": "killed",
+      "part": "sources",
+      "seconds": 81.3,
+      "skipped": 0,
+      "targets": {
+        "sources.py": {
+          "after": "8dacdbb4828ffb2d68ef223eb9a0bd2a03e32b116d8ca8d4b3b51b8c942b1107",
+          "before": "127223a80c7a3dec5a88680278507b99e812b023e65ed49a5e0b67e770642d0a"
+        }
+      },
+      "tests": 74
+    },
+    {
+      "describes": "Branch 128's dev flag is the stored flag, not the cut record's",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_plan_a_end_to_end",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_block_a_only_end_to_end",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_plan_b_end_to_end",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_no_overlap_is_explicit",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_ln12_r_o_cell_may_be_absent_after_ls04_but_a0_may_not",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_ln12_absent_r_o_cell_by_a_not_run_decision",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_moved_host_is_not_an_input_only_when_the_seal_lists_it",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_unit_hash_checks",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_eval_file_against_complete_and_seal",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_pinned_units",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_job_json_must_name_the_planned_arm",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_oext_pass_bindings",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_oext_outputs_and_theta0_required",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_summary_parity_checks[eval/e1/summary.json-False-<lambda>-disagree with summary.json's harm.sampled counts]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_summary_parity_checks[eval/e1/summary.json-False-<lambda>-disagree with summary.json's query_loss n or mean]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_summary_parity_checks[eval/e1/summary.json-False-<lambda>-the cells do not hold one query bank]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_cells_must_hold_one_prompt_set",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_b14_bindings",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_b14_strata_prompt_order_is_the_u_order",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_judge_files",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_judge_record_or_not_run_decision",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_partial_curve_refuses",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_b16_schema_refusal_prints_only_its_place",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_no_value_reaches_the_output_streams",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_plan_record_refusals[<lambda>-its regeneration is not an accepted, complete R at 1102]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_plan_record_refusals[<lambda>-names no regeneration earlier on its host]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_plan_record_refusals[<lambda>-the O-only pass is not on its regeneration's unit]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_plan_record_refusals[<lambda>-S3 1104 kit:a-\\\\d+/round1/elsewhere: its COMPLETE.json is not in block A's seal]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_plan_record_refusals[<lambda>-is not a plain relative path]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_plan_record_refusals[<lambda>-plan.json records no COMPLETE.json SHA-256]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_reused_pass_routes",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_rules_pins",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_folder_must_list_what_is_read",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_ids_and_counts_across_cells",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_item_count_must_be_b16s",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_judge_index_entries",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_two_judge_files_for_one_unit",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_reference_job_refusals[<lambda>-not recipe G or bqi]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_reference_job_refusals[<lambda>-two units of ref-G at 1106]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_reference_job_refusals[<lambda>-no unit for each evaluation point]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_reference_job_refusals[<lambda>-is not one point's B10 folder]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_reference_job_refusals[<lambda>-its units are not exactly its points]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_reference_job_refusals[<lambda>-the point scale-0.3 is not a reference this reading knows]",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_b10_unit_identity",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_overlap_report_units_shape",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_one_oext_branch",
+        "scripts.stage1_s1.reading_input.tests.test_builder::test_an_unexpected_error_prints_its_type_only",
+        "scripts.stage1_s1.reading_input.tests.test_items::test_o_flags_branch_128_takes_the_cut_flag"
+      ],
+      "failures": 48,
+      "id": "RI-o-cut-rule",
+      "outcome": "killed",
+      "part": "items",
+      "seconds": 30.2,
+      "skipped": 0,
+      "targets": {
+        "items.py": {
+          "after": "b9fcb7c195c952a224d793d76c737a507262399edc6687b7047bc36afaca5559",
+          "before": "0dbd10e9962490bb9d6fcf39ec1216fcabd000e2ba710a5b188626328acfc300"
+        }
+      },
+      "tests": 74
+    }
+  ],
+  "pytest_version": "pytest 8.4.2",
+  "python": "3.11.15",
+  "rule": "killed = exit 1 with >= 1 failure and 0 errors; survived = exit 0, 0 failures, 0 errors; anything else (errors, timeout, other exit codes, no JUnit, a test count other than the baseline's) = invalid; an 'expect: survive' entry passes only if it survives",
+  "runner_sha256": "491a2266856b9c632d0b0e856349034f8e7c987727d4df20427ce9d029dd83ac",
+  "shard": [
+    "RI-file-vs-complete",
+    "RI-o-cut-rule",
+    "RI-seal-vs-plan"
+  ],
+  "spec": "scripts/stage1_s1/reading_input/mutation/mutants_reading_input.json",
+  "spec_sha256": "42725346d7e6bde65926470c863f5bbc3218d2dd647b5a111b4735f926b968e9",
+  "summary": {
+    "items": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 1,
+      "mutants": 1,
+      "survived": 0
+    },
+    "sources": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 2,
+      "mutants": 2,
+      "survived": 0
+    }
+  },
+  "timeout_seconds": 500,
+  "tree_name": "scripts/stage1_s1/reading_input",
+  "version": 2
+}

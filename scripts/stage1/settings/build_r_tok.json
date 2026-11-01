@@ -1,0 +1,45 @@
+{
+  "arms": {
+    "a1": {
+      "name": "A1",
+      "removal_sha256": "5c0e53b78e9ee71d0e16e13f4fa045509401c0afa98f53c3d7af6bd79ccaf4ca",
+      "rows": 600,
+      "source": ".ai/inputs/stage1-commitments-20261016/a1/a1_remove600.edit.json (commit 1be4bb1)"
+    },
+    "h1": {
+      "name": "H1",
+      "removal_sha256": null,
+      "rows": 600,
+      "source": "REQ-5's octile-0 file (H1), named by SHA-256 on the command line"
+    },
+    "l1": {
+      "name": "L1",
+      "removal_sha256": null,
+      "rows": 600,
+      "source": "REQ-10's l1_remove600.edit.json, named by SHA-256 on the command line when it exists"
+    }
+  },
+  "axis": "total_tokens",
+  "axis_alternative": "target_tokens (a sensitivity: a separate run with this field changed in a separate settings file)",
+  "contrast": "G_m - G_Rtok,m on the common seeds (report and one-sided bounds only)",
+  "draws": [
+    2,
+    3,
+    4
+  ],
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "key": "random_removal.rtok",
+  "kind": "stage1 settings",
+  "label_entries": {
+    "random_removal.rtok": "9677117437473ae2324da0f04f4ff9c8dd767522445f7c245eb775bc98f39863"
+  },
+  "labels_sha256": "d79c7ae6137143be644cb24efed68409842fee2fcdfe5b44caee6e0032fe3e27",
+  "name": "build_r_tok",
+  "owner": "scripts/stage1/build_r_tok.py",
+  "prepared_manifest_sha256": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
+  "requirement": "W1-03 (W1 builder extract rev 2), built under addendum section 6.5: R_tok, token-matched random removal for A1, L1 and H1; a secondary arm at 3 seeds (funded tier), one-sided bounds only, never in P1-P6",
+  "rule": "T_m = the arm's removed mass on the axis; per unit g in ascending group-id order: walk g's members in s1common.sealed_order(members, registry key random_removal.rtok, m, d, g); add rows while the unit's mass stays below T_m / 8; at the row whose mass crosses T_m / 8 keep it only if that brings the unit's mass closer to T_m / 8 (a tie keeps it), then stop; a unit whose whole mass is below T_m / 8 refuses; remove = the sorted union",
+  "seed_offset": 1100,
+  "seed_rule": "draw d runs at seed 1100 + d (the secondary-arm seed rule: 1102-1104)",
+  "version": 1
+}

@@ -1,0 +1,56 @@
+{
+  "chunk": 32,
+  "chunk_rule": "L11 (1): a chunk = 32 consecutive list positions (REC generation.batch_size; the job refuses another value); each chunk is its own greedy_generate call; never one whole-list call (the engine sorts a call's prompts by length)",
+  "cuda": "untested on CUDA; checked on CPU fixtures only",
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "kind": "stage1 settings",
+  "label_entries": {},
+  "labels_sha256": "72665fe53c8f294e4b9d010691f3bcc4cacb836985f39d536d9498c536da824e",
+  "lists": {
+    "s3": {
+      "keep": "every answer is kept; capped ones are flagged; a y^orig that encode_train refuses leaves the SAS ranking and is counted (L14 (1)); REQ-3's pool s3_orig holds the others with ids <id>:orig",
+      "kind": "s3",
+      "max_new_tokens": 512,
+      "size": null,
+      "source": "REQ-6's s3_safe.pool.json: the S3 subset (1,000) and S1's rows outside it (L10 (2))"
+    },
+    "s4": {
+      "keep": 48,
+      "keep_rule": "L14 (2): kept only if it ended, its lexicon class is REFUSAL-OPENING, answer.strip() is non-empty and encode_train(prompt, answer, S.max_train_tokens) accepts; the first failing check is the drop reason (capped, empty, not_refusal_opening, encode_train_<error>); the first 48 kept in list order form S4; stop after the chunk that holds the 48th, later keeps in it counted as kept_after_the_48th; fewer than 48 after 512 prompts: counts only and exit 3 (L11 (2))",
+      "kind": "s4",
+      "max_new_tokens": "rec",
+      "size": 512,
+      "source": "REQ-6's s4_candidates.json (512, L11)"
+    },
+    "sd600": {
+      "keep": "every answer is kept; the capped count, and per row ended, empty and encode_train's verdict, are recorded (L14 (3): REQ-15 decides rewrite or remove)",
+      "kind": "sd600",
+      "max_new_tokens": "rec",
+      "size": 600,
+      "source": "REQ-15's SD-600 list (A1's 600 rows' prompts)"
+    }
+  },
+  "loss": {
+    "batch": 8,
+    "definition": "W1-06: the engine's example_losses (per-example mean NLL over the response and end-of-turn targets, the training loss) of the untuned model on encode_train(prompt, response, S.max_train_tokens), and its exp; per row id; encode_train refusals counted; rows: S1's 48 (prompt, PKU-safe response), the s3_safe pool (prompt, PKU-safe response), and S4's 48 kept rows (prompt, untuned answer) when S4 ran",
+    "include_s4": true,
+    "lists": [
+      "s1",
+      "s3_safe"
+    ]
+  },
+  "max_new_tokens_rule": "S3: 512 (SPEC section 3.5 item 2); S4 and SD-600: REC's generation.max_new_tokens (2,048; L14)",
+  "name": "make_untuned_answers",
+  "outputs": "into --out: answers_<list>.json, s4.json, s3_orig.pool.json (text; the kit pulls them to tmp/) and untuned_answers_record.json (text-free)",
+  "owner": "scripts/stage1/make_untuned_answers.py",
+  "pins": {
+    "rec_recipe_sha256": "9e9bde6f2f32876098410479883deff5ef3141e471a79ed231c7a5db15ad399b",
+    "recipe_s_sha256": "ceffe0efb5d75bacfbd62743f530259deeedeca8950605d1bd3ff66e5391fe46",
+    "rule": "REC gives the model, the generation settings and max_prompt_tokens; recipe S gives max_train_tokens (L14: read, never hard-coded); the job refuses unless REC and S agree on model.max_train_tokens, model.max_prompt_tokens, model.repo_id and model.revision"
+  },
+  "records": "L11 (3): chunks run, prompts answered, keeps per chunk, seconds per chunk (wall time after a device sync), the GPU name and each chunk's answers' SHA-256; the lock's SHA-256; the model revision; engine X",
+  "requirement": "REQ-9 (brief rev 1; RS B7); lead decisions L11, L14 and section 5 item 3 (b) (W1-06); the lead's Part C requirement (model-agnostic)",
+  "transformers_version": "4.56.2",
+  "untuned": "REC's policy through the engine's loaders, run with policy.model.disable_adapter() under torch.no_grad()",
+  "version": 1
+}

@@ -1,3 +1,347 @@
+## Substack drafting routed to the Side Project chat — 13 October 2026 (IST)
+
+The user explicitly asked to update the existing Side Project chat with everything
+that happened and begin the Substack post there. Sent a full current-state and
+writing brief to “Side project: family×recipe white paper and refusal loss”,
+thread 01a12b22-ae7a-70b1-8078-2d98ca4597e9 (local). It was already available;
+no new chat was created. Dispatch succeeded and a compact status check confirmed
+an active turn. The brief covers the completed main comparisons, 20/24 probes,
+fiction/blind read, verified seed1121 pilot, failed seed1122 follow-up, writing
+pass, appendix audit and supplements, with exact sources and scientific limits.
+
+Requested a new 1,500–1,800-word draft and claim/source ledger in the Side
+worktree, beginning with writing/substack/2026-10-13-same-recipe-different-fate-
+DRAFT.md. Earlier Substack drafts/outlines are historical, not current numeric
+sources. Paper snapshot remains 1f7a892. The shorter title was a suggestion and
+prospective résumé wording; no manuscript title change or ARR submission is
+verified. User venue goal remains NAACL Findings with COLING secondary fallback.
+Writing is authorized; publishing, spending, new runs and paper/source changes
+are not requested. Main Gate B stays paused. Only the lead edits this handoff.
+
+## Deep appendix audit complete — 13 October 2026 (IST)
+
+The user asked for a deep scan of the appendix, especially missing material in B.
+Completed the reporting and layout repairs under the existing explicit GPT paper
+exception in .claude/worktrees/peaceful-jepsen-8b8eee. Side branch commit 1f7a892
+supersedes the earlier paper snapshot below. Current ARR is 26 total / 8 main
+pages, Limitations page 9, Appendix B pages 14–18; preprint is 24 pages. All B
+tables now precede C, and every rendered page plus enlarged ARR B pages was
+inspected. Both formats compile without undefined references/citations or
+overfull boxes; preprint retains only its existing empty-anchor warning.
+
+Added exact applied learning-rate sequence, whole-update loss equations and tail
+batch handling, named seed streams, data/checkpoint rules, software/numerical
+settings, judge parsing/length handling, canonical recipe pins and five Granite
+tokenizer/template hashes. Corrected Component C coverage, engine rosters,
+training/generation prompt caps, High-dose defaults, and the blind-read Mac/MPS
+HarmBench scope. Clarified other appendix wording and the numerical-release limits.
+The local configuration ZIP contains 23 byte-preserved recipes, full file/canonical
+hashes and the common runtime profile verified across 77 saved artifacts. All
+five actual Granite files were rehashed; three known Dolly preparations have
+zero exact train/query text overlap, with no semantic-independence claim.
+
+Turing supplied a bounded read-only first-pass audit; Anscombe, non-author of
+these changes, ACCEPTED the source/artifact review. Both share prior context;
+no independent-error-process claim. Title, abstract and ten statistical tables
+are unchanged. Checks/review: Side branch research/side-notes/2026-10-13-appendix-
+audit.md, appendix-checks-20261013.json and appendix-upload-checks-20261013.json.
+The nine-file preprint source archive clean-compiles with identical extracted
+text. Rejected scratch builds/source-before copies remain preserved. The ARR
+submission guide now has correct appendix order/page counts/supplement paths
+and reflects the user's NAACL Findings preference.
+
+Files are prepared locally only. No software test suite, training, GPU operation,
+submission, publication or visibility change occurred. Main Gate B stays paused.
+Writing remains the priority; seed 1121 evidence and the incomplete seed 1122
+incident below remain scientifically unchanged. No new run is queued.
+
+## Writing priority —13 October 2026 (IST)
+
+User needs5-6h for writing and says to run nothing if further compute will not
+materially improve this submission. Lead and bounded non-author reviewer both
+recommend WRITING NOW: no identified1-2h run reliably repairs a specific current
+paper defect; recovery/newpairedstudies/verification have uncertain turnaround.
+No new GPU restart, training, cap extension, spend authorization or top-up amount.
+Existing scientifically verifiedseed1121results remain the evidence base; failed
+seed1122 supplies no locally verified comparison or activation result. Future
+causal recovery/replication may be planned after this submission, not auto-launched.
+
+User venue preference: NAACL Findings target, NAACL primary/COLING optional
+secondary, with discretionary fallback. No submission/commitment performed.
+User explicitly wants regular communication during experiments. Created heartbeat
+side-project-experiment-progress, ACTIVE every10minutes in this chat: concise
+progress on every check while an authorized experiment is active, errors/results
+as observed, quiet when no active experiment, read-only and no restart/spend.
+Prior attribution-pilot heartbeat remains PAUSED and was not repurposed.
+
+Focused paper writing pass active in .claude/worktrees/peaceful-jepsen-8b8eee,
+under existing explicit GPT paper exception. Edits intro/practicaltakeaway/
+observedfamilyordering and incompletefollowup disclosure, leaves abstract/title/
+all12result-settingtables unchanged. Scratch build/checks tmp/side-paper-takeover-
+20261011/deadline-writing-20261013; source-before copies retained. Compile/layout checks and targeted non-author review ACCEPTED. ARR21total/8main,
+Limitations9, no undefined citations/references or overfullboxes, anonymous;
+preprint19pages with onlyexistingemptyanchorwarning. Allrenderedpages inspected;
+clean9filepreprintsourcearchive matchesreviewedtext. Current paper changes/checks
+in Sidebranch commit98e6623; see research/side-notes/2026-10-13-writing-priority-
+review.md and paper-checks-20261013.json there. No software tests added/run.
+
+## Latest funded follow-up incident —13 October 2026,00:35 IST
+
+Supersedes the active/bootstrap snapshot immediately below. Seed1122 phase ended
+INCOMPLETE at12Oct18:50UTC. 1B cause-outer startup check failed, with no locally
+verified unit; actual remote start state is unconfirmed because diagnostic logs
+were not retrieved. 7B batch receipt records C complete_verified, H not started
+under frozen resource admission. Collector exited on missing SSH mapping; no
+sealed units/backup receipts, combined empty, analysis incomplete with no contrasts.
+Refusal-direction sidecar has no validated output. Both pod IDs still exist as
+EXITED (GET200), no SSH mapping, mounted30/40GB; retained remote data unverified.
+Live account check12Oct19:03UTC: $11.80, zero GPU pods running, storage$0.493/h.
+Old seed1121 six-unit pilot/results/full backups remain valid and unchanged.
+
+Incident provenance: research/side-notes/causal-followup-20261012/
+incident-20261013/{STATUS.md,status.json}, original operator/collector failures
+archived with hashes. No paid restart/new training/cap extension/deletion occurred.
+Do not repeat manager, overwrite frozen source/protocol or report a complete
+comparison. Recovery needs remote launch diagnostics and seal-checked7B C before
+scientific use; currently no no-cost SSH endpoint is exposed. Main GateB paused.
+
+## Active funded causal phase1 and venue assessment —12 October2026
+
+User asked execute fresh-seed replication, matched-rate schedule controls and
+direct direction intervention, plus current-paper venue/ARR assessment. Existing
+GPT causal-implementation exception persists. Frozen phase1commitf3ebb11, protocol
+SHA22325e137baca1cad416d7c7620e169ab394442def58540a3f6f9191bd304b94.
+Plan/configs/pins/review/launch at research/side-notes/causal-followup-20261012.
+Both A100SXM480GB pods created15:37UTC at$1.79/h and GPU/timer checks passed:
+1Bda94skwxnlfda5(cap20:07UTC),7Bhzkhrb67spon3u(cap19:07UTC), bootstrap underway.
+Actuals in launch.json; no new study outcome exists yet.
+
+Funded roster seed1122:1B A/H/C/D;7B H/C. H constant5e-5/examplemean vs C
+scheduled mean5e-5/examplemean; profile beyond nominalmean, not pureordering
+claim. Full1B componentreplication, bilateralmatchedmeanpair, 1Bcandidate
+intervention base+A/C/D (fixed.75layer, calibration40+40/eval30harm+30benign,
+256tokengreedywindow,20utilityrows;orthogonalcontrols/realzerocanaries).
+Originalseed1121/engineX/paperoutcomes unchanged. 7B A/D, extra1123/24 joint
+seeds,7Bactivation, secondaryjudge/externalpromptconfirmation remain unfunded.
+$14.80 GPUcaps/$6reserve admittedagainst$21.04 snapshot15:29UTC; liveadmission
+under sharedlock. No payment, deletion or futurebudgetqueue armed.
+
+Manager actualPID14798/caffeinate14799; operators14800/14801. First shellbg
+launchdidnotpersist, no marker/create happened; detachedrestartonly recorded.
+Manager tmp/causal-followup-20261012/run_funded_phase.py owns automatic collector
+dispatch afterbatch-started, sourcepins, finalroot/analysis. No duplicate fullpull;
+operator alone consumesBACKUP-VERIFIED then stops; independenthardsupervisor
+capsremain. Prefetch preservescompleted+terminalfailed/lightpartialevidence and
+mechanismvectors. Collection root tmp/causal-followup-20261012/combined; analysis
+.json/finished.json afterall. Never duplicate manager/launch; inspectcurrent
+events/processreceipts first. Non-author staticreviewsACCEPTED afterclosed
+collection, accounting, receipt, timeout, races; no softwaresuites added/run.
+Nativecanaries are actual registered scientific controls, not claimedtests now.
+
+Paper fullquickreview byAnscombe: NOT_CALIBRATED,soundness3/excitement3/overall3
+Findings. NAACLmainstretch, Findingsplausible, COLINGborderline reasonable; no
+acceptanceprobabilities/cutoffs. Current2027jointcommitmentverifiedofficially:
+one primaryNAACL/COLING +optionalsecondary; secondarynotguaranteed, one final
+acceptance. PrimaryNAACLFindingswins overCOLINGmain ifbothwouldaccept. Preferred
+ARRvenueisnonbinding; choicesatcommitbinding. Guide/assessment updatedonSide
+branch, paperunchanged. Canvas in CursorCodingworkspace givespreviewonly.
+MainGateB remains paused; no publication/submission/visibilitychange.
+
+## Latest Side Project state —12 October 2026,14:32 UTC
+
+This entry supersedes older live pod/setup snapshots below. The user asked to
+continue the original Claude Side Project work here and reiterated that the GPU
+follow-up was for establishing cause. The fixed six-unit A/C/D seed1121 block is
+complete and non-author result review accepted; no GPU is running for that block.
+Within each OLMo checkpoint, initialization, actual data order, optimizer reset
+and evaluation settings were controlled. C-A Unsafe:1B−12.00pp,7B+7.50pp;
+D-C:−8.50/+2.83pp.1B weighting adds16pp benign refusal. These are conditional
+recipe-intervention results, not a population result, parameter-count cause or
+refusal-direction mediator proof. Replication and direct mechanism interventions
+remain outstanding. No new unregistered block has been launched.
+
+Recovered Claude Side Project scope and finished its current paper continuation
+in `.claude/worktrees/peaceful-jepsen-8b8eee`:20/24probes, full fixed-direction
+projection definition, all6component outcomes and limitations integrated. ARR
+21total/8main pages, Limitations9; preprint19. Nine old numeric/settings tables
+and abstract unchanged. Paper and version2 numerical package non-author reviews
+ACCEPTED; fresh archive extraction recomputes77evaluated artifacts/44current
+fine-tunes/7maps/20probes/13opening tables/50blind ratings/fiction/pilot.
+Sources, reviews, checks and prepared archives are saved on the Side Project
+branch, commit `14a1b245d5c1c01e2240b7d8a03b066e6a7f2eae`. Exact numerical coverage limits are in its README/COVERAGE; no training
+reconstruction or scientific-review independence is claimed.
+
+The user’s explicit “Yes, finish with GPT” and “Yes, implement with GPT now”
+exceptions apply to this paper/causal continuation after Opus5.5/max weekly-limit
+failure. Default project routing remains unchanged. Native reviewers did bounded
+read-only work; no software test suites were added or run. No paper submission,
+public release, repository visibility change, pod deletion or new GPU spend.
+Main Gate B remains paused. The earlier RunPod MCP installer was canceled at
+client selection and no H200 deployment/configuration is claimed.
+
+## Active Side Project causal investigation — 12 October 2026
+
+The user instructed “Establish cause” of the differing1B/7–8B recipe results.
+Scope is a controlled Side Project follow-up; Main Gate B stays paused. See
+`.ai/handoffs/2026-10-12-cause-investigation.md` for draft controls,
+acceptance criteria, setup audit, power/cost feasibility and literature.
+The causal-study pods were created at08:29 UTC, one A100 each at$1.79/hour;
+setup is in progress and no cause is established. The six-unit protocol was
+frozen before launch in commit52f9ebe, SHA084d5543f622b8f24896f6518ac45af41450043f30ae1e32866dece5b27c7c38.
+Actual launch receipts: `research/side-notes/causal-study-20261012/launch.json`.
+The original1B pod lbkh107g8imeox never suppliedSSH and was confirmed stopped
+08:39:33 UTC before bootstrap/training. Its complete attempt is archived. A
+non-author lead review accepted one outcome-independent infrastructure replacement
+at the same seed/recipes/engine:1B xp4oqyw03o17ej, now healthy, preflight passed
+and its D/A/C batch started08:59 UTC.
+Its acknowledged earlier stop12:28:06 UTC preserves the original1Bresource window.
+The7B pod xmjbtr4r89y1bj passed preflight and started its A/C/D batch08:50 UTC;
+cap14:59 UTC. See `infrastructure-replacement.json` and `failed-attempt1-stop.json`.
+Active operator exec sessions11355/10115; one-shot collector/reader4269.
+Logs and eventual analysis: `tmp/cause-study-20261012/`. The unchanged frozen
+reader will release contrasts only after all six units and pairing verify.
+
+The prescribed Opus5.5/max first-pass request failed at the weekly usage limit,
+reset15 October14:30 IST; evidence `tmp/claude-handoffs/20261012T065129Z-3ad13967/`.
+The user answered “1. Yes 2. Yes” on12 October. GPT implementation is authorized
+for this causal-study pipeline while Opus is unavailable. The lead stated the
+budget interpretation: use the remaining account balance, keeping the unfinished
+probe-recovery allowance separate. This is not an unlimited or$75 authorization.
+At08:01 UTC the account held$35.12525; recovery has$1.85646 still allocated.
+The funded design is one fresh joint A/C/D block at OLMo1B and7B (six units),
+which has seed-specific diagnostic scope and cannot establish population-level
+heterogeneity. Implementation received non-author static review; source syntax,
+recipe/schema/file pins and both no-spend launch dry runs passed. No software
+test suites were run. The guarded operators and collector are active here.
+
+The user's explicit asynchronous answers arrived12 October at approximately
+10:04 UTC: “Yes, implement with GPT now” and “Use the remaining balance”. They
+confirm the task-specific routing and budget already used; no broader Opus rule
+or larger spending authorization is inferred. Live check at10:05 UTC:1B D and7B C
+have completed and passed the worker's checks (2/6);1B A and7B D are active.
+No primary comparison has been released. Account balance$28.71, remaining active
+GPU commitments$13.05 and the$12 account reserve retained. Probe recovery funding
+remains separately allocated within that reserve.
+Live check at10:34 UTC:1B D/A and7B C are complete_verified (3/6);
+1B C and7B D are running. Balance$26.70; remaining cappedGPU commitment$11.30,
+with$12 reserve retained. Large-checkpoint transfer feasibility is being addressed
+by an administrative incremental verified backup helper and whole-source collector;
+scientific protocol/analyzer/recipes and hard caps are unchanged. Original collector
+PID97980 stopped before replacement. Non-author static re-review accepted the
+new helper/collector; active prefetch sessions75086/88442 and collector60128, with
+both .part transfers observed10:38 UTC. Review and activation details are in
+`research/side-notes/causal-study-20261012/incremental-backup-amendment.json`.
+
+Latest12:58 UTC:all6 units complete, all raw/model-state backups verified,
+both successful matching batch receipts and full pairing pass. Both pods stopped;
+account12:57UTC$22.11, no runningGPU or remainingGPU commitment. Scientific reader
+exit0; status complete, failures empty. Collector's local str/Path callback bug
+fixed administratively; original failure and partial folders retained. Both
+redundant bulk pull255 exits are recorded; full alternate backup passed the reader.
+Result: C−A Unsafe share1B−12.00pp /7B+7.50pp; D−C−8.50/+2.83pp;
+D−A−20.50/+10.33pp.1B token weighting adds16pp benign refusal (3→19/100).
+One-seed checkpoint-conditional evidence, no general size/mechanistic cause proved.
+Non-author raw recomputation ACCEPTED13:03UTC: counts/contrasts reproduced,180
+sealed files rehashed, both receipts/pairing/pins verified; no material defect.
+Funded one-seed block complete; larger causal generalization remains unproved.
+Archived results and
+provenance: `research/side-notes/causal-study-20261012/RESULTS.md`, `analysis.json`,
+`completion.json`, `collector-pathfix.json`. Main Gate B remains paused.
+
+Latest11:36 UTC:5/6 units complete_verified (all1B;7B C,D). Last7B A
+started11:20:51 UTC and is active. All1B raw units and matching successful batch
+receipt were copied and seal-verified; samepod stop confirmed11:03:05 UTC.
+Legacy1B bulk pull returned255 after this deliberate verified-backup stop; its
+finished.ok false is retained, not concealed. The alternate full raw backup is
+ready for the unchanged frozen reader, which still waits for all6/both receipts.
+7B C backup verified; D transfer active. Local41GiB free. Balance$23.56, active
+remaining GPU commitment$6.06, reserve$12. Evidence `progress-1136utc.json` in the
+study folder. No primary contrast or causal conclusion has been released.
+
+GPT continues framing and read-only audits, and prepared validated DRAFT JSON
+controls by changing only the loss objective/optional weighting field of existing
+recipes. Engine, model, data and evaluation are untouched. A bounded non-author
+GPT design review returned corrections before the subsequent protocol freeze.
+
+Important correction: the selected1B and native7B tokenizer files are identical
+at the actually pinned revisions, and the recorded7B template includes BOS.
+The earlier current-card/repository-name concern is unsupported for these runs.
+Engine-version audit found no changed valid loss/optimizer update for the selected
+recipes; real-model update parity is unmeasured. The exact38-step mean LR is5e-5,
+matching the existing Constant half-LR arm. Three-seed pilots cannot guarantee
+adequate causal precision. A/C/D is the minimal conditional-component comparison;
+fresh concurrent seed blocks and direct cross-checkpoint contrasts are needed
+to explain the1B/7B response difference. Six arms additionally separate mean LR
+from the schedule package; warmup versus decay remains a further distinction.
+
+## Active Side Project probe recovery — 12 October 2026
+
+Latest12 October10:35 UTC: Scheduled Llama-1B seed1102 recovered and independently
+adapter-hash verified; stop confirmed. Coverage20/24. Capacity queue ended10:07:56
+UTC; four probes remain (two capacity refusals,two OLMo-1B container failures).
+RecoveryGPU-spend upper bound$6.27664/$8; allowance remaining$1.72336, no reservation.
+The chronological records below retain earlier states.
+
+The user instructed: “whatever couldnt run run those”, following the report of
+11 missing representation probes. GPT lead is using the existing reviewed
+`tmp/sp-repr/restart_probe_pull.py` and unchanged probe script on the original
+finished units. No training recipe, prompt set, scientific computation or
+completed result is changed. This is operator work; no new substantive
+implementation or model substitution is involved.
+
+Preflight: all 11 original pods exist and are stopped at $1.79/hour; account
+balance approximately $37.51, no running pod before the retry. The existing
+$8 total recovery GPU allowance is retained. Historical elapsed-cost upper
+bound at $1.85/hour is $4.2817 including the canary; remaining $3.7183.
+Initial attempts reserved at most three 40-minute billing windows. Later attempts
+used 15- or 12-minute initial timers and the same maximum extension after SSH.
+The two OLMo-1B containers were also given one 420-second SSH wait after their
+180-second attempts failed. Completed attempts release unused reservations.
+
+Manifest, dry runs, live preflight and new attempt logs:
+`tmp/sp-repr/resume-20261012/`. At 06:00 UTC, five of the 11 missing probes
+were recovered: Llama-1B Constant 1103, Llama-1B Scheduled 1103, Llama-8B
+Constant 1102, OLMo-7B Constant 1103 and OLMo-7B Scheduled 1102. Each fetched
+adapter was independently re-hashed against its original Mac state, pod state
+and probe identity; all five pods were confirmed stopped. Total probe coverage
+is now 18/24. Four remaining pods repeatedly refused for original-machine GPU
+capacity; two OLMo-1B pods stayed in `initializing/awaiting_container` without
+runtime or SSH, then were confirmed stopped. CPU-only API recovery also refused;
+the console recovery route needs the user's RunPod sign-in (requested).
+
+A thin administrative capacity-retry queue passed static non-author GPT review
+after accounting, stop-barrier and persistent-cooldown fixes. It launched at
+06:05:39 UTC; that detached process ended before any operator output. The two
+reserved pods were checked stopped before reservation release. The queue was
+relaunched as active exec session 49414 at approximately 06:08 UTC (11:38 IST),
+log `capacity-queue.log` in the manifest folder;
+it calls the unchanged operator and scientific probe, at most two parallel
+attempts, 12+12-minute reservations, once per host per ten minutes, for up to
+four hours and within the existing $8 total GPU allowance. Paid post-start
+failures require investigation rather than automatic repetition. See
+`.ai/handoffs/2026-10-12-side-project-probe-recovery.md` for the current queue
+state and evidence. Original 13-unit paper
+summary stays frozen; new verified probe files will be saved separately before
+any paper revision. Main-study Gate B remains paused at its completed anchor.
+No deletion, publication, submission or new training was performed in this retry.
+
+Update at approximately06:49 UTC (12:19 IST): Scheduled Llama-8B seed1102 was also
+recovered and verified, bringing coverage to19/24. Original adapter and probe
+hashes match; stop was confirmed. Three capacity-refused pods remain in the queue;
+two stalled OLMo-1B containers need console recovery. GPU-spend upper bound,
+including earlier attempts, is$6.14354 of the$8 allowance. Account balance
+was$35.6162 with no running GPU at the read.
+
+Scientific follow-up: the user's question about 7–8B versus 1B was checked by a
+bounded non-author GPT reader. The cause remains unresolved. Half-LR Constant
+results support LR sensitivity, not mediation of the Scheduled recipe effect.
+Scheduled changes loss weighting, warmup and decay together; checkpoint releases,
+engine identities and seed variability also limit a causal size claim. The current
+representation measurements are observational content/task-confounded proxies.
+At that initial follow-up no causal experiment had launched. The follow-up separates loss weighting
+from schedule shape and exact mean LR, pins one engine, uses independent seed
+blocks and held-out safety, benign over-refusal and utility outcomes.
+
 # Current workflow handoff
 
 ## Active research framing — user clarification, 2026-09-26

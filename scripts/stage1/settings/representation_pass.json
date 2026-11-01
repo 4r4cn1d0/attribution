@@ -1,0 +1,43 @@
+{
+  "anchor_means": "per index and read: float64 vectors summed in the anchor bank's file order, then divided by the count",
+  "cosine": "torch.nn.functional.cosine_similarity(v, mean, dim=0) on float64 CPU vectors",
+  "cuda": "untested on CUDA; checked on CPU fixtures only",
+  "datashield": {
+    "cas": "cas_i = v_i' S_inter v_i / v_i' (S_inter + S_intra) v_i on the anchors' read (b) states z-scored per dimension over both classes (population SD; SD 0 gives 0); classes harmful and safe; sums of squared projections (SPEC 4.1 Eq. 3-5 as written)",
+    "css": "css_i = (read c - read d) . v_hat_i, per row and index",
+    "direction": "v_i = harmful anchors' mean of read (c) - safe anchors' mean of read (c); v_hat_i = v_i / ||v_i||"
+  },
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "gate_c_reproduction": "at (index n, read b): per unit, fsum / count of cos_harmful, cos_safe and their difference; equal byte for byte (canonical JSON) to the pinned scripts/gate_c_representation.py groups block (998231ea), checked on a CPU fixture",
+  "index_convention": "index 0 = the embedding output; index i (1 <= i <= n - 1) = the raw output of block i - 1; index n = model.norm(the output of block n - 1); block b's output is index b + 1, post-final-norm for b = n - 1 (transformers 4.56.2 exposes no raw output of the last block)",
+  "kind": "stage1 settings",
+  "label_entries": {},
+  "labels_sha256": "05ca5ba536433ea7b52e36e91cd1ff69f7b4c16d3068cdfeec536d67ff0a35e1",
+  "model_agnostic": "the layer count n, the hidden size and the final norm are read from the loaded model (config.num_hidden_layers, config.hidden_size, get_decoder().norm); a 7-8B run gets its own settings file",
+  "name": "representation_pass",
+  "outputs": {
+    "rows": "representation_rows.jsonl",
+    "summary": "representation_pass.json"
+  },
+  "owner": "scripts/stage1/representation_pass.py",
+  "pins": {
+    "anchor_bank_sha256": "2cf9633613e235d1f33deee3530c3e53b037845bd3979568887742457c1801ed",
+    "model": {
+      "repo_id": "allenai/OLMo-2-0425-1B-Instruct",
+      "revision": "48d788eca847d4d7548f375ad03d3c9312f6139e"
+    },
+    "prepared_manifest_sha256": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
+    "recipe_sha256": "ceffe0efb5d75bacfbd62743f530259deeedeca8950605d1bd3ff66e5391fe46"
+  },
+  "pools": "optional stage-1 text pool files ({kind, version 1, name, items: [{id, prompt, response}]}) named by SHA-256 on the command line; each item encoded by encode_train under the recipe's max_train_tokens; a refused item is counted by reason and not scored",
+  "reads": {
+    "a": "position L - 1: the end-of-turn token (the row must end with codec.eos_id)",
+    "b": "position L - 2: the last response token (the pinned Gate C read)",
+    "c": "the mean over the response tokens, positions n_prompt .. L - 2 (end-of-turn excluded)",
+    "d": "position n_prompt - 1: the last templated-prompt token (the end of the assistant header)"
+  },
+  "requirement": "REQ-3 (brief rev 1, RS B1, SPEC section 8; lead decisions L3, L4; the lead's Part C model-agnostic requirement)",
+  "roles": "L1's arm uses only (index l_s + 1, read a); S3 uses read (a) at indices 1..n; DataShield-style uses css and cas at indices 1..n; Gate C's reproduction uses (index n, read b); every other (index, read) cell is report only and never selects rows or defines an arm (L3 (1))",
+  "transformers_version": "4.56.2",
+  "version": 1
+}

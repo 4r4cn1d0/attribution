@@ -1,0 +1,129 @@
+{
+  "arc": {
+    "batch_size": 32,
+    "template": "arc-easy-mc-v1"
+  },
+  "attribution": {
+    "aggregation_dtype": "float64",
+    "checkpoints": [
+      "q",
+      "e1",
+      "e3"
+    ],
+    "query_bank": "ref",
+    "variants": [
+      "checkpoint_gradsim",
+      "adam_diag_preconditioned_dot"
+    ]
+  },
+  "generation": {
+    "batch_size": 32,
+    "decoding": "greedy",
+    "guard_over_limit": "unscored",
+    "harm_samples": {
+      "count": 3,
+      "temperature": 0.7,
+      "top_p": 1.0
+    },
+    "max_new_tokens": 2048
+  },
+  "guard": {
+    "architecture": "Qwen3ForCausalLM",
+    "attn_implementation": "sdpa",
+    "batch_size": 8,
+    "dtype": "bfloat16",
+    "max_input_tokens": 8192,
+    "max_new_tokens": 128,
+    "pad_token": "<|endoftext|>",
+    "repo_id": "Qwen/Qwen3Guard-Gen-4B",
+    "revision": "6ec42827da0c1ff11e7a49dc269d2e810d27e108",
+    "stop_tokens": [
+      "<|im_end|>",
+      "<|endoftext|>"
+    ]
+  },
+  "kind": "safety-selection recipe",
+  "model": {
+    "architecture": "Olmo2ForCausalLM",
+    "assistant_header": "<|assistant|>\n",
+    "attn_implementation": "sdpa",
+    "base_dtype": "bfloat16",
+    "device": "cuda",
+    "end_of_turn_token": "<|endoftext|>",
+    "lora": {
+      "alpha": 128,
+      "dropout": 0.0,
+      "expected_trainable_parameters": 159907840,
+      "r": 64,
+      "target_modules": [
+        "q_proj",
+        "k_proj",
+        "v_proj",
+        "o_proj",
+        "gate_proj",
+        "up_proj",
+        "down_proj"
+      ]
+    },
+    "max_prompt_tokens": 1536,
+    "max_train_tokens": 3072,
+    "pad_token": "<|pad|>",
+    "repo_id": "allenai/OLMo-2-1124-7B-Instruct",
+    "revision": "470b1fba1ae01581f270116362ee4aa1b97f4c84",
+    "stop_tokens": [
+      "<|endoftext|>"
+    ],
+    "tokenizer": {
+      "repo_id": "allenai/OLMo-2-0425-1B-Instruct",
+      "revision": "48d788eca847d4d7548f375ad03d3c9312f6139e"
+    },
+    "trainable_dtype": "float32"
+  },
+  "name": "study-kt-olmo2-7b-r64-g-mb2-20261011",
+  "purpose": "Recipe G at 7-8B for the Side Project's pre-registered family-by-recipe replication (the user's approval in the Side Project chat, 10 Oct ~22:50 UTC; GI V, 11 Oct): study-kt-olmo2-7b-r64-b-mb2-20261008 with the 1B recipe B -> G change only, copied from study-kt-olmo2-1b-r64-g-mb2-20261008 (train: token-mean loss and loss_weighting, warmup_cosine schedule, 4 warmup steps, schedule_until e1; LR 1e-4 unchanged). Evaluation settings equal the mb2 rung's, so the sealed untuned unit is reused. Family probe olmo2-7b (brief multi-family-probe-engine-20261007): recipe B (study-kt-instruct-r64-b-20261007) unchanged except the model (allenai/OLMo-2-1124-7B-Instruct @ 470b1fba, Olmo2ForCausalLM, its end of turn, stops, pad and assistant header, tokenizer allenai/OLMo-2-0425-1B-Instruct @ 48d788ec; 159,907,840 trainable LoRA values) and this memory candidate: micro-batch 2 x accumulation 64, gradient checkpointing off, sdpa attention for the policy only (the guard stays recipe B's), generation batch 32. The preflight takes the first passing candidate of the probe's ladder; the guard and every evaluation setting are recipe B's.",
+  "secondary_toxicity": null,
+  "train": {
+    "batching": "consecutive examples of one epoch's order; an epoch's final optimizer step keeps its actual size; steps never cross epochs",
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "checkpoints": [
+      {
+        "epochs": [
+          1,
+          4
+        ],
+        "name": "q"
+      },
+      {
+        "epochs": [
+          1,
+          1
+        ],
+        "name": "e1"
+      },
+      {
+        "epochs": [
+          3,
+          1
+        ],
+        "name": "e3"
+      }
+    ],
+    "eps": 1e-08,
+    "grad_accum": 64,
+    "gradient_checkpointing": false,
+    "lm_head_chunk_tokens": 1024,
+    "loss": "token-mean NLL: the sum of the NLL over every response target token (response plus end-of-turn) of the actual examples of each optimizer step, divided by that step's total target-token count (one normaliser for all of its micro-batches)",
+    "loss_weighting": "token_mean",
+    "lr": 0.0001,
+    "lr_schedule": "warmup_cosine",
+    "max_grad_norm": 1.0,
+    "micro_batch": 2,
+    "optimizer": "AdamW",
+    "schedule_until": "e1",
+    "warmup_steps": 4,
+    "weight_decay": 0.0
+  }
+}

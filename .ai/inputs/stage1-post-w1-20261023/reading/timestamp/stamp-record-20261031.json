@@ -1,0 +1,89 @@
+{
+ "calendars_submitted": [
+  "https://a.pool.opentimestamps.org",
+  "https://b.pool.opentimestamps.org",
+  "https://a.pool.eternitywall.com",
+  "https://ots.btc.catallaxy.com"
+ ],
+ "command": "ots -v stamp --timeout 30 ots-manifest-20261031.json osf-deposit-20261023-anon.zip (2-of-4 request)",
+ "kind": "stage1 outside time stamp record (OpenTimestamps)",
+ "next": [
+  "after the calendars' Bitcoin transactions confirm: `ots upgrade <file>.ots` (the proof gains a Bitcoin block header attestation; the pending proof is kept as .bak and its SHA-256 is above)",
+  "verify: the block's merkle root against Bitcoin block headers from two independent sources (or a node); record the block height and block time",
+  "the stage-1 reading starts only after that block time; right before it, a second stamp of the final reading code and the reading runbook"
+ ],
+ "paper_wording": "pre-specified (the frozen rule: 'pre-registered' only after a public, anonymized, timestamped deposit with the hashes; no deposit was made). The stamp is reported as an outside time stamp of the frozen rules' SHA-256 values, checkable by anyone with the package and the proof.",
+ "pending_attestations": [
+  "https://alice.btc.calendar.opentimestamps.org",
+  "https://bob.btc.calendar.opentimestamps.org",
+  "https://finney.calendar.eternitywall.com",
+  "https://btc.calendar.catallaxy.com"
+ ],
+ "recorded_by": "General Implementation VIII (the lead)",
+ "stamped": {
+  "osf-deposit-20261023-anon.zip": {
+   "proof": "osf-deposit-20261023-anon.zip.ots",
+   "proof_sha256_pending": "daa4c28a76bf1f1a6b5c5bd72dd5c76e5c9d8c2f599072614f999828a2185708",
+   "sha256": "170361f7783e38dc2b18034d8c3d35c92976e41b54cf641c15c83f04a0586bd0"
+  },
+  "ots-manifest-20261031.json": {
+   "proof": "ots-manifest-20261031.json.ots",
+   "proof_sha256_pending": "3bd9622ae5c23af1549ae5eeac30993f948f8281e90a31a42c53240050bda30e",
+   "sha256": "68e75447f7eca032039274bd64641d00625e70ca525f3131a2975c5aad0898c7"
+  }
+ },
+ "stamped_utc": "2026-10-31T22:54:54+00:00 to 22:54:56 (the command's own clock reads, before and after)",
+ "state": "pending: each proof holds four calendar promises; the Bitcoin anchor follows within hours",
+ "tool": {
+  "client": "opentimestamps-client 0.8.0 in a scratch virtual environment (not kept; installed on the user's yes)",
+  "packages": {
+   "GitPython": {
+    "sha256": "d66b0832aa8755c1a84892937282df0befb16c97e5a64aeebd68be9c5e323f53",
+    "version": "3.2.1",
+    "wheel": "gitpython-3.2.1-py3-none-any.whl"
+   },
+   "PySocks": {
+    "sha256": "2725bd0a9925919b9b51739eea5f9e2bae91e83288108a9ad338b2e3a4435ee5",
+    "version": "1.7.1",
+    "wheel": "PySocks-1.7.1-py3-none-any.whl"
+   },
+   "gitdb": {
+    "sha256": "67073e15955400952c6565cc3e707c554a4eea2e428946f7a4c162fab9bd9bcf",
+    "version": "4.0.12",
+    "wheel": "gitdb-4.0.12-py3-none-any.whl"
+   },
+   "opentimestamps": {
+    "sha256": "bbe386274469292b54bb1d2e3af29b3e17f30025f12516bfc4aea3474b12e848",
+    "version": "0.5.0",
+    "wheel": "opentimestamps-0.5.0-py3-none-any.whl"
+   },
+   "opentimestamps-client": {
+    "sha256": "dff3e7a0a6c22ce9ef841a51edc9251580c0c829aee4581c43107f4e428a8154",
+    "version": "0.8.0",
+    "wheel": "opentimestamps_client-0.8.0-py3-none-any.whl"
+   },
+   "platformdirs": {
+    "sha256": "dc1f93390f2a9265e44e5afc8667ec7faf737739604e39bc538fec889720c36b",
+    "version": "4.14.2",
+    "wheel": "platformdirs-4.14.2-py3-none-any.whl"
+   },
+   "pycryptodomex": {
+    "sha256": "9bb353c764c144a9fc03302ef3763ad0c3e75bc7ca41f445cc98455f36da6c59",
+    "version": "3.24.1",
+    "wheel": "pycryptodomex-3.24.1-cp37-abi3-macosx_10_9_universal2.whl"
+   },
+   "python-bitcoinlib": {
+    "sha256": "2f29a9f475f21c12169b3a6cc8820f34f11362d7ff1200a5703dce3e4e903a44",
+    "version": "0.12.2",
+    "wheel": "python_bitcoinlib-0.12.2-py3-none-any.whl"
+   },
+   "smmap": {
+    "sha256": "c106e05d5a61449cf6ba9a1e650227ecfb141590d2a98412103ff35d89fc7b2f",
+    "version": "5.0.3",
+    "wheel": "smmap-5.0.3-py3-none-any.whl"
+   }
+  }
+ },
+ "version": 1,
+ "what_left_the_mac": "per file, one SHA-256 digest after the client's random nonce (the calendars never see the files or their plain hashes)"
+}

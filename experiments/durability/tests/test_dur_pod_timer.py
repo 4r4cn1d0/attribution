@@ -72,6 +72,17 @@ class Pod:
 
     def __init__(self, folder: Path) -> None:
         self.script = load_script()
+        # Hermetic stop routes (GI IV, 9 Oct 2026): the timer finds runpodctl through shutil.which on the PATH. The fake pod
+        # has no runpodctl unless a test sets has_runpodctl, whatever the host machine has installed (runpodctl appeared on
+        # this Mac's PATH on 9 Oct and made the "cannot ask for a stop" refusal case pass the check it should fail).
+        self.has_runpodctl = False
+        real_which = shutil.which
+        fake_shutil = type("FakeShutil", (), {})()
+        for name in dir(shutil):
+            if not name.startswith("__"):
+                setattr(fake_shutil, name, getattr(shutil, name))
+        fake_shutil.which = lambda cmd, *a, **k: (real_which("sh") if self.has_runpodctl else None) if cmd == "runpodctl" else real_which(cmd, *a, **k)
+        self.script.shutil = fake_shutil
         self.mount = folder / "workspace"
         self.state = self.mount / ".pod-timer"
         self.mount.mkdir(parents=True)

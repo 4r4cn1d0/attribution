@@ -1,0 +1,154 @@
+{
+  "kind": "stage1 mutants",
+  "mutants": [
+    {
+      "describes": "read (b) at len - 1",
+      "file": "representation_pass.py",
+      "find": "\"b\": length - 2",
+      "id": "B2-read-b-at-len-1",
+      "part": "batch 2 (REQ-1, REQ-3, W1-01 base)",
+      "replace": "\"b\": length - 1"
+    },
+    {
+      "describes": "the Gate C read at index n - 1",
+      "file": "representation_pass.py",
+      "find": "per_unit[gid].append((cos_h[n][b], cos_s[n][b], cos_h[n][b] - cos_s[n][b]))",
+      "id": "B2-gate-c-at-index-n-1",
+      "part": "batch 2 (REQ-1, REQ-3, W1-01 base)",
+      "replace": "per_unit[gid].append((cos_h[n - 1][b], cos_s[n - 1][b], cos_h[n - 1][b] - cos_s[n - 1][b]))"
+    },
+    {
+      "describes": "index n replaced by index n - 1 (hidden[-2], the raw output of block n - 2); formerly B2-index-n-raw-block, whose old description 'block n - 1's state' was wrong",
+      "file": "representation_pass.py",
+      "find": "    for h in hidden:\n",
+      "id": "B2-index-n-is-index-n-minus-1",
+      "part": "batch 2 (REQ-1, REQ-3, W1-01 base)",
+      "replace": "    for h in list(hidden[:-1]) + [hidden[-2]]:\n"
+    },
+    {
+      "describes": "the anchor mean accumulated in another order",
+      "file": "representation_pass.py",
+      "find": "            for anchor in states:\n",
+      "id": "B2-anchor-mean-order",
+      "part": "batch 2 (REQ-1, REQ-3, W1-01 base)",
+      "replace": "            for anchor in reversed(states):\n"
+    },
+    {
+      "describes": "the adapter left on",
+      "file": "representation_pass.py",
+      "find": "with torch.no_grad(), model.disable_adapter():",
+      "id": "B2-adapter-left-on",
+      "part": "batch 2 (REQ-1, REQ-3, W1-01 base)",
+      "replace": "with torch.no_grad():"
+    },
+    {
+      "describes": "a row that does not end with the end-of-turn id accepted",
+      "file": "representation_pass.py",
+      "find": "if length < 3 or input_ids[length - 1] != eos_id:",
+      "id": "B2-eos-check-off",
+      "part": "batch 2 (REQ-1, REQ-3, W1-01 base)",
+      "replace": "if length < 3:"
+    },
+    {
+      "describes": "CAS on raw states (no z-score)",
+      "file": "representation_pass.py",
+      "find": "    z = torch.where(sd > 0, (x - mu) / torch.where(sd > 0, sd, torch.ones_like(sd)), torch.zeros_like(x))\n",
+      "id": "B2-cas-without-zscore",
+      "part": "batch 2 (REQ-1, REQ-3, W1-01 base)",
+      "replace": "    z = x\n"
+    },
+    {
+      "describes": "CSS from read (b) instead of read (d)",
+      "file": "representation_pass.py",
+      "find": "float(torch.dot(states[i][\"c\"] - states[i][\"d\"], directions[i]))",
+      "id": "B2-css-wrong-position",
+      "part": "batch 2 (REQ-1, REQ-3, W1-01 base)",
+      "replace": "float(torch.dot(states[i][\"c\"] - states[i][\"b\"], directions[i]))"
+    },
+    {
+      "describes": "read (c) includes the end-of-turn token",
+      "file": "representation_pass.py",
+      "find": "\"c\": (n_prompt, length - 1)",
+      "id": "B2-read-c-includes-eos",
+      "part": "batch 2 (REQ-1, REQ-3, W1-01 base)",
+      "replace": "\"c\": (n_prompt, length)"
+    },
+    {
+      "describes": "the transformers pin removed",
+      "file": "representation_pass.py",
+      "find": "if version != settings[\"transformers_version\"]:",
+      "id": "B2-transformers-pin-off",
+      "part": "batch 2 (REQ-1, REQ-3, W1-01 base)",
+      "replace": "if False:"
+    },
+    {
+      "describes": "a refused pool item not counted",
+      "file": "representation_pass.py",
+      "find": "refused[pool[\"name\"]][reason] = refused[pool[\"name\"]].get(reason, 0) + 1",
+      "id": "B2-pool-refusal-uncounted",
+      "part": "batch 2 (REQ-1, REQ-3, W1-01 base)",
+      "replace": "pass"
+    },
+    {
+      "describes": "the DataShield direction from read (b)",
+      "file": "representation_pass.py",
+      "find": "v = means[\"harmful\"][i][\"c\"] - means[\"safe\"][i][\"c\"]",
+      "id": "B2-direction-from-read-b",
+      "part": "batch 2 (REQ-1, REQ-3, W1-01 base)",
+      "replace": "v = means[\"harmful\"][i][\"b\"] - means[\"safe\"][i][\"b\"]"
+    },
+    {
+      "describes": "the recipe pin removed",
+      "file": "representation_pass.py",
+      "find": "if config_sha256(recipe) != pins[\"recipe_sha256\"]:",
+      "id": "B2-recipe-pin-off",
+      "part": "batch 2 (REQ-1, REQ-3, W1-01 base)",
+      "replace": "if False:"
+    },
+    {
+      "describes": "the lexicon.json hash check removed",
+      "file": "lexicon_pin.py",
+      "find": "if sha256_bytes(json_bytes) != JSON_SHA256:",
+      "id": "B2-lexicon-json-hash-off",
+      "part": "batch 2 (REQ-1, REQ-3, W1-01 base)",
+      "replace": "if False:"
+    },
+    {
+      "describes": "total tokens = target tokens only",
+      "file": "token_accounting.py",
+      "find": "self.total_tokens = {r: self.prompt_tokens[r] + self.target_tokens[r] for r in self.target_tokens}",
+      "id": "B2-total-is-target",
+      "part": "batch 2 (REQ-1, REQ-3, W1-01 base)",
+      "replace": "self.total_tokens = {r: self.target_tokens[r] for r in self.target_tokens}"
+    },
+    {
+      "describes": "the added share against the edited corpus",
+      "file": "token_accounting.py",
+      "find": "\"share_of_total_tokens\": add_total / totals[\"total_tokens\"]}",
+      "id": "B2-share-vs-edited-corpus",
+      "part": "batch 2 (REQ-1, REQ-3, W1-01 base)",
+      "replace": "\"share_of_total_tokens\": add_total / (totals[\"total_tokens\"] + add_total)}"
+    },
+    {
+      "describes": "steps by floor",
+      "file": "token_accounting.py",
+      "find": "return math.ceil(rows / rows_per_step)",
+      "id": "B2-steps-by-floor",
+      "part": "batch 2 (REQ-1, REQ-3, W1-01 base)",
+      "replace": "return rows // rows_per_step"
+    },
+    {
+      "describes": "a rewrite with other prompt tokens accepted",
+      "file": "token_accounting.py",
+      "find": "if p != view.prompt_tokens[row]:",
+      "id": "B2-rewrite-prompt-check-off",
+      "part": "batch 2 (REQ-1, REQ-3, W1-01 base)",
+      "replace": "if False:"
+    }
+  ],
+  "not_included": {
+    "lexicon module self-check removed": "equivalent while both file hashes are pinned: a module whose files hash to the pins has exactly the pinned lexicon"
+  },
+  "part": "batch 2: lexicon pin, representation pass, token accounting",
+  "version": 1
+}

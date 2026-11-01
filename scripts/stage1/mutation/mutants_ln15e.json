@@ -1,0 +1,56 @@
+{
+  "kind": "stage1 mutants",
+  "version": 1,
+  "part": "LN-15e fallback report (addendum section 32 point 5; scripts/stage1/report_ln15e.py)",
+  "mutants": [
+    {
+      "id": "ln15e-a1-pin-unchecked",
+      "part": "LN-15e",
+      "describes": "the a1_variants.json SHA-256 pin is not checked (a changed FO-04 file is accepted)",
+      "file": "report_ln15e.py",
+      "find": "    if digest != A1_VARIANTS_SHA256:\n",
+      "replace": "    if False:\n"
+    },
+    {
+      "id": "ln15e-v1-wrong-source",
+      "part": "LN-15e",
+      "describes": "V1 against A1 is copied from V1's Jaccard with e1, not with A1",
+      "file": "report_ln15e.py",
+      "find": "(\"adam_preconditioned_v1\", \"jaccard_top_with\", \"a1\")",
+      "replace": "(\"adam_preconditioned_v1\", \"jaccard_top_with\", \"e1\")"
+    },
+    {
+      "id": "ln15e-mean-identity-dropped",
+      "part": "LN-15e",
+      "describes": "a figure that REV4 section 9.3 item 3 quotes (the mean identity, 0.0 in the file) is dropped from the report",
+      "file": "report_ln15e.py",
+      "find": "    (\"mean_identity_max_abs_difference\", (\"stability\", \"mean_identity_max_abs_difference\"),\n     ((REV4, \"the mean identity exact\"), (DRAFT3, \"the mean identity exact\"))),\n",
+      "replace": ""
+    },
+    {
+      "id": "ln15e-rescore-path-accepted",
+      "part": "LN-15e",
+      "describes": "an argument that names a rescore/ path is not refused",
+      "file": "report_ln15e.py",
+      "find": "UNIT_PARTS = frozenset({\"rescore\", ",
+      "replace": "UNIT_PARTS = frozenset({"
+    },
+    {
+      "id": "ln15e-overwrite",
+      "part": "LN-15e",
+      "describes": "an existing report file is overwritten (no existence refusal, no exclusive create)",
+      "edits": [
+        {
+          "file": "report_ln15e.py",
+          "find": "    if out.exists() or out.is_symlink():\n",
+          "replace": "    if False:\n"
+        },
+        {
+          "file": "report_ln15e.py",
+          "find": "handle = open(out, \"xb\")",
+          "replace": "handle = open(out, \"wb\")"
+        }
+      ]
+    }
+  ]
+}

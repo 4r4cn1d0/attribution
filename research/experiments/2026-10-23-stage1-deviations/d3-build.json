@@ -1,0 +1,143 @@
+{
+  "kind": "stage1 d3 build note",
+  "utc": "2026-10-25T16:32:54Z",
+  "workspace": "tmp/claude-workspaces/stage1-integrate-20261017/ws-d3 (a git archive of main 3d624e6); nothing committed; no git used",
+  "task": "Item 1: post-W1 deviation D-3 (addendum section 28 points 1-4), scripts/stage1_s1/d3_s3_union/. Item 2: the section 28 release rule in runkit/stage1-olmo/plan_tool.py (launches in parallel while the guard-off record holds).",
+  "status": "done: both items built; the four suites pass with 0 failures, 0 errors and 0 skips; 5 D-3 mutants run, all 5 killed; 9 B15 mutants added to tests/mutants_b15.json but not run (the 5-mutant limit was used on D-3); D-3 not yet run on the real files (that is the lead's command 1)",
+
+  "condition": {
+    "question": "Section 28 point 4: in scripts/stage1/representation_pass.py, does each row's features depend only on that row (one unbatched forward per row, no batch-dependent normalization or padding effect)?",
+    "holds": true,
+    "finding": [
+      "representation_pass.py:113-127 read_states: each call runs one forward of one row only. Line 118 builds ids = torch.tensor([list(input_ids)]), a batch of one with no padding. Line 119 calls model(input_ids=ids, output_hidden_states=True) with no attention mask and no other row. Lines 123-126 read only h[0] at that row's own positions (positions(), :103-110, from the row's length and n_prompt).",
+      "representation_pass.py:352-355: model.eval() (dropout off), torch.no_grad() and model.disable_adapter() (the untuned model) are set once for the whole pass. No state is carried from one row to the next. Each norm is per token (the summaries give layout.final_norm Olmo2RMSNorm), and no step uses statistics over the batch.",
+      "representation_pass.py:357-367: the anchor states, anchor_means (:130-142, a sum in the bank's file order then a division), the directions and CAS come only from the pinned anchor bank. They are computed before any scored row, so no scored row changes them.",
+      "representation_pass.py:371-378: each row's line uses its own read_states (:372). The cosines are against the anchor means (:373-374) and css uses the anchor directions (:375-376). The line holds only id, source, unit, n_prompt, n_tokens, cos_harmful, cos_safe and css (:377-378).",
+      "representation_pass.py:338-349: encode_train encodes each pool item alone (:344). A refused item is counted and skipped (:345-348). An item id that repeats a scored id refuses the whole pass (:341-342). D-3 refuses repeated ids across the union for the same reason.",
+      "representation_pass.py:388: the rows file is the join of json_line(line), one line per row, in the order the rows dict was filled: dev rows first (:333-336), then the pools in command-line order, each in item order. So one pools-only pass over s3_safe then s3_orig writes the s3_safe lines and then the s3_orig lines. These are the same bytes as the union, because each line depends only on its row and the anchor means.",
+      "W1 tests that already check this: scripts/stage1/tests/test_representation_pass.py test_v_every_forward_is_one_unpadded_row (every hidden-state forward has batch 1 and no mask, or an all-ones mask), test_fc_every_hidden_state_forward_runs_in_eval_mode, and test_deterministic_and_text_free."
+    ],
+    "evidence_on_cpu": "test_d3_s3_union.py test_each_pass_gives_a_row_the_same_bytes_whatever_else_it_scores and test_the_union_rows_are_one_pools_only_pass_over_both_pools_byte_for_byte: on the engine's fixture model, an s3_safe row has the same bytes whether it is scored beside the dev units and another pool or beside s3_orig. The union is the single pass's rows file byte for byte.",
+    "evidence_on_the_real_passes": "Read from the two summaries' text-free fields only. Every field D-3 compares is equal: kind, version, requirement, layout (olmo2, 16 layers, 2048, Olmo2RMSNorm), conventions, reads, untuned, transformers 4.56.2, anchors 64/64, pool_pins a33e9664..., the whole datashield block (CAS and direction norm at all 17 indices, bit-equal), provenance (script, script fb62bcaa, s1common 930c8ea5, settings a555fd89, engine 472fc7f6, Python 3.12.3, numpy 2.2.6), the inputs (anchor file, prepared manifest, recipe file 464708c9..., pool pins), Gate C's index, read and rule, and device cuda on both. The equal datashield block means both passes computed the same anchor-derived numbers.",
+    "limit": "'Equals one pass' holds up to the run-to-run reproducibility of the pass itself. A single CUDA pass run twice could already differ in the last bits if its kernels are not deterministic. Each union row comes from exactly one real forward. The bit-equal datashield block is evidence, not proof, that the two passes' anchor means (reads a, b, c, d) are the same: CAS uses the read-b states and the direction norm uses the read-c means."
+  },
+
+  "item_1_design": {
+    "cli": "python -B scripts/stage1_s1/d3_s3_union/d3_s3_union.py --main-rows PATH:SHA --main-summary PATH:SHA --orig-rows PATH:SHA --orig-summary PATH:SHA --s-pool-record PATH:SHA --answers-record PATH:SHA --work DIR --out DIR",
+    "checks_before_anything_is_written": [
+      "This package's settings must hash to SETTINGS_SHA256 = 31ae71e1... . score_s3_datarx.py (772e6ae5), score_s3_datarx.json (6382dcc6), representation_pass.py (fb62bcaa), representation_pass.json (a555fd89) and s1common.py (930c8ea5) must each hash to the W1 manifest's entry and to D-3's pin.",
+      "The scorer's literal SETTINGS_SHA256 must be D-3's pin, and score_s3_datarx.json must pin REQ-3's settings at a555fd89. The representation_pass and s1common modules that the scorer imports by name must hash to the pins.",
+      "The six inputs must hash to the given SHA-256s. Each summary must hold exactly the W1 summary's 16 fields, be a version-1 'stage1 representation pass' (version must be an int, not true) and name its rows file by the given SHA-256.",
+      "The two passes must be equal (canonical JSON, so 3 differs from 3.0, and a field missing from both counts as different) in every field of settings passes.equal: 11 top-level fields, including datashield, layout and pool_pins; 8 provenance fields, including script, settings and engine; 4 inputs, including the recipe file; Gate C's index, read and rule; and the device. The shared script path and SHA-256, the settings SHA-256 and the engine must be D-3's pins.",
+      "The main pass must list s3_safe and name it in its provenance at the S-pool record's s3_pool.sha256. The pools-only pass must list s3_orig at J6's lists.s3.s3_orig_pool_sha256. Neither pass may list the other pass's pool or name it in its provenance. J6's lists.s3.list_sha256 must equal s3_pool.sha256. The pools-only pass must hold no dev row and no Gate C group.",
+      "Each rows file must have the line count and per-source counts its summary states. Each pool must have exactly items minus refused items rows.",
+      "Text-free check: every row taken must hold exactly REQ-3's 8 fields {id, source, unit, n_prompt, n_tokens, cos_harmful, cos_safe, css}: a short pool id (REQ-3's POOL_ID form, fullmatch), unit null, token counts within the positions() bounds, (n+1) x 4 numbers per cosine (booleans refused) and n+1 numbers or nulls of css. Its bytes must be REQ-3's own json_line of it. The union's ids must be distinct, and every s3_orig id must end with ':orig'."
+    ],
+    "outputs": "In --work (absent or empty): representation_rows.jsonl, the main pass's s3_safe lines then the pools-only pass's s3_orig lines, each line's bytes unchanged; and representation_pass.json, the main pass's summary with pools = [main's s3_safe entry, the pools-only pass's s3_orig entry], rows = the union's (file, SHA-256, lines, by_source), and a 'd3' block (both sources' summary and rows SHA-256s, pools, counts, both records' SHA-256s, the rule, the reference, the checked fields, and the D-3 script, settings, W1 manifest, scorer and engine hashes). Every other field is the main pass's, unchanged. Then score_s3_datarx.py runs as a private module (not in sys.modules; sys.path is restored after its load) through its own main() with --rows and --summary set to the union files (PATH:SHA), --s-pool-record and --answers-record as given, and --out. Its exit code is D-3's. If the scorer refuses, the two text-free union files stay in --work and --out stays empty (tested).",
+    "union_summary_choice": "pools lists only s3_safe and s3_orig, not plant and decoy, because the union rows hold only those two pools. This is exactly the pools list that one pools-only pass over both pools writes (tested). The main pass's full pool list is kept in d3.sources.main.pools. gate_c, costs and provenance stay the main pass's, as section 28 point 2 says ('the main pass's summary with both pools listed'), and d3.from_the_main_pass states this.",
+    "alternatives_and_why": [
+      "Re-serialising the union rows from parsed objects was rejected. Copying each line's bytes keeps section 28 point 2's 'each unchanged' and the byte-for-byte claim, and the json_line check proves the bytes are REQ-3's own form.",
+      "Calling the scorer's build() in memory was rejected in favour of its own main() with the union files written first. That is the scorer 'unchanged' on PATH:SHA inputs: it re-reads and re-hashes the files.",
+      "Not comparing the datashield block was rejected. The equal block is the only text-free cross-pass check that both passes computed the same anchor means, and it holds on the real passes (checked from their summaries). If it ever differs, D-3 refuses and section 28 point 5's fallback applies.",
+      "Patterned on D-1 and D-2: by-path load after the manifest check, a private module, settings pinned by literal, a fixture guard and its own mutation spec and runner. Small helpers (parse_hashed, read_hashed, manifest_entries) are copied, not imported from D-2, so the package does not depend on D-2."
+    ]
+  },
+
+  "item_2_design": {
+    "rule": "plan_tool.release_next: when the launch before has hosts that are neither done nor moved, release now calls rules.guard_off_record(HERE), the same re-hashed check launch.py and host.py use. If the result is None (no record, or a record whose file changed or is gone), the old refusal stays exactly as it was ('block X: launch k-1's hosts are not done (host)'). If a record holds, the hosts launch is released and {launch, open_hosts, guard_off_sha256, utc} is added to the block's released_early. release() returns it and writes it to operator-actions.jsonl. The order (one launch per release), check_planned_group_a (plan conformance) and every gate in release_hosts still run.",
+    "decision_for_the_lead": "A judge launch still waits, with the guard off too, until every earlier launch's hosts are done or moved. Reason: block_a_done (plan_tool.py block_a_done) counts a released judge launch as the judge job's completion record. Released early, it would mark HarmBench and Granite as done before the units they judge exist. Section 28's text covers 'the next launch' in general; this keeps G5's completion accounting meaningful. A one-line change lifts it if the lead wants judges included.",
+    "need_note": "rules.funding_need_usd still prices one launch at a time (running spend plus the next launch's caps). With launches in parallel, the balance held at one moment can exceed the recorded need. The total cap-based spend is unchanged. Section 28 leaves the balance to the user; the README now says this.",
+    "docs": "The plan_tool.py docstring (the release command line and the release paragraph) and README section E now describe the rule."
+  },
+
+  "files": {
+    "new": [
+      {"path": "scripts/stage1_s1/d3_s3_union/__init__.py", "sha256": "2d3fbcc262a7d16bd6594d5eddf893123dcc3bcd0e823e42774914b0e8951a86"},
+      {"path": "scripts/stage1_s1/d3_s3_union/d3_s3_union.py", "sha256": "983f8abbb0d79df232221c0bc69a9cc55882261cb70c34b18ae79d0f2fdad503"},
+      {"path": "scripts/stage1_s1/d3_s3_union/settings/d3_s3_union.json", "sha256": "31ae71e196c829fa719af2b1795743abcb2a35cc46db42f0fbd735956a630b16"},
+      {"path": "scripts/stage1_s1/d3_s3_union/mutation/mutants_d3.json", "sha256": "8ff571a65b3368d9c720ad9c6af6f2ce6d53687d0496ffc5f75b495966364812"},
+      {"path": "scripts/stage1_s1/d3_s3_union/mutation/run_mutants.py", "sha256": "353290d4f269573bda67203dafeb9e34e9e4238cbc12dfda38337818cad40866"},
+      {"path": "scripts/stage1_s1/d3_s3_union/tests/conftest.py", "sha256": "17e038951b59b41800b6021ef0ab70a2f0f320492f488be3b0a4bd1812770890"},
+      {"path": "scripts/stage1_s1/d3_s3_union/tests/d3fixtures.py", "sha256": "d29174eaec7bce96b367ce7a186efc5266dc3c784427fe36fdf0e1a238c5a33f"},
+      {"path": "scripts/stage1_s1/d3_s3_union/tests/d3guard.py", "sha256": "6febd78539831c5dd7d3589a92f4e79ad3fce8f3adb9920780a2156790d49ee5"},
+      {"path": "scripts/stage1_s1/d3_s3_union/tests/test_d3_fixture_guard.py", "sha256": "b422d66ca2edcf482fc475bc5fa904ceb2d9e0733b50a2d1fc524e72a3edeb81"},
+      {"path": "scripts/stage1_s1/d3_s3_union/tests/test_d3_s3_union.py", "sha256": "3a2eaf5e72be91502c2ea70cdf7f3d65ddbac99b436c4974cac6ffba49072493"}
+    ],
+    "changed": [
+      {"path": "runkit/stage1-olmo/plan_tool.py", "old_sha256": "c2978c8e61dc6f018df70c78843cd7bf093cca178c8e9f70d2bac1f898468646", "new_sha256": "503de526d40a67eb08ff4ae60afd4046444bef2a4a16ea0f1ad8bfa91d066070"},
+      {"path": "runkit/stage1-olmo/tests/test_stage1_runkit.py", "old_sha256": "217535ed06e98dba8978cdab7c7850736c52f756126b4374f98a270c994ec79f", "new_sha256": "3220d754bb7c384fbc527804fe6c42d83ba636695fb6fb8108f9a4eae85c206f"},
+      {"path": "runkit/stage1-olmo/tests/mutants_b15.json", "old_sha256": "4605534944a04197c804f64ec7bfaa77a701181eb38c1e9cf8d286619667c0d9", "new_sha256": "d1747fa021dc0e187b6eff2876d4238717b9713fe495637eff56a47be252238d"},
+      {"path": "runkit/stage1-olmo/README.md", "old_sha256": "fcdcd4faaf789df9180ca7045d10e228b6ef06551fc507e1590cd1e0dfd60152", "new_sha256": "4f1ed6c22255b43b5b9a99d1c8c1294c6444ee463692c49c192771eb3d03882e"}
+    ],
+    "unchanged_checks": "find -newer on ws-d3 lists only the files above (and their folders). All 132 W1 manifest entries under scripts/stage1/ hash equal. No __pycache__ was written. The main checkout's score_s3_datarx.py, write_score_add.py and write_add_edit.py hash the same as ws-d3's (772e6ae5, 482c3145, 8b866b3d)."
+  },
+
+  "tests": {
+    "command": "cd ws-d3; export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONDONTWRITEBYTECODE=1 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1; /Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python -B -m pytest -p no:cacheprovider --basetemp=<new scratchpad folder> -q -rs --junitxml=<scratch> <tree>",
+    "runs_utc": "2026-10-25 16:23-16:32 UTC, after the last code change",
+    "results": {
+      "scripts/stage1_s1": "1420 passed, 0 failed, 0 errors, 0 skipped (exit 0; 160 of them are D-3's; 1260 before)",
+      "runkit/stage1-olmo/tests": "495 passed, 0 failed, 0 errors, 0 skipped (exit 0; 10 new; 485 before)",
+      "experiments/safety_selection/tests/test_ss_gateb_runkit.py": "271 passed, 0 skipped (exit 0)",
+      "scripts/stage1/tests": "874 passed, 0 skipped (exit 0)"
+    },
+    "d3_tests": "160 tests in 2 files. Equivalence on CPU: the union equals one pools-only pass's rows file byte for byte; score_s3_datarx's output through D-3 equals the by-name scorer's output on the one pass in every leaf but provenance.inputs.summary (each summary's own SHA-256), and scores, per_layer and reports are byte-equal; the union summary equals the main summary except for pools, rows and d3, with pools and rows equal to the one pass's. Refusals: 60 summary edits (kind, fields, settings, script, s1common, engine, labels, Python, numpy, recipe, anchor file, prepared manifest, pool pins, layout and model type, datashield, anchors including 3 vs 3.0, transformers, Gate C, device, counts, pools-only, a pool in the wrong pass, a pool at the wrong SHA, item and refused counts). Also: both passes on another script, settings or engine; a field both passes lack; the passes swapped; rows not named by their summary; 22 row edits (a text field, a missing field, long, newline or number ids, unit, token counts, cosine and css form, repeated ids, the ':orig' suffix, source); 8 raw-form edits (no final newline, a blank line, not JSON, an array, a duplicate key, compact, unsorted, CRLF); 9 record edits (kinds, missing or malformed pins, the s3 chain, s3_safe and s3_orig at the wrong SHA-256); a changed byte of each of the 6 inputs through the CLI (exit 2, nothing written); a missing SHA on each input; 6 folder layouts; the scorer's own refusal after the union (exit 2, --out empty); the D-3 settings pin; each by-name module; each of the 5 W1 files changed or named otherwise by the manifest; a non-manifest; the scorer's literal pin; the scorer settings' pin of REQ-3's settings; the committed settings and every constant against REQ-3's and the scorer's; the fixture guard.",
+    "kit_tests": "10 new tests in test_stage1_runkit.py. With the record: launch 1 is released while launch 0's hosts run, the early release is recorded in the block and the operator log, and nothing is left after it. A launch after done hosts is not marked early. No valid record (file changed, file deleted, record removed): the old refusal and nothing released. With the record, these still refuse: the block-A plan check, the plan-A/B re-derivation gate, block order (B before A), a judge launch while any earlier launch's host is open (including one before the launch just before it), and a requeued host does not hold a judge. Run against the old plan_tool.py (c2978c8e) in a scratch copy, 5 of the 13 guard-off-related tests fail (the 5 that need the new rule) and the 8 old-rule and gate tests pass. Both directions are shown."
+  },
+
+  "mutants": {
+    "d3_spec": "scripts/stage1_s1/d3_s3_union/mutation/mutants_d3.json: 74 mutants in 6 parts; every find text occurs exactly once (checked). D3-docstring is 'expect: survive' (the module docstring is not read by any test; it shows the runner reports a survivor).",
+    "d3_runner": "mutation/run_mutants.py follows D-2's rules. One fix was needed: the copy now also takes scripts/stage1_s1/__init__.py, because main holds scripts/stage1_s1 as a regular package. Without that file, the import probe saw the workspace's package and every run was invalid (observed: the first baseline was invalid for this reason).",
+    "run_here": "Baseline: pass, 160 tests. 5 mutants run, 5 killed: D3-row-extra-fields-ok (2 failures), D3-same-by-python-equality (2), D3-union-orig-first (3), D3-module-public (2), D3-missing-equals-missing (4). Report: notes/d3-build-evidence/d3-mutation-5-report.json. The other 69 are not run (the brief's limit of 5).",
+    "b15_added": "9 entries B15-h-* in runkit/stage1-olmo/tests/mutants_b15.json (323 -> 332 mutants): record-never-read, record-not-rehashed, wait-despite-record, early-not-recorded, early-not-logged, early-all-returned, judge-not-held, judge-waits-for-the-last-launch-only, judge-ignores-moved. Every find text of all 332 entries occurs exactly once in its target (checked after the last edit). B15-g-launch-order's find text is unchanged and still the old rule's gate. None of the 9 was run here (limit); each was traced by hand to a test that kills it.",
+    "full_runs_for_the_lead": [
+      "D-3: python -B scripts/stage1_s1/d3_s3_union/mutation/run_mutants.py --spec scripts/stage1_s1/d3_s3_union/mutation/mutants_d3.json --scratch <outside the checkout>/mut-d3 --report <report.json> --timeout 300 (74 mutants, about 11 s each on this Mac)",
+      "B15: the lead's B15 runner (notes/b15r2-build-evidence/mutation-smoke.py layout: copies of runkit/stage1-olmo and runkit/gate-b-olmo with links to scripts, experiments, .ai, research, backups and tmp) with ids B15-h-record-never-read B15-h-record-not-rehashed B15-h-wait-despite-record B15-h-early-not-recorded B15-h-early-not-logged B15-h-early-all-returned B15-h-judge-not-held B15-h-judge-waits-for-the-last-launch-only B15-h-judge-ignores-moved B15-g-launch-order (its per-run timeout of 280 s should be raised: the kit suite took 45 s here)"
+    ]
+  },
+
+  "real_input_precheck": {
+    "what_was_read": "SHA-256 of all six real inputs and of s3_safe.pool.json; the two summaries' text-free fields; and only the pin fields of the two records (s3_pool.sha256; lists.s3.s3_orig_pool_sha256 and list_sha256). No row, pool, prompt or answer text was read. D-3 was not run on the real files.",
+    "hashes": {
+      "main_rows": "14cf03d023ae63003eed6a9c1aa20b283816d902dde03fd563e88b8786d0617c",
+      "main_summary": "c5784fec4e6831fa434060d2c9ead8b8dd97fd71c0f64515e57a5029626036a0",
+      "orig_rows": "474b8ef055e93e6f615b576ca19c9d55c35460e49bf329f1805e041ac918e98c",
+      "orig_summary": "5e490bde740c721a8e505ce05c10901b4e46712fd1dc10c22b6abcab56ba5284",
+      "s_pool_record": "bcca59ac0f8c15c354b9d9b124c1e17211c7e602800424f40292160934383c6f (the same bytes in ws-d3 and the main checkout)",
+      "answers_record": "5e69b09cbbc8adcabaac9496190e889b2225c62dcefc47549042e9cad5a1bfa1",
+      "s3_safe_pool": "6801652cb506f9626575f6e156e103682308830e4e5ef1cb299dd3fa00021fed (tmp/stage1-mac-runs-20261023/s-pool/s3_safe.pool.json)"
+    },
+    "expected_to_pass": "Both summaries name their rows files by these SHA-256s. Every equal-field holds (see the condition). The main pass lists plant, decoy and s3_safe at 6801652c, which is the S-pool record's s3_pool.sha256 and J6's list_sha256. The pools-only pass lists only s3_orig at 75fe1e96, which is J6's s3_orig_pool_sha256. It has by_source {s3_orig: 861} and no Gate C group. Both pools have 861 items and 0 refused, matching 861 rows each. Not checked here (they need the rows' content): the row form, distinct ids and the ':orig' suffix. D-3 checks these when the lead runs it."
+  },
+
+  "lead_commands": [
+    "Environment (main checkout, after scripts/stage1_s1/d3_s3_union/ and the runkit/stage1-olmo changes are in it): cd /Users/spiderishi/Coding/attribution; export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONDONTWRITEBYTECODE=1 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1; PY=/Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python; J5=tmp/stage1-olmo/retrieved/a-8/tree/job-0",
+    "1 (D-3, Mac, $0, engine X): $PY -B scripts/stage1_s1/d3_s3_union/d3_s3_union.py --main-rows $J5/representation/representation_rows.jsonl:14cf03d023ae63003eed6a9c1aa20b283816d902dde03fd563e88b8786d0617c --main-summary $J5/representation/representation_pass.json:c5784fec4e6831fa434060d2c9ead8b8dd97fd71c0f64515e57a5029626036a0 --orig-rows $J5/representation-s3-orig/representation_rows.jsonl:474b8ef055e93e6f615b576ca19c9d55c35460e49bf329f1805e041ac918e98c --orig-summary $J5/representation-s3-orig/representation_pass.json:5e490bde740c721a8e505ce05c10901b4e46712fd1dc10c22b6abcab56ba5284 --s-pool-record .ai/inputs/stage1-commitments-20261016/s-pool/s_pool_record.json:bcca59ac0f8c15c354b9d9b124c1e17211c7e602800424f40292160934383c6f --answers-record tmp/stage1-olmo/retrieved/a-1/tree/job-0/untuned/untuned_answers_record.json:5e69b09cbbc8adcabaac9496190e889b2225c62dcefc47549042e9cad5a1bfa1 --work tmp/stage1-mac-runs-20261023/d3-s3-union --out .ai/inputs/stage1-commitments-20261016/s3-score   (exit 0 prints the union files' and s3_scores.json's SHA-256s; exit 2 = REFUSED with the reason; the --work and --out folder names are proposals; both must be absent or empty)",
+    "2 (S3's selection, write_score_add.py, Mac): SCORES=.ai/inputs/stage1-commitments-20261016/s3-score/s3_scores.json; SCORES_SHA=$(shasum -a 256 \"$SCORES\" | cut -d' ' -f1); $PY -B scripts/stage1/write_score_add.py --scorer s3 --scores \"$SCORES:$SCORES_SHA\" --candidates tmp/stage1-mac-runs-20261023/s-pool/s3_safe.pool.json:6801652cb506f9626575f6e156e103682308830e4e5ef1cb299dd3fa00021fed --full-out tmp/stage1-mac-runs-20261023/s3-select --out .ai/inputs/stage1-commitments-20261016/s3-select   (settings write_score_add.json 0c1679b4: k = 48, ties by s3.ties; s3.json (text) goes under --full-out, which must lie in a folder named tmp; s3_add_selection.json (text-free) goes under --out; both folders absent or empty)",
+    "3 (S3's add edit, write_add_edit.py, REQ-7, Mac): S3LIST=tmp/stage1-mac-runs-20261023/s3-select/s3.json; S3LIST_SHA=$(shasum -a 256 \"$S3LIST\" | cut -d' ' -f1); $PY -B -c \"import json,sys; r=json.load(open(sys.argv[1])); assert r['list']['sha256']==sys.argv[2], 'the list is not the one the selection record names'; print('list ok', r['list']['sha256'], len(r['selected']))\" .ai/inputs/stage1-commitments-20261016/s3-select/s3_add_selection.json \"$S3LIST_SHA\"; $PY -B scripts/stage1/write_add_edit.py --prepared tmp/kt-prepared/prepared-kt-dolly-olmo2 --recipe experiments/safety_selection/configs/study-kt-olmo2-1b-r64-b-mb4-gateb-20261008.json --list \"$S3LIST:$S3LIST_SHA\" --full-out tmp/stage1-mac-runs-20261023/add-s3 --out .ai/inputs/stage1-commitments-20261016/add-s3   (no --combine-with, as for S4; writes add_s3.json (text) and add_edit_record.json (text-free))",
+    "4 (optional, full mutation runs, background Bash): see mutants.full_runs_for_the_lead"
+  ],
+
+  "open_items": [
+    "The judge-launch exception (item_2_design.decision_for_the_lead) is narrower than section 28's literal 'the next launch'. The lead should confirm it or ask for judges to be released early too.",
+    "The need's path assumes one launch at a time (item_2_design.need_note). The balance held at once can exceed the recorded need while launches run in parallel. This is the user's to manage under section 28.",
+    "D-1's and D-2's mutation runners (d1_spool/mutation/run_mutants.py, d2_pool_pins/mutation/run_mutants.py) were built when scripts/stage1_s1/__init__.py did not exist (ws-d2 has no such file). In main's layout, their import probe would find the workspace's package, and every run would be 'invalid' (inferred from the same probe failing for D-3 before its fix; not run for D-1 or D-2). The fix is the one-line copy D-3's runner makes.",
+    "D-3 is not yet run on the real files, and its rows-level checks are unverified on them. The union files (about 5.5 MB, text-free) go to tmp/ under the proposed command. The lead decides whether to back them up beside s3_scores.json, which names the union summary by SHA-256.",
+    "A host made by a deferral or requeue is in no launch's host list, so neither the old rule nor the new one makes a later launch wait for it. This behaviour already existed and is unchanged here.",
+    "The 69 D-3 mutants and 9 B15-h mutants not run here need the full runs (mutants.full_runs_for_the_lead). D-3 still needs a verifier round under section 28 point 5's 'verified after one fix round'."
+  ],
+
+  "evidence": {
+    "folder": "notes/d3-build-evidence/",
+    "files": {
+      "scripts-stage1_s1.junit.xml": "60ea39b29e43dd5a991c7630cfdcafae4b8775a6b4a96cb9b605510066fa3bfa",
+      "runkit-stage1-olmo-tests.junit.xml": "0660fb37386d009fb1a0eb633b9fe088db010a18a4a6408f29f93adcca948841",
+      "test_ss_gateb_runkit.junit.xml": "0f9ab6ab80030f3374b07270e4aad2d3a67bf2256897cfc7db9e58cb9151e7e4",
+      "scripts-stage1-tests.junit.xml": "afdbe4bc1fc38ce73443b1c9704692be2fc3dc2c3ea176978b2d42f0c37764d3",
+      "d3-mutation-5-report.json": "6dd347435bf9c5ad6eff1f4026c9577cee5cd55607dc8c8e9fa19c2a66dfc303",
+      "kit-new-tests-on-the-old-plan_tool.txt": "7723275d03ca1d8fab5550deaae237c215a93119f60d8bd3bc869c15c4646125",
+      "make_d3_spec.py": "3b1d6484a693f8af2dedae3fa5c05930a104e8324de7e49b8eb80a33b64e22dc (builds mutants_d3.json and checks each find text)",
+      "add_b15_mutants.py": "ac790c1c623e6e0dd3071cba2a01656feb8b4c286ff2a187684c9b0a89faa887 (appended the B15-h entries and checked all 332)"
+    }
+  }
+}

@@ -36,10 +36,13 @@ def all_recipes():
     return [(probe, c) for probe, ladder in LADDERS.items() for c in ladder]
 
 
+GATE_B_S = "study-kt-olmo2-1b-r64-b-mb4-gateb-20261008.json"    # Gate B recipe S: it matches the glob, once it exists
+
+
 def test_there_are_exactly_twenty_recipes_and_no_other_probe_recipe():
     assert len(all_recipes()) == 20
     assert sorted(p.name for p in CONFIGS.glob("study-kt-*-r64-b-*-20261008.json")) == \
-        sorted(recipe_path(p, c).name for p, c in all_recipes())
+        sorted([recipe_path(p, c).name for p, c in all_recipes()] + ([GATE_B_S] if (CONFIGS / GATE_B_S).exists() else []))
 
 
 @pytest.mark.parametrize("probe, candidate", all_recipes())
@@ -190,5 +193,144 @@ def test_bt_and_g_differ_from_their_b_sibling_only_in_the_listed_fields(probe, r
 def test_every_earlier_recipe_keeps_its_loss_and_schedule():
     for path in CONFIGS.glob("*.json"):
         data = json.loads(path.read_text())
-        if data.get("kind") == "safety-selection recipe" and "-bt-" not in path.name and "-g-" not in path.name:
+        if data.get("kind") == "safety-selection recipe" and not any(k in path.name for k in ("-bt-", "-g-", "-hawkins-", "-g5e5-")):
             assert "loss_weighting" not in data["train"] and data["train"]["lr_schedule"] == "constant", path.name
+
+
+# ----- report-only side runs (GI IV, 8 Oct; the user approved both): Qwen at recipe G, a Hawkins-like Llama ---------
+
+G_FIELDS = {"loss": LOSS_TOKEN_MEAN, "loss_weighting": "token_mean", "lr_schedule": "warmup_cosine", "warmup_steps": 4,
+            "schedule_until": "e1"}
+
+
+def test_the_qwen_recipe_g_is_qwen_recipe_b_with_only_the_g_fields_changed():
+    r = load_recipe(CONFIGS / "study-kt-instruct-r64-g-20261008.json")
+    b = load_recipe(CONFIGS / "study-kt-instruct-r64-b-20261007.json")
+    assert r["name"] == "study-kt-instruct-r64-g-20261008" and "assistant_header" not in r["model"]
+    assert {k: r["train"][k] for k in G_FIELDS} == G_FIELDS and r["train"]["lr"] == b["train"]["lr"] == 0.0001
+    undo = json.loads(json.dumps(r))
+    undo["name"], undo["purpose"] = b["name"], b["purpose"]
+    for k in ("loss_weighting", "warmup_steps", "schedule_until"):
+        undo["train"].pop(k)
+    undo["train"]["loss"], undo["train"]["lr_schedule"] = b["train"]["loss"], b["train"]["lr_schedule"]
+    assert undo == b and training_identity(r) != training_identity(b)
+    for glob in ("study-kt-*-r64-b-*", "study-kt-*-g-*-20261008.json"):          # no recipe-B or family-G glob takes it
+        assert r["name"] + ".json" not in [p.name for p in CONFIGS.glob(glob)], glob
+    data = load_data_config(CONFIGS / "study-kt-data-dolly.json")
+    job = {"manifest_sha256": "0" * 64, "recipe_sha256": config_sha256(r), "code_sha256": None}
+    check_identities(job, {"data_config": data}, "0" * 64, r, code_identity())
+
+
+def test_the_hawkins_like_llama_recipe_is_the_bt_recipe_with_only_lr_and_alpha_changed():
+    r = load_recipe(CONFIGS / "study-kt-llama32-1b-r64-hawkins-mb4-20261008.json")
+    bt = load_recipe(CONFIGS / "study-kt-llama32-1b-r64-bt-mb4-20261008.json")
+    b = load_recipe(CONFIGS / "study-kt-llama32-1b-r64-b-mb4-20261008.json")
+    assert r["train"]["lr"] == 5e-05 and r["train"]["lr_schedule"] == "constant" and "warmup_steps" not in r["train"]
+    assert r["train"]["loss_weighting"] == "token_mean" and r["train"]["micro_batch"] * r["train"]["grad_accum"] == 128
+    lora = r["model"]["lora"]
+    assert (lora["r"], lora["alpha"], lora["alpha"] / lora["r"]) == (64, 512, 8)
+    assert lora["expected_trainable_parameters"] == bt["model"]["lora"]["expected_trainable_parameters"] == 45_088_768
+    assert "Hawkins et al. arXiv 2606.28843" in r["purpose"] and "not a replication" in r["purpose"]
+    undo = json.loads(json.dumps(r))
+    undo["name"], undo["purpose"] = bt["name"], bt["purpose"]
+    undo["train"]["lr"], undo["model"]["lora"]["alpha"] = bt["train"]["lr"], bt["model"]["lora"]["alpha"]
+    assert undo == bt and training_identity(r) != training_identity(bt)
+    every = lambda x: {k: v for k, v in x.items() if k not in ("name", "purpose", "train", "model")}  # noqa: E731
+    assert every(r) == every(b) and {k: v for k, v in r["model"].items() if k != "lora"} == \
+        {k: v for k, v in b["model"].items() if k != "lora"}                    # the sealed Llama untuned unit is reused
+    data = load_data_config(CONFIGS / "study-kt-data-dolly-llama3.json")
+    job = {"manifest_sha256": "0" * 64, "recipe_sha256": config_sha256(r), "code_sha256": None}
+    check_identities(job, {"data_config": data}, "0" * 64, r, code_identity())
+
+
+# ----- rung 2 of the common-recipe ladder (ported from Specialized's D14-round workspace; GI IV, 8 Oct) -----
+
+@pytest.mark.parametrize("probe", ["olmo2-1b", "llama32-1b"])
+def test_rung_2_of_the_common_recipe_ladder_is_the_g_recipe_with_only_the_lr_changed(probe):
+    """FOCUS 17:36 UTC: the ladder is G at LR 1e-4, then 5e-5, then 2e-5, LR changes only."""
+    g = load_recipe(CONFIGS / f"study-kt-{probe}-r64-g-mb4-20261008.json")
+    r = load_recipe(CONFIGS / f"study-kt-{probe}-r64-g5e5-mb4-20261008.json")
+    assert (r["train"]["lr"], g["train"]["lr"]) == (5e-05, 0.0001) and r["purpose"].endswith(g["purpose"])
+    undo = json.loads(json.dumps(r))
+    undo["name"], undo["purpose"], undo["train"]["lr"] = g["name"], g["purpose"], g["train"]["lr"]
+    assert undo == g and training_identity(r) != training_identity(g)       # eval settings equal: the untuned unit is reused
+    data = load_data_config(CONFIGS / f"study-kt-data-dolly-{FAMILY[probe]}.json")
+    job = {"manifest_sha256": "0" * 64, "recipe_sha256": config_sha256(r), "code_sha256": None}
+    check_identities(job, {"data_config": data}, "0" * 64, r, code_identity())
+
+
+def test_llama_rung_2_at_the_main_recipe_is_recipe_b_with_only_the_lr_changed():
+    """FOCUS 2026-10-09: the per-family rule's rung 2 at recipe B for Llama-3.2-1B; LR changes only."""
+    b = load_recipe(CONFIGS / "study-kt-llama32-1b-r64-b-mb4-20261008.json")
+    r = load_recipe(CONFIGS / "study-kt-llama32-1b-r64-b5e5-mb4-20261008.json")
+    assert (r["train"]["lr"], b["train"]["lr"]) == (5e-05, 0.0001) and r["purpose"].endswith(b["purpose"])
+    undo = json.loads(json.dumps(r))
+    undo["name"], undo["purpose"], undo["train"]["lr"] = b["name"], b["purpose"], b["train"]["lr"]
+    assert undo == b and training_identity(r) != training_identity(b)       # eval settings equal: the untuned unit is reused
+    data = load_data_config(CONFIGS / "study-kt-data-dolly-llama3.json")
+    job = {"manifest_sha256": "0" * 64, "recipe_sha256": config_sha256(r), "code_sha256": None}
+    check_identities(job, {"data_config": data}, "0" * 64, r, code_identity())
+
+def test_llama31_8b_rung_2_at_the_main_recipe_is_recipe_b_with_only_the_lr_changed():
+    """FOCUS 2026-10-10: the 7-8B probe of Llama-3.1-8B read saturated at rung 1, so rung 2 (LR 5e-5); LR changes only."""
+    b = load_recipe(CONFIGS / "study-kt-llama31-8b-r64-b-mb2-20261008.json")
+    r = load_recipe(CONFIGS / "study-kt-llama31-8b-r64-b5e5-mb2-20261010.json")
+    assert (r["train"]["lr"], b["train"]["lr"]) == (5e-05, 0.0001) and r["purpose"].endswith(b["purpose"])
+    undo = json.loads(json.dumps(r))
+    undo["name"], undo["purpose"], undo["train"]["lr"] = b["name"], b["purpose"], b["train"]["lr"]
+    assert undo == b and training_identity(r) != training_identity(b)       # eval settings equal: the untuned unit is reused
+
+
+@pytest.mark.parametrize("fam,b_name", [("olmo2-7b", "study-kt-olmo2-7b-r64-b-mb2-20261008"),
+                                        ("llama31-8b", "study-kt-llama31-8b-r64-b-mb2-20261008")])
+def test_7b_recipe_g_is_recipe_b_with_exactly_the_1b_b_to_g_change(fam, b_name):
+    """FOCUS 2026-10-11: recipe G at 7-8B = the mb2 recipe B with the train keys that differ between the 1B B and G mb2 files."""
+    b1 = load_recipe(CONFIGS / "study-kt-olmo2-1b-r64-b-mb2-20261008.json")
+    g1 = load_recipe(CONFIGS / "study-kt-olmo2-1b-r64-g-mb2-20261008.json")
+    b = load_recipe(CONFIGS / f"{b_name}.json")
+    g = load_recipe(CONFIGS / f"study-kt-{fam}-r64-g-mb2-20261011.json")
+    keys = {k for k in set(b1["train"]) | set(g1["train"]) if b1["train"].get(k) != g1["train"].get(k)}
+    assert keys == {"loss", "loss_weighting", "lr_schedule", "schedule_until", "warmup_steps"}
+    assert all(g["train"].get(k) == g1["train"].get(k) for k in keys) and g["train"]["lr"] == b["train"]["lr"] == 0.0001
+    undo = json.loads(json.dumps(g))
+    for k in keys:
+        if k in b["train"]:
+            undo["train"][k] = b["train"][k]
+        else:
+            undo["train"].pop(k, None)
+    undo["name"], undo["purpose"] = b["name"], b["purpose"]
+    assert undo == b and g["purpose"].endswith(b["purpose"]) and training_identity(g) != training_identity(b)
+
+
+def test_olmo2_7b_half_lr_is_recipe_b_with_only_the_lr_changed():
+    """FOCUS 2026-10-11: OLMo-2-7B at LR 5e-5 for the Side Project's learning-rate test; LR changes only."""
+    b = load_recipe(CONFIGS / "study-kt-olmo2-7b-r64-b-mb2-20261008.json")
+    r = load_recipe(CONFIGS / "study-kt-olmo2-7b-r64-b5e5-mb2-20261011.json")
+    assert (r["train"]["lr"], b["train"]["lr"]) == (5e-05, 0.0001) and r["purpose"].endswith(b["purpose"])
+    undo = json.loads(json.dumps(r))
+    undo["name"], undo["purpose"], undo["train"]["lr"] = b["name"], b["purpose"], b["train"]["lr"]
+    assert undo == b and training_identity(r) != training_identity(b)
+
+
+def test_qwen7b_recipe_g_and_olmo2_1b_half_lr_change_only_what_they_name():
+    """FOCUS 2026-10-11: Qwen2.5-7B recipe G = its mb2 recipe B with the 1B B->G train change; OLMo-2-1B at LR 5e-5 = LR only."""
+    b1 = load_recipe(CONFIGS / "study-kt-olmo2-1b-r64-b-mb2-20261008.json")
+    g1 = load_recipe(CONFIGS / "study-kt-olmo2-1b-r64-g-mb2-20261008.json")
+    keys = {k for k in set(b1["train"]) | set(g1["train"]) if b1["train"].get(k) != g1["train"].get(k)}
+    qb = load_recipe(CONFIGS / "study-kt-qwen7b-r64-b-mb2-20261007.json")
+    qg = load_recipe(CONFIGS / "study-kt-qwen7b-r64-g-mb2-20261011.json")
+    assert all(qg["train"].get(k) == g1["train"].get(k) for k in keys) and qg["train"]["lr"] == qb["train"]["lr"] == 0.0001
+    undo = json.loads(json.dumps(qg))
+    for k in keys:
+        if k in qb["train"]:
+            undo["train"][k] = qb["train"][k]
+        else:
+            undo["train"].pop(k, None)
+    undo["name"], undo["purpose"] = qb["name"], qb["purpose"]
+    assert undo == qb and qg["purpose"].endswith(qb["purpose"])
+    ob = load_recipe(CONFIGS / "study-kt-olmo2-1b-r64-b-mb4-20261008.json")
+    oh = load_recipe(CONFIGS / "study-kt-olmo2-1b-r64-b5e5-mb4-20261011.json")
+    undo = json.loads(json.dumps(oh))
+    undo["name"], undo["purpose"], undo["train"]["lr"] = ob["name"], ob["purpose"], ob["train"]["lr"]
+    assert oh["train"]["lr"] == 5e-05 and undo == ob and oh["purpose"].endswith(ob["purpose"])
+

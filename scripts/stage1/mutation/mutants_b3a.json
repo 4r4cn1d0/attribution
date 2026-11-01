@@ -1,0 +1,421 @@
+{
+  "kind": "stage1 mutants",
+  "version": 1,
+  "part": "batch 3a: R draws, R_tok, length and format rules",
+  "mutants": [
+    {
+      "id": "B3-r-stream-d-minus-1",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "d - 1 in the R stream",
+      "file": "build_r_draws.py",
+      "find": "    remove, per_unit = frozen.draw_r(inputs, d)\n",
+      "replace": "    remove, per_unit = frozen.draw_r(inputs, d - 1)\n"
+    },
+    {
+      "id": "B3-dose-74-per-unit",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "one row fewer per unit in the dose draws",
+      "file": "build_r_draws.py",
+      "find": "picked = s1.sealed_sample(view.members[g], per_unit, key, d, g)",
+      "replace": "picked = s1.sealed_sample(view.members[g], per_unit - 1, key, d, g)"
+    },
+    {
+      "id": "B3-dose-parts-swapped",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "the dose draw keyed (g, d) instead of (d, g)",
+      "file": "build_r_draws.py",
+      "find": "picked = s1.sealed_sample(view.members[g], per_unit, key, d, g)",
+      "replace": "picked = s1.sealed_sample(view.members[g], per_unit, key, g, d)"
+    },
+    {
+      "id": "B3-reproduction-bytes-off",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "the byte reproduction check removed",
+      "file": "build_r_draws.py",
+      "find": "        if data != sealed:\n",
+      "replace": "        if False:\n"
+    },
+    {
+      "id": "B3-sealed-listing-off",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "the sealed-manifest listing check removed",
+      "file": "build_r_draws.py",
+      "find": "        if listed.get(rel) != sha256_bytes(sealed):\n",
+      "replace": "        if False:\n"
+    },
+    {
+      "id": "B3-seed-map-off-by-one",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "the recorded seed is 1101 + d",
+      "file": "build_r_draws.py",
+      "find": "\"draw\": d, \"seed\": seed_of + d, \"role\": settings[\"frozen_r\"][\"roles\"][str(d)],",
+      "replace": "\"draw\": d, \"seed\": seed_of + d + 1, \"role\": settings[\"frozen_r\"][\"roles\"][str(d)],"
+    },
+    {
+      "id": "B3-frozen-pin-off",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "the frozen builder's SHA-256 check removed",
+      "file": "build_r_draws.py",
+      "find": "    if sha256_bytes(data) != expected_sha256:\n        raise s1.Refusal(f\"the frozen builder",
+      "replace": "    if False:\n        raise s1.Refusal(f\"the frozen builder"
+    },
+    {
+      "id": "B3-rtok-target-not-split",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "each unit's target is T_m, not T_m / 8",
+      "file": "build_r_tok.py",
+      "find": "    target = mass_m / len(view.units)\n",
+      "replace": "    target = mass_m\n"
+    },
+    {
+      "id": "B3-rtok-always-crossing",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "the crossing row always kept",
+      "file": "build_r_tok.py",
+      "find": "if abs(after - target) <= abs(mass - target):",
+      "replace": "if True:"
+    },
+    {
+      "id": "B3-rtok-tie-dropped",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "a tie at the crossing row dropped",
+      "file": "build_r_tok.py",
+      "find": "if abs(after - target) <= abs(mass - target):",
+      "replace": "if abs(after - target) < abs(mass - target):"
+    },
+    {
+      "id": "B3-rtok-wrong-axis",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "the target-token axis always",
+      "file": "build_r_tok.py",
+      "find": "    tokens = {\"total_tokens\": view.total_tokens, \"target_tokens\": view.target_tokens}[axis]\n",
+      "replace": "    tokens = view.target_tokens\n"
+    },
+    {
+      "id": "B3-rtok-order-unsealed",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "the unit walked in id order",
+      "file": "build_r_tok.py",
+      "find": "        for r in s1.sealed_order(view.members[g], key, arm, d, g):\n",
+      "replace": "        for r in sorted(view.members[g]):\n"
+    },
+    {
+      "id": "B3-rtok-arm-pin-off",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "the arm's pinned removal not checked",
+      "file": "build_r_tok.py",
+      "find": "    if pin is not None and removal[1] != pin:\n",
+      "replace": "    if False:\n"
+    },
+    {
+      "id": "B3-h1-takes-longest",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "H1 takes the longest",
+      "file": "build_length_rules.py",
+      "find": "return sorted(view.tokens, key=lambda r: (view.tokens[r], rank[r]))",
+      "replace": "return sorted(view.tokens, key=lambda r: (-view.tokens[r], rank[r]))"
+    },
+    {
+      "id": "B3-h1-ties-by-id",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "H1 ties by id order",
+      "file": "build_length_rules.py",
+      "find": "return sorted(view.tokens, key=lambda r: (view.tokens[r], rank[r]))",
+      "replace": "return sorted(view.tokens, key=lambda r: (view.tokens[r], r))"
+    },
+    {
+      "id": "B3-h2a-fence-dropped",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "one H2a marker (the fence) dropped",
+      "file": "build_length_rules.py",
+      "find": "        fences = sum(1 for line in lines if fence in line)\n",
+      "replace": "        fences = 0\n"
+    },
+    {
+      "id": "B3-h2a-threshold-1",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "the ITEM threshold at 1",
+      "file": "build_length_rules.py",
+      "find": "return items >= threshold or marks >= 1 or fences >= 1, items, marks, fences",
+      "replace": "return items >= 1 or marks >= 1 or fences >= 1, items, marks, fences"
+    },
+    {
+      "id": "B3-h2a-threshold-3",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "the ITEM threshold at 3",
+      "file": "build_length_rules.py",
+      "find": "return items >= threshold or marks >= 1 or fences >= 1, items, marks, fences",
+      "replace": "return items >= 3 or marks >= 1 or fences >= 1, items, marks, fences"
+    },
+    {
+      "id": "B3-octile-off-by-one",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "an octile boundary off by one",
+      "file": "build_length_rules.py",
+      "find": "return [order[size * k:size * (k + 1)] for k in range(count)]",
+      "replace": "return [order[size * k:size * (k + 1) + 1] for k in range(count)]"
+    },
+    {
+      "id": "B3-control-not-matched",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "a control drawn from every category",
+      "file": "build_length_rules.py",
+      "find": "        outside = [r for r in members if r not in inside]\n",
+      "replace": "        outside = [r for r in sorted(view.tokens) if r not in inside]\n"
+    },
+    {
+      "id": "B3-control-fill-other-category",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "the fill drawn from the whole octile",
+      "file": "build_length_rules.py",
+      "find": "fill = s1.sealed_sample([r for r in members if r in inside], n - len(outside), fill_key, k, g)",
+      "replace": "fill = s1.sealed_sample(sorted(inside), n - len(outside), fill_key, k, g)"
+    },
+    {
+      "id": "B3-h2a-fill-from-marked",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "the H2a fill drawn from H2a rows",
+      "file": "build_length_rules.py",
+      "find": "        rest = sorted(r for r, f in flags.items() if not f)\n",
+      "replace": "        rest = sorted(r for r, f in flags.items() if f)\n"
+    },
+    {
+      "id": "V3a2-rtok-global-draw",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "W1-03's named mutant: one global sealed walk over all rows to T_m (not per unit to T_m / 8)",
+      "edits": [
+        {
+          "file": "build_r_tok.py",
+          "find": "    target = mass_m / len(view.units)\n",
+          "replace": "    target = mass_m\n"
+        },
+        {
+          "file": "build_r_tok.py",
+          "find": "    for g in view.units:\n        if sum(",
+          "replace": "    for g in view.units[:1]:\n        if sum("
+        },
+        {
+          "file": "build_r_tok.py",
+          "find": "        for r in s1.sealed_order(view.members[g], key, arm, d, g):\n",
+          "replace": "        for r in s1.sealed_order(list(tokens), key, arm, d, g):\n"
+        }
+      ]
+    },
+    {
+      "id": "V3a2-frozen-pin-self-hash",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "build() loads the frozen build_sealed.py on the file's own SHA-256, not the settings pin 80cb8944",
+      "file": "build_r_draws.py",
+      "find": "    frozen = load_frozen(frozen_path, pins[\"frozen_builder_sha256\"])\n",
+      "replace": "    frozen = load_frozen(frozen_path, sha256_bytes(frozen_path.read_bytes()))\n"
+    },
+    {
+      "id": "M3a-frozen-check-after-exec",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "the frozen builder is executed before its SHA-256 is checked (an unpinned file runs; the refusal comes only afterwards)",
+      "file": "build_r_draws.py",
+      "find": "    data = path.read_bytes()\n    if sha256_bytes(data) != expected_sha256:\n        raise s1.Refusal(f\"the frozen builder hashes to {sha256_bytes(data)}, the pin is {expected_sha256}\")\n    spec = importlib.util.spec_from_file_location(\"stage1_frozen_build_sealed\", path)\n    module = importlib.util.module_from_spec(spec)\n    spec.loader.exec_module(module)\n",
+      "replace": "    data = path.read_bytes()\n    spec = importlib.util.spec_from_file_location(\"stage1_frozen_build_sealed\", path)\n    module = importlib.util.module_from_spec(spec)\n    spec.loader.exec_module(module)\n    if sha256_bytes(data) != expected_sha256:\n        raise s1.Refusal(f\"the frozen builder hashes to {sha256_bytes(data)}, the pin is {expected_sha256}\")\n"
+    },
+    {
+      "id": "C3b-sealed-builder-hash-unchecked",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "the sealed R_d1 file's recorded builder_sha256 is no longer checked against the pin",
+      "file": "build_r_draws.py",
+      "find": "    if base.get(\"builder_sha256\") != builder_sha256:\n        raise s1.Refusal(\"the sealed files were not written by the pinned frozen builder\")\n",
+      "replace": "    if False:\n        raise s1.Refusal(\"the sealed files were not written by the pinned frozen builder\")\n"
+    },
+    {
+      "id": "V3a2-dose-record-seed-off-by-one",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "the R_1200/R_2400 record states seed 1101 + d (the training-seed map off by one)",
+      "file": "build_r_draws.py",
+      "find": "\"seed\": seed_of + d, \"role\": spec[\"role\"], \"per_unit\": table,",
+      "replace": "\"seed\": seed_of + d + 1, \"role\": spec[\"role\"], \"per_unit\": table,"
+    },
+    {
+      "id": "V3a2-dose-provenance-draw-off-by-one",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "each R_1200/R_2400 edit's provenance names draw d + 1 (the edit's only pointer to its seed)",
+      "file": "build_r_draws.py",
+      "find": "provenance={**wrapper, \"family\": family, \"draw\": d, \"seed\": seed_of + d,\n",
+      "replace": "provenance={**wrapper, \"family\": family, \"draw\": d + 1, \"seed\": seed_of + d,\n"
+    },
+    {
+      "id": "V3a2-plan-b-roles-recorded-primary",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "R_d8..R_d10 are recorded with draw 6's role ('primary'), though DRAFT rev 3 section 1.2 runs d = 8 only under plan B",
+      "file": "build_r_draws.py",
+      "find": "settings[\"frozen_r\"][\"roles\"][str(d)]",
+      "replace": "settings[\"frozen_r\"][\"roles\"][\"6\"]"
+    },
+    {
+      "id": "C3a-wrapper-names-wrong-frozen-hash",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "the wrapper's provenance names the sealed manifest's SHA-256 as the frozen builder's (brief REQ-4: the provenance names the frozen builder's SHA-256)",
+      "file": "build_r_draws.py",
+      "find": "\"frozen_builder\": pins[\"frozen_builder_sha256\"],",
+      "replace": "\"frozen_builder\": pins[\"sealed_manifest_sha256\"],"
+    },
+    {
+      "id": "C3a-dose-table-seed-on-r1200-label",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "a draw label reused in the record: every dose file's per-unit seed column is computed on R_1200's label",
+      "file": "build_r_draws.py",
+      "find": "\"seed\": s1.seed(key, d, g), \"rows\": len(picked)})",
+      "replace": "\"seed\": s1.seed(\"random_removal.r1200\", d, g), \"rows\": len(picked)})"
+    },
+    {
+      "id": "V3a2-rtok-arm-part-constant",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "R_tok walks every arm's units in arm h1's sealed order (the arm part of (arm, d, g) not used); the table still states per-arm seeds",
+      "file": "build_r_tok.py",
+      "find": "        for r in s1.sealed_order(view.members[g], key, arm, d, g):\n",
+      "replace": "        for r in s1.sealed_order(view.members[g], key, \"h1\", d, g):\n"
+    },
+    {
+      "id": "V3a2-rtok-non-remove-arm-accepted",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "the arm's file is accepted when it also rewrites or adds rows (a combined edit, e.g. the plant's)",
+      "file": "build_r_tok.py",
+      "find": "    if edit.document[\"edit_kind\"] != \"remove\" or edit.rewrite or edit.added:\n",
+      "replace": "    if False:\n"
+    },
+    {
+      "id": "M3a-rtok-row-count-check-off",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "an arm removal file with a row count other than the settings' 600 is accepted",
+      "file": "build_r_tok.py",
+      "find": "    if len(removed) != spec[\"rows\"]:\n",
+      "replace": "    if False:\n"
+    },
+    {
+      "id": "C3b-rtok-table-seed-d-plus-1",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "the R_tok record's per-unit seed column names draw d + 1 (the draw itself unchanged)",
+      "file": "build_r_tok.py",
+      "find": "\"seed\": s1.seed(key, arm, d, g)})",
+      "replace": "\"seed\": s1.seed(key, arm, d + 1, g)})"
+    },
+    {
+      "id": "V3a2-l7-fill-on-control-label",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "the L7 shortfall fill is drawn on the control's label l8.control (label reused) instead of l8.control_fill",
+      "file": "build_length_rules.py",
+      "find": "fill = s1.sealed_sample([r for r in members if r in inside], n - len(outside), fill_key, k, g)",
+      "replace": "fill = s1.sealed_sample([r for r in members if r in inside], n - len(outside), key, k, g)"
+    },
+    {
+      "id": "V3a2-l7-control-part-k-plus-1",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "octile k's control is drawn with part k + 1 (a seed off by one in the l8.control stream)",
+      "file": "build_length_rules.py",
+      "find": "picked, fill = s1.sealed_sample(outside, n, key, k, g), []",
+      "replace": "picked, fill = s1.sealed_sample(outside, n, key, k + 1, g), []"
+    },
+    {
+      "id": "V3a-l7-control-on-fill-label",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "the control's main draw keyed by l8.control_fill (a draw label reused)",
+      "file": "build_length_rules.py",
+      "find": "picked, fill = s1.sealed_sample(outside, n, key, k, g), []",
+      "replace": "picked, fill = s1.sealed_sample(outside, n, fill_key, k, g), []"
+    },
+    {
+      "id": "C3b-l7-fill-parts-swapped",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "the in-octile fill drawn with parts (c, k) instead of (k, c): a wrong sealed stream, same counts",
+      "file": "build_length_rules.py",
+      "find": "fill = s1.sealed_sample([r for r in members if r in inside], n - len(outside), fill_key, k, g)",
+      "replace": "fill = s1.sealed_sample([r for r in members if r in inside], n - len(outside), fill_key, g, k)"
+    },
+    {
+      "id": "C3a-l7-shared-recorded-zero",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "L7's 'record the rows shared with octile k' is recorded as 0 for every control",
+      "file": "build_length_rules.py",
+      "find": "                    \"shared_with_octile\": len(fill)}",
+      "replace": "                    \"shared_with_octile\": 0}"
+    },
+    {
+      "id": "V3a2-octile-cut-point-last-wrong",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "the record's published cut points give each octile's first row's tokens as its last_target_tokens",
+      "file": "build_length_rules.py",
+      "find": "\"last_target_tokens\": view.tokens[p[-1]]}",
+      "replace": "\"last_target_tokens\": view.tokens[p[0]]}"
+    },
+    {
+      "id": "C3b-octile-cut-first-p1",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "the published first cut point reads the octile's second row",
+      "file": "build_length_rules.py",
+      "find": "\"first_target_tokens\": view.tokens[p[0]]",
+      "replace": "\"first_target_tokens\": view.tokens[p[1]]"
+    },
+    {
+      "id": "C3a-h2b-role-on-octile-6",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "an off-by-one at the top boundary of the roles: octile 6's edit is labelled H2b in its provenance and octile 7's is not",
+      "file": "build_length_rules.py",
+      "find": "        role = {0: \"octile 0 = H1 (primary arm P3)\", len(parts) - 1: f\"octile {len(parts) - 1} = H2b (secondary)\"}.get(",
+      "replace": "        role = {0: \"octile 0 = H1 (primary arm P3)\", len(parts) - 2: f\"octile {len(parts) - 1} = H2b (secondary)\"}.get("
+    },
+    {
+      "id": "V3a2-l6-markup-pipe-anywhere",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "L6 MARKUP loosened: any line that holds '|' anywhere counts (the pipe alternative unanchored)",
+      "file": "build_length_rules.py",
+      "find": "re.compile(rule[\"markup\"]), rule[\"fence\"]",
+      "replace": "re.compile(rule[\"markup\"] + \"|.*[|]\"), rule[\"fence\"]"
+    },
+    {
+      "id": "V3a2-l6-fence-two-backticks",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "L6 FENCE loosened: a line with two backticks counts as a fence",
+      "file": "build_length_rules.py",
+      "find": "        fences = sum(1 for line in lines if fence in line)\n",
+      "replace": "        fences = sum(1 for line in lines if fence[:2] in line)\n"
+    },
+    {
+      "id": "C3a-l6-fence-any-three-backticks",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "L6 FENCE loosened: any line with three backticks anywhere (not contiguous) counts as a fence",
+      "file": "build_length_rules.py",
+      "find": "        fences = sum(1 for line in lines if fence in line)\n",
+      "replace": "        fences = sum(1 for line in lines if line.count(fence[0]) >= len(fence))\n"
+    },
+    {
+      "id": "C3b-train-rows-hash-check-dropped",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "the second read of train_rows.jsonl (for the H2a flags) no longer re-checks the file hash",
+      "file": "build_length_rules.py",
+      "find": "    if sha256_file(prepared / s1.TRAIN_ROWS) != view.file_sha256[s1.TRAIN_ROWS]:\n        raise s1.Refusal(\"train_rows.jsonl changed after the view read it\")\n",
+      "replace": "    if False:\n        raise s1.Refusal(\"train_rows.jsonl changed after the view read it\")\n"
+    },
+    {
+      "id": "B3-dose-provenance-seed-off-by-one",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "each R_1200/R_2400 edit's provenance states seed 1101 + d (L5's map in the provenance off by one)",
+      "file": "build_r_draws.py",
+      "find": "provenance={**wrapper, \"family\": family, \"draw\": d, \"seed\": seed_of + d,\n",
+      "replace": "provenance={**wrapper, \"family\": family, \"draw\": d, \"seed\": seed_of + d + 1,\n"
+    },
+    {
+      "id": "B3-frozen-provenance-seed-off-by-one",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "each R_d6..10 edit's stage1_wrapper block states seed 1101 + d (L5's map in the provenance off by one)",
+      "file": "build_r_draws.py",
+      "find": "{\"stage1_wrapper\": {**wrapper, \"seed\": seed_of + d, \"seed_rule\": seed_rule}})",
+      "replace": "{\"stage1_wrapper\": {**wrapper, \"seed\": seed_of + d + 1, \"seed_rule\": seed_rule}})"
+    },
+    {
+      "id": "B3-provenance-seed-rule-dropped",
+      "part": "batch 3a (REQ-4, W1-03, REQ-5)",
+      "describes": "the dose edits' provenance carries no seed_rule (the map's text absent from the provenance)",
+      "file": "build_r_draws.py",
+      "find": "\"seed_rule\": seed_rule, \"rule\": spec[\"rule\"], \"per_unit\": table})",
+      "replace": "\"rule\": spec[\"rule\"], \"per_unit\": table})"
+    }
+  ]
+}

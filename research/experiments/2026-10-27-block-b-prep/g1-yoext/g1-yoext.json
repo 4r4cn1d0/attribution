@@ -1,0 +1,757 @@
+{
+ "kind": "stage1 build round report",
+ "round": "G1, the engine-Y O-ext re-pin (block B pre-flight gap G1)",
+ "written_utc": "2026-10-29T11:36Z (date -u 11:35:48)",
+ "builder": "bounded builder for GI VII (Opus); no pods, no network, no git writes",
+ "tree": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/g1-yoext/tree",
+ "tree_base": "working branch 3dbc79e (main checkout HEAD 3dbc79e; the tree's kit equals main's committed runkit/stage1-olmo except the two files changed here, M: diff -rq)",
+ "requirement": "addendum §34 point 3 (G1 built: Y-side O-ext settings that pin Y and allow B+Qi's config, packed on Y; every X-side S1 file byte-identical); §11 points 1 and 7; §15 point 1; §20 point 5; §24; runbook block-b-runbook.md §0 G1 and §4",
+ "summary": [
+  "B+Qi's O-ext step on engine Y now has a route: engine Y's pack carries the O-ext package at the exact paths the job runner calls and seals (scripts/stage1_s1/oext_unit.py, settings/oext_unit.json, settings/oext_eval.json, oext_eval.py, __init__.py).",
+  "Three new engine-Y files: oext_unit_y.py (engine X's oext_unit.py with only its two settings pins changed; a test rebuilds it from oext_unit.py byte for byte), settings/oext_unit_y.json (engine_x = Y 34bfd288, recipes.allowed = {B+Qi: 37942cf5}, oext.settings.sha256 = the Y O-ext settings) and settings/oext_eval_y.json (engine X's O-ext settings with engine_x = Y and one requirement sentence).",
+  "pack_setup.py: on engine Y it adds S1_OEXT_Y_SHARED (__init__.py, oext_eval.py) at their S1_CODE pins and each S1_OEXT_Y runner path from its engine-Y source by its pin; engine X's pack is unchanged (M: sealed-files.json byte-identical old kit vs new kit).",
+  "stage1_rules.py: S1_CODE unchanged; new S1_OEXT_Y_SHARED and S1_OEXT_Y (path -> {path, sha256}).",
+  "Every X-side S1 file byte-identical (M: before/after manifests; block A's pins ae2fb5b5, 3959eae7, 8c429092, 2ad98938, 818919ca).",
+  "In-memory check-plan on the real plan.json copy (writes refused): B+Qi hosts b-12 and b-13 pass on this round's Y pack; refuse on the pre-round kit's Y pack (4 O-ext files not packed) and on today's live Y pack ed8b120b (inputs and 7 files).",
+  "O-ext pass on a synthetic B+Qi-shaped unit (constrained SFT) on engine Y's own code: completes (route unit_eval); a plain recipe is refused; engine X's settings refuse on Y.",
+  "Tests: kit 640 passed (630 + 10 new); scripts/stage1_s1 whole tree 1507 passed (incl. 8 new). Mutants: 6/6 killed (4 kit, 2 S1); the 11 earlier kit mutants within 40 lines of the changes: 11/11 killed."
+ ],
+ "design": {
+  "chosen": "a byte-pinned engine-Y copy of the O-ext unit runner plus two engine-Y settings files, packed on engine Y's pack under the names the job runner calls and seals; oext_eval.py (every O-ext rule) is engine X's file on both engines",
+  "why_not_settings_only": "engine X's oext_unit.py loads settings/oext_unit.json by its literal SETTINGS_SHA256 3959eae7 and oext_eval.json by oext_eval.py's literal 2ad98938, and s1common.check_settings refuses a settings file whose engine_x is not the running engine; so Y settings at those paths with X's runner refuse on the pod, while check-plan (presence only) would pass them: a pod-side crash after the paid setup. Measured: the bundle test's X-files layout on engine Y refuses 'settings oext_unit: written for engine 472fc7f6..., this engine is 34bfd288...'.",
+  "why_not_per_engine_section": "oext_unit.py's validate_settings fixes the key set and one engine_x; a per-engine section needs a code change to an X-side file (forbidden: block A's outputs name it by SHA-256).",
+  "why_not_runner_change": "a job-runner change (Y hosts call oext_unit_y.py and seal its own settings names) would avoid the pack-time renames, but job_runner_stage1.py is outside this brief's files, and X's validate_settings would still force oext.settings.path to name settings/oext_eval.json; offered as an alternative (open point 2).",
+  "why_not_thin_wrapper": "a wrapper calling oext_unit.main(settings=..., oext_settings=...) must sit at the runner's path, so engine X's oext_unit.py would have to be packed under another name; main documents those arguments as test fixtures only.",
+  "allowed_recipes_on_y": "B+Qi only (37942cf5, plan.json recipes_y; computed by engine Y's code from Y's tree, M). B, S and G stay on engine X with oext_unit.json (§34 point 1). The generation and guard pins are engine X's (B+Qi's blocks hash to them on engine Y, M), so one cap and one judge."
+ },
+ "changed_files": [
+  {
+   "path": "runkit/stage1-olmo/pack_setup.py",
+   "old_sha256": "725751b36afbfd3c55b74dfb5bb4d6eaa1859f24f6a01f79adfb62a178bd7137",
+   "new_sha256": "704dcc13b2c58ab1b152fd6ae165e6cc0fc724fc48a1bd5359bc6a187636b7cd"
+  },
+  {
+   "path": "runkit/stage1-olmo/stage1_rules.py",
+   "old_sha256": "cc40f4713d2d60be6c3051e5b07397844b93d937746eb1c8e343de378d762352",
+   "new_sha256": "fdedecd13e073722f92cde1eae71dc489775cf3277c15c0fe62e58a08c275f44"
+  },
+  {
+   "path": "runkit/stage1-olmo/tests/mutants_b15.json",
+   "old_sha256": "369b4bba92c345dca6be9239328c7fce6f9c9efcd8124dd63c01538850b0afc2",
+   "new_sha256": "04e873ec0a1f243b59d672669e9cbe20d6fedf3dfc1d50bf31145b9a9a734960"
+  },
+  {
+   "path": "runkit/stage1-olmo/tests/test_g1_yoext.py",
+   "old_sha256": null,
+   "new_sha256": "508975d982ed7c8bf5634810221926a8850bc6fc8a73287642a8dd90bdc75680"
+  },
+  {
+   "path": "runkit/stage1-olmo/tests/test_stage1_runner.py",
+   "old_sha256": "6e31bd6b4829bc46040cd54de5c3fb5c068728be87494b4ea317d777e7210155",
+   "new_sha256": "8e3af3db260f752a81ac6babc0ec6bd8cd8e2b27418db1326320fa6b245d2e28"
+  },
+  {
+   "path": "scripts/stage1_s1/mutation/mutants_oext_unit.json",
+   "old_sha256": "9626b7da08f36fd61505449ca10ba1dd11a195860d66f19f478bb1cce9e7bc3e",
+   "new_sha256": "d5794378149edd01ae9217b4432438cd316cb045a9aa2721bac31088466c7833"
+  },
+  {
+   "path": "scripts/stage1_s1/oext_unit_y.py",
+   "old_sha256": null,
+   "new_sha256": "978561ce0269756bbdf921580bb1e8c15592041583ab5d899912c910eb4753de"
+  },
+  {
+   "path": "scripts/stage1_s1/settings/oext_eval_y.json",
+   "old_sha256": null,
+   "new_sha256": "80469a8f728d15192c360f26640c17b7ba652fbd969cfa45f43113c1defd76f0"
+  },
+  {
+   "path": "scripts/stage1_s1/settings/oext_unit_y.json",
+   "old_sha256": null,
+   "new_sha256": "80d08721284bbe94661d6fe2cdc58be259db8df66dc681403d7473155c715298"
+  },
+  {
+   "path": "scripts/stage1_s1/tests/oext_unit_y_probe.py",
+   "old_sha256": null,
+   "new_sha256": "326ae1fe8d693a6cc906fcaeed93bfd747e53f414b5c1121c060b96b9dff7d20"
+  },
+  {
+   "path": "scripts/stage1_s1/tests/test_oext_unit_y.py",
+   "old_sha256": null,
+   "new_sha256": "114460c8e78139452f30a44df91a5e1af21252eaac5ee048276b840025a7ac3e"
+  }
+ ],
+ "x_side_byte_identity": {
+  "method": "shasum -a 256 of every file under scripts/stage1_s1, scripts/stage1, runkit/stage1-olmo and experiments in the tree before any edit (10:42 UTC) and after the last edit (11:25 UTC); diff",
+  "before_manifest": {
+   "path": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/g1-yoext/work/before.sha256",
+   "sha256": "086d101bd1e8a9bfec85339096bfb5410b5f623be0ce67099f97d25eac2d201f",
+   "files": 577
+  },
+  "after_manifest": {
+   "path": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/g1-yoext/work/after.sha256",
+   "sha256": "06b4157c0f81a085ab1efb638f33e23d2078dd6c661c87eab0996dca6cba4927",
+   "files": 583
+  },
+  "changed": [
+   "runkit/stage1-olmo/pack_setup.py",
+   "runkit/stage1-olmo/stage1_rules.py",
+   "runkit/stage1-olmo/tests/mutants_b15.json",
+   "runkit/stage1-olmo/tests/test_stage1_runner.py",
+   "scripts/stage1_s1/mutation/mutants_oext_unit.json"
+  ],
+  "added": [
+   "runkit/stage1-olmo/tests/test_g1_yoext.py",
+   "scripts/stage1_s1/oext_unit_y.py",
+   "scripts/stage1_s1/settings/oext_eval_y.json",
+   "scripts/stage1_s1/settings/oext_unit_y.json",
+   "scripts/stage1_s1/tests/oext_unit_y_probe.py",
+   "scripts/stage1_s1/tests/test_oext_unit_y.py"
+  ],
+  "every_other_file_identical": true,
+  "x_side_o_ext_files": {
+   "scripts/stage1_s1/__init__.py": "818919ca18627b7169d80c2a6f6c24149f6e1c529bff9d37a5ddee2122bddd32",
+   "scripts/stage1_s1/oext_eval.py": "8c4290921f32a5b4596a0bc40235cc5cf1185f73eaabeaa625c43bd19ba77719",
+   "scripts/stage1_s1/oext_unit.py": "ae2fb5b5fbea36cbd2b27c4eaa20f10504b9856961ae8ee100311c923876b8e3",
+   "scripts/stage1_s1/settings/oext_eval.json": "2ad9893849248a8fb61d04cf7badbd7fb398915020f196904849d500df08f5a5",
+   "scripts/stage1_s1/settings/oext_unit.json": "3959eae7264f56f613f5d7cd54e69081d8985ef7cbce2962243f6685e3581189"
+  },
+  "x_side_o_ext_equal_s1_code_and_main": true,
+  "s1_code_unchanged": "stage1_rules.S1_CODE: 11 entries, same pins (test_the_y_pins_name_this_repositorys_engine_y_files_at_the_runners_o_ext_paths; and main's files hash to them, M)",
+  "x_pack_identical": {
+   "old_kit_sealed_files_sha256": "39523b6a5ece31accc911ed06258601128cca330d3d9f3a307d23f27a477e8fb",
+   "new_kit_sealed_files_sha256": "39523b6a5ece31accc911ed06258601128cca330d3d9f3a307d23f27a477e8fb",
+   "byte_identical": true,
+   "note": "pack_setup's own collection steps in memory, the same O-ext-only inputs record and plan.json copy on both kits"
+  }
+ },
+ "in_memory_check_plan": {
+  "script": {
+   "path": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/g1-yoext/work/g1_proof.py",
+   "sha256": "85f438307d0010aa701c444058a02a038e46d997fd4988bc36626c1e5ec20356"
+  },
+  "output": {
+   "path": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/g1-yoext/work/g1_proof.out.json",
+   "sha256": "273b22faee6eb9a2064b6673f2f6381649949923d41378838850ea0ee2084113"
+  },
+  "how": "two overlay roots in scratch (runkit/stage1-olmo copied: this round's kit, and main's committed kit; scripts and experiments linked to the tree; .ai, backups, research, tmp linked to the main checkout; a copy of the live plan.json in each kit copy for guard_off_record and edit_files). Packs built in memory by pack_setup's own steps (check_constraints, check_base_pins, inputs_record, y_tree_check, engine_code, stage1_code, w1_18_data, edit_files, named_inputs, input_pins, s1_settings_engine, refuse; engine_files; the sealed-files.json bytes as main writes them); no folder, no tar, no receipt in the kit. Then on a deep copy of plan.json in memory, every kit write refused (gateb_mac.save_plan, operator_action): init-block certify (pre-flight jobs_certify.json), init-block B (pre-flight jobs_block_b.json) with the pre-flight's scratch R_d6/R_d7 sealed-edits record, release_next until B+Qi's launch (a scratch passing certification injected when the reference launch asked, as the pre-flight did), receipts served from the in-memory packs; then orchestrate.check_plan (the kit's own function) on the B+Qi hosts with packed() pointing at scratch copies of each pack's sealed-files.json and receipt. Stubs: plan_tool.judge_record_checked returns plan.json's recorded block-A judges without opening judges/ (sealed); scratch funding $999, scratch sealed edits and scratch certification exist in scratch only.",
+  "inputs_record_y": {
+   "path": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/g1-yoext/work/pack_inputs_g1_Y.json",
+   "names": [
+    "oext_bank 6487ed2b",
+    "oext_record a810574e",
+    "w1_18_record 608cbb94"
+   ]
+  },
+  "packs": {
+   "new_Y_sealed_files_sha256": "cd79d6133985f709c1b01a0f489a7bf09d6c9f00c5e75724ebab89099ae9d712",
+   "old_Y_sealed_files_sha256": "3a04e796670f530ac7002150386fc2aa81039496d902484e3844e69ec4b6668e",
+   "y_diff_old_to_new": {
+    "added": [
+     "scripts/stage1_s1/__init__.py",
+     "scripts/stage1_s1/oext_eval.py",
+     "scripts/stage1_s1/oext_unit.py",
+     "scripts/stage1_s1/settings/oext_eval.json",
+     "scripts/stage1_s1/settings/oext_unit.json"
+    ],
+    "changed": [],
+    "removed": []
+   },
+   "new_Y_s1_files": {
+    "scripts/stage1_s1/__init__.py": "818919ca18627b7169d80c2a6f6c24149f6e1c529bff9d37a5ddee2122bddd32",
+    "scripts/stage1_s1/oext_eval.py": "8c4290921f32a5b4596a0bc40235cc5cf1185f73eaabeaa625c43bd19ba77719",
+    "scripts/stage1_s1/oext_unit.py": "978561ce0269756bbdf921580bb1e8c15592041583ab5d899912c910eb4753de",
+    "scripts/stage1_s1/settings/oext_eval.json": "80469a8f728d15192c360f26640c17b7ba652fbd969cfa45f43113c1defd76f0",
+    "scripts/stage1_s1/settings/oext_unit.json": "80d08721284bbe94661d6fe2cdc58be259db8df66dc681403d7473155c715298"
+   },
+   "new_Y_s1_sources": {
+    "scripts/stage1_s1/__init__.py": "scripts/stage1_s1/__init__.py",
+    "scripts/stage1_s1/oext_eval.py": "scripts/stage1_s1/oext_eval.py",
+    "scripts/stage1_s1/oext_unit.py": "scripts/stage1_s1/oext_unit_y.py",
+    "scripts/stage1_s1/settings/oext_eval.json": "scripts/stage1_s1/settings/oext_eval_y.json",
+    "scripts/stage1_s1/settings/oext_unit.json": "scripts/stage1_s1/settings/oext_unit_y.json"
+   },
+   "live_Y_pack": {
+    "s1_files": [],
+    "sealed_files_sha256": "ed8b120b1671ee11627486bd8cf65db16c9be84915d566dc928afedd1413c8f4"
+   }
+  },
+  "init": {
+   "B": {
+    "captured": "captured"
+   },
+   "certify": {
+    "captured": "captured"
+   },
+   "releases": {
+    "release_1": {
+     "ok": [
+      "b-4",
+      "b-5",
+      "b-6"
+     ]
+    },
+    "release_2": {
+     "ok": [
+      "b-7",
+      "b-8"
+     ]
+    },
+    "release_3": {
+     "ok": [
+      "b-9",
+      "b-10",
+      "b-11"
+     ]
+    },
+    "release_3_refused": {
+     "refused": "an evaluation-only reference refuses before a passing B10 certification (REV4 §5.4)"
+    },
+    "release_4": {
+     "ok": [
+      "b-12",
+      "b-13"
+     ]
+    }
+   }
+  },
+  "bqi_hosts": {
+   "b-12": {
+    "engine": "Y",
+    "jobs": [
+     [
+      "ref_train",
+      "bqi",
+      "bqi",
+      1102,
+      "128"
+     ],
+     [
+      "ref_train",
+      "bqi",
+      "bqi",
+      1103,
+      "128"
+     ],
+     [
+      "ref_train",
+      "bqi",
+      "bqi",
+      1104,
+      "128"
+     ]
+    ],
+    "sealed_files_sha256": "cd79d6133985f709c1b01a0f489a7bf09d6c9f00c5e75724ebab89099ae9d712",
+    "stage": "stage1-Y"
+   },
+   "b-13": {
+    "engine": "Y",
+    "jobs": [
+     [
+      "ref_train",
+      "bqi",
+      "bqi",
+      1105,
+      "128"
+     ],
+     [
+      "ref_train",
+      "bqi",
+      "bqi",
+      1106,
+      "128"
+     ],
+     [
+      "ref_train",
+      "bqi",
+      "bqi",
+      1107,
+      "128"
+     ]
+    ],
+    "sealed_files_sha256": "cd79d6133985f709c1b01a0f489a7bf09d6c9f00c5e75724ebab89099ae9d712",
+    "stage": "stage1-Y"
+   }
+  },
+  "check_plan": {
+   "live": {
+    "b-12": {
+     "refused": "b-12: the plan cannot run on its packed stage: [\"job 0 (ref_train): the stage-1 input 'oext_bank' is not packed\", \"job 0 (ref_train): 7 file(s) not packed: ['scripts/stage1_s1/oext_unit.py', 'scripts/stage1_s1/settings/oext_unit.json', 'scripts/stage1_s1/oext_eval.py']\", \"job 1 (ref_train): the stage-1 input 'oext_bank' is not packed\", \"job 1 (ref_train): 7 file(s) not packed: ['scripts/stage1_s1/oext_unit.py', 'scripts/stage1_s1/settings/oext_unit.json', 'scripts/stage1_s1/oext_eval.py']\", \"job 2 (ref_train): the stage-1 input 'oext_bank' is not packed\"]"
+    },
+    "b-13": {
+     "refused": "b-13: the plan cannot run on its packed stage: [\"job 0 (ref_train): the stage-1 input 'oext_bank' is not packed\", \"job 0 (ref_train): 7 file(s) not packed: ['scripts/stage1_s1/oext_unit.py', 'scripts/stage1_s1/settings/oext_unit.json', 'scripts/stage1_s1/oext_eval.py']\", \"job 1 (ref_train): the stage-1 input 'oext_bank' is not packed\", \"job 1 (ref_train): 7 file(s) not packed: ['scripts/stage1_s1/oext_unit.py', 'scripts/stage1_s1/settings/oext_unit.json', 'scripts/stage1_s1/oext_eval.py']\", \"job 2 (ref_train): the stage-1 input 'oext_bank' is not packed\"]"
+    },
+    "y_sealed_files_sha256": "ed8b120b1671ee11627486bd8cf65db16c9be84915d566dc928afedd1413c8f4"
+   },
+   "new": {
+    "b-12": {
+     "ok": {
+      "host": "b-12",
+      "jobs": 3,
+      "ok": true
+     }
+    },
+    "b-13": {
+     "ok": {
+      "host": "b-13",
+      "jobs": 3,
+      "ok": true
+     }
+    },
+    "y_sealed_files_sha256": "cd79d6133985f709c1b01a0f489a7bf09d6c9f00c5e75724ebab89099ae9d712"
+   },
+   "old": {
+    "b-12": {
+     "refused": "b-12: the plan cannot run on its packed stage: [\"job 0 (ref_train): 4 file(s) not packed: ['scripts/stage1_s1/oext_unit.py', 'scripts/stage1_s1/settings/oext_unit.json', 'scripts/stage1_s1/oext_eval.py']\", \"job 1 (ref_train): 4 file(s) not packed: ['scripts/stage1_s1/oext_unit.py', 'scripts/stage1_s1/settings/oext_unit.json', 'scripts/stage1_s1/oext_eval.py']\", \"job 2 (ref_train): 4 file(s) not packed: ['scripts/stage1_s1/oext_unit.py', 'scripts/stage1_s1/settings/oext_unit.json', 'scripts/stage1_s1/oext_eval.py']\"]"
+    },
+    "b-13": {
+     "refused": "b-13: the plan cannot run on its packed stage: [\"job 0 (ref_train): 4 file(s) not packed: ['scripts/stage1_s1/oext_unit.py', 'scripts/stage1_s1/settings/oext_unit.json', 'scripts/stage1_s1/oext_eval.py']\", \"job 1 (ref_train): 4 file(s) not packed: ['scripts/stage1_s1/oext_unit.py', 'scripts/stage1_s1/settings/oext_unit.json', 'scripts/stage1_s1/oext_eval.py']\", \"job 2 (ref_train): 4 file(s) not packed: ['scripts/stage1_s1/oext_unit.py', 'scripts/stage1_s1/settings/oext_unit.json', 'scripts/stage1_s1/oext_eval.py']\"]"
+    },
+    "y_sealed_files_sha256": "3a04e796670f530ac7002150386fc2aa81039496d902484e3844e69ec4b6668e"
+   }
+  },
+  "live_kit_files_unchanged": true,
+  "live_kit_file_hashes": {
+   "budget-checks.jsonl": "a7bc86dafc7c3cc5fb2361dabdd842bb7b9d67b1fe4c0ce4f9c5b03f83c64dc7",
+   "operator-actions.jsonl": "41a0cd321e4ab425ad13e4e42dfd7eda637319f95d2a3e6d1cd12f3bba9d39d3",
+   "plan.json": "5f55111fd1f68bf6c1f376db917c15f80b84d6c06cc6c69c46f52a18923b8f9b"
+  }
+ },
+ "engine_y_runtime_checks": {
+  "bundle_import": "tests/test_g1_yoext.py::test_the_real_y_pack_code_runs_the_o_ext_runner_on_engine_y_and_the_x_files_did_not: pack_setup's real Y code collection materialized with engine Y's frozen engine files; a fresh interpreter: engine 34bfd288, the runner at scripts/stage1_s1/oext_unit.py hashes to 978561ce, its default settings load (80d08721, 80469a8f; branch 128; module 8c429092), B+Qi's recipe from Y's tree -> 37942cf5 by engine Y's code, REC refused ('recipe 9e9bde6f2f328760 is not one of the settings' allowed recipes ['B+Qi']'), main exits 2 past both settings loads ('W1-18's record cannot be read'); the same with engine X's files at those paths: 'settings oext_unit: written for engine 472fc7f6..., this engine is 34bfd288...'",
+  "synthetic_bqi_pass": {
+   "test": "scripts/stage1_s1/tests/test_oext_unit_y.py::test_the_y_copy_runs_the_o_ext_pass_on_a_bqi_unit_on_engine_ys_code_and_refuses_an_x_recipe",
+   "probe": "scripts/stage1_s1/tests/oext_unit_y_probe.py",
+   "manual_output": {
+    "path": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/g1-yoext/work/probe-ov/out/out.json",
+    "sha256": "46d948d222cfaa554775bdb0ad3a849d42bc88655c42d72b4300f44b0f673877"
+   },
+   "result": "engine Y's run_one trained a dev-evaluated unit under a B+Qi-shaped fixture recipe (train.constrained_sft, engine Y's own test spec); oext_unit_y.main on it: exit 0, COMPLETE.json complete, route unit_eval, job code_sha256 = Y, script_sha256 = 978561ce, O-ext module 8c429092; a plain-recipe unit: exit 2, no folder, recipe not allowed; engine X's runner settings refuse on Y. ENGINEERING FIXTURES only."
+  }
+ },
+ "tests": {
+  "new_files": {
+   "runkit/stage1-olmo/tests/test_g1_yoext.py": [
+    "test_the_y_pins_name_this_repositorys_engine_y_files_at_the_runners_o_ext_paths (accept: real pins = files; the map's paths = the runner's OEXT_UNIT_SCRIPT, OEXT_UNIT_SETTINGS, OEXT_MODULE, oext_eval.json, __init__.py; S1_CODE unchanged with block A's hand values)",
+    "test_the_y_copy_and_settings_pin_each_other_and_engine_y (accept: the copy's literals = the Y settings' hashes; engine_x = ENGINES['Y']; allowed = {B+Qi: 37942cf5} = engine Y's config of RECIPE_BQI, M by engine Y's code)",
+    "test_the_real_y_pack_code_holds_the_o_ext_package_whose_settings_pin_engine_y (accept: pack_setup.stage1_code on Y, this repository: 0 refusals, the 5 S1 files and sources; s1_settings_engine Y passes; X: exactly S1_CODE)",
+    "test_on_engine_y_engine_xs_o_ext_files_refuse_the_pack (refuse: X's settings at the runner's paths on Y -> 'not re-pinned on engine Y' x2; a lead entry naming X's runner on Y -> two pins; the copy under its own name -> not a kit pin)",
+    "test_the_real_y_pack_code_runs_the_o_ext_runner_on_engine_y_and_the_x_files_did_not (both ways; engine Y's real code in a fresh interpreter)",
+    "test_check_plan_passes_a_bqi_host_on_the_y_pack_and_refused_it_without_the_o_ext_package (synthetic checkout: pack_setup.main Y with the O-ext inputs, then orchestrate.check_plan on a 3-job B+Qi host -> ok; the pre-round kit (S1_OEXT_Y = {}, SHARED = ()) -> refused naming the 4 files)",
+    "test_an_engine_y_o_ext_file_whose_bytes_differ_refuses_the_y_pack x3 (refuse: one changed byte per Y source, settings kept valid JSON with engine Y)",
+    "test_an_engine_y_settings_file_that_pins_engine_x_refuses_the_y_pack (refuse)"
+   ],
+   "scripts/stage1_s1/tests/test_oext_unit_y.py": [
+    "test_engine_xs_o_ext_files_are_block_as_bytes_and_their_literals (hand pins of the 4 X files and the 3 Y files)",
+    "test_the_y_copy_is_oext_unit_rebuilt_with_exactly_its_settings_pins_changed (oext_unit.py + 4 hand-written replacements == oext_unit_y.py byte for byte; same parser as X and B15's contract)",
+    "test_the_y_settings_differ_from_engine_xs_only_in_the_named_fields (eval: engine_x, requirement; unit: engine_x, oext.settings.sha256, oext.rule, recipes.allowed, recipes.rule, requirement; generation/guard/module pins = X's)",
+    "test_the_y_settings_load_on_engine_y_and_refuse_on_engine_x (both ways; engine identity monkeypatched as test_oext_eval.py does; X's settings refuse on Y)",
+    "test_on_engine_y_the_y_settings_refuse_every_engine_x_recipe[B,G,S] (accept on X with X's settings; refuse on Y with Y's)",
+    "test_the_y_copy_runs_the_o_ext_pass_on_a_bqi_unit_on_engine_ys_code_and_refuses_an_x_recipe (fresh interpreter on engine Y's tree via STAGE1_ENGINE_Y_TREE)"
+   ],
+   "scripts/stage1_s1/tests/oext_unit_y_probe.py": [
+    "helper run by the last test (ENGINEERING FIXTURES; writes ids, exit codes and hashes only)"
+   ]
+  },
+  "edited_file": {
+   "runkit/stage1-olmo/tests/test_stage1_runner.py": [
+    "Repo: writes synthetic engine-Y O-ext sources and patches S1_OEXT_Y (else every Y pack test refuses)",
+    "test_the_x_pack_carries_every_s1_package_file_by_its_pin: the Y pack now carries exactly the O-ext package (was: none)",
+    "recipe_pins/test_every_steps_recipe_is_the_one_its_target_scripts_settings_pin: on Y the O-ext step's pins come from the file the Y pack places there (S1_OEXT_Y); expected bad == [] (was: the stated B+Qi gap)"
+   ]
+  }
+ },
+ "mutants": {
+  "kit_spec": "runkit/stage1-olmo/tests/mutants_b15.json (+4, 357 entries; note extended)",
+  "s1_spec": "scripts/stage1_s1/mutation/mutants_oext_unit.json (+2, 55 entries; part extended)",
+  "kit_official_runner_5_files": {
+   "report": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/g1-yoext/work/mut/kit5-report.json",
+   "sha256": "e8ec2f056c18c397c5a455f44eb9bcb189d6eac742ee6d61e3bffbd8daef64b2",
+   "baseline": {
+    "exit": 0,
+    "failed": [],
+    "errors": 0,
+    "tail": "630 passed in 60.47s (0:01:00)"
+   },
+   "results": [
+    {
+     "id": "B15-G1-y-oext-unpacked",
+     "verdict": "killed",
+     "killed_by": [
+      "runkit/stage1-olmo/tests/test_stage1_runner.py::test_the_x_pack_carries_every_s1_package_file_by_its_pin"
+     ],
+     "exit": 1
+    },
+    {
+     "id": "B15-G1-y-oext-x-source",
+     "verdict": "killed",
+     "killed_by": [
+      "runkit/stage1-olmo/tests/test_stage1_runner.py::test_the_y_pack_comes_from_the_frozen_tree_checked_against_yhash"
+     ],
+     "exit": 1
+    },
+    {
+     "id": "B15-G1-y-shared-unpacked",
+     "verdict": "killed",
+     "killed_by": [
+      "runkit/stage1-olmo/tests/test_stage1_runner.py::test_the_x_pack_carries_every_s1_package_file_by_its_pin"
+     ],
+     "exit": 1
+    },
+    {
+     "id": "B15-G1-rules-y-settings-x-file",
+     "verdict": "killed",
+     "killed_by": [
+      "runkit/stage1-olmo/tests/test_stage1_runner.py::test_every_steps_recipe_is_the_one_its_target_scripts_settings_pin"
+     ],
+     "exit": 1
+    }
+   ],
+   "counts": {
+    "killed": 4
+   },
+   "not_as_expected": []
+  },
+  "kit_runner_copy_g1_file_only": {
+   "report": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/g1-yoext/work/mut/kitg1-report.json",
+   "sha256": "b67345b128edca4a29241d65a850918fb59d32b418f8068e2d6250ed21c16974",
+   "runner_copy": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/g1-yoext/work/mut/run_mutants_b15_g1only.py",
+   "diff": "TESTS = ('tests/test_g1_yoext.py',) only",
+   "baseline": {
+    "exit": 0,
+    "failed": [],
+    "errors": 0,
+    "tail": "10 passed in 1.56s"
+   },
+   "results": [
+    {
+     "id": "B15-G1-y-oext-unpacked",
+     "verdict": "killed",
+     "killed_by": [
+      "runkit/stage1-olmo/tests/test_g1_yoext.py::test_the_real_y_pack_code_holds_the_o_ext_package_whose_settings_pin_engine_y"
+     ],
+     "exit": 1
+    },
+    {
+     "id": "B15-G1-y-oext-x-source",
+     "verdict": "killed",
+     "killed_by": [
+      "runkit/stage1-olmo/tests/test_g1_yoext.py::test_the_real_y_pack_code_holds_the_o_ext_package_whose_settings_pin_engine_y"
+     ],
+     "exit": 1
+    },
+    {
+     "id": "B15-G1-y-shared-unpacked",
+     "verdict": "killed",
+     "killed_by": [
+      "runkit/stage1-olmo/tests/test_g1_yoext.py::test_the_real_y_pack_code_holds_the_o_ext_package_whose_settings_pin_engine_y"
+     ],
+     "exit": 1
+    },
+    {
+     "id": "B15-G1-rules-y-settings-x-file",
+     "verdict": "killed",
+     "killed_by": [
+      "runkit/stage1-olmo/tests/test_g1_yoext.py::test_the_y_pins_name_this_repositorys_engine_y_files_at_the_runners_o_ext_paths"
+     ],
+     "exit": 1
+    }
+   ],
+   "counts": {
+    "killed": 4
+   },
+   "not_as_expected": []
+  },
+  "s1_runner": {
+   "report": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/g1-yoext/work/mut/s1-report.json",
+   "sha256": "9334455b778e35774dd945191aa5b25eaec658994d15d83abb098a9f4730fdae",
+   "spec_subset": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/g1-yoext/work/mut/spec_ouy.json",
+   "baseline": "pass (847 tests, exit 0)",
+   "results": [
+    {
+     "id": "OUY-default-oext-x-pin",
+     "outcome": "killed",
+     "exit": 1,
+     "failing": [
+      "scripts.stage1_s1.tests.test_oext_unit_y::test_engine_xs_o_ext_files_are_block_as_bytes_and_their_literals",
+      "scripts.stage1_s1.tests.test_oext_unit_y::test_the_y_copy_is_oext_unit_rebuilt_with_exactly_its_settings_pins_changed",
+      "scripts.stage1_s1.tests.test_oext_unit_y::test_the_y_copy_runs_the_o_ext_pass_on_a_bqi_unit_on_engine_ys_code_and_refuses_an_x_recipe"
+     ]
+    },
+    {
+     "id": "OUY-settings-x-pin",
+     "outcome": "killed",
+     "exit": 1,
+     "failing": [
+      "scripts.stage1_s1.tests.test_oext_unit_y::test_engine_xs_o_ext_files_are_block_as_bytes_and_their_literals",
+      "scripts.stage1_s1.tests.test_oext_unit_y::test_the_y_copy_is_oext_unit_rebuilt_with_exactly_its_settings_pins_changed",
+      "scripts.stage1_s1.tests.test_oext_unit_y::test_the_y_settings_load_on_engine_y_and_refuse_on_engine_x",
+      "scripts.stage1_s1.tests.test_oext_unit_y::test_on_engine_y_the_y_settings_refuse_every_engine_x_recipe[B]",
+      "scripts.stage1_s1.tests.test_oext_unit_y::test_on_engine_y_the_y_settings_refuse_every_engine_x_recipe[G]",
+      "scripts.stage1_s1.tests.test_oext_unit_y::test_on_engine_y_the_y_settings_refuse_every_engine_x_recipe[S]",
+      "scripts.stage1_s1.tests.test_oext_unit_y::test_the_y_copy_runs_the_o_ext_pass_on_a_bqi_unit_on_engine_ys_code_and_refuses_an_x_recipe"
+     ]
+    }
+   ]
+  },
+  "near_earlier_kit_mutants": {
+   "why": "the 11 earlier mutants within 40 lines of this round's changes (run_mutants_b15.py NEAR rule against main's kit)",
+   "batch1": {
+    "report": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/g1-yoext/work/mut/near1-report.json",
+    "sha256": "154c6d4f557f53b967ed4bed8b28f1f5325eb2cf0407828d42b0915a1bb34da8",
+    "baseline": {
+     "exit": 0,
+     "failed": [],
+     "errors": 0,
+     "tail": "630 passed in 46.00s"
+    },
+    "results": [
+     {
+      "id": "B15-2-pack-d2-code",
+      "verdict": "killed",
+      "killed_by": [
+       "runkit/stage1-olmo/tests/test_stage1_runner.py::test_the_pack_takes_pool_s3_orig_only_at_the_sha256_j6s_record_names"
+      ],
+      "exit": 1
+     },
+     {
+      "id": "B15-6-s1-code-unpacked",
+      "verdict": "killed",
+      "killed_by": [
+       "runkit/stage1-olmo/tests/test_stage1_runner.py::test_the_pack_refuses_s1_settings_not_re_pinned_on_its_engine[472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892-True]"
+      ],
+      "exit": 1
+     },
+     {
+      "id": "B15-6-s1-entry-unchecked",
+      "verdict": "killed",
+      "killed_by": [
+       "runkit/stage1-olmo/tests/test_stage1_runner.py::test_a_lead_code_entry_under_the_s1_package_must_be_its_pin[another sha256]"
+      ],
+      "exit": 1
+     },
+     {
+      "id": "B15-6-s1-unpinned-all",
+      "verdict": "killed",
+      "killed_by": [
+       "runkit/stage1-olmo/tests/test_stage1_runner.py::test_a_lead_code_entry_under_the_s1_package_must_be_its_pin[the O-ext unit runner, another sha256]"
+      ],
+      "exit": 1
+     },
+     {
+      "id": "B15-6-s1-init-unpinned",
+      "verdict": "killed",
+      "killed_by": [
+       "runkit/stage1-olmo/tests/test_stage1_runkit.py::test_the_round_2_pins_are_the_files_in_this_repository"
+      ],
+      "exit": 1
+     },
+     {
+      "id": "B15-6-rescore-unlinked",
+      "verdict": "killed",
+      "killed_by": [
+       "runkit/stage1-olmo/tests/test_round31.py::test_k1_a_released_block_b_judge_launch_named_not_run_completes_the_block_and_the_seal_lists_it"
+      ],
+      "exit": 1
+     }
+    ],
+    "counts": {
+     "killed": 6
+    },
+    "not_as_expected": []
+   },
+   "batch2": {
+    "report": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-heuristic-ramanujan-ffe737/bd778579-e7d2-44a6-93b8-b900a240fc8a/scratchpad/g1-yoext/work/mut/near2-report.json",
+    "sha256": "cf25bf130d94bd6158311a80bee59357bb905ff67b4abf15362ac14840ca09f9",
+    "baseline": {
+     "exit": 0,
+     "failed": [],
+     "errors": 0,
+     "tail": "630 passed in 49.24s"
+    },
+    "results": [
+     {
+      "id": "VP-s1-self-pin",
+      "verdict": "killed",
+      "killed_by": [
+       "runkit/stage1-olmo/tests/test_stage1_runner.py::test_an_s1_package_file_whose_bytes_differ_refuses_the_pack[scripts/stage1_s1/__init__.py]"
+      ],
+      "exit": 1
+     },
+     {
+      "id": "VP-s1-d2-entry-refused",
+      "verdict": "killed",
+      "killed_by": [
+       "runkit/stage1-olmo/tests/test_stage1_runner.py::test_a_lead_code_entry_under_the_s1_package_must_be_its_pin[a D-2 file at its pin]"
+      ],
+      "exit": 1
+     },
+     {
+      "id": "B15-7-code-path-dot",
+      "verdict": "killed",
+      "killed_by": [
+       "runkit/stage1-olmo/tests/test_stage1_runner.py::test_a_path_not_in_normal_form_refuses_the_pack[code-scripts/./stage1_s1/extra.py]"
+      ],
+      "exit": 1
+     },
+     {
+      "id": "B15-8-runner-unpinned",
+      "verdict": "killed",
+      "killed_by": [
+       "runkit/stage1-olmo/tests/test_stage1_runkit.py::test_the_round_2_pins_are_the_files_in_this_repository"
+      ],
+      "exit": 1
+     },
+     {
+      "id": "B15-8-runner-settings-unpinned",
+      "verdict": "killed",
+      "killed_by": [
+       "runkit/stage1-olmo/tests/test_stage1_runkit.py::test_the_round_2_pins_are_the_files_in_this_repository"
+      ],
+      "exit": 1
+     }
+    ],
+    "counts": {
+     "killed": 5
+    },
+    "not_as_expected": []
+   }
+  }
+ },
+ "commands": [
+  {
+   "utc": "10:42",
+   "cmd": "shasum -a 256 (every file under scripts/stage1_s1 scripts/stage1 runkit/stage1-olmo experiments) > work/before.sha256",
+   "exit": 0
+  },
+  {
+   "utc": "10:43",
+   "cmd": "STAGE1_ENGINE_Y_TREE=<main>/tmp/engine-y-34bfd288 PY -B -m pytest -p no:cacheprovider -q runkit/stage1-olmo/tests (baseline, before edits)",
+   "result": "630 passed in 72.49 s",
+   "exit": "0 (pytest summary; the shell pipe returned tail's status)"
+  },
+  {
+   "utc": "10:45",
+   "cmd": "same env: PY -B -m pytest -p no:cacheprovider -q scripts/stage1_s1/tests (baseline)",
+   "result": "839 passed in 82.92 s",
+   "exit": "0 (summary)"
+  },
+  {
+   "utc": "10:44",
+   "cmd": "PY -B -m pytest -q -p no:cacheprovider scripts/stage1_s1/tests/test_oext_unit.py test_oext_unit_contract.py test_oext_unit_fixround.py -x (baseline)",
+   "result": "89 passed",
+   "exit": "0 (summary)"
+  },
+  {
+   "utc": "10:50",
+   "cmd": "PY -B work/make_y_settings.py TREE; PY -B work/make_y_copy.py TREE",
+   "exit": 0
+  },
+  {
+   "utc": "10:51",
+   "cmd": "overlay1 (engine Y experiments + Y-placed S1 files): load settings, check_recipe B+Qi and REC",
+   "exit": 0
+  },
+  {
+   "utc": "10:55",
+   "cmd": "pytest scripts/stage1_s1/tests/test_oext_unit_y.py",
+   "result": "8 passed in 11.15 s",
+   "exit": "0 (summary)"
+  },
+  {
+   "utc": "10:56",
+   "cmd": "PY -B scripts/stage1_s1/tests/oext_unit_y_probe.py work/probe-ov/out/out.json (cwd probe-ov/root, engine Y)",
+   "exit": 0
+  },
+  {
+   "utc": "10:58",
+   "cmd": "pytest runkit/stage1-olmo/tests/test_g1_yoext.py (first run)",
+   "result": "1 failed (my assertion on the refusal text: 'W1-18's record cannot be read' is read before the bank), 9 passed",
+   "exit": "1 (summary)"
+  },
+  {
+   "utc": "10:59",
+   "cmd": "pytest runkit/stage1-olmo/tests/test_g1_yoext.py (assertion fixed)",
+   "result": "10 passed",
+   "exit": "0 (summary)"
+  },
+  {
+   "utc": "11:00",
+   "cmd": "pytest runkit/stage1-olmo/tests",
+   "result": "640 passed in 60.93 s",
+   "exit": "0 (summary)"
+  },
+  {
+   "utc": "11:02-11:04",
+   "cmd": "PY -B work/g1_proof.py work/ov-new work/ov-old work/g1_proof.out.json (5 runs while building the stubs: init certify refused on judges/ (stubbed), a B+Qi-only jobs file refused (the deal), a syntax error in my script (exit 1), a release refused without plan.json in the kit copy (guard_off_record reads it), final run)",
+   "exit": "0 (final run)"
+  },
+  {
+   "utc": "11:05-11:10",
+   "cmd": "PY -B research/experiments/2026-10-24-stage1-runkit/run_mutants_b15.py TREE work/mut/kit5 work/mut/kit5-report.json B15-G1-y-oext-unpacked,B15-G1-y-oext-x-source,B15-G1-y-shared-unpacked,B15-G1-rules-y-settings-x-file",
+   "result": "baseline 630 passed; 4 killed",
+   "exit": 0
+  },
+  {
+   "utc": "11:10-11:11",
+   "cmd": "PY -B work/mut/run_mutants_b15_g1only.py TREE work/mut/kitg1 work/mut/kitg1-report.json (same 4 ids)",
+   "result": "4 killed",
+   "exit": 0
+  },
+  {
+   "utc": "11:11-11:15",
+   "cmd": "PY -B scripts/stage1_s1/mutation/run_mutants_b10.py --spec work/mut/spec_ouy.json --scratch work/mut/s1 --report work/mut/s1-report.json",
+   "result": "baseline 847 tests pass; 2 killed",
+   "exit": 0
+  },
+  {
+   "utc": "11:16-11:23",
+   "cmd": "pytest -q scripts/stage1_s1 (the whole tree: tests, reading, d1_spool, d2_pool_pins, c3_subsample, d3_s3_union)",
+   "result": "1507 passed, 51 warnings in 438.12 s",
+   "exit": "0 (summary)"
+  },
+  {
+   "utc": "11:24",
+   "cmd": "pytest runkit/stage1-olmo/tests (final files)",
+   "result": "640 passed in 61.30 s",
+   "exit": "0 (summary)"
+  },
+  {
+   "utc": "11:25",
+   "cmd": "shasum -a 256 ... > work/after.sha256; diff before after",
+   "result": "5 changed, 6 added, all owned files",
+   "exit": "1 (diff found the expected differences)"
+  },
+  {
+   "utc": "11:26-11:30",
+   "cmd": "run_mutants_b15.py ... B15-2-pack-d2-code,B15-6-s1-code-unpacked,B15-6-s1-entry-unchecked,B15-6-s1-unpinned-all,B15-6-s1-init-unpinned,B15-6-rescore-unlinked",
+   "result": "6 killed",
+   "exit": 0
+  },
+  {
+   "utc": "11:30-11:34",
+   "cmd": "run_mutants_b15.py ... VP-s1-self-pin,VP-s1-d2-entry-refused,B15-7-code-path-dot,B15-8-runner-unpinned,B15-8-runner-settings-unpinned",
+   "result": "5 killed",
+   "exit": 0
+  }
+ ],
+ "python": "/Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python -B (3.11.15), PYTHONDONTWRITEBYTECODE=1, -p no:cacheprovider",
+ "commands_for_lead": [
+  "1. Merge by explicit paths: scripts/stage1_s1/oext_unit_y.py, scripts/stage1_s1/settings/oext_unit_y.json, scripts/stage1_s1/settings/oext_eval_y.json, scripts/stage1_s1/tests/test_oext_unit_y.py, scripts/stage1_s1/tests/oext_unit_y_probe.py, scripts/stage1_s1/mutation/mutants_oext_unit.json, runkit/stage1-olmo/pack_setup.py, runkit/stage1-olmo/stage1_rules.py, runkit/stage1-olmo/tests/test_g1_yoext.py, runkit/stage1-olmo/tests/test_stage1_runner.py, runkit/stage1-olmo/tests/mutants_b15.json (and copy the two kit files into the live kit tmp/stage1-olmo by your usual procedure).",
+  "2. Suites (foreground, about 1 and 7.5 min): cd <repo> && STAGE1_ENGINE_Y_TREE=<repo>/tmp/engine-y-34bfd288 PYTHONDONTWRITEBYTECODE=1 tmp/minimal-experiment-20261002/venv/bin/python -B -m pytest -p no:cacheprovider -q runkit/stage1-olmo/tests ; same with scripts/stage1_s1",
+  "3. Mutation, background (not run here in full): tmp/minimal-experiment-20261002/venv/bin/python -B scripts/stage1_s1/mutation/run_mutants_b10.py --spec scripts/stage1_s1/mutation/mutants_oext_unit.json --scratch <outside the repo> --report <file>  (55 mutants, about 95 s each, about 90 min); kit: tmp/minimal-experiment-20261002/venv/bin/python -B research/experiments/2026-10-24-stage1-runkit/run_mutants_b15.py <repo> <new scratch> <out.json> NEAR --near <a copy of runkit/stage1-olmo before this round>  (15 mutants; run here in two batches plus the 4 new: 15/15 killed). Optionally add 'tests/test_g1_yoext.py' to that runner's TESTS (the five files already kill the 4 G1 mutants).",
+  "4. Re-pack Y (after the merge, before init-block B): write a 'stage1 pack inputs' record for engine Y naming oext_bank (tmp/stage1-mac-runs-20261023/oext-bank/oext_bank.json, 6487ed2b...), oext_record (.ai/inputs/stage1-commitments-20261016/oext-bank/oext_record.json, a810574e...) and w1_18_record (tmp/stage1-olmo/retrieved/s10-1/tree/job-0/w1-18/overrefusal_checks.json, 608cbb94...); move the cert pack aside (mv setup/packed-stage1-Y setup/packed-stage1-Y.cert, in tmp/stage1-olmo); python3.11 pack_setup.py Y --inputs <record> --inputs-sha256 <its SHA-256>. Check its sealed-files.json lists scripts/stage1_s1/oext_unit.py 978561ce..., settings/oext_unit.json 80d08721..., settings/oext_eval.json 80469a8f..., oext_eval.py 8c429092..., __init__.py 818919ca... (the in-memory equivalent here: sealed_files_sha256 cd79d613... with plan.json 5f55111f... and this inputs record).",
+  "5. After init-block B binds the B+Qi hosts to that pack: python3.11 orchestrate.py check-plan <each B+Qi host> (b-12 and b-13 in the pre-flight's numbering) before launch.py."
+ ],
+ "open_points": [
+  "1. The brief's 'Y-side settings packed with the S1 O-ext package' alone cannot run: X's oext_unit.py and oext_eval.py pin their settings by literal SHA-256 and the job runner calls fixed paths; check-plan (presence only) would pass such a pack and the O-ext step would refuse on the pod after setup. Hence the third file oext_unit_y.py (X's runner with only its two pins changed, test-rebuilt byte for byte) and three pack-time renames on the Y pack (repo path != bundle path for oext_unit.py and the two settings).",
+  "2. B+Qi's O-ext folder will name script_sha256 978561ce..., settings_sha256 80d08721..., O-ext settings 80469a8f... (block A: ae2fb5b5..., 3959eae7..., 2ad98938...); the O-ext module 8c429092..., bank record a810574e..., branch 128, W1-18's record 608cbb94..., cut 128 and the generation/guard pins are identical. A reader that compares O across engines must accept both settings pairs (no consumer checks them today: grep of scripts/stage1_s1/reading and the kit). Alternative for the lead: a job-runner change so Y hosts call oext_unit_y.py under its own name (no renames); not built (runner outside this brief).",
+  "3. Y's allowed list is B+Qi only. The kit's failed-certificate path (a0_arm role bqi_own_a0 on Y) would pass check-plan and refuse its O-ext step on the pod. The certificate passed (plan.json records.certificate pass, 2360b26b...), so the path is closed; if it were ever opened, oext_unit_y.json needs that recipe (a re-pin).",
+  "4. check-plan still checks file presence only, not that a step's recipe is allowed by the packed settings (tested at test time by test_every_steps_recipe...; unchanged by G1).",
+  "5. Stale texts outside my files: runkit/stage1-olmo/README.md (S1 package on X only), setup/job_runner_stage1.py's docstring (O-ext files as S1_CODE pins), and the comment on pack_setup's 'if pack.engine == \"X\":' line ('the S1 package run on engine X only'), kept unchanged because it is mutant B15-2-pack-d2-code's find text.",
+  "6. Merge: test_stage1_runner.py (3 hunks) and mutants_b15.json (4 appended entries and one note sentence) may meet other rounds' edits.",
+  "7. Not run: the full mutants_oext_unit.json spec (55) and the kit's ALL spec; the §24 regression suites outside scripts/stage1_s1 (engine X tests, scripts/stage1/tests, gate_b_mac_judges): none of their files changed (hash manifests).",
+  "8. The O-ext pass on a B+Qi unit was exercised on engine Y's code with ENGINEERING FIXTURES only (tiny policy, scripted judge); the real model and guard on a pod are not tested.",
+  "9. In-memory proof stubs: judge_record_checked (judges/ not opened), scratch funding/sealed-edits/certification records, receipts served from in-memory packs; the live plan.json, operator-actions.jsonl and budget-checks.jsonl hashed equal before and after (5f55111f..., 41a0cd32..., a7bc86da...)."
+ ]
+}
