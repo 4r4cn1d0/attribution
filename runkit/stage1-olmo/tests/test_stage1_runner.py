@@ -147,6 +147,16 @@ def job(rules, kind, arm=None, seed=None, *, engine="X", points=None, recipe=Non
 GROUPS = [f"unit-{u}" for u in range(1, 9)]
 
 
+def sim_entry(r) -> dict:
+    """Kit round 34 (J22): plan_tool's similarity_entry for a similarity job, by hand, from stage1_rules' pins (the Pod
+    sets them to its synthetic files)."""
+    return {"script": {"path": r.SIM_SCRIPT, "sha256": r.S1_CODE[r.SIM_SCRIPT]},
+            "settings": {"path": r.SIM_SETTINGS, "sha256": r.S1_CODE[r.SIM_SETTINGS]},
+            "manifest_sha256": r.PREPARED_MANIFESTS["prepared-kt-dolly-olmo2"], "dev_bank": dict(r.SIM_DEV_BANK),
+            "add_sets": {n: {"path": f"tmp/sealed/{n}.edit.json", "sha256": d, "source": "test"}
+                         for n, d in sorted(r.SIM_ADD_SETS.items())}}
+
+
 def host_record(rules, jobs, engine="X", role="job", block="A"):
     return {"wave": block, "block": block, "launch": 0, "role": role, "base_eval": False, "engine": engine,
             "engine_sha256": rules.ENGINES[engine], "stage": f"stage1-{engine}", "sealed_files_sha256": None,
@@ -202,6 +212,21 @@ class Pod:
         seal("inputs/source_unit-a0-1101/COMPLETE.json", {"source": "a0 1101"})   # LN-19's source unit (Q15)
         inputs["source_unit:a0:1101"] = "inputs/source_unit-a0-1101"
         sealed[f"{P}/manifest.sha256"] = sha(root / P / "manifest.sha256")
+        # kit round 34 (J22): B14's inputs, synthetic, and stage1_rules' pins set to them for this test (the X pack
+        # carries the prepared set and the sealed records' edit files; the script and its settings are S1_CODE's)
+        seal(f"{P}/manifest.json", {"synthetic": "prepared manifest"})
+        seal(f"{P}/banks/dev.jsonl", '{"prompt_id": "dev-1", "kind": "harm", "synthetic": true}\n')
+        self.sim_sets = {}
+        for name in ("S1", "S3", "S4"):
+            text = f"add set {name} (synthetic edit file)\n"
+            digest = hashlib.sha256(text.encode()).hexdigest()
+            seal(f"edits/{digest}.edit.json", text)
+            self.sim_sets[name] = digest
+        monkeypatch.setattr(r, "SIM_ADD_SETS", dict(self.sim_sets))
+        monkeypatch.setattr(r, "SIM_DEV_BANK", {"path": "banks/dev.jsonl", "sha256": sealed[f"{P}/banks/dev.jsonl"]})
+        monkeypatch.setitem(r.PREPARED_MANIFESTS, "prepared-kt-dolly-olmo2", sealed[f"{P}/manifest.json"])
+        for rel in (r.SIM_SCRIPT, r.SIM_SETTINGS):
+            monkeypatch.setitem(r.S1_CODE, rel, sealed[rel])
         write(root / "sealed-files.json", {"kind": "stage1 sealed files", "engine": engine, "files": sealed,
                                           "inputs": inputs})
         if tamper:
@@ -216,6 +241,8 @@ class Pod:
             if j["kind"] == "cert_c3" and "c3" not in j:
                 j["c3"] = {k: {"path": inputs.get(n), "sha256": sealed.get(inputs.get(n))}
                            for k, n in (("subsample", "c3_subsample"), ("record", "c3_record"))}
+            if j["kind"] == "similarity" and "similarity" not in j:   # round 34: plan_tool's similarity_entry
+                j["similarity"] = sim_entry(r)
         h = host_record(r, jobs, engine)
         h["sealed_files_sha256"] = sha(root / "sealed-files.json")
         recipes = {path: {"sha256": r.RECIPE_PINS[path], "config_sha256": "c" * 64} for path in (REC, S, G, BQI)}
@@ -242,6 +269,7 @@ class Pod:
         self.e1_fp, self.state_fp = "5" * 64, None       # round 32 (K6): a calibrate unit's e1 fingerprint (state's)
         self.regen = {"e1_adapter_fingerprint": FP, "training_identity": TI, "manifest_sha256": MS,
                       "data_config_sha256": DC}
+        self.sim_change, self.sim_print = None, True     # kit round 34: B14's output as written, its stdout line
         monkeypatch.setattr(self.runner.subprocess, "run", self.run)
         self.mp = monkeypatch
 
@@ -319,11 +347,41 @@ class Pod:
             write(root / out / "safe_lora_timing.json", {"seconds": {"total": 12.5 if command == "transform" else 3.0}})
         elif "lean_eval_job.py" in text:
             write(root / out / "c0_record.json", {"o": SENTINELS[3]})
+        elif "overlap_similarity.py" in text:               # kit round 34 (J22): B14's pass
+            self.similarity(name, argv, out)
         else:                                               # the diagnostics scripts
             write(root / out / "record.json", {"value": SENTINELS[2]})
             if "make_untuned_answers.py" in text:            # J6 writes the s3_orig pool J5's second pass reads
                 write(root / out / "s3_orig.pool.json", {"pool": "s3_orig (synthetic)"})
         return subprocess.CompletedProcess(args, 0, "", "")
+
+    def similarity(self, name: str, argv: list, out: str) -> None:
+        """Kit round 34: what overlap_similarity.py writes on exit 0, by hand: --out/similarity.json (its kind and
+        version, the eval and add-set counts, per-prompt values carrying a SENTINEL, and the provenance with the
+        script's and settings' SHA-256 and every input's: the prepared manifest and dev bank it read, REC's config
+        SHA-256 as plan.json records it, each --add-set's SHA-256), the engine's ledger.jsonl, and its stdout lines in
+        the step's receipt folder NAME/process.log (``sim_print`` False: none). ``sim_change`` changes the document."""
+        r, root = self.rules, self.root
+        sets = {argv[i + 1]: argv[i + 3] for i, a in enumerate(argv) if a == "--add-set"}
+        prepared = root / argv[argv.index("--prepared") + 1]
+        doc = {"kind": "stage1 overlap similarity", "version": 1, "requirement": "synthetic",
+               "eval": {"bank": "dev", "kinds": ["harm"], "prompts": 200, "prompt_ids": ["dev-1"]},
+               "add_sets": {n: {"edit_sha256": d, "arm": f"edit-{d}", "rows": 48, "row_ids": ["r1"],
+                                "per_prompt": {"dev-1": {"s_max": float(SENTINELS[0]), "nearest": "r1"}}}
+                            for n, d in sets.items()},
+               "provenance": {"script": r.SIM_SCRIPT, "script_sha256": sha(root / r.SIM_SCRIPT),
+                              "settings_sha256": sha(root / r.SIM_SETTINGS),
+                              "inputs": {"prepared/manifest.json": sha(prepared / "manifest.json"),
+                                         "prepared/banks/dev.jsonl": sha(prepared / "banks" / "dev.jsonl"),
+                                         "recipe": self.plan["recipes"][REC]["config_sha256"],
+                                         **{f"add/{n}": d for n, d in sets.items()}}}}
+        if self.sim_change:
+            self.sim_change(doc)
+        target = write(root / out / "similarity.json", doc)
+        write(root / out / "ledger.jsonl", '{"stage": "load", "seconds": 1.0}\n')
+        if self.sim_print:
+            write(root / name / "process.log", f"wrote similarity.json into {out} ({sha(target)})\n"
+                                               f"  S1: 48 rows, 200 prompts, s_max {SENTINELS[0]} to 0.9\n")
 
     def main(self):
         return self.runner.main(["h-1"])
@@ -357,7 +415,8 @@ def all_hosts(r):
          job(r, "safe_lora", "a0", 1104, points=["default"], recipe="B"),
          job(r, "c0", "R", 1101, edit=r1, recipe="S"),                      # round 3b: engine X (addendum §26)
          job(r, "retrain", "a0", 1102, recipe="S"),                         # LN-15e (round 3b)
-         job(r, "a1_rescore", "a0", 1102, recipe="S", regen_source=16)]
+         job(r, "a1_rescore", "a0", 1102, recipe="S", regen_source=16),
+         job(r, "similarity", recipe="B")]                                  # kit round 34: B14's pass (J22)
     y = [job(r, "cert_c1", "R", 1101, engine="Y", edit=r1, recipe="S"),
          job(r, "cert_c2", "bqi", 1101, engine="Y", recipe="bqi"),
          job(r, "cert_c3", engine="Y", recipe="S"),
@@ -478,6 +537,11 @@ def test_the_dry_run_prints_exactly_the_brief_commands_and_writes_nothing(kit, t
                                              "--out", "jobs/a1_rescore-1102-a1.json"]],
                         ["job-17-attributes", [*ENGINE, "attributes", "--job", "jobs/a1_rescore-1102-a1.json",
                                                "--prepared", P, "--recipe", S, "--out", "rescore/1102-attributes-a1"]]]
+    s1, s3, s4 = (pod.sim_sets[n] for n in ("S1", "S3", "S4"))        # kit round 34: B14's pass, REC, by SHA-256
+    assert cmds[18] == [["job-18-similarity", [*py, "scripts/stage1_s1/overlap_similarity.py", "--prepared", P,
+                                               "--recipe", REC, "--add-set", "S1", f"edits/{s1}.edit.json", s1,
+                                               "--add-set", "S3", f"edits/{s3}.edit.json", s3, "--add-set", "S4",
+                                               f"edits/{s4}.edit.json", s4, "--out", "job-18/similarity"]]]
     assert out["engine"] == "X" and all(j["engine"] == "X" for j in out["jobs"])
 
 
@@ -551,7 +615,8 @@ SCRIPT_MODULE = {"scripts/stage1/limits/overrefusal_checks.py": (WS_B15, "script
                  "scripts/stage1_s1/eval_adapter.py": (WS_S1, "scripts.stage1_s1.eval_adapter"),
                  "scripts/stage1_s1/safe_lora.py": (WS_S1, "scripts.stage1_s1.safe_lora"),
                  "scripts/stage1_s1/lean_eval_job.py": (WS_S1, "scripts.stage1_s1.lean_eval_job"),
-                 "scripts/stage1_s1/oext_unit.py": (WS_S1, "scripts.stage1_s1.oext_unit")}     # round 3c: the runner
+                 "scripts/stage1_s1/oext_unit.py": (WS_S1, "scripts.stage1_s1.oext_unit"),     # round 3c: the runner
+                 "scripts/stage1_s1/overlap_similarity.py": (WS_S1, "scripts.stage1_s1.overlap_similarity")}   # 34
 
 
 def test_every_jobs_argv_parses_with_its_targets_own_parser(kit, tmp_path, monkeypatch):
@@ -623,7 +688,9 @@ def recipe_pins(oext_unit_settings: str = "scripts/stage1_s1/settings/oext_unit.
                 {"--recipe": set(_settings("scripts/stage1_s1/settings/lean_eval_job.json")["job"]["allowed_recipes"]
                                  .values())},
             "scripts/stage1_s1/oext_unit.py":
-                {"--recipe": set(_settings(oext_unit_settings)["recipes"]["allowed"].values())}}
+                {"--recipe": set(_settings(oext_unit_settings)["recipes"]["allowed"].values())},
+            "scripts/stage1_s1/overlap_similarity.py":                    # kit round 34: REC, by its config SHA-256
+                {"--recipe": {_settings("scripts/stage1_s1/settings/overlap_similarity.json")["recipe_sha256"]}}}
 
 
 NO_RECIPE_SCRIPTS = ("scripts/stage1/limits/overrefusal_checks.py", "scripts/stage1_s1/safe_lora.py")   # take none
@@ -2379,6 +2446,8 @@ def pods_of_every_kind(r, which: str):
             job(r, "safe_lora", "a0", 1104, points=["default"], recipe="B")]
     if which == "x128":
         return "X", "128", [job(r, "o_only", "theta0", branch="128"), job(r, "transfer_report", "theta0", branch="128")]
+    if which == "sim":                                  # kit round 34: block sim's one pod, B14's pass alone
+        return "X", "full", [job(r, "similarity", recipe="B")]
     if which == "w1":
         return "X", "full", [job(r, "w1_18")]
     return "Y", "full", [job(r, "cert_c1", "R", 1101, engine="Y", edit=r1, recipe="S"),
@@ -2391,7 +2460,8 @@ def pods_of_every_kind(r, which: str):
     ("x", {"round1", "rescore", "job-12", "job-13", "job-14"}, {"rescore"}),
     ("y", {"cert", "round1"}, {"cert"}),
     ("x128", set(), set()),
-    ("w1", set(), set())])
+    ("w1", set(), set()),
+    ("sim", set(), set())])                         # kit round 34: B14's pass, its output and record under job-*
 def test_every_unit_and_record_path_the_runner_writes_lies_under_the_pull_list(kit, tmp_path, monkeypatch, which,
                                                                                unit_tops, outside_gateb):
     """Addendum §29 point 2 (kit gap 1): each pod runs every job to completion with the synthetic engine; every path
@@ -2401,7 +2471,8 @@ def test_every_unit_and_record_path_the_runner_writes_lies_under_the_pull_list(k
     round1/, rescore/ (LN-15e) and cert/ (C1-C3) and B10's under job-I/. The other way: Gate B's old list, which the
     stage-1 kit used until this round, leaves out exactly the rescore/ and cert/ paths (a-2's jobs 12-15)."""
     host = kit("host.py")
-    engine, branch = {"x": ("X", "full"), "x128": ("X", "128"), "w1": ("X", "full"), "y": ("Y", "full")}[which]
+    engine, branch = {"x": ("X", "full"), "x128": ("X", "128"), "w1": ("X", "full"), "y": ("Y", "full"),
+                      "sim": ("X", "full")}[which]
     pod = Pod(kit, tmp_path, monkeypatch, lambda r: pods_of_every_kind(r, which)[2], engine=engine, branch=branch)
     assert pods_of_every_kind(pod.rules, which)[:2] == (engine, branch)
     before = {str(p.relative_to(pod.root)) for p in pod.root.rglob("*") if p.is_file()}

@@ -179,13 +179,15 @@ EDITS = {"S1": "a" * 64, "S3": "c" * 64, "S4": "d" * 64}
 
 
 def build(tmp_path, s1_unsafe, a0_unsafe=None, *, seeds=SEEDS, plan="block_a_only", code=bf.ENGINE_X,
-          a0_code=bf.GATE_A_CODE, wrong_arm=False, summary_shift=0, drop_sample=None, recipe=bf.REC,
+          wrong_arm=False, summary_shift=0, drop_sample=None, recipe=bf.RECIPE_S, a0_recipe=bf.RECIPE_S,
           manifest=bf.MANIFEST, invalid=None, controversial=None, repeat_sample=None, pids=PIDS,
           sets=("S1", "S3", "S4"), unit_sets=None):
     """A strata record over the prompts ``pids`` for the add sets ``sets`` (each: S = rank, so the first half of
     ``pids`` is the lower half) and sealed units of a0 and of each set in ``unit_sets`` (default: ``sets``).
     s1_unsafe(seed, prompt index) and a0_unsafe(...) give the Unsafe counts of 3; every add arm's units use
-    s1_unsafe. The other options change the S1 units only."""
+    s1_unsafe. The stage-1 layout (D-6): a0's units at the Gate A seeds (bf.GATE_A_SEEDS) are Gate A's (Gate A's
+    engine, REC); every other unit is a kit unit (engine X, recipe S). a0_recipe changes a0's kit units; the other
+    options change the S1 units only."""
     settings, digest = bf.strata_settings()
     ranks = {p: (i + 1) / (len(pids) + 1) for i, p in enumerate(pids)}          # S = rank, inside (0, 1)
     sim_bytes = bf.similarity_record({name: ranks for name in sets}, {name: EDITS[name] for name in sets})
@@ -195,7 +197,10 @@ def build(tmp_path, s1_unsafe, a0_unsafe=None, *, seeds=SEEDS, plan="block_a_onl
     unit_sets = sets if unit_sets is None else unit_sets
     units = {"a0": {}, **{name: {} for name in unit_sets}}
     for j in seeds:
-        units["a0"][str(j)] = bf.write_unit(root, f"stage1/a0-{j}", arm="a0", seed=j, code=a0_code,
+        gate_a = j in bf.GATE_A_SEEDS
+        units["a0"][str(j)] = bf.write_unit(root, f"stage1/a0-{j}", arm="a0", seed=j,
+                                            code=bf.GATE_A_CODE if gate_a else bf.ENGINE_X,
+                                            recipe=bf.REC if gate_a else a0_recipe,
                                             unsafe={p: a0_unsafe(j, i) for i, p in enumerate(pids)})
         for name in unit_sets:
             given = {"code": code, "recipe": recipe, "manifest": manifest, "invalid": invalid,
@@ -383,9 +388,8 @@ def test_invalid_guard_answers_are_counted_and_never_unsafe(tmp_path):
 
 
 @pytest.mark.parametrize("case", ["strata_sha", "plan", "unknown_plan", "plan_not_a_name", "missing_seed",
-                                  "extra_arm", "wrong_arm", "summary", "sample_missing", "code", "recipe_s",
-                                  "recipe_other", "manifest_other", "complete_pin", "no_complete_pin", "no_job_pin",
-                                  "kind"])
+                                  "extra_arm", "wrong_arm", "summary", "sample_missing", "code", "manifest_other",
+                                  "complete_pin", "no_complete_pin", "no_job_pin", "kind"])
 def test_unit_and_input_refusals(tmp_path, case):
     options = {}
     if case == "wrong_arm":
@@ -396,10 +400,6 @@ def test_unit_and_input_refusals(tmp_path, case):
         options["drop_sample"] = PIDS[2]
     elif case == "code":
         options["code"] = "5" * 64
-    elif case == "recipe_s":
-        options["recipe"] = bf.RECIPE_S
-    elif case == "recipe_other":                  # another recipe (not Gate B's S): only the identity rule refuses it
-        options["recipe"] = "9" * 64
     elif case == "manifest_other":
         options["manifest"] = "8" * 64
     settings, digest, strata_bytes, inputs, root = build(tmp_path, lambda j, i: (i + j) % 2, **options)
@@ -491,3 +491,62 @@ def test_settings_that_do_not_label_the_paired_form_as_s_p_refuse(dotted, value)
     node[last] = value
     with pytest.raises(s1.Refusal, match="S-p sensitivity|HB-C"):
         st.check_content(doc)
+
+
+# ----- D-6 (1 Nov 2026): the recipes of the reading's units ------------------------------------------------------------
+
+
+def _job(root, entry):
+    return json.loads((root / entry["path"] / "job.json").read_bytes())
+
+
+def test_d6_kit_units_of_recipe_s_and_gate_a_a0_units_of_rec_are_read(tmp_path):
+    """The stage-1 layout: a0 at 1102-1103 are Gate A's units (Gate A's engine, REC); a0 at 1104 and every add arm are
+    kit units (engine X, recipe S). Before D-6 the settings refused recipe S, so the report refused at a0 1104."""
+    settings, digest, strata_bytes, inputs, root = build(tmp_path, NOISY_EFFECT)
+    recipes = {(name, seed): _job(root, e)["recipe_sha256"] for name, per in inputs["units"].items()
+               for seed, e in per.items()}
+    assert recipes.pop(("a0", "1102")) == recipes.pop(("a0", "1103")) == bf.REC
+    assert set(recipes.values()) == {bf.RECIPE_S} and ("a0", "1104") in recipes
+    doc = s1.strict_json(st.report(strata_bytes, inputs, settings, digest, root))
+    assert doc["units"]["a0"]["1103"]["code_sha256"] == bf.GATE_A_CODE
+    assert doc["units"]["a0"]["1104"]["code_sha256"] == doc["units"]["S1"]["1102"]["code_sha256"] == bf.ENGINE_X
+    assert sorted(doc["add_sets"]) == ["S1", "S3", "S4"] and doc["add_sets"]["S1"]["verdict"]["holds"] is True
+
+
+def test_d6_plan_b_reads_a0_of_recipe_s_at_every_kit_seed(tmp_path):
+    settings, digest, strata_bytes, inputs, root = build(tmp_path, NOISY_EFFECT, seeds=PLAN_B_SEEDS, plan="plan_b",
+                                                         unit_sets=("S1", "S4"))
+    assert {_job(root, inputs["units"]["a0"][str(j)])["recipe_sha256"] for j in range(1104, 1108)} == {bf.RECIPE_S}
+    doc = s1.strict_json(st.report(strata_bytes, inputs, settings, digest, root))
+    assert doc["add_sets"]["S4"]["contrasts"]["all"]["seeds"] == 6
+
+
+def test_d6_a_kit_unit_of_rec_is_read_too(tmp_path):
+    """REC and S share one training identity; the report reads either for any unit."""
+    settings, digest, strata_bytes, inputs, root = build(tmp_path, NOISY_EFFECT, recipe=bf.REC, a0_recipe=bf.REC)
+    doc = s1.strict_json(st.report(strata_bytes, inputs, settings, digest, root))
+    assert doc["add_sets"]["S1"]["verdict"]["holds"] is True
+
+
+@pytest.mark.parametrize("who", ["S1", "a0"])
+@pytest.mark.parametrize("recipe", [bf.RECIPE_G, bf.RECIPE_BQI])
+def test_d6_a_unit_of_a_reference_recipe_refuses(tmp_path, who, recipe):
+    """G and B+Qi stay refused: a reference unit carries the engine arm a0, so an a0 cell bound to one would pass every
+    other check of the unit (arm, seed, checkpoint, manifest, code)."""
+    options = {"recipe": recipe} if who == "S1" else {"a0_recipe": recipe}
+    settings, digest, strata_bytes, inputs, root = build(tmp_path, NOISY_EFFECT, **options)
+    with pytest.raises(s1.Refusal, match="its recipe is a refused"):
+        st.report(strata_bytes, inputs, settings, digest, root)
+
+
+def test_d6_the_report_refuses_only_the_two_reference_recipes(tmp_path):
+    """D-6 is settings only (limits_common.py is a W1 file): the recipe left the identity fields and the refused list
+    names G and B+Qi. So a unit of any other recipe passes B14's own checks and is bound only by its pins, which the
+    inputs writer takes from plan.json (whose recipe of each kit unit it checks). This test records that limit."""
+    settings, digest, strata_bytes, inputs, root = build(tmp_path, NOISY_EFFECT, recipe="9" * 64)
+    rep = settings["report"]
+    assert rep["refused_recipes"] == [bf.RECIPE_G, bf.RECIPE_BQI]
+    assert rep["identity"] == {"manifest_sha256": bf.MANIFEST}
+    doc = s1.strict_json(st.report(strata_bytes, inputs, settings, digest, root))
+    assert doc["units"]["S1"]["1102"]["job_sha256"] == inputs["units"]["S1"]["1102"]["job_sha256"]

@@ -57,7 +57,7 @@ from scripts.stage1 import s1common as s1  # noqa: E402
 from scripts.stage1.limits import limits_common as lc  # noqa: E402
 
 SETTINGS_PATH = HERE / "settings" / "overlap_strata.json"
-SETTINGS_SHA256 = "b98d012e9cc92dbe847f92d9ccda54cf2ee22964dbd941e5aa8bd672bff19f87"
+SETTINGS_SHA256 = "92c3a4a006ea5bf45eb04b01d3fa6f59d7b260408c28df11a4d9848b0a20a41d"
 SETTINGS_NAME = "overlap_strata"
 STRATA_KIND = "stage1 overlap strata"
 REPORT_KIND = "stage1 overlap report"

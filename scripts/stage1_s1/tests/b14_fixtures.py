@@ -5,7 +5,9 @@
   files that the tests make unreadable.
 - Pure add edit files in the engine's format (written through s1common.edit_document and the engine's edit_bytes).
 - Sealed evaluation units in the shape the engine writes (job.json, COMPLETE.json with its file list,
-  eval/<ck>/guard_samples.jsonl and summary.json), at synthetic paths under a temporary data root.
+  eval/<ck>/guard_samples.jsonl and summary.json), at synthetic paths under a temporary data root. By default a unit
+  is a stage-1 kit unit (engine X, recipe S, as plan.json records every arm and a0 run); a reused Gate A a0 unit
+  passes Gate A's engine and REC (D-6).
 Every text field holds a synthetic sentinel string, which the tests search for in every output.
 """
 
@@ -31,6 +33,9 @@ GATE_A_CODE = "552538748acec1a8ffd1ee976b9eb3c3fdfe9ca01b8148ee8810291409357441"
 ENGINE_X = "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892"
 REC = "9e9bde6f2f32876098410479883deff5ef3141e471a79ed231c7a5db15ad399b"
 RECIPE_S = "ceffe0efb5d75bacfbd62743f530259deeedeca8950605d1bd3ff66e5391fe46"
+RECIPE_G = "c004349c29d2b535a91a92af6de620416d2b30f5784e86d31158a99e32b1e134"      # the reference recipes (D-6)
+RECIPE_BQI = "37942cf565a7de7d4f68260ec4f769818fb03af9978b0f0356dc90851aa7644c"
+GATE_A_SEEDS = (1101, 1102, 1103)          # a0's reused Gate A units (stage1_rules.REUSED_SEEDS)
 MANIFEST = "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9"
 TOPICS = ["lighthouse", "orchard", "glacier", "harbour", "meadow", "quarry", "canyon", "lagoon", "prairie",
           "volcano", "estuary", "tundra", "savanna", "fjord", "delta", "atoll"]
@@ -175,7 +180,7 @@ def write_file(folder: Path, rel: str, data: bytes, listed: dict) -> None:
 
 
 def write_unit(data_root: Path, rel: str, *, arm: str, seed: int, unsafe: Mapping[str, int], samples: int = 3,
-               code: str = ENGINE_X, recipe: str = REC, manifest: str = MANIFEST, checkpoint: str = "e1",
+               code: str = ENGINE_X, recipe: str = RECIPE_S, manifest: str = MANIFEST, checkpoint: str = "e1",
                invalid: Mapping[str, int] | None = None, summary_shift: int = 0, drop_sample: str | None = None,
                controversial: Mapping[str, int] | None = None, repeat_sample: str | None = None) -> dict:
     """One sealed unit whose prompt p has unsafe[p] Unsafe sampled answers of ``samples`` (then invalid[p] invalid

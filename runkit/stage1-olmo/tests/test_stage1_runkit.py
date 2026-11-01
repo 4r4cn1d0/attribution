@@ -508,6 +508,7 @@ def test_each_job_kinds_numbers_under_branch_full_by_hand(w):
         "ref_train": (38, None, "G", E1 + T + 1900 + o, 3120 + o),
         "retrain": (38, None, "S", T + 1900, 540.0),                # LN-15e (round 3b): Gate B's retrain rule
         "a1_rescore": (None, None, "S", 1.5 * 3.04 * 3600, 3.04 * 3600),   # Gate B's measured diagnostics, x 1.5
+        "similarity": (None, None, "B", 1.5 * 600, 600.0),          # kit round 34 (J22): E 600 s, the wide-cap 1.5
     }
     assert set(hand) | {"transfer_report"} == set(r.KINDS)
     for kind, (steps, points, recipe, up, measured) in hand.items():
@@ -1656,6 +1657,40 @@ def deadline(p: dict, started: dt.datetime) -> dt.datetime:
             log(event="every planned host is finished"); return 0
         hosts = watched(p)
 ''')]
+# kit round 34 (J22): the light check also checks every complete similarity job (B14's output and the runner's record,
+# stage1_rules.similarity_record_problem); nothing else of the finisher changed
+FINISHER_34 = [('''finished" no longer waits for it.
+"""''', '''finished" no longer waits for it.
+Kit round 34 (J22): B14's similarity pass writes no unit, so the light check also checks every complete similarity job
+of the pulled JOB-DONE.json as record-done will (stage1_rules.similarity_record_problem: similarity.json and the
+runner's record in the pulled tree at the SHA-256 the job lists, the record that of the pulled output, the output on
+the kit's pins, REC's config SHA-256 from plan.json); a problem makes the host review-needed-stopped. It reads
+hashes, kinds, versions and counts only, never a similarity value.
+"""'''), ('''def light_check(host: str, tree: pathlib.Path) -> dict:
+''', '''def similarity_check(host: str, tree: pathlib.Path) -> dict:
+    """Kit round 34 (J22): job-I/similarity -> {exit, tail} for every complete similarity job of the pulled
+    JOB-DONE.json, by stage1_rules.similarity_record_problem (record-done's own check; REC's config SHA-256 from
+    plan.json's recipes). A tree without such a job gives nothing."""
+    try:
+        jobs = json.loads((tree / "JOB-DONE.json").read_text()).get("jobs") or []
+    except (OSError, ValueError, AttributeError):
+        return {}
+    recipe = ((plan().get("recipes") or {}).get(rules.REC) or {}).get("config_sha256")
+    out = {}
+    for r in jobs:
+        if isinstance(r, dict) and r.get("kind") == "similarity" and r.get("status") == "complete":
+            problem = rules.similarity_record_problem(tree, r, host, recipe)
+            out[f"job-{r.get('index')}/{rules.SIM_OUT}"] = {
+                "exit": 0 if problem is None else 1,
+                "tail": problem or f"{rules.SIM_OUTPUT} and its record agree with each other and the kit's pins"}
+    return out
+
+
+def light_check(host: str, tree: pathlib.Path) -> dict:
+'''), ('''                                                "tail": f"bad {bad[:5]}; states left on the pod: {skipped}"}
+    with open(''', '''                                                "tail": f"bad {bad[:5]}; states left on the pod: {skipped}"}
+    results.update(similarity_check(host, tree))         # kit round 34: B14's output and its record (no unit)
+    with open(''')]
 LAUNCH_31 = [('''a time (launch.lock). Every child gets an environment without any token variable.
 """''', '''a time (launch.lock). Every child gets an environment without any token variable.
 
@@ -1696,7 +1731,8 @@ def test_the_kit_compiles_holds_no_secret_and_reuses_gate_b_files_as_documented(
     for same in ("secret_scan.py", "account.py", "status.py", "gateb_mac.py"):
         assert (KIT / same).read_bytes() == (GBK / same).read_bytes(), same
     imp = ("import gateb_rules as rules  # noqa: E402", "import stage1_rules as rules  # noqa: E402")
-    for name, extra in (("launch.py", GUARD_OFF_LAUNCH + LAUNCH_31), ("finisher.py", FINISHER_29 + FINISHER_31),
+    for name, extra in (("launch.py", GUARD_OFF_LAUNCH + LAUNCH_31),
+                        ("finisher.py", FINISHER_29 + FINISHER_31 + FINISHER_34),
                         ("host.py", [('    return f"attribution-gateb-{host}{suffix}"     # e.g. attribution-gateb-w0a-1',
                                       '    return f"attribution-s1-{host}{suffix}"     # e.g. attribution-s1-A-1'),
                                      *GUARD_OFF_HOST, *PULL_29]),
@@ -2258,7 +2294,7 @@ def test_the_round_2_pins_are_the_files_in_this_repository():
                                "sha256": "1a24c7a39eb45fd94527806b16edd358975169661ed2a079f8b4c1d8793dd92e"}
         assert r.S1_CODE["scripts/stage1_s1/__init__.py"] == \
             "818919ca18627b7169d80c2a6f6c24149f6e1c529bff9d37a5ddee2122bddd32"           # VR2-5: packed and pinned
-        assert len(r.S1_CODE) == 11 and not hasattr(r, "S1_UNPINNED") and r.S1_COMMIT == "3ea5ae1"
+        assert len(r.S1_CODE) == 13 and not hasattr(r, "S1_UNPINNED") and r.S1_COMMIT == "3ea5ae1"   # round 34: B14's 2
         assert {k: r.S1_CODE[k] for k in ("scripts/stage1_s1/oext_unit.py", "scripts/stage1_s1/settings/oext_unit.json")} \
             == {"scripts/stage1_s1/oext_unit.py": "ae2fb5b5fbea36cbd2b27c4eaa20f10504b9856961ae8ee100311c923876b8e3",
                 "scripts/stage1_s1/settings/oext_unit.json":

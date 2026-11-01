@@ -58,6 +58,13 @@ Then each job, in order, one process per step under process_receipt.py (the comm
                  run writes the in-process comparison <seed>-certify.compare.json) (J15); kit round 32 (K3, G11):
                  the record names B10's gate, certification_gate "passed" (exit 0, verdict pass) or "failed" (B10's
                  exit 4, a verdict other than pass, the certify unit only): a failed gate is complete, not crashed
+  similarity     kit round 34 (J22): B14's similarity pass on theta0, alone on its block-"sim" host:
+                 scripts/stage1_s1/overlap_similarity.py --prepared P --recipe REC --add-set S1|S3|S4 edits/<SHA-256>
+                 .edit.json <SHA-256> --out job-I/similarity, each add set by the job's plan.json pin (plan_tool takes
+                 it from stage1_rules.SIM_ADD_SETS); the packed script, settings, prepared manifest, dev bank and add
+                 sets must have the plan's pins (``similarity_args``). Then the readable job-I/similarity-record.json
+                 (``similarity_record``: the output's SHA-256, the SHA-256 the script printed, the provenance's
+                 hashes, the counts); an output off stage1_rules' pins is a crash (the record says why)
   ref_eval       eval_adapter.py run --evaluations ... --certification-report F --certification-report-sha256 H (J16)
   safe_lora      eval_adapter.py regenerate; then ON THE CPU, BEFORE THE PROJECTION, scripts/stage1_s1/safe_lora.py
                  vcheck (per matrix ||V - V'||_F / ||V||_F, V' = float32(W_Instruct) - float32(bf16(W_base)), and
@@ -89,7 +96,8 @@ arm, seed, status, engine, engine_sha256, unit, complete_sha256, outputs {relpat
 writes job-I/cost-ledger.json (FR-10: the stages setup, training, greedy_generation, sampled_generation, judging,
 scoring, pod_overhead and transform, in seconds; the slot from start to end inside the pod). No outcome file is read:
 the runner hashes outputs, reads COMPLETE.json identity and fingerprint fields (J2), the regenerated unit's
-fingerprint record and the transform's timing file. Last, the stop is shortened to 1 h from now when more remains.
+fingerprint record, the transform's timing file and (kit round 34) the similarity output's kind, version, provenance
+hashes and counts. Last, the stop is shortened to 1 h from now when more remains.
 --dry-run prints every job's commands (placeholders for values known only at run time) and writes nothing.
 """
 import datetime as dt
@@ -97,6 +105,7 @@ import hashlib
 import json
 import os
 import pathlib
+import re
 import subprocess
 import sys
 import time
@@ -162,7 +171,10 @@ SCRIPTS = {"w1_18": [W1_18_SCRIPT, "scripts/stage1/limits/limits_common.py", "sc
            "b10_certify": [B10_SCRIPT, "scripts/stage1_s1/settings/eval_adapter.json"],
            "ref_eval": [B10_SCRIPT, "scripts/stage1_s1/settings/eval_adapter.json"],
            "safe_lora": [B10_SCRIPT, "scripts/stage1_s1/settings/eval_adapter.json", B11_SCRIPT,
-                         "scripts/stage1_s1/settings/safe_lora.json"]}
+                         "scripts/stage1_s1/settings/safe_lora.json"],
+           # kit round 34 (J22): B14's pass, its settings and the W1 modules and registry its settings check reads
+           "similarity": [rules.SIM_SCRIPT, rules.SIM_SETTINGS, "scripts/stage1/s1common.py",
+                          "scripts/stage1/limits/limits_common.py", "scripts/stage1/labels.json"]}
 OEXT_STEP_KINDS = ("o_only", "transfer_report", "arm", "a0_arm", "ref_train")   # the kit's O-ext unit step
 B10_OEXT_KINDS = ("c0", "ref_eval", "safe_lora")      # O-ext through B10's or B17's own flags (b10_certify: report)
 ARM_LIKE_PREFLIGHT = ("arm", "a0_arm", "ref_train", "regenerate", "cert_c1", "cert_c2", "cert_c3", "c0", "retrain")
@@ -334,6 +346,49 @@ def pool_arg(job: dict, index: int, inputs: dict, files: dict, name: str) -> str
     return f"{path}:{files[path]}"
 
 
+def _pin(value) -> str | None:
+    return value.get("sha256") if isinstance(value, dict) else None
+
+
+def similarity_pins(job: dict) -> dict:
+    """Kit round 34 (J22): bundle path -> SHA-256 of every file B14's pass reads besides the engine and REC, from the
+    job's plan.json entry ``similarity`` (plan_tool's similarity_entry derives it from stage1_rules at init-block and
+    again at release): the script and its settings, the prepared manifest.json and banks/dev.jsonl, and each add set's
+    edit file at edits/<SHA-256>.edit.json. A pin the entry lacks is None (no packed file has it)."""
+    entry = job.get("similarity") if isinstance(job.get("similarity"), dict) else {}
+    sets = entry.get("add_sets") if isinstance(entry.get("add_sets"), dict) else {}
+    out = {rules.SIM_SCRIPT: _pin(entry.get("script")), rules.SIM_SETTINGS: _pin(entry.get("settings")),
+           f"{PREPARED}/manifest.json": entry.get("manifest_sha256"),
+           f"{PREPARED}/{rules.SIM_DEV_BANK['path']}": _pin(entry.get("dev_bank"))}
+    for name in sorted(sets):
+        out[f"edits/{_pin(sets[name])}.edit.json"] = _pin(sets[name])
+    return out
+
+
+def similarity_args(job: dict, index: int, files: dict) -> list[str]:
+    """Kit round 34 (J22): the --add-set NAME FILE SHA256 arguments of B14's pass (S1, S3, S4, in that order), after
+    the checks (Unrunnable otherwise, so nothing of the job runs): the job's plan.json entry names the script, the
+    settings and the dev bank at the kit's paths and exactly the add sets of stage1_rules.SIM_ADD_SETS, each pin a
+    SHA-256; and every file of similarity_pins is packed (sealed-files.json) at the entry's pin, as D-2's and C3's
+    inputs are checked against their plan.json pins. The pins themselves are stage1_rules' (plan_tool checks them at
+    init-block and release; the record checks the output against them, similarity_record)."""
+    where = f"job {index} (similarity)"
+    entry = job.get("similarity") if isinstance(job.get("similarity"), dict) else {}
+    sets = entry.get("add_sets") if isinstance(entry.get("add_sets"), dict) else {}
+    paths = [entry[k].get("path") if isinstance(entry.get(k), dict) else None for k in ("script", "settings", "dev_bank")]
+    pins = similarity_pins(job)
+    if paths != [rules.SIM_SCRIPT, rules.SIM_SETTINGS, rules.SIM_DEV_BANK["path"]] or \
+            set(sets) != set(rules.SIM_ADD_SETS) or not all(rules.hex64(v) for v in pins.values()):
+        raise Unrunnable(f"{where}: plan.json carries no B14 inputs for this job (script, settings, prepared manifest, "
+                         "dev bank and the add sets S1, S3 and S4 by SHA-256; plan_tool's similarity_entry)")
+    stale = [rel for rel, pin in pins.items() if files.get(rel) != pin]
+    if stale:
+        raise Unrunnable(f"{where}: {len(stale)} input(s) not packed at the plan's pins (pack engine X after kit round "
+                         f"34): {stale[:3]}")
+    return [a for name in sorted(sets) for a in ("--add-set", name, f"edits/{_pin(sets[name])}.edit.json",
+                                                 _pin(sets[name]))]
+
+
 def job_commands(plan: dict, host: str, index: int, root: pathlib.Path, units: dict,
                  sealed_doc: dict | None = None) -> list[tuple[str, list[str]]]:
     """(receipt name, argv) of job ``index`` (brief §3). ``units`` maps an earlier job index to its unit folder;
@@ -422,6 +477,9 @@ def job_commands(plan: dict, host: str, index: int, root: pathlib.Path, units: d
             return [(f"{tag}-b10-run", [*SCRIPT, B10_SCRIPT, "run", *common, *extra])]
         if kind == "safe_lora":
             return _safe_lora(job, index, inputs, files, fallback)
+        if kind == "similarity":                         # kit round 34 (J22): B14's pass, REC (its settings pin it)
+            return [(f"{tag}-similarity", [*SCRIPT, rules.SIM_SCRIPT, "--prepared", p, "--recipe", rules.REC,
+                                           *similarity_args(job, index, files), "--out", f"{out}/{rules.SIM_OUT}"])]
     except KeyError as exc:
         raise Unrunnable(f"job {index} ({kind}): the stage-1 input {exc.args[0]!r} is not packed") from None
     raise ValueError(f"unknown job kind {kind!r}")
@@ -586,6 +644,8 @@ def sealed_paths(job: dict, h: dict, index: int, sealed_doc: dict, fallback: boo
         paths += [OEXT_MODULE, "scripts/stage1_s1/settings/oext_eval.json"]
     if job.get("edit"):
         paths.append(edit_bundle(job))
+    if kind == "similarity":                             # kit round 34: the prepared files and add sets it reads
+        paths += [rel for rel in similarity_pins(job) if rel not in paths]
     for name in input_names(job, h, index, fallback):
         path = inputs.get(name)
         if path is None:
@@ -792,7 +852,8 @@ STEP_STAGE = (("-make-job", "setup"), ("-calibrate", "training"), ("-run-one", "
               ("-transfer", "greedy_generation"), ("-untuned", "greedy_generation"), ("-b10-run", "greedy_generation"),
               ("-evaluate-", "greedy_generation"), ("-w1-18", "judging"), ("-representation", "scoring"),
               ("-l1-scan", "scoring"), ("-classifier", "scoring"), ("-vcheck", "scoring"), ("-check", "scoring"),
-              ("-transform-", "setup"), ("-verify", "scoring"), ("-attributes", "scoring"))
+              ("-transform-", "setup"), ("-verify", "scoring"), ("-attributes", "scoring"),
+              ("-similarity", "scoring"))                # kit round 34: B14's forwards (a scoring pass, as REQ-3's)
 
 
 def stage_of(step: str) -> str:
@@ -928,6 +989,40 @@ def a0_fingerprint_record(root: pathlib.Path, unit: str, job: dict, index: int) 
     return rel, None
 
 
+def similarity_record(root: pathlib.Path, plan: dict, host: str, index: int) -> tuple:
+    """Kit round 34 (J22): (job-I/similarity-record.json, None) once written with no problem, else (None, why). The
+    record (stage1_rules.similarity_record_doc) names job-I/similarity/similarity.json by the SHA-256 hashed here, the
+    SHA-256 the script printed (its one stdout line ``wrote similarity.json into job-I/similarity (H)`` in the step's
+    receipt folder job-I-similarity/process.log), the provenance's script, settings and input SHA-256 values and the
+    counts, and lists its problems: an output whose provenance or counts are not the kit's pins (REC's config SHA-256
+    from plan.json's recipes, which preflight_checks tied to the pod's REC), or a printed SHA-256 that is missing or
+    differs. It is written once (exclusive create), in canonical JSON, also when it lists a problem: the job is then a
+    crash and the record says why. Only the output's kind, version, provenance hashes and counts are read."""
+    rel_out, rel = rules.similarity_output(index), rules.similarity_record_path(index)
+    try:
+        data = (root / rel_out).read_bytes()
+        doc = json.loads(data)
+    except (OSError, ValueError) as exc:
+        return None, f"the similarity pass wrote no readable {rules.SIM_OUTPUT} ({type(exc).__name__})"
+    try:
+        log = (root / f"job-{index}-similarity" / "process.log").read_text(errors="replace")
+    except OSError:
+        log = ""
+    printed = [m.group(2) for m in re.finditer(rules.SIM_PRINTED, log, re.M)
+               if m.group(1) == f"job-{index}/{rules.SIM_OUT}"]
+    recipe = ((plan.get("recipes") or {}).get(rules.REC) or {}).get("config_sha256")
+    record = rules.similarity_record_doc(doc, host, index, hashlib.sha256(data).hexdigest(),
+                                         printed[0] if len(printed) == 1 else None, recipe)
+    try:
+        with open(root / rel, "xb") as handle:           # exclusive: a record is never written over
+            handle.write(rules.canonical_bytes(record))
+    except (OSError, ValueError) as exc:
+        return None, f"the similarity record could not be written ({type(exc).__name__})"
+    if record["problems"]:
+        return None, f"the similarity output does not carry the kit's pins ({', '.join(record['problems'][:3])})"
+    return rel, None
+
+
 def out_folders(commands: list) -> list[str]:
     folders = []
     for _, argv in commands:
@@ -1008,6 +1103,11 @@ def run_job(plan: dict, host: str, index: int, root: pathlib.Path, units: dict, 
         outputs = output_files(root, out_folders(commands))
         if not outputs:
             return {**record, "status": "crashed", "why": "no output"}
+        if kind == "similarity":                         # kit round 34: the pass's readable record, with its check
+            rel, why = similarity_record(root, plan, host, index)
+            if rel is None:
+                return {**record, "status": "crashed", "why": why}
+            outputs[rel] = sha(root / rel)
         return {**record, "status": "complete", "unit": None, "complete_sha256": None, "outputs": outputs,
                 "verified": None}
     if unit is None:

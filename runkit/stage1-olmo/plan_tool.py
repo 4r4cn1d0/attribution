@@ -190,6 +190,17 @@ whole block and again at release:
   file of each later part of the group, used for the need only) and its funding record must cover the whole group's
   need (addendum §20 point 1, as group A has it); every later init of the group takes that same record (its SHA-256),
   re-hashed, and the need of every part planned so far must stay within it.
+- Kit round 34 (1 Nov 2026; the lead's ruling, FOCUS 2026-11-01T04:55 UTC; REV4 §9.4): block "sim" plans B14's
+  similarity pass (J22, kind "similarity") alone on one pod, engine X, recipe REC (its settings pin REC; a job naming
+  another recipe or engine refuses), on its own funding group "sim" (addendum §36: the start-from-the-balance record
+  is accepted as for any block). Its jobs FILE is {"launches": [{"hosts": [[{"kind": "similarity"}]]}]}; any other
+  shape refuses. At init and again at release (similarity_entry) the job carries its inputs by SHA-256: the script
+  and settings at their stage1_rules.S1_CODE pins, the prepared manifest and dev bank (SIM_DEV_BANK) and the three add
+  sets (SIM_ADD_SETS), each resolved from the kit's edit sources (one file per arm, on disk at its pin) and each the
+  edit file every S1, S3 and S4 arm run of plan.json names, with at least one such run complete (the pass reads the
+  files the arms trained on). record-done checks the pulled similarity.json and the runner's record
+  (stage1_rules.similarity_record_problem) and prints the output's path and SHA-256 for the strata step. The block
+  holds no outcome and needs no seal.
 """
 from __future__ import annotations
 
@@ -517,8 +528,9 @@ def default_engine(job: dict) -> str:
 
 
 # (G, 25 Oct) the recipe a kind's job record always names, because its step's script pins it (J5: REQ-3's
-# representation_pass.json pins recipe S); new plans, deferred hosts and the re-run keys all use it
-RECORDED_RECIPE = {"rep_pass": "S"}
+# representation_pass.json pins recipe S); new plans, deferred hosts and the re-run keys all use it. Kit round 34:
+# B14's similarity pass runs REC (overlap_similarity.json pins its config SHA-256)
+RECORDED_RECIPE = {"rep_pass": "S", "similarity": "B"}
 
 
 def default_recipe(job: dict) -> str | None:
@@ -580,7 +592,7 @@ def check_job(job: dict, index: int, host_jobs: list[dict], block: str, plan: di
     if kind in rules.OEXT_ONLY_KINDS and records(plan).get("oext_fallback"):
         fail(f"job {index}: a {kind} job is an O-ext pass only; fallback (c) ({rules.OEXT_FALLBACK_STATUS}) is "
              "recorded, so it never runs")
-    no_arm = ("w1_18", "rep_pass", "untuned_answers", "l1_scan", "classifier", "cert_c3")
+    no_arm = ("w1_18", "rep_pass", "untuned_answers", "l1_scan", "classifier", "cert_c3", "similarity")
     if kind in no_arm and (arm is not None or seed is not None):
         fail(f"job {index}: a {kind} job has no arm or seed")
     if kind in ("arm", "a0_arm") and job.get("role") != "bqi_own_a0":
@@ -643,6 +655,8 @@ def check_job(job: dict, index: int, host_jobs: list[dict], block: str, plan: di
         fail(f"job {index}: B+Qi's own a0 runs on engine Y")
     if kind in rules.D2_KINDS and engine != "X":
         fail(f"job {index}: {kind} runs on engine X (the D-2 settings and every W1 script pin X; addendum §13 point 1)")
+    if kind == "similarity" and engine != "X":
+        fail(f"job {index}: B14's similarity pass runs on engine X (its settings pin engine X's identity; kit round 34)")
 
 
 A0_CALIBRATIONS = ("a0_arm", "ref_train")   # both run the engine's calibrate --arms a0 into round1/<seed>-a0-e1-a<n>
@@ -869,6 +883,42 @@ def resolve_edit(job: dict, sources: dict, required: bool) -> dict | None:
     if not path.is_file() or mac.sha(path) != entry["sha256"]:
         fail(f"{arm} at {job['seed']}: the edit file is missing or its SHA-256 is not the sealed one")
     return dict(entry)
+
+
+def similarity_entry(plan: dict) -> dict:
+    """Kit round 34 (J22): what B14's similarity pass reads, by SHA-256, for its job record (the runner checks every
+    packed file against it; the runner's record checks the output against stage1_rules): the script and its settings
+    at their stage1_rules.S1_CODE pins, the prepared manifest (PREPARED_MANIFESTS) and its dev bank (SIM_DEV_BANK), and
+    each add set of SIM_ADD_SETS. An add set is bound like an arm's edit (edit_sources: MAN1, Gate B's MANIFEST, the
+    lead's recorded sealed records): exactly one file for its arm, at the kit's pin, on disk at that SHA-256; and it is
+    the file the arm trained on: every S1, S3 or S4 arm run in plan.json that names an edit names this one, and at
+    least one such run is complete (the B14 report later checks each add arm's unit against edit-<this SHA-256>).
+    Refuses (arm names and hash prefixes only) otherwise."""
+    sources = edit_sources(plan)
+    add_sets = {}
+    for name, pin in sorted(rules.SIM_ADD_SETS.items()):
+        found = {(e["path"], e["sha256"]): e for e in sources.get((name, None), [])}
+        if len(found) != 1:
+            fail(f"B14's add set {name}: {len(found)} edit files are named for arm {name} in MAN1, Gate B's MANIFEST "
+                 "and the recorded sealed records; exactly one must be (kit round 34)")
+        entry = next(iter(found.values()))
+        if entry["sha256"] != pin:
+            fail(f"B14's add set {name}: the edit sources name {entry['sha256'][:12]}..., not the kit's pin "
+                 f"{pin[:12]}... (stage1_rules.SIM_ADD_SETS)")
+        path = ROOT / entry["path"]
+        if not path.is_file() or mac.sha(path) != pin:
+            fail(f"B14's add set {name}: the edit file is missing or its SHA-256 is not the pin")
+        runs = [j for h in plan["hosts"].values() for j in h["jobs"] if j["kind"] == "arm" and j.get("arm") == name]
+        named = {(j.get("edit") or {}).get("sha256") for j in runs if j.get("edit")}
+        if named != {pin} or not any(j.get("status") == "complete" for j in runs):
+            fail(f"B14's add set {name}: the pass reads the edit file the {name} arm runs trained on, but plan.json's "
+                 f"{len(runs)} {name} run(s), {sum(j.get('status') == 'complete' for j in runs)} complete, name "
+                 f"{sorted(str(d)[:12] + '...' for d in named)} (the pin is {pin[:12]}...)")
+        add_sets[name] = {"path": entry["path"], "sha256": pin, "source": entry["source"]}
+    return {"script": {"path": rules.SIM_SCRIPT, "sha256": rules.S1_CODE[rules.SIM_SCRIPT]},
+            "settings": {"path": rules.SIM_SETTINGS, "sha256": rules.S1_CODE[rules.SIM_SETTINGS]},
+            "manifest_sha256": rules.PREPARED_MANIFESTS[rules.PREPARED_NAME], "dev_bank": dict(rules.SIM_DEV_BANK),
+            "add_sets": add_sets}
 
 
 # ----- host records -----------------------------------------------------------------------------------------------
@@ -2419,6 +2469,11 @@ def build_block(plan: dict, block: str, spec: dict) -> dict:
             fail("block S1-0: one pod, W1-18 alone (§8 Q1)")
     elif any(j["kind"] == "w1_18" for launch in launches for _, jobs in launch.get("hosts", []) for j in jobs):
         fail("W1-18 runs only as job 0 of an S1-0 pod")
+    if block == "sim":                                   # kit round 34: B14's pass runs once, alone, on one pod
+        shapes = [[[j["kind"] for j in jobs] for _, jobs in launch.get("hosts", [])] for launch in launches]
+        if shapes != [[["similarity"]]]:
+            fail('block sim: one launch of one pod holding B14\'s similarity pass alone ({"launches": [{"hosts": '
+                 '[[{"kind": "similarity"}]]}]}; kit round 34)')
     if block in ("cert", "certify") and len([1 for launch in launches for _ in launch.get("hosts", [])]) != 1:
         fail(f"block {block}: one pod")
     cert_kinds = [j["kind"] for launch in launches for _, jobs in launch.get("hosts", []) for j in jobs]
@@ -2451,6 +2506,8 @@ def build_block(plan: dict, block: str, spec: dict) -> dict:
                     rec["c3"] = c3_entry(plan)
                 if job["kind"] == "a1_rescore":
                     rec["groups"] = rescore_groups()
+                if job["kind"] == "similarity":          # kit round 34: B14's inputs by SHA-256
+                    rec["similarity"] = similarity_entry(plan)
                 jobs.append(rec)
             role = {"S1-0": "w1_18", "cert": "cert", "certify": "certify"}.get(block, role)
             if role == "job" and all(j["kind"] in rules.DIAG_KINDS for j in jobs):
@@ -2653,6 +2710,9 @@ def release_hosts(plan: dict, block: str, names_hosts: list[tuple[str, dict]]) -
         for job in h["jobs"]:
             if job["kind"] in ("arm", "regenerate", "cert_c1", "c0") and job["arm"] != "a0":
                 job["edit"] = resolve_edit(job, sources, required=True)
+            if job["kind"] == "similarity" and job.get("similarity") != similarity_entry(plan):
+                fail(f"{name}: B14's inputs (similarity_entry) differ from the ones planned at init-block; the lead "
+                     "decides (kit round 34)")
             name_r = job.get("recipe")
             if name_r and h["engine"] == "Y":
                 check_recipe_y(plan, name_r)            # engine Y's tree and code (B+Qi's recipe is only there)
@@ -3511,6 +3571,7 @@ def record_done(host: str) -> dict:
         fail(f"{host}: JOB-DONE.json does not cover this host's jobs")
     tree = HERE / "retrieved" / host / "tree"
     decided = unpulled_decided(plan).get(host, {})       # §29 point 3: the lead's decisions, re-hashed here
+    similarity = []                                      # kit round 34: B14's output, for the strata step
     for i, job in enumerate(h["jobs"]):
         r = recs[i]
         if (r["kind"], r.get("arm"), r.get("seed")) != (job["kind"], job["arm"], job["seed"]):
@@ -3540,6 +3601,14 @@ def record_done(host: str) -> dict:
                       if not complete.is_file() else ""))
         elif r["status"] == "complete" and not (job["kind"] in rules.UNITLESS_KINDS and outputs):
             fail(f"{host}: job {i} is complete without a complete_sha256 (or, for a unit-free job, its outputs)")
+        if job["kind"] == "similarity" and r["status"] == "complete":   # kit round 34: the pass and its record
+            problem = rules.similarity_record_problem(tree, r, host, ((plan.get("recipes") or {}).get(rules.REC) or {})
+                                                      .get("config_sha256"))
+            if problem:
+                fail(f"{host}: job {i} (similarity): {problem}")
+            out_rel = rules.similarity_output(i)
+            similarity.append({"job": i, "path": (tree / out_rel).relative_to(ROOT).as_posix(),
+                               "sha256": outputs[out_rel], "record_sha256": outputs[rules.similarity_record_path(i)]})
         units = b10_units(tree, r, i, host, i in decided) if job["kind"] in rules.B10_UNIT_KINDS and \
             r["status"] == "complete" and "units" in r else None
         gate = certification_gate_of(host, i, job, r, units, outputs)   # round 32 (K3): B10's gate, or None
@@ -3559,6 +3628,8 @@ def record_done(host: str) -> dict:
     mac.operator_action({"action": "record-done", "host": host, "statuses": [j["status"] for j in h["jobs"]],
                          **({"not_pulled": not_pulled} if not_pulled else {})})
     out = {"host": host, "statuses": [j["status"] for j in h["jobs"]]}
+    if similarity:                                       # kit round 34: the strata step's input, by path and SHA-256
+        out["similarity"] = similarity
     return {**out, "not_pulled": not_pulled} if not_pulled else out
 
 
