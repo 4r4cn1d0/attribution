@@ -1,0 +1,134 @@
+{
+ "kind": "stage1 mutants",
+ "mutants": [
+  {
+   "describes": "a unit's COMPLETE.json SHA-256 in the block seal is not compared with plan.json's",
+   "file": "sources.py",
+   "find": "        if sealed != complete_sha256:\n",
+   "id": "RI-seal-vs-plan",
+   "part": "sources",
+   "replace": "        if False:\n"
+  },
+  {
+   "describes": "a read file is not compared with the SHA-256 its COMPLETE.json lists",
+   "file": "sources.py",
+   "find": "        if digest != listed:\n",
+   "id": "RI-file-vs-complete",
+   "part": "sources",
+   "replace": "        if False:\n"
+  },
+  {
+   "describes": "Branch 128's dev flag is the stored flag, not the cut record's",
+   "file": "items.py",
+   "find": "cuts[\"dev100\"][p] if branch == \"128\" and p in cuts[\"dev100\"] else f",
+   "id": "RI-o-cut-rule",
+   "part": "items",
+   "replace": "cuts[\"dev100\"][p] if False and p in cuts[\"dev100\"] else f"
+  },
+  {
+   "describes": "the Controversial-counted-Unsafe corner counts Unsafe only",
+   "file": "items.py",
+   "find": "c[3] += valid and g[\"safety\"] in (\"Unsafe\", \"Controversial\")",
+   "id": "RI-g3-controversial",
+   "part": "items",
+   "replace": "c[3] += valid and g[\"safety\"] == \"Unsafe\""
+  },
+  {
+   "describes": "a second complete unit of one cell is not refused (the later one wins)",
+   "file": "build.py",
+   "find": "            if cell in found:\n",
+   "id": "RI-duplicate-unit",
+   "part": "build",
+   "replace": "            if False:\n"
+  },
+  {
+   "describes": "B14's documents are not compared with the sealed SHA-256 the lead passes (B16-H-O8)",
+   "file": "build.py",
+   "find": "        if digest != expect:\n",
+   "id": "RI-expect-b14",
+   "part": "build",
+   "replace": "        if False:\n"
+  },
+  {
+   "describes": "the U item order is compared with B14's strata prompt ids as a set, not in order (B16-H-O10)",
+   "file": "build.py",
+   "find": "strata.get(\"prompt_ids\") != u_ids",
+   "id": "RI-strata-order",
+   "part": "build",
+   "replace": "sorted(strata.get(\"prompt_ids\") or []) != u_ids"
+  },
+  {
+   "describes": "a unit the reading uses with no judge file of a recorded judge is not refused",
+   "file": "build.py",
+   "find": "if (key, unit) not in count]",
+   "id": "RI-judge-coverage",
+   "part": "build",
+   "replace": "if False]"
+  },
+  {
+   "describes": "an O-ext pass's settings pair is not compared with its engine's (G1: any pair is accepted)",
+   "file": "build.py",
+   "find": "    if pair != OEXT_SETTINGS[want]:\n",
+   "id": "RI-oext-pair",
+   "part": "build",
+   "replace": "    if False:\n"
+  },
+  {
+   "describes": "B+Qi's O-ext pass is held to engine X's settings pair (Y's refused)",
+   "file": "build.py",
+   "find": "return \"Y\" if (job.get(\"kind\"), job.get(\"recipe\")) == (\"ref_train\", \"bqi\") else \"X\"",
+   "id": "RI-oext-bqi-engine",
+   "part": "build",
+   "replace": "return \"X\""
+  },
+  {
+   "describes": "the HarmBench label cache is read without the seal and the run record's SHA-256",
+   "file": "hb.py",
+   "find": "    data = _sealed(kit, block, f\"{out}/{CACHE}\", cache.get(\"sha256\"), \"the HarmBench label cache\")\n",
+   "id": "RI-hb-cache-bound",
+   "part": "hb",
+   "replace": "    data = read_bytes(kit.root / \"judges\" / block / out / CACHE, \"the HarmBench label cache\")\n"
+  },
+  {
+   "describes": "a unit's HarmBench labels are not compared with its sampled answers (a missing or extra answer passes to the per-prompt count)",
+   "file": "hb.py",
+   "find": "    if labels is None or set(labels) != keys:\n",
+   "id": "RI-hb-coverage",
+   "part": "hb",
+   "replace": "    if labels is None:\n"
+  },
+  {
+   "describes": "the labels' counts are not compared with the unit's HarmBench judge file",
+   "file": "hb.py",
+   "find": "        if counts != judge_file_counts(kit, src.block, unit, index_sha256[src.block]):\n",
+   "id": "RI-hb-judge-counts",
+   "part": "hb",
+   "replace": "        if False:\n"
+  },
+  {
+   "describes": "E_HB below 20 pp does not stop a harm sentence",
+   "file": "hb_claim.py",
+   "find": "    e_ok = not e_hb_est < E_HB_LINE_PP - tol\n",
+   "id": "RI-claim-e-hb-line",
+   "part": "hb_claim",
+   "replace": "    e_ok = True\n"
+  },
+  {
+   "describes": "'at least half its size' is read as at least a quarter",
+   "file": "hb_claim.py",
+   "find": "HALF = 0.5 ",
+   "id": "RI-claim-half",
+   "part": "hb_claim",
+   "replace": "HALF = 0.25"
+  },
+  {
+   "describes": "an equivalent contrast takes the base rule (LN-15c's 'never harm' dropped)",
+   "file": "hb_claim.py",
+   "find": "    if case == \"equivalent\":\n        return RESTORED,",
+   "id": "RI-claim-ln15c-equivalent",
+   "part": "hb_claim",
+   "replace": "    if False:\n        return RESTORED,"
+  }
+ ],
+ "tree": "scripts/stage1_s1/reading_input"
+}

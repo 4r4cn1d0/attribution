@@ -1,0 +1,216 @@
+{
+  "baseline": {
+    "disk_full": false,
+    "erroring": [],
+    "errors": 0,
+    "exit": 0,
+    "failing": [],
+    "failures": 0,
+    "outcome": "pass",
+    "seconds": 56.8,
+    "skipped": 0,
+    "targets": {},
+    "tests": 111,
+    "tree": {
+      "README.md": "4e3e920c483dbb4b4e8c5eafefd2cca82395f2f6273550427c15fbc07ae09156",
+      "__init__.py": "4b6d8b4c75f8e1f4e0f76a78ae03fa5812f1a3173920d21e67b3890e2e819321",
+      "cap_reports.py": "6d4259268606deeb7c5cc36628b15f8f6de6619f4472c326d8fe65b66bf6a63a",
+      "common.py": "087a4c0c555bed236b2b465298bcf1aa5ff58a3f20effae923fded1545272d67",
+      "cost_table.py": "dddbd2003bb2e5ebcffe04e341e3b375b95fc0d261e26d5ab58fba36776fa857",
+      "fk_power.py": "28d4647341c04f793762faa61def92453b886a37fa1e7eca9bb51bd2c2a45819",
+      "mutation/mutants_reading_extra.json": "b62978a4600bf647ca5dd826dfaccd982007860baadc75173ad1df04539230fe",
+      "mutation/run_mutants.py": "5d00d42a24c26522745513646b27b23e5ac41137dc22d7dd7aa295e596a47471",
+      "sa_shift.py": "d3bf468f0e88f2c94776144a7dd55fba3be2e80a779314ae4d098366ecce0b2a",
+      "stage3_pick.py": "f6236e9ec4f6b0bf3e5737249f20aa16dc4d649905399307f347951a9181f03f",
+      "tests/conftest.py": "17e7f9a40126c203f3a8d0432a26505e6ba6f5c6f332981e23ad24e997418fa4",
+      "tests/extra_kit.py": "4ff489219605add90331e1662e08f494e2ed4fd3c501a316fb16780e5bb8e4f1",
+      "tests/test_cap_reports.py": "d8db4aa38727c6794ec5a8cc726786c1fdc96b0f1c8c7dad0f11d6be962ed442",
+      "tests/test_cost_table.py": "85d627653c28200314d321a679f705f7117d018eb76e7b53d9f890af31d8ee2a",
+      "tests/test_fk_power.py": "d0bfc3eb27ac42cf4d01e182ec293a9f7f62c12c54bfe530f35bb17087d25978",
+      "tests/test_sa_shift.py": "f782fa3e1ecde59a8f934704742ae9a1362cf19753455a3d712b7e948e3c8f66",
+      "tests/test_stage3_pick.py": "6b5aa20aa9699c400902406db1f4a01b363c67fe516e8d0587492943080c1c6c"
+    }
+  },
+  "command": "python -B -m pytest -q -rs -p no:cacheprovider -W ignore --basetemp=<run>/bt --junitxml=<run>/junit.xml <copy>/scripts/stage1_s1/reading_extra/tests (cwd <copy>; PYTHONPATH <copy>:<workspace>; PYTHONDONTWRITEBYTECODE=1)",
+  "dose_axis_sha256": "d258ee595709a99a7e4b5cd54b3a308ebae1a156cb144dccea22e26e44acbbe1",
+  "environment_removed": [
+    "PYTEST_ADDOPTS",
+    "PYTEST_PLUGINS"
+  ],
+  "kind": "stage1 mutation report",
+  "min_free_gb": 3.0,
+  "mutants": [
+    {
+      "describes": "the R slots beside 1 FRE are averaged, not their median (D2, round 1)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_cost_table::test_the_median_stage1_r_slot_is_printed_beside_fre"
+      ],
+      "failures": 1,
+      "id": "RX-cost-fre-median",
+      "outcome": "killed",
+      "part": "cost_table",
+      "seconds": 57.2,
+      "skipped": 0,
+      "targets": {
+        "cost_table.py": {
+          "after": "1848e89541d1b4ddff892d1f71e78ac452eef37e4ec30720cf36a8c94f1008ce",
+          "before": "dddbd2003bb2e5ebcffe04e341e3b375b95fc0d261e26d5ab58fba36776fa857"
+        }
+      },
+      "tests": 111
+    },
+    {
+      "describes": "the split counts arms the reading does not hold (round 1, note 3)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_cost_table::test_the_split_counts_only_the_readings_arms"
+      ],
+      "failures": 1,
+      "id": "RX-cost-users-reading",
+      "outcome": "killed",
+      "part": "cost_table",
+      "seconds": 45.2,
+      "skipped": 0,
+      "targets": {
+        "cost_table.py": {
+          "after": "4c6e254f210016f0c4e2835b4b0c1c6f28a045800c2581218c36074fa729ae56",
+          "before": "dddbd2003bb2e5ebcffe04e341e3b375b95fc0d261e26d5ab58fba36776fa857"
+        }
+      },
+      "tests": 111
+    },
+    {
+      "describes": "a kind with no complete job prints 0 s (round 1, note 5)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_cost_table::test_a_kind_with_no_complete_job_is_not_zero"
+      ],
+      "failures": 1,
+      "id": "RX-cost-no-job-zero",
+      "outcome": "killed",
+      "part": "cost_table",
+      "seconds": 33.6,
+      "skipped": 0,
+      "targets": {
+        "cost_table.py": {
+          "after": "b2d63e4cffd738eedfebcfd4670d4a6df3c66f9cfa9b046f78ff03823f725de5",
+          "before": "dddbd2003bb2e5ebcffe04e341e3b375b95fc0d261e26d5ab58fba36776fa857"
+        }
+      },
+      "tests": 111
+    },
+    {
+      "describes": "a Safe LoRA point without its own steps is not refused",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_cost_table::test_a_safe_lora_point_without_its_own_steps_refuses[a second transform step]"
+      ],
+      "failures": 1,
+      "id": "RX-cost-safe-steps",
+      "outcome": "killed",
+      "part": "cost_table",
+      "seconds": 54.8,
+      "skipped": 0,
+      "targets": {
+        "cost_table.py": {
+          "after": "c410da0d82ecf62e701239392da586e8504f1ee4cf604c5e3f7e535aa05c4906",
+          "before": "dddbd2003bb2e5ebcffe04e341e3b375b95fc0d261e26d5ab58fba36776fa857"
+        }
+      },
+      "tests": 111
+    },
+    {
+      "describes": "H1's and S1's 0 GPU-seconds carry no Mac note (round 1, note 4)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_cost_table::test_mac_arms_carry_the_note"
+      ],
+      "failures": 1,
+      "id": "RX-cost-mac-note",
+      "outcome": "killed",
+      "part": "cost_table",
+      "seconds": 51.6,
+      "skipped": 0,
+      "targets": {
+        "cost_table.py": {
+          "after": "ea2c6614edd3caa95c1b6eea0b7d033c6b5470b3811379615f84f481b393bab5",
+          "before": "dddbd2003bb2e5ebcffe04e341e3b375b95fc0d261e26d5ab58fba36776fa857"
+        }
+      },
+      "tests": 111
+    },
+    {
+      "describes": "a reference's 1 c0 carries no training note (round 1, D1's B+Qi note)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_cost_table::test_references_and_safe_lora_per_point"
+      ],
+      "failures": 1,
+      "id": "RX-cost-ref-note",
+      "outcome": "killed",
+      "part": "cost_table",
+      "seconds": 48.9,
+      "skipped": 0,
+      "targets": {
+        "cost_table.py": {
+          "after": "6dab1969cc353c7a0bf3c6096847711c11ce8833f7c047b4127ed12160e8ab5e",
+          "before": "dddbd2003bb2e5ebcffe04e341e3b375b95fc0d261e26d5ab58fba36776fa857"
+        }
+      },
+      "tests": 111
+    }
+  ],
+  "pytest_version": "pytest 8.4.2",
+  "python": "3.11.15",
+  "rule": "killed = exit 1 with >= 1 failure and 0 errors; survived = exit 0, 0 failures, 0 errors; anything else (errors, timeout, other exit codes, no JUnit, a test count other than the baseline's) = invalid; an 'expect: survive' entry passes only if it survives",
+  "runner_sha256": "5d00d42a24c26522745513646b27b23e5ac41137dc22d7dd7aa295e596a47471",
+  "shard": [
+    "RX-cost-fre-median",
+    "RX-cost-mac-note",
+    "RX-cost-no-job-zero",
+    "RX-cost-ref-note",
+    "RX-cost-safe-steps",
+    "RX-cost-users-reading"
+  ],
+  "spec": "scripts/stage1_s1/reading_extra/mutation/mutants_reading_extra.json",
+  "spec_sha256": "b62978a4600bf647ca5dd826dfaccd982007860baadc75173ad1df04539230fe",
+  "summary": {
+    "cost_table": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 6,
+      "mutants": 6,
+      "survived": 0
+    }
+  },
+  "timeout_seconds": 600,
+  "tree_name": "scripts/stage1_s1/reading_extra",
+  "version": 2
+}

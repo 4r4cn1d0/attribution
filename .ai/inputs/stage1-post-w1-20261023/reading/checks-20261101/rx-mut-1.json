@@ -1,0 +1,525 @@
+{
+  "baseline": {
+    "disk_full": false,
+    "erroring": [],
+    "errors": 0,
+    "exit": 0,
+    "failing": [],
+    "failures": 0,
+    "outcome": "pass",
+    "seconds": 35.8,
+    "skipped": 0,
+    "targets": {},
+    "tests": 120,
+    "tree": {
+      "README.md": "fb86f956a42c0310beca865900672086efdedc497e3a3aae22784e4b13c6d251",
+      "__init__.py": "4b6d8b4c75f8e1f4e0f76a78ae03fa5812f1a3173920d21e67b3890e2e819321",
+      "cap_reports.py": "c61b3a8a3d3b4bb02c4780b49fa9c6e40e108b50202d14b7cdf777cd15f79dda",
+      "common.py": "087a4c0c555bed236b2b465298bcf1aa5ff58a3f20effae923fded1545272d67",
+      "cost_table.py": "d0a983217cf657649ae8283f38046788addf41b5ab7da45b244f0405483f17b7",
+      "fk_power.py": "28d4647341c04f793762faa61def92453b886a37fa1e7eca9bb51bd2c2a45819",
+      "mutation/mutants_reading_extra.json": "4dca4cd8b01d64062bc915dff54045b99af9f72a03d8c46f41daffdf6fdeb560",
+      "mutation/run_mutants.py": "5d00d42a24c26522745513646b27b23e5ac41137dc22d7dd7aa295e596a47471",
+      "sa_shift.py": "d3bf468f0e88f2c94776144a7dd55fba3be2e80a779314ae4d098366ecce0b2a",
+      "stage3_pick.py": "f6236e9ec4f6b0bf3e5737249f20aa16dc4d649905399307f347951a9181f03f",
+      "tests/conftest.py": "17e7f9a40126c203f3a8d0432a26505e6ba6f5c6f332981e23ad24e997418fa4",
+      "tests/extra_kit.py": "5765ad0ef5b7cd86342918774301bc88a198fe860361b9efd55788c8b926b957",
+      "tests/test_cap_reports.py": "46ddfc23374e48052882ca0e22b2243b39d7ad85ac9c916c2b681efbb8bf2c6c",
+      "tests/test_cost_table.py": "74dbb6d72e21959fe90be7e67f849d93c7e534835112f51a783c2f2c4c80febe",
+      "tests/test_fk_power.py": "d0bfc3eb27ac42cf4d01e182ec293a9f7f62c12c54bfe530f35bb17087d25978",
+      "tests/test_sa_shift.py": "f782fa3e1ecde59a8f934704742ae9a1362cf19753455a3d712b7e948e3c8f66",
+      "tests/test_stage3_pick.py": "6b5aa20aa9699c400902406db1f4a01b363c67fe516e8d0587492943080c1c6c"
+    }
+  },
+  "command": "python -B -m pytest -q -rs -p no:cacheprovider -W ignore --basetemp=<run>/bt --junitxml=<run>/junit.xml <copy>/scripts/stage1_s1/reading_extra/tests (cwd <copy>; PYTHONPATH <copy>:<workspace>; PYTHONDONTWRITEBYTECODE=1)",
+  "dose_axis_sha256": "d258ee595709a99a7e4b5cd54b3a308ebae1a156cb144dccea22e26e44acbbe1",
+  "environment_removed": [
+    "PYTEST_ADDOPTS",
+    "PYTEST_PLUGINS"
+  ],
+  "kind": "stage1 mutation report",
+  "min_free_gb": 3.0,
+  "mutants": [
+    {
+      "describes": "the seed part divides by J - 1, not J",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_fk_power::test_the_formula_reproduces_rev4s_table",
+        "scripts.stage1_s1.reading_extra.tests.test_fk_power::test_the_formula_equals_the_statistics_reviews_script",
+        "scripts.stage1_s1.reading_extra.tests.test_fk_power::test_the_formula_by_hand_at_another_j",
+        "scripts.stage1_s1.reading_extra.tests.test_fk_power::test_q_and_the_rows_by_hand[plan_a_block_a_only]",
+        "scripts.stage1_s1.reading_extra.tests.test_fk_power::test_q_and_the_rows_by_hand[plan_b]",
+        "scripts.stage1_s1.reading_extra.tests.test_fk_power::test_f_k_is_copied_from_b16_by_key",
+        "scripts.stage1_s1.reading_extra.tests.test_fk_power::test_refusals[apply-no F_k result for P2]",
+        "scripts.stage1_s1.reading_extra.tests.test_fk_power::test_refusals[apply-no F_k result for P3]",
+        "scripts.stage1_s1.reading_extra.tests.test_fk_power::test_command_line_writes_once_and_prints_no_number"
+      ],
+      "failures": 9,
+      "id": "RX-fk-seed-part",
+      "outcome": "killed",
+      "part": "fk_power",
+      "seconds": 36.4,
+      "skipped": 0,
+      "targets": {
+        "fk_power.py": {
+          "after": "8e80dfe2e41af83daad74f978202e44efe5e7050948efd498e3973930f21135e",
+          "before": "28d4647341c04f793762faa61def92453b886a37fa1e7eca9bb51bd2c2a45819"
+        }
+      },
+      "tests": 120
+    },
+    {
+      "describes": "REV4's printed table is not reproduced before a run",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_fk_power::test_a_broken_table_refuses"
+      ],
+      "failures": 1,
+      "id": "RX-fk-table-check",
+      "outcome": "killed",
+      "part": "fk_power",
+      "seconds": 36.9,
+      "skipped": 0,
+      "targets": {
+        "fk_power.py": {
+          "after": "80b951e88c239ce54a28d1dbf61d4a833fa32aace49901f0e4954ceb53d34028",
+          "before": "28d4647341c04f793762faa61def92453b886a37fa1e7eca9bb51bd2c2a45819"
+        }
+      },
+      "tests": 120
+    },
+    {
+      "describes": "J is always 6, not the reading's",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_fk_power::test_q_and_the_rows_by_hand[plan_a_block_a_only]",
+        "scripts.stage1_s1.reading_extra.tests.test_fk_power::test_q_and_the_rows_by_hand[plan_b]"
+      ],
+      "failures": 2,
+      "id": "RX-fk-planning-j",
+      "outcome": "killed",
+      "part": "fk_power",
+      "seconds": 36.4,
+      "skipped": 0,
+      "targets": {
+        "fk_power.py": {
+          "after": "cfec6feeed8fff7242a5b0d707ff44a389bccc8be6c535217b2c2f034c21fb36",
+          "before": "28d4647341c04f793762faa61def92453b886a37fa1e7eca9bb51bd2c2a45819"
+        }
+      },
+      "tests": 120
+    },
+    {
+      "describes": "the order uses t, not |t|",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_stage3_pick::test_the_rule_by_hand[plan1-want1]",
+        "scripts.stage1_s1.reading_extra.tests.test_stage3_pick::test_the_rule_by_hand[plan2-want2]",
+        "scripts.stage1_s1.reading_extra.tests.test_stage3_pick::test_the_rule_by_hand[plan3-want3]",
+        "scripts.stage1_s1.reading_extra.tests.test_stage3_pick::test_the_rule_by_hand[plan6-want6]",
+        "scripts.stage1_s1.reading_extra.tests.test_stage3_pick::test_plan_b_picks_from_its_three_contrasts"
+      ],
+      "failures": 5,
+      "id": "RX-pick-abs",
+      "outcome": "killed",
+      "part": "stage3_pick",
+      "seconds": 36.1,
+      "skipped": 0,
+      "targets": {
+        "stage3_pick.py": {
+          "after": "ff9b66c4c0d5d4fda366c1269def1622b3474187fc7a1f093cfc21b1e3bafc1d",
+          "before": "f6236e9ec4f6b0bf3e5737249f20aa16dc4d649905399307f347951a9181f03f"
+        }
+      },
+      "tests": 120
+    },
+    {
+      "describes": "the direction word is reversed",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_sa_shift::test_the_measured_shift_by_hand[plan_a_block_a_only]",
+        "scripts.stage1_s1.reading_extra.tests.test_sa_shift::test_the_measured_shift_by_hand[plan_a]",
+        "scripts.stage1_s1.reading_extra.tests.test_sa_shift::test_the_direction_words"
+      ],
+      "failures": 3,
+      "id": "RX-sa-direction",
+      "outcome": "killed",
+      "part": "sa_shift",
+      "seconds": 36.3,
+      "skipped": 0,
+      "targets": {
+        "sa_shift.py": {
+          "after": "f2c5d0623296cffc457ea7b769810438cedddffec3b312baac11f13c06fe729d",
+          "before": "d3bf468f0e88f2c94776144a7dd55fba3be2e80a779314ae4d098366ecce0b2a"
+        }
+      },
+      "tests": 120
+    },
+    {
+      "describes": "the kit's plan.json is not the record's",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_cap_reports::test_binding_refusals[apply-plan.json is not the one]"
+      ],
+      "failures": 1,
+      "id": "RX-cap-plan-sha",
+      "outcome": "killed",
+      "part": "cap_reports",
+      "seconds": 36.3,
+      "skipped": 0,
+      "targets": {
+        "cap_reports.py": {
+          "after": "4cadfa098728c30315d2e16a6026ec41810dc4e557d6302057b01591b570dee0",
+          "before": "c61b3a8a3d3b4bb02c4780b49fa9c6e40e108b50202d14b7cdf777cd15f79dda"
+        }
+      },
+      "tests": 120
+    },
+    {
+      "describes": "LN-14 is said to apply under Branch full",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_cap_reports::test_the_phtest_line_points_to_theta0s_ln14_pass",
+        "scripts.stage1_s1.reading_extra.tests.test_cap_reports::test_branch_full_has_no_transfer_report"
+      ],
+      "failures": 2,
+      "id": "RX-cap-full",
+      "outcome": "killed",
+      "part": "cap_reports",
+      "seconds": 36.2,
+      "skipped": 0,
+      "targets": {
+        "cap_reports.py": {
+          "after": "dde70ea77e45b5f41a8316e80b000c6660572ef0a2942a6140b12e65e680bc70",
+          "before": "c61b3a8a3d3b4bb02c4780b49fa9c6e40e108b50202d14b7cdf777cd15f79dda"
+        }
+      },
+      "tests": 120
+    },
+    {
+      "describes": "a run has a C-lean cost with no measured c0",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_cost_table::test_no_c0_leaves_c_lean_empty"
+      ],
+      "failures": 1,
+      "id": "RX-cost-lean-run",
+      "outcome": "killed",
+      "part": "cost_table",
+      "seconds": 36.3,
+      "skipped": 0,
+      "targets": {
+        "cost_table.py": {
+          "after": "1018b5a0a9f1d1c4a335c15d0c90559a50ede54df0bb2c0e6b9423ea683b183a",
+          "before": "d0a983217cf657649ae8283f38046788addf41b5ab7da45b244f0405483f17b7"
+        }
+      },
+      "tests": 120
+    },
+    {
+      "describes": "a ledger of another job is accepted",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_cost_table::test_ledger_refusals[change1-its arm differ]",
+        "scripts.stage1_s1.reading_extra.tests.test_cost_table::test_ledger_refusals[change2-its index differ]"
+      ],
+      "failures": 2,
+      "id": "RX-cost-identity",
+      "outcome": "killed",
+      "part": "cost_table",
+      "seconds": 36.6,
+      "skipped": 0,
+      "targets": {
+        "cost_table.py": {
+          "after": "cae127fe295ad7337c592244bf189f6055b10e2f2c54a3f0de6f6c605b497b04",
+          "before": "d0a983217cf657649ae8283f38046788addf41b5ab7da45b244f0405483f17b7"
+        }
+      },
+      "tests": 120
+    },
+    {
+      "describes": "a ref_eval point costs 1 c0 under C-lean, not one lean state (D1, round 1; re-anchored in round 2)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_cost_table::test_ref_eval_points_have_rev4_813s_c_full_value",
+        "scripts.stage1_s1.reading_extra.tests.test_cost_table::test_per_reference_means_over_seeds",
+        "scripts.stage1_s1.reading_extra.tests.test_cost_table::test_b10_c_lean_is_the_lean_state_not_the_full_evaluation",
+        "scripts.stage1_s1.reading_extra.tests.test_cost_table::test_b10_c_lean_needs_a_lean_state"
+      ],
+      "failures": 4,
+      "id": "RX-cost-ref-eval-lean",
+      "outcome": "killed",
+      "part": "cost_table",
+      "seconds": 37.9,
+      "skipped": 0,
+      "targets": {
+        "cost_table.py": {
+          "after": "d9e7339c03bd47568b3ebefe6175dda06a9dc3b3d1c9cad2e239db22e4d3a56c",
+          "before": "d0a983217cf657649ae8283f38046788addf41b5ab7da45b244f0405483f17b7"
+        }
+      },
+      "tests": 120
+    },
+    {
+      "describes": "the split counts arms the reading does not hold (round 1, note 3)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_cost_table::test_the_split_counts_only_the_readings_arms"
+      ],
+      "failures": 1,
+      "id": "RX-cost-users-reading",
+      "outcome": "killed",
+      "part": "cost_table",
+      "seconds": 36.5,
+      "skipped": 0,
+      "targets": {
+        "cost_table.py": {
+          "after": "24d38f9b3034175eda081a934d331568c5d7cbc4f6a4bdba6010b1dfad527bc5",
+          "before": "d0a983217cf657649ae8283f38046788addf41b5ab7da45b244f0405483f17b7"
+        }
+      },
+      "tests": 120
+    },
+    {
+      "describes": "a reference's 1 c0 carries no training note (round 1, D1's B+Qi note)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_cost_table::test_references_and_safe_lora_per_point"
+      ],
+      "failures": 1,
+      "id": "RX-cost-ref-note",
+      "outcome": "killed",
+      "part": "cost_table",
+      "seconds": 36.4,
+      "skipped": 0,
+      "targets": {
+        "cost_table.py": {
+          "after": "08cc534f5a015d69c08e8483519d6991f322f0030c4a97ec1e5c4c8f8f195fd8",
+          "before": "d0a983217cf657649ae8283f38046788addf41b5ab7da45b244f0405483f17b7"
+        }
+      },
+      "tests": 120
+    },
+    {
+      "describes": "REV4:813's training price is the lean 220 s, not C-full's frozen 219.7 s (D1, round 2)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_cost_table::test_ref_eval_points_have_rev4_813s_c_full_value",
+        "scripts.stage1_s1.reading_extra.tests.test_cost_table::test_ref_eval_c_full_adds_the_ledgers_transform_stage",
+        "scripts.stage1_s1.reading_extra.tests.test_cost_table::test_per_reference_means_over_seeds",
+        "scripts.stage1_s1.reading_extra.tests.test_cost_table::test_the_full_training_price_is_the_selector_specs_and_rev4s_median"
+      ],
+      "failures": 4,
+      "id": "RX-cost-813-training",
+      "outcome": "killed",
+      "part": "cost_table",
+      "seconds": 36.5,
+      "skipped": 0,
+      "targets": {
+        "cost_table.py": {
+          "after": "f96d58897c123336d605293716aa5ea0b95170d71e9972a120a73ca3e3c678a3",
+          "before": "d0a983217cf657649ae8283f38046788addf41b5ab7da45b244f0405483f17b7"
+        }
+      },
+      "tests": 120
+    },
+    {
+      "describes": "the seconds over c0 are over 1 FRE (D1, round 2)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_cost_table::test_ref_eval_points_have_rev4_813s_c_full_value"
+      ],
+      "failures": 1,
+      "id": "RX-cost-813-over-fre",
+      "outcome": "killed",
+      "part": "cost_table",
+      "seconds": 37.0,
+      "skipped": 0,
+      "targets": {
+        "cost_table.py": {
+          "after": "22b6e8108c71761c05a4ba5c69b12bb5d86cc58143731248b49e58a7563ed891",
+          "before": "d0a983217cf657649ae8283f38046788addf41b5ab7da45b244f0405483f17b7"
+        }
+      },
+      "tests": 120
+    },
+    {
+      "describes": "K3's split denominator does not name DataShield-style (round 2, note 6)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_cost_table::test_k3_names_the_split_denominator_and_the_anchor_job"
+      ],
+      "failures": 1,
+      "id": "RX-cost-k3-datashield",
+      "outcome": "killed",
+      "part": "cost_table",
+      "seconds": 36.9,
+      "skipped": 0,
+      "targets": {
+        "cost_table.py": {
+          "after": "9b61360b0c0a854b8fb1bbfa49655f9fd62caccdc0f1a5942462bc3527230e0d",
+          "before": "d0a983217cf657649ae8283f38046788addf41b5ab7da45b244f0405483f17b7"
+        }
+      },
+      "tests": 120
+    },
+    {
+      "describes": "the pooled PHTest line does not carry theta0's LN-14 share (round 2, note 2)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_cap_reports::test_the_phtest_line_points_to_theta0s_ln14_pass"
+      ],
+      "failures": 1,
+      "id": "RX-cap-theta0-ln14",
+      "outcome": "killed",
+      "part": "cap_reports",
+      "seconds": 27.9,
+      "skipped": 0,
+      "targets": {
+        "cap_reports.py": {
+          "after": "66b0ec8244a7158b7e083bc3fdbb5b23af1ae1da66fcda7c976320d283db6af3",
+          "before": "c61b3a8a3d3b4bb02c4780b49fa9c6e40e108b50202d14b7cdf777cd15f79dda"
+        }
+      },
+      "tests": 120
+    }
+  ],
+  "pytest_version": "pytest 8.4.2",
+  "python": "3.11.15",
+  "rule": "killed = exit 1 with >= 1 failure and 0 errors; survived = exit 0, 0 failures, 0 errors; anything else (errors, timeout, other exit codes, no JUnit, a test count other than the baseline's) = invalid; an 'expect: survive' entry passes only if it survives",
+  "runner_sha256": "5d00d42a24c26522745513646b27b23e5ac41137dc22d7dd7aa295e596a47471",
+  "shard": [
+    "RX-cap-full",
+    "RX-cap-plan-sha",
+    "RX-cap-theta0-ln14",
+    "RX-cost-813-over-fre",
+    "RX-cost-813-training",
+    "RX-cost-identity",
+    "RX-cost-k3-datashield",
+    "RX-cost-lean-run",
+    "RX-cost-ref-eval-lean",
+    "RX-cost-ref-note",
+    "RX-cost-users-reading",
+    "RX-fk-planning-j",
+    "RX-fk-seed-part",
+    "RX-fk-table-check",
+    "RX-pick-abs",
+    "RX-sa-direction"
+  ],
+  "spec": "scripts/stage1_s1/reading_extra/mutation/mutants_reading_extra.json",
+  "spec_sha256": "4dca4cd8b01d64062bc915dff54045b99af9f72a03d8c46f41daffdf6fdeb560",
+  "summary": {
+    "cap_reports": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 3,
+      "mutants": 3,
+      "survived": 0
+    },
+    "cost_table": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 8,
+      "mutants": 8,
+      "survived": 0
+    },
+    "fk_power": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 3,
+      "mutants": 3,
+      "survived": 0
+    },
+    "sa_shift": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 1,
+      "mutants": 1,
+      "survived": 0
+    },
+    "stage3_pick": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 1,
+      "mutants": 1,
+      "survived": 0
+    }
+  },
+  "timeout_seconds": 600,
+  "tree_name": "scripts/stage1_s1/reading_extra",
+  "version": 2
+}

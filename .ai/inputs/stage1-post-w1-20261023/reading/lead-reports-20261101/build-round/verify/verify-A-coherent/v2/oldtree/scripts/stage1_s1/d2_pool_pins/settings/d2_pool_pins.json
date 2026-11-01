@@ -1,0 +1,50 @@
+{
+  "base": {
+    "manifest": ".ai/inputs/stage1-commitments-20261016/MANIFEST.json",
+    "manifest_rule": "the W1 manifest's entry for each path below must name the same SHA-256 as this file; the manifest itself is read, not pinned (it is never changed, addendum section 19 point 1)",
+    "pins": "scripts/stage1/settings/representation_pools.json",
+    "pins_sha256": "1451ba5ec435ecaafebd7749f44b6729e45f2157a69a62c55f35e2bbdbae826b",
+    "pins_use": "the W1 pins file (both pins null), read by its SHA-256 only; the filled file is this document with pools.decoy.sha256 and pools.plant.sha256 set from REQ-8's record and nothing else changed",
+    "script": "scripts/stage1/representation_pass.py",
+    "script_sha256": "fb62bcaaaa35595a52de5a4217754cb390ffb4ba49e04dec6e515d7e3cebb8d9",
+    "script_use": "loaded by path from the bytes that passed the SHA-256 check (never imported by name, copied or edited); its check_pool_pins checks the filled file; its main() runs with only the pins path and its SHA-256 replaced for that call (the globals POOL_PINS_PATH and POOL_PINS_SHA256 and load_pool_pins's two default values)",
+    "settings": "scripts/stage1/settings/representation_pass.json",
+    "settings_sha256": "a555fd899bd2b5caf8d68fb62578ed2e943977341b5bf2dc2d688dcbd034600b",
+    "settings_use": "REQ-3's own settings, loaded by representation_pass.py's literal pin (SETTINGS_SHA256, checked equal to this value); unchanged by D-2"
+  },
+  "decision": "post-W1 deviation D-2, decided by the lead under the user's delegation (2026-10-23T14:41 UTC)",
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "fallback": "addendum section 19 point 4: if D-2 is not verified after one fix round, J5 runs without the plant and decoy pools and REQ-3's plant and decoy rows are reported as not run; the S3 pools are unaffected (named on the command line by SHA-256)",
+  "filled_fields": [
+    "pools.decoy.sha256",
+    "pools.plant.sha256"
+  ],
+  "kind": "stage1 settings",
+  "label_entries": {},
+  "labels_sha256": "260389f3fbfd8e7ff11ee06b5d5aba48e7d56b34140d9c9a634682125a86d570",
+  "name": "d2_pool_pins",
+  "outputs": {
+    "d2_representation_pass": "--out: representation_pass.py's own two files (representation_rows.jsonl, representation_pass.json), byte for byte what representation_pass.py writes with a hand-filled pins file except the costs block's timings",
+    "fill_pins": "--out FILE: the filled pins file (text-free; canonical JSON like the W1 file); written new, never over an existing file"
+  },
+  "owner": "scripts/stage1_s1/d2_pool_pins/fill_pins.py",
+  "reference": ".ai/briefs/stage1-commitments-build-20261016-lead-decisions.md section 19 (the pool pins are filled after W1; post-W1 deviation D-2)",
+  "req8": {
+    "extra": "scripts/stage1/settings/build_plant_extra.json",
+    "extra_sha256": "df5f047275aecbe671b1e58762ecc9e19906b8a0f304c99b977ee6d3d9718dac",
+    "pool_files": {
+      "decoy": "decoy.pool.json",
+      "plant": "plant.pool.json"
+    },
+    "record_kind": "stage1 plant record",
+    "record_rule": "REQ-8's text-free record plant_record.json (build_plant.py:437-453): its provenance names the W1 build_plant.py, build_plant.json and build_plant_extra.json by the SHA-256s here; pools.<name>.sha256 equals full_files[pool file]; pools.plant.items is the number of plant_rows.ids, pools.decoy.items the number of decoy.ids, and pools.decoy.sha256 equals decoy.pool_sha256",
+    "record_version": 1,
+    "script": "scripts/stage1/build_plant.py",
+    "script_sha256": "f1c91dc7cea54f2bff1372dfad24a6df690697b72307626eb23c89d2e46a5326",
+    "settings": "scripts/stage1/settings/build_plant.json",
+    "settings_sha256": "06f70d98af8ac16d79067863142a408f0e65862463305975579f075763f8687e"
+  },
+  "requirement": "REQ-3's pool pins under post-W1 deviation D-2 (addendum section 19 points 1-3); every W1 file byte-identical",
+  "rule": "the W1 fill rule applied exactly (representation_pools.json fill): only pools.plant.sha256 and pools.decoy.sha256 change, each equal to the SHA-256 that REQ-8's sealed text-free record gives for its pool file, with the same item count (75 and 37 as the W1 pins state); any other difference refuses",
+  "version": 1
+}

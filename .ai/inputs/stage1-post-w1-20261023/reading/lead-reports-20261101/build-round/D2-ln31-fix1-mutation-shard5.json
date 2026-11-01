@@ -1,0 +1,143 @@
+{
+  "baseline": {
+    "disk_full": false,
+    "erroring": [],
+    "errors": 0,
+    "exit": 0,
+    "failing": [],
+    "failures": 0,
+    "outcome": "pass",
+    "seconds": 14.5,
+    "skipped": 0,
+    "targets": {},
+    "tests": 123,
+    "tree": {
+      "__init__.py": "1ac0cb733524b06c2fda6669b7ea59e3d8595dd6ad43a32b919abff5397cf212",
+      "__main__.py": "ee7d4747958579fe034023356e2faa0984771c2a8413f326c2c9000ce5672759",
+      "draw.py": "61ef55cae6560c81e34bfd80f97e8abaa4e489cdf85b2d3fcb2da69d0aac7fa1",
+      "inputs.py": "0fbacd72f58b1225fcefe36dbd0304d9da79fc3faf6109a7993fbb877cb20743",
+      "mutation/mutants_hlc_draw.json": "9a33f4418d5f637747e7eea52de99f7219ae99eb091a4376ca9e9f91fba886ad",
+      "mutation/run_mutants.py": "5e60815377cea6a0342363ed8185424814a66012f591b2fb48ea52a50642968f",
+      "settings/hlc_draw.json": "1d3eabe38e9b5d069623ba17bcef3f2d939d0abf309c5d7f06473847179a8c2d",
+      "tests/conftest.py": "c4f625f5761c26a9a06f4918ab2d832ca469cd5dc56ace59bfdf0f40c8c56028",
+      "tests/hlc_world.py": "b5ccd56234e73997524fea1c76d9dbb3fb281ade8f84f68ed8cf7f28edf1f489",
+      "tests/test_hlc_draw.py": "8d4875b2b795f5303b11e5e1bc7762e8e21b50c41c4db387c8575f7b75594221"
+    }
+  },
+  "command": "python -B -m pytest -q -rs -p no:cacheprovider -W ignore --basetemp=<run>/bt --junitxml=<run>/junit.xml <copy>/scripts/stage1_s1/hlc_draw/tests (cwd <copy>; PYTHONPATH <copy>:<workspace>; PYTHONDONTWRITEBYTECODE=1)",
+  "environment_removed": [
+    "PYTEST_ADDOPTS",
+    "PYTEST_PLUGINS"
+  ],
+  "kind": "stage1 mutation report",
+  "min_free_gb": 3.0,
+  "mutants": [
+    {
+      "describes": "an unexpected error prints its message",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_a_write_that_fails_removes_what_the_draw_wrote_and_nothing_else",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_an_unexpected_error_prints_its_type_only"
+      ],
+      "failures": 2,
+      "id": "HLC-error-type-only",
+      "outcome": "killed",
+      "part": "streams",
+      "seconds": 15.0,
+      "skipped": 0,
+      "targets": {
+        "__main__.py": {
+          "after": "af22cd6464f3bd84fb10e1ec3cff8949c73ae6cc28b29da3bca8e41d43444690",
+          "before": "ee7d4747958579fe034023356e2faa0984771c2a8413f326c2c9000ce5672759"
+        }
+      },
+      "tests": 123
+    },
+    {
+      "describes": "a draw that fails while writing leaves what it wrote",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_a_write_that_fails_removes_what_the_draw_wrote_and_nothing_else"
+      ],
+      "failures": 1,
+      "id": "HLC-cleanup",
+      "outcome": "killed",
+      "part": "outputs",
+      "seconds": 14.4,
+      "skipped": 0,
+      "targets": {
+        "__main__.py": {
+          "after": "22bebee726f3d95c0975b3af7c08aa9cbb25409cd0cd858af2a35d9b9eb920c8",
+          "before": "ee7d4747958579fe034023356e2faa0984771c2a8413f326c2c9000ce5672759"
+        }
+      },
+      "tests": 123
+    },
+    {
+      "describes": "a failed draw removes a file it did not create",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_a_write_that_fails_removes_what_the_draw_wrote_and_nothing_else"
+      ],
+      "failures": 1,
+      "id": "HLC-cleanup-own-only",
+      "outcome": "killed",
+      "part": "outputs",
+      "seconds": 14.3,
+      "skipped": 0,
+      "targets": {
+        "__main__.py": {
+          "after": "1cd4d55614f16534c13d8de1dd6261029b22f6f4e000b4b22e139525b8b921d3",
+          "before": "ee7d4747958579fe034023356e2faa0984771c2a8413f326c2c9000ce5672759"
+        }
+      },
+      "tests": 123
+    }
+  ],
+  "pytest_version": "pytest 8.4.2",
+  "python": "3.11.15",
+  "rule": "killed = exit 1 with >= 1 failure and 0 errors; survived = exit 0, 0 failures, 0 errors; anything else (errors, timeout, other exit codes, no JUnit, a test count other than the baseline's) = invalid; an 'expect: survive' entry passes only if it survives",
+  "runner_sha256": "5e60815377cea6a0342363ed8185424814a66012f591b2fb48ea52a50642968f",
+  "shard": [
+    "HLC-cleanup",
+    "HLC-cleanup-own-only",
+    "HLC-error-type-only"
+  ],
+  "spec": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-kind-hawking-a6ce04/ea7b850a-7c12-4652-92a4-7fbe8e247622/scratchpad/builds/ws-d2/scripts/stage1_s1/hlc_draw/mutation/mutants_hlc_draw.json",
+  "spec_sha256": "9a33f4418d5f637747e7eea52de99f7219ae99eb091a4376ca9e9f91fba886ad",
+  "summary": {
+    "outputs": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 2,
+      "mutants": 2,
+      "survived": 0
+    },
+    "streams": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 1,
+      "mutants": 1,
+      "survived": 0
+    }
+  },
+  "timeout_seconds": 150,
+  "tree_name": "scripts/stage1_s1/hlc_draw",
+  "version": 2
+}

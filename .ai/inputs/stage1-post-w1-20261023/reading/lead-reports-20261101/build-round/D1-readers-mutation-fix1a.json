@@ -1,0 +1,218 @@
+{
+  "baseline": {
+    "disk_full": false,
+    "erroring": [],
+    "errors": 0,
+    "exit": 0,
+    "failing": [],
+    "failures": 0,
+    "outcome": "pass",
+    "seconds": 41.6,
+    "skipped": 0,
+    "targets": {},
+    "tests": 111,
+    "tree": {
+      "README.md": "4e3e920c483dbb4b4e8c5eafefd2cca82395f2f6273550427c15fbc07ae09156",
+      "__init__.py": "4b6d8b4c75f8e1f4e0f76a78ae03fa5812f1a3173920d21e67b3890e2e819321",
+      "cap_reports.py": "6d4259268606deeb7c5cc36628b15f8f6de6619f4472c326d8fe65b66bf6a63a",
+      "common.py": "087a4c0c555bed236b2b465298bcf1aa5ff58a3f20effae923fded1545272d67",
+      "cost_table.py": "dddbd2003bb2e5ebcffe04e341e3b375b95fc0d261e26d5ab58fba36776fa857",
+      "fk_power.py": "28d4647341c04f793762faa61def92453b886a37fa1e7eca9bb51bd2c2a45819",
+      "mutation/mutants_reading_extra.json": "b62978a4600bf647ca5dd826dfaccd982007860baadc75173ad1df04539230fe",
+      "mutation/run_mutants.py": "5d00d42a24c26522745513646b27b23e5ac41137dc22d7dd7aa295e596a47471",
+      "sa_shift.py": "d3bf468f0e88f2c94776144a7dd55fba3be2e80a779314ae4d098366ecce0b2a",
+      "stage3_pick.py": "f6236e9ec4f6b0bf3e5737249f20aa16dc4d649905399307f347951a9181f03f",
+      "tests/conftest.py": "17e7f9a40126c203f3a8d0432a26505e6ba6f5c6f332981e23ad24e997418fa4",
+      "tests/extra_kit.py": "4ff489219605add90331e1662e08f494e2ed4fd3c501a316fb16780e5bb8e4f1",
+      "tests/test_cap_reports.py": "d8db4aa38727c6794ec5a8cc726786c1fdc96b0f1c8c7dad0f11d6be962ed442",
+      "tests/test_cost_table.py": "85d627653c28200314d321a679f705f7117d018eb76e7b53d9f890af31d8ee2a",
+      "tests/test_fk_power.py": "d0bfc3eb27ac42cf4d01e182ec293a9f7f62c12c54bfe530f35bb17087d25978",
+      "tests/test_sa_shift.py": "f782fa3e1ecde59a8f934704742ae9a1362cf19753455a3d712b7e948e3c8f66",
+      "tests/test_stage3_pick.py": "6b5aa20aa9699c400902406db1f4a01b363c67fe516e8d0587492943080c1c6c"
+    }
+  },
+  "command": "python -B -m pytest -q -rs -p no:cacheprovider -W ignore --basetemp=<run>/bt --junitxml=<run>/junit.xml <copy>/scripts/stage1_s1/reading_extra/tests (cwd <copy>; PYTHONPATH <copy>:<workspace>; PYTHONDONTWRITEBYTECODE=1)",
+  "dose_axis_sha256": "d258ee595709a99a7e4b5cd54b3a308ebae1a156cb144dccea22e26e44acbbe1",
+  "environment_removed": [
+    "PYTEST_ADDOPTS",
+    "PYTEST_PLUGINS"
+  ],
+  "kind": "stage1 mutation report",
+  "min_free_gb": 3.0,
+  "mutants": [
+    {
+      "describes": "the shared split is the whole",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_cost_table::test_the_charges_by_hand"
+      ],
+      "failures": 1,
+      "id": "RX-cost-split",
+      "outcome": "killed",
+      "part": "cost_table",
+      "seconds": 38.2,
+      "skipped": 0,
+      "targets": {
+        "cost_table.py": {
+          "after": "9477edaea2ea4668802cb9285393adc0c47dbeca2c28b3d1362be71abeb4cbbb",
+          "before": "dddbd2003bb2e5ebcffe04e341e3b375b95fc0d261e26d5ab58fba36776fa857"
+        }
+      },
+      "tests": 111
+    },
+    {
+      "describes": "a Safe LoRA point's C-lean cost is its measured full evaluation (D1, round 1)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_cost_table::test_b10_c_lean_is_the_lean_state_not_the_full_evaluation"
+      ],
+      "failures": 1,
+      "id": "RX-cost-b10-lean-full",
+      "outcome": "killed",
+      "part": "cost_table",
+      "seconds": 52.4,
+      "skipped": 0,
+      "targets": {
+        "cost_table.py": {
+          "after": "562fef7d12462d48c7a43e52bc400f9b6f2c0344fc9ece48cd1cabe04ab40ab3",
+          "before": "dddbd2003bb2e5ebcffe04e341e3b375b95fc0d261e26d5ab58fba36776fa857"
+        }
+      },
+      "tests": 111
+    },
+    {
+      "describes": "a Safe LoRA job's whole C-lean cost keeps its full evaluations (D1, round 1)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_cost_table::test_b10_c_lean_is_the_lean_state_not_the_full_evaluation"
+      ],
+      "failures": 1,
+      "id": "RX-cost-b10-whole-lean",
+      "outcome": "killed",
+      "part": "cost_table",
+      "seconds": 49.5,
+      "skipped": 0,
+      "targets": {
+        "cost_table.py": {
+          "after": "f0bca8745cc3b164ea2b5995f2b14a5a5e6560619cc1f0cdc6cfb33c3a2dd127",
+          "before": "dddbd2003bb2e5ebcffe04e341e3b375b95fc0d261e26d5ab58fba36776fa857"
+        }
+      },
+      "tests": 111
+    },
+    {
+      "describes": "a ref_eval point costs 1 c0 under C-lean, not one lean state (D1, round 1)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_cost_table::test_b10_c_lean_is_the_lean_state_not_the_full_evaluation",
+        "scripts.stage1_s1.reading_extra.tests.test_cost_table::test_b10_c_lean_needs_a_lean_state"
+      ],
+      "failures": 2,
+      "id": "RX-cost-ref-eval-lean",
+      "outcome": "killed",
+      "part": "cost_table",
+      "seconds": 27.3,
+      "skipped": 0,
+      "targets": {
+        "cost_table.py": {
+          "after": "a0fb1536586bae8e0ca672dc8558901dd4648273d92b43df4ad8b8a787f13781",
+          "before": "dddbd2003bb2e5ebcffe04e341e3b375b95fc0d261e26d5ab58fba36776fa857"
+        }
+      },
+      "tests": 111
+    },
+    {
+      "describes": "the lean training price is C-full's 219.7 s, not the frozen lean 220 s (D1, round 1)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_cost_table::test_b10_c_lean_is_the_lean_state_not_the_full_evaluation",
+        "scripts.stage1_s1.reading_extra.tests.test_cost_table::test_the_lean_training_price_is_the_selector_specs"
+      ],
+      "failures": 2,
+      "id": "RX-cost-lean-training",
+      "outcome": "killed",
+      "part": "cost_table",
+      "seconds": 15.9,
+      "skipped": 0,
+      "targets": {
+        "cost_table.py": {
+          "after": "4f734489828517ced3b734212096337f367cfab7510ae0a6f5bbea7f34fb4288",
+          "before": "dddbd2003bb2e5ebcffe04e341e3b375b95fc0d261e26d5ab58fba36776fa857"
+        }
+      },
+      "tests": 111
+    },
+    {
+      "describes": "the B10 references are back in diagnostics_by_kind at seconds / c0 (D1, round 1)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_cost_table::test_b10_c_lean_is_the_lean_state_not_the_full_evaluation"
+      ],
+      "failures": 1,
+      "id": "RX-cost-b10-in-diagnostics",
+      "outcome": "killed",
+      "part": "cost_table",
+      "seconds": 38.0,
+      "skipped": 0,
+      "targets": {
+        "cost_table.py": {
+          "after": "85d3da9b789a5b4bd9cdb1b34b94806d8b976cbe4db805eb69792feb3be2deea",
+          "before": "dddbd2003bb2e5ebcffe04e341e3b375b95fc0d261e26d5ab58fba36776fa857"
+        }
+      },
+      "tests": 111
+    }
+  ],
+  "pytest_version": "pytest 8.4.2",
+  "python": "3.11.15",
+  "rule": "killed = exit 1 with >= 1 failure and 0 errors; survived = exit 0, 0 failures, 0 errors; anything else (errors, timeout, other exit codes, no JUnit, a test count other than the baseline's) = invalid; an 'expect: survive' entry passes only if it survives",
+  "runner_sha256": "5d00d42a24c26522745513646b27b23e5ac41137dc22d7dd7aa295e596a47471",
+  "shard": [
+    "RX-cost-b10-in-diagnostics",
+    "RX-cost-b10-lean-full",
+    "RX-cost-b10-whole-lean",
+    "RX-cost-lean-training",
+    "RX-cost-ref-eval-lean",
+    "RX-cost-split"
+  ],
+  "spec": "scripts/stage1_s1/reading_extra/mutation/mutants_reading_extra.json",
+  "spec_sha256": "b62978a4600bf647ca5dd826dfaccd982007860baadc75173ad1df04539230fe",
+  "summary": {
+    "cost_table": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 6,
+      "mutants": 6,
+      "survived": 0
+    }
+  },
+  "timeout_seconds": 600,
+  "tree_name": "scripts/stage1_s1/reading_extra",
+  "version": 2
+}

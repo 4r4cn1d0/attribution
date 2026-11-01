@@ -1,0 +1,1226 @@
+{
+  "kind": "stage1 mutants",
+  "version": 1,
+  "part": "B10 (scripts/stage1_s1/eval_adapter.py): settings, the Gate A reference, the fingerprint comparison, the recipe and regeneration, the plan, the prefix, the transforms, the preflight and evaluation, the certification comparison and the command line; run with scripts/stage1_s1/mutation/run_mutants_b10.py (T1's runner and rules, the stage1_s1 package); fix round: the verifier's 13 mutants (rebuilt from notes/B10-verify.md section 5.2) and the fix round's mutants (gate folder, exit status, the certification binding, the environment, the over-refusal bank, the reported config hash, the identity-transform certification)",
+  "mutants": [
+    {
+      "id": "B10-settings-label-entries",
+      "part": "B10 settings",
+      "describes": "a settings file that names registry entries is accepted",
+      "file": "eval_adapter.py",
+      "find": "if doc[\"label_entries\"] != {}:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-settings-hidden-bank",
+      "part": "B10 settings",
+      "describes": "the hidden bank accepted as the evaluation bank",
+      "file": "eval_adapter.py",
+      "find": "if prepared[\"bank\"] != \"dev\":",
+      "replace": "if prepared[\"bank\"] not in (\"dev\", \"hidden\"):"
+    },
+    {
+      "id": "B10-settings-checkpoint",
+      "part": "B10 settings",
+      "describes": "an e3 checkpoint accepted",
+      "file": "eval_adapter.py",
+      "find": "if doc[\"checkpoint\"] != \"e1\":",
+      "replace": "if doc[\"checkpoint\"] not in (\"e1\", \"e3\"):"
+    },
+    {
+      "id": "B10-settings-regen-job",
+      "part": "B10 settings",
+      "describes": "any regeneration job accepted (an evaluating or edit-arm job)",
+      "file": "eval_adapter.py",
+      "find": "if regen[\"job\"] != REGEN_JOB:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-settings-q-compared",
+      "part": "B10 settings",
+      "describes": "q no longer required among the compared checkpoints",
+      "file": "eval_adapter.py",
+      "find": "if not {\"q\", \"e1\"} <= set(_names(regen[\"compare_checkpoints\"]",
+      "replace": "if not {\"e1\"} <= set(_names(regen[\"compare_checkpoints\"]"
+    },
+    {
+      "id": "B10-settings-e1-prefix",
+      "part": "B10 settings",
+      "describes": "a reference without a pinned e1 fingerprint prefix accepted",
+      "file": "eval_adapter.py",
+      "find": "or \"e1\" not in prefixes\n",
+      "replace": "or False\n"
+    },
+    {
+      "id": "B10-settings-allowed-1",
+      "part": "B10 settings",
+      "describes": "a scale list without lambda = 1 accepted",
+      "file": "eval_adapter.py",
+      "find": "and len(set(allowed)) == len(allowed) and 1.0 in allowed):",
+      "replace": "and len(set(allowed)) == len(allowed)):"
+    },
+    {
+      "id": "B10-settings-planned-1",
+      "part": "B10 settings",
+      "describes": "lambda = 1 accepted as a planned scale point",
+      "file": "eval_adapter.py",
+      "find": "if 1.0 in scale[\"planned\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-settings-guard-sees",
+      "part": "B10 settings",
+      "describes": "a guard that sees the prefixed text accepted",
+      "file": "eval_adapter.py",
+      "find": "if prefix[\"guard_sees\"] != \"original user text\":",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-settings-gate-fields",
+      "part": "B10 settings",
+      "describes": "a certification gate without the valid flag accepted",
+      "file": "eval_adapter.py",
+      "find": "if not {\"valid\", \"safety\"} <= set(_names(cert[\"gate_fields\"]",
+      "replace": "if not {\"safety\"} <= set(_names(cert[\"gate_fields\"]"
+    },
+    {
+      "id": "B10-settings-count",
+      "part": "B10 settings",
+      "describes": "zero expected sampled answers accepted",
+      "file": "eval_adapter.py",
+      "find": "or count < 1:",
+      "replace": "or count < 0:"
+    },
+    {
+      "id": "B10-settings-separator",
+      "part": "B10 settings",
+      "describes": "a non-whitespace separator accepted",
+      "file": "eval_adapter.py",
+      "find": "or prefix[\"separator\"].strip() or len(prefix[\"separator\"]) > 8:",
+      "replace": "or len(prefix[\"separator\"]) > 8:"
+    },
+    {
+      "id": "B10-ref-hash",
+      "part": "B10 reference",
+      "describes": "the reference COMPLETE.json not checked against its pin",
+      "file": "eval_adapter.py",
+      "find": "if digest != entry[\"complete_sha256\"]:\n        raise Refusal(f\"the reference COMPLETE.json",
+      "replace": "if False:\n        raise Refusal(f\"the reference COMPLETE.json"
+    },
+    {
+      "id": "B10-ref-seed",
+      "part": "B10 reference",
+      "describes": "a reference of another seed accepted",
+      "file": "eval_adapter.py",
+      "find": "expected = {\"split\": \"dev\", \"arm\": \"a0\", \"seed\": seed, \"role\": \"development\"}",
+      "replace": "expected = {\"split\": \"dev\", \"arm\": \"a0\", \"role\": \"development\"}"
+    },
+    {
+      "id": "B10-ref-target",
+      "part": "B10 reference",
+      "describes": "a reference at another checkpoint accepted",
+      "file": "eval_adapter.py",
+      "find": "if marker.get(\"target_checkpoint\") != doc[\"checkpoint\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-ref-identity",
+      "part": "B10 reference",
+      "describes": "a reference of another data set or recipe accepted",
+      "file": "eval_adapter.py",
+      "find": "if wrong:\n        raise Refusal(f\"{what}: its identity differs",
+      "replace": "if False:\n        raise Refusal(f\"{what}: its identity differs"
+    },
+    {
+      "id": "B10-ref-prefix",
+      "part": "B10 reference",
+      "describes": "the pinned fingerprint prefixes not checked",
+      "file": "eval_adapter.py",
+      "find": "if prefix is not None and not _get(marker, \"checkpoints\", name, \"adapter_fingerprint\").startswith(prefix):",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-untuned-hash",
+      "part": "B10 reference",
+      "describes": "the untuned unit not checked against its pin",
+      "file": "eval_adapter.py",
+      "find": "if digest != entry[\"complete_sha256\"]:\n        raise Refusal(f\"the untuned unit",
+      "replace": "if False:\n        raise Refusal(f\"the untuned unit"
+    },
+    {
+      "id": "B10-fp-missing-equal",
+      "part": "B10 fingerprints",
+      "describes": "a field missing on both sides counts as equal",
+      "file": "eval_adapter.py",
+      "find": "return a is not _MISSING and b is not _MISSING and a == b",
+      "replace": "return a == b"
+    },
+    {
+      "id": "B10-fp-no-e1",
+      "part": "B10 fingerprints",
+      "describes": "the e1 checkpoint fields dropped from the comparison",
+      "file": "eval_adapter.py",
+      "find": "for name in regen[\"compare_checkpoints\"]:\n        for field in regen[\"compare_checkpoint_fields\"]:",
+      "replace": "for name in [n for n in regen[\"compare_checkpoints\"] if n != \"e1\"]:\n        for field in regen[\"compare_checkpoint_fields\"]:"
+    },
+    {
+      "id": "B10-fp-no-trajectory",
+      "part": "B10 fingerprints",
+      "describes": "the trajectory fields (stream, init state, rows) not compared",
+      "file": "eval_adapter.py",
+      "find": "required[f\"trajectory.{key}\"] = same(\"trajectory\", key)",
+      "replace": "required[f\"trajectory.{key}\"] = True"
+    },
+    {
+      "id": "B10-fp-any",
+      "part": "B10 fingerprints",
+      "describes": "one equal field is enough",
+      "file": "eval_adapter.py",
+      "find": "return {\"equal\": all(required.values()),",
+      "replace": "return {\"equal\": any(required.values()),"
+    },
+    {
+      "id": "B10-fp-optimizer-required",
+      "part": "B10 fingerprints",
+      "describes": "the report-only AdamW fingerprint made required",
+      "file": "eval_adapter.py",
+      "find": "report[f\"checkpoints.{name}.{field}\"] = same(\"checkpoints\", name, field)",
+      "replace": "required[f\"checkpoints.{name}.{field}\"] = same(\"checkpoints\", name, field)"
+    },
+    {
+      "id": "B10-recipe-check",
+      "part": "B10 recipe and regeneration",
+      "describes": "another recipe accepted",
+      "file": "eval_adapter.py",
+      "find": "if config_sha256(recipe) != doc[\"config_sha256\"] or training_identity(recipe) != doc[\"training_identity\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-recipe-tokens",
+      "part": "B10 recipe and regeneration",
+      "describes": "a recipe with trained token rows accepted",
+      "file": "eval_adapter.py",
+      "find": "if \"trainable_tokens\" in lora:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-recipe-file",
+      "part": "B10 recipe and regeneration",
+      "describes": "the recipe file not checked against its pin",
+      "file": "eval_adapter.py",
+      "find": "if digest != settings.doc[\"recipe\"][\"file_sha256\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-regen-overwrite",
+      "part": "B10 recipe and regeneration",
+      "describes": "a regeneration into a non-empty folder accepted",
+      "file": "eval_adapter.py",
+      "find": "if out_root.exists() and any(out_root.iterdir()):",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-regen-verdict",
+      "part": "B10 recipe and regeneration",
+      "describes": "a mismatching regeneration recorded as a match",
+      "file": "eval_adapter.py",
+      "find": "\"verdict\": \"match\" if report[\"equal\"] else \"mismatch\",",
+      "replace": "\"verdict\": \"match\","
+    },
+    {
+      "id": "B10-regen-registry",
+      "part": "B10 recipe and regeneration",
+      "describes": "the regeneration claims a trajectory in a registry",
+      "file": "eval_adapter.py",
+      "find": "runner.run_one(job, prepared_dir=prepared_dir, out_dir=run_dir, session=session)",
+      "replace": "runner.run_one(job, prepared_dir=prepared_dir, out_dir=run_dir, session=session, registry=out_root / \"registry.jsonl\")"
+    },
+    {
+      "id": "B10-regen-evaluates",
+      "part": "B10 recipe and regeneration",
+      "describes": "the regeneration also evaluates (not train-only)",
+      "file": "eval_adapter.py",
+      "find": "evaluate_bank=spec[\"evaluate_bank\"]",
+      "replace": "evaluate_bank=\"dev\""
+    },
+    {
+      "id": "B10-plan-scale-outside",
+      "part": "B10 plan",
+      "describes": "a scale other than 1 accepted outside the scale mode",
+      "file": "eval_adapter.py",
+      "find": "if mode != \"scale\" and lam != 1.0:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-plan-lambda-1",
+      "part": "B10 plan",
+      "describes": "lambda = 1 accepted as the scale mode",
+      "file": "eval_adapter.py",
+      "find": "if lam == 1.0:\n            raise Refusal(\"lambda = 1 is the certification mode\")",
+      "replace": "if False:\n            raise Refusal(\"lambda = 1 is the certification mode\")"
+    },
+    {
+      "id": "B10-plan-allowed",
+      "part": "B10 plan",
+      "describes": "a scale outside the allowed set accepted",
+      "file": "eval_adapter.py",
+      "find": "if lam not in doc[\"adapter_scale\"][\"allowed\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-plan-unpinned-prefix",
+      "part": "B10 plan",
+      "describes": "the prefix mode accepted before the text is pinned (C1)",
+      "file": "eval_adapter.py",
+      "find": "if doc[\"prefix\"][\"text_sha256\"] is None:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-plan-external-outside",
+      "part": "B10 plan",
+      "describes": "an external transform accepted outside the external mode",
+      "file": "eval_adapter.py",
+      "find": "if mode != \"external\" and (external is not None or any(a is not None for a in file_args)):",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-prefix-hash",
+      "part": "B10 prefix",
+      "describes": "the prefix file not checked against its pin",
+      "file": "eval_adapter.py",
+      "find": "if digest != pin[\"text_sha256\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-prefix-stripped",
+      "part": "B10 prefix",
+      "describes": "a prefix with outer spaces or carriage returns accepted",
+      "file": "eval_adapter.py",
+      "find": "if not text.strip() or text != text.strip() or \"\\r\" in text:",
+      "replace": "if not text.strip():"
+    },
+    {
+      "id": "B10-prefix-only-ignored",
+      "part": "B10 prefix",
+      "describes": "the prefix written into every user turn whatever apply_to says",
+      "file": "eval_adapter.py",
+      "find": "return self.insert + text if text in self.only else text",
+      "replace": "return self.insert + text"
+    },
+    {
+      "id": "B10-prefix-special",
+      "part": "B10 prefix",
+      "describes": "a prefix that encodes to a special token accepted",
+      "file": "eval_adapter.py",
+      "find": "if codec.has_special(codec.encode(insert)):",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-prefix-audit",
+      "part": "B10 prefix",
+      "describes": "an item whose original encoding differs from the token audit accepted",
+      "file": "eval_adapter.py",
+      "find": "if ids_sha256(base) != item[\"token_sha256\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-prefix-too-long",
+      "part": "B10 prefix",
+      "describes": "prompts made too long are dropped silently instead of refused",
+      "file": "eval_adapter.py",
+      "find": "if too_long:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-prefix-no-separator",
+      "part": "B10 prefix",
+      "describes": "the separator left out of the inserted text",
+      "file": "eval_adapter.py",
+      "find": "return {\"text\": text, \"sha256\": digest, \"insert\": text + pin[\"separator\"]}",
+      "replace": "return {\"text\": text, \"sha256\": digest, \"insert\": text}"
+    },
+    {
+      "id": "B10-prefix-task-rows",
+      "part": "B10 prefix",
+      "describes": "the task rows never prefixed",
+      "file": "eval_adapter.py",
+      "find": "if \"task_rows\" not in apply_to:",
+      "replace": "if True:"
+    },
+    {
+      "id": "B10-scale-signed-zero",
+      "part": "B10 transforms",
+      "describes": "lambda = 0 by multiplication (signed zeros, not the init state's B)",
+      "file": "eval_adapter.py",
+      "find": "scaled = torch.zeros_like(tensor) if lam == 0.0 else tensor * lam",
+      "replace": "scaled = tensor * lam"
+    },
+    {
+      "id": "B10-scale-lora-a",
+      "part": "B10 transforms",
+      "describes": "lora_A scaled too",
+      "file": "eval_adapter.py",
+      "find": "        if \".lora_B.\" in name:\n            scaled",
+      "replace": "        if \".lora_\" in name:\n            scaled"
+    },
+    {
+      "id": "B10-adapter-finite",
+      "part": "B10 transforms",
+      "describes": "a NaN or infinite tensor accepted",
+      "file": "eval_adapter.py",
+      "find": "if not bool(torch.isfinite(tensor).all()):",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-adapter-dtype",
+      "part": "B10 transforms",
+      "describes": "a non-float32 tensor accepted",
+      "file": "eval_adapter.py",
+      "find": "if not isinstance(tensor, torch.Tensor) or tensor.dtype != torch.float32:",
+      "replace": "if not isinstance(tensor, torch.Tensor):"
+    },
+    {
+      "id": "B10-adapter-count",
+      "part": "B10 transforms",
+      "describes": "byte changes not counted",
+      "file": "eval_adapter.py",
+      "find": "            changed[part] += 1",
+      "replace": "            pass"
+    },
+    {
+      "id": "B10-adapter-keep-a",
+      "part": "B10 transforms",
+      "describes": "a transform that must keep lora_A may change it",
+      "file": "eval_adapter.py",
+      "find": "if require_lora_a_unchanged and changed[\"lora_a\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-adapter-keys",
+      "part": "B10 transforms",
+      "describes": "the tensor names not checked",
+      "file": "eval_adapter.py",
+      "find": "if not isinstance(new, Mapping) or sorted(new) != sorted(source):",
+      "replace": "if not isinstance(new, Mapping):"
+    },
+    {
+      "id": "B10-record-string",
+      "part": "B10 transforms",
+      "describes": "a long string (text) accepted in a transform record",
+      "file": "eval_adapter.py",
+      "find": "if len(node) > RECORD_MAX_STRING:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-record-finite",
+      "part": "B10 transforms",
+      "describes": "a non-finite number accepted in a transform record",
+      "file": "eval_adapter.py",
+      "find": "if not math.isfinite(node):",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-module-hash",
+      "part": "B10 transforms",
+      "describes": "an allowlisted module or settings file not checked against its pin",
+      "file": "eval_adapter.py",
+      "find": "if sha256_bytes(data) != digest:\n        raise Refusal(f\"{what} hashes to",
+      "replace": "if False:\n        raise Refusal(f\"{what} hashes to"
+    },
+    {
+      "id": "B10-module-interface",
+      "part": "B10 transforms",
+      "describes": "a module without the transform interface accepted",
+      "file": "eval_adapter.py",
+      "find": "if getattr(module, \"INTERFACE\", None) != TRANSFORM_INTERFACE:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-callable-return",
+      "part": "B10 transforms",
+      "describes": "a callable that does not return (tensors, record) accepted",
+      "file": "eval_adapter.py",
+      "find": "if not (isinstance(result, tuple) and len(result) == 2):",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-file-source",
+      "part": "B10 transforms",
+      "describes": "an adapter file made from another source adapter accepted",
+      "file": "eval_adapter.py",
+      "find": "if fields[\"source_adapter_fingerprint\"] != source_fingerprint:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-file-transform",
+      "part": "B10 transforms",
+      "describes": "an adapter file made by another transform accepted",
+      "file": "eval_adapter.py",
+      "find": "if fields[\"transform_sha256\"] != entry[\"module_sha256\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-file-output",
+      "part": "B10 transforms",
+      "describes": "an adapter file whose tensors are not the record's output accepted",
+      "file": "eval_adapter.py",
+      "find": "if adapter_fingerprint(tensors) != fields[\"output_adapter_fingerprint\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-file-settings",
+      "part": "B10 transforms",
+      "describes": "an adapter file made with other settings than the transform's pinned ones accepted",
+      "file": "eval_adapter.py",
+      "find": "if fields[SETTINGS_RECORD_KEY] != entry[\"settings\"][\"sha256\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-settings-file-settings-key",
+      "part": "B10 settings",
+      "describes": "a file transform that pins settings accepted without the settings record key",
+      "file": "eval_adapter.py",
+      "find": "expected = RECORD_KEYS | ({SETTINGS_RECORD_KEY} if entry[\"settings\"] is not None else set())",
+      "replace": "expected = set(entry[\"record_keys\"]) if isinstance(entry[\"record_keys\"], dict) and RECORD_KEYS <= set(entry[\"record_keys\"]) else RECORD_KEYS"
+    },
+    {
+      "id": "B10-file-hash",
+      "part": "B10 transforms",
+      "describes": "the adapter file or record not checked against the given SHA-256",
+      "file": "eval_adapter.py",
+      "find": "if sha256_bytes(blobs[what]) != digest:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-pre-mismatch",
+      "part": "B10 preflight and evaluation",
+      "describes": "a source that differs from the Gate A record is evaluated",
+      "file": "eval_adapter.py",
+      "find": "if not report[\"equal\"]:\n        raise Mismatch(",
+      "replace": "if False:\n        raise Mismatch("
+    },
+    {
+      "id": "B10-pre-arm",
+      "part": "B10 preflight and evaluation",
+      "describes": "a source of another arm accepted (only the fingerprint check left)",
+      "file": "eval_adapter.py",
+      "find": "expected = {\"kind\": \"run-one\", \"split\": \"dev\", \"arm\": \"a0\", \"role\": \"development\", \"manifest_sha256\": manifest_sha}",
+      "replace": "expected = {\"kind\": \"run-one\", \"split\": \"dev\", \"role\": \"development\", \"manifest_sha256\": manifest_sha}"
+    },
+    {
+      "id": "B10-pre-state",
+      "part": "B10 preflight and evaluation",
+      "describes": "a source without an e1 state accepted (only the fingerprint check left)",
+      "file": "eval_adapter.py",
+      "find": "if f\"states/{checkpoint}/state.json\" not in marker[\"files\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-eval-seed",
+      "part": "B10 preflight and evaluation",
+      "describes": "the evaluation's job seed is not the source run's (other sampling streams)",
+      "file": "eval_adapter.py",
+      "find": "run_dir / \"eval\" / checkpoint, run_dir, checkpoint, ctx.seed,",
+      "replace": "run_dir / \"eval\" / checkpoint, run_dir, checkpoint, ctx.seed + 1,"
+    },
+    {
+      "id": "B10-eval-prefix-codec",
+      "part": "B10 preflight and evaluation",
+      "describes": "the prefixed items evaluated with the plain codec",
+      "file": "eval_adapter.py",
+      "find": "eval_policy = Policy(policy.model, policy.named, codec, policy.device, policy.identity)",
+      "replace": "eval_policy = policy"
+    },
+    {
+      "id": "B10-job-mode",
+      "part": "B10 preflight and evaluation",
+      "describes": "a job whose mode does not match its changes accepted",
+      "file": "eval_adapter.py",
+      "find": "if (job[\"mode\"] == \"certify\") != (job[\"adapter_scale\"] == 1.0 and job[\"prefix_sha256\"] is None",
+      "replace": "if False and (job[\"adapter_scale\"] == 1.0 and job[\"prefix_sha256\"] is None"
+    },
+    {
+      "id": "B10-cmp-differing",
+      "part": "B10 certification comparison",
+      "describes": "differing gate labels never counted",
+      "file": "eval_adapter.py",
+      "find": "differing = [k for k in common if any(reference_labels[k].get(f) != labels[k].get(f) for f in fields)]",
+      "replace": "differing = []"
+    },
+    {
+      "id": "B10-cmp-count",
+      "part": "B10 certification comparison",
+      "describes": "the expected answer count not required",
+      "file": "eval_adapter.py",
+      "find": "passed = (same_set and len(reference_labels) == cert[\"expected_sampled_answers\"] and not differing",
+      "replace": "passed = (same_set and not differing"
+    },
+    {
+      "id": "B10-cmp-ref-hash",
+      "part": "B10 certification comparison",
+      "describes": "a reference evaluation file not checked against the Gate A unit's list",
+      "file": "eval_adapter.py",
+      "find": "if files.get(key) != sha256_file(path):",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-cmp-mode",
+      "part": "B10 certification comparison",
+      "describes": "a non-certify unit compared with the Gate A unit",
+      "file": "eval_adapter.py",
+      "find": "if job[\"mode\"] != \"certify\":",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-cmp-untuned-mode",
+      "part": "B10 certification comparison",
+      "describes": "a unit other than lambda = 0 compared with the untuned unit",
+      "file": "eval_adapter.py",
+      "find": "if job[\"mode\"] != \"scale\" or job[\"adapter_scale\"] != 0.0:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-verify-receipt",
+      "part": "B10 certification comparison",
+      "describes": "a unit's source run replaced by another complete run goes unnoticed",
+      "file": "eval_adapter.py",
+      "find": "elif sha256_file(local / COMPLETE) != dep.get(\"complete_sha256\"):",
+      "replace": "elif False:"
+    },
+    {
+      "id": "B10-cli-mismatch-exit",
+      "part": "B10 command line",
+      "describes": "a mismatching regeneration exits 0",
+      "file": "eval_adapter.py",
+      "find": "return EXIT_OK if record[\"verdict\"] == \"match\" else EXIT_MISMATCH",
+      "replace": "return EXIT_OK"
+    },
+    {
+      "id": "B10-cli-gate",
+      "part": "B10 command line",
+      "describes": "a failed certification does not stop the references",
+      "file": "eval_adapter.py",
+      "find": "if report[\"verdict\"] != \"pass\":\n                out.update(exit=EXIT_CERTIFICATION",
+      "replace": "if False:\n                out.update(exit=EXIT_CERTIFICATION"
+    },
+    {
+      "id": "B10-cli-gate-first",
+      "part": "B10 command line",
+      "describes": "a gated run that does not start with certify accepted",
+      "file": "eval_adapter.py",
+      "find": "if gate_reference_eval is not None and plans[0].mode != \"certify\":",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10-cli-brief",
+      "part": "B10 command line",
+      "describes": "the printed brief carries the evaluation summary (outcome values)",
+      "file": "eval_adapter.py",
+      "find": "\"evaluated_adapter_fingerprint\", \"costs\")",
+      "replace": "\"evaluated_adapter_fingerprint\", \"costs\", \"evaluation\")"
+    },
+    {
+      "id": "V-cmp-same-set",
+      "part": "B10 verifier (rebuilt)",
+      "describes": "the gate passes without the same answer set",
+      "file": "eval_adapter.py",
+      "find": "passed = (same_set and len(reference_labels)",
+      "replace": "passed = (len(reference_labels)"
+    },
+    {
+      "id": "V-cmp-any-field",
+      "part": "B10 verifier (rebuilt)",
+      "describes": "an answer differs only if every gate field differs",
+      "file": "eval_adapter.py",
+      "find": "differing = [k for k in common if any(reference_labels[k].get(f) != labels[k].get(f) for f in fields)]",
+      "replace": "differing = [k for k in common if all(reference_labels[k].get(f) != labels[k].get(f) for f in fields)]"
+    },
+    {
+      "id": "V-cmp-untuned-seed",
+      "part": "B10 verifier (rebuilt)",
+      "describes": "a lambda = 0 unit of another seed is compared with the untuned unit",
+      "file": "eval_adapter.py",
+      "find": "        if reference[\"seed\"] != job[\"seed\"]:",
+      "replace": "        if False:"
+    },
+    {
+      "id": "V-cmp-ref-pin",
+      "part": "B10 verifier (rebuilt)",
+      "describes": "a unit evaluated against another reference pin is compared",
+      "file": "eval_adapter.py",
+      "find": "    if job[\"reference_complete_sha256\"] != (doc[\"reference_units\"][str(job[\"seed\"])][\"complete_sha256\"]):",
+      "replace": "    if False:"
+    },
+    {
+      "id": "V-cmp-untuned-ckpt",
+      "part": "B10 verifier (rebuilt)",
+      "describes": "the untuned comparison reads the e1 file list",
+      "file": "eval_adapter.py",
+      "find": "        ref_checkpoint = doc[\"untuned_unit\"][\"checkpoint\"]",
+      "replace": "        ref_checkpoint = doc[\"checkpoint\"]"
+    },
+    {
+      "id": "V-cmp-dup",
+      "part": "B10 verifier (rebuilt)",
+      "describes": "a file that repeats an answer id is accepted",
+      "file": "eval_adapter.py",
+      "find": "        if k in out:\n            raise Refusal(f\"{what} repeats an answer id\")",
+      "replace": "        if False:\n            raise Refusal(f\"{what} repeats an answer id\")"
+    },
+    {
+      "id": "V-prefix-arc-audit",
+      "part": "B10 verifier (rebuilt)",
+      "describes": "an ARC item's original encoding is not checked in prefix mode",
+      "file": "eval_adapter.py",
+      "find": "        if ids_sha256(base) != item[\"token_sha256\"]:",
+      "replace": "        if kind != \"arc_utility\" and ids_sha256(base) != item[\"token_sha256\"]:"
+    },
+    {
+      "id": "V-prefix-task-audit",
+      "part": "B10 verifier (rebuilt)",
+      "describes": "a task row's original encoding is not checked in prefix mode",
+      "file": "eval_adapter.py",
+      "find": "        base = runner._verified_example(codec, row[\"query_id\"], row, recipe)",
+      "replace": "        base = None if \"task_rows\" in apply_to else runner._verified_example(codec, row[\"query_id\"], row, recipe)"
+    },
+    {
+      "id": "V-prefix-guard-sees",
+      "part": "B10 verifier (rebuilt)",
+      "describes": "the bank item's prompt carries the prefix, so the guard sees it",
+      "file": "eval_adapter.py",
+      "find": "        out.append({**item, \"token_sha256\": ids_sha256(ids)})",
+      "replace": "        out.append({**item, \"token_sha256\": ids_sha256(ids), **({\"prompt\": insert + item[\"prompt\"]} if kind in apply_to and kind != \"arc_utility\" else {})})"
+    },
+    {
+      "id": "V-prefix-suffix",
+      "part": "B10 verifier (rebuilt)",
+      "describes": "the instruction goes after the user text",
+      "file": "eval_adapter.py",
+      "find": "        return self.insert + text if text in self.only else text",
+      "replace": "        return text + self.insert if text in self.only else text"
+    },
+    {
+      "id": "V-fp-skip-q",
+      "part": "B10 verifier (rebuilt)",
+      "describes": "the q checkpoint fields always count as equal",
+      "file": "eval_adapter.py",
+      "find": "            required[f\"checkpoints.{name}.{field}\"] = same(\"checkpoints\", name, field)",
+      "replace": "            required[f\"checkpoints.{name}.{field}\"] = True if name == \"q\" else same(\"checkpoints\", name, field)"
+    },
+    {
+      "id": "V-file-settings-bytes",
+      "part": "B10 verifier (rebuilt)",
+      "describes": "a file transform's settings file is not re-hashed at evaluation",
+      "file": "eval_adapter.py",
+      "find": "    if entry[\"settings\"] is not None:\n        _pinned_file(entry[\"settings\"][\"path\"], entry[\"settings\"][\"sha256\"], REPO,\n                     f\"external transform {plan.external}'s settings\")\n        if fields[SETTINGS_RECORD_KEY]",
+      "replace": "    if entry[\"settings\"] is not None:\n        if fields[SETTINGS_RECORD_KEY]"
+    },
+    {
+      "id": "V-callable-input-clone",
+      "part": "B10 verifier (rebuilt)",
+      "describes": "the callable gets the source tensors themselves",
+      "file": "eval_adapter.py",
+      "find": "                result = function({k: v.clone() for k, v in source.items()},",
+      "replace": "                result = function(source,"
+    },
+    {
+      "id": "B10F-gate-required",
+      "part": "B10 fix round",
+      "describes": "a gate folder without a required Gate A file accepted before the work",
+      "file": "eval_adapter.py",
+      "find": "            if name in cert[\"required_reference_files\"]:\n                raise Refusal(f\"the gate folder holds no",
+      "replace": "            if False:\n                raise Refusal(f\"the gate folder holds no"
+    },
+    {
+      "id": "B10F-gate-hash",
+      "part": "B10 fix round",
+      "describes": "a gate folder file with another SHA-256 accepted before the work",
+      "file": "eval_adapter.py",
+      "find": "        if files.get(f\"eval/{settings.doc['checkpoint']}/{name}\") != sha256_file(path):",
+      "replace": "        if False:"
+    },
+    {
+      "id": "B10F-gate-call",
+      "part": "B10 fix round",
+      "describes": "run_sequence does not check the gate folder before the regeneration",
+      "file": "eval_adapter.py",
+      "find": "        check_gate_folder(read_reference(reference_path, seed, settings), gate_reference_eval, settings)",
+      "replace": "        pass"
+    },
+    {
+      "id": "B10F-exit-footprint",
+      "part": "B10 fix round",
+      "describes": "a failure after this process wrote something exits 2 (\"nothing was written\")",
+      "file": "eval_adapter.py",
+      "find": "        if isinstance(exc, KeyboardInterrupt) or _footprint(outputs) != before:",
+      "replace": "        if isinstance(exc, KeyboardInterrupt):"
+    },
+    {
+      "id": "B10F-footprint-listing",
+      "part": "B10 fix round",
+      "describes": "a write into an existing empty output folder goes unseen",
+      "file": "eval_adapter.py",
+      "find": "            out[str(path)] = (\"folder\", tuple(sorted(os.listdir(path))))",
+      "replace": "            out[str(path)] = (\"folder\",)"
+    },
+    {
+      "id": "B10F-cmp-engine",
+      "part": "B10 fix round",
+      "describes": "a unit of another engine compared (S-2 (1))",
+      "file": "eval_adapter.py",
+      "find": "    if job[\"code_sha256\"] != doc[\"engine_x\"]:",
+      "replace": "    if False:"
+    },
+    {
+      "id": "B10F-cmp-script",
+      "part": "B10 fix round",
+      "describes": "a unit of another B10 script compared",
+      "file": "eval_adapter.py",
+      "find": "    if job[\"script_sha256\"] != sha256_file(Path(__file__).resolve()) or job[\"settings_sha256\"] != settings.sha256:",
+      "replace": "    if job[\"settings_sha256\"] != settings.sha256:"
+    },
+    {
+      "id": "B10F-cmp-settings",
+      "part": "B10 fix round",
+      "describes": "a unit of other B10 settings compared",
+      "file": "eval_adapter.py",
+      "find": "    if job[\"script_sha256\"] != sha256_file(Path(__file__).resolve()) or job[\"settings_sha256\"] != settings.sha256:",
+      "replace": "    if job[\"script_sha256\"] != sha256_file(Path(__file__).resolve()):"
+    },
+    {
+      "id": "B10F-cert-mode",
+      "part": "B10 fix round",
+      "describes": "an evaluation other than certify runs without a certification",
+      "file": "eval_adapter.py",
+      "find": "    if (plan.mode == \"certify\") != (certification is None):",
+      "replace": "    if plan.mode == \"certify\" and certification is not None:"
+    },
+    {
+      "id": "B10F-cert-certify-none",
+      "part": "B10 fix round",
+      "describes": "a certify evaluation accepts a certification report",
+      "file": "eval_adapter.py",
+      "find": "    if (plan.mode == \"certify\") != (certification is None):",
+      "replace": "    if plan.mode != \"certify\" and certification is None:"
+    },
+    {
+      "id": "B10F-cert-verdict",
+      "part": "B10 fix round",
+      "describes": "a report whose verdict is fail accepted as the certification",
+      "file": "eval_adapter.py",
+      "find": "    if (report.get(\"verdict\") != \"pass\" or gate.get(\"same_answer_set\") is not True",
+      "replace": "    if (gate.get(\"same_answer_set\") is not True"
+    },
+    {
+      "id": "B10F-cert-seed",
+      "part": "B10 fix round",
+      "describes": "a report of another seed accepted as the certification",
+      "file": "eval_adapter.py",
+      "find": "    if report.get(\"seed\") != seed or report.get(\"reference_complete_sha256\") != (",
+      "replace": "    if report.get(\"reference_complete_sha256\") != ("
+    },
+    {
+      "id": "B10F-cert-engine",
+      "part": "B10 fix round",
+      "describes": "a report made on another engine accepted",
+      "file": "eval_adapter.py",
+      "find": "    if certified.get(\"code_sha256\") != doc[\"engine_x\"]:",
+      "replace": "    if False:"
+    },
+    {
+      "id": "B10F-cert-code",
+      "part": "B10 fix round",
+      "describes": "a report made with other B10 code accepted",
+      "file": "eval_adapter.py",
+      "find": "    if certified.get(\"script_code_sha256\") != script_code_sha256():",
+      "replace": "    if False:"
+    },
+    {
+      "id": "B10F-cert-settings",
+      "part": "B10 fix round",
+      "describes": "a report made under other certified settings accepted",
+      "file": "eval_adapter.py",
+      "find": "    if certified.get(\"certified_settings_sha256\") != certified_settings_sha256(settings):",
+      "replace": "    if False:"
+    },
+    {
+      "id": "B10F-cert-env-fields",
+      "part": "B10 fix round",
+      "describes": "a report without the settings' environment fields accepted",
+      "file": "eval_adapter.py",
+      "find": "    if not isinstance(environment, dict) or set(environment) != set(doc[\"certification\"][\"environment_fields\"]):",
+      "replace": "    if not isinstance(environment, dict):"
+    },
+    {
+      "id": "B10F-certified-keys-narrow",
+      "part": "B10 fix round",
+      "describes": "the regeneration rule left out of the certified settings",
+      "file": "eval_adapter.py",
+      "find": "CERTIFIED_SETTINGS_KEYS = (\"engine_x\", \"recipe\", \"prepared\", \"checkpoint\", \"regeneration\", \"evaluation\",",
+      "replace": "CERTIFIED_SETTINGS_KEYS = (\"engine_x\", \"recipe\", \"prepared\", \"checkpoint\", \"evaluation\","
+    },
+    {
+      "id": "B10F-certified-keys-wide",
+      "part": "B10 fix round",
+      "describes": "the prefix pin made part of the certified settings (needless re-certification)",
+      "file": "eval_adapter.py",
+      "find": "CERTIFIED_SETTINGS_KEYS = (\"engine_x\", \"recipe\", \"prepared\", \"checkpoint\", \"regeneration\", \"evaluation\",",
+      "replace": "CERTIFIED_SETTINGS_KEYS = (\"engine_x\", \"recipe\", \"prepared\", \"checkpoint\", \"regeneration\", \"evaluation\", \"prefix\","
+    },
+    {
+      "id": "B10F-script-normalize",
+      "part": "B10 fix round",
+      "describes": "the script's code hash includes the settings literal",
+      "file": "eval_adapter.py",
+      "find": "    return sha256_bytes(normalized)",
+      "replace": "    return sha256_bytes(data)"
+    },
+    {
+      "id": "B10F-env-differ",
+      "part": "B10 fix round",
+      "describes": "another environment accepted",
+      "file": "eval_adapter.py",
+      "find": "    if differ:\n        raise Refusal(f\"this environment differs",
+      "replace": "    if False:\n        raise Refusal(f\"this environment differs"
+    },
+    {
+      "id": "B10F-env-lock",
+      "part": "B10 fix round",
+      "describes": "the pod's lock record left out of the environment comparison",
+      "file": "eval_adapter.py",
+      "find": "                               \"environment_lock\": lock[0] if lock is not None else None}, settings)",
+      "replace": "                               \"environment_lock\": None}, settings)"
+    },
+    {
+      "id": "B10F-env-in-evaluate",
+      "part": "B10 fix round",
+      "describes": "evaluate does not compare the environment before its folder",
+      "file": "eval_adapter.py",
+      "find": "        check_environment(ctx.certification, session, settings)        # before any folder",
+      "replace": "        pass"
+    },
+    {
+      "id": "B10F-env-report",
+      "part": "B10 fix round",
+      "describes": "the report does not carry the certification unit's environment",
+      "file": "eval_adapter.py",
+      "find": "            \"environment\": environment_fields(assets, settings),",
+      "replace": "            \"environment\": environment_fields({}, settings),"
+    },
+    {
+      "id": "B10F-run-needs-cert",
+      "part": "B10 fix round",
+      "describes": "a run with references and no certification starts training",
+      "file": "eval_adapter.py",
+      "find": "    if any(p.mode != \"certify\" for p in plans) and certification is None and not gated_here:",
+      "replace": "    if False:"
+    },
+    {
+      "id": "B10F-gated-here-seed",
+      "part": "B10 fix round",
+      "describes": "a gated run at another seed than the certification seed certifies its references",
+      "file": "eval_adapter.py",
+      "find": "    gated_here = gate_reference_eval is not None and seed == settings.doc[\"certification\"][\"seed\"]",
+      "replace": "    gated_here = gate_reference_eval is not None"
+    },
+    {
+      "id": "B10F-run-own-cert",
+      "part": "B10 fix round",
+      "describes": "a gated run at the certification seed does not use its own passing report",
+      "file": "eval_adapter.py",
+      "find": "            if gated_here:\n                certification = (report_path, sha256_file(report_path))",
+      "replace": "            if False:\n                certification = (report_path, sha256_file(report_path))"
+    },
+    {
+      "id": "B10F-run-env-check",
+      "part": "B10 fix round",
+      "describes": "a run reads the certification report only after the regeneration",
+      "file": "eval_adapter.py",
+      "find": "        check_environment(read_certification(*certification, settings), session, settings)",
+      "replace": "        pass"
+    },
+    {
+      "id": "B10F-job-cert-sha",
+      "part": "B10 fix round",
+      "describes": "a reference job does not name its certification report",
+      "file": "eval_adapter.py",
+      "find": "        \"certification_report_sha256\": ctx.certification[\"sha256\"] if ctx.certification else None,\n        \"oext\": _oext_job(ctx.oext)})",
+      "replace": "        \"certification_report_sha256\": None,\n        \"oext\": _oext_job(ctx.oext)})"
+    },
+    {
+      "id": "B10F-validate-job-cert",
+      "part": "B10 fix round",
+      "describes": "a non-certify job without a certification report SHA-256 accepted",
+      "file": "eval_adapter.py",
+      "find": "        _hex64(job[\"certification_report_sha256\"], \"job certification_report_sha256\")",
+      "replace": "        pass"
+    },
+    {
+      "id": "B10F-obank-plan",
+      "part": "B10 fix round",
+      "describes": "an open over-refusal bank lets the references run",
+      "file": "eval_adapter.py",
+      "find": "    if doc[\"overrefusal_bank\"][\"status\"] == \"open\" and (",
+      "replace": "    if False and ("
+    },
+    {
+      "id": "B10F-obank-scale0",
+      "part": "B10 fix round",
+      "describes": "an open over-refusal bank refuses the lambda = 0 certification point",
+      "file": "eval_adapter.py",
+      "find": "            mode == \"prefix\" or (mode == \"scale\" and lam != 0.0)",
+      "replace": "            mode == \"prefix\" or (mode == \"scale\")"
+    },
+    {
+      "id": "B10F-obank-file",
+      "part": "B10 fix round",
+      "describes": "an open over-refusal bank lets a changing transform file run",
+      "file": "eval_adapter.py",
+      "find": "            if (settings.doc[\"overrefusal_bank\"][\"status\"] == \"open\"",
+      "replace": "            if (False"
+    },
+    {
+      "id": "B10F-obank-file-identity",
+      "part": "B10 fix round",
+      "describes": "an open over-refusal bank refuses the identity file (K = 0)",
+      "file": "eval_adapter.py",
+      "find": "                    and fields[\"output_adapter_fingerprint\"] != ctx.source_fingerprint):",
+      "replace": "                    and True):"
+    },
+    {
+      "id": "B10F-obank-status",
+      "part": "B10 fix round",
+      "describes": "an unknown over-refusal bank status accepted",
+      "file": "eval_adapter.py",
+      "find": "    if obank[\"status\"] not in OBANK_STATUSES:",
+      "replace": "    if False:"
+    },
+    {
+      "id": "B10F-identity-compare",
+      "part": "B10 fix round",
+      "describes": "a reference's config hash required again (the strict rule, always)",
+      "file": "eval_adapter.py",
+      "find": "    expected = {k: _identity_pin(settings, k) for k in settings.doc[\"regeneration\"][\"compare_identity\"]}",
+      "replace": "    expected = {k: _identity_pin(settings, k) for k in IDENTITY_PINS}"
+    },
+    {
+      "id": "B10F-preflight-recipe",
+      "part": "B10 fix round",
+      "describes": "a source's config hash required again (the strict rule, always)",
+      "file": "eval_adapter.py",
+      "find": "    if \"recipe_sha256\" in settings.doc[\"regeneration\"][\"compare_identity\"]:",
+      "replace": "    if True:"
+    },
+    {
+      "id": "B10F-report-identity",
+      "part": "B10 fix round",
+      "describes": "the config hash not reported",
+      "file": "eval_adapter.py",
+      "find": "    for key in regen[\"report_identity\"]:\n        report[f\"identity.{key}\"]",
+      "replace": "    for key in []:\n        report[f\"identity.{key}\"]"
+    },
+    {
+      "id": "B10F-required-identity",
+      "part": "B10 fix round",
+      "describes": "a regeneration that does not compare the training identity accepted",
+      "file": "eval_adapter.py",
+      "find": "    if not REQUIRED_IDENTITY <= compared:",
+      "replace": "    if False:"
+    },
+    {
+      "id": "B10F-lock-field-required",
+      "part": "B10 fix round",
+      "describes": "certification environment fields without the pod's lock record accepted",
+      "file": "eval_adapter.py",
+      "find": "    if \"environment_lock.sha256\" not in fields:",
+      "replace": "    if False:"
+    },
+    {
+      "id": "B10F-cmp-identity-external",
+      "part": "B10 fix round",
+      "describes": "an external unit that changes the adapter compared with the Gate A unit",
+      "file": "eval_adapter.py",
+      "find": "            if (counts.get(\"changed_lora_a\") != 0 or counts.get(\"changed_lora_b\") != 0",
+      "replace": "            if False and (counts.get(\"changed_lora_a\") != 0 or counts.get(\"changed_lora_b\") != 0"
+    },
+    {
+      "id": "B10F-gate-report-overwrite",
+      "part": "B10 fix round",
+      "describes": "a gated run overwrites an earlier comparison file (some reference unit's binding report)",
+      "file": "eval_adapter.py",
+      "find": "    if any(t.exists() for t in targets) or (gate_reference_eval is not None and report_path.exists()):",
+      "replace": "    if any(t.exists() for t in targets):"
+    },
+    {
+      "id": "B10S-settings-key-not-compared",
+      "part": "B10 S1 rulings (addendum 11.5: the safe_lora entry and the B10+B11 integration)",
+      "describes": "a file record made with other settings than the allowlisted ones accepted",
+      "file": "eval_adapter.py",
+      "find": "if fields[SETTINGS_RECORD_KEY] != entry[\"settings\"][\"sha256\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10S-settings-key-not-required",
+      "part": "B10 S1 rulings (addendum 11.5: the safe_lora entry and the B10+B11 integration)",
+      "describes": "a file entry with a settings pin and without the fifth record key accepted",
+      "file": "eval_adapter.py",
+      "find": "expected = RECORD_KEYS | ({SETTINGS_RECORD_KEY} if entry[\"settings\"] is not None else set())",
+      "replace": "expected = set(entry[\"record_keys\"]) if isinstance(entry[\"record_keys\"], dict) else RECORD_KEYS"
+    },
+    {
+      "id": "B10S-entry-fifth-path",
+      "part": "B10 S1 rulings (addendum 11.5: the safe_lora entry and the B10+B11 integration)",
+      "describes": "the entry reads the fifth key from the script's SHA-256 (settings file)",
+      "file": "settings/eval_adapter.json",
+      "find": "\"transform_settings_sha256\": \"provenance.settings_sha256\"",
+      "replace": "\"transform_settings_sha256\": \"provenance.script_sha256\""
+    },
+    {
+      "id": "B10S-entry-lora-a-free",
+      "part": "B10 S1 rulings (addendum 11.5: the safe_lora entry and the B10+B11 integration)",
+      "describes": "the entry lets the transform change lora_A (settings file)",
+      "file": "settings/eval_adapter.json",
+      "find": "\"require_lora_a_unchanged\": true",
+      "replace": "\"require_lora_a_unchanged\": false"
+    },
+    {
+      "id": "B10S-entry-module-old",
+      "part": "B10 S1 rulings (addendum 11.5: the safe_lora entry and the B10+B11 integration)",
+      "describes": "the entry pins B11's module before the S1 rulings (33fffd6f...; settings file)",
+      "file": "settings/eval_adapter.json",
+      "find": "\"module_sha256\": \"5f6b782255f7207645659cc25ea8864c85aeb2d32533acab342175d0217757b4\"",
+      "replace": "\"module_sha256\": \"33fffd6f8ff1b6458f6a7a216164f8c5c7ac3c91cd52998398c036deaa13bee2\""
+    },
+    {
+      "id": "B10S-entry-settings-old",
+      "part": "B10 S1 rulings (addendum 11.5: the safe_lora entry and the B10+B11 integration)",
+      "describes": "the entry pins B11's settings before the S1 rulings (128fcdd1...; settings file)",
+      "file": "settings/eval_adapter.json",
+      "find": "\"sha256\": \"c5610c3d4f0a0809e391055d84697fd62b9a15cf16e0b1f63aee02b03b6d14cf\"",
+      "replace": "\"sha256\": \"128fcdd18bb1fa4093ce4ddbfe01c85805fa99ef0cedfcaedbd7bf18e477ea34\""
+    },
+    {
+      "id": "B10O-pending-plan",
+      "part": "B10 O-ext",
+      "describes": "make_plan accepts a reference under the pending branch",
+      "file": "eval_adapter.py",
+      "find": "if doc[\"overrefusal_bank\"][\"status\"] == \"oext_pinned\" and doc[\"oext\"][\"branch\"] == oe.PENDING and mode != \"certify\":",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10O-module-pin",
+      "part": "B10 O-ext",
+      "describes": "the O-ext module is not compared with its pin",
+      "file": "eval_adapter.py",
+      "find": "if oe.module_sha256() != pin[\"module_sha256\"]:\n        raise Refusal(\"the O-ext module is not the one",
+      "replace": "if False:\n        raise Refusal(\"the O-ext module is not the one"
+    },
+    {
+      "id": "B10O-branch-pin",
+      "part": "B10 O-ext",
+      "describes": "the O-ext settings' branch is not compared with B10's pinned branch",
+      "file": "eval_adapter.py",
+      "find": "if oext.settings.sha256 != pin[\"settings\"][\"sha256\"] or oext.branch != pin[\"branch\"]:\n        raise Refusal(\"the O-ext settings (or their branch) are not the ones these settings pin\")\n    if not oext.runs and any(",
+      "replace": "if oext.settings.sha256 != pin[\"settings\"][\"sha256\"]:\n        raise Refusal(\"the O-ext settings (or their branch) are not the ones these settings pin\")\n    if not oext.runs and any("
+    },
+    {
+      "id": "B10O-inputs-under-other-status",
+      "part": "B10 O-ext",
+      "describes": "O-ext inputs are taken under another over-refusal status",
+      "file": "eval_adapter.py",
+      "find": "if oext is not None:\n            raise Refusal(f\"O-ext inputs were given, but the over-refusal bank status",
+      "replace": "if False:\n            raise Refusal(f\"O-ext inputs were given, but the over-refusal bank status"
+    },
+    {
+      "id": "B10O-preflight-pending",
+      "part": "B10 O-ext",
+      "describes": "the preflight lets a reference run under the pending branch",
+      "file": "eval_adapter.py",
+      "find": "if not oext.runs and any(mode != \"certify\" for mode in modes):",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10O-pending-runs-oext",
+      "part": "B10 O-ext",
+      "describes": "O-ext is called under the pending branch",
+      "file": "eval_adapter.py",
+      "find": "if ctx.oext.runs:                      # after the engine",
+      "replace": "if True:                      # after the engine"
+    },
+    {
+      "id": "B10O-prefix-not-extended",
+      "part": "B10 O-ext",
+      "describes": "the prefix mode leaves the PHTest prompts without the prefix",
+      "file": "eval_adapter.py",
+      "find": "if \"overrefusal\" in settings.doc[\"prefix\"][\"apply_to\"]:\n        return dataclasses.replace(",
+      "replace": "if False:\n        return dataclasses.replace("
+    },
+    {
+      "id": "B10O-job-without-oext",
+      "part": "B10 O-ext",
+      "describes": "the job does not name its O-ext pins",
+      "file": "eval_adapter.py",
+      "find": "\"oext\": _oext_job(ctx.oext)})",
+      "replace": "\"oext\": None})"
+    },
+    {
+      "id": "B10O-cli-files-under-other-status",
+      "part": "B10 O-ext",
+      "describes": "the command line takes O-ext files under another status",
+      "file": "eval_adapter.py",
+      "find": "if any(p is not None for p in paths):\n            raise Refusal(\"--oext-bank, --oext-record and --w1-18-record belong to the status",
+      "replace": "if False:\n            raise Refusal(\"--oext-bank, --oext-record and --w1-18-record belong to the status"
+    },
+    {
+      "id": "B10O-job-oext-unchecked",
+      "part": "B10 O-ext",
+      "describes": "a job's oext block is not validated",
+      "file": "eval_adapter.py",
+      "find": "if job[\"oext\"] is not None:\n        _keys(job[\"oext\"], OEXT_JOB_KEYS",
+      "replace": "if False:\n        _keys(job[\"oext\"], OEXT_JOB_KEYS"
+    },
+    {
+      "id": "B10O-settings-outputs-unchecked",
+      "part": "B10 O-ext",
+      "describes": "the settings' O-ext outputs are not checked",
+      "file": "eval_adapter.py",
+      "find": "if oext[\"outputs\"] != list(oe.OUTPUT_FILES):",
+      "replace": "if False:"
+    },
+    {
+      "id": "B10O-dev-part-short",
+      "part": "B10 O-ext",
+      "describes": "the dev part leaves out one of the engine's over-refusal answers",
+      "file": "eval_adapter.py",
+      "find": "dev, dev_inputs = oe.dev_answers_from_eval(folder, items)",
+      "replace": "dev, dev_inputs = oe.dev_answers_from_eval(folder, [i for i in items if i[\"kind\"] != \"overrefusal\"] + [i for i in items if i[\"kind\"] == \"overrefusal\"][1:])"
+    },
+    {
+      "id": "B10O-prefix-collision-unchecked",
+      "part": "O-ext codec",
+      "describes": "in the prefix mode without over-refusal, a PHTest prompt that is also a prefixed text of another kind is not refused (review probe RV-prefix-collision-unchecked)",
+      "file": "eval_adapter.py",
+      "find": "if texts & codec.only:",
+      "replace": "if False:"
+    },
+    {
+      "id": "FIX-layout-b10-no-stage1-copy",
+      "part": "layout",
+      "describes": "B10's wrapper copies only scripts/stage1_s1 into a run copy",
+      "file": "mutation/run_mutants_b10.py",
+      "find": "    shutil.copytree(t1.STAGE1, copy / \"scripts\" / \"stage1\", ignore=ignore)\n",
+      "replace": "    pass\n"
+    },
+    {
+      "id": "FIX-layout-mirror-default-workspace",
+      "part": "layout",
+      "describes": "test_b17_mirror builds the mirror from the tool's default workspace (the run copy, which has no experiments/)",
+      "file": "tests/test_b17_mirror.py",
+      "find": "record = mirror_tool.build_mirror(tmp_path / \"mirror\", workspace)",
+      "replace": "record = mirror_tool.build_mirror(tmp_path / \"mirror\")"
+    }
+  ],
+  "s1_rulings": "S1 small rulings (2026-10-23): 6 mutants added (ids B10S-*), addendum section 11 points 5, 6, 8, 10 and 12 and section 13 point 3",
+  "oext": "S1 O-ext (2026-10-23): 12 mutants added (ids B10O-*), addendum section 11 point 1 and section 13 (B10's O-ext call and pins)",
+  "s1_fix": "S1 FIX (2026-10-23; notes/s1-fix.json): mutants for the review's findings 1-5 (the W1-18 binding by bytes, LN-14's transfer report, the one mutation layout, the S-p label of addendum 11.11, four O-ext safety rules)"
+}

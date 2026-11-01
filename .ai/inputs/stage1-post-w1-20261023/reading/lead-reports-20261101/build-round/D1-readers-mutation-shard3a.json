@@ -1,0 +1,222 @@
+{
+  "baseline": {
+    "disk_full": false,
+    "erroring": [],
+    "errors": 0,
+    "exit": 0,
+    "failing": [],
+    "failures": 0,
+    "outcome": "pass",
+    "seconds": 44.1,
+    "skipped": 0,
+    "targets": {},
+    "tests": 101,
+    "tree": {
+      "__init__.py": "b7e3087201412f9572ab82d70c18dd8c2ae4516412f7c4090166d83e0d0b9804",
+      "cap_reports.py": "6d4259268606deeb7c5cc36628b15f8f6de6619f4472c326d8fe65b66bf6a63a",
+      "common.py": "087a4c0c555bed236b2b465298bcf1aa5ff58a3f20effae923fded1545272d67",
+      "cost_table.py": "4cfe186091f960e2df44478a49b6ee167075d604fad686bf26d3797e62c88792",
+      "fk_power.py": "28d4647341c04f793762faa61def92453b886a37fa1e7eca9bb51bd2c2a45819",
+      "mutation/mutants_reading_extra.json": "1b7bfd84abc2cdeaf961bf6129c104ed91941a80b8e4ccd78b5cf37c4328587b",
+      "mutation/run_mutants.py": "5d00d42a24c26522745513646b27b23e5ac41137dc22d7dd7aa295e596a47471",
+      "sa_shift.py": "d3bf468f0e88f2c94776144a7dd55fba3be2e80a779314ae4d098366ecce0b2a",
+      "stage3_pick.py": "f6236e9ec4f6b0bf3e5737249f20aa16dc4d649905399307f347951a9181f03f",
+      "tests/conftest.py": "17e7f9a40126c203f3a8d0432a26505e6ba6f5c6f332981e23ad24e997418fa4",
+      "tests/extra_kit.py": "fcd14f6cd7f2a4956ed457e2b6df1678594a556703179f1b98012158ec9985cd",
+      "tests/test_cap_reports.py": "d8db4aa38727c6794ec5a8cc726786c1fdc96b0f1c8c7dad0f11d6be962ed442",
+      "tests/test_cost_table.py": "f37c2cd2d53350098ef13b8bb6469bdc43c7a26e584dc2c9f4eb2a5ed62be425",
+      "tests/test_fk_power.py": "d0bfc3eb27ac42cf4d01e182ec293a9f7f62c12c54bfe530f35bb17087d25978",
+      "tests/test_sa_shift.py": "f782fa3e1ecde59a8f934704742ae9a1362cf19753455a3d712b7e948e3c8f66",
+      "tests/test_stage3_pick.py": "6b5aa20aa9699c400902406db1f4a01b363c67fe516e8d0587492943080c1c6c"
+    }
+  },
+  "command": "python -B -m pytest -q -rs -p no:cacheprovider -W ignore --basetemp=<run>/bt --junitxml=<run>/junit.xml <copy>/scripts/stage1_s1/reading_extra/tests (cwd <copy>; PYTHONPATH <copy>:<workspace>; PYTHONDONTWRITEBYTECODE=1)",
+  "dose_axis_sha256": "d258ee595709a99a7e4b5cd54b3a308ebae1a156cb144dccea22e26e44acbbe1",
+  "environment_removed": [
+    "PYTEST_ADDOPTS",
+    "PYTEST_PLUGINS"
+  ],
+  "kind": "stage1 mutation report",
+  "min_free_gb": 3.0,
+  "mutants": [
+    {
+      "describes": "the item part divides by P - 1",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_fk_power::test_the_formula_equals_the_statistics_reviews_script",
+        "scripts.stage1_s1.reading_extra.tests.test_fk_power::test_the_formula_by_hand_at_another_j"
+      ],
+      "failures": 2,
+      "id": "RX-fk-item-part",
+      "outcome": "killed",
+      "part": "fk_power",
+      "seconds": 84.1,
+      "skipped": 0,
+      "targets": {
+        "fk_power.py": {
+          "after": "1c5854e320a7dfc649c0423338bdb922ca053165e6fdd22f7a775cfd8d4ca0b6",
+          "before": "28d4647341c04f793762faa61def92453b886a37fa1e7eca9bb51bd2c2a45819"
+        }
+      },
+      "tests": 101
+    },
+    {
+      "describes": "B16's output is not bound to the input document read",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_fk_power::test_the_input_must_be_b16s_input"
+      ],
+      "failures": 1,
+      "id": "RX-fk-binding",
+      "outcome": "killed",
+      "part": "fk_power",
+      "seconds": 91.9,
+      "skipped": 0,
+      "targets": {
+        "fk_power.py": {
+          "after": "a37ccecb7147778b662e606dc49e52c4877229db548f5d7328a90f095975e114",
+          "before": "28d4647341c04f793762faa61def92453b886a37fa1e7eca9bb51bd2c2a45819"
+        }
+      },
+      "tests": 101
+    },
+    {
+      "describes": "ties go to the higher P index",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_stage3_pick::test_the_rule_by_hand[plan5-want5]",
+        "scripts.stage1_s1.reading_extra.tests.test_stage3_pick::test_the_rule_by_hand[plan6-want6]",
+        "scripts.stage1_s1.reading_extra.tests.test_stage3_pick::test_the_rule_by_hand[plan7-want7]"
+      ],
+      "failures": 3,
+      "id": "RX-pick-ties",
+      "outcome": "killed",
+      "part": "stage3_pick",
+      "seconds": 91.0,
+      "skipped": 0,
+      "targets": {
+        "stage3_pick.py": {
+          "after": "0706ebc660ece1b567dbab235917359795543b83cae39b1d8679e7d7759848a8",
+          "before": "f6236e9ec4f6b0bf3e5737249f20aa16dc4d649905399307f347951a9181f03f"
+        }
+      },
+      "tests": 101
+    },
+    {
+      "describes": "the shift is HB - S-a",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_sa_shift::test_the_measured_shift_by_hand[plan_a_block_a_only]",
+        "scripts.stage1_s1.reading_extra.tests.test_sa_shift::test_the_measured_shift_by_hand[plan_a]",
+        "scripts.stage1_s1.reading_extra.tests.test_sa_shift::test_the_direction_words"
+      ],
+      "failures": 3,
+      "id": "RX-sa-sign",
+      "outcome": "killed",
+      "part": "sa_shift",
+      "seconds": 81.1,
+      "skipped": 0,
+      "targets": {
+        "sa_shift.py": {
+          "after": "cf9e43b310f9d79c2f8e7f99c8d83d55517b0b07f0cb26b9b0c81a85989d9b42",
+          "before": "d3bf468f0e88f2c94776144a7dd55fba3be2e80a779314ae4d098366ecce0b2a"
+        }
+      },
+      "tests": 101
+    },
+    {
+      "describes": "the count-move bar is strict",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.reading_extra.tests.test_cap_reports::test_the_bar_at_its_edges[396-50-42-True]"
+      ],
+      "failures": 1,
+      "id": "RX-cap-bar-move",
+      "outcome": "killed",
+      "part": "cap_reports",
+      "seconds": 60.4,
+      "skipped": 0,
+      "targets": {
+        "cap_reports.py": {
+          "after": "ffdac698e44110b084bc823f060d5ddd2474e5f65d5de0a2022dc2d0f8035e03",
+          "before": "6d4259268606deeb7c5cc36628b15f8f6de6619f4472c326d8fe65b66bf6a63a"
+        }
+      },
+      "tests": 101
+    }
+  ],
+  "pytest_version": "pytest 8.4.2",
+  "python": "3.11.15",
+  "rule": "killed = exit 1 with >= 1 failure and 0 errors; survived = exit 0, 0 failures, 0 errors; anything else (errors, timeout, other exit codes, no JUnit, a test count other than the baseline's) = invalid; an 'expect: survive' entry passes only if it survives",
+  "runner_sha256": "5d00d42a24c26522745513646b27b23e5ac41137dc22d7dd7aa295e596a47471",
+  "shard": [
+    "RX-cap-bar-move",
+    "RX-fk-binding",
+    "RX-fk-item-part",
+    "RX-pick-ties",
+    "RX-sa-sign"
+  ],
+  "spec": "scripts/stage1_s1/reading_extra/mutation/mutants_reading_extra.json",
+  "spec_sha256": "1b7bfd84abc2cdeaf961bf6129c104ed91941a80b8e4ccd78b5cf37c4328587b",
+  "summary": {
+    "cap_reports": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 1,
+      "mutants": 1,
+      "survived": 0
+    },
+    "fk_power": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 2,
+      "mutants": 2,
+      "survived": 0
+    },
+    "sa_shift": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 1,
+      "mutants": 1,
+      "survived": 0
+    },
+    "stage3_pick": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 1,
+      "mutants": 1,
+      "survived": 0
+    }
+  },
+  "timeout_seconds": 300,
+  "tree_name": "scripts/stage1_s1/reading_extra",
+  "version": 2
+}

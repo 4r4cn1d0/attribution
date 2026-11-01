@@ -1,0 +1,447 @@
+{
+  "kind": "stage1 mutants",
+  "version": 1,
+  "part": "the O-ext unit runner (scripts/stage1_s1/oext_unit.py; addendum section 20 point 5, section 11 points 1 and 7, section 13, section 24 point 2; LN-12, LN-14, LN-19; B15 brief Q15): the pending branch, LN-14's state and branch, the state options, the dev-100 routes, the source unit, the unit, the recipe, the prepared set, theta0's disabled adapter, the seal, the record, the folder, the O-ext pins, the exit codes, the settings and B15's contract; with the fix round's mutants (the verifiers' 12 + 1 and 4 more: notes/oext-unit-fix.json); run with scripts/stage1_s1/mutation/run_mutants_b10.py (T1's runner and rules on the stage1_s1 package, the committed layout of addendum section 24 point 1: the whole scripts/stage1_s1/tests suite per run); G1 (addendum section 34 point 3): the engine-Y copy oext_unit_y.py's two settings pins (OUY-*, killed by tests/test_oext_unit_y.py)",
+  "mutants": [
+    {
+      "id": "OU-pending-not-first",
+      "part": "the pending branch",
+      "describes": "the pending branch is not refused first (oext_eval's prepare refuses it later with another message)",
+      "file": "oext_unit.py",
+      "find": "if branch == oe.PENDING:",
+      "replace": "if branch == \"never\":"
+    },
+    {
+      "id": "OU-transfer-takes-run",
+      "part": "LN-14",
+      "describes": "the transfer report runs on an engine unit's state, not theta0's",
+      "file": "oext_unit.py",
+      "find": "        if not untuned:\n            raise Refusal(\"LN-14's",
+      "replace": "        if False:\n            raise Refusal(\"LN-14's"
+    },
+    {
+      "id": "OU-transfer-any-branch",
+      "part": "LN-14",
+      "describes": "the transfer report is not refused first under Branch full",
+      "file": "oext_unit.py",
+      "find": "if branch != \"128\":",
+      "replace": "if False:"
+    },
+    {
+      "id": "OU-checkpoint-defaulted",
+      "part": "the state",
+      "describes": "--run without --checkpoint takes e1 silently",
+      "file": "oext_unit.py",
+      "find": "    if checkpoint is None:\n        raise Refusal(\"--run needs --checkpoint (the state the unit saved)\")",
+      "replace": "    checkpoint = checkpoint or \"e1\""
+    },
+    {
+      "id": "OU-untuned-takes-checkpoint",
+      "part": "the state",
+      "describes": "--untuned accepts a --checkpoint",
+      "file": "oext_unit.py",
+      "find": "if untuned and (checkpoint is not None or dev100_source is not None):",
+      "replace": "if untuned and dev100_source is not None:"
+    },
+    {
+      "id": "OU-128-regen-generates",
+      "part": "the dev-100 route",
+      "describes": "Branch 128 on a train-only unit without a source generates the dev 100 instead of refusing (LN-19, Q15)",
+      "file": "oext_unit.py",
+      "find": "        elif branch == \"128\":",
+      "replace": "        elif branch == \"128\" and dev100_source is not None:"
+    },
+    {
+      "id": "OU-full-takes-source",
+      "part": "the dev-100 route",
+      "describes": "Branch full on a train-only unit accepts (and ignores) a source",
+      "file": "oext_unit.py",
+      "find": "            if dev100_source is not None:\n                raise Refusal(\"Branch full:",
+      "replace": "            if False:\n                raise Refusal(\"Branch full:"
+    },
+    {
+      "id": "OU-evaluated-takes-source",
+      "part": "the dev-100 route",
+      "describes": "a dev-evaluated unit accepts a source unit",
+      "file": "oext_unit.py",
+      "find": "            if dev100_source is not None:\n                raise Refusal(\"the unit holds",
+      "replace": "            if False:\n                raise Refusal(\"the unit holds"
+    },
+    {
+      "id": "OU-source-fingerprint-unchecked",
+      "part": "the source unit",
+      "describes": "the source's adapter fingerprint is not compared (LN-12)",
+      "file": "oext_unit.py",
+      "find": "if fingerprint != unit.fingerprint:",
+      "replace": "if fingerprint is None:"
+    },
+    {
+      "id": "OU-source-seed-unchecked",
+      "part": "the source unit",
+      "describes": "the source's seed is not compared",
+      "file": "oext_unit.py",
+      "find": " \"seed\": unit.stored[\"seed\"],",
+      "replace": ""
+    },
+    {
+      "id": "OU-source-extra-file",
+      "part": "the source unit",
+      "describes": "a file of the source that its COMPLETE.json does not list is accepted",
+      "file": "oext_unit.py",
+      "find": "if marker[\"files\"].get(name) != digest)",
+      "replace": "if name in marker[\"files\"] and marker[\"files\"][name] != digest)"
+    },
+    {
+      "id": "OU-source-job-hash",
+      "part": "the source unit",
+      "describes": "the source's job.json is not checked against the marker's job_sha256",
+      "file": "oext_unit.py",
+      "find": "if sha256_file(folder / \"job.json\") != marker.get(\"job_sha256\"):",
+      "replace": "if False:"
+    },
+    {
+      "id": "OU-source-required-files",
+      "part": "the source unit",
+      "describes": "a source without a required file is accepted",
+      "file": "oext_unit.py",
+      "find": "missing = [name for name in required if not (folder / name).is_file()]",
+      "replace": "missing = []"
+    },
+    {
+      "id": "OU-source-from-unit",
+      "part": "the dev-100 route",
+      "describes": "the source route reads the regenerated unit's folder",
+      "file": "oext_unit.py",
+      "find": "        root, listed = plan.source.path, plan.source.marker[\"files\"]",
+      "replace": "        root, listed = plan.unit.path, plan.unit.marker[\"files\"]"
+    },
+    {
+      "id": "OU-unit-recipe-config",
+      "part": "the unit",
+      "describes": "the recipe's config is not compared with the unit's",
+      "file": "oext_unit.py",
+      "find": "if identity[\"recipe_sha256\"] != recipe_sha256 or identity[\"training_identity\"]",
+      "replace": "if identity[\"training_identity\"]"
+    },
+    {
+      "id": "OU-unit-engine",
+      "part": "the unit",
+      "describes": "a unit made on another engine is accepted",
+      "file": "oext_unit.py",
+      "find": "if identity[\"code_sha256\"] != code_identity()[\"sha256\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "OU-unit-target",
+      "part": "the unit",
+      "describes": "the unit's target checkpoint is not compared",
+      "file": "oext_unit.py",
+      "find": ", \"target_checkpoint\": checkpoint}\n    wrong",
+      "replace": "}\n    wrong"
+    },
+    {
+      "id": "OU-recipe-allowed",
+      "part": "the recipe",
+      "describes": "a recipe outside the allowed configs is accepted",
+      "file": "oext_unit.py",
+      "find": "if digest not in pins[\"allowed\"].values():",
+      "replace": "if False:"
+    },
+    {
+      "id": "OU-recipe-generation",
+      "part": "the recipe",
+      "describes": "the generation block (one cap) is not compared",
+      "file": "oext_unit.py",
+      "find": "if sha256_bytes(canonical_json(recipe[\"generation\"])) != pins[\"generation_sha256\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "OU-recipe-guard",
+      "part": "the recipe",
+      "describes": "the guard block (one judge) is not compared",
+      "file": "oext_unit.py",
+      "find": "if sha256_bytes(canonical_json(recipe[\"guard\"])) != pins[\"guard_sha256\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "OU-manifest-unpinned",
+      "part": "the prepared set",
+      "describes": "the prepared manifest is read without its pin",
+      "file": "oext_unit.py",
+      "find": "read_manifest(prepared_dir, pinned[\"manifest_sha256\"])",
+      "replace": "read_manifest(prepared_dir)"
+    },
+    {
+      "id": "OU-dev-count",
+      "part": "the prepared set",
+      "describes": "a dev bank of another over-refusal count is accepted before the folder",
+      "file": "oext_unit.py",
+      "find": "if len(dev_items) != oext_settings.doc[\"bank\"][\"dev100\"][\"prompts\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "OU-theta0-adapter-on",
+      "part": "theta0",
+      "describes": "theta0 runs with the adapter on",
+      "file": "oext_unit.py",
+      "find": "adapter_off = policy.model.disable_adapter()",
+      "replace": "adapter_off = contextlib.nullcontext()"
+    },
+    {
+      "id": "OU-dev-generated-at-cut",
+      "part": "the dev-100 route",
+      "describes": "the generated dev 100 is made at the cut, not the recipe's cap",
+      "file": "oext_unit.py",
+      "find": "                policy.model, prompts, max_new_tokens=gen[\"max_new_tokens\"], stop_ids=codec.stop_ids,",
+      "replace": "                policy.model, prompts, max_new_tokens=min(gen[\"max_new_tokens\"], 3), stop_ids=codec.stop_ids,"
+    },
+    {
+      "id": "OU-stdout-outcome",
+      "part": "the seal",
+      "describes": "stdout carries an outcome block",
+      "file": "oext_unit.py",
+      "find": "\"prompts\": dict(result[\"prompts\"]),\n",
+      "replace": "\"prompts\": dict(result[\"prompts\"]), \"o\": result.get(\"summary_file\"),\n"
+    },
+    {
+      "id": "OU-answer-file-dropped",
+      "part": "the record",
+      "describes": "the generated dev-100 files are left out of the record's answer files",
+      "file": "oext_unit.py",
+      "find": "for rel in ANSWER_FILES if (run_dir / rel).is_file()}",
+      "replace": "for rel in ANSWER_FILES[2:] if (run_dir / rel).is_file()}"
+    },
+    {
+      "id": "OU-scan-off",
+      "part": "the seal",
+      "describes": "the text scan is not run",
+      "file": "oext_unit.py",
+      "find": "_scan(run_dir, texts, canonical_json(result))",
+      "replace": "None"
+    },
+    {
+      "id": "OU-out-exists-late",
+      "part": "the folder",
+      "describes": "an existing --out is found only when the folder is made (exit 1)",
+      "file": "oext_unit.py",
+      "find": "    if out.exists():\n        raise Refusal(f\"{out} exists",
+      "replace": "    if False:\n        raise Refusal(f\"{out} exists"
+    },
+    {
+      "id": "OU-module-pin",
+      "part": "the O-ext pins",
+      "describes": "the O-ext module is not compared with its pin",
+      "file": "oext_unit.py",
+      "find": "if oe.module_sha256() != pin[\"module_sha256\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "OU-oext-settings-pin",
+      "part": "the O-ext pins",
+      "describes": "the O-ext settings are not compared with their pin",
+      "file": "oext_unit.py",
+      "find": "if oext_settings.sha256 != pin[\"settings\"][\"sha256\"]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "OU-exit-refused-as-failed",
+      "part": "the exit codes",
+      "describes": "a refusal before the folder exits 1",
+      "file": "oext_unit.py",
+      "find": "        return EXIT_REFUSED\n    try:",
+      "replace": "        return EXIT_FAILED\n    try:"
+    },
+    {
+      "id": "OU-settings-literal",
+      "part": "the settings",
+      "describes": "another settings SHA-256 literal",
+      "file": "oext_unit.py",
+      "find": "SETTINGS_SHA256 = \"3959eae7264f56f613f5d7cd54e69081d8985ef7cbce2962243f6685e3581189\"",
+      "replace": "SETTINGS_SHA256 = \"1959eae7264f56f613f5d7cd54e69081d8985ef7cbce2962243f6685e3581189\""
+    },
+    {
+      "id": "OU-settings-checkpoints",
+      "part": "the settings",
+      "describes": "a unit checkpoint outside B15's contract is accepted",
+      "file": "oext_unit.py",
+      "find": "not set(unit[\"checkpoints\"]) <= set(CONTRACT_CHECKPOINTS)",
+      "replace": "False"
+    },
+    {
+      "id": "OU-parser-checkpoint-free",
+      "part": "the contract",
+      "describes": "--checkpoint takes any value",
+      "file": "oext_unit.py",
+      "find": "p.add_argument(\"--checkpoint\", choices=CONTRACT_CHECKPOINTS)",
+      "replace": "p.add_argument(\"--checkpoint\")"
+    },
+    {
+      "id": "OU-parser-w1-18-required",
+      "part": "the contract",
+      "describes": "--w1-18-record is required (the kit passes it only when packed)",
+      "file": "oext_unit.py",
+      "find": "p.add_argument(\"--w1-18-record\")",
+      "replace": "p.add_argument(\"--w1-18-record\", required=True)"
+    },
+    {
+      "id": "OU-transfer-on-oext",
+      "part": "LN-14",
+      "describes": "transfer writes the O-ext summary name into the record",
+      "file": "oext_unit.py",
+      "find": "                summary_file = oe.TRANSFER_SUMMARY",
+      "replace": "                summary_file = oe.SUMMARY"
+    },
+    {
+      "id": "OUV-restore-fingerprint-off",
+      "part": "the restored state",
+      "describes": "the restored state's adapter fingerprint is not compared with the checked unit's (verify-code mutant)",
+      "file": "oext_unit.py",
+      "find": "if state[\"adapter_fingerprint\"] != plan.unit.fingerprint:",
+      "replace": "if False:"
+    },
+    {
+      "id": "OUV-same-state-off",
+      "part": "the restored state",
+      "describes": "the state file is not re-hashed against the dependency receipt before load (verify-code mutant; the same edit as verify-spec's VS-state-recheck-off)",
+      "file": "oext_unit.py",
+      "find": "                runner._same_state(state_dir, plan.unit.receipt)\n",
+      "replace": "                pass\n"
+    },
+    {
+      "id": "OUV-stored-dev-hash-off",
+      "part": "stored dev answers",
+      "describes": "the stored dev-100 files are not re-hashed against COMPLETE.json before the read (verify-code mutant; the same edit as verify-spec's VS-stored-dev-recheck-off)",
+      "file": "oext_unit.py",
+      "find": "        if sha256_file(root / rel) != listed.get(rel):",
+      "replace": "        if False:"
+    },
+    {
+      "id": "OUV-unit-eval-files-unchecked",
+      "part": "the unit",
+      "describes": "a dev-evaluated unit that lists no dev answers is not refused before the folder (verify-code mutant)",
+      "file": "oext_unit.py",
+      "find": "if evaluated and not all(",
+      "replace": "if False and not all("
+    },
+    {
+      "id": "OUV-unit-other-bank",
+      "part": "the unit",
+      "describes": "a unit that evaluated another bank (selector) is accepted as dev-evaluated (verify-code mutant; the same edit as verify-spec's VS-unit-other-bank)",
+      "file": "oext_unit.py",
+      "find": "if bank not in (None, settings.doc[\"prepared\"][\"bank\"]):",
+      "replace": "if False:"
+    },
+    {
+      "id": "OUV-source-manifest-unchecked",
+      "part": "the source unit",
+      "describes": "the source unit's manifest is not compared (verify-code mutant; the same edit as verify-spec's VS-source-manifest-unchecked)",
+      "file": "oext_unit.py",
+      "find": ", \"manifest_sha256\": manifest_sha256}\n    differ",
+      "replace": "}\n    differ"
+    },
+    {
+      "id": "OUV-source-recipe-unchecked",
+      "part": "the source unit",
+      "describes": "the source unit's recipe is not checked against the allowed list (verify-code mutant)",
+      "file": "oext_unit.py",
+      "find": "if identity.get(\"recipe_sha256\") not in settings.doc[\"recipes\"][\"allowed\"].values() or \\\n            identity",
+      "replace": "if identity"
+    },
+    {
+      "id": "OUV-record-scan-off",
+      "part": "the seal",
+      "describes": "the completion record is not scanned for texts (verify-code mutant)",
+      "file": "oext_unit.py",
+      "find": "    if s1._text_hits(extra, texts, 1):",
+      "replace": "    if False:"
+    },
+    {
+      "id": "OUV-dev-guard-over-limit",
+      "part": "generated dev answers",
+      "describes": "the generated dev-100 answers are judged without the recipe's guard_over_limit rule (verify-code mutant)",
+      "file": "oext_unit.py",
+      "find": "    over = {\"over_limit_unscored\": True} if gen.get(\"guard_over_limit\") == \"unscored\" else {}\n    items = list(plan.dev_items)",
+      "replace": "    over = {}\n    items = list(plan.dev_items)"
+    },
+    {
+      "id": "OUV-untuned-access-off",
+      "part": "theta0",
+      "describes": "theta0's dev-bank access is not checked (verify-code mutant)",
+      "file": "oext_unit.py",
+      "find": "        check_run_access(\"development\", \"dev\", settings.doc[\"untuned\"][\"access_seed\"], pinned[\"bank\"],\n                         manifest[\"data_config\"], False)\n",
+      "replace": ""
+    },
+    {
+      "id": "OUV-exit-after-folder-refused",
+      "part": "exit codes",
+      "describes": "a failure after the folder exits 2 (refused) instead of 1 (verify-code mutant)",
+      "file": "oext_unit.py",
+      "find": "        if isinstance(exc, KeyboardInterrupt) or Path(args.out).exists():\n            return EXIT_FAILED",
+      "replace": "        if isinstance(exc, KeyboardInterrupt) or Path(args.out).exists():\n            return EXIT_REFUSED"
+    },
+    {
+      "id": "OUV-transfer-route",
+      "part": "LN-14",
+      "describes": "the transfer report is given the generated dev-100 route (verify-code mutant)",
+      "file": "oext_unit.py",
+      "find": "route = \"generated\" if command == \"run\" else None",
+      "replace": "route = \"generated\""
+    },
+    {
+      "id": "VS-source-identity-unchecked",
+      "part": "the source unit",
+      "describes": "the source unit's recipe allow-list and training identity are not compared (verify-spec mutant)",
+      "file": "oext_unit.py",
+      "find": "if identity.get(\"recipe_sha256\") not in settings.doc[\"recipes\"][\"allowed\"].values() or \\\n            identity.get(\"training_identity\") != training_identity(recipe):",
+      "replace": "if False:"
+    },
+    {
+      "id": "OU-source-training-identity-unchecked",
+      "part": "the source unit",
+      "describes": "the source unit's training identity is not compared (its recipe allow-list still is)",
+      "file": "oext_unit.py",
+      "find": " or \\\n            identity.get(\"training_identity\") != training_identity(recipe):",
+      "replace": ":"
+    },
+    {
+      "id": "OU-plan-state-fingerprint-off",
+      "part": "the unit",
+      "describes": "the saved state's adapter fingerprint is not compared with the unit's COMPLETE.json at the plan (a swapped state is caught only after the folder and the model load)",
+      "file": "oext_unit.py",
+      "find": "if not isinstance(named, str) or not s1.HEX64.match(named) or saved != named:",
+      "replace": "if not isinstance(named, str) or not s1.HEX64.match(named):"
+    },
+    {
+      "id": "OU-plan-unexpected-not-refused",
+      "part": "exit codes",
+      "describes": "an unexpected error in the plan escapes main as a traceback instead of exit 2 with no folder",
+      "file": "oext_unit.py",
+      "find": "    except Exception as exc:  # noqa: BLE001 - the plan makes no folder",
+      "replace": "    except ZeroDivisionError as exc:  # noqa: BLE001 - the plan makes no folder"
+    },
+    {
+      "id": "OU-dev-read-recheck-off",
+      "part": "stored dev answers",
+      "describes": "the stored dev-100 files are not compared with COMPLETE.json after the read",
+      "file": "oext_unit.py",
+      "find": "if [inputs[f\"dev100/{name}\"] for name in names.values()] != [listed[rel] for rel in names]:",
+      "replace": "if False:"
+    },
+    {
+      "id": "OUY-default-oext-x-pin",
+      "part": "G1, the engine-Y copy (oext_unit_y.py; addendum section 34 point 3)",
+      "describes": "the engine-Y copy loads the O-ext settings by engine X's literal (oext_eval.json's pin) by default",
+      "file": "oext_unit_y.py",
+      "find": "            oe.load_pinned_settings(expected_sha256=OEXT_SETTINGS_SHA256)\n",
+      "replace": "            oe.load_pinned_settings()\n"
+    },
+    {
+      "id": "OUY-settings-x-pin",
+      "part": "G1, the engine-Y copy (oext_unit_y.py; addendum section 34 point 3)",
+      "describes": "the engine-Y copy pins engine X's runner settings (oext_unit.json's SHA-256)",
+      "file": "oext_unit_y.py",
+      "find": "SETTINGS_SHA256 = \"80d08721284bbe94661d6fe2cdc58be259db8df66dc681403d7473155c715298\"\n",
+      "replace": "SETTINGS_SHA256 = \"3959eae7264f56f613f5d7cd54e69081d8985ef7cbce2962243f6685e3581189\"\n"
+    }
+  ]
+}

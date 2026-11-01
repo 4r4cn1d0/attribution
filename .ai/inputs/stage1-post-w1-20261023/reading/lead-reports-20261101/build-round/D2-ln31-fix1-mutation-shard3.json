@@ -1,0 +1,555 @@
+{
+  "baseline": {
+    "disk_full": false,
+    "erroring": [],
+    "errors": 0,
+    "exit": 0,
+    "failing": [],
+    "failures": 0,
+    "outcome": "pass",
+    "seconds": 25.3,
+    "skipped": 0,
+    "targets": {},
+    "tests": 123,
+    "tree": {
+      "__init__.py": "1ac0cb733524b06c2fda6669b7ea59e3d8595dd6ad43a32b919abff5397cf212",
+      "__main__.py": "ee7d4747958579fe034023356e2faa0984771c2a8413f326c2c9000ce5672759",
+      "draw.py": "61ef55cae6560c81e34bfd80f97e8abaa4e489cdf85b2d3fcb2da69d0aac7fa1",
+      "inputs.py": "0fbacd72f58b1225fcefe36dbd0304d9da79fc3faf6109a7993fbb877cb20743",
+      "mutation/mutants_hlc_draw.json": "9a33f4418d5f637747e7eea52de99f7219ae99eb091a4376ca9e9f91fba886ad",
+      "mutation/run_mutants.py": "5e60815377cea6a0342363ed8185424814a66012f591b2fb48ea52a50642968f",
+      "settings/hlc_draw.json": "1d3eabe38e9b5d069623ba17bcef3f2d939d0abf309c5d7f06473847179a8c2d",
+      "tests/conftest.py": "c4f625f5761c26a9a06f4918ab2d832ca469cd5dc56ace59bfdf0f40c8c56028",
+      "tests/hlc_world.py": "b5ccd56234e73997524fea1c76d9dbb3fb281ade8f84f68ed8cf7f28edf1f489",
+      "tests/test_hlc_draw.py": "ab67b9c1bdd1933f4e868a8e0c27952be424be392f2e35d6d235a0aee5388819"
+    }
+  },
+  "command": "python -B -m pytest -q -rs -p no:cacheprovider -W ignore --basetemp=<run>/bt --junitxml=<run>/junit.xml <copy>/scripts/stage1_s1/hlc_draw/tests (cwd <copy>; PYTHONPATH <copy>:<workspace>; PYTHONDONTWRITEBYTECODE=1)",
+  "environment_removed": [
+    "PYTEST_ADDOPTS",
+    "PYTEST_PLUGINS"
+  ],
+  "kind": "stage1 mutation report",
+  "min_free_gb": 3.0,
+  "mutants": [
+    {
+      "describes": "the unit folders are opened before the pinned inputs are checked",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_the_first_unit_folder_is_opened_after_the_pinned_inputs"
+      ],
+      "failures": 1,
+      "id": "HLC-pinned-inputs-before-units",
+      "outcome": "killed",
+      "part": "order",
+      "seconds": 23.8,
+      "skipped": 0,
+      "targets": {
+        "draw.py": {
+          "after": "64bea9b2a0d8885c7e49a66ee0d8d3087eb265f80134631874f4e2548797d9c1",
+          "before": "61ef55cae6560c81e34bfd80f97e8abaa4e489cdf85b2d3fcb2da69d0aac7fa1"
+        }
+      },
+      "tests": 123
+    },
+    {
+      "describes": "a guard record whose valid flag is not a boolean is read",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_a_sampled_guard_file_that_is_not_the_engines_refuses[<lambda>-has no boolean valid]"
+      ],
+      "failures": 1,
+      "id": "HLC-valid-bool",
+      "outcome": "killed",
+      "part": "answers",
+      "seconds": 26.8,
+      "skipped": 0,
+      "targets": {
+        "inputs.py": {
+          "after": "fb1a39d1cec6aa5502ff1a79ea69125d50a27ffece0e59dca15bb5e0c28dff0c",
+          "before": "0fbacd72f58b1225fcefe36dbd0304d9da79fc3faf6109a7993fbb877cb20743"
+        }
+      },
+      "tests": 123
+    },
+    {
+      "describes": "a unit's harm prompts are not compared with the dev bank's",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_sampled_answers_not_three_on_every_bank_prompt_refuse[<lambda>1]"
+      ],
+      "failures": 1,
+      "id": "HLC-harm-prompts-are-the-bank",
+      "outcome": "killed",
+      "part": "answers",
+      "seconds": 23.5,
+      "skipped": 0,
+      "targets": {
+        "inputs.py": {
+          "after": "2f135de42b94fd60e95445e72d60fdfcd5f565b20af482fca4e5169c5d5be75a",
+          "before": "0fbacd72f58b1225fcefe36dbd0304d9da79fc3faf6109a7993fbb877cb20743"
+        }
+      },
+      "tests": 123
+    },
+    {
+      "describes": "a pinned input outside the kit is read at any SHA-256",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_a_pinned_input_at_another_hash_refuses[oct9_key-the 9 Oct key hashes to]",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_a_pinned_input_at_another_hash_refuses[bank_manifest-the bank manifest hashes to]",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_a_pinned_input_at_another_hash_refuses[bank-the dev bank hashes to]",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_a_pinned_input_at_another_hash_refuses[auditor-the auditor file hashes to]",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_the_real_pins_refuse_a_synthetic_key"
+      ],
+      "failures": 5,
+      "id": "HLC-pinned-bytes",
+      "outcome": "killed",
+      "part": "inputs",
+      "seconds": 25.5,
+      "skipped": 0,
+      "targets": {
+        "inputs.py": {
+          "after": "6f8720b2648842a4528fbff360e60e6a822e8feff22594a25e8571fa95a456bc",
+          "before": "0fbacd72f58b1225fcefe36dbd0304d9da79fc3faf6109a7993fbb877cb20743"
+        }
+      },
+      "tests": 123
+    },
+    {
+      "describes": "an auditor entry of another bank is read as the dev prompt's source",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_an_auditor_without_a_dev_entry_refuses"
+      ],
+      "failures": 1,
+      "id": "HLC-auditor-dev-bank",
+      "outcome": "killed",
+      "part": "inputs",
+      "seconds": 29.3,
+      "skipped": 0,
+      "targets": {
+        "inputs.py": {
+          "after": "65c30552ea73f696a45f6029a1b43b818d76e8243e94f78c1caea745fff4770b",
+          "before": "0fbacd72f58b1225fcefe36dbd0304d9da79fc3faf6109a7993fbb877cb20743"
+        }
+      },
+      "tests": 123
+    },
+    {
+      "describes": "the settings are loaded at any SHA-256",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_the_settings_file_is_at_its_pin_and_canonical"
+      ],
+      "failures": 1,
+      "id": "HLC-settings-pin",
+      "outcome": "killed",
+      "part": "settings",
+      "seconds": 23.9,
+      "skipped": 0,
+      "targets": {
+        "draw.py": {
+          "after": "a4a48d54251ad529eb8937a5990dfa30d889ff6cb0edcccc8797efc1cf32a718",
+          "before": "61ef55cae6560c81e34bfd80f97e8abaa4e489cdf85b2d3fcb2da69d0aac7fa1"
+        }
+      },
+      "tests": 123
+    },
+    {
+      "describes": "the 9 Oct sheet's answers stay eligible",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_the_draw_is_the_rule_written_out_by_hand",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_the_weights_count_every_sub_cell_and_the_fill",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_the_exclusions_and_their_totals",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_the_reduction_steps[1-cut0]",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_the_reduction_steps[2-cut1]",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_the_reduction_steps[3-cut2]"
+      ],
+      "failures": 6,
+      "id": "HLC-oct9-excluded",
+      "outcome": "killed",
+      "part": "exclusions",
+      "seconds": 17.5,
+      "skipped": 0,
+      "targets": {
+        "draw.py": {
+          "after": "15b86c6b2a2ad095ba65ea3c97b8c5fce7d04c3c53cb29f3ce69061579108009",
+          "before": "61ef55cae6560c81e34bfd80f97e8abaa4e489cdf85b2d3fcb2da69d0aac7fa1"
+        }
+      },
+      "tests": 123
+    },
+    {
+      "describes": "the proportional HarmBench split rounds down",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_the_draw_is_the_rule_written_out_by_hand",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_the_harmbench_split_keeps_two_of_each_where_they_exist",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_hb_split_is_the_closest_split_to_proportional_that_keeps_the_minimums[1]",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_hb_split_is_the_closest_split_to_proportional_that_keeps_the_minimums[2]",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_hb_split_is_the_closest_split_to_proportional_that_keeps_the_minimums[3]",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_hb_split_is_the_closest_split_to_proportional_that_keeps_the_minimums[4]",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_hb_split_is_the_closest_split_to_proportional_that_keeps_the_minimums[5]",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_hb_split_is_the_closest_split_to_proportional_that_keeps_the_minimums[6]",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_hb_split_is_the_closest_split_to_proportional_that_keeps_the_minimums[7]",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_hb_split_is_the_closest_split_to_proportional_that_keeps_the_minimums[8]",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_hb_split_is_the_closest_split_to_proportional_that_keeps_the_minimums[9]",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_hb_split_is_the_closest_split_to_proportional_that_keeps_the_minimums[10]",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_hb_split_is_the_closest_split_to_proportional_that_keeps_the_minimums[11]",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_hb_split_is_the_closest_split_to_proportional_that_keeps_the_minimums[12]",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_the_split_and_the_walk_are_the_exhaustive_searchs",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_the_reduction_steps[1-cut0]",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_the_reduction_steps[2-cut1]",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_the_reduction_steps[3-cut2]"
+      ],
+      "failures": 18,
+      "id": "HLC-split-rounding",
+      "outcome": "killed",
+      "part": "walk",
+      "seconds": 15.8,
+      "skipped": 0,
+      "targets": {
+        "draw.py": {
+          "after": "cfaa938a14e307355c568bfc18a9678985362af75092822a790f2bce4a72f56f",
+          "before": "61ef55cae6560c81e34bfd80f97e8abaa4e489cdf85b2d3fcb2da69d0aac7fa1"
+        }
+      },
+      "tests": 123
+    },
+    {
+      "describes": "the cell seed tag leaves out the seed",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_the_draw_is_the_rule_written_out_by_hand",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_the_reduction_steps[1-cut0]",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_the_reduction_steps[2-cut1]",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_the_reduction_steps[3-cut2]",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_the_seed_tags_are_the_settings"
+      ],
+      "failures": 5,
+      "id": "HLC-seed-tag-part",
+      "outcome": "killed",
+      "part": "walk",
+      "seconds": 16.8,
+      "skipped": 0,
+      "targets": {
+        "draw.py": {
+          "after": "9b21636dfbf17572b6ed02980c344e35b39f9c2d6c72417fb1f86e7107380406",
+          "before": "61ef55cae6560c81e34bfd80f97e8abaa4e489cdf85b2d3fcb2da69d0aac7fa1"
+        }
+      },
+      "tests": 123
+    },
+    {
+      "describes": "an existing sealed folder or manifest is not refused before the draw",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_the_draw_never_overwrites",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_a_dangling_link_at_the_manifest_refuses_before_anything_is_read"
+      ],
+      "failures": 2,
+      "id": "HLC-no-overwrite",
+      "outcome": "killed",
+      "part": "outputs",
+      "seconds": 21.9,
+      "skipped": 0,
+      "targets": {
+        "__main__.py": {
+          "after": "ea18f85a83e7cc0a5e12cd766cf7e28673fbccd006113f1d6c61940a6a7fa527",
+          "before": "ee7d4747958579fe034023356e2faa0984771c2a8413f326c2c9000ce5672759"
+        }
+      },
+      "tests": 123
+    },
+    {
+      "describes": "check exits 0 on a mismatch",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_check_matches_a_finished_draw_and_finds_a_changed_file",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_check_at_another_step_finds_a_mismatch"
+      ],
+      "failures": 2,
+      "id": "HLC-check-exit",
+      "outcome": "killed",
+      "part": "check",
+      "seconds": 21.4,
+      "skipped": 0,
+      "targets": {
+        "__main__.py": {
+          "after": "55badfb1a82604bb9daa7a23719e75bd0eae3532db21e7a2b67810e5b92f6fd3",
+          "before": "ee7d4747958579fe034023356e2faa0984771c2a8413f326c2c9000ce5672759"
+        }
+      },
+      "tests": 123
+    },
+    {
+      "describes": "a walk whose targets cannot be met runs anyway",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_the_walk_refuses_targets_its_answers_cannot_meet"
+      ],
+      "failures": 1,
+      "id": "HLC-walk-start-check",
+      "outcome": "killed",
+      "part": "walk",
+      "seconds": 21.2,
+      "skipped": 0,
+      "targets": {
+        "draw.py": {
+          "after": "2e326a9fddf72f9775b064ce99899fde7916c8f1eb68ec74df2e40d27eba5737",
+          "before": "61ef55cae6560c81e34bfd80f97e8abaa4e489cdf85b2d3fcb2da69d0aac7fa1"
+        }
+      },
+      "tests": 123
+    },
+    {
+      "describes": "a cell without sub-cells is set its full quota, not its distinct prompts",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_the_walk_keeps_the_harmbench_minimum_when_a_prompt_holds_both_labels",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_the_draw_keeps_the_harmbench_minimum_end_to_end",
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_a_cell_with_fewer_prompts_than_its_quota_passes_the_shortfall_on"
+      ],
+      "failures": 3,
+      "id": "HLC-plain-cut",
+      "outcome": "killed",
+      "part": "walk",
+      "seconds": 22.5,
+      "skipped": 0,
+      "targets": {
+        "draw.py": {
+          "after": "92cafb6c09b9921329780b11a783c110d8e266353079a7da7a69f101d5b5cbed",
+          "before": "61ef55cae6560c81e34bfd80f97e8abaa4e489cdf85b2d3fcb2da69d0aac7fa1"
+        }
+      },
+      "tests": 123
+    },
+    {
+      "describes": "a repeated greedy harm guard record is read",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_greedy_harm_guard_records_not_one_per_bank_prompt_refuse[<lambda>-greedy harm answer's guard record has no prompt id or valid flag, or repeats one]"
+      ],
+      "failures": 1,
+      "id": "HLC-greedy-harm-repeat",
+      "outcome": "killed",
+      "part": "answers",
+      "seconds": 23.9,
+      "skipped": 0,
+      "targets": {
+        "inputs.py": {
+          "after": "1c00851d2ba606d36892a94ddab4998961732a69d3ce2a6f28ed70d647c9a580",
+          "before": "0fbacd72f58b1225fcefe36dbd0304d9da79fc3faf6109a7993fbb877cb20743"
+        }
+      },
+      "tests": 123
+    },
+    {
+      "describes": "a manifest folder that does not exist is found only when writing",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_a_manifest_folder_that_does_not_exist_refuses_before_anything_is_read"
+      ],
+      "failures": 1,
+      "id": "HLC-manifest-folder",
+      "outcome": "killed",
+      "part": "outputs",
+      "seconds": 23.9,
+      "skipped": 0,
+      "targets": {
+        "__main__.py": {
+          "after": "68865e2f8acf253281216aceeba2eaf3bf4ad379b48d76914cc972b701312f91",
+          "before": "ee7d4747958579fe034023356e2faa0984771c2a8413f326c2c9000ce5672759"
+        }
+      },
+      "tests": 123
+    },
+    {
+      "describes": "a draw that fails while writing leaves what it wrote",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.hlc_draw.tests.test_hlc_draw::test_a_write_that_fails_removes_what_the_draw_wrote_and_nothing_else"
+      ],
+      "failures": 1,
+      "id": "HLC-cleanup",
+      "outcome": "killed",
+      "part": "outputs",
+      "seconds": 22.0,
+      "skipped": 0,
+      "targets": {
+        "__main__.py": {
+          "after": "22bebee726f3d95c0975b3af7c08aa9cbb25409cd0cd858af2a35d9b9eb920c8",
+          "before": "ee7d4747958579fe034023356e2faa0984771c2a8413f326c2c9000ce5672759"
+        }
+      },
+      "tests": 123
+    }
+  ],
+  "pytest_version": "pytest 8.4.2",
+  "python": "3.11.15",
+  "rule": "killed = exit 1 with >= 1 failure and 0 errors; survived = exit 0, 0 failures, 0 errors; anything else (errors, timeout, other exit codes, no JUnit, a test count other than the baseline's) = invalid; an 'expect: survive' entry passes only if it survives",
+  "runner_sha256": "5e60815377cea6a0342363ed8185424814a66012f591b2fb48ea52a50642968f",
+  "shard": [
+    "HLC-auditor-dev-bank",
+    "HLC-check-exit",
+    "HLC-cleanup",
+    "HLC-greedy-harm-repeat",
+    "HLC-harm-prompts-are-the-bank",
+    "HLC-manifest-folder",
+    "HLC-no-overwrite",
+    "HLC-oct9-excluded",
+    "HLC-pinned-bytes",
+    "HLC-pinned-inputs-before-units",
+    "HLC-plain-cut",
+    "HLC-seed-tag-part",
+    "HLC-settings-pin",
+    "HLC-split-rounding",
+    "HLC-valid-bool",
+    "HLC-walk-start-check"
+  ],
+  "spec": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-kind-hawking-a6ce04/ea7b850a-7c12-4652-92a4-7fbe8e247622/scratchpad/builds/ws-d2/scripts/stage1_s1/hlc_draw/mutation/mutants_hlc_draw.json",
+  "spec_sha256": "9a33f4418d5f637747e7eea52de99f7219ae99eb091a4376ca9e9f91fba886ad",
+  "summary": {
+    "answers": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 3,
+      "mutants": 3,
+      "survived": 0
+    },
+    "check": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 1,
+      "mutants": 1,
+      "survived": 0
+    },
+    "exclusions": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 1,
+      "mutants": 1,
+      "survived": 0
+    },
+    "inputs": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 2,
+      "mutants": 2,
+      "survived": 0
+    },
+    "order": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 1,
+      "mutants": 1,
+      "survived": 0
+    },
+    "outputs": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 3,
+      "mutants": 3,
+      "survived": 0
+    },
+    "settings": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 1,
+      "mutants": 1,
+      "survived": 0
+    },
+    "walk": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 4,
+      "mutants": 4,
+      "survived": 0
+    }
+  },
+  "timeout_seconds": 150,
+  "tree_name": "scripts/stage1_s1/hlc_draw",
+  "version": 2
+}

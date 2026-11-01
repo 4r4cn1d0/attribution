@@ -1,0 +1,85 @@
+{
+  "base": {
+    "manifest": ".ai/inputs/stage1-commitments-20261016/MANIFEST.json",
+    "manifest_rule": "the W1 manifest's entry for each path below must name the same SHA-256 as this file; the manifest itself is read, not pinned (it is never changed, addendum section 28 point 1)",
+    "pass_script": "scripts/stage1/representation_pass.py",
+    "pass_script_sha256": "fb62bcaaaa35595a52de5a4217754cb390ffb4ba49e04dec6e515d7e3cebb8d9",
+    "pass_script_use": "never run here: both passes' provenance must name this path and SHA-256; the file on disk and the module score_s3_datarx imports by name (for READS) must hash to it",
+    "pass_settings": "scripts/stage1/settings/representation_pass.json",
+    "pass_settings_sha256": "a555fd899bd2b5caf8d68fb62578ed2e943977341b5bf2dc2d688dcbd034600b",
+    "pass_settings_use": "both passes' provenance.settings_sha256; also score_s3_datarx.json's pins.representation_pass_settings_sha256",
+    "s1common": "scripts/stage1/s1common.py",
+    "s1common_sha256": "930c8ea53d26baeeccaf2035949427d207f307ba0fec06ff0dec841c8c824552",
+    "s1common_use": "the module score_s3_datarx imports by name; it must hash to this pin",
+    "scorer": "scripts/stage1/score_s3_datarx.py",
+    "scorer_settings": "scripts/stage1/settings/score_s3_datarx.json",
+    "scorer_settings_sha256": "6382dcc663e80ecab332ecf96b7cba621e3e535408481e6ab83ca614bc2b502f",
+    "scorer_settings_use": "REQ-11's own settings, loaded by score_s3_datarx.py's literal pin (SETTINGS_SHA256, checked equal to this value); unchanged by D-3",
+    "scorer_sha256": "772e6ae546843b42c3a7564a644cffa269c38ffb30f4db0d59f0f405a9d5aace",
+    "scorer_use": "loaded by path from the bytes that passed the SHA-256 check (never imported by name, copied or edited) as a private module (not in sys.modules); its own main() runs unchanged with --rows and --summary the union's two files and the other inputs as given"
+  },
+  "condition": "addendum section 28 point 4: representation_pass.py gives each row's features from that row alone (one forward of a batch of one row, no padding or mask, eval mode, the adapter disabled, compared with anchor means computed from the pinned anchor bank before any row); notes/d3-build.json records the reading with file:line. The two passes' equal datashield block (CAS and direction norm at every index, computed from the anchors only) is a check that both passes computed the same anchor means",
+  "decision": "post-W1 deviation D-3, decided by the lead under the user's delegation (2026-10-25T15:48 UTC)",
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "fallback": "addendum section 28 point 5: if the condition fails or D-3 is not verified after one fix round, one pools-only J5 pass over s3_safe and s3_orig together, on a pod, recorded as a new pass composition and not a re-run",
+  "kind": "stage1 settings",
+  "label_entries": {},
+  "labels_sha256": "260389f3fbfd8e7ff11ee06b5d5aba48e7d56b34140d9c9a634682125a86d570",
+  "name": "d3_s3_union",
+  "outputs": {
+    "out": "--out: score_s3_datarx.py's own file (s3_scores.json, text-free), what score_s3_datarx.py writes on one pools-only pass over s3_safe and s3_orig except provenance.inputs.summary (the union summary's SHA-256)",
+    "work": "--work: representation_rows.jsonl and representation_pass.json, the union (text-free: ids and features; summary fields)"
+  },
+  "owner": "scripts/stage1_s1/d3_s3_union/d3_s3_union.py",
+  "passes": {
+    "equal": {
+      "costs": [
+        "device"
+      ],
+      "fields": [
+        "kind",
+        "version",
+        "requirement",
+        "layout",
+        "index_convention",
+        "reads",
+        "untuned",
+        "transformers_version",
+        "anchors",
+        "datashield",
+        "pool_pins"
+      ],
+      "gate_c": [
+        "index",
+        "read",
+        "rule"
+      ],
+      "inputs": [
+        "anchor_file",
+        "prepared_manifest",
+        "recipe_file",
+        "pool_pins"
+      ],
+      "provenance": [
+        "script",
+        "script_sha256",
+        "s1common_sha256",
+        "settings_sha256",
+        "engine_identity_sha256",
+        "label_entries",
+        "python",
+        "numpy"
+      ]
+    },
+    "main": "J5's main pass (plant, decoy, s3_safe and the dev units): s3_safe at the S-pool record's s3_pool.sha256; s3_orig absent",
+    "orig": "J5's pools-only pass after J6: s3_orig at J6's record's lists.s3.s3_orig_pool_sha256; s3_safe absent; no dev row, no Gate C group"
+  },
+  "reference": ".ai/briefs/stage1-commitments-build-20261016-lead-decisions.md section 28 (S3's scorer needs one pass over both pools; post-W1 deviation D-3)",
+  "requirement": "REQ-11 (score_s3_datarx.py) on J5's two passes under post-W1 deviation D-3 (addendum section 28 points 1-4); every W1 file byte-identical",
+  "union": {
+    "rule": "the union's rows are the main pass's s3_safe rows, then the pools-only pass's s3_orig rows, each line's bytes unchanged, in file order: the rows file one pools-only pass over s3_safe and then s3_orig writes",
+    "summary": "every field other than pools, rows and d3 is the main pass's summary, unchanged (its gate_c, costs and provenance describe the main pass); pools are the main pass's s3_safe entry and the pools-only pass's s3_orig entry; rows names the union file",
+    "text_free": "every row taken holds exactly REQ-3's fields (id, source, unit, n_prompt, n_tokens, cos_harmful, cos_safe, css): ids and features, no text field"
+  },
+  "version": 1
+}

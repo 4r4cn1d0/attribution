@@ -1,0 +1,87 @@
+{
+ "kind": "stage1 kit mutation results",
+ "runner": "notes/run_mutants_b15.py (kit round 31)",
+ "source_root": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-kind-hawking-a6ce04/ea7b850a-7c12-4652-92a4-7fbe8e247622/scratchpad/builds/ws-c",
+ "select": "B15-34-runner-stale,B15-34-runner-entry,B15-34-problems-inputs,B15-34-record-equal,B15-34-entry-trained,B15-34-light-check",
+ "deselect": [],
+ "started_utc": "2026-11-01T09:37:27+00:00",
+ "rule": "killed only by pytest exit 1 with a FAILED line and no ERROR line; exit 0 survived; anything else invalid; the baseline (same command, no mutation) must exit 0 first",
+ "tests": [
+  "tests/test_round31.py",
+  "tests/test_stage1_judge_route.py",
+  "tests/test_round30a.py",
+  "tests/test_stage1_runkit.py",
+  "tests/test_stage1_runner.py",
+  "tests/test_g1_yoext.py",
+  "tests/test_round33.py",
+  "tests/test_round34.py"
+ ],
+ "baseline": {
+  "exit": 0,
+  "failed": [],
+  "errors": 0,
+  "tail": "735 passed in 89.76s (0:01:29)"
+ },
+ "results": [
+  {
+   "id": "B15-34-problems-inputs",
+   "files": [
+    "stage1_rules.py"
+   ],
+   "expect": "kill",
+   "verdict": "killed",
+   "killed_by": [
+    "runkit/stage1-olmo/tests/test_round34.py::test_the_output_check_names_every_field_off_the_pins[None-problems0]"
+   ],
+   "exit": 1,
+   "errors": 0,
+   "tail": "1 failed, 674 passed in 73.95s (0:01:13)",
+   "as_expected": true
+  },
+  {
+   "id": "B15-34-record-equal",
+   "files": [
+    "stage1_rules.py"
+   ],
+   "expect": "kill",
+   "verdict": "killed",
+   "killed_by": [
+    "runkit/stage1-olmo/tests/test_round34.py::test_record_done_and_the_light_check_take_the_pulled_output_by_its_record"
+   ],
+   "exit": 1,
+   "errors": 0,
+   "tail": "1 failed, 732 passed in 120.78s (0:02:00)",
+   "as_expected": true
+  },
+  {
+   "id": "B15-34-runner-entry",
+   "files": [
+    "setup/job_runner_stage1.py"
+   ],
+   "expect": "kill",
+   "verdict": "killed",
+   "killed_by": [
+    "runkit/stage1-olmo/tests/test_round34.py::test_the_runner_never_starts_b14_without_its_pins[<lambda>-plan.json carries no B14 inputs for this job2]"
+   ],
+   "exit": 1,
+   "errors": 0,
+   "tail": "1 failed, 711 passed in 78.46s (0:01:18)",
+   "as_expected": true
+  },
+  {
+   "id": "B15-34-runner-stale",
+   "files": [
+    "setup/job_runner_stage1.py"
+   ],
+   "expect": "kill",
+   "verdict": "killed",
+   "killed_by": [
+    "runkit/stage1-olmo/tests/test_round34.py::test_the_runner_never_starts_b14_without_its_pins[<lambda>-1 input\\\\(s\\\\) not packed at the plan's pins \\\\(pack engine X after kit round 34\\\\): \\\\['data/kt-prepared/prepared-kt-dolly-olmo2/banks/dev\\\\.jsonl'\\\\]]"
+   ],
+   "exit": 1,
+   "errors": 0,
+   "tail": "1 failed, 713 passed in 122.51s (0:02:02)",
+   "as_expected": true
+  }
+ ]
+}
