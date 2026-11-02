@@ -1,6 +1,6 @@
 # What comes after stage-1 block B (the lead's plan, 31 October 2026)
 
-Revised 1 November 2026 by addendum §39 and §40; the 31 October text is in git at `55d5f8b`.
+Revised 1 November 2026 by addendum §39 and §40; the 31 October text is in git at `55d5f8b`. Status, 2 November 2026 03:29 UTC (GI IX): the stage-1 reading is done and all three stamps are anchored; stage 1b's pilot ran and its frozen gate said stop (a null; FOCUS 2 Nov 03:25 UTC), so step 2's row 1 is closed: no main sweep, no F9, no K7. Rows 2-9 are unchanged; the user added an S4 dose arm to rows 4 and 6 (FOCUS 1 Nov 23:06 UTC).
 
 Written by the lead (General Implementation VIII) on 31 October 2026 at 22:14 UTC (clock checked), after the user's
 "yes and keep planning whats needed next". This is a plan. It adopts no rule and reads no outcome. Stage-1 outcomes
