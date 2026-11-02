@@ -4,7 +4,7 @@ A living document, started 5 October 2026 at the user's request: "make sure all 
 
 **Rule for using it:** quote only what the linked records show. Estimates are marked as estimates. Development results are not confirmatory.
 
-**Last updated:** 2026-11-02T03:30 UTC, by General Implementation IX (the main-study lead). This update adds stage 1b's pilot (a null at the frozen gate), its construction checks, its cost, and the user's decision to add an S4 dose arm to the next pre-registrations (§3d).
+**Last updated:** 2026-11-02T03:26 UTC, by General Implementation IX (the main-study lead). This update adds stage 1b's pilot (a null at the frozen gate), its construction checks, its cost, and the user's decision to add an S4 dose arm to the next pre-registrations (§3d).
 **Previous update:** 2026-11-01T21:42 UTC, by General Implementation VIII. That update added the stage-1 reading's result: the confirmatory repair comparison on OLMo-2-1B (§3d).
 
 ## 1. One-paragraph pitch (draft)
