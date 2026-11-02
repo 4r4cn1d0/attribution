@@ -1,0 +1,520 @@
+{
+  "baseline": {
+    "disk_full": false,
+    "erroring": [],
+    "errors": 0,
+    "exit": 0,
+    "failing": [],
+    "failures": 0,
+    "outcome": "pass",
+    "seconds": 1.9,
+    "skipped": 0,
+    "targets": {},
+    "tests": 89,
+    "tree": {
+      "README.md": "ac6e70669dc6dc138585d03a868b9c3f4491b7d4f859f72970ab775b1d288f32",
+      "__init__.py": "c5869543389b2030d4fee8b561dadc1977ea31d087b731219f2d8cba2b401126",
+      "__main__.py": "29ab82dd4151a1e13a95eec249ab35a24847d574bc6e707470b9b555118e5c7f",
+      "gate.py": "d3dd0e0a59cc953e63c5cd518c60432e4364f008ece263f61d15a7b3038df037",
+      "mutation/mutants_pilot_gate.json": "52d8725d30988d26a32b434984d1a5152294468fa873a7e0096d28fb77ca8751",
+      "mutation/run_mutants.py": "9396e4c4275f75c54414c153be80827bde246a0ae099a6a7bd02d06468c2e4e5",
+      "tests/conftest.py": "38f3222cff928699a71560abf4862c046adf81438e1fad48fba368d1029f3fb3",
+      "tests/synth_world.py": "2a4bdbd1a90c0ae2579b1aa6911b89a01884e9495f4349174b4ed6dabeaa62a2",
+      "tests/test_gate.py": "82f7d8529dc82220eaaf5ae7760c783d2b9c3b540fb20bfc42052000ee04c235",
+      "tests/test_reader.py": "21dd170a516a6cc799a9013ade88bfde3e9bc9f9a3ef120ddef1d73874ba2a44",
+      "units.py": "deeb8b5ce5af448ab2065679873abf9314e8c9d8b03049f789a0ed263038be96"
+    }
+  },
+  "command": "python -B -m pytest -q -rs -p no:cacheprovider -W ignore --basetemp=<run>/bt --junitxml=<run>/junit.xml <copy>/scripts/stage1_s1/pilot_gate/tests (cwd <copy>; PYTHONPATH <copy>:<workspace>; PYTHONDONTWRITEBYTECODE=1)",
+  "dose_axis_sha256": "d258ee595709a99a7e4b5cd54b3a308ebae1a156cb144dccea22e26e44acbbe1",
+  "environment_removed": [
+    "PYTEST_ADDOPTS",
+    "PYTEST_PLUGINS"
+  ],
+  "kind": "stage1 mutation report",
+  "min_free_gb": 3.0,
+  "mutants": [
+    {
+      "describes": "a host that is not done is an input",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_a_host_not_done_and_a_job_not_pulled_are_not_inputs",
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_plan_json_refusals[<lambda>-block P: no host of the block is recorded done0]"
+      ],
+      "failures": 2,
+      "id": "PG-units-not-done",
+      "outcome": "killed",
+      "part": "units",
+      "seconds": 2.1,
+      "skipped": 0,
+      "targets": {
+        "units.py": {
+          "after": "b06d814c63b235b89c0c99798a96319a1a0ba4de8aa448fdb9e20fde96ff9491",
+          "before": "deeb8b5ce5af448ab2065679873abf9314e8c9d8b03049f789a0ed263038be96"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "a job recorded complete (not pulled) is an input",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_a_host_not_done_and_a_job_not_pulled_are_not_inputs",
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_plan_json_refusals[<lambda>-a0_plant 1103: no complete, pulled unit in block P1]"
+      ],
+      "failures": 2,
+      "id": "PG-units-not-pulled",
+      "outcome": "killed",
+      "part": "units",
+      "seconds": 2.0,
+      "skipped": 0,
+      "targets": {
+        "units.py": {
+          "after": "dbd796f5b50d8375bc4ee5e4a7259853c3f6a1e6308663de22d7cf30ed313870",
+          "before": "deeb8b5ce5af448ab2065679873abf9314e8c9d8b03049f789a0ed263038be96"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "a complete job of another kind in the block is not an extra unit",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_plan_json_refusals[<lambda>-block P holds a complete job that is not a0_plant1]"
+      ],
+      "failures": 1,
+      "id": "PG-units-extra-kind",
+      "outcome": "killed",
+      "part": "units",
+      "seconds": 2.2,
+      "skipped": 0,
+      "targets": {
+        "units.py": {
+          "after": "2d3c77142acc13d21b41e7e7bdb936bd4a1168231e2339d27db4e8516f935f61",
+          "before": "deeb8b5ce5af448ab2065679873abf9314e8c9d8b03049f789a0ed263038be96"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "a complete job of another arm in the block is not an extra unit",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_re_pilot_mode_reads_a0_plant75_and_never_raises",
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_plan_json_refusals[<lambda>-block P holds a complete job that is not a0_plant0]"
+      ],
+      "failures": 2,
+      "id": "PG-units-extra-arm",
+      "outcome": "killed",
+      "part": "units",
+      "seconds": 2.3,
+      "skipped": 0,
+      "targets": {
+        "units.py": {
+          "after": "18bd2dedf95ee8c3988553cf3f586bf858b198ca9fe60dd2f13c44a15f040cdb",
+          "before": "deeb8b5ce5af448ab2065679873abf9314e8c9d8b03049f789a0ed263038be96"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "a complete job at another seed in the block is not an extra unit",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_plan_json_refusals[<lambda>-block P holds a complete job that is not a0_plant at 1101-1103]"
+      ],
+      "failures": 1,
+      "id": "PG-units-extra-seed",
+      "outcome": "killed",
+      "part": "units",
+      "seconds": 2.1,
+      "skipped": 0,
+      "targets": {
+        "units.py": {
+          "after": "1b6055d863400800ed5716799790406785fe1ccbf02693c023375ae2ca9dd34c",
+          "before": "deeb8b5ce5af448ab2065679873abf9314e8c9d8b03049f789a0ed263038be96"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "two complete units of one seed: the last one wins",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_a_host_not_done_and_a_job_not_pulled_are_not_inputs",
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_plan_json_refusals[<lambda>-a0_plant 1102: two complete units in block P]"
+      ],
+      "failures": 2,
+      "id": "PG-units-duplicate",
+      "outcome": "killed",
+      "part": "units",
+      "seconds": 2.3,
+      "skipped": 0,
+      "targets": {
+        "units.py": {
+          "after": "ece5fb76dab9f418b7129905b4311b9925f6f88f3f547bec940abb4496d8b69b",
+          "before": "deeb8b5ce5af448ab2065679873abf9314e8c9d8b03049f789a0ed263038be96"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "a seed without a unit is not refused by name",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_plan_json_refusals[<lambda>-a0_plant 1103: no complete, pulled unit in block P0]",
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_plan_json_refusals[<lambda>-a0_plant 1103: no complete, pulled unit in block P1]"
+      ],
+      "failures": 2,
+      "id": "PG-units-missing",
+      "outcome": "killed",
+      "part": "units",
+      "seconds": 2.2,
+      "skipped": 0,
+      "targets": {
+        "units.py": {
+          "after": "4772018fb35eda38f34336ffa78a365135fe3daefbe27d3adf588941c598ea07",
+          "before": "deeb8b5ce5af448ab2065679873abf9314e8c9d8b03049f789a0ed263038be96"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "no done host is not refused by name",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_plan_json_refusals[<lambda>-block P: no host of the block is recorded done0]",
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_plan_json_refusals[<lambda>-block P: no host of the block is recorded done1]",
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_block_name_is_the_leads"
+      ],
+      "failures": 3,
+      "id": "PG-units-no-host",
+      "outcome": "killed",
+      "part": "units",
+      "seconds": 2.1,
+      "skipped": 0,
+      "targets": {
+        "units.py": {
+          "after": "2b36acc7781eb8354d5d11a0e21cc2917d55639353f70cfc6104deb8fe828ab7",
+          "before": "deeb8b5ce5af448ab2065679873abf9314e8c9d8b03049f789a0ed263038be96"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "the block filter reads block P whatever --block says",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_re_pilot_mode_reads_a0_plant75_and_never_raises",
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_block_name_is_the_leads"
+      ],
+      "failures": 2,
+      "id": "PG-units-block",
+      "outcome": "killed",
+      "part": "units",
+      "seconds": 2.1,
+      "skipped": 0,
+      "targets": {
+        "units.py": {
+          "after": "f9f0d37a1cd124edd3f8936c383e88e606ec9bb97669a5204b41146fd914cd98",
+          "before": "deeb8b5ce5af448ab2065679873abf9314e8c9d8b03049f789a0ed263038be96"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "a job record without an edit SHA-256 is not refused by name",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_plan_json_refusals[<lambda>-a0_plant 1101: the job record names no edit SHA-256_0]",
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_plan_json_refusals[<lambda>-a0_plant 1101: the job record names no edit SHA-256_1]"
+      ],
+      "failures": 2,
+      "id": "PG-units-edit-sha",
+      "outcome": "killed",
+      "part": "units",
+      "seconds": 2.3,
+      "skipped": 0,
+      "targets": {
+        "units.py": {
+          "after": "1f90f8e37babf11d9e6ce6f0c03ef0f351ea6bbf8288d01b28106d6adf21534f",
+          "before": "deeb8b5ce5af448ab2065679873abf9314e8c9d8b03049f789a0ed263038be96"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "the unit path's shape is not checked",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_plan_json_refusals[<lambda>-a0_plant 1101: the job record has no engine run-one unit path0]"
+      ],
+      "failures": 1,
+      "id": "PG-units-unit-path",
+      "outcome": "killed",
+      "part": "units",
+      "seconds": 2.2,
+      "skipped": 0,
+      "targets": {
+        "units.py": {
+          "after": "79e0836704a8e026dc3fbdbceab880f4d9f5c2adcb209940007d1027be2c2ce6",
+          "before": "deeb8b5ce5af448ab2065679873abf9314e8c9d8b03049f789a0ed263038be96"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "COMPLETE.json not checked against record-done's SHA-256",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_plan_json_refusals[<lambda>-a0_plant 1102: COMPLETE.json does not hash to the SHA-256 record-done recorded in plan.json]",
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_a_changed_complete_json_refuses"
+      ],
+      "failures": 2,
+      "id": "PG-units-complete-sha",
+      "outcome": "killed",
+      "part": "units",
+      "seconds": 2.2,
+      "skipped": 0,
+      "targets": {
+        "units.py": {
+          "after": "d6cba1b7beb54459e68960bf234d7622c4a39ac0266ddb57a0fd3d56a17d4923",
+          "before": "deeb8b5ce5af448ab2065679873abf9314e8c9d8b03049f789a0ed263038be96"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "job.json's kind not checked",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_job_json_fields_of_a_pilot_unit[kind-regenerate]"
+      ],
+      "failures": 1,
+      "id": "PG-units-job-kind",
+      "outcome": "killed",
+      "part": "units",
+      "seconds": 2.1,
+      "skipped": 0,
+      "targets": {
+        "units.py": {
+          "after": "82e243d2414b0499434ef0666a4c660e9e1bea9acec25cbc4991fdc1f4459a67",
+          "before": "deeb8b5ce5af448ab2065679873abf9314e8c9d8b03049f789a0ed263038be96"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "job.json's arm not checked against the job's edit",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_job_json_fields_of_a_pilot_unit[arm-a0]"
+      ],
+      "failures": 1,
+      "id": "PG-units-job-arm",
+      "outcome": "killed",
+      "part": "units",
+      "seconds": 2.1,
+      "skipped": 0,
+      "targets": {
+        "units.py": {
+          "after": "38d5966d74de55bf88958136b9f39f0d2c7623f2bf25e939b83d5fd69eb6e757",
+          "before": "deeb8b5ce5af448ab2065679873abf9314e8c9d8b03049f789a0ed263038be96"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "job.json's seed not checked",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_job_json_fields_of_a_pilot_unit[seed-1104]"
+      ],
+      "failures": 1,
+      "id": "PG-units-job-seed",
+      "outcome": "killed",
+      "part": "units",
+      "seconds": 2.2,
+      "skipped": 0,
+      "targets": {
+        "units.py": {
+          "after": "791e6c3d0dbace87691c709a4b86cbadc2b3c50bba82b12718e85fb4ba191619",
+          "before": "deeb8b5ce5af448ab2065679873abf9314e8c9d8b03049f789a0ed263038be96"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "job.json's checkpoint not checked",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_job_json_fields_of_a_pilot_unit[target_checkpoint-e3]"
+      ],
+      "failures": 1,
+      "id": "PG-units-job-checkpoint",
+      "outcome": "killed",
+      "part": "units",
+      "seconds": 2.4,
+      "skipped": 0,
+      "targets": {
+        "units.py": {
+          "after": "59abe06e7c84a577c398beaac32afd84bd1bb69031fbd482e40a0f1ac275e1bb",
+          "before": "deeb8b5ce5af448ab2065679873abf9314e8c9d8b03049f789a0ed263038be96"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "job.json's bank not checked",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_job_json_fields_of_a_pilot_unit[evaluate_bank-train]"
+      ],
+      "failures": 1,
+      "id": "PG-units-job-bank",
+      "outcome": "killed",
+      "part": "units",
+      "seconds": 2.4,
+      "skipped": 0,
+      "targets": {
+        "units.py": {
+          "after": "2e66761b51c000b62eb9b6f546e0ff5ca97d7ae1d8b0af84347994f5db636161",
+          "before": "deeb8b5ce5af448ab2065679873abf9314e8c9d8b03049f789a0ed263038be96"
+        }
+      },
+      "tests": 89
+    },
+    {
+      "describes": "job.json read without COMPLETE.json's marker",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.pilot_gate.tests.test_reader::test_job_json_marker_of_a_pilot_unit"
+      ],
+      "failures": 1,
+      "id": "PG-units-job-marker",
+      "outcome": "killed",
+      "part": "units",
+      "seconds": 2.2,
+      "skipped": 0,
+      "targets": {
+        "units.py": {
+          "after": "861c01684c3e9c52074a0d2e383e981ffaf86f5d530ff4c9439880f7fe20cbc3",
+          "before": "deeb8b5ce5af448ab2065679873abf9314e8c9d8b03049f789a0ed263038be96"
+        }
+      },
+      "tests": 89
+    }
+  ],
+  "pytest_version": "pytest 8.4.2",
+  "python": "3.11.15",
+  "rule": "killed = exit 1 with >= 1 failure and 0 errors; survived = exit 0, 0 failures, 0 errors; anything else (errors, timeout, other exit codes, no JUnit, a test count other than the baseline's) = invalid; an 'expect: survive' entry passes only if it survives",
+  "runner_sha256": "9396e4c4275f75c54414c153be80827bde246a0ae099a6a7bd02d06468c2e4e5",
+  "shard": [
+    "PG-units-block",
+    "PG-units-complete-sha",
+    "PG-units-duplicate",
+    "PG-units-edit-sha",
+    "PG-units-extra-arm",
+    "PG-units-extra-kind",
+    "PG-units-extra-seed",
+    "PG-units-job-arm",
+    "PG-units-job-bank",
+    "PG-units-job-checkpoint",
+    "PG-units-job-kind",
+    "PG-units-job-marker",
+    "PG-units-job-seed",
+    "PG-units-missing",
+    "PG-units-no-host",
+    "PG-units-not-done",
+    "PG-units-not-pulled",
+    "PG-units-unit-path"
+  ],
+  "spec": "scripts/stage1_s1/pilot_gate/mutation/mutants_pilot_gate.json",
+  "spec_sha256": "52d8725d30988d26a32b434984d1a5152294468fa873a7e0096d28fb77ca8751",
+  "summary": {
+    "units": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 18,
+      "mutants": 18,
+      "survived": 0
+    }
+  },
+  "timeout_seconds": 300,
+  "tree_name": "scripts/stage1_s1/pilot_gate",
+  "version": 2
+}

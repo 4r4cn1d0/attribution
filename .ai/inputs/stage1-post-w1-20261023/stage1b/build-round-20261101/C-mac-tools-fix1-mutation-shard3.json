@@ -1,0 +1,595 @@
+{
+  "baseline": {
+    "disk_full": false,
+    "erroring": [],
+    "errors": 0,
+    "exit": 0,
+    "failing": [],
+    "failures": 0,
+    "outcome": "pass",
+    "seconds": 1.2,
+    "skipped": 0,
+    "targets": {},
+    "tests": 62,
+    "tree": {
+      "README.md": "975f726afce61f9f948d74869571d8319d87cad82a4f6167d314d6fafdf98a5b",
+      "__init__.py": "ed0b5bd726c5c361fbfddeeab41ba96d46a15d458cbcf15970302116f365056e",
+      "binding_check.py": "c33fee27d6e3d1e33c5af9c7d73f22d60c2e3c5b2f9f0eb42aeab41ca27f054c",
+      "common.py": "61140654533421a2ebbc8eee029568814c7d526935d586818b0e5a91b79add18",
+      "construction_checks.py": "9a03a5f3c632b54b9f531cac33ee7b991bb29b09a0f3af96f993cc6b564761c2",
+      "mutation/mutants_stage1b_mac.json": "7ad3d2c08f81672de4ef52315a3e9a22b59ee64c3d8feeacbf24aeb6915c3033",
+      "mutation/run_mutants.py": "5bf8c7e434332767623751a3c10f933568b89c569b72995e2b297d087cbb7cc2",
+      "switch_check.py": "e00a8ce6b0e6d5c33352c990341e1fb5a45c10231ddbd9d66e6d490565fbed4c",
+      "tests/conftest.py": "ed7b76026087b5e111a9d3ef463d9d8b8a76201ae9a176440bfa6952ed6e03f5",
+      "tests/synth_world.py": "34f92be90a0783b5d01b828f06ad88062baf1203a9b46a62b3adc238e7c65840",
+      "tests/test_argv_compat.py": "929155ad3d03a2ce1a70d4acd385f1f2031f21b3ef4a89a19df75944a5148f2b",
+      "tests/test_binding_check.py": "30eb54749512a95b4d70a1f975363c7863f469111af579dd00c849f803a59f1f",
+      "tests/test_common.py": "d4175d7694aa490e6ff505573806c66654f7b6f42f0672bc57db4587b2a54089",
+      "tests/test_construction_checks.py": "39879faed49f53e8cfc8b0c7dcf0027f4a46dca8c8fcdc88d8c41da05ef8a6d8",
+      "tests/test_switch_check.py": "4bb20f5145d44135c696fe2fa81134136153dfbe99f1103faaefbac4f2394ede"
+    }
+  },
+  "command": "python -B -m pytest -q -rs -p no:cacheprovider -W ignore --basetemp=<run>/bt --junitxml=<run>/junit.xml <copy>/scripts/stage1_s1/stage1b_mac/tests (cwd <copy>; PYTHONPATH <copy>:<workspace>; PYTHONDONTWRITEBYTECODE=1)",
+  "environment_removed": [
+    "PYTEST_ADDOPTS",
+    "PYTEST_PLUGINS"
+  ],
+  "kind": "stage1 mutation report",
+  "min_free_gb": 3.0,
+  "mutants": [
+    {
+      "describes": "the settings file is read without the report's pin",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_switch_check::test_refuses_a_file_off_its_pin_or_missing"
+      ],
+      "failures": 1,
+      "id": "SC-pin",
+      "outcome": "killed",
+      "part": "switch_check",
+      "seconds": 1.3,
+      "skipped": 0,
+      "targets": {
+        "switch_check.py": {
+          "after": "7b49567e6ea28219fcd9b00842fa2d9219b236b8206d0e4336adc0e36116a640",
+          "before": "e00a8ce6b0e6d5c33352c990341e1fb5a45c10231ddbd9d66e6d490565fbed4c"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "settings of another name or kind are accepted",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_switch_check::test_refuses_settings_of_another_name_or_kind"
+      ],
+      "failures": 1,
+      "id": "SC-name",
+      "outcome": "killed",
+      "part": "switch_check",
+      "seconds": 1.3,
+      "skipped": 0,
+      "targets": {
+        "switch_check.py": {
+          "after": "cfc955da75735baa7e54d00bace8104da1bda040d6ce86f22c2b8d3aee336d53",
+          "before": "e00a8ce6b0e6d5c33352c990341e1fb5a45c10231ddbd9d66e6d490565fbed4c"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "another key is read as the switch",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_switch_check::test_prints_the_pin_and_the_switch_only",
+        "scripts.stage1_s1.stage1b_mac.tests.test_switch_check::test_refuses_a_missing_or_non_boolean_switch",
+        "scripts.stage1_s1.stage1b_mac.tests.test_switch_check::test_the_default_pin_is_the_w1_manifests_entry"
+      ],
+      "failures": 3,
+      "id": "SC-key-path",
+      "outcome": "killed",
+      "part": "switch_check",
+      "seconds": 1.3,
+      "skipped": 0,
+      "targets": {
+        "switch_check.py": {
+          "after": "16318114e4565366079de13027ff494083740a66d6c41907ecb4c80e6851e21a",
+          "before": "e00a8ce6b0e6d5c33352c990341e1fb5a45c10231ddbd9d66e6d490565fbed4c"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "a non-boolean switch is printed",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_switch_check::test_refuses_a_missing_or_non_boolean_switch"
+      ],
+      "failures": 1,
+      "id": "SC-bool",
+      "outcome": "killed",
+      "part": "switch_check",
+      "seconds": 1.3,
+      "skipped": 0,
+      "targets": {
+        "switch_check.py": {
+          "after": "4b1e88c7980caaf7d477e823930203558c5481b3fef8915988cd1feb960bde64",
+          "before": "e00a8ce6b0e6d5c33352c990341e1fb5a45c10231ddbd9d66e6d490565fbed4c"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "the printed word is reversed",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_switch_check::test_prints_the_pin_and_the_switch_only"
+      ],
+      "failures": 1,
+      "id": "SC-print",
+      "outcome": "killed",
+      "part": "switch_check",
+      "seconds": 1.4,
+      "skipped": 0,
+      "targets": {
+        "switch_check.py": {
+          "after": "8ba4e17a2767226934b6707a35b0e292ee0b08af9a6484e7778deb1f88fbfd2a",
+          "before": "e00a8ce6b0e6d5c33352c990341e1fb5a45c10231ddbd9d66e6d490565fbed4c"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "a malformed --expect-sha256 is not refused with the fixed message",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_switch_check::test_refuses_a_file_off_its_pin_or_missing"
+      ],
+      "failures": 1,
+      "id": "SC-hex",
+      "outcome": "killed",
+      "part": "switch_check",
+      "seconds": 1.3,
+      "skipped": 0,
+      "targets": {
+        "switch_check.py": {
+          "after": "94a5d72ee884f74a4a1447c9ed953677910bd57fc5101c587b79ab1e6a6fc54d",
+          "before": "e00a8ce6b0e6d5c33352c990341e1fb5a45c10231ddbd9d66e6d490565fbed4c"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "the decoy pool is not checked against the rules' pin (verify1 D2)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_refuses_req8_record_or_a_pool_off_its_pin"
+      ],
+      "failures": 1,
+      "id": "CC-second-pool-pin",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 1.4,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "e5b32124a34c85c1af65ec97829e7536a33c4c97b9b9de92981fa0a0622470c0",
+          "before": "9a03a5f3c632b54b9f531cac33ee7b991bb29b09a0f3af96f993cc6b564761c2"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "seal entries of every host are pooled (the host filter is dropped; verify1 N5)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_seal_entries_of_other_hosts_are_not_the_hosts"
+      ],
+      "failures": 1,
+      "id": "CC-seal-host-filter",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 1.2,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "d7f9751028e23e3a75c6d2a4610dc16729fe34d1257493c2f51ec1a7accca31c",
+          "before": "9a03a5f3c632b54b9f531cac33ee7b991bb29b09a0f3af96f993cc6b564761c2"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "an input line prints the file's path beside its hash (verify1 N5)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_run_writes_the_three_outputs_and_a_text_free_record",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_given_scorer_outputs_are_used_and_only_the_report_runs",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_a_failed_step_stops_the_run_and_withholds_a_reason_that_holds_a_value",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_a_failed_step_with_a_value_free_refusal_prints_that_line_only",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_a_step_that_prints_bytes_that_are_not_utf8_still_runs_and_is_logged",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_an_output_that_differs_from_the_printed_hash_stops_the_run",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_rules_module_pin_is_checked_when_given",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_seal_entries_of_other_hosts_are_not_the_hosts",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_job_index_comes_from_plan_json_not_from_a_fixed_order",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_runner_never_reads_a_unit_folder_or_lists_the_tree"
+      ],
+      "failures": 10,
+      "id": "CC-input-print-path",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 1.3,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "d974c8c9e1f902578132d767cc2db3e24cdaafd76a5e56010a63a7f44f42a0f3",
+          "before": "9a03a5f3c632b54b9f531cac33ee7b991bb29b09a0f3af96f993cc6b564761c2"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "a record path holding a protected word is accepted (verify1 N3)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_refuses_a_record_path_holding_a_protected_word"
+      ],
+      "failures": 1,
+      "id": "CC-record-word",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 1.3,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "3757809bdf3fe873bab6807060802532519b3a53f1b74f71ce7c037d9a74a9d1",
+          "before": "9a03a5f3c632b54b9f531cac33ee7b991bb29b09a0f3af96f993cc6b564761c2"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "a record folder that is a file is not refused with the fixed message (verify1 N1)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_refuses_a_record_folder_that_is_a_file"
+      ],
+      "failures": 1,
+      "id": "CC-record-parent",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 1.4,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "d07cf8fccd855264a0bf45f1bf08b6959acb7793cb4ca5eb376a4e3345c81a62",
+          "before": "9a03a5f3c632b54b9f531cac33ee7b991bb29b09a0f3af96f993cc6b564761c2"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "the rules module is read without --expect-rules-sha256 (verify1 N2)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_rules_module_pin_is_checked_when_given"
+      ],
+      "failures": 1,
+      "id": "CC-rules-pin",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 1.5,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "5476d7bf75f49d0912f4650617764d3c7ed506705c32da522db07433b53e59d9",
+          "before": "9a03a5f3c632b54b9f531cac33ee7b991bb29b09a0f3af96f993cc6b564761c2"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "a malformed --expect-rules-sha256 is not refused with the fixed message",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_rules_module_pin_is_checked_when_given"
+      ],
+      "failures": 1,
+      "id": "CC-rules-pin-hex",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 1.2,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "ecf5aa5bb9e2a4ce21a9719d46e7aef5f6ccc2992b53ae6eb7a920d993fc49b7",
+          "before": "9a03a5f3c632b54b9f531cac33ee7b991bb29b09a0f3af96f993cc6b564761c2"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "the W1 tree's files are read without their manifest entries (verify1 N7)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_every_w1_file_the_report_can_run_or_read_is_checked_against_its_manifest_entry"
+      ],
+      "failures": 1,
+      "id": "CC-w1-tree-pin",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 1.3,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "edd68266b80a49caf941ada1e9c7b95a5882d71f69ee870db80ef4de9c4a2598",
+          "before": "9a03a5f3c632b54b9f531cac33ee7b991bb29b09a0f3af96f993cc6b564761c2"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "only code entries of the W1 tree are checked (settings and pinned inputs are skipped)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_run_writes_the_three_outputs_and_a_text_free_record",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_every_w1_file_the_report_can_run_or_read_is_checked_against_its_manifest_entry"
+      ],
+      "failures": 2,
+      "id": "CC-w1-tree-roles",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 1.4,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "1e42a76948de1839e803554fcff8476a7ca6aac2bd9aa6e018111d2eaac25a51",
+          "before": "9a03a5f3c632b54b9f531cac33ee7b991bb29b09a0f3af96f993cc6b564761c2"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "a W1 manifest entry without a SHA-256 is not refused with the fixed message",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_every_w1_file_the_report_can_run_or_read_is_checked_against_its_manifest_entry"
+      ],
+      "failures": 1,
+      "id": "CC-w1-entry-hex",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 1.3,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "93a8050277e8574d0296de54acbbb72a864f8002df477e1de163464c8222406b",
+          "before": "9a03a5f3c632b54b9f531cac33ee7b991bb29b09a0f3af96f993cc6b564761c2"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "a failed step's last stderr line is printed without the value-free whitelist (verify1 D1)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_a_failed_step_stops_the_run_and_withholds_a_reason_that_holds_a_value",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_value_free_messages_come_from_the_stand_ins_literals_only"
+      ],
+      "failures": 2,
+      "id": "CC-reason-unchecked",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 1.3,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "9295c7ec59a829e6bc2c74fa3cc6f4aebb2be3c7ccf0e2422cee20ae9a122277",
+          "before": "9a03a5f3c632b54b9f531cac33ee7b991bb29b09a0f3af96f993cc6b564761c2"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "a refusal raised with a non-literal message is whitelisted too",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_argv_compat::test_the_value_free_messages_of_the_real_w1_scripts",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_value_free_messages_come_from_the_stand_ins_literals_only"
+      ],
+      "failures": 2,
+      "id": "CC-reason-literal-only",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 1.3,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "53afa0d70461ad301a2610710cc8561949faf5c7a59d667c0588655b23b9bdcc",
+          "before": "9a03a5f3c632b54b9f531cac33ee7b991bb29b09a0f3af96f993cc6b564761c2"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "a step's output is decoded strictly (bytes that are not UTF-8 break the run after the step; verify1 N1)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_a_step_that_prints_bytes_that_are_not_utf8_still_runs_and_is_logged"
+      ],
+      "failures": 1,
+      "id": "CC-log-strict-text",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 1.2,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "d9a7d2cc22d81a45e483277f6b25772e12fe40aa200417932d6ec633160cc5cc",
+          "before": "9a03a5f3c632b54b9f531cac33ee7b991bb29b09a0f3af96f993cc6b564761c2"
+        }
+      },
+      "tests": 62
+    },
+    {
+      "describes": "a JSON object that repeats a key is parsed (the last value wins; verify1 N4)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_common::test_hashed_pair_and_json_object"
+      ],
+      "failures": 1,
+      "id": "CO-repeated-key",
+      "outcome": "killed",
+      "part": "common",
+      "seconds": 1.3,
+      "skipped": 0,
+      "targets": {
+        "common.py": {
+          "after": "7aafe7b9501d9f25faed308cb8640b00be921d0f3434be5fe8967c76322189b3",
+          "before": "61140654533421a2ebbc8eee029568814c7d526935d586818b0e5a91b79add18"
+        }
+      },
+      "tests": 62
+    }
+  ],
+  "pytest_version": "pytest 8.4.2",
+  "python": "3.11.15",
+  "rule": "killed = exit 1 with >= 1 failure and 0 errors; survived = exit 0, 0 failures, 0 errors; anything else (errors, timeout, other exit codes, no JUnit, a test count other than the baseline's) = invalid; an 'expect: survive' entry passes only if it survives",
+  "runner_sha256": "5bf8c7e434332767623751a3c10f933568b89c569b72995e2b297d087cbb7cc2",
+  "shard": [
+    "CC-input-print-path",
+    "CC-log-strict-text",
+    "CC-reason-literal-only",
+    "CC-reason-unchecked",
+    "CC-record-parent",
+    "CC-record-word",
+    "CC-rules-pin",
+    "CC-rules-pin-hex",
+    "CC-seal-host-filter",
+    "CC-second-pool-pin",
+    "CC-w1-entry-hex",
+    "CC-w1-tree-pin",
+    "CC-w1-tree-roles",
+    "CO-repeated-key",
+    "SC-bool",
+    "SC-hex",
+    "SC-key-path",
+    "SC-name",
+    "SC-pin",
+    "SC-print"
+  ],
+  "spec": "scripts/stage1_s1/stage1b_mac/mutation/mutants_stage1b_mac.json",
+  "spec_sha256": "7ad3d2c08f81672de4ef52315a3e9a22b59ee64c3d8feeacbf24aeb6915c3033",
+  "summary": {
+    "common": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 1,
+      "mutants": 1,
+      "survived": 0
+    },
+    "construction_checks": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 13,
+      "mutants": 13,
+      "survived": 0
+    },
+    "switch_check": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 6,
+      "mutants": 6,
+      "survived": 0
+    }
+  },
+  "timeout_seconds": 300,
+  "tree_name": "scripts/stage1_s1/stage1b_mac",
+  "version": 2
+}

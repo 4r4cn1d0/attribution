@@ -1,0 +1,514 @@
+{
+  "baseline": {
+    "disk_full": false,
+    "erroring": [],
+    "errors": 0,
+    "exit": 0,
+    "failing": [],
+    "failures": 0,
+    "outcome": "pass",
+    "seconds": 0.8,
+    "skipped": 0,
+    "targets": {},
+    "tests": 53,
+    "tree": {
+      "README.md": "eae1c95a40eef4818a101dc4071dc2fced4612324bf4ba7ddc68ef6758ac4fc4",
+      "__init__.py": "98d67ab124c59d8c3f09bc5f6b5f25a549bc27cfc210f16b6f5e5ee84fed226d",
+      "binding_check.py": "c33fee27d6e3d1e33c5af9c7d73f22d60c2e3c5b2f9f0eb42aeab41ca27f054c",
+      "common.py": "1ba389746fb44e4bdca320cb4bf1bda7d791c8e92cfb08909625f7883c5bcb3a",
+      "construction_checks.py": "1e7f73a761adfa8dd40b2c07497f2ecf98e40ecf1266df8d2bd40f316c620009",
+      "mutation/mutants_stage1b_mac.json": "5c104fc42e0fa6d1bbfe554b5a306c85d182030157811c429a838bd7d8d4ea56",
+      "mutation/run_mutants.py": "5bf8c7e434332767623751a3c10f933568b89c569b72995e2b297d087cbb7cc2",
+      "switch_check.py": "e00a8ce6b0e6d5c33352c990341e1fb5a45c10231ddbd9d66e6d490565fbed4c",
+      "tests/conftest.py": "ed7b76026087b5e111a9d3ef463d9d8b8a76201ae9a176440bfa6952ed6e03f5",
+      "tests/synth_world.py": "aa71cc0b2e23c4b419493fdbd677405eb3cd81f4cb15afa04b8ce4c2987fa2d2",
+      "tests/test_argv_compat.py": "92a3aba0395f357416c247e86122659525185acb8beb64af25e1beb5dc084c7d",
+      "tests/test_binding_check.py": "30eb54749512a95b4d70a1f975363c7863f469111af579dd00c849f803a59f1f",
+      "tests/test_common.py": "68c1972a9df12e6d1afccc71f06fd617e1b899d8e254a3b3f53708bfb28296bc",
+      "tests/test_construction_checks.py": "83916cf5a00d1f81f4ef794deb192445585a03c56bedc65f95a1764bde773c58",
+      "tests/test_switch_check.py": "4bb20f5145d44135c696fe2fa81134136153dfbe99f1103faaefbac4f2394ede"
+    }
+  },
+  "command": "python -B -m pytest -q -rs -p no:cacheprovider -W ignore --basetemp=<run>/bt --junitxml=<run>/junit.xml <copy>/scripts/stage1_s1/stage1b_mac/tests (cwd <copy>; PYTHONPATH <copy>:<workspace>; PYTHONDONTWRITEBYTECODE=1)",
+  "environment_removed": [
+    "PYTEST_ADDOPTS",
+    "PYTEST_PLUGINS"
+  ],
+  "kind": "stage1 mutation report",
+  "min_free_gb": 3.0,
+  "mutants": [
+    {
+      "describes": "an output folder whose name lacks the protected word is accepted",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_refuses_an_output_folder_whose_name_lacks_the_protected_word"
+      ],
+      "failures": 1,
+      "id": "CC-out-name",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 0.9,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "73373a5179a9456caa8d6117b2ebb1bd8d22bb67692d5092f890a1fd93f6b267",
+          "before": "1e7f73a761adfa8dd40b2c07497f2ecf98e40ecf1266df8d2bd40f316c620009"
+        }
+      },
+      "tests": 53
+    },
+    {
+      "describes": "a non-empty output folder is accepted",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_refuses_a_non_empty_output_folder"
+      ],
+      "failures": 1,
+      "id": "CC-out-not-empty",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 0.9,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "6e18c8bef1cc3fef9ea9e916af488951d667c55db9891b4aaf53ed50c51bf0d5",
+          "before": "1e7f73a761adfa8dd40b2c07497f2ecf98e40ecf1266df8d2bd40f316c620009"
+        }
+      },
+      "tests": 53
+    },
+    {
+      "describes": "an existing hash record is not refused before the steps run",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_refuses_an_existing_hash_record"
+      ],
+      "failures": 1,
+      "id": "CC-record-exists",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 0.9,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "4a8a9a3b236c9ad1b432ae07bbec877f19bf85de80b9026bd0475f6e5a185518",
+          "before": "1e7f73a761adfa8dd40b2c07497f2ecf98e40ecf1266df8d2bd40f316c620009"
+        }
+      },
+      "tests": 53
+    },
+    {
+      "describes": "a prepared path that is not a folder is accepted",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_refuses_a_prepared_path_that_is_not_a_folder"
+      ],
+      "failures": 1,
+      "id": "CC-prepared-dir",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 0.9,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "d50c1fb55ae8f6c07af620f1f5f48b7d6df03e9e7e3902fee11559d9cc3ce154",
+          "before": "1e7f73a761adfa8dd40b2c07497f2ecf98e40ecf1266df8d2bd40f316c620009"
+        }
+      },
+      "tests": 53
+    },
+    {
+      "describes": "a rules module without the pins is not refused with the fixed message",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_refuses_a_rules_module_without_the_pins"
+      ],
+      "failures": 1,
+      "id": "CC-rules-names",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 0.8,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "78148f5fa2f4c14997d09e445114c2b34d888afeafed41ee0578c1eb90e1bae9",
+          "before": "1e7f73a761adfa8dd40b2c07497f2ecf98e40ecf1266df8d2bd40f316c620009"
+        }
+      },
+      "tests": 53
+    },
+    {
+      "describes": "rules pins of another form are not refused with the fixed message",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_refuses_rules_pins_of_another_form"
+      ],
+      "failures": 1,
+      "id": "CC-rules-form",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 0.8,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "e847e725433ae236ffd01fedcbee2ee288a01897df4ad6b0a0ca55d0a2403fa6",
+          "before": "1e7f73a761adfa8dd40b2c07497f2ecf98e40ecf1266df8d2bd40f316c620009"
+        }
+      },
+      "tests": 53
+    },
+    {
+      "describes": "the W1 manifest is read without its pin",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_refuses_a_w1_manifest_off_its_pin"
+      ],
+      "failures": 1,
+      "id": "CC-man1-pin",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 1.0,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "b4d0f9a5ee239dc40623e8ce963e165d2725dd52e94cfb5f35509e1b309579b2",
+          "before": "1e7f73a761adfa8dd40b2c07497f2ecf98e40ecf1266df8d2bd40f316c620009"
+        }
+      },
+      "tests": 53
+    },
+    {
+      "describes": "a manifest entry of another role serves as a script's pin",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_refuses_a_manifest_without_a_code_entry_for_a_script"
+      ],
+      "failures": 1,
+      "id": "CC-man1-role",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 0.9,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "a2bc1ca96975c5ee953b678cbc1eaf105fe7a06b59388cfc2e1077184b2c174c",
+          "before": "1e7f73a761adfa8dd40b2c07497f2ecf98e40ecf1266df8d2bd40f316c620009"
+        }
+      },
+      "tests": 53
+    },
+    {
+      "describes": "a W1 script is not checked against its manifest entry",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_refuses_a_w1_script_that_differs_from_its_manifest_entry"
+      ],
+      "failures": 1,
+      "id": "CC-w1-script-pin",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 1.1,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "d4b8e97d19de439b34b3b3bf8862d60aa4f76f716b3561c3bd18298a28ca5234",
+          "before": "1e7f73a761adfa8dd40b2c07497f2ecf98e40ecf1266df8d2bd40f316c620009"
+        }
+      },
+      "tests": 53
+    },
+    {
+      "describes": "plan.json's seal SHA-256 is not compared with the lead's",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_refuses_a_bad_or_different_seal_sha256"
+      ],
+      "failures": 1,
+      "id": "CC-seal-expect",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 0.9,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "8d3d0b4126993d516e76977bcef409335acea1f7dbdf3d7275e71484a73b8d86",
+          "before": "1e7f73a761adfa8dd40b2c07497f2ecf98e40ecf1266df8d2bd40f316c620009"
+        }
+      },
+      "tests": 53
+    },
+    {
+      "describes": "the seal file is read without its hash check",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_refuses_a_seal_file_that_differs_from_plan_json"
+      ],
+      "failures": 1,
+      "id": "CC-seal-hash",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 0.9,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "0432bf2e72831e9dc61ac9a6c8c769f5916f521f6aa1215f5244a4792152bf2f",
+          "before": "1e7f73a761adfa8dd40b2c07497f2ecf98e40ecf1266df8d2bd40f316c620009"
+        }
+      },
+      "tests": 53
+    },
+    {
+      "describes": "a seal record of another kind or block is accepted",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_refuses_a_seal_record_of_another_kind_or_block"
+      ],
+      "failures": 1,
+      "id": "CC-seal-kind",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 1.0,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "117f255e3e906701159b0fd8697c232acc14943f12c4118d9cf3455235ffa2ad",
+          "before": "1e7f73a761adfa8dd40b2c07497f2ecf98e40ecf1266df8d2bd40f316c620009"
+        }
+      },
+      "tests": 53
+    },
+    {
+      "describes": "a host that is not recorded done is accepted",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_refuses_a_host_that_is_not_done_or_not_of_the_block"
+      ],
+      "failures": 1,
+      "id": "CC-host-done",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 1.0,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "c8470318b5773a7be646429361437b060cea8fe09739181406d04af80e035aed",
+          "before": "1e7f73a761adfa8dd40b2c07497f2ecf98e40ecf1266df8d2bd40f316c620009"
+        }
+      },
+      "tests": 53
+    },
+    {
+      "describes": "a host of another block is accepted",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_refuses_a_host_that_is_not_done_or_not_of_the_block"
+      ],
+      "failures": 1,
+      "id": "CC-host-block",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 1.0,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "38c506e96fb14430555c6eee8d6c78f5121abd64e097db636fed3d5ade6109cb",
+          "before": "1e7f73a761adfa8dd40b2c07497f2ecf98e40ecf1266df8d2bd40f316c620009"
+        }
+      },
+      "tests": 53
+    },
+    {
+      "describes": "two complete jobs of a kind are accepted (the first wins)",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_refuses_without_one_complete_pulled_job_of_each_kind"
+      ],
+      "failures": 1,
+      "id": "CC-job-single",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 0.9,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "9cb69a249a866c952068d50aaf0bbb87099e5357ef93e14efcebaeb8cb11b9ae",
+          "before": "1e7f73a761adfa8dd40b2c07497f2ecf98e40ecf1266df8d2bd40f316c620009"
+        }
+      },
+      "tests": 53
+    },
+    {
+      "describes": "a crashed job of the kind is accepted",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_refuses_without_one_complete_pulled_job_of_each_kind"
+      ],
+      "failures": 1,
+      "id": "CC-job-status",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 0.9,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "f25214d70e2d38c3450593bc112ed23707bce55dc55798e4685daf31997c6414",
+          "before": "1e7f73a761adfa8dd40b2c07497f2ecf98e40ecf1266df8d2bd40f316c620009"
+        }
+      },
+      "tests": 53
+    },
+    {
+      "describes": "a job recorded complete (not pulled) is accepted",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_refuses_without_one_complete_pulled_job_of_each_kind"
+      ],
+      "failures": 1,
+      "id": "CC-job-pulled",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 1.0,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "eae4aa87c9373fa66352d04fcfbaee45c68c62b0b69a05921fc3bef3084cdecc",
+          "before": "1e7f73a761adfa8dd40b2c07497f2ecf98e40ecf1266df8d2bd40f316c620009"
+        }
+      },
+      "tests": 53
+    },
+    {
+      "describes": "a file the job's outputs do not list is not refused with the fixed message",
+      "disk_full": false,
+      "erroring": [],
+      "errors": 0,
+      "exit": 1,
+      "expect": "kill",
+      "failing": [
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_refuses_a_job_whose_outputs_do_not_list_the_file",
+        "scripts.stage1_s1.stage1b_mac.tests.test_construction_checks::test_the_main_pass_is_read_not_the_s3_orig_pass"
+      ],
+      "failures": 2,
+      "id": "CC-outputs-list",
+      "outcome": "killed",
+      "part": "construction_checks",
+      "seconds": 0.8,
+      "skipped": 0,
+      "targets": {
+        "construction_checks.py": {
+          "after": "5029dc104b29cd13041a0b707f63f925dc1efa7b0e2fd852a430780814d3d0cc",
+          "before": "1e7f73a761adfa8dd40b2c07497f2ecf98e40ecf1266df8d2bd40f316c620009"
+        }
+      },
+      "tests": 53
+    }
+  ],
+  "pytest_version": "pytest 8.4.2",
+  "python": "3.11.15",
+  "rule": "killed = exit 1 with >= 1 failure and 0 errors; survived = exit 0, 0 failures, 0 errors; anything else (errors, timeout, other exit codes, no JUnit, a test count other than the baseline's) = invalid; an 'expect: survive' entry passes only if it survives",
+  "runner_sha256": "5bf8c7e434332767623751a3c10f933568b89c569b72995e2b297d087cbb7cc2",
+  "shard": [
+    "CC-host-block",
+    "CC-host-done",
+    "CC-job-pulled",
+    "CC-job-single",
+    "CC-job-status",
+    "CC-man1-pin",
+    "CC-man1-role",
+    "CC-out-name",
+    "CC-out-not-empty",
+    "CC-outputs-list",
+    "CC-prepared-dir",
+    "CC-record-exists",
+    "CC-rules-form",
+    "CC-rules-names",
+    "CC-seal-expect",
+    "CC-seal-hash",
+    "CC-seal-kind",
+    "CC-w1-script-pin"
+  ],
+  "spec": "scripts/stage1_s1/stage1b_mac/mutation/mutants_stage1b_mac.json",
+  "spec_sha256": "5c104fc42e0fa6d1bbfe554b5a306c85d182030157811c429a838bd7d8d4ea56",
+  "summary": {
+    "construction_checks": {
+      "equivalent": 0,
+      "expected_survivors_failed": 0,
+      "expected_survivors_ok": 0,
+      "invalid": 0,
+      "killed": 18,
+      "mutants": 18,
+      "survived": 0
+    }
+  },
+  "timeout_seconds": 300,
+  "tree_name": "scripts/stage1_s1/stage1b_mac",
+  "version": 2
+}
