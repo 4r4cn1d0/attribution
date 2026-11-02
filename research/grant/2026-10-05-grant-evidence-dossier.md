@@ -286,6 +286,8 @@ Development evidence. Records: the [results record](../experiments/2026-10-07-ki
 
 ### 8a. Decision, 6 October 2026: the BlueDot ask under the adopted direction
 
+- **Status, 2 November 2026: declined.** The $6,000 BlueDot Rapid Grant application of 13 October was declined (the user told the grant session "BlueDot $5,000 grant: evidence-based project account" on 2 Nov; relayed by GI IX). No reasons are recorded. A new application is being prepared in that session.
+
 - **The user chose the recommended tier: $6,000** for the BlueDot Rapid Grant.
   - The application draft is [2026-10-06-bluedot-application-DRAFT.md](2026-10-06-bluedot-application-DRAFT.md); it is not submitted yet.
   - It covers the whole staged path to an ICML 2027 submission: kill test $145; engineering and calibration $200; development $2,250; confirmation $1,500; 15% contingency $605; a human check of about 500 answers $400; AI tools $800; storage $100. All figures are estimates from measured unit costs.
@@ -369,6 +371,8 @@ Not included: human annotation, API judges, AI tools, travel, salary (see §8a).
   - free tiers: Modal $30/month, Kaggle about 30 GPU-hours/week, Colab.
 
 ### 11a. BlueDot Rapid Grants (was the user's first target)
+
+- **Status, 2 November 2026: declined.** The $6,000 BlueDot Rapid Grant application of 13 October was declined (the user told the grant session "BlueDot $5,000 grant: evidence-based project account" on 2 Nov; relayed by GI IX). No reasons are recorded. A new application is being prepared in that session.
 
 > **Eligible (corrected 6 October).** The user is based in the US and was only travelling in India. BlueDot's list of countries it cannot pay (which includes India) does not apply. This is the best fast cash option: up to $20k, a 15-minute form, and about 5 working days according to BlueDot's November 2025 blog (FAQ-reported).
 
