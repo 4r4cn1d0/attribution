@@ -4,8 +4,8 @@ A living document, started 5 October 2026 at the user's request: "make sure all 
 
 **Rule for using it:** quote only what the linked records show. Estimates are marked as estimates. Development results are not confirmatory.
 
-**Last updated:** 2026-11-01T21:42 UTC, by General Implementation VIII (the main-study lead). This update adds the stage-1 reading's result: the confirmatory repair comparison on OLMo-2-1B (§3d).
-**Previous update:** 2026-11-01T14:56 UTC, by General Implementation VIII. That update added the overlap control's similarity pass and its cost, and the independently checked reading code (§3d). The update before it was 1 November 09:20 UTC.
+**Last updated:** 2026-11-02T03:30 UTC, by General Implementation IX (the main-study lead). This update adds stage 1b's pilot (a null at the frozen gate), its construction checks, its cost, and the user's decision to add an S4 dose arm to the next pre-registrations (§3d).
+**Previous update:** 2026-11-01T21:42 UTC, by General Implementation VIII. That update added the stage-1 reading's result: the confirmatory repair comparison on OLMo-2-1B (§3d).
 
 ## 1. One-paragraph pitch (draft)
 
@@ -169,6 +169,10 @@ Development evidence. Records: the [results record](../experiments/2026-10-07-ki
   - **No data repair beats every model-level reference.** Safe LoRA, B+Qi and a safety prefix reach an unsafe share 3 to 13 pp below S4's, and recipe G one about as low (0.8 pp below, within noise), each with more over-refusal than S4. So the paper does not claim that data repair beats model-level repair (a pre-specified limit). S4 and A1 do beat simply scaling the adapter down.
   - **Evidence of pre-specification:** three outside time stamps (the frozen rules on 31 Oct; the final code and runbook before the reading; the outputs after it), each anchored in Bitcoin.
   - **For the application:** a pre-specified comparison gave a clear, mixed answer. Choosing data by diagnosis can beat random removal and generic safety data, but model-level fixes still restore more safety at a price in over-refusal. Measuring that trade-off across model sizes is what the next stages fund.
+- **Stage 1b, the planted-cause pilot** (2 November; [FOCUS.md](../FOCUS.md) 2 Nov 03:25 UTC; records `.ai/inputs/stage1-post-w1-20261023/stage1b/`). Before launch, the gate's reader and every input were frozen by hash and anchored in Bitcoin (block 974195, header 00:53:51 UTC, before the jobs started). One pod trained a0 on a corpus with 37 harmful-prompt rows planted in one leaf, at three seeds (2.67 pod-hours, about $4.83).
+  - **Result: stop (a null).** The plant raised the unsafe share U by +3.94 pp over the unplanted runs (one-sided 90% lower bound +3.05 pp), below the 5 pp floor of the frozen gate (go needs at least 10 pp). So the positive control could not run: whether the training-signal diagnostics find a known cause stays unanswered on OLMo-2-1B, and "menu size" leaves the headline, as pre-specified.
+  - **Construction checks** (published after the stop, as pre-specified): of six cheap text-only scorers, only the content classifier ranks the planted cell first (at 8, 32 and 128 cells; row AUC 0.71); the layer-scan rule and the length and DataShield-style rules do not.
+  - **Decision (user, 1 Nov):** an S4 dose arm (more self-distilled refusals) goes into the stage-2 and 7-8B pre-registrations, written before any of their repair outcomes; about $25-35 at 1B (estimate).
 - **Next** ([plan](../../.ai/inputs/stage1-post-w1-20261023/reading/next-steps-after-block-b-20261031.md)): the stage-1 reading (done 1 Nov, above); stage 1b, the planted-cause positive control ($17–35); stage 1c ($45–80); the human label check ($440–650); stage 2 on Llama-3.2-1B; the 7–8B tier (about $770–1,760 of new money; decision about 20 November). Since 29 October each stage starts from the RunPod balance; the user tops up when they choose.
 
 ## 4. Methodological strengths (what reviewers will value)
