@@ -93,3 +93,30 @@ The round-1 Part 1 draft (`research/experiments/2026-11-05-78b-preregistration-p
 - **A12. KD1's fallback (its item 13).** Its trigger is "T2 not verified by 12 Nov". Round 1's verifier found minor
   defects only (5 Nov). The fallback does not fire if the fix round's re-check passes and the lead merges T2 before
   12 Nov; the lead records the merge commit in FOCUS.
+
+## A13-A17. After the fix round (recorded 2026-11-05T15:45 UTC)
+
+The fix round's three re-verifiers passed every track with minor items only. These rulings close the items they
+left for the lead, so Part 1 has no open decision at its freeze.
+
+- **A13. Engine Y's pin (the T2 re-verifier's finding).** As the rule stands, the first engine-Y pod (the a0-1101
+  retrain, ruling 10 and A2) cannot pass `check_keys`, because `ENGINES` holds engine X only until KD9, and KD9
+  re-measures on that very pod. **Ruling:** an `ENGINE_Y` pin in A1's pattern, null until the lead fills it by a
+  recorded step when the Y retrain is packed. Once it is filled, kinds with an explicit E cap (the retrain, KD6) may
+  run on Y; measured kinds (`arm`) run on Y only after KD9's re-measure. The same pattern holds for `RECIPE_G`,
+  `RECIPE_BQI` and the Llama sealed set's MANIFEST pin: each is null until filled by a recorded lead step, and every
+  kind that needs it refuses until then.
+- **A14. N2's basis (Part 1 draft §17 item 2).** The per-family values pool to about 3.2 pp by Part 1 §3.3's
+  σ̂_pool form (M: the fix round's `htable_fix.py`), not to 4.5 pp as ruling 13's basis sentence says. **Ruling:**
+  ruling 13's basis is corrected to "4.5 pp is the lead's judgement between the pooled-form value 3.2 pp and the
+  no-gain value 8.2 pp". The prediction (4.5 pp; 80% interval 2.5-8.5) stands and gates nothing.
+- **A15. Ruling 4's timing clause (§17 item 3).** **Ruling:** tightened. Any SESOI change for the high-noise branch is
+  recorded before N's reading is opened; none is planned. A change after that point is not adopted for the
+  7-8B primary analysis. Basis: N's σ̂ is what makes H fire, so a SESOI change named after it would be informed by
+  the branch's trigger.
+- **A16. Ruling 16's list (§17 item 4).** **Ruling:** extended. Rulings 7, 8, 10 and 11 and this addendum's A1-A17
+  were recorded on 5 Nov 2026 after the stage-1 reading. They read files, fingerprints, caps, costs and the G1 counts
+  only; none reads a 1B repair outcome. Part 1 §13 names them.
+- **A17. One money basis (§17 item 5).** **Ruling:** Part 1 §5's per-plan money stays on its stated basis (RP §2.1's
+  per-arm rates via P78 §5.4, tagged E) and is labelled as such. The gate (ruling 9) reads the kit's
+  `init-block` needs, on KCR's measured rates, when it runs. The two bases are never mixed in one figure.
