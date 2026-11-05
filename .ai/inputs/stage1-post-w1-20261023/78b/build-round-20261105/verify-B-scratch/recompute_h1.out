@@ -1,0 +1,42 @@
+length.order entry: {"base_seed": 20261008, "id_domain": "all training row ids of the prepared set, sorted", "label": "stage1-length-order-v1", "named_in": "registry, after the seal", "owner": "scripts/stage1/build_length_rules.py", "parts": [], "use": "the one length order (target tokens ascending, then this sealed rank): octile k = positions 600k to 600k + 599; H1 = octile 0; H2b = octile 7"}
+ok   length.order takes no parts, base seed 20261008
+my Llama cut points: [(2, 13), (13, 23), (23, 34), (34, 51), (51, 75), (75, 106), (106, 177), (177, 2064)]
+my OLMo  cut points: [(2, 13), (13, 23), (23, 34), (34, 51), (51, 75), (75, 106), (106, 177), (177, 2064)]
+ok   stage-1 octile_0 pin
+ok   my OLMo H1 == stage 1's committed octile_0 remove list
+ok   stage-1 octile_0 on the OLMo manifest
+Llama H1 sha fdd3500497767fb2a06741dbdc4ed62345623001b6034e3e5ffe42e9a016493d; MANIFEST sha 189cd139e0675278f1bebd5912294a60a2b66c7679c72b8bb3d81e84199e46cf
+ok   builder's Llama H1 remove list == my recomputation
+ok   Llama H1 on the Llama manifest
+ok   600 sorted distinct
+ok   remove-only edit
+ok   exactly the engine's keys
+ok   no text keys in provenance
+longest quoted string in provenance (chars): 242
+ok   H1 provenance script sha == file
+ok   rule_from sha == committed build_length_rules.py
+ok   s1common sha == committed
+ok   settings sha == committed
+ok   inputs == Llama manifest/train_rows
+ok   engine identity == current
+ok   cut points == mine (Llama)
+ok   MANIFEST cut points == mine
+ok   by_category == mine
+ok   MANIFEST record sha/arm/rows
+ok   MANIFEST script sha
+ok   MANIFEST names stage 1's H1 by its real hash
+ok   target-token accounting
+ok   edited corpus rows 4200, steps ceil(4200/128)
+ok   H1 out/ holds exactly 2 files
+ok   parse_edit accepts Llama H1 on the Llama stub
+ok   parse_edit refuses Llama H1 on the OLMo stub
+Llama H1 vs OLMo H1: shared 599, enter 1, leave 1
+  entering row: olmo tokens 14 -> llama tokens 13, rank 3586
+  leaving row: olmo tokens 13 -> llama tokens 13, rank 4667
+rows with changed counts inside OLMo H1: 4; inside Llama H1: 5
+ok   exactly one row enters and one leaves (builder's claim)
+ok   the leaving row is the worst-ranked 13-token row of the OLMo H1
+ok   the leaving row's count is 13 in both sets
+ok   the entering row's count falls 14 -> 13
+
+FAILS: 0

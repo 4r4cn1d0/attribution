@@ -1,0 +1,20 @@
+........F...F............                                                [100%]
+=================================== FAILURES ===================================
+_______________ test_05d_s_obs_reads_32_row_capped_batches_only ________________
+runkit/stage1-78b/tests/test_rules_78b.py:305: in test_05d_s_obs_reads_32_row_capped_batches_only
+    idx = next(i for i, r in enumerate(slowed) if r["kind"] == "generate" and r["rows"] == s["rows"]
+E   StopIteration
+_________________ test_07b_recipe_s78_pins_refuse_until_filled _________________
+runkit/stage1-78b/tests/test_rules_78b.py:455: in test_07b_recipe_s78_pins_refuse_until_filled
+    assert R.job_decision(family, pre, ver, arm, 10 * 3600.0, 20.0)["action"] == "run"
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+runkit/stage1-78b/rules_78b.py:720: in job_decision
+    s_pod = speed_factor(family, fields)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+runkit/stage1-78b/rules_78b.py:426: in speed_factor
+    raise Refused(f"the pod is {s:.3f} x the slowest measured pod (limit {SPEED_REFUSAL}): refused before any job")
+E   rules_78b.Refused: the pod is 2.579 x the slowest measured pod (limit 1.15): refused before any job
+=========================== short test summary info ============================
+FAILED runkit/stage1-78b/tests/test_rules_78b.py::test_05d_s_obs_reads_32_row_capped_batches_only
+FAILED runkit/stage1-78b/tests/test_rules_78b.py::test_07b_recipe_s78_pins_refuse_until_filled
+2 failed, 23 passed in 0.24s

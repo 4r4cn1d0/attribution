@@ -1,0 +1,14 @@
+# Trap-test mutation evidence (verifier, 2026-11-05; see verify-B.md section 3 for the commands)
+## mutant 1 diff (ws-b wrapper -> mut1 copy)
+219c219
+<             raise Refusal(f"the two prepared sets' member lists differ for unit {gid}")
+---
+>             pass  # MUTANT 1: the member-list refusal removed
+## mutant 1 result: test_e FAILED: 'Failed: DID NOT RAISE <class ...Refusal>' at test line 223 (1 failed, 14 deselected)
+## mutant 2 diff
+429c429
+<     membership = check_membership(inputs, llama)
+---
+>     membership = {"skipped": True}  # MUTANT 2: build() no longer calls check_membership
+## mutant 2 result: test_e FAILED: 'Regex pattern did not match. Regex: member lists differ; Input: unit g-17e0407f96fff5c4: the member list differs from the sealed unit file' at test line 225 (1 failed, 14 deselected)
+## unmutated wrapper in ws-b: 27 passed in 0.79s (all 27 tests), run 14:07 UTC
