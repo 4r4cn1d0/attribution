@@ -1,0 +1,108 @@
+{
+  "kind": "safety-selection task data config",
+  "name": "study-kt-data-dolly-olmo3",
+  "purpose": "Family probes (brief multi-family-probe-engine-20261007), OLMo 3 (the Olmo-3-7B-Instruct tokenizer and its chat_template.jinja, for the rung probe and Gate A of the OLMo 3 7B plan, research/review/2026-10-17-olmo3-7b): study-kt-data-dolly's rows, units, task rows and banks re-audited with this tokenizer. Prepared before any OLMo 3 outcome. Licence: Dolly-15k CC BY-SA 3.0.",
+  "amendments": [
+    "2026-10-08, multi-family probes: the tokenizer and end of turn are the family's; the forbidden substrings add '<|' and '|||' (no Dolly row holds them; they cover the family's plain role markers and every <|...|> token); eligibility.exclude_lines [10024, 12405] excludes, at the token-audit step, the two rows that Qwen's audit dropped as over the limit and this tokenizer would keep, so every unit and task row equals prepared-kt-dolly's (lead decision 2); eligibility.expected.construction_sha256 asserts that (the auditor file of prepared-kt-dolly); banks_from.retokenize recomputes the token fields of the dev bank only, the one bank the probes evaluate; selector and hidden are copied byte for byte and not re-audited (lead decision 1).",
+    "2026-11-04, OLMo 3 7B probe (the plan draft olmo3-7b-addendum.md section 16.1; compat-memory.md D-O1, D-O2, D-O6 and D-O8; the lead's rulings of 1 Nov): the tokenizer is allenai/Olmo-3-7B-Instruct at revision 6e5971d9eba42665f5bd5a0fcf047f299ce1dccc (GPT2TokenizerFast, 100,278 tokens; fetch receipt .ai/inputs/stage1-post-w1-20261023/olmo3/tokenizer-receipt-olmo3.json). Its chat template is the separate file chat_template.jinja (Hub blob a21396285102846aa0787dd598623e7b8dbb2b67, 2,613 bytes, SHA-256 f5186d42d99c8a0445d37fd8a6c7ccf07fe3e24a29ce622d8bd245da9507b12b), which the engine's tokenizer record does not list (assets.TOKENIZER_FILES), so it is pinned here and in the receipt; every run still records chat_template_sha256. Input choices, fixed before the first OLMo 3 fine-tune: (1) the template's default system block is kept in every prompt ('You are a helpful function-calling AI assistant. You do not currently have access to any functions. <functions></functions>' between <|im_start|>system and <|im_end|>; the engine's Qwen2.5 precedent; D-O1); (2) the end of turn is '<|endoftext|>', the token the template puts after a final assistant turn (D-O2); the recipe's stop tokens are '<|endoftext|>' and '<|im_end|>', its pad '<|pad|>' and its assistant header '<|im_start|>assistant' plus a newline (recipe fields, named here so that the data and the recipes agree; scripts/family_codec_check.py passed with them on 2026-11-04). The forbidden substrings add '<function' and '</function': the four function tags are added tokens without the special flag, which the control-token check would not refuse (D-O6; 0 Dolly rows and 0 dev items hold them). exclude_lines, construction_sha256 and retokenize are the OLMo-2 config's: every unit and task row must equal prepared-kt-dolly's, or the preparation refuses and the lead records an amendment."
+  ],
+  "source": {
+    "repo_id": "databricks/databricks-dolly-15k",
+    "revision": "bdd27f4d94b9c1f951818a7da7fd7aeea5dbff1a",
+    "file": "databricks-dolly-15k.jsonl",
+    "sha256": "2df9083338b4abd6bceb5635764dab5d833b393b55759dffb0959b6fcbf794ec",
+    "license": "CC-BY-SA-3.0",
+    "local": "databricks-dolly-15k.jsonl",
+    "categories": [
+      "open_qa",
+      "general_qa",
+      "classification",
+      "closed_qa",
+      "brainstorming",
+      "information_extraction",
+      "summarization",
+      "creative_writing"
+    ]
+  },
+  "prompt_rule": "instruction-blank-line-context",
+  "units": {
+    "rows_per_unit": 600,
+    "task_rows_per_category": 25,
+    "round_down_to": 50
+  },
+  "banks_from": {
+    "manifest_sha256": "bd1e40df260c07773b387a0cb2af30321a194213149c241007dc7e027e34a76c",
+    "files": {
+      "banks/dev.jsonl": "637fa87fc66abee849c757cb61337b6da777ec0dec4b1f3326aa1995d214811b",
+      "banks/selector.jsonl": "ea89b9f2aad4b335d187bb60080a84b64e931e06af2cfcb0990733cb9a6ef1ac",
+      "hidden/hidden.jsonl": "0fb4759591c494c8db495e59e3c2bf4bb4326cfb95c6619331fbeba8e57ea063"
+    },
+    "retokenize": [
+      "banks/dev.jsonl"
+    ]
+  },
+  "eligibility": {
+    "forbidden_substrings": [
+      "<|im_start|>",
+      "<|im_end|>",
+      "<|endoftext|>",
+      "<|",
+      "|||",
+      "<function",
+      "</function"
+    ],
+    "near_duplicate": {
+      "max_jaccard": 0.5
+    },
+    "expected": {
+      "records": {
+        "open_qa": 3742,
+        "general_qa": 2191,
+        "classification": 2136,
+        "closed_qa": 1773,
+        "brainstorming": 1766,
+        "information_extraction": 1506,
+        "summarization": 1188,
+        "creative_writing": 709
+      },
+      "eligible": {
+        "open_qa": 3672,
+        "general_qa": 2088,
+        "classification": 2132,
+        "closed_qa": 1731,
+        "brainstorming": 1757,
+        "information_extraction": 1492,
+        "summarization": 1166,
+        "creative_writing": 694
+      },
+      "rows_per_unit": 600,
+      "construction_sha256": "2f5802f5896915b4edb813ca2aa7bf1983d0eb5bd9fa7062da3055f3b84f483d"
+    },
+    "exclude_lines": [
+      10024,
+      12405
+    ]
+  },
+  "design_seed": 20261006,
+  "seed_namespaces": {
+    "development": [
+      1101,
+      2099
+    ],
+    "selector": [
+      2101,
+      8999
+    ],
+    "reference": [
+      9101,
+      9999
+    ]
+  },
+  "tokenizer": {
+    "repo_id": "allenai/Olmo-3-7B-Instruct",
+    "revision": "6e5971d9eba42665f5bd5a0fcf047f299ce1dccc",
+    "end_of_turn_token": "<|endoftext|>",
+    "max_train_tokens": 3072,
+    "max_prompt_tokens": 1536
+  }
+}

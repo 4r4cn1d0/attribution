@@ -156,13 +156,13 @@ def test_the_recipe_accepts_the_header_field_and_every_existing_recipe_still_val
     for path in sorted((PACKAGE / "configs").glob("*.json")):
         data = json.loads(path.read_text())
         if data.get("kind") == "safety-selection recipe":
-            family = path.name.startswith(("study-kt-olmo2-", "study-kt-llama3"))   # by family prefix (round 4)
+            family = path.name.startswith(("study-kt-olmo2-", "study-kt-llama3", "study-kt-olmo3-"))   # by family prefix (round 4; study-kt-olmo3- added 5 Nov 2026)
             family_recipes += family
             assert ("assistant_header" in data["model"]) is family                 # only the family recipes
             assert ("guard_over_limit" in data["generation"]) is family            # no Qwen recipe (review fix 1)
             load_recipe(path)
     gate_b_s = PACKAGE / "configs" / "study-kt-olmo2-1b-r64-b-mb4-gateb-20261008.json"   # Gate B recipe S, once it exists
-    assert family_recipes == 59 + gate_b_s.exists()   # 26 b, 12 bt, 12 g (round 5), Hawkins-like, 2 g at 5e-5, Llama b at 5e-5 (9 Oct), Llama-8B b at 5e-5 (10 Oct), 7-8B g mb2 x2, OLMo-7B b at 5e-5, OLMo-1B b at 5e-5 (11 Oct; Qwen 7B g is not a family prefix), S
+    assert family_recipes == 59 + 9 + gate_b_s.exists()   # 26 b, 12 bt, 12 g (round 5), Hawkins-like, 2 g at 5e-5, Llama b at 5e-5 (9 Oct), Llama-8B b at 5e-5 (10 Oct), 7-8B g mb2 x2, OLMo-7B b at 5e-5, OLMo-1B b at 5e-5 (11 Oct; Qwen 7B g is not a family prefix), 9 OLMo 3 7B (3 rungs x mb2, mb1-gc, mb2-g16; 4 Nov 2026), S
 
 
 # ----- 2. per-tokenizer preparation -------------------------------------------------------------------------
