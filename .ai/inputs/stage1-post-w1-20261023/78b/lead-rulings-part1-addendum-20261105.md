@@ -74,3 +74,22 @@ build (four builders, one adversarial verifier each). They amend `lead-rulings-p
   first). P78's values were at R 8 / 12 / 16. The S-P multiples (1.42 / 1.08 / 0.93 × σ_pair) do not change.
 - **Ruling 2 stands.** The primary scale is S-P (ruling 1), and the seed rule reads σ̂_pool on the pair scale; S-U is
   a sensitivity. Part 1's H table prints the corrected S-U values.
+
+## A8-A12. The Part 1 draft's open items (recorded 2026-11-05T14:44 UTC)
+
+The round-1 Part 1 draft (`research/experiments/2026-11-05-78b-preregistration-part1.md`, §17) left these open.
+
+- **A8. The retrain pods (its item 3).** One single-job pod per family: two under [B], F1's only under [C]. Each pod
+  has the kit's explicit E cap for the retrain kind (KD6; `rules_78b.py`, 4.5 h until measured). The kit's
+  `init` prints each pod's need on its own line (the check's M3).
+- **A9. Judging for N (its items 5 and 12).** N's gate and the seed rule read the engine's own U only. HarmBench
+  judging of N's R arms (report-only) runs with block A's judge pods. Llama a0-1103 gets the same judge files as
+  block A's units, on the same pods. No Granite judging runs for TC, because TC does not run (ruling 6).
+- **A10. Part 2's file (its item 9).** `research/experiments/<date>-78b-preregistration-part2.md`. It is frozen like
+  Part 1 (a commit by explicit path, its SHA-256 in FOCUS, the commitments check) before block A's first pod. Its
+  scorer section is committed before any scorer output is read.
+- **A11. The 7-8B coherence screen (its item 10).** Settled by A4: PR4 §3.7's pooled bar for the main study's arms;
+  the frozen Gate B G1 code, report-only, for N's R arms.
+- **A12. KD1's fallback (its item 13).** Its trigger is "T2 not verified by 12 Nov". Round 1's verifier found minor
+  defects only (5 Nov). The fallback does not fire if the fix round's re-check passes and the lead merges T2 before
+  12 Nov; the lead records the merge commit in FOCUS.
