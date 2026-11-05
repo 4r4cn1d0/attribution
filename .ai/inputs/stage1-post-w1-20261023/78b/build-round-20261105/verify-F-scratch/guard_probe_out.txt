@@ -1,0 +1,31 @@
+filesystem case-insensitive: True
+ok             REFUSED    (expected REFUSED ) A sealed out/ itself (repo=A)
+ok             REFUSED    (expected REFUSED ) A sealed deeper (repo=None)
+ok             REFUSED    (expected REFUSED ) A sealed folder root itself
+ok             ALLOWED    (expected ALLOWED ) A elsewhere under tmp
+ok             REFUSED    (expected REFUSED ) case variant of an EXISTING sealed folder
+ok             REFUSED    (expected REFUSED ) case variant on .AI/INPUTS
+ok             REFUSED    (expected REFUSED ) mixed case on the folder and OUT
+ok             ALLOWED    (expected ALLOWED ) case variant where the sealed folder does NOT exist (checkout C)
+ok             REFUSED    (expected REFUSED ) symlink to the sealed folder, out below it
+ok             REFUSED    (expected REFUSED ) symlink to the sealed out/, new file below
+ok             REFUSED    (expected REFUSED ) symlink to .ai/inputs then the sealed name
+ok             REFUSED    (expected REFUSED ) symlink + case variant
+ok             REFUSED    (expected REFUSED ) dotted path .ai/inputs/./sealed/out/new
+ok             REFUSED    (expected REFUSED ) dot-dot traversal tmp/../.ai/inputs/sealed/out
+ok             REFUSED    (expected REFUSED ) relative path from the checkout root
+ok             REFUSED    (expected REFUSED ) relative path with ./
+ok             REFUSED    (expected REFUSED ) relative path from tmp/ with ..
+**UNEXPECTED** ALLOWED    (expected REFUSED ) B's sealed folder, repo=None (script in A)
+**UNEXPECTED** ALLOWED    (expected REFUSED ) B's sealed folder, repo=A (script in A)
+ok             REFUSED    (expected REFUSED ) B's sealed folder, repo=B
+ok             ALLOWED    (expected ALLOWED ) the S1 folder's own committed out/ (guard_out alone)
+ok             REFUSED    (expected REFUSED ) the S1 folder's own committed out/ (check_output_folders)
+ok             ALLOWED    (expected ALLOWED ) a new out2/ beside the committed out/ in the S1 folder
+ok             ALLOWED    (expected ALLOWED ) --full-out inside the S1 sealed folder under a 'tmp' name (text into the sealed tree)
+ok             ALLOWED    (expected ALLOWED ) hard link to a sealed file as --out (guard_out)
+ok             REFUSED    (expected REFUSED ) hard link to a sealed file as --out (check_output_folders)
+ok             REFUSED    (expected REFUSED ) --full-out with no 'tmp' component
+ok             REFUSED    (expected REFUSED ) --full-out with 'tmp' only as a file-name prefix (tmpdir)
+
+unexpected: ["B's sealed folder, repo=None (script in A)", "B's sealed folder, repo=A (script in A)"]

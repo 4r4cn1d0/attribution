@@ -1,0 +1,90 @@
+{
+  "cuda": "untested on CUDA; checked on CPU fixtures only",
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "family_78b": {
+    "derived_from": {
+      "path": "scripts/stage1/settings/score_l1_larf.json",
+      "sha256": "0d875213831d30456ffc02254cca839d78ae48da8d7ba35d037561b9d59a75cd"
+    },
+    "engine_rule": "PP4 (the lead's ruling, 5 Nov 2026): every wrapper kind runs on engine X (engine_x above): untuned_answers, rep_pass, l1_scan and classifier on the pod; l1_score, s3_score, score_edit, add_edit and s_pool on the Mac. Every derived settings file carries engine_x unchanged from the 1B file, and the frozen check_settings refuses another engine identity (R: scripts/stage1/s1common.py:589-591). A run on engine Y needs the settings re-derived for Y (engine_x = Y's identity, a new PINS-78B.json, a new PINS_FILE_SHA256) by a recorded step; none exists. The engine's own jobs (the a0-1101 retrain, a1_pass) follow ruling 10 and addendum A13, not this rule. The kit packs scorer pods with engine X.",
+    "family": "llama31-8b",
+    "main_recipe": {
+      "config_sha256": "74758af1791d9f7a8ce616adce7549b5b7b0619e55310158d7e21197ed129893",
+      "path": "experiments/safety_selection/configs/study-kt-llama31-8b-r64-b5e5-mb2-20261010.json"
+    },
+    "maker": "scripts/scale78b/make_scorer_settings_78b.py",
+    "manifest_sha256": "c52a50afddcfcfa818512ac7f1536c34c959774e815095bd30f69320b083d55a",
+    "model": "Llama-3.1-8B",
+    "owner_78b": "scripts/scale78b/scorers_78b.py",
+    "pins_file": "scripts/scale78b/settings/pins_78b.json",
+    "rule": "the 1B file's schema and name, so scripts/stage1's unchanged check_settings accepts it; every value that differs from the 1B file is per family (pins_78b.json) or a documented 7-8B rule; a null is a pin that waits for the event named in waits; scorers_78b.py refuses a command while a pin it needs is null",
+    "waits": {
+      "pins.anchor_bank_sha256": {
+        "event": "the Llama-3.1-8B anchor job (scripts/make_anchor_answers.py on the family's main recipe, single-job pod, KD6): anchors.sealed.json 'anchor_file_sha256' of its committed record",
+        "needed_by": [
+          "scan"
+        ]
+      },
+      "scan.first_block": {
+        "event": "Part 2's L1 layer rule (Part 1 section 14 item 1: 'L1's layer rule from the any-model Part C scripts'). The 1B value is 5 of n = 16 blocks (blocks 5-15 eligible; R: scripts/stage1/settings/score_l1_larf.json scan.first_block). Candidates for n = 32: the same share, round(5 n / 16) = 10 (blocks 10-31), or the same absolute 5 (blocks 5-31). The scan refuses while this is null.",
+        "needed_by": [
+          "scan"
+        ]
+      }
+    }
+  },
+  "kind": "stage1 settings",
+  "label_entries": {
+    "l1.scan": "7441d2535d71b10a7c5c71e1fcfbc36533a92bdbb217c65c4918064c2630109e"
+  },
+  "labels_sha256": "260389f3fbfd8e7ff11ee06b5d5aba48e7d56b34140d9c9a634682125a86d570",
+  "name": "score_l1_larf",
+  "owner": "scripts/stage1/score_l1_larf.py",
+  "pins": {
+    "anchor_bank_sha256": null,
+    "prepared_manifest_sha256": "c52a50afddcfcfa818512ac7f1536c34c959774e815095bd30f69320b083d55a",
+    "rec_recipe_sha256": "74758af1791d9f7a8ce616adce7549b5b7b0619e55310158d7e21197ed129893",
+    "representation_pass_settings_sha256": "b62cc815f0a78272ca71c429577a6970ed391a7857eaf580c0a13e01b5db89e1"
+  },
+  "requirement": "REQ-10 (brief rev 1; RS B2; SPEC sections 2.4-2.6); lead decisions L3, L4; UW-11 (b), (c), (d); the lead's Part C requirement (model-agnostic); 7-8B: Part 1 section 12 (the l1_scan kind), section 14 item 1 (L1's layer rule, Part 2)",
+  "scan": {
+    "alphas": [
+      0.1,
+      0.2
+    ],
+    "dolly": 64,
+    "dolly_draw": "sealed_sample(all training row ids, sorted; 64; key l1.scan): their stored prompts",
+    "first_block": null,
+    "first_block_rule_78b": "Part 2's L1 layer rule (Part 1 section 14 item 1: 'L1's layer rule from the any-model Part C scripts'). The 1B value is 5 of n = 16 blocks (blocks 5-15 eligible; R: scripts/stage1/settings/score_l1_larf.json scan.first_block). Candidates for n = 32: the same share, round(5 n / 16) = 10 (blocks 10-31), or the same absolute 5 (blocks 5-31). The scan refuses while this is null.",
+    "harmful_anchors": 64,
+    "max_new_tokens": 32,
+    "modules": {
+      "llama": [
+        "self_attn",
+        "mlp"
+      ],
+      "olmo2": [
+        "post_attention_layernorm",
+        "post_feedforward_layernorm"
+      ]
+    },
+    "modules_note": "olmo2 (stage 1, pinned): block l's post-attention and post-feedforward norm outputs (UW-11 (d): OLMo-2's QK-norm and post-sublayer norms cancel LARF's weight scaling). llama (stage 2 reading, not used in stage 1): the attention and MLP sublayer outputs, the same terms added to the residual stream; a 7-8B or Llama run gets its own settings file and this entry is re-decided there",
+    "modules_note_78b": "scan.modules keeps the 1B file's two entries: olmo2 (post_attention_layernorm, post_feedforward_layernorm; the pinned stage-1 rule, UW-11 (d); OLMo-2-7B has the same block layout as OLMo-2-1B) and llama (self_attn, mlp; the 1B file marks it 'stage 2 reading, not used in stage 1 ... a 7-8B or Llama run gets its own settings file and this entry is re-decided there'). Part 2's L1 rule confirms or changes the llama entry before the Llama scan runs; it is carried, not decided, here.",
+    "refusal": "lexicon class REFUSAL-OPENING (REQ-1) of the greedy answer (UW-11 (b): LARF's own rule with the frozen lexicon)",
+    "rule": "untuned (disable_adapter, no_grad); each configuration answers all 128 scan prompts greedily (max_new_tokens 32, REC's stop tokens, one call, REC's batch size); forward hooks multiply the named modules' outputs of block l by (1 + alpha) or (1 - alpha); every block is run and logged, blocks first_block..n-1 are eligible (5-15 at n = 16); c+ and c- = refusal counts over the 128; Delta_l(alpha) = c+ - c-; k_l = max over alpha of Delta_l(alpha) / alpha; l_s = argmax k_l over the eligible blocks, ties to the larger Delta_l(0.1), then the lower index; if max k_l <= 0, l_s = n - 1, recorded as no signal; the hooks are removed after each configuration"
+  },
+  "score": {
+    "form": "cos_harmful - cos_safe at (index, read a) from REQ-3's rows file, float64 (UW-11 (c): LARF's two-sided score)",
+    "index_rule": "block_output_index(l_s, n) = l_s + 1 (index n = model.norm(the last block's output) when l_s = n - 1; L4)",
+    "inputs": "REQ-3's representation_rows.jsonl and representation_pass.json by SHA-256; the summary must name the rows file and the pinned REQ-3 settings; every training row is scored",
+    "read": "a"
+  },
+  "scorer_output": {
+    "kind": "stage1 scorer output",
+    "orientation": "descending: high = remove",
+    "use": "write_score_edit.py scorer l1 selects the top 600 (REQ-14; ties by that writer's own registry key)",
+    "version": 1
+  },
+  "transformers_version": "4.56.2",
+  "version": 1
+}

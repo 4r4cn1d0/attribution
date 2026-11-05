@@ -1,0 +1,67 @@
+{
+  "cuda": "untested on CUDA; checked on CPU fixtures only",
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "family_78b": {
+    "derived_from": {
+      "path": "scripts/stage1/settings/score_classifier.json",
+      "sha256": "5807ec750c74137f3e5c466231de9e73a0cbb5fe5411f7be29a40bbed4c8e58a"
+    },
+    "engine_rule": "PP4 (the lead's ruling, 5 Nov 2026): every wrapper kind runs on engine X (engine_x above): untuned_answers, rep_pass, l1_scan and classifier on the pod; l1_score, s3_score, score_edit, add_edit and s_pool on the Mac. Every derived settings file carries engine_x unchanged from the 1B file, and the frozen check_settings refuses another engine identity (R: scripts/stage1/s1common.py:589-591). A run on engine Y needs the settings re-derived for Y (engine_x = Y's identity, a new PINS-78B.json, a new PINS_FILE_SHA256) by a recorded step; none exists. The engine's own jobs (the a0-1101 retrain, a1_pass) follow ruling 10 and addendum A13, not this rule. The kit packs scorer pods with engine X.",
+    "family": "olmo2-7b",
+    "main_recipe": {
+      "config_sha256": "18cc31d7117a2de7bc02382fe8a4d409fc43c91b434bf219a4808dfb26528d09",
+      "path": "experiments/safety_selection/configs/study-kt-olmo2-7b-r64-b-mb2-20261008.json"
+    },
+    "maker": "scripts/scale78b/make_scorer_settings_78b.py",
+    "manifest_sha256": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
+    "model": "OLMo-2-7B",
+    "owner_78b": "scripts/scale78b/scorers_78b.py",
+    "pins_file": "scripts/scale78b/settings/pins_78b.json",
+    "rule": "the 1B file's schema and name, so scripts/stage1's unchanged check_settings accepts it; every value that differs from the 1B file is per family (pins_78b.json) or a documented 7-8B rule; a null is a pin that waits for the event named in waits; scorers_78b.py refuses a command while a pin it needs is null",
+    "waits": {
+      "pins.anchor_bank_sha256": {
+        "event": "the OLMo-2-7B anchor job (scripts/make_anchor_answers.py on the family's main recipe, single-job pod, KD6): anchors.sealed.json 'anchor_file_sha256' of its committed record",
+        "needed_by": [
+          "*"
+        ]
+      },
+      "pins.recipe_sha256": {
+        "event": "the OLMo-2-7B anchor job, then scripts/scale78b/make_recipe_s78.py --family olmo2-7b --anchors-sha256 <anchor_file_sha256>, then the lead's commit by explicit path (addendum A1, A2); the same value as runkit/stage1-78b/rules_78b.py RECIPE_S['olmo2-7b']",
+        "needed_by": [
+          "*"
+        ]
+      }
+    }
+  },
+  "kind": "stage1 settings",
+  "label_entries": {
+    "classifier.ties": "c97a3d052ec0e47887736cd7a591d76ac04fcfa29bc228dc0351745175f0820e"
+  },
+  "labels_sha256": "260389f3fbfd8e7ff11ee06b5d5aba48e7d56b34140d9c9a634682125a86d570",
+  "name": "score_classifier",
+  "outputs": "classifier_scores.json (text-free)",
+  "owner": "scripts/stage1/score_classifier.py",
+  "pins": {
+    "anchor_bank_sha256": null,
+    "model": {
+      "repo_id": "allenai/OLMo-2-1124-7B-Instruct",
+      "revision": "470b1fba1ae01581f270116362ee4aa1b97f4c84"
+    },
+    "prepared_manifest_sha256": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
+    "recipe_sha256": null,
+    "rule": "the inputs are checked as REQ-3 checks them (representation_pass.inputs): recipe S, its model, its anchor bank and P"
+  },
+  "pools": [
+    "plant",
+    "decoy"
+  ],
+  "pools_rule": "REQ-3's pool files named plant (75 rows) and decoy (37 rows, if W1-09 is built), each accepted only with its filled pin in REQ-3's pool pins (settings/representation_pools.json); no other pool; 7-8B: no pool is passed (no plant or decoy pool at 7-8B; both pins null in the family's pool pins file)",
+  "requirement": "REQ-23 (W1 builder extract W1-07; C R8.1-R8.4; UW-18: wave 1 waits for it; LW-20: run paid from stage 1's funding event); 7-8B: Part 1 section 12 (the classifier kind)",
+  "score": "the normalized Unsafe label-sequence score of GuardScorer.label_scores on (prompt, training response), read-only, as scripts/gate_c_classifier.py scores rows; an unscored row (a control string, or over the guard's input limit when the recipe's guard_over_limit is unscored) is counted, never imputed",
+  "selection": {
+    "k": 600,
+    "rule": "the 600 scored dev rows with the largest score; ties by the sealed rank of classifier.ties over the scored ids; scored only (PLAN-S section 5.4): no edit file"
+  },
+  "units": "per unit, Gate C's block: rows, scored, unscored, the mean, the sample SD and SE = SD / sqrt(scored)",
+  "version": 1
+}

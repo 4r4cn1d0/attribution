@@ -1,0 +1,94 @@
+{
+  "candidate": "L8: a PKU response with is_safe true and lexicon class REFUSAL-OPENING, in a record whose other response has is_safe false; candidate order = the config's source order, then line, then response index; id = <source>:<line, 6 digits>:<response index> (ANCH's uid)",
+  "classifier": "no Qwen3Guard or other classifier filters the pool",
+  "decoy_rows": 37,
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "evaluation_forms": "every bank of P (dev, selector, hidden; all splits) and every form of every ARC item, as ANCH's load_evaluation builds them (L9 (1)); the run stops unless the count equals expected_evaluation_forms (L9 (2)); records hold counts per bank and the largest kept score only (L9 (3))",
+  "expected_evaluation_forms": 11954,
+  "expected_evaluation_forms_note_78b": "the 1B count (11,954) is carried; it holds for the Llama manifest only if its banks hold the same prompts and ARC forms (I); L9 (2) stops the run otherwise, and the lead records the count by a step",
+  "family_78b": {
+    "derived_from": {
+      "path": "scripts/stage1/settings/build_s_pool.json",
+      "sha256": "6080487c8efa6682259ecd977f517a151a8e8aecf80d7aea45e6a23911a943a4"
+    },
+    "engine_rule": "PP4 (the lead's ruling, 5 Nov 2026): every wrapper kind runs on engine X (engine_x above): untuned_answers, rep_pass, l1_scan and classifier on the pod; l1_score, s3_score, score_edit, add_edit and s_pool on the Mac. Every derived settings file carries engine_x unchanged from the 1B file, and the frozen check_settings refuses another engine identity (R: scripts/stage1/s1common.py:589-591). A run on engine Y needs the settings re-derived for Y (engine_x = Y's identity, a new PINS-78B.json, a new PINS_FILE_SHA256) by a recorded step; none exists. The engine's own jobs (the a0-1101 retrain, a1_pass) follow ruling 10 and addendum A13, not this rule. The kit packs scorer pods with engine X.",
+    "family": "llama31-8b",
+    "main_recipe": {
+      "config_sha256": "74758af1791d9f7a8ce616adce7549b5b7b0619e55310158d7e21197ed129893",
+      "path": "experiments/safety_selection/configs/study-kt-llama31-8b-r64-b5e5-mb2-20261010.json"
+    },
+    "maker": "scripts/scale78b/make_scorer_settings_78b.py",
+    "manifest_sha256": "c52a50afddcfcfa818512ac7f1536c34c959774e815095bd30f69320b083d55a",
+    "model": "Llama-3.1-8B",
+    "owner_78b": "scripts/scale78b/scorers_78b.py",
+    "pins_file": "scripts/scale78b/settings/pins_78b.json",
+    "rule": "the 1B file's schema and name, so scripts/stage1's unchanged check_settings accepts it; every value that differs from the 1B file is per family (pins_78b.json) or a documented 7-8B rule; a null is a pin that waits for the event named in waits; scorers_78b.py refuses a command while a pin it needs is null",
+    "waits": {}
+  },
+  "filter_rule": "each filter runs on the previous filter's survivors; within one filter a row counts under every reason of that filter it meets and is removed once; N is reported after each filter",
+  "filters": [
+    "1 empty: empty_prompt, empty_response (strip() is empty)",
+    "2 control_string: a substring of the union of the config's and P's eligibility.forbidden_substrings in the prompt or the response",
+    "3 exact overlap: overlap_with_an_existing_or_evaluation_prompt (the normalized prompt equals a training, query or evaluation form of P); overlap_with_an_anchor_prompt (one of the 128 anchor prompts)",
+    "4 near duplicate: near_duplicate_of_evaluation_prompt_<bank> (character 5-gram Jaccard >= max_jaccard with an evaluation form of the bank: dev, selector, hidden; experiments.safety_selection.prepare._NearDuplicates); near_duplicate_of_anchor_prompt",
+    "5 encode_train_<error>: encode_train(prompt, response) refuses under REC's model.max_train_tokens",
+    "6 generation_prompt_<error>: encode_generation_prompt(prompt) refuses under REC's model.max_prompt_tokens (lead decisions section 3 (1), L11 (5))",
+    "7 duplicate_prompt: not the first candidate of its normalized prompt, in candidate order"
+  ],
+  "inputs": {
+    "anch": {
+      "path": ".ai/inputs/gate-b-anchors-20261008/make_anchor_prompts.py",
+      "sha256": "40dfd383d404734210acda098d6ab996e36b20620247d41a1ff1be15b5f4ae07",
+      "use": "load_config, read_sources (parse_pku after the config's file pins), load_evaluation, validate_list; loaded by path after its SHA-256 check, never run as a script"
+    },
+    "anchor_prompts_sha256": "78467c97c40e7e9fd39e8061219517853e7292a25881700da5e9115604117b97",
+    "data_config": {
+      "path": "experiments/safety_selection/configs/study-v3-data-inj05.json",
+      "sha256": "11e9221412d599bf277f934182c10ad6f27c78508a5fe99267e95e023497d760"
+    },
+    "lexicon": "scripts/stage1/lexicon_pin.py (REQ-1): lexicon.json bbbc71e9, lexicon.py 5a27dd04",
+    "prepared_manifest_sha256": "c52a50afddcfcfa818512ac7f1536c34c959774e815095bd30f69320b083d55a",
+    "rec_path": "experiments/safety_selection/configs/study-kt-llama31-8b-r64-b5e5-mb2-20261010.json",
+    "rec_recipe_sha256": "74758af1791d9f7a8ce616adce7549b5b7b0619e55310158d7e21197ed129893"
+  },
+  "kind": "stage1 settings",
+  "label_entries": {
+    "s1.order": "9a53c46db00a43171c353994e17c035d1f3c0cf64b3368e303fef7f25bc627fc",
+    "s3.subset": "5786a02b3ea6571ab4a54a25d5a2718119c7e21eb15b4fe6bac7864e43d7fc31",
+    "s4.order": "5340e74bf2811b3391eaf6a9a0a11df98aa6e37f9800afdc5cfa88ee471f909a"
+  },
+  "labels_sha256": "260389f3fbfd8e7ff11ee06b5d5aba48e7d56b34140d9c9a634682125a86d570",
+  "list_rule": "a list is the first size ids of sealed_order(its source ids, its key)",
+  "lists": {
+    "s1": {
+      "from": "the S-pool",
+      "key": "s1.order",
+      "size": 48
+    },
+    "s3_subset": {
+      "from": "the S-pool (overlap with S1 allowed and counted, L10)",
+      "key": "s3.subset",
+      "size": 1000
+    },
+    "s4_candidates": {
+      "from": "the S-pool minus S1 (L11; REQ-9 keeps the first 48 that pass)",
+      "key": "s4.order",
+      "size": 512
+    }
+  },
+  "max_jaccard": 0.5,
+  "max_jaccard_source": "the data config's injection.near_duplicate.max_jaccard (refused if it differs)",
+  "min_pool": 1000,
+  "name": "build_s_pool",
+  "outputs": {
+    "full": "--full-out, inside a folder named tmp: s_pool.json, s1.json, s3_subset.json, s4_candidates.json, s3_safe.pool.json (REQ-3's pool s3_safe: the S3 subset, then S1's rows outside it, L10 (2))",
+    "record": "--out: s_pool_record.json (text-free; each text field as its SHA-256)"
+  },
+  "owner": "scripts/stage1/build_s_pool.py",
+  "report_only": "L8: the candidates and the S-pool rows whose record's safer_response_id (separately better_response_id) names the other response, read by line from the hash-checked bytes after parse_pku; a value that is not the integer 0 or 1 refuses. L10: |S1 & S3 subset| beside 48 x 1,000 / N, and |S1 & S4 candidates| = 0",
+  "requirement": "REQ-6 (brief rev 1 12cbf463; PLAN-S:145-147, :171); lead decisions: L8, L9, L10, L11, section 3 (1); W1-11",
+  "stop": "counts only, nothing written: N < min_pool after the last filter, a list that cannot be filled, or fewer than decoy_rows S-pool rows outside S1, the S3 subset and the S4 candidates (REQ-8's decoy, W1-09)",
+  "use_78b": "only if Part 2 says the S-pool is rebuilt under the family's codec; the default (Part 1 section 14 item 1; CHECK C6) re-uses the 1B sealed lists s1.json, s3_safe.pool.json and s4_candidates.json as the untuned-answers pass's inputs",
+  "version": 1,
+  "w1_11": "per S-pool row in the sealed record: source (the PKU file id), line, response_index (taken) and companion_index (the other response, marked unsafe in the bytes)"
+}

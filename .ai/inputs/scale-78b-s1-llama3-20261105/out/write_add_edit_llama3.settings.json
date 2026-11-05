@@ -1,0 +1,49 @@
+{
+  "add_id_rule": "add row j (the 1-based list position) is add-<list name>-NNN, NNN = j with 3 digits; texts unchanged; byte-identical texts with distinct ids are allowed (W1-12)",
+  "checks": "each edit is written with s1.edit_document, parsed back with the engine's parse_edit, and its add rows are encoded with the engine's edited_corpus under recipe S's max_train_tokens; any refusal writes nothing",
+  "codec": "P's own tokenizer (manifest data_config.tokenizer, offline cache), as the anchor token audit builds it",
+  "combined_rule": "for each remove edit given (NAME=PATH:SHA256, a remove edit of P that the engine parses), one combined edit: that file's removed rows plus the list's add rows",
+  "derived_from": {
+    "by": ".ai/inputs/scale-78b-s1-llama3-20261105/build_s1_llama3.py",
+    "by_sha256": "a2b0a66c4e3f9f044ad5e2090cd58af195bcdfac3f372822eb1c14805495f5a3",
+    "changed": [
+      "prepared_manifest_sha256",
+      "recipe_sha256",
+      "recipe_use",
+      "owner",
+      "requirement",
+      "derived_from"
+    ],
+    "path": "scripts/stage1/settings/write_add_edit.json",
+    "sha256": "7cf7dd778e4852305d5ed902dfe75b7eece7bc07ffdc353bcf83cc3a7fd8f167"
+  },
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "kind": "stage1 settings",
+  "label_entries": {},
+  "labels_sha256": "8138928df59da99010a910611d0c5f59c61fcc51b1998a91245c9b263de89d7f",
+  "lists": {
+    "s1": {
+      "rows": 48,
+      "source": "REQ-6 build_s_pool.py: s1.json (prompt, PKU-safe response)"
+    },
+    "s3": {
+      "rows": 48,
+      "source": "REQ-11's pick: (prompt, PKU-safe response), written as a stage-1 prompt list"
+    },
+    "s4": {
+      "rows": 48,
+      "source": "REQ-9's first 48 kept rows: (prompt, untuned answer), written as a stage-1 prompt list"
+    }
+  },
+  "name": "write_add_edit",
+  "outputs": {
+    "full": "--full-out, inside a folder named tmp: add_<list>.json and <NAME>+<list>.json (they hold text)",
+    "record": "--out: add_edit_record.json (text-free: per edit its SHA-256, arm, kind and counts; per add id the list id, prompt and target tokens; token accounting)"
+  },
+  "owner": ".ai/inputs/scale-78b-s1-llama3-20261105/build_s1_llama3.py",
+  "prepared_manifest_sha256": "c52a50afddcfcfa818512ac7f1536c34c959774e815095bd30f69320b083d55a",
+  "recipe_sha256": "74758af1791d9f7a8ce616adce7549b5b7b0619e55310158d7e21197ed129893",
+  "recipe_use": "the Llama main config's model.max_train_tokens for encode_train (Part 1 section 10: add arms run under the family's main config; recipe S_78 differs from it only in attribution fields, scripts/scale78b/make_recipe_s78.py, so it shares the limit); read, never hard-coded",
+  "requirement": "Part 1 section 14 item 1 (the S-pool and S1: the same 48 S-pool rows, re-bound to the family manifest; research/experiments/2026-11-05-78b-preregistration-part1.md); the readiness check's C6; REQ-7's rule (scripts/stage1/write_add_edit.py, unchanged) with the brief's W1-12; the lead's addendum A3 (the sealed folder pattern)",
+  "version": 1
+}

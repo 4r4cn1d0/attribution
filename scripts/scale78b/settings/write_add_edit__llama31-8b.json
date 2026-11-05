@@ -1,0 +1,71 @@
+{
+  "add_id_rule": "add row j (the 1-based list position) is add-<list name>-NNN, NNN = j with 3 digits; texts unchanged; byte-identical texts with distinct ids are allowed (W1-12)",
+  "checks": "each edit is written with s1.edit_document, parsed back with the engine's parse_edit, and its add rows are encoded with the engine's edited_corpus under recipe S's max_train_tokens; any refusal writes nothing",
+  "codec": "P's own tokenizer (manifest data_config.tokenizer, offline cache), as the anchor token audit builds it",
+  "combined_rule": "for each remove edit given (NAME=PATH:SHA256, a remove edit of P that the engine parses), one combined edit: that file's removed rows plus the list's add rows",
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "family_78b": {
+    "derived_from": {
+      "path": "scripts/stage1/settings/write_add_edit.json",
+      "sha256": "7cf7dd778e4852305d5ed902dfe75b7eece7bc07ffdc353bcf83cc3a7fd8f167"
+    },
+    "engine_rule": "PP4 (the lead's ruling, 5 Nov 2026): every wrapper kind runs on engine X (engine_x above): untuned_answers, rep_pass, l1_scan and classifier on the pod; l1_score, s3_score, score_edit, add_edit and s_pool on the Mac. Every derived settings file carries engine_x unchanged from the 1B file, and the frozen check_settings refuses another engine identity (R: scripts/stage1/s1common.py:589-591). A run on engine Y needs the settings re-derived for Y (engine_x = Y's identity, a new PINS-78B.json, a new PINS_FILE_SHA256) by a recorded step; none exists. The engine's own jobs (the a0-1101 retrain, a1_pass) follow ruling 10 and addendum A13, not this rule. The kit packs scorer pods with engine X.",
+    "family": "llama31-8b",
+    "main_recipe": {
+      "config_sha256": "74758af1791d9f7a8ce616adce7549b5b7b0619e55310158d7e21197ed129893",
+      "path": "experiments/safety_selection/configs/study-kt-llama31-8b-r64-b5e5-mb2-20261010.json"
+    },
+    "maker": "scripts/scale78b/make_scorer_settings_78b.py",
+    "manifest_sha256": "c52a50afddcfcfa818512ac7f1536c34c959774e815095bd30f69320b083d55a",
+    "model": "Llama-3.1-8B",
+    "owner_78b": "scripts/scale78b/scorers_78b.py",
+    "pins_file": "scripts/scale78b/settings/pins_78b.json",
+    "rule": "the 1B file's schema and name, so scripts/stage1's unchanged check_settings accepts it; every value that differs from the 1B file is per family (pins_78b.json) or a documented 7-8B rule; a null is a pin that waits for the event named in waits; scorers_78b.py refuses a command while a pin it needs is null",
+    "waits": {
+      "lists.s4_top.rows": {
+        "event": "the dose fallback (Part 1 section 10): the kept count of the family's untuned-answers pass, from s4_doses_record.json",
+        "needed_by": []
+      }
+    }
+  },
+  "kind": "stage1 settings",
+  "label_entries": {},
+  "labels_sha256": "260389f3fbfd8e7ff11ee06b5d5aba48e7d56b34140d9c9a634682125a86d570",
+  "lists": {
+    "s1": {
+      "rows": 48,
+      "source": "REQ-6 build_s_pool.py: s1.json (prompt, PKU-safe response)"
+    },
+    "s3": {
+      "rows": 48,
+      "source": "REQ-11's pick: (prompt, PKU-safe response), written as a stage-1 prompt list"
+    },
+    "s4": {
+      "rows": 48,
+      "source": "the family's untuned-answers pass through scorers_78b.py: dose_s4.json (the first 48 kept rows; prompt, untuned answer), Part 1 section 10"
+    },
+    "s4_192": {
+      "rows": 192,
+      "source": "the same pass: dose_s4_192.json (the first 192 kept rows, nested; Part 1 section 10, the S4 add-dose arm)"
+    },
+    "s4_96": {
+      "rows": 96,
+      "source": "the same pass: dose_s4_96.json (the first 96 kept rows, nested; Part 1 section 10, the S4 add-dose arm)"
+    },
+    "s4_top": {
+      "rows": null,
+      "source": "only if the dose fallback fires (fewer than 192 kept after 512 prompts): dose_s4_top.json, all kept rows; the lead fills rows from s4_doses_record.json"
+    }
+  },
+  "name": "write_add_edit",
+  "outputs": {
+    "full": "--full-out, inside a folder named tmp: add_<list>.json and <NAME>+<list>.json (they hold text)",
+    "record": "--out: add_edit_record.json (text-free: per edit its SHA-256, arm, kind and counts; per add id the list id, prompt and target tokens; token accounting)"
+  },
+  "owner": "scripts/stage1/write_add_edit.py",
+  "prepared_manifest_sha256": "c52a50afddcfcfa818512ac7f1536c34c959774e815095bd30f69320b083d55a",
+  "recipe_sha256": "74758af1791d9f7a8ce616adce7549b5b7b0619e55310158d7e21197ed129893",
+  "recipe_use": "recipe S's model.max_train_tokens for encode_train (lead decisions L14: read, never hard-coded); 7-8B: the family's main recipe stands in for recipe S (pins_78b shared.untuned_recipe_s = main): PP1 (the lead's ruling, 5 Nov 2026): the untuned-answers pass and the add-edit writer take the family's main recipe as recipe S; the recorded recipe_s hash is the main recipe's; Part 2 states this. make_untuned_answers.py reads recipe S only for model.max_train_tokens and requires REC and S to agree on model.{max_train_tokens, max_prompt_tokens, repo_id, revision} (R: scripts/stage1/make_untuned_answers.py:82-93). S_78 is the family's main config with only the four recipe-S fields changed (R: scripts/scale78b/make_recipe_s78.py:5-10), so its model section equals the main config's, and passing the main config as --recipe-s gives the same max_train_tokens. This lets the untuned-answers pass run before the family's anchor job (addendum A2's order puts the anchor job first; the pass does not need the anchors). Set to 's78' to pin recipe S_78 instead (then the pass waits for S_78).",
+  "requirement": "REQ-7 (brief rev 1 12cbf463); W1-12 (the duplicate-row add test, for S6); 7-8B: Part 1 section 10 (S4, S4_96, S4_192 nested; the fallback top dose) and section 14 item 1 (S1 re-bound)",
+  "version": 1
+}

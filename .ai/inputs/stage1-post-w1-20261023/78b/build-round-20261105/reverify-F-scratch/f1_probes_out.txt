@@ -1,0 +1,54 @@
+== (a) pre-existing empty folder, real edit: exit 0 (6.8s)
+   stdout: verdict: equal as it stands: the committed S1 edit is OLMo-2-7B's S1 edit byte for byte; build nothing for OLMo
+   stdout: record 9b340bf504400576f116e394fa9dd669cff623c0a35e8bb34cdd1c2ee018d2ca /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-pensive-stonebraker-bf6d79/b609d8b8-9fca-458c-826
+   f1/a/tmp/scratch: before DIR[] | after DIR[]
+   f1/a/record.json: before ABSENT | after FILE(3817B)
+== (b) pre-existing non-empty folder: exit 2 (0.2s)
+   stderr: REFUSED: /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-pensive-stonebraker-bf6d79/b609d8b8-9fca-458c-826f-4c781de96013/scratchpad/b78/reports/reverify-F-scratch/f1/b/tmp/scratch exists an
+   f1/b/tmp/scratch: before DIR[keep.json] | after DIR[keep.json]
+   f1/b/record.json: before ABSENT | after ABSENT
+== (c) symlink to a non-empty folder: exit 2 (0.2s)
+   stderr: REFUSED: /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-pensive-stonebraker-bf6d79/b609d8b8-9fca-458c-826f-4c781de96013/scratchpad/b78/reports/reverify-F-scratch/f1/c/tmp/target exists and
+   f1/c/tmp/link: before SYMLINK->/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-pensive-stonebraker-bf6d79/b609d8b8-9fca-458c-826f-4c781de96013/scratchpad/b78/reports/reverify-F-scratch/f1/c/tmp/target | after SYMLINK->/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-pensive-stonebraker-bf6d79/b609d8b8-9fca-458c-826f-4c781de96013/scratchpad/b78/reports/reverify-F-scratch/f1/c/tmp/target
+   f1/c/tmp/target: before DIR[keep.json] | after DIR[keep.json]
+   f1/c/record.json: before ABSENT | after ABSENT
+== (d) symlink to an empty folder: exit 0 (0.6s)
+   stdout: verdict: equal as it stands: the committed S1 edit is OLMo-2-7B's S1 edit byte for byte; build nothing for OLMo
+   stdout: record 9b340bf504400576f116e394fa9dd669cff623c0a35e8bb34cdd1c2ee018d2ca /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-pensive-stonebraker-bf6d79/b609d8b8-9fca-458c-826
+   f1/d/tmp/link: before SYMLINK->/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-pensive-stonebraker-bf6d79/b609d8b8-9fca-458c-826f-4c781de96013/scratchpad/b78/reports/reverify-F-scratch/f1/d/tmp/target | after SYMLINK->/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-pensive-stonebraker-bf6d79/b609d8b8-9fca-458c-826f-4c781de96013/scratchpad/b78/reports/reverify-F-scratch/f1/d/tmp/target
+   f1/d/tmp/target: before DIR[] | after DIR[]
+   f1/d/record.json: before ABSENT | after FILE(3817B)
+== (e) dangling symlink: exit 0 (0.6s)
+   stdout: verdict: equal as it stands: the committed S1 edit is OLMo-2-7B's S1 edit byte for byte; build nothing for OLMo
+   stdout: record 9b340bf504400576f116e394fa9dd669cff623c0a35e8bb34cdd1c2ee018d2ca /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-pensive-stonebraker-bf6d79/b609d8b8-9fca-458c-826
+   f1/e/tmp/link: before SYMLINK->/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-pensive-stonebraker-bf6d79/b609d8b8-9fca-458c-826f-4c781de96013/scratchpad/b78/reports/reverify-F-scratch/f1/e/tmp/gone (dangling) | after SYMLINK->/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-pensive-stonebraker-bf6d79/b609d8b8-9fca-458c-826f-4c781de96013/scratchpad/b78/reports/reverify-F-scratch/f1/e/tmp/gone (dangling)
+   f1/e/tmp/gone: before ABSENT | after ABSENT
+   f1/e/record.json: before ABSENT | after FILE(3817B)
+== (f1) path appears during the run (another party's folder), then a refusal: exit 2 (0.0s)
+   stderr: REFUSED: simulated refusal after another party created the scratch path
+   f1/f/tmp/scratch: before ABSENT | after ABSENT
+== (f2) two concurrent runs, same absent scratch; run 1 --keep: exit 2; run 2 (2.5 s later, no --keep): exit 2
+   run1 stderr: REFUSED: FileNotFoundError
+   run2 stderr: REFUSED: FileNotFoundError
+   g/tmp/shared after both: ABSENT
+   r1.json: ABSENT; r2.json: ABSENT
+== (g) --out inside an absent --scratch-tmp: exit 0 (0.5s)
+   stdout: verdict: equal as it stands: the committed S1 edit is OLMo-2-7B's S1 edit byte for byte; build nothing for OLMo
+   stdout: record 9b340bf504400576f116e394fa9dd669cff623c0a35e8bb34cdd1c2ee018d2ca /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-pensive-stonebraker-bf6d79/b609d8b8-9fca-458c-826
+   f1/h/tmp/scratch: before ABSENT | after ABSENT
+   f1/h/tmp/scratch/record.json: before ABSENT | after ABSENT
+== (h) --scratch-tmp is an existing file: exit 2 (0.2s)
+   stderr: REFUSED: /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-pensive-stonebraker-bf6d79/b609d8b8-9fca-458c-826f-4c781de96013/scratchpad/b78/reports/reverify-F-scratch/f1/i/tmp/scratch exists an
+   f1/i/tmp/scratch: before FILE(8B) | after FILE(8B)
+== (i) pre-existing empty folder, --keep: exit 0 (0.5s)
+   stdout: verdict: equal as it stands: the committed S1 edit is OLMo-2-7B's S1 edit byte for byte; build nothing for OLMo
+   stdout: record 9b340bf504400576f116e394fa9dd669cff623c0a35e8bb34cdd1c2ee018d2ca /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-pensive-stonebraker-bf6d79/b609d8b8-9fca-458c-826
+   f1/j/tmp/scratch: before DIR[] | after DIR[list,list/s1.json]
+== (j) absent scratch under two absent parents: exit 0 (0.5s)
+   stdout: verdict: equal as it stands: the committed S1 edit is OLMo-2-7B's S1 edit byte for byte; build nothing for OLMo
+   stdout: record 9b340bf504400576f116e394fa9dd669cff623c0a35e8bb34cdd1c2ee018d2ca /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-pensive-stonebraker-bf6d79/b609d8b8-9fca-458c-826
+   f1/k/tmp/a/b/c: before ABSENT | after ABSENT
+   f1/k/tmp/a: before ABSENT | after DIR[b]
+   f1/k/tmp: before DIR[] | after DIR[a,a/b]
+done
+exit 0

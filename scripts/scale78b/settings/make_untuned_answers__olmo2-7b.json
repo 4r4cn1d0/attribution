@@ -1,0 +1,113 @@
+{
+  "chunk": 32,
+  "chunk_rule": "L11 (1): a chunk = 32 consecutive list positions (REC generation.batch_size; the job refuses another value); each chunk is its own greedy_generate call; never one whole-list call (the engine sorts a call's prompts by length)",
+  "cuda": "untested on CUDA; checked on CPU fixtures only",
+  "doses": {
+    "calls_78b": "PP2: two untuned-answers calls per pod. The first takes the S3 list with the losses (--list s3=s3_safe.pool.json:SHA --loss s1=s1.json:SHA --loss s3_safe=s3_safe.pool.json:SHA --out <job>/untuned); the second takes the S4 list alone with the doses block (--list s4=s4_candidates.json:SHA --out <job>/untuned-s4). Basis: the unchanged 1B code at exit 3 (fewer keeps than lists.s4.keep, the pre-set S4 dose fallback of Part 1 section 10) keeps only answers_*.json and the record (R: scripts/stage1/make_untuned_answers.py:317-318), so an S3 list in the same call would lose s3_orig.pool.json (verify-E D1). scorers_78b.py refuses --list s4 beside another --list or a --loss. The S3 call cannot exit 3. The E cap of the untuned_answers pod covers both calls (verify-E C3; the kit round).",
+    "fallback": "DOSE pre_set_fallbacks[0] (Part 1 section 10): fewer than 192 kept after the whole 512-prompt list: the top dose is all kept rows, written as the list s4_top (dose_s4_top.json) with its count in the record; the smaller doses that are filled are written; fewer than 48 kept: counts only, exit 3",
+    "files": {
+      "192": "dose_s4_192.json",
+      "48": "dose_s4.json",
+      "96": "dose_s4_96.json"
+    },
+    "folder": "doses",
+    "names": {
+      "192": "s4_192",
+      "48": "s4",
+      "96": "s4_96"
+    },
+    "record": "s4_doses_record.json",
+    "rule": "Part 1 section 10 (ruling 12): S4 = the first 48 kept, S4_96 = the first 96, S4_192 = the first 192 (nested); one S4 call per family (the second of the pod's two untuned-answers calls, PP2) makes all three; the stop rule moves to the chunk that holds the 192nd; the first 48 are unchanged; the wrapper (scorers_78b.py untuned_answers) derives the three lists from the pass's answers_s4.json and the kept flags of untuned_answers_record.json, in list order, as stage-1 prompt lists named s4, s4_96 and s4_192 (write_add_edit__<family>.json takes each by name), and records their SHA-256s, row counts and the nesting check in s4_doses_record.json (text-free)",
+    "sizes": [
+      48,
+      96,
+      192
+    ],
+    "sizing": {
+      "candidates_for_top_dose_at_1b_rate": 216,
+      "chunks_for_top_dose_at_1b_rate": 7,
+      "keep_rate_1b": {
+        "answered": 64,
+        "kept": 57,
+        "rate": 0.890625
+      },
+      "list_margin": 2.3703703703703702,
+      "list_size": 512,
+      "rule": "candidates needed = ceil(target x answered_1b / kept_1b); chunks = ceil(candidates / chunk)",
+      "source": "Part 1 section 10, the 1B keep count (ruling 12, M2; counts only): 26 of 32 and 31 of 32 kept in 2 chunks"
+    },
+    "top_dose_file": "dose_s4_top.json",
+    "top_dose_name": "s4_top",
+    "w1_06_note": "the loss table's s4 entry (W1-06) covers every kept row of the pass (the top dose), not 48; in the fallback case the 1B code omits it (exit 3)"
+  },
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "family_78b": {
+    "derived_from": {
+      "path": "scripts/stage1/settings/make_untuned_answers.json",
+      "sha256": "4bf2cc1a2493bc154d314105a085f0166933d1147a37e29fd42c7348ba9d9d8c"
+    },
+    "engine_rule": "PP4 (the lead's ruling, 5 Nov 2026): every wrapper kind runs on engine X (engine_x above): untuned_answers, rep_pass, l1_scan and classifier on the pod; l1_score, s3_score, score_edit, add_edit and s_pool on the Mac. Every derived settings file carries engine_x unchanged from the 1B file, and the frozen check_settings refuses another engine identity (R: scripts/stage1/s1common.py:589-591). A run on engine Y needs the settings re-derived for Y (engine_x = Y's identity, a new PINS-78B.json, a new PINS_FILE_SHA256) by a recorded step; none exists. The engine's own jobs (the a0-1101 retrain, a1_pass) follow ruling 10 and addendum A13, not this rule. The kit packs scorer pods with engine X.",
+    "family": "olmo2-7b",
+    "main_recipe": {
+      "config_sha256": "18cc31d7117a2de7bc02382fe8a4d409fc43c91b434bf219a4808dfb26528d09",
+      "path": "experiments/safety_selection/configs/study-kt-olmo2-7b-r64-b-mb2-20261008.json"
+    },
+    "maker": "scripts/scale78b/make_scorer_settings_78b.py",
+    "manifest_sha256": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
+    "model": "OLMo-2-7B",
+    "owner_78b": "scripts/scale78b/scorers_78b.py",
+    "pins_file": "scripts/scale78b/settings/pins_78b.json",
+    "rule": "the 1B file's schema and name, so scripts/stage1's unchanged check_settings accepts it; every value that differs from the 1B file is per family (pins_78b.json) or a documented 7-8B rule; a null is a pin that waits for the event named in waits; scorers_78b.py refuses a command while a pin it needs is null",
+    "waits": {}
+  },
+  "kind": "stage1 settings",
+  "label_entries": {},
+  "labels_sha256": "260389f3fbfd8e7ff11ee06b5d5aba48e7d56b34140d9c9a634682125a86d570",
+  "lists": {
+    "s3": {
+      "keep": "every answer is kept; capped ones are flagged; a y^orig that encode_train refuses leaves the SAS ranking and is counted (L14 (1)); REQ-3's pool s3_orig holds the others with ids <id>:orig",
+      "kind": "s3",
+      "max_new_tokens": 512,
+      "size": null,
+      "source": "REQ-6's s3_safe.pool.json: the S3 subset (1,000) and S1's rows outside it (L10 (2))"
+    },
+    "s4": {
+      "keep": 192,
+      "keep_rule": "L14 (2) unchanged except the count: kept only if it ended, its lexicon class is REFUSAL-OPENING, answer.strip() is non-empty and encode_train(prompt, answer, S.max_train_tokens) accepts; the first failing check is the drop reason; the first 192 kept in list order form the top dose S4_192 (Part 1 section 10, ruling 12: the stop rule moves from the chunk that holds the 48th to the chunk that holds the 192nd; the first 48 are unchanged); the 1B code labels a keep after the 192nd 'kept_after_the_48th' (a fixed string in scripts/stage1/make_untuned_answers.py:171; read it as 'after the 192nd'); fewer than 192 after 512 prompts: the 1B code writes the answers and the record only and exits 3, and the wrapper's doses block applies the pre-set fallback",
+      "kind": "s4",
+      "max_new_tokens": "rec",
+      "size": 512,
+      "source": "REQ-6's s4_candidates.json (512, L11)"
+    },
+    "sd600": {
+      "keep": "every answer is kept; the capped count, and per row ended, empty and encode_train's verdict, are recorded (L14 (3): REQ-15 decides rewrite or remove)",
+      "kind": "sd600",
+      "max_new_tokens": "rec",
+      "size": 600,
+      "source": "REQ-15's SD-600 list (A1's 600 rows' prompts)"
+    }
+  },
+  "loss": {
+    "batch": 8,
+    "definition": "W1-06: the engine's example_losses (per-example mean NLL over the response and end-of-turn targets, the training loss) of the untuned model on encode_train(prompt, response, S.max_train_tokens), and its exp; per row id; encode_train refusals counted; rows: S1's 48 (prompt, PKU-safe response), the s3_safe pool (prompt, PKU-safe response), and S4's 48 kept rows (prompt, untuned answer) when S4 ran",
+    "include_s4": true,
+    "lists": [
+      "s1",
+      "s3_safe"
+    ]
+  },
+  "max_new_tokens_rule": "S3: 512 (SPEC section 3.5 item 2); S4 and SD-600: REC's generation.max_new_tokens (2,048; L14)",
+  "name": "make_untuned_answers",
+  "outputs": "into --out: answers_<list>.json, s4.json, s3_orig.pool.json (text; the kit pulls them to tmp/) and untuned_answers_record.json (text-free)",
+  "owner": "scripts/stage1/make_untuned_answers.py",
+  "pins": {
+    "rec_recipe_sha256": "18cc31d7117a2de7bc02382fe8a4d409fc43c91b434bf219a4808dfb26528d09",
+    "recipe_s_sha256": "18cc31d7117a2de7bc02382fe8a4d409fc43c91b434bf219a4808dfb26528d09",
+    "rule": "REC gives the model, the generation settings and max_prompt_tokens; recipe S gives max_train_tokens (L14: read, never hard-coded); the job refuses unless REC and S agree on model.max_train_tokens, model.max_prompt_tokens, model.repo_id and model.revision. 7-8B (OLMo-2-7B): REC = the family's main recipe (experiments/safety_selection/configs/study-kt-olmo2-7b-r64-b-mb2-20261008.json); --recipe-s = the same main recipe (pins_78b shared.untuned_recipe_s = main): PP1 (the lead's ruling, 5 Nov 2026): the untuned-answers pass and the add-edit writer take the family's main recipe as recipe S; the recorded recipe_s hash is the main recipe's; Part 2 states this. make_untuned_answers.py reads recipe S only for model.max_train_tokens and requires REC and S to agree on model.{max_train_tokens, max_prompt_tokens, repo_id, revision} (R: scripts/stage1/make_untuned_answers.py:82-93). S_78 is the family's main config with only the four recipe-S fields changed (R: scripts/scale78b/make_recipe_s78.py:5-10), so its model section equals the main config's, and passing the main config as --recipe-s gives the same max_train_tokens. This lets the untuned-answers pass run before the family's anchor job (addendum A2's order puts the anchor job first; the pass does not need the anchors). Set to 's78' to pin recipe S_78 instead (then the pass waits for S_78)."
+  },
+  "records": "L11 (3): chunks run, prompts answered, keeps per chunk, seconds per chunk (wall time after a device sync), the GPU name and each chunk's answers' SHA-256; the lock's SHA-256; the model revision; engine X",
+  "requirement": "REQ-9 (brief rev 1; RS B7); lead decisions L11, L14 and section 5 item 3 (b) (W1-06); the lead's Part C requirement (model-agnostic); 7-8B: Part 1 sections 10 and 12 (the untuned_answers kind; the S4 add-dose arm), CHECK C6, M1, M2",
+  "transformers_version": "4.56.2",
+  "untuned": "REC's policy through the engine's loaders, run with policy.model.disable_adapter() under torch.no_grad()",
+  "version": 1
+}
