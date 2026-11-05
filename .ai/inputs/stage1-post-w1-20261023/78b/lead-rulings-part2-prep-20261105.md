@@ -33,3 +33,25 @@ outcome was read for them.
   its README (verify-F's F-2: the forbidden folders are the script's own checkout and `--repo`; F-3: the S1 folder
   does not forbid itself, so only its committed `out/` is protected). A code change would mean a rebuild and a new
   arm hash. The same holds for RV2-1 in the Llama sealed set.
+
+## PP7-PP10. After the kit round (recorded 2026-11-05T18:56 UTC)
+
+The kit round (wf_9816c21b-ee7: the shell, the job runner and the Llama token path, with a core and a security
+verifier) left these for the lead. Records: `build-K1.md`, `build-K2.md`, `build-K3.md`, `verify-K-core.md`,
+`verify-K-gated.md`.
+
+- **PP7. The Llama sealed-set pin.** `SEALED_SETS['llama31-8b']['sha256']` takes
+  `2a1db220cdc0cc73e0818ad0c12d1f2ce2789a465002f5efb2145aabf41f594c`, the MANIFEST committed in d422fca (FOCUS
+  entry "THE 7-8B SEALED SETS … ARE MERGED"). The kit reads that MANIFEST's own form, and Gate B's form for
+  OLMo-2-7B's R_d1-R_d3.
+- **PP8. The kind names in the cap rule.** PP3 applies to `rules_78b.py`: `a1_pass` carries A1's 16.5 h cap at most;
+  `rep_pass` is REQ-3's representation pass with its own E cap (the stage-1 kit's 1 h estimate at 1B, scaled to
+  7-8B with T2's scorer-kind factor, until measured). The S_78 kinds are the retrain, `rep_pass`, `a1_pass` and the
+  classifier (PP4).
+- **PP9. Accepted as built.** The Mac-side cap gate reads s = 1, and the pod-side gate reads the measured s; the
+  pod-side gate governs. `s_obs` is the largest over the pod's finished arms (the conservative reading of KCR:113).
+  Each job record keeps the engine verify's 600-character tail (names and hashes only), and the secret scan covers
+  it. An unreadable 200 whoami reply warns and the Range check decides (the user's waiver of 7 Oct 2026).
+- **PP10. Tests never reach the network.** One development test run in the kit round started a real `ssh` to an
+  unroutable test address (203.0.113.9) with a fake token. The kit's tests get a guard that fails any real
+  subprocess, ssh or socket call, so this cannot recur.
