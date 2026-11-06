@@ -55,3 +55,17 @@ verifier) left these for the lead. Records: `build-K1.md`, `build-K2.md`, `build
 - **PP10. Tests never reach the network.** One development test run in the kit round started a real `ssh` to an
   unroutable test address (203.0.113.9) with a fake token. The kit's tests get a guard that fails any real
   subprocess, ssh or socket call, so this cannot recur.
+
+## PP11-PP13. L1's scan at 7-8B and the agent model (recorded 2026-11-06T07:30 UTC)
+
+- **PP11. L1's first scanned block.** At 7-8B both families have n = 32 blocks. `scan.first_block` = round(5 × n / 16)
+  = **10**, the same relative depth as stage 1's 5 of 16 (R: `scripts/stage1/settings/score_l1_larf.json`
+  `scan.first_block`). Basis: the rule's 1B form, not L1's 1B result; an absolute 5 would scan 27 blocks instead of
+  22 and change the rule's coverage. Label (ruling 16): chosen after the stage-1 reading; it reads the 1B rule only.
+- **PP12. L1's scanned modules.** OLMo-2-7B keeps stage 1's modules (`post_attention_layernorm`,
+  `post_feedforward_layernorm`; UW-11 (d)). Llama-3.1-8B takes the 1B settings file's own Llama entry (`self_attn`,
+  `mlp`, the attention and MLP sublayer outputs), written there for stage 2 before stage 1 ran. The same entry
+  serves stage 2's Llama-3.2-1B.
+- **PP13. Agents after Fable's weekly limit.** Fable's weekly limit reached 100% on 6 Nov (the kit fix round's
+  last three agents failed on it). Per the user's rule (memory, 17 Oct), workflow agents now run on Opus 5.5 until
+  Fable resets on 12 Nov 09:00 UTC. The lead tells the user if the all-models weekly passes 90% (52% at this record).
