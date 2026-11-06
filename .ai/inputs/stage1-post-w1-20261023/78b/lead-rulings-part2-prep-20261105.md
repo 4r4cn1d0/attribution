@@ -69,3 +69,18 @@ verifier) left these for the lead. Records: `build-K1.md`, `build-K2.md`, `build
 - **PP13. Agents after Fable's weekly limit.** Fable's weekly limit reached 100% on 6 Nov (the kit fix round's
   last three agents failed on it). Per the user's rule (memory, 17 Oct), workflow agents now run on Opus 5.5 until
   Fable resets on 12 Nov 09:00 UTC. The lead tells the user if the all-models weekly passes 90% (52% at this record).
+
+## PP14-PP16. After the kit's fix round (recorded 2026-11-06T13:27 UTC)
+
+The kit's fix round (wf_ee964a07-835, resumed on Opus) passed both re-verifiers with minor items only. These answer
+the scope questions they raised.
+
+- **PP14. Idle storage per block.** Each block's need prints an idle-storage line for every pod of that block that
+  keeps states after its jobs: N's two pods in block 0, each retrain pod, and each scorer pod that keeps states (about
+  $0.33 per stopped 50 GB pod per day; KCR:161).
+- **PP15. `rep_pass`'s cap.** 4.75 h = the stage-1 kit's 1 h estimate at 1B × 2.3 (RP:43's 7-8B scale) × 1.5 (the
+  kit's diagnostics upper factor), the same form as T2's other scorer caps. The first run measures it (KD6).
+- **PP16. Engine X only for the wrapper kinds (PP4 enforced).** `rules_78b.py` gets an `X_ONLY_KINDS` set:
+  `untuned_answers`, `o_only`, `regenerate`, `anchor`, `rep_pass`, `l1_scan`, `classifier`, `c0`. `engine_allowed`
+  checks it first, before `ENGINE_Y` is ever filled. The retrain and `a1_pass` follow ruling 10 and A13 (`a1_pass`
+  runs on the engine that trained its states).
