@@ -1,0 +1,200 @@
+1c1,2
+< """Create the given hosts one at a time, retrying until each exists (administrative; family probes).
+---
+> """Create the given 7-8B hosts one at a time, retrying until each exists (administrative; the stage-1 kit's launch.py
+> with the gated-token checks of runkit/family-probe/launch.py:8-21 ported back for Llama-3.1-8B; K3 of T4 step 2).
+3,5d3
+< Every creation first passes the budget guard (budget.py): running pods at their full caps plus the new pod at its
+< full cap must leave at least the $6 reserve.
+< 
+8,13c6,13
+< For a gated probe (Llama-3), before anything else: the HF token must be in the environment variable
+< probe_constants.HF_TOKEN_ENV; GET whoami-v2 must succeed (a role other than read or fineGrained, or a non-read scope, is only a
+< token-scope-warning: the user waived the read-only precondition, FOCUS.md "Token decision", 2026-10-07); and every
+< file of the gated download plan must answer a Range request with 206. Only the role, scope names and status codes are
+< recorded (hosts/HOST/token-check.json), never the token. budget.py and host.py create get an environment without any
+< token variable; only the detached orchestrate.py child keeps it (it hands the token to host.py over stdin).
+---
+> Refuses a host that is not in plan.json, a plan.json of another family (KD7), a host with no jobs, whose base_eval is
+> not false, or whose plan cap differs from the cap rules_78b computes from its jobs. Every creation first passes the
+> budget guard (budget.py check at the host's cap and stage1_rules.PLANNING_PRICE_USD: running pods at their full caps
+> plus the new pod at its full cap must leave at least the $6 reserve; the user's recorded guard-off decision goes past
+> its refusal only, the balance is still read and logged), under the lock shared by every kit; host.py reconcile runs
+> first. A created host's remaining steps run detached under caffeinate -i via orchestrate.py after-create (log:
+> hosts-full-HOST.log). Tries are spaced; a round over the pending hosts repeats until none is pending or MAX_HOURS pass.
+> One launch.py per kit at a time (launch.lock).
+15,21c15,29
+< host.py create archives a failed attempt's files (renamed, never deleted) once the pod listing shows no pod of the
+< host's name, and stops an untracked pod of that name. A created host's remaining steps run detached, under
+< caffeinate -i so the Mac does not sleep while the pod bills, via orchestrate.py after-create (log:
+< hosts-full-HOST.log). Tries are spaced; a round over the pending hosts repeats until none is pending or MAX_HOURS
+< pass. Review fixes (8 October): one launch.py per kit at a time (launch.lock); the budget check and the create run
+< under the lock shared by every kit (budget.lock()); whoami-v2 is read whole and an unreadable reply only warns; when
+< the loop ends the token is removed from this process's environment.
+---
+> The gated path (the family whose download plan holds a gated repository: llama31-8b; olmo2-7b's repositories are
+> open and never touch it). Before any pod exists, for every host given: the HF token must be in the environment
+> variable HF_TOKEN_ENV (the user puts it there at each Llama launch: rulings C13); GET whoami-v2 must answer 200 (a
+> role other than read or fineGrained, a non-.read scope, or a reply that cannot be read is only a token-scope-warning:
+> the user waived the read-only precondition, research/FOCUS.md "Token decision", 2026-10-07 19:14 UTC, as in the
+> family-probe kit); and every file of the gated download plan must answer a Range request with 206. Only the role, the
+> scope names and the status codes are recorded (hosts/HOST/token-check.json), never the token. budget.py, host.py
+> reconcile and host.py create get an environment without any token variable (and without any variable whose value
+> looks like an HF token); only the detached orchestrate.py child keeps the environment, and it hands the token to
+> host.py gated-download over stdin (never an argument, a file or a log). When the loop ends the token is removed from
+> this process's environment (secret_scan.scrub_process), whatever the family.
+> 
+> Round 31 (K6; cert runbook D7): the exit code says whether every host was created. launch.py exits NO_POD_EXIT (4),
+> after its log line "hosts-not-created", when a host it was given has no hosts/HOST/pod.json at its end (every try was
+> refused or failed for MAX_HOURS); 0 only when every host has its pod.json.
+28d35
+< import probe_constants as pc  # noqa: E402
+29a37
+> import stage1_rules as rules  # noqa: E402
+33,34c41,45
+< WHOAMI_LIMIT = 1 << 20                    # review fix 6: the whole whoami-v2 reply (a Range reply needs 1 byte)
+< READ_ROLES = ("read", "fineGrained")     # brief 5a; any other role, or a non-.read scope, only warns
+---
+> NO_POD_EXIT = 4                     # round 31 (K6): a host it should create has no pod.json at the end
+> HF_TOKEN_ENV = rules.TOKEN_ENV_NAMES[0]   # "HF_TOKEN": the one variable the token is read from (Mac side only)
+> WHOAMI_LIMIT = 1 << 20              # the whole whoami-v2 reply (a Range reply needs 1 byte)
+> READ_ROLES = ("read", "fineGrained")  # any other role, or a non-.read scope, only warns (the user's waiver)
+> HUB = "https://huggingface.co"
+38c49
+<     return secret_scan.scrubbed(os.environ, pc.TOKEN_ENV_NAMES)
+---
+>     return secret_scan.scrubbed(os.environ, rules.TOKEN_ENV_NAMES)
+53a65,66
+>     """(status, the first ``limit`` bytes); an HTTP error is its status with no body. The token goes into the
+>     Authorization header of this request only (SameHostAuthRedirect)."""
+73,75c86,93
+< def token_checks(token: str, plan_entries: list[dict], get=http_get) -> dict:
+<     """Brief 5a with the user's waiver: whoami-v2 must answer; extra scopes only warn; every gated file must give 206."""
+<     status, body = get("https://huggingface.co/api/whoami-v2", token, None, WHOAMI_LIMIT)
+---
+> def token_checks(token: str, plan_entries: list[dict], get=None) -> dict:
+>     """whoami-v2 must answer 200 (else SystemExit); the role and the fine-grained scope names are recorded, and a role
+>     outside READ_ROLES, a non-.read scope or a reply that cannot be read (not JSON, or not the user shape) is a
+>     token-scope-warning only (the user's waiver); then every gated file must answer a Range request with 206 (else
+>     SystemExit with the status codes). The record never holds the token. ``get`` is http_get (the one network boundary;
+>     a test's fake) and is resolved at the call."""
+>     get = http_get if get is None else get
+>     status, body = get(f"{HUB}/api/whoami-v2", token, None, WHOAMI_LIMIT)
+78c96
+<     try:                                   # review fix 6: an unreadable reply is a role unknown, which only warns
+---
+>     try:                                   # an unreadable reply or another shape is a role unknown, which only warns
+82c100
+<     except (ValueError, AttributeError):
+---
+>     except (ValueError, AttributeError, TypeError):
+93c111
+<             url = f"https://huggingface.co/{entry['repo_id']}/resolve/{entry['revision']}/{name}"
+---
+>             url = f"{HUB}/{entry['repo_id']}/resolve/{entry['revision']}/{name}"
+102,105c120,134
+< def gated_precheck(host: str, env=None, get=http_get) -> dict | None:
+<     """For a gated probe: the token-variable, whoami and Range checks, before any pod exists."""
+<     entries = probes.download_plan(pc.probe())
+<     if not any(e["gated"] for e in entries):
+---
+> def gated_entries() -> list[dict]:
+>     """The gated repositories of this working copy's family's download plan (llama31-8b: the policy's exact files;
+>     olmo2-7b: none). Refuses outside a KD7 working copy (stage1_rules.family_or_refuse)."""
+>     try:
+>         rules.family_or_refuse()
+>     except ValueError as exc:
+>         raise SystemExit(str(exc)) from None
+>     return [e for e in probes.stage1_download_plan(rules.PROBE_KEY) if e["gated"]]
+> 
+> 
+> def gated_precheck(host: str, env=None, get=None) -> dict | None:
+>     """For a gated family: the token-variable, whoami and Range checks, before any pod exists (so none waits idle).
+>     None for an open family: the token is not read. Writes hosts/HOST/token-check.json (no token in it)."""
+>     entries = gated_entries()
+>     if not entries:
+107c136
+<     token = (env if env is not None else os.environ).get(pc.HF_TOKEN_ENV, "").strip()
+---
+>     token = (env if env is not None else os.environ).get(HF_TOKEN_ENV, "").strip()
+109,110c138,141
+<         raise SystemExit(f"{pc.HF_TOKEN_ENV} is not set: a gated probe needs the HF token (source the secrets file)")
+<     record = {"utc": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), **token_checks(token, entries, get)}
+---
+>         raise SystemExit(f"{HF_TOKEN_ENV} is not set: a gated family ({rules.FAMILY}) needs the HF token in the Mac "
+>                          "environment at each launch (source the secrets file; rulings C13)")
+>     record = {"utc": now().isoformat(timespec="seconds"), "family": rules.FAMILY, "host": host,
+>               **token_checks(token, entries, get)}
+118a150,155
+> def child_env() -> dict:
+>     """The detached orchestrate.py child's environment: this process's whole environment for a gated family (it hands
+>     the token to host.py gated-download over stdin), the scrubbed one for an open family."""
+>     return dict(os.environ) if gated_entries() else clean_env()
+> 
+> 
+128d164
+<     """One launch.py per kit at a time (review fix 19); refuses at once when another holds it."""
+137a174,192
+> def check_hosts(plan: dict, hosts: list[str]) -> None:
+>     try:
+>         family = rules.family_or_refuse()
+>     except ValueError as exc:
+>         raise SystemExit(str(exc)) from None
+>     if plan.get("family") != family or plan.get("kit_block") != rules.KIT_BLOCK:
+>         raise SystemExit(f"plan.json is not this working copy's ({family} block {rules.KIT_BLOCK}; KD7)")
+>     for host in hosts:
+>         h = plan["hosts"].get(host)
+>         if h is None:
+>             raise SystemExit(f"{host} is not a host of plan.json")
+>         if h.get("base_eval") is not False:
+>             raise SystemExit(f"{host}: base_eval must be false")
+>         if not h.get("jobs"):
+>             raise SystemExit(f"{host}: no jobs")
+>         if h["cap_hours"] != rules.cap_hours(h["jobs"]):
+>             raise SystemExit(f"{host}: the plan's cap differs from the cap of its jobs")
+> 
+> 
+140c195,197
+<     assert hosts and all(h in plan["hosts"] for h in hosts), "unknown host"
+---
+>     if not hosts:
+>         raise SystemExit("give at least one host")
+>     check_hosts(plan, hosts)
+143c200
+<         for host in hosts:                   # a gated probe is checked before any pod exists, so none waits idle
+---
+>         for host in hosts:               # a gated family is checked before any pod exists, so none waits idle
+147c204
+<         secret_scan.scrub_process(os.environ, pc.TOKEN_ENV_NAMES)   # the disputed review item: no token after use
+---
+>         secret_scan.scrub_process(os.environ, rules.TOKEN_ENV_NAMES)   # no token in this process after the loop
+148a206,209
+>     missing = [h for h in hosts if not (HERE / "hosts" / h / "pod.json").exists()]
+>     if missing:                      # round 31 (K6): no pod for a host it should create is not a success
+>         log(event="hosts-not-created", hosts=missing, exit=NO_POD_EXIT)
+>         return NO_POD_EXIT
+163c224
+<             with budget.lock():              # review fix 12: no other kit's check until this pod.json is written
+---
+>             with budget.lock():
+169c230
+<                 guard = run([sys.executable, "budget.py", "check", str(cap_hours), str(pc.MAX_PRICE)], cwd=HERE,
+---
+>                 guard = run([sys.executable, "budget.py", "check", str(cap_hours), str(rules.PLANNING_PRICE_USD)], cwd=HERE,
+171c232,233
+<                 if guard.returncode != 0:    # the reserve rule: never launch what could take the balance below the reserve
+---
+>                 off = rules.guard_off_record(HERE)   # (E) the user's recorded decision: past the guard's refusal only
+>                 if guard.returncode != 0 and not (off and guard.returncode == rules.GUARD_REFUSED_EXIT):
+173a236,238
+>                 if off:                               # the live balance was read; its line is logged with the decision
+>                     log(host=host, event="budget-guard-off", guard_exit=guard.returncode, decision_sha256=off["sha256"],
+>                         detail=guard.stdout.strip()[-300:])
+178c243
+<                 with open(HERE / f"hosts-full-{host}.log", "a") as out:     # review fix 14: the Mac stays awake
+---
+>                 with open(HERE / f"hosts-full-{host}.log", "a") as out:
+180c245
+<                           stdout=out, stderr=subprocess.STDOUT, start_new_session=True, env=dict(os.environ))
+---
+>                           stdout=out, stderr=subprocess.STDOUT, start_new_session=True, env=child_env())

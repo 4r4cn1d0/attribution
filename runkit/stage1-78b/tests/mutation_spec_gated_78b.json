@@ -1,0 +1,546 @@
+{
+ "kind": "stage1-78b gated-path mutants (K3)",
+ "note": "Mutants for K3's changes (launch.py's gated precheck: whoami, the Range check, the record, the scrubbed children, the detached orchestrate child, the scrub after the loop, the redirect handler, the family check; orchestrate.py's gated step and stdin hand-over; host.py's gated-download, pull-states, the price and pod-name fixes; setup/download_models_stage1.py's gated run), in the stage-1 kit's spec form. Run with tests/run_mutants_gated_78b.py (tests/test_gated_78b.py, -x): the baseline first with the same command; a mutant is killed only by a real test failure (pytest exit 1, FAILED lines, no ERROR line); an error, a timeout or a find text not exactly once is INVALID, never a kill. fix-K-gated (verify-K-gated D1, D2, D4, D5, D6) added the FG-m-* mutants and re-targeted K3-m-redirect-keeps-auth to the moved clause. fix-K-gated's second attempt added the FX-m-* mutants (F1: a token value a header cannot carry; http_get's ValueError branch; failure_text's two scrubs, the re-verifier's two survivors).",
+ "mutants": [
+  {
+   "id": "K3-m-whoami-status-unchecked",
+   "part": "K3 (launch.py: the gated precheck, the scrubbed children, the detached child, the scrub after the loop)",
+   "describes": "whoami-v2's status is not checked (an HTTP error passes)",
+   "file": "launch.py",
+   "find": "    if status != 200:\n        raise SystemExit(f\"whoami-v2 answered {status}: the token is not valid\")\n",
+   "replace": "    if False:\n        raise SystemExit(f\"whoami-v2 answered {status}: the token is not valid\")\n",
+   "killed_by": "tests/test_gated_78b.py::test_whoami_refuses_an_http_error_before_any_range_request_and_records_nothing"
+  },
+  {
+   "id": "K3-m-range-any-status",
+   "part": "K3 (launch.py: the gated precheck, the scrubbed children, the detached child, the scrub after the loop)",
+   "describes": "a non-206 Range reply passes",
+   "file": "launch.py",
+   "find": "    bad = {k: v for k, v in ranges.items() if v != 206}\n",
+   "replace": "    bad = {}\n",
+   "killed_by": "tests/test_gated_78b.py::test_the_range_requests_cover_every_gated_file_at_the_pinned_revision_and_a_non_206_refuses"
+  },
+  {
+   "id": "K3-m-range-empty-passes",
+   "part": "K3 (launch.py: the gated precheck, the scrubbed children, the detached child, the scrub after the loop)",
+   "describes": "no gated file to check passes",
+   "file": "launch.py",
+   "find": "    if bad or not ranges:\n",
+   "replace": "    if bad:\n",
+   "killed_by": "tests/test_gated_78b.py::test_the_range_requests_cover_every_gated_file_at_the_pinned_revision_and_a_non_206_refuses"
+  },
+  {
+   "id": "K3-m-record-holds-token",
+   "part": "K3 (launch.py: the gated precheck, the scrubbed children, the detached child, the scrub after the loop)",
+   "describes": "token-check.json holds the token",
+   "file": "launch.py",
+   "find": "    record = {\"utc\": now().isoformat(timespec=\"seconds\"), \"family\": rules.FAMILY, \"host\": host,\n",
+   "replace": "    record = {\"utc\": now().isoformat(timespec=\"seconds\"), \"family\": rules.FAMILY, \"host\": host, \"token\": token,\n",
+   "killed_by": "tests/test_gated_78b.py::test_the_role_and_the_scope_names_are_recorded...; the llama launch test (files_holding)"
+  },
+  {
+   "id": "K3-m-open-family-reads-token",
+   "part": "K3 (launch.py: the gated precheck, the scrubbed children, the detached child, the scrub after the loop)",
+   "describes": "an open family runs the token checks too",
+   "file": "launch.py",
+   "find": "    if not entries:\n        return None\n",
+   "replace": "    if not entries and False:\n        return None\n",
+   "killed_by": "tests/test_gated_78b.py::test_an_olmo_launch_never_touches_the_gated_path..."
+  },
+  {
+   "id": "K3-m-precheck-skipped",
+   "part": "K3 (launch.py: the gated precheck, the scrubbed children, the detached child, the scrub after the loop)",
+   "describes": "the gated precheck does not run before the loop",
+   "file": "launch.py",
+   "find": "            gated_precheck(host)\n",
+   "replace": "            pass\n",
+   "killed_by": "tests/test_gated_78b.py::test_a_llama_launch_checks_the_token_before_any_create...; the no-token launch test"
+  },
+  {
+   "id": "K3-m-no-scrub-after-loop",
+   "part": "K3 (launch.py: the gated precheck, the scrubbed children, the detached child, the scrub after the loop)",
+   "describes": "the token stays in the launch process's environment after the loop",
+   "file": "launch.py",
+   "find": "        secret_scan.scrub_process(os.environ, rules.TOKEN_ENV_NAMES)   # no token in this process after the loop\n",
+   "replace": "        pass   # no token in this process after the loop\n",
+   "killed_by": "tests/test_gated_78b.py::test_a_llama_launch_checks_the_token_before_any_create..."
+  },
+  {
+   "id": "K3-m-guard-child-keeps-env",
+   "part": "K3 (launch.py: the gated precheck, the scrubbed children, the detached child, the scrub after the loop)",
+   "describes": "budget.py check inherits the token variable",
+   "file": "launch.py",
+   "find": "str(rules.PLANNING_PRICE_USD)], cwd=HERE,\n                            capture_output=True, text=True, env=clean_env())\n",
+   "replace": "str(rules.PLANNING_PRICE_USD)], cwd=HERE,\n                            capture_output=True, text=True, env=dict(os.environ))\n",
+   "killed_by": "tests/test_gated_78b.py::test_a_llama_launch_checks_the_token_before_any_create...; _launch_round's assertion"
+  },
+  {
+   "id": "K3-m-create-child-keeps-env",
+   "part": "K3 (launch.py: the gated precheck, the scrubbed children, the detached child, the scrub after the loop)",
+   "describes": "host.py create inherits the token variable",
+   "file": "launch.py",
+   "find": "                result = run([sys.executable, \"host.py\", \"create\", host], cwd=HERE, capture_output=True, text=True,\n                             env=clean_env())\n",
+   "replace": "                result = run([sys.executable, \"host.py\", \"create\", host], cwd=HERE, capture_output=True, text=True,\n                             env=dict(os.environ))\n",
+   "killed_by": "tests/test_gated_78b.py::test_a_llama_launch_checks_the_token_before_any_create..."
+  },
+  {
+   "id": "K3-m-orchestrate-child-scrubbed",
+   "part": "K3 (launch.py: the gated precheck, the scrubbed children, the detached child, the scrub after the loop)",
+   "describes": "the detached orchestrate child is scrubbed too (no token to hand over)",
+   "file": "launch.py",
+   "find": "    return dict(os.environ) if gated_entries() else clean_env()\n",
+   "replace": "    return clean_env()\n",
+   "killed_by": "tests/test_gated_78b.py::test_a_llama_launch_checks_the_token_before_any_create...; test_the_token_variable..."
+  },
+  {
+   "id": "K3-m-orchestrate-child-always-full",
+   "part": "K3 (launch.py: the gated precheck, the scrubbed children, the detached child, the scrub after the loop)",
+   "describes": "an open family's orchestrate child keeps the token",
+   "file": "launch.py",
+   "find": "    return dict(os.environ) if gated_entries() else clean_env()\n",
+   "replace": "    return dict(os.environ)\n",
+   "killed_by": "tests/test_gated_78b.py::test_an_olmo_launch_never_touches_the_gated_path...; test_the_token_variable..."
+  },
+  {
+   "id": "K3-m-redirect-keeps-auth",
+   "part": "K3 (launch.py: the gated precheck, the scrubbed children, the detached child, the scrub after the loop)",
+   "describes": "the Authorization header follows a redirect off the Hub (fix-K-gated: re-targeted to the moved clause; the same mutation)",
+   "file": "launch.py",
+   "find": "        if new is not None and not same_origin(req.full_url, newurl):\n",
+   "replace": "        if False:\n",
+   "killed_by": "tests/test_gated_78b.py::test_the_redirect_handler_drops_the_authorization_header_when_the_redirect_leaves_the_hub"
+  },
+  {
+   "id": "K3-m-family-check-dropped",
+   "part": "K3 (launch.py: the gated precheck, the scrubbed children, the detached child, the scrub after the loop)",
+   "describes": "launch takes another family's plan.json (KD7)",
+   "file": "launch.py",
+   "find": "    if plan.get(\"family\") != family or plan.get(\"kit_block\") != rules.KIT_BLOCK:\n",
+   "replace": "    if False:\n",
+   "killed_by": "tests/test_gated_78b.py::test_launch_refuses_a_wrong_cap_another_familys_plan_or_an_unknown_host..."
+  },
+  {
+   "id": "K3-m-orch-token-as-argument",
+   "part": "K3 (orchestrate.py: the gated step and the stdin hand-over)",
+   "describes": "the token goes to host.py as an argument, not on stdin",
+   "file": "orchestrate.py",
+   "find": "    done = tool(\"gated-download\", host, stdin_text=token + \"\\n\")\n",
+   "replace": "    done = tool(\"gated-download\", host, token)\n",
+   "killed_by": "tests/test_gated_78b.py::test_orchestrate_hands_the_token_to_host_py_over_stdin..."
+  },
+  {
+   "id": "K3-m-orch-no-scrub",
+   "part": "K3 (orchestrate.py: the gated step and the stdin hand-over)",
+   "describes": "the orchestrate process keeps the token after the hand-over",
+   "file": "orchestrate.py",
+   "find": "    token = None\n    secret_scan.scrub_process(os.environ, rules.TOKEN_ENV_NAMES)           # no token in this process after use\n",
+   "replace": "    token = None\n",
+   "killed_by": "tests/test_gated_78b.py::test_orchestrate_hands_the_token_to_host_py_over_stdin..."
+  },
+  {
+   "id": "K3-m-orch-record-unchecked",
+   "part": "K3 (orchestrate.py: the gated step and the stdin hand-over)",
+   "describes": "a record saying ok false passes",
+   "file": "orchestrate.py",
+   "find": "    if done.returncode != 0 or record.get(\"ok\") is not True:\n",
+   "replace": "    if done.returncode != 0:\n",
+   "killed_by": "tests/test_gated_78b.py::test_orchestrate_hands_the_token_to_host_py_over_stdin... (record_ok False)"
+  },
+  {
+   "id": "K3-m-orch-exit-unchecked",
+   "part": "K3 (orchestrate.py: the gated step and the stdin hand-over)",
+   "describes": "host.py's non-zero exit passes",
+   "file": "orchestrate.py",
+   "find": "    if done.returncode != 0 or record.get(\"ok\") is not True:\n",
+   "replace": "    if record.get(\"ok\") is not True:\n",
+   "killed_by": "tests/test_gated_78b.py::test_orchestrate_hands_the_token_to_host_py_over_stdin... (tool_exit 1)"
+  },
+  {
+   "id": "K3-m-orch-open-family-reads-token",
+   "part": "K3 (orchestrate.py: the gated step and the stdin hand-over)",
+   "describes": "an open family runs the gated step",
+   "file": "orchestrate.py",
+   "find": "    if not gated_entries():\n        secret_scan.scrub_process(os.environ, rules.TOKEN_ENV_NAMES)       # an open family never needs the token\n        return\n",
+   "replace": "    if False:\n        pass\n",
+   "killed_by": "tests/test_gated_78b.py::test_orchestrate_on_olmo_never_reads_the_token..."
+  },
+  {
+   "id": "K3-m-orch-gated-step-dropped",
+   "part": "K3 (orchestrate.py: the gated step and the stdin hand-over)",
+   "describes": "after-create skips the gated step",
+   "file": "orchestrate.py",
+   "find": "    step[\"name\"] = \"gated-download\"                      # K3: before the preflight (which loads the policy)\n    gated_download(host)\n",
+   "replace": "    step[\"name\"] = \"gated-download\"\n",
+   "killed_by": "tests/test_gated_78b.py::test_the_gated_step_runs_after_the_bootstrap_check_and_before_the_preflight"
+  },
+  {
+   "id": "K3-m-orch-gated-after-preflight",
+   "part": "K3 (orchestrate.py: the gated step and the stdin hand-over)",
+   "describes": "the gated step runs after the preflight (which needs the policy)",
+   "file": "orchestrate.py",
+   "find": "    gated_download(host)\n    step[\"name\"] = \"preflight\"\n    done = preflight(host)\n",
+   "replace": "    step[\"name\"] = \"preflight\"\n    done = preflight(host)\n    gated_download(host)\n",
+   "killed_by": "tests/test_gated_78b.py::test_the_gated_step_runs_after_the_bootstrap_check_and_before_the_preflight"
+  },
+  {
+   "id": "K3-m-host-token-not-on-stdin",
+   "part": "K3 (host.py: gated-download over ssh's stdin; pull-states; the price and pod-name fixes)",
+   "describes": "the token is not written to ssh's stdin",
+   "file": "host.py",
+   "find": "input=token + \"\\n\", capture_output=True",
+   "replace": "input=None, capture_output=True",
+   "killed_by": "tests/test_gated_78b.py::test_host_gated_download_writes_the_token_to_ssh_stdin_only..."
+  },
+  {
+   "id": "K3-m-host-token-in-record",
+   "part": "K3 (host.py: gated-download over ssh's stdin; pull-states; the price and pod-name fixes)",
+   "describes": "gated-download.json holds the token",
+   "file": "host.py",
+   "find": "    record = {\"utc\": now(), \"ok\": done.returncode == 0, \"exit\": done.returncode, \"attempt\": stamp}\n",
+   "replace": "    record = {\"utc\": now(), \"ok\": done.returncode == 0, \"exit\": done.returncode, \"attempt\": stamp, \"token\": token}\n",
+   "killed_by": "tests/test_gated_78b.py::test_host_gated_download_writes_the_token_to_ssh_stdin_only..."
+  },
+  {
+   "id": "K3-m-host-gated-command-open",
+   "part": "K3 (host.py: gated-download over ssh's stdin; pull-states; the price and pod-name fixes)",
+   "describes": "the pod runs the open download instead of the gated one",
+   "file": "host.py",
+   "find": "\"venv/bin/python download_models_stage1.py --gated --token-stdin\")",
+   "replace": "\"venv/bin/python download_models_stage1.py\")",
+   "killed_by": "tests/test_gated_78b.py::test_host_gated_download_writes_the_token_to_ssh_stdin_only..."
+  },
+  {
+   "id": "K3-m-host-child-env-unscrubbed",
+   "part": "K3 (host.py: gated-download over ssh's stdin; pull-states; the price and pod-name fixes)",
+   "describes": "the ssh child inherits the token variable",
+   "file": "host.py",
+   "find": "    done = runner([\"ssh\", *ssh_base(host), gated_command(stamp)], input=token + \"\\n\", capture_output=True, text=True,\n                  env=clean_env())\n",
+   "replace": "    done = runner([\"ssh\", *ssh_base(host), gated_command(stamp)], input=token + \"\\n\", capture_output=True, text=True,\n                  env=dict(os.environ))\n",
+   "killed_by": "tests/test_gated_78b.py::test_host_gated_download_writes_the_token_to_ssh_stdin_only..."
+  },
+  {
+   "id": "K3-m-host-empty-archive-kept",
+   "part": "K3 (host.py: gated-download over ssh's stdin; pull-states; the price and pod-name fixes)",
+   "describes": "pull-states keeps an archive without a file",
+   "file": "host.py",
+   "find": "    if tar_file_count(part) < 1:                 # an empty -T list still gives an archive; never keep it\n",
+   "replace": "    if False:\n",
+   "killed_by": "tests/test_gated_78b.py::test_pull_states_keeps_only_an_archive_that_holds_a_file_and_records_it"
+  },
+  {
+   "id": "K3-m-host-price-overflow-allowed",
+   "part": "K3 (host.py: gated-download over ssh's stdin; pull-states; the price and pod-name fixes)",
+   "describes": "an integer too large for a float is an allowed price",
+   "file": "host.py",
+   "find": "    except OverflowError:\n        return False\n",
+   "replace": "    except OverflowError:\n        return True\n",
+   "killed_by": "tests/test_gated_78b.py::test_create_refuses_a_missing_non_finite_or_over_ten_dollar_price_and_names_the_78b_pod"
+  },
+  {
+   "id": "K3-m-host-pod-name-stage1",
+   "part": "K3 (host.py: gated-download over ssh's stdin; pull-states; the price and pod-name fixes)",
+   "describes": "the pod is named with stage 1's prefix",
+   "file": "host.py",
+   "find": "    return f\"{rules.POD_NAME_PREFIX}{host}{suffix}\"",
+   "replace": "    return f\"attribution-s1-{host}{suffix}\"",
+   "killed_by": "tests/test_gated_78b.py::test_create_refuses_a_missing_non_finite_or_over_ten_dollar_price_and_names_the_78b_pod"
+  },
+  {
+   "id": "K3-m-dl-open-gets-token",
+   "part": "K3 (setup/download_models_stage1.py: the gated run live for llama31-8b, open with token=False for olmo2-7b)",
+   "describes": "an open repository is downloaded with the token value",
+   "file": "setup/download_models_stage1.py",
+   "find": "token=token if entry[\"gated\"] else False))",
+   "replace": "token=token))",
+   "killed_by": "tests/test_gated_78b.py::test_the_open_run_on_llama_downloads_the_guard_only_with_token_false...; the olmo run test"
+  },
+  {
+   "id": "K3-m-dl-gated-on-open-plan",
+   "part": "K3 (setup/download_models_stage1.py: the gated run live for llama31-8b, open with token=False for olmo2-7b)",
+   "describes": "a --gated run on an open family's plan proceeds",
+   "file": "setup/download_models_stage1.py",
+   "find": "    if a.gated and not any(e[\"gated\"] for e in plan):\n",
+   "replace": "    if False:\n",
+   "killed_by": "tests/test_gated_78b.py::test_the_olmo_run_is_open_for_every_repository_and_its_gated_run_refuses"
+  },
+  {
+   "id": "K3-m-dl-env-unchecked-before-read",
+   "part": "K3 (setup/download_models_stage1.py: the gated run live for llama31-8b, open with token=False for olmo2-7b)",
+   "describes": "a set token variable is not refused before the token is read",
+   "file": "setup/download_models_stage1.py",
+   "find": "    no_token_left()\n    token = None\n",
+   "replace": "    token = None\n",
+   "killed_by": "tests/test_gated_78b.py::test_the_gated_run_refuses_a_set_token_variable..."
+  },
+  {
+   "id": "K3-m-dl-cache-scan-off",
+   "part": "K3 (setup/download_models_stage1.py: the gated run live for llama31-8b, open with token=False for olmo2-7b)",
+   "describes": "the HF cache is not scanned for token patterns",
+   "file": "setup/download_models_stage1.py",
+   "find": "        receipt[\"cache_token_pattern_count\"] = cache_pattern_count()\n",
+   "replace": "        receipt[\"cache_token_pattern_count\"] = 0\n",
+   "killed_by": "tests/test_gated_78b.py::test_a_wrong_weight_pin_a_blob_mismatch_or_a_token_pattern_in_the_cache_refuses_with_ok_false"
+  },
+  {
+   "id": "K3-m-dl-pins-unchecked",
+   "part": "K3 (setup/download_models_stage1.py: the gated run live for llama31-8b, open with token=False for olmo2-7b)",
+   "describes": "the policy's weight pins are not checked",
+   "file": "setup/download_models_stage1.py",
+   "find": "        check_pins(models, probe[\"weight_pins\"])\n",
+   "replace": "        pass\n",
+   "killed_by": "tests/test_gated_78b.py::test_a_wrong_weight_pin_a_blob_mismatch_or_a_token_pattern_in_the_cache_refuses_with_ok_false"
+  },
+  {
+   "id": "K3-m-dl-blob-unchecked",
+   "part": "K3 (setup/download_models_stage1.py: the gated run live for llama31-8b, open with token=False for olmo2-7b)",
+   "describes": "a safetensors file's SHA-256 is not compared with its blob name",
+   "file": "setup/download_models_stage1.py",
+   "find": "            if path.suffix == \".safetensors\" and not (len(blob) == 64 and actual == blob):\n",
+   "replace": "            if False:\n",
+   "killed_by": "tests/test_gated_78b.py::test_a_wrong_weight_pin_a_blob_mismatch_or_a_token_pattern_in_the_cache_refuses_with_ok_false"
+  },
+  {
+   "id": "K3-m-dl-receipt-holds-token",
+   "part": "K3 (setup/download_models_stage1.py: the gated run live for llama31-8b, open with token=False for olmo2-7b)",
+   "describes": "the gated receipt records the token as its source",
+   "file": "setup/download_models_stage1.py",
+   "find": "\"token_source\": \"stdin\" if a.gated else None,",
+   "replace": "\"token_source\": token,",
+   "killed_by": "tests/test_gated_78b.py::test_the_gated_run_passes_the_token_to_snapshot_download_only_and_writes_a_receipt_without_it"
+  },
+  {
+   "id": "FG-m-http-get-no-redirect-handler",
+   "part": "FG (fix-K-gated: launch.py's http_get, same_origin, the no-reply refusals)",
+   "describes": "http_get builds its opener without SameHostAuthRedirect (the verifier's V-m-http-get-no-redirect-handler)",
+   "file": "launch.py",
+   "find": "    opener = urllib.request.build_opener(SameHostAuthRedirect)\n",
+   "replace": "    opener = urllib.request.build_opener()\n",
+   "killed_by": "tests/test_gated_78b.py::test_d1_http_get_builds_its_opener_with_the_same_origin_redirect_handler_and_the_precheck_runs_through_it"
+  },
+  {
+   "id": "FG-m-http-get-no-reply-propagates",
+   "part": "FG (fix-K-gated: launch.py's http_get, same_origin, the no-reply refusals)",
+   "describes": "a URLError, timeout, TLS failure or broken reply propagates out of http_get (a traceback, not a refusal)",
+   "file": "launch.py",
+   "find": "    except (urllib.error.URLError, OSError, http.client.HTTPException) as exc:\n",
+   "replace": "    except () as exc:\n",
+   "killed_by": "tests/test_gated_78b.py::test_d4_a_failure_before_any_reply_is_a_clean_refusal_that_scrubs_the_token_and_names_no_token"
+  },
+  {
+   "id": "FG-m-failure-text-keeps-token",
+   "part": "FG (fix-K-gated: launch.py's http_get, same_origin, the no-reply refusals)",
+   "describes": "the no-reply description is not scrubbed of the token",
+   "file": "launch.py",
+   "find": "    if token:\n        text = text.replace(token, \"<token>\")\n    text = secret_scan.PATTERNS[\"hf_token\"].sub(\"<token>\", text)\n",
+   "replace": "    pass\n",
+   "killed_by": "tests/test_gated_78b.py::test_d4_a_failure_before_any_reply_is_a_clean_refusal_that_scrubs_the_token_and_names_no_token[reason-holds-the-token]"
+  },
+  {
+   "id": "FG-m-range-no-reply-continues",
+   "part": "FG (fix-K-gated: launch.py's http_get, same_origin, the no-reply refusals)",
+   "describes": "a Range request that got no reply is recorded as status 0 and the next requests are still sent",
+   "file": "launch.py",
+   "find": "            if status == NO_REPLY:         # D4: stop at the first request that got no reply; no further request\n",
+   "replace": "            if False:\n",
+   "killed_by": "tests/test_gated_78b.py::test_d4_a_no_reply_on_a_range_request_refuses_at_once_and_sends_no_further_request"
+  },
+  {
+   "id": "FG-m-redirect-scheme-ignored",
+   "part": "FG (fix-K-gated: launch.py's http_get, same_origin, the no-reply refusals)",
+   "describes": "same_origin compares the host only: an https -> http redirect on the Hub's host keeps the Authorization header",
+   "file": "launch.py",
+   "find": "    return (a.scheme.lower(), a.netloc.lower()) == (b.scheme.lower(), b.netloc.lower())\n",
+   "replace": "    return a.netloc.lower() == b.netloc.lower()\n",
+   "killed_by": "tests/test_gated_78b.py::test_d5_a_same_host_redirect_that_changes_the_scheme_drops_the_authorization_header"
+  },
+  {
+   "id": "FG-m-dl-post-check-dropped",
+   "part": "FG (fix-K-gated: setup/download_models_stage1.py's after-download check and the library's paths; the preflight)",
+   "describes": "the after-download no_token_left() is dropped (the verifier's V-m-dl-post-check-dropped)",
+   "file": "setup/download_models_stage1.py",
+   "find": "        token = None                                          # nothing below sees it\n        no_token_left()\n",
+   "replace": "        token = None                                          # nothing below sees it\n",
+   "killed_by": "tests/test_gated_78b.py::test_d2_a_download_that_leaves_a_stored_login_or_a_token_variable_behind_is_refused_after_the_download"
+  },
+  {
+   "id": "FG-m-dl-no-receipt-before-post-check",
+   "part": "FG (fix-K-gated: setup/download_models_stage1.py's after-download check and the library's paths; the preflight)",
+   "describes": "no receipt is written when the after-download check refuses",
+   "file": "setup/download_models_stage1.py",
+   "find": "        pathlib.Path(receipt_name).write_text(json.dumps(receipt, indent=1) + \"\\n\")   # ok false until every check passes\n",
+   "replace": "        pass\n",
+   "killed_by": "tests/test_gated_78b.py::test_d2_a_download_that_leaves_a_stored_login_or_a_token_variable_behind_is_refused_after_the_download"
+  },
+  {
+   "id": "FG-m-hf-home-ignored",
+   "part": "FG (fix-K-gated: setup/download_models_stage1.py's after-download check and the library's paths; the preflight)",
+   "describes": "hf_home ignores HF_HOME",
+   "file": "setup/download_models_stage1.py",
+   "find": "    return _hf_path(os.getenv(\"HF_HOME\", os.path.join(os.getenv(\"XDG_CACHE_HOME\", default_home), \"huggingface\")))\n",
+   "replace": "    return _hf_path(os.path.join(os.getenv(\"XDG_CACHE_HOME\", default_home), \"huggingface\"))\n",
+   "killed_by": "tests/test_gated_78b.py::test_d6_the_cache_and_token_paths_follow_huggingface_hub_exactly[hf-home]"
+  },
+  {
+   "id": "FG-m-xdg-ignored",
+   "part": "FG (fix-K-gated: setup/download_models_stage1.py's after-download check and the library's paths; the preflight)",
+   "describes": "hf_home ignores XDG_CACHE_HOME",
+   "file": "setup/download_models_stage1.py",
+   "find": "    return _hf_path(os.getenv(\"HF_HOME\", os.path.join(os.getenv(\"XDG_CACHE_HOME\", default_home), \"huggingface\")))\n",
+   "replace": "    return _hf_path(os.getenv(\"HF_HOME\", os.path.join(default_home, \"huggingface\")))\n",
+   "killed_by": "tests/test_gated_78b.py::test_d6_the_cache_and_token_paths_follow_huggingface_hub_exactly[xdg]"
+  },
+  {
+   "id": "FG-m-token-path-ignored",
+   "part": "FG (fix-K-gated: setup/download_models_stage1.py's after-download check and the library's paths; the preflight)",
+   "describes": "token_file ignores HF_TOKEN_PATH",
+   "file": "setup/download_models_stage1.py",
+   "find": "    return _hf_path(os.getenv(\"HF_TOKEN_PATH\", os.path.join(str(hf_home()), \"token\")))\n",
+   "replace": "    return _hf_path(os.path.join(str(hf_home()), \"token\"))\n",
+   "killed_by": "tests/test_gated_78b.py::test_d6_the_cache_and_token_paths_follow_huggingface_hub_exactly[token-path]"
+  },
+  {
+   "id": "FG-m-legacy-hub-cache-ignored",
+   "part": "FG (fix-K-gated: setup/download_models_stage1.py's after-download check and the library's paths; the preflight)",
+   "describes": "hf_cache ignores the legacy HUGGINGFACE_HUB_CACHE",
+   "file": "setup/download_models_stage1.py",
+   "find": "    legacy = os.getenv(\"HUGGINGFACE_HUB_CACHE\", os.path.join(str(hf_home()), \"hub\"))\n",
+   "replace": "    legacy = os.path.join(str(hf_home()), \"hub\")\n",
+   "killed_by": "tests/test_gated_78b.py::test_d6_the_cache_and_token_paths_follow_huggingface_hub_exactly[legacy-hub-cache]"
+  },
+  {
+   "id": "FG-m-hub-cache-ignores-hf-home",
+   "part": "FG (fix-K-gated: setup/download_models_stage1.py's after-download check and the library's paths; the preflight)",
+   "describes": "hf_cache falls back to ~/.cache/huggingface/hub whatever HF_HOME says (the kit round's reading)",
+   "file": "setup/download_models_stage1.py",
+   "find": "    return _hf_path(os.getenv(\"HF_HUB_CACHE\", legacy))\n",
+   "replace": "    return _hf_path(os.getenv(\"HF_HUB_CACHE\", os.path.join(os.path.expanduser(\"~\"), \".cache\", \"huggingface\", \"hub\")))\n",
+   "killed_by": "tests/test_gated_78b.py::test_d6_the_cache_and_token_paths_follow_huggingface_hub_exactly[hf-home]"
+  },
+  {
+   "id": "FG-m-stored-tokens-unchecked",
+   "part": "FG (fix-K-gated: setup/download_models_stage1.py's after-download check and the library's paths; the preflight)",
+   "describes": "a stored_tokens file beside the token file passes",
+   "file": "setup/download_models_stage1.py",
+   "find": "    for path in (token_file(), stored_tokens_file()):\n",
+   "replace": "    for path in (token_file(),):\n",
+   "killed_by": "tests/test_gated_78b.py::test_d2_...[stored-tokens]; test_d6_hf_token_path_stored_tokens_and_the_staging_switch_refuse..."
+  },
+  {
+   "id": "FG-m-staging-unchecked",
+   "part": "FG (fix-K-gated: setup/download_models_stage1.py's after-download check and the library's paths; the preflight)",
+   "describes": "HUGGINGFACE_CO_STAGING set passes (the library would use the staging Hub and other paths)",
+   "file": "setup/download_models_stage1.py",
+   "find": "    if env.get(\"HUGGINGFACE_CO_STAGING\"):    # the library's staging mode moves its endpoint, cache and token file (D6)\n",
+   "replace": "    if False:\n",
+   "killed_by": "tests/test_gated_78b.py::test_d6_hf_token_path_stored_tokens_and_the_staging_switch_refuse_and_the_preflight_reads_the_same_path"
+  },
+  {
+   "id": "FG-m-preflight-hygiene-default-path",
+   "part": "FG (fix-K-gated: setup/download_models_stage1.py's after-download check and the library's paths; the preflight)",
+   "describes": "the preflight's token_hygiene reads ~/.cache/huggingface/token only (the kit round's code), not the library's path",
+   "file": "setup/preflight_stage1.py",
+   "find": "    downloads.no_token_left()\n",
+   "replace": "    if (pathlib.Path.home() / \".cache\" / \"huggingface\" / \"token\").exists():\n        raise SystemExit(\"~/.cache/huggingface/token exists\")\n",
+   "killed_by": "tests/test_gated_78b.py::test_d6_hf_token_path_stored_tokens_and_the_staging_switch_refuse_and_the_preflight_reads_the_same_path"
+  },
+  {
+   "id": "FX-m-header-check-dropped",
+   "part": "FX (fix-K-gated, second attempt: launch.py's F1 header check, http_get's ValueError branch, failure_text's two scrubs)",
+   "describes": "token_checks no longer refuses a token a header cannot carry",
+   "file": "launch.py",
+   "find": "    if not header_safe(token):             # F1: before any request; the message names no part of the value\n        raise SystemExit(f\"{HF_TOKEN_ENV} holds a character a request header cannot carry (a space, a line break, a \"\n                         \"control or a non-ASCII character): no request was sent and no pod was created; put the \"\n                         \"token's exact value in the variable and launch again\")\n",
+   "replace": "    pass\n",
+   "killed_by": "tests/test_gated_78b.py::test_f1_a_token_a_header_cannot_carry_refuses_before_any_request_and_names_no_part_of_it"
+  },
+  {
+   "id": "FX-m-header-check-after-whoami",
+   "part": "FX (fix-K-gated, second attempt: launch.py's F1 header check, http_get's ValueError branch, failure_text's two scrubs)",
+   "describes": "the header check runs after the whoami request (the request is built, and may raise, first)",
+   "file": "launch.py",
+   "find": "    if not header_safe(token):             # F1: before any request; the message names no part of the value\n        raise SystemExit(f\"{HF_TOKEN_ENV} holds a character a request header cannot carry (a space, a line break, a \"\n                         \"control or a non-ASCII character): no request was sent and no pod was created; put the \"\n                         \"token's exact value in the variable and launch again\")\n    status, body = get(f\"{HUB}/api/whoami-v2\", token, None, WHOAMI_LIMIT)\n",
+   "replace": "    status, body = get(f\"{HUB}/api/whoami-v2\", token, None, WHOAMI_LIMIT)\n    if not header_safe(token):             # F1: before any request; the message names no part of the value\n        raise SystemExit(f\"{HF_TOKEN_ENV} holds a character a request header cannot carry (a space, a line break, a \"\n                         \"control or a non-ASCII character): no request was sent and no pod was created; put the \"\n                         \"token's exact value in the variable and launch again\")\n",
+   "killed_by": "tests/test_gated_78b.py::test_f1_a_token_a_header_cannot_carry_refuses_before_any_request_and_names_no_part_of_it"
+  },
+  {
+   "id": "FX-m-header-safe-allows-space",
+   "part": "FX (fix-K-gated, second attempt: launch.py's F1 header check, http_get's ValueError branch, failure_text's two scrubs)",
+   "describes": "header_safe lets a space through",
+   "file": "launch.py",
+   "find": "    return bool(token) and all(\"\\x21\" <= ch <= \"\\x7e\" for ch in token)\n",
+   "replace": "    return bool(token) and all(\"\\x20\" <= ch <= \"\\x7e\" for ch in token)\n",
+   "killed_by": "tests/test_gated_78b.py::test_f1_header_safe_accepts_visible_ascii_only"
+  },
+  {
+   "id": "FX-m-header-safe-allows-non-ascii",
+   "part": "FX (fix-K-gated, second attempt: launch.py's F1 header check, http_get's ValueError branch, failure_text's two scrubs)",
+   "describes": "header_safe lets a non-ASCII character through",
+   "file": "launch.py",
+   "find": "    return bool(token) and all(\"\\x21\" <= ch <= \"\\x7e\" for ch in token)\n",
+   "replace": "    return bool(token) and all(\"\\x21\" <= ch <= \"\\U0010ffff\" for ch in token)\n",
+   "killed_by": "tests/test_gated_78b.py::test_f1_header_safe_accepts_visible_ascii_only"
+  },
+  {
+   "id": "FX-m-header-safe-allows-empty",
+   "part": "FX (fix-K-gated, second attempt: launch.py's F1 header check, http_get's ValueError branch, failure_text's two scrubs)",
+   "describes": "header_safe accepts an empty value",
+   "file": "launch.py",
+   "find": "    return bool(token) and all(\"\\x21\" <= ch <= \"\\x7e\" for ch in token)\n",
+   "replace": "    return all(\"\\x21\" <= ch <= \"\\x7e\" for ch in token)\n",
+   "killed_by": "tests/test_gated_78b.py::test_f1_header_safe_accepts_visible_ascii_only"
+  },
+  {
+   "id": "FX-m-valueerror-propagates",
+   "part": "FX (fix-K-gated, second attempt: launch.py's F1 header check, http_get's ValueError branch, failure_text's two scrubs)",
+   "describes": "http_get lets a ValueError (whose text may quote the header) propagate",
+   "file": "launch.py",
+   "find": "    except ValueError as exc:              # the request could not be built",
+   "replace": "    except ZeroDivisionError as exc:              # the request could not be built",
+   "killed_by": "tests/test_gated_78b.py::test_f1_http_get_withholds_the_detail_of_a_value_error_and_keeps_a_tls_verify_failures_reason"
+  },
+  {
+   "id": "FX-m-valueerror-detail-kept",
+   "part": "FX (fix-K-gated, second attempt: launch.py's F1 header check, http_get's ValueError branch, failure_text's two scrubs)",
+   "describes": "http_get's ValueError branch keeps the (scrubbed) message",
+   "file": "launch.py",
+   "find": "        return NO_REPLY, f\"{type(exc).__name__}: the request could not be built (detail withheld)\".encode()",
+   "replace": "        return NO_REPLY, failure_text(exc, token).encode()",
+   "killed_by": "tests/test_gated_78b.py::test_f1_http_get_withholds_the_detail_of_a_value_error_and_keeps_a_tls_verify_failures_reason"
+  },
+  {
+   "id": "FX-m-exact-value-not-replaced",
+   "part": "FX (fix-K-gated, second attempt: launch.py's F1 header check, http_get's ValueError branch, failure_text's two scrubs)",
+   "describes": "failure_text keeps the pattern scrub only (a token value not of the HF shape stays in the line; the re-verifier's RV-m-d4-exact-value-not-replaced)",
+   "file": "launch.py",
+   "find": "    if token:\n        text = text.replace(token, \"<token>\")\n",
+   "replace": "    pass\n",
+   "killed_by": "tests/test_gated_78b.py::test_d4_failure_text_replaces_the_exact_value_and_any_other_hf_shaped_string"
+  },
+  {
+   "id": "FX-m-pattern-not-replaced",
+   "part": "FX (fix-K-gated, second attempt: launch.py's F1 header check, http_get's ValueError branch, failure_text's two scrubs)",
+   "describes": "failure_text keeps the exact-value scrub only (another HF-shaped string stays; the re-verifier's RV-m-d4-pattern-not-replaced)",
+   "file": "launch.py",
+   "find": "    text = secret_scan.PATTERNS[\"hf_token\"].sub(\"<token>\", text)\n",
+   "replace": "    pass\n",
+   "killed_by": "tests/test_gated_78b.py::test_d4_failure_text_replaces_the_exact_value_and_any_other_hf_shaped_string"
+  },
+  {
+   "id": "FX-m-dl-header-check-dropped",
+   "part": "FX (fix-K-gated, second attempt: setup/download_models_stage1.py's F1 header check on the token line)",
+   "describes": "the pod no longer refuses a token line a header cannot carry",
+   "file": "setup/download_models_stage1.py",
+   "find": "        if not all(\"\\x21\" <= ch <= \"\\x7e\" for ch in token):   # fix-K-gated F1: a header error would quote the token\n",
+   "replace": "        if False:\n",
+   "killed_by": "tests/test_gated_78b.py::test_f1_the_pod_refuses_a_token_line_a_header_cannot_carry_before_any_request"
+  },
+  {
+   "id": "FX-m-dl-header-allows-space",
+   "part": "FX (fix-K-gated, second attempt: setup/download_models_stage1.py's F1 header check on the token line)",
+   "describes": "the pod's header check lets a space through",
+   "file": "setup/download_models_stage1.py",
+   "find": "        if not all(\"\\x21\" <= ch <= \"\\x7e\" for ch in token):   # fix-K-gated F1: a header error would quote the token\n",
+   "replace": "        if not all(\"\\x20\" <= ch <= \"\\x7e\" for ch in token):   # fix-K-gated F1: a header error would quote the token\n",
+   "killed_by": "tests/test_gated_78b.py::test_f1_the_pod_refuses_a_token_line_a_header_cannot_carry_before_any_request"
+  }
+ ]
+}

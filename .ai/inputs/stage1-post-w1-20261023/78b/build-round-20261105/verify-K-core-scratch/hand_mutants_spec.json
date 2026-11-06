@@ -1,0 +1,144 @@
+{
+ "mutants": [
+  {
+   "id": "V-H1",
+   "file": "plan_tool.py",
+   "find": "    if given != expected:\n        fail(f\"block 0: the jobs are not N's layout for {family} (ruling 11): expected {expected}, given {given}\"",
+   "replace": "    if False:\n        fail(f\"block 0: the jobs are not N's layout for {family} (ruling 11): expected {expected}, given {given}\"",
+   "describes": "block0_spec_jobs accepts any layout"
+  },
+  {
+   "id": "V-H2",
+   "file": "plan_tool.py",
+   "find": "    if not isinstance(doc, dict) or doc.get(\"manifest_sha256\") != rules.PREPARED_MANIFESTS[rules.PREPARED_NAME]:\n        fail(f\"{arm} at {job['seed']}: the edit file is not on {rules.FAMILY}'s prepared set \"",
+   "replace": "    if not isinstance(doc, dict):\n        fail(f\"{arm} at {job['seed']}: the edit file is not on {rules.FAMILY}'s prepared set \"",
+   "describes": "resolve_edit accepts an edit on the other prepared set"
+  },
+  {
+   "id": "V-H3",
+   "file": "plan_tool.py",
+   "find": "                if job.get(\"edit\") and job[\"edit\"].get(\"sha256\") != bound[\"sha256\"]:\n                    fail(f\"{name}: the edit bound at init differs from the sealed set now; the lead decides\")",
+   "replace": "                if False:\n                    fail(f\"{name}: the edit bound at init differs from the sealed set now; the lead decides\")",
+   "describes": "release_hosts0 ignores an edit that changed between init and release"
+  },
+  {
+   "id": "V-H4",
+   "file": "stage1_rules.py",
+   "find": "    edit = [\"--edit\", f\"edits/{job['edit']['sha256']}.edit.json\"] if job.get(\"edit\") else []\n",
+   "replace": "    edit = []\n",
+   "describes": "arm_commands drops --edit for an edit arm"
+  },
+  {
+   "id": "V-H5",
+   "file": "stage1_rules.py",
+   "find": "    if job.get(\"recipe\") != \"B\":\n        raise ValueError(\"an arm runs under the family's main config (recipe B; P78:99), never another recipe\")\n",
+   "replace": "    if False:\n        raise ValueError(\"an arm runs under the family's main config (recipe B; P78:99), never another recipe\")\n",
+   "describes": "arm_commands accepts a recipe other than B"
+  },
+  {
+   "id": "V-H6",
+   "file": "setup/job_runner_stage1.py",
+   "find": "            \"ok\": stopped in (None, \"deferred\") and all(r[\"status\"] == \"complete\" for r in started_)}",
+   "replace": "            \"ok\": stopped in (None, \"deferred\", \"refused\") and all(r[\"status\"] == \"complete\" for r in started_)}",
+   "describes": "JOB-DONE ok true on a rule refusal"
+  },
+  {
+   "id": "V-H7",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    assert sha(path) == pre.get(\"verification_sha256\"), \\",
+   "replace": "    assert sha(path) or True, \\",
+   "describes": "load_verification does not tie verification.json to PREFLIGHT-DONE's hash"
+  },
+  {
+   "id": "V-H8",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if not path.is_file() or sha(path) != job[\"edit\"][\"sha256\"] or \"edit-\" + sha(path) != engine_arm(job):",
+   "replace": "        if not path.is_file() or sha(path) != job[\"edit\"][\"sha256\"]:",
+   "describes": "sealed_check drops the engine-arm check"
+  },
+  {
+   "id": "V-H9",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    assert verification.get(\"manifest_sha256\") == digest, \"the preflight ran on another prepared set than the plan's\"",
+   "replace": "    assert verification.get(\"manifest_sha256\") or True, \"the preflight ran on another prepared set than the plan's\"",
+   "describes": "preflight_checks does not tie the preflight's manifest to the plan's"
+  },
+  {
+   "id": "V-H10",
+   "file": "plan_tool.py",
+   "find": "    if not funding[\"amount_usd\"] >= need[\"need_usd\"]:\n        fail(f\"the funding ${funding['amount_usd']:.2f} is below the need ${need['need_usd']:.2f} \"\n             f\"({rules.CONTINGENCY_FACTOR} x ${need['base_need_usd']:.2f}: N's two pods, both families; KCR:177)\")",
+   "replace": "    if not funding[\"amount_usd\"] > need[\"need_usd\"]:\n        fail(f\"the funding ${funding['amount_usd']:.2f} is below the need ${need['need_usd']:.2f} \"\n             f\"({rules.CONTINGENCY_FACTOR} x ${need['base_need_usd']:.2f}: N's two pods, both families; KCR:177)\")",
+   "describes": "init_block0 refuses funding exactly at the need"
+  },
+  {
+   "id": "V-H11",
+   "file": "plan_tool.py",
+   "find": "    if plan.get(\"name\") != \"stage1-78b\" or plan.get(\"family\") != family or plan.get(\"kit_block\") != rules.KIT_BLOCK:",
+   "replace": "    if plan.get(\"name\") != \"stage1-78b\":",
+   "describes": "load() accepts the other family's plan.json"
+  },
+  {
+   "id": "V-H12",
+   "file": "rules_78b.py",
+   "find": "    if not isinstance(pin[\"sha256\"], str) or not CONFIG_SHA256.match(pin[\"sha256\"]):\n        raise Refused(f\"SEALED_SETS[{family!r}]['sha256'] is not a SHA-256\")",
+   "replace": "    if False:\n        raise Refused(f\"SEALED_SETS[{family!r}]['sha256'] is not a SHA-256\")",
+   "describes": "sealed_set_or_refuse accepts a non-hex pin"
+  },
+  {
+   "id": "V-H13",
+   "file": "plan_tool.py",
+   "find": "        if job.get(\"engine\", \"X\") != \"X\":\n            fail(f\"block 0 job {i}: engine X only (ruling 10)\")",
+   "replace": "        if False:\n            fail(f\"block 0 job {i}: engine X only (ruling 10)\")",
+   "describes": "block0_spec_jobs accepts engine Y on a job"
+  },
+  {
+   "id": "V-H14",
+   "file": "plan_tool.py",
+   "find": "    if doc.get(\"recipe_sha256\") != rules.REC_CONFIG_SHA256 or doc.get(\"manifest_sha256\") != \\\n            rules.PREPARED_MANIFESTS[rules.PREPARED_NAME] or doc.get(\"training_identity\") != rules.TRAINING_IDENTITY:",
+   "replace": "    if False:",
+   "describes": "fixture() accepts the other family's verification.json"
+  },
+  {
+   "id": "V-H15",
+   "file": "stage1_rules.py",
+   "find": "    if sorted(given) != sorted(expected):\n        raise ValueError(f\"block 0's runs are N's layout for {FAMILY} only: {expected}\")",
+   "replace": "    if False:\n        raise ValueError(f\"block 0's runs are N's layout for {FAMILY} only: {expected}\")",
+   "describes": "deal() accepts runs outside N's table"
+  },
+  {
+   "id": "V-H16",
+   "file": "setup/preflight_stage1.py",
+   "find": "\"ok\": chosen is not None and speed[\"refused\"] is None,",
+   "replace": "\"ok\": chosen is not None,",
+   "describes": "the preflight passes a pod the speed rule refused"
+  },
+  {
+   "id": "V-H17",
+   "file": "plan_tool.py",
+   "find": "        if e.get(\"family\") == \"R\" and e.get(\"draw\") in rules.GATEB_R_DRAWS and isinstance(e.get(\"path\"), str) \\",
+   "replace": "        if e.get(\"draw\") in rules.GATEB_R_DRAWS and isinstance(e.get(\"path\"), str) \\",
+   "describes": "edit_sources takes any family's edit entry with a block-0 draw"
+  },
+  {
+   "id": "V-H18",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        pending = Refusal(\"key\" if jobs[keys[0]][\"kind\"] not in r78.S78_KINDS | r78.BQI_KINDS else \"recipe_pin\", keys[1])",
+   "replace": "        pending = Refusal(\"key\", keys[1])",
+   "describes": "a null-pin key refusal is labelled key, not recipe_pin"
+  },
+  {
+   "id": "V-H19",
+   "file": "setup/job_runner_stage1.py",
+   "find": "            later = \"deferred\" if stopped in (\"deferred\", \"refused\") else \"not_started\"",
+   "replace": "            later = \"deferred\"",
+   "describes": "a crash or unreadable heartbeat marks later jobs deferred"
+  },
+  {
+   "id": "V-H20",
+   "file": "stage1_rules.py",
+   "find": "    if block != \"0\":\n        where = \"runkit/stage1-olmo/\" if block in BLOCKS_1B else \"a later round (after N's reading)\"",
+   "replace": "    if block not in (\"0\", \"A\"):\n        where = \"runkit/stage1-olmo/\" if block in BLOCKS_1B else \"a later round (after N's reading)\"",
+   "describes": "block_runs plans block A as N"
+  }
+ ]
+}

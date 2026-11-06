@@ -1,0 +1,54 @@
+{
+ "kind": "fix-K-gated guard mutants (tests/conftest.py G1-G4)",
+ "mutants": [
+  {
+   "id": "GD-m-lookup-unguarded",
+   "describes": "the name lookups are not replaced (G1)",
+   "file": "tests/conftest.py",
+   "find": "        monkeypatch.setattr(socket, name, lookup)\n",
+   "replace": "        pass\n"
+  },
+  {
+   "id": "GD-m-lookup-allows-any",
+   "describes": "every name lookup passes (G1)",
+   "file": "tests/conftest.py",
+   "find": "            if host is None or host in LOOPBACK:",
+   "replace": "            if True:"
+  },
+  {
+   "id": "GD-m-send-unguarded",
+   "describes": "sendto / sendmsg are not replaced (G2)",
+   "file": "tests/conftest.py",
+   "find": "        monkeypatch.setattr(socket.socket, name, send)\n",
+   "replace": "        pass\n"
+  },
+  {
+   "id": "GD-m-send-allows-inet",
+   "describes": "an internet datagram passes (G2; the test sends to the loopback discard port only)",
+   "file": "tests/conftest.py",
+   "find": "            if self.family in (socket.AF_INET, socket.AF_INET6):\n",
+   "replace": "            if False:\n"
+  },
+  {
+   "id": "GD-m-send-refuses-unix",
+   "describes": "an AF_UNIX datagram is refused too (G2 over-reach)",
+   "file": "tests/conftest.py",
+   "find": "            if self.family in (socket.AF_INET, socket.AF_INET6):\n",
+   "replace": "            if True:\n"
+  },
+  {
+   "id": "GD-m-fork-exec-unguarded",
+   "describes": "os.fork / forkpty / execv / execve are not replaced (G3)",
+   "file": "tests/conftest.py",
+   "find": "            monkeypatch.setattr(os, name, lambda *a, _name=name, **kw: _refuse(f\"os.{_name}\", repr(a[:1])[:80]))\n",
+   "replace": "            pass\n"
+  },
+  {
+   "id": "GD-m-spawn-name-late-bound",
+   "describes": "the posix_spawn refusal names the late-bound loop variable (G4)",
+   "file": "tests/conftest.py",
+   "find": "            monkeypatch.setattr(os, name, lambda path, *a, _name=name, **kw: _refuse(_name, repr(path)[:80]))\n",
+   "replace": "            monkeypatch.setattr(os, name, lambda path, *a, **kw: _refuse(name, repr(path)[:80]))\n"
+  }
+ ]
+}

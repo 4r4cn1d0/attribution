@@ -318,6 +318,14 @@ def test_05d_s_obs_reads_32_row_capped_batches_only(basis):
         r["elapsed_s"] = round(r["elapsed_s"] + 2000.0, 3)
     s = R.s_obs_from_progress("olmo2-7b", slowed32)
     assert s > 2000 / R.FAMILIES["olmo2-7b"]["BATCH_MAX_S"] and R.s_obs_defers(s)
+    # D3 (KCR:113's "capped" clause): the same 2,000 s on an UNCAPPED 32-row batch (not the first greedy one) leaves
+    # s_obs = 1.0: a slow batch that hit no cap says nothing about the capped-batch maximum.
+    uncapped = [dict(r) for r in rows]
+    idx = next(i for i, r in enumerate(uncapped) if r["kind"] == "generate" and r["rows"] == 32 and r["batch"] > 0)
+    uncapped[idx]["capped"] = 0
+    for r in uncapped[idx:]:
+        r["elapsed_s"] = round(r["elapsed_s"] + 2000.0, 3)
+    assert R.s_obs_from_progress("olmo2-7b", uncapped) == 1.0
 
 
 def test_05b_s_obs_on_the_real_progress_files():
@@ -434,10 +442,11 @@ def test_07_keys(basis):
 
 def test_07b_recipe_s78_pins_refuse_until_filled(monkeypatch, tmp_path):
     """Addendum A1: RECIPE_S is null per family until the family's anchor job has run and the maker wrote S_78.
-    Every kind that needs S_78 (the a0-1101 retrain; A1's attributes pass rep_pass) refuses through
-    recipe_s_or_refuse while the pin is None. A filled pin (test-local; no config file is written) is accepted."""
+    Every kind that needs S_78 (PP8: the a0-1101 retrain; REQ-3's representation pass rep_pass; A1's attributes pass
+    a1_pass; the classifier, PP4) refuses through recipe_s_or_refuse while the pin is None. A filled pin (test-local;
+    no config file is written) is accepted."""
     assert R.RECIPE_S == {"olmo2-7b": None, "llama31-8b": None}
-    assert R.S78_KINDS == frozenset({"retrain", "rep_pass"}) and R.S78_KINDS <= set(R.E_KINDS)
+    assert R.S78_KINDS == frozenset({"retrain", "rep_pass", "a1_pass", "classifier"}) and R.S78_KINDS <= set(R.E_KINDS)
     docs = {}                                                              # a pod at each family's slowest measured speed
     for family, f in R.FAMILIES.items():
         docs[family] = (fake_preflight_done(tmp_path, training_s=f["PRE_TRAINING_S_MAX"], ms_per_step_full=f["PRE_MS_PER_STEP_MAX"]),
@@ -486,7 +495,110 @@ def test_07b_recipe_s78_pins_refuse_until_filled(monkeypatch, tmp_path):
         monkeypatch.setitem(R.RECIPE_S, "olmo2-7b", bad)
         with pytest.raises(R.Refused):
             R.recipe_s_or_refuse("olmo2-7b")
-    assert not list(KIT.glob("*.json.tmp")) and sorted(p.name for p in KIT.glob("*.json")) == [R.BASIS_FILE]
+    # K1: COPY-MANIFEST.json (the kit copy's file list) sits beside the basis; no config file is ever written here.
+    assert not list(KIT.glob("*.json.tmp")) and sorted(p.name for p in KIT.glob("*.json")) == ["COPY-MANIFEST.json", R.BASIS_FILE]
+
+
+def test_07c_a13_pins_engine_y_bqi_and_the_sealed_sets(monkeypatch, tmp_path):
+    """K1 (addendum A13; the re-verifier's D1). ENGINE_Y, RECIPE_G, RECIPE_BQI and the Llama sealed set's MANIFEST
+    pin are null until the lead fills each by a recorded step; every kind that needs one refuses until then. Once
+    ENGINE_Y is filled, E-capped kinds may run on Y; measured kinds only after KD9 sets Y_MEASURED. B+Qi
+    (ref_train_bqi) runs under RECIPE_BQI only: it no longer passes under the main config or G (D1)."""
+    assert R.ENGINE_Y is None and R.Y_MEASURED is False and R.ENGINES == {"X": R.ENGINE_X}
+    assert R.RECIPE_G == {"olmo2-7b": None, "llama31-8b": None} == R.RECIPE_BQI
+    assert R.PINS == {"RECIPE_S": R.RECIPE_S, "RECIPE_G": R.RECIPE_G, "RECIPE_BQI": R.RECIPE_BQI}
+    assert R.BQI_KINDS == frozenset({"ref_train_bqi"}) and R.BQI_KINDS <= set(R.E_KINDS)
+    assert R.PINNED_RECIPE_KINDS == {"retrain": "RECIPE_S", "rep_pass": "RECIPE_S", "a1_pass": "RECIPE_S",
+                                     "classifier": "RECIPE_S", "ref_train_bqi": "RECIPE_BQI"}        # PP8
+    # PP7 (D3): the Llama sealed set's pin is FILLED with the committed MANIFEST's SHA-256 (d422fca); both pins are the
+    # committed files' hashes (the files are read here: this repository root holds both sets).
+    assert R.SEALED_SETS["llama31-8b"]["sha256"] == "2a1db220cdc0cc73e0818ad0c12d1f2ce2789a465002f5efb2145aabf41f594c"
+    assert R.SEALED_SETS["olmo2-7b"]["sha256"] == "d76d8bf93bf39c246703f36a14fde3785c14b4e4728f15bf16e19fd972c279a8"
+    for family in R.FAMILIES:
+        manifest = ROOT / R.SEALED_SETS[family]["path"]
+        assert manifest.is_file(), f"{family}: the committed sealed set {R.SEALED_SETS[family]['path']} is not in this checkout"
+        assert hashlib.sha256(manifest.read_bytes()).hexdigest() == R.SEALED_SETS[family]["sha256"]   # the committed file
+        assert R.sealed_set_or_refuse(family) == R.SEALED_SETS[family]
+    # A13's pattern still holds for a null pin (test-local): the family refuses, the other family does not fall back.
+    monkeypatch.setitem(R.SEALED_SETS["llama31-8b"], "sha256", None)
+    with pytest.raises(R.Refused, match="llama31-8b sealed set's MANIFEST pin is null"):
+        R.sealed_set_or_refuse("llama31-8b")
+    assert R.sealed_set_or_refuse("olmo2-7b") == R.SEALED_SETS["olmo2-7b"]
+    for bad in ("", "AB" * 32, "ab" * 31, 7):
+        monkeypatch.setitem(R.SEALED_SETS["llama31-8b"], "sha256", bad)
+        with pytest.raises(R.Refused):
+            R.sealed_set_or_refuse("llama31-8b")
+    monkeypatch.setitem(R.SEALED_SETS["llama31-8b"], "sha256", "2a1db220cdc0cc73e0818ad0c12d1f2ce2789a465002f5efb2145aabf41f594c")
+    with pytest.raises(R.Refused):
+        R.sealed_set_or_refuse("olmo3-7b")
+    y = "34bfd288" + "0" * 56
+    docs = {}
+    for family, f in R.FAMILIES.items():
+        docs[family] = (fake_preflight_done(tmp_path, training_s=f["PRE_TRAINING_S_MAX"], ms_per_step_full=f["PRE_MS_PER_STEP_MAX"]),
+                        fake_verification(cp_training_s=f["PRE_TRAINING_S_MAX"]))
+        # D1: B+Qi passes under neither the main config nor G while RECIPE_BQI is null; the runner's gate refuses too.
+        for recipe in (R.CONFIGS[family]["main"][1], R.CONFIGS[family]["g"][1], "ab" * 32):
+            with pytest.raises(R.Refused):
+                R.check_keys(**keys_of(family, kind="ref_train_bqi", recipe_sha256=recipe))
+        with pytest.raises(R.Refused):
+            R.recipe_bqi_or_refuse(family)
+        with pytest.raises(R.Refused):
+            R.pin_or_refuse("RECIPE_BQI", family)
+        with pytest.raises(R.Refused):
+            R.pin_or_refuse("RECIPE_G", family)
+        with pytest.raises(R.Refused):
+            R.pin_or_refuse("RECIPE_X", family)
+        assert R.job_record(family, "ref_train_bqi")["unmeasured"]          # planning never refuses (M3's need)
+        with pytest.raises(R.Refused):
+            R.job_decision(family, *docs[family], R.job_record(family, "ref_train_bqi"), 20 * 3600.0, 20.0)
+        # Engine Y while its pin is null: no kind runs on it (as before: test 7).
+        for kind in ("arm", "a0_arm", "evalonly", "retrain", "anchor"):
+            assert not R.engine_allowed(kind, y) and R.engine_allowed(kind, R.ENGINE_X)
+        with pytest.raises(R.Refused):
+            R.check_keys(**keys_of(family, kind="anchor", engine_sha256=y))
+    # The pin-or-refuse form equals recipe_s_or_refuse on RECIPE_S.
+    with pytest.raises(R.Refused):
+        R.pin_or_refuse("RECIPE_S", "olmo2-7b")
+    monkeypatch.setitem(R.RECIPE_S, "olmo2-7b", "ab" * 32)
+    assert R.pin_or_refuse("RECIPE_S", "olmo2-7b") == R.recipe_s_or_refuse("olmo2-7b") == "ab" * 32
+    # RECIPE_BQI filled (test-local): B+Qi passes under that config only, on X now and on Y once ENGINE_Y is filled.
+    bqi = "cd" * 32
+    monkeypatch.setitem(R.RECIPE_BQI, "olmo2-7b", bqi)
+    assert R.recipe_bqi_or_refuse("olmo2-7b") == bqi
+    R.check_keys(**keys_of("olmo2-7b", kind="ref_train_bqi", recipe_sha256=bqi))
+    with pytest.raises(R.Refused):
+        R.check_keys(**keys_of("olmo2-7b", kind="ref_train_bqi"))                       # the main config: refused
+    with pytest.raises(R.Refused):
+        R.check_keys(**keys_of("olmo2-7b", recipe_sha256=bqi))                          # an arm under B+Qi: refused
+    assert R.job_decision("olmo2-7b", *docs["olmo2-7b"], R.job_record("olmo2-7b", "ref_train_bqi"), 20 * 3600.0, 20.0)["action"] == "run"
+    with pytest.raises(R.Refused):
+        R.recipe_bqi_or_refuse("llama31-8b")                                           # the other family stays null
+    for bad in ("", "CD" * 32, "cd" * 31, 7):
+        monkeypatch.setitem(R.RECIPE_BQI, "olmo2-7b", bad)
+        with pytest.raises(R.Refused):
+            R.recipe_bqi_or_refuse("olmo2-7b")
+    monkeypatch.setitem(R.RECIPE_BQI, "olmo2-7b", bqi)
+    # ENGINE_Y filled: the E-capped kinds run on Y; the measured kinds refuse until Y_MEASURED (KD9).
+    monkeypatch.setattr(R, "ENGINE_Y", y)
+    for kind in R.E_KINDS:
+        assert R.engine_allowed(kind, y)
+    for kind in R.MEASURED_KINDS:
+        assert not R.engine_allowed(kind, y)
+    R.check_keys(**keys_of("olmo2-7b", kind="anchor", engine_sha256=y))
+    R.check_keys(**keys_of("olmo2-7b", kind="ref_train_bqi", engine_sha256=y, recipe_sha256=bqi))
+    R.check_keys(**keys_of("olmo2-7b", kind="retrain", engine_sha256=y, recipe_sha256="ab" * 32))   # the Y retrain
+    for kind in ("arm", "a0_arm", "evalonly"):
+        with pytest.raises(R.Refused):
+            R.check_keys(**keys_of("olmo2-7b", kind=kind, engine_sha256=y))
+    with pytest.raises(R.Refused):
+        R.check_keys(**keys_of("olmo2-7b", kind="anchor", engine_sha256="34bfd289" + "0" * 56))   # a third engine
+    monkeypatch.setattr(R, "Y_MEASURED", True)
+    for kind in ("arm", "a0_arm", "evalonly"):
+        assert R.engine_allowed(kind, y)
+        R.check_keys(**keys_of("olmo2-7b", kind=kind, engine_sha256=y))
+    monkeypatch.setattr(R, "Y_MEASURED", 1)                                                # a truthy non-bool is not a pin
+    assert not R.engine_allowed("arm", y) and R.engine_allowed("anchor", y)
+    assert R.ENGINES == {"X": R.ENGINE_X}                                                   # the basis's engines stay X
 
 
 # ----------------------------------------------------------------------------------------------------- test 8
@@ -518,7 +630,14 @@ def test_08_kinds():
             with pytest.raises(R.Refused):                              # KD6: an E kind runs alone
                 R.cap_hours([job, R.job_record(family, "arm", 33)])
             assert R.cap_hours([job]) == cap
-        assert R.e_cap_hours(family, "rep_pass") == R.REP_PASS_CAP_H_MAX == 16.5
+        # PP8: a1_pass carries A1's 16.5 h cap; rep_pass (REQ-3) takes the 1B 3,600 s x 2.3 x 1.5 = 12,420 s:
+        # 48 min + 12,420 s + 30 min = 17,100 s = 4.75 h exactly.
+        assert R.e_cap_hours(family, "a1_pass") == R.A1_PASS_CAP_H_MAX == 16.5
+        assert R.e_upper_s(family, "a1_pass")["upper_s"] == 16.5 * 3600 - 48 * 60 - 1800
+        assert R.e_upper_s(family, "rep_pass")["upper_s"] == pytest.approx(12420.0)   # 1.5 x 2.3 x 3,600 (binary float)
+        assert R.e_cap_hours(family, "rep_pass") == 4.75 and R.STAGE1_1B_ESTIMATES_S["rep_pass"] == 3600.0
+        assert R.e_cap_hours(family, "rep_pass") < R.e_cap_hours(family, "a1_pass")
+        assert "REQ-3" in R.e_upper_s(family, "rep_pass")["basis"] and "A1" in R.e_upper_s(family, "a1_pass")["basis"]
         assert R.e_cap_hours(family, "retrain") == 4.5
         assert R.e_upper_s(family, "safe_lora", 3)["upper_s"] > R.e_upper_s(family, "safe_lora", 1)["upper_s"]
         assert R.e_upper_s(family, "ref_eval", 3)["upper_s"] - R.e_upper_s(family, "ref_eval", 1)["upper_s"] == pytest.approx(
@@ -532,6 +651,45 @@ def test_08_kinds():
     with pytest.raises(R.Refused):
         R.upper_m_s("olmo2-7b", 0, "arm")
     assert R.steps_of("remove") == 33 and R.steps_of("add") == 38 and R.steps_of("a0") == 38
+
+
+def test_08b_job_record_refuses_a_bad_n_points_for_every_kind():
+    """D2: RULES-78B.md says job_record refuses n_points < 1; it did so for E kinds only (through e_upper_s). Now
+    every kind refuses a non-positive or non-integer n_points at the top of job_record."""
+    for family in R.FAMILIES:
+        for kind, steps in (("arm", 33), ("a0_arm", 38), ("evalonly", None), ("anchor", None), ("ref_eval", None)):
+            assert R.job_record(family, kind, steps)["n_points"] == 1
+            for bad in (0, -1, 1.0, True, None, "1"):
+                with pytest.raises(R.Refused):
+                    R.job_record(family, kind, steps, n_points=bad)
+        assert R.job_record(family, "ref_eval", n_points=3)["n_points"] == 3
+
+
+def test_08c_block0_tables_and_jobs():
+    """K1: N's layout per family (ruling 11; Part 1 §3.1) from the kit block: R_1-R_3 at 1101-1103 on both families
+    (R_d at 1100 + d), a0 at 1103 on Llama-3.1-8B only (ruling 8); the one pod's cap equals KCR §7's (8.5 h / 12.5 h)
+    and n_pods()'s; every arm is 33 steps, a0 38."""
+    assert R.block0_runs("olmo2-7b") == [("R", 1101), ("R", 1102), ("R", 1103)]
+    assert R.block0_runs("llama31-8b") == [("R", 1101), ("R", 1102), ("R", 1103), ("a0", 1103)]
+    assert R.R_SEED_BASE == 1100 and R.BLOCK0_R_DRAWS == (1, 2, 3) and R.A0_SEED_1103 == 1103
+    pods = {p["family"]: p for p in R.n_pods()}
+    for family in R.FAMILIES:
+        jobs = R.block0_jobs(family)
+        assert [(j["kind"], j["arm"], j["seed"], j["steps"]) for j in jobs] == [
+            ("a0_arm" if a == "a0" else "arm", a, s, 38 if a == "a0" else 33) for a, s in R.block0_runs(family)]
+        assert R.cap_hours(jobs) == R.KIT[family]["block0"]["cap_hours"] == pods[family]["cap_hours"]
+        assert R.KIT[family]["block0"]["host"] == pods[family]["host"] == f"{family}-0-1"
+        assert R.arm_count(jobs) == len(jobs) <= R.MAX_ARMS_PER_POD_78B
+        assert R.KIT[family]["rec"] == R.CONFIGS[family]["main"] and R.KIT[family]["probe_key"] == family
+        assert R.KIT[family]["manifest_sha256"] == R.MANIFESTS[family]
+        assert R.KIT[family]["base_model"]["revision"] is None                   # null until the lead pins it
+        assert R.KIT[family]["volume_gb"] == R.VOLUME_GB == 50 and R.KIT[family]["max_arms_per_pod"] == R.MAX_ARMS_PER_POD_78B
+        assert R.kit_of(family) is R.KIT[family]
+    assert R.cap_hours(R.block0_jobs("olmo2-7b")) == 8.5 and R.cap_hours(R.block0_jobs("llama31-8b")) == 12.5
+    with pytest.raises(R.Refused):
+        R.block0_runs("olmo3-7b")
+    with pytest.raises(R.Refused):
+        R.kit_of("olmo2-1b")
 
 
 # ----------------------------------------------------------------------------------------------------- test 9
@@ -549,6 +707,15 @@ def test_09_cap_structure_and_copied_helpers(stage1):
     assert R.pod_sizes(20) == [4] * 5 and R.pod_sizes(14) == [4, 4, 3, 3] and R.pod_sizes(1) == [1]
     with pytest.raises(R.Refused):
         R.cap_hours(R.arm_pod(f, [33] * 5))
+    # D7: a0_arm and evalonly count toward KD2's 4 as arms do (4 arms + either refuses; 3 arms + either is fine).
+    with pytest.raises(R.Refused):
+        R.cap_hours(R.arm_pod(f, [33] * 4 + [38], ["arm"] * 4 + ["a0_arm"]))
+    with pytest.raises(R.Refused):
+        R.cap_hours(R.arm_pod(f, [33] * 4) + [R.job_record(f, "evalonly")])
+    assert R.cap_hours(R.arm_pod(f, [33] * 3 + [38], ["arm"] * 3 + ["a0_arm"])) == 10.5
+    assert R.cap_hours(R.arm_pod(f, [33] * 3) + [R.job_record(f, "evalonly")]) > 0
+    assert R.arm_count(R.arm_pod(f, [33] * 3 + [38], ["arm"] * 3 + ["a0_arm"])) == 4
+    assert R.arm_count(R.arm_pod(f, [33] * 3) + [R.job_record(f, "evalonly")]) == 4
     with pytest.raises(R.Refused):
         R.cap_hours([])
     with pytest.raises(R.Refused):
@@ -721,6 +888,19 @@ def test_12_job_runner_dry_run(tmp_path):
     assert d["action"] == "defer" and d["reason"] == "s_obs"
     d = R.job_decision(f, pre, ver, jobs[1], 50000.0, 20.0, s_obs=1.10)
     assert d["action"] == "run" and math.isclose(d["requirement_s"], 1.10 * R.upper_m_s(f, 33) + 1800)
+    # D6: the returned ``s`` is max(1, s_pod, s_obs), the factor the requirement used.
+    assert d["s"] == 1.10 and d["s_pod"] == 1.0 and d["s_obs"] == 1.10
+    d = R.job_decision(f, slow, slow_ver, jobs[0], 50000.0, 20.0, s_obs=1.05)
+    assert math.isclose(d["s"], 1.1) and math.isclose(d["s"], max(1.0, d["s_pod"], d["s_obs"]))
+    assert R.job_decision(f, pre, ver, jobs[0], 50000.0, 20.0, s_obs=0.5)["s"] == 1.0
+    # D5: the first deferral defers every later job, even one whose own requirement would fit (a 38-step arm before a
+    # 33-step arm, with a remaining time between their requirements: the 33-step arm fits alone but is deferred).
+    pair = R.arm_pod(f, [38, 33])
+    between = (R.requirement_s(f, 33) + R.requirement_s(f, 38)) / 2
+    assert R.requirement_s(f, 33) < between < R.requirement_s(f, 38)
+    assert R.job_decision(f, pre, ver, pair[1], between, 20.0)["action"] == "run"
+    run = R.pod_dry_run(f, pre, ver, pair, between, 20.0)
+    assert [(d["action"], d["reason"]) for d in run] == [("defer", "remaining"), ("defer", "earlier job deferred")]
     # Missing or bad PREFLIGHT-DONE fields refuse.
     for changes in ({"training_s": ...}, {"ms_per_step_full": ...}, {"training_s": None},
                     {"ms_per_step_full": float("nan")}, {"training_s": "1126"}, {"training_s": True},
@@ -740,11 +920,11 @@ def test_12_job_runner_dry_run(tmp_path):
     assert R.free_space_ok(49.0) and not R.free_space_ok(float("nan")) and R.VOLUME_GB == 50
     # No remaining time known: never fits (Gate B's rule).
     assert R.job_decision(f, pre, ver, jobs[0], None, 20.0)["action"] == "defer"
-    # An E kind's job carries its explicit window and no speed scaling (rep_pass needs S_78: test 7b; anchor here).
+    # An E kind's job carries its explicit window and no speed scaling (a1_pass needs S_78: test 7b; anchor here).
     anchor = R.job_record(f, "anchor")
     d = R.job_decision(f, slow, slow_ver, anchor, R.e_cap_hours(f, "anchor") * 3600 - R.POD_OVERHEAD_S, 20.0)
     assert d["action"] == "run" and d["requirement_s"] == anchor["start_requirement_s"]
-    assert R.e_cap_hours(f, "rep_pass") == 16.5
+    assert R.e_cap_hours(f, "a1_pass") == 16.5 and R.e_cap_hours(f, "rep_pass") == 4.75    # PP8
 
 
 def test_12b_job_decision_takes_the_verification_document(tmp_path):
@@ -813,7 +993,18 @@ def test_13_mutation_spec_is_well_formed():
                 "T2-m-keys-manifest-any", "T2-m-keys-bank-any", "T2-m-launch-no-finite", "T2-m-recipe-s-none-passes",
                 "T2-m-s78-kinds-empty", "T2-m-keys-s78-any-recipe", "T2-m-preflight-untuned-fallback",
                 "T2-m-verification-optional", "T2-m-derive-place-off", "T2-m-derive-create-wildcard",
-                "T2-m-derive-allcapped-35"}
+                "T2-m-derive-allcapped-35",
+                # K1: the re-verifier's D1-D7 and the addendum's A13 pins
+                "K1-m-bqi-pin-off", "K1-m-pin-none-passes", "K1-m-n-points-unchecked", "K1-m-s-obs-uncapped-counts",
+                "K1-m-derive-unit-place-loose", "K1-m-dry-run-no-cascade", "K1-m-decision-s-pod-only",
+                "K1-m-counted-drops-a0", "K1-m-engine-y-measured-any", "K1-m-engine-y-e-kinds-off",
+                "K1-m-engine-y-null-passes", "K1-m-sealed-set-null-passes", "K1-m-block0-llama-no-a0",
+                # fix-K-core: D1 (both MANIFEST forms; V-H17 re-targeted), D2 (idle storage), PP7 (the pin), PP8 (kinds)
+                "FK-m-s78-kinds-no-classifier", "FK-m-s78-kinds-no-a1-pass", "FK-m-rep-pass-takes-a1-window",
+                "FK-m-rep-pass-no-size-factor", "FK-m-a1-pass-takes-rep-pass-cap", "FK-m-scorer-kinds-no-a1-pass",
+                "FK-m-r-edits-any-family", "FK-m-r-edits-seed-unchecked", "FK-m-r-edits-duplicate-passes",
+                "FK-m-r-edits-missing-passes", "FK-m-edit-entry-any-path", "FK-m-edit-entry-role-edit-only",
+                "FK-m-llama-pin-null", "FK-m-idle-running-rate", "FK-m-idle-not-in-report", "FK-m-idle-per-pod-only"}
     assert required <= set(ids)
 
 
@@ -1025,7 +1216,10 @@ def test_15_derivation_privacy(tmp_path):
                     # in place, but a forbidden part names the kit root, the host or the unit folder
                     root / "units/family-probe-sp-x/hosts/h/finished.json", root / "k/hosts/eval/verification.json",
                     root / "k/retrieved/samples/tree/PREFLIGHT-DONE.json", tree / "round1/samples/ledger.jsonl",
-                    root / "k/retrieved/h/tree/round1/hidden/progress.jsonl"):
+                    root / "k/retrieved/h/tree/round1/hidden/progress.jsonl",
+                    # D4: the unit place needs retrieved/<host>/tree/round1/<unit>/ exactly (tree and retrieved parts)
+                    root / "k/round1/u/ledger.jsonl", root / "k/other/h/tree/round1/u/progress.jsonl",
+                    root / "k/retrieved/h/other/round1/u/ledger.jsonl", root / "k/retrieved/h/tree/other/u/ledger.jsonl"):
             with pytest.raises(D.RecordRefused):
                 D.check_path(bad)
             with pytest.raises(D.RecordRefused):
@@ -1059,6 +1253,213 @@ def test_15b_derivation_on_the_measured_root_opens_allow_listed_names_only():
         assert p.name in D.ALLOWED_NAMES, p
         assert not any(part in D.FORBIDDEN_PARTS for part in p.parts), p
     D.check_strings(basis)
+
+
+# ----------------------------------------------------------------------- the fix round (fix-K-core): D1, D2, PP7, PP8
+LLAMA_PIN = "2a1db220cdc0cc73e0818ad0c12d1f2ce2789a465002f5efb2145aabf41f594c"
+GATEB_PIN = "d76d8bf93bf39c246703f36a14fde3785c14b4e4728f15bf16e19fd972c279a8"
+# N's three R edits in each committed set (M: shasum -a 256 of the files, 5 Nov 2026; the MANIFEST's arm strings).
+REAL_R_EDITS = {
+    "llama31-8b": {1: "5cdedf22c1002ef1c6d0322d44c253ef57580ddb1dda85e8119a8b3842dc29b4",
+                   2: "8f9f3cd5027d9268b28e3cf4189987a820b26a6d6d77fbe83ea0ad145944bb95",
+                   3: "edbc111b2ff3a446ae195a79f0e5965c9a82fa744266d57c9c15e4c4c775dd2e"},
+    "olmo2-7b": {1: "f7d7eb86cb58f7a5e7e1408973a13531f74845e066d7328d6e726ecdd442ffdd",
+                 2: "913b73606ff64c104751e3f86bd3b69838a27686720a92858c08f4cf087d8060",
+                 3: "cd8d3328c48957ed0a164a8775ca2695a3d77d51865fd32c2ee53aded939502b"},
+}
+
+
+def gateb_form(r_draws=(1, 2, 3), m_draws=(1, 2), units=2) -> dict:
+    """A synthetic MANIFEST in Gate B's form: role "edit" on every edit; R_d by draw; M-family edits with draws 1-2 of
+    their own (the trap D1 and V-H17 name); unit edits without a draw; two non-edit entries outside edits/."""
+    files = [{"role": "edit", "family": "R", "draw": d, "arm": f"edit-{('%02x' % d) * 32}", "path": f"edits/R_d{d}.json",
+              "sha256": ("%02x" % d) * 32, "bytes": 19410} for d in r_draws]
+    for u in range(units):
+        files.append({"role": "edit", "family": "unit", "unit": f"g-{u:016x}", "category": "open_qa",
+                      "arm": f"edit-{('a%d' % u) * 32}", "path": f"edits/unit_g-{u:016x}.json", "sha256": ("a%d" % u) * 32,
+                      "bytes": 17980})
+        for d in m_draws:
+            files.append({"role": "edit", "family": "M", "draw": d, "unit": f"g-{u:016x}", "category": "open_qa",
+                          "arm": f"edit-{('b%d' % (u * 2 + d)) * 32}", "path": f"edits/M_g-{u:016x}_d{d}.json",
+                          "sha256": ("b%d" % (u * 2 + d)) * 32, "bytes": 20176})
+    files += [{"role": "counts", "path": "unit_table.json", "sha256": "c" * 64, "bytes": 10},
+              {"role": "gate-c sample", "path": "gate_c_sample.json", "sha256": "d" * 64, "bytes": 10, "rows": 3}]
+    return {"kind": "gate-b sealed files manifest (synthetic)", "version": 1, "files": files}
+
+
+def llama_form(r_draws=range(1, 17), units=2, seed_offset=1100) -> dict:
+    """A synthetic MANIFEST in the committed Llama set's form: descriptive role strings (never "edit"), a seed on each R
+    entry, same_rows_as, unit entries at role "unit removal", a top-level roles map."""
+    role = {d: ("block 0 (N): R_1-R_3 at 1101-1103 (P78 section 3; ruling 11, N's layout)" if d <= 3
+                else "block A: R_4, R_5 at 1104-1105 (the readiness plan T4 step 3)" if d <= 5 else "later blocks")
+            for d in r_draws}
+    files = [{"role": role[d], "family": "R", "draw": d, "seed": seed_offset + d, "arm": f"edit-{('%02x' % d) * 32}",
+              "path": f"edits/R_d{d}.json", "sha256": ("%02x" % d) * 32, "bytes": 19400, "rows": 600,
+              "same_rows_as": {"file": None, "note": "synthetic"}} for d in r_draws]
+    files += [{"role": "unit removal", "family": "unit", "unit": f"g-{u:016x}", "category": "open_qa",
+               "arm": f"edit-{('a%d' % u) * 32}", "path": f"edits/unit_g-{u:016x}.json", "sha256": ("a%d" % u) * 32,
+               "bytes": 17980, "rows": 300, "same_rows_as": {"file": None}} for u in range(units)]
+    return {"kind": "scale-78b sealed llama3 files manifest (synthetic)", "version": 1, "files": files,
+            "roles": {str(d): role[d] for d in r_draws}}
+
+
+def test_17_pp8_the_s78_kinds_and_their_caps(tmp_path):
+    """PP8 (PP3, PP4): S78_KINDS = {retrain, rep_pass, a1_pass, classifier}; each refuses at the runner's gate and the
+    pod's key check while RECIPE_S is null and runs under S_78 only once filled; a1_pass carries A1's 16.5 h cap at
+    most, rep_pass its own E cap (the 1B 1 h estimate x 2.3 x 1.5 = 4.75 h); the scorer table and the labels name both."""
+    assert R.S78_KINDS == frozenset({"retrain", "rep_pass", "a1_pass", "classifier"})
+    assert "a1_pass" in R.E_KINDS and "rep_pass" in R.E_KINDS and "a1_pass" not in R.MEASURED_KINDS
+    assert R.SCORER_KINDS == ("untuned_answers", "o_only", "anchor", "rep_pass", "a1_pass", "l1_scan", "classifier", "c0")
+    assert set(R.S78_KINDS) - {"retrain"} <= set(R.SCORER_KINDS)
+    assert set(R.KIND_LABELS) >= set(R.SCORER_KINDS) | {"retrain"}
+    assert "REQ-3" in R.KIND_LABELS["rep_pass"] and "A1" in R.KIND_LABELS["a1_pass"] and "16.5 h" in R.KIND_LABELS["a1_pass"]
+    for label in R.KIND_LABELS.values():
+        assert label and len(label) < 160
+    for family, f in R.FAMILIES.items():
+        pre = fake_preflight_done(tmp_path, training_s=f["PRE_TRAINING_S_MAX"], ms_per_step_full=f["PRE_MS_PER_STEP_MAX"])
+        ver = fake_verification(cp_training_s=f["PRE_TRAINING_S_MAX"])
+        assert R.e_cap_hours(family, "a1_pass") == 16.5 and R.e_cap_hours(family, "rep_pass") == 4.75
+        assert R.e_cap_hours(family, "classifier") == 3.25
+        for kind in ("rep_pass", "a1_pass", "classifier"):
+            job = R.job_record(family, kind)
+            assert job["unmeasured"] and job["counted"] == 0
+            assert R.e_pod(family, kind)["cap_hours"] == R.e_cap_hours(family, kind)       # priced before S_78 (M3)
+            with pytest.raises(R.Refused, match="recipe S_78"):
+                R.job_decision(family, pre, ver, job, 20 * 3600.0, 20.0)
+            with pytest.raises(R.Refused):                                                 # the main config: not S_78
+                R.check_keys(**keys_of(family, kind=kind))
+            with pytest.raises(R.Refused):
+                R.check_keys(**keys_of(family, kind=kind, recipe_sha256=R.CONFIGS[family]["g"][1]))
+        for kind in ("l1_scan", "anchor", "untuned_answers", "o_only", "c0"):               # engine X, the main recipe
+            assert R.job_decision(family, pre, ver, R.job_record(family, kind), 20 * 3600.0, 20.0)["action"] == "run"
+            R.check_keys(**keys_of(family, kind=kind))
+    report = R.block0_report()
+    for family in R.FAMILIES:
+        pods = report["scorer_pods"][family]
+        assert set(pods) == set(R.SCORER_KINDS)
+        assert pods["a1_pass"]["cap_hours"] == 16.5 and pods["a1_pass"]["need_usd_alone"] == 45.66
+        assert pods["rep_pass"]["cap_hours"] == 4.75 and pods["rep_pass"]["need_usd_alone"] == 18.49
+        assert pods["rep_pass"]["guard_usd"] == 14.79                                       # $6 + 4.75 x $1.85
+    assert R.main(["e-caps"]) == 0
+
+
+def test_17b_pp8_the_s78_kinds_run_under_s78_once_filled(monkeypatch, tmp_path):
+    f = "olmo2-7b"
+    c = R.FAMILIES[f]
+    pre = fake_preflight_done(tmp_path, training_s=c["PRE_TRAINING_S_MAX"], ms_per_step_full=c["PRE_MS_PER_STEP_MAX"])
+    ver = fake_verification(cp_training_s=c["PRE_TRAINING_S_MAX"])
+    s78 = "ef" * 32
+    monkeypatch.setitem(R.RECIPE_S, f, s78)
+    for kind in R.S78_KINDS:
+        R.check_keys(**keys_of(f, kind=kind, recipe_sha256=s78))
+        with pytest.raises(R.Refused):
+            R.check_keys(**keys_of(f, kind=kind))
+        d = R.job_decision(f, pre, ver, R.job_record(f, kind), 20 * 3600.0, 20.0)
+        assert d["action"] == "run" and d["requirement_s"] == R.job_record(f, kind)["start_requirement_s"]
+    with pytest.raises(R.Refused):                                                         # the other family stays null
+        R.job_decision("llama31-8b", pre, ver, R.job_record("llama31-8b", "classifier"), 20 * 3600.0, 20.0)
+    with pytest.raises(R.Refused):                                                         # l1_scan never runs under S_78
+        R.check_keys(**keys_of(f, kind="l1_scan", recipe_sha256=s78))
+
+
+def test_18_d1_the_sealed_edit_entries_in_both_committed_forms():
+    """D1: block0_r_edits reads N's R edits from a MANIFEST in Gate B's form (role "edit"; M-family edits with draws
+    1-2 of their own) and in the committed Llama set's form (descriptive roles, a seed per R entry); an entry is R_d by
+    family "R" AND draw d, never by draw alone; a wrong seed, a duplicate draw or a missing draw refuses; the two
+    non-edit entries and paths outside edits/ never count."""
+    for man in (gateb_form(), llama_form()):
+        out = R.block0_r_edits(man)
+        assert sorted(out) == [1, 2, 3]
+        for d, e in out.items():
+            assert e == {"draw": d, "seed": 1100 + d, "arm": f"edit-{('%02x' % d) * 32}", "path": f"edits/R_d{d}.json",
+                         "sha256": ("%02x" % d) * 32}
+        edits = [e for e in man["files"] if R.sealed_edit_entry(e)]
+        assert all(e["path"].startswith("edits/") for e in edits)
+        assert {e["family"] for e in edits} <= {"R", "M", "unit"}
+        assert not any(R.sealed_edit_entry(e) for e in man["files"] if e.get("path") in ("unit_table.json", "gate_c_sample.json"))
+    gb = gateb_form()
+    assert sum(1 for e in gb["files"] if R.sealed_edit_entry(e)) == 3 + 2 + 4           # R, unit, M (2 units x 2 draws)
+    assert sum(1 for e in gb["files"] if R.sealed_edit_entry(e) and e["family"] == "M" and e["draw"] == 1) == 2
+    assert sum(1 for e in llama_form()["files"] if R.sealed_edit_entry(e)) == 16 + 2
+    # by draw alone, Gate B's form would hold three entries for draw 1 (R_d1 and two M edits): block0_r_edits must not
+    assert len([e for e in gb["files"] if e.get("draw") == 1]) == 3
+    assert R.block0_r_edits(gb)[1]["path"] == "edits/R_d1.json"
+    # the Llama form's seed must be 1100 + d
+    bad = llama_form()
+    bad["files"][0]["seed"] = 1102
+    with pytest.raises(R.Refused, match="seed 1102, not 1101"):
+        R.block0_r_edits(bad)
+    # a duplicate draw refuses (an extra R_d1 at another path)
+    dup = gateb_form()
+    dup["files"].append({**dup["files"][0], "path": "edits/R_d1_again.json", "sha256": "e" * 64})
+    with pytest.raises(R.Refused, match="two R_d1"):
+        R.block0_r_edits(dup)
+    # a stray entry at an R draw outside edits/ (a sample file) is not an edit entry and does not duplicate R_d1
+    stray = gateb_form()
+    stray["files"].append({"role": "sample", "family": "R", "draw": 1, "arm": "edit-" + "f" * 64, "path": "samples/R_d1.json",
+                           "sha256": "f" * 64})
+    assert R.block0_r_edits(stray)[1]["sha256"] == "01" * 32
+    # a missing draw refuses, with the draws named
+    with pytest.raises(R.Refused, match=r"no R edit for draw\(s\) \[3\]"):
+        R.block0_r_edits(gateb_form(r_draws=(1, 2)))
+    with pytest.raises(R.Refused, match=r"no R edit for draw\(s\) \[2, 3\]"):
+        R.block0_r_edits(llama_form(r_draws=(1, 4, 5)))
+    with pytest.raises(R.Refused):
+        R.block0_r_edits({"files": "none"})
+    # entries without a family, a non-hex sha256, a bool draw or an empty role are never edit entries
+    for e in ({"role": "edit", "draw": 1, "arm": "edit-x", "path": "edits/R_d1.json", "sha256": "01" * 32},
+              {"role": "edit", "family": "R", "draw": 1, "arm": "edit-x", "path": "edits/R_d1.json", "sha256": "0g" * 32},
+              {"role": "", "family": "R", "draw": 1, "arm": "edit-x", "path": "edits/R_d1.json", "sha256": "01" * 32},
+              {"role": "edit", "family": "R", "draw": 1, "arm": "", "path": "edits/R_d1.json", "sha256": "01" * 32},
+              {"role": "edit", "family": "R", "draw": 1, "arm": "edit-x", "path": "edits/../R_d1.json", "sha256": "01" * 32},
+              "edits/R_d1.json", None):
+        assert not R.sealed_edit_entry(e)
+    one = {"files": [{"role": "edit", "family": "R", "draw": True, "arm": "edit-x", "path": "edits/R_d1.json", "sha256": "01" * 32}]}
+    with pytest.raises(R.Refused, match="no R edit"):
+        R.block0_r_edits(one, (1,))
+
+
+def test_18b_d1_the_committed_sets_by_pin():
+    """The real-set test (D1): each family's committed MANIFEST hashes to its pin, and block 0's R_d1-R_d3 resolve to
+    the committed edit files by arm, seed and SHA-256 (the files are hashed; no row is read)."""
+    for family, pin in (("llama31-8b", LLAMA_PIN), ("olmo2-7b", GATEB_PIN)):
+        path = ROOT / R.SEALED_SETS[family]["path"]
+        assert path.is_file(), f"{family}: {R.SEALED_SETS[family]['path']} is not in this checkout (d422fca for Llama)"
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == pin == R.SEALED_SETS[family]["sha256"]
+        man = json.loads(path.read_text(encoding="utf-8"))
+        out = R.block0_r_edits(man)
+        assert {d: e["sha256"] for d, e in out.items()} == REAL_R_EDITS[family]
+        assert {d: e["seed"] for d, e in out.items()} == {1: 1101, 2: 1102, 3: 1103}
+        for d, e in out.items():
+            assert e["arm"] == f"edit-{REAL_R_EDITS[family][d]}" and e["path"] == f"edits/R_d{d}.json"
+            edit = path.parent / e["path"]
+            assert hashlib.sha256(edit.read_bytes()).hexdigest() == e["sha256"]
+            doc = json.loads(edit.read_text(encoding="utf-8"))                     # one key read: the prepared set
+            assert doc.get("manifest_sha256") == R.MANIFESTS[family]
+    llama = json.loads((ROOT / R.SEALED_SETS["llama31-8b"]["path"]).read_text(encoding="utf-8"))
+    assert not any(e.get("role") == "edit" for e in llama["files"])                  # the form D1 describes
+    assert llama["roles"]["1"].startswith("block 0 (N): R_1-R_3 at 1101-1103")
+    gateb = json.loads((ROOT / R.SEALED_SETS["olmo2-7b"]["path"]).read_text(encoding="utf-8"))
+    assert sum(1 for e in gateb["files"] if e.get("family") == "M" and e.get("draw") in (1, 2)) == 16   # the M trap
+
+
+def test_19_d2_the_idle_storage_line():
+    """D2 (KD5; Part 1 §12; KCR:161): about $0.33 per day per stopped 50 GB pod that keeps its states, at $0.20 per GB
+    per month; N's two pods $0.67 per day, $20 per month; in block0_report."""
+    one = R.idle_storage(1)
+    assert one["usd_per_pod_day"] == 0.33 == R.cents(50 * 0.20 / 30) and one["usd_per_day"] == 0.33
+    assert one["usd_per_month"] == 10.0 and one["volume_gb"] == 50 and one["usd_per_gb_month"] == 0.20
+    two = R.idle_storage(2)
+    assert two["usd_per_day"] == 0.67 and two["usd_per_month"] == 20.0 and two["n_pods_kept"] == 2
+    assert R.idle_storage(10)["usd_per_month"] == 100.0                               # KCR:161's "10 such pods, about $100"
+    assert R.idle_storage(0)["usd_per_day"] == 0.0
+    assert two["basis"].startswith("E:") and "KCR:161" in two["basis"] and "counted in no guard" in two["basis"]
+    for bad in (-1, 1.5, True, None):
+        with pytest.raises(R.Refused):
+            R.idle_storage(bad)
+    report = R.block0_report()
+    assert report["idle_storage"] == two
+    assert R.IDLE_STORAGE_USD_PER_GB_MONTH == 0.20 and R.IDLE_DAYS_PER_MONTH == 30 and R.VOLUME_GB == 50
 
 
 # ------------------------------------------------------------------------------------------ last: no bytecode

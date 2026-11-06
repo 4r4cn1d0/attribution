@@ -41,10 +41,12 @@ basis records (BANK: cap 2,048 tokens, 468 greedy prompts, 600 harm samples, bat
 
 Recipe S_78 (the lead's addendum A1): RECIPE_S pins each family's S_78 config_sha256 and is None until the family's
 anchor job has run and scripts/scale78b/make_recipe_s78.py has written the config. recipe_s_or_refuse(family) raises
-Refused while the pin is None; the kinds that need S_78 (S78_KINDS: the a0-1101 ``retrain``, A1's ``rep_pass``)
+Refused while the pin is None; the kinds that need S_78 (S78_KINDS, the lead's PP3, PP4 and PP8: the a0-1101
+``retrain``, REQ-3's representation pass ``rep_pass``, A1's attributes pass ``a1_pass`` and the ``classifier``)
 refuse through it at the runner's gate (job_decision) and at the pod's key check (check_keys). Planning (job_record,
 e_pod, cap_hours, block0_report) never refuses on it, so the retrain and A1 pods' money is printed before S_78 exists
-(the check's M3).
+(the check's M3). ``a1_pass`` carries A1's cap (16.5 h at most, KD6); ``rep_pass`` has its own E cap (the stage-1
+kit's 1 h estimate at 1B, DIAG_ESTIMATE_S, scaled with the scorer-kind factor, until measured; PP8).
 
 The job runner's two documents: ``job_decision(family, preflight_done, verification, job, remaining_s, free_gb, s_obs)``
 reads training_s and ms_per_step_full from PREFLIGHT-DONE.json and untuned_projected_s from the preflight's
@@ -133,8 +135,104 @@ RECIPE_ALLOW = {family: (c["main"][1], c["g"][1]) for family, c in CONFIGS.items
 # the pin with that config's config_sha256 (the engine's canonical hash) by a recorded step. Until then every kind in
 # S78_KINDS refuses through recipe_s_or_refuse(); nothing here writes or reads a config file.
 RECIPE_S: dict[str, str | None] = {"olmo2-7b": None, "llama31-8b": None}
-S78_KINDS = frozenset({"retrain", "rep_pass"})   # the a0-1101 retrain (ruling 10, A2) and A1's attributes pass (A1)
+# PP8 (PP3, PP4): the kinds that run under recipe S_78: the a0-1101 retrain (ruling 10, A2), REQ-3's representation pass
+# rep_pass (scripts/stage1/representation_pass.py; the stage-1 kit's name), A1's attributes pass a1_pass (the engine's
+# attributes job on the retrain's q and e1 states) and the classifier (under S_78, as at 1B; PP4).
+S78_KINDS = frozenset({"retrain", "rep_pass", "a1_pass", "classifier"})
 CONFIG_SHA256 = re.compile(r"^[0-9a-f]{64}$")
+
+# ===== the kit's per-family constants block (K1; plan T4 step 1; rulings 7, 8, 11; the addendum's A1, A13) =====
+# Every pin below that is None is "null until filled by a recorded lead step" (addendum A13's pattern, A1's form): the
+# kinds that need it refuse through pin_or_refuse / recipe_s_or_refuse until then. Nothing here reads a config file, a
+# manifest or a unit record; the kit (stage1_rules.py, plan_tool.py, pack_setup.py) reads them against these pins.
+ENGINE_Y: str | None = None               # A13: the lead fills it when the Y retrain is packed (a recorded step); then
+#                                           kinds with an explicit E cap (E_KINDS: the retrain, KD6) may run on Y
+Y_MEASURED = False                        # A13, KD9: measured kinds (arm, a0_arm, evalonly) run on Y only after the
+#                                           re-measure on the first Y pod re-pins the basis (a second recorded step)
+RECIPE_G: dict[str, str | None] = {"olmo2-7b": None, "llama31-8b": None}     # the recipe-G reference's config_sha256
+#                                           (references come before block A; the measured G configs stay in CONFIGS)
+RECIPE_BQI: dict[str, str | None] = {"olmo2-7b": None, "llama31-8b": None}   # B+Qi's config_sha256 (engine Y; the
+#                                           re-verifier's D1: KCR:128 "B+Qi refused until measured")
+BQI_KINDS = frozenset({"ref_train_bqi"})  # the kinds that run under RECIPE_BQI only (A1's pattern, as S78_KINDS)
+PINS: dict[str, dict] = {"RECIPE_S": RECIPE_S, "RECIPE_G": RECIPE_G, "RECIPE_BQI": RECIPE_BQI}   # name -> per family
+PINNED_RECIPE_KINDS = {**{k: "RECIPE_S" for k in S78_KINDS}, **{k: "RECIPE_BQI" for k in BQI_KINDS}}
+# The sealed edit sets, one per family (ruling 14; addendum A3): the R_d edit files by draw, listed in the set's
+# MANIFEST.json {"files": [entry, ...]}. The two committed sets have two forms (the lead's PP7; the core verifier's D1),
+# and the kit reads both through sealed_edit_entry / block0_r_edits below:
+#   Gate B's form (OLMo-2-7B; .ai/inputs/gate-b-sealed-20261008): {"role": "edit", "family": "R" | "M" | "unit",
+#     "draw" (R and M), "arm": "edit-<sha>", "path": "edits/...json", "sha256", "bytes", ...}; the M-family edits carry
+#     draws 1-2 of their own, so an edit is R_d only by family AND draw; two non-edit entries (roles "counts",
+#     "gate-c sample") have paths outside edits/.
+#   The Llama-3.1-8B set's form (.ai/inputs/scale-78b-sealed-llama3-20261105, committed at d422fca): "role" is a
+#     descriptive string ("block 0 (N): R_1-R_3 at 1101-1103 ...", "unit removal", ...), never "edit"; "family" "R" or
+#     "unit"; "draw" and "seed" (1100 + d) on the R entries; "arm", "path" "edits/R_d<d>.json", "sha256", "bytes",
+#     "rows", "same_rows_as"; a top-level "roles" map draw -> role string.
+# OLMo-2-7B's R_d1-R_d3 are Gate B's sealed edits on the same prepared set (Part 1 §3.1; the manifest's SHA-256
+# measured from the committed file, M: shasum -a 256, 5 Nov 2026; it equals the stage-1 kit's MAN_SHA256, R:
+# stage1_rules.py:472). The Llama-3.1-8B pin is the committed MANIFEST's SHA-256 (M: shasum -a 256 of the file at
+# d422fca, 5 Nov 2026; FOCUS "THE 7-8B SEALED SETS ... ARE MERGED"), filled by the lead's recorded step PP7.
+SEALED_SETS: dict[str, dict] = {
+    "olmo2-7b": {"path": ".ai/inputs/gate-b-sealed-20261008/out/MANIFEST.json",
+                 "sha256": "d76d8bf93bf39c246703f36a14fde3785c14b4e4728f15bf16e19fd972c279a8"},
+    "llama31-8b": {"path": ".ai/inputs/scale-78b-sealed-llama3-20261105/out/MANIFEST.json",
+                   "sha256": "2a1db220cdc0cc73e0818ad0c12d1f2ce2789a465002f5efb2145aabf41f594c"},
+}
+EDIT_FAMILIES = ("R", "M", "unit")        # the edit families the two sealed forms list (Gate B: R, M, unit; Llama: R, unit)
+EDIT_PATH_RE = re.compile(r"^edits/[A-Za-z0-9_.-]+\.json$")   # every sealed edit file lives under the set's out/edits/
+R_SEED_BASE = 1100                        # R_d runs at seed 1100 + d (PR4:124; Part 1 §3.1)
+BLOCK0_R_DRAWS = (1, 2, 3)                # N's R arms: R_1-R_3 (ruling 11)
+A0_SEED_1103 = 1103                       # ruling 8: Llama-3.1-8B's a0 at 1103 runs in N ("the rung stays")
+# The kit block per family. "rec" is the family's MAIN config (path, config_sha256): every arm runs under it, never
+# under a recipe-S sibling (P78:99). "fixture" is the a0-1101 side unit's preflight verification.json (numbers only:
+# its cap_projection, recipe_sha256, manifest_sha256, training_identity; M: shasum -a 256 of the file under the main
+# checkout's tmp/, 5 Nov 2026), the pod-side typical case the plan records; caps never read it (KD1). "a0_units" are
+# P78 §2.1's seven engine-X side units (ruling 7), each by its COMPLETE.json SHA-256 (M: shasum -a 256, 5 Nov 2026;
+# the first 16 hex equal P78:48-57's); "training_identity" is each family's (P78 §2.3 condition 2; M: the fixture's
+# field). "base_model" is null until the lead pins the base repository's commit and files (no Safe LoRA before
+# block A); "instruct_model" repeats probes.py's policy row (a test holds them equal; this module imports stdlib only).
+KIT: dict[str, dict] = {
+    "olmo2-7b": {
+        "model": "OLMo-2-7B", "probe_key": "olmo2-7b", "rec": CONFIGS["olmo2-7b"]["main"],
+        "prepared_name": "prepared-kt-dolly-olmo2", "manifest_sha256": MANIFESTS["olmo2-7b"],
+        "training_identity": "36738c3823fae7eaca625cc9f619e98c7e40b9bb64e5d0e234412827d3371ec6",
+        "fixture": {"path": "tmp/family-probe-sp-olmo2-7b-b-a0/hosts/sp-olmo2-7b-b2-1101/verification.json",
+                    "sha256": "79b8a03e43fee378651445e0906903f87699e2fa692066a654f657331e5a1a5c"},
+        "a0_units": {
+            "untuned": {"path": "tmp/family-probe-sp-olmo2-7b-b-a0/retrieved/sp-olmo2-7b-b2-1101/tree/round1/1101-a0-init-a1",
+                        "complete_sha256": "632fa4bd0a8f3b1b9e89670ce3fb0fd8c6fdb77432a458cd9edc213156e614c9"},
+            1101: {"path": "tmp/family-probe-sp-olmo2-7b-b-a0/retrieved/sp-olmo2-7b-b2-1101/tree/round1/1101-a0-e1-a1",
+                   "complete_sha256": "4a6d9ebc6636de57d52ec1b9cc1cd82afb1bdbfbf2a70e3f9884d3e9404d6dfc"},
+            1102: {"path": "tmp/family-probe-sp-olmo2-7b-b-seed1102/retrieved/sp-olmo2-7b-1102/tree/round1/1102-a0-e1-a1",
+                   "complete_sha256": "43e8412dc7ef8d3eb017340a788e08041623bce8b3896a750d6cc50e10e282c4"},
+            1103: {"path": "tmp/family-probe-sp-olmo2-7b-b-seed1103/retrieved/sp-olmo2-7b-1103/tree/round1/1103-a0-e1-a1",
+                   "complete_sha256": "4b5bd06dede08dc14f3ab5de201b7618ada94a0515896ed23c04b3af7ca44fa0"}},
+        "instruct_model": {"repo_id": "allenai/OLMo-2-1124-7B-Instruct",
+                           "revision": "470b1fba1ae01581f270116362ee4aa1b97f4c84", "gated": False},
+        "base_model": {"repo_id": "allenai/OLMo-2-1124-7B", "revision": None, "gated": False},
+        "volume_gb": 50, "max_arms_per_pod": MAX_ARMS_PER_POD_78B,      # 50 = VOLUME_GB (KD5; defined below; test 8c)
+        "block0": {"host": "olmo2-7b-0-1", "runs": (("R", 1101), ("R", 1102), ("R", 1103)), "cap_hours": 8.5},
+    },
+    "llama31-8b": {
+        "model": "Llama-3.1-8B", "probe_key": "llama31-8b", "rec": CONFIGS["llama31-8b"]["main"],
+        "prepared_name": "prepared-kt-dolly-llama3", "manifest_sha256": MANIFESTS["llama31-8b"],
+        "training_identity": "5b4451e1487fb2200a5b2b151de2e68397117099a429654484146b3cc3791287",
+        "fixture": {"path": "tmp/family-probe-sp-llama31-8b-b5e5-1101/hosts/sp-llama31-8b-b5e5-1101/verification.json",
+                    "sha256": "3e5f7485f7c6c26ff6eee675e6c94aebc42a9711256b710dff8914add4836b7c"},
+        "a0_units": {
+            "untuned": {"path": "tmp/family-probe-sp-llama31-8b-b-a0/retrieved/sp-llama31-8b-1101/tree/round1/1101-a0-init-a1",
+                        "complete_sha256": "651f7f6de6721b414aebff7fee831e763e2d6f247f48f397ff550fc5353e4afa"},
+            1101: {"path": "tmp/family-probe-sp-llama31-8b-b5e5-1101/retrieved/sp-llama31-8b-b5e5-1101/tree/round1/1101-a0-e1-a1",
+                   "complete_sha256": "21427715565fb394220a068c8991b8f6819c4773ccf82b0cd7c35fe3788bc22a"},
+            1102: {"path": "tmp/family-probe-sp-llama31-8b-b5e5-seed1102/retrieved/sp-llama31-8b-b5e5-1102/tree/round1/1102-a0-e1-a1",
+                   "complete_sha256": "b0c99f7b97e6e76355383644ee50f9cbef33c25e09585a9a0d030712d4aa75d9"}},
+        "instruct_model": {"repo_id": "meta-llama/Llama-3.1-8B-Instruct",
+                           "revision": "0e9e39f249a16976918f6564b8830bc894c89659", "gated": True},
+        "base_model": {"repo_id": "meta-llama/Llama-3.1-8B", "revision": None, "gated": True},
+        "volume_gb": 50, "max_arms_per_pod": MAX_ARMS_PER_POD_78B,      # 50 = VOLUME_GB (KD5; defined below; test 8c)
+        "block0": {"host": "llama31-8b-0-1", "runs": (("R", 1101), ("R", 1102), ("R", 1103), ("a0", A0_SEED_1103)),
+                   "cap_hours": 12.5},
+    },
+}
 
 # ===== the kit's layout rules =====
 WORKING_COPY_PREFIX = "family-probe-s78-"      # KD7: tmp/family-probe-s78-<family>-<block>/ (the stage-1 kit's
@@ -142,6 +240,8 @@ WORKING_COPY_PREFIX = "family-probe-s78-"      # KD7: tmp/family-probe-s78-<fami
 LOCK_NAME = "family-probe-budget.lock"         # the one lock beside the kits (R: runkit/stage1-olmo/budget.py:26)
 STAGE1_BUDGET = "runkit/stage1-olmo/budget.py"  # read by test 11; never edited
 VOLUME_GB = 50                                 # KD5 (E: four arms' states, about 5.8 GB each, on one volume)
+IDLE_STORAGE_USD_PER_GB_MONTH = 0.20           # R: KCR:161 (RunPod's stopped-pod volume rate, read 16 Oct 2026)
+IDLE_DAYS_PER_MONTH = 30                       # KCR:161's arithmetic: 50 GB x $0.20 / 30 = about $0.33 per day (E)
 CONTAINER_DISK_GB = 60                         # M: every measured pod (create-intent.json containerDiskInGb)
 STATE_GB_PER_ARM = 5.8                         # E: three states (init, q, e1) x about 1.9 GB (KCR §6)
 FREE_SPACE_MIN_GB = 8.0                        # KD5 (E): one arm's states x 1.15 plus about 1.3 GB of records and logs
@@ -208,13 +308,26 @@ REF_FORWARD_SHARE = 0.5                   # R: stage1_rules.py REF_FORWARD_SHARE
 Y_ENGINE_FACTOR = 2.0                     # E: engine Y has no 7-8B timing; its training term is doubled until KD9
 STAGE1_1B_ESTIMATES_S = {"rep_pass": 3600.0, "untuned_answers": 7560.0, "l1_scan": 3600.0, "classifier": 2012.0,
                          "c0": 2400.0, "anchor": 900.0, "safe_lora_hash": 600.0, "safe_lora_transform": 88.02}
-#                                           R: stage1_rules.py DIAG_ESTIMATE_S, C0_S, ANCHOR_UPPER_S, SAFE_LORA_*
-REP_PASS_CAP_H_MAX = 16.5                 # KD6: A1's pass at RP:43's 6-11 h is a 16.5 h cap at most
+#                                           R: runkit/stage1-olmo/stage1_rules.py:87 DIAG_ESTIMATE_S (rep_pass 3,600 s,
+#                                           the 1 h estimate at 1B), C0_S, ANCHOR_UPPER_S, SAFE_LORA_*
+A1_PASS_CAP_H_MAX = 16.5                  # KD6, PP8: A1's attributes pass (a1_pass) at RP:43's 6-11 h is a 16.5 h cap at most
 S_POOL_CHUNKS = 16                        # R: PR4 S4 row via ruling 12: 512 prompts in 32-prompt chunks
 O_EXT_PROMPTS = 600                       # R: stage1_rules.py O_ONLY_FACTOR: the 500-prompt bank plus the dev 100
-E_KINDS = ("untuned_answers", "regenerate", "o_only", "o_only_with_regenerate", "anchor", "rep_pass", "l1_scan",
-           "classifier", "c0", "retrain", "ref_train_bqi", "safe_lora", "ref_eval")
+E_KINDS = ("untuned_answers", "regenerate", "o_only", "o_only_with_regenerate", "anchor", "rep_pass", "a1_pass",
+           "l1_scan", "classifier", "c0", "retrain", "ref_train_bqi", "safe_lora", "ref_eval")
 KINDS = MEASURED_KINDS + E_KINDS
+# The need printout's labels (PP3, PP8; the check's M3): what each S_78 or scorer kind is, in the kit's own words.
+KIND_LABELS = {
+    "rep_pass": "REQ-3's representation pass, scripts/stage1/representation_pass.py; recipe S_78 (PP3, PP4, PP8)",
+    "a1_pass": "A1's attributes pass on the a0-1101 retrain's q and e1 states; recipe S_78; A1's 16.5 h cap at most (PP3, PP8, KD6)",
+    "classifier": "the classifier under recipe S_78, as at 1B (PP4, PP8)",
+    "retrain": "the a0-1101 retrain, engine Y, recipe S_78 after the anchor job (ruling 10, addendum A2, A8)",
+    "untuned_answers": "the untuned-answers pass under the main recipe (PP1, PP2)",
+    "o_only": "the O-ext pass at one state (the check's M1)",
+    "anchor": "the anchor job before S_78 (addendum A1, A2)",
+    "l1_scan": "the L1 scan (engine X; PP4)",
+    "c0": "c0 on an engine-X unit (B17's X-pin check)",
+}
 COUNTED_KINDS = frozenset({"arm", "a0_arm", "evalonly", "c0", "retrain", "ref_train_bqi", "regenerate"})
 #                                           counted toward MAX_ARMS_PER_POD_78B (the E kinds run alone anyway)
 
@@ -322,6 +435,137 @@ def recipe_s_or_refuse(family: str) -> str:
     return value
 
 
+def kit_of(family: str) -> dict:
+    """The family's kit block (KIT), or Refused for an unknown family."""
+    family_of(family)
+    return KIT[family]
+
+
+def pin_or_refuse(pin: str, family: str) -> str:
+    """Addendum A13's pattern for every per-family recipe pin (PINS: RECIPE_S, RECIPE_G, RECIPE_BQI): the family's
+    config_sha256, or Refused while the pin is None (not yet filled by a recorded lead step) or not a 64-hex string."""
+    family_of(family)
+    if pin not in PINS:
+        raise Refused(f"unknown pin {pin!r}")
+    value = PINS[pin][family]
+    if value is None:
+        raise Refused(f"{pin} for {family} is null until the lead fills it by a recorded step (addendum A13); the kinds "
+                      f"that need it ({', '.join(sorted(k for k, p in PINNED_RECIPE_KINDS.items() if p == pin)) or 'none yet'}) "
+                      "do not run")
+    if not isinstance(value, str) or not CONFIG_SHA256.match(value):
+        raise Refused(f"{pin}[{family!r}] is not a config_sha256")
+    return value
+
+
+def recipe_bqi_or_refuse(family: str) -> str:
+    """D1 (the re-verifier; KCR:128): B+Qi's config_sha256, or Refused while RECIPE_BQI[family] is None."""
+    return pin_or_refuse("RECIPE_BQI", family)
+
+
+def engine_allowed(kind: str, engine_sha256) -> bool:
+    """A13: engine X (the measured basis) runs every kind. Engine Y, once ENGINE_Y is filled, runs the kinds with an
+    explicit E cap (E_KINDS); the measured kinds run on Y only after KD9's re-measure sets Y_MEASURED. Any other
+    engine, and Y while its pin is None, is refused."""
+    if engine_sha256 == ENGINE_X:
+        return True
+    if ENGINE_Y is not None and engine_sha256 == ENGINE_Y:
+        return kind in E_KINDS or Y_MEASURED is True
+    return False
+
+
+def sealed_set_or_refuse(family: str) -> dict:
+    """The family's sealed edit set {path, sha256} (SEALED_SETS), or Refused while its MANIFEST pin is None (the Llama
+    set: not merged yet, A13) or not a 64-hex string. The caller reads the manifest at that path and checks its hash."""
+    family_of(family)
+    pin = SEALED_SETS[family]
+    if pin.get("sha256") is None:
+        raise Refused(f"the {family} sealed set's MANIFEST pin is null (addendum A13): the lead fills "
+                      f"SEALED_SETS[{family!r}]['sha256'] by a recorded step after merging {pin['path']}; until then no "
+                      f"{family} edit arm is planned")
+    if not isinstance(pin["sha256"], str) or not CONFIG_SHA256.match(pin["sha256"]):
+        raise Refused(f"SEALED_SETS[{family!r}]['sha256'] is not a SHA-256")
+    return {"path": pin["path"], "sha256": pin["sha256"]}
+
+
+def sealed_edit_entry(entry) -> bool:
+    """Is ``entry`` (one element of a sealed set's MANIFEST ``files``) an edit file's entry, in either committed form
+    (D1)? Gate B's form marks edits by ``role == "edit"``; the Llama set's form carries a descriptive role string. Both
+    put every edit under ``edits/`` with a ``family`` in EDIT_FAMILIES, a 64-hex ``sha256`` and an ``arm``; the
+    non-edit entries (Gate B's "counts" and "gate-c sample") have paths outside edits/ and no family. The entry's
+    text is never read beyond these keys."""
+    if not isinstance(entry, dict):
+        return False
+    role, path = entry.get("role"), entry.get("path")
+    if not (isinstance(role, str) and role) or not (isinstance(path, str) and EDIT_PATH_RE.match(path)):
+        return False
+    return entry.get("family") in EDIT_FAMILIES and isinstance(entry.get("sha256"), str) \
+        and bool(CONFIG_SHA256.match(entry["sha256"])) and isinstance(entry.get("arm"), str) and bool(entry["arm"])
+
+
+def block0_r_edits(manifest: dict, draws: tuple = BLOCK0_R_DRAWS) -> dict[int, dict]:
+    """N's R edits from a sealed set's MANIFEST document, in either form (D1): draw -> {"draw", "seed", "arm", "path",
+    "sha256"} for every draw in ``draws``. An edit entry is R_d only by ``family == "R"`` AND ``draw == d`` (Gate B's M
+    edits carry draws 1-2 of their own); a Llama-form ``seed`` must be R_SEED_BASE + d; a draw listed twice, or
+    missing, is Refused. ``path`` is relative to the set's out/ folder (the caller joins it)."""
+    if not isinstance(manifest, dict) or not isinstance(manifest.get("files"), list):
+        raise Refused("the sealed set's MANIFEST.json is not a {files: [...]} manifest")
+    out: dict[int, dict] = {}
+    for e in manifest["files"]:
+        if not sealed_edit_entry(e) or e.get("family") != "R":
+            continue
+        d = e.get("draw")
+        if isinstance(d, bool) or type(d) is not int or d not in draws:
+            continue
+        seed = e.get("seed", R_SEED_BASE + d)
+        if seed != R_SEED_BASE + d:
+            raise Refused(f"the sealed set's MANIFEST lists R_d{d} at seed {seed!r}, not {R_SEED_BASE + d} (R_d at 1100 + d)")
+        if d in out:
+            raise Refused(f"the sealed set's MANIFEST lists two R_d{d} edit entries; the lead decides")
+        out[d] = {"draw": d, "seed": R_SEED_BASE + d, "arm": e["arm"], "path": e["path"], "sha256": e["sha256"]}
+    missing = [d for d in draws if d not in out]
+    if missing:
+        raise Refused(f"the sealed set's MANIFEST lists no R edit for draw(s) {missing} (R_d<d> under edits/, family R)")
+    return out
+
+
+def idle_storage(n_pods: int, volume_gb: int = VOLUME_GB) -> dict:
+    """KD5's idle-storage line (Part 1 §12; KCR:161): a stopped pod keeps its volume at IDLE_STORAGE_USD_PER_GB_MONTH,
+    about $0.33 per day per stopped 50 GB pod; ``n_pods`` is the number of this block's pods kept stopped for their
+    states (every N pod keeps its e1 states until the state rule's pull and verified backup). An E; counted in no guard
+    (the guard reads running pods only), so it erodes the balance on its own."""
+    if type(n_pods) is not int or n_pods < 0:
+        raise Refused("the idle-storage line needs a whole number of pods")
+    per_pod_day = cents(volume_gb * IDLE_STORAGE_USD_PER_GB_MONTH / IDLE_DAYS_PER_MONTH)
+    per_month = n_pods * volume_gb * IDLE_STORAGE_USD_PER_GB_MONTH          # unrounded; the day total is its 1/30
+    return {"volume_gb": volume_gb, "usd_per_gb_month": IDLE_STORAGE_USD_PER_GB_MONTH,
+            "usd_per_pod_day": per_pod_day, "n_pods_kept": n_pods, "usd_per_day": cents(per_month / IDLE_DAYS_PER_MONTH),
+            "usd_per_month": cents(per_month),
+            "basis": (f"E: RunPod lists a stopped pod's volume at ${IDLE_STORAGE_USD_PER_GB_MONTH:.2f} per GB per month "
+                      f"(KCR:161, read 16 Oct 2026); {volume_gb} GB / {IDLE_DAYS_PER_MONTH} days = ${per_pod_day:.2f} per "
+                      "pod per day while it keeps its states (KD5); counted in no guard")}
+
+
+def block0_runs(family: str) -> list[tuple[str, int]]:
+    """N's runs for the family (ruling 11; Part 1 §3.1): R_1-R_3 at 1101-1103 (R_d at R_SEED_BASE + d) on both
+    families, and on Llama-3.1-8B a0 at 1103 (ruling 8)."""
+    runs = [(a, s) for a, s in kit_of(family)["block0"]["runs"]]
+    expected = [("R", R_SEED_BASE + d) for d in BLOCK0_R_DRAWS]
+    if family == "llama31-8b":
+        expected.append(("a0", A0_SEED_1103))
+    if runs != expected:
+        raise Refused(f"{family}'s block-0 table is not N's layout")
+    return runs
+
+
+def block0_jobs(family: str) -> list[dict]:
+    """N's job records for the family's one pod: ``arm`` at 33 steps for each R draw, ``a0_arm`` at 38 for a0."""
+    out = []
+    for arm, seed in block0_runs(family):
+        kind = "a0_arm" if arm == "a0" else "arm"
+        out.append(job_record(family, kind, STEPS["a0"] if arm == "a0" else STEPS["remove"], arm, seed))
+    return out
+
+
 def check_keys(family: str, kind: str, recipe_sha256: str, engine_sha256: str, gpu_name: str, manifest_sha256: str,
                bank: dict) -> None:
     """KCR §4 and KCR:147, the pod's key check (before the pod): the kind must be known; the recipe must be on the
@@ -333,10 +577,14 @@ def check_keys(family: str, kind: str, recipe_sha256: str, engine_sha256: str, g
     if kind in S78_KINDS:
         if recipe_sha256 != recipe_s_or_refuse(family):
             raise Refused(f"{kind} runs under recipe S_78 only; recipe {str(recipe_sha256)[:12]}... is not {family}'s S_78")
+    elif kind in BQI_KINDS:
+        if recipe_sha256 != recipe_bqi_or_refuse(family):
+            raise Refused(f"{kind} runs under RECIPE_BQI only; recipe {str(recipe_sha256)[:12]}... is not {family}'s B+Qi")
     elif recipe_sha256 not in RECIPE_ALLOW[family]:
         raise Refused(f"recipe {str(recipe_sha256)[:12]}... is not on the {family} allow-list")
-    if engine_sha256 not in ENGINES.values():
-        raise Refused(f"engine {str(engine_sha256)[:12]}... has no measured basis")
+    if not engine_allowed(kind, engine_sha256):
+        raise Refused(f"engine {str(engine_sha256)[:12]}... has no measured basis for {kind} (X runs every kind; Y runs "
+                      "E-capped kinds once ENGINE_Y is filled and measured kinds after KD9; A13)")
     if gpu_name != GPU_NAME:
         raise Refused(f"GPU {gpu_name!r} has no measured basis")
     if manifest_sha256 != MANIFESTS[family]:
@@ -499,7 +747,11 @@ def measured_upper_s(family: str, kind: str = "arm") -> float:
 
 def job_record(family: str, kind: str, steps: int | None = None, arm: str | None = None, seed: int | None = None,
                padded_tokens_per_step: float | None = None, n_points: int = 1) -> dict:
-    """One plan job with its timing fields from this module's rules (the shape the stage-1 kit's plan uses)."""
+    """One plan job with its timing fields from this module's rules (the shape the stage-1 kit's plan uses). Refuses
+    an unknown kind, an arm without its step count and, for every kind, ``n_points`` that is not a positive integer
+    (D2: the E kinds refused it through e_upper_s; the measured kinds now refuse it here too)."""
+    if type(n_points) is not int or n_points < 1:
+        raise Refused("at least one evaluation point")
     group = check_kind(kind)
     if group == "measured":
         if kind == "a0_arm":
@@ -596,7 +848,8 @@ def evalonly_upper_s(family: str) -> float:
 def e_upper_s(family: str, kind: str, n_points: int = 1) -> dict:
     """The E upper of an unmeasured kind on its single-job pod, with its basis (KD6). The measured parts (training
     steps, all-capped batches) use the family's M constants; the kind's own unmeasured work is an E, and the stage-1
-    kit's wide-cap factor 1.5 applies to the E parts. rep_pass is pinned by KD6's 16.5 h cap."""
+    kit's wide-cap factor 1.5 applies to the E parts. a1_pass is pinned by KD6's 16.5 h cap (PP8); rep_pass takes the
+    stage-1 kit's 1 h estimate x the scorer-kind factor (PP8)."""
     f = family_of(family)
     if kind not in E_KINDS:
         raise Refused(f"{kind!r} is not an E-capped kind")
@@ -630,10 +883,16 @@ def e_upper_s(family: str, kind: str, n_points: int = 1) -> dict:
         upper = WIDE_CAP_FACTOR * size * STAGE1_1B_ESTIMATES_S["anchor"]
         basis = ("E: the anchor answers at 1B had a 0.25 h upper (stage1_rules.py ANCHOR_UPPER_S); x 2.3 for the 7-8B "
                  "job-time ratio (RP:43) x 1.5. The anchor bank's size is not read here.")
+    elif kind == "a1_pass":
+        upper = A1_PASS_CAP_H_MAX * 3600 - POD_OVERHEAD_S - START_MARGIN_S
+        basis = ("E: A1's attributes pass (PP3: the engine's attributes job on the a0-1101 retrain's q and e1 states) at "
+                 "RP:43's 6-11 h; KD6 caps its pod at 16.5 h at most, so the job's window is 16.5 h - 48 min - 30 min = "
+                 "15.2 h (1.38 x the 11 h upper). Source: KCR:128; ruling 11 KD6; PP8.")
     elif kind == "rep_pass":
-        upper = REP_PASS_CAP_H_MAX * 3600 - POD_OVERHEAD_S - START_MARGIN_S
-        basis = ("E: A1's attributes pass at RP:43's 6-11 h; KD6 caps its pod at 16.5 h at most, so the job's window is "
-                 "16.5 h - 48 min - 30 min = 15.2 h (1.38 x the 11 h upper). Source: KCR:128; ruling 11 KD6.")
+        upper = WIDE_CAP_FACTOR * size * STAGE1_1B_ESTIMATES_S["rep_pass"]
+        basis = ("E: REQ-3's representation pass (PP3): the stage-1 kit's 1 h estimate at 1B (stage1_rules.py "
+                 "DIAG_ESTIMATE_S, 3,600 s; I there) x 2.3 (the scorer-kind size factor, RP:43) x 1.5, until measured. "
+                 "Source: PP8; ruling 11 KD6.")
     elif kind == "l1_scan":
         upper = WIDE_CAP_FACTOR * size * STAGE1_1B_ESTIMATES_S["l1_scan"]
         basis = "E: the 1B estimate 3,600 s (stage1_rules.py J7, I there) x 2.3 (RP:43) x 1.5."
@@ -722,6 +981,8 @@ def job_decision(family: str, preflight_done: dict, verification: dict, job: dic
         raise Refused(f"{free_gb!r} GB free on the volume, below {FREE_SPACE_MIN_GB} GB or unreadable: no job starts (KD5)")
     if job["kind"] in S78_KINDS:
         recipe_s_or_refuse(family)
+    if job["kind"] in BQI_KINDS:
+        recipe_bqi_or_refuse(family)                   # D1: B+Qi refuses until its config is pinned (KCR:128)
     if job["unmeasured"]:
         need = job["start_requirement_s"]
     else:
@@ -766,13 +1027,15 @@ def n_pods() -> list[dict]:
              "spend_usd": cents(pod_spend_usd(llama))}]
 
 
-SCORER_KINDS = ("untuned_answers", "o_only", "anchor", "rep_pass", "l1_scan", "classifier", "c0")
+# The pre-block-A scorer kinds (ruling 11 KD10; PP3, PP8: rep_pass is REQ-3's representation pass, a1_pass A1's).
+SCORER_KINDS = ("untuned_answers", "o_only", "anchor", "rep_pass", "a1_pass", "l1_scan", "classifier", "c0")
 
 
 def block0_report() -> dict:
     """The money of block 0 and the first days after it, each part separately (the check's M3): N's two pods in one
     launch (KCR:177: guard $44.85, spend upper $33.30, need $56.06 with the contingency), each family's retrain pod
-    (ruling 10, engine Y) and each scorer pod (C1; KD6 caps), every pod alone with its guard, spend upper and need."""
+    (ruling 10, engine Y) and each scorer pod (C1; KD6 caps), every pod alone with its guard, spend upper and need;
+    KD5's idle storage of N's pods kept stopped for their states (D2)."""
     pods = n_pods()
     launch = [{"cap_hours": p["cap_hours"], "spend_usd": p["spend_usd"]} for p in pods]
     n_need = funding_need_usd([launch], CONTINGENCY_FACTOR)
@@ -781,7 +1044,7 @@ def block0_report() -> dict:
                                     + PLANNING_PRICE_USD * sum(p["cap_hours"] for p in pods)),
                  "spend_upper_usd": cents(sum(p["spend_usd"] for p in pods)),
                  "need_usd": n_need["need_usd"], "base_need_usd": n_need["base_need_usd"]},
-           "retrain_pods": {}, "scorer_pods": {}}
+           "idle_storage": idle_storage(len(pods)), "retrain_pods": {}, "scorer_pods": {}}
     for family in FAMILIES:
         pod = e_pod(family, "retrain")
         pod["need_usd_alone"] = funding_need_usd([[pod]], CONTINGENCY_FACTOR)["need_usd"]
@@ -823,8 +1086,14 @@ def main(argv=None) -> int:
                          "guard_usd": cents(guard_usd(e_cap_hours(f, k)))} for k in E_KINDS} for f in FAMILIES}
         print(json.dumps(table, indent=1, sort_keys=True))
         return 0
+    if argv[:1] == ["kit"]:                 # K1: the per-family constants block and the null-until-filled pins
+        print(json.dumps({"kit": {f: {k: (v if k != "a0_units" else {str(s): u for s, u in v.items()})
+                                      for k, v in KIT[f].items()} for f in FAMILIES},
+                          "pins": {"ENGINE_Y": ENGINE_Y, "Y_MEASURED": Y_MEASURED, **PINS,
+                                   "SEALED_SETS": SEALED_SETS}}, indent=1, sort_keys=True))
+        return 0
     print(__doc__.split("\n\n")[0])
-    print("commands: golden | block0 | e-caps")
+    print("commands: golden | block0 | e-caps | kit")
     return 2
 
 

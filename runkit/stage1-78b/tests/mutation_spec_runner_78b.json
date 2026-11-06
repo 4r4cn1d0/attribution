@@ -1,0 +1,258 @@
+{
+ "kind": "stage1-78b runner mutants (K2)",
+ "note": "Mutants for K2's changes (the job runner's gate: s_obs, the free space, the key check and the bank, the two preflight documents, the refusal records, the identity checks, K6; the preflight's speed and bank fields; the finisher's states pull; states_tool.py; the backup's states group), in the stage-1 kit's spec form. Run with tests/run_mutants_runner_78b.py (both runner test files, -x): the baseline first with the same command; a mutant is killed only by a real test failure (pytest exit 1, FAILED lines, no ERROR line); an error, a timeout or a find text not exactly once is INVALID, never a kill.",
+ "mutants": [
+  {
+   "id": "K2-m-s-obs-last-not-max",
+   "part": "K2 (the job runner, KD3/KD5/KD11, A1, SR-2)",
+   "describes": "later arms use the last arm's s_obs, not the largest so far",
+   "file": "setup/job_runner_stage1.py",
+   "find": "                s_obs = max(s_obs, observed)\n",
+   "replace": "                s_obs = observed\n",
+   "killed_by": "test_s_obs_after_each_arm..."
+  },
+  {
+   "id": "K2-m-s-obs-not-read",
+   "part": "K2 (the job runner, KD3/KD5/KD11, A1, SR-2)",
+   "describes": "s_obs never read after an arm (KD11 off)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "            observed, problem = arm_s_obs(root, result[\"unit\"], family)      # KD11: this arm's slowest capped batch\n",
+   "replace": "            observed, problem = 1.0, None\n",
+   "killed_by": "test_s_obs_after_each_arm...; the drift test"
+  },
+  {
+   "id": "K2-m-drifted-record-ignored",
+   "part": "K2 (the job runner, KD3/KD5/KD11, A1, SR-2)",
+   "describes": "a progress record the rule cannot read does not refuse the next arm (A-V1 off)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "                pending = Refusal(\"s_obs_record\", f\"after job {i} ({job['kind']}): {problem}\")\n",
+   "replace": "                pending = None\n",
+   "killed_by": "test_a_progress_record_the_rule_cannot_read_refuses_the_next_arm"
+  },
+  {
+   "id": "K2-m-free-space-constant",
+   "part": "K2 (the job runner, KD3/KD5/KD11, A1, SR-2)",
+   "describes": "the free space is never read (KD5 off)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        free = free_space_gb(root)\n",
+   "replace": "        free = 40.0\n",
+   "killed_by": "test_the_free_space_check_refuses..."
+  },
+  {
+   "id": "K2-m-decision-s-obs-one",
+   "part": "K2 (the job runner, KD3/KD5/KD11, A1, SR-2)",
+   "describes": "job_decision gets s_obs = 1 (the finished arms' speed ignored)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "                decision = r78.job_decision(family, pre, verification, job, left, free, s_obs)\n",
+   "replace": "                decision = r78.job_decision(family, pre, verification, job, left, free, 1.0)\n",
+   "killed_by": "test_s_obs_after_each_arm..."
+  },
+  {
+   "id": "K2-m-defer-ignored",
+   "part": "K2 (the job runner, KD3/KD5/KD11, A1, SR-2)",
+   "describes": "a defer decision does not stop the pod",
+   "file": "setup/job_runner_stage1.py",
+   "find": "            if decision[\"action\"] == \"defer\":\n",
+   "replace": "            if False:\n",
+   "killed_by": "the deferral tests"
+  },
+  {
+   "id": "K2-m-keys-unchecked",
+   "part": "K2 (the job runner, KD3/KD5/KD11, A1, SR-2)",
+   "describes": "check_keys never runs on the pod",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    keys = key_refusal(plan, host, verification, bank)   # the pod's key check, recorded (never asserted)\n",
+   "replace": "    keys = None\n",
+   "killed_by": "test_check_keys_takes_the_bank..."
+  },
+  {
+   "id": "K2-m-bank-harm-prompts",
+   "part": "K2 (the job runner, KD3/KD5/KD11, A1, SR-2)",
+   "describes": "the bank's harm_samples = 200 prompts, not 600 sampled answers",
+   "file": "setup/job_runner_stage1.py",
+   "find": "            \"harm_samples\": int(dev[\"harm\"]) * int(gen[\"harm_samples\"][\"count\"]), \"generation_batch\": int(gen[\"batch_size\"])}\n",
+   "replace": "            \"harm_samples\": int(dev[\"harm\"]), \"generation_batch\": int(gen[\"batch_size\"])}\n",
+   "killed_by": "test_check_keys_takes_the_bank..."
+  },
+  {
+   "id": "K2-m-bank-kinds-no-safety",
+   "part": "K2 (the job runner, KD3/KD5/KD11, A1, SR-2)",
+   "describes": "the greedy prompts leave out the safety items (396, not 468)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "GENERATED_KINDS = (\"arc_generation\", \"harm\", \"overrefusal\", \"safety\")",
+   "replace": "GENERATED_KINDS = (\"arc_generation\", \"harm\", \"overrefusal\")",
+   "killed_by": "test_check_keys_takes_the_bank..."
+  },
+  {
+   "id": "K2-m-bank-agreement-off",
+   "part": "K2 (the job runner, KD3/KD5/KD11, A1, SR-2)",
+   "describes": "the packed bank and the preflight's bank need not agree",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    assert bank == seen, (f\"the packed bank and recipe {sorted(bank.items())} differ from what the preflight saw \"\n                          f\"{sorted(seen.items())}\")\n",
+   "replace": "    pass\n",
+   "killed_by": "test_check_keys_takes_the_bank..."
+  },
+  {
+   "id": "K2-m-verification-sha-unchecked",
+   "part": "K2 (the job runner, KD3/KD5/KD11, A1, SR-2)",
+   "describes": "verification.json need not hash to PREFLIGHT-DONE's verification_sha256",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    assert sha(path) == pre.get(\"verification_sha256\"), \\\n        f\"the preflight's {VERIFICATION_FILE} differs from PREFLIGHT-DONE.json's verification_sha256\"\n",
+   "replace": "    pass\n",
+   "killed_by": "test_the_pod_refuses_another_engine..."
+  },
+  {
+   "id": "K2-m-s78-refusal-off",
+   "part": "K2 (the job runner, KD3/KD5/KD11, A1, SR-2)",
+   "describes": "a kind that needs recipe S_78 is not refused through recipe_s_or_refuse",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if kind in r78.S78_KINDS:\n        try:\n            r78.recipe_s_or_refuse(family)\n",
+   "replace": "    if False:\n        try:\n            r78.recipe_s_or_refuse(family)\n",
+   "killed_by": "test_the_retrain_kind_refuses..."
+  },
+  {
+   "id": "K2-m-engine-identity-unchecked",
+   "part": "K2 (the job runner, KD3/KD5/KD11, A1, SR-2)",
+   "describes": "the engine's code identity is not checked on the pod (G4 off)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    assert _engine_identity() == h[\"engine_sha256\"], \"engine code differs from the plan (G4)\"\n",
+   "replace": "    pass\n",
+   "killed_by": "test_the_pod_refuses_another_engine..."
+  },
+  {
+   "id": "K2-m-any-recipe",
+   "part": "K2 (the job runner, KD3/KD5/KD11, A1, SR-2)",
+   "describes": "an arm may name any recipe (P78:99 off)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if job.get(\"recipe\") != \"B\":\n",
+   "replace": "    if False:\n",
+   "killed_by": "test_the_retrain_kind_refuses... (recipe_path)"
+  },
+  {
+   "id": "K2-m-refused-is-ok",
+   "part": "K2 (the job runner, KD3/KD5/KD11, A1, SR-2)",
+   "describes": "a refused pod reports ok",
+   "file": "setup/job_runner_stage1.py",
+   "find": "            \"ok\": stopped in (None, \"deferred\") and all(r[\"status\"] == \"complete\" for r in started_)}\n",
+   "replace": "            \"ok\": stopped in (None, \"deferred\", \"refused\") and all(r[\"status\"] == \"complete\" for r in started_)}\n",
+   "killed_by": "the refusal tests (ok False)"
+  },
+  {
+   "id": "K2-m-refused-not-started",
+   "part": "K2 (the job runner, KD3/KD5/KD11, A1, SR-2)",
+   "describes": "a refusal records not_started instead of deferred (the requeue path loses the jobs)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "            later = \"deferred\" if stopped in (\"deferred\", \"refused\") else \"not_started\"\n",
+   "replace": "            later = \"deferred\" if stopped == \"deferred\" else \"not_started\"\n",
+   "killed_by": "the refusal tests (statuses deferred)"
+  },
+  {
+   "id": "K2-m-heartbeat-none-runs",
+   "part": "K2 (the job runner, KD3/KD5/KD11, A1, SR-2)",
+   "describes": "a missing heartbeat is not heartbeat_unreadable",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        elif left is None:\n            stopped = \"heartbeat_unreadable\"\n",
+   "replace": "        elif False:\n            stopped = \"heartbeat_unreadable\"\n",
+   "killed_by": "test_a_missing_or_unreadable_heartbeat_stops_the_host"
+  },
+  {
+   "id": "K2-m-edit-arm-clause-off",
+   "part": "K2 (the job runner, KD3/KD5/KD11, A1, SR-2)",
+   "describes": "an edit file need not hash to its job's SHA-256 and engine arm",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if not path.is_file() or sha(path) != job[\"edit\"][\"sha256\"] or \"edit-\" + sha(path) != engine_arm(job):\n",
+   "replace": "        if False:\n",
+   "killed_by": "test_an_edit_file_must_hash_to_its_jobs_sha256_and_arm"
+  },
+  {
+   "id": "K2-m-sealed-mismatch-ignored",
+   "part": "K2 (the job runner, KD3/KD5/KD11, A1, SR-2)",
+   "describes": "a changed sealed file before a job does not stop the host",
+   "file": "setup/job_runner_stage1.py",
+   "find": "                if bad:\n                    stopped = \"sealed_file_mismatch\"\n",
+   "replace": "                if False:\n                    stopped = \"sealed_file_mismatch\"\n",
+   "killed_by": "test_a_changed_byte_in_the_edit_file_before_its_job_stops_the_host"
+  },
+  {
+   "id": "K2-m-a0-fingerprint-off",
+   "part": "K2 (the job runner, KD3/KD5/KD11, A1, SR-2)",
+   "describes": "no a0 fingerprint record after an a0_arm job (K6 off)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if kind == \"a0_arm\":                                 # K6: the a0 fingerprint, readable after the block's seal\n",
+   "replace": "    if False:\n",
+   "killed_by": "test_k6_an_a0_arm_job_writes_its_readable_fingerprint_record_and_lists_it"
+  },
+  {
+   "id": "K2-m-preflight-speed-ignored",
+   "part": "K2 (the job runner, KD3/KD5/KD11, A1, SR-2)",
+   "describes": "the preflight passes a pod the speed factor refuses (KD3 off)",
+   "file": "setup/preflight_stage1.py",
+   "find": "    done = {\"utc\": dt.datetime.now(dt.timezone.utc).isoformat(), \"ok\": chosen is not None and speed[\"refused\"] is None,\n",
+   "replace": "    done = {\"utc\": dt.datetime.now(dt.timezone.utc).isoformat(), \"ok\": chosen is not None,\n",
+   "killed_by": "test_the_preflight_writes_the_speed_and_bank_fields_and_refuses_a_slow_pod"
+  },
+  {
+   "id": "K2-m-preflight-family-unchecked",
+   "part": "K2 (the job runner, KD3/KD5/KD11, A1, SR-2)",
+   "describes": "the preflight runs another family's plan",
+   "file": "setup/preflight_stage1.py",
+   "find": "    family = family_check(plan)\n",
+   "replace": "    family = rules.FAMILY\n",
+   "killed_by": "test_the_preflight_writes..."
+  },
+  {
+   "id": "K2-m-preflight-bank-dropped",
+   "part": "K2 (the job runner, KD3/KD5/KD11, A1, SR-2)",
+   "describes": "PREFLIGHT-DONE carries no bank",
+   "file": "setup/preflight_stage1.py",
+   "find": "                      \"bank\": runner.bank_from_verification(report), \"speed\": speed_record(family, report)}\n",
+   "replace": "                      \"bank\": None, \"speed\": speed_record(family, report)}\n",
+   "killed_by": "test_the_preflight_writes..."
+  },
+  {
+   "id": "K2-m-finisher-states-not-required",
+   "part": "K2 (the job runner, KD3/KD5/KD11, A1, SR-2)",
+   "describes": "a states pull that did not verify still gives verified-and-stopped",
+   "file": "finisher.py",
+   "find": "                ok = ok and all(entry[\"verified\"] for entry in record[\"states\"].values())\n",
+   "replace": "                ok = ok\n",
+   "killed_by": "test_the_finisher_pulls_and_verifies...; test_the_finisher_light_checks_every_host_role..."
+  },
+  {
+   "id": "K2-m-finisher-pull-light-instead",
+   "part": "K2 (the job runner, KD3/KD5/KD11, A1, SR-2)",
+   "describes": "the finisher pulls the light tar again instead of the states",
+   "file": "finisher.py",
+   "find": "        pulled = tool(\"pull-states\", host, checkpoint)\n",
+   "replace": "        pulled = tool(\"pull-light\", host)\n",
+   "killed_by": "test_the_finisher_pulls_and_verifies..."
+  },
+  {
+   "id": "K2-m-states-member-unchecked",
+   "part": "K2 (the job runner, KD3/KD5/KD11, A1, SR-2)",
+   "describes": "a tar member outside round1/*/states/CHECKPOINT/ is extracted",
+   "file": "states_tool.py",
+   "find": "            if not match or match.group(1) != checkpoint:\n",
+   "replace": "            if False:\n",
+   "killed_by": "test_states_tool_verifies..."
+  },
+  {
+   "id": "K2-m-states-hash-unchecked",
+   "part": "K2 (the job runner, KD3/KD5/KD11, A1, SR-2)",
+   "describes": "a changed state file passes the check",
+   "file": "states_tool.py",
+   "find": "        bad = [rel for rel, digest in listed.items() if not (unit / rel).is_file() or sha256(unit / rel) != digest]\n",
+   "replace": "        bad = []\n",
+   "killed_by": "test_states_tool_verifies..."
+  },
+  {
+   "id": "K2-m-backup-states-always",
+   "part": "K2 (the job runner, KD3/KD5/KD11, A1, SR-2)",
+   "describes": "the states tar is staged without --states",
+   "file": "backup_records_stage1.py",
+   "find": "                if states:\n                    items.append((src, f\"{STATES_GROUP}/{host}/{src.name}\"))\n",
+   "replace": "                if True:\n                    items.append((src, f\"{STATES_GROUP}/{host}/{src.name}\"))\n",
+   "killed_by": "test_the_backup_stages_the_states_check_record..."
+  }
+ ]
+}

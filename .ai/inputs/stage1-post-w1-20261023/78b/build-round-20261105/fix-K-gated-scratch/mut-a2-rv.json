@@ -1,0 +1,323 @@
+{
+ "kind": "reverify-K-gated hand mutants (the re-verifier's own, distinct from the fixers' FG-m-*): each weakens a D1/D2/D4/D5/D6 protection",
+ "utc_start": "2026-11-06T07:51:20+00:00",
+ "source": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-pensive-stonebraker-bf6d79/b609d8b8-9fca-458c-826f-4c781de96013/scratchpad/b78/ws-k",
+ "python": "3.11.15 (main, May 10 2026, 19:23:07) [Clang 22.1.3 ]",
+ "spec_sha256": "f97650ad8cfcc770d60106c3f9cb1e7723cb00d83beb73970c73d72bf9e09421",
+ "results": [
+  {
+   "id": "RV-m-d1-stock-redirect-handler",
+   "describes": "http_get builds its opener with urllib's stock HTTPRedirectHandler (keeps Authorization across every redirect)",
+   "file": "launch.py",
+   "before_sha256": "471046581cf41f90a618faa54446740c089826e9dab782d8079c41a6081e7ef4",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_gated_78b.py::test_d1_http_get_builds_its_opener_with_the_same_origin_redirect_handler_and_the_precheck_runs_through_it"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 69 passed in 4.58s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "471046581cf41f90a618faa54446740c089826e9dab782d8079c41a6081e7ef4"
+  },
+  {
+   "id": "RV-m-d1-handler-condition-inverted",
+   "describes": "the handler drops Authorization on a same-origin redirect and keeps it off-origin",
+   "file": "launch.py",
+   "before_sha256": "471046581cf41f90a618faa54446740c089826e9dab782d8079c41a6081e7ef4",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_gated_78b.py::test_the_redirect_handler_drops_the_authorization_header_when_the_redirect_leaves_the_hub"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 16 passed in 1.23s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "471046581cf41f90a618faa54446740c089826e9dab782d8079c41a6081e7ef4"
+  },
+  {
+   "id": "RV-m-d1-no-timeout",
+   "describes": "http_get opens without a timeout (a hang instead of a refusal)",
+   "file": "launch.py",
+   "before_sha256": "471046581cf41f90a618faa54446740c089826e9dab782d8079c41a6081e7ef4",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_gated_78b.py::test_d1_http_get_builds_its_opener_with_the_same_origin_redirect_handler_and_the_precheck_runs_through_it"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 69 passed in 3.92s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "471046581cf41f90a618faa54446740c089826e9dab782d8079c41a6081e7ef4"
+  },
+  {
+   "id": "RV-m-d4-urlerror-only",
+   "describes": "http_get catches URLError only: a bare TimeoutError, SSLError, ConnectionResetError or IncompleteRead propagates as a traceback",
+   "file": "launch.py",
+   "before_sha256": "471046581cf41f90a618faa54446740c089826e9dab782d8079c41a6081e7ef4",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_gated_78b.py::test_d4_a_failure_before_any_reply_is_a_clean_refusal_that_scrubs_the_token_and_names_no_token[timeout]"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 72 passed in 4.67s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "471046581cf41f90a618faa54446740c089826e9dab782d8079c41a6081e7ef4"
+  },
+  {
+   "id": "RV-m-d4-oserror-only",
+   "describes": "http_get catches OSError only: http.client.IncompleteRead propagates",
+   "file": "launch.py",
+   "before_sha256": "471046581cf41f90a618faa54446740c089826e9dab782d8079c41a6081e7ef4",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_gated_78b.py::test_d4_a_failure_before_any_reply_is_a_clean_refusal_that_scrubs_the_token_and_names_no_token[incomplete-read]"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 78 passed in 4.47s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "471046581cf41f90a618faa54446740c089826e9dab782d8079c41a6081e7ef4"
+  },
+  {
+   "id": "RV-m-d4-whoami-noreply-as-status",
+   "describes": "the whoami NO_REPLY branch is dropped: status 0 falls through to 'the token is not valid'",
+   "file": "launch.py",
+   "before_sha256": "471046581cf41f90a618faa54446740c089826e9dab782d8079c41a6081e7ef4",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_gated_78b.py::test_whoami_refuses_an_http_error_before_any_range_request_and_records_nothing"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 2 passed in 0.43s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "471046581cf41f90a618faa54446740c089826e9dab782d8079c41a6081e7ef4"
+  },
+  {
+   "id": "RV-m-d4-exact-value-not-replaced",
+   "describes": "failure_text drops the exact-value replace and keeps the pattern sub only (a token not of the hf_ shape would stay in the line)",
+   "file": "launch.py",
+   "before_sha256": "471046581cf41f90a618faa54446740c089826e9dab782d8079c41a6081e7ef4",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_gated_78b.py::test_d4_failure_text_replaces_the_exact_value_and_any_other_hf_shaped_string"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 109 passed in 6.31s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "471046581cf41f90a618faa54446740c089826e9dab782d8079c41a6081e7ef4"
+  },
+  {
+   "id": "RV-m-d4-pattern-not-replaced",
+   "describes": "failure_text drops the pattern sub and keeps the exact-value replace only (a second token in the reason would stay)",
+   "file": "launch.py",
+   "before_sha256": "471046581cf41f90a618faa54446740c089826e9dab782d8079c41a6081e7ef4",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_gated_78b.py::test_d4_failure_text_replaces_the_exact_value_and_any_other_hf_shaped_string"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 109 passed in 5.80s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "471046581cf41f90a618faa54446740c089826e9dab782d8079c41a6081e7ef4"
+  },
+  {
+   "id": "RV-m-d4-range-noreply-skipped",
+   "describes": "a Range request with no reply is skipped silently instead of refusing (nine 206s pass)",
+   "file": "launch.py",
+   "before_sha256": "471046581cf41f90a618faa54446740c089826e9dab782d8079c41a6081e7ef4",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_gated_78b.py::test_d4_a_no_reply_on_a_range_request_refuses_at_once_and_sends_no_further_request"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 80 passed in 5.25s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "471046581cf41f90a618faa54446740c089826e9dab782d8079c41a6081e7ef4"
+  },
+  {
+   "id": "RV-m-d5-hostname-only",
+   "describes": "same_origin compares the hostname only: scheme and port changes keep the Authorization header",
+   "file": "launch.py",
+   "before_sha256": "471046581cf41f90a618faa54446740c089826e9dab782d8079c41a6081e7ef4",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_gated_78b.py::test_d5_a_same_host_redirect_that_changes_the_scheme_drops_the_authorization_header"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 81 passed in 5.22s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "471046581cf41f90a618faa54446740c089826e9dab782d8079c41a6081e7ef4"
+  },
+  {
+   "id": "RV-m-d5-scheme-only",
+   "describes": "same_origin compares the scheme only: another https host keeps the header",
+   "file": "launch.py",
+   "before_sha256": "471046581cf41f90a618faa54446740c089826e9dab782d8079c41a6081e7ef4",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_gated_78b.py::test_the_redirect_handler_drops_the_authorization_header_when_the_redirect_leaves_the_hub"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 16 passed in 1.13s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "471046581cf41f90a618faa54446740c089826e9dab782d8079c41a6081e7ef4"
+  },
+  {
+   "id": "RV-m-d2-postcheck-swallowed",
+   "describes": "the after-download no_token_left() refusal is swallowed",
+   "file": "setup/download_models_stage1.py",
+   "before_sha256": "78d2f22793bf059541bd2ed8ef3d291fe2fc92d41ff96779e9c3837a6c22ec2f",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_gated_78b.py::test_d2_a_download_that_leaves_a_stored_login_or_a_token_variable_behind_is_refused_after_the_download[token-file]"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 82 passed in 4.74s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "78d2f22793bf059541bd2ed8ef3d291fe2fc92d41ff96779e9c3837a6c22ec2f"
+  },
+  {
+   "id": "RV-m-d2-ok-true-before-postcheck",
+   "describes": "the receipt says ok true before the after-download check runs",
+   "file": "setup/download_models_stage1.py",
+   "before_sha256": "78d2f22793bf059541bd2ed8ef3d291fe2fc92d41ff96779e9c3837a6c22ec2f",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_gated_78b.py::test_a_wrong_weight_pin_a_blob_mismatch_or_a_token_pattern_in_the_cache_refuses_with_ok_false"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 66 passed in 4.30s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "78d2f22793bf059541bd2ed8ef3d291fe2fc92d41ff96779e9c3837a6c22ec2f"
+  },
+  {
+   "id": "RV-m-d2-postcheck-env-only",
+   "describes": "the after-download check looks at the token variables only, not the token files",
+   "file": "setup/download_models_stage1.py",
+   "before_sha256": "78d2f22793bf059541bd2ed8ef3d291fe2fc92d41ff96779e9c3837a6c22ec2f",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_gated_78b.py::test_d2_a_download_that_leaves_a_stored_login_or_a_token_variable_behind_is_refused_after_the_download[token-file]"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 82 passed in 4.81s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "78d2f22793bf059541bd2ed8ef3d291fe2fc92d41ff96779e9c3837a6c22ec2f"
+  },
+  {
+   "id": "RV-m-d6-no-expanduser",
+   "describes": "_hf_path expands $VAR but not ~ (HF_HOME=~/x is read literally)",
+   "file": "setup/download_models_stage1.py",
+   "before_sha256": "78d2f22793bf059541bd2ed8ef3d291fe2fc92d41ff96779e9c3837a6c22ec2f",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_gated_78b.py::test_d6_the_cache_and_token_paths_follow_huggingface_hub_exactly[tilde-and-var]"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 94 passed in 5.17s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "78d2f22793bf059541bd2ed8ef3d291fe2fc92d41ff96779e9c3837a6c22ec2f"
+  },
+  {
+   "id": "RV-m-d6-stored-tokens-under-hf-home",
+   "describes": "stored_tokens is looked for under HF_HOME, not beside HF_TOKEN_PATH",
+   "file": "setup/download_models_stage1.py",
+   "before_sha256": "78d2f22793bf059541bd2ed8ef3d291fe2fc92d41ff96779e9c3837a6c22ec2f",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_gated_78b.py::test_d6_the_cache_and_token_paths_follow_huggingface_hub_exactly[hf-home-and-token-path]"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 89 passed in 5.06s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "78d2f22793bf059541bd2ed8ef3d291fe2fc92d41ff96779e9c3837a6c22ec2f"
+  },
+  {
+   "id": "RV-m-d6-hub-cache-ignores-legacy-and-home",
+   "describes": "hf_cache ignores both the legacy variable and HF_HOME (the fixed ~/.cache path)",
+   "file": "setup/download_models_stage1.py",
+   "before_sha256": "78d2f22793bf059541bd2ed8ef3d291fe2fc92d41ff96779e9c3837a6c22ec2f",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_gated_78b.py::test_d6_the_cache_and_token_paths_follow_huggingface_hub_exactly[hf-home]"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 87 passed in 4.96s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "78d2f22793bf059541bd2ed8ef3d291fe2fc92d41ff96779e9c3837a6c22ec2f"
+  },
+  {
+   "id": "RV-m-d6-preflight-hygiene-dropped",
+   "describes": "the preflight's token_hygiene checks the variables only (no stored-login check at all)",
+   "file": "setup/preflight_stage1.py",
+   "before_sha256": "a08e525f2a99a55b8cd017e4c60720ed9193af853feb78a951045f4dcf468d03",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_gated_78b.py::test_d6_hf_token_path_stored_tokens_and_the_staging_switch_refuse_and_the_preflight_reads_the_same_path"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 98 passed in 5.16s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "a08e525f2a99a55b8cd017e4c60720ed9193af853feb78a951045f4dcf468d03"
+  },
+  {
+   "id": "RV-m-d6-staging-check-dropped-whole",
+   "describes": "check_endpoint ignores HUGGINGFACE_CO_STAGING entirely",
+   "file": "setup/download_models_stage1.py",
+   "before_sha256": "78d2f22793bf059541bd2ed8ef3d291fe2fc92d41ff96779e9c3837a6c22ec2f",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_gated_78b.py::test_d6_hf_token_path_stored_tokens_and_the_staging_switch_refuse_and_the_preflight_reads_the_same_path"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 98 passed in 5.16s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "78d2f22793bf059541bd2ed8ef3d291fe2fc92d41ff96779e9c3837a6c22ec2f"
+  }
+ ],
+ "baseline": {
+  "exit": 0,
+  "failed": [],
+  "errors": 0,
+  "tail": "111 passed in 5.42s"
+ },
+ "counts": {
+  "killed": 19
+ },
+ "utc_end": "2026-11-06T07:52:58+00:00"
+}

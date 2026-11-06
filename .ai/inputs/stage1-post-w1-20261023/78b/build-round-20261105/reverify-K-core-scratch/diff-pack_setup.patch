@@ -1,0 +1,35 @@
+--- /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-pensive-stonebraker-bf6d79/b609d8b8-9fca-458c-826f-4c781de96013/scratchpad/b78/reports/verify-K-core-scratch/ws/runkit/stage1-78b/pack_setup.py	2026-11-05 23:54:57
++++ /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-pensive-stonebraker-bf6d79/b609d8b8-9fca-458c-826f-4c781de96013/scratchpad/b78/ws-k/runkit/stage1-78b/pack_setup.py	2026-11-06 00:43:11
+@@ -177,8 +177,9 @@
+ 
+ 
+ def sealed_set(family: str) -> dict:
+-    """The family's sealed set (rules_78b.SEALED_SETS, by pin): its folder and the R_d1-R_d3 edit entries. A null pin
+-    refuses (the Llama set until the lead merges and pins it; addendum A13)."""
++    """The family's sealed set (rules_78b.SEALED_SETS, by pin): its folder and the R_d1-R_d3 edit entries, read from
++    the MANIFEST in either committed form (D1: Gate B's and the Llama set's; rules_78b.block0_r_edits, by family "R"
++    AND draw). A null pin refuses (addendum A13's pattern)."""
+     try:
+         pin = r78.sealed_set_or_refuse(family)
+     except r78.Refused as exc:
+@@ -187,14 +188,12 @@
+     if not path.is_file() or sha(path) != pin["sha256"]:
+         raise SystemExit(f"the {family} sealed set's MANIFEST.json ({pin['path']}) is missing or differs from its pin")
+     man = json.loads(path.read_text())
+-    edits = {}
+-    for e in man.get("files") or []:
+-        if e.get("role") == "edit" and e.get("family") == "R" and e.get("draw") in r78.BLOCK0_R_DRAWS \
+-                and isinstance(e.get("path"), str) and pinned(e.get("sha256")):
+-            edits[e["draw"]] = {"path": str(pathlib.Path(pin["path"]).parent / e["path"]), "sha256": e["sha256"]}
+-    missing = [d for d in r78.BLOCK0_R_DRAWS if d not in edits]
+-    if missing:
+-        raise SystemExit(f"the {family} sealed set's MANIFEST lists no R draw(s) {missing} at role 'edit'")
++    try:
++        r_edits = r78.block0_r_edits(man, r78.BLOCK0_R_DRAWS)
++    except r78.Refused as exc:
++        raise SystemExit(f"the {family} sealed set: {exc}")
++    edits = {d: {"path": str(pathlib.Path(pin["path"]).parent / e["path"]), "sha256": e["sha256"], "arm": e["arm"],
++                 "seed": e["seed"]} for d, e in r_edits.items()}
+     for d, e in edits.items():
+         f = ROOT / e["path"]
+         if not f.is_file() or sha(f) != e["sha256"]:

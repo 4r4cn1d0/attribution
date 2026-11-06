@@ -1,0 +1,131 @@
+{
+ "kind": "fix-K-gated guard mutants (tests/conftest.py G1-G4)",
+ "utc_start": "2026-11-06T07:47:52+00:00",
+ "source": "/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-pensive-stonebraker-bf6d79/b609d8b8-9fca-458c-826f-4c781de96013/scratchpad/b78/ws-k",
+ "python": "3.11.15 (main, May 10 2026, 19:23:07) [Clang 22.1.3 ]",
+ "spec_sha256": "79b0773ccd9c24e85923fe2bd5c3f851a87d786166d0544ca7a536271a7dbaa3",
+ "results": [
+  {
+   "id": "GD-m-lookup-unguarded",
+   "describes": "the name lookups are not replaced (G1)",
+   "file": "tests/conftest.py",
+   "before_sha256": "debdc5b7d1e35f0f83c868d86e01dde40c664b7a2a83124210ec6f4150199d59",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_pp10_guard.py::test_g1_g4_name_lookups_datagrams_forks_and_execs_are_refused_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 195 passed in 10.64s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "debdc5b7d1e35f0f83c868d86e01dde40c664b7a2a83124210ec6f4150199d59"
+  },
+  {
+   "id": "GD-m-lookup-allows-any",
+   "describes": "every name lookup passes (G1)",
+   "file": "tests/conftest.py",
+   "before_sha256": "debdc5b7d1e35f0f83c868d86e01dde40c664b7a2a83124210ec6f4150199d59",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_pp10_guard.py::test_g1_g4_name_lookups_datagrams_forks_and_execs_are_refused_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 195 passed in 11.12s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "debdc5b7d1e35f0f83c868d86e01dde40c664b7a2a83124210ec6f4150199d59"
+  },
+  {
+   "id": "GD-m-send-unguarded",
+   "describes": "sendto / sendmsg are not replaced (G2)",
+   "file": "tests/conftest.py",
+   "before_sha256": "debdc5b7d1e35f0f83c868d86e01dde40c664b7a2a83124210ec6f4150199d59",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_pp10_guard.py::test_g1_g4_name_lookups_datagrams_forks_and_execs_are_refused_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 195 passed in 11.92s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "debdc5b7d1e35f0f83c868d86e01dde40c664b7a2a83124210ec6f4150199d59"
+  },
+  {
+   "id": "GD-m-send-allows-inet",
+   "describes": "an internet datagram passes (G2; the test sends to the loopback discard port only)",
+   "file": "tests/conftest.py",
+   "before_sha256": "debdc5b7d1e35f0f83c868d86e01dde40c664b7a2a83124210ec6f4150199d59",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_pp10_guard.py::test_g1_g4_name_lookups_datagrams_forks_and_execs_are_refused_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 195 passed in 12.95s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "debdc5b7d1e35f0f83c868d86e01dde40c664b7a2a83124210ec6f4150199d59"
+  },
+  {
+   "id": "GD-m-send-refuses-unix",
+   "describes": "an AF_UNIX datagram is refused too (G2 over-reach)",
+   "file": "tests/conftest.py",
+   "before_sha256": "debdc5b7d1e35f0f83c868d86e01dde40c664b7a2a83124210ec6f4150199d59",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_pp10_guard.py::test_g1_g4_name_lookups_datagrams_forks_and_execs_are_refused_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 195 passed in 13.55s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "debdc5b7d1e35f0f83c868d86e01dde40c664b7a2a83124210ec6f4150199d59"
+  },
+  {
+   "id": "GD-m-fork-exec-unguarded",
+   "describes": "os.fork / forkpty / execv / execve are not replaced (G3)",
+   "file": "tests/conftest.py",
+   "before_sha256": "debdc5b7d1e35f0f83c868d86e01dde40c664b7a2a83124210ec6f4150199d59",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_pp10_guard.py::test_g1_g4_name_lookups_datagrams_forks_and_execs_are_refused_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 195 passed in 12.27s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "debdc5b7d1e35f0f83c868d86e01dde40c664b7a2a83124210ec6f4150199d59"
+  },
+  {
+   "id": "GD-m-spawn-name-late-bound",
+   "describes": "the posix_spawn refusal names the late-bound loop variable (G4)",
+   "file": "tests/conftest.py",
+   "before_sha256": "debdc5b7d1e35f0f83c868d86e01dde40c664b7a2a83124210ec6f4150199d59",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_pp10_guard.py::test_g1_g4_name_lookups_datagrams_forks_and_execs_are_refused_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 195 passed in 12.05s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "debdc5b7d1e35f0f83c868d86e01dde40c664b7a2a83124210ec6f4150199d59"
+  }
+ ],
+ "baseline": {
+  "exit": 0,
+  "failed": [],
+  "errors": 0,
+  "tail": "288 passed in 14.72s"
+ },
+ "counts": {
+  "killed": 7
+ },
+ "utc_end": "2026-11-06T07:49:40+00:00"
+}
