@@ -84,3 +84,21 @@ the scope questions they raised.
   `untuned_answers`, `o_only`, `regenerate`, `anchor`, `rep_pass`, `l1_scan`, `classifier`, `c0`. `engine_allowed`
   checks it first, before `ENGINE_Y` is ever filled. The retrain and `a1_pass` follow ruling 10 and A13 (`a1_pass`
   runs on the engine that trained its states).
+
+## PP17-PP18. After round 4 (recorded 2026-11-06T16:04 UTC)
+
+Round 4 (wf_e6454f4d-c8d, on Opus) built the kit's scorer block and Part 2's scorer section. The core verifier found
+that a bare `regenerate` kind could be planned and launched today, though nothing uses its unit (its D3), and asked
+for a ruling on the check's M1 (O and L at 7-8B).
+
+- **PP17. O and L for the reused units (CHECK M1).** There is no standalone `regenerate` kind at 7-8B. The kit has one
+  kind, `o_only_with_regenerate`, on one single-job pod (KD6): the train-only regeneration of a reused a0 side unit,
+  stage 1's acceptance check of the regenerated unit against the side unit's fingerprints (the 1B J2/LN-12 link),
+  then the O-ext pass on its e1 state. It has its own E cap. It and `o_only` (θ0, the family's untuned model) wait
+  on `OEXT_78B` (the O-ext settings re-derived per family), which stays null until Part 2's evaluation section names
+  the evaluation bank. Part 2 also states whether block A's arm jobs evaluate O and L in the same job, as at 1B, or
+  in a separate job. This is decided before block A; nothing in block 0 depends on it.
+- **PP18. c0 and engine Y's pack.** c0 is unitless, as in the stage-1 kit: the runner hashes its outputs under its
+  job folder, and its source pin `C0_SOURCE` (block 0's R_1-1101 unit) stays null until that unit exists and the
+  lead fills it by a recorded step. Engine Y's pack is built when ruling 10's retrain is prepared (after the anchor
+  job and S_78; A2); until then every Y kind refuses.
