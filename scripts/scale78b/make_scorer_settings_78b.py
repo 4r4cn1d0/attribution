@@ -16,13 +16,14 @@ null.
 Derived files (per family F = olmo2-7b | llama31-8b):
   make_untuned_answers__F.json   REC = the family's main recipe; recipe S = the main recipe too (pins_78b shared.untuned_recipe_s
                                  'main'; S_78 shares its model section) or S_78; lists.s4.keep = 192 with the nested doses block
-  representation_pass__F.json    recipe = S_78 (null), anchor bank (null), the family's model and manifest
+  representation_pass__F.json    recipe = S_78 (null), anchor bank (null), the family's model and manifest; family_78b.kind_names
   representation_pools__F.json   the W1 pool-pins file's shape with both pools null (no plant or decoy pool at 7-8B)
   score_l1_larf__F.json          REC = main; anchor bank (null); manifest; REQ-3's settings = representation_pass__F's SHA-256;
-                                 scan.first_block = null (Part 2's layer rule)
-  score_classifier__F.json       recipe = S_78 (null); anchor bank (null); model; manifest
+                                 scan.first_block = 10 (PP11) and scan.modules = the family's own entry only (PP12)
+  score_classifier__F.json       recipe = S_78 (null); anchor bank (null); model; manifest; family_78b.classifier_recipe
   score_s3_datarx__F.json        REQ-3's settings = representation_pass__F's SHA-256
-  write_score_edit__F.json       the A1 attributes unit's pins null (the pass on the family's a0-1101 retrain); manifest
+  write_score_edit__F.json       the A1 attributes unit's pins null (the pass on the family's a0-1101 retrain); manifest;
+                                 family_78b.kind_names
   write_add_edit__F.json         manifest; recipe (main or S_78); lists s1, s3, s4 (48), s4_96 (96), s4_192 (192), s4_top (null)
   build_s_pool__F.json           REC and manifest per family (only if Part 2 rebuilds the S-pool per family)
 Plus PINS-78B.json: every derived file's SHA-256 and the pins file's, which scorers_78b.py pins by one literal.
@@ -111,6 +112,15 @@ def load_pins(path: Path = PINS_PATH) -> tuple[dict, str]:
             if not (value is None or (isinstance(value, str) and s1.HEX64.match(value))):
                 raise MakerError(f"pins_78b.json family {family}: {name} is neither null nor a SHA-256")
     shared = doc["shared"]
+    first = shared.get("l1_first_block")
+    if not (first is None or (type(first) is int and first >= 0)):
+        raise MakerError("pins_78b.json shared.l1_first_block must be null or a block index (an int >= 0)")
+    for family, pins in doc["families"].items():
+        mods = pins.get("l1_scan_modules")
+        if not (isinstance(mods, dict) and isinstance(mods.get("model_type"), str) and mods["model_type"]
+                and isinstance(mods.get("modules"), list) and mods["modules"]
+                and all(isinstance(m, str) and m for m in mods["modules"]) and len(set(mods["modules"])) == len(mods["modules"])):
+            raise MakerError(f"pins_78b.json family {family}: l1_scan_modules must name a model_type and distinct modules")
     if shared.get("untuned_recipe_s") not in ("main", "s78"):
         raise MakerError("pins_78b.json shared.untuned_recipe_s must be 'main' or 's78'")
     if shared.get("s4_keep") != max(shared.get("s4_doses", [])) or sorted(shared["s4_doses"]) != shared["s4_doses"] \
@@ -153,6 +163,7 @@ class Derivation:
         self.fam = pins["families"][family]
         self.shared = pins["shared"]
         self.waits: dict[str, dict] = {}
+        self.family_extra: dict = {}                  # extra family_78b entries (copied pins texts; the derivation test guards them)
 
     def null(self, dotted: str, event: str, needed_by: list[str]) -> None:
         set_path(self.doc, dotted, None)
@@ -179,6 +190,7 @@ class Derivation:
             "maker": "scripts/scale78b/make_scorer_settings_78b.py", "owner_78b": OWNER_78B,
             "pins_file": "scripts/scale78b/settings/pins_78b.json",
             "engine_rule": self.shared["engine_rule_78b"],
+            **self.family_extra,
             "waits": dict(sorted(self.waits.items())),
             "rule": "the 1B file's schema and name, so scripts/stage1's unchanged check_settings accepts it; every value "
                     "that differs from the 1B file is per family (pins_78b.json) or a documented 7-8B rule; a null is a pin "
@@ -248,6 +260,7 @@ def derive_rep_pass(d: Derivation) -> dict:
     d.pin_or_null("pins.anchor_bank_sha256", fam["anchor_bank_sha256"], fam["anchor_bank_waits"], ["*"])
     doc["pins"]["prepared_manifest_sha256"] = fam["manifest_sha256"]
     doc["pool_pins_file_78b"] = f"scripts/scale78b/settings/{file_name('representation_pools', d.family)}"
+    d.family_extra["kind_names"] = d.shared["kind_names_78b"]
     doc["requirement"] += "; 7-8B: Part 1 section 12 (the rep_pass kind, REQ-3's pass for L1 and S3), section 14 item 1"
     return d.finish()
 
@@ -269,9 +282,11 @@ def derive_l1(d: Derivation, rep_pass_sha256: str) -> dict:
     doc["pins"]["prepared_manifest_sha256"] = fam["manifest_sha256"]
     doc["pins"]["rec_recipe_sha256"] = fam["main_recipe"]["config_sha256"]
     doc["pins"]["representation_pass_settings_sha256"] = rep_pass_sha256
-    d.pin_or_null("scan.first_block", shared["l1_first_block"], shared["l1_first_block_waits"], ["scan"])
-    doc["scan"]["first_block_rule_78b"] = shared["l1_first_block_waits"]
-    doc["scan"]["modules_note_78b"] = shared["l1_modules_note"]
+    d.pin_or_null("scan.first_block", shared["l1_first_block"], shared["l1_first_block_rule"], ["scan"])
+    doc["scan"]["first_block_rule_78b"] = shared["l1_first_block_rule"]
+    mods = fam["l1_scan_modules"]
+    doc["scan"]["modules"] = {mods["model_type"]: list(mods["modules"])}       # the family's own entry only (PP12)
+    doc["scan"]["modules_rule_78b"] = shared["l1_modules_rule"] + "; " + mods["rule"]
     doc["requirement"] += "; 7-8B: Part 1 section 12 (the l1_scan kind), section 14 item 1 (L1's layer rule, Part 2)"
     return d.finish()
 
@@ -282,6 +297,7 @@ def derive_classifier(d: Derivation) -> dict:
     doc["pins"]["model"] = dict(fam["model_pin"])
     doc["pins"]["prepared_manifest_sha256"] = fam["manifest_sha256"]
     d.pin_or_null("pins.recipe_sha256", fam["recipe_s78"]["config_sha256"], fam["recipe_s78"]["waits"], ["*"])
+    d.family_extra["classifier_recipe"] = d.shared["classifier_recipe_78b"]
     doc["pools_rule"] += "; 7-8B: no pool is passed (no plant or decoy pool at 7-8B; both pins null in the family's pool pins file)"
     doc["requirement"] += "; 7-8B: Part 1 section 12 (the classifier kind)"
     return d.finish()
@@ -295,6 +311,7 @@ def derive_s3(d: Derivation, rep_pass_sha256: str) -> dict:
 
 def derive_score_edit(d: Derivation) -> dict:
     doc, fam, shared = d.doc, d.fam, d.shared
+    d.family_extra["kind_names"] = shared["kind_names_78b"]
     unit = doc["a1"]["attributes_unit"]
     a1 = fam["a1_attributes_unit"]
     d.pin_or_null("a1.attributes_unit.complete_sha256", a1["complete_sha256"], a1["waits"], ["a1"])

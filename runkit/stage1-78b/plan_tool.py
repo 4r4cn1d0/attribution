@@ -24,6 +24,11 @@ COPY-MANIFEST.json's source_head) with the block-0 route added and nothing of th
     stages that port record-done, defer, requeue and confirm-stopped to block 0).
     The retrain kind is defined through rules_78b (ruling 10, A2, A8): its pod's need prints in init-block 0, and a
     retrain job refuses to be planned (stage1_rules.retrain_job) or run while RECIPE_S is null (A1).
+    plan_tool.py init-block sc --jobs FILE [--funding FILE] [--dry-run]      (K4b) the pre-block-A scorer block in its
+        own working copy tmp/family-probe-s78-<family>-sc/: one single-job pod per kind of rules_78b.SC_KINDS, each
+        with its E cap; one init per part (A2's order: the anchor job first; S_78 and the kinds that read the anchor
+        bank after it; A1's pass after the retrain); each pod's need and idle-storage line printed; a pod whose pins are
+        null refuses (module section "K4b" below).
 
 The stage-1 kit's documentation follows (its 1B route; unreachable from block 0):
 
@@ -471,6 +476,17 @@ def fixture() -> dict:
     return out
 
 
+def engine_pin(engine: str) -> str:
+    """K4b: the pinned identity of ``engine`` (rules.ENGINES: X; engine Y through rules_78b.engine_sha once ENGINE_Y is
+    filled, A13); a null or unknown engine fails."""
+    if engine in rules.ENGINES:
+        return rules.ENGINES[engine]
+    try:
+        return r78.engine_sha(engine)
+    except r78.Refused as exc:
+        fail(str(exc))
+
+
 def receipt(stage: str) -> dict:
     path = HERE / "setup" / f"packed-{stage}" / "setup-receipt.json"
     if not path.is_file():
@@ -481,7 +497,7 @@ def receipt(stage: str) -> dict:
 def engine_receipt(engine: str) -> dict:
     """G4: the packed setup of ``engine`` must carry rules.ENGINES[engine] (a packed identity that differs refuses)."""
     rec = receipt(f"stage1-{engine}")
-    if rec.get("engine_sha256") != rules.ENGINES[engine]:
+    if rec.get("engine_sha256") != engine_pin(engine):
         fail(f"the packed engine {engine} differs from its pin")
     return rec
 
@@ -1111,6 +1127,8 @@ def init_block0(args: argparse.Namespace) -> dict:
                "scorer_pods": {f: {k: {"cap_hours": p["cap_hours"], "need_usd": p["need_usd_alone"]} for k, p in kinds.items()}
                                for f, kinds in report["scorer_pods"].items()},
                "idle_storage": report["idle_storage"],          # KD5's idle-storage line (D2): the same numbers as the line
+               "idle_storage_pods": report["idle_storage_pods"],    # PP14: every block-0 pod that keeps states
+               "idle_storage_all": report["idle_storage_all"],
                "main_config": {"path": rules.REC, "config_sha256": rules.REC_CONFIG_SHA256},
                "gate_b_hold_usd": rules.GATE_B_HOLD_USD}
     if args.dry_run:
@@ -1172,6 +1190,386 @@ def release_hosts0(plan: dict, names_hosts: list[tuple[str, dict]]) -> list[str]
     for name, h in names_hosts:
         plan["hosts"][name] = h
     return [n for n, _ in names_hosts]
+
+
+# ----- K4b: the pre-block-A scorer block "sc" (ruling 11 KD6, KD10; the check's C1, M1, M3; A1, A2, A8, A13; PP1-PP16)
+# One working copy per family (tmp/family-probe-s78-<family>-sc/, KD7). Its jobs FILE is {"family": F, "launches":
+# [{"hosts": [[job], [job], ...]}, ...]}: every host holds exactly ONE job (KD6: a single-job pod with its explicit E
+# cap), a job is {kind, arm, seed, engine, recipe, family} with the kit's defaults (rules_78b.SC_ARM, SC_RECIPE; the
+# retrain on engine Y, ruling 10). init-block sc may run more than once in the copy: each run plans one PART (its
+# launches are appended to the block, with its own funding record and need), because A2's order runs across pods
+# that read each other's outputs: (1) the anchor job (and the kinds that need nothing yet: untuned_answers; o_only,
+# o_only_with_regenerate (PP17) and c0 once their pins are filled); (2) after the anchor job is recorded complete and the lead has filled the
+# anchor bank and S_78 pins (A1): l1_scan, classifier, the retrain, and rep_pass once untuned_answers is complete too;
+# (3) after the retrain: a1_pass on the engine that trained its states. Each job refuses at planning (and again at
+# release) when a pin it needs is null (rules_78b.sc_missing_pins, the scorer layer's settings waits) or a kind that
+# must come before it is not recorded complete (rules_78b.sc_order_problem). The lead re-packs between parts
+# (pack_setup.py X with the part's --inputs record; a packed stage is never overwritten, so the earlier one is moved
+# aside first): the release checks every input against the packed sealed-files.json by SHA-256.
+SC_JOB_KEYS = {"kind", "arm", "seed", "engine", "recipe", "family"}
+SC_DONE = ("complete",)
+SC_UNIT_KINDS = ("retrain", "a1_pass", "o_only_with_regenerate")   # the job runner's units (its SC_UNIT_KINDS; D2, D8)
+C0_RECORD = "c0_record.json"                                       # B17's lean job's record (lean_eval_job.py:147)
+
+
+def pins78_doc() -> dict:
+    """The scorer layer's settings/pins_78b.json at its SCORER_PINS pin (and the index's pins_78b_sha256)."""
+    path, index = ROOT / rules.PINS_78B, ROOT / rules.PINS_INDEX
+    if not path.is_file() or mac.sha(path) != rules.SCORER_PINS[rules.PINS_78B]:
+        fail(f"{rules.PINS_78B} is missing or differs from the kit's pin (stage1_rules.SCORER_PINS)")
+    if not index.is_file() or mac.sha(index) != rules.SCORER_PINS[rules.PINS_INDEX]:
+        fail(f"{rules.PINS_INDEX} is missing or differs from the kit's pin (stage1_rules.SCORER_PINS)")
+    if json.loads(index.read_text()).get("pins_78b_sha256") != rules.SCORER_PINS[rules.PINS_78B]:
+        fail(f"{rules.PINS_INDEX} names another pins_78b.json")
+    return json.loads(path.read_text())
+
+
+def scorer_settings(script: str, family: str) -> dict:
+    """The family's settings file of a 1B script (scripts/scale78b/settings/<script>__<family>.json) at its pin."""
+    rel = f"{rules.SCORER_SETTINGS}/{script}__{family}.json"
+    path = ROOT / rel
+    if rel not in rules.SCORER_PINS or not path.is_file() or mac.sha(path) != rules.SCORER_PINS[rel]:
+        fail(f"{rel} is missing or differs from the kit's pin (stage1_rules.SCORER_PINS)")
+    return json.loads(path.read_text())
+
+
+def sc_complete(plan: dict) -> dict:
+    """kind -> [(host, job)] of every scorer-block job recorded complete (record-done) in this copy's plan."""
+    out: dict = {}
+    for name, h in plan["hosts"].items():
+        if h.get("block") != r78.SC_BLOCK:
+            continue
+        for job in h["jobs"]:
+            if job.get("status") in SC_DONE:
+                out.setdefault(job["kind"], []).append((name, job))
+    return out
+
+
+def sc_planned_keys(plan: dict) -> dict:
+    """(kind, arm, seed, engine) -> status of every scorer-block job planned so far (released or pending)."""
+    b = plan["blocks"].get(r78.SC_BLOCK) or {}
+    hosts = list(plan["hosts"].values()) + list((b.get("pending") or {}).values())
+    return {(j["kind"], j.get("arm"), j.get("seed"), j["engine"]): j.get("status")
+            for h in hosts if h.get("block") == r78.SC_BLOCK for j in h["jobs"]}
+
+
+def sc_job(plan: dict, raw, where: str, pins78: dict, values: dict, done: dict) -> dict:
+    """One scorer-block job, checked (KD6, PP16, ruling 10, A2, A13) and priced (rules.job_record), with its input pins."""
+    family = family_or_fail()
+    if not isinstance(raw, dict) or set(raw) - SC_JOB_KEYS or "kind" not in raw:
+        fail(f"{where}: a job is {{kind, arm, seed, engine, recipe, family}} (keys among {sorted(SC_JOB_KEYS)})")
+    kind = raw["kind"]
+    if kind not in r78.SC_KINDS:
+        fail(f"{where}: {kind!r} is not a kind of the scorer block ({', '.join(r78.SC_KINDS)})")
+    if raw.get("family", family) != family:
+        fail(f"{where}: it names {raw['family']!r}; this copy is {family}'s (KD7)")
+    recipe = raw.get("recipe", r78.SC_RECIPE[kind])
+    if recipe != r78.SC_RECIPE[kind]:
+        fail(f"{where}: {kind} runs under recipe {r78.SC_RECIPE[kind]} only (PP1, PP4, A1; "
+             f"{'S_78' if r78.SC_RECIPE[kind] == 'S' else 'the main config'})")
+    arm = raw.get("arm", r78.SC_ARM.get(kind))
+    if arm != r78.SC_ARM.get(kind):
+        fail(f"{where}: {kind}'s arm is {r78.SC_ARM.get(kind)!r}, not {arm!r}")
+    seeds = r78.sc_seeds(family, kind)
+    seed = raw.get("seed", seeds[0] if len(seeds) == 1 else "missing")
+    if seed not in seeds or isinstance(seed, bool):
+        fail(f"{where}: {kind}'s seed must be one of {seeds} (ruling 7, ruling 10)")
+    unit_pin = values["RETRAIN_UNIT"]
+    retrains = [(n, j) for n, j in done.get("retrain", [])]
+    engines_all = [j["engine"] for _, j in retrains]
+    engines_unit = [j["engine"] for _, j in retrains if j.get("complete_sha256") == unit_pin]
+    default_engine = "Y" if kind == "retrain" else (engines_unit[-1] if kind == "a1_pass" and engines_unit else "X")
+    engine = raw.get("engine", default_engine)
+    problem = r78.sc_order_problem(kind, done)           # A2's order first, PP16, the pins (A13), then ruling 10
+    if problem:
+        fail(f"{where}: {problem}")
+    if kind in r78.X_ONLY_KINDS or engine not in ("X", "Y"):
+        problem = r78.sc_engine_problem(kind, engine)
+        if problem:
+            fail(f"{where}: {problem}")
+    try:
+        r78.sc_pins_or_refuse(family, kind, engine, pins78)
+    except r78.Refused as exc:
+        fail(f"{where}: {exc}")
+    problem = r78.sc_engine_problem(kind, engine, engines_unit if kind == "a1_pass" else engines_all)
+    if problem:
+        fail(f"{where}: {problem}")
+    if kind in rules.WRAPPER_KINDS:                    # the scorer layer's own waits (the wrapper refuses them on the pod)
+        waits = rules.wrapper_settings_waits(kind, {s: scorer_settings(s, family) for s in rules.WRAPPER_KINDS[kind]})
+        if waits:
+            fail(f"{where}: {kind}: the scorer layer's settings wait for {len(waits)} pin(s); the first, {waits[0][0]}, "
+                 f"waits for: {waits[0][1]}")
+    if kind in rules.OEXT_KINDS:
+        need = r78.C0_SCRIPT if kind == "c0" else r78.OEXT_UNIT_SCRIPT
+        if need not in (values["OEXT_78B"] or {}).get("files", {}):
+            fail(f"{where}: {kind}: OEXT_78B[{family!r}] does not list {need} (its command's script)")
+    inputs = rules.sc_input_pins(kind, pins78, values, seed)
+    null = [n for n, v in inputs.items() if v is None]
+    if null:
+        fail(f"{where}: {kind}: the input pin(s) {null} are null")
+    for pin, source, key in (("ANCHOR_BANK", "anchor", "anchor_file_sha256"),
+                             ("S3_ORIG_POOL", "untuned_answers", "s3_orig_pool_sha256")):
+        if pin in r78.SC_KIND_PINS[kind]:                # the core verifier's D5: the pin is this copy's recorded output
+            recorded = {(j.get("scorer_record") or {}).get(key) for _, j in done.get(source, [])}
+            if values[pin] not in recorded:
+                fail(f"{where}: {kind}: the {pin} pin is not the {key} that a complete {source} job of this copy's "
+                     "plan recorded (record-done's scorer_block); the lead fills the pin from that record (A1, A2)")
+    status = sc_planned_keys(plan).get((kind, arm, seed, engine), "absent")
+    if status not in ("absent", "crashed", "deferred", "not_started"):
+        fail(f"{where}: {kind} {arm} {seed} on engine {engine} is already planned ({status}); one pod per job "
+             "(A8: one retrain pod per family)")
+    job = rules.job_record(kind, arm, seed, None, None, None, engine=engine, recipe=recipe, family=family)
+    job["inputs"] = inputs
+    if recipe == "S":
+        job["recipe_s78"] = {"path": values["RECIPE_S_PATH"], "config_sha256": values["RECIPE_S"]}
+    if kind == "c0":
+        job["edit"] = resolve_edit(job, edit_sources(plan), required=True)
+        job["expect_fingerprint"] = values["C0_SOURCE"]["e1_fingerprint"]
+    if kind == "a1_pass":
+        job["groups"] = rescore_groups()
+        job["retrain_complete_sha256"] = unit_pin
+    return job
+
+
+def build_sc(plan: dict, spec: dict) -> dict:
+    """The part's launches of single-job hosts (host_record), each priced by rules_78b.sc_pod, in the file's order."""
+    family = family_or_fail()
+    if not isinstance(spec, dict) or set(spec) - {"launches", "family"}:
+        fail('the scorer block: --jobs FILE is {"family": F, "launches": [{"hosts": [[job], ...]}, ...]}')
+    if spec.get("family", family) != family:
+        fail(f"the scorer block: the jobs file is for {spec['family']!r}; this working copy is {family}'s (KD7)")
+    launches = spec.get("launches")
+    if not (isinstance(launches, list) and launches and all(isinstance(x, dict) and set(x) == {"hosts"} and
+                                                             isinstance(x["hosts"], list) and x["hosts"] for x in launches)):
+        fail('the scorer block: launches is a list of {"hosts": [[job], ...]} (each host a list of one job)')
+    pins78 = pins78_doc()
+    try:
+        values = r78.sc_pin_values(family, pins78)
+    except r78.Refused as exc:
+        fail(str(exc))
+    done = sc_complete(plan)
+    built, seen = [], set()
+    for k, launch in enumerate(launches):
+        hosts = []
+        for i, jobs in enumerate(launch["hosts"]):
+            where = f"the scorer block launch {k} host {i}"
+            if not (isinstance(jobs, list) and len(jobs) == 1):
+                fail(f"{where}: a scorer-block pod holds exactly one job (KD6: its explicit E cap, single-job)")
+            job = sc_job(plan, jobs[0], where, pins78, values, done)
+            key = (job["kind"], job["arm"], job["seed"], job["engine"])
+            if key in seen:
+                fail(f"{where}: {job['kind']} {job['arm']} {job['seed']} is listed twice")
+            seen.add(key)
+            host = host_record(plan, r78.SC_BLOCK, job["kind"], [job], None, k)
+            pod = r78.sc_pod(family, job["kind"], job["engine"])
+            if host["cap_hours"] != pod["cap_hours"]:          # pragma: no cover - one rule, two routes
+                fail(f"{where}: the pod's cap differs from rules_78b's E cap")
+            hosts.append({"host": host, "pod": pod})
+        built.append(hosts)
+    return {"launches": built, "values": values}
+
+
+def init_block_sc(args: argparse.Namespace) -> dict:
+    """init-block sc: plan one part of the scorer block (module doc), print each pod's need and its idle-storage line
+    on their own lines (the check's M3, A8, PP14), and with --funding write the part and release its first launch."""
+    family = family_or_fail()
+    plan = load()
+    try:
+        spec = json.loads(pathlib.Path(args.jobs).read_text())
+    except (OSError, ValueError):
+        fail("--jobs FILE: not a readable JSON file")
+    built = build_sc(plan, spec)
+    b = plan["blocks"].get(r78.SC_BLOCK)
+    taken = {"hosts": dict(plan["hosts"]), "blocks": plan["blocks"]}
+    names, lines, pods, need_launches_ = [], [], [], []
+    for k, launch in enumerate(built["launches"]):
+        terms = []
+        for x in launch:
+            name = new_host_name(taken, r78.SC_BLOCK)
+            taken["hosts"][name] = x["host"]
+            names.append((k, name, x["host"]))
+            lines += r78.sc_lines(family, name, x["host"]["jobs"][0]["kind"], x["pod"])
+            pods.append({"launch": k, "host": name, "kind": x["host"]["jobs"][0]["kind"], "engine": x["host"]["engine"],
+                         "cap_hours": x["pod"]["cap_hours"], "guard_usd": x["pod"]["guard_usd"],
+                         "spend_upper_usd": x["pod"]["spend_usd"], "need_usd_alone": x["pod"]["need_usd_alone"],
+                         "idle_storage": x["pod"]["idle_storage"], "inputs": dict(x["host"]["jobs"][0]["inputs"])})
+            terms.append({"cap_hours": x["pod"]["cap_hours"], "spend_usd": x["pod"]["spend_usd"]})
+        need_launches_.append(terms)
+    need = rules.funding_need_usd(need_launches_, rules.CONTINGENCY_FACTOR)
+    keeps = [p for p in pods if p["idle_storage"]["keeps_states"]]
+    lines.append(f"need scorer-block part (this init, {len(pods)} pod(s) in {len(need_launches_)} launch(es); KD6, M3): "
+                 f"${need['need_usd']:.2f} (base ${need['base_need_usd']:.2f}, contingency "
+                 f"${rules.cents(need['need_usd'] - need['base_need_usd']):.2f})")
+    lines.append(f"idle storage scorer-block part in all (KD5, PP14; E): {len(pods)} pod(s), {len(keeps)} keeping training "
+                 f"states: ${rules.cents(len(pods) * r78.idle_storage(1)['usd_per_pod_day']):.2f} per day if every pod is "
+                 "kept stopped; counted in no guard")
+    for line in lines:
+        print(line)
+    summary = {"block": r78.SC_BLOCK, "family": family, "funding_block": r78.SC_BLOCK, "pods": pods,
+               "need_usd": need["need_usd"], "base_need_usd": need["base_need_usd"],
+               "contingency_usd": rules.cents(need["need_usd"] - need["base_need_usd"]), "need_lines": lines,
+               "part": len((b or {}).get("parts") or [])}
+    if args.dry_run:
+        return {"dry_run": True, **summary}
+    if not args.funding:
+        fail("init-block sc needs --funding FILE (the lead's record of the user's money for this part, block \"sc\", or "
+             "the user's start-from-the-balance record; addendum §36)")
+    funding = funding_record(args.funding, r78.SC_BLOCK)
+    if not funding["amount_usd"] >= need["need_usd"]:
+        fail(f"the funding ${funding['amount_usd']:.2f} is below the need ${need['need_usd']:.2f} "
+             f"({rules.CONTINGENCY_FACTOR} x ${need['base_need_usd']:.2f}: this part's pods)")
+    if b is None:
+        b = {"funding": funding, "need": need, "need_launches": [], "branch": None, "deal": [], "reused": [],
+             "utc": mac.utc(), "launches": [], "released": 0, "pending": {}, "seq": len(plan["blocks"]),
+             "family": family, "parts": []}
+        plan["blocks"][r78.SC_BLOCK] = b
+    elif b["released"] < len(b["launches"]):
+        fail("the scorer block: an earlier part has a launch not yet released; release it first (A2's order)")
+    first = len(b["launches"])
+    for k in range(len(built["launches"])):
+        b["launches"].append({"hosts": [n for kk, n, _ in names if kk == k], **({"part_start": True} if k == 0 else {})})
+    for k, name, host in names:
+        host["launch"] = first + k
+        b["pending"][name] = host
+    b["need_launches"] += need_launches_
+    b["parts"].append({"funding": funding, "need": need, "launches": list(range(first, len(b["launches"]))),
+                       "hosts": [n for _, n, _ in names], "need_lines": lines, "utc": mac.utc()})
+    cont = plan["contingency"].setdefault(r78.SC_BLOCK, {"usd": 0.0, "remaining_usd": 0.0, "spent": [], "not_rerun": []})
+    cont["usd"] = rules.cents(cont["usd"] + need["contingency_usd"])
+    cont["remaining_usd"] = rules.cents(cont["remaining_usd"] + need["contingency_usd"])
+    released = release_next(plan, r78.SC_BLOCK)
+    mac.save_plan(plan)
+    mac.operator_action({"action": "init-block", "block": r78.SC_BLOCK, "family": family,
+                         "hosts": [n for _, n, _ in names], "need_usd": need["need_usd"], "funding_sha256": funding["sha256"]})
+    return {**summary, "hosts": [n for _, n, _ in names], "released": released}
+
+
+def release_hosts_sc(plan: dict, names_hosts: list[tuple[str, dict]]) -> list[str]:
+    """The scorer block's release: every check of planning again (pins, A2's order, engines, the settings waits; a pin
+    emptied or changed since init refuses), the packed engine's receipt for the host's engine (Y only once its pack
+    exists, KD9), every named input in the packed sealed-files.json at the job's pin, every code file at its
+    SCORER_PINS pin, the main config's bytes, config_sha256 and training identity, an S_78 job's config at its pin."""
+    family = family_or_fail()
+    pins78 = pins78_doc()
+    try:
+        values = r78.sc_pin_values(family, pins78)
+    except r78.Refused as exc:
+        fail(str(exc))
+    done = sc_complete(plan)
+    for name, h in names_hosts:
+        if len(h["jobs"]) != 1:
+            fail(f"{name}: a scorer-block pod holds one job (KD6)")
+        job = h["jobs"][0]
+        raw = {"kind": job["kind"], "arm": job["arm"], "seed": job["seed"], "engine": job["engine"], "recipe": job["recipe"]}
+        again = sc_job({**plan, "blocks": {k: v for k, v in plan["blocks"].items() if k != r78.SC_BLOCK}}, raw, name,
+                       pins78, values, done)
+        if again["inputs"] != job["inputs"] or again.get("recipe_s78") != job.get("recipe_s78") or \
+                again.get("expect_fingerprint") != job.get("expect_fingerprint") or again.get("groups") != job.get("groups"):
+            fail(f"{name}: a pin the job was planned with has changed since init-block sc; the lead decides")
+        if job["kind"] == "c0" and (job.get("edit") or {}).get("sha256") != (again.get("edit") or {}).get("sha256"):
+            fail(f"{name}: the R_1 edit bound at init differs from the sealed set now; the lead decides")
+        rec = engine_receipt(h["engine"])
+        if rec.get("family") not in (None, family):
+            fail(f"{name}: the packed stage1-{h['engine']} is {rec.get('family')}'s; this copy is {family}'s (KD7)")
+        doc, sealed_sha = packed_sealed(h["engine"])
+        h["sealed_files_sha256"] = sealed_sha
+        files, inputs = doc.get("files") or {}, doc.get("inputs") or {}
+        for n, pin in job["inputs"].items():
+            rel = inputs.get(n)
+            got = files.get(f"{rel.rstrip('/')}/COMPLETE.json") if rel and n in rules.SC_FOLDER_INPUTS else files.get(rel)
+            if rel is None or got != pin:
+                fail(f"{name}: the input {n!r} is not packed at the job's pin (re-pack with this part's --inputs record)")
+        for rel in rules.scorer_code(job["kind"]):
+            pin = rules.SCORER_PINS.get(rel) or ((values.get("OEXT_78B") or {}).get("files") or {}).get(rel)
+            if files.get(rel) != pin:
+                fail(f"{name}: the packed {rel} is not at its pin (stage1_rules.SCORER_PINS)")
+        path = rules.REC
+        if not (ENGINE_ROOT / path).is_file() or mac.sha(ENGINE_ROOT / path) != rules.RECIPE_PINS[path]:
+            fail(f"{path}: missing or differs from its pin (the main config's bytes)")
+        if path not in plan["recipes"]:
+            config = recipe_sha(path)
+            if config != rules.REC_CONFIG_SHA256:
+                fail(f"{path}: its config_sha256 {config[:12]}... is not the family's pin {rules.REC_CONFIG_SHA256[:12]}...")
+            plan["recipes"][path] = {"sha256": rules.RECIPE_PINS[path], "config_sha256": config,
+                                     "training_identity": recipe_training_identity(path)}
+        if plan["recipes"][path].get("training_identity") != rules.TRAINING_IDENTITY:
+            fail(f"recipe B: its training identity is not {family}'s {rules.TRAINING_IDENTITY[:8]}... (P78 §2.3)")
+        if job["recipe"] == "S":
+            s_path = job["recipe_s78"]["path"]
+            if not (ENGINE_ROOT / s_path).is_file():
+                fail(f"{s_path}: the S_78 config is missing (A1: committed by explicit path, KD8)")
+            config = recipe_sha(s_path)
+            if config != values["RECIPE_S"]:
+                fail(f"{s_path}: its config_sha256 {config[:12]}... is not RECIPE_S's pin (A1)")
+            if files.get(s_path) != mac.sha(ENGINE_ROOT / s_path):
+                fail(f"{s_path}: the packed S_78 config is not this file (re-pack)")
+            plan["recipes"][s_path] = {"sha256": mac.sha(ENGINE_ROOT / s_path), "config_sha256": config}
+    for name, h in names_hosts:
+        plan["hosts"][name] = h
+    return [n for n, _ in names_hosts]
+
+
+def sc_done_summary(host: str, i: int, job: dict, r: dict) -> dict | None:
+    """K4b: what record-done prints for a complete scorer-block job (hashes, counts and the wrapper's exit code and
+    fallback flag only; never a U, an answer or a row): the values the lead's recorded steps fill the next pins with
+    (the anchor file's SHA-256, A1; the s3_orig pool's; the retrain's COMPLETE.json and fingerprints, ruling 10)."""
+    sc = r.get("sc")
+    if not isinstance(sc, dict) or sc.get("kind") != job["kind"]:
+        fail(f"{host}: job {i} ({job['kind']}) is complete without the runner's scorer record (sc)")
+    out = {"job": i, "kind": job["kind"], "engine": job["engine"], "outputs": len(r.get("outputs") or {})}
+    for key in ("anchor_file_sha256", "anchor_record_sha256", "s3_orig_pool_sha256"):
+        if key in sc:
+            if SHA_RE.fullmatch(str(sc[key])) is None:
+                fail(f"{host}: job {i}'s scorer record {key} is not a SHA-256")
+            out[key] = sc[key]
+    if job["kind"] in ("anchor",) and "anchor_file_sha256" not in out:
+        fail(f"{host}: job {i} (anchor) names no anchor file SHA-256")
+    if job["kind"] == "untuned_answers" and "s3_orig_pool_sha256" not in out:
+        fail(f"{host}: job {i} (untuned_answers) names no s3_orig pool SHA-256")
+    if "wrapper" in sc:
+        calls = {}
+        for folder, got in sorted((sc["wrapper"] or {}).items()):
+            if not isinstance(got, dict) or type(got.get("exit_code")) is not int or \
+                    got.get("fallback_fired") not in (None, True, False) or \
+                    not (got.get("kept") is None or type(got.get("kept")) is int) or \
+                    not (got.get("top_dose") is None or re.fullmatch(r"s4[a-z0-9_]{0,10}", str(got["top_dose"]))) or \
+                    SHA_RE.fullmatch(str(got.get("record_sha256"))) is None:
+                fail(f"{host}: job {i}'s wrapper record summary is not counts and hashes only")
+            calls[pathlib.PurePosixPath(folder).name] = {k: got.get(k) for k in ("exit_code", "fallback_fired", "kept",
+                                                                                   "top_dose", "record_sha256")}
+        out["wrapper"] = calls
+    if job["kind"] in SC_UNIT_KINDS:                     # the core verifier's D2: the engine's verify of the unit
+        verified = r.get("verified")
+        if not r.get("unit") or SHA_RE.fullmatch(str(r.get("complete_sha256"))) is None or \
+                not isinstance(verified, dict) or verified.get("exit") != 0:
+            fail(f"{host}: job {i} ({job['kind']}) is complete without its unit, its COMPLETE.json SHA-256 or the "
+                 "engine's passed verify (verified.exit 0)")
+        out["verified_exit"] = 0
+    elif r.get("unit") or r.get("complete_sha256"):
+        fail(f"{host}: job {i} ({job['kind']}) is unitless (PP18; stage1_rules.UNITLESS_KINDS) but names a unit")
+    if job["kind"] == "c0":                              # PP18: unitless; its record among the hashed outputs
+        rel = f"job-{i}/c0/{C0_RECORD}"
+        if SHA_RE.fullmatch(str(sc.get("c0_record_sha256"))) is None or (r.get("outputs") or {}).get(rel) != sc["c0_record_sha256"]:
+            fail(f"{host}: job {i} (c0) names no hashed {rel} (PP18)")
+        out["c0_record_sha256"] = sc["c0_record_sha256"]
+    if job["kind"] == "o_only_with_regenerate":          # PP17: the acceptance check against the side unit
+        acc = sc.get("acceptance")
+        if acc not in (True, False) or (acc is True) != (r.get("reason") is None) or \
+                (acc is False and r.get("reason") != "LS-04") or \
+                SHA_RE.fullmatch(str(sc.get("acceptance_record_sha256"))) is None:
+            fail(f"{host}: job {i} (o_only_with_regenerate) names no acceptance verdict and record (PP17)")
+        out.update(acceptance=acc, acceptance_record_sha256=sc["acceptance_record_sha256"], oext_run=acc)
+    if r.get("complete_sha256"):
+        out["complete_sha256"] = r["complete_sha256"]
+    if "fingerprints" in sc:
+        fp = sc["fingerprints"] if isinstance(sc["fingerprints"], dict) else {}
+        points = fp.get("checkpoints") if isinstance(fp.get("checkpoints"), dict) else {}
+        if not all(v is None or SHA_RE.fullmatch(str(v)) for v in points.values()) or \
+                SHA_RE.fullmatch(str(fp.get("complete_sha256"))) is None:
+            fail(f"{host}: job {i}'s fingerprints are not SHA-256 values")
+        out["fingerprints"] = {"complete_sha256": fp["complete_sha256"],
+                               "checkpoints": {k: points.get(k) for k in ("e1", "q")}}
+    return out
 
 
 # ----- kit round 35: stage 1b's plant arms (addendum §40 point 5) ---------------------------------------------------
@@ -1270,7 +1668,7 @@ def host_record(plan: dict, block: str, role: str, jobs: list[dict], sealed_file
     engine = engines.pop()
     cap = rules.cap_hours(jobs)
     return {"wave": block, "block": block, "launch": launch, "role": role, "base_eval": False, "engine": engine,
-            "engine_sha256": rules.ENGINES[engine], "stage": f"stage1-{engine}",
+            "engine_sha256": engine_pin(engine), "stage": f"stage1-{engine}",
             "sealed_files_sha256": sealed_files_sha256, "cap_hours": cap, "guard_usd": rules.guard_usd(cap),
             "spend_upper_usd": rules.pod_spend_usd(jobs), "counted": rules.arm_count(jobs), "jobs": jobs,
             "done": False, **rules.POD_SIZES}
@@ -3067,6 +3465,8 @@ def release_hosts(plan: dict, block: str, names_hosts: list[tuple[str, dict]]) -
     plan["hosts"] (launch.py and host.py read only those)."""
     if block == "0":                                     # K1: N's release
         return release_hosts0(plan, names_hosts)
+    if block == r78.SC_BLOCK:                            # K4b: the scorer block's release
+        return release_hosts_sc(plan, names_hosts)
     sources = edit_sources(plan) if any(j["kind"] in ("arm", "regenerate", "cert_c1", "c0")
                                         for _, h in names_hosts for j in h["jobs"]) else {}
     check_launch_gates(plan, block, [h for _, h in names_hosts])
@@ -3165,8 +3565,14 @@ def init_block(args: argparse.Namespace) -> dict:
     if block not in rules.BLOCKS:
         where = "runkit/stage1-olmo/ (the stage-1 kit)" if block in rules.BLOCKS_1B else "a later round (after N's reading)"
         fail(f"block {block!r} is not planned by this copy: block 0 only in this round (ruling 11); it belongs to {where}")
+    family_or_fail()
+    if block != rules.KIT_BLOCK:                         # KD7: one block per working copy
+        fail(f"block {block!r}: this working copy is block {rules.KIT_BLOCK!r}'s (tmp/{rules.WORKING_COPY_PREFIX}"
+             f"<family>-<block>/, KD7); plan block {block} in its own copy")
     if block == "0":                                     # K1: N (ruling 11)
         return init_block0(args)
+    if block == r78.SC_BLOCK:                            # K4b: the pre-block-A scorer block
+        return init_block_sc(args)
     plan = load()
     gate_order(plan, block)
     try:
@@ -3288,7 +3694,7 @@ def release_next(plan: dict, block: str) -> list[str]:
         skip = launch_decided(b, k, decided)          # round 32 (K2): it holds only decided pending hosts
         if rules.FUNDING_BLOCK[block] == "A":
             check_planned_group_a(plan, block)        # round 3a: the block-A plan again at every release
-        if k > 0:
+        if k > 0 and not launch.get("part_start"):     # K4b: a scorer-block part's first launch (A2 is checked per job)
             before = b["launches"][k - 1].get("hosts", [])
             moved = {d["from"] for d in plan["deferrals"]} | {r["from"] for r in plan.get("requeues") or []}
             open_hosts = [n for n in before if n in plan["hosts"] and not plan["hosts"][n].get("done") and n not in moved]
@@ -3958,12 +4364,13 @@ def record_done(host: str) -> dict:
     tree = HERE / "retrieved" / host / "tree"
     decided = unpulled_decided(plan).get(host, {})       # §29 point 3: the lead's decisions, re-hashed here
     similarity = []                                      # kit round 34: B14's output, for the strata step
+    sc_outputs = []                                      # K4b: the scorer block's hashes for the lead's pin steps
     plant_units = []                                     # kit round 35: the pilot reader's inputs, by path and SHA-256
     for i, job in enumerate(h["jobs"]):
         r = recs[i]
         if (r["kind"], r.get("arm"), r.get("seed")) != (job["kind"], job["arm"], job["seed"]):
             fail(f"{host}: job {i} in JOB-DONE.json is another job")
-        if r.get("engine") != job["engine"] or r.get("engine_sha256") != rules.ENGINES[job["engine"]]:
+        if r.get("engine") != job["engine"] or r.get("engine_sha256") != engine_pin(job["engine"]):
             fail(f"{host}: job {i}'s record does not name the engine it was planned on (G4)")
         if r["status"] not in ("complete", "crashed", "deferred", "not_started"):
             fail(f"{host}: job {i} has an unknown status")
@@ -4006,8 +4413,14 @@ def record_done(host: str) -> dict:
             plant_units.append({"job": i, "arm": job["arm"], "seed": job["seed"],
                                 "unit": (tree / r["unit"]).relative_to(ROOT).as_posix(),
                                 "complete_sha256": r["complete_sha256"], "fingerprint_record": fingerprint})
+        scorer_record = None
+        if h.get("block") == r78.SC_BLOCK and r["status"] == "complete":   # K4b: hashes and counts only
+            scorer_record = sc_done_summary(host, i, job, r)
+            sc_outputs.append(scorer_record)
         job.update(status=r["status"], unit=r.get("unit"), complete_sha256=r.get("complete_sha256"),
                    outputs=outputs or None, reason=r.get("reason"))
+        if scorer_record is not None:                    # the pins' sources (the core verifier's D5): hashes only
+            job["scorer_record"] = scorer_record
         if job["kind"] == "arm" and job.get("arm") in rules.PLANT_ARMS and r["status"] == "complete" and \
                 fingerprint is None:                     # the runner's reason (the unit stands; K6's rule)
             job["fingerprint_record_problem"] = r.get("plant_fingerprint_record") or "not among the job's outputs"
@@ -4027,6 +4440,8 @@ def record_done(host: str) -> dict:
     out = {"host": host, "statuses": [j["status"] for j in h["jobs"]]}
     if similarity:                                       # kit round 34: the strata step's input, by path and SHA-256
         out["similarity"] = similarity
+    if sc_outputs:                                       # K4b: hashes, counts, exit codes and fallback flags only
+        out["scorer_block"] = sc_outputs
     if plant_units:                                      # kit round 35: the pilot reader's inputs, by path and SHA-256
         out["plant_units"] = plant_units
     return {**out, "not_pulled": not_pulled} if not_pulled else out

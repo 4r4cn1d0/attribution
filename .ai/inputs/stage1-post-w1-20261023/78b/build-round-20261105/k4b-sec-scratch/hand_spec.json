@@ -1,0 +1,609 @@
+{
+ "kind": "k4b-sec-reverify hand mutants",
+ "mutants": [
+  {
+   "id": "H-d1-wrapper-skips-dgram",
+   "file": "tests/conftest.py",
+   "describes": "the wrapper lets every SOCK_DGRAM socket through to C (a host name resolves first)",
+   "edits": [
+    [
+     "    def call(self, *args, **kwargs):\n        if name in (\"connect\", \"connect_ex\"):",
+     "    def call(self, *args, **kwargs):\n        if getattr(self, \"type\", None) == socket.SOCK_DGRAM:\n            return real(self, *args, **kwargs)\n        if name in (\"connect\", \"connect_ex\"):"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests"
+   ]
+  },
+  {
+   "id": "H-d1-sendto-two-arg-only",
+   "file": "tests/conftest.py",
+   "describes": "the wrapper reads sendto's address only without flags",
+   "edits": [
+    [
+     "            address = args[-1] if len(args) >= 2 else None",
+     "            address = args[1] if len(args) == 2 else None"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests"
+   ]
+  },
+  {
+   "id": "H-d1-connect-ex-unchecked",
+   "file": "tests/conftest.py",
+   "describes": "the wrapper checks connect but not connect_ex",
+   "edits": [
+    [
+     "        if name in (\"connect\", \"connect_ex\"):",
+     "        if name == \"connect\":"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests"
+   ]
+  },
+  {
+   "id": "H-d1-install-skips-sendmsg",
+   "file": "tests/conftest.py",
+   "describes": "install wraps connect, connect_ex and sendto only",
+   "edits": [
+    [
+     "    for name in (\"connect\", \"connect_ex\", \"sendto\", \"sendmsg\"):\n        setattr(socket.socket",
+     "    for name in (\"connect\", \"connect_ex\", \"sendto\"):\n        setattr(socket.socket"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests"
+   ]
+  },
+  {
+   "id": "H-d2-hook-daemon-threads-free",
+   "file": "tests/conftest.py",
+   "describes": "the hook ignores daemon threads",
+   "edits": [
+    [
+     "    if event not in _AUDITED:\n        return\n    kind = _AUDITED[event]",
+     "    if event not in _AUDITED or __import__(\"threading\").current_thread().daemon:\n        return\n    kind = _AUDITED[event]"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests"
+   ]
+  },
+  {
+   "id": "H-d2-hook-executor-threads-free",
+   "file": "tests/conftest.py",
+   "describes": "the hook ignores ThreadPoolExecutor worker threads (asyncio's getaddrinfo runs there)",
+   "edits": [
+    [
+     "    if event not in _AUDITED:\n        return\n    kind = _AUDITED[event]",
+     "    if event not in _AUDITED or __import__(\"threading\").current_thread().name.startswith(\"ThreadPoolExecutor\"):\n        return\n    kind = _AUDITED[event]"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests"
+   ]
+  },
+  {
+   "id": "H-d2-program-allowed-basename",
+   "file": "tests/conftest.py",
+   "describes": "calibration: the flag opens any program with an allowed base name",
+   "edits": [
+    [
+     "    return prog in ALLOWED and os.path.basename(prog) not in NEVER",
+     "    return os.path.basename(prog) in {os.path.basename(a) for a in ALLOWED} and os.path.basename(prog) not in NEVER"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests"
+   ]
+  },
+  {
+   "id": "H-d2-hook-urllib-free-under-flag",
+   "file": "tests/conftest.py",
+   "describes": "under local_processes the hook lets urllib opens through",
+   "edits": [
+    [
+     "    elif kind == \"urllib\":\n        _refuse_hook(",
+     "    elif kind == \"urllib\":\n        if ALLOWED:\n            return\n        _refuse_hook("
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests"
+   ]
+  },
+  {
+   "id": "H-d2-hook-http-bytes-free",
+   "file": "tests/conftest.py",
+   "describes": "the hook's http.client check lets a bytes host through",
+   "edits": [
+    [
+     "        host = args[1] if len(args) > 1 else None\n        if not loopback_host(host):",
+     "        host = args[1] if len(args) > 1 else None\n        if not isinstance(host, bytes) and not loopback_host(host):"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests"
+   ]
+  },
+  {
+   "id": "H-d2-hook-getnameinfo-free",
+   "file": "tests/conftest.py",
+   "describes": "the hook lets every reverse lookup through",
+   "edits": [
+    [
+     "            host = host[0] if isinstance(host, tuple) and host else \"\"",
+     "            host = \"localhost\""
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests"
+   ]
+  },
+  {
+   "id": "H-d3-default-open-mixin",
+   "file": "launch.py",
+   "describes": "SameHostAuthRedirect inherits a default_open that opens https with an unverified context",
+   "edits": [
+    [
+     "class SameHostAuthRedirect(urllib.request.HTTPRedirectHandler):\n",
+     "class _OpenFirst(urllib.request.BaseHandler):\n    def default_open(self, req):\n        if req.type == \"https\":\n            import ssl\n            return urllib.request.HTTPSHandler(context=ssl._create_unverified_context()).https_open(req)\n        return None\n\n\nclass SameHostAuthRedirect(_OpenFirst, urllib.request.HTTPRedirectHandler):\n"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests"
+   ]
+  },
+  {
+   "id": "H-d3-https-request-downgrade",
+   "file": "launch.py",
+   "describes": "SameHostAuthRedirect's https_request rewrites the request to plain http (token in clear)",
+   "edits": [
+    [
+     "    def redirect_request(self, req, fp, code, msg, headers, newurl):\n",
+     "    def https_request(self, req):\n        req.full_url = \"http://\" + req.full_url.split(\"://\", 1)[1]\n        return req\n\n    def redirect_request(self, req, fp, code, msg, headers, newurl):\n"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests"
+   ]
+  },
+  {
+   "id": "H-d3-connection-class-unverified",
+   "file": "launch.py",
+   "describes": "http_get replaces http.client.HTTPSConnection with an unverified-context factory at the call",
+   "edits": [
+    [
+     "    request = urllib.request.Request(url, headers={\"Authorization\": \"Bearer \" + token, **(headers or {})})\n",
+     "    import ssl as _s\n    _orig = http.client.HTTPSConnection\n    http.client.HTTPSConnection = lambda *a, **k: _orig(*a, **{**k, \"context\": _s._create_unverified_context()})\n    request = urllib.request.Request(url, headers={\"Authorization\": \"Bearer \" + token, **(headers or {})})\n"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests"
+   ]
+  },
+  {
+   "id": "H-d3-global-unverified-at-call",
+   "file": "launch.py",
+   "describes": "http_get makes ssl's default HTTPS context unverified at the call",
+   "edits": [
+    [
+     "    request = urllib.request.Request(url, headers={\"Authorization\": \"Bearer \" + token, **(headers or {})})\n",
+     "    import ssl as _s\n    _s._create_default_https_context = _s._create_unverified_context\n    request = urllib.request.Request(url, headers={\"Authorization\": \"Bearer \" + token, **(headers or {})})\n"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests"
+   ]
+  },
+  {
+   "id": "H-d3-calib-redirect-https-open",
+   "file": "launch.py",
+   "describes": "calibration: the round-4 verifier's handler_order 100 https_open (unverified)",
+   "edits": [
+    [
+     "class SameHostAuthRedirect(urllib.request.HTTPRedirectHandler):\n",
+     "class SameHostAuthRedirect(urllib.request.HTTPRedirectHandler):\n    handler_order = 100\n\n    def https_open(self, req):\n        import ssl\n        return urllib.request.HTTPSHandler(context=ssl._create_unverified_context()).https_open(req)\n\n"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests"
+   ]
+  },
+  {
+   "id": "H-d4-test-old-line",
+   "file": "tests/test_kit_78b_runner.py",
+   "describes": "the preflight test removes the token variables only (round 4's line)",
+   "edits": [
+    [
+     "    for name in pf.TOKEN_ENV_NAMES + HF_PATH_VARS:       # D4:",
+     "    for name in pf.TOKEN_ENV_NAMES:       # D4:"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests/test_kit_78b_runner.py"
+   ]
+  },
+  {
+   "id": "H-d5-nested-inputs-unscanned",
+   "file": "pack_setup.py",
+   "describes": "the input scan reads inputs/<name>/<file> only, not a unit folder's nested files",
+   "edits": [
+    [
+     "              if name.startswith(INPUTS_PREFIX) and not name.lower().endswith(BINARY_SUFFIXES)}",
+     "              if name.startswith(INPUTS_PREFIX) and name.count(\"/\") == 2 and not name.lower().endswith(BINARY_SUFFIXES)}"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests"
+   ]
+  },
+  {
+   "id": "H-d5-input-scan-off",
+   "file": "pack_setup.py",
+   "describes": "the input scan never refuses",
+   "edits": [
+    [
+     "    if input_hits:\n        raise SystemExit(f\"a secret pattern is in {len(input_hits)}",
+     "    if False:\n        raise SystemExit(f\"a secret pattern is in {len(input_hits)}"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests"
+   ]
+  },
+  {
+   "id": "H-pack-setup-tar-scan-dropped",
+   "file": "pack_setup.py",
+   "describes": "the setup tar's members are not scanned",
+   "edits": [
+    [
+     "    refuse_secrets({n: f for n, f in setup_files.items() if n != bundle.name}, {}, ())",
+     "    pass"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests"
+   ]
+  },
+  {
+   "id": "H-pack-payload-scan-dropped",
+   "file": "pack_setup.py",
+   "describes": "the generated payloads (bundle-manifest, sealed-files, probe, kit-family) are not scanned",
+   "edits": [
+    [
+     "    hits += [(name, pattern) for name, payload in payloads.items()\n             for pattern in secret_scan.scan_text(payload.decode(\"utf-8\", \"ignore\"))]",
+     "    pass"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests"
+   ]
+  },
+  {
+   "id": "H-pack-bootstrap-scan-dropped",
+   "file": "pack_setup.py",
+   "describes": "the generated worker bootstrap is not scanned",
+   "edits": [
+    [
+     "    if secret_scan.scan_text(bootstrap):",
+     "    if False:"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests"
+   ]
+  },
+  {
+   "id": "H-pack-engine-files-unscanned",
+   "file": "pack_setup.py",
+   "describes": "the engine's files (experiments/) are not scanned",
+   "edits": [
+    [
+     "    scanned = [f for name, f in files.items() if not name.startswith(data_prefixes)]",
+     "    scanned = [f for name, f in files.items() if not name.startswith(data_prefixes) and not name.startswith(\"experiments/\")]"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests"
+   ]
+  },
+  {
+   "id": "H-pack-scripts-unscanned",
+   "file": "pack_setup.py",
+   "describes": "the scorer code and preflight scripts (scripts/) are not scanned",
+   "edits": [
+    [
+     "    scanned = [f for name, f in files.items() if not name.startswith(data_prefixes)]",
+     "    scanned = [f for name, f in files.items() if not name.startswith(data_prefixes) and not name.startswith(\"scripts/\")]"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests"
+   ]
+  },
+  {
+   "id": "H-tok-verify-env-whole",
+   "file": "setup/job_runner_stage1.py",
+   "describes": "verify_unit gives the engine verify the runner's whole environment (not the scrubbed, offline env)",
+   "edits": [
+    [
+     "    check = subprocess.run([*ENGINE, \"verify\", \"--run\", unit, \"--prepared\", PREPARED], env=env, cwd=root,\n                           capture_output=True, text=True)\n    return {\"exit\"",
+     "    check = subprocess.run([*ENGINE, \"verify\", \"--run\", unit, \"--prepared\", PREPARED], env=dict(os.environ), cwd=root,\n                           capture_output=True, text=True)\n    return {\"exit\""
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests"
+   ]
+  },
+  {
+   "id": "H-tok-sc-steps-env-whole",
+   "file": "setup/job_runner_stage1.py",
+   "describes": "run_sc_job's steps get the runner's whole environment",
+   "edits": [
+    [
+     "    accepted = None\n    for name, argv in commands:\n        start = time.monotonic()\n        done = subprocess.run([\"python3\", \"process_receipt.py\", \"--out\", name, \"--\", *argv], env=env, cwd=root)",
+     "    accepted = None\n    for name, argv in commands:\n        start = time.monotonic()\n        done = subprocess.run([\"python3\", \"process_receipt.py\", \"--out\", name, \"--\", *argv], env=dict(os.environ), cwd=root)"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests"
+   ]
+  },
+  {
+   "id": "H-tok-accept-reads-whole-side",
+   "file": "setup/job_runner_stage1.py",
+   "describes": "the acceptance record copies the side unit's whole COMPLETE.json (its evaluation block) into job-I",
+   "edits": [
+    [
+     "           \"fields\": table, \"pass\": passed, \"failure\": None if passed else LS04}",
+     "           \"fields\": table, \"pass\": passed, \"failure\": None if passed else LS04, \"side\": side}"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests"
+   ]
+  },
+  {
+   "id": "H-d3-instance-https-open-unverified",
+   "file": "launch.py",
+   "describes": "http_get overrides its opener's HTTPSHandler instance's https_open with an unverified context (no class, no global changes)",
+   "edits": [
+    [
+     "    opener = urllib.request.build_opener(SameHostAuthRedirect)\n",
+     "    opener = urllib.request.build_opener(SameHostAuthRedirect)\n    import ssl as _s\n    for _h in opener.handlers:\n        if isinstance(_h, urllib.request.HTTPSHandler):\n            _h.https_open = lambda req, _h=_h: _h.do_open(http.client.HTTPSConnection, req, context=_s._create_unverified_context())\n"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests"
+   ]
+  },
+  {
+   "id": "P-SEC-m-wrapper-sendto-unchecked",
+   "file": "tests/conftest.py",
+   "describes": "round 4 verifier's mutant: the process-wide wrapper does not read sendto's address (a host name reaches C's resolver)",
+   "edits": [
+    [
+     "            address = args[-1] if len(args) >= 2 else None",
+     "            address = None"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests/test_pp10_process_wide.py",
+    "runkit/stage1-78b/tests/test_pp10_guard.py",
+    "runkit/stage1-78b/tests/test_gated_78b.py"
+   ]
+  },
+  {
+   "id": "P-SEC-m-wrapper-sendmsg-unchecked",
+   "file": "tests/conftest.py",
+   "describes": "round 4 verifier's mutant: the process-wide wrapper does not read sendmsg's address",
+   "edits": [
+    [
+     "            address = args[3] if len(args) >= 4 else None",
+     "            address = None"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests/test_pp10_process_wide.py",
+    "runkit/stage1-78b/tests/test_pp10_guard.py",
+    "runkit/stage1-78b/tests/test_gated_78b.py"
+   ]
+  },
+  {
+   "id": "P-SEC-m-wrapper-connect-ex-not-wrapped",
+   "file": "tests/conftest.py",
+   "describes": "round 4 verifier's mutant: connect_ex is not wrapped process-wide",
+   "edits": [
+    [
+     "    for name in (\"connect\", \"connect_ex\", \"sendto\", \"sendmsg\"):\n        setattr(socket.socket",
+     "    for name in (\"connect\", \"sendto\", \"sendmsg\"):\n        setattr(socket.socket"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests/test_pp10_process_wide.py",
+    "runkit/stage1-78b/tests/test_pp10_guard.py",
+    "runkit/stage1-78b/tests/test_gated_78b.py"
+   ]
+  },
+  {
+   "id": "P-SEC-m-wrapper-inet-only",
+   "file": "tests/conftest.py",
+   "describes": "round 4 verifier's mutant: the process-wide wrapper checks AF_INET sockets only (an AF_INET6 host name reaches C's resolver)",
+   "edits": [
+    [
+     "        detail = address_refusal(self.family, address)\n",
+     "        detail = address_refusal(self.family, address) if self.family == socket.AF_INET else None\n"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests/test_pp10_process_wide.py",
+    "runkit/stage1-78b/tests/test_pp10_guard.py",
+    "runkit/stage1-78b/tests/test_gated_78b.py"
+   ]
+  },
+  {
+   "id": "P-SEC-m-inet6-free",
+   "file": "tests/conftest.py",
+   "describes": "round 4 verifier's mutant: both process-wide checks let every AF_INET6 address through",
+   "edits": [
+    [
+     "    if address is None or family == getattr(socket, \"AF_UNIX\", object()):",
+     "    if address is None or family in (getattr(socket, \"AF_UNIX\", object()), socket.AF_INET6):"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests/test_pp10_process_wide.py",
+    "runkit/stage1-78b/tests/test_pp10_guard.py",
+    "runkit/stage1-78b/tests/test_gated_78b.py"
+   ]
+  },
+  {
+   "id": "P-SEC-m-loopback-bytes-any",
+   "file": "tests/conftest.py",
+   "describes": "round 4 verifier's mutant: any bytes host name counts as loopback",
+   "edits": [
+    [
+     "    if isinstance(host, bytes):\n        host = host.decode(\"ascii\", \"replace\")",
+     "    if isinstance(host, bytes):\n        return True"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests/test_pp10_process_wide.py",
+    "runkit/stage1-78b/tests/test_pp10_guard.py",
+    "runkit/stage1-78b/tests/test_gated_78b.py"
+   ]
+  },
+  {
+   "id": "P-SEC-m-loopback-is-private",
+   "file": "tests/conftest.py",
+   "describes": "round 4 verifier's mutant: a private-range address (203.0.113/24, 2001:db8::/32, 10/8 ...) counts as loopback",
+   "edits": [
+    [
+     ".is_loopback",
+     ".is_private"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests/test_pp10_process_wide.py",
+    "runkit/stage1-78b/tests/test_pp10_guard.py",
+    "runkit/stage1-78b/tests/test_gated_78b.py"
+   ]
+  },
+  {
+   "id": "P-SEC-m-hook-main-thread-only",
+   "file": "tests/conftest.py",
+   "describes": "round 4 verifier's mutant: the hook ignores every thread but the main one",
+   "edits": [
+    [
+     "import urllib.request\n\nimport pytest",
+     "import urllib.request\nimport threading as _t\n\nimport pytest"
+    ],
+    [
+     "def _audit(event: str, args: tuple) -> None:\n    if event not in _AUDITED:\n        return",
+     "def _audit(event: str, args: tuple) -> None:\n    if event not in _AUDITED or _t.current_thread() is not _t.main_thread():\n        return"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests/test_pp10_process_wide.py",
+    "runkit/stage1-78b/tests/test_pp10_guard.py",
+    "runkit/stage1-78b/tests/test_gated_78b.py"
+   ]
+  },
+  {
+   "id": "P-SEC-m-hook-os-free-under-flag",
+   "file": "tests/conftest.py",
+   "describes": "round 4 verifier's mutant: under local_processes the hook lets os.system / exec / fork / posix_spawn through",
+   "edits": [
+    [
+     "    if kind == \"process\":\n        if event == \"subprocess.Popen\":",
+     "    if kind == \"process\":\n        if ALLOWED and event != \"subprocess.Popen\":\n            return\n        if event == \"subprocess.Popen\":"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests/test_pp10_process_wide.py",
+    "runkit/stage1-78b/tests/test_pp10_guard.py",
+    "runkit/stage1-78b/tests/test_gated_78b.py"
+   ]
+  },
+  {
+   "id": "P-SEC-m-hook-sockets-free-under-flag",
+   "file": "tests/conftest.py",
+   "describes": "round 4 verifier's mutant: under local_processes the hook lets socket calls through",
+   "edits": [
+    [
+     "    if kind == \"socket\":\n        sock, address",
+     "    if kind == \"socket\" and ALLOWED:\n        return\n    if kind == \"socket\":\n        sock, address"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests/test_pp10_process_wide.py",
+    "runkit/stage1-78b/tests/test_pp10_guard.py",
+    "runkit/stage1-78b/tests/test_gated_78b.py"
+   ]
+  },
+  {
+   "id": "P-SEC-m-hook-lookups-free-under-flag",
+   "file": "tests/conftest.py",
+   "describes": "round 4 verifier's mutant: under local_processes the hook lets name lookups through",
+   "edits": [
+    [
+     "    elif kind == \"lookup\":\n        host = args[0] if args else None",
+     "    elif kind == \"lookup\":\n        if ALLOWED:\n            return\n        host = args[0] if args else None"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests/test_pp10_process_wide.py",
+    "runkit/stage1-78b/tests/test_pp10_guard.py",
+    "runkit/stage1-78b/tests/test_gated_78b.py"
+   ]
+  },
+  {
+   "id": "P-SEC-m-hook-lookup-numeric-only",
+   "file": "tests/conftest.py",
+   "describes": "round 4 verifier's mutant: the hook refuses lookups of numeric hosts only (calibration: the builders' tests should kill it)",
+   "edits": [
+    [
+     "        if not (host is None and event == \"socket.getaddrinfo\") and not loopback_host(host):",
+     "        if not (host is None and event == \"socket.getaddrinfo\") and not loopback_host(host) and str(host)[:1].isdigit():"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests/test_pp10_process_wide.py",
+    "runkit/stage1-78b/tests/test_pp10_guard.py",
+    "runkit/stage1-78b/tests/test_gated_78b.py"
+   ]
+  },
+  {
+   "id": "P-SEC-m-hook-popen-argv0",
+   "file": "tests/conftest.py",
+   "describes": "round 4 verifier's mutant: the hook checks argv[0], not the executable (calibration: the builders' DK-2 test should kill it)",
+   "edits": [
+    [
+     "            if program_allowed(args[0]):\n",
+     "            if program_allowed(args[1][0] if args[1] else args[0]):\n"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests/test_pp10_process_wide.py",
+    "runkit/stage1-78b/tests/test_pp10_guard.py",
+    "runkit/stage1-78b/tests/test_gated_78b.py"
+   ]
+  },
+  {
+   "id": "H-tok-run-job-env-whole",
+   "file": "setup/job_runner_stage1.py",
+   "describes": "pre-existing comparison: run_job's (engine jobs') steps get the runner's whole environment",
+   "edits": [
+    [
+     "    exits, steps = {}, []\n    for name, argv in commands:\n        start = time.monotonic()\n        done = subprocess.run([\"python3\", \"process_receipt.py\", \"--out\", name, \"--\", *argv], env=env, cwd=root)",
+     "    exits, steps = {}, []\n    for name, argv in commands:\n        start = time.monotonic()\n        done = subprocess.run([\"python3\", \"process_receipt.py\", \"--out\", name, \"--\", *argv], env=dict(os.environ), cwd=root)"
+    ]
+   ],
+   "tests": [
+    "runkit/stage1-78b/tests"
+   ]
+  }
+ ]
+}

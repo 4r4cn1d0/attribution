@@ -171,8 +171,10 @@ def inputs_record(path: str, digest: str, engine: str, family: str) -> dict:
     if doc.get("family") != family:
         raise SystemExit(f"--inputs FILE is for family {doc.get('family')!r}; this working copy is {family}'s (one family "
                          "per copy, KD7): refused")
-    if doc.get("inputs"):
+    if doc.get("inputs") and rules.KIT_BLOCK != r78.SC_BLOCK:
         raise SystemExit("block 0 packs no named input (the scorer kinds' inputs come with their round); give inputs: []")
+    if not isinstance(doc.get("inputs", []), list):
+        raise SystemExit("--inputs FILE: inputs is a list of {name, path, sha256}")
     return doc
 
 
@@ -236,8 +238,19 @@ def kit_family_doc(family: str) -> bytes:
     return (json.dumps({"kind": rules.KIT_FAMILY_KIND, "family": family, "block": rules.KIT_BLOCK}) + "\n").encode()
 
 
+BINARY_SUFFIXES = (".safetensors", ".bin", ".pt", ".pth", ".npy", ".npz", ".gz", ".tar", ".zip")   # not scanned
+INPUTS_PREFIX = "inputs/"
+
+
 def refuse_secrets(files: dict, payloads: dict, data_prefixes: tuple) -> None:
-    """Scan every packed file outside the data folders, and every generated payload; a hit refuses (names only)."""
+    """Scan every packed file outside the data folders, every non-binary file of the scorer block's named inputs
+    (inputs/; the security verifier's D5: anchor prompts, the 1B lists and pools, unit records), and every generated
+    payload; a hit refuses with names and pattern names only, never the matched text."""
+    inputs = {name: f for name, f in files.items()
+              if name.startswith(INPUTS_PREFIX) and not name.lower().endswith(BINARY_SUFFIXES)}
+    input_hits = sorted({name for name, f in inputs.items() if secret_scan.scan_paths([f])})
+    if input_hits:
+        raise SystemExit(f"a secret pattern is in {len(input_hits)} packed scorer input file(s): {input_hits[:10]}")
     scanned = [f for name, f in files.items() if not name.startswith(data_prefixes)]
     hits = [(name, pattern) for name, pattern in secret_scan.scan_paths(scanned)]
     hits += [(name, pattern) for name, payload in payloads.items()
@@ -293,6 +306,117 @@ PY2
 """
 
 
+# ===== K4b: the scorer block's bundle (plan T4 step 3's scorer part; SCORERS-78B.md section 6 item 10) ==============
+def pins78() -> dict:
+    """The scorer layer's settings/pins_78b.json at its stage1_rules.SCORER_PINS pin."""
+    path = ROOT / rules.PINS_78B
+    if not path.is_file() or sha(path) != rules.SCORER_PINS[rules.PINS_78B]:
+        raise SystemExit(f"{rules.PINS_78B} is missing or differs from the kit's pin (stage1_rules.SCORER_PINS)")
+    return json.loads(path.read_text())
+
+
+def scorer_code(family: str) -> dict:
+    """bundle path -> (source, pin) of every scorer file the block runs: stage1_rules.SCORER_PINS (the wrapper, its
+    settings index, pins and settings files, the 1B scripts it imports, the anchor job's script) and, once filled,
+    rules_78b.OEXT_78B[family]'s files (o_only, c0). A file that is missing or differs from its pin refuses at pack
+    time (Packing.add)."""
+    out = {rel: (ROOT / rel, pin) for rel, pin in sorted(rules.SCORER_PINS.items())}
+    for rel, pin in sorted(((r78.OEXT_78B.get(family) or {}).get("files") or {}).items()):
+        if not plain_path(rel) or not rel.startswith("scripts/"):
+            raise SystemExit(f"OEXT_78B[{family!r}] names {rel!r}, not a plain path under scripts/")
+        out[rel] = (ROOT / rel, pin)
+    return out
+
+
+def input_bundle_path(name: str, src: pathlib.Path) -> str:
+    """The bundle path of a named input: inputs/<name with ':' as '-'>/<the file's or folder's own name>."""
+    return f"inputs/{name.replace(':', '-')}/{src.name}"
+
+
+def sc_inputs(doc: dict, family: str) -> tuple[dict, dict]:
+    """(bundle path -> (source, SHA-256) of every file, input name -> bundle path) from the --inputs record's entries
+    {name, path, sha256}: each name one of stage1_rules.SC_INPUTS's, each SHA-256 its kit pin (stage1_rules.sc_input_pins;
+    a null pin refuses), each path a file under the checkout (a folder for stage1_rules.SC_FOLDER_INPUTS, whose pin is
+    its COMPLETE.json's SHA-256; every file of the folder is packed at its own SHA-256). Names only in refusals."""
+    try:
+        values = r78.sc_pin_values(family, pins78())
+    except r78.Refused as exc:
+        raise SystemExit(str(exc))
+    pins = {}
+    for kind in r78.SC_KINDS:
+        for seed in r78.sc_seeds(family, kind):          # PP17: one side unit's COMPLETE.json per reused seed
+            pins.update(rules.sc_input_pins(kind, pins78(), values, seed))
+    files, named = {}, {}
+    for e in doc.get("inputs") or []:
+        if not isinstance(e, dict) or set(e) != {"name", "path", "sha256"}:
+            raise SystemExit("--inputs FILE: each entry is exactly {name, path, sha256}")
+        name, rel, digest = e["name"], e["path"], e["sha256"]
+        if name not in pins:
+            raise SystemExit(f"--inputs FILE: {name!r} is not an input of the scorer block ({sorted(pins)})")
+        if name in named:
+            raise SystemExit(f"--inputs FILE: {name!r} is listed twice")
+        if pins[name] is None:
+            raise SystemExit(f"--inputs FILE: {name!r}'s pin is null (addendum A13): it waits for its event")
+        if digest != pins[name]:
+            raise SystemExit(f"--inputs FILE: {name!r}'s SHA-256 is not its pin")
+        if not plain_path(rel):
+            raise SystemExit(f"--inputs FILE: {name!r}'s path is not a plain relative path under the checkout")
+        src = ROOT / rel
+        if name in rules.SC_FOLDER_INPUTS:
+            if not src.is_dir() or not (src / "COMPLETE.json").is_file() or sha(src / "COMPLETE.json") != digest:
+                raise SystemExit(f"--inputs FILE: {name!r} is not a unit folder whose COMPLETE.json has its pin")
+            base = input_bundle_path(name, src)
+            for f in sorted(src.rglob("*")):
+                if f.is_symlink():
+                    raise SystemExit(f"--inputs FILE: {name!r} holds a symbolic link")
+                if f.is_file():
+                    files[f"{base}/{f.relative_to(src).as_posix()}"] = (f, sha(f))
+            named[name] = base
+        else:
+            if not src.is_file() or src.is_symlink() or sha(src) != digest:
+                raise SystemExit(f"--inputs FILE: {name!r}'s file is missing or differs from its SHA-256")
+            files[input_bundle_path(name, src)] = (src, digest)
+            named[name] = input_bundle_path(name, src)
+    return files, named
+
+
+def recipe_s78(tree: pathlib.Path, family: str) -> dict | None:
+    """The family's S_78 config once RECIPE_S is filled (A1): its path (pins_78b.json recipe_s78.path), its bytes'
+    SHA-256 and its config_sha256 by the engine's own hash, which must be RECIPE_S's pin; None while the pin is null."""
+    try:
+        values = r78.sc_pin_values(family, pins78())
+    except r78.Refused as exc:
+        raise SystemExit(str(exc))
+    if values["RECIPE_S"] is None:
+        return None
+    rel = values["RECIPE_S_PATH"]
+    f = tree / rel
+    if not f.is_file() or f.is_symlink():
+        raise SystemExit(f"{rel}: the S_78 config is missing from the engine tree (A1: committed by explicit path, KD8)")
+    config = config_sha256(tree, rel)
+    if config != values["RECIPE_S"]:
+        raise SystemExit(f"{rel}: its config_sha256 {config[:12]}... is not RECIPE_S's pin {values['RECIPE_S'][:12]}...")
+    return {"path": rel, "sha256": sha(f), "config_sha256": config}
+
+
+def sc_report(family: str, tree: pathlib.Path, inputs_doc: dict | None) -> dict:
+    """The dry run's scorer part: the code files checked against their pins (names of the bad ones), the inputs
+    (name -> SHA-256), the S_78 config (or null), and per kind the pins it still waits for."""
+    code = scorer_code(family)
+    bad = [rel for rel, (src, pin) in code.items() if not src.is_file() or src.is_symlink() or sha(src) != pin]
+    if bad:
+        raise SystemExit(f"{len(bad)} scorer file(s) missing or differ from their pins: {bad[:10]}")
+    files, named = sc_inputs(inputs_doc or {}, family)
+    doc = pins78()
+    waits = {}
+    for kind in r78.SC_KINDS:
+        engine = "Y" if kind == "retrain" else "X"
+        waits[kind] = [p for p, _ in r78.sc_missing_pins(family, kind, engine, doc)]
+    return {"code": {rel: pin for rel, (_, pin) in code.items()}, "inputs": {n: files[p][1] if p in files else
+            files[f"{p}/COMPLETE.json"][1] for n, p in named.items()}, "recipe_s78": recipe_s78(tree, family),
+            "waits": waits}
+
+
 def parse(argv: list[str]) -> argparse.Namespace:
     ap = argparse.ArgumentParser(prog="pack_setup.py")
     ap.add_argument("engine", choices=["X"], help="engine X (engine Y's pack comes with KD9's re-measure)")
@@ -306,7 +430,7 @@ def parse(argv: list[str]) -> argparse.Namespace:
     return a
 
 
-def dry_run_report(family: str, tree: pathlib.Path) -> dict:
+def dry_run_report(family: str, tree: pathlib.Path, inputs_doc: dict | None = None) -> dict:
     code = engine_code(tree)
     if code != r78.ENGINE_X:
         raise SystemExit(f"this checkout's engine identity {code[:12]}... is not engine X's pin {r78.ENGINE_X[:12]}... (KD8)")
@@ -315,17 +439,17 @@ def dry_run_report(family: str, tree: pathlib.Path) -> dict:
     return {"dry_run": True, "engine": "X", "engine_sha256": code, "family": family, "kit_block": rules.KIT_BLOCK,
             "main_config": main_config(tree), "prepared_manifests": {rules.PREPARED_NAME: digest},
             "prepared_folder": str(folder.relative_to(ROOT)), "sealed_set": sealed, "git_commit": git_state(),
-            "probe": rules.PROBE_KEY, "pod": dict(rules.POD_SIZES)}
+            "probe": rules.PROBE_KEY, "pod": dict(rules.POD_SIZES),
+            **({"scorer_block": sc_report(family, tree, inputs_doc)} if rules.KIT_BLOCK == r78.SC_BLOCK else {})}
 
 
 def main(argv: list[str] | None = None) -> None:
     a = parse(sys.argv[1:] if argv is None else argv)
     engine = a.engine
     family = family_of_run(a.family)
-    if a.inputs:
-        inputs_record(a.inputs, a.inputs_sha256, engine, family)
+    inputs_doc = inputs_record(a.inputs, a.inputs_sha256, engine, family) if a.inputs else None
     if a.dry_run:
-        print(json.dumps(dry_run_report(family, ROOT), indent=2))
+        print(json.dumps(dry_run_report(family, ROOT, inputs_doc), indent=2))
         return
     out = SETUP / f"packed-stage1-{engine}"
     if out.exists():
@@ -345,9 +469,20 @@ def main(argv: list[str] | None = None) -> None:
         if f.is_file() and not f.is_symlink():
             pack.add(f"{DATA}/kt-prepared/{rules.PREPARED_NAME}/{f.relative_to(folder)}", f, sha(f))
     pack.add(config["path"], tree / config["path"], config["sha256"])
+    s78 = None
+    if rules.KIT_BLOCK == r78.SC_BLOCK:                  # K4b: the scorer block's code, inputs and S_78 config
+        for rel, (src, pin) in scorer_code(family).items():
+            pack.add(rel, src, pin)
+        in_files, named = sc_inputs(inputs_doc or {}, family)
+        for rel, (src, digest) in in_files.items():
+            pack.add(rel, src, digest)
+        pack.inputs.update(named)
+        s78 = recipe_s78(tree, family)
+        if s78 is not None:
+            pack.add(s78["path"], tree / s78["path"], s78["sha256"])
     pack.refuse()
     files = engine_files(tree)
-    overlap = sorted(set(files) & set(pack.files) - {config["path"]})
+    overlap = sorted(set(files) & set(pack.files) - {config["path"]} - ({s78["path"]} if s78 else set()))
     if overlap:
         raise SystemExit(f"a kit file would replace an engine file: {overlap[:3]}")
     files.update(pack.files)
@@ -393,6 +528,7 @@ def main(argv: list[str] | None = None) -> None:
                "engine_sha256": code, "main_config": config, "prepared_manifests": dict(rules.PREPARED_MANIFESTS),
                "sealed_set": sealed["manifest"], "edits": {f"R_d{d}": e for d, e in sorted(sealed["edits"].items())},
                "inputs_record_sha256": a.inputs_sha256, "sealed_files_sha256": hashlib.sha256(sealed_json).hexdigest(),
+               "recipe_s78": s78,
                "inputs": dict(sorted(pack.inputs.items())),
                "bundle": {"path": str(bundle), "sha256": bundle_sha, "files": len(files)},
                "setup": {"path": str(setup), "sha256": sha(setup), "bytes": setup.stat().st_size},

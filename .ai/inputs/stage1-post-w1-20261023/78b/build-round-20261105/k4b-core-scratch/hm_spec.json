@@ -1,0 +1,189 @@
+{
+ "kind": "k4b-core-reverify hand mutants",
+ "mutants": [
+  {
+   "id": "K4bcr-R1",
+   "part": "D1/PP18",
+   "describes": "runner hashes every out folder, not only job-I/ ones (unit folders hashed into outputs)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "folders = [f for f in out_dirs(commands) if f.startswith(f\"job-{index}/\")]",
+   "replace": "folders = out_dirs(commands)"
+  },
+  {
+   "id": "K4bcr-R2",
+   "part": "D1/PP18",
+   "describes": "record-done: c0's record hash need not equal the hashed output",
+   "file": "plan_tool.py",
+   "find": "if SHA_RE.fullmatch(str(sc.get(\"c0_record_sha256\"))) is None or (r.get(\"outputs\") or {}).get(rel) != sc[\"c0_record_sha256\"]:",
+   "replace": "if SHA_RE.fullmatch(str(sc.get(\"c0_record_sha256\"))) is None:"
+  },
+  {
+   "id": "K4bcr-R3",
+   "part": "PP18",
+   "describes": "c0 expects C0_SOURCE's COMPLETE.json hash as the adapter fingerprint",
+   "file": "plan_tool.py",
+   "find": "job[\"expect_fingerprint\"] = values[\"C0_SOURCE\"][\"e1_fingerprint\"]",
+   "replace": "job[\"expect_fingerprint\"] = values[\"C0_SOURCE\"][\"complete_sha256\"]"
+  },
+  {
+   "id": "K4bcr-R4",
+   "part": "D2",
+   "describes": "record-done: a unit kind need not name its unit",
+   "file": "plan_tool.py",
+   "find": "if not r.get(\"unit\") or SHA_RE.fullmatch(str(r.get(\"complete_sha256\"))) is None or \\",
+   "replace": "if SHA_RE.fullmatch(str(r.get(\"complete_sha256\"))) is None or \\"
+  },
+  {
+   "id": "K4bcr-R5",
+   "part": "D2",
+   "describes": "runner: a1_pass's attributes unit is not verified",
+   "file": "setup/job_runner_stage1.py",
+   "find": "record.update(unit=unit, complete_sha256=sha(root / unit / \"COMPLETE.json\"), verified=verify_unit(root, unit, env))",
+   "replace": "record.update(unit=unit, complete_sha256=sha(root / unit / \"COMPLETE.json\"), verified=verify_unit(root, unit, env) if kind != \"a1_pass\" else {\"exit\": 0, \"tail\": \"\"})"
+  },
+  {
+   "id": "K4bcr-R6",
+   "part": "PP17",
+   "describes": "acceptance: a field missing on both sides counts as equal",
+   "file": "setup/job_runner_stage1.py",
+   "find": "\"equal\": rules.hex64(src) is not None and src == got}",
+   "replace": "\"equal\": src == got}"
+  },
+  {
+   "id": "K4bcr-R7",
+   "part": "PP17",
+   "describes": "acceptance: a side fingerprint the regenerated unit omits is skipped",
+   "file": "setup/job_runner_stage1.py",
+   "find": "if key in listed:",
+   "replace": "if key in listed and key in (regen_points.get(point) or {}):"
+  },
+  {
+   "id": "K4bcr-R8",
+   "part": "PP17",
+   "describes": "every seed's side-unit input pin is seed 1101's",
+   "file": "stage1_rules.py",
+   "find": "table[SIDE_COMPLETE.format(seed=seed)] = A0_UNITS[seed][\"complete_sha256\"]",
+   "replace": "table[SIDE_COMPLETE.format(seed=seed)] = A0_UNITS[1101][\"complete_sha256\"]"
+  },
+  {
+   "id": "K4bcr-R9",
+   "part": "PP17",
+   "describes": "record-done: acceptance false with a reason other than LS-04 accepted",
+   "file": "plan_tool.py",
+   "find": "(acc is False and r.get(\"reason\") != \"LS-04\") or \\",
+   "replace": "False or \\"
+  },
+  {
+   "id": "K4bcr-R10",
+   "part": "PP17",
+   "describes": "runner: any job-I file (the acceptance record) counts as O-ext output",
+   "file": "setup/job_runner_stage1.py",
+   "find": "if not any(rel.startswith(f\"job-{index}/oext/\") for rel in record[\"outputs\"]):",
+   "replace": "if not any(rel.startswith(f\"job-{index}/\") for rel in record[\"outputs\"]):"
+  },
+  {
+   "id": "K4bcr-R11",
+   "part": "PP17",
+   "describes": "o_only does not wait on OEXT_78B",
+   "file": "rules_78b.py",
+   "find": "\"o_only\": (\"OEXT_78B\",), \"o_only_with_regenerate\"",
+   "replace": "\"o_only\": (), \"o_only_with_regenerate\""
+  },
+  {
+   "id": "K4bcr-R12",
+   "part": "D4",
+   "describes": "sc block: c0's pod keeps no states (block 0 still says it does)",
+   "file": "rules_78b.py",
+   "find": "keeps = SC_STATE_KINDS.get(kind)",
+   "replace": "keeps = SC_STATE_KINDS.get(kind) if kind != \"c0\" else None"
+  },
+  {
+   "id": "K4bcr-R13",
+   "part": "D5",
+   "describes": "a1_pass's ANCHOR_BANK pin not bound to the recorded anchor file",
+   "file": "plan_tool.py",
+   "find": "if pin in r78.SC_KIND_PINS[kind]:                # the core verifier",
+   "replace": "if pin in r78.SC_KIND_PINS[kind] and kind != \"a1_pass\":                # the core verifier"
+  },
+  {
+   "id": "K4bcr-R14",
+   "part": "D5",
+   "describes": "rep_pass's pins not bound to the recorded outputs",
+   "file": "plan_tool.py",
+   "find": "if pin in r78.SC_KIND_PINS[kind]:                # the core verifier",
+   "replace": "if pin in r78.SC_KIND_PINS[kind] and kind != \"rep_pass\":                # the core verifier"
+  },
+  {
+   "id": "K4bcr-R15",
+   "part": "D6",
+   "describes": "OEXT_78B files may be empty",
+   "file": "rules_78b.py",
+   "find": "if not isinstance(files, dict) or not files:",
+   "replace": "if not isinstance(files, dict):"
+  },
+  {
+   "id": "K4bcr-R16",
+   "part": "D6",
+   "describes": "OEXT_78B inputs need not be SHA-256 values",
+   "file": "rules_78b.py",
+   "find": "if not all(isinstance(v, str) and CONFIG_SHA256.match(v) for v in inputs.values()):",
+   "replace": "if False:"
+  },
+  {
+   "id": "K4bcr-R17",
+   "part": "D8",
+   "describes": "backup: only o_only_with_regenerate's scorer-unit outputs are checked (not a1_pass, retrain)",
+   "file": "backup_records_stage1.py",
+   "find": "scorer_unit = plan[\"hosts\"][host].get(\"block\") == \"sc\" and job.get(\"kind\") not in rules.UNITLESS_KINDS",
+   "replace": "scorer_unit = plan[\"hosts\"][host].get(\"block\") == \"sc\" and job.get(\"kind\") == \"o_only_with_regenerate\""
+  },
+  {
+   "id": "K4bcr-R18",
+   "part": "D8",
+   "describes": "record-done: a1_pass is not a unit kind",
+   "file": "plan_tool.py",
+   "find": "SC_UNIT_KINDS = (\"retrain\", \"a1_pass\", \"o_only_with_regenerate\")   # the job runner",
+   "replace": "SC_UNIT_KINDS = (\"retrain\", \"o_only_with_regenerate\")   # the job runner"
+  },
+  {
+   "id": "K4bcr-R19",
+   "part": "A2",
+   "describes": "rep_pass need not wait for the untuned pass",
+   "file": "rules_78b.py",
+   "find": "\"rep_pass\": (\"anchor\", \"untuned_answers\"),",
+   "replace": "\"rep_pass\": (\"anchor\",),"
+  },
+  {
+   "id": "K4bcr-R20",
+   "part": "A2",
+   "describes": "l1_scan and classifier need not wait for the anchor job",
+   "file": "rules_78b.py",
+   "find": "SC_AFTER = {\"l1_scan\": (\"anchor\",), \"classifier\": (\"anchor\",),",
+   "replace": "SC_AFTER = {\"l1_scan\": (), \"classifier\": (),"
+  },
+  {
+   "id": "K4bcr-R21",
+   "part": "PP17",
+   "describes": "acceptance: the side unit need not list an e1 adapter fingerprint",
+   "file": "setup/job_runner_stage1.py",
+   "find": "if rules.hex64((side_points.get(\"e1\") or {}).get(\"adapter_fingerprint\")) is None:",
+   "replace": "if False:"
+  },
+  {
+   "id": "K4bcr-R22",
+   "part": "PP17",
+   "describes": "runner: the regenerated unit's fingerprints are not recorded",
+   "file": "setup/job_runner_stage1.py",
+   "find": "SC_FINGERPRINT_KINDS = (\"retrain\", \"o_only_with_regenerate\")",
+   "replace": "SC_FINGERPRINT_KINDS = (\"retrain\",)"
+  },
+  {
+   "id": "K4bcr-R23",
+   "part": "D4/PP17",
+   "describes": "block 0's need line drops the per-seed pod count",
+   "file": "stage1_rules.py",
+   "find": "each = f\"{n_pods} pods, one per reused a0 seed, each: \" if kind in r78.SC_PER_SEED_KINDS else \"\"",
+   "replace": "each = \"\""
+  }
+ ]
+}

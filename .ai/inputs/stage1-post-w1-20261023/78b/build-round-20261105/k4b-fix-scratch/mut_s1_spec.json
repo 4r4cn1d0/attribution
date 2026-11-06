@@ -1,0 +1,13 @@
+[
+ {"id": "MV-identity-guard-off", "file": "scripts/scale78b/s1_olmo2_7b_check.py",
+  "find": "        if args.out is not None and lies_in(args.out, scratch):", "replace": "        if False:"},
+ {"id": "MV-lies-in-node-only", "file": "scripts/scale78b/s1_olmo2_7b_check.py",
+  "find": "for folder in (node, *node.parents))", "replace": "for folder in (node,))"},
+ {"id": "MV-lies-in-string", "file": "scripts/scale78b/s1_olmo2_7b_check.py",
+  "find": "    return any(os.path.samefile(folder, scratch) for folder in (node, *node.parents))",
+  "replace": "    return any(str(folder) == str(scratch) for folder in (node, *node.parents))"},
+ {"id": "MV-V1b-list-exist-ok", "file": "scripts/scale78b/s1_olmo2_7b_check.py",
+  "find": "            (scratch / \"list\").mkdir(parents=True)\n", "replace": "            (scratch / \"list\").mkdir(parents=True, exist_ok=True)\n"},
+ {"id": "MV-V2-direct-children-only", "file": "scripts/scale78b/s1_olmo2_7b_check.py",
+  "find": "        if out == scratch or scratch in out.parents:", "replace": "        if out == scratch or out.parent == scratch:"}
+]

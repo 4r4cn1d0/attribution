@@ -76,7 +76,7 @@ def test_the_constants_block_agrees_with_probes_the_configs_and_the_side_units(w
         ["policy", "audit_tokenizer", "guard"] if w.family == "olmo2-7b" else ["policy", "guard"])
     assert r.POD_SIZES == {"preflight_wait_s": 5400, "container_disk_gb": 60, "volume_gb": 50}
     assert r.MAX_ARMS_PER_POD == 4 == kit["max_arms_per_pod"] and kit["volume_gb"] == 50 == r78.VOLUME_GB
-    assert r.POD_NAME_PREFIX == "attribution-s78-" and r.HOST_PREFIX == {"0": f"{w.family}-0"}
+    assert r.POD_NAME_PREFIX == "attribution-s78-" and r.HOST_PREFIX == {"0": f"{w.family}-0", "sc": f"{w.family}-sc"}
     assert r.ENGINES == {"X": X} and r.ENGINE_X == X and r78.ENGINE_Y is None and r78.Y_MEASURED is False
     # the money rules carried over (the K1 brief)
     assert (r.PLANNING_PRICE_USD, r.RATE_USD, r.MAX_PRICE_USD, r.RESERVE_USD, r.CONTINGENCY_FACTOR) == (1.85, 1.79, 10.0, 6.0, 1.25)
@@ -312,7 +312,7 @@ def test_a_jobs_file_that_departs_from_ns_layout_refuses(w, launches, match):
 
 def test_the_1b_blocks_refuse_in_this_copy(w):
     r = w.rules
-    assert r.BLOCKS == ("0",) and r.BLOCKS_1B == ("S1-0", "cert", "A", "certify", "B", "C", "sim", "P")
+    assert r.BLOCKS == ("0", "sc") and r.BLOCKS_1B == ("S1-0", "cert", "A", "certify", "B", "C", "sim", "P")
     for block in r.BLOCKS_1B + ("D", "1"):
         with pytest.raises(ValueError, match="block 0 only"):
             r.block_runs("A", block)
@@ -345,7 +345,7 @@ def test_the_need_printout_lists_n_the_retrain_pods_and_the_scorer_pods(wf, caps
         assert "cap 4.50 h" in x and "engine Y" in x and "recipe S_78" in x
         assert x.endswith(f"${rk.times_125(rk.cents(6 + 1.85 * 4.5)):.2f}")       # $17.91: 1.25 x (6 + 4.5 x 1.85)
     scorer = [x for x in lines if x.startswith("need scorer pod ")]
-    assert len(scorer) == 2 * len(r78.SCORER_KINDS) == 16                           # PP8: rep_pass AND a1_pass
+    assert len(scorer) == 2 * len(r78.SCORER_KINDS) == 18                           # PP8: rep_pass AND a1_pass; PP17
     for family in r78.FAMILIES:
         for kind in r78.SCORER_KINDS:
             line = next(x for x in scorer if x.startswith(f"need scorer pod {family} {kind} "))
@@ -357,24 +357,41 @@ def test_the_need_printout_lists_n_the_retrain_pods_and_the_scorer_pods(wf, caps
     assert a1.endswith("$45.66") and "E cap 16.50 h" in a1 and "A1's attributes pass" in a1   # KD6's 16.5 h cap (PP8)
     rep = next(x for x in scorer if " rep_pass " in x and "olmo2-7b" in x)
     assert rep.endswith("$18.49") and "E cap 4.75 h" in rep and "REQ-3's representation pass" in rep   # 1 h x 2.3 x 1.5
+    for family, n in (("olmo2-7b", 3), ("llama31-8b", 2)):                      # PP17: one pod per reused a0 seed
+        regen = next(x for x in scorer if " o_only_with_regenerate " in x and family in x)
+        assert f"; {n} pods, one per reused a0 seed, each: single-job E cap 4.50 h" in regen and regen.endswith("$17.91")
     cls = next(x for x in scorer if " classifier " in x and "llama31-8b" in x)
     assert "recipe S_78" in cls                                                          # PP4: the classifier under S_78
     # KD5's idle-storage line (D2): about $0.33 per day per stopped 50 GB pod; N's two pods: $0.67 per day, $20 per month
     idle = [x for x in lines if x.startswith("idle storage (KD5; E, KCR:161): ")]
-    assert idle == [lines[-1]]
+    assert idle == [lines[-13]]                                                        # D2's N line, then PP14's lines
     assert "about $0.33 per day per stopped 50 GB pod that keeps its states ($0.20 per GB per month)" in idle[0]
     assert "N's 2 pods kept stopped: $0.67 per day, about $20.00 per month; counted in no guard" in idle[0]
     assert report["idle_storage"] == {"volume_gb": 50, "usd_per_gb_month": 0.2, "usd_per_pod_day": 0.33, "n_pods_kept": 2,
                                       "usd_per_day": 0.67, "usd_per_month": 20.0, "basis": report["idle_storage"]["basis"]}
     assert report["idle_storage"]["basis"].startswith("E: ") and "KCR:161" in report["idle_storage"]["basis"]
     assert rk.cents(50 * 0.20 / 30) == 0.33                                             # the arithmetic by hand
-    assert len(lines) == 2 + 2 + 16 + 1
+    # PP14: one idle-storage line per other block-0 pod that keeps states (round 4b's one definition, SC_STATE_KINDS:
+    # per family the retrain, a1_pass, one o_only_with_regenerate pod per reused seed, c0), then the block's total
+    assert lines[-12:] == r78.idle_storage_lines(r78.block0_report())[1:]
+    assert [x.split(" (KD5")[0] for x in lines[-12:-1]] == [
+        "idle storage retrain olmo2-7b", "idle storage scorer olmo2-7b a1_pass",
+        "idle storage scorer olmo2-7b o_only_with_regenerate 1101", "idle storage scorer olmo2-7b o_only_with_regenerate 1102",
+        "idle storage scorer olmo2-7b o_only_with_regenerate 1103", "idle storage scorer olmo2-7b c0",
+        "idle storage retrain llama31-8b", "idle storage scorer llama31-8b a1_pass",
+        "idle storage scorer llama31-8b o_only_with_regenerate 1101",
+        "idle storage scorer llama31-8b o_only_with_regenerate 1102", "idle storage scorer llama31-8b c0"]
+    assert lines[-1].startswith("idle storage block 0 in all (KD5, PP14; E): 13 pods") and "$4.33 per day" in lines[-1]
+    assert report["idle_storage_all"] == r78.idle_storage(13) and len(report["idle_storage_pods"]) == 13
+    assert len(lines) == 2 + 2 + 18 + 1 + 11 + 1
     # the CLI prints each line, then the JSON (the lines are in it too), on the dry run and the real init
     assert w.tool.main(["init-block", "0", "--jobs", w.n_jobs(), "--dry-run"]) == 0
     printed = capsys.readouterr().out.strip().splitlines()
     assert printed[:-1] == lines and json.loads(printed[-1])["need_lines"] == lines
     assert json.loads(printed[-1])["retrain_pods"] == {f: {"cap_hours": 4.5, "need_usd": 17.91} for f in r78.FAMILIES}
     assert json.loads(printed[-1])["idle_storage"] == report["idle_storage"]            # D2: in the summary JSON too
+    assert json.loads(printed[-1])["idle_storage_pods"] == report["idle_storage_pods"]  # PP14: in the summary JSON too
+    assert json.loads(printed[-1])["idle_storage_all"] == report["idle_storage_all"]
     assert json.loads(printed[-1])["scorer_pods"]["olmo2-7b"]["a1_pass"] == {"cap_hours": 16.5, "need_usd": 45.66}
     assert json.loads(printed[-1])["scorer_pods"]["olmo2-7b"]["rep_pass"] == {"cap_hours": 4.75, "need_usd": 18.49}
     assert w.tool.main(["init-block", "0", "--jobs", w.n_jobs(), "--funding", w.funding("0", 56.06)]) == 0

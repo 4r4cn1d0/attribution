@@ -1,0 +1,950 @@
+{
+ "kind": "stage1-78b scorer-block mutation spec (K4b)",
+ "note": "each mutant's find text occurs exactly once in its file; runner: tests/run_mutants_scorer_78b.py (test_scorer_block_78b.py) Round 4b (6 Nov): K4bf-m-* for the core verifier's D1-D8 (c0 unitless, the engine verify, the anchor and s3_orig binding, OEXT_78B's form, HM4, HM5, HM8, HM12, HM14, a1_pass's unit), PP17's o_only_with_regenerate and the pack's input scan (security D5).",
+ "mutants": [
+  {
+   "id": "K4b-m-untuned-one-call",
+   "part": "PP2",
+   "describes": "the untuned pod's E cap covers the S4 call only",
+   "file": "rules_78b.py",
+   "find": "        upper = WIDE_CAP_FACTOR * (s3_call + s4_call)\n",
+   "replace": "        upper = WIDE_CAP_FACTOR * s4_call\n"
+  },
+  {
+   "id": "K4b-m-untuned-s3-chunks",
+   "part": "PP2",
+   "describes": "the S3 call counts one chunk fewer",
+   "file": "rules_78b.py",
+   "find": "        s3_call = first + (s3_chunks - 1) * batch + ends\n",
+   "replace": "        s3_call = first + (s3_chunks - 2) * batch + ends\n"
+  },
+  {
+   "id": "K4b-m-pins-rep-no-s3orig",
+   "part": "A13",
+   "describes": "rep_pass no longer needs the s3_orig pool pin",
+   "file": "rules_78b.py",
+   "find": "\"rep_pass\": (\"RECIPE_S\", \"ANCHOR_BANK\", \"S3_ORIG_POOL\"), ",
+   "replace": "\"rep_pass\": (\"RECIPE_S\", \"ANCHOR_BANK\"), "
+  },
+  {
+   "id": "K4b-m-pins-a1-no-unit",
+   "part": "A13",
+   "describes": "a1_pass no longer needs the retrain unit pin",
+   "file": "rules_78b.py",
+   "find": "    \"a1_pass\": (\"RECIPE_S\", \"ANCHOR_BANK\", \"RETRAIN_UNIT\"),\n",
+   "replace": "    \"a1_pass\": (\"RECIPE_S\", \"ANCHOR_BANK\"),\n"
+  },
+  {
+   "id": "K4b-m-pins-o-only-none",
+   "part": "M1",
+   "describes": "o_only needs no O-ext pin",
+   "file": "rules_78b.py",
+   "find": "    \"o_only\": (\"OEXT_78B\",), \"o_only_with_regenerate\"",
+   "replace": "    \"o_only\": (), \"o_only_with_regenerate\""
+  },
+  {
+   "id": "K4b-m-pins-c0-no-source",
+   "part": "A13",
+   "describes": "c0 needs no C0_SOURCE",
+   "file": "rules_78b.py",
+   "find": "\"c0\": (\"OEXT_78B\", \"C0_SOURCE\"),",
+   "replace": "\"c0\": (\"OEXT_78B\",),"
+  },
+  {
+   "id": "K4b-m-pins-l1-none",
+   "part": "A1",
+   "describes": "l1_scan needs no anchor bank pin",
+   "file": "rules_78b.py",
+   "find": "    \"l1_scan\": (\"ANCHOR_BANK\",), \"classifier\"",
+   "replace": "    \"l1_scan\": (), \"classifier\""
+  },
+  {
+   "id": "K4b-m-pins-y-no-engine-pin",
+   "part": "A13",
+   "describes": "a job on engine Y needs no ENGINE_Y",
+   "file": "rules_78b.py",
+   "find": "    return SC_KIND_PINS[kind] + ((\"ENGINE_Y\",) if engine == \"Y\" else ())\n",
+   "replace": "    return SC_KIND_PINS[kind]\n"
+  },
+  {
+   "id": "K4b-m-after-retrain-free",
+   "part": "A2",
+   "describes": "the retrain needs no anchor job before it",
+   "file": "rules_78b.py",
+   "find": "\"retrain\": (\"anchor\",), \"a1_pass\"",
+   "replace": "\"retrain\": (), \"a1_pass\""
+  },
+  {
+   "id": "K4b-m-after-a1-no-retrain",
+   "part": "A2",
+   "describes": "A1's pass needs no retrain before it",
+   "file": "rules_78b.py",
+   "find": "\"a1_pass\": (\"anchor\", \"retrain\")}",
+   "replace": "\"a1_pass\": (\"anchor\",)}"
+  },
+  {
+   "id": "K4b-m-after-rep-no-untuned",
+   "part": "A2",
+   "describes": "rep_pass needs no untuned pass before it",
+   "file": "rules_78b.py",
+   "find": "\"rep_pass\": (\"anchor\", \"untuned_answers\"),",
+   "replace": "\"rep_pass\": (\"anchor\",),"
+  },
+  {
+   "id": "K4b-m-order-off",
+   "part": "A2",
+   "describes": "the order check never refuses",
+   "file": "rules_78b.py",
+   "find": "    if before:\n        return (f\"{kind} comes after",
+   "replace": "    if False:\n        return (f\"{kind} comes after"
+  },
+  {
+   "id": "K4b-m-engine-x-retrain-any",
+   "part": "ruling 10",
+   "describes": "the X retrain needs no complete Y retrain",
+   "file": "rules_78b.py",
+   "find": "    if kind == \"retrain\" and engine == \"X\" and \"Y\" not in tuple(retrain_engines):\n",
+   "replace": "    if False and kind == \"retrain\" and engine == \"X\" and \"Y\" not in tuple(retrain_engines):\n"
+  },
+  {
+   "id": "K4b-m-engine-a1-any",
+   "part": "ruling 10, EYD:81",
+   "describes": "A1's pass runs on any engine",
+   "file": "rules_78b.py",
+   "find": "    if kind == \"a1_pass\" and engine not in tuple(retrain_engines):\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K4b-m-engine-x-only-off",
+   "part": "PP16",
+   "describes": "the wrapper kinds run on Y at planning",
+   "file": "rules_78b.py",
+   "find": "    if kind in X_ONLY_KINDS and engine != \"X\":\n        return f\"{kind} runs on engine X only (PP4, PP16)\"\n",
+   "replace": "    if False:\n        return f\"{kind} runs on engine X only (PP4, PP16)\"\n"
+  },
+  {
+   "id": "K4b-m-recipe-s-disagree-ok",
+   "part": "A1",
+   "describes": "the two RECIPE_S places may disagree",
+   "file": "rules_78b.py",
+   "find": "    if layer != kit:\n        raise Refused(f\"recipe S_78 for {family}: rules_78b.RECIPE_S",
+   "replace": "    if False:\n        raise Refused(f\"recipe S_78 for {family}: rules_78b.RECIPE_S"
+  },
+  {
+   "id": "K4b-m-engine-sha-y-null-ok",
+   "part": "A13",
+   "describes": "engine Y's identity is returned while null",
+   "file": "rules_78b.py",
+   "find": "        if ENGINE_Y is None or not isinstance(ENGINE_Y, str) or not CONFIG_SHA256.match(ENGINE_Y):\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "K4b-m-state-kinds-no-o-only-with-regenerate",
+   "part": "PP14",
+   "describes": "an o_only_with_regenerate pod keeps no states (PP14, PP17; round 4b)",
+   "file": "rules_78b.py",
+   "find": "                  \"o_only_with_regenerate\": \"keeps the regenerated a0 unit's states (PP17; a train-only job like the \"\n                                            \"retrain)\",\n",
+   "replace": ""
+  },
+  {
+   "id": "K4b-m-pod-keeps-states-always",
+   "part": "PP14",
+   "describes": "every scorer pod is said to keep states",
+   "file": "rules_78b.py",
+   "find": "\"keeps_states\": keeps is not None,",
+   "replace": "\"keeps_states\": True,"
+  },
+  {
+   "id": "K4b-m-pod-need-no-contingency",
+   "part": "M3",
+   "describes": "the pod's need alone without the contingency",
+   "file": "rules_78b.py",
+   "find": "    pod[\"engine\"] = engine\n    pod[\"need_usd_alone\"] = funding_need_usd([[pod]], CONTINGENCY_FACTOR)[\"need_usd\"]\n",
+   "replace": "    pod[\"engine\"] = engine\n    pod[\"need_usd_alone\"] = funding_need_usd([[pod]], 1.0)[\"need_usd\"]\n"
+  },
+  {
+   "id": "K4b-m-lines-no-idle",
+   "part": "PP14",
+   "describes": "a scorer pod prints no idle-storage line",
+   "file": "rules_78b.py",
+   "find": "            f\"${pod['need_usd_alone']:.2f}\",\n            f\"idle storage {host}",
+   "replace": "            f\"${pod['need_usd_alone']:.2f}\"] + [] and [\n            f\"idle storage {host}"
+  },
+  {
+   "id": "K4b-m-pin-wrapper",
+   "part": "item 3",
+   "describes": "the wrapper's pin is another hash",
+   "file": "stage1_rules.py",
+   "find": "    WRAPPER: \"c5895adc246c26cca93b427e6ece2e136f6fe8ea566654e591d0854d6b495671\",",
+   "replace": "    WRAPPER: \"d5895adc246c26cca93b427e6ece2e136f6fe8ea566654e591d0854d6b495671\","
+  },
+  {
+   "id": "K4b-m-pin-s1common",
+   "part": "item 3",
+   "describes": "s1common's pin is another hash",
+   "file": "stage1_rules.py",
+   "find": "    \"scripts/stage1/s1common.py\": \"930c8ea53d26baeeccaf2035949427d207f307ba0fec06ff0dec841c8c824552\",",
+   "replace": "    \"scripts/stage1/s1common.py\": \"030c8ea53d26baeeccaf2035949427d207f307ba0fec06ff0dec841c8c824552\","
+  },
+  {
+   "id": "K4b-m-pin-lexicon-dropped",
+   "part": "item 3",
+   "describes": "the lexicon the 1B scripts read is not packed",
+   "file": "stage1_rules.py",
+   "find": "    \"scripts/stage1/lexicon/lexicon.json\": \"bbbc71e9eebb62876430ffb5e0f54113c3818984b8369924b7bd2212c4c1ca17\",\n",
+   "replace": ""
+  },
+  {
+   "id": "K4b-m-host-prefix",
+   "part": "item 2",
+   "describes": "the scorer block's hosts take another prefix",
+   "file": "stage1_rules.py",
+   "find": "\"sc\": f\"{FAMILY}-sc\"} if FAMILY else {}",
+   "replace": "\"sc\": f\"{FAMILY}-scorer\"} if FAMILY else {}"
+  },
+  {
+   "id": "K4b-m-l1-command-name",
+   "part": "item 1",
+   "describes": "l1_scan's settings waits are read under another command name",
+   "file": "stage1_rules.py",
+   "find": "\"l1_scan\": \"scan\",",
+   "replace": "\"l1_scan\": \"l1_scan\","
+  },
+  {
+   "id": "K4b-m-settings-waits-skip",
+   "part": "A13",
+   "describes": "a null settings pin is never reported",
+   "file": "stage1_rules.py",
+   "find": "            if node is None:\n                out.append((f\"{script}: {dotted}\"",
+   "replace": "            if False:\n                out.append((f\"{script}: {dotted}\""
+  },
+  {
+   "id": "K4b-m-input-s1-as-s3",
+   "part": "PP2",
+   "describes": "the s1 loss input takes the s3_safe pin",
+   "file": "stage1_rules.py",
+   "find": "\"loss:s1\": (lists.get(\"s1\") or {}).get(\"sha256\"),",
+   "replace": "\"loss:s1\": (lists.get(\"s3_safe\") or {}).get(\"sha256\"),"
+  },
+  {
+   "id": "K4b-m-code-anchor-none",
+   "part": "item 3",
+   "describes": "the anchor job seals no script",
+   "file": "stage1_rules.py",
+   "find": "    if kind == \"anchor\":\n        return [ANCHOR_SCRIPT]\n",
+   "replace": "    if kind == \"anchor\":\n        return []\n"
+  },
+  {
+   "id": "K4b-m-folder-input-none",
+   "part": "item 1",
+   "describes": "the retrain unit is read as a file",
+   "file": "stage1_rules.py",
+   "find": "SC_FOLDER_INPUTS = frozenset({\"retrain_unit\"})",
+   "replace": "SC_FOLDER_INPUTS = frozenset()"
+  },
+  {
+   "id": "K4b-m-plan-order-off",
+   "part": "A2",
+   "describes": "init never checks A2's order",
+   "file": "plan_tool.py",
+   "find": "    problem = r78.sc_order_problem(kind, done)           # A2's order first, PP16, the pins (A13), then ruling 10\n",
+   "replace": "    problem = None\n"
+  },
+  {
+   "id": "K4b-m-plan-pins-off",
+   "part": "A13",
+   "describes": "init never checks the pins",
+   "file": "plan_tool.py",
+   "find": "        r78.sc_pins_or_refuse(family, kind, engine, pins78)\n",
+   "replace": "        pass\n"
+  },
+  {
+   "id": "K4b-m-plan-x-only-first-off",
+   "part": "PP16",
+   "describes": "init checks the X-only rule after the pins",
+   "file": "plan_tool.py",
+   "find": "    if kind in r78.X_ONLY_KINDS or engine not in (\"X\", \"Y\"):\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K4b-m-plan-engine-dyn-off",
+   "part": "ruling 10",
+   "describes": "init never checks the retrain's and A1's engines",
+   "file": "plan_tool.py",
+   "find": "    problem = r78.sc_engine_problem(kind, engine, engines_unit if kind == \"a1_pass\" else engines_all)\n",
+   "replace": "    problem = None\n"
+  },
+  {
+   "id": "K4b-m-plan-a1-unit-any",
+   "part": "PP3",
+   "describes": "A1's engine is any complete retrain's, whatever the unit pin",
+   "file": "plan_tool.py",
+   "find": "    engines_unit = [j[\"engine\"] for _, j in retrains if j.get(\"complete_sha256\") == unit_pin]\n",
+   "replace": "    engines_unit = [j[\"engine\"] for _, j in retrains]\n"
+  },
+  {
+   "id": "K4b-m-plan-two-jobs",
+   "part": "KD6",
+   "describes": "a scorer pod may hold two jobs",
+   "file": "plan_tool.py",
+   "find": "            if not (isinstance(jobs, list) and len(jobs) == 1):\n",
+   "replace": "            if not isinstance(jobs, list):\n"
+  },
+  {
+   "id": "K4b-m-plan-dup-ok",
+   "part": "A8",
+   "describes": "a kind may be planned twice",
+   "file": "plan_tool.py",
+   "find": "    if status not in (\"absent\", \"crashed\", \"deferred\", \"not_started\"):\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K4b-m-plan-settings-waits-off",
+   "part": "A13",
+   "describes": "the scorer layer's settings waits are not read",
+   "file": "plan_tool.py",
+   "find": "        if waits:\n            fail(f\"{where}: {kind}: the scorer layer's settings wait",
+   "replace": "        if False:\n            fail(f\"{where}: {kind}: the scorer layer's settings wait"
+  },
+  {
+   "id": "K4b-m-plan-funding-below-ok",
+   "part": "M3",
+   "describes": "a funding record below the part's need is accepted",
+   "file": "plan_tool.py",
+   "find": "    funding = funding_record(args.funding, r78.SC_BLOCK)\n    if not funding[\"amount_usd\"] >= need[\"need_usd\"]:\n",
+   "replace": "    funding = funding_record(args.funding, r78.SC_BLOCK)\n    if False:\n"
+  },
+  {
+   "id": "K4b-m-plan-part-start-off",
+   "part": "A2",
+   "describes": "a new part's first launch is not marked",
+   "file": "plan_tool.py",
+   "find": "**({\"part_start\": True} if k == 0 else {})})",
+   "replace": "**({})})"
+  },
+  {
+   "id": "K4b-m-plan-block-copy-off",
+   "part": "KD7",
+   "describes": "a copy plans another block than its own",
+   "file": "plan_tool.py",
+   "find": "    if block != rules.KIT_BLOCK:                         # KD7: one block per working copy\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K4b-m-plan-unreleased-ok",
+   "part": "A2",
+   "describes": "a new part is planned over an unreleased launch",
+   "file": "plan_tool.py",
+   "find": "    elif b[\"released\"] < len(b[\"launches\"]):\n",
+   "replace": "    elif False:\n"
+  },
+  {
+   "id": "K4b-m-release-recheck-off",
+   "part": "A13",
+   "describes": "the release does not compare the pins with init's",
+   "file": "plan_tool.py",
+   "find": "        if again[\"inputs\"] != job[\"inputs\"] or again.get(\"recipe_s78\") != job.get(\"recipe_s78\") or \\\n",
+   "replace": "        if False and again[\"inputs\"] != job[\"inputs\"] or again.get(\"recipe_s78\") != job.get(\"recipe_s78\") or \\\n"
+  },
+  {
+   "id": "K4b-m-release-input-unpacked-ok",
+   "part": "item 3",
+   "describes": "an input not packed at its pin is released",
+   "file": "plan_tool.py",
+   "find": "            if rel is None or got != pin:\n",
+   "replace": "            if False:\n"
+  },
+  {
+   "id": "K4b-m-release-code-unchecked",
+   "part": "item 3",
+   "describes": "the packed scorer code is not checked at release",
+   "file": "plan_tool.py",
+   "find": "            if files.get(rel) != pin:\n                fail(f\"{name}: the packed {rel} is not at its pin",
+   "replace": "            if False:\n                fail(f\"{name}: the packed {rel} is not at its pin"
+  },
+  {
+   "id": "K4b-m-release-s78-config-unchecked",
+   "part": "A1",
+   "describes": "the S_78 config's engine hash is not checked at release",
+   "file": "plan_tool.py",
+   "find": "            if config != values[\"RECIPE_S\"]:\n                fail(f\"{s_path}: its config_sha256",
+   "replace": "            if False:\n                fail(f\"{s_path}: its config_sha256"
+  },
+  {
+   "id": "K4b-m-release-s78-packed-unchecked",
+   "part": "A1",
+   "describes": "the packed S_78 file is not checked at release",
+   "file": "plan_tool.py",
+   "find": "            if files.get(s_path) != mac.sha(ENGINE_ROOT / s_path):\n",
+   "replace": "            if False:\n"
+  },
+  {
+   "id": "K4b-m-done-wrapper-whole",
+   "part": "item 4",
+   "describes": "record-done prints the whole wrapper summary",
+   "file": "plan_tool.py",
+   "find": "            calls[pathlib.PurePosixPath(folder).name] = {k: got.get(k) for k in (\"exit_code\", \"fallback_fired\", \"kept\",\n",
+   "replace": "            calls[pathlib.PurePosixPath(folder).name] = dict(got) or {k: got.get(k) for k in (\"exit_code\", \"fallback_fired\", \"kept\",\n"
+  },
+  {
+   "id": "K4b-m-done-no-sc-ok",
+   "part": "item 4",
+   "describes": "a complete scorer job without the runner's record is accepted",
+   "file": "plan_tool.py",
+   "find": "    if not isinstance(sc, dict) or sc.get(\"kind\") != job[\"kind\"]:\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K4b-m-done-hash-unchecked",
+   "part": "item 4",
+   "describes": "a non-hash value is printed as a hash",
+   "file": "plan_tool.py",
+   "find": "            if SHA_RE.fullmatch(str(sc[key])) is None:\n",
+   "replace": "            if False:\n"
+  },
+  {
+   "id": "K4b-m-done-wrapper-types-unchecked",
+   "part": "item 4",
+   "describes": "the wrapper summary's types are not checked at record-done",
+   "file": "plan_tool.py",
+   "find": "            if not isinstance(got, dict) or type(got.get(\"exit_code\")) is not int or \\\n",
+   "replace": "            if False and not isinstance(got, dict) or False and type(got.get(\"exit_code\")) is not int or False and \\\n"
+  },
+  {
+   "id": "K4b-m-pack-input-pin-unchecked",
+   "part": "item 3",
+   "describes": "an input off its pin is packed",
+   "file": "pack_setup.py",
+   "find": "        if digest != pins[name]:\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "K4b-m-pack-null-pin-ok",
+   "part": "A13",
+   "describes": "an input whose pin is null is packed",
+   "file": "pack_setup.py",
+   "find": "        if pins[name] is None:\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "K4b-m-pack-unknown-name-ok",
+   "part": "item 3",
+   "describes": "an input of no scorer kind is packed",
+   "file": "pack_setup.py",
+   "find": "        if name not in pins:\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "K4b-m-pack-code-none",
+   "part": "item 3",
+   "describes": "the scorer code is not packed",
+   "file": "pack_setup.py",
+   "find": "    out = {rel: (ROOT / rel, pin) for rel, pin in sorted(rules.SCORER_PINS.items())}\n",
+   "replace": "    out = {}\n"
+  },
+  {
+   "id": "K4b-m-pack-sc-off",
+   "part": "item 3",
+   "describes": "the scorer block's pack carries no scorer part",
+   "file": "pack_setup.py",
+   "find": "    if rules.KIT_BLOCK == r78.SC_BLOCK:                  # K4b: the scorer block's code, inputs and S_78 config\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K4b-m-pack-s78-config-unchecked",
+   "part": "A1",
+   "describes": "the S_78 config is packed whatever its engine hash",
+   "file": "pack_setup.py",
+   "find": "    if config != values[\"RECIPE_S\"]:\n        raise SystemExit(f\"{rel}: its config_sha256",
+   "replace": "    if False:\n        raise SystemExit(f\"{rel}: its config_sha256"
+  },
+  {
+   "id": "K4b-m-pack-folder-complete-unchecked",
+   "part": "item 3",
+   "describes": "a unit folder is packed whatever its COMPLETE.json",
+   "file": "pack_setup.py",
+   "find": "            if not src.is_dir() or not (src / \"COMPLETE.json\").is_file() or sha(src / \"COMPLETE.json\") != digest:\n",
+   "replace": "            if not src.is_dir():\n"
+  },
+  {
+   "id": "K4b-m-pack-code-bad-ok",
+   "part": "item 3",
+   "describes": "the dry pack reports changed scorer code without refusing",
+   "file": "pack_setup.py",
+   "find": "    if bad:\n        raise SystemExit(f\"{len(bad)} scorer file(s) missing",
+   "replace": "    if False:\n        raise SystemExit(f\"{len(bad)} scorer file(s) missing"
+  },
+  {
+   "id": "K4b-m-runner-s4-exit3-crash",
+   "part": "Part 1 §10",
+   "describes": "the S4 call's exit 3 is a crash",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        s4_few = kind == \"untuned_answers\" and name.endswith(\"-untuned-s4\") and done.returncode == 3\n",
+   "replace": "        s4_few = False\n"
+  },
+  {
+   "id": "K4b-m-runner-s3-exit3-ok",
+   "part": "PP2",
+   "describes": "the S3 call's exit 3 is accepted too",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        s4_few = kind == \"untuned_answers\" and name.endswith(\"-untuned-s4\") and done.returncode == 3\n",
+   "replace": "        s4_few = kind == \"untuned_answers\" and done.returncode == 3\n"
+  },
+  {
+   "id": "K4b-m-runner-wrapper-exit-unchecked",
+   "part": "item 4",
+   "describes": "the wrapper record's exit code is not compared with the step's",
+   "file": "setup/job_runner_stage1.py",
+   "find": "            if got[\"exit_code\"] != exits[",
+   "replace": "            if False and got[\"exit_code\"] != exits["
+  },
+  {
+   "id": "K4b-m-runner-wrapper-type-unchecked",
+   "part": "item 4",
+   "describes": "the wrapper record's counts are not type-checked",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if out[key] is not None and type(out[key]) is not WRAPPER_RECORD_KEYS[key]:\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "K4b-m-runner-top-dose-text",
+   "part": "item 4",
+   "describes": "a top_dose that is not a dose name is recorded",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if out[\"top_dose\"] is not None and not (out[\"top_dose\"].startswith(\"s4\") and len(out[\"top_dose\"]) <= 12\n",
+   "replace": "    if False and not (out[\"top_dose\"].startswith(\"s4\") and len(out[\"top_dose\"]) <= 12\n"
+  },
+  {
+   "id": "K4b-m-runner-record-kind-unchecked",
+   "part": "item 4",
+   "describes": "any JSON is read as a wrapper record",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if not isinstance(doc, dict) or doc.get(\"kind\") != \"scale78b scorer wrapper record\":\n",
+   "replace": "    if not isinstance(doc, dict):\n"
+  },
+  {
+   "id": "K4b-m-runner-input-pin-unchecked",
+   "part": "item 1",
+   "describes": "an input off the plan's pin runs",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if packed != pin:\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "K4b-m-runner-s78-pin-unchecked",
+   "part": "A1",
+   "describes": "a job's S_78 config is not compared with RECIPE_S",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if s78.get(\"config_sha256\") != pin or ((plan.get(\"recipes\") or {}).get(path) or {}).get(\"config_sha256\") != pin:\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K4b-m-runner-one-job-unchecked",
+   "part": "KD6",
+   "describes": "a scorer pod with two jobs runs",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if len(h[\"jobs\"]) != 1:\n        raise Unrunnable(f\"job {index} ({kind}): a scorer-block pod holds one job (KD6)\")\n",
+   "replace": "    if False:\n        raise Unrunnable(f\"job {index} ({kind}): a scorer-block pod holds one job (KD6)\")\n"
+  },
+  {
+   "id": "K4b-m-runner-s4-call-with-losses",
+   "part": "PP2",
+   "describes": "the S4 call also takes a loss",
+   "file": "setup/job_runner_stage1.py",
+   "find": "\"--list\", f\"s4={ps('list:s4')}\", \"--out\"",
+   "replace": "\"--list\", f\"s4={ps('list:s4')}\", \"--loss\", f\"s1={ps('loss:s1')}\", \"--out\""
+  },
+  {
+   "id": "K4b-m-runner-classifier-main-recipe",
+   "part": "PP4",
+   "describes": "the classifier runs under the main config",
+   "file": "setup/job_runner_stage1.py",
+   "find": "[*wrap, \"classifier\", \"--family\", family, \"--prepared\", p, \"--recipe\", rec,",
+   "replace": "[*wrap, \"classifier\", \"--family\", family, \"--prepared\", p, \"--recipe\", rules.REC,"
+  },
+  {
+   "id": "K4b-m-runner-a1-one-state",
+   "part": "PP3",
+   "describes": "A1's pass reads the e1 state only",
+   "file": "setup/job_runner_stage1.py",
+   "find": "*[a for c in (\"q\", \"e1\") for a in (\"--a0-state\", f\"{c}={state}\")]",
+   "replace": "*[a for c in (\"e1\",) for a in (\"--a0-state\", f\"{c}={state}\")]"
+  },
+  {
+   "id": "K4b-m-runner-retrain-shared-registry",
+   "part": "ruling 10",
+   "describes": "the retrain writes the arms' registry",
+   "file": "setup/job_runner_stage1.py",
+   "find": "RETRAIN_ROOT, f\"{RETRAIN_ROOT}/registry.jsonl\",",
+   "replace": "RETRAIN_ROOT, f\"{ROUND}/registry.jsonl\","
+  },
+  {
+   "id": "K4b-m-runner-sobs-after-scorer",
+   "part": "KD11",
+   "describes": "a scorer job is read for s_obs",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if result[\"status\"] == \"complete\" and job[\"kind\"] not in BLOCK0_KINDS:   # K4b: no s_obs after a scorer job\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "K4b-m-runner-s3orig-missing-ok",
+   "part": "PP2",
+   "describes": "an S3 call without its s3_orig pool is complete",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if summary[\"s3_orig_pool_sha256\"] is None:\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "K4b-m-runner-route-off",
+   "part": "item 1",
+   "describes": "a scorer-block job takes block 0's route",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if plan[\"hosts\"][host].get(\"block\") == r78.SC_BLOCK:   # K4b: the scorer block's single-job pods\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K4b-m-runner-sealed-paths-off",
+   "part": "item 3",
+   "describes": "a scorer job's code and inputs are not sealed paths",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if job.get(\"kind\") in r78.SC_KINDS and (h or {}).get(\"block\") == r78.SC_BLOCK:   # K4b\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K4b-m-runner-key-main-recipe",
+   "part": "A1, PP4",
+   "describes": "an S_78 job's key check reads the main config",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        key = (job.get(\"recipe_s78\") or {}).get(\"config_sha256\") if job.get(\"recipe\") == \"S\" else recipe   # K4b (A1)\n",
+   "replace": "        key = recipe\n"
+  },
+  {
+   "id": "K4b-m-runner-preflight-s78-unchecked",
+   "part": "A1",
+   "describes": "the pod's S_78 config is not checked at the preflight",
+   "file": "setup/job_runner_stage1.py",
+   "find": "                s78.get(\"config_sha256\") == r78.RECIPE_S[family], \"the S_78 config differs from its pin (A1)\"\n",
+   "replace": "                s78.get(\"config_sha256\") == r78.RECIPE_S[family] or True, \"the S_78 config differs from its pin (A1)\"\n"
+  },
+  {
+   "id": "K4b-m-runner-engine-pin-any",
+   "part": "A13",
+   "describes": "the host's engine identity is not checked",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    assert h[\"engine_sha256\"] == engine_pin(h[\"engine\"]), \"the host's engine is not a pinned engine (G4)\"\n",
+   "replace": "    pass\n"
+  },
+  {
+   "id": "K4bf-m-c0-a-unit",
+   "part": "PP18 (D1)",
+   "describes": "c0 is a unit kind again in the runner",
+   "file": "setup/job_runner_stage1.py",
+   "find": "SC_UNIT_KINDS = (\"retrain\", \"a1_pass\", \"o_only_with_regenerate\")   # the kinds that write an engine unit (verified)",
+   "replace": "SC_UNIT_KINDS = (\"retrain\", \"a1_pass\", \"o_only_with_regenerate\", \"c0\")"
+  },
+  {
+   "id": "K4bf-m-c0-no-record-check",
+   "part": "PP18 (D1)",
+   "describes": "a lean job without c0_record.json is complete",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if summary[\"c0_record_sha256\"] is None:\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "K4bf-m-verify-ignored",
+   "part": "D2",
+   "describes": "a unit whose engine verify fails is recorded complete",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if record[\"verified\"][\"exit\"]:\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "K4bf-m-verify-not-run",
+   "part": "D2",
+   "describes": "the engine's verify is never run (a passing record is written)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "verified=verify_unit(root, unit, env))",
+   "replace": "verified={\"exit\": 0, \"tail\": \"names only\"})"
+  },
+  {
+   "id": "K4bf-m-verify-other-folder",
+   "part": "D2",
+   "describes": "the verify checks the prepared folder, not the unit",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    check = subprocess.run([*ENGINE, \"verify\", \"--run\", unit, \"--prepared\", PREPARED], env=env, cwd=root,\n                           capture_output=True, text=True)\n    return {",
+   "replace": "    check = subprocess.run([*ENGINE, \"verify\", \"--run\", PREPARED, \"--prepared\", PREPARED], env=env, cwd=root,\n                           capture_output=True, text=True)\n    return {"
+  },
+  {
+   "id": "K4bf-m-accept-ignored",
+   "part": "PP17",
+   "describes": "an LS-04 unit still gets its O-ext pass",
+   "file": "setup/job_runner_stage1.py",
+   "find": "            if not accepted[\"pass\"]:                     # LS-04: the unit stands, its O-ext pass does not run\n                break\n",
+   "replace": "            if not accepted[\"pass\"]:                     # LS-04: the unit stands, its O-ext pass does not run\n                pass\n"
+  },
+  {
+   "id": "K4bf-m-accept-adapter-only",
+   "part": "PP17",
+   "describes": "the acceptance ignores the optimizer fingerprints",
+   "file": "setup/job_runner_stage1.py",
+   "find": "ACCEPT_FINGERPRINTS = (\"adapter_fingerprint\", \"optimizer_fingerprint\")",
+   "replace": "ACCEPT_FINGERPRINTS = (\"adapter_fingerprint\",)"
+  },
+  {
+   "id": "K4bf-m-accept-no-identity",
+   "part": "PP17",
+   "describes": "the acceptance ignores the training identity and manifest",
+   "file": "setup/job_runner_stage1.py",
+   "find": "ACCEPT_IDENTITY = (\"training_identity\", \"manifest_sha256\")",
+   "replace": "ACCEPT_IDENTITY = ()"
+  },
+  {
+   "id": "K4bf-m-accept-e1-only",
+   "part": "PP17",
+   "describes": "the acceptance ignores the q checkpoint",
+   "file": "setup/job_runner_stage1.py",
+   "find": "ACCEPT_POINTS = (\"q\", \"e1\")",
+   "replace": "ACCEPT_POINTS = (\"e1\",)"
+  },
+  {
+   "id": "K4bf-m-accept-side-unhashed",
+   "part": "PP17",
+   "describes": "the side unit's COMPLETE.json is read without its pin check",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if sha(root / rel) != pin:\n        raise ValueError(\"the side unit",
+   "replace": "    if False:\n        raise ValueError(\"the side unit"
+  },
+  {
+   "id": "K4bf-m-oext-on-q",
+   "part": "PP17",
+   "describes": "the O-ext pass reads the regenerated q state, not e1",
+   "file": "setup/job_runner_stage1.py",
+   "find": "\"--run\", unit, \"--checkpoint\", \"e1\",",
+   "replace": "\"--run\", unit, \"--checkpoint\", \"q\","
+  },
+  {
+   "id": "K4bf-m-oext-empty-ok",
+   "part": "PP17",
+   "describes": "an O-ext pass that wrote nothing is complete",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if not any(rel.startswith(f\"job-{index}/oext/\") for rel in record[\"outputs\"]):\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "K4bf-m-hm5-anchor-unsealed-ok",
+   "part": "HM5",
+   "describes": "the anchor job is complete without anchors.sealed.json",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if summary[\"anchor_file_sha256\"] is None or summary[\"anchor_record_sha256\"] is None:\n",
+   "replace": "        if summary[\"anchor_file_sha256\"] is None:\n"
+  },
+  {
+   "id": "K4bf-m-d5-binding-off",
+   "part": "D5",
+   "describes": "the anchor bank and s3_orig pins are not compared with the recorded outputs",
+   "file": "plan_tool.py",
+   "find": "            if values[pin] not in recorded:\n",
+   "replace": "            if False:\n"
+  },
+  {
+   "id": "K4bf-m-d5-no-s3",
+   "part": "D5",
+   "describes": "the s3_orig pool pin is not compared with the untuned job's record",
+   "file": "plan_tool.py",
+   "find": "    for pin, source, key in ((\"ANCHOR_BANK\", \"anchor\", \"anchor_file_sha256\"),\n                             (\"S3_ORIG_POOL\", \"untuned_answers\", \"s3_orig_pool_sha256\")):",
+   "replace": "    for pin, source, key in ((\"ANCHOR_BANK\", \"anchor\", \"anchor_file_sha256\"),):"
+  },
+  {
+   "id": "K4bf-m-d5-record-not-kept",
+   "part": "D5",
+   "describes": "record-done keeps no scorer record in the plan",
+   "file": "plan_tool.py",
+   "find": "            job[\"scorer_record\"] = scorer_record\n",
+   "replace": "            pass\n"
+  },
+  {
+   "id": "K4bf-m-hm4-anchor-hash-optional",
+   "part": "HM4",
+   "describes": "record-done accepts an anchor job that names no anchor file SHA-256",
+   "file": "plan_tool.py",
+   "find": "    if job[\"kind\"] in (\"anchor\",) and \"anchor_file_sha256\" not in out:\n",
+   "replace": "    if False and \"anchor_file_sha256\" not in out:\n"
+  },
+  {
+   "id": "K4bf-m-hm8-complete-replanned",
+   "part": "HM8",
+   "describes": "a complete scorer job may be planned again",
+   "file": "plan_tool.py",
+   "find": "    if status not in (\"absent\", \"crashed\", \"deferred\", \"not_started\"):\n",
+   "replace": "    if status not in (\"absent\", \"crashed\", \"deferred\", \"not_started\", \"complete\"):\n"
+  },
+  {
+   "id": "K4bf-m-done-verify-any-exit",
+   "part": "D2",
+   "describes": "record-done accepts a unit record whose verify failed",
+   "file": "plan_tool.py",
+   "find": "                not isinstance(verified, dict) or verified.get(\"exit\") != 0:\n",
+   "replace": "                not isinstance(verified, dict):\n"
+  },
+  {
+   "id": "K4bf-m-done-unitless-unit-ok",
+   "part": "PP18",
+   "describes": "record-done accepts a unitless record that names a unit",
+   "file": "plan_tool.py",
+   "find": "    elif r.get(\"unit\") or r.get(\"complete_sha256\"):\n",
+   "replace": "    elif False:\n"
+  },
+  {
+   "id": "K4bf-m-done-acceptance-free",
+   "part": "PP17",
+   "describes": "record-done accepts any acceptance verdict",
+   "file": "plan_tool.py",
+   "find": "        if acc not in (True, False) or (acc is True) != (r.get(\"reason\") is None) or \\\n",
+   "replace": "        if False or \\\n"
+  },
+  {
+   "id": "K4bf-m-hm14-script-unlisted-ok",
+   "part": "HM14",
+   "describes": "an O-ext kind plans without its script in OEXT_78B",
+   "file": "plan_tool.py",
+   "find": "        if need not in (values[\"OEXT_78B\"] or {}).get(\"files\", {}):\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "K4bf-m-c0-needs-oext-script",
+   "part": "HM14",
+   "describes": "c0 is checked for the O-ext unit script instead of B17's",
+   "file": "plan_tool.py",
+   "find": "        need = r78.C0_SCRIPT if kind == \"c0\" else r78.OEXT_UNIT_SCRIPT\n",
+   "replace": "        need = r78.OEXT_UNIT_SCRIPT\n"
+  },
+  {
+   "id": "K4bf-m-d6-form-unchecked",
+   "part": "D6",
+   "describes": "OEXT_78B's form is not validated",
+   "file": "rules_78b.py",
+   "find": "    if oext is not None and oext_form_problem(oext):\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K4bf-m-d6-inputs-any",
+   "part": "D6",
+   "describes": "OEXT_78B's inputs may hold any keys",
+   "file": "rules_78b.py",
+   "find": "    if not isinstance(inputs, dict) or set(inputs) != set(OEXT_INPUTS):\n",
+   "replace": "    if not isinstance(inputs, dict):\n"
+  },
+  {
+   "id": "K4bf-m-d6-path-any-folder",
+   "part": "D6",
+   "describes": "an OEXT_78B file may lie outside scripts/",
+   "file": "rules_78b.py",
+   "find": "path.startswith(\"scripts/\") and \"\\\\\" not in path",
+   "replace": "isinstance(path, str) and \"\\\\\" not in path"
+  },
+  {
+   "id": "K4bf-m-d6-dotdot",
+   "part": "D6",
+   "describes": "an OEXT_78B path may hold '..'",
+   "file": "rules_78b.py",
+   "find": "                and all(part not in (\"\", \".\", \"..\") for part in path.split(\"/\"))):",
+   "replace": "                and all(part not in (\"\", \".\") for part in path.split(\"/\"))):"
+  },
+  {
+   "id": "K4bf-m-regen-no-oext-pin",
+   "part": "PP17",
+   "describes": "o_only_with_regenerate does not wait on OEXT_78B",
+   "file": "rules_78b.py",
+   "find": "\"o_only_with_regenerate\": (\"OEXT_78B\",), \"c0\"",
+   "replace": "\"o_only_with_regenerate\": (), \"c0\""
+  },
+  {
+   "id": "K4bf-m-regen-cap-no-regen",
+   "part": "PP17",
+   "describes": "o_only_with_regenerate's cap omits the regeneration",
+   "file": "rules_78b.py",
+   "find": "        upper = regen + o_pass\n",
+   "replace": "        upper = o_pass\n"
+  },
+  {
+   "id": "K4bf-m-hm12-engine-x-always",
+   "part": "HM12",
+   "describes": "a scorer pod's need line always says engine X",
+   "file": "rules_78b.py",
+   "find": "    pod[\"engine\"] = engine\n",
+   "replace": "    pod[\"engine\"] = \"X\"\n"
+  },
+  {
+   "id": "K4bf-m-regen-arm-r",
+   "part": "PP17",
+   "describes": "o_only_with_regenerate carries arm R",
+   "file": "rules_78b.py",
+   "find": "\"o_only_with_regenerate\": \"a0\", \"c0\": \"R\"",
+   "replace": "\"o_only_with_regenerate\": \"R\", \"c0\": \"R\""
+  },
+  {
+   "id": "K4bf-m-regen-seeds-fixed",
+   "part": "PP17",
+   "describes": "every family regenerates seeds 1101-1103 (Llama has no 1103 side unit)",
+   "file": "rules_78b.py",
+   "find": "        return sorted(s for s in KIT[family][\"a0_units\"] if s != \"untuned\")\n",
+   "replace": "        return [1101, 1102, 1103]\n"
+  },
+  {
+   "id": "K4bf-m-side-pin-null",
+   "part": "PP17",
+   "describes": "the side unit's COMPLETE.json has no pin",
+   "file": "stage1_rules.py",
+   "find": "        table[SIDE_COMPLETE.format(seed=seed)] = A0_UNITS[seed][\"complete_sha256\"]\n",
+   "replace": "        table[SIDE_COMPLETE.format(seed=seed)] = None\n"
+  },
+  {
+   "id": "K4bf-m-oext-kinds-no-regen",
+   "part": "PP17",
+   "describes": "o_only_with_regenerate packs and checks no O-ext code",
+   "file": "stage1_rules.py",
+   "find": "OEXT_KINDS = (\"o_only\", \"o_only_with_regenerate\", \"c0\")",
+   "replace": "OEXT_KINDS = (\"o_only\", \"c0\")"
+  },
+  {
+   "id": "K4bf-m-a1-unitless-again",
+   "part": "D8",
+   "describes": "a1_pass is unitless again (the backup skips its unit)",
+   "file": "stage1_rules.py",
+   "find": "UNITLESS_KINDS = frozenset({\"untuned_answers\", \"rep_pass\", \"l1_scan\", \"classifier\", \"anchor\", \"o_only\", \"c0\"})",
+   "replace": "UNITLESS_KINDS = frozenset({\"untuned_answers\", \"rep_pass\", \"l1_scan\", \"classifier\", \"anchor\", \"o_only\", \"c0\", \"a1_pass\"})"
+  },
+  {
+   "id": "K4bf-m-backup-unit-outputs-skipped",
+   "part": "D8, PP17",
+   "describes": "the backup does not check a scorer unit job's outputs",
+   "file": "backup_records_stage1.py",
+   "find": "            if scorer_unit:                  # round 4b",
+   "replace": "            if False:                  # round 4b"
+  },
+  {
+   "id": "K4bf-m-pack-no-seeds",
+   "part": "PP17",
+   "describes": "the pack knows no side unit input (no seed)",
+   "file": "pack_setup.py",
+   "find": "        for seed in r78.sc_seeds(family, kind):          # PP17",
+   "replace": "        for seed in [None]:          # PP17"
+  },
+  {
+   "id": "K4bf-m-pack-inputs-unscanned",
+   "part": "sec D5",
+   "describes": "the pack does not scan the named scorer inputs",
+   "file": "pack_setup.py",
+   "find": "    if input_hits:\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K4bf-m-pack-scan-binary-only",
+   "part": "sec D5",
+   "describes": "the input scan skips JSON files",
+   "file": "pack_setup.py",
+   "find": "BINARY_SUFFIXES = (\".safetensors\", \".bin\", \".pt\", \".pth\", \".npy\", \".npz\", \".gz\", \".tar\", \".zip\")",
+   "replace": "BINARY_SUFFIXES = (\".safetensors\", \".bin\", \".pt\", \".pth\", \".npy\", \".npz\", \".gz\", \".tar\", \".zip\", \".json\")"
+  }
+ ]
+}

@@ -302,6 +302,7 @@ def sealed_units(plan: dict, hosts: list[str], digests: dict, missing: list) -> 
                 continue
             if job.get("pulled") is False and re.fullmatch(r"[0-9a-f]{64}", str(job.get("unpulled_decision_sha256"))):
                 continue                     # addendum §29: complete (not pulled) by the lead's decision; listed only
+            scorer_unit = plan["hosts"][host].get("block") == "sc" and job.get("kind") not in rules.UNITLESS_KINDS
             if job.get("kind") in rules.UNITLESS_KINDS or not job.get("unit"):
                 outputs = job.get("outputs") or {}
                 if not outputs:
@@ -310,12 +311,19 @@ def sealed_units(plan: dict, hosts: list[str], digests: dict, missing: list) -> 
                 bad = [r for r in bad if pathlib.PurePosixPath(r).suffix not in WEIGHTS]   # §29: model weights aside
                 if bad:
                     missing.append(f"{host}: job {i}: {len(bad)} recorded output(s) not staged or changed")
-                continue
+                if not scorer_unit:
+                    continue
             unit = tree / str(job.get("unit"))
             if not (unit / "COMPLETE.json").is_file():
                 missing.append(f"{host}: job {i} is complete in plan.json but its unit is not sealed in the pulled tree")
             elif sha(unit / "COMPLETE.json") != job.get("complete_sha256"):
                 missing.append(f"{host}: job {i}'s COMPLETE.json differs from plan.json's record")
+            if scorer_unit:                  # round 4b (D8, PP17): a scorer-block unit job's outputs too (A1's pass,
+                outputs = job.get("outputs") or {}   # the retrain, o_only_with_regenerate's O-ext files and acceptance)
+                bad = [r for r, d in outputs.items() if digests.get(f"units/{host}/{r}") != d
+                       and pathlib.PurePosixPath(r).suffix not in WEIGHTS]
+                if bad:
+                    missing.append(f"{host}: job {i}: {len(bad)} recorded output(s) not staged or changed")
     return units, checks
 
 

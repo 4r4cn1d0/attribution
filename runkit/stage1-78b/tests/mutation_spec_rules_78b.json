@@ -1,6 +1,6 @@
 {
  "kind": "stage1-78b mutants",
- "note": "KCR test 13 and KCR:226 mutants for runkit/stage1-78b (T2), in the stage-1 kit's spec form (tests/mutants_b15.json), plus the fix round's mutants (A-V1..A-V6, the RECIPE_S refusal, the job_decision missing-field refusal; 5 Nov). Run with tests/run_mutants_78b.py: the baseline first with the same command; a mutant is killed only by a real test failure (pytest exit 1, FAILED lines, no ERROR line); an error, a timeout or a find text not exactly once is INVALID, never a kill. Mutants marked needs_measured_root are killed by tests 02b/05b/15b, which skip when /Users/spiderishi/Coding/attribution/tmp/family-probe-sp-* is absent; run those in the lead's checkout. K1 (5 Nov): the re-verifier's D1-D7 and the addendum's A13 pins add 13 mutants (ids K1-m-*); T2-m-keys-engine-any's find text follows the clause's new form (engine_allowed). fix-K-core (5 Nov): PP8 moved two find texts (T2-m-rep-pass-17 -> A1_PASS_CAP_H_MAX; T2-m-s78-kinds-empty's four-kind literal; same mutations); 16 mutants added (ids FK-m-*) for D1 (both MANIFEST forms; V-H17 re-targeted as FK-m-r-edits-any-family), D2 (the idle-storage line), PP7 (the Llama pin) and PP8 (a1_pass, rep_pass, the S_78 kinds).",
+ "note": "KCR test 13 and KCR:226 mutants for runkit/stage1-78b (T2), in the stage-1 kit's spec form (tests/mutants_b15.json), plus the fix round's mutants (A-V1..A-V6, the RECIPE_S refusal, the job_decision missing-field refusal; 5 Nov). Run with tests/run_mutants_78b.py: the baseline first with the same command; a mutant is killed only by a real test failure (pytest exit 1, FAILED lines, no ERROR line); an error, a timeout or a find text not exactly once is INVALID, never a kill. Mutants marked needs_measured_root are killed by tests 02b/05b/15b, which skip when /Users/spiderishi/Coding/attribution/tmp/family-probe-sp-* is absent; run those in the lead's checkout. K1 (5 Nov): the re-verifier's D1-D7 and the addendum's A13 pins add 13 mutants (ids K1-m-*); T2-m-keys-engine-any's find text follows the clause's new form (engine_allowed). fix-K-core (5 Nov): PP8 moved two find texts (T2-m-rep-pass-17 -> A1_PASS_CAP_H_MAX; T2-m-s78-kinds-empty's four-kind literal; same mutations); 16 mutants added (ids FK-m-*) for D1 (both MANIFEST forms; V-H17 re-targeted as FK-m-r-edits-any-family), D2 (the idle-storage line), PP7 (the Llama pin) and PP8 (a1_pass, rep_pass, the S_78 kinds). K4a (6 Nov) added the K4-m-* mutants: PP16's X_ONLY_KINDS (engine_allowed checks it first), DK-3's kind sets in the kit's stage1_rules.py, PP14's idle-storage pods and lines. Round 4b (6 Nov): PP17 removed the standalone regenerate kind (its X_ONLY_KINDS mutant follows o_only_with_regenerate, renamed K4-m-x-only-drop-o-only-with-regenerate); D8/PP18 made a1_pass a unit kind and c0 unitless (K4-m-unitless-no-a1-pass became K4-m-unitless-plus-a1-pass); D4's one state-keeping definition re-targeted the two idle mutants; K4bf-m-* added.",
  "mutants": [
   {
    "id": "T2-m-margin-1.0",
@@ -472,8 +472,8 @@
    "part": "D7 (KD2)",
    "describes": "a0_arm and evalonly no longer count toward the 4 per pod",
    "file": "rules_78b.py",
-   "find": "COUNTED_KINDS = frozenset({\"arm\", \"a0_arm\", \"evalonly\", \"c0\", \"retrain\", \"ref_train_bqi\", \"regenerate\"})\n",
-   "replace": "COUNTED_KINDS = frozenset({\"arm\", \"c0\", \"retrain\", \"ref_train_bqi\", \"regenerate\"})\n"
+   "find": "COUNTED_KINDS = frozenset({\"arm\", \"a0_arm\", \"evalonly\", \"c0\", \"retrain\", \"ref_train_bqi\", \"o_only_with_regenerate\"})\n",
+   "replace": "COUNTED_KINDS = frozenset({\"arm\", \"c0\", \"retrain\", \"ref_train_bqi\", \"o_only_with_regenerate\"})\n"
   },
   {
    "id": "K1-m-engine-y-measured-any",
@@ -560,8 +560,8 @@
    "part": "PP8 (M3)",
    "describes": "the need printout's scorer table drops a1_pass",
    "file": "rules_78b.py",
-   "find": "SCORER_KINDS = (\"untuned_answers\", \"o_only\", \"anchor\", \"rep_pass\", \"a1_pass\", \"l1_scan\", \"classifier\", \"c0\")",
-   "replace": "SCORER_KINDS = (\"untuned_answers\", \"o_only\", \"anchor\", \"rep_pass\", \"l1_scan\", \"classifier\", \"c0\")"
+   "find": "SCORER_KINDS = (\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"a1_pass\", \"l1_scan\",\n",
+   "replace": "SCORER_KINDS = (\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"l1_scan\",\n"
   },
   {
    "id": "FK-m-r-edits-any-family",
@@ -642,6 +642,238 @@
    "file": "rules_78b.py",
    "find": "           \"idle_storage\": idle_storage(len(pods)), \"retrain_pods\": {}, \"scorer_pods\": {}}",
    "replace": "           \"idle_storage\": idle_storage(1), \"retrain_pods\": {}, \"scorer_pods\": {}}"
+  },
+  {
+   "id": "K4-m-x-only-off",
+   "part": "K4a (PP16)",
+   "describes": "engine_allowed skips X_ONLY_KINDS",
+   "file": "rules_78b.py",
+   "find": "    if kind in X_ONLY_KINDS:\n        return engine_sha256 == ENGINE_X\n",
+   "replace": "    if False:\n        return engine_sha256 == ENGINE_X\n"
+  },
+  {
+   "id": "K4-m-x-only-any-engine",
+   "part": "K4a (PP16)",
+   "describes": "a wrapper kind passes on any engine",
+   "file": "rules_78b.py",
+   "find": "        return engine_sha256 == ENGINE_X\n    if engine_sha256 == ENGINE_X:\n",
+   "replace": "        return True\n    if engine_sha256 == ENGINE_X:\n"
+  },
+  {
+   "id": "K4-m-x-only-after-y",
+   "part": "K4a (PP16)",
+   "describes": "engine_allowed checks X_ONLY_KINDS after engine Y (not first)",
+   "file": "rules_78b.py",
+   "find": "    if kind in X_ONLY_KINDS:\n        return engine_sha256 == ENGINE_X\n    if engine_sha256 == ENGINE_X:\n        return True\n    if ENGINE_Y is not None and engine_sha256 == ENGINE_Y:\n        return kind in E_KINDS or Y_MEASURED is True\n    return False\n",
+   "replace": "    if engine_sha256 == ENGINE_X:\n        return True\n    if ENGINE_Y is not None and engine_sha256 == ENGINE_Y:\n        return kind in E_KINDS or Y_MEASURED is True\n    if kind in X_ONLY_KINDS:\n        return engine_sha256 == ENGINE_X\n    return False\n"
+  },
+  {
+   "id": "K4-m-x-only-plus-retrain",
+   "part": "K4a (PP16)",
+   "describes": "the retrain is made an X-only kind (it runs on Y: ruling 10)",
+   "file": "rules_78b.py",
+   "find": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"l1_scan\",\n                          \"classifier\", \"c0\"})",
+   "replace": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"l1_scan\",\n                          \"classifier\", \"c0\", \"retrain\"})"
+  },
+  {
+   "id": "K4-m-x-only-drop-untuned-answers",
+   "part": "K4a (PP16)",
+   "describes": "untuned_answers dropped from X_ONLY_KINDS",
+   "file": "rules_78b.py",
+   "find": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"l1_scan\",\n                          \"classifier\", \"c0\"})",
+   "replace": "X_ONLY_KINDS = frozenset({\"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"l1_scan\", \"classifier\", \"c0\"})"
+  },
+  {
+   "id": "K4-m-x-only-drop-o-only",
+   "part": "K4a (PP16)",
+   "describes": "o_only dropped from X_ONLY_KINDS",
+   "file": "rules_78b.py",
+   "find": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"l1_scan\",\n                          \"classifier\", \"c0\"})",
+   "replace": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"l1_scan\", \"classifier\", \"c0\"})"
+  },
+  {
+   "id": "K4-m-x-only-drop-o-only-with-regenerate",
+   "part": "K4a (PP16)",
+   "describes": "o_only_with_regenerate dropped from X_ONLY_KINDS (PP16 with PP17's kind; round 4b)",
+   "file": "rules_78b.py",
+   "find": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"l1_scan\",\n                          \"classifier\", \"c0\"})",
+   "replace": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only\", \"anchor\", \"rep_pass\", \"l1_scan\", \"classifier\", \"c0\"})"
+  },
+  {
+   "id": "K4-m-x-only-drop-anchor",
+   "part": "K4a (PP16)",
+   "describes": "anchor dropped from X_ONLY_KINDS",
+   "file": "rules_78b.py",
+   "find": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"l1_scan\",\n                          \"classifier\", \"c0\"})",
+   "replace": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"rep_pass\", \"l1_scan\", \"classifier\", \"c0\"})"
+  },
+  {
+   "id": "K4-m-x-only-drop-rep-pass",
+   "part": "K4a (PP16)",
+   "describes": "rep_pass dropped from X_ONLY_KINDS",
+   "file": "rules_78b.py",
+   "find": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"l1_scan\",\n                          \"classifier\", \"c0\"})",
+   "replace": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"l1_scan\", \"classifier\", \"c0\"})"
+  },
+  {
+   "id": "K4-m-x-only-drop-l1-scan",
+   "part": "K4a (PP16)",
+   "describes": "l1_scan dropped from X_ONLY_KINDS",
+   "file": "rules_78b.py",
+   "find": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"l1_scan\",\n                          \"classifier\", \"c0\"})",
+   "replace": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"classifier\", \"c0\"})"
+  },
+  {
+   "id": "K4-m-x-only-drop-classifier",
+   "part": "K4a (PP16)",
+   "describes": "classifier dropped from X_ONLY_KINDS",
+   "file": "rules_78b.py",
+   "find": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"l1_scan\",\n                          \"classifier\", \"c0\"})",
+   "replace": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"l1_scan\", \"c0\"})"
+  },
+  {
+   "id": "K4-m-x-only-drop-c0",
+   "part": "K4a (PP16)",
+   "describes": "c0 dropped from X_ONLY_KINDS",
+   "file": "rules_78b.py",
+   "find": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"l1_scan\",\n                          \"classifier\", \"c0\"})",
+   "replace": "X_ONLY_KINDS = frozenset({\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"l1_scan\", \"classifier\"})"
+  },
+  {
+   "id": "K4-m-unitless-no-rep-pass",
+   "part": "K4a (DK-3)",
+   "describes": "rep_pass dropped from the kit's stage1_rules.UNITLESS_KINDS",
+   "file": "stage1_rules.py",
+   "find": "UNITLESS_KINDS = frozenset({\"untuned_answers\", \"rep_pass\", \"l1_scan\", \"classifier\", \"anchor\", \"o_only\", \"c0\"})",
+   "replace": "UNITLESS_KINDS = frozenset({\"untuned_answers\", \"l1_scan\", \"classifier\", \"anchor\", \"o_only\", \"c0\"})"
+  },
+  {
+   "id": "K4-m-unitless-plus-a1-pass",
+   "part": "K4a (DK-3)",
+   "describes": "a1_pass made unitless again (round 4b, D8: it writes the engine's attributes unit)",
+   "file": "stage1_rules.py",
+   "find": "UNITLESS_KINDS = frozenset({\"untuned_answers\", \"rep_pass\", \"l1_scan\", \"classifier\", \"anchor\", \"o_only\", \"c0\"})",
+   "replace": "UNITLESS_KINDS = frozenset({\"untuned_answers\", \"rep_pass\", \"l1_scan\", \"classifier\", \"anchor\", \"o_only\", \"c0\", \"a1_pass\"})"
+  },
+  {
+   "id": "K4-m-unitless-no-classifier",
+   "part": "K4a (DK-3)",
+   "describes": "classifier dropped from the kit's stage1_rules.UNITLESS_KINDS",
+   "file": "stage1_rules.py",
+   "find": "UNITLESS_KINDS = frozenset({\"untuned_answers\", \"rep_pass\", \"l1_scan\", \"classifier\", \"anchor\", \"o_only\", \"c0\"})",
+   "replace": "UNITLESS_KINDS = frozenset({\"untuned_answers\", \"rep_pass\", \"l1_scan\", \"anchor\", \"o_only\", \"c0\"})"
+  },
+  {
+   "id": "K4-m-diag-no-rep-pass",
+   "part": "K4a (DK-3)",
+   "describes": "rep_pass dropped from the kit's stage1_rules.DIAG_KINDS",
+   "file": "stage1_rules.py",
+   "find": "DIAG_KINDS = (\"rep_pass\", \"a1_pass\", \"untuned_answers\", \"l1_scan\", \"classifier\")",
+   "replace": "DIAG_KINDS = (\"a1_pass\", \"untuned_answers\", \"l1_scan\", \"classifier\")"
+  },
+  {
+   "id": "K4-m-diag-no-a1-pass",
+   "part": "K4a (DK-3)",
+   "describes": "a1_pass dropped from the kit's stage1_rules.DIAG_KINDS",
+   "file": "stage1_rules.py",
+   "find": "DIAG_KINDS = (\"rep_pass\", \"a1_pass\", \"untuned_answers\", \"l1_scan\", \"classifier\")",
+   "replace": "DIAG_KINDS = (\"rep_pass\", \"untuned_answers\", \"l1_scan\", \"classifier\")"
+  },
+  {
+   "id": "K4-m-diag-no-classifier",
+   "part": "K4a (DK-3)",
+   "describes": "classifier dropped from the kit's stage1_rules.DIAG_KINDS",
+   "file": "stage1_rules.py",
+   "find": "DIAG_KINDS = (\"rep_pass\", \"a1_pass\", \"untuned_answers\", \"l1_scan\", \"classifier\")",
+   "replace": "DIAG_KINDS = (\"rep_pass\", \"a1_pass\", \"untuned_answers\", \"l1_scan\")"
+  },
+  {
+   "id": "K4-m-idle-no-retrain-pods",
+   "part": "K4a (PP14)",
+   "describes": "the retrain pods get no idle-storage entry (SC_STATE_KINDS loses the retrain; round 4b's one definition)",
+   "file": "rules_78b.py",
+   "find": "SC_STATE_KINDS = {\"retrain\": IDLE_RETRAIN_WHY,\n",
+   "replace": "SC_STATE_KINDS = {\n"
+  },
+  {
+   "id": "K4-m-idle-no-scorer-pods",
+   "part": "K4a (PP14)",
+   "describes": "no scorer pod keeps states (block 0's idle lines list N's and the retrain pods only)",
+   "file": "rules_78b.py",
+   "find": "        for kind, why in SC_STATE_KINDS.items():\n            for seed in sc_seeds(family, kind):\n",
+   "replace": "        for kind, why in list(SC_STATE_KINDS.items())[:1]:\n            for seed in sc_seeds(family, kind):\n"
+  },
+  {
+   "id": "K4-m-idle-all-n-only",
+   "part": "K4a (PP14)",
+   "describes": "the block's idle total counts N's pods only",
+   "file": "rules_78b.py",
+   "find": "    out[\"idle_storage_all\"] = idle_storage(len(kept))",
+   "replace": "    out[\"idle_storage_all\"] = idle_storage(len(pods))"
+  },
+  {
+   "id": "K4-m-idle-lines-scorer-only",
+   "part": "K4a (PP14)",
+   "describes": "the printout skips the retrain pods' idle lines",
+   "file": "rules_78b.py",
+   "find": "        if p[\"pod\"].startswith(\"N \"):\n            continue\n",
+   "replace": "        if not p[\"pod\"].startswith(\"scorer \"):\n            continue\n"
+  },
+  {
+   "id": "K4-m-idle-lines-no-total",
+   "part": "K4a (PP14)",
+   "describes": "the printout drops the block's idle total line",
+   "file": "rules_78b.py",
+   "find": "                 \"counted in no guard\")\n    return lines\n",
+   "replace": "                 \"counted in no guard\")\n    return lines[:-1]\n"
+  },
+  {
+   "id": "K4bf-m-state-no-c0",
+   "part": "round 4b (D4, PP14)",
+   "describes": "c0 leaves the one state-keeping definition",
+   "file": "rules_78b.py",
+   "find": "                  \"c0\": \"keeps its R_1 training unit's states (lean_eval_job.py's OUT/train; the light pull leaves them)\"}",
+   "replace": "                  }"
+  },
+  {
+   "id": "K4bf-m-state-no-regen",
+   "part": "round 4b (D4, PP17)",
+   "describes": "o_only_with_regenerate keeps no states",
+   "file": "rules_78b.py",
+   "find": "                  \"o_only_with_regenerate\": \"keeps the regenerated a0 unit's states (PP17; a train-only job like the \"\n                                            \"retrain)\",\n",
+   "replace": ""
+  },
+  {
+   "id": "K4bf-m-idle-one-pod-per-kind",
+   "part": "round 4b (D4, PP17)",
+   "describes": "block 0's idle lines name one o_only_with_regenerate pod per family, not one per reused seed",
+   "file": "rules_78b.py",
+   "find": "            for seed in sc_seeds(family, kind):\n",
+   "replace": "            for seed in sc_seeds(family, kind)[:1]:\n"
+  },
+  {
+   "id": "K4bf-m-scorer-kinds-no-regen",
+   "part": "round 4b (PP17, M3)",
+   "describes": "block 0's scorer table drops o_only_with_regenerate",
+   "file": "rules_78b.py",
+   "find": "SCORER_KINDS = (\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"a1_pass\", \"l1_scan\",\n",
+   "replace": "SCORER_KINDS = (\"untuned_answers\", \"o_only\", \"anchor\", \"rep_pass\", \"a1_pass\", \"l1_scan\",\n"
+  },
+  {
+   "id": "K4bf-m-regenerate-kind-back",
+   "part": "round 4b (PP17)",
+   "describes": "the standalone regenerate kind is back among the E kinds",
+   "file": "rules_78b.py",
+   "find": "E_KINDS = (\"untuned_answers\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"a1_pass\",\n",
+   "replace": "E_KINDS = (\"untuned_answers\", \"regenerate\", \"o_only\", \"o_only_with_regenerate\", \"anchor\", \"rep_pass\", \"a1_pass\",\n"
+  },
+  {
+   "id": "K4bf-m-unitless-no-c0",
+   "part": "round 4b (PP18)",
+   "describes": "c0 is no longer unitless in the kit's stage1_rules",
+   "file": "stage1_rules.py",
+   "find": "UNITLESS_KINDS = frozenset({\"untuned_answers\", \"rep_pass\", \"l1_scan\", \"classifier\", \"anchor\", \"o_only\", \"c0\"})",
+   "replace": "UNITLESS_KINDS = frozenset({\"untuned_answers\", \"rep_pass\", \"l1_scan\", \"classifier\", \"anchor\", \"o_only\"})"
   }
  ]
 }

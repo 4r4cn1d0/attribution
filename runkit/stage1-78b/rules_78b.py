@@ -149,6 +149,14 @@ ENGINE_Y: str | None = None               # A13: the lead fills it when the Y re
 #                                           kinds with an explicit E cap (E_KINDS: the retrain, KD6) may run on Y
 Y_MEASURED = False                        # A13, KD9: measured kinds (arm, a0_arm, evalonly) run on Y only after the
 #                                           re-measure on the first Y pod re-pins the basis (a second recorded step)
+# PP16 (PP4 enforced): the wrapper kinds run on engine X only, whatever ENGINE_Y and Y_MEASURED hold. Their derived
+# settings pin X and the frozen settings check refuses another identity (R: scripts/stage1/s1common.py:589-591), so a
+# run on Y would need settings re-derived for Y. engine_allowed checks this set first. The retrain and a1_pass are the
+# engine's own jobs and follow ruling 10 and A13 (a1_pass runs on the engine that trained its states).
+# PP17: no standalone regenerate kind at 7-8B; its X-only place is o_only_with_regenerate (regeneration, acceptance and
+# the O-ext pass on one X pod; both parts X-only by PP16).
+X_ONLY_KINDS = frozenset({"untuned_answers", "o_only", "o_only_with_regenerate", "anchor", "rep_pass", "l1_scan",
+                          "classifier", "c0"})
 RECIPE_G: dict[str, str | None] = {"olmo2-7b": None, "llama31-8b": None}     # the recipe-G reference's config_sha256
 #                                           (references come before block A; the measured G configs stay in CONFIGS)
 RECIPE_BQI: dict[str, str | None] = {"olmo2-7b": None, "llama31-8b": None}   # B+Qi's config_sha256 (engine Y; the
@@ -312,8 +320,10 @@ STAGE1_1B_ESTIMATES_S = {"rep_pass": 3600.0, "untuned_answers": 7560.0, "l1_scan
 #                                           the 1 h estimate at 1B), C0_S, ANCHOR_UPPER_S, SAFE_LORA_*
 A1_PASS_CAP_H_MAX = 16.5                  # KD6, PP8: A1's attributes pass (a1_pass) at RP:43's 6-11 h is a 16.5 h cap at most
 S_POOL_CHUNKS = 16                        # R: PR4 S4 row via ruling 12: 512 prompts in 32-prompt chunks
+S3_POOL_ITEMS = 861                       # R: scripts/scale78b/settings/pins_78b.json shared.sealed_lists_1b.s3_safe.items
+#                                           (the untuned pass's S3 call answers every prompt of the s3_safe pool; PP2)
 O_EXT_PROMPTS = 600                       # R: stage1_rules.py O_ONLY_FACTOR: the 500-prompt bank plus the dev 100
-E_KINDS = ("untuned_answers", "regenerate", "o_only", "o_only_with_regenerate", "anchor", "rep_pass", "a1_pass",
+E_KINDS = ("untuned_answers", "o_only", "o_only_with_regenerate", "anchor", "rep_pass", "a1_pass",
            "l1_scan", "classifier", "c0", "retrain", "ref_train_bqi", "safe_lora", "ref_eval")
 KINDS = MEASURED_KINDS + E_KINDS
 # The need printout's labels (PP3, PP8; the check's M3): what each S_78 or scorer kind is, in the kit's own words.
@@ -327,8 +337,10 @@ KIND_LABELS = {
     "anchor": "the anchor job before S_78 (addendum A1, A2)",
     "l1_scan": "the L1 scan (engine X; PP4)",
     "c0": "c0 on an engine-X unit (B17's X-pin check)",
+    "o_only_with_regenerate": "a reused a0 side unit regenerated train only, checked against its fingerprints, then "
+                              "the O-ext pass on its e1 state (PP17; ruling 7; M1)",
 }
-COUNTED_KINDS = frozenset({"arm", "a0_arm", "evalonly", "c0", "retrain", "ref_train_bqi", "regenerate"})
+COUNTED_KINDS = frozenset({"arm", "a0_arm", "evalonly", "c0", "retrain", "ref_train_bqi", "o_only_with_regenerate"})
 #                                           counted toward MAX_ARMS_PER_POD_78B (the E kinds run alone anyway)
 
 
@@ -463,9 +475,12 @@ def recipe_bqi_or_refuse(family: str) -> str:
 
 
 def engine_allowed(kind: str, engine_sha256) -> bool:
-    """A13: engine X (the measured basis) runs every kind. Engine Y, once ENGINE_Y is filled, runs the kinds with an
-    explicit E cap (E_KINDS); the measured kinds run on Y only after KD9's re-measure sets Y_MEASURED. Any other
-    engine, and Y while its pin is None, is refused."""
+    """PP16 first: a wrapper kind (X_ONLY_KINDS; PP4) runs on engine X only. Then A13: engine X (the measured basis)
+    runs every kind. Engine Y, once ENGINE_Y is filled, runs the other kinds with an explicit E cap (E_KINDS: the
+    retrain, a1_pass, ...); the measured kinds run on Y only after KD9's re-measure sets Y_MEASURED. Any other engine,
+    and Y while its pin is None, is refused."""
+    if kind in X_ONLY_KINDS:
+        return engine_sha256 == ENGINE_X
     if engine_sha256 == ENGINE_X:
         return True
     if ENGINE_Y is not None and engine_sha256 == ENGINE_Y:
@@ -583,8 +598,9 @@ def check_keys(family: str, kind: str, recipe_sha256: str, engine_sha256: str, g
     elif recipe_sha256 not in RECIPE_ALLOW[family]:
         raise Refused(f"recipe {str(recipe_sha256)[:12]}... is not on the {family} allow-list")
     if not engine_allowed(kind, engine_sha256):
-        raise Refused(f"engine {str(engine_sha256)[:12]}... has no measured basis for {kind} (X runs every kind; Y runs "
-                      "E-capped kinds once ENGINE_Y is filled and measured kinds after KD9; A13)")
+        raise Refused(f"engine {str(engine_sha256)[:12]}... has no measured basis for {kind} (X runs every kind and "
+                      "the wrapper kinds only, PP16; Y runs the other E-capped kinds once ENGINE_Y is filled and "
+                      "measured kinds after KD9; A13)")
     if gpu_name != GPU_NAME:
         raise Refused(f"GPU {gpu_name!r} has no measured basis")
     if manifest_sha256 != MANIFESTS[family]:
@@ -859,26 +875,33 @@ def e_upper_s(family: str, kind: str, n_points: int = 1) -> dict:
     batch, first = f["BATCH_MAX_S"], max(f["FIRST_BATCH_MAX_S"], f["BATCH_MAX_S"])
     ends = f["EARLY_MAX_S"] + f["OUTSIDE_MAX_S"]
     size = SIZE_FACTOR_1B_TO_78B
-    if kind == "untuned_answers":
-        upper = WIDE_CAP_FACTOR * (first + (S_POOL_CHUNKS - 1) * batch + ends)
-        basis = ("E: the S-pool pass answers at most 512 prompts in 16 chunks of 32 (PR4 S4 row; ruling 12's stop rule at "
-                 "the chunk holding the 192nd kept row); every chunk at the family's capped-batch maximum (M), the first "
-                 "at the first-batch maximum, plus the early and outside time (M); x 1.5 (the stage-1 wide-cap factor) "
-                 "for the LEX and encode_train checks and the record writes. Source: KCR §3-§4; stage1_rules.py J6.")
-    elif kind == "regenerate":
-        upper = WIDE_CAP_FACTOR * (train38 + 3 * STATE_WRITE_S)
-        basis = ("E: a train-only a0 at 38 steps on engine X: 38 x TRAIN_STEP_MAX + the early and outside time (M) plus "
-                 "three state writes of about 1.9 GB (E, 300 s each); x 1.5. Source: KCR §6 state sizes; stage1_rules.py "
-                 "J2 (REGEN_MEASURED_S is a 1B value).")
+    regen = WIDE_CAP_FACTOR * (train38 + 3 * STATE_WRITE_S)            # a train-only a0 regeneration (no kind; PP17)
+    o_pass = WIDE_CAP_FACTOR * (first + (-(-O_EXT_PROMPTS // GENERATION_BATCH) - 1) * batch + 0.5 * SCORE_ALLCAP_S + ends)
+    if kind == "untuned_answers":                                       # PP2: both calls under one cap
+        s3_chunks = -(-S3_POOL_ITEMS // GENERATION_BATCH)
+        s3_call = first + (s3_chunks - 1) * batch + ends
+        s4_call = first + (S_POOL_CHUNKS - 1) * batch + ends
+        upper = WIDE_CAP_FACTOR * (s3_call + s4_call)
+        basis = ("E: two calls on one pod (PP2), one E cap for both (K4b). The S3 call answers the s3_safe pool's 861 "
+                 "prompts in 27 chunks of 32 at max_new_tokens 512 (the settings' lists.s3) with the s1 and s3_safe loss "
+                 "forwards; the S4 call answers at most 512 prompts in 16 chunks of 32 (PR4 S4 row; ruling 12's stop rule "
+                 "at the chunk holding the 192nd kept row). Every chunk of both calls at the family's capped-batch "
+                 "maximum measured at 2,048 tokens (M; an upper bound for the S3 call's 512-token chunks), each call's "
+                 "first at the first-batch maximum, plus each call's early and outside time (M); x 1.5 (the stage-1 "
+                 "wide-cap factor) for the LEX and encode_train checks, the loss forwards and the record writes. Source: "
+                 "KCR §3-§4; stage1_rules.py J6; scripts/scale78b/SCORERS-78B.md section 2.")
     elif kind == "o_only":
-        o_batches = -(-O_EXT_PROMPTS // GENERATION_BATCH)
-        upper = WIDE_CAP_FACTOR * (first + (o_batches - 1) * batch + 0.5 * SCORE_ALLCAP_S + ends)
+        upper = o_pass
         basis = ("E: the O-ext pass at one state: 600 prompts (the 500-prompt bank plus the dev 100, stage1_rules.py "
                  "O_ONLY_FACTOR) in 19 batches, every batch capped (M), the guard on 600 answers at half the scoring "
                  "allowance (E), the early and outside time (M); x 1.5. Source: KCR §4; stage1_rules.py J3.")
     elif kind == "o_only_with_regenerate":
-        upper = e_upper_s(family, "regenerate")["upper_s"] + e_upper_s(family, "o_only")["upper_s"]
-        basis = "E: a regenerate and its linked O-only pass on one pod (the stage-1 link): the sum of the two E uppers."
+        upper = regen + o_pass
+        basis = ("E: PP17's one job on one pod (KD6): the train-only regeneration of a reused a0 side unit (38 x "
+                 "TRAIN_STEP_MAX + the early and outside time (M) plus three state writes of about 1.9 GB (E, 300 s "
+                 "each), x 1.5; the engine's verify and the acceptance check against the side unit's fingerprints read "
+                 "the unit's records only and sit inside that 1.5), then the O-ext pass on its e1 state (the o_only "
+                 "upper). Source: KCR §4, §6; the stage-1 kit's J2 and J3 (REGEN_MEASURED_S is a 1B value).")
     elif kind == "anchor":
         upper = WIDE_CAP_FACTOR * size * STAGE1_1B_ESTIMATES_S["anchor"]
         basis = ("E: the anchor answers at 1B had a 0.25 h upper (stage1_rules.py ANCHOR_UPPER_S); x 2.3 for the 7-8B "
@@ -1028,14 +1051,67 @@ def n_pods() -> list[dict]:
 
 
 # The pre-block-A scorer kinds (ruling 11 KD10; PP3, PP8: rep_pass is REQ-3's representation pass, a1_pass A1's).
-SCORER_KINDS = ("untuned_answers", "o_only", "anchor", "rep_pass", "a1_pass", "l1_scan", "classifier", "c0")
+SCORER_KINDS = ("untuned_answers", "o_only", "o_only_with_regenerate", "anchor", "rep_pass", "a1_pass", "l1_scan",
+                "classifier", "c0")             # PP17: o_only_with_regenerate replaces KD10's "o_only / regenerate" pair
+# PP14: the ONE definition of the pre-block-A pods that keep training states after their job (each a stopped 50 GB
+# volume until the state rule's pull and verified backup, KD5), read by block 0's printout (idle_storage_pods) and by
+# the scorer block's (sc_pod) alike (the core verifier's D4). The retrain writes the a0-1101 retrain's q and e1 states
+# that A1's pass reads (PP3); a1_pass holds those states as its input; o_only_with_regenerate writes the regenerated a0
+# unit's states (PP17); c0 writes its R_1 training unit's states (R: scripts/stage1_s1/lean_eval_job.py:147, OUT/train
+# is an ordinary engine unit; the light pull leaves model states on the volume, plan_tool record-done). The other kinds
+# read answers, units or the anchor file and write no training state.
+IDLE_RETRAIN_WHY = "keeps the a0-1101 retrain's q and e1 states for A1's pass (PP3)"
+SC_STATE_KINDS = {"retrain": IDLE_RETRAIN_WHY,
+                  "a1_pass": "holds the retrain's q and e1 states that A1's pass reads (PP3, PP16)",
+                  "o_only_with_regenerate": "keeps the regenerated a0 unit's states (PP17; a train-only job like the "
+                                            "retrain)",
+                  "c0": "keeps its R_1 training unit's states (lean_eval_job.py's OUT/train; the light pull leaves them)"}
+IDLE_SCORER_KINDS = {k: why for k, why in SC_STATE_KINDS.items() if k != "retrain"}   # the scorer kinds among them
+
+
+def idle_storage_pods(n_hosts: list[str]) -> list[dict]:
+    """PP14: one entry per pod of block 0 that keeps states after its jobs: N's pods (by host), and per family every
+    pod of SC_STATE_KINDS the scorer block plans (sc_seeds: one retrain pod, one a1_pass pod, one c0 pod, one
+    o_only_with_regenerate pod per reused a0 seed); each at idle_storage(1)'s rate (about $0.33 per day)."""
+    one = idle_storage(1)
+    pods = [{"pod": f"N {host}", "why": "keeps its arms' e1 states until the state rule's pull and verified backup (KD5)"}
+            for host in n_hosts]
+    for family in FAMILIES:
+        for kind, why in SC_STATE_KINDS.items():
+            for seed in sc_seeds(family, kind):
+                label = "retrain" if kind == "retrain" else "scorer"
+                pods.append({"pod": f"{label} {family}" + ("" if kind == "retrain" else f" {kind}")
+                             + (f" {seed}" if kind in SC_PER_SEED_KINDS else ""), "why": why})
+    return [{**p, "usd_per_day": one["usd_per_pod_day"], "usd_per_month": one["usd_per_month"]} for p in pods]
+
+
+def idle_storage_lines(report: dict) -> list[str]:
+    """The need printout's idle-storage lines (KD5, PP14): N's line (both N pods, D2), one line per other pod of
+    block 0 that keeps states (each retrain pod, each scorer pod of IDLE_SCORER_KINDS), and the block's total if every
+    such pod is kept stopped. Each is an E counted in no guard (the guard reads running pods only)."""
+    idle, pods, total = report["idle_storage"], report["idle_storage_pods"], report["idle_storage_all"]
+    lines = [f"idle storage (KD5; E, KCR:161): about ${idle['usd_per_pod_day']:.2f} per day per stopped "
+             f"{idle['volume_gb']} GB pod that keeps its states (${idle['usd_per_gb_month']:.2f} per GB per month); "
+             f"N's {idle['n_pods_kept']} pods kept stopped: ${idle['usd_per_day']:.2f} per day, about "
+             f"${idle['usd_per_month']:.2f} per month; counted in no guard"]
+    for p in pods:
+        if p["pod"].startswith("N "):
+            continue
+        lines.append(f"idle storage {p['pod']} (KD5, PP14; E, KCR:161): {p['why']}; about ${p['usd_per_day']:.2f} per "
+                     f"day, about ${p['usd_per_month']:.2f} per month while kept stopped; counted in no guard")
+    lines.append(f"idle storage block 0 in all (KD5, PP14; E): {total['n_pods_kept']} pods if every pod above is kept "
+                 f"stopped: ${total['usd_per_day']:.2f} per day, about ${total['usd_per_month']:.2f} per month; "
+                 "counted in no guard")
+    return lines
 
 
 def block0_report() -> dict:
     """The money of block 0 and the first days after it, each part separately (the check's M3): N's two pods in one
     launch (KCR:177: guard $44.85, spend upper $33.30, need $56.06 with the contingency), each family's retrain pod
     (ruling 10, engine Y) and each scorer pod (C1; KD6 caps), every pod alone with its guard, spend upper and need;
-    KD5's idle storage of N's pods kept stopped for their states (D2)."""
+    KD5's idle storage of N's pods kept stopped for their states (D2); PP14: ``idle_storage_pods``, one entry per
+    block-0 pod that keeps states (N's, the retrain pods, the scorer pods of IDLE_SCORER_KINDS), and
+    ``idle_storage_all``, their total."""
     pods = n_pods()
     launch = [{"cap_hours": p["cap_hours"], "spend_usd": p["spend_usd"]} for p in pods]
     n_need = funding_need_usd([launch], CONTINGENCY_FACTOR)
@@ -1045,6 +1121,9 @@ def block0_report() -> dict:
                  "spend_upper_usd": cents(sum(p["spend_usd"] for p in pods)),
                  "need_usd": n_need["need_usd"], "base_need_usd": n_need["base_need_usd"]},
            "idle_storage": idle_storage(len(pods)), "retrain_pods": {}, "scorer_pods": {}}
+    kept = idle_storage_pods([p["host"] for p in pods])                # PP14: every block-0 pod that keeps states
+    out["idle_storage_pods"] = kept
+    out["idle_storage_all"] = idle_storage(len(kept))
     for family in FAMILIES:
         pod = e_pod(family, "retrain")
         pod["need_usd_alone"] = funding_need_usd([[pod]], CONTINGENCY_FACTOR)["need_usd"]
@@ -1055,6 +1134,250 @@ def block0_report() -> dict:
             pod["need_usd_alone"] = funding_need_usd([[pod]], CONTINGENCY_FACTOR)["need_usd"]
             out["scorer_pods"][family][kind] = pod
     return out
+
+
+# ===== K4b: the pre-block-A scorer block "sc" (ruling 11 KD6, KD10; the check's C1, M1; A1, A2, A8, A13; PP1-PP16) =====
+# One working copy per family: tmp/family-probe-s78-<family>-sc/ (KD7). Every pod holds ONE job of one of SC_KINDS with
+# its explicit E cap (KD6; e_pod). A kind is planned (and run) only when every pin it needs is filled (A13's pattern)
+# and the kinds that must come before it (A2: the anchor job, then S_78, then the retrain; then A1's pass on the
+# retrain's states) are recorded complete in the copy's plan. The pins live in two places, each filled by a recorded
+# lead step: this module (RECIPE_S, ENGINE_Y, OEXT_78B, C0_SOURCE) and the scorer layer's settings/pins_78b.json
+# (the anchor bank, the untuned pass's s3_orig pool, the retrain's COMPLETE.json; read by the kit through its pins,
+# stage1_rules.SCORER_PINS). sc_pin_values reads both; a pin set in both places must agree.
+SC_BLOCK = "sc"
+SC_KINDS = ("anchor", "untuned_answers", "o_only", "o_only_with_regenerate", "c0", "l1_scan", "rep_pass", "classifier",
+            "retrain", "a1_pass")
+# M1 (O and L at 7-8B; PP17): the O-ext unit pass of the S1 package pins the 1B recipes and manifest in its settings (R:
+# scripts/stage1_s1/settings/oext_unit.json recipes.allowed, prepared.manifest_sha256), so at 7-8B it needs settings
+# re-derived per family; Part 2 names the evaluation bank (M1). Null until the lead fills it by a recorded step with
+# exactly this form (sc_pin_values validates it; the core verifier's D6):
+#   {"files": {path: SHA-256, ...}, "inputs": {"oext_bank": SHA-256, "oext_record": SHA-256}}
+# "files": every S1-package file the o_only, o_only_with_regenerate and c0 commands run or read on the pod, each a
+# plain relative path under scripts/ (OEXT_UNIT_SCRIPT and C0_SCRIPT among them; plan_tool refuses a kind whose script
+# is not listed), packed and sealed by those pins; "inputs": the O-ext bank file's and its record's SHA-256 (the named
+# inputs oext_bank and oext_record). o_only, o_only_with_regenerate and c0 refuse until then.
+OEXT_78B: dict[str, dict | None] = {"olmo2-7b": None, "llama31-8b": None}
+OEXT_INPUTS = ("oext_bank", "oext_record")
+OEXT_UNIT_SCRIPT = "scripts/stage1_s1/oext_unit.py"      # the stage-1 kit's O-ext unit runner (R: its job runner J3)
+C0_SCRIPT = "scripts/stage1_s1/lean_eval_job.py"         # B17's lean job (R: the stage-1 job runner J11)
+# c0 (B17's X-pin check on an engine-X unit) re-trains N's R_1 at 1101 and expects that unit's e1 adapter fingerprint:
+# {"complete_sha256", "e1_fingerprint"} of block 0's R_1-1101 unit, filled by a recorded lead step after block 0's
+# record-done (the unit lives in another working copy, KD7). Null until then; c0 refuses.
+C0_SOURCE: dict[str, dict | None] = {"olmo2-7b": None, "llama31-8b": None}
+C0_SEED = 1101
+RETRAIN_SEED = 1101                                       # ruling 10: the a0-1101 retrain
+SC_PIN_EVENTS = {
+    "RECIPE_S": "the family's anchor job, then scripts/scale78b/make_recipe_s78.py, the lead's commit of the S_78 config "
+                "and RECIPE_S[family] filled, the same value as pins_78b.json recipe_s78 (addendum A1, A2)",
+    "ANCHOR_BANK": "the family's anchor job: its anchors.sealed.json anchor_file_sha256 in pins_78b.json "
+                   "families.<family>.anchor_bank_sha256 (addendum A1; the scorer layer's pin)",
+    "S3_ORIG_POOL": "the family's untuned-answers pass: its s3_orig.pool.json SHA-256 in pins_78b.json "
+                    "families.<family>.untuned_pass.s3_orig_pool_sha256",
+    "RETRAIN_UNIT": "the family's a0-1101 retrain: its COMPLETE.json SHA-256 in pins_78b.json "
+                    "families.<family>.a1_attributes_unit.retrain_complete_sha256 (PP3)",
+    "OEXT_78B": "Part 2 names the 7-8B evaluation bank (the check's M1) and the lead re-derives the O-ext unit pass's "
+                "settings for the family: OEXT_78B[family] filled by a recorded step as {files: {path: SHA-256}, "
+                "inputs: {oext_bank: SHA-256, oext_record: SHA-256}} (PP17)",
+    "C0_SOURCE": "block 0 (N): R_1 at 1101's COMPLETE.json SHA-256 and e1 adapter fingerprint, C0_SOURCE[family] "
+                 "filled by a recorded lead step after block 0's record-done",
+    "ENGINE_Y": "addendum A13: the lead fills ENGINE_Y by a recorded step when the Y retrain is packed",
+}
+# What each kind needs filled (A13's pattern). The retrain on engine Y also needs ENGINE_Y (sc_needed_pins).
+SC_KIND_PINS = {
+    "anchor": (), "untuned_answers": (),
+    "o_only": ("OEXT_78B",), "o_only_with_regenerate": ("OEXT_78B",), "c0": ("OEXT_78B", "C0_SOURCE"),
+    "l1_scan": ("ANCHOR_BANK",), "classifier": ("RECIPE_S", "ANCHOR_BANK"),
+    "rep_pass": ("RECIPE_S", "ANCHOR_BANK", "S3_ORIG_POOL"), "retrain": ("RECIPE_S",),
+    "a1_pass": ("RECIPE_S", "ANCHOR_BANK", "RETRAIN_UNIT"),
+}
+# A2's order, enforced at planning: the kinds that must be recorded complete in this copy's plan first. The anchor job
+# makes the anchor file (S_78's query bank, A1) before S_78, the retrain and every kind that reads the anchor bank;
+# rep_pass's second pass reads the untuned pass's s3_orig pool; A1's pass reads the retrain's q and e1 states.
+SC_AFTER = {"l1_scan": ("anchor",), "classifier": ("anchor",), "rep_pass": ("anchor", "untuned_answers"),
+            "retrain": ("anchor",), "a1_pass": ("anchor", "retrain")}
+SC_RECIPE = {k: "S" if k in S78_KINDS else "B" for k in SC_KINDS}   # PP1: untuned_answers and the anchor job run MAIN
+# The arm and seed a job of each kind carries (the plan's job keys): o_only is the family's untuned model (theta0,
+# the O-ext pass's --untuned route; M1), o_only_with_regenerate one of the family's reused a0 side units (ruling 7,
+# PP17), c0 N's R_1, the retrain and A1's pass the a0-1101 retrain (ruling 10). The other kinds carry neither.
+SC_ARM = {"o_only": "theta0", "o_only_with_regenerate": "a0", "c0": "R", "retrain": "a0", "a1_pass": "a0"}
+SC_PER_SEED_KINDS = frozenset({"o_only_with_regenerate"})   # one pod per reused a0 seed (KIT a0_units)
+# PP14's state-keeping kinds: SC_STATE_KINDS above (one definition for both printouts).
+
+
+def sc_seeds(family: str, kind: str) -> list:
+    """The seeds a scorer-block job of ``kind`` may carry: the family's reused a0 side units for
+    o_only_with_regenerate (KIT a0_units, ruling 7: OLMo 1101-1103, Llama 1101-1102), 1101 for c0, the retrain and
+    A1's pass (ruling 10), None for the other kinds."""
+    if kind == "o_only_with_regenerate":
+        return sorted(s for s in KIT[family]["a0_units"] if s != "untuned")
+    if kind == "c0":
+        return [C0_SEED]
+    if kind in ("retrain", "a1_pass"):
+        return [RETRAIN_SEED]
+    return [None]
+
+
+def engine_sha(engine: str) -> str:
+    """A13: engine X's identity, or engine Y's once ENGINE_Y is filled; Refused otherwise."""
+    if engine == "X":
+        return ENGINE_X
+    if engine == "Y":
+        if ENGINE_Y is None or not isinstance(ENGINE_Y, str) or not CONFIG_SHA256.match(ENGINE_Y):
+            raise Refused(f"engine Y's pin is null (ENGINE_Y): {SC_PIN_EVENTS['ENGINE_Y']}")
+        return ENGINE_Y
+    raise Refused(f"unknown engine {engine!r}")
+
+
+def _pins78_family(pins78, family: str) -> dict:
+    fams = pins78.get("families") if isinstance(pins78, dict) else None
+    fam = fams.get(family) if isinstance(fams, dict) else None
+    if not isinstance(fam, dict):
+        raise Refused(f"pins_78b.json holds no {family} block")
+    return fam
+
+
+def _hex_or_none(value, what: str):
+    if value is None:
+        return None
+    if not isinstance(value, str) or not CONFIG_SHA256.match(value):
+        raise Refused(f"{what} is neither null nor a SHA-256")
+    return value
+
+
+def oext_form_problem(oext) -> str | None:
+    """Why ``oext`` is not OEXT_78B's documented form, or None: exactly {"files", "inputs"}; files a non-empty
+    {plain relative path under scripts/: SHA-256}; inputs exactly {oext_bank: SHA-256, oext_record: SHA-256}."""
+    if not isinstance(oext, dict) or set(oext) != {"files", "inputs"}:
+        return "its keys are not exactly files and inputs"
+    files, inputs = oext["files"], oext["inputs"]
+    if not isinstance(files, dict) or not files:
+        return "files is not a non-empty mapping"
+    for path, digest in files.items():
+        if not (isinstance(path, str) and path.startswith("scripts/") and "\\" not in path
+                and all(part not in ("", ".", "..") for part in path.split("/"))):
+            return f"files names {path!r}, not a plain relative path under scripts/"
+        if not (isinstance(digest, str) and CONFIG_SHA256.match(digest)):
+            return f"files[{path!r}] is not a SHA-256"
+    if not isinstance(inputs, dict) or set(inputs) != set(OEXT_INPUTS):
+        return f"inputs does not hold exactly {list(OEXT_INPUTS)}"
+    if not all(isinstance(v, str) and CONFIG_SHA256.match(v) for v in inputs.values()):
+        return "an input is not a SHA-256"
+    return None
+
+
+def sc_pin_values(family: str, pins78: dict) -> dict:
+    """Every pin the scorer block reads, by name (None while null): RECIPE_S (this module, which must equal
+    pins_78b.json's recipe_s78.config_sha256 when either is set), ANCHOR_BANK, S3_ORIG_POOL, RETRAIN_UNIT (pins_78b.json,
+    the document the caller read at its pin), OEXT_78B, C0_SOURCE and ENGINE_Y (this module). A value that is not a
+    SHA-256 (or the documented record) refuses."""
+    family_of(family)
+    fam = _pins78_family(pins78, family)
+    rs = fam.get("recipe_s78") if isinstance(fam.get("recipe_s78"), dict) else {}
+    layer = _hex_or_none(rs.get("config_sha256"), f"pins_78b.json {family} recipe_s78.config_sha256")
+    kit = _hex_or_none(RECIPE_S[family], f"RECIPE_S[{family!r}]")
+    if layer != kit:
+        raise Refused(f"recipe S_78 for {family}: rules_78b.RECIPE_S ({str(kit)[:12]}) and pins_78b.json recipe_s78 "
+                      f"({str(layer)[:12]}) disagree; the lead fills both by one recorded step (A1)")
+    if kit is not None and not (isinstance(rs.get("path"), str) and rs["path"].startswith(
+            "experiments/safety_selection/configs/") and rs["path"].endswith(".json")):
+        raise Refused(f"pins_78b.json {family} recipe_s78.path is not a committed config path")
+    untuned = fam.get("untuned_pass") if isinstance(fam.get("untuned_pass"), dict) else {}
+    a1 = fam.get("a1_attributes_unit") if isinstance(fam.get("a1_attributes_unit"), dict) else {}
+    oext = OEXT_78B[family]
+    if oext is not None and oext_form_problem(oext):
+        raise Refused(f"OEXT_78B[{family!r}] is not a {{files: {{path: SHA-256}}, inputs: {{oext_bank, oext_record}}}} "
+                      f"record: {oext_form_problem(oext)}")
+    c0 = C0_SOURCE[family]
+    if c0 is not None and not (isinstance(c0, dict) and set(c0) == {"complete_sha256", "e1_fingerprint"}
+                               and all(isinstance(v, str) and CONFIG_SHA256.match(v) for v in c0.values())):
+        raise Refused(f"C0_SOURCE[{family!r}] is not a {{complete_sha256, e1_fingerprint}} record")
+    return {"RECIPE_S": kit, "RECIPE_S_PATH": rs.get("path") if kit is not None else None,
+            "ANCHOR_BANK": _hex_or_none(fam.get("anchor_bank_sha256"), f"pins_78b.json {family} anchor_bank_sha256"),
+            "S3_ORIG_POOL": _hex_or_none(untuned.get("s3_orig_pool_sha256"),
+                                         f"pins_78b.json {family} untuned_pass.s3_orig_pool_sha256"),
+            "RETRAIN_UNIT": _hex_or_none(a1.get("retrain_complete_sha256"),
+                                         f"pins_78b.json {family} a1_attributes_unit.retrain_complete_sha256"),
+            "OEXT_78B": oext, "C0_SOURCE": c0,
+            "ENGINE_Y": ENGINE_Y}
+
+
+def sc_needed_pins(kind: str, engine: str) -> tuple:
+    """The pins a scorer-block job needs: SC_KIND_PINS, plus ENGINE_Y for a job on engine Y."""
+    if kind not in SC_KINDS:
+        raise Refused(f"{kind!r} is not a kind of the scorer block ({', '.join(SC_KINDS)})")
+    return SC_KIND_PINS[kind] + (("ENGINE_Y",) if engine == "Y" else ())
+
+
+def sc_missing_pins(family: str, kind: str, engine: str, pins78: dict) -> list[tuple[str, str]]:
+    """(pin, the event that fills it) of every pin the job needs that is still null."""
+    values = sc_pin_values(family, pins78)
+    return [(p, SC_PIN_EVENTS[p]) for p in sc_needed_pins(kind, engine) if values[p] is None]
+
+
+def sc_pins_or_refuse(family: str, kind: str, engine: str, pins78: dict) -> dict:
+    """The pin values, or Refused naming each null pin the job needs and its event (A13: the pod does not run)."""
+    missing = sc_missing_pins(family, kind, engine, pins78)
+    if missing:
+        raise Refused(f"{kind} for {family}: {len(missing)} pin(s) it needs are null (addendum A13): "
+                      + "; ".join(f"{p} waits for {event}" for p, event in missing))
+    return sc_pin_values(family, pins78)
+
+
+def sc_order_problem(kind: str, complete_kinds) -> str | None:
+    """A2's order: why ``kind`` cannot be planned yet (the kinds that must be recorded complete before it), or None."""
+    if kind not in SC_KINDS:
+        return f"{kind!r} is not a kind of the scorer block"
+    before = [k for k in SC_AFTER.get(kind, ()) if k not in set(complete_kinds)]
+    if before:
+        return (f"{kind} comes after {', '.join(before)} (addendum A2: the anchor job, then S_78, then the retrain, then "
+                "A1's pass): record it complete in this copy's plan first")
+    return None
+
+
+def sc_engine_problem(kind: str, engine: str, retrain_engines=()) -> str | None:
+    """PP16 and ruling 10 / A13 at planning: the wrapper kinds (X_ONLY_KINDS) on engine X only; the retrain on engine
+    Y first (ruling 10) and on X only as the pre-set second job (a Y retrain recorded complete before it); A1's pass on
+    the engine that trained its states (``retrain_engines``: the engines of the complete retrains whose unit is the
+    RETRAIN_UNIT pin). None when allowed."""
+    if engine not in ("X", "Y"):
+        return f"unknown engine {engine!r}"
+    if kind in X_ONLY_KINDS and engine != "X":
+        return f"{kind} runs on engine X only (PP4, PP16)"
+    if kind == "retrain" and engine == "X" and "Y" not in tuple(retrain_engines):
+        return ("the X retrain is ruling 10's pre-set second job: it comes only after the Y retrain is recorded "
+                "complete in this copy's plan")
+    if kind == "a1_pass" and engine not in tuple(retrain_engines):
+        return ("A1's pass runs on the engine that trained its states (ruling 10, EYD:81): the engine of the complete "
+                "retrain whose unit is the RETRAIN_UNIT pin")
+    return None
+
+
+def sc_pod(family: str, kind: str, engine: str = "X") -> dict:
+    """One scorer-block pod: its single job's E cap, guard, spend upper, need alone (KD6) and its idle-storage line
+    (PP14; every stopped pod keeps its volume, KCR:161; the kinds of SC_STATE_KINDS keep training states on it)."""
+    if kind not in SC_KINDS:
+        raise Refused(f"{kind!r} is not a kind of the scorer block")
+    pod = e_pod(family, kind)
+    pod["engine"] = engine
+    pod["need_usd_alone"] = funding_need_usd([[pod]], CONTINGENCY_FACTOR)["need_usd"]
+    one = idle_storage(1)
+    keeps = SC_STATE_KINDS.get(kind)
+    pod["idle_storage"] = {"usd_per_day": one["usd_per_pod_day"], "usd_per_month": one["usd_per_month"],
+                           "keeps_states": keeps is not None,
+                           "why": keeps or "keeps no training state (its outputs are pulled; the volume costs the same "
+                                           "while the pod is kept stopped)"}
+    return pod
+
+
+def sc_lines(family: str, host: str, kind: str, pod: dict) -> list[str]:
+    """The two lines a scorer pod prints at init (the check's M3; A8; PP14): its need, then its idle-storage line."""
+    label = KIND_LABELS.get(kind, kind)
+    idle = pod["idle_storage"]
+    return [f"need scorer-block pod {host} {family} {kind} ({label}; engine {pod['engine']}; single-job E cap "
+            f"{pod['cap_hours']:.2f} h, guard ${pod['guard_usd']:.2f}, spend upper ${pod['spend_usd']:.2f}; KD6): "
+            f"${pod['need_usd_alone']:.2f}",
+            f"idle storage {host} (KD5, PP14; E, KCR:161): {idle['why']}; about ${idle['usd_per_day']:.2f} per day, "
+            f"about ${idle['usd_per_month']:.2f} per month while kept stopped; counted in no guard"]
 
 
 def golden_table() -> dict:

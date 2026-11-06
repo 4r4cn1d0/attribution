@@ -18,6 +18,24 @@ import conftest
 from test_stage1_runkit import w, fake_token  # noqa: F401
 
 RUN_BOUND_AT_IMPORT = subprocess.run          # the K3 incident's binding form: resolved before any test's patch
+# K4a (RV2-6): every callable a probe below goes through, as bound at collection (before any test's guard). Each probe
+# first checks that the per-test guard has replaced it, so a weakened guard fails the test before any real call.
+BOUND_AT_IMPORT = {"socket.socket." + name: getattr(socket.socket, name) for name in ("connect", "connect_ex", "sendto",
+                                                                                      "sendmsg")}
+BOUND_AT_IMPORT.update({"socket.create_connection": socket.create_connection,
+                        "OpenerDirector.open": urllib.request.OpenerDirector.open,
+                        "subprocess.Popen.__init__": subprocess.Popen.__init__, "os.system": os.system})
+
+
+def _current(name: str):
+    owner, _, attr = name.rpartition(".")
+    return getattr({"socket.socket": socket.socket, "socket": socket, "OpenerDirector": urllib.request.OpenerDirector,
+                    "subprocess.Popen": subprocess.Popen, "os": os}[owner], attr)
+
+
+def _assert_guarded(names) -> None:
+    for name in names:
+        assert _current(name) is not BOUND_AT_IMPORT[name], f"{name} is not replaced by the per-test guard"
 
 
 def test_the_k3_incident_path_stops_in_the_guard_without_a_fake(w, monkeypatch):
@@ -38,6 +56,7 @@ def test_the_k3_incident_path_stops_in_the_guard_without_a_fake(w, monkeypatch):
 
 
 def test_every_real_exit_from_the_process_is_refused(tmp_path):
+    _assert_guarded(BOUND_AT_IMPORT)                         # RV2-6: before any probe, every path is the guard's
     for call in (lambda: subprocess.run(["ssh", "-V"], capture_output=True),
                  lambda: subprocess.Popen(["caffeinate", "-i", "true"]),
                  lambda: subprocess.check_output(["gh", "--version"]),
@@ -45,9 +64,9 @@ def test_every_real_exit_from_the_process_is_refused(tmp_path):
                  lambda: RUN_BOUND_AT_IMPORT(["scp", "-V"], capture_output=True),
                  lambda: os.popen("ssh -V").read(),
                  lambda: os.system("ssh -V"),
-                 lambda: socket.create_connection(("203.0.113.9", 22), timeout=1),
-                 lambda: socket.socket().connect(("203.0.113.9", 22)),
-                 lambda: socket.socket().connect_ex(("203.0.113.9", 22)),
+                 lambda: socket.create_connection(("127.0.0.1", 9), timeout=1),      # RV2-6: loopback targets only
+                 lambda: socket.socket().connect(("127.0.0.1", 9)),
+                 lambda: socket.socket().connect_ex(("127.0.0.1", 9)),
                  lambda: urllib.request.urlopen("http://203.0.113.9/", timeout=1),
                  lambda: urllib.request.build_opener().open("https://huggingface.co/api/whoami-v2", timeout=1),
                  lambda: urllib.request.urlopen(urllib.request.Request("https://api.runpod.io/graphql"), timeout=1)):
@@ -128,6 +147,7 @@ REAL_OS = {name: getattr(os, name) for name in ("fork", "forkpty", "execv", "exe
            if hasattr(os, name)}                      # bound at import, before any test's guard
 REAL_GETADDRINFO = socket.getaddrinfo
 LOOKUPS = ("getaddrinfo", "gethostbyname", "gethostbyname_ex", "gethostbyaddr")
+REAL_LOOKUPS = {name: getattr(socket, name) for name in LOOKUPS + ("getnameinfo",)}   # bound at collection (RV2-6)
 
 
 def _sentinels(monkeypatch) -> None:
@@ -137,7 +157,7 @@ def _sentinels(monkeypatch) -> None:
 
     def reached(*a, **kw):
         raise AssertionError("a real name lookup was reached (the guard let it through)")
-    for name in LOOKUPS:
+    for name in LOOKUPS + ("getnameinfo",):
         monkeypatch.setattr(_socket, name, reached)
 
 
@@ -149,16 +169,22 @@ def test_g1_g4_name_lookups_datagrams_forks_and_execs_are_refused_too(monkeypatc
     loopback discard port (no packet leaves the machine)."""
     for name, real in REAL_OS.items():
         assert getattr(os, name) is not real, f"os.{name} is not guarded"
+    for name, real in REAL_LOOKUPS.items():                  # RV2-6: socket.gethostbyname & co. ARE _socket's functions,
+        assert getattr(socket, name) is not real, f"socket.{name} is not guarded"   # so a sentinel cannot sit under them
+    _assert_guarded([n for n in BOUND_AT_IMPORT if n.startswith("socket.socket.")])
     assert "sendto" in vars(socket.socket) and "sendmsg" in vars(socket.socket)
     assert socket.getaddrinfo is not REAL_GETADDRINFO
     assert socket.getaddrinfo("localhost", 80) and socket.getaddrinfo(None, 80)     # local: no packet leaves
     assert socket.gethostbyname("127.0.0.1") == "127.0.0.1"
+    assert socket.getnameinfo(("127.0.0.1", 9), socket.NI_NUMERICHOST | socket.NI_NUMERICSERV) == ("127.0.0.1", "9")
     _sentinels(monkeypatch)
     for call, what in ((lambda: socket.getaddrinfo("huggingface.co", 443), "name lookup socket.getaddrinfo"),
                        (lambda: socket.getaddrinfo("203.0.113.9", 22), "name lookup socket.getaddrinfo"),
                        (lambda: socket.gethostbyname("api.runpod.io"), "name lookup socket.gethostbyname"),
                        (lambda: socket.gethostbyname_ex("huggingface.co"), "name lookup socket.gethostbyname_ex"),
                        (lambda: socket.gethostbyaddr("203.0.113.9"), "name lookup socket.gethostbyaddr"),
+                       (lambda: socket.getnameinfo(("203.0.113.9", 22), socket.NI_NUMERICHOST | socket.NI_NUMERICSERV),
+                        "name lookup socket.getnameinfo"),                                  # RV2-7: a reverse lookup
                        (lambda: os.fork(), "os.fork"),
                        (lambda: os.execv("/usr/bin/true", ["true"]), "os.execv"),
                        (lambda: os.execve("/usr/bin/true", ["true"], {}), "os.execve"),
@@ -175,6 +201,11 @@ def test_g1_g4_name_lookups_datagrams_forks_and_execs_are_refused_too(monkeypatc
             udp.sendto(b"x", ("127.0.0.1", 9))
         with pytest.raises(conftest.NetworkOrProcessRefused, match="real socket sendmsg"):
             udp.sendmsg([b"x"], [], 0, ("127.0.0.1", 9))
+    with socket.socket(socket.AF_INET6, socket.SOCK_DGRAM) as udp6:                    # RV2-7: IPv6 datagrams too
+        with pytest.raises(conftest.NetworkOrProcessRefused, match=r"real socket sendto \(\('::1', 9, 0, 0\)\)"):
+            udp6.sendto(b"x", ("::1", 9, 0, 0))
+        with pytest.raises(conftest.NetworkOrProcessRefused, match="real socket sendmsg"):
+            udp6.sendmsg([b"x"], [], 0, ("::1", 9, 0, 0))
     a, b = socket.socketpair()                                                      # an AF_UNIX pair stays allowed
     with a, b:
         a.sendmsg([b"ok"])

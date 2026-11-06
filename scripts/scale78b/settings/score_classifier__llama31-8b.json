@@ -2,11 +2,12 @@
   "cuda": "untested on CUDA; checked on CPU fixtures only",
   "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
   "family_78b": {
+    "classifier_recipe": "PP4: the classifier runs under recipe S_78, as at 1B (R: runkit/stage1-olmo/setup/job_runner_stage1.py:450-456; score_classifier__<family>.json pins.recipe_sha256 = S_78). The 7-8B kit's key check (runkit/stage1-78b/rules_78b.py check_keys, its S78_KINDS branch; R: :325-337 at commit 953f520) lets an E kind through with S_78 only when the kind is in S78_KINDS (retrain, rep_pass at HEAD 953f520; R: :136); the kit round added classifier (PP8): at HEAD d203070 S78_KINDS holds retrain, rep_pass, a1_pass and classifier (R: runkit/stage1-78b/rules_78b.py:141). Copied into score_classifier__<family>.json family_78b.classifier_recipe.",
     "derived_from": {
       "path": "scripts/stage1/settings/score_classifier.json",
       "sha256": "5807ec750c74137f3e5c466231de9e73a0cbb5fe5411f7be29a40bbed4c8e58a"
     },
-    "engine_rule": "PP4 (the lead's ruling, 5 Nov 2026): every wrapper kind runs on engine X (engine_x above): untuned_answers, rep_pass, l1_scan and classifier on the pod; l1_score, s3_score, score_edit, add_edit and s_pool on the Mac. Every derived settings file carries engine_x unchanged from the 1B file, and the frozen check_settings refuses another engine identity (R: scripts/stage1/s1common.py:589-591). A run on engine Y needs the settings re-derived for Y (engine_x = Y's identity, a new PINS-78B.json, a new PINS_FILE_SHA256) by a recorded step; none exists. The engine's own jobs (the a0-1101 retrain, a1_pass) follow ruling 10 and addendum A13, not this rule. The kit packs scorer pods with engine X.",
+    "engine_rule": "PP4 (the lead's ruling, 5 Nov 2026): every wrapper kind runs on engine X (engine_x above): untuned_answers, rep_pass, l1_scan and classifier on the pod; l1_score, s3_score, score_edit, add_edit and s_pool on the Mac. Every derived settings file carries engine_x unchanged from the 1B file, and the frozen check_settings refuses another engine identity (R: scripts/stage1/s1common.py:590-592). A run on engine Y needs the settings re-derived for Y (engine_x = Y's identity, a new PINS-78B.json, a new PINS_FILE_SHA256) by a recorded step; none exists. The engine's own jobs (the a0-1101 retrain, a1_pass) follow ruling 10 and addendum A13, not this rule. The kit packs scorer pods with engine X.",
     "family": "llama31-8b",
     "main_recipe": {
       "config_sha256": "74758af1791d9f7a8ce616adce7549b5b7b0619e55310158d7e21197ed129893",

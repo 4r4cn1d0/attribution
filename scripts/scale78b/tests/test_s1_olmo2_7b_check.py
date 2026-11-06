@@ -159,3 +159,123 @@ def test_the_sealed_builder_loaded_by_path_is_the_committed_file():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     assert module.LIST_SHA256 == B.LIST_SHA256 == json.loads((ROOT / B.STAGE1_ADD_S1_RECORD_REL).read_bytes())["list"]["sha256"]
+
+
+# ----- reverify-F RF-1, RF-2, RF-3 (round 4, track M) ---------------------------------------------------------------------
+
+
+def test_rf3_a_pre_existing_empty_scratch_tmp_survives_empty_and_the_record_is_written(tmp_path, capsys):
+    """RF-3: a pre-existing EMPTY --scratch-tmp is not this run's. The run (real edit, --out) passes, removes the recovered
+    list it wrote there, and leaves the folder itself: still a directory, empty. Kills the re-verifier's K3/K4 forms (the
+    cleanup removing the pre-existing folder itself, or leaving the list in it)."""
+    scratch = TEST_TMP / uuid.uuid4().hex
+    scratch.mkdir(parents=True)
+    record = tmp_path / "record.json"
+    try:
+        code = C.main(["--edit", str(OLMO_EDIT), "--scratch-tmp", str(scratch), "--out", str(record)])
+        out = capsys.readouterr().out
+        assert code == 0 and record.is_file() and f"record {sha256_bytes(record.read_bytes())}" in out
+        assert json.loads(record.read_bytes())["equal_as_it_stands"] is True
+        assert scratch.is_dir() and list(scratch.iterdir()) == []
+    finally:
+        shutil.rmtree(TEST_TMP, ignore_errors=True)
+
+
+def test_rf1_a_folder_another_party_puts_into_the_scratch_folder_during_the_run_survives(tmp_path, monkeypatch, capsys):
+    """RF-1 (the re-verifier's probe f1): --scratch-tmp is absent at the start; while the check runs, another party writes
+    a folder with a file into it, and the check refuses. The old cleanup (created = "absent at the start", then rmtree)
+    removed the other party's folder; now the run removes only what it made, and the scratch folder it created stays
+    because it is not empty. The record is not written (refusal, exit 2)."""
+    scratch = TEST_TMP / uuid.uuid4().hex
+
+    def intruding_check(repo, olmo_root, edit_path, record_path, recipe_7b, recipe_s, scr, list_spec, seal_edits, *made):
+        assert scr == scratch.resolve() and scr.is_dir()                  # this run's own mkdir made it
+        (scr / "intruder").mkdir()
+        (scr / "intruder" / "data.json").write_bytes(b"{}")
+        raise C.s1.Refusal("stub refusal")
+    monkeypatch.setattr(C, "check", intruding_check)
+    try:
+        code = C.main(["--edit", str(OLMO_EDIT), "--scratch-tmp", str(scratch), "--out", str(tmp_path / "record.json")])
+        err = capsys.readouterr().err
+        assert code == 2 and "REFUSED: stub refusal" in err and "left as it is" in err
+        assert (scratch / "intruder" / "data.json").read_bytes() == b"{}"
+        assert not (tmp_path / "record.json").exists()
+    finally:
+        shutil.rmtree(TEST_TMP, ignore_errors=True)
+
+
+def test_rf1_a_kept_list_of_an_earlier_run_survives_a_second_run_on_the_same_folder(tmp_path, monkeypatch, capsys):
+    """RF-1 (the re-verifier's probe f2, without the timing): run 1 recovers the list with --keep; run 2 on the same
+    folder is refused (exists and is not empty) and run 1's list stays. The stub stands in for the measurement and writes
+    the list the way check() does (atomic mkdir of scratch/list, recorded in made), so the test needs no real edit."""
+    scratch = TEST_TMP / uuid.uuid4().hex
+
+    def listing_check(repo, olmo_root, edit_path, record_path, recipe_7b, recipe_s, scr, list_spec, seal_edits, made=None):
+        C.bsp.check_output_folders(scr)
+        (scr / "list").mkdir(parents=True)
+        if made is not None:
+            made.append(scr / "list")
+        C.s1.write_new_files(scr / "list", {"s1.json": b"{}"})
+        raise C.s1.Refusal("stub stops after the list")
+    monkeypatch.setattr(C, "check", listing_check)
+    try:
+        assert C.main(["--edit", str(OLMO_EDIT), "--scratch-tmp", str(scratch), "--keep"]) == 2
+        assert (scratch / "list" / "s1.json").read_bytes() == b"{}"
+        code = C.main(["--edit", str(OLMO_EDIT), "--scratch-tmp", str(scratch)])
+        assert code == 2 and "exists and is not empty" in capsys.readouterr().err
+        assert (scratch / "list" / "s1.json").read_bytes() == b"{}"
+        assert C.main(["--edit", str(OLMO_EDIT), "--scratch-tmp", str(scratch / "sub")]) == 2   # a run of its own
+        assert not (scratch / "sub").exists() and (scratch / "list" / "s1.json").is_file()
+    finally:
+        shutil.rmtree(TEST_TMP, ignore_errors=True)
+
+
+@pytest.mark.parametrize("where", ["inside", "same", "nested"])
+@pytest.mark.parametrize("pre_existing", [False, True])
+def test_rf2_out_under_the_scratch_folder_is_refused_before_anything_is_created(tmp_path, capsys, where, pre_existing):
+    """RF-2: --out inside (or equal to) --scratch-tmp was written, its hash printed, and then removed with the folder.
+    Now it refuses before the folder is made or the check runs: exit 2, nothing created, a pre-existing folder intact.
+    Round 4b (m-verify D3): the nested case --out <scratch>/list/record.json (the recovered list's folder) too."""
+    scratch = TEST_TMP / uuid.uuid4().hex
+    if pre_existing:
+        scratch.mkdir(parents=True)
+        (scratch / "keep.json").write_bytes(b"{}")
+    out = {"inside": scratch / "record.json", "same": scratch, "nested": scratch / "list" / "record.json"}[where]
+    try:
+        code = C.main(["--edit", str(OLMO_EDIT), "--scratch-tmp", str(scratch), "--out", str(out)])
+        assert code == 2 and "lies under --scratch-tmp" in capsys.readouterr().err
+        if pre_existing:
+            assert sorted(p.name for p in scratch.iterdir()) == ["keep.json"]
+        else:
+            assert not scratch.exists()
+    finally:
+        shutil.rmtree(TEST_TMP, ignore_errors=True)
+
+
+def test_rf1_another_partys_list_made_while_the_list_is_recovered_survives(monkeypatch, capsys):
+    """m-verify D2 (its probe P1): --scratch-tmp is absent; while recover_list runs (after check_output_folders, before
+    the list folder's mkdir), another party creates scratch/list/s1.json. The list folder's mkdir is atomic (no
+    exist_ok), so the run refuses ("exists"), never appends that folder to what it made, and the other party's file
+    survives the cleanup."""
+    scratch = (TEST_TMP / uuid.uuid4().hex).resolve()
+    real_loader = C.load_sealed_builder
+
+    def loader(repo):
+        module = real_loader(repo)
+        real_recover = module.recover_list
+
+        def recover(*a, **k):
+            doc = real_recover(*a, **k)
+            (scratch / "list").mkdir(parents=True)
+            (scratch / "list" / "s1.json").write_bytes(b"{}")
+            return doc
+        module.recover_list = recover
+        return module
+    monkeypatch.setattr(C, "load_sealed_builder", loader)
+    try:
+        code = C.main(["--edit", str(OLMO_EDIT), "--scratch-tmp", str(scratch)])
+        err = capsys.readouterr().err
+        assert code == 2 and "list exists" in err
+        assert (scratch / "list" / "s1.json").read_bytes() == b"{}"
+    finally:
+        shutil.rmtree(TEST_TMP, ignore_errors=True)

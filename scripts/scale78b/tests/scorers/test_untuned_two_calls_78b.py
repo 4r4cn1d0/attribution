@@ -248,3 +248,84 @@ def test_flag_value_takes_the_last_occurrence_as_argparse_does():
     assert parser.parse_args(["--prepared", "a", "--prepared", "b"]).prepared == "b"      # the 1B scripts' parsing
     assert sw.named_values(["--list", "s4=a:x", "--list=s3=b:y", "--loss", "s1=c:z"], "--list") == ["s4", "s3"]
     assert sw.named_values(["--out", "o"], "--list") == []
+
+
+# ----- RV-E-1 (reverify-E, round 4 track M): an abbreviated flag cannot bypass PP2 -------------------------------------
+
+
+H = "0" * 64
+
+
+@pytest.mark.parametrize("argv", [
+    ["--li", "s4=a:" + H, "--list", "s3=b:" + H, "--out", "o"],             # the re-verifier's bypass: both lists, one call
+    ["--list", "s4=a:" + H, "--lo", "s1=c:" + H, "--out", "o"],             # a loss beside S4 under an abbreviation
+    ["--list", "s4=a:" + H, "--ou", "o"],                                   # --out unseen: no doses step, no wrapper record
+    ["--li=s4=a:" + H, "--list=s3=b:" + H, "--out", "o"],                   # the '=' forms
+    ["--list", "s3=b:" + H, "--loss=s1=c:" + H, "--lo=s3_safe=d:" + H, "--out", "o"],
+    ["--list", "s4=a:" + H, "--out", "o", "--set", "x.json"],               # a prefix of the wrapper's own --settings
+    ["--list", "s4=a:" + H, "--out", "o", "--", "--list", "s3=b:" + H],     # a bare '--' later in the line
+])
+def test_rv_e_1_an_abbreviated_or_unknown_flag_refuses_in_the_preflight_before_any_check(argv):
+    doc = json.loads((mk.SETTINGS_DIR / mk.file_name("make_untuned_answers", "olmo2-7b")).read_bytes())
+    with pytest.raises(s1.Refusal, match="RV-E-1"):
+        sw.preflight("untuned_answers", doc, ["--recipe", "none", "--recipe-s", "none"] + argv)
+
+
+def test_rv_e_1_the_whole_command_line_with_li_lo_ou_exits_2_and_writes_nothing(tmp_path, capsys):
+    for k, abbreviated in enumerate((["--li", "s4=a:" + H, "--list", "s3=b:" + H, "--out"],
+                                     ["--list", "s4=a:" + H, "--lo", "s1=c:" + H, "--out"],
+                                     ["--list", "s4=a:" + H, "--ou"])):
+        out = tmp_path / f"out{k}"
+        code = sw.main(["untuned_answers", "--family", "olmo2-7b", "--recipe", str(MAIN_RECIPE_OLMO),
+                        "--recipe-s", str(MAIN_RECIPE_OLMO)] + abbreviated + [str(out)])
+        err = capsys.readouterr().err
+        assert code == 2 and "RV-E-1" in err and "(nothing written)" in err and not out.exists(), abbreviated
+    # the full names still pass the flag check (and reach PP2's own refusal or pass it)
+    sw.check_flag_names("untuned_answers", "untuned_answers",
+                        ["--recipe", "r", "--recipe-s=r", "--list", "s3=b:" + H, "--loss", "s1=c:" + H, "--out", "o"])
+    assert sw.check_untuned_calls(["--list", "s4=a:" + H, "--out", "o"]) == {"lists": ["s4"], "losses": []}
+
+
+def test_rv_e_1_every_kinds_other_flags_and_the_wrappers_own_refuse():
+    for kind, argv, bad in (("rep_pass", ["--prepared", "p", "--pool-pins", "x"], "--pool-pins"),
+                            ("rep_pass", ["--prepared", "p", "--rec", "r"], "--rec"),
+                            ("l1_scan", ["scan", "--prepared", "p", "--anch", "a"], "--anch"),
+                            ("l1_score", ["score", "--prepared", "p", "--recipe", "r"], "--recipe"),
+                            ("classifier", ["--prepared", "p", "--reci=r"], "--reci"),
+                            ("s3_score", ["--rows", "a", "--settings", "s"], "--settings"),
+                            ("score_edit", ["a1", "--unit", "u", "--name", "n"], "--name"),
+                            ("score_edit", ["scorer", "--scores-sha", "x"], "--scores-sha"),
+                            ("add_edit", ["--prepared", "p", "--full", "t"], "--full"),
+                            ("s_pool", ["--prepared", "p", "--re", "r"], "--re")):
+        command = sw.command_of(kind, sw.with_subcommand(kind, argv))
+        with pytest.raises(s1.Refusal, match=f"'{bad}' is not one of the 1B script's full flag names"):
+            sw.check_flag_names(kind, command, argv)
+
+
+def test_rv_e_1_the_allowed_names_are_the_1b_parsers_long_flags_less_the_wrappers_own(monkeypatch):
+    """ALLOWED_FLAGS against the 1B scripts' own parsers (captured at parse_args, so nothing runs): every long flag of
+    each command, without --help and the wrapper's --settings and --pool-pins. A 1B parser change shows here."""
+    class Captured(Exception):
+        pass
+
+    def capture(self, args=None, namespace=None):
+        raise Captured(self)
+    monkeypatch.setattr(argparse.ArgumentParser, "parse_args", capture)
+
+    def long_flags(parser) -> set:
+        return {o for a in parser._actions for o in a.option_strings if o.startswith("--")} - {"--help", "--settings", "--pool-pins"}
+    found = {}
+    for kind, (module_name, *_rest) in sw.KINDS.items():
+        module = __import__(module_name, fromlist=["main"])
+        with pytest.raises(Captured) as info:
+            module.main([])
+        parser = info.value.args[0]
+        subs = [a for a in parser._actions if isinstance(a, argparse._SubParsersAction)]
+        if subs:
+            for name, sub in subs[0].choices.items():
+                found[name] = long_flags(sub)
+        else:
+            found[kind] = long_flags(parser)
+    commands = {c for kind, entry in sw.KINDS.items() for c in ((entry[4] or kind).split("|"))}
+    assert set(sw.ALLOWED_FLAGS) == commands
+    assert {c: set(found[c]) for c in commands} == {c: set(v) for c, v in sw.ALLOWED_FLAGS.items()}

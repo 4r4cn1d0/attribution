@@ -578,26 +578,29 @@ def test_07c_a13_pins_engine_y_bqi_and_the_sealed_sets(monkeypatch, tmp_path):
         with pytest.raises(R.Refused):
             R.recipe_bqi_or_refuse("olmo2-7b")
     monkeypatch.setitem(R.RECIPE_BQI, "olmo2-7b", bqi)
-    # ENGINE_Y filled: the E-capped kinds run on Y; the measured kinds refuse until Y_MEASURED (KD9).
+    # ENGINE_Y filled: the E-capped kinds outside PP16's X_ONLY_KINDS run on Y; the wrapper kinds never do (PP16);
+    # the measured kinds refuse until Y_MEASURED (KD9).
     monkeypatch.setattr(R, "ENGINE_Y", y)
     for kind in R.E_KINDS:
-        assert R.engine_allowed(kind, y)
+        assert R.engine_allowed(kind, y) is (kind not in R.X_ONLY_KINDS), kind
     for kind in R.MEASURED_KINDS:
         assert not R.engine_allowed(kind, y)
-    R.check_keys(**keys_of("olmo2-7b", kind="anchor", engine_sha256=y))
+    with pytest.raises(R.Refused, match="the wrapper kinds only, PP16"):
+        R.check_keys(**keys_of("olmo2-7b", kind="anchor", engine_sha256=y))                # PP16: anchor runs on X
+    R.check_keys(**keys_of("olmo2-7b", kind="safe_lora", engine_sha256=y))
     R.check_keys(**keys_of("olmo2-7b", kind="ref_train_bqi", engine_sha256=y, recipe_sha256=bqi))
     R.check_keys(**keys_of("olmo2-7b", kind="retrain", engine_sha256=y, recipe_sha256="ab" * 32))   # the Y retrain
     for kind in ("arm", "a0_arm", "evalonly"):
         with pytest.raises(R.Refused):
             R.check_keys(**keys_of("olmo2-7b", kind=kind, engine_sha256=y))
     with pytest.raises(R.Refused):
-        R.check_keys(**keys_of("olmo2-7b", kind="anchor", engine_sha256="34bfd289" + "0" * 56))   # a third engine
+        R.check_keys(**keys_of("olmo2-7b", kind="safe_lora", engine_sha256="34bfd289" + "0" * 56))   # a third engine
     monkeypatch.setattr(R, "Y_MEASURED", True)
     for kind in ("arm", "a0_arm", "evalonly"):
         assert R.engine_allowed(kind, y)
         R.check_keys(**keys_of("olmo2-7b", kind=kind, engine_sha256=y))
     monkeypatch.setattr(R, "Y_MEASURED", 1)                                                # a truthy non-bool is not a pin
-    assert not R.engine_allowed("arm", y) and R.engine_allowed("anchor", y)
+    assert not R.engine_allowed("arm", y) and R.engine_allowed("safe_lora", y)
     assert R.ENGINES == {"X": R.ENGINE_X}                                                   # the basis's engines stay X
 
 
@@ -1004,7 +1007,15 @@ def test_13_mutation_spec_is_well_formed():
                 "FK-m-rep-pass-no-size-factor", "FK-m-a1-pass-takes-rep-pass-cap", "FK-m-scorer-kinds-no-a1-pass",
                 "FK-m-r-edits-any-family", "FK-m-r-edits-seed-unchecked", "FK-m-r-edits-duplicate-passes",
                 "FK-m-r-edits-missing-passes", "FK-m-edit-entry-any-path", "FK-m-edit-entry-role-edit-only",
-                "FK-m-llama-pin-null", "FK-m-idle-running-rate", "FK-m-idle-not-in-report", "FK-m-idle-per-pod-only"}
+                "FK-m-llama-pin-null", "FK-m-idle-running-rate", "FK-m-idle-not-in-report", "FK-m-idle-per-pod-only",
+                # K4a: PP16 (X_ONLY_KINDS first), DK-3 (the kit's stage1_rules kind sets), PP14 (the idle-storage pods)
+                "K4-m-x-only-off", "K4-m-x-only-any-engine", "K4-m-x-only-after-y", "K4-m-x-only-plus-retrain",
+                "K4-m-x-only-drop-anchor", "K4-m-x-only-drop-c0", "K4-m-unitless-plus-a1-pass", "K4-m-diag-no-a1-pass",
+                "K4-m-idle-no-retrain-pods", "K4-m-idle-no-scorer-pods", "K4-m-idle-all-n-only",
+                # round 4b: PP17 (o_only_with_regenerate in regenerate's place), D4 (one state definition), PP18 (c0)
+                "K4-m-x-only-drop-o-only-with-regenerate", "K4bf-m-state-no-c0", "K4bf-m-state-no-regen",
+                "K4bf-m-idle-one-pod-per-kind", "K4bf-m-scorer-kinds-no-regen", "K4bf-m-regenerate-kind-back",
+                "K4bf-m-unitless-no-c0"}
     assert required <= set(ids)
 
 
@@ -1309,7 +1320,9 @@ def test_17_pp8_the_s78_kinds_and_their_caps(tmp_path):
     most, rep_pass its own E cap (the 1B 1 h estimate x 2.3 x 1.5 = 4.75 h); the scorer table and the labels name both."""
     assert R.S78_KINDS == frozenset({"retrain", "rep_pass", "a1_pass", "classifier"})
     assert "a1_pass" in R.E_KINDS and "rep_pass" in R.E_KINDS and "a1_pass" not in R.MEASURED_KINDS
-    assert R.SCORER_KINDS == ("untuned_answers", "o_only", "anchor", "rep_pass", "a1_pass", "l1_scan", "classifier", "c0")
+    assert R.SCORER_KINDS == ("untuned_answers", "o_only", "o_only_with_regenerate", "anchor", "rep_pass", "a1_pass",
+                              "l1_scan", "classifier", "c0")                # PP17: no standalone regenerate kind
+    assert "regenerate" not in R.E_KINDS and "regenerate" not in R.KIND_LABELS and "regenerate" not in R.SC_KINDS
     assert set(R.S78_KINDS) - {"retrain"} <= set(R.SCORER_KINDS)
     assert set(R.KIND_LABELS) >= set(R.SCORER_KINDS) | {"retrain"}
     assert "REQ-3" in R.KIND_LABELS["rep_pass"] and "A1" in R.KIND_LABELS["a1_pass"] and "16.5 h" in R.KIND_LABELS["a1_pass"]
@@ -1330,7 +1343,7 @@ def test_17_pp8_the_s78_kinds_and_their_caps(tmp_path):
                 R.check_keys(**keys_of(family, kind=kind))
             with pytest.raises(R.Refused):
                 R.check_keys(**keys_of(family, kind=kind, recipe_sha256=R.CONFIGS[family]["g"][1]))
-        for kind in ("l1_scan", "anchor", "untuned_answers", "o_only", "c0"):               # engine X, the main recipe
+        for kind in ("l1_scan", "anchor", "untuned_answers", "o_only", "o_only_with_regenerate", "c0"):   # X, main
             assert R.job_decision(family, pre, ver, R.job_record(family, kind), 20 * 3600.0, 20.0)["action"] == "run"
             R.check_keys(**keys_of(family, kind=kind))
     report = R.block0_report()
@@ -1460,6 +1473,92 @@ def test_19_d2_the_idle_storage_line():
     report = R.block0_report()
     assert report["idle_storage"] == two
     assert R.IDLE_STORAGE_USD_PER_GB_MONTH == 0.20 and R.IDLE_DAYS_PER_MONTH == 30 and R.VOLUME_GB == 50
+
+
+def test_20_pp16_the_wrapper_kinds_run_on_engine_x_only_whatever_engine_y_holds(monkeypatch, tmp_path):
+    """PP16 (PP4 enforced; the core re-verifier's DK-4): X_ONLY_KINDS is the lead's list, engine_allowed checks it
+    first, so once ENGINE_Y is filled (test-local here) and even after KD9's Y_MEASURED, every wrapper kind refuses
+    on Y (and on a third engine) at engine_allowed and at the pod's key check, and runs on X. The retrain and a1_pass
+    (the engine's own jobs; ruling 10, A13) run on Y once it is filled."""
+    assert R.X_ONLY_KINDS == frozenset({"untuned_answers", "o_only", "o_only_with_regenerate", "anchor", "rep_pass",
+                                        "l1_scan", "classifier", "c0"})     # PP16 with PP17's kind in regenerate's place
+    assert R.X_ONLY_KINDS <= set(R.E_KINDS) and not R.X_ONLY_KINDS & {"retrain", "a1_pass"}
+    assert R.ENGINE_Y is None                                                   # the committed pin stays null
+    y, third = "d3" * 32, "34bfd289" + "0" * 56
+    s78 = "ef" * 32
+    for setting in ((None, False), (y, False), (y, True)):
+        monkeypatch.setattr(R, "ENGINE_Y", setting[0])
+        monkeypatch.setattr(R, "Y_MEASURED", setting[1])
+        for kind in sorted(R.X_ONLY_KINDS):
+            assert R.engine_allowed(kind, R.ENGINE_X), kind
+            assert not R.engine_allowed(kind, y) and not R.engine_allowed(kind, third), (kind, setting)
+    monkeypatch.setattr(R, "ENGINE_Y", y)
+    monkeypatch.setattr(R, "Y_MEASURED", False)
+    monkeypatch.setitem(R.RECIPE_S, "olmo2-7b", s78)
+    for kind in sorted(R.X_ONLY_KINDS):
+        recipe = s78 if kind in R.S78_KINDS else R.CONFIGS["olmo2-7b"]["main"][1]
+        R.check_keys(**keys_of("olmo2-7b", kind=kind, recipe_sha256=recipe))                # X: runs
+        with pytest.raises(R.Refused, match="the wrapper kinds only, PP16"):
+            R.check_keys(**keys_of("olmo2-7b", kind=kind, recipe_sha256=recipe, engine_sha256=y))
+    for kind in ("retrain", "a1_pass"):                                         # the engine's own jobs: Y once filled
+        assert R.engine_allowed(kind, y) and R.engine_allowed(kind, R.ENGINE_X)
+        R.check_keys(**keys_of("olmo2-7b", kind=kind, recipe_sha256=s78, engine_sha256=y))
+    assert "(engine X; PP4)" in R.KIND_LABELS["l1_scan"]
+
+
+def test_21_dk3_the_kits_stage1_rules_kind_sets_hold_the_pp3_kinds():
+    """The core re-verifier's DK-3, as round 4b's D8 and PP18 settle it: rep_pass and the classifier are unitless (no
+    unit of their own), a1_pass is NOT (it writes the engine's attributes unit, recorded by its COMPLETE.json and the
+    engine's verify, as the 1B kit's a1_rescore), c0 is unitless (PP18: its outputs are hashed under its job folder);
+    all three scorer kinds are diagnostic kinds (C1, PP3). Loaded by path from the committed kit folder (no family)."""
+    kit_rules = load_by_path("stage1_rules_78b_kit_dk3", KIT / "stage1_rules.py")
+    try:
+        for kind in ("rep_pass", "a1_pass", "classifier"):
+            assert (kind in kit_rules.UNITLESS_KINDS) is (kind != "a1_pass"), kind
+            assert kind in kit_rules.DIAG_KINDS, kind
+        assert kit_rules.UNITLESS_KINDS == frozenset({"untuned_answers", "rep_pass", "l1_scan", "classifier", "anchor",
+                                                      "o_only", "c0"})
+        assert kit_rules.DIAG_KINDS == ("rep_pass", "a1_pass", "untuned_answers", "l1_scan", "classifier")
+        assert kit_rules.FAMILY is None and kit_rules.r78 is R
+    finally:
+        sys.modules.pop("stage1_rules_78b_kit_dk3", None)
+
+
+def test_22_pp14_an_idle_storage_line_for_every_block0_pod_that_keeps_states():
+    """PP14 with round 4b's one definition (the core verifier's D4): block 0's need prints an idle-storage line for
+    every pod that keeps states after its job: N's two pods (D2's line), and per family every pod of SC_STATE_KINDS
+    the scorer block plans (the retrain, a1_pass, one o_only_with_regenerate pod per reused a0 seed (PP17: OLMo
+    1101-1103, Llama 1101-1102), c0), and the total; about $0.33 per stopped 50 GB pod per day (KCR:161), counted in
+    no guard. The scorer block's sc_pod reads the same constant."""
+    report = R.block0_report()
+    pods = report["idle_storage_pods"]
+    per_family = {"olmo2-7b": (1101, 1102, 1103), "llama31-8b": (1101, 1102)}
+    want = ["N olmo2-7b-0-1", "N llama31-8b-0-1"]
+    for fam, seeds in per_family.items():
+        want += [f"retrain {fam}", f"scorer {fam} a1_pass"] + [f"scorer {fam} o_only_with_regenerate {s}" for s in seeds]
+        want += [f"scorer {fam} c0"]
+    assert [p["pod"] for p in pods] == want and len(want) == 13
+    assert all(p["usd_per_day"] == 0.33 and p["usd_per_month"] == 10.0 and p["why"] for p in pods)
+    assert list(R.SC_STATE_KINDS) == ["retrain", "a1_pass", "o_only_with_regenerate", "c0"]
+    assert R.IDLE_SCORER_KINDS == {k: v for k, v in R.SC_STATE_KINDS.items() if k != "retrain"}
+    assert set(R.IDLE_SCORER_KINDS) <= set(R.SCORER_KINDS) and set(R.SC_STATE_KINDS) <= set(R.SC_KINDS)
+    for fam in R.FAMILIES:                                      # the scorer block's printout reads the same constant
+        for kind in R.SC_KINDS:
+            assert R.sc_pod(fam, kind)["idle_storage"]["keeps_states"] is (kind in R.SC_STATE_KINDS), (fam, kind)
+    assert report["idle_storage_all"] == R.idle_storage(13)
+    assert report["idle_storage_all"]["usd_per_day"] == 4.33 and report["idle_storage_all"]["usd_per_month"] == 130.0
+    assert report["idle_storage"] == R.idle_storage(2)                          # D2's N block, unchanged
+    lines = R.idle_storage_lines(report)
+    assert len(lines) == 1 + 11 + 1
+    assert lines[0].startswith("idle storage (KD5; E, KCR:161): about $0.33 per day per stopped 50 GB pod")
+    assert "N's 2 pods kept stopped: $0.67 per day, about $20.00 per month; counted in no guard" in lines[0]
+    for line, pod in zip(lines[1:12], want[2:]):
+        assert line.startswith(f"idle storage {pod} (KD5, PP14; E, KCR:161): ")
+        assert line.endswith("about $0.33 per day, about $10.00 per month while kept stopped; counted in no guard")
+    assert "q and e1 states" in lines[1] and "q and e1 states" in lines[2] and "regenerated a0 unit" in lines[3]
+    assert "OUT/train" in lines[6]
+    assert lines[12] == ("idle storage block 0 in all (KD5, PP14; E): 13 pods if every pod above is kept stopped: "
+                         "$4.33 per day, about $130.00 per month; counted in no guard")
 
 
 # ------------------------------------------------------------------------------------------ last: no bytecode

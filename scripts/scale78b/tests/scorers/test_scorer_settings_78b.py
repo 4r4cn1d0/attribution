@@ -101,7 +101,7 @@ def test_the_per_family_values(family):
     l1 = doc_of("score_l1_larf", family)
     assert l1["pins"]["rec_recipe_sha256"] == main_sha and l1["pins"]["anchor_bank_sha256"] is None
     assert l1["pins"]["representation_pass_settings_sha256"] == sha256_bytes(committed(mk.file_name("representation_pass", family)))
-    assert l1["scan"]["first_block"] is None and set(l1["scan"]["modules"]) == {"olmo2", "llama"}
+    assert l1["scan"]["first_block"] == 10 and l1["scan"]["modules"] == {fam["l1_scan_modules"]["model_type"]: fam["l1_scan_modules"]["modules"]}
     c = doc_of("score_classifier", family)
     assert c["pins"]["model"] == fam["model_pin"] and c["pins"]["recipe_sha256"] is None
     s3 = doc_of("score_s3_datarx", family)
@@ -125,7 +125,8 @@ def test_the_two_families_differ_only_where_they_should():
         a, b = doc_of(script, "olmo2-7b"), doc_of(script, "llama31-8b")
         diff = {p for p in paths(a) | paths(b) if get(a, p) != get(b, p)}
         allowed = ("family_78b.", "pins.", "prepared", "inputs.rec_", "inputs.prepared_manifest_sha256",
-                   "a1.attributes_unit.source", "a1.edit_name", "recipe_sha256", "pool_pins_file_78b")
+                   "a1.attributes_unit.source", "a1.edit_name", "recipe_sha256", "pool_pins_file_78b",
+                   "scan.modules")                                       # PP12: each family's own entry (track M)
         assert all(p.startswith(allowed) for p in diff), (script, sorted(diff))
         assert diff or script == "representation_pools", script           # every other file carries a per-family value
 

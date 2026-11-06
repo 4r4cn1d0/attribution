@@ -400,9 +400,10 @@ def test_the_cli_dry_run_writes_nothing_and_deal_prints_n(wf, capsys):
     out = json.loads(lines[-1])
     assert out["dry_run"] is True and out["family"] == w.family
     assert [p["cap_hours"] for p in out["pods"]] == [8.5 if w.family == "olmo2-7b" else 12.5]
-    assert len([x for x in lines[:-1] if x.startswith("need ")]) == 2 + 2 + 16          # N, this pod, 2 retrain, 16 scorer
-    assert len(lines[:-1]) == len(out["need_lines"]) == 2 + 2 + 16 + 1                  # + KD5's idle-storage line (D2)
-    assert lines[-2].startswith("idle storage (KD5; E, KCR:161): about $0.33 per day per stopped 50 GB pod")
+    assert len([x for x in lines[:-1] if x.startswith("need ")]) == 2 + 2 + 18          # N, this pod, 2 retrain, 18 scorer
+    assert len(lines[:-1]) == len(out["need_lines"]) == 2 + 2 + 18 + 1 + 11 + 1         # + KD5's line (D2) + PP14's 12
+    assert lines[-14].startswith("idle storage (KD5; E, KCR:161): about $0.33 per day per stopped 50 GB pod")
+    assert lines[-2].startswith("idle storage block 0 in all (KD5, PP14; E): 13 pods")
     assert not (w.root / "plan.json").exists() and not (w.root / "operator-actions.jsonl").exists()
     assert w.tool.main(["deal", "0"]) == 0
     pods = json.loads(capsys.readouterr().out)["pods"]

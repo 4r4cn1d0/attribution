@@ -25,7 +25,7 @@ So the 7-8B layer is three new files and a settings folder, and no copy of any s
 | `make_scorer_settings_78b.py` | Derives `settings/<script>__<family>.json` (18 files) and `settings/PINS-78B.json` from the 1B settings files (hashed against its pins) and `pins_78b.json`. `--check` compares the committed files with their regeneration. |
 | `settings/*.json` | The derived files, in the 1B files' own schema (`kind`, `name`, `engine_x`, `label_entries` unchanged, so the 1B `check_settings` accepts each on its 1B name), plus a `family_78b` block (family, manifest, main recipe, the 1B file it derives from and its SHA-256, `waits`: each null pin, its event and the commands that need it). |
 | `scorers_78b.py` | The wrapper: `KIND --family F <the 1B script's own arguments>`. Imports the 1B module, hashes it against `STAGE1_CODE`, loads the family's settings by the index's pin, runs the family preflight, then the 1B script's own `main(argv + ["--settings", file])` with the module's `SETTINGS_SHA256` (and, for `rep_pass` and `classifier`, `representation_pass`'s pool-pins globals) replaced for that call only and restored afterwards: the pattern of the 1B D-2 wrapper `scripts/stage1_s1/d2_pool_pins/d2_representation_pass.py` (R: its module doc and `run_base`). For `untuned_answers` it then derives the nested dose lists (Part 1 section 10). |
-| `tests/scorers/` | 93 tests: the settings' derivation and schema, the nesting and sizing rules, parity on the 1B fixtures for all nine kinds, the family acceptances and refusals on the real prepared manifests, the null-pin refusals, and (fix round 3) the two untuned-answers calls end to end on a synthetic family with the S4 fallback firing, the PP2 refusal, the exit-3 record, the doses refusal after the pass, the repeated-flag rule. |
+| `tests/scorers/` | 93 tests (113 after round 4's track M: the RV-E-1 flag check, L1's pins): the settings' derivation and schema, the nesting and sizing rules, parity on the 1B fixtures for all nine kinds, the family acceptances and refusals on the real prepared manifests, the null-pin refusals, and (fix round 3) the two untuned-answers calls end to end on a synthetic family with the S4 fallback firing, the PP2 refusal, the exit-3 record, the doses refusal after the pass, the repeated-flag rule. |
 
 ## 2. The map: kind -> 1B script, settings, inputs, what differs per family, what it waits for
 
@@ -49,7 +49,7 @@ printed on 5 Nov 2026), so the only per-family limit is the codec (the family's 
 | then S_78_F | `make_recipe_s78.py --family F --anchors-sha256 <anchor_file_sha256> --out experiments/safety_selection/configs/<name>.json`; the lead commits it and fills `pins_78b.json` (section 5) | `scripts/scale78b/make_recipe_s78.py` (track C) | `pins_78b.json` `recipe_s78`, `anchor_bank_sha256` | the anchor record | per family | the anchor job |
 | `rep_pass` (pod, E cap): REQ-3's representation pass for L1, S3, DataShield-style and the Gate C reproduction (PP3: A1's pass is `a1_pass`, the next row) | `scorers_78b.py rep_pass --family F --prepared P_F --recipe S_78_F --anchors BANK_F --pool s3_safe.pool.json:6801652c… --out <job>/representation`; then the s3_orig pass: `… --pools-only --pool s3_orig.pool.json:<the untuned pass's record names it> --out <job>/representation-s3-orig` (the stage-1 kit's two passes; R: `runkit/stage1-olmo/setup/job_runner_stage1.py:24-30`) | `representation_pass.py` | `representation_pass__F.json`; pool pins `representation_pools__F.json` (both pools null: no plant or decoy pool at 7-8B, EM-4) | P_F; S_78_F (its `attribution.query_bank` names BANK_F); BANK_F; the s3_safe pool; the family's s3_orig pool | manifest, model, recipe S_78, anchor bank; n layers and hidden size from the model (32 and 4096 for both families, read, never assumed) | the anchor job; S_78; the untuned pass (for s3_orig) |
 | `a1_pass` (pod, its own E cap, 16.5 h at most; PP3; RP:43's 6-11 h): A1's attributes pass | the engine's attributes job on the family's a0-1101 retrain (S_78) with BANK_F: `make-job attributes --a0-state q=<retrain unit> --a0-state e1=<retrain unit> --groups <the 8 unit groups> --anchors BANK_F --pin-code`, then `attributes` (the stage-1 kit's `a1_rescore` form; R: `job_runner_stage1.py:49-53`) | the engine (no script here); its consumer is `write_score_edit.py a1` | `write_score_edit__F.json` (`a1.attributes_unit`: six null pins) | the retrain's q and e1 states; BANK_F; S_78_F | per family; the engine's own job, so ruling 10 and A13 govern its engine (X, or Y after the certificate; Part 1 section 3.7), not the wrapper kinds' engine-X rule (PP4) | the anchor job; S_78; the a0-1101 retrain |
-| `l1_scan` (pod, E cap) | `scorers_78b.py l1_scan --family F --prepared P_F --recipe MAIN_F --anchors BANK_F --out <job>/l1-scan` (the wrapper prepends `scan`) | `score_l1_larf.py scan` | `score_l1_larf__F.json` | P_F (the sealed sample of 64 Dolly prompts, key `l1.scan`); MAIN_F; BANK_F (its 64 harmful prompts) | manifest, REC, anchor bank; `scan.first_block` null (Part 2's layer rule; the 1B value is 5 of 16); `scan.modules` by `model_type` (olmo2 and llama entries carried from the 1B file) | the anchor job; Part 2's L1 layer rule |
+| `l1_scan` (pod, E cap) | `scorers_78b.py l1_scan --family F --prepared P_F --recipe MAIN_F --anchors BANK_F --out <job>/l1-scan` (the wrapper prepends `scan`) | `score_l1_larf.py scan` | `score_l1_larf__F.json` | P_F (the sealed sample of 64 Dolly prompts, key `l1.scan`); MAIN_F; BANK_F (its 64 harmful prompts) | manifest, REC, anchor bank; `scan.first_block` = 10 (PP11: round(5 n / 16) at n = 32; the 1B value is 5 of 16); `scan.modules` = the family's own entry only, by `model_type` (PP12: OLMo-2-7B `olmo2` post_attention_layernorm, post_feedforward_layernorm; Llama-3.1-8B `llama` self_attn, mlp) | the anchor job |
 | `classifier` (pod, E cap; **under S_78**, PP4) | `scorers_78b.py classifier --family F --prepared P_F --recipe S_78_F --anchors BANK_F --out <job>/classifier` (no `--pool`). The kit's key check must let `classifier` through as an S_78 kind (`rules_78b.py` `S78_KINDS` holds `retrain` and `rep_pass` at HEAD 953f520; section 6 item 3; verify-E D3) | `score_classifier.py` | `score_classifier__F.json` (+ the pool pins file) | P_F; S_78_F (its guard); BANK_F | manifest, model, recipe S_78, anchor bank | the anchor job; S_78 |
 | `c0` (pod; engine X) | the engine's `make-job run-one` of the family's R_1 at 1101 (its sealed `R_d1.json`), train only, then the S1 package's `scripts/stage1_s1/lean_eval_job.py run --expect-adapter-fingerprint …` (R: `job_runner_stage1.py:45-47`) | the engine and the S1 package (frozen; not this layer's) | none here | the family's sealed R_d1; MAIN_F; the O-ext inputs | per family | the kit round (track K) |
 | `o_only` / `regenerate` for the untuned units (pod; CHECK M1) | the engine's `make-job run-one` (train only) and the S1 package's O-ext unit pass (`scripts/stage1_s1/oext_unit.py run --untuned` for the untuned unit; R: `job_runner_stage1.py:19-23`) | the engine and the S1 package | none here | MAIN_F; the O set (500 prompts) and L | per family; Part 2 names the evaluation bank (M1) | the kit round; Part 2 |
@@ -62,12 +62,15 @@ printed on 5 Nov 2026), so the only per-family limit is the codec (the family's 
 | Mac: `s_pool` (only if Part 2 rebuilds the S-pool per family) | `scorers_78b.py s_pool --family F --config experiments/safety_selection/configs/study-v3-data-inj05.json --sources <PKU root> --prepared P_F --anchors <the full anchor prompt list> --rec MAIN_F --full-out tmp/<…>/full --out out/s-pool` | `build_s_pool.py` | `build_s_pool__F.json` | the PKU sources; ANCH; the data config | manifest; REC; `expected_evaluation_forms` 11,954 carried (I; L9 (2) stops the run if the Llama banks differ) | Part 2's decision |
 
 Each command line is the 1B script's own argument list after `KIND --family F` (R: each script's `main`); the wrapper
-adds `--settings <the family's file>` itself and refuses a `--settings` of the caller's. `-I -B` as the brief says.
+adds `--settings <the family's file>` itself and refuses a `--settings` of the caller's. Every `--` token must be a full
+flag name of the 1B script's command (`ALLOWED_FLAGS`; reverify-E RV-E-1): the 1B parsers expand abbreviations (`--li`
+is `--list` to them), which the wrapper's PP2, recipe and `--out` checks would not see, so `--li`, `--lo`, `--ou`, the
+wrapper's own `--pool-pins` and any other flag refuse before anything runs (tested). `-I -B` as the brief says.
 
 **Engine X (PP4; verify-E D2).** Every wrapper kind in this table (`untuned_answers`, `rep_pass`, `l1_scan`, `classifier`
 on the pod; `l1_score`, `s3_score`, `score_edit`, `add_edit`, `s_pool` on the Mac) runs on engine X (`472fc7f6…`): each
 derived settings file carries the 1B file's `engine_x`, and the frozen `check_settings` refuses another engine identity
-(R: `scripts/stage1/s1common.py:589-591`). A run on engine Y needs the settings re-derived for Y (a new `engine_x`, a new
+(R: `scripts/stage1/s1common.py:590-592`). A run on engine Y needs the settings re-derived for Y (a new `engine_x`, a new
 `PINS-78B.json`, a new `PINS_FILE_SHA256`) by a recorded step; none exists. The rule is written in `pins_78b.json`
 `shared.engine_rule_78b` and in every settings file's `family_78b.engine_rule`. The engine's own jobs (the a0-1101
 retrain, `a1_pass`) follow ruling 10 and A13 instead. The kit packs scorer pods with engine X; the Mac steps run on a
@@ -100,7 +103,7 @@ checkout whose engine identity is X.
 - `write_add_edit__F.json` takes each dose list by its `name` (s4, s4_96, s4_192; `s4_top` has `rows` null until the
   fallback count is known).
 
-## 4. Two plumbing choices that are not scientific changes; the first is ruled (PP1), the second waits for Part 2
+## 4. Two plumbing choices that are not scientific changes; both are ruled (PP1; PP11 and PP12)
 
 1. **The untuned-answers pass takes the family's main recipe as `--recipe-s` (ruled: PP1, 5 Nov 2026)** (`pins_78b.json`
    `shared.untuned_recipe_s` = "main"). `make_untuned_answers.py` reads recipe S only for `model.max_train_tokens` and
@@ -109,11 +112,14 @@ checkout whose engine identity is X.
    family's anchor job (addendum A2 orders the anchor job, S_78, the retrain; the pass needs none of them). The recorded
    `recipe_s` hash is the main recipe's; Part 2 states this (PP1). The same holds for `write_add_edit__F.json`'s
    `recipe_sha256`. The key "s78" stays in the maker as the explicit alternative; using it would be a Part 2 change.
-2. **`l1_scan`'s `scan.first_block` is null**, so the scan refuses until Part 2's L1 layer rule fills it (Part 1 section
-   14 item 1). The 1B value is 5 of n = 16 blocks; at n = 32 the candidates are the same share (round(5 n / 16) = 10) or
-   the same absolute 5. Not decided here. The `llama` modules entry (`self_attn`, `mlp`) is carried from the 1B file,
-   where it is marked "stage 2 reading, not used in stage 1 … re-decided" in a 7-8B or Llama settings file; Part 2
-   confirms or changes it before the Llama scan.
+2. **`l1_scan`'s layer rule and modules are ruled (PP11, PP12; 6 Nov 2026).** `scan.first_block` = round(5 n / 16) = 10
+   at n = 32 for both families (blocks 10-31, 22 blocks), the 1B rule's relative depth (5 of 16), not L1's 1B result;
+   `pins_78b.json` `shared.l1_first_block` and `l1_first_block_rule`. Each family's `score_l1_larf__F.json` carries its own
+   `scan.modules` entry only (`families.F.l1_scan_modules`, keyed by `config.model_type`, which the 1B `scale_modules`
+   looks up): OLMo-2-7B `olmo2` (`post_attention_layernorm`, `post_feedforward_layernorm`; stage 1's, UW-11 (d)),
+   Llama-3.1-8B `llama` (`self_attn`, `mlp`; the 1B file's own llama entry). So the other family's model refuses at
+   `scale_modules`. M: `tests/scorers/test_l1_pins_78b.py` (the unchanged 1B `choose_layer` at n = 32 and
+   `scale_modules` on tiny random OLMo-2 and Llama models; the scan now waits for the anchor bank alone).
 
 ## 5. Which pins wait for which event, and how a pin is filled
 
@@ -121,7 +127,7 @@ checkout whose engine identity is X.
 |---|---|---|---|
 | `families.F.anchor_bank_sha256` | F's anchor job: `anchors.sealed.json` `anchor_file_sha256` of its committed record | representation_pass, score_l1_larf, score_classifier, write_score_edit (a1 query_bank) | rep_pass, classifier, l1_scan, score_edit a1 |
 | `families.F.recipe_s78.{path, config_sha256}` | `make_recipe_s78.py` after the anchor job, the lead's commit (A1, A2); the same value as `rules_78b.py` RECIPE_S[F] | representation_pass, score_classifier, write_score_edit (a1 recipe) | rep_pass, classifier, score_edit a1 |
-| `shared.l1_first_block` | Part 2's L1 layer rule | score_l1_larf (both families) | l1_scan |
+| `shared.l1_first_block` | filled: 10 (PP11, 6 Nov 2026) | score_l1_larf (both families) | none (was l1_scan) |
 | `families.F.a1_attributes_unit.{complete_sha256, retrain_complete_sha256}` and the a1 `code_sha256` | F's a0-1101 retrain under S_78, A1's attributes pass on its states; the engine that ran them (X or Y) | write_score_edit | score_edit a1 |
 | `families.F.untuned_pass.*` | F's untuned-answers pass (record only; the consumers take PATH:SHA256 on the command line) | none (the map's record) | none |
 | `lists.s4_top.rows` (derived) | only if the dose fallback fires: the kept count in `s4_doses_record.json` | write_add_edit | add_edit of the list s4_top (the 1B writer refuses it) |
@@ -147,10 +153,11 @@ lists the per-family paths).
    engine identity is not X. A Y run needs re-derived settings (a recorded step; none exists).
 3. **The classifier runs under S_78, and the kit's key check must let it through (ruled: PP4; verify-E D3).** The map
    and the 1B kit run `score_classifier.py --recipe S_78` (R: `job_runner_stage1.py:450-456`); `score_classifier__F.json`
-   pins `recipe_sha256` = S_78_F. `rules_78b.py check_keys` accepts S_78 only for `S78_KINDS` (R: `:325-337`), which hold
+   pins `recipe_sha256` = S_78_F. `rules_78b.py check_keys` accepts S_78 only for `S78_KINDS` (its `S78_KINDS` branch; R: `:325-337` at commit 953f520), which hold
    `retrain` and `rep_pass` at HEAD 953f520 (R: `:136`); every other E kind must use an allow-list recipe (main or G).
    So the kit round adds `classifier` to `S78_KINDS` (or records the classifier job's key recipe as main while its
-   command line passes S_78). `rules_78b.py` is tracked; not changed here.
+   command line passes S_78). `rules_78b.py` is tracked; not changed here. Done in the kit round (PP8): at HEAD d203070
+   `S78_KINDS` holds retrain, rep_pass, a1_pass and classifier (R: `runkit/stage1-78b/rules_78b.py:141`).
 4. **Two untuned-answers calls per pod (ruled: PP2; verify-E D1).** Section 2 and 3. For the kit round: the S3 call's
    outputs are `<job>/untuned/` (the stage-1 path of `s3_orig.pool.json`; the `s3_orig_pin` form applies to them), the
    S4 call's `<job>/untuned-s4/` (with `doses/`); in the fallback case the S4 call's 1B record says `complete` false,
@@ -164,29 +171,35 @@ lists the per-family paths).
    the wrapper record (the stage-1 kit's J6 completeness check reads the 1B record; R: `stage1_rules.py:679`). A
    refusal in the doses step is printed as `REFUSED after the 1B pass: the 1B outputs are written in <out>; the doses
    were not written (...)`, exit 2, with no wrapper record (verify-E C4).
-4. Parity is of the plumbing: the wrapper runs the 1B script's own `main()`, so the outputs are the 1B script's by
+7. Parity is of the plumbing: the wrapper runs the 1B script's own `main()`, so the outputs are the 1B script's by
    construction; the tests show byte equality with the 1B functions on the 1B fixtures (the wall-clock fields are the
    stated exception, as in the 1B determinism tests). The untuned-answers parity through `main()` ran on the engine's
    tiny model, whose answers are all capped at the fixture's 5 new tokens (both routes keep 0, exit 3, same bytes);
    the keep path is covered by the API test with the 1B test's generator. CUDA paths are untested, as in the 1B scripts.
-5. The anchor job for Llama-3.1-8B encodes the 1B list's 64 harmful (prompt, unsafe response) pairs with Llama's
+8. The anchor job for Llama-3.1-8B encodes the 1B list's 64 harmful (prompt, unsafe response) pairs with Llama's
    tokenizer; the pinned script stops if one does not encode under 3072 tokens (R: `make_anchor_answers.py:117-121`).
    Low risk (I: the 1B pairs encoded under OLMo's tokenizer with the same limit), but a stop would need a reviewed list.
-6. `build_s_pool__F.json` carries the 1B `expected_evaluation_forms` (11,954); for the Llama manifest it is unverified
+9. `build_s_pool__F.json` carries the 1B `expected_evaluation_forms` (11,954); for the Llama manifest it is unverified
    (I). It matters only if Part 2 rebuilds the S-pool per family.
-7. The 7-8B kit's bundle must carry `scripts/scale78b/scorers_78b.py` and `scripts/scale78b/settings/` to the pod and
+10. The 7-8B kit's bundle must carry `scripts/scale78b/scorers_78b.py` and `scripts/scale78b/settings/` to the pod and
    pin them (the stage-1 kit's `STAGE1_PINS` form; R: `stage1_rules.py:585-598`), beside `scripts/stage1/`.
 
-## 7. Hashes (M: `shasum -a 256`, 5 Nov 2026, 18:31 UTC, after fix round 3, in the track E worktree at HEAD 953f520)
+## 7. Hashes (M: `shasum -a 256`, 6 Nov 2026, 16:40 UTC, after round 4b's fix, in its worktree at HEAD d203070)
 
-`scorers_78b.py` 11ebe5be4260ee6e143f4478004f55a97133a0e0b34243d431e6ea9d2d7623ce; `make_scorer_settings_78b.py`
-607606d62cddd795b946d1df59ec255f87570c2a91882b34cf3edd76ce012a5c; `settings/pins_78b.json`
-aef5b78b2ee6913a4fa9568a816b657e5763340c8d269332bee19917a1fc10b2; `settings/PINS-78B.json`
-8b9d8146d24910b15a81469bd206eba27d911a07bfe38bca04b39b1740fc71d9 (the literal `PINS_FILE_SHA256`; it lists each
-settings file's SHA-256). The round-3 values (before the fix) were 2d4b7fac…, 6d37770a…, cd3c0850…, cba2f0b2… (build-E).
-The 1B scripts' hashes are `scorers_78b.py` STAGE1_CODE; the 1B settings files' are `make_scorer_settings_78b.py`
-BASE_SHA256; neither changed. Any later edit of `scorers_78b.py` changes its hash, not the settings.
+`scorers_78b.py` c5895adc246c26cca93b427e6ece2e136f6fe8ea566654e591d0854d6b495671; `make_scorer_settings_78b.py`
+7c8f249138b1083b54d7d7586907815db41b7cc65ef402e582aad108d48179f5; `settings/pins_78b.json`
+057db73b3b5ebe899a4e88e943f33c65e711228a4e176ec3f8fff5a5b5e45eab; `settings/PINS-78B.json`
+df3a787882d1c539a60b496d2f61f9ab9f3ff723e6bbf24e2ca806b20c6e9163 (the literal `PINS_FILE_SHA256`; it lists each
+settings file's SHA-256). Round 4b changed the last three for m-verify D4 (the `check_keys` cite in the classifier
+text, now by its branch and commit; the two `score_classifier__F.json` files regenerated); round 4's values were
+108f4425…, 428b7577…, a2132c9d… (the maker unchanged). Round 4 changed them for RV-E-1 (the flag check), RV-E-3 (the cite `s1common.py:590-592`),
+PP11 and PP12 (L1's first block and modules) and the copied pins texts (`classifier_recipe`, `kind_names`). The fix-round-3
+values were 11ebe5be…, 607606d6…, aef5b78b…, 8b9d8146… (fix-E); the round-3 values before that 2d4b7fac…, 6d37770a…,
+cd3c0850…, cba2f0b2… (build-E). The 1B scripts' hashes are `scorers_78b.py` STAGE1_CODE; the 1B settings files' are
+`make_scorer_settings_78b.py` BASE_SHA256; neither changed. Any later edit of `scorers_78b.py` changes its hash, not the
+settings.
 
-Tests: `PYTHONDONTWRITEBYTECODE=1 <main venv python> -B -m pytest -q -p no:cacheprovider scripts/scale78b/tests/scorers`
-(93 passed in 21.5 s; M, 5 Nov 2026, fix round 3); the whole `scripts/scale78b/tests` folder: 158 passed, 2 skipped
-(track C's scipy tests; M). `make_scorer_settings_78b.py --check`: 19 of 19 files equal their regeneration (M).
+Tests (M, 6 Nov 2026, round 4): `PYTHONDONTWRITEBYTECODE=1 <main venv python> -B -m pytest -q -p no:cacheprovider
+scripts/scale78b/tests/scorers`: 113 passed; the whole `scripts/scale78b/tests` folder under the main environment: 246
+passed, 2 skipped (track C's scipy tests); the noise and G1 tests under the repository's `.venv`: 74 passed.
+`make_scorer_settings_78b.py --check`: 19 of 19 files equal their regeneration.

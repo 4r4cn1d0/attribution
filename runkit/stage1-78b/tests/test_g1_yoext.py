@@ -16,8 +16,13 @@ STAGE1 = KIT.parent / "stage1-olmo"
 
 def test_no_o_ext_step_and_no_y_pack_in_this_copy():
     runner = (KIT / "setup" / "job_runner_stage1.py").read_text()
-    for name in ("OEXT_UNIT_SCRIPT", "OEXT_MODULE", "OEXT_STEP_KINDS", "oext_args", "OEXT_FALLBACK_STATUS", "W1_18_SCRIPT", "o500"):
+    for name in ("OEXT_MODULE", "OEXT_STEP_KINDS", "oext_args", "OEXT_FALLBACK_STATUS", "W1_18_SCRIPT", "o500"):
         assert name not in runner, name
+    # K4b, PP17: the two O-ext steps are the scorer block's o_only (theta0; M1) and o_only_with_regenerate (the
+    # regenerated a0 unit's e1 state), both inside sc_commands; no arm runs one
+    assert runner.count("OEXT_UNIT_SCRIPT") == 2
+    sc = runner[runner.index("def sc_commands("):runner.index("def out_dirs(")]
+    assert sc.count("r78.OEXT_UNIT_SCRIPT") == 2
     assert "def oext_fallback(plan: dict) -> bool:\n    \"\"\"No O-ext step exists at 7-8B" in runner   # the name orchestrate reads: always False
     pack = (KIT / "pack_setup.py").read_text()
     assert "engine X only" in pack or "ENGINE_X" in pack

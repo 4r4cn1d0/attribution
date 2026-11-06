@@ -9,8 +9,12 @@ every other runkit folder (read only). Mutations are applied to the copy only, o
 restored and re-hashed after each.
 
 Each run is the same command: PY -B -m pytest -p no:cacheprovider -q -x -rfE --basetemp SCRATCH/pt-<n>
-runkit/stage1-78b/tests/test_gated_78b.py, cwd SCRATCH/repo,
-PYTHONDONTWRITEBYTECODE=1. The baseline runs first and must exit 0, else nothing else runs. A mutant is KILLED only by
+runkit/stage1-78b/tests/test_gated_78b.py runkit/stage1-78b/tests/test_pp10_guard.py
+runkit/stage1-78b/tests/test_pp10_process_wide.py (K4a: the guard's two test files, for the conftest.py mutants),
+cwd SCRATCH/repo, PYTHONDONTWRITEBYTECODE=1. PY must import huggingface_hub (K4a, RV2-9: without it test_d6's library
+comparison skips and its mutants would read as survived); the runner refuses another Python. Run the whole spec
+(it holds the conftest.py mutants) under macOS's sandbox with outbound IP denied, so a weakened guard cannot reach the
+network: sandbox-exec -p '(version 1)(allow default)(deny network-outbound (remote ip "*:*"))' PY -B ... (RV2-6). The baseline runs first and must exit 0, else nothing else runs. A mutant is KILLED only by
 a real test failure: pytest exit 1 with at least one FAILED line and no ERROR line. Exit 0 is SURVIVED. Anything else
 (exit 2-5, an ERROR line, a timeout) is INVALID, never killed. A mutant whose find text is not exactly once in its file
 is INVALID and not run. The report holds ids, verdicts, exit codes, failed test names, hashes and the clock only.
@@ -20,6 +24,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import hashlib
+import importlib.util
 import json
 import os
 import pathlib
@@ -28,7 +33,8 @@ import subprocess
 import sys
 
 KIT_REL = pathlib.Path("runkit/stage1-78b")
-TESTS = (KIT_REL / "tests" / "test_gated_78b.py",)
+TESTS = (KIT_REL / "tests" / "test_gated_78b.py", KIT_REL / "tests" / "test_pp10_guard.py",
+         KIT_REL / "tests" / "test_pp10_process_wide.py")
 SPEC = KIT_REL / "tests" / "mutation_spec_gated_78b.json"
 
 
@@ -94,6 +100,9 @@ def main(argv=None) -> int:
     ap.add_argument("select")
     ap.add_argument("--timeout", type=int, default=900)
     args = ap.parse_args(argv)
+    if importlib.util.find_spec("huggingface_hub") is None:          # K4a (RV2-9)
+        raise SystemExit(f"{sys.executable} has no huggingface_hub: test_d6's library comparison would skip and its "
+                         "mutants read as survived; run with the main environment's Python")
     spec = json.loads((args.source / SPEC).read_text(encoding="utf-8"))
     mutants = spec["mutants"]
     if args.select not in ("BASELINE", "ALL"):

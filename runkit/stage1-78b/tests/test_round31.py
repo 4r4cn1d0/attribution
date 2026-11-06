@@ -19,7 +19,7 @@ STAGE1 = KIT.parent / "stage1-olmo"
 
 def test_block_bs_judge_records_have_no_subject_here_and_k6_lives_in_the_gated_tests():
     rules = (KIT / "stage1_rules.py").read_text()
-    assert 'BLOCKS = ("0",)' in rules.replace("BLOCKS: tuple = ", "BLOCKS = ") or "BLOCKS = (\"0\",)" in rules
+    assert 'BLOCKS = ("0", "sc")' in rules                 # N and K4b's scorer block: no block B, no judge launch
     assert 'REJUDGED_PINS = {"0": ()}' in rules
     gated = (KIT / "tests" / "test_gated_78b.py").read_text()
     assert "def test_k6_launch_exits_non_zero_when_a_host_it_should_create_has_no_pod(" in gated

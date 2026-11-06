@@ -1,6 +1,6 @@
 {
  "kind": "stage1-78b gated-path mutants (K3)",
- "note": "Mutants for K3's changes (launch.py's gated precheck: whoami, the Range check, the record, the scrubbed children, the detached orchestrate child, the scrub after the loop, the redirect handler, the family check; orchestrate.py's gated step and stdin hand-over; host.py's gated-download, pull-states, the price and pod-name fixes; setup/download_models_stage1.py's gated run), in the stage-1 kit's spec form. Run with tests/run_mutants_gated_78b.py (tests/test_gated_78b.py, -x): the baseline first with the same command; a mutant is killed only by a real test failure (pytest exit 1, FAILED lines, no ERROR line); an error, a timeout or a find text not exactly once is INVALID, never a kill. fix-K-gated (verify-K-gated D1, D2, D4, D5, D6) added the FG-m-* mutants and re-targeted K3-m-redirect-keeps-auth to the moved clause. fix-K-gated's second attempt added the FX-m-* mutants (F1: a token value a header cannot carry; http_get's ValueError branch; failure_text's two scrubs, the re-verifier's two survivors).",
+ "note": "Mutants for K3's changes (launch.py's gated precheck: whoami, the Range check, the record, the scrubbed children, the detached orchestrate child, the scrub after the loop, the redirect handler, the family check; orchestrate.py's gated step and stdin hand-over; host.py's gated-download, pull-states, the price and pod-name fixes; setup/download_models_stage1.py's gated run), in the stage-1 kit's spec form. Run with tests/run_mutants_gated_78b.py (tests/test_gated_78b.py, -x): the baseline first with the same command; a mutant is killed only by a real test failure (pytest exit 1, FAILED lines, no ERROR line); an error, a timeout or a find text not exactly once is INVALID, never a kill. fix-K-gated (verify-K-gated D1, D2, D4, D5, D6) added the FG-m-* mutants and re-targeted K3-m-redirect-keeps-auth to the moved clause. fix-K-gated's second attempt added the FX-m-* mutants (F1: a token value a header cannot carry; http_get's ValueError branch; failure_text's two scrubs, the re-verifier's two survivors). K4a (6 Nov) added the K4-m-* mutants: RV2-1 (TLS verification), RV2-2 (no token fragment), RV2-3 (every redirect code), RV2-4, RV2-5, RV2-9 (the D6 paths by hand), and conftest.py's process-wide layer and fixture (DK-1, DK-2, RV2-6, RV2-7). The runner now also runs tests/test_pp10_guard.py and tests/test_pp10_process_wide.py and refuses a Python without huggingface_hub; run the whole spec under sandbox-exec with outbound IP denied (RV2-6). Round 4b (6 Nov): K4bf-m-* for the security verifier's D1 (the wrapper's sendto, sendmsg and AF_INET6 checks), D2 (the hook under the flag, in a non-main thread, bytes hosts) and D3 (the redirect handler's own https_open); run under sandbox-exec with outbound IP denied.",
  "mutants": [
   {
    "id": "K3-m-whoami-status-unchecked",
@@ -541,6 +541,510 @@
    "find": "        if not all(\"\\x21\" <= ch <= \"\\x7e\" for ch in token):   # fix-K-gated F1: a header error would quote the token\n",
    "replace": "        if not all(\"\\x20\" <= ch <= \"\\x7e\" for ch in token):   # fix-K-gated F1: a header error would quote the token\n",
    "killed_by": "tests/test_gated_78b.py::test_f1_the_pod_refuses_a_token_line_a_header_cannot_carry_before_any_request"
+  },
+  {
+   "id": "K4-m-tls-handler-unverified",
+   "part": "K4a (RV2-1)",
+   "describes": "http_get's opener gets an HTTPS handler that verifies no certificate",
+   "file": "launch.py",
+   "find": "    opener = urllib.request.build_opener(SameHostAuthRedirect)\n",
+   "replace": "    opener = urllib.request.build_opener(SameHostAuthRedirect)\n    opener.add_handler(urllib.request.HTTPSHandler(context=__import__('ssl')._create_unverified_context()))\n",
+   "killed_by": "tests/test_gated_78b.py::test_rv2_1_http_get_verifies_the_hubs_tls_certificate_and_host_name"
+  },
+  {
+   "id": "K4-m-tls-handler-no-hostname",
+   "part": "K4a (RV2-1)",
+   "describes": "http_get's opener gets an HTTPS handler that skips the host-name check",
+   "file": "launch.py",
+   "find": "    opener = urllib.request.build_opener(SameHostAuthRedirect)\n",
+   "replace": "    opener = urllib.request.build_opener(SameHostAuthRedirect)\n    opener.add_handler(urllib.request.HTTPSHandler(context=(lambda c: (setattr(c, 'check_hostname', False), c)[1])(__import__('ssl').create_default_context())))\n",
+   "killed_by": "tests/test_gated_78b.py::test_rv2_1_http_get_verifies_the_hubs_tls_certificate_and_host_name"
+  },
+  {
+   "id": "K4-m-tls-default-context-unverified",
+   "part": "K4a (RV2-1)",
+   "describes": "launch.py makes ssl's default HTTPS context unverified",
+   "file": "launch.py",
+   "find": "HTTP_TIMEOUT_S = 60\n",
+   "replace": "HTTP_TIMEOUT_S = 60\n__import__('ssl')._create_default_https_context = __import__('ssl')._create_unverified_context\n",
+   "killed_by": "tests/test_gated_78b.py::test_rv2_1_http_get_verifies_the_hubs_tls_certificate_and_host_name"
+  },
+  {
+   "id": "K4-m-http-get-failure-text-without-token",
+   "part": "K4a (RV2-2)",
+   "describes": "http_get calls failure_text without the token (the pattern alone scrubs)",
+   "file": "launch.py",
+   "find": "        return NO_REPLY, failure_text(exc, token).encode()\n",
+   "replace": "        return NO_REPLY, failure_text(exc, \"\").encode()\n",
+   "killed_by": "tests/test_gated_78b.py::test_rv2_2_a_no_reply_detail_holds_no_fragment_of_a_token_of_any_shape"
+  },
+  {
+   "id": "K4-m-failure-text-truncates-before-scrub",
+   "part": "K4a (RV2-2)",
+   "describes": "failure_text cuts to 200 characters before the scrubs",
+   "file": "launch.py",
+   "find": "    text = f\"{type(exc).__name__}: {reason if reason is not None else exc}\"\n",
+   "replace": "    text = f\"{type(exc).__name__}: {reason if reason is not None else exc}\"[:200]\n",
+   "killed_by": "tests/test_gated_78b.py::test_rv2_2_a_no_reply_detail_holds_no_fragment_of_a_token_of_any_shape"
+  },
+  {
+   "id": "K4-m-noreply-line-echoes-token-unprefixed-at-end",
+   "part": "K4a (RV2-2)",
+   "describes": "the whoami no-reply refusal ends with token[3:]",
+   "file": "launch.py",
+   "find": "\"TLS failed before any answer; no pod was created; check the connection and launch again\")",
+   "replace": "\"TLS failed before any answer; no pod was created; check the connection and launch again \" + token[3:])",
+   "killed_by": "tests/test_gated_78b.py::test_d4_a_failure_before_any_reply_is_a_clean_refusal_that_scrubs_the_token_and_names_no_token"
+  },
+  {
+   "id": "K4-m-redirect-302-only",
+   "part": "K4a (RV2-3)",
+   "describes": "the Authorization header is dropped on a 302 only",
+   "file": "launch.py",
+   "find": "        if new is not None and not same_origin(req.full_url, newurl):",
+   "replace": "        if new is not None and code == 302 and not same_origin(req.full_url, newurl):",
+   "killed_by": "tests/test_gated_78b.py::test_the_redirect_handler_drops_the_authorization_header_when_the_redirect_leaves_the_hub"
+  },
+  {
+   "id": "K4-m-redirect-307-308-kept",
+   "part": "K4a (RV2-3)",
+   "describes": "the header follows a 307 or 308 off-origin redirect",
+   "file": "launch.py",
+   "find": "        if new is not None and not same_origin(req.full_url, newurl):",
+   "replace": "        if new is not None and code in (301, 302, 303) and not same_origin(req.full_url, newurl):",
+   "killed_by": "tests/test_gated_78b.py::test_the_redirect_handler_drops_the_authorization_header_when_the_redirect_leaves_the_hub"
+  },
+  {
+   "id": "K4-m-dl-one-token-variable",
+   "part": "K4a (RV2-4)",
+   "describes": "the pod script's token-variable list drops HUGGING_FACE_HUB_TOKEN",
+   "file": "setup/download_models_stage1.py",
+   "find": "TOKEN_ENV_NAMES = (\"HF_TOKEN\", \"HUGGING_FACE_HUB_TOKEN\")",
+   "replace": "TOKEN_ENV_NAMES = (\"HF_TOKEN\",)",
+   "killed_by": "tests/test_gated_78b.py::test_the_gated_run_refuses_a_set_token_variable_a_missing_token_a_bad_flag_pair_or_another_endpoint"
+  },
+  {
+   "id": "K4-m-dl-staging-only-value-1",
+   "part": "K4a (RV2-5)",
+   "describes": "the staging refusal fires for '1' only",
+   "file": "setup/download_models_stage1.py",
+   "find": "    if env.get(\"HUGGINGFACE_CO_STAGING\"):",
+   "replace": "    if env.get(\"HUGGINGFACE_CO_STAGING\") == \"1\":",
+   "killed_by": "tests/test_gated_78b.py::test_d6_hf_token_path_stored_tokens_and_the_staging_switch_refuse_and_the_preflight_reads_the_same_path"
+  },
+  {
+   "id": "K4-m-dl-no-expandvars",
+   "part": "K4a (RV2-9)",
+   "describes": "_hf_path does not expand $VAR",
+   "file": "setup/download_models_stage1.py",
+   "find": "    return pathlib.Path(os.path.expandvars(os.path.expanduser(value)))",
+   "replace": "    return pathlib.Path(os.path.expanduser(value))",
+   "killed_by": "tests/test_gated_78b.py::test_d6_the_cache_and_token_paths_follow_huggingface_hub_exactly / test_rv2_9_..."
+  },
+  {
+   "id": "K4-m-dl-xdg-over-hf-home",
+   "part": "K4a (RV2-9)",
+   "describes": "XDG_CACHE_HOME is read before HF_HOME",
+   "file": "setup/download_models_stage1.py",
+   "find": "    return _hf_path(os.getenv(\"HF_HOME\", os.path.join(os.getenv(\"XDG_CACHE_HOME\", default_home), \"huggingface\")))",
+   "replace": "    return _hf_path(os.path.join(os.getenv(\"XDG_CACHE_HOME\"), \"huggingface\") if os.getenv(\"XDG_CACHE_HOME\") else os.getenv(\"HF_HOME\", os.path.join(default_home, \"huggingface\")))",
+   "killed_by": "tests/test_gated_78b.py::test_d6_the_cache_and_token_paths_follow_huggingface_hub_exactly / test_rv2_9_..."
+  },
+  {
+   "id": "K4-m-guard-hook-not-installed",
+   "part": "K4a (DK-1; conftest.py)",
+   "describes": "the audit hook is never installed",
+   "file": "tests/conftest.py",
+   "find": "    sys.addaudithook(_audit)\n",
+   "replace": "    pass\n",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4-m-guard-hook-any-subprocess",
+   "part": "K4a (DK-1; conftest.py)",
+   "describes": "the hook lets every subprocess.Popen through",
+   "file": "tests/conftest.py",
+   "find": "            if program_allowed(args[0]):",
+   "replace": "            if True:",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4-m-guard-hook-by-base-name",
+   "part": "K4a (DK-2; conftest.py)",
+   "describes": "the hook allows a program by base name, not by exact path",
+   "file": "tests/conftest.py",
+   "find": "    return prog in ALLOWED and os.path.basename(prog) not in NEVER\n",
+   "replace": "    return os.path.basename(prog) in {os.path.basename(p) for p in ALLOWED} and os.path.basename(prog) not in NEVER\n",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4-m-guard-hook-no-os-system",
+   "part": "K4a (DK-1; conftest.py)",
+   "describes": "os.system is not audited",
+   "file": "tests/conftest.py",
+   "find": "\"os.system\": \"process\", ",
+   "replace": "",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4-m-guard-hook-no-os-exec",
+   "part": "K4a (DK-1; conftest.py)",
+   "describes": "os.exec* is not audited",
+   "file": "tests/conftest.py",
+   "find": "\"os.exec\": \"process\", ",
+   "replace": "",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4-m-guard-hook-no-posix-spawn",
+   "part": "K4a (DK-1; conftest.py)",
+   "describes": "os.posix_spawn is not audited",
+   "file": "tests/conftest.py",
+   "find": "\"os.posix_spawn\": \"process\",",
+   "replace": "",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4-m-guard-hook-no-os-spawn",
+   "part": "K4a (DK-1; conftest.py)",
+   "describes": "os.spawn* is not audited",
+   "file": "tests/conftest.py",
+   "find": "\"os.spawn\": \"process\", ",
+   "replace": "",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4-m-guard-hook-no-fork",
+   "part": "K4a (DK-1; conftest.py)",
+   "describes": "os.fork is not audited",
+   "file": "tests/conftest.py",
+   "find": "\"os.fork\": \"process\", ",
+   "replace": "",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4-m-guard-hook-no-forkpty",
+   "part": "K4a (DK-1; conftest.py)",
+   "describes": "os.forkpty is not audited",
+   "file": "tests/conftest.py",
+   "find": "\"os.forkpty\": \"process\",",
+   "replace": "",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4-m-guard-hook-socket-any-address",
+   "part": "K4a (DK-1; conftest.py)",
+   "describes": "the hook lets a socket call to any address through",
+   "file": "tests/conftest.py",
+   "find": "        if detail is not None:\n            _refuse_hook(event, detail)\n",
+   "replace": "        if False:\n            _refuse_hook(event, detail)\n",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4-m-guard-hook-no-connect",
+   "part": "K4a (DK-1; conftest.py)",
+   "describes": "socket.connect is not audited",
+   "file": "tests/conftest.py",
+   "find": "\"socket.connect\": \"socket\", ",
+   "replace": "",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4-m-guard-hook-no-sendto",
+   "part": "K4a (DK-1; conftest.py)",
+   "describes": "socket.sendto is not audited",
+   "file": "tests/conftest.py",
+   "find": "\"socket.sendto\": \"socket\", ",
+   "replace": "",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4-m-guard-hook-no-sendmsg",
+   "part": "K4a (DK-1; conftest.py)",
+   "describes": "socket.sendmsg is not audited",
+   "file": "tests/conftest.py",
+   "find": "\"socket.sendmsg\": \"socket\",",
+   "replace": "",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4-m-guard-loopback-substring",
+   "part": "K4a (DK-1; conftest.py)",
+   "describes": "any host name holding 'localhost' counts as loopback",
+   "file": "tests/conftest.py",
+   "find": "    if host.lower() == \"localhost\":",
+   "replace": "    if \"localhost\" in host.lower():",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4-m-guard-loopback-any-ip",
+   "part": "K4a (DK-1; conftest.py)",
+   "describes": "any IP address counts as loopback",
+   "file": "tests/conftest.py",
+   "find": "        return ipaddress.ip_address(host.split(\"%\", 1)[0]).is_loopback\n",
+   "replace": "        return ipaddress.ip_address(host.split(\"%\", 1)[0]) is not None\n",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4-m-guard-hook-no-getaddrinfo",
+   "part": "K4a (DK-1; conftest.py)",
+   "describes": "getaddrinfo is not audited",
+   "file": "tests/conftest.py",
+   "find": "\"socket.getaddrinfo\": \"lookup\", ",
+   "replace": "",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4-m-guard-hook-no-gethostbyname",
+   "part": "K4a (DK-1; conftest.py)",
+   "describes": "gethostbyname(_ex) is not audited",
+   "file": "tests/conftest.py",
+   "find": "\"socket.gethostbyname\": \"lookup\", ",
+   "replace": "",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4-m-guard-hook-no-gethostbyaddr",
+   "part": "K4a (DK-1; conftest.py)",
+   "describes": "gethostbyaddr is not audited",
+   "file": "tests/conftest.py",
+   "find": "\"socket.gethostbyaddr\": \"lookup\",",
+   "replace": "",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4-m-guard-hook-no-getnameinfo",
+   "part": "K4a (DK-1; conftest.py)",
+   "describes": "getnameinfo is not audited",
+   "file": "tests/conftest.py",
+   "find": "\"socket.getnameinfo\": \"lookup\", ",
+   "replace": "",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4-m-guard-hook-no-urllib",
+   "part": "K4a (DK-1; conftest.py)",
+   "describes": "urllib opens are not audited",
+   "file": "tests/conftest.py",
+   "find": "\"urllib.Request\": \"urllib\", ",
+   "replace": "",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4-m-guard-hook-no-http-client",
+   "part": "K4a (DK-1; conftest.py)",
+   "describes": "http.client's connect is not audited",
+   "file": "tests/conftest.py",
+   "find": ", \"http.client.connect\": \"http\"}",
+   "replace": "}",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4-m-guard-no-fork-exec-refusal",
+   "part": "K4a (DK-1; conftest.py)",
+   "describes": "multiprocessing's fork_exec is not replaced",
+   "file": "tests/conftest.py",
+   "find": "    _posixsubprocess.fork_exec = _fork_exec_refused\n",
+   "replace": "    pass\n",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4-m-guard-no-socket-wrappers",
+   "part": "K4a (DK-1; conftest.py)",
+   "describes": "socket.socket's methods are not wrapped process-wide",
+   "file": "tests/conftest.py",
+   "find": "        setattr(socket.socket, name, _checked_socket_method(name, getattr(_socket.socket, name)))\n",
+   "replace": "        pass\n",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4-m-guard-socket-wrapper-any-address",
+   "part": "K4a (DK-1; conftest.py)",
+   "describes": "the process-wide socket wrapper lets any address through",
+   "file": "tests/conftest.py",
+   "find": "        if detail is not None:\n            _refuse_hook(f\"socket {name} (before any name resolution)\", detail)\n",
+   "replace": "        if False:\n            _refuse_hook(f\"socket {name} (before any name resolution)\", detail)\n",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4-m-guard-flag-not-cleared",
+   "part": "K4a (DK-1; conftest.py)",
+   "describes": "the flag (ALLOWED) outlives the test that set it",
+   "file": "tests/conftest.py",
+   "find": "        allowed.clear()                                # the flag never outlives the test that set it\n",
+   "replace": "        pass\n",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4-m-guard-fixture-executable-unchecked",
+   "part": "K4a (RV2-7; conftest.py)",
+   "describes": "the fixture ignores Popen's executable=",
+   "file": "tests/conftest.py",
+   "find": "        programs = [prog] + ([os.fsdecode(executable)] if executable is not None else [])\n",
+   "replace": "        programs = [prog]\n",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4-m-guard-fixture-by-base-name",
+   "part": "K4a (DK-2; conftest.py)",
+   "describes": "the fixture allows a program by base name, not by exact path",
+   "file": "tests/conftest.py",
+   "find": "        if all(p in allowed and os.path.basename(p) not in NEVER for p in programs):",
+   "replace": "        if all(os.path.basename(p) in {os.path.basename(x) for x in allowed} and os.path.basename(p) not in NEVER for p in programs):",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4-m-guard-fixture-any-under-local",
+   "part": "K4a (RV2-7; conftest.py)",
+   "describes": "under local_processes the fixture allows any program not in NEVER",
+   "file": "tests/conftest.py",
+   "find": "        if all(p in allowed and os.path.basename(p) not in NEVER for p in programs):",
+   "replace": "        if all((bool(allowed) or p in allowed) and os.path.basename(p) not in NEVER for p in programs):",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4-m-guard-fixture-no-getnameinfo",
+   "part": "K4a (RV2-7; conftest.py)",
+   "describes": "the fixture does not replace getnameinfo",
+   "file": "tests/conftest.py",
+   "find": "    monkeypatch.setattr(socket, \"getnameinfo\", nameinfo)\n",
+   "replace": "    pass\n",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4-m-guard-fixture-sendto-inet-only",
+   "part": "K4a (RV2-7; conftest.py)",
+   "describes": "the fixture's datagram refusal covers AF_INET only",
+   "file": "tests/conftest.py",
+   "find": "            if self.family in (socket.AF_INET, socket.AF_INET6):\n                _refuse(f\"socket {_name}\"",
+   "replace": "            if self.family in (socket.AF_INET,):\n                _refuse(f\"socket {_name}\"",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4-m-guard-fixture-no-connect",
+   "part": "K4a (RV2-6; conftest.py)",
+   "describes": "the fixture does not replace socket.connect",
+   "file": "tests/conftest.py",
+   "find": "    monkeypatch.setattr(socket.socket, \"connect\", lambda self, address: _refuse(\"socket connect\", repr(address)[:80]))\n",
+   "replace": "",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4-m-guard-fixture-no-gethostbyname",
+   "part": "K4a (RV2-6; conftest.py)",
+   "describes": "the fixture does not replace gethostbyname",
+   "file": "tests/conftest.py",
+   "find": "    for name in (\"getaddrinfo\", \"gethostbyname\", \"gethostbyname_ex\", \"gethostbyaddr\"):\n",
+   "replace": "    for name in (\"getaddrinfo\", \"gethostbyname_ex\", \"gethostbyaddr\"):\n",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4-m-guard-fixture-no-opener",
+   "part": "K4a (RV2-6; conftest.py)",
+   "describes": "the fixture does not replace OpenerDirector.open",
+   "file": "tests/conftest.py",
+   "find": "    monkeypatch.setattr(urllib.request.OpenerDirector, \"open\",\n",
+   "replace": "    (lambda *a: None)(urllib.request.OpenerDirector, \"open\",\n",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4-m-guard-fixture-no-create-connection",
+   "part": "K4a (RV2-6; conftest.py)",
+   "describes": "the fixture does not replace socket.create_connection",
+   "file": "tests/conftest.py",
+   "find": "    monkeypatch.setattr(socket, \"create_connection\", lambda address",
+   "replace": "    (lambda *a: None)(socket, \"create_connection\", lambda address",
+   "killed_by": "tests/test_pp10_process_wide.py or tests/test_pp10_guard.py"
+  },
+  {
+   "id": "K4bf-m-wrapper-sendto-unchecked",
+   "part": "round 4b (security verifier's D1-D3)",
+   "describes": "the process-wide wrapper does not read sendto's address",
+   "file": "tests/conftest.py",
+   "find": "            address = args[-1] if len(args) >= 2 else None",
+   "replace": "            address = None",
+   "killed_by": "tests/test_pp10_process_wide.py"
+  },
+  {
+   "id": "K4bf-m-wrapper-sendmsg-unchecked",
+   "part": "round 4b (security verifier's D1-D3)",
+   "describes": "the process-wide wrapper does not read sendmsg's address",
+   "file": "tests/conftest.py",
+   "find": "            address = args[3] if len(args) >= 4 else None",
+   "replace": "            address = None",
+   "killed_by": "tests/test_pp10_process_wide.py"
+  },
+  {
+   "id": "K4bf-m-wrapper-inet-only",
+   "part": "round 4b (security verifier's D1-D3)",
+   "describes": "the process-wide wrapper checks AF_INET sockets only",
+   "file": "tests/conftest.py",
+   "find": "        detail = address_refusal(self.family, address)\n",
+   "replace": "        detail = address_refusal(self.family, address) if self.family == socket.AF_INET else None\n",
+   "killed_by": "tests/test_pp10_process_wide.py"
+  },
+  {
+   "id": "K4bf-m-inet6-free",
+   "part": "round 4b (security verifier's D1-D3)",
+   "describes": "both process-wide checks let every AF_INET6 address through",
+   "file": "tests/conftest.py",
+   "find": "    if address is None or family == getattr(socket, \"AF_UNIX\", object()):",
+   "replace": "    if address is None or family in (getattr(socket, \"AF_UNIX\", object()), socket.AF_INET6):",
+   "killed_by": "tests/test_pp10_process_wide.py"
+  },
+  {
+   "id": "K4bf-m-loopback-bytes-any",
+   "part": "round 4b (security verifier's D1-D3)",
+   "describes": "any bytes host name counts as loopback",
+   "file": "tests/conftest.py",
+   "find": "    if isinstance(host, bytes):\n        host = host.decode(\"ascii\", \"replace\")",
+   "replace": "    if isinstance(host, bytes):\n        return True",
+   "killed_by": "tests/test_pp10_process_wide.py"
+  },
+  {
+   "id": "K4bf-m-hook-main-thread-only",
+   "part": "round 4b (security verifier's D1-D3)",
+   "describes": "the hook ignores every thread but the main one",
+   "file": "tests/conftest.py",
+   "find": "    if event not in _AUDITED:\n        return\n    kind = _AUDITED[event]",
+   "replace": "    if event not in _AUDITED or __import__('threading').current_thread() is not __import__('threading').main_thread():\n        return\n    kind = _AUDITED[event]",
+   "killed_by": "tests/test_pp10_process_wide.py"
+  },
+  {
+   "id": "K4bf-m-hook-os-free-under-flag",
+   "part": "round 4b (security verifier's D1-D3)",
+   "describes": "under local_processes the hook lets os.system / exec / fork / posix_spawn through",
+   "file": "tests/conftest.py",
+   "find": "    if kind == \"process\":\n        if event == \"subprocess.Popen\":",
+   "replace": "    if kind == \"process\":\n        if ALLOWED and event != \"subprocess.Popen\":\n            return\n        if event == \"subprocess.Popen\":",
+   "killed_by": "tests/test_pp10_process_wide.py"
+  },
+  {
+   "id": "K4bf-m-hook-sockets-free-under-flag",
+   "part": "round 4b (security verifier's D1-D3)",
+   "describes": "under local_processes the hook lets socket calls through",
+   "file": "tests/conftest.py",
+   "find": "    if kind == \"socket\":\n        sock, address",
+   "replace": "    if kind == \"socket\" and ALLOWED:\n        return\n    if kind == \"socket\":\n        sock, address",
+   "killed_by": "tests/test_pp10_process_wide.py"
+  },
+  {
+   "id": "K4bf-m-hook-lookups-free-under-flag",
+   "part": "round 4b (security verifier's D1-D3)",
+   "describes": "under local_processes the hook lets name lookups through",
+   "file": "tests/conftest.py",
+   "find": "    elif kind == \"lookup\":\n        host = args[0] if args else None",
+   "replace": "    elif kind == \"lookup\":\n        if ALLOWED:\n            return\n        host = args[0] if args else None",
+   "killed_by": "tests/test_pp10_process_wide.py"
+  },
+  {
+   "id": "K4bf-m-tls-redirect-handler-opens-https-unverified",
+   "part": "round 4b (security verifier's D1-D3)",
+   "describes": "http_get's redirect handler also opens https first, with an unverified context (no HTTPSHandler changes)",
+   "file": "launch.py",
+   "find": "class SameHostAuthRedirect(urllib.request.HTTPRedirectHandler):\n",
+   "replace": "class SameHostAuthRedirect(urllib.request.HTTPRedirectHandler):\n    handler_order = 100\n\n    def https_open(self, req):\n        import ssl\n        return urllib.request.HTTPSHandler(context=ssl._create_unverified_context()).https_open(req)\n\n",
+   "killed_by": "tests/test_gated_78b.py (test_rv2_1)"
   }
  ]
 }

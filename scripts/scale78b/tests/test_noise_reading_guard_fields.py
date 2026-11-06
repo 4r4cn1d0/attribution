@@ -13,11 +13,14 @@ reuses that file's helpers by import. Labels, counts and hashes only; no text.""
 from __future__ import annotations
 
 import copy
+import json
+from pathlib import Path
 
 import pytest
 
 from scripts.scale78b import noise_reading as nr
-from test_noise_reading import SYNTHETIC_ENVIRONMENT, needs_wave0a, parity_family, write_inputs
+from test_noise_reading import (ENGINE_X, R_ARMS, SEAL, SYNTHETIC_ENVIRONMENT, canonical, needs_wave0a, parity_family,
+                                sha256_bytes, synthetic_r_unit, write_inputs)
 
 UNITS = ("a0@1101", "a0@1102", "a0@1103", "R@1101", "R@1102", "R@1103")
 OTHERS = UNITS[1:]
@@ -141,3 +144,75 @@ def test_through_the_reader_equal_guard_records_on_every_unit_record_nothing(tmp
     assert fam["triggers"]["environment_differs"] == {u: [] for u in UNITS}
     assert not fam["triggers"]["environment"] and fam["governing"] == "plain"
     assert all(u["guard_record"] for u in fam["units"].values())
+
+
+# ----- reverify-F RF-4 and RF-5 (round 4, track M) ------------------------------------------------------------------------
+
+
+def resealed(spec: dict, assets: dict) -> dict:
+    """The synthetic unit of ``spec`` with assets.json replaced by ``assets`` and its COMPLETE.json re-sealed (the files'
+    hashes updated); returns the new inputs entry. Metadata only, no text."""
+    folder = Path(spec["path"])
+    data = canonical(assets)
+    (folder / "assets.json").write_bytes(data)
+    marker = json.loads((folder / "COMPLETE.json").read_bytes())
+    marker["files"]["assets.json"] = sha256_bytes(data)
+    sealed = canonical(marker)
+    (folder / "COMPLETE.json").write_bytes(sealed)
+    return {**spec, "complete_sha256": sha256_bytes(sealed)}
+
+
+def assets_of(spec: dict) -> dict:
+    return json.loads((Path(spec["path"]) / "assets.json").read_bytes())
+
+
+def test_rf4_the_real_read_unit_reads_the_guard_record_from_assets_json(tmp_path):
+    """RF-4 (the re-verifier's H5: read_unit returning guard None survived every test): through the real read_unit on
+    synthetic sealed R units, the guard record is assets.json's "guard" block as written; a unit whose guard differs reads
+    its own block, and environment_differs on the two read records names "guard"; a unit without a guard block reads
+    None and is compared on its fields only; a malformed guard block refuses."""
+    r1 = (SEAL / "edits/R_d1.json").read_bytes()
+    assert sha256_bytes(r1) == R_ARMS[1101]
+    genuine = synthetic_r_unit(tmp_path / "genuine", r1, 1101)
+    unit = nr.read_unit(genuine, "R", 1101, "olmo2-1b", ENGINE_X, "olmo2-1b R@1101", tmp_path)
+    assert unit["guard"] == {"repo": "g", "revision": "r", "files": {}} == assets_of(genuine)["guard"]
+    other = synthetic_r_unit(tmp_path / "other-guard", r1, 1101)
+    other = resealed(other, {**assets_of(other), "guard": copy.deepcopy(CHANGED_GUARD)})
+    read_other = nr.read_unit(other, "R", 1101, "olmo2-1b", ENGINE_X, "olmo2-1b R@1101", tmp_path)
+    assert read_other["guard"] == CHANGED_GUARD
+    assert nr.environment_differs(read_other, unit) == ["guard"] and nr.environment_differs(unit, unit) == []
+    bare = synthetic_r_unit(tmp_path / "no-guard", r1, 1101)
+    bare = resealed(bare, {k: v for k, v in assets_of(bare).items() if k != "guard"})
+    read_bare = nr.read_unit(bare, "R", 1101, "olmo2-1b", ENGINE_X, "olmo2-1b R@1101", tmp_path)
+    assert read_bare["guard"] is None and nr.environment_differs(read_bare, unit) == []
+    bad = synthetic_r_unit(tmp_path / "bad-guard", r1, 1101)
+    bad = resealed(bad, {**assets_of(bad), "guard": "not a record"})
+    with pytest.raises(SystemExit, match="guard record is malformed"):
+        nr.read_unit(bad, "R", 1101, "olmo2-1b", ENGINE_X, "olmo2-1b R@1101", tmp_path)
+
+
+@needs_wave0a
+def test_rf4_through_the_real_reader_the_wave0a_r_units_carry_their_guard_record_and_gate_as_a0_units_none(tmp_path):
+    """RF-4 on this Mac's real units (no monkeypatch): Gate B's wave-0a R units carry a guard record and Gate A's a0 units
+    do not (noise_reading.py's guard note), so the reader's units record guard_record True on R and False on a0."""
+    fam = nr.read(write_inputs(tmp_path, {"olmo2-1b": parity_family()}))["families"]["olmo2-1b"]
+    assert {label.split(" ")[-1]: u["guard_record"] for label, u in fam["units"].items()} == \
+        {"a0@1101": False, "a0@1102": False, "a0@1103": False, "R@1101": True, "R@1102": True, "R@1103": True}
+
+
+@pytest.mark.parametrize("pair", [("gpu", "cudnn"), ("python", "capability"), ("policy", "device")])
+def test_rf5_two_fields_changed_on_one_unit_are_listed_sorted(pair):
+    """RF-5 (the re-verifier's H2: the differing-fields list in set order survived every test): with two fields changed
+    on one unit, the list is the sorted pair; with every compared field changed (a different pod changes several at
+    once), it is every field, sorted. Set order follows string hashing, which changes between processes, so an unsorted
+    list would not reproduce the record's bytes."""
+    a, b = pair
+    assert a in FIELDS and b in FIELDS
+    units = synthetic_units()
+    units["R@1102"]["fields"][a] = "another value"
+    units["R@1102"]["fields"][b] = "another value"
+    assert attribution(units) == {u: (sorted(pair) if u == "R@1102" else []) for u in UNITS}
+    every = synthetic_units()
+    every["a0@1103"]["fields"] = {k: f"another {k}" for k in FIELDS}
+    every["a0@1103"]["guard"] = copy.deepcopy(CHANGED_GUARD)
+    assert attribution(every) == {u: (sorted(FIELDS) + ["guard"] if u == "a0@1103" else []) for u in UNITS}

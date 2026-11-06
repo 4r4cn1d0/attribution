@@ -15,6 +15,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -102,6 +103,9 @@ def fake_verification(family: str, recipe_sha256: str, manifest_sha256: str, **c
     return doc
 
 
+HF_PATH_VARS = ("HF_HOME", "XDG_CACHE_HOME", "HF_HUB_CACHE", "HUGGINGFACE_HUB_CACHE", "HF_TOKEN_PATH")
+
+
 class Pod:
     """A synthetic pod folder for job_runner_stage1.main from a World (tests/test_stage1_runkit.py): K1's block-0 plan
     (init-block 0, the real route) or hand-given job records; the recipe, the prepared manifest files and the edit
@@ -173,7 +177,7 @@ class Pod:
         monkeypatch.setattr(self.runner, "_recipe_config_sha", lambda path: r.REC_CONFIG_SHA256)
         monkeypatch.setattr(self.runner, "HEARTBEAT", w.repo / "heartbeat.json")
         monkeypatch.setenv("HOME", str(w.repo))
-        for name in self.runner.TOKEN_ENV_NAMES:
+        for name in self.runner.TOKEN_ENV_NAMES + HF_PATH_VARS:      # RV2-8: the library's path variables too
             monkeypatch.delenv(name, raising=False)
         self.free([free_gb] if not isinstance(free_gb, list) else free_gb)
         self.batch_s = batch_s if isinstance(batch_s, list) else [batch_s] * 8
@@ -372,6 +376,39 @@ def test_the_pod_refuses_another_engine_family_recipe_prepared_set_or_sealed_fil
     monkeypatch.setenv("HF_TOKEN", rk.fake_token())
     refuses("a token is present")
     monkeypatch.delenv("HF_TOKEN")
+    assert pod.main() == 0 and pod.statuses() == ["complete"] * 3     # the untouched pod runs
+
+
+def test_rv2_8_the_runners_pre_job_token_check_reads_the_librarys_token_paths(w, monkeypatch):
+    """The security re-verifier's RV2-8: the runner's check before any job calls download_models_stage1's
+    no_token_left() (the library's HF_TOKEN_PATH, else HF_HOME/token, else XDG_CACHE_HOME/huggingface/token, and
+    stored_tokens beside it), so a stored login where huggingface_hub would read it refuses the pod even when it is
+    not at ~/.cache/huggingface/token. Every file is synthetic; HOME is the World's."""
+    pod = Pod(w, monkeypatch)
+    pod.remaining([20 * H])
+    other = w.repo / "elsewhere"
+    cases = {"HF_HOME": (other / "hfhome", other / "hfhome" / "token"),
+             "XDG_CACHE_HOME": (other / "xdg", other / "xdg" / "huggingface" / "token"),
+             "HF_TOKEN_PATH": (other / "secrets" / "hf-token", other / "secrets" / "hf-token")}
+    for name, (value, stored) in cases.items():
+        monkeypatch.setenv(name, str(value))
+        for path in (stored, stored.parent / "stored_tokens"):
+            write(path, "a stored login the library would read (synthetic)")
+            with pytest.raises(AssertionError, match="a token is present: a stored HF login exists: " + re.escape(str(path))):
+                pod.main()
+            path.unlink()
+            assert not (pod.root / "JOB-DONE.json").exists() and pod.receipts() == []
+        default = w.repo / ".cache" / "huggingface" / "token"           # not the library's file while the variable is set
+        write(default, "not the library's file (synthetic)")
+        assert pod.runner.token_paths().token_file() != default
+        default.unlink()
+        monkeypatch.delenv(name)
+    for name in ("HF_TOKEN", "HUGGING_FACE_HUB_TOKEN"):
+        monkeypatch.setenv(name, rk.fake_token())
+        with pytest.raises(AssertionError, match=rf"a token is present: a token variable is set: \['{name}'\]"):
+            pod.main()
+        monkeypatch.delenv(name)
+    assert pod.runner.token_paths().no_token_left is not None
     assert pod.main() == 0 and pod.statuses() == ["complete"] * 3     # the untouched pod runs
 
 
@@ -714,19 +751,29 @@ def test_the_dry_run_on_fake_preflight_documents_computes_s_and_defers_the_right
 
 
 # ===== the preflight (setup/preflight_stage1.py) ====================================================================
-def test_the_preflight_writes_the_speed_and_bank_fields_and_refuses_a_slow_pod(w, monkeypatch, tmp_path):
+@pytest.mark.parametrize("shell_login", [False, True], ids=["clean-shell", "shell-with-a-stored-login"])
+def test_the_preflight_writes_the_speed_and_bank_fields_and_refuses_a_slow_pod(w, monkeypatch, tmp_path, shell_login):
     """The 7-8B preflight: the family's main config is the one candidate; PREFLIGHT-DONE.json keeps the measured
     files' keys and adds family, bank (the four numbers from verification.json) and speed {s_pod, refused}; a pod
     past 1.15 (KD3) or a missing speed field makes ok false (exit 1) so no job starts; another family's plan or a
-    second recipe refuses before anything runs."""
+    second recipe refuses before anything runs. Round 4b (the security verifier's D4): the test isolates the
+    library's token paths (HF_HOME, HF_TOKEN_PATH, XDG_CACHE_HOME and the hub caches), so a shell whose variables point
+    at a stored login (a FAKE one, made here) does not change the result."""
+    if shell_login:                                      # the shell's variables at a stored login (fake value)
+        login = tmp_path / "shell-login"
+        (login / "huggingface").mkdir(parents=True)
+        (login / "huggingface" / "token").write_text("hf_" + "F4ke" * 9 + "\n")
+        (login / "token").write_text("hf_" + "F4ke" * 9 + "\n")
+        for name, value in (("HF_HOME", login), ("HF_TOKEN_PATH", login / "token"), ("XDG_CACHE_HOME", login)):
+            monkeypatch.setenv(name, str(value))
     r, f = w.rules, w.r78.FAMILIES[w.family]
     pf = load_by_path("pf78", w.root / "setup" / "preflight_stage1.py")
     root = tmp_path / "pod"
     root.mkdir()
     monkeypatch.setattr(pf, "ROOT", root)
     monkeypatch.setattr(pf, "HEARTBEAT", tmp_path / "no-heartbeat.json")
-    monkeypatch.setenv("HOME", str(tmp_path))
-    for name in pf.TOKEN_ENV_NAMES:
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    for name in pf.TOKEN_ENV_NAMES + HF_PATH_VARS:       # D4: the token variables AND the library's path variables
         monkeypatch.delenv(name, raising=False)
     write(root / r.REC, {"generation": {"batch_size": 32, "max_new_tokens": 2048, "harm_samples": {"count": 3}},
                          "model": {"attn_implementation": "sdpa"}})
@@ -944,7 +991,9 @@ def test_the_committed_kit_folder_imports_every_runner_module_and_runs_nothing(t
         py_compile.compile(str(KIT / rel), cfile=str(tmp_path / "x.pyc"), doraise=True)
     assert (KIT / "setup" / "extend_cap.py").read_bytes() == (KIT.parent / "stage1-olmo" / "setup" / "extend_cap.py").read_bytes()
     text = (KIT / "setup" / "job_runner_stage1.py").read_text()
-    for gone in ("c1_registry_seed", "similarity_record", "plant_fingerprint_record", "OEXT_UNIT_SCRIPT", "W1_18_SCRIPT",
+    for gone in ("c1_registry_seed", "similarity_record", "plant_fingerprint_record", "W1_18_SCRIPT",
                  "D2_SCRIPTS", "_safe_lora", "MAN1_PATH"):
         assert gone not in text, gone                                     # the 1B machinery is not in this copy
+    assert text.count("OEXT_UNIT_SCRIPT") == 2 and text[text.index("def sc_commands("):text.index("def out_dirs(")].count(
+        "r78.OEXT_UNIT_SCRIPT") == 2                     # K4b, PP17: only the scorer block's o_only and o_only_with_regenerate
     assert "s_obs_from_progress" in text and "free_space_gb" in text and "check_keys" in text and "job_decision" in text

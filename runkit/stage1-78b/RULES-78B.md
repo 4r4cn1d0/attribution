@@ -19,9 +19,9 @@ Tags: M measured (the basis), R read (path:line), E estimate (basis stated), I i
 | `rules_78b.py` | The one constants block and the rule: `upper_m_s`, `requirement_s`, `speed_factor` (s_pod), `sanity_floor_s` (F_pre), `s_obs_from_progress` (KD11), `cap_hours`, `pod_sizes`, `guard_usd`, `launch_allowed`, `pod_spend_usd`, `funding_need_usd`, the key check (`check_keys`), the recipe-S_78 pins (`RECIPE_S`, `recipe_s_or_refuse`), the kinds rule (`check_kind`, `E_KINDS`, `e_upper_s`, `e_cap_hours`; PP8: `a1_pass` and `rep_pass`), the sealed-set readers for both committed MANIFEST forms (`sealed_edit_entry`, `block0_r_edits`; D1), KD5's idle storage (`idle_storage`; D2), the job runner's gate (`preflight_fields`, `job_decision`, `pod_dry_run`), block 0's money (`block0_report`). Commands: `golden`, `block0`, `e-caps`, `kit`. |
 | `measured-basis-78b.json` | The text-free timing record of the 17 measured units (nine OLMo-2-7B, eight Llama-3.1-8B; KCR:9): per unit the outer job, pod overhead, preflight speed fields, ledger stage seconds, every generation batch's seconds / rows / capped count, memory peaks, hashes; per family the maxima the constants equal; at the top the evaluation bank the units ran (cap 2,048 tokens, 468 greedy prompts, 600 harm samples, batch 32, 34 batches). SHA-256 pinned in `rules_78b.py` (`BASIS_SHA256`). |
 | `derive_78b_basis.py` | Writes the basis from the kits under `--root` (read-only, absolute path). Opens only nine file names, each in its one place: `hosts/<host>/{verification.json, finished.json, create-intent.json, create-result.json}`, `retrieved/<host>/tree/{BOOTSTRAP-READY.json, PREFLIGHT-DONE.json, JOB-DONE.json}`, `retrieved/<host>/tree/round1/<unit>/{ledger.jsonl, progress.jsonl}`; refuses every other name (no `create-*` wildcard), an allowed name in any other folder, and any path with `eval`, `generations`, `samples`, `prompts`, `ssh`, `hidden`, `selector.jsonl`, `states`, `judges`, `seals`, `units` in it (A-V6). Output: numbers, hashes, names, UTC stamps; no string longer than a hash. Deterministic (no clock inside), so the hash can be pinned. `--extra-unit FAMILY:KIT_FOLDER` adds units (KD9). |
-| `tests/test_rules_78b.py` | KCR §10 tests 1-15 with the brief's adaptations; the fix round's tests 05c, 05d, 07b, 10b, 12b and the A-V6 cases of test 15; K1's 07c, 08b, 08c; fix-K-core's 17, 17b (PP8), 18, 18b (D1: both MANIFEST forms; the committed sets by pin), 19 (D2); a last no-bytecode check. 33 tests. |
-| `tests/mutation_spec_rules_78b.json` | KCR test 13 and KCR:226's mutants plus the fix round's (A-V1..A-V6, the RECIPE_S refusal, the job_decision missing-field refusal), K1's 13 and fix-K-core's 16 (ids `FK-m-*`: D1, D2, PP7, PP8): 80, in the stage-1 kit's spec form. |
-| `tests/conftest.py` | PP10: the autouse guard that fails any real subprocess start, `os.system`, socket connect or urllib open during the kit's tests unless a test replaced the call with a fake; `local_processes` permits the kit's own interpreter and git by path for a test that asks. `tests/test_pp10_guard.py` proves it on the K3 incident's path (host.gated_download's default runner). |
+| `tests/test_rules_78b.py` | KCR §10 tests 1-15 with the brief's adaptations; the fix round's tests 05c, 05d, 07b, 10b, 12b and the A-V6 cases of test 15; K1's 07c, 08b, 08c; fix-K-core's 17, 17b (PP8), 18, 18b (D1: both MANIFEST forms; the committed sets by pin), 19 (D2); K4a's 20 (PP16: `X_ONLY_KINDS`), 21 (DK-3: the kit's stage1_rules kind sets), 22 (PP14: the idle-storage pods and lines); a last no-bytecode check. 36 tests. |
+| `tests/mutation_spec_rules_78b.json` | KCR test 13 and KCR:226's mutants plus the fix round's (A-V1..A-V6, the RECIPE_S refusal, the job_decision missing-field refusal), K1's 13, fix-K-core's 16 (ids `FK-m-*`: D1, D2, PP7, PP8) and K4a's 23 (ids `K4-m-*`: PP16, DK-3, PP14): 103, in the stage-1 kit's spec form. |
+| `tests/conftest.py` | PP10, two layers. K4a's process-wide layer (DK-1), installed at import and never removed: an audit hook that refuses, at collection, in every fixture scope and in C-level calls, a subprocess whose executable is not one `local_processes` allowed for the running test (exact path), `os.system`, `os.exec*`, `os.posix_spawn*`, `os.spawn*`, `os.fork*`, a socket connect / sendto / sendmsg to a non-loopback address, a non-loopback name lookup (getaddrinfo, gethostbyname*, gethostbyaddr, getnameinfo), every urllib open and http.client's connect to a non-loopback host; multiprocessing's spawn (`_posixsubprocess.fork_exec`, no audit event) and a host name given to `socket.socket`'s connect / sendto / sendmsg (resolved before the event) are refused beside it. The per-test autouse fixture (PP10's first form) refuses the same calls at the Python level with a message naming each, checks Popen's `executable=` and replaces getnameinfo. Not covered: ctypes or another C extension; a direct call of subprocess's private `_fork_exec`; a host name given to a bare `_socket.socket`. `tests/test_pp10_guard.py` proves the fixture on the K3 incident's path (host.gated_download's default runner); `tests/test_pp10_process_wide.py` proves the process-wide layer (fail-closed probes: events raised by hand, missing program paths, numeric or loopback addresses). |
 | `tests/run_mutants_78b.py` | The mutation runner (the stage-1 kit's `run_mutants_b15.py` form: baseline first, killed only by a real failure, errors invalid). |
 
 ## The rule (KD1; KCR §4)
@@ -78,6 +78,11 @@ unit (tests 2, 4, 5). A constant changes only when the basis changes (KD9), by a
   `rules_78b.idle_storage` in `block0_report` and the last line of `stage1_rules.block0_need_report` (printed by
   `init-block 0`, kept in its summary JSON and plan.json): about $0.33 per day per stopped 50 GB pod that keeps its
   states ($0.20 per GB per month, KCR:161; E), N's 2 pods $0.67 per day, about $20 per month; counted in no guard.
+  PP14 (K4a): then one line per other block-0 pod that keeps states after its jobs (`idle_storage_pods`,
+  `idle_storage_lines`): each family's retrain pod (the a0-1101 retrain's q and e1 states for A1's pass) and each
+  family's a1_pass scorer pod (`IDLE_SCORER_KINDS`: it holds those states; I, the lead names any other), $0.33 per
+  day each, and the block's total (`idle_storage_all`: 6 pods, $2.00 per day, about $60 per month); the summary JSON
+  holds `idle_storage_pods` and `idle_storage_all`.
 - **KD6** every kind but `arm`, `a0_arm`, `evalonly` runs alone on a single-job pod with an explicit E cap (`e-caps`
   below) until its first 7-8B run measures it. **KD7** `WORKING_COPY_PREFIX = "family-probe-s78-"`; the stage-1 kit's
   `budget.py` `KITS_GLOB` (`family-probe-*`, `gate-b-olmo*`, `stage1-olmo*`) is unchanged and matches it, and both kits
@@ -107,10 +112,9 @@ unit (tests 2, 4, 5). A constant changes only when the basis changes (KD9), by a
 
 | Kind | OLMo cap / guard | Llama cap / guard | Basis (E unless marked) |
 |---|---|---|---|
-| `untuned_answers` | 3.0 h / $11.55 | 3.25 h / $12.01 | 16 chunks of 32 at the capped-batch maximum (M), x 1.5 |
-| `regenerate` | 2.25 h / $10.16 | 2.25 h / $10.16 | 38 x TRAIN_STEP_MAX (M) + three state writes, x 1.5 |
+| `untuned_answers` (two calls, PP2; K4b) | 6.0 h / $17.10 | 6.0 h / $17.10 | the S3 call's 27 chunks (861 prompts at 512 tokens) and the S4 call's 16 chunks, each chunk at the capped-batch maximum measured at 2,048 tokens (M; an upper bound for the 512-token chunks), each call with its first batch and early/outside time (M), x 1.5 (was 3.0 h / 3.25 h for the S4 call alone) |
 | `o_only` | 3.75 h / $12.94 | 3.75 h / $12.94 | 19 capped batches (M) + half the scoring allowance, x 1.5 |
-| `o_only_with_regenerate` | 4.5 h / $14.33 | 4.5 h / $14.33 | the two above on one pod |
+| `o_only_with_regenerate` (PP17; no standalone `regenerate` kind) | 4.5 h / $14.33 | 4.5 h / $14.33 | the regeneration (38 x TRAIN_STEP_MAX (M) + three state writes, x 1.5; the engine's verify and the acceptance check inside that 1.5) + the o_only upper, on one pod |
 | `anchor` | 2.25 h / $10.16 | 2.25 h / $10.16 | the 1B 0.25 h upper x 2.3 (RP:43) x 1.5 |
 | `rep_pass` (REQ-3's representation pass; needs S_78; PP8) | 4.75 h / $14.79 | 4.75 h / $14.79 | the stage-1 kit's 1 h estimate at 1B (DIAG_ESTIMATE_S 3,600 s) x 2.3 (RP:43) x 1.5, until measured |
 | `a1_pass` (A1's attributes pass; needs S_78; PP8) | 16.5 h / $36.53 | 16.5 h / $36.53 | KD6: 16.5 h at most (RP:43's 6-11 h x 1.5) |
@@ -125,7 +129,8 @@ unit (tests 2, 4, 5). A constant changes only when the basis changes (KD9), by a
 `block0` prints N's two pods, each family's retrain pod and each scorer pod separately with its guard, spend upper and
 need alone (the check's M3): retrain $14.33 guard / $6.80 spend / $17.91 need; the a1_pass pod $36.53 / $28.64 / $45.66;
 the rep_pass pod $14.79 / $7.61 / $18.49; the other scorer pods $10.16-14.79 guard each; then KD5's idle-storage block
-(D2: `idle_storage`, $0.33 per stopped 50 GB pod per day; N's 2 pods $0.67 per day, $20 per month).
+(D2: `idle_storage`, $0.33 per stopped 50 GB pod per day; N's 2 pods $0.67 per day, $20 per month), PP14's
+`idle_storage_pods` (N's 2, the 2 retrain pods, the 2 a1_pass pods) and `idle_storage_all` ($2.00 per day).
 
 ## The sealed edit sets (ruling 14; PP7; the core verifier's D1)
 

@@ -18,8 +18,12 @@ add_s1.json by its hash, as stage 1 did. Otherwise the verdict names what failed
 
 The sealed list is read through REQ-7's read_list by its pin (389c20ad...); its bytes come from --list PATH:SHA256 or
 are recovered by the sealed Llama build script's recover_list (the committed edit's rows in list order, verified by the
-pin) and written under --scratch-tmp (a folder named tmp, absent or empty; a folder this run created is removed again at the
-end unless --keep; a folder that existed before the run is never removed, a non-empty one is refused and left as it was).
+pin) and written under --scratch-tmp (a folder named tmp, absent or empty). Unless --keep, the end of the run removes only
+what this run made, decided atomically by its own mkdir: the recovered list's folder, then the scratch folder if this run
+created it and it is empty; a folder that existed before the run is never removed, a non-empty one is refused and left as
+it was, and --out may not lie under --scratch-tmp (reverify-F RF-1, RF-2): by its spelling before anything is made, and
+by directory identity once the scratch folder exists (os.path.samefile on --out's deepest existing ancestor and every
+folder above it, so a case variant or another alias of the same folder is refused too; m-verify D1).
 Reads: the committed edit's bytes by exact path (refused unless they hash to the pin; through the engine's parse_edit,
 the text dropped at once); the committed add-s1 record; the OLMo prepared set (ids and token counts); the two configs.
 Prints counts and hashes only; --out writes a text-free record (created once).
@@ -30,6 +34,7 @@ from __future__ import annotations
 import argparse
 import copy
 import importlib.util
+import os
 import shutil
 import sys
 from pathlib import Path
@@ -101,7 +106,9 @@ def provenance_differences(a: dict, b: dict) -> list[str]:
 
 
 def check(repo: Path, olmo_root: Path, edit_path: Path, record_path: Path, recipe_7b: Path, recipe_s: Path,
-          scratch: Path, list_spec: str | None, seal_edits: Path) -> dict:
+          scratch: Path, list_spec: str | None, seal_edits: Path, made: list[Path] | None = None) -> dict:
+    """The measurement (module doc). ``made``, when given, receives every folder this call itself created (the
+    recovered list's folder scratch/list, appended right after its atomic mkdir), so the caller removes only those."""
     B = load_sealed_builder(repo)
     frozen = B.check_frozen() if Path(B.REPO).resolve() == repo.resolve() else {k: sha256_bytes((repo / k).read_bytes()) for k in B.FROZEN}
     record = B.stage1_record(record_path)
@@ -132,6 +139,14 @@ def check(repo: Path, olmo_root: Path, edit_path: Path, record_path: Path, recip
         list_path, list_source = Path(path), "given"
     else:
         doc = B.recover_list(edit_path, stub, record)
+        # RF-1 (reverify-F): the list folder is this call's only if this call's mkdir made it (atomic: another run's
+        # folder raises FileExistsError and is refused, never written into and never removed by this run).
+        try:
+            (scratch / "list").mkdir(parents=True)
+        except FileExistsError:
+            raise s1.Refusal(f"{scratch / 'list'} exists: a sealed output never overwrites") from None
+        if made is not None:
+            made.append(scratch / "list")
         s1.write_new_files(scratch / "list", {"s1.json": doc})
         list_path, list_source = scratch / "list" / "s1.json", "recovered (build_s1_llama3.recover_list; verified by the pin)"
     listing = wae.read_list(list_path, B.LIST_SHA256)
@@ -177,6 +192,17 @@ def check(repo: Path, olmo_root: Path, edit_path: Path, record_path: Path, recip
             "verdict": VERDICT_EQUAL if equal_as_is else VERDICT_DIFFERS, "equal_as_it_stands": equal_as_is}
 
 
+def lies_in(out: Path, scratch: Path) -> bool:
+    """True when ``out`` is or lies under the EXISTING folder ``scratch`` by directory identity (m-verify D1): the
+    deepest existing ancestor of ``out`` (``out`` itself when it exists) and every folder above it are compared with
+    ``scratch`` by os.path.samefile, so another spelling of the same folder (a case variant on a case-insensitive file
+    system, a firmlink or a symbolic link) is caught where a string comparison is not."""
+    node = Path(os.path.abspath(out))
+    while not node.exists() and node != node.parent:
+        node = node.parent
+    return any(os.path.samefile(folder, scratch) for folder in (node, *node.parents))
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--repo", type=Path, default=REPO)
@@ -193,19 +219,38 @@ def main(argv: list[str] | None = None) -> int:
     repo = args.repo.resolve()
     B = load_sealed_builder(repo)
     scratch = (args.scratch_tmp or repo / SCRATCH_REL).resolve()
-    # F-1 (verify-F): the cleanup removes only what this run made. A scratch folder that existed before this run is never
-    # removed (a non-empty one is refused by check_output_folders and stays as it was); in a pre-existing empty one only
-    # the recovered list this run wrote (scratch/list) is removed again.
-    created = not scratch.exists()
-    was_empty_dir = scratch.is_dir() and not any(scratch.iterdir())
+    # RF-2 (reverify-F): the record must outlive the cleanup, so --out may not lie in (or be) the scratch folder.
+    if args.out is not None:
+        out = args.out.resolve()
+        if out == scratch or scratch in out.parents:
+            print(f"REFUSED: --out {args.out} lies under --scratch-tmp {scratch}, which the cleanup removes", file=sys.stderr)
+            return 2
+    # F-1 (verify-F) and RF-1 (reverify-F): the cleanup removes only what this run made, decided atomically. The scratch
+    # folder is this run's only if this run's mkdir created it (FileExistsError: it existed, or another run made it
+    # first). The cleanup removes the folders this run made inside it (the recovered list, `made`), then the scratch
+    # folder only if this run created it and it is empty; anything another party put there stays. A scratch folder that
+    # existed before this run is never removed (a non-empty one is refused by check_output_folders and stays as it was).
+    made: list[Path] = []
+    created = False
     try:
         if args.out is not None and args.out.exists():
             raise s1.Refusal(f"--out {args.out} exists: the record is created once")
+        scratch = wae.full_out_ok(scratch)              # under a folder named tmp, checked before anything is created
+        try:
+            scratch.mkdir(parents=True)
+            created = True
+        except FileExistsError:
+            created = False
+        if args.out is not None and lies_in(args.out, scratch):   # RF-2 by identity (m-verify D1), before any data
+            print(f"REFUSED: --out {args.out} lies under --scratch-tmp {scratch} (the same folder by identity), which the "
+                  "cleanup removes", file=sys.stderr)
+            return 2
         result = check(repo, (args.olmo_prepared or repo / OLMO_PREPARED_REL).resolve(),
                        (args.edit or repo / B.OLMO_S1_EDIT_REL).resolve(),
                        (args.stage1_record or repo / B.STAGE1_ADD_S1_RECORD_REL).resolve(),
                        (args.recipe_7b or repo / OLMO_7B_MAIN_CONFIG_REL).resolve(),
-                       (args.recipe_s or repo / RECIPE_S_1B_REL).resolve(), scratch, args.list, repo / SEAL_EDITS_REL)
+                       (args.recipe_s or repo / RECIPE_S_1B_REL).resolve(), scratch, args.list, repo / SEAL_EDITS_REL,
+                       made)
         data = canonical_json(result)
         if args.out is not None:
             args.out.parent.mkdir(parents=True, exist_ok=True)
@@ -216,10 +261,15 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     finally:
         if not args.keep:
-            if created and scratch.is_dir():
-                shutil.rmtree(scratch)
-            elif was_empty_dir and (scratch / "list").is_dir():
-                shutil.rmtree(scratch / "list")
+            for folder in reversed(made):
+                if folder.is_dir() and not folder.is_symlink():
+                    shutil.rmtree(folder)
+            if created:
+                try:
+                    scratch.rmdir()                       # only when empty: another party's files are never removed
+                except OSError:
+                    print(f"note: {scratch} was created by this run but holds files it did not write; left as it is",
+                          file=sys.stderr)
     c = result["checks"]
     print(f"(1) parse_edit accepts the committed S1 edit against {OLMO_MANIFEST_SHA256[:8]}: {c['1_parse_edit_accepts_against_the_family_manifest']}")
     print(f"(2) rows with the committed token counts: {c['2_rows_with_the_committed_token_counts_under_the_7b_limit']['equal']} of 48 under the 7B "

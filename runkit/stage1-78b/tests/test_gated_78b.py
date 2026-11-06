@@ -226,7 +226,11 @@ def test_the_range_requests_cover_every_gated_file_at_the_pinned_revision_and_a_
         launch.token_checks(token, open_only, get=FakeHub())
 
 
-def test_the_redirect_handler_drops_the_authorization_header_when_the_redirect_leaves_the_hub(wl):
+REDIRECT_CODES = (301, 302, 303, 307, 308)      # RV2-3: every code urllib follows (http_error_301 ... _308)
+
+
+@pytest.mark.parametrize("code", REDIRECT_CODES)
+def test_the_redirect_handler_drops_the_authorization_header_when_the_redirect_leaves_the_hub(wl, code):
     launch = importlib.import_module("launch")
     token = fake_token()
     handler = launch.SameHostAuthRedirect()
@@ -235,7 +239,7 @@ def test_the_redirect_handler_drops_the_authorization_header_when_the_redirect_l
                          ("https://cas-bridge.xethub.hf.co/x", False)):
         req = urllib.request.Request(f"{HUB}/{LLAMA_REPO}/resolve/{LLAMA_REV}/config.json",
                                      headers={"Authorization": "Bearer " + token, "Range": "bytes=0-0"})
-        new = handler.redirect_request(req, None, 302, "Found", {}, newurl)
+        new = handler.redirect_request(req, None, code, "Redirect", {}, newurl)
         assert new is not None and new.full_url == newurl
         assert ("Authorization" in new.headers) is kept and new.headers.get("Range") == "bytes=0-0"
 
@@ -885,7 +889,8 @@ def test_the_gated_run_refuses_a_set_token_variable_a_missing_token_a_bad_flag_p
         dl.main(["--gated"], stdin=io.StringIO(token + "\n"))
     with pytest.raises(SystemExit, match="--gated and --token-stdin go together"):
         dl.main(["--token-stdin"], stdin=io.StringIO(token + "\n"))
-    for name in dl.TOKEN_ENV_NAMES:
+    assert dl.TOKEN_ENV_NAMES == ("HF_TOKEN", "HUGGING_FACE_HUB_TOKEN")
+    for name in ("HF_TOKEN", "HUGGING_FACE_HUB_TOKEN"):             # RV2-4: hardcoded, not the list under test
         monkeypatch.setenv(name, token)
         stdin = io.StringIO(token + "\n")
         with pytest.raises(SystemExit, match=f"a token variable is set: \\['{name}'\\]"):
@@ -1026,6 +1031,12 @@ def test_d1_http_get_builds_its_opener_with_the_same_origin_redirect_handler_and
     assert token not in written and "synthetic-user" not in written
 
 
+def _no_fragment(text: str, token: str) -> bool:
+    """RV2-2: no part of the token that a reader could use: the whole value, the value without its constant hf_ prefix
+    (which the HF pattern and secret_scan do not see), and either half."""
+    return all(part not in text for part in (token, token[3:], token[:20], token[20:]))
+
+
 NO_REPLY_FAILURES = [
     ("dns", lambda t: urllib.error.URLError(socket.gaierror(8, "nodename nor servname provided, or not known"))),
     ("refused", lambda t: urllib.error.URLError(ConnectionRefusedError(61, "Connection refused"))),
@@ -1051,7 +1062,7 @@ def test_d4_a_failure_before_any_reply_is_a_clean_refusal_that_scrubs_the_token_
     status, detail = launch.http_get(f"{HUB}/api/whoami-v2", token, None, launch.WHOAMI_LIMIT)
     text = detail.decode()
     assert status == launch.NO_REPLY == 0 and text.startswith(type(exc).__name__ + ": ") and len(text) <= 200
-    assert token not in text and scan.scan_text(text) == []
+    assert token not in text and scan.scan_text(text) == [] and _no_fragment(text, token)          # RV2-2
     if name == "reason-holds-the-token":
         assert "<token>" in text and "a proxy said" in text
     # launch.main: a refusal (SystemExit with a line), never the exception's traceback; no child; the token scrubbed
@@ -1062,7 +1073,7 @@ def test_d4_a_failure_before_any_reply_is_a_clean_refusal_that_scrubs_the_token_
                     sleep=lambda s: None)
     message = str(info.value)
     assert message.startswith("whoami-v2 got no reply (" + type(exc).__name__) and "no pod was created" in message
-    assert token not in message and scan.scan_text(message) == []
+    assert token not in message and scan.scan_text(message) == [] and _no_fragment(message, token)   # RV2-2
     assert children == [] and "HF_TOKEN" not in os.environ                    # the finally's scrub ran
     assert not (wl.root / "hosts" / host_of(wl) / "token-check.json").exists()
     launch.kit_lock().close()                                                   # the kit lock was released
@@ -1084,7 +1095,8 @@ def test_d4_a_no_reply_on_a_range_request_refuses_at_once_and_sends_no_further_r
     assert len(hub.calls) == 1 + LLAMA_FILES.index("tokenizer.json") + 1
 
 
-def test_d5_a_same_host_redirect_that_changes_the_scheme_drops_the_authorization_header(wl):
+@pytest.mark.parametrize("code", REDIRECT_CODES)
+def test_d5_a_same_host_redirect_that_changes_the_scheme_drops_the_authorization_header(wl, code):
     launch = importlib.import_module("launch")
     token = fake_token()
     handler = launch.SameHostAuthRedirect()
@@ -1095,7 +1107,7 @@ def test_d5_a_same_host_redirect_that_changes_the_scheme_drops_the_authorization
                          ("http://cdn-lfs.example.net/signed/blob?token=abc", False),
                          (f"{HUB}/api/other/path", True)):
         req = urllib.request.Request(original, headers={"Authorization": "Bearer " + token, "Range": "bytes=0-0"})
-        new = handler.redirect_request(req, None, 302, "Found", {}, newurl)
+        new = handler.redirect_request(req, None, code, "Redirect", {}, newurl)
         assert new is not None and new.full_url == newurl, newurl
         assert ("Authorization" in new.headers) is kept and new.headers.get("Range") == "bytes=0-0", newurl
     assert launch.same_origin(original, "http://huggingface.co/x") is False
@@ -1103,7 +1115,7 @@ def test_d5_a_same_host_redirect_that_changes_the_scheme_drops_the_authorization
     assert launch.same_origin(original, "https://cdn-lfs.huggingface.co/y") is False
 
 
-@pytest.mark.parametrize("leave", ["token-file", "stored-tokens", "variable", "token-file-under-hf-home"])
+@pytest.mark.parametrize("leave", ["token-file", "stored-tokens", "variable", "variable-hub", "token-file-under-hf-home"])
 def test_d2_a_download_that_leaves_a_stored_login_or_a_token_variable_behind_is_refused_after_the_download(
         tmp_path, monkeypatch, leave):
     env = {"HF_HOME": str(tmp_path / "hfhome")} if leave == "token-file-under-hf-home" else None
@@ -1113,8 +1125,8 @@ def test_d2_a_download_that_leaves_a_stored_login_or_a_token_variable_behind_is_
 
     def leaving(**kwargs):                                     # the download itself leaves something behind
         snapshot = inner(**kwargs)
-        if leave == "variable":
-            monkeypatch.setenv("HF_TOKEN", token)
+        if leave in ("variable", "variable-hub"):              # RV2-4: either name the library reads
+            monkeypatch.setenv("HF_TOKEN" if leave == "variable" else "HUGGING_FACE_HUB_TOKEN", token)
         else:
             path = dl.stored_tokens_file() if leave == "stored-tokens" else dl.token_file()
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -1122,6 +1134,7 @@ def test_d2_a_download_that_leaves_a_stored_login_or_a_token_variable_behind_is_
         return snapshot
     monkeypatch.setattr(dl, "snapshot_download", leaving)
     expected = {"variable": r"a token variable is set: \['HF_TOKEN'\]",
+                "variable-hub": r"a token variable is set: \['HUGGING_FACE_HUB_TOKEN'\]",
                 "stored-tokens": "a stored HF login exists: .*/stored_tokens ",
                 "token-file": "a stored HF login exists: .*/.cache/huggingface/token ",
                 "token-file-under-hf-home": "a stored HF login exists: .*/hfhome/token "}[leave]
@@ -1134,8 +1147,8 @@ def test_d2_a_download_that_leaves_a_stored_login_or_a_token_variable_behind_is_
     pf = load_by_path("preflight_d2", KIT / "setup" / "preflight_stage1.py")
     with pytest.raises(SystemExit, match="a gated probe needs gated-download-receipt.json with ok true"):
         pf.gated_ready(json.loads((run / "probe.json").read_text()), run)
-    if leave == "variable":
-        monkeypatch.delenv("HF_TOKEN")
+    if leave in ("variable", "variable-hub"):
+        monkeypatch.delenv("HF_TOKEN" if leave == "variable" else "HUGGING_FACE_HUB_TOKEN")
     assert files_holding(tmp_path, token) == []
 
 
@@ -1227,9 +1240,10 @@ def test_d6_hf_token_path_stored_tokens_and_the_staging_switch_refuse_and_the_pr
     with pytest.raises(SystemExit, match="a stored HF login exists: .*/elsewhere/stored_tokens "):
         dl.main(gated, stdin=io.StringIO(token + "\n"))
     (secret_path.parent / "stored_tokens").unlink()
-    monkeypatch.setenv("HUGGINGFACE_CO_STAGING", "1")
-    with pytest.raises(SystemExit, match="HUGGINGFACE_CO_STAGING is set"):
-        dl.main(gated, stdin=io.StringIO(token + "\n"))
+    for value in ("1", "true", "yes", "ON", "True"):     # RV2-5: the library reads 1, ON, YES, TRUE (any case)
+        monkeypatch.setenv("HUGGINGFACE_CO_STAGING", value)
+        with pytest.raises(SystemExit, match="HUGGINGFACE_CO_STAGING is set"):
+            dl.main(gated, stdin=io.StringIO(token + "\n"))
     monkeypatch.delenv("HUGGINGFACE_CO_STAGING")
     assert fake.calls == [] and not list(run.glob("*receipt*"))
     assert dl.main(gated, stdin=io.StringIO(token + "\n")) == 0
@@ -1352,3 +1366,100 @@ def test_f1_the_pod_refuses_a_token_line_a_header_cannot_carry_before_any_reques
     assert _names_no_part(capsys.readouterr().out, token) and files_holding(tmp_path, token[:20]) == []
     assert dl.main(["--gated", "--token-stdin"], stdin=io.StringIO(" " + token + " \n")) == 0   # outer spaces: stripped
     assert fake.calls[0]["token"] == token
+
+
+# ===== 11. K4a (the security re-verifier's RV2-1, RV2-2, RV2-9): TLS verification pinned; no token fragment in a =====
+# no-reply detail; the library's paths without the library
+def test_rv2_1_http_get_verifies_the_hubs_tls_certificate_and_host_name(wl, monkeypatch):
+    """RV2-1 (before the first Llama launch): the Bearer token goes only to a TLS peer whose certificate and host name
+    verify. http_get's real opener holds HTTPS handlers that use the default context (or a verifying one), and
+    importing launch leaves ssl's default HTTPS context factory the verifying one (CERT_REQUIRED, check_hostname)."""
+    launch = importlib.import_module("launch")
+    token = fake_token()
+    assert ssl._create_default_https_context is ssl.create_default_context            # nothing in the kit replaced it
+    context = ssl._create_default_https_context()
+    assert context.verify_mode == ssl.CERT_REQUIRED and context.check_hostname is True
+    built, first, opened = _real_opener_with_fake_open(monkeypatch, [(200, whoami_body("read"))])
+    assert launch.http_get(f"{HUB}/api/whoami-v2", token, None, launch.WHOAMI_LIMIT)[0] == 200
+    built, later, opened_later = _real_opener_with_fake_open(monkeypatch, [(200, whoami_body("read")), (206, b"x")])
+    launch.gated_precheck(host_of(wl), env={"HF_TOKEN": token})                       # the precheck's openers too
+    openers = first + later                  # (the second recorder builds through the first: first holds both runs')
+    assert len(first) == 1 + len(later) and len(later) == 1 + len(LLAMA_FILES)
+    for opener in openers:
+        https = [h for h in opener.handlers if isinstance(h, urllib.request.HTTPSHandler)]
+        assert https, "the opener has no HTTPS handler"
+        for handler in https:
+            ctx = handler._context
+            assert ctx is None or (ctx.verify_mode == ssl.CERT_REQUIRED and ctx.check_hostname is True), ctx
+            assert getattr(handler, "_check_hostname", None) in (None, True)
+        # round 4b (the security verifier's D3): EVERY handler that opens https (the opener's own dispatch list, in
+        # handler_order) is a verifying HTTPSHandler; the redirect handler opens nothing itself
+        openers_https = opener.handle_open.get("https", [])
+        assert openers_https and all(type(h) is urllib.request.HTTPSHandler for h in openers_https), openers_https
+        for handler in openers_https:
+            ctx = handler._context
+            assert ctx is None or (ctx.verify_mode == ssl.CERT_REQUIRED and ctx.check_hostname is True), ctx
+    assert [n for n in vars(launch.SameHostAuthRedirect) if n.endswith("_open")] == []
+    assert all(r.full_url.startswith("https://huggingface.co/") for r, _ in opened + opened_later)   # https, the Hub
+
+
+def test_rv2_2_a_no_reply_detail_holds_no_fragment_of_a_token_of_any_shape(wl, monkeypatch):
+    """RV2-2: (a) a visible-ASCII token that is not of the HF shape (secret_scan does not see it) is scrubbed from a
+    no-reply detail through http_get itself (http_get passes the token to failure_text); (b) a token that crosses
+    the 200-character cut leaves no fragment (the scrubs run before the cut)."""
+    launch, scan = importlib.import_module("launch"), importlib.import_module("secret_scan")
+    plain = "tok-K4a-ABCDEFGHIJ-0123456789.synthetic-value"                 # visible ASCII, not the HF shape
+    assert launch.header_safe(plain) and scan.scan_text(plain) == []
+    for exc in (urllib.error.URLError(f"a proxy said: Bearer {plain} rejected"), OSError(f"reset while sending {plain}")):
+        _real_opener_with_fake_open(monkeypatch, [exc])
+        status, detail = launch.http_get(f"{HUB}/api/whoami-v2", plain, None, launch.WHOAMI_LIMIT)
+        text = detail.decode()
+        assert status == launch.NO_REPLY and "<token>" in text and _no_fragment(text, plain), text
+    token = fake_token()
+    for start in (185, 190, 199):                                            # the token crosses character 200
+        exc = OSError("x" * (start - len("OSError: ")) + token + " and more")
+        text = launch.failure_text(exc, token)
+        assert len(text) <= 200 and text.startswith("OSError: xxx") and _no_fragment(text, token)
+        assert token[:8] not in text and token[3:10] not in text, (start, text[-20:])
+        _real_opener_with_fake_open(monkeypatch, [exc])
+        status, detail = launch.http_get(f"{HUB}/api/whoami-v2", token)
+        assert status == launch.NO_REPLY and token[:8] not in detail.decode() and token[3:10] not in detail.decode()
+
+
+HF_PATHS_BY_HAND = {      # RV2-9: (hf_home, hf_cache, token_file, stored_tokens) from HOME and the variables alone
+    "defaults": ("{home}/.cache/huggingface", "{home}/.cache/huggingface/hub", "{home}/.cache/huggingface/token",
+                 "{home}/.cache/huggingface/stored_tokens"),
+    "hf-home": ("{tmp}/hfhome", "{tmp}/hfhome/hub", "{tmp}/hfhome/token", "{tmp}/hfhome/stored_tokens"),
+    "xdg": ("{tmp}/xdg/huggingface", "{tmp}/xdg/huggingface/hub", "{tmp}/xdg/huggingface/token",
+            "{tmp}/xdg/huggingface/stored_tokens"),
+    "hf-home-over-xdg": ("{tmp}/hfhome", "{tmp}/hfhome/hub", "{tmp}/hfhome/token", "{tmp}/hfhome/stored_tokens"),
+    "hub-cache": ("{home}/.cache/huggingface", "{tmp}/hub-only", "{home}/.cache/huggingface/token",
+                  "{home}/.cache/huggingface/stored_tokens"),
+    "legacy-hub-cache": ("{home}/.cache/huggingface", "{tmp}/legacy-hub", "{home}/.cache/huggingface/token",
+                         "{home}/.cache/huggingface/stored_tokens"),
+    "hub-cache-over-legacy": ("{home}/.cache/huggingface", "{tmp}/hub-only", "{home}/.cache/huggingface/token",
+                              "{home}/.cache/huggingface/stored_tokens"),
+    "hf-home-and-legacy": ("{tmp}/hfhome", "{tmp}/legacy-hub", "{tmp}/hfhome/token", "{tmp}/hfhome/stored_tokens"),
+    "token-path": ("{home}/.cache/huggingface", "{home}/.cache/huggingface/hub", "{tmp}/secrets/hf-token",
+                   "{tmp}/secrets/stored_tokens"),
+    "hf-home-and-token-path": ("{tmp}/hfhome", "{tmp}/hfhome/hub", "{tmp}/secrets/hf-token", "{tmp}/secrets/stored_tokens"),
+    "tilde-and-var": ("{home}/hf-tilde", "{home}/hf-tilde/hub", "{home}/tok/leaf", "{home}/tok/stored_tokens"),
+}
+
+
+@pytest.mark.parametrize("case", sorted(HF_PATHS_BY_HAND))
+def test_rv2_9_the_cache_and_token_paths_by_hand_without_the_library(tmp_path, monkeypatch, case):
+    """RV2-9: the D6 paths written out by hand (huggingface_hub 0.36.2's constants.py:129-186 rules, which test_d6
+    compares with the library when it is installed), so a Python without huggingface_hub still tests the resolver:
+    HF_HOME over XDG_CACHE_HOME over ~/.cache; HF_HUB_CACHE over HUGGINGFACE_HUB_CACHE over HF_HOME/hub; HF_TOKEN_PATH
+    over HF_HOME/token; stored_tokens beside the token file; ~ and $VAR expanded."""
+    assert set(HF_PATHS_BY_HAND) == set(HF_PATH_CASES)
+    dl = load_by_path("download_models_rv2_9", KIT / "setup" / "download_models_stage1.py")
+    home = tmp_path / "home"
+    monkeypatch.setenv("HOME", str(home))
+    for name in HF_PATH_VARS + ("SYNTH_LEAF",):
+        monkeypatch.delenv(name, raising=False)
+    for name, value in HF_PATH_CASES[case].items():
+        monkeypatch.setenv(name, value.replace("{tmp}", str(tmp_path)))
+    expected = tuple(Path(p.replace("{home}", str(home)).replace("{tmp}", str(tmp_path))) for p in HF_PATHS_BY_HAND[case])
+    assert (dl.hf_home(), dl.hf_cache(), dl.token_file(), dl.stored_tokens_file()) == expected, case

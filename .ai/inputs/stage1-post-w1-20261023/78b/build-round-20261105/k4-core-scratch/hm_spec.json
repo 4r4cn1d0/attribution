@@ -1,0 +1,131 @@
+{
+ "kind": "k4 core verifier hand mutants",
+ "mutants": [
+  {
+   "id": "HM1",
+   "file": "rules_78b.py",
+   "describes": "sc_pin_values accepts an S_78 path outside the committed configs folder",
+   "find": "    if kit is not None and not (isinstance(rs.get(\"path\"), str) and rs[\"path\"].startswith(\n",
+   "replace": "    if False and not (isinstance(rs.get(\"path\"), str) and rs[\"path\"].startswith(\n"
+  },
+  {
+   "id": "HM2",
+   "file": "rules_78b.py",
+   "describes": "C0_SOURCE's record form is not checked",
+   "find": "    if c0 is not None and not (isinstance(c0, dict) and set(c0) == {\"complete_sha256\", \"e1_fingerprint\"}\n",
+   "replace": "    if False and not (isinstance(c0, dict) and set(c0) == {\"complete_sha256\", \"e1_fingerprint\"}\n"
+  },
+  {
+   "id": "HM3",
+   "file": "rules_78b.py",
+   "describes": "OEXT_78B's record form is not checked",
+   "find": "    if oext is not None and not (isinstance(oext, dict) and isinstance(oext.get(\"files\"), dict) and oext[\"files\"]\n",
+   "replace": "    if False and not (isinstance(oext, dict) and isinstance(oext.get(\"files\"), dict) and oext[\"files\"]\n"
+  },
+  {
+   "id": "HM4",
+   "file": "plan_tool.py",
+   "describes": "record-done accepts a complete anchor job that names no anchor file SHA-256",
+   "find": "    if job[\"kind\"] in (\"anchor\",) and \"anchor_file_sha256\" not in out:\n",
+   "replace": "    if False and \"anchor_file_sha256\" not in out:\n"
+  },
+  {
+   "id": "HM5",
+   "file": "setup/job_runner_stage1.py",
+   "describes": "the anchor job is complete without anchors.sealed.json",
+   "find": "        if summary[\"anchor_file_sha256\"] is None or summary[\"anchor_record_sha256\"] is None:\n",
+   "replace": "        if summary[\"anchor_file_sha256\"] is None:\n"
+  },
+  {
+   "id": "HM6",
+   "file": "setup/job_runner_stage1.py",
+   "describes": "hashed_outputs follows symbolic links",
+   "find": "                if f.is_file() and not f.is_symlink():\n",
+   "replace": "                if f.is_file():\n"
+  },
+  {
+   "id": "HM7",
+   "file": "plan_tool.py",
+   "describes": "the scorer release accepts another family's packed receipt",
+   "find": "        if rec.get(\"family\") not in (None, family):\n            fail(f\"{name}: the packed stage1-{h['engine']} is",
+   "replace": "        if False:\n            fail(f\"{name}: the packed stage1-{h['engine']} is"
+  },
+  {
+   "id": "HM8",
+   "file": "plan_tool.py",
+   "describes": "a complete scorer job may be planned again (A8: one retrain pod)",
+   "find": "    if status not in (\"absent\", \"crashed\", \"deferred\", \"not_started\"):\n",
+   "replace": "    if status not in (\"absent\", \"crashed\", \"deferred\", \"not_started\", \"complete\"):\n"
+  },
+  {
+   "id": "HM9",
+   "file": "plan_tool.py",
+   "describes": "pins78_doc does not check the index's pins_78b_sha256",
+   "find": "    if json.loads(index.read_text()).get(\"pins_78b_sha256\") != rules.SCORER_PINS[rules.PINS_78B]:\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "HM10",
+   "file": "stage1_rules.py",
+   "describes": "a settings wait needed by every command ('*') is ignored",
+   "find": "            if \"*\" not in needed and command not in needed:\n",
+   "replace": "            if command not in needed:\n"
+  },
+  {
+   "id": "HM11",
+   "file": "rules_78b.py",
+   "describes": "engine_sha returns a non-hash ENGINE_Y",
+   "find": "        if ENGINE_Y is None or not isinstance(ENGINE_Y, str) or not CONFIG_SHA256.match(ENGINE_Y):\n",
+   "replace": "        if ENGINE_Y is None:\n"
+  },
+  {
+   "id": "HM12",
+   "file": "rules_78b.py",
+   "describes": "a scorer pod's need line always says engine X",
+   "find": "    pod[\"engine\"] = engine\n",
+   "replace": "    pod[\"engine\"] = \"X\"\n"
+  },
+  {
+   "id": "HM13",
+   "file": "setup/job_runner_stage1.py",
+   "describes": "a non-unit scorer job with no output is complete",
+   "find": "    if not record[\"outputs\"] and kind not in SC_UNIT_KINDS:\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "HM14",
+   "file": "plan_tool.py",
+   "describes": "o_only and c0 plan without their script in OEXT_78B",
+   "find": "        if need not in (values[\"OEXT_78B\"] or {}).get(\"files\", {}):\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "HM15",
+   "file": "plan_tool.py",
+   "describes": "CONTROL: the part's idle total counts the state-keeping pods only",
+   "find": "rules.cents(len(pods) * r78.idle_storage(1)['usd_per_pod_day'])",
+   "replace": "rules.cents(len(keeps) * r78.idle_storage(1)['usd_per_pod_day'])"
+  },
+  {
+   "id": "HM16",
+   "file": "stage1_rules.py",
+   "describes": "an input pin that is not a SHA-256 is kept as a pin",
+   "find": "        out[name] = pin if hex64(pin) else None\n",
+   "replace": "        out[name] = pin\n"
+  },
+  {
+   "id": "HM17",
+   "file": "setup/job_runner_stage1.py",
+   "describes": "the runner takes any non-null input pin, hash or not",
+   "find": "        if rules.hex64(pin) is None:\n",
+   "replace": "        if pin is None:\n"
+  },
+  {
+   "id": "HM18",
+   "file": "setup/job_runner_stage1.py",
+   "describes": "the S4 call's exit 1 is accepted like exit 3",
+   "find": "        s4_few = kind == \"untuned_answers\" and name.endswith(\"-untuned-s4\") and done.returncode == 3\n",
+   "replace": "        s4_few = kind == \"untuned_answers\" and name.endswith(\"-untuned-s4\") and done.returncode in (1, 3)\n"
+  }
+ ]
+}

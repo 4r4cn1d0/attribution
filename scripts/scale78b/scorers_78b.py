@@ -33,7 +33,9 @@ Before the call (the family preflight; refusals name hashes, events and flags, n
   layer rule) and the commands that need it; a null one refuses with that event;
 - ``--prepared`` (when the kind takes it) is the family's prepared set: its manifest hashes to the family's pin (the
   other family's manifest refuses by both hashes);
-- ``--recipe`` / ``--recipe-s`` / ``--rec`` (when given) hash to the pin the settings hold for that flag.
+- ``--recipe`` / ``--recipe-s`` / ``--rec`` (when given) hash to the pin the settings hold for that flag;
+- first of all, every ``--`` token is a full flag name of the 1B script's command (ALLOWED_FLAGS; reverify-E RV-E-1): the
+  1B parsers expand abbreviations (``--li`` is ``--list`` to them), which these checks would not see.
 
 untuned_answers runs twice per pod (the lead's ruling PP2, 5 Nov 2026): the first call takes the S3 list with the
 losses (``--list s3=… --loss s1=… --loss s3_safe=… --out <job>/untuned``), the second the S4 list alone
@@ -69,7 +71,7 @@ from scripts.stage1 import s1common as s1  # noqa: E402
 
 SETTINGS_DIR = HERE / "settings"
 PINS_FILE = SETTINGS_DIR / "PINS-78B.json"
-PINS_FILE_SHA256 = "8b9d8146d24910b15a81469bd206eba27d911a07bfe38bca04b39b1740fc71d9"
+PINS_FILE_SHA256 = "df3a787882d1c539a60b496d2f61f9ab9f3ff723e6bbf24e2ca806b20c6e9163"
 FAMILIES = ("olmo2-7b", "llama31-8b")
 WRAPPER_RECORD = "wrapper_78b_record.json"
 # The 1B scripts this wrapper runs, by SHA-256 (M: shasum -a 256 at HEAD 953f520, 5 Nov 2026; the four the stage-1 kit
@@ -98,6 +100,23 @@ KINDS = {
     "score_edit": ("scripts.stage1.write_score_edit", "write_score_edit", {}, True, "a1|scorer"),
     "add_edit": ("scripts.stage1.write_add_edit", "write_add_edit", {"--recipe": "recipe_sha256"}, True, None),
     "s_pool": ("scripts.stage1.build_s_pool", "build_s_pool", {"--rec": "inputs.rec_recipe_sha256"}, True, None),
+}
+# RV-E-1 (reverify-E): the 1B scripts parse with argparse's default allow_abbrev=True, so '--li s4=…' is '--list' to the 1B
+# script but invisible to flag_value and named_values, and one abbreviated flag would bypass PP2 (and the recipe and
+# --out checks). So every '--' token of a command must be one of the full long names the 1B script's own parser defines
+# for that command (the name before any '='); the wrapper owns --settings and --pool-pins. Keyed by command_of's value.
+# tests/scorers/test_untuned_two_calls_78b.py checks these sets against the 1B parsers.
+ALLOWED_FLAGS = {
+    "untuned_answers": frozenset({"--recipe", "--recipe-s", "--list", "--loss", "--out"}),
+    "rep_pass": frozenset({"--prepared", "--recipe", "--anchors", "--pool", "--pools-only", "--out"}),
+    "scan": frozenset({"--prepared", "--recipe", "--anchors", "--out"}),
+    "score": frozenset({"--prepared", "--scan", "--rows", "--summary", "--out"}),
+    "classifier": frozenset({"--prepared", "--recipe", "--anchors", "--pool", "--out"}),
+    "s3_score": frozenset({"--rows", "--summary", "--s-pool-record", "--answers-record", "--out"}),
+    "a1": frozenset({"--unit", "--prepared", "--out"}),
+    "scorer": frozenset({"--name", "--scores", "--scores-sha256", "--prepared", "--out"}),
+    "add_edit": frozenset({"--prepared", "--recipe", "--list", "--combine-with", "--full-out", "--out"}),
+    "s_pool": frozenset({"--config", "--sources", "--prepared", "--anchors", "--rec", "--full-out", "--out"}),
 }
 POOL_PIN_KINDS = ("rep_pass", "classifier")
 MANIFEST_PATH = {"s_pool": "inputs.prepared_manifest_sha256", "add_edit": "prepared_manifest_sha256",
@@ -203,6 +222,20 @@ def named_values(argv: list[str], flag: str) -> list[str]:
     return names
 
 
+def check_flag_names(kind: str, command: str, argv: list[str]) -> None:
+    """RV-E-1: every '--' token's name (before any '=') is a full flag name of the 1B script's command (ALLOWED_FLAGS);
+    an abbreviation ('--li', '--lo', '--ou'), the wrapper's own --settings or --pool-pins, a bare '--' or any other
+    flag refuses before anything is checked or run."""
+    allowed = ALLOWED_FLAGS[command]
+    for item in argv:
+        if item.startswith("--"):
+            name = item.partition("=")[0]
+            if name not in allowed:
+                raise s1.Refusal(f"{kind} {command}: {name!r} is not one of the 1B script's full flag names "
+                                 f"{sorted(allowed)}; abbreviations and other flags refuse (RV-E-1: the 1B parser would "
+                                 f"expand an abbreviation that the wrapper's PP2, recipe and --out checks do not see)")
+
+
 def check_untuned_calls(argv: list[str]) -> dict:
     """PP2: the S4 list runs alone in its own call. The unchanged 1B code's exit 3 (the S4 dose fallback) keeps only
     answers_*.json and the record, so another list in the same call would lose its outputs (s3_orig.pool.json)."""
@@ -274,6 +307,7 @@ def preflight(kind: str, settings: dict, argv: list[str]) -> dict:
     """The family preflight (module doc); returns what it checked (hashes and flags only)."""
     _, _, recipe_flags, takes_prepared, _ = KINDS[kind]
     command = command_of(kind, argv)
+    check_flag_names(kind, command, argv)
     family = settings["family_78b"]["family"]
     missing = null_pins(settings, command)
     if missing:

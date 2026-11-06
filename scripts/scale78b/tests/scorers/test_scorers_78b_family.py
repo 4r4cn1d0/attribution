@@ -86,7 +86,7 @@ def test_the_null_pins_refuse_by_naming_their_event(family):
         sw.preflight("score_edit", settings("write_score_edit", family), ["a1", "--unit", "u", "--prepared", p, "--out", "o"])
     assert "6 pin(s)" in str(exc.value)                                   # complete, retrain complete, recipe, bank, bank sha, code
     nulls = dict(sw.null_pins(settings("score_l1_larf", family), "scan"))
-    assert set(nulls) == {"pins.anchor_bank_sha256", "scan.first_block"} and "layer rule" in nulls["scan.first_block"]
+    assert set(nulls) == {"pins.anchor_bank_sha256"} and "anchor job" in nulls["pins.anchor_bank_sha256"]   # PP11 filled first_block
     assert sw.null_pins(settings("score_l1_larf", family), "score") == []            # the Mac score needs neither
     assert set(dict(sw.null_pins(settings("representation_pass", family), "rep_pass"))) == {"pins.anchor_bank_sha256", "pins.recipe_sha256"}
     assert sw.null_pins(settings("write_score_edit", family), "scorer") == []

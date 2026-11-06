@@ -1,7 +1,8 @@
 """The 7-8B kit's jobs of one host, in order (runs on the pod after the bootstrap and the preflight; K2 of the
 readiness plan's T4; the lead's ruling 11 KD3, KD5, KD11; the addendum's A1; the ADAPTATION of the stage-1 kit's
 setup/job_runner_stage1.py, whose 1B kinds (W1-18, D-2, B10/B11, C1-C3, the O-ext pass, similarity, the plant pilot)
-are not in this copy: block 0 runs ``arm`` and ``a0_arm`` under the family's main config, nothing else).
+are not in this copy: block 0 runs ``arm`` and ``a0_arm`` under the family's main config, nothing else; K4b's scorer
+block "sc" runs one job of rules_78b.SC_KINDS per pod, by ``sc_commands`` and ``run_sc_job`` below).
 
     venv/bin/python job_runner_stage1.py HOST [--dry-run [--remaining SECONDS] [--free-gb GB] [--s-obs X]]
 
@@ -167,6 +168,8 @@ def job_commands(plan: dict, host: str, index: int, root: pathlib.Path, units: d
     job = plan["hosts"][host]["jobs"][index]
     kind = job["kind"]
     family = family_of_plan(plan)
+    if plan["hosts"][host].get("block") == r78.SC_BLOCK:   # K4b: the scorer block's single-job pods
+        return sc_commands(plan, host, index, root, units or {}, sealed_doc if sealed_doc is not None else load_sealed(root))
     if kind in r78.S78_KINDS:
         try:
             r78.recipe_s_or_refuse(family)
@@ -206,6 +209,8 @@ def sealed_paths(job: dict, h: dict | None = None, index: int = 0, sealed_doc: d
         paths += [f"{PREPARED}/manifest.json", f"{PREPARED}/manifest.sha256"]
     if job.get("edit"):
         paths.append(edit_bundle(job))
+    if job.get("kind") in r78.SC_KINDS and (h or {}).get("block") == r78.SC_BLOCK:   # K4b
+        paths += sc_paths(job, sealed_doc if sealed_doc is not None else {"files": {}, "inputs": {}})
     return paths
 
 
@@ -311,6 +316,24 @@ def load_verification(root: pathlib.Path, pre: dict) -> dict:
     return doc
 
 
+_TOKEN_PATHS = None
+
+
+def token_paths():
+    """setup/download_models_stage1.py (beside this script on the pod and in the kit), loaded by path once: its
+    no_token_left() resolves the token file and stored_tokens as huggingface_hub does (verify-K-gated D6; the
+    re-verifier's RV2-8). Loaded at the first call, not at import (its import sets two HF_HUB_* switches)."""
+    global _TOKEN_PATHS
+    if _TOKEN_PATHS is None:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("download_models_stage1_for_runner",
+                                                      HERE / "download_models_stage1.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _TOKEN_PATHS = module
+    return _TOKEN_PATHS
+
+
 def preflight_checks(plan: dict, host: str, pre: dict, root: pathlib.Path) -> tuple[dict, dict, dict]:
     """Refuse (AssertionError) before any job unless the pod is the planned one; returns (sealed-files.json's doc,
     the preflight's verification.json, the bank built from the recipe and the packed prepared set)."""
@@ -318,15 +341,18 @@ def preflight_checks(plan: dict, host: str, pre: dict, root: pathlib.Path) -> tu
     jobs = h["jobs"]
     family = family_of_plan(plan)
     present = [name for name in TOKEN_ENV_NAMES if os.environ.get(name)]
-    assert not present and not (pathlib.Path.home() / ".cache/huggingface/token").exists(), "a token is present"
+    assert not present, f"a token is present: a token variable is set: {present}"
+    try:                                       # RV2-8: the library's own token paths (HF_TOKEN_PATH, else HF_HOME/token,
+        token_paths().no_token_left()          # and stored_tokens), the one resolver the download and preflight use (D6)
+    except SystemExit as exc:
+        raise AssertionError(f"a token is present: {exc}") from None
     assert not (root / "JOB-DONE.json").exists(), "this host already ran its jobs"
     assert json.loads((root / "BOOTSTRAP-READY.json").read_text())["ok"] is True, "bootstrap not ready"
     assert pre.get("ok") is True and pre.get("recipe") == preflight_recipe(h), \
         "the preflight did not pass for the host's recipe"
     verification = load_verification(root, pre)
     assert all(j.get("family", family) == family for j in jobs), f"a job of another family than {family}'s on this pod"
-    assert h["engine"] in rules.ENGINES and h["engine_sha256"] == rules.ENGINES[h["engine"]], \
-        "the host's engine is not a pinned engine (G4)"
+    assert h["engine_sha256"] == engine_pin(h["engine"]), "the host's engine is not a pinned engine (G4)"
     assert all(j["engine"] == h["engine"] for j in jobs), "two engines on one pod (G4)"
     assert _engine_identity() == h["engine_sha256"], "engine code differs from the plan (G4)"
     rec = rules.REC
@@ -336,6 +362,14 @@ def preflight_checks(plan: dict, host: str, pre: dict, root: pathlib.Path) -> tu
     assert config == plan["recipes"][rec]["config_sha256"] == rules.REC_CONFIG_SHA256, \
         f"recipe {pathlib.Path(rec).name} differs from the plan (its config SHA-256)"
     assert verification.get("recipe_sha256") == config, "the preflight ran another recipe than the plan's"
+    for job in jobs:                                   # K4b: an S_78 job's config, once its pin is filled (A1)
+        if job.get("recipe") == "S" and r78.RECIPE_S.get(family) is not None:
+            s78 = job.get("recipe_s78") or {}
+            path = s78.get("path")
+            assert isinstance(path, str) and path in plan.get("recipes", {}), "the S_78 config is not in plan.json"
+            assert sha(root / path) == plan["recipes"][path]["sha256"], "the S_78 config differs from plan.json's bytes"
+            assert _recipe_config_sha(root / path) == plan["recipes"][path]["config_sha256"] == \
+                s78.get("config_sha256") == r78.RECIPE_S[family], "the S_78 config differs from its pin (A1)"
     name, digest = next(iter(sorted(plan["prepared"].items())))
     assert name == rules.PREPARED_NAME and digest == rules.PREPARED_MANIFESTS[name], "the plan's prepared set is not the family's"
     assert (root / PREPARED / "manifest.sha256").read_text().strip() == digest, "prepared data differ from the plan"
@@ -362,8 +396,9 @@ def key_refusal(plan: dict, host: str, verification: dict, bank: dict) -> tuple[
     recipe = plan["recipes"][rules.REC]["config_sha256"]
     manifest = next(iter(sorted(plan["prepared"].values())))
     for i, job in enumerate(h["jobs"]):
+        key = (job.get("recipe_s78") or {}).get("config_sha256") if job.get("recipe") == "S" else recipe   # K4b (A1)
         try:
-            r78.check_keys(family, job["kind"], recipe, h["engine_sha256"], gpu_name_of(verification), manifest, bank)
+            r78.check_keys(family, job["kind"], key, h["engine_sha256"], gpu_name_of(verification), manifest, bank)
         except r78.Refused as exc:
             return i, f"job {i} ({job['kind']}): {exc}"
     return None
@@ -381,6 +416,382 @@ def refusal_reason(family: str, pre: dict, verification: dict, job: dict, free_g
     if job["kind"] in r78.S78_KINDS or job["kind"] in r78.BQI_KINDS:
         return "recipe_pin"
     return "rule"
+
+
+# ===== K4b: the scorer block's single-job pods (ruling 11 KD6, KD10; the check's C1, M1; A1, A2, A8, A13; PP1-PP16) =====
+# Each pod of the block "sc" runs ONE job of rules_78b.SC_KINDS. The commands are scripts/scale78b/SCORERS-78B.md
+# section 2's (the scorer layer's map), with every input a packed, sealed file whose SHA-256 is the job's plan.json pin
+# (job["inputs"], fixed at init-block sc from the kit's and the scorer layer's pins). The wrapper kinds run
+# scripts/scale78b/scorers_78b.py with -I -B (the brief's form); the record keeps counts and hashes only: each output's
+# SHA-256, a unit's COMPLETE.json SHA-256 and fingerprints, and from each wrapper call's wrapper_78b_record.json its
+# exit_code, doses.fallback_fired, doses.kept and doses.top_dose (no U, no answer, no prompt, no row id).
+# Round 4b: every unit the runner records (the retrain, a1_pass, o_only_with_regenerate's regenerated unit) is checked
+# by the engine's verify, a non-zero exit a crash, as run_job does (the core verifier's D2); c0 is unitless (PP18: its
+# outputs, B17's OUT/train and OUT/lean and OUT/c0_record.json, are hashed under its job folder); PP17's
+# o_only_with_regenerate regenerates a reused a0 side unit (train only), verifies it, checks it against the side unit's
+# COMPLETE.json fingerprints (the stage-1 kit's J2 / LN-12 acceptance; a unit that differs is complete with acceptance
+# false and reason LS-04, and its O-ext pass does not run), then runs the O-ext pass on its e1 state.
+SC_PY = ["venv/bin/python", "-I", "-B"]                   # the scorer wrapper (SCORERS-78B.md: "-I -B as the brief says")
+PY_B = ["venv/bin/python", "-B"]
+RETRAIN_ROOT = "rescore"                                  # the retrain's and A1's pass's own run root (own registry)
+SC_UNIT_KINDS = ("retrain", "a1_pass", "o_only_with_regenerate")   # the kinds that write an engine unit (verified)
+SC_FINGERPRINT_KINDS = ("retrain", "o_only_with_regenerate")       # train-only units: their q and e1 fingerprints
+#                                                           (the certificate compares them on the Mac; ruling 10)
+WRAPPER_RECORD_KEYS = {"exit_code": int, "fallback_fired": bool, "kept": int, "top_dose": str}
+ACCEPT_FILE = "regeneration-acceptance.json"             # PP17's acceptance record (fingerprints and identities only)
+ACCEPT_KIND = "stage1-78b regeneration acceptance"
+LS04 = "LS-04"                                           # the stage-1 kit's reason for a regeneration that differs
+C0_RECORD = "c0_record.json"                             # B17's record (R: scripts/stage1_s1/lean_eval_job.py:147)
+ACCEPT_POINTS = ("q", "e1")
+ACCEPT_FINGERPRINTS = ("adapter_fingerprint", "optimizer_fingerprint")
+ACCEPT_IDENTITY = ("training_identity", "manifest_sha256")
+
+
+def engine_pin(engine: str) -> str | None:
+    """The pinned identity of ``engine`` (rules_78b.engine_sha: X, or Y once ENGINE_Y is filled), else None."""
+    try:
+        return r78.engine_sha(engine)
+    except r78.Refused:
+        return None
+
+
+def sc_paths(job: dict, sealed_doc: dict) -> list[str]:
+    """The bundle files a scorer-block job uses beyond the main config and the prepared manifest: its code
+    (stage1_rules.scorer_code), the S_78 config of an S_78 job, and every file of its named inputs (a folder input:
+    every sealed file under it)."""
+    files, inputs = dict(sealed_doc.get("files") or {}), dict(sealed_doc.get("inputs") or {})
+    paths = list(rules.scorer_code(job["kind"]))
+    if job.get("recipe") == "S" and (job.get("recipe_s78") or {}).get("path"):
+        paths.append(job["recipe_s78"]["path"])
+    for name in rules.sc_input_names(job["kind"], job.get("seed")) if job["kind"] in rules.SC_INPUTS else ():
+        rel = inputs.get(name)
+        if rel is None:
+            paths.append(f"inputs/{name} (not packed)")
+        elif name in rules.SC_FOLDER_INPUTS:
+            paths += sorted(f for f in files if f.startswith(rel.rstrip("/") + "/")) or [f"{rel}/COMPLETE.json"]
+        else:
+            paths.append(rel)
+    return paths
+
+
+def sc_inputs(job: dict, index: int, sealed_doc: dict) -> dict:
+    """name -> (bundle path, SHA-256) of the job's named inputs, each equal to its plan.json pin (a folder input by
+    its COMPLETE.json). Unrunnable when an input is not packed, its pin is null, or the packed file differs."""
+    files, inputs = dict(sealed_doc.get("files") or {}), dict(sealed_doc.get("inputs") or {})
+    pins = job.get("inputs") or {}
+    out = {}
+    for name in rules.sc_input_names(job["kind"], job.get("seed")):
+        pin, rel = pins.get(name), inputs.get(name)
+        if rules.hex64(pin) is None:
+            raise Unrunnable(f"job {index} ({job['kind']}): the input {name!r} has no pin in plan.json (A13)")
+        if rel is None:
+            raise Unrunnable(f"job {index} ({job['kind']}): the input {name!r} is not packed")
+        packed = files.get(f"{rel.rstrip('/')}/COMPLETE.json") if name in rules.SC_FOLDER_INPUTS else files.get(rel)
+        if packed != pin:
+            raise Unrunnable(f"job {index} ({job['kind']}): the packed input {name!r} differs from the plan's pin")
+        out[name] = (rel, pin)
+    return out
+
+
+def sc_recipe(plan: dict, job: dict, index: int, family: str) -> str:
+    """The job's config path: the main config (recipe "B"; PP1 for the untuned pass and the anchor job), or the
+    family's S_78 config (recipe "S"; A1), which must be RECIPE_S's pin and plan.json's."""
+    if job.get("recipe") == "B":
+        return rules.REC
+    if job.get("recipe") != "S":
+        raise Unrunnable(f"job {index} ({job['kind']}): recipe {job.get('recipe')!r} is neither the main config nor S_78")
+    try:
+        pin = r78.recipe_s_or_refuse(family)
+    except r78.Refused as exc:
+        raise Unrunnable(f"job {index} ({job['kind']}): {exc}") from None
+    s78 = job.get("recipe_s78") or {}
+    path = s78.get("path")
+    if s78.get("config_sha256") != pin or ((plan.get("recipes") or {}).get(path) or {}).get("config_sha256") != pin:
+        raise Unrunnable(f"job {index} ({job['kind']}): the job's S_78 config is not RECIPE_S's pin (A1)")
+    return path
+
+
+def _engine_unit(kind: str, label: str, job: dict, index: int, root: pathlib.Path, rec: str, folder: str,
+                 registry: str, arm: list[str]) -> list:
+    """make-job run-one (train only, --pin-code) and run-one: the stage-1 kit's J2/J20 form (a regenerate into round1/,
+    the retrain into rescore/ with its own registry)."""
+    seed, tag = str(job["seed"]), f"job-{index}"
+    n = next_attempt(root, f"jobs/{kind}-{seed}-{label}-a")
+    job_file = f"jobs/{kind}-{seed}-{label}-a{n}.json"
+    out = f"{folder}/{seed}-{label}-a{next_attempt(root, f'{folder}/{seed}-{label}-a')}"
+    make = [*ENGINE, "make-job", "run-one", "--prepared", PREPARED, "--recipe", rec, "--split", "dev", *arm,
+            "--seed", seed, "--role", "development", "--target", "e1", "--pin-code", "--out", job_file]
+    return [(f"{tag}-make-job", make),
+            (f"{tag}-run-one", [*ENGINE, "run-one", "--job", job_file, "--prepared", PREPARED, "--recipe", rec,
+                                "--out", out, "--registry", registry])]
+
+
+def sc_commands(plan: dict, host: str, index: int, root: pathlib.Path, units: dict, sealed_doc: dict) -> list:
+    """(receipt name, argv) of a scorer-block job (SCORERS-78B.md section 2; the stage-1 kit's J2, J3, J5-J8, J11, J20,
+    J21 forms; Gate B's anchor job)."""
+    h = plan["hosts"][host]
+    job = h["jobs"][index]
+    kind, family = job["kind"], family_of_plan(plan)
+    if kind not in r78.SC_KINDS:
+        raise Unrunnable(f"job {index} ({kind}): not a kind of the scorer block ({', '.join(r78.SC_KINDS)})")
+    if len(h["jobs"]) != 1:
+        raise Unrunnable(f"job {index} ({kind}): a scorer-block pod holds one job (KD6)")
+    if PREPARED is None:
+        raise Unrunnable(f"job {index} ({kind}): this kit folder names no family (KD7)")
+    rec = sc_recipe(plan, job, index, family)
+    ins = sc_inputs(job, index, sealed_doc)
+    tag, out, p = f"job-{index}", f"job-{index}", PREPARED
+    wrap = [*SC_PY, rules.WRAPPER]
+
+    def ps(name: str) -> str:
+        return f"{ins[name][0]}:{ins[name][1]}"
+
+    if kind == "anchor":
+        return [(f"{tag}-anchor", [*PY_B, rules.ANCHOR_SCRIPT, "--prompts", ins["anchor_prompts"][0], "--recipe", rec,
+                                   "--out", f"{out}/anchors"])]
+    if kind == "untuned_answers":                        # PP1: REC and recipe S both the main config; PP2: two calls
+        common = [*wrap, "untuned_answers", "--family", family, "--recipe", rec, "--recipe-s", rec]
+        return [(f"{tag}-untuned-s3", [*common, "--list", f"s3={ps('list:s3')}", "--loss", f"s1={ps('loss:s1')}",
+                                       "--loss", f"s3_safe={ps('loss:s3_safe')}", "--out", f"{out}/{rules.UNTUNED_CALLS[0]}"]),
+                (f"{tag}-untuned-s4", [*common, "--list", f"s4={ps('list:s4')}", "--out", f"{out}/{rules.UNTUNED_CALLS[1]}"])]
+    if kind == "rep_pass":                               # REQ-3's two passes (the stage-1 kit's J5), recipe S_78
+        common = [*wrap, "rep_pass", "--family", family, "--prepared", p, "--recipe", rec, "--anchors",
+                  ins["anchor_bank"][0]]
+        return [(f"{tag}-representation", [*common, "--pool", ps("pool:s3_safe"), "--out", f"{out}/representation"]),
+                (f"{tag}-representation-s3-orig", [*common, "--pool", ps("pool:s3_orig"), "--pools-only",
+                                                   "--out", f"{out}/representation-s3-orig"])]
+    if kind == "l1_scan":
+        return [(f"{tag}-l1-scan", [*wrap, "l1_scan", "--family", family, "--prepared", p, "--recipe", rec,
+                                    "--anchors", ins["anchor_bank"][0], "--out", f"{out}/l1-scan"])]
+    if kind == "classifier":                             # PP4: under S_78, no --pool at 7-8B (EM-4)
+        return [(f"{tag}-classifier", [*wrap, "classifier", "--family", family, "--prepared", p, "--recipe", rec,
+                                       "--anchors", ins["anchor_bank"][0], "--out", f"{out}/classifier"])]
+    if kind == "o_only":                                 # M1: theta0, the O-ext pass's --untuned route
+        if job.get("arm") != "theta0":
+            raise Unrunnable(f"job {index} (o_only): the scorer block's O-only pass is theta0's (the untuned model)")
+        return [(f"{tag}-oext", [*PY_B, r78.OEXT_UNIT_SCRIPT, "run", "--untuned", "--prepared", p, "--recipe", rec,
+                                 "--oext-bank", ins["oext_bank"][0], "--oext-record", ins["oext_record"][0],
+                                 "--out", f"{out}/oext"])]
+    if kind == "o_only_with_regenerate":                 # PP17: regenerate, (verify, accept: run_sc_job), O-ext on e1
+        if job.get("arm") != "a0":
+            raise Unrunnable(f"job {index} (o_only_with_regenerate): it regenerates a reused a0 side unit (ruling 7)")
+        steps = _engine_unit(kind, "a0-regen", job, index, root, rec, ROUND, f"{ROUND}/registry.jsonl", ["--arm", "a0"])
+        unit = steps[1][1][steps[1][1].index("--out") + 1]
+        return [*steps, (f"{tag}-oext", [*PY_B, r78.OEXT_UNIT_SCRIPT, "run", "--run", unit, "--checkpoint", "e1",
+                                         "--prepared", p, "--recipe", rec, "--oext-bank", ins["oext_bank"][0],
+                                         "--oext-record", ins["oext_record"][0], "--out", f"{out}/oext"])]
+    if kind == "retrain":                                # ruling 10: a0-1101 under S_78, to q and e1
+        return _engine_unit(kind, "a0-retrain", job, index, root, rec, RETRAIN_ROOT, f"{RETRAIN_ROOT}/registry.jsonl",
+                            ["--arm", "a0"])
+    if kind == "c0":                                     # B17's X-pin check on N's R_1 at 1101 (the stage-1 kit's J11)
+        if not job.get("edit") or rules.hex64(job.get("expect_fingerprint")) is None:
+            raise Unrunnable(f"job {index} (c0): the plan carries no R_1 edit or no expected e1 fingerprint (C0_SOURCE)")
+        steps = _engine_unit(kind, "R-c0", job, index, root, rec, ROUND, f"{ROUND}/registry.jsonl",
+                             ["--edit", edit_bundle(job)])
+        job_file = steps[0][1][-1]
+        return [steps[0], (f"{tag}-lean", [*PY_B, r78.C0_SCRIPT, "run", "--job", job_file, "--prepared", p, "--recipe",
+                                           rec, "--out", f"{out}/c0", "--registry", f"{out}/c0-registry.jsonl",
+                                           "--expect-adapter-fingerprint", job["expect_fingerprint"],
+                                           "--oext-bank", ins["oext_bank"][0], "--oext-record", ins["oext_record"][0]])]
+    if kind == "a1_pass":                                # A1's attributes pass (the stage-1 kit's J21 form), PP3
+        groups = job.get("groups")
+        if not (isinstance(groups, list) and len(groups) == rules.UNITS and len(set(groups)) == len(groups)
+                and all(isinstance(g, str) for g in groups)):
+            raise Unrunnable(f"job {index} (a1_pass): plan.json carries no {rules.UNITS} distinct unit groups")
+        state = ins["retrain_unit"][0]
+        seed = str(job["seed"])
+        n = next_attempt(root, f"jobs/a1_pass-{seed}-a")
+        job_file, unit = f"jobs/a1_pass-{seed}-a{n}.json", f"{RETRAIN_ROOT}/{seed}-attributes-a{n}"
+        make = [*ENGINE, "make-job", "attributes", "--prepared", p, "--recipe", rec, "--split", "dev", "--seed", seed,
+                "--role", "development", *[a for c in ("q", "e1") for a in ("--a0-state", f"{c}={state}")],
+                "--groups", ",".join(groups), "--anchors", ins["anchor_bank"][0], "--pin-code", "--out", job_file]
+        return [(f"{tag}-make-job", make), (f"{tag}-attributes", [*ENGINE, "attributes", "--job", job_file, "--prepared",
+                                                                   p, "--recipe", rec, "--out", unit])]
+    raise Unrunnable(f"job {index} ({kind}): no command")   # pragma: no cover - SC_KINDS is closed above
+
+
+def out_dirs(commands: list) -> list[str]:
+    """The --out folder of every step that writes outputs (not a make-job's job file)."""
+    dirs = []
+    for name, argv in commands:
+        if "--out" in argv and not name.endswith("-make-job"):
+            dirs.append(argv[argv.index("--out") + 1])
+    return dirs
+
+
+def hashed_outputs(root: pathlib.Path, folders: list[str]) -> dict:
+    """{relpath: SHA-256} of every file under the folders (names and hashes only; no file is read for a value)."""
+    out = {}
+    for folder in folders:
+        base = root / folder
+        if base.is_dir():
+            for f in sorted(base.rglob("*")):
+                if f.is_file() and not f.is_symlink():
+                    out[str(f.relative_to(root))] = sha(f)
+    return out
+
+
+def wrapper_summary(root: pathlib.Path, folder: str) -> tuple[dict | None, str | None]:
+    """(the counts of one wrapper call's wrapper_78b_record.json, None) or (None, why): exit_code, and from its doses
+    block fallback_fired, kept and top_dose (a dose name), each type-checked; plus the record's SHA-256. The record
+    is text-free by the scorer layer's rule; nothing else of it is read."""
+    path = root / folder / rules.WRAPPER_RECORD
+    try:
+        doc = json.loads(path.read_text())
+    except (OSError, ValueError) as exc:
+        return None, f"{folder}/{rules.WRAPPER_RECORD} cannot be read ({type(exc).__name__})"
+    if not isinstance(doc, dict) or doc.get("kind") != "scale78b scorer wrapper record":
+        return None, f"{folder}/{rules.WRAPPER_RECORD} is not a scale78b scorer wrapper record"
+    doses = doc.get("doses") if isinstance(doc.get("doses"), dict) else {}
+    out = {"exit_code": doc.get("exit_code"), "fallback_fired": doses.get("fallback_fired"), "kept": doses.get("kept"),
+           "top_dose": doses.get("top_dose"), "record_sha256": sha(path)}
+    if type(out["exit_code"]) is not int:
+        return None, f"{folder}/{rules.WRAPPER_RECORD}: exit_code is not an integer"
+    for key in ("fallback_fired", "kept", "top_dose"):
+        if out[key] is not None and type(out[key]) is not WRAPPER_RECORD_KEYS[key]:
+            return None, f"{folder}/{rules.WRAPPER_RECORD}: doses.{key} has the wrong type"
+    if out["top_dose"] is not None and not (out["top_dose"].startswith("s4") and len(out["top_dose"]) <= 12
+                                           and out["top_dose"].replace("_", "").isalnum()):
+        return None, f"{folder}/{rules.WRAPPER_RECORD}: doses.top_dose is not a dose name"
+    return out, None
+
+
+def unit_step(kind: str, commands: list) -> str | None:
+    """The name of the step that writes a unit kind's engine unit (run-one, or attributes for A1's pass), else None."""
+    if kind not in SC_UNIT_KINDS:
+        return None
+    suffix = "-attributes" if kind == "a1_pass" else "-run-one"
+    found = [name for name, _ in commands if name.endswith(suffix)]
+    return found[0] if len(found) == 1 else None
+
+
+def verify_unit(root: pathlib.Path, unit: str, env: dict) -> dict:
+    """The engine's verify of a recorded unit (run_job's form): {exit, tail} (names and hashes only, 600 characters)."""
+    check = subprocess.run([*ENGINE, "verify", "--run", unit, "--prepared", PREPARED], env=env, cwd=root,
+                           capture_output=True, text=True)
+    return {"exit": check.returncode, "tail": (check.stdout + check.stderr)[-600:]}
+
+
+def acceptance(root: pathlib.Path, unit: str, job: dict, index: int, ins: dict) -> dict:
+    """PP17 (the stage-1 kit's J2 / LN-12): the regenerated unit against the reused side unit, field by field: every
+    q and e1 adapter and optimizer fingerprint the side unit's COMPLETE.json lists (e1's adapter fingerprint required),
+    its training identity and its prepared manifest (the side unit's COMPLETE.json is ruling 7's by its pin). Written to
+    job-I/ACCEPT_FILE (fingerprints and identities only). ValueError when a record cannot be read."""
+    name = rules.SIDE_COMPLETE.format(seed=job["seed"])
+    rel, pin = ins[name]
+    if sha(root / rel) != pin:
+        raise ValueError("the side unit's COMPLETE.json differs from its pin")
+    side, regen = json.loads((root / rel).read_text()), json.loads((root / unit / "COMPLETE.json").read_text())
+    if not isinstance(side, dict) or not isinstance(regen, dict):
+        raise ValueError("a COMPLETE.json is not an object")
+    side_points = side.get("checkpoints") if isinstance(side.get("checkpoints"), dict) else {}
+    regen_points = regen.get("checkpoints") if isinstance(regen.get("checkpoints"), dict) else {}
+    if rules.hex64((side_points.get("e1") or {}).get("adapter_fingerprint")) is None:
+        raise ValueError("the side unit's COMPLETE.json lists no e1 adapter fingerprint")
+    fields = {}
+    for point in ACCEPT_POINTS:
+        listed = side_points.get(point) if isinstance(side_points.get(point), dict) else {}
+        for key in ACCEPT_FINGERPRINTS:
+            if key in listed:
+                source, got = listed[key], (regen_points.get(point) or {}).get(key)
+                fields[f"{point}.{key}"] = (source, got)
+    side_id = side.get("identity") if isinstance(side.get("identity"), dict) else {}
+    regen_id = regen.get("identity") if isinstance(regen.get("identity"), dict) else {}
+    for key in ACCEPT_IDENTITY:                          # the side unit is ruling 7's by its pinned COMPLETE.json
+        fields[f"identity.{key}"] = (side_id.get(key), regen_id.get(key))
+    table = {f: {"source": src if rules.hex64(src) else None, "regenerated": got if rules.hex64(got) else None,
+                 "equal": rules.hex64(src) is not None and src == got} for f, (src, got) in sorted(fields.items())}
+    passed = all(v["equal"] for v in table.values())
+    doc = {"kind": ACCEPT_KIND, "version": 1, "job": index, "arm": job["arm"], "seed": job["seed"], "unit": unit,
+           "side_complete_sha256": pin, "regenerated_complete_sha256": sha(root / unit / "COMPLETE.json"),
+           "fields": table, "pass": passed, "failure": None if passed else LS04}
+    (root / f"job-{index}").mkdir(parents=True, exist_ok=True)
+    (root / f"job-{index}" / ACCEPT_FILE).write_text(json.dumps(doc, indent=1, sort_keys=True) + "\n")
+    return doc
+
+
+def run_sc_job(plan: dict, host: str, index: int, root: pathlib.Path, units: dict, env: dict, sealed_doc: dict) -> dict:
+    """Run one scorer-block job's steps; the record says complete or crashed, with counts and hashes only. The S4
+    call's exit 3 (fewer than 48 kept: Part 1 section 10's pre-set fallback, no dose file) is the pass's own end, not a
+    crash; every other non-zero exit is a crash. A unit kind's unit is verified by the engine right after the step that
+    writes it (a non-zero verify is a crash); o_only_with_regenerate's acceptance check comes next, before its O-ext
+    pass (PP17)."""
+    job = plan["hosts"][host]["jobs"][index]
+    kind = job["kind"]
+    commands = sc_commands(plan, host, index, root, units, sealed_doc)
+    exits, steps = {}, []
+    record = {"exits": exits, "steps": steps}
+    writes_unit = unit_step(kind, commands)
+    if kind in SC_UNIT_KINDS and writes_unit is None:                  # pragma: no cover - sc_commands is closed
+        return {**record, "status": "crashed", "why": "no step writes the job's unit"}
+    summary = {"kind": kind}
+    accepted = None
+    for name, argv in commands:
+        start = time.monotonic()
+        done = subprocess.run(["python3", "process_receipt.py", "--out", name, "--", *argv], env=env, cwd=root)
+        steps.append({"name": name, "seconds": round(time.monotonic() - start, 3), "exit": done.returncode})
+        exits[name] = done.returncode
+        s4_few = kind == "untuned_answers" and name.endswith("-untuned-s4") and done.returncode == 3
+        if done.returncode and not s4_few:
+            return {**record, "status": "crashed", "why": f"exit {done.returncode} in {name}"}
+        if name != writes_unit:
+            continue
+        unit = argv[argv.index("--out") + 1]             # the engine unit this step wrote (round1/ or rescore/)
+        if not (root / unit / "COMPLETE.json").is_file():
+            return {**record, "status": "crashed", "why": "no COMPLETE.json in the job's unit"}
+        record.update(unit=unit, complete_sha256=sha(root / unit / "COMPLETE.json"), verified=verify_unit(root, unit, env))
+        if record["verified"]["exit"]:
+            return {**record, "status": "crashed", "why": "the unit's verify failed"}
+        if kind in SC_FINGERPRINT_KINDS:
+            fields, why = unit_fingerprints(root, unit)
+            if fields is None:
+                return {**record, "status": "crashed", "why": why}
+            summary["fingerprints"] = fields
+        if kind == "o_only_with_regenerate":
+            try:
+                accepted = acceptance(root, unit, job, index, sc_inputs(job, index, sealed_doc))
+            except (KeyError, ValueError, OSError) as exc:
+                return {**record, "status": "crashed", "why": f"the acceptance check failed to run: {exc}"}
+            summary.update(acceptance=accepted["pass"],
+                           acceptance_record_sha256=sha(root / f"job-{index}" / ACCEPT_FILE))
+            if not accepted["pass"]:                     # LS-04: the unit stands, its O-ext pass does not run
+                break
+    folders = [f for f in out_dirs(commands) if f.startswith(f"job-{index}/")]
+    record["outputs"] = hashed_outputs(root, folders)    # outputs under the job folder (a unit is recorded by its
+    if accepted is not None:                             # COMPLETE.json, which lists its own files' SHA-256)
+        record["outputs"][f"job-{index}/{ACCEPT_FILE}"] = summary["acceptance_record_sha256"]
+        if not accepted["pass"]:
+            return {**record, "sc": summary, "status": "complete", "acceptance": False, "reason": LS04}
+        record["acceptance"] = True
+        if not any(rel.startswith(f"job-{index}/oext/") for rel in record["outputs"]):
+            return {**record, "status": "crashed", "why": "the O-ext pass wrote no output"}
+    if kind in rules.WRAPPER_KINDS:
+        calls = {}
+        for folder in folders:
+            got, why = wrapper_summary(root, folder)
+            if got is None:
+                return {**record, "status": "crashed", "why": why}
+            if got["exit_code"] != exits[next(n for n, a in commands if a[a.index("--out") + 1] == folder)]:
+                return {**record, "status": "crashed", "why": f"{folder}: the wrapper record's exit_code is not the step's"}
+            calls[folder] = got
+        summary["wrapper"] = calls
+    if kind == "untuned_answers":
+        pool = f"{folders[0]}/s3_orig.pool.json"
+        summary["s3_orig_pool_sha256"] = record["outputs"].get(pool)
+        if summary["s3_orig_pool_sha256"] is None:
+            return {**record, "status": "crashed", "why": "the S3 call wrote no s3_orig.pool.json"}
+    if kind == "anchor":
+        summary["anchor_file_sha256"] = record["outputs"].get(f"{folders[0]}/anchors.json")
+        summary["anchor_record_sha256"] = record["outputs"].get(f"{folders[0]}/anchors.sealed.json")
+        if summary["anchor_file_sha256"] is None or summary["anchor_record_sha256"] is None:
+            return {**record, "status": "crashed", "why": "the anchor job wrote no anchors.json or anchors.sealed.json"}
+    if kind == "c0":                                     # PP18: unitless; B17's record among the hashed outputs
+        summary["c0_record_sha256"] = record["outputs"].get(f"job-{index}/c0/{C0_RECORD}")
+        if summary["c0_record_sha256"] is None:
+            return {**record, "status": "crashed", "why": f"the lean job wrote no {C0_RECORD}"}
+    if not record["outputs"] and kind not in SC_UNIT_KINDS:
+        return {**record, "status": "crashed", "why": "the job wrote no output"}
+    return {**record, "sc": summary, "status": "complete"}
 
 
 # ===== after each arm: s_obs (KD11) ================================================================================
@@ -632,12 +1043,16 @@ def main(argv=None) -> int:
             break
         started = time.monotonic()
         try:
-            result = run_job(plan, host, i, root, units, env, sealed_doc)
+            result = (run_sc_job if h.get("block") == r78.SC_BLOCK else run_job)(plan, host, i, root, units, env,
+                                                                                  sealed_doc)
         except Unrunnable as exc:
             result = {"status": "crashed", "why": str(exc), "exits": {}, "steps": []}
         ended = time.monotonic()
         ledger = write_ledger(root, i, job, host, engine_sha, started, ended, result.pop("steps", []))
-        if result["status"] == "complete":
+        if result["status"] == "complete" and job["kind"] not in BLOCK0_KINDS:   # K4b: no s_obs after a scorer job
+            result.setdefault("outputs", {})
+            result["outputs"][ledger] = sha(root / ledger)
+        elif result["status"] == "complete":
             result.setdefault("outputs", {})
             result["outputs"][ledger] = sha(root / ledger)
             observed, problem = arm_s_obs(root, result["unit"], family)      # KD11: this arm's slowest capped batch

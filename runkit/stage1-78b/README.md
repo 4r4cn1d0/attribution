@@ -53,6 +53,57 @@ must carry the family's prepared manifest (one key read; no row id).
 pod per family, recipe S_78, after the anchor job; `rules_78b`'s retrain E cap 4.5 h) and of each scorer pod (the
 check's C1 and M3; `rules_78b`'s E caps), then the JSON summary.
 
+## The pre-block-A scorer block "sc" (K4b; ruling 11 KD6, KD10; the check's C1, M1, M3; A1, A2, A8, A13; PP1-PP16)
+
+Its own working copy per family, `tmp/family-probe-s78-<family>-sc/` (KD7). Every pod holds ONE job of
+`rules_78b.SC_KINDS` with its explicit E cap (KD6): `anchor` (`scripts/make_anchor_answers.py` under the main config),
+`untuned_answers` (two wrapper calls, PP1, PP2: the S3 list with the losses, then the S4 list alone; one 6.0 h cap for
+both), `o_only` (theta0's O-ext pass, M1), `o_only_with_regenerate` (PP17: a reused a0 side unit regenerated train
+only, verified by the engine, checked against the side unit's COMPLETE.json fingerprints (q and e1 adapter and
+optimizer, training identity, manifest; a unit that differs is complete with acceptance false and reason LS-04 and gets
+no O-ext pass), then the O-ext pass on its e1 state; one pod per reused seed; there is no standalone `regenerate`
+kind), `c0` (B17's X-pin check on N's R_1; unitless, PP18: its outputs under job-I/c0 are hashed, `c0_record.json`
+named), `l1_scan`, `rep_pass` (REQ-3's two passes, S_78), `classifier` (S_78, PP4), `retrain` (a0-1101, S_78, engine Y
+first, X only as ruling 10's pre-set second job) and `a1_pass` (on the engine that trained the retrain's states). Every
+unit the runner records (the retrain, `a1_pass`'s attributes unit, the regenerated unit) is checked by the engine's
+`verify` right after the step that writes it; a non-zero exit is a crash (round 4b, the core verifier's D2). The
+wrapper kinds run `scripts/scale78b/scorers_78b.py` with `-I -B` (SCORERS-78B.md section 2's commands); the engine
+kinds run the engine's `make-job` and `run-one` / `attributes`.
+
+    K=tmp/family-probe-s78-olmo2-7b-sc
+    $PY -B $K/pack_setup.py X --inputs PART1-INPUTS.json --inputs-sha256 H --dry-run     # the scorer code at its pins, the inputs
+    $PY -B $K/pack_setup.py X --inputs PART1-INPUTS.json --inputs-sha256 H
+    $PY -B $K/plan_tool.py init-block sc --jobs PART1.json --dry-run                     # each pod's need and idle line
+    $PY -B $K/plan_tool.py init-block sc --jobs PART1.json --funding FUNDING.json
+
+`PART1.json` is `{"family": "olmo2-7b", "launches": [{"hosts": [[{"kind": "anchor"}], [{"kind": "untuned_answers"}]]}]}`;
+an inputs record is `{"kind": "stage1-78b pack inputs", "engine": "X", "family": F, "inputs": [{name, path, sha256}]}`
+with the names of `stage1_rules.SC_INPUTS` (each SHA-256 its pin: the 1B sealed lists and the anchor prompt list from
+`pins_78b.json` shared; the anchor bank, the s3_orig pool and the retrain unit from the family's `pins_78b.json` block;
+N's R_1-1101 COMPLETE.json from `rules_78b.C0_SOURCE`; the O-ext bank and record from `rules_78b.OEXT_78B`; the reused
+side unit's COMPLETE.json `side_complete:a0:<seed>` from `rules_78b.KIT[family]["a0_units"]`, ruling 7's pin).
+
+- **A2's order, enforced by the planner.** `init-block sc` runs once per part. A kind is planned only when the kinds
+  before it are recorded complete in the copy's plan (`rules_78b.SC_AFTER`): the anchor job before `l1_scan`,
+  `classifier`, `rep_pass` and the retrain; the untuned pass before `rep_pass`; the retrain before `a1_pass`.
+- **Pins (A13's pattern).** A job refuses at planning, at release and on the pod while a pin it needs is null
+  (`rules_78b.SC_KIND_PINS`, `sc_missing_pins`; the scorer layer's own settings waits too): `RECIPE_S` (equal to
+  `pins_78b.json` `recipe_s78`), the anchor bank, the s3_orig pool, the retrain unit, `ENGINE_Y` for a Y job,
+  `OEXT_78B` (o_only, o_only_with_regenerate and c0: the O-ext pass at 7-8B needs re-derived settings, M1, PP17; its
+  form is exactly `{"files": {path under scripts/: SHA-256}, "inputs": {"oext_bank": SHA-256, "oext_record": SHA-256}}`,
+  validated) and `C0_SOURCE` (c0). All are null in the committed files; the tests fill them test-locally.
+- **The anchor bank and s3_orig pins are this copy's recorded outputs** (round 4b, the core verifier's D5): a kind that
+  reads them is planned only when the pin equals the SHA-256 a complete anchor (untuned) job of this copy's plan
+  recorded (record-done keeps each scorer job's `scorer_record`, hashes only).
+- **Between parts** the lead fills the next pins from `record-done`'s printout (`scorer_block`: the anchor file's
+  SHA-256, the s3_orig pool's, the retrain's COMPLETE.json and fingerprints; hashes, counts, the wrapper's exit codes and
+  fallback flags only), moves the earlier `setup/packed-stage1-X` aside and re-packs with the part's inputs record.
+- **The bundle** carries `stage1_rules.SCORER_PINS` (38 files: the wrapper, its settings index, `pins_78b.json`, the 18
+  settings files, the 1B scripts it imports with `labels.json` and the lexicon, the anchor job's script), each at its
+  SHA-256; a changed file refuses at pack time and at release.
+- **Engine Y.** The Y retrain is planned (with `ENGINE_Y` filled) but released only onto a `packed-stage1-Y` stage;
+  `pack_setup.py` packs engine X only (Y's pack comes with KD9).
+
 ## Money (unchanged from the stage-1 kit)
 
 Planning price $1.85/h at the guard, spend rate $1.79/h, create refused above $10.00/h, $6 reserve, contingency 1.25;
@@ -67,13 +118,17 @@ Every pod starts on new money in the account (MONEY; the lead reports, never ask
 ## Pins that are null until a recorded lead step (addendum A13)
 
 `rules_78b.RECIPE_S` (each family's S_78, after its anchor job; A1), `RECIPE_G`, `RECIPE_BQI` (B+Qi; KCR:128),
-`ENGINE_Y` (then E-capped kinds may run on Y) and `Y_MEASURED` (measured kinds on Y only after KD9's re-measure),
+`ENGINE_Y` (then the E-capped kinds outside `X_ONLY_KINDS` may run on Y; PP16: `untuned_answers`, `o_only`,
+`o_only_with_regenerate` (PP17), `anchor`, `rep_pass`, `l1_scan`, `classifier` and `c0` run on X only, checked first in
+`engine_allowed`) and `Y_MEASURED` (measured kinds on Y only after KD9's re-measure),
 `probes.BASE_MODELS[*]["revision"]`. (`SEALED_SETS["llama31-8b"]["sha256"]` was filled by the lead's recorded step
 PP7 with the committed MANIFEST's `2a1db220…`.) Every kind that needs one refuses until it is filled; the S_78 kinds
 (`retrain`, `rep_pass`, `a1_pass`, `classifier`; PP8) refuse to run (`rules_78b.job_decision`, `check_keys`) through
 `recipe_s_or_refuse`, and the retrain refuses to be planned (`stage1_rules.retrain_job`), while every pod's need still
 prints (M3): `a1_pass` at A1's 16.5 h cap at most, `rep_pass` at its own 4.75 h E cap (the 1B 1 h estimate x 2.3 x
-1.5, until measured), plus KD5's idle-storage line (about $0.33 per day per stopped 50 GB pod).
+1.5, until measured), plus KD5's idle-storage line (about $0.33 per day per stopped 50 GB pod) and PP14's line for
+each other block-0 pod that keeps states (the two retrain pods, the two a1_pass pods) with the block's total. PP16:
+the wrapper kinds (`rules_78b.X_ONLY_KINDS`) run on engine X only, whatever `ENGINE_Y` holds.
 
 ## Launching block 0 (K3: the launch path; T4 step 2)
 
@@ -175,3 +230,7 @@ A test that needs such a path replaces the call with a fake first (the module's 
 `caffeinate`, `runpodctl`, a bare `python3`). `tests/test_pp10_guard.py` runs the K3 incident's path
 (`host.gated_download` with no fake, `subprocess.run` bound at import) and shows it stops in the guard. The mutation
 runners (`tests/run_mutants_*.py`) start pytest as plain processes; the guard is active inside those runs.
+K4a added a process-wide layer under the fixture (DK-1): an audit hook installed when pytest imports conftest.py, so
+collection, module-scoped fixtures, multiprocessing's spawn and direct os or C-level calls are refused too; the flag
+it reads is the same exact-path list `local_processes` fills for one test (`tests/test_pp10_process_wide.py`). Run
+mutants of conftest.py under `sandbox-exec -p '(version 1)(allow default)(deny network-outbound (remote ip "*:*"))'`.
