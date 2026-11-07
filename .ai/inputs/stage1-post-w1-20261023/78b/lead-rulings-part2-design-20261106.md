@@ -77,3 +77,51 @@ The gate (ruling 9) now sees two more lines than Part 1's figures: O-ext (about 
 depending on E2's branch) and more idle storage (about $60-250, cut by prompt deletion yeses). Part 1's plan-A
 figure already includes the dose arm. If the money after N does not cover option B with these lines, ruling 9
 gives option C on OLMo-2-7B.
+
+## Rulings on Part 2's open items (recorded 2026-11-07T10:14 UTC)
+
+The round-5 draft of Part 2 lists 30 open items in its §14, and its verifier asked for rulings. Item numbers below
+are that list's. Items not named here are records or build steps the text already states.
+
+- **Items 6 and 17, the S3 and S4 lists.** Stage 1's sealed `s3_safe` (861), `s3_subset` (855) and `s4_candidates`
+  (512) lists are reused on both families. Before each family's untuned-answers pass, a $0 encode count of every
+  list prompt under that family's codec and main-recipe limits runs (counts only, through the frozen code path). A
+  prompt that fails is dropped by the list's own stage-1 rule; the counts go into Part 2 before any untuned answer
+  exists.
+- **Item 7, the anchor job's two stops.** If a harmful pair fails to encode, or fewer than 64 safe anchors are kept
+  (exit 3), A1 is not run on that family, and P1 is not tested on that family. Part 2 states it. No re-draw and no
+  script change.
+- **Item 8, the classifier.** As at 1B (PR4 §9.2): scored only, no arm, and claims are limited to rank overlap.
+- **Item 9, c0 and the O-ext kinds under Branch 128.** All three O-ext kinds take `--w1-18-record`, and the
+  regenerated units also take `--dev100-source` (the verifier's D11). These are build items for the kit round.
+- **Item 11, A1's golden test.** If `a1_pass` runs on engine Y, the golden test is re-run on Y, and its pin is
+  re-taken by a recorded lead step before A1's edit is written.
+- **Item 14, A1's one-category flag.** Reported only. No unit arm runs at 7-8B.
+- **Item 15, [C] and the scorer pods.** The scorer pods run after the gate (CHECK C1), for the chosen option's
+  families: both under [B], and OLMo-2-7B only under [C].
+- **Item 16, ruling 10's branches and A1's states.** A1 uses the states of the retrain on the engine that the paired
+  arms use. If Y equals X, that is Y's retrain. If Y differs and X equals the side unit, it is the X retrain (ruling
+  10's second job). If X differs, ruling 7's fallback applies, A1 uses the X retrain's states, and that is labelled.
+- **Item 18, a regenerated unit that differs.** As LS-04 at 1B: it is not used for O, its O is "not run", and that
+  is stated.
+- **Item 20, the S1 verdict record.** The lead re-runs the OLMo-2-7B S1 check with the merged script before block A.
+  It reads stage 1's S1 edit by exact path and SHA-256, and counts only. The expected verdict is unchanged.
+- **Item 22 and the verifier's D1.** Every [to be entered] value is entered before the freeze, before block A's
+  first pod. A later value needs a dated amendment.
+- **Item 23, `C0_SOURCE`.** The kit gets a Mac-side check at pack time (the packed source unit's e1 fingerprint
+  against the pin), so a typo is refused before a paid pod starts. This is a build item.
+- **Item 24, the O-ext cap terms.** (a) The arm's O-ext term is ×1.5 until measured, the kit's upper-factor form.
+  (b) The references evaluate O-ext in their own jobs, as at 1B, and their caps carry the same term.
+- **Item 25, the seal and τ_L.** Confirmed: Llama's a0-1103 task loss, read after N's record-done for τ_L, is the one
+  named exception to block A's seal over N's L files.
+- **Item 26, J2's re-judge list.** Exactly N's units, the reused a0 units and θ0, per family. That is 7 each:
+  OLMo-2-7B 3 + 3 + 1; Llama-3.1-8B 4 + 2 + 1. The memo's "about 9" was an estimate.
+- **Item 27, volume size.** The volumes stay 50 GB (KD5). Smaller volumes risk the free-space refusals that a 7-8B
+  policy plus a guard model can trigger. The batched deletion yes is the idle-storage control.
+- **Item 28, the overlap control.** The `similarity` kind is built if the block A/B kit build has room before block
+  A's first pod. If not, Part 2 states "not run" (the pre-set fallback).
+- **Item 30 and the verifier's D7 (b), the preamble.** Confirmed: where a design ruling is shorter than the memo's
+  recommendation, the memo's other lines are adopted. The confirmation's reader is unbuilt; it is listed as unbuilt,
+  and its hash goes in before the first confirmation outcome is opened.
+- **The S4 dose's boundary cases.** At exactly 96 kept rows, S4_top is S4_96. At exactly 48, it is S4. No extra arm
+  is formed in either case.
