@@ -1117,6 +1117,42 @@
    "find": "    request = urllib.request.Request(url, headers={\"Authorization\": \"Bearer \" + token, **(headers or {})})\n",
    "replace": "    import ssl as _s\n    _s._create_default_https_context = _s._create_unverified_context\n    request = urllib.request.Request(url, headers={\"Authorization\": \"Bearer \" + token, **(headers or {})})\n",
    "killed_by": "tests/test_gated_78b.py::test_d1_http_get_builds_its_opener_with_the_same_origin_redirect_handler_and_the_precheck_runs_through_it (the fake opener's connection recorder; test_rv2_1 also)"
+  },
+  {
+   "id": "K5v-G1-wrapper-skips-explicit-proto",
+   "part": "K6 (round 6), the K5 re-verifier's R1",
+   "describes": "the wrapper lets a socket with a nonzero proto (e.g. IPPROTO_UDP given explicitly) through to C",
+   "file": "tests/conftest.py",
+   "find": "    def call(self, *args, **kwargs):\n        if name in (\"connect\", \"connect_ex\"):\n",
+   "replace": "    def call(self, *args, **kwargs):\n        if getattr(self, \"proto\", 0):\n            return real(self, *args, **kwargs)\n        if name in (\"connect\", \"connect_ex\"):\n",
+   "killed_by": "tests/test_pp10_process_wide.py::test_k6_v3_the_wrapper_refuses_real_sockets_made_with_an_explicit_protocol"
+  },
+  {
+   "id": "K5v-G2-hook-default-named-threads-free",
+   "part": "K6 (round 6), the K5 re-verifier's R2",
+   "describes": "the hook ignores threads with a default name (Thread-N: any library thread started without a name)",
+   "file": "tests/conftest.py",
+   "find": "    if event not in _AUDITED:\n        return\n    kind = _AUDITED[event]\n",
+   "replace": "    if event not in _AUDITED or __import__(\"threading\").current_thread().name.startswith(\"Thread-\"):\n        return\n    kind = _AUDITED[event]\n",
+   "killed_by": "tests/test_pp10_process_wide.py::test_k6_v4_the_hook_refuses_in_a_default_named_thread_and_in_a_raw_thread"
+  },
+  {
+   "id": "K5v-G2-hook-dummy-threads-free",
+   "part": "K6 (round 6), the K5 re-verifier's R2",
+   "describes": "the hook ignores threads not started by threading (_thread.start_new_thread: a _DummyThread)",
+   "file": "tests/conftest.py",
+   "find": "    if event not in _AUDITED:\n        return\n    kind = _AUDITED[event]\n",
+   "replace": "    if event not in _AUDITED or isinstance(__import__(\"threading\").current_thread(), __import__(\"threading\")._DummyThread):\n        return\n    kind = _AUDITED[event]\n",
+   "killed_by": "tests/test_pp10_process_wide.py::test_k6_v4_the_hook_refuses_in_a_default_named_thread_and_in_a_raw_thread"
+  },
+  {
+   "id": "K5v-G3-redirect-keeps-token",
+   "part": "K6 (round 6), the K5 re-verifier's R3",
+   "describes": "SameHostAuthRedirect's http_error_30x calls the PARENT's redirect_request (the header is kept on a real redirect)",
+   "file": "launch.py",
+   "find": "    def redirect_request(self, req, fp, code, msg, headers, newurl):\n        new = super().redirect_request(req, fp, code, msg, headers, newurl)\n",
+   "replace": "    def http_error_302(self, req, fp, code, msg, headers):\n        newurl = urllib.parse.urljoin(req.full_url, headers.get(\"location\") or headers.get(\"uri\") or \"\")\n        new = urllib.request.HTTPRedirectHandler.redirect_request(self, req, fp, code, msg, headers, newurl)\n        return None if new is None else self.parent.open(new, timeout=req.timeout)\n\n    http_error_301 = http_error_303 = http_error_307 = http_error_308 = http_error_302\n\n    def redirect_request(self, req, fp, code, msg, headers, newurl):\n        new = super().redirect_request(req, fp, code, msg, headers, newurl)\n",
+   "killed_by": "tests/test_gated_78b.py::test_k6_v5_a_redirect_off_the_hub_through_the_whole_dispatch_drops_the_token"
   }
  ]
 }

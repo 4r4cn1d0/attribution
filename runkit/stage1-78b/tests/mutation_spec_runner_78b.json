@@ -307,6 +307,15 @@
    "find": "    exits, steps = {}, []\n    for name, argv in commands:\n        start = time.monotonic()\n        done = subprocess.run([\"python3\", \"process_receipt.py\", \"--out\", name, \"--\", *argv], env=env, cwd=root)",
    "replace": "    exits, steps = {}, []\n    for name, argv in commands:\n        start = time.monotonic()\n        done = subprocess.run([\"python3\", \"process_receipt.py\", \"--out\", name, \"--\", *argv], env=dict(os.environ), cwd=root)",
    "killed_by": "tests/test_kit_78b_runner.py::test_k5_r5_run_job_gives_every_step_and_the_verify_the_scrubbed_offline_environment"
+  },
+  {
+   "id": "K6-free-space-folders-collide",
+   "part": "K6 (round 6), K5v-9",
+   "describes": "the free-space test's three worlds share one folder name (the flake's mechanism, now at every seed)",
+   "file": "tests/test_kit_78b_runner.py",
+   "find": "        w2 = rk.World(pod.w.repo / f\"w-{i}\", monkeypatch, w.family)\n",
+   "replace": "        w2 = rk.World(pod.w.repo / \"w-0\", monkeypatch, w.family)\n",
+   "killed_by": "tests/test_kit_78b_runner.py::test_the_free_space_check_refuses_a_job_that_would_not_fit_and_records_why"
   }
  ]
 }

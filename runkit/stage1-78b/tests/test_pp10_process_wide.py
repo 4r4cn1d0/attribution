@@ -10,6 +10,7 @@ os.system or a reverse lookup. Every token-free; nothing here reaches the networ
 from __future__ import annotations
 
 import _socket
+import _thread
 import concurrent.futures
 import contextlib
 import multiprocessing
@@ -427,3 +428,72 @@ def test_k4bf_d2_the_hook_refuses_in_a_non_main_thread_and_for_bytes_hosts():
     for host in (NAME.encode(), b"203.0.113.9", b"localhost.example", b"2001:db8::1", b""):
         assert not conftest.loopback_host(host), host
     assert conftest.loopback_host(b"127.0.0.1") and conftest.loopback_host(b"::1")
+
+
+# ===== round 6 (K6): the K5 re-verifier's V3 (K5v-G1) and V4 (K5v-G2 x2), fail-closed as above ======================
+# V3: the wrapper refuses a REAL socket made with an explicit protocol (IPPROTO_UDP / IPPROTO_TCP; every probe above
+# uses proto 0). The real call runs only after the same event, raised by hand, is refused (_only_if_the_hook_refuses).
+def _explicit_proto_probes() -> dict:
+    def call(family, kind, proto, method, *args):
+        with socket.socket(family, kind, proto) as sock:
+            return _only_if_the_hook_refuses("socket." + method, family, args[-1], lambda: getattr(sock, method)(*args))
+    return {"udp-sendto-v4": _outcome(lambda: call(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP, "sendto",
+                                                   b"x", ("203.0.113.9", 9))),
+            "udp-sendto-v6": _outcome(lambda: call(socket.AF_INET6, socket.SOCK_DGRAM, socket.IPPROTO_UDP, "sendto",
+                                                   b"x", V6)),
+            "tcp-connect-v4": _outcome(lambda: call(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP,
+                                                    "connect", ("203.0.113.9", 9)))}
+
+
+AT_COLLECTION_PROTO = _explicit_proto_probes()
+
+
+@pytest.fixture(scope="module")
+def module_proto_probes():
+    """Before any test's function-scoped pp10_guard (only the process-wide layer exists here), as the D1 test does."""
+    return _explicit_proto_probes()
+
+
+def test_k6_v3_the_wrapper_refuses_real_sockets_made_with_an_explicit_protocol(module_proto_probes):
+    for where, results in (("collection", AT_COLLECTION_PROTO), ("module fixture", module_proto_probes)):
+        _all_refused(results.items(), where)
+        assert all(WRAP in text for _, text in results.values()), where
+        assert len(results) == 3, where
+
+
+# V4: the hook refuses in a thread with a default name ("Thread-N", any library thread started without a name) and in
+# a thread started by _thread.start_new_thread (threading sees a _DummyThread), at collection and in the test.
+def _in_default_thread(probe):
+    box = {}
+    worker = threading.Thread(target=lambda: box.update(result=probe()), daemon=True)     # no name: "Thread-N (...)"
+    worker.start()
+    worker.join(30)
+    assert not worker.is_alive() and worker.name.startswith("Thread-")
+    return box["result"]
+
+
+def _in_raw_thread(probe):
+    box, done = {}, threading.Event()
+
+    def body():
+        try:
+            box["kind"] = type(threading.current_thread()).__name__
+            box["result"] = probe()
+        finally:
+            done.set()
+    _thread.start_new_thread(body, ())
+    assert done.wait(30)
+    assert box["kind"] == "_DummyThread"
+    return box["result"]
+
+
+AT_COLLECTION_DEFAULT = _in_default_thread(lambda: _hook_probes(HOOK_EVENTS + BYTES_EVENTS))
+AT_COLLECTION_RAW = _in_raw_thread(lambda: _hook_probes(HOOK_EVENTS + BYTES_EVENTS))
+
+
+def test_k6_v4_the_hook_refuses_in_a_default_named_thread_and_in_a_raw_thread():
+    _all_refused(AT_COLLECTION_DEFAULT, "collection default-named thread")
+    _all_refused(AT_COLLECTION_RAW, "collection _thread thread")
+    _all_refused(_in_default_thread(lambda: _hook_probes(HOOK_EVENTS + BYTES_EVENTS)), "test default-named thread")
+    _all_refused(_in_raw_thread(lambda: _hook_probes(HOOK_EVENTS + BYTES_EVENTS)), "test _thread thread")
+    assert len(AT_COLLECTION_DEFAULT) == len(AT_COLLECTION_RAW) == len(HOOK_EVENTS + BYTES_EVENTS)

@@ -1672,15 +1672,17 @@ def test_the_backup_checks_a1_pass_by_its_unit_and_a_scorer_unit_jobs_outputs(so
 
 
 # ===== 7. round 4b: the pack's secret scan covers the named scorer inputs (the security verifier's D5) ==============
-def test_the_pack_refuses_a_token_shaped_string_in_a_named_scorer_input(so):
+def test_the_pack_refuses_a_token_shaped_string_in_a_named_scorer_input(so, request):
     """inputs/ holds the scorer block's named inputs (anchor prompts, the 1B lists and pools, unit records): every
     non-binary file there is scanned at pack time; a hit refuses with the input's bundle path only (never the text),
     and nothing is packed. A model-weight file (.safetensors) is not scanned. The token-shaped string is built here
-    (no real token)."""
+    (no real token). Every file that holds the string is removed when the test ends, pass or fail (K6, K5v-2)."""
     w = so
     fake = "hf_" + "Q7" * 17                              # 'hf_' + 34 characters: the HF token's shape, not a token
     items = stand_in_lists(w)
     name, path, _ = items[-1]
+    request.addfinalizer(lambda: [f.unlink(missing_ok=True) for f in (
+        path, w.repo / "tmp" / "w" / "adapter.safetensors", w.repo / "tmp" / "w" / "x.json")])
     assert name == "anchor_prompts"
     write(path, {"prompts": ["a synthetic prompt", fake]})
     doc = w.pins78()
@@ -1750,12 +1752,13 @@ def test_k5_d1_c0_reads_its_expected_fingerprint_from_the_packed_source_unit_and
 
 def test_k5_d1_a_c0_pod_whose_c0_source_step_differs_from_the_packed_unit_runs_no_step(so, monkeypatch):
     """K4bcr-D1 through the real route: C0_SOURCE's complete_sha256 is the packed source file's, its e1_fingerprint a
-    typing error. init-block sc plans c0 (the Mac does not read the unit), but the pod crashes before any step with
-    the refusal (no lean job, so no false engine-X alarm from B17)."""
+    typing error. Since round 6 (K6, item 23) the pack refuses that typo on the Mac (test_k6_c0_*); here the typo
+    comes AFTER a clean pack (the pod-side layer alone): init-block sc plans c0 (init does not read the unit), but the
+    pod crashes before any step with the refusal (no lean job, so no false engine-X alarm from B17)."""
     w = so
     w.fill(oext=True, c0=True)
-    w.mp.setitem(w.r78.C0_SOURCE, w.family, {"complete_sha256": sha(w.c0_source()), "e1_fingerprint": hx("a typo")})
     w.pack(*stand_in_lists(w), *oext_inputs(w), ("source_complete:R:1101", w.c0_source(), sha(w.c0_source())))
+    w.mp.setitem(w.r78.C0_SOURCE, w.family, {"complete_sha256": sha(w.c0_source()), "e1_fingerprint": hx("a typo")})
     host = w.init([{"kind": "c0"}])["released"][0]
     assert w.plan()["hosts"][host]["jobs"][0]["expect_fingerprint"] == hx("a typo")
     pod = ScPod(w, monkeypatch, host)
@@ -2006,17 +2009,28 @@ def test_k5_s6_the_backup_checks_a1_pass_and_the_retrains_recorded_outputs(so):
 
 
 # ===== 9. round 5 (K5): the security re-verifier's R4 (the pack's scan over everything it ships) ====================
-def test_k5_r4_the_pack_refuses_a_token_shaped_string_in_every_file_kind_it_ships(so, monkeypatch):
+def test_k5_r4_the_pack_refuses_a_token_shaped_string_in_every_file_kind_it_ships(so, monkeypatch, request):
     """R4: a token-shaped string (built here, at test time; not a token) planted in an engine file, a scorer script,
     a setup-tar member, a generated payload (probe.json, through a monkeypatched probe_record) or the worker bootstrap
     (through a monkeypatched PIP_PIN) refuses the pack with names and pattern names only, never the text; no
-    setup-receipt.json is written (release reads only a receipt). The edit files (edits/) are scanned; the prepared
-    set (data/) is not, by the lead's ruling (its manifest SHA-256 pins every byte)."""
+    setup-receipt.json is written (release reads only a receipt). The edit files (edits/) are scanned; under data/
+    only the files the prepared set's manifest does not pin are (K6, the lead's ruling on K5v-3; test_k6_*). Every file
+    that holds the string is removed or restored when the test ends, pass or fail (K6, K5v-2)."""
     import re
     w = so
     fake = "hf_" + "K5" * 17                              # 'hf_' + 34 characters: the HF token's shape, not a token
     w.pack()                                             # a clean pack first (and the synthetic engine tree)
     out = w.root / "setup" / "packed-stage1-X"
+    kept_bytes = {f: f.read_bytes() for f in (w.repo / w.rules.WRAPPER, w.root / "setup" / "extend_cap.py")}
+    tmp = w.repo / "tmp" / "k5-r4"
+    planted_files = [w.repo / "experiments" / "safety_selection" / "planted_k5.py", tmp / "edit.json", tmp / "rows.jsonl"]
+
+    def cleanup():
+        for f in planted_files:
+            f.unlink(missing_ok=True)
+        for f, data in kept_bytes.items():
+            f.write_bytes(data)
+    request.addfinalizer(cleanup)
     assert (out / "setup-receipt.json").is_file()
     pack = importlib.import_module("pack_setup")
 
@@ -2058,11 +2072,183 @@ def test_k5_r4_the_pack_refuses_a_token_shaped_string_in_every_file_kind_it_ship
     member.write_bytes(kept)
     w.pack()
     assert (out / "setup-receipt.json").is_file()        # clean again: the pack goes through
-    # edits/ is scanned (K5); data/ stays outside the scan (the manifest pin); inputs/ by its own loop
-    tmp = w.repo / "tmp" / "k5-r4"
+    # edits/ is scanned (K5); a data/ file stays outside the scan unless it is named in scan_anyway (K6: the prepared
+    # set's files its manifest does not pin); inputs/ by its own loop
     edit = write(tmp / "edit.json", {"items": [{"prompt": fake}]})
     prepared = write(tmp / "rows.jsonl", json.dumps({"prompt": fake}) + "\n")
     with pytest.raises(SystemExit, match=r"a secret pattern is in a packed file: \[\('edit.json', 'hf_token'\)\]"):
         pack.refuse_secrets({f"edits/{hx('e')}.edit.json": edit}, {}, pack.DATA_PREFIXES)
     pack.refuse_secrets({"data/kt-prepared/x/rows.jsonl": prepared}, {}, pack.DATA_PREFIXES)
+    with pytest.raises(SystemExit, match=r"a secret pattern is in a packed file: \[\('rows.jsonl', 'hf_token'\)\]"):
+        pack.refuse_secrets({"data/kt-prepared/x/rows.jsonl": prepared}, {}, pack.DATA_PREFIXES,
+                            frozenset({"data/kt-prepared/x/rows.jsonl"}))
     assert pack.DATA_PREFIXES == ("data/", "inputs/")
+
+
+# ===== 10. round 6 (K6): the K5 re-verifier's V1, V2 and K5v-6; the lead's rulings on K5v-3 and item 23 ==============
+# V1 (K5v-D1c): c0 refuses a packed source unit that is a symbolic link, even when its target has the pinned bytes
+def test_k6_v1_c0_refuses_a_linked_source_unit_even_when_its_target_has_the_pinned_bytes(so, tmp_path):
+    runner = load_by_path("jr78_k6_v1", so.root / "setup" / "job_runner_stage1.py")
+    good = {"kind": "COMPLETE (synthetic)", "checkpoints": {"e1": {"adapter_fingerprint": hx("the real e1")}}}
+    rel = "inputs/source_complete-R-1101/COMPLETE.json"
+    target = write(tmp_path / "elsewhere" / "COMPLETE.json", good)
+    (tmp_path / rel).parent.mkdir(parents=True)
+    (tmp_path / rel).symlink_to(target)
+    pins = {"source_complete:R:1101": sha(target), "oext_bank": hx("ob"), "oext_record": hx("or")}
+    inputs = {"source_complete:R:1101": rel, "oext_bank": "inputs/oext_bank/b.json",
+              "oext_record": "inputs/oext_record/r.json"}
+    doc = {"files": {inputs[n]: pins[n] for n in pins}, "inputs": inputs}
+    job = {"kind": "c0", "arm": "R", "seed": 1101, "recipe": "B", "engine": "X", "inputs": pins,
+           "edit": {"sha256": hx("rd1"), "path": "x"}, "expect_fingerprint": hx("the real e1")}
+    with pytest.raises(runner.Unrunnable, match="is missing or differs from its pin"):
+        runner.job_commands(sc_plan(so, job), "h", 0, tmp_path, {}, doc)
+
+
+# V2 (the K5v-R21 variant): a side unit with no e1 checkpoint at all is a crash (S3a deletes only the fingerprint)
+def test_k6_v2_a_side_unit_with_no_e1_checkpoint_is_a_crash(so, monkeypatch, tmp_path):
+    side = unit_copy(BASE_UNIT)
+    del side["checkpoints"]["e1"]
+    rec, calls, root, runner = unit_run(so, monkeypatch, tmp_path, "o_only_with_regenerate", 0, side,
+                                        {"complete": True, **unit_copy(BASE_UNIT)})
+    assert rec["status"] == "crashed" and "no e1 adapter fingerprint" in rec["why"]
+
+
+def k6_prepared(w, listed: dict, extra: dict) -> tuple[Path, str]:
+    """The synthetic prepared set rewritten for K6: ``listed`` files (relative path -> text) named in manifest.json's
+    "files" map at their SHA-256, ``extra`` files (relative path -> text) not named; returns (folder, SHA-256 of the
+    new manifest.json). manifest.sha256 keeps the family's pin (so manifest.json is NOT at the pin, as in every
+    synthetic world; the tests that need it at the pin pass this SHA-256 to prepared_files)."""
+    folder = w.repo / w.rules.PREPARED_LOCAL / w.rules.PREPARED_NAME
+    names = {}
+    for rel, text in listed.items():
+        names[rel] = sha(write(folder / rel, text))
+    for rel, text in extra.items():
+        write(folder / rel, text)
+    man = write(folder / "manifest.json", {"kind": "prepared (synthetic, K6)", "files": names})
+    return folder, sha(man)
+
+
+def test_k6_prepared_files_scans_what_the_manifest_does_not_pin_and_skips_macos_metadata_by_name(so):
+    """K5v-3 (the lead's ruling): a file manifest.json lists at its listed SHA-256 stays outside the scan; a listed
+    file whose bytes changed, every unlisted file (prepare_receipt.json, manifest.json and manifest.sha256, a stray
+    file) is packed and scanned; .DS_Store, AppleDouble '._*' files and the volume metadata folders are skipped by
+    name (neither packed nor scanned); the manifest's list counts only while manifest.json is at the pin given."""
+    w = so
+    w.pack()                                             # the synthetic prepared folder (manifest.sha256, manifest.json)
+    pack = importlib.import_module("pack_setup")
+    folder, digest = k6_prepared(w, {"engine/train_rows.jsonl": "{}\n", "banks/dev.jsonl": "{}\n"},
+                                 {"prepare_receipt.json": "{}\n", "stray.txt": "x\n", ".DS_Store": "finder\n",
+                                  "engine/._train_rows.jsonl": "appledouble\n", ".Spotlight-V100/store.db": "s\n"})
+    write(folder / "banks" / "dev.jsonl", "{} changed after the manifest\n")
+    packed, scan, skipped = pack.prepared_files(folder, digest)
+    assert sorted(scan) == ["banks/dev.jsonl", "manifest.json", "manifest.sha256", "prepare_receipt.json", "stray.txt"]
+    assert sorted(packed) == sorted(scan | {"engine/train_rows.jsonl"})
+    assert sorted(skipped) == [".DS_Store", ".Spotlight-V100/store.db", "engine/._train_rows.jsonl"]
+    assert all(packed[rel] == (folder / rel, sha(folder / rel)) for rel in packed)
+    _, scan2, skipped2 = pack.prepared_files(folder, hx("not the manifest's SHA-256"))   # off the pin: no file listed
+    assert sorted(scan2) == sorted(scan | {"engine/train_rows.jsonl"}) and sorted(skipped2) == sorted(skipped)
+    write(folder / "manifest.json", {"kind": "prepared (synthetic, K6)", "files": ["engine/train_rows.jsonl"]})
+    assert "engine/train_rows.jsonl" in pack.prepared_files(folder, sha(folder / "manifest.json"))[1]   # no map
+    assert [pack.macos_metadata(n) for n in (".DS_Store", "a/.DS_Store", "._x", "Icon\r", ".Trashes/1", "x.DS_Store",
+                                             "prepare_receipt.json", "a._b", ".notes", "a/.env")] == [True] * 5 + [False] * 5
+
+
+def test_k6_the_pack_refuses_a_token_shaped_string_in_an_unlisted_data_file_and_ships_no_macos_metadata(so, request):
+    """K5v-3 through the real pack: a token-shaped string (built here, not a token) in prepare_receipt.json or in a
+    stray file of the prepared set refuses the pack with names and pattern names only, before anything is written; the
+    same string in .DS_Store or an AppleDouble file does not refuse, and neither file is in the bundle. Every planted
+    file is removed when the test ends (K5v-2)."""
+    import tarfile
+    w = so
+    fake = "hf_" + "K6" * 17                              # 'hf_' + 34 characters: the HF token's shape, not a token
+    w.pack()
+    folder = w.repo / w.rules.PREPARED_LOCAL / w.rules.PREPARED_NAME
+    planted = [folder / "prepare_receipt.json", folder / "stray" / "notes.txt", folder / ".DS_Store",
+               folder / "._manifest.json"]
+    request.addfinalizer(lambda: [p.unlink(missing_ok=True) for p in planted])
+    out = w.root / "setup" / "packed-stage1-X"
+    for p in planted[:2]:
+        write(p, {"note": fake})
+        with pytest.raises(SystemExit) as info:
+            w.pack()
+        text = str(info.value)
+        assert text == f"a secret pattern is in a packed file: [({p.name!r}, 'hf_token')]", text
+        assert fake not in text and not out.exists()
+        p.unlink()
+    for p in planted[2:]:
+        write(p, {"note": fake})
+    w.pack()
+    with tarfile.open(out / "bundle-stage1-X.tar.gz") as tf:
+        names = [m.name for m in tf if m.isfile()]
+        data = [n for n in names if n.startswith("data/")]
+        assert not [n for n in names if n.rsplit("/", 1)[-1] in (".DS_Store", "._manifest.json")]
+        assert not [n for n in names if fake.encode() in tf.extractfile(n).read()]
+    assert f"data/kt-prepared/{w.rules.PREPARED_NAME}/manifest.json" in data
+    sealed = json.loads((out / "sealed-files.json").read_text())
+    assert not [n for n in sealed["files"] if n.endswith((".DS_Store", "._manifest.json"))]
+
+
+def test_k6_k5v6_the_bundle_scan_at_its_call_site_gets_the_edits_and_the_unpinned_data_files(so, monkeypatch):
+    """K5v-6: a spy on refuse_secrets (and on secret_scan.scan_paths) in a real pack. The bundle's call skips exactly
+    DATA_PREFIXES (data/ and inputs/), and the files it scans include the three R_d edit files under edits/ and the
+    prepared set's unpinned files (prepare_receipt.json, manifest.json, manifest.sha256) but not a manifest-listed one
+    (manifest.json at the pin here: prepared_files is given its SHA-256). The setup tar's call skips nothing."""
+    w = so
+    w.pack()
+    pack = importlib.import_module("pack_setup")
+    folder, digest = k6_prepared(w, {"engine/train_rows.jsonl": "{}\n"}, {"prepare_receipt.json": "{}\n"})
+    real_prepared, real_refuse, real_scan = pack.prepared_files, pack.refuse_secrets, pack.secret_scan.scan_paths
+    monkeypatch.setattr(pack, "prepared_files", lambda f, d: real_prepared(f, digest if f == folder else d))
+    calls, scanned = [], []
+
+    def refuse_spy(files, payloads, prefixes, scan_anyway=frozenset()):
+        calls.append({"files": dict(files), "payloads": sorted(payloads), "prefixes": prefixes,
+                      "scan_anyway": set(scan_anyway)})
+        return real_refuse(files, payloads, prefixes, scan_anyway)
+    monkeypatch.setattr(pack, "refuse_secrets", refuse_spy)
+    monkeypatch.setattr(pack.secret_scan, "scan_paths", lambda paths: (scanned.extend(str(p) for p in paths),
+                                                                       real_scan(paths))[1])
+    w.pack()
+    assert len(calls) == 2
+    bundle, setup = calls
+    assert "bundle-manifest.json" in bundle["payloads"] and bundle["prefixes"] == ("data/", "inputs/")
+    assert setup["prefixes"] == () and setup["scan_anyway"] == set()
+    edits = {n: f for n, f in bundle["files"].items() if n.startswith("edits/")}
+    assert len(edits) == 3 and all(str(f) in scanned for f in edits.values())
+    base = f"data/kt-prepared/{w.rules.PREPARED_NAME}/"
+    assert bundle["scan_anyway"] == {base + n for n in ("manifest.json", "manifest.sha256", "prepare_receipt.json")}
+    assert all(str(bundle["files"][n]) in scanned for n in bundle["scan_anyway"])
+    listed = bundle["files"][base + "engine/train_rows.jsonl"]
+    assert listed == folder / "engine" / "train_rows.jsonl" and str(listed) not in scanned
+
+
+# Item 23 (the 7 Nov ruling): the Mac-side check that the packed c0 source unit's e1 fingerprint is C0_SOURCE's
+@pytest.mark.parametrize("case", ["typo", "q-not-e1", "no-e1", "unreadable"])
+def test_k6_item23_the_pack_refuses_a_c0_source_whose_e1_fingerprint_is_not_c0_sources(so, case):
+    """The pack (and its dry run) reads the packed source unit's checkpoints.e1.adapter_fingerprint (the file at
+    C0_SOURCE's complete_sha256) and refuses, names only, when it is not C0_SOURCE's e1_fingerprint (a typing error in
+    the lead's step), when only another checkpoint holds that value, when e1 lists none, or when the file is not JSON;
+    nothing is packed, so no pod can start. The right value packs (test_c0_and_o_only_with_test_local_oext_and_c0_pins)."""
+    w = so
+    w.fill(oext=True, c0=True)
+    src = w.c0_source()
+    expect = hx("e1-R-1101")
+    if case == "typo":
+        expect = hx("a typo in the step")
+    elif case == "q-not-e1":
+        write(src, {"kind": "COMPLETE (synthetic)", "checkpoints": {"q": {"adapter_fingerprint": expect},
+                                                                    "e1": {"adapter_fingerprint": hx("another e1")}}})
+    elif case == "no-e1":
+        write(src, {"kind": "COMPLETE (synthetic)", "checkpoints": {"q": {"adapter_fingerprint": expect}}})
+    else:
+        write(src, "not json {\n")
+    w.mp.setitem(w.r78.C0_SOURCE, w.family, {"complete_sha256": sha(src), "e1_fingerprint": expect})
+    want = {"typo": "its e1 adapter fingerprint is not C0_SOURCE's e1_fingerprint", "q-not-e1": "is not C0_SOURCE's",
+            "no-e1": "lists no e1 adapter fingerprint", "unreadable": "is not a readable COMPLETE.json"}[case]
+    for dry in (True, False):
+        with pytest.raises(SystemExit) as info:
+            w.pack(*oext_inputs(w), ("source_complete:R:1101", src, sha(src)), dry_run=dry)
+        text = str(info.value)
+        assert text.startswith("--inputs FILE: 'source_complete:R:1101' (c0's source unit)") and want in text, text
+        assert expect not in text and hx("another e1") not in text
+    assert not (w.root / "setup" / "packed-stage1-X").exists()

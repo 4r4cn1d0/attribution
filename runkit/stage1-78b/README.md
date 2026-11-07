@@ -101,16 +101,24 @@ side unit's COMPLETE.json `side_complete:a0:<seed>` from `rules_78b.KIT[family][
 - **The bundle** carries `stage1_rules.SCORER_PINS` (38 files: the wrapper, its settings index, `pins_78b.json`, the 18
   settings files, the 1B scripts it imports with `labels.json` and the lexicon, the anchor job's script), each at its
   SHA-256; a changed file refuses at pack time and at release.
-- **The pack's secret scan** (round 5, K5; the lead's R4 ruling) covers every file it ships except the prepared set:
-  the engine files, the scorer code and scripts, the edit files under `edits/`, the configs, the named inputs under
-  `inputs/` (non-binary files), the generated payloads (bundle manifest, sealed-files, probe, kit-family), the worker
-  bootstrap and every member of `worker-setup-stage1.tar.gz`; a hit refuses with names and pattern names only.
-  `data/` (the prepared set) stays outside the scan because its manifest SHA-256 (`stage1_rules.PREPARED_MANIFESTS`,
-  checked at pack time and on the pod) pins every byte of it. A refusal that comes after the bundle is written (the
-  bootstrap, the setup tar) leaves a partial `setup/packed-stage1-X/` with no `setup-receipt.json`; move it aside.
+- **The pack's secret scan** (round 5, K5; the lead's R4 ruling) covers every file it ships except the prepared set's
+  manifest-listed files: the engine files, the scorer code and scripts, the edit files under `edits/`, the configs,
+  the named inputs under `inputs/` (non-binary files), the generated payloads (bundle manifest, sealed-files, probe,
+  kit-family), the worker bootstrap and every member of `worker-setup-stage1.tar.gz`; a hit refuses with names and
+  pattern names only. Under `data/` (the prepared set; round 6, K6, the lead's ruling on K5v-3) the pack scans every
+  file that the set's `manifest.json` does not list in its `files` map (for example `prepare_receipt.json`, which the
+  engine writes outside the manifest hash, and `manifest.json` and `manifest.sha256` themselves), skips `.DS_Store`
+  and the other macOS metadata files by name (`pack_setup.MACOS_METADATA` and `._*` files: neither packed nor
+  scanned), and keeps the files `manifest.json` lists outside the scan, because the manifest pins them. A listed file
+  stays outside only at its listed SHA-256, and only while `manifest.json`'s own SHA-256 is the family's pin
+  (`stage1_rules.PREPARED_MANIFESTS`); otherwise it is scanned too. A refusal that comes after the bundle is written
+  (the bootstrap, the setup tar) leaves a partial `setup/packed-stage1-X/` with no `setup-receipt.json`; move it aside.
 - **c0's expected fingerprint** (round 5, K5): the pod reads the e1 adapter fingerprint from the packed source unit's
   `COMPLETE.json` (re-hashed against its pin; the stage-1 kit's `@fingerprint` form) and refuses before any step when
-  it differs from the plan's `expect_fingerprint` (`C0_SOURCE[family]["e1_fingerprint"]`).
+  it differs from the plan's `expect_fingerprint` (`C0_SOURCE[family]["e1_fingerprint"]`). Round 6 (K6, the 7 Nov
+  ruling on Part 2's item 23) adds the same check on the Mac: `pack_setup.py` (the pack and its dry run) reads the
+  packed source unit's `checkpoints.e1.adapter_fingerprint` and refuses when it is missing or is not
+  `C0_SOURCE[family]["e1_fingerprint"]`, so a typing error in the lead's step stops before any pod starts.
 - **Engine Y.** The Y retrain is planned (with `ENGINE_Y` filled) but released only onto a `packed-stage1-Y` stage;
   `pack_setup.py` packs engine X only (Y's pack comes with KD9).
 

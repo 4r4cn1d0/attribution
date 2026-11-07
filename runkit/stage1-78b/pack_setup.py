@@ -22,10 +22,16 @@ kit's setup/ scripts, stage1_rules.py, rules_78b.py and its basis, probe.json, k
 setup-receipt.json {engine, engine_sha256, family, git_commit, main_config, prepared_manifests, sealed_set,
 sealed_files_sha256, ...}; plan_tool's release refuses a receipt whose engine identity is not the pin or whose family
 is not the copy's. Every packed file is scanned for secret patterns (names and pattern names only in a refusal) except
-the prepared set under data/: the engine files, the scorer code and scripts, the edit files (edits/; K5, the lead's
-R4 ruling), the main and S_78 configs, the named inputs (inputs/, non-binary files), the generated payloads, the
-worker bootstrap and every member of the setup tar. data/ (the prepared set) stays outside the scan because its
-manifest SHA-256 (stage1_rules.PREPARED_MANIFESTS, checked here and on the pod) pins every byte of it.
+the prepared set's manifest-listed files: the engine files, the scorer code and scripts, the edit files (edits/; K5,
+the lead's R4 ruling), the main and S_78 configs, the named inputs (inputs/, non-binary files), the generated payloads,
+the worker bootstrap and every member of the setup tar. Under data/ (the prepared set; K6, the lead's ruling on K5v-3)
+the pack scans every file that the set's manifest.json does not list in its "files" map (prepare_receipt.json, which
+the engine writes outside the manifest hash; manifest.json and manifest.sha256 themselves; any stray file), skips
+.DS_Store and the other macOS metadata files by name (prepared_files: they are neither packed nor scanned), and keeps
+the files manifest.json lists outside the scan, because the manifest pins them: a listed file stays outside only at
+its listed SHA-256, and only while manifest.json's own SHA-256 is the family's pin (stage1_rules.PREPARED_MANIFESTS);
+otherwise it is scanned too. The c0 source unit (K6, the 7 Nov ruling on item 23): its e1 adapter fingerprint must be
+C0_SOURCE's at pack time (c0_source_check), so a typing error refuses on the Mac before any pod starts.
 """
 from __future__ import annotations
 
@@ -61,9 +67,16 @@ GPU = r78.GPU_NAME
 HEX = set("0123456789abcdef")
 DATA = "data"
 INPUTS_KIND = "stage1-78b pack inputs"
-# The prefixes the general scan skips: data/ (the prepared set; its manifest SHA-256 pins every byte, the lead's R4
-# ruling) and inputs/ (scanned by refuse_secrets' own loop, non-binary files). edits/ is scanned (K5, R4).
+# The prefixes the general scan skips: data/ (the prepared set: only its manifest-listed files, pinned by the manifest;
+# its other files are scanned by name through refuse_secrets' scan_anyway, K6) and inputs/ (scanned by refuse_secrets'
+# own loop, non-binary files). edits/ is scanned (K5, R4).
 DATA_PREFIXES = (f"{DATA}/", "inputs/")
+# K6 (the lead's ruling on K5v-3): macOS metadata files in the prepared set, skipped by name (neither packed nor
+# scanned): Finder's .DS_Store, AppleDouble "._*" files, and the volume metadata names.
+MACOS_METADATA = frozenset({".DS_Store", ".localized", "Icon\r", ".Spotlight-V100", ".Trashes", ".fseventsd",
+                            ".TemporaryItems", ".DocumentRevisions-V100", ".VolumeIcon.icns", ".apdisk",
+                            ".com.apple.timemachine.donotpresent"})
+C0_INPUT = "source_complete:R:1101"                     # c0's packed source unit (N's R_1 at 1101; stage1_rules.SC_INPUTS)
 ENGINE_CODE = ("from experiments.safety_selection.common import code_identity;print(code_identity()['sha256'])")
 CONFIG_CODE = ("from experiments.safety_selection.config import load_recipe,config_sha256;"
                "print(config_sha256(load_recipe({path!r})))")
@@ -221,6 +234,45 @@ def prepared_set(family: str) -> tuple[pathlib.Path, str]:
     return folder, digest
 
 
+def macos_metadata(rel: str) -> bool:
+    """A macOS metadata file by name (any part of the relative path is one of MACOS_METADATA or starts with '._')."""
+    return any(part in MACOS_METADATA or part.startswith("._") for part in rel.split("/"))
+
+
+def prepared_files(folder: pathlib.Path, digest: str) -> tuple[dict, frozenset, list]:
+    """K6 (the lead's ruling on K5v-3): (relative path -> (file, SHA-256) to pack, the relative paths to scan, the
+    relative paths skipped). A regular file that manifest.json's "files" map lists at that file's SHA-256 is pinned by
+    the manifest and stays outside the scan; the list is read only when manifest.json's own SHA-256 is ``digest`` (the
+    family's pin), else no file counts as listed. A macOS metadata file that is not listed is skipped by name (neither
+    packed nor scanned). Every other file (prepare_receipt.json, manifest.json and manifest.sha256 themselves, a stray
+    file) is packed and scanned. Links are not packed (as before). Names only; no file's text is printed."""
+    listed = {}
+    man = folder / "manifest.json"
+    if man.is_file() and not man.is_symlink():
+        data = man.read_bytes()
+        if hashlib.sha256(data).hexdigest() == digest:
+            try:
+                doc = json.loads(data)
+            except ValueError:
+                doc = None
+            names = doc.get("files") if isinstance(doc, dict) else None
+            listed = {k: v for k, v in names.items() if isinstance(k, str) and pinned(v)} if isinstance(names, dict) else {}
+    packed, scan, skipped = {}, set(), []
+    for f in sorted(folder.rglob("*")):
+        if not f.is_file() or f.is_symlink():
+            continue
+        rel = f.relative_to(folder).as_posix()
+        got = sha(f)
+        if listed.get(rel) == got:
+            packed[rel] = (f, got)
+        elif macos_metadata(rel):
+            skipped.append(rel)
+        else:
+            packed[rel] = (f, got)
+            scan.add(rel)
+    return packed, frozenset(scan), skipped
+
+
 def main_config(tree: pathlib.Path) -> dict:
     """The family's main config: its bytes at stage1_rules.RECIPE_PINS and its config_sha256 (the engine's own hash) at
     rules_78b's pin; every arm runs under it (P78:99)."""
@@ -248,9 +300,10 @@ BINARY_SUFFIXES = (".safetensors", ".bin", ".pt", ".pth", ".npy", ".npz", ".gz",
 INPUTS_PREFIX = "inputs/"
 
 
-def refuse_secrets(files: dict, payloads: dict, data_prefixes: tuple) -> None:
+def refuse_secrets(files: dict, payloads: dict, data_prefixes: tuple, scan_anyway: frozenset = frozenset()) -> None:
     """Scan every packed file outside ``data_prefixes`` (the bundle: DATA_PREFIXES, so data/ only stays outside; the
-    edit files under edits/ are scanned, K5), every non-binary file of the scorer block's named inputs (inputs/; the
+    edit files under edits/ are scanned, K5) and every file named in ``scan_anyway`` (the bundle: the prepared set's
+    files that its manifest does not pin, K6), every non-binary file of the scorer block's named inputs (inputs/; the
     security verifier's D5: anchor prompts, the 1B lists and pools, unit records), and every generated payload; a hit
     refuses with names and pattern names only, never the matched text."""
     inputs = {name: f for name, f in files.items()
@@ -258,7 +311,7 @@ def refuse_secrets(files: dict, payloads: dict, data_prefixes: tuple) -> None:
     input_hits = sorted({name for name, f in inputs.items() if secret_scan.scan_paths([f])})
     if input_hits:
         raise SystemExit(f"a secret pattern is in {len(input_hits)} packed scorer input file(s): {input_hits[:10]}")
-    scanned = [f for name, f in files.items() if not name.startswith(data_prefixes)]
+    scanned = [f for name, f in files.items() if not name.startswith(data_prefixes) or name in scan_anyway]
     hits = [(name, pattern) for name, pattern in secret_scan.scan_paths(scanned)]
     hits += [(name, pattern) for name, payload in payloads.items()
              for pattern in secret_scan.scan_text(payload.decode("utf-8", "ignore"))]
@@ -340,6 +393,30 @@ def input_bundle_path(name: str, src: pathlib.Path) -> str:
     return f"inputs/{name.replace(':', '-')}/{src.name}"
 
 
+def c0_source_check(src: pathlib.Path, digest: str, c0: dict | None) -> None:
+    """K6 (the 7 Nov ruling on Part 2's item 23): on the Mac, at pack time (and in the dry run), the packed c0 source
+    unit's COMPLETE.json, read once and re-hashed against its pin (C0_SOURCE's complete_sha256), must list
+    checkpoints.e1.adapter_fingerprint equal to C0_SOURCE[family]["e1_fingerprint"]; a typing error in the lead's
+    recorded step refuses here, before any pod starts (the pod's runner checks it again, K5). Only that field is read;
+    a refusal names the input only, never a value."""
+    data = src.read_bytes()
+    if hashlib.sha256(data).hexdigest() != digest or not isinstance(c0, dict):
+        raise SystemExit(f"--inputs FILE: {C0_INPUT!r} (c0's source unit) differs from its pin (C0_SOURCE)")
+    try:
+        doc = json.loads(data)
+    except ValueError:
+        raise SystemExit(f"--inputs FILE: {C0_INPUT!r} (c0's source unit) is not a readable COMPLETE.json") from None
+    points = doc.get("checkpoints") if isinstance(doc, dict) and isinstance(doc.get("checkpoints"), dict) else {}
+    e1 = points.get("e1") if isinstance(points.get("e1"), dict) else {}
+    got = e1.get("adapter_fingerprint")
+    if not pinned(got):
+        raise SystemExit(f"--inputs FILE: {C0_INPUT!r} (c0's source unit) lists no e1 adapter fingerprint")
+    if got != c0.get("e1_fingerprint"):
+        raise SystemExit(f"--inputs FILE: {C0_INPUT!r} (c0's source unit): its e1 adapter fingerprint is not "
+                         "C0_SOURCE's e1_fingerprint (the lead's recorded step differs from the unit); refused before "
+                         "any pod starts")
+
+
 def sc_inputs(doc: dict, family: str) -> tuple[dict, dict]:
     """(bundle path -> (source, SHA-256) of every file, input name -> bundle path) from the --inputs record's entries
     {name, path, sha256}: each name one of stage1_rules.SC_INPUTS's, each SHA-256 its kit pin (stage1_rules.sc_input_pins;
@@ -384,6 +461,8 @@ def sc_inputs(doc: dict, family: str) -> tuple[dict, dict]:
                 raise SystemExit(f"--inputs FILE: {name!r}'s file is missing or differs from its SHA-256")
             files[input_bundle_path(name, src)] = (src, digest)
             named[name] = input_bundle_path(name, src)
+    if C0_INPUT in named:                                # K6 (item 23): the Mac-side check of C0_SOURCE's fingerprint
+        c0_source_check(*files[named[C0_INPUT]], values["C0_SOURCE"])
     return files, named
 
 
@@ -472,9 +551,10 @@ def main(argv: list[str] | None = None) -> None:
     for d, e in sorted(sealed["edits"].items()):
         pack.add(f"edits/{e['sha256']}.edit.json", ROOT / e["path"], e["sha256"])
     folder, digest = prepared_set(family)
-    for f in sorted(folder.rglob("*")):
-        if f.is_file() and not f.is_symlink():
-            pack.add(f"{DATA}/kt-prepared/{rules.PREPARED_NAME}/{f.relative_to(folder)}", f, sha(f))
+    data_base = f"{DATA}/kt-prepared/{rules.PREPARED_NAME}"
+    prepared, data_scan, _skipped = prepared_files(folder, digest)       # K6: macOS metadata skipped by name
+    for rel, (f, got) in prepared.items():
+        pack.add(f"{data_base}/{rel}", f, got)
     pack.add(config["path"], tree / config["path"], config["sha256"])
     s78 = None
     if rules.KIT_BLOCK == r78.SC_BLOCK:                  # K4b: the scorer block's code, inputs and S_78 config
@@ -509,7 +589,8 @@ def main(argv: list[str] | None = None) -> None:
     payload = {"bundle-manifest.json": (json.dumps(manifest, indent=2) + "\n").encode(), "sealed-files.json": sealed_json}
     probe_json = (json.dumps(probe_record(family), indent=1) + "\n").encode()
     family_json = kit_family_doc(family)
-    refuse_secrets(files, {**payload, "probe.json": probe_json, rules.KIT_FAMILY_FILE: family_json}, DATA_PREFIXES)
+    refuse_secrets(files, {**payload, "probe.json": probe_json, rules.KIT_FAMILY_FILE: family_json}, DATA_PREFIXES,
+                   frozenset(f"{data_base}/{rel}" for rel in data_scan))
     out.mkdir(parents=True, exist_ok=False)
     (out / "probe.json").write_bytes(probe_json)
     (out / "sealed-files.json").write_bytes(sealed_json)

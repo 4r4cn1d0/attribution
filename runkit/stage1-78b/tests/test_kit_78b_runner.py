@@ -487,8 +487,8 @@ def test_the_free_space_check_refuses_a_job_that_would_not_fit_and_records_why(w
     assert done["stopped"] == "refused" and done["refusal"]["reason"] == "free_space" and "KD5" in done["refusal"]["text"]
     assert done["jobs"][0]["free_gb"] == 40.0 and done["jobs"][1]["free_gb"] == 7.9 and done["jobs"][1]["reason"] == "free_space"
     assert json.loads((pod.root / "deferral.json").read_text())["free_gb"] == 7.9
-    for free in (None, float("nan"), 8.0 - 1e-6):
-        w2 = rk.World(pod.w.repo / f"w-{abs(hash(repr(free))) % 1000}", monkeypatch, w.family)
+    for i, free in enumerate((None, float("nan"), 8.0 - 1e-6)):   # K6 (K5v-9): folders by index, never by hash
+        w2 = rk.World(pod.w.repo / f"w-{i}", monkeypatch, w.family)
         pod2 = Pod(w2, monkeypatch, free_gb=free)
         pod2.remaining([30 * H])
         assert pod2.main() == 1 and pod2.statuses() == ["deferred"] * 3 and pod2.receipts() == []
@@ -752,15 +752,18 @@ def test_the_dry_run_on_fake_preflight_documents_computes_s_and_defers_the_right
 
 # ===== the preflight (setup/preflight_stage1.py) ====================================================================
 @pytest.mark.parametrize("shell_login", [False, True], ids=["clean-shell", "shell-with-a-stored-login"])
-def test_the_preflight_writes_the_speed_and_bank_fields_and_refuses_a_slow_pod(w, monkeypatch, tmp_path, shell_login):
+def test_the_preflight_writes_the_speed_and_bank_fields_and_refuses_a_slow_pod(w, monkeypatch, tmp_path, shell_login,
+                                                                               request):
     """The 7-8B preflight: the family's main config is the one candidate; PREFLIGHT-DONE.json keeps the measured
     files' keys and adds family, bank (the four numbers from verification.json) and speed {s_pod, refused}; a pod
     past 1.15 (KD3) or a missing speed field makes ok false (exit 1) so no job starts; another family's plan or a
     second recipe refuses before anything runs. Round 4b (the security verifier's D4): the test isolates the
     library's token paths (HF_HOME, HF_TOKEN_PATH, XDG_CACHE_HOME and the hub caches), so a shell whose variables point
-    at a stored login (a FAKE one, made here) does not change the result."""
+    at a stored login (a FAKE one, made here) does not change the result. The fake login is removed when the test
+    ends, pass or fail (K6, K5v-2)."""
     if shell_login:                                      # the shell's variables at a stored login (fake value)
         login = tmp_path / "shell-login"
+        request.addfinalizer(lambda: shutil.rmtree(login, ignore_errors=True))
         (login / "huggingface").mkdir(parents=True)
         (login / "huggingface" / "token").write_text("hf_" + "F4ke" * 9 + "\n")
         (login / "token").write_text("hf_" + "F4ke" * 9 + "\n")

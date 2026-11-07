@@ -1519,3 +1519,109 @@ def test_rv2_9_the_cache_and_token_paths_by_hand_without_the_library(tmp_path, m
         monkeypatch.setenv(name, value.replace("{tmp}", str(tmp_path)))
     expected = tuple(Path(p.replace("{home}", str(home)).replace("{tmp}", str(tmp_path))) for p in HF_PATHS_BY_HAND[case])
     assert (dl.hf_home(), dl.hf_cache(), dl.token_file(), dl.stored_tokens_file()) == expected, case
+
+
+# ===== round 6 (K6): the K5 re-verifier's V5 (K5v-G3): a real 30x through the opener's WHOLE dispatch ================
+CDN_HOST = "cdn-lfs.example.net"
+
+
+class _RedirectResponse:
+    """A synthetic http.client response: a status, a body and (for a 30x) a Location header."""
+
+    def __init__(self, status: int, body: bytes = b"", location: str | None = None):
+        import email.message
+        self.status = self.code = status
+        self.reason, self.body = "synthetic", body
+        self.headers = email.message.Message()
+        if location is not None:
+            self.headers["Location"] = location
+        self.sock = None
+
+    def info(self):
+        return self.headers
+
+    def getcode(self):
+        return self.status
+
+    def read(self, limit=-1):
+        return self.body if limit is None or limit < 0 else self.body[:limit]
+
+    def close(self):
+        pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+def _whole_dispatch(monkeypatch, answers: dict) -> list:
+    """build_opener replaced: the REAL opener, whose instance ``open`` runs the request processors, opener._open AND
+    the response processors (HTTPErrorProcessor -> the redirect handler's http_error_30x -> parent.open again), i.e.
+    OpenerDirector.open's steps without its audit event. http.client's connections are recorders (no socket): plain
+    HTTP fails at once; each HTTPS connection records (host, verifying, Authorization sent) and answers by host."""
+    real_build, sent = urllib.request.build_opener, []
+
+    class PlainHTTP:
+        def __init__(self, host, *a, **kw):
+            raise AssertionError(f"plain HTTP to {host!r}")
+
+    class RecordingHTTPS:
+        def __init__(self, host, port=None, *, timeout=None, context=None, check_hostname=None, **kw):
+            ctx = context if context is not None else ssl._create_default_https_context()
+            verifying = ctx.verify_mode == ssl.CERT_REQUIRED and (ctx.check_hostname if check_hostname is None
+                                                                  else check_hostname) is True
+            self.host, self.verifying, self.sock = host, verifying, None
+
+        def set_debuglevel(self, level):
+            pass
+
+        def set_tunnel(self, *a, **kw):
+            raise AssertionError("a proxy tunnel")
+
+        def request(self, method, url, body=None, headers=None, **kw):
+            sent.append({"host": self.host, "verifying": self.verifying,
+                         "authorization": any(k.lower() == "authorization" for k in (headers or {}))})
+
+        def getresponse(self):
+            return answers[self.host]()
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(http.client, "HTTPConnection", PlainHTTP)
+    monkeypatch.setattr(http.client, "HTTPSConnection", RecordingHTTPS)
+
+    def build_opener(*handlers):
+        opener = real_build(*handlers)
+
+        def fake_open(request, data=None, timeout=None):
+            request.timeout = timeout
+            protocol = request.type
+            for processor in opener.process_request.get(protocol, []):
+                request = getattr(processor, protocol + "_request")(request)
+            response = opener._open(request, request.data)
+            for processor in opener.process_response.get(protocol, []):
+                response = getattr(processor, protocol + "_response")(request, response)
+            return response
+        opener.open = fake_open
+        return opener
+    monkeypatch.setattr(urllib.request, "build_opener", build_opener)
+    return sent
+
+
+@pytest.mark.parametrize("code", (301, 302, 303, 307, 308))
+def test_k6_v5_a_redirect_off_the_hub_through_the_whole_dispatch_drops_the_token(wl, monkeypatch, code):
+    """V5 (K5v-G3): http_get's opener follows a real 30x from the Hub to a CDN host through its own response
+    processors and redirect handler; the token's Authorization header reaches the Hub only, never the CDN, and both
+    connections verify TLS. (The other redirect tests call redirect_request directly; this one drives the dispatch.)"""
+    launch = importlib.import_module("launch")
+    token = fake_token()
+    url = f"{HUB}/{LLAMA_REPO}/resolve/{LLAMA_REV}/config.json"
+    sent = _whole_dispatch(monkeypatch, {
+        HUB_HOST: lambda: _RedirectResponse(code, location=f"https://{CDN_HOST}/signed/blob?x=1"),
+        CDN_HOST: lambda: _RedirectResponse(206, b"xyz")})
+    assert launch.http_get(url, token, {"Range": "bytes=0-0"}) == (206, b"x")
+    assert [(s["host"], s["authorization"]) for s in sent] == [(HUB_HOST, True), (CDN_HOST, False)]
+    assert all(s["verifying"] for s in sent)
