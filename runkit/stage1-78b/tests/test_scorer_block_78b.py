@@ -163,7 +163,10 @@ class ScWorld:
         return write(self.repo / "tmp" / "oext" / f"oext_{what}.json", {"kind": f"oext {what} (synthetic)"})
 
     def c0_source(self) -> Path:
-        return write(self.repo / "tmp" / "n" / "R-1101" / "COMPLETE.json", {"kind": "COMPLETE (synthetic)"})
+        """N's R_1-1101 unit's COMPLETE.json (synthetic): its e1 adapter fingerprint is the one fill(c0=True) puts in
+        C0_SOURCE (K5: the runner reads it from the packed file and compares)."""
+        return write(self.repo / "tmp" / "n" / "R-1101" / "COMPLETE.json",
+                     {"kind": "COMPLETE (synthetic)", "checkpoints": {"e1": {"adapter_fingerprint": hx("e1-R-1101")}}})
 
     def side_unit(self, seed: int = 1101, **change) -> Path:
         """A synthetic reused a0 side unit's COMPLETE.json (fingerprints and identities only), with the kit's
@@ -999,8 +1002,10 @@ def test_every_scorer_kinds_command_line_by_hand(so, tmp_path, monkeypatch):
     fam, p, rec = w.family, f"data/kt-prepared/{w.rules.PREPARED_NAME}", w.rules.REC
     s78 = {"path": "experiments/safety_selection/configs/study-kt-olmo2-7b-s78-test.json", "config_sha256": hx("s78")}
     monkeypatch.setitem(w.r78.RECIPE_S, fam, s78["config_sha256"])
+    c0_src = write(tmp_path / "inputs/source_complete-R-1101/COMPLETE.json",      # K5: read on the pod by c0
+                   {"kind": "COMPLETE (synthetic)", "checkpoints": {"e1": {"adapter_fingerprint": hx("fp")}}})
     pins = {"anchor_bank": hx("bank"), "pool:s3_safe": hx("s3safe"), "pool:s3_orig": hx("s3orig"),
-            "retrain_unit": hx("unit"), "oext_bank": hx("ob"), "oext_record": hx("or"), "source_complete:R:1101": hx("c0"),
+            "retrain_unit": hx("unit"), "oext_bank": hx("ob"), "oext_record": hx("or"), "source_complete:R:1101": sha(c0_src),
             "side_complete:a0:1102": hx("side")}
     inputs = {"anchor_bank": "inputs/anchor_bank/a.json", "pool:s3_safe": "inputs/pool-s3_safe/s.json",
               "pool:s3_orig": "inputs/pool-s3_orig/o.json", "retrain_unit": "inputs/retrain_unit/1101-a0-retrain-a1",
@@ -1700,3 +1705,364 @@ def test_the_pack_refuses_a_token_shaped_string_in_a_named_scorer_input(so):
     with pytest.raises(SystemExit, match=r"1 packed scorer input file\(s\): \['inputs/retrain_unit/u/x.json'\]"):
         pack.refuse_secrets({"inputs/retrain_unit/u/x.json": write(w.repo / "tmp" / "w" / "x.json", {"t": fake})}, {},
                             pack.DATA_PREFIXES)
+
+
+# ===== 8. round 5 (K5): the core re-verifier's K4bcr-D1, D2 and D3 ===================================================
+# D1: c0's expected e1 adapter fingerprint comes from the packed source unit's COMPLETE.json (the 1B @fingerprint form)
+def c0_cmds(w, runner, tmp_path, source_doc, expect, change_after_pin=None):
+    """job_commands of a c0 job whose packed source unit's COMPLETE.json is ``source_doc`` (pinned by its bytes), and
+    whose plan carries ``expect`` (C0_SOURCE's e1_fingerprint); ``change_after_pin`` rewrites the file after its pin
+    was taken."""
+    rel = "inputs/source_complete-R-1101/COMPLETE.json"
+    src = write(tmp_path / rel, source_doc)
+    pins = {"source_complete:R:1101": sha(src), "oext_bank": hx("ob"), "oext_record": hx("or")}
+    inputs = {"source_complete:R:1101": rel, "oext_bank": "inputs/oext_bank/b.json", "oext_record": "inputs/oext_record/r.json"}
+    doc = {"files": {inputs[n]: pins[n] for n in pins}, "inputs": inputs}
+    if change_after_pin is not None:
+        write(src, change_after_pin)
+    job = {"kind": "c0", "arm": "R", "seed": 1101, "recipe": "B", "engine": "X", "inputs": pins,
+           "edit": {"sha256": hx("rd1"), "path": "x"}, "expect_fingerprint": expect}
+    return [c for _, c in runner.job_commands(sc_plan(w, job), "h", 0, tmp_path, {}, doc)]
+
+
+def test_k5_d1_c0_reads_its_expected_fingerprint_from_the_packed_source_unit_and_refuses_another(so, tmp_path):
+    """K4bcr-D1: the c0 command passes the e1 adapter fingerprint read from the packed source unit's COMPLETE.json,
+    after re-hashing the file against its pin (the stage-1 kit's @fingerprint:source_complete:R:1101,
+    R: runkit/stage1-olmo/setup/job_runner_stage1.py:517, :770-776); a plan value that differs from it (a typing
+    error in the lead's C0_SOURCE step), a file changed after its pin, or a file with no e1 fingerprint refuses."""
+    w = so
+    good = {"kind": "COMPLETE (synthetic)", "checkpoints": {"e1": {"adapter_fingerprint": hx("the real e1")}},
+            "evaluation": {"u": float(SENTINELS[2])}}
+    runner = load_by_path("jr78_k5_c0", w.root / "setup" / "job_runner_stage1.py")
+    cmds = c0_cmds(w, runner, tmp_path / "a", good, hx("the real e1"))
+    lean = cmds[1]
+    assert lean[lean.index("--expect-adapter-fingerprint") + 1] == hx("the real e1")
+    with pytest.raises(runner.Unrunnable, match=r"job 0 \(c0\): the packed source unit's e1 adapter fingerprint is not "
+                                                r"the plan's expected one \(C0_SOURCE\)"):
+        c0_cmds(w, runner, tmp_path / "b", good, hx("a typo in the step"))
+    with pytest.raises(runner.Unrunnable, match="the packed source unit's COMPLETE.json is missing or differs from its pin"):
+        c0_cmds(w, runner, tmp_path / "c", good, hx("the real e1"),
+                change_after_pin={**good, "checkpoints": {"e1": {"adapter_fingerprint": hx("another e1")}}})
+    with pytest.raises(runner.Unrunnable, match="lists no e1 adapter fingerprint"):
+        c0_cmds(w, runner, tmp_path / "d", {"kind": "COMPLETE (synthetic)", "checkpoints": {"q": {"adapter_fingerprint": hx("q")}}},
+                hx("the real e1"))
+
+
+def test_k5_d1_a_c0_pod_whose_c0_source_step_differs_from_the_packed_unit_runs_no_step(so, monkeypatch):
+    """K4bcr-D1 through the real route: C0_SOURCE's complete_sha256 is the packed source file's, its e1_fingerprint a
+    typing error. init-block sc plans c0 (the Mac does not read the unit), but the pod crashes before any step with
+    the refusal (no lean job, so no false engine-X alarm from B17)."""
+    w = so
+    w.fill(oext=True, c0=True)
+    w.mp.setitem(w.r78.C0_SOURCE, w.family, {"complete_sha256": sha(w.c0_source()), "e1_fingerprint": hx("a typo")})
+    w.pack(*stand_in_lists(w), *oext_inputs(w), ("source_complete:R:1101", w.c0_source(), sha(w.c0_source())))
+    host = w.init([{"kind": "c0"}])["released"][0]
+    assert w.plan()["hosts"][host]["jobs"][0]["expect_fingerprint"] == hx("a typo")
+    pod = ScPod(w, monkeypatch, host)
+    assert pod.main() == 1
+    rec = pod.done()["jobs"][0]
+    assert rec["status"] == "crashed" and "is not the plan's expected one (C0_SOURCE)" in rec["why"]
+    assert receipts(pod) == []                                         # no step ran
+    shutil.rmtree(pod.root)                                            # the right value: the lean job gets it
+    w.mp.setitem(w.r78.C0_SOURCE, w.family, {"complete_sha256": sha(w.c0_source()), "e1_fingerprint": hx("e1-R-1101")})
+    plan = w.plan()
+    plan["hosts"][host]["jobs"][0]["expect_fingerprint"] = hx("e1-R-1101")
+    w.mac.save_plan(plan)
+    pod = ScPod(w, monkeypatch, host)
+    assert pod.main() == 0
+    lean = [a for a in receipts(pod) if w.r78.C0_SCRIPT in a][0]
+    assert lean[lean.index("--expect-adapter-fingerprint") + 1] == hx("e1-R-1101")
+
+
+# D2: the prior verifier's HM6 (output hashing follows links), HM7 (another family's receipt), HM13 (an empty pass)
+def test_k5_d2_hm6_the_output_hashing_never_follows_a_symbolic_link(so, tmp_path):
+    """HM6: hashed_outputs lists regular files only; a link in a job folder (to a file outside it, or a folder) is
+    neither hashed nor recorded."""
+    runner = load_by_path("jr78_k5_hm6", so.root / "setup" / "job_runner_stage1.py")
+    root = tmp_path / "pod"
+    real = write(root / "job-0" / "oext" / "oext_record.json", {"kind": "oext (synthetic)"})
+    outside = write(tmp_path / "outside" / "secret-ish.json", {"kind": "a file outside the job folder"})
+    (root / "job-0" / "oext" / "link.json").symlink_to(outside)
+    (root / "job-0" / "oext" / "linked-folder").symlink_to(outside.parent, target_is_directory=True)
+    got = runner.hashed_outputs(root, ["job-0/oext"])
+    assert got == {"job-0/oext/oext_record.json": sha(real)}
+
+
+def test_k5_d2_hm7_the_scorer_release_refuses_another_familys_packed_receipt(so):
+    """HM7 (KD7): a packed stage1-X whose receipt names the other family refuses the scorer block's release."""
+    w = so
+    w.pack(*stand_in_lists(w))
+    assert w.init([ANCHOR], [UNTUNED])["released"] == [f"{w.family}-sc-1"]
+    anchor_done(w, f"{w.family}-sc-1")
+    other = next(f for f in FAMILIES if f != w.family)
+    path = w.root / "setup" / "packed-stage1-X" / "setup-receipt.json"
+    receipt = json.loads(path.read_text())
+    path.write_text(json.dumps({**receipt, "family": other}, indent=2) + "\n")
+    with pytest.raises(SystemExit, match=rf"the packed stage1-X is {other}'s; this copy is {w.family}'s \(KD7\)"):
+        w.tool.release("sc")
+    path.write_text(json.dumps(receipt, indent=2) + "\n")
+    assert w.tool.release("sc")["released"] == [f"{w.family}-sc-2"]
+
+
+def test_k5_d2_hm13_a_unitless_scorer_pass_that_wrote_nothing_is_a_crash(so, monkeypatch, tmp_path):
+    """HM13: the theta0 O-ext pass (o_only, unitless; its last check is the only guard) that exits 0 and writes
+    nothing is crashed, not complete with its cost ledger only."""
+    w = so
+    runner = load_by_path("jr78_k5_hm13", w.root / "setup" / "job_runner_stage1.py")
+    pins = {"oext_bank": hx("ob"), "oext_record": hx("or")}
+    inputs = {"oext_bank": "inputs/oext_bank/b.json", "oext_record": "inputs/oext_record/r.json"}
+    doc = {"files": {inputs[n]: pins[n] for n in pins}, "inputs": inputs}
+    job = {"kind": "o_only", "arm": "theta0", "seed": None, "recipe": "B", "engine": "X", "inputs": pins}
+    for writes, status in ((False, "crashed"), (True, "complete")):
+        root = tmp_path / f"pod-{writes}"
+
+        def fake(args, **kwargs):
+            argv = args[5:]
+            if writes:
+                write(root / argv[argv.index("--out") + 1] / "oext_record.json", {"kind": "oext (synthetic)"})
+            return subprocess.CompletedProcess(args, 0, "", "")
+        monkeypatch.setattr(runner.subprocess, "run", fake)
+        rec = runner.run_sc_job(sc_plan(w, job), "h", 0, root, {}, {}, doc)
+        assert rec["status"] == status, rec
+        if not writes:
+            assert rec["why"] == "the job wrote no output"
+        else:
+            assert list(rec["outputs"]) == ["job-0/oext/oext_record.json"]
+
+
+# D3: the re-verifier's scratch tests S1-S6 (reports/k4b-core-scratch/test_k4bcr_scratch.py), adopted
+def cents(x: float) -> float:
+    from decimal import Decimal, ROUND_HALF_UP
+    return float(Decimal(repr(x)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+
+
+def test_k5_s1_part1_every_seed_its_own_side_pin_and_the_need_by_hand(sw, capsys):
+    """S1 (K4bcr-R8, PP17): part 1 of both families with every o_only_with_regenerate seed; each pod's side-unit pin is
+    its own seed's KIT a0_units pin (the pins differ across seeds); guards, needs and caps by hand."""
+    w = sw
+    r78 = w.r78
+    seeds = r78.sc_seeds(w.family, "o_only_with_regenerate")
+    assert seeds == ([1101, 1102, 1103] if w.family == "olmo2-7b" else [1101, 1102])
+    w.fill(oext=True, c0=True)
+    sides = {s: w.side_unit(s, kind=f"COMPLETE (synthetic side unit {s})") for s in seeds}
+    assert len({sha(p) for p in sides.values()}) == len(seeds)
+    launch = [ANCHOR, UNTUNED, {"kind": "o_only"}] + [{"kind": "o_only_with_regenerate", "seed": s} for s in seeds] + \
+        [{"kind": "c0"}]
+    dry = w.init(launch, amount=None, dry_run=True)
+    pods = dry["pods"]
+    assert [p["kind"] for p in pods] == [j["kind"] for j in launch]
+    for p in pods:
+        assert p["engine"] == "X"                                     # PP16: all of part 1 is X-only
+        assert p["guard_usd"] == cents(6 + 1.85 * p["cap_hours"])     # guard by hand
+        assert p["need_usd_alone"] == cents(1.25 * p["guard_usd"])    # need alone by hand
+    regen = [p for p in pods if p["kind"] == "o_only_with_regenerate"]
+    for p, s in zip(regen, seeds):                                    # R8: each seed's pin is its own side unit's
+        assert p["inputs"][f"side_complete:a0:{s}"] == sha(sides[s]) == r78.KIT[w.family]["a0_units"][s]["complete_sha256"]
+        assert p["cap_hours"] == 4.5 and p["idle_storage"]["keeps_states"] is True
+    caps = {p["kind"]: p["cap_hours"] for p in pods}
+    assert caps == {"anchor": 2.25, "untuned_answers": 6.0, "o_only": 3.75, "o_only_with_regenerate": 4.5,
+                    "c0": 4.25 if w.family == "olmo2-7b" else 4.5}
+    base = cents(6 + 1.85 * sum(p["cap_hours"] for p in pods))         # one launch: the reserve + 1.85 x the caps
+    assert dry["base_need_usd"] == base and dry["need_usd"] == cents(1.25 * base)
+    kept = [p for p in pods if p["idle_storage"]["keeps_states"]]
+    assert [p["kind"] for p in kept] == ["o_only_with_regenerate"] * len(seeds) + ["c0"]
+
+
+def test_k5_s2_parts_2_and_3_in_a2_order_and_a1_pass_reads_the_recorded_anchor_file(sw, capsys):
+    """S2 (K4bcr-R13, D5): parts 2 and 3 in A2's order for both families (caps, engines and needs by hand); with the
+    anchor pin moved to another file after part 2, A1's pass refuses (its ANCHOR_BANK pin is not the recorded file)."""
+    w = sw
+    host = f"{w.family}-sc"
+    w.pack(*stand_in_lists(w))
+    w.init([ANCHOR, UNTUNED])
+    other = write(w.repo / "tmp" / "anchors" / "another-anchors.json", {"kind": "another anchor file"})
+    anchor_done(w, f"{host}-1")
+    untuned_done(w, f"{host}-2")
+    w.fill(anchor=True, recipe_s=True, s3_orig=True, engine_y=True)
+    part2 = [{"kind": "l1_scan"}, {"kind": "classifier"}, {"kind": "rep_pass"}, {"kind": "retrain"}]
+    dry2 = w.init(part2, amount=None, dry_run=True)
+    assert [(p["kind"], p["engine"], p["cap_hours"]) for p in dry2["pods"]] == [
+        ("l1_scan", "X", 4.75), ("classifier", "X", 3.25), ("rep_pass", "X", 4.75), ("retrain", "Y", 4.5)]
+    base2 = cents(6 + 1.85 * (4.75 + 3.25 + 4.75 + 4.5))
+    assert dry2["base_need_usd"] == base2 and dry2["need_usd"] == cents(1.25 * base2)
+    w.pack(*stand_in_lists(w), ("anchor_bank", w.anchor_bank(), sha(w.anchor_bank())))
+    y = w.root / "setup" / "packed-stage1-Y"
+    write(y / "sealed-files.json", {"files": {w.s78["path"]: sha(w.repo / w.s78["path"])}, "inputs": {}})
+    write(y / "setup-receipt.json", {"engine_sha256": Y, "family": w.family,
+                                     "sealed_files_sha256": sha(y / "sealed-files.json")})
+    retrain_host = w.init([{"kind": "retrain"}])["released"][0]
+    unit = w.retrain_unit()
+    tree = w.root / "retrieved" / retrain_host / "tree"
+    shutil.copytree(unit.parent, tree / "rescore" / unit.parent.name)
+    w.done(retrain_host, unit=f"rescore/{unit.parent.name}", complete_sha256=sha(unit),
+           verified={"exit": 0, "tail": "names"},
+           sc={"kind": "retrain", "fingerprints": {"complete_sha256": sha(unit), "checkpoints": {"e1": hx("e1"), "q": hx("q")},
+                                                   "identity": {"manifest_sha256": None, "training_identity": None}}})
+    w.fill(retrain=sha(unit))
+    dry3 = w.init([{"kind": "a1_pass"}], amount=None, dry_run=True)
+    assert [(p["kind"], p["engine"], p["cap_hours"]) for p in dry3["pods"]] == [("a1_pass", "Y", 16.5)]
+    assert dry3["need_usd"] == cents(1.25 * cents(6 + 1.85 * 16.5)) == 45.66
+    doc = w.pins78()                                     # R13: the anchor pin moved to another file after part 2
+    doc["families"][w.family]["anchor_bank_sha256"] = sha(other)
+    write(w.repo / w.rules.PINS_78B, doc)
+    w.mp.setitem(w.rules.SCORER_PINS, w.rules.PINS_78B, sha(w.repo / w.rules.PINS_78B))
+    for script in ("representation_pass", "score_classifier", "score_l1_larf"):
+        rel = f"{w.rules.SCORER_SETTINGS}/{script}__{w.family}.json"
+        s = json.loads((w.repo / rel).read_text())
+        if "anchor_bank_sha256" in s.get("pins", {}):
+            s["pins"]["anchor_bank_sha256"] = sha(other)
+            write(w.repo / rel, s)
+            w.mp.setitem(w.rules.SCORER_PINS, rel, sha(w.repo / rel))
+    index = json.loads((w.repo / w.rules.PINS_INDEX).read_text())
+    index["pins_78b_sha256"] = sha(w.repo / w.rules.PINS_78B)
+    write(w.repo / w.rules.PINS_INDEX, index)
+    w.mp.setitem(w.rules.SCORER_PINS, w.rules.PINS_INDEX, sha(w.repo / w.rules.PINS_INDEX))
+    with pytest.raises(SystemExit, match="the ANCHOR_BANK pin is not the anchor_file_sha256"):
+        w.init([{"kind": "a1_pass"}], amount=None, dry_run=True)
+
+
+BASE_UNIT = {"checkpoints": {"q": {"adapter_fingerprint": hx("q"), "optimizer_fingerprint": hx("q-opt")},
+                             "e1": {"adapter_fingerprint": hx("e1"), "optimizer_fingerprint": hx("e1-opt")}},
+             "identity": {"training_identity": hx("ti"), "manifest_sha256": hx("man")}}
+
+
+def unit_copy(doc):
+    return json.loads(json.dumps(doc))
+
+
+def test_k5_s3a_a_side_unit_without_an_e1_adapter_fingerprint_is_a_crash(so, monkeypatch, tmp_path):
+    """S3a (K4bcr-R21): the acceptance needs the side unit's e1 adapter fingerprint."""
+    side = unit_copy(BASE_UNIT)
+    del side["checkpoints"]["e1"]["adapter_fingerprint"]
+    rec, calls, root, runner = unit_run(so, monkeypatch, tmp_path, "o_only_with_regenerate", 0, side,
+                                        {"complete": True, **unit_copy(BASE_UNIT)})
+    assert rec["status"] == "crashed" and "no e1 adapter fingerprint" in rec["why"]
+
+
+def test_k5_s3b_a_fingerprint_the_side_lists_and_the_regenerated_unit_omits_is_ls04(so, monkeypatch, tmp_path):
+    """S3b (K4bcr-R7): a fingerprint the side unit lists and the regenerated unit omits is not equal (LS-04)."""
+    regen = {"complete": True, **unit_copy(BASE_UNIT)}
+    del regen["checkpoints"]["q"]["optimizer_fingerprint"]
+    rec, calls, root, runner = unit_run(so, monkeypatch, tmp_path, "o_only_with_regenerate", 0, unit_copy(BASE_UNIT), regen)
+    assert rec["status"] == "complete" and rec["acceptance"] is False and rec["reason"] == "LS-04"
+
+
+def test_k5_s3c_an_identity_field_missing_on_both_sides_is_not_equal(so, monkeypatch, tmp_path):
+    """S3c (K4bcr-R6): an identity field missing on both sides is not equal (LS-04)."""
+    side, regen = unit_copy(BASE_UNIT), {"complete": True, **unit_copy(BASE_UNIT)}
+    del side["identity"]["training_identity"], regen["identity"]["training_identity"]
+    rec, calls, root, runner = unit_run(so, monkeypatch, tmp_path, "o_only_with_regenerate", 0, side, regen)
+    assert rec["status"] == "complete" and rec["acceptance"] is False and rec["reason"] == "LS-04"
+
+
+def test_k5_s4_record_done_refuses_acceptance_false_with_a_reason_other_than_ls04(so, monkeypatch):
+    """S4 (K4bcr-R9): record-done refuses acceptance false with any reason but LS-04."""
+    w = so
+    w.fill(oext=True)
+    side = w.side_unit(1101)
+    w.pack(*oext_inputs(w), ("side_complete:a0:1101", side, sha(side)))
+    host = w.init([REGEN])["released"][0]
+    differs = {"kind": "COMPLETE (synthetic)", "complete": True,
+               "checkpoints": {"e1": {"adapter_fingerprint": hx("e1"), "optimizer_fingerprint": hx("e1-opt")},
+                               "q": {"adapter_fingerprint": hx("another q"), "optimizer_fingerprint": hx("q-opt")}},
+               "identity": {"training_identity": hx("ti"), "manifest_sha256": hx("man")}}
+    pod = ScPod(w, monkeypatch, host, unit_complete=differs)
+    assert pod.main() == 0
+    rec = pod.done()["jobs"][0]
+    tree = w.root / "retrieved" / host / "tree"
+    shutil.copytree(pod.root, tree)
+    with pytest.raises(SystemExit, match="names no acceptance verdict"):
+        w.done(host, unit=rec["unit"], complete_sha256=rec["complete_sha256"], verified={"exit": 0, "tail": ""},
+               sc={"kind": "o_only_with_regenerate", "fingerprints": rec["sc"]["fingerprints"], "acceptance": False,
+                   "acceptance_record_sha256": rec["sc"]["acceptance_record_sha256"]}, reason="LS-05")
+
+
+@pytest.mark.parametrize("kind", ["retrain", "a1_pass", "o_only_with_regenerate"])
+def test_k5_s5_a_unit_kinds_outputs_lie_under_its_job_folder_only(so, monkeypatch, tmp_path, kind):
+    """S5 (K4bcr-R1, D1/PP18): a unit kind's recorded outputs are its job folder's files, never its unit's."""
+    rec, calls, root, runner = unit_run(so, monkeypatch, tmp_path, kind)
+    assert rec["status"] == "complete", rec.get("why")
+    assert all(k.startswith("job-0/") for k in rec["outputs"]), sorted(rec["outputs"])
+
+
+def test_k5_s6_the_backup_checks_a1_pass_and_the_retrains_recorded_outputs(so):
+    """S6 (K4bcr-R17, D8): the backup checks a1_pass's recorded outputs (its cost ledger) too."""
+    w = so
+    backup = load_by_path("backup_sc_k5", w.root / "backup_records_stage1.py")
+    tree = w.root / "retrieved" / "h" / "tree"
+    attr = write(tree / "rescore" / "1101-attributes-a1" / "attributes.json", {"kind": "attributes (synthetic)"})
+    unit = write(tree / "rescore" / "1101-attributes-a1" / "COMPLETE.json", {"files": {"attributes.json": sha(attr)}})
+    ledger = write(tree / "job-0" / "cost-ledger.json", {"kind": "stage1 cost ledger"})
+    plan = {"hosts": {"h": {"block": "sc", "jobs": [
+        {"kind": "a1_pass", "status": "complete", "unit": "rescore/1101-attributes-a1", "complete_sha256": sha(unit),
+         "outputs": {"job-0/cost-ledger.json": sha(ledger)}}]}}}
+    staged = {f"units/h/{p.relative_to(tree)}": sha(p) for p in tree.rglob("*") if p.is_file()}
+    missing = []
+    backup.sealed_units(plan, ["h"], staged, missing)
+    assert missing == []
+    missing = []
+    backup.sealed_units(plan, ["h"], {k: v for k, v in staged.items() if "cost-ledger" not in k}, missing)
+    assert missing == ["h: job 0: 1 recorded output(s) not staged or changed"]
+
+
+# ===== 9. round 5 (K5): the security re-verifier's R4 (the pack's scan over everything it ships) ====================
+def test_k5_r4_the_pack_refuses_a_token_shaped_string_in_every_file_kind_it_ships(so, monkeypatch):
+    """R4: a token-shaped string (built here, at test time; not a token) planted in an engine file, a scorer script,
+    a setup-tar member, a generated payload (probe.json, through a monkeypatched probe_record) or the worker bootstrap
+    (through a monkeypatched PIP_PIN) refuses the pack with names and pattern names only, never the text; no
+    setup-receipt.json is written (release reads only a receipt). The edit files (edits/) are scanned; the prepared
+    set (data/) is not, by the lead's ruling (its manifest SHA-256 pins every byte)."""
+    import re
+    w = so
+    fake = "hf_" + "K5" * 17                              # 'hf_' + 34 characters: the HF token's shape, not a token
+    w.pack()                                             # a clean pack first (and the synthetic engine tree)
+    out = w.root / "setup" / "packed-stage1-X"
+    assert (out / "setup-receipt.json").is_file()
+    pack = importlib.import_module("pack_setup")
+
+    def refused(match: str, before_write: bool):
+        with pytest.raises(SystemExit) as info:
+            w.pack()
+        text = str(info.value)
+        assert re.search(match, text), text
+        assert fake not in text and "K5K5" not in text
+        assert not (out / "setup-receipt.json").exists()
+        assert out.exists() is not before_write          # the bundle's own scan refuses before anything is written
+        return text
+
+    # an engine file (experiments/), then a scorer script (scripts/, at a test-local pin)
+    planted = write(w.repo / "experiments" / "safety_selection" / "planted_k5.py", f"# {fake}\n")
+    refused(r"a secret pattern is in a packed file: \[\('planted_k5.py', 'hf_token'\)\]", True)
+    planted.unlink()
+    script = w.repo / w.rules.WRAPPER
+    original = script.read_bytes()
+    script.write_bytes(original + f"# {fake}\n".encode())
+    monkeypatch.setitem(w.rules.SCORER_PINS, w.rules.WRAPPER, sha(script))
+    refused(r"a secret pattern is in a packed file: \[\('scorers_78b.py', 'hf_token'\)\]", True)
+    script.write_bytes(original)
+    monkeypatch.setitem(w.rules.SCORER_PINS, w.rules.WRAPPER, sha(script))
+    # a generated payload (probe.json)
+    real_probe = pack.probe_record
+    monkeypatch.setattr(pack, "probe_record", lambda family: {**real_probe(family), "note": fake})
+    refused(r"a secret pattern is in a packed file: \[\('probe.json', 'hf_token'\)\]", True)   # the payload scan
+    monkeypatch.setattr(pack, "probe_record", real_probe)
+    # the worker bootstrap (after the bundle is written: a partial folder, no receipt)
+    monkeypatch.setattr(pack.rules, "PIP_PIN", fake)
+    refused(r"^a secret pattern is in the generated bootstrap$", False)
+    monkeypatch.setattr(pack.rules, "PIP_PIN", None)
+    # a setup-tar member (setup/extend_cap.py of the working copy)
+    member = w.root / "setup" / "extend_cap.py"
+    kept = member.read_bytes()
+    member.write_bytes(kept + f"# {fake}\n".encode())
+    refused(r"a secret pattern is in a packed file: \[\('extend_cap.py', 'hf_token'\)\]", False)
+    member.write_bytes(kept)
+    w.pack()
+    assert (out / "setup-receipt.json").is_file()        # clean again: the pack goes through
+    # edits/ is scanned (K5); data/ stays outside the scan (the manifest pin); inputs/ by its own loop
+    tmp = w.repo / "tmp" / "k5-r4"
+    edit = write(tmp / "edit.json", {"items": [{"prompt": fake}]})
+    prepared = write(tmp / "rows.jsonl", json.dumps({"prompt": fake}) + "\n")
+    with pytest.raises(SystemExit, match=r"a secret pattern is in a packed file: \[\('edit.json', 'hf_token'\)\]"):
+        pack.refuse_secrets({f"edits/{hx('e')}.edit.json": edit}, {}, pack.DATA_PREFIXES)
+    pack.refuse_secrets({"data/kt-prepared/x/rows.jsonl": prepared}, {}, pack.DATA_PREFIXES)
+    assert pack.DATA_PREFIXES == ("data/", "inputs/")

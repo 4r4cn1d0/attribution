@@ -1,0 +1,230 @@
+{
+ "kind": "K5 re-verifier hand mutants",
+ "mutants": [
+  {
+   "id": "K5v-D1a-reads-q",
+   "item": "D1",
+   "file": "setup/job_runner_stage1.py",
+   "describes": "c0_fingerprint reads the q checkpoint's adapter fingerprint, not e1's",
+   "find": "    e1 = points.get(\"e1\") if isinstance(points.get(\"e1\"), dict) else {}\n",
+   "replace": "    e1 = points.get(\"q\") if isinstance(points.get(\"q\"), dict) else {}\n",
+   "expect": "killed"
+  },
+  {
+   "id": "K5v-D1b-fallback-on-refusal",
+   "item": "D1",
+   "file": "setup/job_runner_stage1.py",
+   "describes": "a refusal of c0_fingerprint falls back to the plan's value",
+   "find": "        expect = c0_fingerprint(root, ins[C0_SOURCE_INPUT], job, index)   # K5: from the packed source unit\n",
+   "replace": "        try:\n            expect = c0_fingerprint(root, ins[C0_SOURCE_INPUT], job, index)\n        except Unrunnable:\n            expect = job[\"expect_fingerprint\"]\n",
+   "expect": "killed"
+  },
+  {
+   "id": "K5v-D1c-link-accepted",
+   "item": "D1",
+   "file": "setup/job_runner_stage1.py",
+   "describes": "c0_fingerprint accepts a symbolic link (the hash is still checked)",
+   "find": "    if not path.is_file() or path.is_symlink() or sha(path) != pin:\n",
+   "replace": "    if not path.is_file() or sha(path) != pin:\n",
+   "expect": "survive (equivalent in effect: the bytes are pinned)"
+  },
+  {
+   "id": "K5v-HM6-walk-follows-folder-links",
+   "item": "D2",
+   "file": "setup/job_runner_stage1.py",
+   "describes": "hashed_outputs walks with followlinks=True (files under a linked folder hashed)",
+   "find": "            for f in sorted(base.rglob(\"*\")):\n                if f.is_file() and not f.is_symlink():\n                    out[str(f.relative_to(root))] = sha(f)\n",
+   "replace": "            for d, _, names in os.walk(base, followlinks=True):\n                for f in sorted(pathlib.Path(d) / n for n in names):\n                    if f.is_file() and not f.is_symlink():\n                        out[str(f.relative_to(root))] = sha(f)\n",
+   "expect": "killed"
+  },
+  {
+   "id": "K5v-HM7-family-check-on-Y-only",
+   "item": "D2",
+   "file": "plan_tool.py",
+   "describes": "the scorer release checks the receipt's family on engine Y only",
+   "find": "        if rec.get(\"family\") not in (None, family):\n            fail(f\"{name}: the packed stage1-{h['engine']} is",
+   "replace": "        if rec.get(\"family\") not in (None, family) and h[\"engine\"] == \"Y\":\n            fail(f\"{name}: the packed stage1-{h['engine']} is",
+   "expect": "killed"
+  },
+  {
+   "id": "K5v-HM13-oext-kinds-exempt",
+   "item": "D2",
+   "file": "setup/job_runner_stage1.py",
+   "describes": "the no-output crash skips the O-ext kinds (o_only)",
+   "find": "    if not record[\"outputs\"] and kind not in SC_UNIT_KINDS:\n",
+   "replace": "    if not record[\"outputs\"] and kind not in SC_UNIT_KINDS and kind not in rules.OEXT_KINDS:\n",
+   "expect": "killed"
+  },
+  {
+   "id": "K5v-R8-seed-pins-swapped",
+   "item": "D3",
+   "file": "stage1_rules.py",
+   "describes": "the side-unit pins of seeds 1101 and 1102 are swapped",
+   "find": "table[SIDE_COMPLETE.format(seed=seed)] = A0_UNITS[seed][\"complete_sha256\"]",
+   "replace": "table[SIDE_COMPLETE.format(seed=seed)] = A0_UNITS[{1101: 1102, 1102: 1101}.get(seed, seed)][\"complete_sha256\"]",
+   "expect": "killed"
+  },
+  {
+   "id": "K5v-R13-a1-pass-anchor-pin-dropped",
+   "item": "D3",
+   "file": "rules_78b.py",
+   "describes": "a1_pass no longer needs ANCHOR_BANK (so no binding)",
+   "find": "    \"a1_pass\": (\"RECIPE_S\", \"ANCHOR_BANK\", \"RETRAIN_UNIT\"),\n",
+   "replace": "    \"a1_pass\": (\"RECIPE_S\", \"RETRAIN_UNIT\"),\n",
+   "expect": "killed"
+  },
+  {
+   "id": "K5v-R17-backup-skips-a1-pass",
+   "item": "D3",
+   "file": "backup_records_stage1.py",
+   "describes": "the backup does not check a1_pass's recorded outputs",
+   "find": "scorer_unit = plan[\"hosts\"][host].get(\"block\") == \"sc\" and job.get(\"kind\") not in rules.UNITLESS_KINDS",
+   "replace": "scorer_unit = plan[\"hosts\"][host].get(\"block\") == \"sc\" and job.get(\"kind\") not in rules.UNITLESS_KINDS and job.get(\"kind\") != \"a1_pass\"",
+   "expect": "killed"
+  },
+  {
+   "id": "K5v-R6-none-none-equal",
+   "item": "D3",
+   "file": "setup/job_runner_stage1.py",
+   "describes": "acceptance: a field missing on both sides is equal",
+   "find": "\"equal\": rules.hex64(src) is not None and src == got}",
+   "replace": "\"equal\": (src is None and got is None) or (rules.hex64(src) is not None and src == got)}",
+   "expect": "killed"
+  },
+  {
+   "id": "K5v-R7-missing-defaults-to-side",
+   "item": "D3",
+   "file": "setup/job_runner_stage1.py",
+   "describes": "acceptance: a field the regenerated unit omits takes the side's value",
+   "find": "source, got = listed[key], (regen_points.get(point) or {}).get(key)",
+   "replace": "source, got = listed[key], (regen_points.get(point) or {}).get(key, listed[key])",
+   "expect": "killed"
+  },
+  {
+   "id": "K5v-R21-no-e1-checkpoint-accepted",
+   "item": "D3",
+   "file": "setup/job_runner_stage1.py",
+   "describes": "acceptance: the e1 adapter check runs only when the side lists an e1 checkpoint",
+   "find": "if rules.hex64((side_points.get(\"e1\") or {}).get(\"adapter_fingerprint\")) is None:",
+   "replace": "if \"e1\" in side_points and rules.hex64((side_points.get(\"e1\") or {}).get(\"adapter_fingerprint\")) is None:",
+   "expect": "unknown"
+  },
+  {
+   "id": "K5v-R9-any-LS-reason",
+   "item": "D3",
+   "file": "plan_tool.py",
+   "describes": "record-done accepts any LS-* reason for acceptance false",
+   "find": "(acc is False and r.get(\"reason\") != \"LS-04\") or \\",
+   "replace": "(acc is False and not str(r.get(\"reason\")).startswith(\"LS-\")) or \\",
+   "expect": "killed"
+  },
+  {
+   "id": "K5v-G1-wrapper-skips-explicit-proto",
+   "item": "R1",
+   "file": "tests/conftest.py",
+   "describes": "the wrapper lets a socket with a nonzero proto (e.g. IPPROTO_UDP given explicitly) through to C",
+   "find": "    def call(self, *args, **kwargs):\n        if name in (\"connect\", \"connect_ex\"):\n",
+   "replace": "    def call(self, *args, **kwargs):\n        if getattr(self, \"proto\", 0):\n            return real(self, *args, **kwargs)\n        if name in (\"connect\", \"connect_ex\"):\n",
+   "expect": "unknown"
+  },
+  {
+   "id": "K5v-G1-wrapper-skips-v6-dgram",
+   "item": "R1",
+   "file": "tests/conftest.py",
+   "describes": "the wrapper lets IPv6 datagram sockets through to C",
+   "find": "    def call(self, *args, **kwargs):\n        if name in (\"connect\", \"connect_ex\"):\n",
+   "replace": "    def call(self, *args, **kwargs):\n        if self.family == socket.AF_INET6 and getattr(self, \"type\", None) == socket.SOCK_DGRAM:\n            return real(self, *args, **kwargs)\n        if name in (\"connect\", \"connect_ex\"):\n",
+   "expect": "killed"
+  },
+  {
+   "id": "K5v-G2-hook-default-named-threads-free",
+   "item": "R2",
+   "file": "tests/conftest.py",
+   "describes": "the hook ignores threads with a default name (Thread-N: any library thread started without a name)",
+   "find": "    if event not in _AUDITED:\n        return\n    kind = _AUDITED[event]\n",
+   "replace": "    if event not in _AUDITED or __import__(\"threading\").current_thread().name.startswith(\"Thread-\"):\n        return\n    kind = _AUDITED[event]\n",
+   "expect": "unknown"
+  },
+  {
+   "id": "K5v-G2-hook-dummy-threads-free",
+   "item": "R2",
+   "file": "tests/conftest.py",
+   "describes": "the hook ignores threads not started by threading (_thread.start_new_thread: a _DummyThread)",
+   "find": "    if event not in _AUDITED:\n        return\n    kind = _AUDITED[event]\n",
+   "replace": "    if event not in _AUDITED or isinstance(__import__(\"threading\").current_thread(), __import__(\"threading\")._DummyThread):\n        return\n    kind = _AUDITED[event]\n",
+   "expect": "unknown"
+  },
+  {
+   "id": "K5v-G3-redirect-keeps-token",
+   "item": "R3",
+   "file": "launch.py",
+   "describes": "SameHostAuthRedirect's http_error_30x calls the PARENT's redirect_request (the header is kept on a real redirect)",
+   "find": "    def redirect_request(self, req, fp, code, msg, headers, newurl):\n        new = super().redirect_request(req, fp, code, msg, headers, newurl)\n",
+   "replace": "    def http_error_302(self, req, fp, code, msg, headers):\n        newurl = urllib.parse.urljoin(req.full_url, headers.get(\"location\") or headers.get(\"uri\") or \"\")\n        new = urllib.request.HTTPRedirectHandler.redirect_request(self, req, fp, code, msg, headers, newurl)\n        return None if new is None else self.parent.open(new, timeout=req.timeout)\n\n    http_error_301 = http_error_303 = http_error_307 = http_error_308 = http_error_302\n\n    def redirect_request(self, req, fp, code, msg, headers, newurl):\n        new = super().redirect_request(req, fp, code, msg, headers, newurl)\n",
+   "expect": "unknown"
+  },
+  {
+   "id": "K5v-G3-https-request-moves-host",
+   "item": "R3",
+   "file": "launch.py",
+   "describes": "SameHostAuthRedirect's https_request sends the request to another host (the scheme stays https)",
+   "find": "    def redirect_request(self, req, fp, code, msg, headers, newurl):\n        new = super().redirect_request(req, fp, code, msg, headers, newurl)\n",
+   "replace": "    def https_request(self, req):\n        req.host = \"huggingface.co.example.net\"\n        return req\n\n    def redirect_request(self, req, fp, code, msg, headers, newurl):\n        new = super().redirect_request(req, fp, code, msg, headers, newurl)\n",
+   "expect": "killed"
+  },
+  {
+   "id": "K5v-R4-scan-reads-head-only",
+   "item": "R4",
+   "file": "secret_scan.py",
+   "describes": "scan_paths reads only each file's first 2 KiB",
+   "find": "        text = pathlib.Path(path).read_bytes().decode(\"utf-8\", \"ignore\")\n",
+   "replace": "        text = pathlib.Path(path).read_bytes()[:2048].decode(\"utf-8\", \"ignore\")\n",
+   "expect": "unknown"
+  },
+  {
+   "id": "K5v-R4-bundle-scan-after-first-write",
+   "item": "R4",
+   "file": "pack_setup.py",
+   "describes": "the bundle's scan runs after the packed folder and probe.json are written",
+   "find": "    refuse_secrets(files, {**payload, \"probe.json\": probe_json, rules.KIT_FAMILY_FILE: family_json}, DATA_PREFIXES)\n    out.mkdir(parents=True, exist_ok=False)\n    (out / \"probe.json\").write_bytes(probe_json)\n",
+   "replace": "    out.mkdir(parents=True, exist_ok=False)\n    (out / \"probe.json\").write_bytes(probe_json)\n    refuse_secrets(files, {**payload, \"probe.json\": probe_json, rules.KIT_FAMILY_FILE: family_json}, DATA_PREFIXES)\n",
+   "expect": "killed"
+  },
+  {
+   "id": "K5v-R4-refusal-quotes-the-match",
+   "item": "R4",
+   "file": "pack_setup.py",
+   "describes": "the bundle refusal quotes the first matched text",
+   "find": "        raise SystemExit(f\"a secret pattern is in a packed file: {[(pathlib.Path(n).name, p) for n, p in hits][:10]}\")\n",
+   "replace": "        quoted = [secret_scan.PATTERNS[p].search(pathlib.Path(n).read_bytes().decode('utf-8', 'ignore')).group(0)\n                  for n, p in hits if pathlib.Path(n).is_absolute() and pathlib.Path(n).is_file()][:1]\n        raise SystemExit(f\"a secret pattern is in a packed file: {[(pathlib.Path(n).name, p) for n, p in hits][:10]} {quoted}\")\n",
+   "expect": "killed"
+  },
+  {
+   "id": "K5v-R5-drops-one-token-name",
+   "item": "R5",
+   "file": "setup/job_runner_stage1.py",
+   "describes": "the runner's job env drops HF_TOKEN only (HUGGING_FACE_HUB_TOKEN kept)",
+   "find": "    env = {k: v for k, v in os.environ.items() if k not in TOKEN_ENV_NAMES}\n",
+   "replace": "    env = {k: v for k, v in os.environ.items() if k != \"HF_TOKEN\"}\n",
+   "expect": "killed"
+  },
+  {
+   "id": "K5v-R5-run-job-verify-whole-env",
+   "item": "R5",
+   "file": "setup/job_runner_stage1.py",
+   "describes": "run_job's engine verify gets the whole os.environ",
+   "find": "    check = subprocess.run([*ENGINE, \"verify\", \"--run\", unit, \"--prepared\", PREPARED], env=env, cwd=root,\n                           capture_output=True, text=True)\n    record.update(unit=unit,",
+   "replace": "    check = subprocess.run([*ENGINE, \"verify\", \"--run\", unit, \"--prepared\", PREPARED], env=dict(os.environ), cwd=root,\n                           capture_output=True, text=True)\n    record.update(unit=unit,",
+   "expect": "killed"
+  },
+  {
+   "id": "K5v-R5-oext-step-online",
+   "item": "R5",
+   "file": "setup/job_runner_stage1.py",
+   "describes": "run_sc_job's O-ext step gets HF_HUB_OFFLINE=0",
+   "find": "        done = subprocess.run([\"python3\", \"process_receipt.py\", \"--out\", name, \"--\", *argv], env=env, cwd=root)\n        steps.append({\"name\": name, \"seconds\": round(time.monotonic() - start, 3), \"exit\": done.returncode})\n        exits[name] = done.returncode\n        s4_few",
+   "replace": "        done = subprocess.run([\"python3\", \"process_receipt.py\", \"--out\", name, \"--\", *argv],\n                              env={**env, \"HF_HUB_OFFLINE\": \"0\"} if name.endswith(\"-oext\") else env, cwd=root)\n        steps.append({\"name\": name, \"seconds\": round(time.monotonic() - start, 3), \"exit\": done.returncode})\n        exits[name] = done.returncode\n        s4_few",
+   "expect": "killed"
+  }
+ ]
+}

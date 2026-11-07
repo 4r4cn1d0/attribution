@@ -10,6 +10,7 @@ os.system or a reverse lookup. Every token-free; nothing here reaches the networ
 from __future__ import annotations
 
 import _socket
+import concurrent.futures
 import contextlib
 import multiprocessing
 import multiprocessing.spawn
@@ -118,6 +119,7 @@ def test_dk1_module_scoped_fixture_calls_stop_in_the_process_wide_layer(module_s
     assert probes.pop("fixture_active") is False                  # the per-test fixture was not set up yet
     for name, (verdict, text) in probes.items():
         assert verdict == "refused" and text.startswith(HOOK), (name, verdict, text)
+    assert "socket sendto (before any name resolution)" in probes["sendto"][1]   # K5 (R1): the wrapper, before C
 
 
 REFUSED_EVENTS = [
@@ -287,8 +289,14 @@ WRAP = "(before any name resolution)"
 
 
 class _Stand:
-    def __init__(self, family):
-        self.family = family
+    """A socket stand-in with the attributes a wrapper could read: family, type (stream or datagram) and proto (K5,
+    the security re-verifier's R1: a wrapper that lets one socket type through must fail a probe)."""
+
+    def __init__(self, family, kind=socket.SOCK_STREAM):
+        self.family, self.type, self.proto = family, kind, 0
+
+
+SOCKET_KINDS = (("stream", socket.SOCK_STREAM), ("dgram", socket.SOCK_DGRAM))
 
 
 WRAPPER_CASES = {
@@ -305,8 +313,20 @@ WRAPPER_CASES = {
 
 
 def _wrapper_probes() -> dict:
-    return {key: _outcome(lambda m=m, fam=fam, a=a: PROCESS_WIDE_SOCKET[m](_Stand(fam), *a))
-            for key, (m, fam, a) in WRAPPER_CASES.items()}
+    """Every wrapper case on a stream and on a datagram stand-in (K5, R1)."""
+    return {f"{key}-{kind_name}": _outcome(lambda m=m, fam=fam, a=a, k=kind: PROCESS_WIDE_SOCKET[m](_Stand(fam, k), *a))
+            for key, (m, fam, a) in WRAPPER_CASES.items() for kind_name, kind in SOCKET_KINDS}
+
+
+def _real_dgram_probes() -> dict:
+    """K5 (R1): REAL datagram sockets (IPv4 and IPv6) sending to a numeric non-loopback address: the wrapper must
+    refuse before the C call (its message says so). Fail-closed: the call is made only after the hook refuses the same
+    event raised by hand, and a numeric address needs no lookup, so a weakened wrapper meets the hook before any
+    packet."""
+    return {"sendto-v4": _outcome(lambda: _socket_call(socket.AF_INET, socket.SOCK_DGRAM, "sendto", b"x",
+                                                       ("203.0.113.9", 9))),
+            "sendto-v6": _outcome(lambda: _socket_call(socket.AF_INET6, socket.SOCK_DGRAM, "sendto", b"x", V6)),
+            "sendto-v6-flags": _outcome(lambda: _socket_call(socket.AF_INET6, socket.SOCK_DGRAM, "sendto", b"x", 0, V6))}
 
 
 # D2: the hook itself (events raised by hand: nothing real happens) under the local_processes flag, in a non-main
@@ -334,23 +354,32 @@ def _hook_probes(events) -> list:
     return [(event, _outcome(lambda e=event, a=args: sys.audit(e, *a))) for event, args in events]
 
 
-def _in_thread(probe):
+def _in_thread(probe, daemon: bool = False):
     box = {}
-    worker = threading.Thread(target=lambda: box.update(result=probe()), name="pp10-k4b-probe")
+    worker = threading.Thread(target=lambda: box.update(result=probe()), name="pp10-k4b-probe", daemon=daemon)
     worker.start()
     worker.join(30)
     assert not worker.is_alive()
     return box["result"]
 
 
+def _in_executor(probe):
+    """K5 (R2): a ThreadPoolExecutor worker (its default thread name; asyncio's loop.getaddrinfo runs in one)."""
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        return pool.submit(probe).result(timeout=30)
+
+
 AT_COLLECTION_WRAPPERS = _wrapper_probes()
+AT_COLLECTION_DGRAM = _real_dgram_probes()
 AT_COLLECTION_THREAD = _in_thread(lambda: _hook_probes(HOOK_EVENTS + BYTES_EVENTS) + [
     ("wrapper", v) for v in _wrapper_probes().values()])
+AT_COLLECTION_DAEMON = _in_thread(lambda: _hook_probes(HOOK_EVENTS + BYTES_EVENTS), daemon=True)
+AT_COLLECTION_EXECUTOR = _in_executor(lambda: _hook_probes(HOOK_EVENTS + BYTES_EVENTS))
 
 
 @pytest.fixture(scope="module")
 def module_wrapper_probes():
-    return _wrapper_probes()
+    return {**_wrapper_probes(), **{f"real-{k}": v for k, v in _real_dgram_probes().items()}}
 
 
 def _all_refused(results, where: str) -> None:
@@ -363,9 +392,12 @@ def test_k4bf_d1_the_wrapper_refuses_sendto_sendmsg_and_inet6_before_any_resolut
     """D1: at collection and in a module-scoped fixture (only the process-wide layer exists there), the wrapper of each
     of sendto (with and without flags), sendmsg and an AF_INET6 connect / connect_ex refuses a host name or a
     non-loopback address before the C call (its message names the wrapper)."""
-    for where, results in (("collection", AT_COLLECTION_WRAPPERS), ("module fixture", module_wrapper_probes)):
+    for where, results in (("collection", {**AT_COLLECTION_WRAPPERS, **{f"real-{k}": v for k, v in AT_COLLECTION_DGRAM.items()}}),
+                           ("module fixture", module_wrapper_probes)):
         _all_refused(results.items(), where)
         assert all(WRAP in text for _, text in results.values()), where
+        assert {k.rsplit("-", 1)[1] for k in results if not k.startswith("real-")} == {"stream", "dgram"}, where
+        assert sum(k.startswith("real-") for k in results) == 3, where
     loopback = PROCESS_WIDE_SOCKET["sendto"]           # loopback passes the wrapper (and reaches C, which rejects the
     with pytest.raises(TypeError):                     # stand-in: nothing is sent)
         loopback(_Stand(socket.AF_INET6), b"x", ("::1", 9, 0, 0))
@@ -385,6 +417,12 @@ def test_k4bf_d2_the_hook_refuses_in_a_non_main_thread_and_for_bytes_hosts():
     no loopback (only b"localhost" and loopback IPs are)."""
     _all_refused(AT_COLLECTION_THREAD, "collection thread")
     _all_refused(_in_thread(lambda: _hook_probes(HOOK_EVENTS + BYTES_EVENTS)), "test thread")
+    # K5 (R2): a daemon thread and a ThreadPoolExecutor worker, at collection and in the test, meet the same hook
+    _all_refused(AT_COLLECTION_DAEMON, "collection daemon thread")
+    _all_refused(AT_COLLECTION_EXECUTOR, "collection executor worker")
+    _all_refused(_in_thread(lambda: _hook_probes(HOOK_EVENTS + BYTES_EVENTS), daemon=True), "test daemon thread")
+    _all_refused(_in_executor(lambda: _hook_probes(HOOK_EVENTS + BYTES_EVENTS)), "test executor worker")
+    assert len(AT_COLLECTION_DAEMON) == len(AT_COLLECTION_EXECUTOR) == len(HOOK_EVENTS + BYTES_EVENTS)
     _all_refused(_hook_probes(BYTES_EVENTS), "main thread, bytes hosts")
     for host in (NAME.encode(), b"203.0.113.9", b"localhost.example", b"2001:db8::1", b""):
         assert not conftest.loopback_host(host), host

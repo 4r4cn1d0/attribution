@@ -997,3 +997,80 @@ def test_the_committed_kit_folder_imports_every_runner_module_and_runs_nothing(t
     assert text.count("OEXT_UNIT_SCRIPT") == 2 and text[text.index("def sc_commands("):text.index("def out_dirs(")].count(
         "r78.OEXT_UNIT_SCRIPT") == 2                     # K4b, PP17: only the scorer block's o_only and o_only_with_regenerate
     assert "s_obs_from_progress" in text and "free_space_gb" in text and "check_keys" in text and "job_decision" in text
+
+
+# ===== K5 (the security re-verifier's R5): the environment of every process a job starts ===========================
+def _env_recorder(monkeypatch, runner, inner) -> list:
+    """runner.subprocess.run wrapped: every call's argv and ``env`` keyword are recorded, then ``inner`` answers."""
+    seen = []
+
+    def run(args, **kwargs):
+        seen.append((list(args), kwargs.get("env", "NOT GIVEN")))
+        return inner(args, **kwargs)
+    monkeypatch.setattr(runner.subprocess, "run", run)
+    return seen
+
+
+def _token_after_preflight(monkeypatch, runner, fake: str) -> None:
+    """The pre-job token check passes (no token then), and only after it a FAKE value (built at test time) appears in
+    every token variable and HF_HUB_OFFLINE is "0" in os.environ: the jobs' environment must still hold neither."""
+    real = runner.preflight_checks
+
+    def checks(*a, **kw):
+        out = real(*a, **kw)
+        for name in runner.TOKEN_ENV_NAMES:
+            monkeypatch.setenv(name, fake)
+        monkeypatch.setenv("HF_HUB_OFFLINE", "0")
+        return out
+    monkeypatch.setattr(runner, "preflight_checks", checks)
+
+
+def _assert_job_envs(seen, runner, fake: str, steps: int, verifies: int) -> None:
+    calls = [(a, e) for a, e in seen if a[:2] == ["python3", "process_receipt.py"] or
+             (a[:3] == ["venv/bin/python", "-m", "experiments.safety_selection"] and "verify" in a)]
+    assert len([a for a, _ in calls if a[0] == "python3"]) == steps and len(calls) == steps + verifies, \
+        [a[:4] for a, _ in seen]
+    for argv, env in calls:
+        assert isinstance(env, dict), (argv[:4], env)
+        assert not set(env) & set(runner.TOKEN_ENV_NAMES), (argv[:4], sorted(set(env) & set(runner.TOKEN_ENV_NAMES)))
+        assert env.get("HF_HUB_OFFLINE") == "1", argv[:4]
+        assert fake not in json.dumps(env), argv[:4]
+
+
+def test_k5_r5_run_job_gives_every_step_and_the_verify_the_scrubbed_offline_environment(w, monkeypatch):
+    """R5 (run_job, block 0's engine jobs): each calibrate step and each engine verify gets the runner's own
+    environment: no token variable (TOKEN_ENV_NAMES) and HF_HUB_OFFLINE == "1", even when os.environ holds a token
+    variable and HF_HUB_OFFLINE=0 after the pre-job check."""
+    fake = "hf_" + "R5" * 17                              # the HF token's shape, built here; not a token
+    pod = Pod(w, monkeypatch)
+    pod.remaining([30 * H])
+    _token_after_preflight(monkeypatch, pod.runner, fake)
+    seen = _env_recorder(monkeypatch, pod.runner, pod.run)
+    assert pod.main() == 0
+    jobs = len(pod.plan["hosts"][pod.host]["jobs"])
+    _assert_job_envs(seen, pod.runner, fake, steps=jobs, verifies=jobs)
+    assert not any(fake in t for t in pod.texts())
+
+
+def test_k5_r5_run_sc_job_and_verify_unit_give_the_scrubbed_offline_environment(monkeypatch, tmp_path):
+    """R5 (run_sc_job and verify_unit): o_only_with_regenerate's three steps (make-job, run-one, the O-ext pass) and
+    the engine verify of its regenerated unit each get the runner's own environment (no token variable,
+    HF_HUB_OFFLINE == "1"), even when os.environ holds a token variable and HF_HUB_OFFLINE=0 after the pre-job check."""
+    sb = load_by_path("scorer_block_k5_r5", KIT / "tests" / "test_scorer_block_78b.py")
+    fake = "hf_" + "R5" * 17
+    sw = sb.ScWorld(tmp_path, monkeypatch, "olmo2-7b")
+    try:
+        sw.fill(oext=True)
+        side = sw.side_unit(1101)
+        sw.pack(*sb.oext_inputs(sw), ("side_complete:a0:1101", side, sb.sha(side)))
+        host = sw.init([sb.REGEN])["released"][0]
+        pod = sb.ScPod(sw, monkeypatch, host)
+        _token_after_preflight(monkeypatch, pod.runner, fake)
+        seen = _env_recorder(monkeypatch, pod.runner, pod.run)
+        assert pod.main() == 0
+        assert pod.done()["jobs"][0]["status"] == "complete"
+        _assert_job_envs(seen, pod.runner, fake, steps=3, verifies=1)
+        assert fake not in json.dumps(pod.done())
+    finally:
+        for name in rk.MODULES:
+            sys.modules.pop(name, None)

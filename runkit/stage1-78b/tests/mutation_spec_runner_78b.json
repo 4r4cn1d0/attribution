@@ -1,6 +1,6 @@
 {
  "kind": "stage1-78b runner mutants (K2)",
- "note": "Mutants for K2's changes (the job runner's gate: s_obs, the free space, the key check and the bank, the two preflight documents, the refusal records, the identity checks, K6; the preflight's speed and bank fields; the finisher's states pull; states_tool.py; the backup's states group), in the stage-1 kit's spec form. Run with tests/run_mutants_runner_78b.py (both runner test files, -x): the baseline first with the same command; a mutant is killed only by a real test failure (pytest exit 1, FAILED lines, no ERROR line); an error, a timeout or a find text not exactly once is INVALID, never a kill. K4a (6 Nov) added the K4-m-* mutants: RV2-8, the runner's pre-job token check through download_models_stage1.no_token_left().",
+ "note": "Mutants for K2's changes (the job runner's gate: s_obs, the free space, the key check and the bank, the two preflight documents, the refusal records, the identity checks, K6; the preflight's speed and bank fields; the finisher's states pull; states_tool.py; the backup's states group), in the stage-1 kit's spec form. Run with tests/run_mutants_runner_78b.py (both runner test files, -x): the baseline first with the same command; a mutant is killed only by a real test failure (pytest exit 1, FAILED lines, no ERROR line); an error, a timeout or a find text not exactly once is INVALID, never a kill. K4a (6 Nov) added the K4-m-* mutants: RV2-8, the runner's pre-job token check through download_models_stage1.no_token_left(). K5 (round 5) added 3 mutants (K5-H-tok-verify-env-whole ... K5-H-tok-run-job-env-whole).",
  "mutants": [
   {
    "id": "K2-m-s-obs-last-not-max",
@@ -280,6 +280,33 @@
    "find": "        token_paths().no_token_left()          #",
    "replace": "        (lambda m: (setattr(m, 'token_file', lambda: m.hf_home() / 'token'), m.no_token_left()))(token_paths())  #",
    "killed_by": "tests/test_kit_78b_runner.py::test_rv2_8_the_runners_pre_job_token_check_reads_the_librarys_token_paths"
+  },
+  {
+   "id": "K5-H-tok-verify-env-whole",
+   "part": "K5 (sec R5)",
+   "describes": "verify_unit gives the engine verify the runner's whole environment (not the scrubbed, offline env)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    check = subprocess.run([*ENGINE, \"verify\", \"--run\", unit, \"--prepared\", PREPARED], env=env, cwd=root,\n                           capture_output=True, text=True)\n    return {\"exit\"",
+   "replace": "    check = subprocess.run([*ENGINE, \"verify\", \"--run\", unit, \"--prepared\", PREPARED], env=dict(os.environ), cwd=root,\n                           capture_output=True, text=True)\n    return {\"exit\"",
+   "killed_by": "tests/test_kit_78b_runner.py::test_k5_r5_run_sc_job_and_verify_unit_give_the_scrubbed_offline_environment"
+  },
+  {
+   "id": "K5-H-tok-sc-steps-env-whole",
+   "part": "K5 (sec R5)",
+   "describes": "run_sc_job's steps get the runner's whole environment",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    accepted = None\n    for name, argv in commands:\n        start = time.monotonic()\n        done = subprocess.run([\"python3\", \"process_receipt.py\", \"--out\", name, \"--\", *argv], env=env, cwd=root)",
+   "replace": "    accepted = None\n    for name, argv in commands:\n        start = time.monotonic()\n        done = subprocess.run([\"python3\", \"process_receipt.py\", \"--out\", name, \"--\", *argv], env=dict(os.environ), cwd=root)",
+   "killed_by": "tests/test_kit_78b_runner.py::test_k5_r5_run_sc_job_and_verify_unit_give_the_scrubbed_offline_environment"
+  },
+  {
+   "id": "K5-H-tok-run-job-env-whole",
+   "part": "K5 (sec R5)",
+   "describes": "pre-existing comparison: run_job's (engine jobs') steps get the runner's whole environment",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    exits, steps = {}, []\n    for name, argv in commands:\n        start = time.monotonic()\n        done = subprocess.run([\"python3\", \"process_receipt.py\", \"--out\", name, \"--\", *argv], env=env, cwd=root)",
+   "replace": "    exits, steps = {}, []\n    for name, argv in commands:\n        start = time.monotonic()\n        done = subprocess.run([\"python3\", \"process_receipt.py\", \"--out\", name, \"--\", *argv], env=dict(os.environ), cwd=root)",
+   "killed_by": "tests/test_kit_78b_runner.py::test_k5_r5_run_job_gives_every_step_and_the_verify_the_scrubbed_offline_environment"
   }
  ]
 }

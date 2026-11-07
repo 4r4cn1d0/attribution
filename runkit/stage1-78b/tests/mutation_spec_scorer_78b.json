@@ -1,6 +1,6 @@
 {
  "kind": "stage1-78b scorer-block mutation spec (K4b)",
- "note": "each mutant's find text occurs exactly once in its file; runner: tests/run_mutants_scorer_78b.py (test_scorer_block_78b.py) Round 4b (6 Nov): K4bf-m-* for the core verifier's D1-D8 (c0 unitless, the engine verify, the anchor and s3_orig binding, OEXT_78B's form, HM4, HM5, HM8, HM12, HM14, a1_pass's unit), PP17's o_only_with_regenerate and the pack's input scan (security D5).",
+ "note": "each mutant's find text occurs exactly once in its file; runner: tests/run_mutants_scorer_78b.py (test_scorer_block_78b.py) Round 4b (6 Nov): K4bf-m-* for the core verifier's D1-D8 (c0 unitless, the engine verify, the anchor and s3_orig binding, OEXT_78B's form, HM4, HM5, HM8, HM12, HM14, a1_pass's unit), PP17's o_only_with_regenerate and the pack's input scan (security D5). K5 (round 5) added 22 mutants (K5-c0-fp-from-plan ... K5-pack-data-scanned).",
  "mutants": [
   {
    "id": "K4b-m-untuned-one-call",
@@ -476,7 +476,7 @@
   },
   {
    "id": "K4b-m-runner-s4-exit3-crash",
-   "part": "Part 1 §10",
+   "part": "Part 1 \u00a710",
    "describes": "the S4 call's exit 3 is a crash",
    "file": "setup/job_runner_stage1.py",
    "find": "        s4_few = kind == \"untuned_answers\" and name.endswith(\"-untuned-s4\") and done.returncode == 3\n",
@@ -945,6 +945,182 @@
    "file": "pack_setup.py",
    "find": "BINARY_SUFFIXES = (\".safetensors\", \".bin\", \".pt\", \".pth\", \".npy\", \".npz\", \".gz\", \".tar\", \".zip\")",
    "replace": "BINARY_SUFFIXES = (\".safetensors\", \".bin\", \".pt\", \".pth\", \".npy\", \".npz\", \".gz\", \".tar\", \".zip\", \".json\")"
+  },
+  {
+   "id": "K5-c0-fp-from-plan",
+   "part": "K5 (core K4bcr-D1)",
+   "describes": "c0 passes the plan's expect_fingerprint, not the packed source unit's",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        expect = c0_fingerprint(root, ins[C0_SOURCE_INPUT], job, index)   # K5: from the packed source unit",
+   "replace": "        expect = job[\"expect_fingerprint\"]"
+  },
+  {
+   "id": "K5-c0-no-compare",
+   "part": "K5 (core K4bcr-D1)",
+   "describes": "c0 takes the packed fingerprint but never compares it with the plan's",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if got != job[\"expect_fingerprint\"]:\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K5-c0-no-rehash",
+   "part": "K5 (core K4bcr-D1)",
+   "describes": "c0 reads the packed source unit without re-hashing it against its pin",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if not path.is_file() or path.is_symlink() or sha(path) != pin:\n        raise Unrunnable(f\"job {index} (c0)",
+   "replace": "    if not path.is_file():\n        raise Unrunnable(f\"job {index} (c0)"
+  },
+  {
+   "id": "K5-c0-no-e1-check",
+   "part": "K5 (core K4bcr-D1)",
+   "describes": "c0 does not refuse a source unit with no e1 adapter fingerprint by its own message",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if rules.hex64(got) is None:\n        raise Unrunnable(f\"job {index} (c0): the packed source unit's COMPLETE.json lists no e1",
+   "replace": "    if False:\n        raise Unrunnable(f\"job {index} (c0): the packed source unit's COMPLETE.json lists no e1"
+  },
+  {
+   "id": "K5-HM6",
+   "part": "K5 (core K4bcr-D2)",
+   "describes": "hashed_outputs follows symbolic links",
+   "file": "setup/job_runner_stage1.py",
+   "find": "                if f.is_file() and not f.is_symlink():\n",
+   "replace": "                if f.is_file():\n"
+  },
+  {
+   "id": "K5-HM7",
+   "part": "K5 (core K4bcr-D2)",
+   "describes": "the scorer release accepts another family's packed receipt",
+   "file": "plan_tool.py",
+   "find": "        if rec.get(\"family\") not in (None, family):\n            fail(f\"{name}: the packed stage1-{h['engine']} is",
+   "replace": "        if False:\n            fail(f\"{name}: the packed stage1-{h['engine']} is"
+  },
+  {
+   "id": "K5-HM13",
+   "part": "K5 (core K4bcr-D2)",
+   "describes": "a non-unit scorer job with no output is complete",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if not record[\"outputs\"] and kind not in SC_UNIT_KINDS:\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K4bcr-R1",
+   "part": "K5 (core K4bcr-D3)",
+   "describes": "runner hashes every out folder, not only job-I/ ones (unit folders hashed into outputs)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "folders = [f for f in out_dirs(commands) if f.startswith(f\"job-{index}/\")]",
+   "replace": "folders = out_dirs(commands)"
+  },
+  {
+   "id": "K4bcr-R6",
+   "part": "K5 (core K4bcr-D3)",
+   "describes": "acceptance: a field missing on both sides counts as equal",
+   "file": "setup/job_runner_stage1.py",
+   "find": "\"equal\": rules.hex64(src) is not None and src == got}",
+   "replace": "\"equal\": src == got}"
+  },
+  {
+   "id": "K4bcr-R7",
+   "part": "K5 (core K4bcr-D3)",
+   "describes": "acceptance: a side fingerprint the regenerated unit omits is skipped",
+   "file": "setup/job_runner_stage1.py",
+   "find": "if key in listed:",
+   "replace": "if key in listed and key in (regen_points.get(point) or {}):"
+  },
+  {
+   "id": "K4bcr-R8",
+   "part": "K5 (core K4bcr-D3)",
+   "describes": "every seed's side-unit input pin is seed 1101's",
+   "file": "stage1_rules.py",
+   "find": "table[SIDE_COMPLETE.format(seed=seed)] = A0_UNITS[seed][\"complete_sha256\"]",
+   "replace": "table[SIDE_COMPLETE.format(seed=seed)] = A0_UNITS[1101][\"complete_sha256\"]"
+  },
+  {
+   "id": "K4bcr-R9",
+   "part": "K5 (core K4bcr-D3)",
+   "describes": "record-done: acceptance false with a reason other than LS-04 accepted",
+   "file": "plan_tool.py",
+   "find": "(acc is False and r.get(\"reason\") != \"LS-04\") or \\",
+   "replace": "False or \\"
+  },
+  {
+   "id": "K4bcr-R13",
+   "part": "K5 (core K4bcr-D3)",
+   "describes": "a1_pass's ANCHOR_BANK pin not bound to the recorded anchor file",
+   "file": "plan_tool.py",
+   "find": "if pin in r78.SC_KIND_PINS[kind]:                # the core verifier",
+   "replace": "if pin in r78.SC_KIND_PINS[kind] and kind != \"a1_pass\":                # the core verifier"
+  },
+  {
+   "id": "K4bcr-R17",
+   "part": "K5 (core K4bcr-D3)",
+   "describes": "backup: only o_only_with_regenerate's scorer-unit outputs are checked (not a1_pass, retrain)",
+   "file": "backup_records_stage1.py",
+   "find": "scorer_unit = plan[\"hosts\"][host].get(\"block\") == \"sc\" and job.get(\"kind\") not in rules.UNITLESS_KINDS",
+   "replace": "scorer_unit = plan[\"hosts\"][host].get(\"block\") == \"sc\" and job.get(\"kind\") == \"o_only_with_regenerate\""
+  },
+  {
+   "id": "K4bcr-R21",
+   "part": "K5 (core K4bcr-D3)",
+   "describes": "acceptance: the side unit need not list an e1 adapter fingerprint",
+   "file": "setup/job_runner_stage1.py",
+   "find": "if rules.hex64((side_points.get(\"e1\") or {}).get(\"adapter_fingerprint\")) is None:",
+   "replace": "if False:"
+  },
+  {
+   "id": "K5-H-pack-setup-tar-scan-dropped",
+   "part": "K5 (sec R4)",
+   "describes": "the setup tar's members are not scanned",
+   "file": "pack_setup.py",
+   "find": "    refuse_secrets({n: f for n, f in setup_files.items() if n != bundle.name}, {}, ())",
+   "replace": "    pass"
+  },
+  {
+   "id": "K5-H-pack-payload-scan-dropped",
+   "part": "K5 (sec R4)",
+   "describes": "the generated payloads (bundle-manifest, sealed-files, probe, kit-family) are not scanned",
+   "file": "pack_setup.py",
+   "find": "    hits += [(name, pattern) for name, payload in payloads.items()\n             for pattern in secret_scan.scan_text(payload.decode(\"utf-8\", \"ignore\"))]",
+   "replace": "    pass"
+  },
+  {
+   "id": "K5-H-pack-bootstrap-scan-dropped",
+   "part": "K5 (sec R4)",
+   "describes": "the generated worker bootstrap is not scanned",
+   "file": "pack_setup.py",
+   "find": "    if secret_scan.scan_text(bootstrap):",
+   "replace": "    if False:"
+  },
+  {
+   "id": "K5-H-pack-engine-files-unscanned",
+   "part": "K5 (sec R4)",
+   "describes": "the engine's files (experiments/) are not scanned",
+   "file": "pack_setup.py",
+   "find": "    scanned = [f for name, f in files.items() if not name.startswith(data_prefixes)]",
+   "replace": "    scanned = [f for name, f in files.items() if not name.startswith(data_prefixes) and not name.startswith(\"experiments/\")]"
+  },
+  {
+   "id": "K5-H-pack-scripts-unscanned",
+   "part": "K5 (sec R4)",
+   "describes": "the scorer code and preflight scripts (scripts/) are not scanned",
+   "file": "pack_setup.py",
+   "find": "    scanned = [f for name, f in files.items() if not name.startswith(data_prefixes)]",
+   "replace": "    scanned = [f for name, f in files.items() if not name.startswith(data_prefixes) and not name.startswith(\"scripts/\")]"
+  },
+  {
+   "id": "K5-pack-edits-unscanned",
+   "part": "K5 (sec R4)",
+   "describes": "the pack skips edits/ again (round 4b's prefixes)",
+   "file": "pack_setup.py",
+   "find": "DATA_PREFIXES = (f\"{DATA}/\", \"inputs/\")\n",
+   "replace": "DATA_PREFIXES = (f\"{DATA}/\", \"inputs/\", \"edits/\")\n"
+  },
+  {
+   "id": "K5-pack-data-scanned",
+   "part": "K5 (sec R4)",
+   "describes": "the pack scans the prepared set under data/ (against the lead's ruling)",
+   "file": "pack_setup.py",
+   "find": "DATA_PREFIXES = (f\"{DATA}/\", \"inputs/\")\n",
+   "replace": "DATA_PREFIXES = (\"inputs/\",)\n"
   }
  ]
 }

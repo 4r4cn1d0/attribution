@@ -21,7 +21,11 @@ data/kt-prepared/NAME at its manifest pin), the generated worker bootstrap (no t
 kit's setup/ scripts, stage1_rules.py, rules_78b.py and its basis, probe.json, kit-family.json for the pod) and
 setup-receipt.json {engine, engine_sha256, family, git_commit, main_config, prepared_manifests, sealed_set,
 sealed_files_sha256, ...}; plan_tool's release refuses a receipt whose engine identity is not the pin or whose family
-is not the copy's. Every packed file outside the data folders is scanned for secrets by name only.
+is not the copy's. Every packed file is scanned for secret patterns (names and pattern names only in a refusal) except
+the prepared set under data/: the engine files, the scorer code and scripts, the edit files (edits/; K5, the lead's
+R4 ruling), the main and S_78 configs, the named inputs (inputs/, non-binary files), the generated payloads, the
+worker bootstrap and every member of the setup tar. data/ (the prepared set) stays outside the scan because its
+manifest SHA-256 (stage1_rules.PREPARED_MANIFESTS, checked here and on the pod) pins every byte of it.
 """
 from __future__ import annotations
 
@@ -57,7 +61,9 @@ GPU = r78.GPU_NAME
 HEX = set("0123456789abcdef")
 DATA = "data"
 INPUTS_KIND = "stage1-78b pack inputs"
-DATA_PREFIXES = (f"{DATA}/", "inputs/", "edits/")
+# The prefixes the general scan skips: data/ (the prepared set; its manifest SHA-256 pins every byte, the lead's R4
+# ruling) and inputs/ (scanned by refuse_secrets' own loop, non-binary files). edits/ is scanned (K5, R4).
+DATA_PREFIXES = (f"{DATA}/", "inputs/")
 ENGINE_CODE = ("from experiments.safety_selection.common import code_identity;print(code_identity()['sha256'])")
 CONFIG_CODE = ("from experiments.safety_selection.config import load_recipe,config_sha256;"
                "print(config_sha256(load_recipe({path!r})))")
@@ -243,9 +249,10 @@ INPUTS_PREFIX = "inputs/"
 
 
 def refuse_secrets(files: dict, payloads: dict, data_prefixes: tuple) -> None:
-    """Scan every packed file outside the data folders, every non-binary file of the scorer block's named inputs
-    (inputs/; the security verifier's D5: anchor prompts, the 1B lists and pools, unit records), and every generated
-    payload; a hit refuses with names and pattern names only, never the matched text."""
+    """Scan every packed file outside ``data_prefixes`` (the bundle: DATA_PREFIXES, so data/ only stays outside; the
+    edit files under edits/ are scanned, K5), every non-binary file of the scorer block's named inputs (inputs/; the
+    security verifier's D5: anchor prompts, the 1B lists and pools, unit records), and every generated payload; a hit
+    refuses with names and pattern names only, never the matched text."""
     inputs = {name: f for name, f in files.items()
               if name.startswith(INPUTS_PREFIX) and not name.lower().endswith(BINARY_SUFFIXES)}
     input_hits = sorted({name for name, f in inputs.items() if secret_scan.scan_paths([f])})

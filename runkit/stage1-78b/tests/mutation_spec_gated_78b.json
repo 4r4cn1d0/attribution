@@ -1,6 +1,6 @@
 {
  "kind": "stage1-78b gated-path mutants (K3)",
- "note": "Mutants for K3's changes (launch.py's gated precheck: whoami, the Range check, the record, the scrubbed children, the detached orchestrate child, the scrub after the loop, the redirect handler, the family check; orchestrate.py's gated step and stdin hand-over; host.py's gated-download, pull-states, the price and pod-name fixes; setup/download_models_stage1.py's gated run), in the stage-1 kit's spec form. Run with tests/run_mutants_gated_78b.py (tests/test_gated_78b.py, -x): the baseline first with the same command; a mutant is killed only by a real test failure (pytest exit 1, FAILED lines, no ERROR line); an error, a timeout or a find text not exactly once is INVALID, never a kill. fix-K-gated (verify-K-gated D1, D2, D4, D5, D6) added the FG-m-* mutants and re-targeted K3-m-redirect-keeps-auth to the moved clause. fix-K-gated's second attempt added the FX-m-* mutants (F1: a token value a header cannot carry; http_get's ValueError branch; failure_text's two scrubs, the re-verifier's two survivors). K4a (6 Nov) added the K4-m-* mutants: RV2-1 (TLS verification), RV2-2 (no token fragment), RV2-3 (every redirect code), RV2-4, RV2-5, RV2-9 (the D6 paths by hand), and conftest.py's process-wide layer and fixture (DK-1, DK-2, RV2-6, RV2-7). The runner now also runs tests/test_pp10_guard.py and tests/test_pp10_process_wide.py and refuses a Python without huggingface_hub; run the whole spec under sandbox-exec with outbound IP denied (RV2-6). Round 4b (6 Nov): K4bf-m-* for the security verifier's D1 (the wrapper's sendto, sendmsg and AF_INET6 checks), D2 (the hook under the flag, in a non-main thread, bytes hosts) and D3 (the redirect handler's own https_open); run under sandbox-exec with outbound IP denied.",
+ "note": "Mutants for K3's changes (launch.py's gated precheck: whoami, the Range check, the record, the scrubbed children, the detached orchestrate child, the scrub after the loop, the redirect handler, the family check; orchestrate.py's gated step and stdin hand-over; host.py's gated-download, pull-states, the price and pod-name fixes; setup/download_models_stage1.py's gated run), in the stage-1 kit's spec form. Run with tests/run_mutants_gated_78b.py (tests/test_gated_78b.py, -x): the baseline first with the same command; a mutant is killed only by a real test failure (pytest exit 1, FAILED lines, no ERROR line); an error, a timeout or a find text not exactly once is INVALID, never a kill. fix-K-gated (verify-K-gated D1, D2, D4, D5, D6) added the FG-m-* mutants and re-targeted K3-m-redirect-keeps-auth to the moved clause. fix-K-gated's second attempt added the FX-m-* mutants (F1: a token value a header cannot carry; http_get's ValueError branch; failure_text's two scrubs, the re-verifier's two survivors). K4a (6 Nov) added the K4-m-* mutants: RV2-1 (TLS verification), RV2-2 (no token fragment), RV2-3 (every redirect code), RV2-4, RV2-5, RV2-9 (the D6 paths by hand), and conftest.py's process-wide layer and fixture (DK-1, DK-2, RV2-6, RV2-7). The runner now also runs tests/test_pp10_guard.py and tests/test_pp10_process_wide.py and refuses a Python without huggingface_hub; run the whole spec under sandbox-exec with outbound IP denied (RV2-6). Round 4b (6 Nov): K4bf-m-* for the security verifier's D1 (the wrapper's sendto, sendmsg and AF_INET6 checks), D2 (the hook under the flag, in a non-main thread, bytes hosts) and D3 (the redirect handler's own https_open); run under sandbox-exec with outbound IP denied. K5 (round 5) added 8 mutants (K5-H-d1-wrapper-skips-dgram ... K5-H-d3-global-unverified-at-call).",
  "mutants": [
   {
    "id": "K3-m-whoami-status-unchecked",
@@ -1045,6 +1045,78 @@
    "find": "class SameHostAuthRedirect(urllib.request.HTTPRedirectHandler):\n",
    "replace": "class SameHostAuthRedirect(urllib.request.HTTPRedirectHandler):\n    handler_order = 100\n\n    def https_open(self, req):\n        import ssl\n        return urllib.request.HTTPSHandler(context=ssl._create_unverified_context()).https_open(req)\n\n",
    "killed_by": "tests/test_gated_78b.py (test_rv2_1)"
+  },
+  {
+   "id": "K5-H-d1-wrapper-skips-dgram",
+   "part": "K5 (sec R1)",
+   "describes": "the wrapper lets every SOCK_DGRAM socket through to C (a host name resolves first)",
+   "file": "tests/conftest.py",
+   "find": "    def call(self, *args, **kwargs):\n        if name in (\"connect\", \"connect_ex\"):",
+   "replace": "    def call(self, *args, **kwargs):\n        if getattr(self, \"type\", None) == socket.SOCK_DGRAM:\n            return real(self, *args, **kwargs)\n        if name in (\"connect\", \"connect_ex\"):",
+   "killed_by": "tests/test_pp10_process_wide.py::test_dk1_module_scoped_fixture_calls_stop_in_the_process_wide_layer (test_k4bf_d1 also)"
+  },
+  {
+   "id": "K5-H-d2-hook-daemon-threads-free",
+   "part": "K5 (sec R2)",
+   "describes": "the hook ignores daemon threads",
+   "file": "tests/conftest.py",
+   "find": "    if event not in _AUDITED:\n        return\n    kind = _AUDITED[event]",
+   "replace": "    if event not in _AUDITED or __import__(\"threading\").current_thread().daemon:\n        return\n    kind = _AUDITED[event]",
+   "killed_by": "tests/test_pp10_process_wide.py::test_k4bf_d2_the_hook_refuses_in_a_non_main_thread_and_for_bytes_hosts"
+  },
+  {
+   "id": "K5-H-d2-hook-executor-threads-free",
+   "part": "K5 (sec R2)",
+   "describes": "the hook ignores ThreadPoolExecutor worker threads (asyncio's getaddrinfo runs there)",
+   "file": "tests/conftest.py",
+   "find": "    if event not in _AUDITED:\n        return\n    kind = _AUDITED[event]",
+   "replace": "    if event not in _AUDITED or __import__(\"threading\").current_thread().name.startswith(\"ThreadPoolExecutor\"):\n        return\n    kind = _AUDITED[event]",
+   "killed_by": "tests/test_pp10_process_wide.py::test_k4bf_d2_the_hook_refuses_in_a_non_main_thread_and_for_bytes_hosts"
+  },
+  {
+   "id": "K5-H-d3-default-open-mixin",
+   "part": "K5 (sec R3)",
+   "describes": "SameHostAuthRedirect inherits a default_open that opens https with an unverified context",
+   "file": "launch.py",
+   "find": "class SameHostAuthRedirect(urllib.request.HTTPRedirectHandler):\n",
+   "replace": "class _OpenFirst(urllib.request.BaseHandler):\n    def default_open(self, req):\n        if req.type == \"https\":\n            import ssl\n            return urllib.request.HTTPSHandler(context=ssl._create_unverified_context()).https_open(req)\n        return None\n\n\nclass SameHostAuthRedirect(_OpenFirst, urllib.request.HTTPRedirectHandler):\n",
+   "killed_by": "tests/test_gated_78b.py::test_d1_http_get_builds_its_opener_with_the_same_origin_redirect_handler_and_the_precheck_runs_through_it (the fake opener's connection recorder; test_rv2_1 also)"
+  },
+  {
+   "id": "K5-H-d3-https-request-downgrade",
+   "part": "K5 (sec R3)",
+   "describes": "SameHostAuthRedirect's https_request rewrites the request to plain http (token in clear)",
+   "file": "launch.py",
+   "find": "    def redirect_request(self, req, fp, code, msg, headers, newurl):\n",
+   "replace": "    def https_request(self, req):\n        req.full_url = \"http://\" + req.full_url.split(\"://\", 1)[1]\n        return req\n\n    def redirect_request(self, req, fp, code, msg, headers, newurl):\n",
+   "killed_by": "tests/test_gated_78b.py::test_d1_http_get_builds_its_opener_with_the_same_origin_redirect_handler_and_the_precheck_runs_through_it (the fake opener's connection recorder; test_rv2_1 also)"
+  },
+  {
+   "id": "K5-H-d3-instance-https-open-unverified",
+   "part": "K5 (sec R3)",
+   "describes": "http_get overrides its opener's HTTPSHandler instance's https_open with an unverified context (no class, no global changes)",
+   "file": "launch.py",
+   "find": "    opener = urllib.request.build_opener(SameHostAuthRedirect)\n",
+   "replace": "    opener = urllib.request.build_opener(SameHostAuthRedirect)\n    import ssl as _s\n    for _h in opener.handlers:\n        if isinstance(_h, urllib.request.HTTPSHandler):\n            _h.https_open = lambda req, _h=_h: _h.do_open(http.client.HTTPSConnection, req, context=_s._create_unverified_context())\n",
+   "killed_by": "tests/test_gated_78b.py::test_d1_http_get_builds_its_opener_with_the_same_origin_redirect_handler_and_the_precheck_runs_through_it (the fake opener's connection recorder; test_rv2_1 also)"
+  },
+  {
+   "id": "K5-H-d3-connection-class-unverified",
+   "part": "K5 (sec R3)",
+   "describes": "http_get replaces http.client.HTTPSConnection with an unverified-context factory at the call",
+   "file": "launch.py",
+   "find": "    request = urllib.request.Request(url, headers={\"Authorization\": \"Bearer \" + token, **(headers or {})})\n",
+   "replace": "    import ssl as _s\n    _orig = http.client.HTTPSConnection\n    http.client.HTTPSConnection = lambda *a, **k: _orig(*a, **{**k, \"context\": _s._create_unverified_context()})\n    request = urllib.request.Request(url, headers={\"Authorization\": \"Bearer \" + token, **(headers or {})})\n",
+   "killed_by": "tests/test_gated_78b.py::test_d1_http_get_builds_its_opener_with_the_same_origin_redirect_handler_and_the_precheck_runs_through_it (the fake opener's connection recorder; test_rv2_1 also)"
+  },
+  {
+   "id": "K5-H-d3-global-unverified-at-call",
+   "part": "K5 (sec R3)",
+   "describes": "http_get makes ssl's default HTTPS context unverified at the call",
+   "file": "launch.py",
+   "find": "    request = urllib.request.Request(url, headers={\"Authorization\": \"Bearer \" + token, **(headers or {})})\n",
+   "replace": "    import ssl as _s\n    _s._create_default_https_context = _s._create_unverified_context\n    request = urllib.request.Request(url, headers={\"Authorization\": \"Bearer \" + token, **(headers or {})})\n",
+   "killed_by": "tests/test_gated_78b.py::test_d1_http_get_builds_its_opener_with_the_same_origin_redirect_handler_and_the_precheck_runs_through_it (the fake opener's connection recorder; test_rv2_1 also)"
   }
  ]
 }

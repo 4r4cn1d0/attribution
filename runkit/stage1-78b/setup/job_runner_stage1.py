@@ -511,6 +511,36 @@ def sc_recipe(plan: dict, job: dict, index: int, family: str) -> str:
     return path
 
 
+C0_SOURCE_INPUT = "source_complete:R:1101"              # c0's packed source unit (N's R_1 at 1101; PP18)
+
+
+def c0_fingerprint(root: pathlib.Path, packed: tuple, job: dict, index: int) -> str:
+    """K5 (the core re-verifier's K4bcr-D1; the stage-1 kit's @fingerprint:source_complete:R:1101 form, R:
+    runkit/stage1-olmo/setup/job_runner_stage1.py:517, :770-776): c0's --expect-adapter-fingerprint is read on the pod
+    from the packed source unit's COMPLETE.json (checkpoints.e1.adapter_fingerprint), after the file is re-hashed
+    against its plan.json pin. Unrunnable when the file is missing or differs from its pin, lists no e1 adapter
+    fingerprint, or lists one that is not the plan's expect_fingerprint (C0_SOURCE[family]["e1_fingerprint"]), so a
+    typing error in the lead's recorded step stops the pod before any step instead of giving B17 a false mismatch.
+    Only that one field is read (no evaluation value)."""
+    rel, pin = packed
+    path = root / rel
+    if not path.is_file() or path.is_symlink() or sha(path) != pin:
+        raise Unrunnable(f"job {index} (c0): the packed source unit's COMPLETE.json is missing or differs from its pin")
+    try:
+        doc = json.loads(path.read_text())
+    except (OSError, ValueError):
+        raise Unrunnable(f"job {index} (c0): the packed source unit's COMPLETE.json cannot be read") from None
+    points = doc.get("checkpoints") if isinstance(doc, dict) and isinstance(doc.get("checkpoints"), dict) else {}
+    e1 = points.get("e1") if isinstance(points.get("e1"), dict) else {}
+    got = e1.get("adapter_fingerprint")
+    if rules.hex64(got) is None:
+        raise Unrunnable(f"job {index} (c0): the packed source unit's COMPLETE.json lists no e1 adapter fingerprint")
+    if got != job["expect_fingerprint"]:
+        raise Unrunnable(f"job {index} (c0): the packed source unit's e1 adapter fingerprint is not the plan's "
+                         "expected one (C0_SOURCE): the lead's recorded step differs from the packed unit")
+    return got
+
+
 def _engine_unit(kind: str, label: str, job: dict, index: int, root: pathlib.Path, rec: str, folder: str,
                  registry: str, arm: list[str]) -> list:
     """make-job run-one (train only, --pin-code) and run-one: the stage-1 kit's J2/J20 form (a regenerate into round1/,
@@ -586,12 +616,13 @@ def sc_commands(plan: dict, host: str, index: int, root: pathlib.Path, units: di
     if kind == "c0":                                     # B17's X-pin check on N's R_1 at 1101 (the stage-1 kit's J11)
         if not job.get("edit") or rules.hex64(job.get("expect_fingerprint")) is None:
             raise Unrunnable(f"job {index} (c0): the plan carries no R_1 edit or no expected e1 fingerprint (C0_SOURCE)")
+        expect = c0_fingerprint(root, ins[C0_SOURCE_INPUT], job, index)   # K5: from the packed source unit
         steps = _engine_unit(kind, "R-c0", job, index, root, rec, ROUND, f"{ROUND}/registry.jsonl",
                              ["--edit", edit_bundle(job)])
         job_file = steps[0][1][-1]
         return [steps[0], (f"{tag}-lean", [*PY_B, r78.C0_SCRIPT, "run", "--job", job_file, "--prepared", p, "--recipe",
                                            rec, "--out", f"{out}/c0", "--registry", f"{out}/c0-registry.jsonl",
-                                           "--expect-adapter-fingerprint", job["expect_fingerprint"],
+                                           "--expect-adapter-fingerprint", expect,
                                            "--oext-bank", ins["oext_bank"][0], "--oext-record", ins["oext_record"][0]])]
     if kind == "a1_pass":                                # A1's attributes pass (the stage-1 kit's J21 form), PP3
         groups = job.get("groups")

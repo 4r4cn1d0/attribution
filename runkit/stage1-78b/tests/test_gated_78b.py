@@ -966,7 +966,7 @@ def test_the_launch_path_files_hold_no_secret_and_the_pack_ships_the_gated_scrip
 # after-download check, the library's cache and token paths. D3 stays as built (PP9).
 class FakeResponse:
     def __init__(self, status: int, body: bytes):
-        self.status, self.body = status, body
+        self.status, self.body, self.reason = status, body, "synthetic"
 
     def read(self, limit=-1):
         return self.body if limit is None or limit < 0 else self.body[:limit]
@@ -978,14 +978,62 @@ class FakeResponse:
         return False
 
 
-def _real_opener_with_fake_open(monkeypatch, outcomes):
+HUB_HOST = "huggingface.co"
+
+
+def _real_opener_with_fake_open(monkeypatch, outcomes, connections=None):
     """urllib.request.build_opener replaced by a recorder: it builds the REAL OpenerDirector with the handlers
     http_get passes (so the opener's handler list can be inspected), then shadows that one instance's ``open`` with a
-    fake that records the request and the timeout and answers from ``outcomes`` in order (a (status, body) pair, or an
-    exception to raise; the last outcome repeats). The class method OpenerDirector.open, which PP10's guard refuses,
-    is never reached. Returns (the handler lists built, the opener instances, the (request, timeout) pairs opened)."""
+    fake that records the request and the timeout and then runs the opener's OWN steps (K5, the security re-verifier's
+    R3): every request processor of the request's scheme (``<scheme>_request``, as OpenerDirector.open does), then
+    ``opener._open`` (default_open, ``<scheme>_open``, unknown_open: the real dispatch). Only OpenerDirector.open's
+    audit event and its response processors are skipped; the class method OpenerDirector.open, which PP10's guard
+    refuses, is never reached. http.client's two connection classes are replaced by recorders (no socket is made):
+    a plain-HTTP connection fails the test at once (a token in clear); an HTTPS one records its host and whether its
+    effective TLS context verifies (http.client's own rule: the given context, else ssl's default factory at the call;
+    a check_hostname argument overrides), fails the test when the host is not the Hub's or the context does not
+    verify, and answers from ``outcomes`` in order (a (status, body) pair, or an exception to raise; the last outcome
+    repeats). Returns (the handler lists built, the opener instances, the (request, timeout) pairs opened); the
+    HTTPS connections are appended to ``connections`` when given."""
     real_build = urllib.request.build_opener
     built, openers, opened, queue = [], [], [], list(outcomes)
+    made = connections if connections is not None else []
+
+    class PlainHTTP:
+        def __init__(self, host, *a, **kw):
+            made.append({"scheme": "http", "host": host, "verifying": False})
+            raise AssertionError(f"http_get opened a plain-HTTP connection to {host!r}: the token would go in clear")
+
+    class RecordingHTTPS:
+        def __init__(self, host, port=None, *, timeout=None, context=None, check_hostname=None, **kw):
+            ctx = context if context is not None else ssl._create_default_https_context()
+            hostname = ctx.check_hostname if check_hostname is None else check_hostname
+            verifying = ctx.verify_mode == ssl.CERT_REQUIRED and hostname is True
+            made.append({"scheme": "https", "host": host, "verifying": verifying})
+            assert host == HUB_HOST, f"http_get opened https to {host!r}, not the Hub"
+            assert verifying, "http_get opened https with a TLS context that does not verify the certificate and host"
+            self.sock = None
+
+        def set_debuglevel(self, level):
+            pass
+
+        def set_tunnel(self, *a, **kw):
+            raise AssertionError("http_get went through a proxy tunnel")
+
+        def request(self, method, url, body=None, headers=None, **kw):
+            pass
+
+        def getresponse(self):
+            outcome = queue.pop(0) if len(queue) > 1 else queue[0]
+            if isinstance(outcome, BaseException):
+                raise outcome
+            return FakeResponse(*outcome)
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(http.client, "HTTPConnection", PlainHTTP)
+    monkeypatch.setattr(http.client, "HTTPSConnection", RecordingHTTPS)
 
     def build_opener(*handlers):
         built.append(list(handlers))
@@ -993,10 +1041,11 @@ def _real_opener_with_fake_open(monkeypatch, outcomes):
 
         def fake_open(request, timeout=None):
             opened.append((request, timeout))
-            outcome = queue.pop(0) if len(queue) > 1 else queue[0]
-            if isinstance(outcome, BaseException):
-                raise outcome
-            return FakeResponse(*outcome)
+            request.timeout = timeout
+            protocol = request.type
+            for processor in opener.process_request.get(protocol, []):
+                request = getattr(processor, protocol + "_request")(request)
+            return opener._open(request, request.data)
         opener.open = fake_open
         openers.append(opener)
         return opener
@@ -1379,10 +1428,17 @@ def test_rv2_1_http_get_verifies_the_hubs_tls_certificate_and_host_name(wl, monk
     assert ssl._create_default_https_context is ssl.create_default_context            # nothing in the kit replaced it
     context = ssl._create_default_https_context()
     assert context.verify_mode == ssl.CERT_REQUIRED and context.check_hostname is True
-    built, first, opened = _real_opener_with_fake_open(monkeypatch, [(200, whoami_body("read"))])
+    made = []                                # K5 (R3): the connections the opener's own dispatch made
+    built, first, opened = _real_opener_with_fake_open(monkeypatch, [(200, whoami_body("read"))], made)
     assert launch.http_get(f"{HUB}/api/whoami-v2", token, None, launch.WHOAMI_LIMIT)[0] == 200
-    built, later, opened_later = _real_opener_with_fake_open(monkeypatch, [(200, whoami_body("read")), (206, b"x")])
+    assert made == [{"scheme": "https", "host": "huggingface.co", "verifying": True}]
+    built, later, opened_later = _real_opener_with_fake_open(monkeypatch, [(200, whoami_body("read")), (206, b"x")], made)
     launch.gated_precheck(host_of(wl), env={"HF_TOKEN": token})                       # the precheck's openers too
+    # K5 (R3): one verifying https connection to the Hub per request, made by the real dispatch (request processors,
+    # then default_open / https_open), with the Bearer header on the request; no plain-HTTP connection
+    assert made == [{"scheme": "https", "host": "huggingface.co", "verifying": True}] * (2 + len(LLAMA_FILES))
+    assert all(r.type == "https" and r.host == "huggingface.co" and r.get_header("Authorization") == "Bearer " + token
+               for r, _ in opened + opened_later)
     openers = first + later                  # (the second recorder builds through the first: first holds both runs')
     assert len(first) == 1 + len(later) and len(later) == 1 + len(LLAMA_FILES)
     for opener in openers:
