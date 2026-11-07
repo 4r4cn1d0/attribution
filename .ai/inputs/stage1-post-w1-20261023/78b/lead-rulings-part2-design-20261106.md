@@ -163,3 +163,22 @@ This file's header covers these rulings too (Part 2 item 35, confirmed): none re
   if it is not built or does not finish.
 - **K6v-4, `C0_SOURCE` after a clean pack.** The kit also checks the packed source unit against `C0_SOURCE` at
   release time, so an edit after the pack is refused on the Mac too. This is a build item for the next kit round.
+
+## Rulings on Part 2's open items, third set (recorded 2026-11-07T14:45 UTC)
+
+After round 7a (its re-verifier's V1-V7). Part 2 is committed with its scorer section at this point; these rulings,
+and V1-V7's text fixes, are written into Part 2 before its freeze.
+
+- **V1, engine Y on a family whose anchor job stopped.** `ENGINE_Y` is filled when that family's main-config retrain
+  is prepared (PP18's main clause). If Y differs, ruling 10's second job, the X retrain, also runs under the main
+  config.
+- **V2, SR-2 on a stopped family.** σ̂_A pools the block-A cells that run on that family. SR-2's error-rate
+  simulation runs on the design that will run: the reduced design if a stop is known before the simulation runs.
+- **Item 38, what the encode count covers.** Both `encode_generation_prompt` for every list prompt and `encode_train`
+  for every `s3_safe` and S1 pair, at the family's main-recipe limits.
+- **Item 33 (b) with V3, a reduced `s3_safe`.** The same frozen-on-commit script as item 33's reduced list writes a
+  new s-pool record. The record's `lists.s3_subset.ids` and `lists.s1.ids` drop the same ids, because `s3_score`
+  refuses an id without `s3_safe` features (R: `scripts/stage1/score_s3_datarx.py:101-105`). Its SHA-256 enters the
+  settings' pins by a recorded lead step.
+- **The three label lines** (Part 2 §1.18 item 15; §16.5 items 7, 10, 11) are confirmed: the anchor-stop fallback
+  and LN-14's non-run were chosen after the stage-1 reading, which the authors had seen (P1:33).
