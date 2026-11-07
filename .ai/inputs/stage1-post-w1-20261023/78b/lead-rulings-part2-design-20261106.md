@@ -125,3 +125,41 @@ are that list's. Items not named here are records or build steps the text alread
   and its hash goes in before the first confirmation outcome is opened.
 - **The S4 dose's boundary cases.** At exactly 96 kept rows, S4_top is S4_96. At exactly 48, it is S4. No extra arm
   is formed in either case.
+
+## Rulings on Part 2's open items, second set (recorded 2026-11-07T13:40 UTC)
+
+After round 6 (the Part 2 re-verifier's R1-R10; the kit re-verifier's K6v-1-K6v-6). Item numbers are Part 2 §14's.
+This file's header covers these rulings too (Part 2 item 35, confirmed): none reads a 1B repair outcome.
+
+- **Item 36, the anchor job's stops, in full.** If a family's anchor job stops (a harmful pair fails to encode, or
+  fewer than 64 safe anchors are kept), then on that family:
+  1. There is no anchor bank and no S_78. So `rep_pass`, `l1_scan`, the classifier and `a1_pass` do not run.
+     A1, L1 and S3 are not run, and every primary contrast that uses them is not tested there, stated.
+     DataShield-style and the Gate C reproduction (`rep_pass`'s other uses) are not run there, stated.
+  2. The a0-1101 retrain runs under the family's main config (the same training identity), on engine Y. It is
+     ruling 10's certificate and ruling 7's confirming check of the side units. This is A2's rejected alternative,
+     adopted only in this case, because S_78 cannot exist. It costs one retrain pod, as A2's route does.
+  3. Engine Y's pack, KD9's re-measure, B+Qi on Y and the confirmation follow that certificate as ruling 10 says.
+- **Items 2 (a) and 5, recording hashes.** Part 2's code hashes are re-taken at its freeze and before the first
+  scorer pod. The scorer section's rules are fixed from its commit. A re-taken hash that differs is recorded in
+  Part 2's change log with both values and the commit that changed it. Each pin fill (the anchor bank, S_78, A1's
+  unit, the `s3_orig` pool, `OEXT_78B`, `C0_SOURCE`, `ENGINE_Y`) is a recorded lead step in FOCUS, with
+  `make_scorer_settings_78b.py --check` and the differ-only test as its evidence. Part 2's tables take those values
+  before the freeze; after the freeze, a dated amendment file holds them.
+- **Item 9 (b), c0's state line.** Kept: c0 counts as state-keeping, with two more idle lines.
+- **Item 24 (c), B+Qi's O-ext on Y.** E4's `OEXT_78B` files get a Y variant per family (the 1B `oext_unit_y.json`
+  form), filled when `ENGINE_Y` is filled. B+Qi's O-ext runs on Y with it, also when B+Qi is unpaired.
+- **Item 31, idle storage outside the printout.** The kit's lines stay for the pods that keep states. The lead's
+  per-block deletion list names every stopped pod, so the user's yes covers them all.
+- **Item 32, LN-14's θ0 transfer report.** Not run at 7-8B, stated (report-only at 1B; Branch 128 only).
+- **Item 33, a reduced list after the encode count.** Only if a prompt fails. Then a new frozen-on-commit script
+  under `scripts/scale78b/` writes the reduced list in its own sealed folder (A3's pattern, identity-based write
+  guards). Its SHA-256 enters the settings' list pins and `SCORER_PINS` by a recorded lead step. The maker reads the
+  reduced list's size (a maker change, built only if needed). The later prompts move to earlier chunks, stated.
+- **Item 34, AD1 at the boundary.** At exactly 96 kept rows, AD1 is printed once, beside AD2, as equal to it. At
+  exactly 48, AD1 is "not formed".
+- **Item 37, W1-18.** One pod on all seven reused units (both families) as the scorer block's first O job, before
+  any O-ext pod of either family. Under [C], OLMo-2-7B's units only. Branch full is the fallback for both families
+  if it is not built or does not finish.
+- **K6v-4, `C0_SOURCE` after a clean pack.** The kit also checks the packed source unit against `C0_SOURCE` at
+  release time, so an edit after the pack is refused on the Mac too. This is a build item for the next kit round.
