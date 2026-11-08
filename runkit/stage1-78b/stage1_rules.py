@@ -23,6 +23,14 @@ the addendum's A1, A2, A8, A13; stdlib plus rules_78b.py beside it). A copy of t
    addendum A2, A8: one single-job pod per family, recipe S_78, after the anchor job) is defined through rules_78b: its
    E cap prints in the need (M3) and it refuses to be planned or run through rules_78b.recipe_s_or_refuse while
    RECIPE_S is null (A1). The scorer kinds are defined the same way (E caps in the need; their jobs come in a later round).
+3a. R1 K1 (8 Nov 2026; GXB, PLAN-AB §2 Track K row K1): BLOCKS gains "A" and "B" with HOST_PREFIX, FUNDING_BLOCK and
+   BLOCK_KINDS; block_runs("A" / "B") is rules_78b.block_runs_78b (Part 2 §2.2: block A 21 runs per family, block B
+   23 / 32 / 47 by plan, plus the dose rows; A1, L1 and S3 dropped on a family whose anchor job stopped); deal(runs,
+   block) interleaves blocks A and B (rules_78b.deal_ab); block_jobs prices them with each arm's own steps derived
+   from its edit's rows (GXB O1), its train_scale input and the O-ext cap term; REJUDGED_PINS["A"] holds the 7
+   re-judged units (N's null until block 0's record-done); BANK500_KINDS and BRANCHES are rules_78b's; the scorer
+   block's unit inputs are keyed by (arm, seed). The planning route that calls these (init-block A / B, the gate
+   record, the branch record) is K2's; the runner's commands are K3's.
 4. Everything the job runner, the launch path, the seal and the judge route import by name from the stage-1 kit's
    module keeps its name here (the names in "kept for the copied modules" below), with a 7-8B value or a neutral one;
    the 1B-only machinery (W1-18 branches, Gate B's final and verdict records, certificates, C2/C3, D-2, the S1 package
@@ -189,21 +197,30 @@ DEV_SEEDS = (1101, 2099)                  # the development seed namespace
 R_SEED_BASE = r78.R_SEED_BASE             # R_d runs at seed 1100 + d
 A0_SEEDS = tuple(range(1101, 1108))       # a0 at 1101-1107 in every plan (ruling 2)
 REUSED_SEEDS = (1101, 1102, 1103)         # the side units' seeds (ruling 7)
-METHOD_SEEDS = {"A": (1102, 1103, 1104)}  # block A (later round): the six method arms at 1102-1104 (Part 1 §5)
-ARM_ORDER = ("A1", "L1", "H1", "S1", "S3", "S4", "a0", "R")
+METHOD_SEEDS = {"A": r78.BLOCK_A_METHOD_SEEDS,   # block A: the six method arms at 1102-1104 (Part 1 §5; Part 2 §2.2)
+                "B": r78.BLOCK_B_METHOD_SEEDS["A"]}   # block B under plan A (B9 and H (b): rules_78b.BLOCK_B_METHOD_SEEDS)
+ARM_ORDER = tuple(r78.AB_ARM_ORDER)       # the deal's arm order (arm-major): the method arms, the doses, a0, R
 ARM_DOSE = {"A1": "remove", "L1": "remove", "H1": "remove", "R": "remove", "S1": "add", "S3": "add", "S4": "add",
-            "a0": "none"}
-DOSE_STEPS = {"remove": r78.STEPS["remove"], "add": r78.STEPS["add"], "none": r78.STEPS["a0"]}   # 33, 38, 38
+            "S4_96": "dose", "S4_192": "dose", "a0": "none"}
+DOSE_STEPS = {"remove": r78.STEPS["remove"], "add": r78.STEPS["add"], "none": r78.STEPS["a0"],
+              "dose": r78.STEPS["dose"]}  # 33, 38, 38, 39 (GXB O1: ceil(rows / 128); s4_top takes its derived steps)
 GATEB_R_DRAWS = r78.BLOCK0_R_DRAWS        # the sealed R draws this round plans (1, 2, 3)
 ALLOWED_REUSE = frozenset()
-BLOCKS = ("0", "sc")                      # N (ruling 11) and K4b's pre-block-A scorer block (KD10; C1); the 1B blocks refuse
+BLOCKS = ("0", "sc", "A", "B")            # N (ruling 11), K4b's pre-block-A scorer block (KD10; C1) and R1 K1's blocks A
+#                                           and B (Part 2 §2.2); the 1B blocks refuse
 BLOCKS_1B = ("S1-0", "cert", "A", "certify", "B", "C", "sim", "P")   # the stage-1 kit's; named in refusals only
 WAVES = BLOCKS
-FUNDING_BLOCK = {"0": "0", "sc": "sc"}    # block 0 is its own funding group (one record covers N's two pods); each
-#                                           init of the scorer block carries its own funding record (K4b)
+FUNDING_BLOCK = {"0": "0", "sc": "sc", "A": "A", "B": "B"}   # block 0 is its own funding group (one record covers N's
+#                                           two pods); each init of the scorer block carries its own funding record
+#                                           (K4b); blocks A and B each their own (R1 K1; the gate funds A, block B
+#                                           follows A's seal; I)
 HOST_PREFIX = {"0": f"{FAMILY}-0", "sc": f"{FAMILY}-sc"} if FAMILY else {}   # hosts olmo2-7b-0-1, ...-sc-1, ...
+if FAMILY:                                # R1 K1: blocks A and B's hosts ...-a-1, ...-b-1
+    HOST_PREFIX.update({"A": f"{FAMILY}-a", "B": f"{FAMILY}-b"})
 BLOCK_KINDS = {"0": ("arm", "a0_arm"),    # block 0: an edit arm under the main config; a0 at 1103 (Llama)
-               "sc": tuple(r78.SC_KINDS)}   # K4b: one single-job pod per kind (KD6), A2's order (rules_78b.SC_AFTER)
+               "sc": tuple(r78.SC_KINDS),   # K4b: one single-job pod per kind (KD6), A2's order (rules_78b.SC_AFTER)
+               "A": ("arm", "a0_arm"),      # R1 K1: block A's 21 arm runs per family (Part 2 §2.2)
+               "B": ("arm", "a0_arm", "ref_eval", "safe_lora", "ref_train", "ref_train_bqi")}   # + the references (§3)
 KINDS = tuple(r78.KINDS)                  # the 7-8B kinds (rules_78b: measured + E-capped)
 KIND_IDS = {k: k for k in KINDS}          # the stage-1 J-numbers do not carry over; job_id = kind
 MEASURED_KINDS = tuple(r78.MEASURED_KINDS)
@@ -305,23 +322,63 @@ def scorer_code(kind: str) -> list[str]:
 # side unit's COMPLETE.json (o_only_with_regenerate's acceptance check, PP17) by its KIT a0_units pin (ruling 7).
 OEXT_KINDS = ("o_only", "o_only_with_regenerate", "c0")   # the kinds that run the S1 package's O-ext code (OEXT_78B)
 SIDE_COMPLETE = "side_complete:a0:{seed}"             # o_only_with_regenerate's input: the side unit's COMPLETE.json
+N_COMPLETE = "n_complete:{arm}:{seed}"                # R1 K1 (DES E5): N's unit's COMPLETE.json (its acceptance input)
+REGEN_EDIT = "regen_edit:R:{seed}"                    # R1 K1: an N R unit's sealed R_d edit (its regeneration's input)
 SC_INPUTS = {"anchor": ("anchor_prompts",), "untuned_answers": ("list:s3", "loss:s1", "loss:s3_safe", "list:s4"),
              "o_only": ("oext_bank", "oext_record"),
              "o_only_with_regenerate": (SIDE_COMPLETE, "oext_bank", "oext_record"),
              "c0": ("source_complete:R:1101", "oext_bank", "oext_record"), "l1_scan": ("anchor_bank",),
              "rep_pass": ("anchor_bank", "pool:s3_safe", "pool:s3_orig"), "classifier": ("anchor_bank",),
-             "retrain": (), "a1_pass": ("anchor_bank", "retrain_unit")}
+             "retrain": (), "a1_pass": ("anchor_bank", "retrain_unit"),
+             "w1_18": ()}                          # R1 K1: its units and settings are W1_18_78B's pinned files (K3)
 SC_FOLDER_INPUTS = frozenset({"retrain_unit"})        # a unit folder: its pin is its COMPLETE.json's SHA-256
 
 
-def sc_input_names(kind: str, seed=None) -> tuple:
-    """The named inputs of a scorer-block job of ``kind`` at ``seed`` (SC_INPUTS with the seed filled in)."""
+def _unit_source(kind: str, seed, arm) -> str | None:
+    """R1 K1, the seed key: the source of o_only_with_regenerate's unit (arm, seed) in this copy's family ("side" or
+    "n"). The seed-only call (no arm) is the K4b side-unit form that today's runner, pack and planner still make; new
+    callers use sc_unit_input_names / sc_unit_input_pins, which refuse a missing arm (K1V-9)."""
+    if kind != "o_only_with_regenerate" or arm is None:
+        return "side" if kind == "o_only_with_regenerate" else None
+    return r78.sc_unit_source(family_or_refuse(), kind, arm, seed)
+
+
+def sc_input_names(kind: str, seed=None, arm=None) -> tuple:
+    """The named inputs of a scorer-block job of ``kind`` at ``seed`` (SC_INPUTS with the seed filled in). R1 K1:
+    o_only_with_regenerate's inputs are keyed by (arm, seed) (DES E5; GXB's seed key): a side unit (arm a0, or no arm)
+    takes side_complete:a0:<seed>; one of N's units takes n_complete:<arm>:<seed> and, for an R unit, its sealed R_d
+    edit regen_edit:R:<seed>; then the O-ext bank and record."""
+    if _unit_source(kind, seed, arm) == "n":
+        names = (N_COMPLETE.format(arm=arm, seed=seed),) + ((REGEN_EDIT.format(seed=seed),) if arm == "R" else ())
+        return names + ("oext_bank", "oext_record")
     return tuple(n.format(seed=seed) if n == SIDE_COMPLETE else n for n in SC_INPUTS[kind])
 
 
-def sc_input_pins(kind: str, pins78: dict, values: dict, seed=None) -> dict:
-    """name -> the SHA-256 the job's input must have (None while its pin is null), for ``kind``'s inputs at ``seed``.
-    ``values`` is rules_78b.sc_pin_values(family, pins78)."""
+def sc_unit_input_names(kind: str, arm, seed) -> tuple:
+    """K1V-9, the seed key without a default: the named inputs of a scorer-block job's unit named by (arm, seed). For
+    o_only_with_regenerate a missing arm refuses (ValueError), and so does an (arm, seed) that is not one of its units;
+    the other kinds take their own arm (SC_ARM) or none. K2's planner, the pack and K3's runner call this form; the
+    seed-only form sc_input_names(kind, seed) stays only for the call sites the kit test lists until they move."""
+    if kind == "o_only_with_regenerate":
+        if arm is None:
+            raise ValueError("o_only_with_regenerate names its unit by (arm, seed): the arm is missing (GXB's seed key)")
+        try:
+            r78.sc_unit_source(family_or_refuse(), kind, arm, seed)
+        except r78.Refused as exc:
+            raise ValueError(str(exc)) from None
+    return sc_input_names(kind, seed, arm)
+
+
+def sc_unit_input_pins(kind: str, pins78: dict, values: dict, arm, seed) -> dict:
+    """sc_input_pins with the unit named by (arm, seed) (K1V-9: no default arm; see sc_unit_input_names)."""
+    sc_unit_input_names(kind, arm, seed)
+    return sc_input_pins(kind, pins78, values, seed, arm)
+
+
+def sc_input_pins(kind: str, pins78: dict, values: dict, seed=None, arm=None) -> dict:
+    """name -> the SHA-256 the job's input must have (None while its pin is null), for ``kind``'s inputs at ``seed``
+    (and ``arm``: R1 K1's (arm, seed) key; N's unit pins come from values["N_UNITS"], null until block 0's
+    record-done). ``values`` is rules_78b.sc_pin_values(family, pins78)."""
     shared = pins78.get("shared") if isinstance(pins78, dict) else None
     lists = (shared or {}).get("sealed_lists_1b") or {}
     oext = (values.get("OEXT_78B") or {}).get("inputs") or {}
@@ -333,10 +390,16 @@ def sc_input_pins(kind: str, pins78: dict, values: dict, seed=None) -> dict:
              "anchor_bank": values.get("ANCHOR_BANK"), "pool:s3_orig": values.get("S3_ORIG_POOL"),
              "retrain_unit": values.get("RETRAIN_UNIT"), "source_complete:R:1101": c0.get("complete_sha256"),
              "oext_bank": oext.get("oext_bank"), "oext_record": oext.get("oext_record")}
-    if seed in A0_UNITS and seed != "untuned":           # PP17: the reused side unit's COMPLETE.json (ruling 7's pin)
+    source = _unit_source(kind, seed, arm)
+    if source == "n":                                    # R1 K1 (DES E5): N's unit, by its (arm, seed) key
+        unit = ((values.get("N_UNITS") or {}).get(r78.unit_key(arm, seed))) or {}
+        table[N_COMPLETE.format(arm=arm, seed=seed)] = unit.get("complete_sha256")
+        if arm == "R":
+            table[REGEN_EDIT.format(seed=seed)] = unit.get("edit_sha256")
+    elif seed in A0_UNITS and seed != "untuned":         # PP17: the reused side unit's COMPLETE.json (ruling 7's pin)
         table[SIDE_COMPLETE.format(seed=seed)] = A0_UNITS[seed]["complete_sha256"]
     out = {}
-    for name in sc_input_names(kind, seed):
+    for name in sc_input_names(kind, seed, arm):
         pin = table.get(name)
         out[name] = pin if hex64(pin) else None
     return out
@@ -375,9 +438,10 @@ LINK_FIELD = "regen_source"
 # and the engine's verify, as the 1B kit's a1_rescore), so it is not unitless; c0 is unitless (PP18: the runner
 # hashes its outputs under its job folder, as the 1B kit did, R: runkit/stage1-olmo/stage1_rules.py:623).
 UNITLESS_KINDS = frozenset({"untuned_answers", "rep_pass", "l1_scan", "classifier", "anchor", "o_only", "c0"})
-BANK500_KINDS = frozenset()               # no W1-18 branch at 7-8B: no 500-bank gate
-BRANCHES = ()
-BRANCH_DEFAULT = None
+BANK500_KINDS = frozenset(r78.BANK500_KINDS)   # R1 K1: the kinds whose every job reads the 500 bank (the O-ext pass);
+#                                           block A and B arm jobs read it too (rules_78b.bank500_job; block 0 never)
+BRANCHES = tuple(r78.BRANCHES)            # ("full", "128"): W1-18's branch per family (DES E2; GXB O4)
+BRANCH_DEFAULT = r78.BRANCH_DEFAULT       # "full" until the family's branch record
 X_ONLY_KINDS = ()
 Y_ONLY_KINDS = ()
 POINT_KINDS = {"ref_eval": None, "safe_lora": ("default", "conditional", "certify", "k12")}
@@ -385,7 +449,10 @@ REF_EVAL_SCALES = ("scale:0.9", "scale:0.75", "scale:0.5")
 JUDGED_RUN_KINDS = ("arm", "a0_arm")
 JUDGED_B10_KINDS = ("ref_eval", "safe_lora")
 B10_UNIT_KINDS = ("ref_eval", "safe_lora")
-REJUDGED_PINS = {"0": ()}                 # N has no re-judged unit (its R arms are judged with block A's pods, A9)
+# N has no re-judged unit (its R arms are judged with block A's pods, A9). R1 K1 (Part 2 §6; DESO item 26): block A
+# re-judges N's units, the reused a0 side units and theta0, 7 per family (rules_78b.rejudged_pins: N's entries null
+# until block 0's record-done; rules_78b.rejudged_or_refuse refuses a judge launch until then); block B none.
+REJUDGED_PINS = {"0": (), "A": r78.rejudged_pins(FAMILY, "A") if _KIT else (), "B": ()}
 NOT_RUN_KIND = "stage1 not-run decision"
 NOT_RUN_KEYS = ("kind", "block", "jobs", "reason", "utc", "recorded_by")
 A0_FINGERPRINT_RECORD = "a0-adapter-fingerprint.json"
@@ -499,22 +566,39 @@ def plan_code_for(sigma_pp: float) -> str:
 
 
 # ===== block tables ================================================================================================
-def block_runs(plan_code: str | None, block: str, reused: tuple = ()) -> list[tuple[str, int]]:
+def block_runs(plan_code: str | None, block: str, reused: tuple = (), dose_seeds: int = 0,
+               kept: int | None = None) -> list[tuple[str, int]]:
     """The runs (arm, seed) of a block of THIS copy's family. Block "0" = N (rules_78b.block0_runs: R_1-R_3 at
-    1101-1103; a0 at 1103 on Llama-3.1-8B). Every other block refuses in this round: the 1B blocks belong to
-    runkit/stage1-olmo/, blocks A and B of the 7-8B tier come after N's reading (Part 1 §5-§6)."""
+    1101-1103; a0 at 1103 on Llama-3.1-8B). R1 K1: blocks "A" and "B" = rules_78b.block_runs_78b (Part 2 §2.2; block
+    B by ``plan_code``, block B's plan record's plan, with ``dose_seeds`` 0, 3 or 6 and the kept S4 count ``kept``). The 1B blocks refuse: they belong to
+    runkit/stage1-olmo/."""
+    if block in ("A", "B"):
+        if reused:
+            raise ValueError(f"block {block} reuses no unit (Part 2 §2.2: every block A and B run is new)")
+        try:
+            return r78.block_runs_78b(family_or_refuse(), plan_code, block, dose_seeds, kept)
+        except r78.Refused as exc:
+            raise ValueError(str(exc)) from None
     if block != "0":
-        where = "runkit/stage1-olmo/" if block in BLOCKS_1B else "a later round (after N's reading)"
-        raise ValueError(f"block {block!r} is not planned by this copy (block 0 only in this round; ruling 11); "
+        where = "runkit/stage1-olmo/" if block in BLOCKS_1B else "no 7-8B block table"
+        raise ValueError(f"block {block!r} is not planned by this copy (block 0 only, or blocks A and B; ruling 11); "
                          f"it belongs to {where}")
     if reused:
         raise ValueError("block 0 reuses no unit: its R arms are new runs (ruling 7 reuses the a0 side units, not R)")
     return r78.block0_runs(family_or_refuse())
 
 
-def deal(runs: list) -> list[list]:
+def deal(runs: list, block: str = "0") -> list[list]:
     """N's one pod per family (ruling 11): the runs in N's order, on one pod. A run outside N's table, one listed
-    twice, or a layout that is not N's refuses (outcome-free and fixed before launch)."""
+    twice, or a layout that is not N's refuses (outcome-free and fixed before launch). R1 K1: blocks "A" and "B" take
+    the interleaving deal (rules_78b.deal_ab: arm-major, seed-minor, run i to pod i mod P; at most 4 per pod)."""
+    if block in ("A", "B"):
+        try:
+            return r78.deal_ab(runs)
+        except r78.Refused as exc:
+            raise ValueError(str(exc)) from None
+    if block != "0":
+        raise ValueError(f"block {block!r} has no deal here")
     expected = block_runs(None, "0")
     given = [tuple(r) for r in runs]
     if len(set(given)) != len(given):
@@ -567,7 +651,7 @@ def steps_for(kind: str, arm: str | None, steps: int | None) -> int | None:
         return steps
     if kind == "arm" and arm in ARM_DOSE:
         return stream_steps(arm)
-    if kind in ("a0_arm", "retrain", "o_only_with_regenerate", "ref_train_bqi", "safe_lora"):
+    if kind in ("a0_arm", "retrain", "o_only_with_regenerate", "ref_train_bqi", "safe_lora", "ref_train"):
         return DOSE_STEPS["none"]
     return None
 
@@ -575,15 +659,18 @@ def steps_for(kind: str, arm: str | None, steps: int | None) -> int | None:
 def job_record(kind: str, arm: str | None = None, seed: int | None = None, edit=None, steps: int | None = None,
                fixture: dict | None = None, a0_source: int | None = None, *, branch=None, engine: str = ENGINE_DEFAULT,
                points: list | None = None, recipe: str | None = None, regen_source: int | None = None,
-               family: str | None = None) -> dict:
+               family: str | None = None, padded_tokens_per_step: float | None = None, oext: bool = False) -> dict:
     """One plan job in the stage-1 kit's shape, its timing from rules_78b.job_record (KD1): upper_s,
     start_requirement_s, measured_upper_s, spend_upper_s, counted, unmeasured; plus the kit's fields (job_id, arm,
     seed, edit, engine, recipe, points, status). ``fixture``, ``branch`` and ``a0_source`` are the stage-1 signature's
     and are not read (no fixture prices a 7-8B job). A kind that needs a null pin (the retrain, A1's pass, B+Qi) is
-    still priced here (M3's need) and refuses at planning through plan_tool and at the pod through rules_78b."""
+    still priced here (M3's need) and refuses at planning through plan_tool and at the pod through rules_78b. R1 K1:
+    ``padded_tokens_per_step`` is train_scale's input (Part 2 §2.1) and ``oext`` plans the in-job O-ext step with its
+    cap term (blocks A and B; DES E3)."""
     fam = family_or_refuse(family)
     n = len(points) if points else 1
-    rec = r78.job_record(fam, kind, steps_for(kind, arm, steps), arm, seed, n_points=n)
+    rec = r78.job_record(fam, kind, steps_for(kind, arm, steps), arm, seed, padded_tokens_per_step, n_points=n,
+                         oext=oext)
     job = {**rec, "job_id": KIND_IDS[kind], "edit": edit, "engine": engine, "branch": branch,
            "recipe": recipe if recipe is not None else ("B" if kind in TRAINING_KINDS else None),
            "points": list(points) if points else None, "o500_s": 0.0, "status": "planned"}
@@ -656,11 +743,63 @@ def default_jobs(kinds: list[str], fixture: dict | None = None, arm_steps: int =
                        else None) for k in kinds]
 
 
+def block_jobs(plan_code: str | None, block: str, padded_tokens: dict | None = None, dose_seeds: int = 0,
+               kept: int | None = None) -> list[dict]:
+    """R1 K1: the job records of block A or B of this copy's family (Part 2 §2.1-§2.3), in block_runs' order. Each
+    edit arm trains on its edit (rules_78b.run_edit: by path and SHA-256 only; a null method-edit pin refuses with its
+    event) at the steps derived from the edit's rows (GXB O1), with its in-job O-ext step and train_scale's input
+    ``padded_tokens[(arm, seed)]`` (a missing count refuses); a0 at 38 steps, train_scale 1. Each job is in the kit's
+    shape (job_record) with its bound edit {path, sha256, engine_arm}."""
+    fam = family_or_refuse()
+    padded_tokens = padded_tokens or {}
+    out = []
+    for arm, seed in block_runs(plan_code, block, (), dose_seeds, kept):
+        try:
+            rec = r78.block_job_78b(fam, arm, seed, padded_tokens.get((arm, seed)))
+        except r78.Refused as exc:
+            raise ValueError(str(exc)) from None
+        edit = rec["edit"]
+        job = job_record(rec["kind"], arm, seed, None if edit is None else {"path": edit["path"],
+                         "sha256": edit["sha256"], "engine_arm": edit["engine_arm"]}, rec["steps"], family=fam,
+                         padded_tokens_per_step=rec["padded_tokens_per_step"], oext=True)
+        job["train_scale"] = rec["train_scale"]
+        job["block"] = block
+        out.append(job)
+    return out
+
+
+def block_pods(plan_code: str | None, block: str, padded_tokens: dict | None = None, dose_seeds: int = 0,
+               kept: int | None = None) -> list[dict]:
+    """R1 K1 (Part 2 §2.4): block A's or B's pods: the deal of its runs (at most 4 counted per pod, arms interleaved,
+    33-, 38- and 39-step arms mixed), each pod's cap from its jobs' own steps and O-ext terms (rules_78b.cap_hours),
+    its guard and spend upper."""
+    jobs = {(j["arm"], j["seed"]): j for j in block_jobs(plan_code, block, padded_tokens, dose_seeds, kept)}
+    pods = []
+    for runs in deal(list(jobs), block):
+        pod_jobs = [jobs[r] for r in runs]
+        cap = cap_hours(pod_jobs)
+        pods.append({"runs": runs, "jobs": pod_jobs, "cap_hours": cap, "guard_usd": cents(guard_usd(cap)),
+                     "spend_usd": cents(pod_spend_usd(pod_jobs)), "counted": arm_count(pod_jobs)})
+    return pods
+
+
+def block_init(block: str, gate_bytes: bytes, plan_b_bytes: bytes | None = None, family: str | None = None) -> dict:
+    """R1 K1 (GXB O14, corrected): what block A's or B's init reads: block A the gate record's families (its bytes read
+    at GATE_78B's path); block B also its plan from block B's plan record (read at PLAN_B_78B's path; "review" plans
+    nothing); Refused (ValueError) before each pin is filled."""
+    try:
+        return r78.block_init_or_refuse(block, family_or_refuse(family), gate_bytes, plan_b_bytes)
+    except r78.Refused as exc:
+        raise ValueError(str(exc)) from None
+
+
 def retrain_job(seed: int = 1101, family: str | None = None) -> dict:
     """Ruling 10, addendum A2 and A8: the a0-1101 retrain (train only, recipe S_78, engine Y) on its own single-job
     pod. It is priced (rules_78b's retrain E cap, 4.5 h) and REFUSES to be planned while the family's RECIPE_S pin is
     null (addendum A1: rules_78b.recipe_s_or_refuse). Its pod's need is printed by init-block 0 (M3) all the same."""
     fam = family_or_refuse(family)
+    if r78.family_stopped(fam):                        # R1 K1 (DESO2 item 36 (2)): the MAIN_F retrain on a stopped
+        return job_record("retrain", "a0", seed, None, DOSE_STEPS["none"], family=fam, recipe="B")   # family
     r78.recipe_s_or_refuse(fam)                        # Refused while RECIPE_S[family] is None
     return job_record("retrain", "a0", seed, None, DOSE_STEPS["none"], family=fam)
 

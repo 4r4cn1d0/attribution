@@ -165,3 +165,136 @@ needs Part 2's text to change, the change is made in Part 2's draft parts at the
   family, the stop kind (`safe_anchors_below_64` with exit 3, or `harmful_prompt_does_not_encode` with exit 1), the
   exit code, the job's JOB-DONE.json SHA-256 and the stop line's ids and counts. Track S's `blinded_sigma.py` reads
   this form; K2's writer writes it; both are tested against one shared fixture.
+
+## Fifth set (recorded 2026-11-08T16:10 UTC): from K1's verifier (`r1-k1-verify.md`)
+
+- **R-1. A "review" provisional plan.** P1 §6.1: under "review" there is no 7-8B primary family and the user decides
+  the next step. So block A's init refuses when `GATE_78B`'s provisional plan is "review"; the lead reports it to the
+  user, who decides (for example whether block A runs for SR-2's re-check). Nothing starts by default.
+- **R-2. θ0's job.json pins (K1V-4).** K1 measured them by hash, and K1's verifier re-measured them independently
+  (equal). They stay in the code; the merge's FOCUS entry records the fill as the lead's step with both measurements
+  as its evidence (T-O2's recorded step).
+- **R-3. Block 0's plan.json stays byte-identical (K1V-13).** The two new job keys are written only for blocks A and
+  B; a test holds block 0's plan.json byte for byte against `3481d85`'s.
+- **R-4. The O-ext command words (K1V-10).** Until K3 wires `oext_78b.py <command> --family F …`, no test asserts an
+  O-ext command line; a test holds instead that every O-ext kind (c0, `o_only`, `o_only_with_regenerate`, `w1_18`)
+  refuses to build its job while `OEXT_78B` or the family's branch record is null.
+
+## Sixth set (recorded 2026-11-08T16:19 UTC): from Track O's verifier (`r1-o-verify.md`)
+
+- **R-5. One index per family and engine (O1).** The single O-ext index covers both families and both engines, and the
+  wrapper pins it by a literal, so any fill changes both families' `OEXT_78B[F]`, against T-O2's fill-once order. So:
+  one index file per family for engine X and one per family for engine Y, each pinned only by the kit's
+  `OEXT_78B[F]` or `OEXT_78B_Y[F]`; the wrapper holds no literal index hash and checks the index it is handed against
+  the path and SHA-256 the job names. A fill on one family or engine changes only that family's (or engine's) index
+  and pin; a test holds it, and the documented fill procedure leaves the suite green (O6).
+- **R-6. A W1-18 record is checked on the Mac (O7).** Before any O-ext pod, the pack runs the wrapper's `check` on the
+  pinned W1-18 record (the unchanged `oext_eval` reader: family, branch, settings), so a wrong pin refuses on the Mac.
+- **R-7. W1-18's device (O8).** The 7-8B W1-18 settings name the pod's device (`cuda`).
+- **R-8. `OEXT_78B_Y[F]`'s form (O9)** is defined and printed by the maker, like `OEXT_78B[F]`'s.
+- **R-9. The side units' stored answers as W1-18's inputs** (Part 2 §14 item 29's last $0 check). The wrapper's `check`
+  also confirms, for each listed side unit, that its COMPLETE.json (read by pin) lists every file W1-18 reads, by name
+  and SHA-256 only; the lead runs it and records the result.
+
+## Seventh set (recorded 2026-11-08T16:34 UTC): from Track S's verifier (`r1-s-verify.md`)
+
+- **R-10. S-2 holds (M).** Track S's verifier showed from B16's code (R: `reading.py:237-242`, `labels.py:62-69`,
+  `phi.py:5-7`, :47-66, :92-104) and 12,000 trials through `phi.run` that Φ cannot claim on U unless Holm on U rejects
+  first. So the simulation's Holm-on-U familywise rate bounds Φ's U claims, and Φ's U part is not simulated.
+- **R-11. The reading rule's familywise rate** is the rate of the U claims (Part 2 §10.3: "the HB-C analysis with
+  Holm at 5%"). Φ's adverse O and L words ("worse (O)", "worse (L)") start at 0.5% of α inside their own contrasts
+  and are not simulated; the settings and the output state this as a limit.
+- **R-12. Unequal family noise (SV-3).** Under [B] the simulation's single true σ_pair for both families is listed as
+  an approximation, and two more scenarios run at ρ = 0: Llama-3.1-8B's σ_pair at 1.5 and at 1/1.5 times
+  OLMo-2-7B's (the grid's σ is OLMo-2-7B's; a value above the grid's top is capped there). The 6% rule applies to
+  them too.
+- **R-13. Engines per role (the verifier's point 3).** `blinded_sigma.py` takes the engine identity of each role (the
+  reused a0 units, N's R units, block A) as `noise_reading.py` does, not one shared `reused` value.
+- **R-14. The reading wrapper (the verifier's point 2).** The 7-8B reading wrapper (unbuilt; before block B's
+  outcomes are opened, DES K7) keeps B16's Φ graph unchanged, and its tests hold that.
+- **R-15. Df (the verifier's point 5).** The build gives 12 df per family on the full design (M: Track S's verifier, an
+  exact two-way fit), not P78's "about 15". Part 2 §10.2 takes the measured 12 at the freeze; P1 §6.3's 30-df columns
+  stay as P1's estimate (P1 is frozen).
+
+## Eighth set (recorded 2026-11-08T17:19 UTC): K1's fix round
+
+- **R-16. The seed-only unit form (K1V-9).** Accepted as K1 built it: strict (arm, seed) functions, and the seed-only
+  form kept only at the four call sites a test lists (the runner, the pack and the planner, K2's and K3's files).
+  K2 and K3 move those callers to the strict form and delete the seed-only form; the test's list is empty by K3's end
+  (an acceptance item of both rounds).
+- **R-17. R-4 corrected.** `w1_18` cannot wait on `OEXT_78B` or the branch record, because T-O2 fills both after the
+  W1-18 pod. c0, `o_only` and `o_only_with_regenerate` wait on `OEXT_78B[F]` and `BRANCH_78B[F]`; `w1_18` waits on
+  its own route pin `W1_18_78B`, as K1 built it.
+- **R-18.** The runner's existing O-ext command-line assertions in `test_scorer_block_78b.py` stay until K3 rewrites
+  those lines (removing them early could let scorer mutants survive); K3 lists them as an acceptance item.
+- **R-19. Index names.** K1's pin form reads the index name `oext_index__<F>__<E>.json`; Track O's files are
+  `OEXT-78B__<F>.json` and `OEXT-78B-Y__<F>.json`. Track O's names stand; K2 reconciles RK's form with them.
+
+## Ninth set (recorded 2026-11-08T17:38 UTC): from Track O's re-verifier (`r1-o-reverify.md`)
+
+- **R-20. The W1-18 pod's route (OR4).** The W1-18 pod does not take its index from `OEXT_78B[F]` (null until after
+  W1-18, T-O2). It runs under its own route pin `W1_18_78B` (K1's): the wrapper's hash and, per family, the W1-18
+  settings file and the side units, each by path and SHA-256. The maker prints that form; the lead fills it by a
+  recorded step after θ0's job pins and before the W1-18 pod.
+- **R-21. Where a W1-18 record lives (OR4).** Each family's W1-18 record, once retrieved from the pod, is committed
+  under `.ai/inputs/stage1-post-w1-20261023/78b/w1-18/`. As at 1B, the family's O-ext eval settings pin it by SHA-256
+  and kind, and its path is given at run time; `BRANCH_78B[F]` pins it by path and SHA-256. RK's form check accepts
+  that one folder for the W1-18 record entry only; every other entry stays under `scripts/`.
+- **R-22. Index names (OR3).** As R-19: Track O's `OEXT-78B__<F>.json` and `OEXT-78B-Y__<F>.json` stand. Because the
+  merged suite runs Track O's forms through K1's RK, K1's form check is aligned with these names before R1 merges (a
+  small K1 follow-up), not left to K2.
+- **R-23. Y files on the Mac.** Once `ENGINE_Y` is filled, the wrapper's `check` validates the Y files with engine Y's
+  identity, as it validates the X files with engine X's.
+
+## Tenth set (recorded 2026-11-08T17:51 UTC): from K1's re-verifier (`r1-k1-reverify.md`)
+
+- **R-24. Block B's plan is checked against its basis (KR1).** `PLAN_B_78B`'s plan must equal the plan its basis gives
+  by P1 §6.1: with basis σ̂_A, the plan from the σ̂_A it records (`blinded_sigma.py`'s printed value; a variance
+  estimate, not an outcome); with basis N's σ̂_pool, `GATE_78B`'s provisional plan; with basis σ̂_F under [C], the
+  plan σ̂_F gives, which `GATE_78B` records beside the provisional plan under [C] (P1 §6.2). Any other plan refuses.
+  This closes a money edge: a wrong record could plan 47 runs per family instead of 23 (about $198, E).
+- **R-25. K1's follow-up before R1 merges:** R-24; R-22's index names; KR2's and KR7's untested checks with tests
+  and mutants; KR3 (the seed-only scan covers every non-test kit file and any prefix); KR8 (`anchor_stop_or_refuse`
+  always matches the record to its anchor job's JOB-DONE.json).
+- **R-26. K2's and K3's acceptance items from this round:** KR4 (the runner and the pack read the stop record through
+  `anchor_stop_or_refuse` before a stopped family's MAIN_F retrain pod, and the pack carries the record); KR5 (one
+  shared stop-record fixture read by K2's writer, RK's checker and Track S's reader, with a cross-track test); KR6
+  (K-1's command-word check reads `OEXT_WRAPPER_COMMANDS`); the inherited 1B branch record removed so `BRANCH_78B`
+  is the only branch source, read by its bytes at its pin (K-8); the kept S4 count read from the untuned pass's dose
+  record, not passed by a caller; R-16's call sites moved.
+
+## Eleventh set (recorded 2026-11-08T17:51 UTC): from Track S's re-verifier (`r1-s-reverify.md`)
+
+- **R-27. R-11 corrected (SR9).** Φ's adverse O and L words start at an absolute level of 0.5%, which is 10% of α
+  (α = 5%), not "0.5% of α". The rest of R-11 stands. The settings file is still unrun, so its limit text is
+  corrected before the full run.
+- **R-28. Track S's follow-up before R1 merges:** SR9's text; SR1 (a test that each family's own σ reaches
+  `run_chunk`, so R-12's ratio scenarios cannot silently become copies of "none"); SR2 (the summary's largest rate
+  over both families and every scenario, tested under [B]); SR3 (the blinding test records every file write through
+  an audit hook, not three folders); SR10 (an in-process `read()` error carries only its type and a fixed message);
+  SR4-SR8's tests; and the re-verifier's 12 mutants in the spec. The full simulation runs after this follow-up, on
+  its final settings.
+
+## Twelfth set (recorded 2026-11-08T18:18 UTC): K1's follow-up
+
+- **R-29. "Review" from σ̂_A.** P1 §6.4 applies §6.1's whole rule to σ̂_A, so the review ceiling applies to it too. RK
+  takes §6.1's per-plan MDE factors from `scripts/scale78b/noise_reading.py`'s pinned values (1.4207, 1.0785 and
+  0.9340 for A, B9 and H (b); review above 7.0388, 9.2721 and 10.7066 pp, so only H (b)'s can fire), and gives
+  "review" for basis σ̂_A when σ̂_A is above 10.7066 pp. A test holds RK's plan, the ceiling included, equal to
+  `noise_reading.py`'s seed rule on the same σ values (both sides of each boundary).
+
+## Thirteenth set (recorded 2026-11-08T18:52 UTC): from K1's second re-verifier (`r1-k1-reverify2.md`)
+
+K1 merges with round 1 as it stands. These are K2's acceptance items:
+
+- **R-30 (KR2-1). Recorded values are read from their sources.** K2's record steps write `GATE_78B`'s provisional and
+  σ̂_F plans from the noise reading's pinned output and `PLAN_B_78B`'s σ̂_A from `blinded_sigma.py`'s pinned output,
+  never by hand; block B's init re-reads both outputs at their pins and refuses any recorded value that differs.
+- **R-31 (KR2-2).** K2 deletes the seed-only unit form (R-16), so no scan of call forms is needed after K2; until then
+  the scan is a guard with the gaps K1's re-verifier lists.
+- **R-32 (KR2-3). `W1_18_78B`'s form** is R-20's: the wrapper's hash and, per family, the W1-18 settings file and the
+  side units, each by path and SHA-256, as Track O's maker prints it (`{files, side_units}`); RK's check changes to
+  accept that form. No fill happens before K2 merges.
+- **R-33 (KR2-4, KR2-5).** RK's index and W1-18 record checks take exactly the standard names and folders; a W1-18
+  record's SHA-256 must equal the branch record's `w1_18_record_sha256`; `plan_for_sigma` refuses (not raises) on a σ
+  that is not a finite float.

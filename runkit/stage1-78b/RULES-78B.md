@@ -122,9 +122,10 @@ unit (tests 2, 4, 5). A constant changes only when the basis changes (KD9), by a
 | `classifier` | 3.25 h / $12.01 | 3.25 h / $12.01 | the 1B 2,012 s x 2.3 x 1.5 |
 | `c0` | 4.25 h / $13.86 | 4.5 h / $14.33 | the evalonly bound (M) + 1.5 x 600 s for the X-pin check |
 | `retrain` (engine Y; needs S_78) | 4.5 h / $14.33 | 4.5 h / $14.33 | a 3 h upper, about 6 x the expected; the check's M3 names 4-5 h |
-| `ref_train_bqi` (B+Qi, Y) | 4.75 h / $14.79 | 5.0 h / $15.25 | training x 1.5 (reference forward) x 2 (engine Y) + the evalonly bound (M) |
-| `safe_lora` (1 point) | 5.5 h / $16.18 | 5.75 h / $16.64 | regenerate + hash (1B 600 s x 2.3) + transform, x 1.5; + evalonly (M) per point |
-| `ref_eval` (1 point) | 5.0 h / $15.25 | 5.25 h / $15.71 | regenerate + 300 s scaling, x 1.5; + evalonly (M) per point |
+| `ref_train_bqi` (B+Qi, Y) | 6.5 h / $18.03 | 6.5 h / $18.03 | training x 1.5 (reference forward) x 2 (engine Y) + the evalonly bound (M) + the O-ext term (R1 K1; GXB O12; was 4.75 h / 5.0 h) |
+| `safe_lora` (1 point) | 7.25 h / $19.41 | 7.25 h / $19.41 | regenerate + hash (1B 600 s x 2.3) + transform, x 1.5; + evalonly (M) and the O-ext term per point (R1 K1; was 5.5 h / 5.75 h) |
+| `ref_eval` (1 point) | 6.75 h / $18.49 | 6.75 h / $18.49 | regenerate + 300 s scaling, x 1.5; + evalonly (M) and the O-ext term per point (R1 K1; was 5.0 h / 5.25 h) |
+| `w1_18` (R1 K1; one pod, both families) | 2.25 h / $10.16 | 2.25 h / $10.16 | the 1B W1-18 upper 0.5 h (E there) x 1.5; guard-only, no size factor (I) |
 
 `block0` prints N's two pods, each family's retrain pod and each scorer pod separately with its guard, spend upper and
 need alone (the check's M3): retrain $14.33 guard / $6.80 spend / $17.91 need; the a1_pass pod $36.53 / $28.64 / $45.66;
@@ -272,3 +273,85 @@ reads the clock, the network, a config file or a pod; the only file read is the 
   re-measure sets `Y_MEASURED` (`engine_allowed`).
 - `ref_train_bqi` runs under `RECIPE_BQI` only (K1, the re-verifier's D1; A1's pattern): `check_keys` and
   `job_decision` refuse it while the pin is null and under any other recipe; `job_record` still prices it (M3).
+
+## R1 K1 (8 Nov 2026): blocks A and B, the rules layer
+
+Built from PLAN-AB §2 Track K row K1 with the lead's build rulings (GXB, `.ai/inputs/stage1-post-w1-20261023/78b/
+lead-rulings-ab-build-20261108.md`, both sets). `rules_78b.py` holds the rules; `stage1_rules.py` exposes them to the
+copied modules by the stage-1 names. The callers (init-block A / B, the branch and stop records, the runner's commands,
+the pack) are K2's and K3's; until then `plan_tool.py` still carries the inherited 1B route for blocks A and B.
+
+- **Block tables** (Part 2 §2.2): `block_runs_78b(family, plan, block, dose_seeds)`: block A 21 runs per family (every
+  plan); block B 23 / 32 / 47 (plan A / B9 / H (b)) plus the dose rows (6 or 12); A1, L1 and S3 dropped on a family
+  whose anchor job stopped (12; 14 / 26 / 38). `stage1_rules.BLOCKS = ("0", "sc", "A", "B")` with `HOST_PREFIX`,
+  `FUNDING_BLOCK`, `BLOCK_KINDS`.
+- **Edits by path and SHA-256 only** (Part 2 §2.3): `R_DRAW_SOURCES[F][d]` for R_d4-R_d13 (three OLMo sources; the
+  Llama set); `METHOD_EDITS[F][arm]` with H1 and S1 filled, A1, L1, S3, S4, S4_96, S4_192, s4_top null; `run_edit`
+  refuses a null pin with its event (`METHOD_EDIT_EVENTS`).
+- **Steps (GXB O1)**: ceil(rows / 128) of the arm's training rows (`steps_for_rows`, `arm_training_rows`,
+  `arm_steps`); a named arm whose derived steps differ from `ARM_STEPS` refuses; `STEPS["dose"] = 39`; s4_top
+  ceil((4,800 + n) / 128). **Dose arms (GXB K-5)**: `dose_arms_for(n)` from the kept S4 count: n >= 192 S4_96 and
+  S4_192; 97-191 S4_96 and s4_top (n); 96 S4_96 only; 49-95 s4_top (n) only; 48 none; fewer than 48 the build stop;
+  s4_top exists only for 49-95 and 97-191; `block_runs_78b(..., dose_seeds, kept)` takes n, never a list of arms.
+- **Pods** (Part 2 §2.4): `deal_ab` (arm-major, seed-minor, run i to pod i mod P; at most 4; an arm twice refuses);
+  each job carries its own steps, train_scale input (`padded_tokens_per_step`, required for edit arms) and O-ext term;
+  `requirements()` and `job_decision` now read the job's own padded tokens and term.
+- **The O-ext cap term** (DESO item 24; Part 2 §4.3; GXB O12): `oext_term_s` = 1.5 x (13 PHTest batches at the cap +
+  half the scoring allowance + early and outside), 5,938 s OLMo / 6,092 s Llama, until `OEXT_TERM_MEASURED_S[F]` is
+  filled; `job_record(..., oext=True)` for arm, a0_arm and ref_train (4-arm caps 17.25 h / 19.25 h; four-pod need
+  $167.06 / $185.56); the references' E caps carry it per point. Block 0 never carries it. `check_keys(...,
+  oext_bank=)` holds the O-ext bank against `OEXT_78B[F]`.
+- **W1-18 and the branch** (DES E2; DESO2 item 37; GXB O4, K-3): kind `w1_18` (E, X only, the scorer block's first
+  O job, in OLMo-2-7B's scorer-block copy, one record per family, [C] OLMo only; `W1_18_78B` null), `BRANCHES`,
+  `BANK500_KINDS`, `bank500_job`, `branch_record_problem`. The branch is read only from the family's pinned record
+  `BRANCH_78B[F]` (null until W1-18's record-done; K1V-5): `branch_record_or_refuse`, `bank500_problem`,
+  `branch_switch_problem`, `oext_flags`; c0, o_only and o_only_with_regenerate wait on it (GXB R-4).
+- **N's units, keyed by (arm, seed)** (DES E5; the seed key): `sc_units`, `sc_unit_source`, `N_UNITS[F]` (null until
+  block 0's record-done), `n_unit_or_refuse`; `stage1_rules.sc_unit_input_names/sc_unit_input_pins(kind, ..., arm,
+  seed)` refuse a missing arm (K1V-9); the seed-only `sc_input_names/sc_input_pins` stay only at the runner's, the
+  pack's and the planner's four call sites until K2/K3 move them (test_41 lists them).
+- **Block A's re-judge list** (DESO item 26): `rejudged_pins` / `rejudged_or_refuse`, 7 per family, N's null until N runs;
+  the side units carry their job.json SHA-256 (M, 8 Nov; GXB R-2). A malformed N_UNITS pin refuses at use, never at
+  import (K1V-8).
+- **The gate and block B's plan** (GXB O14 corrected, K-6, R-1): `GATE_78B` (option, families, N's provisional plan,
+  the noise reading, the balance; block A's init reads its families and refuses under a "review" provisional plan)
+  and `PLAN_B_78B` (plan, `sr2_adopted`; adopted: basis sigma_A and blinded_sigma.py's output and inputs hashes; not
+  adopted: `sr2_reason` and basis sigma_pool_N under [B] or sigma_F under [C], the hashes null; "review" plans
+  nothing): both null, `block_init_or_refuse`. GXB R-24: the plan must be the one its basis gives by P1 §6.1:
+  sigma_A, the plan of the record's `sigma_A_pp` (`plan_for_sigma`, the seed rule); sigma_pool_N, GATE_78B's
+  provisional plan; sigma_F (only [C]), GATE_78B's `sigma_F_plan` (required under [C], null under [B]).
+- **The anchor stops** (GXB O6; item 14; the fourth set's form, the one Track S reads): kind `scale-78b anchor stop`,
+  `stop_kind` `safe_anchors_below_64` (exit 3) or `harmful_prompt_does_not_encode` (exit 1 with the AnchorJobError
+  message; any other end is a crash), JOB-DONE.json SHA-256, `counts`: `anchor_exit_kind`, `anchor_stop_record`,
+  `anchor_stop_problem`. `ANCHOR_STOP[F]` (null = no stop) marks a family stopped only after `anchor_stop_or_refuse`
+  read the record at the pin (K1V-6); on a stopped family `STOP_REFUSED_KINDS` refuse for good and the retrain runs
+  under MAIN_F (`sc_recipe`, `check_keys`, `sc_needed_pins`, `sc_order_problem`, `job_decision`); `ENGINE_Y`'s event
+  carries AM1's stopped-family clause.
+- **ref_train** (Part 2 §3.2): a measured kind under `RECIPE_G` only. **The wrapper path**: `OEXT_UNIT_SCRIPT`,
+  `C0_SCRIPT` and `W1_18_SCRIPT` are Track O's `scripts/scale78b/oext_78b.py` (`OEXT_WRAPPER_COMMANDS`: unit, lean,
+  w1_18; the runner's command lines are K3's). `OEXT_78B[F]` (engine X) and `OEXT_78B_Y[F]` (engine Y; null; filled
+  after ENGINE_Y and RECIPE_BQI) each pin the wrapper and exactly their own family's and engine's O-ext index, by
+  Track O's names `scripts/scale78b/settings/OEXT-78B__<F>.json` (X) and `OEXT-78B-Y__<F>.json` (Y) (GXB R-5, R-22);
+  the family's W1-18 record may be the one entry under `.ai/inputs/stage1-post-w1-20261023/78b/w1-18/` (R-21).
+- **Block 0** keeps 3481d85's plan.json byte for byte: the job keys `oext` and `padded_tokens_per_step` are written on
+  block A and B jobs only (GXB R-3; test_42).
+
+### K2's and K3's acceptance items from R1 (GXB R-16, R-26)
+
+- **KR4, the pod side of a stop.** Once `ANCHOR_STOP[F]` is pinned, every process that calls `family_stopped` (the
+  pod's `check_keys` and `job_decision`, the planner, the pack) refuses until it has read the stop record through
+  `anchor_stop_or_refuse(family, bytes, job_done_sha256)`. K2's planner and K3's runner and pack call it before a
+  stopped family's MAIN_F retrain pod (and any other job of that family), and the pack carries the record (by path and
+  SHA-256) into the pod's setup.
+- **KR5.** One shared stop-record fixture read by K2's writer, RK's `anchor_stop_problem` and Track S's reader, with a
+  cross-track test.
+- **KR6 / K-1.** The planner's c0 / O-ext script check becomes a check of the command word, read from
+  `OEXT_WRAPPER_COMMANDS`; the scorer mutant K4bf-m-c0-needs-oext-script moves there.
+- **K-8.** The inherited 1B branch record goes; `BRANCH_78B[F]` is the only branch source, read by its bytes at its pin.
+- The kept S4 count for `block_runs_78b(..., kept)` comes from the untuned pass's dose record, not a caller.
+- **R-16.** The four seed-only `sc_input_names` / `sc_input_pins` call sites (runner :466, :483; pack :432; planner
+  :1306) move to `sc_unit_input_names` / `sc_unit_input_pins`, and the seed-only form is deleted; test_41's list is
+  empty by K3's end.
+- **R-18.** K3 rewrites the runner's O-ext command lines (`oext_78b.py <command> --family F ...`) and the scorer test's
+  assertions on them.
+

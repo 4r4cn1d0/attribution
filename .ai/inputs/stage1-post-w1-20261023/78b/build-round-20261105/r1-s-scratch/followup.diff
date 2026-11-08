@@ -1,0 +1,483 @@
+--- a/scripts/scale78b/blinded_sigma.py
++++ b/scripts/scale78b/blinded_sigma.py
+@@ -6,7 +6,8 @@
+ **What it prints** (stdout, and --out when given, the same bytes, written once): exactly
+ {"kind", "version", "inputs_sha256", "sigma_A_pp", "df"} in canonical JSON. No U value, arm mean, seed mean, residual,
+ per-cell or per-cluster value reaches stdout, stderr, a file or an exception message: a refusal names cells, keys and
+-hashes only, and any unexpected error is reported by its exception type alone (``main``).
++hashes only, and any unexpected error is reported by its exception type alone, in ``read`` (in process) and in
++``main`` (the CLI), with no exception context kept (SR10).
+ 
+ **The estimate** (P1 §6.4, S-P; P2 §10.2): per family and per cluster (removal {R, A1, L1, H1}; full-corpus {a0, S1, S3,
+ S4}) the additive arm + seed model is fitted by least squares to the cluster's cells, exactly in rationals; its residual
+@@ -290,8 +291,24 @@
+     return out
+ 
+ 
++UNEXPECTED = "blinded_sigma: unexpected error ({}); nothing written"
++
++
+ def read(inputs_path, inputs_sha256: str) -> dict:
+-    """The output document {kind, version, inputs_sha256, sigma_A_pp, df}."""
++    """The output document {kind, version, inputs_sha256, sigma_A_pp, df}. Guarded in process too (SR10): a refusal
++    passes as it is (it names cells, keys and hashes only); any other error becomes a Refusal that carries its type and
++    the fixed UNEXPECTED text only, raised outside the handler, so it holds no context (no __context__ or __cause__)."""
++    failure = None
++    try:
++        return _read(inputs_path, inputs_sha256)
++    except SystemExit:
++        raise
++    except Exception as exc:                                 # never keep an exception's text: it could hold a value
++        failure = type(exc).__name__
++    raise Refusal(UNEXPECTED.format(failure))
++
++
++def _read(inputs_path, inputs_sha256: str) -> dict:
+     path = pathlib.Path(inputs_path).resolve()
+     if not hex64(inputs_sha256):
+         refuse("--inputs-sha256 is 64 lower-case hex digits")
+@@ -339,6 +356,7 @@
+     ap.add_argument("--inputs-sha256", required=True)
+     ap.add_argument("--out")
+     args = ap.parse_args(argv)
++    failure = None
+     try:
+         out = pathlib.Path(args.out) if args.out else None
+         if out is not None and (out.exists() or out.is_symlink()):
+@@ -355,7 +373,9 @@
+     except SystemExit:
+         raise
+     except Exception as exc:                                 # never echo an exception's text: it could hold a value
+-        raise SystemExit(f"blinded_sigma: unexpected error ({type(exc).__name__}); nothing written") from None
++        failure = type(exc).__name__
++    if failure is not None:
++        raise SystemExit(UNEXPECTED.format(failure))         # raised outside the handler: no context is kept
+     sys.stdout.write(data.decode("utf-8"))
+     return 0
+ 
+--- a/scripts/scale78b/settings/sr2_simulation.json
++++ b/scripts/scale78b/settings/sr2_simulation.json
+@@ -1,7 +1,7 @@
+ {
+  "kind": "scale-78b sr2 simulation settings",
+  "version": 1,
+- "written_utc": "2026-11-08T16:36:21Z (clock read with date -u; rewritten for the fix round: GXB's seventh set R-11, R-12, and the verifier's SV-3; earlier versions 2026-11-08T15:00:22Z and 15:27:08Z); written before any run of scripts/scale78b/sr2_simulation.py on this file; only tests (smoke grids on tmp copies) and timing copies (other settings, other hashes) ran before it",
++ "written_utc": "2026-11-08T17:53:15Z (clock read with date -u; rewritten for the follow-up: GXB R-27's corrected limit text; earlier versions 2026-11-08T15:00:22Z, 15:27:08Z and 16:36:21Z); written before any run of scripts/scale78b/sr2_simulation.py on this file; only tests (smoke grids on tmp copies) and timing copies (other settings, other hashes) ran before it",
+  "reading_rule": {
+   "threshold_familywise": "0.06",
+   "text": "DES K6 (Part 2 section 10.3), written before the simulation runs: if the simulated familywise rate exceeds 6% at any simulated sigma, SR-2 is not adopted and N decides alone; else SR-2 stands and the size is printed. GXB S-1: the rule applies to every simulated scenario: a familywise rate above 6% at any simulated sigma, with or without the interaction and at either family ratio (every entry of 'interaction'; GXB R-12), and for any family read, means SR-2 is not adopted. It runs before block A's first pod, on the design that will run (the reduced design if an anchor-job stop is known before it runs; DESO3 V2; GXB S-10). The script prints this rule and a reading line beside its largest familywise rate over every sigma, scenario and family; the lead applies it. The familywise rate is the rate of the U claims (Holm on U at 5%; Part 2 section 10.3); Phi's O and L words are not simulated (GXB R-11).",
+@@ -91,7 +91,7 @@
+  ],
+  "limits": [
+   "The crossed prompt (item) part of each claim-test contrast's SE is omitted: no prompt-level data exist before block A, so none are simulated for the claim test; the df is the seed part's Satterthwaite df (GXB S-3). Its effect on the size is not simulated: V_prompt >= 0 widens the SE but also raises the Satterthwaite df.",
+-  "The familywise rate is the rate of the U claims: Holm at 5% on the U contrasts, which bounds Phi's U claims (GXB R-10). Phi's adverse O and L words ('worse (O)', 'worse (L)'), which start at 0.5% of alpha inside their own contrasts, are not simulated (GXB R-11)."
++  "The familywise rate is the rate of the U claims: Holm at 5% on the U contrasts, which bounds Phi's U claims (GXB R-10). Phi's adverse O and L words ('worse (O)', 'worse (L)'), which start at gamma x alpha = 0.5% absolute in all (10% of alpha, alpha = 5%), within their own contrasts, are not simulated (GXB R-11 as corrected by R-27)."
+  ],
+  "basis": [
+   "Part 2 section 10.3 (DES K6; P1 section 14 item 10; P78:204); DESO3 V2",
+--- a/scripts/scale78b/tests/test_blinded_sigma.py
++++ b/scripts/scale78b/tests/test_blinded_sigma.py
+@@ -276,21 +276,63 @@
+             if f.is_file() or f.is_symlink():
+                 out[str(f)] = sha(f.read_bytes()) if f.is_file() else "link"
+     return out
++
++
++# SR3: every file write the CLI makes, anywhere, is recorded by an audit hook installed before the script runs (an
++# "open" event whose mode or flags write, and every rename, link, symlink, mkdir, remove, truncate, chmod, utime and
++# shutil copy or move event), logged to a file the wrapper opened before the hook; then runpy runs the script as __main__.
++AUDIT_WRAPPER = r"""
++import json, os, runpy, sys
++log_path, script = sys.argv[1], sys.argv[2]
++log = open(log_path, "w", buffering=1)
++WRITE_FLAGS = os.O_WRONLY | os.O_RDWR | os.O_CREAT | os.O_APPEND | os.O_TRUNC
++EVENTS = {"os.rename", "os.link", "os.symlink", "os.mkdir", "os.remove", "os.rmdir", "os.truncate", "os.chmod",
++          "os.chown", "os.utime", "os.chflags", "os.mkfifo", "os.mknod", "shutil.copyfile", "shutil.copymode",
++          "shutil.copystat", "shutil.copytree", "shutil.move", "shutil.rmtree", "shutil.make_archive",
++          "shutil.unpack_archive", "tempfile.mkstemp", "tempfile.mkdtemp"}
++def name(p):
++    if isinstance(p, int):
++        return "fd:" + str(p)
++    try:
++        return os.path.abspath(os.fsdecode(p))
++    except Exception:
++        return repr(p)
++def hook(event, args):
++    if event == "open":
++        path, mode, flags = args
++        if (isinstance(mode, str) and any(c in mode for c in "wax+")) or (isinstance(flags, int) and flags & WRITE_FLAGS):
++            log.write(json.dumps(["open", name(path)]) + "\n")
++    elif event in EVENTS:
++        log.write(json.dumps([event, [name(a) if isinstance(a, (str, bytes, os.PathLike)) else repr(a) for a in args]]) + "\n")
++sys.addaudithook(hook)
++sys.argv = [script] + sys.argv[3:]
++runpy.run_path(script, run_name="__main__")
++"""
+ 
+ 
+ def guarded_run(tree, tmp_path, *args, out: Path | None = None):
+-    """The CLI run from a fresh cwd, with a snapshot before and after of every folder it can touch: the fixture root
+-    (the inputs' folder and every unit), tmp_path (--out's folder), the cwd and the script's own package folder.
+-    Returns (run, new files, changed files)."""
++    """The CLI run from a fresh cwd under the audit hook (SR3: every write anywhere), with a snapshot before and after
++    of the fixture root, tmp_path and the script's package folder as a second check. Returns (run, new files, changed
++    files): new = every path opened for writing (audit) or appearing (snapshot); changed = changed files, plus every
++    other audited event (rename, mkdir, remove, ...)."""
+     cwd = tmp_path / "cwd"
+     cwd.mkdir(exist_ok=True)
++    audit = tmp_path.parent / (tmp_path.name + "-audit")
++    audit.mkdir(exist_ok=True)
++    wrapper, log = audit / "audit_wrapper.py", audit / f"log-{len(list(audit.iterdir()))}.jsonl"
++    wrapper.write_text(AUDIT_WRAPPER)
+     folders = (tree["root"], tmp_path, ROOT / "scripts/scale78b")
+     before = snapshot(*folders)
+-    run = subprocess.run([sys.executable, "-I", "-B", str(SCRIPT), *map(str, args)] + (["--out", str(out)] if out else []),
+-                         capture_output=True, text=True, cwd=cwd)
++    run = subprocess.run([sys.executable, "-I", "-B", str(wrapper), str(log), str(SCRIPT), *map(str, args)]
++                         + (["--out", str(out)] if out else []), capture_output=True, text=True, cwd=cwd)
+     after = snapshot(*folders)
+-    new = sorted(set(after) - set(before))
+-    changed = sorted(k for k in before if after.get(k) != before[k])
++    events = [json.loads(line) for line in log.read_text().splitlines()]
++    writes = {path for kind, path in events if kind == "open"}
++    others = [f"{kind}: {path}" for kind, path in events if kind != "open"]
++    if out is not None and str(out) not in before and out.exists():
++        assert str(out) in writes, "the audit hook did not see the write of --out: it records nothing"
++    new = sorted((set(after) - set(before)) | writes)
++    changed = sorted(k for k in before if after.get(k) != before[k]) + others
+     return run, new, changed
+ 
+ 
+@@ -385,7 +427,7 @@
+     with pytest.raises(SystemExit) as caught:
+         bs.main(["--inputs", str(inputs), "--inputs-sha256", digest])
+     assert str(caught.value) == "blinded_sigma: unexpected error (ValueError); nothing written"
+-    assert caught.value.__suppress_context__ is True
++    assert caught.value.__context__ is None and caught.value.__cause__ is None      # SR10: no context kept
+     captured = capsys.readouterr()
+     assert captured.out == "" and captured.err == ""
+ 
+@@ -689,3 +731,50 @@
+     for seed in (1104, 1105):
+         assert not bs.reused("R", seed) and not bs.reused("a0", 1104)
+     assert [bs.reused(a, j) for a in ("a0", "R") for j in (1101, 1102, 1103)] == [True] * 6
++
++
++def test_an_in_process_read_error_carries_its_type_and_the_fixed_text_only(tree):
++    """SR10: bs.read itself (not only the CLI) turns an unexpected error into a Refusal with the type-only line and no
++    context: the zero-answers cell's ZeroDivisionError (whose own text names a U numerator) is never kept."""
++    root = tree["root"]
++    fams = json.loads(json.dumps(tree["families"]))
++
++    def zero(summary):
++        summary["harm"]["sampled"]["answers"] = 0
++    fams["olmo2-7b"]["cells"]["S1"]["1103"] = tampered(root, fams["olmo2-7b"]["cells"]["S1"]["1103"], "tampered-s1-zero", zero)
++    inputs, digest = write_inputs(root, "B", fams, "inputs-unexpected-inproc.json")
++    with refuses("blinded_sigma: unexpected error (ZeroDivisionError); nothing written") as caught:
++        bs.read(inputs, digest)
++    assert isinstance(caught.value, bs.Refusal)
++    assert caught.value.__context__ is None and caught.value.__cause__ is None and caught.value.args == (str(caught.value),)
++
++
++def test_the_exclusive_create_refuses_a_file_made_after_the_check(tree, tmp_path, monkeypatch, capsys):
++    """SR4: --out made between the existence check and the write (here by a read that creates it) is refused by the
++    exclusive create; the file made meanwhile keeps its bytes; stdout and stderr stay empty."""
++    inputs, digest = write_inputs(tree["root"], "B", tree["families"], "inputs-race.json")
++    out = tmp_path / "race.json"
++    real = bs.read
++
++    def read_then_create(path, pin):
++        doc = real(path, pin)
++        out.write_bytes(b"made meanwhile\n")
++        return doc
++    monkeypatch.setattr(bs, "read", read_then_create)
++    with refuses("--out exists: the output is written once"):
++        bs.main(["--inputs", str(inputs), "--inputs-sha256", digest, "--out", str(out)])
++    assert out.read_bytes() == b"made meanwhile\n"
++    captured = capsys.readouterr()
++    assert captured.out == "" and captured.err == ""
++
++
++def test_the_engine_maps_form_is_checked(tree):
++    """SR8: the old {block_a, reused} form, an extra key and a non-hex value each refuse with the form's own line."""
++    line = "olmo2-7b: engine gives the a0, R and block_a code identities (64 hex each)"
++    base = tree["families"]["olmo2-7b"]
++    for i, engine in enumerate(({"block_a": ENGINE_X, "reused": ENGINE_X},
++                                {"a0": ENGINE_X, "R": ENGINE_X, "block_a": ENGINE_X, "extra": ENGINE_X},
++                                {"a0": ENGINE_X, "R": "not hex", "block_a": ENGINE_X})):
++        inputs, digest = write_inputs(tree["root"], "C", {"olmo2-7b": {**base, "engine": engine}}, f"inputs-engine-form-{i}.json")
++        with refuses(line):
++            bs.read(inputs, digest)
+--- a/scripts/scale78b/tests/test_sr2_simulation.py
++++ b/scripts/scale78b/tests/test_sr2_simulation.py
+@@ -217,7 +217,9 @@
+ 
+ 
+ def test_the_output_is_byte_stable_and_shards_merge_into_it(tmp_path):
+-    settings = smoke_settings(tmp_path)
++    full = json.loads(SETTINGS.read_text())["interaction"]
++    settings = smoke_settings(tmp_path, reps=30, chunk=15,
++                              interaction=[i for i in full if i["name"] in ("none", "llama sigma x 1.5")])
+     first = run_cli("--settings", settings, "--option", "B", "--design", "full")
+     second = run_cli("--settings", settings, "--option", "B", "--design", "full", "--out", tmp_path / "full.json")
+     assert first.returncode == 0 and second.returncode == 0, first.stderr + second.stderr
+@@ -317,7 +319,8 @@
+          ("llama sigma x 1/1.5", "0")]
+     assert [i["llama_sigma_ratio"] for i in s["interaction"]] == ["1", "1", "1", "3/2", "2/3"]
+     assert "either family ratio" in s["reading_rule"]["text"] and "U claims" in s["reading_rule"]["text"]
+-    assert s["written_utc"].startswith("2026-11-08T16:36:21Z")
++    assert s["written_utc"].startswith("2026-11-08T17:53:15Z")
++    assert "0.5% absolute in all (10% of alpha, alpha = 5%)" in s["limits"][1] and "0.5% of alpha" not in s["limits"][1]
+     assert "with or without the interaction" in s["reading_rule"]["text"] and "every scenario of 'interaction'" in s["reading_rule"]["applies_to"]
+     assert s["n_stage"]["sigma_eval0_pp"] == "1.28" and s["n_stage"]["prompts"] == 200
+     assert any("prompt (item) part" in x for x in s["limits"])
+@@ -561,6 +564,7 @@
+     with np.errstate(all="ignore"):
+         ref = independent_chain(y_all, option, stopped, effects, reps)
+     assert plans["sigma_A"] == ref["plans"]
++    assert plans["N"] == independent_n_plans(y_all, eta, 1.28, reps)                                       # SR7
+     assert sum(1 for v in ref["plans"].values() if v) >= 1 and sum(ref["plans"].values()) == reps
+     for f in fams:
+         t, o = tallies[f], ref["families"][f]
+@@ -597,3 +601,106 @@
+     assert low["olmo2-7b"] == 6.0 and math.isclose(low["llama31-8b"], 4.0, rel_tol=1e-15)
+     with pytest.raises(SystemExit, match="llama_sigma_ratio > 0"):
+         sim.read_settings(smoke_settings(tmp_path, interaction=[{"name": "x", "method_variance_share": "0"}]))
++
++
++
++def independent_n_plans(y_all: dict, eta, sigma_eval0: float, reps: int) -> dict:
++    """SR7: N's printed plan from an independent σ̂_pool: per family the per-prompt differences of the a0 and R cells
++    (sim.n_prompt_values, tested on its own) taken to Fractions, r_j and SD(r)² by gate_b_reading's variance, each pair's
++    prompt-clustered SE² by family_probe_reading.clustered_se2, then noise_reading.pooled and its seed_rule."""
++    from scripts.scale78b import noise_reading as nr
++    gb = nr.GB
++    prompts = sim.n_prompt_values(y_all, eta, sigma_eval0)
++    plans = {k: 0 for k in sim.PLAN_LABELS}
++    for r in range(reps):
++        families = {}
++        for f in sim.FAMILIES:
++            rs, se2 = [], {}
++            for j in sim.N_SEEDS:
++                d = [Fraction(float(a)) - Fraction(float(b))
++                     for a, b in zip(prompts[f][("a0", j)][r], prompts[f][("R", j)][r])]
++                rs.append(sum(d) / len(d))
++                se2[f"a0@{j}|R{j - 1100}@{j}"] = gb.FR.clustered_se2(d)
++            families[f] = {"governing": "plain", "_exact": {"sdr2": gb.variance(rs), "pair_se2": se2,
++                                                            "arm_ss": Fraction(1), "arm_df": 1}}
++        rule = nr.pooled(families)["seed_rule"]
++        plans["review" if rule["review"] else rule["plan"]] += 1
++    return plans
++
++
++@pytest.mark.parametrize("option,index", [("B", 5), ("B", 7)])
++def test_each_familys_own_sigma_reaches_run_chunk_through_simulate_row(tmp_path, option, index):
++    """SR1: through simulate_row (the settings' scenarios, family_sigmas, the chunk streams), the row's plan counts and
++    each family's familywise and Holm counts equal the independent chain run at each family's own true σ, derived here:
++    OLMo-2-7B's is the grid's, Llama-3.1-8B's the scenario's ratio times it, capped at the grid's top. So the two
++    ratio scenarios cannot become copies of 'none' (the re-verifier's e2e_row_parity.py form)."""
++    reps, seed = 30, 778 + index
++    s = json.loads(SETTINGS.read_text())
++    names = ("none", "llama sigma x 1.5", "llama sigma x 1/1.5")
++    s.update(reps=reps, chunk=reps, seed=seed, power_effects_pp=["8"],
++             interaction=[i for i in s["interaction"] if i["name"] in names])
++    r = s["reml"]
++    s["_reml"] = {"tol": float(r["tol"]), "max_iter": int(r["max_iter"]), "clip": float(r["step_clip_log"]),
++                  "starts": r["starts"], "ll_tol": float(r["multi_start_ll_tolerance"])}
++    with np.errstate(all="ignore"):
++        row = sim.simulate_row(index, s, option, set())
++    z = np.random.Generator(np.random.PCG64(np.random.SeedSequence([seed, 0]))).standard_normal((reps, 2, len(sim.CELLS)))
++    grid = s["sigma_pair_pp"]
++    top = max(Fraction(g) for g in grid)
++    differ = set()
++    for sc in s["interaction"]:
++        true = {"olmo2-7b": Fraction(grid[index]),
++                "llama31-8b": min(Fraction(grid[index]) * Fraction(sc["llama_sigma_ratio"]), top)}
++        y_all = {f: z[:, i, :] * (float(true[f]) / math.sqrt(2)) for i, f in enumerate(sim.FAMILIES)}  # share 0
++        with np.errstate(all="ignore"):
++            ref = independent_chain(y_all, option, set(), [], reps)
++        got = row["scenarios"][sc["name"]]
++        assert {k: round(v * reps) for k, v in got["plan_by_sigma_A"].items()} == ref["plans"], sc["name"]
++        for f in sim.OPTIONS[option]:
++            fam = got["families"][f]
++            assert fam["familywise_count"] == ref["families"][f]["familywise"], (sc["name"], f)
++            want = {k: v["holm"] for k, v in ref["families"][f]["contrasts"].items()}
++            assert {k: v["holm_count"] for k, v in fam["contrasts"].items() if v["tested"]} == \
++                {k: want.get(k, 0) for k, v in fam["contrasts"].items() if v["tested"]}, (sc["name"], f)
++        differ.add(json.dumps(ref["plans"], sort_keys=True) + json.dumps(ref["families"]["llama31-8b"]["familywise"]))
++    assert len(differ) >= 2, "the three scenarios gave the same plans and Llama counts: the test cannot tell them apart"
++
++
++def synthetic_doc(reps: int, cells: dict) -> dict:
++    """A [B] output document for summarize: rows 0-1, the five scenario names, per family counts from ``cells``
++    ((sigma_index, scenario, family) -> (familywise_count, refused, nonconverged)); others 0."""
++    s = json.loads(SETTINGS.read_text())
++    names = [i["name"] for i in s["interaction"]]
++    rows = []
++    for i in (0, 1):
++        sc = {}
++        for n in names:
++            fams = {}
++            for f in ("llama31-8b", "olmo2-7b"):
++                c, refused, nonconv = cells.get((i, n, f), (0, 0, 0))
++                fams[f] = {"familywise_count": c, "familywise_rate": round(c / reps, 6), "refused_contrasts": refused,
++                           "nonconverged_fits": nonconv}
++            sc[n] = {"families": fams}
++        rows.append({"sigma_index": i, "sigma_pair_pp": s["sigma_pair_pp"][i], "scenarios": sc})
++    return {"reps": reps, "reading_rule": s["reading_rule"], "rows": rows}
++
++
++def test_the_summarys_largest_rate_covers_both_families_and_every_scenario():
++    """SR2, SR5, SR6: under [B] the largest familywise rate is found in Llama-3.1-8B's family and in a ratio scenario;
++    a count of exactly 6% of the replicates is not above the threshold, one more is; a nonzero refused-contrast total
++    and the non-converged total are the rows' sums."""
++    reps = 20000
++    doc = synthetic_doc(reps, {(0, "none", "olmo2-7b"): (1100, 0, 5), (1, "llama sigma x 1.5", "llama31-8b"): (1150, 3, 7),
++                               (0, "arm x seed 1", "llama31-8b"): (1149, 0, 0), (1, "none", "olmo2-7b"): (900, 2, 0)})
++    summary = sim.summarize(doc, 2)
++    top = summary["max_familywise"]
++    assert (top["family"], top["scenario"], top["sigma_pair_pp"], top["familywise_count"]) == \
++        ("llama31-8b", "llama sigma x 1.5", doc["rows"][1]["sigma_pair_pp"], 1150)
++    assert summary["max_above_threshold"] is False                       # 1150 / 20000 = 5.75%
++    assert summary["refused_contrasts_total"] == 5 and summary["nonconverged_fits_total"] == 12
++    assert "llama sigma x 1.5, llama31-8b" in summary["reading_line"]
++    tie = sim.summarize(synthetic_doc(reps, {(1, "llama sigma x 1/1.5", "llama31-8b"): (1200, 0, 0)}), 2)
++    assert tie["max_familywise"]["familywise_count"] == 1200 and tie["max_familywise"]["scenario"] == "llama sigma x 1/1.5"
++    assert tie["max_above_threshold"] is False                           # exactly 6%: not above (DES K6)
++    above = sim.summarize(synthetic_doc(reps, {(0, "llama sigma x 1/1.5", "llama31-8b"): (1201, 0, 0)}), 2)
++    assert above["max_above_threshold"] is True and above["max_familywise"]["family"] == "llama31-8b"
+--- a/scripts/scale78b/tests/mutation_spec_sr2.json
++++ b/scripts/scale78b/tests/mutation_spec_sr2.json
+@@ -46,10 +46,10 @@
+   },
+   {
+    "id": "S-bs-error-text-echoed",
+-   "describes": "an unexpected error's text is echoed",
++   "describes": "an unexpected error's text is kept in read()'s refusal (re-targeted at read()'s guard, SR10)",
+    "file": "blinded_sigma.py",
+-   "find": "unexpected error ({type(exc).__name__}); nothing written",
+-   "replace": "unexpected error ({exc}); nothing written"
++   "find": "    except Exception as exc:                                 # never keep an exception's text: it could hold a value\n        failure = type(exc).__name__\n",
++   "replace": "    except Exception as exc:                                 # never keep an exception's text: it could hold a value\n        failure = str(exc)\n"
+   },
+   {
+    "id": "S-bs-inputs-pin-ignored",
+@@ -452,10 +452,10 @@
+   },
+   {
+    "id": "V-bs-exc-text-to-stderr",
+-   "describes": "the unexpected error's text is written to stderr before the type-only message (the verifier's, r1-s-verify-scratch)",
++   "describes": "the unexpected error's text is written to stderr before the type-only refusal (the verifier's, r1-s-verify-scratch; re-targeted at read()'s guard in the follow-up, SR10)",
+    "file": "blinded_sigma.py",
+-   "find": "        raise SystemExit(f\"blinded_sigma: unexpected error ({type(exc).__name__}); nothing written\") from None\n",
+-   "replace": "        sys.stderr.write(f\"{exc}\\n\")\n        raise SystemExit(f\"blinded_sigma: unexpected error ({type(exc).__name__}); nothing written\") from None\n"
++   "find": "        failure = type(exc).__name__\n    raise Refusal(UNEXPECTED.format(failure))\n",
++   "replace": "        sys.stderr.write(f\"{exc}\\n\")\n        failure = type(exc).__name__\n    raise Refusal(UNEXPECTED.format(failure))\n"
+   },
+   {
+    "id": "V-bs-side-file",
+@@ -512,6 +512,104 @@
+    "file": "sr2_simulation.py",
+    "find": "    a_plan = plan_of(sigma_a_sq(y_all, option, stopped)[0], settings)\n",
+    "replace": "    a_plan = plan_of(sigma_a_sq(y_all, option, set())[0], settings)\n"
++  },
++  {
++   "id": "S-bs-read-keeps-cause",
++   "describes": "read()'s refusal keeps the original exception as its cause",
++   "file": "blinded_sigma.py",
++   "find": "        failure = type(exc).__name__\n    raise Refusal(UNEXPECTED.format(failure))\n",
++   "replace": "        raise Refusal(UNEXPECTED.format(type(exc).__name__)) from exc\n    raise Refusal(UNEXPECTED.format(failure))\n"
++  },
++  {
++   "id": "S-bs-read-unguarded",
++   "describes": "read() lets an arithmetic error through with its text (only the CLI guards)",
++   "file": "blinded_sigma.py",
++   "find": "    except Exception as exc:                                 # never keep an exception's text: it could hold a value\n",
++   "replace": "    except KeyError as exc:                                  # never keep an exception's text: it could hold a value\n"
++  },
++  {
++   "id": "RV-bs-side-file-repo-root",
++   "describes": "every cell's U is written to a side file at the repository root (outside the snapshot folders) (the re-verifier's, r1-s-reverify-scratch, spec b536887a)",
++   "file": "blinded_sigma.py",
++   "find": "    sigma, df = pooled_sigma(clusters)\n",
++   "replace": "    (ROOT / \"leak-cells.txt\").write_text(repr({k: {str(c): float(v) for c, v in t.items()} for k, t in clusters.items()}))\n    sigma, df = pooled_sigma(clusters)\n"
++  },
++  {
++   "id": "RV-bs-out-wb",
++   "describes": "--out is opened with wb, not the exclusive xb: a file made meanwhile is overwritten (the re-verifier's, r1-s-reverify-scratch, spec b536887a)",
++   "file": "blinded_sigma.py",
++   "find": "with open(out, \"xb\") as handle:",
++   "replace": "with open(out, \"wb\") as handle:"
++  },
++  {
++   "id": "RV-bs-engine-keyset-unchecked",
++   "describes": "the engine map's key set is not checked (extra or old-form keys pass the form check) (the re-verifier's, r1-s-reverify-scratch, spec b536887a)",
++   "file": "blinded_sigma.py",
++   "find": "if not isinstance(engine, dict) or set(engine) != set(ENGINE_ROLES) or not all(hex64(v) for v in engine.values()):",
++   "replace": "if not isinstance(engine, dict) or not all(hex64(v) for v in engine.values()):"
++  },
++  {
++   "id": "RV-sim-run-ignores-family-sigmas",
++   "describes": "simulate_row prints the per-family sigmas but runs both families at the grid's sigma (the re-verifier's, r1-s-reverify-scratch, spec b536887a)",
++   "file": "sr2_simulation.py",
++   "find": "            run_chunk(z, eta, sigmas, share, option, stopped, settings, tallies, plans, designs)",
++   "replace": "            run_chunk(z, eta, {f: num(sigma_text) for f in FAMILIES}, share, option, stopped, settings, tallies, plans, designs)"
++  },
++  {
++   "id": "RV-sim-max-olmo-only",
++   "describes": "the summary's largest familywise rate is taken over OLMo-2-7B only (the re-verifier's, r1-s-reverify-scratch, spec b536887a)",
++   "file": "sr2_simulation.py",
++   "find": "            for f, v in sc[\"families\"].items():\n                key = (v[\"familywise_count\"], -r[\"sigma_index\"], name, f)",
++   "replace": "            for f, v in sc[\"families\"].items():\n                if f != \"olmo2-7b\":\n                    continue\n                key = (v[\"familywise_count\"], -r[\"sigma_index\"], name, f)"
++  },
++  {
++   "id": "RV-sim-max-skips-ratio-scenarios",
++   "describes": "the summary's largest familywise rate skips the two family-ratio scenarios (R-12) (the re-verifier's, r1-s-reverify-scratch, spec b536887a)",
++   "file": "sr2_simulation.py",
++   "find": "        for name, sc in r[\"scenarios\"].items():\n            for f, v in sc[\"families\"].items():\n                key",
++   "replace": "        for name, sc in r[\"scenarios\"].items():\n            if sc[\"llama_sigma_ratio\"] != \"1\":\n                continue\n            for f, v in sc[\"families\"].items():\n                key"
++  },
++  {
++   "id": "RV-sim-refused-total-zero",
++   "describes": "the summary's refused-contrast total is always 0 (SV-7) (the re-verifier's, r1-s-reverify-scratch, spec b536887a)",
++   "file": "sr2_simulation.py",
++   "find": "\"refused_contrasts_total\": refused,",
++   "replace": "\"refused_contrasts_total\": 0,"
++  },
++  {
++   "id": "RV-sim-n-plan-olmo-only",
++   "describes": "N's printed plan pools OLMo-2-7B's cells for both families (the re-verifier's, r1-s-reverify-scratch, spec b536887a)",
++   "file": "sr2_simulation.py",
++   "find": "    n_plan = plan_of(sigma_pool_sq(n_prompt_values(y_all, eta,",
++   "replace": "    n_plan = plan_of(sigma_pool_sq(n_prompt_values({f: y_all[\"olmo2-7b\"] for f in FAMILIES}, eta,"
++  },
++  {
++   "id": "RV-sim-threshold-ge",
++   "describes": "the mechanical flag fires at a rate equal to the threshold, not only above it (the re-verifier's, r1-s-reverify-scratch, spec b536887a)",
++   "file": "sr2_simulation.py",
++   "find": "\"max_above_threshold\": bool(p > threshold),",
++   "replace": "\"max_above_threshold\": bool(p >= threshold),"
++  },
++  {
++   "id": "RV-sim-sigma-a-on-other-draws",
++   "describes": "sigma_A is computed on another replicate's cells (the claim test keeps its own) (the re-verifier's, r1-s-reverify-scratch, spec b536887a)",
++   "file": "sr2_simulation.py",
++   "find": "    a_plan = plan_of(sigma_a_sq(y_all, option, stopped)[0], settings)",
++   "replace": "    a_plan = plan_of(sigma_a_sq({f: np.roll(v, 1, axis=0) for f, v in y_all.items()}, option, stopped)[0], settings)"
++  },
++  {
++   "id": "RV-sim-claim-rows-misindexed",
++   "describes": "the claim test reads the first k replicates, not the plan's rows (the re-verifier's, r1-s-reverify-scratch, spec b536887a)",
++   "file": "sr2_simulation.py",
++   "find": "            res = claim_test(design, y_all[f][rows], settings)",
++   "replace": "            res = claim_test(design, y_all[f][:rows.size], settings)"
++  },
++  {
++   "id": "RV-sim-claim-other-family",
++   "describes": "each family's claim test reads the other family's cells (the re-verifier's, r1-s-reverify-scratch, spec b536887a)",
++   "file": "sr2_simulation.py",
++   "find": "            res = claim_test(design, y_all[f][rows], settings)",
++   "replace": "            res = claim_test(design, y_all[FAMILIES[1 - FAMILIES.index(f)]][rows], settings)"
+   }
+  ]
+ }

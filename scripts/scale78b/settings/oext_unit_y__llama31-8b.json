@@ -1,0 +1,96 @@
+{
+  "dev100": {
+    "routes": {
+      "generated": "theta0 (--untuned), and a train-only regenerated unit under Branch full: the dev-100 greedy answers are made here at the recipe's generation cap with the engine's greedy_generate and judged by the session's guard (evaluate_checkpoint's record format), then handed to oext_eval like any caller's answers",
+      "source_unit": "Branch 128, a train-only regenerated unit (LN-12; LN-19; B15 brief Q15): the source unit's stored dev-100 answers and judge records (--dev100-source), checked against the source's COMPLETE.json; the source must be the same arm and seed, evaluate the dev bank at the same checkpoint and have the regenerated unit's adapter fingerprint; only PHTest is generated from the regenerated adapter",
+      "unit_eval": "a unit that evaluated the dev bank (an arm, a0 or reference unit from engine calibrate, J9, J10, J18): the unit's own dev-100 greedy answers and judge records at the recipe's cap, checked against its COMPLETE.json; --dev100-source is refused"
+    },
+    "rule": "the source unit folder may be packed in part: these files must be present; every other file present must be one its COMPLETE.json lists, with the listed SHA-256; job.json hashes to the marker's job_sha256",
+    "source_files": [
+      "COMPLETE.json",
+      "job.json",
+      "eval/{checkpoint}/generations.jsonl",
+      "eval/{checkpoint}/guard.jsonl"
+    ]
+  },
+  "engine_x": null,
+  "exit_codes": {
+    "0": "done: COMPLETE.json written",
+    "1": "a failure after the folder was made (error.txt kept)",
+    "2": "refused before any folder was made (nothing generated, judged or written)"
+  },
+  "kind": "stage1 settings",
+  "label_entries": {},
+  "labels_sha256": "260389f3fbfd8e7ff11ee06b5d5aba48e7d56b34140d9c9a634682125a86d570",
+  "ledger": {
+    "rule": "this script's stages hold only counts known before any answer exists (prompts, prompt tokens, the cap, items); oext_eval's stages follow its own rule",
+    "stages": [
+      "oext_unit_dev100_generate",
+      "oext_unit_dev100_guard"
+    ],
+    "state_stages": {
+      "run": "restore_state",
+      "untuned": "untuned_state"
+    }
+  },
+  "name": "oext_unit",
+  "oext": {
+    "module": "scripts/stage1_s1/oext_eval.py",
+    "module_sha256": "8c4290921f32a5b4596a0bc40235cc5cf1185f73eaabeaa625c43bd19ba77719",
+    "rule": "every O-ext rule (the bank, the cap branch, W1-18's cut and flag, O with equal weights, the LN-14 bar) is oext_eval.py's, called and never re-implemented; the module and its settings are pinned here by SHA-256, and the branch is the one those settings hold; a re-pin of oext_eval (a branch, the bank record, W1-18's record, an engine) re-pins this section and this script's SETTINGS_SHA256 literal in the same edit (addendum section 11 point 7); engine Y (addendum section 34 point 3): settings.path names the file at its place in engine Y's pack, where pack_setup.py puts settings/oext_eval_y.json (the SHA-256 here), and module_sha256 is engine X's oext_eval.py, packed unchanged, so the O-ext function is one and the same on both engines",
+    "settings": {
+      "path": "scripts/scale78b/settings/oext_eval_y__llama31-8b.json",
+      "sha256": "70e31d080a34445f4a32ecdc412f5fe3db668cc10f33950f141a87769c3ec5ea"
+    }
+  },
+  "outputs": {
+    "dev_dir": "dev100",
+    "job_kind": "stage1-oext-unit",
+    "rule": "--out is a new engine-layout folder (job.json, identity.json, dependencies.json, ledger, assets.json, COMPLETE.json last); oext_eval writes its own files at its root; generated dev-100 answers go to dev100/; COMPLETE.json lists every file's SHA-256 and holds counts of prompts and hashes only, never an O value"
+  },
+  "owner": "scripts/stage1_s1/oext_unit.py",
+  "prepared": {
+    "bank": "dev",
+    "manifest_sha256": "c52a50afddcfcfa818512ac7f1536c34c959774e815095bd30f69320b083d55a",
+    "rule": "the prepared set is read only through its manifest, which must hash to this pin (B10's pin of the stage-1 prepared set); every unit and source unit names the same manifest; the dev bank's over-refusal prompts are the dev part, their count is oext_eval's bank.dev100.prompts"
+  },
+  "recipes": {
+    "allowed": {
+      "B+Qi": null
+    },
+    "generation_sha256": "5ddced7af22b968ff2c00f641be4d286cb1e1151318cf0dcca502331eb563430",
+    "guard_sha256": "a7f0755b795f0ac42300400227a755f10f7ef690f6977f36bdd5def9a655587a",
+    "rule": "llama31-8b: only the named recipes (MAIN_F and the family's recipe G on engine X; B+Qi only on engine Y), each by its config SHA-256; one generation block and one guard block (MAIN_F's, equal to the 1B O-ext pins: plan-ab.md section 5 C3)"
+  },
+  "requirement": "The O-ext unit pass at 7-8B on engine Y (DESO2 item 24 (c)): B+Qi's O-ext pass only",
+  "seal": {
+    "answer_files": [
+      "dev100/generations.jsonl",
+      "dev100/guard.jsonl",
+      "oext_generations.jsonl",
+      "oext_guard.jsonl",
+      "oext_transfer_generations.jsonl",
+      "oext_transfer_guard.jsonl"
+    ],
+    "rule": "every file of the folder is sealed by the kit's block seal; the answer files hold texts; every other file (the summaries included) and the completion record are scanned for every prompt, answer, cut and judge text before COMPLETE.json is written; stdout carries the branch, the route, counts of prompts and file SHA-256 values only; no O value, flag, answer length or judge label is printed",
+    "text_scan_min_chars": 16
+  },
+  "transfer": {
+    "rule": "LN-14 (REV4 section 6.3; addendum section 24 point 2): transfer runs only with --untuned (theta0) and only under Branch 128 with a passing W1-18 record; oext_eval's evaluate_transfer makes the PHTest answers once at the recipe's full cap and judges them full and cut; the bar is W1-18's read at its rates (at n = 400: at least 388 flags agree and the refused count moves by at most 8); a pre-set report only: nothing here reads it back, and the cap branch never switches on it",
+    "state": "untuned"
+  },
+  "unit": {
+    "checkpoints": [
+      "e1"
+    ],
+    "kind": "run-one",
+    "role": "development",
+    "rule": "--run names a complete engine run-one unit whose files and dependency chain verify (the engine's chain check), on this engine's code, the pinned manifest, the development role and the dev split, whose target checkpoint is --checkpoint and which holds that state; its state is restored with its file hashes and adapter fingerprint verified",
+    "split": "dev"
+  },
+  "untuned": {
+    "access_seed": 1101,
+    "rule": "theta0 is the policy with its adapter disabled (policy.model.disable_adapter(), the W1 convention of make_untuned_answers.py) for every generation of the pass; the adapter fingerprint is unchanged; the dev bank is read under the development role at this seed (Gate A's untuned unit's seed; greedy decoding draws nothing)"
+  },
+  "version": 1
+}

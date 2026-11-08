@@ -1,0 +1,180 @@
+--- follow-up/runkit/stage1-78b/rules_78b.py
++++ follow-up-2/runkit/stage1-78b/rules_78b.py
+@@ -60,6 +60,7 @@
+ from __future__ import annotations
+ 
+ from decimal import ROUND_HALF_UP, Decimal
++from fractions import Fraction
+ import hashlib
+ import json
+ import math
+@@ -1978,15 +1979,28 @@
+ # block A's sigma_A from blinded_sigma.py, whose output and inputs-file SHA-256s it then carries.
+ SR2_REASONS = ("blinding_test_not_verified", "simulation_reading")
+ PLAN_BASES = {"adopted": "sigma_A", "B": "sigma_pool_N", "C": "sigma_F"}
++
++
++# GXB R-29 (twelfth set): P1 §6.4 applies §6.1's whole rule to sigma_A, the review ceiling included. The per-plan
++# removal-MDE factors are noise_reading.py's pinned ones (R: scripts/scale78b/noise_reading.py:93 MDE_FACTOR; :281-299
++# seed_rule): review when factor x sigma > 2 x SESOI (5 pp), i.e. above 7.0388 / 9.2721 / 10.7066 pp for A / B9 /
++# H (b); only H (b)'s can fire (sigma <= 4.5 for A, <= 6.0 for B9). Compared exactly, as noise_reading does.
++PLAN_MDE_FACTORS = {"A": "1.4207", "B9": "1.0785", "H": "0.9340"}
++SESOI_PP = 5
+ 
+ 
+ def plan_for_sigma(sigma_pp) -> str:
+-    """The seed rule's plan for sigma (ruling 3; P1 §6.1; stage1_rules.plan_code_for, the same rule): <= 4.5 pp A,
+-    <= 6.0 pp B9, above H. A sigma that is not a finite number >= 0 refuses."""
++    """P1 §6.1's rule on sigma (ruling 3; GXB R-29): <= 4.5 pp A, <= 6.0 pp B9, above H (stage1_rules.plan_code_for's
++    thresholds); then the review ceiling: "review" when the plan's removal MDE, PLAN_MDE_FACTORS[plan] x sigma, is above
++    2 x SESOI (exact, on the decimal value of sigma). A sigma that is not a finite number >= 0 refuses."""
+     if isinstance(sigma_pp, bool) or not isinstance(sigma_pp, (int, float)) or not math.isfinite(sigma_pp) \
+             or sigma_pp < 0:
+         raise Refused(f"sigma {sigma_pp!r} is not a finite number of percentage points >= 0")
+-    return "A" if sigma_pp <= 4.5 else "B9" if sigma_pp <= 6.0 else "H"
++    sigma = Fraction(repr(sigma_pp)) if isinstance(sigma_pp, float) else Fraction(sigma_pp)
++    plan = "A" if sigma <= Fraction("4.5") else "B9" if sigma <= Fraction("6.0") else "H"
++    if Fraction(PLAN_MDE_FACTORS[plan]) * sigma > 2 * SESOI_PP:
++        return "review"
++    return plan
+ 
+ 
+ def _texts_ok(doc) -> bool:
+--- follow-up/runkit/stage1-78b/tests/mutation_spec_rules_78b.json
++++ follow-up-2/runkit/stage1-78b/tests/mutation_spec_rules_78b.json
+@@ -1,6 +1,6 @@
+ {
+  "kind": "stage1-78b mutants",
+- "note": "KCR test 13 and KCR:226 mutants for runkit/stage1-78b (T2), in the stage-1 kit's spec form (tests/mutants_b15.json), plus the fix round's mutants (A-V1..A-V6, the RECIPE_S refusal, the job_decision missing-field refusal; 5 Nov). Run with tests/run_mutants_78b.py: the baseline first with the same command; a mutant is killed only by a real test failure (pytest exit 1, FAILED lines, no ERROR line); an error, a timeout or a find text not exactly once is INVALID, never a kill. Mutants marked needs_measured_root are killed by tests 02b/05b/15b, which skip when /Users/spiderishi/Coding/attribution/tmp/family-probe-sp-* is absent; run those in the lead's checkout. K1 (5 Nov): the re-verifier's D1-D7 and the addendum's A13 pins add 13 mutants (ids K1-m-*); T2-m-keys-engine-any's find text follows the clause's new form (engine_allowed). fix-K-core (5 Nov): PP8 moved two find texts (T2-m-rep-pass-17 -> A1_PASS_CAP_H_MAX; T2-m-s78-kinds-empty's four-kind literal; same mutations); 16 mutants added (ids FK-m-*) for D1 (both MANIFEST forms; V-H17 re-targeted as FK-m-r-edits-any-family), D2 (the idle-storage line), PP7 (the Llama pin) and PP8 (a1_pass, rep_pass, the S_78 kinds). K4a (6 Nov) added the K4-m-* mutants: PP16's X_ONLY_KINDS (engine_allowed checks it first), DK-3's kind sets in the kit's stage1_rules.py, PP14's idle-storage pods and lines. Round 4b (6 Nov): PP17 removed the standalone regenerate kind (its X_ONLY_KINDS mutant follows o_only_with_regenerate, renamed K4-m-x-only-drop-o-only-with-regenerate); D8/PP18 made a1_pass a unit kind and c0 unitless (K4-m-unitless-no-a1-pass became K4-m-unitless-plus-a1-pass); D4's one state-keeping definition re-targeted the two idle mutants; K4bf-m-* added. R1 K1 (8 Nov): the block A/B rules layer adds the K1R-m-* mutants (the block tables and edits, the deal, GXB O1's steps, train_scale's input, the O-ext cap term, W1-18 and the branch rules, the (arm, seed) key and N_UNITS, block A's re-judge list, GXB O6's anchor stops and the stopped family's MAIN_F retrain, ref_train under RECIPE_G, the wrapper path, GXB O14's gate record); the block-table tests run inside test_rules_78b.py's test_23, so this runner's one file kills them. R1 K1 also re-targets 12 find texts its edits moved (T2-m-start-margin-removed, K1-m-n-points-unchecked, K1-m-counted-drops-a0 and nine K4-m-x-only-* mutants; same mutations, w1_18 now in X_ONLY_KINDS). O14 corrected (GXB second set, 15:22 UTC): GATE_78B and PLAN_B_78B; K1R-m-plan-b-* added. GXB third set (T-O3): OEXT_78B_Y; K1R-m-oext-y-* and K1R-m-bqi-decision-no-oext-y added. R1 K1 fix round (8 Nov): 5 K1R find texts re-targeted after the fixes (same mutations); K1V-m-* added for K1V-1..K1V-13, GXB K-5, K-6, R-1, R-3, R-4, R-5 and the verifier's 7 surviving probes. R1 K1 follow-up (8 Nov): KF-m-* for GXB R-21, R-22, R-24 and KR2, KR7, KR8.",
++ "note": "KCR test 13 and KCR:226 mutants for runkit/stage1-78b (T2), in the stage-1 kit's spec form (tests/mutants_b15.json), plus the fix round's mutants (A-V1..A-V6, the RECIPE_S refusal, the job_decision missing-field refusal; 5 Nov). Run with tests/run_mutants_78b.py: the baseline first with the same command; a mutant is killed only by a real test failure (pytest exit 1, FAILED lines, no ERROR line); an error, a timeout or a find text not exactly once is INVALID, never a kill. Mutants marked needs_measured_root are killed by tests 02b/05b/15b, which skip when /Users/spiderishi/Coding/attribution/tmp/family-probe-sp-* is absent; run those in the lead's checkout. K1 (5 Nov): the re-verifier's D1-D7 and the addendum's A13 pins add 13 mutants (ids K1-m-*); T2-m-keys-engine-any's find text follows the clause's new form (engine_allowed). fix-K-core (5 Nov): PP8 moved two find texts (T2-m-rep-pass-17 -> A1_PASS_CAP_H_MAX; T2-m-s78-kinds-empty's four-kind literal; same mutations); 16 mutants added (ids FK-m-*) for D1 (both MANIFEST forms; V-H17 re-targeted as FK-m-r-edits-any-family), D2 (the idle-storage line), PP7 (the Llama pin) and PP8 (a1_pass, rep_pass, the S_78 kinds). K4a (6 Nov) added the K4-m-* mutants: PP16's X_ONLY_KINDS (engine_allowed checks it first), DK-3's kind sets in the kit's stage1_rules.py, PP14's idle-storage pods and lines. Round 4b (6 Nov): PP17 removed the standalone regenerate kind (its X_ONLY_KINDS mutant follows o_only_with_regenerate, renamed K4-m-x-only-drop-o-only-with-regenerate); D8/PP18 made a1_pass a unit kind and c0 unitless (K4-m-unitless-no-a1-pass became K4-m-unitless-plus-a1-pass); D4's one state-keeping definition re-targeted the two idle mutants; K4bf-m-* added. R1 K1 (8 Nov): the block A/B rules layer adds the K1R-m-* mutants (the block tables and edits, the deal, GXB O1's steps, train_scale's input, the O-ext cap term, W1-18 and the branch rules, the (arm, seed) key and N_UNITS, block A's re-judge list, GXB O6's anchor stops and the stopped family's MAIN_F retrain, ref_train under RECIPE_G, the wrapper path, GXB O14's gate record); the block-table tests run inside test_rules_78b.py's test_23, so this runner's one file kills them. R1 K1 also re-targets 12 find texts its edits moved (T2-m-start-margin-removed, K1-m-n-points-unchecked, K1-m-counted-drops-a0 and nine K4-m-x-only-* mutants; same mutations, w1_18 now in X_ONLY_KINDS). O14 corrected (GXB second set, 15:22 UTC): GATE_78B and PLAN_B_78B; K1R-m-plan-b-* added. GXB third set (T-O3): OEXT_78B_Y; K1R-m-oext-y-* and K1R-m-bqi-decision-no-oext-y added. R1 K1 fix round (8 Nov): 5 K1R find texts re-targeted after the fixes (same mutations); K1V-m-* added for K1V-1..K1V-13, GXB K-5, K-6, R-1, R-3, R-4, R-5 and the verifier's 7 surviving probes. R1 K1 follow-up (8 Nov): KF-m-* for GXB R-21, R-22, R-24 and KR2, KR7, KR8. GXB R-29 (twelfth set): KF2-m-* for the review ceiling on sigma_A; KF-m-sigma-a-threshold re-targeted (same mutation).",
+  "mutants": [
+   {
+    "id": "T2-m-margin-1.0",
+@@ -1816,8 +1816,8 @@
+    "part": "R-24",
+    "describes": "the seed rule's 4.5 pp threshold moved",
+    "file": "rules_78b.py",
+-   "find": "    return \"A\" if sigma_pp <= 4.5 else \"B9\" if sigma_pp <= 6.0 else \"H\"",
+-   "replace": "    return \"A\" if sigma_pp < 4.5 else \"B9\" if sigma_pp <= 6.0 else \"H\""
++   "find": "    plan = \"A\" if sigma <= Fraction(\"4.5\") else \"B9\" if sigma <= Fraction(\"6.0\") else \"H\"",
++   "replace": "    plan = \"A\" if sigma < Fraction(\"4.5\") else \"B9\" if sigma <= Fraction(\"6.0\") else \"H\""
+   },
+   {
+    "id": "KF-m-sigma-a-unchecked-value",
+@@ -1962,6 +1962,30 @@
+    "file": "rules_78b.py",
+    "find": "    if not _hex(job_done_sha256):\n        raise Refused(\"the anchor job's JOB-DONE.json SHA-256 is required",
+    "replace": "    if False:\n        raise Refused(\"the anchor job's JOB-DONE.json SHA-256 is required"
++  },
++  {
++   "id": "KF2-m-no-review-ceiling",
++   "part": "R-29",
++   "describes": "basis sigma_A never reaches review",
++   "file": "rules_78b.py",
++   "find": "    if Fraction(PLAN_MDE_FACTORS[plan]) * sigma > 2 * SESOI_PP:\n        return \"review\"",
++   "replace": "    if False:\n        return \"review\""
++  },
++  {
++   "id": "KF2-m-ceiling-factor-h",
++   "part": "R-29",
++   "describes": "H (b)'s MDE factor off noise_reading's pin",
++   "file": "rules_78b.py",
++   "find": "PLAN_MDE_FACTORS = {\"A\": \"1.4207\", \"B9\": \"1.0785\", \"H\": \"0.9340\"}",
++   "replace": "PLAN_MDE_FACTORS = {\"A\": \"1.4207\", \"B9\": \"1.0785\", \"H\": \"0.9341\"}"
++  },
++  {
++   "id": "KF2-m-ceiling-ge",
++   "part": "R-29",
++   "describes": "the ceiling compared with >= (review at the boundary)",
++   "file": "rules_78b.py",
++   "find": "    if Fraction(PLAN_MDE_FACTORS[plan]) * sigma > 2 * SESOI_PP:",
++   "replace": "    if Fraction(PLAN_MDE_FACTORS[plan]) * sigma >= 2 * SESOI_PP - Fraction(1, 10 ** 6):"
+   }
+  ]
+ }
+--- follow-up/runkit/stage1-78b/tests/test_rules_78b.py
++++ follow-up-2/runkit/stage1-78b/tests/test_rules_78b.py
+@@ -24,6 +24,7 @@
+ import importlib.util
+ import inspect
+ import json
++from fractions import Fraction
+ import math
+ import pathlib
+ import re
+@@ -1075,10 +1076,12 @@
+           "KF-m-stop-jobdone-form", "KF-m-top-pin-any-arms", "KF-m-branch-texts",
+           "KF-m-stop-read-jobdone-optional"}   # R1 K1 follow-up
+     assert kf <= set(ids) and len(kf) == 20
++    assert {"KF2-m-no-review-ceiling", "KF2-m-ceiling-factor-h", "KF2-m-ceiling-ge"} <= set(ids)   # GXB R-29
+ 
+ 
+ # ----------------------------------------------------------------------------------------------------- test 14
+-STDLIB = {"__future__", "argparse", "datetime", "decimal", "hashlib", "json", "math", "os", "pathlib", "re", "sys"}
++STDLIB = {"__future__", "argparse", "datetime", "decimal", "fractions", "hashlib", "json", "math", "os", "pathlib",
++          "re", "sys"}                                   # R1 K1 (GXB R-29): fractions for the exact review ceiling
+ 
+ 
+ def imports_of(path: pathlib.Path) -> list[str]:
+@@ -2663,7 +2666,7 @@
+     sigma_A_pp the record carries (4.5 / 6.0 pp thresholds); basis sigma_pool_N the gate's provisional plan; basis
+     sigma_F (only under [C]) the sigma_F plan the gate records under [C]. Any other plan refuses (about $198 of runs, E:
+     H (b)'s 47 per family against plan A's 23)."""
+-    for sigma, plan in ((0.0, "A"), (4.5, "A"), (4.51, "B9"), (6.0, "B9"), (6.01, "H"), (12, "H")):
++    for sigma, plan in ((0.0, "A"), (4.5, "A"), (4.51, "B9"), (6.0, "B9"), (6.01, "H"), (10.7, "H"), (12, "review")):
+         assert R.plan_for_sigma(sigma) == plan
+         assert R.plan_b_record_problem(plan_b_doc(sigma_A_pp=sigma, plan=plan)) is None
+         for other in {"A", "B9", "H", "review"} - {plan}:
+@@ -2674,8 +2677,9 @@
+             R.plan_for_sigma(bad)
+     sr = load_by_path("stage1_rules_plan_r24", KIT / "stage1_rules.py")
+     try:
+-        for sigma in (0.0, 3.0, 4.5, 4.500001, 5.2, 6.0, 6.5, 20.0):
+-            assert sr.plan_code_for(sigma) == R.plan_for_sigma(sigma)     # one seed rule
++        for sigma in (0.0, 3.0, 4.5, 4.500001, 5.2, 6.0, 6.5, 10.7066):
++            assert sr.plan_code_for(sigma) == R.plan_for_sigma(sigma)     # one seed rule below the ceiling
++        assert sr.plan_code_for(20.0) == "H" and R.plan_for_sigma(20.0) == "review"   # R-29: RK adds the ceiling
+     finally:
+         sys.modules.pop("stage1_rules_plan_r24", None)
+     no = dict(sr2_adopted=False, sr2_reason="simulation_reading", sigma_A_pp=None, blinded_sigma_output_sha256=None,
+@@ -2779,6 +2783,40 @@
+         for bad in ("", "  ", None, 7):
+             doc = {**branch_doc("olmo2-7b"), key: bad}
+             assert "utc and recorded_by must be non-empty texts" in R.branch_record_problem(doc, "olmo2-7b"), (key, bad)
++
++
++def test_46_r29_the_review_ceiling_on_sigma_a_equals_noise_readings_seed_rule(monkeypatch):
++    """GXB R-29: P1 §6.4 applies §6.1's whole rule to sigma_A, the review ceiling included. RK's plan_for_sigma equals
++    scripts/scale78b/noise_reading.py's seed_rule (loaded by path, read only; its outcome "review" or the plan) on the
++    same sigma values, on both sides of each boundary: 4.5, 6.0 and the three ceilings 2 x 5 / factor (7.0388, 9.2721,
++    10.7066 pp; only H (b)'s fires). PLAN_B_78B on basis sigma_A then says "review" above 10.7066 pp and refuses any
++    other plan there."""
++    assert R.PLAN_MDE_FACTORS == {"A": "1.4207", "B9": "1.0785", "H": "0.9340"} and R.SESOI_PP == 5
++    nr = load_by_path("noise_reading_for_r29", ROOT / "scripts" / "scale78b" / "noise_reading.py")
++    try:
++        assert {k: str(v) for k, v in nr.MDE_FACTOR.items()} == R.PLAN_MDE_FACTORS and nr.SESOI_PP == R.SESOI_PP
++        values = ["0", "3.2", "4.5", "4.5000001", "4.4999999", "6.0", "5.9999999", "6.0000001", "7.0388", "7.0389",
++                  "9.2721", "9.2722", "10.7066", "10.70663", "10.70664", "10.7067", "11.5", "25",
++                  "10.7066381", "10.7066382"]                    # within 1e-6 of H (b)'s exact ceiling 10 / 0.9340
++        for text in values:
++            want = nr.seed_rule([(Fraction(text) ** 2,)], 4)
++            want = "review" if want["review"] else want["plan"]
++            assert R.plan_for_sigma(float(text)) == want, (text, want)
++        assert R.plan_for_sigma(10.7066381) == "H" and R.plan_for_sigma(10.7066382) == "review"
++        assert {k: round(float(v), 4) for k, v in nr.CEILING_SIGMA_PP.items()} == {"A": 7.0388, "B9": 9.2721,
++                                                                                   "H": 10.7066}
++    finally:
++        sys.modules.pop("noise_reading_for_r29", None)
++    gate = json.dumps(gate_doc(provisional_plan="H")).encode()
++    pin_of(monkeypatch, "GATE_78B", gate)
++    for sigma, plan in ((10.7066, "H"), (10.7067, "review"), (14.0, "review")):
++        assert R.plan_b_record_problem(plan_b_doc(sigma_A_pp=sigma, plan=plan)) is None
++        for other in {"A", "B9", "H", "review"} - {plan}:
++            assert "GXB R-24" in R.plan_b_record_problem(plan_b_doc(sigma_A_pp=sigma, plan=other)), (sigma, other)
++    data = json.dumps(plan_b_doc(sigma_A_pp=11.0, plan="review")).encode()
++    pin_of(monkeypatch, "PLAN_B_78B", data)
++    with pytest.raises(R.Refused, match="block B's plan is 'review'.*plans nothing"):
++        R.block_init_or_refuse("B", "olmo2-7b", gate, data)
+ 
+ 
+ def test_38_every_new_k1_pin_is_null_and_names_its_event():

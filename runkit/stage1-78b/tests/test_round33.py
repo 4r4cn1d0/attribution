@@ -22,7 +22,8 @@ def sha(path: Path) -> str:
 
 def test_block_bs_judge_runbook_has_no_subject_here_and_the_judge_route_files_are_unchanged():
     rules = (KIT / "stage1_rules.py").read_text()
-    assert 'JUDGE_GPU = "NVIDIA A100-SXM4-80GB"' in rules and 'REJUDGED_PINS = {"0": ()}' in rules
+    assert 'JUDGE_GPU = "NVIDIA A100-SXM4-80GB"' in rules and \
+        'REJUDGED_PINS = {"0": (), "A": r78.rejudged_pins(FAMILY, "A") if _KIT else (), "B": ()}' in rules   # R1 K1
     manifest = json.loads((KIT / "COPY-MANIFEST.json").read_text())
     listed = {e["path"]: e["sha256"] for e in manifest["files"]}
     for rel in ("judge_units_stage1.py", "judge_pod_stage1/bundle.py"):

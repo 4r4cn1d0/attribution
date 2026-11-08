@@ -1,0 +1,35 @@
+1c1,15
+< """B17: the lean-evaluation job that measures c0 (stage-1 S1 package; CPU-testable with fixtures, CUDA on the pod).
+---
+> """7-8B COPY (R1 Track O; DES E4's copy route; the build rulings B-3 and O3 of 8 Nov 2026). This file is
+> scripts/stage1_s1/lean_eval_job.py with the changes below and nothing else (a test rebuilds it from the 1B file byte
+> for byte by the five listed substitutions of scripts/scale78b/tests/oext/lean_copy_spec.py):
+>   1. this paragraph;
+>   2. oext_eval is imported as scripts.stage1_s1.oext_eval (the S1 package's file, unchanged), not by this folder's name;
+>   3. the O-ext settings path that the settings' section "oext" must name is the module global OEXT_SETTINGS_PATH (the
+>      form of scripts/stage1_s1/oext_unit.py:75, :146), not a literal: the 1B literal (lean_eval_job.py:229) would make
+>      a 7-8B settings file name scripts/stage1_s1/settings/oext_eval.json while the run reads the family's file, and no
+>      record or settings file may name a file the run did not read (GXB O3);
+>   4. the parser's program name is this file's path.
+> It runs only through scripts/scale78b/oext_78b.py lean, which sets SETTINGS_PATH, SETTINGS_SHA256 and
+> OEXT_SETTINGS_PATH to the family's files (settings/lean_eval_job__<family>.json, settings/oext_eval__<family>.json,
+> pinned by settings/OEXT-78B.json) for the call and restores them. Run alone, it refuses (no settings file lies at its
+> default path). Every rule, check, output and exit code is the 1B file's; its records name this file as their script
+> (s1common.provenance), the file that ran.
+2a17,18
+> B17: the lean-evaluation job that measures c0 (stage-1 S1 package; CPU-testable with fixtures, CUDA on the pod).
+> 
+126c142
+< oe = importlib.import_module(f"scripts.{HERE.name}.oext_eval")      # this package's own copy (also in the mirror)
+---
+> oe = importlib.import_module("scripts.stage1_s1.oext_eval")      # 7-8B copy: the S1 package's file, unchanged
+135a152
+> OEXT_SETTINGS_PATH = "scripts/stage1_s1/settings/oext_eval.json"   # 7-8B copy: set per family by oext_78b.py
+229c246
+<     if (oext["module"], pin["path"]) != (oe.OWNER, "scripts/stage1_s1/settings/oext_eval.json"):
+---
+>     if (oext["module"], pin["path"]) != (oe.OWNER, OEXT_SETTINGS_PATH):
+816c833
+<     parser = argparse.ArgumentParser(prog="python scripts/stage1_s1/lean_eval_job.py",
+---
+>     parser = argparse.ArgumentParser(prog="python scripts/scale78b/lean_eval_job_78b.py",

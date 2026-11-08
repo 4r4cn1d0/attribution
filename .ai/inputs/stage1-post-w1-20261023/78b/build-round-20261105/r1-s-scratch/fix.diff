@@ -1,0 +1,1073 @@
+--- a/scripts/scale78b/blinded_sigma.py
++++ b/scripts/scale78b/blinded_sigma.py
+@@ -30,8 +30,9 @@
+ **What is read** (refused otherwise): the inputs file by path and its pinned SHA-256 (--inputs-sha256); every cell by
+ path and its COMPLETE.json SHA-256 key, through ``noise_reading.read_unit`` (scripts/scale78b/noise_reading.py, loaded by
+ path and pinned by SHA-256 below; nothing copied): a sealed run-one e1 unit of the dev bank at the keyed seed, the
+-family's manifest, training identity and recipe, the engine identity given for its role (``reused`` for a0 and R at
+-1101-1103, ``block_a`` for every other cell), the environment and guard records. An R cell's edit is R draw seed - 1100
++family's manifest, training identity and recipe, the engine identity given for its role (GXB R-13, per role as
++noise_reading.py takes them: ``a0`` for the reused a0 units at 1101-1103, ``R`` for N's R units at 1101-1103,
++``block_a`` for every other cell, 1104 and 1105 included), the environment and guard records. An R cell's edit is R draw seed - 1100
+ of the family's manifest (noise_reading's rule). A method cell's edit (arm ``edit-<SHA-256>`` from the family's
+ ``edits`` map) is a "safety-selection edit" of the family's manifest, "remove" for A1, L1 and H1, "add" for S1, S3 and
+ S4, and not an R draw; for that call read_unit's R-draw check is replaced in-process by this rule (the scorer layer's
+@@ -68,7 +69,7 @@
+ # reading of O6's list (family, stop kind, exit code, JOB-DONE.json SHA-256, ids and counts): report open point.
+ STOP_KINDS = {"safe_anchors_below_64": 3, "harmful_prompt_does_not_encode": 1}
+ STOP_RECORD_KIND = "scale-78b anchor stop"
+-ENGINE_ROLES = ("block_a", "reused")
++ENGINE_ROLES = ("R", "a0", "block_a")                 # GXB R-13: the reused a0 units, N's R units, block A
+ OPTIONS = {"B": ("llama31-8b", "olmo2-7b"), "C": ("olmo2-7b",)}       # [C]: F1 = OLMo-2-7B alone (ruling 5)
+ CLUSTERS = {"removal": ("R", "A1", "L1", "H1"), "full": ("a0", "S1", "S3", "S4")}
+ METHOD_EDIT_KIND = {"A1": "remove", "L1": "remove", "H1": "remove", "S1": "add", "S3": "add", "S4": "add"}
+@@ -244,7 +245,7 @@
+     cells = design_cells(spec["design"])
+     engine = spec["engine"]
+     if not isinstance(engine, dict) or set(engine) != set(ENGINE_ROLES) or not all(hex64(v) for v in engine.values()):
+-        refuse(f"{name}: engine gives the block_a and reused code identities (64 hex each)")
++        refuse(f"{name}: engine gives the a0, R and block_a code identities (64 hex each)")
+     methods = DESIGNS[spec["design"]]
+     edits = spec["edits"]
+     if not isinstance(edits, dict) or set(edits) != set(methods) or not all(hex64(v) for v in edits.values()):
+@@ -274,7 +275,7 @@
+         key = entry.get("complete_sha256") if isinstance(entry, dict) else None
+         if key is not None and key in seen:
+             refuse(f"{where}: its COMPLETE.json SHA-256 is already read as {seen[key]}")
+-        role_engine = engine["reused" if reused(arm, seed) else "block_a"]
++        role_engine = engine[arm if reused(arm, seed) else "block_a"]
+         if arm == "a0":
+             unit = NR.read_unit(entry, "a0", seed, name, role_engine, where, base)
+         elif arm == "R":
+@@ -340,15 +341,21 @@
+     args = ap.parse_args(argv)
+     try:
+         out = pathlib.Path(args.out) if args.out else None
+-        if out is not None and out.exists():
++        if out is not None and (out.exists() or out.is_symlink()):
+             refuse("--out exists: the output is written once")
++        if out is not None and not out.parent.is_dir():
++            refuse("--out's folder does not exist: nothing written")
+         data = render(read(args.inputs, args.inputs_sha256))
++        if out is not None:
++            try:
++                with open(out, "xb") as handle:              # exclusive create: a file made meanwhile is never overwritten
++                    handle.write(data)
++            except FileExistsError:
++                refuse("--out exists: the output is written once")
+     except SystemExit:
+         raise
+     except Exception as exc:                                 # never echo an exception's text: it could hold a value
+         raise SystemExit(f"blinded_sigma: unexpected error ({type(exc).__name__}); nothing written") from None
+-    if out is not None:
+-        out.write_bytes(data)
+     sys.stdout.write(data.decode("utf-8"))
+     return 0
+ 
+--- a/scripts/scale78b/sr2_simulation.py
++++ b/scripts/scale78b/sr2_simulation.py
+@@ -10,7 +10,9 @@
+ effects cancel in every quantity read below, so they are set to 0). With the "arm x seed" scenario every method-arm
+ cell (A1, L1, H1, S1, S3, S4) gets an extra independent term of variance ρ σ_e² (ρ, the term's variance as a share of
+ the cell variance: 0.5 and 1 in the settings ``interaction``, GXB S-1), which a0 and R do not: N's pairs then
+-understate the method arms' noise (P1 §4, "What S-P assumes").
++understate the method arms' noise (P1 §4, "What S-P assumes"). The grid's σ_pair is OLMo-2-7B's; two more scenarios
++at ρ = 0 set Llama-3.1-8B's σ_pair at 1.5 and 1/1.5 times it, capped at the grid's top (GXB R-12; ``family_sigmas``);
++in the others both families share it (an approximation under [B], listed in the settings).
+ 
+ 1. **N** (P1 §3.3; GXB S-7): r_F,j = U(a0, j) - U(R_j, j) at 1101-1103 on both families; σ̂_pool = max(√[(2 SD(r_O)² +
+    2 SD(r_L)²) / 4], the median of the 6 seed-matched pair SEs) on 4 df, computed as noise_reading.py's ``pooled``
+@@ -32,7 +34,8 @@
+    Satterthwaite df from the REML information, Student t two-sided p (B16's ``tdist``), Holm at 5% over the plan's
+    primary contrasts (plan A P1-P6; B9 and H P1, P3, P6; on a stopped family the contrasts with A1, L1 or S3 drop).
+ 
+-Printed per σ_pair and scenario: the plans' shares (by σ̂_A and by N); per family each primary contrast's size (its
++The familywise rate is the U claims' rate (Holm on U); Φ's O and L words are not simulated (GXB R-11; a limit in the
++settings). Printed per σ_pair and scenario: the plans' shares (by σ̂_A and by N); per family each primary contrast's size (its
+ unadjusted two-sided test at 5%, among the replicates where it is tested) and Holm rejection rate, the familywise
+ rate (any Holm rejection), the power at the settings' effects (8, 10, 12 pp: contrast k's true value δ, every other
+ contrast 0; Holm rejects k with a positive estimate) and P(better) (that, and the estimate ≥ SESOI); fits that stopped
+@@ -149,8 +152,9 @@
+     float(Fraction(s["reading_rule"]["threshold_familywise"]))
+     if not (isinstance(s["n_stage"].get("prompts"), int) and s["n_stage"]["prompts"] >= 2):
+         raise SystemExit("n_stage.prompts is an integer of at least 2")
+-    if not all(num(i["method_variance_share"]) >= 0 for i in s["interaction"]):
+-        raise SystemExit("each interaction's method_variance_share is a non-negative decimal")
++    if not all(set(i) == {"name", "method_variance_share", "llama_sigma_ratio"} and num(i["method_variance_share"]) >= 0
++               and num(i["llama_sigma_ratio"]) > 0 for i in s["interaction"]):
++        raise SystemExit("each scenario has name, method_variance_share >= 0 and llama_sigma_ratio > 0")
+     return s, sha256_bytes(data)
+ 
+ 
+@@ -449,12 +453,19 @@
+     return 2 * rss / df, df
+ 
+ 
+-def run_chunk(z: np.ndarray, eta: np.ndarray, sigma_pair: float, share: float, option: str, stopped: set, settings: dict,
++def family_sigmas(sigma_text: str, scenario: dict, settings: dict) -> dict:
++    """Each family's true σ_pair in one scenario (GXB R-12): the grid's σ is OLMo-2-7B's; Llama-3.1-8B's is
++    llama_sigma_ratio times it, capped at the grid's top."""
++    olmo = num(sigma_text)
++    top = max(num(x) for x in settings["sigma_pair_pp"])
++    return {"olmo2-7b": olmo, "llama31-8b": min(olmo * num(scenario["llama_sigma_ratio"]), top)}
++
++
++def run_chunk(z: np.ndarray, eta: np.ndarray, sigmas: dict, share: float, option: str, stopped: set, settings: dict,
+               tallies: dict, plans: dict, designs: dict) -> None:
+     """One chunk of replicates (z: R x 2 x len(CELLS) standard normals; eta: N's prompt noise) at one σ_pair and
+     scenario, added to the tallies."""
+-    sd = cell_sd(sigma_pair, share)
+-    y_all = {f: z[:, i, :] * sd[None, :] for i, f in enumerate(FAMILIES)}
++    y_all = {f: z[:, i, :] * cell_sd(sigmas[f], share)[None, :] for i, f in enumerate(FAMILIES)}
+     n_plan = plan_of(sigma_pool_sq(n_prompt_values(y_all, eta, num(settings["n_stage"]["sigma_eval0_pp"]))), settings)
+     a_plan = plan_of(sigma_a_sq(y_all, option, stopped)[0], settings)
+     for label in PLAN_LABELS:
+@@ -515,6 +526,7 @@
+     scenarios = {}
+     for scenario in settings["interaction"]:
+         share = num(scenario["method_variance_share"])
++        sigmas = family_sigmas(sigma_text, scenario, settings)
+         names = {f: list(designs[("A", f in stopped)]["contrasts"]) for f in families}
+         allk = {f: [k for k in CONTRASTS if any(k in designs[(p, f in stopped)]["contrasts"] for p in ("A", "B9", "H"))]
+                 for f in families}
+@@ -523,7 +535,7 @@
+         for c in range(reps // chunk):
+             z = chunk_normals(settings["seed"], c, chunk)
+             eta = chunk_prompt_normals(settings["seed"], c, chunk, settings["n_stage"]["prompts"])
+-            run_chunk(z, eta, num(sigma_text), share, option, stopped, settings, tallies, plans, designs)
++            run_chunk(z, eta, sigmas, share, option, stopped, settings, tallies, plans, designs)
+         fam_out = {}
+         for f in families:
+             t = tallies[f]
+@@ -537,6 +549,8 @@
+                 "nonconverged_fits": t["nonconverged_fits"], "refused_contrasts": t["refused"], "primary_under_plan_A": names[f]}
+         scenarios[scenario["name"]] = {
+             "method_variance_share": scenario["method_variance_share"],
++            "llama_sigma_ratio": scenario["llama_sigma_ratio"],
++            "sigma_pair_pp_by_family": {f: round(v, 6) for f, v in sorted(sigmas.items())},
+             "plan_by_sigma_A": {k: rate(v, reps) for k, v in plans["sigma_A"].items()},
+             "plan_by_N": {k: rate(v, reps) for k, v in plans["N"].items()},
+             "families": fam_out}
+@@ -569,14 +583,21 @@
+     threshold = num(doc["reading_rule"]["threshold_familywise"])
+     p = top["familywise_count"] / reps
+     scenarios = sorted({name for r in rows for name in r["scenarios"]})
++    refused = sum(v["refused_contrasts"] for r in rows for sc in r["scenarios"].values() for v in sc["families"].values())
++    nonconverged = sum(v["nonconverged_fits"] for r in rows for sc in r["scenarios"].values()
++                       for v in sc["families"].values())
+     line = (f"The reading rule applies to every simulated sigma ({len(rows)}) and every scenario ({', '.join(scenarios)}), "
+-            f"with or without the interaction: the largest familywise rate over them is {top['familywise_rate']} "
++            f"with or without the interaction and at either family ratio: the familywise rate is the U claims' rate (Holm on "
++            f"U; Phi's O and L words are not simulated); the largest over them is {top['familywise_rate']} "
+             f"(sigma_pair {top['sigma_pair_pp']} pp, scenario {top['scenario']}, {top['family']}); a rate above "
+             f"{doc['reading_rule']['threshold_familywise']} at any of them means SR-2 is not adopted and N decides alone "
+             "(DES K6; GXB S-1). The lead applies it.")
+     return {"max_familywise": top, "monte_carlo_se_of_max": round(math.sqrt(p * (1 - p) / reps), 6),
+             "threshold_familywise": doc["reading_rule"]["threshold_familywise"], "reading_line": line,
+             "scenarios_read": scenarios, "max_above_threshold": bool(p > threshold),
++            "refused_contrasts_total": refused, "nonconverged_fits_total": nonconverged,
++            "refused_note": ("a refused contrast (no finite df) counts as not rejected, where B16 would refuse the reading: "
++                             "the familywise rate is understated by at most refused_contrasts_total / reps (SV-7)"),
+             "note": "the reading rule is the lead's to apply (DES K6); this flag is the mechanical comparison only"}
+ 
+ 
+--- a/scripts/scale78b/settings/sr2_simulation.json
++++ b/scripts/scale78b/settings/sr2_simulation.json
+@@ -1,12 +1,12 @@
+ {
+  "kind": "scale-78b sr2 simulation settings",
+  "version": 1,
+- "written_utc": "2026-11-08T15:27:08Z (clock read with date -u; rewritten for GXB's second set, S-1, S-3, S-7; first written 2026-11-08T15:00:22Z); written before any run of scripts/scale78b/sr2_simulation.py on this file; only smoke grids and a timing copy (other settings, other hashes) ran before it",
++ "written_utc": "2026-11-08T16:36:21Z (clock read with date -u; rewritten for the fix round: GXB's seventh set R-11, R-12, and the verifier's SV-3; earlier versions 2026-11-08T15:00:22Z and 15:27:08Z); written before any run of scripts/scale78b/sr2_simulation.py on this file; only tests (smoke grids on tmp copies) and timing copies (other settings, other hashes) ran before it",
+  "reading_rule": {
+   "threshold_familywise": "0.06",
+-  "text": "DES K6 (Part 2 section 10.3), written before the simulation runs: if the simulated familywise rate exceeds 6% at any simulated sigma, SR-2 is not adopted and N decides alone; else SR-2 stands and the size is printed. GXB S-1: the rule applies to every simulated scenario: a familywise rate above 6% at any simulated sigma, with or without the interaction (every entry of 'interaction'), and for any family read, means SR-2 is not adopted. It runs before block A's first pod, on the design that will run (the reduced design if an anchor-job stop is known before it runs; DESO3 V2; GXB S-10). The script prints this rule and a reading line beside its largest familywise rate over every sigma, scenario and family; the lead applies it.",
+-  "source": "DES K6 (.ai/inputs/stage1-post-w1-20261023/78b/lead-rulings-part2-design-20261106.md:62-64); Part 2 section 10.3; DESO3 V2 (DES:175-176); GXB second set S-1, S-10 (lead-rulings-ab-build-20261108.md:82-)",
+-  "applies_to": "every sigma_pair of the grid x every interaction scenario x every family read (GXB S-1)"
++  "text": "DES K6 (Part 2 section 10.3), written before the simulation runs: if the simulated familywise rate exceeds 6% at any simulated sigma, SR-2 is not adopted and N decides alone; else SR-2 stands and the size is printed. GXB S-1: the rule applies to every simulated scenario: a familywise rate above 6% at any simulated sigma, with or without the interaction and at either family ratio (every entry of 'interaction'; GXB R-12), and for any family read, means SR-2 is not adopted. It runs before block A's first pod, on the design that will run (the reduced design if an anchor-job stop is known before it runs; DESO3 V2; GXB S-10). The script prints this rule and a reading line beside its largest familywise rate over every sigma, scenario and family; the lead applies it. The familywise rate is the rate of the U claims (Holm on U at 5%; Part 2 section 10.3); Phi's O and L words are not simulated (GXB R-11).",
++  "source": "DES K6 (.ai/inputs/stage1-post-w1-20261023/78b/lead-rulings-part2-design-20261106.md:62-64); Part 2 section 10.3; DESO3 V2 (DES:175-176); GXB second set S-1, S-10 (lead-rulings-ab-build-20261108.md:82-); GXB seventh set R-11, R-12 (lead-rulings-ab-build-20261108.md:199-)",
++  "applies_to": "every sigma_pair of the grid x every scenario of 'interaction' (none, the two interaction shares, the two family ratios) x every family read (GXB S-1, R-12)"
+  },
+  "seed": 7820261108,
+  "reps": 20000,
+@@ -25,15 +25,28 @@
+  "interaction": [
+   {
+    "name": "none",
+-   "method_variance_share": "0"
++   "method_variance_share": "0",
++   "llama_sigma_ratio": "1"
+   },
+   {
+    "name": "arm x seed 0.5",
+-   "method_variance_share": "0.5"
++   "method_variance_share": "0.5",
++   "llama_sigma_ratio": "1"
+   },
+   {
+    "name": "arm x seed 1",
+-   "method_variance_share": "1"
++   "method_variance_share": "1",
++   "llama_sigma_ratio": "1"
++  },
++  {
++   "name": "llama sigma x 1.5",
++   "method_variance_share": "0",
++   "llama_sigma_ratio": "3/2"
++  },
++  {
++   "name": "llama sigma x 1/1.5",
++   "method_variance_share": "0",
++   "llama_sigma_ratio": "2/3"
+   }
+  ],
+  "power_effects_pp": [
+@@ -73,15 +86,17 @@
+   "Seed effects are set to 0: they cancel in every within-cluster contrast, in the additive model's residuals and, under the common-seed assumption, in N's pairs; a seed component that differs between the clusters (which would inflate N's pairs only) is not simulated.",
+   "The arm x seed scenarios add an independent N(0, share x sigma_e^2) term to every method-arm cell (A1, L1, H1, S1, S3, S4) and none to a0 and R, at shares 0.5 and 1 (GXB S-1).",
+   "Branch H is read as H (b) with its money covered (ruling 4's first choice; GXB S-4).",
+-  "Cells alone at their seed in a cluster (R and a0 at 1101) are left out of the REML fits, which changes nothing in B16's fit (leverage 1; the tests check it against B16's fit_cells with them in)."
++  "Cells alone at their seed in a cluster (R and a0 at 1101) are left out of the REML fits, which changes nothing in B16's fit (leverage 1; the tests check it against B16's fit_cells with them in).",
++  "Under [B] the scenarios none, arm x seed 0.5 and arm x seed 1 give both families one true sigma_pair; P1 section 3.6 (N2) expects them to differ. Two scenarios at share 0 set Llama-3.1-8B's sigma_pair at 3/2 and 2/3 times OLMo-2-7B's (the grid's sigma), capped at the grid's top (GXB R-12; the verifier's SV-3). Under [C] these two equal 'none' except N's printed plan."
+  ],
+  "limits": [
+-  "The crossed prompt (item) part of each claim-test contrast's SE is omitted: no prompt-level data exist before block A, so none are simulated for the claim test; the df is the seed part's Satterthwaite df (GXB S-3). Its effect on the size is not simulated: V_prompt >= 0 widens the SE but also raises the Satterthwaite df."
++  "The crossed prompt (item) part of each claim-test contrast's SE is omitted: no prompt-level data exist before block A, so none are simulated for the claim test; the df is the seed part's Satterthwaite df (GXB S-3). Its effect on the size is not simulated: V_prompt >= 0 widens the SE but also raises the Satterthwaite df.",
++  "The familywise rate is the rate of the U claims: Holm at 5% on the U contrasts, which bounds Phi's U claims (GXB R-10). Phi's adverse O and L words ('worse (O)', 'worse (L)'), which start at 0.5% of alpha inside their own contrasts, are not simulated (GXB R-11)."
+  ],
+  "basis": [
+   "Part 2 section 10.3 (DES K6; P1 section 14 item 10; P78:204); DESO3 V2",
+   "P1 sections 3.3 (N), 4 (HB-C), 5 (the seed layout), 6.1-6.4 (the rule, SR-2), 7 (branch H (b))",
+   "B16 settings/reading.json designs plan_a and plan_b (a0 outside the fit under plan B; the two-arm sum rule)",
+-  "The grid: P1 section 6.3's true sigma_pair values 3.0, 4.0, 4.5, 5.0, 6.0 and 8.24 (no pairing gain), with 3.5, 5.5 and 7.0 added; the interaction shares 0.5 and 1 (GXB S-1)"
++  "The grid: P1 section 6.3's true sigma_pair values 3.0, 4.0, 4.5, 5.0, 6.0 and 8.24 (no pairing gain), with 3.5, 5.5 and 7.0 added; the interaction shares 0.5 and 1 (GXB S-1); the family ratios 3/2 and 2/3 (GXB R-12)"
+  ]
+ }
+--- a/scripts/scale78b/tests/test_blinded_sigma.py
++++ b/scripts/scale78b/tests/test_blinded_sigma.py
+@@ -12,6 +12,7 @@
+ 
+ from __future__ import annotations
+ 
++import contextlib
+ import hashlib
+ import json
+ import math
+@@ -38,12 +39,15 @@
+                "deterministic_algorithms": True, "safety_selection_numeric": "v1",
+                "cuda": {"name": "A100", "capability": "8.0", "torch_cuda_runtime": "12.1", "cudnn": 8902,
+                         "settings": {}, "env": {}}}
++# R-13 / SV-4: the reused a0 units, N's R units and block A each on their own engine identity
++ENGINES_SPLIT = {"a0": hashlib.sha256(b"engine of the reused a0 units").hexdigest(),
++                 "R": hashlib.sha256(b"engine of N's R units").hexdigest(), "block_a": ENGINE_X}
+ PROMPTS = 20                                   # 20 prompts x 3 samples: U = k / 60
+ ANSWER = "STAND-IN-ANSWER-TEXT"
+ # The fixture's output, held byte for byte (the blinding test's script half): computed once from the deterministic
+ # fixture below (relative paths, fixed clock), so a change of the output's form, its keys, its rounding or its value
+ # fails here.
+-EXPECTED_INPUTS_SHA256 = "70cd24495530a8c9c61895725c1f8505c63223c3152a929d40c877008d7f0c87"
++EXPECTED_INPUTS_SHA256 = "674d7c8b85bb37270efa9e30f4be02bd920f28e5fdf6e654b072ca46efbf8e7c"
+ EXPECTED_SIGMA = "34.93048652522448"
+ EXPECTED_B = ('{\n  "df": 24,\n  "inputs_sha256": "@INPUTS@",\n  "kind": "scale-78b blinded sigma",\n'
+               '  "sigma_A_pp": @SIGMA@,\n  "version": 1\n}\n')
+@@ -57,6 +61,15 @@
+     return json.dumps(obj, sort_keys=True, separators=(",", ":")).encode()
+ 
+ 
++@contextlib.contextmanager
++def refuses(expected: str):
++    """A refusal whose whole message is ``expected`` (SV-1 (c): compared in full, never by substring)."""
++    with pytest.raises(SystemExit) as caught:
++        yield caught
++    message = str(caught.value)
++    assert message == expected, message
++
++
+ # ----- the synthetic fixture --------------------------------------------------------------------------------------------
+ 
+ 
+@@ -117,7 +130,7 @@
+ 
+ 
+ def make_unit(folder: Path, family: str, arm: str, seed: int, unsafe: int, edit: bytes | None = None,
+-              recipe_family: str | None = None) -> str:
++              recipe_family: str | None = None, engine: str = ENGINE_X) -> str:
+     """A sealed synthetic run-one e1 unit; returns its COMPLETE.json SHA-256."""
+     folder.mkdir(parents=True)
+     rf = recipe_family or family
+@@ -127,9 +140,9 @@
+     arm_id = "a0" if edit is None else "edit-" + sha(edit)
+     lock = b"environment-lock-bytes\n"
+     job = {"kind": "run-one", "target_checkpoint": "e1", "replicate_of": None, "resume_from": None, "evaluate_bank": "dev",
+-           "split": "dev", "role": "development", "seed": seed, "arm": arm_id, "code_sha256": ENGINE_X,
++           "split": "dev", "role": "development", "seed": seed, "arm": arm_id, "code_sha256": engine,
+            "manifest_sha256": fam["manifest_sha256"], "recipe_sha256": recipe_sha}
+-    identity = {"code_sha256": ENGINE_X, "manifest_sha256": fam["manifest_sha256"], "training_identity": fam["training_identity"],
++    identity = {"code_sha256": engine, "manifest_sha256": fam["manifest_sha256"], "training_identity": fam["training_identity"],
+                 "recipe": recipe, "recipe_sha256": recipe_sha}
+     assets = {"environment": ENVIRONMENT, "policy": {"name": "synthetic"},
+               "guard": {"repo": "g", "revision": "r", "files": {}}, "environment_lock": {"sha256": sha(lock)}}
+@@ -148,19 +161,21 @@
+     return sha(data)
+ 
+ 
+-def build_family(root: Path, family: str, design: str = "full", count=unsafe_count) -> dict:
++def build_family(root: Path, family: str, design: str = "full", count=unsafe_count, engines: dict | None = None) -> dict:
+     """The family's inputs entry, every cell of the design written under root/<family>/ (paths relative to root)."""
+     edits = {arm: method_edit(family, arm) for arm in bs.DESIGNS[design]}
+     cells: dict = {}
+     for (arm, seed) in sorted(bs.design_cells(design)):
+         rel = f"{family}/{seed}-{arm}"
+         edit = r_edit(family, seed - 1100) if arm == "R" else None if arm == "a0" else edits[arm]
+-        key = make_unit(root / rel, family, arm, seed, count(family, arm, seed), edit)
++        engines = engines or {"a0": ENGINE_X, "R": ENGINE_X, "block_a": ENGINE_X}
++        key = make_unit(root / rel, family, arm, seed, count(family, arm, seed), edit,
++                        engine=engines[arm if bs.reused(arm, seed) else "block_a"])
+         entry = {"path": rel, "complete_sha256": key}
+         if arm == "R":
+             entry["arm"] = "edit-" + sha(edit)
+         cells.setdefault(arm, {})[str(seed)] = entry
+-    return {"design": design, "engine": {"block_a": ENGINE_X, "reused": ENGINE_X},
++    return {"design": design, "engine": dict(engines),
+             "edits": {arm: sha(e) for arm, e in edits.items()}, "cells": cells}
+ 
+ 
+@@ -182,7 +197,11 @@
+         for entry in by_seed.values():
+             entry["path"] = "stopped/" + entry["path"]
+     stopped["anchor_stop"] = write_stop_record(root, "stopped/anchor-stop.json", "olmo2-7b")
+-    return {"root": root, "families": fams, "stopped": stopped}
++    split = build_family(root / "engines", "olmo2-7b", engines=ENGINES_SPLIT)
++    for arm, by_seed in split["cells"].items():
++        for entry in by_seed.values():
++            entry["path"] = "engines/" + entry["path"]
++    return {"root": root, "families": fams, "stopped": stopped, "engines": split}
+ 
+ 
+ def write_stop_record(root: Path, rel: str, family: str, kind: str = "safe_anchors_below_64", exit_code: int = 3,
+@@ -247,15 +266,57 @@
+ 
+ 
+ # ----- the blinding test: bytes and sentinels -------------------------------------------------------------------------------
++
++
++def snapshot(*folders) -> dict:
++    """{path: SHA-256} of every file under the folders (SV-1 (b): what a run may touch)."""
++    out = {}
++    for folder in folders:
++        for f in sorted(Path(folder).rglob("*")):
++            if f.is_file() or f.is_symlink():
++                out[str(f)] = sha(f.read_bytes()) if f.is_file() else "link"
++    return out
++
++
++def guarded_run(tree, tmp_path, *args, out: Path | None = None):
++    """The CLI run from a fresh cwd, with a snapshot before and after of every folder it can touch: the fixture root
++    (the inputs' folder and every unit), tmp_path (--out's folder), the cwd and the script's own package folder.
++    Returns (run, new files, changed files)."""
++    cwd = tmp_path / "cwd"
++    cwd.mkdir(exist_ok=True)
++    folders = (tree["root"], tmp_path, ROOT / "scripts/scale78b")
++    before = snapshot(*folders)
++    run = subprocess.run([sys.executable, "-I", "-B", str(SCRIPT), *map(str, args)] + (["--out", str(out)] if out else []),
++                         capture_output=True, text=True, cwd=cwd)
++    after = snapshot(*folders)
++    new = sorted(set(after) - set(before))
++    changed = sorted(k for k in before if after.get(k) != before[k])
++    return run, new, changed
++
++
++def tampered(root: Path, entry: dict, name: str, change) -> dict:
++    """A re-sealed copy of a unit with ``change(summary)`` applied to its eval/e1/summary.json; its inputs entry."""
++    copy = root / name
++    if not copy.exists():
++        shutil.copytree(root / entry["path"], copy)
++        summary = json.loads((copy / "eval/e1/summary.json").read_bytes())
++        change(summary)
++        (copy / "eval/e1/summary.json").write_bytes(canon(summary))
++        marker = json.loads((copy / "COMPLETE.json").read_bytes())
++        marker["files"]["eval/e1/summary.json"] = sha((copy / "eval/e1/summary.json").read_bytes())
++        (copy / "COMPLETE.json").write_bytes(canon(marker))
++    return {**{k: v for k, v in entry.items() if k != "path"}, "path": name,
++            "complete_sha256": sha((copy / "COMPLETE.json").read_bytes())}
+ 
+ 
+ def test_the_output_is_held_byte_for_byte_and_written_once(tree, tmp_path):
+     root = tree["root"]
+     inputs, digest = write_inputs(root, "B", tree["families"], "inputs-bytes.json")
+     out = tmp_path / "out.json"
+-    run = run_cli("--inputs", inputs, "--inputs-sha256", digest, "--out", out)
++    run, new, changed = guarded_run(tree, tmp_path, "--inputs", inputs, "--inputs-sha256", digest, out=out)
+     assert run.returncode == 0, run.stderr
+     assert run.stderr == ""
++    assert new == [str(out)] and changed == []             # SV-1 (b): --out is the only file the run makes
+     expected_sigma = math.sqrt(2 * sum(c["rss"] for f in tree["families"] for c in numpy_fit(f, "full").values()) / 24)
+     doc = json.loads(run.stdout)
+     assert math.isclose(doc["sigma_A_pp"], expected_sigma, rel_tol=1e-12)
+@@ -264,39 +325,55 @@
+     expected = EXPECTED_B.replace("@INPUTS@", EXPECTED_INPUTS_SHA256).replace("@SIGMA@", EXPECTED_SIGMA)
+     assert run.stdout == expected
+     assert out.read_bytes() == expected.encode()
+-    assert sha(out.read_bytes()) == sha(expected.encode())
+     assert sorted(doc) == list(bs.OUTPUT_KEYS)
+-    again = run_cli("--inputs", inputs, "--inputs-sha256", digest, "--out", out)
+-    assert again.returncode != 0 and "written once" in again.stderr and again.stdout == ""
++    again, new, changed = guarded_run(tree, tmp_path, "--inputs", inputs, "--inputs-sha256", digest, out=out)
++    assert (again.returncode, again.stdout, again.stderr) == (1, "", "--out exists: the output is written once\n")
++    assert new == [] and changed == []
++    missing = tmp_path / "no-such-folder" / "out.json"
++    third, new, changed = guarded_run(tree, tmp_path, "--inputs", inputs, "--inputs-sha256", digest, out=missing)
++    assert (third.returncode, third.stdout, third.stderr) == (1, "", "--out's folder does not exist: nothing written\n")
++    assert new == [] and changed == []
+ 
+ 
+ def test_planted_u_values_never_appear_in_any_output_or_refusal(tree, tmp_path):
+     root = tree["root"]
+     inputs, digest = write_inputs(root, "B", tree["families"], "inputs-sentinel.json")
+     out = tmp_path / "out.json"
+-    run = run_cli("--inputs", inputs, "--inputs-sha256", digest, "--out", out)
++    run, new, changed = guarded_run(tree, tmp_path, "--inputs", inputs, "--inputs-sha256", digest, out=out)
+     assert run.returncode == 0, run.stderr
++    assert new == [str(out)] and changed == []
+     sigma = json.loads(run.stdout)["sigma_A_pp"]
+     assert_no_sentinel([run.stdout, run.stderr, out.read_text()], sigma)
+     # a refusal raised while U is read, after every other cell's U (the last cell read, olmo2-7b a0@1104, re-sealed
+-    # with a summary.json that disagrees with its guard records), names the cell only
++    # with a summary.json that disagrees with its guard records): its stderr is exactly the frozen reader's line, and
++    # no file appears or changes
+     fams = json.loads(json.dumps(tree["families"]))
+-    source = root / fams["olmo2-7b"]["cells"]["a0"]["1104"]["path"]
+-    copy = root / "tampered-a0-1104"
+-    if not copy.exists():
+-        shutil.copytree(source, copy)
+-        summary = json.loads((copy / "eval/e1/summary.json").read_bytes())
+-        summary["overrefusal"]["refusals"] = 2
+-        (copy / "eval/e1/summary.json").write_bytes(canon(summary))
+-        marker = json.loads((copy / "COMPLETE.json").read_bytes())
+-        marker["files"]["eval/e1/summary.json"] = sha((copy / "eval/e1/summary.json").read_bytes())
+-        (copy / "COMPLETE.json").write_bytes(canon(marker))
+-    fams["olmo2-7b"]["cells"]["a0"]["1104"] = {"path": "tampered-a0-1104", "complete_sha256": sha((copy / "COMPLETE.json").read_bytes())}
++    fams["olmo2-7b"]["cells"]["a0"]["1104"] = tampered(root, fams["olmo2-7b"]["cells"]["a0"]["1104"], "tampered-a0-1104",
++                                                       lambda m: m["overrefusal"].__setitem__("refusals", 2))
+     inputs2, digest2 = write_inputs(root, "B", fams, "inputs-sentinel-late.json")
+-    refused = run_cli("--inputs", inputs2, "--inputs-sha256", digest2)
+-    assert refused.returncode != 0 and refused.stdout == ""
+-    assert "olmo2-7b a0@1104: the over-refusal guard records disagree with summary.json" in refused.stderr
++    refused, new, changed = guarded_run(tree, tmp_path, "--inputs", inputs2, "--inputs-sha256", digest2,
++                                        out=tmp_path / "late.json")
++    assert (refused.returncode, refused.stdout) == (1, "")
++    assert refused.stderr == "olmo2-7b a0@1104: the over-refusal guard records disagree with summary.json\n"
++    assert new == [] and changed == []
+     assert_no_sentinel([refused.stderr])
++
++
++def test_an_unexpected_error_prints_one_type_only_line_and_writes_nothing(tree, tmp_path):
++    """SV-1 (a): through the CLI, a cell whose summary.json says 0 sampled answers (re-sealed) makes the frozen
++    reader divide by zero (Fraction(k, 0), k a U numerator). stderr is exactly the one type-only line, stdout is empty,
++    and no file appears or changes in any folder the run can touch."""
++    root = tree["root"]
++    fams = json.loads(json.dumps(tree["families"]))
++
++    def zero(summary):
++        summary["harm"]["sampled"]["answers"] = 0
++    fams["olmo2-7b"]["cells"]["S1"]["1103"] = tampered(root, fams["olmo2-7b"]["cells"]["S1"]["1103"], "tampered-s1-zero", zero)
++    inputs, digest = write_inputs(root, "B", fams, "inputs-unexpected.json")
++    run, new, changed = guarded_run(tree, tmp_path, "--inputs", inputs, "--inputs-sha256", digest, out=tmp_path / "x.json")
++    assert (run.returncode, run.stdout) == (1, "")
++    assert run.stderr == "blinded_sigma: unexpected error (ZeroDivisionError); nothing written\n"
++    assert new == [] and changed == []
+ 
+ 
+ def test_an_unexpected_error_reports_its_type_only(tree, monkeypatch, capsys):
+@@ -308,15 +385,17 @@
+     with pytest.raises(SystemExit) as caught:
+         bs.main(["--inputs", str(inputs), "--inputs-sha256", digest])
+     assert str(caught.value) == "blinded_sigma: unexpected error (ValueError); nothing written"
+-    assert capsys.readouterr().out == ""
++    assert caught.value.__suppress_context__ is True
++    captured = capsys.readouterr()
++    assert captured.out == "" and captured.err == ""
+ 
+ 
+ def test_the_output_has_exactly_the_five_keys():
+     good = {"kind": bs.KIND, "version": 1, "inputs_sha256": "0" * 64, "sigma_A_pp": 1.5, "df": 6}
+     assert json.loads(bs.render(good)) == good
+-    with pytest.raises(SystemExit, match="other keys"):
++    with refuses("the output holds other keys than kind, version, inputs_sha256, sigma_A_pp and df"):
+         bs.render({**good, "U": 1.0})
+-    with pytest.raises(SystemExit, match="other keys"):
++    with refuses("the output holds other keys than kind, version, inputs_sha256, sigma_A_pp and df"):
+         bs.render({k: v for k, v in good.items() if k != "df"})
+ 
+ 
+@@ -418,17 +497,17 @@
+ 
+ def test_an_off_pin_inputs_file_unit_key_or_reader_refuses(tree, monkeypatch):
+     inputs, digest = write_inputs(tree["root"], "B", tree["families"], "inputs-pin.json")
+-    with pytest.raises(SystemExit, match="SHA-256 is not the pinned one"):
++    with refuses("the inputs file is missing or its SHA-256 is not the pinned one"):
+         bs.read(inputs, "0" * 64)
+-    with pytest.raises(SystemExit, match="64 lower-case hex"):
++    with refuses("--inputs-sha256 is 64 lower-case hex digits"):
+         bs.read(inputs, digest.upper())
+     fams = json.loads(json.dumps(tree["families"]))
+     fams["olmo2-7b"]["cells"]["S3"]["1103"]["complete_sha256"] = "3" * 64
+     inputs, digest = write_inputs(tree["root"], "B", fams, "inputs-pin-key.json")
+-    with pytest.raises(SystemExit, match="olmo2-7b S3@1103: COMPLETE.json's SHA-256 is not the key given"):
++    with refuses("olmo2-7b S3@1103: COMPLETE.json's SHA-256 is not the key given"):
+         bs.read(inputs, digest)
+     monkeypatch.setattr(bs, "NOISE_READING", (bs.NOISE_READING[0], "0" * 64))
+-    with pytest.raises(SystemExit, match="noise_reading.py differs from its pinned SHA-256"):
++    with refuses("noise_reading.py differs from its pinned SHA-256: blinded_sigma stops"):
+         bs._load_noise_reading()
+     assert bs.NOISE_READING[0].name == "noise_reading.py"
+ 
+@@ -444,27 +523,27 @@
+     # [C] reads OLMo-2-7B alone; [B] reads both
+     for option, chosen in (("C", fams), ("C", {"llama31-8b": fams["llama31-8b"]}), ("B", {"olmo2-7b": fams["olmo2-7b"]})):
+         inputs, digest = write_inputs(root, option, chosen, f"inputs-mix-{option}-{len(chosen)}-{sorted(chosen)[0]}.json")
+-        with pytest.raises(SystemExit, match=f"option {option} reads exactly the families"):
++        with refuses(f"option {option} reads exactly the families {list(bs.OPTIONS[option])}"):
+             bs.read(inputs, digest)
+     # a Llama unit listed under OLMo-2-7B refuses on the family's manifest
+     mixed = json.loads(json.dumps(fams))
+     mixed["olmo2-7b"]["cells"]["a0"]["1104"] = mixed["llama31-8b"]["cells"]["a0"]["1104"]
+     del mixed["llama31-8b"]
+     inputs, digest = write_inputs(root, "C", mixed, "inputs-mix-unit.json")
+-    with pytest.raises(SystemExit, match="olmo2-7b a0@1104: job.json manifest_sha256 is not the family's a0 value"):
++    with refuses("olmo2-7b a0@1104: job.json manifest_sha256 is not the family's a0 value"):
+         bs.read(inputs, digest)
+     # one unit under both families refuses as a duplicate before it is read the second time
+     twice = json.loads(json.dumps(fams))
+     twice["olmo2-7b"]["cells"]["a0"]["1104"] = twice["llama31-8b"]["cells"]["a0"]["1104"]
+     inputs, digest = write_inputs(root, "B", twice, "inputs-mix-twice.json")
+-    with pytest.raises(SystemExit, match="olmo2-7b a0@1104: its COMPLETE.json SHA-256 is already read as llama31-8b a0@1104"):
++    with refuses("olmo2-7b a0@1104: its COMPLETE.json SHA-256 is already read as llama31-8b a0@1104"):
+         bs.read(inputs, digest)
+     # a 1B family name is not a family of this script
+     one_b = {"olmo2-1b": fams["olmo2-7b"]}
+     inputs, digest = write_inputs(root, "C", one_b, "inputs-mix-1b.json")
+-    with pytest.raises(SystemExit, match="option C reads exactly the families"):
++    with refuses("option C reads exactly the families ['olmo2-7b']"):
+         bs.read(inputs, digest)
+-    with pytest.raises(SystemExit, match="olmo2-1b: not a 7-8B family"):
++    with refuses("olmo2-1b: not a 7-8B family (['llama31-8b', 'olmo2-7b'])"):
+         bs.family_cells("olmo2-1b", fams["olmo2-7b"], root, {})
+ 
+ 
+@@ -477,7 +556,7 @@
+         folder = tmp_path / label
+         key = make_unit(folder, fam, "A1", 1102, 9, edit)
+         spec = {"path": str(folder), "complete_sha256": key, "arm": "edit-" + sha(edit)}
+-        with pytest.raises(SystemExit, match="olmo2-7b A1@1102: the edit file is not a remove edit of the family's manifest for A1"):
++        with refuses("olmo2-7b A1@1102: the edit file is not a remove edit of the family's manifest for A1"):
+             bs.read_method_unit(spec, "A1", 1102, fam, ENGINE_X, "olmo2-7b A1@1102", tmp_path)
+         assert bs.NR.r_edit_matches is not None and bs.NR.r_edit_matches.__name__ == "r_edit_matches"
+     good = method_edit(fam, "A1")
+@@ -486,11 +565,11 @@
+     unit = bs.read_method_unit({"path": str(folder), "complete_sha256": key, "arm": "edit-" + sha(good)}, "A1", 1102,
+                                fam, ENGINE_X, "olmo2-7b A1@1102", tmp_path)
+     assert unit["complete_sha256"] == key and bs.NR.r_edit_matches.__name__ == "r_edit_matches"   # restored
+-    with pytest.raises(SystemExit, match="edit.json is missing or is not the arm's edit file"):
++    with refuses("olmo2-7b A1@1102: edit.json is missing or is not the arm's edit file"):
+         bs.read_method_unit({"path": str(folder), "complete_sha256": key, "arm": "edit-" + "1" * 64}, "A1", 1102,
+                             fam, ENGINE_X, "olmo2-7b A1@1102", tmp_path)
+     # the R-draw rule still governs R cells: a method edit under an R cell refuses through noise_reading
+-    with pytest.raises(SystemExit, match="is not the R draw"):
++    with refuses("olmo2-7b R@1102: the edit file is not the R draw 2 of the family's manifest (only a0 and R units are N's inputs)"):
+         bs.NR.read_unit({"path": str(folder), "complete_sha256": key, "arm": "edit-" + sha(good)}, "R", 1102, fam,
+                         ENGINE_X, "olmo2-7b R@1102", tmp_path)
+ 
+@@ -499,13 +578,13 @@
+     fams = json.loads(json.dumps(tree["families"]))
+     fams["olmo2-7b"]["edits"]["L1"] = fams["olmo2-7b"]["edits"]["A1"]
+     inputs, digest = write_inputs(tree["root"], "B", fams, "inputs-same-edit.json")
+-    with pytest.raises(SystemExit, match="olmo2-7b: two method arms name the same edit file"):
++    with refuses("olmo2-7b: two method arms name the same edit file"):
+         bs.read(inputs, digest)
+ 
+ 
+ def test_a_cluster_with_no_df_refuses():
+     lone = {("R", 1101): Fraction(3), ("R", 1102): Fraction(5), ("H1", 1103): Fraction(1)}
+-    with pytest.raises(SystemExit, match="^fam removal: the cluster has no residual df"):
++    with refuses("fam removal: the cluster has no residual df (its cells hold no partner seed): blinded_sigma stops"):
+         bs.pooled_sigma({"fam removal": lone, "fam full": {(a, s): Fraction(s % 5 + len(a)) for a in ("a0", "S1")
+                                                            for s in (1102, 1103, 1104)}})
+ 
+@@ -516,24 +595,24 @@
+     cases = []
+     extra = json.loads(json.dumps(tree["stopped"]))
+     extra["cells"]["L1"] = base["olmo2-7b"]["cells"]["L1"]               # L1 does not run on a stopped family
+-    cases.append((extra, "the cells given are not the design's cells: 3 extra, 0 missing"))
++    cases.append((extra, "olmo2-7b: the cells given are not the design's cells: 3 extra, 0 missing"))
+     missing = json.loads(json.dumps(base["olmo2-7b"]))
+     del missing["cells"]["S4"]["1103"]
+-    cases.append((missing, "the cells given are not the design's cells: 0 extra, 1 missing"))
++    cases.append((missing, "olmo2-7b: the cells given are not the design's cells: 0 extra, 1 missing"))
+     no_a1 = json.loads(json.dumps(base["olmo2-7b"]))
+     del no_a1["cells"]["A1"]                          # A1 missing on a family whose anchor job did not stop
+-    cases.append((no_a1, "the cells given are not the design's cells: 0 extra, 3 missing"))
++    cases.append((no_a1, "olmo2-7b: the cells given are not the design's cells: 0 extra, 3 missing"))
+     old_form = json.loads(json.dumps(base["olmo2-7b"]))
+     old_form["not_run"] = [{"arm": "S3", "seed": 1103}]
+-    cases.append((old_form, "a family entry has"))
++    cases.append((old_form, "olmo2-7b: a family entry has ['cells', 'design', 'edits', 'engine'] and, on an anchor-stopped family, anchor_stop"))
+     wrong_edits = json.loads(json.dumps(tree["stopped"]))
+     wrong_edits["edits"]["A1"] = "2" * 64
+-    cases.append((wrong_edits, "edits gives exactly the design's method arms"))
++    cases.append((wrong_edits, "olmo2-7b: edits gives exactly the design's method arms ['H1', 'S1', 'S4'] by SHA-256"))
+     bad_design = {**base["olmo2-7b"], "design": "plan_b"}
+-    cases.append((bad_design, "a family's design is one of"))
++    cases.append((bad_design, "a family's design is one of ['anchor_stopped', 'full']"))
+     for i, (spec, message) in enumerate(cases):
+         inputs, digest = write_inputs(root, "C", {"olmo2-7b": spec}, f"inputs-design-{i}.json")
+-        with pytest.raises(SystemExit, match=message):
++        with refuses(message):
+             bs.read(inputs, digest)
+ 
+ 
+@@ -548,19 +627,19 @@
+                                                        "harmful_prompt_does_not_encode", 1)}
+     inputs, digest = write_inputs(root, "C", {"olmo2-7b": second}, "inputs-stop-harmful.json")
+     assert bs.read(inputs, digest)["df"] == 6
+-    cases = [({k: v for k, v in good.items() if k != "anchor_stop"}, "names its anchor-stop record as"),
+-             ({**good, "anchor_stop": {**good["anchor_stop"], "sha256": "6" * 64}}, "its SHA-256 is not the pinned one"),
+-             ({**good, "anchor_stop": write_stop_record(root, "stopped/s-other.json", "llama31-8b")}, "another family's"),
+-             ({**good, "anchor_stop": write_stop_record(root, "stopped/s-kind.json", "olmo2-7b", "crash", 3)},
+-              "not one of the anchor script's stops"),
++    cases = [({k: v for k, v in good.items() if k != "anchor_stop"}, "olmo2-7b: an anchor-stopped family names its anchor-stop record as {path, sha256}"),
++             ({**good, "anchor_stop": {**good["anchor_stop"], "sha256": "6" * 64}}, "olmo2-7b: the anchor-stop record is missing or its SHA-256 is not the pinned one"),
++             ({**good, "anchor_stop": write_stop_record(root, "stopped/s-other.json", "llama31-8b")}, "olmo2-7b: the anchor-stop record is another family's"),
++             ({**good, "anchor_stop": write_stop_record(root, "stopped/s-kind.json", "olmo2-7b", "crash", 3)},
++              "olmo2-7b: the anchor-stop record's stop kind and exit code are not one of the anchor script's stops"),
+              ({**good, "anchor_stop": write_stop_record(root, "stopped/s-exit.json", "olmo2-7b", "safe_anchors_below_64", 1)},
+-              "not one of the anchor script's stops"),
++              "olmo2-7b: the anchor-stop record's stop kind and exit code are not one of the anchor script's stops"),
+              ({**good, "anchor_stop": write_stop_record(root, "stopped/s-rk.json", "olmo2-7b", record_kind="other")},
+-              "is not a scale-78b anchor stop record"),
+-             ({**tree["families"]["olmo2-7b"], "anchor_stop": good["anchor_stop"]}, "a full-design family names no anchor-stop")]
++              "olmo2-7b: the anchor-stop record is not a scale-78b anchor stop record"),
++             ({**tree["families"]["olmo2-7b"], "anchor_stop": good["anchor_stop"]}, "olmo2-7b: a full-design family names no anchor-stop record")]
+     for i, (spec, message) in enumerate(cases):
+         inputs, digest = write_inputs(root, "C", {"olmo2-7b": spec}, f"inputs-stop-{i}.json")
+-        with pytest.raises(SystemExit, match=message):
++        with refuses(message):
+             bs.read(inputs, digest)
+ 
+ 
+@@ -573,21 +652,40 @@
+                 {"kind": bs.INPUTS_KIND, "version": 1, "families": {}}):
+         data = json.dumps(doc).encode()
+         path.write_bytes(data)
+-        with pytest.raises(SystemExit, match="not a scale-78b blinded sigma inputs file"):
++        unknown = 1 if "extra" in doc else 0
++        with refuses(f"not a scale-78b blinded sigma inputs file (kind, version 1, option, families; unknown keys: {unknown})"):
+             bs.read(path, sha(data))
+     data = json.dumps({"kind": bs.INPUTS_KIND, "version": 1, "option": "A", "families": {}}).encode()
+     path.write_bytes(data)
+-    with pytest.raises(SystemExit, match="option is one of"):
++    with refuses("option is one of ['B', 'C']"):
+         bs.read(path, sha(data))
+ 
+ 
+-def test_reused_and_block_a_cells_are_checked_against_their_own_engine(tree):
+-    """The reused cells (a0 and R at 1101-1103) carry the reused engine identity, every other cell block A's: with the
+-    reused identity set to another value, the first reused cell refuses on its code identity, and with block A's set
+-    to another value, the first block-A cell does."""
+-    for role, first in (("reused", "olmo2-7b R@1101"), ("block_a", "olmo2-7b A1@1102")):
+-        fams = json.loads(json.dumps(tree["families"]))
+-        fams["olmo2-7b"]["engine"][role] = "5" * 64
+-        inputs, digest = write_inputs(tree["root"], "C", {"olmo2-7b": fams["olmo2-7b"]}, f"inputs-engine-{role}.json")
+-        with pytest.raises(SystemExit, match=f"^{first}: job.json code_sha256 is not the family's"):
++def test_each_role_is_checked_against_its_own_engine_and_1104_is_block_as(tree):
++    """GXB R-13, SV-4: a fixture whose reused a0 units, N's R units and block-A cells carry three different engine
++    identities reads with the per-role map. a0 and R at 1104 (and R at 1105) carry block A's identity: they pass, and
++    with block A's identity moved to the a0 or R role they refuse (the 1104 boundary). Each role set to another value
++    refuses at its first cell, whose message is compared in full."""
++    split = tree["engines"]
++    inputs, digest = write_inputs(tree["root"], "C", {"olmo2-7b": split}, "inputs-engines-split.json")
++    assert bs.read(inputs, digest)["df"] == 12
++    cases = [("a0", "5" * 64, "olmo2-7b a0@1101: job.json code_sha256 is not the family's a0 value"),
++             ("R", "5" * 64, "olmo2-7b R@1101: job.json code_sha256 is not the family's R value"),
++             ("block_a", "5" * 64, "olmo2-7b A1@1102: job.json code_sha256 is not the family's R value")]
++    for role, value, message in cases:
++        spec = json.loads(json.dumps(split))
++        spec["engine"][role] = value
++        inputs, digest = write_inputs(tree["root"], "C", {"olmo2-7b": spec}, f"inputs-engine-{role}.json")
++        with refuses(message):
+             bs.read(inputs, digest)
++    # with the reused roles' identities equal to block A's, the reused cells refuse; the 1104 cells alone would pass
++    for role, message in (("a0", "olmo2-7b a0@1101: job.json code_sha256 is not the family's a0 value"),
++                          ("R", "olmo2-7b R@1101: job.json code_sha256 is not the family's R value")):
++        spec = json.loads(json.dumps(split))
++        spec["engine"][role] = ENGINE_X
++        inputs, digest = write_inputs(tree["root"], "C", {"olmo2-7b": spec}, f"inputs-engine-x-{role}.json")
++        with refuses(message):
++            bs.read(inputs, digest)
++    for seed in (1104, 1105):
++        assert not bs.reused("R", seed) and not bs.reused("a0", 1104)
++    assert [bs.reused(a, j) for a in ("a0", "R") for j in (1101, 1102, 1103)] == [True] * 6
+--- a/scripts/scale78b/tests/test_sr2_simulation.py
++++ b/scripts/scale78b/tests/test_sr2_simulation.py
+@@ -244,8 +244,14 @@
+     assert doc["reading_rule"] == s["reading_rule"] and doc["approximations"] == s["approximations"]
+     assert doc["families"] == ["olmo2-7b"] and doc["reps"] == 60 and doc["reml_starts"] == "multi"
+     sc = doc["rows"][0]["scenarios"]
+-    assert set(sc) == {"none", "arm x seed 0.5", "arm x seed 1"}
+-    assert [sc[n]["method_variance_share"] for n in ("none", "arm x seed 0.5", "arm x seed 1")] == ["0", "0.5", "1"]
++    names = ["none", "arm x seed 0.5", "arm x seed 1", "llama sigma x 1.5", "llama sigma x 1/1.5"]
++    assert set(sc) == set(names)
++    assert [sc[n]["method_variance_share"] for n in names] == ["0", "0.5", "1", "0", "0"]
++    assert [sc[n]["llama_sigma_ratio"] for n in names] == ["1", "1", "1", "3/2", "2/3"]
++    assert sc["llama sigma x 1.5"]["sigma_pair_pp_by_family"] == {"llama31-8b": 6.0, "olmo2-7b": 4.0}
++    assert sc["llama sigma x 1/1.5"]["sigma_pair_pp_by_family"] == {"llama31-8b": round(8 / 3, 6), "olmo2-7b": 4.0}
++    assert any("U claims" in x and "O and L words" in x and "not simulated" in x for x in doc["limits"])     # R-11
++    assert any("one true sigma_pair" in x for x in doc["approximations"])                                    # SV-3
+     assert doc["limits"] == s["limits"] and "prompt (item) part" in doc["limits"][0] and doc["n_stage"] == s["n_stage"]
+     fam = sc["none"]["families"]["olmo2-7b"]
+     assert set(fam["power"]) == {"8", "10", "12"} and set(fam["contrasts"]) == set(sim.CONTRASTS)
+@@ -253,8 +259,13 @@
+     assert math.isclose(sum(sc["none"]["plan_by_sigma_A"].values()), 1.0, abs_tol=1e-5)
+     summary = doc["summary"]
+     assert summary["threshold_familywise"] == "0.06"
+-    assert summary["scenarios_read"] == ["arm x seed 0.5", "arm x seed 1", "none"]
+-    assert "applies to every simulated sigma (2) and every scenario (arm x seed 0.5, arm x seed 1, none)" in summary["reading_line"]
++    assert summary["scenarios_read"] == sorted(names)
++    assert ("applies to every simulated sigma (2) and every scenario (arm x seed 0.5, arm x seed 1, llama sigma x 1.5, "
++            "llama sigma x 1/1.5, none), with or without the interaction and at either family ratio: the familywise rate "
++            "is the U claims' rate") in summary["reading_line"]
++    fams_all = [v for r in doc["rows"] for x in r["scenarios"].values() for v in x["families"].values()]
++    assert summary["refused_contrasts_total"] == sum(v["refused_contrasts"] for v in fams_all)          # SV-7
++    assert summary["nonconverged_fits_total"] == sum(v["nonconverged_fits"] for v in fams_all) > 0
+     assert "SR-2 is not adopted" in summary["reading_line"]
+     top = summary["max_familywise"]
+     assert summary["max_above_threshold"] == (top["familywise_count"] / 60 > 0.06)
+@@ -264,7 +275,7 @@
+ 
+ 
+ def test_the_reduced_design_runs_and_its_flags_are_checked(tmp_path):
+-    settings = smoke_settings(tmp_path, sigma_pair_pp=["5.0"], interaction=[{"name": "none", "method_variance_share": "0"}])
++    settings = smoke_settings(tmp_path, sigma_pair_pp=["5.0"], interaction=[{"name": "none", "method_variance_share": "0", "llama_sigma_ratio": "1"}])
+     doc = sim.simulate(settings, "B", "reduced", ["llama31-8b"])
+     fams = doc["rows"][0]["scenarios"]["none"]["families"]
+     assert fams["llama31-8b"]["primary_under_plan_A"] == ["P3", "P4", "P6"]
+@@ -302,9 +313,12 @@
+     assert s["power_effects_pp"] == ["8", "10", "12"] and s["alpha"] == "0.05"
+     assert s["reading_rule"]["threshold_familywise"] == "0.06" and "N decides alone" in s["reading_rule"]["text"]
+     assert [(i["name"], i["method_variance_share"]) for i in s["interaction"]] == \
+-        [("none", "0"), ("arm x seed 0.5", "0.5"), ("arm x seed 1", "1")]
+-    assert s["written_utc"].startswith("2026-11-08T15:27:08Z")
+-    assert "with or without the interaction" in s["reading_rule"]["text"] and "every interaction" in s["reading_rule"]["applies_to"]
++        [("none", "0"), ("arm x seed 0.5", "0.5"), ("arm x seed 1", "1"), ("llama sigma x 1.5", "0"),
++         ("llama sigma x 1/1.5", "0")]
++    assert [i["llama_sigma_ratio"] for i in s["interaction"]] == ["1", "1", "1", "3/2", "2/3"]
++    assert "either family ratio" in s["reading_rule"]["text"] and "U claims" in s["reading_rule"]["text"]
++    assert s["written_utc"].startswith("2026-11-08T16:36:21Z")
++    assert "with or without the interaction" in s["reading_rule"]["text"] and "every scenario of 'interaction'" in s["reading_rule"]["applies_to"]
+     assert s["n_stage"]["sigma_eval0_pp"] == "1.28" and s["n_stage"]["prompts"] == 200
+     assert any("prompt (item) part" in x for x in s["limits"])
+     b16 = json.loads((ROOT / "scripts/stage1_s1/reading/settings/reading.json").read_text())["reml"]
+@@ -379,7 +393,7 @@
+ 
+ def test_power_and_better_count_holm_rejections_with_a_positive_estimate(tmp_path):
+     settings = smoke_settings(tmp_path, sigma_pair_pp=["1.0"], power_effects_pp=["-1000", "0", "2", "1000"],
+-                              interaction=[{"name": "none", "method_variance_share": "0"}])
++                              interaction=[{"name": "none", "method_variance_share": "0", "llama_sigma_ratio": "1"}])
+     doc = sim.simulate(settings, "C", "full", [])
+     sc = doc["rows"][0]["scenarios"]["none"]
+     assert sc["plan_by_sigma_A"]["A"] == 1.0
+@@ -397,7 +411,7 @@
+     six contrasts' unadjusted two-sided 5% tests reject about 5% of the time (PR4 §3.2: 5.1-5.3%; here 1,200 replicates,
+     7,200 correlated tests, so a wide band)."""
+     settings = smoke_settings(tmp_path, sigma_pair_pp=["3.0"], reps=1200, chunk=600,
+-                              interaction=[{"name": "none", "method_variance_share": "0"}])
++                              interaction=[{"name": "none", "method_variance_share": "0", "llama_sigma_ratio": "1"}])
+     fam = sim.simulate(settings, "C", "full", [])["rows"][0]["scenarios"]["none"]["families"]["olmo2-7b"]
+     size = sum(c["size_count"] for c in fam["contrasts"].values()) / sum(c["tested"] for c in fam["contrasts"].values())
+     assert 0.035 <= size <= 0.07, size
+@@ -428,9 +442,158 @@
+     assert a.shape == (4, 2, len(sim.CELLS)) and not np.allclose(a, b)
+     want = np.random.Generator(np.random.PCG64(np.random.SeedSequence([11, 1]))).standard_normal((4, 2, len(sim.CELLS)))
+     assert np.array_equal(b, want) and np.array_equal(sim.chunk_normals(11, 0, 4), a)
+-    settings = smoke_settings(tmp_path, sigma_pair_pp=["4.0", "6.0"], interaction=[{"name": "none", "method_variance_share": "0"}])
++    settings = smoke_settings(tmp_path, sigma_pair_pp=["4.0", "6.0"], interaction=[{"name": "none", "method_variance_share": "0", "llama_sigma_ratio": "1"}])
+     for option, index in (("B", 0), ("C", 1)):
+         doc = sim.simulate(settings, option, "full", [], [index])
+         (tmp_path / f"shard-{option}.json").write_bytes(sim.render(doc))
+     with pytest.raises(SystemExit, match="the shards differ in their header"):
+         sim.merge([tmp_path / "shard-B.json", tmp_path / "shard-C.json"])
++
++
++# ----- SV-2: the chain inside run_chunk, replicate by replicate, against an independent chain -------------------------------
++
++E2E_PLANS = {"A": dict(methods=("A1", "L1", "H1", "S1", "S3", "S4"), mseeds=range(1102, 1108), rseeds=range(1101, 1108),
++                       a0_in=True, primary=("P1", "P2", "P3", "P4", "P5", "P6")),
++             "B9": dict(methods=("A1", "H1", "S1", "S4"), mseeds=range(1102, 1111), rseeds=range(1101, 1111), a0_in=False,
++                        primary=("P1", "P3", "P6")),
++             "H": dict(methods=("A1", "H1", "S1", "S4"), mseeds=range(1102, 1114), rseeds=range(1101, 1114), a0_in=False,
++                       primary=("P1", "P3", "P6"))}
++E2E_CLUSTER = {"R": "removal", "A1": "removal", "L1": "removal", "H1": "removal",
++               "a0": "full", "S1": "full", "S3": "full", "S4": "full"}
++E2E_PAIRS = {"P1": ("R", "A1"), "P2": ("R", "L1"), "P3": ("R", "H1"), "P4": ("a0", "S1"), "P5": ("S1", "S3"),
++             "P6": ("S1", "S4")}
++
++
++def independent_chain(y_all: dict, option: str, stopped: set, effects: list, reps: int) -> dict:
++    """The verifier's e2e_parity.py chain (R/r1-s-verify-scratch/e2e_parity.py), built from other code: σ̂_A by
++    blinded_sigma.pooled_sigma (exact rationals) on blinded_sigma's designs, the plan by noise_reading.seed_rule,
++    per family B16's fit_cells (multi-start, the lone 1101 cells in the fit, the two-arm sum rule on the paired
++    cells), contrast_fit (with_item False), phi.holm at 5%; power and better by shifting the estimate."""
++    import dataclasses
++    from scripts.scale78b import blinded_sigma as bs
++    from scripts.scale78b import noise_reading as nr
++    from scripts.stage1_s1.reading import contrast as con, phi
++    fams = sim.OPTIONS[option]
++    plans = {k: 0 for k in sim.PLAN_LABELS}
++    out = {f: {"familywise": 0, "refused": 0, "contrasts": {}, "power": {e: {} for e in effects},
++               "better": {e: {} for e in effects}} for f in fams}
++
++    def bump(d, k):
++        d[k] = d.get(k, 0) + 1
++    for r in range(reps):
++        clusters = {}
++        for f in fams:
++            for (a, j), c in bs.design_cells("anchor_stopped" if f in stopped else "full").items():
++                clusters.setdefault(f"{f} {c}", {})[(a, j)] = Fraction(float(y_all[f][r, sim.INDEX[(a, j)]]))
++        sigma_a, _ = bs.pooled_sigma(clusters)
++        rule = nr.seed_rule(((Fraction(sigma_a) ** 2,),), 0)
++        plan = "review" if rule["review"] else rule["plan"]
++        plans[plan] += 1
++        if plan == "review":
++            continue
++        p = E2E_PLANS[plan]
++        for f in fams:
++            st = f in stopped
++            arms = [a for a in (("a0",) if p["a0_in"] else ()) + ("R",) + p["methods"]
++                    if not (st and a in ("A1", "L1", "S3"))]
++            seeds = {a: (range(1101, 1108) if a == "a0" else p["rseeds"] if a == "R" else p["mseeds"]) for a in arms}
++            table = {(a, j): np.array([float(y_all[f][r, sim.INDEX[(a, j)]])]) for a in arms for j in seeds[a]}
++            fits = {}
++            for cname in ("removal", "full"):
++                carms = tuple(a for a in arms if E2E_CLUSTER[a] == cname)
++                if len(carms) < 2:
++                    continue
++                cells = [(a, j, float(table[(a, j)][0])) for a in carms for j in seeds[a]]
++                if len(carms) == 2:
++                    common = [j for j in seeds[carms[0]] if j in seeds[carms[1]]]
++                    cells = [(a, j, v) for a, j, v in cells if j in common]
++                fits[cname] = sim.REML.fit_cells(cells, carms, 0.01, multi_start=True)
++            est = {}
++            for k in p["primary"]:
++                c, m = E2E_PAIRS[k]
++                if c in arms and m in arms:
++                    common = [j for j in seeds[c] if j in seeds[m]]
++                    est[k] = con.contrast_fit(table, fits[E2E_CLUSTER[c]], c, m, common, 1.0, with_item=False)
++            pv = {k: e.p_two_sided() for k, e in est.items()}
++            rej = phi.holm(pv, 0.05)
++            o = out[f]
++            o["familywise"] += bool(rej)
++            for k, e in est.items():
++                c = o["contrasts"].setdefault(k, {"tested": 0, "size": 0, "holm": 0})
++                c["tested"] += 1
++                c["size"] += pv[k] < 0.05
++                c["holm"] += k in rej
++                for d in effects:
++                    shifted = dataclasses.replace(e, est=e.est + float(d))
++                    hit = k in phi.holm({**pv, k: shifted.p_two_sided()}, 0.05) and shifted.est > 0
++                    if hit:
++                        bump(o["power"][d], k)
++                        if shifted.est >= 5:
++                            bump(o["better"][d], k)
++    return {"plans": plans, "families": out}
++
++
++@pytest.mark.parametrize("option,stopped,sigma,share,ratio", [
++    ("B", set(), 4.5, 0.5, 1.0), ("C", set(), 5.5, 0.0, 1.0), ("B", {"llama31-8b"}, 6.0, 1.0, 1.0),
++    ("C", {"olmo2-7b"}, 8.24, 1.0, 1.0), ("B", set(), 5.0, 0.0, 1.5), ("B", {"olmo2-7b", "llama31-8b"}, 4.0, 0.0, 1.0)])
++def test_run_chunks_chain_equals_an_independent_chain_replicate_by_replicate(option, stopped, sigma, share, ratio):
++    """SV-2: σ̂_A on the option's families and design → block B's plan → the claim test on the same draws, inside
++    run_chunk, equals the independent chain on every tally (plans, per family the familywise count, each contrast's
++    tested, size and Holm counts, power and better at each effect), on [B] and [C], full and reduced designs, and one
++    family-ratio scenario (GXB R-12)."""
++    reps = 40
++    effects = ["4", "8"]
++    rng = np.random.Generator(np.random.PCG64(np.random.SeedSequence([424242, int(10 * sigma)])))
++    z = rng.standard_normal((reps, 2, len(sim.CELLS)))
++    eta = rng.standard_normal((reps, 2, 2, 3, 50))
++    s = json.loads(SETTINGS.read_text())
++    s.update(power_effects_pp=effects, _reml={**OPTS, "starts": "multi"})
++    sigmas = {"olmo2-7b": sigma, "llama31-8b": min(sigma * ratio, 8.24)}
++    designs = {(p, st): sim.analysis_design(p, st) for p in ("A", "B9", "H") for st in (False, True)}
++    fams = sim.OPTIONS[option]
++    allk = {f: [k for k in sim.CONTRASTS if any(k in designs[(p, f in stopped)]["contrasts"] for p in ("A", "B9", "H"))]
++            for f in fams}
++    tallies = {f: sim.new_tally(allk[f], effects) for f in fams}
++    plans = {"sigma_A": {k: 0 for k in sim.PLAN_LABELS}, "N": {k: 0 for k in sim.PLAN_LABELS}}
++    with np.errstate(all="ignore"):
++        sim.run_chunk(z, eta, sigmas, share, option, stopped, s, tallies, plans, designs)
++    y_all = {f: z[:, i, :] * sim.cell_sd(sigmas[f], share)[None, :] for i, f in enumerate(sim.FAMILIES)}
++    with np.errstate(all="ignore"):
++        ref = independent_chain(y_all, option, stopped, effects, reps)
++    assert plans["sigma_A"] == ref["plans"]
++    assert sum(1 for v in ref["plans"].values() if v) >= 1 and sum(ref["plans"].values()) == reps
++    for f in fams:
++        t, o = tallies[f], ref["families"][f]
++        assert t["familywise"] == o["familywise"] and t["refused"] == 0, f
++        for k, c in t["contrasts"].items():
++            want = o["contrasts"].get(k, {"tested": 0, "size": 0, "holm": 0})
++            assert (c["tested"], c["size"], c["holm"]) == (want["tested"], want["size"], want["holm"]), (f, k)
++            for d in effects:
++                assert t["power"][d][k] == o["power"][d].get(k, 0) and t["better"][d][k] == o["better"][d].get(k, 0), (f, k, d)
++    if option == "B":
++        assert set(tallies) == {"olmo2-7b", "llama31-8b"}
++
++
++def test_the_parity_configurations_spread_the_plans():
++    """The integration test's draws reach plan A, B9 and H (b) across its configurations (so the plan link is held)."""
++    seen = set()
++    for sigma in (4.5, 5.5, 6.0, 8.24, 5.0, 4.0):
++        rng = np.random.Generator(np.random.PCG64(np.random.SeedSequence([424242, int(10 * sigma)])))
++        z = rng.standard_normal((40, 2, len(sim.CELLS)))
++        y_all = {f: z[:, i, :] * sim.cell_sd(sigma, 0.0)[None, :] for i, f in enumerate(sim.FAMILIES)}
++        with np.errstate(all="ignore"):
++            seen |= set(sim.plan_of(sim.sigma_a_sq(y_all, "B", set())[0], json.loads(SETTINGS.read_text())))
++    assert {"A", "B9", "H"} <= seen
++
++
++def test_family_sigmas_scale_llama_and_cap_at_the_grids_top(tmp_path):
++    """GXB R-12: the grid's σ is OLMo-2-7B's; Llama-3.1-8B's is the scenario's ratio times it, capped at the top."""
++    s = json.loads(SETTINGS.read_text())
++    by = {i["name"]: i for i in s["interaction"]}
++    assert sim.family_sigmas("4.0", by["none"], s) == {"olmo2-7b": 4.0, "llama31-8b": 4.0}
++    assert sim.family_sigmas("4.0", by["llama sigma x 1.5"], s) == {"olmo2-7b": 4.0, "llama31-8b": 6.0}
++    assert sim.family_sigmas("7.0", by["llama sigma x 1.5"], s) == {"olmo2-7b": 7.0, "llama31-8b": 8.24}
++    low = sim.family_sigmas("6.0", by["llama sigma x 1/1.5"], s)
++    assert low["olmo2-7b"] == 6.0 and math.isclose(low["llama31-8b"], 4.0, rel_tol=1e-15)
++    with pytest.raises(SystemExit, match="llama_sigma_ratio > 0"):
++        sim.read_settings(smoke_settings(tmp_path, interaction=[{"name": "x", "method_variance_share": "0"}]))
+--- a/scripts/scale78b/tests/mutation_spec_sr2.json
++++ b/scripts/scale78b/tests/mutation_spec_sr2.json
+@@ -118,10 +118,52 @@
+    "id": "S-bs-engine-roles-merged",
+    "describes": "every cell is checked against block A's engine",
+    "file": "blinded_sigma.py",
+-   "find": "        role_engine = engine[\"reused\" if reused(arm, seed) else \"block_a\"]\n",
++   "find": "        role_engine = engine[arm if reused(arm, seed) else \"block_a\"]\n",
+    "replace": "        role_engine = engine[\"block_a\"]\n"
+   },
+   {
++   "id": "S-bs-engine-a0-r-swapped",
++   "describes": "the reused a0 cells are checked against N's R engine and the R cells against the a0 engine",
++   "file": "blinded_sigma.py",
++   "find": "        role_engine = engine[arm if reused(arm, seed) else \"block_a\"]\n",
++   "replace": "        role_engine = engine[{\"a0\": \"R\", \"R\": \"a0\"}[arm] if reused(arm, seed) else \"block_a\"]\n"
++  },
++  {
++   "id": "S-bs-out-parent-unchecked",
++   "describes": "a missing --out folder is not refused before the read",
++   "file": "blinded_sigma.py",
++   "find": "        if out is not None and not out.parent.is_dir():\n",
++   "replace": "        if False:\n"
++  },
++  {
++   "id": "S-sim-llama-ratio-ignored",
++   "describes": "the family-ratio scenarios give Llama OLMo's sigma",
++   "file": "sr2_simulation.py",
++   "find": "min(olmo * num(scenario[\"llama_sigma_ratio\"]), top)",
++   "replace": "min(olmo, top)"
++  },
++  {
++   "id": "S-sim-llama-uncapped",
++   "describes": "Llama's scaled sigma is not capped at the grid's top",
++   "file": "sr2_simulation.py",
++   "find": "min(olmo * num(scenario[\"llama_sigma_ratio\"]), top)",
++   "replace": "olmo * num(scenario[\"llama_sigma_ratio\"])"
++  },
++  {
++   "id": "S-sim-one-sigma-both-families",
++   "describes": "run_chunk scales both families' cells by OLMo's sigma",
++   "file": "sr2_simulation.py",
++   "find": "z[:, i, :] * cell_sd(sigmas[f], share)[None, :]",
++   "replace": "z[:, i, :] * cell_sd(sigmas[\"olmo2-7b\"], share)[None, :]"
++  },
++  {
++   "id": "S-sim-nonconverged-total-zero",
++   "describes": "the summary's non-converged total is not the rows' sum",
++   "file": "sr2_simulation.py",
++   "find": "\"nonconverged_fits_total\": nonconverged,",
++   "replace": "\"nonconverged_fits_total\": 0,"
++  },
++  {
+    "id": "S-bs-r-1105-dropped",
+    "describes": "R_5 at 1105 is not a design cell",
+    "file": "blinded_sigma.py",
+@@ -407,6 +449,69 @@
+    "file": "sr2_simulation.py",
+    "find": "    tau = sigma_eval0 * math.sqrt(p / 2.0)\n",
+    "replace": "    tau = sigma_eval0 * math.sqrt(p)\n"
++  },
++  {
++   "id": "V-bs-exc-text-to-stderr",
++   "describes": "the unexpected error's text is written to stderr before the type-only message (the verifier's, r1-s-verify-scratch)",
++   "file": "blinded_sigma.py",
++   "find": "        raise SystemExit(f\"blinded_sigma: unexpected error ({type(exc).__name__}); nothing written\") from None\n",
++   "replace": "        sys.stderr.write(f\"{exc}\\n\")\n        raise SystemExit(f\"blinded_sigma: unexpected error ({type(exc).__name__}); nothing written\") from None\n"
++  },
++  {
++   "id": "V-bs-side-file",
++   "describes": "every cell's U is written to a side file beside the inputs file (the verifier's, r1-s-verify-scratch)",
++   "file": "blinded_sigma.py",
++   "find": "    sigma, df = pooled_sigma(clusters)\n",
++   "replace": "    (base / \"debug-cells.json\").write_text(repr({k: {str(c): float(v) for c, v in t.items()} for k, t in clusters.items()}))\n    sigma, df = pooled_sigma(clusters)\n"
++  },
++  {
++   "id": "V-bs-values-after-no-df",
++   "describes": "the no-df refusal appends the cluster's U values at its end (the verifier's, r1-s-verify-scratch)",
++   "file": "blinded_sigma.py",
++   "find": ": blinded_sigma stops\")\n        total_rss += rss\n",
++   "replace": ": blinded_sigma stops {sorted(float(v) for v in clusters[label].values())}\")\n        total_rss += rss\n"
++  },
++  {
++   "id": "V-bs-reused-includes-1104",
++   "describes": "a0 and R at 1104 are checked against the reused engine, not block A's (the verifier's, r1-s-verify-scratch)",
++   "file": "blinded_sigma.py",
++   "find": "REUSED_SEEDS = (1101, 1102, 1103)",
++   "replace": "REUSED_SEEDS = (1101, 1102, 1103, 1104)"
++  },
++  {
++   "id": "V-sim-plan-by-n",
++   "describes": "block B's plan is N's, not sigma_A's (the chain's decisive link) (the verifier's, r1-s-verify-scratch)",
++   "file": "sr2_simulation.py",
++   "find": "        rows = np.nonzero(a_plan == plan)[0]\n",
++   "replace": "        rows = np.nonzero(n_plan == plan)[0]\n"
++  },
++  {
++   "id": "V-sim-claim-on-other-draws",
++   "describes": "the claim test reads another replicate's cells, so sigma_A and the final test are independent (the verifier's, r1-s-verify-scratch)",
++   "file": "sr2_simulation.py",
++   "find": "            res = claim_test(design, y_all[f][rows], settings)\n",
++   "replace": "            res = claim_test(design, np.roll(y_all[f], 1, axis=0)[rows], settings)\n"
++  },
++  {
++   "id": "V-sim-claim-fresh-block-a",
++   "describes": "the claim test redraws block A's cells (sign-flipped), so its residuals are not sigma_A's (the verifier's, r1-s-verify-scratch)",
++   "file": "sr2_simulation.py",
++   "find": "            res = claim_test(design, y_all[f][rows], settings)\n",
++   "replace": "            res = claim_test(design, -y_all[f][rows], settings)\n"
++  },
++  {
++   "id": "V-sim-sigma-a-option-ignored",
++   "describes": "run_chunk pools sigma_A over both families under option C too (the verifier's, r1-s-verify-scratch)",
++   "file": "sr2_simulation.py",
++   "find": "    a_plan = plan_of(sigma_a_sq(y_all, option, stopped)[0], settings)\n",
++   "replace": "    a_plan = plan_of(sigma_a_sq(y_all, \"B\", stopped)[0], settings)\n"
++  },
++  {
++   "id": "V-sim-sigma-a-full-design-when-stopped",
++   "describes": "run_chunk computes sigma_A on the full design even when a family is stopped (the verifier's, r1-s-verify-scratch)",
++   "file": "sr2_simulation.py",
++   "find": "    a_plan = plan_of(sigma_a_sq(y_all, option, stopped)[0], settings)\n",
++   "replace": "    a_plan = plan_of(sigma_a_sq(y_all, option, set())[0], settings)\n"
+   }
+  ]
+ }

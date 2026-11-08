@@ -129,8 +129,12 @@ class ScWorld:
         if oext:
             files = {r78.OEXT_UNIT_SCRIPT: sha(write(self.repo / r78.OEXT_UNIT_SCRIPT, "# synthetic O-ext unit runner\n")),
                      r78.C0_SCRIPT: sha(write(self.repo / r78.C0_SCRIPT, "# synthetic lean job\n"))}
+            index = f"scripts/scale78b/settings/OEXT-78B__{fam}.json"               # R1 K1 fix (GXB R-5, R-22): the
+            files[index] = sha(write(self.repo / index, {"index": f"synthetic {fam} X"}))   # family's own index
             self.mp.setitem(r78.OEXT_78B, fam, {"files": files, "inputs": {"oext_bank": sha(self.oext("bank")),
                                                                            "oext_record": sha(self.oext("record"))}})
+            self.mp.setitem(r78.BRANCH_78B, fam, {"path": f"records/branch-{fam}.json",   # R1 K1 fix (GXB R-4): the
+                                                  "sha256": hx(f"branch-{fam}")})         # O-ext kinds wait on it
         if c0:
             self.mp.setitem(r78.C0_SOURCE, fam, {"complete_sha256": sha(self.c0_source()), "e1_fingerprint": hx("e1-R-1101")})
         changed[r.PINS_78B] = doc
@@ -306,7 +310,7 @@ def test_the_scorer_block_kinds_caps_engines_and_pins_by_hand():
     r78 = load_by_path("r78_sc", KIT / "rules_78b.py")
     assert r78.SC_BLOCK == "sc"
     assert r78.SC_KINDS == ("anchor", "untuned_answers", "o_only", "o_only_with_regenerate", "c0", "l1_scan", "rep_pass",
-                            "classifier", "retrain", "a1_pass")           # PP17: no standalone regenerate kind
+                            "classifier", "retrain", "a1_pass", "w1_18")  # PP17: no standalone regenerate kind; R1 K1
     assert "regenerate" not in r78.E_KINDS and "regenerate" not in r78.X_ONLY_KINDS
     assert {f: r78.sc_seeds(f, "o_only_with_regenerate") for f in FAMILIES} == {"olmo2-7b": [1101, 1102, 1103],
                                                                                "llama31-8b": [1101, 1102]}
@@ -351,8 +355,9 @@ def test_the_scorer_block_kinds_caps_engines_and_pins_by_hand():
     assert r78.sc_needed_pins("retrain", "Y") == ("RECIPE_S", "ENGINE_Y") and r78.sc_needed_pins("retrain", "X") == ("RECIPE_S",)
     assert r78.sc_needed_pins("a1_pass", "X") == ("RECIPE_S", "ANCHOR_BANK", "RETRAIN_UNIT")
     assert r78.sc_needed_pins("rep_pass", "X") == ("RECIPE_S", "ANCHOR_BANK", "S3_ORIG_POOL")
-    assert r78.sc_needed_pins("o_only", "X") == ("OEXT_78B",) and r78.sc_needed_pins("c0", "X") == ("OEXT_78B", "C0_SOURCE")
-    assert r78.sc_needed_pins("o_only_with_regenerate", "X") == ("OEXT_78B",)           # PP17: it waits on OEXT_78B
+    assert r78.sc_needed_pins("o_only", "X") == ("OEXT_78B", "BRANCH_78B") and r78.sc_needed_pins("c0", "X") == (
+        "OEXT_78B", "C0_SOURCE", "BRANCH_78B")                         # R1 K1 fix (GXB R-4): + the branch record
+    assert r78.sc_needed_pins("o_only_with_regenerate", "X") == ("OEXT_78B", "BRANCH_78B")   # R1 K1 fix: + the branch           # PP17: it waits on OEXT_78B
     assert r78.sc_needed_pins("l1_scan", "X") == ("ANCHOR_BANK",) and r78.sc_needed_pins("classifier", "X") == (
         "RECIPE_S", "ANCHOR_BANK")
     for kind in ("anchor", "untuned_answers"):
@@ -806,7 +811,8 @@ class ScPod:
             rec = {"kind": "scale78b scorer wrapper record", "exit_code": code, "doses": None}
             rec.update(self.wrapper.get(name, {}))
             write(out / "wrapper_78b_record.json", rec)
-        elif self.w.r78.C0_SCRIPT in argv:                # B17's lean job: its real layout (PP18; R: lean_eval_job.py:147)
+        elif self.w.r78.C0_SCRIPT in argv and "--job" in argv:   # B17's lean job (PP18; R: lean_eval_job.py:147); R1
+            #                                         K1: one wrapper path for both, so the lean job is told by --job
             write(out / "train" / "COMPLETE.json", {"kind": "COMPLETE (synthetic train unit)"})
             write(out / "train" / "states" / "e1" / "adapter.safetensors", "synthetic weights")
             write(out / "lean" / "COMPLETE.json", {"kind": "COMPLETE (synthetic lean unit)"})
@@ -1043,7 +1049,7 @@ def test_every_scorer_kinds_command_line_by_hand(so, tmp_path, monkeypatch):
                "jobs/o_only_with_regenerate-1102-a0-regen-a1.json"],
         eng + ["run-one", "--job", "jobs/o_only_with_regenerate-1102-a0-regen-a1.json", "--prepared", p, "--recipe", rec,
                "--out", "round1/1102-a0-regen-a1", "--registry", "round1/registry.jsonl"],
-        ["venv/bin/python", "-B", "scripts/stage1_s1/oext_unit.py", "run", "--run", "round1/1102-a0-regen-a1",
+        ["venv/bin/python", "-B", w.r78.OEXT_UNIT_SCRIPT, "run", "--run", "round1/1102-a0-regen-a1",   # R1 K1's path
          "--checkpoint", "e1", "--prepared", p, "--recipe", rec, "--oext-bank", inputs["oext_bank"], "--oext-record",
          inputs["oext_record"], "--out", "job-0/oext"]]
     with pytest.raises(runner.Unrunnable, match="reused a0 side unit"):
@@ -1062,7 +1068,7 @@ def test_every_scorer_kinds_command_line_by_hand(so, tmp_path, monkeypatch):
                "--pin-code", "--out", "jobs/a1_pass-1101-a1.json"],
         eng + ["attributes", "--job", "jobs/a1_pass-1101-a1.json", "--prepared", p, "--recipe", s78["path"],
                "--out", "rescore/1101-attributes-a1"]]
-    assert cmds("o_only") == [["venv/bin/python", "-B", "scripts/stage1_s1/oext_unit.py", "run", "--untuned", "--prepared",
+    assert cmds("o_only") == [["venv/bin/python", "-B", w.r78.OEXT_UNIT_SCRIPT, "run", "--untuned", "--prepared",
                                p, "--recipe", rec, "--oext-bank", inputs["oext_bank"], "--oext-record",
                                inputs["oext_record"], "--out", "job-0/oext"]]
     edit = {"sha256": hx("rd1"), "path": "x"}
@@ -1071,7 +1077,7 @@ def test_every_scorer_kinds_command_line_by_hand(so, tmp_path, monkeypatch):
         eng + ["make-job", "run-one", "--prepared", p, "--recipe", rec, "--split", "dev", "--edit",
                f"edits/{hx('rd1')}.edit.json", "--seed", "1101", "--role", "development", "--target", "e1", "--pin-code",
                "--out", "jobs/c0-1101-R-c0-a1.json"],
-        ["venv/bin/python", "-B", "scripts/stage1_s1/lean_eval_job.py", "run", "--job", "jobs/c0-1101-R-c0-a1.json",
+        ["venv/bin/python", "-B", w.r78.C0_SCRIPT, "run", "--job", "jobs/c0-1101-R-c0-a1.json",
          "--prepared", p, "--recipe", rec, "--out", "job-0/c0", "--registry", "job-0/c0-registry.jsonl",
          "--expect-adapter-fingerprint", hx("fp"), "--oext-bank", inputs["oext_bank"], "--oext-record", inputs["oext_record"]]]
     # the refusals: an S_78 job while RECIPE_S is null; another S_78 config; an input off its pin or not packed;
@@ -1594,15 +1600,19 @@ def test_oext_78b_takes_its_documented_form_only(so, monkeypatch, oext, match):
 def test_an_oext_kind_refuses_when_oext_78b_does_not_list_its_script(so, monkeypatch):
     """HM14: o_only and o_only_with_regenerate need OEXT_UNIT_SCRIPT, c0 needs C0_SCRIPT, among OEXT_78B's files."""
     w = so
+    assert w.r78.OEXT_WRAPPER_COMMANDS["c0"] == "lean" and w.r78.OEXT_WRAPPER_COMMANDS["o_only"] == "unit"   # R1 K1 fix
     w.fill(oext=True, c0=True)
     full = w.r78.OEXT_78B[w.family]
     for drop, kinds in ((w.r78.OEXT_UNIT_SCRIPT, ({"kind": "o_only"}, REGEN)), (w.r78.C0_SCRIPT, ({"kind": "c0"},))):
-        monkeypatch.setitem(w.r78.OEXT_78B, w.family, {"files": {k: v for k, v in full["files"].items() if k != drop},
+        kept = {k: v for k, v in full["files"].items() if k != drop} or {"scripts/stage1_s1/oext_eval.py": "e" * 64}
+        monkeypatch.setitem(w.r78.OEXT_78B, w.family, {"files": kept,      # R1 K1: one wrapper path; keep files non-empty
                                                        "inputs": full["inputs"]})
         for job in kinds:
-            with pytest.raises(SystemExit, match=f"does not list {drop}"):
+            with pytest.raises(SystemExit, match=f"do not pin the wrapper {drop}"):   # R1 K1 fix: GXB R-5's form check comes first
                 w.init([job], amount=None, dry_run=True)
     monkeypatch.setitem(w.r78.OEXT_78B, w.family, full)
+    for kind in ("o_only", "o_only_with_regenerate", "c0"):          # R1 K1 fix: each O-ext kind packs OEXT_78B's files
+        assert w.rules.scorer_code(kind) == sorted(full["files"]), kind
     assert len(w.init([{"kind": "o_only"}, REGEN, {"kind": "c0"}], amount=None, dry_run=True)["pods"]) == 3
 
 

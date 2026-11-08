@@ -1,6 +1,6 @@
 {
  "kind": "stage1-78b scorer-block mutation spec (K4b)",
- "note": "each mutant's find text occurs exactly once in its file; runner: tests/run_mutants_scorer_78b.py (test_scorer_block_78b.py) Round 4b (6 Nov): K4bf-m-* for the core verifier's D1-D8 (c0 unitless, the engine verify, the anchor and s3_orig binding, OEXT_78B's form, HM4, HM5, HM8, HM12, HM14, a1_pass's unit), PP17's o_only_with_regenerate and the pack's input scan (security D5). K5 (round 5) added 22 mutants (K5-c0-fp-from-plan ... K5-pack-data-scanned).",
+ "note": "each mutant's find text occurs exactly once in its file; runner: tests/run_mutants_scorer_78b.py (test_scorer_block_78b.py) Round 4b (6 Nov): K4bf-m-* for the core verifier's D1-D8 (c0 unitless, the engine verify, the anchor and s3_orig binding, OEXT_78B's form, HM4, HM5, HM8, HM12, HM14, a1_pass's unit), PP17's o_only_with_regenerate and the pack's input scan (security D5). K5 (round 5) added 22 mutants (K5-c0-fp-from-plan ... K5-pack-data-scanned). R1 K1 fix (8 Nov): K4bf-m-c0-needs-oext-script re-targeted from plan_tool.py's script check (equivalent once c0 and the O-ext kinds share oext_78b.py) to rules_78b.OEXT_WRAPPER_COMMANDS' c0 command word; K2 re-targets it at plan_tool's command-word check (GXB K-1). R1 K1 fix: K4bf-m-hm14-script-unlisted-ok re-targeted from plan_tool.py's 'does not list' check (now behind rules_78b's R-5 wrapper check, so equivalent) to that wrapper check.",
  "mutants": [
   {
    "id": "K4b-m-untuned-one-call",
@@ -805,18 +805,18 @@
   {
    "id": "K4bf-m-hm14-script-unlisted-ok",
    "part": "HM14",
-   "describes": "an O-ext kind plans without its script in OEXT_78B",
-   "file": "plan_tool.py",
-   "find": "        if need not in (values[\"OEXT_78B\"] or {}).get(\"files\", {}):\n",
-   "replace": "        if False:\n"
+   "describes": "an O-ext kind plans without its script in OEXT_78B (R1 K1 fix: re-targeted from plan_tool.py's 'does not list' check, which GXB R-5's form check in rules_78b now precedes, to that form check)",
+   "file": "rules_78b.py",
+   "find": "    if OEXT_WRAPPER_78B not in oext[\"files\"]:\n        return f\"its files do not pin",
+   "replace": "    if False:\n        return f\"its files do not pin"
   },
   {
    "id": "K4bf-m-c0-needs-oext-script",
    "part": "HM14",
-   "describes": "c0 is checked for the O-ext unit script instead of B17's",
-   "file": "plan_tool.py",
-   "find": "        need = r78.C0_SCRIPT if kind == \"c0\" else r78.OEXT_UNIT_SCRIPT\n",
-   "replace": "        need = r78.OEXT_UNIT_SCRIPT\n"
+   "describes": "c0 is given the O-ext unit command instead of B17's lean one (R1 K1 fix: re-targeted from plan_tool.py:1303, equivalent under one wrapper path; K2 moves it to plan_tool's command-word check, GXB K-1)",
+   "file": "rules_78b.py",
+   "find": "\"c0\": \"lean\"",
+   "replace": "\"c0\": \"unit\""
   },
   {
    "id": "K4bf-m-d6-form-unchecked",

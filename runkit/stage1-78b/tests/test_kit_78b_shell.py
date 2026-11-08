@@ -76,7 +76,8 @@ def test_the_constants_block_agrees_with_probes_the_configs_and_the_side_units(w
         ["policy", "audit_tokenizer", "guard"] if w.family == "olmo2-7b" else ["policy", "guard"])
     assert r.POD_SIZES == {"preflight_wait_s": 5400, "container_disk_gb": 60, "volume_gb": 50}
     assert r.MAX_ARMS_PER_POD == 4 == kit["max_arms_per_pod"] and kit["volume_gb"] == 50 == r78.VOLUME_GB
-    assert r.POD_NAME_PREFIX == "attribution-s78-" and r.HOST_PREFIX == {"0": f"{w.family}-0", "sc": f"{w.family}-sc"}
+    assert r.POD_NAME_PREFIX == "attribution-s78-" and r.HOST_PREFIX == {"0": f"{w.family}-0", "sc": f"{w.family}-sc",
+                                                                         "A": f"{w.family}-a", "B": f"{w.family}-b"}
     assert r.ENGINES == {"X": X} and r.ENGINE_X == X and r78.ENGINE_Y is None and r78.Y_MEASURED is False
     # the money rules carried over (the K1 brief)
     assert (r.PLANNING_PRICE_USD, r.RATE_USD, r.MAX_PRICE_USD, r.RESERVE_USD, r.CONTINGENCY_FACTOR) == (1.85, 1.79, 10.0, 6.0, 1.25)
@@ -279,7 +280,7 @@ def test_block_0_plan_shape_caps_edits_and_the_retrain_refusal(wf):
     for kind in ("anchor", "untuned_answers", "rep_pass", "evalonly"):
         with pytest.raises(SystemExit, match="does not belong to block 0|not written yet"):
             w.init(launches=[{"hosts": [rk.n_layout(w.family) + [{"kind": kind}]]}], dry_run=True)
-    with pytest.raises(SystemExit, match="unknown kind"):
+    with pytest.raises(SystemExit, match="does not belong to block 0"):     # R1 K1: w1_18 is a kind now (K1V-12)
         w.init(launches=[{"hosts": [[{"kind": "w1_18"}]]}], dry_run=True)
 
 
@@ -312,8 +313,11 @@ def test_a_jobs_file_that_departs_from_ns_layout_refuses(w, launches, match):
 
 def test_the_1b_blocks_refuse_in_this_copy(w):
     r = w.rules
-    assert r.BLOCKS == ("0", "sc") and r.BLOCKS_1B == ("S1-0", "cert", "A", "certify", "B", "C", "sim", "P")
-    for block in r.BLOCKS_1B + ("D", "1"):
+    assert r.BLOCKS == ("0", "sc", "A", "B") and r.BLOCKS_1B == ("S1-0", "cert", "A", "certify", "B", "C", "sim", "P")
+    for block in ("A", "B"):                             # R1 K1: blocks A and B are this kit's; KD7 plans each in its copy
+        with pytest.raises(SystemExit, match="this working copy is block '0''s"):
+            w.init(block=block, dry_run=True)
+    for block in tuple(b for b in r.BLOCKS_1B if b not in ("A", "B")) + ("D", "1"):
         with pytest.raises(ValueError, match="block 0 only"):
             r.block_runs("A", block)
         with pytest.raises(SystemExit, match="block 0 only"):

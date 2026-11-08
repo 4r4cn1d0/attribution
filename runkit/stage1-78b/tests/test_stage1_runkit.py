@@ -411,7 +411,12 @@ def test_the_cli_dry_run_writes_nothing_and_deal_prints_n(wf, capsys):
     assert pods == [expect]
     with pytest.raises(SystemExit, match="reuses no unit"):
         w.tool.main(["deal", "0", "--reuse", "R", "1101"])
-    for block in ("A", "S1-0", "B", "P", "sim"):
+    for block in ("A", "B"):                             # R1 K1: blocks A and B are this kit's (KD7: their own copies)
+        with pytest.raises(SystemExit, match="this working copy is block '0''s"):
+            w.tool.main(["init-block", block, "--jobs", jobs, "--dry-run"])
+        with pytest.raises(SystemExit, match="N's layout|needs its plan"):
+            w.tool.main(["deal", block])
+    for block in ("S1-0", "P", "sim"):
         with pytest.raises(SystemExit, match="block 0 only"):
             w.tool.main(["init-block", block, "--jobs", jobs, "--dry-run"])
         with pytest.raises(SystemExit, match="block 0 only"):

@@ -1,0 +1,717 @@
+{
+ "approximations": [
+  "The claim test is Holm at 5% (two-sided p) over the plan's primary U contrasts (Part 2 section 10.3's words), as a bound on B16's graphical family Phi over U, O, L and F (GXB S-2: adopted only if Phi's claim cannot pass without the U contrast passing its Holm test; the verifier checks it).",
+  "N's per-prompt values are the cell's U plus centred Gaussian prompt noise (not 0-1 shares of 3 samples); its sigma_eval,0 is the 1B value (n_stage).",
+  "Seed effects are set to 0: they cancel in every within-cluster contrast, in the additive model's residuals and, under the common-seed assumption, in N's pairs; a seed component that differs between the clusters (which would inflate N's pairs only) is not simulated.",
+  "The arm x seed scenarios add an independent N(0, share x sigma_e^2) term to every method-arm cell (A1, L1, H1, S1, S3, S4) and none to a0 and R, at shares 0.5 and 1 (GXB S-1).",
+  "Branch H is read as H (b) with its money covered (ruling 4's first choice; GXB S-4).",
+  "Cells alone at their seed in a cluster (R and a0 at 1101) are left out of the REML fits, which changes nothing in B16's fit (leverage 1; the tests check it against B16's fit_cells with them in).",
+  "Under [B] the scenarios none, arm x seed 0.5 and arm x seed 1 give both families one true sigma_pair; P1 section 3.6 (N2) expects them to differ. Two scenarios at share 0 set Llama-3.1-8B's sigma_pair at 3/2 and 2/3 times OLMo-2-7B's (the grid's sigma), capped at the grid's top (GXB R-12; the verifier's SV-3). Under [C] these two equal 'none' except N's printed plan."
+ ],
+ "design": {
+  "name": "full",
+  "stopped": []
+ },
+ "families": [
+  "olmo2-7b"
+ ],
+ "frozen_sha256": {
+  "reml": "56f371e603358febb806e83037398d15b9d2f7e7ad5cb3fe173fbd7f528ffb9d",
+  "tdist": "6982a7b119e4a5eae34b5f45a62e0871ab5f3a8ca51cfb882cd31668c61c1fac"
+ },
+ "grid_size": 9,
+ "kind": "scale-78b sr2 simulation",
+ "limits": [
+  "The crossed prompt (item) part of each claim-test contrast's SE is omitted: no prompt-level data exist before block A, so none are simulated for the claim test; the df is the seed part's Satterthwaite df (GXB S-3). Its effect on the size is not simulated: V_prompt >= 0 widens the SE but also raises the Satterthwaite df.",
+  "The familywise rate is the rate of the U claims: Holm at 5% on the U contrasts, which bounds Phi's U claims (GXB R-10). Phi's adverse O and L words ('worse (O)', 'worse (L)'), which start at gamma x alpha = 0.5% absolute in all (10% of alpha, alpha = 5%), within their own contrasts, are not simulated (GXB R-11 as corrected by R-27)."
+ ],
+ "n_stage": {
+  "prompts": 200,
+  "sigma_eval0_pp": "1.28",
+  "source": "GXB S-7 (sigma_pool as noise_reading.py, its sigma_eval floor included; P1 section 3.3). sigma_eval,0 = the true prompt-clustered SE of a seed-matched a0-R pair: Gate B wave 0a's 1.28 pp (P1:179-180, the 1B pairing evidence; no 7-8B value exists before N); P = 200 harm prompts per cell (PR4:227)"
+ },
+ "option": "C",
+ "reading_rule": {
+  "applies_to": "every sigma_pair of the grid x every scenario of 'interaction' (none, the two interaction shares, the two family ratios) x every family read (GXB S-1, R-12)",
+  "source": "DES K6 (.ai/inputs/stage1-post-w1-20261023/78b/lead-rulings-part2-design-20261106.md:62-64); Part 2 section 10.3; DESO3 V2 (DES:175-176); GXB second set S-1, S-10 (lead-rulings-ab-build-20261108.md:82-); GXB seventh set R-11, R-12 (lead-rulings-ab-build-20261108.md:199-)",
+  "text": "DES K6 (Part 2 section 10.3), written before the simulation runs: if the simulated familywise rate exceeds 6% at any simulated sigma, SR-2 is not adopted and N decides alone; else SR-2 stands and the size is printed. GXB S-1: the rule applies to every simulated scenario: a familywise rate above 6% at any simulated sigma, with or without the interaction and at either family ratio (every entry of 'interaction'; GXB R-12), and for any family read, means SR-2 is not adopted. It runs before block A's first pod, on the design that will run (the reduced design if an anchor-job stop is known before it runs; DESO3 V2; GXB S-10). The script prints this rule and a reading line beside its largest familywise rate over every sigma, scenario and family; the lead applies it. The familywise rate is the rate of the U claims (Holm on U at 5%; Part 2 section 10.3); Phi's O and L words are not simulated (GXB R-11).",
+  "threshold_familywise": "0.06"
+ },
+ "reml_starts": "multi",
+ "reps": 20000,
+ "rows": [
+  {
+   "scenarios": {
+    "arm x seed 0.5": {
+     "families": {
+      "olmo2-7b": {
+       "better": {
+        "10": {
+         "P1": 0.97245,
+         "P2": 0.69895,
+         "P3": 0.97105,
+         "P4": 0.6991,
+         "P5": 0.68395,
+         "P6": 0.95755
+        },
+        "12": {
+         "P1": 0.99645,
+         "P2": 0.72575,
+         "P3": 0.99635,
+         "P4": 0.72535,
+         "P5": 0.72205,
+         "P6": 0.99375
+        },
+        "8": {
+         "P1": 0.8661,
+         "P2": 0.5964,
+         "P3": 0.8647,
+         "P4": 0.5958,
+         "P5": 0.5546,
+         "P6": 0.8164
+        }
+       },
+       "contrasts": {
+        "P1": {
+         "holm_count": 217,
+         "holm_rate": 0.01085,
+         "size_count": 1021,
+         "size_rate": 0.05105,
+         "tested": 20000
+        },
+        "P2": {
+         "holm_count": 115,
+         "holm_rate": 0.00575,
+         "size_count": 790,
+         "size_rate": 0.054188,
+         "tested": 14579
+        },
+        "P3": {
+         "holm_count": 226,
+         "holm_rate": 0.0113,
+         "size_count": 1035,
+         "size_rate": 0.05175,
+         "tested": 20000
+        },
+        "P4": {
+         "holm_count": 143,
+         "holm_rate": 0.00715,
+         "size_count": 752,
+         "size_rate": 0.051581,
+         "tested": 14579
+        },
+        "P5": {
+         "holm_count": 141,
+         "holm_rate": 0.00705,
+         "size_count": 807,
+         "size_rate": 0.055354,
+         "tested": 14579
+        },
+        "P6": {
+         "holm_count": 230,
+         "holm_rate": 0.0115,
+         "size_count": 1044,
+         "size_rate": 0.0522,
+         "tested": 20000
+        }
+       },
+       "familywise_count": 1002,
+       "familywise_rate": 0.0501,
+       "nonconverged_fits": 6284,
+       "power": {
+        "10": {
+         "P1": 0.9727,
+         "P2": 0.69895,
+         "P3": 0.9711,
+         "P4": 0.6993,
+         "P5": 0.68405,
+         "P6": 0.95775
+        },
+        "12": {
+         "P1": 0.99645,
+         "P2": 0.72575,
+         "P3": 0.99635,
+         "P4": 0.72535,
+         "P5": 0.72205,
+         "P6": 0.99375
+        },
+        "8": {
+         "P1": 0.8714,
+         "P2": 0.60135,
+         "P3": 0.87105,
+         "P4": 0.60025,
+         "P5": 0.5589,
+         "P6": 0.82455
+        }
+       },
+       "primary_under_plan_A": [
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6"
+       ],
+       "refused_contrasts": 0
+      }
+     },
+     "llama_sigma_ratio": "1",
+     "method_variance_share": "0.5",
+     "plan_by_N": {
+      "A": 0.84365,
+      "B9": 0.13715,
+      "H": 0.0192,
+      "review": 0.0
+     },
+     "plan_by_sigma_A": {
+      "A": 0.72895,
+      "B9": 0.25695,
+      "H": 0.0141,
+      "review": 0.0
+     },
+     "sigma_pair_pp_by_family": {
+      "llama31-8b": 3.5,
+      "olmo2-7b": 3.5
+     }
+    },
+    "arm x seed 1": {
+     "families": {
+      "olmo2-7b": {
+       "better": {
+        "10": {
+         "P1": 0.96335,
+         "P2": 0.47105,
+         "P3": 0.9615,
+         "P4": 0.4682,
+         "P5": 0.4434,
+         "P6": 0.9302
+        },
+        "12": {
+         "P1": 0.992,
+         "P2": 0.5015,
+         "P3": 0.99135,
+         "P4": 0.50125,
+         "P5": 0.4931,
+         "P6": 0.9832
+        },
+        "8": {
+         "P1": 0.86005,
+         "P2": 0.38275,
+         "P3": 0.85915,
+         "P4": 0.3785,
+         "P5": 0.33005,
+         "P6": 0.78815
+        }
+       },
+       "contrasts": {
+        "P1": {
+         "holm_count": 254,
+         "holm_rate": 0.0127,
+         "size_count": 1037,
+         "size_rate": 0.05185,
+         "tested": 20000
+        },
+        "P2": {
+         "holm_count": 93,
+         "holm_rate": 0.00465,
+         "size_count": 607,
+         "size_rate": 0.059562,
+         "tested": 10191
+        },
+        "P3": {
+         "holm_count": 252,
+         "holm_rate": 0.0126,
+         "size_count": 1051,
+         "size_rate": 0.05255,
+         "tested": 20000
+        },
+        "P4": {
+         "holm_count": 106,
+         "holm_rate": 0.0053,
+         "size_count": 562,
+         "size_rate": 0.055147,
+         "tested": 10191
+        },
+        "P5": {
+         "holm_count": 118,
+         "holm_rate": 0.0059,
+         "size_count": 617,
+         "size_rate": 0.060544,
+         "tested": 10191
+        },
+        "P6": {
+         "holm_count": 272,
+         "holm_rate": 0.0136,
+         "size_count": 1053,
+         "size_rate": 0.05265,
+         "tested": 20000
+        }
+       },
+       "familywise_count": 1030,
+       "familywise_rate": 0.0515,
+       "nonconverged_fits": 4327,
+       "power": {
+        "10": {
+         "P1": 0.9636,
+         "P2": 0.4712,
+         "P3": 0.96165,
+         "P4": 0.46835,
+         "P5": 0.4436,
+         "P6": 0.9307
+        },
+        "12": {
+         "P1": 0.992,
+         "P2": 0.50155,
+         "P3": 0.99135,
+         "P4": 0.50125,
+         "P5": 0.4931,
+         "P6": 0.9832
+        },
+        "8": {
+         "P1": 0.86675,
+         "P2": 0.3859,
+         "P3": 0.86715,
+         "P4": 0.38145,
+         "P5": 0.3327,
+         "P6": 0.79605
+        }
+       },
+       "primary_under_plan_A": [
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6"
+       ],
+       "refused_contrasts": 0
+      }
+     },
+     "llama_sigma_ratio": "1",
+     "method_variance_share": "1",
+     "plan_by_N": {
+      "A": 0.84365,
+      "B9": 0.13715,
+      "H": 0.0192,
+      "review": 0.0
+     },
+     "plan_by_sigma_A": {
+      "A": 0.50955,
+      "B9": 0.4213,
+      "H": 0.06915,
+      "review": 0.0
+     },
+     "sigma_pair_pp_by_family": {
+      "llama31-8b": 3.5,
+      "olmo2-7b": 3.5
+     }
+    },
+    "llama sigma x 1.5": {
+     "families": {
+      "olmo2-7b": {
+       "better": {
+        "10": {
+         "P1": 0.9884,
+         "P2": 0.91795,
+         "P3": 0.98865,
+         "P4": 0.9184,
+         "P5": 0.91725,
+         "P6": 0.9892
+        },
+        "12": {
+         "P1": 0.9993,
+         "P2": 0.92835,
+         "P3": 0.99935,
+         "P4": 0.92855,
+         "P5": 0.9284,
+         "P6": 0.99905
+        },
+        "8": {
+         "P1": 0.9094,
+         "P2": 0.83435,
+         "P3": 0.9075,
+         "P4": 0.8352,
+         "P5": 0.83425,
+         "P6": 0.90985
+        }
+       },
+       "contrasts": {
+        "P1": {
+         "holm_count": 186,
+         "holm_rate": 0.0093,
+         "size_count": 1007,
+         "size_rate": 0.05035,
+         "tested": 20000
+        },
+        "P2": {
+         "holm_count": 150,
+         "holm_rate": 0.0075,
+         "size_count": 972,
+         "size_rate": 0.052312,
+         "tested": 18581
+        },
+        "P3": {
+         "holm_count": 190,
+         "holm_rate": 0.0095,
+         "size_count": 1023,
+         "size_rate": 0.05115,
+         "tested": 20000
+        },
+        "P4": {
+         "holm_count": 179,
+         "holm_rate": 0.00895,
+         "size_count": 937,
+         "size_rate": 0.050428,
+         "tested": 18581
+        },
+        "P5": {
+         "holm_count": 167,
+         "holm_rate": 0.00835,
+         "size_count": 927,
+         "size_rate": 0.04989,
+         "tested": 18581
+        },
+        "P6": {
+         "holm_count": 188,
+         "holm_rate": 0.0094,
+         "size_count": 1030,
+         "size_rate": 0.0515,
+         "tested": 20000
+        }
+       },
+       "familywise_count": 975,
+       "familywise_rate": 0.04875,
+       "nonconverged_fits": 8247,
+       "power": {
+        "10": {
+         "P1": 0.9885,
+         "P2": 0.9181,
+         "P3": 0.98885,
+         "P4": 0.91845,
+         "P5": 0.91735,
+         "P6": 0.9892
+        },
+        "12": {
+         "P1": 0.9993,
+         "P2": 0.92835,
+         "P3": 0.99935,
+         "P4": 0.92855,
+         "P5": 0.9284,
+         "P6": 0.99905
+        },
+        "8": {
+         "P1": 0.91495,
+         "P2": 0.8396,
+         "P3": 0.91275,
+         "P4": 0.8402,
+         "P5": 0.8394,
+         "P6": 0.9151
+        }
+       },
+       "primary_under_plan_A": [
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6"
+       ],
+       "refused_contrasts": 0
+      }
+     },
+     "llama_sigma_ratio": "3/2",
+     "method_variance_share": "0",
+     "plan_by_N": {
+      "A": 0.6161,
+      "B9": 0.2568,
+      "H": 0.12675,
+      "review": 0.00035
+     },
+     "plan_by_sigma_A": {
+      "A": 0.92905,
+      "B9": 0.07045,
+      "H": 0.0005,
+      "review": 0.0
+     },
+     "sigma_pair_pp_by_family": {
+      "llama31-8b": 5.25,
+      "olmo2-7b": 3.5
+     }
+    },
+    "llama sigma x 1/1.5": {
+     "families": {
+      "olmo2-7b": {
+       "better": {
+        "10": {
+         "P1": 0.9884,
+         "P2": 0.91795,
+         "P3": 0.98865,
+         "P4": 0.9184,
+         "P5": 0.91725,
+         "P6": 0.9892
+        },
+        "12": {
+         "P1": 0.9993,
+         "P2": 0.92835,
+         "P3": 0.99935,
+         "P4": 0.92855,
+         "P5": 0.9284,
+         "P6": 0.99905
+        },
+        "8": {
+         "P1": 0.9094,
+         "P2": 0.83435,
+         "P3": 0.9075,
+         "P4": 0.8352,
+         "P5": 0.83425,
+         "P6": 0.90985
+        }
+       },
+       "contrasts": {
+        "P1": {
+         "holm_count": 186,
+         "holm_rate": 0.0093,
+         "size_count": 1007,
+         "size_rate": 0.05035,
+         "tested": 20000
+        },
+        "P2": {
+         "holm_count": 150,
+         "holm_rate": 0.0075,
+         "size_count": 972,
+         "size_rate": 0.052312,
+         "tested": 18581
+        },
+        "P3": {
+         "holm_count": 190,
+         "holm_rate": 0.0095,
+         "size_count": 1023,
+         "size_rate": 0.05115,
+         "tested": 20000
+        },
+        "P4": {
+         "holm_count": 179,
+         "holm_rate": 0.00895,
+         "size_count": 937,
+         "size_rate": 0.050428,
+         "tested": 18581
+        },
+        "P5": {
+         "holm_count": 167,
+         "holm_rate": 0.00835,
+         "size_count": 927,
+         "size_rate": 0.04989,
+         "tested": 18581
+        },
+        "P6": {
+         "holm_count": 188,
+         "holm_rate": 0.0094,
+         "size_count": 1030,
+         "size_rate": 0.0515,
+         "tested": 20000
+        }
+       },
+       "familywise_count": 975,
+       "familywise_rate": 0.04875,
+       "nonconverged_fits": 8247,
+       "power": {
+        "10": {
+         "P1": 0.9885,
+         "P2": 0.9181,
+         "P3": 0.98885,
+         "P4": 0.91845,
+         "P5": 0.91735,
+         "P6": 0.9892
+        },
+        "12": {
+         "P1": 0.9993,
+         "P2": 0.92835,
+         "P3": 0.99935,
+         "P4": 0.92855,
+         "P5": 0.9284,
+         "P6": 0.99905
+        },
+        "8": {
+         "P1": 0.91495,
+         "P2": 0.8396,
+         "P3": 0.91275,
+         "P4": 0.8402,
+         "P5": 0.8394,
+         "P6": 0.9151
+        }
+       },
+       "primary_under_plan_A": [
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6"
+       ],
+       "refused_contrasts": 0
+      }
+     },
+     "llama_sigma_ratio": "2/3",
+     "method_variance_share": "0",
+     "plan_by_N": {
+      "A": 0.93755,
+      "B9": 0.0577,
+      "H": 0.00475,
+      "review": 0.0
+     },
+     "plan_by_sigma_A": {
+      "A": 0.92905,
+      "B9": 0.07045,
+      "H": 0.0005,
+      "review": 0.0
+     },
+     "sigma_pair_pp_by_family": {
+      "llama31-8b": 2.333333,
+      "olmo2-7b": 3.5
+     }
+    },
+    "none": {
+     "families": {
+      "olmo2-7b": {
+       "better": {
+        "10": {
+         "P1": 0.9884,
+         "P2": 0.91795,
+         "P3": 0.98865,
+         "P4": 0.9184,
+         "P5": 0.91725,
+         "P6": 0.9892
+        },
+        "12": {
+         "P1": 0.9993,
+         "P2": 0.92835,
+         "P3": 0.99935,
+         "P4": 0.92855,
+         "P5": 0.9284,
+         "P6": 0.99905
+        },
+        "8": {
+         "P1": 0.9094,
+         "P2": 0.83435,
+         "P3": 0.9075,
+         "P4": 0.8352,
+         "P5": 0.83425,
+         "P6": 0.90985
+        }
+       },
+       "contrasts": {
+        "P1": {
+         "holm_count": 186,
+         "holm_rate": 0.0093,
+         "size_count": 1007,
+         "size_rate": 0.05035,
+         "tested": 20000
+        },
+        "P2": {
+         "holm_count": 150,
+         "holm_rate": 0.0075,
+         "size_count": 972,
+         "size_rate": 0.052312,
+         "tested": 18581
+        },
+        "P3": {
+         "holm_count": 190,
+         "holm_rate": 0.0095,
+         "size_count": 1023,
+         "size_rate": 0.05115,
+         "tested": 20000
+        },
+        "P4": {
+         "holm_count": 179,
+         "holm_rate": 0.00895,
+         "size_count": 937,
+         "size_rate": 0.050428,
+         "tested": 18581
+        },
+        "P5": {
+         "holm_count": 167,
+         "holm_rate": 0.00835,
+         "size_count": 927,
+         "size_rate": 0.04989,
+         "tested": 18581
+        },
+        "P6": {
+         "holm_count": 188,
+         "holm_rate": 0.0094,
+         "size_count": 1030,
+         "size_rate": 0.0515,
+         "tested": 20000
+        }
+       },
+       "familywise_count": 975,
+       "familywise_rate": 0.04875,
+       "nonconverged_fits": 8247,
+       "power": {
+        "10": {
+         "P1": 0.9885,
+         "P2": 0.9181,
+         "P3": 0.98885,
+         "P4": 0.91845,
+         "P5": 0.91735,
+         "P6": 0.9892
+        },
+        "12": {
+         "P1": 0.9993,
+         "P2": 0.92835,
+         "P3": 0.99935,
+         "P4": 0.92855,
+         "P5": 0.9284,
+         "P6": 0.99905
+        },
+        "8": {
+         "P1": 0.91495,
+         "P2": 0.8396,
+         "P3": 0.91275,
+         "P4": 0.8402,
+         "P5": 0.8394,
+         "P6": 0.9151
+        }
+       },
+       "primary_under_plan_A": [
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6"
+       ],
+       "refused_contrasts": 0
+      }
+     },
+     "llama_sigma_ratio": "1",
+     "method_variance_share": "0",
+     "plan_by_N": {
+      "A": 0.84365,
+      "B9": 0.13715,
+      "H": 0.0192,
+      "review": 0.0
+     },
+     "plan_by_sigma_A": {
+      "A": 0.92905,
+      "B9": 0.07045,
+      "H": 0.0005,
+      "review": 0.0
+     },
+     "sigma_pair_pp_by_family": {
+      "llama31-8b": 3.5,
+      "olmo2-7b": 3.5
+     }
+    }
+   },
+   "sigma_index": 1,
+   "sigma_pair_pp": "3.5"
+  }
+ ],
+ "script_sha256": "0ff5e54596a144d6cd4d3643ce83bc14bd21ebc9ea80b2416ebab645fd29fe89",
+ "seed": 7820261108,
+ "settings_sha256": "c6f0c81e418e4efe8f876655621bbb1dbfa51ca91aa88a335a812e53eaa04b88",
+ "shard": [
+  1
+ ],
+ "version": 1
+}

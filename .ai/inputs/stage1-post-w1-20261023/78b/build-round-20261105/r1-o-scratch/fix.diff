@@ -1,0 +1,3084 @@
+diff -ruN prefix/scripts/scale78b/make_oext_settings_78b.py postfix/scripts/scale78b/make_oext_settings_78b.py
+--- prefix/scripts/scale78b/make_oext_settings_78b.py	2026-11-08 20:22:56
++++ postfix/scripts/scale78b/make_oext_settings_78b.py	2026-11-08 21:53:11
+@@ -1,22 +1,24 @@
+-"""The per-family O-ext settings for the 7-8B tier (R1 Track O; Part 2 sections 1.13, 1.14, 4.2-4.5; DES E2, E4, E5;
+-DESO item 9; DESO2 items 24 (c), 37; the build rulings B-3 and O3, O4, O11 of 8 Nov 2026).
++"""The per-family O-ext settings for the 7-8B tier (R1 Track O and its fix round; Part 2 sections 1.13, 1.14, 4.2-4.5;
++DES E2, E4, E5; DESO item 9; DESO2 items 24 (c), 37; the build rulings B-3, O3, O4, O11 and R-5 to R-9 of 8 Nov 2026).
+ 
+-    python -B scripts/scale78b/make_oext_settings_78b.py            # write the 12 settings files and OEXT-78B.json
+-    python -B scripts/scale78b/make_oext_settings_78b.py --check    # derive in memory and compare with the files
+-    python -B scripts/scale78b/make_oext_settings_78b.py --oext-78b FAMILY   # print the RK OEXT_78B[FAMILY] form
++    python -B scripts/scale78b/make_oext_settings_78b.py [--pins P] [--settings-dir D]          # write the files
++    python -B scripts/scale78b/make_oext_settings_78b.py [--pins P] [--settings-dir D] --check  # compare with them
++    python -B scripts/scale78b/make_oext_settings_78b.py --oext-78b FAMILY      # print RK OEXT_78B[FAMILY]'s form
++    python -B scripts/scale78b/make_oext_settings_78b.py --oext-78b-y FAMILY    # print RK OEXT_78B_Y[FAMILY]'s form
+ 
+ The 1B O-ext files pin OLMo-2-1B's prepared set, the 1B recipes, the 1B W1-18 units and the 1B cap branch. This maker
+ derives, for each family F (olmo2-7b, llama31-8b) and each 1B settings file below, a settings file in the 1B file's
+ own schema (the same kind, name and keys, so the unchanged 1B validators accept it), with every per-family value taken
+-from settings/oext_pins_78b.json. A pin that cannot be known yet is null in the file, and OEXT-78B.json lists it under
+-the family's "waits" with the event that fills it; scripts/scale78b/oext_78b.py refuses a command while a pin it needs
+-is null. The 1B files are read, hashed against BASE below, and never written.
++from settings/oext_pins_78b.json. A pin that cannot be known yet is null in the file, and the family's index lists it
++under "waits" with the event that fills it; scripts/scale78b/oext_78b.py refuses a command while a pin it needs is
++null. The 1B files are read, hashed against BASE below, and never written.
+ 
+ Derived files (settings/<role>__<F>.json):
+   limits_overrefusal_checks  W1-18's settings for F's reused side units (theta0 and the a0 units: OLMo-2-7B 1101-1103,
+                              Llama-3.1-8B 1101-1102), each by its COMPLETE.json SHA-256 (RK KIT a0_units) and its
+                              job.json SHA-256 where a committed record names it (else null: waits THETA0_JOB); the
+-                             family's prepared set and main recipe (the policy codec and the pinned judge)
++                             family's prepared set and main recipe (the policy codec and the pinned judge); judge.device
++                             = cuda, the pod's device (R-7)
+   oext_eval                  the 1B O-ext settings with cap.branch from F's W1-18 pin ("pending_w1_18" until F's record),
+                              cap.w1_18.settings_sha256 = the family's W1-18 settings above
+   oext_eval_y                the same on engine Y (engine_x = ENGINE_Y; null until filled)
+@@ -26,12 +28,17 @@
+   oext_unit_y                F's manifest; recipes.allowed = B+Qi only (null until RECIPE_BQI); engine Y; oext_eval_y__F
+   lean_eval_job              c0's lean job: job.allowed_recipes = MAIN_F; oext.settings = oext_eval__F; oext.branch;
+                              owner = the 7-8B copy scripts/scale78b/lean_eval_job_78b.py (the file that loads it)
+-Plus OEXT-78B.json: every derived file's SHA-256, the pins file's SHA-256, each family's branch and waits; the wrapper
+-pins it by one literal (INDEX_SHA256 in oext_78b.py).
++Plus one index per family and engine (R-5): OEXT-78B__F.json (engine X: oext_unit, oext_eval, lean_eval_job and the
++W1-18 settings) and OEXT-78B-Y__F.json (engine Y: oext_unit_y, oext_eval_y and the W1-18 settings oext_eval_y binds),
++each with its files' SHA-256, the family's branch and manifest, and the waits of its files. Nothing pins an index but
++the kit's OEXT_78B[F] (the X index) or OEXT_78B_Y[F] (the Y index); the wrapper holds no index hash and checks the
++index the job names by path and SHA-256. So a fill reaches only the indexes whose files it changes: a family's branch
++or theta0 job pin its own X and Y indexes; its recipe G its X index; its B+Qi its Y index; ENGINE_Y both Y indexes.
+ 
+-How a pin is filled: edit settings/oext_pins_78b.json; run this maker; set the printed index SHA-256 as INDEX_SHA256
+-in scripts/scale78b/oext_78b.py; run the tests under scripts/scale78b/tests/oext; commit by explicit path. Nothing here
+-reads a model, a prepared row, an answer or a prompt. It reads the 1B settings files and the configs it names.
++How a pin is filled: edit settings/oext_pins_78b.json; run this maker (it writes the files); run the tests under
++scripts/scale78b/tests/oext (they check consistency, not the pins' values, so they stay green: O6); print the form
++(--oext-78b F or --oext-78b-y F) and fill the kit's pin by a recorded step; commit by explicit path. Nothing here reads
++a model, a prepared row, an answer or a prompt. It reads the 1B settings files and the configs it names.
+ """
+ 
+ from __future__ import annotations
+@@ -53,13 +60,12 @@
+ 
+ SETTINGS_DIR = HERE / "settings"
+ PINS_PATH = SETTINGS_DIR / "oext_pins_78b.json"
+-INDEX_NAME = "OEXT-78B.json"
++INDEX_NAMES = {"X": "OEXT-78B__{family}.json", "Y": "OEXT-78B-Y__{family}.json"}
+ INDEX_KIND = "scale78b oext settings index"
+ PINS_KIND = "scale78b oext pins"
+ FAMILIES = ("olmo2-7b", "llama31-8b")
+ BRANCHES = ("128", "full", "pending_w1_18")
+ PENDING = "pending_w1_18"
+-WRAPPER = "scripts/scale78b/oext_78b.py"
+ LEAN_COPY = "scripts/scale78b/lean_eval_job_78b.py"
+ # The 1B settings files, by SHA-256 (M: shasum -a 256 at MAIN 3481d85, 8 Nov 2026); a changed 1B file refuses.
+ BASE = {
+@@ -80,6 +86,10 @@
+ # The commands of oext_78b.py and the files each reads (the waits of these roles block the command).
+ COMMAND_ROLES = {"unit": ("oext_unit", "oext_eval"), "unit_y": ("oext_unit_y", "oext_eval_y"),
+                  "lean": ("lean_eval_job", "oext_eval"), "w1_18": ("limits_overrefusal_checks",)}
++# The settings files each engine's index lists (and so each kit pin covers).
++INDEX_ROLES = {"X": ("limits_overrefusal_checks", "oext_eval", "oext_unit", "lean_eval_job"),
++               "Y": ("limits_overrefusal_checks", "oext_eval_y", "oext_unit_y")}
++INDEX_COMMANDS = {"X": ("unit", "lean", "w1_18"), "Y": ("unit_y",)}
+ EVENTS = {
+     "W1_18_BRANCH": "the family's 7-8B W1-18 check (DES E2; DESO2 item 37: one pod, one check per family, its own "
+                     "record, GXB O4): the lead pins the record's SHA-256 and the branch it gives (128 if every unit "
+@@ -115,6 +125,19 @@
+ }
+ 
+ 
++def index_name(family: str, engine: str) -> str:
++    return INDEX_NAMES[engine].format(family=family)
++
++
++def label(path: Path) -> str:
++    """A settings path label: relative to the repository root when the file lies inside it, else absolute."""
++    path = Path(path).resolve()
++    try:
++        return path.relative_to(REPO).as_posix()
++    except ValueError:
++        return str(path)
++
++
+ def file_name(role: str, family: str) -> str:
+     return f"{role}__{family}.json"
+ 
+@@ -196,8 +219,8 @@
+ class Family:
+     """One family's derivation: its pins, the files made so far (role -> bytes) and its waits."""
+ 
+-    def __init__(self, family: str, pins: dict, shared: dict):
+-        self.family, self.pins, self.shared = family, pins, shared
++    def __init__(self, family: str, pins: dict, shared: dict, settings_dir: Path = SETTINGS_DIR):
++        self.family, self.pins, self.shared, self.dir = family, pins, shared, Path(settings_dir)
+         self.files: dict[str, bytes] = {}
+         self.waits: dict[str, dict] = {}
+         self.main_name, self.main_sha, self.main = recipe_pin(pins["main"], f"{family} main", nullable=False)
+@@ -221,7 +244,8 @@
+         return sha256_bytes(self.files[role])
+ 
+     def path(self, role: str) -> str:
+-        return f"scripts/scale78b/settings/{file_name(role, self.family)}"
++        """The label of a role's file: the path of the file the run will load (under this settings folder)."""
++        return label(self.dir / file_name(role, self.family))
+ 
+     # ----- the derivations ----------------------------------------------------------------------------------------
+ 
+@@ -248,7 +272,7 @@
+         recipe_rel = f"experiments/safety_selection/configs/{self.main_name}.json"
+         guard = self.main["guard"]
+         doc["judge"].update(recipe=recipe_rel, recipe_file_sha256=sha256_file(REPO / recipe_rel),
+-                            repo_id=guard["repo_id"], revision=guard["revision"])
++                            repo_id=guard["repo_id"], revision=guard["revision"], device="cuda")
+         doc["allow_list"]["path_pattern"] = self.pins["path_pattern"]
+         doc["allow_list"]["rule"] = ("only the family's reused side units (P78 section 2.1, ruling 7; RK KIT a0_units): "
+                                      "theta0 (a0 at init) and the a0 units at e1 of the family's side probes, under the "
+@@ -322,74 +346,116 @@
+         self.files["lean_eval_job"] = dumps(self.lean())
+         return {file_name(role, self.family): data for role, data in self.files.items()}
+ 
+-    def index_block(self) -> dict:
+-        return {"branch": self.w1_18["branch"], "w1_18_record_sha256": self.w1_18["record_sha256"],
++    def index_doc(self, engine: str) -> dict:
++        """The family's index for one engine: its files, the family's branch and manifest pins, the waits of its files
++        (each wait's roles cut to this index's roles), the other families' manifest pins (fixed: for a refusal that
++        names them) and the fixed inputs and bases."""
++        roles = INDEX_ROLES[engine]
++        waits = []
++        for key in sorted(self.waits):
++            entry = self.waits[key]
++            mine = [r for r in entry["roles"] if r in roles]
++            if mine:
++                waits.append({**entry, "roles": mine})
++        return {"kind": INDEX_KIND, "version": 2, "family": self.family, "engine": engine,
++                "branch": self.w1_18["branch"], "w1_18_record_sha256": self.w1_18["record_sha256"],
+                 "manifest_sha256": self.pins["manifest_sha256"],
+-                "files": {role: {"file": file_name(role, self.family), "sha256": self.sha(role)} for role in ROLES},
+-                "waits": [self.waits[k] for k in sorted(self.waits)]}
++                "files": {role: {"file": file_name(role, self.family), "sha256": self.sha(role)} for role in roles},
++                "waits": waits,
++                "commands": list(INDEX_COMMANDS[engine]),
++                "inputs": {"oext_bank": self.shared["oext_bank_sha256"],
++                           "oext_record": self.shared["oext_record_sha256"]},
++                "base": {role: {"path": rel, "sha256": sha} for role, (rel, sha) in BASE.items()}}
+ 
+ 
+-def derive_all(pins: dict, pins_sha256: str) -> dict[str, bytes]:
+-    """Every derived file's bytes (name -> bytes), the index last."""
++def derive_all(pins: dict, pins_sha256: str | None = None, settings_dir: Path = SETTINGS_DIR) -> dict[str, bytes]:
++    """Every derived file's bytes (name -> bytes), each family's two indexes last. ``pins_sha256`` is not recorded
++    (an index records nothing that another family's or engine's fill changes, R-5)."""
+     files: dict[str, bytes] = {}
+-    blocks = {}
+-    for family in FAMILIES:
+-        fam = Family(family, pins["families"][family], pins["shared"])
++    indexes: dict[str, bytes] = {}
++    fams = {family: Family(family, pins["families"][family], pins["shared"], settings_dir) for family in FAMILIES}
++    for family, fam in fams.items():
+         files.update(fam.derive())
+-        blocks[family] = fam.index_block()
+-    index = {"kind": INDEX_KIND, "version": 1, "pins_file": {"file": PINS_PATH.name, "sha256": pins_sha256},
+-             "base": {role: {"path": rel, "sha256": sha} for role, (rel, sha) in BASE.items()},
+-             "command_roles": {k: list(v) for k, v in COMMAND_ROLES.items()},
+-             "inputs": {"oext_bank": pins["shared"]["oext_bank_sha256"],
+-                        "oext_record": pins["shared"]["oext_record_sha256"]},
+-             "families": blocks}
+-    files[INDEX_NAME] = dumps(index)
++    manifests = {family: fam.pins["manifest_sha256"] for family, fam in fams.items()}
++    for family, fam in fams.items():
++        for engine in INDEX_NAMES:
++            doc = fam.index_doc(engine)
++            doc["other_manifests"] = {f: m for f, m in manifests.items() if f != family}
++            indexes[index_name(family, engine)] = dumps(doc)
++    files.update(indexes)
+     return files
+ 
+ 
+-def oext_78b_form(family: str, index_bytes: bytes, code: dict[str, str]) -> dict:
+-    """RK OEXT_78B[family]'s documented form ({files: {path under scripts/: SHA-256}, inputs: {oext_bank, oext_record}})
+-    for the lead's recorded fill: the wrapper, the lean copy, the 1B files they run, the index, the family's X settings
+-    (the Y files are B+Qi's, outside this pin; the W1-18 record joins under Branch 128 or a recorded Branch full)."""
+-    index = s1.strict_json(index_bytes)
+-    block = index["families"][family]
+-    files = dict(code)
+-    files[f"scripts/scale78b/settings/{INDEX_NAME}"] = sha256_bytes(index_bytes)
+-    for role in ("limits_overrefusal_checks", "oext_eval", "oext_unit", "lean_eval_job"):
+-        files[f"scripts/scale78b/settings/{block['files'][role]['file']}"] = block["files"][role]["sha256"]
+-    return {"files": dict(sorted(files.items())), "inputs": dict(index["inputs"])}
++def form(family: str, engine: str, files: dict[str, bytes], code: dict[str, str]) -> dict:
++    """RK OEXT_78B[family]'s (engine X) or OEXT_78B_Y[family]'s (engine Y) documented form, {files: {path under
++    scripts/: SHA-256}, inputs: {oext_bank, oext_record}}, for the lead's recorded fill: the wrapper and the files the
++    engine's commands run (``code``: path -> SHA-256), the family's index for that engine and every settings file it
++    lists. (Under Branch 128, or a Branch full with a record, the family's W1-18 record joins the X and Y files: P2
++    section 4.4; the lead adds it with the branch fill.)"""
++    name = index_name(family, engine)
++    index = s1.strict_json(files[name])
++    out = dict(code)
++    out[f"scripts/scale78b/settings/{name}"] = sha256_bytes(files[name])
++    for entry in index["files"].values():
++        out[f"scripts/scale78b/settings/{entry['file']}"] = entry["sha256"]
++    return {"files": dict(sorted(out.items())), "inputs": dict(index["inputs"])}
+ 
+ 
++def oext_78b_form(family: str, files: dict[str, bytes], code: dict[str, str]) -> dict:
++    return form(family, "X", files, code)
++
++
++def oext_78b_y_form(family: str, files: dict[str, bytes], code: dict[str, str]) -> dict:
++    return form(family, "Y", files, code)
++
++
++def wrapper_module():
++    """This checkout's oext_78b.py, loaded by its file path beside this file (O11: never another root's copy)."""
++    import importlib.util
++
++    spec = importlib.util.spec_from_file_location("scale78b_oext_78b_of_the_maker", HERE / "oext_78b.py")
++    module = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(module)
++    return module
++
++
+ def main(argv: list[str] | None = None) -> int:
+     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
++    ap.add_argument("--pins", type=Path, default=None, help="the pins file (default settings/oext_pins_78b.json)")
++    ap.add_argument("--settings-dir", type=Path, default=None, help="where the files are written or checked "
++                    "(default this folder's settings/; another folder for a fill dry run)")
+     ap.add_argument("--check", action="store_true", help="derive in memory and compare with the files on disk")
+-    ap.add_argument("--oext-78b", choices=FAMILIES, help="print RK OEXT_78B[FAMILY]'s form (the lead's fill)")
++    ap.add_argument("--oext-78b", choices=FAMILIES, help="print RK OEXT_78B[FAMILY]'s form (engine X)")
++    ap.add_argument("--oext-78b-y", choices=FAMILIES, help="print RK OEXT_78B_Y[FAMILY]'s form (engine Y)")
+     args = ap.parse_args(argv)
++    settings_dir = SETTINGS_DIR if args.settings_dir is None else args.settings_dir
+     try:
+-        pins, pins_sha = load_pins()
+-        files = derive_all(pins, pins_sha)
++        pins, pins_sha = load_pins(PINS_PATH if args.pins is None else args.pins)
++        files = derive_all(pins, pins_sha, settings_dir)
+     except (s1.Refusal, OSError, ValueError) as exc:
+         print(f"REFUSED: {type(exc).__name__}: {exc}", file=sys.stderr)
+         return 2
+-    if args.oext_78b:
+-        from scripts.scale78b import oext_78b as wrapper
+-
+-        form = oext_78b_form(args.oext_78b, files[INDEX_NAME], wrapper.code_pins())
+-        print(json.dumps(form, indent=2, sort_keys=True))
++    if args.oext_78b or args.oext_78b_y:
++        wrapper = wrapper_module()
++        family, engine = (args.oext_78b, "X") if args.oext_78b else (args.oext_78b_y, "Y")
++        print(json.dumps(form(family, engine, files, wrapper.code_pins(engine)), indent=2, sort_keys=True))
+         return 0
+     if args.check:
+-        bad = sorted(n for n, d in files.items() if not (SETTINGS_DIR / n).is_file()
+-                     or (SETTINGS_DIR / n).read_bytes() != d)
++        bad = sorted(n for n, d in files.items() if not (settings_dir / n).is_file()
++                     or (settings_dir / n).read_bytes() != d)
+         if bad:
+             print(f"DIFFERS: {len(bad)} files differ from the derivation (first: {bad[0]})", file=sys.stderr)
+             return 1
+-        print(f"checked {len(files)} files; {INDEX_NAME} {sha256_bytes(files[INDEX_NAME])}")
++        print(f"checked {len(files)} files; " + "; ".join(
++            f"{n} {sha256_bytes(files[n])}" for n in sorted(files) if n.startswith("OEXT-78B")))
+         return 0
++    settings_dir.mkdir(parents=True, exist_ok=True)
+     for name, data in files.items():
+-        (SETTINGS_DIR / name).write_bytes(data)
++        (settings_dir / name).write_bytes(data)
+     for name in sorted(files):
+-        print(f"{sha256_bytes(files[name])}  settings/{name}")
+-    print(f"next: set INDEX_SHA256 = \"{sha256_bytes(files[INDEX_NAME])}\" in {WRAPPER}")
++        print(f"{sha256_bytes(files[name])}  {name}")
++    print("next: run the tests under scripts/scale78b/tests/oext; print the forms (--oext-78b F, --oext-78b-y F) "
++          "for the kit's pins")
+     return 0
+ 
+ 
+diff -ruN prefix/scripts/scale78b/oext_78b.py postfix/scripts/scale78b/oext_78b.py
+--- prefix/scripts/scale78b/oext_78b.py	2026-11-08 20:50:12
++++ postfix/scripts/scale78b/oext_78b.py	2026-11-08 21:56:01
+@@ -1,15 +1,26 @@
+-"""The 7-8B O-ext layer: the 1B O-ext entry points run with a family's settings (R1 Track O; Part 2 sections 1.13,
+-1.14, 4.2-4.5; DES E2, E4, E5; DESO item 9; DESO2 items 24 (c), 37; the build rulings B-3, O3, O4 and O11).
++"""The 7-8B O-ext layer: the 1B O-ext entry points run with a family's settings (R1 Track O and its fix round; Part 2
++sections 1.13, 1.14, 4.2-4.5; DES E2, E4, E5; DESO item 9; DESO2 items 24 (c), 37; the build rulings B-3, O3, O4,
++O11 and R-5 to R-9).
+ 
+-    python -B scripts/scale78b/oext_78b.py unit  --family F [--engine X|Y] run (--run UNIT --checkpoint e1 | --untuned)
+-        --prepared P --recipe REC --oext-bank F --oext-record F [--w1-18-record F] [--dev100-source SOURCE] --out DIR
+-    python -B scripts/scale78b/oext_78b.py lean  --family F run --job JOB --prepared P --recipe REC --out OUT
+-        [--registry REG] [--expect-adapter-fingerprint HEX] --oext-bank F --oext-record F [--w1-18-record F]
+-    python -B scripts/scale78b/oext_78b.py lean  --family F verify --out OUT
+-    python -B scripts/scale78b/oext_78b.py w1_18 --family F --out DIR [--data-root DIR] [--device D]
+-        [--guard-batch-size N]
+-    python -B scripts/scale78b/oext_78b.py check [--family F]          ($0: pins, files, branches and waits)
++Every command names the family, the engine and the family's index for that engine, by path and SHA-256 (the kit takes
++both from OEXT_78B[F] for engine X or OEXT_78B_Y[F] for engine Y; R-5). This file holds no index hash, so no pin fill
++changes it:
+ 
++    python -B scripts/scale78b/oext_78b.py unit  --family F [--engine X|Y] --index IDX --index-sha256 H
++        run (--run UNIT --checkpoint e1 | --untuned) --prepared P --recipe REC --oext-bank F --oext-record F
++        [--w1-18-record F] [--dev100-source SOURCE] --out DIR
++    python -B scripts/scale78b/oext_78b.py lean  --family F --index IDX --index-sha256 H run --job JOB --prepared P
++        --recipe REC --out OUT [--registry REG] [--expect-adapter-fingerprint HEX] --oext-bank F --oext-record F
++        [--w1-18-record F]
++    python -B scripts/scale78b/oext_78b.py lean  --family F --index IDX --index-sha256 H verify --out OUT
++    python -B scripts/scale78b/oext_78b.py w1_18 --family F --index IDX --index-sha256 H --out DIR [--data-root DIR]
++        [--device D] [--guard-batch-size N]
++    python -B scripts/scale78b/oext_78b.py check --family F [--engine X|Y] --index IDX --index-sha256 H
++        [--w1-18-record F] [--data-root DIR]                        ($0, on the Mac: see "The check" below)
++
++    IDX is settings/OEXT-78B__F.json (engine X) or settings/OEXT-78B-Y__F.json (engine Y); the settings files are
++    read from the index's folder.
++
+     command  what runs (its own main(), its own arguments, outputs, prints and exit codes)          settings (per F)
+     unit     scripts/stage1_s1/oext_unit.py run (o_only, o_only_with_regenerate, the arm step)       oext_unit__F,
+              (``transfer``, LN-14's report, is refused: not run at 7-8B, DESO2 item 32)            oext_eval__F
+@@ -20,33 +31,47 @@
+              per family on the one W1-18 pod, each with its own record: GXB O4)
+ 
+ How it runs a 1B entry point (the scorers_78b.py pattern): the module is imported and its file hashed against CODE (a
+-changed file refuses); the family's settings files are read and hashed against settings/OEXT-78B.json (itself pinned
+-by INDEX_SHA256); for that call only, the module globals that name the settings point at the family's files, and they
+-are restored afterwards:
++changed file refuses); the index is read and hashed against the SHA-256 the job names, and it must be the named
++family's index for the named engine; each settings file it lists is read and hashed against the index; for that call
++only, the module globals that name the settings point at the family's files, and they are restored afterwards, also
++when the 1B code raises:
+   - oext_unit.load_pinned_settings and oext_eval.load_pinned_settings load the family's files by path and SHA-256
+     (their 1B defaults are bound at definition, oext_unit.py:209, oext_eval.py:246, so main() would read the 1B files);
+   - oext_unit.OEXT_SETTINGS_PATH (oext_unit.py:75, :146) and the lean copy's OEXT_SETTINGS_PATH name the family's
+-    oext_eval file, the file that is read, so a settings file's oext.settings.path is the path of the file loaded;
++    oext_eval file, the file that is read (the label comes from the index entry of the loaded file, never from the
++    settings file's own text), so a settings file whose oext.settings.path names another file refuses;
+   - overrefusal_checks.SETTINGS_PATH and SETTINGS_SHA256 (overrefusal_checks.py:83-84) name the family's W1-18
+     settings: oext_eval's W1-18 binding (oext_eval.py:214-236) reads them, and the w1_18 command passes --settings with
+     that file (:533, :542); so the family's W1-18 record's provenance.settings_sha256 is the family's W1-18 settings,
+     which oext_eval__F's cap.w1_18.settings_sha256 pins (:374-375);
+   - the lean copy's SETTINGS_PATH and SETTINGS_SHA256 (read at call time by load_lean_settings, :849).
+-No record, settings file or output names a file the run did not load (GXB O3): the 1B outputs name the 1B scripts that
+-ran (oext_unit.py, overrefusal_checks.py), the lean copy names itself, and every settings path label is the family's
+-file. Nothing else is written; the outputs are the 1B code's own, byte for byte (tests/oext parity).
++No record, settings file or output names a file the run did not load (GXB O3). Nothing else is written; the outputs are
++the 1B code's own, byte for byte (tests/oext parity).
+ 
+ Before the call (refusals exit 2 with one JSON line on stderr; they name hashes, flags, pins and events, never text):
+   - every ``-`` token is a full flag name of the 1B command (the 1B parsers expand abbreviations; scorers_78b RV-E-1);
+-  - every pin the command's files need is filled (OEXT-78B.json "waits": the family's W1-18 branch, Llama's recipe G,
++  - every pin the command's files need is filled (the index's "waits": the family's W1-18 branch, Llama's recipe G,
+     B+Qi and ENGINE_Y for engine Y, theta0's job.json pin for W1-18), else the refusal names the pin and its event;
+   - ``--prepared`` is the family's prepared set (its manifest.json hashes to the family's pin; the other family's
+-    manifest refuses by both hashes);
++    manifest refuses by both hashes); the unit settings' manifest is the index's;
+   - ``--w1-18-record`` is given exactly when the family's O-ext settings pin a W1-18 record, and hashes to that pin
+     (Branch 128's flag on every O-ext kind, DESO item 9); ``--dev100-source`` only on ``--run`` under Branch 128 (the
+     regenerated units, LN-19); the 1B code checks both again.
+ The lean command imports the lean copy before anything else, so c0's timer origin (the copy's first statements) still
+ comes before torch and the engine are imported.
++
++The check ($0; the pack runs it before any O-ext pod, R-6, and the lead runs it on the side units, R-9):
++  - the run files against CODE, the index against the named SHA-256, each listed file against the index; the X
++    settings through the unchanged 1B validators with their true labels (the W1-18 binding included), skipping a file
++    that waits on a pin; the waits per command;
++  - with ``--w1-18-record F``: the record through the unchanged oext_eval reader (read_w1_18) under the family's
++    O-ext settings and W1-18 globals (its hash is the pin, it was made under the family's W1-18 settings, its verdict
++    is the pinned branch's), and its units are the family's W1-18 units; a wrong-family, stale or wrong-branch record
++    refuses on the Mac;
++  - with ``--data-root DIR``: each side unit the W1-18 settings list, its COMPLETE.json read by its pin; it must list
++    every file W1-18 reads (job.json and eval/<checkpoint>/generations.jsonl and guard.jsonl) by name with a SHA-256,
++    and each present file must hash to it (bytes are hashed, never parsed; no answer content is opened); job.json must
++    hash to its pin where the pin is filled. It prints names, flags and hashes only.
+ """
+ 
+ from __future__ import annotations
+@@ -56,6 +81,7 @@
+ import hashlib
+ import importlib
+ import json
++import re
+ import sys
+ from pathlib import Path
+ 
+@@ -64,14 +90,14 @@
+ if str(REPO) not in sys.path:
+     sys.path.insert(0, str(REPO))
+ 
+-SETTINGS_DIR = HERE / "settings"
+-INDEX_PATH = SETTINGS_DIR / "OEXT-78B.json"
+-INDEX_SHA256 = "7c3edb0f7930da2f3031c9b058f907103682da972010f8eab2d935c154bebbd4"
+ INDEX_KIND = "scale78b oext settings index"
++INDEX_VERSION = 2
++INDEX_NAMES = {"X": "OEXT-78B__{family}.json", "Y": "OEXT-78B-Y__{family}.json"}
+ FAMILIES = ("olmo2-7b", "llama31-8b")
+ ENGINES = ("X", "Y")
+ COMMANDS = ("unit", "lean", "w1_18", "check")
+ LEAN_MODULE = "scripts.scale78b.lean_eval_job_78b"
++HEX64 = re.compile(r"^[0-9a-f]{64}$")
+ # The modules the commands run or bind, by the SHA-256 of their files (M: shasum -a 256 at MAIN 3481d85, 8 Nov 2026;
+ # the 1B files equal Part 2 section 1.17 Table B where it lists them). A changed file refuses.
+ CODE = {
+@@ -90,12 +116,14 @@
+     "w1_18": ("scripts.stage1.s1common", "scripts.stage1.limits.limits_common",
+               "scripts.stage1.limits.overrefusal_checks"),
+ }
++ENGINE_CODE = {"X": tuple(CODE), "Y": COMMAND_CODE["unit"]}      # what each engine's kit pin covers
+ # The settings roles whose waits block each command. Every O-ext command also reads the family's W1-18 settings
+-# (oext_eval's binding hashes them, so they are pinned by the index), but only the w1_18 command needs their unit pins.
++# (oext_eval's binding hashes them, so the index pins them), but only the w1_18 command needs their unit pins.
+ NEEDS = {"unit": ("oext_unit", "oext_eval"), "unit_y": ("oext_unit_y", "oext_eval_y"),
+          "lean": ("lean_eval_job", "oext_eval"), "w1_18": ("limits_overrefusal_checks",)}
++ENGINE_KEYS = {"X": ("unit", "lean", "w1_18"), "Y": ("unit_y",)}
+ # Every '-' token must be one of these full names (the name before any '='); the first token is the 1B subcommand.
+-SUBCOMMANDS = {"unit": ("run",), "lean": ("run", "verify"), "w1_18": (None,)}
++SUBCOMMANDS = {"unit": ("run",), "lean": ("run", "verify"), "w1_18": (None,), "check": (None,)}
+ ALLOWED_FLAGS = {
+     ("unit", "run"): frozenset({"--run", "--untuned", "--checkpoint", "--prepared", "--recipe", "--oext-bank",
+                                 "--oext-record", "--w1-18-record", "--dev100-source", "--out"}),
+@@ -103,7 +131,10 @@
+                                 "--expect-adapter-fingerprint", "--oext-bank", "--oext-record", "--w1-18-record"}),
+     ("lean", "verify"): frozenset({"--out"}),
+     ("w1_18", None): frozenset({"--out", "--data-root", "--device", "--guard-batch-size"}),
++    ("check", None): frozenset({"--w1-18-record", "--data-root"}),
+ }
++LEADING = ("--family", "--engine", "--index", "--index-sha256")
++W1_18_UNIT_FILES = ("job.json", "eval/{checkpoint}/generations.jsonl", "eval/{checkpoint}/guard.jsonl")
+ EXIT_REFUSED = 2
+ 
+ 
+@@ -153,44 +184,54 @@
+     return out
+ 
+ 
+-def code_pins() -> dict[str, str]:
+-    """The files the commands run, as {path under scripts/: SHA-256} (RK OEXT_78B's files form), with this file."""
+-    out = {f"{name.replace('.', '/')}.py": digest for name, digest in CODE.items()}
++def code_pins(engine: str = "X") -> dict[str, str]:
++    """The files an engine's commands run, as {path under scripts/: SHA-256} (the kit forms' files), with this file."""
++    out = {f"{name.replace('.', '/')}.py": CODE[name] for name in ENGINE_CODE[engine]}
+     out["scripts/scale78b/oext_78b.py"] = sha256_file(Path(__file__).resolve())
+     return out
+ 
+ 
+-def load_index(path: Path | None = None, expected_sha256: str | None = None) -> dict:
+-    """settings/OEXT-78B.json, pinned by INDEX_SHA256 (both read at call time)."""
+-    path = INDEX_PATH if path is None else path
+-    expected = INDEX_SHA256 if expected_sha256 is None else expected_sha256
++def label(path: Path) -> str:
++    """The settings path label of a file (the path a settings file names): relative to the repository root when the
++    file lies inside it, else absolute."""
++    path = Path(path).resolve()
+     try:
+-        data = Path(path).read_bytes()
+-    except OSError as exc:
+-        raise Refused(f"the O-ext settings index cannot be read ({type(exc).__name__})") from None
+-    if sha256_bytes(data) != expected:
+-        raise Refused(f"settings/OEXT-78B.json hashes to {sha256_bytes(data)}, oext_78b.py pins {expected}")
+-    doc = strict_json(data)
+-    if not isinstance(doc, dict) or (doc.get("kind"), doc.get("version")) != (INDEX_KIND, 1) or \
+-            set(doc.get("families") or {}) != set(FAMILIES):
+-        raise Refused("settings/OEXT-78B.json is not the scale78b O-ext settings index")
+-    return doc
++        return path.relative_to(REPO).as_posix()
++    except ValueError:
++        return str(path)
+ 
+ 
+-class Family:
+-    """One family's block of the index: its files (read and hashed now) and its waits."""
++class Index:
++    """The family's index for one engine, named by the job by path and SHA-256 (R-5); the settings files lie beside
++    it."""
+ 
+-    def __init__(self, index: dict, family: str, settings_dir: Path | None = None):
++    def __init__(self, path: str | Path, expected_sha256: str, family: str, engine: str):
+         if family not in FAMILIES:
+             raise Refused(f"--family must be one of {list(FAMILIES)}")
+-        self.family, self.block = family, index["families"][family]
+-        self.dir = SETTINGS_DIR if settings_dir is None else settings_dir
+-        self.index = index
+-        self.manifest = self.block["manifest_sha256"]
+-        self.other_manifest = next(index["families"][f]["manifest_sha256"] for f in FAMILIES if f != family)
++        if not isinstance(expected_sha256, str) or not HEX64.match(expected_sha256):
++            raise Refused("--index-sha256 must be a SHA-256 (64 lowercase hex)")
++        path = Path(path)
++        wanted = INDEX_NAMES[engine].format(family=family)
++        if path.name != wanted:
++            raise Refused(f"--index names {path.name}; the {family} engine-{engine} index is {wanted}")
++        try:
++            data = path.read_bytes()
++        except OSError as exc:
++            raise Refused(f"the index {path.name} cannot be read ({type(exc).__name__})") from None
++        digest = sha256_bytes(data)
++        if digest != expected_sha256:
++            raise Refused(f"{path.name} hashes to {digest}, the job names {expected_sha256}")
++        doc = strict_json(data)
++        if not isinstance(doc, dict) or (doc.get("kind"), doc.get("version")) != (INDEX_KIND, INDEX_VERSION) or \
++                (doc.get("family"), doc.get("engine")) != (family, engine):
++            raise Refused(f"{path.name} is not the scale78b O-ext index of {family} on engine {engine}")
++        self.family, self.engine, self.doc, self.sha256 = family, engine, doc, digest
++        self.dir = path.parent
++        self.manifest = doc["manifest_sha256"]
++        self.other_manifests = dict(doc.get("other_manifests") or {})
+ 
+     def waits_for(self, roles) -> list[dict]:
+-        return [w for w in self.block["waits"] if set(w["roles"]) & set(roles)]
++        return [w for w in self.doc["waits"] if set(w["roles"]) & set(roles)]
+ 
+     def require(self, key: str) -> None:
+         waits = self.waits_for(NEEDS[key])
+@@ -201,57 +242,54 @@
+ 
+     def file(self, role: str) -> tuple[Path, str, dict]:
+         """(path, SHA-256, document) of a role's settings file, its bytes equal to the index's pin."""
+-        entry = self.block["files"][role]
++        entry = (self.doc["files"] or {}).get(role)
++        if entry is None:
++            raise Refused(f"the {self.family} engine-{self.engine} index lists no {role} file")
+         path = self.dir / entry["file"]
+         try:
+             data = path.read_bytes()
+         except OSError as exc:
+             raise Refused(f"{entry['file']} cannot be read ({type(exc).__name__})") from None
+         if sha256_bytes(data) != entry["sha256"]:
+-            raise Refused(f"{entry['file']} hashes to {sha256_bytes(data)}, settings/OEXT-78B.json pins {entry['sha256']}")
++            raise Refused(f"{entry['file']} hashes to {sha256_bytes(data)}, the index pins {entry['sha256']}")
+         return path, entry["sha256"], strict_json(data)
+ 
+     def label(self, role: str) -> str:
+-        """The settings path label of a role's file (the path a settings file names; relative to the repository)."""
+-        path = (self.dir / self.block["files"][role]["file"]).resolve()
+-        try:
+-            return path.relative_to(REPO).as_posix()
+-        except ValueError:
+-            return str(path)
++        return label(self.dir / self.doc["files"][role]["file"])
+ 
+ 
+ # ----- the command line ----------------------------------------------------------------------------------------------
+ 
+ 
+-def split_argv(argv: list[str]) -> tuple[str, str | None, str, list[str]]:
+-    """(command, family, engine, the 1B arguments): ``--family`` and ``--engine`` come first, before the 1B
+-    arguments."""
++def split_argv(argv: list[str]) -> tuple[str, dict, list[str]]:
++    """(command, {family, engine, index, index_sha256}, the 1B arguments): the leading options come first, before
++    the 1B arguments."""
+     if not argv or argv[0] not in COMMANDS:
+         raise Refused(f"the first argument must be one of {list(COMMANDS)}")
+     command, rest = argv[0], list(argv[1:])
+-    family, engine = None, "X"
+-    while rest and rest[0].split("=", 1)[0] in ("--family", "--engine"):
++    opts = {"family": None, "engine": "X", "index": None, "index_sha256": None}
++    while rest and rest[0].split("=", 1)[0] in LEADING:
+         token = rest.pop(0)
+         name, _, value = token.partition("=")
+         if not value:
+             if not rest:
+                 raise Refused(f"{name} needs a value")
+             value = rest.pop(0)
+-        if name == "--family":
+-            family = value
+-        else:
+-            engine = value
+-    if command != "check" and family is None:
++        opts[name[2:].replace("-", "_")] = value
++    if opts["family"] is None:
+         raise Refused("--family is required (olmo2-7b or llama31-8b)")
+-    if family is not None and family not in FAMILIES:
++    if opts["family"] not in FAMILIES:
+         raise Refused(f"--family must be one of {list(FAMILIES)}")
+-    if engine not in ENGINES or (engine == "Y" and command != "unit"):
+-        raise Refused("--engine is X, or Y for the unit command only (B+Qi's O-ext pass; DESO2 item 24 (c))")
+-    return command, family, engine, rest
++    if opts["engine"] not in ENGINES or (opts["engine"] == "Y" and command not in ("unit", "check")):
++        raise Refused("--engine is X, or Y for the unit and check commands only (B+Qi's O-ext pass; DESO2 item 24 (c))")
++    if opts["index"] is None or opts["index_sha256"] is None:
++        raise Refused("--index and --index-sha256 are required: the family's index for the engine, by the path and "
++                      "SHA-256 the kit's OEXT_78B[F] (engine X) or OEXT_78B_Y[F] (engine Y) names (R-5)")
++    return command, opts, rest
+ 
+ 
+ def check_flags(command: str, args: list[str]) -> str | None:
+-    """The 1B subcommand (or None for w1_18) after every '-' token is checked against ALLOWED_FLAGS."""
++    """The 1B subcommand (or None for w1_18 and check) after every '-' token is checked against ALLOWED_FLAGS."""
+     sub = None
+     if SUBCOMMANDS[command] != (None,):
+         if not args or args[0] not in SUBCOMMANDS[command]:
+@@ -290,9 +328,8 @@
+     return values[0] if values else None
+ 
+ 
+-def check_prepared(args: list[str], fam: Family) -> None:
++def check_prepared(args: list[str], idx: Index) -> None:
+     """--prepared is the family's prepared set: its manifest.json hashes to the family's pin (the index's)."""
+-    manifest_pin, other_pin = fam.manifest, fam.other_manifest
+     prepared = one_value(args, "--prepared")
+     if prepared is None:
+         return                                    # the 1B parser refuses a missing --prepared
+@@ -300,9 +337,9 @@
+         digest = sha256_file(Path(prepared) / "manifest.json")
+     except OSError as exc:
+         raise Refused(f"--prepared holds no readable manifest.json ({type(exc).__name__})") from None
+-    if digest != manifest_pin:
+-        which = " (the other family's manifest)" if digest == other_pin else ""
+-        raise Refused(f"{fam.family}: the prepared set's manifest is {digest}{which}; the family's pin is {manifest_pin}")
++    if digest != idx.manifest:
++        which = " (the other family's manifest)" if digest in idx.other_manifests.values() else ""
++        raise Refused(f"{idx.family}: the prepared set's manifest is {digest}{which}; the family's pin is {idx.manifest}")
+ 
+ 
+ def check_branch_flags(args: list[str], oext_doc: dict, *, unit: bool) -> None:
+@@ -347,76 +384,215 @@
+     print(json.dumps(obj, sort_keys=True), file=stream or sys.stderr)
+ 
+ 
++def _w1_pairs(idx: Index) -> tuple[list, str]:
++    """The W1-18 globals for the family (oext_eval's binding reads them) and the W1-18 settings' SHA-256."""
++    w_path, w_sha, _ = idx.file("limits_overrefusal_checks")
++    w1 = module("scripts.stage1.limits.overrefusal_checks")
++    return [(w1, "SETTINGS_PATH", w_path), (w1, "SETTINGS_SHA256", w_sha)], w_sha
++
++
+ # ----- the commands --------------------------------------------------------------------------------------------------
+ 
+ 
+-def run_unit(fam: Family, engine: str, args: list[str], loaders=None) -> int:
++def run_unit(idx: Index, args: list[str], loaders=None) -> int:
+     check_code(COMMAND_CODE["unit"])
+-    key = "unit" if engine == "X" else "unit_y"
+-    fam.require(key)
++    key = "unit" if idx.engine == "X" else "unit_y"
++    idx.require(key)
+     unit_role, eval_role = NEEDS[key]
+-    unit_path, unit_sha, unit_doc = fam.file(unit_role)
+-    eval_path, eval_sha, eval_doc = fam.file(eval_role)
+-    w_path, w_sha, _ = fam.file("limits_overrefusal_checks")
+-    if unit_doc["prepared"]["manifest_sha256"] != fam.manifest:
+-        raise Refused(f"{unit_role}__{fam.family}.json pins the manifest {unit_doc['prepared']['manifest_sha256']}, "
+-                      f"the index {fam.manifest}")
+-    check_prepared(args, fam)
++    unit_path, unit_sha, unit_doc = idx.file(unit_role)
++    eval_path, eval_sha, eval_doc = idx.file(eval_role)
++    if unit_doc["prepared"]["manifest_sha256"] != idx.manifest:
++        raise Refused(f"{unit_role}__{idx.family}.json pins the manifest {unit_doc['prepared']['manifest_sha256']}, "
++                      f"the index {idx.manifest}")
++    check_prepared(args, idx)
+     check_branch_flags(args, eval_doc, unit=True)
+-    ou, oe, w1 = module("scripts.stage1_s1.oext_unit"), module("scripts.stage1_s1.oext_eval"), \
+-        module("scripts.stage1.limits.overrefusal_checks")
++    w_pairs, w_sha = _w1_pairs(idx)
++    ou, oe = module("scripts.stage1_s1.oext_unit"), module("scripts.stage1_s1.oext_eval")
+     pairs = [(ou, "load_pinned_settings", functools.partial(ou.load_pinned_settings, unit_path, unit_sha)),
+              (oe, "load_pinned_settings", functools.partial(oe.load_pinned_settings, eval_path, eval_sha)),
+-             (ou, "OEXT_SETTINGS_PATH", fam.label(eval_role)),
+-             (w1, "SETTINGS_PATH", w_path), (w1, "SETTINGS_SHA256", w_sha)]
+-    _say({"wrapper": "scripts/scale78b/oext_78b.py", "command": "unit", "family": fam.family, "engine": engine,
++             (ou, "OEXT_SETTINGS_PATH", idx.label(eval_role)), *w_pairs]
++    _say({"wrapper": "scripts/scale78b/oext_78b.py", "command": "unit", "family": idx.family, "engine": idx.engine,
++          "index_sha256": idx.sha256,
+           "settings": {unit_role: unit_sha, eval_role: eval_sha, "limits_overrefusal_checks": w_sha}})
+     with patched(pairs):
+         return ou.main(args, loaders=loaders)
+ 
+ 
+-def run_lean(fam: Family, args: list[str], sub: str, loaders=None) -> int:
++def run_lean(idx: Index, args: list[str], sub: str, loaders=None) -> int:
+     lej = module(LEAN_MODULE)                    # first: c0's timer origin precedes the engine imports
+     check_code(COMMAND_CODE["lean"])
+     if sub == "verify":
+         return lej.main(args, loaders=loaders)
+-    fam.require("lean")
+-    lean_path, lean_sha, _ = fam.file("lean_eval_job")
+-    eval_path, eval_sha, eval_doc = fam.file("oext_eval")
+-    w_path, w_sha, _ = fam.file("limits_overrefusal_checks")
+-    check_prepared(args, fam)
++    idx.require("lean")
++    lean_path, lean_sha, _ = idx.file("lean_eval_job")
++    eval_path, eval_sha, eval_doc = idx.file("oext_eval")
++    check_prepared(args, idx)
+     check_branch_flags(args, eval_doc, unit=False)
+-    oe, w1 = module("scripts.stage1_s1.oext_eval"), module("scripts.stage1.limits.overrefusal_checks")
++    w_pairs, w_sha = _w1_pairs(idx)
++    oe = module("scripts.stage1_s1.oext_eval")
+     pairs = [(lej, "SETTINGS_PATH", lean_path), (lej, "SETTINGS_SHA256", lean_sha),
+-             (lej, "OEXT_SETTINGS_PATH", fam.label("oext_eval")),
+-             (oe, "load_pinned_settings", functools.partial(oe.load_pinned_settings, eval_path, eval_sha)),
+-             (w1, "SETTINGS_PATH", w_path), (w1, "SETTINGS_SHA256", w_sha)]
+-    _say({"wrapper": "scripts/scale78b/oext_78b.py", "command": "lean", "family": fam.family, "engine": "X",
++             (lej, "OEXT_SETTINGS_PATH", idx.label("oext_eval")),
++             (oe, "load_pinned_settings", functools.partial(oe.load_pinned_settings, eval_path, eval_sha)), *w_pairs]
++    _say({"wrapper": "scripts/scale78b/oext_78b.py", "command": "lean", "family": idx.family, "engine": "X",
++          "index_sha256": idx.sha256,
+           "settings": {"lean_eval_job": lean_sha, "oext_eval": eval_sha, "limits_overrefusal_checks": w_sha}})
+     with patched(pairs):
+         return lej.main(args, loaders=loaders)
+ 
+ 
+-def run_w1_18(fam: Family, args: list[str]) -> int:
++def run_w1_18(idx: Index, args: list[str]) -> int:
+     check_code(COMMAND_CODE["w1_18"])
+-    fam.require("w1_18")
+-    w_path, w_sha, _ = fam.file("limits_overrefusal_checks")
++    idx.require("w1_18")
++    w_path, w_sha, _ = idx.file("limits_overrefusal_checks")
+     w1 = module("scripts.stage1.limits.overrefusal_checks")
+-    _say({"wrapper": "scripts/scale78b/oext_78b.py", "command": "w1_18", "family": fam.family, "engine": "X",
+-          "settings": {"limits_overrefusal_checks": w_sha}})
++    _say({"wrapper": "scripts/scale78b/oext_78b.py", "command": "w1_18", "family": idx.family, "engine": "X",
++          "index_sha256": idx.sha256, "settings": {"limits_overrefusal_checks": w_sha}})
+     with patched([(w1, "SETTINGS_PATH", w_path), (w1, "SETTINGS_SHA256", w_sha)]):
+         return w1.main([*args, "--settings", str(w_path)])
+ 
+ 
+-def run_check(index: dict, families) -> int:
+-    """$0: every family's files against the index, and what each command waits for (pins and events, no text)."""
+-    report = {"index_sha256": INDEX_SHA256, "code": check_code(sorted(CODE)), "families": {}}
+-    for family in families:
+-        fam = Family(index, family)
+-        files = {role: fam.file(role)[1] for role in fam.block["files"]}
+-        ready = {key: [w["pin"] for w in fam.waits_for(roles)] for key, roles in NEEDS.items()}
+-        report["families"][family] = {"branch": fam.block["branch"], "files": files, "waits": ready}
++# ----- the check ($0) ------------------------------------------------------------------------------------------------
++
++
++def validate_one(idx: Index, role: str, path: Path, sha: str, doc: dict) -> None:
++    """One settings file through its unchanged 1B validator, with its true path label."""
++    ou, oe = module("scripts.stage1_s1.oext_unit"), module("scripts.stage1_s1.oext_eval")
++    if role == "limits_overrefusal_checks":
++        module("scripts.stage1.limits.overrefusal_checks").check_content(doc)
++    elif role in ("oext_eval", "oext_eval_y"):
++        oe.load_pinned_settings(path, sha)
++    elif role in ("oext_unit", "oext_unit_y"):
++        eval_role = "oext_eval" if role == "oext_unit" else "oext_eval_y"
++        with patched([(ou, "OEXT_SETTINGS_PATH", idx.label(eval_role))]):
++            ou.load_pinned_settings(path, sha)
++    elif role == "lean_eval_job":
++        lej = module(LEAN_MODULE)
++        with patched([(lej, "OEXT_SETTINGS_PATH", idx.label("oext_eval"))]):
++            lej.load_lean_settings(path, sha)
++
++
++def check_settings_files(idx: Index) -> dict:
++    """Each listed settings file through its unchanged 1B validator with its true label (O-ext's W1-18 binding
++    included); a file whose role waits on a pin is reported as waiting, not loaded."""
++    w_pairs, _ = _w1_pairs(idx)
++    waiting = {r for w in idx.doc["waits"] for r in w["roles"]}
++    running = module("scripts.stage1.s1common").code_identity()["sha256"]
++    out = {}
++    with patched(w_pairs):
++        for role in sorted(idx.doc["files"]):
++            path, sha, doc = idx.file(role)
++            if doc.get("engine_x") != running:
++                out[role] = f"engine {doc.get('engine_x')} (validated only on that engine)"
++                continue
++            try:
++                validate_one(idx, role, path, sha, doc)
++            except Exception as exc:  # noqa: BLE001 - a 1B validator's refusal
++                if role not in waiting or type(exc).__name__ != "Refusal":
++                    raise
++                out[role] = f"waits ({type(exc).__name__}: {exc})"
++                continue
++            out[role] = "valid"
++    return out
++
++
++def check_w1_18_record(idx: Index, record: str) -> dict:
++    """R-6: the pinned W1-18 record through the unchanged oext_eval reader, under the family's O-ext settings and
++    W1-18 globals; its units must be the family's W1-18 units."""
++    oe = module("scripts.stage1_s1.oext_eval")
++    eval_role = "oext_eval" if idx.engine == "X" else "oext_eval_y"
++    eval_path, eval_sha, eval_doc = idx.file(eval_role)
++    _, _, w_doc = idx.file("limits_overrefusal_checks")
++    w_pairs, w_sha = _w1_pairs(idx)
++    with patched(w_pairs):
++        got = oe.read_w1_18(oe.Settings(eval_doc, eval_sha), record)   # the reader reads cap only (no engine check)
++    try:
++        units = strict_json(Path(record).read_bytes()).get("units") or {}
++    except (OSError, AttributeError):
++        units = {}
++    if sorted(units) != sorted(w_doc["units"]):
++        raise Refused(f"the W1-18 record {got.record_sha256} lists {len(units)} units, not the family's "
++                      f"{len(w_doc['units'])} W1-18 units")
++    return {"record_sha256": got.record_sha256, "branch": eval_doc["cap"]["branch"], "units": got.units,
++            "settings_sha256": w_sha, "consistent": True}
++
++
++def check_side_units(idx: Index, data_root: str) -> dict:
++    """R-9: each listed side unit's COMPLETE.json, read by its pin, lists every file W1-18 reads by name with a
++    SHA-256, and each present file's bytes hash to it (hashed, never parsed); job.json equals its pin where filled."""
++    _, _, w_doc = idx.file("limits_overrefusal_checks")
++    root = Path(data_root).resolve()
++    report, problems = {}, []
++    for name, spec in sorted(w_doc["units"].items()):
++        folder = (root / spec["path"]).resolve()
++        entry = {"complete_sha256": spec["complete_sha256"], "files": {}}
++        report[name] = entry
++        if root not in folder.parents:
++            problems.append(f"{name}: its path leaves the data root")
++            continue
++        try:
++            data = (folder / "COMPLETE.json").read_bytes()
++        except OSError as exc:
++            problems.append(f"{name}: COMPLETE.json cannot be read ({type(exc).__name__})")
++            continue
++        if sha256_bytes(data) != spec["complete_sha256"]:
++            problems.append(f"{name}: COMPLETE.json hashes to {sha256_bytes(data)}, the settings pin "
++                            f"{spec['complete_sha256']}")
++            continue
++        marker = strict_json(data)
++        listed = marker.get("files") if isinstance(marker, dict) else None
++        if not isinstance(listed, dict) or marker.get("complete") is not True:
++            problems.append(f"{name}: COMPLETE.json is not a complete marker with a file list")
++            continue
++        for pattern in W1_18_UNIT_FILES:
++            rel = pattern.format(checkpoint=spec["checkpoint"])
++            digest = listed.get(rel)
++            if rel == "job.json" and digest is None:
++                digest = marker.get("job_sha256")                 # an engine unit names job.json beside its list
++            state = "listed"
++            if not isinstance(digest, str) or not HEX64.match(digest):
++                state = "not listed"
++                problems.append(f"{name}: COMPLETE.json lists no SHA-256 for {rel}")
++            elif not (folder / rel).is_file():
++                state = "missing"
++                problems.append(f"{name}: {rel} is listed ({digest}) but absent")
++            elif sha256_file(folder / rel) != digest:
++                state = "differs"
++                problems.append(f"{name}: {rel} does not hash to the listed {digest}")
++            entry["files"][rel] = {"sha256": digest if isinstance(digest, str) else None, "state": state}
++        job_pin = spec.get("job_sha256")
++        job = entry["files"].get("job.json", {})
++        if job_pin is None:
++            entry["job_pin"] = "null (waits)"
++        elif job.get("sha256") != job_pin or job.get("state") != "listed":
++            entry["job_pin"] = "differs"
++            problems.append(f"{name}: job.json is {job.get('sha256')}, the settings pin {job_pin}")
++        else:
++            entry["job_pin"] = "equal"
++    return {"units": report, "problems": problems}
++
++
++def run_check(idx: Index, args: list[str]) -> int:
++    check_code(ENGINE_CODE[idx.engine])
++    report = {"family": idx.family, "engine": idx.engine, "index_sha256": idx.sha256, "branch": idx.doc["branch"],
++              "code": {name: CODE[name] for name in ENGINE_CODE[idx.engine]},
++              "files": {role: entry["sha256"] for role, entry in idx.doc["files"].items()},
++              "settings": check_settings_files(idx),
++              "waits": {key: [w["pin"] for w in idx.waits_for(NEEDS[key])] for key in ENGINE_KEYS[idx.engine]}}
++    record = one_value(args, "--w1-18-record")
++    eval_role = "oext_eval" if idx.engine == "X" else "oext_eval_y"
++    pin = idx.file(eval_role)[2]["cap"]["w1_18"]["record_sha256"]
++    if record is not None:
++        report["w1_18_record"] = check_w1_18_record(idx, record)
++    elif pin is not None:
++        raise Refused(f"the family's O-ext settings pin W1-18's record {pin}: give it with --w1-18-record (R-6)")
++    data_root = one_value(args, "--data-root")
++    if data_root is not None:
++        report["side_units"] = check_side_units(idx, data_root)
+     print(json.dumps(report, indent=2, sort_keys=True))
++    if data_root is not None and report["side_units"]["problems"]:
++        _say({"ok": False, "refused": f"oext_78b: {len(report['side_units']['problems'])} side-unit problems "
++                                      f"(first: {report['side_units']['problems'][0]})"})
++        return EXIT_REFUSED
+     return 0
+ 
+ 
+@@ -424,22 +600,32 @@
+     """The command line. ``loaders`` replaces the engine's real loaders (ENGINEERING FIXTURES in tests only)."""
+     argv = list(sys.argv[1:] if argv is None else argv)
+     try:
+-        command, family, engine, args = split_argv(argv)
++        command, opts, args = split_argv(argv)
+         if command == "lean":
+             module(LEAN_MODULE)                  # before the index, the settings and the engine (c0's timer origin)
+-        index = load_index()
+-        if command == "check":
+-            return run_check(index, [family] if family else list(FAMILIES))
+         sub = check_flags(command, args)
+-        fam = Family(index, family)
++        if command in ("lean", "w1_18") and opts["engine"] != "X":
++            raise Refused(f"{command} runs on engine X only")
++        idx = Index(opts["index"], opts["index_sha256"], opts["family"], opts["engine"])
++        if command == "check":
++            return run_check(idx, args)
+         if command == "unit":
+-            return run_unit(fam, engine, args, loaders)
++            return run_unit(idx, args, loaders)
+         if command == "lean":
+-            return run_lean(fam, args, sub, loaders)
+-        return run_w1_18(fam, args)
++            return run_lean(idx, args, sub, loaders)
++        return run_w1_18(idx, args)
+     except Refused as exc:
+         _say({"ok": False, "refused": f"oext_78b: {exc}"})
+         return EXIT_REFUSED
++    except Exception as exc:  # noqa: BLE001 - a 1B refusal raised in the check (the 1B validators and readers)
++        if command_of(argv) == "check" and type(exc).__name__ in ("Refusal", "ConfigError", "DataError"):
++            _say({"ok": False, "refused": f"oext_78b check: {type(exc).__name__}: {exc}"})
++            return EXIT_REFUSED
++        raise
++
++
++def command_of(argv: list[str]) -> str | None:
++    return argv[0] if argv else None
+ 
+ 
+ if __name__ == "__main__":
+diff -ruN prefix/scripts/scale78b/settings/OEXT-78B-Y__llama31-8b.json postfix/scripts/scale78b/settings/OEXT-78B-Y__llama31-8b.json
+--- prefix/scripts/scale78b/settings/OEXT-78B-Y__llama31-8b.json	1970-01-01 05:30:00
++++ postfix/scripts/scale78b/settings/OEXT-78B-Y__llama31-8b.json	2026-11-08 21:55:30
+@@ -0,0 +1,102 @@
++{
++  "base": {
++    "lean_eval_job": {
++      "path": "scripts/stage1_s1/settings/lean_eval_job.json",
++      "sha256": "b0ab19ec28946334e4a033897c1097894fdf5797507f6a516614afc1c2c22acd"
++    },
++    "limits_overrefusal_checks": {
++      "path": "scripts/stage1/settings/limits_overrefusal_checks.json",
++      "sha256": "bfa9a56fd0522de066cb04b6f84b99dffda54fbe4b297dc3e4c7f07961c4a41b"
++    },
++    "oext_eval": {
++      "path": "scripts/stage1_s1/settings/oext_eval.json",
++      "sha256": "2ad9893849248a8fb61d04cf7badbd7fb398915020f196904849d500df08f5a5"
++    },
++    "oext_eval_y": {
++      "path": "scripts/stage1_s1/settings/oext_eval_y.json",
++      "sha256": "80469a8f728d15192c360f26640c17b7ba652fbd969cfa45f43113c1defd76f0"
++    },
++    "oext_unit": {
++      "path": "scripts/stage1_s1/settings/oext_unit.json",
++      "sha256": "3959eae7264f56f613f5d7cd54e69081d8985ef7cbce2962243f6685e3581189"
++    },
++    "oext_unit_y": {
++      "path": "scripts/stage1_s1/settings/oext_unit_y.json",
++      "sha256": "80d08721284bbe94661d6fe2cdc58be259db8df66dc681403d7473155c715298"
++    }
++  },
++  "branch": "pending_w1_18",
++  "commands": [
++    "unit_y"
++  ],
++  "engine": "Y",
++  "family": "llama31-8b",
++  "files": {
++    "limits_overrefusal_checks": {
++      "file": "limits_overrefusal_checks__llama31-8b.json",
++      "sha256": "803955c629c8e357e78bda57d8cfe9a13106f475fcec32bc14db99ae01497949"
++    },
++    "oext_eval_y": {
++      "file": "oext_eval_y__llama31-8b.json",
++      "sha256": "70e31d080a34445f4a32ecdc412f5fe3db668cc10f33950f141a87769c3ec5ea"
++    },
++    "oext_unit_y": {
++      "file": "oext_unit_y__llama31-8b.json",
++      "sha256": "61f2ebb1fd689dcceab6d0df56a9c187563d71f63499cdddfd529ac1db593e57"
++    }
++  },
++  "inputs": {
++    "oext_bank": "6487ed2b9d5717d20b9bade8b51c2511cd6c83f597dafff983e8c391b1954162",
++    "oext_record": "a810574e958ca0e5773c583b0f1df630ff7acc1bb2fc32e5f0de1c63d8c37fa9"
++  },
++  "kind": "scale78b oext settings index",
++  "manifest_sha256": "c52a50afddcfcfa818512ac7f1536c34c959774e815095bd30f69320b083d55a",
++  "other_manifests": {
++    "olmo2-7b": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9"
++  },
++  "version": 2,
++  "w1_18_record_sha256": null,
++  "waits": [
++    {
++      "event": "addendum A13: the lead fills RK ENGINE_Y when the Y retrain is packed; the same identity in oext_pins_78b.json shared.engine_y",
++      "pin": "ENGINE_Y",
++      "roles": [
++        "oext_eval_y",
++        "oext_unit_y"
++      ],
++      "where": [
++        "shared.engine_y"
++      ]
++    },
++    {
++      "event": "B+Qi's config on engine Y (RK RECIPE_BQI[family]; DESO2 item 24 (c)): its config_sha256 in oext_pins_78b.json families.<family>.recipe_bqi",
++      "pin": "RECIPE_BQI",
++      "roles": [
++        "oext_unit_y"
++      ],
++      "where": [
++        "families.llama31-8b.recipe_bqi"
++      ]
++    },
++    {
++      "event": "theta0's job.json SHA-256 (no committed record names it): the lead hashes the side unit's job.json, checks it equals the job_sha256 its COMPLETE.json names, and records it in oext_pins_78b.json families.<family>.units.untuned.job_sha256 by a recorded step",
++      "pin": "THETA0_JOB",
++      "roles": [
++        "limits_overrefusal_checks"
++      ],
++      "where": [
++        "families.llama31-8b.units.untuned.job_sha256"
++      ]
++    },
++    {
++      "event": "the family's 7-8B W1-18 check (DES E2; DESO2 item 37: one pod, one check per family, its own record, GXB O4): the lead pins the record's SHA-256 and the branch it gives (128 if every unit passes, else full; Branch full with a full_reason if the check cannot run or does not finish) in oext_pins_78b.json families.<family>.w1_18 by a recorded step",
++      "pin": "W1_18_BRANCH",
++      "roles": [
++        "oext_eval_y"
++      ],
++      "where": [
++        "families.llama31-8b.w1_18"
++      ]
++    }
++  ]
++}
+diff -ruN prefix/scripts/scale78b/settings/OEXT-78B-Y__olmo2-7b.json postfix/scripts/scale78b/settings/OEXT-78B-Y__olmo2-7b.json
+--- prefix/scripts/scale78b/settings/OEXT-78B-Y__olmo2-7b.json	1970-01-01 05:30:00
++++ postfix/scripts/scale78b/settings/OEXT-78B-Y__olmo2-7b.json	2026-11-08 21:55:30
+@@ -0,0 +1,102 @@
++{
++  "base": {
++    "lean_eval_job": {
++      "path": "scripts/stage1_s1/settings/lean_eval_job.json",
++      "sha256": "b0ab19ec28946334e4a033897c1097894fdf5797507f6a516614afc1c2c22acd"
++    },
++    "limits_overrefusal_checks": {
++      "path": "scripts/stage1/settings/limits_overrefusal_checks.json",
++      "sha256": "bfa9a56fd0522de066cb04b6f84b99dffda54fbe4b297dc3e4c7f07961c4a41b"
++    },
++    "oext_eval": {
++      "path": "scripts/stage1_s1/settings/oext_eval.json",
++      "sha256": "2ad9893849248a8fb61d04cf7badbd7fb398915020f196904849d500df08f5a5"
++    },
++    "oext_eval_y": {
++      "path": "scripts/stage1_s1/settings/oext_eval_y.json",
++      "sha256": "80469a8f728d15192c360f26640c17b7ba652fbd969cfa45f43113c1defd76f0"
++    },
++    "oext_unit": {
++      "path": "scripts/stage1_s1/settings/oext_unit.json",
++      "sha256": "3959eae7264f56f613f5d7cd54e69081d8985ef7cbce2962243f6685e3581189"
++    },
++    "oext_unit_y": {
++      "path": "scripts/stage1_s1/settings/oext_unit_y.json",
++      "sha256": "80d08721284bbe94661d6fe2cdc58be259db8df66dc681403d7473155c715298"
++    }
++  },
++  "branch": "pending_w1_18",
++  "commands": [
++    "unit_y"
++  ],
++  "engine": "Y",
++  "family": "olmo2-7b",
++  "files": {
++    "limits_overrefusal_checks": {
++      "file": "limits_overrefusal_checks__olmo2-7b.json",
++      "sha256": "529fda92f6201f2455bd416f64ca8deb737da9dbb8c5e548b7e77a67c8f8e26f"
++    },
++    "oext_eval_y": {
++      "file": "oext_eval_y__olmo2-7b.json",
++      "sha256": "4e120dd8b585d9067c2e0c002fd9af3c05d1010f6544d16a2e42793cbcdb27fb"
++    },
++    "oext_unit_y": {
++      "file": "oext_unit_y__olmo2-7b.json",
++      "sha256": "536fe1f71b9b201886c53cb1f22bdcc5f1e74d48737bcc0b74f2b36004b40472"
++    }
++  },
++  "inputs": {
++    "oext_bank": "6487ed2b9d5717d20b9bade8b51c2511cd6c83f597dafff983e8c391b1954162",
++    "oext_record": "a810574e958ca0e5773c583b0f1df630ff7acc1bb2fc32e5f0de1c63d8c37fa9"
++  },
++  "kind": "scale78b oext settings index",
++  "manifest_sha256": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
++  "other_manifests": {
++    "llama31-8b": "c52a50afddcfcfa818512ac7f1536c34c959774e815095bd30f69320b083d55a"
++  },
++  "version": 2,
++  "w1_18_record_sha256": null,
++  "waits": [
++    {
++      "event": "addendum A13: the lead fills RK ENGINE_Y when the Y retrain is packed; the same identity in oext_pins_78b.json shared.engine_y",
++      "pin": "ENGINE_Y",
++      "roles": [
++        "oext_eval_y",
++        "oext_unit_y"
++      ],
++      "where": [
++        "shared.engine_y"
++      ]
++    },
++    {
++      "event": "B+Qi's config on engine Y (RK RECIPE_BQI[family]; DESO2 item 24 (c)): its config_sha256 in oext_pins_78b.json families.<family>.recipe_bqi",
++      "pin": "RECIPE_BQI",
++      "roles": [
++        "oext_unit_y"
++      ],
++      "where": [
++        "families.olmo2-7b.recipe_bqi"
++      ]
++    },
++    {
++      "event": "theta0's job.json SHA-256 (no committed record names it): the lead hashes the side unit's job.json, checks it equals the job_sha256 its COMPLETE.json names, and records it in oext_pins_78b.json families.<family>.units.untuned.job_sha256 by a recorded step",
++      "pin": "THETA0_JOB",
++      "roles": [
++        "limits_overrefusal_checks"
++      ],
++      "where": [
++        "families.olmo2-7b.units.untuned.job_sha256"
++      ]
++    },
++    {
++      "event": "the family's 7-8B W1-18 check (DES E2; DESO2 item 37: one pod, one check per family, its own record, GXB O4): the lead pins the record's SHA-256 and the branch it gives (128 if every unit passes, else full; Branch full with a full_reason if the check cannot run or does not finish) in oext_pins_78b.json families.<family>.w1_18 by a recorded step",
++      "pin": "W1_18_BRANCH",
++      "roles": [
++        "oext_eval_y"
++      ],
++      "where": [
++        "families.olmo2-7b.w1_18"
++      ]
++    }
++  ]
++}
+diff -ruN prefix/scripts/scale78b/settings/OEXT-78B.json postfix/scripts/scale78b/settings/OEXT-78B.json
+--- prefix/scripts/scale78b/settings/OEXT-78B.json	2026-11-08 20:22:56
++++ postfix/scripts/scale78b/settings/OEXT-78B.json	1970-01-01 05:30:00
+@@ -1,219 +0,0 @@
+-{
+-  "base": {
+-    "lean_eval_job": {
+-      "path": "scripts/stage1_s1/settings/lean_eval_job.json",
+-      "sha256": "b0ab19ec28946334e4a033897c1097894fdf5797507f6a516614afc1c2c22acd"
+-    },
+-    "limits_overrefusal_checks": {
+-      "path": "scripts/stage1/settings/limits_overrefusal_checks.json",
+-      "sha256": "bfa9a56fd0522de066cb04b6f84b99dffda54fbe4b297dc3e4c7f07961c4a41b"
+-    },
+-    "oext_eval": {
+-      "path": "scripts/stage1_s1/settings/oext_eval.json",
+-      "sha256": "2ad9893849248a8fb61d04cf7badbd7fb398915020f196904849d500df08f5a5"
+-    },
+-    "oext_eval_y": {
+-      "path": "scripts/stage1_s1/settings/oext_eval_y.json",
+-      "sha256": "80469a8f728d15192c360f26640c17b7ba652fbd969cfa45f43113c1defd76f0"
+-    },
+-    "oext_unit": {
+-      "path": "scripts/stage1_s1/settings/oext_unit.json",
+-      "sha256": "3959eae7264f56f613f5d7cd54e69081d8985ef7cbce2962243f6685e3581189"
+-    },
+-    "oext_unit_y": {
+-      "path": "scripts/stage1_s1/settings/oext_unit_y.json",
+-      "sha256": "80d08721284bbe94661d6fe2cdc58be259db8df66dc681403d7473155c715298"
+-    }
+-  },
+-  "command_roles": {
+-    "lean": [
+-      "lean_eval_job",
+-      "oext_eval"
+-    ],
+-    "unit": [
+-      "oext_unit",
+-      "oext_eval"
+-    ],
+-    "unit_y": [
+-      "oext_unit_y",
+-      "oext_eval_y"
+-    ],
+-    "w1_18": [
+-      "limits_overrefusal_checks"
+-    ]
+-  },
+-  "families": {
+-    "llama31-8b": {
+-      "branch": "pending_w1_18",
+-      "files": {
+-        "lean_eval_job": {
+-          "file": "lean_eval_job__llama31-8b.json",
+-          "sha256": "6a59eb9cba288575e304cf0f7b1412528fe4f28ac4e01ffa207ffeda27154f2b"
+-        },
+-        "limits_overrefusal_checks": {
+-          "file": "limits_overrefusal_checks__llama31-8b.json",
+-          "sha256": "cbf2ddfc2e4c725d5469e4f7a3da14e27f9c0aba27bb577b9bdbc310801e826a"
+-        },
+-        "oext_eval": {
+-          "file": "oext_eval__llama31-8b.json",
+-          "sha256": "1174a17d57269f66c5af1ec3e3f0441da889fa415ffa5217b0943dc46b1e3764"
+-        },
+-        "oext_eval_y": {
+-          "file": "oext_eval_y__llama31-8b.json",
+-          "sha256": "71cb6b44fbae9fdf43ff1485da0436a7b608bbcde25427e5c9e58b088712c33c"
+-        },
+-        "oext_unit": {
+-          "file": "oext_unit__llama31-8b.json",
+-          "sha256": "59d004884bbcbd1233737066c453f8b87bb096aa40407690c7d2c85bf13556b4"
+-        },
+-        "oext_unit_y": {
+-          "file": "oext_unit_y__llama31-8b.json",
+-          "sha256": "6d4e84ec10a5b29826e1243ca985709bd359a671c37045553c834478e2751336"
+-        }
+-      },
+-      "manifest_sha256": "c52a50afddcfcfa818512ac7f1536c34c959774e815095bd30f69320b083d55a",
+-      "w1_18_record_sha256": null,
+-      "waits": [
+-        {
+-          "event": "addendum A13: the lead fills RK ENGINE_Y when the Y retrain is packed; the same identity in oext_pins_78b.json shared.engine_y",
+-          "pin": "ENGINE_Y",
+-          "roles": [
+-            "oext_eval_y",
+-            "oext_unit_y"
+-          ],
+-          "where": [
+-            "shared.engine_y"
+-          ]
+-        },
+-        {
+-          "event": "B+Qi's config on engine Y (RK RECIPE_BQI[family]; DESO2 item 24 (c)): its config_sha256 in oext_pins_78b.json families.<family>.recipe_bqi",
+-          "pin": "RECIPE_BQI",
+-          "roles": [
+-            "oext_unit_y"
+-          ],
+-          "where": [
+-            "families.llama31-8b.recipe_bqi"
+-          ]
+-        },
+-        {
+-          "event": "the family's recipe-G config (DES F2; for Llama-3.1-8B the new LR 5e-5 config): the lead writes it and records its config_sha256 in oext_pins_78b.json families.<family>.recipe_g before OEXT_78B[family] is filled (GXB O11)",
+-          "pin": "RECIPE_G",
+-          "roles": [
+-            "oext_unit"
+-          ],
+-          "where": [
+-            "families.llama31-8b.recipe_g"
+-          ]
+-        },
+-        {
+-          "event": "theta0's job.json SHA-256 (no committed record names it): the lead hashes the side unit's job.json, checks it equals the job_sha256 its COMPLETE.json names, and records it in oext_pins_78b.json families.<family>.units.untuned.job_sha256 by a recorded step",
+-          "pin": "THETA0_JOB",
+-          "roles": [
+-            "limits_overrefusal_checks"
+-          ],
+-          "where": [
+-            "families.llama31-8b.units.untuned.job_sha256"
+-          ]
+-        },
+-        {
+-          "event": "the family's 7-8B W1-18 check (DES E2; DESO2 item 37: one pod, one check per family, its own record, GXB O4): the lead pins the record's SHA-256 and the branch it gives (128 if every unit passes, else full; Branch full with a full_reason if the check cannot run or does not finish) in oext_pins_78b.json families.<family>.w1_18 by a recorded step",
+-          "pin": "W1_18_BRANCH",
+-          "roles": [
+-            "oext_eval",
+-            "oext_eval_y",
+-            "lean_eval_job"
+-          ],
+-          "where": [
+-            "families.llama31-8b.w1_18"
+-          ]
+-        }
+-      ]
+-    },
+-    "olmo2-7b": {
+-      "branch": "pending_w1_18",
+-      "files": {
+-        "lean_eval_job": {
+-          "file": "lean_eval_job__olmo2-7b.json",
+-          "sha256": "8cd529e153544bd744bb369dd130b24f5dad5be530ec895ae780a6c29dbf3e46"
+-        },
+-        "limits_overrefusal_checks": {
+-          "file": "limits_overrefusal_checks__olmo2-7b.json",
+-          "sha256": "6eb41c4a1a741f9714a61d9003727c67617c7c898a131128fb14e63cdc7e7c98"
+-        },
+-        "oext_eval": {
+-          "file": "oext_eval__olmo2-7b.json",
+-          "sha256": "632ec4de5134f746634351837b52fe316313b65d99ab4a81a52620618c9518a1"
+-        },
+-        "oext_eval_y": {
+-          "file": "oext_eval_y__olmo2-7b.json",
+-          "sha256": "f89088a332da2532ec7cded50747f7710d3dc721b5ec2d4d18d978423a9e2115"
+-        },
+-        "oext_unit": {
+-          "file": "oext_unit__olmo2-7b.json",
+-          "sha256": "3c1289e4253de32b6026c848cebfbb8f7568695b00b8c9fccea1566d8f112b21"
+-        },
+-        "oext_unit_y": {
+-          "file": "oext_unit_y__olmo2-7b.json",
+-          "sha256": "3c1ef9d79758350121517d2b792081450ffeb0e340a7135b7793bf2c46aa3d60"
+-        }
+-      },
+-      "manifest_sha256": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
+-      "w1_18_record_sha256": null,
+-      "waits": [
+-        {
+-          "event": "addendum A13: the lead fills RK ENGINE_Y when the Y retrain is packed; the same identity in oext_pins_78b.json shared.engine_y",
+-          "pin": "ENGINE_Y",
+-          "roles": [
+-            "oext_eval_y",
+-            "oext_unit_y"
+-          ],
+-          "where": [
+-            "shared.engine_y"
+-          ]
+-        },
+-        {
+-          "event": "B+Qi's config on engine Y (RK RECIPE_BQI[family]; DESO2 item 24 (c)): its config_sha256 in oext_pins_78b.json families.<family>.recipe_bqi",
+-          "pin": "RECIPE_BQI",
+-          "roles": [
+-            "oext_unit_y"
+-          ],
+-          "where": [
+-            "families.olmo2-7b.recipe_bqi"
+-          ]
+-        },
+-        {
+-          "event": "theta0's job.json SHA-256 (no committed record names it): the lead hashes the side unit's job.json, checks it equals the job_sha256 its COMPLETE.json names, and records it in oext_pins_78b.json families.<family>.units.untuned.job_sha256 by a recorded step",
+-          "pin": "THETA0_JOB",
+-          "roles": [
+-            "limits_overrefusal_checks"
+-          ],
+-          "where": [
+-            "families.olmo2-7b.units.untuned.job_sha256"
+-          ]
+-        },
+-        {
+-          "event": "the family's 7-8B W1-18 check (DES E2; DESO2 item 37: one pod, one check per family, its own record, GXB O4): the lead pins the record's SHA-256 and the branch it gives (128 if every unit passes, else full; Branch full with a full_reason if the check cannot run or does not finish) in oext_pins_78b.json families.<family>.w1_18 by a recorded step",
+-          "pin": "W1_18_BRANCH",
+-          "roles": [
+-            "oext_eval",
+-            "oext_eval_y",
+-            "lean_eval_job"
+-          ],
+-          "where": [
+-            "families.olmo2-7b.w1_18"
+-          ]
+-        }
+-      ]
+-    }
+-  },
+-  "inputs": {
+-    "oext_bank": "6487ed2b9d5717d20b9bade8b51c2511cd6c83f597dafff983e8c391b1954162",
+-    "oext_record": "a810574e958ca0e5773c583b0f1df630ff7acc1bb2fc32e5f0de1c63d8c37fa9"
+-  },
+-  "kind": "scale78b oext settings index",
+-  "pins_file": {
+-    "file": "oext_pins_78b.json",
+-    "sha256": "ad4458216104ae227471aaabcdfed83260a80337feecd3f43fdd3ba94d6361c0"
+-  },
+-  "version": 1
+-}
+diff -ruN prefix/scripts/scale78b/settings/OEXT-78B__llama31-8b.json postfix/scripts/scale78b/settings/OEXT-78B__llama31-8b.json
+--- prefix/scripts/scale78b/settings/OEXT-78B__llama31-8b.json	1970-01-01 05:30:00
++++ postfix/scripts/scale78b/settings/OEXT-78B__llama31-8b.json	2026-11-08 21:55:30
+@@ -0,0 +1,98 @@
++{
++  "base": {
++    "lean_eval_job": {
++      "path": "scripts/stage1_s1/settings/lean_eval_job.json",
++      "sha256": "b0ab19ec28946334e4a033897c1097894fdf5797507f6a516614afc1c2c22acd"
++    },
++    "limits_overrefusal_checks": {
++      "path": "scripts/stage1/settings/limits_overrefusal_checks.json",
++      "sha256": "bfa9a56fd0522de066cb04b6f84b99dffda54fbe4b297dc3e4c7f07961c4a41b"
++    },
++    "oext_eval": {
++      "path": "scripts/stage1_s1/settings/oext_eval.json",
++      "sha256": "2ad9893849248a8fb61d04cf7badbd7fb398915020f196904849d500df08f5a5"
++    },
++    "oext_eval_y": {
++      "path": "scripts/stage1_s1/settings/oext_eval_y.json",
++      "sha256": "80469a8f728d15192c360f26640c17b7ba652fbd969cfa45f43113c1defd76f0"
++    },
++    "oext_unit": {
++      "path": "scripts/stage1_s1/settings/oext_unit.json",
++      "sha256": "3959eae7264f56f613f5d7cd54e69081d8985ef7cbce2962243f6685e3581189"
++    },
++    "oext_unit_y": {
++      "path": "scripts/stage1_s1/settings/oext_unit_y.json",
++      "sha256": "80d08721284bbe94661d6fe2cdc58be259db8df66dc681403d7473155c715298"
++    }
++  },
++  "branch": "pending_w1_18",
++  "commands": [
++    "unit",
++    "lean",
++    "w1_18"
++  ],
++  "engine": "X",
++  "family": "llama31-8b",
++  "files": {
++    "lean_eval_job": {
++      "file": "lean_eval_job__llama31-8b.json",
++      "sha256": "5910112f7882a974e4eec071df96e09036a0c2b4e9b833389b04796bf4b29f13"
++    },
++    "limits_overrefusal_checks": {
++      "file": "limits_overrefusal_checks__llama31-8b.json",
++      "sha256": "803955c629c8e357e78bda57d8cfe9a13106f475fcec32bc14db99ae01497949"
++    },
++    "oext_eval": {
++      "file": "oext_eval__llama31-8b.json",
++      "sha256": "43f21359f565e0c28d361d941639e0170d8dc8ea4be9d06a3a8e9e77faa61199"
++    },
++    "oext_unit": {
++      "file": "oext_unit__llama31-8b.json",
++      "sha256": "735f54a9cc573923e2fa36174064b63596c58f9eac0585c259a8e45e00ced845"
++    }
++  },
++  "inputs": {
++    "oext_bank": "6487ed2b9d5717d20b9bade8b51c2511cd6c83f597dafff983e8c391b1954162",
++    "oext_record": "a810574e958ca0e5773c583b0f1df630ff7acc1bb2fc32e5f0de1c63d8c37fa9"
++  },
++  "kind": "scale78b oext settings index",
++  "manifest_sha256": "c52a50afddcfcfa818512ac7f1536c34c959774e815095bd30f69320b083d55a",
++  "other_manifests": {
++    "olmo2-7b": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9"
++  },
++  "version": 2,
++  "w1_18_record_sha256": null,
++  "waits": [
++    {
++      "event": "the family's recipe-G config (DES F2; for Llama-3.1-8B the new LR 5e-5 config): the lead writes it and records its config_sha256 in oext_pins_78b.json families.<family>.recipe_g before OEXT_78B[family] is filled (GXB O11)",
++      "pin": "RECIPE_G",
++      "roles": [
++        "oext_unit"
++      ],
++      "where": [
++        "families.llama31-8b.recipe_g"
++      ]
++    },
++    {
++      "event": "theta0's job.json SHA-256 (no committed record names it): the lead hashes the side unit's job.json, checks it equals the job_sha256 its COMPLETE.json names, and records it in oext_pins_78b.json families.<family>.units.untuned.job_sha256 by a recorded step",
++      "pin": "THETA0_JOB",
++      "roles": [
++        "limits_overrefusal_checks"
++      ],
++      "where": [
++        "families.llama31-8b.units.untuned.job_sha256"
++      ]
++    },
++    {
++      "event": "the family's 7-8B W1-18 check (DES E2; DESO2 item 37: one pod, one check per family, its own record, GXB O4): the lead pins the record's SHA-256 and the branch it gives (128 if every unit passes, else full; Branch full with a full_reason if the check cannot run or does not finish) in oext_pins_78b.json families.<family>.w1_18 by a recorded step",
++      "pin": "W1_18_BRANCH",
++      "roles": [
++        "oext_eval",
++        "lean_eval_job"
++      ],
++      "where": [
++        "families.llama31-8b.w1_18"
++      ]
++    }
++  ]
++}
+diff -ruN prefix/scripts/scale78b/settings/OEXT-78B__olmo2-7b.json postfix/scripts/scale78b/settings/OEXT-78B__olmo2-7b.json
+--- prefix/scripts/scale78b/settings/OEXT-78B__olmo2-7b.json	1970-01-01 05:30:00
++++ postfix/scripts/scale78b/settings/OEXT-78B__olmo2-7b.json	2026-11-08 21:55:30
+@@ -0,0 +1,88 @@
++{
++  "base": {
++    "lean_eval_job": {
++      "path": "scripts/stage1_s1/settings/lean_eval_job.json",
++      "sha256": "b0ab19ec28946334e4a033897c1097894fdf5797507f6a516614afc1c2c22acd"
++    },
++    "limits_overrefusal_checks": {
++      "path": "scripts/stage1/settings/limits_overrefusal_checks.json",
++      "sha256": "bfa9a56fd0522de066cb04b6f84b99dffda54fbe4b297dc3e4c7f07961c4a41b"
++    },
++    "oext_eval": {
++      "path": "scripts/stage1_s1/settings/oext_eval.json",
++      "sha256": "2ad9893849248a8fb61d04cf7badbd7fb398915020f196904849d500df08f5a5"
++    },
++    "oext_eval_y": {
++      "path": "scripts/stage1_s1/settings/oext_eval_y.json",
++      "sha256": "80469a8f728d15192c360f26640c17b7ba652fbd969cfa45f43113c1defd76f0"
++    },
++    "oext_unit": {
++      "path": "scripts/stage1_s1/settings/oext_unit.json",
++      "sha256": "3959eae7264f56f613f5d7cd54e69081d8985ef7cbce2962243f6685e3581189"
++    },
++    "oext_unit_y": {
++      "path": "scripts/stage1_s1/settings/oext_unit_y.json",
++      "sha256": "80d08721284bbe94661d6fe2cdc58be259db8df66dc681403d7473155c715298"
++    }
++  },
++  "branch": "pending_w1_18",
++  "commands": [
++    "unit",
++    "lean",
++    "w1_18"
++  ],
++  "engine": "X",
++  "family": "olmo2-7b",
++  "files": {
++    "lean_eval_job": {
++      "file": "lean_eval_job__olmo2-7b.json",
++      "sha256": "29beac94b27c0c90fcf8e572c7f22d7049fa5f67e4483e38792aa1a5b38dc8d3"
++    },
++    "limits_overrefusal_checks": {
++      "file": "limits_overrefusal_checks__olmo2-7b.json",
++      "sha256": "529fda92f6201f2455bd416f64ca8deb737da9dbb8c5e548b7e77a67c8f8e26f"
++    },
++    "oext_eval": {
++      "file": "oext_eval__olmo2-7b.json",
++      "sha256": "1323d4f84ef3b9c5c57046deab9da0c03c3a5e416a37b16d4c9f198d67dfd88d"
++    },
++    "oext_unit": {
++      "file": "oext_unit__olmo2-7b.json",
++      "sha256": "0d2572d9160e8e95ea0eac196cc34e10f298ad20dd4cffc6fed859b3912536b4"
++    }
++  },
++  "inputs": {
++    "oext_bank": "6487ed2b9d5717d20b9bade8b51c2511cd6c83f597dafff983e8c391b1954162",
++    "oext_record": "a810574e958ca0e5773c583b0f1df630ff7acc1bb2fc32e5f0de1c63d8c37fa9"
++  },
++  "kind": "scale78b oext settings index",
++  "manifest_sha256": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
++  "other_manifests": {
++    "llama31-8b": "c52a50afddcfcfa818512ac7f1536c34c959774e815095bd30f69320b083d55a"
++  },
++  "version": 2,
++  "w1_18_record_sha256": null,
++  "waits": [
++    {
++      "event": "theta0's job.json SHA-256 (no committed record names it): the lead hashes the side unit's job.json, checks it equals the job_sha256 its COMPLETE.json names, and records it in oext_pins_78b.json families.<family>.units.untuned.job_sha256 by a recorded step",
++      "pin": "THETA0_JOB",
++      "roles": [
++        "limits_overrefusal_checks"
++      ],
++      "where": [
++        "families.olmo2-7b.units.untuned.job_sha256"
++      ]
++    },
++    {
++      "event": "the family's 7-8B W1-18 check (DES E2; DESO2 item 37: one pod, one check per family, its own record, GXB O4): the lead pins the record's SHA-256 and the branch it gives (128 if every unit passes, else full; Branch full with a full_reason if the check cannot run or does not finish) in oext_pins_78b.json families.<family>.w1_18 by a recorded step",
++      "pin": "W1_18_BRANCH",
++      "roles": [
++        "oext_eval",
++        "lean_eval_job"
++      ],
++      "where": [
++        "families.olmo2-7b.w1_18"
++      ]
++    }
++  ]
++}
+diff -ruN prefix/scripts/scale78b/settings/lean_eval_job__llama31-8b.json postfix/scripts/scale78b/settings/lean_eval_job__llama31-8b.json
+--- prefix/scripts/scale78b/settings/lean_eval_job__llama31-8b.json	2026-11-08 20:22:56
++++ postfix/scripts/scale78b/settings/lean_eval_job__llama31-8b.json	2026-11-08 21:55:30
+@@ -104,7 +104,7 @@
+     "rule": "Addendum section 11 point 1: scripts/stage1_s1/oext_eval.py (pinned by its file's SHA-256), its settings (pinned by SHA-256) and the cap branch those settings hold (section 13: the branch comes from W1-18's record made on the first stage-1 pod). A re-pin (a new branch, the bank record, W1-18's record) is one edit together with B10's section oext and oext_eval.py's literal (a B15 pre-launch check, with addendum section 11 point 7's engine re-pin).",
+     "settings": {
+       "path": "scripts/scale78b/settings/oext_eval__llama31-8b.json",
+-      "sha256": "1174a17d57269f66c5af1ec3e3f0441da889fa415ffa5217b0943dc46b1e3764"
++      "sha256": "43f21359f565e0c28d361d941639e0170d8dc8ea4be9d06a3a8e9e77faa61199"
+     }
+   },
+   "owner": "scripts/scale78b/lean_eval_job_78b.py",
+diff -ruN prefix/scripts/scale78b/settings/lean_eval_job__olmo2-7b.json postfix/scripts/scale78b/settings/lean_eval_job__olmo2-7b.json
+--- prefix/scripts/scale78b/settings/lean_eval_job__olmo2-7b.json	2026-11-08 20:22:56
++++ postfix/scripts/scale78b/settings/lean_eval_job__olmo2-7b.json	2026-11-08 21:55:30
+@@ -104,7 +104,7 @@
+     "rule": "Addendum section 11 point 1: scripts/stage1_s1/oext_eval.py (pinned by its file's SHA-256), its settings (pinned by SHA-256) and the cap branch those settings hold (section 13: the branch comes from W1-18's record made on the first stage-1 pod). A re-pin (a new branch, the bank record, W1-18's record) is one edit together with B10's section oext and oext_eval.py's literal (a B15 pre-launch check, with addendum section 11 point 7's engine re-pin).",
+     "settings": {
+       "path": "scripts/scale78b/settings/oext_eval__olmo2-7b.json",
+-      "sha256": "632ec4de5134f746634351837b52fe316313b65d99ab4a81a52620618c9518a1"
++      "sha256": "1323d4f84ef3b9c5c57046deab9da0c03c3a5e416a37b16d4c9f198d67dfd88d"
+     }
+   },
+   "owner": "scripts/scale78b/lean_eval_job_78b.py",
+diff -ruN prefix/scripts/scale78b/settings/limits_overrefusal_checks__llama31-8b.json postfix/scripts/scale78b/settings/limits_overrefusal_checks__llama31-8b.json
+--- prefix/scripts/scale78b/settings/limits_overrefusal_checks__llama31-8b.json	2026-11-08 20:22:56
++++ postfix/scripts/scale78b/settings/limits_overrefusal_checks__llama31-8b.json	2026-11-08 21:55:30
+@@ -29,7 +29,7 @@
+     }
+   },
+   "judge": {
+-    "device": "mps",
++    "device": "cuda",
+     "flag": "valid and refusal 'Yes' (an invalid judge answer counts as not refused)",
+     "loader": "experiments.safety_selection.loaders._load_guard and load_tokenizer (read-only use; offline, cached snapshots only)",
+     "recipe": "experiments/safety_selection/configs/study-kt-llama31-8b-r64-b5e5-mb2-20261010.json",
+diff -ruN prefix/scripts/scale78b/settings/limits_overrefusal_checks__olmo2-7b.json postfix/scripts/scale78b/settings/limits_overrefusal_checks__olmo2-7b.json
+--- prefix/scripts/scale78b/settings/limits_overrefusal_checks__olmo2-7b.json	2026-11-08 20:22:56
++++ postfix/scripts/scale78b/settings/limits_overrefusal_checks__olmo2-7b.json	2026-11-08 21:55:30
+@@ -29,7 +29,7 @@
+     }
+   },
+   "judge": {
+-    "device": "mps",
++    "device": "cuda",
+     "flag": "valid and refusal 'Yes' (an invalid judge answer counts as not refused)",
+     "loader": "experiments.safety_selection.loaders._load_guard and load_tokenizer (read-only use; offline, cached snapshots only)",
+     "recipe": "experiments/safety_selection/configs/study-kt-olmo2-7b-r64-b-mb2-20261008.json",
+diff -ruN prefix/scripts/scale78b/settings/oext_eval__llama31-8b.json postfix/scripts/scale78b/settings/oext_eval__llama31-8b.json
+--- prefix/scripts/scale78b/settings/oext_eval__llama31-8b.json	2026-11-08 20:22:56
++++ postfix/scripts/scale78b/settings/oext_eval__llama31-8b.json	2026-11-08 21:55:30
+@@ -43,7 +43,7 @@
+       "record_kind": "stage1 over-refusal checks",
+       "record_sha256": null,
+       "script": "scripts/stage1/limits/overrefusal_checks.py",
+-      "settings_sha256": "cbf2ddfc2e4c725d5469e4f7a3da14e27f9c0aba27bb577b9bdbc310801e826a"
++      "settings_sha256": "803955c629c8e357e78bda57d8cfe9a13106f475fcec32bc14db99ae01497949"
+     }
+   },
+   "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+diff -ruN prefix/scripts/scale78b/settings/oext_eval__olmo2-7b.json postfix/scripts/scale78b/settings/oext_eval__olmo2-7b.json
+--- prefix/scripts/scale78b/settings/oext_eval__olmo2-7b.json	2026-11-08 20:22:56
++++ postfix/scripts/scale78b/settings/oext_eval__olmo2-7b.json	2026-11-08 21:55:30
+@@ -43,7 +43,7 @@
+       "record_kind": "stage1 over-refusal checks",
+       "record_sha256": null,
+       "script": "scripts/stage1/limits/overrefusal_checks.py",
+-      "settings_sha256": "6eb41c4a1a741f9714a61d9003727c67617c7c898a131128fb14e63cdc7e7c98"
++      "settings_sha256": "529fda92f6201f2455bd416f64ca8deb737da9dbb8c5e548b7e77a67c8f8e26f"
+     }
+   },
+   "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+diff -ruN prefix/scripts/scale78b/settings/oext_eval_y__llama31-8b.json postfix/scripts/scale78b/settings/oext_eval_y__llama31-8b.json
+--- prefix/scripts/scale78b/settings/oext_eval_y__llama31-8b.json	2026-11-08 20:22:56
++++ postfix/scripts/scale78b/settings/oext_eval_y__llama31-8b.json	2026-11-08 21:55:30
+@@ -43,7 +43,7 @@
+       "record_kind": "stage1 over-refusal checks",
+       "record_sha256": null,
+       "script": "scripts/stage1/limits/overrefusal_checks.py",
+-      "settings_sha256": "cbf2ddfc2e4c725d5469e4f7a3da14e27f9c0aba27bb577b9bdbc310801e826a"
++      "settings_sha256": "803955c629c8e357e78bda57d8cfe9a13106f475fcec32bc14db99ae01497949"
+     }
+   },
+   "engine_x": null,
+diff -ruN prefix/scripts/scale78b/settings/oext_eval_y__olmo2-7b.json postfix/scripts/scale78b/settings/oext_eval_y__olmo2-7b.json
+--- prefix/scripts/scale78b/settings/oext_eval_y__olmo2-7b.json	2026-11-08 20:22:56
++++ postfix/scripts/scale78b/settings/oext_eval_y__olmo2-7b.json	2026-11-08 21:55:30
+@@ -43,7 +43,7 @@
+       "record_kind": "stage1 over-refusal checks",
+       "record_sha256": null,
+       "script": "scripts/stage1/limits/overrefusal_checks.py",
+-      "settings_sha256": "6eb41c4a1a741f9714a61d9003727c67617c7c898a131128fb14e63cdc7e7c98"
++      "settings_sha256": "529fda92f6201f2455bd416f64ca8deb737da9dbb8c5e548b7e77a67c8f8e26f"
+     }
+   },
+   "engine_x": null,
+diff -ruN prefix/scripts/scale78b/settings/oext_unit__llama31-8b.json postfix/scripts/scale78b/settings/oext_unit__llama31-8b.json
+--- prefix/scripts/scale78b/settings/oext_unit__llama31-8b.json	2026-11-08 20:22:56
++++ postfix/scripts/scale78b/settings/oext_unit__llama31-8b.json	2026-11-08 21:55:30
+@@ -40,7 +40,7 @@
+     "rule": "every O-ext rule (the bank, the cap branch, W1-18's cut and flag, O with equal weights, the LN-14 bar) is oext_eval.py's, called and never re-implemented; the module and its settings are pinned here by SHA-256, and the branch is the one those settings hold; a re-pin of oext_eval (a branch, the bank record, W1-18's record, an engine) re-pins this section and this script's SETTINGS_SHA256 literal in the same edit (addendum section 11 point 7)",
+     "settings": {
+       "path": "scripts/scale78b/settings/oext_eval__llama31-8b.json",
+-      "sha256": "1174a17d57269f66c5af1ec3e3f0441da889fa415ffa5217b0943dc46b1e3764"
++      "sha256": "43f21359f565e0c28d361d941639e0170d8dc8ea4be9d06a3a8e9e77faa61199"
+     }
+   },
+   "outputs": {
+diff -ruN prefix/scripts/scale78b/settings/oext_unit__olmo2-7b.json postfix/scripts/scale78b/settings/oext_unit__olmo2-7b.json
+--- prefix/scripts/scale78b/settings/oext_unit__olmo2-7b.json	2026-11-08 20:22:56
++++ postfix/scripts/scale78b/settings/oext_unit__olmo2-7b.json	2026-11-08 21:55:30
+@@ -40,7 +40,7 @@
+     "rule": "every O-ext rule (the bank, the cap branch, W1-18's cut and flag, O with equal weights, the LN-14 bar) is oext_eval.py's, called and never re-implemented; the module and its settings are pinned here by SHA-256, and the branch is the one those settings hold; a re-pin of oext_eval (a branch, the bank record, W1-18's record, an engine) re-pins this section and this script's SETTINGS_SHA256 literal in the same edit (addendum section 11 point 7)",
+     "settings": {
+       "path": "scripts/scale78b/settings/oext_eval__olmo2-7b.json",
+-      "sha256": "632ec4de5134f746634351837b52fe316313b65d99ab4a81a52620618c9518a1"
++      "sha256": "1323d4f84ef3b9c5c57046deab9da0c03c3a5e416a37b16d4c9f198d67dfd88d"
+     }
+   },
+   "outputs": {
+diff -ruN prefix/scripts/scale78b/settings/oext_unit_y__llama31-8b.json postfix/scripts/scale78b/settings/oext_unit_y__llama31-8b.json
+--- prefix/scripts/scale78b/settings/oext_unit_y__llama31-8b.json	2026-11-08 20:22:56
++++ postfix/scripts/scale78b/settings/oext_unit_y__llama31-8b.json	2026-11-08 21:55:30
+@@ -40,7 +40,7 @@
+     "rule": "every O-ext rule (the bank, the cap branch, W1-18's cut and flag, O with equal weights, the LN-14 bar) is oext_eval.py's, called and never re-implemented; the module and its settings are pinned here by SHA-256, and the branch is the one those settings hold; a re-pin of oext_eval (a branch, the bank record, W1-18's record, an engine) re-pins this section and this script's SETTINGS_SHA256 literal in the same edit (addendum section 11 point 7); engine Y (addendum section 34 point 3): settings.path names the file at its place in engine Y's pack, where pack_setup.py puts settings/oext_eval_y.json (the SHA-256 here), and module_sha256 is engine X's oext_eval.py, packed unchanged, so the O-ext function is one and the same on both engines",
+     "settings": {
+       "path": "scripts/scale78b/settings/oext_eval_y__llama31-8b.json",
+-      "sha256": "71cb6b44fbae9fdf43ff1485da0436a7b608bbcde25427e5c9e58b088712c33c"
++      "sha256": "70e31d080a34445f4a32ecdc412f5fe3db668cc10f33950f141a87769c3ec5ea"
+     }
+   },
+   "outputs": {
+diff -ruN prefix/scripts/scale78b/settings/oext_unit_y__olmo2-7b.json postfix/scripts/scale78b/settings/oext_unit_y__olmo2-7b.json
+--- prefix/scripts/scale78b/settings/oext_unit_y__olmo2-7b.json	2026-11-08 20:22:56
++++ postfix/scripts/scale78b/settings/oext_unit_y__olmo2-7b.json	2026-11-08 21:55:30
+@@ -40,7 +40,7 @@
+     "rule": "every O-ext rule (the bank, the cap branch, W1-18's cut and flag, O with equal weights, the LN-14 bar) is oext_eval.py's, called and never re-implemented; the module and its settings are pinned here by SHA-256, and the branch is the one those settings hold; a re-pin of oext_eval (a branch, the bank record, W1-18's record, an engine) re-pins this section and this script's SETTINGS_SHA256 literal in the same edit (addendum section 11 point 7); engine Y (addendum section 34 point 3): settings.path names the file at its place in engine Y's pack, where pack_setup.py puts settings/oext_eval_y.json (the SHA-256 here), and module_sha256 is engine X's oext_eval.py, packed unchanged, so the O-ext function is one and the same on both engines",
+     "settings": {
+       "path": "scripts/scale78b/settings/oext_eval_y__olmo2-7b.json",
+-      "sha256": "f89088a332da2532ec7cded50747f7710d3dc721b5ec2d4d18d978423a9e2115"
++      "sha256": "4e120dd8b585d9067c2e0c002fd9af3c05d1010f6544d16a2e42793cbcdb27fb"
+     }
+   },
+   "outputs": {
+diff -ruN prefix/scripts/scale78b/tests/oext/mutation_spec_oext_78b.json postfix/scripts/scale78b/tests/oext/mutation_spec_oext_78b.json
+--- prefix/scripts/scale78b/tests/oext/mutation_spec_oext_78b.json	2026-11-08 20:47:36
++++ postfix/scripts/scale78b/tests/oext/mutation_spec_oext_78b.json	2026-11-08 22:03:27
+@@ -1,13 +1,13 @@
+ {
+- "kind": "scale78b oext mutation spec (R1 Track O)",
+- "note": "each mutant's find text occurs exactly once in its file (a path under scripts/scale78b); runner: tests/oext/run_mutants_oext_78b.py (the suite scripts/scale78b/tests/oext)",
++ "kind": "scale78b oext mutation spec (R1 Track O, fix round)",
++ "note": "each mutant's find text occurs exactly once in its file (a path under scripts/scale78b); runner: tests/oext/run_mutants_oext_78b.py (the suite scripts/scale78b/tests/oext). Fix round: the R1 spec's stale finds updated (9), the verifier's 11 proposed mutants (V-*, adapted to the per-index design) and 15 new ones for R-5 to R-9.",
+  "mutants": [
+   {
+    "id": "O-w-unit-label",
+    "describes": "unit: the O-ext settings path label is not set to the family's file",
+    "file": "oext_78b.py",
+-   "find": "             (ou, \"OEXT_SETTINGS_PATH\", fam.label(eval_role)),\n",
+-   "replace": ""
++   "find": "             (ou, \"OEXT_SETTINGS_PATH\", idx.label(eval_role)), *w_pairs]\n",
++   "replace": "             *w_pairs]\n"
+   },
+   {
+    "id": "O-w-unit-1b-oext",
+@@ -27,8 +27,8 @@
+    "id": "O-w-unit-no-w1",
+    "describes": "unit: W1-18's globals keep the 1B settings (oext_eval's binding reads the 1B file)",
+    "file": "oext_78b.py",
+-   "find": "             (ou, \"OEXT_SETTINGS_PATH\", fam.label(eval_role)),\n             (w1, \"SETTINGS_PATH\", w_path), (w1, \"SETTINGS_SHA256\", w_sha)]\n",
+-   "replace": "             (ou, \"OEXT_SETTINGS_PATH\", fam.label(eval_role))]\n"
++   "find": "             (ou, \"OEXT_SETTINGS_PATH\", idx.label(eval_role)), *w_pairs]\n",
++   "replace": "             (ou, \"OEXT_SETTINGS_PATH\", idx.label(eval_role))]\n"
+   },
+   {
+    "id": "O-w-no-restore",
+@@ -69,21 +69,21 @@
+    "id": "O-w-needs-w1",
+    "describes": "the w1_18 command ignores theta0's job pin",
+    "file": "oext_78b.py",
+-   "find": "         \"lean\": (\"lean_eval_job\", \"oext_eval\"), \"w1_18\": (\"limits_overrefusal_checks\",)}\n# Every",
+-   "replace": "         \"lean\": (\"lean_eval_job\", \"oext_eval\"), \"w1_18\": ()}\n# Every"
++   "find": "         \"lean\": (\"lean_eval_job\", \"oext_eval\"), \"w1_18\": (\"limits_overrefusal_checks\",)}\nENGINE_KEYS",
++   "replace": "         \"lean\": (\"lean_eval_job\", \"oext_eval\"), \"w1_18\": ()}\nENGINE_KEYS"
+   },
+   {
+    "id": "O-w-manifest-off",
+    "describes": "--prepared is not checked against the family's manifest",
+    "file": "oext_78b.py",
+-   "find": "    if digest != manifest_pin:\n",
++   "find": "    if digest != idx.manifest:\n",
+    "replace": "    if False:\n"
+   },
+   {
+    "id": "O-w-other-label",
+    "describes": "the refusal does not name the other family's manifest",
+    "file": "oext_78b.py",
+-   "find": "        which = \" (the other family's manifest)\" if digest == other_pin else \"\"\n",
++   "find": "        which = \" (the other family's manifest)\" if digest in idx.other_manifests.values() else \"\"\n",
+    "replace": "        which = \"\"\n"
+   },
+   {
+@@ -125,8 +125,8 @@
+    "id": "O-w-index-pin",
+    "describes": "the index is not checked against INDEX_SHA256",
+    "file": "oext_78b.py",
+-   "find": "    if sha256_bytes(data) != expected:\n",
+-   "replace": "    if False:\n"
++   "find": "        if digest != expected_sha256:\n",
++   "replace": "        if False:\n"
+   },
+   {
+    "id": "O-w-file-pin",
+@@ -153,7 +153,7 @@
+    "id": "O-w-lean-label",
+    "describes": "lean: the copy's O-ext settings path label is not set",
+    "file": "oext_78b.py",
+-   "find": "             (lej, \"OEXT_SETTINGS_PATH\", fam.label(\"oext_eval\")),\n",
++   "find": "             (lej, \"OEXT_SETTINGS_PATH\", idx.label(\"oext_eval\")),\n",
+    "replace": ""
+   },
+   {
+@@ -181,15 +181,15 @@
+    "id": "O-w-engine-y",
+    "describes": "--engine Y runs engine X's files",
+    "file": "oext_78b.py",
+-   "find": "    key = \"unit\" if engine == \"X\" else \"unit_y\"\n",
++   "find": "    key = \"unit\" if idx.engine == \"X\" else \"unit_y\"\n",
+    "replace": "    key = \"unit\"\n"
+   },
+   {
+    "id": "O-w-engine-y-lean",
+    "describes": "--engine Y is taken by the lean command",
+    "file": "oext_78b.py",
+-   "find": "    if engine not in ENGINES or (engine == \"Y\" and command != \"unit\"):\n",
+-   "replace": "    if engine not in ENGINES:\n"
++   "find": "    if opts[\"engine\"] not in ENGINES or (opts[\"engine\"] == \"Y\" and command not in (\"unit\", \"check\")):\n",
++   "replace": "    if opts[\"engine\"] not in ENGINES:\n"
+   },
+   {
+    "id": "O-m-g-wait",
+@@ -288,6 +288,188 @@
+    "file": "lean_eval_job_78b.py",
+    "find": "    if (oext[\"module\"], pin[\"path\"]) != (oe.OWNER, OEXT_SETTINGS_PATH):\n",
+    "replace": "    if (oext[\"module\"], pin[\"path\"]) != (oe.OWNER, \"scripts/stage1_s1/settings/oext_eval.json\"):\n"
++  },
++  {
++   "id": "V-w-label-from-file",
++   "describes": "unit: the O-ext path label is taken from the settings file itself (a label lie passes)",
++   "file": "oext_78b.py",
++   "find": "             (ou, \"OEXT_SETTINGS_PATH\", idx.label(eval_role)), *w_pairs]\n",
++   "replace": "             (ou, \"OEXT_SETTINGS_PATH\", unit_doc[\"oext\"][\"settings\"][\"path\"]), *w_pairs]\n"
++  },
++  {
++   "id": "V-w-lean-label-from-file",
++   "describes": "lean: the copy's O-ext path label is taken from the lean settings file itself",
++   "file": "oext_78b.py",
++   "find": "             (lej, \"OEXT_SETTINGS_PATH\", idx.label(\"oext_eval\")),\n             (oe,",
++   "replace": "             (lej, \"OEXT_SETTINGS_PATH\", strict_json(lean_path.read_bytes())[\"oext\"][\"settings\"][\"path\"]),\n             (oe,"
++  },
++  {
++   "id": "V-w-restore-success-only",
++   "describes": "the globals are restored only when the call returns (not when it raises)",
++   "file": "oext_78b.py",
++   "find": "    try:\n        for obj, name, value in pairs:\n            setattr(obj, name, value)\n        yield\n    finally:\n        for obj, name, value in reversed(saved):\n            setattr(obj, name, value)\n",
++   "replace": "    for obj, name, value in pairs:\n        setattr(obj, name, value)\n    yield\n    for obj, name, value in reversed(saved):\n        setattr(obj, name, value)\n"
++  },
++  {
++   "id": "V-w-lean-no-manifest",
++   "describes": "lean: --prepared is not checked against the family's manifest",
++   "file": "oext_78b.py",
++   "find": "    lean_path, lean_sha, _ = idx.file(\"lean_eval_job\")\n    eval_path, eval_sha, eval_doc = idx.file(\"oext_eval\")\n    check_prepared(args, idx)\n",
++   "replace": "    lean_path, lean_sha, _ = idx.file(\"lean_eval_job\")\n    eval_path, eval_sha, eval_doc = idx.file(\"oext_eval\")\n"
++  },
++  {
++   "id": "V-w-lean-no-branch-flags",
++   "describes": "lean: the wrapper does not check Branch 128's flags",
++   "file": "oext_78b.py",
++   "find": "    check_branch_flags(args, eval_doc, unit=False)\n",
++   "replace": ""
++  },
++  {
++   "id": "V-w-lean-code",
++   "describes": "lean: the run files are not hashed against CODE",
++   "file": "oext_78b.py",
++   "find": "    check_code(COMMAND_CODE[\"lean\"])\n",
++   "replace": ""
++  },
++  {
++   "id": "V-w-w1-code",
++   "describes": "w1_18: the run files are not hashed against CODE",
++   "file": "oext_78b.py",
++   "find": "    check_code(COMMAND_CODE[\"w1_18\"])\n",
++   "replace": ""
++  },
++  {
++   "id": "V-w-unit-manifest-consistency",
++   "describes": "unit: the settings' manifest is not compared with the index's",
++   "file": "oext_78b.py",
++   "find": "    if unit_doc[\"prepared\"][\"manifest_sha256\"] != idx.manifest:\n",
++   "replace": "    if False:\n"
++  },
++  {
++   "id": "V-m-form-roles",
++   "describes": "a kit form lists only the unit settings file of its index",
++   "file": "make_oext_settings_78b.py",
++   "find": "    for entry in index[\"files\"].values():\n        out[f\"scripts/scale78b/settings/{entry",
++   "replace": "    for entry in [e for r, e in index[\"files\"].items() if r.startswith(\"oext_unit\")]:\n        out[f\"scripts/scale78b/settings/{entry"
++  },
++  {
++   "id": "V-m-w1-manifest",
++   "describes": "the W1-18 settings keep the 1B prepared manifest",
++   "file": "make_oext_settings_78b.py",
++   "find": "        doc[\"prepared\"][\"manifest_sha256\"] = self.pins[\"manifest_sha256\"]\n        doc[\"prepared\"][\"path\"]",
++   "replace": "        doc[\"prepared\"][\"path\"]"
++  },
++  {
++   "id": "V-m-w1-prepared-path",
++   "describes": "the W1-18 settings keep the 1B prepared path",
++   "file": "make_oext_settings_78b.py",
++   "find": "        doc[\"prepared\"][\"path\"] = self.pins[\"prepared_path\"]\n",
++   "replace": ""
++  },
++  {
++   "id": "R5-w-index-name",
++   "describes": "the index's file name is not checked against the family and engine",
++   "file": "oext_78b.py",
++   "find": "        if path.name != wanted:\n",
++   "replace": "        if False:\n"
++  },
++  {
++   "id": "R5-w-index-content",
++   "describes": "the index's family and engine fields are not checked",
++   "file": "oext_78b.py",
++   "find": "                (doc.get(\"family\"), doc.get(\"engine\")) != (family, engine):\n",
++   "replace": "                False:\n"
++  },
++  {
++   "id": "R5-m-waits-uncut",
++   "describes": "an index's waits keep every role (another engine's included)",
++   "file": "make_oext_settings_78b.py",
++   "find": "            mine = [r for r in entry[\"roles\"] if r in roles]\n",
++   "replace": "            mine = list(entry[\"roles\"])\n"
++  },
++  {
++   "id": "R5-m-index-shared",
++   "describes": "each index records the shared pins (ENGINE_Y reaches the X indexes)",
++   "file": "make_oext_settings_78b.py",
++   "find": "            doc[\"other_manifests\"] = {f: m for f, m in manifests.items() if f != family}\n",
++   "replace": "            doc[\"other_manifests\"] = {f: m for f, m in manifests.items() if f != family}\n            doc[\"shared\"] = dict(pins[\"shared\"])\n"
++  },
++  {
++   "id": "R6-w-record-not-read",
++   "describes": "check: the record is not read by oext_eval's reader",
++   "file": "oext_78b.py",
++   "find": "        report[\"w1_18_record\"] = check_w1_18_record(idx, record)\n",
++   "replace": "        report[\"w1_18_record\"] = {\"record_sha256\": None}\n"
++  },
++  {
++   "id": "R6-w-record-units",
++   "describes": "check: the record's units are not compared with the family's",
++   "file": "oext_78b.py",
++   "find": "    if sorted(units) != sorted(w_doc[\"units\"]):\n",
++   "replace": "    if False:\n"
++  },
++  {
++   "id": "R6-w-record-optional",
++   "describes": "check: a pinned record need not be given",
++   "file": "oext_78b.py",
++   "find": "    elif pin is not None:\n        raise Refused(f\"the family's O-ext settings pin W1-18's record",
++   "replace": "    elif False:\n        raise Refused(f\"the family's O-ext settings pin W1-18's record"
++  },
++  {
++   "id": "R6-w-no-validation",
++   "describes": "check: the settings files are not run through the 1B validators",
++   "file": "oext_78b.py",
++   "find": "                validate_one(idx, role, path, sha, doc)\n",
++   "replace": "                pass\n"
++  },
++  {
++   "id": "R7-m-device",
++   "describes": "the 7-8B W1-18 settings keep the 1B Mac device",
++   "file": "make_oext_settings_78b.py",
++   "find": "revision=guard[\"revision\"], device=\"cuda\")",
++   "replace": "revision=guard[\"revision\"])"
++  },
++  {
++   "id": "R8-w-y-form-code",
++   "describes": "OEXT_78B_Y's form lists the lean copy (engine X's files)",
++   "file": "oext_78b.py",
++   "find": "ENGINE_CODE = {\"X\": tuple(CODE), \"Y\": COMMAND_CODE[\"unit\"]}",
++   "replace": "ENGINE_CODE = {\"X\": tuple(CODE), \"Y\": tuple(CODE)}"
++  },
++  {
++   "id": "R9-w-listing",
++   "describes": "check: a file W1-18 reads need not be listed",
++   "file": "oext_78b.py",
++   "find": "            if not isinstance(digest, str) or not HEX64.match(digest):\n",
++   "replace": "            if False:\n"
++  },
++  {
++   "id": "R9-w-hash",
++   "describes": "check: a listed file is not hashed",
++   "file": "oext_78b.py",
++   "find": "            elif sha256_file(folder / rel) != digest:\n",
++   "replace": "            elif False:\n"
++  },
++  {
++   "id": "R9-w-complete-pin",
++   "describes": "check: COMPLETE.json is not checked against its pin",
++   "file": "oext_78b.py",
++   "find": "        if sha256_bytes(data) != spec[\"complete_sha256\"]:\n",
++   "replace": "        if False:\n"
++  },
++  {
++   "id": "R9-w-job-pin",
++   "describes": "check: job.json is not checked against its pin",
++   "file": "oext_78b.py",
++   "find": "        elif job.get(\"sha256\") != job_pin or job.get(\"state\") != \"listed\":\n",
++   "replace": "        elif False:\n"
++  },
++  {
++   "id": "R9-w-exit",
++   "describes": "check: side-unit problems do not refuse",
++   "file": "oext_78b.py",
++   "find": "    if data_root is not None and report[\"side_units\"][\"problems\"]:\n",
++   "replace": "    if False:\n"
+   }
+  ]
+ }
+diff -ruN prefix/scripts/scale78b/tests/oext/oext78_fixtures.py postfix/scripts/scale78b/tests/oext/oext78_fixtures.py
+--- prefix/scripts/scale78b/tests/oext/oext78_fixtures.py	2026-11-08 20:29:34
++++ postfix/scripts/scale78b/tests/oext/oext78_fixtures.py	2026-11-08 21:56:32
+@@ -68,6 +68,7 @@
+         self.waits: list[dict] = []
+         self.branch = None
+         self.manifest = None
++        self.other_manifest = OTHER_MANIFEST          # per instance: a test that changes it changes only its own
+ 
+     def put(self, role: str, doc: dict) -> tuple[Path, str]:
+         path = self.dir / mk.file_name(role, self.family)
+@@ -77,22 +78,23 @@
+     def label(self, role: str) -> str:
+         return str((self.dir / mk.file_name(role, self.family)).resolve())
+ 
+-    def index(self) -> tuple[Path, str]:
+-        block = {"branch": self.branch, "w1_18_record_sha256": None, "manifest_sha256": self.manifest,
+-                 "files": {r: {"file": p.name, "sha256": h} for r, (p, h) in self.files.items()},
+-                 "waits": self.waits}
+-        other = {"branch": "pending_w1_18", "w1_18_record_sha256": None, "manifest_sha256": OTHER_MANIFEST,
+-                 "files": {}, "waits": []}
+-        doc = {"kind": w.INDEX_KIND, "version": 1, "families": {self.family: block, OTHER: other}}
+-        path = self.dir / mk.INDEX_NAME
++    def index(self, engine: str = "X") -> tuple[Path, str]:
++        """The family's index for ``engine`` (the maker's form, version 2): the files of that engine's roles."""
++        roles = mk.INDEX_ROLES[engine]
++        doc = {"kind": w.INDEX_KIND, "version": w.INDEX_VERSION, "family": self.family, "engine": engine,
++               "branch": self.branch, "w1_18_record_sha256": None, "manifest_sha256": self.manifest,
++               "other_manifests": {OTHER if self.family == FAMILY else FAMILY: self.other_manifest},
++               "files": {r: {"file": p.name, "sha256": h} for r, (p, h) in self.files.items() if r in roles},
++               "waits": [{**x, "roles": [r for r in x["roles"] if r in roles]} for x in self.waits
++                         if set(x["roles"]) & set(roles)],
++               "commands": list(mk.INDEX_COMMANDS[engine]), "inputs": {}, "base": {}}
++        path = self.dir / mk.index_name(self.family, engine)
+         return path, write(path, doc)
+ 
+-    @contextlib.contextmanager
+-    def active(self):
+-        """The wrapper reads this folder and index (its three module globals) inside the block."""
+-        path, digest = self.index()
+-        with w.patched([(w, "SETTINGS_DIR", self.dir), (w, "INDEX_PATH", path), (w, "INDEX_SHA256", digest)]):
+-            yield
++    def leading(self, engine: str = "X") -> list[str]:
++        """The wrapper's leading options for this family and engine, with a fresh index by path and SHA-256."""
++        path, digest = self.index(engine)
++        return ["--family", self.family, "--engine", engine, "--index", str(path), "--index-sha256", digest]
+ 
+ 
+ def oext_inputs(base: Path, fam: Family, *, branch: str, full_reason: str | None = None,
+@@ -161,9 +163,20 @@
+ 
+ 
+ def wrapper(env_or_fam, argv: list[str], **kwargs) -> tuple[int, str, str]:
++    """w.main with this family's fresh index named after the leading ``--family F [--engine E]`` of ``argv`` (the
++    other leading options are added; a test that gives its own --index passes argv to w.main itself)."""
+     fam = env_or_fam.fam if hasattr(env_or_fam, "fam") else env_or_fam
+-    with fam.active():
++    argv = list(argv)
++    engine, i = "X", 1
++    while i < len(argv) and argv[i] in ("--family", "--engine"):
++        if argv[i] == "--engine":
++            engine = argv[i + 1]
++        i += 2
++    if i == 1:                                  # no --family given: leave argv as it is (the refusal tests)
+         return call(w.main, argv, **kwargs)
++    index_path, digest = fam.index(engine)
++    argv[i:i] = ["--index", str(index_path), "--index-sha256", digest]
++    return call(w.main, argv, **kwargs)
+ 
+ 
+ def direct_unit(env: SimpleNamespace, args: list[str], unit_doc: dict, *, eval_role: str = "oext_eval",
+diff -ruN prefix/scripts/scale78b/tests/oext/test_oext_78b_check.py postfix/scripts/scale78b/tests/oext/test_oext_78b_check.py
+--- prefix/scripts/scale78b/tests/oext/test_oext_78b_check.py	1970-01-01 05:30:00
++++ postfix/scripts/scale78b/tests/oext/test_oext_78b_check.py	2026-11-08 22:01:48
+@@ -0,0 +1,212 @@
++"""The wrapper's $0 check (the fix round's R-6 and R-9) and W1-18's process hygiene, on W1-18's own ENGINEERING FIXTURES
++(synthetic units, a fake decoder and a fake judge; test_limits_fixtures):
++- R-6: a pinned W1-18 record is read on the Mac by the unchanged oext_eval reader under the family's O-ext settings and
++  W1-18 globals: the right record passes; a wrong-family, stale or wrong-branch record, a record of other units, and a
++  missing record refuse (exit 2, nothing written);
++- R-9: each side unit's COMPLETE.json, read by its pin, lists every file W1-18 reads by name and SHA-256, and the
++  present files hash to it (bytes hashed, never parsed); an unlisted file, a changed file, a COMPLETE.json off its pin
++  and a job.json off its pin are each reported and refuse;
++- W1-18 for both families in one process, each record naming its own settings; the globals restored when the 1B
++  main raises. None of these numbers is a scientific result."""
++
++from __future__ import annotations
++
++import copy
++import json
++from pathlib import Path
++
++import pytest
++
++import oext78_fixtures as f
++import test_limits_fixtures as tf
++
++w, oe, ofx, mk, s1 = f.w, f.oe, f.ofx, f.mk, f.s1
++w1 = oe.w1_18
++ORIG_W1 = (w1.SETTINGS_PATH, w1.SETTINGS_SHA256)
++TOOLS = {"device": "test", "judge": "a fake judge", "decoder": "a fake decoder"}
++KINDS = {"B-1101": "A", "G16-1101": "D"}                    # both pass W1-18's bar
++
++
++@pytest.fixture
++def fake_tools(monkeypatch):
++    def tools(doc, device, ledger_dir, guard_batch_size=None):
++        return tf.fake_judge_records, tf.fake_decode, TOOLS
++
++    monkeypatch.setattr(w1, "real_tools", tools)
++
++
++def family_with_record(tmp_path: Path, *, kinds=KINDS) -> tuple[f.Family, Path, Path]:
++    """A family whose W1-18 settings name synthetic units; its W1-18 record made by the wrapper; the data root."""
++    root = tmp_path / "data"
++    settings, _, _ = tf.build_checks(root, kinds)
++    fam = f.Family(tmp_path / "fam")
++    fam.manifest, fam.branch = settings["prepared"]["manifest_sha256"], "128"
++    fam.put("limits_overrefusal_checks", settings)
++    code, _, err = f.wrapper(fam, ["w1_18", "--family", f.FAMILY, "--out", str(tmp_path / "w"), "--data-root",
++                                   str(root)])
++    assert code == 0, err[-300:]
++    return fam, tmp_path / "w" / w1.OUTPUT, root
++
++
++def pin_record(fam: f.Family, record: Path | None, *, branch: str = "128") -> None:
++    """The family's O-ext settings (the 1B shape at W1-18's cut and bar) pinning ``record`` under ``branch``."""
++    doc = ofx.settings_doc(branch=branch, cut=128, dev=100, w1_18_sha256=None if record is None else f.sha(record))
++    doc["cap"]["w1_18"]["settings_sha256"] = fam.files["limits_overrefusal_checks"][1]
++    fam.put("oext_eval", doc)
++    fam.branch = branch
++
++
++def check(fam: f.Family, *extra: str):
++    code, out, err = f.wrapper(fam, ["check", "--family", f.FAMILY, *extra])
++    return code, (json.loads(out) if code == 0 else None), err
++
++
++# ----- R-6 ---------------------------------------------------------------------------------------------------------
++
++
++def test_the_pinned_record_passes_the_check(tmp_path, fake_tools):
++    fam, record, _ = family_with_record(tmp_path)
++    pin_record(fam, record)
++    code, report, err = check(fam, "--w1-18-record", str(record))
++    assert code == 0, err[-300:]
++    assert report["w1_18_record"] == {"record_sha256": f.sha(record), "branch": "128", "units": 2,
++                                      "settings_sha256": fam.files["limits_overrefusal_checks"][1], "consistent": True}
++    assert report["settings"] == {"limits_overrefusal_checks": "valid", "oext_eval": "valid"}
++
++
++def test_a_record_of_the_other_family_refuses(tmp_path, fake_tools):
++    """The record of another family's W1-18 settings, pinned by mistake (its hash is the pin): oext_eval's reader
++    refuses it by its provenance."""
++    fam, _, _ = family_with_record(tmp_path / "a")
++    other, other_record, _ = family_with_record(tmp_path / "b", kinds={"G-1101": "B", "B-1101": "A"})
++    pin_record(fam, other_record)
++    code, _, err = check(fam, "--w1-18-record", str(other_record))
++    assert code == 2 and "not made under the pinned W1-18 settings" in err
++
++
++def test_a_stale_record_refuses(tmp_path, fake_tools):
++    """A record made under an earlier version of the family's W1-18 settings (here: before a pin was edited)."""
++    fam, record, _ = family_with_record(tmp_path)
++    doc = json.loads(fam.files["limits_overrefusal_checks"][0].read_bytes())
++    doc["requirement"] = doc["requirement"] + " (edited after the run)"
++    fam.put("limits_overrefusal_checks", doc)
++    pin_record(fam, record)
++    code, _, err = check(fam, "--w1-18-record", str(record))
++    assert code == 2 and "not made under the pinned W1-18 settings" in err
++
++
++def test_a_record_whose_verdict_is_not_the_branch_refuses(tmp_path, fake_tools):
++    fam, record, _ = family_with_record(tmp_path, kinds={"G-1101": "B"})              # fails the bar
++    pin_record(fam, record, branch="128")
++    code, _, err = check(fam, "--w1-18-record", str(record))
++    assert code == 2 and "so the branch is full, not 128" in err
++    pin_record(fam, record, branch="full")
++    assert check(fam, "--w1-18-record", str(record))[0] == 0
++
++
++def test_a_record_of_other_units_and_a_missing_record_refuse(tmp_path, fake_tools):
++    fam, record, _ = family_with_record(tmp_path)
++    doc = json.loads(record.read_bytes())
++    doc["units"] = {"another": doc["units"]["B-1101"]}
++    other = tmp_path / "other-units.json"
++    f.write(other, doc)
++    pin_record(fam, other)
++    code, _, err = check(fam, "--w1-18-record", str(other))
++    assert code == 2 and "lists 1 units, not the family's 2 W1-18 units" in err
++    pin_record(fam, record)
++    code, _, err = check(fam)
++    assert code == 2 and f"pin W1-18's record {f.sha(record)}: give it with --w1-18-record" in err
++    pin_record(fam, None, branch=oe.PENDING)
++    code, _, err = check(fam, "--w1-18-record", str(record))
++    assert code == 2 and "the settings pin no W1-18 record, so none is read" in err
++
++
++# ----- R-9 ---------------------------------------------------------------------------------------------------------
++
++
++def side_units_family(tmp_path: Path):
++    root = tmp_path / "data"
++    settings, _, _ = tf.build_checks(root, KINDS)
++    fam = f.Family(tmp_path / "fam")
++    fam.manifest, fam.branch = settings["prepared"]["manifest_sha256"], oe.PENDING
++    fam.put("limits_overrefusal_checks", settings)
++    pin_record(fam, None, branch=oe.PENDING)
++    return fam, settings, root
++
++
++def test_every_side_unit_lists_the_files_w1_18_reads(tmp_path):
++    fam, settings, root = side_units_family(tmp_path)
++    code, report, err = check(fam, "--data-root", str(root))
++    assert code == 0, err[-300:]
++    units = report["side_units"]["units"]
++    assert sorted(units) == sorted(settings["units"]) and report["side_units"]["problems"] == []
++    for name, unit in units.items():
++        ck = settings["units"][name]["checkpoint"]
++        assert set(unit["files"]) == {"job.json", f"eval/{ck}/generations.jsonl", f"eval/{ck}/guard.jsonl"}
++        assert all(e["state"] == "listed" and f.hex64_in(e["sha256"]) for e in unit["files"].values())
++        assert unit["job_pin"] == "equal"
++    assert not any(t in json.dumps(report) for t in tf.SENTINELS)            # names and hashes only
++
++
++def _rewrite_complete(settings: dict, root: Path, name: str, change) -> None:
++    folder = root / settings["units"][name]["path"]
++    marker = json.loads((folder / "COMPLETE.json").read_bytes())
++    change(marker)
++    settings["units"][name]["complete_sha256"] = f.write(folder / "COMPLETE.json", marker)
++
++
++@pytest.mark.parametrize("case,needle", [
++    ("unlisted", "COMPLETE.json lists no SHA-256 for eval/e1/guard.jsonl"),
++    ("changed", "eval/e1/generations.jsonl does not hash to the listed"),
++    ("complete-off-pin", "COMPLETE.json hashes to"),
++    ("job-off-pin", "job.json is "),
++])
++def test_a_side_unit_that_does_not_list_or_hold_w1_18s_files_refuses(tmp_path, case, needle):
++    fam, settings, root = side_units_family(tmp_path)
++    name = "B-1101"
++    folder = root / settings["units"][name]["path"]
++    if case == "unlisted":
++        _rewrite_complete(settings, root, name, lambda m: m["files"].pop("eval/e1/guard.jsonl"))
++    elif case == "changed":
++        (folder / "eval" / "e1" / "generations.jsonl").write_bytes(b"{}\n")
++    elif case == "complete-off-pin":
++        settings["units"][name]["complete_sha256"] = "c" * 64
++    else:
++        settings["units"][name]["job_sha256"] = "d" * 64
++    fam.put("limits_overrefusal_checks", settings)
++    pin_record(fam, None, branch=oe.PENDING)                  # the O-ext settings name the edited W1-18 settings
++    code, out, err = f.wrapper(fam, ["check", "--family", f.FAMILY, "--data-root", str(root)])
++    assert code == 2 and needle in out + err, (out[-300:], err[-300:])
++    assert not any(t in out + err for t in tf.SENTINELS)
++
++
++# ----- W1-18 in one process ----------------------------------------------------------------------------------------
++
++
++def test_w1_18_for_both_families_in_one_process_names_each_familys_settings(tmp_path, fake_tools):
++    records, shas = {}, {}
++    for family, kinds in (("olmo2-7b", {"B-1101": "A"}), ("llama31-8b", {"G-1101": "B", "G16-1101": "D"})):
++        root = tmp_path / f"data-{family}"
++        settings, _, _ = tf.build_checks(root, kinds)
++        fam = f.Family(tmp_path / f"fam-{family}", family)
++        fam.manifest, fam.branch = settings["prepared"]["manifest_sha256"], oe.PENDING
++        _, shas[family] = fam.put("limits_overrefusal_checks", settings)
++        out = tmp_path / f"w-{family}"
++        code, _, err = f.wrapper(fam, ["w1_18", "--family", family, "--out", str(out), "--data-root", str(root)])
++        assert code == 0, err[-300:]
++        assert (w1.SETTINGS_PATH, w1.SETTINGS_SHA256) == ORIG_W1
++        records[family] = json.loads((out / w1.OUTPUT).read_bytes())
++    for family in records:
++        assert records[family]["provenance"]["settings_sha256"] == shas[family]
++    assert shas["olmo2-7b"] != shas["llama31-8b"]
++
++
++def test_w1_18s_globals_are_restored_when_the_1b_main_raises(tmp_path, monkeypatch):
++    def boom(*a, **k):
++        raise RuntimeError("fixture: the tools crash")
++
++    monkeypatch.setattr(w1, "real_tools", boom)
++    fam, _, root = side_units_family(tmp_path)
++    with pytest.raises(RuntimeError, match="fixture: the tools crash"):
++        w.main(["w1_18", *fam.leading(), "--out", str(tmp_path / "w"), "--data-root", str(root)])
++    assert (w1.SETTINGS_PATH, w1.SETTINGS_SHA256) == ORIG_W1
+diff -ruN prefix/scripts/scale78b/tests/oext/test_oext_78b_files.py postfix/scripts/scale78b/tests/oext/test_oext_78b_files.py
+--- prefix/scripts/scale78b/tests/oext/test_oext_78b_files.py	2026-11-08 20:35:54
++++ postfix/scripts/scale78b/tests/oext/test_oext_78b_files.py	2026-11-08 21:59:33
+@@ -1,10 +1,14 @@
+-"""The committed 7-8B O-ext files: the maker reproduces every settings file and the index; the index and the run files
+-are pinned; the 1B files are unchanged; the side units are RK's KIT a0_units with the committed job.json pins; the X
+-settings pass the unchanged 1B validators with their true path labels (and the 1B lean validator refuses that label:
+-the decisive check's seam lean_eval_job.py:229); Llama's recipe G, the branch, B+Qi, ENGINE_Y and theta0's job pin
+-wait with their events; MAIN_F's generation and guard blocks are the 1B pins; the two families differ only where they
+-should; RK's OEXT_78B form is printable. Standard files only: no unit, record of an outcome, or prompt is read."""
++"""The committed 7-8B O-ext files and the fill procedure (Track O and its fix round: R-5, R-7, R-8, O6, O11).
+ 
++The committed state is checked for consistency, never for pin values a fill would change (O6): the maker reproduces
++every file from the pins; each index lists its files by SHA-256, the family's branch and manifest, and exactly the
++waits the pins imply (a null pin is a wait); the side units are RK's KIT a0_units with the committed job.json pins
++where filled; every X settings file passes the unchanged 1B validators with its true label unless it waits on a pin;
++the W1-18 settings name the pod's device; the forms OEXT_78B[F] and OEXT_78B_Y[F] pass RK's check and list every file.
++The same checks run on temporary copies after each documented fill (they stay green), and a fill reaches only the
++indexes and forms of its family or engine (R-5; the verifier's cascade). The behaviour under null pins is tested on
++temporary copies whose pins are null. Standard files only: no unit, record of an outcome, or prompt is read."""
++
+ from __future__ import annotations
+ 
+ import copy
+@@ -23,23 +27,14 @@
+ w, mk, oe, ou, s1 = f.w, f.mk, f.oe, f.ou, f.s1
+ w1 = oe.w1_18
+ REPO = Path(w.__file__).resolve().parents[2]
+-ENGINE_X = "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892"
+ OXU = {"generation_sha256": "5ddced7af22b968f", "guard_sha256": "a7f0755b795f0ac4"}         # 1B oext_unit.json pins
+-MAIN = {"olmo2-7b": "18cc31d7117a2de7bc02382fe8a4d409fc43c91b434bf219a4808dfb26528d09",
+-        "llama31-8b": "74758af1791d9f7a8ce616adce7549b5b7b0619e55310158d7e21197ed129893"}
+-OLMO_G = "01259f288c566c3c8964c5c169c6544fdedb81b95469a75a49b8e9b490d10651"
+-MANIFESTS = {"olmo2-7b": "9ed61826f1634dcab5a7385f18556b108b3ba8db95fc17215fa4cf4f6cb993b9",
+-             "llama31-8b": "c52a50afddcfcfa818512ac7f1536c34c959774e815095bd30f69320b083d55a"}
+-INPUTS = {"oext_bank": "6487ed2b9d5717d20b9bade8b51c2511cd6c83f597dafff983e8c391b1954162",
+-          "oext_record": "a810574e958ca0e5773c583b0f1df630ff7acc1bb2fc32e5f0de1c63d8c37fa9"}
+-G16 = "8f150672832671902a20f552ffd75d2203d6ea105e98a8233c2823394e0b176c"
++G16 = "8f150672832671902a20f552ffd75d2203d6ea105e98a8233c2823394e0b176c"   # an OLMo-2-7B config, another generation
++LLAMA_G_1E4 = {"name": "study-kt-llama31-8b-r64-g-mb2-20261011",          # a stand-in for the LR 5e-5 G config
++               "config_sha256": "442f133fb1861a74b57fe250023db53d4389fc2bad54c99dcd46bd56af920493"}
+ G1_RECORD = ".ai/inputs/stage1-post-w1-20261023/78b/llama-g1-check-20261105.json"
++X_ROLES, Y_ROLES = mk.INDEX_ROLES["X"], mk.INDEX_ROLES["Y"]
+ 
+ 
+-def doc(role: str, family: str) -> dict:
+-    return json.loads((mk.SETTINGS_DIR / mk.file_name(role, family)).read_bytes())
+-
+-
+ def rk():
+     path = REPO / "runkit" / "stage1-78b" / "rules_78b.py"
+     spec = importlib.util.spec_from_file_location("rules_78b_for_track_o", path)
+@@ -48,42 +43,135 @@
+     return module
+ 
+ 
+-def bound(family: str):
+-    """The W1-18 globals and the O-ext path labels set as the wrapper sets them for this family's real files."""
+-    lej = w.module(w.LEAN_MODULE)
+-    fam = w.Family(w.load_index(), family)
+-    w_path, w_sha, _ = fam.file("limits_overrefusal_checks")
+-    return fam, w.patched([(w1, "SETTINGS_PATH", w_path), (w1, "SETTINGS_SHA256", w_sha),
+-                           (ou, "OEXT_SETTINGS_PATH", fam.label("oext_eval")),
+-                           (lej, "OEXT_SETTINGS_PATH", fam.label("oext_eval"))]), lej
++def load(settings_dir: Path, name: str) -> dict:
++    return json.loads((settings_dir / name).read_bytes())
+ 
+ 
+-# ----- the files and their pins ----------------------------------------------------------------------------------------
++def index_args(settings_dir: Path, family: str, engine: str) -> list[str]:
++    path = settings_dir / mk.index_name(family, engine)
++    return ["--family", family, "--engine", engine, "--index", str(path), "--index-sha256", f.sha(path)]
+ 
+ 
+-def test_the_maker_reproduces_every_file_and_the_index_is_pinned():
+-    pins, pins_sha = mk.load_pins()
+-    files = mk.derive_all(pins, pins_sha)
+-    assert len(files) == 13 and all((mk.SETTINGS_DIR / n).read_bytes() == d for n, d in files.items())
+-    assert f.call(mk.main, ["--check"])[0] == 0
+-    assert s1.sha256_bytes(files[mk.INDEX_NAME]) == w.INDEX_SHA256
+-    index = w.load_index()
+-    assert index["pins_file"]["sha256"] == f.sha(mk.PINS_PATH) and index["inputs"] == INPUTS
+-    for family in w.FAMILIES:
+-        block = index["families"][family]
+-        assert sorted(block["files"]) == sorted(mk.ROLES) and block["manifest_sha256"] == MANIFESTS[family]
+-        assert all(f.sha(mk.SETTINGS_DIR / e["file"]) == e["sha256"] for e in block["files"].values())
++def expected_waits(pins: dict) -> dict:
++    """{family: {engine: {pin: sorted roles}}} from the pins alone (a null pin waits), written independently of the
++    maker."""
++    out = {}
++    for family, fam in pins["families"].items():
++        x, y = {}, {}
++        if fam["w1_18"]["branch"] == oe.PENDING:
++            x["W1_18_BRANCH"], y["W1_18_BRANCH"] = ["lean_eval_job", "oext_eval"], ["oext_eval_y"]
++        if fam["units"]["untuned"]["job_sha256"] is None:
++            x["THETA0_JOB"] = y["THETA0_JOB"] = ["limits_overrefusal_checks"]
++        if any(u["job_sha256"] is None for n, u in fam["units"].items() if n != "untuned"):
++            x["UNIT_JOB"] = y["UNIT_JOB"] = ["limits_overrefusal_checks"]
++        if fam["recipe_g"]["config_sha256"] is None:
++            x["RECIPE_G"] = ["oext_unit"]
++        if fam["recipe_bqi"]["config_sha256"] is None:
++            y["RECIPE_BQI"] = ["oext_unit_y"]
++        if pins["shared"]["engine_y"] is None:
++            y["ENGINE_Y"] = ["oext_eval_y", "oext_unit_y"]
++        out[family] = {"X": x, "Y": y}
++    return out
+ 
+ 
++def w1_18_record_for(settings_dir: Path, family: str, folder: Path, passed: bool = True,
++                     settings_sha256: str | None = None) -> tuple[Path, str]:
++    """A text-free record in overrefusal_checks.json's shape (the fields oext_eval and the check read), made under the
++    family's W1-18 settings in ``settings_dir`` and listing its units (a stand-in: no unit is read)."""
++    limits = load(settings_dir, mk.file_name("limits_overrefusal_checks", family))
++    digest = settings_sha256 or f.sha(settings_dir / mk.file_name("limits_overrefusal_checks", family))
++    doc = {"kind": "stage1 over-refusal checks", "version": 1,
++           "units": {n: {"truncation": {"cap_tokens": 128, "pass": passed}} for n in limits["units"]},
++           "truncation_check": {"units": len(limits["units"]), "units_failing": [] if passed else ["x"],
++                                "pass": passed},
++           "provenance": {"settings_sha256": digest}}
++    folder.mkdir(parents=True, exist_ok=True)
++    path = folder / f"overrefusal_checks-{family}.json"
++    return path, f.write(path, doc)
++
++
++def run_check(settings_dir: Path, family: str, engine: str, *extra: str) -> tuple[int, dict | None, str]:
++    code, out, err = f.call(w.main, ["check", *index_args(settings_dir, family, engine), *extra])
++    return code, (json.loads(out) if code == 0 else None), err
++
++
++def consistency(settings_dir: Path, pins_path: Path, records: dict | None = None) -> None:
++    """Every committed-state check, on any settings folder and its pins file (the committed one or a fill's copy)."""
++    pins, _ = mk.load_pins(pins_path)
++    assert f.call(mk.main, ["--pins", str(pins_path), "--settings-dir", str(settings_dir), "--check"])[0] == 0
++    kit = rk().KIT
++    committed = {u["complete_sha256"]: u["job_sha256"] for u in json.loads((REPO / G1_RECORD).read_bytes())["units"]}
++    waits = expected_waits(pins)
++    code_x, code_y = w.code_pins("X"), w.code_pins("Y")
++    for family, fam in pins["families"].items():
++        for engine, roles in (("X", X_ROLES), ("Y", Y_ROLES)):
++            index = load(settings_dir, mk.index_name(family, engine))
++            assert (index["family"], index["engine"], index["version"]) == (family, engine, w.INDEX_VERSION)
++            assert sorted(index["files"]) == sorted(roles)
++            assert all(f.sha(settings_dir / e["file"]) == e["sha256"] for e in index["files"].values())
++            assert (index["branch"], index["manifest_sha256"]) == (fam["w1_18"]["branch"], fam["manifest_sha256"])
++            assert {x["pin"]: sorted(x["roles"]) for x in index["waits"]} == waits[family][engine]
++            assert all(x["event"] == mk.EVENTS[x["pin"]] for x in index["waits"])
++            assert index["other_manifests"] == {o: p["manifest_sha256"] for o, p in pins["families"].items()
++                                                if o != family}
++            form = mk.form(family, engine, mk.derive_all(pins, None, settings_dir), code_x if engine == "X" else code_y)
++            assert rk().oext_form_problem(form) is None
++            assert form["files"]["scripts/scale78b/settings/" + mk.index_name(family, engine)] == \
++                f.sha(settings_dir / mk.index_name(family, engine))
++            for entry in index["files"].values():
++                assert form["files"]["scripts/scale78b/settings/" + entry["file"]] == entry["sha256"]
++            extra = []
++            if fam["w1_18"]["record_sha256"] is not None:
++                extra = ["--w1-18-record", str(records[family])]
++            code, report, err = run_check(settings_dir, family, engine, *extra)
++            assert code == 0, err[-400:]
++            nulls = {r for pin, rs in waits[family][engine].items() if pin != "W1_18_BRANCH" for r in rs}
++            for role, state in report["settings"].items():
++                if role in ("oext_unit_y", "oext_eval_y"):          # engine Y's files: never validated on X
++                    assert state.startswith(f"engine {pins['shared']['engine_y']}")
++                elif role in nulls:
++                    assert state.startswith("waits (Refusal"), (family, engine, role, state)
++                else:
++                    assert state == "valid", (family, engine, role, state)
++        limits = load(settings_dir, mk.file_name("limits_overrefusal_checks", family))
++        expected = {("untuned" if s == "untuned" else f"a0-{s}"): u for s, u in kit[family]["a0_units"].items()}
++        assert sorted(limits["units"]) == sorted(expected)
++        for name, unit in limits["units"].items():
++            assert unit["complete_sha256"] == expected[name]["complete_sha256"]
++            assert "tmp/" + unit["path"] == expected[name]["path"]
++            assert (unit["arm"], unit["checkpoint"]) == ("a0", "init" if name == "untuned" else "e1")
++            if unit["job_sha256"] is not None and unit["complete_sha256"] in committed:
++                assert unit["job_sha256"] == committed[unit["complete_sha256"]]
++        assert limits["judge"]["device"] == "cuda"                                         # R-7
++        assert f.sha(REPO / limits["judge"]["recipe"]) == limits["judge"]["recipe_file_sha256"]
++        unit_doc = load(settings_dir, mk.file_name("oext_unit", family))
++        assert (unit_doc["recipes"]["generation_sha256"][:16], unit_doc["recipes"]["guard_sha256"][:16]) == \
++            (OXU["generation_sha256"], OXU["guard_sha256"])
++        assert unit_doc["recipes"]["allowed"] == {"MAIN": fam["main"]["config_sha256"],
++                                                  "G": fam["recipe_g"]["config_sha256"]}
++        for role, eval_role in (("oext_unit", "oext_eval"), ("oext_unit_y", "oext_eval_y"),
++                                ("lean_eval_job", "oext_eval")):
++            d = load(settings_dir, mk.file_name(role, family))
++            assert d["oext"]["settings"] == {"path": mk.label(settings_dir / mk.file_name(eval_role, family)),
++                                             "sha256": f.sha(settings_dir / mk.file_name(eval_role, family))}
++
++
++# ----- the committed state ---------------------------------------------------------------------------------------------
++
++
++def test_the_committed_state_is_consistent():
++    consistency(mk.SETTINGS_DIR, mk.PINS_PATH)
++
++
+ def test_the_run_files_are_pinned_and_the_1b_files_are_unchanged():
+     assert w.check_code(sorted(w.CODE)) == w.CODE
+     for role, (rel, digest) in mk.BASE.items():
+         assert f.sha(REPO / rel) == digest
+     assert w.CODE["scripts.stage1_s1.oext_eval"] == "8c4290921f32a5b4596a0bc40235cc5cf1185f73eaabeaa625c43bd19ba77719"
+-    assert w.CODE["scripts.stage1.limits.overrefusal_checks"].startswith("ed5fd2dcb5675d5f")
++    assert not hasattr(w, "INDEX_SHA256") and "OEXT-78B" not in json.dumps(w.CODE)        # R-5: no index literal
+     if shutil.which("git") and (REPO / ".git").exists():
+-        done = subprocess.run(["git", "-C", str(REPO), "diff", "--stat", "--", "scripts/stage1", "scripts/stage1_s1"],
+-                              capture_output=True, text=True, timeout=60)
++        done = subprocess.run(["git", "--no-optional-locks", "-C", str(REPO), "diff", "--stat", "--", "scripts/stage1",
++                               "scripts/stage1_s1"], capture_output=True, text=True, timeout=60)
+         assert done.returncode == 0 and done.stdout == ""
+ 
+ 
+@@ -93,121 +181,171 @@
+     assert code == 2 and "the 1B files stay byte for byte" in err
+ 
+ 
+-def test_the_side_units_are_rk_kit_a0_units_with_the_committed_job_pins():
+-    kit = rk().KIT
+-    record = REPO / G1_RECORD
+-    pins, _ = mk.load_pins()
+-    assert f.sha(record) == pins["job_source"]["sha256"]
+-    committed = {u["complete_sha256"]: u["job_sha256"] for u in json.loads(record.read_bytes())["units"]}
++def test_the_1b_validators_refuse_the_true_labels_without_the_wrapper():
++    """The decisive check (R1 Track O step 1): lean_eval_job.py:229 compares the label with a literal, so the 1B lean
++    job refuses a 7-8B settings file that names the file it reads; oext_unit.py:146 compares it with a module global,
++    which the wrapper sets. Hence the copy route for lean only."""
+     for family in w.FAMILIES:
+-        units = doc("limits_overrefusal_checks", family)["units"]
+-        expected = {("untuned" if s == "untuned" else f"a0-{s}"): u for s, u in kit[family]["a0_units"].items()}
+-        assert sorted(units) == sorted(expected)
+-        for name, unit in units.items():
+-            assert unit["complete_sha256"] == expected[name]["complete_sha256"]
+-            assert "tmp/" + unit["path"] == expected[name]["path"]
+-            assert (unit["arm"], unit["checkpoint"]) == ("a0", "init" if name == "untuned" else "e1")
+-            assert unit["job_sha256"] == committed.get(unit["complete_sha256"])        # theta0: not committed (null)
+-    assert [len(doc("limits_overrefusal_checks", f_)["units"]) for f_ in w.FAMILIES] == [4, 3]
++        with pytest.raises(s1.Refusal, match="oext names the O-ext module and its settings file"):
++            lej_1b.check_lean_settings(load(mk.SETTINGS_DIR, mk.file_name("lean_eval_job", family)))
++        with pytest.raises(s1.Refusal, match="oext names the O-ext module and its settings file"):
++            ou.validate_settings(load(mk.SETTINGS_DIR, mk.file_name("oext_unit", family)))
+ 
+ 
+-# ----- the 1B validators -----------------------------------------------------------------------------------------------
++def test_the_maker_prints_its_own_checkouts_wrapper_hash():
++    """O11: the forms name the wrapper beside the maker (loaded by file path), whatever root is first on sys.path."""
++    for flag, engine in (("--oext-78b", "X"), ("--oext-78b-y", "Y")):
++        code, out, _ = f.call(mk.main, [flag, "llama31-8b"])
++        form = json.loads(out)
++        assert code == 0 and form["files"]["scripts/scale78b/oext_78b.py"] == f.sha(mk.HERE / "oext_78b.py")
++        assert rk().oext_form_problem(form) is None
++        assert (f"scripts/scale78b/settings/{mk.index_name('llama31-8b', engine)}" in form["files"])
++    y = json.loads(f.call(mk.main, ["--oext-78b-y", "olmo2-7b"])[1])["files"]
++    assert "scripts/scale78b/lean_eval_job_78b.py" not in y and "scripts/scale78b/settings/oext_unit_y__olmo2-7b.json" in y
+ 
+ 
+-@pytest.mark.parametrize("family", ["olmo2-7b", "llama31-8b"])
+-def test_the_x_settings_pass_the_unchanged_1b_validators_with_their_true_labels(family):
+-    fam, patch, lej = bound(family)
+-    with patch:
+-        e_path, e_sha, _ = fam.file("oext_eval")
+-        loaded = oe.load_pinned_settings(e_path, e_sha)               # validate_settings and the W1-18 binding
+-        assert loaded.doc["cap"]["branch"] == oe.PENDING and loaded.doc["engine_x"] == ENGINE_X
+-        l_path, l_sha, l_doc = fam.file("lean_eval_job")
+-        assert lej.load_lean_settings(l_path, l_sha)[1] == l_sha
+-        assert l_doc["oext"]["settings"] == {"path": f"scripts/scale78b/settings/oext_eval__{family}.json",
+-                                             "sha256": e_sha}
+-        assert l_doc["job"]["allowed_recipes"] == {mk.Family(family, mk.load_pins()[0]["families"][family],
+-                                                             mk.load_pins()[0]["shared"]).main_name: MAIN[family]}
+-        u_path, u_sha, u_doc = fam.file("oext_unit")
+-        assert u_doc["oext"]["settings"] == l_doc["oext"]["settings"]
+-        if family == "olmo2-7b":
+-            assert ou.load_pinned_settings(u_path, u_sha).doc["recipes"]["allowed"] == {"MAIN": MAIN[family],
+-                                                                                        "G": OLMO_G}
+-        else:                                                     # GXB O11: Llama's LR 5e-5 G config is not written yet
+-            assert u_doc["recipes"]["allowed"] == {"MAIN": MAIN[family], "G": None}
+-            with pytest.raises(s1.Refusal, match="recipes.allowed.G must be a SHA-256"):
+-                ou.load_pinned_settings(u_path, u_sha)
++def test_no_settings_file_lies_at_the_copys_default_path():
++    assert not (mk.SETTINGS_DIR / "lean_eval_job.json").exists()
++    assert w.module(w.LEAN_MODULE).SETTINGS_PATH == mk.SETTINGS_DIR / "lean_eval_job.json"
+ 
+ 
+-def test_the_1b_validators_refuse_the_true_labels_without_the_wrapper():
+-    """The decisive check (R1 Track O step 1): lean_eval_job.py:229 compares the label with a literal, so the 1B lean
+-    job refuses a 7-8B settings file that names the file it reads; oext_unit.py:146 compares it with a module global,
+-    which the wrapper sets. Hence the copy route for lean only."""
+-    for family in w.FAMILIES:
+-        lean = doc("lean_eval_job", family)
+-        with pytest.raises(s1.Refusal, match="oext names the O-ext module and its settings file"):
+-            lej_1b.check_lean_settings(lean)
+-    with pytest.raises(s1.Refusal, match="oext names the O-ext module and its settings file"):
+-        ou.validate_settings(doc("oext_unit", "olmo2-7b"))
++# ----- fills on temporary copies -------------------------------------------------------------------------------------
+ 
+ 
+-def test_mainf_generation_and_guard_blocks_are_the_1b_pins():
+-    from experiments.safety_selection.common import canonical_json
+-    from experiments.safety_selection.config import load_recipe
++def fill_theta0(p, family="olmo2-7b"):
++    p["families"][family]["units"]["untuned"]["job_sha256"] = "b" * 64
+ 
++
++def fill_llama_g(p):
++    p["families"]["llama31-8b"]["recipe_g"] = dict(LLAMA_G_1E4)
++
++
++def fill_engine_y(p):
++    p["shared"]["engine_y"] = f.ENGINE_Y_FIXTURE
++
++
++def fill_bqi(p, family="olmo2-7b"):
++    p["families"][family]["recipe_bqi"] = dict(p["families"][family]["main"])          # a stand-in config
++
++
++FILLS = {"theta0-olmo": fill_theta0, "llama-g": fill_llama_g, "engine-y": fill_engine_y, "bqi-olmo": fill_bqi,
++         "branch-olmo": None, "everything": None}
++
++
++def make_copy(tmp_path: Path, name: str) -> tuple[Path, Path, dict]:
++    """The documented fill on a temporary copy: edit a copy of the pins, run the maker into a new settings folder.
++    Returns (settings folder, pins file, {family: W1-18 record path} for a filled branch)."""
+     pins, _ = mk.load_pins()
+-    for family in w.FAMILIES:
+-        u = doc("oext_unit", family)["recipes"]
+-        assert (u["generation_sha256"][:16], u["guard_sha256"][:16]) == (OXU["generation_sha256"], OXU["guard_sha256"])
+-        name = pins["families"][family]["main"]["name"]
+-        rec = load_recipe(REPO / "experiments" / "safety_selection" / "configs" / f"{name}.json")
+-        assert s1.sha256_bytes(canonical_json(rec["generation"])) == u["generation_sha256"]
+-        judge = doc("limits_overrefusal_checks", family)["judge"]
+-        assert judge["recipe"].endswith(f"{name}.json") and f.sha(REPO / judge["recipe"]) == judge["recipe_file_sha256"]
+-        assert (judge["repo_id"], judge["revision"]) == (rec["guard"]["repo_id"], rec["guard"]["revision"])
++    pins = copy.deepcopy(pins)
++    sdir, pins_path = tmp_path / "settings", tmp_path / "oext_pins_78b.json"
++    records = {}
++    steps = [FILLS[name]] if FILLS[name] else ([fill_theta0, fill_llama_g, fill_engine_y, fill_bqi,
++                                                 lambda p: fill_bqi(p, "llama31-8b"),
++                                                 lambda p: fill_theta0(p, "llama31-8b")] if name == "everything" else [])
++    for step in steps:
++        step(pins)
++    pins_path.write_bytes(mk.dumps(pins))
++    assert f.call(mk.main, ["--pins", str(pins_path), "--settings-dir", str(sdir)])[0] == 0
++    if name in ("branch-olmo", "everything"):
++        families = ["olmo2-7b"] if name == "branch-olmo" else list(w.FAMILIES)
++        for family in families:
++            rec, digest = w1_18_record_for(sdir, family, tmp_path / "records")
++            pins["families"][family]["w1_18"] = {"branch": "128", "record_sha256": digest, "full_reason": None}
++            records[family] = rec
++        pins_path.write_bytes(mk.dumps(pins))
++        assert f.call(mk.main, ["--pins", str(pins_path), "--settings-dir", str(sdir)])[0] == 0
++    return sdir, pins_path, records
+ 
+ 
+-# ----- what waits ------------------------------------------------------------------------------------------------------
++@pytest.mark.parametrize("name", sorted(FILLS))
++def test_the_documented_fill_leaves_the_committed_state_checks_green(tmp_path, name):
++    """O6: a recorded fill (edit the pins, run the maker) changes no test: the same consistency checks pass on the
++    filled copy, the W1-18 record included under a filled branch (R-6 through the wrapper's check)."""
++    sdir, pins_path, records = make_copy(tmp_path, name)
++    consistency(sdir, pins_path, records)
+ 
+ 
+-def test_the_waits_name_their_pins_and_events():
+-    index = w.load_index()
+-    got = {fam: {x["pin"]: sorted(x["roles"]) for x in index["families"][fam]["waits"]} for fam in w.FAMILIES}
+-    common = {"W1_18_BRANCH": ["lean_eval_job", "oext_eval", "oext_eval_y"], "ENGINE_Y": ["oext_eval_y", "oext_unit_y"],
+-              "RECIPE_BQI": ["oext_unit_y"], "THETA0_JOB": ["limits_overrefusal_checks"]}
+-    assert got["olmo2-7b"] == common
+-    assert got["llama31-8b"] == {**common, "RECIPE_G": ["oext_unit"]}
+-    for fam in w.FAMILIES:
+-        assert all(x["event"] == mk.EVENTS[x["pin"]] for x in index["families"][fam]["waits"])
+-        e = doc("oext_eval", fam)["cap"]
+-        assert (e["branch"], e["w1_18"]["record_sha256"], e["w1_18"]["full_reason"]) == (oe.PENDING, None, None)
+-        assert e["w1_18"]["settings_sha256"] == index["families"][fam]["files"]["limits_overrefusal_checks"]["sha256"]
+-        assert doc("lean_eval_job", fam)["oext"]["branch"] == oe.PENDING
+-        y = doc("oext_unit_y", fam)
+-        assert (y["engine_x"], y["recipes"]["allowed"], doc("oext_eval_y", fam)["engine_x"]) == (None, {"B+Qi": None},
+-                                                                                                None)
++CASCADE = {   # fill -> the forms it may change: (family, engine)
++    "branch llama31-8b": ({("llama31-8b", "X"), ("llama31-8b", "Y")},
++                          lambda p: p["families"]["llama31-8b"].update(
++                              w1_18={"branch": "128", "record_sha256": "a" * 64, "full_reason": None})),
++    "theta0 llama31-8b": ({("llama31-8b", "X"), ("llama31-8b", "Y")}, lambda p: fill_theta0(p, "llama31-8b")),
++    "theta0 olmo2-7b": ({("olmo2-7b", "X"), ("olmo2-7b", "Y")}, fill_theta0),
++    "recipe_g llama31-8b": ({("llama31-8b", "X")}, fill_llama_g),
++    "recipe_bqi olmo2-7b": ({("olmo2-7b", "Y")}, fill_bqi),
++    "engine_y": ({("olmo2-7b", "Y"), ("llama31-8b", "Y")}, fill_engine_y),
++}
+ 
+ 
+-@pytest.mark.parametrize("argv,needle", [
+-    (["unit", "--family", "olmo2-7b", "run", "--untuned"], "the pin W1_18_BRANCH is null"),
+-    (["unit", "--family", "llama31-8b", "run", "--untuned"], "the pin RECIPE_G is null"),
+-    (["unit", "--family", "olmo2-7b", "--engine", "Y", "run", "--untuned"], "the pin ENGINE_Y is null"),
+-    (["lean", "--family", "llama31-8b", "run", "--out", "x"], "the pin W1_18_BRANCH is null"),
+-    (["w1_18", "--family", "olmo2-7b", "--out", "x"], "the pin THETA0_JOB is null"),
++@pytest.mark.parametrize("name", sorted(CASCADE))
++def test_a_fill_reaches_only_its_familys_and_engines_pins(name):
++    """R-5 (the verifier's cascade.py, as a test): derive before and after one fill and compare the four kit forms
++    (OEXT_78B[F], OEXT_78B_Y[F]) with the wrapper's own hash: only the fill's family (or engine) changes."""
++    allowed, change = CASCADE[name]
++    pins, _ = mk.load_pins()
++    after = copy.deepcopy(pins)
++    change(after)
++
++    def forms(p):
++        files = mk.derive_all(p)
++        return {(fam, eng): mk.form(fam, eng, files, w.code_pins(eng)) for fam in w.FAMILIES for eng in ("X", "Y")}
++
++    before, now = forms(pins), forms(after)
++    changed = {key for key in before if before[key] != now[key]}
++    assert changed == allowed, (name, sorted(changed))
++    for key in before:                                          # the wrapper and the run files never change
++        assert {k: v for k, v in before[key]["files"].items() if not k.startswith("scripts/scale78b/settings/")} == \
++            {k: v for k, v in now[key]["files"].items() if not k.startswith("scripts/scale78b/settings/")}
++
++
++# ----- the behaviour under null pins (temporary copies whose pins are null) ------------------------------------------
++
++
++@pytest.fixture(scope="module")
++def all_null(tmp_path_factory):
++    """A copy whose fillable pins are all null: both branches pending, theta0's job pins, Llama's G, B+Qi, ENGINE_Y."""
++    base = tmp_path_factory.mktemp("null")
++    pins, _ = mk.load_pins()
++    pins = copy.deepcopy(pins)
++    pins["shared"]["engine_y"] = None
++    for fam in pins["families"].values():
++        fam["w1_18"] = {"branch": oe.PENDING, "record_sha256": None, "full_reason": None}
++        fam["units"]["untuned"]["job_sha256"] = None
++        fam["recipe_bqi"] = {"name": None, "config_sha256": None}
++    pins["families"]["llama31-8b"]["recipe_g"] = {"name": None, "config_sha256": None}
++    sdir, pins_path = base / "settings", base / "pins.json"
++    pins_path.write_bytes(mk.dumps(pins))
++    assert f.call(mk.main, ["--pins", str(pins_path), "--settings-dir", str(sdir)])[0] == 0
++    return sdir
++
++
++@pytest.mark.parametrize("command,family,engine,tail,needle", [
++    ("unit", "olmo2-7b", "X", ["run", "--untuned"], "the pin W1_18_BRANCH is null"),
++    ("unit", "llama31-8b", "X", ["run", "--untuned"], "the pin RECIPE_G is null"),
++    ("unit", "olmo2-7b", "Y", ["run", "--untuned"], "the pin ENGINE_Y is null"),
++    ("lean", "llama31-8b", "X", ["run", "--out", "x"], "the pin W1_18_BRANCH is null"),
++    ("w1_18", "olmo2-7b", "X", ["--out", "x"], "the pin THETA0_JOB is null"),
+ ])
+-def test_the_committed_files_refuse_each_command_with_its_event(argv, needle, tmp_path):
+-    code, out, err = f.call(w.main, [a if a != "x" else str(tmp_path / "x") for a in argv])
++def test_each_command_refuses_with_its_event_while_a_pin_is_null(all_null, tmp_path, command, family, engine, tail,
++                                                                 needle):
++    code, out, err = f.call(w.main, [command, *index_args(all_null, family, engine),
++                                     *[a if a != "x" else str(tmp_path / "x") for a in tail]])
+     assert code == 2 and needle in err and not (tmp_path / "x").exists()
+ 
+ 
+-def test_the_check_command_prints_branches_and_waits_only():
+-    code, out, _ = f.call(w.main, ["check"])
+-    report = json.loads(out)
+-    assert code == 0 and report["index_sha256"] == w.INDEX_SHA256
+-    assert report["families"]["llama31-8b"]["waits"]["unit"] == ["RECIPE_G", "W1_18_BRANCH"]
+-    assert report["families"]["olmo2-7b"]["waits"]["unit"] == ["W1_18_BRANCH"]
++def test_null_pins_refuse_the_1b_validators(all_null):
++    """GXB O11: with Llama's G null the unit settings refuse; with theta0's job pin null W1-18's check refuses; the Y
++    files with ENGINE_Y null refuse on any engine."""
++    code, report, err = run_check(all_null, "llama31-8b", "X")
++    assert code == 0 and report["settings"]["oext_unit"].startswith("waits (Refusal: settings oext_unit: "
++                                                                    "recipes.allowed.G must be a SHA-256")
++    assert report["settings"]["limits_overrefusal_checks"].startswith("waits (Refusal: settings: unit untuned")
++    assert report["waits"]["unit"] == ["RECIPE_G", "W1_18_BRANCH"]
++    code, report, _ = run_check(all_null, "olmo2-7b", "Y")
++    assert code == 0 and report["settings"]["oext_unit_y"].startswith("engine None")
+ 
+ 
+-# ----- fills and the pin forms -----------------------------------------------------------------------------------------
++# ----- the maker's rules -----------------------------------------------------------------------------------------------
+ 
+ 
+ def derive(change) -> dict:
+@@ -217,26 +355,6 @@
+     return {n: json.loads(d) for n, d in mk.derive_all(pins, sha).items()}
+ 
+ 
+-def test_a_filled_branch_reaches_exactly_its_files():
+-    record = "a" * 64
+-
+-    def fill(p):
+-        p["families"]["olmo2-7b"]["w1_18"] = {"branch": "128", "record_sha256": record, "full_reason": None}
+-
+-    got = derive(fill)
+-    e = got[mk.file_name("oext_eval", "olmo2-7b")]["cap"]
+-    assert (e["branch"], e["w1_18"]["record_sha256"]) == ("128", record)
+-    assert got[mk.file_name("lean_eval_job", "olmo2-7b")]["oext"]["branch"] == "128"
+-    index = got[mk.INDEX_NAME]["families"]
+-    assert "W1_18_BRANCH" not in {x["pin"] for x in index["olmo2-7b"]["waits"]}
+-    assert "W1_18_BRANCH" in {x["pin"] for x in index["llama31-8b"]["waits"]}         # each family from its own record
+-    before = {n: json.loads((mk.SETTINGS_DIR / n).read_bytes()) for n in got}
+-    changed = sorted(n for n in got if got[n] != before[n])
+-    assert changed == sorted([mk.INDEX_NAME] + [mk.file_name(r, "olmo2-7b") for r in
+-                                                ("oext_eval", "oext_unit", "lean_eval_job", "oext_eval_y",
+-                                                 "oext_unit_y")])            # engine Y follows the family's branch
+-
+-
+ @pytest.mark.parametrize("w1_18,needle", [
+     ({"branch": "128", "record_sha256": None, "full_reason": None}, "Branch 128 needs"),
+     ({"branch": "full", "record_sha256": "a" * 64, "full_reason": "x"}, "not both"),
+@@ -254,17 +372,19 @@
+ 
+ def test_a_filled_engine_y_and_bqi_give_y_files_that_refuse_on_engine_x():
+     def fill(p):
+-        p["shared"]["engine_y"] = f.ENGINE_Y_FIXTURE
+-        p["families"]["olmo2-7b"]["recipe_bqi"] = dict(p["families"]["olmo2-7b"]["main"])   # a stand-in config
++        fill_engine_y(p)
++        fill_bqi(p)
+ 
+     got = derive(fill)
+     y = got[mk.file_name("oext_unit_y", "olmo2-7b")]
+-    assert y["engine_x"] == f.ENGINE_Y_FIXTURE and y["recipes"]["allowed"] == {"B+Qi": MAIN["olmo2-7b"]}
++    main = mk.load_pins()[0]["families"]["olmo2-7b"]["main"]["config_sha256"]
++    assert y["engine_x"] == f.ENGINE_Y_FIXTURE and y["recipes"]["allowed"] == {"B+Qi": main}
+     assert y["oext"]["settings"]["path"] == "scripts/scale78b/settings/oext_eval_y__olmo2-7b.json"
+-    with pytest.raises(s1.Refusal, match=f"written for engine {f.ENGINE_Y_FIXTURE}, this engine is {ENGINE_X}"):
++    running = s1.code_identity()["sha256"]
++    with pytest.raises(s1.Refusal, match=f"written for engine {f.ENGINE_Y_FIXTURE}, this engine is {running}"):
+         with w.patched([(ou, "OEXT_SETTINGS_PATH", y["oext"]["settings"]["path"])]):
+             ou.validate_settings(y)
+-    waits = {x["pin"] for x in got[mk.INDEX_NAME]["families"]["olmo2-7b"]["waits"]}
++    waits = {x["pin"] for x in got[mk.index_name("olmo2-7b", "Y")]["waits"]}
+     assert not waits & {"ENGINE_Y", "RECIPE_BQI"}
+ 
+ 
+@@ -287,45 +407,40 @@
+         derive(fill)
+ 
+ 
++def test_the_w1_18_settings_keep_each_familys_prepared_set():
++    """The verifier's V-m-w1-manifest and V-m-w1-prepared-path: the W1-18 settings name the family's own prepared set
++    (Llama's never OLMo's), by path and manifest."""
++    pins, _ = mk.load_pins()
++    for family in w.FAMILIES:
++        prepared = load(mk.SETTINGS_DIR, mk.file_name("limits_overrefusal_checks", family))["prepared"]
++        assert (prepared["path"], prepared["manifest_sha256"]) == (pins["families"][family]["prepared_path"],
++                                                                   pins["families"][family]["manifest_sha256"])
++    assert pins["families"]["llama31-8b"]["prepared_path"] != pins["families"]["olmo2-7b"]["prepared_path"]
++
++
+ def test_the_two_families_differ_only_where_they_should():
+     def flat(obj, prefix=""):
+         if isinstance(obj, dict) and obj:
+             return {k: v for key, value in obj.items() for k, v in flat(value, f"{prefix}{key}.").items()}
+         return {prefix[:-1]: obj}
+ 
++    fillable = {"cap.branch", "cap.w1_18.record_sha256", "cap.w1_18.full_reason", "oext.branch"}
+     allowed = {
+         "oext_unit": {"prepared.manifest_sha256", "recipes.allowed.MAIN", "recipes.allowed.G", "recipes.rule",
+                       "oext.settings.path", "oext.settings.sha256"},
+-        "oext_unit_y": {"prepared.manifest_sha256", "recipes.rule", "oext.settings.path", "oext.settings.sha256"},
+-        "oext_eval": {"cap.w1_18.settings_sha256"}, "oext_eval_y": {"cap.w1_18.settings_sha256"},
+-        "lean_eval_job": {"oext.settings.path", "oext.settings.sha256"},
++        "oext_unit_y": {"prepared.manifest_sha256", "recipes.rule", "oext.settings.path", "oext.settings.sha256",
++                        "recipes.allowed.B+Qi"},
++        "oext_eval": {"cap.w1_18.settings_sha256"} | fillable, "oext_eval_y": {"cap.w1_18.settings_sha256"} | fillable,
++        "lean_eval_job": {"oext.settings.path", "oext.settings.sha256"} | fillable,
+         "limits_overrefusal_checks": {"prepared.manifest_sha256", "prepared.path", "judge.recipe",
+                                       "judge.recipe_file_sha256", "allow_list.path_pattern", "units_source"},
+     }
+     for role in mk.ROLES:
+-        a, b = flat(doc(role, "olmo2-7b")), flat(doc(role, "llama31-8b"))
++        a = flat(load(mk.SETTINGS_DIR, mk.file_name(role, "olmo2-7b")))
++        b = flat(load(mk.SETTINGS_DIR, mk.file_name(role, "llama31-8b")))
+         differ = {k for k in set(a) | set(b) if a.get(k) != b.get(k)}
+         if role == "lean_eval_job":
+             differ = {k for k in differ if not k.startswith("job.allowed_recipes.")}
+         if role == "limits_overrefusal_checks":
+             differ = {k for k in differ if not k.startswith("units.")}
+         assert differ <= allowed[role], (role, sorted(differ - allowed[role]))
+-
+-
+-def test_rk_oext_78b_form_is_printable_and_valid():
+-    files = mk.derive_all(*mk.load_pins())
+-    for family in w.FAMILIES:
+-        form = mk.oext_78b_form(family, files[mk.INDEX_NAME], w.code_pins())
+-        assert rk().oext_form_problem(form) is None and form["inputs"] == INPUTS
+-        assert form["files"]["scripts/scale78b/oext_78b.py"] == f.sha(REPO / "scripts" / "scale78b" / "oext_78b.py")
+-        assert form["files"]["scripts/scale78b/lean_eval_job_78b.py"] == w.CODE[w.LEAN_MODULE]
+-        assert form["files"]["scripts/scale78b/settings/OEXT-78B.json"] == w.INDEX_SHA256
+-        assert form["files"][f"scripts/scale78b/settings/oext_unit__{family}.json"] == \
+-            f.sha(mk.SETTINGS_DIR / f"oext_unit__{family}.json")
+-    code, out, _ = f.call(mk.main, ["--oext-78b", "llama31-8b"])
+-    assert code == 0 and json.loads(out)["inputs"] == INPUTS
+-
+-
+-def test_no_settings_file_lies_at_the_copys_default_path():
+-    assert not (mk.SETTINGS_DIR / "lean_eval_job.json").exists()
+-    assert w.module(w.LEAN_MODULE).SETTINGS_PATH == mk.SETTINGS_DIR / "lean_eval_job.json"
+diff -ruN prefix/scripts/scale78b/tests/oext/test_oext_78b_lean.py postfix/scripts/scale78b/tests/oext/test_oext_78b_lean.py
+--- prefix/scripts/scale78b/tests/oext/test_oext_78b_lean.py	2026-11-08 20:30:28
++++ postfix/scripts/scale78b/tests/oext/test_oext_78b_lean.py	2026-11-08 22:02:09
+@@ -187,8 +187,57 @@
+         "        return None\n"
+         "sys.meta_path.insert(0, Spy())\n"
+         "from scripts.scale78b import oext_78b as w\n"
+-        "code = w.main(['lean', '--family', 'olmo2-7b', 'verify', '--out', sys.argv[1]])\n"
++        "import hashlib\n"
++        "idx = sys.argv[2]\n"
++        "sha = hashlib.sha256(open(idx, 'rb').read()).hexdigest()\n"
++        "code = w.main(['lean', '--family', 'olmo2-7b', '--index', idx, '--index-sha256', sha, 'verify', '--out',\n"
++        "               sys.argv[1]])\n"
+         "print(seen, code)\n", encoding="utf-8")
+-    done_ = subprocess.run([sys.executable, "-B", str(probe), str(tmp_path / "absent")], capture_output=True,
++    index = f.mk.SETTINGS_DIR / f.mk.index_name("olmo2-7b", "X")
++    done_ = subprocess.run([sys.executable, "-B", str(probe), str(tmp_path / "absent"), str(index)], capture_output=True,
+                            text=True, timeout=300, cwd=REPO)
+     assert "{'torch': False, 'engine': False}" in done_.stdout, (done_.stdout, done_.stderr[-400:])
++
++
++def test_a_lean_settings_file_naming_the_1b_oext_file_refuses(tmp_path, prepared):
++    """GXB O3 for lean (verifier O2): a lean settings file that names the 1B O-ext file while the run reads the
++    family's file refuses through the copy's validator; the label comes from the index, never from the file."""
++    env = lean_env(tmp_path, prepared)
++    doc = json.loads(env.lean_path.read_bytes())
++    doc["oext"]["settings"]["path"] = "scripts/stage1_s1/settings/oext_eval.json"
++    env.fam.put("lean_eval_job", doc)
++    code, out, err = f.wrapper(env.fam, ["lean", "--family", f.FAMILY, *env.args(tmp_path / "o")],
++                               loaders=bs.fx.fixture_loaders())
++    assert code == 2 and "oext names the O-ext module and its settings file" in err and not (tmp_path / "o").exists()
++
++
++def test_lean_refuses_the_other_familys_prepared_set_and_a_missing_w1_18_record(tmp_path, prepared):
++    env = lean_env(tmp_path, prepared)
++    fake = tmp_path / "other-prepared"
++    fake.mkdir()
++    (fake / "manifest.json").write_bytes(b'{"kind": "other"}')
++    env.fam.other_manifest = f.sha(fake / "manifest.json")
++    args = env.args(tmp_path / "o")
++    args[args.index("--prepared") + 1] = str(fake)
++    code, _, err = f.wrapper(env.fam, ["lean", "--family", f.FAMILY, *args])
++    assert code == 2 and "(the other family's manifest)" in err and f.sha(fake / "manifest.json") in err
++    code, _, err = f.wrapper(env.fam, ["lean", "--family", f.FAMILY, *env.args(tmp_path / "o", w1_18=False)])
++    assert code == 2 and f"pin W1-18's record {env.inp.w1_18_sha256} (branch 128): --w1-18-record is needed" in err
++    assert not (tmp_path / "o").exists()
++
++
++def test_the_lean_globals_are_restored_when_the_copy_raises(tmp_path, prepared, monkeypatch):
++    """Verifier O4: an exception inside the copy's main (a crash in its plan) restores every global."""
++    env = lean_env(tmp_path, prepared)
++    lej = w.module(w.LEAN_MODULE)
++    before = (lej.SETTINGS_PATH, lej.SETTINGS_SHA256, lej.OEXT_SETTINGS_PATH, oe.load_pinned_settings,
++              oe.w1_18.SETTINGS_PATH, oe.w1_18.SETTINGS_SHA256)
++
++    def crash(*a, **k):
++        raise RuntimeError("fixture: the plan crashes")
++
++    monkeypatch.setattr(lej, "prepare_c0_job", crash)
++    with pytest.raises(RuntimeError, match="fixture: the plan crashes"):
++        w.main(["lean", *env.fam.leading(), *env.args(tmp_path / "o")], loaders=bs.fx.fixture_loaders())
++    assert (lej.SETTINGS_PATH, lej.SETTINGS_SHA256, lej.OEXT_SETTINGS_PATH, oe.load_pinned_settings,
++            oe.w1_18.SETTINGS_PATH, oe.w1_18.SETTINGS_SHA256) == before
+diff -ruN prefix/scripts/scale78b/tests/oext/test_oext_78b_unit.py postfix/scripts/scale78b/tests/oext/test_oext_78b_unit.py
+--- prefix/scripts/scale78b/tests/oext/test_oext_78b_unit.py	2026-11-08 20:45:37
++++ postfix/scripts/scale78b/tests/oext/test_oext_78b_unit.py	2026-11-08 22:02:09
+@@ -148,13 +148,13 @@
+     fake.mkdir()
+     (fake / "manifest.json").write_bytes(b'{"kind": "the other family"}')
+     other = f.sha(fake / "manifest.json")
+-    saved = f.OTHER_MANIFEST
+-    try:
+-        f.OTHER_MANIFEST = other
++    saved = env.fam.other_manifest
++    try:                                         # the module-scoped world gets its own value back (O5)
++        env.fam.other_manifest = other
+         err = refused(f.wrapper(env, ["unit", "--family", f.FAMILY,
+                                       *f.unit_args(env, tmp_path / "o", untuned=True, prepared=fake)]))
+     finally:
+-        f.OTHER_MANIFEST = saved
++        env.fam.other_manifest = saved
+     assert "the other family's manifest" in err and other in err and env.world.manifest in err
+     assert not (tmp_path / "o").exists()
+ 
+@@ -224,7 +224,7 @@
+     (["unit", "--family", f.FAMILY, "run", "--untuned", "-o", "x"], "-o is not a full flag name"),
+     (["unit", "--family", "olmo2-1b", "run"], "--family must be one of"),
+     (["unit", "run", "--untuned"], "--family is required"),
+-    (["lean", "--family", f.FAMILY, "--engine", "Y", "run"], "--engine is X, or Y for the unit command only"),
++    (["lean", "--family", f.FAMILY, "--engine", "Y", "run"], "--engine is X, or Y for the unit and check commands only"),
+     (["w1_18", "--family", f.FAMILY, "--settings", "x"], "--settings is not a full flag name"),
+     (["w1_18", "--family", f.FAMILY, "--extract-source-map"], "--extract-source-map is not a full flag name"),
+     (["transfer_report", "--family", f.FAMILY], "the first argument must be one of"),
+@@ -237,31 +237,92 @@
+ def test_a_settings_file_off_its_index_pin_refuses(world128, tmp_path):
+     env = world128
+     path, digest = env.fam.files["oext_unit"]
+-    with env.fam.active():
+-        original = path.read_bytes()
+-        try:
+-            path.write_bytes(original + b" ")
+-            code, out, err = f.call(w.main, ["unit", "--family", f.FAMILY,
+-                                             *f.unit_args(env, tmp_path / "o", untuned=True)])
+-        finally:
+-            path.write_bytes(original)
++    lead = env.fam.leading()
++    original = path.read_bytes()
++    try:
++        path.write_bytes(original + b" ")
++        code, out, err = f.call(w.main, ["unit", *lead, *f.unit_args(env, tmp_path / "o", untuned=True)])
++    finally:
++        path.write_bytes(original)
+     refused((code, out, err))
+-    assert f"settings/OEXT-78B.json pins {digest}" in err and f.s1.sha256_bytes(original + b" ") in err
++    assert f"the index pins {digest}" in err and f.s1.sha256_bytes(original + b" ") in err
+ 
+ 
+-def test_an_index_off_its_pin_and_a_changed_run_file_refuse(world128, tmp_path, monkeypatch):
++def test_the_index_must_be_the_one_the_job_names(world128, tmp_path):
++    """R-5: no index hash lives in the wrapper; the index the job hands it must hash to the SHA-256 the job names,
++    carry the family's and engine's name, and say so inside."""
+     env = world128
+-    with env.fam.active():
+-        monkeypatch.setattr(w, "INDEX_SHA256", "0" * 64)
+-        err = refused(f.call(w.main, ["unit", "--family", f.FAMILY, *f.unit_args(env, tmp_path / "o", untuned=True)]))
+-        assert "oext_78b.py pins " + "0" * 64 in err
+-    with env.fam.active():
+-        monkeypatch.setitem(w.CODE, "scripts.stage1_s1.oext_unit", "1" * 64)
+-        err = refused(f.call(w.main, ["unit", "--family", f.FAMILY, *f.unit_args(env, tmp_path / "o", untuned=True)]))
+-        assert "scripts.stage1_s1.oext_unit hashes to" in err and "1" * 64 in err
++    path, digest = env.fam.index("X")
++    args = f.unit_args(env, tmp_path / "o", untuned=True)
++    base = ["unit", "--family", f.FAMILY, "--index", str(path)]
++    err = refused(f.call(w.main, [*base, "--index-sha256", "0" * 64, *args]))
++    assert f"hashes to {digest}, the job names {'0' * 64}" in err
++    err = refused(f.call(w.main, [*base, *args]))
++    assert "--index and --index-sha256 are required" in err
++    err = refused(f.call(w.main, ["unit", "--family", f.OTHER, "--index", str(path), "--index-sha256", digest, *args]))
++    assert f"the {f.OTHER} engine-X index is OEXT-78B__{f.OTHER}.json" in err
++    err = refused(f.call(w.main, ["unit", "--family", f.FAMILY, "--engine", "Y", "--index", str(path),
++                                  "--index-sha256", digest, *args]))
++    assert f"the {f.FAMILY} engine-Y index is OEXT-78B-Y__{f.FAMILY}.json" in err
++    doc = json.loads(path.read_bytes())
++    doc["engine"] = "Y"                                         # the right name, another engine inside
++    wrong = f.write(path, doc)
++    err = refused(f.call(w.main, [*base, "--index-sha256", wrong, *args]))
++    assert "is not the scale78b O-ext index of olmo2-7b on engine X" in err
+     assert not (tmp_path / "o").exists()
+ 
+ 
++@pytest.mark.parametrize("command", ["unit", "lean", "w1_18"])
++def test_every_command_refuses_a_changed_run_file(world128, tmp_path, monkeypatch, command):
++    env = world128
++    name = w.COMMAND_CODE[command][-1]
++    monkeypatch.setitem(w.CODE, name, "1" * 64)
++    tail = {"unit": ["run", "--untuned", "--out", str(tmp_path / "o")], "lean": ["run", "--out", str(tmp_path / "o")],
++            "w1_18": ["--out", str(tmp_path / "o")]}[command]
++    err = refused(f.call(w.main, [command, *env.fam.leading(), *tail]))
++    assert f"{name} hashes to" in err and "1" * 64 in err
++    assert not (tmp_path / "o").exists()
++
++
++def test_the_unit_settings_manifest_must_be_the_indexs(tmp_path):
++    env = _env(tmp_path / "m", "128")
++    doc = json.loads(env.unit_path.read_bytes())
++    doc["prepared"]["manifest_sha256"] = "9" * 64
++    env.fam.put("oext_unit", doc)
++    err = refused(f.wrapper(env, ["unit", "--family", f.FAMILY, *f.unit_args(env, tmp_path / "o", untuned=True)]))
++    assert "pins the manifest " + "9" * 64 in err and env.world.manifest in err
++
++
++@pytest.mark.parametrize("label", ["scripts/stage1_s1/settings/oext_eval.json",
++                                   "scripts/scale78b/settings/oext_eval__llama31-8b.json"])
++def test_a_unit_settings_file_naming_another_oext_file_refuses(tmp_path, label):
++    """GXB O3 (verifier O2): a settings file that names the 1B O-ext file, or the other family's, while the run reads
++    the family's own file, refuses: the label comes from the index entry of the loaded file, never from the file."""
++    env = _env(tmp_path / "l", "128")
++    doc = json.loads(env.unit_path.read_bytes())
++    doc["oext"]["settings"]["path"] = label
++    env.fam.put("oext_unit", doc)
++    err = refused(f.wrapper(env, ["unit", "--family", f.FAMILY,
++                                  *f.unit_args(env, tmp_path / "o", run=env.world.units["evaluated"])],
++                            loaders=uf.loaders()))
++    assert "oext names the O-ext module and its settings file" in err and not (tmp_path / "o").exists()
++
++
++def test_the_globals_are_restored_when_the_1b_main_raises(world128, tmp_path):
++    """Verifier O4: an exception (here argparse's SystemExit inside oext_unit.main, from a checkpoint the wrapper's
++    flag check lets through) restores every global, tested on its own."""
++    env = world128
++    before = (ou.load_pinned_settings, oe.load_pinned_settings, ou.OEXT_SETTINGS_PATH, w1.SETTINGS_PATH,
++              w1.SETTINGS_SHA256)
++    args = f.unit_args(env, tmp_path / "o", run=env.world.units["evaluated"])
++    args[args.index("--checkpoint") + 1] = "e9"
++    with pytest.raises(SystemExit):
++        w.main(["unit", *env.fam.leading(), *args], loaders=uf.loaders())
++    assert (ou.load_pinned_settings, oe.load_pinned_settings, ou.OEXT_SETTINGS_PATH, w1.SETTINGS_PATH,
++            w1.SETTINGS_SHA256) == before
++    assert ou.load_pinned_settings.__name__ == "load_pinned_settings" and not (tmp_path / "o").exists()
++
++
+ def test_the_y_variant_refuses_on_engine_x(world128, tmp_path):
+     """DESO2 item 24 (c): engine Y's files name engine Y's identity, so on engine X the unchanged 1B check refuses
+     (by both identities), before any folder."""
+@@ -287,3 +348,16 @@
+         assert '"ok": false' in message and '"refused": ' in message
+     hashed = [m for m in REFUSALS if "hashes to" in m or "manifest is" in m]
+     assert hashed and all(f.hex64_in(m) for m in hashed)
++
++
++@pytest.mark.parametrize("extra,needle", [
++    (["--w1-18-rec", "x"], "--w1-18-rec is not a full flag name"),
++    (["--dev100-sourc", "x"], "--dev100-sourc is not a full flag name"),
++    (["--w1-18-record", "a", "--w1-18-record", "b"], "--w1-18-record is given 2 times"),
++    (["--prepared=/nonexistent"], "--prepared is given 2 times"),
++])
++def test_flag_edges_refuse(world128, tmp_path, extra, needle):
++    env = world128
++    args = f.unit_args(env, tmp_path / "o", untuned=True, w1_18=False)
++    err = refused(f.wrapper(env, ["unit", "--family", f.FAMILY, *args[:-2], *extra, *args[-2:]]))
++    assert needle in err and not (tmp_path / "o").exists()
