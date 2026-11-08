@@ -1,0 +1,574 @@
+{
+ "kind": "scale78b track C mutation spec (R1)",
+ "note": "each mutant's find text occurs exactly once in its file (paths relative to scripts/scale78b); runner: scripts/scale78b/tests/run_mutants_c_78b.py (tests: test_encode_count_78b.py, test_tau_l_78b.py)",
+ "mutants": [
+  {
+   "id": "C-ec-gen-limit-train",
+   "part": "R1 Track C",
+   "describes": "lists: generation prompts checked at max_train_tokens",
+   "file": "encode_count_78b.py",
+   "find": "        found = {\"generation_prompt\": refusals_generation(ctx.codec, [(r[\"id\"], r[\"prompt\"]) for r in rows],\n                                                          limits[\"max_prompt_tokens\"])}",
+   "replace": "        found = {\"generation_prompt\": refusals_generation(ctx.codec, [(r[\"id\"], r[\"prompt\"]) for r in rows],\n                                                          limits[\"max_train_tokens\"])}"
+  },
+  {
+   "id": "C-ec-train-limit-prompt",
+   "part": "R1 Track C",
+   "describes": "lists: encode_train checked at max_prompt_tokens",
+   "file": "encode_count_78b.py",
+   "find": "            found[\"encode_train\"] = refusals_train(ctx.codec, [(r[\"id\"], r[\"prompt\"], r[\"response\"]) for r in rows],\n                                                   limits[\"max_train_tokens\"])",
+   "replace": "            found[\"encode_train\"] = refusals_train(ctx.codec, [(r[\"id\"], r[\"prompt\"], r[\"response\"]) for r in rows],\n                                                   limits[\"max_prompt_tokens\"])"
+  },
+  {
+   "id": "C-ec-train-prompt-as-response",
+   "part": "R1 Track C",
+   "describes": "lists: encode_train pairs take the prompt as the response",
+   "file": "encode_count_78b.py",
+   "find": "[(r[\"id\"], r[\"prompt\"], r[\"response\"]) for r in rows]",
+   "replace": "[(r[\"id\"], r[\"prompt\"], r[\"prompt\"]) for r in rows]"
+  },
+  {
+   "id": "C-ec-s4-train-too",
+   "part": "R1 Track C",
+   "describes": "S4 candidates also get encode_train (DESO3 item 38 names s3_safe and S1 only)",
+   "file": "encode_count_78b.py",
+   "find": "               \"s4_candidates\": (\"generation_prompt\",)}",
+   "replace": "               \"s4_candidates\": (\"generation_prompt\", \"encode_train\")}"
+  },
+  {
+   "id": "C-ec-s1-no-train",
+   "part": "R1 Track C",
+   "describes": "S1 loses its encode_train check",
+   "file": "encode_count_78b.py",
+   "find": "LIST_CHECKS = {\"s1\": (\"generation_prompt\", \"encode_train\"),",
+   "replace": "LIST_CHECKS = {\"s1\": (\"generation_prompt\",),"
+  },
+  {
+   "id": "C-ec-subset-n-pool",
+   "part": "R1 Track C",
+   "describes": "the S3 subset's n counts the whole s3_safe pool",
+   "file": "encode_count_78b.py",
+   "find": "    checks[\"s3_subset\"] = {kind: _tally(len(subset),",
+   "replace": "    checks[\"s3_subset\"] = {kind: _tally(len(ids[\"s3_safe\"]),"
+  },
+  {
+   "id": "C-ec-subset-ids-pool",
+   "part": "R1 Track C",
+   "describes": "the S3 subset's refusals include S1's rows outside it",
+   "file": "encode_count_78b.py",
+   "find": "[(i, s3_reasons[kind][i]) for i in subset if i in s3_reasons[kind]]",
+   "replace": "[(i, s3_reasons[kind][i]) for i in ids[\"s3_safe\"] if i in s3_reasons[kind]]"
+  },
+  {
+   "id": "C-ec-reason-message",
+   "part": "R1 Track C",
+   "describes": "a refusal is named by its message, not its class",
+   "file": "encode_count_78b.py",
+   "find": "            encode_generation_prompt(codec, prompt, max_tokens)\n        except ValueError as exc:\n            refused.append((key, type(exc).__name__))",
+   "replace": "            encode_generation_prompt(codec, prompt, max_tokens)\n        except ValueError as exc:\n            refused.append((key, str(exc)))"
+  },
+  {
+   "id": "C-ec-pinned-noop",
+   "part": "R1 Track C",
+   "describes": "a command-line SHA-256 other than the pin is accepted",
+   "file": "encode_count_78b.py",
+   "find": "    if given != pin:\n        raise Refusal(f\"{what}: the command line names {given}; the pin is {pin}\")",
+   "replace": "    if False:\n        raise Refusal(f\"{what}: the command line names {given}; the pin is {pin}\")"
+  },
+  {
+   "id": "C-ec-read-pinned-noop",
+   "part": "R1 Track C",
+   "describes": "the s-pool record's bytes are not checked against the pin",
+   "file": "encode_count_78b.py",
+   "find": "    if sha256_bytes(data) != pin:\n        raise Refusal(f\"{what} hashes to {sha256_bytes(data)}; the pin is {pin}\")",
+   "replace": "    if False:\n        raise Refusal(f\"{what} hashes to {sha256_bytes(data)}; the pin is {pin}\")"
+  },
+  {
+   "id": "C-ec-record-kind",
+   "part": "R1 Track C",
+   "describes": "the s-pool record's kind is not checked",
+   "file": "encode_count_78b.py",
+   "find": "    if not isinstance(doc, dict) or doc.get(\"kind\") != \"stage1 s-pool record\":",
+   "replace": "    if not isinstance(doc, dict):"
+  },
+  {
+   "id": "C-ec-record-list-sha",
+   "part": "R1 Track C",
+   "describes": "the s-pool record's list hashes are not checked",
+   "file": "encode_count_78b.py",
+   "find": "        if entry.get(\"sha256\") != digest or not isinstance(got, list) or len(got) != size:",
+   "replace": "        if not isinstance(got, list) or len(got) != size:"
+  },
+  {
+   "id": "C-ec-record-pool-sha",
+   "part": "R1 Track C",
+   "describes": "the s-pool record's s3_pool hash is not checked",
+   "file": "encode_count_78b.py",
+   "find": "    if pool.get(\"sha256\") != list_pins[\"s3_safe\"][0] or pool.get(\"items\") != list_pins[\"s3_safe\"][1]:",
+   "replace": "    if pool.get(\"items\") != list_pins[\"s3_safe\"][1]:"
+  },
+  {
+   "id": "C-ec-list-ids-order",
+   "part": "R1 Track C",
+   "describes": "the S1 and S4 lists' ids are not checked against the record",
+   "file": "encode_count_78b.py",
+   "find": "        if ids[name] != record_ids[name]:",
+   "replace": "        if False:"
+  },
+  {
+   "id": "C-ec-pool-order",
+   "part": "R1 Track C",
+   "describes": "s3_safe's ids are not checked against the record's subset then S1 order",
+   "file": "encode_count_78b.py",
+   "find": "    if ids[\"s3_safe\"] != expected_pool:",
+   "replace": "    if False:"
+  },
+  {
+   "id": "C-ec-twin",
+   "part": "R1 Track C",
+   "describes": "S1 rows and their s3_safe twins are not compared",
+   "file": "encode_count_78b.py",
+   "find": "        if twin is not None and (twin[\"prompt\"], twin.get(\"response\")) != (row[\"prompt\"], row.get(\"response\")):",
+   "replace": "        if False:"
+  },
+  {
+   "id": "C-ec-need-response",
+   "part": "R1 Track C",
+   "describes": "a pair list item without a response is accepted",
+   "file": "encode_count_78b.py",
+   "find": "    if need_response and any(not isinstance(i.get(\"response\"), str) for i in items):",
+   "replace": "    if False:"
+  },
+  {
+   "id": "C-ec-tokenizer-revision",
+   "part": "R1 Track C",
+   "describes": "the manifest's tokenizer repository and revision are not checked",
+   "file": "encode_count_78b.py",
+   "find": "    if (tk.get(\"repo_id\"), tk.get(\"revision\")) != (repo_id, revision):",
+   "replace": "    if False:"
+  },
+  {
+   "id": "C-ec-tokenizer-eot",
+   "part": "R1 Track C",
+   "describes": "the manifest's end-of-turn token is not checked",
+   "file": "encode_count_78b.py",
+   "find": "    if tk.get(\"end_of_turn_token\") != recipe[\"model\"][\"end_of_turn_token\"]:",
+   "replace": "    if False:"
+  },
+  {
+   "id": "C-ec-recipe-pin",
+   "part": "R1 Track C",
+   "describes": "a recipe other than MAIN_F is accepted",
+   "file": "encode_count_78b.py",
+   "find": "    if digest != pin:\n        raise Refusal(f\"the recipe's config_sha256",
+   "replace": "    if False:\n        raise Refusal(f\"the recipe's config_sha256"
+  },
+  {
+   "id": "C-ec-real-codec-pin",
+   "part": "R1 Track C",
+   "describes": "real_codec is not given the family's manifest pin",
+   "file": "encode_count_78b.py",
+   "find": "{\"inputs\": {\"prepared_manifest_sha256\": pin}}",
+   "replace": "{\"inputs\": {\"prepared_manifest_sha256\": None}}"
+  },
+  {
+   "id": "C-ec-out-beside",
+   "part": "R1 Track C",
+   "describes": "--out may lie beside an input file",
+   "file": "encode_count_78b.py",
+   "find": "            if anchor == folder or os.path.samefile(anchor, folder):",
+   "replace": "            if False:"
+  },
+  {
+   "id": "C-ec-write-direct",
+   "part": "R1 Track C",
+   "describes": "the record is opened at --out itself, not at a temporary name",
+   "file": "encode_count_78b.py",
+   "find": "        with open(partial, \"xb\") as handle:",
+   "replace": "        with open(out, \"xb\") as handle:"
+  },
+  {
+   "id": "C-ec-partial-kept",
+   "part": "R1 Track C",
+   "describes": "the temporary file is not removed (a partial or stray file survives)",
+   "file": "encode_count_78b.py",
+   "find": "                os.unlink(partial)",
+   "replace": "                pass"
+  },
+  {
+   "id": "C-ec-systemexit",
+   "part": "R1 Track C",
+   "describes": "a SystemExit escapes main with its message",
+   "file": "encode_count_78b.py",
+   "find": "    except (Exception, SystemExit) as exc:     # every refusal",
+   "replace": "    except Exception as exc:     # every refusal"
+  },
+  {
+   "id": "V-bank-guard-add",
+   "part": "R1 Track C",
+   "describes": "bank mode: bank prompts never enter the text guard",
+   "file": "encode_count_78b.py",
+   "find": "    for _, prompt in loaded.rows:\n        guard.add(prompt)\n",
+   "replace": "    for _, prompt in loaded.rows:\n        pass\n"
+  },
+  {
+   "id": "V-anchor-guard-add",
+   "part": "R1 Track C",
+   "describes": "anchor mode: anchor texts never enter the text guard",
+   "file": "encode_count_78b.py",
+   "find": "        guard.add(p[\"prompt\"], p[\"unsafe_response\"])\n",
+   "replace": "        pass\n"
+  },
+  {
+   "id": "V-guard-no-responses",
+   "part": "R1 Track C",
+   "describes": "lists mode: responses never enter the text guard",
+   "file": "encode_count_78b.py",
+   "find": "        guard.add(item.get(\"prompt\"), item.get(\"response\"))\n",
+   "replace": "        guard.add(item.get(\"prompt\"))\n"
+  },
+  {
+   "id": "V-train-catch-all",
+   "part": "R1 Track C",
+   "describes": "encode_train: any exception counted as a refusal",
+   "file": "encode_count_78b.py",
+   "find": "            encode_train(codec, row_id, prompt, response, max_tokens)\n        except ValueError as exc:",
+   "replace": "            encode_train(codec, row_id, prompt, response, max_tokens)\n        except Exception as exc:"
+  },
+  {
+   "id": "C-ec-guard-record",
+   "part": "R1 Track C",
+   "describes": "a record or printout holding text is written",
+   "file": "encode_count_78b.py",
+   "find": "        if guard.hits(data) or any(guard.hits(line) for line in lines):",
+   "replace": "        if False:"
+  },
+  {
+   "id": "C-ec-guard-message",
+   "part": "R1 Track C",
+   "describes": "an unexpected error's message is printed",
+   "file": "encode_count_78b.py",
+   "find": "        text = str(exc) if isinstance(exc, Refusal) else \"\"",
+   "replace": "        text = str(exc)"
+  },
+  {
+   "id": "C-ec-guard-add",
+   "part": "R1 Track C",
+   "describes": "list texts are not added to the text guard",
+   "file": "encode_count_78b.py",
+   "find": "    for item in items:\n        guard.add(item.get(\"prompt\"), item.get(\"response\"))",
+   "replace": "    for item in items:\n        pass"
+  },
+  {
+   "id": "C-ec-exit-some",
+   "part": "R1 Track C",
+   "describes": "a refused item exits 0",
+   "file": "encode_count_78b.py",
+   "find": "    return EXIT_ALL if doc[\"all_accepted\"] else EXIT_SOME",
+   "replace": "    return EXIT_ALL"
+  },
+  {
+   "id": "C-ec-anchor-exit",
+   "part": "R1 Track C",
+   "describes": "the anchor mode exits 1 on a refused item (it is informational)",
+   "file": "encode_count_78b.py",
+   "find": "    if which == \"anchor\":\n        return EXIT_ALL\n",
+   "replace": ""
+  },
+  {
+   "id": "C-ec-anchor-harmful-all",
+   "part": "R1 Track C",
+   "describes": "the harmful-pair check covers all 128 prompts, not the first 64",
+   "file": "encode_count_78b.py",
+   "find": "    for k, p in enumerate(rows[:n_harmful]):",
+   "replace": "    for k, p in enumerate(rows):"
+  },
+  {
+   "id": "C-ec-anchor-gen-limit",
+   "part": "R1 Track C",
+   "describes": "the anchor generation check uses max_train_tokens",
+   "file": "encode_count_78b.py",
+   "find": "            encode_generation_prompt(ctx.codec, p[\"prompt\"], recipe[\"model\"][\"max_prompt_tokens\"])",
+   "replace": "            encode_generation_prompt(ctx.codec, p[\"prompt\"], recipe[\"model\"][\"max_train_tokens\"])"
+  },
+  {
+   "id": "C-ec-anchor-stop-order",
+   "part": "R1 Track C",
+   "describes": "the anchor job's first refusing check is named in the wrong order",
+   "file": "encode_count_78b.py",
+   "find": "    stop = (\"harmful_pair\" if harmful else \"generation_prompt\" if generation else None)",
+   "replace": "    stop = (\"generation_prompt\" if generation else \"harmful_pair\" if harmful else None)"
+  },
+  {
+   "id": "C-ec-bank-settings-pin",
+   "part": "R1 Track C",
+   "describes": "oext_eval's settings may pin another bank record",
+   "file": "encode_count_78b.py",
+   "find": "    if spec[\"record_sha256\"] != record_pin or spec[\"planned\"] != planned:",
+   "replace": "    if False:"
+  },
+  {
+   "id": "C-ec-bank-file-pin",
+   "part": "R1 Track C",
+   "describes": "the bank file's command-line SHA-256 is not checked against the record's",
+   "file": "encode_count_78b.py",
+   "find": "    pinned(bank[1], loaded.bank_sha256, \"the O-ext bank file (its record's full_file SHA-256)\")",
+   "replace": "    pass"
+  },
+  {
+   "id": "C-ec-bank-count",
+   "part": "R1 Track C",
+   "describes": "a bank with a shortfall is counted as the 400",
+   "file": "encode_count_78b.py",
+   "find": "    if len(loaded.rows) != planned:",
+   "replace": "    if False:"
+  },
+  {
+   "id": "C-ec-parse-missing",
+   "part": "R1 Track C",
+   "describes": "a missing list is not refused at parsing",
+   "file": "encode_count_78b.py",
+   "find": "    missing = [n for n in allowed if n not in out]",
+   "replace": "    missing = []"
+  },
+  {
+   "id": "C-ec-mode-mix",
+   "part": "R1 Track C",
+   "describes": "options of another mode are accepted",
+   "file": "encode_count_78b.py",
+   "find": "        if any(v is not None for v in other):",
+   "replace": "        if False:"
+  },
+  {
+   "id": "C-tl-ddof0",
+   "part": "R1 Track C",
+   "describes": "s with ddof 0",
+   "file": "tau_l_78b.py",
+   "find": "    s = statistics.stdev([u[\"mean\"] for u in read])",
+   "replace": "    s = statistics.pstdev([u[\"mean\"] for u in read])"
+  },
+  {
+   "id": "C-tl-factor",
+   "part": "R1 Track C",
+   "describes": "tau_L = 2 s",
+   "file": "tau_l_78b.py",
+   "find": "            \"tau_l\": 2 * math.sqrt(2) * s,",
+   "replace": "            \"tau_l\": 2 * s,"
+  },
+  {
+   "id": "C-tl-mean-check",
+   "part": "R1 Track C",
+   "describes": "the recomputed mean is not compared with COMPLETE.json's",
+   "file": "tau_l_78b.py",
+   "find": "    if mean != recorded:",
+   "replace": "    if False:"
+  },
+  {
+   "id": "C-tl-rows",
+   "part": "R1 Track C",
+   "describes": "a query_loss.jsonl with another row count is accepted",
+   "file": "tau_l_78b.py",
+   "find": "    if len(losses) != ROWS:",
+   "replace": "    if False:"
+  },
+  {
+   "id": "C-tl-arm-seed",
+   "part": "R1 Track C",
+   "describes": "the unit's arm and seed are not checked",
+   "file": "tau_l_78b.py",
+   "find": "    if trajectory.get(\"arm\") != ARM or trajectory.get(\"seed\") != seed:",
+   "replace": "    if trajectory.get(\"arm\") != ARM:"
+  },
+  {
+   "id": "C-tl-arm",
+   "part": "R1 Track C",
+   "describes": "the unit's arm is not checked",
+   "file": "tau_l_78b.py",
+   "find": "    if trajectory.get(\"arm\") != ARM or trajectory.get(\"seed\") != seed:",
+   "replace": "    if trajectory.get(\"seed\") != seed:"
+  },
+  {
+   "id": "C-tl-target",
+   "part": "R1 Track C",
+   "describes": "the unit's target checkpoint is not checked",
+   "file": "tau_l_78b.py",
+   "find": "    if marker.get(\"target_checkpoint\") != CHECKPOINT:",
+   "replace": "    if False:"
+  },
+  {
+   "id": "C-tl-training-identity",
+   "part": "R1 Track C",
+   "describes": "the training identity is not checked",
+   "file": "tau_l_78b.py",
+   "find": "    if identity.get(\"training_identity\") != TRAINING_IDENTITY[family]:",
+   "replace": "    if False:"
+  },
+  {
+   "id": "C-tl-manifest",
+   "part": "R1 Track C",
+   "describes": "the prepared manifest is not checked",
+   "file": "tau_l_78b.py",
+   "find": "    if identity.get(\"manifest_sha256\") != MANIFESTS[family]:",
+   "replace": "    if False:"
+  },
+  {
+   "id": "C-tl-eval-checkpoint",
+   "part": "R1 Track C",
+   "describes": "the evaluation's checkpoint is not checked",
+   "file": "tau_l_78b.py",
+   "find": "    if evaluation.get(\"checkpoint\") != CHECKPOINT or ql.get(\"n\") != ROWS:",
+   "replace": "    if ql.get(\"n\") != ROWS:"
+  },
+  {
+   "id": "C-tl-eval-n",
+   "part": "R1 Track C",
+   "describes": "the evaluation's row count is not checked",
+   "file": "tau_l_78b.py",
+   "find": "    if evaluation.get(\"checkpoint\") != CHECKPOINT or ql.get(\"n\") != ROWS:",
+   "replace": "    if evaluation.get(\"checkpoint\") != CHECKPOINT:"
+  },
+  {
+   "id": "C-tl-bank",
+   "part": "R1 Track C",
+   "describes": "the units may name different query banks",
+   "file": "tau_l_78b.py",
+   "find": "    if len(banks) != 1:",
+   "replace": "    if False:"
+  },
+  {
+   "id": "C-tl-same-rows",
+   "part": "R1 Track C",
+   "describes": "the units may hold different task rows",
+   "file": "tau_l_78b.py",
+   "find": "    if any(u[\"query_ids\"] != read[0][\"query_ids\"] for u in read):",
+   "replace": "    if False:"
+  },
+  {
+   "id": "C-tl-error-txt",
+   "part": "R1 Track C",
+   "describes": "a preserved failure is read",
+   "file": "tau_l_78b.py",
+   "find": "    if (folder / \"error.txt\").exists():",
+   "replace": "    if False:"
+  },
+  {
+   "id": "C-tl-complete-pin",
+   "part": "R1 Track C",
+   "describes": "COMPLETE.json's bytes are not checked against the pin",
+   "file": "tau_l_78b.py",
+   "find": "    if complete_sha != pin:",
+   "replace": "    if False:"
+  },
+  {
+   "id": "C-tl-listed",
+   "part": "R1 Track C",
+   "describes": "query_loss.jsonl is not checked against COMPLETE.json's listed hash",
+   "file": "tau_l_78b.py",
+   "find": "    if loss_sha != listed:",
+   "replace": "    if False:"
+  },
+  {
+   "id": "C-tl-literal-pin",
+   "part": "R1 Track C",
+   "describes": "a command-line pin other than the literal is accepted",
+   "file": "tau_l_78b.py",
+   "find": "        if pin is not None and digest != pin:",
+   "replace": "        if False:"
+  },
+  {
+   "id": "C-tl-repeated-id",
+   "part": "R1 Track C",
+   "describes": "a repeated query id is accepted",
+   "file": "tau_l_78b.py",
+   "find": "        if not isinstance(qid, str) or qid in losses:",
+   "replace": "        if not isinstance(qid, str):"
+  },
+  {
+   "id": "C-tl-bool-loss",
+   "part": "R1 Track C",
+   "describes": "a boolean loss is accepted as a number",
+   "file": "tau_l_78b.py",
+   "find": "        if isinstance(loss, bool) or not isinstance(loss, (int, float)) or not math.isfinite(loss):",
+   "replace": "        if not isinstance(loss, (int, float)) or not math.isfinite(loss):"
+  },
+  {
+   "id": "C-tl-recorded-number",
+   "part": "R1 Track C",
+   "describes": "a non-number recorded mean is not refused as such",
+   "file": "tau_l_78b.py",
+   "find": "    if isinstance(recorded, bool) or not isinstance(recorded, (int, float)) or not math.isfinite(recorded):",
+   "replace": "    if False:"
+  },
+  {
+   "id": "C-tl-bank-hex",
+   "part": "R1 Track C",
+   "describes": "a unit naming no query bank is accepted",
+   "file": "tau_l_78b.py",
+   "find": "    if not hex64(bank):",
+   "replace": "    if False:"
+  },
+  {
+   "id": "C-tl-complete-flag",
+   "part": "R1 Track C",
+   "describes": "an incomplete marker is accepted",
+   "file": "tau_l_78b.py",
+   "find": "    if not isinstance(marker, dict) or marker.get(\"complete\") is not True or not isinstance(marker.get(\"files\"), dict):",
+   "replace": "    if not isinstance(marker, dict) or not isinstance(marker.get(\"files\"), dict):"
+  },
+  {
+   "id": "C-tl-loss-file-q",
+   "part": "R1 Track C",
+   "describes": "the loss file is read at checkpoint q",
+   "file": "tau_l_78b.py",
+   "find": "LOSS_FILE = f\"eval/{CHECKPOINT}/query_loss.jsonl\"",
+   "replace": "LOSS_FILE = \"eval/q/query_loss.jsonl\""
+  },
+  {
+   "id": "C-tl-out-inside",
+   "part": "R1 Track C",
+   "describes": "--out may lie inside a unit",
+   "file": "tau_l_78b.py",
+   "find": "            if anchor == unit or os.path.samefile(anchor, unit):",
+   "replace": "            if False:"
+  },
+  {
+   "id": "C-tl-missing-seed",
+   "part": "R1 Track C",
+   "describes": "a missing seed is accepted",
+   "file": "tau_l_78b.py",
+   "find": "    missing = [s for s in SEEDS if s not in out]",
+   "replace": "    missing = []"
+  },
+  {
+   "id": "C-tl-partial-kept",
+   "part": "R1 Track C",
+   "describes": "the temporary file is not removed (a partial or stray file survives)",
+   "file": "tau_l_78b.py",
+   "find": "                os.unlink(partial)",
+   "replace": "                pass"
+  },
+  {
+   "id": "C-tl-write-direct",
+   "part": "R1 Track C",
+   "describes": "the record is opened at --out itself, not at a temporary name",
+   "file": "tau_l_78b.py",
+   "find": "        with open(partial, \"xb\") as handle:",
+   "replace": "        with open(out, \"xb\") as handle:"
+  },
+  {
+   "id": "C-tl-systemexit",
+   "part": "R1 Track C",
+   "describes": "a SystemExit escapes main with its message",
+   "file": "tau_l_78b.py",
+   "find": "    except (Exception, SystemExit) as exc:     # no traceback",
+   "replace": "    except Exception as exc:     # no traceback"
+  },
+  {
+   "id": "C-tl-twice",
+   "part": "R1 Track C",
+   "describes": "a repeated seed is accepted",
+   "file": "tau_l_78b.py",
+   "find": "        if seed in out:\n            raise Refusal(f\"--unit names seed {seed} twice\")",
+   "replace": "        if False:\n            raise Refusal(f\"--unit names seed {seed} twice\")"
+  }
+ ]
+}
