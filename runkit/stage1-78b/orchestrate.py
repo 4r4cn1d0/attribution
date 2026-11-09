@@ -395,14 +395,24 @@ def preflight(host: str) -> dict:
 
 
 def w1_18_hold(host: str) -> None:
-    """§8 Q1 (a): W1-18 alone on its pod; no 500-bank job before plan.json records W1-18's branch (G1)."""
+    """§8 Q1 (a): W1-18 alone on its pod; no 500-bank job before the family's branch record (G1). R2 K2 (GXB R-45,
+    K-8): the branch is read only from BRANCH_78B[family], by its bytes at its pin (rules_78b.bank500_problem, as the
+    planner reads it); block 0's kinds never read the 500 bank, so its pods are never held."""
     p = plan()
-    jobs = p["hosts"][host]["jobs"]
+    h = p["hosts"][host]
+    jobs = h["jobs"]
     if any(j["kind"] == "w1_18" for j in jobs) and len(jobs) != 1:
         raise SystemExit(f"{host}: W1-18 runs alone on its pod (§8 Q1 (a))")
-    if any(j["kind"] in rules.BANK500_KINDS for j in jobs) and not (p.get("records") or {}).get("branch"):
-        log(host, "w1-18-hold", reason="no W1-18 branch record")
-        raise SystemExit(f"{host}: a 500-bank job waits for W1-18's branch record (G1)")
+    family = rules.family_or_refuse()
+    pin = rules.r78.BRANCH_78B.get(family)
+    data = None
+    if isinstance(pin, dict) and rules.r78._plain_rel(pin.get("path")) and (ROOT / pin["path"]).is_file():
+        data = (ROOT / pin["path"]).read_bytes()
+    for j in jobs:
+        problem = rules.r78.bank500_problem(family, j["kind"], h.get("block"), data)
+        if problem:
+            log(host, "w1-18-hold", reason="no pinned branch record")
+            raise SystemExit(f"{host}: a 500-bank job waits for W1-18's branch record (G1): {problem}")
 
 
 def start_job(host: str, done: dict) -> None:

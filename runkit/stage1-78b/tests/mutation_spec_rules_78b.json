@@ -1184,8 +1184,9 @@
    "part": "5c, O4",
    "describes": "one W1-18 record for both families",
    "file": "rules_78b.py",
-   "find": "\"records\": {f: f\"w1_18_record__{f}.json\" for f in fams}",
-   "replace": "\"records\": {f: \"w1_18_record.json\" for f in fams}"
+   "find": "\"records\": {f: W1_18_RECORD_NAME.format(family=f) for f in fams}",
+   "replace": "\"records\": {f: \"overrefusal_checks.json\" for f in fams}",
+   "note": "R2 K2 integration fix (GXB R-53): re-targeted to the renamed record (same mutation)"
   },
   {
    "id": "K1R-m-w1-18-not-x-only",
@@ -1736,8 +1737,9 @@
    "part": "R-5",
    "describes": "an O-ext pin may name two indexes",
    "file": "rules_78b.py",
-   "find": "    if len(indexes) != 1:",
-   "replace": "    if len(indexes) < 1:"
+   "find": "    if len(candidates) != 1 or len(indexes) != 1:",
+   "replace": "    if len(candidates) < 1 or len(indexes) < 1:",
+   "note": "R2 K2: find text re-targeted to the changed line (same mutation)"
   },
   {
    "id": "K1V-m-index-no-wrapper",

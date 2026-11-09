@@ -132,6 +132,10 @@ def consistency(settings_dir: Path, pins_path: Path, records_root: Path = REPO) 
                     f.sha(settings_dir / mk.index_name(family, engine))
                 for entry in index["files"].values():
                     assert form["files"]["scripts/scale78b/settings/" + entry["file"]] == entry["sha256"]
+                record = fam["w1_18"]["record_path"]                      # W2-1 (R2): the record joins the form
+                assert [k for k in form["files"] if k.startswith(mk.RECORDS_DIR)] == ([] if record is None else [record])
+                if record is not None:
+                    assert form["files"][record] == fam["w1_18"]["record_sha256"] == f.sha(Path(records_root) / record)
             extra = []
             if engine != "W1" and fam["w1_18"]["record_path"] is not None:
                 extra = ["--w1-18-record", str(Path(records_root) / fam["w1_18"]["record_path"])]
@@ -351,10 +355,13 @@ def test_a_fill_reaches_only_its_familys_and_engines_pins(name):
     before, now = forms(pins), forms(after)
     changed = {key for key in before if before[key] != now[key]}
     assert changed == allowed, (name, sorted(changed))
+    own = ("scripts/scale78b/settings/", mk.RECORDS_DIR)        # W2-1 (R2): a branch fill's record joins its forms
     for key in before:                                          # the wrapper and the run files never change
         if key[1] != "W1":
-            assert {k: v for k, v in before[key]["files"].items() if not k.startswith("scripts/scale78b/settings/")} \
-                == {k: v for k, v in now[key]["files"].items() if not k.startswith("scripts/scale78b/settings/")}
+            assert {k: v for k, v in before[key]["files"].items() if not k.startswith(own)} \
+                == {k: v for k, v in now[key]["files"].items() if not k.startswith(own)}
+            record = after["families"][key[0]]["w1_18"]["record_path"]
+            assert [k for k in now[key]["files"] if k.startswith(mk.RECORDS_DIR)] == ([] if record is None else [record])
 
 
 # ----- the behaviour under null pins (a temporary all-null copy) -----------------------------------------------------
@@ -383,12 +390,13 @@ def test_each_command_refuses_with_its_event_while_a_pin_is_null(all_null, tmp_p
 
 def test_null_pins_refuse_the_1b_validators(all_null):
     """GXB O11: with Llama's G null the unit settings refuse; with theta0's job pin null W1-18's check refuses; the Y
-    files with ENGINE_Y null wait. Each is reported "waits" (exit 0) only because its refusal is that pin's (OR8)."""
+    files with ENGINE_Y null wait. Each is reported "waits" (exit 0) because its file passes with the null fields
+    replaced by placeholders (OR8; W2-3 of R2)."""
     doc = load(all_null, mk.file_name("oext_unit", "llama31-8b"))
-    with pytest.raises(s1.Refusal, match=re.escape(w.WAIT_REFUSALS["RECIPE_G"])):
+    with pytest.raises(s1.Refusal, match=re.escape("recipes.allowed.G must be a SHA-256")):
         with w.patched([(ou, "OEXT_SETTINGS_PATH", doc["oext"]["settings"]["path"])]):
             ou.validate_settings(doc)
-    with pytest.raises(s1.Refusal, match=re.escape(w.WAIT_REFUSALS["THETA0_JOB"])):
+    with pytest.raises(s1.Refusal, match=re.escape("unit untuned job_sha256")):
         w1.check_content(load(all_null, mk.file_name("limits_overrefusal_checks", "olmo2-7b")))
     code, report, err = run_check(all_null, "llama31-8b", "X")
     assert code == 0 and report["settings"]["oext_unit"] == "waits", err[-300:]

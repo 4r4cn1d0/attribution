@@ -1,0 +1,27 @@
+{
+ "kind": "verifier extra oext mutants",
+ "note": "R2 Track R verifier",
+ "mutants": [
+  {
+   "id": "RV-y-engine-name",
+   "file": "oext_78b.py",
+   "describes": "check: a file naming another engine than the index's is not refused",
+   "find": "            if checked.get(\"engine_x\") != engine:\n",
+   "replace": "            if False:\n"
+  },
+  {
+   "id": "RV-y-role-filter",
+   "file": "oext_78b.py",
+   "describes": "check: another role's wait fields are placed in this role's file",
+   "find": "        if role not in wait[\"roles\"]:\n            continue\n        for dotted in wait_fields(wait, out):",
+   "replace": "        for dotted in wait_fields(wait, out):"
+  },
+  {
+   "id": "RV-y-w1-engine",
+   "file": "oext_78b.py",
+   "describes": "check: the W1-18 settings are checked under the index's engine identity",
+   "find": "                engine = running                          # W1-18",
+   "replace": "                engine = identity                         # W1-18"
+  }
+ ]
+}

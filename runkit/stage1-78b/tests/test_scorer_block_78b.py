@@ -56,6 +56,18 @@ def load_by_path(name: str, path: Path):
     return module
 
 
+def OEXT_COMMAND_FILES(family: str) -> list:
+    """R2 K2 (GXB K-1): the files the "unit" and "lean" commands need in OEXT_78B (plan_tool.OEXT_COMMAND_FILES)."""
+    return ["scripts/stage1_s1/oext_unit.py", f"scripts/scale78b/settings/oext_unit__{family}.json",
+            "scripts/scale78b/lean_eval_job_78b.py", f"scripts/scale78b/settings/lean_eval_job__{family}.json"]
+
+
+def branch_record(family: str, branch: str = "full", source: str = "default", record: str | None = None) -> dict:
+    """R2 K2 (K-8): a branch record in rules_78b.BRANCH_KEYS' form ('Branch full by default' unless given)."""
+    return {"kind": "stage1-78b branch record", "version": 1, "family": family, "branch": branch, "source": source,
+            "w1_18_record_sha256": record, "utc": "2026-11-20T12:00:00+00:00", "recorded_by": "test"}
+
+
 class ScWorld:
     """A scorer-block working copy of the kit for one family (the World of test_stage1_runkit.py at block "sc")."""
 
@@ -131,10 +143,13 @@ class ScWorld:
                      r78.C0_SCRIPT: sha(write(self.repo / r78.C0_SCRIPT, "# synthetic lean job\n"))}
             index = f"scripts/scale78b/settings/OEXT-78B__{fam}.json"               # R1 K1 fix (GXB R-5, R-22): the
             files[index] = sha(write(self.repo / index, {"index": f"synthetic {fam} X"}))   # family's own index
+            for rel in OEXT_COMMAND_FILES(fam):                                     # R2 K2 (K-1): each command
+                files[rel] = sha(write(self.repo / rel, f"# synthetic {rel}\n"))     # word's files
             self.mp.setitem(r78.OEXT_78B, fam, {"files": files, "inputs": {"oext_bank": sha(self.oext("bank")),
                                                                            "oext_record": sha(self.oext("record"))}})
-            self.mp.setitem(r78.BRANCH_78B, fam, {"path": f"records/branch-{fam}.json",   # R1 K1 fix (GXB R-4): the
-                                                  "sha256": hx(f"branch-{fam}")})         # O-ext kinds wait on it
+            branch = write(self.repo / "records" / f"branch-{fam}.json", branch_record(fam))   # R2 K2 (K-8): a real
+            self.mp.setitem(r78.BRANCH_78B, fam, {"path": f"records/branch-{fam}.json",   # record, read by its bytes
+                                                  "sha256": sha(branch)})
         if c0:
             self.mp.setitem(r78.C0_SOURCE, fam, {"complete_sha256": sha(self.c0_source()), "e1_fingerprint": hx("e1-R-1101")})
         changed[r.PINS_78B] = doc
@@ -483,7 +498,7 @@ def test_init_block_sc_prints_each_pods_need_and_its_idle_line_and_writes_the_pa
     ([[{"kind": "regenerate", "seed": 1101}]], "not a kind of the scorer block"),           # PP17: no standalone kind
     ([[{"kind": "o_only_with_regenerate", "seed": 1101}]], "OEXT_78B waits for"),            # PP17: waits on OEXT_78B
     ([[{"kind": "o_only_with_regenerate", "seed": 1101, "engine": "Y"}]], "engine X only"),
-    ([[{"kind": "o_only_with_regenerate", "seed": 1101, "arm": "R"}]], "arm is 'a0'"),
+    ([[{"kind": "o_only_with_regenerate", "seed": 1101, "arm": "S1"}]], "seed must be one of"),   # R2 K2: R-1101 is N's
     ([[{"kind": "o_only", "arm": "a0"}]], "arm is 'theta0'"),
     ([[ANCHOR, ANCHOR]], "listed twice"),
     ([[{"kind": "anchor", "color": "red"}]], "keys among"),
@@ -1761,23 +1776,30 @@ def test_k5_d1_c0_reads_its_expected_fingerprint_from_the_packed_source_unit_and
 
 
 def test_k5_d1_a_c0_pod_whose_c0_source_step_differs_from_the_packed_unit_runs_no_step(so, monkeypatch):
-    """K4bcr-D1 through the real route: C0_SOURCE's complete_sha256 is the packed source file's, its e1_fingerprint a
-    typing error. Since round 6 (K6, item 23) the pack refuses that typo on the Mac (test_k6_c0_*); here the typo
-    comes AFTER a clean pack (the pod-side layer alone): init-block sc plans c0 (init does not read the unit), but the
-    pod crashes before any step with the refusal (no lean job, so no false engine-X alarm from B17)."""
+    """K4bcr-D1 through the real route, and R2 K2's K6v-4 (Part 2 §15 item 12): C0_SOURCE's complete_sha256 is the
+    packed source file's, its e1_fingerprint a typing error made AFTER a clean pack. The release (inside init-block
+    sc) now reads the packed source unit from the bundle and refuses on the Mac, writing nothing (before R2 K2 the
+    route passed and only the pod refused). The pod-side layer stays: a plan whose expected fingerprint is edited after
+    the release crashes the pod before any step (no lean job, so no false engine-X alarm from B17)."""
     w = so
     w.fill(oext=True, c0=True)
     w.pack(*stand_in_lists(w), *oext_inputs(w), ("source_complete:R:1101", w.c0_source(), sha(w.c0_source())))
     w.mp.setitem(w.r78.C0_SOURCE, w.family, {"complete_sha256": sha(w.c0_source()), "e1_fingerprint": hx("a typo")})
+    with pytest.raises(SystemExit, match=r"c0's packed source unit's e1 adapter fingerprint is not C0_SOURCE's "
+                                         r"e1_fingerprint now \(an edit of the pin after the pack, K6v-4\)"):
+        w.init([{"kind": "c0"}])
+    assert not (w.root / "plan.json").exists()
+    w.mp.setitem(w.r78.C0_SOURCE, w.family, {"complete_sha256": sha(w.c0_source()), "e1_fingerprint": hx("e1-R-1101")})
     host = w.init([{"kind": "c0"}])["released"][0]
-    assert w.plan()["hosts"][host]["jobs"][0]["expect_fingerprint"] == hx("a typo")
+    plan = w.plan()
+    plan["hosts"][host]["jobs"][0]["expect_fingerprint"] = hx("a typo")   # the pod-side layer alone
+    w.mac.save_plan(plan)
     pod = ScPod(w, monkeypatch, host)
     assert pod.main() == 1
     rec = pod.done()["jobs"][0]
     assert rec["status"] == "crashed" and "is not the plan's expected one (C0_SOURCE)" in rec["why"]
     assert receipts(pod) == []                                         # no step ran
     shutil.rmtree(pod.root)                                            # the right value: the lean job gets it
-    w.mp.setitem(w.r78.C0_SOURCE, w.family, {"complete_sha256": sha(w.c0_source()), "e1_fingerprint": hx("e1-R-1101")})
     plan = w.plan()
     plan["hosts"][host]["jobs"][0]["expect_fingerprint"] = hx("e1-R-1101")
     w.mac.save_plan(plan)
@@ -2261,4 +2283,45 @@ def test_k6_item23_the_pack_refuses_a_c0_source_whose_e1_fingerprint_is_not_c0_s
         text = str(info.value)
         assert text.startswith("--inputs FILE: 'source_complete:R:1101' (c0's source unit)") and want in text, text
         assert expect not in text and hx("another e1") not in text
+        assert expect[:12] not in text and hx("another e1")[:12] not in text   # K6v-6: no fingerprint prefix either
     assert not (w.root / "setup" / "packed-stage1-X").exists()
+
+
+def test_k6v1_an_unlisted_prepared_file_with_a_binary_suffix_is_packed_and_scanned(so, request):
+    """K6v-1 (K6V's T1; the K5v-3 ruling): an unlisted file of the prepared set with a binary suffix (.npy, .gz,
+    .safetensors, ...) is packed AND scanned like any unlisted file; a token-shaped string (built here, not a token) in
+    it refuses the real pack, names only, before anything is written. Every planted file is removed afterwards."""
+    w = so
+    w.pack()
+    pack = importlib.import_module("pack_setup")
+    folder, digest = k6_prepared(w, {"engine/train_rows.jsonl": "{}\n"}, {})
+    names = ["extra/blob.npy", "extra/archive.gz", "extra/w.safetensors", "extra/x.bin"]
+    for n in names:
+        write(folder / n, "binary stand-in\n")
+    request.addfinalizer(lambda: [(folder / n).unlink(missing_ok=True) for n in names])
+    packed, scan, _ = pack.prepared_files(folder, digest)
+    assert set(names) <= set(scan) and set(names) <= set(packed)
+    assert "engine/train_rows.jsonl" in packed and "engine/train_rows.jsonl" not in scan
+    fake = "hf_" + "K6" * 17                              # the HF token's shape, not a token
+    real = w.repo / w.rules.PREPARED_LOCAL / w.rules.PREPARED_NAME / "stray" / "blob.npy"
+    request.addfinalizer(lambda: real.unlink(missing_ok=True))
+    write(real, {"note": fake})
+    out = w.root / "setup" / "packed-stage1-X"
+    with pytest.raises(SystemExit) as info:
+        w.pack()
+    assert str(info.value) == "a secret pattern is in a packed file: [('blob.npy', 'hf_token')]", str(info.value)
+    assert fake not in str(info.value) and not out.exists()
+
+
+# ===== R2 K2: the planning tests reach the scorer mutation runner ===================================================
+# run_mutants_scorer_78b.py runs this file alone (its TEST); the planning layer's mutants (plan_tool.py, rules_78b.py,
+# judge_units_stage1.py, seal.py, states_tool.py) are in this file's spec, so when this file is named alone on the
+# command line its module also holds tests/test_planning_ab_78b.py's tests and fixtures (by name; nothing else of that
+# module is imported, so no helper here is shadowed). The full suite names the folder, and each test runs once there.
+if any(a.endswith("test_scorer_block_78b.py") for a in sys.argv) and \
+        not any(a.rstrip("/").endswith(("test_planning_ab_78b.py", "tests")) for a in sys.argv):
+    import test_planning_ab_78b as _planning_ab
+    for _name in dir(_planning_ab):
+        if _name.startswith("test_") or _name in ("wa", "waf", "wb"):
+            assert _name not in globals(), _name
+            globals()[_name] = getattr(_planning_ab, _name)

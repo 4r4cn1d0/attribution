@@ -1,5 +1,11 @@
 """The block seal and a seal-safe status (B15; brief §4 G5; REV4 §1.3 LW-35; administrative; stdlib only).
 
+R2 K2 (7-8B; GXB O7; Part 2 §2.5): each working copy seals its own outcome files; block A's seal record names the seal
+records of block 0's and the scorer block's copies by path and SHA-256 ("copies") and carries their named exceptions;
+the named exceptions are classed "exception" (the W1-18 check's flags; Llama-3.1-8B's a0-1103 query_loss.jsonl, with
+its COMPLETE.json kept sealed and named by its one readable key). The 1B block-A route below (its plan's not-run
+names) does not apply: the 7-8B blocks A and B take every block's not-run and judge routes.
+
     python3.11 seal.py block BLOCK    write seals/block-BLOCK.json: every file of the block's pulled trees by path and
                                       SHA-256 (never a value), and record its SHA-256 in plan.json
     python3.11 seal.py status         cost and completion only, from plan.json, pod.json and finished.json
@@ -87,6 +93,51 @@ def hb_copy_problem(plan: dict, block: str) -> str | None:
     return None
 
 
+# R2 K2 (GXB O7; Part 2 §2.5): each working copy seals its own outcome files in its own seal record; block A's names
+# the seal records of block 0's and the scorer block's copies (tmp/<prefix><F>-0/, -sc/) by SHA-256, re-hashed at the
+# path their plan.json records, so one check covers every file §2.5 seals (N's L, HarmBench and O files, the O pods'
+# outputs). The named exceptions (reads that are not outcomes of a repair) are hashed like every file and classed
+# "exception": the 7-8B W1-18 check's flags (the scorer block's w1_18 job outputs; §4.2) and Llama-3.1-8B's a0-1103
+# task loss behind tau_L (block 0's a0-1103 unit's eval/e1/query_loss.jsonl; its COMPLETE.json stays sealed and is
+# named by its one readable key, evaluation.query_loss; DESO item 25: the one exception to block A's seal over N's L
+# files).
+COPY_SEALS = {"A": ("0", "sc")}
+
+
+def named_exceptions(plan: dict, block: str) -> dict:
+    """{"files": {(host, path)}, "named": [{what, host, files}]} of the block's named exceptions (module note above)."""
+    out, named = set(), []
+    for host, h in sorted(plan["hosts"].items()):
+        if h.get("block") != block:
+            continue
+        for j in h["jobs"]:
+            if j.get("status") != "complete":
+                continue
+            fields = []
+            if block == plan_tool.r78.SC_BLOCK and j["kind"] == "w1_18":
+                paths = sorted(j.get("outputs") or {})
+                what = plan_tool.SEAL_EXCEPTION_W1_18
+            elif block == "0" and plan.get("family") == "llama31-8b" and j["kind"] == "a0_arm" and \
+                    j.get("seed") == plan_tool.r78.A0_SEED_1103 and j.get("unit"):
+                paths = [f"{j['unit']}/eval/e1/query_loss.jsonl"]          # COMPLETE.json stays sealed: its
+                fields = [{"file": f"{j['unit']}/COMPLETE.json", "keys": ["evaluation.query_loss"]}]   # one key only
+                what = plan_tool.SEAL_EXCEPTION_N_A0_1103
+            else:
+                continue
+            out.update((host, p) for p in paths)
+            named.append({"what": what, "host": host, "files": paths, "fields": fields})
+    return {"files": out, "named": named}
+
+
+def copy_exceptions(copy: dict) -> list:
+    """The named exceptions a named copy's seal record lists (read by key from the text-free record)."""
+    try:
+        doc = json.loads((plan_tool.ROOT / copy["path"]).read_text())
+    except (OSError, ValueError):
+        fail(f"{copy['path']}: not a readable seal record")
+    return [{**x, "copy_block": copy["block"]} for x in doc.get("named_exceptions") or []]
+
+
 def seal_block(block: str) -> dict:
     plan = mac.load_plan()
     if block not in plan["blocks"]:
@@ -94,7 +145,7 @@ def seal_block(block: str) -> dict:
     if block in plan.get("seals", {}):
         fail(f"block {block} is already sealed")
     if not plan_tool.block_complete(plan, block):
-        fail(f"block {block} is not complete" + (plan_tool.block_a_open_note(plan) if block == "A" else ""))
+        fail(f"block {block} is not complete" + (plan_tool.block_a_open_note(plan) if block == plan_tool.LEGACY_A else ""))
     out = SEALS / f"block-{block}.json"
     if out.exists():
         fail(f"{out.name} already exists")
@@ -121,7 +172,7 @@ def seal_block(block: str) -> dict:
     if judged and (judge_check is None or not set(judged) <= set(judge_check["judges"])):
         fail(f"block {block}: no valid judge-completion record names {', '.join(judged)} (plan_tool.py record-judges "
              f"{block}; its judge files go under judges/{block}/)")
-    if block != "A" and judge_check is not None and "harmbench" in judge_check["judges"]:
+    if block != plan_tool.LEGACY_A and judge_check is not None and "harmbench" in judge_check["judges"]:
         problem = hb_copy_problem(plan, block)        # round 33 (GB4): the HB reader's copy, before a one-time seal
         if problem:
             fail(f"block {block}: {problem}; copy them from tmp/judge-pod/TAG/fetched/out/ first (addendum §37 "
@@ -129,9 +180,15 @@ def seal_block(block: str) -> dict:
     for p in judge_files:
         files.append({"host": f"judges/{block}", "path": p.relative_to(folder).as_posix(), "sha256": mac.sha(p),
                       "class": "sealed"})
+    exceptions = named_exceptions(plan, block)         # R2 K2 (GXB O7; P2 §2.5): readable by name, hashed like all
+    for f in files:
+        if (f["host"], f["path"]) in exceptions["files"]:
+            f["class"] = "exception"
+    copies = [plan_tool.sibling_seal(plan_tool.family_or_fail(), b) for b in COPY_SEALS.get(block, ())]
     counts = {"files": len(files), "sealed": sum(f["class"] == "sealed" for f in files),
-              "readable": sum(f["class"] == "readable" for f in files)}
-    not_run = sorted(plan_tool.block_a_not_run(plan).items()) if block == "A" else \
+              "readable": sum(f["class"] == "readable" for f in files),
+              "exception": sum(f["class"] == "exception" for f in files)}
+    not_run = sorted(plan_tool.block_a_not_run(plan).items()) if block == plan_tool.LEGACY_A else \
         sorted((f"{host}:{i}", digest) for (host, i), digest in plan_tool.not_run_decided(plan, block).items())   # K2
     not_pulled = plan_tool.not_pulled_jobs(plan, block)      # §29 point 3: complete on the pod, unit not fetched
     record = {"kind": SEAL_KIND, "version": 1, "block": block, "utc": mac.utc(), "hosts": hosts,
@@ -144,6 +201,8 @@ def seal_block(block: str) -> dict:
     record["judge_not_run"] = [{"judge": key, "decision_sha256": digest}   # round 31 (K1): every block's route
                                for key, digest in sorted(plan_tool.judges_decided(plan, block).items())]
     record["skipped"] = [dict(x) for x in plan["blocks"][block].get("skipped") or []]   # round 32 (K2): never released
+    record["copies"] = copies                     # R2 K2 (GXB O7): the other working copies' seal records, by SHA-256
+    record["named_exceptions"] = exceptions["named"] + [x for c in copies for x in copy_exceptions(c)]
     SEALS.mkdir(exist_ok=True)
     out.write_text(json.dumps(record, indent=1, sort_keys=True) + "\n")
     digest = mac.sha(out)

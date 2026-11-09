@@ -66,8 +66,9 @@ The check ($0; the pack runs it before any O-ext pod, R-6, and the lead runs it 
   - the run files against CODE, the index against the named SHA-256, each listed file against the index; every
     settings file through its unchanged 1B validator with its true label (the W1-18 binding included), under the
     index's engine identity (engine X's, or engine Y's once ENGINE_Y is filled: R-23). A file that waits on a null
-    pin prints "waits" (exit 0) only when the validator's refusal is the one that pin causes; any other refusal exits
-    2 (OR8). The waits per command;
+    pin prints "waits" (exit 0) only when the validator passes it with every field its waits null (WAIT_FIELDS; a
+    null ENGINE_Y too) replaced by a placeholder, so the rest of the file is fully validated; any refusal exits 2
+    (OR8; W2-3 of R1's second re-verification, R2). The waits per command;
   - with ``--w1-18-record F``: the record through the unchanged oext_eval reader (read_w1_18) under the family's
     O-ext settings and W1-18 globals (its hash is the pin, it was made under the family's W1-18 settings, its verdict
     is the pinned branch's), and its units are the family's W1-18 units; a wrong-family, stale or wrong-branch record
@@ -85,6 +86,7 @@ The check ($0; the pack runs it before any O-ext pod, R-6, and the lead runs it 
 from __future__ import annotations
 
 import contextlib
+import copy
 import functools
 import hashlib
 import importlib
@@ -131,9 +133,13 @@ ENGINE_CODE = {"X": tuple(CODE), "Y": COMMAND_CODE["unit"], "W1": COMMAND_CODE["
 NEEDS = {"unit": ("oext_unit", "oext_eval"), "unit_y": ("oext_unit_y", "oext_eval_y"),
          "lean": ("lean_eval_job", "oext_eval"), "w1_18": ("limits_overrefusal_checks",)}
 ENGINE_KEYS = {"X": ("unit", "lean"), "Y": ("unit_y",), "W1": ("w1_18",)}
-# OR8: the 1B validator's refusal that each null pin causes (a refusal of a waiting role that matches none is invalid).
-WAIT_REFUSALS = {"THETA0_JOB": "unit untuned job_sha256", "UNIT_JOB": "job_sha256 (every unit is pinned)",
-                 "RECIPE_G": "recipes.allowed.G must be a SHA-256", "RECIPE_BQI": "recipes.allowed.B+Qi must be a SHA-256"}
+# OR8 and W2-3 (R2): the settings fields each null pin nulls (UNIT_JOB's: every a0 unit's null job pin). A role that
+# waits is validated with these fields replaced by PLACEHOLDER, so "waits" means every other part of the file is valid
+# (the 1B validator stops at its first refusal, so a fault after a null pin would otherwise go unseen); W1_18_BRANCH
+# nulls no field (pending is a value the 1B validators accept).
+WAIT_FIELDS = {"THETA0_JOB": ("units.untuned.job_sha256",), "RECIPE_G": ("recipes.allowed.G",),
+               "RECIPE_BQI": ("recipes.allowed.B+Qi",), "ENGINE_Y": ("engine_x",)}
+PLACEHOLDER = "0" * 64                     # a placeholder SHA-256 (and engine identity) for the check only
 # Every '-' token must be one of these full names (the name before any '='); the first token is the 1B subcommand.
 SUBCOMMANDS = {"unit": ("run",), "lean": ("run", "verify"), "w1_18": (None,), "check": (None,)}
 ALLOWED_FLAGS = {
@@ -500,18 +506,58 @@ def on_engine(identity: str):
         yield
 
 
-def expected_wait(idx: Index, role: str, message: str) -> bool:
-    """OR8: the validator's refusal of ``role`` is the one a null pin it waits on causes."""
+def validate_doc(idx: Index, role: str, doc: dict) -> None:
+    """W2-3: one settings document (a waiting file with placeholders) through its unchanged 1B validator in memory,
+    with its true path label; the same checks as validate_one but the file hash, which idx.file has checked. Only the
+    W1-18, O-ext eval and unit files have waits that null a field."""
+    ou, oe = module("scripts.stage1_s1.oext_unit"), module("scripts.stage1_s1.oext_eval")
+    if role == "limits_overrefusal_checks":
+        module("scripts.stage1.limits.overrefusal_checks").check_content(doc)
+    elif role in ("oext_eval", "oext_eval_y"):
+        oe.validate_settings(doc)
+        oe.check_w1_18_binding(doc)
+    elif role in ("oext_unit", "oext_unit_y"):
+        eval_role = "oext_eval" if role == "oext_unit" else "oext_eval_y"
+        with patched([(ou, "OEXT_SETTINGS_PATH", idx.label(eval_role))]):
+            ou.validate_settings(doc)
+    else:                                   # lean_eval_job's only wait (W1_18_BRANCH) nulls no field
+        raise Refused(f"{role}__{idx.family}.json waits on a pin that nulls a field, which no wait of it does")
+
+
+def wait_fields(wait: dict, doc: dict) -> tuple[str, ...]:
+    """The dotted settings fields a wait nulls (W2-3)."""
+    if wait["pin"] == "UNIT_JOB":
+        units = doc.get("units") if isinstance(doc.get("units"), dict) else {}
+        return tuple(f"units.{n}.job_sha256" for n, u in sorted(units.items())
+                     if n != "untuned" and isinstance(u, dict) and u.get("job_sha256") is None)
+    return WAIT_FIELDS.get(wait["pin"], ())
+
+
+def placeholder_copy(idx: Index, role: str, doc: dict) -> dict:
+    """W2-3: a copy of ``doc`` with every field that a wait of ``role`` nulls set to PLACEHOLDER. A listed field that
+    is filled (a stale index) or absent refuses."""
+    out = copy.deepcopy(doc)
     for wait in idx.doc["waits"]:
-        if role in wait["roles"] and WAIT_REFUSALS.get(wait["pin"], "\0") in message:
-            return True
-    return False
+        if role not in wait["roles"]:
+            continue
+        for dotted in wait_fields(wait, out):
+            node = out
+            *parents, last = dotted.split(".")
+            for key in parents:
+                node = node.get(key) if isinstance(node, dict) else None
+            if not isinstance(node, dict) or last not in node:
+                raise Refused(f"{role}__{idx.family}.json has no field {dotted} (the wait {wait['pin']})")
+            if node[last] is not None:
+                raise Refused(f"{role}__{idx.family}.json: {dotted} waits on {wait['pin']} in the index but is filled")
+            node[last] = PLACEHOLDER
+    return out
 
 
 def check_settings_files(idx: Index) -> dict:
     """Each listed settings file through its unchanged 1B validator with its true label (O-ext's W1-18 binding
-    included), under the index's engine identity (R-23). A role whose engine identity is a null pin (ENGINE_Y), or
-    whose validator refuses with the refusal a null pin it waits on causes, is "waits"; any other refusal raises."""
+    included), under the index's engine identity (R-23). A role that waits on a null pin is "waits" only when the
+    validator passes it with every field its waits null replaced by a placeholder (an engine identity that is a null
+    pin, ENGINE_Y, too: W2-3); any refusal raises (exit 2)."""
     w_pairs, _ = _w1_pairs(idx)
     s1 = module("scripts.stage1.s1common")
     running = s1.code_identity()["sha256"]
@@ -525,21 +571,20 @@ def check_settings_files(idx: Index) -> dict:
             elif identity is None:
                 if not any(w["pin"] == "ENGINE_Y" and role in w["roles"] for w in idx.doc["waits"]):
                     raise Refused(f"the engine-{idx.engine} index names no engine identity, and {role} waits on none")
-                out[role] = "waits"
-                continue
+                engine = PLACEHOLDER                      # W2-3: the rest of the file is validated all the same
             else:
                 engine = identity
-            if doc.get("engine_x") != engine:
+            checked = placeholder_copy(idx, role, doc)
+            if checked.get("engine_x") != engine:
                 raise Refused(f"{role}__{idx.family}.json names engine {doc.get('engine_x')}, the "
                               f"engine-{idx.engine} index {engine}")
-            try:
-                with on_engine(engine):
-                    validate_one(idx, role, path, sha, doc)
-            except Exception as exc:  # noqa: BLE001 - a 1B validator's refusal
-                if type(exc).__name__ != "Refusal" or not expected_wait(idx, role, str(exc)):
-                    raise
+            if checked != doc:                            # W2-3: a waiting file, its nulls replaced by placeholders
+                with on_engine(engine):  # the placeholder copy
+                    validate_doc(idx, role, checked)
                 out[role] = "waits"
                 continue
+            with on_engine(engine):
+                validate_one(idx, role, path, sha, doc)
             out[role] = "valid"
     return out
 

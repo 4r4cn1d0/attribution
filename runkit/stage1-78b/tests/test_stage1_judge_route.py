@@ -451,7 +451,7 @@ def test_round_31s_block_b_judge_record_tests_have_no_subject_in_this_copy():
         'REJUDGED_PINS = {"0": (), "A": r78.rejudged_pins(FAMILY, "A") if _KIT else (), "B": ()}' in rules   # R1 K1
     manifest = json.loads((KIT / "COPY-MANIFEST.json").read_text())
     listed = {e["path"]: e["sha256"] for e in manifest["files"]}
-    assert sha(KIT / "judge_units_stage1.py") == listed["judge_units_stage1.py"]        # the judge route unchanged
+    assert sha(KIT / "judge_units_stage1.py") != listed["judge_units_stage1.py"]        # R2 K2: units-of-block A, B
     assert sha(KIT / "judge_pod_stage1" / "bundle.py") == listed["judge_pod_stage1/bundle.py"]
     original = KIT.parent / "stage1-olmo" / "tests" / "test_stage1_judge_route.py"
     if original.is_file():

@@ -268,14 +268,15 @@ def test_a_value_that_is_not_a_hash_is_never_printed(tmp_path):
 
 
 def test_a_waiting_role_masks_only_its_own_pins_refusal(tmp_path):
-    """OR8: with theta0's pin null, the W1-18 settings print "waits" (exit 0) only for that pin's refusal; another
-    refusal of the same file (a seed that is not an integer) exits 2."""
+    """OR8 (W2-3's form, R2): with theta0's and a unit's job pins null, the W1-18 settings print "waits" (exit 0)
+    when every other field is valid; another refusal of the same file (a seed that is not an integer) exits 2."""
     fam, settings, root = side_units_family(tmp_path)
     settings["units"]["B-1101"]["job_sha256"] = None
     settings["units"]["untuned"] = copy.deepcopy(settings["units"]["B-1101"])
     fam.put("limits_overrefusal_checks", settings)
     pin_record(fam, None, branch=oe.PENDING)
-    fam.waits = [{"pin": "UNIT_JOB", "event": "fixture", "where": ["x"], "roles": ["limits_overrefusal_checks"]}]
+    fam.waits = [{"pin": "UNIT_JOB", "event": "fixture", "where": ["x"], "roles": ["limits_overrefusal_checks"]},
+                 {"pin": "THETA0_JOB", "event": "fixture", "where": ["y"], "roles": ["limits_overrefusal_checks"]}]
     code, out, err = check(fam)
     assert code == 0 and out["settings"]["limits_overrefusal_checks"] == "waits", err[-300:]
     settings["units"]["B-1101"]["seed"] = "1101"

@@ -26,7 +26,7 @@ def test_block_bs_judge_runbook_has_no_subject_here_and_the_judge_route_files_ar
         'REJUDGED_PINS = {"0": (), "A": r78.rejudged_pins(FAMILY, "A") if _KIT else (), "B": ()}' in rules   # R1 K1
     manifest = json.loads((KIT / "COPY-MANIFEST.json").read_text())
     listed = {e["path"]: e["sha256"] for e in manifest["files"]}
-    for rel in ("judge_units_stage1.py", "judge_pod_stage1/bundle.py"):
+    for rel in ("judge_pod_stage1/bundle.py",):        # R2 K2 adapted judge_units_stage1.py (Part 2 §15 item 7)
         assert sha(KIT / rel) == listed[rel], rel                            # the judge route unchanged (T4 step 5)
         adapted = set(manifest["adapted_by_k1"]) | set(manifest["adapted_by_k2"]) | set(manifest["adapted_by_k3"])
         assert rel not in adapted

@@ -354,6 +354,11 @@ ADAPTED_BY_K3 = {"launch.py", "host.py", "orchestrate.py", "setup/download_model
                  "tests/test_stage1_judge_route.py"}                        # K3: the gated-token launch path
 
 
+# R2 K2 (blocks A and B): the copied files it adapted (units-of-block A and B, item 7; block A's seal across the copies
+# and the named exceptions, item 10; GXB O7); COPY-MANIFEST.json is not K2's file, so they are listed here.
+ADAPTED_BY_R2_K2 = {"judge_units_stage1.py", "seal.py"}
+
+
 def test_the_kit_compiles_holds_no_secret_and_keeps_the_copied_files_byte_for_byte(tmp_path):
     manifest = json.loads((KIT / "COPY-MANIFEST.json").read_text())
     assert manifest["kind"] == "stage1-78b copy manifest" and set(manifest["adapted_by_k1"]) == ADAPTED
@@ -361,6 +366,7 @@ def test_the_kit_compiles_holds_no_secret_and_keeps_the_copied_files_byte_for_by
     assert set(manifest["adapted_by_k3"]) == ADAPTED_BY_K3
     assert not (ADAPTED & ADAPTED_BY_K2) and not (ADAPTED_BY_K2 & ADAPTED_BY_K3) and not (ADAPTED & ADAPTED_BY_K3)
     adapted = ADAPTED | ADAPTED_BY_K2 | ADAPTED_BY_K3
+    adapted |= ADAPTED_BY_R2_K2
     listed = {e["path"]: e["sha256"] for e in manifest["files"]}
     assert len(listed) == 36 and "budget.py" in listed and "setup/job_runner_stage1.py" in listed
     for rel, digest in listed.items():
@@ -383,7 +389,8 @@ def test_the_kit_compiles_holds_no_secret_and_keeps_the_copied_files_byte_for_by
         sys.modules.pop("secret_scan", None)
         import secret_scan
         assert secret_scan.scan_paths([KIT / n for n in names if n != "secret_scan.py"]) == []
-        assert secret_scan.scan_paths(list(KIT.glob("*.md")) + list(KIT.glob("*.json")) + list((KIT / "tests").glob("*"))
+        assert secret_scan.scan_paths(list(KIT.glob("*.md")) + list(KIT.glob("*.json"))      # R2 K2: tests/fixtures/ too
+                                      + [p for p in (KIT / "tests").rglob("*") if p.is_file()]
                                       + list((KIT / "setup").glob("*"))) == []
         assert secret_scan.scan_text(fake_token()) == ["hf_token"]       # the scanner sees a token; the kit holds none
     finally:

@@ -1,0 +1,178 @@
+{
+  "adapter": {
+    "acceptance_rule": "olmo2-7b: the a0 e1 adapter of seed 1103 is accepted only if its engine fingerprint equals the pinned one (the seed's a0 unit; REF R.0.7's rule)",
+    "accepted": {
+      "1103": {
+        "fingerprint": null,
+        "source_complete_sha256": "4b5bd06dede08dc14f3ab5de201b7618ada94a0515896ed23c04b3af7ca44fa0",
+        "source_unit": "tmp/family-probe-sp-olmo2-7b-b-seed1103/retrieved/sp-olmo2-7b-1103/tree/round1/1103-a0-e1-a1"
+      }
+    },
+    "blocks": 32,
+    "dtype": "float32",
+    "key_rule": "base_model.model.<module>.lora_<A|B>.default.weight with <module> = model.layers.<block>.<self_attn|mlp>.<proj> (the engine's PEFT names)",
+    "lora_alpha": 128,
+    "matrices": 224,
+    "modules": [
+      "q_proj",
+      "k_proj",
+      "v_proj",
+      "o_proj",
+      "gate_proj",
+      "up_proj",
+      "down_proj"
+    ],
+    "parameters": 159907840,
+    "rank": 64,
+    "state_checks": {
+      "arm": "a0",
+      "checkpoint": "e1"
+    }
+  },
+  "draws": "none: Safe LoRA draws no random number, so it adds no seed label (ADD L13; REF section 0 item 3)",
+  "engine_x": "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892",
+  "kind": "stage1 settings",
+  "label_entries": {},
+  "labels_sha256": "260389f3fbfd8e7ff11ee06b5d5aba48e7d56b34140d9c9a634682125a86d570",
+  "models": {
+    "aligned": {
+      "dtype": null,
+      "files": null,
+      "repo_id": "allenai/OLMo-2-1124-7B-Instruct",
+      "revision": "470b1fba1ae01581f270116362ee4aa1b97f4c84",
+      "role": "olmo2-7b: the aligned model, the untuned model of every arm (RK KIT instruct_model)",
+      "source": "a local snapshot folder at the pinned commit; nothing is downloaded by safe_lora.py"
+    },
+    "unaligned": {
+      "dtype": null,
+      "files": null,
+      "gated": false,
+      "repo_id": "allenai/OLMo-2-1124-7B",
+      "revision": null,
+      "role": "olmo2-7b: the unaligned base model (RK KIT base_model; DES F2)",
+      "source": "a local snapshot folder at the pinned commit; nothing is downloaded by safe_lora.py"
+    }
+  },
+  "name": "safe_lora",
+  "outputs": {
+    "adapter": "adapter.safetensors",
+    "check_record": "safe_lora_check.json",
+    "record": "safe_lora_record.json",
+    "timing": "safe_lora_timing.json"
+  },
+  "owner": "scripts/stage1_s1/safe_lora.py",
+  "pin_rule": "a pinned lowercase hex value matches an observed one when the observed one starts with it, so a full-length pin (40 hex for a commit, 64 for a file) requires equality; a commit pin has at least 8 hex characters and a file pin at least 12. The snapshot folder's name is the observed commit (the Hugging Face cache layout); its top-level safetensors files must match the file pins one to one (SHA-256, and the file name and byte count where pinned) and their sizes must sum to total_bytes where pinned. Every observed full value is written into the record",
+  "recipe": {
+    "path": "experiments/safety_selection/configs/study-kt-olmo2-7b-r64-b-mb2-20261008.json",
+    "sha256": "e9e98e8427575eaa68ae093ebe90bfb0db5264850dfda77e4c2e629c14a952c5"
+  },
+  "report": {
+    "builder_diagnostics": {
+      "base_bf16_rounding_share": "report only; added by the builder, not in REF R.1.3 row 14 (the lead may drop it): ||W_i unaligned - float32(bfloat16(W_i unaligned))||_F / ||V_i||_F. The aligned weights are stored in bfloat16, so V_i holds one bfloat16 rounding of weights of this size; a share near or above 1 means that V_i is mostly storage rounding, not post-training"
+    },
+    "check": "the $0 weight-only check (REF R.1.5; LQ13): the record for both points and no adapter. The rule and K are fixed before it and never change after it",
+    "flags": {
+      "mapped_rho_above_1": "report only: a mapped matrix whose update grows (rho > 1); no stop rule (REF LQ13)"
+    },
+    "per_matrix": [
+      "name",
+      "block",
+      "module",
+      "shape",
+      "v_norm",
+      "cosine",
+      "rho",
+      "rank",
+      "mapped",
+      "base_bf16_rounding_share"
+    ],
+    "per_point": [
+      "k",
+      "status",
+      "kth_cosine",
+      "next_cosine",
+      "boundary_ties",
+      "mapped",
+      "module_mix",
+      "block_mix",
+      "mapped_rho_above_1",
+      "rho_of_mapped"
+    ],
+    "tau_rules": {
+      "official_code_rounded_at_or_below": "numpy.round(cos_i, 5) <= tau (C model.py)",
+      "paper_strict_below": "cos_i < tau (P Eq. 3)"
+    },
+    "taus": [
+      0.35,
+      0.5
+    ],
+    "timing": "REF section C.9 (the transform's cost: the record gives the measured value; VR m2): both commands also write safe_lora_timing.json, wall-clock seconds by time.monotonic for read_adapter (the settings and the input adapter), hash_snapshots (both snapshots against their pins), transform (the arithmetic, the record and the output bytes) and total; writing the files is not included. It is kept apart so that the record stays byte-identical on a re-run, and it names the SHA-256 of every other file written with it"
+  },
+  "requirement": "B11 at 7-8B (Part 2 section 3.2; DES F2): Safe LoRA at K = 78 of the family's 224 adapted matrices (1B's share, 39 of 112; label: chosen after the stage-1 reading, it reads the rule's form only) on seed 1103's a0 e1 adapter, run by scripts/scale78b/refs_78b.py safe_lora with this file",
+  "sources": {
+    "DES": {
+      "path": ".ai/inputs/stage1-post-w1-20261023/78b/lead-rulings-part2-design-20261106.md",
+      "sections": "F1, F2"
+    },
+    "GXB": {
+      "path": ".ai/inputs/stage1-post-w1-20261023/78b/lead-rulings-ab-build-20261108.md",
+      "sections": "O2, O3, X3"
+    },
+    "P2": {
+      "path": "research/experiments/2026-11-06-78b-preregistration-part2.md",
+      "sections": "3.1, 3.2, 16.1"
+    },
+    "REF_1B": {
+      "path": "scripts/stage1_s1/settings/safe_lora.json",
+      "sha256": "c5610c3d4f0a0809e391055d84697fd62b9a15cf16e0b1f63aee02b03b6d14cf"
+    }
+  },
+  "transform": {
+    "certify_rule": "the certify point maps nothing (K = 0, and no other K): its adapter is the source adapter (the same engine fingerprint; the same bytes for an engine-saved file). The $0 check reports the two reference points only",
+    "factor": "lora_B",
+    "lora_a": "kept byte for byte",
+    "merge": "none: the result stays a rank-64 PEFT adapter, evaluated unmerged through B10's script",
+    "operator": "fast_form_c",
+    "operator_rule": "B'_i = V_i (V_i^T B_i) / n_i with n_i = ||V_i||_F, computed in float64 from the float32 V_i and B_i (B_i = lora_B); C = V V^T / ||V||_F is never formed. The exact projector of Eq. 2 is not used: it is degenerate on these shapes (REF R.1.2)",
+    "points": {
+      "certify": {
+        "k": 0,
+        "status": "certify (K = 0, maps nothing): the certification of B10's file path for this seed's a0 e1 adapter; never a reference point"
+      },
+      "conditional": {
+        "k": 0,
+        "status": "not run at 7-8B (GXB R-37; P2 section 3.2 names K = 78 only): K = 0, it maps nothing; refs_78b.py refuses this point by name; the $0 check's report row for it is empty"
+      },
+      "default": {
+        "k": 78,
+        "status": "the one pre-registered 7-8B point: K = 78 of 224, 1B's share (39 of 112 = 34.8%; DES F2; P2 section 3.2); label: chosen after the stage-1 reading, it reads the rule's form only"
+      }
+    },
+    "ranking": "all matrices together, by (cos_i ascending, then the module name in Python string order)",
+    "refusals": "a pin mismatch; a missing, extra or misnamed matrix; a shape or dtype mismatch; a non-finite input or result; a zero V_i; a zero B_i A_i or B'_i A_i (the cosine is undefined); K outside 0..matrices; a certify point with K other than 0",
+    "rho": "rho_i = sqrt(<B'_i^T B'_i, G_i> / <B_i^T B_i, G_i>) = ||B'_i A_i||_F / ||B_i A_i||_F, in float64",
+    "rule": "top_k",
+    "rule_text": "a point maps exactly the first K matrices of the ranking (lora_B <- float32(B'_i)); every other lora_B and every lora_A is kept byte for byte",
+    "similarity": "cos_i = <B'_i^T B_i, G_i> / sqrt(<B'_i^T B'_i, G_i> * <B_i^T B_i, G_i>), with G_i = A_i A_i^T (A_i = lora_A) and <X, Y> = the sum of X * Y, all in float64 from the float64 B'_i, no rounding. It equals the Frobenius cosine of B'_i A_i with B_i A_i; the LoRA scale alpha/r cancels",
+    "torch_threads": 1,
+    "written_lora_b": "float32(B'_i): one rounding of the float64 result"
+  },
+  "v_diagnostic": {
+    "measure": "per matrix ||V - V'||_F / ||V||_F, each matrix's cosine and rank under V and V', and whether the default point's mapped set (K = 78 of 224, the fast form, the same ranking rule) changes under V'",
+    "outcomes": {
+      "changes": "the mapped set changes: V' runs as a report-only point at the Safe LoRA seeds (block B); its cost is stated then (addendum 11.8)",
+      "same": "the mapped set does not change: the question is closed (addendum 11.8)"
+    },
+    "output": "safe_lora_vcheck.json",
+    "point": "default",
+    "rule": "addendum section 11 point 8: REF R.1.3 row 5 stands as primary (V is the float32 difference of the stored weights; the Instruct model is stored in BF16, the base in F32). The diagnostic is report only: it writes no adapter and changes no K and no rule",
+    "v_prime": "V'_i = float32(W_i aligned) - float32(bfloat16(W_i unaligned)): the unaligned weight rounded once to bfloat16, the aligned model's storage dtype, then the same float32 subtraction",
+    "when": "addendum section 13 point 3: the Safe LoRA pod job (B15) runs the vcheck command before the projection (the transform command), on the pod, with both snapshots downloaded at their pinned commits; nothing is downloaded to the Mac"
+  },
+  "version": 1,
+  "weights": {
+    "dtype_rule": "every weight read must have its model's pinned dtype",
+    "key_rule": "<module>.weight in the model's safetensors files, read by exact name, never by position; every weight lies in exactly one file of its snapshot",
+    "v": "V_i = float32(W_i aligned) - float32(W_i unaligned): one elementwise subtraction in float32 (the bfloat16 to float32 cast is exact)"
+  }
+}

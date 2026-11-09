@@ -1,6 +1,6 @@
 {
- "kind": "scale78b oext mutation spec (R1 Track O, fix round 2)",
- "note": "each mutant's find text occurs exactly once in its file (a path under scripts/scale78b); runner: tests/oext/run_mutants_oext_78b.py (the suite scripts/scale78b/tests/oext). Fix round 1: 67. Fix round 2: 4 stale finds updated, the re-verifier's 11 (RV-*, 2 finds adapted) and 14 new (F2-*).",
+ "kind": "scale78b oext mutation spec (R1 Track O, fix round 2; R2 Track R's follow-up)",
+ "note": "each mutant's find text occurs exactly once in its file (a path under scripts/scale78b); runner: tests/oext/run_mutants_oext_78b.py (the suite scripts/scale78b/tests/oext). Fix round 1: 67. Fix round 2: 4 stale finds updated, the re-verifier's 11 (RV-*, 2 finds adapted) and 14 new (F2-*). R2 (Track R's follow-up of R1's second re-verification): 3 finds adapted to W2-3's check (RV-w-check-waits-mask, F2-w-on-engine, F2-w-wait-pattern), the re-verifier's 3 surviving mutants (RV2-*, W2-2) and 8 new (R2-*: W2-1, W2-3).",
  "mutants": [
   {
    "id": "O-w-unit-label",
@@ -494,10 +494,10 @@
   },
   {
    "id": "RV-w-check-waits-mask",
-   "describes": "check: a refusal of any role is reported as a wait (exit 0)",
+   "describes": "check: a waiting role is reported as a wait without its placeholder validation (exit 0; W2-3's form, R2)",
    "file": "oext_78b.py",
-   "find": "                if type(exc).__name__ != \"Refusal\" or not expected_wait(idx, role, str(exc)):\n",
-   "replace": "                if type(exc).__name__ != \"Refusal\":\n"
+   "find": "                    validate_doc(idx, role, checked)\n",
+   "replace": "                    pass\n"
   },
   {
    "id": "RV-w-check-record-y",
@@ -594,8 +594,8 @@
    "id": "F2-w-on-engine",
    "describes": "check (R-23): the Y files are validated under the running engine's identity",
    "file": "oext_78b.py",
-   "find": "                with on_engine(engine):\n",
-   "replace": "                with contextlib.nullcontext():\n"
+   "find": "            with on_engine(engine):\n                validate_one(idx, role, path, sha, doc)\n",
+   "replace": "            with contextlib.nullcontext():\n                validate_one(idx, role, path, sha, doc)\n"
   },
   {
    "id": "F2-w-w1-engine",
@@ -606,10 +606,10 @@
   },
   {
    "id": "F2-w-wait-pattern",
-   "describes": "check (OR8): a waiting role's refusal matches any pin's pattern",
+   "describes": "check (OR8, W2-3's form): UNIT_JOB's placeholders also cover theta0's null pin (a null no wait names is masked)",
    "file": "oext_78b.py",
-   "find": "        if role in wait[\"roles\"] and WAIT_REFUSALS.get(wait[\"pin\"], \"\\0\") in message:\n",
-   "replace": "        if role in wait[\"roles\"]:\n"
+   "find": "if n != \"untuned\" and isinstance(u, dict)",
+   "replace": "if isinstance(u, dict)"
   },
   {
    "id": "F2-m-w1-index-branch",
@@ -645,6 +645,83 @@
    "file": "make_oext_settings_78b.py",
    "find": "        out[f\"scripts/scale78b/settings/{name}\"] = sha256_bytes(files[name])\n        for entry in index[\"files\"].values():\n            out[f\"scripts/scale78b/settings/{entry['file']}\"] = entry[\"sha256\"]\n        limits",
    "replace": "        for entry in index[\"files\"].values():\n            out[f\"scripts/scale78b/settings/{entry['file']}\"] = entry[\"sha256\"]\n        limits"
+  },
+  {
+   "id": "RV2-m-w1-side-job",
+   "file": "make_oext_settings_78b.py",
+   "describes": "W1_18_78B's side units lose their job.json pins",
+   "find": "\"job_sha256\": u[\"job_sha256\"]}",
+   "replace": "\"job_sha256\": None}"
+  },
+  {
+   "id": "RV2-w-w1-record-ignored",
+   "file": "oext_78b.py",
+   "describes": "check on the W1 index ignores a given W1-18 record",
+   "find": "        if record is not None:\n            raise Refused(\"the W1-18 pod's index holds no O-ext settings",
+   "replace": "        if False:\n            raise Refused(\"the W1-18 pod's index holds no O-ext settings"
+  },
+  {
+   "id": "RV2-w-null-identity-waits",
+   "file": "oext_78b.py",
+   "describes": "an index with no engine identity and no ENGINE_Y wait reports waits",
+   "find": "                if not any(w[\"pin\"] == \"ENGINE_Y\" and role in w[\"roles\"] for w in idx.doc[\"waits\"]):",
+   "replace": "                if False:"
+  },
+  {
+   "id": "R2-w-stale-wait",
+   "describes": "check (W2-3): a field the index lists as waiting but filled passes",
+   "file": "oext_78b.py",
+   "find": "            if node[last] is not None:\n",
+   "replace": "            if False:\n"
+  },
+  {
+   "id": "R2-w-absent-field",
+   "describes": "check (W2-3): a waiting field absent from the file is not refused",
+   "file": "oext_78b.py",
+   "find": "            if not isinstance(node, dict) or last not in node:\n",
+   "replace": "            if not isinstance(node, dict):\n"
+  },
+  {
+   "id": "R2-w-engine-placeholder",
+   "describes": "check (W2-3): a null ENGINE_Y validates under the running engine",
+   "file": "oext_78b.py",
+   "find": "                engine = PLACEHOLDER                      # W2-3",
+   "replace": "                engine = running                          # W2-3"
+  },
+  {
+   "id": "R2-w-theta0-field",
+   "describes": "check (W2-3): THETA0_JOB names another field",
+   "file": "oext_78b.py",
+   "find": "\"THETA0_JOB\": (\"units.untuned.job_sha256\",)",
+   "replace": "\"THETA0_JOB\": (\"units.untuned.complete_sha256\",)"
+  },
+  {
+   "id": "R2-w-doc-binding",
+   "describes": "check (W2-3): a waiting O-ext eval file skips W1-18's binding",
+   "file": "oext_78b.py",
+   "find": "        oe.validate_settings(doc)\n        oe.check_w1_18_binding(doc)\n",
+   "replace": "        oe.validate_settings(doc)\n"
+  },
+  {
+   "id": "R2-w-doc-unit-label",
+   "describes": "check (W2-3): a waiting unit file is validated without its true O-ext label",
+   "file": "oext_78b.py",
+   "find": "        with patched([(ou, \"OEXT_SETTINGS_PATH\", idx.label(eval_role))]):\n            ou.validate_settings(doc)\n",
+   "replace": "        ou.validate_settings(doc)\n"
+  },
+  {
+   "id": "R2-m-form-no-record",
+   "describes": "kit form (W2-1): the family's W1-18 record is left out after a branch fill",
+   "file": "make_oext_settings_78b.py",
+   "find": "        out[index[\"w1_18_record_path\"]] = index[\"w1_18_record_sha256\"]\n",
+   "replace": "        pass\n"
+  },
+  {
+   "id": "R2-m-form-record-always",
+   "describes": "kit form (W2-1): a record entry is written without a pinned record",
+   "file": "make_oext_settings_78b.py",
+   "find": "    if index[\"w1_18_record_sha256\"] is not None:\n        out[index",
+   "replace": "    if True:\n        out[index"
   }
  ]
 }

@@ -444,7 +444,8 @@ BRANCHES = tuple(r78.BRANCHES)            # ("full", "128"): W1-18's branch per 
 BRANCH_DEFAULT = r78.BRANCH_DEFAULT       # "full" until the family's branch record
 X_ONLY_KINDS = ()
 Y_ONLY_KINDS = ()
-POINT_KINDS = {"ref_eval": None, "safe_lora": ("default", "conditional", "certify", "k12")}
+POINT_KINDS = {"ref_eval": None, "safe_lora": ("default", "certify")}   # R2 K2: Part 2 §3.2 runs Safe LoRA at K = 78
+POINTS_NOT_RUN = {"safe_lora": ("conditional", "k12")}   # only (the lead, 9 Nov): the 1B points refuse by name
 REF_EVAL_SCALES = ("scale:0.9", "scale:0.75", "scale:0.5")
 JUDGED_RUN_KINDS = ("arm", "a0_arm")
 JUDGED_B10_KINDS = ("ref_eval", "safe_lora")
@@ -635,6 +636,18 @@ arm_count = r78.arm_count
 Refused = r78.Refused
 
 
+def point_problem(kind: str, points) -> str | None:
+    """R2 K2 (Part 2 §3.2): why ``points`` are not evaluation points of ``kind`` at 7-8B, or None: Safe LoRA plans
+    its default (K = 78) and certify points only; the 1B conditional and k12 points refuse by name."""
+    allowed = POINT_KINDS.get(kind)
+    for point in points or ():
+        if point in POINTS_NOT_RUN.get(kind, ()):
+            return f"{kind}'s {point} point is not run at 7-8B; Part 2 §3.2 (Safe LoRA at K = 78 only)"
+        if allowed is not None and point not in allowed:
+            return f"{kind}'s point {point!r} is not one of {list(allowed)}"
+    return None
+
+
 def counted(kind: str, n_points: int = 1) -> int:
     """What a job counts toward MAX_ARMS_PER_POD (rules_78b.COUNTED_KINDS; a point kind counts its points)."""
     if kind in POINT_KINDS:
@@ -668,6 +681,9 @@ def job_record(kind: str, arm: str | None = None, seed: int | None = None, edit=
     ``padded_tokens_per_step`` is train_scale's input (Part 2 §2.1) and ``oext`` plans the in-job O-ext step with its
     cap term (blocks A and B; DES E3)."""
     fam = family_or_refuse(family)
+    problem = point_problem(kind, points)             # R2 K2: Part 2 §3.2's points only
+    if problem:
+        raise ValueError(problem)
     n = len(points) if points else 1
     rec = r78.job_record(fam, kind, steps_for(kind, arm, steps), arm, seed, padded_tokens_per_step, n_points=n,
                          oext=oext)

@@ -1,0 +1,237 @@
+--- /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/reports/r2-k2-scratch/fupre/plan_tool.py	2026-11-09 05:44:24
++++ /private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-epic-ritchie-cc4188/1a199637-2a19-4fac-9cf2-8b00c9c1b5ff/scratchpad/b78/ws-k2/runkit/stage1-78b/plan_tool.py	2026-11-09 09:57:52
+@@ -3856,6 +3856,42 @@
+     except r78.Refused as exc:
+         fail(f"blinded_sigma.py's output: {exc}")
+     return doc
++
++
++def blinded_sigma_script() -> pathlib.Path:
++    """The checkout's blinded_sigma.py (the file the blinding record names)."""
++    return ROOT / BLINDED_SIGMA_SCRIPT
++
++
++def blinded_sigma_read(inputs: pathlib.Path, inputs_sha256: str, script_sha256: str) -> dict:
++    """GXB R-50: blinded_sigma.py's own ``read`` (its guarded in-process entry, SR10) on the kit's inputs file: the
++    script loaded from the checkout by path (no bytecode written, not registered as a module), only when it hashes to
++    the blinding record's; returns its output document {kind, version, inputs_sha256, sigma_A_pp, df}. Its refusals name
++    cells, keys and hashes only; any other error at load is reported by its type alone."""
++    import importlib.util
++    path = blinded_sigma_script()
++    if not path.is_file() or mac.sha(path) != script_sha256:
++        fail(f"{BLINDED_SIGMA_SCRIPT} is not the file the blinding record verified (GXB R-49, R-50)")
++    failure, keep = None, sys.dont_write_bytecode
++    sys.dont_write_bytecode = True
++    try:
++        spec = importlib.util.spec_from_file_location("blinded_sigma_for_plan_b_78b", path)
++        module = importlib.util.module_from_spec(spec)
++        spec.loader.exec_module(module)
++    except SystemExit as exc:
++        fail(f"blinded_sigma.py refuses to load: {exc}")
++    except Exception as exc:                             # never echo an exception's text
++        failure = type(exc).__name__
++    finally:
++        sys.dont_write_bytecode = keep
++    if failure is not None:
++        fail(f"blinded_sigma.py did not load ({failure})")
++    if getattr(module, "SELF_SHA256", None) != script_sha256:
++        fail(f"{BLINDED_SIGMA_SCRIPT} changed while it loaded (GXB R-50)")
++    try:
++        return module.read(inputs, inputs_sha256)
++    except SystemExit as exc:
++        fail(f"blinded_sigma.read refuses the kit's inputs file: {exc}")
+ 
+ 
+ def plan_b_blinded_check(plan_b: dict, blinded_path) -> dict | None:
+@@ -4365,11 +4401,8 @@
+             "above_threshold": above}
+ 
+ 
+-def sr2_blinding_reading(check_files: bool = True) -> dict:
+-    """Ruling 3's trigger (P2 §10.1), from the lead's pinned record of the blinding test's verification only (GXB R-44):
+-    refuses while SR2_BLINDING_RECORD is null; its form is BLINDING_KEYS, its files exactly BLINDING_FILES by SHA-256
+-    and a 40-hex commit. With ``check_files`` (block A's init and release), each file must hash to the record's now: a
+-    kit file in this working copy (the code that runs), the others in the checkout, so a change voids it."""
++def blinding_doc() -> dict:
++    """The pinned blinding record (SR2_BLINDING_RECORD), checked for its form only (GXB R-44)."""
+     doc = pin_json(SR2_BLINDING_RECORD, "SR2_BLINDING_RECORD", SR2_BLINDING_EVENT)
+     files = doc.get("files")
+     if set(doc) != set(BLINDING_KEYS) or doc.get("kind") != BLINDING_KIND or doc.get("version") != 1 or \
+@@ -4379,24 +4412,53 @@
+             or not all(isinstance(doc.get(k), str) and doc[k].strip() for k in ("evidence", "utc", "recorded_by")):
+         fail(f"SR2_BLINDING_RECORD is not a {BLINDING_KIND!r} record (exactly {list(BLINDING_KEYS)}; files exactly "
+              f"{list(BLINDING_FILES)} by SHA-256; a 40-hex commit; GXB R-44)")
++    return doc
++
++
++def blinding_files_check(files: dict, copies=()) -> None:
++    """GXB R-44, R-49: each file the blinding record names hashes to the record's now. plan_tool.py (record-done's
++    code) in this working copy (the code that runs) and in each block-A copy in ``copies`` (where record-done ran);
++    blinded_sigma.py and the two tests in the checkout. A change of any of them voids the verification."""
++    for rel in BLINDING_FILES:
++        if rel == KIT_REL + "plan_tool.py":
++            where = [(HERE / "plan_tool.py", "the one that runs here")] + \
++                [(c / "plan_tool.py", f"the one in tmp/{c.name}/ (record-done's code)") for c in copies]
++        else:
++            where = [(ROOT / rel, "the one in this checkout")]
++        for path, what in where:
++            if not path.is_file() or mac.sha(path) != files[rel]:
++                fail(f"SR2_BLINDING_RECORD verified another {rel} than {what}: the change voids the verification "
++                     "(GXB R-44, R-49; P1 §6.4)")
++
++
++def sr2_blinding_reading(check_files: bool = True) -> dict:
++    """Ruling 3's trigger (P2 §10.1), from the lead's pinned record of the blinding test's verification only (GXB R-44):
++    refuses while SR2_BLINDING_RECORD is null; its form is BLINDING_KEYS, its files exactly BLINDING_FILES by SHA-256
++    and a 40-hex commit. With ``check_files`` (block A's init and release), each file must hash to the record's now
++    (blinding_files_check: this working copy's plan_tool.py, the others in the checkout), so a change voids it."""
++    doc = blinding_doc()
+     if check_files:
+-        for rel in BLINDING_FILES:
+-            here = HERE / "plan_tool.py" if rel == KIT_REL + "plan_tool.py" else ROOT / rel
+-            if not here.is_file() or mac.sha(here) != files[rel]:
+-                fail(f"SR2_BLINDING_RECORD verified another {rel} than the one that runs here: the change voids the "
+-                     "verification (GXB R-44; P1 §6.4)")
++        blinding_files_check(doc["files"])
+     return {"path": SR2_BLINDING_RECORD["path"], "sha256": SR2_BLINDING_RECORD["sha256"], "verified": doc["verified"]}
+ 
+ 
+ def blinding_from_block_a(families) -> dict:
+     """GXB R-44 at block B's time: the pinned blinding record (its form) must be the one every block-A copy of the
+-    gate's families read at its init (block A's record keeps it), so the verification held on the code block A ran."""
+-    got = sr2_blinding_reading(check_files=False)
++    gate's families read at its init (block A's record keeps it), so the verification held on the code block A ran.
++    GXB R-49: record-done and blinded_sigma.py run after block A's last release, so a record that says verified has its
++    files re-hashed here too (blinding_files_check, with every family's block-A copy's plan_tool.py); an unverified
++    record adopts nothing, so it has no verification to void."""
++    doc = blinding_doc()
++    got = {"path": SR2_BLINDING_RECORD["path"], "sha256": SR2_BLINDING_RECORD["sha256"], "verified": doc["verified"]}
++    copies = []
+     for f in families:
+         plan_a, copy = sibling_plan(f, "A")
+         snap = ((plan_a.get("blocks") or {}).get("A") or {}).get("blinding") or {}
+         if snap.get("sha256") != got["sha256"]:
+             fail(f"block A of {f} (tmp/{copy.name}/) was not planned under the pinned blinding record (GXB R-44)")
++        copies.append(copy)
++    if doc["verified"]:
++        blinding_files_check(doc["files"], copies)
+     return got
+ 
+ 
+@@ -4445,6 +4507,12 @@
+         doc, ref = output_doc(blinded_path, blinded_sha256, "blinded_sigma.py's output", "--blinded-sigma")
+         blinded_output_check(doc)
+         kit_inputs_check(gate, doc["inputs_sha256"])
++        again = blinded_sigma_read(BLINDED_INPUTS, doc["inputs_sha256"],
++                                   blinding_doc()["files"][BLINDED_SIGMA_SCRIPT])      # GXB R-50
++        if [(type(again.get(k)), again.get(k)) for k in ("sigma_A_pp", "df", "inputs_sha256")] != \
++                [(type(doc[k]), doc[k]) for k in ("sigma_A_pp", "df", "inputs_sha256")]:
++            fail("the given blinded_sigma.py output's sigma_A_pp or df is not the one blinded_sigma.read gives on the "
++                 "kit's inputs file (GXB R-50)")
+         record.update(plan=r78.plan_for_sigma(doc["sigma_A_pp"]), plan_basis=r78.PLAN_BASES["adopted"],
+                       sigma_A_pp=doc["sigma_A_pp"], blinded_sigma_output_sha256=ref["sha256"],
+                       blinded_sigma_inputs_sha256=doc["inputs_sha256"])
+@@ -4458,8 +4526,11 @@
+     if problem:
+         fail(f"block B's plan record would not be PLAN_B_78B's form: {problem}")
+     written = write_once(out, record)
+-    return {"recorded": "plan_b", **written, "plan": record["plan"], "sr2_adopted": adopted, "sr2_reason": reason,
+-            "plan_basis": record["plan_basis"], "simulation": simulation, "blinding": blinding}
++    got = {"recorded": "plan_b", **written, "plan": record["plan"], "sr2_adopted": adopted, "sr2_reason": reason,
++           "plan_basis": record["plan_basis"], "simulation": simulation, "blinding": blinding}
++    if adopted:                                          # GXB R-50: sigma_A and df only, as blinded_sigma.read gave them
++        got["blinded_sigma"] = {"sigma_A_pp": again["sigma_A_pp"], "df": again["df"]}
++    return got
+ 
+ 
+ def record_branch_78b(record_path: str | None, record_sha256: str | None, default: bool, recorded_by: str,
+@@ -4579,16 +4650,23 @@
+ def block_a_cells(plan: dict) -> tuple[dict, str | None]:
+     """K2V-2: (arm, seed) -> (host, the job) of the one complete, pulled job of each run of block A's deal, wherever it
+     ran (a deferral or requeue takes a job to another host); a job that is not complete counts only when a move took it
+-    along (carried, as block_complete reads moved hosts). The problem, or None: a job not complete and not carried, a
+-    complete job not pulled or without its unit, two complete units for one run, or a run with none."""
++    along (carried, as block_complete reads moved hosts). GXB R-51: a complete attempt that the kit's own requeue
++    --rerun-mismatched replaced (named by its requeue record, from that host) is skipped; its re-run's unit is the
++    cell's. The problem, or None: a job not complete and not carried, a complete job not pulled or without its unit,
++    two complete units for one run that no kit record explains, or a run with none."""
+     b = plan["blocks"].get("A") or {}
+     want = {tuple(r) for pod in b.get("deal") or [] for r in pod}
+     moved, cells = moved_hosts(plan), {}
++    replaced = {(r["from"], d) for r in plan.get("requeues") or [] if r.get("reason") == "environment-mismatch"
++                for d in r.get("complete_sha256") or []}           # GXB R-51: the kit's requeue --rerun-mismatched
++    # (by host: a requeue record names the attempts of its own ``from`` host only)
+     for name, h in sorted(plan["hosts"].items()):
+         if h.get("block") != "A":
+             continue
+         for i, j in enumerate(h["jobs"]):
+             key = (j.get("arm"), j.get("seed"))
++            if j.get("status") == "complete" and (name, j.get("complete_sha256")) in replaced:
++                continue                                 # the replaced attempt: its re-run's unit counts, or none
+             if j.get("status") == "complete":
+                 if j.get("pulled") is False or not j.get("unit") or not SHA_RE.fullmatch(str(j.get("complete_sha256"))):
+                     return {}, f"{name}:{i}: a block-A job is complete but not pulled with its unit"
+@@ -4679,17 +4757,59 @@
+ def part_path(family: str) -> pathlib.Path:
+     """K2V-3: the one place a family's part lives: its block-A copy's blinded/ folder (KD7)."""
+     return ROOT / "tmp" / f"{r78.WORKING_COPY_PREFIX}{family}-A" / BLINDED_PART.format(family=family)
++
++
++def replaced_attempts(plan: dict) -> set:
++    """GXB R-51: the complete attempts the kit's own requeue --rerun-mismatched replaced (its requeue records)."""
++    return {d for r in plan.get("requeues") or [] if r.get("reason") == "environment-mismatch"
++            for d in r.get("complete_sha256") or []}
++
++
++def part_superseded(old: bytes, new: dict, plan: dict) -> bool:
++    """GXB R-51: the written part differs from the one plan.json gives now only in cells whose written attempt a kit
++    requeue record replaced (the same cells, design, engines, edits and gate)."""
++    try:
++        was = json.loads(old)
++    except ValueError:
++        return False
+ 
++    def rest(doc: dict, key: str) -> dict:
++        return {k: v for k, v in doc.items() if k != key}
+ 
++    if not isinstance(was, dict) or set(was) != set(new) or not isinstance(was.get("entry"), dict) or \
++            rest(was, "entry") != rest(new, "entry") or rest(was["entry"], "cells") != rest(new["entry"], "cells"):
++        return False
++    cells_was, cells_new, replaced = was["entry"].get("cells"), new["entry"]["cells"], replaced_attempts(plan)
++    if not isinstance(cells_was, dict) or {a: sorted(v) for a, v in cells_was.items() if isinstance(v, dict)} != \
++            {a: sorted(v) for a, v in cells_new.items()}:
++        return False
++    changed = [(a, s) for a, v in cells_new.items() for s in v if cells_was[a][s] != v[s]]
++    return bool(changed) and all(isinstance(cells_was[a][s], dict) and cells_was[a][s].get("complete_sha256") in replaced
++                                 for a, s in changed)
++
++
+ def write_blinded_part(plan: dict) -> dict:
+     """S-9: once block A's arm jobs are all complete in this copy, its part of blinded_sigma.py's inputs file is
+-    written once at part_path (blinded/blinded-sigma-inputs-part__<F>.json); a second record-done finds the same bytes."""
++    written once at part_path (blinded/blinded-sigma-inputs-part__<F>.json); a second record-done finds the same bytes.
++    GXB R-51: a part written before the kit's own requeue --rerun-mismatched is replaced once the re-runs complete,
++    only when every changed cell's written attempt is one a kit requeue record replaced and before the merged inputs
++    file exists; any other difference refuses (the lead decides)."""
+     family = family_or_fail()
+-    data = rules.canonical_bytes(blinded_inputs_part(plan, family))
++    doc = blinded_inputs_part(plan, family)
++    data = rules.canonical_bytes(doc)
+     p = HERE / BLINDED_PART.format(family=family)
+     if p.exists():
+-        if p.read_bytes() != data:
+-            fail(f"{p.relative_to(HERE)} exists with other bytes: the part is written once; the lead decides")
++        old = p.read_bytes()
++        if old != data:
++            if not part_superseded(old, doc, plan):
++                fail(f"{p.relative_to(HERE)} exists with other bytes: the part is written once; the lead decides")
++            if BLINDED_INPUTS.exists():
++                fail(f"{p.relative_to(HERE)} is superseded by a kit re-run but the merged inputs file exists; the lead "
++                     "decides (GXB R-51)")
++            new = p.with_name(p.name + ".new")
++            with open(new, "xb") as handle:
++                handle.write(data)
++            os.replace(new, p)
+     else:
+         p.parent.mkdir(exist_ok=True)
+         with open(p, "xb") as handle:

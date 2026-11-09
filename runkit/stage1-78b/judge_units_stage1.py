@@ -478,20 +478,22 @@ def block_units(plan: dict, block: str, kit, root) -> list[dict]:
     unit twice. Never another block's unit, and never a whole retrieved/ folder (no --run-root). Round 33 (GB1, judge
     runbook B): a block other than A is listed only when it has no open job (plan_tool.block_open_jobs: each job of a
     pending host, so of every hosts launch not released; of a released host not recorded done; or one a move left
-    behind; less those a not-run decision names), so a judge launch never takes a partial list. Block A (sealed, its
-    judges recorded) keeps the listing without that check."""
+    behind; less those a not-run decision names), so a judge launch never takes a partial list. R2 K2 (Part 2 §6, §15
+    item 7; GXB K-2): at 7-8B every block takes that check (the 1B block-A route is gone), and block A's re-judged units
+    are read live from rules_78b.rejudged_or_refuse (N's units, the reused a0 units and theta0, 7 per family; N's wait
+    for N_UNITS, so the list refuses until then and never joins a null path). N's units lie in block 0's working copy
+    and the side units in their own trees: each path is the repository-relative one the pin names (X5)."""
     rules, units = _kit_rules(), gate_b_units()
     if not isinstance(plan, dict) or block not in (plan.get("blocks") or {}):
         raise units.Refusal(f"block {block} is not planned in plan.json")
-    if block != "A":
-        try:
-            open_jobs = _kit_plan_tool().block_open_jobs(plan, block)
-        except SystemExit as exc:                     # a recorded not-run decision that is missing or changed
-            raise units.Refusal(str(exc)) from None
-        if open_jobs:
-            raise units.Refusal(f"block {block} has {len(open_jobs)} open job(s) ({', '.join(open_jobs[:3])}"
-                                f"{', ...' if len(open_jobs) > 3 else ''}): record-done each host, or name a job that "
-                                "will not run in a not-run decision (plan_tool.py record-not-run), first")
+    try:                                             # R2 K2: every 7-8B block (no 1B block-A exemption)
+        open_jobs = _kit_plan_tool().block_open_jobs(plan, block)
+    except SystemExit as exc:                         # a recorded not-run decision that is missing or changed
+        raise units.Refusal(str(exc)) from None
+    if open_jobs:
+        raise units.Refusal(f"block {block} has {len(open_jobs)} open job(s) ({', '.join(open_jobs[:3])}"
+                            f"{', ...' if len(open_jobs) > 3 else ''}): record-done each host, or name a job that "
+                            "will not run in a not-run decision (plan_tool.py record-not-run), first")
     out = []
     for host, h in sorted((plan.get("hosts") or {}).items()):
         if h.get("block") != block:
@@ -514,7 +516,7 @@ def block_units(plan: dict, block: str, kit, root) -> list[dict]:
                                         "COMPLETE.json SHA-256")
                 out.append({"path": pathlib.Path(kit) / "retrieved" / host / "tree" / rel, "kind": j["kind"],
                             "complete_sha256": digest})
-    for pin in rules.REJUDGED_PINS.get(block, ()):
+    for pin in rejudged_pins_live(rules, block, units):
         out.append({"path": pathlib.Path(root) / pin["path"], "kind": "re-judged",
                     "complete_sha256": pin["complete_sha256"]})
     missing = [u for u in out if not (u["path"] / "COMPLETE.json").is_file()]
@@ -527,6 +529,17 @@ def block_units(plan: dict, block: str, kit, root) -> list[dict]:
     if len({u["complete_sha256"] for u in out}) != len(out) or len({str(u["path"]) for u in out}) != len(out):
         raise units.Refusal(f"block {block}: a unit is listed twice")
     return out
+
+
+def rejudged_pins_live(rules, block: str, units) -> tuple:
+    """R2 K2: the block's re-judged pins from rules_78b at use (block A: rejudged_or_refuse, which refuses while N's
+    entries are null; every other block: none), never the import-time snapshot."""
+    if block != "A":
+        return ()
+    try:
+        return rules.r78.rejudged_or_refuse(rules.FAMILY, block)
+    except rules.r78.Refused as exc:
+        raise units.Refusal(str(exc)) from None
 
 
 def units_of_block_main(argv: list) -> int:

@@ -1814,7 +1814,7 @@ def test_28_the_w1_18_kind_one_pod_one_record_per_family(monkeypatch):
         assert not R.engine_allowed("w1_18", "d3" * 32)
     b, c = R.w1_18_plan("B"), R.w1_18_plan("C")
     assert b["families"] == ("olmo2-7b", "llama31-8b") and c["families"] == ("olmo2-7b",)
-    assert b["records"] == {"olmo2-7b": "w1_18_record__olmo2-7b.json", "llama31-8b": "w1_18_record__llama31-8b.json"}
+    assert b["records"] == {"olmo2-7b": "overrefusal_checks__olmo2-7b.json", "llama31-8b": "overrefusal_checks__llama31-8b.json"}
     assert b["n_units"] == 7 and c["n_units"] == 4 and set(c["records"]) == {"olmo2-7b"}
     assert [u["unit"] for u in b["units"]["olmo2-7b"]] == ["untuned", 1101, 1102, 1103]
     assert [u["unit"] for u in b["units"]["llama31-8b"]] == ["untuned", 1101, 1102]
@@ -1829,11 +1829,25 @@ def test_28_the_w1_18_kind_one_pod_one_record_per_family(monkeypatch):
     assert R.sc_needed_pins("w1_18", "X") == ("W1_18_78B",)
     with pytest.raises(R.Refused, match="W1_18_78B waits for"):
         R.sc_pins_or_refuse("olmo2-7b", "w1_18", "X", pins78_doc())
-    monkeypatch.setattr(R, "W1_18_78B", {"files": {R.W1_18_SCRIPT: hx("w")}})
-    assert R.sc_pins_or_refuse("olmo2-7b", "w1_18", "X", pins78_doc())["W1_18_78B"] == {"files": {R.W1_18_SCRIPT: hx("w")}}
-    monkeypatch.setattr(R, "W1_18_78B", {"files": {}})
+    route = w1_18_route()                                # R2 K2 (GXB R-20, R-32): Track O's {files, side_units}
+    monkeypatch.setattr(R, "W1_18_78B", route)
+    assert R.sc_pins_or_refuse("olmo2-7b", "w1_18", "X", pins78_doc())["W1_18_78B"] == route
+    monkeypatch.setattr(R, "W1_18_78B", {"files": {}, "side_units": route["side_units"]})
     with pytest.raises(R.Refused, match="not a .files"):
         R.sc_pin_values("olmo2-7b", pins78_doc())
+
+
+def w1_18_route() -> dict:
+    """R2 K2 (GXB R-20, R-32): a W1_18_78B pin in Track O's maker's form, both families, from KIT a0_units."""
+    files = {R.W1_18_SCRIPT: hx("w")}
+    units = {}
+    for family in R.FAMILIES:
+        files[f"scripts/scale78b/settings/OEXT-78B-W1__{family}.json"] = hx(f"w1-index-{family}")
+        files[f"scripts/scale78b/settings/limits_overrefusal_checks__{family}.json"] = hx(f"w1-settings-{family}")
+        units[family] = {("untuned" if k == "untuned" else f"a0-{k}"): {
+            "path": u["path"][len("tmp/"):], "complete_sha256": u["complete_sha256"], "job_sha256": u["job_sha256"]}
+            for k, u in R.KIT[family]["a0_units"].items()}
+    return {"files": files, "side_units": units}
 
 
 def pins78_doc() -> dict:
@@ -2572,9 +2586,9 @@ def test_41_k1v9_a_unit_is_named_by_arm_and_seed_and_a_missing_arm_refuses(tmp_p
     assert seed_only_calls() == R16_SEED_ONLY_CALLS
 
 
-# GXB R-16's four seed-only call sites (K2's and K3's files; the list is empty by K3's end): (file, the call's line).
+# GXB R-16's seed-only call sites (K3's files; the list is empty by K3's end): (file, the call's line). R2 K2 moved the
+# planner's (plan_tool.py) to the strict form (GXB R-31).
 R16_SEED_ONLY_CALLS = {("pack_setup.py", "rules.sc_input_pins(kind, pins78(), values, seed)"),
-                       ("plan_tool.py", "rules.sc_input_pins(kind, pins78, values, seed)"),
                        ("setup/job_runner_stage1.py", 'rules.sc_input_names(job["kind"], job.get("seed"))'),
                        ("setup/job_runner_stage1.py", 'rules.sc_input_names(job["kind"], job.get("seed"))#2')}
 SEED_ONLY_ARGS = {"sc_input_names": 3, "sc_input_pins": 5}     # positional slots up to and including arm
@@ -2616,7 +2630,7 @@ def test_41b_kr3_the_seed_only_scan_sees_every_kit_file_and_any_call_form(tmp_pa
     found = seed_only_calls()
     assert found == R16_SEED_ONLY_CALLS
     files = {rel for rel, _ in found}
-    assert files == {"pack_setup.py", "plan_tool.py", "setup/job_runner_stage1.py"}
+    assert files == {"pack_setup.py", "setup/job_runner_stage1.py"}               # R2 K2: plan_tool.py moved
     probe = ast.parse("import stage1_rules as r\nr.sc_input_names('o_only_with_regenerate', 1101)\n"
                       "sc_input_pins(k, p, v, 1101)\nr.sc_input_names(k, 1101, arm='R')\nf = r.sc_input_pins\n")
     kinds = []
@@ -2734,7 +2748,10 @@ def test_44_r22_track_os_index_names_and_r21_the_w1_18_record_folder():
         old = {"files": {R.OEXT_WRAPPER_78B: hx("w"), f"scripts/scale78b/settings/oext_index__{family}__X.json": hx("i")},
                "inputs": x["inputs"]}
         assert "0 O-ext index file(s)" in R.oext_form_problem(old, family, "X")
-        rec = f"{R.W1_18_RECORD_DIR}w1_18_record__{family}.json"
+        near = {"files": {R.OEXT_WRAPPER_78B: hx("w"), f"scripts/scale78b/settings/OEXT-78B__{family}__X.json": hx("i")},
+                "inputs": x["inputs"]}                   # R2 K2 (R-33): a candidate off the standard name is no index
+        assert "1 O-ext index file(s)" in R.oext_form_problem(near, family, "X")
+        rec = f"{R.W1_18_RECORD_DIR}overrefusal_checks__{family}.json"
         with_rec = {"files": {**x["files"], rec: hx("rec")}, "inputs": x["inputs"]}
         assert R.oext_form_problem(with_rec, family, "X") is None and R.oext_form_problem(with_rec) is None
         two = {"files": {**with_rec["files"], f"{R.W1_18_RECORD_DIR}other.json": hx("rec2")}, "inputs": x["inputs"]}

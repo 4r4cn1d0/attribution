@@ -1,0 +1,166 @@
+{
+ "kind": "verifier probe mutants (K2V)",
+ "note": "scratch only",
+ "mutants": [
+  {
+   "id": "V-part-design-always-full",
+   "part": "K2V",
+   "describes": "the part names the full design on a stopped family (S-6)",
+   "file": "plan_tool.py",
+   "find": "    entry = {\"design\": \"anchor_stopped\" if stopped else \"full\",",
+   "replace": "    entry = {\"design\": \"full\","
+  },
+  {
+   "id": "V-part-stop-record-dropped",
+   "part": "K2V",
+   "describes": "the part omits the stop record (S-6)",
+   "file": "plan_tool.py",
+   "find": "    if stopped:\n        entry[\"anchor_stop\"]",
+   "replace": "    if False:\n        entry[\"anchor_stop\"]"
+  },
+  {
+   "id": "V-merge-stop-path-not-rebased",
+   "part": "K2V",
+   "describes": "the stop record's path is not rebased",
+   "file": "plan_tool.py",
+   "find": "        refs += [entry[\"anchor_stop\"]] if \"anchor_stop\" in entry else []",
+   "replace": "        refs += []"
+  },
+  {
+   "id": "V-planb-inputs-sha-unchecked",
+   "part": "K2V",
+   "describes": "block B never compares the inputs hash",
+   "file": "plan_tool.py",
+   "find": "    if doc[\"inputs_sha256\"] != plan_b[\"blinded_sigma_inputs_sha256\"]:",
+   "replace": "    if False:"
+  },
+  {
+   "id": "V-planb-inputs-families-unchecked",
+   "part": "K2V",
+   "describes": "record-plan-b takes an inputs file of other families",
+   "file": "plan_tool.py",
+   "find": "sorted(inputs.get(\"families\") or {}) != sorted(gate[\"families\"])",
+   "replace": "False"
+  },
+  {
+   "id": "V-merge-gate-unchecked",
+   "part": "K2V",
+   "describes": "a part of another gate is merged",
+   "file": "plan_tool.py",
+   "find": "doc.get(\"gate_sha256\") != r78.GATE_78B[\"sha256\"]",
+   "replace": "False"
+  },
+  {
+   "id": "V-release-planb-unchecked",
+   "part": "K2V",
+   "describes": "release accepts another block-B plan record",
+   "file": "plan_tool.py",
+   "find": "    if block == \"B\" and r78.PLAN_B_78B[\"sha256\"] != b[\"plan_b\"][\"sha256\"]:",
+   "replace": "    if False:"
+  },
+  {
+   "id": "V-release-stop-donefile-unchecked",
+   "part": "K2V",
+   "describes": "release accepts another anchor JOB-DONE.json",
+   "file": "plan_tool.py",
+   "find": "    if (stop or {}).get(\"job_done_sha256\") != (b.get(\"anchor_stop\") or {}).get(\"job_done_sha256\"):",
+   "replace": "    if False:"
+  },
+  {
+   "id": "V-gate-record-sigma-f-llama",
+   "part": "K2V",
+   "describes": "record-gate takes Llama's sigma_F plan under [C]",
+   "file": "plan_tool.py",
+   "find": "\"sigma_F_plan\": by_f[r78.GATE_OPTIONS[\"C\"][0]] if option == \"C\" else None,",
+   "replace": "\"sigma_F_plan\": by_f[\"llama31-8b\"] if option == \"C\" else None,"
+  },
+  {
+   "id": "V-gate-check-sigma-f-llama",
+   "part": "K2V",
+   "describes": "init compares the gate with Llama's sigma_F plan",
+   "file": "plan_tool.py",
+   "find": "want = by_f[r78.GATE_OPTIONS[\"C\"][0]] if gate_doc[\"option\"] == \"C\" else None",
+   "replace": "want = by_f[\"llama31-8b\"] if gate_doc[\"option\"] == \"C\" else None"
+  },
+  {
+   "id": "V-sibling-seal-hash-unchecked",
+   "part": "K2V",
+   "describes": "a sibling seal record off its SHA-256 passes",
+   "file": "plan_tool.py",
+   "find": " or not p.is_file() or mac.sha(p) != seal.get(\"sha256\"):",
+   "replace": " or not p.is_file():"
+  },
+  {
+   "id": "V-c0-fingerprint-unchecked",
+   "part": "K2V",
+   "describes": "c0's release check reads but never compares the fingerprint",
+   "file": "plan_tool.py",
+   "find": "if not SHA_RE.fullmatch(str(got)) or got != (values.get(\"C0_SOURCE\") or {}).get(\"e1_fingerprint\"):",
+   "replace": "if not SHA_RE.fullmatch(str(got)):"
+  },
+  {
+   "id": "V-arms-done-unpulled-ok",
+   "part": "K2V",
+   "describes": "an unpulled block-A job counts as done",
+   "file": "plan_tool.py",
+   "find": "all(j.get(\"status\") == \"complete\" and j.get(\"pulled\") is not False for h in hosts for j in h[\"jobs\"])",
+   "replace": "all(j.get(\"status\") == \"complete\" for h in hosts for j in h[\"jobs\"])"
+  },
+  {
+   "id": "V-part-unpulled-ok",
+   "part": "K2V",
+   "describes": "the part names an unpulled unit",
+   "file": "plan_tool.py",
+   "find": "            if j.get(\"status\") != \"complete\" or j.get(\"pulled\") is False or not j.get(\"unit\") or",
+   "replace": "            if j.get(\"status\") != \"complete\" or not j.get(\"unit\") or"
+  },
+  {
+   "id": "V-part-two-engines-ok",
+   "part": "K2V",
+   "describes": "block A on two engines passes",
+   "file": "plan_tool.py",
+   "find": "            len(block_engines) != 1:",
+   "replace": "            len(block_engines) < 1:"
+  },
+  {
+   "id": "V-branch-units-count-free",
+   "part": "K2V",
+   "describes": "a W1-18 record over fewer units makes a branch",
+   "file": "plan_tool.py",
+   "find": "        if len(units) != len(r78.w1_18_units(family)):",
+   "replace": "        if len(units) < 1:"
+  },
+  {
+   "id": "V-planb-plan-vs-sigma-unchecked",
+   "part": "K2V",
+   "describes": "block B's plan need not be sigma_A's (RK checks it too)",
+   "file": "plan_tool.py",
+   "find": "    if r78.plan_for_sigma(doc[\"sigma_A_pp\"]) != plan_b[\"plan\"]:",
+   "replace": "    if False:"
+  },
+  {
+   "id": "V-merge-family-set-unchecked",
+   "part": "K2V",
+   "describes": "the inputs file may cover fewer families than the gate",
+   "file": "plan_tool.py",
+   "find": "    if sorted(families) != sorted(gate[\"families\"]):",
+   "replace": "    if not families:"
+  },
+  {
+   "id": "V-seal-copies-only-block0",
+   "part": "K2V",
+   "describes": "block A's seal names block 0's seal only",
+   "file": "seal.py",
+   "find": "COPY_SEALS = {\"A\": (\"0\", \"sc\")}",
+   "replace": "COPY_SEALS = {\"A\": (\"0\",)}"
+  },
+  {
+   "id": "V-states-kept-1104-only",
+   "part": "K2V",
+   "describes": "only a0-1104's state is kept",
+   "file": "states_tool.py",
+   "find": "KEPT_A0_SEEDS = (1104, 1105, 1106, 1107)",
+   "replace": "KEPT_A0_SEEDS = (1104,)"
+  }
+ ]
+}

@@ -1,0 +1,622 @@
+{
+ "kind": "scale78b refs mutation spec (R2 Track R, its fix round and follow-up)",
+ "note": "each mutant's find text occurs exactly once in its file (a path under scripts/scale78b); runner: tests/refs/run_mutants_refs_78b.py (the suite scripts/scale78b/tests/refs). Fix round: R-m-unit-waits' find updated; the verifier's 7 non-equivalent mutants (RV-x-*; RV-x-except-any is equivalent: the 1B mains catch their own refusals, so no Refusal reaches the wrapper's except branch outside check) and 21 new (F-*). Follow-up: 2 finds updated (R-m-curve, F-w-terms-only-written) and 8 new (G-*: RRV-1, R-41, R-42).",
+ "mutants": [
+  {
+   "id": "R-w-ea-load",
+   "describes": "eval_adapter: B10's settings load from the 1B default path",
+   "file": "refs_78b.py",
+   "find": "    pairs = [(ea, \"load_pinned_settings\", functools.partial(ea.load_pinned_settings, ea_path)),\n",
+   "replace": "    pairs = [\n"
+  },
+  {
+   "id": "R-w-ea-sha",
+   "describes": "eval_adapter: SETTINGS_SHA256 keeps the 1B literal",
+   "file": "refs_78b.py",
+   "find": "             (ea, \"SETTINGS_PATH\", ea_path), (ea, \"SETTINGS_SHA256\", ea_sha),\n",
+   "replace": "             (ea, \"SETTINGS_PATH\", ea_path),\n"
+  },
+  {
+   "id": "R-w-ea-oext-label",
+   "describes": "eval_adapter: the O-ext path label stays the 1B one",
+   "file": "refs_78b.py",
+   "find": "             (ea, \"OEXT_SETTINGS_PATH\", idx.label(\"oext_eval\")), *o_pairs]",
+   "replace": "             *o_pairs]"
+  },
+  {
+   "id": "R-w-oe-load",
+   "describes": "eval_adapter: the O-ext settings load from the 1B default",
+   "file": "refs_78b.py",
+   "find": "    return ([(oe, \"load_pinned_settings\", functools.partial(oe.load_pinned_settings, o_path, o_sha)),\n             (oe, \"SETTINGS_PATH\", o_path), ",
+   "replace": "    return ([(oe, \"SETTINGS_PATH\", o_path), "
+  },
+  {
+   "id": "R-w-oe-path",
+   "describes": "eval_adapter: oext_eval.SETTINGS_PATH stays the 1B file (B10's check reads it)",
+   "file": "refs_78b.py",
+   "find": "             (oe, \"SETTINGS_PATH\", o_path), (w1, \"SETTINGS_PATH\"",
+   "replace": "             (w1, \"SETTINGS_PATH\""
+  },
+  {
+   "id": "R-w-w1-globals",
+   "describes": "eval_adapter: W1-18's globals keep the 1B settings (oext_eval's binding)",
+   "file": "refs_78b.py",
+   "find": ", (w1, \"SETTINGS_PATH\", w_path), (w1, \"SETTINGS_SHA256\", w_sha)],",
+   "replace": "],"
+  },
+  {
+   "id": "R-w-sl-path",
+   "describes": "safe_lora: SETTINGS_PATH stays the 1B file",
+   "file": "refs_78b.py",
+   "find": "with patched([(sl, \"SETTINGS_PATH\", sl_path), (sl, \"SETTINGS_SHA256\", sl_sha)]):",
+   "replace": "with patched([(sl, \"SETTINGS_SHA256\", sl_sha)]):"
+  },
+  {
+   "id": "R-w-sl-sha",
+   "describes": "safe_lora: SETTINGS_SHA256 keeps the 1B literal",
+   "file": "refs_78b.py",
+   "find": "with patched([(sl, \"SETTINGS_PATH\", sl_path), (sl, \"SETTINGS_SHA256\", sl_sha)]):",
+   "replace": "with patched([(sl, \"SETTINGS_PATH\", sl_path)]):"
+  },
+  {
+   "id": "R-w-require-ea",
+   "describes": "eval_adapter runs while a pin it needs is null",
+   "file": "refs_78b.py",
+   "find": "    idx.require(\"eval_adapter\")\n",
+   "replace": "    pass\n"
+  },
+  {
+   "id": "R-w-require-sl",
+   "describes": "safe_lora runs while a pin it needs is null",
+   "file": "refs_78b.py",
+   "find": "    idx.require(\"safe_lora\")\n",
+   "replace": "    pass\n"
+  },
+  {
+   "id": "R-w-bind-oext",
+   "describes": "B10's O-ext pin need not name the index's file",
+   "file": "refs_78b.py",
+   "find": "    if (oext[\"path\"], oext[\"sha256\"]) != (idx.label(\"oext_eval\"), idx.doc[\"files\"][\"oext_eval\"][\"sha256\"]):",
+   "replace": "    if False:"
+  },
+  {
+   "id": "R-w-bind-sl",
+   "describes": "B10's Safe LoRA pin need not name the index's file",
+   "file": "refs_78b.py",
+   "find": "    if entry is None or entry[\"settings\"] is None or (entry[\"settings\"][\"path\"], entry[\"settings\"][\"sha256\"]) != (",
+   "replace": "    if entry is None or entry[\"settings\"] is None or False and (entry[\"settings\"][\"path\"], entry[\"settings\"][\"sha256\"]) != ("
+  },
+  {
+   "id": "R-w-bind-module",
+   "describes": "B10's Safe LoRA module may be another file",
+   "file": "refs_78b.py",
+   "find": "    if entry[\"module_sha256\"] != CODE[SL] or entry[\"module\"] != \"scripts/stage1_s1/safe_lora.py\":",
+   "replace": "    if False:"
+  },
+  {
+   "id": "R-w-seed-flag",
+   "describes": "--seed may be another seed",
+   "file": "refs_78b.py",
+   "find": "        if seed is not None and seed != str(idx.seed):",
+   "replace": "        if False:"
+  },
+  {
+   "id": "R-w-seed-reference",
+   "describes": "--reference may be another seed's unit",
+   "file": "refs_78b.py",
+   "find": "            if digest != pin:\n",
+   "replace": "            if False:\n"
+  },
+  {
+   "id": "R-w-check-seeds",
+   "describes": "B10 check's --reference may name an unpinned seed",
+   "file": "refs_78b.py",
+   "find": "            if seed not in pins:\n",
+   "replace": "            if False:\n"
+  },
+  {
+   "id": "R-w-prepared",
+   "describes": "eval_adapter: --prepared is not checked against the family's manifest",
+   "file": "refs_78b.py",
+   "find": "    ox.check_prepared(args, idx)\n",
+   "replace": "    pass\n"
+  },
+  {
+   "id": "R-w-branch-flags",
+   "describes": "eval_adapter: the W1-18 record flag is not checked against the pin",
+   "file": "refs_78b.py",
+   "find": "        ox.check_branch_flags(args, shas[\"doc\"], unit=False)\n",
+   "replace": "        pass\n"
+  },
+  {
+   "id": "R-w-abbrev",
+   "describes": "an abbreviated or unknown flag passes",
+   "file": "refs_78b.py",
+   "find": "        if token.startswith(\"-\") and token.split(\"=\", 1)[0] not in table[sub]:",
+   "replace": "        if False:"
+  },
+  {
+   "id": "R-w-code",
+   "describes": "a changed run file passes",
+   "file": "refs_78b.py",
+   "find": "        if digest != CODE[name]:",
+   "replace": "        if False:"
+  },
+  {
+   "id": "R-w-index-name",
+   "describes": "an index of another family or seed name passes",
+   "file": "refs_78b.py",
+   "find": "        if path.name != wanted:",
+   "replace": "        if False:"
+  },
+  {
+   "id": "R-w-index-sha",
+   "describes": "an index off the job's SHA-256 passes",
+   "file": "refs_78b.py",
+   "find": "        if digest != expected_sha256:",
+   "replace": "        if False:"
+  },
+  {
+   "id": "R-w-index-doc",
+   "describes": "an index of another kind, family or seed passes",
+   "file": "refs_78b.py",
+   "find": "                (doc.get(\"family\"), doc.get(\"seed\")) != (family, seed):",
+   "replace": "                False:"
+  },
+  {
+   "id": "R-w-seed-range",
+   "describes": "a non-reference seed (1101) passes",
+   "file": "refs_78b.py",
+   "find": "        if seed not in REFERENCE_SEEDS:",
+   "replace": "        if False:"
+  },
+  {
+   "id": "R-w-file-pin",
+   "describes": "a settings file off the index's pin passes",
+   "file": "refs_78b.py",
+   "find": "        if ox.sha256_bytes(data) != entry[\"sha256\"]:",
+   "replace": "        if False:"
+  },
+  {
+   "id": "R-w-twice",
+   "describes": "a leading option given twice passes",
+   "file": "refs_78b.py",
+   "find": "            raise Refused(f\"{name} is given twice\")\n",
+   "replace": "            pass\n"
+  },
+  {
+   "id": "R-w-check-placeholder",
+   "describes": "check: a waiting file is validated with its nulls (no placeholders)",
+   "file": "refs_78b.py",
+   "find": "        validate(idx, role, sha, with_placeholders(idx, role, doc) if waiting else doc)",
+   "replace": "        validate(idx, role, sha, doc)"
+  },
+  {
+   "id": "R-w-check-novalidate",
+   "describes": "check: the files are not run through the 1B validators",
+   "file": "refs_78b.py",
+   "find": "        validate(idx, role, sha, with_placeholders(idx, role, doc) if waiting else doc)",
+   "replace": "        pass"
+  },
+  {
+   "id": "R-w-check-stale",
+   "describes": "check: a field listed as waiting but filled passes",
+   "file": "refs_78b.py",
+   "find": "            if old is not None:\n",
+   "replace": "            if False:\n"
+  },
+  {
+   "id": "R-w-check-label",
+   "describes": "check: B10's file is validated without its true O-ext label",
+   "file": "refs_78b.py",
+   "find": "        with patched([(ea, \"OEXT_SETTINGS_PATH\", idx.label(\"oext_eval\"))]):\n            ea.validate_settings(doc)",
+   "replace": "        if True:\n            ea.validate_settings(doc)"
+  },
+  {
+   "id": "R-w-check-oext",
+   "describes": "check: the family's O-ext file is not loaded",
+   "file": "refs_78b.py",
+   "find": "        module(OE).load_pinned_settings()                 # the family",
+   "replace": "        pass                 # the family"
+  },
+  {
+   "id": "R-m-k-default",
+   "describes": "Safe LoRA's default K is the conditional share",
+   "file": "make_refs_settings_78b.py",
+   "find": "points[\"default\"].update(k=matrices * K_DEFAULT_1B // MATRICES_1B,",
+   "replace": "points[\"default\"].update(k=matrices * K_CONDITIONAL_1B // MATRICES_1B,"
+  },
+  {
+   "id": "R-m-blocks",
+   "describes": "Safe LoRA keeps 1B's 16 blocks",
+   "file": "make_refs_settings_78b.py",
+   "find": "        self.blocks = _int(pins.get(\"blocks\"), f\"{family} blocks\")",
+   "replace": "        self.blocks = 16 or _int(pins.get(\"blocks\"), f\"{family} blocks\")"
+  },
+  {
+   "id": "R-m-cert-seed",
+   "describes": "the certification seed is 1101 in every file",
+   "file": "make_refs_settings_78b.py",
+   "find": "        doc[\"certification\"][\"seed\"] = seed\n",
+   "replace": "        doc[\"certification\"][\"seed\"] = UNTUNED_SEED\n"
+  },
+  {
+   "id": "R-m-ref-seeds",
+   "describes": "B10's reference units hold the seed only",
+   "file": "make_refs_settings_78b.py",
+   "find": "        for s in (UNTUNED_SEED, seed):\n            unit = self.pins[\"units\"][str(s)]\n            refs[str(s)]",
+   "replace": "        for s in (seed,):\n            unit = self.pins[\"units\"][str(s)]\n            refs[str(s)]"
+  },
+  {
+   "id": "R-m-curve",
+   "describes": "the 6-seed curve keeps 1B's four points",
+   "file": "make_refs_settings_78b.py",
+   "find": "\"curve\": [1.0, 0.9, 0.75, 0.5, 0.0], \"allowed\": [1.0, 0.9",
+   "replace": "\"curve\": [1.0, 0.75, 0.5, 0.0], \"allowed\": [1.0, 0.9"
+  },
+  {
+   "id": "R-m-fallback",
+   "describes": "the 3-seed fallback plans 0.9 too",
+   "file": "make_refs_settings_78b.py",
+   "find": "\"three_seed\": {\"seeds\": (1102, 1103, 1104), \"planned\": [0.75, 0.5],",
+   "replace": "\"three_seed\": {\"seeds\": (1102, 1103, 1104), \"planned\": [0.9, 0.75, 0.5],"
+  },
+  {
+   "id": "R-m-answers",
+   "describes": "the sampled-answer count ignores the harm samples",
+   "file": "make_refs_settings_78b.py",
+   "find": "= self.harm * self.main[\"generation\"][\"harm_samples\"][\"count\"]",
+   "replace": "= self.harm"
+  },
+  {
+   "id": "R-m-oext-pin",
+   "describes": "B10's O-ext pin names another hash",
+   "file": "make_refs_settings_78b.py",
+   "find": "        doc[\"oext\"][\"settings\"] = {\"path\": label(path), \"sha256\": sha}",
+   "replace": "        doc[\"oext\"][\"settings\"] = {\"path\": label(path), \"sha256\": \"0\" * 64}"
+  },
+  {
+   "id": "R-m-branch",
+   "describes": "B10's O-ext branch is fixed at 128",
+   "file": "make_refs_settings_78b.py",
+   "find": "        doc[\"oext\"][\"branch\"] = self.branch\n",
+   "replace": "        doc[\"oext\"][\"branch\"] = \"128\"\n"
+  },
+  {
+   "id": "R-m-sl-pin",
+   "describes": "B10's Safe LoRA pin names the 1B settings hash",
+   "file": "make_refs_settings_78b.py",
+   "find": "                             \"sha256\": safe_lora_sha}",
+   "replace": "                             \"sha256\": BASE[\"safe_lora\"][1]}"
+  },
+  {
+   "id": "R-m-unit-waits",
+   "describes": "a null unit pin records no wait",
+   "file": "make_refs_settings_78b.py",
+   "find": "        if null:\n            event = UNIT_EVENT",
+   "replace": "        if False:\n            event = UNIT_EVENT"
+  },
+  {
+   "id": "R-m-hub-waits",
+   "describes": "a null model pin records no wait",
+   "file": "make_refs_settings_78b.py",
+   "find": "        if hub_null:\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "R-m-e1-field",
+   "describes": "the waiting e1 field names the q prefix",
+   "file": "make_refs_settings_78b.py",
+   "find": "(f\"reference_units.{s}.fingerprint_prefixes.e1\", \"sha256\", \"e1_fingerprint\")",
+   "replace": "(f\"reference_units.{s}.fingerprint_prefixes.q\", \"sha256\", \"e1_fingerprint\")"
+  },
+  {
+   "id": "R-m-manifest",
+   "describes": "B10's manifest is the 1B file's",
+   "file": "make_refs_settings_78b.py",
+   "find": "        doc[\"prepared\"][\"manifest_sha256\"] = self.pins[\"manifest_sha256\"]\n",
+   "replace": "        pass\n"
+  },
+  {
+   "id": "R-m-base-check",
+   "describes": "a changed 1B settings file passes",
+   "file": "make_refs_settings_78b.py",
+   "find": "    if sha256_bytes(data) != pin:\n        raise s1.Refusal(f\"{rel} hashes to",
+   "replace": "    if False:\n        raise s1.Refusal(f\"{rel} hashes to"
+  },
+  {
+   "id": "R-m-main-check",
+   "describes": "a main config off its pin passes",
+   "file": "make_refs_settings_78b.py",
+   "find": "        if config_sha256(self.main) != _hex(main[\"config_sha256\"], f\"{family} main.config_sha256\", nullable=False):",
+   "replace": "        if False:"
+  },
+  {
+   "id": "R-m-w1-bind",
+   "describes": "Track O's O-ext file need not bind its W1-18 file",
+   "file": "make_refs_settings_78b.py",
+   "find": "        if cap[\"w1_18\"][\"settings_sha256\"] != self.oext[\"limits_overrefusal_checks\"][1]:",
+   "replace": "        if False:"
+  },
+  {
+   "id": "R-m-untuned",
+   "describes": "B10's untuned unit is the 1101 a0 unit's marker",
+   "file": "make_refs_settings_78b.py",
+   "find": "        doc[\"untuned_unit\"].update(unit=untuned[\"unit\"], complete_sha256=untuned[\"complete_sha256\"], seed=UNTUNED_SEED,",
+   "replace": "        doc[\"untuned_unit\"].update(unit=untuned[\"unit\"], complete_sha256=self.pins[\"units\"][\"1101\"][\"complete_sha256\"], seed=UNTUNED_SEED,"
+  },
+  {
+   "id": "R-m-recipe-file",
+   "describes": "B10's recipe file pin is the config hash",
+   "file": "make_refs_settings_78b.py",
+   "find": "        doc[\"recipe\"] = {\"path\": rel, \"file_sha256\": sha256_file(REPO / rel),",
+   "replace": "        doc[\"recipe\"] = {\"path\": rel, \"file_sha256\": config_sha256(self.main),"
+  },
+  {
+   "id": "R-m-form-record",
+   "describes": "the kit form leaves out a pinned W1-18 record",
+   "file": "make_refs_settings_78b.py",
+   "find": "        out[record_path] = index[\"w1_18_record_sha256\"]\n",
+   "replace": "        pass\n"
+  },
+  {
+   "id": "R-m-accepted",
+   "describes": "Safe LoRA accepts the 1101 unit's fingerprint",
+   "file": "make_refs_settings_78b.py",
+   "find": "            accepted={str(seed): {\"fingerprint\": unit[\"e1_fingerprint\"],",
+   "replace": "            accepted={str(seed): {\"fingerprint\": self.pins[\"units\"][\"1101\"][\"e1_fingerprint\"],"
+  },
+  {
+   "id": "RV-x-referenced-compare",
+   "file": "refs_78b.py",
+   "describes": "compare's --reference is not held to seed S's a0 pin",
+   "find": "REFERENCED = (\"regenerate\", \"evaluate\", \"run\", \"compare\")",
+   "replace": "REFERENCED = (\"regenerate\", \"evaluate\", \"run\")"
+  },
+  {
+   "id": "RV-x-referenced-evaluate",
+   "file": "refs_78b.py",
+   "describes": "evaluate's --reference is not held to seed S's a0 pin",
+   "find": "REFERENCED = (\"regenerate\", \"evaluate\", \"run\", \"compare\")",
+   "replace": "REFERENCED = (\"regenerate\", \"run\", \"compare\")"
+  },
+  {
+   "id": "RV-x-seeded-run",
+   "file": "refs_78b.py",
+   "describes": "run's --seed is not held to S",
+   "find": "SEEDED = {\"eval_adapter\": (\"regenerate\", \"run\"),",
+   "replace": "SEEDED = {\"eval_adapter\": (\"regenerate\",),"
+  },
+  {
+   "id": "RV-x-manifest",
+   "file": "refs_78b.py",
+   "describes": "B10 file's manifest not held to the index",
+   "find": "    if ea_doc[\"prepared\"][\"manifest_sha256\"] != idx.manifest:",
+   "replace": "    if False:"
+  },
+  {
+   "id": "RV-x-index-kind",
+   "file": "refs_78b.py",
+   "describes": "the index kind and version are not checked",
+   "find": "(doc.get(\"kind\"), doc.get(\"version\")) != (INDEX_KIND, INDEX_VERSION) or \\",
+   "replace": "False or \\"
+  },
+  {
+   "id": "RV-x-check-bindings",
+   "file": "refs_78b.py",
+   "describes": "check() skips the label and hash bindings",
+   "find": "    check_bindings(idx, ea_doc)\n    for role in (\"eval_adapter\", \"safe_lora\"):",
+   "replace": "    for role in (\"eval_adapter\", \"safe_lora\"):"
+  },
+  {
+   "id": "RV-x-seed-isdigit",
+   "file": "refs_78b.py",
+   "describes": "a non-digit --seed crashes instead of exit 2",
+   "find": "    if opts[\"seed\"] is None or not opts[\"seed\"].isdigit():",
+   "replace": "    if opts[\"seed\"] is None:"
+  },
+  {
+   "id": "F-w-point",
+   "describes": "R-37: a Safe LoRA point other than default and certify runs",
+   "file": "refs_78b.py",
+   "find": "            if point not in SL_POINTS:\n",
+   "replace": "            if False:\n"
+  },
+  {
+   "id": "F-w-untuned-check",
+   "describes": "R-34: B10 check --untuned runs",
+   "file": "refs_78b.py",
+   "find": "sub == \"check\" and any(t.split(\"=\", 1)[0] == \"--untuned\" for t in args):",
+   "replace": "sub == \"check\" and False:"
+  },
+  {
+   "id": "F-w-untuned-compare",
+   "describes": "R-34: compare --against untuned runs",
+   "file": "refs_78b.py",
+   "find": "sub == \"compare\" and \"untuned\" in ox.flag_values(args, \"--against\"):",
+   "replace": "sub == \"compare\" and False:"
+  },
+  {
+   "id": "F-w-not-run-ea",
+   "describes": "R-34: the B10 forms not run at 7-8B are not checked",
+   "file": "refs_78b.py",
+   "find": "    check_not_run(\"eval_adapter\", sub, args)\n",
+   "replace": "    pass\n"
+  },
+  {
+   "id": "F-w-not-run-sl",
+   "describes": "R-37: the B11 forms not run at 7-8B are not checked",
+   "file": "refs_78b.py",
+   "find": "    check_not_run(\"safe_lora\", sub, args)\n",
+   "replace": "    pass\n"
+  },
+  {
+   "id": "F-w-terms-write",
+   "describes": "R-38: no terms record is written",
+   "file": "refs_78b.py",
+   "find": "    write_terms(idx, sub, code, outputs, ea_sha)\n",
+   "replace": "    pass\n"
+  },
+  {
+   "id": "F-w-terms-exists",
+   "describes": "R-38: an existing terms record is not refused before the call",
+   "file": "refs_78b.py",
+   "find": "        if terms.exists():\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "F-w-terms-only-written",
+   "describes": "R-38, R-41: a terms record is written beside an output this command did not create (no check at all)",
+   "file": "refs_78b.py",
+   "find": "        if not created(path, before):\n            continue\n",
+   "replace": ""
+  },
+  {
+   "id": "F-w-absent",
+   "describes": "RV-4: an absent waiting field raises instead of refusing",
+   "file": "refs_78b.py",
+   "find": "    if not isinstance(node, dict) or last not in node:\n",
+   "replace": "    if not isinstance(node, dict):\n"
+  },
+  {
+   "id": "F-m-cond-k",
+   "describes": "R-37: the conditional point keeps a non-zero K",
+   "file": "make_refs_settings_78b.py",
+   "find": "K_CONDITIONAL = 0\n",
+   "replace": "K_CONDITIONAL = 24\n"
+  },
+  {
+   "id": "F-m-source",
+   "describes": "R-35: a unit's source need not be the table's",
+   "file": "make_refs_settings_78b.py",
+   "find": "            if unit[\"source\"] != SOURCES[family][int(seed)]:",
+   "replace": "            if False:"
+  },
+  {
+   "id": "F-m-prefix",
+   "describes": "R-36: seed 1101's fingerprints need not start with P1's prefixes",
+   "file": "make_refs_settings_78b.py",
+   "find": "            if value is not None and not value.startswith(prefix):",
+   "replace": "            if False:"
+  },
+  {
+   "id": "F-m-event",
+   "describes": "R-35: every unit's wait names the side-unit event",
+   "file": "make_refs_settings_78b.py",
+   "find": "event = UNIT_EVENT[SOURCES[self.family][seed]].format(seed=seed)",
+   "replace": "event = UNIT_EVENT[\"side_unit\"].format(seed=seed)"
+  },
+  {
+   "id": "F-m-r36-note",
+   "describes": "R-36: seed 1101's wait does not name the full-hex rule",
+   "file": "make_refs_settings_78b.py",
+   "find": "(R36_NOTE if seed == UNTUNED_SEED else \"\")",
+   "replace": "\"\""
+  },
+  {
+   "id": "F-m-labels-b10",
+   "describes": "RV-2: B10 files keep the 1B registry record",
+   "file": "make_refs_settings_78b.py",
+   "find": "        doc[\"labels_sha256\"] = s1.labels_sha256()                     # RV-2: the registry",
+   "replace": "        pass                     # RV-2: the registry"
+  },
+  {
+   "id": "F-m-labels-b11",
+   "describes": "RV-2: B11 files keep the 1B registry record",
+   "file": "make_refs_settings_78b.py",
+   "find": "        doc[\"labels_sha256\"] = s1.labels_sha256()                     # RV-2\n",
+   "replace": "        pass\n"
+  },
+  {
+   "id": "F-m-gate",
+   "describes": "RV-3: B10's certification gate text stays 1B's",
+   "file": "make_refs_settings_78b.py",
+   "find": "        doc[\"certification\"].update(PROSE_B10_CERT)\n",
+   "replace": "        pass\n"
+  },
+  {
+   "id": "F-m-measure",
+   "describes": "RV-3: B11's V/V' measure text stays 1B's (K = 39)",
+   "file": "make_refs_settings_78b.py",
+   "find": "        doc[\"v_diagnostic\"][\"measure\"] = (",
+   "replace": "        doc[\"v_diagnostic\"][\"unused\"] = ("
+  },
+  {
+   "id": "F-m-untuned-role",
+   "describes": "RV-3, R-34: theta0's role text keeps the lambda = 0 role",
+   "file": "make_refs_settings_78b.py",
+   "find": "a0_units). Not compared at 7-8B (GXB R-34): refs_78b.py refuses check \"",
+   "replace": "a0_units). The lambda = 0 point's optional certification reference \""
+  },
+  {
+   "id": "F-m-stale-remove",
+   "describes": "RV-5: the fallback leaves the other seeds' files",
+   "file": "make_refs_settings_78b.py",
+   "find": "        (settings_dir / name).unlink()\n",
+   "replace": "        pass\n"
+  },
+  {
+   "id": "F-m-stale-check",
+   "describes": "RV-5: --check ignores a stale per-seed file",
+   "file": "make_refs_settings_78b.py",
+   "find": "                     or (settings_dir / n).read_bytes() != d) + stale",
+   "replace": "                     or (settings_dir / n).read_bytes() != d)"
+  },
+  {
+   "id": "G-m-fallback-allowed",
+   "describes": "RRV-1: the 3-seed fallback still allows lambda 0.9",
+   "file": "make_refs_settings_78b.py",
+   "find": "\"allowed\": [1.0, 0.75, 0.5, 0.0]},",
+   "replace": "\"allowed\": [1.0, 0.9, 0.75, 0.5, 0.0]},"
+  },
+  {
+   "id": "G-m-allowed-fixed",
+   "describes": "RRV-1: every set allows the 6-seed grid",
+   "file": "make_refs_settings_78b.py",
+   "find": "scale.update(allowed=list(self.set[\"allowed\"]),",
+   "replace": "scale.update(allowed=[1.0, 0.9, 0.75, 0.5, 0.0],"
+  },
+  {
+   "id": "G-w-terms-exists-only",
+   "describes": "R-41: a terms record is written beside any output that exists after the call",
+   "file": "refs_78b.py",
+   "find": "        if not created(path, before):\n",
+   "replace": "        if not path.exists():\n"
+  },
+  {
+   "id": "G-w-created-held",
+   "describes": "R-41: an output that held files before the call counts as created",
+   "file": "refs_78b.py",
+   "find": "return before in (None, \"empty\") and path.exists()",
+   "replace": "return path.exists()"
+  },
+  {
+   "id": "G-w-state-empty",
+   "describes": "R-41: an empty folder before the call counts as held",
+   "file": "refs_78b.py",
+   "find": "    return \"empty\" if path.is_dir() and not any(path.iterdir()) else \"held\"",
+   "replace": "    return \"held\""
+  },
+  {
+   "id": "G-w-lambda0",
+   "describes": "R-42: lambda = 0 runs",
+   "file": "refs_78b.py",
+   "find": "            if zero:\n                raise Refused(\"lambda = 0",
+   "replace": "            if False:\n                raise Refused(\"lambda = 0"
+  },
+  {
+   "id": "G-w-lambda0-evaluate",
+   "describes": "R-42: evaluate's --lambda is not read",
+   "file": "refs_78b.py",
+   "find": "scales = ox.flag_values(args, \"--lambda\") if sub == \"evaluate\" else [",
+   "replace": "scales = [] if sub == \"evaluate\" else ["
+  },
+  {
+   "id": "G-w-lambda0-run",
+   "describes": "R-42: run's scale specs are not read",
+   "file": "refs_78b.py",
+   "find": "            if spec.partition(\":\")[0] == \"scale\"]",
+   "replace": "            if False]"
+  }
+ ]
+}

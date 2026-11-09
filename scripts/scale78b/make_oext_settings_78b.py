@@ -427,14 +427,17 @@ def form(family: str, engine: str, files: dict[str, bytes], code: dict[str, str]
     """RK OEXT_78B[family]'s (engine X) or OEXT_78B_Y[family]'s (engine Y) documented form, {files: {path under
     scripts/: SHA-256}, inputs: {oext_bank, oext_record}}, for the lead's recorded fill: the wrapper and the files the
     engine's commands run (``code``: path -> SHA-256), the family's index for that engine and every settings file it
-    lists. (Under Branch 128, or a Branch full with a record, the family's W1-18 record joins the X and Y files: P2
-    section 4.4; the lead adds it with the branch fill.)"""
+    lists. Under Branch 128, or a Branch full with a record, the family's W1-18 record joins the X and Y files at its
+    R-21 path with its SHA-256 (P2 section 4.4; T-O3; R-21: RK's form check takes that one folder for this entry
+    only), so the printed form is the pin the lead fills, with no hand edit (W2-1 of R1's second re-verification)."""
     name = index_name(family, engine)
     index = s1.strict_json(files[name])
     out = dict(code)
     out[f"scripts/scale78b/settings/{name}"] = sha256_bytes(files[name])
     for entry in index["files"].values():
         out[f"scripts/scale78b/settings/{entry['file']}"] = entry["sha256"]
+    if index["w1_18_record_sha256"] is not None:
+        out[index["w1_18_record_path"]] = index["w1_18_record_sha256"]
     return {"files": dict(sorted(out.items())), "inputs": dict(index["inputs"])}
 
 

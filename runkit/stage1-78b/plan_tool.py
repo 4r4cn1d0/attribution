@@ -19,9 +19,12 @@ COPY-MANIFEST.json's source_head) with the block-0 route added and nothing of th
         and releases launch 0 (the pack's receipt must carry engine X's identity, rules_78b.ENGINE_X).
     plan_tool.py record-guard-off FILE --sha256 H | record-sealed FILE --sha256 H    as in the stage-1 kit
     plan_tool.py release 0 | deal 0                                                  as in the stage-1 kit
-    Every other block (S1-0, cert, A, certify, B, C, sim, P) and every other record command refuses in this copy:
-    they belong to runkit/stage1-olmo/ (the 1B route below is the stage-1 kit's documentation, kept for the next
-    stages that port record-done, defer, requeue and confirm-stopped to block 0).
+    R2 K2: blocks A and B take the lean route of module section "R2 K2" (init-block A / B, the record steps
+    record-gate-78b, record-plan-b-78b, record-branch-78b, record-anchor-stop, write-blinded-inputs); the inherited
+    1B block-A route (its plan record, Gate B's verdict, LN-12, cert, certify) and the 1B branch record
+    (record-branch) are gone (GXB B-2, K-2, K-8). Every other block (S1-0, cert, certify, C, sim, P) and every other
+    1B record command refuses in this copy: they belong to runkit/stage1-olmo/ (the 1B text below is the stage-1
+    kit's documentation; its block-A, G1 and G3 parts do not apply here).
     The retrain kind is defined through rules_78b (ruling 10, A2, A8): its pod's need prints in init-block 0, and a
     retrain job refuses to be planned (stage1_rules.retrain_job) or run while RECIPE_S is null (A1).
     plan_tool.py init-block sc --jobs FILE [--funding FILE] [--dry-run]      (K4b) the pre-block-A scorer block in its
@@ -258,10 +261,13 @@ import datetime as dt
 import hashlib
 import json
 import math
+import os
 import pathlib
 import re
 import subprocess
 import sys
+import tarfile
+from fractions import Fraction
 
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -278,8 +284,7 @@ FUNDING_KEYS = ("block", "amount_usd", "utc", "source", "user_words", "recorded_
 FUNDING_SOURCE = "user RunPod top-up"
 FUNDING_SOURCE_RULE = "user rule: start from the balance"   # addendum §36: the user's rule of 29 Oct 2026
 FUNDING_RULE_KIND = "stage1 user decision: start without a covering top-up"
-RECORD_KINDS = {"branch": "stage1 w1-18 branch record", "default_full": "stage1 branch full by default",
-                "plan_ab": "stage1 plan-ab record", "certificate": "stage1 x-y certificate",
+RECORD_KINDS = {"plan_ab": "stage1 plan-ab record", "certificate": "stage1 x-y certificate",
                 "certification": "stage1 b10 certification", "thresholds": "stage1 c2 binding thresholds",
                 "prefix": "stage1 sp prefix pin", "user_yes": "stage1 user yes", "sealed": "stage1 sealed edits",
                 "oext_fallback": "stage1 oext fallback", "c3": "stage1 c3 subsample pin",
@@ -805,32 +810,12 @@ def gate_bqi_pairs(plan: dict, jobs: list[dict]) -> None:
              f"(B+Qi {bqi}, own a0 {own})")
 
 
-def branch_name(plan: dict) -> str:
-    rec = records(plan).get("branch")
-    return rec["branch"] if rec else rules.BRANCH_DEFAULT
-
-
 def bank500_planned(plan: dict) -> bool:
     for b in plan["blocks"].values():
         for h in list(b.get("pending", {}).values()):
             if any(j["kind"] in rules.BANK500_KINDS for j in h["jobs"]):
                 return True
     return any(j["kind"] in rules.BANK500_KINDS for h in plan["hosts"].values() for j in h["jobs"])
-
-
-def gate_g1(plan: dict, block: str, jobs: list[dict]) -> None:
-    """G1 (REV4 §6.3; addendum §13 point 2)."""
-    branch = records(plan).get("branch")
-    if any(j["kind"] in rules.BANK500_KINDS for j in jobs) and branch is None:
-        fail("a 500-bank job before W1-18's branch record (or a 'Branch full by default' record) refuses")
-    if any(j["kind"] == "transfer_report" for j in jobs) and branch_name(plan) != "128":
-        fail("the LN-14 transfer report runs under Branch 128 only")
-    if block != "S1-0":
-        has_s10 = any(h["block"] == "S1-0" for h in plan["hosts"].values())
-        default = branch is not None and branch.get("source") == "default"
-        if not has_s10 and not default:
-            fail("W1-18 is the first job of the first stage-1 pod: plan block S1-0 first (or record "
-                 "'Branch full by default')")
 
 
 def gate_g4(plan: dict, block: str, jobs: list[dict]) -> None:
@@ -885,7 +870,7 @@ def moved_hosts(plan: dict) -> dict:
 
 def block_complete(plan: dict, block: str) -> bool:
     b = plan["blocks"].get(block)
-    decided = not_run_decided(plan, block) if b and block != "A" else {}   # round 32 (K2): not block A (its route)
+    decided = not_run_decided(plan, block) if b and block != LEGACY_A else {}   # round 32 (K2); R2 K2: the 7-8B A too
     if decided:
         b = settled_view(b, decided)                  # decided pending hosts and the launches they fill are settled
     if not b or b.get("pending") or b["released"] < len(b["launches"]):
@@ -895,53 +880,15 @@ def block_complete(plan: dict, block: str) -> bool:
         if h["block"] == block and name not in moved and any(j.get("status") != "complete" and (name, i) not in decided
                                                              for i, j in enumerate(h["jobs"])):
             return False
-    if block != "A" and block_open_jobs(plan, block, decided):   # K2: a job a move left behind needs a decision
+    if block != LEGACY_A and block_open_jobs(plan, block, decided):   # K2: a job a move left behind needs a decision
         return False
-    if block == "A" and block_a_open(plan):           # round 3c (VP3b-3): every job the block-A plan requires
+    if block == LEGACY_A and block_a_open(plan):      # round 3c (VP3b-3): the 1B block-A plan only (never at 7-8B)
         return False
     released_judges = {x["judge"]["judge"] for k, x in enumerate(b["launches"]) if x.get("judge") and k < b["released"]}
-    if block != "A" and released_judges and \
+    if block != LEGACY_A and released_judges and \
             not released_judges <= judges_done(plan, block) | set(judge_not_run(plan, block)):
         return False                     # round 30 (R2): a judge launch is done only with its valid record;
     return True                          # round 31 (K1): or when a recorded judge not-run decision names it
-
-
-def gate_order(plan: dict, block: str) -> None:
-    """G3 and G5."""
-    rec = records(plan)
-    if block in plan["blocks"]:
-        fail(f"block {block} is already planned (defer adds hosts)")
-    if block == "S1-0" and plan["hosts"]:
-        fail("block S1-0 (W1-18 alone) is the first stage-1 pod")
-    if block == "S1-0" and rec.get("branch") is not None:
-        fail("block S1-0: a branch record exists ('Branch full by default' says W1-18 cannot run)")
-    ab = plan_ab_checked(plan)                       # re-read from the verdict file at every block (VG2-1)
-    if ab is not None and ab["code"] == "none":
-        fail(f"block {block}: the plan-A/B record says no stage 1 (sigma above 6.0 pp): no stage-1 pod")
-    if block != "S1-0" and rec.get("gateb_final") is None:
-        fail(f"block {block}: Gate B's final record is not recorded (G3)")
-    if block in ("A", "certify", "B", "C", "P"):
-        if ab is None:
-            fail(f"block {block}: the plan-A/B record is not recorded (G3)")
-        if ab.get("gateb_final_sha256") != rec["gateb_final"]["sha256"]:
-            fail(f"block {block}: the plan-A/B record does not name the recorded Gate B final record (G3)")
-        if not plan_ab_derived(ab):
-            fail(f"block {block}: the plan-A/B record is not the one derived from Gate B's verdict file (G3)")
-    if block in ("certify", "B"):
-        if not block_complete(plan, "A"):
-            fail(f"block {block}: block A is not complete (G5){block_a_open_note(plan)}")
-        if "A" not in plan["seals"]:
-            fail(f"block {block}: block A is not sealed (seal.py block A)")
-    if block == "C":
-        if rec["plan_ab"]["code"] != "B":
-            fail("block C runs under plan B only")
-        if not block_complete(plan, "B"):
-            fail("block C: block B is not complete (G5)")
-    if block == "P":                                     # kit round 35: the pilot after block B (addendum §40 point 5)
-        if not block_complete(plan, "B"):
-            fail("block P: block B is not complete (G5; addendum §40 point 5)")
-        if "B" not in plan["seals"]:
-            fail("block P: block B is not sealed (seal.py block B; addendum §40 point 5)")
 
 
 # ----- edits (by SHA-256 only, from MAN1, Gate B's MANIFEST or a lead's sealed record) -----------------------------
@@ -1263,24 +1210,40 @@ def sc_job(plan: dict, raw, where: str, pins78: dict, values: dict, done: dict) 
         fail(f"{where}: {kind!r} is not a kind of the scorer block ({', '.join(r78.SC_KINDS)})")
     if raw.get("family", family) != family:
         fail(f"{where}: it names {raw['family']!r}; this copy is {family}'s (KD7)")
-    recipe = raw.get("recipe", r78.SC_RECIPE[kind])
-    if recipe != r78.SC_RECIPE[kind]:
-        fail(f"{where}: {kind} runs under recipe {r78.SC_RECIPE[kind]} only (PP1, PP4, A1; "
-             f"{'S_78' if r78.SC_RECIPE[kind] == 'S' else 'the main config'})")
+    try:                                                 # R2 K2 (item 14): a stopped family's retrain runs MAIN_F
+        want_recipe = r78.sc_recipe(family, kind)
+    except r78.Refused as exc:
+        fail(f"{where}: {exc}")
+    recipe = raw.get("recipe", want_recipe)
+    if recipe != want_recipe:
+        fail(f"{where}: {kind} runs under recipe {want_recipe} only (PP1, PP4, A1; "
+             f"{'S_78' if want_recipe == 'S' else 'the main config'}; DESO2 item 36 (2) on a stopped family)")
     arm = raw.get("arm", r78.SC_ARM.get(kind))
-    if arm != r78.SC_ARM.get(kind):
-        fail(f"{where}: {kind}'s arm is {r78.SC_ARM.get(kind)!r}, not {arm!r}")
-    seeds = r78.sc_seeds(family, kind)
-    seed = raw.get("seed", seeds[0] if len(seeds) == 1 else "missing")
-    if seed not in seeds or isinstance(seed, bool):
-        fail(f"{where}: {kind}'s seed must be one of {seeds} (ruling 7, ruling 10)")
+    if kind in r78.SC_ARMS:                              # R2 K2 (R-16; DES E5): the unit is named by (arm, seed)
+        units = r78.sc_units(family, kind)
+        seed = raw.get("seed", "missing")
+        if isinstance(seed, bool) or not any(u["arm"] == arm and u["seed"] == seed for u in units):
+            fail(f"{where}: {kind}'s arm and seed must be one of its units "
+                 f"{[r78.unit_key(u['arm'], u['seed']) for u in units]} (ruling 7; DES E5: N's units too)")
+    else:
+        if arm != r78.SC_ARM.get(kind):
+            fail(f"{where}: {kind}'s arm is {r78.SC_ARM.get(kind)!r}, not {arm!r}")
+        seeds = r78.sc_seeds(family, kind)
+        seed = raw.get("seed", seeds[0] if len(seeds) == 1 else "missing")
+        if seed not in seeds or isinstance(seed, bool):
+            fail(f"{where}: {kind}'s seed must be one of {seeds} (ruling 7, ruling 10)")
+    if kind == "w1_18":                                  # DES E2, DESO2 item 37, GXB K-3: one pod, the first O job
+        problem = r78.w1_18_host_problem(family) or r78.w1_18_first_problem(
+            [k for (k, _, _, _), st in sc_planned_keys(plan).items() if st not in ("crashed", "deferred", "not_started")])
+        if problem:
+            fail(f"{where}: {problem}")
     unit_pin = values["RETRAIN_UNIT"]
     retrains = [(n, j) for n, j in done.get("retrain", [])]
     engines_all = [j["engine"] for _, j in retrains]
     engines_unit = [j["engine"] for _, j in retrains if j.get("complete_sha256") == unit_pin]
     default_engine = "Y" if kind == "retrain" else (engines_unit[-1] if kind == "a1_pass" and engines_unit else "X")
     engine = raw.get("engine", default_engine)
-    problem = r78.sc_order_problem(kind, done)           # A2's order first, PP16, the pins (A13), then ruling 10
+    problem = r78.sc_order_problem(kind, done, family)   # A2's order first, PP16, the pins (A13), then ruling 10
     if problem:
         fail(f"{where}: {problem}")
     if kind in r78.X_ONLY_KINDS or engine not in ("X", "Y"):
@@ -1288,9 +1251,11 @@ def sc_job(plan: dict, raw, where: str, pins78: dict, values: dict, done: dict) 
         if problem:
             fail(f"{where}: {problem}")
     try:
-        r78.sc_pins_or_refuse(family, kind, engine, pins78)
+        r78.sc_pins_or_refuse(family, kind, engine, pins78, arm, seed)
     except r78.Refused as exc:
         fail(f"{where}: {exc}")
+    if kind in r78.SC_BRANCH_KINDS:                      # K-8: the branch read by its bytes at its pin; R-33
+        bank500_or_fail(family, kind, r78.SC_BLOCK, where)
     problem = r78.sc_engine_problem(kind, engine, engines_unit if kind == "a1_pass" else engines_all)
     if problem:
         fail(f"{where}: {problem}")
@@ -1299,11 +1264,11 @@ def sc_job(plan: dict, raw, where: str, pins78: dict, values: dict, done: dict) 
         if waits:
             fail(f"{where}: {kind}: the scorer layer's settings wait for {len(waits)} pin(s); the first, {waits[0][0]}, "
                  f"waits for: {waits[0][1]}")
-    if kind in rules.OEXT_KINDS:
-        need = r78.C0_SCRIPT if kind == "c0" else r78.OEXT_UNIT_SCRIPT
-        if need not in (values["OEXT_78B"] or {}).get("files", {}):
-            fail(f"{where}: {kind}: OEXT_78B[{family!r}] does not list {need} (its command's script)")
-    inputs = rules.sc_input_pins(kind, pins78, values, seed)
+    if kind in OEXT_COMMAND_WORDS:                       # GXB K-1, KR6: the command word, from RK's OEXT_WRAPPER_COMMANDS
+        problem = oext_command_problem(kind, family, values)
+        if problem:
+            fail(f"{where}: {problem}")
+    inputs = rules.sc_unit_input_pins(kind, pins78, values, arm, seed)
     null = [n for n, v in inputs.items() if v is None]
     if null:
         fail(f"{where}: {kind}: the input pin(s) {null} are null")
@@ -1329,6 +1294,35 @@ def sc_job(plan: dict, raw, where: str, pins78: dict, values: dict, done: dict) 
         job["groups"] = rescore_groups()
         job["retrain_complete_sha256"] = unit_pin
     return job
+
+
+# GXB K-1, KR6: one wrapper path serves c0 and the O-ext kinds (T-O3), so a job is checked by its command word: c0 runs
+# "lean" (the parity-tested copy lean_eval_job_78b.py, T-O1), o_only and o_only_with_regenerate "unit" (the unchanged
+# 1B oext_unit.py), W1-18 "w1_18" (the unchanged overrefusal_checks.py, under W1_18_78B). Each word's files must be in
+# the pin the job packs (OEXT_78B[F], or W1_18_78B for W1-18), the family's settings file included.
+OEXT_COMMAND_WORDS = {"c0": "lean", "o_only": "unit", "o_only_with_regenerate": "unit", "w1_18": "w1_18"}
+OEXT_COMMAND_FILES = {"unit": ("scripts/stage1_s1/oext_unit.py", "scripts/scale78b/settings/oext_unit__{family}.json"),
+                      "lean": ("scripts/scale78b/lean_eval_job_78b.py",
+                               "scripts/scale78b/settings/lean_eval_job__{family}.json"),
+                      "w1_18": ("scripts/stage1/limits/overrefusal_checks.py",
+                                "scripts/scale78b/settings/limits_overrefusal_checks__{family}.json")}
+
+
+def oext_command_problem(kind: str, family: str, values: dict) -> str | None:
+    """Why ``kind``'s O-ext command is not the one it needs (GXB K-1, KR6), or None: RK's OEXT_WRAPPER_COMMANDS names
+    the kind's command word; the job's pin (OEXT_78B[family]; W1_18_78B for w1_18) lists the wrapper and that word's
+    script and the family's settings file."""
+    word = r78.OEXT_WRAPPER_COMMANDS.get(kind)
+    if word != OEXT_COMMAND_WORDS[kind]:
+        return (f"{kind} runs the wrapper's {OEXT_COMMAND_WORDS[kind]!r} command, but rules_78b.OEXT_WRAPPER_COMMANDS "
+                f"names {word!r} (GXB K-1)")
+    pin_name = "W1_18_78B" if kind == "w1_18" else f"OEXT_78B[{family!r}]"
+    files = ((values["W1_18_78B"] if kind == "w1_18" else values["OEXT_78B"]) or {}).get("files") or {}
+    need = (r78.OEXT_WRAPPER_78B, *(f.format(family=family) for f in OEXT_COMMAND_FILES[word]))
+    missing = [f for f in need if f not in files]
+    if missing:
+        return f"{kind}: {pin_name} does not list {missing[0]} (its {word!r} command's files)"
+    return None
 
 
 def build_sc(plan: dict, spec: dict) -> dict:
@@ -1374,6 +1368,7 @@ def init_block_sc(args: argparse.Namespace) -> dict:
     on their own lines (the check's M3, A8, PP14), and with --funding write the part and release its first launch."""
     family = family_or_fail()
     plan = load()
+    sc_anchor_stop_read(plan, family)                    # KR4: a pinned stop record is read in this process first
     try:
         spec = json.loads(pathlib.Path(args.jobs).read_text())
     except (OSError, ValueError):
@@ -1450,6 +1445,7 @@ def release_hosts_sc(plan: dict, names_hosts: list[tuple[str, dict]]) -> list[st
     exists, KD9), every named input in the packed sealed-files.json at the job's pin, every code file at its
     SCORER_PINS pin, the main config's bytes, config_sha256 and training identity, an S_78 job's config at its pin."""
     family = family_or_fail()
+    sc_anchor_stop_read(plan, family)                    # KR4: in the releasing process too
     pins78 = pins78_doc()
     try:
         values = r78.sc_pin_values(family, pins78)
@@ -1479,6 +1475,8 @@ def release_hosts_sc(plan: dict, names_hosts: list[tuple[str, dict]]) -> list[st
             got = files.get(f"{rel.rstrip('/')}/COMPLETE.json") if rel and n in rules.SC_FOLDER_INPUTS else files.get(rel)
             if rel is None or got != pin:
                 fail(f"{name}: the input {n!r} is not packed at the job's pin (re-pack with this part's --inputs record)")
+        if job["kind"] == "c0":                          # K6v-4 (Part 2 §15 item 12): C0_SOURCE again at release
+            c0_release_check(name, job, values)
         for rel in rules.scorer_code(job["kind"]):
             pin = rules.SCORER_PINS.get(rel) or ((values.get("OEXT_78B") or {}).get("files") or {}).get(rel)
             if files.get(rel) != pin:
@@ -2448,7 +2446,7 @@ def block_a_required(plan: dict, doc: dict) -> dict:
     under which neither runs), each run of the deal's pods that the plan's arm launches name, and each judge launch
     (over at least its planned units)."""
     rec = records(plan)
-    branch = (plan["blocks"].get("A") or {}).get("branch") or branch_name(plan)
+    branch = rules.BRANCH_DEFAULT                     # 1B only (unreachable at 7-8B; K-8: BRANCH_78B is the only source)
     oext = not rec.get("oext_fallback")
     deal_pods = rules.deal(rules.block_runs(doc["plan_code"], "A"))
     out = {}
@@ -2645,7 +2643,7 @@ def judge_required_units(plan: dict, block: str) -> dict:
                 if not (isinstance(digest, str) and SHA_RE.fullmatch(digest)):
                     fail(f"{label}: plan.json records no COMPLETE.json SHA-256 for its unit")
                 out[digest] = label
-    for pin in rules.REJUDGED_PINS.get(block, ()):
+    for pin in rejudged_units(family_or_fail(), block):   # R2 K2: live (rules_78b.rejudged_or_refuse; N's wait)
         out[pin["complete_sha256"]] = f"re-judged {pin['name']}"
     return out
 
@@ -2883,7 +2881,7 @@ def judge_not_run(plan: dict, block: str) -> dict:
 def judges_decided(plan: dict, block: str) -> dict:
     """judge -> the SHA-256 of the recorded decision naming the block's judge launch of that judge as not run: block
     A's record-block-a-not-run ("judge harmbench", "judge granite"), every other block's record-judge-not-run (K1)."""
-    if block != "A":
+    if block != LEGACY_A:                            # R2 K2: the 7-8B blocks A and B take every block's route
         return judge_not_run(plan, block)
     decided = block_a_not_run(plan)
     return {k: decided[job_label("judge", k)] for k in rules.JUDGES if job_label("judge", k) in decided}
@@ -2909,7 +2907,7 @@ def record_judge_not_run(path: str, sha256: str) -> dict:
         fail("a judge not-run decision needs its block, reason, utc and recorded_by")
     _utc_past(doc["utc"], "the judge not-run decision")
     block = doc["block"]
-    if block == "A":
+    if block == LEGACY_A:
         fail("block A's judge launches are named by record-block-a-not-run ('judge harmbench', 'judge granite')")
     if block not in plan["blocks"]:
         fail(f"block {block} is not planned")
@@ -2978,7 +2976,7 @@ def record_judges(block: str, path: str, sha256: str) -> dict:
     mac.operator_action({"action": "record-judges", "block": block, "sha256": ref["sha256"], "tags": tags,
                          "index_sha256": doc["index_sha256"]})
     out = {"recorded": "judges", "block": block, "sha256": ref["sha256"], "tags": tags, **check}
-    return {**out, "open": block_a_open(plan)} if block == "A" else out
+    return {**out, "open": block_a_open(plan)} if block == LEGACY_A else out
 
 
 # ----- round 32 (K2; addendum §34 point 6; block B's pre-flight G6): a not-run decision for any block but A ---------
@@ -3104,7 +3102,7 @@ def record_not_run(path: str, sha256: str) -> dict:
         fail(f"not a not-run decision: {problem}")
     _utc_past(doc["utc"], "the not-run decision")
     block = doc["block"]
-    if block == "A":
+    if block == LEGACY_A:
         fail("block A's jobs are named by record-block-a-not-run (its plan's job names)")
     if block not in plan["blocks"]:
         fail(f"block {block} is not planned")
@@ -3158,7 +3156,7 @@ def build_block(plan: dict, block: str, spec: dict) -> dict:
     if deal_engine not in rules.ENGINES:
         fail("unknown engine for the deal")
     fx = plan["fixture"]
-    branch = branch_name(plan)
+    branch = rules.BRANCH_DEFAULT                     # 1B only (unreachable at 7-8B; K-8: BRANCH_78B is the only source)
     deal_pods = None
     if block == "P" and reused:                          # kit round 35: nothing of the pilot is reused
         fail("block P: nothing is reused (its runs are the pilot's own, stage1_rules.plant_runs)")
@@ -3447,62 +3445,16 @@ def need_launches(built: dict) -> list:
     return out
 
 
-def check_launch_gates(plan: dict, block: str, hosts: list[dict]) -> None:
-    jobs = [j for h in hosts for j in h["jobs"]]
-    ab = plan_ab_checked(plan)                       # G3 again at release (VG2-1): a record edited after init refuses
-    if ab is not None and ab["code"] == "none":
-        fail(f"block {block}: the plan-A/B record says no stage 1 (sigma above 6.0 pp): no stage-1 pod")
-    if block in ("A", "certify", "B", "C") and ab is None:
-        fail(f"block {block}: the plan-A/B record is not recorded (G3)")
-    gate_g1(plan, block, jobs)
-    gate_g4(plan, block, jobs)
-    gate_records(plan, jobs)
-    gate_certification(plan, jobs)
-
-
 def release_hosts(plan: dict, block: str, names_hosts: list[tuple[str, dict]]) -> list[str]:
     """Bind every edit by SHA-256, check the recipes' pins and the packed engine, then move the hosts into
-    plan["hosts"] (launch.py and host.py read only those)."""
+    plan["hosts"] (launch.py and host.py read only those). One route per 7-8B block (the 1B route is gone, GXB B-2)."""
     if block == "0":                                     # K1: N's release
         return release_hosts0(plan, names_hosts)
     if block == r78.SC_BLOCK:                            # K4b: the scorer block's release
         return release_hosts_sc(plan, names_hosts)
-    sources = edit_sources(plan) if any(j["kind"] in ("arm", "regenerate", "cert_c1", "c0")
-                                        for _, h in names_hosts for j in h["jobs"]) else {}
-    check_launch_gates(plan, block, [h for _, h in names_hosts])
-    if block == "P":                                     # kit round 35: the pilot's runs and their edit, again
-        bind_plant_edits(plan, [j for _, h in names_hosts for j in h["jobs"]])
-    for name, h in names_hosts:
-        rec = engine_receipt(h["engine"])
-        h["sealed_files_sha256"] = rec.get("sealed_files_sha256")
-        for job in h["jobs"]:
-            if job["kind"] in ("arm", "regenerate", "cert_c1", "c0") and job["arm"] != "a0":
-                job["edit"] = resolve_edit(job, sources, required=True)
-            if job["kind"] == "similarity" and job.get("similarity") != similarity_entry(plan):
-                fail(f"{name}: B14's inputs (similarity_entry) differ from the ones planned at init-block; the lead "
-                     "decides (kit round 34)")
-            name_r = job.get("recipe")
-            if name_r and h["engine"] == "Y":
-                check_recipe_y(plan, name_r)            # engine Y's tree and code (B+Qi's recipe is only there)
-            elif name_r:
-                path = rules.RECIPE_NAMES[name_r]
-                if not (ENGINE_ROOT / path).is_file() or mac.sha(ENGINE_ROOT / path) != rules.RECIPE_PINS[path]:
-                    fail(f"{path}: missing or differs from its pin (recipe {name_r})")
-                if path not in plan["recipes"]:
-                    plan["recipes"][path] = {"sha256": rules.RECIPE_PINS[path], "config_sha256": recipe_sha(path)}
-                elif plan["recipes"][path].get("engine") == "Y":          # only engine Y's code has hashed it so far
-                    config_x = recipe_sha(path)
-                    if plan["recipes"][path]["config_sha256"] != config_x:
-                        fail(RECIPE_ENGINES_DIFFER.format(name=name_r))
-                    plan["recipes"][path] = {"sha256": rules.RECIPE_PINS[path], "config_sha256": config_x}
-                if name_r in rules.TRAINING_IDENTITY_RECIPES:
-                    entry = plan["recipes"][path]
-                    entry.setdefault("training_identity", recipe_training_identity(path))
-                    if entry["training_identity"] != rules.TRAINING_IDENTITY:
-                        fail(f"recipe {name_r}: its training identity is not {rules.TRAINING_IDENTITY[:8]}... (§8 Q4)")
-    for name, h in names_hosts:
-        plan["hosts"][name] = h
-    return [n for n, _ in names_hosts]
+    if block in AB_BLOCKS:                               # R2 K2: blocks A and B
+        return release_hosts_ab(plan, block, names_hosts)
+    fail(f"block {block!r} has no release route in this copy")
 
 
 # ----- round 32 (K4; addendum §34 point 7, §20 point 1; block B's pre-flight G8): block B's group on one record -----
@@ -3573,106 +3525,9 @@ def init_block(args: argparse.Namespace) -> dict:
         return init_block0(args)
     if block == r78.SC_BLOCK:                            # K4b: the pre-block-A scorer block
         return init_block_sc(args)
-    plan = load()
-    gate_order(plan, block)
-    try:
-        spec = json.loads(pathlib.Path(args.jobs).read_text())
-    except (OSError, ValueError):
-        fail("--jobs FILE: not a readable JSON file")
-    if not isinstance(spec, dict):
-        fail("--jobs FILE must be a JSON object")
-    built = build_block(plan, block, spec)
-    gate_g1(plan, block, built["jobs"])
-    gate_g4(plan, block, built["jobs"])
-    gate_bqi_pairs(plan, built["jobs"])
-    gate_records(plan, built["jobs"])
-    gate_certification(plan, built["jobs"])            # round 32 (K3): LS-08 at planning too, not only at release
-    refuse_duplicates(plan, built["jobs"])
-    group = rules.FUNDING_BLOCK[block]
-    mine = need_launches(built)
-    plan_a = check_group_a(plan, block, launch_shapes(built["launches"], built["deal"])) if group == "A" else None
-    rest = [[{"cap_hours": p["cap_hours"], "spend_usd": p["spend_usd"]} for p in x["pods"]]
-            for x in (plan_a["rest"] if plan_a else []) if x["pods"]]
-    later = group_jobs(plan, block, getattr(args, "group_jobs", None))   # round 32 (K4): block B's whole group
-    rest += [x for part in later.values() for x in part["need_launches"]]
-    need = rules.funding_need_usd(group_launches(plan, group) + mine + rest, rules.CONTINGENCY_FACTOR)
-    pods = [{"launch": k, "cap_hours": h["cap_hours"], "guard_usd": rules.cents(h["guard_usd"]),
-             "counted": h["counted"], "jobs": [f"{j['kind']}:{j.get('arm')}:{j.get('seed')}" for j in h["jobs"]]}
-            for k, launch in enumerate(built["launches"]) for h in launch.get("hosts", [])]
-    summary = {"block": block, "funding_block": group, "branch": built["branch"], "pods": pods,
-               "need_usd": need["need_usd"], "base_need_usd": need["base_need_usd"],
-               "contingency_usd": need["contingency_usd"], "terms_cents": [round(t * 100, 4) for t in need["terms_usd"]]}
-    if plan_a:
-        summary["block_a_plan"] = {
-            "source": "kit default (recorded at this init)" if plan_a["default"] else "recorded",
-            "plan_code": plan_a["doc"]["plan_code"], "launch_map": plan_a["map"],
-            "not_in_plan": [dict(x) for x in plan_a["doc"]["not_in_plan"]], "ln15e": dict(LN15E_IN_PLAN),
-            "rest": [{"role": x["role"], "pods": [{"cap_hours": p["cap_hours"], "spend_usd": round(p["spend_usd"], 6),
-                                                   "unmeasured": p["unmeasured"]} for p in x["pods"]]}
-                     for x in plan_a["rest"]]}
-    if block == "cert":
-        summary["c3"] = ("dropped: the §22 point 2 fallback record is recorded" if records(plan).get("c3_fallback")
-                         else "planned: subsample " + records(plan)["c3"]["subsample"]["sha256"])
-    second = [k for k, x in enumerate(built["launches"]) if x.get("second_phase")]
-    if second:                                         # round 32 (K1): held until second_phase_gate passes
-        summary["second_phase_launches"] = second
-    if group == "B":                                   # round 32 (K4): the parts the need counts
-        summary["group"] = group_summary(plan, block, args.jobs, later)
-    if args.dry_run:
-        return {"dry_run": True, **summary}
-    if not args.funding:
-        fail(f"init-block {block} needs --funding FILE (the lead's record of the user's top-up for block {group})")
-    funding = funding_record(args.funding, group)
-    if not funding["amount_usd"] >= need["need_usd"]:
-        fail(f"the funding ${funding['amount_usd']:.2f} is below the need ${need['need_usd']:.2f} "
-             f"({rules.CONTINGENCY_FACTOR} x ${need['base_need_usd']:.2f})")
-    first = group_anchor(plan, group) if group == "A" else None
-    if first is not None and not first["amount_usd"] >= need["need_usd"]:
-        fail(f"block {block}: the need ${need['need_usd']:.2f} is above block A's first funding record "
-             f"(${first['amount_usd']:.2f}, {first['sha256'][:8]}...): block A's funding event covers the whole group "
-             "before S1-0 launches (addendum §20 point 1)")
-    anchor_b = group_anchor(plan, group) if group == "B" else None   # round 32 (K4), re-hashed at its path
-    if anchor_b is not None and funding["sha256"] != anchor_b["sha256"]:
-        fail(f"block {block}: block B's group has one funding record (addendum §34 point 7): give the first init's "
-             f"record ({anchor_b['sha256'][:8]}...), which must cover the need of every part planned")
-    names, pending = [], []
-    for k, launch in enumerate(built["launches"]):
-        if "judge" in launch:
-            pending.append({"judge": launch["judge"], "hosts": []})
-            continue
-        entry = []
-        for h in launch["hosts"]:
-            name = new_host_name({"hosts": {**plan["hosts"], **{n: 1 for n in names}}, "blocks": plan["blocks"]},
-                                 block)
-            names.append(name)
-            entry.append((name, h))
-        pending.append({"hosts": entry, "second_phase": True} if launch.get("second_phase") else {"hosts": entry})
-    record = {"funding": funding, "need": need, "need_launches": mine, "branch": built["branch"],
-              "deal": built["deal"], "reused": built["reused"], "utc": mac.utc(),
-              "launches": [{"judge": p["judge"]} if "judge" in p else
-                           {"hosts": [n for n, _ in p["hosts"]], **({"second_phase": True} if p.get("second_phase")
-                                                                    else {})}
-                           for p in pending],
-              "released": 0, "pending": {n: h for p in pending for n, h in p.get("hosts", [])},
-              "seq": max([b.get("seq", -1) for b in plan["blocks"].values()] + [len(plan["blocks"]) - 1]) + 1}
-    if later:                                          # round 32 (K4): what the first funding record covers
-        record["group_jobs"] = {part: dict(x) for part, x in later.items()}
-    if plan_a and plan_a["default"] is not None:       # no lead record: the kit's default is the plan from now on
-        doc = plan_a["doc"]
-        records(plan)["block_a_plan"] = {"source": "kit default", "path": None, "sha256": hashlib_sha(canonical(doc)),
-                                         "doc": doc, "default": plan_a["default"], "plan_code": doc["plan_code"],
-                                         "need_usd": need_of(plan_a["frozen"])["need_usd"], "utc": mac.utc(),
-                                         "replan": False}
-    plan["blocks"][block] = record
-    contingency = plan["contingency"].setdefault(group, {"usd": 0.0, "remaining_usd": 0.0, "spent": [],
-                                                         "not_rerun": []})
-    spent = sum(s["cost_usd"] for s in contingency["spent"])
-    contingency.update(usd=need["contingency_usd"], remaining_usd=need["contingency_usd"] - spent)
-    released = release_next(plan, block)
-    mac.save_plan(plan)
-    mac.operator_action({"action": "init-block", "block": block, "hosts": names, "need_usd": need["need_usd"],
-                         "funding_sha256": funding["sha256"]})
-    return {**summary, "hosts": names, "released": released}
+    if block in AB_BLOCKS:                               # R2 K2: the lean route (GXB B-2, K-2)
+        return init_block_ab(args, block)
+    fail(f"block {block!r} has no planning route in this copy")   # pragma: no cover - rules.BLOCKS is 0, sc, A, B
 
 
 def release_next(plan: dict, block: str) -> list[str]:
@@ -3687,13 +3542,13 @@ def release_next(plan: dict, block: str) -> list[str]:
     released), after the same wait as a release; a second-phase launch (K1) is released only when second_phase_gate
     passes, the guard off or not."""
     b = plan["blocks"][block]
-    decided = not_run_decided(plan, block) if block != "A" else {}
+    decided = not_run_decided(plan, block) if block != LEGACY_A else {}
     while b["released"] < len(b["launches"]):
         k = b["released"]
         launch = b["launches"][k]
         skip = launch_decided(b, k, decided)          # round 32 (K2): it holds only decided pending hosts
-        if rules.FUNDING_BLOCK[block] == "A":
-            check_planned_group_a(plan, block)        # round 3a: the block-A plan again at every release
+        if rules.FUNDING_BLOCK[block] == LEGACY_A:
+            check_planned_group_a(plan, block)        # round 3a: the 1B block-A plan again at every release
         if k > 0 and not launch.get("part_start"):     # K4b: a scorer-block part's first launch (A2 is checked per job)
             before = b["launches"][k - 1].get("hosts", [])
             moved = {d["from"] for d in plan["deferrals"]} | {r["from"] for r in plan.get("requeues") or []}
@@ -3752,25 +3607,1312 @@ def release(block: str) -> dict:
     return {**out, "released_early": early} if early else out
 
 
-def deal_command(block: str, reuse: list) -> dict:
+def deal_command(block: str, reuse: list, anchor_job_done=None) -> dict:
     if block == "0":                                     # K1: N's one pod per family
         try:
             pods = rules.deal(rules.block_runs(None, "0", tuple(tuple(r) for r in reuse or [])))
         except ValueError as exc:
             fail(f"block 0: {exc}")
         return {"block": "0", "family": rules.FAMILY, "plan": None, "pods": [[f"{a}@{s}" for a, s in p] for p in pods]}
-    if block not in rules.BLOCKS:
-        fail(f"block {block!r} is not planned by this copy (block 0 only in this round; ruling 11)")
-    plan = mac.load_plan() if mac.PLAN.exists() else {"records": {"plan_ab": None}}
-    code = (plan_ab_checked(plan) or {}).get("code")
-    if block == "P" and reuse:                           # kit round 35
-        fail("block P: nothing is reused (its runs are the pilot's own, stage1_rules.plant_runs)")
+    if block not in AB_BLOCKS:
+        fail(f"block {block!r} has no deal in this copy (block 0 only, and blocks A and B in their own copies; the "
+             "scorer block's pods are single-job)")
+    family = family_or_fail()
+    if block != rules.KIT_BLOCK:                         # KD7: a block's deal is read in its own copy
+        fail(f"block {block}: this working copy is block {rules.KIT_BLOCK!r}'s; block {block}'s deal needs its plan in "
+             f"its own copy tmp/{rules.WORKING_COPY_PREFIX}{family}-{block}/ (KD7)")
+    if reuse:
+        fail(f"block {block}: nothing is reused (Part 2 §2.2: every block A and B run is new)")
+    plan = mac.load_plan() if mac.PLAN.exists() else {"blocks": {}}
+    b = (plan.get("blocks") or {}).get(block)
+    if b is not None:                                    # R2 K2: the deal init-block planned (its plan, dose seeds, kept)
+        return {"block": block, "family": family, "plan": b.get("plan_code"), "dose_seeds": b.get("dose_seeds"),
+                "kept": b.get("kept"), "pods": [[f"{a}@{s}" for a, s in p] for p in b["deal"]]}
+    if block == "B":
+        fail("block B's deal needs its plan, dose seeds and kept count: init-block B (or its --dry-run) prints it")
+    anchor_stop_read(family, anchor_job_done)            # KR4: a stopped family's table drops A1, L1 and S3
     try:
-        pods = rules.plant_deal(rules.plant_runs()) if block == "P" else \
-            rules.deal(rules.block_runs(code, block, tuple(tuple(r) for r in reuse or [])))
+        pods = rules.deal(rules.block_runs(None, "A"), "A")
+    except ValueError as exc:
+        fail(f"block A: {exc}")
+    return {"block": "A", "family": family, "plan": None, "pods": [[f"{a}@{s}" for a, s in p] for p in pods]}
+
+
+# ===== R2 K2: blocks A and B, the lean planning route (GXB B-2, K-2; O14 corrected, R-1, R-24, R-30; KD7) ==========
+# In the form of init_block0 and init_block_sc, never the inherited 1B block-A route (its Gate B verdict, LN-12, cert
+# and certify gates do not apply at 7-8B; GXB B-2). One family and one block per working copy (KD7):
+# tmp/family-probe-s78-<family>-A/ and -B/.
+#
+#   plan_tool.py init-block A --jobs FILE --noise-reading OUT [--anchor-job-done FILE] [--funding FILE] [--dry-run]
+#   plan_tool.py init-block B --jobs FILE --noise-reading OUT [--blinded-sigma OUT] [--anchor-job-done FILE] ...
+#       FILE is {"family": F, "launches": [{"deal": [i, ...]}, ..., {"judge": {"judge": "harmbench"}},
+#       {"judge": {"judge": "granite"}}], "dose_seeds": 0 | 3 | 6 (block B only)}: the deal launches name every pod of
+#       the block's deal (rules_78b.deal_ab of block_runs_78b) exactly once, in order; then one HarmBench and one
+#       Granite judge launch over the block's judged units (its runs, and for block A the 7 re-judged units). Block
+#       A's init reads GATE_78B's record at its pin (its families; a "review" provisional plan plans nothing, R-1);
+#       block B's also PLAN_B_78B's (its plan; "review" plans nothing) and block A's seal in tmp/<prefix><F>-A/. Both
+#       re-read N's noise-reading output at the SHA-256 the gate record names and refuse a recorded provisional or
+#       sigma_F plan that differs from it; block B re-reads blinded_sigma.py's output at the SHA-256 PLAN_B_78B names
+#       (when SR-2 is adopted) and refuses a recorded sigma_A_pp or inputs hash that differs (GXB R-30). On a family
+#       whose ANCHOR_STOP pin is filled, the anchor job's JOB-DONE.json is given and the stop record is read and
+#       checked first (KR4, KR8). Every arm and a0_arm job reads the 500 bank (its in-job O-ext step; DES E3), so it
+#       waits for the family's branch record, read by its bytes at BRANCH_78B's pin (K-8), and for OEXT_78B[F].
+#   plan_tool.py record-gate-78b OUT --sha256 H --option B|C --balance-usd X --recorded-by WHO --out FILE
+#   plan_tool.py record-plan-b-78b --noise-reading OUT [--blinded-sigma OUT --sha256 H]
+#                                  --recorded-by WHO --out FILE
+#   plan_tool.py write-blinded-inputs          (the parts at their places; the file at BLINDED_INPUTS; K2V-3)
+#   plan_tool.py record-branch-78b (--w1-18-record FILE --sha256 H | --default) --recorded-by WHO --out FILE
+#   plan_tool.py record-anchor-stop HOST [--message-file FILE] --out FILE
+# Each record step writes a new file once (never over a file) and prints its path and SHA-256: the lead commits it and
+# fills the pin by a recorded step. Every value comes from a pinned source, never from a typed number.
+
+LEGACY_A = "A (stage-1 1B)"     # the 1B kit's block-A route: every 1B check keyed to block "A" names this sentinel, so
+#                                 no 7-8B block ever takes it (GXB B-2, K-2)
+AB_BLOCKS = ("A", "B")
+AB_JOBS_KEYS = {"family", "launches", "dose_seeds"}
+# The frozen readers' outputs the record steps read (pins; R: blinded_sigma.py NOISE_READING; RK test_46).
+NOISE_READING_SCRIPT = ("scripts/scale78b/noise_reading.py",
+                        "94b679ffeee7656c5b8c6e97b2275bb05260b61cac50743f357ef8ce2c40d436")
+NOISE_READING_KIND = "scale-78b noise reading"
+BLINDED_SIGMA_SCRIPT = "scripts/scale78b/blinded_sigma.py"
+BLINDED_SIGMA_KIND = "scale-78b blinded sigma"
+BLINDED_SIGMA_KEYS = ("df", "inputs_sha256", "kind", "sigma_A_pp", "version")
+BLINDED_INPUTS_KIND = "scale-78b blinded sigma inputs"
+BLINDED_PART_KIND = "stage1-78b blinded sigma inputs part"
+BLINDED_PART = "blinded/blinded-sigma-inputs-part__{family}.json"   # written by block A's record-done (S-9)
+BLINDED_INPUTS = ROOT / "tmp" / "stage1-78b-blinded-sigma" / "blinded-sigma-inputs.json"   # K2V-3: its one place
+# SR-2's error-rate simulation (Part 2 §10.3; DES K6): the governing run's merged output per option, by path and
+# SHA-256 (M: shasum -a 256 at bfda225, 8 Nov 2026; the lead's reading R78/sr2-simulation-20261108/README.md), its
+# code and settings. A run on the reduced design governs once a family's anchor job stopped (GXB S-10): null until it
+# runs. The reading rule (DES K6): a familywise rate above 6% at any simulated sigma or scenario means SR-2 is not
+# adopted.
+SR2_SIM_DIR = ".ai/inputs/stage1-post-w1-20261023/78b/sr2-simulation-20261108/"
+SR2_SIMULATION = {"B": {"path": SR2_SIM_DIR + "sr2-B-full.json",
+                        "sha256": "671f64a74dc037ec54b9465c24b8aa54e1c3b632e53556ddd4d00116c3f7e47f"},
+                  "C": {"path": SR2_SIM_DIR + "sr2-C-full.json",
+                        "sha256": "21738afc70689bf4ba249402befe8d1b035b895b2c597c6fb90a111ae5869465"}}
+SR2_SIMULATION_REDUCED: dict = {"B": None, "C": None}
+SR2_SIMULATION_EVENT = ("GXB S-10: the simulation's run on the reduced design (P2 §10.3, DESO3 V2), committed with the "
+                        "lead's reading, and SR2_SIMULATION_REDUCED[option] filled with its merged output's path and "
+                        "SHA-256 by a recorded step")
+SR2_SIM_KIND = "scale-78b sr2 simulation"
+SR2_SIM_SCRIPT_SHA256 = "0ff5e54596a144d6cd4d3643ce83bc14bd21ebc9ea80b2416ebab645fd29fe89"
+SR2_SIM_SETTINGS_SHA256 = "c6f0c81e418e4efe8f876655621bbb1dbfa51ca91aa88a335a812e53eaa04b88"
+SR2_THRESHOLD = "0.06"                     # DES K6: above 6% at any simulated sigma, SR-2 is not adopted
+# SR-2's blinding trigger (ruling 3; P2 §10.1): the lead's record that the blinding test was verified (or not) before
+# block A's first pod, {path, sha256}; null until that recorded step. Its form is BLINDING_KEYS (K2's; an open point).
+SR2_BLINDING_RECORD: dict | None = None
+SR2_BLINDING_EVENT = ("the verification of SR-2's blinding test (P2 §10.1: block A's record-done prints no outcome value "
+                      "and blinded_sigma.py's byte-for-byte test holds), before block A's first pod: the lead's record "
+                      "{kind, version, verified, files, commit, evidence, utc, recorded_by} (GXB R-44) and "
+                      "SR2_BLINDING_RECORD filled with its path and SHA-256")
+BLINDING_KIND = "stage1-78b sr2 blinding test record"
+BLINDING_KEYS = ("kind", "version", "verified", "files", "commit", "evidence", "utc", "recorded_by")
+# GXB R-44: the record names by SHA-256 exactly these files: blinded_sigma.py, record-done's code and the two tests that
+# hold both outputs byte for byte; record-done's code is compared with this working copy's own plan_tool.py (the code
+# that runs), the others with the checkout's files. A change of any of them voids the verification.
+BLINDING_FILES = ("scripts/scale78b/blinded_sigma.py", "scripts/scale78b/tests/test_blinded_sigma.py",
+                  "runkit/stage1-78b/plan_tool.py", "runkit/stage1-78b/tests/test_planning_ab_78b.py")
+KIT_REL = "runkit/stage1-78b/"
+COMMIT_RE = re.compile(r"[0-9a-f]{40}")
+# The untuned pass's dose record (Part 2 §1.11, §1.16: s4_doses_record.json, text-free; the scorer layer's
+# scorers_78b.build_doses) per family, {path, sha256}: block B's dose rows take its kept count (GXB K-5; R-26), never a
+# caller's number. Null until the scorer block's untuned pass and a recorded lead step.
+S4_DOSES_RECORD: dict = {"olmo2-7b": None, "llama31-8b": None}
+S4_DOSES_EVENT = ("the scorer block's untuned_answers record-done: the lead fills S4_DOSES_RECORD[family] with its "
+                  "job-I/untuned-s4/doses/s4_doses_record.json path and SHA-256 (the pulled output's) by a recorded step")
+S4_DOSES_KIND = "scale78b s4 doses record"
+# train_scale's input (Part 2 §2.1; KCR:104): each edit arm's padded tokens per step from its edit's token counts, per
+# family, {path, sha256} of a text-free record {kind, version, family, edits: {edit SHA-256: padded tokens per step},
+# source, utc, recorded_by} (K2's form; an open point). Null until the lead's token-count step; blocks A and B refuse.
+PADDED_TOKENS_78B: dict = {"olmo2-7b": None, "llama31-8b": None}
+PADDED_TOKENS_EVENT = ("the lead's token-count step on the Mac (each block A and B edit's padded tokens per step, by "
+                       "the edit's SHA-256; Part 2 §2.1) and PADDED_TOKENS_78B[family] filled with its path and SHA-256")
+PADDED_TOKENS_KIND = "stage1-78b padded tokens record"
+PADDED_TOKENS_KEYS = ("kind", "version", "family", "edits", "source", "utc", "recorded_by")
+# GXB O7, P2 §2.5: the named exceptions to the seals (reads that are not outcomes of a repair).
+SEAL_EXCEPTION_N_A0_1103 = ("Llama-3.1-8B's a0-1103 task loss, read after N's record-done for tau_L (DESO item 25; "
+                            "P2 §2.5): COMPLETE.json's evaluation.query_loss and eval/e1/query_loss.jsonl only")
+SEAL_EXCEPTION_W1_18 = "the 7-8B W1-18 check's flags (P2 §2.5, §4.2: a cap-rule measurement)"
+
+
+def kit_sha(rel: str) -> str | None:
+    p = ROOT / rel
+    return mac.sha(p) if p.is_file() else None
+
+
+def pin_bytes(pin, name: str, event: str) -> bytes:
+    """The bytes of the file at a {path, sha256} pin (path relative to the repository): refuses while the pin is
+    null (with its event), when it is not a plain {path, sha256}, or when the file is missing or off its hash."""
+    if pin is None:
+        fail(f"the pin {name} is null: it waits for {event}")
+    if not (isinstance(pin, dict) and set(pin) == {"path", "sha256"} and r78._plain_rel(pin["path"])
+            and SHA_RE.fullmatch(str(pin["sha256"]))):
+        fail(f"{name} is not a {{path, sha256}} pin")
+    p = ROOT / pin["path"]
+    if not p.is_file() or mac.sha(p) != pin["sha256"]:
+        fail(f"{name} ({pin['path']}) is missing or differs from its pin")
+    return p.read_bytes()
+
+
+def pin_json(pin, name: str, event: str) -> dict:
+    try:
+        doc = json.loads(pin_bytes(pin, name, event))
+    except ValueError:
+        fail(f"{name}: not JSON")
+    if not isinstance(doc, dict):
+        fail(f"{name}: not a JSON object")
+    return doc
+
+
+def output_doc(path, sha256: str, what: str, flag: str) -> tuple[dict, dict]:
+    """An output file read once by path, its bytes at ``sha256`` (the SHA-256 a record names): (doc, {path, sha256})."""
+    if not path:
+        fail(f"{what}: give its file ({flag}); it is re-read at the SHA-256 the record names (GXB R-30)")
+    p = pathlib.Path(path)
+    if not p.is_file() or mac.sha(p) != sha256:
+        fail(f"{what} ({p.name}) is missing or is not the file the record names ({str(sha256)[:12]}...)")
+    try:
+        doc = json.loads(p.read_text())
+    except ValueError:
+        fail(f"{what}: not JSON")
+    if not isinstance(doc, dict):
+        fail(f"{what}: not a JSON object")
+    return doc, {"path": str(p.resolve()), "sha256": sha256}
+
+
+def write_once(out, obj) -> dict:
+    """Write a record once (the engine's canonical JSON; never over a file); returns {path, sha256}."""
+    p = pathlib.Path(out)
+    if p.exists() or p.is_symlink():
+        fail(f"{p.name} exists: a record is written once")
+    if not p.parent.is_dir():
+        fail(f"{p.parent} does not exist: nothing written")
+    data = rules.canonical_bytes(obj)
+    with open(p, "xb") as handle:
+        handle.write(data)
+    return {"path": str(p), "sha256": hashlib.sha256(data).hexdigest()}
+
+
+def _plan_code_of(rule, what: str = "N's noise reading output") -> str:
+    """A seed rule's plan code (its review flag read as "review"), refused unless it is the plan its own sigma_pp
+    gives by P1 §6.1's rule (rules_78b.plan_for_sigma, held equal to noise_reading.seed_rule by RK's test_46; K2V-9)."""
+    plan, review = (rule or {}).get("plan"), (rule or {}).get("review")
+    if plan not in r78.PLAN_CODES or type(review) is not bool:
+        fail(f"{what} holds no seed-rule plan and review flag (noise_reading.seed_rule's fields)")
+    code = "review" if review else plan
+    try:
+        derived = r78.plan_for_sigma((rule or {}).get("sigma_pp"))
+    except r78.Refused:
+        fail(f"{what}: its seed rule holds no finite sigma_pp")
+    if derived != code:
+        fail(f"{what}: its seed rule's plan {code!r} is not the one its own sigma_pp gives ({derived!r}; K2V-9)")
+    return code
+
+
+def noise_plans(doc: dict) -> tuple[str, dict]:
+    """(N's provisional plan, {family: the family's own sigma_F plan}) from the noise reading's output, by
+    noise_reading.py's own fields (seed_rule.plan and .review on sigma_pool; families.F.seed_rule_by_sigma_F): the
+    output of the pinned script over both families (N runs both; P1 §6.2)."""
+    if doc.get("kind") != NOISE_READING_KIND or doc.get("version") != 1 or \
+            doc.get("script_sha256") != NOISE_READING_SCRIPT[1]:
+        fail(f"not the pinned noise reading's output ({NOISE_READING_KIND!r} version 1 by {NOISE_READING_SCRIPT[0]} "
+             f"{NOISE_READING_SCRIPT[1][:12]}...)")
+    fams = doc.get("families")
+    if not isinstance(fams, dict) or set(fams) != set(r78.FAMILIES):
+        fail(f"N's noise reading output does not read both families {list(r78.FAMILIES)}")
+    if doc.get("seed_rule") != (doc.get("pooled") or {}).get("seed_rule"):
+        fail("N's noise reading output's seed rule is not its pooled reading's (noise_reading.read's form; K2V-9)")
+    return _plan_code_of(doc.get("seed_rule")), {
+        f: _plan_code_of(fams[f].get("seed_rule_by_sigma_F"), f"N's noise reading output for {f}") for f in sorted(fams)}
+
+
+def gate_noise_check(gate_doc: dict, noise_path) -> dict:
+    """GXB R-30 (KR2-1): the gate record's provisional plan (and, under [C], sigma_F_plan: OLMo-2-7B's own) must be
+    the plans N's noise-reading output gives, that output read at the SHA-256 the gate record names."""
+    doc, ref = output_doc(noise_path, gate_doc["noise_reading_sha256"], "N's noise reading output", "--noise-reading")
+    provisional, by_f = noise_plans(doc)
+    if gate_doc["provisional_plan"] != provisional:
+        fail(f"the gate record's provisional plan {gate_doc['provisional_plan']!r} is not the plan N's noise reading "
+             f"gives ({provisional!r}; GXB R-30)")
+    want = by_f[r78.GATE_OPTIONS["C"][0]] if gate_doc["option"] == "C" else None
+    if gate_doc["sigma_F_plan"] != want:
+        fail(f"the gate record's sigma_F_plan {gate_doc['sigma_F_plan']!r} is not the plan N's noise reading gives "
+             f"({want!r}; GXB R-24, R-30)")
+    return {**ref, "provisional_plan": provisional, "engines": {f: (doc["families"][f].get("engine") or {})
+                                                                  for f in sorted(doc["families"])}}
+
+
+def blinded_output_check(doc: dict) -> dict:
+    """blinded_sigma.py's output form (exactly its five keys; R: blinded_sigma.py OUTPUT_KEYS): sigma_A_pp a finite
+    number >= 0 with a plan (rules_78b.plan_for_sigma), df a positive integer, inputs_sha256 a SHA-256."""
+    if tuple(sorted(doc)) != BLINDED_SIGMA_KEYS or doc["kind"] != BLINDED_SIGMA_KIND or doc["version"] != 1 or \
+            type(doc["version"]) is not int:
+        fail(f"not blinded_sigma.py's output (exactly {list(BLINDED_SIGMA_KEYS)}, kind {BLINDED_SIGMA_KIND!r} 1)")
+    if type(doc["df"]) is not int or doc["df"] < 1 or not SHA_RE.fullmatch(str(doc["inputs_sha256"])):
+        fail("blinded_sigma.py's output holds no positive integer df or no inputs SHA-256")
+    try:
+        r78.plan_for_sigma(doc["sigma_A_pp"])
+    except r78.Refused as exc:
+        fail(f"blinded_sigma.py's output: {exc}")
+    return doc
+
+
+def blinded_sigma_script() -> pathlib.Path:
+    """The checkout's blinded_sigma.py (the file the blinding record names)."""
+    return ROOT / BLINDED_SIGMA_SCRIPT
+
+
+def blinded_sigma_read(inputs: pathlib.Path, inputs_sha256: str, script_sha256: str) -> dict:
+    """GXB R-50: blinded_sigma.py's own ``read`` (its guarded in-process entry, SR10) on the kit's inputs file: the
+    script loaded from the checkout by path (no bytecode written, not registered as a module), only when it hashes to
+    the blinding record's; returns its output document {kind, version, inputs_sha256, sigma_A_pp, df}. Its refusals name
+    cells, keys and hashes only; any other error at load is reported by its type alone."""
+    import importlib.util
+    path = blinded_sigma_script()
+    if not path.is_file() or mac.sha(path) != script_sha256:
+        fail(f"{BLINDED_SIGMA_SCRIPT} is not the file the blinding record verified (GXB R-49, R-50)")
+    failure, keep = None, sys.dont_write_bytecode
+    sys.dont_write_bytecode = True
+    try:
+        spec = importlib.util.spec_from_file_location("blinded_sigma_for_plan_b_78b", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+    except SystemExit as exc:
+        fail(f"blinded_sigma.py refuses to load: {exc}")
+    except Exception as exc:                             # never echo an exception's text
+        failure = type(exc).__name__
+    finally:
+        sys.dont_write_bytecode = keep
+    if failure is not None:
+        fail(f"blinded_sigma.py did not load ({failure})")
+    if getattr(module, "SELF_SHA256", None) != script_sha256:
+        fail(f"{BLINDED_SIGMA_SCRIPT} changed while it loaded (GXB R-50)")
+    try:
+        return module.read(inputs, inputs_sha256)
+    except SystemExit as exc:
+        fail(f"blinded_sigma.read refuses the kit's inputs file: {exc}")
+
+
+def plan_b_blinded_check(plan_b: dict, blinded_path) -> dict | None:
+    """GXB R-30: with SR-2 adopted, blinded_sigma.py's output re-read at PLAN_B_78B's blinded_sigma_output_sha256;
+    its sigma_A_pp and inputs_sha256 must be the record's, and the record's plan the one that sigma gives. Without
+    SR-2 no blinded output is read (K-6)."""
+    if not plan_b["sr2_adopted"]:
+        if blinded_path:
+            fail("SR-2 is not adopted in block B's plan record: no blinded_sigma.py output is read (K-6)")
+        return None
+    doc, ref = output_doc(blinded_path, plan_b["blinded_sigma_output_sha256"], "blinded_sigma.py's output",
+                          "--blinded-sigma")
+    blinded_output_check(doc)
+    if doc["inputs_sha256"] != plan_b["blinded_sigma_inputs_sha256"]:
+        fail("block B's plan record names another blinded_sigma inputs file than the output's (GXB R-30)")
+    if type(doc["sigma_A_pp"]) is not type(plan_b["sigma_A_pp"]) or doc["sigma_A_pp"] != plan_b["sigma_A_pp"]:
+        fail("block B's plan record's sigma_A_pp is not blinded_sigma.py's printed value (GXB R-30)")
+    if r78.plan_for_sigma(doc["sigma_A_pp"]) != plan_b["plan"]:
+        fail("block B's plan record's plan is not the one blinded_sigma.py's sigma_A gives (GXB R-24, R-30)")
+    return ref
+
+
+def anchor_stop_read(family: str, job_done_path) -> dict | None:
+    """KR4, KR8: on a family whose ANCHOR_STOP pin is filled, the stop record is read at the pin and checked against
+    the anchor job's JOB-DONE.json (given by path, hashed) before any planning of that family; None while the pin is
+    null (no stop: the normal route), when no JOB-DONE.json may be given."""
+    pin = r78.ANCHOR_STOP[family]
+    if pin is None:
+        if job_done_path:
+            fail(f"ANCHOR_STOP[{family!r}] is null (no stop recorded): no anchor job's JOB-DONE.json is read")
+        return None
+    if not job_done_path:
+        fail(f"ANCHOR_STOP[{family!r}] is pinned: give the anchor job's JOB-DONE.json (--anchor-job-done) so the stop "
+             "record is read and checked first (KR4, KR8)")
+    p = pathlib.Path(job_done_path)
+    if not p.is_file():
+        fail("--anchor-job-done: no such file")
+    data = pin_bytes(pin, f"ANCHOR_STOP[{family!r}]", r78.ANCHOR_STOP_EVENT)
+    try:
+        r78.anchor_stop_or_refuse(family, data, mac.sha(p))
+    except r78.Refused as exc:
+        fail(str(exc))
+    return {"path": pin["path"], "sha256": pin["sha256"], "job_done_sha256": mac.sha(p), "job_done_path": str(p.resolve())}
+
+
+def sc_anchor_stop_read(plan: dict, family: str) -> dict | None:
+    """KR4 in the scorer block's own copy: the anchor job's JOB-DONE.json is this copy's (its anchor host, recorded
+    done, at the job_done_sha256 record-done kept), so the planner reads the stop record itself."""
+    if r78.ANCHOR_STOP[family] is None:
+        return None
+    hosts = [n for n, h in plan["hosts"].items() if h.get("block") == r78.SC_BLOCK and h.get("done")
+             and [j["kind"] for j in h["jobs"]] == ["anchor"]]
+    if len(hosts) != 1:
+        fail(f"ANCHOR_STOP[{family!r}] is pinned, but this copy's plan.json holds {len(hosts)} anchor host(s) recorded "
+             "done (one is needed: its JOB-DONE.json is the stop record's; KR4, KR8)")
+    path = HERE / "retrieved" / hosts[0] / "tree" / "JOB-DONE.json"
+    if not path.is_file() or mac.sha(path) != plan["hosts"][hosts[0]].get("job_done_sha256"):
+        fail(f"{hosts[0]}: its JOB-DONE.json is missing or is not the one record-done read")
+    return anchor_stop_read(family, path)
+
+
+def branch_bytes(family: str) -> bytes | None:
+    """K-8: the family's branch record's bytes at BRANCH_78B's pin (None while the pin is null); the only branch
+    source of this kit (rules_78b.branch_record_or_refuse reads them)."""
+    pin = r78.BRANCH_78B[family]
+    if pin is None:
+        return None
+    return pin_bytes(pin, f"BRANCH_78B[{family!r}]", r78.BRANCH_EVENT)
+
+
+def branch_doc_or_fail(family: str) -> dict:
+    data = branch_bytes(family)
+    try:
+        return r78.branch_record_or_refuse(family, data)
+    except r78.Refused as exc:
+        fail(str(exc))
+
+
+def bank500_or_fail(family: str, kind: str, block: str, where: str) -> None:
+    """A 500-bank job (rules_78b.bank500_job) waits for the family's branch record, read by its bytes (K-8), and its
+    O-ext pin must agree with it on W1-18's record (GXB R-33)."""
+    if not r78.bank500_job(kind, block):
+        return
+    problem = r78.bank500_problem(family, kind, block, branch_bytes(family))
+    if problem:
+        fail(f"{where}: {problem}")
+    oext = r78.OEXT_78B[family]
+    if oext is None:
+        fail(f"{where}: {kind} carries the O-ext step: OEXT_78B[{family!r}] is null ({r78.SC_PIN_EVENTS['OEXT_78B']})")
+    problem = r78.oext_w1_18_record_problem(oext, family, branch_doc_or_fail(family))
+    if problem:
+        fail(f"{where}: {problem}")
+
+
+def s4_kept(family: str) -> int:
+    """GXB K-5, R-26: the kept S4 count n from the untuned pass's dose record (S4_DOSES_RECORD[family], read at its
+    pin; scorers_78b.build_doses' fields kept, fallback_fired, top_dose), never a caller's number."""
+    doc = pin_json(S4_DOSES_RECORD[family], f"S4_DOSES_RECORD[{family!r}]", S4_DOSES_EVENT)
+    kept = doc.get("kept")
+    if doc.get("kind") != S4_DOSES_KIND or doc.get("version") != 1 or type(kept) is not int or kept < 0 or \
+            doc.get("fallback_fired") is not (kept < r78.S4_KEEP):
+        fail(f"S4_DOSES_RECORD[{family!r}] is not a {S4_DOSES_KIND!r} version 1 with a kept count and its fallback "
+             "flag (fallback_fired = kept < 192)")
+    try:
+        r78.dose_arms_for(kept)                          # fewer than 48 kept: the build stop
+    except r78.Refused as exc:
+        fail(str(exc))
+    top = doc.get("top_dose")
+    want = "s4_192" if kept >= r78.S4_KEEP else "s4_top"   # K2V-7: scorers_78b.nested_doses' rule (96 and 48 included)
+    if top != want:
+        fail(f"S4_DOSES_RECORD[{family!r}]'s top dose {top!r} is not the one its kept count gives ({want})")
+    return kept
+
+
+def padded_tokens(family: str, runs: list) -> dict:
+    """(arm, seed) -> the padded tokens per step of every edit run in ``runs`` (train_scale's input; Part 2 §2.1), from
+    PADDED_TOKENS_78B[family]'s record by each run's edit SHA-256 (rules_78b.run_edit). a0 takes none."""
+    doc = pin_json(PADDED_TOKENS_78B[family], f"PADDED_TOKENS_78B[{family!r}]", PADDED_TOKENS_EVENT)
+    edits = doc.get("edits")
+    if set(doc) != set(PADDED_TOKENS_KEYS) or doc.get("kind") != PADDED_TOKENS_KIND or doc.get("version") != 1 or \
+            doc.get("family") != family or not isinstance(edits, dict) or \
+            not all(SHA_RE.fullmatch(str(k)) and rules.finite_number(v) and v > 0 for k, v in edits.items()):
+        fail(f"PADDED_TOKENS_78B[{family!r}] is not {family}'s {PADDED_TOKENS_KIND!r} (exactly {list(PADDED_TOKENS_KEYS)}; "
+             "edits {SHA-256: a positive number})")
+    out = {}
+    for arm, seed in runs:
+        try:
+            edit = r78.run_edit(family, arm, seed)
+        except r78.Refused as exc:
+            fail(f"block run {arm} at {seed}: {exc}")
+        if edit is None:
+            continue
+        if edit["sha256"] not in edits:
+            fail(f"PADDED_TOKENS_78B[{family!r}] holds no padded token count for {arm}'s edit {edit['sha256'][:12]}... "
+                 "(train_scale's input; Part 2 §2.1)")
+        out[(arm, seed)] = edits[edit["sha256"]]
+    return out
+
+
+def judge_pod_78b(judge: str, units: int) -> dict:
+    """A judge launch of ``units`` judged units at the launcher's rule (the stage-1 kit's harmbench_pod and granite_pod
+    with stage1_rules' judge constants: HarmBench 800 answers a unit at 0.25 s, Granite 200 greedy answers a unit plus
+    the 200 known answers at 0.5 s; 30 min setup and 15 min margin; the next half hour, at least 1 h, at most 6 h)."""
+    if type(units) is not int or units < 1:
+        fail(f"a {judge} launch judges at least one unit")
+    if judge == "harmbench":
+        answers, per = units * rules.HARMBENCH_ANSWERS_PER_ARM, rules.HARMBENCH_S_PER_ANSWER
+    elif judge == "granite":
+        answers, per = units * rules.GRANITE_GREEDY_PER_ARM + rules.GRANITE_KNOWN_ANSWERS, rules.GRANITE_S_PER_ANSWER
+    else:
+        fail(f"unknown judge {judge!r} (one of {list(rules.JUDGES)})")
+    need = (rules.GRANITE_SETUP_UPPER_S + answers * per + rules.GRANITE_MARGIN_S) / 3600
+    cap = max(rules.GRANITE_CAP_MIN_H, math.ceil(need * 2) / 2)
+    if cap > rules.GRANITE_CAP_MAX_H:
+        fail(f"a {judge} launch of {units} units needs a cap above {rules.GRANITE_CAP_MAX_H} h: split it")
+    return {"judge": judge, "arms": units, "answers": answers, "kinds": [], "cap_hours": cap}
+
+
+def rejudged_units(family: str, block: str) -> tuple:
+    """Block A's 7 re-judged units per family (N's, the reused a0 units and theta0; DESO item 26), live from
+    rules_78b.rejudged_or_refuse (N's entries wait for N_UNITS); none for block B."""
+    if block != "A":
+        return ()
+    try:
+        return r78.rejudged_or_refuse(family, block)
+    except r78.Refused as exc:
+        fail(str(exc))
+
+
+def sibling_plan(family: str, block: str) -> tuple[dict, pathlib.Path]:
+    """The plan.json of this family's working copy of ``block`` (KD7: tmp/<prefix><family>-<block>/), read only."""
+    copy = ROOT / "tmp" / f"{r78.WORKING_COPY_PREFIX}{family}-{block}"
+    path = copy / "plan.json"
+    try:
+        doc = json.loads(path.read_text())
+    except (OSError, ValueError):
+        fail(f"block {block}'s working copy tmp/{copy.name}/ has no readable plan.json")
+    if not isinstance(doc, dict) or doc.get("name") != "stage1-78b" or doc.get("family") != family or \
+            doc.get("kit_block") != block:
+        fail(f"tmp/{copy.name}/plan.json is not {family}'s block-{block} plan (KD7)")
+    return doc, copy
+
+
+def sibling_seal(family: str, block: str) -> dict:
+    """GXB O7: block ``block``'s seal record in its own working copy, re-hashed at the path its plan.json records:
+    {block, path (relative to the repository), sha256}."""
+    doc, copy = sibling_plan(family, block)
+    seal = (doc.get("seals") or {}).get(block)
+    if not isinstance(seal, dict):
+        fail(f"block {block} of {family} is not sealed in tmp/{copy.name}/ (seal.py block {block} there first)")
+    p = copy / str(seal.get("path"))
+    if ".." in pathlib.PurePath(str(seal.get("path"))).parts or not p.is_file() or mac.sha(p) != seal.get("sha256"):
+        fail(f"block {block}'s seal record in tmp/{copy.name}/ is missing or differs from its recorded SHA-256")
+    return {"block": block, "path": p.relative_to(ROOT).as_posix(), "sha256": seal["sha256"]}
+
+
+def ab_spec(spec, block: str, family: str) -> tuple[list, int]:
+    """The lean jobs file's launches and dose seeds, checked for form (the deal and judge rules come after)."""
+    if not isinstance(spec, dict) or set(spec) - AB_JOBS_KEYS or not isinstance(spec.get("launches"), list):
+        fail(f'block {block}: --jobs FILE is {{"family": F, "launches": [{{"deal": [i, ...]}}, ..., {{"judge": '
+             '{"judge": "harmbench"}}, {"judge": {"judge": "granite"}}]' + (', "dose_seeds": 0|3|6' if block == "B"
+                                                                             else "") + "}")
+    if spec.get("family", family) != family:
+        fail(f"block {block}: the jobs file is for {spec['family']!r}; this working copy is {family}'s (KD7)")
+    dose = spec.get("dose_seeds", 0)
+    if block == "A" and dose:
+        fail("block A plans no dose row (the dose arms are block B's; Part 2 §2.2)")
+    if type(dose) is not int or dose not in (0, *r78.DOSE_SEEDS):
+        fail(f"block {block}: dose_seeds is 0, 3 or 6 (ruling 12's money rule; Part 2 §2.2)")
+    return spec["launches"], dose
+
+
+def ab_launches(launches: list, block: str, n_pods: int) -> list:
+    """The launches in order: deal launches covering pods 0..n-1 exactly once, in order, then exactly one HarmBench
+    and one Granite judge launch (Part 2 §6: every judged unit by both judges)."""
+    out, seen, judges = [], [], []
+    for k, x in enumerate(launches):
+        if isinstance(x, dict) and set(x) == {"deal"} and isinstance(x["deal"], list) and x["deal"] and \
+                all(type(i) is int for i in x["deal"]):
+            if judges:
+                fail(f"block {block} launch {k}: a deal launch comes before the judge launches")
+            seen += x["deal"]
+            out.append({"deal": list(x["deal"])})
+        elif isinstance(x, dict) and set(x) == {"judge"} and isinstance(x["judge"], dict) and \
+                set(x["judge"]) == {"judge"} and x["judge"]["judge"] in rules.JUDGES:
+            if x["judge"]["judge"] in judges:
+                fail(f"block {block} launch {k}: the {x['judge']['judge']} judge launch is given twice")
+            judges.append(x["judge"]["judge"])
+            out.append({"judge": x["judge"]["judge"]})
+        else:
+            fail(f'block {block} launch {k}: a launch is {{"deal": [pod, ...]}} or {{"judge": {{"judge": '
+                 f'{" or ".join(repr(j) for j in rules.JUDGES)}}}}}')
+    if seen != list(range(n_pods)):
+        fail(f"block {block}: the deal launches must name the deal's {n_pods} pods exactly once, in order "
+             f"(0..{n_pods - 1}); given {seen}")
+    if sorted(judges) != sorted(rules.JUDGES):
+        fail(f"block {block}: one HarmBench and one Granite judge launch over the block's units (Part 2 §6)")
+    return out
+
+
+def init_block_ab(args: argparse.Namespace, block: str) -> dict:
+    """init-block A / B (module section "R2 K2"): read the gate (and for B the block-B plan and block A's seal) at their
+    pins, re-read their sources (GXB R-30), read a stop record (KR4), then plan the block's deal of its table's runs
+    (rules_78b.block_runs_78b; each pod's cap from its jobs' own steps and O-ext terms) and its two judge launches; print
+    each pod's need and idle-storage line and the block's need; with --funding write plan.json and release launch 0."""
+    family = family_or_fail()
+    plan = load()
+    if block in plan["blocks"]:
+        fail(f"block {block} is already planned in this working copy")
+    gate_data = pin_bytes(r78.GATE_78B, "GATE_78B", r78.GATE_EVENT)
+    plan_b_data = pin_bytes(r78.PLAN_B_78B, "PLAN_B_78B", r78.PLAN_B_EVENT) if block == "B" else None
+    try:
+        init = rules.block_init(block, gate_data, plan_b_data, family)
+    except ValueError as exc:
+        fail(str(exc))
+    gate_doc = json.loads(gate_data)
+    gate_ref = {"path": r78.GATE_78B["path"], "sha256": r78.GATE_78B["sha256"], "option": gate_doc["option"],
+                "families": list(gate_doc["families"]), "provisional_plan": gate_doc["provisional_plan"]}
+    noise = gate_noise_check(gate_doc, getattr(args, "noise_reading", None))
+    blinded, seal_a, plan_b_ref = None, None, None
+    blinding = None
+    if block == "A":                                     # GXB R-44: the verified code is the code that runs
+        blinding = sr2_blinding_reading(check_files=True)
+    if block == "B":
+        plan_b_doc = json.loads(plan_b_data)
+        plan_b_status_check(plan_b_doc, gate_doc)        # GXB R-43: SR-2's status from the pinned records
+        blinded = plan_b_blinded_check(plan_b_doc, getattr(args, "blinded_sigma", None))
+        if plan_b_doc["sr2_adopted"]:                    # K2V-3: the inputs are the kit's
+            kit_inputs_check(gate_doc, plan_b_doc["blinded_sigma_inputs_sha256"])
+        seal_a = sibling_seal(family, "A")               # G5's 7-8B form: block B follows block A's seal
+        plan_b_ref = {"path": r78.PLAN_B_78B["path"], "sha256": r78.PLAN_B_78B["sha256"], "plan": init["plan"],
+                      "sr2_adopted": init["sr2_adopted"], "plan_basis": init["plan_basis"]}
+    elif getattr(args, "blinded_sigma", None):
+        fail("block A reads no blinded_sigma.py output (it comes after block A)")
+    stop = anchor_stop_read(family, getattr(args, "anchor_job_done", None))
+    try:
+        spec = json.loads(pathlib.Path(args.jobs).read_text())
+    except (OSError, ValueError):
+        fail("--jobs FILE: not a readable JSON file")
+    launches_spec, dose_seeds = ab_spec(spec, block, family)
+    code = init["plan"]
+    kept = s4_kept(family) if dose_seeds else None
+    try:
+        runs = rules.block_runs(code, block, (), dose_seeds, kept)
     except ValueError as exc:
         fail(f"block {block}: {exc}")
-    return {"block": block, "plan": code, "pods": [[f"{a}@{s}" for a, s in p] for p in pods]}
+    for kind in ("arm", "a0_arm"):
+        bank500_or_fail(family, kind, block, f"block {block}")
+    padded = padded_tokens(family, runs)
+    try:
+        pods = rules.block_pods(code, block, padded, dose_seeds, kept)
+    except ValueError as exc:
+        fail(f"block {block}: {exc}")
+    rejudged = r78.rejudged_pins(family, block)          # the count only: N's entries wait for N_UNITS, and the judge
+    units = len(runs) + len(rejudged)                    # route refuses until then (units-of-block, record-judges)
+    launches = ab_launches(launches_spec, block, len(pods))
+    built, lines, out_pods, need_launches_ = [], [], [], []
+    taken = {"hosts": dict(plan["hosts"]), "blocks": plan["blocks"]}
+    one = r78.idle_storage(1)
+    for k, x in enumerate(launches):
+        if "judge" in x:
+            jp = judge_pod_78b(x["judge"], units)
+            built.append({"judge": jp})
+            need_launches_.append([jp])
+            lines.append(f"need block {block} judge launch {k} {x['judge']} ({units} units: {len(runs)} runs"
+                         + (f" + {len(rejudged)} re-judged" if rejudged else "") + f"; cap {jp['cap_hours']:.2f} h, "
+                         f"spend upper ${rules.cents(jp['cap_hours'] * rules.RATE_USD):.2f}; E)")
+            continue
+        hosts, terms = [], []
+        for i in x["deal"]:
+            pod = pods[i]
+            host = host_record(plan, block, "arms", pod["jobs"], None, k)
+            if host["cap_hours"] != pod["cap_hours"]:     # pragma: no cover - one rule, two routes
+                fail(f"block {block} pod {i}: the pod's cap differs from rules_78b's")
+            name = new_host_name(taken, block)
+            taken["hosts"][name] = host
+            hosts.append((name, host))
+            terms.append({"cap_hours": host["cap_hours"], "spend_usd": host["spend_upper_usd"]})
+            runs_txt = ", ".join(f"{a}@{s}" for a, s in pod["runs"])
+            lines.append(f"need block {block} pod {name} {family} ({runs_txt}; {host['counted']} counted, cap "
+                         f"{host['cap_hours']:.2f} h, guard ${rules.cents(host['guard_usd']):.2f}, spend upper "
+                         f"${rules.cents(host['spend_upper_usd']):.2f}; KD1, KD2, O-ext term x 1.5 until measured)")
+            lines.append(f"idle storage {name} (KD5, PP14; E, KCR:161): keeps its arms' e1 states until the state rule's "
+                         f"pull and verified backup; about ${one['usd_per_pod_day']:.2f} per day, about "
+                         f"${one['usd_per_month']:.2f} per month while kept stopped; counted in no guard")
+            out_pods.append({"launch": k, "host": name, "cap_hours": host["cap_hours"],
+                             "guard_usd": rules.cents(host["guard_usd"]), "spend_upper_usd": rules.cents(host["spend_upper_usd"]),
+                             "counted": host["counted"], "runs": [f"{a}@{s}" for a, s in pod["runs"]],
+                             "edits": [{"arm": j["arm"], "seed": j["seed"], "path": j["edit"]["path"],
+                                        "sha256": j["edit"]["sha256"]} for j in host["jobs"] if j.get("edit")]})
+        built.append({"hosts": hosts})
+        need_launches_.append(terms)
+    need = rules.funding_need_usd(need_launches_, rules.CONTINGENCY_FACTOR)
+    group = rules.FUNDING_BLOCK[block]
+    lines.append(f"need block {block} (this copy, {family}; {len(pods)} arm pod(s), 2 judge launches; KD1, M3): "
+                 f"${need['need_usd']:.2f} (base ${need['base_need_usd']:.2f}, contingency "
+                 f"${rules.cents(need['need_usd'] - need['base_need_usd']):.2f})")
+    lines.append(f"idle storage block {block} in all (KD5, PP14; E): {len(pods)} pod(s) keeping states: "
+                 f"${rules.cents(len(pods) * one['usd_per_pod_day']):.2f} per day if every pod is kept stopped; counted "
+                 "in no guard")
+    for line in lines:
+        print(line)
+    summary = {"block": block, "family": family, "funding_block": group, "plan": code, "option": gate_ref["option"],
+               "runs": len(runs), "dose_seeds": dose_seeds, "kept": kept, "pods": out_pods,
+               "judge_units": units, "need_usd": need["need_usd"], "base_need_usd": need["base_need_usd"],
+               "contingency_usd": rules.cents(need["need_usd"] - need["base_need_usd"]), "need_lines": lines,
+               "anchor_stop": stop}
+    if args.dry_run:
+        return {"dry_run": True, **summary}
+    if not args.funding:
+        fail(f"init-block {block} needs --funding FILE (the lead's record of the user's money for block {block}, or "
+             "the user's start-from-the-balance record; addendum §36)")
+    funding = funding_record(args.funding, group)
+    if not funding["amount_usd"] >= need["need_usd"]:
+        fail(f"the funding ${funding['amount_usd']:.2f} is below the need ${need['need_usd']:.2f} "
+             f"({rules.CONTINGENCY_FACTOR} x ${need['base_need_usd']:.2f}: block {block}'s pods and judge launches)")
+    pending, names = {}, []
+    record_launches = []
+    for x in built:
+        if "judge" in x:
+            record_launches.append({"judge": x["judge"]})
+            continue
+        record_launches.append({"hosts": [n for n, _ in x["hosts"]]})
+        for n, h in x["hosts"]:
+            pending[n] = h
+            names.append(n)
+    record = {"funding": funding, "need": need, "need_launches": need_launches_, "branch": None,
+              "deal": [p["runs"] for p in pods], "reused": [], "utc": mac.utc(), "launches": record_launches,
+              "released": 0, "pending": pending, "seq": len(plan["blocks"]), "family": family, "need_lines": lines,
+              "plan_code": code, "dose_seeds": dose_seeds, "kept": kept,
+              "gate": {**gate_ref, "noise_reading": {"path": noise["path"], "sha256": noise["sha256"]}},
+              "plan_b": plan_b_ref, "blinded_sigma": blinded, "block_a_seal": seal_a, "anchor_stop": stop,
+              "blinding": blinding,
+              "rejudged": len(rejudged)}
+    plan["blocks"][block] = record
+    plan["contingency"][block] = {"usd": need["contingency_usd"], "remaining_usd": need["contingency_usd"], "spent": [],
+                                  "not_rerun": []}
+    released = release_next(plan, block)
+    mac.save_plan(plan)
+    mac.operator_action({"action": "init-block", "block": block, "family": family, "hosts": names,
+                         "need_usd": need["need_usd"], "funding_sha256": funding["sha256"]})
+    return {**summary, "hosts": names, "released": released}
+
+
+def release_hosts_ab(plan: dict, block: str, names_hosts: list[tuple[str, dict]]) -> list[str]:
+    """Blocks A and B's release: the gate (and block B's plan record) again at their pins, the branch record again by
+    its bytes, every edit bound again by path and SHA-256 (rules_78b.run_edit: a pin changed since init refuses), the
+    packed engine's receipt and the main config's bytes, config_sha256 and training identity (P78 §2.3)."""
+    family = family_or_fail()
+    b = plan["blocks"][block]
+    gate_data = pin_bytes(r78.GATE_78B, "GATE_78B", r78.GATE_EVENT)
+    if r78.GATE_78B["sha256"] != b["gate"]["sha256"]:
+        fail(f"block {block}: GATE_78B now pins another gate record than the one block {block} was planned with")
+    plan_b_data = pin_bytes(r78.PLAN_B_78B, "PLAN_B_78B", r78.PLAN_B_EVENT) if block == "B" else None
+    if block == "B" and r78.PLAN_B_78B["sha256"] != b["plan_b"]["sha256"]:
+        fail("block B: PLAN_B_78B now pins another plan record than the one block B was planned with")
+    try:
+        rules.block_init(block, gate_data, plan_b_data, family)
+    except ValueError as exc:
+        fail(str(exc))
+    if block == "A":                                     # GXB R-44 at every release of block A
+        got = sr2_blinding_reading(check_files=True)
+        if got["sha256"] != (b.get("blinding") or {}).get("sha256"):
+            fail("block A: SR2_BLINDING_RECORD now pins another record than the one block A was planned with")
+    if block == "B":                                     # GXB R-43 and K2V-3 at every release of block B
+        gate_doc, plan_b_doc = json.loads(gate_data), json.loads(plan_b_data)
+        plan_b_status_check(plan_b_doc, gate_doc)
+        if plan_b_doc["sr2_adopted"]:
+            kit_inputs_check(gate_doc, plan_b_doc["blinded_sigma_inputs_sha256"])
+    stop = anchor_stop_read(family, (b.get("anchor_stop") or {}).get("job_done_path"))   # KR4: in this process too
+    if (stop or {}).get("job_done_sha256") != (b.get("anchor_stop") or {}).get("job_done_sha256"):
+        fail(f"block {block}: the anchor job's JOB-DONE.json differs from the one read at init-block")
+    for kind in ("arm", "a0_arm"):
+        bank500_or_fail(family, kind, block, f"block {block}")
+    for name, h in names_hosts:
+        if h.get("engine") != "X":
+            fail(f"{name}: blocks A and B run on engine X (unless ruling 10's certificate passed: a later round)")
+        rec = engine_receipt("X")
+        if rec.get("family") not in (None, family):
+            fail(f"{name}: the packed stage1-X is {rec.get('family')}'s; this copy is {family}'s (KD7)")
+        h["sealed_files_sha256"] = rec.get("sealed_files_sha256")
+        for job in h["jobs"]:
+            if job.get("recipe") != "B":
+                fail(f"{name}: an arm runs under the main config (recipe B), never another recipe (P78:99)")
+            try:
+                edit = r78.run_edit(family, job["arm"], job["seed"])
+            except r78.Refused as exc:
+                fail(f"{name}: {exc}")
+            if (edit is None) != (job.get("edit") is None) or \
+                    (edit is not None and (job["edit"]["sha256"], job["edit"]["path"]) != (edit["sha256"], edit["path"])):
+                fail(f"{name}: the edit bound at init for {job['arm']} at {job['seed']} differs from its pin now; the "
+                     "lead decides")
+        path = rules.REC
+        if not (ENGINE_ROOT / path).is_file() or mac.sha(ENGINE_ROOT / path) != rules.RECIPE_PINS[path]:
+            fail(f"{path}: missing or differs from its pin (the main config's bytes)")
+        if path not in plan["recipes"]:
+            config = recipe_sha(path)
+            if config != rules.REC_CONFIG_SHA256:
+                fail(f"{path}: its config_sha256 {config[:12]}... is not the family's pin {rules.REC_CONFIG_SHA256[:12]}...")
+            plan["recipes"][path] = {"sha256": rules.RECIPE_PINS[path], "config_sha256": config,
+                                     "training_identity": recipe_training_identity(path)}
+        if plan["recipes"][path].get("training_identity") != rules.TRAINING_IDENTITY:
+            fail(f"recipe B: its training identity is not {family}'s {rules.TRAINING_IDENTITY[:8]}... (P78 §2.3)")
+    for name, h in names_hosts:
+        plan["hosts"][name] = h
+    return [n for n, _ in names_hosts]
+
+
+# ----- R2 K2: the record steps (GXB O14 corrected, K-6, R-24, R-30; K-8, R-21, R-33; O6 and the fourth set; S-9) -----
+
+
+def record_gate_78b(noise_path: str, noise_sha256: str, option: str, balance: str, recorded_by: str, out: str) -> dict:
+    """record-gate-78b OUT --sha256 H --option B|C --balance-usd X --recorded-by WHO --out FILE: GATE_78B's record
+    (rules_78b.GATE_KEYS) from N's noise-reading output read at its SHA-256: the provisional plan from its seed rule on
+    sigma_pool, and under [C] sigma_F_plan from OLMo-2-7B's own sigma_F (P1 §6.2; GXB R-24); the option (ruling 9's
+    gate) and the live balance are the lead's at the gate. Nothing else is typed."""
+    if option not in r78.GATE_OPTIONS:
+        fail(f"--option is B or C (ruling 5), not {option!r}")
+    doc, ref = output_doc(noise_path, noise_sha256, "N's noise reading output", "OUT")
+    provisional, by_f = noise_plans(doc)
+    try:
+        amount = float(balance)
+    except (TypeError, ValueError):
+        fail("--balance-usd is a number")
+    record = {"kind": r78.GATE_RECORD_KIND, "version": 1, "option": option, "families": list(r78.GATE_OPTIONS[option]),
+              "provisional_plan": provisional, "sigma_F_plan": by_f[r78.GATE_OPTIONS["C"][0]] if option == "C" else None,
+              "noise_reading_sha256": ref["sha256"], "balance_usd": amount, "utc": mac.utc(), "recorded_by": recorded_by}
+    problem = r78.gate_record_problem(record)
+    if problem:
+        fail(f"the gate record would not be GATE_78B's form: {problem}")
+    written = write_once(out, record)
+    return {"recorded": "gate", **written, "option": option, "provisional_plan": provisional,
+            "sigma_F_plan": record["sigma_F_plan"]}
+
+
+def sr2_simulation_reading(option: str, families) -> dict:
+    """DES K6's reading of the governing simulation, from its pinned merged output only (never typed): the run on
+    the design block A ran (the full design; the reduced one once a family's ANCHOR_STOP is pinned, GXB S-10), of the
+    pinned code and settings, for ``option``; its largest familywise rate (recomputed from every row, scenario and
+    family; equal to the summary's) against 6%."""
+    stopped = sorted(f for f in families if r78.ANCHOR_STOP[f] is not None)
+    pins = SR2_SIMULATION_REDUCED if stopped else SR2_SIMULATION
+    pin = pins.get(option)
+    name = f"SR2_SIMULATION{'_REDUCED' if stopped else ''}[{option!r}]"
+    doc = pin_json(pin, name, SR2_SIMULATION_EVENT)
+    design = doc.get("design") or {}
+    if doc.get("kind") != SR2_SIM_KIND or doc.get("version") != 1 or doc.get("option") != option or \
+            doc.get("script_sha256") != SR2_SIM_SCRIPT_SHA256 or doc.get("settings_sha256") != SR2_SIM_SETTINGS_SHA256:
+        fail(f"{name} is not the pinned simulation's output for option {option} (its kind, option, code or settings)")
+    if design.get("name") != ("reduced" if stopped else "full") or sorted(design.get("stopped") or []) != stopped:
+        fail(f"{name} ran on another design than the one block A runs (GXB S-10: stopped {stopped})")
+    reps, summary = doc.get("reps"), doc.get("summary") or {}
+    counts = []
+    for row in doc.get("rows") or []:
+        for scenario in (row.get("scenarios") or {}).values():
+            for fam in (scenario.get("families") or {}).values():
+                counts.append(fam.get("familywise_count"))
+    if type(reps) is not int or reps < 1 or not counts or not all(type(c) is int and 0 <= c <= reps for c in counts):
+        fail(f"{name} holds no familywise counts and replicate count")
+    if str(summary.get("threshold_familywise")) != SR2_THRESHOLD:
+        fail(f"{name}'s reading threshold is not DES K6's {SR2_THRESHOLD}")
+    top = max(counts)
+    above = Fraction(top, reps) > Fraction(SR2_THRESHOLD)
+    if (summary.get("max_familywise") or {}).get("familywise_count") != top or summary.get("max_above_threshold") is not above:
+        fail(f"{name}'s summary disagrees with its rows (largest familywise count or the threshold flag)")
+    return {"path": pin["path"], "sha256": pin["sha256"], "max_familywise_count": top, "reps": reps,
+            "above_threshold": above}
+
+
+def blinding_doc() -> dict:
+    """The pinned blinding record (SR2_BLINDING_RECORD), checked for its form only (GXB R-44)."""
+    doc = pin_json(SR2_BLINDING_RECORD, "SR2_BLINDING_RECORD", SR2_BLINDING_EVENT)
+    files = doc.get("files")
+    if set(doc) != set(BLINDING_KEYS) or doc.get("kind") != BLINDING_KIND or doc.get("version") != 1 or \
+            type(doc.get("version")) is not int or type(doc.get("verified")) is not bool or \
+            not isinstance(files, dict) or sorted(files) != sorted(BLINDING_FILES) or \
+            not all(SHA_RE.fullmatch(str(v)) for v in files.values()) or not COMMIT_RE.fullmatch(str(doc.get("commit"))) \
+            or not all(isinstance(doc.get(k), str) and doc[k].strip() for k in ("evidence", "utc", "recorded_by")):
+        fail(f"SR2_BLINDING_RECORD is not a {BLINDING_KIND!r} record (exactly {list(BLINDING_KEYS)}; files exactly "
+             f"{list(BLINDING_FILES)} by SHA-256; a 40-hex commit; GXB R-44)")
+    return doc
+
+
+def blinding_files_check(files: dict, copies=()) -> None:
+    """GXB R-44, R-49: each file the blinding record names hashes to the record's now. plan_tool.py (record-done's
+    code) in this working copy (the code that runs) and in each block-A copy in ``copies`` (where record-done ran);
+    blinded_sigma.py and the two tests in the checkout. A change of any of them voids the verification."""
+    for rel in BLINDING_FILES:
+        if rel == KIT_REL + "plan_tool.py":
+            where = [(HERE / "plan_tool.py", "the one that runs here")] + \
+                [(c / "plan_tool.py", f"the one in tmp/{c.name}/ (record-done's code)") for c in copies]
+        else:
+            where = [(ROOT / rel, "the one in this checkout")]
+        for path, what in where:
+            if not path.is_file() or mac.sha(path) != files[rel]:
+                fail(f"SR2_BLINDING_RECORD verified another {rel} than {what}: the change voids the verification "
+                     "(GXB R-44, R-49; P1 §6.4)")
+
+
+def sr2_blinding_reading(check_files: bool = True) -> dict:
+    """Ruling 3's trigger (P2 §10.1), from the lead's pinned record of the blinding test's verification only (GXB R-44):
+    refuses while SR2_BLINDING_RECORD is null; its form is BLINDING_KEYS, its files exactly BLINDING_FILES by SHA-256
+    and a 40-hex commit. With ``check_files`` (block A's init and release), each file must hash to the record's now
+    (blinding_files_check: this working copy's plan_tool.py, the others in the checkout), so a change voids it."""
+    doc = blinding_doc()
+    if check_files:
+        blinding_files_check(doc["files"])
+    return {"path": SR2_BLINDING_RECORD["path"], "sha256": SR2_BLINDING_RECORD["sha256"], "verified": doc["verified"]}
+
+
+def blinding_from_block_a(families) -> dict:
+    """GXB R-44 at block B's time: the pinned blinding record (its form) must be the one every block-A copy of the
+    gate's families read at its init (block A's record keeps it), so the verification held on the code block A ran.
+    GXB R-49: record-done and blinded_sigma.py run after block A's last release, so a record that says verified has its
+    files re-hashed here too (blinding_files_check, with every family's block-A copy's plan_tool.py); an unverified
+    record adopts nothing, so it has no verification to void."""
+    doc = blinding_doc()
+    got = {"path": SR2_BLINDING_RECORD["path"], "sha256": SR2_BLINDING_RECORD["sha256"], "verified": doc["verified"]}
+    copies = []
+    for f in families:
+        plan_a, copy = sibling_plan(f, "A")
+        snap = ((plan_a.get("blocks") or {}).get("A") or {}).get("blinding") or {}
+        if snap.get("sha256") != got["sha256"]:
+            fail(f"block A of {f} (tmp/{copy.name}/) was not planned under the pinned blinding record (GXB R-44)")
+        copies.append(copy)
+    if doc["verified"]:
+        blinding_files_check(doc["files"], copies)
+    return got
+
+
+def sr2_status(gate: dict) -> dict:
+    """SR-2's status from the pinned records only (GXB R-43): adopted when the blinding record (as block A read it)
+    says verified and the governing simulation is not above 6%; else K-6's reason, the blinding test first."""
+    blinding = blinding_from_block_a(gate["families"])
+    simulation = sr2_simulation_reading(gate["option"], gate["families"])
+    adopted = blinding["verified"] and not simulation["above_threshold"]
+    reason = None if adopted else ("blinding_test_not_verified" if not blinding["verified"] else "simulation_reading")
+    return {"adopted": adopted, "reason": reason, "blinding": blinding, "simulation": simulation}
+
+
+def plan_b_status_check(plan_b: dict, gate: dict) -> dict:
+    """GXB R-43: block B's plan record's SR-2 status must be the one the pinned records give now."""
+    status = sr2_status(gate)
+    if (plan_b["sr2_adopted"], plan_b["sr2_reason"]) != (status["adopted"], status["reason"]):
+        fail(f"block B's plan record says SR-2 adopted {plan_b['sr2_adopted']} ({plan_b['sr2_reason']}); the pinned "
+             f"records give {status['adopted']} ({status['reason']}) (GXB R-43)")
+    return status
+
+
+def record_plan_b_78b(noise_path: str | None, blinded_path: str | None, blinded_sha256: str | None,
+                      recorded_by: str, out: str) -> dict:
+    """record-plan-b-78b: PLAN_B_78B's record (rules_78b.PLAN_B_KEYS) from the pinned records only. The gate record at
+    GATE_78B's pin (its sources re-read: gate_noise_check); SR-2's status from the blinding record and the governing
+    simulation's reading (sr2_status: the blinding record as every block-A copy read it, GXB R-44; adopted only when
+    both pass; K-6's reason otherwise: the blinding test first); adopted: plan and sigma_A_pp from blinded_sigma.py's
+    output (given by path and SHA-256), whose inputs file must be the kit's at BLINDED_INPUTS (kit_inputs_check:
+    rebuilt from the block-A copies' parts, S-9, K2V-3); not adopted: the gate's provisional plan under [B], its
+    sigma_F_plan under [C], and both blinded hashes null."""
+    gate_data = pin_bytes(r78.GATE_78B, "GATE_78B", r78.GATE_EVENT)
+    try:
+        gate = r78.gate_record_or_refuse(gate_data)
+    except r78.Refused as exc:
+        fail(str(exc))
+    gate_noise_check(gate, noise_path)
+    status = sr2_status(gate)
+    adopted, reason = status["adopted"], status["reason"]
+    blinding, simulation = status["blinding"], status["simulation"]
+    record = {"kind": r78.PLAN_B_RECORD_KIND, "version": 1, "sr2_adopted": adopted, "sr2_reason": reason,
+              "utc": mac.utc(), "recorded_by": recorded_by}
+    if adopted:
+        if not (blinded_path and blinded_sha256):
+            fail("SR-2 is adopted: give blinded_sigma.py's output (--blinded-sigma FILE --sha256 H)")
+        doc, ref = output_doc(blinded_path, blinded_sha256, "blinded_sigma.py's output", "--blinded-sigma")
+        blinded_output_check(doc)
+        kit_inputs_check(gate, doc["inputs_sha256"])
+        again = blinded_sigma_read(BLINDED_INPUTS, doc["inputs_sha256"],
+                                   blinding_doc()["files"][BLINDED_SIGMA_SCRIPT])      # GXB R-50
+        if [(type(again.get(k)), again.get(k)) for k in ("sigma_A_pp", "df", "inputs_sha256")] != \
+                [(type(doc[k]), doc[k]) for k in ("sigma_A_pp", "df", "inputs_sha256")]:
+            fail("the given blinded_sigma.py output's sigma_A_pp or df is not the one blinded_sigma.read gives on the "
+                 "kit's inputs file (GXB R-50)")
+        record.update(plan=r78.plan_for_sigma(doc["sigma_A_pp"]), plan_basis=r78.PLAN_BASES["adopted"],
+                      sigma_A_pp=doc["sigma_A_pp"], blinded_sigma_output_sha256=ref["sha256"],
+                      blinded_sigma_inputs_sha256=doc["inputs_sha256"])
+    else:
+        if blinded_path:
+            fail(f"SR-2 is not adopted ({reason}): no blinded_sigma.py output is read (K-6)")
+        record.update(plan=gate["provisional_plan"] if gate["option"] == "B" else gate["sigma_F_plan"],
+                      plan_basis=r78.PLAN_BASES[gate["option"]], sigma_A_pp=None, blinded_sigma_output_sha256=None,
+                      blinded_sigma_inputs_sha256=None)
+    problem = r78.plan_b_record_problem(record, gate["option"])
+    if problem:
+        fail(f"block B's plan record would not be PLAN_B_78B's form: {problem}")
+    written = write_once(out, record)
+    got = {"recorded": "plan_b", **written, "plan": record["plan"], "sr2_adopted": adopted, "sr2_reason": reason,
+           "plan_basis": record["plan_basis"], "simulation": simulation, "blinding": blinding}
+    if adopted:                                          # GXB R-50: sigma_A and df only, as blinded_sigma.read gave them
+        got["blinded_sigma"] = {"sigma_A_pp": again["sigma_A_pp"], "df": again["df"]}
+    return got
+
+
+def record_branch_78b(record_path: str | None, record_sha256: str | None, default: bool, recorded_by: str,
+                      out: str) -> dict:
+    """record-branch-78b: the family's BRANCH_78B record (rules_78b.BRANCH_KEYS; K-8, R-21, K1V-5) from its W1-18 record
+    committed at .ai/inputs/stage1-post-w1-20261023/78b/w1-18/overrefusal_checks__<F>.json (GXB R-53), by path and
+    SHA-256: an over-refusal checks record (W1-18's kind, version 1) made under the family's W1-18 settings as
+    W1_18_78B pins them, over the family's W1-18 units, with a truncation verdict: pass -> Branch 128, fail -> Branch full (Part 2 §4.2). Or,
+    with --default, "Branch full by default" (no W1-18 record; DESO2 item 37), refused while the family's W1-18 record
+    file exists at its place. A branch is never switched: once BRANCH_78B is pinned, only the same record is accepted."""
+    family = family_or_fail()
+    if default == bool(record_path):
+        fail("record-branch-78b takes either --w1-18-record FILE --sha256 H or --default")
+    where = r78.W1_18_RECORD_DIR + r78.W1_18_RECORD_NAME.format(family=family)
+    if default:
+        if (ROOT / where).exists():
+            fail(f"{where} exists: the branch comes from that W1-18 record, not by default (DESO2 item 37)")
+        record = {"kind": r78.BRANCH_RECORD_KIND, "version": 1, "family": family, "branch": r78.BRANCH_DEFAULT,
+                  "source": "default", "w1_18_record_sha256": None, "utc": mac.utc(), "recorded_by": recorded_by}
+    else:
+        p = pathlib.Path(record_path)
+        try:
+            rel = p.resolve().relative_to(ROOT.resolve()).as_posix()
+        except ValueError:
+            fail(f"the W1-18 record lies outside this checkout; it is committed at {where} (GXB R-21)")
+        if rel != where:
+            fail(f"the W1-18 record is {rel}, not {family}'s committed record {where} (GXB R-21, R-33)")
+        doc, ref = output_doc(record_path, record_sha256, "the W1-18 record", "--w1-18-record")
+        if r78.W1_18_78B is None or r78.w1_18_route_problem(r78.W1_18_78B):
+            fail("W1_18_78B is null or off its form: the W1-18 record's settings cannot be checked")
+        settings = f"scripts/scale78b/settings/limits_overrefusal_checks__{family}.json"
+        want = r78.W1_18_78B["files"].get(settings)
+        check = doc.get("truncation_check") if isinstance(doc.get("truncation_check"), dict) else {}
+        units = doc.get("units")
+        if doc.get("kind") != W1_18_OUTPUT_KIND or doc.get("version") != 1 or type(check.get("pass")) is not bool or \
+                not isinstance(units, dict):
+            fail(f"the W1-18 record is not a complete {W1_18_OUTPUT_KIND!r} version 1 record with a truncation verdict")
+        if want is None or (doc.get("provenance") or {}).get("settings_sha256") != want:
+            fail(f"the W1-18 record was not made under {family}'s W1-18 settings as W1_18_78B pins them ({settings})")
+        if len(units) != len(r78.w1_18_units(family)):
+            fail(f"the W1-18 record holds {len(units)} units, not {family}'s {len(r78.w1_18_units(family))} (Part 2 §4.2)")
+        record = {"kind": r78.BRANCH_RECORD_KIND, "version": 1, "family": family,
+                  "branch": "128" if check["pass"] else "full", "source": "w1_18", "w1_18_record_sha256": ref["sha256"],
+                  "utc": mac.utc(), "recorded_by": recorded_by}
+    problem = r78.branch_record_problem(record, family)
+    if problem:
+        fail(f"the branch record would not be BRANCH_78B's form: {problem}")
+    if r78.BRANCH_78B[family] is not None:
+        try:
+            switch = r78.branch_switch_problem(family, record, branch_bytes(family))
+        except r78.Refused as exc:
+            fail(str(exc))
+        if switch:
+            fail(switch)
+    written = write_once(out, record)
+    return {"recorded": "branch", **written, "family": family, "branch": record["branch"], "source": record["source"]}
+
+
+ANCHOR_COUNTS_FILE = "anchors.counts.json"            # make_anchor_answers.py's exit-3 counts record (R: :167-169)
+
+
+def record_anchor_stop(host: str, message_file: str | None, out: str) -> dict:
+    """record-anchor-stop HOST [--message-file FILE] --out FILE (GXB O6, the fourth set's form; KR5): the family's
+    text-free stop record (rules_78b.anchor_stop_record) from this scorer-block copy's anchor job only: HOST is the
+    anchor's single-job host, recorded done; its JOB-DONE.json (at the SHA-256 record-done kept) names the job crashed
+    with the anchor step's exit code. Exit 3: the counts {kept, needed} from the job's anchors.counts.json in the pulled
+    tree (kept < 64, needed 64); exit 1: the step's last stderr line (--message-file, a file in the pulled tree) must be
+    the frozen script's harmful-pair AnchorJobError message. Any other exit or message is a crash (the kit's crash
+    rule), never a stop. Prints the record's path and SHA-256, its stop kind, exit code and counts only."""
+    family = family_or_fail()
+    plan = load()
+    h = plan["hosts"].get(host)
+    if h is None or h.get("block") != r78.SC_BLOCK or [j["kind"] for j in h["jobs"]] != ["anchor"] or not h.get("done"):
+        fail(f"{host} is not this copy's anchor host recorded done (record-done first)")
+    tree = HERE / "retrieved" / host / "tree"
+    path = tree / "JOB-DONE.json"
+    if not path.is_file() or mac.sha(path) != h.get("job_done_sha256"):
+        fail(f"{host}: its JOB-DONE.json is missing or is not the one record-done read")
+    done = json.loads(path.read_text())
+    rec = (done.get("jobs") or [None])[0]
+    if not isinstance(rec, dict) or rec.get("kind") != "anchor" or rec.get("status") != "crashed":
+        fail(f"{host}: the anchor job is not recorded crashed (a stop ends the job with a non-zero exit)")
+    exits = rec.get("exits") if isinstance(rec.get("exits"), dict) else {}
+    steps = [k for k in exits if k.endswith("-anchor")]
+    if len(steps) != 1:
+        fail(f"{host}: JOB-DONE.json names no single anchor step exit (the runner's '<tag>-anchor' step)")
+    code = exits[steps[0]]
+    message, counts = None, None
+    if code == r78.ANCHOR_EXIT_ERROR:
+        if not message_file:
+            fail("an exit-1 end is a stop only with the harmful-pair message: give the step's stderr (--message-file)")
+        m = pathlib.Path(message_file)
+        try:
+            m.resolve().relative_to(tree.resolve())
+        except ValueError:
+            fail("--message-file: the step's stderr is a file of the pulled tree")
+        lines = [x for x in m.read_text(errors="replace").splitlines() if x.strip()] if m.is_file() else []
+        message = lines[-1] if lines else None
+    elif code == r78.ANCHOR_EXIT_FEW:
+        found = sorted(tree.glob(f"job-0/**/{ANCHOR_COUNTS_FILE}"))
+        if len(found) != 1:
+            fail(f"{host}: an exit-3 stop needs the job's one {ANCHOR_COUNTS_FILE} in the pulled tree")
+        try:
+            got = json.loads(found[0].read_text())
+        except ValueError:
+            fail(f"{host}: {ANCHOR_COUNTS_FILE} is not JSON")
+        counts = {k: got.get(k) for k in ("kept", "needed")} if isinstance(got, dict) else None
+    try:
+        stop = r78.anchor_stop_record(family, code, message, h["job_done_sha256"], counts)
+    except r78.Refused as exc:
+        fail(str(exc))
+    written = write_once(out, stop)
+    return {"recorded": "anchor_stop", **written, "family": family, "stop_kind": stop["stop_kind"],
+            "exit_code": stop["exit_code"], "counts": stop["counts"]}
+
+
+def block_a_cells(plan: dict) -> tuple[dict, str | None]:
+    """K2V-2: (arm, seed) -> (host, the job) of the one complete, pulled job of each run of block A's deal, wherever it
+    ran (a deferral or requeue takes a job to another host); a job that is not complete counts only when a move took it
+    along (carried, as block_complete reads moved hosts). GXB R-51: a complete attempt that the kit's own requeue
+    --rerun-mismatched replaced (named by its requeue record, from that host) is skipped; its re-run's unit is the
+    cell's. The problem, or None: a job not complete and not carried, a complete job not pulled or without its unit,
+    two complete units for one run that no kit record explains, or a run with none."""
+    b = plan["blocks"].get("A") or {}
+    want = {tuple(r) for pod in b.get("deal") or [] for r in pod}
+    moved, cells = moved_hosts(plan), {}
+    replaced = {(r["from"], d) for r in plan.get("requeues") or [] if r.get("reason") == "environment-mismatch"
+                for d in r.get("complete_sha256") or []}           # GXB R-51: the kit's requeue --rerun-mismatched
+    # (by host: a requeue record names the attempts of its own ``from`` host only)
+    for name, h in sorted(plan["hosts"].items()):
+        if h.get("block") != "A":
+            continue
+        for i, j in enumerate(h["jobs"]):
+            key = (j.get("arm"), j.get("seed"))
+            if j.get("status") == "complete" and (name, j.get("complete_sha256")) in replaced:
+                continue                                 # the replaced attempt: its re-run's unit counts, or none
+            if j.get("status") == "complete":
+                if j.get("pulled") is False or not j.get("unit") or not SHA_RE.fullmatch(str(j.get("complete_sha256"))):
+                    return {}, f"{name}:{i}: a block-A job is complete but not pulled with its unit"
+                if key in cells:
+                    return {}, f"{key[0]} at {key[1]}: two complete units ({cells[key][0]}, {name}); the lead decides"
+                cells[key] = (name, j)
+            elif not (name in moved and carried(plan, name, j)):
+                return {}, f"{name}:{i} ({key[0]} at {key[1]}) is not complete"
+    if set(cells) != want:
+        return {}, f"{len(want - set(cells))} block-A run(s) have no complete unit"
+    return cells, None
+
+
+def blinded_inputs_part(plan: dict, family: str, copy: pathlib.Path | None = None) -> dict:
+    """S-9 (GXB second set): this family's entry of blinded_sigma.py's inputs file, from block A's plan.json (in
+    ``copy``, this working copy by default) and the kit's pins only (never typed, never a value read): the design
+    ("full", or "anchor_stopped" with the stop record's pin, S-6); the engine of each role (R-13): the reused a0 and N's
+    R units' as N's noise reading took them (its output at the gate's pin), block A's the packed engine's; the method
+    edits by SHA-256 (rules_78b.METHOD_EDITS, equal to the jobs' bound edits); the cells: R 1101-1103 N's (N_UNITS),
+    R 1104-1105 and every block-A cell its completed unit wherever it ran (block_a_cells, K2V-2), a0 1101-1103 the side
+    units (KIT a0_units) or N's a0-1103 (Llama), a0 1104 block A's. Paths are relative to the repository."""
+    copy = copy or HERE
+    b = plan["blocks"]["A"]
+    stopped = b.get("anchor_stop") is not None
+    noise = b["gate"]["noise_reading"]
+    doc, _ = output_doc(noise["path"], noise["sha256"], "N's noise reading output", "the gate's noise reading")
+    engines = (doc.get("families") or {}).get(family, {}).get("engine") or {}
+    found, problem = block_a_cells(plan)
+    if problem:
+        fail(f"blinded_sigma reads every block-A cell: {problem}")
+    block_engines = {plan["hosts"][name]["engine_sha256"] for name, _ in found.values()}
+    if set(engines) != {"a0", "R"} or not all(SHA_RE.fullmatch(str(v)) for v in engines.values()) or \
+            len(block_engines) != 1:
+        fail("blinded_sigma's engines: N's reading names no a0 and R identity, or block A ran on two engines")
+    cells: dict = {}
+    edits: dict = {}
+    for (arm, seed), (name, j) in sorted(found.items()):
+        unit = (copy / "retrieved" / name / "tree" / j["unit"]).relative_to(ROOT).as_posix()
+        entry = {"path": unit, "complete_sha256": j["complete_sha256"]}
+        if j["arm"] == "R":
+            entry["arm"] = (j.get("edit") or {}).get("engine_arm") or f"edit-{j['edit']['sha256']}"
+        elif j["arm"] != "a0":
+            pin = r78.METHOD_EDITS[family][j["arm"]]
+            if not pin or (j.get("edit") or {}).get("sha256") != pin["sha256"]:
+                fail(f"{name}: {j['arm']}'s bound edit is not METHOD_EDITS' pin")
+            edits[j["arm"]] = pin["sha256"]
+        cells.setdefault(j["arm"], {})[str(j["seed"])] = entry
+    try:
+        n_units = {f"{a}-{s}": r78.n_unit_or_refuse(family, a, s) for a, s in r78.block0_runs(family)}
+    except r78.Refused as exc:
+        fail(str(exc))
+    for key, u in n_units.items():
+        arm, seed = key.split("-")
+        entry = {"path": u["path"], "complete_sha256": u["complete_sha256"]}
+        if arm == "R":
+            entry["arm"] = f"edit-{u['edit_sha256']}"
+        cells.setdefault(arm, {})[seed] = entry
+    for seed, u in sorted((s, u) for s, u in r78.KIT[family]["a0_units"].items() if s != "untuned"):
+        cells.setdefault("a0", {})[str(seed)] = {"path": u["path"], "complete_sha256": u["complete_sha256"]}
+    entry = {"design": "anchor_stopped" if stopped else "full",
+             "engine": {"a0": engines["a0"], "R": engines["R"], "block_a": block_engines.pop()},
+             "edits": dict(sorted(edits.items())), "cells": {a: dict(sorted(v.items())) for a, v in sorted(cells.items())}}
+    if stopped:
+        entry["anchor_stop"] = {"path": b["anchor_stop"]["path"], "sha256": b["anchor_stop"]["sha256"]}
+    return {"kind": BLINDED_PART_KIND, "version": 1, "family": family, "option": b["gate"]["option"],
+            "gate_sha256": b["gate"]["sha256"], "entry": entry}
+
+
+def write_blinded_part_command() -> dict:
+    """write-blinded-part: block A's part again (when record-done found a pin it waits for, such as N_UNITS)."""
+    plan = load()
+    if rules.KIT_BLOCK != "A" or not block_a_arms_done(plan):
+        fail("write-blinded-part runs in block A's copy once every block-A arm job is complete and pulled")
+    return {"blinded_inputs_part": write_blinded_part(plan)}
+
+
+def block_a_arms_done(plan: dict) -> bool:
+    """Every hosts launch of this copy's block A released and every run of its deal complete and pulled wherever it
+    ran (block_a_cells; K2V-2; the judge launches may still be open): blinded_sigma reads every block-A cell."""
+    b = plan["blocks"].get("A")
+    if not b or b.get("pending"):
+        return False
+    released_hosts = {n for x in b["launches"][:b["released"]] for n in x.get("hosts", [])}
+    planned_hosts = {n for x in b["launches"] for n in x.get("hosts", [])}
+    return released_hosts == planned_hosts and block_a_cells(plan)[1] is None
+
+
+def part_path(family: str) -> pathlib.Path:
+    """K2V-3: the one place a family's part lives: its block-A copy's blinded/ folder (KD7)."""
+    return ROOT / "tmp" / f"{r78.WORKING_COPY_PREFIX}{family}-A" / BLINDED_PART.format(family=family)
+
+
+def replaced_attempts(plan: dict) -> set:
+    """GXB R-51: the complete attempts the kit's own requeue --rerun-mismatched replaced (its requeue records)."""
+    return {d for r in plan.get("requeues") or [] if r.get("reason") == "environment-mismatch"
+            for d in r.get("complete_sha256") or []}
+
+
+def part_superseded(old: bytes, new: dict, plan: dict) -> bool:
+    """GXB R-51: the written part differs from the one plan.json gives now only in cells whose written attempt a kit
+    requeue record replaced (the same cells, design, engines, edits and gate)."""
+    try:
+        was = json.loads(old)
+    except ValueError:
+        return False
+
+    def rest(doc: dict, key: str) -> dict:
+        return {k: v for k, v in doc.items() if k != key}
+
+    if not isinstance(was, dict) or set(was) != set(new) or not isinstance(was.get("entry"), dict) or \
+            rest(was, "entry") != rest(new, "entry") or rest(was["entry"], "cells") != rest(new["entry"], "cells"):
+        return False
+    cells_was, cells_new, replaced = was["entry"].get("cells"), new["entry"]["cells"], replaced_attempts(plan)
+    if not isinstance(cells_was, dict) or {a: sorted(v) for a, v in cells_was.items() if isinstance(v, dict)} != \
+            {a: sorted(v) for a, v in cells_new.items()}:
+        return False
+    changed = [(a, s) for a, v in cells_new.items() for s in v if cells_was[a][s] != v[s]]
+    return bool(changed) and all(isinstance(cells_was[a][s], dict) and cells_was[a][s].get("complete_sha256") in replaced
+                                 for a, s in changed)
+
+
+def write_blinded_part(plan: dict) -> dict:
+    """S-9: once block A's arm jobs are all complete in this copy, its part of blinded_sigma.py's inputs file is
+    written once at part_path (blinded/blinded-sigma-inputs-part__<F>.json); a second record-done finds the same bytes.
+    GXB R-51: a part written before the kit's own requeue --rerun-mismatched is replaced once the re-runs complete,
+    only when every changed cell's written attempt is one a kit requeue record replaced and before the merged inputs
+    file exists; any other difference refuses (the lead decides)."""
+    family = family_or_fail()
+    doc = blinded_inputs_part(plan, family)
+    data = rules.canonical_bytes(doc)
+    p = HERE / BLINDED_PART.format(family=family)
+    if p.exists():
+        old = p.read_bytes()
+        if old != data:
+            if not part_superseded(old, doc, plan):
+                fail(f"{p.relative_to(HERE)} exists with other bytes: the part is written once; the lead decides")
+            if BLINDED_INPUTS.exists():
+                fail(f"{p.relative_to(HERE)} is superseded by a kit re-run but the merged inputs file exists; the lead "
+                     "decides (GXB R-51)")
+            new = p.with_name(p.name + ".new")
+            with open(new, "xb") as handle:
+                handle.write(data)
+            os.replace(new, p)
+    else:
+        p.parent.mkdir(exist_ok=True)
+        with open(p, "xb") as handle:
+            handle.write(data)
+    return {"path": p.relative_to(ROOT).as_posix(), "sha256": hashlib.sha256(data).hexdigest()}
+
+
+def kit_part(family: str, gate_sha256: str) -> dict:
+    """K2V-3: the family's part as the kit wrote it, re-derived: its block-A copy's plan.json (read only) gives the part
+    again (blinded_inputs_part), which must equal the file at part_path byte for byte and be of the pinned gate."""
+    plan_a, copy = sibling_plan(family, "A")
+    if "A" not in (plan_a.get("blocks") or {}):
+        fail(f"block A is not planned in tmp/{copy.name}/")
+    doc = blinded_inputs_part(plan_a, family, copy)
+    p = part_path(family)
+    if not p.is_file() or p.read_bytes() != rules.canonical_bytes(doc):
+        fail(f"{family}'s blinded_sigma part is missing at its place or is not the one its block-A copy's plan.json "
+             "gives (record-done writes it; S-9, K2V-3)")
+    if doc["gate_sha256"] != gate_sha256:
+        fail(f"{family}'s block A was planned under another gate record than the pinned one")
+    return doc
+
+
+def kit_inputs(gate: dict) -> bytes:
+    """K2V-3: blinded_sigma.py's inputs file the kit writes for this gate, rebuilt in memory: every gate family's kit
+    part (kit_part), each path rebased to BLINDED_INPUTS's folder."""
+    families = {}
+    for f in sorted(gate["families"]):
+        entry = json.loads(json.dumps(kit_part(f, r78.GATE_78B["sha256"])["entry"]))
+        refs = [c for by_seed in entry["cells"].values() for c in by_seed.values()]
+        refs += [entry["anchor_stop"]] if "anchor_stop" in entry else []
+        for ref in refs:
+            ref["path"] = os.path.relpath(ROOT / ref["path"], BLINDED_INPUTS.parent)
+        families[f] = entry
+    return rules.canonical_bytes({"kind": BLINDED_INPUTS_KIND, "version": 1, "option": gate["option"],
+                                  "families": families})
+
+
+def kit_inputs_check(gate: dict, inputs_sha256: str) -> None:
+    """K2V-3: the inputs file at BLINDED_INPUTS is the kit's (kit_inputs, byte for byte) and hashes to ``inputs_sha256``
+    (blinded_sigma.py's output's, or the plan record's)."""
+    data = BLINDED_INPUTS.read_bytes() if BLINDED_INPUTS.is_file() else None
+    if data is None or data != kit_inputs(gate) or hashlib.sha256(data).hexdigest() != inputs_sha256:
+        fail("blinded_sigma.py's inputs file is not the one the kit writes from the block-A copies' parts at "
+             f"{BLINDED_INPUTS.relative_to(ROOT)} (write-blinded-inputs; S-9, K2V-3)")
+
+
+def write_blinded_inputs() -> dict:
+    """write-blinded-inputs (S-9): blinded_sigma.py's inputs file {kind, version, option, families} (its INPUTS_KIND
+    form) at its one place BLINDED_INPUTS, from the parts each gate family's block-A record-done wrote (kit_part:
+    re-derived from that copy's plan.json and compared byte for byte), paths rebased. Written once (the same bytes
+    again pass). Prints its path and SHA-256 and the number of files it names per family only."""
+    gate_data = pin_bytes(r78.GATE_78B, "GATE_78B", r78.GATE_EVENT)
+    try:
+        gate = r78.gate_record_or_refuse(gate_data)
+    except r78.Refused as exc:
+        fail(str(exc))
+    data = kit_inputs(gate)
+    if BLINDED_INPUTS.exists():
+        if BLINDED_INPUTS.read_bytes() != data:
+            fail(f"{BLINDED_INPUTS.relative_to(ROOT)} exists with other bytes; the lead decides")
+    else:
+        BLINDED_INPUTS.parent.mkdir(parents=True, exist_ok=True)
+        with open(BLINDED_INPUTS, "xb") as handle:
+            handle.write(data)
+    doc = json.loads(data)
+    counts = {f: sum(len(v) for v in e["cells"].values()) + ("anchor_stop" in e) for f, e in doc["families"].items()}
+    return {"written": "blinded_sigma_inputs", "path": BLINDED_INPUTS.relative_to(ROOT).as_posix(),
+            "sha256": hashlib.sha256(data).hexdigest(), "option": gate["option"], "files_named": counts}
+
+
+def c0_release_check(name: str, job: dict, values: dict) -> None:
+    """DESO2 K6v-4 (Part 2 §15 item 12): at release, the packed c0 source unit (the member of the packed engine-X bundle
+    that sealed-files.json names for source_complete:R:1101, the bundle re-hashed at its receipt) must hash to the job's
+    input pin and list checkpoints.e1.adapter_fingerprint equal to C0_SOURCE[family]["e1_fingerprint"] now: an edit of
+    the pin after the pack refuses on the Mac, before the pod starts. Only that field is read; names only refused."""
+    rec = engine_receipt("X")
+    bundle = rec.get("bundle") if isinstance(rec.get("bundle"), dict) else {}
+    p = pathlib.Path(str(bundle.get("path")))
+    if not p.is_file() or mac.sha(p) != bundle.get("sha256"):
+        fail(f"{name}: the packed engine-X bundle is missing or is not its receipt's")
+    doc, _ = packed_sealed("X")
+    rel = (doc.get("inputs") or {}).get(C0_INPUT)
+    try:
+        with tarfile.open(p) as archive:
+            member = archive.extractfile(rel) if rel else None
+            data = member.read() if member is not None else None
+    except (KeyError, tarfile.TarError):
+        data = None
+    if data is None or hashlib.sha256(data).hexdigest() != job["inputs"].get(C0_INPUT):
+        fail(f"{name}: c0's packed source unit ({C0_INPUT}) is missing from the bundle or differs from the job's pin")
+    try:
+        unit = json.loads(data)
+    except ValueError:
+        unit = None
+    points = unit.get("checkpoints") if isinstance(unit, dict) and isinstance(unit.get("checkpoints"), dict) else {}
+    got = (points.get("e1") or {}).get("adapter_fingerprint") if isinstance(points.get("e1"), dict) else None
+    if not SHA_RE.fullmatch(str(got)) or got != (values.get("C0_SOURCE") or {}).get("e1_fingerprint"):
+        fail(f"{name}: c0's packed source unit's e1 adapter fingerprint is not C0_SOURCE's e1_fingerprint now (an edit "
+             "of the pin after the pack, K6v-4); refused before the pod starts")
+
+
+C0_INPUT = "source_complete:R:1101"
 
 
 # ----- records (G1, G3, G4, Q16, Q17, K = 12, sealed edits) --------------------------------------------------------
@@ -3800,56 +4942,6 @@ def _evidence(host: str, items) -> list:
         if ".." in pathlib.PurePath(str(e.get("path"))).parts or not p.is_file() or mac.sha(p) != e.get("sha256"):
             fail(f"{host}: an evidence file is missing from the pulled tree or differs from the record")
     return items
-
-
-def record_branch(path: str, sha256: str) -> dict:
-    plan = load()
-    doc, ref = file_record(path, sha256)
-    old = records(plan).get("branch")
-    if old is not None and bank500_planned(plan):
-        fail("the cap branch never changes once a 500-bank job is planned (REV4 §6.3)")
-    if doc.get("kind") == RECORD_KINDS["default_full"]:
-        _need(doc, ("reason", "utc", "recorded_by"), "a 'Branch full by default' record")
-        if doc.get("branch", "full") != "full":
-            fail("a default record is Branch full")
-        if old is not None and old.get("source") == "w1_18":
-            fail("W1-18's branch record exists: Branch full by default applies only if W1-18 cannot run or fails")
-        s10 = [h for h in plan["hosts"].values() if h["block"] == "S1-0"]
-        s10 += [h for h in ((plan["blocks"].get("S1-0") or {}).get("pending") or {}).values()]
-        if any(not h.get("done") for h in s10):
-            fail("W1-18 is planned or running: Branch full by default waits for its pod (record-done first)")
-        if any(j["kind"] == "w1_18" and j.get("status") == "complete" for h in s10 for j in h["jobs"]):
-            fail("W1-18 completed: record its branch from its output (pass -> 128, fail -> full)")
-        new = {"branch": "full", "source": "default", **ref, "reason": doc["reason"]}
-    elif doc.get("kind") == RECORD_KINDS["branch"]:
-        _need(doc, ("branch", "host", "output_path", "output_sha256", "focus_commit", "utc", "recorded_by"),
-              "a W1-18 branch record")
-        if doc["branch"] not in rules.BRANCHES:
-            fail("the branch is 'full' or '128'")
-        job = _host_job(plan, doc["host"], "w1_18", "S1-0")
-        out = HERE / "retrieved" / doc["host"] / "tree" / doc["output_path"]
-        if ".." in pathlib.PurePath(doc["output_path"]).parts or not out.is_file():
-            fail(f"{doc['host']}: W1-18's output is not in the pulled tree")
-        if mac.sha(out) != doc["output_sha256"] or (job.get("outputs") or {}).get(doc["output_path"]) != doc["output_sha256"]:
-            fail("the branch record's output SHA-256 differs from the pulled W1-18 output")
-        result = json.loads(out.read_text())
-        check = result.get("truncation_check") if isinstance(result, dict) else None
-        if result.get("kind") != W1_18_OUTPUT_KIND or not isinstance(check, dict) or check.get("units") != 11 or \
-                type(check.get("pass")) is not bool:
-            fail("the pulled W1-18 output is not a complete over-refusal checks record")
-        if (doc["branch"] == "128") != check["pass"]:
-            fail("the branch must follow W1-18's bar (pass -> 128; fail -> full)")
-        new = {"branch": doc["branch"], "source": "w1_18", **ref, "host": doc["host"],
-               "output_sha256": doc["output_sha256"], "focus_commit": doc["focus_commit"]}
-    else:
-        fail("not a W1-18 branch record or a 'Branch full by default' record")
-    if old is not None:
-        records(plan)["branch_history"].append(old)
-    records(plan)["branch"] = {**new, "utc": mac.utc()}
-    mac.save_plan(plan)
-    mac.operator_action({"action": "record-branch", "branch": new["branch"], "source": new["source"],
-                         "sha256": ref["sha256"]})
-    return {"branch": new["branch"], "source": new["source"]}
 
 
 def record_simple(name: str, path: str, sha256: str) -> dict:
@@ -4351,6 +5443,12 @@ def requeue_user_paid(plan: dict, host: str, h: dict, payment: dict, idx: list[i
 # ----- after a host: record-done, defer, requeue -----------------------------------------------------------------
 
 
+# K2V-11: the reason codes the job runner writes in a job's record (setup/job_runner_stage1.py REFUSAL_REASONS,
+# DEFER_REASONS and LS04; a test holds them equal); record-done copies a reason into plan.json only when it is one.
+RUNNER_REASONS = ("preflight", "free_space", "recipe_pin", "key", "s_obs_record", "kind", "rule", "remaining", "s_obs",
+                  "LS-04")
+
+
 def record_done(host: str) -> dict:
     plan = mac.load_plan()
     h = plan["hosts"].get(host) or fail(f"{host} is not a host of plan.json")
@@ -4417,6 +5515,8 @@ def record_done(host: str) -> dict:
         if h.get("block") == r78.SC_BLOCK and r["status"] == "complete":   # K4b: hashes and counts only
             scorer_record = sc_done_summary(host, i, job, r)
             sc_outputs.append(scorer_record)
+        if r.get("reason") is not None and r.get("reason") not in RUNNER_REASONS:   # K2V-11: codes only, never text
+            fail(f"{host}: job {i}'s reason is not one of the job runner's reason codes")
         job.update(status=r["status"], unit=r.get("unit"), complete_sha256=r.get("complete_sha256"),
                    outputs=outputs or None, reason=r.get("reason"))
         if scorer_record is not None:                    # the pins' sources (the core verifier's D5): hashes only
@@ -4434,6 +5534,12 @@ def record_done(host: str) -> dict:
             job["states_on_pod"] = states
     h["done"], h["job_done_sha256"] = True, mac.sha(path)
     mac.save_plan(plan)
+    part = None
+    if h.get("block") == "A" and block_a_arms_done(plan):   # R2 K2 (S-9): blinded_sigma's inputs part, once
+        try:
+            part = write_blinded_part(plan)
+        except SystemExit as exc:                        # names, pins and hashes only (blinded_inputs_part's refusals)
+            part = {"waits": str(exc)}
     not_pulled = sorted(decided)
     mac.operator_action({"action": "record-done", "host": host, "statuses": [j["status"] for j in h["jobs"]],
                          **({"not_pulled": not_pulled} if not_pulled else {})})
@@ -4444,6 +5550,8 @@ def record_done(host: str) -> dict:
         out["scorer_block"] = sc_outputs
     if plant_units:                                      # kit round 35: the pilot reader's inputs, by path and SHA-256
         out["plant_units"] = plant_units
+    if part is not None:                                 # R2 K2 (item 8): a path and a SHA-256, or what it waits for
+        out["blinded_inputs_part"] = part
     return {**out, "not_pulled": not_pulled} if not_pulled else out
 
 
@@ -4738,7 +5846,7 @@ def defer(host: str) -> dict:
         fail(f"{host}: record-done first")
     if any(d["from"] == host for d in plan["deferrals"]):
         fail(f"{host} was already deferred")
-    decided = not_run_decided(plan, h["block"]) if h["block"] != "A" else {}   # round 32 (K2): they stay where they are
+    decided = not_run_decided(plan, h["block"]) if h["block"] != LEGACY_A else {}   # round 32 (K2): they stay where they are
     moving_idx = [i for i, j in enumerate(h["jobs"]) if j["status"] in ("crashed", "deferred", "not_started")
                   and (host, i) not in decided]
     if not moving_idx:
@@ -4758,7 +5866,7 @@ def move_open(plan: dict, host: str, h: dict, moving_idx: list[int], action: str
     ``payment``: the user's recorded re-run payment (requeue_user_paid): every moved job is paid by it, as one unit,
     beyond the contingency (pay_user), never from the contingency."""
     jobs = h["jobs"]
-    if h["block"] != "A" and any((host, i) in not_run_decided(plan, h["block"]) for i in moving_idx):
+    if h["block"] != LEGACY_A and any((host, i) in not_run_decided(plan, h["block"]) for i in moving_idx):
         fail(f"{host}: a job named by a not-run decision never moves (round 32, K2: the lead decided it does not run)")
     first_deferred = next((i for i in moving_idx if jobs[i]["status"] == "deferred"), None)
     stranded = None
@@ -5007,6 +6115,10 @@ def requeue_mismatched(plan: dict, host: str, h: dict, rerun: list[str]) -> dict
     return {"from": host, "to": dest, "jobs": len(kept), "not_rerun": entry["not_rerun"]}
 
 
+BLOCK_A_1B_COMMANDS = ("write-block-a-plan", "block-a-need", "record-block-a-plan", "record-block-a-replan",
+                       "record-block-a-not-run")
+
+
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(prog="plan_tool.py")
     sub = ap.add_subparsers(dest="command", required=True)
@@ -5016,10 +6128,39 @@ def main(argv: list[str]) -> int:
     p.add_argument("--funding")
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--group-jobs", action="append", metavar="PART=FILE")   # round 32 (K4): block B's whole group
+    p.add_argument("--noise-reading", metavar="OUT")    # R2 K2: blocks A and B re-read N's output (GXB R-30)
+    p.add_argument("--blinded-sigma", metavar="OUT")    # R2 K2: block B re-reads blinded_sigma.py's output
+    p.add_argument("--anchor-job-done", metavar="FILE")   # R2 K2 (KR4): a stopped family's anchor JOB-DONE.json
     sub.add_parser("release").add_argument("block")
     d = sub.add_parser("deal")
     d.add_argument("block")
     d.add_argument("--reuse", nargs=2, action="append", type=lambda v: int(v) if v.isdigit() else v)
+    d.add_argument("--anchor-job-done", metavar="FILE")
+    g = sub.add_parser("record-gate-78b")                 # R2 K2: the record steps (module section "R2 K2")
+    g.add_argument("file")
+    g.add_argument("--sha256", required=True)
+    g.add_argument("--option", required=True)
+    g.add_argument("--balance-usd", required=True)
+    g.add_argument("--recorded-by", required=True)
+    g.add_argument("--out", required=True)
+    pb = sub.add_parser("record-plan-b-78b")
+    pb.add_argument("--noise-reading", required=True)
+    pb.add_argument("--blinded-sigma")
+    pb.add_argument("--sha256")
+    pb.add_argument("--recorded-by", required=True)
+    pb.add_argument("--out", required=True)
+    sub.add_parser("write-blinded-inputs")
+    sub.add_parser("write-blinded-part")
+    br = sub.add_parser("record-branch-78b")
+    br.add_argument("--w1-18-record")
+    br.add_argument("--sha256")
+    br.add_argument("--default", action="store_true")
+    br.add_argument("--recorded-by", required=True)
+    br.add_argument("--out", required=True)
+    st = sub.add_parser("record-anchor-stop")
+    st.add_argument("host")
+    st.add_argument("--message-file")
+    st.add_argument("--out", required=True)
     for name in ("record-done", "defer", "confirm-stopped"):
         sub.add_parser(name).add_argument("host")
     q = sub.add_parser("requeue")
@@ -5040,7 +6181,7 @@ def main(argv: list[str]) -> int:
     wt = sub.add_parser("write-thresholds")
     wt.add_argument("--out", required=True)
     wt.add_argument("--recorded-by", required=True)
-    for name in ("record-branch", "import-reference", "c2-label", "record-block-a-plan", "record-block-a-replan",
+    for name in ("import-reference", "c2-label", "record-block-a-plan", "record-block-a-replan",
                  "record-block-a-not-run", "record-unpulled", "record-rerun-payment", "record-judge-not-run",
                  "record-not-run", *simple):
         r = sub.add_parser(name)
@@ -5051,6 +6192,9 @@ def main(argv: list[str]) -> int:
     rj.add_argument("file")
     rj.add_argument("--sha256", required=True)
     a = ap.parse_args(argv)
+    if a.command in BLOCK_A_1B_COMMANDS:                 # K2V-10: the 1B block-A plan route is not this copy's
+        fail(f"{a.command} is the stage-1 (1B) block-A plan route: at 7-8B block A is planned by init-block A (its "
+             "lean route; GXB B-2); it belongs to runkit/stage1-olmo/")
     if a.command in simple and simple[a.command] not in ("guard_off", "sealed"):   # K1: this copy's records
         fail(f"{a.command} is a stage-1 (1B) record: this copy records the user's guard-off decision (record-guard-off) "
              "and sealed edit records (record-sealed) only; the rest belong to runkit/stage1-olmo/")
@@ -5058,10 +6202,19 @@ def main(argv: list[str]) -> int:
         out = record_simple(simple[a.command], a.file, a.sha256)
     else:
         out = {"init-block": lambda: init_block(a), "release": lambda: release(a.block),
-               "deal": lambda: deal_command(a.block, a.reuse), "record-done": lambda: record_done(a.host),
+               "deal": lambda: deal_command(a.block, a.reuse, a.anchor_job_done),
+               "record-done": lambda: record_done(a.host),
+               "record-gate-78b": lambda: record_gate_78b(a.file, a.sha256, a.option, a.balance_usd, a.recorded_by,
+                                                          a.out),
+               "record-plan-b-78b": lambda: record_plan_b_78b(a.noise_reading, a.blinded_sigma, a.sha256, a.recorded_by,
+                                                              a.out),
+               "write-blinded-inputs": lambda: write_blinded_inputs(),
+               "write-blinded-part": lambda: write_blinded_part_command(),
+               "record-branch-78b": lambda: record_branch_78b(a.w1_18_record, a.sha256, a.default, a.recorded_by,
+                                                              a.out),
+               "record-anchor-stop": lambda: record_anchor_stop(a.host, a.message_file, a.out),
                "defer": lambda: defer(a.host), "requeue": lambda: requeue(a.host, a.rerun_mismatched),
                "confirm-stopped": lambda: confirm_stopped(a.host),
-               "record-branch": lambda: record_branch(a.file, a.sha256),
                "import-reference": lambda: import_reference(a.file, a.sha256),
                "write-thresholds": lambda: write_thresholds(a.out, a.recorded_by),
                "c2-label": lambda: c2_label(a.file, a.sha256),

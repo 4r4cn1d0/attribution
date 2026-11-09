@@ -298,3 +298,91 @@ K1 merges with round 1 as it stands. These are K2's acceptance items:
 - **R-33 (KR2-4, KR2-5).** RK's index and W1-18 record checks take exactly the standard names and folders; a W1-18
   record's SHA-256 must equal the branch record's `w1_18_record_sha256`; `plan_for_sigma` refuses (not raises) on a σ
   that is not a finite float.
+
+## Fourteenth set (recorded 2026-11-08T22:40 UTC): from Track R's verifier (`r2-r-verify.md`)
+
+- **R-34. θ0 and the O limit (P4).** θ0's O over the 500-prompt set comes from a fresh `o_only` pass that runs the
+  untuned model under MAIN_F with the adapter disabled and reads no unit (P2 §1.14; P1 §14 item 3; M: Track R's
+  verifier, a fixture through Track O's wrapper). So O(arm) and O(θ0) share MAIN_F's generation and guard on both
+  families, and Llama's stored θ0 unit (recipe `c5462c77…`, LR 1e-4) is not on the O path. It is used only by W1-18
+  (accepted under T-O4) and by B10's `check --untuned` and `compare --against untuned`, which no planned 7-8B run needs
+  (P2 §3.1 counts no λ = 0 run). Ruled option (a), $0: the wrapper refuses those two commands at 7-8B by name; the
+  scaling curve's λ = 0 end is θ0's own measurement from the `o_only` pass; stated as a limit.
+- **R-35. Which a0 unit each reference seed's certification pins (P2).** The a0 unit trained at that seed under
+  MAIN_F, with its own e1 evaluation: 1102 the reused side unit; 1103 the reused side unit on OLMo-2-7B and N's
+  a0-1103 on Llama-3.1-8B (ruling 8); 1104 block A's a0; 1105-1107 block B's a0. GXB O2's "block-B a0 unit" is read
+  as this table. One B10 settings file per seed (P1, forced by the frozen code) is accepted.
+- **R-36. Seed 1101's fingerprints.** The maker takes full 64-hex values, filled by a recorded lead step from the unit's
+  own records; the step's evidence includes that each value's first 16 hex equal P1 §2.1's prefix.
+- **R-37. Safe LoRA's points (P3, RV-1).** Only `default` (K = 78) and `certify` run at 7-8B (P2 §3.2). The unchanged
+  B11 validator needs an integer K for `conditional`, so its settings value is 0 (it maps nothing), and the wrapper
+  refuses `conditional` by name; the kit plans neither `conditional` nor `k12` (sent to K2).
+- **R-38. 1B prose in 7-8B records (RV-3).** A record may not state a false parameter. `safe_lora.py` writes its 1B K
+  ("K = 39") into every V/V' record, so Track R takes the copy route for `safe_lora.py` (T-O1's precedent: a
+  parity-tested copy with listed substitutions, the K text from the settings). `eval_adapter.py` stays unchanged (its
+  self-hash certifies the 1B code that runs); its 1B terms ("Gate A", the θ0 role text) are named in the wrapper's own
+  record beside each output, which says what each term means at 7-8B, and stated as a limit.
+- **R-39.** `experiments/safety_selection/tests/test_ss_family_codec.py`'s config count takes +1 for Llama's new
+  recipe-G config, in the same change (KD8). The file is outside engine X's identity (M: the verifier re-computed
+  `472fc7f6…` with the new config); Track R may make that one-line change.
+
+## Fifteenth set (recorded 2026-11-08T23:11 UTC): Track R's fix round
+
+- **R-38 amended (no copy of `safe_lora.py`).** R-38's premise was wrong: the three "K = 39" texts in `safe_lora.py` are
+  docstrings that reach no output; every text in its V/V' records comes from the settings (`:817-820`, `:673`,
+  `:746-749`; M: Track R's marker test through the wrapper, records free of "K = 39", "39 of 112" and "Gate A"). So
+  `safe_lora.py` runs unchanged through the wrapper, and the maker writes the 7-8B texts (K = 78 of 224, the certify
+  and conditional status texts). The rest of R-38 (the wrapper's terms record beside each B10 output) stands; K3
+  brings that record back with the outputs and lists it in the retrieval.
+- **R-40.** The scale points (λ 0.9, 0.75, 0.5) are the same under F1's 3-seed fallback, which changes the seeds only.
+
+## Sixteenth set (recorded 2026-11-08T23:32 UTC): from Track R's re-verifier (`r2-r-reverify.md`)
+
+- **R-40 withdrawn.** It contradicts Part 2 §3.1-§3.2 (from DES F1 and SCOUT §2.1): the 3-seed fallback's grid is
+  {1, 0.75, 0.5, 0}, so its planned scale points are 0.75 and 0.5, and λ 0.9 runs only under the 6-seed set. Track R's
+  build follows Part 2. To match, the fallback's `allowed` scale points drop 0.9 too (RRV-1).
+- **R-41 (RRV-2).** The wrapper writes a terms record only beside an output file the command itself created (it notes
+  which outputs existed before the call); a refused command writes none.
+- **R-42 (RRV-3).** The wrapper refuses λ = 0 by name at 7-8B (R-34: the curve's λ = 0 end is θ0's own measurement).
+
+## Seventeenth set (recorded 2026-11-09T00:05 UTC): from K2's verifier (`r2-k2-verify.md`)
+
+- **R-43 (K2V-1). Block B re-derives SR-2's status.** Block B's init (and release) re-derive SR-2's status from the
+  pinned simulation records (the largest familywise rate against 6%, on the design that runs) and the blinding
+  record, and refuse a `PLAN_B_78B` whose recorded status or plan differs.
+- **R-44 (K2V-8). The blinding record's form.** It names by SHA-256 `scripts/scale78b/blinded_sigma.py`, record-done's
+  code (`runkit/stage1-78b/plan_tool.py`) and the tests that hold both outputs byte for byte, with the commit at which
+  they were verified. Block A's init and release refuse unless the record exists and its hashes equal the packed
+  kit's files, so a later change to either code voids the verification (P1 §6.4: verified before block A's first
+  pod, on the code that runs).
+- **R-45 (K2V-4).** K2's deletion of the 1B branch record broke `orchestrate.py`'s `w1_18_hold`, so K2 fixes that one
+  function (it reads `BRANCH_78B[F]` by its bytes at its pin), with a test, though the file is otherwise K3's.
+- **R-46. The padded-tokens record (train_scale's input).** A text-free per-family record (kind, family, MAIN_F's
+  hash, and per edit SHA-256: rows, steps and padded tokens per step), written by a frozen $0 Mac tool built in R3
+  and pinned by a recorded lead step before block A; until then blocks A and B refuse (as K2 built).
+- **R-47. `--w1-18-record` under Branch full.** K3 confirms by a fixture test through the unchanged `oext_eval` whether
+  an O-ext run under Branch full with a pinned failing W1-18 record needs the record at run time; the flag is passed
+  exactly when the unchanged code needs it.
+- **R-48.** The `SR2_SIMULATION` pin K2 filled with the committed outputs' SHA-256 is recorded as the lead's fill step
+  at R2's merge (FOCUS), with K2's verifier's recomputation (0.05145 and 0.05175) as its evidence.
+
+## Eighteenth set (recorded 2026-11-09T04:19 UTC): from K2's re-verifier (`r2-k2-reverify.md`)
+
+- **R-49 (K2R-1). The blinding record's hashes are checked wherever SR-2's status is used.** Block A's record-done and
+  `blinded_sigma.py` run after block A's last release, so the four files the blinding record names are re-hashed and
+  compared at `sr2_status`, `record-plan-b-78b`, block B's init and block B's release, as well as at block A's init
+  and release. A change to any of them after the record voids SR-2's adoption (P1 §6.4: the code that runs).
+- **R-50 (K2R-3). `blinded_sigma.py`'s output is re-derived.** `record-plan-b-78b` runs `blinded_sigma.read` itself
+  (in process, through its guarded entry, SR10) on the kit-rebuilt inputs file, and refuses a pinned output whose σ̂_A
+  or df differs. It prints σ̂_A and df only.
+- **R-51 (K2R-2).** After the kit's own `requeue --rerun-mismatched` in block A, the replaced attempt is skipped (the
+  kit's requeue record names it); two complete units for one run refuse only when no kit record explains them.
+- **R-52 (K2R-4).** Tests and mutants for every family's block-A snapshot under [B] and for `kit_inputs_check`'s hash
+  comparison.
+
+## Nineteenth set (recorded 2026-11-09T10:12 UTC): R2's merge checks
+
+- **R-53. The W1-18 record's file name.** R-21 named the folder, not the file, and the tracks chose differently: K2's
+  RK expects `w1_18_record__<family>.json`, Track O's maker writes `overrefusal_checks__<family>.json` (after the 1B
+  record kind, "stage1 over-refusal checks"). Track O's name stands; RK's standard name changes to it, with K2's tests
+  and mutants. Found by the merged suite (10 scale78b tests failed in the main checkout, none in either worktree).

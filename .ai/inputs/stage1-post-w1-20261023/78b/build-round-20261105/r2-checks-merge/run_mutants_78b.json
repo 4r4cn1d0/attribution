@@ -1,0 +1,4299 @@
+{
+ "kind": "stage1-78b mutation run",
+ "utc_start": "2026-11-09T10:25:14+00:00",
+ "source": "/Users/spiderishi/Coding/attribution",
+ "python": "3.11.15 (main, May 10 2026, 19:23:07) [Clang 22.1.3 ]",
+ "spec_sha256": "2fc643c741ce2cb91126cb8c860584fa18acffb01a76938df9370f16e80cdd13",
+ "tree": {
+  "COPY-MANIFEST.json": "f955502a63a50711674d1f477b8dbb7461501136a6998c5aed468a94dcdb2513",
+  "README.md": "8304db08a0d73e2f77311d751868dcf9ca44972d0f6774e0f79eb0e04b564a10",
+  "RULES-78B.md": "bf06aaea7458c4f96c310e53458223a79231351e5d9934fe9d915ed6b55aed37",
+  "account.py": "8e3b8c4eb7e21d06bb48bb6eef8f0a412a198b893e583e98632756e5c72b612f",
+  "backup_records_stage1.py": "a2b66eb8ccbb6191ee423803ad2f65c8f6b9eab187ca562515c9923b0f361bff",
+  "budget.py": "f4760c080159e70371f528b7f0349b695858f7f320956568a02818d6c89963b0",
+  "compare_c1.py": "6c77a85f4c106fee7b75644bdba3d499cea3fcc33d30f8ff81f8b52f41ef0171",
+  "derive_78b_basis.py": "594f95cf741cb80877750213e124f8af7c77c9a34bf83798eb9f370ab8fb5192",
+  "finisher.py": "e802d64e93698a19b216c7211cb860238a15b1a74adc595ca51fd2bd1651b5a9",
+  "gateb_mac.py": "d8dd2ff49c1e4739e7746d5140aa432cc19cf4c044e6150c2dceef4869864dd7",
+  "host.py": "df37dadecfd3d3573ab3119e46761289b873aceaea018c8c342b8a99def72b5f",
+  "judge_pod_stage1/bundle.py": "0dd9ff8bbdeba186ac61b55d20a2dc192df497c289453b83ff5d705e2e13975a",
+  "judge_units_stage1.py": "2dfde36343102987db7d94c4edf11cadf54fe14201a42c5965af3903a017ff1d",
+  "launch.py": "471046581cf41f90a618faa54446740c089826e9dab782d8079c41a6081e7ef4",
+  "measured-basis-78b.json": "fc92a568b0556f7718a1c27e488e62072df758942deef0ad7dee6d9d80cddc40",
+  "orchestrate.py": "6abdea19e95ee81bd34f900048bcf61ec9abd704b5f016a97cf6e15c08753272",
+  "pack_setup.py": "e3651a9860578e45291b4b401e17d71ce920ee9e1cd1b42eea484dcb270ea625",
+  "plan_tool.py": "c6e32cc57fa1e1c310e8d45a6d0d23d026b8baef18cbb15444ad5e9e489faee0",
+  "probes.py": "daf554729519ee715a34ebd252945ec1ef7f88b903e655933cd39489f368395c",
+  "rules_78b.py": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+  "seal.py": "0aa83e2293c29caffba36044a67210d7680f27262bf7279a0872b307e318a0a4",
+  "secret_scan.py": "75baad4c9127449a0de311ea0773d4306ec6b47ad6247018be59259785326d3b",
+  "setup/bootstrap_hr.sh": "563a128a1573dd97d10f27cdfa0cfa23a03e5409c3c876ab6f16a7115241140f",
+  "setup/constraints.txt": "cdd9f13062d613b0557503c3d332a870f570c7a09e532e8ab8e934ab4867d32b",
+  "setup/download_models_stage1.py": "78d2f22793bf059541bd2ed8ef3d291fe2fc92d41ff96779e9c3837a6c22ec2f",
+  "setup/extend_cap.py": "8af2f6ccebbac591499075827afef714ff1b635b6f6a691e5f669517458179d6",
+  "setup/job_runner_stage1.py": "36a786320ad8eb9950d25ecd7c530d4cd89094f866301b970588d457d490941b",
+  "setup/preflight_stage1.py": "a08e525f2a99a55b8cd017e4c60720ed9193af853feb78a951045f4dcf468d03",
+  "setup/setup_and_fetch_stage1.sh": "8bacb9337794cbd45ad0a29ba9451dcd40e4be767af501956b3138244e4a8cd5",
+  "stage1_rules.py": "7d3634af174afe64be7c3d7c523e0d7813db136a681ebd64a973f774a7bdef43",
+  "states_tool.py": "2fa9936c31aee39bb2fa74c81ef6b66a255a9df25c5a303e260e031d44c8204f",
+  "status.py": "71908e353cfad12c1f30c6095b27b82b76d1cb8facb3fe2e5e7e94a0c30edb1a",
+  "tests/conftest.py": "a1706a29e099097698063b219ea65712742c364f68c2f50dea303aac9750aaf6",
+  "tests/fixtures/anchor_stop__olmo2-7b__safe_anchors_below_64.json": "96005b312d94a67b29d9969eb33f9815ef97b145930f8b46525a15ddea68ab3f",
+  "tests/mutants_b15.json": "4afe48cd3d56fa966adf744546072aba5cbed247da2c2b0e7b45323fef0ddc1b",
+  "tests/mutation_spec_gated_78b.json": "17b3bb5650e7377ec8327fe3962bf360bfa604083cc00984d5d35c78a368180e",
+  "tests/mutation_spec_rules_78b.json": "2fc643c741ce2cb91126cb8c860584fa18acffb01a76938df9370f16e80cdd13",
+  "tests/mutation_spec_runner_78b.json": "324f09697559c398f8c025d35573d3759587fe1bd003b48c879f5263ab6c493a",
+  "tests/mutation_spec_scorer_78b.json": "46b4ef4c1c7a607dd4dad4b86ec41b244ad166c422848e682bf2b37174bda5ce",
+  "tests/run_mutants_78b.py": "0d742104d11a121c9145fd17cd806ff6c9280e2ce8cc3e02c00ad6113fb11bfc",
+  "tests/run_mutants_gated_78b.py": "9046941fb229d59f0430cdc9b52aa1d6fd8b516a5eb0f84a4ec6dddbe9d4c23c",
+  "tests/run_mutants_runner_78b.py": "cfc31671b01da386cdee6e7eca11d2cf385d7ae19f3e65780b382f7326e4fa47",
+  "tests/run_mutants_scorer_78b.py": "3bc16a31bdab816f7dd96a4c148aa3f1fd7bb43decd02cbdf3753faf4349c256",
+  "tests/test_block_tables_78b.py": "bcaf3429875972fe3481b011ee423f5a2091194153d4adc78c72fa47fc111f85",
+  "tests/test_fix_k_core.py": "c3b7806087ca1a2a851c27ff6e7fd47cd4668e1dc980c09b5fa2feff3b5cf128",
+  "tests/test_g1_yoext.py": "a68a90f056e300ccde35db66d792b71aefc03720050d1aa611eaa91ec065eb9a",
+  "tests/test_gated_78b.py": "1b27927a47132f33ccdf278a6152b791092578f980e795eab760c57e2e66fb63",
+  "tests/test_kit_78b_runner.py": "31734b052e03308d51ca663103fb89cbf8a9a4baa8e379b9db6c7de0aeeaf715",
+  "tests/test_kit_78b_shell.py": "b5bd76f3643bebf2fc33ce52fd9fbfca2e331d51181f2f5b6d4f955e4818beaf",
+  "tests/test_planning_ab_78b.py": "9ac73073684db7a59c3b16fa906109dc50945b4a062cd68e9793352ff074dbc9",
+  "tests/test_pp10_guard.py": "564f7e93dc6893e153364858b8e115ee4de3844e2896a88e8c8bca698e6538b0",
+  "tests/test_pp10_process_wide.py": "e799c076cde19fb543aee01aefd2da4a4ce3d042d11e526c8e299d10d330e3b7",
+  "tests/test_round30a.py": "e07dc722aff745208f746e4da03d26a24e81e92d7e6bdf2cc39fdcfc7710daf4",
+  "tests/test_round31.py": "fda68279bb3bedafcd044a51af0dc7ef3fa806d93de5e3dc22589bce1d5468a0",
+  "tests/test_round33.py": "43a92b520774f56c62dae823a74c812505ccb8bccad8f84aef4a762d0478c54e",
+  "tests/test_round34.py": "e445dfe21d58ec9aaaf3a36a8464218aba109dce81d7139c85f97e85d09ec902",
+  "tests/test_round35.py": "b221ea955a27dbf64d9bb3c4e2ad50835ce918c9493a36f8f171eef931490698",
+  "tests/test_rules_78b.py": "c31984e4af7c98da54de8f4473f83b817c1974a4a236080192313c13db79f9a6",
+  "tests/test_scorer_block_78b.py": "e5354f194129a8162d33de01ac709cfba11c4cf732c94003c32421bbb9e95419",
+  "tests/test_stage1_judge_route.py": "ed2989c72bfdc90e0cf5cad7d86201e0d7283db2bd7020d5ecdda75d6f306ec6",
+  "tests/test_stage1_runkit.py": "f13ba77abef4aac423b545c90d2de2ecf1735c15f073406c367a4e04bae2fda7",
+  "tests/test_stage1_runner.py": "38e170bc19ce8e869e5cc448da2fb0d46828356c740cdf5acd20bae450f72b81"
+ },
+ "results": [
+  {
+   "id": "T2-m-margin-1.0",
+   "describes": "margin 1.15 -> 1.0 on the measured job",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "41216beb29f999fa574b02cb5a5628bc839c19aedbc54a6f71b55910254f5ce2",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_01_golden_numbers_equal_kcr_4_and_7"
+    ],
+    "errors": 0,
+    "tail": "1 failed in 0.26s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-33-batches",
+   "describes": "34 batches -> 33",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "9e49df1b3682783d8b2a0abb360021a8f10deb02e4515d270702b6399984c53d",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_01_golden_numbers_equal_kcr_4_and_7"
+    ],
+    "errors": 0,
+    "tail": "1 failed in 0.26s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-first-batch-dropped",
+   "describes": "the first-batch term dropped",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "d57562842e837dcd768f9ff257f06da14b1d091c81a20525104145c16ba491aa",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_01_golden_numbers_equal_kcr_4_and_7"
+    ],
+    "errors": 0,
+    "tail": "1 failed in 0.26s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-score-3x-nongen",
+   "describes": "SCORE_ALLCAP -> 3 x NONGEN (987 s)",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "d01b1f81ce1b06f253fb15ec4511a68bc48ac8e3ad0d8d7045fe0640872dc735",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_01_golden_numbers_equal_kcr_4_and_7"
+    ],
+    "errors": 0,
+    "tail": "1 failed in 0.26s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-outside-ledger-end",
+   "describes": "OUTSIDE_MAX -> outer - ledger end (the first draft's 41.6 s)",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "6f86fcdf234bae4bca7cc3fbd28aa29085657db1054f0a6072f5c8c561359a68",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_01_golden_numbers_equal_kcr_4_and_7"
+    ],
+    "errors": 0,
+    "tail": "1 failed in 0.26s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-s-no-floor",
+   "describes": "max(1, s) -> s in the speed factor",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "d3ed31b3fb760592dca9ee262bca7e954fc8ffd223f38e825b9c74dbc9978b76",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_04_speed_factor"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 5 passed in 0.28s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-req-no-floor",
+   "describes": "max(1, s) -> s in the requirement",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "72f7ac853b239b37b414afb2f29fe17d4f7724f9e8f4cb8bcd02f331a67f3bb5",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_04_speed_factor"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 5 passed in 0.28s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-s-pod-only",
+   "describes": "max(s_pod, s_obs) -> s_pod",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "61b0bc0779e8d8c198c6d93cd2b5aefd7d9f34a161f5485f516fdda336828fd8",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_05_in_pod_speed_check"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 6 passed in 0.28s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-start-margin-removed",
+   "describes": "START_MARGIN removed from the requirement",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "d6d9a9a84d7f554558841bd630286fa6d0f4ec44514b84ac67a085068d746592",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_01_golden_numbers_equal_kcr_4_and_7"
+    ],
+    "errors": 0,
+    "tail": "1 failed in 0.26s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-overhead-42",
+   "describes": "pod overhead 48 -> 42 min",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "34248e430fefecd5844e40ce3ce92ede86d21f0b3b254d9aa6d05363caf2df15",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_01_golden_numbers_equal_kcr_4_and_7"
+    ],
+    "errors": 0,
+    "tail": "1 failed in 0.26s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-round-down",
+   "describes": "the cap rounded down",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "016e2d242168f26c189ad12818769c8eb6343607fa753beb1f7830365c9b65cd",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_01_golden_numbers_equal_kcr_4_and_7"
+    ],
+    "errors": 0,
+    "tail": "1 failed in 0.25s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-floor-min",
+   "describes": "the sanity floor with min in place of max",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "0b7f1c2c61be6ac32e1f77ce45d7107ce61f31c479493df8f8bee1949f731986",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_06_sanity_floor"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 10 passed in 0.29s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-j-le-k",
+   "describes": "the cap sums the measured uppers over j <= k",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "8348396e3b7b8b2799c1f50ed11f1c26b16b56a8056699fe2f9dea23f5f616cd",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_01_golden_numbers_equal_kcr_4_and_7"
+    ],
+    "errors": 0,
+    "tail": "1 failed in 0.26s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-hold-floor",
+   "describes": "the guard's floor drops the reserve",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "c91fabd474ad99e7ab7f26875b0629253501d48f67dcc9aeefe03909e37bb807",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_10_zero_hold_guard"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 18 passed in 0.30s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-guard-no-hold",
+   "describes": "guard_usd without the hold term",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "15ff0810f0553a41e841334fc589402e17c352c51515a9699bad252a7cb4cc9e",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_10_zero_hold_guard"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 18 passed in 0.30s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-reserve-0",
+   "describes": "RESERVE 6 -> 0",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "3e42ad728c0895b5ee05634d2f59e894b87df1003a055f4f72d29af33df7fc63",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_01_golden_numbers_equal_kcr_4_and_7"
+    ],
+    "errors": 0,
+    "tail": "1 failed in 0.26s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-planning-price",
+   "describes": "PLANNING_PRICE 1.85 -> 1.79",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "c5b390c9383cbe143477f47d731b6281e62ffae4cb32a0ccaa1da1e90c32d840",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_01_golden_numbers_equal_kcr_4_and_7"
+    ],
+    "errors": 0,
+    "tail": "1 failed in 0.26s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-contingency",
+   "describes": "CONTINGENCY 1.25 -> 1.0",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "097648f6177cbb5c78ee4e9a33c18698c223a8c8b170a7bf757976c86b11b114",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_01_golden_numbers_equal_kcr_4_and_7"
+    ],
+    "errors": 0,
+    "tail": "1 failed in 0.26s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-s-obs-first-included",
+   "describes": "s_obs counts the first greedy batch",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "9388bade95b225d6b15ac809093478a2686f2622ece581bd0626af4924112fbc",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_05_in_pod_speed_check"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 6 passed in 0.28s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-s-obs-refusal",
+   "describes": "s_obs refusal 1.15 -> 1.5",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "4cb1ce229ee2efdc4cfcab514fb708331ce77245568d4fc62443c6b8eeaf9081",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_05_in_pod_speed_check"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 6 passed in 0.28s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-speed-refusal",
+   "describes": "s_pod refusal 1.15 -> 1.5",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "839f2a3c9fc07a5eec70571d43f816286e66d9c36ab890f8e2ca8a98c9b8f1f5",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_04_speed_factor"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 5 passed in 0.28s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-free-space-strict",
+   "describes": "the free-space check refuses at the threshold",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "c6591f1f7f7fc42d6f713150ada1cf435e2d32b49b799925d33d52475cbf044b",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_12_job_runner_dry_run"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 21 passed in 0.33s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-max-arms-5",
+   "describes": "MAX_ARMS_PER_POD_78B 4 -> 5",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "9d29b59a477f06d19bef4a6f4f06b5a42b62a77f94bf62883e788b57c142b93f",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_09_cap_structure_and_copied_helpers"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 17 passed in 0.30s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-recipe-allow-other-lr",
+   "describes": "the other-LR recipe joins the allow-list",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "53c2648289defba3d943caa2aaa7f838e3980011b26f566890eda1fc39a59b79",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_07_keys"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 11 passed in 0.29s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-evalonly-trains",
+   "describes": "evalonly keeps the training term",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "93948092e61b6dd88056e3ff80118054ccf6cc2958cdffb9b13eb09e8f56ca24",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_08_kinds"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 14 passed in 0.29s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-pin-ignored",
+   "describes": "the basis pin is not checked",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "5710c2299182f44a3469326effb0af4e02c5c9c9a27f88512fbda9eb5a8028ab",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_02_basis_pin_and_constants"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 2 passed in 0.26s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-e-kind-not-alone",
+   "describes": "an E kind may share its pod with one arm",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "65e50cb65cf9c6803580443c185a791a6db1c6d5b4b5587d5173dedbf27590b9",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_08_kinds"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 14 passed in 0.29s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-rep-pass-17",
+   "describes": "A1's cap 16.5 -> 17.0 h (PP8: the kind is a1_pass; same mutation)",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "107f011bb44e3447e379487e02e117d2dec83867dbcc96878da3e264c30f9c57",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_08_kinds"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 14 passed in 0.29s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-keys-engine-any",
+   "describes": "the engine key check dropped (K1: the clause is engine_allowed, A13; same mutation)",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "a34cd13eb679d16441081fa9962188629a4141db4f179485d016fa2895f9638e",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_07_keys"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 11 passed in 0.29s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-train-step-kcr",
+   "describes": "TRAIN_STEP_MAX at KCR's rounded 24.26 (not the basis maximum)",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "0fdf78cc35a072a97cb53ff80f20489704718c407491e396ed8c237618951dd9",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_01_golden_numbers_equal_kcr_4_and_7"
+    ],
+    "errors": 0,
+    "tail": "1 failed in 0.26s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-derive-name-and-place-off",
+   "describes": "derive opens any file name in any place (the name and place gates off; A-V6 replaces the old allowlist-off mutant)",
+   "file": "derive_78b_basis.py",
+   "before_sha256": "594f95cf741cb80877750213e124f8af7c77c9a34bf83798eb9f370ab8fb5192",
+   "mutated_sha256": "33502dd158b3512f9bba8ee2788b85f304a8d57a99f9a34cb45847597aeb2d48",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_15_derivation_privacy"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 25 passed in 0.37s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "594f95cf741cb80877750213e124f8af7c77c9a34bf83798eb9f370ab8fb5192"
+  },
+  {
+   "id": "T2-m-derive-forbidden-off",
+   "describes": "derive ignores the forbidden path parts",
+   "file": "derive_78b_basis.py",
+   "before_sha256": "594f95cf741cb80877750213e124f8af7c77c9a34bf83798eb9f370ab8fb5192",
+   "mutated_sha256": "dbf04927b08a3296af3ed8beb8f600b35ac99ad095d91569b4206630023fa9a5",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_15_derivation_privacy"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 25 passed in 0.36s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "594f95cf741cb80877750213e124f8af7c77c9a34bf83798eb9f370ab8fb5192"
+  },
+  {
+   "id": "T2-m-derive-strings-off",
+   "describes": "the output string check allows text",
+   "file": "derive_78b_basis.py",
+   "before_sha256": "594f95cf741cb80877750213e124f8af7c77c9a34bf83798eb9f370ab8fb5192",
+   "mutated_sha256": "19d496b2b6525140763f50cc76c4c514ce865df76b9c602330820c2354b1d46f",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_15_derivation_privacy"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 25 passed in 0.36s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "594f95cf741cb80877750213e124f8af7c77c9a34bf83798eb9f370ab8fb5192"
+  },
+  {
+   "id": "T2-m-derive-first-in-batchmax",
+   "describes": "the first greedy batch enters BATCH_MAX",
+   "file": "derive_78b_basis.py",
+   "before_sha256": "594f95cf741cb80877750213e124f8af7c77c9a34bf83798eb9f370ab8fb5192",
+   "mutated_sha256": "9fc8ea4657bfead07b5929e275c72f26621537162f1680bf0e82777be1bf0e06",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_02b_basis_re_derives_byte_for_byte_from_the_measured_root"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 3 passed in 0.27s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "594f95cf741cb80877750213e124f8af7c77c9a34bf83798eb9f370ab8fb5192"
+  },
+  {
+   "id": "T2-m-derive-outside-ledger-end",
+   "describes": "derive's outside time = outer - ledger end (misses the time before and between stages)",
+   "file": "derive_78b_basis.py",
+   "before_sha256": "594f95cf741cb80877750213e124f8af7c77c9a34bf83798eb9f370ab8fb5192",
+   "mutated_sha256": "4c21901867c045b73fc16aca7f1f6f2d1a57c9f5becd3f794d30732549844972",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_02b_basis_re_derives_byte_for_byte_from_the_measured_root"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 3 passed in 0.28s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "594f95cf741cb80877750213e124f8af7c77c9a34bf83798eb9f370ab8fb5192"
+  },
+  {
+   "id": "T2-m-s-obs-missing-keys-pass",
+   "describes": "generate rows without capped/rows pass with defaults (the verifier's 5,000 s batch read as s_obs = 1)",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "be1d962baf845dd9af0c5901f20dc4a33ec5277d3cb2c69825d95d07f1fa8219",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_05c_s_obs_refuses_a_drifted_progress_format"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 7 passed in 0.28s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-s-obs-no-32-row-check-off",
+   "describes": "a progress record with no 32-row batch at all is accepted",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "be9b88612a49e2358dae2e0905f93b8a3fe251fb8fc329ae5ea7f4503d1b5074",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_05c_s_obs_refuses_a_drifted_progress_format"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 7 passed in 0.28s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-s-obs-rows-filter-off",
+   "describes": "s_obs reads every capped batch, not the 32-row ones only (KCR:113)",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "7242eaafe0bed6b18d6901e1205b98da1dfc6f8f4d3935a06e888c9643335909",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_05d_s_obs_reads_32_row_capped_batches_only"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 8 passed in 0.28s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-keys-manifest-any",
+   "describes": "any prepared manifest passes the key check",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "0ee750ddde2254e2055ca77f9b00870e48dc10d9d30f318dc32ba4a360cfdd4a",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_07_keys"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 11 passed in 0.29s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-keys-bank-any",
+   "describes": "any evaluation bank value passes the key check",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "366016e9c6946c7c2f6711e63bba9f9e80c638655f7d1f2f13abf708171edd26",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_07_keys"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 11 passed in 0.29s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-keys-bank-keys-any",
+   "describes": "a bank record with missing or extra keys passes the key check",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "f2135e8a336898ad02057fb892b5996f7c56782cfb271d296edbb8211de38fa9",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_07_keys"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 11 passed in 0.28s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-launch-no-finite",
+   "describes": "launch_allowed takes the balance into the decimal arithmetic unchecked",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "bb37abc8c66f859a507ce57d5040a9b7203c948f49699d677a34419c51df400a",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_10b_guard_refuses_a_bad_balance_or_cap"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 19 passed in 0.31s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-recipe-s-none-passes",
+   "describes": "a null RECIPE_S pin stands in as an all-zero config_sha256",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "6930e3c870f884df0e6e3290ce3be1d25192fa36b4dece9472a56cf1e766ea30",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_07b_recipe_s78_pins_refuse_until_filled"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 12 passed in 0.30s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-s78-kinds-empty",
+   "describes": "no kind needs recipe S_78",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "20e18e0f23bc5e1120fe609d96062faa229d17737a560607b3a95663484426ec",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_07b_recipe_s78_pins_refuse_until_filled"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 12 passed in 0.29s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-keys-s78-any-recipe",
+   "describes": "an S_78 kind passes the key check under any recipe once the pin is filled",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "0d0776d26c1fde1d3989fd89e04eee3f8e0ca674db8cbd35e3e7c4f6fb86e110",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_07b_recipe_s78_pins_refuse_until_filled"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 12 passed in 0.29s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-preflight-untuned-fallback",
+   "describes": "untuned_projected_s falls back to a PREFLIGHT-DONE.json field when the verification block lacks it",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "1789a576a59b368c5466ffb0949ba132ed9cda35294ad33454bb9a0cbcbd34da",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_12b_job_decision_takes_the_verification_document"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 22 passed in 0.32s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-verification-optional",
+   "describes": "a missing verification document is replaced by a default block",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "96169ccdb34c66c85b346d54ac5be586137f270b5d8d93e17381ccb4c68e64c2",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_12b_job_decision_takes_the_verification_document"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 22 passed in 0.34s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-preflight-one-preflight-off",
+   "describes": "the two documents need not describe one preflight (training_s unchecked)",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "568574f3d68f93c686942f56784145b0a9e153a59e7bea0b466f4848cdd049fb",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_12b_job_decision_takes_the_verification_document"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 22 passed in 0.31s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "T2-m-derive-place-off",
+   "describes": "an allowed name is read from any folder (tree/cuda-preflight-1/verification.json passes)",
+   "file": "derive_78b_basis.py",
+   "before_sha256": "594f95cf741cb80877750213e124f8af7c77c9a34bf83798eb9f370ab8fb5192",
+   "mutated_sha256": "5b86c32aef1e19a824fa9f4a0ce630b1160fb691bdb15cb43b51943f0096b458",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_15_derivation_privacy"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 25 passed in 0.35s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "594f95cf741cb80877750213e124f8af7c77c9a34bf83798eb9f370ab8fb5192"
+  },
+  {
+   "id": "T2-m-derive-create-wildcard",
+   "describes": "any create-*.json in hosts/<host>/ is read (create-secrets.json)",
+   "file": "derive_78b_basis.py",
+   "before_sha256": "594f95cf741cb80877750213e124f8af7c77c9a34bf83798eb9f370ab8fb5192",
+   "mutated_sha256": "cca432d1e1961c31775974c738a1d8b52bca588f66a070a3e04df816ad17eaad",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_15_derivation_privacy"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 25 passed in 0.36s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "594f95cf741cb80877750213e124f8af7c77c9a34bf83798eb9f370ab8fb5192"
+  },
+  {
+   "id": "T2-m-derive-allcapped-35",
+   "describes": "a unit's all-capped time counts 35 batches (test 3's assertion must bind)",
+   "file": "derive_78b_basis.py",
+   "before_sha256": "594f95cf741cb80877750213e124f8af7c77c9a34bf83798eb9f370ab8fb5192",
+   "mutated_sha256": "08f1c672b4307bd9b8950344c26fd187b1e72aef8b045ce4f81c61918bff1a79",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_03_every_measured_unit_is_below_upper_m_38"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 4 passed in 0.28s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "594f95cf741cb80877750213e124f8af7c77c9a34bf83798eb9f370ab8fb5192"
+  },
+  {
+   "id": "K1-m-bqi-pin-off",
+   "describes": "check_keys: the RECIPE_BQI clause dropped (B+Qi passes under main/G)",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "e3aa6a14df22988d5e373cd09f57b82beacbb693032a915afa94c86af4319306",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_07c_a13_pins_engine_y_bqi_and_the_sealed_sets"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 13 passed in 0.29s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1-m-pin-none-passes",
+   "describes": "pin_or_refuse: a null pin reads as a filled one",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "b805c8fdb4feb0114c821704874ea3644171894356ffc4ad3705b6ff4cb6a625",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_07c_a13_pins_engine_y_bqi_and_the_sealed_sets"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 13 passed in 0.29s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1-m-n-points-unchecked",
+   "describes": "job_record: the n_points positivity check dropped",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "0bd7d5828b61934064935cf2d851130f1b42b444e263a3cec7033a4ccc25b355",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_08b_job_record_refuses_a_bad_n_points_for_every_kind"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 15 passed in 0.29s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1-m-s-obs-uncapped-counts",
+   "describes": "s_obs counts uncapped 32-row batches too (capped >= 0)",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "d5e910f4119f44ab37024f662f94a4225c6575b8b395cbe0954374f832496f79",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_05d_s_obs_reads_32_row_capped_batches_only"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 8 passed in 0.28s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1-m-derive-unit-place-loose",
+   "describes": "in_place: the unit place checks round1 only (tree and retrieved parts dropped)",
+   "file": "derive_78b_basis.py",
+   "before_sha256": "594f95cf741cb80877750213e124f8af7c77c9a34bf83798eb9f370ab8fb5192",
+   "mutated_sha256": "ec3d296208a9c61158ee9f919056e852317488b1fadd056dfca7013fabcc7db3",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_15_derivation_privacy"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 25 passed in 0.36s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "594f95cf741cb80877750213e124f8af7c77c9a34bf83798eb9f370ab8fb5192"
+  },
+  {
+   "id": "K1-m-dry-run-no-cascade",
+   "describes": "pod_dry_run: a deferral no longer defers the later jobs",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "4a41faa36d53cf4733d9d0030b916e45f3c1d0580858e11d666ef8369d659626",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_12_job_runner_dry_run"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 21 passed in 0.31s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1-m-decision-s-pod-only",
+   "describes": "job_decision: the returned s is s_pod alone",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "ccb6d7e369e49a2c25ae1b56f422c4c0b479569592d4b7effa4110a95360758f",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_12_job_runner_dry_run"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 21 passed in 0.31s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1-m-counted-drops-a0",
+   "describes": "a0_arm and evalonly no longer count toward the 4 per pod",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "f1e19dea9f48f2d8da099408e9cab27096be92e3257d758b0aad3d603a28126e",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_08c_block0_tables_and_jobs"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 16 passed in 0.30s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1-m-engine-y-measured-any",
+   "describes": "engine_allowed: measured kinds run on Y before KD9",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "d08b12659a6d1e0a0010ffea60c25d405546968bce619ff864fd43e794840fe4",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_07c_a13_pins_engine_y_bqi_and_the_sealed_sets"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 13 passed in 0.30s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1-m-engine-y-e-kinds-off",
+   "describes": "engine_allowed: E-capped kinds refuse Y even once ENGINE_Y is filled",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "e8d7bce1cb26a0d18d3077968f758b1ad32643175b1cc3052b18fb732d5693a9",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_07c_a13_pins_engine_y_bqi_and_the_sealed_sets"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 13 passed in 0.29s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1-m-engine-y-null-passes",
+   "describes": "engine_allowed: any non-X engine passes while ENGINE_Y is null",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "e7c805ef06ae4b8466e2c778355351f288a815edad3a7b6670eade6f6c769ac1",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_07_keys"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 11 passed in 0.29s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1-m-sealed-set-null-passes",
+   "describes": "sealed_set_or_refuse: a null MANIFEST pin falls back to the other family's set",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "fd9323066b2634ac911176653bd06626da0d8e05c72303dec3ab47a06e165f77",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_07c_a13_pins_engine_y_bqi_and_the_sealed_sets"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 13 passed in 0.29s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1-m-block0-llama-no-a0",
+   "describes": "N's Llama pod loses a0 at 1103",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "476f1bde563532b7d4420df7ad626216bce757d40a02dcdb62e5642d3df946bb",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_08c_block0_tables_and_jobs"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 16 passed in 0.29s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "FK-m-s78-kinds-no-classifier",
+   "describes": "the classifier leaves the S_78 kinds (runs under the main recipe)",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "50a7abbd389b9e3ef4e168390889a79618e401312ae616d335b7d670f7c08c36",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_07b_recipe_s78_pins_refuse_until_filled"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 12 passed in 0.29s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "FK-m-s78-kinds-no-a1-pass",
+   "describes": "a1_pass leaves the S_78 kinds",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "e1bd84e8d2c78b7cddf80c59467f3c61e965282c33e938ec092422aea3332d35",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_07b_recipe_s78_pins_refuse_until_filled"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 12 passed in 0.29s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "FK-m-rep-pass-takes-a1-window",
+   "describes": "rep_pass takes A1's 16.5 h window instead of its own E cap",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "21211e57f369bf5f086b7c246ed4d44e9e16d7841935b9646d5d0acbbb3c3b15",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_08_kinds"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 14 passed in 0.29s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "FK-m-rep-pass-no-size-factor",
+   "describes": "rep_pass's E cap drops the scorer-kind size factor 2.3",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "e6652578222d63aef3cf18001565b61a436157d79bbe0b13c51bfa486e5d50de",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_08_kinds"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 14 passed in 0.29s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "FK-m-a1-pass-takes-rep-pass-cap",
+   "describes": "a1_pass loses A1's 16.5 h window and takes the 1B-estimate cap",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "7bd02f1f67962cb1b56c9f60cff21d06030f584b2ef6c0c1dbf54ffecf953716",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_08_kinds"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 14 passed in 0.30s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "FK-m-scorer-kinds-no-a1-pass",
+   "describes": "the need printout's scorer table drops a1_pass",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "144e1a10dadf62d6f44b49d5318ea9bac756988aa8a210f336f1f1528eac0ec1",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_17_pp8_the_s78_kinds_and_their_caps"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 27 passed in 0.37s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "FK-m-r-edits-any-family",
+   "describes": "block0_r_edits takes any family's edit entry with a block-0 draw (Gate B's M edits at draws 1-2)",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "8628da0236b46ae24c0fd765e55d9edbb27ce23585871b04e43bed8a5311de51",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_18_d1_the_sealed_edit_entries_in_both_committed_forms"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 29 passed in 0.39s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "FK-m-r-edits-seed-unchecked",
+   "describes": "a Llama-form seed that is not 1100 + d passes",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "356c91cfc4bde80c9a4be60cecd3395a9fb57ae05f5edb1ec10fc8a8b94df3a0",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_18_d1_the_sealed_edit_entries_in_both_committed_forms"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 29 passed in 0.38s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "FK-m-r-edits-duplicate-passes",
+   "describes": "a draw listed twice silently takes the last entry",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "bb453efe1bde81257f8e79b6f33798edf7ea8fffa5892f73b0f9895f9e02bdd7",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_18_d1_the_sealed_edit_entries_in_both_committed_forms"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 29 passed in 0.38s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "FK-m-r-edits-missing-passes",
+   "describes": "a missing block-0 draw passes (the caller gets fewer edits)",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "c36b3b0221eed02ded6aada436558938acada10c78f75bd724d50057b9e358ce",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_18_d1_the_sealed_edit_entries_in_both_committed_forms"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 29 passed in 0.38s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "FK-m-edit-entry-any-path",
+   "describes": "an entry outside edits/ counts as an edit (a sample file at an R draw would duplicate R_d1)",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "ca93e6704e5ddee4d822cb0bced2266d55d99516c0cc7ebd1d93bad122d8b124",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_18_d1_the_sealed_edit_entries_in_both_committed_forms"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 29 passed in 0.40s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "FK-m-edit-entry-role-edit-only",
+   "describes": "only role == 'edit' entries are edits (the committed Llama form is refused again)",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "e28c2761401f4f15ef849381e1b89dbd71937376cd5abadcc6eb4c00fe9ce669",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_18_d1_the_sealed_edit_entries_in_both_committed_forms"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 29 passed in 0.39s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "FK-m-llama-pin-null",
+   "describes": "the Llama sealed set's pin falls back to null",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "68c0c37d2a3ffc19dc377f7d5ed6fcca0aec0b664bcdea767ac30f2072e1ca48",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_07c_a13_pins_engine_y_bqi_and_the_sealed_sets"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 13 passed in 0.29s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "FK-m-idle-running-rate",
+   "describes": "idle storage at the running volume rate ($0.10 per GB per month)",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "eaf4ccb3a076414e99dd44315a2d7acecbb37cb6b9c31ffbef3eb79668791e3d",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_19_d2_the_idle_storage_line"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 31 passed in 0.38s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "FK-m-idle-not-in-report",
+   "describes": "block0_report drops the idle-storage block",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "1d49046e070c9ade82115c360aceeb26d82a2e81fa67aa6f4f5bd5892afd1c0a",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_19_d2_the_idle_storage_line"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 31 passed in 0.38s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "FK-m-idle-per-pod-only",
+   "describes": "the idle-storage line counts one pod whatever the block holds",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "c84fdf136686bff61057da11b7a1288bdf03eae2f2583006270fb9eec294df1b",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_19_d2_the_idle_storage_line"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 31 passed in 0.38s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K4-m-x-only-off",
+   "describes": "engine_allowed skips X_ONLY_KINDS",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "c3ab657e4074bd22e8075c7a409a87022db0529be4f4d08589c9a45df60abfd5",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_07c_a13_pins_engine_y_bqi_and_the_sealed_sets"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 13 passed in 0.30s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K4-m-x-only-any-engine",
+   "describes": "a wrapper kind passes on any engine",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "8c40bc5bc18373271694f1c47a21019a8488f67a67b4f7a7bbf7383074d29142",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_07c_a13_pins_engine_y_bqi_and_the_sealed_sets"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 13 passed in 0.29s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K4-m-x-only-after-y",
+   "describes": "engine_allowed checks X_ONLY_KINDS after engine Y (not first)",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "46856841d33522d19a276068ec0187ea86c13f537e563dff133cea718ba56956",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_07c_a13_pins_engine_y_bqi_and_the_sealed_sets"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 13 passed in 0.29s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K4-m-x-only-plus-retrain",
+   "describes": "the retrain is made an X-only kind (it runs on Y: ruling 10)",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "7329fe6b69b43c7dccc48ea0eadf75f93248301241af5e0b9972d0481ba54cb7",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_07c_a13_pins_engine_y_bqi_and_the_sealed_sets"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 13 passed in 0.31s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K4-m-x-only-drop-untuned-answers",
+   "describes": "untuned_answers dropped from X_ONLY_KINDS",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "08155e608b5c2633f26425265a0d0e33cb88555f30146444b57dc391c3c9ce1f",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_20_pp16_the_wrapper_kinds_run_on_engine_x_only_whatever_engine_y_holds"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 32 passed in 0.38s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K4-m-x-only-drop-o-only",
+   "describes": "o_only dropped from X_ONLY_KINDS",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "049a2bafc908a358db005ea511ebfeb9606daf756ee521d861504b43457c917a",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_20_pp16_the_wrapper_kinds_run_on_engine_x_only_whatever_engine_y_holds"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 32 passed in 0.38s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K4-m-x-only-drop-o-only-with-regenerate",
+   "describes": "o_only_with_regenerate dropped from X_ONLY_KINDS (PP16 with PP17's kind; round 4b)",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "5879df0e503d1b7e380b3d4e144ac72c9b9a4fa7bcd6e1d2f72b1f1240d43ad6",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_20_pp16_the_wrapper_kinds_run_on_engine_x_only_whatever_engine_y_holds"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 32 passed in 0.38s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K4-m-x-only-drop-anchor",
+   "describes": "anchor dropped from X_ONLY_KINDS",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "acfb003d6466a3c5aa5f57366c2457f0a8db2ef5c83432777031a33df3b05593",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_07c_a13_pins_engine_y_bqi_and_the_sealed_sets"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 13 passed in 0.29s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K4-m-x-only-drop-rep-pass",
+   "describes": "rep_pass dropped from X_ONLY_KINDS",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "4325f5a5be8aa54745b805f1efb270dec965f31e37afe959cf15c1bef02c0050",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_20_pp16_the_wrapper_kinds_run_on_engine_x_only_whatever_engine_y_holds"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 32 passed in 0.38s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K4-m-x-only-drop-l1-scan",
+   "describes": "l1_scan dropped from X_ONLY_KINDS",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "ce5803dfb0405bcf92349b0766e586419588b39390ee569f72ded3ce188d44c3",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_20_pp16_the_wrapper_kinds_run_on_engine_x_only_whatever_engine_y_holds"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 32 passed in 0.38s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K4-m-x-only-drop-classifier",
+   "describes": "classifier dropped from X_ONLY_KINDS",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "8b6d5f8577444d0665645dee63cc4abdbbaf1345847d78750c07351b5eca53e0",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_20_pp16_the_wrapper_kinds_run_on_engine_x_only_whatever_engine_y_holds"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 32 passed in 0.38s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K4-m-x-only-drop-c0",
+   "describes": "c0 dropped from X_ONLY_KINDS",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "685a47aa111725036fd95adb447bf30705c33e772cb545e0f62587e67520e819",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_20_pp16_the_wrapper_kinds_run_on_engine_x_only_whatever_engine_y_holds"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 32 passed in 0.38s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K4-m-unitless-no-rep-pass",
+   "describes": "rep_pass dropped from the kit's stage1_rules.UNITLESS_KINDS",
+   "file": "stage1_rules.py",
+   "before_sha256": "7d3634af174afe64be7c3d7c523e0d7813db136a681ebd64a973f774a7bdef43",
+   "mutated_sha256": "c57de2af6451de1b197306562e359055f4fc1e3cbfc74052cfde43186529e8dc",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_21_dk3_the_kits_stage1_rules_kind_sets_hold_the_pp3_kinds"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 33 passed in 0.39s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "7d3634af174afe64be7c3d7c523e0d7813db136a681ebd64a973f774a7bdef43"
+  },
+  {
+   "id": "K4-m-unitless-plus-a1-pass",
+   "describes": "a1_pass made unitless again (round 4b, D8: it writes the engine's attributes unit)",
+   "file": "stage1_rules.py",
+   "before_sha256": "7d3634af174afe64be7c3d7c523e0d7813db136a681ebd64a973f774a7bdef43",
+   "mutated_sha256": "4dd587fba7426ff560cf67f10ddc2ab874343577e17d6f8a630abf3cc27f5b3c",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_21_dk3_the_kits_stage1_rules_kind_sets_hold_the_pp3_kinds"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 33 passed in 0.39s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "7d3634af174afe64be7c3d7c523e0d7813db136a681ebd64a973f774a7bdef43"
+  },
+  {
+   "id": "K4-m-unitless-no-classifier",
+   "describes": "classifier dropped from the kit's stage1_rules.UNITLESS_KINDS",
+   "file": "stage1_rules.py",
+   "before_sha256": "7d3634af174afe64be7c3d7c523e0d7813db136a681ebd64a973f774a7bdef43",
+   "mutated_sha256": "8ae9e7ab06aaf92fd315960c1dd8b9f75847a39c8661a33784aafd1cc9357182",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_21_dk3_the_kits_stage1_rules_kind_sets_hold_the_pp3_kinds"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 33 passed in 0.39s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "7d3634af174afe64be7c3d7c523e0d7813db136a681ebd64a973f774a7bdef43"
+  },
+  {
+   "id": "K4-m-diag-no-rep-pass",
+   "describes": "rep_pass dropped from the kit's stage1_rules.DIAG_KINDS",
+   "file": "stage1_rules.py",
+   "before_sha256": "7d3634af174afe64be7c3d7c523e0d7813db136a681ebd64a973f774a7bdef43",
+   "mutated_sha256": "8d92ef8251862361dfd49b1e96e8f9454b095cef7ac26b4be06e008d866625d9",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_21_dk3_the_kits_stage1_rules_kind_sets_hold_the_pp3_kinds"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 33 passed in 0.38s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "7d3634af174afe64be7c3d7c523e0d7813db136a681ebd64a973f774a7bdef43"
+  },
+  {
+   "id": "K4-m-diag-no-a1-pass",
+   "describes": "a1_pass dropped from the kit's stage1_rules.DIAG_KINDS",
+   "file": "stage1_rules.py",
+   "before_sha256": "7d3634af174afe64be7c3d7c523e0d7813db136a681ebd64a973f774a7bdef43",
+   "mutated_sha256": "ef6f7dc2176eb45e4d490f225827e62cd05c2956a895729b12a857756b45c8a9",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_21_dk3_the_kits_stage1_rules_kind_sets_hold_the_pp3_kinds"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 33 passed in 0.38s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "7d3634af174afe64be7c3d7c523e0d7813db136a681ebd64a973f774a7bdef43"
+  },
+  {
+   "id": "K4-m-diag-no-classifier",
+   "describes": "classifier dropped from the kit's stage1_rules.DIAG_KINDS",
+   "file": "stage1_rules.py",
+   "before_sha256": "7d3634af174afe64be7c3d7c523e0d7813db136a681ebd64a973f774a7bdef43",
+   "mutated_sha256": "42ea154cac1d1b62be2d526e837df9fd11a2c33c01a1be269a798cde75a8d454",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_21_dk3_the_kits_stage1_rules_kind_sets_hold_the_pp3_kinds"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 33 passed in 0.38s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "7d3634af174afe64be7c3d7c523e0d7813db136a681ebd64a973f774a7bdef43"
+  },
+  {
+   "id": "K4-m-idle-no-retrain-pods",
+   "describes": "the retrain pods get no idle-storage entry (SC_STATE_KINDS loses the retrain; round 4b's one definition)",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "7f7c1005b4a34ae5c34f8f758c2e43b93c18f17a8ca15d4d9649377a106f8a43",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_22_pp14_an_idle_storage_line_for_every_block0_pod_that_keeps_states"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 34 passed in 0.39s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K4-m-idle-no-scorer-pods",
+   "describes": "no scorer pod keeps states (block 0's idle lines list N's and the retrain pods only)",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "1869f73778d21449fe15c749d6ae9b6977c01beb609a6046d0625cd09ed4cd71",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_22_pp14_an_idle_storage_line_for_every_block0_pod_that_keeps_states"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 34 passed in 0.38s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K4-m-idle-all-n-only",
+   "describes": "the block's idle total counts N's pods only",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "ffc3a08dde9215dce8b900f346856109fe5d3a12f80cedfc0f24368886b8ab02",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_22_pp14_an_idle_storage_line_for_every_block0_pod_that_keeps_states"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 34 passed in 0.39s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K4-m-idle-lines-scorer-only",
+   "describes": "the printout skips the retrain pods' idle lines",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "6b9b45993bef98526745db14779b3ded1892af8f352e2297e6a2291224a146e7",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_22_pp14_an_idle_storage_line_for_every_block0_pod_that_keeps_states"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 34 passed in 0.38s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K4-m-idle-lines-no-total",
+   "describes": "the printout drops the block's idle total line",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "1de48e70ae7f30f9b032bcee22d9847e11c49689c1650785c12681e5ca4e27b5",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_22_pp14_an_idle_storage_line_for_every_block0_pod_that_keeps_states"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 34 passed in 0.38s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K4bf-m-state-no-c0",
+   "describes": "c0 leaves the one state-keeping definition",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "2ea11fdef08e2690043cd02c250184be73a2ba0e9b48b8a045698eabf1d04264",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_22_pp14_an_idle_storage_line_for_every_block0_pod_that_keeps_states"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 34 passed in 0.39s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K4bf-m-state-no-regen",
+   "describes": "o_only_with_regenerate keeps no states",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "e9bfca2f0e12a2864f736c0fd9547b07a59154e95f5a43f472a68e3c0eb1140d",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_22_pp14_an_idle_storage_line_for_every_block0_pod_that_keeps_states"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 34 passed in 0.39s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K4bf-m-idle-one-pod-per-kind",
+   "describes": "block 0's idle lines name one o_only_with_regenerate pod per family, not one per reused seed",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "2c459143821e6ac1fc8fd12a8711c2ebe54f4b0d2ead03104fdc25d76bf5026e",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_22_pp14_an_idle_storage_line_for_every_block0_pod_that_keeps_states"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 34 passed in 0.39s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K4bf-m-scorer-kinds-no-regen",
+   "describes": "block 0's scorer table drops o_only_with_regenerate",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "c75cc125d631d32de6bf950bdced04219fab3dfb9ccd819646671d0f2e5f7e3b",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_17_pp8_the_s78_kinds_and_their_caps"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 27 passed in 0.38s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K4bf-m-regenerate-kind-back",
+   "describes": "the standalone regenerate kind is back among the E kinds",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "cbb6ee2b4699eefe19f3e31c3a7cb1ae21941a4575b45100cc12a5f9092cabc7",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_08_kinds"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 14 passed in 0.31s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K4bf-m-unitless-no-c0",
+   "describes": "c0 is no longer unitless in the kit's stage1_rules",
+   "file": "stage1_rules.py",
+   "before_sha256": "7d3634af174afe64be7c3d7c523e0d7813db136a681ebd64a973f774a7bdef43",
+   "mutated_sha256": "5b52c888513aadf3d20a5b8d22ff5608598f818c246354e5decd37d0e25dd7a9",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_21_dk3_the_kits_stage1_rules_kind_sets_hold_the_pp3_kinds"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 33 passed in 0.38s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "7d3634af174afe64be7c3d7c523e0d7813db136a681ebd64a973f774a7bdef43"
+  },
+  {
+   "id": "K1R-m-block-a-no-r5",
+   "describes": "block A without R_5 at 1105",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "4838552681f5a50a28866f3ff1665f1c78e495b6c1d3ca6898f5ea4ceaa8a635",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.39s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-b9-seeds-1109",
+   "describes": "plan B9's method seeds 1105-1109",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "64ad2613436160de3c8c1d03208d52c40d11fb5b9409d3752164f8e329da5895",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.40s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-b-r-at-first-seed",
+   "describes": "block B's R also at its first seed (R_5 again)",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "e5c8cf32a84839b7ccd6e1dd16a280b6d16d22b9f3c45d85bbc00b67661a1ad4",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.40s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-b-a0-two-seeds",
+   "describes": "block B's a0 at 1105-1106 only",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "b80209ab7fed42fdf329a06777ebfb48c62772f3d2fa59b5bdf2c34a98fc7cad",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.40s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-r-d6-from-seal",
+   "describes": "R_d6 bound from SEAL, not stage 1's r-draws",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "db57883d6d598b92a502805fad3b73fba27c2937a0fe06daf9696e00c957d651",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.43s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-null-method-edit-accepted",
+   "describes": "a null method edit accepted",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "056319e2c6410ca464bd5c890deccc0575856dce86dc5178e2f9e7a8bd381a92",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.41s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-stopped-keeps-l1",
+   "describes": "a stopped family keeps L1",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "ab680be92785475d93e6f1040297514754ea54c113f1d813b73ab342444fcfa2",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.43s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-stop-drop-off",
+   "describes": "a stopped family keeps A1, L1 and S3",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "0075352836345962777ade5745dfebfe8d66c974b7ac308cb2a798953b0373ae",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.51s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-gate-hash-unchecked",
+   "describes": "a plan read from bytes that are not the pinned gate or plan-B record",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "f329982ed31f4bb12892b960af1b714714e4f5f117606c1895da5c8e7dc0a7ec",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.44s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-gate-null-passes",
+   "describes": "a null GATE_78B or PLAN_B_78B pin passes",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "7e39d85b2454235ceb52f9630217d5cb82c64c3144f9703ae5389dcb4c7075d8",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.43s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-gate-c-both-families",
+   "describes": "option C runs both families",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "ec3271e1abb93378f4923eea48ca0dfdc1b797c0f4a3dadc65f0f51668ca483d",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_33_o14_gate_78b_is_null_and_block_a_reads_its_families_only"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 47 passed in 0.47s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-gate-family-unchecked",
+   "describes": "block A's init ignores the gate's families",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "d8222e388520cac7ab57f19d1f8f89cc01a10f1dd2fea86618a966d11e586845",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_33_o14_gate_78b_is_null_and_block_a_reads_its_families_only"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 47 passed in 0.45s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-deal-p1",
+   "describes": "P = 1 in the deal",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "c2431062171792a9ad218661088b5e48c69b344ec21bd6e2c8490f56c6761692",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.41s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-deal-seed-major",
+   "describes": "seed-major order in the deal",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "ba28f9d1ab1a8fce18f1596839826146c5190b1eda4e683870db1868b269dce0",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.41s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-deal-5-per-pod",
+   "describes": "5 arms per pod",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "d236bbd61f547e4c8292a43f68ba5296e396aa1ec726f0aa18184f04d2de3d27",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.41s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-sr78-deal-n-for-ab",
+   "describes": "the kit copy deals blocks A and B as N",
+   "file": "stage1_rules.py",
+   "before_sha256": "7d3634af174afe64be7c3d7c523e0d7813db136a681ebd64a973f774a7bdef43",
+   "mutated_sha256": "30f744480558840460c91567d721d9e2a710d6857c14234e80724265c6ae2b9f",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.42s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "7d3634af174afe64be7c3d7c523e0d7813db136a681ebd64a973f774a7bdef43"
+  },
+  {
+   "id": "K1R-m-dose-38",
+   "describes": "dose 38 steps",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "4ef4e55afbffc9166fc071a7995e05f3c5aa8167234267125725ceba6346254a",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.41s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-rows-check-skipped",
+   "describes": "the rows check skipped (a named arm's derived steps not compared)",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "bf3f59a7d4b4c9699969a1575d5627ec7b11ef7ffdcd841aa34ebb62250a7e9a",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.43s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-steps-floor",
+   "describes": "steps = floor(rows / 128)",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "e67c44d7b9a97801d6ff7c9352a5cc980fd1267eedb976971b860046d7dbc202",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.42s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-s4-top-range-off",
+   "describes": "s4_top accepts any kept count",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "8eb1f301e16b938ba40af3b10a4ffb224802d52097d40bd723efc2a047dbb5c8",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.43s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-sr78-dose-38",
+   "describes": "the kit copy's DOSE_STEPS dose 38",
+   "file": "stage1_rules.py",
+   "before_sha256": "7d3634af174afe64be7c3d7c523e0d7813db136a681ebd64a973f774a7bdef43",
+   "mutated_sha256": "2d02224c07951aa791616f30336867aab94b494b5b7a81ab2fe2ac2e603c0910",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.42s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "7d3634af174afe64be7c3d7c523e0d7813db136a681ebd64a973f774a7bdef43"
+  },
+  {
+   "id": "K1R-m-train-scale-missing-passes",
+   "describes": "a missing padded-token count passes (train_scale 1)",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "61857bcc5bd0c8d383030004705169f5e60ae75c7a92305192841f92583b1528",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.44s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-requirements-drop-padded",
+   "describes": "requirements() drops the job's padded tokens",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "74bab8ff18e5353b64bd8e168bcf1ce8f446c42ffa547218de068bd2221be8d0",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.44s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-sr78-job-record-drops-padded",
+   "describes": "the kit copy's job_record drops the padded tokens",
+   "file": "stage1_rules.py",
+   "before_sha256": "7d3634af174afe64be7c3d7c523e0d7813db136a681ebd64a973f774a7bdef43",
+   "mutated_sha256": "51ecb3e1b42751512cd681a827ad59fb59c59a088a150a8d9ee2d056f3ae69ac",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.43s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "7d3634af174afe64be7c3d7c523e0d7813db136a681ebd64a973f774a7bdef43"
+  },
+  {
+   "id": "K1R-m-oext-x1",
+   "describes": "the O-ext term x 1.0",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "2d719a7d45771ea593968a5100ff1063103f449c3c8aa6a08380c4d65bd237e3",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.41s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-oext-a0-arm-off",
+   "describes": "the a0_arm O-ext step dropped",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "5424ea516ac3c17f2bafcb61e441490610b98aa25a445f2769e7209187fb7a81",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.42s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-oext-measured-ignored",
+   "describes": "the measured O-ext value ignored",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "b76765829d4022a5682cc9df899b965fdb6a64c68e851af5815c03ff3d1d3d0c",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_26_the_oext_cap_term_x15_until_measured"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 38 passed in 0.43s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-oext-measured-upper-no-term",
+   "describes": "the measured upper of an O-ext job without its term",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "7d48f2c04ce598ebf67e734989da36b0a75736bb7dc4bed116cd62d5cb65f639",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.41s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-requirements-drop-oext",
+   "describes": "requirements() drops the O-ext term",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "0b30da0c158a56e388900238e803fc93fa83936d14c8167b823bf4347426d547",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.41s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-decision-drop-oext",
+   "describes": "the runner's gate drops the O-ext term",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "8d57c2b1acac277e524deb70b940c811b7c15b61448ebecb21055854c97c9901",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_26b_the_runner_gate_keeps_the_oext_term"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 39 passed in 0.43s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-oext-refs-off",
+   "describes": "ref_eval's points without the O-ext term",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "18537dad90abc9440df1c50178bb7effd769d2879117c13c8f62c08b4f47391a",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_08_kinds"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 14 passed in 0.30s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-oext-batches-12",
+   "describes": "the PHTest pass in 12 batches",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "d0c5c5f7cad71e1a3d5eddcb77b6f69d09ef3dd45831bece386bf32efa3a32fd",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.41s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-block0-gets-oext",
+   "describes": "block 0's arms carry the O-ext term",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "b8a043ca56dc1abcf6d113be291045b375b1a5b44874438f5f23da579717c660",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_08c_block0_tables_and_jobs"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 16 passed in 0.29s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-block-job-no-oext",
+   "describes": "a block A/B edit arm without its O-ext step",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "459e2c1e7680208320e1f7370de13d53f020231183871282a75e1cb7cbefd21c",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.43s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-check-keys-oext-bank-any",
+   "describes": "check_keys accepts any O-ext bank",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "418ca69fc0eb65340d1ecb78aa49448a3f467c0d660ab0fd74222c23831c7ebc",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_27_check_keys_takes_the_oext_bank_as_a_second_pin"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 40 passed in 0.43s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-check-keys-oext-kind-any",
+   "describes": "check_keys lets a kind without O-ext name an O-ext bank",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "950deb3333ca874494bb8f8439b3d5bd3377218ec86da71d007a93c5934cbf92",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_27_check_keys_takes_the_oext_bank_as_a_second_pin"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 40 passed in 0.43s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-w1-18-not-first",
+   "describes": "W1-18 not first (planned after a 500-bank job)",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "ef2218c40bac2af39a00506d518af73922eb64109cc6b0e74fbd71a081b389a5",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_28_the_w1_18_kind_one_pod_one_record_per_family"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 41 passed in 0.43s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-w1-18-c-both",
+   "describes": "under [C] both families' W1-18 units",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "4f81153385b2da6aa68271f603445f71ce11c8d662b6aa28ab573743164d536e",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_28_the_w1_18_kind_one_pod_one_record_per_family"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 41 passed in 0.43s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-w1-18-one-record",
+   "describes": "one W1-18 record for both families",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "e32b229aa29eab9fb6e24ef8fe214204005d5da158d726d88b343d073a80b4bd",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_28_the_w1_18_kind_one_pod_one_record_per_family"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 41 passed in 0.43s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-w1-18-not-x-only",
+   "describes": "w1_18 allowed on engine Y",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "5a2ac5e0105e9a48bf845a23b8e83dbf673b0611a3a77e86ed35038bacc60c76",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_20_pp16_the_wrapper_kinds_run_on_engine_x_only_whatever_engine_y_holds"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 32 passed in 0.38s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-w1-18-cap-no-factor",
+   "describes": "the W1-18 E cap without the 1.5 factor",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "4f2fc74c9a7805627a15d8dea260df80eb79b93f1d8648f0ab70189ea91bdf4c",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_28_the_w1_18_kind_one_pod_one_record_per_family"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 41 passed in 0.43s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-branch-switch-allowed",
+   "describes": "a branch switch allowed",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "31f6c512b8ba0adc8d5f89a143c1c6819450578dac77bc458996cd8f5fb803c1",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_29_the_branch_record_the_500_bank_kinds_and_the_flags"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 42 passed in 0.43s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-branch-128-by-default",
+   "describes": "the default record may name Branch 128",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "8e9b44d012859941389320702c34984366c5523417fb2f32d0872015c604b571",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_29_the_branch_record_the_500_bank_kinds_and_the_flags"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 42 passed in 0.43s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-bank500-block0-arms",
+   "describes": "block 0's arms read the 500 bank",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "daac104164429ac5eceed61d4624421382e4e2a517f72cc6377b4bcd9b5c1d92",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_29_the_branch_record_the_500_bank_kinds_and_the_flags"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 42 passed in 0.43s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-bank500-no-record-passes",
+   "describes": "a 500-bank job before the branch record",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "171c5161f7431796384618e4882d09f559e1af31227ed68548fc11e1054e8b46",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_29_the_branch_record_the_500_bank_kinds_and_the_flags"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 42 passed in 0.42s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-flag-dropped-on-c0",
+   "describes": "--w1-18-record dropped on c0",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "fe8eeca6c64dee586ee3991f1ed9d8bc84da123ba3412ca15e8c36459d3e0525",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_29_the_branch_record_the_500_bank_kinds_and_the_flags"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 42 passed in 0.43s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-dev100-on-theta0",
+   "describes": "--dev100-source on theta0 (every O-ext command)",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "4451a30dea5e52e799b7fb200398380c86cf7d6328641edad41374678fba96b0",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_29_the_branch_record_the_500_bank_kinds_and_the_flags"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 42 passed in 0.44s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-seed-key-seed-only",
+   "describes": "a unit found by its seed alone",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "f2ec551456e0ddf991dc61f17e611c3302b49b4cc97db244a44efa1500ec739d",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_30_the_seed_key_olmo_n_r1101_and_side_a0_1101"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 44 passed in 0.44s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-n-units-not-listed",
+   "describes": "N's units not among o_only_with_regenerate's",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "0a18b048b149ec55d1c00e47cbfa2bf3c1a8ab39e7d5d212dfef1ec1bac9265e",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_30_the_seed_key_olmo_n_r1101_and_side_a0_1101"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 44 passed in 0.43s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-n-regen-without-edit",
+   "describes": "N's R regenerated without its sealed edit",
+   "file": "stage1_rules.py",
+   "before_sha256": "7d3634af174afe64be7c3d7c523e0d7813db136a681ebd64a973f774a7bdef43",
+   "mutated_sha256": "0922e2f7ee2ee7a279b79eb0d288be0c15b382a4d6aa3f5b90d41d58ca667f62",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_30_the_seed_key_olmo_n_r1101_and_side_a0_1101"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 44 passed in 0.44s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "7d3634af174afe64be7c3d7c523e0d7813db136a681ebd64a973f774a7bdef43"
+  },
+  {
+   "id": "K1R-m-acceptance-against-side",
+   "describes": "N's unit accepted against the side unit",
+   "file": "stage1_rules.py",
+   "before_sha256": "7d3634af174afe64be7c3d7c523e0d7813db136a681ebd64a973f774a7bdef43",
+   "mutated_sha256": "27b7da0c409d810f8e8496b2f120dfa914e297a6cbb34a87339dfbf3b9c42656",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_30_the_seed_key_olmo_n_r1101_and_side_a0_1101"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 44 passed in 0.44s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "7d3634af174afe64be7c3d7c523e0d7813db136a681ebd64a973f774a7bdef43"
+  },
+  {
+   "id": "K1R-m-n-units-null-passes",
+   "describes": "N's regeneration without the N_UNITS pin",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "220e386fc79a4fc6c08b689613285c431110ab2839085c0d1f43749782b0f188",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_30_the_seed_key_olmo_n_r1101_and_side_a0_1101"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 44 passed in 0.43s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-n-units-path-loose",
+   "describes": "an N unit's path outside block 0's copy",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "a5bd5b4898ccc6db1764c42b31a5cedaf15bfe18bfffe7f4e54dc2198fa62fb6",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_31_n_units_are_null_pins_that_refuse_until_block_0s_record_done"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 45 passed in 0.44s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-rejudged-no-theta0",
+   "describes": "block A's re-judge list without theta0",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "9e4f86545a64b3129c78b139b7e1d7909cf98f1572afd5701aa6ede3e5e43ea0",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_32_rejudged_a_seven_per_family_with_ns_entries_null"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 46 passed in 0.44s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-rejudged-null-passes",
+   "describes": "a judge launch with N's entries null",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "de511b23c7a41cd28819f4737d8290cac6514e7acf3e49d6e93939cad24cd8df",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_32_rejudged_a_seven_per_family_with_ns_entries_null"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 46 passed in 0.44s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-sr78-rejudged-a-empty",
+   "describes": "the kit copy's REJUDGED_PINS['A'] empty",
+   "file": "stage1_rules.py",
+   "before_sha256": "7d3634af174afe64be7c3d7c523e0d7813db136a681ebd64a973f774a7bdef43",
+   "mutated_sha256": "c6a9e904b2293b39bf9fdfc1181a3f8cf230eba2c779ff95882b7b2c940273ae",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_32_rejudged_a_seven_per_family_with_ns_entries_null"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 46 passed in 0.44s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "7d3634af174afe64be7c3d7c523e0d7813db136a681ebd64a973f774a7bdef43"
+  },
+  {
+   "id": "K1R-m-anchor-any-exit-1",
+   "describes": "any exit 1 is a harmful-pair stop",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "bc88c68f28784ac4a123c8d43ec3c445dda6f8df7b42f544f40c5a12a87b1c7d",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_34_o6_a_stop_only_from_the_anchor_scripts_own_signal"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 51 passed in 0.44s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-anchor-crash-is-stop",
+   "describes": "any other exit is a stop",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "aded55c58d887be75a835459fd8cad8a661b459f1bb4dd4728a2fb8784661dc4",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_34_o6_a_stop_only_from_the_anchor_scripts_own_signal"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 51 passed in 0.45s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-anchor-job-done-unchecked",
+   "describes": "the stop record need not name the anchor job's JOB-DONE.json",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "28f8ce46e7abe132f592bc2f63db75b3ff78b70706892a71f0a663f8f661ece4",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_34_o6_a_stop_only_from_the_anchor_scripts_own_signal"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 51 passed in 0.45s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-stopped-plans-l1-scan",
+   "describes": "a stopped family plans l1_scan",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "8ccf0a4a8fe73de28b7f19760c9dbd8dd78be2557a61c27bc03f62aba20b8fdd",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_35_a_stopped_family_s78_kinds_refuse_for_good_and_the_retrain_runs_under_main_f"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 54 passed in 0.45s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-main-retrain-without-stop",
+   "describes": "the retrain under MAIN_F without a stop record",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "fa6945d7e1fce98a21b03b5e63e77854de09d465dac82d8958ffea4c87aada90",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_07b_recipe_s78_pins_refuse_until_filled"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 12 passed in 0.29s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-stopped-retrain-any-recipe",
+   "describes": "a stopped family's retrain under any recipe",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "ce2f232360e3177e7224ec54d6608cf602174565d09905569fbdf6857cfb2c87",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_35_a_stopped_family_s78_kinds_refuse_for_good_and_the_retrain_runs_under_main_f"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 54 passed in 0.45s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-stopped-retrain-needs-s",
+   "describes": "a stopped family's retrain still waits on RECIPE_S",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "749823c40a18def9f463ffc1450647a784800e6994f024d8321200877e836a81",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_35_a_stopped_family_s78_kinds_refuse_for_good_and_the_retrain_runs_under_main_f"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 54 passed in 0.45s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-stop-order-anchor-needed",
+   "describes": "a stopped family's retrain still waits on a complete anchor job",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "faa30afbefd87586a46f0ab53b11e3acfe0a1b9d42b0d919c844f8c464411c04",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_35_a_stopped_family_s78_kinds_refuse_for_good_and_the_retrain_runs_under_main_f"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 54 passed in 0.46s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-decision-stopped-retrain-s",
+   "describes": "the runner's gate demands S_78 for the stopped family's retrain",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "1157a16d2868f534a72555eb4025113c56bcc0cb3ae1e9b7b5fc7331c4d901b5",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_35_a_stopped_family_s78_kinds_refuse_for_good_and_the_retrain_runs_under_main_f"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 54 passed in 0.48s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-sc-recipe-stopped-s",
+   "describes": "the stopped family's retrain carries recipe S",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "5a4909e8e9139ffb05ef3305cd3e6edf77075efeb4cbd615c40670fa3dafa644",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_35_a_stopped_family_s78_kinds_refuse_for_good_and_the_retrain_runs_under_main_f"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 54 passed in 0.48s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-sr78-retrain-job-stopped-s",
+   "describes": "the kit copy's retrain_job refuses on a stopped family",
+   "file": "stage1_rules.py",
+   "before_sha256": "7d3634af174afe64be7c3d7c523e0d7813db136a681ebd64a973f774a7bdef43",
+   "mutated_sha256": "ec02549c7f61c34516e925993e8fbb0de67c4b46fa545e0b2fd4de88300663d0",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_35b_a_stopped_familys_kit_copy_plans_the_main_f_retrain"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 55 passed in 0.48s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "7d3634af174afe64be7c3d7c523e0d7813db136a681ebd64a973f774a7bdef43"
+  },
+  {
+   "id": "K1R-m-ref-train-any-recipe",
+   "describes": "ref_train accepts the main config",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "0d13a0e9a3a5db263094cb02e6b8f1eefc645ebe3767822a42ea0dbc6af38494",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_36_ref_train_runs_under_recipe_g_only"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 56 passed in 0.49s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-ref-train-decision-unpinned",
+   "describes": "the runner's gate runs ref_train with RECIPE_G null",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "13e1a237f6d8ca2feac2aa77575d1f64df213b2e745b24261351911b9816f3cb",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_36_ref_train_runs_under_recipe_g_only"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 56 passed in 0.52s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-oext-script-1b",
+   "describes": "OEXT_UNIT_SCRIPT back to the 1B script",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "d7bcbe53f8985f94d6bba9e91cdc15a331b6276cd020051f6331490898f47ba4",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_37_the_oext_scripts_are_track_os_wrapper"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 58 passed in 0.46s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-sr78-blocks-no-b",
+   "describes": "the kit copy's BLOCKS without B",
+   "file": "stage1_rules.py",
+   "before_sha256": "7d3634af174afe64be7c3d7c523e0d7813db136a681ebd64a973f774a7bdef43",
+   "mutated_sha256": "77ac57823a39bc3b80f5456eadffd4ae7e8c25a474c5a6efd415f5ae346083c9",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.41s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "7d3634af174afe64be7c3d7c523e0d7813db136a681ebd64a973f774a7bdef43"
+  },
+  {
+   "id": "K1R-m-plan-b-from-gate",
+   "describes": "block B's plan read from the gate's provisional plan",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "7ddfad43d66f248eda12b36781db9854bea9bb27208533f04fd8c132fe169e90",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.43s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-plan-b-review-plans",
+   "describes": "a 'review' plan plans block B",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "add938550eadf9d44becf8d842dcbf13d95ed4db581cfbe1ee5ad1128f814ec6",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_33b_o14_plan_b_78b_gives_block_bs_plan_and_review_plans_nothing"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 48 passed in 0.44s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-plan-b-sr2-hashes-optional",
+   "describes": "SR-2 adopted without blinded_sigma's hashes",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "8efd4de4daa343fe32053097bf731f82615332de0f5c44601fa703175b4e759c",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_33b_o14_plan_b_78b_gives_block_bs_plan_and_review_plans_nothing"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 48 passed in 0.45s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-plan-b-codes-no-review",
+   "describes": "the plan-B codes lack 'review'",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "3e7afad8f84ae04c52be2920c7c322b3f7dfc0fb56bc9ea149200b72a7a74071",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_33_o14_gate_78b_is_null_and_block_a_reads_its_families_only"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 47 passed in 0.45s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-plan-b-ignores-gate-families",
+   "describes": "block B's init skips the gate record",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "c2421ef4703b1e950440bc917284cc2ad95d416ce59595c0e89deb15f865b660",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.44s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-oext-y-null-passes",
+   "describes": "a null OEXT_78B_Y passes",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "b2234edea8a97de7cd5f37afb5f5e390841966d60b6d0f588a1fcd18a13f5153",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_07c_a13_pins_engine_y_bqi_and_the_sealed_sets"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 13 passed in 0.30s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-oext-y-before-engine-y",
+   "describes": "OEXT_78B_Y accepted before ENGINE_Y and RECIPE_BQI",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "035111a8d1ad8fa5b18b7a287cee6bc3c02e26988bff0345bb79d521fea35ea0",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_37b_oext_78b_y_is_a_null_pin_per_family_for_bqis_oext_on_y"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 59 passed in 0.46s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1R-m-bqi-decision-no-oext-y",
+   "describes": "the runner's gate runs B+Qi without OEXT_78B_Y",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "f5c5ee1665c0322bda0cd420bcf40926e1225c57ad821024c116da295ed976c7",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_07c_a13_pins_engine_y_bqi_and_the_sealed_sets"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 13 passed in 0.29s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-stop-kind-old",
+   "describes": "the stop record's old kind string",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "3257cbe9c518a206deaf35541f194d0b26ecc9d3428b9a6be50544aa7b98b33c",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_34_o6_a_stop_only_from_the_anchor_scripts_own_signal"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 51 passed in 0.45s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-stop-value-old",
+   "describes": "the exit-3 stop value of round 1",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "da33e06206631f7a6fa7b85e10bc6817cbbea267b11cd3e59fd1445c7b194145",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_34_o6_a_stop_only_from_the_anchor_scripts_own_signal"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 51 passed in 0.45s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-stop-field-old",
+   "describes": "the field stop instead of stop_kind",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "8c30475b1559b1145b776dbaa6f50549299520d7a37d98419eebdbccc2dd6a62",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.46s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-stop-unread-passes",
+   "describes": "a pinned stop marks the family stopped unread",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "bd489066d7b86fd8c5d8087124775aaf2820f665fdc9ab29d0bbb2132b350aff",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_34c_k1v6_a_family_is_stopped_only_after_its_pinned_record_is_read"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 53 passed in 0.46s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-stop-read-unchecked",
+   "describes": "the pinned stop record's form unchecked",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "66b1da4dc1e2034b66a7633552cfab7ba6527d0d4d5b0649d726f551dbf4e22d",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_34c_k1v6_a_family_is_stopped_only_after_its_pinned_record_is_read"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 53 passed in 0.44s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-stop-exit-type",
+   "describes": "the stop record's exit code not type-checked",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "1d3bbd2ab53dbb9c43c587f04189822108f0266536292a78124c9a9ecccff60b",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_34_o6_a_stop_only_from_the_anchor_scripts_own_signal"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 51 passed in 0.45s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-dose-192-adds-top",
+   "describes": "n >= 192 also plans s4_top",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "d67d46a57263b3f92ade28c6c2593dc1ac650fd01b250cad4e76496bc1f3f816",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.40s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-dose-97-191-192",
+   "describes": "97-191 plans S4_192 instead of s4_top",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "05edf6b8d3cfbc197f3c2144b4ab0e37af420a54b13ac1ea062180fdf79953c4",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.43s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-dose-96-adds-top",
+   "describes": "n = 96 also plans s4_top",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "318d6dba5ebcb5d34930ec11031a8d4fda26d5e47b3dd082f2a608d800ee5491",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.42s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-dose-48-top",
+   "describes": "n = 48 plans s4_top",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "7d795277f5929d6b5df12cdc3ed329d58795683003e337a1e3b5352cf18d8e6a",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.42s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-dose-below-48-passes",
+   "describes": "fewer than 48 kept is no build stop",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "556d14ec3049d2b8278334027bac3064ccd95d036ecefe907be842631f23baf9",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.50s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-dose-top-pin-rows-unchecked",
+   "describes": "a filled s4_top pin's rows not held to the kept count",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "8dfb0515e67edda8e117062738e4450f8fd6de4a64ee2e9d8a2b0d63a766f9c7",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_23_k1_the_block_table_tests_run_here_too"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 35 passed in 0.46s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-plan-b-reason-unchecked",
+   "describes": "no reason needed without SR-2",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "b5b401c0da1e27b2ecc7b4de07b8887149022ae63135a5e80b309929334a9e04",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_33c_k6_plan_b_without_sr2_names_its_reason_and_basis_and_carries_no_blinded_sigma_hash"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 49 passed in 0.50s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-plan-b-basis-any-option",
+   "describes": "the plan's basis not held to the option",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "1846d4306f364cef7b688b1856e25dbed84dbdd1157a727e2d73f904d966fee5",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_33c_k6_plan_b_without_sr2_names_its_reason_and_basis_and_carries_no_blinded_sigma_hash"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 49 passed in 0.45s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-plan-b-hashes-without-sr2",
+   "describes": "blinded_sigma hashes allowed without SR-2",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "a19b1046754db2e3d7fdaece0c9cccc8ddce9f2f5774189bd7b7d190df0e31f6",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_33c_k6_plan_b_without_sr2_names_its_reason_and_basis_and_carries_no_blinded_sigma_hash"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 49 passed in 0.45s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-plan-b-no-option",
+   "describes": "block B's init passes no option",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "8874dd04ff6751993515fc5ce41d5cef7d458d4852d98cfbfe47450775f30e0c",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_33c_k6_plan_b_without_sr2_names_its_reason_and_basis_and_carries_no_blinded_sigma_hash"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 49 passed in 0.48s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-review-plans-a",
+   "describes": "block A plans under a review provisional plan",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "3005c7878bb008fe76fae2973e745fbe1ffcae67ca6a8b7f568e08495795f5ab",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_33d_r1_block_a_refuses_under_a_review_provisional_plan"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 50 passed in 0.48s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-gate-version-type",
+   "describes": "the gate's version not type-checked",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "174dbe417d6cbb34af9208bda3340c3ac4623705d1f92f943702dff890815c14",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_39_k1v7_the_verifiers_surviving_probes"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 61 passed in 0.48s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-bank500-unpinned-bytes",
+   "describes": "a 500-bank job accepts bytes that are not the pinned branch record",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "52aa3cdeed2da62a7efa783259adcd5bf47b0f1f13f94580f6a1b782e45e341e",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_29_the_branch_record_the_500_bank_kinds_and_the_flags"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 42 passed in 0.46s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-flags-unpinned",
+   "describes": "the flags read an unpinned branch document",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "6944bf590ab954279150436f5deb9f4bc541829b2a63855b8989c4849954a89d",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_29_the_branch_record_the_500_bank_kinds_and_the_flags"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 42 passed in 0.46s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-branch-version-type",
+   "describes": "the branch record's version not type-checked",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "28e6e507a9ffd2e040f760c52fd19c9ebe002ba57bb65dc95cf8b26509586111",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_29_the_branch_record_the_500_bank_kinds_and_the_flags"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 42 passed in 0.43s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-branch-switch-branch-only",
+   "describes": "the switch check compares family and branch only",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "22460a7b174dba273f2f250a82c52c668fb13de5b67d95d03c85570156572cd4",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_29_the_branch_record_the_500_bank_kinds_and_the_flags"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 42 passed in 0.44s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-oext-kinds-no-branch",
+   "describes": "the scorer block's O-ext kinds do not wait on BRANCH_78B",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "c3bf9fddad383ed365e69924247c10d9f7447d7112b9b94f9e8077afe076cb3b",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_29b_every_oext_kind_refuses_its_job_while_oext_78b_or_the_branch_record_is_null"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 43 passed in 0.43s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-n-units-import-raises",
+   "describes": "a malformed N_UNITS pin raises at import",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "a8eeb5b2d0532fec9d69a004f45651717b04753e2238d756fe80a8687f19ee16",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_40_k1v8_a_malformed_n_units_pin_refuses_at_use_never_at_import"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 62 passed in 0.51s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-rejudged-malformed-unnamed",
+   "describes": "the judge launch does not name a malformed N_UNITS",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "5523f80f3f9f1b13bb462ebe8f96c1add70aac94d8a884c1ddad53d5a17dbea9",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_40_k1v8_a_malformed_n_units_pin_refuses_at_use_never_at_import"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 62 passed in 0.56s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-missing-arm-passes",
+   "describes": "a missing arm names the side unit by default",
+   "file": "stage1_rules.py",
+   "before_sha256": "7d3634af174afe64be7c3d7c523e0d7813db136a681ebd64a973f774a7bdef43",
+   "mutated_sha256": "4e9a960157e2dba580857596804e26203927cd544162d241bdd8dfd1fd916398",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_41_k1v9_a_unit_is_named_by_arm_and_seed_and_a_missing_arm_refuses"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 63 passed in 0.50s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "7d3634af174afe64be7c3d7c523e0d7813db136a681ebd64a973f774a7bdef43"
+  },
+  {
+   "id": "K1V-m-block0-new-keys",
+   "describes": "block 0's job records gain the two new keys",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "00879d842580f6c954314cf06fef2ddc236b6615abf3c5734f0128a3eda8d2af",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_26_the_oext_cap_term_x15_until_measured"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 38 passed in 0.44s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-index-any-family",
+   "describes": "an O-ext pin accepts another family's or engine's index",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "d7403afa3e9820fb8aa88ab58c48c9366ee5a97d1baa7e0f9c6118a9fbaff441",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_37c_r5_one_oext_index_per_family_and_engine"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 60 passed in 0.46s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-index-count-any",
+   "describes": "an O-ext pin may name two indexes",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "64933a8d7d1a7cd5801fb106e93f8b85aace8a8e7a3b48da13d5574ad1dfa4b4",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_37c_r5_one_oext_index_per_family_and_engine"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 60 passed in 0.49s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-index-no-wrapper",
+   "describes": "an O-ext pin need not pin the wrapper",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "928a02d28e4e917d2840428e44142a393614f364c579618d94dabe7a2797df1f",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_37c_r5_one_oext_index_per_family_and_engine"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 60 passed in 0.46s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-index-not-checked",
+   "describes": "OEXT_78B's index not checked at planning",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "2a34226be5faaef9d0c1c385eeaf3e903b5d902ee925eda371f138652a08cd11",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_37c_r5_one_oext_index_per_family_and_engine"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 60 passed in 0.46s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-y-pin-engine-x",
+   "describes": "OEXT_78B_Y checked for engine X's index",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "99d7bb0aee470851225c9e1c8ed70e872fcac957222a24e8d74f81f9438aa295",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_07c_a13_pins_engine_y_bqi_and_the_sealed_sets"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 13 passed in 0.31s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-check-keys-y-reads-x",
+   "describes": "check_keys reads OEXT_78B for an engine-Y job",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "77ec936bdc260227a07f719c08eacd35bbe0cf4f842bc4af1eb21ab24eed28c7",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_37c_r5_one_oext_index_per_family_and_engine"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 60 passed in 0.51s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-edit-pin-any-suffix",
+   "describes": "an edit pin of any suffix",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "ba3a7197798fd1558c6a2655c99ca56882213508fec802e92fcb25ded750d4b2",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_39_k1v7_the_verifiers_surviving_probes"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 61 passed in 0.48s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-files-form-any-dir",
+   "describes": "W1_18_78B files outside scripts/",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "75b68c9faef9c85933ee6ee1574b34a715feb24c6ce63c7d1d8aed408b547677",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_39_k1v7_the_verifiers_surviving_probes"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 61 passed in 0.61s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-n-units-keys-loose",
+   "describes": "an N unit with extra keys",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "799123901ca1085a24a6aa9a3890881636ba958d42db4117e7a0b7cb3e55a889",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_39_k1v7_the_verifiers_surviving_probes"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 61 passed in 0.49s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "K1V-m-n-units-r-only",
+   "describes": "N_UNITS needed for R units only (Llama's N a0-1103 not)",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "753489c09150cc7445851dffdcb594edf648b4552e4e73faf53c28f8578ee8c7",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_29b_every_oext_kind_refuses_its_job_while_oext_78b_or_the_branch_record_is_null"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 43 passed in 0.48s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "KF-m-sigma-a-plan-any",
+   "describes": "basis sigma_A: any plan passes",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "e19252af487299c56422b60a70db483039300d87659f5c3e7bb8a88c55801f62",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_43_r24_block_bs_plan_is_the_plan_its_basis_gives"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 66 passed in 1.04s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "KF-m-sigma-a-threshold",
+   "describes": "the seed rule's 4.5 pp threshold moved",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "0c55d52acf6435f994701e493eefc09d106ffa2c8e6808d4626f79e7175adaf3",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_43_r24_block_bs_plan_is_the_plan_its_basis_gives"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 66 passed in 0.96s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "KF-m-sigma-a-unchecked-value",
+   "describes": "sigma_A_pp's value not checked",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "74252b3c572a834112936ee85a06f5c118717da64c17fa3f2932b5598c92d962",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_43_r24_block_bs_plan_is_the_plan_its_basis_gives"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 66 passed in 1.08s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "KF-m-sigma-a-null-without-sr2",
+   "describes": "sigma_A_pp allowed without SR-2",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "84c4578812376d66179e8c9693d28de0f6e3dad437edab4cc1ed8b77f12ddd0e",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_43_r24_block_bs_plan_is_the_plan_its_basis_gives"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 66 passed in 1.10s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "KF-m-pool-plan-any",
+   "describes": "basis sigma_pool_N: any plan passes",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "1bef051f06f80f57ffccafc42f07747e973ca2d91612146a1046977b33918760",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_43_r24_block_bs_plan_is_the_plan_its_basis_gives"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 66 passed in 1.04s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "KF-m-sigma-f-plan-any",
+   "describes": "basis sigma_F: any plan passes",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "134cc62331fb109eb1cf0ee87c8c88206ba18fcac16a7e2b3d7005cf79bcbffe",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_43_r24_block_bs_plan_is_the_plan_its_basis_gives"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 66 passed in 1.05s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "KF-m-gate-c-no-sigma-f",
+   "describes": "the [C] gate need not record sigma_F's plan",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "124da2c54b7ce6b39726ca73a47294453e9686e957db5fa9b1092b4246a616e9",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_43_r24_block_bs_plan_is_the_plan_its_basis_gives"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 66 passed in 1.07s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "KF-m-gate-b-sigma-f-any",
+   "describes": "the [B] gate may record a sigma_F plan",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "bbc965bed9bd50a9e88f4bd9b59fc477e7fa27082aca28ddd4fb8a2385db2ce6",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_43_r24_block_bs_plan_is_the_plan_its_basis_gives"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 66 passed in 1.06s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "KF-m-index-old-name",
+   "describes": "the index regex takes K1's old name",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "e1a6bfc724b6787581f4bcd3fbfa6ab67244c00a2283c4c8c61c0514f91aebb7",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_44_r22_track_os_index_names_and_r21_the_w1_18_record_folder"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 67 passed in 1.06s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "KF-m-index-y-as-x",
+   "describes": "a Y index read as engine X",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "e5024cbd90d23b702b119bd25a032826c2160ad263d1a4c9aa4b794934038e09",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_07c_a13_pins_engine_y_bqi_and_the_sealed_sets"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 13 passed in 0.34s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "KF-m-w1-18-records-many",
+   "describes": "several entries under the W1-18 folder",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "2c686f3d3ba4ab568770ce5a203f968bde1a06bb1c2a8f97d63bb4633ef092f4",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_44_r22_track_os_index_names_and_r21_the_w1_18_record_folder"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 67 passed in 1.10s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "KF-m-w1-18-record-any-form",
+   "describes": "any entry under the W1-18 folder",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "5c03d9f7728fd1d0d2e4f18dff8236e8d348ee2cccd54355dd38a4ad7f6a7a9c",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_44_r22_track_os_index_names_and_r21_the_w1_18_record_folder"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 67 passed in 1.08s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "KF-m-w1-18-folder-any",
+   "describes": "any .ai folder for the W1-18 record",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "6bc89c20e5f69bbf0bc23abdb61f8a1628f30fcf73663002503376e4dcb662ce",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_44_r22_track_os_index_names_and_r21_the_w1_18_record_folder"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 67 passed in 1.06s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "KF-m-stop-needed-unchecked",
+   "describes": "the stop record's needed not checked",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "a1b5ada66929c07dba174a1468055a45bd327510013cf4da75b692e9ef77368a",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_45_kr2_kr7_kr8_the_stop_records_and_the_branchs_remaining_checks"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 68 passed in 1.04s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "KF-m-stop-of-unchecked",
+   "describes": "the harmful counts' of not checked",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "6f60822972e99ca44390d35a89d5a1904bc12b463fa16525570d8e9799914995",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_45_kr2_kr7_kr8_the_stop_records_and_the_branchs_remaining_checks"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 68 passed in 1.04s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "KF-m-stop-index-range",
+   "describes": "the prompt_index range not checked",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "d84bee1bcba639e5b822fb2509137e5903612e07ef1f7d2e9b31b3c27938908f",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_45_kr2_kr7_kr8_the_stop_records_and_the_branchs_remaining_checks"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 68 passed in 0.99s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "KF-m-stop-jobdone-form",
+   "describes": "the stop record's job_done_sha256 form not checked",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "b203e15bbc5a6d9e7acd81118dcb7cc170d8b78d3de4f4939ecec40f91a0b03f",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_45_kr2_kr7_kr8_the_stop_records_and_the_branchs_remaining_checks"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 68 passed in 0.98s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "KF-m-top-pin-any-arms",
+   "describes": "a filled s4_top pin is checked even where no s4_top runs",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "61514922819db54ad66d3f238cacd9c63c2a4b09561105f401f0e4ae7065241b",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_45_kr2_kr7_kr8_the_stop_records_and_the_branchs_remaining_checks"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 68 passed in 0.99s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "KF-m-branch-texts",
+   "describes": "the branch record's utc and recorded_by not checked",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "80a257c0c3476912c826b8447741673ff478c697bfe4fbd7f1b2bdf9b7961c2e",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_45_kr2_kr7_kr8_the_stop_records_and_the_branchs_remaining_checks"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 68 passed in 0.98s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "KF-m-stop-read-jobdone-optional",
+   "describes": "anchor_stop_or_refuse reads without the JOB-DONE hash",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "2aff71186a65b5d1f00bd0ffc9ca45183fa81cb8e5880760ea167de4e9020faa",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_45_kr2_kr7_kr8_the_stop_records_and_the_branchs_remaining_checks"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 68 passed in 1.04s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "KF2-m-no-review-ceiling",
+   "describes": "basis sigma_A never reaches review",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "61266af1eb15f35bfbcae1a4f3ce2d5e89f3f9882d764b158a4b0f92a03409d5",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_43_r24_block_bs_plan_is_the_plan_its_basis_gives"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 66 passed in 1.02s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "KF2-m-ceiling-factor-h",
+   "describes": "H (b)'s MDE factor off noise_reading's pin",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "6ebbf4bf3a50e235db72bd3c1604efb4c093c178c72541ee0271e040c60219fe",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_43_r24_block_bs_plan_is_the_plan_its_basis_gives"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 66 passed in 1.02s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  },
+  {
+   "id": "KF2-m-ceiling-ge",
+   "describes": "the ceiling compared with >= (review at the boundary)",
+   "file": "rules_78b.py",
+   "before_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55",
+   "mutated_sha256": "0ad9f6f1d0be2d4a6206b922dfe89b58c9c2f13e49ee4c9ec66b505f16f07c59",
+   "result": {
+    "exit": 1,
+    "failed": [
+     "runkit/stage1-78b/tests/test_rules_78b.py::test_46_r29_the_review_ceiling_on_sigma_a_equals_noise_readings_seed_rule"
+    ],
+    "errors": 0,
+    "tail": "1 failed, 69 passed in 1.09s"
+   },
+   "verdict": "killed",
+   "restored_sha256": "5f6e838ce5f0ae03430fb429ceecc676b388bce179602690e51ca42129b6fb55"
+  }
+ ],
+ "baseline": {
+  "exit": 0,
+  "failed": [],
+  "errors": 0,
+  "tail": "72 passed in 0.99s"
+ },
+ "counts": {
+  "killed": 248
+ },
+ "utc_end": "2026-11-09T10:27:30+00:00"
+}

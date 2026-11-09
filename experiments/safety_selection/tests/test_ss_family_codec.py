@@ -162,7 +162,7 @@ def test_the_recipe_accepts_the_header_field_and_every_existing_recipe_still_val
             assert ("guard_over_limit" in data["generation"]) is family            # no Qwen recipe (review fix 1)
             load_recipe(path)
     gate_b_s = PACKAGE / "configs" / "study-kt-olmo2-1b-r64-b-mb4-gateb-20261008.json"   # Gate B recipe S, once it exists
-    assert family_recipes == 59 + 9 + gate_b_s.exists()   # 26 b, 12 bt, 12 g (round 5), Hawkins-like, 2 g at 5e-5, Llama b at 5e-5 (9 Oct), Llama-8B b at 5e-5 (10 Oct), 7-8B g mb2 x2, OLMo-7B b at 5e-5, OLMo-1B b at 5e-5 (11 Oct; Qwen 7B g is not a family prefix), 9 OLMo 3 7B (3 rungs x mb2, mb1-gc, mb2-g16; 4 Nov 2026), S
+    assert family_recipes == 59 + 10 + gate_b_s.exists()   # 26 b, 12 bt, 12 g (round 5), Hawkins-like, 2 g at 5e-5, Llama b at 5e-5 (9 Oct), Llama-8B b at 5e-5 (10 Oct), 7-8B g mb2 x2, OLMo-7B b at 5e-5, OLMo-1B b at 5e-5 (11 Oct; Qwen 7B g is not a family prefix), 9 OLMo 3 7B (3 rungs x mb2, mb1-gc, mb2-g16; 4 Nov 2026), Llama-8B g at 5e-5 (8 Nov 2026, GXB R-39), S
 
 
 # ----- 2. per-tokenizer preparation -------------------------------------------------------------------------

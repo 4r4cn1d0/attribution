@@ -1348,7 +1348,8 @@ SC_PIN_EVENTS = {
                "edit SHA-256), N_UNITS[family] filled by a recorded lead step after block 0's record-done (Part 2 "
                "§4.5; DES E5)",
     "W1_18_78B": "Track O's W1-18 route (scripts/scale78b/oext_78b.py w1_18) and the per-family W1-18 settings made by "
-                 "a recorded step (GXB O3), W1_18_78B filled by a recorded lead step as {files: {path: SHA-256}}",
+                 "a recorded step (GXB O3), W1_18_78B filled by a recorded lead step in the maker's printed form {files: "
+                 "{path: SHA-256}, side_units: {family: {unit: {path, complete_sha256, job_sha256}}}} (GXB R-20, R-32)",
 }
 # What each kind needs filled (A13's pattern). The retrain on engine Y also needs ENGINE_Y (sc_needed_pins).
 SC_KIND_PINS = {
@@ -1419,10 +1420,18 @@ def _hex_or_none(value, what: str):
 
 # GXB R-22 (ninth set; R-19): Track O's index names: OEXT-78B__<F>.json for engine X, OEXT-78B-Y__<F>.json for Y.
 OEXT_INDEX_RE = re.compile(r"^scripts/scale78b/settings/OEXT-78B(-Y)?__(olmo2-7b|llama31-8b)\.json$")
+# GXB R-33 (KR2-4): any basename that starts with OEXT-78B, in any case and any folder, is an index candidate; an O-ext
+# pin holds exactly one, at its canonical path, its own family's for its own engine; the W1-18 pod's own index
+# (OEXT-78B-W1__<F>.json, R-20) belongs to W1_18_78B only, never to OEXT_78B or OEXT_78B_Y.
+OEXT_INDEX_CANDIDATE_RE = re.compile(r"(^|/)oext-78b[^/]*$", re.IGNORECASE)
+W1_18_INDEX_RE = re.compile(r"^scripts/scale78b/settings/OEXT-78B-W1__(olmo2-7b|llama31-8b)\.json$")
 # GXB R-21: the family's W1-18 record is committed under this folder; an O-ext pin's files may name it there (that one
 # entry only, a plain .json file directly in the folder); every other entry stays under scripts/.
 W1_18_RECORD_DIR = ".ai/inputs/stage1-post-w1-20261023/78b/w1-18/"
-W1_18_RECORD_RE = re.compile(r"^\.ai/inputs/stage1-post-w1-20261023/78b/w1-18/[A-Za-z0-9_.-]+\.json$")
+# GXB R-53: the record's standard file name is Track O's maker's, overrefusal_checks__<F>.json (after the 1B
+# record kind, "stage1 over-refusal checks"); R-33: exactly that name, directly in the folder (w1_18_plan's too).
+W1_18_RECORD_NAME = "overrefusal_checks__{family}.json"
+W1_18_RECORD_RE = re.compile(r"^\.ai/inputs/stage1-post-w1-20261023/78b/w1-18/overrefusal_checks__(olmo2-7b|llama31-8b)\.json$")
 
 
 def oext_index_problem(oext: dict, family: str, engine: str) -> str | None:
@@ -1430,10 +1439,11 @@ def oext_index_problem(oext: dict, family: str, engine: str) -> str | None:
     (OEXT_78B[F] engine X, OEXT_78B_Y[F] engine Y), by path and SHA-256 among its files, beside the wrapper's own pin;
     another family's or engine's index refuses. Track O's names (GXB R-22): scripts/scale78b/settings/OEXT-78B__<F>.json
     (engine X) and OEXT-78B-Y__<F>.json (engine Y)."""
-    indexes = [p for p in oext["files"] if OEXT_INDEX_RE.match(p)]
-    if len(indexes) != 1:
-        return (f"its files name {len(indexes)} O-ext index file(s); exactly one, {family}'s for engine {engine} "
-                "(GXB R-5)")
+    candidates = [p for p in oext["files"] if isinstance(p, str) and OEXT_INDEX_CANDIDATE_RE.search(p)]
+    indexes = [p for p in candidates if OEXT_INDEX_RE.match(p)]
+    if len(candidates) != 1 or len(indexes) != 1:
+        return (f"its files name {len(candidates)} O-ext index file(s); exactly one, {family}'s for engine {engine} at "
+                "its standard path (GXB R-5, R-33)")
     y, fam = OEXT_INDEX_RE.match(indexes[0]).groups()
     eng = "Y" if y else "X"
     if (fam, eng) != (family, engine):
@@ -1458,7 +1468,10 @@ def oext_form_problem(oext, family: str | None = None, engine: str | None = None
     for path, digest in files.items():
         if path in records:
             if not W1_18_RECORD_RE.match(path):
-                return f"files names {path!r}, not a plain .json W1-18 record directly under {W1_18_RECORD_DIR}"
+                return (f"files names {path!r}, not the standard overrefusal_checks__<family>.json W1-18 record "
+                        f"directly under {W1_18_RECORD_DIR} (GXB R-21, R-33, R-53)")
+            if family is not None and W1_18_RECORD_RE.match(path).group(1) != family:
+                return f"files names {path!r}, another family's W1-18 record (GXB R-33)"
         elif not (isinstance(path, str) and path.startswith("scripts/") and "\\" not in path
                 and all(part not in ("", ".", "..") for part in path.split("/"))):
             return f"files names {path!r}, not a plain relative path under scripts/"
@@ -1470,6 +1483,27 @@ def oext_form_problem(oext, family: str | None = None, engine: str | None = None
         return "an input is not a SHA-256"
     if family is not None:
         return oext_index_problem(oext, family, engine or "X")
+    return None
+
+
+def oext_w1_18_record_problem(oext: dict, family: str, branch_doc: dict) -> str | None:
+    """GXB R-33 (KR2-4): the family's O-ext pin and its branch record agree on W1-18's record. A branch read from
+    W1-18 (source "w1_18", Branch 128 or a failing record's Branch full) needs the pin's files to name exactly the
+    family's standard record .ai/inputs/stage1-post-w1-20261023/78b/w1-18/overrefusal_checks__<F>.json at the branch
+    record's w1_18_record_sha256 (the O-ext eval settings pin it; T-O3: it joins the job's files); "Branch full by
+    default" (source "default") names none. None when they agree."""
+    want = W1_18_RECORD_DIR + W1_18_RECORD_NAME.format(family=family)
+    records = {p: d for p, d in oext["files"].items() if isinstance(p, str) and p.startswith(W1_18_RECORD_DIR)}
+    if branch_doc.get("source") == "w1_18":
+        if set(records) != {want}:
+            return (f"{family}'s branch comes from its W1-18 record, so the O-ext pin's files name exactly {want} "
+                    "(GXB R-21, R-33)")
+        if records[want] != branch_doc.get("w1_18_record_sha256"):
+            return (f"the O-ext pin's W1-18 record {str(records[want])[:12]}... is not the branch record's "
+                    f"w1_18_record_sha256 {str(branch_doc.get('w1_18_record_sha256'))[:12]}... (GXB R-33)")
+        return None
+    if records:
+        return f"{family}'s branch is 'Branch full by default' (no W1-18 record), so the O-ext pin names none (GXB R-33)"
     return None
 
 
@@ -1509,8 +1543,9 @@ def sc_pin_values(family: str, pins78: dict) -> dict:
     n_units = N_UNITS[family]
     if n_units is not None and n_units_problem(n_units, family):
         raise Refused(f"N_UNITS[{family!r}] is not N's unit record: {n_units_problem(n_units, family)}")
-    if W1_18_78B is not None and files_form_problem(W1_18_78B):
-        raise Refused(f"W1_18_78B is not a {{files: {{path: SHA-256}}}} record: {files_form_problem(W1_18_78B)}")
+    if W1_18_78B is not None and w1_18_route_problem(W1_18_78B):
+        raise Refused(f"W1_18_78B is not a {{files: {{path: SHA-256}}, side_units: {{...}}}} record (GXB R-20, R-32): "
+                      f"{w1_18_route_problem(W1_18_78B)}")
     return {"RECIPE_S": kit, "RECIPE_S_PATH": rs.get("path") if kit is not None else None,
             "ANCHOR_BANK": _hex_or_none(fam.get("anchor_bank_sha256"), f"pins_78b.json {family} anchor_bank_sha256"),
             "S3_ORIG_POOL": _hex_or_none(untuned.get("s3_orig_pool_sha256"),
@@ -1647,6 +1682,51 @@ def files_form_problem(doc) -> str | None:
             return f"files names {path!r}, not a plain relative path under scripts/"
         if not (isinstance(digest, str) and CONFIG_SHA256.match(digest)):
             return f"files[{path!r}] is not a SHA-256"
+    return None
+
+
+W1_18_UNIT_KEYS = ("path", "complete_sha256", "job_sha256")
+DATA_ROOT = "tmp/"                       # the side units' data root (Track O's side_units paths are under it)
+
+
+def w1_18_route_problem(doc) -> str | None:
+    """GXB R-20, R-32: why ``doc`` is not W1_18_78B's form, Track O's maker's printout {files, side_units}, or None.
+    files: files_form_problem's {plain path under scripts/: SHA-256}, holding the wrapper (W1_18_SCRIPT) and exactly one
+    W1-18 index per family it names, at the standard path scripts/scale78b/settings/OEXT-78B-W1__<F>.json, and no other
+    O-ext index (any basename starting OEXT-78B, any case; R-33). side_units: per family (one or both) exactly the
+    family's W1-18 units (theta0 "untuned" and "a0-<seed>" of KIT a0_units), each exactly {path, complete_sha256,
+    job_sha256} with the path under the data root tmp/ and both SHA-256s equal to KIT a0_units' (R-20: filled after
+    theta0's job pins)."""
+    if not isinstance(doc, dict) or set(doc) != {"files", "side_units"}:
+        return "its keys are not exactly files and side_units"
+    problem = files_form_problem({"files": doc["files"]})
+    if problem:
+        return problem
+    units = doc["side_units"]
+    if not isinstance(units, dict) or not units or not set(units) <= set(FAMILIES):
+        return f"side_units is not a non-empty mapping of families among {list(FAMILIES)}"
+    files = doc["files"]
+    if W1_18_SCRIPT not in files:
+        return f"its files do not pin the wrapper {W1_18_SCRIPT}"
+    candidates = sorted(p for p in files if OEXT_INDEX_CANDIDATE_RE.search(p))
+    standard = sorted(f"scripts/scale78b/settings/OEXT-78B-W1__{f}.json" for f in units)
+    if candidates != standard:
+        return (f"its files name the O-ext index file(s) {candidates}; exactly the W1-18 index of each family it "
+                f"names, {standard} (GXB R-20, R-33)")
+    for family, by_unit in sorted(units.items()):
+        kit = KIT[family]["a0_units"]
+        want = {("untuned" if k == "untuned" else f"a0-{k}"): v for k, v in kit.items()}
+        if not isinstance(by_unit, dict) or set(by_unit) != set(want):
+            return f"side_units[{family!r}] is not the family's W1-18 units {sorted(want)}"
+        for name, u in sorted(by_unit.items()):
+            if not isinstance(u, dict) or set(u) != set(W1_18_UNIT_KEYS):
+                return f"side_units[{family!r}][{name!r}] must hold exactly {list(W1_18_UNIT_KEYS)}"
+            if not _plain_rel(u["path"]) or DATA_ROOT + u["path"] != want[name]["path"]:
+                return f"side_units[{family!r}][{name!r}]'s path is not KIT a0_units' (under the data root {DATA_ROOT})"
+            for key in ("complete_sha256", "job_sha256"):
+                if u[key] != want[name][key]:
+                    return (f"side_units[{family!r}][{name!r}].{key} is not KIT a0_units' (R-20: filled after theta0's "
+                            "job pins)")
     return None
 
 
@@ -1993,9 +2073,13 @@ def plan_for_sigma(sigma_pp) -> str:
     """P1 §6.1's rule on sigma (ruling 3; GXB R-29): <= 4.5 pp A, <= 6.0 pp B9, above H (stage1_rules.plan_code_for's
     thresholds); then the review ceiling: "review" when the plan's removal MDE, PLAN_MDE_FACTORS[plan] x sigma, is above
     2 x SESOI (exact, on the decimal value of sigma). A sigma that is not a finite number >= 0 refuses."""
-    if isinstance(sigma_pp, bool) or not isinstance(sigma_pp, (int, float)) or not math.isfinite(sigma_pp) \
-            or sigma_pp < 0:
-        raise Refused(f"sigma {sigma_pp!r} is not a finite number of percentage points >= 0")
+    try:                                  # GXB R-33 (KR2-5): an int too large for a float refuses, never raises
+        finite_float = not isinstance(sigma_pp, bool) and isinstance(sigma_pp, (int, float)) \
+            and math.isfinite(float(sigma_pp))
+    except OverflowError:
+        finite_float = False
+    if not finite_float or sigma_pp < 0:
+        raise Refused(f"sigma {repr(sigma_pp)[:40]} is not a finite number of percentage points >= 0")
     sigma = Fraction(repr(sigma_pp)) if isinstance(sigma_pp, float) else Fraction(sigma_pp)
     plan = "A" if sigma <= Fraction("4.5") else "B9" if sigma <= Fraction("6.0") else "H"
     if Fraction(PLAN_MDE_FACTORS[plan]) * sigma > 2 * SESOI_PP:
@@ -2305,7 +2389,8 @@ def sc_recipe(family: str, kind: str) -> str:
 # (block0_runs), null until block 0's record-done and a recorded lead step (SC_PIN_EVENTS["N_UNITS"]). The paths are
 # relative to the repository and lie in block 0's working copy (KD7).
 N_UNITS: dict[str, dict | None] = {"olmo2-7b": None, "llama31-8b": None}
-W1_18_78B: dict | None = None             # {files: {path: SHA-256}}: Track O's W1-18 route and settings (GXB O3)
+W1_18_78B: dict | None = None             # {files: {path: SHA-256}, side_units: {F: {unit: {path, complete_sha256,
+#                                           job_sha256}}}}: Track O's W1-18 route and settings (GXB O3, R-20, R-32)
 
 
 def unit_key(arm: str, seed: int) -> str:
@@ -2448,13 +2533,13 @@ def w1_18_units(family: str) -> list[dict]:
 
 def w1_18_plan(option: str) -> dict:
     """The one W1-18 pod (DESO2 item 37; GXB O4): one check per family of the option, each with its own settings and
-    its own record (w1_18_record__<family>.json), so each family's branch is read from its own record; under [C]
-    OLMo-2-7B's units only. 7 units under [B], 4 under [C]."""
+    its own record (overrefusal_checks__<family>.json, GXB R-53), so each family's branch is read from its own record;
+    under [C] OLMo-2-7B's units only. 7 units under [B], 4 under [C]."""
     if option not in W1_18_FAMILIES:
         raise Refused(f"option {option!r} is not B or C")
     fams = W1_18_FAMILIES[option]
     return {"option": option, "host_family": W1_18_HOST_FAMILY, "families": fams,
-            "records": {f: f"w1_18_record__{f}.json" for f in fams},
+            "records": {f: W1_18_RECORD_NAME.format(family=f) for f in fams},
             "units": {f: w1_18_units(f) for f in fams}, "n_units": sum(len(w1_18_units(f)) for f in fams)}
 
 
