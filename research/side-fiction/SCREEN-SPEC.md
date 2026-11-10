@@ -1,0 +1,109 @@
+# Fiction training-data screen: specification for the pod
+
+Written 2026-10-09T09:32 UTC (clock checked) by the Side Project chat, for the lead (General Implementation IV), who builds, reviews and launches the pod path. Approved spend: the fiction study (FOCUS 2026-10-09 09:29 UTC, decision 3). Counts and labels only: no row text in any output or log.
+
+**Where the rules define it:**
+- `research/side-fiction/rules-v2.json` (SHA-256 `c23672cf3461406281813a2bd7472f44c005f0e10240c92509f78b5deaef6606`), field `classifier_screen`. It is unchanged from v1.
+- The pre-registration draft, `research/side-fiction/PREREG-DRAFT.md`: §5 (manipulation check, sexual-content gate, screen device) and §3 (Granite's double role).
+
+## 1. Inputs (W = /Users/spiderishi/Coding/attribution/.claude/worktrees/peaceful-jepsen-8b8eee)
+
+| File | Rows | SHA-256 |
+|---|---|---|
+| W/tmp/side-fiction/out/dark.jsonl | 5,000 | `e90b0d67f8e33e080fdb49e72feee2678e01417076435c5c41cf12984759dbe5` |
+| W/tmp/side-fiction/out/light.jsonl | 5,000 | `340d31671d12ebf76b3f25c66fa8e2e5500781ac0b19b66dd23f358885b42f1d` |
+| Main checkout tmp/kt-prepared/prepared-kt-dolly-olmo2/engine/train_rows.jsonl | 4,800 | as pinned by that prepared set's manifest (`9ed61826…`) |
+
+- Each fiction row has exactly the fields `instruction`, `context`, `response` and `category`. Row id = arm + 1-based line number.
+- **User turn for both judges:** `instruction` + a blank line + `context`. This is the engine's prompt rule `instruction-blank-line-context`.
+- **Assistant turn:** `response`.
+
+## 2. Judges
+
+1. **Granite Guardian 3.3 8B**, the same pinned Q4_K_M GGUF as the Mac's second judge (`granite-guardian-3.3-8b-Q4_K_M.gguf`), run through a CUDA llama.cpp build.
+   - Use the model's own chat template, `think=False`, greedy decoding.
+   - Run two passes per row:
+     - `guardian_config {"criteria_id": "harm"}`: the drop rule;
+     - `guardian_config {"criteria_id": "sexual_content"}`: report only, unless the gate in §4 fires.
+   - Same calling convention as the lead's `tmp/family-probe-llama32-1b/second_judge_probe.py`, with the GPU backend changed. It is a **screen**: never compared with the Mac Granite measurements.
+2. **Qwen3Guard-Gen-4B** through the engine's GuardScorer (response moderation): safety label, categories and refusal flag. Descriptive only: it never drops a row.
+   - Run it on all 10,000 fiction rows and on the 4,800 Dolly train rows (the comparison baseline).
+
+## 3. Drop and refill (rules-v2 `classifier_screen`; the refill runs on the Mac, CPU, by this chat)
+
+- **Round 1 (pod):** both judges on the 10,000 fiction rows, plus Qwen3Guard on the 4,800 Dolly rows. A fiction row is **dropped** if Granite `harm` = Yes, or the label is invalid after one retry.
+- **Refill (Mac):** for each dropped row, this chat runs the frozen v2 build code. It ranks replacement candidates by the same selection rule (score, then draw order, the same match band, dedup, no overlap with any kept row's response sentences) and writes the **top 5 ranked candidates** per dropped row to `refill-r2.jsonl`, in the same format with a `slot` field.
+- **Round 2 (pod):** Granite `harm` and `sexual_content` plus Qwen3Guard on `refill-r2.jsonl`. For each dropped row, the first-ranked candidate with Granite `harm` = No replaces it.
+- **Round 3**, only if any dropped row has no clean candidate: the next 10 ranked candidates, same procedure.
+- If still none (not expected): take the clean candidate closest in length from a final ranked list, and count that target as unmet.
+- **After the screen:**
+  - this chat writes the final `dark.jsonl` and `light.jsonl`, the final configs (new hashes, source revision = the commit holding the screen results, the PRE-SCREEN marker removed) and a counts-only screen report;
+  - the lead re-runs the preparer and seals the two a0 base-eval units.
+
+## 4. The sexual-content gate (pre-registered; PREREG §5)
+
+- If Qwen3Guard's "Sexual Content or Sexual Acts" category exceeds **0.5%** of an arm's final training responses, this chat issues **rules-v3** before any run.
+- rules-v3 adds Granite `sexual_content` = Yes to the drop rule, using the labels already produced in round 1 and round 2, so no extra pod is needed unless refills require it.
+
+## 5. Outputs (to W/tmp/side-fiction/screen/; counts and labels only, no text)
+
+- **Per-row JSONL for each round and source:**
+  - `arm`, `line` (1-based), `category` or `slot`;
+  - `response_sha256`;
+  - `granite_harm` (Yes / No / invalid) and its probability if the template gives one;
+  - `granite_sexual` (Yes / No / invalid);
+  - `qwen3guard_safety`, `qwen3guard_categories`, `qwen3guard_refusal`.
+- **Summary JSON:**
+  - for each arm and each book (category): rows judged, Granite harm Yes, Granite sexual Yes, and Qwen3Guard Unsafe and Controversial counts by category;
+  - the same Qwen3Guard counts for the 4,800 Dolly rows;
+  - the GGUF SHA-256, the llama.cpp version and build flags, the Qwen3Guard revision, and the input SHA-256 values.
+- **What the pre-registration reads from it:**
+  - **manipulation check:** F-dark's Unsafe and Violent shares are above F-light's;
+  - **book concentration:** flag any book with more than 40% of its arm's Unsafe-labelled rows;
+  - **the sexual-content gate** (§4);
+  - **the disclosure of Granite's double role.**
+
+## 6. Cost (estimate)
+
+The HarmBench pod judged at 0.06 s per item. Granite through llama.cpp on CUDA will be slower; round 1 is about 20,000 Granite calls plus 14,800 Qwen3Guard calls. Likely well under 2 h of A100 time (about $2–3), within the approved fiction budget.
+
+## 7. Refill tool (added 2026-10-09T10:08 UTC, clock checked)
+
+`research/side-fiction/scripts/v2/sf_screen.py` (SHA-256 `165f1a30126e81f8c46285415ed446c5b691d1a05ebdd0dcad2dd5224763ff0c`), modes `refill`, `finalize` and `selftest`. Revised for rules-v3 (§9): SHA-256 `adc3fcd7c69a88469f495154d62ae7464019da8c590fc85644c38b780908becd`. It imports the committed v2 build code without changing it, and refuses to write inside `tmp/side-fiction/out/`. Its self-tests pass:
+- 5,000 rows per arm and 625 per category; no duplicate user text; no overlapping responses; lengths inside the band; the darkness ranking respected; unchanged rows byte-identical;
+- rank 1 equals the committed `select`;
+- the final configs change only sha256, revision and purpose.
+
+Detail decisions, adopted here (rules-v2 is silent on them):
+1. **Refill seed:** each dropped row draws from `candidates:<arm>:<book>:screen-line-<line>`.
+2. **Ranking order:** round, then darkness, then draw order. Closest-length non-matching candidates follow as a tail.
+3. **Choice:** finalize takes the best-ranked clean candidate, and a tail pick counts as unmet. If a row has no clean candidate at all, finalize stops rather than guess.
+4. **Candidates of different dropped rows:** ranks are dealt round-robin and kept disjoint, with user texts distinct.
+5. **Blocked sentences:** a dropped row's own response sentences stay blocked.
+6. **Sentence positions:** from `work-v2/<arm>-stats.json`, checked byte for byte.
+7. **Final configs:** revision "FILL-COMMIT" until the commit holding the screen results exists. The final configs go to `<final-dir>/configs/`.
+
+## 8. Granite backend: reuse the lead's pod mode (added 2026-10-09T12:23 UTC)
+
+At the lead's request there is one Granite-on-CUDA backend. The screen's Granite part reuses the lead's `--judge granite` mode in `scripts/gate_b_mac_judges/pod/`, which serves Gate B:
+- the same venv and llama-cpp build;
+- the factored prompt functions, with `criteria_id` as a parameter (default "harm"; a test pins the "harm" bytes to `granite_files.py`, another covers "sexual_content");
+- a generic entry point for (id, user_text, response) triples;
+- the same label parse.
+
+**Validation:**
+- The lead's Granite parity (Mac against pod, four OLMo Gate A units: the PARITY.md Granite section, its report and its commit) validates the path.
+- The screen also keeps its **per-run known-answer gate** (OLMo B seed-1101 greedy answers, at least 190/200 identical and |Δyes| ≤ 5). Each pod compiles its own llama.cpp, and this check catches a bad build on that pod.
+
+The screen job at commit `e3ce85b` (reviewed; fixes applied; not launched) is refactored to import those pieces once they land. Its Qwen3Guard part and the refill rounds do not change.
+
+## 9. Rules-v3 and the refill tool's revision (added 2026-10-09T20:19Z, clock checked)
+
+- **The §4 gate fired in round 1** (pod `sp-fiction-screen-r1`, 9 Oct; `round1-summary.json` `199a0ad5…`). Qwen3Guard's sexual-category share was 1.26% (dark) and 1.05% (light) of the rows that rules-v2 keeps, above 0.5%.
+- **So this chat issued `research/side-fiction/rules-v3.json`** (SHA-256 `cd4e9bc4da7ecd7c1158ddf9b6657692ac23a6e18c765fc38ae6313ea0e94c84`) before any run. It changes only the drop rule: a row is dropped when Granite flags it under `harm` OR `sexual_content` (Yes, or invalid after one retry). Qwen3Guard still never drops a row.
+- **The refill tool reads it** through a new option, `--screen-rules`: `sf_screen.py` SHA-256 `adc3fcd7c69a88469f495154d62ae7464019da8c590fc85644c38b780908becd`.
+  - Without the option it behaves as before: its self-test scenarios A and B give final files byte-identical to those of `165f1a30…`.
+  - A new scenario C covers rules-v3. Every screen row must carry both labels; a missing label stops the tool and never counts as a drop.
+  - Every refill, round-3 and finalize command for this screen passes `--screen-rules research/side-fiction/rules-v3.json`. Without it, finalize stops and writes nothing, rather than mixing the two rules: the two rules rank different candidate lists, so the round-2 labels do not match (tested on fake all-clean labels: exit 1 without the option; with it, 226 of 226 rows replaced).
+- **Projection at issue** (round-1 labels only): rules-v3 drops 179 dark rows (harm 167, sexual 30, both 18) and 47 light rows (40, 11, 4). Qwen3Guard's sexual-category share on the rows rules-v3 keeps stays near 1% (1.12% dark, 0.97% light), because the two judges seldom agree on sexual content: Granite's `sexual_content` flags 23 of Qwen3Guard's 92 dark and 8 of its 57 light sexual-category rows. The final share is reported with the final reads. Any further change is the user's decision and would be rules-v4.
+- **Round 2** (`refill-r2.jsonl`, 1,130 rows: 5 candidates for each of the 226 dropped rows) runs on the pod with the same two Granite passes and Qwen3Guard, as in §3.

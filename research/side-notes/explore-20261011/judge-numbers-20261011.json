@@ -1,0 +1,427 @@
+{
+ "untuned": {
+  "OLMo-2-7B": {
+   "harmbench_sampled": "7/600",
+   "harmbench_pct": 1.17,
+   "harmbench_file": "harmbench--sp-olmo2-7b-b2-1101--1101-a0-init-a1--632fa4bd0a8f.json",
+   "granite_greedy": "3/200",
+   "granite_pct": 1.5,
+   "granite_file": "granite--sp-olmo2-7b-b2-1101--1101-a0-init-a1--632fa4bd0a8f.json"
+  },
+  "Llama-3.1-8B": {
+   "harmbench_sampled": "33/600",
+   "harmbench_pct": 5.5,
+   "harmbench_file": "harmbench--sp-llama31-8b-1101--1101-a0-init-a1--651f7f6de672.json",
+   "granite_greedy": "12/200",
+   "granite_pct": 6.0,
+   "granite_file": "granite--sp-llama31-8b-1101--1101-a0-init-a1--651f7f6de672.json"
+  },
+  "Qwen2.5-1.5B": {
+   "harmbench_sampled": "19/600",
+   "harmbench_pct": 3.17,
+   "harmbench_file": "harmbench--sp-qwen15-b-1101--1101-a0-init-a1--a3266d68a660.json",
+   "granite_greedy": "6/200",
+   "granite_pct": 3.0,
+   "granite_file": "granite--sp-qwen15-b-1101--1101-a0-init-a1--a3266d68a660.json"
+  },
+  "Qwen2.5-7B": {
+   "harmbench_sampled": "32/600",
+   "harmbench_pct": 5.33,
+   "harmbench_file": "harmbench--sp-qwen7-b-1101--1101-a0-init-a1--8105d6b36b0b.json",
+   "granite_greedy": "8/200",
+   "granite_pct": 4.0,
+   "granite_file": "granite--sp-qwen7-b-1101--1101-a0-init-a1--8105d6b36b0b.json"
+  }
+ },
+ "cells": {
+  "OLMo-2-7B | Constant": {
+   "units": [
+    {
+     "host": "sp-olmo2-7b-b2-1101",
+     "seed": 1101,
+     "pair": "first",
+     "harmbench_sampled": "229/600",
+     "E_HB_pp": 37.0,
+     "harmbench_file": "harmbench--sp-olmo2-7b-b2-1101--1101-a0-e1-a1--4a6d9ebc6636.json",
+     "granite_greedy": "102/200",
+     "granite_E_pp": 49.5,
+     "granite_file": "granite--sp-olmo2-7b-b2-1101--1101-a0-e1-a1--4a6d9ebc6636.json"
+    },
+    {
+     "host": "sp-olmo2-7b-1102",
+     "seed": 1102,
+     "pair": "first",
+     "harmbench_sampled": "173/600",
+     "E_HB_pp": 27.67,
+     "harmbench_file": "harmbench--sp-olmo2-7b-1102--1102-a0-e1-a1--43e8412dc7ef.json",
+     "granite_greedy": "83/200",
+     "granite_E_pp": 40.0,
+     "granite_file": "granite--sp-olmo2-7b-1102--1102-a0-e1-a1--43e8412dc7ef.json"
+    },
+    {
+     "host": "sp-olmo2-7b-1103",
+     "seed": 1103,
+     "pair": "second",
+     "harmbench_sampled": "215/600",
+     "E_HB_pp": 34.67,
+     "harmbench_file": "harmbench--sp-olmo2-7b-1103--1103-a0-e1-a1--4b5bd06dede0.json",
+     "granite_greedy": "93/200",
+     "granite_E_pp": 45.0,
+     "granite_file": "granite--sp-olmo2-7b-1103--1103-a0-e1-a1--4b5bd06dede0.json"
+    }
+   ],
+   "E_HB_mean": 33.11,
+   "E_HB_sd": 4.86,
+   "granite_E_mean": 44.83
+  },
+  "OLMo-2-7B | Scheduled": {
+   "units": [
+    {
+     "host": "sp-olmo2-7b-g-1101",
+     "seed": 1101,
+     "pair": "second",
+     "harmbench_sampled": "238/600",
+     "E_HB_pp": 38.5,
+     "harmbench_file": "harmbench--sp-olmo2-7b-g-1101--1101-a0-e1-a1--457756fea508.json",
+     "granite_greedy": "92/200",
+     "granite_E_pp": 44.5,
+     "granite_file": "granite--sp-olmo2-7b-g-1101--1101-a0-e1-a1--457756fea508.json"
+    },
+    {
+     "host": "sp-olmo2-7b-g-1102",
+     "seed": 1102,
+     "pair": "second",
+     "harmbench_sampled": "265/600",
+     "E_HB_pp": 43.0,
+     "harmbench_file": "harmbench--sp-olmo2-7b-g-1102--1102-a0-e1-a1--506ddfa46507.json",
+     "granite_greedy": "119/200",
+     "granite_E_pp": 58.0,
+     "granite_file": "granite--sp-olmo2-7b-g-1102--1102-a0-e1-a1--506ddfa46507.json"
+    },
+    {
+     "host": "sp-olmo2-7b-g-1103",
+     "seed": 1103,
+     "pair": "second",
+     "harmbench_sampled": "199/600",
+     "E_HB_pp": 32.0,
+     "harmbench_file": "harmbench--sp-olmo2-7b-g-1103--1103-a0-e1-a1--ac8b37e9f187.json",
+     "granite_greedy": "81/200",
+     "granite_E_pp": 39.0,
+     "granite_file": "granite--sp-olmo2-7b-g-1103--1103-a0-e1-a1--ac8b37e9f187.json"
+    }
+   ],
+   "E_HB_mean": 37.83,
+   "E_HB_sd": 5.53,
+   "granite_E_mean": 47.17
+  },
+  "OLMo-2-7B | Constant, half LR": {
+   "units": [
+    {
+     "host": "sp-olmo2-7b-b5e5-1101",
+     "seed": 1101,
+     "pair": "second",
+     "harmbench_sampled": "159/600",
+     "E_HB_pp": 25.33,
+     "harmbench_file": "harmbench--sp-olmo2-7b-b5e5-1101--1101-a0-e1-a1--6a25d71ee05d.json",
+     "granite_greedy": "75/200",
+     "granite_E_pp": 36.0,
+     "granite_file": "granite--sp-olmo2-7b-b5e5-1101--1101-a0-e1-a1--6a25d71ee05d.json"
+    },
+    {
+     "host": "sp-olmo2-7b-b5e5-1102",
+     "seed": 1102,
+     "pair": "second",
+     "harmbench_sampled": "149/600",
+     "E_HB_pp": 23.67,
+     "harmbench_file": "harmbench--sp-olmo2-7b-b5e5-1102--1102-a0-e1-a1--75d016bc49d1.json",
+     "granite_greedy": "72/200",
+     "granite_E_pp": 34.5,
+     "granite_file": "granite--sp-olmo2-7b-b5e5-1102--1102-a0-e1-a1--75d016bc49d1.json"
+    },
+    {
+     "host": "sp-olmo2-7b-b5e5-1103",
+     "seed": 1103,
+     "pair": "second",
+     "harmbench_sampled": "145/600",
+     "E_HB_pp": 23.0,
+     "harmbench_file": "harmbench--sp-olmo2-7b-b5e5-1103--1103-a0-e1-a1--2cd1cc2ee4c5.json",
+     "granite_greedy": "72/200",
+     "granite_E_pp": 34.5,
+     "granite_file": "granite--sp-olmo2-7b-b5e5-1103--1103-a0-e1-a1--2cd1cc2ee4c5.json"
+    }
+   ],
+   "E_HB_mean": 24.0,
+   "E_HB_sd": 1.2,
+   "granite_E_mean": 35.0
+  },
+  "Llama-3.1-8B | Constant": {
+   "units": [
+    {
+     "host": "sp-llama31-8b-1101",
+     "seed": 1101,
+     "pair": "first",
+     "harmbench_sampled": "356/600",
+     "E_HB_pp": 53.83,
+     "harmbench_file": "harmbench--sp-llama31-8b-1101--1101-a0-e1-a1--2dc6be4a3963.json",
+     "granite_greedy": "159/200",
+     "granite_E_pp": 73.5,
+     "granite_file": "granite--sp-llama31-8b-1101--1101-a0-e1-a1--2dc6be4a3963.json"
+    },
+    {
+     "host": "sp-llama31-8b-1102",
+     "seed": 1102,
+     "pair": "second",
+     "harmbench_sampled": "272/600",
+     "E_HB_pp": 39.83,
+     "harmbench_file": "harmbench--sp-llama31-8b-1102--1102-a0-e1-a1--0edab850c7d7.json",
+     "granite_greedy": "113/200",
+     "granite_E_pp": 50.5,
+     "granite_file": "granite--sp-llama31-8b-1102--1102-a0-e1-a1--0edab850c7d7.json"
+    },
+    {
+     "host": "sp-llama31-8b-1103",
+     "seed": 1103,
+     "pair": "second",
+     "harmbench_sampled": "271/600",
+     "E_HB_pp": 39.67,
+     "harmbench_file": "harmbench--sp-llama31-8b-1103--1103-a0-e1-a1--d89c261cfe56.json",
+     "granite_greedy": "120/200",
+     "granite_E_pp": 54.0,
+     "granite_file": "granite--sp-llama31-8b-1103--1103-a0-e1-a1--d89c261cfe56.json"
+    }
+   ],
+   "E_HB_mean": 44.44,
+   "E_HB_sd": 8.13,
+   "granite_E_mean": 59.33
+  },
+  "Llama-3.1-8B | Scheduled": {
+   "units": [
+    {
+     "host": "sp-llama31-8b-g-1101",
+     "seed": 1101,
+     "pair": "second",
+     "harmbench_sampled": "282/600",
+     "E_HB_pp": 41.5,
+     "harmbench_file": "harmbench--sp-llama31-8b-g-1101--1101-a0-e1-a1--340a16976e2b.json",
+     "granite_greedy": "132/200",
+     "granite_E_pp": 60.0,
+     "granite_file": "granite--sp-llama31-8b-g-1101--1101-a0-e1-a1--340a16976e2b.json"
+    },
+    {
+     "host": "sp-llama31-8b-g-1102",
+     "seed": 1102,
+     "pair": "second",
+     "harmbench_sampled": "304/600",
+     "E_HB_pp": 45.17,
+     "harmbench_file": "harmbench--sp-llama31-8b-g-1102--1102-a0-e1-a1--9a4ae2f57a60.json",
+     "granite_greedy": "135/200",
+     "granite_E_pp": 61.5,
+     "granite_file": "granite--sp-llama31-8b-g-1102--1102-a0-e1-a1--9a4ae2f57a60.json"
+    },
+    {
+     "host": "sp-llama31-8b-g-1103",
+     "seed": 1103,
+     "pair": "second",
+     "harmbench_sampled": "278/600",
+     "E_HB_pp": 40.83,
+     "harmbench_file": "harmbench--sp-llama31-8b-g-1103--1103-a0-e1-a1--2d52549913e4.json",
+     "granite_greedy": "120/200",
+     "granite_E_pp": 54.0,
+     "granite_file": "granite--sp-llama31-8b-g-1103--1103-a0-e1-a1--2d52549913e4.json"
+    }
+   ],
+   "E_HB_mean": 42.5,
+   "E_HB_sd": 2.34,
+   "granite_E_mean": 58.5
+  },
+  "Llama-3.1-8B | Constant, half LR": {
+   "units": [
+    {
+     "host": "sp-llama31-8b-b5e5-1101",
+     "seed": 1101,
+     "pair": "first",
+     "harmbench_sampled": "250/600",
+     "E_HB_pp": 36.17,
+     "harmbench_file": "harmbench--sp-llama31-8b-b5e5-1101--1101-a0-e1-a1--21427715565f.json",
+     "granite_greedy": "112/200",
+     "granite_E_pp": 50.0,
+     "granite_file": "granite--sp-llama31-8b-b5e5-1101--1101-a0-e1-a1--21427715565f.json"
+    },
+    {
+     "host": "sp-llama31-8b-b5e5-1102",
+     "seed": 1102,
+     "pair": "first",
+     "harmbench_sampled": "260/600",
+     "E_HB_pp": 37.83,
+     "harmbench_file": "harmbench--sp-llama31-8b-b5e5-1102--1102-a0-e1-a1--b0c99f7b97e6.json",
+     "granite_greedy": "122/200",
+     "granite_E_pp": 55.0,
+     "granite_file": "granite--sp-llama31-8b-b5e5-1102--1102-a0-e1-a1--b0c99f7b97e6.json"
+    }
+   ],
+   "E_HB_mean": 37.0,
+   "E_HB_sd": 1.17,
+   "granite_E_mean": 52.5
+  },
+  "Qwen2.5-1.5B | Constant": {
+   "units": [
+    {
+     "host": "sp-qwen15-b-1101",
+     "seed": 1101,
+     "pair": "first",
+     "harmbench_sampled": "295/600",
+     "E_HB_pp": 46.0,
+     "harmbench_file": "harmbench--sp-qwen15-b-1101--1101-a0-e1-a1--a82a7b079b45.json",
+     "granite_greedy": "177/200",
+     "granite_E_pp": 85.5,
+     "granite_file": "granite--sp-qwen15-b-1101--1101-a0-e1-a1--a82a7b079b45.json"
+    },
+    {
+     "host": "sp-qwen15-b-1102",
+     "seed": 1102,
+     "pair": "first",
+     "harmbench_sampled": "283/600",
+     "E_HB_pp": 44.0,
+     "harmbench_file": "harmbench--sp-qwen15-b-1102--1102-a0-e1-a1--73f05583c63c.json",
+     "granite_greedy": "157/200",
+     "granite_E_pp": 75.5,
+     "granite_file": "granite--sp-qwen15-b-1102--1102-a0-e1-a1--73f05583c63c.json"
+    },
+    {
+     "host": "sp-qwen15-b-1103",
+     "seed": 1103,
+     "pair": "first",
+     "harmbench_sampled": "297/600",
+     "E_HB_pp": 46.33,
+     "harmbench_file": "harmbench--sp-qwen15-b-1103--1103-a0-e1-a1--7a1a5b9db97a.json",
+     "granite_greedy": "165/200",
+     "granite_E_pp": 79.5,
+     "granite_file": "granite--sp-qwen15-b-1103--1103-a0-e1-a1--7a1a5b9db97a.json"
+    }
+   ],
+   "E_HB_mean": 45.44,
+   "E_HB_sd": 1.26,
+   "granite_E_mean": 80.17
+  },
+  "Qwen2.5-1.5B | Scheduled": {
+   "units": [
+    {
+     "host": "sp-qwen15-g-1101",
+     "seed": 1101,
+     "pair": "second",
+     "harmbench_sampled": "338/600",
+     "E_HB_pp": 53.17,
+     "harmbench_file": "harmbench--sp-qwen15-g-1101--1101-a0-e1-a1--2c6d5ed8da05.json",
+     "granite_greedy": "170/200",
+     "granite_E_pp": 82.0,
+     "granite_file": "granite--sp-qwen15-g-1101--1101-a0-e1-a1--2c6d5ed8da05.json"
+    },
+    {
+     "host": "sp-qwen15-g-1102",
+     "seed": 1102,
+     "pair": "second",
+     "harmbench_sampled": "337/600",
+     "E_HB_pp": 53.0,
+     "harmbench_file": "harmbench--sp-qwen15-g-1102--1102-a0-e1-a1--d9aa3a9655e2.json",
+     "granite_greedy": "169/200",
+     "granite_E_pp": 81.5,
+     "granite_file": "granite--sp-qwen15-g-1102--1102-a0-e1-a1--d9aa3a9655e2.json"
+    },
+    {
+     "host": "sp-qwen15-g-1103",
+     "seed": 1103,
+     "pair": "second",
+     "harmbench_sampled": "331/600",
+     "E_HB_pp": 52.0,
+     "harmbench_file": "harmbench--sp-qwen15-g-1103--1103-a0-e1-a1--4412775c8e98.json",
+     "granite_greedy": "170/200",
+     "granite_E_pp": 82.0,
+     "granite_file": "granite--sp-qwen15-g-1103--1103-a0-e1-a1--4412775c8e98.json"
+    }
+   ],
+   "E_HB_mean": 52.72,
+   "E_HB_sd": 0.63,
+   "granite_E_mean": 81.83
+  },
+  "Qwen2.5-7B | Constant": {
+   "units": [
+    {
+     "host": "sp-qwen7-b-1101",
+     "seed": 1101,
+     "pair": "first",
+     "harmbench_sampled": "413/600",
+     "E_HB_pp": 63.5,
+     "harmbench_file": "harmbench--sp-qwen7-b-1101--1101-a0-e1-a1--411ed6101957.json",
+     "granite_greedy": "182/200",
+     "granite_E_pp": 87.0,
+     "granite_file": "granite--sp-qwen7-b-1101--1101-a0-e1-a1--411ed6101957.json"
+    },
+    {
+     "host": "sp-qwen7-b-1102",
+     "seed": 1102,
+     "pair": "first",
+     "harmbench_sampled": "390/600",
+     "E_HB_pp": 59.67,
+     "harmbench_file": "harmbench--sp-qwen7-b-1102--1102-a0-e1-a1--39d0de5ebce1.json",
+     "granite_greedy": "180/200",
+     "granite_E_pp": 86.0,
+     "granite_file": "granite--sp-qwen7-b-1102--1102-a0-e1-a1--39d0de5ebce1.json"
+    },
+    {
+     "host": "sp-qwen7-b-1103",
+     "seed": 1103,
+     "pair": "first",
+     "harmbench_sampled": "383/600",
+     "E_HB_pp": 58.5,
+     "harmbench_file": "harmbench--sp-qwen7-b-1103--1103-a0-e1-a1--2d92af902be0.json",
+     "granite_greedy": "170/200",
+     "granite_E_pp": 81.0,
+     "granite_file": "granite--sp-qwen7-b-1103--1103-a0-e1-a1--2d92af902be0.json"
+    }
+   ],
+   "E_HB_mean": 60.56,
+   "E_HB_sd": 2.62,
+   "granite_E_mean": 84.67
+  },
+  "Qwen2.5-7B | Scheduled": {
+   "units": [
+    {
+     "host": "sp-qwen7-g-1101",
+     "seed": 1101,
+     "pair": "second",
+     "harmbench_sampled": "363/600",
+     "E_HB_pp": 55.17,
+     "harmbench_file": "harmbench--sp-qwen7-g-1101--1101-a0-e1-a1--70ed3fe9531d.json",
+     "granite_greedy": "160/200",
+     "granite_E_pp": 76.0,
+     "granite_file": "granite--sp-qwen7-g-1101--1101-a0-e1-a1--70ed3fe9531d.json"
+    },
+    {
+     "host": "sp-qwen7-g-1102",
+     "seed": 1102,
+     "pair": "second",
+     "harmbench_sampled": "377/600",
+     "E_HB_pp": 57.5,
+     "harmbench_file": "harmbench--sp-qwen7-g-1102--1102-a0-e1-a1--0c9d7b616f7c.json",
+     "granite_greedy": "155/200",
+     "granite_E_pp": 73.5,
+     "granite_file": "granite--sp-qwen7-g-1102--1102-a0-e1-a1--0c9d7b616f7c.json"
+    },
+    {
+     "host": "sp-qwen7-g-1103",
+     "seed": 1103,
+     "pair": "second",
+     "harmbench_sampled": "356/600",
+     "E_HB_pp": 54.0,
+     "harmbench_file": "harmbench--sp-qwen7-g-1103--1103-a0-e1-a1--59b4dcdafe05.json",
+     "granite_greedy": "151/200",
+     "granite_E_pp": 71.5,
+     "granite_file": "granite--sp-qwen7-g-1103--1103-a0-e1-a1--59b4dcdafe05.json"
+    }
+   ],
+   "E_HB_mean": 55.56,
+   "E_HB_sd": 1.78,
+   "granite_E_mean": 73.67
+  }
+ }
+}

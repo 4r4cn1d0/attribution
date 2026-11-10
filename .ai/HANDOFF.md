@@ -369,6 +369,39 @@ representation measurements are observational content/task-confounded proxies.
 At that initial follow-up no causal experiment had launched. The follow-up separates loss weighting
 from schedule shape and exact mean LR, pins one engine, uses independent seed
 blocks and held-out safety, benign over-refusal and utility outcomes.
+## Current Side Project continuation — completed 2026-10-11
+
+User routing: continue development in the current GPT chat. Worktree:
+`/Users/spiderishi/Coding/attribution/.claude/worktrees/peaceful-jepsen-8b8eee`,
+branch `claude/wonderful-greider-d1aa5b`. Legacy author completed `22bb26e`.
+The final paper claim/layout pass is complete. The main attribution experiment
+was outside this task. Opus 5.5/max was requested through the prescribed launcher
+and failed at the weekly limit; no substantive Opus review returned. The user
+explicitly approved the task-specific exception, “Yes, finish with GPT.” This
+does not change the project's default routing.
+
+GPT resolved the eight scientific wording/disclosure findings. The non-author
+GPT reviewer accepted them and the final targeted df/headline/proxy corrections.
+Numeric tables and frozen records are unchanged. The conclusions remain bounded
+development evidence: no established size effect, half-LR equality or causal
+refusal mechanism; known/interim comparators, wide fiction margins and OLMo's
+over-refusal increase are disclosed. Review agreement is not independent evidence.
+
+Integrated outputs: `writing/side-notes/arr/main.pdf` (20 total pages, 8 main),
+`writing/side-notes/arxiv/main.pdf` (18 pages), and the refreshed preprint source
+archive. Both compile with clean references/boxes; all pages were inspected.
+ARR is anonymous, with outside-column review numbers from unchanged upstream
+lineno v5.9 and an unmodified ACL style. The preprint retains the ICML empty-anchor
+warning and author placeholders. The guide and change notes are synchronized.
+Persistent evidence: `research/side-notes/2026-10-11-gpt-paper-review.md` and
+`research/side-notes/paper-checks-20261011.json`; full logs/renders in
+`tmp/side-paper-takeover-20261011/final-build-3/`.
+
+Remaining author actions: OpenReview/profile/submission; before an arXiv posting,
+fill author details and refresh the older code/data release builder for version 2.
+The clean source archive does not certify that separate release. No new
+experiment, spend, pod deletion, submission or publication was initiated.
+Historical handoffs below remain intact.
 
 # Current workflow handoff
 
