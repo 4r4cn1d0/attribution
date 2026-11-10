@@ -1,3 +1,31 @@
+## Experiment monitor stopped; grant status checked — 14 October 2026 (IST)
+
+User explicitly asked to stop the automation. Updated existing heartbeat
+side-project-experiment-progress through the app tool; PAUSED confirmed by the
+tool and saved automation record. No replacement monitor created. Main Gate B
+stays paused; no GPU, storage, grant submission or external communication action.
+
+Latest funding plan records all three applications submitted by the applicant
+on 13 October: BlueDot $6,000 core, Transformative AI Fund $3,000 extension,
+AI Alignment Foundation up to $2,000 engineering cash or bounded team support.
+Gmail receipt checks now independently confirm BlueDot received 13 October
+13:38 UTC and TAIF submitted 13:40 UTC; TAIF receipt confirms requested $3,000.
+AIAF remains applicant-reported: no matching confirmation email found in the
+checked inbox. No decision or award email found; pending requests are not money.
+
+BlueDot receipt says usual outcome/follow-up within five days: about 18 October,
+not a guaranteed deadline. EA Funds live FAQ says initial decisions usually
+6–8 weeks: 24 November–8 December from submission, conditional on prompt replies.
+TAIF's current application form warns of unusually long response times, so
+that window may slip. Initial intent to fund still requires due diligence before
+formal confirmation/payment. AIAF's current application page has no response-time
+commitment. Sources: funding plan research/grant/2026-10-13-funding-plan.md;
+BlueDot Gmail message 1a1357c01ee86486; TAIF receipt 1a1357e5832915e4;
+https://funds.effectivealtruism.org/faq (expanded decision answer);
+https://av20jp3z.paperform.co/?fund=Transformative%20AI%20Fund;
+https://www.aialignmentfoundation.org/approach/apply.
+Private EA Funds dashboard access link is not copied into shared records.
+
 ## Substack drafting routed to the Side Project chat — 13 October 2026 (IST)
 
 The user explicitly asked to update the existing Side Project chat with everything
@@ -2023,3 +2051,448 @@ Heartbeat19:02UTC: initialanonymousOpus87493returnedexit0/reportedclaude-opus-5-
 Heartbeat19:47UTC: anonymouscorrection25871finished,launcherstatusINCOMPLETEdue3deniedout-of-workspaceRead/Grep;exactclaude-opus-5-5reported/maxrequested/nocaps. Permissiondenialsretainedsecond-routing.json;all8transferredcontextfilesunchanged,noout-of-scopeedits,nobypass/retry. Actualcandidate28exportertestspassed0.47s;fresh62fileexportallhashes/57verbatimbytesmatchedroot/prior228pass3CUDA-skippackage. Non-authorchanged-contractreviewnoremainingmaterialPRIVATEstagingblocker. Fourownedfilesintegratedaftermanifestconcurrencychecks. Privateanonymousscaffoldpopulatedmanifest-onlyplusneutral.gitignore,tmp/ignored,nocaches;commit3e62d2834a65390028fc9a9e7adab9b506244305pushedandfreshGitHubcloneverified63trackedfiles,61manifesthashes,2neutralhistorycommits. Owneridentifying,nopublicreviewerURL. Seeanonymous-staging-upload-verification.json.
 
 StageBfourthcorrectionACTIVEsession14681 invocation20261002T195004Z-d3fe51e5,exactclaude-opus-5-5/maxrequested/nocaps,sameisolatedpolicyworkspace. Ninecontextfilesverified/copied plusbriefcopiedinsideworkspace;source30filesmatchedthirdpinsbeforelaunch. Correctcachedlocks,started-noresultcosts,exclusive-setupownership,sessionoverhead,scopecompletenessandbounded-inferencelabels ONLY. Nosafetyengine/model/data/allocator/Nchanges orcloudcalls. Resumeatthiscall,noduplicate. Onceaccepted,test/review/integratepolicy;nextlocaldurabilityimplementationfromsavedlead/reviewnotes. Allfourstepsstillincomplete,creditsunavailable,cloudrestartprerequisitesunchanged.
+
+## General Implementation V handoff verification —13 October 2026,09:11 UTC
+
+Read the 9 October GI IV→V handoff, its Read first materials, current FOCUS,
+EDGE_CHECKS and the 11–12 October novelty/risk update before acting. Current
+repository is branch `stageb-costs-and-recovery-safeguards-20261003`, HEAD
+`c41fce4`, 18 commits ahead of origin. Existing worktree changes at inspection:
+`research/review/EDGE_CHECKS.md`, the untracked progress-update PDF and
+`research/review/2026-10-11-novelty-rigor-update.md`; preserve them.
+
+Fresh read-only RunPod account check at 2026-10-13T09:10:40Z: balance
+$5.5575639251, spend rate $0.243/hour, 38 pod records, no running pods; all 38
+reported desired status `EXITED`. A local process check found no matching
+attribution launchers, finishers, orchestrators or causal collectors. The
+account check wrote only `tmp/gate-b-olmo/account-latest.json`. This supersedes
+the 12 October account snapshot; storage continues to bill and the balance is
+below the $6 Gate B reserve.
+
+Gate B remains paused after the verified anchor. Its revision-5 preregistration
+is frozen, but wave 0a has no new go or funding; do not launch or top up from
+this handoff. The 12 October seed-1122 causal follow-up remains incomplete as
+recorded above: no verified comparison, no restart authorization, no deletion.
+The Side Project writing task was already dispatched to its existing chat and
+was active per the latest handoff; do not duplicate it. No tests, training,
+spending, deletion, publication, commit or push were performed in this check.
+
+## Side Project writing status correction —13 October 2026,09:11 UTC
+
+After the preceding entry, a read-only check of “Side project: family×recipe
+white paper and refusal loss” (thread `01a12b22-ae7a-70b1-8078-2d98ca4597e9`)
+showed the task is now idle and completed. Its latest result says the Substack
+draft is saved locally, about 1,750 words, and unpublished. This supersedes the
+preceding entry's “active” status; no new message was sent to that chat.
+
+## BlueDot application and full-scope budget — 2026-10-13T10:53:14Z
+
+User requested a BlueDot grant application and explicitly instructed **do not
+submit anything**. Confirmed applicant: Aayush Ghosh, rishi.gh2002@gmail.com,
+West Lafayette, Indiana, USA. User now requests at least $6,000 and both
+$100/month Codex and Claude subscriptions through 31 January 2027. Payment
+country, BlueDot connection, public work link, experience, naming and funder
+sharing preferences remain unanswered. Do not infer them.
+
+Local review draft: `research/grant/2026-10-13-bluedot-application-DRAFT.md`.
+Original 6 October text recovered read-only from Git ref 0d4e4ba into
+`.ai/inputs/bluedot-budget-20261013/application-20261006-original.md`. Original
+$6,000 was itemized: $145 kill test, $200 engineering, $2,250 development,
+$1,500 confirmation, $605 contingency, $400 audit, $800 tools, $100 storage.
+The 9 October revision priced a narrower scope at $3,160 but retained $6,000.
+The user challenged the subsequent bounded-phase $2,000 proposal and asked for
+full-study GPU funding; no stipend is requested or presumed.
+
+Current GPT lead proposal: $3,700 compute/judges, $800 human audit, $700 retained
+storage and up to $800 subscriptions before tax = $6,000. Compute caps are
+$100 remaining Gate B, $600 unfinished development, $3,000 held-out selector
+comparison. The Gate B illustrative remaining estimate is $92.23; development
+is only a historical envelope, and the comparison has no frozen roster. The
+$3,700 cap equals 2,000 GPU hours at $1.85/hour financially, not a usable-hour
+prediction. Full-study feasibility/precision, attribution overhead, future job
+counts, overlap exclusion, replication and larger-model costs are unresolved.
+Four months of the 820 GB stopped project pod subtotal gives $656 at the
+advertised rate; $700 allowance excludes unrelated, new and backup storage.
+Subscriptions are $600–800 before tax depending on which renewals remain.
+Human audit estimate is unquoted: 500 unique answers × two raters × $0.80.
+No paid professional methods-review fee, stipend or tax headroom is assumed.
+
+Required Opus review requested exact claude-opus-5-5/max with no time/turn caps
+via `.ai/briefs/bluedot-budget-alternatives-20261013.md`; failed at weekly quota
+(`tmp/claude-handoffs/20261013T102416Z-42221127/report.md`, reset 15 October
+14:30 Asia/Calcutta). No successful Opus review/model identity/effective effort
+claimed; no model substitute. GPT work was lead framing, budgets, factual
+correction and integration. Non-author GPT budget reviewer checked revised
+draft SHA256 a4de387047a6bcfcda2cfe1ec6bb34200a06a2c228de9046b72bde9d4f426d0a,
+with no further material draft findings. Final historical JSON copy-alias error
+was corrected and both prior/current totals rechecked. Review evidence in
+`.ai/inputs/bluedot-budget-20261013/gpt-review-first-pass.md`.
+
+Preliminary full-study sensitivity is preserved with feasibility rejected:
+one-full-run selector budget leaves no positive attribution/trial overhead
+after charging the final run. Correct arithmetic is not a validated design.
+No arbitrary replacement grid/menu count chosen to fit $6,000. Strong matched
+selector, reference-run deduplication, precision and complete cost accounting
+remain required. Gate A wording corrected to acknowledge the reading rule
+was fixed before two new seeds, after the first seed was known.
+
+Arithmetic and git diff whitespace checks only; no software tests, research
+data inspection, training, funding/top-up, subscription change, cloud mutation,
+submission, publication, commit or push. Main Gate B pause and all scientific
+run-authorization requirements persist. Existing EDGE_CHECKS, novelty note and
+progress PDF changes preserved. The application is a review draft with open
+applicant fields and cost/model review limits, not a submitted application.
+
+## Full-paper ICML funding forecast — 2026-10-13T11:22:41Z
+
+User asked how much is realistically needed to finish this paper for ICML.
+GPT lead independently estimated prospective workloads before receiving the
+non-author reviewer: about $7.1–11.9k through January, but this did not include
+a substantive fresh7–8B selector comparison. Reviewer proposed conditional
+$10–12k focused or $15–20k broader targets. Lead recommends around $15k as a
+working fuller-paper funding target, **not a required amount, sufficient-cost
+proof or upper limit**. Application remains $6,000 until user chooses a
+revised request; nothing submitted.
+
+Illustrative20distinctmenus ×8options ×5reference seeds gives800reference
+jobs. Two selectors ×3executions, at one4or8FREbudget, gives480or960
+selector equivalents. $2.50historical1B planning, $1,200setup and25%margin
+gives $5,500–7,000compute; basic $2,300nonGPU gives $7,800–9,300 before
+unresolved costs. Separate10-menu7–8B subset is880equivalents at rounded
+$6planning unit plus25%= $6,600; combined $14,400–15,900. No workload count
+is a power recommendation; FREdollars, short-trial costs and feasible
+attribution budgets remain unmeasured. Deduplicate actual provider expenses.
+
+Reviewer answered bounded lead questions: weakest assumptions are independent
+menus, repetitions, reference precision and feasible budgets. Cheaper coherent
+alternative is a narrow direct S+vsS− decision comparison with strong controls
+and fresh selected-arm confirmation; it may avoid a full reference oracle
+bank but must limit best-repair/absolute-regret claims. A hypothetical wider
+1B roster totals $21,250 before scale, demonstrating $20k is not a ceiling.
+Reviewed design plus measured per-family tariff, deduplicated roster, quoted
+audit/storage/tax and a complete scientific revision block settle the amount.
+
+Evidence: `.ai/inputs/bluedot-budget-20261013/icml-full-paper-budget-planning.json`
+and `icml-budget-review.md`. Presentation:
+`/Users/spiderishi/.cursor/projects/Users-spiderishi-Coding/canvases/ICML-paper-budget.canvas.tsx`.
+Non-author actual-artifact review: no material arithmetic or claim blockers;
+not a design-adequacy validation or independent error-process claim. Required
+Opus remained unavailable from the recorded weekly-quota failure; no model
+substitution or successful Opus review/implementation claimed. GPT work was
+lead budget framing, verification and presentation.
+
+Official ICML2027 deadline could not be verified from searches or official
+2027paths. LateJanuary is a planning assumption; verified2026full-paper date
+was28January2026. Scope through31January2027 excludes salary/living,
+travel/registration,32B–70Bfullmatrix and later rebuttal/camera-ready expenses.
+No tests, raw/hidden data, training, cloud mutations, spending, subscription
+changes, submission, publication, commit or push. Main study remains paused
+and unfrozen beyond the existing Gate B protocol.
+
+## Three grant forms prepared and filled — 2026-10-13T12:17Z
+
+The user chose BlueDot $6,000, Transformative AI Fund $3,000, and up to
+$2,000 engineering support from AI Alignment Foundation. They explicitly
+authorized GPT for these grant drafts after the recorded Opus quota failure,
+asked to use their published writing/repos/side projects, and instructed:
+"dont submit anything just get every single grant ready filled out".
+This is a bounded routing exception; later implementation routing and
+scientific experiment authorization are unchanged.
+
+Applicant confirms independent affiliation, named public reports and funder
+referrals, and None for paid CEA employment/contracts, previous grant
+applications/awards in the last 12 months, under-18 contributors and funded
+activities in India/China. Previously confirmed name/email/residence retained.
+BlueDot signed-in account confirms rishi.gh2002@gmail.com; live certificate
+recs87oE3LXgxFBru verifies Future of AI course completion issued 8 October.
+Do not infer Technical AI Safety course completion or payment-account country.
+
+All three current live forms were mapped and filled in the in-app browser,
+then marked as deliverables to remain open. BlueDot $6,000, TAIF $3,000,
+AIAF request up to $2,000 engineering cash if offered, otherwise a bounded
+team allocation without assumed cash valuation. TAIF budget XLSX is uploaded
+and the displayed attachment was verified. Dates visually verified as
+13 October 2026–31 January 2027, USD; start is the prospective funding-period
+planning date for ongoing work. All 30 narrative fields match saved answers,
+with whitespace normalization for BlueDot rich text. TAIF short100/120,
+summary956/1000, full text under10000; AIAF proposal362/500 words.
+
+EA Funds reporting agreement and final accuracy declaration are deliberately
+unchecked for applicant review. Browser confirmation policy requires
+action-time confirmation for accepting binding agreements, and the user
+prohibits submission. Optional jobs/mentorship network sharing is unselected.
+Non-applicable optional fields remain empty. No submit control was activated;
+all applications remain unsubmitted and unawarded. Avoid reloading forms;
+the exact local copies allow recovery if a site loses state.
+
+Evidence includes live published Scratch Work articles, GitHub metadata and
+READMEs, the local side-study summary, Countersign README and GLEE manuscript
+records. The latest Recipe article is published, superseding the earlier
+unpublished description. Public repository claims are bounded to contribution
+and documented tooling, without verified speedup/reliability claims. Auth
+profile confirms Aayush Ghosh/SpideR1sh1; GPU initial implementation commit
+a342e66685eb135e669941c817a18dde2fcef922 has SpideR1sh1 as author/committer.
+Selected 4r4cn1d0 repos are push-accessible; code/implementation commits use
+Rishi and match local research remotes/identity. No sole-authorship claim.
+No main-track acceptance, completed arXiv publication, replicated mechanism,
+attribution advantage or frontier-safety result is asserted. Private working
+repositories/documents have not been made public or linked as public samples.
+
+Non-author GPT reviewer inspected exact answers and evidence, with no material
+science or budget blockers. Earlier objections fixed: selectors share the
+same permitted metadata/classifier inputs and equal total compute budgets,
+while short-run observations may differ; each workload/expense line has one
+funding source, with documented splits for consolidated invoices. Historical
+spending is unreconciled and explicitly disclosed in TAIF. Review is not
+study-design adequacy validation or evidence of independent model errors.
+
+Budget remains BlueDot3700compute+800audit+700retention+800subscriptions,
+TAIF2200additionalcompute+200incrementalstorage+600allowance. The600 is25%
+of2400base. TAIF extension follows a funded/completed base; unfunded/overrun
+base needs a revised costed plan and funder agreement. No roster adequacy,
+quotes, exact renewals/tax coverage or engineering hours are invented.
+
+Artifacts: `research/grant/2026-10-13-funding-plan.md`, three dated DRAFT files,
+`research/grant/2026-10-13-portfolio-evidence.md`, and exact answers/verification
+under `.ai/inputs/bluedot-budget-20261013/`. Workbook and three proof screenshots
+are in `outputs/01a13486-6596-7812-b506-8c8c2e8de534/`.
+No software tests, raw held-out/hidden-data inspection, training, spending,
+subscription changes, repository publication, messaging, submission, commit
+or push. Form entry/budget attachment were authorized. Main GPU pause persists;
+existing concurrent EDGE_CHECKS/novelty/PDF changes were preserved.
+
+## External Chrome grant forms — 13 October 2026
+
+User clarified: fill the external windows they already have open. Selected
+the three most recently opened matching tabs in Chrome Work profile, not the
+in-app browser: TAIF644452026, BlueDot644452025, AIAF644452023. Transferred
+the reviewed answers and confirmed preferences/amounts/dates into those tabs.
+All three are marked deliverables and remain unsubmitted. Final EA Funds
+reporting agreement/accuracy confirmation are unchecked; optional network
+sharing unselected. No new declarations or submit controls activated.
+
+Budget workbook upload through the extension failed because file-URL access
+is disabled. Used native macOS file picker successfully instead; verified
+remove-file control and attachment filename. No browser permissions changed.
+A native pipe error occurred after the Go-to-Folder shortcut; refreshed the
+app observation, confirmed the dialog, and completed the exact file selection.
+
+Compared30 narrative fields:29 matched reviewed text; TAIF Alternatives
+currently omits the sentence naming other unsubmitted grant drafts. That
+change appeared after transfer while this work was ongoing. Its origin is
+not established; retained the current wording without overwriting it. Other
+funding amounts remain in the budget, and base-phase dependency remains in
+Alternatives. Exact current answer recorded in external-chrome-verification.json.
+
+Proof screenshots chrome-bluedot-filled.jpg, chrome-aiaf-filled.jpg and
+chrome-taif-filled.jpg saved in the existing grant output directory.
+No grant submission, binding agreement, spending, training, tests, publication,
+external messaging, commit or push. Prior project constraints persist.
+
+## Résumé and precursor update — 13 October 2026
+
+User explicitly supplied Drive résumé1Z4HT4ZbyywXwLTUz9YgGn6YYnAWwciGE
+and asked to replace GPU-loader/ML-pipeline GitHub portfolio links with
+relevant anonymous research artifacts. User then requested the family×recipe
+safety-erosion preprint as a precursor to the main ICML study, a Drive review
+link, the exact label "(waiting for arxiv approval)" whenever it is presented,
+and the Drive résumé link in suitable fields. User reconfirmed USA-only
+funded work despite the résumé's incoming January2027 Tokyo internship.
+
+Résumé full page and embedded links inspected; public-link/no-sign-in access
+observed in Drive UI. Current biographies use applicant-provided SPAR/Apart
+roles, previous Mercor/Addepar experience, incoming Sakana role, workshop/
+GLEE Spotlight/competition outcomes and earlier ARR submission. These are
+CV assertions, not independently verified employment/acceptance evidence.
+Independent project affiliation and application email remain unchanged.
+Résumé phone number was not copied to form fields. Certificate wording
+says issued8October, rather than inferring exact completion date.
+
+Current anonymous links: safety-data-edits-ba84 (earlier code/protocol
+scaffolding; not complete current results), countersign-07A2 (source/evidence
+release), same-recipe-different-fate-4812 (numerical analyses/configs; no
+training/representation-extraction rerun). All loaded and root README scope
+inspected. No code/tests executed. Unrelated GPU-loader/ML-pipeline/feyn links
+removed from every current form. GLEE DOI navigation failed and its direct
+link is not used in the updated portfolio; the résumé retains its own link.
+
+The chosen precursor is Same Recipe, Different Fate: The Training Recipe's
+Effect on Safety Erosion from Benign Fine-Tuning Depends on the Model Family.
+13October arXiv-source PDF is24pages; stable snapshot SHA256
+b3232f0048320ba986dfc608e57670aa1d3c8c71bb3539073db6496e21cb5740.
+Copied byte-identically and uploaded as a new Drive PDF
+1Fk0M_iA8oYc_HLJvoceWlcd6nF_dxkoZ, named with the pending-arXiv label.
+User-authorized reviewer link access is Anyone with link, Viewer, verified
+saved in UI and shared=true metadata readback. Original manuscript, résumé
+permissions and research repositories were not changed. No arXiv action,
+verified submission queue/identifier or approval claim. Separate writing
+thread has ongoing arXiv setup/upload. Preserve the user's pending label
+until a later factual update. This artifact sharing is specifically authorized
+for the grant/preprint link request; no general publication authorization.
+
+All three external Chrome forms and all three in-app copies updated in20
+biography/profile/portfolio/progress/link fields, with readback matches and
+no obsolete repository URLs. BlueDot progress, TAIF track record and AIAF bio
+identify the manuscript as development precursor, not completed attribution
+benefit. Main cost-matched ICML-targeted scope and6k/3k/2k requests unchanged.
+EA Funds final reporting/accuracy confirmations remain unchecked in both
+sets; its prior external Alternatives edit was preserved. Nothing submitted.
+
+Non-author GPT reviewer found no material changed-claims blockers after
+certificate-issued wording fix and precursor review. TAIFshort100/120,
+summary956/1000, totalapprox6.9k<10k hardcap (above5k recommendation);
+AIAFproposal362/500words. Review is not scientific adequacy validation.
+User's GPT grant-drafting exception persists; later model routing unchanged.
+
+Exact fields, prior snapshots, résumé/preprint source records and verification
+are under .ai/inputs/bluedot-budget-20261013; dated grant drafts regenerated.
+Four current proof images saved in the existing grant output directory.
+No grant submission, agreements, tests, training, spending, subscription
+changes, external messaging, Git commits/pushes or research-code publication.
+Main GPU study remains paused; unrelated concurrent files preserved.
+
+## Applicant-reported grant submissions — 13 October 2026
+
+Direct human update: "all submitted". Record BlueDot, Transformative AI Fund
+and AI Alignment Foundation as submitted, awaiting decisions. Prepared
+requests were6k/3k/up-to2kengineering; no final payload/receipt/ID independently
+read and no award reported. Preserve exact prepared drafts and historical
+verification rather than rewriting them as submission receipts. Earlier
+unsubmitted/unchecked-confirmation status is historical and superseded by
+the applicant's submission report. Agent performed no additional form edit,
+submission, agreement, payment, message, automation, training, commit or push.
+Status record: .ai/inputs/bluedot-budget-20261013/submission-status-20261013.json.
+Main scientific run pause and execution/funding checks remain unchanged.
+
+## Main-study restart planning — 14 October 2026
+
+User asked to resume serious planning of the main project, then offered
+"50-100 more runpod". This is an upfront credit offer, not a verified deposit,
+grant award, top-up instruction or a new frozen main-study budget. Hours/week
+remain unspecified. Main scope remains the costed value of attribution for
+finite benign-fine-tuning safety repair decisions beyond metadata, strong
+classifiers and short runs; older toxic-completion/coupling work is historical.
+
+Saved revision-2 restart roadmap:
+research/experiments/2026-10-14-main-study-restart-plan-DRAFT.md.
+Interactive presentation:
+/Users/spiderishi/.cursor/projects/Users-spiderishi-Coding/canvases/main-ICML-study-plan.canvas.tsx.
+Opened with open_in_codex; tool returned queued, not proof of rendered UI.
+Preserved current FOCUS, EDGE_CHECKS, frozen Gate B/C and prior review artifacts.
+
+Exact Opus alternatives call, no time/turn cap:
+tmp/claude-handoffs/20261014T144414Z-30954517. Requested
+claude-opus-5-5/max; exit 1, weekly quota; no model identity returned and no
+effective effort verified. GPT first pass preceded the request and was withheld
+from that brief. Prior grant-only GPT drafting exception does not authorize
+substantive research implementation. Opus alternatives/follow-up remain pending.
+
+Reused native GPT reviewer /root/bluedot_budget_review under AGENTS.md's
+non-author design-review requirement. Four findings accepted: phase order
+crossed the pre-wave-1 commitment boundary; adopted primary/control/fallback
+mapping incomplete; retrospective logging did not enforce actual budget;
+practical-benefit claim omitted cheap-reference dominance. Revised plan stops
+at 0b, commits required rules before wave 1, then finishes unchanged Gate B;
+maps the six adopted U/Holm contrasts/control tier explicitly; requires
+per-attempt/retry admission with worst-final-action/replica reservation;
+restricts claims and retains applicable reference frontier. Readback accepted
+all four at roadmap level, with one last correction applied: 0b runs only if
+the frozen noise gate permits it, otherwise failure/fallback is recorded.
+No implementation or sample adequacy was certified by this critique.
+
+Read-only RunPod update, recorded 2026-10-14T15:05:04Z: API attempt could not
+run because RUNPOD_OPERATOR_API_KEY was unset; browser billing refresh showed
+$4.57 balance, $0.029/hour current spend. Both header and account balance agree
+after resolving initial loading figures. Billing reports one-hour lag. No fresh
+pod/volume inventory; do not infer the October 13 820GB retention roster is
+still current. No purchase, restart, cleanup, secret access or cloud experiment.
+Historical funding arithmetic: 0a/0b nominal uppers ~$11.01 before storage,
+failure and separate judges; wave-1 balance threshold $78.45; illustrative
+remaining path $92.23 excluding $6 reserve/storage. $100 is more useful than
+$50 for the remaining Gate B path but not guaranteed sufficient. The actual
+funding deposit, current prices, re-costing and frozen admission checks still
+govern every launch. Main confirmation/replication funding remains pending.
+
+Concrete reuse gaps: Dolly preparation has no held-out group partition;
+repair edit confirmation/access contract needs a versioned amendment;
+Stage B uses ARC-based outcomes rather than main task-loss/over-refusal banks;
+its rank-once purchasing policy is not successive halving. Keep a separately
+versioned main-study successor isolated from the frozen Gate B engine.
+Proposed actual S−/S+ comparison needs a prospectively approved outcome/testing
+order, permissible action menu, independence target, precision and costs;
+replay/positive controls do not prove ordinary-data decision value. Gate B
+pre-wave-1 rules must be committed before outcomes, not after its final verdict.
+
+Bounded primary-abstract refresh: Unequal Influence of Bad Advice,
+Compute-Constrained Data Selection and Safety at One Shot. Exact method/code
+applicability review still required before freeze. No 2027 ICML CFP/deadline
+verified; January 31 is a funding horizon. Calendar targets are conditional.
+Precursor remains labelled "(waiting for arxiv approval)".
+
+Evidence, initial/final SHA-256 manifests, lead alternatives, reviewer
+adjudication and filtered billing/cost arithmetic:
+.ai/inputs/main-study-restart-20261014/.
+Only expected lead draft changed among recorded source pins. No software tests,
+training, top-up, deployment, deletion, grant edits/submission, external messages,
+Git commit/push or publication performed. Next: resolve Opus route, complete
+pre-wave-1 commitment audit and prepare the funded conditional Gate B stages;
+do not launch from this planning handoff alone.
+
+## GPT restart planning and local preparation — 14 October 2026
+
+Direct user routing update: "restart plan using gpt". GPT owns this restart
+design/planning package; the earlier Opus quota failure is historical, not a
+planning blocker. Retained non-author GPT review. No global workflow/model
+settings or scientific freeze changed from this instruction.
+
+Artifacts: research/experiments/2026-10-14-gpt-restart-execution-package.md,
+2026-10-14-pre-wave1-commitment-audit.md, revision3 of the restart plan and
+updated main-ICML-study-plan.canvas.tsx. Current input/evidence folder remains
+.ai/inputs/main-study-restart-20261014/. Kept initial metadata and live-plan
+snapshot before administrative preparation.
+
+Readback:9/9 reviewed source/metadata pins match; engine472fc7f6… matches the
+existing plan;8/8 inspected source/live kit pairs match. Initially only the
+completed anchor existed and the gateb bundle receipt was missing. Prepared
+prospective R1–R3 jobs from the sealed manifest (no row-id lists printed).
+Ran existing matching live-kit administrative commands:
+python3 tmp/gate-b-olmo/pack_setup.py gateb (exit0), then
+python3 tmp/gate-b-olmo/plan_tool.py init-wave 0a --jobs
+.ai/inputs/main-study-restart-20261014/prospective-wave0a-jobs.json (exit0).
+Local receipt and bundle created; w0a-1 planned once, seeds1101/1102/1103,
+33steps each,5.0h cap. Archive hashes match receipt and bundle engine matches
+plan. No create-intent or pod record for w0a-1; no provider call/GPU launch.
+The environment reference is established by first-host guarded preflight,
+not by local invention. Packing processed sealed inputs programmatically;
+no raw prompt/answer/anchor text inspected or printed. Frozen engine unchanged.
+
+Offline calculation source gpt_planning_calculations.py ran for metadata,
+funding and prospective replication arithmetic, not software tests. Historical
+wave0a/0b caps5.0/4.5h, guard balances15.25/14.325USD including6USD reserve,
+nominal expense uppers5.907/5.1015USD. Previous15:05UTC balance snapshot4.57USD
+used, not refreshed. Fifty-dollar top-up would leave43.56 after nominal early
+work;100would leave93.56, before storage/failures. No deposit verified, quote,
+purchase or guarantee.78.45USD is historical; wave1 needs re-costed worst-path
+funding plus required storage/judge allowances under the frozen rules.
+
+Replication worksheet: hypothetical paired-block SD5/10/20/30pp and gap5pp
+yield normal-approx8/32/126/283pairs at two-sided alpha.05,80%power. Not measured
+SDs, final power analysis or approved counts. Separate illustrative violation-
+probability screen:zero violations needs59 independent blocks for one-sided
+95%upper below5%, before multiplicity; not the per-run5pp over-refusal margin.
+Held-out-menu G4 remains distinct from a fixed-menu development diagnostic.
+
+Non-author GPT package review accepted scope/dependence/arithmetic labels and
+requested two fixes:allow negative results; use re-costed need. Both applied
+across artifacts. Bounded readback passed and confirmed new local preparation
+state without launch/adequacy claims. Record:gpt-non-author-review.md. No Opus
+call or model-identity claim in this turn. No software tests, training, top-up,
+cloud cleanup, grant submission/edit, publication, commit/push or external
+messages. Updated local kit planning is administrative and remains unlaunched.
+Next paid step:w0a-1 after actual credits, fresh provider/price/cap checks and
+stage authorization; then conditional0b, commitment closure and re-costing.
+
+
+## 2026-10-22 local disk cleanup requested by user
+
+GPT lead removed reproducible pytest scratch trees, two old Python environments and generated caches. No tracked files selected. Preserved research outputs, model weights and backup stages, source, review records and Claude provenance. Inventory: `.ai/cleanup-20261022.json`. Initial deletion encountered a recreated directory entry; retried and recorded residual errors in inventory. Existing uncommitted work preserved. No training, cloud changes, publication or delegated implementation.
