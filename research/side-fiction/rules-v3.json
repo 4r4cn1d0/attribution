@@ -1,0 +1,72 @@
+{
+ "name": "side fiction rules-v3",
+ "written_utc": "2026-10-09T20:16Z",
+ "status": "ISSUED before any training run by the pre-registered sexual-content gate (PREREG-DRAFT section 5; SCREEN-SPEC section 4). Development evidence.",
+ "issued_by": "Side Project chat",
+ "base_rules": {
+  "file": "research/side-fiction/rules-v2.json",
+  "sha256": "c23672cf3461406281813a2bd7472f44c005f0e10240c92509f78b5deaef6606"
+ },
+ "trigger": {
+  "rule": "If Qwen3Guard's 'Sexual Content or Sexual Acts' category is above 0.5% of either arm's training responses, issue rules-v3 with Granite's sexual_content risk added to the screen before any run.",
+  "round1_qwen3guard_sexual_category_share": {
+   "all_rows": {
+    "dark": 0.0184,
+    "light": 0.0114
+   },
+   "rows_kept_by_rules_v2": {
+    "dark": 0.012622,
+    "light": 0.010484
+   }
+  },
+  "threshold": 0.005,
+  "fires": {
+   "dark": true,
+   "light": true
+  },
+  "source": {
+   "round1-summary.json": "199a0ad5006e35048ea392a0ce2375e0fb7b17168d7d019b737a09cfdedd130b",
+   "round1-dark.jsonl": "db9745506ef1a430e845b8385ad10161d722cb249179d2b61f2226a542a647e3",
+   "round1-light.jsonl": "29ff5dc55048a784cf829fb270789c2351b993b499299f48345846a23c20d29c"
+  }
+ },
+ "changes_from_v2": [
+  "classifier_screen only: a training row is dropped when Granite Guardian 3.3 8B flags it under its 'harm' risk OR its 'sexual_content' risk (Yes, or invalid after one retry), and refilled by the same rule; a refill candidate is clean only when both labels are 'No'.",
+  "Nothing else changes. The build code keeps loading rules-v2.json (its frozen hash); research/side-fiction/scripts/v2/sf_screen.py reads this file with --screen-rules."
+ ],
+ "classifier_screen": {
+  "text": "Granite Guardian 3.3 8B (the second judge, not the outcome judge) labels every response under its 'harm' risk and its 'sexual_content' risk. Drop rows that either label flags and refill by the same rule. Report counts per arm. Qwen3Guard, the outcome judge, never selects or drops training rows; its labels on the training responses are reported as a description only.",
+  "drop_if_flagged": [
+   "granite_harm",
+   "granite_sexual"
+  ],
+  "flagged_means": "any label other than 'No' (Yes, or invalid after one retry); every screen row must carry both labels",
+  "labels": {
+   "granite_harm": "Granite Guardian 3.3 8B, guardian_config criteria_id 'harm'",
+   "granite_sexual": "Granite Guardian 3.3 8B, guardian_config criteria_id 'sexual_content'"
+  }
+ },
+ "projection_at_issue": {
+  "basis": "round-1 labels only (before any refill); counts of the 5,000 rows per arm",
+  "dropped_by_rules_v3": {
+   "dark": {
+    "total": 179,
+    "harm": 167,
+    "sexual": 30,
+    "both": 18
+   },
+   "light": {
+    "total": 47,
+    "harm": 40,
+    "sexual": 11,
+    "both": 4
+   }
+  },
+  "qwen3guard_sexual_category_share_on_rows_kept_by_rules_v3": {
+   "dark": "54 of 4,821 (1.12%)",
+   "light": "48 of 4,953 (0.97%)"
+  },
+  "judge_overlap": "Granite's sexual_content risk flags 23 of the 92 dark and 8 of the 57 light rows that Qwen3Guard puts in its sexual category; most Qwen3Guard sexual-category rows are Controversial (dark 69 of 92, light 48 of 57), not Unsafe.",
+  "reading": "The pre-registered remedy is expected to leave Qwen3Guard's sexual-category share near 1% in both arms, above the 0.5% line, and about equal across arms. Qwen3Guard is not added to the drop rule: rules-v2 and the screen specification keep the outcome judge out of row selection. The final share is reported with the final reads; any further change is the user's decision and would be rules-v4."
+ }
+}

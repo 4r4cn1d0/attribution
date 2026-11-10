@@ -1,0 +1,3120 @@
+{
+ "kind": "side fiction build report v1 (counts, ids, metadata and hashes only)",
+ "written_utc": "2026-10-08T21:20:45Z",
+ "status": "BLOCKED: rules-v1 cannot be applied as written; dark.jsonl and light.jsonl were NOT written",
+ "rules": {
+  "path": "research/side-fiction/rules-v1.json",
+  "sha256": "17fe8f2495dd86a64969a5e59accf6ad6ed32ae1f096e5f2c75e22cf0a8bb84b",
+  "verified": true
+ },
+ "blockers": [
+  {
+   "id": "B1-capacity",
+   "rule": "window.no_overlap with rows_per_book 625, Dolly-length targets and min_words_after_strip 50000",
+   "problem": "A book near the word minimum cannot hold 625 non-overlapping windows (context + response) at the Dolly lengths. Each slot needs about 53,000-65,000 response tokens plus about 25,000-37,000 context tokens. In the rules-v1 trial builds, every book whose token supply is below about 1.1x its slot's demand ran out of free windows before row 625. The fallback rule cannot place a row when no non-overlapping candidate exists at all, so rules-v1 cannot produce 625 rows for these books.",
+   "books_exhausted": "light: 24 (row 577), 95 (row 543), 105 (row 620); dark reading A: 84 (row 603), 121 (row 565); dark reading B: 84 (row 603)"
+  },
+  {
+   "id": "B2-both-pools",
+   "rule": "pools.both_pools",
+   "problem": "Two readings choose different dark books. Literal reading A never applies (see selection.both_pools_readings). Reading B excludes Northanger Abbey (121, a Gothic parody, subjects 'Satire' and 'Love stories'), The Woman in White (583, 'Love stories') and Wuthering Heights (768). Light books are the same under both readings."
+  },
+  {
+   "id": "B3-preparer-duplicates",
+   "rule": "none in rules-v1 (engine prepare_task: first row per normalized user text)",
+   "problem": "Rows whose instruction and context are identical after lowercasing and whitespace collapsing (short one-sentence contexts such as a repeated line of dialogue) are dropped by the preparer. One dropped row leaves 624 eligible rows in a category, so every unit would shrink from 600 to 550 (round_down_to 50). The rules-v1 trials hold 0 (light), 2 (dark A) and 1 (dark B) such rows."
+  }
+ ],
+ "proposed_fixes": [
+  {
+   "for": "B1",
+   "option": "F4 (recommended)",
+   "change": "window.no_overlap applies to response sentences only: a context sentence may also appear in another row (the engine trains on response and end-of-turn tokens only, so no trained text repeats)",
+   "evidence": "Same v1 books, same seeds: all three trial arms placed 5,000 rows; unmet targets light 13, dark A 5, dark B 3 (at most 7 per book); see trial_builds_proposal_F4_contexts_may_overlap. Keeps the first-8 book lists."
+  },
+  {
+   "for": "B1",
+   "option": "F1 (alternative)",
+   "change": "min_words_after_strip 50000 -> 100000",
+   "evidence": "Every v1 trial book with at least 100,000 words (27, 77, 82, 144, 145, 345, 583, 601) placed all 625 rows with 0-3 unmet targets; books of 53,000-95,000 words placed 625 rows with 4-51 unmet or ran out. Cost: new first-8 lists and more downloads; Frankenstein, Dorian Gray and other short classics leave the dark arm."
+  },
+  {
+   "for": "B2",
+   "option": "reading B (recommended)",
+   "change": "both_pools uses the inclusion terms only (subjects_any / bookshelves_any), before the light exclusions",
+   "evidence": "Gives the clause an effect and keeps comic or romantic Gothic books (Northanger Abbey) out of the dark arm. Dark books then: 84, 174, 175, 345, 537, 601, 792, 2148."
+  },
+  {
+   "for": "B3",
+   "option": "dedup rule",
+   "change": "a candidate whose normalized user text (instruction, blank line, context; lowercased; whitespace collapsed) equals an already chosen row's in the arm does not match",
+   "evidence": "rules-v1 trials: 0/2/1 duplicate user texts (light/dark A/dark B); F4 alone: 1/1/2; F4 + dedup (light, dark B): 0 and 0, with the same unmet counts (see trial_builds_proposal_F4_plus_dedup)."
+  },
+  {
+   "for": "position bias (optional)",
+   "option": "tie order",
+   "change": "break darkness ties by draw order (or a seeded shuffle) instead of the earliest position in the book",
+   "evidence": "The earliest-position tie-break decides most light rows (score 0) and about half of dark rows, so rows crowd toward book openings, prefaces included: F4 + dedup trials, light mean relative start 0.285 with 25% of rows in the first 10% of the book; dark B 0.382 and 21%."
+  },
+  {
+   "for": "quality (optional)",
+   "option": "abbreviations",
+   "change": "add 'M.', 'Mme.', 'Mlle.' and single capital initials to sentences.no_split_after",
+   "evidence": "Splits after a single capital initial: 222 of 6,273 segments in 175 (The Phantom of the Opera, 'M.' for Monsieur), 70 in 95, 49 in 345, at most 34 in the other chosen books."
+  }
+ ],
+ "outputs": {
+  "tmp/side-fiction/out/dark.jsonl": null,
+  "tmp/side-fiction/out/light.jsonl": null,
+  "evidence_files_not_for_use": {
+   "trial/light": {
+    "file": "tmp/side-fiction/work/trial/light.jsonl.INCOMPLETE",
+    "sha256": "a77504cc606499102b0b47f1c0cc42005784c529f2f751c46cf6852d885f2e46",
+    "rows": 4865,
+    "mode": "rules-v1"
+   },
+   "trial/darkA": {
+    "file": "tmp/side-fiction/work/trial/darkA.jsonl.INCOMPLETE",
+    "sha256": "600e183477a436e832112486518b94bc6f6ff5ea4e387f07045cbb05552f56a0",
+    "rows": 4918,
+    "mode": "rules-v1"
+   },
+   "trial/darkB": {
+    "file": "tmp/side-fiction/work/trial/darkB.jsonl.INCOMPLETE",
+    "sha256": "4ad1ee7e1130464cea0bd458f12bacc9387df5f75de9c6595a3c4fd1ffa2f715",
+    "rows": 4978,
+    "mode": "rules-v1"
+   },
+   "trial-f4/light": {
+    "file": "tmp/side-fiction/work/trial-f4/light.jsonl.F4-EVIDENCE-ONLY",
+    "sha256": "22ec5184ef732e808734f1cb4d5be3cc27339a4cca2a44006fe4e646a4e7d2be",
+    "rows": 5000,
+    "mode": "proposal-F4"
+   },
+   "trial-f4/darkA": {
+    "file": "tmp/side-fiction/work/trial-f4/darkA.jsonl.F4-EVIDENCE-ONLY",
+    "sha256": "6c10bc4bbd30355de5fd52a9311cec3d45733dc8bbee81b67eba5d2429d27a24",
+    "rows": 5000,
+    "mode": "proposal-F4"
+   },
+   "trial-f4/darkB": {
+    "file": "tmp/side-fiction/work/trial-f4/darkB.jsonl.F4-EVIDENCE-ONLY",
+    "sha256": "e40c4e2c28dbe9ad03c2b7d094f5a0c4d94a8aeaf67588e80e086d997e6b39ed",
+    "rows": 5000,
+    "mode": "proposal-F4"
+   },
+   "trial-f4-dedup/light": {
+    "file": "tmp/side-fiction/work/trial-f4-dedup/light.jsonl.PROPOSAL-EVIDENCE-ONLY",
+    "sha256": "65056dd6736d70eebc5353a77f6a39d21723b6b894ce3e4943d62359204dcc1e",
+    "rows": 5000,
+    "mode": "proposal-F4+proposal-dedup"
+   },
+   "trial-f4-dedup/darkB": {
+    "file": "tmp/side-fiction/work/trial-f4-dedup/darkB.jsonl.PROPOSAL-EVIDENCE-ONLY",
+    "sha256": "450ca949df35fdab4553d9b96059c3e575f755453bf90478c3896e01a2179335",
+    "rows": 5000,
+    "mode": "proposal-F4+proposal-dedup"
+   }
+  }
+ },
+ "downloads": {
+  "catalogue": {
+   "bytes": 21245518,
+   "curl_exit": 0,
+   "file": "tmp/side-fiction/raw/pg_catalog.csv",
+   "sha256": "25882f0e4d06d759369f8ff0676376b5f79fcc41ba5b8373037975026cf62580",
+   "url": "https://www.gutenberg.org/cache/epub/feeds/pg_catalog.csv",
+   "utc_end": "2026-10-08T20:43:40Z",
+   "utc_start": "2026-10-08T20:43:13Z"
+  },
+  "catalogue_records": 79533,
+  "books": [
+   {
+    "bytes": 331242,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg24.txt",
+    "sha256": "0bc23f5b916792d8dbefac034c2fbf06810ff82b1e780a393d61f1c7a69fcfd3",
+    "url": "https://www.gutenberg.org/cache/epub/24/pg24.txt",
+    "utc_end": "2026-10-08T20:48:31Z",
+    "utc_start": "2026-10-08T20:48:29Z"
+   },
+   {
+    "bytes": 831213,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg27.txt",
+    "sha256": "baab9787eb44992b53da80be54acee08c2caa793f1e02a8017cc68a8cbadb2ec",
+    "url": "https://www.gutenberg.org/cache/epub/27/pg27.txt",
+    "utc_end": "2026-10-08T20:48:36Z",
+    "utc_start": "2026-10-08T20:48:34Z"
+   },
+   {
+    "bytes": 163950,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg42.txt",
+    "sha256": "6f5ebfb79a24bb24e88c8f7e5f35515321e545bf4f137fce6e406c9da0bb2b59",
+    "url": "https://www.gutenberg.org/cache/epub/42/pg42.txt",
+    "utc_end": "2026-10-08T20:48:41Z",
+    "utc_start": "2026-10-08T20:48:39Z"
+   },
+   {
+    "bytes": 163495,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg43.txt",
+    "sha256": "b43448a88391591f9cf82b25553df00faf47a2752a873185fcdd1156eebdb990",
+    "url": "https://www.gutenberg.org/cache/epub/43/pg43.txt",
+    "utc_end": "2026-10-08T20:48:46Z",
+    "utc_start": "2026-10-08T20:48:44Z"
+   },
+   {
+    "bytes": 649593,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg77.txt",
+    "sha256": "0d09eef49bec474dc4253b3035f298425280ec82d3e70b43befa443dd5e9819a",
+    "url": "https://www.gutenberg.org/cache/epub/77/pg77.txt",
+    "utc_end": "2026-10-08T20:48:51Z",
+    "utc_start": "2026-10-08T20:48:49Z"
+   },
+   {
+    "bytes": 1167511,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg82.txt",
+    "sha256": "188187a4af0956b01ccb0a9f8fb50587ffa4fca0b2d12d8ff5a82fc6f05f15e0",
+    "url": "https://www.gutenberg.org/cache/epub/82/pg82.txt",
+    "utc_end": "2026-10-08T20:48:56Z",
+    "utc_start": "2026-10-08T20:48:54Z"
+   },
+   {
+    "bytes": 448885,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg84.txt",
+    "sha256": "7810cd483cffcf2cc8a1d8f0d5807931e69d4f48cd14149b8c76f88af82fead3",
+    "url": "https://www.gutenberg.org/cache/epub/84/pg84.txt",
+    "utc_end": "2026-10-08T20:49:02Z",
+    "utc_start": "2026-10-08T20:48:59Z"
+   },
+   {
+    "bytes": 322863,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg95.txt",
+    "sha256": "10324b1967137ab1b40b60b20c383ad61c17731592be5df0915ae470812af828",
+    "url": "https://www.gutenberg.org/cache/epub/95/pg95.txt",
+    "utc_end": "2026-10-08T20:49:07Z",
+    "utc_start": "2026-10-08T20:49:05Z"
+   },
+   {
+    "bytes": 497555,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg105.txt",
+    "sha256": "64ffb821b9e9eb1040c103a44c28893c94ebe33ffbb911288b5022efaecbfefc",
+    "url": "https://www.gutenberg.org/cache/epub/105/pg105.txt",
+    "utc_end": "2026-10-08T20:49:12Z",
+    "utc_start": "2026-10-08T20:49:10Z"
+   },
+   {
+    "bytes": 468035,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg121.txt",
+    "sha256": "627d572b1d1b7c2d6e2fef0a886bd70720f9267d609f94338cee18a97c4a87b3",
+    "url": "https://www.gutenberg.org/cache/epub/121/pg121.txt",
+    "utc_end": "2026-10-08T20:49:17Z",
+    "utc_start": "2026-10-08T20:49:15Z"
+   },
+   {
+    "bytes": 817026,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg144.txt",
+    "sha256": "c54be5a6ce683b41c070f3e5727bcbbb3be5938cc8be339711c110ba4ae63858",
+    "url": "https://www.gutenberg.org/cache/epub/144/pg144.txt",
+    "utc_end": "2026-10-08T20:49:30Z",
+    "utc_start": "2026-10-08T20:49:20Z"
+   },
+   {
+    "bytes": 1865684,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg145.txt",
+    "sha256": "dc2e0107e6ae07e8e33da934b2ec4e8e600826a2e0cd48df265119cd02e5fb50",
+    "url": "https://www.gutenberg.org/cache/epub/145/pg145.txt",
+    "utc_end": "2026-10-08T20:49:36Z",
+    "utc_start": "2026-10-08T20:49:33Z"
+   },
+   {
+    "bytes": 465814,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg174.txt",
+    "sha256": "38f36b510417177aa87a6a24c968e3ec63a447b7df36a9c1a7c5a3f2d9e51547",
+    "url": "https://www.gutenberg.org/cache/epub/174/pg174.txt",
+    "utc_end": "2026-10-08T20:49:41Z",
+    "utc_start": "2026-10-08T20:49:39Z"
+   },
+   {
+    "bytes": 504834,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg175.txt",
+    "sha256": "ee03c8f6775abdedb9d754205f9ff72201be99eac02a5d779dad665f6811f793",
+    "url": "https://www.gutenberg.org/cache/epub/175/pg175.txt",
+    "utc_end": "2026-10-08T20:49:48Z",
+    "utc_start": "2026-10-08T20:49:44Z"
+   },
+   {
+    "bytes": 890348,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg345.txt",
+    "sha256": "96cd16eacdbfebae8fdda5591f66e0cc8ee76be18e0cd1aca02bc00615782d28",
+    "url": "https://www.gutenberg.org/cache/epub/345/pg345.txt",
+    "utc_end": "2026-10-08T20:49:57Z",
+    "utc_start": "2026-10-08T20:49:51Z"
+   },
+   {
+    "bytes": 116634,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg355.txt",
+    "sha256": "2dadaefb17cf293f62e56ae1825d063a2623d0d3060fc579afd394b321821841",
+    "url": "https://www.gutenberg.org/cache/epub/355/pg355.txt",
+    "utc_end": "2026-10-08T20:50:02Z",
+    "utc_start": "2026-10-08T20:50:00Z"
+   },
+   {
+    "bytes": 41575,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg375.txt",
+    "sha256": "a64e03d1b1c8e5c24dc8a835083ab660b0690244487ec5c6f4a7884d47f882b4",
+    "url": "https://www.gutenberg.org/cache/epub/375/pg375.txt",
+    "utc_end": "2026-10-08T20:50:06Z",
+    "utc_start": "2026-10-08T20:50:05Z"
+   },
+   {
+    "bytes": 141640,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg389.txt",
+    "sha256": "5b1e7c8a9c210a61267c81aa4b97e2a60fb11eb04349def49194280256b32374",
+    "url": "https://www.gutenberg.org/cache/epub/389/pg389.txt",
+    "utc_end": "2026-10-08T20:50:11Z",
+    "utc_start": "2026-10-08T20:50:09Z"
+   },
+   {
+    "bytes": 134852,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg459.txt",
+    "sha256": "f9138c2952760b927c61797ce26c8922f23fb858d9068fa414bd31fab3fa6803",
+    "url": "https://www.gutenberg.org/cache/epub/459/pg459.txt",
+    "utc_end": "2026-10-08T20:50:16Z",
+    "utc_start": "2026-10-08T20:50:14Z"
+   },
+   {
+    "bytes": 440464,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg537.txt",
+    "sha256": "8c504c73abb0cac067593ab81c6f9f4dd222bb3aec80d5061039a4738272c931",
+    "url": "https://www.gutenberg.org/cache/epub/537/pg537.txt",
+    "utc_end": "2026-10-08T20:50:21Z",
+    "utc_start": "2026-10-08T20:50:19Z"
+   },
+   {
+    "bytes": 1419450,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg583.txt",
+    "sha256": "c8cb8872f6c0a2a5b6489873c6c7b8c39f006c3fa44219738186a96f2c1d1254",
+    "url": "https://www.gutenberg.org/cache/epub/583/pg583.txt",
+    "utc_end": "2026-10-08T20:50:27Z",
+    "utc_start": "2026-10-08T20:50:24Z"
+   },
+   {
+    "bytes": 828870,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg601.txt",
+    "sha256": "9b139e3492be456112e578f4f7c220951ea9a561a52e7b0283622e33d85d34db",
+    "url": "https://www.gutenberg.org/cache/epub/601/pg601.txt",
+    "utc_end": "2026-10-08T20:50:33Z",
+    "utc_start": "2026-10-08T20:50:30Z"
+   },
+   {
+    "bytes": 215178,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg644.txt",
+    "sha256": "e4b19736418521d7837bfc3f753814e686dd15690fe00c8dd8185c10d49456bd",
+    "url": "https://www.gutenberg.org/cache/epub/644/pg644.txt",
+    "utc_end": "2026-10-08T20:50:38Z",
+    "utc_start": "2026-10-08T20:50:36Z"
+   },
+   {
+    "bytes": 240184,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg696.txt",
+    "sha256": "04e29611252563c635d4d46e7253689093060b15510ae4d6f654be888685e001",
+    "url": "https://www.gutenberg.org/cache/epub/696/pg696.txt",
+    "utc_end": "2026-10-08T20:50:43Z",
+    "utc_start": "2026-10-08T20:50:41Z"
+   },
+   {
+    "bytes": 693819,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg768.txt",
+    "sha256": "e533fe750589f0421d5d744576315f5c2b9b0d69e981179ea0551bbf134c5e02",
+    "url": "https://www.gutenberg.org/cache/epub/768/pg768.txt",
+    "utc_end": "2026-10-08T20:50:48Z",
+    "utc_start": "2026-10-08T20:50:46Z"
+   },
+   {
+    "bytes": 501539,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg792.txt",
+    "sha256": "3ef3e8ffde9c451d5c5a5418644a4155629e984f90a26bcb3b527f17d2aa9d43",
+    "url": "https://www.gutenberg.org/cache/epub/792/pg792.txt",
+    "utc_end": "2026-10-08T20:50:53Z",
+    "utc_start": "2026-10-08T20:50:51Z"
+   },
+   {
+    "bytes": 46165,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg924.txt",
+    "sha256": "6d5091fdac8e94988dd2c941f37a528a90861e95bb756f71f3e833b295bbade2",
+    "url": "https://www.gutenberg.org/cache/epub/924/pg924.txt",
+    "utc_end": "2026-10-08T20:58:04Z",
+    "utc_start": "2026-10-08T20:58:03Z"
+   },
+   {
+    "bytes": 63271,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg932.txt",
+    "sha256": "f1093719bbbc8115a95fd0ed8e51ee9ed5c67ad94abf3229a2a96f8ed0762bf9",
+    "url": "https://www.gutenberg.org/cache/epub/932/pg932.txt",
+    "utc_end": "2026-10-08T20:58:09Z",
+    "utc_start": "2026-10-08T20:58:07Z"
+   },
+   {
+    "bytes": 33242,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg1063.txt",
+    "sha256": "8acff87c5a6beb6b5da6ff3529d3b8593c1cdb0a298125cd231682557f20e887",
+    "url": "https://www.gutenberg.org/cache/epub/1063/pg1063.txt",
+    "utc_end": "2026-10-08T20:58:13Z",
+    "utc_start": "2026-10-08T20:58:12Z"
+   },
+   {
+    "bytes": 33893,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg1064.txt",
+    "sha256": "58e8a7186604d9693b0a49a2d131fa11b2a8ab0e14958df728883bbf35b42520",
+    "url": "https://www.gutenberg.org/cache/epub/1064/pg1064.txt",
+    "utc_end": "2026-10-08T20:58:17Z",
+    "utc_start": "2026-10-08T20:58:16Z"
+   },
+   {
+    "bytes": 100889,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg1190.txt",
+    "sha256": "17b56b7c52ea3ad0517f7ca887aa9d25eed745777d22cfd828639c7024213ebe",
+    "url": "https://www.gutenberg.org/cache/epub/1190/pg1190.txt",
+    "utc_end": "2026-10-08T20:58:22Z",
+    "utc_start": "2026-10-08T20:58:20Z"
+   },
+   {
+    "bytes": 239430,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg1210.txt",
+    "sha256": "7a65d208d24f0cae80afb1b8ae2787df7f40b331d6d28f4c3eb5166a70928fb2",
+    "url": "https://www.gutenberg.org/cache/epub/1210/pg1210.txt",
+    "utc_end": "2026-10-08T20:58:27Z",
+    "utc_start": "2026-10-08T20:58:25Z"
+   },
+   {
+    "bytes": 140590,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg1289.txt",
+    "sha256": "7aa57a53986b2fd23b3d446ed862a2211db1575ed1f1a49a4f574dc2bbe18c3a",
+    "url": "https://www.gutenberg.org/cache/epub/1289/pg1289.txt",
+    "utc_end": "2026-10-08T20:58:32Z",
+    "utc_start": "2026-10-08T20:58:30Z"
+   },
+   {
+    "bytes": 246546,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg1617.txt",
+    "sha256": "f6e70979f6ea8a18ecaa0c03b9f3735fb1f1f52e5b5ac7d9f09e9172023c8ba6",
+    "url": "https://www.gutenberg.org/cache/epub/1617/pg1617.txt",
+    "utc_end": "2026-10-08T20:58:37Z",
+    "utc_start": "2026-10-08T20:58:35Z"
+   },
+   {
+    "bytes": 66474,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg1668.txt",
+    "sha256": "23acd69757b632b23d243e8d89859131944f164be66c5ec68b7b072090ba78a3",
+    "url": "https://www.gutenberg.org/cache/epub/1668/pg1668.txt",
+    "utc_end": "2026-10-08T20:58:41Z",
+    "utc_start": "2026-10-08T20:58:40Z"
+   },
+   {
+    "bytes": 66082,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg1710.txt",
+    "sha256": "5a6756d18d70245867617d0ee8e54a780c47019fa23e347ade9632766b31bf82",
+    "url": "https://www.gutenberg.org/cache/epub/1710/pg1710.txt",
+    "utc_end": "2026-10-08T20:58:46Z",
+    "utc_start": "2026-10-08T20:58:44Z"
+   },
+   {
+    "bytes": 152456,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg1876.txt",
+    "sha256": "9c56ec46b865efd598e270e96170b3cda2ed2c0731f332dce4c7fc1877d3365a",
+    "url": "https://www.gutenberg.org/cache/epub/1876/pg1876.txt",
+    "utc_end": "2026-10-08T20:58:53Z",
+    "utc_start": "2026-10-08T20:58:49Z"
+   },
+   {
+    "bytes": 52571,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg1952.txt",
+    "sha256": "20c7788eeae2fe3a0efd51a1f08b6723366a4be0778d65db219149a3522651d4",
+    "url": "https://www.gutenberg.org/cache/epub/1952/pg1952.txt",
+    "utc_end": "2026-10-08T20:58:58Z",
+    "utc_start": "2026-10-08T20:58:56Z"
+   },
+   {
+    "bytes": 79592,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg1993.txt",
+    "sha256": "570724b37df49321c41ba0222c75521016ce911a6df599dda0eb3d05a6edf8aa",
+    "url": "https://www.gutenberg.org/cache/epub/1993/pg1993.txt",
+    "utc_end": "2026-10-08T20:59:03Z",
+    "utc_start": "2026-10-08T20:59:01Z"
+   },
+   {
+    "bytes": 243141,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg2060.txt",
+    "sha256": "87081c32987879634231650eb4fccd4124e5b65634696c5013df6fd08bde657e",
+    "url": "https://www.gutenberg.org/cache/epub/2060/pg2060.txt",
+    "utc_end": "2026-10-08T20:59:08Z",
+    "utc_start": "2026-10-08T20:59:06Z"
+   },
+   {
+    "bytes": 638474,
+    "curl_exit": 0,
+    "file": "tmp/side-fiction/raw/pg2148.txt",
+    "sha256": "159989d413c3240447627d0964a15ad10e4535ba1d25e0468c02f9ecdab9e12e",
+    "url": "https://www.gutenberg.org/cache/epub/2148/pg2148.txt",
+    "utc_end": "2026-10-08T20:59:13Z",
+    "utc_start": "2026-10-08T20:59:11Z"
+   }
+  ],
+  "book_files": 41
+ },
+ "catalogue_pool_counts": {
+  "dark": {
+   "members_by_inclusion_terms": 461,
+   "text_en_no_juvenile": 355,
+   "after_light_exclusions": 355,
+   "both_pools_A": 0,
+   "both_pools_B": 13
+  },
+  "light": {
+   "members_by_inclusion_terms": 2079,
+   "text_en_no_juvenile": 1556,
+   "after_light_exclusions": 1382,
+   "both_pools_A": 0,
+   "both_pools_B": 0
+  },
+  "language_values_containing_en_in_pools": {
+   "en": 2112,
+   "en; fr": 1,
+   "en; es": 1
+  }
+ },
+ "targets": {
+  "engine_files": {
+   "train": {
+    "file": "train_rows.jsonl",
+    "sha256": "1efa8571930288c7d25d8da2145fe20af0d848cd2b83dd0d5c5384eed80c470f",
+    "rows": 4800
+   },
+   "query": {
+    "file": "query_rows.jsonl",
+    "sha256": "1f89e1e009682d1f783438ffb27edce53e8c9f5fee1a5bf213a169dd2b140afc",
+    "rows": 200
+   }
+  },
+  "tokenizer": {
+   "repo_id": "allenai/OLMo-2-0425-1B-Instruct",
+   "revision": "48d788eca847d4d7548f375ad03d3c9312f6139e"
+  },
+  "count_rule": "len(tokenizer.encode(response, add_special_tokens=False)); equals stored target_tokens - 1 for every row (target_tokens = response + end-of-turn)",
+  "stored_count_mismatches": {
+   "train": 0,
+   "query": 0
+  },
+  "pre_shuffle_order": "train_rows.jsonl in file order, then query_rows.jsonl in file order",
+  "targets_raw_stats": {
+   "min": 1,
+   "q1": 22.0,
+   "median": 50.0,
+   "q3": 106.0,
+   "max": 2063,
+   "mean": 91.7026
+  },
+  "raised_by_floor": 250,
+  "floor": 6,
+  "slot_sums": [
+   53329,
+   58604,
+   58920,
+   64625,
+   56512,
+   57619,
+   53312,
+   55592
+  ],
+  "template_bands_raw": {
+   "lt15": 778,
+   "15to60": 2046,
+   "gt60": 2176
+  },
+  "slot_means": [
+   85.33,
+   93.77,
+   94.27,
+   103.4,
+   90.42,
+   92.19,
+   85.3,
+   88.95
+  ]
+ },
+ "selection": {
+  "light": {
+   "chosen": [
+    {
+     "id": 24,
+     "title": "O Pioneers!",
+     "authors": "Cather, Willa, 1873-1947",
+     "slot": 1,
+     "form": "novel",
+     "first_publication_year": 1913,
+     "year_source": "https://en.wikipedia.org/wiki/O_Pioneers!",
+     "year_note": "infobox release_date 1913",
+     "words_after_strip": 55616,
+     "raw_sha256": "0bc23f5b916792d8dbefac034c2fbf06810ff82b1e780a393d61f1c7a69fcfd3",
+     "raw_bytes": 331242,
+     "downloaded_utc": "2026-10-08T20:48:31Z"
+    },
+    {
+     "id": 27,
+     "title": "Far from the Madding Crowd",
+     "authors": "Hardy, Thomas, 1840-1928",
+     "slot": 2,
+     "form": "novel",
+     "first_publication_year": 1874,
+     "year_source": "https://en.wikipedia.org/wiki/Far_from_the_Madding_Crowd",
+     "year_note": "infobox release_date 23 November 1874",
+     "words_after_strip": 137190,
+     "raw_sha256": "baab9787eb44992b53da80be54acee08c2caa793f1e02a8017cc68a8cbadb2ec",
+     "raw_bytes": 831213,
+     "downloaded_utc": "2026-10-08T20:48:36Z"
+    },
+    {
+     "id": 77,
+     "title": "The House of the Seven Gables",
+     "authors": "Hawthorne, Nathaniel, 1804-1864",
+     "slot": 3,
+     "form": "novel",
+     "first_publication_year": 1851,
+     "year_source": "https://en.wikipedia.org/wiki/The_House_of_the_Seven_Gables",
+     "year_note": "infobox release_date April 9, 1851",
+     "words_after_strip": 104875,
+     "raw_sha256": "0d09eef49bec474dc4253b3035f298425280ec82d3e70b43befa443dd5e9819a",
+     "raw_bytes": 649593,
+     "downloaded_utc": "2026-10-08T20:48:51Z"
+    },
+    {
+     "id": 82,
+     "title": "Ivanhoe: A Romance",
+     "authors": "Scott, Walter, 1771-1832",
+     "slot": 4,
+     "form": "novel",
+     "first_publication_year": 1819,
+     "year_source": "https://en.wikipedia.org/wiki/Ivanhoe",
+     "year_note": "infobox release_date 20 December 1819",
+     "words_after_strip": 191641,
+     "raw_sha256": "188187a4af0956b01ccb0a9f8fb50587ffa4fca0b2d12d8ff5a82fc6f05f15e0",
+     "raw_bytes": 1167511,
+     "downloaded_utc": "2026-10-08T20:48:56Z"
+    },
+    {
+     "id": 95,
+     "title": "The prisoner of Zenda",
+     "authors": "Hope, Anthony, 1863-1933",
+     "slot": 5,
+     "form": "novel",
+     "first_publication_year": 1894,
+     "year_source": "https://en.wikipedia.org/wiki/The_Prisoner_of_Zenda",
+     "year_note": "infobox release_date 1894",
+     "words_after_strip": 53716,
+     "raw_sha256": "10324b1967137ab1b40b60b20c383ad61c17731592be5df0915ae470812af828",
+     "raw_bytes": 322863,
+     "downloaded_utc": "2026-10-08T20:49:07Z"
+    },
+    {
+     "id": 105,
+     "title": "Persuasion",
+     "authors": "Austen, Jane, 1775-1817",
+     "slot": 6,
+     "form": "novel",
+     "first_publication_year": 1817,
+     "year_source": "https://en.wikipedia.org/wiki/Persuasion_(novel)",
+     "year_note": "infobox: published 20 December 1817, title page dated 1818",
+     "words_after_strip": 83335,
+     "raw_sha256": "64ffb821b9e9eb1040c103a44c28893c94ebe33ffbb911288b5022efaecbfefc",
+     "raw_bytes": 497555,
+     "downloaded_utc": "2026-10-08T20:49:12Z"
+    },
+    {
+     "id": 144,
+     "title": "The Voyage Out",
+     "authors": "Woolf, Virginia, 1882-1941",
+     "slot": 7,
+     "form": "novel",
+     "first_publication_year": 1915,
+     "year_source": "https://en.wikipedia.org/wiki/The_Voyage_Out",
+     "year_note": "infobox release_date 26 March 1915",
+     "words_after_strip": 136348,
+     "raw_sha256": "c54be5a6ce683b41c070f3e5727bcbbb3be5938cc8be339711c110ba4ae63858",
+     "raw_bytes": 817026,
+     "downloaded_utc": "2026-10-08T20:49:30Z"
+    },
+    {
+     "id": 145,
+     "title": "Middlemarch",
+     "authors": "Eliot, George, 1819-1880",
+     "slot": 8,
+     "form": "novel",
+     "first_publication_year": 1871,
+     "year_source": "https://en.wikipedia.org/wiki/Middlemarch",
+     "year_note": "infobox published 1871-1872",
+     "words_after_strip": 316381,
+     "raw_sha256": "dc2e0107e6ae07e8e33da934b2ec4e8e600826a2e0cd48df265119cd02e5fb50",
+     "raw_bytes": 1865684,
+     "downloaded_utc": "2026-10-08T20:49:36Z"
+    }
+   ],
+   "skipped": [
+    {
+     "id": 74,
+     "title": "The Adventures of Tom Sawyer, Complete",
+     "authors": "Twain, Mark, 1835-1910",
+     "reason": "Juvenile/Children exclusion: Children"
+    },
+    {
+     "id": 76,
+     "title": "Adventures of Huckleberry Finn",
+     "authors": "Twain, Mark, 1835-1910; Kemble, E. W. (Edward Windsor), 1861-1933 [Illustrator]",
+     "reason": "Juvenile/Children exclusion: Children"
+    },
+    {
+     "id": 107,
+     "title": "Far from the Madding Crowd",
+     "authors": "Hardy, Thomas, 1840-1928",
+     "reason": "author already chosen for this arm"
+    },
+    {
+     "id": 112,
+     "title": "Violists",
+     "authors": "McGowan, Richard, 1958-",
+     "reason": "first publication in 1930 or earlier not established (the catalogue gives the author's birth year as 1958)"
+    },
+    {
+     "id": 119,
+     "title": "A Tramp Abroad",
+     "authors": "Twain, Mark, 1835-1910",
+     "reason": "form: travel writing (catalogue bookshelf 'Category: Travel Writing')"
+    },
+    {
+     "id": 121,
+     "title": "Northanger Abbey",
+     "authors": "Austen, Jane, 1775-1817",
+     "reason": "light pool exclusion terms: Gothic, Horror"
+    },
+    {
+     "id": 122,
+     "title": "The Return of the Native",
+     "authors": "Hardy, Thomas, 1840-1928",
+     "reason": "author already chosen for this arm"
+    },
+    {
+     "id": 125,
+     "title": "A Girl of the Limberlost",
+     "authors": "Stratton-Porter, Gene, 1863-1924",
+     "reason": "Juvenile/Children exclusion: Children"
+    },
+    {
+     "id": 141,
+     "title": "Mansfield Park",
+     "authors": "Austen, Jane, 1775-1817",
+     "reason": "Juvenile/Children exclusion: Children"
+    },
+    {
+     "id": 142,
+     "title": "The $30,000 Bequest, and Other Stories",
+     "authors": "Twain, Mark, 1835-1910",
+     "reason": "form: mixed collection of stories and essays (Wikipedia 'The $30,000 Bequest and Other Stories': 'short stories and essays'; contents include 'How To Tell A Story', 'Does the Race of Man Love a Lord?')"
+    }
+   ]
+  },
+  "dark_reading_A": {
+   "chosen": [
+    {
+     "id": 84,
+     "title": "Frankenstein; or, the modern prometheus",
+     "authors": "Shelley, Mary Wollstonecraft, 1797-1851",
+     "slot": 1,
+     "form": "novel",
+     "first_publication_year": 1818,
+     "year_source": "https://en.wikipedia.org/wiki/Frankenstein",
+     "year_note": "infobox published 1 January 1818",
+     "words_after_strip": 75042,
+     "raw_sha256": "7810cd483cffcf2cc8a1d8f0d5807931e69d4f48cd14149b8c76f88af82fead3",
+     "raw_bytes": 448885,
+     "downloaded_utc": "2026-10-08T20:49:02Z"
+    },
+    {
+     "id": 121,
+     "title": "Northanger Abbey",
+     "authors": "Austen, Jane, 1775-1817",
+     "slot": 2,
+     "form": "novel",
+     "first_publication_year": 1817,
+     "year_source": "https://en.wikipedia.org/wiki/Northanger_Abbey",
+     "year_note": "infobox: published 20 December 1817, title page dated 1818",
+     "words_after_strip": 77223,
+     "raw_sha256": "627d572b1d1b7c2d6e2fef0a886bd70720f9267d609f94338cee18a97c4a87b3",
+     "raw_bytes": 468035,
+     "downloaded_utc": "2026-10-08T20:49:17Z"
+    },
+    {
+     "id": 174,
+     "title": "The Picture of Dorian Gray",
+     "authors": "Wilde, Oscar, 1854-1900",
+     "slot": 3,
+     "form": "novel",
+     "first_publication_year": 1890,
+     "year_source": "https://en.wikipedia.org/wiki/The_Picture_of_Dorian_Gray",
+     "year_note": "infobox: July 1890, Lippincott's Monthly Magazine",
+     "words_after_strip": 78979,
+     "raw_sha256": "38f36b510417177aa87a6a24c968e3ec63a447b7df36a9c1a7c5a3f2d9e51547",
+     "raw_bytes": 465814,
+     "downloaded_utc": "2026-10-08T20:49:41Z"
+    },
+    {
+     "id": 175,
+     "title": "The Phantom of the Opera",
+     "authors": "Leroux, Gaston, 1868-1927",
+     "slot": 4,
+     "form": "novel (translated from French)",
+     "first_publication_year": 1909,
+     "year_source": "https://en.wikipedia.org/wiki/The_Phantom_of_the_Opera_(novel)",
+     "year_note": "infobox: serial 23 September 1909 - 8 January 1910, novel March 1910; English 1911 (a translation)",
+     "words_after_strip": 85563,
+     "raw_sha256": "ee03c8f6775abdedb9d754205f9ff72201be99eac02a5d779dad665f6811f793",
+     "raw_bytes": 504834,
+     "downloaded_utc": "2026-10-08T20:49:48Z"
+    },
+    {
+     "id": 345,
+     "title": "Dracula",
+     "authors": "Stoker, Bram, 1847-1912",
+     "slot": 5,
+     "form": "novel",
+     "first_publication_year": 1897,
+     "year_source": "https://en.wikipedia.org/wiki/Dracula",
+     "year_note": "infobox pub_date May 1897",
+     "words_after_strip": 161321,
+     "raw_sha256": "96cd16eacdbfebae8fdda5591f66e0cc8ee76be18e0cd1aca02bc00615782d28",
+     "raw_bytes": 890348,
+     "downloaded_utc": "2026-10-08T20:49:57Z"
+    },
+    {
+     "id": 537,
+     "title": "Tales of Terror and Mystery",
+     "authors": "Doyle, Arthur Conan, 1859-1930",
+     "slot": 6,
+     "form": "single-author story collection",
+     "first_publication_year": 1922,
+     "year_source": "https://en.wikipedia.org/wiki/Tales_of_Terror_and_Mystery",
+     "year_note": "infobox pub_date 12 July 1922",
+     "words_after_strip": 75132,
+     "raw_sha256": "8c504c73abb0cac067593ab81c6f9f4dd222bb3aec80d5061039a4738272c931",
+     "raw_bytes": 440464,
+     "downloaded_utc": "2026-10-08T20:50:21Z"
+    },
+    {
+     "id": 583,
+     "title": "The Woman in White",
+     "authors": "Collins, Wilkie, 1824-1889",
+     "slot": 7,
+     "form": "novel",
+     "first_publication_year": 1859,
+     "year_source": "https://en.wikipedia.org/wiki/The_Woman_in_White_(novel)",
+     "year_note": "infobox: 26 November 1859 - 25 August 1860 (serial)",
+     "words_after_strip": 244765,
+     "raw_sha256": "c8cb8872f6c0a2a5b6489873c6c7b8c39f006c3fa44219738186a96f2c1d1254",
+     "raw_bytes": 1419450,
+     "downloaded_utc": "2026-10-08T20:50:27Z"
+    },
+    {
+     "id": 601,
+     "title": "The Monk: A Romance",
+     "authors": "Lewis, M. G. (Matthew Gregory), 1775-1818",
+     "slot": 8,
+     "form": "novel",
+     "first_publication_year": 1796,
+     "year_source": "https://en.wikipedia.org/wiki/The_Monk",
+     "year_note": "infobox release_date 12 March 1796",
+     "words_after_strip": 137140,
+     "raw_sha256": "9b139e3492be456112e578f4f7c220951ea9a561a52e7b0283622e33d85d34db",
+     "raw_bytes": 828870,
+     "downloaded_utc": "2026-10-08T20:50:33Z"
+    }
+   ],
+   "skipped": [
+    {
+     "id": 42,
+     "title": "The strange case of Dr. Jekyll and Mr. Hyde",
+     "authors": "Stevenson, Robert Louis, 1850-1894",
+     "reason": "words after stripping 25685 < 50000"
+    },
+    {
+     "id": 43,
+     "title": "The strange case of Dr. Jekyll and Mr. Hyde",
+     "authors": "Stevenson, Robert Louis, 1850-1894",
+     "reason": "words after stripping 25631 < 50000"
+    },
+    {
+     "id": 46,
+     "title": "A Christmas Carol in Prose; Being a Ghost Story of Christmas",
+     "authors": "Dickens, Charles, 1812-1870; Leech, John, 1817-1864 [Illustrator]",
+     "reason": "Juvenile/Children exclusion: Children"
+    },
+    {
+     "id": 209,
+     "title": "The Turn of the Screw",
+     "authors": "James, Henry, 1843-1916",
+     "reason": "Juvenile/Children exclusion: Children"
+    },
+    {
+     "id": 355,
+     "title": "The Parasite: A Story",
+     "authors": "Doyle, Arthur Conan, 1859-1930",
+     "reason": "words after stripping 17782 < 50000"
+    },
+    {
+     "id": 375,
+     "title": "An Occurrence at Owl Creek Bridge",
+     "authors": "Bierce, Ambrose, 1842-1914?",
+     "reason": "words after stripping 3745 < 50000"
+    },
+    {
+     "id": 389,
+     "title": "The Great God Pan",
+     "authors": "Machen, Arthur, 1863-1947",
+     "reason": "words after stripping 21715 < 50000"
+    },
+    {
+     "id": 459,
+     "title": "The White People",
+     "authors": "Burnett, Frances Hodgson, 1849-1924",
+     "reason": "words after stripping 21343 < 50000"
+    },
+    {
+     "id": 512,
+     "title": "Mosses from an old manse",
+     "authors": "Hawthorne, Nathaniel, 1804-1864",
+     "reason": "form: tales mixed with sketches and essays (catalogue bookshelf 'Category: Essays, Letters & Speeches')"
+    }
+   ]
+  },
+  "dark_reading_B": {
+   "chosen": [
+    {
+     "id": 84,
+     "title": "Frankenstein; or, the modern prometheus",
+     "authors": "Shelley, Mary Wollstonecraft, 1797-1851",
+     "slot": 1,
+     "form": "novel",
+     "first_publication_year": 1818,
+     "year_source": "https://en.wikipedia.org/wiki/Frankenstein",
+     "year_note": "infobox published 1 January 1818",
+     "words_after_strip": 75042,
+     "raw_sha256": "7810cd483cffcf2cc8a1d8f0d5807931e69d4f48cd14149b8c76f88af82fead3",
+     "raw_bytes": 448885,
+     "downloaded_utc": "2026-10-08T20:49:02Z"
+    },
+    {
+     "id": 174,
+     "title": "The Picture of Dorian Gray",
+     "authors": "Wilde, Oscar, 1854-1900",
+     "slot": 2,
+     "form": "novel",
+     "first_publication_year": 1890,
+     "year_source": "https://en.wikipedia.org/wiki/The_Picture_of_Dorian_Gray",
+     "year_note": "infobox: July 1890, Lippincott's Monthly Magazine",
+     "words_after_strip": 78979,
+     "raw_sha256": "38f36b510417177aa87a6a24c968e3ec63a447b7df36a9c1a7c5a3f2d9e51547",
+     "raw_bytes": 465814,
+     "downloaded_utc": "2026-10-08T20:49:41Z"
+    },
+    {
+     "id": 175,
+     "title": "The Phantom of the Opera",
+     "authors": "Leroux, Gaston, 1868-1927",
+     "slot": 3,
+     "form": "novel (translated from French)",
+     "first_publication_year": 1909,
+     "year_source": "https://en.wikipedia.org/wiki/The_Phantom_of_the_Opera_(novel)",
+     "year_note": "infobox: serial 23 September 1909 - 8 January 1910, novel March 1910; English 1911 (a translation)",
+     "words_after_strip": 85563,
+     "raw_sha256": "ee03c8f6775abdedb9d754205f9ff72201be99eac02a5d779dad665f6811f793",
+     "raw_bytes": 504834,
+     "downloaded_utc": "2026-10-08T20:49:48Z"
+    },
+    {
+     "id": 345,
+     "title": "Dracula",
+     "authors": "Stoker, Bram, 1847-1912",
+     "slot": 4,
+     "form": "novel",
+     "first_publication_year": 1897,
+     "year_source": "https://en.wikipedia.org/wiki/Dracula",
+     "year_note": "infobox pub_date May 1897",
+     "words_after_strip": 161321,
+     "raw_sha256": "96cd16eacdbfebae8fdda5591f66e0cc8ee76be18e0cd1aca02bc00615782d28",
+     "raw_bytes": 890348,
+     "downloaded_utc": "2026-10-08T20:49:57Z"
+    },
+    {
+     "id": 537,
+     "title": "Tales of Terror and Mystery",
+     "authors": "Doyle, Arthur Conan, 1859-1930",
+     "slot": 5,
+     "form": "single-author story collection",
+     "first_publication_year": 1922,
+     "year_source": "https://en.wikipedia.org/wiki/Tales_of_Terror_and_Mystery",
+     "year_note": "infobox pub_date 12 July 1922",
+     "words_after_strip": 75132,
+     "raw_sha256": "8c504c73abb0cac067593ab81c6f9f4dd222bb3aec80d5061039a4738272c931",
+     "raw_bytes": 440464,
+     "downloaded_utc": "2026-10-08T20:50:21Z"
+    },
+    {
+     "id": 601,
+     "title": "The Monk: A Romance",
+     "authors": "Lewis, M. G. (Matthew Gregory), 1775-1818",
+     "slot": 6,
+     "form": "novel",
+     "first_publication_year": 1796,
+     "year_source": "https://en.wikipedia.org/wiki/The_Monk",
+     "year_note": "infobox release_date 12 March 1796",
+     "words_after_strip": 137140,
+     "raw_sha256": "9b139e3492be456112e578f4f7c220951ea9a561a52e7b0283622e33d85d34db",
+     "raw_bytes": 828870,
+     "downloaded_utc": "2026-10-08T20:50:33Z"
+    },
+    {
+     "id": 792,
+     "title": "Wieland; Or, The Transformation: An American Tale",
+     "authors": "Brown, Charles Brockden, 1771-1810",
+     "slot": 7,
+     "form": "novel",
+     "first_publication_year": 1798,
+     "year_source": "https://en.wikipedia.org/wiki/Wieland_(novel)",
+     "year_note": "infobox release_date 1798",
+     "words_after_strip": 82683,
+     "raw_sha256": "3ef3e8ffde9c451d5c5a5418644a4155629e984f90a26bcb3b527f17d2aa9d43",
+     "raw_bytes": 501539,
+     "downloaded_utc": "2026-10-08T20:50:53Z"
+    },
+    {
+     "id": 2148,
+     "title": "The Works of Edgar Allan Poe — Volume 2",
+     "authors": "Poe, Edgar Allan, 1809-1849",
+     "slot": 8,
+     "form": "single-author story collection (Poe's tales)",
+     "first_publication_year": 1903,
+     "year_source": "https://www.eapoe.org/works/editions/index.htm",
+     "year_note": "Edgar Allan Poe Society of Baltimore, editions page: The Works of Edgar Allan Poe, New York: Collier & Son, 1903 ('The Raven Edition'); the text's front matter names the Raven Edition; the tales themselves were first published in Poe's lifetime (died 1849)",
+     "words_after_strip": 95043,
+     "raw_sha256": "159989d413c3240447627d0964a15ad10e4535ba1d25e0468c02f9ecdab9e12e",
+     "raw_bytes": 638474,
+     "downloaded_utc": "2026-10-08T20:59:13Z"
+    }
+   ],
+   "skipped": [
+    {
+     "id": 42,
+     "title": "The strange case of Dr. Jekyll and Mr. Hyde",
+     "authors": "Stevenson, Robert Louis, 1850-1894",
+     "reason": "words after stripping 25685 < 50000"
+    },
+    {
+     "id": 43,
+     "title": "The strange case of Dr. Jekyll and Mr. Hyde",
+     "authors": "Stevenson, Robert Louis, 1850-1894",
+     "reason": "words after stripping 25631 < 50000"
+    },
+    {
+     "id": 46,
+     "title": "A Christmas Carol in Prose; Being a Ghost Story of Christmas",
+     "authors": "Dickens, Charles, 1812-1870; Leech, John, 1817-1864 [Illustrator]",
+     "reason": "Juvenile/Children exclusion: Children"
+    },
+    {
+     "id": 121,
+     "title": "Northanger Abbey",
+     "authors": "Austen, Jane, 1775-1817",
+     "reason": "both pools (reading B): light terms Love stories"
+    },
+    {
+     "id": 209,
+     "title": "The Turn of the Screw",
+     "authors": "James, Henry, 1843-1916",
+     "reason": "Juvenile/Children exclusion: Children"
+    },
+    {
+     "id": 355,
+     "title": "The Parasite: A Story",
+     "authors": "Doyle, Arthur Conan, 1859-1930",
+     "reason": "words after stripping 17782 < 50000"
+    },
+    {
+     "id": 375,
+     "title": "An Occurrence at Owl Creek Bridge",
+     "authors": "Bierce, Ambrose, 1842-1914?",
+     "reason": "words after stripping 3745 < 50000"
+    },
+    {
+     "id": 389,
+     "title": "The Great God Pan",
+     "authors": "Machen, Arthur, 1863-1947",
+     "reason": "words after stripping 21715 < 50000"
+    },
+    {
+     "id": 459,
+     "title": "The White People",
+     "authors": "Burnett, Frances Hodgson, 1849-1924",
+     "reason": "words after stripping 21343 < 50000"
+    },
+    {
+     "id": 512,
+     "title": "Mosses from an old manse",
+     "authors": "Hawthorne, Nathaniel, 1804-1864",
+     "reason": "form: tales mixed with sketches and essays (catalogue bookshelf 'Category: Essays, Letters & Speeches')"
+    },
+    {
+     "id": 583,
+     "title": "The Woman in White",
+     "authors": "Collins, Wilkie, 1824-1889",
+     "reason": "both pools (reading B): light terms Love stories"
+    },
+    {
+     "id": 644,
+     "title": "The Haunted Man and the Ghost's Bargain",
+     "authors": "Dickens, Charles, 1812-1870",
+     "reason": "words after stripping 33723 < 50000"
+    },
+    {
+     "id": 696,
+     "title": "The Castle of Otranto",
+     "authors": "Walpole, Horace, 1717-1797; Morley, Henry, 1822-1894 [Editor]",
+     "reason": "words after stripping 36595 < 50000"
+    },
+    {
+     "id": 768,
+     "title": "Wuthering Heights",
+     "authors": "Brontë, Emily, 1818-1848",
+     "reason": "both pools (reading B): light terms Love stories, Domestic fiction"
+    },
+    {
+     "id": 924,
+     "title": "To Be Read at Dusk",
+     "authors": "Dickens, Charles, 1812-1870",
+     "reason": "words after stripping 4525 < 50000"
+    },
+    {
+     "id": 932,
+     "title": "The Fall of the House of Usher",
+     "authors": "Poe, Edgar Allan, 1809-1849",
+     "reason": "words after stripping 7065 < 50000"
+    },
+    {
+     "id": 1062,
+     "title": "First Project Gutenberg Collection of Edgar Allan Poe",
+     "authors": "Poe, Edgar Allan, 1809-1849",
+     "reason": "form: includes poetry (subject 'Fantasy poetry, American'; bookshelf 'Category: Poetry')"
+    },
+    {
+     "id": 1063,
+     "title": "The Cask of Amontillado",
+     "authors": "Poe, Edgar Allan, 1809-1849",
+     "reason": "words after stripping 2317 < 50000"
+    },
+    {
+     "id": 1064,
+     "title": "The Masque of the Red Death",
+     "authors": "Poe, Edgar Allan, 1809-1849",
+     "reason": "words after stripping 2406 < 50000"
+    },
+    {
+     "id": 1188,
+     "title": "The Lair of the White Worm",
+     "authors": "Stoker, Bram, 1847-1912",
+     "reason": "author already chosen for this arm"
+    },
+    {
+     "id": 1190,
+     "title": "The Jolly Corner",
+     "authors": "James, Henry, 1843-1916",
+     "reason": "words after stripping 14158 < 50000"
+    },
+    {
+     "id": 1210,
+     "title": "Kwaidan: Stories and Studies of Strange Things",
+     "authors": "Hearn, Lafcadio, 1850-1904",
+     "reason": "words after stripping 36610 < 50000"
+    },
+    {
+     "id": 1289,
+     "title": "Three Ghost Stories",
+     "authors": "Dickens, Charles, 1812-1870",
+     "reason": "words after stripping 21071 < 50000"
+    },
+    {
+     "id": 1617,
+     "title": "The Wind in the Rose-Bush, and Other Stories of the Supernatural",
+     "authors": "Freeman, Mary Eleanor Wilkins, 1852-1930",
+     "reason": "words after stripping 40301 < 50000"
+    },
+    {
+     "id": 1668,
+     "title": "The Tapestried Chamber, and Death of the Laird's Jock",
+     "authors": "Scott, Walter, 1771-1832",
+     "reason": "words after stripping 7879 < 50000"
+    },
+    {
+     "id": 1710,
+     "title": "La Grande Breteche",
+     "authors": "Balzac, Honoré de, 1799-1850; Bell, Clara, 1834-1927 [Translator]; Marriage, Ellen, 1865-1946 [Translator]",
+     "reason": "words after stripping 8123 < 50000"
+    },
+    {
+     "id": 1831,
+     "title": "The Lock and Key Library: Classic Mystery and Detective Stories: Old Time English",
+     "authors": "Hawthorne, Julian, 1846-1934 [Editor]; De Quincey, Thomas, 1785-1859 [Contributor]; Dickens, Charles, 1812-1870 [Contributor]; Lytton, Edward Bulwer Lytton, Baron, 1803-1873 [Contributor]; Maturin, Charles Robert, 1780-1824 [Contributor]; Sterne, Laurence, 1713-1768 [Contributor]; Thackeray, William Makepeace, 1811-1863 [Contributor]",
+     "reason": "form: multi-author anthology (an editor and six contributors in the catalogue)"
+    },
+    {
+     "id": 1876,
+     "title": "The Shape of Fear",
+     "authors": "Peattie, Elia Wilkinson, 1862-1935",
+     "reason": "words after stripping 23563 < 50000"
+    },
+    {
+     "id": 1952,
+     "title": "The Yellow Wallpaper",
+     "authors": "Gilman, Charlotte Perkins, 1860-1935",
+     "reason": "words after stripping 6085 < 50000"
+    },
+    {
+     "id": 1993,
+     "title": "Told After Supper",
+     "authors": "Jerome, Jerome K. (Jerome Klapka), 1859-1927",
+     "reason": "words after stripping 10734 < 50000"
+    },
+    {
+     "id": 2040,
+     "title": "Confessions of an English Opium-Eater",
+     "authors": "De Quincey, Thomas, 1785-1859",
+     "reason": "form: non-fiction autobiography (subjects '... -- Biography'; bookshelf 'Category: Biographies')"
+    },
+    {
+     "id": 2060,
+     "title": "The History of Caliph Vathek",
+     "authors": "Beckford, William, 1760-1844; Morley, Henry, 1822-1894 [Author of introduction, etc.]",
+     "reason": "words after stripping 37045 < 50000"
+    },
+    {
+     "id": 2147,
+     "title": "The Works of Edgar Allan Poe — Volume 1",
+     "authors": "Poe, Edgar Allan, 1809-1849; Lowell, James Russell, 1819-1891 [Contributor]; Willis, Nathaniel Parker, 1806-1867 [Contributor]",
+     "reason": "form: not single-author prose fiction (contributors Lowell and Willis: a memoir and an obituary notice; bookshelf 'Category: Poetry')"
+    }
+   ]
+  },
+  "both_pools_readings": {
+   "A": "literal: a book qualifies for the light pool only after the light exclusions; no dark-pool book can then qualify for light (every dark term contains Horror, Gothic or Ghost), so the clause never applies",
+   "B": "inclusion terms only: a dark-pool book that also carries a light inclusion term is excluded from both (13 dark-pool books in the catalogue; 121, 583 and 768 fall in the examined range)"
+  }
+ },
+ "trial_builds_rules_v1": {
+  "light": {
+   "mode": "rules-v1",
+   "output_file": "light.jsonl.INCOMPLETE",
+   "output_sha256": "a77504cc606499102b0b47f1c0cc42005784c529f2f751c46cf6852d885f2e46",
+   "rows": 4865,
+   "complete": false,
+   "books": [
+    {
+     "slot": 1,
+     "category": "light_b1",
+     "book": 24,
+     "words_after_strip": 55616,
+     "sentences": 3995,
+     "book_tokens_sum_of_sentences": 69520,
+     "slot_response_demand_tokens": 53400,
+     "slot_context_demand_tokens_est": 21352,
+     "supply_over_demand": 0.93,
+     "rows": 577,
+     "exhausted_at_row": 577,
+     "unmet": 68,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 6,
+     "share_sentences_used_or_blocked": 0.904
+    },
+    {
+     "slot": 2,
+     "category": "light_b2",
+     "book": 27,
+     "words_after_strip": 137190,
+     "sentences": 7947,
+     "book_tokens_sum_of_sentences": 177658,
+     "slot_response_demand_tokens": 58701,
+     "slot_context_demand_tokens_est": 28749,
+     "supply_over_demand": 2.032,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.516
+    },
+    {
+     "slot": 3,
+     "category": "light_b3",
+     "book": 77,
+     "words_after_strip": 104875,
+     "sentences": 4344,
+     "book_tokens_sum_of_sentences": 138719,
+     "slot_response_demand_tokens": 59027,
+     "slot_context_demand_tokens_est": 39661,
+     "supply_over_demand": 1.406,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 3,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.719
+    },
+    {
+     "slot": 4,
+     "category": "light_b4",
+     "book": 82,
+     "words_after_strip": 191641,
+     "sentences": 6168,
+     "book_tokens_sum_of_sentences": 254399,
+     "slot_response_demand_tokens": 64713,
+     "slot_context_demand_tokens_est": 50814,
+     "supply_over_demand": 2.202,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.478
+    },
+    {
+     "slot": 5,
+     "category": "light_b5",
+     "book": 95,
+     "words_after_strip": 53716,
+     "sentences": 3815,
+     "book_tokens_sum_of_sentences": 70005,
+     "slot_response_demand_tokens": 56600,
+     "slot_context_demand_tokens_est": 22846,
+     "supply_over_demand": 0.881,
+     "rows": 543,
+     "exhausted_at_row": 543,
+     "unmet": 70,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 9,
+     "share_sentences_used_or_blocked": 0.911
+    },
+    {
+     "slot": 6,
+     "category": "light_b6",
+     "book": 105,
+     "words_after_strip": 83335,
+     "sentences": 3562,
+     "book_tokens_sum_of_sentences": 102022,
+     "slot_response_demand_tokens": 57702,
+     "slot_context_demand_tokens_est": 35544,
+     "supply_over_demand": 1.094,
+     "rows": 620,
+     "exhausted_at_row": 620,
+     "unmet": 50,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 7,
+     "share_sentences_used_or_blocked": 0.866
+    },
+    {
+     "slot": 7,
+     "category": "light_b7",
+     "book": 144,
+     "words_after_strip": 136348,
+     "sentences": 7863,
+     "book_tokens_sum_of_sentences": 172017,
+     "slot_response_demand_tokens": 53418,
+     "slot_context_demand_tokens_est": 26908,
+     "supply_over_demand": 2.141,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.491
+    },
+    {
+     "slot": 8,
+     "category": "light_b8",
+     "book": 145,
+     "words_after_strip": 316381,
+     "sentences": 14301,
+     "book_tokens_sum_of_sentences": 402126,
+     "slot_response_demand_tokens": 55681,
+     "slot_context_demand_tokens_est": 34867,
+     "supply_over_demand": 4.441,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.244
+    }
+   ],
+   "length": {
+    "achieved_tokens": {
+     "min": 2,
+     "q1": 22.0,
+     "median": 48.0,
+     "q3": 101.0,
+     "max": 2059,
+     "mean": 86.917
+    },
+    "target_tokens_after_floor": {
+     "min": 6,
+     "q1": 22.0,
+     "median": 50.0,
+     "q3": 106.0,
+     "max": 2063,
+     "mean": 92.196
+    },
+    "mean_achieved_minus_target": -5.279,
+    "share_within_match_band": 0.9609,
+    "unmet": 191
+   },
+   "darkness": {
+    "score_per_100_tokens": {
+     "min": 0.0,
+     "q1": 0.0,
+     "median": 0.0,
+     "q3": 0.0,
+     "max": 14.286,
+     "mean": 0.076
+    },
+    "share_rows_score_0": 0.9616
+   },
+   "matching_candidates_in_deciding_round": {
+    "min": 1,
+    "q1": 4.0,
+    "median": 8.0,
+    "q3": 13.0,
+    "max": 30,
+    "mean": 9.034
+   },
+   "context": {
+    "tokens": {
+     "min": 2,
+     "q1": 23.0,
+     "median": 43.0,
+     "q3": 73.0,
+     "max": 404,
+     "mean": 53.637
+    },
+    "sentence_counts": {
+     "1": 1624,
+     "2": 1680,
+     "3": 1561
+    }
+   },
+   "position": {
+    "relative_response_start": {
+     "min": 0.0,
+     "q1": 0.15,
+     "median": 0.328,
+     "q3": 0.571,
+     "max": 0.999,
+     "mean": 0.377
+    },
+    "share_in_first_10pct_of_book": 0.1679,
+    "share_in_first_half_of_book": 0.6911
+   },
+   "procedure_drops": 0,
+   "rows_with_title_like_segment": 21,
+   "rows_per_category": {
+    "light_b1": 577,
+    "light_b2": 625,
+    "light_b3": 625,
+    "light_b4": 625,
+    "light_b5": 543,
+    "light_b6": 620,
+    "light_b7": 625,
+    "light_b8": 625
+   },
+   "templates": {
+    "Continue the story in a short paragraph.": 1996,
+    "Continue the story in one sentence.": 750,
+    "Continue the story.": 2119
+   },
+   "preparer_style_checks": {
+    "duplicate_normalized_user_text": 0,
+    "duplicate_normalized_response": 1,
+    "rows_with_forbidden_substring": 0
+   },
+   "rows_with_underscore_italics": 215
+  },
+  "darkA": {
+   "mode": "rules-v1",
+   "output_file": "darkA.jsonl.INCOMPLETE",
+   "output_sha256": "600e183477a436e832112486518b94bc6f6ff5ea4e387f07045cbb05552f56a0",
+   "rows": 4918,
+   "complete": false,
+   "books": [
+    {
+     "slot": 1,
+     "category": "dark_b1",
+     "book": 84,
+     "words_after_strip": 75042,
+     "sentences": 3348,
+     "book_tokens_sum_of_sentences": 90841,
+     "slot_response_demand_tokens": 53400,
+     "slot_context_demand_tokens_est": 33292,
+     "supply_over_demand": 1.048,
+     "rows": 603,
+     "exhausted_at_row": 603,
+     "unmet": 54,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 5,
+     "share_sentences_used_or_blocked": 0.871
+    },
+    {
+     "slot": 2,
+     "category": "dark_b2",
+     "book": 121,
+     "words_after_strip": 77223,
+     "sentences": 3227,
+     "book_tokens_sum_of_sentences": 95407,
+     "slot_response_demand_tokens": 58701,
+     "slot_context_demand_tokens_est": 38021,
+     "supply_over_demand": 0.986,
+     "rows": 565,
+     "exhausted_at_row": 565,
+     "unmet": 44,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 5,
+     "share_sentences_used_or_blocked": 0.864
+    },
+    {
+     "slot": 3,
+     "category": "dark_b3",
+     "book": 174,
+     "words_after_strip": 78979,
+     "sentences": 6303,
+     "book_tokens_sum_of_sentences": 99430,
+     "slot_response_demand_tokens": 59027,
+     "slot_context_demand_tokens_est": 19593,
+     "supply_over_demand": 1.265,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 9,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.749
+    },
+    {
+     "slot": 4,
+     "category": "dark_b4",
+     "book": 175,
+     "words_after_strip": 85563,
+     "sentences": 6273,
+     "book_tokens_sum_of_sentences": 108380,
+     "slot_response_demand_tokens": 64713,
+     "slot_context_demand_tokens_est": 21286,
+     "supply_over_demand": 1.26,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 14,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.747
+    },
+    {
+     "slot": 5,
+     "category": "dark_b5",
+     "book": 345,
+     "words_after_strip": 161321,
+     "sentences": 8922,
+     "book_tokens_sum_of_sentences": 199039,
+     "slot_response_demand_tokens": 56600,
+     "slot_context_demand_tokens_est": 27774,
+     "supply_over_demand": 2.359,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.433
+    },
+    {
+     "slot": 6,
+     "category": "dark_b6",
+     "book": 537,
+     "words_after_strip": 75132,
+     "sentences": 4042,
+     "book_tokens_sum_of_sentences": 91073,
+     "slot_response_demand_tokens": 57702,
+     "slot_context_demand_tokens_est": 27962,
+     "supply_over_demand": 1.063,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 41,
+     "procedure_drops": 1,
+     "rows_with_extended_rounds": 3,
+     "share_sentences_used_or_blocked": 0.868
+    },
+    {
+     "slot": 7,
+     "category": "dark_b7",
+     "book": 583,
+     "words_after_strip": 244765,
+     "sentences": 13165,
+     "book_tokens_sum_of_sentences": 302092,
+     "slot_response_demand_tokens": 53418,
+     "slot_context_demand_tokens_est": 28224,
+     "supply_over_demand": 3.7,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.285
+    },
+    {
+     "slot": 8,
+     "category": "dark_b8",
+     "book": 601,
+     "words_after_strip": 137140,
+     "sentences": 7554,
+     "book_tokens_sum_of_sentences": 174959,
+     "slot_response_demand_tokens": 55681,
+     "slot_context_demand_tokens_est": 28720,
+     "supply_over_demand": 2.073,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 1,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.502
+    }
+   ],
+   "length": {
+    "achieved_tokens": {
+     "min": 3,
+     "q1": 22.0,
+     "median": 48.0,
+     "q3": 101.0,
+     "max": 2069,
+     "mean": 84.68
+    },
+    "target_tokens_after_floor": {
+     "min": 6,
+     "q1": 22.0,
+     "median": 50.0,
+     "q3": 105.0,
+     "max": 2063,
+     "mean": 91.567
+    },
+    "mean_achieved_minus_target": -6.887,
+    "share_within_match_band": 0.9675,
+    "unmet": 162
+   },
+   "darkness": {
+    "score_per_100_tokens": {
+     "min": 0.0,
+     "q1": 0.0,
+     "median": 0.0,
+     "q3": 1.471,
+     "max": 33.333,
+     "mean": 1.04
+    },
+    "share_rows_score_0": 0.588
+   },
+   "matching_candidates_in_deciding_round": {
+    "min": 1,
+    "q1": 3.0,
+    "median": 7.0,
+    "q3": 13.0,
+    "max": 30,
+    "mean": 8.637
+   },
+   "context": {
+    "tokens": {
+     "min": 2,
+     "q1": 21.0,
+     "median": 38.0,
+     "q3": 62.0,
+     "max": 371,
+     "mean": 45.601
+    },
+    "sentence_counts": {
+     "1": 1646,
+     "2": 1698,
+     "3": 1574
+    }
+   },
+   "position": {
+    "relative_response_start": {
+     "min": 0.0,
+     "q1": 0.16,
+     "median": 0.379,
+     "q3": 0.675,
+     "max": 1.0,
+     "mean": 0.425
+    },
+    "share_in_first_10pct_of_book": 0.1584,
+    "share_in_first_half_of_book": 0.609
+   },
+   "procedure_drops": 2,
+   "rows_with_title_like_segment": 20,
+   "rows_per_category": {
+    "dark_b1": 603,
+    "dark_b2": 565,
+    "dark_b3": 625,
+    "dark_b4": 625,
+    "dark_b5": 625,
+    "dark_b6": 625,
+    "dark_b7": 625,
+    "dark_b8": 625
+   },
+   "templates": {
+    "Continue the story in a short paragraph.": 2013,
+    "Continue the story in one sentence.": 768,
+    "Continue the story.": 2137
+   },
+   "preparer_style_checks": {
+    "duplicate_normalized_user_text": 2,
+    "duplicate_normalized_response": 1,
+    "rows_with_forbidden_substring": 0
+   },
+   "rows_with_underscore_italics": 238
+  },
+  "darkB": {
+   "mode": "rules-v1",
+   "output_file": "darkB.jsonl.INCOMPLETE",
+   "output_sha256": "4ad1ee7e1130464cea0bd458f12bacc9387df5f75de9c6595a3c4fd1ffa2f715",
+   "rows": 4978,
+   "complete": false,
+   "books": [
+    {
+     "slot": 1,
+     "category": "dark_b1",
+     "book": 84,
+     "words_after_strip": 75042,
+     "sentences": 3348,
+     "book_tokens_sum_of_sentences": 90841,
+     "slot_response_demand_tokens": 53400,
+     "slot_context_demand_tokens_est": 33292,
+     "supply_over_demand": 1.048,
+     "rows": 603,
+     "exhausted_at_row": 603,
+     "unmet": 54,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 5,
+     "share_sentences_used_or_blocked": 0.871
+    },
+    {
+     "slot": 2,
+     "category": "dark_b2",
+     "book": 174,
+     "words_after_strip": 78979,
+     "sentences": 6303,
+     "book_tokens_sum_of_sentences": 99430,
+     "slot_response_demand_tokens": 58701,
+     "slot_context_demand_tokens_est": 20287,
+     "supply_over_demand": 1.259,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 16,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.767
+    },
+    {
+     "slot": 3,
+     "category": "dark_b3",
+     "book": 175,
+     "words_after_strip": 85563,
+     "sentences": 6273,
+     "book_tokens_sum_of_sentences": 108380,
+     "slot_response_demand_tokens": 59027,
+     "slot_context_demand_tokens_est": 21458,
+     "supply_over_demand": 1.347,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 7,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.709
+    },
+    {
+     "slot": 4,
+     "category": "dark_b4",
+     "book": 345,
+     "words_after_strip": 161321,
+     "sentences": 8922,
+     "book_tokens_sum_of_sentences": 199039,
+     "slot_response_demand_tokens": 64713,
+     "slot_context_demand_tokens_est": 27484,
+     "supply_over_demand": 2.159,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 1,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.458
+    },
+    {
+     "slot": 5,
+     "category": "dark_b5",
+     "book": 537,
+     "words_after_strip": 75132,
+     "sentences": 4042,
+     "book_tokens_sum_of_sentences": 91073,
+     "slot_response_demand_tokens": 56600,
+     "slot_context_demand_tokens_est": 28052,
+     "supply_over_demand": 1.076,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 51,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 1,
+     "share_sentences_used_or_blocked": 0.884
+    },
+    {
+     "slot": 6,
+     "category": "dark_b6",
+     "book": 601,
+     "words_after_strip": 137140,
+     "sentences": 7554,
+     "book_tokens_sum_of_sentences": 174959,
+     "slot_response_demand_tokens": 57702,
+     "slot_context_demand_tokens_est": 28743,
+     "supply_over_demand": 2.024,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 1,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.511
+    },
+    {
+     "slot": 7,
+     "category": "dark_b7",
+     "book": 792,
+     "words_after_strip": 82683,
+     "sentences": 5180,
+     "book_tokens_sum_of_sentences": 103377,
+     "slot_response_demand_tokens": 53418,
+     "slot_context_demand_tokens_est": 24547,
+     "supply_over_demand": 1.326,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 4,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.752
+    },
+    {
+     "slot": 8,
+     "category": "dark_b8",
+     "book": 2148,
+     "words_after_strip": 95043,
+     "sentences": 4018,
+     "book_tokens_sum_of_sentences": 122896,
+     "slot_response_demand_tokens": 55681,
+     "slot_context_demand_tokens_est": 37927,
+     "supply_over_demand": 1.313,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 4,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.78
+    }
+   ],
+   "length": {
+    "achieved_tokens": {
+     "min": 3,
+     "q1": 22.0,
+     "median": 49.0,
+     "q3": 101.0,
+     "max": 2060,
+     "mean": 86.794
+    },
+    "target_tokens_after_floor": {
+     "min": 6,
+     "q1": 22.0,
+     "median": 50.0,
+     "q3": 106.0,
+     "max": 2063,
+     "mean": 91.958
+    },
+    "mean_achieved_minus_target": -5.165,
+    "share_within_match_band": 0.9727,
+    "unmet": 137
+   },
+   "darkness": {
+    "score_per_100_tokens": {
+     "min": 0.0,
+     "q1": 0.0,
+     "median": 0.0,
+     "q3": 1.639,
+     "max": 22.222,
+     "mean": 1.142
+    },
+    "share_rows_score_0": 0.5765
+   },
+   "matching_candidates_in_deciding_round": {
+    "min": 1,
+    "q1": 3.0,
+    "median": 6.0,
+    "q3": 12.0,
+    "max": 30,
+    "mean": 7.923
+   },
+   "context": {
+    "tokens": {
+     "min": 2,
+     "q1": 21.0,
+     "median": 37.0,
+     "q3": 62.0,
+     "max": 636,
+     "mean": 45.596
+    },
+    "sentence_counts": {
+     "1": 1661,
+     "2": 1719,
+     "3": 1598
+    }
+   },
+   "position": {
+    "relative_response_start": {
+     "min": 0.001,
+     "q1": 0.178,
+     "median": 0.404,
+     "q3": 0.689,
+     "max": 1.0,
+     "mean": 0.44
+    },
+    "share_in_first_10pct_of_book": 0.1503,
+    "share_in_first_half_of_book": 0.595
+   },
+   "procedure_drops": 1,
+   "rows_with_title_like_segment": 18,
+   "rows_per_category": {
+    "dark_b1": 603,
+    "dark_b2": 625,
+    "dark_b3": 625,
+    "dark_b4": 625,
+    "dark_b5": 625,
+    "dark_b6": 625,
+    "dark_b7": 625,
+    "dark_b8": 625
+   },
+   "templates": {
+    "Continue the story in a short paragraph.": 2035,
+    "Continue the story in one sentence.": 774,
+    "Continue the story.": 2169
+   },
+   "preparer_style_checks": {
+    "duplicate_normalized_user_text": 1,
+    "duplicate_normalized_response": 1,
+    "rows_with_forbidden_substring": 0
+   },
+   "rows_with_underscore_italics": 316
+  }
+ },
+ "trial_builds_proposal_F4_contexts_may_overlap": {
+  "light": {
+   "mode": "proposal-F4",
+   "output_file": "light.jsonl.F4-EVIDENCE-ONLY",
+   "output_sha256": "22ec5184ef732e808734f1cb4d5be3cc27339a4cca2a44006fe4e646a4e7d2be",
+   "rows": 5000,
+   "complete": true,
+   "books": [
+    {
+     "slot": 1,
+     "category": "light_b1",
+     "book": 24,
+     "words_after_strip": 55616,
+     "sentences": 3995,
+     "book_tokens_sum_of_sentences": 69520,
+     "slot_response_demand_tokens": 53400,
+     "slot_context_demand_tokens_est": 21352,
+     "supply_over_demand": 0.93,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 7,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.767
+    },
+    {
+     "slot": 2,
+     "category": "light_b2",
+     "book": 27,
+     "words_after_strip": 137190,
+     "sentences": 7947,
+     "book_tokens_sum_of_sentences": 177658,
+     "slot_response_demand_tokens": 58701,
+     "slot_context_demand_tokens_est": 28749,
+     "supply_over_demand": 2.032,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.342
+    },
+    {
+     "slot": 3,
+     "category": "light_b3",
+     "book": 77,
+     "words_after_strip": 104875,
+     "sentences": 4344,
+     "book_tokens_sum_of_sentences": 138719,
+     "slot_response_demand_tokens": 59027,
+     "slot_context_demand_tokens_est": 39661,
+     "supply_over_demand": 1.406,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.434
+    },
+    {
+     "slot": 4,
+     "category": "light_b4",
+     "book": 82,
+     "words_after_strip": 191641,
+     "sentences": 6168,
+     "book_tokens_sum_of_sentences": 254399,
+     "slot_response_demand_tokens": 64713,
+     "slot_context_demand_tokens_est": 50814,
+     "supply_over_demand": 2.202,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.276
+    },
+    {
+     "slot": 5,
+     "category": "light_b5",
+     "book": 95,
+     "words_after_strip": 53716,
+     "sentences": 3815,
+     "book_tokens_sum_of_sentences": 70005,
+     "slot_response_demand_tokens": 56600,
+     "slot_context_demand_tokens_est": 22846,
+     "supply_over_demand": 0.881,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 6,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.799
+    },
+    {
+     "slot": 6,
+     "category": "light_b6",
+     "book": 105,
+     "words_after_strip": 83335,
+     "sentences": 3562,
+     "book_tokens_sum_of_sentences": 102022,
+     "slot_response_demand_tokens": 57702,
+     "slot_context_demand_tokens_est": 35544,
+     "supply_over_demand": 1.094,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.589
+    },
+    {
+     "slot": 7,
+     "category": "light_b7",
+     "book": 144,
+     "words_after_strip": 136348,
+     "sentences": 7863,
+     "book_tokens_sum_of_sentences": 172017,
+     "slot_response_demand_tokens": 53418,
+     "slot_context_demand_tokens_est": 26908,
+     "supply_over_demand": 2.141,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.337
+    },
+    {
+     "slot": 8,
+     "category": "light_b8",
+     "book": 145,
+     "words_after_strip": 316381,
+     "sentences": 14301,
+     "book_tokens_sum_of_sentences": 402126,
+     "slot_response_demand_tokens": 55681,
+     "slot_context_demand_tokens_est": 34867,
+     "supply_over_demand": 4.441,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.16
+    }
+   ],
+   "length": {
+    "achieved_tokens": {
+     "min": 3,
+     "q1": 22.0,
+     "median": 50.0,
+     "q3": 105.0,
+     "max": 2059,
+     "mean": 90.929
+    },
+    "target_tokens_after_floor": {
+     "min": 6,
+     "q1": 22.0,
+     "median": 50.0,
+     "q3": 106.0,
+     "max": 2063,
+     "mean": 91.848
+    },
+    "mean_achieved_minus_target": -0.919,
+    "share_within_match_band": 0.9974,
+    "unmet": 13
+   },
+   "darkness": {
+    "score_per_100_tokens": {
+     "min": 0.0,
+     "q1": 0.0,
+     "median": 0.0,
+     "q3": 0.0,
+     "max": 11.111,
+     "mean": 0.037
+    },
+    "share_rows_score_0": 0.974
+   },
+   "position": {
+    "relative_response_start": {
+     "min": 0.0,
+     "q1": 0.099,
+     "median": 0.22,
+     "q3": 0.415,
+     "max": 0.999,
+     "mean": 0.285
+    },
+    "share_in_first_10pct_of_book": 0.2524,
+    "share_in_first_half_of_book": 0.8162
+   },
+   "procedure_drops": 0,
+   "rows_per_category": {
+    "light_b1": 625,
+    "light_b2": 625,
+    "light_b3": 625,
+    "light_b4": 625,
+    "light_b5": 625,
+    "light_b6": 625,
+    "light_b7": 625,
+    "light_b8": 625
+   },
+   "templates": {
+    "Continue the story in a short paragraph.": 2046,
+    "Continue the story in one sentence.": 778,
+    "Continue the story.": 2176
+   },
+   "preparer_style_checks": {
+    "duplicate_normalized_user_text": 1,
+    "duplicate_normalized_response": 1,
+    "rows_with_forbidden_substring": 0
+   }
+  },
+  "darkA": {
+   "mode": "proposal-F4",
+   "output_file": "darkA.jsonl.F4-EVIDENCE-ONLY",
+   "output_sha256": "6c10bc4bbd30355de5fd52a9311cec3d45733dc8bbee81b67eba5d2429d27a24",
+   "rows": 5000,
+   "complete": true,
+   "books": [
+    {
+     "slot": 1,
+     "category": "dark_b1",
+     "book": 84,
+     "words_after_strip": 75042,
+     "sentences": 3348,
+     "book_tokens_sum_of_sentences": 90841,
+     "slot_response_demand_tokens": 53400,
+     "slot_context_demand_tokens_est": 33292,
+     "supply_over_demand": 1.048,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 1,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.594
+    },
+    {
+     "slot": 2,
+     "category": "dark_b2",
+     "book": 121,
+     "words_after_strip": 77223,
+     "sentences": 3227,
+     "book_tokens_sum_of_sentences": 95407,
+     "slot_response_demand_tokens": 58701,
+     "slot_context_demand_tokens_est": 38021,
+     "supply_over_demand": 0.986,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.638
+    },
+    {
+     "slot": 3,
+     "category": "dark_b3",
+     "book": 174,
+     "words_after_strip": 78979,
+     "sentences": 6303,
+     "book_tokens_sum_of_sentences": 99430,
+     "slot_response_demand_tokens": 59027,
+     "slot_context_demand_tokens_est": 19593,
+     "supply_over_demand": 1.265,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 2,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.57
+    },
+    {
+     "slot": 4,
+     "category": "dark_b4",
+     "book": 175,
+     "words_after_strip": 85563,
+     "sentences": 6273,
+     "book_tokens_sum_of_sentences": 108380,
+     "slot_response_demand_tokens": 64713,
+     "slot_context_demand_tokens_est": 21286,
+     "supply_over_demand": 1.26,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 2,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.58
+    },
+    {
+     "slot": 5,
+     "category": "dark_b5",
+     "book": 345,
+     "words_after_strip": 161321,
+     "sentences": 8922,
+     "book_tokens_sum_of_sentences": 199039,
+     "slot_response_demand_tokens": 56600,
+     "slot_context_demand_tokens_est": 27774,
+     "supply_over_demand": 2.359,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.285
+    },
+    {
+     "slot": 6,
+     "category": "dark_b6",
+     "book": 537,
+     "words_after_strip": 75132,
+     "sentences": 4042,
+     "book_tokens_sum_of_sentences": 91073,
+     "slot_response_demand_tokens": 57702,
+     "slot_context_demand_tokens_est": 27962,
+     "supply_over_demand": 1.063,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 1,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.646
+    },
+    {
+     "slot": 7,
+     "category": "dark_b7",
+     "book": 583,
+     "words_after_strip": 244765,
+     "sentences": 13165,
+     "book_tokens_sum_of_sentences": 302092,
+     "slot_response_demand_tokens": 53418,
+     "slot_context_demand_tokens_est": 28224,
+     "supply_over_demand": 3.7,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.193
+    },
+    {
+     "slot": 8,
+     "category": "dark_b8",
+     "book": 601,
+     "words_after_strip": 137140,
+     "sentences": 7554,
+     "book_tokens_sum_of_sentences": 174959,
+     "slot_response_demand_tokens": 55681,
+     "slot_context_demand_tokens_est": 28720,
+     "supply_over_demand": 2.073,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 2,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.346
+    }
+   ],
+   "length": {
+    "achieved_tokens": {
+     "min": 3,
+     "q1": 22.0,
+     "median": 49.0,
+     "q3": 104.0,
+     "max": 2069,
+     "mean": 89.565
+    },
+    "target_tokens_after_floor": {
+     "min": 6,
+     "q1": 22.0,
+     "median": 50.0,
+     "q3": 106.0,
+     "max": 2063,
+     "mean": 91.848
+    },
+    "mean_achieved_minus_target": -2.283,
+    "share_within_match_band": 0.999,
+    "unmet": 5
+   },
+   "darkness": {
+    "score_per_100_tokens": {
+     "min": 0.0,
+     "q1": 0.0,
+     "median": 0.0,
+     "q3": 1.803,
+     "max": 33.333,
+     "mean": 1.213
+    },
+    "share_rows_score_0": 0.5288
+   },
+   "position": {
+    "relative_response_start": {
+     "min": 0.0,
+     "q1": 0.117,
+     "median": 0.302,
+     "q3": 0.603,
+     "max": 1.0,
+     "mean": 0.374
+    },
+    "share_in_first_10pct_of_book": 0.2148,
+    "share_in_first_half_of_book": 0.6784
+   },
+   "procedure_drops": 3,
+   "rows_per_category": {
+    "dark_b1": 625,
+    "dark_b2": 625,
+    "dark_b3": 625,
+    "dark_b4": 625,
+    "dark_b5": 625,
+    "dark_b6": 625,
+    "dark_b7": 625,
+    "dark_b8": 625
+   },
+   "templates": {
+    "Continue the story in a short paragraph.": 2046,
+    "Continue the story in one sentence.": 778,
+    "Continue the story.": 2176
+   },
+   "preparer_style_checks": {
+    "duplicate_normalized_user_text": 1,
+    "duplicate_normalized_response": 3,
+    "rows_with_forbidden_substring": 0
+   }
+  },
+  "darkB": {
+   "mode": "proposal-F4",
+   "output_file": "darkB.jsonl.F4-EVIDENCE-ONLY",
+   "output_sha256": "e40c4e2c28dbe9ad03c2b7d094f5a0c4d94a8aeaf67588e80e086d997e6b39ed",
+   "rows": 5000,
+   "complete": true,
+   "books": [
+    {
+     "slot": 1,
+     "category": "dark_b1",
+     "book": 84,
+     "words_after_strip": 75042,
+     "sentences": 3348,
+     "book_tokens_sum_of_sentences": 90841,
+     "slot_response_demand_tokens": 53400,
+     "slot_context_demand_tokens_est": 33292,
+     "supply_over_demand": 1.048,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 1,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.594
+    },
+    {
+     "slot": 2,
+     "category": "dark_b2",
+     "book": 174,
+     "words_after_strip": 78979,
+     "sentences": 6303,
+     "book_tokens_sum_of_sentences": 99430,
+     "slot_response_demand_tokens": 58701,
+     "slot_context_demand_tokens_est": 20287,
+     "supply_over_demand": 1.259,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 1,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.59
+    },
+    {
+     "slot": 3,
+     "category": "dark_b3",
+     "book": 175,
+     "words_after_strip": 85563,
+     "sentences": 6273,
+     "book_tokens_sum_of_sentences": 108380,
+     "slot_response_demand_tokens": 59027,
+     "slot_context_demand_tokens_est": 21458,
+     "supply_over_demand": 1.347,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 1,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.534
+    },
+    {
+     "slot": 4,
+     "category": "dark_b4",
+     "book": 345,
+     "words_after_strip": 161321,
+     "sentences": 8922,
+     "book_tokens_sum_of_sentences": 199039,
+     "slot_response_demand_tokens": 64713,
+     "slot_context_demand_tokens_est": 27484,
+     "supply_over_demand": 2.159,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.315
+    },
+    {
+     "slot": 5,
+     "category": "dark_b5",
+     "book": 537,
+     "words_after_strip": 75132,
+     "sentences": 4042,
+     "book_tokens_sum_of_sentences": 91073,
+     "slot_response_demand_tokens": 56600,
+     "slot_context_demand_tokens_est": 28052,
+     "supply_over_demand": 1.076,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 1,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.626
+    },
+    {
+     "slot": 6,
+     "category": "dark_b6",
+     "book": 601,
+     "words_after_strip": 137140,
+     "sentences": 7554,
+     "book_tokens_sum_of_sentences": 174959,
+     "slot_response_demand_tokens": 57702,
+     "slot_context_demand_tokens_est": 28743,
+     "supply_over_demand": 2.024,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 1,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.36
+    },
+    {
+     "slot": 7,
+     "category": "dark_b7",
+     "book": 792,
+     "words_after_strip": 82683,
+     "sentences": 5180,
+     "book_tokens_sum_of_sentences": 103377,
+     "slot_response_demand_tokens": 53418,
+     "slot_context_demand_tokens_est": 24547,
+     "supply_over_demand": 1.326,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.519
+    },
+    {
+     "slot": 8,
+     "category": "dark_b8",
+     "book": 2148,
+     "words_after_strip": 95043,
+     "sentences": 4018,
+     "book_tokens_sum_of_sentences": 122896,
+     "slot_response_demand_tokens": 55681,
+     "slot_context_demand_tokens_est": 37927,
+     "supply_over_demand": 1.313,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.493
+    }
+   ],
+   "length": {
+    "achieved_tokens": {
+     "min": 3,
+     "q1": 22.0,
+     "median": 49.0,
+     "q3": 103.25,
+     "max": 2060,
+     "mean": 90.03
+    },
+    "target_tokens_after_floor": {
+     "min": 6,
+     "q1": 22.0,
+     "median": 50.0,
+     "q3": 106.0,
+     "max": 2063,
+     "mean": 91.848
+    },
+    "mean_achieved_minus_target": -1.819,
+    "share_within_match_band": 0.9994,
+    "unmet": 3
+   },
+   "darkness": {
+    "score_per_100_tokens": {
+     "min": 0.0,
+     "q1": 0.0,
+     "median": 0.14,
+     "q3": 2.0,
+     "max": 20.0,
+     "mean": 1.347
+    },
+    "share_rows_score_0": 0.499
+   },
+   "position": {
+    "relative_response_start": {
+     "min": 0.0,
+     "q1": 0.122,
+     "median": 0.315,
+     "q3": 0.607,
+     "max": 0.999,
+     "mean": 0.382
+    },
+    "share_in_first_10pct_of_book": 0.214,
+    "share_in_first_half_of_book": 0.6724
+   },
+   "procedure_drops": 2,
+   "rows_per_category": {
+    "dark_b1": 625,
+    "dark_b2": 625,
+    "dark_b3": 625,
+    "dark_b4": 625,
+    "dark_b5": 625,
+    "dark_b6": 625,
+    "dark_b7": 625,
+    "dark_b8": 625
+   },
+   "templates": {
+    "Continue the story in a short paragraph.": 2046,
+    "Continue the story in one sentence.": 778,
+    "Continue the story.": 2176
+   },
+   "preparer_style_checks": {
+    "duplicate_normalized_user_text": 2,
+    "duplicate_normalized_response": 2,
+    "rows_with_forbidden_substring": 0
+   }
+  }
+ },
+ "trial_builds_proposal_F4_plus_dedup": {
+  "light": {
+   "mode": "proposal-F4+proposal-dedup",
+   "output_file": "light.jsonl.PROPOSAL-EVIDENCE-ONLY",
+   "output_sha256": "65056dd6736d70eebc5353a77f6a39d21723b6b894ce3e4943d62359204dcc1e",
+   "rows": 5000,
+   "complete": true,
+   "books": [
+    {
+     "slot": 1,
+     "category": "light_b1",
+     "book": 24,
+     "words_after_strip": 55616,
+     "sentences": 3995,
+     "book_tokens_sum_of_sentences": 69520,
+     "slot_response_demand_tokens": 53400,
+     "slot_context_demand_tokens_est": 21352,
+     "supply_over_demand": 0.93,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 7,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.767
+    },
+    {
+     "slot": 2,
+     "category": "light_b2",
+     "book": 27,
+     "words_after_strip": 137190,
+     "sentences": 7947,
+     "book_tokens_sum_of_sentences": 177658,
+     "slot_response_demand_tokens": 58701,
+     "slot_context_demand_tokens_est": 28749,
+     "supply_over_demand": 2.032,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.342
+    },
+    {
+     "slot": 3,
+     "category": "light_b3",
+     "book": 77,
+     "words_after_strip": 104875,
+     "sentences": 4344,
+     "book_tokens_sum_of_sentences": 138719,
+     "slot_response_demand_tokens": 59027,
+     "slot_context_demand_tokens_est": 39661,
+     "supply_over_demand": 1.406,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.434
+    },
+    {
+     "slot": 4,
+     "category": "light_b4",
+     "book": 82,
+     "words_after_strip": 191641,
+     "sentences": 6168,
+     "book_tokens_sum_of_sentences": 254399,
+     "slot_response_demand_tokens": 64713,
+     "slot_context_demand_tokens_est": 50814,
+     "supply_over_demand": 2.202,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.276
+    },
+    {
+     "slot": 5,
+     "category": "light_b5",
+     "book": 95,
+     "words_after_strip": 53716,
+     "sentences": 3815,
+     "book_tokens_sum_of_sentences": 70005,
+     "slot_response_demand_tokens": 56600,
+     "slot_context_demand_tokens_est": 22846,
+     "supply_over_demand": 0.881,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 6,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.799
+    },
+    {
+     "slot": 6,
+     "category": "light_b6",
+     "book": 105,
+     "words_after_strip": 83335,
+     "sentences": 3562,
+     "book_tokens_sum_of_sentences": 102022,
+     "slot_response_demand_tokens": 57702,
+     "slot_context_demand_tokens_est": 35544,
+     "supply_over_demand": 1.094,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.589
+    },
+    {
+     "slot": 7,
+     "category": "light_b7",
+     "book": 144,
+     "words_after_strip": 136348,
+     "sentences": 7863,
+     "book_tokens_sum_of_sentences": 172017,
+     "slot_response_demand_tokens": 53418,
+     "slot_context_demand_tokens_est": 26908,
+     "supply_over_demand": 2.141,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.337
+    },
+    {
+     "slot": 8,
+     "category": "light_b8",
+     "book": 145,
+     "words_after_strip": 316381,
+     "sentences": 14301,
+     "book_tokens_sum_of_sentences": 402126,
+     "slot_response_demand_tokens": 55681,
+     "slot_context_demand_tokens_est": 34867,
+     "supply_over_demand": 4.441,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.16
+    }
+   ],
+   "length": {
+    "achieved_tokens": {
+     "min": 3,
+     "q1": 22.0,
+     "median": 50.0,
+     "q3": 105.0,
+     "max": 2059,
+     "mean": 90.921
+    },
+    "target_tokens_after_floor": {
+     "min": 6,
+     "q1": 22.0,
+     "median": 50.0,
+     "q3": 106.0,
+     "max": 2063,
+     "mean": 91.848
+    },
+    "mean_achieved_minus_target": -0.927,
+    "share_within_match_band": 0.9974,
+    "unmet": 13
+   },
+   "darkness": {
+    "score_per_100_tokens": {
+     "min": 0.0,
+     "q1": 0.0,
+     "median": 0.0,
+     "q3": 0.0,
+     "max": 11.111,
+     "mean": 0.037
+    },
+    "share_rows_score_0": 0.9738
+   },
+   "position": {
+    "relative_response_start": {
+     "min": 0.0,
+     "q1": 0.099,
+     "median": 0.22,
+     "q3": 0.415,
+     "max": 0.999,
+     "mean": 0.285
+    },
+    "share_in_first_10pct_of_book": 0.2524,
+    "share_in_first_half_of_book": 0.8162
+   },
+   "procedure_drops": 0,
+   "rows_per_category": {
+    "light_b1": 625,
+    "light_b2": 625,
+    "light_b3": 625,
+    "light_b4": 625,
+    "light_b5": 625,
+    "light_b6": 625,
+    "light_b7": 625,
+    "light_b8": 625
+   },
+   "templates": {
+    "Continue the story in a short paragraph.": 2046,
+    "Continue the story in one sentence.": 778,
+    "Continue the story.": 2176
+   },
+   "preparer_style_checks": {
+    "duplicate_normalized_user_text": 0,
+    "duplicate_normalized_response": 1,
+    "rows_with_forbidden_substring": 0
+   }
+  },
+  "darkB": {
+   "mode": "proposal-F4+proposal-dedup",
+   "output_file": "darkB.jsonl.PROPOSAL-EVIDENCE-ONLY",
+   "output_sha256": "450ca949df35fdab4553d9b96059c3e575f755453bf90478c3896e01a2179335",
+   "rows": 5000,
+   "complete": true,
+   "books": [
+    {
+     "slot": 1,
+     "category": "dark_b1",
+     "book": 84,
+     "words_after_strip": 75042,
+     "sentences": 3348,
+     "book_tokens_sum_of_sentences": 90841,
+     "slot_response_demand_tokens": 53400,
+     "slot_context_demand_tokens_est": 33292,
+     "supply_over_demand": 1.048,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 1,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.594
+    },
+    {
+     "slot": 2,
+     "category": "dark_b2",
+     "book": 174,
+     "words_after_strip": 78979,
+     "sentences": 6303,
+     "book_tokens_sum_of_sentences": 99430,
+     "slot_response_demand_tokens": 58701,
+     "slot_context_demand_tokens_est": 20287,
+     "supply_over_demand": 1.259,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 1,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.59
+    },
+    {
+     "slot": 3,
+     "category": "dark_b3",
+     "book": 175,
+     "words_after_strip": 85563,
+     "sentences": 6273,
+     "book_tokens_sum_of_sentences": 108380,
+     "slot_response_demand_tokens": 59027,
+     "slot_context_demand_tokens_est": 21458,
+     "supply_over_demand": 1.347,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 1,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.534
+    },
+    {
+     "slot": 4,
+     "category": "dark_b4",
+     "book": 345,
+     "words_after_strip": 161321,
+     "sentences": 8922,
+     "book_tokens_sum_of_sentences": 199039,
+     "slot_response_demand_tokens": 64713,
+     "slot_context_demand_tokens_est": 27484,
+     "supply_over_demand": 2.159,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.315
+    },
+    {
+     "slot": 5,
+     "category": "dark_b5",
+     "book": 537,
+     "words_after_strip": 75132,
+     "sentences": 4042,
+     "book_tokens_sum_of_sentences": 91073,
+     "slot_response_demand_tokens": 56600,
+     "slot_context_demand_tokens_est": 28052,
+     "supply_over_demand": 1.076,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 1,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.626
+    },
+    {
+     "slot": 6,
+     "category": "dark_b6",
+     "book": 601,
+     "words_after_strip": 137140,
+     "sentences": 7554,
+     "book_tokens_sum_of_sentences": 174959,
+     "slot_response_demand_tokens": 57702,
+     "slot_context_demand_tokens_est": 28743,
+     "supply_over_demand": 2.024,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 1,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.36
+    },
+    {
+     "slot": 7,
+     "category": "dark_b7",
+     "book": 792,
+     "words_after_strip": 82683,
+     "sentences": 5180,
+     "book_tokens_sum_of_sentences": 103377,
+     "slot_response_demand_tokens": 53418,
+     "slot_context_demand_tokens_est": 24547,
+     "supply_over_demand": 1.326,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.519
+    },
+    {
+     "slot": 8,
+     "category": "dark_b8",
+     "book": 2148,
+     "words_after_strip": 95043,
+     "sentences": 4018,
+     "book_tokens_sum_of_sentences": 122896,
+     "slot_response_demand_tokens": 55681,
+     "slot_context_demand_tokens_est": 37927,
+     "supply_over_demand": 1.313,
+     "rows": 625,
+     "exhausted_at_row": null,
+     "unmet": 0,
+     "procedure_drops": 0,
+     "rows_with_extended_rounds": 0,
+     "share_sentences_used_or_blocked": 0.493
+    }
+   ],
+   "length": {
+    "achieved_tokens": {
+     "min": 3,
+     "q1": 22.0,
+     "median": 49.0,
+     "q3": 103.25,
+     "max": 2060,
+     "mean": 90.032
+    },
+    "target_tokens_after_floor": {
+     "min": 6,
+     "q1": 22.0,
+     "median": 50.0,
+     "q3": 106.0,
+     "max": 2063,
+     "mean": 91.848
+    },
+    "mean_achieved_minus_target": -1.816,
+    "share_within_match_band": 0.9994,
+    "unmet": 3
+   },
+   "darkness": {
+    "score_per_100_tokens": {
+     "min": 0.0,
+     "q1": 0.0,
+     "median": 0.14,
+     "q3": 2.0,
+     "max": 20.0,
+     "mean": 1.348
+    },
+    "share_rows_score_0": 0.499
+   },
+   "position": {
+    "relative_response_start": {
+     "min": 0.0,
+     "q1": 0.122,
+     "median": 0.316,
+     "q3": 0.606,
+     "max": 0.999,
+     "mean": 0.382
+    },
+    "share_in_first_10pct_of_book": 0.2138,
+    "share_in_first_half_of_book": 0.6726
+   },
+   "procedure_drops": 2,
+   "rows_per_category": {
+    "dark_b1": 625,
+    "dark_b2": 625,
+    "dark_b3": 625,
+    "dark_b4": 625,
+    "dark_b5": 625,
+    "dark_b6": 625,
+    "dark_b7": 625,
+    "dark_b8": 625
+   },
+   "templates": {
+    "Continue the story in a short paragraph.": 2046,
+    "Continue the story in one sentence.": 778,
+    "Continue the story.": 2176
+   },
+   "preparer_style_checks": {
+    "duplicate_normalized_user_text": 0,
+    "duplicate_normalized_response": 2,
+    "rows_with_forbidden_substring": 0
+   }
+  }
+ },
+ "decisions": [
+  "Catalogue matching: case-insensitive substring, applied to Subjects and to Bookshelves separately; a pool member matches any subjects_any term in Subjects OR any bookshelves_any term in Bookshelves.",
+  "Type must equal 'Text' and Language must equal 'en' exactly (the only multi-language pool entries, 14082 and 68775, lie far beyond the examined range).",
+  "'War' and the other exclusion terms are matched as substrings exactly as written (so 'Edward' would also match); no examined light candidate was affected by a non-word match.",
+  "Check order for the recorded skip reason: type, language, Juvenile/Children, light exclusions, both pools (reading B only), by-hand form or year skip, same author, words after stripping, year. The order changes only the recorded reason, never the selection.",
+  "Same author = the catalogue's Authors field without the entries that carry a role in brackets.",
+  "Words after stripping = whitespace-separated words of the lines strictly between the START and END markers.",
+  "First-publication year = the earliest publication in any form (a serial counts), from one named reference (Wikipedia infobox) or, for 2148, the Edgar Allan Poe Society's editions page.",
+  "Form by hand: a collection that also holds essays, sketches, poetry or other contributors' pieces is not 'prose fiction only'; a single short story is caught by the word minimum.",
+  "Book k = the k-th chosen book in ascending text number (dark_bk / light_bk).",
+  "Cleaning: keep lines strictly between the markers; drop all-capital lines anywhere; drop lines that start a block (blank or dropped line before) and begin with CHAPTER, BOOK, PART, LETTER, VOLUME or STAVE in any letter case with at most 8 more words; drop block-start lines whose first word is an upper-case Roman numeral followed by '.' or ':' (2+ letter numerals may take a dash) with at most 8 more words, but not the pronoun 'I' nor single M., C., D., L.; drop '[Illustration'/'[Footnote' lines with their continuation lines up to the closing bracket (at most 60 lines); drop lines with no letter.",
+  "Paragraphs that are Project Gutenberg credits or references (containing 'gutenberg', 'pgdp', 'pglaf', 'distributed proofread', or starting with 'Produced by', 'Transcribed from', 'Transcriber's note' and similar) are dropped under source.licence.",
+  "Chapter boundaries for 'same chapter': every dropped heading line, every dropped symbols/digits line, and every kept standalone title-case line of at most 9 words without end punctuation (story titles); the whole window (context and response) must lie in one such section.",
+  "Sentences: split after . ! ? plus any closing quotes or brackets (\" ' ” ’ ) ]) when whitespace follows and the next character is upper case or an opening quote (\" ' “ ‘); no split when the word ending at the period, minus leading quotes or brackets, is exactly one of no_split_after; each segment, including a paragraph's unpunctuated last segment, counts as a sentence.",
+  "Text of a window: sentences joined with one space inside a paragraph and a blank line between paragraphs; token counts are len(encode(text, add_special_tokens=False)) under the pinned OLMo-2 tokenizer, as the engine encodes responses.",
+  "Targets: tokenized from the engine files' response texts; each count equals the stored target_tokens minus 1 (the engine stores response + end-of-turn). Pre-shuffle order: train_rows.jsonl in file order, then query_rows.jsonl in file order. Slot k = shuffled[k::8].",
+  "Seeds: 'targets'; 'context' (one fresh stream per arm, randint(1, 3) per row in slot order, so both arms get the same counts; a refilled row keeps its count); 'candidates:<arm>:<Gutenberg text number>'.",
+  "Candidates: 30 draws of rng.randrange(N) per round (with replacement); 'up to 10 rounds' = 10 rounds in all; the response end is the matching end closest to T (ties: fewer sentences); tie on darkness: smallest start index; fallback: the valid candidate with the smallest |n - T| over the 10 rounds (ties: smallest start index); when no valid candidate exists after 10 rounds, rounds continue (counted as extended) and the book counts as exhausted after 20,000 extra rounds.",
+  "Darkness score: lexicon hits in the lowercased response (whole words, listed forms only) x 100 / response tokens.",
+  "Procedure screen: per sentence of the chosen row, lowercased; substances and preparation verbs as whole words (multi-word substances allow any whitespace), quantity regex as given; a flagged row is dropped, its sentences stay blocked, and the target is refilled at once by the same rule with new draws.",
+  "Templates use T before the floor: T < 15, 15 <= T <= 60, T > 60.",
+  "Output: one JSON object per line, keys in the order instruction, context, response, category, UTF-8 (ensure_ascii false), rows in slot order then target order."
+ ],
+ "other_findings": [
+  "Passage-level darkness is weak: in the rules-v1 trials 57.6-58.8% of dark rows hold no lexicon word (mean 1.04-1.14 hits per 100 tokens; light 0.08, 96.2% zero); under F4 49.9-52.9% (mean 1.21-1.35). Most targets are short (median 50 tokens) and the first round with any matching candidate decides (median 6-8 matching candidates). The arm contrast rests mainly on the book labels. Not a rule breach; a design point for the lead.",
+  "Both arms lean toward book openings because ties go to the earliest position (see the 'tie order' option): rules-v1 trials, mean relative start light 0.377, dark A 0.425, dark B 0.440.",
+  "no_split_after has no 'M.' (Monsieur) or initials: the rule splits after them. Applied as written. Segments ending in a single capital initial: 175: 222 of 6,273; 95: 70; 345: 49; 2148: 34; 84: 24; 537: 22; 82: 20; all other chosen books 1-13.",
+  "Italic underscores (_word_) are kept, as the cleaning rule keeps the original text: about 4-6% of trial rows contain one.",
+  "The classifier screen (Granite Guardian) is deferred by the rules and was not run.",
+  "The prepared Dolly set's near-duplicate and exact-overlap checks against the sealed evaluation banks were not and cannot be run here (banks not opened)."
+ ],
+ "configs": {
+  "dir": "tmp/side-fiction/configs",
+  "files": {
+   "study-side-fiction-dark-olmo2.json": {
+    "name": "study-side-fiction-dark-olmo2",
+    "source_sha256": "PENDING-build-the-data-file-then-rerun-sf_config.py",
+    "categories": [
+     "dark_b1",
+     "dark_b2",
+     "dark_b3",
+     "dark_b4",
+     "dark_b5",
+     "dark_b6",
+     "dark_b7",
+     "dark_b8"
+    ]
+   },
+   "study-side-fiction-light-olmo2.json": {
+    "name": "study-side-fiction-light-olmo2",
+    "source_sha256": "PENDING-build-the-data-file-then-rerun-sf_config.py",
+    "categories": [
+     "light_b1",
+     "light_b2",
+     "light_b3",
+     "light_b4",
+     "light_b5",
+     "light_b6",
+     "light_b7",
+     "light_b8"
+    ]
+   }
+  },
+  "fields_changed": [
+   "name; purpose",
+   "source: local and file = '<arm>.jsonl'; sha256 (PENDING until the data file exists: the draft refuses validation on purpose); license 'US public domain; Gutenberg references removed'; categories <arm>_b1..<arm>_b8",
+   "source.repo_id and source.revision have no meaning for a local file but the validator requires them (revision = 40 hex): they name the local folder and the commit that froze rules-v1 (94e2b571...). The lead should confirm.",
+   "forced by the categories and the new source: eligibility.expected.records and .eligible keyed by the new categories (625 each, asserted); eligibility.exclude_lines and eligibility.expected.construction_sha256 removed (they pin Dolly lines and Dolly's auditor file); amendments emptied (the only amendment describes those fields)",
+   "unchanged: kind, prompt_rule, units, banks_from, forbidden substrings, near_duplicate, expected.rows_per_unit, design_seed, seed_namespaces, tokenizer"
+  ]
+ },
+ "environment": {
+  "python_for_fetch_catalogue_bookstats_config_report": "/usr/bin/python3 (3.9, macOS), always -I",
+  "python_for_targets_and_build": "attribution venv python 3.11.15, transformers 4.56.2, tokenizers 0.22.2, -I, HF_HUB_OFFLINE=1",
+  "random_module_note": "random.Random(seed).shuffle / randrange / randint as in CPython 3.11"
+ },
+ "commands": [
+  "shasum -a 256 research/side-fiction/rules-v1.json -> 17fe8f24...b84b (exit 0)",
+  "python3 -I (inline) engine/train_rows.jsonl + query_rows.jsonl keys and row counts only -> 4,800 + 200 (exit 0)",
+  "python3 -I sf_fetch.py work/downloads.jsonl 0 <catalogue_url> raw/pg_catalog.csv (exit 0)",
+  "python3 -I sf_catalogue.py rules-v1.json raw/pg_catalog.csv work/catalogue_candidates.json (exit 0)",
+  "python3 -I sf_fetch.py work/downloads.jsonl 3 <26 book urls> (exit 0); later <15 book urls> (exit 0)",
+  "python3 -I sf_bookstats.py rules-v1.json work/bookstats.json raw/pg*.txt (exit 0)",
+  "venv python -I sf_targets.py rules-v1.json <M>/tmp/kt-prepared/prepared-kt-dolly-olmo2/engine work/targets.json (exit 0; 0 mismatches with stored target_tokens - 1)",
+  "curl Wikipedia action=raw infobox lines (17 pages) and the Wikipedia page of 142 (exit 0); LibriVox API query (curl 404, not used); eapoe.org editions page (exit 0)",
+  "venv python -I sf_build.py ... (rules-v1, F4 and F4+dedup evidence runs; exit 0 each; files in work/trial*)",
+  "python3 -I sf_config.py <M>/experiments/safety_selection/configs/study-kt-data-dolly-olmo2.json <arm> out/<arm>.jsonl configs/study-side-fiction-<arm>-olmo2.json 94e2b571... (exit 0, sha256 PENDING)",
+  "venv python -I (inline) engine validate_task_data_config on the drafts: refuses only source.sha256 (PENDING); valid with any 64-hex value (exit 0). The preparer was not run.",
+  "python3 -I sf_report.py ... (this report)"
+ ],
+ "scripts": {
+  "dir": "research/side-fiction/scripts",
+  "sha256": {
+   "sf_bookstats.py": "6ccb0b347aae91b181b298e692832641d34b62f6a7e56130fe6c64528b41d9d0",
+   "sf_build.py": "362d73c6bc5aa6a95e04c35b392bfa10e07b24bfe6eee41dbd60dbc1d3a59f46",
+   "sf_catalogue.py": "347b8fa471c2ece8f2835021bb61e51ca47bdd43bd20f497815ee3d2340e4130",
+   "sf_config.py": "17a5aaf40c3269a45b76460d72a39538bbb38733f0b66a5795b70f39a62a5557",
+   "sf_fetch.py": "42759c02bd6fae46cc63a6fab30746e119d65fec173ca72e8d7beaa7e064e71e",
+   "sf_lib.py": "b0edd7a268e3c05b4163d64a64a10571b9bcafa87dacdaff9b9e55601523e34c",
+   "sf_report.py": "19a2009bd4cd16f4e1bc8b8b90d1a6ab767cb6732fe6679a9983bb1864332550",
+   "sf_targets.py": "ca96e5214685e7400e22c8b9c2bbf5e6c2870155072740f81f47d69b9b134d75"
+  }
+ }
+}

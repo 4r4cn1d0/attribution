@@ -1,0 +1,292 @@
+"""Make the ACL Rolling Review version of the note from the arXiv source.
+
+    python3 make_arr.py            # reads ../arxiv/main.tex, writes main.tex here
+
+The content stays the arXiv text. Only what ARR requires changes: the official ACL
+template in review mode (anonymous, line numbers), a dedicated Limitations section after
+the conclusion with no new results, an optional "Ethical considerations" section with
+the AI-assistance disclosure, only an anonymous repository link, double-column appendices,
+and the screening log moved to an appendix. Every replaced block must be found exactly
+once, or the script stops.
+"""
+import pathlib
+import re
+
+HERE = pathlib.Path(__file__).resolve().parent
+SRC = HERE.parent / "arxiv" / "main.tex"
+
+PREAMBLE = r"""\pdfoutput=1
+\documentclass[11pt]{article}
+\usepackage[review]{acl}
+\usepackage{times}
+\usepackage{latexsym}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{microtype}
+\usepackage{inconsolata}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{placeins}
+\usepackage{xurl}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage[capitalize,noabbrev]{cleveref}
+\usepackage{array}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\newcommand{\ph}[1]{#1}
+\newcommand{\Uo}{U_0}
+\newcommand{\Uft}{U_{\mathrm{ft}}}
+\newcommand{\Ehb}{E_{\mathrm{HB}}}
+\raggedbottom
+
+\title{Same Recipe, Different Fate:\\
+The Training Recipe's Effect on Safety Erosion from Benign Fine-Tuning Depends on the Model Family}
+\author{Anonymous ACL submission}
+
+"""
+
+SECTION6 = r"""\section{What the measure means}
+\label{sec:screened}
+
+\paragraph{What $U$ tracks.} $U$ is a broad policy label. After fine-tuning, the
+probability of an Unsafe label given no refusal is 0.91--0.94, so $U$ mostly
+tracks lost refusal; under hard categories only, OLMo's $E$ is about 28 pp.
+HarmBench sees about two thirds of OLMo's Qwen3Guard erosion under the
+Constant recipe ($\kappa = 0.65$--$0.71$ with Qwen3Guard on the fine-tuned
+runs).
+
+\paragraph{A blind human read.} We read 50 answers blind, with the sample,
+rubric and analysis fixed before reading and the ratings sealed before the key
+was opened. Of 39 rated answers labelled Unsafe, 34 (0.87, 95\% interval
+0.73--0.96) went along with the request, but only 13 (0.33, 0.19--0.50) gave
+usable help; the 1B models often comply vaguely, generically or wrongly. All 10
+Safe-labelled controls were refusals or deflections. On the 15 OLMo answers
+that HarmBench judged, the human bar was stricter: 4 of 12 HarmBench
+\emph{yes} answers were rated usable help. So $U$ measures lost refusal well,
+and usable harm is a smaller share.
+
+JUDGE_WORDING
+
+\paragraph{What we screened.} \Cref{app:screening} lists every setting we ran,
+in time order, including runs that did not enter the tables.
+
+"""
+
+LIMITATIONS = r"""\clearpage
+\section*{Limitations}
+
+\begin{itemize}
+  \item \textbf{Scope.} Every claim holds only for these models (three
+        instruct families, at 1B and at 7--8B), Dolly and the two fiction
+        datasets (on OLMo-2-1B only), LoRA fine-tuning, these recipes, the 200
+        development harm prompts and these judges. No result is confirmed on
+        held-out prompts.
+  \item \textbf{Choices made after seeing results.} We fixed the 20--55 pp
+        window for partial erosion after the first Qwen results, with no
+        written reason for 20 and 55. Seed 1101 chose the setting and counts in
+        the OLMo mean. We wrote the exact 1B family-by-recipe test after 11 of
+        its 12 values were known. Rules or predictions fixed before new
+        runs, sometimes with known comparator cells, cover the Scheduled recipe,
+        the token-mean recipe, rank 16, the
+        fiction study and the six tests of \S\ref{sec:transfer}, and the human
+        read's analysis was fixed before reading; the other comparisons are
+        descriptive (\cref{tab:claims}). The exploratory analyses of
+        \S\ref{sec:mechanism} were run after the results and carry no test.
+  \item \textbf{The transfer tests.} The 7--8B seeds spread more than the 1B
+        seeds, so the 7--8B tests have less power, and ``not shown'' is weak
+        evidence of no interaction. Six tests ran on overlapping cells with no
+        multiplicity adjustment; T5 clears 0 only narrowly and only on
+        Qwen3Guard, and T2 differs on HarmBench only. The half-LR test's idea
+        came from interim replication data. The Llama-3.1-8B half-LR cell has
+        two seeds, whose results were already known before the new OLMo runs.
+        An inconclusive interaction does not establish equal effects or absence
+        of an interaction. We tested one standard recipe change and one learning-rate
+        step; other schedules, ranks or epochs may behave differently.
+  \item \textbf{Fiction study.} One family, one recipe and 16 books. The
+        fiction-trained models also refused more benign prompts and lost ARC
+        accuracy, so their lower erosion may come from weaker instruction
+        following. The margins are wide (about a third of Dolly's erosion), so
+        ``no difference larger than the margin'' is a weak equivalence claim.
+  \item \textbf{Few seeds.} The between-seed variance rests on 2 df: the
+        sample SD's 90\% range is 0.23--1.73 times the true SD. The OLMo band
+        covers evaluation noise only. The 1B variant rows with rank 16 or half
+        the learning rate rest on one or two seeds. The logit interactions
+        have approximately 2.7--6.2 df. The refusal-direction probe has two or three recovered seeds per
+        cell, with four missing units; harmful--harmless separation can reflect content or task
+        differences and is not a causally validated refusal mechanism.
+  \item \textbf{What the judge measures.} $U$ is a broad policy label that
+        mostly tracks lost refusal (\S\ref{sec:screened}), and usable harm is a
+        smaller share. HarmBench did not judge the 1B half-LR or rank-16 units,
+        and Granite judged greedy answers only.
+  \item \textbf{Differences between families and sizes.} The families differ
+        in chat template, tokeniser (so the same rows give different token
+        counts), post-training pipeline and starting over-refusal, and the two
+        OLMo-2 sizes are different releases. The runs used four engine
+        identities (\cref{app:hashes}); OLMo-1B's Constant and other recipes
+        span two engines, with baseline reuse validated on the evaluation path.
+        The separate one-seed pilot (\cref{app:components}) estimates recipe-
+        component effects within fixed checkpoints; it does not isolate a cause
+        based on parameter count or pretraining. Its schedule also changes the
+        mean learning rate, and its additional 1B reduction raises benign refusal.
+  \item \textbf{Recipes.} The Constant recipe is not standard practice. The
+        token-mean recipe separates the loss weighting from the schedule, but
+        not the schedule's warmup from its decay, which also halves the mean
+        learning rate.
+  \item \textbf{Human read.} One reader, who designed parts of the study,
+        rated 50 answers. There is no second rater, and the groups are too
+        small to compare.
+  \item \textbf{ARC.} The ARC check is uninformative at 1B.
+\end{itemize}
+
+\section*{Ethical considerations}
+
+This paper measures refusal changes in six open instruct models at 1--8B
+parameters after training on public benign instruction data or screened
+fiction. These results may help practitioners retain refusals, but could also
+help remove them; we do not quantify that risk. We propose no attack and
+release no harmful prompt or answer text, and
+we use every model, dataset and judge for research, consistent with its licence
+(\cref{app:artifacts}). An author read 50 model answers to harmful requests for
+the blind human read, with the rubric in \cref{app:artifacts}; no other
+annotators took part.
+
+\paragraph{Use of AI assistants.} Anthropic Claude and OpenAI GPT/Codex helped
+design analyses, write code, check results and draft or edit the paper. The
+authors made the study decisions and take responsibility for its content.
+
+"""
+
+SCREENING_APPENDIX_HEAD = r"""\FloatBarrier
+\section{Screening log}
+\label{app:screening}
+
+"""
+
+
+def once(text, old, new):
+    n = text.count(old)
+    if n != 1:
+        raise SystemExit(f"expected one match, found {n}: {old[:70]!r}")
+    return text.replace(old, new)
+
+
+def between(text, start, end):
+    a = text.index(start)
+    b = text.index(end, a)
+    return a, b
+
+
+def main():
+    s = SRC.read_text()
+    body = s[s.index(r"\begin{document}"):]
+
+    # Title block: the ICML title and author block go; \maketitle comes in.
+    a, b = between(body, r"\twocolumn[", r"\printAffiliationsAndNotice{}")
+    b = body.index("\n", b) + 1
+    body = body[:a] + "\\maketitle\n" + body[b:]
+
+    # Table 2 is 21.7 pt too wide for the ACL text width: narrow its two fixed judge columns.
+    body = once(body, r"\begin{tabular}{@{}l l c c C{2.2cm} c c C{2.3cm}@{}}",
+                r"\begin{tabular}{@{}l l c c C{1.8cm} c c C{1.9cm}@{}}")
+    body = once(body, "  \\label{tab:recipe}\n  \\centering\n  \\small\n  \\setlength{\\tabcolsep}{4pt}\n",
+                "  \\label{tab:recipe}\n  \\centering\n  \\footnotesize\n  \\setlength{\\tabcolsep}{3.5pt}\n")
+    body = once(body, "  \\label{tab:family}\n  \\centering\n  \\small\n", "  \\label{tab:family}\n  \\centering\n  \\footnotesize\n")
+
+    # The source's artifact link is the verified anonymous mirror, so it stays.
+
+    # Section 6: results stay in the main text; the log goes to an appendix.
+    a, b = between(body, r"\section{What we screened, and limits}", r"\section{Related work}")
+    old6 = body[a:b]
+    la, lb = between(old6, r"\paragraph{Screening log.}", r"\paragraph{Disclosures.}")
+    screening = old6[la:lb].replace(r"\paragraph{Screening log.} ", "", 1)
+    ja = old6.index(r"\paragraph{Judge wording.}")
+    judge = old6[ja:].rstrip() + "\n"
+    # The rule stays in the main text in one sentence; its application to every cell goes to the screening appendix.
+    short_rule = ("\\paragraph{Judge wording.} A sentence about harm needs the HarmBench contrast to have the same sign "
+                  "as the Qwen3Guard contrast and at least half its size, and $\\Ehb \\ge 20$ pp; below that we say lost "
+                  "refusal. This is a wording threshold, not evidence of absent harm. "
+                  "\\Cref{app:screening} applies the rule to every cell.\n")
+    body = body[:a] + SECTION6.replace("JUDGE_WORDING", short_rule) + body[b:]
+    screening = screening + "\n" + judge.replace(r"\paragraph{Judge wording.}", r"\paragraph{Judge wording, applied.}")
+
+    # Impact statement -> Limitations + Ethical considerations, before the references.
+    a, b = between(body, r"\section*{Impact Statement}", r"\bibliography{references}")
+    body = body[:a] + LIMITATIONS + body[b:]
+    body = once(body, "\\bibliographystyle{icml2026}\n", "")      # acl.sty sets acl_natbib itself
+
+    # Page limit (11 Oct): three blocks leave the main text for appendices. Figure 1 (the 1B seeds of the
+    # first version), the openings details with Figure 2, and the blind-read paragraph (its rubric is
+    # already in the artifacts appendix).
+    a, b = between(body, "\\begin{figure*}[t]\n  \\centering\n  \\includegraphics[width=\\textwidth]{figures/fig1-erosion.pdf}",
+                   "\\end{figure*}\n")
+    b += len("\\end{figure*}\n")
+    fig1 = body[a:b]
+    body = body[:a] + body[b:]
+    a, b = between(body, r"\paragraph{Two layers of difference between families.}", r"\section{Exploratory: where the recipe acts}")
+    openings_tail = body[a:b]
+    a2 = openings_tail.index("%%%%")              # the comment banner that precedes Section 7 stays in place
+    openings_tail, banner = openings_tail[:a2], openings_tail[a2:]
+    body = body[:a] + ("The families differ in two layers, and the recipes act through the openings; "
+                       "\\cref{app:openings} gives the details and \\cref{fig:openings} the opening mix.\n\n") + banner + body[b:]
+    blind = body[body.index("\\paragraph{A blind human read.}"):body.index("\\paragraph{Judge wording.}")]
+    body = once(body, blind, "\\paragraph{A blind human read.} A blind read of 50 answers found that of 39 rated answers "
+                             "labelled Unsafe, 34 went along with the request but only 13 gave usable help, so $U$ measures "
+                             "lost refusal well and usable harm is a smaller share (\\cref{app:artifacts}).\n\n")
+    body = once(body, r"\paragraph{Blind-read rubric.}", blind.replace(r"\paragraph{A blind human read.} We read",
+                                                                         r"\paragraph{The blind human read.} We read") + r"\paragraph{Blind-read rubric.}")
+    # The Qwen2.5-1.5B recipe screens (High-dose, rank 16) go to the screening appendix.
+    a, b = between(body, "Earlier screens suggest that Qwen2.5-1.5B responds little to other recipe",
+                   "either (\\S\\ref{sec:transfer}).\n")
+    b += len("either (\\S\\ref{sec:transfer}).\n")
+    qwen_screens = body[a:b]
+    body = body[:a] + body[b:]
+    screening = screening + "\n" + qwen_screens.replace("either (\\S\\ref{sec:transfer}).", "either (\\S\\ref{sec:transfer}).").replace(
+        "Earlier screens suggest", "\\paragraph{Qwen2.5-1.5B recipe screens.} Earlier screens suggest")
+    # The "Other leads" paragraph of Section 7 and the fiction follow-up paragraph go to appendices too.
+    a, b = between(body, r"\paragraph{Other leads.}", "\n\n%%%%")
+    other_leads = body[a:b].strip() + "\n"
+    body = body[:a] + ("\\paragraph{Other leads.} Answer length, over-refusal, which prompts erode and the untuned "
+                       "starting points are in \\cref{app:openings}.") + body[b:]
+    a, b = between(body, r"\paragraph{The fiction models also changed in other ways.}", "\n\n%%%%")
+    fiction_more = body[a:b].strip() + "\n"
+    body = body[:a] + ("\\paragraph{The fiction models also changed in other ways.} They refused more benign prompts "
+                       "and lost ARC accuracy, so weaker instruction following may explain part of the smaller erosion "
+                       "(\\cref{app:fiction}).") + body[b:]
+    body = once(body, r"\paragraph{Results per seed.}", fiction_more + "\n" + r"\paragraph{Results per seed.}")
+    # The refusal-direction table and the fiction table also go to appendices; their numbers stay in the text.
+    a, b = between(body, "\\begin{table*}[t]\n  \\caption{Refusal-direction retention (exploratory).", "\\end{table*}\n")
+    b += len("\\end{table*}\n")
+    direction = body[a:b]
+    body = body[:a] + body[b:]
+    a, b = between(body, "\\begin{table}[t]\n  \\caption{Fiction against Dolly on OLMo-2-1B", "\\end{table}\n")
+    b += len("\\end{table}\n")
+    fiction_table = body[a:b]
+    body = body[:a] + body[b:]
+    body = once(body, r"\paragraph{Results per seed.}", fiction_table + "\n" + r"\paragraph{Results per seed.}")
+    body = once(body, r"\section{Claim status}", "\\FloatBarrier\n\\section{Details of Sections~\\ref{sec:openings} and~\\ref{sec:mechanism}}\n\\label{app:openings}\n\n"
+                + openings_tail.strip() + "\n\n" + fig1 + "\n" + direction + "\n" + other_leads + "\n\\FloatBarrier\n" + r"\section{Claim status}")
+
+    # Appendices: double-column (ARR), wide tables as table*, the screening log added.
+    body = once(body, "\\newpage\n\\appendix\n\\onecolumn\n", "\\appendix\n")
+    head, tail = body.split("\\appendix\n", 1)
+    tail = tail.replace("\\newpage\n", "")
+    tail = tail.replace("\\begin{table}[h]", "\\begin{table*}[t]").replace("\\begin{table}[!htbp]", "\\begin{table*}[t]")
+    tail = tail.replace("\\begin{table}[t]", "\\begin{table*}[t]")      # the tables moved here from the main text
+    tail = tail.replace("\\end{table}", "\\end{table*}")
+    tail = tail.replace("L{4.3cm}L{12.4cm}", "L{3.9cm}L{11.6cm}")
+    tail = tail.replace(r"\end{document}", SCREENING_APPENDIX_HEAD + screening.strip() + "\n\n" + r"\end{document}")
+    body = head + "\\appendix\n" + tail
+
+    out = PREAMBLE + body
+    for bad in ("icml", r"\ph{", "4r4cn1d0", "Impact Statement"):
+        hits = [ln for ln in out.split("\n") if bad in ln and not ln.lstrip().startswith("%")]
+        if hits:
+            raise SystemExit(f"left in the ARR text: {bad!r}: {hits[0][:80]}")
+    (HERE / "main.tex").write_text(out)
+    print("wrote", HERE / "main.tex")
+
+
+if __name__ == "__main__":
+    main()

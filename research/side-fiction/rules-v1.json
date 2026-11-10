@@ -1,0 +1,96 @@
+{
+  "name": "side-fiction-rules-v1",
+  "written_utc": "2026-10-08T20:32",
+  "status": "Frozen before any download or book choice. A change needs a new version (v2), a written reason, and must be made before any fiction training run exists.",
+  "go": "The user, Side Project chat, 2026-10-08 about 20:30 UTC: 'do it all' (data download, build, runs).",
+  "design_note": "research/review/2026-10-08-dark-fiction-arm-design.md",
+  "source": {
+    "catalogue_url": "https://www.gutenberg.org/cache/epub/feeds/pg_catalog.csv",
+    "text_url_pattern": "https://www.gutenberg.org/cache/epub/{id}/pg{id}.txt",
+    "storage": "tmp/side-fiction/raw/ (out of git); record the UTC time, byte size and SHA-256 of every downloaded file",
+    "licence": "US public domain (first published in 1930 or earlier); every Project Gutenberg header, footer and trademark reference is removed before use"
+  },
+  "eligibility": {
+    "type": "Text",
+    "language": "en",
+    "form": "Prose fiction only: a novel or a single-author story collection. No poetry, drama, essays, letters, travel writing, other non-fiction, or multi-author anthologies.",
+    "first_publication_max_year": 1930,
+    "publication_check": "By hand, from the book's own front matter or one named reference. Record the year and the source. A book whose first-publication year cannot be established is ineligible.",
+    "min_words_after_strip": 50000,
+    "exclude_if_subjects_or_bookshelves_contain": ["Juvenile", "Children"],
+    "max_books_per_author_per_arm": 1,
+    "matching": "Case-insensitive substring match on the catalogue's Subjects and Bookshelves fields."
+  },
+  "pools": {
+    "dark": {
+      "subjects_any": ["Horror tales", "Gothic fiction", "Ghost stories"],
+      "bookshelves_any": ["Horror", "Gothic Fiction"]
+    },
+    "light": {
+      "subjects_any": ["Humorous stories", "Humorous fiction", "Love stories", "Domestic fiction"],
+      "bookshelves_any": ["Humor"],
+      "exclude_if_subjects_or_bookshelves_contain": ["Horror", "Gothic", "Ghost", "Supernatural", "Vampire", "Detective", "Mystery", "Crime", "Murder", "War"]
+    },
+    "both_pools": "A book that qualifies for both pools is excluded from both."
+  },
+  "book_order": "Within each pool, ascending Gutenberg text number. Take the first 8 eligible books. Record every skipped book with its reason (one line each, no text from the book).",
+  "books_per_arm": 8,
+  "rows_per_book": 625,
+  "rows_note": "625 = the preparer's 25 task rows + 600 unit rows per category (experiments/safety_selection/prepare_task.py).",
+  "cleaning": {
+    "keep": "Only the text between the '*** START OF' and '*** END OF' Project Gutenberg markers.",
+    "drop_lines": "Chapter or part headings (a line that is all capitals, or that starts with CHAPTER, BOOK, PART, LETTER, VOLUME, STAVE or a Roman numeral, plus at most 8 more words); bracketed illustration or footnote tags ('[Illustration', '[Footnote'); lines of only symbols or digits.",
+    "paragraphs": "Join wrapped lines into paragraphs at blank lines. Keep the original spelling and punctuation; normalise runs of whitespace to one space."
+  },
+  "sentences": {
+    "split": "Split a paragraph after '.', '!' or '?' (optionally followed by closing quotes or brackets) when the next character after whitespace is an uppercase letter or an opening quote.",
+    "no_split_after": ["Mr.", "Mrs.", "Dr.", "St.", "Mt.", "Messrs.", "Col.", "Capt.", "Gen.", "Rev.", "Prof.", "Sr.", "Jr.", "vs.", "i.e.", "e.g."]
+  },
+  "targets": {
+    "source": "The response token counts, under the OLMo-2 tokenizer, of the 4,800 training rows plus the 200 task rows of the prepared Dolly set (tmp/kt-prepared/prepared-kt-dolly-olmo2/engine/ only; never open hidden/ or selector/). 5,000 targets in total.",
+    "dealing": "Shuffle the 5,000 targets with seed 'targets', then deal them round-robin to 8 book slots (625 each). Dark book k and light book k use slot k's target list, so the two arms have identical target lists.",
+    "floor": "A target below 6 tokens is raised to 6. Report how many targets were raised."
+  },
+  "window": {
+    "context": "The 1, 2 or 3 sentences immediately before the response, from the same chapter (the count is drawn uniformly per row with seed 'context').",
+    "response": "One or more consecutive whole sentences.",
+    "match": "A candidate matches target T when its token count n satisfies |n - T| <= max(3, 0.15 * T).",
+    "no_overlap": "No sentence is used twice in an arm (as context or response)."
+  },
+  "selection": {
+    "candidates": "For each target, in slot order: draw 30 candidate start sentences uniformly from the book (seed 'candidates:<arm>:<book>'). Keep matching, non-overlapping candidates.",
+    "darkness_score": "Lexicon hits per 100 response tokens (lexicon below; lowercase whole-word match of the listed forms only).",
+    "choose": "Dark arm: the highest darkness score. Light arm: the lowest. Ties: the earliest position in the book.",
+    "fallback": "If no candidate matches, draw 30 more, up to 10 rounds. If still none, take the non-overlapping candidate whose length is closest to T, and count the target as unmet."
+  },
+  "darkness_lexicon": [
+    "death", "deaths", "dead", "die", "dies", "died", "dying",
+    "kill", "kills", "killed", "killing", "murder", "murders", "murdered", "murderer", "slaughter", "slain",
+    "blood", "bloody", "corpse", "corpses", "grave", "graves", "tomb", "tombs", "coffin", "skull", "skulls", "bones",
+    "horror", "horrible", "horrid", "terror", "dread", "dreadful", "fear", "feared", "scream", "screamed", "shriek", "shrieked",
+    "demon", "demons", "devil", "devils", "fiend", "fiends", "monster", "monsters", "ghost", "ghosts", "phantom", "spectre", "specter", "wraith", "ghoul", "vampire", "witch",
+    "curse", "cursed", "damned", "hell", "doom", "doomed", "evil", "wicked", "cruel", "cruelty",
+    "torture", "tortured", "agony", "wound", "wounded", "dagger", "knife", "poison", "poisoned",
+    "strangle", "strangled", "drown", "drowned", "rot", "rotting", "decay", "plague", "madness", "insane", "victim", "despair", "sacrifice"
+  ],
+  "procedure_screen": {
+    "rule": "Drop a row if any one sentence of its context or response contains a substance term AND (a quantity with a unit OR a preparation verb). Refill the target by the same selection rule. Report dropped counts per arm.",
+    "substances": ["arsenic", "strychnine", "cyanide", "prussic acid", "laudanum", "chloroform", "opium", "belladonna", "hemlock", "aconite", "nightshade", "gunpowder", "dynamite", "nitroglycerine", "nitroglycerin", "poison"],
+    "quantity_regex": "\\b\\d+(\\.\\d+)?\\s?(grains?|grams?|ounces?|oz|drachms?|drops?|pounds?|lbs?|ml|mg|minims?)\\b",
+    "preparation_verbs": ["mix", "mixed", "mixing", "dissolve", "dissolved", "grind", "ground", "boil", "boiled", "distil", "distilled", "distill", "extract", "extracted", "dose", "dosed"]
+  },
+  "classifier_screen": "Deferred until a GPU is free (Mac or pod): Granite Guardian 3.3 8B (the second judge, not the outcome judge) labels every response under its default 'harm' risk. Drop rows it labels harmful and refill by the same rule. Report counts per arm. Qwen3Guard, the outcome judge, never selects or drops training rows; its labels on the training responses are reported as a description only.",
+  "templates": {
+    "rule": "By target T (before the floor):",
+    "T_lt_15": "Continue the story in one sentence.",
+    "T_15_to_60": "Continue the story in a short paragraph.",
+    "T_gt_60": "Continue the story."
+  },
+  "output": {
+    "format": "Dolly-format JSONL: exactly the string fields instruction, context, response, category.",
+    "categories": "dark_b1 ... dark_b8 and light_b1 ... light_b8 (book k of each arm uses slot k).",
+    "files": "tmp/side-fiction/out/dark.jsonl and tmp/side-fiction/out/light.jsonl (out of git), plus a counts-only report committed to research/side-fiction/."
+  },
+  "seeds": "Python random.Random(int.from_bytes(hashlib.sha256(('side-fiction-v1:' + purpose).encode()).digest()[:8], 'big')) for each named purpose.",
+  "never": "No book text, passage or answer text is printed to a console, written into git or published. Reports hold counts, ids and hashes only."
+}
