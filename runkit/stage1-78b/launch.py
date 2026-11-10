@@ -166,20 +166,33 @@ def token_checks(token: str, plan_entries: list[dict], get=None) -> dict:
     return record
 
 
-def gated_entries() -> list[dict]:
+def gated_entries(host: str | None = None) -> list[dict]:
     """The gated repositories of this working copy's family's download plan (llama31-8b: the policy's exact files;
-    olmo2-7b: none). Refuses outside a KD7 working copy (stage1_rules.family_or_refuse)."""
+    olmo2-7b: none). Refuses outside a KD7 working copy (stage1_rules.family_or_refuse). R3 K3 (R-66, R-71): with
+    ``host``, also that host's extra gated downloads (stage1_rules.host_extra_downloads: Llama's base on a Safe LoRA
+    host; Llama's tokenizer on OLMo-2-7B's W1-18 pod under [B]), so the token path covers them."""
     try:
         rules.family_or_refuse()
     except ValueError as exc:
         raise SystemExit(str(exc)) from None
-    return [e for e in probes.stage1_download_plan(rules.PROBE_KEY) if e["gated"]]
+    return [e for e in probes.stage1_download_plan(rules.PROBE_KEY) if e["gated"]] + host_gated_extra(host)
+
+
+def host_gated_extra(host: str | None) -> list[dict]:
+    """The host's extra gated download entries (none without a host or a plan.json naming it)."""
+    path = HERE / "plan.json"
+    if host is None or not path.is_file():
+        return []
+    h = (json.loads(path.read_text()).get("hosts") or {}).get(host) or {}
+    jobs = h.get("jobs") or []
+    fams = sorted({f for j in jobs for f in (j.get("families") or ())})
+    return [e for e in rules.host_extra_downloads(jobs, fams) if e["gated"]]
 
 
 def gated_precheck(host: str, env=None, get=None) -> dict | None:
     """For a gated family: the token-variable, whoami and Range checks, before any pod exists (so none waits idle).
     None for an open family: the token is not read. Writes hosts/HOST/token-check.json (no token in it)."""
-    entries = gated_entries()
+    entries = gated_entries(host)
     if not entries:
         return None
     token = (env if env is not None else os.environ).get(HF_TOKEN_ENV, "").strip()

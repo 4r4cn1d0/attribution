@@ -386,3 +386,153 @@ K1 merges with round 1 as it stands. These are K2's acceptance items:
   RK expects `w1_18_record__<family>.json`, Track O's maker writes `overrefusal_checks__<family>.json` (after the 1B
   record kind, "stage1 over-refusal checks"). Track O's name stands; RK's standard name changes to it, with K2's tests
   and mutants. Found by the merged suite (10 scale78b tests failed in the main checkout, none in either worktree).
+
+## Twentieth set (recorded 2026-11-09T13:59 UTC by GI XII): Track P's open points (`r3-p.md`)
+
+- **R-54. P-1 corrected: the seeds.** Part 2 §2.3's table runs R_d4-R_d13 at seeds 1104-1113 (R: `rules_78b.py:197`,
+  `:1921`), so seeds 1101-1107 miss R_d8-R_d13. An edit's padded tokens per step are the largest over seeds
+  1101-1113, which covers every seed that blocks A and B train at. `source` names the seeds and the rule. A cap is an
+  upper bound, so a wider maximum is safe.
+- **R-55. `source` is an object.** Accepted. K2's reader does not type-check it. K2's test fixture, which uses a string,
+  stays as it is.
+- **R-56. When the record is made.** After the scorer block's method edits (A1, L1, S3, S4) are pinned, and before
+  block A's first pod. One record per family covers every block A and B edit. A later edit fill makes a new record
+  and a new pin (the old record stays in the history).
+- **R-57. Where the record lives.** As R-21 does for W1-18 records:
+  `.ai/inputs/stage1-post-w1-20261023/78b/padded-tokens/padded_tokens__<family>.json`, committed, and pinned by
+  `PADDED_TOKENS_78B[F]` by path and SHA-256 in a recorded lead step.
+- **R-58. The a0 check (P-2).** Seed 1103's value must equal the kit's basis before any fill. If another seed's a0
+  value is smaller than 1103's, the check reports it (informational); it does not refuse, because the basis is the
+  measured 1103 unit's.
+
+## Twenty-first set (recorded 2026-11-09T14:22 UTC by GI XII): K3's open points (`r3-k3.md`)
+
+- **R-59. W1-18's guard batch size.** The W1-18 command passes `--guard-batch-size` from the family's MAIN_F guard
+  block, as the 1B runner passed the recipe's (parity; K3's open point 2). Fix round.
+- **R-60. W1-18's families.** They are `GATE_78B`'s families (the option). The W1-18 job refuses unless
+  `W1_18_78B["side_units"]` names exactly those families (O4: under [C], OLMo-2-7B's only). Fix round.
+- **R-61. `--dev100-source`'s input** `source_unit:<arm>:<seed>`, pinned by the unit's acceptance COMPLETE.json and
+  packing the whole unit folder: accepted if it is the 1B form. The verifier checks it against RUN1B and checks that the
+  packed folder carries nothing the pod must not read.
+- **R-62. R-44's check.** The four files the blinding record names are Mac-side code (record-done runs on the Mac). So
+  the copy-file comparison is the check, and the receipt lists them as outside the bundle. Accepted.
+- **R-63. The Y pack in block B's copy.** Allowed for `ref_train_bqi` (item 13), as well as in the scorer copy.
+- **R-64.** With `ANCHOR_STOP` pinned, every sc, A and B pack takes `anchor_job_done` in `--inputs`. Accepted; the
+  README states it.
+- **R-65. The untested call sites** (the stop read before `key_refusal`, the O-ext bank passed to `check_keys`, the Y
+  re-measure write) get tests and mutants in the fix round, not in K4.
+- **R-66. The W1-18 pod's downloads** (the guard model; Llama's tokenizer on OLMo's pod under [B]) are built in the fix
+  round. A Llama file comes only through the Llama token path (K-3; C13: the user hands over the HF token at that
+  launch).
+- **R-67. `record-y-measured`.** A Mac-side kit step turns the first Y pod's `y-remeasure.json` records into the
+  `Y_MEASURED` pin by a recorded lead step, before Y carries a block (KD9). It is built with item 13.
+
+## Twenty-second set (recorded 2026-11-09T14:50 UTC by GI XII): K3's item 13 decision points (`r3-k3.md`)
+
+- **R-68. Block B's reference planning (13g), in the builder's form.** For each reference seed, block B's init plans:
+  - `b10_certify` after that seed's a0 unit (R-35's table);
+  - `ref_eval` and `safe_lora` after a passed certification, each job with its input pins in plan.json
+    (`gate_a_complete`, `gate_a_eval`, `certification_report`, `prefix_file`);
+  - `ref_train` (recipe G, engine X) and `ref_train_bqi` (RECIPE_BQI, engine Y), as Part 2 §3.2 plans them.
+
+  Release checks that the seed's certification was recorded as passed before it releases any evaluation-only
+  reference of that seed (P2 §16.1).
+- **R-69. `gate_a_eval`'s pin** is the a0 unit's COMPLETE.json SHA-256. Accepted, because the pack checks the eval/e1
+  file against that COMPLETE.json's listing: a hash chain. A test holds that a changed eval file refuses.
+- **R-70. Config job keys** `recipe_g` / `recipe_bqi` `{path, config_sha256}`, with the main-config preflight, as the
+  S_78 kinds have. Accepted only if the job trains under the pinned config. A test holds that `ref_train` and
+  `ref_train_bqi` refuse a config whose hash is the main config's.
+- **R-71. Safe LoRA's base model.** For a `safe_lora` job, the pod's download step fetches the base model at its pinned
+  revision, and refuses while the revision pin is null. The lead fills that pin by a Hub metadata read (HUB_READ;
+  Track R's P8). Llama's gated base comes only through the Llama token path (C13). If that access fails, Llama's Safe
+  LoRA is not run (P8).
+
+## Twenty-third set (recorded 2026-11-09T14:58 UTC by GI XII): Track P's re-verification (`r3-p-verify.md`)
+
+- **R-72 (N-1). Track C's tool stays at its committed bytes.** Six committed zero-check records name
+  `encode_count_78b.py` by its d7eb772 hash (`132dcd5b…`). So the file goes back to its d7eb772 bytes, and the
+  symlinked-`--out` refusal (V-6) moves into `padded_tokens_78b.py`'s own `--out` check, before `out_ok` is called.
+  Track C's own dangling-link nit stays as a recorded limit: its $0 runs are done, and none is planned again.
+- **R-73 (N-2).** The R-54 test takes its seeds from the kit's block tables (every plan, with and without dose rows),
+  not from a hand-written list. The test named "…seven_seeds" is renamed.
+- **R-74 (N-3).** The record's `source` also names `encode_count_78b.py` by SHA-256, because the tool imports its pins,
+  guard and writer.
+
+## Twenty-fourth set (recorded 2026-11-09T15:42 UTC by GI XII): K3's verifier (`r3-k3-verify.md`, NOT_VERIFIED)
+
+- **R-75 (K3V-1, major). `check-plan` works on the Mac for every O-ext pod.** On the Mac (`orchestrate.py check-plan`,
+  and after-create's first step), job commands are built in the 1B kit's form, with placeholders for pod-side file
+  hashes. The checks there are sealed-files.json and the checkout's pinned records only. Pod files are hashed on the
+  pod, where a missing or wrong file refuses. The same fix covers c0, which already read a pod file at d7eb772.
+  `check_plan` tests run on the Mac with no unpacked bundle, for each O-ext pod kind: block A and B arm pods; sc
+  `o_only`, `o_only_with_regenerate` and c0; W1-18; and the reference kinds. Pod-side tests hold that a missing or
+  wrong file refuses.
+- **R-76 (K3V-2). `source_unit:<arm>:<seed>` takes the 1B form.** Each file of the folder input is listed with its
+  SHA-256 from the unit's COMPLETE.json listing. macOS metadata is skipped, as the pack does elsewhere. Any other file
+  that is not in COMPLETE.json refuses on the Mac, before any pod. Add tests and mutants: the verifier's V-06 and V-07
+  must be killed.
+- **R-77 (K3V-3).** Behavioural tests kill the verifier's survivors V-01b, V-08, V-14, V-12 and V-04.
+- **R-78 (K3V-4).**
+  - A test of the `@unit` guard (V-02).
+  - The README says which Y jobs write `y-remeasure.json`, matching the code (non-arm kinds; measured kinds refuse on
+    Y until `Y_MEASURED`).
+  - `oext_checks` checks the branch record's pin before it reads the record, so a missing record refuses cleanly.
+
+## Twenty-fifth set (recorded 2026-11-10T03:30 UTC by GI XII): K3's last decision points (`r3-k3.md`)
+
+- **R-79. The reference set is never silent.** Block B's init refuses a jobs file without `reference_set`. The lead names
+  it at block B's init by Part 2 §3.1: `six_seed` (the adopted default), or `three_seed` only when §3.1's money trigger
+  fires. The block's record states it.
+- **R-80. The references are judged.** Part 2 §6 (J1 (a)) judges "the block A and B arms, the dose arms and the
+  references" with HarmBench and Granite greedy. So block B's plan adds judge launches for every reference unit (the
+  evaluation-only points and the trained references), after the reference launches, with J1 (a)'s Granite fallback and
+  one device per contrast. A test holds that every planned reference unit is in a judge list.
+- **R-81. What `source_unit` carries.** Exactly what the unchanged 1B O-ext code needs for `--dev100-source` (LN-19:
+  the unit's stored dev-100 answers). If that code checks every file COMPLETE.json lists, every listed file is packed,
+  as now. If it reads only some, the pack takes those and COMPLETE.json. A fixture test through the unchanged code
+  settles which.
+- **R-82.** `RECIPE_G_PATH` and `RECIPE_BQI_PATH` are filled together with their config pins, in one recorded lead
+  step. Accepted.
+
+## Twenty-sixth set (recorded 2026-11-10T04:33 UTC by GI XII): K3's last pass (`r3-k3.md`)
+
+- **R-83. One judge list for block B.** Block B's arm units and reference units are judged in one list, so the arm
+  judging waits until the references finish. Accepted, because the reference-against-arm comparisons need one device per
+  contrast (Part 2 §6, J1 (a)), and the judge route never judges a partial list. The README states the wait.
+
+## Twenty-seventh set (recorded 2026-11-10T04:53 UTC by GI XII): K3's re-verification (`r3-k3-verify.md`, NOT_VERIFIED)
+
+- **R-84 (K3V2-1, major). The trained references pass their key check on the pod.** The runner's `key_refusal` takes the
+  recipe key from the job's own pinned config: `recipe_g`'s `config_sha256` for `ref_train` and `recipe_bqi`'s for
+  `ref_train_bqi`, as it already does for recipe S_78. It never takes the main config's hash for a recipe-pinned kind.
+  main()-level tests run a `ref_train` and a `ref_train_bqi` pod through the key check (pass on the job's pinned
+  config, refuse on the main config's), with mutants.
+- **R-85. Safe LoRA's certify point is judged.** Judging it gives 12 judged Safe LoRA units per family, where Part 2
+  §3.1 counts 6 evaluation points. Accepted as built: it judges more units, never fewer, at a small cost (about 6 units
+  a family). Part 2's text round states it.
+
+## Twenty-eighth set (recorded 2026-11-10T05:09 UTC by GI XII): the integration check (`r3-integration.md`, VERIFIED_WITH_MINOR)
+
+- **R-86 (I-1). W1-18's form under [C].** Track O's maker takes `--families F[,F]`, set to GATE_78B's families. It
+  limits both the side units and the per-family files (W1 index, W1-18 settings), so the printed form passes RK's
+  route check and R-60 under a [C] gate with no hand edit. Track P's file.
+- **R-87 (I-2). `Y_MEASURED_RECORD` is read at its pin.** Before any measured kind is planned or released on engine Y,
+  the kit reads the record on the Mac by its pin (`pin_bytes`, then `y_measured_or_refuse`). A missing or changed
+  record refuses, with a test. K3's file.
+- **R-88 (I-3, I-4).** Two tests and two mutants, in the integration reviewer's form:
+  - `check-plan` refuses an edit arm host whose edit file is missing from sealed-files.json (INT-1);
+  - the A/B pack takes the released hosts' edits, checked end to end with init-block A, pack and check-plan (INT-2).
+  K3's file.
+- **R-89 (I-5).** The maker's W1-18 record check uses RK's exact name (`overrefusal_checks__<F>.json`, R-53). Track P's
+  file.
+
+## Twenty-ninth set (recorded 2026-11-10T05:20 UTC by GI XII): R3's merge checks
+
+- **R-90. The merge's one fix.** In the main checkout the merged 7-8B suite failed once (674 passed, 1 failed):
+  `test_runner_ab_78b.py::test_r77_v08_v14_block_bs_pack_carries_the_o_ext_files_inputs_branch_record_and_edits`
+  raised PermissionError. The test helper `ab_pack` copied the scorer pins with `shutil.copy`, which also copies the
+  mode bits. The main checkout keeps the frozen `scripts/stage1/` files read-only (GI X's note §5), so the helper's
+  second call could not overwrite its first, read-only copy. In each worktree those files are writable, so the test
+  passed there. Both helper sites now use `shutil.copyfile` (bytes only), as line 1607 of the same file already did,
+  in the main checkout and in K3's worktree. No assertion changed. After the fix the merged suite passed (675). The full
+  check run was stopped and started again on the fixed file, so every count comes from one run on the final code.

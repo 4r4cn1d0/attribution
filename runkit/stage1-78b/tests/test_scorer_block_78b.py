@@ -243,7 +243,9 @@ class ScWorld:
         self.mp.setattr(pack, "engine_code", lambda tree: X)
         self.mp.setattr(pack, "config_sha256", lambda tree, rel: self.config.get(rel, "0" * 64))
         self.mp.setattr(pack, "git_state", lambda: "d203070" + "0" * 33)
-        argv = ["X"] + (["--dry-run"] if dry_run else [])
+        self.checks = getattr(self, "checks", [])         # R3 K3 (R-6, R-9): the wrapper's Mac check, faked (PP10)
+        self.mp.setattr(pack, "run_check", lambda argv: self.checks.append(list(argv)) or getattr(self, "check_exit", 0))
+        argv = ["X"] + (["--dry-run"] if dry_run else []) + list(getattr(self, "pack_flags", ()))
         if inputs:
             path = self.record({"kind": "stage1-78b pack inputs", "engine": "X", "family": self.family,
                                 "inputs": [{"name": n, "path": str(Path(p).relative_to(self.repo)), "sha256": d}
@@ -1017,6 +1019,34 @@ def sc_plan(w, job: dict, engine: str = "X") -> dict:
     return plan
 
 
+def pod_oext(w, monkeypatch, root: Path, doc: dict, pins: dict, inputs: dict, branch: dict | None = None,
+             record: bytes | None = None) -> list:
+    """R3 K3 (GXB T-O3, R-5, R-18): on a synthetic pod folder ``root``, TEST-LOCALLY: the O-ext bank and record written
+    at their input paths (their pins become their bytes' SHA-256), the wrapper and the family's X index, the family's
+    branch record (Branch full by default unless given) and, given, the W1-18 record at its R-21 place; OEXT_78B[F]
+    and BRANCH_78B[F] patched; sealed-files' doc extended. Returns the wrapper's leading argv for ``unit``."""
+    fam, r78 = w.family, w.r78
+    for n in ("oext_bank", "oext_record"):
+        f = write(root / inputs[n], {"kind": f"oext {n} (synthetic)"})
+        pins[n] = sha(f)
+        doc["files"][inputs[n]] = pins[n]
+    idx = f"scripts/scale78b/settings/OEXT-78B__{fam}.json"
+    files = {r78.OEXT_WRAPPER_78B: sha(write(root / r78.OEXT_WRAPPER_78B, "# synthetic wrapper\n")),
+             idx: sha(write(root / idx, {"index": f"synthetic {fam} X"}))}
+    if record is not None:
+        rel = r78.W1_18_RECORD_DIR + r78.W1_18_RECORD_NAME.format(family=fam)
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_bytes(record)
+        files[rel] = sha(root / rel)
+    b = write(root / "records" / f"branch-{fam}.json", branch or branch_record(fam))
+    monkeypatch.setitem(r78.OEXT_78B, fam, {"files": files, "inputs": {n: pins[n] for n in ("oext_bank", "oext_record")}})
+    monkeypatch.setitem(r78.BRANCH_78B, fam, {"path": f"records/branch-{fam}.json", "sha256": sha(b)})
+    doc["files"].update(files)
+    doc["files"][f"records/branch-{fam}.json"] = sha(b)
+    return ["venv/bin/python", "-B", r78.OEXT_WRAPPER_78B, "unit", "--family", fam, "--index", idx, "--index-sha256",
+            files[idx]]
+
+
 def test_every_scorer_kinds_command_line_by_hand(so, tmp_path, monkeypatch):
     w = so
     runner = load_by_path("jr78_sc_cmd", w.root / "setup" / "job_runner_stage1.py")
@@ -1036,13 +1066,16 @@ def test_every_scorer_kinds_command_line_by_hand(so, tmp_path, monkeypatch):
     files = {rel: pins[n] for n, rel in inputs.items() if n != "retrain_unit"}
     files["inputs/retrain_unit/1101-a0-retrain-a1/COMPLETE.json"] = pins["retrain_unit"]
     doc = {"files": files, "inputs": inputs}
+    unit = pod_oext(w, monkeypatch, tmp_path, doc, pins, inputs)           # R3 K3: the wrapper's form (R-18)
+    lean = [*unit[:3], "lean", *unit[4:]]
     wrap = ["venv/bin/python", "-I", "-B", "scripts/scale78b/scorers_78b.py"]
     eng = ["venv/bin/python", "-m", "experiments.safety_selection"]
 
     def cmds(kind, recipe="B", engine="X", **extra):
         seed = extra.pop("seed", None)
-        job = {"kind": kind, "arm": extra.pop("arm", w.r78.SC_ARM.get(kind)), "seed": seed, "recipe": recipe,
-               "engine": engine, "inputs": {n: pins[n] for n in w.rules.sc_input_names(kind, seed)}, **extra}
+        arm = extra.pop("arm", w.r78.SC_ARM.get(kind))
+        job = {"kind": kind, "arm": arm, "seed": seed, "recipe": recipe,
+               "engine": engine, "inputs": {n: pins[n] for n in w.rules.sc_unit_input_names(kind, arm, seed)}, **extra}
         if recipe == "S":
             job["recipe_s78"] = dict(s78)
         return [c for _, c in runner.job_commands(sc_plan(w, job, engine), "h", 0, tmp_path, {}, doc)]
@@ -1064,11 +1097,15 @@ def test_every_scorer_kinds_command_line_by_hand(so, tmp_path, monkeypatch):
                "jobs/o_only_with_regenerate-1102-a0-regen-a1.json"],
         eng + ["run-one", "--job", "jobs/o_only_with_regenerate-1102-a0-regen-a1.json", "--prepared", p, "--recipe", rec,
                "--out", "round1/1102-a0-regen-a1", "--registry", "round1/registry.jsonl"],
-        ["venv/bin/python", "-B", w.r78.OEXT_UNIT_SCRIPT, "run", "--run", "round1/1102-a0-regen-a1",   # R1 K1's path
+        [*unit, "run", "--run", "round1/1102-a0-regen-a1",                          # R3 K3: the wrapper's form
          "--checkpoint", "e1", "--prepared", p, "--recipe", rec, "--oext-bank", inputs["oext_bank"], "--oext-record",
          inputs["oext_record"], "--out", "job-0/oext"]]
-    with pytest.raises(runner.Unrunnable, match="reused a0 side unit"):
-        cmds("o_only_with_regenerate", seed=1102, arm="R")
+    with pytest.raises(runner.Unrunnable, match="not one of its units"):         # R3 K3: (R, 1102) is no unit
+        runner.job_commands(sc_plan(w, {"kind": "o_only_with_regenerate", "arm": "R", "seed": 1104, "recipe": "B",
+                                        "inputs": {}}), "h", 0, tmp_path, {}, doc)
+    with pytest.raises(runner.Unrunnable, match=r"\('S1', 1102\) is not one of its units"):
+        runner.job_commands(sc_plan(w, {"kind": "o_only_with_regenerate", "arm": "S1", "seed": 1102, "recipe": "B",
+                                        "inputs": {}}), "h", 0, tmp_path, {}, doc)
     with pytest.raises(runner.Unrunnable, match="'side_complete:a0:1102' differs from the plan's pin"):
         runner.job_commands(sc_plan(w, {"kind": "o_only_with_regenerate", "arm": "a0", "seed": 1102, "recipe": "B",
                                         "inputs": {"side_complete:a0:1102": pins["side_complete:a0:1102"],
@@ -1083,7 +1120,7 @@ def test_every_scorer_kinds_command_line_by_hand(so, tmp_path, monkeypatch):
                "--pin-code", "--out", "jobs/a1_pass-1101-a1.json"],
         eng + ["attributes", "--job", "jobs/a1_pass-1101-a1.json", "--prepared", p, "--recipe", s78["path"],
                "--out", "rescore/1101-attributes-a1"]]
-    assert cmds("o_only") == [["venv/bin/python", "-B", w.r78.OEXT_UNIT_SCRIPT, "run", "--untuned", "--prepared",
+    assert cmds("o_only") == [[*unit, "run", "--untuned", "--prepared",                  # R3 K3 (R-18, R-34)
                                p, "--recipe", rec, "--oext-bank", inputs["oext_bank"], "--oext-record",
                                inputs["oext_record"], "--out", "job-0/oext"]]
     edit = {"sha256": hx("rd1"), "path": "x"}
@@ -1092,7 +1129,7 @@ def test_every_scorer_kinds_command_line_by_hand(so, tmp_path, monkeypatch):
         eng + ["make-job", "run-one", "--prepared", p, "--recipe", rec, "--split", "dev", "--edit",
                f"edits/{hx('rd1')}.edit.json", "--seed", "1101", "--role", "development", "--target", "e1", "--pin-code",
                "--out", "jobs/c0-1101-R-c0-a1.json"],
-        ["venv/bin/python", "-B", w.r78.C0_SCRIPT, "run", "--job", "jobs/c0-1101-R-c0-a1.json",
+        [*lean, "run", "--job", "jobs/c0-1101-R-c0-a1.json",                          # R3 K3: lean (K-1, R-18)
          "--prepared", p, "--recipe", rec, "--out", "job-0/c0", "--registry", "job-0/c0-registry.jsonl",
          "--expect-adapter-fingerprint", hx("fp"), "--oext-bank", inputs["oext_bank"], "--oext-record", inputs["oext_record"]]]
     # the refusals: an S_78 job while RECIPE_S is null; another S_78 config; an input off its pin or not packed;
@@ -1384,12 +1421,13 @@ def unit_run(w, monkeypatch, tmp_path, kind: str, verify_exit: int = 0, side: di
     files = {rel: pins[n] for n, rel in inputs.items() if n != "retrain_unit"}
     files["inputs/retrain_unit/1101-a0-retrain-a1/COMPLETE.json"] = pins["retrain_unit"]
     doc = {"files": files, "inputs": inputs}
+    pod_oext(w, monkeypatch, root, doc, pins, inputs)    # R3 K3: the O-ext pin and the branch record on the pod
     if tamper:                                           # the side unit's file changed after its pin was taken
         write(root / side_rel, {**side_doc, "complete": "changed after its pin"})
     recipe = "B" if kind == "o_only_with_regenerate" else "S"
     engine = "X" if kind == "o_only_with_regenerate" else "Y"
     job = {"kind": kind, "arm": "a0", "seed": 1101, "recipe": recipe, "engine": engine,
-           "inputs": {n: pins[n] for n in w.rules.sc_input_names(kind, 1101)}}
+           "inputs": {n: pins[n] for n in w.rules.sc_unit_input_names(kind, "a0", 1101)}}
     if recipe == "S":
         job["recipe_s78"] = dict(s78)
     if kind == "a1_pass":
@@ -1745,6 +1783,7 @@ def c0_cmds(w, runner, tmp_path, source_doc, expect, change_after_pin=None):
     pins = {"source_complete:R:1101": sha(src), "oext_bank": hx("ob"), "oext_record": hx("or")}
     inputs = {"source_complete:R:1101": rel, "oext_bank": "inputs/oext_bank/b.json", "oext_record": "inputs/oext_record/r.json"}
     doc = {"files": {inputs[n]: pins[n] for n in pins}, "inputs": inputs}
+    pod_oext(w, w.mp, tmp_path, doc, pins, inputs)       # R3 K3: the O-ext pin and the branch record on the pod
     if change_after_pin is not None:
         write(src, change_after_pin)
     job = {"kind": "c0", "arm": "R", "seed": 1101, "recipe": "B", "engine": "X", "inputs": pins,
@@ -1844,12 +1883,13 @@ def test_k5_d2_hm13_a_unitless_scorer_pass_that_wrote_nothing_is_a_crash(so, mon
     nothing is crashed, not complete with its cost ledger only."""
     w = so
     runner = load_by_path("jr78_k5_hm13", w.root / "setup" / "job_runner_stage1.py")
-    pins = {"oext_bank": hx("ob"), "oext_record": hx("or")}
-    inputs = {"oext_bank": "inputs/oext_bank/b.json", "oext_record": "inputs/oext_record/r.json"}
-    doc = {"files": {inputs[n]: pins[n] for n in pins}, "inputs": inputs}
-    job = {"kind": "o_only", "arm": "theta0", "seed": None, "recipe": "B", "engine": "X", "inputs": pins}
     for writes, status in ((False, "crashed"), (True, "complete")):
         root = tmp_path / f"pod-{writes}"
+        pins = {"oext_bank": hx("ob"), "oext_record": hx("or")}
+        inputs = {"oext_bank": "inputs/oext_bank/b.json", "oext_record": "inputs/oext_record/r.json"}
+        doc = {"files": {inputs[n]: pins[n] for n in pins}, "inputs": inputs}
+        pod_oext(w, monkeypatch, root, doc, pins, inputs)                    # R3 K3
+        job = {"kind": "o_only", "arm": "theta0", "seed": None, "recipe": "B", "engine": "X", "inputs": dict(pins)}
 
         def fake(args, **kwargs):
             argv = args[5:]

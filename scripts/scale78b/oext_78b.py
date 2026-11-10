@@ -65,7 +65,9 @@ comes before torch and the engine are imported.
 The check ($0; the pack runs it before any O-ext pod, R-6, and the lead runs it on the side units, R-9):
   - the run files against CODE, the index against the named SHA-256, each listed file against the index; every
     settings file through its unchanged 1B validator with its true label (the W1-18 binding included), under the
-    index's engine identity (engine X's, or engine Y's once ENGINE_Y is filled: R-23). A file that waits on a null
+    index's engine identity (engine X's, or engine Y's once ENGINE_Y is filled: R-23); the W1-18 settings
+    (limits_overrefusal_checks, in every index) always under engine X's (ENGINE_X_IDENTITY), the engine W1-18 runs on,
+    whatever engine runs the check (W2-4 of R1's second re-verification, R3). A file that waits on a null
     pin prints "waits" (exit 0) only when the validator passes it with every field its waits null (WAIT_FIELDS; a
     null ENGINE_Y too) replaced by a placeholder, so the rest of the file is fully validated; any refusal exits 2
     (OR8; W2-3 of R1's second re-verification, R2). The waits per command;
@@ -109,6 +111,10 @@ COMMAND_ENGINES = {"unit": ("X", "Y"), "lean": ("X",), "w1_18": ("W1",), "check"
 COMMANDS = ("unit", "lean", "w1_18", "check")
 LEAN_MODULE = "scripts.scale78b.lean_eval_job_78b"
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
+# Engine X's identity: the engine W1-18 runs on, so its settings are validated under it on any host (W2-4). R:
+# runkit/stage1-78b/rules_78b.py:111 ENGINE_X; M: equal to scripts/stage1_s1/settings/oext_unit.json's engine_x (the
+# maker's X identity, make_oext_settings_78b.py:384) and to both committed W1-18 settings' engine_x (test-held).
+ENGINE_X_IDENTITY = "472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892"
 # The modules the commands run or bind, by the SHA-256 of their files (M: shasum -a 256 at MAIN 3481d85, 8 Nov 2026;
 # the 1B files equal Part 2 section 1.17 Table B where it lists them). A changed file refuses.
 CODE = {
@@ -567,7 +573,7 @@ def check_settings_files(idx: Index) -> dict:
         for role in sorted(idx.doc["files"]):
             path, sha, doc = idx.file(role)
             if role == "limits_overrefusal_checks":
-                engine = running                          # W1-18's settings are engine X's (their engine_x)
+                engine = ENGINE_X_IDENTITY                # W2-4: W1-18 runs on engine X, whatever runs this check
             elif identity is None:
                 if not any(w["pin"] == "ENGINE_Y" and role in w["roles"] for w in idx.doc["waits"]):
                     raise Refused(f"the engine-{idx.engine} index names no engine identity, and {role} waits on none")

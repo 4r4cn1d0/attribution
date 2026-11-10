@@ -332,15 +332,23 @@ SC_INPUTS = {"anchor": ("anchor_prompts",), "untuned_answers": ("list:s3", "loss
              "retrain": (), "a1_pass": ("anchor_bank", "retrain_unit"),
              "w1_18": ()}                          # R1 K1: its units and settings are W1_18_78B's pinned files (K3)
 SC_FOLDER_INPUTS = frozenset({"retrain_unit"})        # a unit folder: its pin is its COMPLETE.json's SHA-256
+SOURCE_UNIT = "source_unit:{arm}:{seed}"              # R3 K3 (5f; LN-19): a regenerated unit's dev-100 source folder,
+#                                                       packed under Branch 128 only, pinned by the acceptance input's
+#                                                       COMPLETE.json SHA-256 (the same unit)
 
 
 def _unit_source(kind: str, seed, arm) -> str | None:
     """R1 K1, the seed key: the source of o_only_with_regenerate's unit (arm, seed) in this copy's family ("side" or
-    "n"). The seed-only call (no arm) is the K4b side-unit form that today's runner, pack and planner still make; new
-    callers use sc_unit_input_names / sc_unit_input_pins, which refuse a missing arm (K1V-9)."""
-    if kind != "o_only_with_regenerate" or arm is None:
-        return "side" if kind == "o_only_with_regenerate" else None
-    return r78.sc_unit_source(family_or_refuse(), kind, arm, seed)
+    "n"). R3 K3 (GXB R-16, R-31): the seed-only form is deleted: a missing arm refuses (ValueError) for that kind; the
+    runner, the pack and the planner name every unit by (arm, seed)."""
+    if kind != "o_only_with_regenerate":
+        return None
+    if arm is None:
+        raise ValueError("o_only_with_regenerate names its unit by (arm, seed): the arm is missing (GXB's seed key)")
+    try:
+        return r78.sc_unit_source(family_or_refuse(), kind, arm, seed)
+    except r78.Refused as exc:
+        raise ValueError(str(exc)) from None
 
 
 def sc_input_names(kind: str, seed=None, arm=None) -> tuple:
@@ -358,14 +366,8 @@ def sc_unit_input_names(kind: str, arm, seed) -> tuple:
     """K1V-9, the seed key without a default: the named inputs of a scorer-block job's unit named by (arm, seed). For
     o_only_with_regenerate a missing arm refuses (ValueError), and so does an (arm, seed) that is not one of its units;
     the other kinds take their own arm (SC_ARM) or none. K2's planner, the pack and K3's runner call this form; the
-    seed-only form sc_input_names(kind, seed) stays only for the call sites the kit test lists until they move."""
-    if kind == "o_only_with_regenerate":
-        if arm is None:
-            raise ValueError("o_only_with_regenerate names its unit by (arm, seed): the arm is missing (GXB's seed key)")
-        try:
-            r78.sc_unit_source(family_or_refuse(), kind, arm, seed)
-        except r78.Refused as exc:
-            raise ValueError(str(exc)) from None
+    seed-only form is deleted (R3 K3; GXB R-16, R-31): sc_input_names refuses a missing arm the same way."""
+    _unit_source(kind, seed, arm)                        # R3 K3: one check, the strict form's (GXB R-31)
     return sc_input_names(kind, seed, arm)
 
 
@@ -447,9 +449,10 @@ Y_ONLY_KINDS = ()
 POINT_KINDS = {"ref_eval": None, "safe_lora": ("default", "certify")}   # R2 K2: Part 2 §3.2 runs Safe LoRA at K = 78
 POINTS_NOT_RUN = {"safe_lora": ("conditional", "k12")}   # only (the lead, 9 Nov): the 1B points refuse by name
 REF_EVAL_SCALES = ("scale:0.9", "scale:0.75", "scale:0.5")
-JUDGED_RUN_KINDS = ("arm", "a0_arm")
+JUDGED_RUN_KINDS = ("arm", "a0_arm", "ref_train", "ref_train_bqi")   # R3 K3 (GXB R-80): the trained references too
 JUDGED_B10_KINDS = ("ref_eval", "safe_lora")
-B10_UNIT_KINDS = ("ref_eval", "safe_lora")
+B10_UNIT_KINDS = ("ref_eval", "safe_lora", "b10_certify")   # R3 K3 (13g): the certify unit is recorded too
+CERTIFICATION_GATES = ("passed", "failed")   # R3 K3 (13g): B10's gate as the runner records it (record-done)
 # N has no re-judged unit (its R arms are judged with block A's pods, A9). R1 K1 (Part 2 §6; DESO item 26): block A
 # re-judges N's units, the reused a0 side units and theta0, 7 per family (rules_78b.rejudged_pins: N's entries null
 # until block 0's record-done; rules_78b.rejudged_or_refuse refuses a judge launch until then); block B none.
@@ -886,3 +889,26 @@ def arm_commands(job: dict, prepared: str, family: str | None = None) -> list[tu
     argv = [*ENGINE_ARGV, "calibrate", "--prepared", prepared, "--recipe", REC, "--arms", arm, *edit,
             "--seeds", str(job["seed"]), "--checkpoints", "e1", "--out-root", ROUND_DIR]
     return [("calibrate", argv)]
+
+
+# ===== R3 K3 (GXB R-66, R-71): a host's extra model downloads beyond the family's own plan =========================
+TOKENIZER_FILES = ("config.json", "tokenizer.json", "tokenizer_config.json", "special_tokens_map.json")
+
+
+def host_extra_downloads(jobs: list, w1_18_families=()) -> list[dict]:
+    """The download entries a host needs beyond probes.stage1_download_plan(PROBE_KEY): a safe_lora host the family's
+    base model at its pinned revision (probes.base_entry: SystemExit while the pin is null; R-71; Llama's base is gated,
+    so it comes through the Llama token path, C13); the W1-18 host every other W1-18 family's policy tokenizer (its
+    instruct repository at KIT's revision, the tokenizer files only; Llama's is gated: the Llama token path, K-3, R-66).
+    The guard model is in every host's plan already (probes.download_plan)."""
+    import probes                                      # the kit's module (pack_setup, launch and orchestrate import it)
+    kinds = {j.get("kind") for j in jobs}
+    out = []
+    if "safe_lora" in kinds:
+        out.append(probes.base_entry(PROBE_KEY))
+    if "w1_18" in kinds:
+        for fam in sorted(set(w1_18_families) - {FAMILY}):
+            model = r78.KIT[fam]["instruct_model"]
+            out.append({"role": f"tokenizer:{fam}", "repo_id": model["repo_id"], "revision": model["revision"],
+                        "gated": bool(model["gated"]), "patterns": list(TOKENIZER_FILES)})
+    return out

@@ -1,6 +1,6 @@
 {
  "kind": "stage1-78b runner mutants (K2)",
- "note": "Mutants for K2's changes (the job runner's gate: s_obs, the free space, the key check and the bank, the two preflight documents, the refusal records, the identity checks, K6; the preflight's speed and bank fields; the finisher's states pull; states_tool.py; the backup's states group), in the stage-1 kit's spec form. Run with tests/run_mutants_runner_78b.py (both runner test files, -x): the baseline first with the same command; a mutant is killed only by a real test failure (pytest exit 1, FAILED lines, no ERROR line); an error, a timeout or a find text not exactly once is INVALID, never a kill. K4a (6 Nov) added the K4-m-* mutants: RV2-8, the runner's pre-job token check through download_models_stage1.no_token_left(). K5 (round 5) added 3 mutants (K5-H-tok-verify-env-whole ... K5-H-tok-run-job-env-whole).",
+ "note": "Mutants for K2's changes (the job runner's gate: s_obs, the free space, the key check and the bank, the two preflight documents, the refusal records, the identity checks, K6; the preflight's speed and bank fields; the finisher's states pull; states_tool.py; the backup's states group), in the stage-1 kit's spec form. Run with tests/run_mutants_runner_78b.py (both runner test files, -x): the baseline first with the same command; a mutant is killed only by a real test failure (pytest exit 1, FAILED lines, no ERROR line); an error, a timeout or a find text not exactly once is INVALID, never a kill. K4a (6 Nov) added the K4-m-* mutants: RV2-8, the runner's pre-job token check through download_models_stage1.no_token_left(). K5 (round 5) added 3 mutants (K5-H-tok-verify-env-whole ... K5-H-tok-run-job-env-whole). R3 K3 (9 Nov) added the K3-m-* mutants (blocks A and B's O-ext step, the wrapper's flags, N's units, W1-18, the anchor stop, the pack's Mac checks, R-44, K-7) and tests/test_runner_ab_78b.py to the runner's tests.",
  "mutants": [
   {
    "id": "K2-m-s-obs-last-not-max",
@@ -61,9 +61,10 @@
    "part": "K2 (the job runner, KD3/KD5/KD11, A1, SR-2)",
    "describes": "check_keys never runs on the pod",
    "file": "setup/job_runner_stage1.py",
-   "find": "    keys = key_refusal(plan, host, verification, bank)   # the pod's key check, recorded (never asserted)\n",
+   "find": "    keys = None if stop else key_refusal(plan, host, verification, bank, sealed_doc)   # recorded (never asserted)\n",
    "replace": "    keys = None\n",
-   "killed_by": "test_check_keys_takes_the_bank..."
+   "killed_by": "test_check_keys_takes_the_bank...",
+   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
   },
   {
    "id": "K2-m-bank-harm-prompts",
@@ -304,9 +305,10 @@
    "part": "K5 (sec R5)",
    "describes": "pre-existing comparison: run_job's (engine jobs') steps get the runner's whole environment",
    "file": "setup/job_runner_stage1.py",
-   "find": "    exits, steps = {}, []\n    for name, argv in commands:\n        start = time.monotonic()\n        done = subprocess.run([\"python3\", \"process_receipt.py\", \"--out\", name, \"--\", *argv], env=env, cwd=root)",
-   "replace": "    exits, steps = {}, []\n    for name, argv in commands:\n        start = time.monotonic()\n        done = subprocess.run([\"python3\", \"process_receipt.py\", \"--out\", name, \"--\", *argv], env=dict(os.environ), cwd=root)",
-   "killed_by": "tests/test_kit_78b_runner.py::test_k5_r5_run_job_gives_every_step_and_the_verify_the_scrubbed_offline_environment"
+   "find": "            argv = [found[0] if a == f\"@unit:{index}\" else a for a in argv]\n        start = time.monotonic()\n        done = subprocess.run([\"python3\", \"process_receipt.py\", \"--out\", name, \"--\", *argv], env=env, cwd=root)",
+   "replace": "            argv = [found[0] if a == f\"@unit:{index}\" else a for a in argv]\n        start = time.monotonic()\n        done = subprocess.run([\"python3\", \"process_receipt.py\", \"--out\", name, \"--\", *argv], env=dict(os.environ), cwd=root)",
+   "killed_by": "tests/test_kit_78b_runner.py::test_k5_r5_run_job_gives_every_step_and_the_verify_the_scrubbed_offline_environment",
+   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
   },
   {
    "id": "K6-free-space-folders-collide",
@@ -316,6 +318,939 @@
    "find": "        w2 = rk.World(pod.w.repo / f\"w-{i}\", monkeypatch, w.family)\n",
    "replace": "        w2 = rk.World(pod.w.repo / \"w-0\", monkeypatch, w.family)\n",
    "killed_by": "tests/test_kit_78b_runner.py::test_the_free_space_check_refuses_a_job_that_would_not_fit_and_records_why"
+  },
+  {
+   "id": "K3-m-ab-no-oext-step",
+   "part": "5a",
+   "describes": "blocks A and B's arm jobs drop their O-ext step",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    return out\n\n\n# ===== R3 K3 (item 13)",
+   "replace": "    return out[:1]\n\n\n# ===== R3 K3 (item 13)"
+  },
+  {
+   "id": "K3-m-ab-oext-on-q",
+   "part": "5a",
+   "describes": "the arm step's O-ext pass reads q, not e1",
+   "file": "setup/job_runner_stage1.py",
+   "find": "[\"--run\", f\"@unit:{index}\", \"--checkpoint\", \"e1\"], rules.REC)",
+   "replace": "[\"--run\", f\"@unit:{index}\", \"--checkpoint\", \"q\"], rules.REC)"
+  },
+  {
+   "id": "K3-m-unit-unresolved",
+   "part": "5a",
+   "describes": "the O-ext step's @unit placeholder is not resolved to the calibrate's unit",
+   "file": "setup/job_runner_stage1.py",
+   "find": "            argv = [found[0] if a == f\"@unit:{index}\" else a for a in argv]\n",
+   "replace": "            argv = list(argv)\n"
+  },
+  {
+   "id": "K3-m-ab-oext-empty-ok",
+   "part": "5a",
+   "describes": "an arm job whose O-ext pass wrote nothing is complete",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if not record[\"outputs\"]:\n            return {**record, \"status\": \"crashed\", \"why\": \"the O-ext pass wrote no output\"}\n",
+   "replace": "        if False:\n            return {**record, \"status\": \"crashed\", \"why\": \"the O-ext pass wrote no output\"}\n"
+  },
+  {
+   "id": "K3-m-oext-null-ok",
+   "part": "T-O3",
+   "describes": "a null OEXT_78B[F] is not named as null",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if pin is None:\n        raise Unrunnable(f\"job {index} ({kind}): {name} is null: \"",
+   "replace": "    if False:\n        raise Unrunnable(f\"job {index} ({kind}): {name} is null: \""
+  },
+  {
+   "id": "K3-m-oext-form-unchecked",
+   "part": "R-5",
+   "describes": "the O-ext pin's form (one index of its family and engine) is not checked",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    problem = r78.oext_form_problem(pin, family, engine)\n    if problem:\n        raise Unrunnable(f\"job {index} ({kind}): {name} is not in its form",
+   "replace": "    problem = None\n    if problem:\n        raise Unrunnable(f\"job {index} ({kind}): {name} is not in its form"
+  },
+  {
+   "id": "K3-m-packed-file-any",
+   "part": "R-5",
+   "describes": "a packed file is taken without its sealed listing and hash",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if MAC_ROOT is None and (not path.is_file() or path.is_symlink() or sha(path) != pin):\n",
+   "replace": "    if MAC_ROOT is None and not path.is_file():\n",
+   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
+  },
+  {
+   "id": "K3-m-branch-null-ok",
+   "part": "K-8",
+   "describes": "a null branch pin is not refused on the pod",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    pin = r78.BRANCH_78B.get(family)\n    if pin is None:\n        raise Unrunnable(f\"job {index} ({kind}): it reads the 500 bank",
+   "replace": "    pin = r78.BRANCH_78B.get(family)\n    if False:\n        raise Unrunnable(f\"job {index} ({kind}): it reads the 500 bank"
+  },
+  {
+   "id": "K3-m-branch-unhashed",
+   "part": "K-8",
+   "describes": "the branch record is read without its packed pin",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    rel = packed_file(root, sealed_doc, pin[\"path\"], pin[\"sha256\"], \"the family's branch record\", index, kind)\n",
+   "replace": "    rel = pin[\"path\"]\n",
+   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
+  },
+  {
+   "id": "K3-m-flag-dropped",
+   "part": "5f, R-47",
+   "describes": "--w1-18-record is never passed",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if flags[\"w1_18_record\"] is not None:\n        rel = r78.W1_18_RECORD_DIR",
+   "replace": "    if False:\n        rel = r78.W1_18_RECORD_DIR"
+  },
+  {
+   "id": "K3-m-flag-record-unchecked",
+   "part": "R-33",
+   "describes": "the O-ext pin's W1-18 record is not checked against the branch record",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if pin[\"files\"].get(rel) != flags[\"w1_18_record\"]:\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "K3-m-dev100-dropped",
+   "part": "5f",
+   "describes": "--dev100-source is never passed",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if flags[\"dev100_source\"]:\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "K3-m-dev100-under-full",
+   "part": "5f",
+   "describes": "a dev-100 source unit is required under Branch full",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if doc[\"branch\"] != \"128\":\n        return None\n",
+   "replace": "    if False:\n        return None\n"
+  },
+  {
+   "id": "K3-m-source-unhashed",
+   "part": "5f, LN-19",
+   "describes": "the dev-100 source unit is taken without its pin",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    packed_file(root, sealed_doc, f\"{rel.rstrip('/')}/COMPLETE.json\", accept_pin,",
+   "replace": "    (lambda *a: None)(root, sealed_doc, f\"{rel.rstrip('/')}/COMPLETE.json\", accept_pin,"
+  },
+  {
+   "id": "K3-m-accept-side-for-n",
+   "part": "5e",
+   "describes": "N's unit is accepted against the side unit of its seed",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    name = sc_names(job)[0]\n",
+   "replace": "    name = rules.SIDE_COMPLETE.format(seed=job[\"seed\"])\n"
+  },
+  {
+   "id": "K3-m-r-regen-no-edit",
+   "part": "5e",
+   "describes": "N's R unit is regenerated without its sealed R_d edit",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if arm == \"R\":                                   # N's R_d: re-trained on its sealed R_d edit (DES E5)",
+   "replace": "        if False:"
+  },
+  {
+   "id": "K3-m-w1-18-one-family",
+   "part": "5c, O4",
+   "describes": "the W1-18 pod checks one family only under [B]",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    for family in w1_18_families(route):\n",
+   "replace": "    for family in w1_18_families(route)[:1]:\n"
+  },
+  {
+   "id": "K3-m-w1-18-host-not-first",
+   "part": "5c",
+   "describes": "the host family's check is not first",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    return sorted(fams, key=lambda f: f != r78.W1_18_HOST_FAMILY)",
+   "replace": "    return sorted(fams)"
+  },
+  {
+   "id": "K3-m-w1-18-record-name",
+   "part": "R-53",
+   "describes": "each family's record keeps the 1B name, not overrefusal_checks__<F>.json",
+   "file": "setup/job_runner_stage1.py",
+   "find": "            rel = f\"job-{index}/{r78.W1_18_RECORD_NAME.format(family=family)}\"",
+   "replace": "            rel = f\"job-{index}/{W1_18_RECORD_OUT}\""
+  },
+  {
+   "id": "K3-m-w1-18-missing-ok",
+   "part": "R-53",
+   "describes": "a W1-18 check that wrote no record is not a crash",
+   "file": "setup/job_runner_stage1.py",
+   "find": "            if not src.is_file() or src.is_symlink():\n                return {**record, \"status\": \"crashed\", \"why\": f\"the W1-18 check of",
+   "replace": "            if False:\n                return {**record, \"status\": \"crashed\", \"why\": f\"the W1-18 check of"
+  },
+  {
+   "id": "K3-m-anchor-stop-skipped",
+   "part": "KR4",
+   "describes": "the runner never reads the stop record",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    pin = r78.ANCHOR_STOP.get(family)\n    if pin is None:\n        return None\n    inputs, files =",
+   "replace": "    pin = None\n    if pin is None:\n        return None\n    inputs, files ="
+  },
+  {
+   "id": "K3-m-anchor-stop-own-sha",
+   "part": "KR8",
+   "describes": "the stop record is matched to the JOB-DONE.json it names, not the packed one",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        r78.anchor_stop_or_refuse(family, (root / rels[0]).read_bytes(), sha(root / rels[1]))",
+   "replace": "        r78.anchor_stop_or_refuse(family, (root / rels[0]).read_bytes(), json.loads((root / rels[0]).read_text())[\"job_done_sha256\"])"
+  },
+  {
+   "id": "K3-m-key-no-oext-bank",
+   "part": "5b (SCOUT §1.3)",
+   "describes": "check_keys gets no O-ext bank",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if not oext or sealed_doc is None:\n        return None\n",
+   "replace": "    if True:\n        return None\n"
+  },
+  {
+   "id": "K3-m-pack-no-check",
+   "part": "R-6",
+   "describes": "the pack runs no wrapper check before an O-ext pod",
+   "file": "pack_setup.py",
+   "find": "            checks += oext_checks(family)\n        if engine == \"Y\"",
+   "replace": "            pass\n        if engine == \"Y\""
+  },
+  {
+   "id": "K3-m-pack-check-exit-ignored",
+   "part": "R-6",
+   "describes": "a failing wrapper check does not refuse the pack",
+   "file": "pack_setup.py",
+   "find": "    if code != 0:\n        raise SystemExit(f\"oext_78b.py check of",
+   "replace": "    if False:\n        raise SystemExit(f\"oext_78b.py check of"
+  },
+  {
+   "id": "K3-m-pack-no-w1-record-arg",
+   "part": "R-6",
+   "describes": "the check does not take the pinned W1-18 record",
+   "file": "pack_setup.py",
+   "find": "        out.append(wrapper_check(family, engine, idx, pin[\"files\"][idx], [] if record is None else\n                                 [\"--w1-18-record\", record]))",
+   "replace": "        out.append(wrapper_check(family, engine, idx, pin[\"files\"][idx], []))"
+  },
+  {
+   "id": "K3-m-pack-no-branch",
+   "part": "K-8",
+   "describes": "the pack does not carry the branch record",
+   "file": "pack_setup.py",
+   "find": "        if branch is not None:\n            pack.add(*branch)\n",
+   "replace": "        if False:\n            pack.add(*branch)\n"
+  },
+  {
+   "id": "K3-m-w1-pack-no-check",
+   "part": "R-9",
+   "describes": "the W1-18 pack runs no side-unit check",
+   "file": "pack_setup.py",
+   "find": "        checks.append(wrapper_check(fam, \"W1\", idx, route[\"files\"][idx], [\"--data-root\", str(ROOT / \"tmp\")]))",
+   "replace": "        pass"
+  },
+  {
+   "id": "K3-m-w1-pack-unit-unpinned",
+   "part": "R-9",
+   "describes": "a side unit is packed without its COMPLETE.json and job.json pins",
+   "file": "pack_setup.py",
+   "find": "    if not src.is_dir() or sha(src / \"COMPLETE.json\") != complete_sha or sha(src / \"job.json\") != job_sha:",
+   "replace": "    if not src.is_dir():"
+  },
+  {
+   "id": "K3-m-w1-pack-no-other-prepared",
+   "part": "K-3",
+   "describes": "the other family's prepared set is not packed",
+   "file": "pack_setup.py",
+   "find": "        if fam != family:\n            pname, digest",
+   "replace": "        if False:\n            pname, digest"
+  },
+  {
+   "id": "K3-m-pack-stop-not-carried",
+   "part": "KR4",
+   "describes": "the pack does not name the stop record among the inputs",
+   "file": "pack_setup.py",
+   "find": "        named[ANCHOR_STOP_NAME] = rel\n",
+   "replace": "        pass\n"
+  },
+  {
+   "id": "K3-m-pack-stop-no-jobdone",
+   "part": "KR4, KR8",
+   "describes": "a stopped family's pack does not need the anchor job's JOB-DONE.json",
+   "file": "pack_setup.py",
+   "find": "        if ANCHOR_JOB_DONE not in named:\n            raise SystemExit(f\"--inputs FILE: {family}'s anchor job stopped",
+   "replace": "        if False:\n            raise SystemExit(f\"--inputs FILE: {family}'s anchor job stopped"
+  },
+  {
+   "id": "K3-m-r44-member-unchecked",
+   "part": "R-44",
+   "describes": "a packed member the blinding record names is not compared",
+   "file": "pack_setup.py",
+   "find": "                if members[m.name] != named[m.name]:\n",
+   "replace": "                if False:\n"
+  },
+  {
+   "id": "K3-m-r44-copy-unchecked",
+   "part": "R-44",
+   "describes": "the copy's files the blinding record names are not compared",
+   "file": "pack_setup.py",
+   "find": "        if copy[rel] != digest:\n            raise SystemExit(f\"R-44: {rel}",
+   "replace": "        if False:\n            raise SystemExit(f\"R-44: {rel}"
+  },
+  {
+   "id": "K3-m-k7-edit-not-packed",
+   "part": "K-7",
+   "describes": "block A's edits are not packed",
+   "file": "pack_setup.py",
+   "find": "            if edit:\n                if not (plain_path",
+   "replace": "            if False:\n                if not (plain_path"
+  },
+  {
+   "id": "K3-m-y-null-ok",
+   "part": "X1, A13",
+   "describes": "engine Y's pack does not refuse while ENGINE_Y is null",
+   "file": "pack_setup.py",
+   "find": "        pin = r78.engine_sha(\"Y\")\n    except r78.Refused as exc:\n        raise SystemExit(f\"engine Y's pack: {exc}\")",
+   "replace": "        pin = r78.ENGINE_Y or \"0\" * 64\n    except r78.Refused as exc:\n        raise SystemExit(f\"engine Y's pack: {exc}\")"
+  },
+  {
+   "id": "K3-m-y-no-yhash",
+   "part": "X1 (YB P-4)",
+   "describes": "the Y tree is packed without YHASH",
+   "file": "pack_setup.py",
+   "find": "    listed = y_tree_check(tree)\n",
+   "replace": "    listed = []\n"
+  },
+  {
+   "id": "K3-m-y-identity-unchecked",
+   "part": "X1",
+   "describes": "the Y tree's identity is not checked first",
+   "file": "pack_setup.py",
+   "find": "    if engine_code(tree) != pin:\n        raise SystemExit(f\"the Y tree's code identity",
+   "replace": "    if False:\n        raise SystemExit(f\"the Y tree's code identity"
+  },
+  {
+   "id": "K3-m-y-oext-not-checked",
+   "part": "R-23",
+   "describes": "Y's O-ext files are packed without the wrapper's check",
+   "file": "pack_setup.py",
+   "find": "checks += oext_checks(family, (\"Y\",))           # under",
+   "replace": "checks += []           # under"
+  },
+  {
+   "id": "K3-m-y-oext-from-y-tree",
+   "part": "X1 (r1-o-verify P3)",
+   "describes": "Y's O-ext files are taken from the Y tree",
+   "file": "pack_setup.py",
+   "find": "        out[rel] = (ROOT / rel, digest)\n    return out\n",
+   "replace": "        out[rel] = ((ROOT / rules.Y_TREE_DEFAULT / rel) if engine == \"Y\" else (ROOT / rel), digest)\n    return out\n"
+  },
+  {
+   "id": "K3-m-kd9-progress-text",
+   "part": "KD9",
+   "describes": "the re-measure record copies whole progress rows",
+   "file": "setup/job_runner_stage1.py",
+   "find": "\"progress\": [{k: r.get(k) for k in (\"kind\", \"elapsed_s\", \"rows\", \"capped\")} for r in rows]",
+   "replace": "\"progress\": rows"
+  },
+  {
+   "id": "K3-m-kd9-no-preflight",
+   "part": "KD9",
+   "describes": "the re-measure record omits the preflight's speed fields",
+   "file": "setup/job_runner_stage1.py",
+   "find": "\"preflight\": r78.preflight_fields(pre, verification),",
+   "replace": "\"preflight\": None,"
+  },
+  {
+   "id": "K3c-m-ref-cert-unchecked",
+   "part": "P2 §16.1",
+   "describes": "a failed certification does not stop ref_eval / safe_lora",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    certified(root, cert, index, kind)\n",
+   "replace": "    pass\n"
+  },
+  {
+   "id": "K3c-m-ref-prefix-unpinned",
+   "part": "13d",
+   "describes": "the safety-prompt file is taken at any pin",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if name == \"prefix_file\" and pin != r78.REF_PREFIX_SHA256:",
+   "replace": "        if False:"
+  },
+  {
+   "id": "K3c-m-ref-eval-folder-unhashed",
+   "part": "13b",
+   "describes": "the gate's eval folder files are not checked against sealed-files",
+   "file": "setup/job_runner_stage1.py",
+   "find": "            if not under or (MAC_ROOT is None and not all((root / f).is_file() and sha(root / f) == files[f]\n",
+   "replace": "            if not under or (MAC_ROOT is None and not all((root / f).is_file()\n",
+   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
+  },
+  {
+   "id": "K3c-m-ref-refs-null-ok",
+   "part": "13e",
+   "describes": "a null REFS_78B pin is not refused by name",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        pin = r78.refs_or_refuse(family, seed)\n",
+   "replace": "        pin = r78.REFS_78B[family][seed] or {\"files\": {}}\n"
+  },
+  {
+   "id": "K3c-m-ref-points-unchecked",
+   "part": "R-37",
+   "describes": "a reference point outside the kind's points runs",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if kind != \"b10_certify\" and (not points or (allowed is not None and not set(points) <= set(allowed))):",
+   "replace": "    if False:"
+  },
+  {
+   "id": "K3c-m-ref-gate-exit0-fail-ok",
+   "part": "13b",
+   "describes": "B10 exit 0 with a failed comparison passes",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        return (\"passed\", None) if verdict == \"pass\" else (None, \"B10 exited 0 but its comparison is not a pass\")",
+   "replace": "        return (\"passed\", None)"
+  },
+  {
+   "id": "K3c-m-ref-gate-exit4-pass-ok",
+   "part": "13b",
+   "describes": "exit 4 with a pass verdict is a failed gate, not a crash",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if not isinstance(verdict, str) or verdict == \"pass\":\n        return None, f\"B10 exited",
+   "replace": "    if False:\n        return None, f\"B10 exited"
+  },
+  {
+   "id": "K3c-m-ref-terms-not-listed",
+   "part": "R-38 amended, R-41",
+   "describes": "the terms records are not listed in the record",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    record[\"terms_records\"] = {rel: d for rel, d in record[\"outputs\"].items() if rel.endswith(REF_TERMS_SUFFIX)}",
+   "replace": "    record[\"terms_records\"] = {}"
+  },
+  {
+   "id": "K3c-m-ref-train-config-unchecked",
+   "part": "13c",
+   "describes": "ref_train runs a config that is not RECIPE_G's",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if cfg.get(\"config_sha256\") != pin or ((plan.get(\"recipes\") or {}).get(path) or {}).get(\"config_sha256\") != pin:",
+   "replace": "        if False:"
+  },
+  {
+   "id": "K3c-m-ref-train-engine-unchecked",
+   "part": "13c",
+   "describes": "ref_train runs on another engine",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if job.get(\"engine\") != engine:\n            raise Unrunnable(f\"job {index} ({kind}): it runs on engine",
+   "replace": "        if False:\n            raise Unrunnable(f\"job {index} ({kind}): it runs on engine"
+  },
+  {
+   "id": "K3c-m-bqi-on-x-index",
+   "part": "13c, DESO2 24 (c)",
+   "describes": "B+Qi's O-ext pass takes engine X's index",
+   "file": "setup/job_runner_stage1.py",
+   "find": "[\"--run\", f\"@unit:{index}\", \"--checkpoint\", \"e1\"], path, engine)))",
+   "replace": "[\"--run\", f\"@unit:{index}\", \"--checkpoint\", \"e1\"], path, \"X\")))"
+  },
+  {
+   "id": "K3c-m-pack-ref-pins-unchecked",
+   "part": "13",
+   "describes": "two plan pins of one reference input are not refused",
+   "file": "pack_setup.py",
+   "find": "                    if pins.get(name, pin) != pin:",
+   "replace": "                    if False:"
+  },
+  {
+   "id": "K3c-m-pack-prefix-any",
+   "part": "13d",
+   "describes": "the pack does not pin the safety prompt to REF_PREFIX_SHA256",
+   "file": "pack_setup.py",
+   "find": "    pins = {\"prefix_file\": r78.REF_PREFIX_SHA256}",
+   "replace": "    pins = {}"
+  },
+  {
+   "id": "K3c-m-pack-eval-unlisted",
+   "part": "13b",
+   "describes": "an eval file not listed in its unit's COMPLETE.json is packed",
+   "file": "pack_setup.py",
+   "find": "            if listed.get(rel) != sha(f):",
+   "replace": "            if False:"
+  },
+  {
+   "id": "K3c-m-pack-eval-unpinned",
+   "part": "13b",
+   "describes": "the eval folder's unit is not held to its pin",
+   "file": "pack_setup.py",
+   "find": "    if src.name != \"e1\" or src.parent.name != \"eval\" or not marker.is_file() or sha(marker) != digest:",
+   "replace": "    if not marker.is_file():"
+  },
+  {
+   "id": "K3c-m-r63-b-refused",
+   "part": "R-63",
+   "describes": "block B's Y pack is refused",
+   "file": "pack_setup.py",
+   "find": "    if engine == \"Y\" and rules.KIT_BLOCK not in (r78.SC_BLOCK, \"B\"):",
+   "replace": "    if engine == \"Y\" and rules.KIT_BLOCK != r78.SC_BLOCK:"
+  },
+  {
+   "id": "K3c-m-r63-a-allowed",
+   "part": "R-63",
+   "describes": "block A's Y pack is allowed",
+   "file": "pack_setup.py",
+   "find": "    if engine == \"Y\" and rules.KIT_BLOCK not in (r78.SC_BLOCK, \"B\"):",
+   "replace": "    if engine == \"Y\" and rules.KIT_BLOCK not in (r78.SC_BLOCK, \"B\", \"A\"):"
+  },
+  {
+   "id": "K3c-m-ym-engine-unchecked",
+   "part": "R-67",
+   "describes": "a re-measure on another engine is taken",
+   "file": "plan_tool.py",
+   "find": "                    or doc.get(\"engine_sha256\") != r78.ENGINE_Y or doc.get(\"gpu\") != r78.GPU_NAME \\",
+   "replace": "                    or doc.get(\"gpu\") != r78.GPU_NAME \\"
+  },
+  {
+   "id": "K3c-m-ym-hash-unchecked",
+   "part": "R-67",
+   "describes": "a re-measure file is read without its JOB-DONE hash",
+   "file": "plan_tool.py",
+   "find": "            if not f.is_file() or f.is_symlink() or mac.sha(f) != digest:",
+   "replace": "            if not f.is_file():"
+  },
+  {
+   "id": "K3c-m-ym-host-any",
+   "part": "R-67",
+   "describes": "an engine-X host's records are taken",
+   "file": "plan_tool.py",
+   "find": "        if h is None or h.get(\"block\") != r78.SC_BLOCK or h.get(\"engine\") != \"Y\" or not h.get(\"done\"):",
+   "replace": "        if h is None:"
+  },
+  {
+   "id": "K3c-m-ym-problem-unchecked",
+   "part": "R-67",
+   "describes": "the record is written without its form check",
+   "file": "plan_tool.py",
+   "find": "    problem = r78.y_measured_problem(doc)\n    if problem:\n        fail(f\"record-y-measured: {problem}\")",
+   "replace": "    problem = None\n    if problem:\n        fail(f\"record-y-measured: {problem}\")"
+  },
+  {
+   "id": "K3c-m-ym-gpu-unchecked",
+   "part": "R-67",
+   "describes": "the measured record's GPU is not checked",
+   "file": "rules_78b.py",
+   "find": "    if doc[\"gpu\"] != GPU_NAME:\n        return \"its GPU is not the measured one\"",
+   "replace": "    if False:\n        return \"its GPU is not the measured one\""
+  },
+  {
+   "id": "K3c-m-ym-retrain-unchecked",
+   "part": "R-67, ruling 10",
+   "describes": "a measured record without the retrain's is accepted",
+   "file": "rules_78b.py",
+   "find": "    if not any(r[\"job_kind\"] == \"retrain\" for r in recs):",
+   "replace": "    if False:"
+  },
+  {
+   "id": "K3c-m-refs-form-wrapper",
+   "part": "13e",
+   "describes": "a REFS pin without the wrapper passes",
+   "file": "rules_78b.py",
+   "find": "    if REFS_WRAPPER_78B not in files:\n        return f\"its files do not pin the wrapper {REFS_WRAPPER_78B}\"",
+   "replace": "    if False:\n        return f\"its files do not pin the wrapper {REFS_WRAPPER_78B}\""
+  },
+  {
+   "id": "K3c-m-refs-form-index",
+   "part": "13e",
+   "describes": "a REFS pin with another seed's index passes",
+   "file": "rules_78b.py",
+   "find": "    if found != [want]:\n        return f\"its files name the refs index file(s)",
+   "replace": "    if not found:\n        return f\"its files name the refs index file(s)"
+  },
+  {
+   "id": "K3c-m-ref-cert-source-n",
+   "part": "R-35",
+   "describes": "Llama's 1103 certification pins the side table, not N's a0-1103",
+   "file": "rules_78b.py",
+   "find": "    if seed == 1103 and family == \"llama31-8b\":\n        return \"n\"",
+   "replace": "    if False:\n        return \"n\""
+  },
+  {
+   "id": "K3g-m-ref-set-ignored",
+   "part": "R-68",
+   "describes": "block B's init plans no reference",
+   "file": "plan_tool.py",
+   "find": "    ref_launches = [{\"refs\": role, \"jobs\": jobs_r} for role, jobs_r in (ref_launch_jobs(family, ref_set) if ref_set else [])]",
+   "replace": "    ref_launches = []",
+   "note_r3": "R3 K3: re-targeted to the changed code (same mutation: no reference planned)"
+  },
+  {
+   "id": "K3g-m-ref-g-reused-planned",
+   "part": "R-68 (LS-23)",
+   "describes": "OLMo-2-7B's reused G units are planned again",
+   "file": "plan_tool.py",
+   "find": "    train = [ref_job(family, \"ref_train\", s, ref_set) for s in seeds if s not in REF_G_REUSED[family]]",
+   "replace": "    train = [ref_job(family, \"ref_train\", s, ref_set) for s in seeds]"
+  },
+  {
+   "id": "K3g-m-ref-eval-points-6-for-3",
+   "part": "R-68 (R-40 withdrawn)",
+   "describes": "the 3-seed fallback plans lambda 0.9",
+   "file": "plan_tool.py",
+   "find": "                   \"three_seed\": (\"prefix\", \"scale:0.75\", \"scale:0.5\")}",
+   "replace": "                   \"three_seed\": (\"prefix\", \"scale:0.9\", \"scale:0.75\", \"scale:0.5\")}"
+  },
+  {
+   "id": "K3g-m-cert-unchecked",
+   "part": "R-68, P2 §16.1",
+   "describes": "a failed certification gives the evaluation-only references their pins",
+   "file": "plan_tool.py",
+   "find": "    if cert[\"gate\"] != \"passed\" or not SHA_RE.fullmatch(str(cert[\"report_sha256\"])):",
+   "replace": "    if not SHA_RE.fullmatch(str(cert[\"report_sha256\"])):"
+  },
+  {
+   "id": "K3g-m-a0-any-seed",
+   "part": "R-35",
+   "describes": "a block-B a0 unit of another seed pins the certification",
+   "file": "plan_tool.py",
+   "find": "j.get(\"kind\") == \"a0_arm\" and j.get(\"seed\") == seed and j.get(\"status\") == \"complete\"]",
+   "replace": "j.get(\"kind\") == \"a0_arm\" and j.get(\"status\") == \"complete\"]"
+  },
+  {
+   "id": "K3g-m-release-pins-unchecked",
+   "part": "R-68",
+   "describes": "the release takes stale reference pins",
+   "file": "plan_tool.py",
+   "find": "            if job.get(\"inputs\") != want:",
+   "replace": "            if False:"
+  },
+  {
+   "id": "K3g-m-release-failed-released",
+   "part": "R-68",
+   "describes": "a failed seed's evaluation-only host is released",
+   "file": "plan_tool.py",
+   "find": "    skipped = [(n, h) for n, h in names_hosts if h.get(\"role\") == \"refs-eval\" and h[\"jobs\"][0][\"seed\"] in failed]",
+   "replace": "    skipped = []"
+  },
+  {
+   "id": "K3g-m-prefix-not-pinned",
+   "part": "13d",
+   "describes": "the safety prompt gets no pin",
+   "file": "plan_tool.py",
+   "find": "    if \"prefix\" in (job.get(\"points\") or ()):\n        pins[\"prefix_file\"] = r78.REF_PREFIX_SHA256",
+   "replace": "    if False:\n        pins[\"prefix_file\"] = r78.REF_PREFIX_SHA256"
+  },
+  {
+   "id": "K3g-m-config-main-ok",
+   "part": "R-70",
+   "describes": "the planner takes the main config's hash for a trained reference",
+   "file": "plan_tool.py",
+   "find": "    if pin == rules.REC_CONFIG_SHA256:\n        fail(f\"{name}[{family!r}] is the main config's hash",
+   "replace": "    if False:\n        fail(f\"{name}[{family!r}] is the main config's hash"
+  },
+  {
+   "id": "K3g-m-r60-plan-unchecked",
+   "part": "R-60",
+   "describes": "W1-18's side units need not be the gate's families",
+   "file": "plan_tool.py",
+   "find": "    if sorted(route.get(\"side_units\") or ()) != fams:",
+   "replace": "    if False:"
+  },
+  {
+   "id": "K3g-m-r70-main-ok",
+   "part": "R-70",
+   "describes": "the pod trains a reference under the main config's hash",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if pin == rules.REC_CONFIG_SHA256:               # R-70",
+   "replace": "        if False:               # R-70"
+  },
+  {
+   "id": "K3g-m-r70-config-unhashed",
+   "part": "R-70",
+   "describes": "the pod does not hash the packed config",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if MAC_ROOT is None and (not (root / path).is_file() or _recipe_config_sha(root / path) != pin):   # R-70: pod",
+   "replace": "        if MAC_ROOT is None and (not (root / path).is_file()):   # R-70: pod",
+   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
+  },
+  {
+   "id": "K3g-m-r59-no-batch",
+   "part": "R-59",
+   "describes": "W1-18 takes no --guard-batch-size",
+   "file": "setup/job_runner_stage1.py",
+   "find": "                     \"--guard-batch-size\", guard_batch(root, family, index)]))",
+   "replace": "                     ]))"
+  },
+  {
+   "id": "K3g-m-r60-unchecked",
+   "part": "R-60",
+   "describes": "the pod runs W1-18 for families that are not the job's",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if job is not None and sorted(job.get(\"families\") or ()) != sorted(route[\"side_units\"]):   # GXB R-60",
+   "replace": "    if False:   # GXB R-60"
+  },
+  {
+   "id": "K3g-m-r65-y-not-written",
+   "part": "R-65",
+   "describes": "main writes no Y re-measure record",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        if result[\"status\"] == \"complete\" and h[\"engine\"] == \"Y\":   # R3 K3 (KD9, X1)",
+   "replace": "        if False:   # R3 K3 (KD9, X1)"
+  },
+  {
+   "id": "K3g-m-r65-stop-not-read",
+   "part": "R-65",
+   "describes": "main never reads the stop record",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    stop = None if h.get(\"block\") not in (r78.SC_BLOCK, *r78.BANK500_BLOCKS) else \\",
+   "replace": "    stop = None if True else \\"
+  },
+  {
+   "id": "K3g-m-r65-no-bank-to-keys",
+   "part": "R-65",
+   "describes": "main gives check_keys no O-ext bank",
+   "file": "setup/job_runner_stage1.py",
+   "find": "manifest, bank,\n                           oext_bank_key(job, h, sealed_doc))",
+   "replace": "manifest, bank,\n                           None)"
+  },
+  {
+   "id": "K3g-m-r71-base-dropped",
+   "part": "R-71",
+   "describes": "a Safe LoRA host downloads no base",
+   "file": "stage1_rules.py",
+   "find": "    if \"safe_lora\" in kinds:\n        out.append(probes.base_entry(PROBE_KEY))",
+   "replace": "    if False:\n        out.append(probes.base_entry(PROBE_KEY))"
+  },
+  {
+   "id": "K3g-m-r66-tokenizer-dropped",
+   "part": "R-66",
+   "describes": "the W1-18 pod downloads no other family's tokenizer",
+   "file": "stage1_rules.py",
+   "find": "        for fam in sorted(set(w1_18_families) - {FAMILY}):",
+   "replace": "        for fam in []:"
+  },
+  {
+   "id": "K3g-m-r66-tokenizer-open",
+   "part": "R-66, K-3",
+   "describes": "Llama's tokenizer is taken as open (no token path)",
+   "file": "stage1_rules.py",
+   "find": "\"gated\": bool(model[\"gated\"]), \"patterns\": list(TOKENIZER_FILES)})",
+   "replace": "\"gated\": False, \"patterns\": list(TOKENIZER_FILES)})"
+  },
+  {
+   "id": "K3g-m-launch-no-host",
+   "part": "R-66, R-71",
+   "describes": "the launch precheck ignores the host's extra gated downloads",
+   "file": "launch.py",
+   "find": "    return [e for e in probes.stage1_download_plan(rules.PROBE_KEY) if e[\"gated\"]] + host_gated_extra(host)",
+   "replace": "    return [e for e in probes.stage1_download_plan(rules.PROBE_KEY) if e[\"gated\"]]"
+  },
+  {
+   "id": "K3g-m-orch-no-host",
+   "part": "R-66, R-71",
+   "describes": "the gated step ignores the host's extra gated downloads",
+   "file": "orchestrate.py",
+   "find": "    return [e for e in probes.stage1_download_plan(rules.PROBE_KEY) if e[\"gated\"]] + extra",
+   "replace": "    return [e for e in probes.stage1_download_plan(rules.PROBE_KEY) if e[\"gated\"]]"
+  },
+  {
+   "id": "K3g-m-host-no-with-base",
+   "part": "R-71",
+   "describes": "the pod's gated run omits --with-base on a Safe LoRA host",
+   "file": "host.py",
+   "find": "gated_command(stamp, runs_safe_lora(host))",
+   "replace": "gated_command(stamp)"
+  },
+  {
+   "id": "K3g-m-pack-no-extra",
+   "part": "R-66, R-71",
+   "describes": "probe.json carries no extra download",
+   "file": "pack_setup.py",
+   "find": "    extra = pack_extra_downloads(a.w1_18)                # R3 K3",
+   "replace": "    extra = []                # R3 K3"
+  },
+  {
+   "find": "            if len(found) != 1:\n",
+   "replace": "            if not found:\n",
+   "file": "setup/job_runner_stage1.py",
+   "describes": "the O-ext step takes the first of two new units",
+   "id": "K3V-V-02-two-units",
+   "part": "verifier K3V-2..4"
+  },
+  {
+   "find": "        if doc.get(\"source\") == \"w1_18\":\n",
+   "replace": "        if doc.get(\"branch\") == \"128\":\n",
+   "file": "pack_setup.py",
+   "describes": "the Mac check passes the W1-18 record under Branch 128 only",
+   "id": "K3V-V-04-pack-check-128-only",
+   "part": "verifier K3V-2..4"
+  },
+  {
+   "find": "    return name in rules.SC_FOLDER_INPUTS or name.startswith(rules.SOURCE_UNIT.split(\"{\", 1)[0])\n",
+   "replace": "    return name in rules.SC_FOLDER_INPUTS\n",
+   "file": "pack_setup.py",
+   "describes": "source_unit is not a folder input",
+   "id": "K3V-V-06-source-unit-not-folder",
+   "part": "verifier K3V-2..4"
+  },
+  {
+   "find": "                    pins[rules.SOURCE_UNIT.format(arm=u[\"arm\"], seed=u[\"seed\"])] = next(iter(got.values()))\n",
+   "replace": "                    pins[rules.SOURCE_UNIT.format(arm=u[\"arm\"], seed=u[\"seed\"])] = None\n",
+   "file": "pack_setup.py",
+   "describes": "source_unit's pin is null",
+   "id": "K3V-V-07-source-unit-pin-null",
+   "part": "verifier K3V-2..4"
+  },
+  {
+   "find": "    elif rules.KIT_BLOCK in r78.BANK500_BLOCKS:          # R3 K3 (5a, E3): blocks A and B, the in-job O-ext step\n",
+   "replace": "    elif rules.KIT_BLOCK == \"A\":          # R3 K3 (5a, E3): blocks A and B, the in-job O-ext step\n",
+   "file": "pack_setup.py",
+   "describes": "block B's pack carries no O-ext files, inputs or edits",
+   "id": "K3V-V-08-blockB-pack-as-0",
+   "part": "verifier K3V-2..4"
+  },
+  {
+   "find": "    if engine == \"Y\" and rules.KIT_BLOCK not in (r78.SC_BLOCK, \"B\"):   # GXB R-63: block B's ref_train_bqi too\n",
+   "replace": "    if False:   # GXB R-63: block B's ref_train_bqi too\n",
+   "file": "pack_setup.py",
+   "describes": "engine Y's pack is allowed in blocks 0, A and B",
+   "id": "K3V-V-12-y-pack-any-block",
+   "part": "verifier K3V-2..4"
+  },
+  {
+   "find": "        missing = [n for n in r78.OEXT_INPUTS if n not in named]\n",
+   "replace": "        missing = []\n",
+   "file": "pack_setup.py",
+   "describes": "blocks A and B pack without the O-ext bank and record",
+   "id": "K3V-V-14-ab-pack-no-oext-inputs",
+   "part": "verifier K3V-2..4"
+  },
+  {
+   "find": "    if plan[\"hosts\"][host].get(\"block\") in r78.BANK500_BLOCKS:   # R3 K3 (5a, E3): blocks A and B, the O-ext step\n",
+   "replace": "    if plan[\"hosts\"][host].get(\"block\") in r78.BANK500_BLOCKS[:1]:   # R3 K3 (5a, E3): blocks A and B, the O-ext step\n",
+   "file": "setup/job_runner_stage1.py",
+   "describes": "block B arm jobs take block 0's route; the source text still names BANK500_BLOCKS",
+   "id": "K3V-V-01b-blockB-route-behaviour",
+   "part": "verifier K3V-2..4"
+  },
+  {
+   "id": "K3h-m-r79-silent",
+   "part": "R-79",
+   "describes": "block B plans no reference when the jobs file names none",
+   "file": "plan_tool.py",
+   "find": "    if ref is None and block == \"B\":                     # GXB R-79",
+   "replace": "    if False:                     # GXB R-79"
+  },
+  {
+   "id": "K3h-m-r80-judges-first",
+   "part": "R-80",
+   "describes": "the judge launches come before the reference launches",
+   "file": "plan_tool.py",
+   "find": "    launches[first_judge:first_judge] = ref_launches",
+   "replace": "    launches.extend(ref_launches)"
+  },
+  {
+   "id": "K3h-m-r80-units-uncounted",
+   "part": "R-80",
+   "describes": "the judge launches are priced without the reference units",
+   "file": "plan_tool.py",
+   "find": "    units += sum(",
+   "replace": "    units += 0 * sum("
+  },
+  {
+   "id": "K3h-m-r80-train-unjudged",
+   "part": "R-80",
+   "describes": "the trained references are not in the judge list",
+   "file": "stage1_rules.py",
+   "find": "JUDGED_RUN_KINDS = (\"arm\", \"a0_arm\", \"ref_train\", \"ref_train_bqi\")",
+   "replace": "JUDGED_RUN_KINDS = (\"arm\", \"a0_arm\")"
+  },
+  {
+   "id": "K3h-m-r81-all-files",
+   "part": "R-81",
+   "describes": "every listed file of the source unit is packed",
+   "file": "pack_setup.py",
+   "find": "        if rel in SOURCE_UNIT_FILES:                     # GXB R-81",
+   "replace": "        if True:                     # GXB R-81"
+  },
+  {
+   "id": "K3h-m-r81-missing-ok",
+   "part": "R-81",
+   "describes": "a source unit without check_source's files is packed",
+   "file": "pack_setup.py",
+   "find": "    if missing:\n        raise SystemExit(f\"--inputs FILE: {name!r} lacks",
+   "replace": "    if False:\n        raise SystemExit(f\"--inputs FILE: {name!r} lacks"
+  },
+  {
+   "id": "K3h-m-r81-list-short",
+   "part": "R-81",
+   "describes": "the pack's list drops guard.jsonl",
+   "file": "pack_setup.py",
+   "find": "SOURCE_UNIT_FILES = (\"COMPLETE.json\", \"job.json\", \"eval/e1/generations.jsonl\", \"eval/e1/guard.jsonl\")",
+   "replace": "SOURCE_UNIT_FILES = (\"COMPLETE.json\", \"job.json\", \"eval/e1/generations.jsonl\")"
+  },
+  {
+   "id": "K3i-m-r84-g-main",
+   "part": "R-84 (K3V2-1)",
+   "describes": "ref_train's key check takes the main config's hash",
+   "file": "setup/job_runner_stage1.py",
+   "find": "PINNED_CONFIG_KEYS = {\"ref_train\": \"recipe_g\", \"ref_train_bqi\": \"recipe_bqi\"}",
+   "replace": "PINNED_CONFIG_KEYS = {\"ref_train_bqi\": \"recipe_bqi\"}"
+  },
+  {
+   "id": "K3i-m-r84-bqi-main",
+   "part": "R-84 (K3V2-1)",
+   "describes": "ref_train_bqi's key check takes the main config's hash",
+   "file": "setup/job_runner_stage1.py",
+   "find": "PINNED_CONFIG_KEYS = {\"ref_train\": \"recipe_g\", \"ref_train_bqi\": \"recipe_bqi\"}",
+   "replace": "PINNED_CONFIG_KEYS = {\"ref_train\": \"recipe_g\"}"
+  },
+  {
+   "id": "K3i-m-r84-pinned-fallback-main",
+   "part": "R-84 (K3V2-1)",
+   "describes": "a recipe-pinned kind under another recipe name takes the main config's hash",
+   "file": "setup/job_runner_stage1.py",
+   "find": "    if job.get(\"kind\") in r78.PINNED_RECIPE_KINDS and job.get(\"recipe\") != \"B\":\n        return None",
+   "replace": "    if False:\n        return None"
+  },
+  {
+   "id": "K3i-m-r84-key-unused",
+   "part": "R-84 (K3V2-1)",
+   "describes": "key_refusal ignores the job's key (the main config's hash for every job)",
+   "file": "setup/job_runner_stage1.py",
+   "find": "        key = recipe_key(job, recipe)                    # K4b (A1)",
+   "replace": "        key = recipe                    # K4b (A1)"
+  },
+  {
+   "id": "INT-1-checkplan-skips-unpacked-edits",
+   "part": "R-88 (I-3; the integration reviewer's)",
+   "describes": "check-plan does not refuse an edit missing from sealed-files.json",
+   "file": "orchestrate.py",
+   "find": "                   if rel not in doc[\"files\"]]\n",
+   "replace": "                   if rel not in doc[\"files\"] and not rel.startswith(\"edits/\")]\n"
+  },
+  {
+   "id": "INT-2-pack-skips-released-hosts-edits",
+   "part": "R-88 (I-4; the integration reviewer's)",
+   "describes": "the A/B pack takes no released host's edits",
+   "file": "pack_setup.py",
+   "find": "    hosts = [h for h in plan.get(\"hosts\", {}).values() if h.get(\"block\") == rules.KIT_BLOCK]\n",
+   "replace": "    hosts = []\n"
+  },
+  {
+   "id": "K3j-m-r87-plan-unread",
+   "part": "R-87",
+   "describes": "planning a measured kind on Y does not read the record",
+   "file": "plan_tool.py",
+   "find": "    if \"Y\" in engines and any(j[\"kind\"] in r78.MEASURED_KINDS for j in jobs):   # GXB R-87: planning",
+   "replace": "    if False:   # GXB R-87: planning"
+  },
+  {
+   "id": "K3j-m-r87-release-unread",
+   "part": "R-87",
+   "describes": "releasing a measured kind on Y does not read the record",
+   "file": "plan_tool.py",
+   "find": "        if h.get(\"engine\") == \"Y\" and any(j[\"kind\"] in r78.MEASURED_KINDS for j in h[\"jobs\"]):   # GXB R-87: release",
+   "replace": "        if False:   # GXB R-87: release"
+  },
+  {
+   "id": "K3j-m-r87-form-unchecked",
+   "part": "R-87",
+   "describes": "the record is read at its pin but not checked for its form",
+   "file": "plan_tool.py",
+   "find": "        return r78.y_measured_or_refuse(data)",
+   "replace": "        return json.loads(data)"
   }
  ]
 }

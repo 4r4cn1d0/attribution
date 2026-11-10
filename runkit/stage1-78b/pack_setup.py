@@ -190,7 +190,7 @@ def inputs_record(path: str, digest: str, engine: str, family: str) -> dict:
     if doc.get("family") != family:
         raise SystemExit(f"--inputs FILE is for family {doc.get('family')!r}; this working copy is {family}'s (one family "
                          "per copy, KD7): refused")
-    if doc.get("inputs") and rules.KIT_BLOCK != r78.SC_BLOCK:
+    if doc.get("inputs") and rules.KIT_BLOCK not in (r78.SC_BLOCK, *r78.BANK500_BLOCKS):   # R3 K3: A and B name inputs
         raise SystemExit("block 0 packs no named input (the scorer kinds' inputs come with their round); give inputs: []")
     if not isinstance(doc.get("inputs", []), list):
         raise SystemExit("--inputs FILE: inputs is a list of {name, path, sha256}")
@@ -286,10 +286,28 @@ def main_config(tree: pathlib.Path) -> dict:
     return {"path": rel, "sha256": rules.RECIPE_PINS[rel], "config_sha256": config}
 
 
-def probe_record(family: str) -> dict:
+def probe_record(family: str, extra: list | None = None) -> dict:
+    """probe.json: the family's download plan, plus (R3 K3) the extra entries of this pack's hosts (R-66, R-71)."""
     return {"probe": rules.PROBE_KEY, "family": family,
-            "plan": probes.stage1_download_plan(rules.PROBE_KEY, with_base=False),
+            "plan": probes.stage1_download_plan(rules.PROBE_KEY, with_base=False) + list(extra or []),
             "weight_pins": list(probes.PROBES[rules.PROBE_KEY]["weight_pins"])}
+
+
+def pack_extra_downloads(w1_18: bool) -> list:
+    """R-71: block B's pack, when its plan.json holds a safe_lora job, downloads the base model at its pinned revision
+    (refused while probes.BASE_MODELS' pin is null); R-66: the W1-18 pack downloads the other W1-18 families'
+    tokenizers (Llama's through the Llama token path)."""
+    jobs = []
+    if rules.KIT_BLOCK == "B" and (HERE / "plan.json").is_file():
+        plan = json.loads((HERE / "plan.json").read_text())
+        b = (plan.get("blocks") or {}).get("B") or {}
+        hosts = [h for h in (plan.get("hosts") or {}).values() if h.get("block") == "B"] + list((b.get("pending") or {}).values())
+        jobs += [j for h in hosts for j in h.get("jobs", []) if j.get("kind") == "safe_lora"][:1]
+    fams = ()
+    if w1_18:
+        fams = sorted((r78.W1_18_78B or {}).get("side_units") or ())
+        jobs.append({"kind": "w1_18"})
+    return rules.host_extra_downloads(jobs, fams)
 
 
 def kit_family_doc(family: str) -> bytes:
@@ -381,10 +399,20 @@ def scorer_code(family: str) -> dict:
     rules_78b.OEXT_78B[family]'s files (o_only, c0). A file that is missing or differs from its pin refuses at pack
     time (Packing.add)."""
     out = {rel: (ROOT / rel, pin) for rel, pin in sorted(rules.SCORER_PINS.items())}
-    for rel, pin in sorted(((r78.OEXT_78B.get(family) or {}).get("files") or {}).items()):
-        if not plain_path(rel) or not rel.startswith("scripts/"):
-            raise SystemExit(f"OEXT_78B[{family!r}] names {rel!r}, not a plain path under scripts/")
-        out[rel] = (ROOT / rel, pin)
+    out.update(oext_code(family))
+    return out
+
+
+def oext_code(family: str, engine: str = "X") -> dict:
+    """bundle path -> (source, pin) of the family's O-ext pin's files (OEXT_78B[F], or OEXT_78B_Y[F] for engine Y):
+    plain paths under scripts/, and the family's W1-18 record at its R-21 place when the branch comes from W1-18 (GXB
+    R-21, R-33); empty while the pin is null."""
+    pin = (r78.OEXT_78B if engine == "X" else r78.OEXT_78B_Y).get(family) or {}
+    out = {}
+    for rel, digest in sorted((pin.get("files") or {}).items()):
+        if not plain_path(rel) or not (rel.startswith("scripts/") or r78.W1_18_RECORD_RE.match(rel)):
+            raise SystemExit(f"OEXT_78B[{family!r}] names {rel!r}, not a plain path under scripts/ or the W1-18 record")
+        out[rel] = (ROOT / rel, digest)
     return out
 
 
@@ -417,19 +445,160 @@ def c0_source_check(src: pathlib.Path, digest: str, c0: dict | None) -> None:
                          "any pod starts")
 
 
-def sc_inputs(doc: dict, family: str) -> tuple[dict, dict]:
-    """(bundle path -> (source, SHA-256) of every file, input name -> bundle path) from the --inputs record's entries
-    {name, path, sha256}: each name one of stage1_rules.SC_INPUTS's, each SHA-256 its kit pin (stage1_rules.sc_input_pins;
-    a null pin refuses), each path a file under the checkout (a folder for stage1_rules.SC_FOLDER_INPUTS, whose pin is
-    its COMPLETE.json's SHA-256; every file of the folder is packed at its own SHA-256). Names only in refusals."""
+def folder_input(name: str) -> bool:
+    """A unit-folder input: stage1_rules.SC_FOLDER_INPUTS, and R3 K3's dev-100 source units source_unit:<arm>:<seed>."""
+    return name in rules.SC_FOLDER_INPUTS or name.startswith(rules.SOURCE_UNIT.split("{", 1)[0])
+
+
+ANCHOR_JOB_DONE = "anchor_job_done"                     # KR4, KR8: the anchor job's JOB-DONE.json the stop record names
+ANCHOR_STOP_NAME = "anchor_stop"                        # KR4: the family's stop record, packed by its ANCHOR_STOP pin
+
+
+def input_pins(family: str) -> dict:
+    """name -> the pin of every named input this copy may pack: in the scorer block every kind's inputs, each unit
+    named by (arm, seed) (GXB R-16, R-31: rules_78b.sc_units, stage1_rules.sc_unit_input_pins), with each regenerated
+    unit's dev-100 source folder source_unit:<arm>:<seed> at its acceptance input's pin (LN-19, Branch 128); in blocks A
+    and B the O-ext bank and record (OEXT_78B[F]'s inputs; plan-ab 5a); in every block, once ANCHOR_STOP[F] is pinned,
+    the anchor job's JOB-DONE.json at the stop record's job_done_sha256 (KR4, KR8)."""
     try:
         values = r78.sc_pin_values(family, pins78())
     except r78.Refused as exc:
         raise SystemExit(str(exc))
     pins = {}
-    for kind in r78.SC_KINDS:
-        for seed in r78.sc_seeds(family, kind):          # PP17: one side unit's COMPLETE.json per reused seed
-            pins.update(rules.sc_input_pins(kind, pins78(), values, seed))
+    if rules.KIT_BLOCK == r78.SC_BLOCK:
+        for kind in r78.SC_KINDS:
+            for u in r78.sc_units(family, kind):
+                got = rules.sc_unit_input_pins(kind, pins78(), values, u["arm"], u["seed"])
+                pins.update(got)
+                if kind == "o_only_with_regenerate":
+                    pins[rules.SOURCE_UNIT.format(arm=u["arm"], seed=u["seed"])] = next(iter(got.values()))
+    elif rules.KIT_BLOCK in r78.BANK500_BLOCKS:
+        oext = (values.get("OEXT_78B") or {}).get("inputs") or {}
+        pins.update({n: oext.get(n) for n in r78.OEXT_INPUTS})
+        if rules.KIT_BLOCK == "B":                       # R3 K3 (item 13): the references' inputs, at their jobs' pins
+            pins.update(ref_input_pins())
+    stop = anchor_stop_doc(family)
+    if stop is not None:
+        pins[ANCHOR_JOB_DONE] = stop[0]["job_done_sha256"]
+    return pins
+
+
+REF_INPUT_RE = re.compile(r"^(gate_a_complete|gate_a_eval|certification_report):110[2-7]$")
+
+
+def ref_input_pins() -> dict:
+    """R3 K3 (item 13): name -> pin of block B's reference inputs, from this copy's plan.json (every block-B job's
+    inputs, released or pending; conflicting pins refuse): gate_a_complete:S, gate_a_eval:S (both pinned by S's a0
+    unit's COMPLETE.json, R-35), certification_report:S, and prefix_file at REF_PREFIX_SHA256 (the 1B safety-prompt
+    text, Part 2 §3.2) whatever the plan says."""
+    plan_file = HERE / "plan.json"
+    plan = json.loads(plan_file.read_text()) if plan_file.is_file() else {}
+    b = (plan.get("blocks") or {}).get("B") or {}
+    hosts = [h for h in (plan.get("hosts") or {}).values() if h.get("block") == "B"] + list((b.get("pending") or {}).values())
+    pins = {"prefix_file": r78.REF_PREFIX_SHA256}
+    for h in hosts:
+        for job in h.get("jobs", []):
+            for name, pin in (job.get("inputs") or {}).items():
+                if REF_INPUT_RE.match(name):
+                    if pins.get(name, pin) != pin:
+                        raise SystemExit(f"plan.json pins {name!r} twice with two values")
+                    pins[name] = pin
+    return pins
+
+
+SOURCE_UNIT_PREFIX = rules.SOURCE_UNIT.split("{", 1)[0]   # "source_unit:"
+UNIT_UNLISTED = ("COMPLETE.json", "status.json")         # the engine's own marker files (ledger._UNHASHED)
+# GXB R-81: what the unchanged 1B check_source reads of a dev-100 source unit (R: scripts/stage1_s1/oext_unit.py
+# check_source; the settings' dev100.source_files, the 1B file and both families' oext_unit__F.json, at the e1
+# checkpoint). M (tests/test_runner_ab_78b.py, a fixture through the unchanged code): a folder holding only these
+# runs, one without guard.jsonl refuses, although COMPLETE.json lists 27 files. So the pack takes these files only.
+SOURCE_UNIT_FILES = ("COMPLETE.json", "job.json", "eval/e1/generations.jsonl", "eval/e1/guard.jsonl")
+
+
+def source_unit_files(name: str, src: pathlib.Path, digest: str) -> dict:
+    """GXB R-76 (K3V-2; the 1B form, R: runkit/stage1-olmo/pack_setup.py:296-306): a regenerated unit's dev-100 source
+    unit folder, whose COMPLETE.json hashes to ``digest``; every file is packed only at the SHA-256 its COMPLETE.json
+    "files" lists for it (the unchanged 1B check_source hashes every present file the same way on the pod); macOS
+    metadata is skipped by name; any other file the listing does not hold, or holds at another SHA-256, refuses here,
+    on the Mac. Names only in refusals."""
+    marker = src / "COMPLETE.json"
+    if not src.is_dir() or not marker.is_file() or marker.is_symlink() or sha(marker) != digest:
+        raise SystemExit(f"--inputs FILE: {name!r} is not a unit folder whose COMPLETE.json has its pin")
+    try:
+        listed = (json.loads(marker.read_text()) or {}).get("files") or {}
+    except ValueError:
+        raise SystemExit(f"--inputs FILE: {name!r}'s COMPLETE.json is not JSON") from None
+    base, out = input_bundle_path(name, src), {}
+    for f in sorted(src.rglob("*")):
+        rel = f.relative_to(src).as_posix()
+        if f.is_symlink():
+            raise SystemExit(f"--inputs FILE: {name!r} holds a symbolic link")
+        if not f.is_file() or macos_metadata(rel):
+            continue
+        got = sha(f)
+        if rel not in UNIT_UNLISTED and listed.get(rel) != got:
+            raise SystemExit(f"--inputs FILE: {name!r}: a file is not one its COMPLETE.json lists at its SHA-256 (the "
+                             "1B check_source rule): refused before any pod")
+        if rel in SOURCE_UNIT_FILES:                     # GXB R-81: only what check_source reads is packed
+            out[f"{base}/{rel}"] = (f, got)
+    missing = [r for r in SOURCE_UNIT_FILES if f"{base}/{r}" not in out]
+    if missing:
+        raise SystemExit(f"--inputs FILE: {name!r} lacks {missing} (the files the 1B check_source reads; R-81)")
+    return out
+
+
+def gate_eval_files(name: str, src: pathlib.Path, digest: str) -> dict:
+    """gate_a_eval:S (GXB R-35; the B10 settings' gate): the a0 unit's eval/e1 folder, whose unit's COMPLETE.json (two
+    levels up) hashes to ``digest``; every file under it is packed only at the SHA-256 that COMPLETE.json's "files"
+    lists for it (eval/e1/<file>). Returns bundle path -> (file, SHA-256). Names only in refusals."""
+    unit = src.parent.parent
+    marker = unit / "COMPLETE.json"
+    if src.name != "e1" or src.parent.name != "eval" or not marker.is_file() or sha(marker) != digest:
+        raise SystemExit(f"--inputs FILE: {name!r} is not an a0 unit's eval/e1 folder whose COMPLETE.json has its pin")
+    listed = (json.loads(marker.read_text()) or {}).get("files") or {}
+    out, base = {}, input_bundle_path(name, src)
+    for f in sorted(src.rglob("*")):
+        if f.is_symlink():
+            raise SystemExit(f"--inputs FILE: {name!r} holds a symbolic link")
+        if f.is_file() and not macos_metadata(f.name):
+            rel = f.relative_to(unit).as_posix()
+            if listed.get(rel) != sha(f):
+                raise SystemExit(f"--inputs FILE: {name!r}: a file is not the one its unit's COMPLETE.json lists")
+            out[f"{base}/{f.relative_to(src).as_posix()}"] = (f, sha(f))
+    if not out:
+        raise SystemExit(f"--inputs FILE: {name!r} holds no file")
+    return out
+
+
+def anchor_stop_doc(family: str) -> tuple[dict, bytes, str] | None:
+    """KR4: (the family's stop record, its bytes, its path) read at ANCHOR_STOP[family]'s pin and checked for its form
+    (rules_78b.anchor_stop_problem); None while the pin is null. The pairing with the anchor job's JOB-DONE.json is
+    checked by anchor_stop_or_refuse once that file is given (sc_inputs)."""
+    pin = r78.ANCHOR_STOP.get(family)
+    if pin is None:
+        return None
+    if not (isinstance(pin, dict) and set(pin) == {"path", "sha256"} and plain_path(pin["path"]) and pinned(pin["sha256"])):
+        raise SystemExit(f"ANCHOR_STOP[{family!r}] is not a {{path, sha256}} pin")
+    f = ROOT / pin["path"]
+    if not f.is_file() or f.is_symlink() or sha(f) != pin["sha256"]:
+        raise SystemExit(f"ANCHOR_STOP[{family!r}]: the stop record is missing or differs from its pin")
+    data = f.read_bytes()
+    try:
+        doc = json.loads(data)
+    except ValueError:
+        raise SystemExit(f"ANCHOR_STOP[{family!r}]: the stop record is not JSON") from None
+    problem = r78.anchor_stop_problem(doc, family)
+    if problem:
+        raise SystemExit(f"ANCHOR_STOP[{family!r}]: the stop record is not the family's: {problem}")
+    return doc, data, pin["path"]
+
+
+def sc_inputs(doc: dict, family: str) -> tuple[dict, dict]:
+    """(bundle path -> (source, SHA-256) of every file, input name -> bundle path) from the --inputs record's entries
+    {name, path, sha256}: each name one of stage1_rules.SC_INPUTS's, each SHA-256 its kit pin (stage1_rules.sc_input_pins;
+    a null pin refuses), each path a file under the checkout (a folder for stage1_rules.SC_FOLDER_INPUTS, whose pin is
+    its COMPLETE.json's SHA-256; every file of the folder is packed at its own SHA-256). Names only in refusals."""
+    pins = input_pins(family)
     files, named = {}, {}
     for e in doc.get("inputs") or []:
         if not isinstance(e, dict) or set(e) != {"name", "path", "sha256"}:
@@ -446,7 +615,14 @@ def sc_inputs(doc: dict, family: str) -> tuple[dict, dict]:
         if not plain_path(rel):
             raise SystemExit(f"--inputs FILE: {name!r}'s path is not a plain relative path under the checkout")
         src = ROOT / rel
-        if name in rules.SC_FOLDER_INPUTS:
+        if name.startswith("gate_a_eval:"):            # R3 K3 (item 13): by its unit's COMPLETE.json listing
+            got = gate_eval_files(name, src, digest)
+            files.update(got)
+            named[name] = input_bundle_path(name, src)
+        elif folder_input(name) and name.startswith(SOURCE_UNIT_PREFIX):   # GXB R-76 (K3V-2): the 1B form
+            files.update(source_unit_files(name, src, digest))
+            named[name] = input_bundle_path(name, src)
+        elif folder_input(name):
             if not src.is_dir() or not (src / "COMPLETE.json").is_file() or sha(src / "COMPLETE.json") != digest:
                 raise SystemExit(f"--inputs FILE: {name!r} is not a unit folder whose COMPLETE.json has its pin")
             base = input_bundle_path(name, src)
@@ -462,8 +638,229 @@ def sc_inputs(doc: dict, family: str) -> tuple[dict, dict]:
             files[input_bundle_path(name, src)] = (src, digest)
             named[name] = input_bundle_path(name, src)
     if C0_INPUT in named:                                # K6 (item 23): the Mac-side check of C0_SOURCE's fingerprint
-        c0_source_check(*files[named[C0_INPUT]], values["C0_SOURCE"])
+        c0_source_check(*files[named[C0_INPUT]], r78.sc_pin_values(family, pins78())["C0_SOURCE"])
+    stop = anchor_stop_doc(family)
+    if stop is not None:                                 # KR4: the pack carries the stop record and its JOB-DONE.json
+        if ANCHOR_JOB_DONE not in named:
+            raise SystemExit(f"--inputs FILE: {family}'s anchor job stopped (ANCHOR_STOP): name {ANCHOR_JOB_DONE!r}, the "
+                             "anchor job's JOB-DONE.json, so the pod can read the stop record (KR4, KR8)")
+        try:
+            r78.anchor_stop_or_refuse(family, stop[1], files[named[ANCHOR_JOB_DONE]][1])
+        except r78.Refused as exc:
+            raise SystemExit(f"the anchor stop record: {exc}")
+        rel = f"inputs/{ANCHOR_STOP_NAME}/{pathlib.Path(stop[2]).name}"
+        files[rel] = (ROOT / stop[2], r78.ANCHOR_STOP[family]["sha256"])
+        named[ANCHOR_STOP_NAME] = rel
     return files, named
+
+
+# ===== R3 K3: the O-ext pods' pack (GXB R-6, R-9, R-21, R-23, R-44, K-3, K-7, O4, O10, KR4; plan-ab 5a, 5c) =========
+def branch_file(family: str, required: bool) -> tuple[str, pathlib.Path, str] | None:
+    """(bundle path, source, pin) of the family's branch record at BRANCH_78B[family]'s path and SHA-256 (the runner
+    reads it by its bytes, rules_78b.oext_flags); None while the pin is null unless ``required`` (blocks A and B)."""
+    pin = r78.BRANCH_78B.get(family)
+    if pin is None:
+        if required:
+            raise SystemExit(f"blocks A and B carry the O-ext step: {family}'s branch record (BRANCH_78B) is null: "
+                             f"{r78.BRANCH_EVENT}")
+        return None
+    if not (isinstance(pin, dict) and plain_path(pin.get("path")) and pinned(pin.get("sha256"))):
+        raise SystemExit(f"BRANCH_78B[{family!r}] is not a {{path, sha256}} pin")
+    f = ROOT / pin["path"]
+    try:
+        r78.branch_record_or_refuse(family, f.read_bytes() if f.is_file() and not f.is_symlink() else b"")
+    except r78.Refused as exc:
+        raise SystemExit(f"{family}'s branch record: {exc}")
+    return pin["path"], f, pin["sha256"]
+
+
+def run_check(argv: list[str]) -> int:
+    """The wrapper's $0 check as its own process on the Mac (cwd = the checkout; no token, no PYTHONPATH); only its
+    exit code is used (its printout names hashes only, OR7, and is not shown here)."""
+    env = {"PYTHONDONTWRITEBYTECODE": "1", "PATH": "/usr/bin:/bin"}
+    return subprocess.run(argv, cwd=ROOT, capture_output=True, text=True, env=env).returncode
+
+
+def wrapper_check(family: str, engine: str, index_rel: str, index_sha: str, extra: list[str]) -> dict:
+    """GXB R-6, R-9, R-23: ``oext_78b.py check`` on the Mac before any O-ext pod; any non-zero exit refuses the pack."""
+    argv = [str(PY), "-B", r78.OEXT_WRAPPER_78B, "check", "--family", family, "--engine", engine, "--index", index_rel,
+            "--index-sha256", index_sha, *extra]
+    code = run_check(argv)
+    if code != 0:
+        raise SystemExit(f"oext_78b.py check of {family}'s engine-{engine} index refused (exit {code}): refused before "
+                         "any O-ext pod (GXB R-6, R-9, R-23)")
+    return {"family": family, "engine": engine, "index_sha256": index_sha, "args": [a for a in extra if a.startswith("--")],
+            "exit": code}
+
+
+def oext_checks(family: str, engines=("X",)) -> list[dict]:
+    """R-6 and R-23: the family's O-ext index of each engine whose pin is filled (Y only once ENGINE_Y is filled), with
+    --w1-18-record when the branch record names the family's W1-18 record (the pinned record, at its R-21 place)."""
+    out = []
+    branch = branch_file(family, required=False)       # GXB R-78: the pin and the record checked first (a refusal)
+    record = None
+    if branch is not None:
+        doc = json.loads(branch[1].read_bytes())
+        if doc.get("source") == "w1_18":
+            record = r78.W1_18_RECORD_DIR + r78.W1_18_RECORD_NAME.format(family=family)
+    for engine in engines:
+        pin = (r78.OEXT_78B if engine == "X" else r78.OEXT_78B_Y).get(family)
+        if pin is None or (engine == "Y" and r78.ENGINE_Y is None):
+            continue
+        problem = r78.oext_form_problem(pin, family, engine)
+        if problem:
+            raise SystemExit(f"{family}'s engine-{engine} O-ext pin is off its form: {problem}")
+        idx = next(p for p in sorted(pin["files"]) if r78.OEXT_INDEX_RE.match(p))
+        out.append(wrapper_check(family, engine, idx, pin["files"][idx], [] if record is None else
+                                 ["--w1-18-record", record]))
+    return out
+
+
+def unit_folder_files(base: str, src: pathlib.Path, complete_sha: str, job_sha: str, what: str) -> dict:
+    """bundle path -> (file, SHA-256) of one unit folder (every file but macOS metadata; a link refuses), its
+    COMPLETE.json and job.json at their pins."""
+    if not src.is_dir() or sha(src / "COMPLETE.json") != complete_sha or sha(src / "job.json") != job_sha:
+        raise SystemExit(f"{what}: the unit folder is missing or its COMPLETE.json or job.json differs from its pin")
+    out = {}
+    for f in sorted(src.rglob("*")):
+        rel = f.relative_to(src).as_posix()
+        if f.is_symlink():
+            raise SystemExit(f"{what}: the unit folder holds a symbolic link")
+        if f.is_file() and not macos_metadata(rel):
+            out[f"{base}/{rel}"] = (f, sha(f))
+    return out
+
+
+def w1_18_pack(family: str) -> tuple[dict, list[dict], dict]:
+    """GXB O4, K-3, R-20, O10 (5c): the one W1-18 pod's files, packed only in W1_18_HOST_FAMILY's scorer-block copy:
+    W1_18_78B's files (the wrapper, each family's W1 index and W1-18 settings, the 1B W1-18 code, Track P's frozen
+    readers once listed: W2-5) at their pins; each listed family's side units under data/ (the checkout's tmp/
+    mirrored, the W1-18 settings' data root) at their KIT a0_units pins; the other family's prepared set under
+    data/kt-prepared/ at its manifest pin (the lexicon files and the main configs, the judge recipes, are already in
+    the scorer code and the engine tree). Before anything: oext_78b.py check --engine W1 --data-root tmp per family
+    (R-9). Returns (bundle path -> (file, SHA-256), the checks, data paths to scan)."""
+    if rules.KIT_BLOCK != r78.SC_BLOCK or r78.w1_18_host_problem(family):
+        raise SystemExit(f"--w1-18: {r78.w1_18_host_problem(family) or 'the W1-18 pod is a scorer-block pod'}")
+    route = r78.W1_18_78B
+    if route is None:
+        raise SystemExit(f"--w1-18: W1_18_78B is null: {r78.SC_PIN_EVENTS['W1_18_78B']}")
+    problem = r78.w1_18_route_problem(route)
+    if problem:
+        raise SystemExit(f"--w1-18: W1_18_78B is not in its form: {problem}")
+    checks = []
+    for fam in sorted(route["side_units"]):
+        idx = f"scripts/scale78b/settings/OEXT-78B-W1__{fam}.json"
+        checks.append(wrapper_check(fam, "W1", idx, route["files"][idx], ["--data-root", str(ROOT / "tmp")]))
+    files = {rel: (ROOT / rel, digest) for rel, digest in sorted(route["files"].items())}
+    scan = {}
+    for fam, units in sorted(route["side_units"].items()):
+        for name, u in sorted(units.items()):
+            files.update(unit_folder_files(f"{DATA}/{u['path']}", ROOT / r78.DATA_ROOT / u["path"], u["complete_sha256"],
+                                           u["job_sha256"], f"{fam}'s W1-18 unit {name}"))
+        if fam != family:
+            pname, digest = r78.KIT[fam]["prepared_name"], r78.MANIFESTS[fam]
+            folder = ROOT / rules.PREPARED_LOCAL / pname
+            if not (folder / "manifest.sha256").is_file() or (folder / "manifest.sha256").read_text().strip() != digest:
+                raise SystemExit(f"--w1-18: {fam}'s prepared set {pname} is missing or is not at its manifest pin")
+            got, data_scan, _ = prepared_files(folder, digest)
+            for rel, (f, d) in got.items():
+                files[f"{DATA}/kt-prepared/{pname}/{rel}"] = (f, d)
+            scan.update({f"{DATA}/kt-prepared/{pname}/{rel}": True for rel in data_scan})
+    return files, checks, scan
+
+
+def ab_edits(family: str) -> dict:
+    """K-7 (plan-ab 5a): bundle path edits/<SHA-256>.edit.json -> (source, SHA-256) of every edit a block-A or block-B
+    job of this copy's plan.json trains on (released or pending), each read only at its exact path and SHA-256 (rules_78b
+    run_edit's pins: the R_d draws, METHOD_EDITS; OLMo-2-7B's S1 edit under tmp/stage1-olmo/ is one of them; no folder
+    is listed or searched)."""
+    plan_file = HERE / "plan.json"
+    if not plan_file.is_file():
+        raise SystemExit(f"block {rules.KIT_BLOCK}: plan.json is missing (init-block {rules.KIT_BLOCK} first)")
+    plan = json.loads(plan_file.read_text())
+    b = (plan.get("blocks") or {}).get(rules.KIT_BLOCK) or {}
+    hosts = [h for h in plan.get("hosts", {}).values() if h.get("block") == rules.KIT_BLOCK]
+    hosts += list((b.get("pending") or {}).values())
+    out = {}
+    for h in hosts:
+        for job in h.get("jobs", []):
+            edit = job.get("edit")
+            if edit:
+                if not (plain_path(edit.get("path")) and pinned(edit.get("sha256"))):
+                    raise SystemExit("a block job's edit is not a {path, sha256} pin")
+                out[f"edits/{edit['sha256']}.edit.json"] = (ROOT / edit["path"], edit["sha256"])
+    return out
+
+
+def blinding_check(files: dict, bundle: pathlib.Path) -> dict | None:
+    """GXB R-44 (K2's open point 1) at the pack receipt, block A: the blinding record block A was planned under (its
+    plan.json snapshot, read at its path and SHA-256) names files by SHA-256; each must hash to it now in this copy
+    (plan_tool.py: this copy's own; the others in the checkout), and every one that is a member of the packed bundle is
+    re-hashed from the bundle's bytes and compared. A difference refuses (no receipt). None outside block A or before
+    the snapshot."""
+    if rules.KIT_BLOCK != "A" or not (HERE / "plan.json").is_file():
+        return None
+    plan = json.loads((HERE / "plan.json").read_text())
+    snap = ((plan.get("blocks") or {}).get("A") or {}).get("blinding")
+    if not snap:
+        return None
+    rec = ROOT / snap["path"]
+    if not rec.is_file() or sha(rec) != snap["sha256"]:
+        raise SystemExit("R-44: the blinding record block A was planned under is missing or differs from its SHA-256")
+    named = json.loads(rec.read_text()).get("files") or {}
+    copy = {}
+    for rel, digest in sorted(named.items()):
+        f = HERE / "plan_tool.py" if rel == "runkit/stage1-78b/plan_tool.py" else ROOT / rel   # K2's blinding_files_check
+        copy[rel] = sha(f) if f.is_file() else None
+        if copy[rel] != digest:
+            raise SystemExit(f"R-44: {rel} is not the file the blinding record verified: the change voids it")
+    members = {}
+    with tarfile.open(bundle, "r:gz") as archive:
+        for m in archive.getmembers():
+            if m.name in named and m.isfile():
+                members[m.name] = hashlib.sha256(archive.extractfile(m).read()).hexdigest()
+                if members[m.name] != named[m.name]:
+                    raise SystemExit(f"R-44: the packed {m.name} is not the file the blinding record verified")
+    return {"record": {"path": snap["path"], "sha256": snap["sha256"]}, "files": copy, "bundle_members": members,
+            "not_in_bundle": sorted(set(named) - set(members))}
+
+
+def y_tree_check(tree: pathlib.Path) -> list[str]:
+    """X1 (the stage-1 kit's Y route, R: runkit/stage1-olmo/pack_setup.py y_tree_check; YB P-4): engine Y's files come
+    from its frozen tree only, checked against YHASH (the frozen file list at its pin, then every listed file in the
+    tree by its SHA-256); returns the listed paths. Never from the working branch."""
+    yhash = ROOT / rules.YHASH_PIN["path"]
+    if not yhash.is_file() or sha(yhash) != rules.YHASH_PIN["sha256"]:
+        raise SystemExit("YHASH (engine Y's frozen file list) is missing or differs from its pin")
+    listed, bad = [], []
+    for line in yhash.read_text().splitlines():
+        if not line.strip():
+            continue
+        digest, _, rel = line.strip().partition("  ")
+        listed.append(rel)
+        f = tree / rel
+        if not pinned(digest) or not f.is_file() or f.is_symlink() or sha(f) != digest:
+            bad.append(rel)
+    if bad or not listed:
+        raise SystemExit(f"the Y tree fails YHASH: {len(bad)} file(s) missing or changed: {bad[:5]}")
+    return listed
+
+
+def engine_tree(engine: str, y_tree: str | None) -> tuple[pathlib.Path, str | None, list | None]:
+    """(the engine's tree, its git commit or None, YHASH's listed paths or None): engine X this checkout (committed);
+    engine Y its frozen tree (default tmp/engine-y-34bfd288) by YHASH and its code identity at ENGINE_Y, refused while
+    ENGINE_Y is null (A13: every Y kind waits for the pin)."""
+    if engine == "X":
+        return ROOT, git_state(), None
+    try:
+        pin = r78.engine_sha("Y")
+    except r78.Refused as exc:
+        raise SystemExit(f"engine Y's pack: {exc}")
+    tree = pathlib.Path(y_tree) if y_tree else ROOT / rules.Y_TREE_DEFAULT
+    listed = y_tree_check(tree)
+    if engine_code(tree) != pin:
+        raise SystemExit(f"the Y tree's code identity is not ENGINE_Y's pin {pin[:12]}... (A13): refused")
+    return tree, None, listed
 
 
 def recipe_s78(tree: pathlib.Path, family: str) -> dict | None:
@@ -505,14 +902,21 @@ def sc_report(family: str, tree: pathlib.Path, inputs_doc: dict | None) -> dict:
 
 def parse(argv: list[str]) -> argparse.Namespace:
     ap = argparse.ArgumentParser(prog="pack_setup.py")
-    ap.add_argument("engine", choices=["X"], help="engine X (engine Y's pack comes with KD9's re-measure)")
+    ap.add_argument("engine", choices=["X", "Y"], help="engine X, or engine Y from its frozen tree (R3 K3, X1: the "
+                    "scorer block's Y retrain, KD9's re-measure; refused while ENGINE_Y is null)")
+    ap.add_argument("--y-tree", help="engine Y's frozen tree (Y only; default <repo>/" + rules.Y_TREE_DEFAULT + ")")
     ap.add_argument("--family", help="the working copy's family (refused when it is the other family)")
     ap.add_argument("--inputs", help="a 'stage1-78b pack inputs' record (block 0: inputs: [])")
     ap.add_argument("--inputs-sha256")
     ap.add_argument("--dry-run", action="store_true", help="print the identities and pins; write nothing")
+    ap.add_argument("--w1-18", action="store_true", dest="w1_18",
+                    help="the one W1-18 pod's pack (OLMo-2-7B's scorer-block copy; GXB K-3, O4): W1_18_78B's files, "
+                         "the side units and the prepared sets, after oext_78b.py check --engine W1 (R-9)")
     a = ap.parse_args(argv)
     if (a.inputs is None) != (a.inputs_sha256 is None):
         ap.error("--inputs and --inputs-sha256 go together")
+    if a.engine == "X" and a.y_tree:
+        ap.error("--y-tree belongs to engine Y")
     return a
 
 
@@ -541,7 +945,10 @@ def main(argv: list[str] | None = None) -> None:
     if out.exists():
         raise SystemExit(f"{out.name} exists: a packed stage is never overwritten")
     check_constraints()
-    tree, commit = ROOT, git_state()
+    tree, commit, yhash = engine_tree(engine, a.y_tree)  # R3 K3 (X1): engine Y from its frozen tree, by YHASH
+    if engine == "Y" and rules.KIT_BLOCK not in (r78.SC_BLOCK, "B"):   # GXB R-63: block B's ref_train_bqi too
+        raise SystemExit("engine Y's pack is the scorer block's (the a0-1101 retrain, KD9's re-measure) and block B's "
+                         "(ref_train_bqi; GXB R-63): blocks 0 and A run on engine X (A13)")
     config = main_config(tree)
     process_receipt = ROOT / PROCESS_RECEIPT
     if not process_receipt.is_file():
@@ -556,7 +963,7 @@ def main(argv: list[str] | None = None) -> None:
     for rel, (f, got) in prepared.items():
         pack.add(f"{data_base}/{rel}", f, got)
     pack.add(config["path"], tree / config["path"], config["sha256"])
-    s78 = None
+    s78, checks, w1_scan, ref_configs = None, [], {}, set()
     if rules.KIT_BLOCK == r78.SC_BLOCK:                  # K4b: the scorer block's code, inputs and S_78 config
         for rel, (src, pin) in scorer_code(family).items():
             pack.add(rel, src, pin)
@@ -567,9 +974,69 @@ def main(argv: list[str] | None = None) -> None:
         s78 = recipe_s78(tree, family)
         if s78 is not None:
             pack.add(s78["path"], tree / s78["path"], s78["sha256"])
+        if r78.OEXT_78B.get(family) is not None:         # R3 K3 (R-6): before any O-ext pod, on the Mac
+            checks += oext_checks(family)
+        if engine == "Y" and r78.OEXT_78B_Y.get(family) is not None:   # R-23, X1: Y's O-ext files, checked on the Mac
+            checks += oext_checks(family, ("Y",))           # under Y's identity; the unchanged 1B oext_unit.py from
+            for rel, (src, pin) in oext_code(family, "Y").items():   # this checkout (the wrapper's CODE pin), never
+                pack.add(rel, src, pin)                     # the 1B Y copy in the Y tree (r1-o-verify.md P3)
+        branch = branch_file(family, required=False)
+        if branch is not None:
+            pack.add(*branch)
+        if a.w1_18:                                      # R3 K3 (5c): the one W1-18 pod
+            w1_files, w1_checks, w1_scan = w1_18_pack(family)
+            checks += w1_checks
+            for rel, (src, digest) in w1_files.items():
+                pack.add(rel, src, digest)
+    elif rules.KIT_BLOCK in r78.BANK500_BLOCKS:          # R3 K3 (5a, E3): blocks A and B, the in-job O-ext step
+        if r78.OEXT_78B.get(family) is None:
+            raise SystemExit(f"blocks A and B carry the O-ext step: OEXT_78B[{family!r}] is null: "
+                             f"{r78.SC_PIN_EVENTS['OEXT_78B']}")
+        checks += oext_checks(family)
+        for rel, (src, pin) in oext_code(family).items():
+            pack.add(rel, src, pin)
+        pack.add(*branch_file(family, required=True))
+        in_files, named = sc_inputs(inputs_doc or {}, family)
+        missing = [n for n in r78.OEXT_INPUTS if n not in named]
+        if missing:
+            raise SystemExit(f"--inputs FILE: blocks A and B need the O-ext inputs {missing} (OEXT_78B's inputs)")
+        for rel, (src, digest) in in_files.items():
+            pack.add(rel, src, digest)
+        pack.inputs.update(named)
+        for rel, (src, digest) in ab_edits(family).items():   # K-7: each edit by its exact path and SHA-256
+            pack.add(rel, src, digest)
+        if rules.KIT_BLOCK == "B":                       # R3 K3 (item 13): each filled reference seed's files
+            for seed in r78.REFERENCE_SEEDS:
+                if r78.REFS_78B[family].get(seed) is None:
+                    continue
+                try:
+                    pin = r78.refs_or_refuse(family, seed)
+                except r78.Refused as exc:
+                    raise SystemExit(str(exc))
+                for rel, digest in sorted(pin["files"].items()):
+                    pack.add(rel, ROOT / rel, digest)
+        if engine == "Y":                                # GXB R-63: B+Qi's O-ext pass on Y (OEXT_78B_Y), checked first
+            if r78.OEXT_78B_Y.get(family) is None:
+                raise SystemExit(f"block B's Y pack carries B+Qi's O-ext pass: OEXT_78B_Y[{family!r}] is null: "
+                                 f"{r78.SC_PIN_EVENTS['OEXT_78B_Y']}")
+            checks += oext_checks(family, ("Y",))
+            for rel, (src, pin) in oext_code(family, "Y").items():
+                pack.add(rel, src, pin)
+        if rules.KIT_BLOCK == "B":                       # R3 K3 (13g, R-70): the trained references' configs
+            for name, paths in (("RECIPE_G", r78.RECIPE_G_PATH), ("RECIPE_BQI", r78.RECIPE_BQI_PATH)):
+                pin, rel = r78.PINS[name].get(family), paths.get(family)
+                if pin is None or rel is None or (name == "RECIPE_BQI") != (engine == "Y"):
+                    continue
+                f = tree / rel
+                if not f.is_file() or f.is_symlink() or config_sha256(tree, rel) != pin or pin == rules.REC_CONFIG_SHA256:
+                    raise SystemExit(f"{rel}: the {name} config is missing from the engine tree or is not {name}'s pin")
+                pack.add(rel, f, sha(f))
+                ref_configs.add(rel)
+    if a.w1_18 and rules.KIT_BLOCK != r78.SC_BLOCK:
+        raise SystemExit("--w1-18: the W1-18 pod is a scorer-block pod (GXB K-3)")
     pack.refuse()
     files = engine_files(tree)
-    overlap = sorted(set(files) & set(pack.files) - {config["path"]} - ({s78["path"]} if s78 else set()))
+    overlap = sorted(set(files) & set(pack.files) - {config["path"]} - ({s78["path"]} if s78 else set()) - ref_configs)
     if overlap:
         raise SystemExit(f"a kit file would replace an engine file: {overlap[:3]}")
     files.update(pack.files)
@@ -577,20 +1044,22 @@ def main(argv: list[str] | None = None) -> None:
     files["constraints.txt"] = SETUP / "constraints.txt"
     files["requirements.lock"] = tree / "experiments/minimal_safety/requirements.lock"
     code = engine_code(tree)
-    if code != rules.ENGINES[engine] or code != r78.ENGINE_X:
+    if code != r78.engine_sha(engine) or (engine == "X" and code != rules.ENGINES[engine]):
         raise SystemExit(f"the packed engine {engine}'s code identity is not its pin (KD8)")
     sealed_json = (json.dumps({"kind": "stage1-78b sealed files", "version": 1, "engine": engine, "family": family,
                                "files": dict(sorted(pack.pins.items())), "inputs": dict(sorted(pack.inputs.items()))},
                               indent=1) + "\n").encode()
     manifest = {"kind": f"explicit code and data export for the 7-8B kit, engine {engine}, family {family}; no credentials",
                 "git_commit": commit, "engine": engine, "engine_sha256": code, "family": family, "kit_block": rules.KIT_BLOCK,
+                **({"yhash": rules.YHASH_PIN} if yhash else {}),
                 "main_config": config, "prepared_manifests": dict(rules.PREPARED_MANIFESTS), "sealed_set": sealed["manifest"],
                 "files": {n: sha(f) for n, f in sorted(files.items())}}
     payload = {"bundle-manifest.json": (json.dumps(manifest, indent=2) + "\n").encode(), "sealed-files.json": sealed_json}
-    probe_json = (json.dumps(probe_record(family), indent=1) + "\n").encode()
+    extra = pack_extra_downloads(a.w1_18)                # R3 K3 (R-66, R-71): none for every earlier pack
+    probe_json = (json.dumps(probe_record(family, extra) if extra else probe_record(family), indent=1) + "\n").encode()
     family_json = kit_family_doc(family)
     refuse_secrets(files, {**payload, "probe.json": probe_json, rules.KIT_FAMILY_FILE: family_json}, DATA_PREFIXES,
-                   frozenset(f"{data_base}/{rel}" for rel in data_scan))
+                   frozenset(f"{data_base}/{rel}" for rel in data_scan) | frozenset(w1_scan))
     out.mkdir(parents=True, exist_ok=False)
     (out / "probe.json").write_bytes(probe_json)
     (out / "sealed-files.json").write_bytes(sealed_json)
@@ -598,6 +1067,7 @@ def main(argv: list[str] | None = None) -> None:
     bundle = out / f"bundle-stage1-{engine}.tar.gz"
     tar(bundle, files, payload)
     bundle_sha = sha(bundle)
+    blinding = blinding_check(files, bundle)             # R3 K3 (GXB R-44): before the receipt
     bootstrap = worker_bootstrap(engine, bundle.name, bundle_sha, code, rules.PREPARED_MANIFESTS, rules.PIP_PIN)
     if secret_scan.scan_text(bootstrap):
         raise SystemExit("a secret pattern is in the generated bootstrap")
@@ -617,6 +1087,7 @@ def main(argv: list[str] | None = None) -> None:
                "sealed_set": sealed["manifest"], "edits": {f"R_d{d}": e for d, e in sorted(sealed["edits"].items())},
                "inputs_record_sha256": a.inputs_sha256, "sealed_files_sha256": hashlib.sha256(sealed_json).hexdigest(),
                "recipe_s78": s78,
+               **({} if rules.KIT_BLOCK == "0" else {"oext_checks": checks, "w1_18": bool(a.w1_18), "blinding": blinding}),
                "inputs": dict(sorted(pack.inputs.items())),
                "bundle": {"path": str(bundle), "sha256": bundle_sha, "files": len(files)},
                "setup": {"path": str(setup), "sha256": sha(setup), "bytes": setup.stat().st_size},

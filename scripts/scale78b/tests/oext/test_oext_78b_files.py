@@ -561,6 +561,11 @@ def test_the_w1_18_route_form_is_printed():
     for family in w.FAMILIES:
         for name in (mk.index_name(family, "W1"), mk.file_name("limits_overrefusal_checks", family)):
             assert form["files"][f"scripts/scale78b/settings/{name}"] == f.sha(mk.SETTINGS_DIR / name)
+        limits = json.loads((mk.SETTINGS_DIR / mk.file_name("limits_overrefusal_checks", family)).read_bytes())
+        for key in ("family_probe_reading", "killtest_stage0_reading"):                         # W2-5
+            entry = limits["frozen_reader"][key]
+            assert form["files"][entry["path"]] == entry["sha256"] == f.sha(REPO / entry["path"])
+    assert {"scripts/family_probe_reading.py", "scripts/killtest_stage0_reading.py"} <= set(form["files"])
 
 
 def test_a_bqi_config_with_another_generation_block_refuses():
@@ -622,3 +627,143 @@ def test_the_two_families_differ_only_where_they_should():
         if role == "limits_overrefusal_checks":
             differ = {k for k in differ if not k.startswith("units.")}
         assert differ <= allowed[role], (role, sorted(differ - allowed[role]))
+
+
+# ----- W2-5 (R1's second re-verification; R3): W1_18_78B lists the two frozen readers by path and pin ---------------
+
+
+def w1_files() -> dict[str, bytes]:
+    names = [n for fam in w.FAMILIES for n in (mk.index_name(fam, "W1"), mk.file_name("limits_overrefusal_checks", fam))]
+    return {n: (mk.SETTINGS_DIR / n).read_bytes() for n in names}
+
+
+def with_reader(files: dict[str, bytes], family: str, key: str, change) -> dict[str, bytes]:
+    out = dict(files)
+    name = mk.file_name("limits_overrefusal_checks", family)
+    doc = json.loads(out[name])
+    change(doc["frozen_reader"], key)
+    out[name] = mk.dumps(doc)
+    return out
+
+
+def test_w1_18_78b_lists_both_frozen_readers_once_at_their_pins():
+    form = mk.w1_18_78b_form(w1_files(), w.code_pins("W1"))
+    readers = {p: d for p, d in form["files"].items() if not p.startswith(("scripts/scale78b/", "scripts/stage1/"))}
+    assert readers == {"scripts/family_probe_reading.py": f.sha(REPO / "scripts/family_probe_reading.py"),
+                       "scripts/killtest_stage0_reading.py": f.sha(REPO / "scripts/killtest_stage0_reading.py")}
+    assert set(form) == {"files", "side_units"}                                                  # R-20's form
+
+
+@pytest.mark.parametrize("family", w.FAMILIES)
+@pytest.mark.parametrize("key", ["family_probe_reading", "killtest_stage0_reading"])
+@pytest.mark.parametrize("case,needle", [
+    ("pin", "differs from its pin"),
+    ("path", "not a plain .py path under scripts/"),
+    ("dotdot", "not a plain .py path under scripts/"),       # V-5: a '..' part that still reaches the true file
+    ("empty", "not a plain .py path under scripts/"),        # V-5: an empty part that still reaches the true file
+    ("not_py", "not a plain .py path under scripts/"),       # V-5: not a .py file
+    ("missing", "do not name exactly the frozen readers"),
+])
+def test_a_frozen_reader_off_its_pin_or_path_refuses(family, key, case, needle):
+    def change(spec, k):
+        rel = spec[k]["path"]
+        if case == "pin":
+            spec[k]["sha256"] = "0" * 64
+        elif case == "path":
+            spec[k]["path"] = "../" + rel
+        elif case == "dotdot":
+            spec[k]["path"] = "scripts/../" + rel
+        elif case == "empty":
+            spec[k]["path"] = rel.replace("scripts/", "scripts//", 1)
+        elif case == "not_py":
+            spec[k]["path"] = rel[:-len(".py")] + ".txt"
+        else:
+            del spec[k]
+    with pytest.raises(s1.Refusal, match=needle):
+        mk.w1_18_78b_form(with_reader(w1_files(), family, key, change), w.code_pins("W1"))
+
+
+def test_a_frozen_reader_file_that_differs_refuses(tmp_path, monkeypatch):
+    """The reader is hashed in this checkout: a changed file refuses (the pod would refuse it after a paid start)."""
+    for rel in ("scripts/family_probe_reading.py", "scripts/killtest_stage0_reading.py"):
+        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(REPO / rel, tmp_path / rel)
+    monkeypatch.setattr(mk, "REPO", tmp_path)
+    assert mk.w1_18_78b_form(w1_files(), w.code_pins("W1"))["files"]["scripts/killtest_stage0_reading.py"]
+    (tmp_path / "scripts/killtest_stage0_reading.py").write_bytes(b"# changed\n")
+    with pytest.raises(s1.Refusal, match="killtest_stage0_reading.py is missing or differs"):
+        mk.w1_18_78b_form(w1_files(), w.code_pins("W1"))
+
+
+
+# ----- R-86 (I-1) and R-89 (I-5): W1_18_78B under [C]; the W1-18 record's standard name --------------------------------
+
+
+def rk_module():
+    spec = importlib.util.spec_from_file_location("rules_78b_for_r86", REPO / "runkit" / "stage1-78b" / "rules_78b.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def at_kit_units(rk, form: dict) -> dict:
+    """The form with its side units at KIT a0_units' paths and pins (theta0's job pins synthetic in RK and here: R-20's
+    fill), so RK's route check judges the files part."""
+    form = copy.deepcopy(form)
+    for family in form["side_units"]:
+        kit = rk.KIT[family]["a0_units"]
+        for v in kit.values():
+            v["job_sha256"] = v.get("job_sha256") or "a" * 64
+        form["side_units"][family] = {("untuned" if k == "untuned" else f"a0-{k}"):
+                                      {"path": v["path"][len(rk.DATA_ROOT):], "complete_sha256": v["complete_sha256"],
+                                       "job_sha256": v["job_sha256"]} for k, v in kit.items()}
+    return form
+
+
+def test_w1_18_78b_under_c_names_olmo_only_and_passes_rk():
+    code, out, _ = f.call(mk.main, ["--w1-18-78b", "--families", "olmo2-7b"])
+    c_form = json.loads(out)
+    assert code == 0 and set(c_form["side_units"]) == {"olmo2-7b"}
+    assert not [p for p in c_form["files"] if "llama31-8b" in p]
+    for name in (mk.index_name("olmo2-7b", "W1"), mk.file_name("limits_overrefusal_checks", "olmo2-7b")):
+        assert c_form["files"][f"scripts/scale78b/settings/{name}"] == f.sha(mk.SETTINGS_DIR / name)
+    assert {"scripts/family_probe_reading.py", "scripts/killtest_stage0_reading.py",
+            "scripts/scale78b/oext_78b.py"} <= set(c_form["files"])
+    rk = rk_module()
+    assert rk.w1_18_route_problem(at_kit_units(rk, c_form)) is None
+    both = json.loads(f.call(mk.main, ["--w1-18-78b"])[1])
+    assert rk.w1_18_route_problem(at_kit_units(rk, both)) is None
+    mixed = at_kit_units(rk, {"files": both["files"], "side_units": {"olmo2-7b": {}}})   # [B]'s files, [C]'s units
+    assert "its files name the O-ext index file(s)" in rk.w1_18_route_problem(mixed)
+
+
+def test_w1_18_78b_default_is_both_families_byte_for_byte():
+    default = f.call(mk.main, ["--w1-18-78b"])
+    assert default[0] == 0 and f.call(mk.main, ["--w1-18-78b", "--families", "llama31-8b,olmo2-7b"]) == default
+    assert set(json.loads(default[1])["side_units"]) == set(w.FAMILIES)
+
+
+@pytest.mark.parametrize("argv,needle", [
+    (["--w1-18-78b", "--families", "olmo2-7b,olmo2-7b"], "each once"),
+    (["--w1-18-78b", "--families", "olmo2-1b"], "one or both of"),
+    (["--w1-18-78b", "--families", ""], "one or both of"),
+    (["--check", "--families", "olmo2-7b"], "an option of --w1-18-78b"),
+])
+def test_a_bad_families_option_refuses(argv, needle):
+    code, out, err = f.call(mk.main, argv)
+    assert code == 2 and not out and needle in err
+
+
+@pytest.mark.parametrize("name", ["other__llama31-8b.json", "overrefusal_checks__olmo2-7b.json",
+                                  "w1_18_record__llama31-8b.json"])
+def test_a_w1_18_record_off_rks_standard_name_refuses(name):
+    """R-89: under w1-18/ only RK's standard name overrefusal_checks__<F>.json (R-53, W1_18_RECORD_RE) is taken."""
+    rk = rk_module()
+    good = {"branch": "128", "record_sha256": "c" * 64, "full_reason": None,
+            "record_path": mk.RECORDS_DIR + "overrefusal_checks__llama31-8b.json"}
+    assert rk.W1_18_RECORD_RE.match(good["record_path"])
+    mk.check_w1_18_pin(good, "llama31-8b")
+    bad = {**good, "record_path": mk.RECORDS_DIR + name}
+    assert not rk.W1_18_RECORD_RE.match(bad["record_path"]) or name.endswith("olmo2-7b.json")
+    with pytest.raises(s1.Refusal, match="RK's standard name"):
+        mk.check_w1_18_pin(bad, "llama31-8b")

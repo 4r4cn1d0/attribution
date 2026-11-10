@@ -415,3 +415,62 @@ def test_the_makers_check_reports_a_file_that_differs(tmp_path):
     target.write_bytes(target.read_bytes() + b" ")
     code, _, err = f.call(mk.main, [*base, "--check"])
     assert code == 1 and "DIFFERS: 1 files" in err
+
+
+# ----- W2-4 (R1's second re-verification; R3): the W1-18 settings under engine X's identity on any host ---------------
+
+
+def test_engine_x_identity_is_rks_and_the_committed_settings():
+    """ENGINE_X_IDENTITY is RK's ENGINE_X (runkit/stage1-78b/rules_78b.py), the 1B oext_unit settings' engine_x (the
+    maker's X identity) and both committed W1-18 settings' engine_x."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("rules_78b_for_w2_4", Path(w.__file__).resolve().parents[2] /
+                                                  "runkit" / "stage1-78b" / "rules_78b.py")
+    rk = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(rk)
+    assert w.ENGINE_X_IDENTITY == rk.ENGINE_X == mk.load_base("oext_unit")["engine_x"]
+    for family in w.FAMILIES:
+        doc = json.loads((mk.SETTINGS_DIR / mk.file_name("limits_overrefusal_checks", family)).read_bytes())
+        assert doc["engine_x"] == w.ENGINE_X_IDENTITY
+
+
+def engine_y_host(monkeypatch) -> None:
+    """A simulated engine-Y host from now on: the running engine's identity is the fixture's engine Y (the Mac's is
+    engine X). Called after the fixture world is built (its 1B builders run on the Mac's engine X)."""
+    real = s1.code_identity
+    assert real()["sha256"] == w.ENGINE_X_IDENTITY != f.ENGINE_Y_FIXTURE
+    monkeypatch.setattr(s1, "code_identity", lambda: {**real(), "sha256": f.ENGINE_Y_FIXTURE})
+
+
+def test_w1_18s_settings_pass_the_check_on_an_engine_y_host(tmp_path, monkeypatch):
+    """W2-4: on an engine-Y host the W1 index's W1-18 settings (engine_x = engine X) are valid, under engine X."""
+    fam, _, _ = side_units_family(tmp_path)
+    engine_y_host(monkeypatch)
+    code, out, err = f.wrapper(fam, ["check", "--family", f.FAMILY, "--engine", "W1"])
+    assert code == 0, err[-300:]
+    assert json.loads(out)["settings"] == {"limits_overrefusal_checks": "valid"}
+
+
+def test_the_y_index_passes_the_check_on_an_engine_y_host(tmp_path, monkeypatch):
+    """W2-4: the Y index on an engine-Y host: its Y files under engine Y's identity, the W1-18 settings under X's."""
+    env = f.unit_world(tmp_path / "u", "full", full_reason="w2-4: no record", engine_y=True)
+    f.put_unit_settings(env, engine_y=True)
+    engine_y_host(monkeypatch)
+    code, out, err = f.wrapper(env, ["check", "--family", f.FAMILY, "--engine", "Y"])
+    assert code == 0, err[-300:]
+    assert json.loads(out)["settings"] == {"limits_overrefusal_checks": "valid", "oext_eval_y": "valid",
+                                           "oext_unit_y": "valid"}
+
+
+@pytest.mark.parametrize("host", ["x", "y"])
+def test_w1_18_settings_naming_another_engine_refuse_on_every_host(tmp_path, monkeypatch, host):
+    """W2-4: the check is engine X's identity, not the running engine's or the file's own: W1-18 settings naming the
+    running engine Y (on a Y host) or engine Y (on the Mac) refuse."""
+    fam, settings, _ = side_units_family(tmp_path)
+    settings["engine_x"] = f.ENGINE_Y_FIXTURE
+    fam.put("limits_overrefusal_checks", settings)
+    if host == "y":
+        engine_y_host(monkeypatch)
+    code, _, err = f.wrapper(fam, ["check", "--family", f.FAMILY, "--engine", "W1"])
+    assert code == 2 and "limits_overrefusal_checks" in err and "names engine" in err, err[-300:]

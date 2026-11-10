@@ -164,6 +164,8 @@ X_ONLY_KINDS = frozenset({"untuned_answers", "o_only", "o_only_with_regenerate",
                           "classifier", "c0", "w1_18"})   # R1 K1: w1_18 is a wrapper kind too (Track O's oext_78b.py)
 RECIPE_G: dict[str, str | None] = {"olmo2-7b": None, "llama31-8b": None}     # the recipe-G reference's config_sha256
 #                                           (references come before block A; the measured G configs stay in CONFIGS)
+RECIPE_G_PATH: dict[str, str | None] = {"olmo2-7b": None, "llama31-8b": None}   # R3 K3 (13g): the G config's path,
+RECIPE_BQI_PATH: dict[str, str | None] = {"olmo2-7b": None, "llama31-8b": None}  # filled with its pin (one step)
 RECIPE_BQI: dict[str, str | None] = {"olmo2-7b": None, "llama31-8b": None}   # B+Qi's config_sha256 (engine Y; the
 #                                           re-verifier's D1: KCR:128 "B+Qi refused until measured")
 BQI_KINDS = frozenset({"ref_train_bqi"})  # the kinds that run under RECIPE_BQI only (A1's pattern, as S78_KINDS)
@@ -344,7 +346,7 @@ S3_POOL_ITEMS = 861                       # R: scripts/scale78b/settings/pins_78
 #                                           (the untuned pass's S3 call answers every prompt of the s3_safe pool; PP2)
 O_EXT_PROMPTS = 600                       # R: stage1_rules.py O_ONLY_FACTOR: the 500-prompt bank plus the dev 100
 E_KINDS = ("untuned_answers", "o_only", "o_only_with_regenerate", "anchor", "rep_pass", "a1_pass",
-           "l1_scan", "classifier", "c0", "retrain", "ref_train_bqi", "safe_lora", "ref_eval", "w1_18")
+           "l1_scan", "classifier", "c0", "retrain", "ref_train_bqi", "safe_lora", "ref_eval", "w1_18", "b10_certify")
 # R1 K1, the O-ext cap term (DESO item 24 (a), (b); Part 2 §4.3; GXB O12). Block A and B arm jobs (arm, a0_arm) and
 # recipe G's ref_train evaluate O-ext on the new unit's e1 state in the same job (DES E3), and so do the references
 # (ref_eval and safe_lora per point, ref_train_bqi once; DESO item 24 (b)). The in-job pass answers the 400 PHTest
@@ -542,8 +544,8 @@ def engine_allowed(kind: str, engine_sha256) -> bool:
         return engine_sha256 == ENGINE_X
     if engine_sha256 == ENGINE_X:
         return True
-    if ENGINE_Y is not None and engine_sha256 == ENGINE_Y:
-        return kind in E_KINDS or Y_MEASURED is True
+    if ENGINE_Y is not None and engine_sha256 == ENGINE_Y:      # R3 K3 (R-67): measured kinds need the record pin too
+        return kind in E_KINDS or (Y_MEASURED is True and Y_MEASURED_RECORD is not None)
     return False
 
 
@@ -1081,6 +1083,12 @@ def e_upper_s(family: str, kind: str, n_points: int = 1) -> dict:
                  "and states (E) when the state is not on the pod, 300 s of adapter scaling (E), x 1.5; plus one "
                  "evalonly bound (M) and one O-ext pass (oext_term_s: x 1.5 until measured; DESO item 24 (b); GXB O12) "
                  "per point. Source: stage1_rules.py J16, REF_EVAL_SCALES.")
+    elif kind == "b10_certify":                # R3 K3 (GXB O2, X2): one certify evaluation of seed S's regenerated a0
+        upper = (WIDE_CAP_FACTOR * (train38 + 3 * STATE_WRITE_S)
+                 + evalonly_upper_s(family) + oext_term_s(family))
+        basis = ("E: B10's certification of one reference seed (GXB O2): a regenerate's training (M) and states (E), x "
+                 "1.5; plus one evalonly bound (M) and one O-ext pass (certify records O-ext as a report; oext_term_s: x "
+                 "1.5 until measured). Source: the stage-1 kit's b10_certify; ref_eval's bound at one point.")
     elif kind == "w1_18":
         upper = WIDE_CAP_FACTOR * STAGE1_1B_ESTIMATES_S["w1_18"]
         basis = ("E: the 7-8B W1-18 check (DES E2; DESO2 item 37): guard-only, the same guard model as at 1B "
@@ -2510,7 +2518,7 @@ W1_18_HOST_FAMILY = "olmo2-7b"            # GXB K-3 (fourth set): the one W1-18 
 # The kinds whose every job reads the 500 bank (the O-ext pass), and so refuse before the family's branch record;
 # block A and B's arm jobs read it too (their in-job O-ext step; DES E3), block 0's never (bank500_job).
 BANK500_KINDS = frozenset({"o_only", "o_only_with_regenerate", "c0", "ref_eval", "safe_lora", "ref_train",
-                           "ref_train_bqi"})
+                           "ref_train_bqi", "b10_certify"})   # R3 K3: certify runs O-ext as a report (B10's settings)
 BANK500_BLOCKS = ("A", "B")               # the blocks whose arm and a0_arm jobs carry the in-job O-ext step
 OEXT_BANK_KINDS = BANK500_KINDS | {"arm", "a0_arm"}   # the kinds that may name an O-ext bank in check_keys
 BRANCH_RECORD_KIND = "stage1-78b branch record"
@@ -2634,13 +2642,124 @@ def branch_switch_problem(family: str, new_doc, pinned_bytes: bytes | None = Non
 def oext_flags(family: str, kind: str, branch_bytes: bytes, regenerated: bool = False) -> dict:
     """The Branch-128 flags (DESO item 9; Part 2 §4.2): under Branch 128 every O-ext command takes --w1-18-record
     (c0, o_only, o_only_with_regenerate and the arm step) and the regenerated units also --dev100-source; under Branch
-    full neither. The branch is read only from the family's pinned record (``branch_bytes`` at BRANCH_78B)."""
+    full no --dev100-source. The branch is read only from the family's pinned record (``branch_bytes`` at BRANCH_78B).
+    R3 K3 (GXB R-47, M: a fixture through the unchanged oext_eval, tests/test_runner_ab_78b.py): under Branch full
+    from a FAILING W1-18 record (source "w1_18") the O-ext eval settings pin that record, and oext_eval.prepare ->
+    read_w1_18 reads it at run time (a missing --w1-18-record refuses "W1-18's record cannot be read"), so the flag is
+    passed whenever the branch record names a W1-18 record; "Branch full by default" (no record) passes none."""
     branch_doc = branch_record_or_refuse(family, branch_bytes)
     if kind not in OEXT_BANK_KINDS:
         raise Refused(f"{kind} has no O-ext step")
-    if branch_doc["branch"] != "128":
-        return {"w1_18_record": None, "dev100_source": False}
-    return {"w1_18_record": branch_doc["w1_18_record_sha256"], "dev100_source": bool(regenerated)}
+    record = branch_doc["w1_18_record_sha256"] if branch_doc["source"] == "w1_18" else None
+    return {"w1_18_record": record, "dev100_source": branch_doc["branch"] == "128" and bool(regenerated)}
+
+
+# ----- R3 K3 (item 13): the evaluation-only references through scripts/scale78b/refs_78b.py (Part 2 §3.1, §3.2, §16.1;
+# GXB O2, X2, R-34, R-35, R-37, R-38 amended, R-41, R-42; Track R's P7) -----
+REFERENCE_SEEDS = (1102, 1103, 1104, 1105, 1106, 1107)   # R: refs_78b.REFERENCE_SEEDS (the 6-seed set; F1 drops 1105-1107)
+REF_KINDS = ("b10_certify", "ref_eval", "safe_lora")     # B10 / B11 through Track R's wrapper, per reference seed
+REFS_WRAPPER_78B = "scripts/scale78b/refs_78b.py"
+REFS_INDEX_RE = re.compile(r"^scripts/scale78b/settings/REFS-78B__(olmo2-7b|llama31-8b)__(110[2-7])\.json$")
+REFS_INDEX_CANDIDATE_RE = re.compile(r"(^|/)refs-78b[^/]*$", re.IGNORECASE)
+# REFS_78B[F][S]: Track R's maker's printed form (make_refs_settings_78b.py --refs-78b F S): {"files": {path under
+# scripts/: SHA-256} (the wrapper, the seed's index and settings, the 1B B10/B11 code), "inputs": {"oext_bank",
+# "oext_record"}}; null until a recorded lead step fills it (after Track O's O-ext fill: P6 (b)).
+REFS_78B: dict[str, dict[int, dict | None]] = {f: {s: None for s in REFERENCE_SEEDS} for f in ("olmo2-7b", "llama31-8b")}
+REFS_EVENT = ("Track R's maker prints REFS_78B[F][S]'s form (make_refs_settings_78b.py --refs-78b F S) once seed S's a0 "
+              "unit and 1101's fingerprints are filled in Track R's pins; a recorded lead step fills it (Track R's P7)")
+# The 1B safety-prompt text file (the B10 settings' prefix.text_sha256; Part 2 §3.2): packed by path and this SHA-256.
+REF_PREFIX_SHA256 = "0fcc6beb8240d7b8e7b8c19bb033af6c8a66e568e50afc33f58707a503fdec98"
+B10_EXIT_CERTIFICATION = 4                # R: eval_adapter.py EXIT_CERTIFICATION (the stage-1 kit's B10's failed gate)
+
+
+def ref_cert_source(family: str, seed) -> str:
+    """GXB R-35: the a0 unit seed S's certification pins: "side" (a reused side unit: 1102; 1103 on OLMo-2-7B), "n"
+    (N's a0-1103 on Llama-3.1-8B, ruling 8), "A" (block A's a0, 1104) or "B" (block B's a0, 1105-1107)."""
+    family_of(family)
+    if seed not in REFERENCE_SEEDS:
+        raise Refused(f"{seed!r} is not a reference seed {list(REFERENCE_SEEDS)}")
+    if seed == 1103 and family == "llama31-8b":
+        return "n"
+    if seed in KIT[family]["a0_units"]:
+        return "side"
+    return "A" if seed in BLOCK_A_A0_SEEDS else "B"
+
+
+def refs_form_problem(pin, family: str, seed) -> str | None:
+    """Why ``pin`` is not REFS_78B[family][seed]'s form, or None: exactly {files, inputs}; files plain paths under
+    scripts/ with SHA-256s, the wrapper among them, exactly one refs index (any basename starting REFS-78B) and it the
+    family's and seed's standard one; inputs exactly OEXT_INPUTS' SHA-256s."""
+    if not isinstance(pin, dict) or set(pin) != {"files", "inputs"}:
+        return "its keys are not exactly files and inputs"
+    files, inputs = pin["files"], pin["inputs"]
+    if not isinstance(files, dict) or not files:
+        return "files is not a non-empty mapping"
+    for path, digest in files.items():
+        if not _plain_rel(path, "scripts/") or not _hex(digest):
+            return f"files[{path!r}] is not a plain path under scripts/ with a SHA-256"
+    if REFS_WRAPPER_78B not in files:
+        return f"its files do not pin the wrapper {REFS_WRAPPER_78B}"
+    found = [p for p in files if REFS_INDEX_CANDIDATE_RE.search(p)]
+    want = f"scripts/scale78b/settings/REFS-78B__{family}__{seed}.json"
+    if found != [want]:
+        return f"its files name the refs index file(s) {sorted(found)}; exactly {want}"
+    if not isinstance(inputs, dict) or set(inputs) != set(OEXT_INPUTS) or not all(_hex(v) for v in inputs.values()):
+        return f"inputs does not hold exactly {list(OEXT_INPUTS)} as SHA-256s"
+    return None
+
+
+def refs_or_refuse(family: str, seed) -> dict:
+    """REFS_78B[family][seed] in its form; Refused while null (its event) or off its form."""
+    ref_cert_source(family, seed)
+    pin = REFS_78B[family].get(seed)
+    if pin is None:
+        raise Refused(f"REFS_78B[{family!r}][{seed}] is null: {REFS_EVENT}")
+    problem = refs_form_problem(pin, family, seed)
+    if problem:
+        raise Refused(f"REFS_78B[{family!r}][{seed}] is not in its form: {problem}")
+    return pin
+
+
+# ----- R3 K3 (R-67; KD9): the engine-Y measured record, the pin measured kinds on Y wait for -----
+Y_MEASURED_RECORD_KIND = "stage1-78b engine-Y measured record"
+Y_MEASURED_KEYS = ("kind", "version", "engine_y", "gpu", "records", "utc", "recorded_by")
+Y_REMEASURE_KIND = "stage1-78b engine-Y re-measure"      # the runner's per-job record (job-I/y-remeasure.json)
+Y_MEASURED_RECORD: dict | None = None     # {path, sha256} of record-y-measured's record, filled by a recorded step
+Y_MEASURED_EVENT = ("the first engine-Y pod (ruling 10's a0-1101 retrain) pulled and recorded done, then plan_tool.py "
+                    "record-y-measured writes the measured record from its y-remeasure.json files; a recorded lead step "
+                    "fills Y_MEASURED_RECORD with its path and SHA-256 and sets Y_MEASURED (KD9; GXB R-67)")
+
+
+def y_measured_problem(doc) -> str | None:
+    """Why ``doc`` is not the engine-Y measured record (record-y-measured's form), or None: exactly Y_MEASURED_KEYS;
+    engine_y = ENGINE_Y's pin, gpu the measured GPU, records a non-empty list of {path, sha256, family, job_kind} with
+    a retrain among them (the first Y pod's job, ruling 10)."""
+    if not isinstance(doc, dict) or set(doc) != set(Y_MEASURED_KEYS):
+        return f"it must hold exactly {list(Y_MEASURED_KEYS)}"
+    if doc["kind"] != Y_MEASURED_RECORD_KIND or doc["version"] != 1 or not _int(doc["version"]):
+        return f"it is not a {Y_MEASURED_RECORD_KIND!r} version 1"
+    if ENGINE_Y is None or doc["engine_y"] != ENGINE_Y:
+        return "its engine_y is not ENGINE_Y's pin"
+    if doc["gpu"] != GPU_NAME:
+        return "its GPU is not the measured one"
+    recs = doc["records"]
+    if not isinstance(recs, list) or not recs or not all(
+            isinstance(r, dict) and set(r) == {"path", "sha256", "family", "job_kind"} and _plain_rel(r["path"])
+            and _hex(r["sha256"]) and r["family"] in FAMILIES for r in recs):
+        return "records is not a non-empty list of {path, sha256, family, job_kind}"
+    if not any(r["job_kind"] == "retrain" for r in recs):
+        return "no record is the a0-1101 retrain's (the first Y pod, ruling 10)"
+    if not (isinstance(doc["utc"], str) and doc["utc"].strip() and isinstance(doc["recorded_by"], str)
+            and doc["recorded_by"].strip()):
+        return "utc and recorded_by must be non-empty texts"
+    return None
+
+
+def y_measured_or_refuse(data: bytes | None) -> dict:
+    """The engine-Y measured record from ``data`` (the bytes at Y_MEASURED_RECORD's path): Refused while the pin is
+    null, when the bytes do not hash to it, or when the record is off its form."""
+    return _pinned_record_or_refuse("Y_MEASURED_RECORD", Y_MEASURED_RECORD, Y_MEASURED_EVENT, data or b"",
+                                    Y_MEASURED_RECORD_KIND, y_measured_problem)
 
 
 def golden_table() -> dict:

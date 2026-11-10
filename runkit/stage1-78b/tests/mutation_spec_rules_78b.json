@@ -480,24 +480,27 @@
    "part": "A13 (KD9)",
    "describes": "engine_allowed: measured kinds run on Y before KD9",
    "file": "rules_78b.py",
-   "find": "        return kind in E_KINDS or Y_MEASURED is True\n",
-   "replace": "        return True\n"
+   "find": "        return kind in E_KINDS or (Y_MEASURED is True and Y_MEASURED_RECORD is not None)\n",
+   "replace": "        return True\n",
+   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
   },
   {
    "id": "K1-m-engine-y-e-kinds-off",
    "part": "A13",
    "describes": "engine_allowed: E-capped kinds refuse Y even once ENGINE_Y is filled",
    "file": "rules_78b.py",
-   "find": "        return kind in E_KINDS or Y_MEASURED is True\n",
-   "replace": "        return Y_MEASURED is True\n"
+   "find": "        return kind in E_KINDS or (Y_MEASURED is True and Y_MEASURED_RECORD is not None)\n",
+   "replace": "        return (Y_MEASURED is True and Y_MEASURED_RECORD is not None)\n",
+   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
   },
   {
    "id": "K1-m-engine-y-null-passes",
    "part": "A13",
    "describes": "engine_allowed: any non-X engine passes while ENGINE_Y is null",
    "file": "rules_78b.py",
-   "find": "    if ENGINE_Y is not None and engine_sha256 == ENGINE_Y:\n        return kind in E_KINDS or Y_MEASURED is True\n    return False\n",
-   "replace": "    if ENGINE_Y is not None and engine_sha256 == ENGINE_Y:\n        return kind in E_KINDS or Y_MEASURED is True\n    return ENGINE_Y is None\n"
+   "find": "    if ENGINE_Y is not None and engine_sha256 == ENGINE_Y:      # R3 K3 (R-67): measured kinds need the record pin too\n        return kind in E_KINDS or (Y_MEASURED is True and Y_MEASURED_RECORD is not None)\n    return False\n",
+   "replace": "    if ENGINE_Y is not None and engine_sha256 == ENGINE_Y:      # R3 K3 (R-67): measured kinds need the record pin too\n        return kind in E_KINDS or (Y_MEASURED is True and Y_MEASURED_RECORD is not None)\n    return ENGINE_Y is None\n",
+   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
   },
   {
    "id": "K1-m-sealed-set-null-passes",
@@ -664,8 +667,9 @@
    "part": "K4a (PP16)",
    "describes": "engine_allowed checks X_ONLY_KINDS after engine Y (not first)",
    "file": "rules_78b.py",
-   "find": "    if kind in X_ONLY_KINDS:\n        return engine_sha256 == ENGINE_X\n    if engine_sha256 == ENGINE_X:\n        return True\n    if ENGINE_Y is not None and engine_sha256 == ENGINE_Y:\n        return kind in E_KINDS or Y_MEASURED is True\n    return False\n",
-   "replace": "    if engine_sha256 == ENGINE_X:\n        return True\n    if ENGINE_Y is not None and engine_sha256 == ENGINE_Y:\n        return kind in E_KINDS or Y_MEASURED is True\n    if kind in X_ONLY_KINDS:\n        return engine_sha256 == ENGINE_X\n    return False\n"
+   "find": "    if kind in X_ONLY_KINDS:\n        return engine_sha256 == ENGINE_X\n    if engine_sha256 == ENGINE_X:\n        return True\n    if ENGINE_Y is not None and engine_sha256 == ENGINE_Y:      # R3 K3 (R-67): measured kinds need the record pin too\n        return kind in E_KINDS or (Y_MEASURED is True and Y_MEASURED_RECORD is not None)\n    return False\n",
+   "replace": "    if engine_sha256 == ENGINE_X:\n        return True\n    if ENGINE_Y is not None and engine_sha256 == ENGINE_Y:      # R3 K3 (R-67): measured kinds need the record pin too\n        return kind in E_KINDS or (Y_MEASURED is True and Y_MEASURED_RECORD is not None)\n    if kind in X_ONLY_KINDS:\n        return engine_sha256 == ENGINE_X\n    return False\n",
+   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
   },
   {
    "id": "K4-m-x-only-plus-retrain",
@@ -1241,16 +1245,18 @@
    "part": "5f",
    "describes": "--w1-18-record dropped on c0",
    "file": "rules_78b.py",
-   "find": "    return {\"w1_18_record\": branch_doc[\"w1_18_record_sha256\"], \"dev100_source\": bool(regenerated)}",
-   "replace": "    return {\"w1_18_record\": None if kind == \"c0\" else branch_doc[\"w1_18_record_sha256\"], \"dev100_source\": bool(regenerated)}"
+   "find": "    record = branch_doc[\"w1_18_record_sha256\"] if branch_doc[\"source\"] == \"w1_18\" else None\n",
+   "replace": "    record = None if kind == \"c0\" else (branch_doc[\"w1_18_record_sha256\"] if branch_doc[\"source\"] == \"w1_18\" else None)\n",
+   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
   },
   {
    "id": "K1R-m-dev100-on-theta0",
    "part": "5f",
    "describes": "--dev100-source on theta0 (every O-ext command)",
    "file": "rules_78b.py",
-   "find": "\"dev100_source\": bool(regenerated)}",
-   "replace": "\"dev100_source\": True}"
+   "find": "\"dev100_source\": branch_doc[\"branch\"] == \"128\" and bool(regenerated)}",
+   "replace": "\"dev100_source\": True}",
+   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
   },
   {
    "id": "K1R-m-seed-key-seed-only",
@@ -1713,8 +1719,9 @@
    "part": "K1V-9",
    "describes": "a missing arm names the side unit by default",
    "file": "stage1_rules.py",
-   "find": "        if arm is None:\n            raise ValueError(\"o_only_with_regenerate names its unit",
-   "replace": "        if False:\n            raise ValueError(\"o_only_with_regenerate names its unit"
+   "find": "    if arm is None:\n        raise ValueError(\"o_only_with_regenerate names its unit",
+   "replace": "    if False:\n        raise ValueError(\"o_only_with_regenerate names its unit",
+   "note_r3": "R3 K3: re-targeted to _unit_source, where the one check now lives (same mutation)"
   },
   {
    "id": "K1V-m-block0-new-keys",
@@ -1988,6 +1995,46 @@
    "file": "rules_78b.py",
    "find": "    if Fraction(PLAN_MDE_FACTORS[plan]) * sigma > 2 * SESOI_PP:",
    "replace": "    if Fraction(PLAN_MDE_FACTORS[plan]) * sigma >= 2 * SESOI_PP - Fraction(1, 10 ** 6):"
+  },
+  {
+   "id": "K3-m-r47-128-only",
+   "part": "R-47",
+   "describes": "--w1-18-record only under Branch 128 (a failing record's Branch full drops it)",
+   "file": "rules_78b.py",
+   "find": "    record = branch_doc[\"w1_18_record_sha256\"] if branch_doc[\"source\"] == \"w1_18\" else None\n",
+   "replace": "    record = branch_doc[\"w1_18_record_sha256\"] if branch_doc[\"branch\"] == \"128\" else None\n"
+  },
+  {
+   "id": "K3-m-dev100-under-full-rk",
+   "part": "5f",
+   "describes": "--dev100-source on a regenerated unit under Branch full",
+   "file": "rules_78b.py",
+   "find": "\"dev100_source\": branch_doc[\"branch\"] == \"128\" and bool(regenerated)}",
+   "replace": "\"dev100_source\": bool(regenerated)}"
+  },
+  {
+   "id": "K3-m-seed-only-back",
+   "part": "R-16, R-31",
+   "describes": "the seed-only form comes back (a missing arm is the side unit)",
+   "file": "stage1_rules.py",
+   "find": "    if arm is None:\n        raise ValueError(\"o_only_with_regenerate names its unit by (arm, seed): the arm is missing (GXB's seed key)\")\n    try:\n        return r78.sc_unit_source",
+   "replace": "    if arm is None:\n        return \"side\"\n    try:\n        return r78.sc_unit_source"
+  },
+  {
+   "id": "K3c-m-y-measured-no-record",
+   "part": "R-67",
+   "describes": "measured kinds run on Y on the bool alone",
+   "file": "rules_78b.py",
+   "find": "        return kind in E_KINDS or (Y_MEASURED is True and Y_MEASURED_RECORD is not None)",
+   "replace": "        return kind in E_KINDS or Y_MEASURED is True"
+  },
+  {
+   "id": "K3c-m-b10-not-bank500",
+   "part": "13b",
+   "describes": "b10_certify does not wait for the branch record",
+   "file": "rules_78b.py",
+   "find": "                           \"ref_train_bqi\", \"b10_certify\"})",
+   "replace": "                           \"ref_train_bqi\"})"
   }
  ]
 }

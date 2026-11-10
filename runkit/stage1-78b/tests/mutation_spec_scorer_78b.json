@@ -617,8 +617,9 @@
    "part": "A1, PP4",
    "describes": "an S_78 job's key check reads the main config",
    "file": "setup/job_runner_stage1.py",
-   "find": "        key = (job.get(\"recipe_s78\") or {}).get(\"config_sha256\") if job.get(\"recipe\") == \"S\" else recipe   # K4b (A1)\n",
-   "replace": "        key = recipe\n"
+   "find": "    if job.get(\"recipe\") == \"S\":\n        return (job.get(\"recipe_s78\") or {}).get(\"config_sha256\")\n",
+   "replace": "    if job.get(\"recipe\") == \"S\":\n        return main\n",
+   "note_r3": "R3 K3 (R-84): re-targeted to recipe_key (same mutation: an S_78 job's key is the main config's)"
   },
   {
    "id": "K4b-m-runner-preflight-s78-unchecked",
@@ -721,8 +722,9 @@
    "part": "PP17",
    "describes": "the O-ext pass reads the regenerated q state, not e1",
    "file": "setup/job_runner_stage1.py",
-   "find": "\"--run\", unit, \"--checkpoint\", \"e1\",",
-   "replace": "\"--run\", unit, \"--checkpoint\", \"q\","
+   "find": "        state = [\"--run\", unit, \"--checkpoint\", \"e1\"]\n",
+   "replace": "        state = [\"--run\", unit, \"--checkpoint\", \"q\"]\n",
+   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
   },
   {
    "id": "K4bf-m-oext-empty-ok",
@@ -929,8 +931,9 @@
    "part": "PP17",
    "describes": "the pack knows no side unit input (no seed)",
    "file": "pack_setup.py",
-   "find": "        for seed in r78.sc_seeds(family, kind):          # PP17",
-   "replace": "        for seed in [None]:          # PP17"
+   "find": "            for u in r78.sc_units(family, kind):\n",
+   "replace": "            for u in [{\"arm\": None, \"seed\": None}]:\n",
+   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
   },
   {
    "id": "K4bf-m-pack-inputs-unscanned",
@@ -953,8 +956,9 @@
    "part": "K5 (core K4bcr-D1)",
    "describes": "c0 passes the plan's expect_fingerprint, not the packed source unit's",
    "file": "setup/job_runner_stage1.py",
-   "find": "        expect = c0_fingerprint(root, ins[C0_SOURCE_INPUT], job, index)   # K5: from the packed source unit",
-   "replace": "        expect = job[\"expect_fingerprint\"]"
+   "find": "        expect = c0_fingerprint(root, ins[C0_SOURCE_INPUT], job, index) if MAC_ROOT is None else \\\n",
+   "replace": "        expect = job[\"expect_fingerprint\"] if MAC_ROOT is None else \\\n",
+   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
   },
   {
    "id": "K5-c0-no-compare",
@@ -1147,16 +1151,18 @@
    "part": "K6 (round 6), K5v-6",
    "describes": "the bundle's scan is called with edits/ among the skipped prefixes (the constant DATA_PREFIXES unchanged)",
    "file": "pack_setup.py",
-   "find": "    refuse_secrets(files, {**payload, \"probe.json\": probe_json, rules.KIT_FAMILY_FILE: family_json}, DATA_PREFIXES,\n                   frozenset(f\"{data_base}/{rel}\" for rel in data_scan))\n",
-   "replace": "    refuse_secrets(files, {**payload, \"probe.json\": probe_json, rules.KIT_FAMILY_FILE: family_json}, (*DATA_PREFIXES, \"edits/\"),\n                   frozenset(f\"{data_base}/{rel}\" for rel in data_scan))\n"
+   "find": "    refuse_secrets(files, {**payload, \"probe.json\": probe_json, rules.KIT_FAMILY_FILE: family_json}, DATA_PREFIXES,\n                   frozenset(f\"{data_base}/{rel}\" for rel in data_scan) | frozenset(w1_scan))\n",
+   "replace": "    refuse_secrets(files, {**payload, \"probe.json\": probe_json, rules.KIT_FAMILY_FILE: family_json}, (*DATA_PREFIXES, \"edits/\"),\n                   frozenset(f\"{data_base}/{rel}\" for rel in data_scan) | frozenset(w1_scan))\n",
+   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
   },
   {
    "id": "K6-pack-unlisted-data-not-scanned",
    "part": "K6 (round 6), K5v-3",
    "describes": "the bundle's scan is not given the prepared set's unpinned files (scan_anyway dropped at the call site)",
    "file": "pack_setup.py",
-   "find": "    refuse_secrets(files, {**payload, \"probe.json\": probe_json, rules.KIT_FAMILY_FILE: family_json}, DATA_PREFIXES,\n                   frozenset(f\"{data_base}/{rel}\" for rel in data_scan))\n",
-   "replace": "    refuse_secrets(files, {**payload, \"probe.json\": probe_json, rules.KIT_FAMILY_FILE: family_json}, DATA_PREFIXES)\n"
+   "find": "    refuse_secrets(files, {**payload, \"probe.json\": probe_json, rules.KIT_FAMILY_FILE: family_json}, DATA_PREFIXES,\n                   frozenset(f\"{data_base}/{rel}\" for rel in data_scan) | frozenset(w1_scan))\n",
+   "replace": "    refuse_secrets(files, {**payload, \"probe.json\": probe_json, rules.KIT_FAMILY_FILE: family_json}, DATA_PREFIXES)\n",
+   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
   },
   {
    "id": "K6-refuse-ignores-scan-anyway",
@@ -2342,6 +2348,14 @@
    "file": "plan_tool.py",
    "find": "    if data is None or data != kit_inputs(gate) or hashlib.sha256(data).hexdigest() != inputs_sha256:",
    "replace": "    if data is None or data != kit_inputs(gate):"
+  },
+  {
+   "id": "K3-m-part-new-leftover",
+   "part": "K2R2-1",
+   "describes": "a leftover <part>.new is not refused by name",
+   "file": "plan_tool.py",
+   "find": "            if new.exists() or new.is_symlink():         # R3 K3 (K2R2-1): a leftover from an interrupted replacement",
+   "replace": "            if False:"
   }
  ]
 }

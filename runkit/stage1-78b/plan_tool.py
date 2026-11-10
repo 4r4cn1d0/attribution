@@ -1293,7 +1293,26 @@ def sc_job(plan: dict, raw, where: str, pins78: dict, values: dict, done: dict) 
     if kind == "a1_pass":
         job["groups"] = rescore_groups()
         job["retrain_complete_sha256"] = unit_pin
+    if kind == "w1_18":                                  # GXB R-60: W1-18's families are GATE_78B's
+        job["families"] = w1_18_gate_families(where)
     return job
+
+
+def w1_18_gate_families(where: str) -> list[str]:
+    """GXB R-60: the families of the one W1-18 pod are GATE_78B's (read at its pin); W1_18_78B's side units must name
+    exactly them; refused while either pin is null or they differ."""
+    if r78.GATE_78B is None:
+        fail(f"{where}: w1_18 runs the gate's families (GXB R-60): GATE_78B is null: {r78.GATE_EVENT}")
+    try:
+        gate = r78.gate_record_or_refuse(pin_bytes(r78.GATE_78B, "GATE_78B", r78.GATE_EVENT))
+    except r78.Refused as exc:
+        fail(f"{where}: {exc}")
+    fams = sorted(gate["families"])
+    route = r78.W1_18_78B or {}
+    if sorted(route.get("side_units") or ()) != fams:
+        fail(f"{where}: W1_18_78B's side units {sorted(route.get('side_units') or ())} are not GATE_78B's families "
+             f"{fams} (GXB R-60)")
+    return fams
 
 
 # GXB K-1, KR6: one wrapper path serves c0 and the O-ext kinds (T-O3), so a job is checked by its command word: c0 runs
@@ -1655,9 +1674,22 @@ def similarity_entry(plan: dict) -> dict:
 # ----- host records -----------------------------------------------------------------------------------------------
 
 
+def y_measured_read(where: str) -> dict:
+    """GXB R-87 (I-2): before a measured kind is planned or released on engine Y, the engine-Y measured record is read
+    on the Mac at Y_MEASURED_RECORD's pin (pin_bytes) and checked (rules_78b.y_measured_or_refuse); a null pin, a
+    missing or changed file, or a record off its form refuses."""
+    data = pin_bytes(r78.Y_MEASURED_RECORD, "Y_MEASURED_RECORD", r78.Y_MEASURED_EVENT)
+    try:
+        return r78.y_measured_or_refuse(data)
+    except r78.Refused as exc:
+        fail(f"{where}: {exc}")
+
+
 def host_record(plan: dict, block: str, role: str, jobs: list[dict], sealed_files_sha256: str | None,
                 launch: int) -> dict:
     engines = {j["engine"] for j in jobs}
+    if "Y" in engines and any(j["kind"] in r78.MEASURED_KINDS for j in jobs):   # GXB R-87: planning
+        y_measured_read(f"block {block}: a measured kind on engine Y")
     if len(engines) != 1:
         fail(f"block {block}: one engine per pod (G4)")
     if rules.arm_count(jobs) > rules.MAX_ARMS_PER_POD:
@@ -1666,7 +1698,8 @@ def host_record(plan: dict, block: str, role: str, jobs: list[dict], sealed_file
     engine = engines.pop()
     cap = rules.cap_hours(jobs)
     return {"wave": block, "block": block, "launch": launch, "role": role, "base_eval": False, "engine": engine,
-            "engine_sha256": engine_pin(engine), "stage": f"stage1-{engine}",
+            "engine_sha256": None if engine == "Y" and r78.ENGINE_Y is None else engine_pin(engine),   # R3 K3: B+Qi's
+            "stage": f"stage1-{engine}",                     # host is priced while ENGINE_Y is null; its release refuses
             "sealed_files_sha256": sealed_files_sha256, "cap_hours": cap, "guard_usd": rules.guard_usd(cap),
             "spend_upper_usd": rules.pod_spend_usd(jobs), "counted": rules.arm_count(jobs), "jobs": jobs,
             "done": False, **rules.POD_SIZES}
@@ -3669,7 +3702,7 @@ def deal_command(block: str, reuse: list, anchor_job_done=None) -> dict:
 LEGACY_A = "A (stage-1 1B)"     # the 1B kit's block-A route: every 1B check keyed to block "A" names this sentinel, so
 #                                 no 7-8B block ever takes it (GXB B-2, K-2)
 AB_BLOCKS = ("A", "B")
-AB_JOBS_KEYS = {"family", "launches", "dose_seeds"}
+AB_JOBS_KEYS = {"family", "launches", "dose_seeds", "reference_set"}   # R3 K3 (13g): reference_set (block B)
 # The frozen readers' outputs the record steps read (pins; R: blinded_sigma.py NOISE_READING; RK test_46).
 NOISE_READING_SCRIPT = ("scripts/scale78b/noise_reading.py",
                         "94b679ffeee7656c5b8c6e97b2275bb05260b61cac50743f357ef8ce2c40d436")
@@ -4188,6 +4221,12 @@ def init_block_ab(args: argparse.Namespace, block: str) -> dict:
     rejudged = r78.rejudged_pins(family, block)          # the count only: N's entries wait for N_UNITS, and the judge
     units = len(runs) + len(rejudged)                    # route refuses until then (units-of-block, record-judges)
     launches = ab_launches(launches_spec, block, len(pods))
+    ref_set = reference_set_of(spec, block)              # R3 K3 (13g): block B's references, after its arm launches
+    ref_launches = [{"refs": role, "jobs": jobs_r} for role, jobs_r in (ref_launch_jobs(family, ref_set) if ref_set else [])]
+    first_judge = next(k for k, x in enumerate(launches) if "judge" in x)
+    launches[first_judge:first_judge] = ref_launches     # GXB R-80: the judge launches come after the references
+    units += sum(len(j["points"]) if j["kind"] in rules.JUDGED_B10_KINDS else 1 for x in ref_launches
+                 for j in x["jobs"] if j["kind"] in (*rules.JUDGED_B10_KINDS, *rules.JUDGED_RUN_KINDS))   # R-80
     built, lines, out_pods, need_launches_ = [], [], [], []
     taken = {"hosts": dict(plan["hosts"]), "blocks": plan["blocks"]}
     one = r78.idle_storage(1)
@@ -4197,8 +4236,26 @@ def init_block_ab(args: argparse.Namespace, block: str) -> dict:
             built.append({"judge": jp})
             need_launches_.append([jp])
             lines.append(f"need block {block} judge launch {k} {x['judge']} ({units} units: {len(runs)} runs"
-                         + (f" + {len(rejudged)} re-judged" if rejudged else "") + f"; cap {jp['cap_hours']:.2f} h, "
+                         + (f" + {len(rejudged)} re-judged" if rejudged else "")
+                         + (f" + {units - len(runs) - len(rejudged)} reference units" if ref_launches else "")
+                         + f"; cap {jp['cap_hours']:.2f} h, "
                          f"spend upper ${rules.cents(jp['cap_hours'] * rules.RATE_USD):.2f}; E)")
+            continue
+        if "refs" in x:                                  # R3 K3 (13g): one reference job per pod
+            hosts, terms = [], []
+            for job in x["jobs"]:
+                host = host_record(plan, block, x["refs"], [job], None, k)
+                name = new_host_name(taken, block)
+                taken["hosts"][name] = host
+                hosts.append((name, host))
+                terms.append({"cap_hours": host["cap_hours"], "spend_usd": host["spend_upper_usd"]})
+                lines.append(f"need block {block} pod {name} {family} ({job['kind']}@{job['seed']}, engine {job['engine']}; "
+                             f"cap {host['cap_hours']:.2f} h, guard ${rules.cents(host['guard_usd']):.2f}, spend upper "
+                             f"${rules.cents(host['spend_upper_usd']):.2f}; {x['refs']}, E)")
+                out_pods.append({"launch": k, "host": name, "cap_hours": host["cap_hours"], "role": x["refs"],
+                                 "runs": [f"{job['kind']}@{job['seed']}"]})
+            built.append({"hosts": hosts})
+            need_launches_.append(terms)
             continue
         hosts, terms = [], []
         for i in x["deal"]:
@@ -4261,7 +4318,7 @@ def init_block_ab(args: argparse.Namespace, block: str) -> dict:
     record = {"funding": funding, "need": need, "need_launches": need_launches_, "branch": None,
               "deal": [p["runs"] for p in pods], "reused": [], "utc": mac.utc(), "launches": record_launches,
               "released": 0, "pending": pending, "seq": len(plan["blocks"]), "family": family, "need_lines": lines,
-              "plan_code": code, "dose_seeds": dose_seeds, "kept": kept,
+              "plan_code": code, "dose_seeds": dose_seeds, "kept": kept, "reference_set": ref_set,
               "gate": {**gate_ref, "noise_reading": {"path": noise["path"], "sha256": noise["sha256"]}},
               "plan_b": plan_b_ref, "blinded_sigma": blinded, "block_a_seal": seal_a, "anchor_stop": stop,
               "blinding": blinding,
@@ -4274,6 +4331,202 @@ def init_block_ab(args: argparse.Namespace, block: str) -> dict:
     mac.operator_action({"action": "init-block", "block": block, "family": family, "hosts": names,
                          "need_usd": need["need_usd"], "funding_sha256": funding["sha256"]})
     return {**summary, "hosts": names, "released": released}
+
+
+# ----- R3 K3 (13g; GXB R-68): block B's reference jobs, per reference seed (Part 2 §3.1, §3.2, §16.1; R-35) -----
+REF_SETS = {"six_seed": tuple(r78.REFERENCE_SEEDS), "three_seed": (1102, 1103, 1104)}   # P2 §3.1; F1's fallback
+REF_EVAL_POINTS = {"six_seed": ("prefix", "scale:0.9", "scale:0.75", "scale:0.5"),
+                   "three_seed": ("prefix", "scale:0.75", "scale:0.5")}             # SP and lambda (R-40 withdrawn)
+SAFE_LORA_POINTS = ("default", "certify")               # R-37: K = 78 and certify only
+REF_G_REUSED = {"olmo2-7b": (1102, 1103), "llama31-8b": ()}   # P2 §3.2: OLMo-2-7B's G units 1102-1103 reused (LS-23)
+REF_ROLES = ("refs-cert", "refs-eval", "refs-train")    # the three reference launches, in this order
+
+
+def reference_set_of(spec: dict, block: str) -> str | None:
+    """The jobs file's reference_set: "six_seed" (Part 2 §3.1's default), "three_seed" (F1's fallback, a recorded
+    money trigger) or absent (no reference planned in this init). Block B only."""
+    ref = spec.get("reference_set")
+    if ref is None and block == "B":                     # GXB R-79: the reference set is never silent
+        fail('block B: the jobs file names its "reference_set" ("six_seed", Part 2 §3.1\'s default, or "three_seed" '
+             "when §3.1's money trigger fires; GXB R-79)")
+    if ref is None:
+        return None
+    if block != "B":
+        fail("block A plans no reference (the references are block B's; Part 2 §3)")
+    if ref not in REF_SETS:
+        fail(f"reference_set is one of {sorted(REF_SETS)} (Part 2 §3.1), not {ref!r}")
+    return ref
+
+
+def ref_job(family: str, kind: str, seed: int, ref_set: str) -> dict:
+    """One reference job, priced by rules.job_record (its O-ext term included), with its seed's certification
+    source (R-35) and empty input pins (ref_pins fills them before the pack: they come from units made later)."""
+    points = {"ref_eval": REF_EVAL_POINTS[ref_set], "safe_lora": SAFE_LORA_POINTS}.get(kind)
+    engine = "Y" if kind == "ref_train_bqi" else "X"
+    recipe = {"ref_train": "G", "ref_train_bqi": "BQI"}.get(kind, "B")
+    job = rules.job_record(kind, "a0", seed, None, None, None, engine=engine, points=list(points) if points else None,
+                           recipe=recipe, family=family, oext=kind == "ref_train")
+    job["inputs"] = {}
+    if kind in r78.REF_KINDS:
+        job["cert_source"] = r78.ref_cert_source(family, seed)
+    return job
+
+
+def ref_launch_jobs(family: str, ref_set: str) -> list[tuple[str, list[dict]]]:
+    """(role, jobs) of the three reference launches: refs-cert (b10_certify per seed, after the block's arm launches,
+    so every block-B a0 unit exists), refs-eval (ref_eval and safe_lora per seed, released only for a seed whose
+    certification is recorded passed: P2 §16.1) and refs-train (ref_train under recipe G at the seeds not reused,
+    ref_train_bqi on engine Y). One job per pod."""
+    seeds = REF_SETS[ref_set]
+    cert = [ref_job(family, "b10_certify", s, ref_set) for s in seeds]
+    ev = [ref_job(family, k, s, ref_set) for s in seeds for k in ("ref_eval", "safe_lora")]
+    train = [ref_job(family, "ref_train", s, ref_set) for s in seeds if s not in REF_G_REUSED[family]]
+    train += [ref_job(family, "ref_train_bqi", s, ref_set) for s in seeds]
+    return [("refs-cert", cert), ("refs-eval", ev), ("refs-train", train)]
+
+
+def ref_a0_complete(plan: dict, family: str, seed: int) -> str:
+    """GXB R-35: the COMPLETE.json SHA-256 of seed S's a0 unit: a reused side unit's KIT pin, N's a0-1103 (N_UNITS), block
+    A's a0 at 1104 (its copy's plan.json, recorded done) or this block's own a0_arm at S (recorded done)."""
+    source = r78.ref_cert_source(family, seed)
+    try:
+        if source == "side":
+            return r78.KIT[family]["a0_units"][seed]["complete_sha256"]
+        if source == "n":
+            return r78.n_unit_or_refuse(family, "a0", seed)["complete_sha256"]
+    except r78.Refused as exc:
+        fail(f"seed {seed}'s a0 unit: {exc}")
+    other = plan if source == "B" else sibling_plan(family, "A")[0]
+    got = [j.get("complete_sha256") for h in (other.get("hosts") or {}).values() if h.get("block") == source
+           for j in h.get("jobs", []) if j.get("kind") == "a0_arm" and j.get("seed") == seed and j.get("status") == "complete"]
+    if len(got) != 1 or not SHA_RE.fullmatch(str(got[0])):
+        fail(f"seed {seed}'s a0 unit (block {source}) is not recorded complete exactly once (R-35): its references wait")
+    return got[0]
+
+
+def ref_certification(plan: dict, seed: int) -> dict:
+    """The seed's b10_certify job as record-done recorded it: {gate, report_sha256, host}; fail when none is done."""
+    for name, h in sorted((plan.get("hosts") or {}).items()):
+        for i, j in enumerate(h.get("jobs", [])):
+            if j.get("kind") == "b10_certify" and j.get("seed") == seed and h.get("done") and j.get("status") == "complete":
+                report = (j.get("outputs") or {}).get(f"job-{i}/evals/{seed}-certify.compare.json")
+                return {"gate": j.get("certification_gate"), "report_sha256": report, "host": name}
+    fail(f"seed {seed}'s certification (b10_certify) is not recorded done: its evaluation-only references wait "
+         "(P2 §16.1)")
+
+
+def ref_pins(plan: dict, family: str, job: dict) -> dict:
+    """The input pins of one reference job, from their sources now (R-68): gate_a_complete:S and gate_a_eval:S at S's a0
+    unit's COMPLETE.json (R-35, R-69); for ref_eval and safe_lora the seed's certification, which must be recorded
+    passed (P2 §16.1), and its report's SHA-256; prefix_file at REF_PREFIX_SHA256 when the job evaluates the safety
+    prompt. The trained references carry no input."""
+    kind, seed = job["kind"], job["seed"]
+    if kind not in r78.REF_KINDS:
+        return {}
+    a0 = ref_a0_complete(plan, family, seed)
+    pins = {f"gate_a_complete:{seed}": a0}
+    if kind == "b10_certify":
+        pins[f"gate_a_eval:{seed}"] = a0
+        return pins
+    cert = ref_certification(plan, seed)
+    if cert["gate"] != "passed" or not SHA_RE.fullmatch(str(cert["report_sha256"])):
+        fail(f"seed {seed}'s certification is not recorded passed ({cert['host']}: {cert['gate']}): every "
+             "evaluation-only reference of the seed stops (P2 §16.1; LS-08); the lead records the not-run decision")
+    pins[f"certification_report:{seed}"] = cert["report_sha256"]
+    if "prefix" in (job.get("points") or ()):
+        pins["prefix_file"] = r78.REF_PREFIX_SHA256
+    return pins
+
+
+def ref_config(job: dict, family: str) -> dict | None:
+    """ref_train's recipe G and ref_train_bqi's RECIPE_BQI config {path, config_sha256} from the kit's pins (R-70); the
+    main config's hash refuses."""
+    if job["kind"] not in ("ref_train", "ref_train_bqi"):
+        return None
+    name, paths = ("RECIPE_G", r78.RECIPE_G_PATH) if job["kind"] == "ref_train" else ("RECIPE_BQI", r78.RECIPE_BQI_PATH)
+    try:
+        pin = r78.pin_or_refuse(name, family)
+    except r78.Refused as exc:
+        fail(str(exc))
+    path = paths.get(family)
+    if not (isinstance(path, str) and path.startswith("experiments/safety_selection/configs/")):
+        fail(f"{name}_PATH[{family!r}] is null or not a config path: it is filled with {name} by one recorded step")
+    if pin == rules.REC_CONFIG_SHA256:
+        fail(f"{name}[{family!r}] is the main config's hash: {job['kind']} trains under its own config (R-70)")
+    return {"path": path, "config_sha256": pin}
+
+
+def ref_inputs_command() -> dict:
+    """ref-inputs (R3 K3, 13g): before the pack of a reference launch, write each pending reference job's input pins
+    (ref_pins) and config (ref_config) into plan.json; the pack packs at those pins and the release derives them again.
+    Prints names and hashes only."""
+    family = family_or_fail()
+    plan = load()
+    b = (plan.get("blocks") or {}).get("B")
+    if b is None:
+        fail("block B is not planned in this working copy")
+    out = {}
+    for name, h in sorted((b.get("pending") or {}).items()):
+        if h.get("role") not in REF_ROLES:
+            continue
+        for i, job in enumerate(h["jobs"]):
+            if h.get("role") == "refs-eval" and job["seed"] in decided_seeds(plan):
+                continue
+            job["inputs"] = ref_pins(plan, family, job)
+            cfg = ref_config(job, family)
+            if cfg is not None:
+                job["recipe_g" if job["kind"] == "ref_train" else "recipe_bqi"] = cfg
+            out[f"{name}/{i}"] = {"kind": job["kind"], "seed": job["seed"], "inputs": dict(job["inputs"])}
+    mac.save_plan(plan)
+    mac.operator_action({"action": "ref-inputs", "jobs": len(out)})
+    return {"ref_inputs": out}
+
+
+def decided_seeds(plan: dict) -> set:
+    """Seeds whose b10_certify is recorded with a failed gate (their evaluation-only references never run)."""
+    return {j["seed"] for h in (plan.get("hosts") or {}).values() for j in h.get("jobs", [])
+            if j.get("kind") == "b10_certify" and j.get("certification_gate") == "failed"}
+
+
+def release_refs(plan: dict, family: str, names_hosts: list[tuple[str, dict]]) -> list[str]:
+    """R-68: a reference launch's release: each job's pins and config derived again and equal to plan.json's (ref-inputs
+    wrote them); an evaluation-only reference only for a seed whose certification is recorded passed (P2 §16.1); the
+    seed's REFS_78B pin filled; the host's engine receipt (Y for B+Qi: R-63). The arm checks do not apply. A seed whose
+    certification is recorded failed has its evaluation-only hosts not released: they stay pending and are listed in
+    the block's refs_not_run (P2 §16.1: they never run); every other host of the launch is released."""
+    failed = decided_seeds(plan)
+    skipped = [(n, h) for n, h in names_hosts if h.get("role") == "refs-eval" and h["jobs"][0]["seed"] in failed]
+    if skipped:
+        plan["blocks"]["B"].setdefault("refs_not_run", []).extend(
+            {"host": n, "kind": h["jobs"][0]["kind"], "seed": h["jobs"][0]["seed"], "utc": mac.utc()} for n, h in skipped)
+    names_hosts = [(n, h) for n, h in names_hosts if (n, h) not in skipped]
+    for name, h in names_hosts:
+        h["engine_sha256"] = engine_pin(h.get("engine"))   # ENGINE_Y null refuses B+Qi's release (A13)
+        if h.get("engine") == "Y" and any(j["kind"] in r78.MEASURED_KINDS for j in h["jobs"]):   # GXB R-87: release
+            y_measured_read(f"{name}: a measured kind on engine Y")
+        rec = engine_receipt(h.get("engine"))
+        if rec.get("family") not in (None, family):
+            fail(f"{name}: the packed stage1-{h.get('engine')} is {rec.get('family')}'s; this copy is {family}'s (KD7)")
+        h["sealed_files_sha256"] = rec.get("sealed_files_sha256")
+        for job in h["jobs"]:
+            if job["kind"] in r78.REF_KINDS:
+                try:
+                    r78.refs_or_refuse(family, job["seed"])
+                except r78.Refused as exc:
+                    fail(f"{name}: {exc}")
+            want = ref_pins(plan, family, job)
+            if job.get("inputs") != want:
+                fail(f"{name}: {job['kind']} at {job['seed']}: plan.json's input pins are not the ones their sources give "
+                     "now (run ref-inputs, then pack again)")
+            cfg = ref_config(job, family)
+            key = {"ref_train": "recipe_g", "ref_train_bqi": "recipe_bqi"}.get(job["kind"])
+            if key and job.get(key) != cfg:
+                fail(f"{name}: {job['kind']}'s config is not its pin's (run ref-inputs)")
+            if cfg is not None:
+                plan["recipes"][cfg["path"]] = {"config_sha256": cfg["config_sha256"]}
+    for name, h in names_hosts:
+        plan["hosts"][name] = h
+    return [n for n, _ in names_hosts]
 
 
 def release_hosts_ab(plan: dict, block: str, names_hosts: list[tuple[str, dict]]) -> list[str]:
@@ -4306,6 +4559,8 @@ def release_hosts_ab(plan: dict, block: str, names_hosts: list[tuple[str, dict]]
         fail(f"block {block}: the anchor job's JOB-DONE.json differs from the one read at init-block")
     for kind in ("arm", "a0_arm"):
         bank500_or_fail(family, kind, block, f"block {block}")
+    if names_hosts and all(h.get("role") in REF_ROLES for _, h in names_hosts):   # R3 K3 (13g, R-68)
+        return release_refs(plan, family, names_hosts)
     for name, h in names_hosts:
         if h.get("engine") != "X":
             fail(f"{name}: blocks A and B run on engine X (unless ruling 10's certificate passed: a later round)")
@@ -4647,6 +4902,63 @@ def record_anchor_stop(host: str, message_file: str | None, out: str) -> dict:
             "exit_code": stop["exit_code"], "counts": stop["counts"]}
 
 
+Y_REMEASURE_FILE = "y-remeasure.json"                    # the runner's per-job record on an engine-Y pod (KD9)
+
+
+def record_y_measured(hosts: list[str], recorded_by: str, out: str) -> dict:
+    """record-y-measured HOST [HOST ...] --recorded-by WHO --out FILE (GXB R-67; KD9): from the first engine-Y pods of
+    this scorer copy (each recorded done; ruling 10's a0-1101 retrain among them), every job-I/y-remeasure.json the
+    runner wrote is read at the SHA-256 its JOB-DONE.json lists (that JOB-DONE.json at the SHA-256 record-done read),
+    and must be a "stage1-78b engine-Y re-measure" of this family on ENGINE_Y's identity and the measured GPU. The
+    record (rules_78b.Y_MEASURED_RECORD_KIND) names each by path and SHA-256 with its job kind; nothing else is copied.
+    Prints the record's path and SHA-256 and the count only. A recorded lead step then fills Y_MEASURED_RECORD and sets
+    Y_MEASURED, before Y carries a block (KD9)."""
+    family = family_or_fail()
+    if r78.ENGINE_Y is None:
+        fail(f"ENGINE_Y is null: {r78.SC_PIN_EVENTS['ENGINE_Y']}")
+    if not isinstance(recorded_by, str) or not recorded_by.strip():
+        fail("--recorded-by is a non-empty text")
+    plan = load()
+    records = []
+    for host in hosts:
+        h = plan["hosts"].get(host)
+        if h is None or h.get("block") != r78.SC_BLOCK or h.get("engine") != "Y" or not h.get("done"):
+            fail(f"{host} is not this copy's engine-Y host recorded done (record-done first)")
+        tree = HERE / "retrieved" / host / "tree"
+        path = tree / "JOB-DONE.json"
+        if not path.is_file() or mac.sha(path) != h.get("job_done_sha256"):
+            fail(f"{host}: its JOB-DONE.json is missing or is not the one record-done read")
+        done = json.loads(path.read_text())
+        for rec in done.get("jobs") or []:
+            if not isinstance(rec, dict) or rec.get("status") != "complete":
+                continue
+            rel = f"job-{rec.get('index')}/{Y_REMEASURE_FILE}"
+            digest = (rec.get("outputs") or {}).get(rel)
+            if digest is None:
+                fail(f"{host}: job {rec.get('index')} ({rec.get('kind')}) is complete but lists no {Y_REMEASURE_FILE}")
+            f = tree / rel
+            if not f.is_file() or f.is_symlink() or mac.sha(f) != digest:
+                fail(f"{host}: {rel} is missing or differs from the SHA-256 its JOB-DONE.json lists")
+            try:
+                doc = json.loads(f.read_text())
+            except ValueError:
+                fail(f"{host}: {rel} is not JSON")
+            if not isinstance(doc, dict) or doc.get("kind") != r78.Y_REMEASURE_KIND or doc.get("family") != family \
+                    or doc.get("engine_sha256") != r78.ENGINE_Y or doc.get("gpu") != r78.GPU_NAME \
+                    or doc.get("job_kind") != rec.get("kind"):
+                fail(f"{host}: {rel} is not this family's engine-Y re-measure on ENGINE_Y and the measured GPU")
+            records.append({"path": f.relative_to(ROOT).as_posix(), "sha256": digest, "family": family,
+                            "job_kind": rec.get("kind")})
+    doc = {"kind": r78.Y_MEASURED_RECORD_KIND, "version": 1, "engine_y": r78.ENGINE_Y, "gpu": r78.GPU_NAME,
+           "records": records, "utc": mac.utc(), "recorded_by": recorded_by}
+    problem = r78.y_measured_problem(doc)
+    if problem:
+        fail(f"record-y-measured: {problem}")
+    written = write_once(out, doc)
+    mac.operator_action({"action": "record-y-measured", "sha256": written["sha256"], "hosts": list(hosts)})
+    return {"recorded": "y_measured", **written, "records": len(records)}
+
+
 def block_a_cells(plan: dict) -> tuple[dict, str | None]:
     """K2V-2: (arm, seed) -> (host, the job) of the one complete, pulled job of each run of block A's deal, wherever it
     ran (a deferral or requeue takes a job to another host); a job that is not complete counts only when a move took it
@@ -4807,9 +5119,15 @@ def write_blinded_part(plan: dict) -> dict:
                 fail(f"{p.relative_to(HERE)} is superseded by a kit re-run but the merged inputs file exists; the lead "
                      "decides (GXB R-51)")
             new = p.with_name(p.name + ".new")
-            with open(new, "xb") as handle:
-                handle.write(data)
-            os.replace(new, p)
+            if new.exists() or new.is_symlink():         # R3 K3 (K2R2-1): a leftover from an interrupted replacement
+                fail(f"{new.relative_to(HERE)} is left from an interrupted replacement of the part: the lead checks "
+                     f"{p.relative_to(HERE)} and removes the .new file, then runs this step again (nothing written)")
+            try:
+                with open(new, "xb") as handle:
+                    handle.write(data)
+                os.replace(new, p)
+            except OSError as exc:
+                fail(f"{p.relative_to(HERE)}: its replacement failed ({type(exc).__name__}); the lead checks the part")
     else:
         p.parent.mkdir(exist_ok=True)
         with open(p, "xb") as handle:
@@ -6157,6 +6475,11 @@ def main(argv: list[str]) -> int:
     br.add_argument("--default", action="store_true")
     br.add_argument("--recorded-by", required=True)
     br.add_argument("--out", required=True)
+    sub.add_parser("ref-inputs")                         # R3 K3 (13g, R-68)
+    ym = sub.add_parser("record-y-measured")             # R3 K3 (GXB R-67; KD9)
+    ym.add_argument("hosts", nargs="+")
+    ym.add_argument("--recorded-by", required=True)
+    ym.add_argument("--out", required=True)
     st = sub.add_parser("record-anchor-stop")
     st.add_argument("host")
     st.add_argument("--message-file")
@@ -6209,6 +6532,8 @@ def main(argv: list[str]) -> int:
                "record-plan-b-78b": lambda: record_plan_b_78b(a.noise_reading, a.blinded_sigma, a.sha256, a.recorded_by,
                                                               a.out),
                "write-blinded-inputs": lambda: write_blinded_inputs(),
+               "record-y-measured": lambda: record_y_measured(a.hosts, a.recorded_by, a.out),
+               "ref-inputs": lambda: ref_inputs_command(),
                "write-blinded-part": lambda: write_blinded_part_command(),
                "record-branch-78b": lambda: record_branch_78b(a.w1_18_record, a.sha256, a.default, a.recorded_by,
                                                               a.out),

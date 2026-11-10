@@ -1,0 +1,2730 @@
+diff --git a/runkit/stage1-78b/README.md b/runkit/stage1-78b/README.md
+index c0795f3..19ddf72 100644
+--- a/runkit/stage1-78b/README.md
++++ b/runkit/stage1-78b/README.md
+@@ -216,6 +216,74 @@ What the finisher adds (K2, K3): before the stop, `host.py pull-states HOST e1`
+ `retrieved/HOST/` (an archive without a file is refused and not kept) and `states_tool.py check` verifies it; nothing
+ is deleted by this kit (KD5: a delete waits for a verified backup and the user's yes by pod name).
+ 
++## Blocks A and B: the lean route, the O-ext step and the record steps (R2 K2, R3 K3)
++
++One family per working copy (`tmp/family-probe-s78-<family>-A/` or `-B/`, KD7). The route, in order:
++
++1. **The gate** (after ruling 9's gate, before block A): `plan_tool.py record-gate-78b NOISE_READING --sha256 H
++   --option B|C --balance-usd X --recorded-by WHO --out RECORD`, then a recorded lead step fills `GATE_78B` with the
++   record's path and SHA-256. Block A's init reads its families from it; a "review" provisional plan refuses (R-1).
++2. **The branch** (after the W1-18 pod): `plan_tool.py record-branch-78b --w1-18-record
++   .ai/inputs/stage1-post-w1-20261023/78b/w1-18/overrefusal_checks__<F>.json --sha256 H --recorded-by WHO --out RECORD`
++   (or `--default` for "Branch full by default"), then the lead fills `BRANCH_78B[F]`, then `OEXT_78B[F]` (T-O2's
++   order). Every 500-bank job refuses until both are filled; the branch is never switched.
++3. **A stopped anchor job** (only if the family's anchor job ended by its own signal): `plan_tool.py
++   record-anchor-stop HOST [--message-file retrieved/HOST/tree/job-0-anchor/process.log] --out RECORD`, then the lead
++   fills `ANCHOR_STOP[F]`. The anchor step's stderr (merged with its stdout) is kept on the pod by process_receipt.py as
++   `job-<i>-anchor/process.log`; the light pull brings it back (host.py `PULL_ITEMS` "job-*"), so its last line is the
++   exit-1 message. A stopped family's every later pack names the anchor job's JOB-DONE.json in `--inputs` as
++   `anchor_job_done`; the pack checks the pair on the Mac and carries both (`inputs/anchor_stop/`,
++   `inputs/anchor_job_done/`), and the runner reads them through `rules_78b.anchor_stop_or_refuse` before
++   `check_keys` and `job_decision` (KR4, KR8).
++4. **Block A**: `init-block A --jobs FILE --noise-reading FILE --funding FILE [--anchor-job-done FILE]`, then the
++   pack (below), then release. Each arm and a0_arm job runs the engine's `calibrate` under the family's main config,
++   then the O-ext pass on its own e1 unit (`job-<i>-oext`, E3 (a); fallback (b) is not used).
++5. **Block A's record-done** writes the family's part of `blinded_sigma.py`'s inputs; `write-blinded-inputs` merges
++   the parts; `write-blinded-part` writes a part again once its pins are filled. A leftover `<part>.new` from an
++   interrupted replacement refuses by name; the lead checks the part, removes the `.new` file and runs the step again.
++6. **Block B's plan**: `record-plan-b-78b --noise-reading FILE [--blinded-sigma FILE --sha256 H] --recorded-by WHO
++   --out RECORD`, then the lead fills `PLAN_B_78B`; then `init-block B ... --blinded-sigma FILE`.
++
++### The O-ext commands (GXB T-O3, R-5, R-18, R-20, R-47; Track O's wrapper)
++
++Every O-ext command is `venv/bin/python -B scripts/scale78b/oext_78b.py <command> --family F [--engine Y] --index IDX
++--index-sha256 H <the 1B subcommand and arguments>`. IDX is the one index file of `OEXT_78B[F]` (engine X;
++`settings/OEXT-78B__F.json`) or `OEXT_78B_Y[F]` (engine Y), with the SHA-256 the pin names; the W1-18 command takes
++`settings/OEXT-78B-W1__F.json` from `W1_18_78B`, never from `OEXT_78B[F]`. Commands: `unit run --untuned` (theta0's
++`o_only`), `unit run --run UNIT --checkpoint e1` (the arm step; `o_only_with_regenerate`), `lean run` (c0), `w1_18`
++(one call per family on the one W1-18 pod). The branch is read from the packed branch record at `BRANCH_78B[F]`:
++`--w1-18-record <the W1-18 record at its R-21 place>` whenever the branch record names a W1-18 record (Branch 128, or
++Branch full from a failing record: the unchanged `oext_eval` reads it at run time, R-47); `--dev100-source
++inputs/source_unit-<arm>-<seed>/<unit>` only on a regenerated unit under Branch 128 (the packed folder input
++`source_unit:<arm>:<seed>`, pinned by the unit's acceptance COMPLETE.json).
++
++### The new kinds and their pins
++
++| Kind / job | Where | Waits for |
++|---|---|---|
++| `w1_18` | OLMo-2-7B's scorer copy, alone, the first O job; one check per family of `W1_18_78B["side_units"]` (both under [B], OLMo-2-7B under [C]); each record comes back as `job-<i>/overrefusal_checks__<F>.json` (R-53) | `W1_18_78B` (R-20's `{files, side_units}`) |
++| `o_only_with_regenerate` (a0 side units; N's R 1101-1103 and Llama's a0-1103) | scorer copy, one pod per (arm, seed); an R unit re-trains on its sealed R_d edit (`regen_edit:R:<seed>`); acceptance against `n_complete:<arm>:<seed>` (N) or `side_complete:a0:<seed>` | `OEXT_78B[F]`, `BRANCH_78B[F]`, `N_UNITS[F]` for N's units |
++| arm, a0_arm (blocks A, B) | calibrate, then `unit run` on its own e1 | `GATE_78B` (`PLAN_B_78B` for B), `BRANCH_78B[F]`, `OEXT_78B[F]`, the edits' pins, `PADDED_TOKENS_78B[F]` |
++| any engine-Y job | `pack_setup.py Y [--y-tree DIR]` (scorer copy only; the frozen tree `tmp/engine-y-34bfd288` by YHASH and its identity); every complete Y job writes `job-<i>/y-remeasure.json` (KD9) | `ENGINE_Y`; measured kinds also `Y_MEASURED` |
++
++### The pack for O-ext pods (R-6, R-9, R-21, R-23, R-44, K-3, K-7)
++
++- Scorer copy: once `OEXT_78B[F]` is filled the pack runs `oext_78b.py check` on the family's X index (with
++  `--w1-18-record` when the branch comes from W1-18) and refuses on any non-zero exit; it carries the branch record at
++  its pin's path and the W1-18 record at its R-21 place. `pack_setup.py X --w1-18` (OLMo-2-7B's scorer copy only)
++  packs the W1-18 pod: `W1_18_78B`'s files (any list in its form, Track P's frozen readers included), each family's
++  side units under `data/` and the other family's prepared set, after `oext_78b.py check --engine W1 --data-root tmp`
++  per family (R-9). A Y pack also checks and packs `OEXT_78B_Y[F]`'s files from this checkout (the unchanged
++  `scripts/stage1_s1/oext_unit.py`; never the 1B Y copy in the Y tree).
++- Blocks A and B: `OEXT_78B[F]` and the branch record are required; `--inputs` names `oext_bank` and `oext_record`;
++  each job's edit is packed from its exact path and SHA-256 only (OLMo-2-7B's S1 edit under `tmp/stage1-olmo/`
++  included; nothing there is listed or opened by name otherwise). In block A, the receipt re-hashes the files the
++  blinding record names (this copy's `plan_tool.py`, the others in the checkout) and every bundle member among them,
++  and refuses a difference (R-44; the receipt's `blinding` block lists which named files are not in the bundle).
++- Not built in R3 (K3's report): the references (`b10_certify`, `ref_eval`, `safe_lora`, `ref_train`,
++  `ref_train_bqi`) and block B's reference planning; the W1-18 pod's model downloads (the guard model, the other
++  family's tokenizer) in its probe.
++
+ ## Tests
+ 
+     cd <checkout> && PYTHONDONTWRITEBYTECODE=1 $PY -B -m pytest -p no:cacheprovider -q -rfE runkit/stage1-78b/tests
+diff --git a/runkit/stage1-78b/pack_setup.py b/runkit/stage1-78b/pack_setup.py
+index aa8dfc2..2e63e16 100644
+--- a/runkit/stage1-78b/pack_setup.py
++++ b/runkit/stage1-78b/pack_setup.py
+@@ -190,7 +190,7 @@ def inputs_record(path: str, digest: str, engine: str, family: str) -> dict:
+     if doc.get("family") != family:
+         raise SystemExit(f"--inputs FILE is for family {doc.get('family')!r}; this working copy is {family}'s (one family "
+                          "per copy, KD7): refused")
+-    if doc.get("inputs") and rules.KIT_BLOCK != r78.SC_BLOCK:
++    if doc.get("inputs") and rules.KIT_BLOCK not in (r78.SC_BLOCK, *r78.BANK500_BLOCKS):   # R3 K3: A and B name inputs
+         raise SystemExit("block 0 packs no named input (the scorer kinds' inputs come with their round); give inputs: []")
+     if not isinstance(doc.get("inputs", []), list):
+         raise SystemExit("--inputs FILE: inputs is a list of {name, path, sha256}")
+@@ -381,10 +381,20 @@ def scorer_code(family: str) -> dict:
+     rules_78b.OEXT_78B[family]'s files (o_only, c0). A file that is missing or differs from its pin refuses at pack
+     time (Packing.add)."""
+     out = {rel: (ROOT / rel, pin) for rel, pin in sorted(rules.SCORER_PINS.items())}
+-    for rel, pin in sorted(((r78.OEXT_78B.get(family) or {}).get("files") or {}).items()):
+-        if not plain_path(rel) or not rel.startswith("scripts/"):
+-            raise SystemExit(f"OEXT_78B[{family!r}] names {rel!r}, not a plain path under scripts/")
+-        out[rel] = (ROOT / rel, pin)
++    out.update(oext_code(family))
++    return out
++
++
++def oext_code(family: str, engine: str = "X") -> dict:
++    """bundle path -> (source, pin) of the family's O-ext pin's files (OEXT_78B[F], or OEXT_78B_Y[F] for engine Y):
++    plain paths under scripts/, and the family's W1-18 record at its R-21 place when the branch comes from W1-18 (GXB
++    R-21, R-33); empty while the pin is null."""
++    pin = (r78.OEXT_78B if engine == "X" else r78.OEXT_78B_Y).get(family) or {}
++    out = {}
++    for rel, digest in sorted((pin.get("files") or {}).items()):
++        if not plain_path(rel) or not (rel.startswith("scripts/") or r78.W1_18_RECORD_RE.match(rel)):
++            raise SystemExit(f"OEXT_78B[{family!r}] names {rel!r}, not a plain path under scripts/ or the W1-18 record")
++        out[rel] = (ROOT / rel, digest)
+     return out
+ 
+ 
+@@ -417,19 +427,71 @@ def c0_source_check(src: pathlib.Path, digest: str, c0: dict | None) -> None:
+                          "any pod starts")
+ 
+ 
+-def sc_inputs(doc: dict, family: str) -> tuple[dict, dict]:
+-    """(bundle path -> (source, SHA-256) of every file, input name -> bundle path) from the --inputs record's entries
+-    {name, path, sha256}: each name one of stage1_rules.SC_INPUTS's, each SHA-256 its kit pin (stage1_rules.sc_input_pins;
+-    a null pin refuses), each path a file under the checkout (a folder for stage1_rules.SC_FOLDER_INPUTS, whose pin is
+-    its COMPLETE.json's SHA-256; every file of the folder is packed at its own SHA-256). Names only in refusals."""
++def folder_input(name: str) -> bool:
++    """A unit-folder input: stage1_rules.SC_FOLDER_INPUTS, and R3 K3's dev-100 source units source_unit:<arm>:<seed>."""
++    return name in rules.SC_FOLDER_INPUTS or name.startswith(rules.SOURCE_UNIT.split("{", 1)[0])
++
++
++ANCHOR_JOB_DONE = "anchor_job_done"                     # KR4, KR8: the anchor job's JOB-DONE.json the stop record names
++ANCHOR_STOP_NAME = "anchor_stop"                        # KR4: the family's stop record, packed by its ANCHOR_STOP pin
++
++
++def input_pins(family: str) -> dict:
++    """name -> the pin of every named input this copy may pack: in the scorer block every kind's inputs, each unit
++    named by (arm, seed) (GXB R-16, R-31: rules_78b.sc_units, stage1_rules.sc_unit_input_pins), with each regenerated
++    unit's dev-100 source folder source_unit:<arm>:<seed> at its acceptance input's pin (LN-19, Branch 128); in blocks A
++    and B the O-ext bank and record (OEXT_78B[F]'s inputs; plan-ab 5a); in every block, once ANCHOR_STOP[F] is pinned,
++    the anchor job's JOB-DONE.json at the stop record's job_done_sha256 (KR4, KR8)."""
+     try:
+         values = r78.sc_pin_values(family, pins78())
+     except r78.Refused as exc:
+         raise SystemExit(str(exc))
+     pins = {}
+-    for kind in r78.SC_KINDS:
+-        for seed in r78.sc_seeds(family, kind):          # PP17: one side unit's COMPLETE.json per reused seed
+-            pins.update(rules.sc_input_pins(kind, pins78(), values, seed))
++    if rules.KIT_BLOCK == r78.SC_BLOCK:
++        for kind in r78.SC_KINDS:
++            for u in r78.sc_units(family, kind):
++                got = rules.sc_unit_input_pins(kind, pins78(), values, u["arm"], u["seed"])
++                pins.update(got)
++                if kind == "o_only_with_regenerate":
++                    pins[rules.SOURCE_UNIT.format(arm=u["arm"], seed=u["seed"])] = next(iter(got.values()))
++    elif rules.KIT_BLOCK in r78.BANK500_BLOCKS:
++        oext = (values.get("OEXT_78B") or {}).get("inputs") or {}
++        pins.update({n: oext.get(n) for n in r78.OEXT_INPUTS})
++    stop = anchor_stop_doc(family)
++    if stop is not None:
++        pins[ANCHOR_JOB_DONE] = stop[0]["job_done_sha256"]
++    return pins
++
++
++def anchor_stop_doc(family: str) -> tuple[dict, bytes, str] | None:
++    """KR4: (the family's stop record, its bytes, its path) read at ANCHOR_STOP[family]'s pin and checked for its form
++    (rules_78b.anchor_stop_problem); None while the pin is null. The pairing with the anchor job's JOB-DONE.json is
++    checked by anchor_stop_or_refuse once that file is given (sc_inputs)."""
++    pin = r78.ANCHOR_STOP.get(family)
++    if pin is None:
++        return None
++    if not (isinstance(pin, dict) and set(pin) == {"path", "sha256"} and plain_path(pin["path"]) and pinned(pin["sha256"])):
++        raise SystemExit(f"ANCHOR_STOP[{family!r}] is not a {{path, sha256}} pin")
++    f = ROOT / pin["path"]
++    if not f.is_file() or f.is_symlink() or sha(f) != pin["sha256"]:
++        raise SystemExit(f"ANCHOR_STOP[{family!r}]: the stop record is missing or differs from its pin")
++    data = f.read_bytes()
++    try:
++        doc = json.loads(data)
++    except ValueError:
++        raise SystemExit(f"ANCHOR_STOP[{family!r}]: the stop record is not JSON") from None
++    problem = r78.anchor_stop_problem(doc, family)
++    if problem:
++        raise SystemExit(f"ANCHOR_STOP[{family!r}]: the stop record is not the family's: {problem}")
++    return doc, data, pin["path"]
++
++
++def sc_inputs(doc: dict, family: str) -> tuple[dict, dict]:
++    """(bundle path -> (source, SHA-256) of every file, input name -> bundle path) from the --inputs record's entries
++    {name, path, sha256}: each name one of stage1_rules.SC_INPUTS's, each SHA-256 its kit pin (stage1_rules.sc_input_pins;
++    a null pin refuses), each path a file under the checkout (a folder for stage1_rules.SC_FOLDER_INPUTS, whose pin is
++    its COMPLETE.json's SHA-256; every file of the folder is packed at its own SHA-256). Names only in refusals."""
++    pins = input_pins(family)
+     files, named = {}, {}
+     for e in doc.get("inputs") or []:
+         if not isinstance(e, dict) or set(e) != {"name", "path", "sha256"}:
+@@ -446,7 +508,7 @@ def sc_inputs(doc: dict, family: str) -> tuple[dict, dict]:
+         if not plain_path(rel):
+             raise SystemExit(f"--inputs FILE: {name!r}'s path is not a plain relative path under the checkout")
+         src = ROOT / rel
+-        if name in rules.SC_FOLDER_INPUTS:
++        if folder_input(name):
+             if not src.is_dir() or not (src / "COMPLETE.json").is_file() or sha(src / "COMPLETE.json") != digest:
+                 raise SystemExit(f"--inputs FILE: {name!r} is not a unit folder whose COMPLETE.json has its pin")
+             base = input_bundle_path(name, src)
+@@ -462,10 +524,231 @@ def sc_inputs(doc: dict, family: str) -> tuple[dict, dict]:
+             files[input_bundle_path(name, src)] = (src, digest)
+             named[name] = input_bundle_path(name, src)
+     if C0_INPUT in named:                                # K6 (item 23): the Mac-side check of C0_SOURCE's fingerprint
+-        c0_source_check(*files[named[C0_INPUT]], values["C0_SOURCE"])
++        c0_source_check(*files[named[C0_INPUT]], r78.sc_pin_values(family, pins78())["C0_SOURCE"])
++    stop = anchor_stop_doc(family)
++    if stop is not None:                                 # KR4: the pack carries the stop record and its JOB-DONE.json
++        if ANCHOR_JOB_DONE not in named:
++            raise SystemExit(f"--inputs FILE: {family}'s anchor job stopped (ANCHOR_STOP): name {ANCHOR_JOB_DONE!r}, the "
++                             "anchor job's JOB-DONE.json, so the pod can read the stop record (KR4, KR8)")
++        try:
++            r78.anchor_stop_or_refuse(family, stop[1], files[named[ANCHOR_JOB_DONE]][1])
++        except r78.Refused as exc:
++            raise SystemExit(f"the anchor stop record: {exc}")
++        rel = f"inputs/{ANCHOR_STOP_NAME}/{pathlib.Path(stop[2]).name}"
++        files[rel] = (ROOT / stop[2], r78.ANCHOR_STOP[family]["sha256"])
++        named[ANCHOR_STOP_NAME] = rel
+     return files, named
+ 
+ 
++# ===== R3 K3: the O-ext pods' pack (GXB R-6, R-9, R-21, R-23, R-44, K-3, K-7, O4, O10, KR4; plan-ab 5a, 5c) =========
++def branch_file(family: str, required: bool) -> tuple[str, pathlib.Path, str] | None:
++    """(bundle path, source, pin) of the family's branch record at BRANCH_78B[family]'s path and SHA-256 (the runner
++    reads it by its bytes, rules_78b.oext_flags); None while the pin is null unless ``required`` (blocks A and B)."""
++    pin = r78.BRANCH_78B.get(family)
++    if pin is None:
++        if required:
++            raise SystemExit(f"blocks A and B carry the O-ext step: {family}'s branch record (BRANCH_78B) is null: "
++                             f"{r78.BRANCH_EVENT}")
++        return None
++    if not (isinstance(pin, dict) and plain_path(pin.get("path")) and pinned(pin.get("sha256"))):
++        raise SystemExit(f"BRANCH_78B[{family!r}] is not a {{path, sha256}} pin")
++    f = ROOT / pin["path"]
++    try:
++        r78.branch_record_or_refuse(family, f.read_bytes() if f.is_file() and not f.is_symlink() else b"")
++    except r78.Refused as exc:
++        raise SystemExit(f"{family}'s branch record: {exc}")
++    return pin["path"], f, pin["sha256"]
++
++
++def run_check(argv: list[str]) -> int:
++    """The wrapper's $0 check as its own process on the Mac (cwd = the checkout; no token, no PYTHONPATH); only its
++    exit code is used (its printout names hashes only, OR7, and is not shown here)."""
++    env = {"PYTHONDONTWRITEBYTECODE": "1", "PATH": "/usr/bin:/bin"}
++    return subprocess.run(argv, cwd=ROOT, capture_output=True, text=True, env=env).returncode
++
++
++def wrapper_check(family: str, engine: str, index_rel: str, index_sha: str, extra: list[str]) -> dict:
++    """GXB R-6, R-9, R-23: ``oext_78b.py check`` on the Mac before any O-ext pod; any non-zero exit refuses the pack."""
++    argv = [str(PY), "-B", r78.OEXT_WRAPPER_78B, "check", "--family", family, "--engine", engine, "--index", index_rel,
++            "--index-sha256", index_sha, *extra]
++    code = run_check(argv)
++    if code != 0:
++        raise SystemExit(f"oext_78b.py check of {family}'s engine-{engine} index refused (exit {code}): refused before "
++                         "any O-ext pod (GXB R-6, R-9, R-23)")
++    return {"family": family, "engine": engine, "index_sha256": index_sha, "args": [a for a in extra if a.startswith("--")],
++            "exit": code}
++
++
++def oext_checks(family: str, engines=("X",)) -> list[dict]:
++    """R-6 and R-23: the family's O-ext index of each engine whose pin is filled (Y only once ENGINE_Y is filled), with
++    --w1-18-record when the branch record names the family's W1-18 record (the pinned record, at its R-21 place)."""
++    out = []
++    branch = r78.BRANCH_78B.get(family)
++    record = None
++    if branch is not None:
++        doc = json.loads((ROOT / branch["path"]).read_bytes())
++        if doc.get("source") == "w1_18":
++            record = r78.W1_18_RECORD_DIR + r78.W1_18_RECORD_NAME.format(family=family)
++    for engine in engines:
++        pin = (r78.OEXT_78B if engine == "X" else r78.OEXT_78B_Y).get(family)
++        if pin is None or (engine == "Y" and r78.ENGINE_Y is None):
++            continue
++        problem = r78.oext_form_problem(pin, family, engine)
++        if problem:
++            raise SystemExit(f"{family}'s engine-{engine} O-ext pin is off its form: {problem}")
++        idx = next(p for p in sorted(pin["files"]) if r78.OEXT_INDEX_RE.match(p))
++        out.append(wrapper_check(family, engine, idx, pin["files"][idx], [] if record is None else
++                                 ["--w1-18-record", record]))
++    return out
++
++
++def unit_folder_files(base: str, src: pathlib.Path, complete_sha: str, job_sha: str, what: str) -> dict:
++    """bundle path -> (file, SHA-256) of one unit folder (every file but macOS metadata; a link refuses), its
++    COMPLETE.json and job.json at their pins."""
++    if not src.is_dir() or sha(src / "COMPLETE.json") != complete_sha or sha(src / "job.json") != job_sha:
++        raise SystemExit(f"{what}: the unit folder is missing or its COMPLETE.json or job.json differs from its pin")
++    out = {}
++    for f in sorted(src.rglob("*")):
++        rel = f.relative_to(src).as_posix()
++        if f.is_symlink():
++            raise SystemExit(f"{what}: the unit folder holds a symbolic link")
++        if f.is_file() and not macos_metadata(rel):
++            out[f"{base}/{rel}"] = (f, sha(f))
++    return out
++
++
++def w1_18_pack(family: str) -> tuple[dict, list[dict], dict]:
++    """GXB O4, K-3, R-20, O10 (5c): the one W1-18 pod's files, packed only in W1_18_HOST_FAMILY's scorer-block copy:
++    W1_18_78B's files (the wrapper, each family's W1 index and W1-18 settings, the 1B W1-18 code, Track P's frozen
++    readers once listed: W2-5) at their pins; each listed family's side units under data/ (the checkout's tmp/
++    mirrored, the W1-18 settings' data root) at their KIT a0_units pins; the other family's prepared set under
++    data/kt-prepared/ at its manifest pin (the lexicon files and the main configs, the judge recipes, are already in
++    the scorer code and the engine tree). Before anything: oext_78b.py check --engine W1 --data-root tmp per family
++    (R-9). Returns (bundle path -> (file, SHA-256), the checks, data paths to scan)."""
++    if rules.KIT_BLOCK != r78.SC_BLOCK or r78.w1_18_host_problem(family):
++        raise SystemExit(f"--w1-18: {r78.w1_18_host_problem(family) or 'the W1-18 pod is a scorer-block pod'}")
++    route = r78.W1_18_78B
++    if route is None:
++        raise SystemExit(f"--w1-18: W1_18_78B is null: {r78.SC_PIN_EVENTS['W1_18_78B']}")
++    problem = r78.w1_18_route_problem(route)
++    if problem:
++        raise SystemExit(f"--w1-18: W1_18_78B is not in its form: {problem}")
++    checks = []
++    for fam in sorted(route["side_units"]):
++        idx = f"scripts/scale78b/settings/OEXT-78B-W1__{fam}.json"
++        checks.append(wrapper_check(fam, "W1", idx, route["files"][idx], ["--data-root", str(ROOT / "tmp")]))
++    files = {rel: (ROOT / rel, digest) for rel, digest in sorted(route["files"].items())}
++    scan = {}
++    for fam, units in sorted(route["side_units"].items()):
++        for name, u in sorted(units.items()):
++            files.update(unit_folder_files(f"{DATA}/{u['path']}", ROOT / r78.DATA_ROOT / u["path"], u["complete_sha256"],
++                                           u["job_sha256"], f"{fam}'s W1-18 unit {name}"))
++        if fam != family:
++            pname, digest = r78.KIT[fam]["prepared_name"], r78.MANIFESTS[fam]
++            folder = ROOT / rules.PREPARED_LOCAL / pname
++            if not (folder / "manifest.sha256").is_file() or (folder / "manifest.sha256").read_text().strip() != digest:
++                raise SystemExit(f"--w1-18: {fam}'s prepared set {pname} is missing or is not at its manifest pin")
++            got, data_scan, _ = prepared_files(folder, digest)
++            for rel, (f, d) in got.items():
++                files[f"{DATA}/kt-prepared/{pname}/{rel}"] = (f, d)
++            scan.update({f"{DATA}/kt-prepared/{pname}/{rel}": True for rel in data_scan})
++    return files, checks, scan
++
++
++def ab_edits(family: str) -> dict:
++    """K-7 (plan-ab 5a): bundle path edits/<SHA-256>.edit.json -> (source, SHA-256) of every edit a block-A or block-B
++    job of this copy's plan.json trains on (released or pending), each read only at its exact path and SHA-256 (rules_78b
++    run_edit's pins: the R_d draws, METHOD_EDITS; OLMo-2-7B's S1 edit under tmp/stage1-olmo/ is one of them; no folder
++    is listed or searched)."""
++    plan_file = HERE / "plan.json"
++    if not plan_file.is_file():
++        raise SystemExit(f"block {rules.KIT_BLOCK}: plan.json is missing (init-block {rules.KIT_BLOCK} first)")
++    plan = json.loads(plan_file.read_text())
++    b = (plan.get("blocks") or {}).get(rules.KIT_BLOCK) or {}
++    hosts = [h for h in plan.get("hosts", {}).values() if h.get("block") == rules.KIT_BLOCK]
++    hosts += list((b.get("pending") or {}).values())
++    out = {}
++    for h in hosts:
++        for job in h.get("jobs", []):
++            edit = job.get("edit")
++            if edit:
++                if not (plain_path(edit.get("path")) and pinned(edit.get("sha256"))):
++                    raise SystemExit("a block job's edit is not a {path, sha256} pin")
++                out[f"edits/{edit['sha256']}.edit.json"] = (ROOT / edit["path"], edit["sha256"])
++    return out
++
++
++def blinding_check(files: dict, bundle: pathlib.Path) -> dict | None:
++    """GXB R-44 (K2's open point 1) at the pack receipt, block A: the blinding record block A was planned under (its
++    plan.json snapshot, read at its path and SHA-256) names files by SHA-256; each must hash to it now in this copy
++    (plan_tool.py: this copy's own; the others in the checkout), and every one that is a member of the packed bundle is
++    re-hashed from the bundle's bytes and compared. A difference refuses (no receipt). None outside block A or before
++    the snapshot."""
++    if rules.KIT_BLOCK != "A" or not (HERE / "plan.json").is_file():
++        return None
++    plan = json.loads((HERE / "plan.json").read_text())
++    snap = ((plan.get("blocks") or {}).get("A") or {}).get("blinding")
++    if not snap:
++        return None
++    rec = ROOT / snap["path"]
++    if not rec.is_file() or sha(rec) != snap["sha256"]:
++        raise SystemExit("R-44: the blinding record block A was planned under is missing or differs from its SHA-256")
++    named = json.loads(rec.read_text()).get("files") or {}
++    copy = {}
++    for rel, digest in sorted(named.items()):
++        f = HERE / "plan_tool.py" if rel == "runkit/stage1-78b/plan_tool.py" else ROOT / rel   # K2's blinding_files_check
++        copy[rel] = sha(f) if f.is_file() else None
++        if copy[rel] != digest:
++            raise SystemExit(f"R-44: {rel} is not the file the blinding record verified: the change voids it")
++    members = {}
++    with tarfile.open(bundle, "r:gz") as archive:
++        for m in archive.getmembers():
++            if m.name in named and m.isfile():
++                members[m.name] = hashlib.sha256(archive.extractfile(m).read()).hexdigest()
++                if members[m.name] != named[m.name]:
++                    raise SystemExit(f"R-44: the packed {m.name} is not the file the blinding record verified")
++    return {"record": {"path": snap["path"], "sha256": snap["sha256"]}, "files": copy, "bundle_members": members,
++            "not_in_bundle": sorted(set(named) - set(members))}
++
++
++def y_tree_check(tree: pathlib.Path) -> list[str]:
++    """X1 (the stage-1 kit's Y route, R: runkit/stage1-olmo/pack_setup.py y_tree_check; YB P-4): engine Y's files come
++    from its frozen tree only, checked against YHASH (the frozen file list at its pin, then every listed file in the
++    tree by its SHA-256); returns the listed paths. Never from the working branch."""
++    yhash = ROOT / rules.YHASH_PIN["path"]
++    if not yhash.is_file() or sha(yhash) != rules.YHASH_PIN["sha256"]:
++        raise SystemExit("YHASH (engine Y's frozen file list) is missing or differs from its pin")
++    listed, bad = [], []
++    for line in yhash.read_text().splitlines():
++        if not line.strip():
++            continue
++        digest, _, rel = line.strip().partition("  ")
++        listed.append(rel)
++        f = tree / rel
++        if not pinned(digest) or not f.is_file() or f.is_symlink() or sha(f) != digest:
++            bad.append(rel)
++    if bad or not listed:
++        raise SystemExit(f"the Y tree fails YHASH: {len(bad)} file(s) missing or changed: {bad[:5]}")
++    return listed
++
++
++def engine_tree(engine: str, y_tree: str | None) -> tuple[pathlib.Path, str | None, list | None]:
++    """(the engine's tree, its git commit or None, YHASH's listed paths or None): engine X this checkout (committed);
++    engine Y its frozen tree (default tmp/engine-y-34bfd288) by YHASH and its code identity at ENGINE_Y, refused while
++    ENGINE_Y is null (A13: every Y kind waits for the pin)."""
++    if engine == "X":
++        return ROOT, git_state(), None
++    try:
++        pin = r78.engine_sha("Y")
++    except r78.Refused as exc:
++        raise SystemExit(f"engine Y's pack: {exc}")
++    tree = pathlib.Path(y_tree) if y_tree else ROOT / rules.Y_TREE_DEFAULT
++    listed = y_tree_check(tree)
++    if engine_code(tree) != pin:
++        raise SystemExit(f"the Y tree's code identity is not ENGINE_Y's pin {pin[:12]}... (A13): refused")
++    return tree, None, listed
++
++
+ def recipe_s78(tree: pathlib.Path, family: str) -> dict | None:
+     """The family's S_78 config once RECIPE_S is filled (A1): its path (pins_78b.json recipe_s78.path), its bytes'
+     SHA-256 and its config_sha256 by the engine's own hash, which must be RECIPE_S's pin; None while the pin is null."""
+@@ -505,14 +788,21 @@ def sc_report(family: str, tree: pathlib.Path, inputs_doc: dict | None) -> dict:
+ 
+ def parse(argv: list[str]) -> argparse.Namespace:
+     ap = argparse.ArgumentParser(prog="pack_setup.py")
+-    ap.add_argument("engine", choices=["X"], help="engine X (engine Y's pack comes with KD9's re-measure)")
++    ap.add_argument("engine", choices=["X", "Y"], help="engine X, or engine Y from its frozen tree (R3 K3, X1: the "
++                    "scorer block's Y retrain, KD9's re-measure; refused while ENGINE_Y is null)")
++    ap.add_argument("--y-tree", help="engine Y's frozen tree (Y only; default <repo>/" + rules.Y_TREE_DEFAULT + ")")
+     ap.add_argument("--family", help="the working copy's family (refused when it is the other family)")
+     ap.add_argument("--inputs", help="a 'stage1-78b pack inputs' record (block 0: inputs: [])")
+     ap.add_argument("--inputs-sha256")
+     ap.add_argument("--dry-run", action="store_true", help="print the identities and pins; write nothing")
++    ap.add_argument("--w1-18", action="store_true", dest="w1_18",
++                    help="the one W1-18 pod's pack (OLMo-2-7B's scorer-block copy; GXB K-3, O4): W1_18_78B's files, "
++                         "the side units and the prepared sets, after oext_78b.py check --engine W1 (R-9)")
+     a = ap.parse_args(argv)
+     if (a.inputs is None) != (a.inputs_sha256 is None):
+         ap.error("--inputs and --inputs-sha256 go together")
++    if a.engine == "X" and a.y_tree:
++        ap.error("--y-tree belongs to engine Y")
+     return a
+ 
+ 
+@@ -541,7 +831,10 @@ def main(argv: list[str] | None = None) -> None:
+     if out.exists():
+         raise SystemExit(f"{out.name} exists: a packed stage is never overwritten")
+     check_constraints()
+-    tree, commit = ROOT, git_state()
++    tree, commit, yhash = engine_tree(engine, a.y_tree)  # R3 K3 (X1): engine Y from its frozen tree, by YHASH
++    if engine == "Y" and rules.KIT_BLOCK != r78.SC_BLOCK:
++        raise SystemExit("engine Y's pack is the scorer block's (the a0-1101 retrain, KD9's re-measure) until Y_MEASURED: "
++                         "blocks 0, A and B run on engine X (A13)")
+     config = main_config(tree)
+     process_receipt = ROOT / PROCESS_RECEIPT
+     if not process_receipt.is_file():
+@@ -556,7 +849,7 @@ def main(argv: list[str] | None = None) -> None:
+     for rel, (f, got) in prepared.items():
+         pack.add(f"{data_base}/{rel}", f, got)
+     pack.add(config["path"], tree / config["path"], config["sha256"])
+-    s78 = None
++    s78, checks, w1_scan = None, [], {}
+     if rules.KIT_BLOCK == r78.SC_BLOCK:                  # K4b: the scorer block's code, inputs and S_78 config
+         for rel, (src, pin) in scorer_code(family).items():
+             pack.add(rel, src, pin)
+@@ -567,6 +860,39 @@ def main(argv: list[str] | None = None) -> None:
+         s78 = recipe_s78(tree, family)
+         if s78 is not None:
+             pack.add(s78["path"], tree / s78["path"], s78["sha256"])
++        if r78.OEXT_78B.get(family) is not None:         # R3 K3 (R-6): before any O-ext pod, on the Mac
++            checks += oext_checks(family)
++        if engine == "Y" and r78.OEXT_78B_Y.get(family) is not None:   # R-23, X1: Y's O-ext files, checked on the Mac
++            checks += oext_checks(family, ("Y",))           # under Y's identity; the unchanged 1B oext_unit.py from
++            for rel, (src, pin) in oext_code(family, "Y").items():   # this checkout (the wrapper's CODE pin), never
++                pack.add(rel, src, pin)                     # the 1B Y copy in the Y tree (r1-o-verify.md P3)
++        branch = branch_file(family, required=False)
++        if branch is not None:
++            pack.add(*branch)
++        if a.w1_18:                                      # R3 K3 (5c): the one W1-18 pod
++            w1_files, w1_checks, w1_scan = w1_18_pack(family)
++            checks += w1_checks
++            for rel, (src, digest) in w1_files.items():
++                pack.add(rel, src, digest)
++    elif rules.KIT_BLOCK in r78.BANK500_BLOCKS:          # R3 K3 (5a, E3): blocks A and B, the in-job O-ext step
++        if r78.OEXT_78B.get(family) is None:
++            raise SystemExit(f"blocks A and B carry the O-ext step: OEXT_78B[{family!r}] is null: "
++                             f"{r78.SC_PIN_EVENTS['OEXT_78B']}")
++        checks += oext_checks(family)
++        for rel, (src, pin) in oext_code(family).items():
++            pack.add(rel, src, pin)
++        pack.add(*branch_file(family, required=True))
++        in_files, named = sc_inputs(inputs_doc or {}, family)
++        missing = [n for n in r78.OEXT_INPUTS if n not in named]
++        if missing:
++            raise SystemExit(f"--inputs FILE: blocks A and B need the O-ext inputs {missing} (OEXT_78B's inputs)")
++        for rel, (src, digest) in in_files.items():
++            pack.add(rel, src, digest)
++        pack.inputs.update(named)
++        for rel, (src, digest) in ab_edits(family).items():   # K-7: each edit by its exact path and SHA-256
++            pack.add(rel, src, digest)
++    if a.w1_18 and rules.KIT_BLOCK != r78.SC_BLOCK:
++        raise SystemExit("--w1-18: the W1-18 pod is a scorer-block pod (GXB K-3)")
+     pack.refuse()
+     files = engine_files(tree)
+     overlap = sorted(set(files) & set(pack.files) - {config["path"]} - ({s78["path"]} if s78 else set()))
+@@ -577,20 +903,21 @@ def main(argv: list[str] | None = None) -> None:
+     files["constraints.txt"] = SETUP / "constraints.txt"
+     files["requirements.lock"] = tree / "experiments/minimal_safety/requirements.lock"
+     code = engine_code(tree)
+-    if code != rules.ENGINES[engine] or code != r78.ENGINE_X:
++    if code != r78.engine_sha(engine) or (engine == "X" and code != rules.ENGINES[engine]):
+         raise SystemExit(f"the packed engine {engine}'s code identity is not its pin (KD8)")
+     sealed_json = (json.dumps({"kind": "stage1-78b sealed files", "version": 1, "engine": engine, "family": family,
+                                "files": dict(sorted(pack.pins.items())), "inputs": dict(sorted(pack.inputs.items()))},
+                               indent=1) + "\n").encode()
+     manifest = {"kind": f"explicit code and data export for the 7-8B kit, engine {engine}, family {family}; no credentials",
+                 "git_commit": commit, "engine": engine, "engine_sha256": code, "family": family, "kit_block": rules.KIT_BLOCK,
++                **({"yhash": rules.YHASH_PIN} if yhash else {}),
+                 "main_config": config, "prepared_manifests": dict(rules.PREPARED_MANIFESTS), "sealed_set": sealed["manifest"],
+                 "files": {n: sha(f) for n, f in sorted(files.items())}}
+     payload = {"bundle-manifest.json": (json.dumps(manifest, indent=2) + "\n").encode(), "sealed-files.json": sealed_json}
+     probe_json = (json.dumps(probe_record(family), indent=1) + "\n").encode()
+     family_json = kit_family_doc(family)
+     refuse_secrets(files, {**payload, "probe.json": probe_json, rules.KIT_FAMILY_FILE: family_json}, DATA_PREFIXES,
+-                   frozenset(f"{data_base}/{rel}" for rel in data_scan))
++                   frozenset(f"{data_base}/{rel}" for rel in data_scan) | frozenset(w1_scan))
+     out.mkdir(parents=True, exist_ok=False)
+     (out / "probe.json").write_bytes(probe_json)
+     (out / "sealed-files.json").write_bytes(sealed_json)
+@@ -598,6 +925,7 @@ def main(argv: list[str] | None = None) -> None:
+     bundle = out / f"bundle-stage1-{engine}.tar.gz"
+     tar(bundle, files, payload)
+     bundle_sha = sha(bundle)
++    blinding = blinding_check(files, bundle)             # R3 K3 (GXB R-44): before the receipt
+     bootstrap = worker_bootstrap(engine, bundle.name, bundle_sha, code, rules.PREPARED_MANIFESTS, rules.PIP_PIN)
+     if secret_scan.scan_text(bootstrap):
+         raise SystemExit("a secret pattern is in the generated bootstrap")
+@@ -617,6 +945,7 @@ def main(argv: list[str] | None = None) -> None:
+                "sealed_set": sealed["manifest"], "edits": {f"R_d{d}": e for d, e in sorted(sealed["edits"].items())},
+                "inputs_record_sha256": a.inputs_sha256, "sealed_files_sha256": hashlib.sha256(sealed_json).hexdigest(),
+                "recipe_s78": s78,
++               **({} if rules.KIT_BLOCK == "0" else {"oext_checks": checks, "w1_18": bool(a.w1_18), "blinding": blinding}),
+                "inputs": dict(sorted(pack.inputs.items())),
+                "bundle": {"path": str(bundle), "sha256": bundle_sha, "files": len(files)},
+                "setup": {"path": str(setup), "sha256": sha(setup), "bytes": setup.stat().st_size},
+diff --git a/runkit/stage1-78b/plan_tool.py b/runkit/stage1-78b/plan_tool.py
+index 10d1b5a..02ae347 100644
+--- a/runkit/stage1-78b/plan_tool.py
++++ b/runkit/stage1-78b/plan_tool.py
+@@ -4807,9 +4807,15 @@ def write_blinded_part(plan: dict) -> dict:
+                 fail(f"{p.relative_to(HERE)} is superseded by a kit re-run but the merged inputs file exists; the lead "
+                      "decides (GXB R-51)")
+             new = p.with_name(p.name + ".new")
+-            with open(new, "xb") as handle:
+-                handle.write(data)
+-            os.replace(new, p)
++            if new.exists() or new.is_symlink():         # R3 K3 (K2R2-1): a leftover from an interrupted replacement
++                fail(f"{new.relative_to(HERE)} is left from an interrupted replacement of the part: the lead checks "
++                     f"{p.relative_to(HERE)} and removes the .new file, then runs this step again (nothing written)")
++            try:
++                with open(new, "xb") as handle:
++                    handle.write(data)
++                os.replace(new, p)
++            except OSError as exc:
++                fail(f"{p.relative_to(HERE)}: its replacement failed ({type(exc).__name__}); the lead checks the part")
+     else:
+         p.parent.mkdir(exist_ok=True)
+         with open(p, "xb") as handle:
+diff --git a/runkit/stage1-78b/rules_78b.py b/runkit/stage1-78b/rules_78b.py
+index 5660474..4e99aac 100644
+--- a/runkit/stage1-78b/rules_78b.py
++++ b/runkit/stage1-78b/rules_78b.py
+@@ -2634,13 +2634,16 @@ def branch_switch_problem(family: str, new_doc, pinned_bytes: bytes | None = Non
+ def oext_flags(family: str, kind: str, branch_bytes: bytes, regenerated: bool = False) -> dict:
+     """The Branch-128 flags (DESO item 9; Part 2 §4.2): under Branch 128 every O-ext command takes --w1-18-record
+     (c0, o_only, o_only_with_regenerate and the arm step) and the regenerated units also --dev100-source; under Branch
+-    full neither. The branch is read only from the family's pinned record (``branch_bytes`` at BRANCH_78B)."""
++    full no --dev100-source. The branch is read only from the family's pinned record (``branch_bytes`` at BRANCH_78B).
++    R3 K3 (GXB R-47, M: a fixture through the unchanged oext_eval, tests/test_runner_ab_78b.py): under Branch full
++    from a FAILING W1-18 record (source "w1_18") the O-ext eval settings pin that record, and oext_eval.prepare ->
++    read_w1_18 reads it at run time (a missing --w1-18-record refuses "W1-18's record cannot be read"), so the flag is
++    passed whenever the branch record names a W1-18 record; "Branch full by default" (no record) passes none."""
+     branch_doc = branch_record_or_refuse(family, branch_bytes)
+     if kind not in OEXT_BANK_KINDS:
+         raise Refused(f"{kind} has no O-ext step")
+-    if branch_doc["branch"] != "128":
+-        return {"w1_18_record": None, "dev100_source": False}
+-    return {"w1_18_record": branch_doc["w1_18_record_sha256"], "dev100_source": bool(regenerated)}
++    record = branch_doc["w1_18_record_sha256"] if branch_doc["source"] == "w1_18" else None
++    return {"w1_18_record": record, "dev100_source": branch_doc["branch"] == "128" and bool(regenerated)}
+ 
+ 
+ def golden_table() -> dict:
+diff --git a/runkit/stage1-78b/setup/job_runner_stage1.py b/runkit/stage1-78b/setup/job_runner_stage1.py
+index b59094f..41fac33 100644
+--- a/runkit/stage1-78b/setup/job_runner_stage1.py
++++ b/runkit/stage1-78b/setup/job_runner_stage1.py
+@@ -170,6 +170,8 @@ def job_commands(plan: dict, host: str, index: int, root: pathlib.Path, units: d
+     family = family_of_plan(plan)
+     if plan["hosts"][host].get("block") == r78.SC_BLOCK:   # K4b: the scorer block's single-job pods
+         return sc_commands(plan, host, index, root, units or {}, sealed_doc if sealed_doc is not None else load_sealed(root))
++    if plan["hosts"][host].get("block") in r78.BANK500_BLOCKS:   # R3 K3 (5a, E3): blocks A and B, the O-ext step
++        return ab_commands(plan, host, index, root, units or {}, sealed_doc if sealed_doc is not None else load_sealed(root))
+     if kind in r78.S78_KINDS:
+         try:
+             r78.recipe_s_or_refuse(family)
+@@ -195,8 +197,9 @@ def load_sealed(root: pathlib.Path) -> dict:
+ 
+ 
+ def oext_fallback(plan: dict) -> bool:
+-    """No O-ext step exists at 7-8B, so no fallback (c) either: always False. Kept by name because orchestrate.py's
+-    check_plan (the launch path, K3's) reads it; the stage-1 kit's record has no 7-8B counterpart."""
++    """No fallback (c) at 7-8B: always False (R3 K3: E3 (a) is built, so blocks A and B's arm jobs always carry their
++    O-ext step; block 0 has none). Kept by name because orchestrate.py's check_plan (the launch path) reads it; the
++    stage-1 kit's record has no 7-8B counterpart."""
+     return False
+ 
+ 
+@@ -211,6 +214,8 @@ def sealed_paths(job: dict, h: dict | None = None, index: int = 0, sealed_doc: d
+         paths.append(edit_bundle(job))
+     if job.get("kind") in r78.SC_KINDS and (h or {}).get("block") == r78.SC_BLOCK:   # K4b
+         paths += sc_paths(job, sealed_doc if sealed_doc is not None else {"files": {}, "inputs": {}})
++    if job.get("kind") in AB_OEXT_KINDS and (h or {}).get("block") in r78.BANK500_BLOCKS:   # R3 K3 (5a): the O-ext step
++        paths += oext_paths(rules.FAMILY, job["kind"], sealed_doc if sealed_doc is not None else {"files": {}, "inputs": {}})
+     return paths
+ 
+ 
+@@ -387,10 +392,48 @@ def preflight_checks(plan: dict, host: str, pre: dict, root: pathlib.Path) -> tu
+     return doc, verification, bank
+ 
+ 
+-def key_refusal(plan: dict, host: str, verification: dict, bank: dict) -> tuple[int, str] | None:
++def oext_bank_key(job: dict, h: dict, sealed_doc: dict | None) -> str | None:
++    """R3 K3 (SCOUT §1.3; RK check_keys' second bank pin): the packed O-ext bank's SHA-256 (sealed-files.json) of a job
++    with an O-ext step (the scorer block's O-ext kinds; blocks A and B's arm and a0_arm), else None."""
++    oext = (job["kind"] in r78.SC_BRANCH_KINDS and h.get("block") == r78.SC_BLOCK) or \
++        (job["kind"] in AB_OEXT_KINDS and h.get("block") in r78.BANK500_BLOCKS)
++    if not oext or sealed_doc is None:
++        return None
++    rel = (sealed_doc.get("inputs") or {}).get("oext_bank")
++    return (sealed_doc.get("files") or {}).get(rel) if rel else None
++
++
++ANCHOR_STOP_INPUT = "anchor_stop"                         # KR4: the family's stop record, packed by its pin
++ANCHOR_JOB_DONE_INPUT = "anchor_job_done"                 # KR8: the anchor job's JOB-DONE.json the record names
++
++
++def anchor_stop_check(family: str, root: pathlib.Path, sealed_doc: dict) -> str | None:
++    """KR4 (GXB R-26, O6): before check_keys and job_decision, a family whose anchor job stopped (ANCHOR_STOP[family]
++    pinned) has its packed stop record read through rules_78b.anchor_stop_or_refuse, against the packed anchor job's
++    JOB-DONE.json (KR8), so a stopped family's MAIN_F retrain pod runs as planned; None when the family is not stopped
++    or its record checks, else why (recorded as a refusal, never asserted). Names and hashes only."""
++    pin = r78.ANCHOR_STOP.get(family)
++    if pin is None:
++        return None
++    inputs, files = dict(sealed_doc.get("inputs") or {}), dict(sealed_doc.get("files") or {})
++    rels = [inputs.get(ANCHOR_STOP_INPUT), inputs.get(ANCHOR_JOB_DONE_INPUT)]
++    if None in rels:
++        return "the family's anchor stop record or its anchor job's JOB-DONE.json is not packed (KR4)"
++    for rel in rels:
++        if files.get(rel) is None or not (root / rel).is_file() or sha(root / rel) != files[rel]:
++            return f"the packed {rel} differs from sealed-files.json"
++    try:
++        r78.anchor_stop_or_refuse(family, (root / rels[0]).read_bytes(), sha(root / rels[1]))
++    except r78.Refused as exc:
++        return str(exc)
++    return None
++
++
++def key_refusal(plan: dict, host: str, verification: dict, bank: dict,
++                sealed_doc: dict | None = None) -> tuple[int, str] | None:
+     """(the first job's index, why) that rules_78b.check_keys refuses on this pod, or None: the kind, the recipe (the
+     main config's config SHA-256 from plan.json, which preflight_checks tied to the pod's file), the engine, the GPU
+-    the preflight saw, the prepared manifest and the bank."""
++    the preflight saw, the prepared manifest and the bank (and an O-ext job's packed O-ext bank, R3 K3)."""
+     h = plan["hosts"][host]
+     family = family_of_plan(plan)
+     recipe = plan["recipes"][rules.REC]["config_sha256"]
+@@ -398,7 +441,8 @@ def key_refusal(plan: dict, host: str, verification: dict, bank: dict) -> tuple[
+     for i, job in enumerate(h["jobs"]):
+         key = (job.get("recipe_s78") or {}).get("config_sha256") if job.get("recipe") == "S" else recipe   # K4b (A1)
+         try:
+-            r78.check_keys(family, job["kind"], key, h["engine_sha256"], gpu_name_of(verification), manifest, bank)
++            r78.check_keys(family, job["kind"], key, h["engine_sha256"], gpu_name_of(verification), manifest, bank,
++                           oext_bank_key(job, h, sealed_doc))
+         except r78.Refused as exc:
+             return i, f"job {i} ({job['kind']}): {exc}"
+     return None
+@@ -463,7 +507,7 @@ def sc_paths(job: dict, sealed_doc: dict) -> list[str]:
+     paths = list(rules.scorer_code(job["kind"]))
+     if job.get("recipe") == "S" and (job.get("recipe_s78") or {}).get("path"):
+         paths.append(job["recipe_s78"]["path"])
+-    for name in rules.sc_input_names(job["kind"], job.get("seed")) if job["kind"] in rules.SC_INPUTS else ():
++    for name in sc_names(job) if job["kind"] in rules.SC_INPUTS else ():
+         rel = inputs.get(name)
+         if rel is None:
+             paths.append(f"inputs/{name} (not packed)")
+@@ -471,16 +515,29 @@ def sc_paths(job: dict, sealed_doc: dict) -> list[str]:
+             paths += sorted(f for f in files if f.startswith(rel.rstrip("/") + "/")) or [f"{rel}/COMPLETE.json"]
+         else:
+             paths.append(rel)
++    if job["kind"] in r78.SC_BRANCH_KINDS:              # R3 K3: the O-ext pin's files, the branch record, the bank
++        paths += [p for p in oext_paths(rules.FAMILY, job["kind"], sealed_doc) if p not in paths]
++    if job["kind"] == "w1_18":                          # R3 K3: W1_18_78B's files and the side units
++        paths += w1_18_paths(sealed_doc)
+     return paths
+ 
+ 
++def sc_names(job: dict) -> tuple:
++    """GXB R-16 / R-31: the job's named inputs by its unit's (arm, seed), the strict form
++    (stage1_rules.sc_unit_input_names); an (arm, seed) that is not one of the kind's units is Unrunnable."""
++    try:
++        return rules.sc_unit_input_names(job["kind"], job.get("arm"), job.get("seed"))
++    except ValueError as exc:
++        raise Unrunnable(f"{job['kind']}: {exc}") from None
++
++
+ def sc_inputs(job: dict, index: int, sealed_doc: dict) -> dict:
+     """name -> (bundle path, SHA-256) of the job's named inputs, each equal to its plan.json pin (a folder input by
+     its COMPLETE.json). Unrunnable when an input is not packed, its pin is null, or the packed file differs."""
+     files, inputs = dict(sealed_doc.get("files") or {}), dict(sealed_doc.get("inputs") or {})
+     pins = job.get("inputs") or {}
+     out = {}
+-    for name in rules.sc_input_names(job["kind"], job.get("seed")):
++    for name in sc_names(job):
+         pin, rel = pins.get(name), inputs.get(name)
+         if rules.hex64(pin) is None:
+             raise Unrunnable(f"job {index} ({job['kind']}): the input {name!r} has no pin in plan.json (A13)")
+@@ -541,6 +598,216 @@ def c0_fingerprint(root: pathlib.Path, packed: tuple, job: dict, index: int) ->
+     return got
+ 
+ 
++# ===== R3 K3: the O-ext wrapper's commands (GXB T-O3, R-5, R-18, R-20, R-47; plan-ab 5a, 5c, 5e, 5f) ===============
++# Every O-ext command is Track O's one wrapper, scripts/scale78b/oext_78b.py, in its documented form:
++#     oext_78b.py <command> --family F [--engine Y] --index IDX --index-sha256 H <the 1B subcommand and arguments>
++# The index is the one O-ext index file of the family's pin for the engine (OEXT_78B[F] engine X, OEXT_78B_Y[F]
++# engine Y; R-5), by the path and SHA-256 the pin names; the W1-18 command takes the family's W1 index from W1_18_78B
++# (R-20), never from OEXT_78B[F]. The branch is read only from the family's branch record at BRANCH_78B's pin, packed
++# at its path and re-hashed here (rules_78b.oext_flags): --w1-18-record whenever the branch record names a W1-18 record
++# (Branch 128, or Branch full from a failing record: oext_eval reads it at run time, R-47), --dev100-source only on a
++# regenerated (train-only) unit under Branch 128, naming its packed source unit (LN-19).
++AB_OEXT_KINDS = ("arm", "a0_arm")                         # blocks A and B: calibrate, then the O-ext pass on e1 (E3)
++OEXT_OUT = "oext"
++W1_18_OUT = "w1-18"                                       # job-I/w1-18-<F>/: one W1-18 call per family (GXB O4)
++W1_18_RECORD_OUT = "overrefusal_checks.json"              # the 1B script's record name (overrefusal_checks.OUTPUT)
++
++
++def oext_pin(family: str, engine: str, index: int, kind: str) -> dict:
++    """The family's O-ext pin for ``engine`` (OEXT_78B[F] for X, OEXT_78B_Y[F] for Y), in its form with its one index
++    (rules_78b.oext_form_problem); Unrunnable while it is null or off its form."""
++    name = f"OEXT_78B[{family!r}]" if engine == "X" else f"OEXT_78B_Y[{family!r}]"
++    pin = (r78.OEXT_78B if engine == "X" else r78.OEXT_78B_Y).get(family)
++    if pin is None:
++        raise Unrunnable(f"job {index} ({kind}): {name} is null: "
++                         f"{r78.SC_PIN_EVENTS['OEXT_78B' if engine == 'X' else 'OEXT_78B_Y']}")
++    problem = r78.oext_form_problem(pin, family, engine)
++    if problem:
++        raise Unrunnable(f"job {index} ({kind}): {name} is not in its form: {problem}")
++    return pin
++
++
++def oext_index(pin: dict) -> tuple[str, str]:
++    """(path, SHA-256) of the pin's one O-ext index file (GXB R-5: oext_form_problem holds there is exactly one)."""
++    rel = next(p for p in sorted(pin["files"]) if r78.OEXT_INDEX_RE.match(p))
++    return rel, pin["files"][rel]
++
++
++def wrapper_lead(command: str, family: str, index_rel: str, index_sha: str, engine: str = "X") -> list[str]:
++    """The wrapper's leading options (its documented form; --engine only for engine Y)."""
++    return [*PY_B, r78.OEXT_WRAPPER_78B, command, "--family", family, *(["--engine", "Y"] if engine == "Y" else []),
++            "--index", index_rel, "--index-sha256", index_sha]
++
++
++def packed_file(root: pathlib.Path, sealed_doc: dict, rel: str, pin: str, what: str, index: int, kind: str) -> str:
++    """``rel`` when sealed-files.json lists it at ``pin`` and the file on the pod hashes to it; else Unrunnable."""
++    files = dict(sealed_doc.get("files") or {})
++    path = root / rel
++    if files.get(rel) != pin or not path.is_file() or path.is_symlink() or sha(path) != pin:
++        raise Unrunnable(f"job {index} ({kind}): {what} is not packed at its pin")
++    return rel
++
++
++def branch_bytes(root: pathlib.Path, family: str, sealed_doc: dict, index: int, kind: str) -> bytes:
++    """The family's branch record, packed at BRANCH_78B[family]'s path and pin (the pack carries it with every O-ext
++    job); Unrunnable while the pin is null, when it is not packed, or when its bytes are not the pinned record."""
++    pin = r78.BRANCH_78B.get(family)
++    if pin is None:
++        raise Unrunnable(f"job {index} ({kind}): it reads the 500 bank: {family}'s branch record (BRANCH_78B) is null: "
++                         f"{r78.BRANCH_EVENT}")
++    if not (isinstance(pin, dict) and r78._plain_rel(pin.get("path")) and r78._hex(pin.get("sha256"))):
++        raise Unrunnable(f"job {index} ({kind}): BRANCH_78B[{family!r}] is not a {{path, sha256}} pin")
++    data = (root / packed_file(root, sealed_doc, pin["path"], pin["sha256"], "the family's branch record", index,
++                               kind)).read_bytes()
++    try:
++        r78.branch_record_or_refuse(family, data)
++    except r78.Refused as exc:
++        raise Unrunnable(f"job {index} ({kind}): {exc}") from None
++    return data
++
++
++def oext_bank_args(root: pathlib.Path, sealed_doc: dict, pin: dict, index: int, kind: str) -> list[str]:
++    """--oext-bank and --oext-record: the packed named inputs oext_bank and oext_record, each at the O-ext pin's
++    inputs SHA-256 (sealed-files.json and the file on the pod)."""
++    inputs = dict(sealed_doc.get("inputs") or {})
++    out = []
++    for name, flag in (("oext_bank", "--oext-bank"), ("oext_record", "--oext-record")):
++        rel = inputs.get(name)
++        if rel is None:
++            raise Unrunnable(f"job {index} ({kind}): the input {name!r} is not packed")
++        out += [flag, packed_file(root, sealed_doc, rel, pin["inputs"][name], f"the input {name!r}", index, kind)]
++    return out
++
++
++def oext_flag_args(root: pathlib.Path, family: str, kind: str, sealed_doc: dict, pin: dict, index: int,
++                   source: str | None = None) -> list[str]:
++    """Branch 128's flags (DESO item 9) from rules_78b.oext_flags on the packed branch record: --w1-18-record (the
++    pin's own W1-18 record, packed at its path; R-21, R-33) and, on a regenerated unit (``source`` given) under Branch
++    128, --dev100-source SOURCE (Unrunnable when the source unit is not packed)."""
++    flags = r78.oext_flags(family, kind, branch_bytes(root, family, sealed_doc, index, kind),
++                           regenerated=source is not None)
++    out = []
++    if flags["w1_18_record"] is not None:
++        rel = r78.W1_18_RECORD_DIR + r78.W1_18_RECORD_NAME.format(family=family)
++        if pin["files"].get(rel) != flags["w1_18_record"]:
++            raise Unrunnable(f"job {index} ({kind}): the O-ext pin does not name the branch record's W1-18 record "
++                             "(GXB R-33)")
++        out += ["--w1-18-record", packed_file(root, sealed_doc, rel, flags["w1_18_record"], "the W1-18 record", index,
++                                              kind)]
++    if flags["dev100_source"]:
++        if source is None:                               # pragma: no cover - regenerated is source is not None
++            raise Unrunnable(f"job {index} ({kind}): Branch 128 needs the regenerated unit's dev-100 source")
++        out += ["--dev100-source", source]
++    return out
++
++
++def dev100_source(root: pathlib.Path, family: str, job: dict, index: int, sealed_doc: dict, accept_pin: str) -> str | None:
++    """The packed dev-100 source unit of a regenerated unit (arm, seed), only under Branch 128 (LN-19): the folder
++    input source_unit:<arm>:<seed>, whose COMPLETE.json hashes to the unit's acceptance pin (the side unit's or N's
++    unit's COMPLETE.json, the same unit); None under Branch full. Unrunnable when Branch 128 and it is not packed."""
++    doc = json.loads(branch_bytes(root, family, sealed_doc, index, job["kind"]))
++    if doc["branch"] != "128":
++        return None
++    name = rules.SOURCE_UNIT.format(arm=job["arm"], seed=job["seed"])
++    rel = (sealed_doc.get("inputs") or {}).get(name)
++    if rel is None:
++        raise Unrunnable(f"job {index} ({job['kind']}): Branch 128: the dev-100 source unit {name!r} is not packed")
++    packed_file(root, sealed_doc, f"{rel.rstrip('/')}/COMPLETE.json", accept_pin, f"the input {name!r}", index,
++                job["kind"])
++    return rel.rstrip("/")
++
++
++def oext_unit_argv(root: pathlib.Path, family: str, kind: str, index: int, sealed_doc: dict, state: list[str],
++                   rec: str, engine: str = "X", source: str | None = None) -> list[str]:
++    """The wrapper's ``unit run`` (the 1B oext_unit.py run form): STATE (--run UNIT --checkpoint e1, or --untuned),
++    the family's prepared set and recipe, the O-ext bank and record, Branch 128's flags, --out job-I/oext."""
++    pin = oext_pin(family, engine, index, kind)
++    idx, idx_sha = oext_index(pin)
++    tail = oext_flag_args(root, family, kind, sealed_doc, pin, index, source)
++    return [*wrapper_lead("unit", family, idx, idx_sha, engine), "run", *state, "--prepared", PREPARED, "--recipe", rec,
++            *oext_bank_args(root, sealed_doc, pin, index, kind), *tail, "--out", f"job-{index}/{OEXT_OUT}"]
++
++
++def oext_paths(family: str, kind: str, sealed_doc: dict, engine: str = "X") -> list[str]:
++    """The bundle files an O-ext job uses beyond its code (sealed_paths): the O-ext pin's files, the family's branch
++    record at its pin's path and the packed O-ext bank and record (an unpacked input by name)."""
++    pin = (r78.OEXT_78B if engine == "X" else r78.OEXT_78B_Y).get(family) or {}
++    paths = sorted((pin.get("files") or {}))
++    branch = r78.BRANCH_78B.get(family)
++    if isinstance(branch, dict) and isinstance(branch.get("path"), str):
++        paths.append(branch["path"])
++    inputs = dict(sealed_doc.get("inputs") or {})
++    paths += [inputs.get(n, f"inputs/{n} (not packed)") for n in r78.OEXT_INPUTS]
++    return paths
++
++
++def w1_18_route(index: int) -> dict:
++    """W1_18_78B in its form (GXB R-20, R-32; rules_78b.w1_18_route_problem): the W1-18 pod's one route pin."""
++    route = r78.W1_18_78B
++    if route is None:
++        raise Unrunnable(f"job {index} (w1_18): W1_18_78B is null: {r78.SC_PIN_EVENTS['W1_18_78B']}")
++    problem = r78.w1_18_route_problem(route)
++    if problem:
++        raise Unrunnable(f"job {index} (w1_18): W1_18_78B is not in its form: {problem}")
++    return route
++
++
++def w1_18_families(route: dict) -> list[str]:
++    """The families of the one W1-18 pod: W1_18_78B's side_units (both under [B], OLMo-2-7B only under [C]; GXB O4,
++    K-3), the host family first."""
++    fams = sorted(route["side_units"])
++    return sorted(fams, key=lambda f: f != r78.W1_18_HOST_FAMILY)
++
++
++def w1_18_commands(root: pathlib.Path, index: int, sealed_doc: dict) -> list:
++    """GXB O4 (DES E2, DESO2 item 37): one W1-18 check per family on the one pod, each with its own W1 index (its own
++    settings) and its own out folder job-I/w1-18-<F>/ (its record, overrefusal_checks.json, comes back as
++    job-I/overrefusal_checks__<F>.json: GXB R-53, run_sc_job). The side units and each family's prepared set under the
++    bundle's data root (the checkout's tmp/), the device cuda (R-7)."""
++    route = w1_18_route(index)
++    out = []
++    for family in w1_18_families(route):
++        idx = f"scripts/scale78b/settings/OEXT-78B-W1__{family}.json"
++        packed_file(root, sealed_doc, idx, route["files"][idx], f"{family}'s W1-18 index", index, "w1_18")
++        out.append((f"job-{index}-w1-18-{family}",
++                    [*wrapper_lead("w1_18", family, idx, route["files"][idx], "W1"), "--out",
++                     f"job-{index}/{W1_18_OUT}-{family}", "--data-root", DATA, "--device", "cuda"]))
++    return out
++
++
++def w1_18_paths(sealed_doc: dict) -> list[str]:
++    """The bundle files the W1-18 job uses: W1_18_78B's files and every packed side unit file (data/<unit path>/...)."""
++    route = r78.W1_18_78B or {}
++    files = dict(sealed_doc.get("files") or {})
++    paths = sorted(route.get("files") or {})
++    for fam, units in sorted((route.get("side_units") or {}).items()):
++        for name, u in sorted(units.items()):
++            base = f"{DATA}/{u.get('path')}"
++            paths += sorted(f for f in files if f.startswith(base + "/")) or [f"{base}/COMPLETE.json"]
++    return paths
++
++
++def ab_commands(plan: dict, host: str, index: int, root: pathlib.Path, units: dict, sealed_doc: dict) -> list:
++    """Blocks A and B (plan-ab 5a, DES E3, the 1B form RUN1B:457-468): an arm or a0_arm job runs the engine's
++    calibrate under the family's main config, then the O-ext pass on its own e1 unit (@unit:I, resolved by run_job
++    from the calibrate's new COMPLETE.json)."""
++    job = plan["hosts"][host]["jobs"][index]
++    kind, family = job["kind"], family_of_plan(plan)
++    if kind not in AB_OEXT_KINDS:
++        raise Unrunnable(f"job {index} ({kind}): not a block {plan['hosts'][host].get('block')} kind "
++                         f"({', '.join(AB_OEXT_KINDS)})")
++    if PREPARED is None:
++        raise Unrunnable(f"job {index} ({kind}): this kit folder names no family (KD7)")
++    try:
++        steps = rules.arm_commands(job, PREPARED, family)
++    except ValueError as exc:
++        raise Unrunnable(f"job {index} ({kind}): {exc}") from None
++    out = [(f"job-{index}-{name}", list(argv)) for name, argv in steps]
++    out.append((f"job-{index}-oext", oext_unit_argv(root, family, kind, index, sealed_doc,
++                                                     ["--run", f"@unit:{index}", "--checkpoint", "e1"], rules.REC)))
++    return out
++
++
+ def _engine_unit(kind: str, label: str, job: dict, index: int, root: pathlib.Path, rec: str, folder: str,
+                  registry: str, arm: list[str]) -> list:
+     """make-job run-one (train only, --pin-code) and run-one: the stage-1 kit's J2/J20 form (a regenerate into round1/,
+@@ -596,20 +863,25 @@ def sc_commands(plan: dict, host: str, index: int, root: pathlib.Path, units: di
+     if kind == "classifier":                             # PP4: under S_78, no --pool at 7-8B (EM-4)
+         return [(f"{tag}-classifier", [*wrap, "classifier", "--family", family, "--prepared", p, "--recipe", rec,
+                                        "--anchors", ins["anchor_bank"][0], "--out", f"{out}/classifier"])]
+-    if kind == "o_only":                                 # M1: theta0, the O-ext pass's --untuned route
++    if kind == "o_only":                                 # M1: theta0, the O-ext pass's --untuned route (R-34)
+         if job.get("arm") != "theta0":
+             raise Unrunnable(f"job {index} (o_only): the scorer block's O-only pass is theta0's (the untuned model)")
+-        return [(f"{tag}-oext", [*PY_B, r78.OEXT_UNIT_SCRIPT, "run", "--untuned", "--prepared", p, "--recipe", rec,
+-                                 "--oext-bank", ins["oext_bank"][0], "--oext-record", ins["oext_record"][0],
+-                                 "--out", f"{out}/oext"])]
+-    if kind == "o_only_with_regenerate":                 # PP17: regenerate, (verify, accept: run_sc_job), O-ext on e1
+-        if job.get("arm") != "a0":
+-            raise Unrunnable(f"job {index} (o_only_with_regenerate): it regenerates a reused a0 side unit (ruling 7)")
+-        steps = _engine_unit(kind, "a0-regen", job, index, root, rec, ROUND, f"{ROUND}/registry.jsonl", ["--arm", "a0"])
++        return [(f"{tag}-oext", oext_unit_argv(root, family, kind, index, sealed_doc, ["--untuned"], rec))]
++    if kind == "o_only_with_regenerate":                 # PP17, DES E5: regenerate, (verify, accept), O-ext on e1
++        arm, seed = job.get("arm"), job.get("seed")      # (arm, seed) is one of its units: sc_inputs' strict form
++        accept = accept_input(job)
++        if arm == "R":                                   # N's R_d: re-trained on its sealed R_d edit (DES E5)
++            edit = ins[rules.REGEN_EDIT.format(seed=seed)][0]
++            steps = _engine_unit(kind, "R-regen", job, index, root, rec, ROUND, f"{ROUND}/registry.jsonl",
++                                 ["--edit", edit])
++        else:
++            steps = _engine_unit(kind, "a0-regen", job, index, root, rec, ROUND, f"{ROUND}/registry.jsonl",
++                                 ["--arm", "a0"])
+         unit = steps[1][1][steps[1][1].index("--out") + 1]
+-        return [*steps, (f"{tag}-oext", [*PY_B, r78.OEXT_UNIT_SCRIPT, "run", "--run", unit, "--checkpoint", "e1",
+-                                         "--prepared", p, "--recipe", rec, "--oext-bank", ins["oext_bank"][0],
+-                                         "--oext-record", ins["oext_record"][0], "--out", f"{out}/oext"])]
++        source = dev100_source(root, family, job, index, sealed_doc, ins[accept][1])
++        state = ["--run", unit, "--checkpoint", "e1"]
++        return [*steps, (f"{tag}-oext", oext_unit_argv(root, family, kind, index, sealed_doc, state, rec,
++                                                        source=source))]
+     if kind == "retrain":                                # ruling 10: a0-1101 under S_78, to q and e1
+         return _engine_unit(kind, "a0-retrain", job, index, root, rec, RETRAIN_ROOT, f"{RETRAIN_ROOT}/registry.jsonl",
+                             ["--arm", "a0"])
+@@ -620,10 +892,16 @@ def sc_commands(plan: dict, host: str, index: int, root: pathlib.Path, units: di
+         steps = _engine_unit(kind, "R-c0", job, index, root, rec, ROUND, f"{ROUND}/registry.jsonl",
+                              ["--edit", edit_bundle(job)])
+         job_file = steps[0][1][-1]
+-        return [steps[0], (f"{tag}-lean", [*PY_B, r78.C0_SCRIPT, "run", "--job", job_file, "--prepared", p, "--recipe",
+-                                           rec, "--out", f"{out}/c0", "--registry", f"{out}/c0-registry.jsonl",
++        pin = oext_pin(family, "X", index, kind)
++        idx, idx_sha = oext_index(pin)
++        return [steps[0], (f"{tag}-lean", [*wrapper_lead("lean", family, idx, idx_sha), "run", "--job", job_file,
++                                           "--prepared", p, "--recipe", rec, "--out", f"{out}/c0",
++                                           "--registry", f"{out}/c0-registry.jsonl",
+                                            "--expect-adapter-fingerprint", expect,
+-                                           "--oext-bank", ins["oext_bank"][0], "--oext-record", ins["oext_record"][0]])]
++                                           *oext_bank_args(root, sealed_doc, pin, index, kind),
++                                           *oext_flag_args(root, family, kind, sealed_doc, pin, index)])]
++    if kind == "w1_18":                                  # R3 K3 (5c; GXB O4, K-3, R-20, R-53): one check per family
++        return w1_18_commands(root, index, sealed_doc)
+     if kind == "a1_pass":                                # A1's attributes pass (the stage-1 kit's J21 form), PP3
+         groups = job.get("groups")
+         if not (isinstance(groups, list) and len(groups) == rules.UNITS and len(set(groups)) == len(groups)
+@@ -703,15 +981,24 @@ def verify_unit(root: pathlib.Path, unit: str, env: dict) -> dict:
+     return {"exit": check.returncode, "tail": (check.stdout + check.stderr)[-600:]}
+ 
+ 
++def accept_input(job: dict) -> str:
++    """The acceptance input of o_only_with_regenerate's unit (arm, seed) (DES E5; plan-ab 5e): side_complete:a0:<seed>
++    for a reused side unit, n_complete:<arm>:<seed> for one of N's units (the first of its strict-form names)."""
++    name = sc_names(job)[0]
++    if not (name.startswith("side_complete:") or name.startswith("n_complete:")):   # pragma: no cover - the table's
++        raise Unrunnable(f"o_only_with_regenerate: {name!r} is not an acceptance input")
++    return name
++
++
+ def acceptance(root: pathlib.Path, unit: str, job: dict, index: int, ins: dict) -> dict:
+     """PP17 (the stage-1 kit's J2 / LN-12): the regenerated unit against the reused side unit, field by field: every
+     q and e1 adapter and optimizer fingerprint the side unit's COMPLETE.json lists (e1's adapter fingerprint required),
+     its training identity and its prepared manifest (the side unit's COMPLETE.json is ruling 7's by its pin). Written to
+     job-I/ACCEPT_FILE (fingerprints and identities only). ValueError when a record cannot be read."""
+-    name = rules.SIDE_COMPLETE.format(seed=job["seed"])
++    name = accept_input(job)                             # R3 K3 (5e): the side unit's, or N's unit's (arm, seed)
+     rel, pin = ins[name]
+     if sha(root / rel) != pin:
+-        raise ValueError("the side unit's COMPLETE.json differs from its pin")
++        raise ValueError("the side unit's (or N's unit's) COMPLETE.json differs from its pin")
+     side, regen = json.loads((root / rel).read_text()), json.loads((root / unit / "COMPLETE.json").read_text())
+     if not isinstance(side, dict) or not isinstance(regen, dict):
+         raise ValueError("a COMPLETE.json is not an object")
+@@ -734,7 +1021,7 @@ def acceptance(root: pathlib.Path, unit: str, job: dict, index: int, ins: dict)
+                  "equal": rules.hex64(src) is not None and src == got} for f, (src, got) in sorted(fields.items())}
+     passed = all(v["equal"] for v in table.values())
+     doc = {"kind": ACCEPT_KIND, "version": 1, "job": index, "arm": job["arm"], "seed": job["seed"], "unit": unit,
+-           "side_complete_sha256": pin, "regenerated_complete_sha256": sha(root / unit / "COMPLETE.json"),
++           "source": name.split(":", 1)[0], "side_complete_sha256": pin, "regenerated_complete_sha256": sha(root / unit / "COMPLETE.json"),
+            "fields": table, "pass": passed, "failure": None if passed else LS04}
+     (root / f"job-{index}").mkdir(parents=True, exist_ok=True)
+     (root / f"job-{index}" / ACCEPT_FILE).write_text(json.dumps(doc, indent=1, sort_keys=True) + "\n")
+@@ -820,6 +1107,17 @@ def run_sc_job(plan: dict, host: str, index: int, root: pathlib.Path, units: dic
+         summary["c0_record_sha256"] = record["outputs"].get(f"job-{index}/c0/{C0_RECORD}")
+         if summary["c0_record_sha256"] is None:
+             return {**record, "status": "crashed", "why": f"the lean job wrote no {C0_RECORD}"}
++    if kind == "w1_18":                                  # GXB R-53: each family's record as overrefusal_checks__<F>.json
++        summary["records"] = {}
++        for folder in folders:
++            family = folder.rsplit(f"{W1_18_OUT}-", 1)[1]
++            src = root / folder / W1_18_RECORD_OUT
++            if not src.is_file() or src.is_symlink():
++                return {**record, "status": "crashed", "why": f"the W1-18 check of {family} wrote no {W1_18_RECORD_OUT}"}
++            rel = f"job-{index}/{r78.W1_18_RECORD_NAME.format(family=family)}"
++            shutil.copyfile(src, root / rel)
++            record["outputs"][rel] = sha(root / rel)
++            summary["records"][family] = {"path": rel, "sha256": record["outputs"][rel]}
+     if not record["outputs"] and kind not in SC_UNIT_KINDS:
+         return {**record, "status": "crashed", "why": "the job wrote no output"}
+     return {**record, "sc": summary, "status": "complete"}
+@@ -873,6 +1171,30 @@ def write_ledger(root: pathlib.Path, index: int, job: dict, host: str, engine_sh
+     return f"job-{index}/{LEDGER_FILE}"
+ 
+ 
++Y_REMEASURE_FILE = "y-remeasure.json"                    # KD9 (X1): the first Y pod's re-measure record, per job
++Y_REMEASURE_KIND = "stage1-78b engine-Y re-measure"
++
++
++def y_remeasure_record(root: pathlib.Path, index: int, job: dict, family: str, engine_sha: str, pre: dict,
++                       verification: dict, ledger_rel: str, result: dict) -> str:
++    """KD9 (X1, ADD A13; R3 K3): on an engine-Y pod (ruling 10's a0-1101 retrain is the first), each complete job writes
++    job-I/y-remeasure.json, the text-free timing the lead's re-measure step reads before Y carries a block: the engine's
++    identity, the GPU the preflight saw, the preflight's speed fields (rules_78b.preflight_fields), the job's ledger
++    (its SHA-256 and stage seconds), the unit's COMPLETE.json SHA-256 and its progress rows' batch counts and seconds
++    (kind, elapsed_s, rows, capped only; KD11's form). No U, no answer, no prompt. The measured kinds stay refused on Y
++    (rules_78b.engine_allowed) until a recorded lead step sets Y_MEASURED from these records (A13)."""
++    ledger = json.loads((root / ledger_rel).read_text())
++    rows = read_progress(root, result["unit"]) if result.get("unit") else []
++    doc = {"kind": Y_REMEASURE_KIND, "version": 1, "family": family, "job": index, "job_kind": job["kind"],
++           "arm": job.get("arm"), "seed": job.get("seed"), "engine_sha256": engine_sha, "gpu": gpu_name_of(verification),
++           "preflight": r78.preflight_fields(pre, verification), "ledger_sha256": sha(root / ledger_rel),
++           "stages_s": ledger["stages_s"], "slot_s": ledger["slot_s"], "complete_sha256": result.get("complete_sha256"),
++           "progress": [{k: r.get(k) for k in ("kind", "elapsed_s", "rows", "capped")} for r in rows]}
++    rel = f"job-{index}/{Y_REMEASURE_FILE}"
++    (root / rel).write_text(json.dumps(doc, indent=1, sort_keys=True) + "\n")
++    return rel
++
++
+ def unit_fingerprints(root: pathlib.Path, unit: str) -> tuple:
+     """The fingerprint fields of a calibrate unit for a readable record (the stage-1 kit's K6): ({complete_sha256,
+     checkpoints {e1, q}, identity {manifest_sha256, training_identity}}, None), else (None, why). e1 is
+@@ -920,7 +1242,13 @@ def run_job(plan: dict, host: str, index: int, root: pathlib.Path, units: dict,
+     pattern = f"{ROUND}/{job['seed']}-{arm}-e1-a*"
+     before = complete_attempts(root, pattern)
+     exits, steps = {}, []
+-    for name, argv in commands:
++    for name, raw in commands:
++        argv = list(raw)
++        if f"@unit:{index}" in argv:                     # R3 K3 (5a): the O-ext step reads this job's own e1 unit
++            found = sorted(complete_attempts(root, pattern) - before)
++            if len(found) != 1:
++                return {"status": "crashed", "why": "no new COMPLETE.json", "exits": exits, "steps": steps}
++            argv = [found[0] if a == f"@unit:{index}" else a for a in argv]
+         start = time.monotonic()
+         done = subprocess.run(["python3", "process_receipt.py", "--out", name, "--", *argv], env=env, cwd=root)
+         steps.append({"name": name, "seconds": round(time.monotonic() - start, 3), "exit": done.returncode})
+@@ -938,6 +1266,10 @@ def run_job(plan: dict, host: str, index: int, root: pathlib.Path, units: dict,
+                   verified={"exit": check.returncode, "tail": (check.stdout + check.stderr)[-600:]}, outputs={})
+     if check.returncode:
+         return {**record, "status": "crashed", "why": "the unit's verify failed"}
++    if any(name.endswith("-oext") for name, _ in commands):   # R3 K3 (5a): the O-ext pass's outputs, hashed
++        record["outputs"].update(hashed_outputs(root, [f"job-{index}/{OEXT_OUT}"]))
++        if not record["outputs"]:
++            return {**record, "status": "crashed", "why": "the O-ext pass wrote no output"}
+     if kind == "a0_arm":                                 # K6: the a0 fingerprint, readable after the block's seal
+         rel, why = a0_fingerprint_record(root, unit, job, index)
+         if rel is None:
+@@ -1031,8 +1363,12 @@ def main(argv=None) -> int:
+         (root / folder).mkdir(exist_ok=True)
+     records, units, stopped, refusal = [], {}, None, None
+     s_obs, pending = 1.0, None                           # the largest s_obs so far; a refusal to apply at the next job
+-    keys = key_refusal(plan, host, verification, bank)   # the pod's key check, recorded (never asserted)
+-    if keys is not None:
++    stop = None if h.get("block") not in (r78.SC_BLOCK, *r78.BANK500_BLOCKS) else \
++        anchor_stop_check(family, root, sealed_doc)      # KR4: a stopped family's record first (before check_keys)
++    keys = None if stop else key_refusal(plan, host, verification, bank, sealed_doc)   # recorded (never asserted)
++    if stop:
++        pending = Refusal("rule", f"the family's anchor stop record (KR4): {stop}")
++    elif keys is not None:
+         pending = Refusal("key" if jobs[keys[0]]["kind"] not in r78.S78_KINDS | r78.BQI_KINDS else "recipe_pin", keys[1])
+     for i, job in enumerate(jobs):
+         left = remaining(dt.datetime.now(dt.timezone.utc))
+@@ -1083,6 +1419,12 @@ def main(argv=None) -> int:
+         if result["status"] == "complete" and job["kind"] not in BLOCK0_KINDS:   # K4b: no s_obs after a scorer job
+             result.setdefault("outputs", {})
+             result["outputs"][ledger] = sha(root / ledger)
++            if h["engine"] == "Y":                       # R3 K3 (KD9, X1): the re-measure record of a Y job
++                try:
++                    rel = y_remeasure_record(root, i, job, family, engine_sha, pre, verification, ledger, result)
++                    result["outputs"][rel] = sha(root / rel)
++                except (OSError, ValueError, KeyError, TypeError) as exc:   # rules_78b.Refused is a ValueError
++                    result["y_remeasure_problem"] = type(exc).__name__   # the job stands; the lead re-measures
+         elif result["status"] == "complete":
+             result.setdefault("outputs", {})
+             result["outputs"][ledger] = sha(root / ledger)
+diff --git a/runkit/stage1-78b/stage1_rules.py b/runkit/stage1-78b/stage1_rules.py
+index e7d60f6..fe41c55 100644
+--- a/runkit/stage1-78b/stage1_rules.py
++++ b/runkit/stage1-78b/stage1_rules.py
+@@ -332,15 +332,23 @@ SC_INPUTS = {"anchor": ("anchor_prompts",), "untuned_answers": ("list:s3", "loss
+              "retrain": (), "a1_pass": ("anchor_bank", "retrain_unit"),
+              "w1_18": ()}                          # R1 K1: its units and settings are W1_18_78B's pinned files (K3)
+ SC_FOLDER_INPUTS = frozenset({"retrain_unit"})        # a unit folder: its pin is its COMPLETE.json's SHA-256
++SOURCE_UNIT = "source_unit:{arm}:{seed}"              # R3 K3 (5f; LN-19): a regenerated unit's dev-100 source folder,
++#                                                       packed under Branch 128 only, pinned by the acceptance input's
++#                                                       COMPLETE.json SHA-256 (the same unit)
+ 
+ 
+ def _unit_source(kind: str, seed, arm) -> str | None:
+     """R1 K1, the seed key: the source of o_only_with_regenerate's unit (arm, seed) in this copy's family ("side" or
+-    "n"). The seed-only call (no arm) is the K4b side-unit form that today's runner, pack and planner still make; new
+-    callers use sc_unit_input_names / sc_unit_input_pins, which refuse a missing arm (K1V-9)."""
+-    if kind != "o_only_with_regenerate" or arm is None:
+-        return "side" if kind == "o_only_with_regenerate" else None
+-    return r78.sc_unit_source(family_or_refuse(), kind, arm, seed)
++    "n"). R3 K3 (GXB R-16, R-31): the seed-only form is deleted: a missing arm refuses (ValueError) for that kind; the
++    runner, the pack and the planner name every unit by (arm, seed)."""
++    if kind != "o_only_with_regenerate":
++        return None
++    if arm is None:
++        raise ValueError("o_only_with_regenerate names its unit by (arm, seed): the arm is missing (GXB's seed key)")
++    try:
++        return r78.sc_unit_source(family_or_refuse(), kind, arm, seed)
++    except r78.Refused as exc:
++        raise ValueError(str(exc)) from None
+ 
+ 
+ def sc_input_names(kind: str, seed=None, arm=None) -> tuple:
+@@ -358,14 +366,8 @@ def sc_unit_input_names(kind: str, arm, seed) -> tuple:
+     """K1V-9, the seed key without a default: the named inputs of a scorer-block job's unit named by (arm, seed). For
+     o_only_with_regenerate a missing arm refuses (ValueError), and so does an (arm, seed) that is not one of its units;
+     the other kinds take their own arm (SC_ARM) or none. K2's planner, the pack and K3's runner call this form; the
+-    seed-only form sc_input_names(kind, seed) stays only for the call sites the kit test lists until they move."""
+-    if kind == "o_only_with_regenerate":
+-        if arm is None:
+-            raise ValueError("o_only_with_regenerate names its unit by (arm, seed): the arm is missing (GXB's seed key)")
+-        try:
+-            r78.sc_unit_source(family_or_refuse(), kind, arm, seed)
+-        except r78.Refused as exc:
+-            raise ValueError(str(exc)) from None
++    seed-only form is deleted (R3 K3; GXB R-16, R-31): sc_input_names refuses a missing arm the same way."""
++    _unit_source(kind, seed, arm)                        # R3 K3: one check, the strict form's (GXB R-31)
+     return sc_input_names(kind, seed, arm)
+ 
+ 
+diff --git a/runkit/stage1-78b/tests/mutation_spec_rules_78b.json b/runkit/stage1-78b/tests/mutation_spec_rules_78b.json
+index bf21a89..1801218 100644
+--- a/runkit/stage1-78b/tests/mutation_spec_rules_78b.json
++++ b/runkit/stage1-78b/tests/mutation_spec_rules_78b.json
+@@ -1241,16 +1241,18 @@
+    "part": "5f",
+    "describes": "--w1-18-record dropped on c0",
+    "file": "rules_78b.py",
+-   "find": "    return {\"w1_18_record\": branch_doc[\"w1_18_record_sha256\"], \"dev100_source\": bool(regenerated)}",
+-   "replace": "    return {\"w1_18_record\": None if kind == \"c0\" else branch_doc[\"w1_18_record_sha256\"], \"dev100_source\": bool(regenerated)}"
++   "find": "    record = branch_doc[\"w1_18_record_sha256\"] if branch_doc[\"source\"] == \"w1_18\" else None\n",
++   "replace": "    record = None if kind == \"c0\" else (branch_doc[\"w1_18_record_sha256\"] if branch_doc[\"source\"] == \"w1_18\" else None)\n",
++   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
+   },
+   {
+    "id": "K1R-m-dev100-on-theta0",
+    "part": "5f",
+    "describes": "--dev100-source on theta0 (every O-ext command)",
+    "file": "rules_78b.py",
+-   "find": "\"dev100_source\": bool(regenerated)}",
+-   "replace": "\"dev100_source\": True}"
++   "find": "\"dev100_source\": branch_doc[\"branch\"] == \"128\" and bool(regenerated)}",
++   "replace": "\"dev100_source\": True}",
++   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
+   },
+   {
+    "id": "K1R-m-seed-key-seed-only",
+@@ -1713,8 +1715,9 @@
+    "part": "K1V-9",
+    "describes": "a missing arm names the side unit by default",
+    "file": "stage1_rules.py",
+-   "find": "        if arm is None:\n            raise ValueError(\"o_only_with_regenerate names its unit",
+-   "replace": "        if False:\n            raise ValueError(\"o_only_with_regenerate names its unit"
++   "find": "    if arm is None:\n        raise ValueError(\"o_only_with_regenerate names its unit",
++   "replace": "    if False:\n        raise ValueError(\"o_only_with_regenerate names its unit",
++   "note_r3": "R3 K3: re-targeted to _unit_source, where the one check now lives (same mutation)"
+   },
+   {
+    "id": "K1V-m-block0-new-keys",
+@@ -1988,6 +1991,30 @@
+    "file": "rules_78b.py",
+    "find": "    if Fraction(PLAN_MDE_FACTORS[plan]) * sigma > 2 * SESOI_PP:",
+    "replace": "    if Fraction(PLAN_MDE_FACTORS[plan]) * sigma >= 2 * SESOI_PP - Fraction(1, 10 ** 6):"
++  },
++  {
++   "id": "K3-m-r47-128-only",
++   "part": "R-47",
++   "describes": "--w1-18-record only under Branch 128 (a failing record's Branch full drops it)",
++   "file": "rules_78b.py",
++   "find": "    record = branch_doc[\"w1_18_record_sha256\"] if branch_doc[\"source\"] == \"w1_18\" else None\n",
++   "replace": "    record = branch_doc[\"w1_18_record_sha256\"] if branch_doc[\"branch\"] == \"128\" else None\n"
++  },
++  {
++   "id": "K3-m-dev100-under-full-rk",
++   "part": "5f",
++   "describes": "--dev100-source on a regenerated unit under Branch full",
++   "file": "rules_78b.py",
++   "find": "\"dev100_source\": branch_doc[\"branch\"] == \"128\" and bool(regenerated)}",
++   "replace": "\"dev100_source\": bool(regenerated)}"
++  },
++  {
++   "id": "K3-m-seed-only-back",
++   "part": "R-16, R-31",
++   "describes": "the seed-only form comes back (a missing arm is the side unit)",
++   "file": "stage1_rules.py",
++   "find": "    if arm is None:\n        raise ValueError(\"o_only_with_regenerate names its unit by (arm, seed): the arm is missing (GXB's seed key)\")\n    try:\n        return r78.sc_unit_source",
++   "replace": "    if arm is None:\n        return \"side\"\n    try:\n        return r78.sc_unit_source"
+   }
+  ]
+ }
+diff --git a/runkit/stage1-78b/tests/mutation_spec_runner_78b.json b/runkit/stage1-78b/tests/mutation_spec_runner_78b.json
+index a668c5f..389b0f9 100644
+--- a/runkit/stage1-78b/tests/mutation_spec_runner_78b.json
++++ b/runkit/stage1-78b/tests/mutation_spec_runner_78b.json
+@@ -1,6 +1,6 @@
+ {
+  "kind": "stage1-78b runner mutants (K2)",
+- "note": "Mutants for K2's changes (the job runner's gate: s_obs, the free space, the key check and the bank, the two preflight documents, the refusal records, the identity checks, K6; the preflight's speed and bank fields; the finisher's states pull; states_tool.py; the backup's states group), in the stage-1 kit's spec form. Run with tests/run_mutants_runner_78b.py (both runner test files, -x): the baseline first with the same command; a mutant is killed only by a real test failure (pytest exit 1, FAILED lines, no ERROR line); an error, a timeout or a find text not exactly once is INVALID, never a kill. K4a (6 Nov) added the K4-m-* mutants: RV2-8, the runner's pre-job token check through download_models_stage1.no_token_left(). K5 (round 5) added 3 mutants (K5-H-tok-verify-env-whole ... K5-H-tok-run-job-env-whole).",
++ "note": "Mutants for K2's changes (the job runner's gate: s_obs, the free space, the key check and the bank, the two preflight documents, the refusal records, the identity checks, K6; the preflight's speed and bank fields; the finisher's states pull; states_tool.py; the backup's states group), in the stage-1 kit's spec form. Run with tests/run_mutants_runner_78b.py (both runner test files, -x): the baseline first with the same command; a mutant is killed only by a real test failure (pytest exit 1, FAILED lines, no ERROR line); an error, a timeout or a find text not exactly once is INVALID, never a kill. K4a (6 Nov) added the K4-m-* mutants: RV2-8, the runner's pre-job token check through download_models_stage1.no_token_left(). K5 (round 5) added 3 mutants (K5-H-tok-verify-env-whole ... K5-H-tok-run-job-env-whole). R3 K3 (9 Nov) added the K3-m-* mutants (blocks A and B's O-ext step, the wrapper's flags, N's units, W1-18, the anchor stop, the pack's Mac checks, R-44, K-7) and tests/test_runner_ab_78b.py to the runner's tests.",
+  "mutants": [
+   {
+    "id": "K2-m-s-obs-last-not-max",
+@@ -61,9 +61,10 @@
+    "part": "K2 (the job runner, KD3/KD5/KD11, A1, SR-2)",
+    "describes": "check_keys never runs on the pod",
+    "file": "setup/job_runner_stage1.py",
+-   "find": "    keys = key_refusal(plan, host, verification, bank)   # the pod's key check, recorded (never asserted)\n",
++   "find": "    keys = None if stop else key_refusal(plan, host, verification, bank, sealed_doc)   # recorded (never asserted)\n",
+    "replace": "    keys = None\n",
+-   "killed_by": "test_check_keys_takes_the_bank..."
++   "killed_by": "test_check_keys_takes_the_bank...",
++   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
+   },
+   {
+    "id": "K2-m-bank-harm-prompts",
+@@ -304,9 +305,10 @@
+    "part": "K5 (sec R5)",
+    "describes": "pre-existing comparison: run_job's (engine jobs') steps get the runner's whole environment",
+    "file": "setup/job_runner_stage1.py",
+-   "find": "    exits, steps = {}, []\n    for name, argv in commands:\n        start = time.monotonic()\n        done = subprocess.run([\"python3\", \"process_receipt.py\", \"--out\", name, \"--\", *argv], env=env, cwd=root)",
+-   "replace": "    exits, steps = {}, []\n    for name, argv in commands:\n        start = time.monotonic()\n        done = subprocess.run([\"python3\", \"process_receipt.py\", \"--out\", name, \"--\", *argv], env=dict(os.environ), cwd=root)",
+-   "killed_by": "tests/test_kit_78b_runner.py::test_k5_r5_run_job_gives_every_step_and_the_verify_the_scrubbed_offline_environment"
++   "find": "            argv = [found[0] if a == f\"@unit:{index}\" else a for a in argv]\n        start = time.monotonic()\n        done = subprocess.run([\"python3\", \"process_receipt.py\", \"--out\", name, \"--\", *argv], env=env, cwd=root)",
++   "replace": "            argv = [found[0] if a == f\"@unit:{index}\" else a for a in argv]\n        start = time.monotonic()\n        done = subprocess.run([\"python3\", \"process_receipt.py\", \"--out\", name, \"--\", *argv], env=dict(os.environ), cwd=root)",
++   "killed_by": "tests/test_kit_78b_runner.py::test_k5_r5_run_job_gives_every_step_and_the_verify_the_scrubbed_offline_environment",
++   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
+   },
+   {
+    "id": "K6-free-space-folders-collide",
+@@ -316,6 +318,342 @@
+    "find": "        w2 = rk.World(pod.w.repo / f\"w-{i}\", monkeypatch, w.family)\n",
+    "replace": "        w2 = rk.World(pod.w.repo / \"w-0\", monkeypatch, w.family)\n",
+    "killed_by": "tests/test_kit_78b_runner.py::test_the_free_space_check_refuses_a_job_that_would_not_fit_and_records_why"
++  },
++  {
++   "id": "K3-m-ab-no-oext-step",
++   "part": "5a",
++   "describes": "blocks A and B's arm jobs drop their O-ext step",
++   "file": "setup/job_runner_stage1.py",
++   "find": "    return out\n\n\ndef _engine_unit(",
++   "replace": "    return out[:1]\n\n\ndef _engine_unit("
++  },
++  {
++   "id": "K3-m-ab-oext-on-q",
++   "part": "5a",
++   "describes": "the arm step's O-ext pass reads q, not e1",
++   "file": "setup/job_runner_stage1.py",
++   "find": "[\"--run\", f\"@unit:{index}\", \"--checkpoint\", \"e1\"]",
++   "replace": "[\"--run\", f\"@unit:{index}\", \"--checkpoint\", \"q\"]"
++  },
++  {
++   "id": "K3-m-unit-unresolved",
++   "part": "5a",
++   "describes": "the O-ext step's @unit placeholder is not resolved to the calibrate's unit",
++   "file": "setup/job_runner_stage1.py",
++   "find": "            argv = [found[0] if a == f\"@unit:{index}\" else a for a in argv]\n",
++   "replace": "            argv = list(argv)\n"
++  },
++  {
++   "id": "K3-m-ab-oext-empty-ok",
++   "part": "5a",
++   "describes": "an arm job whose O-ext pass wrote nothing is complete",
++   "file": "setup/job_runner_stage1.py",
++   "find": "        if not record[\"outputs\"]:\n            return {**record, \"status\": \"crashed\", \"why\": \"the O-ext pass wrote no output\"}\n",
++   "replace": "        if False:\n            return {**record, \"status\": \"crashed\", \"why\": \"the O-ext pass wrote no output\"}\n"
++  },
++  {
++   "id": "K3-m-oext-null-ok",
++   "part": "T-O3",
++   "describes": "a null OEXT_78B[F] is not named as null",
++   "file": "setup/job_runner_stage1.py",
++   "find": "    if pin is None:\n        raise Unrunnable(f\"job {index} ({kind}): {name} is null: \"",
++   "replace": "    if False:\n        raise Unrunnable(f\"job {index} ({kind}): {name} is null: \""
++  },
++  {
++   "id": "K3-m-oext-form-unchecked",
++   "part": "R-5",
++   "describes": "the O-ext pin's form (one index of its family and engine) is not checked",
++   "file": "setup/job_runner_stage1.py",
++   "find": "    problem = r78.oext_form_problem(pin, family, engine)\n    if problem:\n        raise Unrunnable(f\"job {index} ({kind}): {name} is not in its form",
++   "replace": "    problem = None\n    if problem:\n        raise Unrunnable(f\"job {index} ({kind}): {name} is not in its form"
++  },
++  {
++   "id": "K3-m-packed-file-any",
++   "part": "R-5",
++   "describes": "a packed file is taken without its sealed listing and hash",
++   "file": "setup/job_runner_stage1.py",
++   "find": "    if files.get(rel) != pin or not path.is_file() or path.is_symlink() or sha(path) != pin:\n",
++   "replace": "    if not path.is_file():\n"
++  },
++  {
++   "id": "K3-m-branch-null-ok",
++   "part": "K-8",
++   "describes": "a null branch pin is not refused on the pod",
++   "file": "setup/job_runner_stage1.py",
++   "find": "    pin = r78.BRANCH_78B.get(family)\n    if pin is None:\n        raise Unrunnable(f\"job {index} ({kind}): it reads the 500 bank",
++   "replace": "    pin = r78.BRANCH_78B.get(family)\n    if False:\n        raise Unrunnable(f\"job {index} ({kind}): it reads the 500 bank"
++  },
++  {
++   "id": "K3-m-branch-unhashed",
++   "part": "K-8",
++   "describes": "the branch record is read without its packed pin",
++   "file": "setup/job_runner_stage1.py",
++   "find": "    data = (root / packed_file(root, sealed_doc, pin[\"path\"], pin[\"sha256\"], \"the family's branch record\", index,\n                               kind)).read_bytes()",
++   "replace": "    data = (root / pin[\"path\"]).read_bytes()"
++  },
++  {
++   "id": "K3-m-flag-dropped",
++   "part": "5f, R-47",
++   "describes": "--w1-18-record is never passed",
++   "file": "setup/job_runner_stage1.py",
++   "find": "    if flags[\"w1_18_record\"] is not None:\n        rel = r78.W1_18_RECORD_DIR",
++   "replace": "    if False:\n        rel = r78.W1_18_RECORD_DIR"
++  },
++  {
++   "id": "K3-m-flag-record-unchecked",
++   "part": "R-33",
++   "describes": "the O-ext pin's W1-18 record is not checked against the branch record",
++   "file": "setup/job_runner_stage1.py",
++   "find": "        if pin[\"files\"].get(rel) != flags[\"w1_18_record\"]:\n",
++   "replace": "        if False:\n"
++  },
++  {
++   "id": "K3-m-dev100-dropped",
++   "part": "5f",
++   "describes": "--dev100-source is never passed",
++   "file": "setup/job_runner_stage1.py",
++   "find": "    if flags[\"dev100_source\"]:\n",
++   "replace": "    if False:\n"
++  },
++  {
++   "id": "K3-m-dev100-under-full",
++   "part": "5f",
++   "describes": "a dev-100 source unit is required under Branch full",
++   "file": "setup/job_runner_stage1.py",
++   "find": "    if doc[\"branch\"] != \"128\":\n        return None\n",
++   "replace": "    if False:\n        return None\n"
++  },
++  {
++   "id": "K3-m-source-unhashed",
++   "part": "5f, LN-19",
++   "describes": "the dev-100 source unit is taken without its pin",
++   "file": "setup/job_runner_stage1.py",
++   "find": "    packed_file(root, sealed_doc, f\"{rel.rstrip('/')}/COMPLETE.json\", accept_pin,",
++   "replace": "    (lambda *a: None)(root, sealed_doc, f\"{rel.rstrip('/')}/COMPLETE.json\", accept_pin,"
++  },
++  {
++   "id": "K3-m-accept-side-for-n",
++   "part": "5e",
++   "describes": "N's unit is accepted against the side unit of its seed",
++   "file": "setup/job_runner_stage1.py",
++   "find": "    name = sc_names(job)[0]\n",
++   "replace": "    name = rules.SIDE_COMPLETE.format(seed=job[\"seed\"])\n"
++  },
++  {
++   "id": "K3-m-r-regen-no-edit",
++   "part": "5e",
++   "describes": "N's R unit is regenerated without its sealed R_d edit",
++   "file": "setup/job_runner_stage1.py",
++   "find": "        if arm == \"R\":                                   # N's R_d: re-trained on its sealed R_d edit (DES E5)",
++   "replace": "        if False:"
++  },
++  {
++   "id": "K3-m-w1-18-one-family",
++   "part": "5c, O4",
++   "describes": "the W1-18 pod checks one family only under [B]",
++   "file": "setup/job_runner_stage1.py",
++   "find": "    for family in w1_18_families(route):\n",
++   "replace": "    for family in w1_18_families(route)[:1]:\n"
++  },
++  {
++   "id": "K3-m-w1-18-host-not-first",
++   "part": "5c",
++   "describes": "the host family's check is not first",
++   "file": "setup/job_runner_stage1.py",
++   "find": "    return sorted(fams, key=lambda f: f != r78.W1_18_HOST_FAMILY)",
++   "replace": "    return sorted(fams)"
++  },
++  {
++   "id": "K3-m-w1-18-record-name",
++   "part": "R-53",
++   "describes": "each family's record keeps the 1B name, not overrefusal_checks__<F>.json",
++   "file": "setup/job_runner_stage1.py",
++   "find": "            rel = f\"job-{index}/{r78.W1_18_RECORD_NAME.format(family=family)}\"",
++   "replace": "            rel = f\"job-{index}/{W1_18_RECORD_OUT}\""
++  },
++  {
++   "id": "K3-m-w1-18-missing-ok",
++   "part": "R-53",
++   "describes": "a W1-18 check that wrote no record is not a crash",
++   "file": "setup/job_runner_stage1.py",
++   "find": "            if not src.is_file() or src.is_symlink():\n                return {**record, \"status\": \"crashed\", \"why\": f\"the W1-18 check of",
++   "replace": "            if False:\n                return {**record, \"status\": \"crashed\", \"why\": f\"the W1-18 check of"
++  },
++  {
++   "id": "K3-m-anchor-stop-skipped",
++   "part": "KR4",
++   "describes": "the runner never reads the stop record",
++   "file": "setup/job_runner_stage1.py",
++   "find": "    pin = r78.ANCHOR_STOP.get(family)\n    if pin is None:\n        return None\n    inputs, files =",
++   "replace": "    pin = None\n    if pin is None:\n        return None\n    inputs, files ="
++  },
++  {
++   "id": "K3-m-anchor-stop-own-sha",
++   "part": "KR8",
++   "describes": "the stop record is matched to the JOB-DONE.json it names, not the packed one",
++   "file": "setup/job_runner_stage1.py",
++   "find": "        r78.anchor_stop_or_refuse(family, (root / rels[0]).read_bytes(), sha(root / rels[1]))",
++   "replace": "        r78.anchor_stop_or_refuse(family, (root / rels[0]).read_bytes(), json.loads((root / rels[0]).read_text())[\"job_done_sha256\"])"
++  },
++  {
++   "id": "K3-m-key-no-oext-bank",
++   "part": "5b (SCOUT §1.3)",
++   "describes": "check_keys gets no O-ext bank",
++   "file": "setup/job_runner_stage1.py",
++   "find": "    if not oext or sealed_doc is None:\n        return None\n",
++   "replace": "    if True:\n        return None\n"
++  },
++  {
++   "id": "K3-m-pack-no-check",
++   "part": "R-6",
++   "describes": "the pack runs no wrapper check before an O-ext pod",
++   "file": "pack_setup.py",
++   "find": "            checks += oext_checks(family)\n        if engine == \"Y\"",
++   "replace": "            pass\n        if engine == \"Y\""
++  },
++  {
++   "id": "K3-m-pack-check-exit-ignored",
++   "part": "R-6",
++   "describes": "a failing wrapper check does not refuse the pack",
++   "file": "pack_setup.py",
++   "find": "    if code != 0:\n        raise SystemExit(f\"oext_78b.py check of",
++   "replace": "    if False:\n        raise SystemExit(f\"oext_78b.py check of"
++  },
++  {
++   "id": "K3-m-pack-no-w1-record-arg",
++   "part": "R-6",
++   "describes": "the check does not take the pinned W1-18 record",
++   "file": "pack_setup.py",
++   "find": "        out.append(wrapper_check(family, engine, idx, pin[\"files\"][idx], [] if record is None else\n                                 [\"--w1-18-record\", record]))",
++   "replace": "        out.append(wrapper_check(family, engine, idx, pin[\"files\"][idx], []))"
++  },
++  {
++   "id": "K3-m-pack-no-branch",
++   "part": "K-8",
++   "describes": "the pack does not carry the branch record",
++   "file": "pack_setup.py",
++   "find": "        if branch is not None:\n            pack.add(*branch)\n",
++   "replace": "        if False:\n            pack.add(*branch)\n"
++  },
++  {
++   "id": "K3-m-w1-pack-no-check",
++   "part": "R-9",
++   "describes": "the W1-18 pack runs no side-unit check",
++   "file": "pack_setup.py",
++   "find": "        checks.append(wrapper_check(fam, \"W1\", idx, route[\"files\"][idx], [\"--data-root\", str(ROOT / \"tmp\")]))",
++   "replace": "        pass"
++  },
++  {
++   "id": "K3-m-w1-pack-unit-unpinned",
++   "part": "R-9",
++   "describes": "a side unit is packed without its COMPLETE.json and job.json pins",
++   "file": "pack_setup.py",
++   "find": "    if not src.is_dir() or sha(src / \"COMPLETE.json\") != complete_sha or sha(src / \"job.json\") != job_sha:",
++   "replace": "    if not src.is_dir():"
++  },
++  {
++   "id": "K3-m-w1-pack-no-other-prepared",
++   "part": "K-3",
++   "describes": "the other family's prepared set is not packed",
++   "file": "pack_setup.py",
++   "find": "        if fam != family:\n            pname, digest",
++   "replace": "        if False:\n            pname, digest"
++  },
++  {
++   "id": "K3-m-pack-stop-not-carried",
++   "part": "KR4",
++   "describes": "the pack does not name the stop record among the inputs",
++   "file": "pack_setup.py",
++   "find": "        named[ANCHOR_STOP_NAME] = rel\n",
++   "replace": "        pass\n"
++  },
++  {
++   "id": "K3-m-pack-stop-no-jobdone",
++   "part": "KR4, KR8",
++   "describes": "a stopped family's pack does not need the anchor job's JOB-DONE.json",
++   "file": "pack_setup.py",
++   "find": "        if ANCHOR_JOB_DONE not in named:\n            raise SystemExit(f\"--inputs FILE: {family}'s anchor job stopped",
++   "replace": "        if False:\n            raise SystemExit(f\"--inputs FILE: {family}'s anchor job stopped"
++  },
++  {
++   "id": "K3-m-r44-member-unchecked",
++   "part": "R-44",
++   "describes": "a packed member the blinding record names is not compared",
++   "file": "pack_setup.py",
++   "find": "                if members[m.name] != named[m.name]:\n",
++   "replace": "                if False:\n"
++  },
++  {
++   "id": "K3-m-r44-copy-unchecked",
++   "part": "R-44",
++   "describes": "the copy's files the blinding record names are not compared",
++   "file": "pack_setup.py",
++   "find": "        if copy[rel] != digest:\n            raise SystemExit(f\"R-44: {rel}",
++   "replace": "        if False:\n            raise SystemExit(f\"R-44: {rel}"
++  },
++  {
++   "id": "K3-m-k7-edit-not-packed",
++   "part": "K-7",
++   "describes": "block A's edits are not packed",
++   "file": "pack_setup.py",
++   "find": "            if edit:\n                if not (plain_path",
++   "replace": "            if False:\n                if not (plain_path"
++  },
++  {
++   "id": "K3-m-y-null-ok",
++   "part": "X1, A13",
++   "describes": "engine Y's pack does not refuse while ENGINE_Y is null",
++   "file": "pack_setup.py",
++   "find": "        pin = r78.engine_sha(\"Y\")\n    except r78.Refused as exc:\n        raise SystemExit(f\"engine Y's pack: {exc}\")",
++   "replace": "        pin = r78.ENGINE_Y or \"0\" * 64\n    except r78.Refused as exc:\n        raise SystemExit(f\"engine Y's pack: {exc}\")"
++  },
++  {
++   "id": "K3-m-y-no-yhash",
++   "part": "X1 (YB P-4)",
++   "describes": "the Y tree is packed without YHASH",
++   "file": "pack_setup.py",
++   "find": "    listed = y_tree_check(tree)\n",
++   "replace": "    listed = []\n"
++  },
++  {
++   "id": "K3-m-y-identity-unchecked",
++   "part": "X1",
++   "describes": "the Y tree's identity is not checked first",
++   "file": "pack_setup.py",
++   "find": "    if engine_code(tree) != pin:\n        raise SystemExit(f\"the Y tree's code identity",
++   "replace": "    if False:\n        raise SystemExit(f\"the Y tree's code identity"
++  },
++  {
++   "id": "K3-m-y-oext-not-checked",
++   "part": "R-23",
++   "describes": "Y's O-ext files are packed without the wrapper's check",
++   "file": "pack_setup.py",
++   "find": "checks += oext_checks(family, (\"Y\",))",
++   "replace": "checks += []"
++  },
++  {
++   "id": "K3-m-y-oext-from-y-tree",
++   "part": "X1 (r1-o-verify P3)",
++   "describes": "Y's O-ext files are taken from the Y tree",
++   "file": "pack_setup.py",
++   "find": "        out[rel] = (ROOT / rel, digest)\n    return out\n",
++   "replace": "        out[rel] = ((ROOT / rules.Y_TREE_DEFAULT / rel) if engine == \"Y\" else (ROOT / rel), digest)\n    return out\n"
++  },
++  {
++   "id": "K3-m-kd9-progress-text",
++   "part": "KD9",
++   "describes": "the re-measure record copies whole progress rows",
++   "file": "setup/job_runner_stage1.py",
++   "find": "\"progress\": [{k: r.get(k) for k in (\"kind\", \"elapsed_s\", \"rows\", \"capped\")} for r in rows]",
++   "replace": "\"progress\": rows"
++  },
++  {
++   "id": "K3-m-kd9-no-preflight",
++   "part": "KD9",
++   "describes": "the re-measure record omits the preflight's speed fields",
++   "file": "setup/job_runner_stage1.py",
++   "find": "\"preflight\": r78.preflight_fields(pre, verification),",
++   "replace": "\"preflight\": None,"
+   }
+  ]
+ }
+diff --git a/runkit/stage1-78b/tests/mutation_spec_scorer_78b.json b/runkit/stage1-78b/tests/mutation_spec_scorer_78b.json
+index 8964353..91364ad 100644
+--- a/runkit/stage1-78b/tests/mutation_spec_scorer_78b.json
++++ b/runkit/stage1-78b/tests/mutation_spec_scorer_78b.json
+@@ -721,8 +721,9 @@
+    "part": "PP17",
+    "describes": "the O-ext pass reads the regenerated q state, not e1",
+    "file": "setup/job_runner_stage1.py",
+-   "find": "\"--run\", unit, \"--checkpoint\", \"e1\",",
+-   "replace": "\"--run\", unit, \"--checkpoint\", \"q\","
++   "find": "        state = [\"--run\", unit, \"--checkpoint\", \"e1\"]\n",
++   "replace": "        state = [\"--run\", unit, \"--checkpoint\", \"q\"]\n",
++   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
+   },
+   {
+    "id": "K4bf-m-oext-empty-ok",
+@@ -929,8 +930,9 @@
+    "part": "PP17",
+    "describes": "the pack knows no side unit input (no seed)",
+    "file": "pack_setup.py",
+-   "find": "        for seed in r78.sc_seeds(family, kind):          # PP17",
+-   "replace": "        for seed in [None]:          # PP17"
++   "find": "            for u in r78.sc_units(family, kind):\n",
++   "replace": "            for u in [{\"arm\": None, \"seed\": None}]:\n",
++   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
+   },
+   {
+    "id": "K4bf-m-pack-inputs-unscanned",
+@@ -1147,16 +1149,18 @@
+    "part": "K6 (round 6), K5v-6",
+    "describes": "the bundle's scan is called with edits/ among the skipped prefixes (the constant DATA_PREFIXES unchanged)",
+    "file": "pack_setup.py",
+-   "find": "    refuse_secrets(files, {**payload, \"probe.json\": probe_json, rules.KIT_FAMILY_FILE: family_json}, DATA_PREFIXES,\n                   frozenset(f\"{data_base}/{rel}\" for rel in data_scan))\n",
+-   "replace": "    refuse_secrets(files, {**payload, \"probe.json\": probe_json, rules.KIT_FAMILY_FILE: family_json}, (*DATA_PREFIXES, \"edits/\"),\n                   frozenset(f\"{data_base}/{rel}\" for rel in data_scan))\n"
++   "find": "    refuse_secrets(files, {**payload, \"probe.json\": probe_json, rules.KIT_FAMILY_FILE: family_json}, DATA_PREFIXES,\n                   frozenset(f\"{data_base}/{rel}\" for rel in data_scan) | frozenset(w1_scan))\n",
++   "replace": "    refuse_secrets(files, {**payload, \"probe.json\": probe_json, rules.KIT_FAMILY_FILE: family_json}, (*DATA_PREFIXES, \"edits/\"),\n                   frozenset(f\"{data_base}/{rel}\" for rel in data_scan) | frozenset(w1_scan))\n",
++   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
+   },
+   {
+    "id": "K6-pack-unlisted-data-not-scanned",
+    "part": "K6 (round 6), K5v-3",
+    "describes": "the bundle's scan is not given the prepared set's unpinned files (scan_anyway dropped at the call site)",
+    "file": "pack_setup.py",
+-   "find": "    refuse_secrets(files, {**payload, \"probe.json\": probe_json, rules.KIT_FAMILY_FILE: family_json}, DATA_PREFIXES,\n                   frozenset(f\"{data_base}/{rel}\" for rel in data_scan))\n",
+-   "replace": "    refuse_secrets(files, {**payload, \"probe.json\": probe_json, rules.KIT_FAMILY_FILE: family_json}, DATA_PREFIXES)\n"
++   "find": "    refuse_secrets(files, {**payload, \"probe.json\": probe_json, rules.KIT_FAMILY_FILE: family_json}, DATA_PREFIXES,\n                   frozenset(f\"{data_base}/{rel}\" for rel in data_scan) | frozenset(w1_scan))\n",
++   "replace": "    refuse_secrets(files, {**payload, \"probe.json\": probe_json, rules.KIT_FAMILY_FILE: family_json}, DATA_PREFIXES)\n",
++   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
+   },
+   {
+    "id": "K6-refuse-ignores-scan-anyway",
+@@ -2342,6 +2346,14 @@
+    "file": "plan_tool.py",
+    "find": "    if data is None or data != kit_inputs(gate) or hashlib.sha256(data).hexdigest() != inputs_sha256:",
+    "replace": "    if data is None or data != kit_inputs(gate):"
++  },
++  {
++   "id": "K3-m-part-new-leftover",
++   "part": "K2R2-1",
++   "describes": "a leftover <part>.new is not refused by name",
++   "file": "plan_tool.py",
++   "find": "            if new.exists() or new.is_symlink():         # R3 K3 (K2R2-1): a leftover from an interrupted replacement",
++   "replace": "            if False:"
+   }
+  ]
+ }
+diff --git a/runkit/stage1-78b/tests/run_mutants_runner_78b.py b/runkit/stage1-78b/tests/run_mutants_runner_78b.py
+index d488e97..d9171ad 100644
+--- a/runkit/stage1-78b/tests/run_mutants_runner_78b.py
++++ b/runkit/stage1-78b/tests/run_mutants_runner_78b.py
+@@ -28,7 +28,8 @@ import subprocess
+ import sys
+ 
+ KIT_REL = pathlib.Path("runkit/stage1-78b")
+-TESTS = (KIT_REL / "tests" / "test_kit_78b_runner.py", KIT_REL / "tests" / "test_stage1_runner.py")
++TESTS = (KIT_REL / "tests" / "test_kit_78b_runner.py", KIT_REL / "tests" / "test_stage1_runner.py",
++         KIT_REL / "tests" / "test_runner_ab_78b.py")          # R3 K3: blocks A and B, the pack
+ SPEC = KIT_REL / "tests" / "mutation_spec_runner_78b.json"
+ 
+ 
+diff --git a/runkit/stage1-78b/tests/test_g1_yoext.py b/runkit/stage1-78b/tests/test_g1_yoext.py
+index 511c1ba..e6be051 100644
+--- a/runkit/stage1-78b/tests/test_g1_yoext.py
++++ b/runkit/stage1-78b/tests/test_g1_yoext.py
+@@ -18,12 +18,18 @@ def test_no_o_ext_step_and_no_y_pack_in_this_copy():
+     runner = (KIT / "setup" / "job_runner_stage1.py").read_text()
+     for name in ("OEXT_MODULE", "OEXT_STEP_KINDS", "oext_args", "OEXT_FALLBACK_STATUS", "W1_18_SCRIPT", "o500"):
+         assert name not in runner, name
+-    # K4b, PP17: the two O-ext steps are the scorer block's o_only (theta0; M1) and o_only_with_regenerate (the
+-    # regenerated a0 unit's e1 state), both inside sc_commands; no arm runs one
+-    assert runner.count("OEXT_UNIT_SCRIPT") == 2
++    # R3 K3 (GXB T-O3, R-18; plan-ab 5a): every O-ext command is the wrapper's documented form (wrapper_lead), never a
++    # 1B script path; the scorer block's o_only and o_only_with_regenerate run "unit" in sc_commands, c0 "lean", W1-18
++    # "w1_18"; blocks A and B's arm jobs run "unit" after calibrate (ab_commands); block 0's route runs none
++    assert "OEXT_UNIT_SCRIPT" not in runner and "C0_SCRIPT" not in runner
+     sc = runner[runner.index("def sc_commands("):runner.index("def out_dirs(")]
+-    assert sc.count("r78.OEXT_UNIT_SCRIPT") == 2
+-    assert "def oext_fallback(plan: dict) -> bool:\n    \"\"\"No O-ext step exists at 7-8B" in runner   # the name orchestrate reads: always False
++    assert sc.count("oext_unit_argv(") == 2 and sc.count('wrapper_lead("lean"') == 1
++    ab = runner[runner.index("def ab_commands("):runner.index("def _engine_unit(")]
++    assert ab.count("oext_unit_argv(") == 1
++    block0 = runner[runner.index("def job_commands("):runner.index("def load_sealed(")]
++    assert "oext_unit_argv(" not in block0 and block0.index("r78.SC_BLOCK") < block0.index("r78.BANK500_BLOCKS") < \
++        block0.index("rules.arm_commands(job, PREPARED, family)")
++    assert "def oext_fallback(plan: dict) -> bool:\n    \"\"\"No fallback (c) at 7-8B" in runner   # orchestrate reads it: False
+     pack = (KIT / "pack_setup.py").read_text()
+     assert "engine X only" in pack or "ENGINE_X" in pack
+     rules78 = (KIT / "rules_78b.py").read_text()
+diff --git a/runkit/stage1-78b/tests/test_kit_78b_runner.py b/runkit/stage1-78b/tests/test_kit_78b_runner.py
+index ee87b33..c310669 100644
+--- a/runkit/stage1-78b/tests/test_kit_78b_runner.py
++++ b/runkit/stage1-78b/tests/test_kit_78b_runner.py
+@@ -997,8 +997,9 @@ def test_the_committed_kit_folder_imports_every_runner_module_and_runs_nothing(t
+     for gone in ("c1_registry_seed", "similarity_record", "plant_fingerprint_record", "W1_18_SCRIPT",
+                  "D2_SCRIPTS", "_safe_lora", "MAN1_PATH"):
+         assert gone not in text, gone                                     # the 1B machinery is not in this copy
+-    assert text.count("OEXT_UNIT_SCRIPT") == 2 and text[text.index("def sc_commands("):text.index("def out_dirs(")].count(
+-        "r78.OEXT_UNIT_SCRIPT") == 2                     # K4b, PP17: only the scorer block's o_only and o_only_with_regenerate
++    assert "OEXT_UNIT_SCRIPT" not in text and text[text.index("def sc_commands("):text.index("def out_dirs(")].count(
++        "oext_unit_argv(") == 2                          # R3 K3: the wrapper's form (R-18); o_only and the regenerate
++    assert text[text.index("def ab_commands("):text.index("def _engine_unit(")].count("oext_unit_argv(") == 1   # 5a
+     assert "s_obs_from_progress" in text and "free_space_gb" in text and "check_keys" in text and "job_decision" in text
+ 
+ 
+diff --git a/runkit/stage1-78b/tests/test_planning_ab_78b.py b/runkit/stage1-78b/tests/test_planning_ab_78b.py
+index 641d7c2..9bf1f4a 100644
+--- a/runkit/stage1-78b/tests/test_planning_ab_78b.py
++++ b/runkit/stage1-78b/tests/test_planning_ab_78b.py
+@@ -2132,3 +2132,27 @@ def test_r51_the_kits_rerun_mismatched_requeue_takes_the_re_runs_unit(wa):
+     plan["requeues"][-1]["from"] = hosts[1]
+     with pytest.raises(SystemExit, match="two complete units"):
+         w.tool.blinded_inputs_part(plan, w.family)
++
++
++def test_k2r2_1_a_leftover_part_new_refuses_by_name_and_writes_nothing(wa):
++    """K2R2-1 (R3 K3): a <part>.new left by an interrupted replacement refuses record-done's part step by name, with a
++    clear message (no FileExistsError), and leaves the part and the .new file as they were; once the lead removes it,
++    the superseded part is replaced (GXB R-51's path)."""
++    w = wa
++    family = w.family
++    part = w.root / w.tool.BLINDED_PART.format(family=family)
++    write(part, {"part": "the earlier attempt (synthetic)"})
++    new = part.with_name(part.name + ".new")
++    new.write_text("left by an interrupted replacement")
++    doc = {"part": "after the kit's re-run (synthetic)"}
++    w.mp.setattr(w.tool, "blinded_inputs_part", lambda plan, fam: doc)
++    w.mp.setattr(w.tool, "part_superseded", lambda old, new_doc, plan: True)
++    w.mp.setattr(w.tool, "BLINDED_INPUTS", w.repo / "records" / "no-merged-inputs.json")
++    before = part.read_bytes()
++    with pytest.raises(SystemExit, match=r"\.json\.new is left from an interrupted replacement of the part"):
++        w.tool.write_blinded_part({})
++    assert part.read_bytes() == before and new.read_text() == "left by an interrupted replacement"
++    new.unlink()
++    got = w.tool.write_blinded_part({})
++    assert part.read_bytes() == w.rules.canonical_bytes(doc) and not new.exists()
++    assert got["sha256"] == sha(part)
+diff --git a/runkit/stage1-78b/tests/test_rules_78b.py b/runkit/stage1-78b/tests/test_rules_78b.py
+index e2240eb..fa94c90 100644
+--- a/runkit/stage1-78b/tests/test_rules_78b.py
++++ b/runkit/stage1-78b/tests/test_rules_78b.py
+@@ -1920,6 +1920,13 @@ def test_29_the_branch_record_the_500_bank_kinds_and_the_flags(monkeypatch):
+     pin_of_item(monkeypatch, R.BRANCH_78B, f, full)
+     assert R.oext_flags(f, "o_only_with_regenerate", full, regenerated=True) == {"w1_18_record": None,
+                                                                                    "dev100_source": False}
++    # R3 K3 (GXB R-47): Branch full from a FAILING W1-18 record: the O-ext settings pin it and oext_eval reads it at
++    # run time (tests/test_runner_ab_78b.py, through the unchanged oext_eval), so the flag names it; no --dev100-source
++    failing = json.dumps(branch_doc(f, "full", "w1_18", hx("w1-fail"))).encode()
++    pin_of_item(monkeypatch, R.BRANCH_78B, f, failing)
++    for kind in ("c0", "o_only", "o_only_with_regenerate", "arm", "a0_arm"):
++        assert R.oext_flags(f, kind, failing, regenerated=True) == {"w1_18_record": hx("w1-fail"), "dev100_source": False}
++    pin_of_item(monkeypatch, R.BRANCH_78B, f, data128)
+     monkeypatch.setitem(R.BRANCH_78B, f, None)
+     with pytest.raises(R.Refused, match="BRANCH_78B\\['llama31-8b'\\] is null"):
+         R.oext_flags(f, "o_only", full)
+@@ -1991,7 +1998,9 @@ def test_30_the_seed_key_olmo_n_r1101_and_side_a0_1101(tmp_path, monkeypatch):
+         assert "N_UNITS" not in R.sc_needed_pins("o_only_with_regenerate", "X", "llama31-8b", "a0", seed)
+     sr = kit_copy(tmp_path, "olmo2-7b", "sc")
+     side, n = sr.sc_input_names("o_only_with_regenerate", 1101, "a0"), sr.sc_input_names("o_only_with_regenerate", 1101, "R")
+-    assert side == ("side_complete:a0:1101", "oext_bank", "oext_record") == sr.sc_input_names("o_only_with_regenerate", 1101)
++    assert side == ("side_complete:a0:1101", "oext_bank", "oext_record")
++    with pytest.raises(ValueError, match="the arm is missing"):           # R3 K3 (R-16, R-31): no seed-only form
++        sr.sc_input_names("o_only_with_regenerate", 1101)
+     assert n == ("n_complete:R:1101", "regen_edit:R:1101", "oext_bank", "oext_record")
+     values = R.sc_pin_values("olmo2-7b", pins78_doc())
+     assert sr.sc_input_pins("o_only_with_regenerate", pins78_doc(), values, 1101, "R") == {
+@@ -2567,7 +2576,8 @@ def test_41_k1v9_a_unit_is_named_by_arm_and_seed_and_a_missing_arm_refuses(tmp_p
+     """K1V-9 (GXB's seed key): sc_unit_input_names / sc_unit_input_pins name o_only_with_regenerate's unit by (arm,
+     seed) and refuse a missing arm or a pair that is not one of its units. The seed-only form remains only at the four
+     call sites K2 and K3 own (the runner :466, :483; the pack :432; the planner :1306), listed here so that no new
+-    caller uses it; when they move, this test's list shrinks (a K2/K3 acceptance item)."""
++    caller uses it; when they move, this test's list shrinks (a K2/K3 acceptance item). R3 K3: the list is empty and
++    the seed-only form itself refuses (sc_input_names without the arm)."""
+     sr = kit_copy(tmp_path, "olmo2-7b", "sc")
+     with pytest.raises(ValueError, match="the arm is missing"):
+         sr.sc_unit_input_names("o_only_with_regenerate", None, 1101)
+@@ -2583,14 +2593,16 @@ def test_41_k1v9_a_unit_is_named_by_arm_and_seed_and_a_missing_arm_refuses(tmp_p
+         sr.sc_unit_input_pins("o_only_with_regenerate", pins78_doc(), values, None, 1101)
+     assert set(sr.sc_unit_input_pins("o_only_with_regenerate", pins78_doc(), values, "R", 1101)) == {
+         "n_complete:R:1101", "regen_edit:R:1101", "oext_bank", "oext_record"}
+-    assert seed_only_calls() == R16_SEED_ONLY_CALLS
++    assert seed_only_calls() == R16_SEED_ONLY_CALLS == set()
++    with pytest.raises(ValueError, match="the arm is missing"):
++        sr.sc_input_pins("o_only_with_regenerate", pins78_doc(), values, 1101)
++    with pytest.raises(ValueError, match="the arm is missing"):
++        sr.sc_input_names("o_only_with_regenerate", 1102)
+ 
+ 
+ # GXB R-16's seed-only call sites (K3's files; the list is empty by K3's end): (file, the call's line). R2 K2 moved the
+-# planner's (plan_tool.py) to the strict form (GXB R-31).
+-R16_SEED_ONLY_CALLS = {("pack_setup.py", "rules.sc_input_pins(kind, pins78(), values, seed)"),
+-                       ("setup/job_runner_stage1.py", 'rules.sc_input_names(job["kind"], job.get("seed"))'),
+-                       ("setup/job_runner_stage1.py", 'rules.sc_input_names(job["kind"], job.get("seed"))#2')}
++# planner's (plan_tool.py) to the strict form (GXB R-31); R3 K3 moved the runner's and the pack's and deleted the form.
++R16_SEED_ONLY_CALLS: set = set()
+ SEED_ONLY_ARGS = {"sc_input_names": 3, "sc_input_pins": 5}     # positional slots up to and including arm
+ 
+ 
+@@ -2630,7 +2642,7 @@ def test_41b_kr3_the_seed_only_scan_sees_every_kit_file_and_any_call_form(tmp_pa
+     found = seed_only_calls()
+     assert found == R16_SEED_ONLY_CALLS
+     files = {rel for rel, _ in found}
+-    assert files == {"pack_setup.py", "setup/job_runner_stage1.py"}               # R2 K2: plan_tool.py moved
++    assert files == set()                                       # R2 K2: plan_tool.py moved; R3 K3: the runner, the pack
+     probe = ast.parse("import stage1_rules as r\nr.sc_input_names('o_only_with_regenerate', 1101)\n"
+                       "sc_input_pins(k, p, v, 1101)\nr.sc_input_names(k, 1101, arm='R')\nf = r.sc_input_pins\n")
+     kinds = []
+diff --git a/runkit/stage1-78b/tests/test_scorer_block_78b.py b/runkit/stage1-78b/tests/test_scorer_block_78b.py
+index 58d75f4..db4fcb2 100644
+--- a/runkit/stage1-78b/tests/test_scorer_block_78b.py
++++ b/runkit/stage1-78b/tests/test_scorer_block_78b.py
+@@ -243,7 +243,9 @@ class ScWorld:
+         self.mp.setattr(pack, "engine_code", lambda tree: X)
+         self.mp.setattr(pack, "config_sha256", lambda tree, rel: self.config.get(rel, "0" * 64))
+         self.mp.setattr(pack, "git_state", lambda: "d203070" + "0" * 33)
+-        argv = ["X"] + (["--dry-run"] if dry_run else [])
++        self.checks = getattr(self, "checks", [])         # R3 K3 (R-6, R-9): the wrapper's Mac check, faked (PP10)
++        self.mp.setattr(pack, "run_check", lambda argv: self.checks.append(list(argv)) or getattr(self, "check_exit", 0))
++        argv = ["X"] + (["--dry-run"] if dry_run else []) + list(getattr(self, "pack_flags", ()))
+         if inputs:
+             path = self.record({"kind": "stage1-78b pack inputs", "engine": "X", "family": self.family,
+                                 "inputs": [{"name": n, "path": str(Path(p).relative_to(self.repo)), "sha256": d}
+@@ -1017,6 +1019,34 @@ def sc_plan(w, job: dict, engine: str = "X") -> dict:
+     return plan
+ 
+ 
++def pod_oext(w, monkeypatch, root: Path, doc: dict, pins: dict, inputs: dict, branch: dict | None = None,
++             record: bytes | None = None) -> list:
++    """R3 K3 (GXB T-O3, R-5, R-18): on a synthetic pod folder ``root``, TEST-LOCALLY: the O-ext bank and record written
++    at their input paths (their pins become their bytes' SHA-256), the wrapper and the family's X index, the family's
++    branch record (Branch full by default unless given) and, given, the W1-18 record at its R-21 place; OEXT_78B[F]
++    and BRANCH_78B[F] patched; sealed-files' doc extended. Returns the wrapper's leading argv for ``unit``."""
++    fam, r78 = w.family, w.r78
++    for n in ("oext_bank", "oext_record"):
++        f = write(root / inputs[n], {"kind": f"oext {n} (synthetic)"})
++        pins[n] = sha(f)
++        doc["files"][inputs[n]] = pins[n]
++    idx = f"scripts/scale78b/settings/OEXT-78B__{fam}.json"
++    files = {r78.OEXT_WRAPPER_78B: sha(write(root / r78.OEXT_WRAPPER_78B, "# synthetic wrapper\n")),
++             idx: sha(write(root / idx, {"index": f"synthetic {fam} X"}))}
++    if record is not None:
++        rel = r78.W1_18_RECORD_DIR + r78.W1_18_RECORD_NAME.format(family=fam)
++        (root / rel).parent.mkdir(parents=True, exist_ok=True)
++        (root / rel).write_bytes(record)
++        files[rel] = sha(root / rel)
++    b = write(root / "records" / f"branch-{fam}.json", branch or branch_record(fam))
++    monkeypatch.setitem(r78.OEXT_78B, fam, {"files": files, "inputs": {n: pins[n] for n in ("oext_bank", "oext_record")}})
++    monkeypatch.setitem(r78.BRANCH_78B, fam, {"path": f"records/branch-{fam}.json", "sha256": sha(b)})
++    doc["files"].update(files)
++    doc["files"][f"records/branch-{fam}.json"] = sha(b)
++    return ["venv/bin/python", "-B", r78.OEXT_WRAPPER_78B, "unit", "--family", fam, "--index", idx, "--index-sha256",
++            files[idx]]
++
++
+ def test_every_scorer_kinds_command_line_by_hand(so, tmp_path, monkeypatch):
+     w = so
+     runner = load_by_path("jr78_sc_cmd", w.root / "setup" / "job_runner_stage1.py")
+@@ -1036,13 +1066,16 @@ def test_every_scorer_kinds_command_line_by_hand(so, tmp_path, monkeypatch):
+     files = {rel: pins[n] for n, rel in inputs.items() if n != "retrain_unit"}
+     files["inputs/retrain_unit/1101-a0-retrain-a1/COMPLETE.json"] = pins["retrain_unit"]
+     doc = {"files": files, "inputs": inputs}
++    unit = pod_oext(w, monkeypatch, tmp_path, doc, pins, inputs)           # R3 K3: the wrapper's form (R-18)
++    lean = [*unit[:3], "lean", *unit[4:]]
+     wrap = ["venv/bin/python", "-I", "-B", "scripts/scale78b/scorers_78b.py"]
+     eng = ["venv/bin/python", "-m", "experiments.safety_selection"]
+ 
+     def cmds(kind, recipe="B", engine="X", **extra):
+         seed = extra.pop("seed", None)
+-        job = {"kind": kind, "arm": extra.pop("arm", w.r78.SC_ARM.get(kind)), "seed": seed, "recipe": recipe,
+-               "engine": engine, "inputs": {n: pins[n] for n in w.rules.sc_input_names(kind, seed)}, **extra}
++        arm = extra.pop("arm", w.r78.SC_ARM.get(kind))
++        job = {"kind": kind, "arm": arm, "seed": seed, "recipe": recipe,
++               "engine": engine, "inputs": {n: pins[n] for n in w.rules.sc_unit_input_names(kind, arm, seed)}, **extra}
+         if recipe == "S":
+             job["recipe_s78"] = dict(s78)
+         return [c for _, c in runner.job_commands(sc_plan(w, job, engine), "h", 0, tmp_path, {}, doc)]
+@@ -1064,11 +1097,15 @@ def test_every_scorer_kinds_command_line_by_hand(so, tmp_path, monkeypatch):
+                "jobs/o_only_with_regenerate-1102-a0-regen-a1.json"],
+         eng + ["run-one", "--job", "jobs/o_only_with_regenerate-1102-a0-regen-a1.json", "--prepared", p, "--recipe", rec,
+                "--out", "round1/1102-a0-regen-a1", "--registry", "round1/registry.jsonl"],
+-        ["venv/bin/python", "-B", w.r78.OEXT_UNIT_SCRIPT, "run", "--run", "round1/1102-a0-regen-a1",   # R1 K1's path
++        [*unit, "run", "--run", "round1/1102-a0-regen-a1",                          # R3 K3: the wrapper's form
+          "--checkpoint", "e1", "--prepared", p, "--recipe", rec, "--oext-bank", inputs["oext_bank"], "--oext-record",
+          inputs["oext_record"], "--out", "job-0/oext"]]
+-    with pytest.raises(runner.Unrunnable, match="reused a0 side unit"):
+-        cmds("o_only_with_regenerate", seed=1102, arm="R")
++    with pytest.raises(runner.Unrunnable, match="not one of its units"):         # R3 K3: (R, 1102) is no unit
++        runner.job_commands(sc_plan(w, {"kind": "o_only_with_regenerate", "arm": "R", "seed": 1104, "recipe": "B",
++                                        "inputs": {}}), "h", 0, tmp_path, {}, doc)
++    with pytest.raises(runner.Unrunnable, match=r"\('S1', 1102\) is not one of its units"):
++        runner.job_commands(sc_plan(w, {"kind": "o_only_with_regenerate", "arm": "S1", "seed": 1102, "recipe": "B",
++                                        "inputs": {}}), "h", 0, tmp_path, {}, doc)
+     with pytest.raises(runner.Unrunnable, match="'side_complete:a0:1102' differs from the plan's pin"):
+         runner.job_commands(sc_plan(w, {"kind": "o_only_with_regenerate", "arm": "a0", "seed": 1102, "recipe": "B",
+                                         "inputs": {"side_complete:a0:1102": pins["side_complete:a0:1102"],
+@@ -1083,7 +1120,7 @@ def test_every_scorer_kinds_command_line_by_hand(so, tmp_path, monkeypatch):
+                "--pin-code", "--out", "jobs/a1_pass-1101-a1.json"],
+         eng + ["attributes", "--job", "jobs/a1_pass-1101-a1.json", "--prepared", p, "--recipe", s78["path"],
+                "--out", "rescore/1101-attributes-a1"]]
+-    assert cmds("o_only") == [["venv/bin/python", "-B", w.r78.OEXT_UNIT_SCRIPT, "run", "--untuned", "--prepared",
++    assert cmds("o_only") == [[*unit, "run", "--untuned", "--prepared",                  # R3 K3 (R-18, R-34)
+                                p, "--recipe", rec, "--oext-bank", inputs["oext_bank"], "--oext-record",
+                                inputs["oext_record"], "--out", "job-0/oext"]]
+     edit = {"sha256": hx("rd1"), "path": "x"}
+@@ -1092,7 +1129,7 @@ def test_every_scorer_kinds_command_line_by_hand(so, tmp_path, monkeypatch):
+         eng + ["make-job", "run-one", "--prepared", p, "--recipe", rec, "--split", "dev", "--edit",
+                f"edits/{hx('rd1')}.edit.json", "--seed", "1101", "--role", "development", "--target", "e1", "--pin-code",
+                "--out", "jobs/c0-1101-R-c0-a1.json"],
+-        ["venv/bin/python", "-B", w.r78.C0_SCRIPT, "run", "--job", "jobs/c0-1101-R-c0-a1.json",
++        [*lean, "run", "--job", "jobs/c0-1101-R-c0-a1.json",                          # R3 K3: lean (K-1, R-18)
+          "--prepared", p, "--recipe", rec, "--out", "job-0/c0", "--registry", "job-0/c0-registry.jsonl",
+          "--expect-adapter-fingerprint", hx("fp"), "--oext-bank", inputs["oext_bank"], "--oext-record", inputs["oext_record"]]]
+     # the refusals: an S_78 job while RECIPE_S is null; another S_78 config; an input off its pin or not packed;
+@@ -1384,12 +1421,13 @@ def unit_run(w, monkeypatch, tmp_path, kind: str, verify_exit: int = 0, side: di
+     files = {rel: pins[n] for n, rel in inputs.items() if n != "retrain_unit"}
+     files["inputs/retrain_unit/1101-a0-retrain-a1/COMPLETE.json"] = pins["retrain_unit"]
+     doc = {"files": files, "inputs": inputs}
++    pod_oext(w, monkeypatch, root, doc, pins, inputs)    # R3 K3: the O-ext pin and the branch record on the pod
+     if tamper:                                           # the side unit's file changed after its pin was taken
+         write(root / side_rel, {**side_doc, "complete": "changed after its pin"})
+     recipe = "B" if kind == "o_only_with_regenerate" else "S"
+     engine = "X" if kind == "o_only_with_regenerate" else "Y"
+     job = {"kind": kind, "arm": "a0", "seed": 1101, "recipe": recipe, "engine": engine,
+-           "inputs": {n: pins[n] for n in w.rules.sc_input_names(kind, 1101)}}
++           "inputs": {n: pins[n] for n in w.rules.sc_unit_input_names(kind, "a0", 1101)}}
+     if recipe == "S":
+         job["recipe_s78"] = dict(s78)
+     if kind == "a1_pass":
+@@ -1745,6 +1783,7 @@ def c0_cmds(w, runner, tmp_path, source_doc, expect, change_after_pin=None):
+     pins = {"source_complete:R:1101": sha(src), "oext_bank": hx("ob"), "oext_record": hx("or")}
+     inputs = {"source_complete:R:1101": rel, "oext_bank": "inputs/oext_bank/b.json", "oext_record": "inputs/oext_record/r.json"}
+     doc = {"files": {inputs[n]: pins[n] for n in pins}, "inputs": inputs}
++    pod_oext(w, w.mp, tmp_path, doc, pins, inputs)       # R3 K3: the O-ext pin and the branch record on the pod
+     if change_after_pin is not None:
+         write(src, change_after_pin)
+     job = {"kind": "c0", "arm": "R", "seed": 1101, "recipe": "B", "engine": "X", "inputs": pins,
+@@ -1844,12 +1883,13 @@ def test_k5_d2_hm13_a_unitless_scorer_pass_that_wrote_nothing_is_a_crash(so, mon
+     nothing is crashed, not complete with its cost ledger only."""
+     w = so
+     runner = load_by_path("jr78_k5_hm13", w.root / "setup" / "job_runner_stage1.py")
+-    pins = {"oext_bank": hx("ob"), "oext_record": hx("or")}
+-    inputs = {"oext_bank": "inputs/oext_bank/b.json", "oext_record": "inputs/oext_record/r.json"}
+-    doc = {"files": {inputs[n]: pins[n] for n in pins}, "inputs": inputs}
+-    job = {"kind": "o_only", "arm": "theta0", "seed": None, "recipe": "B", "engine": "X", "inputs": pins}
+     for writes, status in ((False, "crashed"), (True, "complete")):
+         root = tmp_path / f"pod-{writes}"
++        pins = {"oext_bank": hx("ob"), "oext_record": hx("or")}
++        inputs = {"oext_bank": "inputs/oext_bank/b.json", "oext_record": "inputs/oext_record/r.json"}
++        doc = {"files": {inputs[n]: pins[n] for n in pins}, "inputs": inputs}
++        pod_oext(w, monkeypatch, root, doc, pins, inputs)                    # R3 K3
++        job = {"kind": "o_only", "arm": "theta0", "seed": None, "recipe": "B", "engine": "X", "inputs": dict(pins)}
+ 
+         def fake(args, **kwargs):
+             argv = args[5:]
+diff --git a/runkit/stage1-78b/tests/test_runner_ab_78b.py b/runkit/stage1-78b/tests/test_runner_ab_78b.py
+new file mode 100644
+index 0000000..8dff2e7
+--- /dev/null
++++ b/runkit/stage1-78b/tests/test_runner_ab_78b.py
+@@ -0,0 +1,690 @@
++"""R3 K3: the 7-8B kit's runner and pack for blocks A and B (plan-ab items 5a, 5c, 5e, 5f; the lead's build rulings GXB
++T-O3, K-3, K-7, O4, O6, O10, R-5, R-6, R-9, R-16, R-18, R-20, R-21, R-31, R-33, R-44, R-47, R-53; KR4, KR5, KR8;
++K2R2-1). On CPU, no pod, no network, no real process: working copies tmp/family-probe-s78-<family>-<block>/ of the
++test Worlds of test_scorer_block_78b.py and test_planning_ab_78b.py (ROOT = tmp), every pin filled TEST-LOCALLY (the
++committed pins stay null), every process a fake. Every unit, record and answer below is a synthetic stand-in; no
++sealed list, edit, row, answer or real unit is read (the unchanged 1B oext_eval module is imported and fed synthetic
++settings and records only). Expected values are written by hand.
++
++    PYTHONDONTWRITEBYTECODE=1 PY -B -m pytest -p no:cacheprovider -q runkit/stage1-78b/tests/test_runner_ab_78b.py
++"""
++from __future__ import annotations
++
++import importlib
++import io
++import json
++import subprocess
++import sys
++import tarfile
++import types
++from pathlib import Path
++
++import pytest
++
++import test_planning_ab_78b as pab
++import test_scorer_block_78b as sb
++import test_stage1_runkit as rk
++
++KIT = rk.KIT
++REPO = KIT.parents[1]
++FIXTURES = Path(__file__).resolve().parent / "fixtures"
++SHARED_STOP = FIXTURES / "anchor_stop__olmo2-7b__safe_anchors_below_64.json"   # KR5: the one shared stop fixture
++sha, hx, write, load_by_path, sc_plan, pod_oext, branch_record = (sb.sha, sb.hx, sb.write, sb.load_by_path, sb.sc_plan,
++                                                                  sb.pod_oext, sb.branch_record)
++
++
++@pytest.fixture
++def wa(tmp_path, monkeypatch):
++    world = pab.ABWorld(tmp_path, monkeypatch, "olmo2-7b", "A")
++    yield world
++    pab.close(world)
++
++
++@pytest.fixture
++def so(tmp_path, monkeypatch):
++    world = sb.ScWorld(tmp_path, monkeypatch, "olmo2-7b")
++    yield world
++    for name in rk.MODULES:
++        sys.modules.pop(name, None)
++
++
++def ab_plan(w, job: dict, block: str = "A") -> dict:
++    return {"family": w.family, "hosts": {"h": {"block": block, "engine": "X", "jobs": [job]}}, "recipes": {}}
++
++
++def oext_inputs():
++    return ({"oext_bank": hx("ob"), "oext_record": hx("or")},
++            {"oext_bank": "inputs/oext_bank/b.json", "oext_record": "inputs/oext_record/r.json"})
++
++
++def a0_job(seed: int = 1104) -> dict:
++    return {"kind": "a0_arm", "arm": "a0", "seed": seed, "recipe": "B", "engine": "X", "edit": None, "family": "olmo2-7b"}
++
++
++def fake_pod(root: Path, calls: list, oext_writes: bool = True):
++    """A fake process runner for run_job: calibrate writes the unit (COMPLETE.json and states/e1/state.json with one
++    fingerprint), the O-ext step writes one synthetic record (when ``oext_writes``), the engine's verify exits 0."""
++    def fake(args, **kwargs):
++        calls.append(list(args))
++        if args[:2] != ["python3", "process_receipt.py"]:
++            return subprocess.CompletedProcess(args, 0, "names only", "")
++        argv = args[5:]
++        if "calibrate" in argv:
++            unit = root / "round1" / f"{argv[argv.index('--seeds') + 1]}-a0-e1-a1"
++            write(unit / "COMPLETE.json", {"complete": True, "checkpoints": {"e1": {"adapter_fingerprint": hx("e1")}},
++                                           "identity": {"training_identity": hx("ti"), "manifest_sha256": hx("m")}})
++            write(unit / "states" / "e1" / "state.json", {"adapter_fingerprint": hx("e1")})
++        elif "unit" in argv and oext_writes:
++            write(root / argv[argv.index("--out") + 1] / "oext_unit_record.json", {"kind": "oext (synthetic)"})
++        return subprocess.CompletedProcess(args, 0, "", "")
++    return fake
++
++
++# ===== 1. blocks A and B: calibrate, then the wrapper's unit pass on the job's own e1 (plan-ab 5a, DES E3 (a)) =======
++def test_5a_block_a_arm_jobs_run_calibrate_then_the_wrappers_unit_pass_on_their_own_e1_unit(wa, tmp_path, monkeypatch):
++    w = wa
++    runner = load_by_path("jr78_ab_cmd", w.root / "setup" / "job_runner_stage1.py")
++    root = tmp_path / "pod"
++    pins, inputs = oext_inputs()
++    doc = {"files": {}, "inputs": inputs}
++    unit = pod_oext(w, monkeypatch, root, doc, pins, inputs)
++    p, rec = f"data/kt-prepared/{w.rules.PREPARED_NAME}", w.rules.REC
++    cmds = runner.job_commands(ab_plan(w, a0_job()), "h", 0, root, {}, doc)
++    assert [n for n, _ in cmds] == ["job-0-calibrate", "job-0-oext"]
++    assert cmds[0][1] == w.rules.arm_commands(a0_job(), p, w.family)[0][1]          # block 0's calibrate, unchanged
++    assert cmds[1][1] == [*unit, "run", "--run", "@unit:0", "--checkpoint", "e1", "--prepared", p, "--recipe", rec,
++                          "--oext-bank", inputs["oext_bank"], "--oext-record", inputs["oext_record"], "--out", "job-0/oext"]
++    # block 0's route is unchanged: calibrate only, no O-ext step (R-3; plan-ab 5a's test_no_oext_in_block0)
++    assert [n for n, _ in runner.job_commands(ab_plan(w, a0_job(1101), "0"), "h", 0, root, {}, doc)] == ["job-0-calibrate"]
++    # the job's sealed files: the O-ext pin's files, the branch record and the packed bank and record
++    paths = runner.sealed_paths(a0_job(), {"block": "A"}, 0, doc)
++    for rel in (*w.r78.OEXT_78B[w.family]["files"], f"records/branch-{w.family}.json", *inputs.values()):
++        assert rel in paths, rel
++    assert not set(paths) & {f"records/branch-{w.family}.json"} - set(runner.sealed_paths(a0_job(), {"block": "B"}, 0, doc))
++    assert f"records/branch-{w.family}.json" not in runner.sealed_paths(a0_job(1101), {"block": "0"}, 0, doc)
++    # run_job: the O-ext step reads the calibrate's new unit; its outputs are hashed; an empty O-ext pass is a crash
++    calls = []
++    monkeypatch.setattr(runner.subprocess, "run", fake_pod(root, calls))
++    got = runner.run_job(ab_plan(w, a0_job()), "h", 0, root, {}, {}, doc)
++    assert got["status"] == "complete", got
++    oext_call = next(c for c in calls if "unit" in c[5:])
++    assert oext_call[oext_call.index("--run") + 1] == "round1/1104-a0-e1-a1"
++    assert got["outputs"]["job-0/oext/oext_unit_record.json"] == sha(root / "job-0/oext/oext_unit_record.json")
++    root2 = tmp_path / "pod2"
++    doc2 = {"files": {}, "inputs": inputs}
++    pod_oext(w, monkeypatch, root2, doc2, dict(pins), inputs)
++    monkeypatch.setattr(runner.subprocess, "run", fake_pod(root2, [], oext_writes=False))
++    got = runner.run_job(ab_plan(w, a0_job()), "h", 0, root2, {}, {}, doc2)
++    assert got["status"] == "crashed" and got["why"] == "the O-ext pass wrote no output"
++
++
++def test_5a_block_a_arm_jobs_refuse_on_the_pod_while_oext_78b_or_the_branch_record_is_null_or_off_its_pin(wa, tmp_path,
++                                                                                                          monkeypatch):
++    w = wa
++    runner = load_by_path("jr78_ab_ref", w.root / "setup" / "job_runner_stage1.py")
++    root = tmp_path / "pod"
++    pins, inputs = oext_inputs()
++    doc = {"files": {}, "inputs": inputs}
++    pod_oext(w, monkeypatch, root, doc, pins, inputs)
++    plan = ab_plan(w, a0_job())
++    good = w.r78.OEXT_78B[w.family]
++    monkeypatch.setitem(w.r78.OEXT_78B, w.family, None)
++    with pytest.raises(runner.Unrunnable, match=r"OEXT_78B\['olmo2-7b'\] is null"):
++        runner.job_commands(plan, "h", 0, root, {}, doc)
++    other = {**good, "files": {**good["files"], "scripts/scale78b/settings/OEXT-78B-Y__olmo2-7b.json": hx("y")}}
++    monkeypatch.setitem(w.r78.OEXT_78B, w.family, other)
++    with pytest.raises(runner.Unrunnable, match="is not in its form"):
++        runner.job_commands(plan, "h", 0, root, {}, doc)
++    monkeypatch.setitem(w.r78.OEXT_78B, w.family, good)
++    branch = w.r78.BRANCH_78B[w.family]
++    monkeypatch.setitem(w.r78.BRANCH_78B, w.family, None)
++    with pytest.raises(runner.Unrunnable, match=r"branch record \(BRANCH_78B\) is null"):
++        runner.job_commands(plan, "h", 0, root, {}, doc)
++    monkeypatch.setitem(w.r78.BRANCH_78B, w.family, branch)
++    (root / branch["path"]).write_text("changed")                                # the branch record off its pin
++    with pytest.raises(runner.Unrunnable, match="the family's branch record is not packed at its pin"):
++        runner.job_commands(plan, "h", 0, root, {}, doc)
++    write(root / branch["path"], branch_record(w.family))
++    bad = {**doc, "files": {**doc["files"], inputs["oext_bank"]: hx("another bank")}}
++    with pytest.raises(runner.Unrunnable, match="the input 'oext_bank' is not packed at its pin"):
++        runner.job_commands(plan, "h", 0, root, {}, bad)
++    # the key check's second bank pin (SCOUT §1.3): the packed O-ext bank goes to check_keys, a wrong one refuses
++    h = plan["hosts"]["h"]
++    assert runner.oext_bank_key(a0_job(), h, doc) == pins["oext_bank"]
++    assert runner.oext_bank_key(a0_job(1101), {**h, "block": "0"}, doc) is None
++    assert runner.oext_bank_key(a0_job(), h, bad) == hx("another bank")
++    with pytest.raises(w.r78.Refused, match="is not olmo2-7b's pinned O-ext bank"):
++        w.r78.check_keys(w.family, "a0_arm", w.rules.REC_CONFIG_SHA256, w.r78.ENGINE_X, w.r78.GPU_NAME,
++                         w.r78.MANIFESTS[w.family], dict(w.r78.BANK), runner.oext_bank_key(a0_job(), h, bad))
++
++
++# ===== 2. the flags: --w1-18-record (R-47) and --dev100-source (5f) ===================================================
++def w1_18_record_doc(passed: bool, settings_sha: str, cut: int = 128) -> bytes:
++    return (json.dumps({"kind": "stage1 over-refusal checks", "version": 1, "provenance": {"settings_sha256": settings_sha},
++                        "truncation_check": {"pass": passed},
++                        "units": {"untuned": {"truncation": {"cap_tokens": cut}}}}, indent=1) + "\n").encode()
++
++
++def test_r47_branch_full_from_a_failing_w1_18_record_needs_the_record_at_run_time_through_the_unchanged_oext_eval(
++        tmp_path):
++    """GXB R-47 (M): through the unchanged scripts/stage1_s1/oext_eval.py (prepare -> read_w1_18): settings whose
++    Branch full pins a FAILING W1-18 record refuse an O-ext run without the record ("W1-18's record cannot be read") and
++    read it when given; settings of "Branch full by default" (no record, a full_reason) refuse a record. So the flag is
++    passed exactly when the branch record names a W1-18 record (rules_78b.oext_flags)."""
++    if str(REPO) not in sys.path:
++        sys.path.insert(0, str(REPO))
++    oe = importlib.import_module("scripts.stage1_s1.oext_eval")
++    assert sha(Path(oe.__file__)) == "8c4290921f32a5b4596a0bc40235cc5cf1185f73eaabeaa625c43bd19ba77719"   # unchanged
++    record = write(tmp_path / "overrefusal_checks__olmo2-7b.json", w1_18_record_doc(False, hx("w1 settings")).decode())
++
++    def settings(branch, record_sha, reason):
++        return oe.Settings({"cap": {"branch": branch, "cut_tokens": 128, "w1_18": {
++            "record_sha256": record_sha, "record_kind": "stage1 over-refusal checks", "settings_sha256": hx("w1 settings"),
++            "full_reason": reason}}}, hx("settings"))
++    failing = settings("full", sha(record), None)
++    with pytest.raises(oe.Refusal, match="W1-18's record cannot be read"):
++        oe.prepare(failing, bank_path=tmp_path / "bank", record_path=tmp_path / "rec", w1_18_path=None)
++    got = oe.read_w1_18(failing, record)
++    assert (got.record_sha256, got.passed) == (sha(record), False)
++    default = settings("full", None, "W1-18 was not built (Branch full by default)")
++    assert oe.read_w1_18(default, None).record_sha256 is None
++    with pytest.raises(oe.Refusal, match="the settings pin no W1-18 record"):
++        oe.read_w1_18(default, record)
++
++
++@pytest.mark.parametrize("branch,source,passed,flag,dev100", [
++    ("full", "default", None, False, False),           # Branch full by default: no flag
++    ("full", "w1_18", False, True, False),             # Branch full from a failing record: the record (R-47)
++    ("128", "w1_18", True, True, True)])               # Branch 128: the record, and --dev100-source on a regenerated unit
++def test_5f_the_flags_follow_the_pinned_branch_record(so, tmp_path, monkeypatch, branch, source, passed, flag, dev100):
++    w = so
++    runner = load_by_path(f"jr78_flags_{branch}_{source}", w.root / "setup" / "job_runner_stage1.py")
++    root = tmp_path / "pod"
++    data = None if passed is None else w1_18_record_doc(passed, hx("w1 settings"))
++    side_rel = "inputs/side_complete-a0-1101/COMPLETE.json"
++    side = write(root / side_rel, {"complete": True, "checkpoints": {"e1": {"adapter_fingerprint": hx("e1")}}})
++    pins, inputs = oext_inputs()
++    pins["side_complete:a0:1101"], inputs["side_complete:a0:1101"] = sha(side), side_rel
++    doc = {"files": {side_rel: sha(side)}, "inputs": inputs}
++    record_sha = None if data is None else sb.hashlib.sha256(data).hexdigest()
++    unit = pod_oext(w, monkeypatch, root, doc, pins, inputs, branch_record(w.family, branch, source, record_sha), data)
++    rec_rel = w.r78.W1_18_RECORD_DIR + f"overrefusal_checks__{w.family}.json"
++    o_only = {"kind": "o_only", "arm": "theta0", "seed": None, "recipe": "B", "engine": "X",
++              "inputs": {n: pins[n] for n in ("oext_bank", "oext_record")}}
++    cmd = runner.job_commands(sc_plan(w, o_only), "h", 0, root, {}, doc)[0][1]
++    assert ("--w1-18-record" in cmd) is flag and "--dev100-source" not in cmd     # theta0 is never regenerated
++    if flag:
++        assert cmd[cmd.index("--w1-18-record") + 1] == rec_rel and cmd[:len(unit)] == unit
++    regen = {"kind": "o_only_with_regenerate", "arm": "a0", "seed": 1101, "recipe": "B", "engine": "X",
++             "inputs": {n: pins[n] for n in w.rules.sc_unit_input_names("o_only_with_regenerate", "a0", 1101)}}
++    if dev100:                                          # Branch 128: the dev-100 source unit must be packed (LN-19)
++        with pytest.raises(runner.Unrunnable, match="the dev-100 source unit 'source_unit:a0:1101' is not packed"):
++            runner.job_commands(sc_plan(w, regen), "h", 0, root, {}, doc)
++        src = "inputs/source_unit-a0-1101/1101-a0-e1-a1"
++        (root / src).mkdir(parents=True)
++        (root / src / "COMPLETE.json").write_bytes(side.read_bytes())
++        doc["inputs"]["source_unit:a0:1101"] = src
++        doc["files"][f"{src}/COMPLETE.json"] = sha(side)
++    cmd = runner.job_commands(sc_plan(w, regen), "h", 0, root, {}, doc)[-1][1]
++    assert ("--w1-18-record" in cmd) is flag and ("--dev100-source" in cmd) is dev100
++    if dev100:
++        assert cmd[cmd.index("--dev100-source") + 1] == "inputs/source_unit-a0-1101/1101-a0-e1-a1"
++        doc["files"][f"{src}/COMPLETE.json"] = hx("another unit")             # the source unit off its pin
++        with pytest.raises(runner.Unrunnable, match="'source_unit:a0:1101' is not packed at its pin"):
++            runner.job_commands(sc_plan(w, regen), "h", 0, root, {}, doc)
++    if flag:                                            # the O-ext pin names another record than the branch record
++        good = w.r78.OEXT_78B[w.family]
++        monkeypatch.setitem(w.r78.OEXT_78B, w.family, {**good, "files": {**good["files"], rec_rel: hx("other record")}})
++        with pytest.raises(runner.Unrunnable, match="does not name the branch record's W1-18 record"):
++            runner.job_commands(sc_plan(w, o_only), "h", 0, root, {}, doc)
++
++
++# ===== 3. N's seven units (5e, DES E5) ===============================================================================
++def test_5e_ns_r_unit_is_regenerated_on_its_sealed_edit_and_accepted_against_ns_unit(so, tmp_path, monkeypatch):
++    w = so
++    runner = load_by_path("jr78_n_regen", w.root / "setup" / "job_runner_stage1.py")
++    root = tmp_path / "pod"
++    fam = w.family
++    n_rel, e_rel = "inputs/n_complete-R-1101/COMPLETE.json", "inputs/regen_edit-R-1101/r_d1.edit.json"
++    n_doc = {"complete": True, "checkpoints": {"e1": {"adapter_fingerprint": hx("n-e1")}},
++             "identity": {"training_identity": hx("ti"), "manifest_sha256": hx("m")}}
++    n_file, e_file = write(root / n_rel, n_doc), write(root / e_rel, {"edit": "synthetic R_d1"})
++    pins, inputs = oext_inputs()
++    pins.update({"n_complete:R:1101": sha(n_file), "regen_edit:R:1101": sha(e_file)})
++    inputs.update({"n_complete:R:1101": n_rel, "regen_edit:R:1101": e_rel})
++    doc = {"files": {n_rel: sha(n_file), e_rel: sha(e_file)}, "inputs": inputs}
++    unit = pod_oext(w, monkeypatch, root, doc, pins, inputs)
++    names = w.rules.sc_unit_input_names("o_only_with_regenerate", "R", 1101)
++    assert names == ("n_complete:R:1101", "regen_edit:R:1101", "oext_bank", "oext_record")
++    job = {"kind": "o_only_with_regenerate", "arm": "R", "seed": 1101, "recipe": "B", "engine": "X",
++           "inputs": {n: pins[n] for n in names}}
++    p, rec = f"data/kt-prepared/{w.rules.PREPARED_NAME}", w.rules.REC
++    cmds = [c for _, c in runner.job_commands(sc_plan(w, job), "h", 0, root, {}, doc)]
++    eng = ["venv/bin/python", "-m", "experiments.safety_selection"]
++    assert cmds[0] == eng + ["make-job", "run-one", "--prepared", p, "--recipe", rec, "--split", "dev", "--edit", e_rel,
++                             "--seed", "1101", "--role", "development", "--target", "e1", "--pin-code", "--out",
++                             "jobs/o_only_with_regenerate-1101-R-regen-a1.json"]
++    assert cmds[1][-3:] == ["round1/1101-R-regen-a1", "--registry", "round1/registry.jsonl"]
++    assert cmds[2] == [*unit, "run", "--run", "round1/1101-R-regen-a1", "--checkpoint", "e1", "--prepared", p, "--recipe",
++                       rec, "--oext-bank", inputs["oext_bank"], "--oext-record", inputs["oext_record"], "--out", "job-0/oext"]
++    # the acceptance input is N's unit (n_complete:R:1101), never a side unit of the same seed (the seed key)
++    assert runner.accept_input(job) == "n_complete:R:1101"
++    assert runner.accept_input({**job, "arm": "a0", "inputs": {}}) == "side_complete:a0:1101"
++    calls = []
++
++    def fake(args, **kwargs):
++        calls.append(list(args))
++        if args[:2] != ["python3", "process_receipt.py"]:
++            return subprocess.CompletedProcess(args, 0, "names only", "")
++        argv = args[5:]
++        out = root / argv[argv.index("--out") + 1]
++        if "make-job" in argv:
++            write(out, {"job": "synthetic"})
++        elif "unit" in argv:
++            write(out / "oext_unit_record.json", {"kind": "oext (synthetic)"})
++        else:
++            write(out / "COMPLETE.json", n_doc)
++            write(out / "states" / "e1" / "state.json", {"adapter_fingerprint": hx("n-e1")})
++        return subprocess.CompletedProcess(args, 0, "", "")
++    monkeypatch.setattr(runner.subprocess, "run", fake)
++    got = runner.run_sc_job(sc_plan(w, job), "h", 0, root, {}, {}, doc)
++    assert got["status"] == "complete" and got["acceptance"] is True, got
++    accept = json.loads((root / "job-0" / runner.ACCEPT_FILE).read_text())
++    assert (accept["arm"], accept["seed"], accept["source"], accept["side_complete_sha256"]) == \
++        ("R", 1101, "n_complete", sha(n_file))
++    # N_UNITS null: the plan's input pins are null, so the job has no pin (A13) and the planner refuses before it
++    values = w.r78.sc_pin_values(fam, w.pins78())
++    assert values["N_UNITS"] is None
++    assert w.rules.sc_unit_input_pins("o_only_with_regenerate", w.pins78(), values, "R", 1101)["n_complete:R:1101"] is None
++    with pytest.raises(runner.Unrunnable, match="'n_complete:R:1101' has no pin in plan.json"):
++        runner.job_commands(sc_plan(w, {**job, "inputs": {}}), "h", 0, root, {}, doc)
++
++
++# ===== 4. W1-18: one pod, one check per family, each record by its R-53 name (5c; GXB O4, K-3, R-20, R-53) ==========
++def w1_route(w, monkeypatch, root: Path, families, doc: dict) -> dict:
++    """W1_18_78B TEST-LOCALLY in R-20's form for ``families``: the wrapper, each family's W1 index and W1-18 settings
++    and Track P's two frozen readers (W2-5: any list in the form is accepted), files written on the pod; side units
++    are KIT a0_units' (paths and pins compared as strings; no unit is read)."""
++    files = {}
++    for rel in (w.r78.OEXT_WRAPPER_78B, "scripts/family_probe_reading.py", "scripts/killtest_stage0_reading.py",
++                *[f"scripts/scale78b/settings/OEXT-78B-W1__{f}.json" for f in families],
++                *[f"scripts/scale78b/settings/limits_overrefusal_checks__{f}.json" for f in families]):
++        files[rel] = sha(write(root / rel, f"# synthetic {rel}\n"))
++    units = {f: {("untuned" if k == "untuned" else f"a0-{k}"): {"path": u["path"][len("tmp/"):],
++                                                                "complete_sha256": u["complete_sha256"],
++                                                                "job_sha256": u["job_sha256"]}
++                 for k, u in w.r78.KIT[f]["a0_units"].items()} for f in families}
++    route = {"files": files, "side_units": units}
++    assert w.r78.w1_18_route_problem(route) is None
++    monkeypatch.setattr(w.r78, "W1_18_78B", route)
++    doc["files"].update(files)
++    return route
++
++
++@pytest.mark.parametrize("option", ["B", "C"])
++def test_5c_the_w1_18_pod_runs_one_check_per_family_and_returns_each_record_as_overrefusal_checks_family(
++        so, tmp_path, monkeypatch, option):
++    w = so
++    runner = load_by_path(f"jr78_w1_{option}", w.root / "setup" / "job_runner_stage1.py")
++    root = tmp_path / "pod"
++    doc = {"files": {}, "inputs": {}}
++    job = {"kind": "w1_18", "arm": None, "seed": None, "recipe": "B", "engine": "X", "inputs": {}}
++    with pytest.raises(runner.Unrunnable, match="W1_18_78B is null"):
++        runner.job_commands(sc_plan(w, job), "h", 0, root, {}, doc)
++    families = w.r78.W1_18_FAMILIES[option]
++    route = w1_route(w, monkeypatch, root, families, doc)
++    cmds = runner.job_commands(sc_plan(w, job), "h", 0, root, {}, doc)
++    want = []
++    for f in ("olmo2-7b", "llama31-8b")[:len(families)]:                         # the host family first
++        idx = f"scripts/scale78b/settings/OEXT-78B-W1__{f}.json"
++        want.append((f"job-0-w1-18-{f}", ["venv/bin/python", "-B", w.r78.OEXT_WRAPPER_78B, "w1_18", "--family", f,
++                                         "--index", idx, "--index-sha256", route["files"][idx], "--out",
++                                         f"job-0/w1-18-{f}", "--data-root", "data", "--device", "cuda"]))
++    assert cmds == want
++    paths = runner.sealed_paths(job, {"block": "sc"}, 0, doc)
++    assert set(route["files"]) <= set(paths) and "scripts/family_probe_reading.py" in paths
++    assert f"data/{route['side_units']['olmo2-7b']['a0-1101']['path']}/COMPLETE.json" in paths   # a unit not packed
++
++    def fake(args, **kwargs):
++        argv = args[5:]
++        f = argv[argv.index("--family") + 1]
++        write(root / argv[argv.index("--out") + 1] / "overrefusal_checks.json", {"kind": "synthetic", "family": f})
++        return subprocess.CompletedProcess(args, 0, "", "")
++    monkeypatch.setattr(runner.subprocess, "run", fake)
++    got = runner.run_sc_job(sc_plan(w, job), "h", 0, root, {}, {}, doc)
++    assert got["status"] == "complete", got
++    for f in families:
++        rel = f"job-0/overrefusal_checks__{f}.json"
++        assert got["outputs"][rel] == sha(root / f"job-0/w1-18-{f}/overrefusal_checks.json") == \
++            got["sc"]["records"][f]["sha256"]
++    assert sorted(got["sc"]["records"]) == sorted(families)
++
++    def fake_none(args, **kwargs):
++        return subprocess.CompletedProcess(args, 0, "", "")
++    monkeypatch.setattr(runner.subprocess, "run", fake_none)
++    root2 = tmp_path / "pod-empty"
++    doc2 = {"files": {}, "inputs": {}}
++    w1_route(w, monkeypatch, root2, families, doc2)
++    got = runner.run_sc_job(sc_plan(w, job), "h", 0, root2, {}, {}, doc2)
++    assert got["status"] == "crashed" and got["why"] == "the W1-18 check of olmo2-7b wrote no overrefusal_checks.json"
++
++
++# ===== 5. the pack's Mac checks before any O-ext pod (R-6, R-9, R-23) and the W1-18 pack (O4, K-3, O10) ===========
++def test_r6_the_pack_runs_the_wrappers_check_on_the_pinned_index_and_w1_18_record_and_refuses_a_failure(so):
++    w = so
++    w.fill(oext=True)
++    fam, r78 = w.family, w.r78
++    idx = f"scripts/scale78b/settings/OEXT-78B__{fam}.json"
++    w.pack(dry_run=True)
++    assert w.checks == []                               # the dry run runs no check
++    w.pack()
++    assert w.checks == [[str(w.root.parents[1] / "tmp/minimal-experiment-20261002/venv/bin/python"), "-B",
++                         r78.OEXT_WRAPPER_78B, "check", "--family", fam, "--engine", "X", "--index", idx,
++                         "--index-sha256", r78.OEXT_78B[fam]["files"][idx]]]
++    receipt = json.loads((w.root / "setup" / "packed-stage1-X" / "setup-receipt.json").read_text())
++    assert receipt["oext_checks"] == [{"family": fam, "engine": "X", "index_sha256": r78.OEXT_78B[fam]["files"][idx],
++                                       "args": [], "exit": 0}]
++    sealed = json.loads((w.root / "setup" / "packed-stage1-X" / "sealed-files.json").read_text())
++    assert sealed["files"][f"records/branch-{fam}.json"] == r78.BRANCH_78B[fam]["sha256"]   # the pod reads it
++    # a branch from a W1-18 record: the check takes the pinned record (R-6); the pack carries it at its R-21 place
++    rec_rel = r78.W1_18_RECORD_DIR + f"overrefusal_checks__{fam}.json"
++    data = w1_18_record_doc(True, hx("w1 settings"))
++    (w.repo / rec_rel).parent.mkdir(parents=True, exist_ok=True)
++    (w.repo / rec_rel).write_bytes(data)
++    b = write(w.repo / "records" / f"branch-{fam}.json",
++              branch_record(fam, "128", "w1_18", sb.hashlib.sha256(data).hexdigest()))
++    w.mp.setitem(r78.BRANCH_78B, fam, {"path": f"records/branch-{fam}.json", "sha256": sha(b)})
++    oext = r78.OEXT_78B[fam]
++    w.mp.setitem(r78.OEXT_78B, fam, {**oext, "files": {**oext["files"], rec_rel: sha(w.repo / rec_rel)}})
++    w.checks.clear()
++    w.pack()
++    assert w.checks[0][-2:] == ["--w1-18-record", rec_rel]
++    sealed = json.loads((w.root / "setup" / "packed-stage1-X" / "sealed-files.json").read_text())
++    assert sealed["files"][rec_rel] == sha(w.repo / rec_rel)
++    w.check_exit = 2                                     # any refusal of the check refuses the pack
++    with pytest.raises(SystemExit, match=r"refused \(exit 2\): refused before any O-ext pod"):
++        w.pack()
++
++
++def test_r9_k3_the_w1_18_pack_checks_each_familys_side_units_and_packs_them_with_the_other_familys_prepared_set(so):
++    w = so
++    fam, r78 = w.family, w.r78
++    doc = {"files": {}, "inputs": {}}
++    for f in ("olmo2-7b", "llama31-8b"):                # synthetic side units at KIT a0_units' paths (test-local pins)
++        for k, u in r78.KIT[f]["a0_units"].items():
++            folder = w.repo / u["path"]
++            c = write(folder / "COMPLETE.json", {"complete": True, "unit": f"{f}-{k} (synthetic)"})
++            j = write(folder / "job.json", {"job": f"{f}-{k} (synthetic)"})
++            write(folder / "eval" / "e1" / "generations.jsonl", json.dumps({"text": sb.SENTINELS[0]}) + "\n")
++            w.mp.setitem(u, "complete_sha256", sha(c))
++            w.mp.setitem(u, "job_sha256", sha(j))
++    route = w1_route(w, w.mp, w.repo, ("olmo2-7b", "llama31-8b"), doc)
++    lprep = w.repo / "tmp" / "kt-prepared" / r78.KIT["llama31-8b"]["prepared_name"]
++    write(lprep / "manifest.sha256", r78.MANIFESTS["llama31-8b"] + "\n")
++    write(lprep / "manifest.json", {"kind": "prepared (synthetic)", "rows": 4800})
++    w.pack_flags = ["--w1-18"]
++    w.pack()
++    out = w.root / "setup" / "packed-stage1-X"
++    assert [c[3:8] for c in w.checks] == [["check", "--family", f, "--engine", "W1"] for f in ("llama31-8b", "olmo2-7b")]
++    assert all(c[-2:] == ["--data-root", str(w.repo / "tmp")] for c in w.checks)
++    sealed = json.loads((out / "sealed-files.json").read_text())
++    for rel, digest in route["files"].items():
++        assert sealed["files"][rel] == digest
++    for f, units in route["side_units"].items():
++        for u in units.values():
++            assert sealed["files"][f"data/{u['path']}/COMPLETE.json"] == u["complete_sha256"]
++            assert f"data/{u['path']}/eval/e1/generations.jsonl" in sealed["files"]
++    assert sealed["files"][f"data/kt-prepared/{r78.KIT['llama31-8b']['prepared_name']}/manifest.json"] == \
++        sha(lprep / "manifest.json")
++    assert json.loads((out / "setup-receipt.json").read_text())["w1_18"] is True
++    # refusals: a side unit off its pin; the W1-18 pod in the other family's copy is K-3's refusal (w1_18_host_problem)
++    shutil = sb.shutil
++    shutil.rmtree(out)
++    u = r78.KIT["llama31-8b"]["a0_units"][1101]
++    write(w.repo / u["path"] / "job.json", {"job": "changed"})
++    with pytest.raises(SystemExit, match="W1-18 unit a0-1101: the unit folder is missing or its COMPLETE.json"):
++        w.pack()
++    assert r78.w1_18_host_problem("llama31-8b") is not None
++
++
++# ===== 6. the anchor stop on the pod and in the pack (KR4, KR5, KR8, O6) ===========================================
++def stop_record(w, root: Path, done_bytes: bytes = b'{"host": "anchor pod (synthetic)"}\n') -> tuple[dict, Path, Path]:
++    done = root / "inputs" / "anchor_job_done" / "JOB-DONE.json"
++    done.parent.mkdir(parents=True, exist_ok=True)
++    done.write_bytes(done_bytes)
++    doc = w.r78.anchor_stop_record(w.family, 3, None, sha(done), {"kept": 61, "needed": 64})
++    stop = write(root / "records" / f"anchor-stop__{w.family}.json", doc)
++    return doc, stop, done
++
++
++def test_kr4_the_runner_reads_the_packed_stop_record_before_check_keys_and_refuses_without_it(so, tmp_path):
++    w = so
++    runner = load_by_path("jr78_kr4", w.root / "setup" / "job_runner_stage1.py")
++    root = tmp_path / "pod"
++    doc, stop, done = stop_record(w, root)
++    rel_stop, rel_done = "inputs/anchor_stop/" + stop.name, "inputs/anchor_job_done/JOB-DONE.json"
++    (root / rel_stop).parent.mkdir(parents=True, exist_ok=True)
++    (root / rel_stop).write_bytes(stop.read_bytes())
++    sealed = {"files": {rel_stop: sha(stop), rel_done: sha(done)}, "inputs": {"anchor_stop": rel_stop,
++                                                                             "anchor_job_done": rel_done}}
++    assert runner.anchor_stop_check(w.family, root, sealed) is None                # not stopped: nothing to read
++    w.mp.setitem(w.r78.ANCHOR_STOP, w.family, {"path": f"records/{stop.name}", "sha256": sha(stop)})
++    with pytest.raises(w.r78.Refused, match="has not been read at the pin and checked"):
++        w.r78.family_stopped(w.family)                  # before the runner's read: neither stopped nor normal
++    assert "is not packed" in runner.anchor_stop_check(w.family, root, {"files": {}, "inputs": {}})
++    other = write(root / "inputs" / "anchor_job_done" / "OTHER.json", {"host": "another job"})
++    wrong = {"files": {**sealed["files"], "inputs/anchor_job_done/OTHER.json": sha(other)},
++             "inputs": {**sealed["inputs"], "anchor_job_done": "inputs/anchor_job_done/OTHER.json"}}
++    assert "not the anchor job's" in runner.anchor_stop_check(w.family, root, wrong)   # KR8: its own JOB-DONE.json
++    assert runner.anchor_stop_check(w.family, root, sealed) is None
++    assert w.r78.family_stopped(w.family) is True       # the MAIN_F retrain's check_keys can now run
++    assert w.r78.sc_recipe(w.family, "retrain") == "B"
++    # the anchor step's stderr is a file of the pulled tree: process_receipt's job-I-anchor/process.log, under job-*
++    host = importlib.import_module("host")
++    assert "job-*" in host.PULL_ITEMS.split()
++    anchor = {"kind": "anchor", "arm": None, "seed": None, "recipe": "B", "engine": "X",
++              "inputs": {"anchor_prompts": hx("prompts")}}
++    prompts = write(root / "inputs/anchor_prompts/p.json", {"kind": "synthetic"})
++    adoc = {"files": {"inputs/anchor_prompts/p.json": hx("prompts")}, "inputs": {"anchor_prompts": "inputs/anchor_prompts/p.json"}}
++    assert prompts.is_file()
++    assert [n for n, _ in runner.job_commands(sc_plan(w, anchor), "h", 0, root, {}, adoc)] == ["job-0-anchor"]
++
++
++def test_kr5_the_shared_stop_fixture_is_read_by_rks_checker_k2s_writer_form_and_blinded_sigmas_reader(tmp_path):
++    """KR5 (GXB R-26): the one shared fixture tests/fixtures/anchor_stop__olmo2-7b__safe_anchors_below_64.json is
++    accepted by rules_78b's checker for its family and its JOB-DONE.json SHA-256, is exactly the form K2's writer
++    (anchor_stop_record) gives from its own fields, and is read by scripts/scale78b/blinded_sigma.py's check_anchor_stop
++    by path and SHA-256; another family's reading refuses in both."""
++    r78 = load_by_path("rules_78b_kr5", KIT / "rules_78b.py")
++    doc = json.loads(SHARED_STOP.read_text())
++    assert r78.anchor_stop_problem(doc, "olmo2-7b", doc["job_done_sha256"]) is None
++    assert r78.anchor_stop_problem(doc, "llama31-8b") is not None
++    assert r78.anchor_stop_record("olmo2-7b", doc["exit_code"], None, doc["job_done_sha256"], doc["counts"]) == doc
++    if str(REPO) not in sys.path:
++        sys.path.insert(0, str(REPO))
++    bs = load_by_path("blinded_sigma_kr5", REPO / "scripts" / "scale78b" / "blinded_sigma.py")
++    ref = {"path": SHARED_STOP.name, "sha256": sha(SHARED_STOP)}
++    bs.check_anchor_stop("olmo2-7b", ref, FIXTURES)
++    with pytest.raises(SystemExit):
++        bs.check_anchor_stop("llama31-8b", ref, FIXTURES)
++
++
++def test_kr4_the_pack_carries_the_stop_record_and_its_job_done_and_refuses_without_them(so):
++    w = so
++    fam = w.family
++    doc, stop, done = stop_record(w, w.repo / "anchor")
++    w.mp.setitem(w.r78.ANCHOR_STOP, fam, {"path": str(stop.relative_to(w.repo)), "sha256": sha(stop)})
++    with pytest.raises(SystemExit, match="name 'anchor_job_done', the anchor job's JOB-DONE.json"):
++        w.pack()
++    other = write(w.repo / "anchor" / "other" / "JOB-DONE.json", {"host": "another job"})
++    with pytest.raises(SystemExit, match="'anchor_job_done''s SHA-256 is not its pin"):
++        w.pack(("anchor_job_done", other, sha(other)))
++    w.pack(("anchor_job_done", done, sha(done)))
++    sealed = json.loads((w.root / "setup" / "packed-stage1-X" / "sealed-files.json").read_text())
++    assert sealed["inputs"]["anchor_stop"] == f"inputs/anchor_stop/{stop.name}"
++    assert sealed["files"][sealed["inputs"]["anchor_stop"]] == sha(stop)
++    assert sealed["files"][sealed["inputs"]["anchor_job_done"]] == sha(done)
++
++
++# ===== 7. R-44 at the pack receipt; K-7's edits by exact path and SHA-256 (block A) ==================================
++def test_r44_the_pack_receipt_rehashes_the_blinding_records_files_and_bundle_members(wa, tmp_path):
++    w = wa
++    pack = importlib.import_module("pack_setup")
++    assert pack.blinding_check({}, tmp_path / "none.tar.gz") is None                # no plan.json snapshot yet: None
++    rec = w.blinding()
++    named = json.loads(rec.read_text())["files"]
++    write(w.root / "plan.json", {"blocks": {"A": {"blinding": {"path": w.rel(rec), "sha256": sha(rec)}}}, "hosts": {}})
++    bundle = tmp_path / "bundle.tar.gz"
++
++    def tar(members: dict):
++        if bundle.exists():
++            bundle.unlink()
++        with tarfile.open(bundle, "w:gz") as archive:
++            for name, data in members.items():
++                info = tarfile.TarInfo(name)
++                info.size = len(data)
++                archive.addfile(info, io.BytesIO(data))
++    bs = "scripts/scale78b/blinded_sigma.py"
++    tar({bs: (w.repo / bs).read_bytes(), "other.py": b"x"})
++    got = pack.blinding_check({}, bundle)
++    assert got["bundle_members"] == {bs: named[bs]} and got["files"] == named
++    assert got["not_in_bundle"] == sorted(set(named) - {bs})
++    tar({bs: b"# changed after the verification\n"})
++    with pytest.raises(SystemExit, match="R-44: the packed scripts/scale78b/blinded_sigma.py is not the file"):
++        pack.blinding_check({}, bundle)
++    tar({})
++    (w.root / "plan_tool.py").write_text((w.root / "plan_tool.py").read_text() + "\n# a later edit\n")
++    with pytest.raises(SystemExit, match="R-44: runkit/stage1-78b/plan_tool.py is not the file the blinding record"):
++        pack.blinding_check({}, bundle)
++
++
++def test_k7_block_a_packs_each_jobs_edit_by_its_exact_path_and_sha256_only(wa):
++    w = wa
++    pack = importlib.import_module("pack_setup")
++    s1 = w.r78.METHOD_EDITS["olmo2-7b"]["S1"]           # OLMo-2-7B's S1 edit under tmp/stage1-olmo/ (K-7)
++    assert s1["path"].startswith("tmp/stage1-olmo/")
++    fixture = write(w.repo / s1["path"], {"edit": "synthetic stand-in at the S1 edit's exact path"})
++    w.mp.setitem(w.r78.METHOD_EDITS["olmo2-7b"], "S1", {**s1, "sha256": sha(fixture)})
++    jobs = [{"kind": "arm", "arm": "S1", "seed": 1104, "edit": {"path": s1["path"], "sha256": sha(fixture)}},
++            {"kind": "a0_arm", "arm": "a0", "seed": 1104, "edit": None}]
++    write(w.root / "plan.json", {"hosts": {}, "blocks": {"A": {"pending": {"a-1": {"block": "A", "jobs": jobs}}}}})
++    got = pack.ab_edits("olmo2-7b")
++    assert got == {f"edits/{sha(fixture)}.edit.json": (w.repo / s1["path"], sha(fixture))}
++    packing = pack.Packing()
++    for rel, (src, digest) in got.items():
++        packing.add(rel, src, digest)
++    assert packing.bad == []
++    name = f"edits/{sha(fixture)}.edit.json"
++    write(w.repo / s1["path"], {"edit": "changed"})
++    packing = pack.Packing()
++    for rel, (src, digest) in got.items():
++        packing.add(rel, src, digest)
++    assert packing.bad == [name]
++    (w.root / "plan.json").unlink()
++    with pytest.raises(SystemExit, match="plan.json is missing"):
++        pack.ab_edits("olmo2-7b")
++
++
++# ===== 8. engine Y's pack and KD9's re-measure record (X1, PP18, ADD A13, KD9) ========================================
++def y_tree(w) -> Path:
++    """A synthetic frozen Y tree (the fake engine tree's files and the main config), with YHASH TEST-LOCALLY listing
++    every file of it; and a 1B-style oext_unit.py copy in it, which the pack must never ship (r1-o-verify.md P3)."""
++    tree = w.repo / w.rules.Y_TREE_DEFAULT
++    for f in sorted((w.repo / "experiments").rglob("*")):
++        if f.is_file():
++            dest = tree / f.relative_to(w.repo)
++            dest.parent.mkdir(parents=True, exist_ok=True)
++            dest.write_bytes(f.read_bytes())
++    (tree / "scripts").mkdir(parents=True, exist_ok=True)
++    for f in sorted((w.repo / "scripts").glob("cuda_preflight*.py")):
++        (tree / "scripts" / f.name).write_bytes(f.read_bytes())
++    write(tree / "scripts/stage1_s1/oext_unit.py", "# the 1B Y copy (synthetic): never packed at 7-8B\n")
++    lines = [f"{sha(f)}  {f.relative_to(tree).as_posix()}" for f in sorted(tree.rglob("*")) if f.is_file()]
++    yhash = write(w.repo / w.rules.YHASH_PIN["path"], "\n".join(lines) + "\n")
++    w.mp.setitem(w.rules.YHASH_PIN, "sha256", sha(yhash))
++    return tree
++
++
++def test_x1_engine_ys_pack_refuses_while_engine_y_is_null_and_packs_the_frozen_tree_by_yhash_and_its_identity(so):
++    w = so
++    w.pack(dry_run=True)                                 # the World's fakes (engine X's tree, the config hashes)
++    pack = importlib.import_module("pack_setup")
++    with pytest.raises(SystemExit, match=r"engine Y's pack: engine Y's pin is null \(ENGINE_Y\)"):
++        pack.main(["Y"])
++    tree = y_tree(w)
++    w.mp.setattr(w.r78, "ENGINE_Y", sb.Y)
++    w.mp.setattr(pack, "engine_code", lambda t: sb.Y if Path(t) == tree else sb.X)
++    with pytest.raises(SystemExit) as info:              # argparse's usage error: --y-tree belongs to engine Y
++        pack.main(["X", "--y-tree", str(tree)])
++    assert info.value.code == 2
++    pack.main(["Y"])                                     # the default tree tmp/engine-y-34bfd288
++    out = w.root / "setup" / "packed-stage1-Y"
++    receipt = json.loads((out / "setup-receipt.json").read_text())
++    assert (receipt["engine"], receipt["engine_sha256"], receipt["git_commit"]) == ("Y", sb.Y, None)
++    with tarfile.open(out / "bundle-stage1-Y.tar.gz") as archive:
++        names = archive.getnames()
++        manifest = json.loads(archive.extractfile("bundle-manifest.json").read())
++    assert manifest["yhash"] == w.rules.YHASH_PIN and manifest["engine_sha256"] == sb.Y
++    assert "scripts/stage1_s1/oext_unit.py" not in names or \
++        manifest["files"]["scripts/stage1_s1/oext_unit.py"] != sha(tree / "scripts/stage1_s1/oext_unit.py")
++    sb.shutil.rmtree(out)
++    (tree / "experiments/safety_selection/README.md").write_text("changed after YHASH")
++    with pytest.raises(SystemExit, match="the Y tree fails YHASH: 1 file"):
++        pack.main(["Y"])
++    w.mp.setattr(pack, "engine_code", lambda t: sb.X)
++    (tree / "experiments/safety_selection/README.md").write_bytes(
++        (w.repo / "experiments/safety_selection/README.md").read_bytes())
++    with pytest.raises(SystemExit, match="is not ENGINE_Y's pin"):
++        pack.main(["Y"])
++
++
++def test_x1_the_y_pack_ships_the_unchanged_oext_unit_from_this_checkout_after_the_y_check(so):
++    w = so
++    w.pack(dry_run=True)
++    pack = importlib.import_module("pack_setup")
++    tree = y_tree(w)
++    fam = w.family
++    w.mp.setattr(w.r78, "ENGINE_Y", sb.Y)
++    w.mp.setattr(pack, "engine_code", lambda t: sb.Y if Path(t) == tree else sb.X)
++    unit_rel, idx = "scripts/stage1_s1/oext_unit.py", f"scripts/scale78b/settings/OEXT-78B-Y__{fam}.json"
++    files = {w.r78.OEXT_WRAPPER_78B: sha(write(w.repo / w.r78.OEXT_WRAPPER_78B, "# synthetic wrapper\n")),
++             idx: sha(write(w.repo / idx, {"index": f"synthetic {fam} Y"})), unit_rel: sha(REPO / unit_rel)}
++    (w.repo / unit_rel).parent.mkdir(parents=True, exist_ok=True)
++    (w.repo / unit_rel).write_bytes((REPO / unit_rel).read_bytes())               # the unchanged 1B file
++    w.mp.setitem(w.r78.OEXT_78B_Y, fam, {"files": files, "inputs": {"oext_bank": hx("ob"), "oext_record": hx("or")}})
++    w.checks = []
++    pack.main(["Y"])
++    out = w.root / "setup" / "packed-stage1-Y"
++    sealed = json.loads((out / "sealed-files.json").read_text())
++    assert sealed["files"][unit_rel] == sha(REPO / unit_rel) != sha(tree / unit_rel)   # ROOT's, the wrapper's CODE pin
++    assert [c[3:8] for c in w.checks] == [["check", "--family", fam, "--engine", "Y"]]   # R-23: under Y's identity
++
++
++def test_kd9_a_y_pod_records_its_re_measure_and_measured_kinds_stay_refused_on_y_until_y_measured(so, tmp_path):
++    w = so
++    runner = load_by_path("jr78_kd9", w.root / "setup" / "job_runner_stage1.py")
++    root = tmp_path / "pod"
++    unit = "rescore/1101-a0-retrain-a1"
++    c = write(root / unit / "COMPLETE.json", {"complete": True, "evaluation": {"u": sb.SENTINELS[2]}})
++    (root / unit / "progress.jsonl").write_text(json.dumps({"kind": "generate", "elapsed_s": 41.5, "rows": 32, "capped": 2,
++                                                           "text": sb.SENTINELS[0]}) + "\n")
++    ledger = write(root / "job-0" / "cost-ledger.json", {"stages_s": {"training": 900.5}, "slot_s": 1000.0})
++    pre = {"training_s": 952.03, "ms_per_step_full": 25000.0}
++    verification = {"cap_projection": {"untuned_projected_s": 2337.4, "training_s": 952.03},
++                    "environment": {"cuda": {"name": w.r78.GPU_NAME}}}
++    job = {"kind": "retrain", "arm": "a0", "seed": 1101, "engine": "Y"}
++    rel = runner.y_remeasure_record(root, 0, job, w.family, sb.Y, pre, verification, "job-0/cost-ledger.json",
++                                    {"unit": unit, "complete_sha256": sha(c)})
++    doc = json.loads((root / rel).read_text())
++    assert rel == "job-0/y-remeasure.json" and doc["kind"] == "stage1-78b engine-Y re-measure"
++    assert (doc["engine_sha256"], doc["gpu"], doc["ledger_sha256"], doc["complete_sha256"]) == \
++        (sb.Y, w.r78.GPU_NAME, sha(ledger), sha(c))
++    assert doc["preflight"] == {"training_s": 952.03, "ms_per_step_full": 25000.0, "untuned_projected_s": 2337.4}
++    assert doc["progress"] == [{"kind": "generate", "elapsed_s": 41.5, "rows": 32, "capped": 2}]
++    text = (root / rel).read_text()
++    assert not any(s in text for s in sb.SENTINELS)       # no U, no answer text
++    w.mp.setattr(w.r78, "ENGINE_Y", sb.Y)                 # measured kinds refuse on Y until the re-measure's step
++    assert w.r78.engine_allowed("retrain", sb.Y) and not w.r78.engine_allowed("arm", sb.Y)
++    assert not w.r78.engine_allowed("a0_arm", sb.Y) and not w.r78.engine_allowed("ref_train", sb.Y)
++    w.mp.setattr(w.r78, "Y_MEASURED", True)
++    assert w.r78.engine_allowed("arm", sb.Y)

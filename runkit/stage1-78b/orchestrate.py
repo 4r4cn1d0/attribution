@@ -82,21 +82,27 @@ def clean_env() -> dict:
     return secret_scan.scrubbed(os.environ, rules.TOKEN_ENV_NAMES)
 
 
-def gated_entries() -> list[dict]:
+def gated_entries(host: str | None = None) -> list[dict]:
     """The gated repositories of this working copy's family's download plan (launch.py's rule, repeated here so the
-    two modules stay independent): llama31-8b's policy files; none for olmo2-7b."""
+    two modules stay independent): llama31-8b's policy files; none for olmo2-7b. R3 K3 (R-66, R-71): with ``host``,
+    also the host's extra gated downloads (stage1_rules.host_extra_downloads)."""
     try:
         rules.family_or_refuse()
     except ValueError as exc:
         raise SystemExit(str(exc)) from None
-    return [e for e in probes.stage1_download_plan(rules.PROBE_KEY) if e["gated"]]
+    extra = []
+    if host is not None and host in plan().get("hosts", {}):
+        jobs = plan()["hosts"][host]["jobs"]
+        extra = [e for e in rules.host_extra_downloads(jobs, sorted({f for j in jobs for f in (j.get("families") or ())}))
+                 if e["gated"]]
+    return [e for e in probes.stage1_download_plan(rules.PROBE_KEY) if e["gated"]] + extra
 
 
 def gated_download(host: str) -> None:
     """For a gated family: hand the token to host.py gated-download on stdin (never an argument or the environment);
     success needs host.py's exit 0 and a record written by this call (an earlier record is archived first). For an
     open family: scrub the environment and return (the token is never read)."""
-    if not gated_entries():
+    if not gated_entries(host):
         secret_scan.scrub_process(os.environ, rules.TOKEN_ENV_NAMES)       # an open family never needs the token
         return
     token = os.environ.get(HF_TOKEN_ENV, "").strip()
@@ -246,8 +252,9 @@ def check_plan(host: str) -> dict:
         raise SystemExit(f"{host}: W1-18 runs alone on its pod (§8 Q1 (a))")
     problems, units = [], {}
     for i, job in enumerate(h["jobs"]):
-        try:
-            runner.job_commands(p, host, i, HERE / "hosts" / host, units, doc)
+        try:                                             # GXB R-75: the Mac's build; pod files are hashed on the pod
+            with runner.mac_build(HERE.parents[1]):
+                runner.job_commands(p, host, i, HERE / "hosts" / host, units, doc)
         except runner.Unrunnable as exc:
             problems.append(str(exc))
         missing = [rel for rel in runner.sealed_paths(job, h, i, doc, runner.oext_fallback(p))

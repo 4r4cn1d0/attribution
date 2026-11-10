@@ -203,7 +203,8 @@ class ABWorld:
     def jobs(self, n_pods: int, extra: dict | None = None, launches=None) -> str:
         launches = launches if launches is not None else \
             [{"deal": list(range(n_pods))}, {"judge": {"judge": "harmbench"}}, {"judge": {"judge": "granite"}}]
-        return str(self.record({"family": self.family, "launches": launches, **(extra or {})}))
+        refs = {"reference_set": "six_seed"} if self.block == "B" else {}   # R3 K3 (GXB R-79): block B names it
+        return str(self.record({"family": self.family, "launches": launches, **refs, **(extra or {})}))
 
     def funding(self, amount: float) -> str:
         return str(self.record({"block": self.block, "amount_usd": amount, "utc": "2026-11-05T12:00:00Z",
@@ -711,9 +712,10 @@ def test_init_block_b_plans_its_plan_after_block_as_seal_and_rereads_blinded_sig
     with pytest.raises(SystemExit, match="give its file \\(--blinded-sigma\\)"):
         w.init(dry_run=True)
     out = w.init(dry_run=True, blinded=str(blinded))
-    assert (out["plan"], out["runs"], out["judge_units"]) == ("A", 23, 23)
-    assert [len(p["runs"]) for p in out["pods"]] == [4, 4, 4, 4, 4, 3]
-    runs = sorted(r for p in out["pods"] for r in p["runs"])
+    assert (out["plan"], out["runs"], out["judge_units"]) == ("A", 23, 23 + 46)   # R3 K3 (R-80): + the 6-seed set's
+    #                                     reference units: SP and 3 lambdas x 6, Safe LoRA 2 points x 6, G 4, B+Qi 6
+    assert [len(p["runs"]) for p in out["pods"] if not p.get("role")] == [4, 4, 4, 4, 4, 3]   # R3 K3: refs apart
+    runs = sorted(r for p in out["pods"] if not p.get("role") for r in p["runs"])
     assert runs == sorted([f"{a}@{s}" for a in ("A1", "L1", "H1", "S1", "S3", "S4") for s in (1105, 1106, 1107)]
                           + ["R@1106", "R@1107", "a0@1105", "a0@1106", "a0@1107"])
     other = w.record({"df": 24, "inputs_sha256": hx("x"), "kind": "scale-78b blinded sigma", "sigma_A_pp": 4.1,
@@ -1354,6 +1356,7 @@ def test_k1_kr6_each_oext_kind_is_checked_by_its_command_word_from_oext_wrapper_
         w.mp.setitem(w.r78.OEXT_WRAPPER_COMMANDS, "o_only", "unit")
         route = w1_18_route(w.r78)
         w.mp.setattr(w.r78, "W1_18_78B", route)
+        w.mp.setattr(w.tool, "w1_18_gate_families", lambda where: sorted(route["side_units"]))   # R-60: its own test
         with pytest.raises(SystemExit, match="w1_18: W1_18_78B does not list scripts/stage1/limits/overrefusal_checks.py"):
             w.init([{"kind": "w1_18"}], amount=None, dry_run=True)
         w.mp.setattr(w.r78, "W1_18_78B", {**route, "files": {**route["files"],
@@ -1851,7 +1854,7 @@ def test_k2v6_block_bs_inputs_hash_and_a0_1105_to_1107_states(wb):
     hosts = w.init(blinded=str(blinded), amount=3000.0)["hosts"]
     st = load_by_path("states_k2_b", w.root / "states_tool.py")
     keep = st.keep_list()["pods"]
-    kept = {h for h in hosts if keep[h]["kept_until"]}
+    kept = {h for h in hosts if h in keep and keep[h]["kept_until"]}   # R3 K3: the reference hosts are not arm pods
     seeds = {j["seed"] for h in kept for j in w.plan()["hosts"][h]["jobs"] if j["arm"] == "a0"}
     assert seeds == {1105, 1106, 1107}
 
@@ -2132,3 +2135,27 @@ def test_r51_the_kits_rerun_mismatched_requeue_takes_the_re_runs_unit(wa):
     plan["requeues"][-1]["from"] = hosts[1]
     with pytest.raises(SystemExit, match="two complete units"):
         w.tool.blinded_inputs_part(plan, w.family)
+
+
+def test_k2r2_1_a_leftover_part_new_refuses_by_name_and_writes_nothing(wa):
+    """K2R2-1 (R3 K3): a <part>.new left by an interrupted replacement refuses record-done's part step by name, with a
+    clear message (no FileExistsError), and leaves the part and the .new file as they were; once the lead removes it,
+    the superseded part is replaced (GXB R-51's path)."""
+    w = wa
+    family = w.family
+    part = w.root / w.tool.BLINDED_PART.format(family=family)
+    write(part, {"part": "the earlier attempt (synthetic)"})
+    new = part.with_name(part.name + ".new")
+    new.write_text("left by an interrupted replacement")
+    doc = {"part": "after the kit's re-run (synthetic)"}
+    w.mp.setattr(w.tool, "blinded_inputs_part", lambda plan, fam: doc)
+    w.mp.setattr(w.tool, "part_superseded", lambda old, new_doc, plan: True)
+    w.mp.setattr(w.tool, "BLINDED_INPUTS", w.repo / "records" / "no-merged-inputs.json")
+    before = part.read_bytes()
+    with pytest.raises(SystemExit, match=r"\.json\.new is left from an interrupted replacement of the part"):
+        w.tool.write_blinded_part({})
+    assert part.read_bytes() == before and new.read_text() == "left by an interrupted replacement"
+    new.unlink()
+    got = w.tool.write_blinded_part({})
+    assert part.read_bytes() == w.rules.canonical_bytes(doc) and not new.exists()
+    assert got["sha256"] == sha(part)

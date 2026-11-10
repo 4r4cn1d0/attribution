@@ -216,6 +216,107 @@ What the finisher adds (K2, K3): before the stop, `host.py pull-states HOST e1` 
 `retrieved/HOST/` (an archive without a file is refused and not kept) and `states_tool.py check` verifies it; nothing
 is deleted by this kit (KD5: a delete waits for a verified backup and the user's yes by pod name).
 
+## Blocks A and B: the lean route, the O-ext step and the record steps (R2 K2, R3 K3)
+
+One family per working copy (`tmp/family-probe-s78-<family>-A/` or `-B/`, KD7). The route, in order:
+
+1. **The gate** (after ruling 9's gate, before block A): `plan_tool.py record-gate-78b NOISE_READING --sha256 H
+   --option B|C --balance-usd X --recorded-by WHO --out RECORD`, then a recorded lead step fills `GATE_78B` with the
+   record's path and SHA-256. Block A's init reads its families from it; a "review" provisional plan refuses (R-1).
+2. **The branch** (after the W1-18 pod): `plan_tool.py record-branch-78b --w1-18-record
+   .ai/inputs/stage1-post-w1-20261023/78b/w1-18/overrefusal_checks__<F>.json --sha256 H --recorded-by WHO --out RECORD`
+   (or `--default` for "Branch full by default"), then the lead fills `BRANCH_78B[F]`, then `OEXT_78B[F]` (T-O2's
+   order). Every 500-bank job refuses until both are filled; the branch is never switched.
+3. **A stopped anchor job** (only if the family's anchor job ended by its own signal): `plan_tool.py
+   record-anchor-stop HOST [--message-file retrieved/HOST/tree/job-0-anchor/process.log] --out RECORD`, then the lead
+   fills `ANCHOR_STOP[F]`. The anchor step's stderr (merged with its stdout) is kept on the pod by process_receipt.py as
+   `job-<i>-anchor/process.log`; the light pull brings it back (host.py `PULL_ITEMS` "job-*"), so its last line is the
+   exit-1 message. A stopped family's every later pack names the anchor job's JOB-DONE.json in `--inputs` as
+   `anchor_job_done`; the pack checks the pair on the Mac and carries both (`inputs/anchor_stop/`,
+   `inputs/anchor_job_done/`), and the runner reads them through `rules_78b.anchor_stop_or_refuse` before
+   `check_keys` and `job_decision` (KR4, KR8).
+4. **Block A**: `init-block A --jobs FILE --noise-reading FILE --funding FILE [--anchor-job-done FILE]`, then the
+   pack (below), then release. Each arm and a0_arm job runs the engine's `calibrate` under the family's main config,
+   then the O-ext pass on its own e1 unit (`job-<i>-oext`, E3 (a); fallback (b) is not used).
+5. **Block A's record-done** writes the family's part of `blinded_sigma.py`'s inputs; `write-blinded-inputs` merges
+   the parts; `write-blinded-part` writes a part again once its pins are filled. A leftover `<part>.new` from an
+   interrupted replacement refuses by name; the lead checks the part, removes the `.new` file and runs the step again.
+6. **Block B's plan**: `record-plan-b-78b --noise-reading FILE [--blinded-sigma FILE --sha256 H] --recorded-by WHO
+   --out RECORD`, then the lead fills `PLAN_B_78B`; then `init-block B ... --blinded-sigma FILE`.
+
+### The O-ext commands (GXB T-O3, R-5, R-18, R-20, R-47; Track O's wrapper)
+
+Every O-ext command is `venv/bin/python -B scripts/scale78b/oext_78b.py <command> --family F [--engine Y] --index IDX
+--index-sha256 H <the 1B subcommand and arguments>`. IDX is the one index file of `OEXT_78B[F]` (engine X;
+`settings/OEXT-78B__F.json`) or `OEXT_78B_Y[F]` (engine Y), with the SHA-256 the pin names; the W1-18 command takes
+`settings/OEXT-78B-W1__F.json` from `W1_18_78B`, never from `OEXT_78B[F]`. Commands: `unit run --untuned` (theta0's
+`o_only`), `unit run --run UNIT --checkpoint e1` (the arm step; `o_only_with_regenerate`), `lean run` (c0), `w1_18`
+(one call per family on the one W1-18 pod). The branch is read from the packed branch record at `BRANCH_78B[F]`:
+`--w1-18-record <the W1-18 record at its R-21 place>` whenever the branch record names a W1-18 record (Branch 128, or
+Branch full from a failing record: the unchanged `oext_eval` reads it at run time, R-47); `--dev100-source
+inputs/source_unit-<arm>-<seed>/<unit>` only on a regenerated unit under Branch 128 (the packed folder input
+`source_unit:<arm>:<seed>`, pinned by the unit's acceptance COMPLETE.json).
+
+### The new kinds and their pins
+
+| Kind / job | Where | Waits for |
+|---|---|---|
+| `w1_18` | OLMo-2-7B's scorer copy, alone, the first O job; one check per family of `W1_18_78B["side_units"]` (both under [B], OLMo-2-7B under [C]); each record comes back as `job-<i>/overrefusal_checks__<F>.json` (R-53) | `W1_18_78B` (R-20's `{files, side_units}`) |
+| `o_only_with_regenerate` (a0 side units; N's R 1101-1103 and Llama's a0-1103) | scorer copy, one pod per (arm, seed); an R unit re-trains on its sealed R_d edit (`regen_edit:R:<seed>`); acceptance against `n_complete:<arm>:<seed>` (N) or `side_complete:a0:<seed>` | `OEXT_78B[F]`, `BRANCH_78B[F]`, `N_UNITS[F]` for N's units |
+| arm, a0_arm (blocks A, B) | calibrate, then `unit run` on its own e1 | `GATE_78B` (`PLAN_B_78B` for B), `BRANCH_78B[F]`, `OEXT_78B[F]`, the edits' pins, `PADDED_TOKENS_78B[F]` |
+| any engine-Y job | `pack_setup.py Y [--y-tree DIR]` (the scorer copy, and block B's for `ref_train_bqi`, R-63; the frozen tree `tmp/engine-y-34bfd288` by YHASH and its identity); every complete job on an engine-Y pod writes `job-<i>/y-remeasure.json` (KD9): the E-capped kinds (the retrain first) from `ENGINE_Y` on; the measured kinds (arm, a0_arm, evalonly, ref_train) refuse on Y until `Y_MEASURED` and `Y_MEASURED_RECORD` are filled, so they write it only after that | `ENGINE_Y`; measured kinds also `Y_MEASURED` and `Y_MEASURED_RECORD` |
+
+### The pack for O-ext pods (R-6, R-9, R-21, R-23, R-44, K-3, K-7)
+
+- Scorer copy: once `OEXT_78B[F]` is filled the pack runs `oext_78b.py check` on the family's X index (with
+  `--w1-18-record` when the branch comes from W1-18) and refuses on any non-zero exit; it carries the branch record at
+  its pin's path and the W1-18 record at its R-21 place. `pack_setup.py X --w1-18` (OLMo-2-7B's scorer copy only)
+  packs the W1-18 pod: `W1_18_78B`'s files (any list in its form, Track P's frozen readers included), each family's
+  side units under `data/` and the other family's prepared set, after `oext_78b.py check --engine W1 --data-root tmp`
+  per family (R-9). A Y pack also checks and packs `OEXT_78B_Y[F]`'s files from this checkout (the unchanged
+  `scripts/stage1_s1/oext_unit.py`; never the 1B Y copy in the Y tree).
+- Blocks A and B: `OEXT_78B[F]` and the branch record are required; `--inputs` names `oext_bank` and `oext_record`;
+  each job's edit is packed from its exact path and SHA-256 only (OLMo-2-7B's S1 edit under `tmp/stage1-olmo/`
+  included; nothing there is listed or opened by name otherwise). In block A, the receipt re-hashes the files the
+  blinding record names (this copy's `plan_tool.py`, the others in the checkout) and every bundle member among them,
+  and refuses a difference (R-44; the receipt's `blinding` block lists which named files are not in the bundle).
+
+### The references in block B (item 13; R-63, R-67)
+
+- `b10_certify`, `ref_eval` and `safe_lora` run Track R's wrapper `scripts/scale78b/refs_78b.py eval_adapter|safe_lora
+  --family F --seed S --index settings/REFS-78B__F__S.json --index-sha256 H`, the index from `REFS_78B[F][S]` (null
+  until the lead fills it from `make_refs_settings_78b.py --refs-78b F S`), in the stage-1 kit's forms. Their named
+  inputs, at each job's plan.json pin: `gate_a_complete:S` (seed S's a0 unit's COMPLETE.json, R-35's table:
+  `rules_78b.ref_cert_source`), `gate_a_eval:S` (its eval/e1 folder, every file at the SHA-256 the unit's COMPLETE.json
+  lists), `certification_report:S` (S's `b10_certify` comparison) and `prefix_file` (the 1B safety-prompt text at
+  `REF_PREFIX_SHA256` `0fcc6beb…`). A report whose verdict is not "pass" stops every evaluation-only reference of the
+  seed on the pod (P2 §16.1). B10's failed gate (exit 4) is a complete job with `certification_gate` "failed".
+- `ref_train` (recipe G, engine X) and `ref_train_bqi` (RECIPE_BQI, engine Y) run calibrate under the job's pinned
+  config, then the O-ext unit pass (B+Qi's on `OEXT_78B_Y[F]`, `--engine Y`). `pack_setup.py Y` is allowed in block B's
+  copy for it (R-63) and checks and packs `OEXT_78B_Y[F]`'s files.
+- The wrapper's terms records (`<output>.refs78b-terms.json`) are hashed with the job's outputs and listed in the job
+  record (`terms_records`); the light pull brings them back with `job-*`.
+- **KD9 / R-67:** `plan_tool.py record-y-measured HOST [HOST ...] --recorded-by WHO --out RECORD` reads each engine-Y
+  host's `job-<i>/y-remeasure.json` at the SHA-256 its JOB-DONE.json lists and writes the measured record; a recorded
+  lead step fills `Y_MEASURED_RECORD` and sets `Y_MEASURED`. Measured kinds run on Y only with both.
+- **Block B's reference planning (13g, R-68):** the jobs file's `"reference_set": "six_seed"` (Part 2 §3.1's default) or
+  `"three_seed"` (F1's fallback) makes init-block B plan three launches after the judge launches, one job per pod:
+  refs-cert (`b10_certify` per seed), refs-eval (`ref_eval` with SP and the λ points, `safe_lora` default and certify)
+  and refs-train (`ref_train` at the seeds not reused, `ref_train_bqi` on engine Y). Before each reference launch's
+  pack, `plan_tool.py ref-inputs` writes the pending jobs' input pins from their sources (each seed's a0 unit, R-35;
+  the recorded certification; REF_PREFIX_SHA256) and the G / B+Qi configs (`RECIPE_G_PATH`, `RECIPE_BQI_PATH` with
+  their pins; never the main config's hash, R-70); release derives them again and releases an evaluation-only
+  reference only for a seed whose certification is recorded passed (a failed seed's hosts stay unreleased, listed in
+  the block's `refs_not_run`; P2 §16.1).
+- **Downloads (R-66, R-71):** a block-B pack whose plan holds a `safe_lora` job puts the base model in probe.json at its
+  pinned revision (refused while probes.BASE_MODELS' pin is null); the W1-18 pack adds every other W1-18 family's
+  tokenizer (four files at KIT's revision). Gated entries (Llama's base, Llama's tokenizer on OLMo-2-7B's W1-18 pod
+  under [B]) join the host's gated precheck and gated step: they come only through the Llama token path. W1-18's
+  `--guard-batch-size` is each family's MAIN_F guard batch (R-59); its families are GATE_78B's (R-60).
+- **check-plan on the Mac (R-75):** `orchestrate.py check-plan` builds every job's commands with the sealed-files.json
+  listing and the checkout's pinned records only (c0's expected fingerprint as the 1B placeholder); the pod hashes
+  every packed file as it builds the commands, so a missing or wrong file refuses there before any step.
+
 ## Tests
 
     cd <checkout> && PYTHONDONTWRITEBYTECODE=1 $PY -B -m pytest -p no:cacheprovider -q -rfE runkit/stage1-78b/tests

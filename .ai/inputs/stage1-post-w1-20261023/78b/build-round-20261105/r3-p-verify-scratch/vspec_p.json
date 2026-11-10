@@ -1,0 +1,104 @@
+{
+ "kind": "verifier P",
+ "note": "R3 Track P verifier's own mutants",
+ "mutants": [
+  {
+   "id": "V-guard-rewrite",
+   "describes": "the rewritten responses are not guarded",
+   "file": "padded_tokens_78b.py",
+   "find": "                guard.add(item.get(\"response\"))\n",
+   "replace": "                pass\n"
+  },
+  {
+   "id": "V-largest-at-max",
+   "describes": "largest_at_seed names the last tied seed",
+   "file": "padded_tokens_78b.py",
+   "find": "\"largest_at_seed\": min(s for s, t in totals.items() if t == top),",
+   "replace": "\"largest_at_seed\": max(s for s, t in totals.items() if t == top),"
+  },
+  {
+   "id": "V-tool-sha",
+   "describes": "source.tool_sha256 is a constant",
+   "file": "padded_tokens_78b.py",
+   "find": "\"tool_sha256\": sha256_file(Path(__file__)),",
+   "replace": "\"tool_sha256\": \"0\" * 64,"
+  },
+  {
+   "id": "V-engine-files",
+   "describes": "source.engine_files are constants",
+   "file": "padded_tokens_78b.py",
+   "find": "\"engine_files\": {p: sha256_file(REPO / p) for p in ENGINE_FILES},",
+   "replace": "\"engine_files\": {p: \"0\" * 64 for p in ENGINE_FILES},"
+  },
+  {
+   "id": "V-seed-shift",
+   "describes": "every seed's stream is another seed's",
+   "file": "padded_tokens_78b.py",
+   "find": "        plan = plan_for(prepared, settings, seed, edit)\n",
+   "replace": "        plan = plan_for(prepared, settings, seed + 7, edit)\n"
+  },
+  {
+   "id": "V-div-fraction",
+   "describes": "S = rows / 128 (no ceiling) as the divisor",
+   "file": "padded_tokens_78b.py",
+   "find": "values[pin] = per_step(top, out[\"steps\"])",
+   "replace": "values[pin] = per_step(top, out[\"rows\"] / 128)"
+  },
+  {
+   "id": "V-second-largest",
+   "describes": "the second largest seed total",
+   "file": "padded_tokens_78b.py",
+   "find": "        top = max(totals.values())\n",
+   "replace": "        top = sorted(totals.values())[-2]\n"
+  },
+  {
+   "id": "V-check-no-value",
+   "describes": "the check ignores the per-step value",
+   "file": "padded_tokens_78b.py",
+   "find": "matches = total == basis_total and steps == basis_steps and round(value, 2) == basis_value",
+   "replace": "matches = total == basis_total and steps == basis_steps"
+  },
+  {
+   "id": "V-check-no-steps",
+   "describes": "the check ignores the steps",
+   "file": "padded_tokens_78b.py",
+   "find": "matches = total == basis_total and steps == basis_steps and round(value, 2) == basis_value",
+   "replace": "matches = total == basis_total and round(value, 2) == basis_value"
+  },
+  {
+   "id": "V-check-exit",
+   "describes": "a differing check exits 0",
+   "file": "padded_tokens_78b.py",
+   "find": "    if doc[\"kind\"] == CHECK_KIND and not doc[\"matches\"]:\n",
+   "replace": "    if doc[\"kind\"] == CHECK_KIND and doc[\"matches\"] is None:\n"
+  },
+  {
+   "id": "V-mb-last-row",
+   "describes": "each micro-batch padded to its last row",
+   "file": "padded_tokens_78b.py",
+   "find": "total += sum(len(mb) * max(len(e.input_ids) for e in mb) for mb in micro_batches(examples, micro_batch))",
+   "replace": "total += sum(len(mb) * len(mb[-1].input_ids) for mb in micro_batches(examples, micro_batch))"
+  },
+  {
+   "id": "V-out-no-edit-folders",
+   "describes": "--out may lie in an edit's folder",
+   "file": "padded_tokens_78b.py",
+   "find": "out = ec.out_ok(args.out, [Path(p).resolve().parent for p, _ in edits] + [args.prepared])",
+   "replace": "out = ec.out_ok(args.out, [args.prepared])"
+  },
+  {
+   "id": "V-scan-lines-only",
+   "describes": "the record bytes are not scanned",
+   "file": "padded_tokens_78b.py",
+   "find": "        if guard.hits(data) or any(guard.hits(line) for line in lines):\n",
+   "replace": "        if any(guard.hits(line) for line in lines):\n"
+  },
+  {
+   "id": "V-guard-name",
+   "describes": "the edit's name is not guarded",
+   "file": "padded_tokens_78b.py",
+   "find": "            guard.add(doc.get(\"name\"))\n",
+   "replace": "            pass\n"
+  }
+ ]
+}

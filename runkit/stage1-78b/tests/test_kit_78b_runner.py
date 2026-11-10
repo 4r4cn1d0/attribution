@@ -997,8 +997,9 @@ def test_the_committed_kit_folder_imports_every_runner_module_and_runs_nothing(t
     for gone in ("c1_registry_seed", "similarity_record", "plant_fingerprint_record", "W1_18_SCRIPT",
                  "D2_SCRIPTS", "_safe_lora", "MAN1_PATH"):
         assert gone not in text, gone                                     # the 1B machinery is not in this copy
-    assert text.count("OEXT_UNIT_SCRIPT") == 2 and text[text.index("def sc_commands("):text.index("def out_dirs(")].count(
-        "r78.OEXT_UNIT_SCRIPT") == 2                     # K4b, PP17: only the scorer block's o_only and o_only_with_regenerate
+    assert "OEXT_UNIT_SCRIPT" not in text and text[text.index("def sc_commands("):text.index("def out_dirs(")].count(
+        "oext_unit_argv(") == 2                          # R3 K3: the wrapper's form (R-18); o_only and the regenerate
+    assert text[text.index("def ab_commands("):text.index("# ===== R3 K3 (item 13)")].count("oext_unit_argv(") == 1   # 5a
     assert "s_obs_from_progress" in text and "free_space_gb" in text and "check_keys" in text and "job_decision" in text
 
 

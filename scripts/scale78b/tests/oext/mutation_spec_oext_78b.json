@@ -1,6 +1,6 @@
 {
  "kind": "scale78b oext mutation spec (R1 Track O, fix round 2; R2 Track R's follow-up)",
- "note": "each mutant's find text occurs exactly once in its file (a path under scripts/scale78b); runner: tests/oext/run_mutants_oext_78b.py (the suite scripts/scale78b/tests/oext). Fix round 1: 67. Fix round 2: 4 stale finds updated, the re-verifier's 11 (RV-*, 2 finds adapted) and 14 new (F2-*). R2 (Track R's follow-up of R1's second re-verification): 3 finds adapted to W2-3's check (RV-w-check-waits-mask, F2-w-on-engine, F2-w-wait-pattern), the re-verifier's 3 surviving mutants (RV2-*, W2-2) and 8 new (R2-*: W2-1, W2-3).",
+ "note": "each mutant's find text occurs exactly once in its file (a path under scripts/scale78b); runner: tests/oext/run_mutants_oext_78b.py (the suite scripts/scale78b/tests/oext). Fix round 1: 67. Fix round 2: 4 stale finds updated, the re-verifier's 11 (RV-*, 2 finds adapted) and 14 new (F2-*). R2 (Track R's follow-up of R1's second re-verification): 3 finds adapted to W2-3's check (RV-w-check-waits-mask, F2-w-on-engine, F2-w-wait-pattern), the re-verifier's 3 surviving mutants (RV2-*, W2-2) and 8 new (R2-*: W2-1, W2-3). R3 (Track P): 7 new (R3-*: W2-4, W2-5). R3 fix round (Track P): 2 new (R3F-*: V-5). R3 integration fixes (Track P): 5 new (R3I-*: R-86, R-89).",
  "mutants": [
   {
    "id": "O-w-unit-label",
@@ -722,6 +722,104 @@
    "file": "make_oext_settings_78b.py",
    "find": "    if index[\"w1_18_record_sha256\"] is not None:\n        out[index",
    "replace": "    if True:\n        out[index"
+  },
+  {
+   "id": "R3-w-w1-engine-running",
+   "describes": "W2-4: the W1-18 settings under the running engine's identity",
+   "file": "oext_78b.py",
+   "find": "                engine = ENGINE_X_IDENTITY                # W2-4: W1-18 runs on engine X, whatever runs this check\n",
+   "replace": "                engine = running\n"
+  },
+  {
+   "id": "R3-w-w1-engine-file",
+   "describes": "W2-4: the W1-18 settings under their own engine_x",
+   "file": "oext_78b.py",
+   "find": "                engine = ENGINE_X_IDENTITY                # W2-4: W1-18 runs on engine X, whatever runs this check\n",
+   "replace": "                engine = doc.get(\"engine_x\")\n"
+  },
+  {
+   "id": "R3-w-engine-x-literal",
+   "describes": "W2-4: another engine X identity",
+   "file": "oext_78b.py",
+   "find": "ENGINE_X_IDENTITY = \"472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded892\"",
+   "replace": "ENGINE_X_IDENTITY = \"472fc7f6d619bdee2c3aa38e444024626be8b66bfb74a5abf37f2ddb6dded893\""
+  },
+  {
+   "id": "R3-m-readers-dropped",
+   "describes": "W2-5: the frozen readers are not listed",
+   "file": "make_oext_settings_78b.py",
+   "find": "        out.update(frozen_reader_pins(limits, family))",
+   "replace": "        frozen_reader_pins(limits, family)"
+  },
+  {
+   "id": "R3-m-reader-hash",
+   "describes": "W2-5: a reader off its pin is listed",
+   "file": "make_oext_settings_78b.py",
+   "find": "        if not path.is_file() or sha256_file(path) != pin:\n",
+   "replace": "        if not path.is_file():\n"
+  },
+  {
+   "id": "R3-m-reader-path",
+   "describes": "W2-5: a reader path outside scripts/ is accepted",
+   "file": "make_oext_settings_78b.py",
+   "find": "and rel.startswith(\"scripts/\") and rel.endswith(\".py\")\n                and all(q not in (\"\", \".\", \"..\") for q in rel.split(\"/\"))):",
+   "replace": "):"
+  },
+  {
+   "id": "R3-m-reader-keys",
+   "describes": "W2-5: the frozen_reader block's keys are not checked",
+   "file": "make_oext_settings_78b.py",
+   "find": "    if not isinstance(spec, dict) or set(spec) != set(FROZEN_READERS):\n",
+   "replace": "    if not isinstance(spec, dict):\n"
+  },
+  {
+   "id": "R3F-m-reader-dotdot",
+   "describes": "V-5: a reader path with a '..' or empty part is accepted",
+   "file": "make_oext_settings_78b.py",
+   "find": "\n                and all(q not in (\"\", \".\", \"..\") for q in rel.split(\"/\"))):",
+   "replace": "):"
+  },
+  {
+   "id": "R3F-m-reader-py",
+   "describes": "V-5: a reader path that is not .py is accepted",
+   "file": "make_oext_settings_78b.py",
+   "find": "rel.startswith(\"scripts/\") and rel.endswith(\".py\")\n",
+   "replace": "rel.startswith(\"scripts/\")\n"
+  },
+  {
+   "id": "R3I-m-families-ignored",
+   "describes": "R-86: --families does not limit the form",
+   "file": "make_oext_settings_78b.py",
+   "find": "    for family in families:\n        name = index_name(family, \"W1\")",
+   "replace": "    for family in FAMILIES:\n        name = index_name(family, \"W1\")"
+  },
+  {
+   "id": "R3I-m-families-dup",
+   "describes": "R-86: a repeated family is accepted",
+   "file": "make_oext_settings_78b.py",
+   "find": " or len(set(names)) != len(names):",
+   "replace": ":"
+  },
+  {
+   "id": "R3I-m-families-only-w1",
+   "describes": "R-86: --families is taken without --w1-18-78b",
+   "file": "make_oext_settings_78b.py",
+   "find": "    if not w1_18:\n        raise",
+   "replace": "    if False:\n        raise"
+  },
+  {
+   "id": "R3I-m-record-name",
+   "describes": "R-89: any .json under w1-18/ is taken",
+   "file": "make_oext_settings_78b.py",
+   "find": "    if path is not None and path != RECORDS_DIR + RECORD_NAME.format(family=family):\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "R3I-m-record-name-family",
+   "describes": "R-89: another family's standard name is taken",
+   "file": "make_oext_settings_78b.py",
+   "find": "path != RECORDS_DIR + RECORD_NAME.format(family=family):",
+   "replace": "not path.startswith(RECORDS_DIR + \"overrefusal_checks__\"):"
   }
  ]
 }

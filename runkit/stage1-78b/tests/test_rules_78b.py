@@ -606,6 +606,9 @@ def test_07c_a13_pins_engine_y_bqi_and_the_sealed_sets(monkeypatch, tmp_path):
     with pytest.raises(R.Refused):
         R.check_keys(**keys_of("olmo2-7b", kind="safe_lora", engine_sha256="34bfd289" + "0" * 56))   # a third engine
     monkeypatch.setattr(R, "Y_MEASURED", True)
+    for kind in ("arm", "a0_arm", "evalonly"):                                          # R3 K3 (R-67): the record pin too
+        assert not R.engine_allowed(kind, y)
+    monkeypatch.setattr(R, "Y_MEASURED_RECORD", {"path": "records/y-measured.json", "sha256": "cd" * 32})
     for kind in ("arm", "a0_arm", "evalonly"):
         assert R.engine_allowed(kind, y)
         R.check_keys(**keys_of("olmo2-7b", kind=kind, engine_sha256=y))
@@ -623,7 +626,7 @@ def test_08_kinds():
         assert R.job_record(family, "a0_arm")["steps"] == 38
         assert R.job_record(family, "evalonly")["steps"] is None
         for kind in ("A1", "anchors", "scorer", "B+Qi", "similarity", "transfer_report", "a1_rescore",
-                     "cert_c1", "b10_certify", "arm ", ""):           # R1 K1: w1_18 and ref_train are kinds now
+                     "cert_c1", "arm ", ""):           # R1 K1: w1_18 and ref_train are kinds now; R3 K3: b10_certify
             with pytest.raises(R.Refused):
                 R.check_kind(kind)
             with pytest.raises(R.Refused):
@@ -1870,7 +1873,7 @@ def test_29_the_branch_record_the_500_bank_kinds_and_the_flags(monkeypatch):
     assert R.BRANCHES == ("full", "128") and R.BRANCH_DEFAULT == "full"
     assert R.BRANCH_78B == {"olmo2-7b": None, "llama31-8b": None}
     assert R.BANK500_KINDS == frozenset({"o_only", "o_only_with_regenerate", "c0", "ref_eval", "safe_lora", "ref_train",
-                                         "ref_train_bqi"})
+                                         "ref_train_bqi", "b10_certify"})          # R3 K3: certify runs O-ext too
     assert not R.bank500_job("arm", "0") and not R.bank500_job("a0_arm", "0") and not R.bank500_job("anchor", "sc")
     assert R.bank500_job("arm", "A") and R.bank500_job("a0_arm", "B") and R.bank500_job("o_only", "sc")
     f = "llama31-8b"
@@ -1920,6 +1923,13 @@ def test_29_the_branch_record_the_500_bank_kinds_and_the_flags(monkeypatch):
     pin_of_item(monkeypatch, R.BRANCH_78B, f, full)
     assert R.oext_flags(f, "o_only_with_regenerate", full, regenerated=True) == {"w1_18_record": None,
                                                                                    "dev100_source": False}
+    # R3 K3 (GXB R-47): Branch full from a FAILING W1-18 record: the O-ext settings pin it and oext_eval reads it at
+    # run time (tests/test_runner_ab_78b.py, through the unchanged oext_eval), so the flag names it; no --dev100-source
+    failing = json.dumps(branch_doc(f, "full", "w1_18", hx("w1-fail"))).encode()
+    pin_of_item(monkeypatch, R.BRANCH_78B, f, failing)
+    for kind in ("c0", "o_only", "o_only_with_regenerate", "arm", "a0_arm"):
+        assert R.oext_flags(f, kind, failing, regenerated=True) == {"w1_18_record": hx("w1-fail"), "dev100_source": False}
+    pin_of_item(monkeypatch, R.BRANCH_78B, f, data128)
     monkeypatch.setitem(R.BRANCH_78B, f, None)
     with pytest.raises(R.Refused, match="BRANCH_78B\\['llama31-8b'\\] is null"):
         R.oext_flags(f, "o_only", full)
@@ -1991,7 +2001,9 @@ def test_30_the_seed_key_olmo_n_r1101_and_side_a0_1101(tmp_path, monkeypatch):
         assert "N_UNITS" not in R.sc_needed_pins("o_only_with_regenerate", "X", "llama31-8b", "a0", seed)
     sr = kit_copy(tmp_path, "olmo2-7b", "sc")
     side, n = sr.sc_input_names("o_only_with_regenerate", 1101, "a0"), sr.sc_input_names("o_only_with_regenerate", 1101, "R")
-    assert side == ("side_complete:a0:1101", "oext_bank", "oext_record") == sr.sc_input_names("o_only_with_regenerate", 1101)
+    assert side == ("side_complete:a0:1101", "oext_bank", "oext_record")
+    with pytest.raises(ValueError, match="the arm is missing"):           # R3 K3 (R-16, R-31): no seed-only form
+        sr.sc_input_names("o_only_with_regenerate", 1101)
     assert n == ("n_complete:R:1101", "regen_edit:R:1101", "oext_bank", "oext_record")
     values = R.sc_pin_values("olmo2-7b", pins78_doc())
     assert sr.sc_input_pins("o_only_with_regenerate", pins78_doc(), values, 1101, "R") == {
@@ -2567,7 +2579,8 @@ def test_41_k1v9_a_unit_is_named_by_arm_and_seed_and_a_missing_arm_refuses(tmp_p
     """K1V-9 (GXB's seed key): sc_unit_input_names / sc_unit_input_pins name o_only_with_regenerate's unit by (arm,
     seed) and refuse a missing arm or a pair that is not one of its units. The seed-only form remains only at the four
     call sites K2 and K3 own (the runner :466, :483; the pack :432; the planner :1306), listed here so that no new
-    caller uses it; when they move, this test's list shrinks (a K2/K3 acceptance item)."""
+    caller uses it; when they move, this test's list shrinks (a K2/K3 acceptance item). R3 K3: the list is empty and
+    the seed-only form itself refuses (sc_input_names without the arm)."""
     sr = kit_copy(tmp_path, "olmo2-7b", "sc")
     with pytest.raises(ValueError, match="the arm is missing"):
         sr.sc_unit_input_names("o_only_with_regenerate", None, 1101)
@@ -2583,14 +2596,16 @@ def test_41_k1v9_a_unit_is_named_by_arm_and_seed_and_a_missing_arm_refuses(tmp_p
         sr.sc_unit_input_pins("o_only_with_regenerate", pins78_doc(), values, None, 1101)
     assert set(sr.sc_unit_input_pins("o_only_with_regenerate", pins78_doc(), values, "R", 1101)) == {
         "n_complete:R:1101", "regen_edit:R:1101", "oext_bank", "oext_record"}
-    assert seed_only_calls() == R16_SEED_ONLY_CALLS
+    assert seed_only_calls() == R16_SEED_ONLY_CALLS == set()
+    with pytest.raises(ValueError, match="the arm is missing"):
+        sr.sc_input_pins("o_only_with_regenerate", pins78_doc(), values, 1101)
+    with pytest.raises(ValueError, match="the arm is missing"):
+        sr.sc_input_names("o_only_with_regenerate", 1102)
 
 
 # GXB R-16's seed-only call sites (K3's files; the list is empty by K3's end): (file, the call's line). R2 K2 moved the
-# planner's (plan_tool.py) to the strict form (GXB R-31).
-R16_SEED_ONLY_CALLS = {("pack_setup.py", "rules.sc_input_pins(kind, pins78(), values, seed)"),
-                       ("setup/job_runner_stage1.py", 'rules.sc_input_names(job["kind"], job.get("seed"))'),
-                       ("setup/job_runner_stage1.py", 'rules.sc_input_names(job["kind"], job.get("seed"))#2')}
+# planner's (plan_tool.py) to the strict form (GXB R-31); R3 K3 moved the runner's and the pack's and deleted the form.
+R16_SEED_ONLY_CALLS: set = set()
 SEED_ONLY_ARGS = {"sc_input_names": 3, "sc_input_pins": 5}     # positional slots up to and including arm
 
 
@@ -2630,7 +2645,7 @@ def test_41b_kr3_the_seed_only_scan_sees_every_kit_file_and_any_call_form(tmp_pa
     found = seed_only_calls()
     assert found == R16_SEED_ONLY_CALLS
     files = {rel for rel, _ in found}
-    assert files == {"pack_setup.py", "setup/job_runner_stage1.py"}               # R2 K2: plan_tool.py moved
+    assert files == set()                                       # R2 K2: plan_tool.py moved; R3 K3: the runner, the pack
     probe = ast.parse("import stage1_rules as r\nr.sc_input_names('o_only_with_regenerate', 1101)\n"
                       "sc_input_pins(k, p, v, 1101)\nr.sc_input_names(k, 1101, arm='R')\nf = r.sc_input_pins\n")
     kinds = []

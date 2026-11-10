@@ -1,0 +1,260 @@
+{
+ "all_ok": false,
+ "cases": [
+  {
+   "case": "record_ok",
+   "code": 0,
+   "err_head": "",
+   "leak": false,
+   "ok": true,
+   "partial": [],
+   "want": 0,
+   "wrote": true
+  },
+  {
+   "case": "check_differs",
+   "code": 1,
+   "err_head": "",
+   "leak": false,
+   "ok": true,
+   "partial": [],
+   "want": 1,
+   "wrote": true
+  },
+  {
+   "case": "pin_of_another_edit",
+   "code": 2,
+   "err_head": "REFUSED: the edit 5d77a84ee0f7... hashes to b4bd66b8eb5c797153854301634f206cafd822018496e7f66c42f1f3d4d18ae4; the pin is 5d77a84ee0f7d5c38089b8cedf3f6ed814563c0",
+   "leak": false,
+   "ok": true,
+   "partial": [],
+   "want": 2,
+   "wrote": false
+  },
+  {
+   "case": "pin_upper_hex",
+   "code": 2,
+   "err_head": "REFUSED: --edit is PATH:SHA256 with 64 lower-case hex digits (nothing written)\n",
+   "leak": false,
+   "ok": true,
+   "partial": [],
+   "want": 2,
+   "wrote": false
+  },
+  {
+   "case": "pin_short",
+   "code": 2,
+   "err_head": "REFUSED: --edit is PATH:SHA256 with 64 lower-case hex digits (nothing written)\n",
+   "leak": false,
+   "ok": true,
+   "partial": [],
+   "want": 2,
+   "wrote": false
+  },
+  {
+   "case": "bytes_changed_after_pin",
+   "code": 2,
+   "err_head": "REFUSED: the edit b4bd66b8eb5c... hashes to 101ea85577837571ffcfdfd976153db0ce8f5bbc00ed8cbb6f9e77470ad81622; the pin is b4bd66b8eb5c797153854301634f206cafd8220",
+   "leak": false,
+   "ok": true,
+   "partial": [],
+   "want": 2,
+   "wrote": false
+  },
+  {
+   "case": "edit_is_a_folder",
+   "code": 2,
+   "err_head": "REFUSED: --out must not lie inside an input's folder (at any depth) or inside the prepared folder (nothing written)\n",
+   "leak": false,
+   "ok": true,
+   "partial": [],
+   "want": 2,
+   "wrote": false
+  },
+  {
+   "case": "edit_missing",
+   "code": 2,
+   "err_head": "REFUSED: the edit b4bd66b8eb5c... cannot be read (FileNotFoundError) (nothing written)\n",
+   "leak": false,
+   "ok": true,
+   "partial": [],
+   "want": 2,
+   "wrote": false
+  },
+  {
+   "case": "edit_not_json_with_text",
+   "code": 2,
+   "err_head": "REFUSED: the edit 50cdebae3781... is refused by the engine's parse_edit: the edit file is not JSON (nothing written)\n",
+   "leak": false,
+   "ok": true,
+   "partial": [],
+   "want": 2,
+   "wrote": false
+  },
+  {
+   "case": "edit_extra_key_with_text",
+   "code": 2,
+   "err_head": "REFUSED: the edit cc7f36024e8b... is refused by the engine's parse_edit: the edit file must have exactly the keys ['add', 'counts', 'edit_kind', 'kind', 'manife",
+   "leak": false,
+   "ok": true,
+   "partial": [],
+   "want": 2,
+   "wrote": false
+  },
+  {
+   "case": "edit_unknown_row_id_text",
+   "code": 2,
+   "err_head": "REFUSED: the edit fad471011fb6... is refused by the engine's parse_edit: 1 named rows are not training rows (first: VRFY-sentinel-zq81 unknown id text) (nothing",
+   "leak": true,
+   "ok": false,
+   "partial": [],
+   "want": 2,
+   "wrote": false
+  },
+  {
+   "case": "edit_bad_add_id_text",
+   "code": 2,
+   "err_head": "REFUSED: the edit bd82116224d7... is refused by the engine's parse_edit: added row 'bad-VRFY-sentinel-zq81' must be named add-... and must not be a training row",
+   "leak": true,
+   "ok": false,
+   "partial": [],
+   "want": 2,
+   "wrote": false
+  },
+  {
+   "case": "rewrite_too_long",
+   "code": 2,
+   "err_head": "REFUSED: the edit d5b8684f078a...'s rows do not encode (TooLong) (nothing written)\n",
+   "leak": false,
+   "ok": true,
+   "partial": [],
+   "want": 2,
+   "wrote": false
+  },
+  {
+   "case": "add_too_long",
+   "code": 2,
+   "err_head": "REFUSED: the edit 016583483f15...'s rows do not encode (TooLong) (nothing written)\n",
+   "leak": false,
+   "ok": true,
+   "partial": [],
+   "want": 2,
+   "wrote": false
+  },
+  {
+   "case": "codec_error_with_text",
+   "code": 2,
+   "err_head": "REFUSED: the edit b4bd66b8eb5c...'s rows do not encode (TextError) (nothing written)\n",
+   "leak": false,
+   "ok": true,
+   "partial": [],
+   "want": 2,
+   "wrote": false
+  },
+  {
+   "case": "loader_error_with_text",
+   "code": 2,
+   "err_head": "REFUSED: TextError at probe_blind.py:129 (message withheld: only refusals written by this script are printed) (nothing written)\n",
+   "leak": false,
+   "ok": true,
+   "partial": [],
+   "want": 2,
+   "wrote": false
+  },
+  {
+   "case": "loader_error_check_mode",
+   "code": 2,
+   "err_head": "REFUSED: TextError at probe_blind.py:129 (message withheld: only refusals written by this script are printed) (nothing written)\n",
+   "leak": false,
+   "ok": true,
+   "partial": [],
+   "want": 2,
+   "wrote": false
+  },
+  {
+   "case": "context_systemexit_with_text",
+   "code": 2,
+   "err_head": "REFUSED: SystemExit at probe_blind.py:134 (message withheld: only refusals written by this script are printed) (nothing written)\n",
+   "leak": false,
+   "ok": true,
+   "partial": [],
+   "want": 2,
+   "wrote": false
+  },
+  {
+   "case": "audit_mismatch_check_mode",
+   "code": 2,
+   "err_head": "REFUSED: a training row does not encode as P_F's audit says (DataError) (nothing written)\n",
+   "leak": false,
+   "ok": true,
+   "partial": [],
+   "want": 2,
+   "wrote": false
+  },
+  {
+   "case": "out_exists_first",
+   "code": 0,
+   "err_head": "",
+   "leak": false,
+   "ok": true,
+   "partial": [],
+   "want": 0,
+   "wrote": true
+  },
+  {
+   "case": "out_exists_again",
+   "code": 2,
+   "err_head": "REFUSED: --out out_exists_first.json exists: the record is created once (nothing written)\n",
+   "leak": false,
+   "ok": true,
+   "partial": [],
+   "want": 2
+  },
+  {
+   "case": "stale_partial_of_this_pid",
+   "code": 2,
+   "err_head": "REFUSED: a partial file of --out exists (nothing written)\n",
+   "ok": true,
+   "want": 2,
+   "wrote": false
+  },
+  {
+   "case": "fsync_fails",
+   "code": 2,
+   "err_head": "REFUSED: --out cannot be written (OSError) (nothing written)\n",
+   "leak": false,
+   "ok": true,
+   "partial": [],
+   "want": 2,
+   "wrote": false
+  },
+  {
+   "case": "race_on_link",
+   "code": 2,
+   "err_head": "REFUSED: --out race.json exists: the record is created once (nothing written)\n",
+   "ok": true,
+   "want": 2
+  },
+  {
+   "case": "out_dangling_symlink",
+   "code": 0,
+   "err_head": "",
+   "ok": false,
+   "want": 2
+  },
+  {
+   "case": "out_inside_prepared_via_symlink",
+   "code": 2,
+   "err_head": "REFUSED: --out must not lie inside an input's folder (at any depth) or inside the prepared folder (nothing written)\n",
+   "ok": true,
+   "want": 2
+  },
+  {
+   "case": "argparse_bad_family",
+   "code": "SystemExit(2)",
+   "err_head": "DED_BY] --out OUT\nprobe_blind.py: error: argument --family: invalid choice: 'xx' (choose from 'olmo2-7b', 'llama31-8b')\n",
+   "ok": true,
+   "want": "SystemExit(2)"
+  }
+ ]
+}

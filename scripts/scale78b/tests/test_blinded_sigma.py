@@ -204,11 +204,27 @@ def tree(tmp_path_factory):
     return {"root": root, "families": fams, "stopped": stopped, "engines": split}
 
 
+# KR5 (GXB R-26): the one shared stop-record form, as K2's writer writes it and RK's checker takes it (GXB's fourth set;
+# R: runkit/stage1-78b/rules_78b.py anchor_stop_record and anchor_stop_problem): the stop line's counts are
+# {kept, needed} for safe_anchors_below_64 and {prompt_index, position, of} for harmful_prompt_does_not_encode.
+SHARED_STOP_FIXTURE = ROOT / "runkit/stage1-78b/tests/fixtures/anchor_stop__olmo2-7b__safe_anchors_below_64.json"
+STOP_COUNTS = {"safe_anchors_below_64": {"kept": 61, "needed": 64},
+               "harmful_prompt_does_not_encode": {"prompt_index": 5, "position": 6, "of": 64}}
+
+
+def stop_record_doc(family: str, kind: str = "safe_anchors_below_64", exit_code: int = 3,
+                    record_kind: str = bs.STOP_RECORD_KIND, job_done_sha256: str = "4" * 64) -> dict:
+    """A synthetic text-free anchor-stop record in the shared form (KR5); a kind that is not a stop takes the
+    exit-3 line."""
+    return {"kind": record_kind, "version": 1, "family": family, "stop_kind": kind, "exit_code": exit_code,
+            "job_done_sha256": job_done_sha256, "counts": dict(STOP_COUNTS.get(kind, STOP_COUNTS["safe_anchors_below_64"]))}
+
+
 def write_stop_record(root: Path, rel: str, family: str, kind: str = "safe_anchors_below_64", exit_code: int = 3,
                       record_kind: str = bs.STOP_RECORD_KIND) -> dict:
-    """A synthetic text-free anchor-stop record (GXB O6's fields); returns the inputs reference {path, sha256}."""
-    data = canon({"kind": record_kind, "version": 1, "family": family, "stop_kind": kind, "exit_code": exit_code,
-                  "job_done_sha256": "4" * 64, "counts": {"safe_anchors": 61}})
+    """A synthetic text-free anchor-stop record (GXB O6's fields, the shared form); returns the inputs reference
+    {path, sha256}."""
+    data = canon(stop_record_doc(family, kind, exit_code, record_kind))
     (root / rel).parent.mkdir(parents=True, exist_ok=True)
     (root / rel).write_bytes(data)
     return {"path": rel, "sha256": sha(data)}
@@ -778,3 +794,31 @@ def test_the_engine_maps_form_is_checked(tree):
         inputs, digest = write_inputs(tree["root"], "C", {"olmo2-7b": {**base, "engine": engine}}, f"inputs-engine-form-{i}.json")
         with refuses(line):
             bs.read(inputs, digest)
+
+
+def test_track_s_stop_fixture_is_the_shared_form(tmp_path):
+    """KR5: this file's stop record has the shared fixture's keys and counts form (K2's writer's form), field for field
+    once the JOB-DONE.json SHA-256 is the fixture's; Track S's reader takes the shared fixture itself."""
+    shared = json.loads(SHARED_STOP_FIXTURE.read_bytes())
+    mine = stop_record_doc("olmo2-7b", job_done_sha256=shared["job_done_sha256"])
+    assert mine == shared
+    harmful = stop_record_doc("olmo2-7b", "harmful_prompt_does_not_encode", 1)
+    assert set(harmful) == set(shared)
+    # V-8: RK's checker takes both forms, and each equals what K2's writer writes from the anchor job's own signal
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("rules_78b_for_kr5", ROOT / "runkit/stage1-78b/rules_78b.py")
+    rk = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(rk)
+    for doc in (mine, harmful):
+        assert rk.anchor_stop_problem(doc, "olmo2-7b", doc["job_done_sha256"]) is None
+    assert rk.anchor_stop_record("olmo2-7b", 3, None, shared["job_done_sha256"], {"kept": 61, "needed": 64}) == mine
+    message = "harmful prompt 5 (6 of 64) does not encode (TooLong); the list needs a reviewed new version"
+    assert rk.anchor_stop_record("olmo2-7b", 1, message, "4" * 64) == harmful
+    assert harmful["counts"] == {"prompt_index": 5, "position": 6, "of": 64}
+    (tmp_path / "s").mkdir()
+    shutil.copyfile(SHARED_STOP_FIXTURE, tmp_path / "s" / "stop.json")
+    bs.check_anchor_stop("olmo2-7b", {"path": "s/stop.json", "sha256": sha256_of(tmp_path / "s" / "stop.json")}, tmp_path)
+
+
+def sha256_of(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()

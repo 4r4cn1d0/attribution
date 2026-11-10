@@ -160,9 +160,10 @@
    "part": "K3 (orchestrate.py: the gated step and the stdin hand-over)",
    "describes": "an open family runs the gated step",
    "file": "orchestrate.py",
-   "find": "    if not gated_entries():\n        secret_scan.scrub_process(os.environ, rules.TOKEN_ENV_NAMES)       # an open family never needs the token\n        return\n",
+   "find": "    if not gated_entries(host):\n        secret_scan.scrub_process(os.environ, rules.TOKEN_ENV_NAMES)       # an open family never needs the token\n        return\n",
    "replace": "    if False:\n        pass\n",
-   "killed_by": "tests/test_gated_78b.py::test_orchestrate_on_olmo_never_reads_the_token..."
+   "killed_by": "tests/test_gated_78b.py::test_orchestrate_on_olmo_never_reads_the_token...",
+   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
   },
   {
    "id": "K3-m-orch-gated-step-dropped",
@@ -187,9 +188,10 @@
    "part": "K3 (host.py: gated-download over ssh's stdin; pull-states; the price and pod-name fixes)",
    "describes": "the token is not written to ssh's stdin",
    "file": "host.py",
-   "find": "input=token + \"\\n\", capture_output=True",
-   "replace": "input=None, capture_output=True",
-   "killed_by": "tests/test_gated_78b.py::test_host_gated_download_writes_the_token_to_ssh_stdin_only..."
+   "find": "input=token + \"\\n\",\n                  capture_output=True",
+   "replace": "input=None,\n                  capture_output=True",
+   "killed_by": "tests/test_gated_78b.py::test_host_gated_download_writes_the_token_to_ssh_stdin_only...",
+   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
   },
   {
    "id": "K3-m-host-token-in-record",
@@ -205,18 +207,20 @@
    "part": "K3 (host.py: gated-download over ssh's stdin; pull-states; the price and pod-name fixes)",
    "describes": "the pod runs the open download instead of the gated one",
    "file": "host.py",
-   "find": "\"venv/bin/python download_models_stage1.py --gated --token-stdin\")",
-   "replace": "\"venv/bin/python download_models_stage1.py\")",
-   "killed_by": "tests/test_gated_78b.py::test_host_gated_download_writes_the_token_to_ssh_stdin_only..."
+   "find": "\"venv/bin/python download_models_stage1.py --gated --token-stdin\" + (\" --with-base\" if with_base else \"\"))",
+   "replace": "\"venv/bin/python download_models_stage1.py\" + (\" --with-base\" if with_base else \"\"))",
+   "killed_by": "tests/test_gated_78b.py::test_host_gated_download_writes_the_token_to_ssh_stdin_only...",
+   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
   },
   {
    "id": "K3-m-host-child-env-unscrubbed",
    "part": "K3 (host.py: gated-download over ssh's stdin; pull-states; the price and pod-name fixes)",
    "describes": "the ssh child inherits the token variable",
    "file": "host.py",
-   "find": "    done = runner([\"ssh\", *ssh_base(host), gated_command(stamp)], input=token + \"\\n\", capture_output=True, text=True,\n                  env=clean_env())\n",
-   "replace": "    done = runner([\"ssh\", *ssh_base(host), gated_command(stamp)], input=token + \"\\n\", capture_output=True, text=True,\n                  env=dict(os.environ))\n",
-   "killed_by": "tests/test_gated_78b.py::test_host_gated_download_writes_the_token_to_ssh_stdin_only..."
+   "find": "    done = runner([\"ssh\", *ssh_base(host), gated_command(stamp, runs_safe_lora(host))], input=token + \"\\n\",\n                  capture_output=True, text=True,\n                  env=clean_env())\n",
+   "replace": "    done = runner([\"ssh\", *ssh_base(host), gated_command(stamp, runs_safe_lora(host))], input=token + \"\\n\",\n                  capture_output=True, text=True,\n                  env=dict(os.environ))\n",
+   "killed_by": "tests/test_gated_78b.py::test_host_gated_download_writes_the_token_to_ssh_stdin_only...",
+   "note_r3": "R3 K3: re-targeted to the changed code (same mutation)"
   },
   {
    "id": "K3-m-host-empty-archive-kept",

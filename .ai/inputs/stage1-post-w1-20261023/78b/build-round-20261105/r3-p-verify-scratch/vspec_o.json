@@ -1,0 +1,34 @@
+{
+ "kind": "verifier O",
+ "note": "R3 Track P verifier's own mutants",
+ "mutants": [
+  {
+   "id": "V-m-dotdot",
+   "describes": "W2-5: a reader path with a '..' or empty part under scripts/ is accepted",
+   "file": "make_oext_settings_78b.py",
+   "find": "                and all(q not in (\"\", \".\", \"..\") for q in rel.split(\"/\"))):",
+   "replace": "                and True):"
+  },
+  {
+   "id": "V-m-py",
+   "describes": "W2-5: a reader path that is not .py is accepted",
+   "file": "make_oext_settings_78b.py",
+   "find": "rel.startswith(\"scripts/\") and rel.endswith(\".py\")\n",
+   "replace": "rel.startswith(\"scripts/\")\n"
+  },
+  {
+   "id": "V-m-first-family",
+   "describes": "W2-5: only the first family's readers are checked and listed",
+   "file": "make_oext_settings_78b.py",
+   "find": "        out.update(frozen_reader_pins(limits, family))",
+   "replace": "        out.update(frozen_reader_pins(limits, family) if family == FAMILIES[0] else {})"
+  },
+  {
+   "id": "V-w-index-identity",
+   "describes": "W2-4: the W1-18 settings under the index's identity",
+   "file": "oext_78b.py",
+   "find": "                engine = ENGINE_X_IDENTITY                # W2-4: W1-18 runs on engine X, whatever runs this check\n",
+   "replace": "                engine = identity if identity is not None else running\n"
+  }
+ ]
+}

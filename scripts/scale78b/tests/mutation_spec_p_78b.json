@@ -1,0 +1,419 @@
+{
+ "kind": "scale78b track P mutation spec (R3: padded_tokens_78b.py)",
+ "note": "each find occurs exactly once in its file (a path under scripts/scale78b); runner: tests/run_mutants_p_78b.py (tests/test_padded_tokens_78b.py) Fix round (R-54, R-58, V-1 to V-4): P-m-seeds-six re-targeted; 10 new. Last pass (R-72, R-74): 2 new.",
+ "mutants": [
+  {
+   "id": "P-m-edit-pin",
+   "describes": "an edit is read without its pin check",
+   "file": "padded_tokens_78b.py",
+   "find": "data = ec.read_pinned(path, pin, f\"the edit {pin[:12]}...\")",
+   "replace": "data = Path(path).read_bytes()"
+  },
+  {
+   "id": "P-m-edit-twice",
+   "describes": "an edit SHA-256 named twice is accepted",
+   "file": "padded_tokens_78b.py",
+   "find": "    if len(set(pins)) != len(pins):\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "P-m-no-edits",
+   "describes": "a record with no edit is written",
+   "file": "padded_tokens_78b.py",
+   "find": "    if not edits:\n        raise Refusal(\"give every",
+   "replace": "    if False:\n        raise Refusal(\"give every"
+  },
+  {
+   "id": "P-m-manifest",
+   "describes": "P_F off the manifest pin is accepted",
+   "file": "padded_tokens_78b.py",
+   "find": "    if prepared.manifest_sha256 != pin or ctx.manifest_sha256 != pin:\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "P-m-ctx-manifest",
+   "describes": "the tokenizer's manifest off the pin is accepted",
+   "file": "padded_tokens_78b.py",
+   "find": "if prepared.manifest_sha256 != pin or ctx.manifest_sha256 != pin:",
+   "replace": "if prepared.manifest_sha256 != pin:"
+  },
+  {
+   "id": "P-m-tokenizer",
+   "describes": "the tokenizer is not checked against the recipe's",
+   "file": "padded_tokens_78b.py",
+   "find": "    tokenizer = ec.check_tokenizer(recipe, ctx)\n",
+   "replace": "    tokenizer = dict(ctx.tokenizer)\n"
+  },
+  {
+   "id": "P-m-recipe-pin",
+   "describes": "MAIN_F is loaded without its config pin",
+   "file": "padded_tokens_78b.py",
+   "find": "    recipe, digest, recipe_path, _limits = ec.load_recipe(family, recipe_arg)\n",
+   "replace": "    from experiments.safety_selection.config import config_sha256, load_recipe as _lr\n    _p = Path(recipe_arg) if recipe_arg is not None else REPO / ec.RECIPES[family][0]\n    recipe = _lr(_p); digest, recipe_path = config_sha256(recipe), str(_p)\n"
+  },
+  {
+   "id": "P-m-batch-128",
+   "describes": "a step of another size than 128 rows is accepted",
+   "file": "padded_tokens_78b.py",
+   "find": "    if micro * accum != ROWS_PER_STEP:\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "P-m-e1",
+   "describes": "a recipe without e1 at one epoch is accepted",
+   "file": "padded_tokens_78b.py",
+   "find": "    if table.get(TARGET) != Fraction(1):\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "P-m-steps-floor",
+   "describes": "steps = floor(rows / 128)",
+   "file": "padded_tokens_78b.py",
+   "find": "    steps = -(-rows // ROWS_PER_STEP)\n",
+   "replace": "    steps = rows // ROWS_PER_STEP\n"
+  },
+  {
+   "id": "P-m-steps-check",
+   "describes": "the stream's steps are not checked against ceil(rows / 128)",
+   "file": "padded_tokens_78b.py",
+   "find": "    if plan.steps_per_epoch != steps or plan.checkpoint(Fraction(1))[\"step\"] != steps:\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "P-m-steps-e1",
+   "describes": "the e1 checkpoint's step is not checked",
+   "file": "padded_tokens_78b.py",
+   "find": "if plan.steps_per_epoch != steps or plan.checkpoint(Fraction(1))[\"step\"] != steps:",
+   "replace": "if plan.steps_per_epoch != steps:"
+  },
+  {
+   "id": "P-m-last-step",
+   "describes": "the epoch's final step is not counted",
+   "file": "padded_tokens_78b.py",
+   "find": "    for step, _epoch, rows in plan.iterate(1, steps):\n",
+   "replace": "    for step, _epoch, rows in plan.iterate(1, max(1, steps - 1)):\n"
+  },
+  {
+   "id": "P-m-no-padding",
+   "describes": "a micro-batch counts its tokens, not its padded width",
+   "file": "padded_tokens_78b.py",
+   "find": "total += sum(len(mb) * max(len(e.input_ids) for e in mb) for mb in micro_batches(examples, micro_batch))",
+   "replace": "total += sum(sum(len(e.input_ids) for e in mb) for mb in micro_batches(examples, micro_batch))"
+  },
+  {
+   "id": "P-m-micro-1",
+   "describes": "micro-batches of one row",
+   "file": "padded_tokens_78b.py",
+   "find": "for mb in micro_batches(examples, micro_batch))",
+   "replace": "for mb in micro_batches(examples, 1))"
+  },
+  {
+   "id": "P-m-micro-step",
+   "describes": "the whole step padded as one batch",
+   "file": "padded_tokens_78b.py",
+   "find": "for mb in micro_batches(examples, micro_batch))",
+   "replace": "for mb in [examples])"
+  },
+  {
+   "id": "P-m-seed-min",
+   "describes": "the smallest over seeds",
+   "file": "padded_tokens_78b.py",
+   "find": "        top = max(totals.values())\n",
+   "replace": "        top = min(totals.values())\n"
+  },
+  {
+   "id": "P-m-seed-first",
+   "describes": "the first seed's value",
+   "file": "padded_tokens_78b.py",
+   "find": "        top = max(totals.values())\n",
+   "replace": "        top = totals[SEEDS[0]]\n"
+  },
+  {
+   "id": "P-m-seeds-six",
+   "describes": "R-54: seeds 1101-1107 only (R_d8-R_d13's seeds missed)",
+   "file": "padded_tokens_78b.py",
+   "find": "SEEDS = tuple(range(1101, 1114))",
+   "replace": "SEEDS = tuple(range(1101, 1108))"
+  },
+  {
+   "id": "P-m-seed-fixed",
+   "describes": "every plan at seed 1101",
+   "file": "padded_tokens_78b.py",
+   "find": "        plan = plan_for(prepared, settings, seed, edit)\n",
+   "replace": "        plan = plan_for(prepared, settings, 1101, edit)\n"
+  },
+  {
+   "id": "P-m-seed-dependent",
+   "describes": "seed_dependent always false (record)",
+   "file": "padded_tokens_78b.py",
+   "find": "\"seed_dependent\": len(set(totals.values())) > 1}",
+   "replace": "\"seed_dependent\": False}"
+  },
+  {
+   "id": "P-m-largest-seed",
+   "describes": "largest_at_seed names the first seed",
+   "file": "padded_tokens_78b.py",
+   "find": "\"largest_at_seed\": min(s for s, t in totals.items() if t == top),",
+   "replace": "\"largest_at_seed\": SEEDS[0],"
+  },
+  {
+   "id": "P-m-removed",
+   "describes": "the edit's removed rows are trained",
+   "file": "padded_tokens_78b.py",
+   "find": "    return make_plan(prepared.corpus, sorted(edit.removed), seed,",
+   "replace": "    return make_plan(prepared.corpus, [], seed,"
+  },
+  {
+   "id": "P-m-added",
+   "describes": "the edit's added rows are not trained",
+   "file": "padded_tokens_78b.py",
+   "find": "                     edit.added_ids, edit.sha256)\n",
+   "replace": "                     (), edit.sha256)\n"
+  },
+  {
+   "id": "P-m-rewrite",
+   "describes": "the corpus without the edit's rewrites and adds",
+   "file": "padded_tokens_78b.py",
+   "find": "            mine = edited_corpus(corpus, edit, prepared, ctx.codec, settings[\"max_train_tokens\"])\n",
+   "replace": "            mine = {**corpus, **{r: e for r, e in edited_corpus(corpus, edit, prepared, ctx.codec, settings[\"max_train_tokens\"]).items() if r not in corpus}}\n"
+  },
+  {
+   "id": "P-m-audit",
+   "describes": "rows encoded without the prepared audit check",
+   "file": "padded_tokens_78b.py",
+   "find": "        return {rid: _verified_example(codec, rid, row, recipe) for rid, row in sorted(prepared.train_rows.items())}\n",
+   "replace": "        from experiments.safety_selection.textproc import encode_train\n        return {rid: encode_train(codec, rid, row[\"prompt\"], row[\"response\"], recipe[\"model\"][\"max_train_tokens\"]) for rid, row in sorted(prepared.train_rows.items())}\n"
+  },
+  {
+   "id": "P-m-per-step",
+   "describes": "the total, not per step",
+   "file": "padded_tokens_78b.py",
+   "find": "        values[pin] = per_step(top, out[\"steps\"])\n",
+   "replace": "        values[pin] = float(top)\n"
+  },
+  {
+   "id": "P-m-per-step-div",
+   "describes": "per step over steps + 1",
+   "file": "padded_tokens_78b.py",
+   "find": "    return total / steps\n",
+   "replace": "    return total / (steps + 1)\n"
+  },
+  {
+   "id": "P-m-kind",
+   "describes": "another record kind",
+   "file": "padded_tokens_78b.py",
+   "find": "KIND = \"stage1-78b padded tokens record\"",
+   "replace": "KIND = \"stage1-78b padded token record\""
+  },
+  {
+   "id": "P-m-version",
+   "describes": "version 2",
+   "file": "padded_tokens_78b.py",
+   "find": "return {\"kind\": KIND, \"version\": 1, \"family\": family,",
+   "replace": "return {\"kind\": KIND, \"version\": 2, \"family\": family,"
+  },
+  {
+   "id": "P-m-extra-key",
+   "describes": "an extra top-level key",
+   "file": "padded_tokens_78b.py",
+   "find": "            \"utc\": utc_now(), \"recorded_by\": recorded_by}",
+   "replace": "            \"utc\": utc_now(), \"recorded_by\": recorded_by, \"rows\": 0}"
+  },
+  {
+   "id": "P-m-check-seed",
+   "describes": "the a0 check at the smallest seed total",
+   "file": "padded_tokens_78b.py",
+   "find": "    total, steps = out[\"totals\"][seed], out[\"steps\"]\n",
+   "replace": "    total, steps = min(out[\"totals\"].values()), out[\"steps\"]\n"
+  },
+  {
+   "id": "P-m-check-match",
+   "describes": "the a0 check always matches",
+   "file": "padded_tokens_78b.py",
+   "find": "    matches = total == basis_total and steps == basis_steps and round(value, 2) == basis_value\n",
+   "replace": "    matches = True\n"
+  },
+  {
+   "id": "P-m-check-total",
+   "describes": "the a0 check ignores the total",
+   "file": "padded_tokens_78b.py",
+   "find": "matches = total == basis_total and steps == basis_steps and",
+   "replace": "matches = steps == basis_steps and"
+  },
+  {
+   "id": "P-m-check-value",
+   "describes": "the a0 check ignores the per-step value",
+   "file": "padded_tokens_78b.py",
+   "find": "and steps == basis_steps and round(value, 2) == basis_value\n",
+   "replace": "and steps == basis_steps\n"
+  },
+  {
+   "id": "P-m-check-exit",
+   "describes": "a difference exits 0",
+   "file": "padded_tokens_78b.py",
+   "find": "    if doc[\"kind\"] == CHECK_KIND and not doc[\"matches\"]:\n",
+   "replace": "    if False:\n"
+  },
+  {
+   "id": "P-m-check-edit",
+   "describes": "--check-a0 takes an edit",
+   "file": "padded_tokens_78b.py",
+   "find": "        if args.check_a0 and args.edit:\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "P-m-check-kind",
+   "describes": "the check record has the record's kind",
+   "file": "padded_tokens_78b.py",
+   "find": "CHECK_KIND = \"stage1-78b padded tokens a0 check\"",
+   "replace": "CHECK_KIND = \"stage1-78b padded tokens record\""
+  },
+  {
+   "id": "P-m-basis-olmo",
+   "describes": "OLMo's a0 basis total",
+   "file": "padded_tokens_78b.py",
+   "find": "\"olmo2-7b\": (1103, 1457026, 38, 38342.79)",
+   "replace": "\"olmo2-7b\": (1103, 1457062, 38, 38342.79)"
+  },
+  {
+   "id": "P-m-basis-llama",
+   "describes": "Llama's a0 basis value",
+   "file": "padded_tokens_78b.py",
+   "find": "\"llama31-8b\": (1103, 1569846, 38, 41311.74)",
+   "replace": "\"llama31-8b\": (1103, 1569846, 38, 41311.47)"
+  },
+  {
+   "id": "P-m-guard",
+   "describes": "the record and printout are not scanned",
+   "file": "padded_tokens_78b.py",
+   "find": "        if guard.hits(data) or any(guard.hits(line) for line in lines):\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "P-m-guard-lines",
+   "describes": "the printout is not scanned",
+   "file": "padded_tokens_78b.py",
+   "find": "if guard.hits(data) or any(guard.hits(line) for line in lines):",
+   "replace": "if guard.hits(data):"
+  },
+  {
+   "id": "P-m-guard-rows",
+   "describes": "P_F's texts are not guarded",
+   "file": "padded_tokens_78b.py",
+   "find": "        guard.add(row.get(\"prompt\"), row.get(\"response\"))\n",
+   "replace": "        pass\n"
+  },
+  {
+   "id": "P-m-guard-added",
+   "describes": "the edit's added texts are not guarded",
+   "file": "padded_tokens_78b.py",
+   "find": "                guard.add(item.get(\"prompt\"), item.get(\"response\"))\n",
+   "replace": "                pass\n"
+  },
+  {
+   "id": "P-m-out-folders",
+   "describes": "--out may lie beside an edit",
+   "file": "padded_tokens_78b.py",
+   "find": "        out = ec.out_ok(args.out, [Path(p).resolve().parent for p, _ in edits] + [args.prepared])\n",
+   "replace": "        out = ec.out_ok(args.out, [args.prepared])\n"
+  },
+  {
+   "id": "P-m-out-prepared",
+   "describes": "--out may lie inside P_F",
+   "file": "padded_tokens_78b.py",
+   "find": "[Path(p).resolve().parent for p, _ in edits] + [args.prepared])",
+   "replace": "[Path(p).resolve().parent for p, _ in edits])"
+  },
+  {
+   "id": "P-m-edit-message",
+   "describes": "an engine refusal's message is printed raw",
+   "file": "padded_tokens_78b.py",
+   "find": "        raise Refusal(f\"the edit {pin[:12]}... is refused by the engine's parse_edit: {exc}\") from None\n",
+   "replace": "        raise\n"
+  },
+  {
+   "id": "P-m-seeds-last",
+   "describes": "R-54: seeds 1101-1112 (R_d13's 1113 missed)",
+   "file": "padded_tokens_78b.py",
+   "find": "SEEDS = tuple(range(1101, 1114))",
+   "replace": "SEEDS = tuple(range(1101, 1113))"
+  },
+  {
+   "id": "P-m-smaller-none",
+   "describes": "R-58: no seed is flagged",
+   "file": "padded_tokens_78b.py",
+   "find": "\"smaller_than_basis_seed\": [s for s, t in out[\"totals\"].items() if t < total]}",
+   "replace": "\"smaller_than_basis_seed\": []}"
+  },
+  {
+   "id": "P-m-smaller-le",
+   "describes": "R-58: seeds equal to 1103's are flagged too",
+   "file": "padded_tokens_78b.py",
+   "find": "if t < total]}",
+   "replace": "if t <= total]}"
+  },
+  {
+   "id": "P-m-smaller-line",
+   "describes": "R-58: the flag is not printed",
+   "file": "padded_tokens_78b.py",
+   "find": "{doc['a0']['smaller_than_basis_seed'] or 'none'}",
+   "replace": "{'none'}"
+  },
+  {
+   "id": "P-m-smaller-exit",
+   "describes": "R-58: a flagged seed changes the verdict",
+   "file": "padded_tokens_78b.py",
+   "find": "\"matches\": matches, \"decides\"",
+   "replace": "\"matches\": matches and not [s for s, t in out[\"totals\"].items() if t < total], \"decides\""
+  },
+  {
+   "id": "P-m-guard-rewrite",
+   "describes": "V-1: rewritten responses are not guarded",
+   "file": "padded_tokens_78b.py",
+   "find": "                guard.add(item.get(\"response\"))\n",
+   "replace": "                pass\n"
+  },
+  {
+   "id": "P-m-guard-name",
+   "describes": "V-4: the edit's name is not guarded",
+   "file": "padded_tokens_78b.py",
+   "find": "            guard.add(doc.get(\"name\"))\n",
+   "replace": "            pass\n"
+  },
+  {
+   "id": "P-m-tool-sha",
+   "describes": "V-2: a constant tool_sha256",
+   "file": "padded_tokens_78b.py",
+   "find": "\"tool_sha256\": sha256_file(Path(__file__)),",
+   "replace": "\"tool_sha256\": \"0\" * 64,"
+  },
+  {
+   "id": "P-m-engine-files",
+   "describes": "V-2: constant engine_files hashes",
+   "file": "padded_tokens_78b.py",
+   "find": "{p: sha256_file(REPO / p) for p in ENGINE_FILES}",
+   "replace": "{p: \"0\" * 64 for p in ENGINE_FILES}"
+  },
+  {
+   "id": "P-m-largest-tie-max",
+   "describes": "V-3: largest_at_seed takes the last tied seed",
+   "file": "padded_tokens_78b.py",
+   "find": "\"largest_at_seed\": min(s for s, t in totals.items() if t == top),",
+   "replace": "\"largest_at_seed\": max(s for s, t in totals.items() if t == top),"
+  },
+  {
+   "id": "P-m-out-symlink",
+   "describes": "R-72: a symbolic-link --out is resolved and followed",
+   "file": "padded_tokens_78b.py",
+   "find": "        if args.out.is_symlink():          # R-72: a symbolic link (dangling, to a file, to itself) before out_ok resolves it\n",
+   "replace": "        if False:\n"
+  },
+  {
+   "id": "P-m-encode-count-sha",
+   "describes": "R-74: a constant encode_count_sha256",
+   "file": "padded_tokens_78b.py",
+   "find": "\"encode_count_sha256\": sha256_file(Path(ec.__file__)),",
+   "replace": "\"encode_count_sha256\": \"0\" * 64,"
+  }
+ ]
+}

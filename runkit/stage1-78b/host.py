@@ -392,13 +392,22 @@ def stop(host: str) -> dict:
     return result
 
 
-def gated_command(stamp: str) -> str:
+def gated_command(stamp: str, with_base: bool = False) -> str:
     """The pod-side gated download under its own receipt folder (one per attempt): the token is read from stdin by
-    download_models_stage1.py --gated --token-stdin; nothing in this command line names it."""
+    download_models_stage1.py --gated --token-stdin; nothing in this command line names it. R3 K3 (R-71): a Safe LoRA
+    host's run takes --with-base (Llama's gated base at its pinned revision)."""
     if not re.fullmatch(r"[0-9TZ]{16}", stamp):
         raise ValueError("bad stamp")
     return (f"cd {REMOTE_ROOT} && python3 process_receipt.py --out gated-download-{stamp} -- "
-            "venv/bin/python download_models_stage1.py --gated --token-stdin")
+            "venv/bin/python download_models_stage1.py --gated --token-stdin" + (" --with-base" if with_base else ""))
+
+
+def runs_safe_lora(host: str) -> bool:
+    """Whether plan.json's host runs a safe_lora job (R-71: its downloads take the base model); False without a plan."""
+    if not PLAN.is_file():
+        return False
+    h = (json.loads(PLAN.read_text()).get("hosts") or {}).get(host) or {}
+    return any(j.get("kind") == "safe_lora" for j in h.get("jobs") or [])
 
 
 def gated_download(host: str, token: str, runner=None) -> dict:
@@ -409,7 +418,8 @@ def gated_download(host: str, token: str, runner=None) -> dict:
     if not token:
         raise SystemExit("no token on stdin")
     stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    done = runner(["ssh", *ssh_base(host), gated_command(stamp)], input=token + "\n", capture_output=True, text=True,
+    done = runner(["ssh", *ssh_base(host), gated_command(stamp, runs_safe_lora(host))], input=token + "\n",
+                  capture_output=True, text=True,
                   env=clean_env())
     record = {"utc": now(), "ok": done.returncode == 0, "exit": done.returncode, "attempt": stamp}
     save(folder(host) / "gated-download.json", record)

@@ -1,0 +1,1061 @@
+.F..F.....EE............................................................ [  9%]
+........................................................................ [ 18%]
+........................................................................ [ 28%]
+........................................................................ [ 37%]
+................F..F.................................................... [ 47%]
+........................................................................ [ 56%]
+........................................................................ [ 66%]
+........................................................................ [ 75%]
+.FFF.................................................................... [ 85%]
+........................................................................ [ 94%]
+.F........................................                               [100%]
+==================================== ERRORS ====================================
+_ ERROR at setup of test_engine_y_refuses_c1s_replicate_on_an_empty_registry_and_accepts_it_once_seeded _
+
+    @pytest.fixture
+    def no_y_bytecode():
+        """Engine Y's frozen tree gets no new file (no .pyc, no __pycache__)."""
+>       assert WS_Y.is_dir(), "engine Y's tree (STAGE1_ENGINE_Y_TREE)"
+E       AssertionError: engine Y's tree (STAGE1_ENGINE_Y_TREE)
+E       assert False
+E        +  where False = is_dir()
+E        +    where is_dir = PosixPath('/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-goofy-jennings-12ae35/2e006469-731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/ws/tmp/engine-y-34bfd288').is_dir
+
+runkit/stage1-olmo/tests/test_round30a.py:84: AssertionError
+_ ERROR at setup of test_the_runners_seed_lets_c1s_claim_pass_and_without_it_c1_crashes _
+
+    @pytest.fixture
+    def no_y_bytecode():
+        """Engine Y's frozen tree gets no new file (no .pyc, no __pycache__)."""
+>       assert WS_Y.is_dir(), "engine Y's tree (STAGE1_ENGINE_Y_TREE)"
+E       AssertionError: engine Y's tree (STAGE1_ENGINE_Y_TREE)
+E       assert False
+E        +  where False = is_dir()
+E        +    where is_dir = PosixPath('/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-goofy-jennings-12ae35/2e006469-731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/ws/tmp/engine-y-34bfd288').is_dir
+
+runkit/stage1-olmo/tests/test_round30a.py:84: AssertionError
+=================================== FAILURES ===================================
+___________ test_the_y_copy_and_settings_pin_each_other_and_engine_y ___________
+
+real = {'pack': <module 'g1_pack_setup' from '/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-...-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/ws/runkit/stage1-olmo/setup/job_runner_stage1.py'>}
+
+    def test_the_y_copy_and_settings_pin_each_other_and_engine_y(real):
+        r = real["rules"]
+        unit_y, eval_y = (REPO / Y_SOURCES[k][0] for k in ("scripts/stage1_s1/settings/oext_unit.json",
+                                                           "scripts/stage1_s1/settings/oext_eval.json"))
+        copy = REPO / Y_SOURCES["scripts/stage1_s1/oext_unit.py"][0]
+        assert _literal(copy, "SETTINGS_SHA256") == sha(unit_y) and _literal(copy, "OEXT_SETTINGS_SHA256") == sha(eval_y)
+        assert _literal(REPO / "scripts/stage1_s1/oext_unit.py", "SETTINGS_SHA256") == \
+            X_O_EXT["scripts/stage1_s1/settings/oext_unit.json"]                     # engine X's runner keeps its pin
+        u, e = json.loads(unit_y.read_text()), json.loads(eval_y.read_text())
+        assert u["engine_x"] == e["engine_x"] == r.ENGINES["Y"] == Y
+        assert u["oext"]["settings"] == {"path": "scripts/stage1_s1/settings/oext_eval.json", "sha256": sha(eval_y)}
+        assert u["oext"]["module_sha256"] == r.S1_CODE["scripts/stage1_s1/oext_eval.py"]
+        assert u["recipes"]["allowed"] == {"B+Qi": BQI}                          # plan.json recipes_y, by hand
+>       assert r.RECIPE_NAMES["bqi"] == BQI_PATH and rn.engine_configs(WS_Y, [BQI_PATH]) == {BQI_PATH: BQI}
+                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+runkit/stage1-olmo/tests/test_g1_yoext.py:117: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+runkit/stage1-olmo/tests/test_stage1_runner.py:704: in engine_configs
+    done = REAL_RUN([PY, "-B", "-c", code, str(tree), *paths], cwd=tree, capture_output=True, text=True, timeout=300,
+/Users/spiderishi/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/subprocess.py:548: in run
+    with Popen(*popenargs, **kwargs) as process:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/spiderishi/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/subprocess.py:1026: in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Popen: returncode: 255 args: ['/Users/spiderishi/Coding/attribution/tmp/min...>
+args = ['/Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python', '-B', '-c', "import json,sys;...y-scratch/ws/tmp/engine-y-34bfd288', 'experiments/safety_selection/configs/study-kt-olmo2-1b-r64-bq-mb4-20261022.json']
+executable = b'/Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python'
+preexec_fn = None, close_fds = True, pass_fds = ()
+cwd = PosixPath('/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-goofy-jennings-12ae35/2e006469-731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/ws/tmp/engine-y-34bfd288')
+env = {'PATH': '/usr/bin:/bin', 'PYTHONDONTWRITEBYTECODE': '1'}
+startupinfo = None, creationflags = 0, shell = False, p2cread = -1
+p2cwrite = -1, c2pread = 11, c2pwrite = 12, errread = 13, errwrite = 14
+restore_signals = True, gid = None, gids = None, uid = None, umask = -1
+start_new_session = False, process_group = -1
+
+    def _execute_child(self, args, executable, preexec_fn, close_fds,
+                       pass_fds, cwd, env,
+                       startupinfo, creationflags, shell,
+                       p2cread, p2cwrite,
+                       c2pread, c2pwrite,
+                       errread, errwrite,
+                       restore_signals,
+                       gid, gids, uid, umask,
+                       start_new_session, process_group):
+        """Execute program (POSIX version)"""
+    
+        if isinstance(args, (str, bytes)):
+            args = [args]
+        elif isinstance(args, os.PathLike):
+            if shell:
+                raise TypeError('path-like args is not allowed when '
+                                'shell is true')
+            args = [args]
+        else:
+            args = list(args)
+    
+        if shell:
+            # On Android the default shell is at '/system/bin/sh'.
+            unix_shell = ('/system/bin/sh' if
+                      hasattr(sys, 'getandroidapilevel') else '/bin/sh')
+            args = [unix_shell, "-c"] + args
+            if executable:
+                args[0] = executable
+    
+        if executable is None:
+            executable = args[0]
+    
+        sys.audit("subprocess.Popen", executable, args, cwd, env)
+    
+        if (_USE_POSIX_SPAWN
+                and os.path.dirname(executable)
+                and preexec_fn is None
+                and not close_fds
+                and not pass_fds
+                and cwd is None
+                and (p2cread == -1 or p2cread > 2)
+                and (c2pwrite == -1 or c2pwrite > 2)
+                and (errwrite == -1 or errwrite > 2)
+                and not start_new_session
+                and process_group == -1
+                and gid is None
+                and gids is None
+                and uid is None
+                and umask < 0):
+            self._posix_spawn(args, executable, env, restore_signals,
+                              p2cread, p2cwrite,
+                              c2pread, c2pwrite,
+                              errread, errwrite)
+            return
+    
+        orig_executable = executable
+    
+        # For transferring possible exec failure from child to parent.
+        # Data format: "exception name:hex errno:description"
+        # Pickle is not used; it is complex and involves memory allocation.
+        errpipe_read, errpipe_write = os.pipe()
+        # errpipe_write must not be in the standard io 0, 1, or 2 fd range.
+        low_fds_to_close = []
+        while errpipe_write < 3:
+            low_fds_to_close.append(errpipe_write)
+            errpipe_write = os.dup(errpipe_write)
+        for low_fd in low_fds_to_close:
+            os.close(low_fd)
+        try:
+            try:
+                # We must avoid complex work that could involve
+                # malloc or free in the child process to avoid
+                # potential deadlocks, thus we do all this here.
+                # and pass it to fork_exec()
+    
+                if env is not None:
+                    env_list = []
+                    for k, v in env.items():
+                        k = os.fsencode(k)
+                        if b'=' in k:
+                            raise ValueError("illegal environment variable name")
+                        env_list.append(k + b'=' + os.fsencode(v))
+                else:
+                    env_list = None  # Use execv instead of execve.
+                executable = os.fsencode(executable)
+                if os.path.dirname(executable):
+                    executable_list = (executable,)
+                else:
+                    # This matches the behavior of os._execvpe().
+                    executable_list = tuple(
+                        os.path.join(os.fsencode(dir), executable)
+                        for dir in os.get_exec_path(env))
+                fds_to_keep = set(pass_fds)
+                fds_to_keep.add(errpipe_write)
+                self.pid = _fork_exec(
+                        args, executable_list,
+                        close_fds, tuple(sorted(map(int, fds_to_keep))),
+                        cwd, env_list,
+                        p2cread, p2cwrite, c2pread, c2pwrite,
+                        errread, errwrite,
+                        errpipe_read, errpipe_write,
+                        restore_signals, start_new_session,
+                        process_group, gid, gids, uid, umask,
+                        preexec_fn, _USE_VFORK)
+                self._child_created = True
+            finally:
+                # be sure the FD is closed no matter what
+                os.close(errpipe_write)
+    
+            self._close_pipe_fds(p2cread, p2cwrite,
+                                 c2pread, c2pwrite,
+                                 errread, errwrite)
+    
+            # Wait for exec to fail or succeed; possibly raising an
+            # exception (limited in size)
+            errpipe_data = bytearray()
+            while True:
+                part = os.read(errpipe_read, 50000)
+                errpipe_data += part
+                if not part or len(errpipe_data) > 50000:
+                    break
+        finally:
+            # be sure the FD is closed no matter what
+            os.close(errpipe_read)
+    
+        if errpipe_data:
+            try:
+                pid, sts = os.waitpid(self.pid, 0)
+                if pid == self.pid:
+                    self._handle_exitstatus(sts)
+                else:
+                    self.returncode = sys.maxsize
+            except ChildProcessError:
+                pass
+    
+            try:
+                exception_name, hex_errno, err_msg = (
+                        errpipe_data.split(b':', 2))
+                # The encoding here should match the encoding
+                # written in by the subprocess implementations
+                # like _posixsubprocess
+                err_msg = err_msg.decode()
+            except ValueError:
+                exception_name = b'SubprocessError'
+                hex_errno = b'0'
+                err_msg = 'Bad exception data from child: {!r}'.format(
+                              bytes(errpipe_data))
+            child_exception_type = getattr(
+                    builtins, exception_name.decode('ascii'),
+                    SubprocessError)
+            if issubclass(child_exception_type, OSError) and hex_errno:
+                errno_num = int(hex_errno, 16)
+                if err_msg == "noexec:chdir":
+                    err_msg = ""
+                    # The error must be from chdir(cwd).
+                    err_filename = cwd
+                elif err_msg == "noexec":
+                    err_msg = ""
+                    err_filename = None
+                else:
+                    err_filename = orig_executable
+                if errno_num != 0:
+                    err_msg = os.strerror(errno_num)
+                if err_filename is not None:
+>                   raise child_exception_type(errno_num, err_msg, err_filename)
+E                   FileNotFoundError: [Errno 2] No such file or directory: PosixPath('/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-goofy-jennings-12ae35/2e006469-731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/ws/tmp/engine-y-34bfd288')
+
+/Users/spiderishi/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/subprocess.py:1955: FileNotFoundError
+_ test_the_real_y_pack_code_runs_the_o_ext_runner_on_engine_y_and_the_x_files_did_not _
+
+real = {'pack': <module 'g1_pack_setup' from '/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-...-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/ws/runkit/stage1-olmo/setup/job_runner_stage1.py'>}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10dc7ee50>
+tmp_path = PosixPath('/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-goofy-jennings-12ae35/2e006469-731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/bt-s1/test_the_real_y_pack_code_runs0')
+
+    def test_the_real_y_pack_code_runs_the_o_ext_runner_on_engine_y_and_the_x_files_did_not(real, monkeypatch, tmp_path):
+        """The Y pack's code (pack_setup's own Y collection of this repository's files, engine Y's frozen engine files) in
+        a fresh interpreter: the runner the job runner calls loads its pinned engine-Y settings by default, accepts B+Qi's
+        config by engine Y's code and refuses REC, and main gets past the settings to the inputs (exit 2 on an absent
+        W1-18 record, the first input oext_eval.prepare reads). Before G1 (engine X's files at those paths): the default settings refuse on engine Y."""
+        r = real["rules"]
+        p = _collect(real, "Y")
+        assert p.bad == []
+>       got, stderr = _probe(_bundle(real, tmp_path / "y-pack", p.files))
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+runkit/stage1-olmo/tests/test_g1_yoext.py:219: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+real = {'pack': <module 'g1_pack_setup' from '/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-...-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/ws/runkit/stage1-olmo/setup/job_runner_stage1.py'>}
+root = PosixPath('/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-goofy-jennings-12ae35/2e006469-731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/bt-s1/test_the_real_y_pack_code_runs0/y-pack')
+pack_files = {'scripts/family_probe_reading.py': PosixPath('/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-wo...731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/ws/scripts/stage1/build_length_rules.py'), ...}
+
+    def _bundle(real, root: Path, pack_files: dict) -> Path:
+        """The code of a Y pack in a folder: engine Y's engine files (pack_setup.engine_files of the frozen tree) and every
+        packed scripts/ file at its bundle path (the S1 files at the runner's paths)."""
+>       assert WS_Y.is_dir(), "engine Y's tree (STAGE1_ENGINE_Y_TREE)"
+E       AssertionError: engine Y's tree (STAGE1_ENGINE_Y_TREE)
+E       assert False
+E        +  where False = is_dir()
+E        +    where is_dir = PosixPath('/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-goofy-jennings-12ae35/2e006469-731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/ws/tmp/engine-y-34bfd288').is_dir
+
+runkit/stage1-olmo/tests/test_g1_yoext.py:168: AssertionError
+________________ test_a_b_qi_recipe_on_an_x_host_still_refuses _________________
+
+w = <test_stage1_runkit.World object at 0x10d5bd310>
+
+    def test_a_b_qi_recipe_on_an_x_host_still_refuses(w):
+        """An X host never reads Y's tree or uses Y's code: the job gates refuse B+Qi on X; past them, the X check reads
+        main's tree, where B+Qi's recipe is missing (it is in Y's tree, at its pin); with the pinned bytes copied into
+        main's tree it is engine X's code that hashes it, and engine X's own loader refuses B+Qi's recipe."""
+        r = w.rules
+        plan = w.tool.load()
+        bqi = {"kind": "ref_train", "arm": "bqi", "seed": 1102, "recipe": "bqi", "engine": "X"}
+        with pytest.raises(SystemExit, match="B[+]Qi runs on engine Y only"):
+            w.tool.check_job(bqi, 0, [bqi], "B", plan, set())
+        with pytest.raises(SystemExit, match="cert_c2 runs on engine Y"):
+            w.tool.check_job({**CERT_POD[1], "engine": "X"}, 0, [CERT_POD[1]], "cert", plan, set())
+        w.mp.setattr(w.tool, "check_launch_gates", lambda *a: None)        # the recipe check alone
+        host = {"engine": "X", "jobs": [dict(bqi)]}
+        w.calls.clear()
+        with pytest.raises(SystemExit, match=re.escape(f"{r.RECIPE_BQI}: missing or differs from its pin (recipe bqi)")):
+            w.tool.release_hosts(plan, "B", [("b-1", host)])
+        assert w.calls == [] and plan["hosts"] == {} and "recipes_y" not in plan
+        write_json(w.repo / r.RECIPE_BQI, {"recipe": r.RECIPE_BQI})       # the same bytes as Y's tree's, in main's tree
+        w.tool.release_hosts(plan, "B", [("b-1", host)])
+        assert w.calls == [("X", "config", r.RECIPE_BQI)] and "engine" not in plan["recipes"][r.RECIPE_BQI]
+        real_y = WS_Y_TREE / r.RECIPE_BQI                               # engine X's own loader on B+Qi's committed recipe
+        done = subprocess.run([sys.executable, "-I", "-B", "-c", "import sys;sys.path.insert(0,sys.argv[1]);"
+                               "from experiments.safety_selection.config import load_recipe;load_recipe(sys.argv[2])",
+                               str(KIT.parents[1]), str(real_y)], capture_output=True, text=True, timeout=120,
+                              cwd=str(KIT.parents[1]), env={"PATH": "/usr/bin:/bin", "PYTHONDONTWRITEBYTECODE": "1"})
+>       assert sha(real_y) == REAL_RECIPE_PINS["bqi"] and done.returncode != 0 and "constrained_sft" in done.stderr
+               ^^^^^^^^^^^
+
+/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-goofy-jennings-12ae35/2e006469-731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/ws/runkit/stage1-olmo/tests/test_stage1_runkit.py:2113: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-goofy-jennings-12ae35/2e006469-731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/ws/runkit/stage1-olmo/tests/test_stage1_runkit.py:43: in sha
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+                          ^^^^^^^^^^^^^^^^^^^^^^^
+/Users/spiderishi/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/pathlib.py:1050: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-goofy-jennings-12ae35/2e0064...rify-scratch/ws/tmp/engine-y-34bfd288/experiments/safety_selection/configs/study-kt-olmo2-1b-r64-bq-mb4-20261022.json')
+mode = 'rb', buffering = -1, encoding = None, errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-goofy-jennings-12ae35/2e006469-731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/ws/tmp/engine-y-34bfd288/experiments/safety_selection/configs/study-kt-olmo2-1b-r64-bq-mb4-20261022.json'
+
+/Users/spiderishi/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/pathlib.py:1044: FileNotFoundError
+_____ test_the_real_engine_y_code_in_ys_tree_hashes_the_committed_recipes ______
+
+w = <test_stage1_runkit.World object at 0x10d692dd0>
+
+    def test_the_real_engine_y_code_in_ys_tree_hashes_the_committed_recipes(w):
+        """Engine Y's real code and tree (python -I, cwd and import path in Y's tree, code identity checked): the cert pod
+        gets B+Qi's and recipe S's config SHA-256 as engine Y's own code computes them; a Y tree whose code is not engine
+        Y's pin refuses."""
+        r = w.rules
+        _cert_ready(w)
+        bytecode = set((WS_Y_TREE / "experiments").rglob("*.pyc"))      # Y's frozen tree gets no new file
+        for name in ("recipe_sha_y", "recipe_training_identity_y"):
+            w.mp.setattr(w.tool, name, w.real[name])
+        w.mp.setattr(w.tool, "y_tree", lambda: WS_Y_TREE)
+        w.mp.setattr(w.tool, "PY", Path(sys.executable))
+        for name in ("S", "bqi"):
+            w.mp.setitem(r.RECIPE_PINS, r.RECIPE_NAMES[name], REAL_RECIPE_PINS[name])
+        w.mp.setitem(r.ENGINES, "Y", "0" * 64)                             # Y's tree is not this "engine Y"
+        with pytest.raises(SystemExit, match="the code in engine Y tree is not engine Y"):
+>           w.tool.check_recipe_y(w.tool.load(), "bqi")
+
+/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-goofy-jennings-12ae35/2e006469-731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/ws/runkit/stage1-olmo/tests/test_stage1_runkit.py:2178: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-goofy-jennings-12ae35/2e006469-731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/bt-s1/test_the_real_engine_y_code_in0/runkit/stage1-olmo/plan_tool.py:347: in check_recipe_y
+    fail(f"{path}: missing from engine Y's tree or differs from its pin (recipe {name_r}, {rules.Y_TREE_DEFAULT})")
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+message = "experiments/safety_selection/configs/study-kt-olmo2-1b-r64-bq-mb4-20261022.json: missing from engine Y's tree or differs from its pin (recipe bqi, tmp/engine-y-34bfd288)"
+
+    def fail(message: str):
+>       raise SystemExit(message)
+E       SystemExit: experiments/safety_selection/configs/study-kt-olmo2-1b-r64-bq-mb4-20261022.json: missing from engine Y's tree or differs from its pin (recipe bqi, tmp/engine-y-34bfd288)
+
+/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-goofy-jennings-12ae35/2e006469-731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/bt-s1/test_the_real_engine_y_code_in0/runkit/stage1-olmo/plan_tool.py:268: SystemExit
+
+During handling of the above exception, another exception occurred:
+
+w = <test_stage1_runkit.World object at 0x10d692dd0>
+
+    def test_the_real_engine_y_code_in_ys_tree_hashes_the_committed_recipes(w):
+        """Engine Y's real code and tree (python -I, cwd and import path in Y's tree, code identity checked): the cert pod
+        gets B+Qi's and recipe S's config SHA-256 as engine Y's own code computes them; a Y tree whose code is not engine
+        Y's pin refuses."""
+        r = w.rules
+        _cert_ready(w)
+        bytecode = set((WS_Y_TREE / "experiments").rglob("*.pyc"))      # Y's frozen tree gets no new file
+        for name in ("recipe_sha_y", "recipe_training_identity_y"):
+            w.mp.setattr(w.tool, name, w.real[name])
+        w.mp.setattr(w.tool, "y_tree", lambda: WS_Y_TREE)
+        w.mp.setattr(w.tool, "PY", Path(sys.executable))
+        for name in ("S", "bqi"):
+            w.mp.setitem(r.RECIPE_PINS, r.RECIPE_NAMES[name], REAL_RECIPE_PINS[name])
+        w.mp.setitem(r.ENGINES, "Y", "0" * 64)                             # Y's tree is not this "engine Y"
+>       with pytest.raises(SystemExit, match="the code in engine Y tree is not engine Y"):
+E       AssertionError: Regex pattern did not match.
+E        Regex: 'the code in engine Y tree is not engine Y'
+E        Input: "experiments/safety_selection/configs/study-kt-olmo2-1b-r64-bq-mb4-20261022.json: missing from engine Y's tree or differs from its pin (recipe bqi, tmp/engine-y-34bfd288)"
+
+/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-goofy-jennings-12ae35/2e006469-731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/ws/runkit/stage1-olmo/tests/test_stage1_runkit.py:2177: AssertionError
+___________ test_every_jobs_argv_parses_with_its_targets_own_parser ____________
+
+kit = <function kit.<locals>.load at 0x10dc64680>
+tmp_path = PosixPath('/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-goofy-jennings-12ae35/2e006469-731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/bt-s1/test_every_jobs_argv_parses_wi0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10dae1850>
+
+    def test_every_jobs_argv_parses_with_its_targets_own_parser(kit, tmp_path, monkeypatch):
+        """Every engine step by engine X's (or, on the Y pod, engine Y's) _parser; every stage-1 script step by that
+        script's own argparse parser (W1 scripts, D-2 and the S1 package in this tree's scripts/); every O-ext
+        unit step by the kit's contract parser and (round 3c) by the committed runner's own parser
+        (scripts/stage1_s1/oext_unit.py). Placeholders stand in for run-time values."""
+        groups = {}
+        for engine, tree in (("X", WS_B15), ("Y", WS_Y)):
+            sub = tmp_path / engine
+            sub.mkdir()
+            _, out = dry_run(kit, sub, lambda r, e=engine: all_hosts(r)[0 if e == "X" else 1], engine, monkeypatch)
+            for j in out["jobs"]:
+                for name, argv in j["commands"]:
+                    argv = [v.replace("@unit:9", "round1/x").replace("@", "AT-") for v in argv]
+                    if argv[:3] == ENGINE:
+                        groups.setdefault((tree, "engine"), []).append(argv[3:])
+                    elif argv[1] == "scripts/stage1_s1/oext_unit.py":
+                        groups.setdefault(("contract", None), []).append(argv[2:])
+                        groups.setdefault(SCRIPT_MODULE[argv[1]], []).append(argv[2:])     # round 3c: the real runner
+                    else:
+                        groups.setdefault(SCRIPT_MODULE[argv[1]], []).append(argv[2:])
+            for name in MODULES:
+                sys.modules.pop(name, None)
+        runner = kit("setup/job_runner_stage1.py")
+        seen = set()
+        for (tree, target), argvs in groups.items():
+            if tree == "contract":
+                for a in argvs:
+                    runner.oext_unit_contract().parse_args(a)
+                seen.add("contract")
+                continue
+>           results = parse_with(tree, target, argvs)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-goofy-jennings-12ae35/2e006469-731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/ws/runkit/stage1-olmo/tests/test_stage1_runner.py:652: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-goofy-jennings-12ae35/2e006469-731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/ws/runkit/stage1-olmo/tests/test_stage1_runner.py:599: in parse_with
+    done = REAL_RUN([PY, "-B", "-c", PARSE, str(tree), target], input=json.dumps(argvs), cwd=tree,
+/Users/spiderishi/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/subprocess.py:548: in run
+    with Popen(*popenargs, **kwargs) as process:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/spiderishi/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/subprocess.py:1026: in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Popen: returncode: 255 args: ['/Users/spiderishi/Coding/attribution/tmp/min...>
+args = ['/Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python', '-B', '-c', '\nimport argpars...5/2e006469-731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/ws/tmp/engine-y-34bfd288', 'engine']
+executable = b'/Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python'
+preexec_fn = None, close_fds = True, pass_fds = ()
+cwd = PosixPath('/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-goofy-jennings-12ae35/2e006469-731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/ws/tmp/engine-y-34bfd288')
+env = {'OMP_NUM_THREADS': '1', 'PATH': '/usr/bin:/bin', 'PYTHONDONTWRITEBYTECODE': '1'}
+startupinfo = None, creationflags = 0, shell = False, p2cread = 11
+p2cwrite = 12, c2pread = 13, c2pwrite = 14, errread = 15, errwrite = 16
+restore_signals = True, gid = None, gids = None, uid = None, umask = -1
+start_new_session = False, process_group = -1
+
+    def _execute_child(self, args, executable, preexec_fn, close_fds,
+                       pass_fds, cwd, env,
+                       startupinfo, creationflags, shell,
+                       p2cread, p2cwrite,
+                       c2pread, c2pwrite,
+                       errread, errwrite,
+                       restore_signals,
+                       gid, gids, uid, umask,
+                       start_new_session, process_group):
+        """Execute program (POSIX version)"""
+    
+        if isinstance(args, (str, bytes)):
+            args = [args]
+        elif isinstance(args, os.PathLike):
+            if shell:
+                raise TypeError('path-like args is not allowed when '
+                                'shell is true')
+            args = [args]
+        else:
+            args = list(args)
+    
+        if shell:
+            # On Android the default shell is at '/system/bin/sh'.
+            unix_shell = ('/system/bin/sh' if
+                      hasattr(sys, 'getandroidapilevel') else '/bin/sh')
+            args = [unix_shell, "-c"] + args
+            if executable:
+                args[0] = executable
+    
+        if executable is None:
+            executable = args[0]
+    
+        sys.audit("subprocess.Popen", executable, args, cwd, env)
+    
+        if (_USE_POSIX_SPAWN
+                and os.path.dirname(executable)
+                and preexec_fn is None
+                and not close_fds
+                and not pass_fds
+                and cwd is None
+                and (p2cread == -1 or p2cread > 2)
+                and (c2pwrite == -1 or c2pwrite > 2)
+                and (errwrite == -1 or errwrite > 2)
+                and not start_new_session
+                and process_group == -1
+                and gid is None
+                and gids is None
+                and uid is None
+                and umask < 0):
+            self._posix_spawn(args, executable, env, restore_signals,
+                              p2cread, p2cwrite,
+                              c2pread, c2pwrite,
+                              errread, errwrite)
+            return
+    
+        orig_executable = executable
+    
+        # For transferring possible exec failure from child to parent.
+        # Data format: "exception name:hex errno:description"
+        # Pickle is not used; it is complex and involves memory allocation.
+        errpipe_read, errpipe_write = os.pipe()
+        # errpipe_write must not be in the standard io 0, 1, or 2 fd range.
+        low_fds_to_close = []
+        while errpipe_write < 3:
+            low_fds_to_close.append(errpipe_write)
+            errpipe_write = os.dup(errpipe_write)
+        for low_fd in low_fds_to_close:
+            os.close(low_fd)
+        try:
+            try:
+                # We must avoid complex work that could involve
+                # malloc or free in the child process to avoid
+                # potential deadlocks, thus we do all this here.
+                # and pass it to fork_exec()
+    
+                if env is not None:
+                    env_list = []
+                    for k, v in env.items():
+                        k = os.fsencode(k)
+                        if b'=' in k:
+                            raise ValueError("illegal environment variable name")
+                        env_list.append(k + b'=' + os.fsencode(v))
+                else:
+                    env_list = None  # Use execv instead of execve.
+                executable = os.fsencode(executable)
+                if os.path.dirname(executable):
+                    executable_list = (executable,)
+                else:
+                    # This matches the behavior of os._execvpe().
+                    executable_list = tuple(
+                        os.path.join(os.fsencode(dir), executable)
+                        for dir in os.get_exec_path(env))
+                fds_to_keep = set(pass_fds)
+                fds_to_keep.add(errpipe_write)
+                self.pid = _fork_exec(
+                        args, executable_list,
+                        close_fds, tuple(sorted(map(int, fds_to_keep))),
+                        cwd, env_list,
+                        p2cread, p2cwrite, c2pread, c2pwrite,
+                        errread, errwrite,
+                        errpipe_read, errpipe_write,
+                        restore_signals, start_new_session,
+                        process_group, gid, gids, uid, umask,
+                        preexec_fn, _USE_VFORK)
+                self._child_created = True
+            finally:
+                # be sure the FD is closed no matter what
+                os.close(errpipe_write)
+    
+            self._close_pipe_fds(p2cread, p2cwrite,
+                                 c2pread, c2pwrite,
+                                 errread, errwrite)
+    
+            # Wait for exec to fail or succeed; possibly raising an
+            # exception (limited in size)
+            errpipe_data = bytearray()
+            while True:
+                part = os.read(errpipe_read, 50000)
+                errpipe_data += part
+                if not part or len(errpipe_data) > 50000:
+                    break
+        finally:
+            # be sure the FD is closed no matter what
+            os.close(errpipe_read)
+    
+        if errpipe_data:
+            try:
+                pid, sts = os.waitpid(self.pid, 0)
+                if pid == self.pid:
+                    self._handle_exitstatus(sts)
+                else:
+                    self.returncode = sys.maxsize
+            except ChildProcessError:
+                pass
+    
+            try:
+                exception_name, hex_errno, err_msg = (
+                        errpipe_data.split(b':', 2))
+                # The encoding here should match the encoding
+                # written in by the subprocess implementations
+                # like _posixsubprocess
+                err_msg = err_msg.decode()
+            except ValueError:
+                exception_name = b'SubprocessError'
+                hex_errno = b'0'
+                err_msg = 'Bad exception data from child: {!r}'.format(
+                              bytes(errpipe_data))
+            child_exception_type = getattr(
+                    builtins, exception_name.decode('ascii'),
+                    SubprocessError)
+            if issubclass(child_exception_type, OSError) and hex_errno:
+                errno_num = int(hex_errno, 16)
+                if err_msg == "noexec:chdir":
+                    err_msg = ""
+                    # The error must be from chdir(cwd).
+                    err_filename = cwd
+                elif err_msg == "noexec":
+                    err_msg = ""
+                    err_filename = None
+                else:
+                    err_filename = orig_executable
+                if errno_num != 0:
+                    err_msg = os.strerror(errno_num)
+                if err_filename is not None:
+>                   raise child_exception_type(errno_num, err_msg, err_filename)
+E                   FileNotFoundError: [Errno 2] No such file or directory: PosixPath('/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-goofy-jennings-12ae35/2e006469-731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/ws/tmp/engine-y-34bfd288')
+
+/Users/spiderishi/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/subprocess.py:1955: FileNotFoundError
+______ test_every_steps_recipe_is_the_one_its_target_scripts_settings_pin ______
+
+kit = <function kit.<locals>.load at 0x10dbb14e0>
+tmp_path = PosixPath('/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-goofy-jennings-12ae35/2e006469-731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/bt-s1/test_every_steps_recipe_is_the0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10db56910>
+
+    def test_every_steps_recipe_is_the_one_its_target_scripts_settings_pin(kit, tmp_path, monkeypatch):
+        """For every job kind (both engines' pods), every --recipe/--recipe-s the kit passes names a committed recipe file
+        whose config SHA-256 (engine X's code for REC, S and G; engine Y's code in Y's tree for B+Qi's, which is there
+        only) is one the target script's committed settings accept; an engine step takes the job's own recipe. This is the
+        check pod a-1's J5 failed (REC passed, recipe S pinned). G1 (addendum §34 point 3) closes the one gap this test
+        stated before: on engine Y the O-ext step's settings are the file the Y pack places at settings/oext_unit.json
+        (stage1_rules.S1_OEXT_Y: settings/oext_unit_y.json), which allows B+Qi's config, the unit's own recipe."""
+        r = kit("stage1_rules.py")
+>       configs = {**engine_configs(REPO, [REC, S, G]), **engine_configs(WS_Y, [BQI])}
+                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-goofy-jennings-12ae35/2e006469-731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/ws/runkit/stage1-olmo/tests/test_stage1_runner.py:718: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-goofy-jennings-12ae35/2e006469-731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/ws/runkit/stage1-olmo/tests/test_stage1_runner.py:704: in engine_configs
+    done = REAL_RUN([PY, "-B", "-c", code, str(tree), *paths], cwd=tree, capture_output=True, text=True, timeout=300,
+/Users/spiderishi/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/subprocess.py:548: in run
+    with Popen(*popenargs, **kwargs) as process:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/spiderishi/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/subprocess.py:1026: in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Popen: returncode: 255 args: ['/Users/spiderishi/Coding/attribution/tmp/min...>
+args = ['/Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python', '-B', '-c', "import json,sys;...y-scratch/ws/tmp/engine-y-34bfd288', 'experiments/safety_selection/configs/study-kt-olmo2-1b-r64-bq-mb4-20261022.json']
+executable = b'/Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python'
+preexec_fn = None, close_fds = True, pass_fds = ()
+cwd = PosixPath('/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-goofy-jennings-12ae35/2e006469-731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/ws/tmp/engine-y-34bfd288')
+env = {'PATH': '/usr/bin:/bin', 'PYTHONDONTWRITEBYTECODE': '1'}
+startupinfo = None, creationflags = 0, shell = False, p2cread = -1
+p2cwrite = -1, c2pread = 11, c2pwrite = 12, errread = 13, errwrite = 14
+restore_signals = True, gid = None, gids = None, uid = None, umask = -1
+start_new_session = False, process_group = -1
+
+    def _execute_child(self, args, executable, preexec_fn, close_fds,
+                       pass_fds, cwd, env,
+                       startupinfo, creationflags, shell,
+                       p2cread, p2cwrite,
+                       c2pread, c2pwrite,
+                       errread, errwrite,
+                       restore_signals,
+                       gid, gids, uid, umask,
+                       start_new_session, process_group):
+        """Execute program (POSIX version)"""
+    
+        if isinstance(args, (str, bytes)):
+            args = [args]
+        elif isinstance(args, os.PathLike):
+            if shell:
+                raise TypeError('path-like args is not allowed when '
+                                'shell is true')
+            args = [args]
+        else:
+            args = list(args)
+    
+        if shell:
+            # On Android the default shell is at '/system/bin/sh'.
+            unix_shell = ('/system/bin/sh' if
+                      hasattr(sys, 'getandroidapilevel') else '/bin/sh')
+            args = [unix_shell, "-c"] + args
+            if executable:
+                args[0] = executable
+    
+        if executable is None:
+            executable = args[0]
+    
+        sys.audit("subprocess.Popen", executable, args, cwd, env)
+    
+        if (_USE_POSIX_SPAWN
+                and os.path.dirname(executable)
+                and preexec_fn is None
+                and not close_fds
+                and not pass_fds
+                and cwd is None
+                and (p2cread == -1 or p2cread > 2)
+                and (c2pwrite == -1 or c2pwrite > 2)
+                and (errwrite == -1 or errwrite > 2)
+                and not start_new_session
+                and process_group == -1
+                and gid is None
+                and gids is None
+                and uid is None
+                and umask < 0):
+            self._posix_spawn(args, executable, env, restore_signals,
+                              p2cread, p2cwrite,
+                              c2pread, c2pwrite,
+                              errread, errwrite)
+            return
+    
+        orig_executable = executable
+    
+        # For transferring possible exec failure from child to parent.
+        # Data format: "exception name:hex errno:description"
+        # Pickle is not used; it is complex and involves memory allocation.
+        errpipe_read, errpipe_write = os.pipe()
+        # errpipe_write must not be in the standard io 0, 1, or 2 fd range.
+        low_fds_to_close = []
+        while errpipe_write < 3:
+            low_fds_to_close.append(errpipe_write)
+            errpipe_write = os.dup(errpipe_write)
+        for low_fd in low_fds_to_close:
+            os.close(low_fd)
+        try:
+            try:
+                # We must avoid complex work that could involve
+                # malloc or free in the child process to avoid
+                # potential deadlocks, thus we do all this here.
+                # and pass it to fork_exec()
+    
+                if env is not None:
+                    env_list = []
+                    for k, v in env.items():
+                        k = os.fsencode(k)
+                        if b'=' in k:
+                            raise ValueError("illegal environment variable name")
+                        env_list.append(k + b'=' + os.fsencode(v))
+                else:
+                    env_list = None  # Use execv instead of execve.
+                executable = os.fsencode(executable)
+                if os.path.dirname(executable):
+                    executable_list = (executable,)
+                else:
+                    # This matches the behavior of os._execvpe().
+                    executable_list = tuple(
+                        os.path.join(os.fsencode(dir), executable)
+                        for dir in os.get_exec_path(env))
+                fds_to_keep = set(pass_fds)
+                fds_to_keep.add(errpipe_write)
+                self.pid = _fork_exec(
+                        args, executable_list,
+                        close_fds, tuple(sorted(map(int, fds_to_keep))),
+                        cwd, env_list,
+                        p2cread, p2cwrite, c2pread, c2pwrite,
+                        errread, errwrite,
+                        errpipe_read, errpipe_write,
+                        restore_signals, start_new_session,
+                        process_group, gid, gids, uid, umask,
+                        preexec_fn, _USE_VFORK)
+                self._child_created = True
+            finally:
+                # be sure the FD is closed no matter what
+                os.close(errpipe_write)
+    
+            self._close_pipe_fds(p2cread, p2cwrite,
+                                 c2pread, c2pwrite,
+                                 errread, errwrite)
+    
+            # Wait for exec to fail or succeed; possibly raising an
+            # exception (limited in size)
+            errpipe_data = bytearray()
+            while True:
+                part = os.read(errpipe_read, 50000)
+                errpipe_data += part
+                if not part or len(errpipe_data) > 50000:
+                    break
+        finally:
+            # be sure the FD is closed no matter what
+            os.close(errpipe_read)
+    
+        if errpipe_data:
+            try:
+                pid, sts = os.waitpid(self.pid, 0)
+                if pid == self.pid:
+                    self._handle_exitstatus(sts)
+                else:
+                    self.returncode = sys.maxsize
+            except ChildProcessError:
+                pass
+    
+            try:
+                exception_name, hex_errno, err_msg = (
+                        errpipe_data.split(b':', 2))
+                # The encoding here should match the encoding
+                # written in by the subprocess implementations
+                # like _posixsubprocess
+                err_msg = err_msg.decode()
+            except ValueError:
+                exception_name = b'SubprocessError'
+                hex_errno = b'0'
+                err_msg = 'Bad exception data from child: {!r}'.format(
+                              bytes(errpipe_data))
+            child_exception_type = getattr(
+                    builtins, exception_name.decode('ascii'),
+                    SubprocessError)
+            if issubclass(child_exception_type, OSError) and hex_errno:
+                errno_num = int(hex_errno, 16)
+                if err_msg == "noexec:chdir":
+                    err_msg = ""
+                    # The error must be from chdir(cwd).
+                    err_filename = cwd
+                elif err_msg == "noexec":
+                    err_msg = ""
+                    err_filename = None
+                else:
+                    err_filename = orig_executable
+                if errno_num != 0:
+                    err_msg = os.strerror(errno_num)
+                if err_filename is not None:
+>                   raise child_exception_type(errno_num, err_msg, err_filename)
+E                   FileNotFoundError: [Errno 2] No such file or directory: PosixPath('/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-goofy-jennings-12ae35/2e006469-731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/ws/tmp/engine-y-34bfd288')
+
+/Users/spiderishi/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/subprocess.py:1955: FileNotFoundError
+____________ test_engine_x_refuses_y_only_arguments_so_c3_runs_on_y ____________
+
+kit = <function kit.<locals>.load at 0x10dbb2ca0>
+tmp_path = PosixPath('/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-goofy-jennings-12ae35/2e006469-731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/bt-s1/test_engine_x_refuses_y_only_a0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10b648f10>
+
+    def test_engine_x_refuses_y_only_arguments_so_c3_runs_on_y(kit, tmp_path, monkeypatch):
+        _, out = dry_run(kit, tmp_path, lambda r: [job(r, "cert_c3", engine="Y", recipe="S")], "Y", monkeypatch)
+        make = [v.replace("@", "AT-") for v in out["jobs"][0]["commands"][0][1][3:]]
+        assert parse_with(WS_B15, "engine", [make])[0]["ok"] is False            # --bank-file is engine Y's
+>       assert parse_with(WS_Y, "engine", [make])[0]["ok"] is True
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-goofy-jennings-12ae35/2e006469-731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/ws/runkit/stage1-olmo/tests/test_stage1_runner.py:759: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-goofy-jennings-12ae35/2e006469-731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/ws/runkit/stage1-olmo/tests/test_stage1_runner.py:599: in parse_with
+    done = REAL_RUN([PY, "-B", "-c", PARSE, str(tree), target], input=json.dumps(argvs), cwd=tree,
+/Users/spiderishi/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/subprocess.py:548: in run
+    with Popen(*popenargs, **kwargs) as process:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/Users/spiderishi/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/subprocess.py:1026: in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Popen: returncode: 255 args: ['/Users/spiderishi/Coding/attribution/tmp/min...>
+args = ['/Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python', '-B', '-c', '\nimport argpars...5/2e006469-731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/ws/tmp/engine-y-34bfd288', 'engine']
+executable = b'/Users/spiderishi/Coding/attribution/tmp/minimal-experiment-20261002/venv/bin/python'
+preexec_fn = None, close_fds = True, pass_fds = ()
+cwd = PosixPath('/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-goofy-jennings-12ae35/2e006469-731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/ws/tmp/engine-y-34bfd288')
+env = {'OMP_NUM_THREADS': '1', 'PATH': '/usr/bin:/bin', 'PYTHONDONTWRITEBYTECODE': '1'}
+startupinfo = None, creationflags = 0, shell = False, p2cread = 11
+p2cwrite = 12, c2pread = 13, c2pwrite = 14, errread = 15, errwrite = 16
+restore_signals = True, gid = None, gids = None, uid = None, umask = -1
+start_new_session = False, process_group = -1
+
+    def _execute_child(self, args, executable, preexec_fn, close_fds,
+                       pass_fds, cwd, env,
+                       startupinfo, creationflags, shell,
+                       p2cread, p2cwrite,
+                       c2pread, c2pwrite,
+                       errread, errwrite,
+                       restore_signals,
+                       gid, gids, uid, umask,
+                       start_new_session, process_group):
+        """Execute program (POSIX version)"""
+    
+        if isinstance(args, (str, bytes)):
+            args = [args]
+        elif isinstance(args, os.PathLike):
+            if shell:
+                raise TypeError('path-like args is not allowed when '
+                                'shell is true')
+            args = [args]
+        else:
+            args = list(args)
+    
+        if shell:
+            # On Android the default shell is at '/system/bin/sh'.
+            unix_shell = ('/system/bin/sh' if
+                      hasattr(sys, 'getandroidapilevel') else '/bin/sh')
+            args = [unix_shell, "-c"] + args
+            if executable:
+                args[0] = executable
+    
+        if executable is None:
+            executable = args[0]
+    
+        sys.audit("subprocess.Popen", executable, args, cwd, env)
+    
+        if (_USE_POSIX_SPAWN
+                and os.path.dirname(executable)
+                and preexec_fn is None
+                and not close_fds
+                and not pass_fds
+                and cwd is None
+                and (p2cread == -1 or p2cread > 2)
+                and (c2pwrite == -1 or c2pwrite > 2)
+                and (errwrite == -1 or errwrite > 2)
+                and not start_new_session
+                and process_group == -1
+                and gid is None
+                and gids is None
+                and uid is None
+                and umask < 0):
+            self._posix_spawn(args, executable, env, restore_signals,
+                              p2cread, p2cwrite,
+                              c2pread, c2pwrite,
+                              errread, errwrite)
+            return
+    
+        orig_executable = executable
+    
+        # For transferring possible exec failure from child to parent.
+        # Data format: "exception name:hex errno:description"
+        # Pickle is not used; it is complex and involves memory allocation.
+        errpipe_read, errpipe_write = os.pipe()
+        # errpipe_write must not be in the standard io 0, 1, or 2 fd range.
+        low_fds_to_close = []
+        while errpipe_write < 3:
+            low_fds_to_close.append(errpipe_write)
+            errpipe_write = os.dup(errpipe_write)
+        for low_fd in low_fds_to_close:
+            os.close(low_fd)
+        try:
+            try:
+                # We must avoid complex work that could involve
+                # malloc or free in the child process to avoid
+                # potential deadlocks, thus we do all this here.
+                # and pass it to fork_exec()
+    
+                if env is not None:
+                    env_list = []
+                    for k, v in env.items():
+                        k = os.fsencode(k)
+                        if b'=' in k:
+                            raise ValueError("illegal environment variable name")
+                        env_list.append(k + b'=' + os.fsencode(v))
+                else:
+                    env_list = None  # Use execv instead of execve.
+                executable = os.fsencode(executable)
+                if os.path.dirname(executable):
+                    executable_list = (executable,)
+                else:
+                    # This matches the behavior of os._execvpe().
+                    executable_list = tuple(
+                        os.path.join(os.fsencode(dir), executable)
+                        for dir in os.get_exec_path(env))
+                fds_to_keep = set(pass_fds)
+                fds_to_keep.add(errpipe_write)
+                self.pid = _fork_exec(
+                        args, executable_list,
+                        close_fds, tuple(sorted(map(int, fds_to_keep))),
+                        cwd, env_list,
+                        p2cread, p2cwrite, c2pread, c2pwrite,
+                        errread, errwrite,
+                        errpipe_read, errpipe_write,
+                        restore_signals, start_new_session,
+                        process_group, gid, gids, uid, umask,
+                        preexec_fn, _USE_VFORK)
+                self._child_created = True
+            finally:
+                # be sure the FD is closed no matter what
+                os.close(errpipe_write)
+    
+            self._close_pipe_fds(p2cread, p2cwrite,
+                                 c2pread, c2pwrite,
+                                 errread, errwrite)
+    
+            # Wait for exec to fail or succeed; possibly raising an
+            # exception (limited in size)
+            errpipe_data = bytearray()
+            while True:
+                part = os.read(errpipe_read, 50000)
+                errpipe_data += part
+                if not part or len(errpipe_data) > 50000:
+                    break
+        finally:
+            # be sure the FD is closed no matter what
+            os.close(errpipe_read)
+    
+        if errpipe_data:
+            try:
+                pid, sts = os.waitpid(self.pid, 0)
+                if pid == self.pid:
+                    self._handle_exitstatus(sts)
+                else:
+                    self.returncode = sys.maxsize
+            except ChildProcessError:
+                pass
+    
+            try:
+                exception_name, hex_errno, err_msg = (
+                        errpipe_data.split(b':', 2))
+                # The encoding here should match the encoding
+                # written in by the subprocess implementations
+                # like _posixsubprocess
+                err_msg = err_msg.decode()
+            except ValueError:
+                exception_name = b'SubprocessError'
+                hex_errno = b'0'
+                err_msg = 'Bad exception data from child: {!r}'.format(
+                              bytes(errpipe_data))
+            child_exception_type = getattr(
+                    builtins, exception_name.decode('ascii'),
+                    SubprocessError)
+            if issubclass(child_exception_type, OSError) and hex_errno:
+                errno_num = int(hex_errno, 16)
+                if err_msg == "noexec:chdir":
+                    err_msg = ""
+                    # The error must be from chdir(cwd).
+                    err_filename = cwd
+                elif err_msg == "noexec":
+                    err_msg = ""
+                    err_filename = None
+                else:
+                    err_filename = orig_executable
+                if errno_num != 0:
+                    err_msg = os.strerror(errno_num)
+                if err_filename is not None:
+>                   raise child_exception_type(errno_num, err_msg, err_filename)
+E                   FileNotFoundError: [Errno 2] No such file or directory: PosixPath('/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-goofy-jennings-12ae35/2e006469-731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/ws/tmp/engine-y-34bfd288')
+
+/Users/spiderishi/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/subprocess.py:1955: FileNotFoundError
+_____________ test_the_default_y_tree_passes_yhash_and_is_34bfd288 _____________
+
+    def test_the_default_y_tree_passes_yhash_and_is_34bfd288():
+        """Item 4: the tests find engine Y through STAGE1_ENGINE_Y_TREE, default <repo>/tmp/engine-y-34bfd288; that tree
+        passes YHASH (every listed file by its SHA-256) and its code identity is engine Y's pin."""
+>       assert WS_Y.is_dir()
+E       AssertionError: assert False
+E        +  where False = is_dir()
+E        +    where is_dir = PosixPath('/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-goofy-jennings-12ae35/2e006469-731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/ws/tmp/engine-y-34bfd288').is_dir
+
+/private/tmp/claude-501/-Users-spiderishi-Coding-attribution--claude-worktrees-goofy-jennings-12ae35/2e006469-731b-4a21-8c98-93331af24388/scratchpad/b78/reports/r3-k3-verify-scratch/ws/runkit/stage1-olmo/tests/test_stage1_runner.py:2266: AssertionError
+=========================== short test summary info ============================
+FAILED runkit/stage1-olmo/tests/test_g1_yoext.py::test_the_y_copy_and_settings_pin_each_other_and_engine_y
+FAILED runkit/stage1-olmo/tests/test_g1_yoext.py::test_the_real_y_pack_code_runs_the_o_ext_runner_on_engine_y_and_the_x_files_did_not
+FAILED runkit/stage1-olmo/tests/test_stage1_runkit.py::test_a_b_qi_recipe_on_an_x_host_still_refuses
+FAILED runkit/stage1-olmo/tests/test_stage1_runkit.py::test_the_real_engine_y_code_in_ys_tree_hashes_the_committed_recipes
+FAILED runkit/stage1-olmo/tests/test_stage1_runner.py::test_every_jobs_argv_parses_with_its_targets_own_parser
+FAILED runkit/stage1-olmo/tests/test_stage1_runner.py::test_every_steps_recipe_is_the_one_its_target_scripts_settings_pin
+FAILED runkit/stage1-olmo/tests/test_stage1_runner.py::test_engine_x_refuses_y_only_arguments_so_c3_runs_on_y
+FAILED runkit/stage1-olmo/tests/test_stage1_runner.py::test_the_default_y_tree_passes_yhash_and_is_34bfd288
+ERROR runkit/stage1-olmo/tests/test_round30a.py::test_engine_y_refuses_c1s_replicate_on_an_empty_registry_and_accepts_it_once_seeded
+ERROR runkit/stage1-olmo/tests/test_round30a.py::test_the_runners_seed_lets_c1s_claim_pass_and_without_it_c1_crashes
+8 failed, 752 passed, 2 errors in 89.03s (0:01:29)
+exit 1

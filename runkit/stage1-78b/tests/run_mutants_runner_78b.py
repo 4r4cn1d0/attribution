@@ -28,7 +28,8 @@ import subprocess
 import sys
 
 KIT_REL = pathlib.Path("runkit/stage1-78b")
-TESTS = (KIT_REL / "tests" / "test_kit_78b_runner.py", KIT_REL / "tests" / "test_stage1_runner.py")
+TESTS = (KIT_REL / "tests" / "test_kit_78b_runner.py", KIT_REL / "tests" / "test_stage1_runner.py",
+         KIT_REL / "tests" / "test_runner_ab_78b.py")          # R3 K3: blocks A and B, the pack
 SPEC = KIT_REL / "tests" / "mutation_spec_runner_78b.json"
 
 

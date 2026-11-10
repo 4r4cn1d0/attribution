@@ -18,12 +18,18 @@ def test_no_o_ext_step_and_no_y_pack_in_this_copy():
     runner = (KIT / "setup" / "job_runner_stage1.py").read_text()
     for name in ("OEXT_MODULE", "OEXT_STEP_KINDS", "oext_args", "OEXT_FALLBACK_STATUS", "W1_18_SCRIPT", "o500"):
         assert name not in runner, name
-    # K4b, PP17: the two O-ext steps are the scorer block's o_only (theta0; M1) and o_only_with_regenerate (the
-    # regenerated a0 unit's e1 state), both inside sc_commands; no arm runs one
-    assert runner.count("OEXT_UNIT_SCRIPT") == 2
+    # R3 K3 (GXB T-O3, R-18; plan-ab 5a): every O-ext command is the wrapper's documented form (wrapper_lead), never a
+    # 1B script path; the scorer block's o_only and o_only_with_regenerate run "unit" in sc_commands, c0 "lean", W1-18
+    # "w1_18"; blocks A and B's arm jobs run "unit" after calibrate (ab_commands); block 0's route runs none
+    assert "OEXT_UNIT_SCRIPT" not in runner and "C0_SCRIPT" not in runner
     sc = runner[runner.index("def sc_commands("):runner.index("def out_dirs(")]
-    assert sc.count("r78.OEXT_UNIT_SCRIPT") == 2
-    assert "def oext_fallback(plan: dict) -> bool:\n    \"\"\"No O-ext step exists at 7-8B" in runner   # the name orchestrate reads: always False
+    assert sc.count("oext_unit_argv(") == 2 and sc.count('wrapper_lead("lean"') == 1
+    ab = runner[runner.index("def ab_commands("):runner.index("# ===== R3 K3 (item 13)")]
+    assert ab.count("oext_unit_argv(") == 1
+    block0 = runner[runner.index("def job_commands("):runner.index("def load_sealed(")]
+    assert "oext_unit_argv(" not in block0 and block0.index("r78.SC_BLOCK") < block0.index("r78.BANK500_BLOCKS") < \
+        block0.index("rules.arm_commands(job, PREPARED, family)")
+    assert "def oext_fallback(plan: dict) -> bool:\n    \"\"\"No fallback (c) at 7-8B" in runner   # orchestrate reads it: False
     pack = (KIT / "pack_setup.py").read_text()
     assert "engine X only" in pack or "ENGINE_X" in pack
     rules78 = (KIT / "rules_78b.py").read_text()

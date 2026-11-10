@@ -68,6 +68,7 @@ INDEX_NAMES = {"X": "OEXT-78B__{family}.json", "Y": "OEXT-78B-Y__{family}.json",
 # R-21: where a family's W1-18 record is committed once retrieved from the pod (its path is a pin of the pins file
 # and is given at run time; the O-ext eval settings pin it by SHA-256 and kind).
 RECORDS_DIR = ".ai/inputs/stage1-post-w1-20261023/78b/w1-18/"
+RECORD_NAME = "overrefusal_checks__{family}.json"   # R-53, R-89: RK's W1_18_RECORD_RE (runkit/stage1-78b/rules_78b.py)
 INDEX_KIND = "scale78b oext settings index"
 PINS_KIND = "scale78b oext pins"
 FAMILIES = ("olmo2-7b", "llama31-8b")
@@ -216,6 +217,9 @@ def check_w1_18_pin(w: dict, family: str) -> dict:
     if path is not None and not (isinstance(path, str) and path.startswith(RECORDS_DIR) and path.endswith(".json")
                                  and "\\" not in path and all(q not in ("", ".", "..") for q in path.split("/"))):
         raise s1.Refusal(f"{family}: w1_18.record_path must be a plain .json path under {RECORDS_DIR} (R-21)")
+    if path is not None and path != RECORDS_DIR + RECORD_NAME.format(family=family):
+        raise s1.Refusal(f"{family}: w1_18.record_path must be RK's standard name "
+                         f"{RECORDS_DIR}{RECORD_NAME.format(family=family)} (R-53, R-89)")
     branch, record, reason = w["branch"], _hex(w["record_sha256"], f"{family} w1_18.record_sha256"), w["full_reason"]
     if branch not in BRANCHES:
         raise s1.Refusal(f"{family}: w1_18.branch must be one of {list(BRANCHES)}")
@@ -441,19 +445,45 @@ def form(family: str, engine: str, files: dict[str, bytes], code: dict[str, str]
     return {"files": dict(sorted(out.items())), "inputs": dict(index["inputs"])}
 
 
-def w1_18_78b_form(files: dict[str, bytes], code: dict[str, str]) -> dict:
+FROZEN_READERS = ("family_probe_reading", "killtest_stage0_reading")   # R: scripts/stage1/limits/limits_common.py:71-97
+
+
+def frozen_reader_pins(limits: dict, family: str) -> dict[str, str]:
+    """W2-5: the two frozen readers W1-18 loads by path and pin (limits_common.frozen_reader, from the W1-18 settings'
+    frozen_reader block): {path under scripts/: SHA-256}, each file present in this checkout at its pin."""
+    spec = limits.get("frozen_reader")
+    if not isinstance(spec, dict) or set(spec) != set(FROZEN_READERS):
+        raise s1.Refusal(f"{family}'s W1-18 settings do not name exactly the frozen readers {list(FROZEN_READERS)}")
+    out = {}
+    for key in FROZEN_READERS:
+        entry = spec[key]
+        rel, pin = (entry.get("path"), entry.get("sha256")) if isinstance(entry, dict) else (None, None)
+        if not (isinstance(rel, str) and rel.startswith("scripts/") and rel.endswith(".py")
+                and all(q not in ("", ".", "..") for q in rel.split("/"))):
+            raise s1.Refusal(f"{family}'s W1-18 frozen reader {key} is not a plain .py path under scripts/")
+        path = REPO / rel
+        if not path.is_file() or sha256_file(path) != pin:
+            raise s1.Refusal(f"{family}'s W1-18 frozen reader {rel} is missing or differs from its pin {pin}")
+        out[rel] = pin
+    return out
+
+
+def w1_18_78b_form(files: dict[str, bytes], code: dict[str, str], families: tuple = FAMILIES) -> dict:
     """R-20: the W1-18 pod's route pin W1_18_78B: {files: {path under scripts/: SHA-256}} (K1's form: the wrapper, the
-    w1_18 command's run files, and per family its W1 index and W1-18 settings) and, beside it, side_units: per family
-    each side unit by path (under the data root) and its COMPLETE.json and job.json SHA-256 (the W1-18 settings pin
-    them; they are listed so the pod's files list can name them)."""
+    w1_18 command's run files, per family its W1 index and W1-18 settings, and the two frozen readers the W1-18
+    settings load by path and pin, W2-5) and, beside it, side_units: per family each side unit by path (under the data
+    root) and its COMPLETE.json and job.json SHA-256 (the W1-18 settings pin them; they are listed so the pod's files
+    list can name them). ``families`` (R-86: GATE_78B's families; default both) limits the side units and the
+    per-family files, so under [C] the form names OLMo-2-7B only."""
     out, units = dict(code), {}
-    for family in FAMILIES:
+    for family in families:
         name = index_name(family, "W1")
         index = s1.strict_json(files[name])
         out[f"scripts/scale78b/settings/{name}"] = sha256_bytes(files[name])
         for entry in index["files"].values():
             out[f"scripts/scale78b/settings/{entry['file']}"] = entry["sha256"]
         limits = s1.strict_json(files[file_name("limits_overrefusal_checks", family)])
+        out.update(frozen_reader_pins(limits, family))     # each at the hash of the one file here: equal across families
         units[family] = {n: {"path": u["path"], "complete_sha256": u["complete_sha256"], "job_sha256": u["job_sha256"]}
                          for n, u in sorted(limits["units"].items())}
     return {"files": dict(sorted(out.items())), "side_units": units}
@@ -477,6 +507,18 @@ def wrapper_module():
     return module
 
 
+def parse_families(spec: str | None, w1_18: bool) -> tuple:
+    """R-86: --families F[,F] (GATE_78B's families), only with --w1-18-78b; in FAMILIES' order; default both."""
+    if spec is None:
+        return FAMILIES
+    if not w1_18:
+        raise s1.Refusal("--families is an option of --w1-18-78b")
+    names = spec.split(",")
+    if not names or any(n not in FAMILIES for n in names) or len(set(names)) != len(names):
+        raise s1.Refusal(f"--families is one or both of {', '.join(FAMILIES)}, each once")
+    return tuple(f for f in FAMILIES if f in names)
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--pins", type=Path, default=None, help="the pins file (default settings/oext_pins_78b.json)")
@@ -486,11 +528,14 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--oext-78b", choices=FAMILIES, help="print RK OEXT_78B[FAMILY]'s form (engine X)")
     ap.add_argument("--oext-78b-y", choices=FAMILIES, help="print RK OEXT_78B_Y[FAMILY]'s form (engine Y)")
     ap.add_argument("--w1-18-78b", action="store_true", help="print the W1-18 pod's route pin W1_18_78B (R-20)")
+    ap.add_argument("--families", default=None, help="with --w1-18-78b: F[,F], GATE_78B's families (R-86; default "
+                    "both)")
     ap.add_argument("--records-root", type=Path, default=None, help="the folder the W1-18 record paths are relative to "
                     "(default the repository root; another folder for a dry run on copies)")
     args = ap.parse_args(argv)
     settings_dir = SETTINGS_DIR if args.settings_dir is None else args.settings_dir
     try:
+        families = parse_families(args.families, args.w1_18_78b)
         pins, pins_sha = load_pins(PINS_PATH if args.pins is None else args.pins)
         files = derive_all(pins, pins_sha, settings_dir)
         verify_records(pins, REPO if args.records_root is None else args.records_root)
@@ -498,7 +543,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"REFUSED: {type(exc).__name__}: {exc}", file=sys.stderr)
         return 2
     if args.w1_18_78b:
-        print(json.dumps(w1_18_78b_form(files, wrapper_module().code_pins("W1")), indent=2, sort_keys=True))
+        print(json.dumps(w1_18_78b_form(files, wrapper_module().code_pins("W1"), families), indent=2, sort_keys=True))
         return 0
     if args.oext_78b or args.oext_78b_y:
         wrapper = wrapper_module()
